@@ -32,6 +32,15 @@ export const HeroSection = () => {
           >
             {paragraphs.hero.firstTitle}
           </motion.p>
+
+          <motion.p 
+            className="text-xl md:text-xl max-w-2xl mx-auto leading-relaxed"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1, delay: 0.5 }}
+          >
+            {paragraphs.hero.secondTitle}
+          </motion.p>
           
           <motion.div 
             className="flex flex-col sm:flex-row gap-6 justify-center items-center"
