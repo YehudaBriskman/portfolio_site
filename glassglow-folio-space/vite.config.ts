@@ -1,7 +1,8 @@
 // vite.config.ts
-import { defineConfig, loadEnv, Plugin } from "vite";
+import { defineConfig, type Plugin, type ProxyOptions } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
+import type { IncomingMessage, ServerResponse } from "http";
 
 function color(code: number) {
   return (s: string) => `\x1b[${code}m${s}\x1b[0m`;
@@ -13,9 +14,15 @@ const red = color(31);
 const cyan = color(36);
 const magenta = color(35);
 
-type ReqLike = { method?: string; url?: string; __reqId?: number };
-type ResLike = { statusCode?: number; on?: (ev: string, cb: () => void) => void };
-
+function statusColor(status: number) {
+  if (status >= 500) return red;
+  if (status >= 400) return yellow;
+  return green;
+}
+function startClock() {
+  const t0 = Date.now();
+  return () => Date.now() - t0;
+}
 function makeIdGen() {
   let n = 0;
   return () => {
@@ -25,109 +32,62 @@ function makeIdGen() {
 }
 const nextId = makeIdGen();
 
-function startClock() {
-  const t0 = Date.now();
-  return () => Date.now() - t0;
-}
-
-function fmtUrl(target: string | undefined, path: string | undefined) {
-  if (!path) return "/";
-  if (!target) return path;
-  const base = target.replace(/\/+$/, "");
-  const rel = path.startsWith("/") ? path : `/${path}`;
-  return `${base}${rel}`;
-}
-
-function statusColor(status?: number) {
-  if (!status) return grey;
-  if (status >= 500) return red;
-  if (status >= 400) return yellow;
-  return green;
-}
-
-/** ---------- Proxy logger factory ---------- */
-function proxyWithLogs(target: string) {
+function apiProxy(target: string): ProxyOptions {
   return {
     target,
     changeOrigin: true,
     ws: true,
-    configure: (proxy: any) => {
-      proxy.on("proxyReq", (proxyReq: unknown, req: ReqLike) => {
-        req.__reqId = req.__reqId || nextId();
-        const id = req.__reqId;
-        const line =
-          `${grey(`[${id}]`)} ${cyan("→ outgoing")} ` +
-          `${(req.method || "GET").toUpperCase()} ${fmtUrl(target, req.url)}`;
-        (console).log(line);
-      });
-
-      proxy.on("proxyRes", (proxyRes:ResLike, req: ReqLike) => {
-        const id = req.__reqId || nextId();
-        const sc = statusColor(proxyRes?.statusCode);
-        const line =
-          `${grey(`[${id}]`)} ${sc("← incoming")} ` +
-          `${(req.method || "GET").toUpperCase()} ${fmtUrl(target, req.url)} ` +
-          `${sc(String(proxyRes?.statusCode ?? "-"))}`;
-        (console).log(line);
-      });
-
-      proxy.on("error", (err:unknown, req: ReqLike) => {
-        const id = req.__reqId || nextId();
-        (console).error(
-          `${grey(`[${id}]`)} ${red("✖ proxy error")} ${(req.method || "GET").toUpperCase()} ${fmtUrl(target, req.url)}`,
-          "\n",
-          err
-        );
-      });
-    },
+    rewrite: (p) => p.replace(/^\/api/, ""),
   };
 }
 
-/** ---------- Static (frontend) requests logger as a Vite plugin ---------- */
-function requestLoggerPlugin(): Plugin {
+function requestLoggerPlugin(apiBase: string): Plugin {
   return {
     name: "request-logger",
     configureServer(server) {
-      server.middlewares.use((req: ReqLike, res: ResLike, next) => {
-        req.__reqId = req.__reqId || nextId();
-        const id = req.__reqId;
-        const method = (req.method || "GET").toUpperCase();
-        const url = req.url || "/";
-        const clock = startClock();
+      server.middlewares.use(
+        (req: IncomingMessage, res: ServerResponse, next: (err?: unknown) => void) => {
+          const id = nextId();
+          const method = (req.method ?? "GET").toUpperCase();
+          const url = req.url ?? "/";
+          const t = startClock();
 
-        // Mark reception of ANY request reaching Vite dev server
-        (console).log(
-          `${grey(`[${id}]`)} ${magenta("→ received")} ${method} ${url}`
-        );
+          const upstream =
+            url.startsWith("/api")
+              ? `${apiBase}${url.replace(/^\/api/, "")}`
+              : "static (vite)";
 
-        next();
-      });
+          console.log(`${grey(`[${id}]`)} ${magenta("→ received")} ${method} ${url} ${cyan(`upstream=${upstream}`)}`);
+
+          res.on("finish", () => {
+            const ms = t();
+            const sc = statusColor(res.statusCode || 0);
+            console.log(
+              `${grey(`[${id}]`)} ${sc("← responded")} ${method} ${url} ${sc(String(res.statusCode || "-"))} ${grey(`${ms}ms`)}`
+            );
+          });
+
+          next();
+        }
+      );
     },
   };
 }
 
-export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), "");
-  const API_TARGET = env.VITE_API_TARGET || "http://localhost:5000";
+export default defineConfig(() => {
+  const API_TARGET = "http://localhost:5000";
 
   return {
     server: {
       host: "::",
       port: 8080,
       proxy: {
-        "/api": proxyWithLogs(API_TARGET),
-        // add more routes if needed:
-        // "/files": proxyWithLogs(env.VITE_FILES_TARGET || "http://localhost:7003"),
+        "/api": apiProxy(API_TARGET),
       },
     },
-    plugins: [
-      react(),
-      requestLoggerPlugin(), // logs every request hitting Vite (HTML, JS, CSS, images, HMR, etc.)
-    ],
+    plugins: [react(), requestLoggerPlugin(API_TARGET)],
     resolve: {
-      alias: {
-        "@": path.resolve(__dirname, "./src"),
-      },
+      alias: { "@": path.resolve(__dirname, "./src") },
     },
   };
 });
