@@ -1,0 +1,15 @@
+services:
+  web:
+    build: ./glassglow-folio-space
+    image: portfolio_site-web:latest
+    ports:
+      - "8080:8080"
+    depends_on:
+      - api
+
+  api:
+    build: ./backend
+    expose:
+      - "5000"
+    environment:
+      - PORT=5000

@@ -18,7 +18,7 @@ ENV NODE_ENV=production
 ENV PORT=5000
 ENV UPLOADS_DIR=/app/uploads
 
-COPY package.json package-lock.json* ./
+COPY package*.json ./
 RUN npm ci --omit=dev
 
 COPY --from=builder /app/dist ./dist
