@@ -1,0 +1,115 @@
+variables:
+  FRONT_DIR: "glassglow-folio-space"
+  NODE_ENV: "ci"
+
+stages:
+  - test
+  - build
+  - docker
+
+.default-node:
+  image: node:20
+  cache:
+    key:
+      files:
+        - $FRONT_DIR/package-lock.json
+    paths:
+      - $FRONT_DIR/node_modules/
+  before_script:
+    - corepack enable || true
+    - cd "$FRONT_DIR"
+
+.rules-frontend:
+  rules:
+    - changes:
+        - $FRONT_DIR/**/*
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_BRANCH == "develop"'
+
+# ===== Test =====
+test-fe:
+  stage: test
+  extends: [.default-node, .rules-frontend]
+  script:
+    - npm ci
+    - npm run lint
+    - npm test
+
+# ===== Build =====
+build-fe:
+  stage: build
+  extends: [.default-node, .rules-frontend]
+  script:
+    - npm ci
+    - npm run build
+    - ls -lh dist/
+  artifacts:
+    paths:
+      - $FRONT_DIR/dist/
+      - $FRONT_DIR/nginx.app.conf
+      - $FRONT_DIR/nginx.root.conf
+      - $FRONT_DIR/Dockerfile
+      - $FRONT_DIR/package.json
+      - $FRONT_DIR/package-lock.json
+    expire_in: 1 hour
+  needs: []
+
+# ===== Docker Image =====
+build-container-fe:
+  stage: docker
+  image:
+    name: gcr.io/kaniko-project/executor:debug
+    entrypoint: [""]
+  needs: ["build-fe"]
+  script:
+    - mkdir -p /kaniko/.docker
+    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
+    - /kaniko/executor
+      --context "${CI_PROJECT_DIR}/${FRONT_DIR}"
+      --dockerfile "${CI_PROJECT_DIR}/${FRONT_DIR}/Dockerfile"
+      --destination "${CI_REGISTRY_IMAGE}/web:${CI_COMMIT_SHA}"
+      --destination "${CI_REGISTRY_IMAGE}/web:latest"
+      --cache=true
+  extends: [.rules-frontend]
+
+.default-node-be:
+  image: node:20
+  before_script:
+    - cd backend
+
+test-be:
+  stage: test
+  extends: [.default-node-be]
+  rules:
+    - changes:
+        - backend/**/*
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_BRANCH == "develop"'
+  script:
+    - npm ci
+    - npm run lint --if-present
+    - npm test --if-present
+
+build-container-be:
+  stage: docker
+  image:
+    name: gcr.io/kaniko-project/executor:debug
+    entrypoint: [""]
+  needs: ["test-be"]
+  rules:
+    - changes:
+        - backend/**/*
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_BRANCH == "develop"'
+  script:
+    - mkdir -p /kaniko/.docker
+    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
+    - /kaniko/executor
+      --context "${CI_PROJECT_DIR}/backend"
+      --dockerfile "${CI_PROJECT_DIR}/backend/Dockerfile"
+      --destination "${CI_REGISTRY_IMAGE}/api:${CI_COMMIT_SHA}"
+      --destination "${CI_REGISTRY_IMAGE}/api:latest"
+      --cache=true
