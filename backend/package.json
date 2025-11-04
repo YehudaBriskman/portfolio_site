@@ -7,8 +7,6 @@
     "start": "ts-node src/server.ts",
     "build": "tsc",
     "dev": "ts-node src/server.ts",
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
     "test": "echo \"(no tests yet)\""
   },
   "dependencies": {
