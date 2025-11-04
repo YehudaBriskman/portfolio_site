@@ -1,3 +1,4 @@
+// src/app.test.ts
 import request from 'supertest';
 import fs from 'fs';
 import path from 'path';
@@ -16,7 +17,6 @@ describe('backend API', () => {
   it('CORS headers exist', async () => {
     const app = createApp();
     const res = await request(app).get('/health');
-    // cors מוסיף את זה כברירת מחדל
     expect(res.headers['access-control-allow-origin']).toBe('*');
   });
 
@@ -27,30 +27,26 @@ describe('backend API', () => {
     expect(res.body).toEqual({ error: 'Not Found' });
   });
 
-  it('GET /images/:name returns 404 when file missing', async () => {
+  it('GET /api/images/:name returns 404 when file missing', async () => {
     const app = createApp();
-    const res = await request(app).get('/images/missing.png');
+    const res = await request(app).get('/api/images/missing.png'); // <-- /api
     expect(res.status).toBe(404);
-    expect(res.body).toEqual({ error: 'Not found' });
+    expect(res.body).toEqual({ error: 'Not Found' });
   });
 
-  it('GET /images/:name returns file content when exists (tmp dir)', async () => {
-    // ניצור תיקייה זמנית וקובץ
+  it('GET /api/images/:name returns file content when exists (tmp dir)', async () => {
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'uploads-'));
     const fileName = 'hello.txt';
     const filePath = path.join(tmp, fileName);
     fs.writeFileSync(filePath, 'hello world');
 
-    // נריץ אפליקציה עם UPLOADS_DIR זמני
     const prev = process.env.UPLOADS_DIR;
     process.env.UPLOADS_DIR = tmp;
     const app = createApp();
 
-    const res = await request(app).get(`/images/${fileName}`);
+    const res = await request(app).get(`/api/images/${fileName}`); // <-- /api
     expect(res.status).toBe(200);
     expect(res.text).toBe('hello world');
-
-    // ניקוי
     process.env.UPLOADS_DIR = prev;
     fs.rmSync(tmp, { recursive: true, force: true });
   });
