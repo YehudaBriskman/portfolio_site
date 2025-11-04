@@ -6,9 +6,6 @@ import { paragraphs } from "@/data/paragraphs";
 import { LazyApiImage } from "@/components/LazyApiImage";
 
 const apiImageUrl = (imageId: string) =>
-  // Example endpoints — pick ONE and implement on your server:
-  // `/api/images/${encodeURIComponent(imageId)}`
-  // or `/api/assets/project-image?name=${encodeURIComponent(imageId)}`
   `/api/images/${encodeURIComponent(imageId)}`;
 
 export const ProjectsSection: React.FC = () => {
@@ -47,12 +44,6 @@ export const ProjectsSection: React.FC = () => {
                   apiSrc={apiImageUrl(project.image)}
                   alt={project.title}
                   className="w-full h-48"
-                  // if you need auth headers / cookies:
-                  requestInit={{
-                    // credentials: "include",
-                    // headers: { Authorization: `Bearer ${token}` },
-                  }}
-                  // Optional custom fallback
                   fallback={
                     <div className="w-full h-full flex items-center justify-center bg-white/10 text-sm">
                       loading image…

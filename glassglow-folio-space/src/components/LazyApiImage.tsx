@@ -27,9 +27,7 @@ export const LazyApiImage: React.FC<LazyApiImageProps> = ({
   const ioRef = useRef<IntersectionObserver | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
-  // retry counter as a ref to avoid stale closures
   const attemptRef = useRef(0);
-  // simple guard to avoid double-start
   const startedRef = useRef(false);
 
   const cleanupObjectUrl = useCallback(() => {
@@ -37,7 +35,7 @@ export const LazyApiImage: React.FC<LazyApiImageProps> = ({
   }, [objectUrl]);
 
   const fetchOnce = useCallback(async () => {
-    if (startedRef.current) return; // already started
+    if (startedRef.current) return;
     startedRef.current = true;
 
     setStatus("loading");
@@ -69,7 +67,6 @@ export const LazyApiImage: React.FC<LazyApiImageProps> = ({
           setTimeout(doFetch, backoff);
         } else {
           setStatus("error");
-          // eslint-disable-next-line no-console
           console.error("[LazyApiImage] failed:", err);
         }
       }
@@ -82,18 +79,15 @@ export const LazyApiImage: React.FC<LazyApiImageProps> = ({
     const el = containerRef.current;
     if (!el) return;
 
-    // reset per new src
     startedRef.current = false;
     setStatus("idle");
     attemptRef.current = 0;
 
-    // (re)attach observer
     ioRef.current?.disconnect();
     ioRef.current = new IntersectionObserver(
       (entries, obs) => {
         const visible = entries.some((e) => e.isIntersecting);
         if (visible && status === "idle") {
-          // stop observing immediately to avoid multiple triggers
           obs.unobserve(el);
           fetchOnce();
         }
@@ -105,8 +99,7 @@ export const LazyApiImage: React.FC<LazyApiImageProps> = ({
     return () => {
       ioRef.current?.disconnect();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [apiSrc]); // rerun only when the src changes
+  }, [apiSrc]);
 
   useEffect(() => {
     return () => {

@@ -14,9 +14,7 @@ export const ContactSection = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle form submission here
     console.log('Form submitted:', formData);
-    // Reset form
     setFormData({ name: '', email: '', message: '' });
   };
 
@@ -43,7 +41,6 @@ export const ContactSection = () => {
         </motion.div>
 
         <div className="grid lg:grid-cols-2 gap-16 items-start">
-          {/* Contact Form */}
           <motion.div
             className="glass-card animate-on-scroll"
             initial={{ opacity: 0, x: -50 }}
@@ -111,7 +108,6 @@ export const ContactSection = () => {
             </form>
           </motion.div>
 
-          {/* Contact Info */}
           <motion.div
             className="space-y-8 animate-on-scroll"
             initial={{ opacity: 0, x: 50 }}
@@ -149,12 +145,11 @@ export const ContactSection = () => {
               </div>
             </div>
 
-            {/* Social Links */}
             <div className="glass-card">
               <h3 className="text-2xl font-bold mb-6">Follow Me</h3>
               <div className="flex space-x-4">
                 {links.map((social) => {
-                  const Icon = LucideIcons[social.icon]
+                  const Icon = (LucideIcons)[social.icon] ?? LucideIcons.HelpCircle;
                   return (
                     <motion.a
                       key={social.name}
@@ -170,7 +165,6 @@ export const ContactSection = () => {
               </div>
             </div>
 
-            {/* Availability */}
             <div className="glass-card">
               <div className="flex items-center space-x-3">
                 <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>

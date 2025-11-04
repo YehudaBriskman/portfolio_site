@@ -46,7 +46,6 @@ export const Navigation: React.FC<NavigationProps> = ({ darkMode }) => {
 
   return (
     <>
-      {/* Desktop Navigation - Left Sidebar - Always Visible Full Height */}
       <nav className="hidden md:flex fixed left-0 top-0 h-full w-28 z-50 glass-nav-vertical">
         <div className="flex flex-col items-center justify-center space-y-11 py-8 h-full w-full">
           {navItems.map((item) => (
@@ -82,7 +81,6 @@ export const Navigation: React.FC<NavigationProps> = ({ darkMode }) => {
         </div>
       </nav>
 
-      {/* Mobile Menu Button */}
       <motion.button
         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
         className={`md:hidden fixed top-6 left-6 z-50 glass w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 ${
@@ -94,7 +92,6 @@ export const Navigation: React.FC<NavigationProps> = ({ darkMode }) => {
         {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
       </motion.button>
 
-      {/* Mobile Navigation Overlay */}
       <AnimatePresence>
         {isMobileMenuOpen && (
           <motion.div
