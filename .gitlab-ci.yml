@@ -61,7 +61,7 @@ build-container-frontend:
   image:
     name: gcr.io/kaniko-project/executor:debug
     entrypoint: [""]
-  needs: ["build-fe"]
+  needs: ["build-frontend"]
   script:
     - mkdir -p /kaniko/.docker
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
@@ -80,7 +80,7 @@ build-container-frontend:
 
 test-backend:
   stage: test
-  extends: [.default-node-be]
+  extends: [.default-node-backend]
   rules:
     - changes:
         - backend/**/*
@@ -97,7 +97,7 @@ build-container-backend:
   image:
     name: gcr.io/kaniko-project/executor:debug
     entrypoint: [""]
-  needs: ["test-be"]
+  needs: ["test-backend"]
   rules:
     - changes:
         - backend/**/*
