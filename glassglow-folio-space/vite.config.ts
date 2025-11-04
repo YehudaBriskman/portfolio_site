@@ -14,7 +14,7 @@ const cyan = color(36);
 const magenta = color(35);
 
 type ReqLike = { method?: string; url?: string; __reqId?: number };
-type ResLike = { statusCode?: number; on?: any };
+type ResLike = { statusCode?: number; on?: (ev: string, cb: () => void) => void };
 
 function makeIdGen() {
   let n = 0;
@@ -52,35 +52,31 @@ function proxyWithLogs(target: string) {
     changeOrigin: true,
     ws: true,
     configure: (proxy: any) => {
-      proxy.on("proxyReq", (proxyReq: any, req: ReqLike) => {
+      proxy.on("proxyReq", (proxyReq: unknown, req: ReqLike) => {
         req.__reqId = req.__reqId || nextId();
         const id = req.__reqId;
         const line =
           `${grey(`[${id}]`)} ${cyan("→ outgoing")} ` +
           `${(req.method || "GET").toUpperCase()} ${fmtUrl(target, req.url)}`;
-        (console as any).log(line);
-        // clock starts
-        (req as any).__dur = startClock();
+        (console).log(line);
       });
 
-      proxy.on("proxyRes", (proxyRes: any, req: ReqLike) => {
+      proxy.on("proxyRes", (proxyRes:ResLike, req: ReqLike) => {
         const id = req.__reqId || nextId();
-        const dur = (req as any).__dur ? (req as any).__dur() : 0;
         const sc = statusColor(proxyRes?.statusCode);
         const line =
           `${grey(`[${id}]`)} ${sc("← incoming")} ` +
           `${(req.method || "GET").toUpperCase()} ${fmtUrl(target, req.url)} ` +
-          `${sc(String(proxyRes?.statusCode ?? "-"))} ${grey(`${dur}ms`)}`;
-        (console as any).log(line);
+          `${sc(String(proxyRes?.statusCode ?? "-"))}`;
+        (console).log(line);
       });
 
-      proxy.on("error", (err: any, req: ReqLike) => {
+      proxy.on("error", (err:unknown, req: ReqLike) => {
         const id = req.__reqId || nextId();
-        const dur = (req as any).__dur ? (req as any).__dur() : 0;
-        (console as any).error(
-          `${grey(`[${id}]`)} ${red("✖ proxy error")} ${(req.method || "GET").toUpperCase()} ${fmtUrl(target, req.url)} ${grey(`${dur}ms`)}`,
+        (console).error(
+          `${grey(`[${id}]`)} ${red("✖ proxy error")} ${(req.method || "GET").toUpperCase()} ${fmtUrl(target, req.url)}`,
           "\n",
-          err?.message || err
+          err
         );
       });
     },
@@ -93,7 +89,6 @@ function requestLoggerPlugin(): Plugin {
     name: "request-logger",
     configureServer(server) {
       server.middlewares.use((req: ReqLike, res: ResLike, next) => {
-        // assign id once
         req.__reqId = req.__reqId || nextId();
         const id = req.__reqId;
         const method = (req.method || "GET").toUpperCase();
@@ -101,17 +96,9 @@ function requestLoggerPlugin(): Plugin {
         const clock = startClock();
 
         // Mark reception of ANY request reaching Vite dev server
-        (console as any).log(
+        (console).log(
           `${grey(`[${id}]`)} ${magenta("→ received")} ${method} ${url}`
         );
-
-        res.on("finish", () => {
-          const dur = clock();
-          const sc = statusColor(res.statusCode);
-          (console as any).log(
-            `${grey(`[${id}]`)} ${sc("← responded")} ${method} ${url} ${sc(String(res.statusCode ?? "-"))} ${grey(`${dur}ms`)}`
-          );
-        });
 
         next();
       });
