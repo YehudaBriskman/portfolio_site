@@ -75,6 +75,12 @@ build-container-frontend:
 
 .default-node-backend:
   image: node:20
+  cache:
+    key:
+      files:
+        - backend/package-lock.json
+    paths:
+      - backend/node_modules/
   before_script:
     - cd backend
 
@@ -92,12 +98,35 @@ test-backend:
     - npm run lint --if-present
     - npm test --if-present
 
+build-backend:
+  stage: build
+  extends: [.default-node-backend]
+  rules:
+    - changes:
+        - backend/**/*
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_BRANCH == "develop"'
+  script:
+    - npm ci
+    - npm run build
+    - ls -lh dist/ || true
+  artifacts:
+    paths:
+      - backend/dist/
+      - backend/package.json
+      - backend/package-lock.json
+      - backend/tsconfig.json
+      - backend/Dockerfile
+    expire_in: 1 hour
+  needs: []
+
 build-container-backend:
   stage: docker
   image:
     name: gcr.io/kaniko-project/executor:debug
     entrypoint: [""]
-  needs: ["test-backend"]
+  needs: ["build-backend"]  # <-- במקום test-backend
   rules:
     - changes:
         - backend/**/*
@@ -111,5 +140,5 @@ build-container-backend:
       --context "${CI_PROJECT_DIR}/backend"
       --dockerfile "${CI_PROJECT_DIR}/backend/Dockerfile"
       --destination "${CI_REGISTRY_IMAGE}/api:${CI_COMMIT_SHA}"
-      --destination "${CI_REGISTRY_IMAGE}/api:latest"
+      --destination "${CI_REGISTRY_IMAGE}/api:latest}"
       --cache=true
