@@ -28,7 +28,7 @@ stages:
     - if: '$CI_COMMIT_BRANCH == "develop"'
 
 # ===== Test =====
-test-fe:
+test-frontend:
   stage: test
   extends: [.default-node, .rules-frontend]
   script:
@@ -37,7 +37,7 @@ test-fe:
     - npm test
 
 # ===== Build =====
-build-fe:
+build-frontend:
   stage: build
   extends: [.default-node, .rules-frontend]
   script:
@@ -56,7 +56,7 @@ build-fe:
   needs: []
 
 # ===== Docker Image =====
-build-container-fe:
+build-container-frontend:
   stage: docker
   image:
     name: gcr.io/kaniko-project/executor:debug
@@ -73,12 +73,12 @@ build-container-fe:
       --cache=true
   extends: [.rules-frontend]
 
-.default-node-be:
+.default-node-backend:
   image: node:20
   before_script:
     - cd backend
 
-test-be:
+test-backend:
   stage: test
   extends: [.default-node-be]
   rules:
@@ -92,7 +92,7 @@ test-be:
     - npm run lint --if-present
     - npm test --if-present
 
-build-container-be:
+build-container-backend:
   stage: docker
   image:
     name: gcr.io/kaniko-project/executor:debug
