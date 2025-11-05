@@ -4,25 +4,31 @@ import { motion } from 'framer-motion';
 import { paragraphs } from '@/data/paragraphs';
 import { links } from '@/data/links';
 import * as LucideIcons from "lucide-react";
+import { sendContactMessage } from '@/services/contact';
 
 export const ContactSection = () => {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    message: ''
-  });
+  const [formData, setFormData] = useState({ name:'', email:'', message:'' });
+  const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState<null | { ok: boolean; msg: string }>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Form submitted:', formData);
-    setFormData({ name: '', email: '', message: '' });
+    if (loading) return;
+    setLoading(true);
+    setStatus(null);
+    try {
+      await sendContactMessage(formData);
+      setStatus({ ok: true, msg: "Send! we'll responed later!" });
+      setFormData({ name: '', email: '', message: '' });
+    } catch (err) {
+      setStatus({ ok: false, msg: err instanceof Error ? err.message : "Error with sending Email" });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
   return (
@@ -41,69 +47,55 @@ export const ContactSection = () => {
         </motion.div>
 
         <div className="grid lg:grid-cols-2 gap-16 items-start">
-          <motion.div
-            className="glass-card animate-on-scroll"
-            initial={{ opacity: 0, x: -50 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8 }}
-          >
+          <motion.div /* ... */>
             <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Name */}
               <div>
-                <label htmlFor="name" className="block font-medium mb-2">
-                  Name
-                </label>
+                <label htmlFor="name" className="block font-medium mb-2">Name</label>
                 <input
-                  type="text"
-                  id="name"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  required
+                  id="name" name="name" type="text" required
+                  value={formData.name} onChange={handleChange}
                   className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg placeholder-gray-400 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/50 transition-all duration-300"
                   placeholder="Your name"
                 />
               </div>
 
+              {/* Email */}
               <div>
-                <label htmlFor="email" className="block font-medium mb-2">
-                  Email
-                </label>
+                <label htmlFor="email" className="block font-medium mb-2">Email</label>
                 <input
-                  type="email"
-                  id="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  required
+                  id="email" name="email" type="email" required
+                  value={formData.email} onChange={handleChange}
                   className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg placeholder-gray-400 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/50 transition-all duration-300"
                   placeholder="your.email@example.com"
                 />
               </div>
 
+              {/* Message */}
               <div>
-                <label htmlFor="message" className="block font-medium mb-2">
-                  Message
-                </label>
+                <label htmlFor="message" className="block font-medium mb-2">Message</label>
                 <textarea
-                  id="message"
-                  name="message"
-                  value={formData.message}
-                  onChange={handleChange}
-                  required
-                  rows={6}
+                  id="message" name="message" required rows={6}
+                  value={formData.message} onChange={handleChange}
                   className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg placeholder-gray-400 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/50 transition-all duration-300 resize-none"
                   placeholder="Tell me about your project..."
                 />
               </div>
 
+              {/* Status */}
+              {status && (
+                <p className={`text-sm ${status.ok ? "text-green-400" : "text-red-400"}`}>
+                  {status.msg}
+                </p>
+              )}
+
               <motion.button
-                type="submit"
-                className="w-full glow-button text-lg py-4"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+                type="submit" disabled={loading}
+                className="w-full glow-button text-lg py-4 disabled:opacity-50"
+                whileHover={{ scale: loading ? 1 : 1.02 }}
+                whileTap={{ scale: loading ? 1 : 0.98 }}
               >
-                Send Message
+                {loading ? "Sending..." : "Send Message"}
               </motion.button>
             </form>
           </motion.div>
