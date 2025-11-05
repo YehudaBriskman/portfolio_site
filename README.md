@@ -107,6 +107,17 @@ PORT=5000
 NODE_ENV=development
 JWT_SECRET=><Futuer_needed>
 UPLOADS_DIR=src/uploads/
+
+EMAIL_PROVIDER=smtp
+MAIL_FROM="Your name <your contact email>"
+MAIL_REPLY_TO=<your contact email>
+CONTACT_TO=<your contact email>
+
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=465
+SMTP_SECURE=true
+SMTP_USER=<your email provider>
+SMTP_PASS=<your app password (should look like: "igrt edjd sdfg asds")>
 ````
 
 Frontend `.env.development`:
