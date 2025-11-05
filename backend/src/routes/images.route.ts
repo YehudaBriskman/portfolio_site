@@ -9,7 +9,7 @@ export function createImagesRouter() {
   const service = new ImagesService(process.env.UPLOADS_DIR);
   const controller = new ImagesController(service);
 
-  router.get("/images/:imageId", controller.getById);
+  router.get("/:imageId", controller.getById);
 
   return router;
 }

@@ -4,7 +4,6 @@ export function requestLogger(req: Request, res: Response, next: NextFunction) {
   const start = Date.now();
   const { method, url } = req;
 
-  // color helpers for nicer terminal output
   const color = {
     grey: (s: string) => `\x1b[90m${s}\x1b[0m`,
     green: (s: string) => `\x1b[32m${s}\x1b[0m`,

@@ -1,12 +1,9 @@
 import express from "express";
 import cors from "cors";
 import { createImagesRouter } from "./routes/images.route";
-import { requestLogger } from "./middleware/logger";
+import { requestLogger } from "./middlewares/logger";
+import emailRoutes from './routes/email.route.js';
 
-/**
- * יוצר מופע Express מוכן לשימוש בטסטים / שרת
- * בלי app.listen – כך אפשר להריץ עם supertest בלי לפתוח פורטים.
- */
 export function createApp() {
   const app = express();
 
@@ -16,7 +13,9 @@ export function createApp() {
   app.use(requestLogger);
 
   // Routers
-  app.use("/api", createImagesRouter());
+
+  app.use('/api/email', emailRoutes);
+  app.use("/api/images", createImagesRouter());
 
   // Health
   app.get("/health", (_req, res) => res.json({ ok: true }));
