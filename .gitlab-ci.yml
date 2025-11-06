@@ -1,14 +1,32 @@
 variables:
   FRONT_DIR: "glassglow-folio-space"
+  BACK_DIR: "backend"
   NODE_ENV: "ci"
+  NPM_CONFIG_FUND: "false"
+  NPM_CONFIG_AUDIT: "false"
+  CI_IMAGE_TAG: "${CI_COMMIT_SHA}"
+  DOCKER_BUILDKIT: "1"
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH == "develop"
+    - changes:
+        compare_to: "refs/heads/main"
+        paths:
+          - "**/*"
+      when: always
 
 stages:
+  - verify
   - lint
   - test
   - build
+  - security
   - docker
 
-.default-node:
+.default-node: &default_node
   image: node:20
   cache:
     key:
@@ -16,11 +34,22 @@ stages:
         - $FRONT_DIR/package-lock.json
     paths:
       - $FRONT_DIR/node_modules/
-  before_script:
+  before_script: &default_before_script
     - corepack enable || true
     - cd "$FRONT_DIR"
 
-.rules-frontend:
+.default-node-backend: &default_node_backend
+  image: node:20
+  cache:
+    key:
+      files:
+        - backend/package-lock.json
+    paths:
+      - backend/node_modules/
+  before_script:
+    - cd "$BACK_DIR"
+
+.rules-frontend: &rules_frontend
   rules:
     - changes:
         - $FRONT_DIR/**/*
@@ -28,10 +57,47 @@ stages:
     - if: '$CI_COMMIT_BRANCH == "main"'
     - if: '$CI_COMMIT_BRANCH == "develop"'
 
+.rules-backend: &rules_backend
+  rules:
+    - changes:
+        - $BACK_DIR/**/*
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_BRANCH == "develop"'
+
+# ===== Verify (Preflight) =====
+preflight:
+  stage: verify
+  image: alpine:3.20
+  before_script:
+    - set -Eeuo pipefail
+    - apk add --no-cache bash grep coreutils nginx
+  script: |
+    [ -d "$FRONT_DIR" ] || { echo "Missing $FRONT_DIR"; exit 1; }
+    [ -f "$FRONT_DIR/package.json" ] || { echo "Missing $FRONT_DIR/package.json"; exit 1; }
+    [ -f "$FRONT_DIR/package-lock.json" ] || { echo "Missing $FRONT_DIR/package-lock.json"; exit 1; }
+    [ -f "$FRONT_DIR/Dockerfile" ] || { echo "Missing $FRONT_DIR/Dockerfile"; exit 1; }
+    [ -f "$FRONT_DIR/nginx.root.conf" ] || { echo "Missing $FRONT_DIR/nginx.root.conf"; exit 1; }
+    [ -f "$FRONT_DIR/nginx.app.conf" ] || { echo "Missing $FRONT_DIR/nginx.app.conf"; exit 1; }
+
+    [ -d "$BACK_DIR" ] || { echo "Missing $BACK_DIR"; exit 1; }
+    [ -f "$BACK_DIR/package.json" ] || { echo "Missing $BACK_DIR/package.json"; exit 1; }
+    [ -f "$BACK_DIR/package-lock.json" ] || { echo "Missing $BACK_DIR/package-lock.json"; exit 1; }
+    [ -f "$BACK_DIR/Dockerfile" ] || { echo "Missing $BACK_DIR/Dockerfile"; exit 1; }
+
+    nginx -t -c "$(pwd)/$FRONT_DIR/nginx.root.conf" || { echo "nginx.root.conf invalid"; exit 1; }
+    nginx -t -c "$(pwd)/$FRONT_DIR/nginx.app.conf"  || { echo "nginx.app.conf invalid"; exit 1; }
+
+  rules:
+    - when: always
+  interruptible: true
+
 # ===== Lint =====
 lint-frontend:
   stage: lint
-  extends: [.default-node, .rules-frontend]
+  <<: [*default_node, *rules_frontend]
+  before_script:
+    - *default_before_script
   script:
     - npm ci
     - npm run lint
@@ -39,18 +105,27 @@ lint-frontend:
 # ===== Test =====
 test-frontend:
   stage: test
-  extends: [.default-node, .rules-frontend]
+  <<: [*default_node, *rules_frontend]
+  before_script:
+    - *default_before_script
+    - npm ci --no-audit --no-fund
   script:
-    - npm ci
-    - npm test
+    - npm test -- --ci --reporters=default --reporters=jest-junit
+  artifacts:
+    when: always
+    reports:
+      junit: "$FRONT_DIR/junit.xml"
   needs: ["lint-frontend"]
+  interruptible: true
 
 # ===== Build =====
 build-frontend:
   stage: build
-  extends: [.default-node, .rules-frontend]
+  <<: [*default_node, *rules_frontend]
+  before_script:
+    - *default_before_script
+    - npm ci --no-audit --no-fund
   script:
-    - npm ci
     - npm run build
     - ls -lh dist/
   artifacts:
@@ -61,8 +136,19 @@ build-frontend:
       - $FRONT_DIR/Dockerfile
       - $FRONT_DIR/package.json
       - $FRONT_DIR/package-lock.json
-    expire_in: 1 hour
-  needs: ["test-frontend","lint-frontend"]
+    expire_in: 2 hours
+  needs: ["test-frontend", "lint-frontend"]
+  interruptible: true
+
+# ===== Security: Dockerfile lint (frontend) =====
+hadolint-frontend:
+  stage: security
+  image: hadolint/hadolint:latest-alpine
+  <<: *rules_frontend
+  script:
+    - hadolint "$FRONT_DIR/Dockerfile"
+  needs: ["build-frontend"]
+  interruptible: true
 
 # ===== Docker Image =====
 build-container-frontend:
@@ -70,7 +156,8 @@ build-container-frontend:
   image:
     name: gcr.io/kaniko-project/executor:debug
     entrypoint: [""]
-  needs: ["build-frontend","test-frontend","lint-frontend"]
+  needs:
+    ["build-frontend", "test-frontend", "lint-frontend", "hadolint-frontend"]
   script:
     - mkdir -p /kaniko/.docker
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
@@ -80,57 +167,57 @@ build-container-frontend:
       --destination "${CI_REGISTRY_IMAGE}/web:${CI_COMMIT_SHA}"
       --destination "${CI_REGISTRY_IMAGE}/web:latest"
       --cache=true
-  extends: [.rules-frontend]
-
-.default-node-backend:
-  image: node:20
-  cache:
-    key:
-      files:
-        - backend/package-lock.json
-    paths:
-      - backend/node_modules/
-  before_script:
-    - cd backend
+      --single-snapshot
+      --reproducible
+  interruptible: true
+  rules:
+    - exists:
+        - $FRONT_DIR/Dockerfile
 
 # ===== Test =====
 test-backend:
   stage: test
-  extends: [.default-node-backend]
-  rules:
-    - changes:
-        - backend/**/*
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-    - if: '$CI_COMMIT_BRANCH == "main"'
-    - if: '$CI_COMMIT_BRANCH == "develop"'
+  <<: [*default_node_backend, *rules_backend]
   script:
-    - npm ci
+    - npm ci --no-audit --no-fund
     - npm run lint --if-present
     - npm test --if-present
+  artifacts:
+    when: always
+    reports:
+      junit: "$BACK_DIR/junit.xml"
+  interruptible: true
 
 # ===== Build =====
 build-backend:
   stage: build
-  extends: [.default-node-backend]
-  rules:
-    - changes:
-        - backend/**/*
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-    - if: '$CI_COMMIT_BRANCH == "main"'
-    - if: '$CI_COMMIT_BRANCH == "develop"'
+  <<: [*default_node_backend, *rules_backend]
   script:
-    - npm ci
+    - npm ci --no-audit --no-fund
     - npm run build
     - ls -lh dist/ || true
   artifacts:
     paths:
-      - backend/dist/
-      - backend/package.json
-      - backend/package-lock.json
-      - backend/tsconfig.json
-      - backend/Dockerfile
-    expire_in: 1 hour
+      - $BACK_DIR/dist/
+      - $BACK_DIR/package.json
+      - $BACK_DIR/package-lock.json
+      - $BACK_DIR/tsconfig.json
+      - $BACK_DIR/Dockerfile
+    expire_in: 2 hours
   needs: ["test-backend"]
+  interruptible: true
+
+hadolint-backend:
+  stage: security
+  image: hadolint/hadolint:latest-alpine
+  <<: *rules_backend
+  script:
+    - hadolint "$BACK_DIR/Dockerfile"
+  needs: ["build-backend"]
+  interruptible: true
+  rules:
+    - exists:
+        - $BACK_DIR/Dockerfile
 
 # ===== Docker Image =====
 build-container-backend:
@@ -138,13 +225,8 @@ build-container-backend:
   image:
     name: gcr.io/kaniko-project/executor:debug
     entrypoint: [""]
-  needs: ["test-backend", "build-backend"]
-  rules:
-    - changes:
-        - backend/**/*
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-    - if: '$CI_COMMIT_BRANCH == "main"'
-    - if: '$CI_COMMIT_BRANCH == "develop"'
+  <<: *rules_backend
+  needs: ["test-backend", "build-backend", "hadolint-backend"]
   script:
     - mkdir -p /kaniko/.docker
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
@@ -154,3 +236,27 @@ build-container-backend:
       --destination "${CI_REGISTRY_IMAGE}/api:${CI_COMMIT_SHA}"
       --destination "${CI_REGISTRY_IMAGE}/api:latest"
       --cache=true
+      --single-snapshot
+      --reproducible
+  interruptible: true
+  rules:
+    - exists:
+        - backend/Dockerfile
+
+trivy-frontend:
+  stage: security
+  image: aquasec/trivy:latest
+  <<: *rules_frontend
+  needs: ["build-container-frontend"]
+  script:
+    - trivy image --exit-code 0 --severity HIGH,CRITICAL "${CI_REGISTRY_IMAGE}/web:${CI_IMAGE_TAG}"
+  allow_failure: true
+
+trivy-backend:
+  stage: security
+  image: aquasec/trivy:latest
+  <<: *rules_backend
+  needs: ["build-container-backend"]
+  script:
+    - trivy image --exit-code 0 --severity HIGH,CRITICAL "${CI_REGISTRY_IMAGE}/api:${CI_IMAGE_TAG}"
+  allow_failure: true
