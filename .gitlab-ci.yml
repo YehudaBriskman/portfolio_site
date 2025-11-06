@@ -114,11 +114,9 @@ test-frontend:
     - *default_before_script
     - npm ci --no-audit --no-fund
   script:
-    - npm test -- --ci --reporters=default --reporters=jest-junit
+    - npm test
   artifacts:
     when: always
-    reports:
-      junit: "$FRONT_DIR/junit.xml"
   needs: ["lint-frontend"]
   interruptible: true
 
@@ -150,7 +148,7 @@ hadolint-frontend:
   image: hadolint/hadolint:latest-alpine
   <<: *rules_frontend
   script:
-    - hadolint "$FRONT_DIR/Dockerfile"
+    - hadolint --failure-threshold error "$FRONT_DIR/Dockerfile"
   needs: ["build-frontend"]
   interruptible: true
 
@@ -188,8 +186,6 @@ test-backend:
     - npm test --if-present
   artifacts:
     when: always
-    reports:
-      junit: "$BACK_DIR/junit.xml"
   interruptible: true
 
 # ===== Build =====
@@ -216,7 +212,7 @@ hadolint-backend:
   image: hadolint/hadolint:latest-alpine
   <<: *rules_backend
   script:
-    - hadolint "$BACK_DIR/Dockerfile"
+    - hadolint --failure-threshold error "$BACK_DIR/Dockerfile"
   needs: ["build-backend"]
   interruptible: true
   rules:
