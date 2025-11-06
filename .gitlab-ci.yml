@@ -248,8 +248,19 @@ trivy-frontend:
   image: aquasec/trivy:latest
   <<: *rules_frontend
   needs: ["build-container-frontend"]
+  variables:
+    TRIVY_USERNAME: "$CI_REGISTRY_USER"
+    TRIVY_PASSWORD: "$CI_REGISTRY_PASSWORD"
+    # TRIVY_INSECURE: "true"
   script:
-    - trivy image --exit-code 0 --severity HIGH,CRITICAL "${CI_REGISTRY_IMAGE}/web:${CI_IMAGE_TAG}"
+    - trivy image
+        --username "$TRIVY_USERNAME"
+        --password "$TRIVY_PASSWORD"
+        --severity HIGH,CRITICAL
+        --exit-code 0
+        --scanners vuln
+        --no-progress
+        "${CI_REGISTRY_IMAGE}/web:${CI_IMAGE_TAG}"
   allow_failure: true
 
 trivy-backend:
@@ -257,6 +268,17 @@ trivy-backend:
   image: aquasec/trivy:latest
   <<: *rules_backend
   needs: ["build-container-backend"]
+  variables:
+    TRIVY_USERNAME: "$CI_REGISTRY_USER"
+    TRIVY_PASSWORD: "$CI_REGISTRY_PASSWORD"
+    # TRIVY_INSECURE: "true"
   script:
-    - trivy image --exit-code 0 --severity HIGH,CRITICAL "${CI_REGISTRY_IMAGE}/api:${CI_IMAGE_TAG}"
+    - trivy image
+        --username "$TRIVY_USERNAME"
+        --password "$TRIVY_PASSWORD"
+        --severity HIGH,CRITICAL
+        --exit-code 0
+        --scanners vuln            
+        --no-progress
+        "${CI_REGISTRY_IMAGE}/api:${CI_IMAGE_TAG}"
   allow_failure: true
