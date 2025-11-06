@@ -25,6 +25,7 @@ stages:
   - build
   - security
   - docker
+  - scan
 
 .default-node: &default_node
   image: node:20
@@ -244,7 +245,7 @@ build-container-backend:
         - backend/Dockerfile
 
 trivy-frontend:
-  stage: security
+  stage: scan
   image: aquasec/trivy:latest
   <<: *rules_frontend
   needs: ["build-container-frontend"]
@@ -253,7 +254,7 @@ trivy-frontend:
   allow_failure: true
 
 trivy-backend:
-  stage: security
+  stage: scan
   image: aquasec/trivy:latest
   <<: *rules_backend
   needs: ["build-container-backend"]
