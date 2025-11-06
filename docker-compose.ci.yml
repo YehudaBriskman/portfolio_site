@@ -1,5 +1,21 @@
 services:
   web:
-    image: ${WEB_IMAGE:-alpine:3.20}
+    image: ${WEB_IMAGE:-gitlab.benrachmiel.org:5050/containerized-mini-app-deployment-cmad/portfolio_site_yehuda/web:latest}
+    container_name: portfolio_site_web
+    ports:
+      - "8080:8080"
+    depends_on:
+      - api
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+
   api:
-    image: ${API_IMAGE:-alpine:3.20}
+    image: ${API_IMAGE:-gitlab.benrachmiel.org:5050/containerized-mini-app-deployment-cmad/portfolio_site_yehuda/api:latest}
+    container_name: portfolio_site_api
+    expose:
+      - "5000"
+    environment:
+      - PORT=5000
+      - NODE_ENV=production
+    restart: unless-stopped
