@@ -183,7 +183,6 @@ hadolint-backend:
   <<: *rules_backend
   script:
     - hadolint --failure-threshold error "$BACK_DIR/Dockerfile"
-  needs: ["build-backend"]
   interruptible: true
   rules:
     - exists:
