@@ -86,45 +86,46 @@ preflight:
     [ -f "$BACK_DIR/package-lock.json" ] || { echo "Missing $BACK_DIR/package-lock.json"; exit 1; }
     [ -f "$BACK_DIR/Dockerfile" ] || { echo "Missing $BACK_DIR/Dockerfile"; exit 1; }
 
-    CONF="$(pwd)/$FRONT_DIR/nginx.conf"
+    CONF="$PWD/$FRONT_DIR/nginx.conf"
     [ -f "$CONF" ] || { echo "Missing $FRONT_DIR/nginx.conf"; exit 1; }
 
     ROOT_CONF="/tmp/nginx-root.conf"
 
-    mapfile -t TARGETS < <(grep -oE 'proxy_pass\s+http://[A-Za-z0-9_-]+' "$CONF" \
-      | awk '{print $2}' | sed 's#http://##' | sort -u)
+    TARGETS="$(grep -oE 'proxy_pass[[:space:]]+http://[A-Za-z0-9_-]+' "$CONF" \
+      | awk '{print $2}' | sed 's#http://##' | sort -u)"
+
+    cat > "$ROOT_CONF" <<'HDR'
+    worker_processes  1;
+    error_log stderr notice;
+    pid /tmp/nginx.pid;
+
+    events { worker_connections 1024; }
+
+    http {
+      log_format main '$remote_addr - $remote_user [$time_local] "$request" '
+                  '$status $body_bytes_sent "$http_referer" "$http_user_agent"';
+      access_log /dev/stdout main;
+    HDR
+
+    for name in $TARGETS; do
+      case "$name" in
+        *.*|*:*|\$*) continue ;;
+      esac
+      if ! grep -Eq "upstream[[:space:]]+$name[[:space:]]*\\{" "$CONF"; then
+        echo "  upstream $name { server 127.0.0.1:65535; }" >> "$ROOT_CONF"
+      fi
+    done
 
     {
-      cat <<'HDR'
-      worker_processes  1;
-      error_log stderr notice;
-      pid /tmp/nginx.pid;
-
-      events { worker_connections 1024; }
-
-      http {
-        log_format main '$remote_addr - $remote_user [$time_local] "$request" '
-                  '$status $body_bytes_sent "$http_referer" "$http_user_agent"';
-        access_log /dev/stdout main;
-        HDR
-
-        for name in "${TARGETS[@]}"; do
-          if [[ "$name" == *.* || "$name" == *:* || "$name" == \$* ]]; then
-            continue
-          fi
-          if ! grep -Eq "upstream\s+$name\s*\{" "$CONF"; then
-            echo "  upstream $name { server 127.0.0.1:65535; }"
-          fi
-        done
-
-        echo "  include $CONF;"
-        echo "}"
-      } > "$ROOT_CONF"
+      echo "  include $CONF;"
+      echo "}"
+    } >> "$ROOT_CONF"
 
     nginx -t -c "$ROOT_CONF"
   rules:
     - when: always
   interruptible: true
+
 
 # ===== Lint =====
 lint-frontend:
