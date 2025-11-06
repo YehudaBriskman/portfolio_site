@@ -23,8 +23,8 @@ stages:
   - lint
   - test
   - build
-  - security
   - docker
+  - compose
   - scan
 
 .default-node: &default_node
@@ -106,6 +106,18 @@ lint-frontend:
     - npm ci
     - npm run lint
 
+# ===== Lint: Dockerfile lint (frontend) =====
+hadolint-frontend:
+  stage: lint
+  image: hadolint/hadolint:latest-alpine
+  <<: *rules_frontend
+  script:
+    - hadolint --failure-threshold error "$FRONT_DIR/Dockerfile"
+  interruptible: true
+  rules:
+    - exists:
+        - $FRONT_DIR/Dockerfile
+
 # ===== Test =====
 test-frontend:
   stage: test
@@ -117,7 +129,6 @@ test-frontend:
     - npm test
   artifacts:
     when: always
-  needs: ["lint-frontend"]
   interruptible: true
 
 # ===== Build =====
@@ -139,17 +150,7 @@ build-frontend:
       - $FRONT_DIR/package.json
       - $FRONT_DIR/package-lock.json
     expire_in: 2 hours
-  needs: ["test-frontend", "lint-frontend"]
-  interruptible: true
-
-# ===== Security: Dockerfile lint (frontend) =====
-hadolint-frontend:
-  stage: security
-  image: hadolint/hadolint:latest-alpine
-  <<: *rules_frontend
-  script:
-    - hadolint --failure-threshold error "$FRONT_DIR/Dockerfile"
-  needs: ["build-frontend"]
+  needs: ["test-frontend", "lint-frontend", "hadolint-frontend"]
   interruptible: true
 
 # ===== Docker Image =====
@@ -175,6 +176,18 @@ build-container-frontend:
   rules:
     - exists:
         - $FRONT_DIR/Dockerfile
+
+hadolint-backend:
+  stage: lint
+  image: hadolint/hadolint:latest-alpine
+  <<: *rules_backend
+  script:
+    - hadolint --failure-threshold error "$BACK_DIR/Dockerfile"
+  needs: ["build-backend"]
+  interruptible: true
+  rules:
+    - exists:
+        - $BACK_DIR/Dockerfile
 
 # ===== Test =====
 test-backend:
@@ -204,20 +217,8 @@ build-backend:
       - $BACK_DIR/tsconfig.json
       - $BACK_DIR/Dockerfile
     expire_in: 2 hours
-  needs: ["test-backend"]
+  needs: ["test-backend", "hadolint-backend"]
   interruptible: true
-
-hadolint-backend:
-  stage: security
-  image: hadolint/hadolint:latest-alpine
-  <<: *rules_backend
-  script:
-    - hadolint --failure-threshold error "$BACK_DIR/Dockerfile"
-  needs: ["build-backend"]
-  interruptible: true
-  rules:
-    - exists:
-        - $BACK_DIR/Dockerfile
 
 # ===== Docker Image =====
 build-container-backend:
@@ -243,6 +244,66 @@ build-container-backend:
     - exists:
         - backend/Dockerfile
 
+compose-config:
+  stage: compose
+  image: alpine:3.20
+  rules:
+    - exists:
+        - "docker-compose.yml"
+      when: always
+    - exists:
+        - "docker-compose.ci.yml"
+      when: always
+    - when: never
+  before_script:
+    - set -Eeuo pipefail
+    - apk add --no-cache docker-cli docker-cli-compose
+  script: |
+    set -Eeuo pipefail
+    FILE="docker-compose.ci.yml"
+    [ -f "$FILE" ] || FILE="docker-compose.yml"
+    echo "Validating compose file: $FILE"
+    docker compose -f "$FILE" config 1>/dev/null
+    echo "✅ docker compose config OK"
+  needs:
+    - job: build-container-frontend
+      optional: true
+    - job: build-container-backend
+      optional: true
+
+compose-smoke:
+  stage: compose
+  image: docker:25-cli
+  services:
+    - name: docker:25-dind
+      command: ["--mtu=1450"]
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+    COMPOSE_FILE: docker-compose.ci.yml
+  rules:
+    - if: '$ENABLE_DIND == "1"'
+      exists:
+        - "docker-compose.ci.yml"
+  before_script:
+    - set -Eeuo pipefail
+    - echo "$CI_REGISTRY_PASSWORD" | docker login "$CI_REGISTRY" -u "$CI_REGISTRY_USER" --password-stdin
+  script: |
+    set -Eeuo pipefail
+    sed -i "s#\${WEB_IMAGE:-.*}#${CI_REGISTRY_IMAGE}/web:${CI_IMAGE_TAG}#g" "$COMPOSE_FILE" || true
+    sed -i "s#\${API_IMAGE:-.*}#${CI_REGISTRY_IMAGE}/api:${CI_IMAGE_TAG}#g" "$COMPOSE_FILE" || true
+
+    docker compose -f "$COMPOSE_FILE" pull --ignore-pull-failures || true
+    docker compose -f "$COMPOSE_FILE" up -d
+    sleep 3
+    docker compose -f "$COMPOSE_FILE" ps
+    docker compose -f "$COMPOSE_FILE" down -v
+  needs:
+    - build-container-frontend
+    - build-container-backend
+  allow_failure: true
+
+
 trivy-frontend:
   stage: scan
   cache:
@@ -255,7 +316,6 @@ trivy-frontend:
   variables:
     TRIVY_USERNAME: "$CI_REGISTRY_USER"
     TRIVY_PASSWORD: "$CI_REGISTRY_PASSWORD"
-    # TRIVY_INSECURE: "true"
   before_script:
   - mkdir -p .trivycache
   script:
@@ -281,7 +341,6 @@ trivy-backend:
   variables:
     TRIVY_USERNAME: "$CI_REGISTRY_USER"
     TRIVY_PASSWORD: "$CI_REGISTRY_PASSWORD"
-    # TRIVY_INSECURE: "true"
   before_script:
   - mkdir -p .trivycache
   script:

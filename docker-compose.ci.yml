@@ -1,0 +1,5 @@
+services:
+  web:
+    image: ${WEB_IMAGE:-alpine:3.20}
+  api:
+    image: ${API_IMAGE:-alpine:3.20}
