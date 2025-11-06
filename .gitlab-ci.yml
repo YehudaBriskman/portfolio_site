@@ -245,6 +245,10 @@ build-container-backend:
 
 trivy-frontend:
   stage: scan
+  cache:
+    key: trivy-db-frontend
+    paths:
+      - .trivycache/
   image: aquasec/trivy:latest
   <<: *rules_frontend
   needs: ["build-container-frontend"]
@@ -252,8 +256,10 @@ trivy-frontend:
     TRIVY_USERNAME: "$CI_REGISTRY_USER"
     TRIVY_PASSWORD: "$CI_REGISTRY_PASSWORD"
     # TRIVY_INSECURE: "true"
+  before_script:
+  - mkdir -p .trivycache
   script:
-    - trivy image
+    - trivy image --cache-dir .trivycache
         --username "$TRIVY_USERNAME"
         --password "$TRIVY_PASSWORD"
         --severity HIGH,CRITICAL
@@ -265,6 +271,10 @@ trivy-frontend:
 
 trivy-backend:
   stage: scan
+  cache:
+    key: trivy-db-backend
+    paths:
+      - .trivycache/
   image: aquasec/trivy:latest
   <<: *rules_backend
   needs: ["build-container-backend"]
@@ -272,8 +282,10 @@ trivy-backend:
     TRIVY_USERNAME: "$CI_REGISTRY_USER"
     TRIVY_PASSWORD: "$CI_REGISTRY_PASSWORD"
     # TRIVY_INSECURE: "true"
+  before_script:
+  - mkdir -p .trivycache
   script:
-    - trivy image
+    - trivy image --cache-dir .trivycache
         --username "$TRIVY_USERNAME"
         --password "$TRIVY_PASSWORD"
         --severity HIGH,CRITICAL
