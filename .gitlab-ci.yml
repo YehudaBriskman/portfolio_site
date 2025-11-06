@@ -78,16 +78,14 @@ preflight:
     [ -f "$FRONT_DIR/package.json" ] || { echo "Missing $FRONT_DIR/package.json"; exit 1; }
     [ -f "$FRONT_DIR/package-lock.json" ] || { echo "Missing $FRONT_DIR/package-lock.json"; exit 1; }
     [ -f "$FRONT_DIR/Dockerfile" ] || { echo "Missing $FRONT_DIR/Dockerfile"; exit 1; }
-    [ -f "$FRONT_DIR/nginx.root.conf" ] || { echo "Missing $FRONT_DIR/nginx.root.conf"; exit 1; }
-    [ -f "$FRONT_DIR/nginx.app.conf" ] || { echo "Missing $FRONT_DIR/nginx.app.conf"; exit 1; }
+    [ -f "$FRONT_DIR/nginx.conf" ] || { echo "Missing $FRONT_DIR/nginx.conf"; exit 1; }
 
     [ -d "$BACK_DIR" ] || { echo "Missing $BACK_DIR"; exit 1; }
     [ -f "$BACK_DIR/package.json" ] || { echo "Missing $BACK_DIR/package.json"; exit 1; }
     [ -f "$BACK_DIR/package-lock.json" ] || { echo "Missing $BACK_DIR/package-lock.json"; exit 1; }
     [ -f "$BACK_DIR/Dockerfile" ] || { echo "Missing $BACK_DIR/Dockerfile"; exit 1; }
 
-    nginx -t -c "$(pwd)/$FRONT_DIR/nginx.root.conf" || { echo "nginx.root.conf invalid"; exit 1; }
-    nginx -t -c "$(pwd)/$FRONT_DIR/nginx.app.conf"  || { echo "nginx.app.conf invalid"; exit 1; }
+    nginx -t -c "$(pwd)/$FRONT_DIR/nginx.conf" || { echo "nginx.root.conf invalid"; exit 1; }
 
   rules:
     - when: always
