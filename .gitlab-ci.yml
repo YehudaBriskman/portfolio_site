@@ -3,6 +3,7 @@ variables:
   NODE_ENV: "ci"
 
 stages:
+  - lint
   - test
   - build
   - docker
@@ -27,14 +28,22 @@ stages:
     - if: '$CI_COMMIT_BRANCH == "main"'
     - if: '$CI_COMMIT_BRANCH == "develop"'
 
+# ===== Lint =====
+lint-frontend:
+  stage: lint
+  extends: [.default-node, .rules-frontend]
+  script:
+    - npm ci
+    - npm run lint
+
 # ===== Test =====
 test-frontend:
   stage: test
   extends: [.default-node, .rules-frontend]
   script:
     - npm ci
-    - npm run lint
     - npm test
+  needs: ["lint-frontend"]
 
 # ===== Build =====
 build-frontend:
@@ -53,7 +62,7 @@ build-frontend:
       - $FRONT_DIR/package.json
       - $FRONT_DIR/package-lock.json
     expire_in: 1 hour
-  needs: []
+  needs: ["test-frontend","lint-frontend"]
 
 # ===== Docker Image =====
 build-container-frontend:
@@ -61,7 +70,7 @@ build-container-frontend:
   image:
     name: gcr.io/kaniko-project/executor:debug
     entrypoint: [""]
-  needs: ["build-frontend"]
+  needs: ["build-frontend","test-frontend","lint-frontend"]
   script:
     - mkdir -p /kaniko/.docker
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
@@ -84,6 +93,7 @@ build-container-frontend:
   before_script:
     - cd backend
 
+# ===== Test =====
 test-backend:
   stage: test
   extends: [.default-node-backend]
@@ -98,6 +108,7 @@ test-backend:
     - npm run lint --if-present
     - npm test --if-present
 
+# ===== Build =====
 build-backend:
   stage: build
   extends: [.default-node-backend]
@@ -119,14 +130,15 @@ build-backend:
       - backend/tsconfig.json
       - backend/Dockerfile
     expire_in: 1 hour
-  needs: []
+  needs: ["test-backend"]
 
+# ===== Docker Image =====
 build-container-backend:
   stage: docker
   image:
     name: gcr.io/kaniko-project/executor:debug
     entrypoint: [""]
-  needs: ["test-backend"]
+  needs: ["test-backend", "build-backend"]
   rules:
     - changes:
         - backend/**/*
