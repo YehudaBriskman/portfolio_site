@@ -1,12 +1,14 @@
 variables:
-  FRONT_DIR: "glassglow-folio-space"
-  BACK_DIR: "backend"
-  NODE_ENV: "ci"
-  NPM_CONFIG_FUND: "false"
-  NPM_CONFIG_AUDIT: "false"
-  CI_IMAGE_TAG: "${CI_COMMIT_SHA}"
-  DOCKER_BUILDKIT: "1"
-  ENABLE_DIND: "1"
+  FRONT_DIR: "glassglow-folio-space" # the front folder
+  BACK_DIR: "backend" # the back folder
+  NODE_ENV: "ci" # node environment to ci proccess
+  NPM_CONFIG_FUND: "false" # cancle popups for funding npm
+  NPM_CONFIG_AUDIT: "false" # cancle AUDIT becouse the ci proccess can blow-up on vulnerabilities
+  CI_IMAGE_TAG: "${CI_COMMIT_SHA}" # tag the for docker images
+  DOCKER_BUILDKIT: "1" # we dont need for kaniko but if its local-docker you need so for the next step (local K8's)
+  ENABLE_DIND: "0" # the flag for compose-smoke jub
+
+# ! WORKFLOW RULES !
 
 workflow:
   rules:
@@ -27,6 +29,9 @@ stages:
   - docker
   - compose
   - scan
+
+
+# ! DEFAULT NODES !
 
 .default-node: &default_node
   image: node:20
@@ -51,6 +56,8 @@ stages:
   before_script:
     - cd "$BACK_DIR"
 
+# ! DEFAULT RULES !
+
 .rules-frontend: &rules_frontend
   rules:
     - changes:
@@ -67,7 +74,8 @@ stages:
     - if: '$CI_COMMIT_BRANCH == "main"'
     - if: '$CI_COMMIT_BRANCH == "develop"'
 
-# ===== Verify (Preflight) =====
+# ! VERIFY !
+
 preflight:
   stage: verify
   image: alpine:3.20
@@ -77,27 +85,26 @@ preflight:
   script: |
     set -Eeuo pipefail
 
-    echo "🔍 Running basic preflight sanity checks..."
+    echo "Running basic preflight sanity checks..."
 
     # FRONTEND checks
-    [ -d "$FRONT_DIR" ] || { echo "❌ Missing $FRONT_DIR directory"; exit 1; }
-    [ -f "$FRONT_DIR/package.json" ] || { echo "❌ Missing $FRONT_DIR/package.json"; exit 1; }
-    [ -f "$FRONT_DIR/package-lock.json" ] || { echo "❌ Missing $FRONT_DIR/package-lock.json"; exit 1; }
-    [ -f "$FRONT_DIR/Dockerfile" ] || { echo "❌ Missing $FRONT_DIR/Dockerfile"; exit 1; }
-    [ -f "$FRONT_DIR/nginx.conf" ] || { echo "⚠️ Missing $FRONT_DIR/nginx.conf (skipping syntax check)"; }
+    [ -d "$FRONT_DIR" ] || { echo "Missing $FRONT_DIR directory"; exit 1; }
+    [ -f "$FRONT_DIR/package.json" ] || { echo "Missing $FRONT_DIR/package.json"; exit 1; }
+    [ -f "$FRONT_DIR/package-lock.json" ] || { echo "Missing $FRONT_DIR/package-lock.json"; exit 1; }
+    [ -f "$FRONT_DIR/Dockerfile" ] || { echo "Missing $FRONT_DIR/Dockerfile"; exit 1; }
+    [ -f "$FRONT_DIR/nginx.conf" ] || { echo "Missing $FRONT_DIR/nginx.conf (skipping syntax check)"; }
 
     # BACKEND checks
-    [ -d "$BACK_DIR" ] || { echo "❌ Missing $BACK_DIR directory"; exit 1; }
-    [ -f "$BACK_DIR/package.json" ] || { echo "❌ Missing $BACK_DIR/package.json"; exit 1; }
-    [ -f "$BACK_DIR/package-lock.json" ] || { echo "❌ Missing $BACK_DIR/package-lock.json"; exit 1; }
-    [ -f "$BACK_DIR/Dockerfile" ] || { echo "❌ Missing $BACK_DIR/Dockerfile"; exit 1; }
+    [ -d "$BACK_DIR" ] || { echo "Missing $BACK_DIR directory"; exit 1; }
+    [ -f "$BACK_DIR/package.json" ] || { echo "Missing $BACK_DIR/package.json"; exit 1; }
+    [ -f "$BACK_DIR/package-lock.json" ] || { echo "Missing $BACK_DIR/package-lock.json"; exit 1; }
+    [ -f "$BACK_DIR/Dockerfile" ] || { echo "Missing $BACK_DIR/Dockerfile"; exit 1; }
 
-    echo "✅ Preflight passed: all required files exist."
+    echo "Preflight passed: all required files exist."
   rules:
     - when: always
   interruptible: true
 
-# ===== Lint =====
 lint-frontend:
   stage: lint
   <<: [*default_node, *rules_frontend]
@@ -107,7 +114,6 @@ lint-frontend:
     - npm ci
     - npm run lint
 
-# ===== Lint: Dockerfile lint (frontend) =====
 hadolint-frontend:
   stage: lint
   image: hadolint/hadolint:latest-alpine
@@ -119,7 +125,6 @@ hadolint-frontend:
     - exists:
         - $FRONT_DIR/Dockerfile
 
-# ===== Test =====
 test-frontend:
   stage: test
   <<: [*default_node, *rules_frontend]
@@ -132,7 +137,6 @@ test-frontend:
     when: always
   interruptible: true
 
-# ===== Build =====
 build-frontend:
   stage: build
   <<: [*default_node, *rules_frontend]
@@ -154,7 +158,6 @@ build-frontend:
   needs: ["test-frontend", "lint-frontend", "hadolint-frontend"]
   interruptible: true
 
-# ===== Docker Image =====
 build-container-frontend:
   stage: docker
   image:
@@ -189,7 +192,6 @@ hadolint-backend:
     - exists:
         - $BACK_DIR/Dockerfile
 
-# ===== Test =====
 test-backend:
   stage: test
   <<: [*default_node_backend, *rules_backend]
@@ -201,7 +203,6 @@ test-backend:
     when: always
   interruptible: true
 
-# ===== Build =====
 build-backend:
   stage: build
   <<: [*default_node_backend, *rules_backend]
@@ -220,7 +221,6 @@ build-backend:
   needs: ["test-backend", "hadolint-backend"]
   interruptible: true
 
-# ===== Docker Image =====
 build-container-backend:
   stage: docker
   image:
@@ -244,6 +244,8 @@ build-container-backend:
     - exists:
         - backend/Dockerfile
 
+# ! COMPOSE CHECKS !
+
 compose-config:
   stage: compose
   image: alpine:3.20
@@ -264,7 +266,7 @@ compose-config:
     [ -f "$FILE" ] || FILE="docker-compose.yml"
     echo "Validating compose file: $FILE"
     docker compose -f "$FILE" config 1>/dev/null
-    echo "✅ docker compose config OK"
+    echo "docker compose config OK"
   needs:
     - job: build-container-frontend
       optional: true
@@ -303,6 +305,7 @@ compose-smoke:
     - build-container-backend
   allow_failure: true
 
+# ! SECURITY SCANS !
 
 trivy-frontend:
   stage: scan
