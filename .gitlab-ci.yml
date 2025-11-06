@@ -74,19 +74,43 @@ preflight:
     - set -Eeuo pipefail
     - apk add --no-cache bash grep coreutils nginx
   script: |
+    set -Eeuo pipefail
+
     [ -d "$FRONT_DIR" ] || { echo "Missing $FRONT_DIR"; exit 1; }
     [ -f "$FRONT_DIR/package.json" ] || { echo "Missing $FRONT_DIR/package.json"; exit 1; }
     [ -f "$FRONT_DIR/package-lock.json" ] || { echo "Missing $FRONT_DIR/package-lock.json"; exit 1; }
     [ -f "$FRONT_DIR/Dockerfile" ] || { echo "Missing $FRONT_DIR/Dockerfile"; exit 1; }
-    [ -f "$FRONT_DIR/nginx.conf" ] || { echo "Missing $FRONT_DIR/nginx.conf"; exit 1; }
 
     [ -d "$BACK_DIR" ] || { echo "Missing $BACK_DIR"; exit 1; }
     [ -f "$BACK_DIR/package.json" ] || { echo "Missing $BACK_DIR/package.json"; exit 1; }
     [ -f "$BACK_DIR/package-lock.json" ] || { echo "Missing $BACK_DIR/package-lock.json"; exit 1; }
     [ -f "$BACK_DIR/Dockerfile" ] || { echo "Missing $BACK_DIR/Dockerfile"; exit 1; }
 
-    nginx -t -c "$(pwd)/$FRONT_DIR/nginx.conf" || { echo "nginx.root.conf invalid"; exit 1; }
+    CONF="$(pwd)/$FRONT_DIR/nginx.conf"
+    [ -f "$CONF" ] || { echo "Missing $FRONT_DIR/nginx.conf"; exit 1; }
 
+    if grep -Eq '^\s*(http|events)\s*\{' "$CONF"; then
+      ROOT_CONF="$CONF"
+    else
+      ROOT_CONF="/tmp/nginx-root.conf"
+      cat > "$ROOT_CONF" <<EOF
+    worker_processes  1;
+    error_log stderr notice;
+    pid /tmp/nginx.pid;
+
+    events { worker_connections 1024; }
+
+    http {
+      log_format main '\$remote_addr - \$remote_user [\$time_local] "\$request" '
+                    '\$status \$body_bytes_sent "\$http_referer" "\$http_user_agent"';
+      access_log /dev/stdout main;
+
+      include $CONF;
+    }
+    EOF
+      fi
+
+    nginx -t -c "$ROOT_CONF"
   rules:
     - when: always
   interruptible: true
