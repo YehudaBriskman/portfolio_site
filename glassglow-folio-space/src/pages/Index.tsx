@@ -1,16 +1,21 @@
 
-import React, { useEffect, useState, useRef } from 'react';
-import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Stars } from '@react-three/drei';
-import { ThreeScene } from '../components/ThreeScene';
+import React, { useEffect, useState, useRef, lazy, Suspense } from 'react';
 import { Navigation } from '../components/Navigation';
-import { HeroSection } from '../components/HeroSection';
-import { AboutSection } from '../components/AboutSection';
-import { ProjectsSection } from '../components/ProjectsSection';
-import { SkillsSection } from '../components/SkillsSection';
-import { ContactSection } from '../components/ContactSection';
 import { ThemeToggle } from '../components/ThemeToggle';
-import { ParticleSystem } from '../components/ParticleSystem';
+
+// Lazy load heavy section components for better performance
+const HeroSection = lazy(() => import('../components/HeroSection').then(m => ({ default: m.HeroSection })));
+const AboutSection = lazy(() => import('../components/AboutSection').then(m => ({ default: m.AboutSection })));
+const ProjectsSection = lazy(() => import('../components/ProjectsSection').then(m => ({ default: m.ProjectsSection })));
+const SkillsSection = lazy(() => import('../components/SkillsSection').then(m => ({ default: m.SkillsSection })));
+const ContactSection = lazy(() => import('../components/ContactSection').then(m => ({ default: m.ContactSection })));
+
+// Minimal loading skeleton for sections
+const SectionLoader = () => (
+  <div className="min-h-screen flex items-center justify-center">
+    <div className="w-8 h-8 border-3 border-slate-200 dark:border-slate-700 border-t-slate-500 rounded-full animate-spin"></div>
+  </div>
+);
 
 const Index = () => {
   const [darkMode, setDarkMode] = useState(false);
@@ -56,33 +61,6 @@ const Index = () => {
 
   return (
     <div ref={containerRef} className="relative min-h-screen overflow-x-hidden">
-  
-      {/* Particle System */}
-      <ParticleSystem />
-      
-      {/* Fixed 3D Scene */}
-      <div className="fixed inset-0 z-0 pointer-events-none">
-        <Canvas camera={{ position: [0, 0, 5], fov: 75 }}>
-          <ambientLight intensity={darkMode ? 0.3 : 0.5} />
-          <pointLight position={[10, 10, 10]} intensity={darkMode ? 0.8 : 1.2} />
-          <Stars 
-            radius={300} 
-            depth={60} 
-            count={darkMode ? 1000 : 500} 
-            factor={7} 
-            saturation={0} 
-            fade={true}
-          />
-          <ThreeScene darkMode={darkMode} />
-          <OrbitControls 
-            enableZoom={false} 
-            enablePan={false} 
-            autoRotate 
-            autoRotateSpeed={0.5}
-          />
-        </Canvas>
-      </div>
-
       {/* Navigation - Left Side Full Height */}
       <Navigation darkMode={darkMode} />
       
@@ -91,11 +69,21 @@ const Index = () => {
 
       {/* Main Content with left margin for desktop navbar */}
       <div className="relative z-10 ml-0 md:ml-28">
-        <HeroSection />
-        <AboutSection />
-        <ProjectsSection />
-        <SkillsSection />
-        <ContactSection />
+        <Suspense fallback={<SectionLoader />}>
+          <HeroSection />
+        </Suspense>
+        <Suspense fallback={<SectionLoader />}>
+          <AboutSection />
+        </Suspense>
+        <Suspense fallback={<SectionLoader />}>
+          <ProjectsSection />
+        </Suspense>
+        <Suspense fallback={<SectionLoader />}>
+          <SkillsSection />
+        </Suspense>
+        <Suspense fallback={<SectionLoader />}>
+          <ContactSection />
+        </Suspense>
       </div>
     </div>
   );

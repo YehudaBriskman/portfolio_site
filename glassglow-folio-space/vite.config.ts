@@ -89,5 +89,49 @@ export default defineConfig(() => {
     resolve: {
       alias: { "@": path.resolve(__dirname, "./src") },
     },
+
+    // Aggressive build optimization for performance
+    build: {
+      target: 'es2020',
+      minify: 'terser',
+      rollupOptions: {
+        output: {
+          // Manual chunk splitting for better caching
+          manualChunks: {
+            // Core React libraries
+            'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+            // UI component libraries
+            'ui-vendor': [
+              '@radix-ui/react-dialog',
+              '@radix-ui/react-dropdown-menu',
+              '@radix-ui/react-popover',
+              '@radix-ui/react-select',
+              '@radix-ui/react-tabs',
+              '@radix-ui/react-toast',
+              '@radix-ui/react-label',
+              '@radix-ui/react-slot',
+              '@radix-ui/react-tooltip',
+            ],
+            // Form handling
+            'form-vendor': ['react-hook-form', '@hookform/resolvers', 'zod'],
+            // Animation library
+            'animation-vendor': ['framer-motion'],
+            // Data fetching
+            'query-vendor': ['@tanstack/react-query'],
+          },
+          // Optimize chunk naming for better caching
+          chunkFileNames: 'assets/[name]-[hash].js',
+          entryFileNames: 'assets/[name]-[hash].js',
+          assetFileNames: 'assets/[name]-[hash].[ext]',
+        },
+      },
+      // Warn on chunks larger than 500KB
+      chunkSizeWarningLimit: 500,
+    },
+
+    // CSS optimization
+    css: {
+      devSourcemap: false,
+    },
   };
 });
