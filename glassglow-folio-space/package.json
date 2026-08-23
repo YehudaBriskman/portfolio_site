@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
+    "@myop/Project-Kanban-Board": "https://cloud.myop.dev/npm/8e103b6f-7344-4101-b190-50191b05dc7c/react",
     "@radix-ui/react-accordion": "^1.2.0",
     "@radix-ui/react-alert-dialog": "^1.1.1",
     "@radix-ui/react-aspect-ratio": "^1.1.0",
