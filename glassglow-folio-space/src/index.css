@@ -2,322 +2,115 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Enhanced Design System with Glassmorphism */
-
+/*
+  Palette: Jerusalem limestone against machine glow.
+  Warm bitumen ground rather than neutral black, so the amber reads as sodium
+  vapour rather than neon. One cold blue holds the data so telemetry stays
+  legibly separate from the warm narrative type.
+*/
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-    --radius: 0.5rem;
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --ink:        14 10 8;        /* #0E0A08 deepest ground */
+    --bitumen:    18 14 11;       /* #120E0B page background */
+    --surface:    30 24 19;       /* #1E1813 raised panels */
+    --edge:       48 39 31;       /* #302F1F hairlines */
+    --bone:       232 223 210;    /* #E8DFD2 primary text */
+    --clay:       154 140 124;    /* #9A8C7C muted text */
+    --sodium:     255 140 66;     /* #FF8C42 accent, warm */
+    --screen:     110 168 199;    /* #6EA8C7 data, cold */
 
-    /* Custom portfolio variables - Light mode */
-    --glass-bg: rgba(255, 255, 255, 0.15);
-    --glass-border: rgba(255, 255, 255, 0.3);
-    --glow-primary: rgba(59, 130, 246, 0.4);
-    --glow-secondary: rgba(6, 182, 212, 0.4);
+    /* shadcn/ui tokens mapped onto the palette so existing primitives inherit it */
+    --background: var(--bitumen);
+    --foreground: var(--bone);
+    --card: var(--surface);
+    --card-foreground: var(--bone);
+    --popover: var(--surface);
+    --popover-foreground: var(--bone);
+    --primary: var(--sodium);
+    --primary-foreground: var(--ink);
+    --secondary: var(--surface);
+    --secondary-foreground: var(--bone);
+    --muted: var(--surface);
+    --muted-foreground: var(--clay);
+    --accent: var(--surface);
+    --accent-foreground: var(--sodium);
+    --destructive: 190 60 45;
+    --destructive-foreground: var(--bone);
+    --border: var(--edge);
+    --input: var(--edge);
+    --ring: var(--sodium);
+    --radius: 2px;
   }
 
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+  * { border-color: rgb(var(--edge)); }
 
-    --glass-bg: rgba(0, 0, 0, 0.2);
-    --glass-border: rgba(255, 255, 255, 0.1);
-    --glow-primary: rgba(139, 92, 246, 0.6);
-    --glow-secondary: rgba(236, 72, 153, 0.6);
-  }
-}
-
-@layer base {
-  * {
-    @apply border-border;
-  }
-
-  html {
-    overflow-x: hidden;
-    scroll-behavior: smooth;
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 
   body {
-    @apply bg-background text-foreground;
-    background: linear-gradient(135deg, #a7f3ea 0%, #55d3a9 25%, #a7f3d0 50%, #40d7d4, #55d3a9 75%, #a7f3d0 100%);
-    min-height: 100vh;
+    background-color: rgb(var(--bitumen));
+    color: rgb(var(--bone));
+    font-family: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+    font-weight: 300;
+    -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
   }
 
-  .dark body {
-    background: linear-gradient(135deg, #0f0f23 0%, #1e1b4b 25%, #312e81 50%, #4c1d95 75%, #581c87 100%);
+  :focus-visible {
+    outline: 2px solid rgb(var(--sodium));
+    outline-offset: 3px;
   }
+
+  ::selection { background: rgb(var(--sodium)); color: rgb(var(--ink)); }
 }
 
-/* Glassmorphism Components */
 @layer components {
-  .glass {
-    background: var(--glass-bg);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid var(--glass-border);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  /* Display face. Archivo's width axis is the point — set wide, it reads
+     architectural rather than editorial. */
+  .display {
+    font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif;
+    font-variation-settings: 'wdth' 118;
+    font-weight: 800;
+    letter-spacing: -0.035em;
+    line-height: 0.92;
   }
-
-  .glass-card {
-    @apply glass rounded-2xl p-6 transition-all duration-300;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1),
-      0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+  .display-tight {
+    font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif;
+    font-variation-settings: 'wdth' 108;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.0;
   }
-
-  .glass-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2),
-      0 0 0 1px rgba(255, 255, 255, 0.2) inset;
+  .mono {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-weight: 400;
+    letter-spacing: 0.06em;
   }
-
-  .glass-nav {
-    @apply glass fixed top-4 left-1/2 transform -translate-x-1/2 z-50 rounded-full px-6 py-3;
-    backdrop-filter: blur(30px);
-    -webkit-backdrop-filter: blur(30px);
+  /* Section eyebrow: carries a true fact (a count, a region), never decoration. */
+  .eyebrow {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 0.6875rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: rgb(var(--clay));
   }
+  .rule { height: 1px; background: rgb(var(--edge)); }
 
-  .glass-nav-vertical {
-    @apply glass rounded-r-2xl;
-    backdrop-filter: blur(30px);
-    -webkit-backdrop-filter: blur(30px);
-    border-left: none;
-    box-shadow: 4px 0 32px rgba(0, 0, 0, 0.1);
-  }
-
-  .dark .glass-nav-vertical {
-    box-shadow: 4px 0 32px rgba(0, 0, 0, 0.3);
-  }
-
-  .gradient-background {
-    background: linear-gradient(135deg, #3b82f6, #06b6d4, #10b981);
-    background-size: 400% 400%;
-    animation: gradient-shift 15s ease infinite;
-  }
-
-  .dark .gradient-background {
-    background: linear-gradient(45deg, #6366f1, #ec4899);
-  }
-
-  .glow-button {
-    @apply relative overflow-hidden rounded-lg px-6 py-3 font-medium transition-all duration-300;
-    background: linear-gradient(45deg, #3b82f6, #06b6d4, #10b981);
-    color: white;
-    box-shadow: 0 0 20px var(--glow-primary);
-  }
-
-  .dark .glow-button {
-    background: linear-gradient(45deg, #6366f1, #ec4899);
-  }
-
-  .glow-button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 30px var(--glow-primary), 0 0 30px var(--glow-secondary);
-  }
-
-  .glow-button::before {
+  /* Grain: keeps large flat areas of bitumen from banding on wide gamut screens. */
+  .grain::after {
     content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-    transition: left 0.5s;
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 60;
+    opacity: 0.035;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
   }
-
-  .glow-button:hover::before {
-    left: 100%;
-  }
-
-  .gradient-text {
-    background: linear-gradient(45deg, #3b82f6, #06b6d4, #10b981);
-    background-size: 200% 200%;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    animation: gradient-shift 3s ease infinite;
-  }
-
-  .dark .gradient-text {
-    background: linear-gradient(45deg, #6366f1, #ec4899, #06b6d4);
-    background-size: 200% 200%;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    animation: gradient-shift 3s ease infinite;
-  }
-
-  .floating {
-    animation: float 6s ease-in-out infinite;
-  }
-
-  .pulse-glow {
-    animation: pulse-glow 2s ease-in-out infinite alternate;
-  }
-
-  .border-gradient {
-    border-color: var(--glow-secondary);
-  }
-}
-
-/* Animations */
-@keyframes float {
-  0%, 100% {
-    transform: translateY(0px);
-  }
-
-  50% {
-    transform: translateY(-20px);
-  }
-}
-
-@keyframes pulse-glow {
-  from {
-    box-shadow: 0 0 20px var(--glow-primary);
-  }
-
-  to {
-    box-shadow: 0 0 40px var(--glow-primary), 0 0 60px var(--glow-secondary);
-  }
-}
-
-@keyframes gradient-shift {
-  0% {
-    background-position: 0% 50%;
-  }
-
-  50% {
-    background-position: 100% 50%;
-  }
-
-  100% {
-    background-position: 0% 50%;
-  }
-}
-
-@keyframes fade-in-up {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes slide-in-left {
-  from {
-    opacity: 0;
-    transform: translateX(-50px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes slide-in-right {
-  from {
-    opacity: 0;
-    transform: translateX(50px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-/* Scroll animations */
-.animate-on-scroll {
-  opacity: 0;
-  transform: translateY(30px);
-  transition: all 0.6s ease-out;
-}
-
-.animate-on-scroll.visible {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: linear-gradient(45deg, #3b82f6, #06b6d4, #10b981);
-  border-radius: 10px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(45deg, #3b82f6, #06b6d4, #10b981);
-}
-
-.dark ::-webkit-scrollbar-thumb {
-  background: linear-gradient(45deg, #6366f1, #ec4899);
-  border-radius: 10px;
-}
-
-.dark ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(45deg, #4f46e5, #db2777);
 }
