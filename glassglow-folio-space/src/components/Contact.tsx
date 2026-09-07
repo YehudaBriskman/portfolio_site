@@ -1,7 +1,6 @@
 import { FormEvent, useState } from "react";
 import { links } from "@/data/links";
 import { paragraphs } from "@/data/paragraphs";
-import { infrastructure } from "@/data/infrastructure";
 import { sendContactMessage } from "@/services/contact";
 
 type Status = { kind: "idle" | "sending" | "sent" | "error"; message?: string };
@@ -90,18 +89,14 @@ export default function Contact() {
           </ul>
 
           <p className="mono mt-16 border-t border-edge pt-8 text-[0.6875rem] leading-relaxed text-clay/70">
-            This form posts to an Express service in the {""}
-            <span className="text-clay">prod</span> namespace on the node described above, which
-            relays over SMTP. No third-party form provider sits in between.
+            Messages reach me directly. No third-party form provider sits in between.
           </p>
         </div>
       </div>
 
       <footer className="mono mt-28 flex flex-wrap items-center justify-between gap-4 border-t border-edge pt-8 text-[0.6875rem] text-clay/60">
         <span>© {new Date().getFullYear()} Yehuda Briskman</span>
-        <span>
-          {infrastructure.regionLabel} — {infrastructure.shape}
-        </span>
+        <span>Tel Aviv, Israel</span>
       </footer>
     </section>
   );

@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 
 const items = [
-  { id: "signal", label: "Machine" },
   { id: "work", label: "Work" },
   { id: "stack", label: "Stack" },
   { id: "contact", label: "Contact" },
