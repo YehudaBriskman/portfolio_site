@@ -14,7 +14,7 @@ export default function PostList({ posts }: { posts: PostSummary[] }) {
                 alt=""
                 loading="lazy"
                 decoding="async"
-                className="hidden h-24 w-36 shrink-0 border border-edge object-cover sm:block"
+                className="hidden h-24 w-36 shrink-0 rounded-md border border-edge object-cover sm:block"
               />
             )}
             <div className="min-w-0">

@@ -7,6 +7,10 @@ import { admin, slugify } from "@/services/admin";
 type Draft = {
   slug: string;
   title: string;
+  tagline: string;
+  kind: "site" | "project";
+  repoOwner: string;
+  repoName: string;
   description: string;
   coverImage: string;
   links: LinkRow[];
@@ -15,7 +19,7 @@ type Draft = {
   _rev?: string;
 };
 
-const EMPTY: Draft = { slug: "", title: "", description: "", coverImage: "", links: [], order: "50", status: "published" };
+const EMPTY: Draft = { slug: "", title: "", tagline: "", kind: "project", repoOwner: "", repoName: "", description: "", coverImage: "", links: [], order: "50", status: "published" };
 
 export default function AdminCollection() {
   const { slug } = useParams();
@@ -25,6 +29,8 @@ export default function AdminCollection() {
   const [msg, setMsg] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [slugTouched, setSlugTouched] = useState(!isNew);
+  const [stats, setStats] = useState<Record<string, unknown> | null>(null);
+  const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
     if (isNew) return;
@@ -33,9 +39,14 @@ export default function AdminCollection() {
       .then((cs) => {
         const c = cs.find((x) => x.slug === slug);
         if (!c) return setMsg("Not found");
+        setStats(c.stats ?? null);
         setD({
           slug: c.slug,
           title: c.title,
+          tagline: c.tagline,
+          kind: c.kind,
+          repoOwner: c.repo?.owner ?? "",
+          repoName: c.repo?.name ?? "",
           description: c.description,
           coverImage: c.coverImage ?? "",
           links: c.links,
@@ -53,6 +64,10 @@ export default function AdminCollection() {
     try {
       const saved = await admin.saveCollection(d.slug, {
         title: d.title,
+        tagline: d.tagline,
+        kind: d.kind,
+        // Repo config is optional; an area with no repository is perfectly valid.
+        repo: d.repoOwner && d.repoName ? { owner: d.repoOwner, name: d.repoName, branch: "main", docPaths: [] } : null,
         description: d.description,
         coverImage: d.coverImage.trim() || null,
         links: d.links.filter((l) => l.label && l.url),
@@ -110,6 +125,25 @@ export default function AdminCollection() {
             <span className={label}>Order — lower comes first</span>
             <input value={d.order} onChange={(e) => setD((p) => ({ ...p, order: e.target.value }))} className={`${field} mono text-sm`} inputMode="numeric" />
           </label>
+          <label className="block">
+            <span className={label}>Kind</span>
+            <select value={d.kind} onChange={(e) => setD((p) => ({ ...p, kind: e.target.value as Draft["kind"] }))} className={`${field} mono text-sm`}>
+              <option value="project" className="bg-surface text-bone">Project</option>
+              <option value="site" className="bg-surface text-bone">My blog</option>
+            </select>
+          </label>
+          <label className="block">
+            <span className={label}>Tagline</span>
+            <input value={d.tagline} onChange={(e) => setD((p) => ({ ...p, tagline: e.target.value }))} className={field} placeholder="Every new tab becomes a dashboard" />
+          </label>
+          <label className="block">
+            <span className={label}>GitHub owner</span>
+            <input value={d.repoOwner} onChange={(e) => setD((p) => ({ ...p, repoOwner: e.target.value }))} className={`${field} mono text-sm`} placeholder="YehudaBriskman" />
+          </label>
+          <label className="block">
+            <span className={label}>GitHub repo</span>
+            <input value={d.repoName} onChange={(e) => setD((p) => ({ ...p, repoName: e.target.value }))} className={`${field} mono text-sm`} placeholder="WindoM" />
+          </label>
           <label className="block sm:col-span-2">
             <span className={label}>Description</span>
             <input value={d.description} onChange={(e) => setD((p) => ({ ...p, description: e.target.value }))} className={field} />
@@ -121,7 +155,7 @@ export default function AdminCollection() {
         </div>
 
         {d.coverImage && (
-          <img src={d.coverImage} alt="" className="mt-6 max-h-56 w-full border border-edge object-cover" />
+          <img src={d.coverImage} alt="" className="mt-6 max-h-56 w-full rounded-lg border border-edge object-cover" />
         )}
 
         <div className="mt-10">
@@ -132,19 +166,55 @@ export default function AdminCollection() {
           <button
             onClick={save}
             disabled={saving || !d.slug || !d.title}
-            className="mono border border-sodium px-6 py-3 text-xs uppercase tracking-[0.2em] text-sodium transition-colors hover:bg-sodium hover:text-bitumen disabled:opacity-40"
+            className="pill mono border border-sodium px-6 py-3 text-xs uppercase tracking-[0.2em] text-sodium transition-colors hover:bg-sodium hover:text-bitumen disabled:opacity-40"
           >
             {saving ? "Saving" : "Save area"}
           </button>
           <button
             onClick={() => setD((p) => ({ ...p, status: p.status === "published" ? "hidden" : "published" }))}
-            className="mono border border-edge px-6 py-3 text-xs uppercase tracking-[0.2em] text-bone/70 transition-colors hover:border-bone/50"
+            className="pill mono border border-edge px-6 py-3 text-xs uppercase tracking-[0.2em] text-bone/70 transition-colors hover:border-bone/50"
           >
             {d.status === "published" ? "Mark hidden" : "Mark published"}
           </button>
+          {d.repoOwner && d.repoName && !isNew && (
+            <button
+              onClick={async () => {
+                setSyncing(true);
+                setMsg(null);
+                try {
+                  const r = await admin.syncCollection(d.slug);
+                  setStats(r.stats as Record<string, unknown>);
+                  setMsg("Repository numbers refreshed.");
+                } catch (e) {
+                  setMsg(e instanceof Error ? e.message : "Sync failed");
+                } finally {
+                  setSyncing(false);
+                }
+              }}
+              className="pill mono border border-edge px-6 py-3 text-xs uppercase tracking-[0.2em] text-bone/70 transition-colors hover:border-bone/50"
+            >
+              {syncing ? "Syncing" : "Sync from GitHub"}
+            </button>
+          )}
           <span className="mono text-[0.6875rem] uppercase tracking-[0.2em] text-bone/40">status: {d.status}</span>
           {msg && <span className="mono text-[0.6875rem] text-sodium">{msg}</span>}
         </div>
+
+        {stats && (
+          <div className="mono mt-8 border-t border-edge pt-6 text-[0.6875rem] text-bone/50">
+            <p className="uppercase tracking-[0.22em] text-bone/35">From GitHub</p>
+            <p className="mt-2">
+              {stats.error
+                ? String(stats.error)
+                : `${stats.stars ?? "—"} stars · ${stats.language ?? "—"} · ${stats.license ?? "—"} · fetched ${
+                    stats.fetchedAt ? new Date(String(stats.fetchedAt)).toLocaleString("en-GB") : "never"
+                  }`}
+            </p>
+            <p className="mt-2 text-bone/35">
+              Refreshed automatically every 15 minutes. Never read during a page load.
+            </p>
+          </div>
+        )}
       </section>
     </PageShell>
   );

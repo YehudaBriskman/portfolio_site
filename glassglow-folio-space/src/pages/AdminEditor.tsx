@@ -160,7 +160,7 @@ export default function AdminEditor() {
             {preview ? (
               /* Same renderer as the public page, so what you see here is exactly
                  what ships — no second markdown pipeline to drift apart. */
-              <div className="prose prose-invert mt-4 max-w-none rounded border border-edge bg-surface/40 p-6
+              <div className="prose prose-invert mt-4 max-w-none rounded panel p-6
                 prose-headings:font-[Archivo] prose-p:text-bone/75 prose-a:text-sodium
                 prose-code:text-sodium prose-code:before:content-none prose-code:after:content-none
                 prose-pre:border prose-pre:border-edge prose-pre:bg-surface">
@@ -171,7 +171,7 @@ export default function AdminEditor() {
                 value={d.body}
                 onChange={(e) => set("body", e.target.value)}
                 spellCheck
-                className="mono mt-4 min-h-[26rem] w-full resize-y rounded border border-edge bg-surface/40 p-5 text-sm leading-relaxed text-bone/85 focus:border-sodium focus:outline-none"
+                className="mono mt-4 min-h-[26rem] w-full resize-y rounded panel p-5 text-sm leading-relaxed text-bone/85 focus:border-sodium focus:outline-none"
                 placeholder={"## A heading\n\nText, `code`, and fenced blocks all work."}
               />
             )}
@@ -184,14 +184,14 @@ export default function AdminEditor() {
               <button
                 onClick={() => save()}
                 disabled={state === "saving" || !d.slug || !d.title}
-                className="mono border border-edge px-6 py-3 text-xs uppercase tracking-[0.2em] text-bone/80 transition-colors hover:border-bone/50 disabled:opacity-40"
+                className="pill mono border border-edge px-6 py-3 text-xs uppercase tracking-[0.2em] text-bone/80 transition-colors hover:border-bone/50 disabled:opacity-40"
               >
                 {state === "saving" ? "Saving" : "Save draft"}
               </button>
               <button
                 onClick={() => save("published")}
                 disabled={state === "saving" || !d.slug || !d.title || !d.body}
-                className="mono border border-sodium px-6 py-3 text-xs uppercase tracking-[0.2em] text-sodium transition-colors hover:bg-sodium hover:text-bitumen disabled:opacity-40"
+                className="pill mono border border-sodium px-6 py-3 text-xs uppercase tracking-[0.2em] text-sodium transition-colors hover:bg-sodium hover:text-bitumen disabled:opacity-40"
               >
                 Publish
               </button>

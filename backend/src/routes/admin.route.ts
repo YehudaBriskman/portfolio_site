@@ -10,6 +10,7 @@ import {
   type Post,
 } from "../schemas/content.js";
 import { z } from "zod";
+import { fetchRepoStats } from "../services/github.js";
 
 const router = Router();
 
@@ -30,9 +31,19 @@ const PostWrite = z.object({
   _rev: z.string().optional(),
 });
 
+const RepoWrite = z.object({
+  owner: z.string().min(1).max(60),
+  name: z.string().min(1).max(100),
+  branch: z.string().min(1).max(60).default("main"),
+  docPaths: z.array(z.string().max(200)).max(20).default([]),
+});
+
 const CollectionWrite = z.object({
   slug: SlugSchema,
   title: z.string().min(1).max(120),
+  tagline: z.string().max(160).default(""),
+  kind: z.enum(["site", "project"]).default("project"),
+  repo: RepoWrite.nullable().default(null),
   description: z.string().max(400).default(""),
   coverImage: z.string().url().nullable().default(null),
   links: z.array(LinkSchema).max(8).default([]),
@@ -108,6 +119,7 @@ router.put(
       collection: i.collection,
       coverImage: i.coverImage,
       links: i.links,
+      source: existing?.source ?? "authored",
       readingMinutes: readingMinutes(i.body),
       seo: existing?.seo ?? { title: null, description: null, canonical: null, noindex: false },
     };
@@ -174,6 +186,11 @@ router.put(
       links: i.links,
       order: i.order,
       status: i.status,
+      kind: i.kind,
+      tagline: i.tagline,
+      repo: i.repo,
+      // Stats belong to the sync job, not to this form — never clear them here.
+      stats: existing?.stats ?? null,
       createdAt: existing?.createdAt ?? now,
       updatedAt: now,
     };
@@ -205,6 +222,21 @@ router.delete(
     // Hidden, not deleted — posts still reference it by slug.
     await couch.put(doc._id!, { ...doc, status: "hidden", updatedAt: new Date().toISOString() });
     res.json({ ok: true });
+  })
+);
+
+/* Refresh one project's repository numbers on demand. The schedule does this
+   anyway; this exists so a change is visible immediately after editing a repo. */
+router.post(
+  "/collections/:slug/sync",
+  asyncHandler(async (req, res) => {
+    const doc = await tryGet<Collection>(colId(req.params.slug));
+    if (!doc) return res.status(404).json({ ok: false, error: "Not Found" });
+    if (!doc.repo) return res.status(400).json({ ok: false, error: "No repository configured for this area." });
+    const stats = await fetchRepoStats(doc.repo);
+    const next = { ...doc, stats, updatedAt: new Date().toISOString() };
+    await couch.put(doc._id!, next);
+    res.json({ ok: true, stats });
   })
 );
 

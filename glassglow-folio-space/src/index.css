@@ -27,7 +27,11 @@
     --haze-2:  122 133 131;    /* #7A8583 */
     --bone:    220 204 194;    /* #DCCCC2 */
     --clay:    158 160 155;    /* #9EA09B */
-    --sodium:  247 116 2;      /* #F77402  the sun */
+    /* #E8814A — the mean of the sun's disc rather than one hot pixel from its
+       centre. The single-pixel sample read as safety orange; averaged across the
+       disc and its glow it comes out warmer and calmer, which is what the rest
+       of the palette wanted all along. 6.8:1 on the ground. */
+    --sodium:  232 129 74;
     --screen:  122 133 131;    /* retained name, now the haze tone */
 
     /* shadcn primitives inherit the same values */
@@ -50,7 +54,13 @@
     --border: var(--edge);
     --input: var(--edge);
     --ring: var(--sodium);
-    --radius: 2px;
+    /* Rounded rather than cut. 2px reads as a wireframe; these are the radii of
+       something finished. */
+    --r-sm: 10px;
+    --r-md: 16px;
+    --r-lg: 24px;
+    --r-pill: 999px;
+    --radius: var(--r-md);
 
     /* Motion. One named curve: instant departure, long settle.
        Transform and clip-path get the curve; opacity arrives linear.
@@ -78,7 +88,10 @@
     background-color: rgb(var(--bitumen));
     color: rgb(var(--bone));
     font-family: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
-    font-weight: 300;
+    /* 300 was too thin to hold its own against the display face. */
+    font-weight: 350;
+    font-size: 1.0625rem;
+    line-height: 1.65;
     -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
     /* The scene's focus states must never shift the layout. */
@@ -96,10 +109,10 @@
 @layer components {
   .display {
     font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif;
-    font-variation-settings: 'wdth' 118;
+    font-variation-settings: 'wdth' 112;
     font-weight: 800;
-    letter-spacing: -0.035em;
-    line-height: 0.92;
+    letter-spacing: -0.04em;
+    line-height: 0.9;
   }
   .display-tight {
     font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif;
@@ -118,8 +131,26 @@
     font-size: 0.6875rem;
     letter-spacing: 0.22em;
     text-transform: uppercase;
-    color: rgb(var(--clay));
+    color: rgb(var(--sodium));
   }
+
+  /* Interactive surfaces share one shape and one motion, so the whole page
+     feels like it was made by the same hand. */
+  .pill {
+    border-radius: var(--r-pill);
+    transition: background-color var(--dur-micro) ease, color var(--dur-micro) ease,
+                border-color var(--dur-micro) ease, transform var(--dur-fast) var(--ease-settle);
+  }
+  .pill:active { transform: scale(0.97); }
+
+  .panel {
+    border-radius: var(--r-lg);
+    border: 1px solid rgb(var(--edge));
+    background: rgb(var(--surface) / 0.5);
+    transition: border-color var(--dur-fast) ease, background-color var(--dur-fast) ease,
+                transform var(--dur-settle) var(--ease-settle);
+  }
+  .panel:hover { border-color: rgb(var(--sodium) / 0.45); }
   .rule { height: 1px; background: rgb(var(--edge)); }
 
   /* Parallax. One scroll value on the root, scaled per layer by its own depth,

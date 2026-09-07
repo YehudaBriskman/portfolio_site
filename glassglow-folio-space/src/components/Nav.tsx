@@ -9,6 +9,7 @@ const items = [
 ];
 
 const ROUTES = [
+  { to: "/projects", label: "Projects" },
   { to: "/blog", label: "Blog" },
 ];
 

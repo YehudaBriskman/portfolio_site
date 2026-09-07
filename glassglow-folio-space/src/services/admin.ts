@@ -25,6 +25,28 @@ const AdminCollectionSchema = z.object({
   _rev: z.string().optional(),
   slug: z.string(),
   title: z.string(),
+  tagline: z.string().default(""),
+  kind: z.enum(["site", "project"]).default("project"),
+  repo: z
+    .object({
+      owner: z.string(),
+      name: z.string(),
+      branch: z.string().default("main"),
+      docPaths: z.array(z.string()).default([]),
+    })
+    .nullable()
+    .default(null),
+  stats: z
+    .object({
+      stars: z.number().nullable(),
+      language: z.string().nullable(),
+      license: z.string().nullable(),
+      pushedAt: z.string().nullable(),
+      fetchedAt: z.string().nullable(),
+      error: z.string().nullable(),
+    })
+    .nullable()
+    .default(null),
   description: z.string(),
   coverImage: z.string().nullable(),
   links: z.array(LinkSchema),
@@ -82,6 +104,8 @@ export const admin = {
     });
     return AdminCollectionSchema.parse(r.collection);
   },
+  syncCollection: (slug: string) =>
+    call<{ ok: true; stats: unknown }>(`/collections/${encodeURIComponent(slug)}/sync`, { method: "POST" }),
   hideCollection: (slug: string) =>
     call<{ ok: true }>(`/collections/${encodeURIComponent(slug)}`, { method: "DELETE" }),
 };

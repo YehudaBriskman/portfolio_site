@@ -12,7 +12,7 @@ export default function Blog() {
 
   useEffect(() => {
     let alive = true;
-    Promise.all([blog.collections(), blog.posts()])
+    Promise.all([blog.collections(), blog.posts({ collection: "site" })])
       .then(([c, p]) => {
         if (!alive) return;
         setCols(c);
@@ -26,7 +26,7 @@ export default function Blog() {
 
   // The site's own writing leads; project shelves follow.
   const site = (cols ?? []).find((c) => c.slug === "site");
-  const projects = (cols ?? []).filter((c) => c.slug !== "site");
+  const projects = (cols ?? []).filter((c) => c.kind === "project");
 
   return (
     <PageShell>
@@ -40,23 +40,19 @@ export default function Blog() {
         </p>
 
         {projects.length > 0 && (
-          <div className="mt-14">
-            <p className="eyebrow">Project notes</p>
-            <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-12 border-y border-edge py-5">
+            <span className="mono text-[0.625rem] uppercase tracking-[0.22em] text-bone/35">
+              Notes on the projects
+            </span>
+            <ul className="mono mt-3 flex flex-wrap gap-x-7 gap-y-2 text-[0.6875rem] uppercase tracking-[0.18em]">
               {projects.map((c) => (
-                <Link
-                  key={c.slug}
-                  to={`/blog/c/${c.slug}`}
-                  className="group block border border-edge bg-surface/40 p-6 transition-colors hover:border-sodium/50"
-                >
-                  {c.coverImage && (
-                    <img src={c.coverImage} alt="" loading="lazy" className="mb-4 h-28 w-full border border-edge object-cover" />
-                  )}
-                  <h2 className="display-tight text-xl text-bone transition-colors group-hover:text-sodium">{c.title}</h2>
-                  {c.description && <p className="mt-2 text-sm leading-relaxed text-bone/60">{c.description}</p>}
-                </Link>
+                <li key={c.slug}>
+                  <Link to={`/projects/${c.slug}`} className="text-bone/60 transition-colors hover:text-sodium">
+                    {c.title} →
+                  </Link>
+                </li>
               ))}
-            </div>
+            </ul>
           </div>
         )}
 

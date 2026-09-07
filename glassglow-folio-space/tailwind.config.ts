@@ -33,7 +33,14 @@ export default {
         accent: { DEFAULT: rgb("--accent"), foreground: rgb("--accent-foreground") },
         card: { DEFAULT: rgb("--card"), foreground: rgb("--card-foreground") },
       },
-      borderRadius: { lg: "var(--radius)", md: "var(--radius)", sm: "1px" },
+      borderRadius: {
+        sm: "var(--r-sm)",
+        md: "var(--r-md)",
+        lg: "var(--r-lg)",
+        xl: "var(--r-lg)",
+        "2xl": "28px",
+        full: "var(--r-pill)",
+      },
       fontFamily: {
         display: ["Archivo", "ui-sans-serif", "system-ui", "sans-serif"],
         sans: ["IBM Plex Sans", "ui-sans-serif", "system-ui", "sans-serif"],
@@ -41,8 +48,8 @@ export default {
       },
       fontSize: {
         // Display scale is deliberately steep: the hero should dwarf everything.
-        hero: ["clamp(2.75rem, 9vw, 8.5rem)", { lineHeight: "0.9" }],
-        section: ["clamp(1.9rem, 4.5vw, 3.75rem)", { lineHeight: "0.98" }],
+        hero: ["clamp(3rem, 9.5vw, 9rem)", { lineHeight: "0.88" }],
+        section: ["clamp(2.15rem, 5vw, 4.25rem)", { lineHeight: "0.95" }],
       },
       keyframes: {
         "fade-up": { from: { opacity: "0", transform: "translateY(14px)" }, to: { opacity: "1", transform: "none" } },

@@ -5,7 +5,7 @@ import { featured, rest, type Project } from "@/data/projects";
 function Shot({ src, alt }: { src: string; alt: string }) {
   const [loaded, setLoaded] = useState(false);
   return (
-    <div className="relative aspect-[16/10] overflow-hidden border border-edge bg-surface">
+    <div className="relative aspect-[16/10] overflow-hidden rounded-lg border border-edge bg-surface">
       {!loaded && <div className="absolute inset-0 animate-pulse-soft bg-surface" />}
       <img
         src={`/projects/${src}`}
@@ -37,7 +37,7 @@ const DISCOVERED: [string, string, string][] = [
 
 function Plate({ p }: { p: Project }) {
   return (
-    <div className="relative flex aspect-[16/10] flex-col justify-between overflow-hidden border border-edge bg-surface p-7">
+    <div className="relative flex aspect-[16/10] flex-col justify-between overflow-hidden rounded-lg border border-edge bg-surface p-7">
       <div className="flex items-baseline justify-between">
         <span className="mono text-[0.6875rem] uppercase tracking-[0.2em] text-bone/45">{p.status}</span>
         <span className="mono text-[0.625rem] uppercase tracking-[0.2em] text-bone/25">sample</span>

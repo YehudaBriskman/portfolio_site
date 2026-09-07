@@ -70,4 +70,18 @@ router.get(
   })
 );
 
+/* One project by slug, for its own page. */
+router.get(
+  "/collections/:slug",
+  asyncHandler(async (req, res) => {
+    const { docs } = await couch.find<Collection>({
+      selector: { type: "collection", status: "published", slug: req.params.slug },
+      limit: 1,
+    });
+    const doc = docs[0];
+    if (!doc) return res.status(404).json({ ok: false, error: "Not Found" });
+    res.json({ ok: true, collection: toPublicCollection(doc) });
+  })
+);
+
 export default router;

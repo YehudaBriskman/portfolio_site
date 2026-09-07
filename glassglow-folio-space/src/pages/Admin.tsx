@@ -39,13 +39,13 @@ export default function Admin() {
           <div className="flex gap-3">
             <Link
               to="/admin/collections/new"
-              className="mono border border-edge px-6 py-3 text-xs uppercase tracking-[0.2em] text-bone/70 transition-colors hover:border-bone/50"
+              className="pill mono border border-edge px-6 py-3 text-xs uppercase tracking-[0.2em] text-bone/70 transition-colors hover:border-bone/50"
             >
               New area
             </Link>
             <Link
               to="/admin/posts/new"
-              className="mono border border-sodium px-6 py-3 text-xs uppercase tracking-[0.2em] text-sodium transition-colors hover:bg-sodium hover:text-bitumen"
+              className="pill mono border border-sodium px-6 py-3 text-xs uppercase tracking-[0.2em] text-sodium transition-colors hover:bg-sodium hover:text-bitumen"
             >
               New post
             </Link>

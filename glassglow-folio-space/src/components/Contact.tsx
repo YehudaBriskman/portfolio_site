@@ -63,7 +63,7 @@ export default function Contact() {
           <button
             type="submit"
             disabled={status.kind === "sending"}
-            className="mono mt-11 inline-flex items-center gap-3 border border-sodium px-7 py-3.5 text-xs uppercase tracking-[0.22em] text-sodium transition-colors hover:bg-sodium hover:text-ink disabled:cursor-not-allowed disabled:opacity-45"
+            className="pill mono mt-11 inline-flex items-center gap-3 border border-sodium px-7 py-3.5 text-xs uppercase tracking-[0.22em] text-sodium transition-colors hover:bg-sodium hover:text-ink disabled:cursor-not-allowed disabled:opacity-45"
           >
             {status.kind === "sending" ? "Sending" : "Send message"}
             <span aria-hidden="true">→</span>

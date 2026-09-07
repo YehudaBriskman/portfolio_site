@@ -19,13 +19,25 @@ const PostSchema = SummarySchema.extend({
   links: z.array(LinkSchema).default([]),
 });
 
+const StatsSchema = z.object({
+  stars: z.number().nullable(),
+  language: z.string().nullable(),
+  license: z.string().nullable(),
+  pushedAt: z.string().nullable(),
+  latestRelease: z.object({ tag: z.string(), url: z.string(), publishedAt: z.string().nullable() }).nullable(),
+});
+
 const CollectionSchema = z.object({
   slug: z.string(),
   title: z.string(),
+  tagline: z.string().default(""),
   description: z.string(),
   coverImage: z.string().nullable(),
   links: z.array(LinkSchema),
   order: z.number(),
+  kind: z.enum(["site", "project"]).default("project"),
+  repoUrl: z.string().nullable().default(null),
+  stats: StatsSchema.nullable().default(null),
 });
 
 export type PostSummary = z.infer<typeof SummarySchema>;
@@ -49,6 +61,8 @@ export const blog = {
   },
   post: (slug: string) => get(`/posts/${encodeURIComponent(slug)}`, PostSchema, (j) => j.post),
   collections: () => get("/collections", z.array(CollectionSchema), (j) => j.items ?? []),
+  collection: (slug: string) =>
+    get(`/collections/${encodeURIComponent(slug)}`, CollectionSchema, (j) => j.collection),
 };
 
 export function formatDate(iso: string | null) {

@@ -79,7 +79,7 @@ export default function BlogPost() {
                 alt=""
                 loading="lazy"
                 decoding="async"
-                className="mt-10 w-full border border-edge object-cover"
+                className="mt-10 w-full rounded-lg border border-edge object-cover"
               />
             )}
 
