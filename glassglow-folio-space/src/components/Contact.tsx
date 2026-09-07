@@ -1,4 +1,5 @@
 import { FormEvent, useState } from "react";
+import Scenery from "@/components/scene/Scenery";
 import { links } from "@/data/links";
 import { contact } from "@/data/site";
 import { sendContactMessage } from "@/services/contact";
@@ -29,7 +30,8 @@ export default function Contact() {
     "mt-2 w-full border-0 border-b border-edge bg-transparent px-0 py-3 text-bone placeholder:text-clay/45 focus:border-sodium focus:outline-none focus:ring-0 transition-colors";
 
   return (
-    <section id="contact" className="relative mx-auto max-w-6xl px-6 py-28 sm:py-36">
+    <section id="contact" className="isolate relative mx-auto max-w-6xl px-6 py-28 sm:py-36">
+      <Scenery variant="ripples" />
       <p className="eyebrow">{contact.location} — {contact.availability}</p>
       <h2 className="display-tight mt-5 text-section">Get in touch</h2>
 

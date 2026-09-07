@@ -1,8 +1,10 @@
 import { about } from "@/data/site";
+import Scenery from "@/components/scene/Scenery";
 
 export default function Approach() {
   return (
-    <section id="approach" className="relative mx-auto max-w-6xl px-6 py-28 sm:py-36">
+    <section id="approach" className="isolate relative mx-auto max-w-6xl px-6 py-28 sm:py-36">
+      <Scenery variant="copse" />
       <p className="eyebrow">Team lead — Israel Defense Forces</p>
       <h2 className="display-tight mt-5 text-section">{about.heading}</h2>
 

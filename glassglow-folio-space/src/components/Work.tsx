@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
+import Scenery from "@/components/scene/Scenery";
 import { featured, rest, type Project } from "@/data/projects";
 
 function Shot({ src, alt }: { src: string; alt: string }) {
@@ -23,20 +24,44 @@ function Shot({ src, alt }: { src: string; alt: string }) {
   );
 }
 
-/* A console tool does not photograph well. Its panel carries its claims instead. */
+/* A console tool does not photograph well, and repeating its tagline beside the
+   tagline is not a visual. This shows what the thing actually does: a discovered
+   table, which is Bothy's whole argument. Illustrative, not live — so it is
+   marked as a sample rather than dressed up as real output. */
+const DISCOVERED: [string, string, string][] = [
+  ["traefik", ":443", "edge"],
+  ["grafana", ":3000", "/grafana"],
+  ["prometheus", ":9090", "/metrics"],
+  ["postgres", ":5432", "—"],
+];
+
 function Plate({ p }: { p: Project }) {
   return (
     <div className="relative flex aspect-[16/10] flex-col justify-between overflow-hidden border border-edge bg-surface p-7">
-      <div className="mono text-[0.6875rem] uppercase tracking-[0.2em] text-bone/45">{p.status}</div>
-      <p className="display-tight max-w-sm text-2xl leading-tight text-bone">{p.tagline}</p>
-      <ul className="space-y-2">
-        {p.highlights.slice(0, 3).map((h) => (
-          <li key={h} className="flex gap-3 text-[0.8125rem] leading-snug text-bone/65">
-            <span className="mt-[0.45rem] h-px w-4 shrink-0 bg-sodium" aria-hidden="true" />
-            {h}
-          </li>
-        ))}
-      </ul>
+      <div className="flex items-baseline justify-between">
+        <span className="mono text-[0.6875rem] uppercase tracking-[0.2em] text-bone/45">{p.status}</span>
+        <span className="mono text-[0.625rem] uppercase tracking-[0.2em] text-bone/25">sample</span>
+      </div>
+
+      <div className="mono text-[0.8125rem] leading-relaxed">
+        <div className="text-sodium">$ bothy ls</div>
+        <div className="mt-2 grid grid-cols-[1fr_auto_auto] gap-x-5 text-bone/30">
+          <span>SERVICE</span><span>PORT</span><span>ROUTE</span>
+        </div>
+        <div className="mt-1 grid grid-cols-[1fr_auto_auto] gap-x-5 gap-y-1 text-bone/70">
+          {DISCOVERED.map(([svc, port, route]) => (
+            <Fragment key={svc}>
+              <span>{svc}</span>
+              <span className="tabular-nums text-bone/50">{port}</span>
+              <span className="text-bone/45">{route}</span>
+            </Fragment>
+          ))}
+        </div>
+      </div>
+
+      <p className="text-[0.8125rem] leading-snug text-bone/50">
+        Nothing above was configured. It was found by asking Docker.
+      </p>
     </div>
   );
 }
@@ -104,7 +129,8 @@ function Featured({ p }: { p: Project }) {
 
 export default function Work() {
   return (
-    <section id="work" className="relative mx-auto max-w-6xl px-6 py-28 sm:py-36">
+    <section id="work" className="isolate relative mx-auto max-w-6xl px-6 py-28 sm:py-36">
+      <Scenery variant="ridge" />
       <p className="eyebrow">In use</p>
       <h2 className="display-tight mt-5 text-section">Work</h2>
 
