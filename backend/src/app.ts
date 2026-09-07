@@ -5,6 +5,8 @@ import { createImagesRouter } from "./routes/images.route";
 import { requestLogger } from "./middlewares/logger";
 import emailRoutes from './routes/email.route.js';
 import blogRoutes from './routes/blog.route.js';
+import adminRoutes from './routes/admin.route.js';
+import { requireAdmin } from './middlewares/requireAdmin.js';
 
 export function createApp() {
   const app = express();
@@ -54,6 +56,7 @@ export function createApp() {
   // Routers
 
   app.use('/api/blog', readLimiter, blogRoutes);
+  app.use('/api/admin', requireAdmin, adminRoutes);
   app.use('/api/email', emailRoutes);
   app.use("/api/images", createImagesRouter());
 

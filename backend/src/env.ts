@@ -26,6 +26,11 @@ const EnvSchema = z.object({
   COUCHDB_URL: z.string().default("http://couchdb-svc-couchdb.obsidian.svc.cluster.local:5984"),
   COUCHDB_USER: z.string().default("portfolio_api"),
   COUCHDB_PASSWORD: z.string().default(""),
+
+  // Admin gate. Empty ADMIN_PROXY_SECRET fails closed in requireAdmin, so a
+  // misconfigured deploy locks the admin surface rather than opening it.
+  ADMIN_PROXY_SECRET: z.string().default(""),
+  ADMIN_GITHUB_LOGIN: z.string().default("YehudaBriskman"),
 })
 .superRefine((env, ctx) => {
   if (env.EMAIL_PROVIDER === 'smtp') {

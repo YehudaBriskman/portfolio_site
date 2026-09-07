@@ -10,6 +10,9 @@ import NotFound from "./pages/NotFound";
 // /notes. The home page must not pay for the blog renderer.
 const Blog = lazy(() => import("./pages/Blog"));
 const BlogPost = lazy(() => import("./pages/BlogPost"));
+// Admin is edge-gated, but lazy anyway so the editor never reaches a reader.
+const Admin = lazy(() => import("./pages/Admin"));
+const AdminEditor = lazy(() => import("./pages/AdminEditor"));
 
 const queryClient = new QueryClient();
 
@@ -24,6 +27,8 @@ const App = () => (
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="/notes" element={<Suspense fallback={null}><Blog /></Suspense>} />
           <Route path="/notes/:slug" element={<Suspense fallback={null}><BlogPost /></Suspense>} />
+          <Route path="/admin" element={<Suspense fallback={null}><Admin /></Suspense>} />
+          <Route path="/admin/posts/:slug" element={<Suspense fallback={null}><AdminEditor /></Suspense>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
