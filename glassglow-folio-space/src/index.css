@@ -132,6 +132,14 @@
     .t-layer { transform: none; }
   }
 
+  /* Ambient motion for the landscape's inhabitants. All of it is slow and
+     none of it bounces — the same rule the type animations follow. */
+  @keyframes twinkle { 0%,100% { opacity: .40 } 50% { opacity: .95 } }
+  @keyframes drift   { from { transform: translateX(0) } to { transform: translateX(-1440px) } }
+  @keyframes cross   { from { transform: translateX(-140px) } to { transform: translateX(1580px) } }
+  @keyframes flap    { 0%,100% { transform: scaleY(1) } 50% { transform: scaleY(.55) } }
+  @keyframes sway    { 0%,100% { transform: rotate(-2.5deg) } 50% { transform: rotate(2.5deg) } }
+
   /* Grain over large flat gradients: the sky is one enormous smooth ramp and
      will band badly on wide-gamut displays without it. */
   .grain::after {

@@ -42,6 +42,45 @@ const LAYERS = [
 
 const HORIZON = 560;
 
+/* Deterministic scatter — a fixed table, not Math.random, so the sky is the same
+   sky on every render. */
+const STARS: [number, number, number][] = [
+  [80, 44, 1.0], [190, 92, 0.7], [286, 38, 1.2], [372, 120, 0.6], [455, 70, 0.9],
+  [548, 148, 0.8], [630, 52, 1.1], [716, 110, 0.7], [800, 64, 0.9], [884, 168, 0.6],
+  [962, 88, 1.0], [1046, 40, 0.8], [1130, 132, 0.7], [1216, 74, 0.9], [1302, 116, 0.6],
+  [1378, 56, 0.8], [140, 170, 0.6], [508, 210, 0.7], [1000, 226, 0.6], [1290, 196, 0.7],
+];
+
+function SkyLife() {
+  return (
+    <g>
+      {STARS.map(([x, y, r], i) => (
+        <circle key={i} cx={x} cy={y} r={r * 1.7} fill="rgb(var(--bone))"
+          opacity={0.42 + (i % 3) * 0.14}
+          style={{ animation: `twinkle ${5 + (i % 4)}s ease-in-out ${i * 0.37}s infinite` }} />
+      ))}
+      {/* Cloud banks, drifting slowly across the whole width. */}
+      {[{ y: 250, w: 420, o: 0.07, d: 96 }, { y: 322, w: 560, o: 0.06, d: 132 }, { y: 392, w: 340, o: 0.08, d: 110 }].map((c, i) => (
+        <g key={i} style={{ animation: `drift ${c.d}s linear ${-i * 24}s infinite` }}>
+          <ellipse cx={280 + i * 300} cy={c.y} rx={c.w / 2} ry="11" fill="rgb(var(--bone))" opacity={c.o} />
+          <ellipse cx={280 + i * 300 + 1440} cy={c.y} rx={c.w / 2} ry="11" fill="rgb(var(--bone))" opacity={c.o} />
+        </g>
+      ))}
+      {/* One flock, crossing above the ridgeline. */}
+      <g style={{ animation: "cross 110s linear -46s infinite" }}>
+        {[[0, 0], [16, -7], [31, -2], [46, -10], [60, -5]].map(([dx, dy], i) => (
+          <path key={i}
+            d={`M${dx},${432 + dy} q4.5,-4.5 9,0 M${dx + 9},${432 + dy} q4.5,-4.5 9,0`}
+            stroke="rgb(var(--bitumen))" strokeWidth="1.6" fill="none" strokeLinecap="round"
+            opacity={0.42 - i * 0.04}
+            style={{ animation: `flap ${1.7 + i * 0.2}s ease-in-out infinite`, transformOrigin: `${dx + 9}px 432px` }} />
+        ))}
+      </g>
+    </g>
+  );
+}
+
+
 /* The shoreline and its tree, the nearest thing before the water. */
 function Shore() {
   return (
@@ -133,6 +172,7 @@ export default function Terrain() {
 
         {/* ---------- above the waterline ---------- */}
         <g clipPath="url(#above)">
+          <SkyLife />
           <circle cx="880" cy="524" r="150" fill="url(#sunGlow)" className="t-layer" style={{ ["--d" as string]: 0.04 }} />
           <circle cx="880" cy="524" r="42" fill="rgb(var(--sodium))" className="t-layer" style={{ ["--d" as string]: 0.04 }} />
           {LAYERS.map((l) => (
