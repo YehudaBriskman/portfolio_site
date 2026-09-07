@@ -7,6 +7,10 @@ const items = [
   { id: "contact", label: "Contact" },
 ];
 
+const ROUTES = [
+  { to: "/notes", label: "Notes" },
+];
+
 export default function Nav() {
   const [active, setActive] = useState("hero");
   const [solid, setSolid] = useState(false);
@@ -42,6 +46,13 @@ export default function Nav() {
           Y.B<span className="text-sodium">.</span>
         </a>
         <ul className="flex gap-6 sm:gap-8">
+          {ROUTES.map((r) => (
+            <li key={r.to}>
+              <a href={r.to} className="mono text-[0.6875rem] uppercase tracking-[0.18em] text-clay transition-colors hover:text-bone">
+                {r.label}
+              </a>
+            </li>
+          ))}
           {items.map((i) => (
             <li key={i.id}>
               <a

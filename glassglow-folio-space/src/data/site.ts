@@ -2,7 +2,7 @@
    asking "prove it". No adjectives that can't be checked. */
 
 export const contact = {
-  email: "yr0556772363@gmail.com",
+  email: "yehuda@yehudabriskman.com",
   location: "Tel Aviv, Israel",
   availability: "Open to interesting conversations",
 };
