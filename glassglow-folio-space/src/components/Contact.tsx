@@ -1,6 +1,6 @@
 import { FormEvent, useState } from "react";
 import { links } from "@/data/links";
-import { paragraphs } from "@/data/paragraphs";
+import { contact } from "@/data/site";
 import { sendContactMessage } from "@/services/contact";
 
 type Status = { kind: "idle" | "sending" | "sent" | "error"; message?: string };
@@ -30,11 +30,17 @@ export default function Contact() {
 
   return (
     <section id="contact" className="relative mx-auto max-w-6xl px-6 py-28 sm:py-36">
-      <p className="eyebrow">{paragraphs.contactUs.location} — {paragraphs.contactUs.current}</p>
-      <h2 className="display-tight mt-5 text-section">{paragraphs.contactUs.secondTitle}</h2>
+      <p className="eyebrow">{contact.location} — {contact.availability}</p>
+      <h2 className="display-tight mt-5 text-section">Get in touch</h2>
 
       <div className="mt-16 grid gap-16 lg:grid-cols-[1.1fr_1fr]">
-        <form onSubmit={onSubmit} className="max-w-lg">
+        <div className="max-w-lg">
+          <p className="mb-10 text-sm leading-relaxed text-bone/70">
+            I&rsquo;m employed full-time and not looking for freelance work. I do read everything.
+            If you&rsquo;re hiring, building something you think I&rsquo;d find interesting, or want
+            to talk about anything on this page, write to me.
+          </p>
+        <form onSubmit={onSubmit}>
           <label className="block">
             <span className="mono text-[0.6875rem] uppercase tracking-[0.22em] text-clay">Name</span>
             <input name="name" required autoComplete="name" className={field} placeholder="Your name" />
@@ -62,13 +68,14 @@ export default function Contact() {
             {status.kind === "error" && <span className="text-clay">{status.message}</span>}
           </p>
         </form>
+        </div>
 
         <div>
           <a
-            href={`mailto:${paragraphs.contactUs.email}`}
+            href={`mailto:${contact.email}`}
             className="display-tight block text-xl text-bone underline decoration-edge underline-offset-[6px] transition-colors hover:decoration-sodium sm:text-2xl"
           >
-            {paragraphs.contactUs.email}
+            {contact.email}
           </a>
 
           <ul className="mt-10 grid grid-cols-2 gap-x-8 gap-y-3">

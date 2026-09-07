@@ -1,6 +1,7 @@
 import Nav from "@/components/Nav";
 import Hero from "@/components/Hero";
 import Work from "@/components/Work";
+import Approach from "@/components/Approach";
 import Stack from "@/components/Stack";
 import Contact from "@/components/Contact";
 
@@ -17,9 +18,8 @@ export default function Index() {
       <main>
         <Hero />
         <Work />
-        <div className="mx-auto max-w-6xl px-6"><div className="rule" /></div>
+        <Approach />
         <Stack />
-        <div className="mx-auto max-w-6xl px-6"><div className="rule" /></div>
         <Contact />
       </main>
     </div>

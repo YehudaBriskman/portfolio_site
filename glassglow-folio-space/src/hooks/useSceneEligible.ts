@@ -1,5 +1,31 @@
 import { useEffect, useState } from "react";
 
+/**
+ * Can this browser actually create a WebGL context?
+ * Checked by trying, once, on a throwaway canvas — not inferred from the user
+ * agent. Machines with hardware acceleration disabled, a blocklisted GPU, or a
+ * locked-down sandbox report every capability normally and then fail at
+ * getContext, which makes three.js throw during render. Catching that in an
+ * error boundary works, but it still downloads ~260 KB of three.js to do it.
+ * Probing first means those visitors download none of it.
+ */
+function canUseWebGL(): boolean {
+  try {
+    const canvas = document.createElement("canvas");
+    const gl =
+      canvas.getContext("webgl2") ||
+      canvas.getContext("webgl") ||
+      canvas.getContext("experimental-webgl");
+    if (!gl) return false;
+    // Release it immediately; some drivers cap the number of live contexts.
+    const lose = (gl as WebGLRenderingContext).getExtension("WEBGL_lose_context");
+    lose?.loseContext();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /*
  * Decides whether this visitor should pay for the 3D layer at all.
  * The scene is a background flourish; it must never cost a phone, a metered
@@ -22,7 +48,8 @@ export function useSceneEligible() {
         deviceMemory?: number;
       };
       setEligible(
-        wide.matches &&
+        canUseWebGL() &&
+          wide.matches &&
           fine.matches &&
           !contrast.matches &&
           nav.connection?.saveData !== true &&

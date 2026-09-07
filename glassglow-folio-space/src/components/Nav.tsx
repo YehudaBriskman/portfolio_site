@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 const items = [
   { id: "work", label: "Work" },
+  { id: "approach", label: "Approach" },
   { id: "stack", label: "Stack" },
   { id: "contact", label: "Contact" },
 ];

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { paragraphs } from "@/data/paragraphs";
+import { contact } from "@/data/site";
 
 const ContactSchema = z.object({
   name: z.string().min(2, "Add your name"),
@@ -12,7 +12,7 @@ export type ContactPayload = z.infer<typeof ContactSchema>;
 /* Was process.env, which is undefined in the browser and threw before the
    request was ever made. Vite inlines import.meta.env; the fallback is the
    address published on this page anyway. */
-const CONTACT_TO = import.meta.env.VITE_CONTACT_TO ?? paragraphs.contactUs.email;
+const CONTACT_TO = import.meta.env.VITE_CONTACT_TO ?? contact.email;
 
 export async function sendContactMessage(data: ContactPayload) {
   const parsed = ContactSchema.safeParse(data);
