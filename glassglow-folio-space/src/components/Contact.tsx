@@ -11,7 +11,11 @@ export default function Contact() {
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const form = new FormData(e.currentTarget);
+    // Hold the element itself: React nulls currentTarget once the handler
+    // returns, so reaching for it after the await threw — and the mail had
+    // already been sent, so a successful send reported itself as a failure.
+    const el = e.currentTarget;
+    const form = new FormData(el);
     setStatus({ kind: "sending" });
     try {
       await sendContactMessage({
@@ -20,7 +24,7 @@ export default function Contact() {
         message: String(form.get("message") ?? ""),
       });
       setStatus({ kind: "sent" });
-      e.currentTarget.reset();
+      el.reset();
     } catch (err) {
       setStatus({ kind: "error", message: err instanceof Error ? err.message : "Couldn't send that" });
     }
@@ -105,7 +109,19 @@ export default function Contact() {
 
       <footer className="mono mt-28 flex flex-wrap items-center justify-between gap-4 border-t border-edge pt-8 text-[0.6875rem] text-clay/60">
         <span>© {new Date().getFullYear()} Yehuda Briskman</span>
-        <span>Tel Aviv, Israel</span>
+        <span className="flex items-center gap-5">
+          <span>Tel Aviv, Israel</span>
+          {/* Deliberately quiet rather than hidden. Security here is the GitHub
+              wall in front of the admin host, not the obscurity of the link —
+              pretending otherwise would be the weaker of the two. */}
+          <a
+            href="https://admin.yehudabriskman.com/admin"
+            className="text-clay/20 transition-colors hover:text-sodium focus-visible:text-sodium"
+            aria-label="Admin"
+          >
+            admin
+          </a>
+        </span>
       </footer>
     </section>
   );

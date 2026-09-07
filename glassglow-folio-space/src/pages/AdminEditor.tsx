@@ -3,7 +3,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import PageShell from "@/components/PageShell";
-import { admin, slugify } from "@/services/admin";
+import { admin, slugify, type AdminCollection } from "@/services/admin";
+import LinkEditor, { type LinkRow } from "@/components/LinkEditor";
 
 type Draft = {
   slug: string;
@@ -13,10 +14,13 @@ type Draft = {
   body: string;
   status: "draft" | "published" | "archived";
   tags: string;
+  collection: string;
+  coverImage: string;
+  links: LinkRow[];
   _rev?: string;
 };
 
-const EMPTY: Draft = { slug: "", title: "", subtitle: "", excerpt: "", body: "", status: "draft", tags: "" };
+const EMPTY: Draft = { slug: "", title: "", subtitle: "", excerpt: "", body: "", status: "draft", tags: "", collection: "site", coverImage: "", links: [] };
 
 export default function AdminEditor() {
   const { slug } = useParams();
@@ -27,6 +31,11 @@ export default function AdminEditor() {
   const [msg, setMsg] = useState<string | null>(null);
   const [preview, setPreview] = useState(false);
   const [slugTouched, setSlugTouched] = useState(!isNew);
+  const [cols, setCols] = useState<AdminCollection[]>([]);
+
+  useEffect(() => {
+    admin.collections().then((c) => setCols(c.filter((x) => x.status === "published"))).catch(() => setCols([]));
+  }, []);
 
   useEffect(() => {
     if (isNew) return;
@@ -41,6 +50,9 @@ export default function AdminEditor() {
           body: p.body,
           status: p.status,
           tags: p.tags.join(", "),
+          collection: p.collection,
+          coverImage: p.coverImage ?? "",
+          links: p.links,
           _rev: p._rev,
         })
       )
@@ -67,6 +79,9 @@ export default function AdminEditor() {
         body: d.body,
         status: status ?? d.status,
         tags: d.tags.split(",").map((t) => t.trim().toLowerCase()).filter(Boolean),
+        collection: d.collection,
+        coverImage: d.coverImage.trim() || null,
+        links: d.links.filter((l) => l.label && l.url),
         _rev: d._rev,
       });
       setD((p) => ({ ...p, _rev: saved._rev, status: saved.status }));
@@ -107,6 +122,24 @@ export default function AdminEditor() {
                 <span className={label}>Tags (comma separated)</span>
                 <input value={d.tags} onChange={(e) => set("tags", e.target.value)} className={`${field} mono text-sm`} placeholder="ci, testing" />
               </label>
+              <label className="block">
+                <span className={label}>Area</span>
+                <select
+                  value={d.collection}
+                  onChange={(e) => set("collection", e.target.value)}
+                  className={`${field} mono text-sm`}
+                >
+                  {(cols.length ? cols : [{ slug: "site", title: "Notes" } as AdminCollection]).map((c) => (
+                    <option key={c.slug} value={c.slug} className="bg-surface text-bone">
+                      {c.title}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block">
+                <span className={label}>Cover image URL</span>
+                <input value={d.coverImage} onChange={(e) => set("coverImage", e.target.value)} className={`${field} mono text-xs`} placeholder="https://…" />
+              </label>
               <label className="block sm:col-span-2">
                 <span className={label}>Subtitle</span>
                 <input value={d.subtitle} onChange={(e) => set("subtitle", e.target.value)} className={field} />
@@ -143,7 +176,11 @@ export default function AdminEditor() {
               />
             )}
 
-            <div className="mt-8 flex flex-wrap items-center gap-4">
+            <div className="mt-10">
+              <LinkEditor links={d.links} onChange={(links) => setD((p) => ({ ...p, links }))} />
+            </div>
+
+            <div className="mt-10 flex flex-wrap items-center gap-4">
               <button
                 onClick={() => save()}
                 disabled={state === "saving" || !d.slug || !d.title}

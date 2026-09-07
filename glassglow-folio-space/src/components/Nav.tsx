@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 
 const items = [
   { id: "work", label: "Work" },
@@ -8,10 +9,12 @@ const items = [
 ];
 
 const ROUTES = [
-  { to: "/notes", label: "Notes" },
+  { to: "/blog", label: "Blog" },
 ];
 
 export default function Nav() {
+  const { pathname } = useLocation();
+  const onHome = pathname === "/";
   const [active, setActive] = useState("hero");
   const [solid, setSolid] = useState(false);
 
@@ -42,7 +45,7 @@ export default function Nav() {
       }`}
     >
       <nav className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-        <a href="#hero" className="mono text-xs uppercase tracking-[0.22em] text-bone">
+        <a href={onHome ? "#hero" : "/"} className="mono text-xs uppercase tracking-[0.22em] text-bone">
           Y.B<span className="text-sodium">.</span>
         </a>
         <ul className="flex gap-6 sm:gap-8">
@@ -56,7 +59,7 @@ export default function Nav() {
           {items.map((i) => (
             <li key={i.id}>
               <a
-                href={`#${i.id}`}
+                href={onHome ? `#${i.id}` : `/#${i.id}`}
                 className={`mono text-[0.6875rem] uppercase tracking-[0.18em] transition-colors ${
                   active === i.id ? "text-sodium" : "text-clay hover:text-bone"
                 }`}

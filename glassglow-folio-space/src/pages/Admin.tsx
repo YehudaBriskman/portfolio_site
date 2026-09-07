@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import PageShell from "@/components/PageShell";
-import { admin, type AdminPost } from "@/services/admin";
+import { admin, type AdminCollection, type AdminPost } from "@/services/admin";
 
 const STATUS_TONE: Record<string, string> = {
   published: "text-sodium",
@@ -11,13 +11,16 @@ const STATUS_TONE: Record<string, string> = {
 
 export default function Admin() {
   const [posts, setPosts] = useState<AdminPost[] | null>(null);
+  const [cols, setCols] = useState<AdminCollection[] | null>(null);
   const [who, setWho] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
 
   const load = () =>
-    admin
-      .list()
-      .then(setPosts)
+    Promise.all([admin.list(), admin.collections()])
+      .then(([p, c]) => {
+        setPosts(p);
+        setCols(c);
+      })
       .catch((e) => setError(e instanceof Error ? e.message : "Failed to load"));
 
   useEffect(() => {
@@ -33,25 +36,56 @@ export default function Admin() {
             <p className="eyebrow">{who ? `Signed in as ${who}` : "Admin"}</p>
             <h1 className="display-tight mt-4 text-section">Posts</h1>
           </div>
-          <Link
-            to="/admin/posts/new"
-            className="mono border border-sodium px-6 py-3 text-xs uppercase tracking-[0.2em] text-sodium transition-colors hover:bg-sodium hover:text-bitumen"
-          >
-            New post
-          </Link>
+          <div className="flex gap-3">
+            <Link
+              to="/admin/collections/new"
+              className="mono border border-edge px-6 py-3 text-xs uppercase tracking-[0.2em] text-bone/70 transition-colors hover:border-bone/50"
+            >
+              New area
+            </Link>
+            <Link
+              to="/admin/posts/new"
+              className="mono border border-sodium px-6 py-3 text-xs uppercase tracking-[0.2em] text-sodium transition-colors hover:bg-sodium hover:text-bitumen"
+            >
+              New post
+            </Link>
+          </div>
         </div>
 
         {error && <p className="mt-10 text-sm text-bone/70">{error}</p>}
         {!error && posts === null && <p className="mono mt-10 text-xs text-bone/40">Loading…</p>}
         {posts?.length === 0 && <p className="mt-10 text-sm text-bone/70">No posts yet.</p>}
 
-        <ul className="mt-12 divide-y divide-edge border-y border-edge">
+        {cols && cols.length > 0 && (
+          <div className="mt-12">
+            <p className="eyebrow">Areas</p>
+            <ul className="mt-4 flex flex-wrap gap-3">
+              {cols.map((c) => (
+                <li key={c.slug}>
+                  <Link
+                    to={`/admin/collections/${c.slug}`}
+                    className={`mono block border px-4 py-2 text-[0.625rem] uppercase tracking-[0.18em] transition-colors ${
+                      c.status === "hidden"
+                        ? "border-edge text-bone/30 hover:text-bone/60"
+                        : "border-edge text-bone/70 hover:border-sodium/50 hover:text-sodium"
+                    }`}
+                  >
+                    {c.title} · {(posts ?? []).filter((p) => p.collection === c.slug).length}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        <p className="eyebrow mt-12">Posts</p>
+        <ul className="mt-4 divide-y divide-edge border-y border-edge">
           {(posts ?? []).map((p) => (
             <li key={p.slug} className="flex flex-wrap items-center gap-x-6 gap-y-2 py-5">
               <Link to={`/admin/posts/${p.slug}`} className="min-w-0 flex-1 group">
                 <p className="text-base text-bone transition-colors group-hover:text-sodium">{p.title}</p>
                 <p className="mono mt-1 text-[0.625rem] uppercase tracking-[0.18em] text-bone/35">
-                  /{p.slug} · {p.readingMinutes} min · {p.tags.join(" ") || "no tags"}
+                  {p.collection} · /{p.slug} · {p.readingMinutes} min · {p.tags.join(" ") || "no tags"}
                 </p>
               </Link>
               <span className={`mono text-[0.625rem] uppercase tracking-[0.2em] ${STATUS_TONE[p.status]}`}>
@@ -59,7 +93,7 @@ export default function Admin() {
               </span>
               {p.status === "published" && (
                 <a
-                  href={`https://yehudabriskman.com/notes/${p.slug}`}
+                  href={`https://yehudabriskman.com/blog/${p.slug}`}
                   target="_blank"
                   rel="noreferrer noopener"
                   className="mono text-[0.625rem] uppercase tracking-[0.2em] text-bone/40 transition-colors hover:text-bone"

@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+const LinkSchema = z.object({ label: z.string(), url: z.string() });
+
 const SummarySchema = z.object({
   slug: z.string(),
   title: z.string(),
@@ -7,41 +9,47 @@ const SummarySchema = z.object({
   excerpt: z.string(),
   publishedAt: z.string().nullable(),
   tags: z.array(z.string()),
+  collection: z.string().default("site"),
+  coverImage: z.string().nullable().default(null),
   readingMinutes: z.number(),
 });
 
 const PostSchema = SummarySchema.extend({
   body: z.string(),
-  seo: z
-    .object({
-      title: z.string().nullable(),
-      description: z.string().nullable(),
-      canonical: z.string().nullable(),
-      noindex: z.boolean(),
-    })
-    .optional(),
+  links: z.array(LinkSchema).default([]),
+});
+
+const CollectionSchema = z.object({
+  slug: z.string(),
+  title: z.string(),
+  description: z.string(),
+  coverImage: z.string().nullable(),
+  links: z.array(LinkSchema),
+  order: z.number(),
 });
 
 export type PostSummary = z.infer<typeof SummarySchema>;
 export type Post = z.infer<typeof PostSchema>;
+export type Collection = z.infer<typeof CollectionSchema>;
 
-/* Responses are validated rather than trusted. The store is separate from the
-   app and can be written to by the admin surface; a shape change should surface
-   as a clean error here, not as undefined halfway down a render. */
-export async function fetchPosts(tag?: string): Promise<PostSummary[]> {
-  const res = await fetch(`/api/blog/posts${tag ? `?tag=${encodeURIComponent(tag)}` : ""}`);
-  if (!res.ok) throw new Error(`Couldn't load posts (${res.status})`);
-  const json = await res.json();
-  return z.array(SummarySchema).parse(json.items ?? []);
-}
-
-export async function fetchPost(slug: string): Promise<Post> {
-  const res = await fetch(`/api/blog/posts/${encodeURIComponent(slug)}`);
+async function get<T>(path: string, schema: z.ZodType<T>, pick: (j: any) => unknown): Promise<T> {
+  const res = await fetch(`/api/blog${path}`);
   if (res.status === 404) throw new Error("not-found");
-  if (!res.ok) throw new Error(`Couldn't load that post (${res.status})`);
-  const json = await res.json();
-  return PostSchema.parse(json.post);
+  if (!res.ok) throw new Error(`Request failed (${res.status})`);
+  return schema.parse(pick(await res.json()));
 }
+
+export const blog = {
+  posts: (opts: { tag?: string; collection?: string } = {}) => {
+    const q = new URLSearchParams();
+    if (opts.tag) q.set("tag", opts.tag);
+    if (opts.collection) q.set("collection", opts.collection);
+    const qs = q.toString();
+    return get(`/posts${qs ? `?${qs}` : ""}`, z.array(SummarySchema), (j) => j.items ?? []);
+  },
+  post: (slug: string) => get(`/posts/${encodeURIComponent(slug)}`, PostSchema, (j) => j.post),
+  collections: () => get("/collections", z.array(CollectionSchema), (j) => j.items ?? []),
+};
 
 export function formatDate(iso: string | null) {
   if (!iso) return "";

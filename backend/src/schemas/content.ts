@@ -21,6 +21,11 @@ export const PostSchema = z.object({
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
   tags: z.array(z.string().regex(/^[a-z0-9-]+$/)).max(8).default([]),
+  /* Which shelf this sits on. "site" is writing about this site and the craft
+     behind it; anything else is a project's own notes. */
+  collection: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).default("site"),
+  coverImage: z.string().url().nullable().default(null),
+  links: z.array(z.object({ label: z.string().min(1).max(60), url: z.string().url() })).max(8).default([]),
   readingMinutes: z.number().int().positive(),
   seo: z
     .object({
@@ -43,15 +48,46 @@ export function toPublicSummary(p: Post) {
     excerpt: p.excerpt,
     publishedAt: p.publishedAt,
     tags: p.tags,
+    collection: p.collection,
+    coverImage: p.coverImage,
     readingMinutes: p.readingMinutes,
   };
 }
 
 export function toPublicPost(p: Post) {
-  return { ...toPublicSummary(p), body: p.body, seo: p.seo };
+  return { ...toPublicSummary(p), body: p.body, links: p.links, seo: p.seo };
 }
 
 /** ~200 wpm, rounded up, floor of one. */
 export function readingMinutes(body: string) {
   return Math.max(1, Math.round(body.trim().split(/\s+/).length / 200));
+}
+
+/* A shelf of posts: the site's own notes, or one per project. */
+export const CollectionSchema = z.object({
+  _id: z.string().optional(),
+  _rev: z.string().optional(),
+  type: z.literal("collection"),
+  slug: SlugSchema,
+  title: z.string().min(1).max(120),
+  description: z.string().max(400).default(""),
+  coverImage: z.string().url().nullable().default(null),
+  links: z.array(z.object({ label: z.string().min(1).max(60), url: z.string().url() })).max(8).default([]),
+  order: z.number().int().default(50),
+  status: z.enum(["published", "hidden"]).default("published"),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+
+export type Collection = z.infer<typeof CollectionSchema>;
+
+export function toPublicCollection(c: Collection) {
+  return {
+    slug: c.slug,
+    title: c.title,
+    description: c.description,
+    coverImage: c.coverImage,
+    links: c.links,
+    order: c.order,
+  };
 }

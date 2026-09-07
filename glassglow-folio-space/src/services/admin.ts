@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+const LinkSchema = z.object({ label: z.string(), url: z.string() });
+
 const AdminPostSchema = z.object({
   _id: z.string().optional(),
   _rev: z.string().optional(),
@@ -12,8 +14,25 @@ const AdminPostSchema = z.object({
   publishedAt: z.string().nullable(),
   updatedAt: z.string(),
   tags: z.array(z.string()),
+  collection: z.string().default("site"),
+  coverImage: z.string().nullable().default(null),
+  links: z.array(LinkSchema).default([]),
   readingMinutes: z.number(),
 });
+
+const AdminCollectionSchema = z.object({
+  _id: z.string().optional(),
+  _rev: z.string().optional(),
+  slug: z.string(),
+  title: z.string(),
+  description: z.string(),
+  coverImage: z.string().nullable(),
+  links: z.array(LinkSchema),
+  order: z.number(),
+  status: z.enum(["published", "hidden"]),
+});
+
+export type AdminCollection = z.infer<typeof AdminCollectionSchema>;
 
 export type AdminPost = z.infer<typeof AdminPostSchema>;
 
@@ -51,6 +70,20 @@ export const admin = {
     return AdminPostSchema.parse(r.post);
   },
   archive: (slug: string) => call<{ ok: true }>(`/posts/${encodeURIComponent(slug)}`, { method: "DELETE" }),
+
+  collections: async () => {
+    const r = await call<{ items: unknown[] }>("/collections");
+    return z.array(AdminCollectionSchema).parse(r.items);
+  },
+  saveCollection: async (slug: string, body: Record<string, unknown>) => {
+    const r = await call<{ collection: unknown }>(`/collections/${encodeURIComponent(slug)}`, {
+      method: "PUT",
+      body: JSON.stringify(body),
+    });
+    return AdminCollectionSchema.parse(r.collection);
+  },
+  hideCollection: (slug: string) =>
+    call<{ ok: true }>(`/collections/${encodeURIComponent(slug)}`, { method: "DELETE" }),
 };
 
 export function slugify(title: string) {

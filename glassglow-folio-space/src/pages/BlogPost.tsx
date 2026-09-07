@@ -4,7 +4,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import PageShell from "@/components/PageShell";
 import Scenery from "@/components/scene/Scenery";
-import { fetchPost, formatDate, type Post } from "@/services/blog";
+import { blog, formatDate, type Post } from "@/services/blog";
 
 export default function BlogPost() {
   const { slug = "" } = useParams();
@@ -14,7 +14,7 @@ export default function BlogPost() {
   useEffect(() => {
     let alive = true;
     setState("loading");
-    fetchPost(slug)
+    blog.post(slug)
       .then((p) => {
         if (!alive) return;
         setPost(p);
@@ -38,10 +38,10 @@ export default function BlogPost() {
       <article className="isolate relative mx-auto max-w-3xl px-6 pb-28 pt-40 sm:pb-36">
         <Scenery variant="ripples" />
         <Link
-          to="/notes"
+          to="/blog"
           className="mono inline-flex items-center gap-2 text-[0.6875rem] uppercase tracking-[0.22em] text-bone/45 transition-colors hover:text-sodium"
         >
-          <span aria-hidden="true">←</span> Notes
+          <span aria-hidden="true">←</span> Blog
         </Link>
 
         {state === "loading" && <p className="mono mt-12 text-xs text-bone/40">Loading…</p>}
@@ -73,6 +73,16 @@ export default function BlogPost() {
 
             {/* No rehype-raw on purpose: without it react-markdown will not render
                 raw HTML, which removes the entire stored-content XSS surface. */}
+            {post.coverImage && (
+              <img
+                src={post.coverImage}
+                alt=""
+                loading="lazy"
+                decoding="async"
+                className="mt-10 w-full border border-edge object-cover"
+              />
+            )}
+
             <div
               className="prose prose-invert mt-12 max-w-none
                 prose-headings:font-[Archivo] prose-headings:tracking-tight
@@ -85,11 +95,23 @@ export default function BlogPost() {
               <ReactMarkdown remarkPlugins={[remarkGfm]}>{post.body}</ReactMarkdown>
             </div>
 
+            {post.links.length > 0 && (
+              <ul className="mono mt-12 flex flex-wrap gap-x-6 gap-y-2 border-t border-edge pt-8 text-[0.6875rem] uppercase tracking-[0.2em]">
+                {post.links.map((l) => (
+                  <li key={l.url}>
+                    <a href={l.url} target="_blank" rel="noreferrer noopener" className="text-sodium transition-opacity hover:opacity-70">
+                      {l.label} ↗
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
+
             {post.tags.length > 0 && (
-              <ul className="mono mt-14 flex flex-wrap gap-x-5 gap-y-2 border-t border-edge pt-8 text-[0.6875rem] uppercase tracking-[0.18em] text-bone/40">
+              <ul className="mono mt-8 flex flex-wrap gap-x-5 gap-y-2 text-[0.6875rem] uppercase tracking-[0.18em] text-bone/40">
                 {post.tags.map((t) => (
                   <li key={t}>
-                    <Link to={`/notes?tag=${encodeURIComponent(t)}`} className="transition-colors hover:text-sodium">
+                    <Link to={`/blog?tag=${encodeURIComponent(t)}`} className="transition-colors hover:text-sodium">
                       #{t}
                     </Link>
                   </li>

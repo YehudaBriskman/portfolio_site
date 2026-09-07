@@ -14,7 +14,12 @@ export function useScrollProgress() {
     let raf = 0;
     const measure = () => {
       raf = 0;
-      const max = Math.max(1, root.scrollHeight - window.innerHeight);
+      // Require a minimum travel distance before the palette moves. Without
+      // this a short page (a single post, the admin list) races through every
+      // band in one flick of the wheel, which reads as a glitch rather than a
+      // descent. Long pages are unaffected — their own height already exceeds it.
+      const travel = root.scrollHeight - window.innerHeight;
+      const max = Math.max(1, travel, window.innerHeight * 2.5);
       const y = window.scrollY;
       root.style.setProperty("--p", (y / max).toFixed(4));
       root.style.setProperty("--vh", (y / Math.max(1, window.innerHeight)).toFixed(4));

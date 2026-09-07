@@ -1,12 +1,21 @@
 import { Router } from "express";
 import { couch, CouchError } from "../db/couch.js";
 import { asyncHandler } from "../middlewares/asyncHandler.js";
-import { PostSchema, SlugSchema, readingMinutes, type Post } from "../schemas/content.js";
+import {
+  CollectionSchema,
+  PostSchema,
+  SlugSchema,
+  readingMinutes,
+  type Collection,
+  type Post,
+} from "../schemas/content.js";
 import { z } from "zod";
 
 const router = Router();
 
-const WriteSchema = z.object({
+const LinkSchema = z.object({ label: z.string().min(1).max(60), url: z.string().url() });
+
+const PostWrite = z.object({
   slug: SlugSchema,
   title: z.string().min(1).max(200),
   subtitle: z.string().max(300).nullable().default(null),
@@ -14,23 +23,47 @@ const WriteSchema = z.object({
   body: z.string().default(""),
   status: z.enum(["draft", "published", "archived"]).default("draft"),
   tags: z.array(z.string().regex(/^[a-z0-9-]+$/)).max(8).default([]),
+  collection: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).default("site"),
+  coverImage: z.string().url().nullable().default(null),
+  links: z.array(LinkSchema).max(8).default([]),
   publishedAt: z.string().datetime().nullable().default(null),
-  /* CouchDB's revision doubles as an optimistic lock: two tabs editing the same
-     post produce a clean 409 instead of a silent last-write-wins. */
   _rev: z.string().optional(),
 });
 
-const id = (slug: string) => `post:${slug}`;
+const CollectionWrite = z.object({
+  slug: SlugSchema,
+  title: z.string().min(1).max(120),
+  description: z.string().max(400).default(""),
+  coverImage: z.string().url().nullable().default(null),
+  links: z.array(LinkSchema).max(8).default([]),
+  order: z.coerce.number().int().default(50),
+  status: z.enum(["published", "hidden"]).default("published"),
+  _rev: z.string().optional(),
+});
+
+const postId = (slug: string) => `post:${slug}`;
+const colId = (slug: string) => `collection:${slug}`;
+
+async function tryGet<T>(id: string): Promise<T | null> {
+  try {
+    return await couch.get<T>(id);
+  } catch (e) {
+    if (e instanceof CouchError && e.status === 404) return null;
+    throw e;
+  }
+}
 
 router.get("/me", (req, res) => res.json({ ok: true, ...req.admin }));
+
+/* ---------------------------------------------------------------- posts -- */
 
 router.get(
   "/posts",
   asyncHandler(async (_req, res) => {
     const { docs } = await couch.find<Post>({
       selector: { type: "post" },
-      sort: [{ updatedAt: "desc" }],
-      limit: 200,
+      sort: [{ type: "desc" }, { updatedAt: "desc" }],
+      limit: 300,
     });
     res.json({ ok: true, items: docs });
   })
@@ -39,63 +72,50 @@ router.get(
 router.get(
   "/posts/:slug",
   asyncHandler(async (req, res) => {
-    try {
-      const doc = await couch.get<Post>(id(req.params.slug));
-      res.json({ ok: true, post: doc });
-    } catch (e) {
-      if (e instanceof CouchError && e.status === 404) {
-        return res.status(404).json({ ok: false, error: "Not Found" });
-      }
-      throw e;
-    }
+    const doc = await tryGet<Post>(postId(req.params.slug));
+    if (!doc) return res.status(404).json({ ok: false, error: "Not Found" });
+    res.json({ ok: true, post: doc });
   })
 );
 
 router.put(
   "/posts/:slug",
   asyncHandler(async (req, res) => {
-    const parsed = WriteSchema.safeParse({ ...req.body, slug: req.params.slug });
+    const parsed = PostWrite.safeParse({ ...req.body, slug: req.params.slug });
     if (!parsed.success) {
       return res.status(400).json({ ok: false, error: "invalid", details: parsed.error.flatten() });
     }
-    const input = parsed.data;
+    const i = parsed.data;
     const now = new Date().toISOString();
-
-    let existing: Post | null = null;
-    try {
-      existing = await couch.get<Post>(id(input.slug));
-    } catch (e) {
-      if (!(e instanceof CouchError && e.status === 404)) throw e;
-    }
+    const existing = await tryGet<Post>(postId(i.slug));
 
     const doc: Post & { _rev?: string } = {
-      _id: id(input.slug),
-      ...(existing?._rev ? { _rev: input._rev ?? existing._rev } : {}),
+      _id: postId(i.slug),
+      ...(existing?._rev ? { _rev: i._rev ?? existing._rev } : {}),
       type: "post",
-      slug: input.slug,
-      title: input.title,
-      subtitle: input.subtitle,
-      excerpt: input.excerpt || input.body.slice(0, 300),
-      body: input.body,
+      slug: i.slug,
+      title: i.title,
+      subtitle: i.subtitle,
+      excerpt: i.excerpt || i.body.replace(/[#*`>_-]/g, "").slice(0, 300),
+      body: i.body,
       bodyFormat: "markdown",
-      status: input.status,
-      // Publishing stamps the date once and never moves it on later edits.
-      publishedAt:
-        input.status === "published"
-          ? existing?.publishedAt ?? input.publishedAt ?? now
-          : null,
+      status: i.status,
+      // Stamped once on first publish, never moved by later edits.
+      publishedAt: i.status === "published" ? existing?.publishedAt ?? i.publishedAt ?? now : null,
       createdAt: existing?.createdAt ?? now,
       updatedAt: now,
-      tags: input.tags,
-      readingMinutes: readingMinutes(input.body),
+      tags: i.tags,
+      collection: i.collection,
+      coverImage: i.coverImage,
+      links: i.links,
+      readingMinutes: readingMinutes(i.body),
       seo: existing?.seo ?? { title: null, description: null, canonical: null, noindex: false },
     };
 
-    const validated = PostSchema.safeParse(doc);
-    if (!validated.success) {
-      return res.status(400).json({ ok: false, error: "invalid document", details: validated.error.flatten() });
+    const ok = PostSchema.safeParse(doc);
+    if (!ok.success) {
+      return res.status(400).json({ ok: false, error: "invalid document", details: ok.error.flatten() });
     }
-
     try {
       await couch.put(doc._id!, doc);
     } catch (e) {
@@ -111,10 +131,79 @@ router.put(
 router.delete(
   "/posts/:slug",
   asyncHandler(async (req, res) => {
-    // Archive rather than destroy: a mis-click should be recoverable.
-    const doc = await couch.get<Post>(id(req.params.slug));
-    const next = { ...doc, status: "archived" as const, updatedAt: new Date().toISOString() };
-    await couch.put(doc._id!, next);
+    const doc = await tryGet<Post>(postId(req.params.slug));
+    if (!doc) return res.status(404).json({ ok: false, error: "Not Found" });
+    await couch.put(doc._id!, { ...doc, status: "archived", updatedAt: new Date().toISOString() });
+    res.json({ ok: true });
+  })
+);
+
+/* ---------------------------------------------------------- collections -- */
+
+router.get(
+  "/collections",
+  asyncHandler(async (_req, res) => {
+    const { docs } = await couch.find<Collection>({
+      selector: { type: "collection" },
+      sort: [{ type: "desc" }, { order: "asc" }],
+      limit: 100,
+    });
+    res.json({ ok: true, items: docs });
+  })
+);
+
+router.put(
+  "/collections/:slug",
+  asyncHandler(async (req, res) => {
+    const parsed = CollectionWrite.safeParse({ ...req.body, slug: req.params.slug });
+    if (!parsed.success) {
+      return res.status(400).json({ ok: false, error: "invalid", details: parsed.error.flatten() });
+    }
+    const i = parsed.data;
+    const now = new Date().toISOString();
+    const existing = await tryGet<Collection>(colId(i.slug));
+
+    const doc: Collection & { _rev?: string } = {
+      _id: colId(i.slug),
+      ...(existing?._rev ? { _rev: i._rev ?? existing._rev } : {}),
+      type: "collection",
+      slug: i.slug,
+      title: i.title,
+      description: i.description,
+      coverImage: i.coverImage,
+      links: i.links,
+      order: i.order,
+      status: i.status,
+      createdAt: existing?.createdAt ?? now,
+      updatedAt: now,
+    };
+
+    const ok = CollectionSchema.safeParse(doc);
+    if (!ok.success) {
+      return res.status(400).json({ ok: false, error: "invalid document", details: ok.error.flatten() });
+    }
+    try {
+      await couch.put(doc._id!, doc);
+    } catch (e) {
+      if (e instanceof CouchError && e.status === 409) {
+        return res.status(409).json({ ok: false, error: "This collection changed elsewhere. Reload." });
+      }
+      throw e;
+    }
+    res.json({ ok: true, collection: doc });
+  })
+);
+
+router.delete(
+  "/collections/:slug",
+  asyncHandler(async (req, res) => {
+    if (req.params.slug === "site") {
+      return res.status(400).json({ ok: false, error: "The site collection cannot be removed." });
+    }
+    const doc = await tryGet<Collection>(colId(req.params.slug));
+    if (!doc) return res.status(404).json({ ok: false, error: "Not Found" });
+    // Hidden, not deleted — posts still reference it by slug.
+    await couch.put(doc._id!, { ...doc, status: "hidden", updatedAt: new Date().toISOString() });
     res.json({ ok: true });
   })
 );
