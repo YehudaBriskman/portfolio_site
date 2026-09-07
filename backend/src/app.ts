@@ -4,6 +4,7 @@ import rateLimit from "express-rate-limit";
 import { createImagesRouter } from "./routes/images.route";
 import { requestLogger } from "./middlewares/logger";
 import emailRoutes from './routes/email.route.js';
+import blogRoutes from './routes/blog.route.js';
 
 export function createApp() {
   const app = express();
@@ -52,6 +53,7 @@ export function createApp() {
 
   // Routers
 
+  app.use('/api/blog', readLimiter, blogRoutes);
   app.use('/api/email', emailRoutes);
   app.use("/api/images", createImagesRouter());
 

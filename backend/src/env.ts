@@ -20,6 +20,12 @@ const EnvSchema = z.object({
   MAIL_FROM: z.string().min(1),
   MAIL_REPLY_TO: z.string().optional(),
   CONTACT_TO: z.string().email(),
+
+  // Content store. Defaults point at the in-cluster service; the API must start
+  // even when CouchDB is unreachable, so nothing here is required at boot.
+  COUCHDB_URL: z.string().default("http://couchdb-svc-couchdb.obsidian.svc.cluster.local:5984"),
+  COUCHDB_USER: z.string().default("portfolio_api"),
+  COUCHDB_PASSWORD: z.string().default(""),
 })
 .superRefine((env, ctx) => {
   if (env.EMAIL_PROVIDER === 'smtp') {
