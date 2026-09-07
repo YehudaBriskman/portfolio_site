@@ -3,23 +3,34 @@
 @tailwind utilities;
 
 /*
-  Palette: Jerusalem limestone against machine glow.
-  Warm bitumen ground rather than neutral black, so the amber reads as sodium
-  vapour rather than neon. One cold blue holds the data so telemetry stays
-  legibly separate from the warm narrative type.
+  Palette sampled directly from the reference photograph — a lone tree against
+  layered ridges at sunset, mirrored in still water. Every value below was read
+  off that image rather than chosen, which is why the scene and the interface
+  agree without being matched by eye.
+
+    #0F1515  top of the sky            -> page ground
+    #1B2527  upper gradient            -> raised panels
+    #2E3E41  foreground ridge          -> hairlines
+    #556262  mid ridge
+    #7A8583  haze over the far range
+    #9EA09B  atmospheric mist          -> secondary text
+    #DCCCC2  the water, and the pale band at the horizon -> primary text
+    #F77402  the sun. Sampled from the disc itself.      -> the only accent
 */
 @layer base {
   :root {
-    --ink:        14 10 8;        /* #0E0A08 deepest ground */
-    --bitumen:    18 14 11;       /* #120E0B page background */
-    --surface:    30 24 19;       /* #1E1813 raised panels */
-    --edge:       48 39 31;       /* #302F1F hairlines */
-    --bone:       232 223 210;    /* #E8DFD2 primary text */
-    --clay:       154 140 124;    /* #9A8C7C muted text */
-    --sodium:     255 140 66;     /* #FF8C42 accent, warm */
-    --screen:     110 168 199;    /* #6EA8C7 data, cold */
+    --bitumen:  15 21 21;      /* #0F1515 */
+    --surface:  27 37 39;      /* #1B2527 */
+    --edge:     46 62 65;      /* #2E3E41 */
+    --ridge:    55 74 76;      /* #374A4C */
+    --haze:     85 98 98;      /* #556262 */
+    --haze-2:  122 133 131;    /* #7A8583 */
+    --bone:    220 204 194;    /* #DCCCC2 */
+    --clay:    158 160 155;    /* #9EA09B */
+    --sodium:  247 116 2;      /* #F77402  the sun */
+    --screen:  122 133 131;    /* retained name, now the haze tone */
 
-    /* shadcn/ui tokens mapped onto the palette so existing primitives inherit it */
+    /* shadcn primitives inherit the same values */
     --background: var(--bitumen);
     --foreground: var(--bone);
     --card: var(--surface);
@@ -27,7 +38,7 @@
     --popover: var(--surface);
     --popover-foreground: var(--bone);
     --primary: var(--sodium);
-    --primary-foreground: var(--ink);
+    --primary-foreground: 15 21 21;
     --secondary: var(--surface);
     --secondary-foreground: var(--bone);
     --muted: var(--surface);
@@ -40,6 +51,15 @@
     --input: var(--edge);
     --ring: var(--sodium);
     --radius: 2px;
+
+    /* Motion. One named curve: instant departure, long settle.
+       Transform and clip-path get the curve; opacity arrives linear.
+       Nothing bounces. */
+    --ease-settle: cubic-bezier(.16, 1, .3, 1);
+    --dur-micro: .15s;
+    --dur-fast: .24s;
+    --dur-settle: .8s;
+    --dur-slow: 1.2s;
   }
 
   * { border-color: rgb(var(--edge)); }
@@ -61,6 +81,8 @@
     font-weight: 300;
     -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
+    /* The scene's focus states must never shift the layout. */
+    scrollbar-gutter: stable;
   }
 
   :focus-visible {
@@ -68,12 +90,10 @@
     outline-offset: 3px;
   }
 
-  ::selection { background: rgb(var(--sodium)); color: rgb(var(--ink)); }
+  ::selection { background: rgb(var(--sodium)); color: rgb(var(--bitumen)); }
 }
 
 @layer components {
-  /* Display face. Archivo's width axis is the point — set wide, it reads
-     architectural rather than editorial. */
   .display {
     font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif;
     font-variation-settings: 'wdth' 118;
@@ -93,7 +113,6 @@
     font-weight: 400;
     letter-spacing: 0.06em;
   }
-  /* Section eyebrow: carries a true fact (a count, a region), never decoration. */
   .eyebrow {
     font-family: 'IBM Plex Mono', ui-monospace, monospace;
     font-size: 0.6875rem;
@@ -103,7 +122,18 @@
   }
   .rule { height: 1px; background: rgb(var(--edge)); }
 
-  /* Grain: keeps large flat areas of bitumen from banding on wide gamut screens. */
+  /* Parallax. One scroll value on the root, scaled per layer by its own depth,
+     so the scroll handler stays O(1) and the compositor does the work. */
+  .t-layer {
+    transform: translate3d(0, calc(var(--y, 0) * var(--d, 0) * 1px), 0);
+    will-change: transform;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .t-layer { transform: none; }
+  }
+
+  /* Grain over large flat gradients: the sky is one enormous smooth ramp and
+     will band badly on wide-gamut displays without it. */
   .grain::after {
     content: '';
     position: fixed;

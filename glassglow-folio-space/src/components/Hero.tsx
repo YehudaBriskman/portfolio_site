@@ -1,42 +1,29 @@
-import { Suspense, lazy, useEffect, useState } from "react";
-import ErrorBoundary from "@/components/ErrorBoundary";
-import ScenePoster from "@/components/scene/ScenePoster";
-import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
-import { useHeroOnScreen, useSceneEligible } from "@/hooks/useSceneEligible";
-
-const ClusterScene = lazy(() => import("./scene/ClusterScene"));
+import Terrain from "@/components/scene/Terrain";
 
 export default function Hero() {
-  const reduced = usePrefersReducedMotion();
-  const eligible = useSceneEligible();
-  const onScreen = useHeroOnScreen();
-  const [armed, setArmed] = useState(false);
-
-  // Defer the import until the browser is idle so it never competes with fonts
-  // and CSS during first paint.
-  useEffect(() => {
-    if (!eligible) return;
-    const w = window as Window & { requestIdleCallback?: (cb: () => void) => number };
-    const id = w.requestIdleCallback
-      ? w.requestIdleCallback(() => setArmed(true))
-      : window.setTimeout(() => setArmed(true), 300);
-    return () => window.clearTimeout(id as number);
-  }, [eligible]);
-
   return (
     <section id="hero" className="relative min-h-[100svh] w-full overflow-hidden">
-      <div className="absolute inset-0" aria-hidden="true">
-        <ErrorBoundary fallback={<ScenePoster />}>
-          {armed ? (
-            <Suspense fallback={<ScenePoster />}>
-              <ClusterScene reduced={reduced} active={onScreen} />
-            </Suspense>
-          ) : (
-            <ScenePoster />
-          )}
-        </ErrorBoundary>
-      </div>
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-bitumen/85 via-bitumen/25 to-bitumen" />
+      <Terrain />
+      {/*
+        Two scrims doing different jobs.
+        Horizontal: the type column sits on solid ground while the scene bleeds
+        out to the right. Without it the pale band below the horizon runs
+        straight through the first line of the paragraph at 1.5:1.
+        Vertical: settles the top under the nav and the very bottom into the page.
+      */}
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            "linear-gradient(to right," +
+            "rgb(var(--bitumen)) 0%," +
+            "rgb(var(--bitumen) / 0.95) 36%," +
+            "rgb(var(--bitumen) / 0.62) 54%," +
+            "rgb(var(--bitumen) / 0.12) 74%," +
+            "transparent 100%)",
+        }}
+      />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-bitumen/70 via-transparent to-bitumen/85" />
 
       <div className="relative z-10 mx-auto flex min-h-[100svh] max-w-6xl flex-col justify-between px-6 pb-10 pt-28">
         <p className="eyebrow animate-fade-up">
@@ -49,9 +36,8 @@ export default function Hero() {
             <br />
             <span className="text-sodium">used.</span>
           </h1>
-          {/* bone rather than clay: clay drops to 3.27:1 over a lit scene pixel. */}
           <p
-            className="mt-8 max-w-xl text-base leading-relaxed text-bone/80 animate-fade-up sm:text-lg"
+            className="mt-8 max-w-xl text-base leading-relaxed text-bone animate-fade-up sm:text-lg"
             style={{ animationDelay: "180ms" }}
           >
             I ship products end to end — a Chrome extension published in the Web Store, a
@@ -64,18 +50,12 @@ export default function Hero() {
           className="flex flex-wrap items-end justify-between gap-6 animate-fade-up"
           style={{ animationDelay: "280ms" }}
         >
-          <a
-            href="https://windom.app"
-            target="_blank"
-            rel="noreferrer noopener"
-            className="mono text-xs uppercase tracking-[0.22em] text-clay transition-colors hover:text-sodium"
-          >
+          <a href="https://windom.app" target="_blank" rel="noreferrer noopener"
+            className="mono text-xs uppercase tracking-[0.22em] text-clay transition-colors hover:text-sodium">
             windom.app ↗
           </a>
-          <a
-            href="#work"
-            className="mono text-xs uppercase tracking-[0.22em] text-clay transition-colors hover:text-sodium"
-          >
+          <a href="#work"
+            className="mono text-xs uppercase tracking-[0.22em] text-clay transition-colors hover:text-sodium">
             See the work ↓
           </a>
         </div>

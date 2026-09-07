@@ -17,6 +17,9 @@ export default {
         clay: rgb("--clay"),
         sodium: rgb("--sodium"),
         screen: rgb("--screen"),
+        ridge: rgb("--ridge"),
+        haze: rgb("--haze"),
+        "haze-2": rgb("--haze-2"),
         // shadcn primitives
         border: rgb("--border"),
         input: rgb("--input"),
