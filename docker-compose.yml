@@ -11,7 +11,11 @@ services:
   api:
     build: ./backend
     env_file:
-      - ./backend/.env
+      # Gitignored, so a clean checkout has none. Without `required: false`
+      # even `docker compose config` fails, which made the file unverifiable
+      # anywhere but a machine that had already been set up by hand.
+      - path: ./backend/.env
+        required: false
     expose:
       - "5000"
     environment:
