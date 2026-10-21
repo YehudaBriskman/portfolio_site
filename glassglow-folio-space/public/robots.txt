@@ -1,14 +1,8 @@
-User-agent: Googlebot
-Allow: /
-
-User-agent: Bingbot
-Allow: /
-
-User-agent: Twitterbot
-Allow: /
-
-User-agent: facebookexternalhit
-Allow: /
-
 User-agent: *
 Allow: /
+
+# The admin surface lives on its own host behind GitHub SSO. Listing it here
+# would only advertise it, but the crawlers that do look should skip it.
+Disallow: /admin
+
+Sitemap: https://yehudabriskman.com/sitemap.xml

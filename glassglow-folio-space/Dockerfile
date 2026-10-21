@@ -13,6 +13,10 @@ RUN apk add --no-cache curl
 
 RUN rm -rf /usr/share/nginx/html/*
 COPY --from=builder /app/dist /usr/share/nginx/html
+# Pre-compress once at build time; nginx serves these via gzip_static.
+RUN find /usr/share/nginx/html -type f \
+      \( -name '*.js' -o -name '*.css' -o -name '*.svg' -o -name '*.json' -o -name '*.html' \) \
+      -exec gzip -9 -k -f {} \;
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 8080

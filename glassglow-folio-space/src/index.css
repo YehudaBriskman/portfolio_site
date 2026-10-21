@@ -1,323 +1,690 @@
+/*
+ * Self-hosted fonts.
+ *
+ * These were loaded from Google, which cost two extra origins (DNS, TLS,
+ * connection) and — worse — made the font files wait on a stylesheet from a
+ * third host before they could even start. Measured on a phone against
+ * production: 1371ms for the CSS, then 1.4-2.0s for each font behind it.
+ *
+ * Served from our own origin they start as soon as the HTML is parsed, and the
+ * two the first screen actually needs are preloaded in index.html. Latin subset
+ * only; the site has no content in the other ranges. `swap` so text is readable
+ * immediately rather than invisible while a font arrives.
+ */
+@font-face {
+  font-family: 'Archivo';
+  font-style: normal;
+  font-weight: 400 900;
+  font-stretch: 100% 125%;
+  font-display: swap;
+  src: url('/fonts/archivo-400-900.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'IBM Plex Sans';
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url('/fonts/ibm-plex-sans-300.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'IBM Plex Sans';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/ibm-plex-sans-400.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'IBM Plex Sans';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/ibm-plex-sans-500.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/ibm-plex-mono-400.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/ibm-plex-mono-500.woff2') format('woff2');
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Enhanced Design System with Glassmorphism */
+/*
+  Palette sampled directly from the reference photograph — a lone tree against
+  layered ridges at sunset, mirrored in still water. Every value below was read
+  off that image rather than chosen, which is why the scene and the interface
+  agree without being matched by eye.
 
+    #0F1515  top of the sky            -> page ground
+    #1B2527  upper gradient            -> raised panels
+    #2E3E41  foreground ridge          -> hairlines
+    #556262  mid ridge
+    #7A8583  haze over the far range
+    #9EA09B  atmospheric mist          -> secondary text
+    #DCCCC2  the water, and the pale band at the horizon -> primary text
+    #F77402  the sun. Sampled from the disc itself.      -> the only accent
+*/
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-    --radius: 0.5rem;
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --bitumen:  15 21 21;      /* #0F1515 */
+    --surface:  27 37 39;      /* #1B2527 */
+    --edge:     46 62 65;      /* #2E3E41 */
+    --ridge:    55 74 76;      /* #374A4C */
+    --haze:     85 98 98;      /* #556262 */
+    --haze-2:  122 133 131;    /* #7A8583 */
+    --bone:    220 204 194;    /* #DCCCC2 */
+    --clay:    158 160 155;    /* #9EA09B */
+    /* #E8814A — the mean of the sun's disc rather than one hot pixel from its
+       centre. The single-pixel sample read as safety orange; averaged across the
+       disc and its glow it comes out warmer and calmer, which is what the rest
+       of the palette wanted all along. 6.8:1 on the ground. */
+    --sodium:  232 129 74;
+    --screen:  122 133 131;    /* retained name, now the haze tone */
 
-    /* Custom portfolio variables - Light mode */
-    --glass-bg: rgba(255, 255, 255, 0.15);
-    --glass-border: rgba(255, 255, 255, 0.3);
-    --glow-primary: rgba(59, 130, 246, 0.4);
-    --glow-secondary: rgba(6, 182, 212, 0.4);
+    /* shadcn primitives inherit the same values */
+    --background: var(--bitumen);
+    --foreground: var(--bone);
+    --card: var(--surface);
+    --card-foreground: var(--bone);
+    --popover: var(--surface);
+    --popover-foreground: var(--bone);
+    --primary: var(--sodium);
+    --primary-foreground: 15 21 21;
+    --secondary: var(--surface);
+    --secondary-foreground: var(--bone);
+    --muted: var(--surface);
+    --muted-foreground: var(--clay);
+    --accent: var(--surface);
+    --accent-foreground: var(--sodium);
+    --destructive: 190 60 45;
+    /* #BE3C2D is a fill colour; as text on --bitumen it lands near 3.6:1. This
+       is the same red raised to a legible weight for error text and danger
+       labels. Fills keep --destructive. */
+    --destructive-ink: 232 122 108;
+    --destructive-foreground: var(--bone);
+    --border: var(--edge);
+    --input: var(--edge);
+    --ring: var(--sodium);
+    /* Rounded rather than cut. 2px reads as a wireframe; these are the radii of
+       something finished. */
+    /* Elevation. The hairline edge alone is ~1.65:1 against the ground and
+       reads as nothing, so a card needs fill, edge and shadow together before
+       it is a card at all. */
+    --shadow-lift: 0 1px 0 rgb(var(--bone) / .04) inset, 0 18px 40px -24px rgb(0 0 0 / .78);
+    --shadow-press: 0 6px 18px -14px rgb(0 0 0 / .85);
+
+    /* The terrain's colour, and the colour it is leaving. Sections override
+       these as they crest; these defaults are the resting palette. */
+    --crest-hue: 34 48 50;
+    --crest-from: 34 48 50;
+
+    --r-sm: 10px;
+    --r-md: 16px;
+    --r-lg: 24px;
+    --r-pill: 999px;
+    --radius: var(--r-md);
+
+    /* Motion. One named curve: instant departure, long settle.
+       Transform and clip-path get the curve; opacity arrives linear.
+       Nothing bounces. */
+    --ease-settle: cubic-bezier(.16, 1, .3, 1);
+    --dur-micro: .15s;
+    --dur-fast: .24s;
+    --dur-settle: .8s;
+    --dur-slow: 1.2s;
   }
 
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+  * { border-color: rgb(var(--edge)); }
 
-    --glass-bg: rgba(0, 0, 0, 0.2);
-    --glass-border: rgba(255, 255, 255, 0.1);
-    --glow-primary: rgba(139, 92, 246, 0.6);
-    --glow-secondary: rgba(236, 72, 153, 0.6);
-  }
-}
-
-@layer base {
-  * {
-    @apply border-border;
-  }
-
-  html {
-    overflow-x: hidden;
-    scroll-behavior: smooth;
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 
   body {
-    @apply bg-background text-foreground;
-    background: linear-gradient(135deg, #a7f3ea 0%, #55d3a9 25%, #a7f3d0 50%, #40d7d4, #55d3a9 75%, #a7f3d0 100%);
-    min-height: 100vh;
+    background-color: rgb(var(--bitumen));
+    color: rgb(var(--bone));
+    font-family: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+    /* 300 was too thin to hold its own against the display face. */
+    font-weight: 350;
+    font-size: 1.0625rem;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
+    /* The scene's focus states must never shift the layout. */
+    scrollbar-gutter: stable;
   }
 
-  .dark body {
-    background: linear-gradient(135deg, #0f0f23 0%, #1e1b4b 25%, #312e81 50%, #4c1d95 75%, #581c87 100%);
+  :focus-visible {
+    outline: 2px solid rgb(var(--sodium));
+    outline-offset: 3px;
   }
+
+  ::selection { background: rgb(var(--sodium)); color: rgb(var(--bitumen)); }
 }
 
-/* Glassmorphism Components */
 @layer components {
-  .glass {
-    background: var(--glass-bg);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid var(--glass-border);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  .display {
+    font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif;
+    font-variation-settings: 'wdth' 112;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    line-height: 0.9;
+  }
+  .display-tight {
+    font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif;
+    font-variation-settings: 'wdth' 108;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.0;
+  }
+  .mono {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-weight: 400;
+    letter-spacing: 0.06em;
+  }
+  .eyebrow {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 0.6875rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: rgb(var(--sodium));
   }
 
-  .glass-card {
-    @apply glass rounded-2xl p-6 transition-all duration-300;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1),
-      0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+  /* Interactive surfaces share one shape and one motion, so the whole page
+     feels like it was made by the same hand. */
+  .pill {
+    border-radius: var(--r-pill);
+    transition: background-color var(--dur-micro) ease, color var(--dur-micro) ease,
+                border-color var(--dur-micro) ease, transform var(--dur-fast) var(--ease-settle);
+  }
+  .pill:active { transform: scale(0.97); }
+
+  .panel {
+    border-radius: var(--r-lg);
+    border: 1px solid rgb(var(--edge));
+    background: rgb(var(--surface) / 0.5);
+    transition: border-color var(--dur-fast) ease, background-color var(--dur-fast) ease,
+                transform var(--dur-settle) var(--ease-settle);
+  }
+  .panel:hover { border-color: rgb(var(--sodium) / 0.45); }
+  .rule { height: 1px; background: rgb(var(--edge)); }
+
+  /* Parallax. One scroll value on the root, scaled per layer by its own depth,
+     so the scroll handler stays O(1) and the compositor does the work. */
+  .t-layer {
+    transform: translate3d(0, calc(var(--y, 0) * var(--d, 0) * 1px), 0);
+    will-change: transform;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .t-layer { transform: none; }
   }
 
-  .glass-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2),
-      0 0 0 1px rgba(255, 255, 255, 0.2) inset;
-  }
+  /* Ambient motion for the landscape's inhabitants. All of it is slow and
+     none of it bounces — the same rule the type animations follow. */
+  @keyframes twinkle { 0%,100% { opacity: .40 } 50% { opacity: .95 } }
+  @keyframes drift   { from { transform: translateX(0) } to { transform: translateX(-1440px) } }
+  @keyframes cross   { from { transform: translateX(-140px) } to { transform: translateX(1580px) } }
+  @keyframes flap    { 0%,100% { transform: scaleY(1) } 50% { transform: scaleY(.55) } }
+  @keyframes sway    { 0%,100% { transform: rotate(-2.5deg) } 50% { transform: rotate(2.5deg) } }
 
-  .glass-nav {
-    @apply glass fixed top-4 left-1/2 transform -translate-x-1/2 z-50 rounded-full px-6 py-3;
-    backdrop-filter: blur(30px);
-    -webkit-backdrop-filter: blur(30px);
+  /* Grain over large flat gradients: the sky is one enormous smooth ramp and
+     will band badly on wide-gamut displays without it. */
+  /* Skipped on phones: a fixed full-viewport overlay above every other layer
+     is real compositing work for a texture nobody sees at that size. */
+  @media (max-width: 639px) {
+    .grain::after { display: none; }
   }
-
-  .glass-nav-vertical {
-    @apply glass rounded-r-2xl;
-    backdrop-filter: blur(30px);
-    -webkit-backdrop-filter: blur(30px);
-    border-left: none;
-    box-shadow: 4px 0 32px rgba(0, 0, 0, 0.1);
-  }
-
-  .dark .glass-nav-vertical {
-    box-shadow: 4px 0 32px rgba(0, 0, 0, 0.3);
-  }
-
-  .gradient-background {
-    background: linear-gradient(135deg, #3b82f6, #06b6d4, #10b981);
-    background-size: 400% 400%;
-    animation: gradient-shift 15s ease infinite;
-  }
-
-  .dark .gradient-background {
-    background: linear-gradient(45deg, #6366f1, #ec4899);
-  }
-
-  .glow-button {
-    @apply relative overflow-hidden rounded-lg px-6 py-3 font-medium transition-all duration-300;
-    background: linear-gradient(45deg, #3b82f6, #06b6d4, #10b981);
-    color: white;
-    box-shadow: 0 0 20px var(--glow-primary);
-  }
-
-  .dark .glow-button {
-    background: linear-gradient(45deg, #6366f1, #ec4899);
-  }
-
-  .glow-button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 30px var(--glow-primary), 0 0 30px var(--glow-secondary);
-  }
-
-  .glow-button::before {
+  .grain::after {
     content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-    transition: left 0.5s;
-  }
-
-  .glow-button:hover::before {
-    left: 100%;
-  }
-
-  .gradient-text {
-    background: linear-gradient(45deg, #3b82f6, #06b6d4, #10b981);
-    background-size: 200% 200%;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    animation: gradient-shift 3s ease infinite;
-  }
-
-  .dark .gradient-text {
-    background: linear-gradient(45deg, #6366f1, #ec4899, #06b6d4);
-    background-size: 200% 200%;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    animation: gradient-shift 3s ease infinite;
-  }
-
-  .floating {
-    animation: float 6s ease-in-out infinite;
-  }
-
-  .pulse-glow {
-    animation: pulse-glow 2s ease-in-out infinite alternate;
-  }
-
-  .border-gradient {
-    border-color: var(--glow-secondary);
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 60;
+    opacity: 0.035;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
   }
 }
 
-/* Animations */
-@keyframes float {
-  0%, 100% {
-    transform: translateY(0px);
+@layer utilities {
+  /*
+   * Scene detail that only earns its place on a large screen. On a phone the
+   * stars, clouds, birds and the full mirrored reflection are noise behind the
+   * one thing that matters there — the words. Dropping them also saves the
+   * paint work on the weakest devices.
+   */
+  .scene-detail {
+    display: none;
+  }
+  @media (min-width: 640px) {
+    .scene-detail {
+      display: inline;
+    }
   }
 
-  50% {
-    transform: translateY(-20px);
-  }
-}
-
-@keyframes pulse-glow {
-  from {
-    box-shadow: 0 0 20px var(--glow-primary);
-  }
-
-  to {
-    box-shadow: 0 0 40px var(--glow-primary), 0 0 60px var(--glow-secondary);
-  }
-}
-
-@keyframes gradient-shift {
-  0% {
-    background-position: 0% 50%;
-  }
-
-  50% {
-    background-position: 100% 50%;
-  }
-
-  100% {
-    background-position: 0% 50%;
-  }
-}
-
-@keyframes fade-in-up {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
+  /*
+   * Mobile legibility floor.
+   *
+   * The 10px and 11px mono labels carry the dates, tags, reading times and
+   * section eyebrows. They read fine on a desktop monitor and are genuinely
+   * too small on a phone. Raised to 12px below `sm` here rather than edited at
+   * roughly twenty call sites, so the desktop setting is untouched.
+   */
+  /* Phones and tablets both hold the floor; only a desktop, viewed from
+     further away, keeps the 11px labels. */
+  @media (max-width: 1023px) {
+    .text-\[0\.625rem\],
+    .text-\[0\.6875rem\],
+    .eyebrow,
+    .a-label,
+    .a-summary,
+    .a-seg > button {
+      font-size: 0.75rem;
+    }
   }
 }
 
-@keyframes slide-in-left {
-  from {
-    opacity: 0;
-    transform: translateX(-50px);
+@layer components {
+  /*
+   * Shared surfaces for the project and notes pages.
+   *
+   * Measured, not styled to taste: text-bone/40 sits at 2.87:1 on --bitumen and
+   * text-bone/55 at 4.33:1, so both fail WCAG AA — /40 fails even the 3:1 bar
+   * for large text. That measurement is the actual source of the "muted" feel.
+   * The floor these classes hold to is: nothing below bone/60 (4.93:1), and
+   * every small mono label uses --clay (6.99:1).
+   */
+
+  .card {
+    border-radius: var(--r-lg);
+    border: 1px solid rgb(var(--edge));
+    background: rgb(var(--surface));
+    box-shadow: var(--shadow-lift);
+    transition: border-color var(--dur-fast) ease, box-shadow var(--dur-fast) ease,
+                transform var(--dur-fast) var(--ease-settle);
+  }
+  /* Behind a hover query so a touch device never latches a stuck hover state. */
+  @media (hover: hover) and (pointer: fine) {
+    .card:hover { border-color: rgb(var(--sodium) / .5); }
+    .card:hover .card-shot img { transform: scale(1.035); }
+  }
+  /* The tactile beat on touch, where there is no hover to carry it. */
+  .card:active { transform: scale(.985); box-shadow: var(--shadow-press); }
+  .card:focus-visible { outline-offset: 4px; border-color: rgb(var(--sodium)); }
+
+  .card-shot { border-radius: var(--r-md); overflow: hidden; background: rgb(var(--bitumen)); }
+  .card-shot img { transition: transform var(--dur-settle) var(--ease-settle); }
+  .thumb-round { border-radius: var(--r-pill); overflow: hidden; display: block; }
+
+  /* One pill, two weights, 44px tall everywhere — the whole tap-target story. */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+    min-height: 44px; padding-inline: 1.125rem;
+    border-radius: var(--r-pill);
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: .75rem; letter-spacing: .16em; text-transform: uppercase;
+    white-space: nowrap;
+    transition: background-color var(--dur-micro) ease, color var(--dur-micro) ease,
+                border-color var(--dur-micro) ease, transform var(--dur-fast) var(--ease-settle);
+  }
+  .btn:active { transform: scale(.97); }
+  .btn-solid { background: rgb(var(--sodium)); color: rgb(var(--bitumen)); }
+  .btn-solid:hover { background: rgb(var(--sodium) / .88); }
+  .btn-quiet { border: 1px solid rgb(var(--edge)); color: rgb(var(--bone)); }
+  .btn-quiet:hover { border-color: rgb(var(--sodium) / .6); color: rgb(var(--sodium)); }
+
+  /* Never focusable, never interactive, so the 44px floor does not apply. */
+  .chip {
+    display: inline-flex; align-items: center; gap: .4rem;
+    border-radius: var(--r-pill);
+    border: 1px solid rgb(var(--edge));
+    background: rgb(var(--bitumen) / .55);
+    padding: .3rem .7rem;
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: .75rem; letter-spacing: .08em;
+    color: rgb(var(--clay));
+    white-space: nowrap;
+  }
+  .chip b { font-weight: 500; color: rgb(var(--bone)); font-variant-numeric: tabular-nums; }
+  .chip-hot { border-color: rgb(var(--sodium) / .45); color: rgb(var(--sodium)); }
+
+  /* Chips scroll on a phone instead of wrapping into a ragged grey block. */
+  .rail {
+    display: flex; gap: .5rem;
+    overflow-x: auto; overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none; -ms-overflow-style: none;
+    margin-inline: -1.25rem; padding-inline: 1.25rem;
+    -webkit-mask-image: linear-gradient(to right, transparent 0, #000 1.25rem, #000 calc(100% - 1.75rem), transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0, #000 1.25rem, #000 calc(100% - 1.75rem), transparent 100%);
+  }
+  .rail::-webkit-scrollbar { display: none; }
+  .rail > * { flex: 0 0 auto; scroll-snap-align: start; }
+  @media (min-width: 640px) {
+    .rail { flex-wrap: wrap; overflow: visible; margin-inline: 0; padding-inline: 0;
+            -webkit-mask-image: none; mask-image: none; }
   }
 
-  to {
-    opacity: 1;
-    transform: translateX(0);
+  /* The sun from the hero, borrowed as a page anchor. Decorative only, and it
+     never sits under body copy. */
+  .sun {
+    position: absolute; pointer-events: none; border-radius: var(--r-pill);
+    background: radial-gradient(circle,
+      rgb(var(--sodium) / .22) 0%, rgb(var(--sodium) / .07) 42%, rgb(var(--sodium) / 0) 70%);
   }
 }
 
-@keyframes slide-in-right {
-  from {
-    opacity: 0;
-    transform: translateX(50px);
+@layer base {
+  /*
+   * Clamp the layout viewport to the visible one.
+   *
+   * Something in the document was widening the initial containing block to
+   * 417px on a 390px screen. `body` already hid the overflow, so nothing
+   * scrolled sideways and it looked fine — but every fixed element sizes to
+   * that block, so the header was 417px wide and its menu button sat 11px off
+   * the right edge of the screen, permanently.
+   *
+   * `clip` rather than `hidden` on purpose: hidden would make the root a scroll
+   * container and break every `position: sticky` in the admin.
+   */
+  html {
+    overflow-x: clip;
+  }
+}
+
+@layer utilities {
+  /*
+   * The touch-target floor, in one place. Costs nothing on a mouse; makes every
+   * control conform on a finger. Applied to links and buttons that would
+   * otherwise inherit their height from 11-12px type.
+   */
+  @media (pointer: coarse) {
+    .tap {
+      min-height: 44px;
+      min-width: 44px;
+      display: inline-flex;
+      align-items: center;
+    }
   }
 
-  to {
-    opacity: 1;
-    transform: translateX(0);
+  /* Break a figure, code block or table out of the reading column on a phone,
+     where a 350px column minus padding is not enough to show anything. */
+  @media (max-width: 639px) {
+    .bleed {
+      width: 100vw;
+      margin-left: 50%;
+      transform: translateX(-50%);
+      max-width: none;
+    }
   }
 }
 
-/* Scroll animations */
-.animate-on-scroll {
-  opacity: 0;
-  transform: translateY(30px);
-  transition: all 0.6s ease-out;
-}
+@layer components {
+  /*
+   * A section that owns a layer.
+   *
+   * The handover is the main event, so it gets reserved room rather than
+   * whatever happens to be left over. Each of these is at least a full screen
+   * tall and opens with empty space, so its layer finishes rising before any of
+   * its content arrives — and the timing of that rise never depends on how much
+   * copy the section above it happened to contain.
+   *
+   * The bottom space does the same job at the other end: content finishes well
+   * before the next layer starts climbing, so nothing is ever read across two
+   * backgrounds at once.
+   */
+  .layer-section {
+    position: relative;
+    min-height: 100svh;
+    /*
+     * A full screen, and the number is not arbitrary. A layer's rise completes
+     * exactly one viewport after its section enters, so reserving anything less
+     * than 100svh means the content arrives while the ridge is still climbing —
+     * measured at 34svh, content turned up at 42% of the rise.
+     */
+    padding-top: 96svh;
+    padding-bottom: 18svh;
+  }
+  @media (max-width: 639px) {
+    /* A phone screen is mostly content, so the entrance takes a smaller cut and
+       lands a little later than the ridge. */
+    .layer-section {
+      padding-top: 56svh;
+      padding-bottom: 12svh;
+    }
+  }
 
-.animate-on-scroll.visible {
-  opacity: 1;
-  transform: translateY(0);
-}
+  /* ---------------------------------------------------------------- notes -- */
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-}
+  .note-card {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-radius: var(--r-lg);
+    border: 1px solid rgb(var(--edge));
+    background: rgb(var(--surface) / .5);
+    transition: border-color var(--dur-fast) ease, background-color var(--dur-fast) ease,
+                transform var(--dur-micro) var(--ease-settle);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .note-card:hover { border-color: rgb(var(--sodium) / .45); background: rgb(var(--surface) / .75); }
+  }
+  .note-card:active { transform: scale(.985); }
+  /* Focus sits on the inner link, but a 3px outline offset inside overflow:hidden
+     is clipped — so the card itself carries the focus signal. */
+  .note-card:focus-within { border-color: rgb(var(--sodium)); }
+  .note-card__media {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    background: rgb(var(--surface));
+    border-bottom: 1px solid rgb(var(--edge));
+  }
+  .note-card--lead .note-card__media { aspect-ratio: 4 / 3; }
+  @media (min-width: 640px) {
+    .note-card--lead .note-card__media { aspect-ratio: auto; height: 100%; }
+  }
 
-::-webkit-scrollbar-track {
-  background: transparent;
-}
+  .meta-pill {
+    display: inline-flex; align-items: center; gap: .5rem;
+    border-radius: var(--r-pill); border: 1px solid rgb(var(--edge));
+    padding: .5rem .875rem;
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: .75rem; letter-spacing: .08em;
+    color: rgb(var(--clay));
+  }
 
-::-webkit-scrollbar-thumb {
-  background: linear-gradient(45deg, #3b82f6, #06b6d4, #10b981);
-  border-radius: 10px;
-}
+  .tag-pill {
+    display: inline-flex; align-items: center;
+    border-radius: var(--r-pill); border: 1px solid rgb(var(--edge));
+    background: rgb(var(--surface) / .4);
+    padding: .375rem .75rem;
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: .75rem; letter-spacing: .06em; text-transform: lowercase;
+    color: rgb(var(--clay));
+    transition: color var(--dur-micro) ease, border-color var(--dur-micro) ease;
+  }
+  .tag-pill:hover, .tag-pill:focus-visible { color: rgb(var(--sodium)); border-color: rgb(var(--sodium) / .5); }
+  .tag-pill--active { background: rgb(var(--sodium)); border-color: transparent; color: rgb(var(--bitumen)); }
 
-::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(45deg, #3b82f6, #06b6d4, #10b981);
-}
+  /*
+   * Atmosphere's scrim is a horizontal ramp tuned for the home page's
+   * left-aligned column. A post is a centred column, so deep in the document
+   * the prose drifts over the pale water band and loses contrast exactly where
+   * the reader is most committed. This one layer holds the ground steady.
+   */
+  .reading-ground {
+    position: fixed; inset: 0; z-index: -10;
+    pointer-events: none;
+    background: rgb(var(--bitumen) / .82);
+  }
 
-.dark ::-webkit-scrollbar-thumb {
-  background: linear-gradient(45deg, #6366f1, #ec4899);
-  border-radius: 10px;
-}
+  /* Tracks --pr 1:1. Deliberately has no transition: it is a position readout,
+     not an animation, and easing it would make it lie. */
+  .progress-rail {
+    position: fixed; inset-inline: 0; top: 0; height: 2px; z-index: 55;
+    transform-origin: left;
+    transform: scaleX(var(--pr, 0));
+    background: rgb(var(--sodium));
+  }
+  .progress-rail::after {
+    content: ''; position: absolute; right: -3px; top: -2px;
+    width: 6px; height: 6px; border-radius: var(--r-pill);
+    background: rgb(var(--sodium));
+    box-shadow: 0 0 12px rgb(var(--sodium) / .5);
+  }
 
-.dark ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(45deg, #4f46e5, #db2777);
+  /* ---------------------------------------------------------------- admin -- */
+
+  /* Not .panel: .panel:hover turns its border sodium, which makes every static
+     form card look clickable. Admin cards are containers, not links. */
+  .a-card { border-radius: var(--r-md); border: 1px solid rgb(var(--edge)); background: rgb(var(--surface) / .45); }
+  /* Solid, not translucent: there is no scenery behind the admin to reveal, and
+     a solid bar skips backdrop-filter entirely on a low-end phone. */
+  .a-bar { background: rgb(var(--bitumen)); border-color: rgb(var(--edge)); }
+
+  .a-label {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: .6875rem; letter-spacing: .22em; text-transform: uppercase;
+    color: rgb(var(--clay)); display: block; margin-bottom: .5rem;
+  }
+  .a-hint { font-size: .8125rem; line-height: 1.5; color: rgb(var(--bone) / .6); margin-top: .375rem; }
+  .a-error {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: .6875rem; color: rgb(var(--destructive-ink)); margin-top: .375rem;
+  }
+
+  .a-input, .a-select, .a-textarea {
+    width: 100%; min-height: 44px;
+    border-radius: var(--r-sm);
+    border: 1px solid rgb(var(--edge));
+    background: rgb(var(--surface) / .6);
+    color: rgb(var(--bone));
+    padding: .625rem .75rem;
+    /* 16px exactly: iOS Safari zooms the viewport on focus for anything below
+       it, which is most of why editing from a phone is unpleasant today. */
+    font-size: 1rem;
+    line-height: 1.45;
+    transition: border-color var(--dur-micro) ease, background-color var(--dur-micro) ease,
+                box-shadow var(--dur-micro) ease;
+  }
+  .a-textarea { min-height: 8rem; resize: vertical; }
+  .a-select {
+    appearance: none; padding-right: 2.25rem;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%239EA09B' stroke-width='1.5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right .875rem center;
+  }
+  .a-input::placeholder, .a-textarea::placeholder { color: rgb(var(--bone) / .38); }
+  .a-input:hover, .a-select:hover, .a-textarea:hover { background: rgb(var(--surface) / .8); }
+  .a-input:focus, .a-select:focus, .a-textarea:focus {
+    outline: none; border-color: rgb(var(--sodium));
+    box-shadow: 0 0 0 3px rgb(var(--sodium) / .18);
+    background: rgb(var(--surface) / .95);
+  }
+  [aria-invalid="true"].a-input, [aria-invalid="true"].a-textarea, [aria-invalid="true"].a-select {
+    border-color: rgb(var(--destructive-ink) / .7);
+  }
+  .a-input-mono { font-family: 'IBM Plex Mono', ui-monospace, monospace; letter-spacing: .02em; }
+  .a-input-title {
+    font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif;
+    font-weight: 700; letter-spacing: -.02em;
+    font-size: 1.5rem; line-height: 1.15; min-height: 56px;
+  }
+
+  .a-btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+    min-height: 44px; padding: 0 1.125rem;
+    border-radius: var(--r-pill); border: 1px solid rgb(var(--edge));
+    background: transparent; color: rgb(var(--bone) / .85);
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: .75rem; letter-spacing: .16em; text-transform: uppercase; white-space: nowrap;
+    transition: background-color var(--dur-micro) ease, color var(--dur-micro) ease,
+                border-color var(--dur-micro) ease, transform var(--dur-fast) var(--ease-settle);
+  }
+  .a-btn:hover { border-color: rgb(var(--bone) / .45); background: rgb(var(--surface) / .7); }
+  .a-btn:active { transform: scale(.975); }
+  .a-btn:disabled, .a-btn[aria-disabled="true"] { opacity: .38; pointer-events: none; }
+  .a-btn-primary { border-color: rgb(var(--sodium)); color: rgb(var(--sodium)); }
+  .a-btn-primary:hover { background: rgb(var(--sodium)); color: rgb(var(--bitumen)); border-color: rgb(var(--sodium)); }
+  .a-btn-danger { border-color: rgb(var(--destructive-ink) / .5); color: rgb(var(--destructive-ink)); }
+  .a-btn-danger:hover { background: rgb(var(--destructive)); color: rgb(var(--bone)); border-color: rgb(var(--destructive)); }
+  .a-btn-ghost { border-color: transparent; color: rgb(var(--clay)); }
+  .a-btn-ghost:hover { border-color: transparent; background: rgb(var(--surface) / .6); color: rgb(var(--bone)); }
+  .a-icon-btn { width: 44px; height: 44px; padding: 0; border-radius: var(--r-sm); }
+
+  .a-row {
+    display: flex; align-items: center; gap: .75rem;
+    min-height: 64px; padding: .75rem .875rem;
+    border-radius: var(--r-sm);
+    transition: background-color var(--dur-micro) ease;
+  }
+  .a-row:hover { background: rgb(var(--surface) / .6); }
+
+  .a-rail-item {
+    display: flex; align-items: center; justify-content: space-between;
+    min-height: 44px; padding: 0 .875rem; border-radius: var(--r-sm);
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: .75rem; letter-spacing: .16em; text-transform: uppercase;
+    color: rgb(var(--clay));
+    transition: color var(--dur-micro) ease, background-color var(--dur-micro) ease;
+  }
+  .a-rail-item:hover { color: rgb(var(--bone)); background: rgb(var(--surface) / .5); }
+  .a-rail-item[aria-current="page"] {
+    color: rgb(var(--bone)); background: rgb(var(--surface) / .8);
+    box-shadow: inset 2px 0 0 rgb(var(--sodium));
+  }
+
+  .a-seg {
+    display: inline-flex; gap: 2px; padding: 3px;
+    border-radius: var(--r-pill); border: 1px solid rgb(var(--edge));
+    background: rgb(var(--surface) / .5);
+  }
+  .a-seg > button {
+    min-height: 38px; padding: 0 .875rem; border-radius: var(--r-pill);
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: .6875rem; letter-spacing: .16em; text-transform: uppercase;
+    color: rgb(var(--clay));
+    transition: background-color var(--dur-micro) ease, color var(--dur-micro) ease;
+  }
+  .a-seg > button[aria-pressed="true"] { background: rgb(var(--bone) / .1); color: rgb(var(--bone)); }
+
+  .a-chip {
+    display: inline-flex; align-items: center; gap: .375rem;
+    min-height: 32px; padding: 0 .25rem 0 .625rem;
+    border-radius: var(--r-pill); border: 1px solid rgb(var(--edge));
+    background: rgb(var(--surface) / .6);
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: .75rem; color: rgb(var(--bone) / .85);
+  }
+
+  .a-dot { width: 7px; height: 7px; border-radius: 999px; display: inline-block; flex: none; }
+  .a-dot-published { background: rgb(var(--sodium)); }
+  .a-dot-draft { background: rgb(var(--bone) / .45); }
+  .a-dot-archived, .a-dot-hidden { background: transparent; box-shadow: inset 0 0 0 1px rgb(var(--bone) / .35); }
+
+  .a-summary {
+    display: flex; align-items: center; gap: .5rem; min-height: 44px; cursor: pointer;
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: .6875rem; letter-spacing: .22em; text-transform: uppercase;
+    color: rgb(var(--clay)); list-style: none;
+  }
+  .a-summary::-webkit-details-marker { display: none; }
+  .a-summary::before { content: '\25B8'; transition: transform var(--dur-fast) var(--ease-settle); }
+  details[open] > .a-summary::before { transform: rotate(90deg); }
+  details[open] > .a-summary { color: rgb(var(--bone)); }
 }

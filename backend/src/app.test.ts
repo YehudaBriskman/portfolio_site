@@ -14,10 +14,22 @@ describe("backend API", () => {
     expect(res.headers["content-type"]).toMatch(/application\/json/);
   });
 
-  it("CORS headers exist", async () => {
+  it("allows the site's own origins and refuses everyone else", async () => {
+    const app = createApp();
+
+    const ours = await request(app).get("/health").set("Origin", "https://yehudabriskman.com");
+    expect(ours.headers["access-control-allow-origin"]).toBe("https://yehudabriskman.com");
+
+    // /api/email relays real SMTP; a wildcard let any page drive it from a
+    // visitor's browser.
+    const theirs = await request(app).get("/health").set("Origin", "https://evil.example");
+    expect(theirs.headers["access-control-allow-origin"]).toBeUndefined();
+  });
+
+  it("does not advertise the server framework", async () => {
     const app = createApp();
     const res = await request(app).get("/health");
-    expect(res.headers["access-control-allow-origin"]).toBe("*");
+    expect(res.headers["x-powered-by"]).toBeUndefined();
   });
 
   it("unknown route → 404 JSON", async () => {
@@ -31,7 +43,7 @@ describe("backend API", () => {
     const app = createApp();
     const res = await request(app).get("/api/images/missing.png");
     expect(res.status).toBe(404);
-    expect(res.body).toEqual({ error: "Image not found" });
+    expect(res.body).toEqual({ ok: false, error: "Image not found" });
   });
 
   it("GET /api/images/:name returns file content when exists (tmp dir, valid image ext)", async () => {

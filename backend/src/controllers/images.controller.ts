@@ -32,10 +32,21 @@ export class ImagesController {
       // Stream to client
       payload.stream.on("error", () => res.status(500).end());
       payload.stream.pipe(res);
-    } catch (err: any) {
-      const code = Number(err?.statusCode) || 500;
-      if (code >= 500) console.error("[ImageController] error:", err);
-      res.status(code).json({ error: err?.message ?? "internal error" });
+    } catch (err: unknown) {
+      // Never hand a raw thrown value to the client: narrow it first, and only
+      // repeat a message we chose ourselves.
+      const status =
+        typeof err === "object" && err !== null && typeof (err as { statusCode?: unknown }).statusCode === "number"
+          ? (err as { statusCode: number }).statusCode
+          : 500;
+      if (status >= 500) console.error("[ImageController] error:", err);
+      const message =
+        status >= 500
+          ? "internal error"
+          : err instanceof Error
+            ? err.message
+            : "bad request";
+      res.status(status).json({ ok: false, error: message });
     }
   };
 }
