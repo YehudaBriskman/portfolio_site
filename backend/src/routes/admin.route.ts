@@ -100,9 +100,23 @@ router.put(
     const now = new Date().toISOString();
     const existing = await tryGet<Post>(postId(i.slug));
 
+    /*
+     * The optimistic lock must not be defeatable by omission. Falling back to
+     * `existing._rev` meant a client that simply left `_rev` out overwrote
+     * whatever was there unconditionally — which is the one thing the lock
+     * exists to prevent. A write against an existing document has to name the
+     * revision it was editing.
+     */
+    if (existing?._rev && !i._rev) {
+      return res.status(409).json({
+        ok: false,
+        error: "This changed elsewhere. Reload and reapply your edit.",
+      });
+    }
+
     const doc: Post & { _rev?: string } = {
       _id: postId(i.slug),
-      ...(existing?._rev ? { _rev: i._rev ?? existing._rev } : {}),
+      ...(existing?._rev ? { _rev: i._rev } : {}),
       type: "post",
       slug: i.slug,
       title: i.title,
@@ -155,11 +169,18 @@ router.delete(
 router.get(
   "/collections",
   asyncHandler(async (_req, res) => {
+    /*
+     * Sorted here rather than in the query. CouchDB's Mango rejects a sort
+     * whose fields disagree on direction, and this asked for type descending
+     * with order ascending — so every request 400'd and the admin's Areas list
+     * was permanently empty. The selector already pins `type` to one value, so
+     * sorting on it bought nothing anyway, and a hundred rows sort for free.
+     */
     const { docs } = await couch.find<Collection>({
       selector: { type: "collection" },
-      sort: [{ type: "desc" }, { order: "asc" }],
       limit: 100,
     });
+    docs.sort((a, b) => a.order - b.order || a.title.localeCompare(b.title));
     res.json({ ok: true, items: docs });
   })
 );
@@ -175,9 +196,23 @@ router.put(
     const now = new Date().toISOString();
     const existing = await tryGet<Collection>(colId(i.slug));
 
+    /*
+     * The optimistic lock must not be defeatable by omission. Falling back to
+     * `existing._rev` meant a client that simply left `_rev` out overwrote
+     * whatever was there unconditionally — which is the one thing the lock
+     * exists to prevent. A write against an existing document has to name the
+     * revision it was editing.
+     */
+    if (existing?._rev && !i._rev) {
+      return res.status(409).json({
+        ok: false,
+        error: "This changed elsewhere. Reload and reapply your edit.",
+      });
+    }
+
     const doc: Collection & { _rev?: string } = {
       _id: colId(i.slug),
-      ...(existing?._rev ? { _rev: i._rev ?? existing._rev } : {}),
+      ...(existing?._rev ? { _rev: i._rev } : {}),
       type: "collection",
       slug: i.slug,
       title: i.title,

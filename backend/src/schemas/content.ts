@@ -121,12 +121,19 @@ export function toPublicCollection(c: Collection) {
   return {
     slug: c.slug,
     title: c.title,
+    /*
+     * Documents written before `kind` existed do not carry it, and these are
+     * read straight from CouchDB rather than through the schema, so no default
+     * applies. Undefined then became "project" on the client and the site's own
+     * notes shelf turned up on /projects. The slug is the reliable signal for
+     * those legacy documents.
+     */
+    kind: c.kind ?? (c.slug === "site" ? "site" : "project"),
     tagline: c.tagline,
     description: c.description,
     coverImage: c.coverImage,
     links: c.links,
     order: c.order,
-    kind: c.kind,
     // The repo config itself stays private — it names paths and branches. Only
     // the numbers and a link to the repo are public.
     repoUrl: c.repo ? `https://github.com/${c.repo.owner}/${c.repo.name}` : null,

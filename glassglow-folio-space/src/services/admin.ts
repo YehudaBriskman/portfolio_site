@@ -58,6 +58,24 @@ export type AdminCollection = z.infer<typeof AdminCollectionSchema>;
 
 export type AdminPost = z.infer<typeof AdminPostSchema>;
 
+const ErrorBodySchema = z.object({
+  error: z.string().optional(),
+  details: z
+    .object({ fieldErrors: z.record(z.string(), z.array(z.string()).optional()).optional() })
+    .optional(),
+});
+
+/** A 400 the author can act on: which field, and what is wrong with it. */
+export class AdminValidationError extends Error {
+  readonly fieldErrors: Record<string, string>;
+  constructor(fieldErrors: Record<string, string>) {
+    const count = Object.keys(fieldErrors).length;
+    super(count === 1 ? "1 field needs attention" : `${count} fields need attention`);
+    this.name = "AdminValidationError";
+    this.fieldErrors = fieldErrors;
+  }
+}
+
 /* Admin endpoints only exist on the admin host. Using a relative path keeps the
    request on whatever origin the page is served from, which is the gated one. */
 async function call<T>(path: string, init?: RequestInit): Promise<T> {
@@ -68,20 +86,90 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
   if (res.status === 401 || res.status === 403) throw new Error("not-authorised");
   if (res.status === 409) throw new Error("This post changed elsewhere. Reload and reapply your edit.");
   if (!res.ok) {
-    const body = await res.json().catch(() => null);
-    throw new Error(body?.error ?? `Request failed (${res.status})`);
+    const body: unknown = await readJson(res).catch(() => null);
+    const parsed = ErrorBodySchema.safeParse(body);
+
+    // The server already says exactly which field it rejected and why. Throwing
+    // that away left the author staring at the word "invalid" with no clue that
+    // a slug of "windom.app" was the problem.
+    if (parsed.success && parsed.data.details?.fieldErrors) {
+      const fields = Object.entries(parsed.data.details.fieldErrors)
+        .filter(([, msgs]) => msgs && msgs.length > 0)
+        .map(([field, msgs]) => [field, (msgs ?? [])[0] ?? "is not valid"] as const);
+      if (fields.length > 0) throw new AdminValidationError(Object.fromEntries(fields));
+    }
+
+    throw new Error(parsed.success && parsed.data.error ? parsed.data.error : `Request failed (${res.status})`);
   }
-  return (await res.json()) as T;
+  return (await readJson(res)) as T;
+}
+
+/**
+ * Parse a JSON body, or report the transport failure honestly. An unreachable
+ * API is answered by nginx with the SPA shell, and letting res.json() throw
+ * puts "Unexpected token '<'" in front of the author instead of the reason.
+ */
+async function readJson(res: Response): Promise<unknown> {
+  const text = await res.text();
+  try {
+    return JSON.parse(text) as unknown;
+  } catch {
+    throw new Error("The admin API did not respond. It may be restarting.");
+  }
+}
+
+
+/*
+ * A small session cache.
+ *
+ * AdminShell is rendered inside each page rather than as a layout route, so it
+ * remounts on every navigation and refires its own fetch; each page then
+ * refetches the post and area lists on mount. Moving between Posts and Areas
+ * therefore re-requested everything through the auth proxy and showed a
+ * "Loading…" state each time — which reads exactly like a full page reload even
+ * though the router never leaves the app.
+ *
+ * `me` cannot change within a session, so it is remembered outright. The lists
+ * are held briefly and dropped the moment anything is written, so an edit is
+ * never followed by a stale list.
+ */
+const LIST_TTL_MS = 30_000;
+
+type Cached<T> = { at: number; value: T };
+
+let meCache: Promise<{ ok: true; login: string; email: string | null }> | null = null;
+let postsCache: Cached<AdminPost[]> | null = null;
+let collectionsCache: Cached<AdminCollection[]> | null = null;
+
+/** Called after every write, so the next read is authoritative. */
+function invalidateLists(): void {
+  postsCache = null;
+  collectionsCache = null;
+}
+
+function fresh<T>(entry: Cached<T> | null): T | null {
+  return entry && Date.now() - entry.at < LIST_TTL_MS ? entry.value : null;
 }
 
 export const admin = {
-  me: () => call<{ ok: true; login: string; email: string | null }>("/me"),
+  me: () => {
+    meCache ??= call<{ ok: true; login: string; email: string | null }>("/me").catch((e: unknown) => {
+      meCache = null; // A failure must not be remembered.
+      throw e;
+    });
+    return meCache;
+  },
   list: async () => {
+    const hit = fresh(postsCache);
+    if (hit) return hit;
     const r = await call<{ items: unknown[] }>("/posts");
-    return z.array(AdminPostSchema).parse(r.items);
+    const items = z.array(AdminPostSchema).parse(r.items);
+    postsCache = { at: Date.now(), value: items };
+    return items;
   },
   get: async (slug: string) => {
     const r = await call<{ post: unknown }>(`/posts/${encodeURIComponent(slug)}`);
+    invalidateLists();
     return AdminPostSchema.parse(r.post);
   },
   save: async (slug: string, body: Record<string, unknown>) => {
@@ -91,23 +179,38 @@ export const admin = {
     });
     return AdminPostSchema.parse(r.post);
   },
-  archive: (slug: string) => call<{ ok: true }>(`/posts/${encodeURIComponent(slug)}`, { method: "DELETE" }),
+  archive: async (slug: string) => {
+    const r = await call<{ ok: true }>(`/posts/${encodeURIComponent(slug)}`, { method: "DELETE" });
+    invalidateLists();
+    return r;
+  },
 
   collections: async () => {
+    const hit = fresh(collectionsCache);
+    if (hit) return hit;
     const r = await call<{ items: unknown[] }>("/collections");
-    return z.array(AdminCollectionSchema).parse(r.items);
+    const items = z.array(AdminCollectionSchema).parse(r.items);
+    collectionsCache = { at: Date.now(), value: items };
+    return items;
   },
   saveCollection: async (slug: string, body: Record<string, unknown>) => {
     const r = await call<{ collection: unknown }>(`/collections/${encodeURIComponent(slug)}`, {
       method: "PUT",
       body: JSON.stringify(body),
     });
+    invalidateLists();
     return AdminCollectionSchema.parse(r.collection);
   },
-  syncCollection: (slug: string) =>
-    call<{ ok: true; stats: unknown }>(`/collections/${encodeURIComponent(slug)}/sync`, { method: "POST" }),
-  hideCollection: (slug: string) =>
-    call<{ ok: true }>(`/collections/${encodeURIComponent(slug)}`, { method: "DELETE" }),
+  syncCollection: async (slug: string) => {
+    const r = await call<{ ok: true; stats: unknown }>(`/collections/${encodeURIComponent(slug)}/sync`, { method: "POST" });
+    invalidateLists();
+    return r;
+  },
+  hideCollection: async (slug: string) => {
+    const r = await call<{ ok: true }>(`/collections/${encodeURIComponent(slug)}`, { method: "DELETE" });
+    invalidateLists();
+    return r;
+  },
 };
 
 export function slugify(title: string) {
