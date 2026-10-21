@@ -22,6 +22,9 @@ COPY package*.json ./
 RUN npm ci --omit=dev
 
 COPY --from=builder /app/dist ./dist
+# tsc emits only JavaScript, so the OG card's fonts and metrics are copied in
+# beside it. Without these the card renderer throws on first use.
+COPY src/assets ./dist/assets
 COPY src/uploads ./uploads
 
 RUN apk add --no-cache curl

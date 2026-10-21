@@ -31,6 +31,12 @@ const EnvSchema = z.object({
   // misconfigured deploy locks the admin surface rather than opening it.
   ADMIN_PROXY_SECRET: z.string().default(""),
   ADMIN_GITHUB_LOGIN: z.string().default("YehudaBriskman"),
+
+  // Canonical origin. Every absolute URL the crawlers see is built from this,
+  // so it must be the public name of the site and nothing else.
+  SITE_URL: z.string().default("https://yehudabriskman.com"),
+  // Where the built SPA shell is served from, for per-URL head injection.
+  WEB_ORIGIN: z.string().default("http://web"),
 })
 .superRefine((env, ctx) => {
   if (env.EMAIL_PROVIDER === 'smtp') {
