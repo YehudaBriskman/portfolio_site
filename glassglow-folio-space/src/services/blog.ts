@@ -44,11 +44,24 @@ export type PostSummary = z.infer<typeof SummarySchema>;
 export type Post = z.infer<typeof PostSchema>;
 export type Collection = z.infer<typeof CollectionSchema>;
 
-async function get<T>(path: string, schema: z.ZodType<T>, pick: (j: any) => unknown): Promise<T> {
+/** The envelope every blog endpoint returns; the payload is validated by zod. */
+type JsonEnvelope = Record<string, unknown>;
+
+async function get<T>(path: string, schema: z.ZodType<T>, pick: (j: JsonEnvelope) => unknown): Promise<T> {
   const res = await fetch(`/api/blog${path}`);
   if (res.status === 404) throw new Error("not-found");
   if (!res.ok) throw new Error(`Request failed (${res.status})`);
-  return schema.parse(pick(await res.json()));
+  // An unreachable API is answered by nginx with the SPA shell; without this
+  // the reader gets a JSON parser error instead of a reason.
+  const raw = await res.text();
+  let body: unknown;
+  try {
+    body = JSON.parse(raw) as unknown;
+  } catch {
+    throw new Error("Couldn't reach the server.");
+  }
+  const envelope: JsonEnvelope = typeof body === "object" && body !== null ? (body as JsonEnvelope) : {};
+  return schema.parse(pick(envelope));
 }
 
 export const blog = {
@@ -68,4 +81,23 @@ export const blog = {
 export function formatDate(iso: string | null) {
   if (!iso) return "";
   return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+}
+
+/*
+ * Ages a timestamp into something scannable. "pushed 3 days ago" carries the
+ * only thing the reader wants from a push date — is this alive — where
+ * "12 February 2026" makes them do the subtraction themselves.
+ */
+export function relativeTime(iso: string | null) {
+  if (!iso) return "";
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return "";
+  const days = Math.round((Date.now() - then) / 86_400_000);
+  if (days <= 0) return "today";
+  if (days === 1) return "yesterday";
+  if (days < 30) return `${days} days ago`;
+  const months = Math.round(days / 30.44);
+  if (months < 18) return months === 1 ? "1 month ago" : `${months} months ago`;
+  const years = Math.round(days / 365.25);
+  return years === 1 ? "1 year ago" : `${years} years ago`;
 }
