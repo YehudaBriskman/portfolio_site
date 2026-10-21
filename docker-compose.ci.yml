@@ -1,6 +1,6 @@
 services:
   web:
-    image: ${WEB_IMAGE:-gitlab.benrachmiel.org:5050/containerized-mini-app-deployment-cmad/portfolio_site_yehuda/web:latest}
+    image: ${WEB_IMAGE:-ghcr.io/yehudabriskman/portfolio_site/web:latest}
     container_name: portfolio_site_web
     ports:
       - "8080:8080"
@@ -11,7 +11,7 @@ services:
     restart: unless-stopped
 
   api:
-    image: ${API_IMAGE:-gitlab.benrachmiel.org:5050/containerized-mini-app-deployment-cmad/portfolio_site_yehuda/api:latest}
+    image: ${API_IMAGE:-ghcr.io/yehudabriskman/portfolio_site/api:latest}
     container_name: portfolio_site_api
     expose:
       - "5000"

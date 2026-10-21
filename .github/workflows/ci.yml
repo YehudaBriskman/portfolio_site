@@ -1,0 +1,186 @@
+# Ported from .gitlab-ci.yml when the repository moved to GitHub.
+#
+# Two deliberate differences from the pipeline it replaces:
+#
+#   - Images are pushed on `main` only. GitLab pushed on every pipeline, which
+#     filled the registry with one image per branch push and gave a pull request
+#     write access to the tag production pulls.
+#   - Jobs are no longer skipped by changed path. The per-path rules were half
+#     the old file's length and the whole build is a few minutes; a skipped job
+#     that should have run costs more than the minutes it saves.
+#
+# `typecheck` is new: the script existed and nothing ever ran it.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  FRONT_DIR: glassglow-folio-space
+  BACK_DIR: backend
+  # GHCR rejects uppercase, and the owner login has some.
+  IMAGE_BASE: ghcr.io/yehudabriskman/portfolio_site
+  NPM_CONFIG_FUND: "false"
+  NPM_CONFIG_AUDIT: "false"
+
+jobs:
+  preflight:
+    name: Preflight
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Every file the build assumes is present
+        run: |
+          set -Eeuo pipefail
+          fail=0
+          for f in \
+            "$FRONT_DIR/package.json" "$FRONT_DIR/package-lock.json" \
+            "$FRONT_DIR/Dockerfile" "$FRONT_DIR/nginx.conf" \
+            "$BACK_DIR/package.json" "$BACK_DIR/package-lock.json" \
+            "$BACK_DIR/Dockerfile" \
+            docker-compose.yml docker-compose.ci.yml
+          do
+            if [ ! -f "$f" ]; then echo "::error file=$f::missing"; fail=1; fi
+          done
+          exit $fail
+
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+    needs: preflight
+    defaults:
+      run:
+        working-directory: glassglow-folio-space
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: glassglow-folio-space/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - name: Report what shipped
+        run: du -sh dist
+
+  backend:
+    name: Backend
+    runs-on: ubuntu-latest
+    needs: preflight
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - run: npm run lint --if-present
+      - run: npm test
+      - run: npm run build
+
+  dockerfiles:
+    name: Dockerfiles
+    runs-on: ubuntu-latest
+    needs: preflight
+    strategy:
+      fail-fast: false
+      matrix:
+        dir: [glassglow-folio-space, backend]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: ${{ matrix.dir }}/Dockerfile
+          failure-threshold: error
+
+  compose:
+    name: Compose files parse
+    runs-on: ubuntu-latest
+    needs: preflight
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          set -Eeuo pipefail
+          for f in docker-compose.yml docker-compose.ci.yml; do
+            echo "::group::$f"
+            docker compose -f "$f" config >/dev/null
+            echo "OK"
+            echo "::endgroup::"
+          done
+
+  images:
+    name: Publish ${{ matrix.name }} image
+    runs-on: ubuntu-latest
+    needs: [frontend, backend, dockerfiles, compose]
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: web
+            context: glassglow-folio-space
+          - name: api
+            context: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          push: true
+          tags: |
+            ${{ env.IMAGE_BASE }}/${{ matrix.name }}:${{ github.sha }}
+            ${{ env.IMAGE_BASE }}/${{ matrix.name }}:latest
+          # Replaces kaniko's --cache=true; the layer cache lives in Actions.
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,scope=${{ matrix.name }},mode=max
+
+  scan:
+    name: Scan ${{ matrix.name }} image
+    runs-on: ubuntu-latest
+    needs: images
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      packages: read
+    # Reporting, not a gate - the same call the pipeline it replaces made.
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        name: [web, api]
+    steps:
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ env.IMAGE_BASE }}/${{ matrix.name }}:${{ github.sha }}
+          severity: HIGH,CRITICAL
+          scanners: vuln
+          exit-code: "0"
+          ignore-unfixed: true
