@@ -1,200 +1,86 @@
+# yehudabriskman.com
 
-# Yehuda Briskman — Personal Portfolio Website
+The site at [yehudabriskman.com](https://yehudabriskman.com) — a portfolio, a
+blog, and the admin surface used to write both. A React single-page app in front
+of an Express API, each in its own container, composed together.
 
-A full-stack **portfolio site** showcasing my work, skills, and projects as a **Full-Stack Developer & Team Leader**.  
-It combines high-performance frontend animations (Three.js, Framer Motion, Tailwind) with a minimal backend that serves static images and will later handle contact emails.
-
----
-
-## Project Overview
-
-### Frontend (Main Application)
-- **React + Vite + TypeScript**
-- **TailwindCSS** for modern styling
-- **Framer Motion** for smooth animations and transitions
-- **Three.js / WebGL** for interactive 3D visuals
-- **Lazy image loading** from API using `LazyApiImage`
-- Organized data structure for:
-  - Projects
-  - Skills
-  - Hero, About, Contact, and more sections
-
-### Backend (Support API)
-- **Node.js + Express**
-- **TypeScript**
-- **CORS + dotenv**
-- Handles:
-  - `GET /api/images/:imageId` → Serves project images from `/uploads`
-  - (Future) `POST /api/contact` → Send emails from contact form
-- Includes **request logger middleware** with status/time per request
-
----
-
-## older Structure
+## What is here
 
 ```
-root/
-├── backend/
-│   ├── src/
-│   │   ├── controllers/
-│   │   │   └── images.controller.ts
-│   │   ├── middleware/
-│   │   │   └── logger.ts
-│   │   ├── models/
-│   │   │   └── portfolioItem.ts
-│   │   ├── routes/
-│   │   │   └── images.route.ts
-│   │   ├── services/
-│   │   │   └── images.service.ts
-│   │   ├── types/
-│   │   └── server.ts
-│   ├── uploads/
-│   └── package.json
-│
-├── glassglow-folio-space/            # frontend (React + Vite)
-│   ├── public/
-│   ├── src/
-│   │   ├── components/
-│   │   │   └── ui/
-│   │   │       ├── AboutSection.tsx
-│   │   │       ├── ContactSection.tsx
-│   │   │       ├── HeroSection.tsx
-│   │   │       ├── LazyApiImage.tsx
-│   │   │       ├── Navigation.tsx
-│   │   │       ├── ParticleSystem.tsx
-│   │   │       ├── ProjectsSection.tsx
-│   │   │       ├── SkillsSection.tsx
-│   │   │       ├── ThemeToggle.tsx
-│   │   │       └── ThreeScene.tsx
-│   │   ├── data/
-│   │   ├── hooks/
-│   │   │   ├── use-mobile.tsx
-│   │   │   └── use-toast.ts
-│   │   ├── lib/
-│   │   │   └── utils.ts
-│   │   ├── pages/
-│   │   │   ├── Index.tsx
-│   │   │   └── NotFound.tsx
-│   │   ├── App.tsx
-│   │   ├── App.css
-│   │   └── index.css
-│   ├── vite.config.ts
-│   └── package.json
-│
-└── README.md
-````
+glassglow-folio-space/   React + Vite + TypeScript SPA, served by nginx
+backend/                 Express + TypeScript API
+docker-compose.yml       local: builds both images from source
+docker-compose.ci.yml    deploy: pulls the published images from GHCR
+```
 
----
+### The site
 
-## Backend Endpoints
+One scrolling landscape carries the whole page: each section sits at its own
+altitude in a stack of layers, and the shell keeps the scene mounted across
+routes rather than rebuilding it per page.
 
-| Method | Route | Description |
-| ------- | ------ | ------------ |
-| `GET` | `/api/images/:imageId` | Streams an image by name (e.g. `icaros.png`) |
-| `GET` | `/health` | Health check |
-| (Future) `POST` | `/api/contact` | Send email messages from contact form |
+| Route | |
+|---|---|
+| `/` | the landing page |
+| `/projects`, `/projects/:slug` | the work, with its own artwork and write-ups |
+| `/blog`, `/blog/:slug` | posts, grouped by area |
+| `/admin/...` | writing posts, areas and links — behind a proxy-enforced gate |
 
-The backend simply serves the portfolio images stored locally in `uploads/`.
+### The API
 
----
+| Prefix | |
+|---|---|
+| `/api/blog` | published content, read-only |
+| `/api/seo` | per-URL rendered heads, `sitemap.xml`, `feed.xml`, OG images |
+| `/api/admin` | authoring; requires the admin gate |
+| `/api/email` | the contact form, rate-limited in two tiers |
+| `/api/images` | project and post imagery |
 
-## Environment Variables
+The SPA returns the same empty shell for every URL, so nginx routes the human
+paths (`/`, `/blog/:slug`, `/projects/:slug`, the sitemap and the feed) through
+`/api/seo` first. Crawlers and link previews get a real head; the app still
+hydrates normally underneath. Social cards are drawn per URL with resvg, so a
+new post needs no asset work.
 
-Create `.env` in the backend root:
+## Running it
 
 ```bash
-PORT=5000
-NODE_ENV=development
-JWT_SECRET=><Futuer_needed>
-UPLOADS_DIR=src/uploads/
+# everything, built from source
+docker compose up --build
 
-EMAIL_PROVIDER=smtp
-MAIL_FROM="Your name <your contact email>"
-MAIL_REPLY_TO=<your contact email>
-CONTACT_TO=<your contact email>
+# just the API
+cd backend && npm ci && npm run dev
 
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=465
-SMTP_SECURE=true
-SMTP_USER=<your email provider>
-SMTP_PASS=<your app password (should look like: "igrt edjd sdfg asds")>
-````
-
-Frontend `.env.development`:
-
-```
-VITE_API_TARGET=http://localhost:5000
+# just the site
+cd glassglow-folio-space && npm ci && npm run dev
 ```
 
----
+The API reads its configuration through a Zod schema in `backend/src/env.ts`,
+which fails at startup rather than at the first request if something is missing.
+`backend/.env.example` lists what it wants.
 
-## Local Development
+## Checks
 
-1. **Backend**
-
-   ```bash
-   cd backend
-   npm install --save-dev --legacy-peer-deps
-   npm start
-   ```
-
-2. **Frontend**
-
-   ```bash
-   cd frontend
-   npm install --save-dev --legacy-peer-deps
-   npm run dev
-   ```
-
-   Runs on [http://localhost:8080](http://localhost:8080)
-
----
-
-## Tech Summary
-
-| Category | Tech                                                         |
-| -------- | ------------------------------------------------------------ |
-| Frontend | React, Vite, TypeScript, Tailwind, Framer Motion, Three.js   |
-| Backend  | Node.js, Express, TypeScript                                 |
-| Tools    | Docker (optional), AWS (future), Netlify/Vercel (deployment) |
-| Other    | Lazy Loading, Clean Architecture, Modern UI/UX               |
-
----
-
-## Logging Example
-
-Backend logs every request:
-
-```
-[2025-11-03T09:15:04.421Z] GET /api/images/icaros.png → 200 27ms
-[2025-11-03T09:15:09.033Z] GET /health → 200 3ms
+```bash
+cd glassglow-folio-space && npm run lint && npm run typecheck && npm test && npm run build
+cd backend              && npm test && npm run build
 ```
 
----
+CI runs exactly these on every pull request, plus hadolint over both Dockerfiles
+and a parse of both compose files. On `main` it also builds and publishes the
+two images to GHCR and scans them with Trivy:
 
-## Deployment Options
+```
+ghcr.io/yehudabriskman/portfolio_site/web:latest
+ghcr.io/yehudabriskman/portfolio_site/api:latest
+```
 
-* **Frontend:** Vercel / Netlify
-* **Backend:** Render / Railway / Fly.io
-  → Update frontend `.env` → `VITE_API_TARGET=https://your-api-domain.com`
+## Notes
 
----
+CORS is restricted to the site's own origins — `/api/email` relays real SMTP, so
+a wildcard would let any page on the internet drive it from a visitor's browser.
+Every route is rate-limited, including the admin one, which is gated but was
+otherwise an unmetered oracle for guessing the proxy secret.
 
-## Future Plans
-
-* Contact form with email sending (NodeMailer / SendGrid)
-* Image CDN optimization (Cloudflare R2 or S3)
-* 3D interactive homepage
-* Multi-language support (i18next)
-* Blog section with markdown articles
-
----
-
-## Author
-
-**Yehuda Briskman**
-📍 Tel Aviv, Israel
-📧 [yr0556772363@gmail.com](mailto:yr0556772363@gmail.com)
-💼 [LinkedIn](https://www.linkedin.com/in/yehuda-briskman-ab923b2b8) · [GitHub](https://github.com/YehudaBriskman) · [Portfolio (Local)](http://localhost:8080)
-   npm install
-   npm install
+The frontend has no tests yet. `npm test` runs and passes because there is
+nothing to run.
