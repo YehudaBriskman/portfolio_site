@@ -1,4 +1,8 @@
 import type { Config } from "tailwindcss";
+// `require()` in an ESM, type-checked config is the one thing the lint
+// rules actually reject, and it was failing the build before anything ran.
+import tailwindcssAnimate from "tailwindcss-animate";
+import typography from "@tailwindcss/typography";
 
 const rgb = (v: string) => `rgb(var(${v}) / <alpha-value>)`;
 
@@ -61,5 +65,5 @@ export default {
       },
     },
   },
-  plugins: [require("tailwindcss-animate"), require("@tailwindcss/typography")],
+  plugins: [tailwindcssAnimate, typography],
 } satisfies Config;
