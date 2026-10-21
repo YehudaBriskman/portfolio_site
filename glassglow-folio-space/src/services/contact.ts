@@ -4,7 +4,7 @@ import { contact } from "@/data/site";
 const ContactSchema = z.object({
   name: z.string().min(2, "Add your name"),
   email: z.string().email("That email address doesn't look right"),
-  message: z.string().min(10, "Tell me a little more — at least a sentence"),
+  message: z.string().min(10, "Tell me a little more, at least a sentence"),
 });
 
 export type ContactPayload = z.infer<typeof ContactSchema>;
@@ -27,7 +27,7 @@ export async function sendContactMessage(data: ContactPayload) {
     body: JSON.stringify({
       provider: "smtp",
       to: CONTACT_TO,
-      subject: `Portfolio contact — ${data.name}`,
+      subject: `Portfolio contact from ${data.name}`,
       replyTo: data.email,
       template: {
         name: "basic",

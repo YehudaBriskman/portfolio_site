@@ -16,12 +16,18 @@ const BlogPost = lazy(() => import("./pages/BlogPost"));
 const Admin = lazy(() => import("./pages/Admin"));
 const AdminEditor = lazy(() => import("./pages/AdminEditor"));
 const AdminCollection = lazy(() => import("./pages/AdminCollection"));
+const AdminAreas = lazy(() => import("./pages/AdminAreas"));
 
 const queryClient = new QueryClient();
 
 function LegacyCollectionRedirect() {
   const { project } = useParams();
   return <Navigate to={`/projects/${project}`} replace />;
+}
+
+function LegacyAreaRedirect() {
+  const { slug } = useParams();
+  return <Navigate to={`/admin/areas/${slug}`} replace />;
 }
 
 function LegacyNoteRedirect() {
@@ -47,9 +53,14 @@ const App = () => (
           {/* Old path kept so anything already shared still resolves. */}
           <Route path="/notes" element={<Navigate to="/blog" replace />} />
           <Route path="/notes/:slug" element={<LegacyNoteRedirect />} />
-          <Route path="/admin" element={<Suspense fallback={null}><Admin /></Suspense>} />
+          {/* URLs say what the tool says. /admin/collections/:slug is kept as a
+              redirect because bookmarks to it exist. */}
+          <Route path="/admin" element={<Navigate to="/admin/posts" replace />} />
+          <Route path="/admin/posts" element={<Suspense fallback={null}><Admin /></Suspense>} />
           <Route path="/admin/posts/:slug" element={<Suspense fallback={null}><AdminEditor /></Suspense>} />
-          <Route path="/admin/collections/:slug" element={<Suspense fallback={null}><AdminCollection /></Suspense>} />
+          <Route path="/admin/areas" element={<Suspense fallback={null}><AdminAreas /></Suspense>} />
+          <Route path="/admin/areas/:slug" element={<Suspense fallback={null}><AdminCollection /></Suspense>} />
+          <Route path="/admin/collections/:slug" element={<LegacyAreaRedirect />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

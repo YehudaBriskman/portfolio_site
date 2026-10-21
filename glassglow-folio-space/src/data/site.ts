@@ -10,7 +10,7 @@ export const contact = {
 export const about = {
   heading: "How I work",
   intro: [
-    "I'm a full-stack engineer and a team leader at the Israel Defense Forces, in Tel Aviv. I lead a small team building and running internal software, and I still write and review code every day — I never wanted the version of the job where you stop.",
+    "I'm a full-stack engineer and a team leader at the Israel Defense Forces, in Tel Aviv. I lead a small team building and running internal software, and I still write and review code every day. I never wanted the version of the job where you stop.",
     "Before that I was a full-stack engineer at Momentum Tailored Solutions.",
     "Outside work I ship my own products end to end: WindoM, a Chrome extension published in the Web Store, and Bothy, a console that reports what's running by asking Docker rather than by reading a list someone has to remember to update.",
   ],

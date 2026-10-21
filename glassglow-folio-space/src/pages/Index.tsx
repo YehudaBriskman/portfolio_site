@@ -5,10 +5,13 @@ import Approach from "@/components/Approach";
 import Stack from "@/components/Stack";
 import Contact from "@/components/Contact";
 import Atmosphere from "@/components/Atmosphere";
-import Ridge from "@/components/Ridge";
 import Reveal from "@/components/Reveal";
 import { useScrollProgress } from "@/hooks/useScrollProgress";
 
+/*
+ * Every section is a layer. The order of these wrappers is the order the layers
+ * rise in, which is why they are marked here rather than inside each component.
+ */
 export default function Index() {
   useScrollProgress();
 
@@ -20,20 +23,31 @@ export default function Index() {
       >
         Skip to content
       </a>
-      {/* One atmosphere for the whole document: the page descends from the night
-          sky at the hero to the water at the footer. */}
       <Atmosphere />
       <Nav />
       <main>
-        <Hero />
-        <Ridge variant={0} />
-        <Reveal><Work /></Reveal>
-        <Ridge variant={1} flip />
-        <Reveal><Approach /></Reveal>
-        <Ridge variant={2} />
-        <Reveal><Stack /></Reveal>
-        <Ridge variant={0} flip />
-        <Reveal><Contact /></Reveal>
+        {/* The hero is the person and nothing else. The landscape used to be
+            given away in the first screen; now it is assembled on the way down
+            and only resolves at the foot of the page. */}
+        <div data-crest>
+          <Hero />
+        </div>
+
+        <div data-crest className="layer-section">
+          <Reveal><Work /></Reveal>
+        </div>
+
+        <div data-crest className="layer-section">
+          <Reveal from="right" y={26}><Approach /></Reveal>
+        </div>
+
+        <div data-crest className="layer-section">
+          <Reveal y={30}><Stack /></Reveal>
+        </div>
+
+        <div data-crest className="layer-section">
+          <Reveal from="left" y={26}><Contact /></Reveal>
+        </div>
       </main>
     </div>
   );

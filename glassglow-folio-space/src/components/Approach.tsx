@@ -5,44 +5,35 @@ export default function Approach() {
   return (
     <section id="approach" className="isolate relative mx-auto max-w-6xl px-6 py-28 sm:py-36">
       <Scenery variant="copse" />
-      <p className="eyebrow">Team lead — Israel Defense Forces</p>
-      <h2 className="display-tight mt-5 text-section">{about.heading}</h2>
-
-      <div className="mt-14 grid gap-14 lg:grid-cols-[0.85fr_1.15fr]">
-        <div>
-          {/* No frame and no caption: the cutout carries its own edge and fades
-              into the page, so a border would only draw a box around nothing. */}
-          <img
-            src="/img/yehuda-cut.webp"
-            srcSet="/img/yehuda-cut-sm.webp 365w, /img/yehuda-cut.webp 551w"
-            sizes="(min-width: 1024px) 30vw, 62vw"
-            alt="Yehuda Briskman"
-            width={551}
-            height={845}
-            loading="lazy"
-            decoding="async"
-            className="pointer-events-none -mt-6 w-full max-w-[340px] select-none lg:-mt-10 lg:max-w-none"
-          />
-
-          <div className="-mt-4 space-y-5">
-            {about.intro.map((p) => (
-              <p key={p.slice(0, 24)} className="text-sm leading-relaxed text-bone/75 sm:text-base">
-                {p}
-              </p>
-            ))}
-          </div>
-        </div>
-
-        <ul className="space-y-10 lg:pt-4">
-          {about.principles.map((p) => (
-            <li key={p.claim}>
-              <div className="rule mb-5 w-10 bg-sodium" />
-              <h3 className="display-tight text-lg leading-snug text-bone sm:text-xl">{p.claim}</h3>
-              <p className="mt-3 max-w-xl text-sm leading-relaxed text-bone/65">{p.detail}</p>
-            </li>
-          ))}
-        </ul>
+      <div className="sm:text-right">
+        <h2 className="display text-section leading-[0.92]">{about.heading}</h2>
+        <p className="eyebrow mt-4">Team lead &middot; Israel Defense Forces</p>
       </div>
+
+      {/* The portrait moved to the hero, so this reads as one measured column of
+          prose instead of text wrapped around an image. Wider leading and a
+          longer measure, because the previous setting was small type packed
+          into a narrow well — technically readable, actually skipped. */}
+      <div className="mt-14 max-w-2xl space-y-6 sm:ml-auto sm:text-right">
+        {about.intro.map((p) => (
+          <p key={p.slice(0, 24)} className="text-lg leading-[1.7] text-bone/85">
+            {p}
+          </p>
+        ))}
+      </div>
+
+      <ul className="mt-20 grid gap-x-14 gap-y-16 sm:grid-cols-2 lg:grid-cols-3">
+        {about.principles.map((p, i) => (
+          <li key={p.claim}>
+            <span className="mono block text-xs tabular-nums text-sodium" aria-hidden="true">
+              {String(i + 1).padStart(2, "0")}
+            </span>
+            <div className="rule mb-5 mt-3 w-10 bg-sodium" />
+            <h3 className="display-tight text-xl leading-snug text-bone">{p.claim}</h3>
+            <p className="mt-4 text-base leading-[1.7] text-bone/70">{p.detail}</p>
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }

@@ -1,5 +1,6 @@
 import { FormEvent, useState } from "react";
 import Scenery from "@/components/scene/Scenery";
+import SiteFooter from "@/components/SiteFooter";
 import { links } from "@/data/links";
 import { contact } from "@/data/site";
 import { sendContactMessage } from "@/services/contact";
@@ -31,12 +32,12 @@ export default function Contact() {
   }
 
   const field =
-    "mt-2 w-full border-0 border-b border-edge bg-transparent px-0 py-3 text-bone placeholder:text-clay/45 focus:border-sodium focus:outline-none focus:ring-0 transition-colors";
+    "mt-2 w-full border-0 border-b border-edge bg-transparent px-0 py-3 text-bone placeholder:text-clay/60 focus:border-sodium focus:outline-none focus:ring-0 transition-colors";
 
   return (
     <section id="contact" className="isolate relative mx-auto max-w-6xl px-6 py-28 sm:py-36">
       <Scenery variant="ripples" />
-      <p className="eyebrow">{contact.location} — {contact.availability}</p>
+      <p className="eyebrow">{contact.location} &middot; {contact.availability}</p>
       <h2 className="display-tight mt-5 text-section">Get in touch</h2>
 
       <div className="mt-16 grid gap-16 lg:grid-cols-[1.1fr_1fr]">
@@ -79,7 +80,7 @@ export default function Contact() {
         <div>
           <a
             href={`mailto:${contact.email}`}
-            className="display-tight block text-xl text-bone underline decoration-edge underline-offset-[6px] transition-colors hover:decoration-sodium sm:text-2xl"
+            className="display-tight -my-2 flex min-h-11 items-center py-2 text-xl text-bone underline decoration-edge underline-offset-[6px] transition-colors hover:decoration-sodium sm:text-2xl"
           >
             {contact.email}
           </a>
@@ -93,7 +94,7 @@ export default function Contact() {
                     href={l.url}
                     target="_blank"
                     rel="noreferrer noopener"
-                    className="mono text-xs uppercase tracking-[0.18em] text-clay transition-colors hover:text-sodium"
+                    className="mono -my-3 inline-flex min-h-11 items-center py-3 text-xs uppercase tracking-[0.18em] text-clay transition-colors hover:text-sodium"
                   >
                     {l.name}
                   </a>
@@ -101,28 +102,13 @@ export default function Contact() {
               ))}
           </ul>
 
-          <p className="mono mt-16 border-t border-edge pt-8 text-[0.6875rem] leading-relaxed text-clay/70">
+          <p className="mono mt-16 border-t border-edge pt-8 text-[0.6875rem] leading-relaxed text-clay">
             Messages reach me directly. No third-party form provider sits in between.
           </p>
         </div>
       </div>
 
-      <footer className="mono mt-28 flex flex-wrap items-center justify-between gap-4 border-t border-edge pt-8 text-[0.6875rem] text-clay/60">
-        <span>© {new Date().getFullYear()} Yehuda Briskman</span>
-        <span className="flex items-center gap-5">
-          <span>Tel Aviv, Israel</span>
-          {/* Deliberately quiet rather than hidden. Security here is the GitHub
-              wall in front of the admin host, not the obscurity of the link —
-              pretending otherwise would be the weaker of the two. */}
-          <a
-            href="https://admin.yehudabriskman.com/admin"
-            className="text-clay/20 transition-colors hover:text-sodium focus-visible:text-sodium"
-            aria-label="Admin"
-          >
-            admin
-          </a>
-        </span>
-      </footer>
+      <SiteFooter />
     </section>
   );
 }

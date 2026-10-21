@@ -12,11 +12,15 @@ export default function Reveal({
   children,
   delay = 0,
   y = 18,
+  from = "below",
   className = "",
 }: {
   children: ReactNode;
   delay?: number;
   y?: number;
+  /* Which way the content arrives from. Sections alternate it so the page does
+     not lift every block off the same edge on the way down. */
+  from?: "below" | "left" | "right";
   className?: string;
 }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -50,7 +54,13 @@ export default function Reveal({
       className={className}
       style={{
         opacity: shown ? 1 : 0,
-        transform: shown ? "none" : `translate3d(0, ${y}px, 0)`,
+        transform: shown
+          ? "none"
+          : from === "left"
+            ? `translate3d(${-y}px, 0, 0)`
+            : from === "right"
+              ? `translate3d(${y}px, 0, 0)`
+              : `translate3d(0, ${y}px, 0)`,
         transition: `opacity var(--dur-fast) linear ${delay}ms, transform var(--dur-settle) var(--ease-settle) ${delay}ms`,
         willChange: shown ? "auto" : "opacity, transform",
       }}
