@@ -75,6 +75,21 @@ ghcr.io/yehudabriskman/portfolio_site/web:latest
 ghcr.io/yehudabriskman/portfolio_site/api:latest
 ```
 
+Built for `linux/amd64` and `linux/arm64`, because the cluster runs on an arm64
+node.
+
+## How it reaches production, and the gap in that
+
+The site runs on a k3s cluster on a single ARM node. Today the rollout is
+`deploy-portfolio.sh` in the `oci-free` repository: it rsyncs **the working
+directory** to the node, builds there, and imports into containerd — which is
+why the deployments pin `imagePullPolicy: Never`.
+
+That means the live site can be running code that was never committed, and for
+six weeks it was. The images above exist to replace that: once the deployments
+reference a published tag, a rollout is something that happened in CI from a
+known commit rather than something a laptop did.
+
 ## Notes
 
 CORS is restricted to the site's own origins — `/api/email` relays real SMTP, so
