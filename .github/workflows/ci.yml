@@ -140,6 +140,10 @@ jobs:
             context: backend
     steps:
       - uses: actions/checkout@v4
+      # The cluster these images are for runs on an arm64 node. An amd64-only
+      # image cannot be pulled there at all, so a single-platform build would
+      # publish something nothing can run.
+      - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v3
       - uses: docker/login-action@v3
         with:
@@ -150,6 +154,10 @@ jobs:
         with:
           context: ${{ matrix.context }}
           push: true
+          # arm64 is emulated here, which is slow. It is still the cheaper
+          # option than the current rollout, which builds on the node from
+          # whatever happens to be in a laptop's working directory.
+          platforms: linux/amd64,linux/arm64
           tags: |
             ${{ env.IMAGE_BASE }}/${{ matrix.name }}:${{ github.sha }}
             ${{ env.IMAGE_BASE }}/${{ matrix.name }}:latest
