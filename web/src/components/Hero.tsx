@@ -112,11 +112,37 @@ export default function Hero() {
             style={{ animationDelay: "150ms", width: "calc(40svh * 0.6521 + 26px)", maxWidth: "100%" }}
           >
             {/*
-              The cutout is transparent, so whatever is behind it is the
-              studio backdrop. The mount is near-white and the subject is a
-              white t-shirt against a feathered edge, which dissolves; on
-              `--paper-2` the figure holds and the print reads as having been
-              made on tinted stock rather than as a sticker on the card.
+              Why this file was regraded rather than restyled.
+
+              The portrait read as faint here and no amount of mount would
+              have fixed it, because the problem was the photograph's own
+              grade. Measured on the source: red peaked at 236 but green at
+              181 and blue at 169, with channel deviations of 36/27/21. That
+              is a heavy orange wash with no highlights and almost no tonal
+              spread — a grade made for a near-black ground, where any warm
+              light reads as light. Dropped onto #ECE8DC it is the same hue
+              family as the paper, so the subject was camouflaged against the
+              page rather than underexposed on it, and darkening the mount
+              would only have taken the picture down with it.
+
+              So the white point was reset per channel (95/84/80), an S-curve
+              put the midtones back, and saturation came down 12%. The face
+              now carries ink and the hair reads as hair. The alpha channel —
+              a vertical ramp that dissolves the torso toward the bottom of
+              the frame — had its gamma raised to 1.3 so the figure holds
+              through the middle of the print instead of giving out halfway.
+
+              One `<img>`, two sources, one request. A previous audit found
+              two sibling images here with CSS hiding one per breakpoint and
+              both of them downloading; that was already collapsed into this
+              `srcset` before this pass, and it is verified: Chromium issues
+              exactly one request for the portrait at every breakpoint.
+
+              The mount stays tinted. The cutout is transparent and the
+              subject wears a white t-shirt, so on the near-white card the
+              shirt and the mount are the same value and the silhouette goes
+              with them; `--paper-2` gives the image a field of its own and
+              the print reads as having been made on tinted stock.
 
               Above the fold and the largest image on it: this is the LCP
               element, so it loads eagerly and at high priority.

@@ -6,11 +6,12 @@ import styles from "../Nav.module.css";
 /**
  * Stop the page moving.
  *
- * The page has four cross-fading photographic plates, a grain overlay and a
- * reveal on every section, which is a lot of movement to put in front of
- * someone who only wanted to read about the work. The OS reduced-motion
- * setting covers the people who have already decided about every site; this
- * covers the person who decides here.
+ * The plates and the grain are gone, but the page still prints itself as you
+ * descend it — every card, list row and rule arrives on a view-timeline wipe —
+ * which is a lot of movement to put in front of someone who only wanted to
+ * read about the work. The OS reduced-motion setting covers the people who
+ * have already decided about every site; this covers the person who decides
+ * here.
  *
  * `aria-pressed` rather than two buttons or a checkbox: it is one control
  * with a state, and the label changes with it, so the state is readable for

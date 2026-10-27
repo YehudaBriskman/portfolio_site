@@ -1,7 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import PageShell from "@/components/PageShell";
-import Reveal from "@/components/Reveal";
+/* InkWipe, not Reveal. Reveal was an IntersectionObserver that translated a
+   section 26px before fading it in; the wipe is scroll-timeline driven and
+   needs no observer. Its stagger props go with it: a scroll-driven animation
+   ignores animation-delay outright, so a per-item delay could only ever have
+   been theatre. Each item now prints when it arrives, which is the same
+   sequence the stagger was imitating. */
+import InkWipe from "@/components/motion/InkWipe";
 import PostList from "@/components/PostList";
 import ProjectMeta from "@/components/ProjectMeta";
 import Shot from "@/components/projects/Shot";
@@ -180,7 +186,7 @@ export default function Project() {
             <ProjectBrief entry={entry} className="mt-section-sm" />
 
             {entry.highlights.length > 0 && (
-              <Reveal>
+              <InkWipe as="div">
                 <section className="mt-section-sm" aria-labelledby="highlights-heading">
                   <h2 id="highlights-heading" className="display-tight text-2xl sm:text-3xl">
                     Worth knowing
@@ -197,13 +203,13 @@ export default function Project() {
                     ))}
                   </ul>
                 </section>
-              </Reveal>
+              </InkWipe>
             )}
 
             {entry.decisions.length > 0 && (
-              <Reveal>
+              <InkWipe as="div">
                 <ProjectDecisions decisions={entry.decisions} className="mt-section-sm" />
-              </Reveal>
+              </InkWipe>
             )}
 
             <ProjectStack tech={entry.tech} className="mt-section-sm" />
@@ -211,7 +217,7 @@ export default function Project() {
             {docs.length > 0 && (
               <>
                 <div className="rule bleed-x mt-section-sm" aria-hidden="true" />
-                <Reveal>
+                <InkWipe as="div">
                   <div className="mt-12">
                     <h2 className="display-tight text-2xl sm:text-3xl">Docs</h2>
                     <ol className="mt-6 divide-y divide-[rgb(var(--rule))] border-y border-[rgb(var(--rule))]">
@@ -238,7 +244,7 @@ export default function Project() {
                       ))}
                     </ol>
                   </div>
-                </Reveal>
+                </InkWipe>
               </>
             )}
 
