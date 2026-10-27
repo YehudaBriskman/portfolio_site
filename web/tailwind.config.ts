@@ -35,6 +35,12 @@ export default {
         rule: rgb("--rule"),
         "rule-firm": rgb("--rule-firm"),
         signal: rgb("--signal"),
+        /* Motion only — see the note in index.css. */
+        "hue-red": rgb("--hue-red"),
+        "hue-blue": rgb("--hue-blue"),
+        "hue-green": rgb("--hue-green"),
+        "hue-yellow": rgb("--hue-yellow"),
+        "hue-purple": rgb("--hue-purple"),
         // shadcn primitives
         border: rgb("--border"),
         input: rgb("--input"),

@@ -151,3 +151,48 @@
   .slot :global(.card-paper) { min-height: 0; }
   .deck::after { display: none; }
 }
+
+/* ------------------------------------------------- the pile's own ink -- */
+
+/*
+ * Where the deck enters the colour cycle.
+ *
+ * Every card in the pile arrives on an ink wipe, and the wipe already carries
+ * a coloured leading edge whose hue is the element's position among its
+ * siblings (see InkWipe.module.css for the rule and the reasoning). That
+ * default cannot work here, and for a structural reason rather than an
+ * aesthetic one: each card is the only child of its slot, so `nth-child`
+ * sees position one three times over and the whole pile arrives in the same
+ * colour. The index the deck cares about is the slot's, not the card's.
+ *
+ * So the slot assigns it, one step further into the same five-colour cycle.
+ * Red, green, purple here against blue, yellow, red in every row and grid on
+ * the page — which is the second reason to do it at all. Approach is a deck
+ * and Stack directly below it is a grid; both are three items long, so left
+ * to the default the reader would watch the identical three-colour run twice
+ * in a row and read it as a repeat rather than as a sequence. Offsetting the
+ * pile also means the page as a whole spends all five hues on one scroll
+ * instead of three.
+ *
+ * Deterministic in the same way the default is: slot one is red on every
+ * visit, because the rule is the slot's position and nothing else. And as
+ * there, the hue says nothing a reader needs — the card already prints its
+ * own ordinal as "01 / 03" in type.
+ *
+ * `.deck .slot:nth-child(...) > *` rather than `.slot:nth-child(...) > *`:
+ * the default lives on a class plus a pseudo-class and so weighs the same as
+ * two classes. Matching the deck as well puts this rule a class ahead of it,
+ * which makes the outcome a rule rather than a question of which stylesheet
+ * the bundler emitted last — the same trap `PaperCard.module.css` documents
+ * for `.card.solid`.
+ *
+ * The child selector is `*` because the deck cannot know what the caller
+ * wrapped its card in. --wipe-hue is inherited and read by exactly one
+ * declaration in one stylesheet, so landing it on a wrapper that is not a
+ * wipe costs nothing and does nothing.
+ */
+.deck .slot:nth-child(5n + 1) > * { --wipe-hue: var(--hue-red); }
+.deck .slot:nth-child(5n + 2) > * { --wipe-hue: var(--hue-green); }
+.deck .slot:nth-child(5n + 3) > * { --wipe-hue: var(--hue-purple); }
+.deck .slot:nth-child(5n + 4) > * { --wipe-hue: var(--hue-blue); }
+.deck .slot:nth-child(5n + 5) > * { --wipe-hue: var(--hue-yellow); }
