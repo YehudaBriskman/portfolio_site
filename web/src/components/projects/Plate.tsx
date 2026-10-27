@@ -81,7 +81,7 @@ export default function Plate({
         />
       )}
 
-      {tagline && <p className="mt-5 text-[0.8125rem] leading-snug text-bone/70">{tagline}</p>}
+      {tagline && <p className="mt-6 text-[0.8125rem] leading-snug text-bone/70">{tagline}</p>}
     </div>
   );
 }

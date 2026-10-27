@@ -19,11 +19,11 @@ export default function ProjectMeta({ c }: { c: Collection }) {
   if (items.length === 0) return null;
 
   return (
-    <dl className="mt-10 grid grid-cols-2 gap-x-6 gap-y-7 border-y border-edge py-7 sm:mt-14 sm:grid-cols-4 lg:grid-cols-5">
+    <dl className="mt-section-sm grid grid-cols-2 gap-6 border-y border-edge py-6 sm:grid-cols-4 lg:grid-cols-5">
       {items.map(([k, v]) => (
-        <div key={k}>
+        <div key={k} className="min-w-0">
           <dt className="mono text-xs uppercase tracking-[0.18em] text-clay">{k}</dt>
-          <dd className="display-tight mt-2 text-xl tabular-nums text-bone sm:text-2xl">{v}</dd>
+          <dd className="display-tight mt-3 text-xl tabular-nums text-bone sm:text-2xl">{v}</dd>
         </div>
       ))}
     </dl>

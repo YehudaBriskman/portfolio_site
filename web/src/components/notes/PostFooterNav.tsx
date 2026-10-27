@@ -15,7 +15,7 @@ export default function PostFooterNav({
 }) {
   if (!newer && !older) return null;
   return (
-    <nav aria-label="More notes" className="mt-12 grid gap-4 sm:grid-cols-2">
+    <nav aria-label="More notes" className="mt-section-sm grid gap-6 sm:grid-cols-2">
       {newer && <NoteCard post={newer} compact label="Newer" />}
       {/* Held to the second column so "Older" stays on the right when it is
           the only neighbour — the direction is the whole signal. */}

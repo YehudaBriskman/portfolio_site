@@ -190,7 +190,7 @@ const markdown: Components = {
  * `h5`/`h6` at nothing at all previously were not.
  */
 const PROSE = [
-  "prose prose-invert mx-auto mt-12 max-w-[38rem] sm:mt-16",
+  "prose prose-invert mx-auto mt-section-sm max-w-[38rem]",
   "text-[1.0625rem] leading-[1.7] text-bone/85 sm:text-[1.1875rem] sm:leading-[1.75]",
 
   // Space above a heading is ~2.5x the space below it. The plugin's default is
@@ -317,7 +317,14 @@ export default function BlogPost() {
     <PageShell reading layers={POST_LAYERS}>
       {post && state === "ok" && <ReadingBar title={post.title} target={reading} />}
 
-      <article data-crest data-hue="150 82 64" className="mx-auto w-full max-w-[46rem] px-5 pb-24 pt-24 sm:px-6 sm:pb-32 sm:pt-32 lg:pt-40">
+      {/*
+        Not `.wrap`: 46rem is the reading measure, which is narrower than the
+        site's layout measure on purpose — the title and the cover run the
+        full article width while the prose inside holds to 38rem, and that
+        difference is the page's hierarchy. The gutter and the section rhythm
+        are the system's, though.
+      */}
+      <article data-crest data-hue="150 82 64" className="section-y mx-auto w-full max-w-[46rem] px-gutter">
         {state === "loading" && (
           /* Shaped like the real header rather than announced as a word, so the
              title and the cover do not jump into place over a line of text. */
@@ -336,12 +343,12 @@ export default function BlogPost() {
         {state === "missing" && (
           <div>
             <h1 className="display text-section">Not here</h1>
-            <p className="mt-4 max-w-[34rem] text-[1.0625rem] leading-[1.7] text-bone/85">
+            <p className="mt-6 max-w-[34rem] text-[1.0625rem] leading-[1.7] text-bone/85">
               That post doesn&rsquo;t exist, or isn&rsquo;t published yet. The address may have
               changed when the notes moved from <code className="mono text-bone">/notes</code> to{" "}
               <code className="mono text-bone">/blog</code>.
             </p>
-            <Link to="/blog" className="btn btn-quiet mt-8">
+            <Link to="/blog" className="btn btn-quiet mt-12">
               <span aria-hidden="true">&larr;</span> All notes
             </Link>
           </div>
@@ -356,14 +363,14 @@ export default function BlogPost() {
            */
           <div className="note-card px-6 py-12 sm:px-10 sm:py-16">
             <p className="eyebrow">Post unavailable</p>
-            <h1 className="display-tight mt-4 text-[clamp(1.75rem,6vw,2.5rem)]">
+            <h1 className="display-tight mt-3 text-[clamp(1.75rem,6vw,2.5rem)]">
               The server didn&rsquo;t answer.
             </h1>
-            <p className="mt-4 max-w-[34rem] text-[1.0625rem] leading-[1.7] text-bone/85">
+            <p className="mt-6 max-w-[34rem] text-[1.0625rem] leading-[1.7] text-bone/85">
               The page loaded; the post behind it didn&rsquo;t. It is served by a small machine I
               run myself, so this is usually a restart rather than anything permanent.
             </p>
-            <div className="mt-8 flex flex-wrap gap-3">
+            <div className="mt-12 flex flex-wrap gap-3">
               <button type="button" onClick={retry} className="btn btn-solid">
                 Try again
               </button>
@@ -391,7 +398,7 @@ export default function BlogPost() {
                   <span aria-hidden="true">&larr;</span> Notes
                 </Link>
 
-                <div className="mt-8 sm:mt-10">
+                <div className="mt-12">
                   {collectionTitle ? (
                     <Link
                       to={`/projects/${post.collection}`}
@@ -405,7 +412,7 @@ export default function BlogPost() {
                   )}
                 </div>
 
-                <h1 className="display mt-5 text-[clamp(2.1rem,8.5vw,3.75rem)] leading-[0.96]">
+                <h1 className="display mt-3 text-[clamp(2.1rem,8.5vw,3.75rem)] leading-[0.96]">
                   {post.title}
                 </h1>
 
@@ -415,7 +422,7 @@ export default function BlogPost() {
                     large, which is the register this page has deliberately
                     emptied out. */}
                 {post.subtitle && (
-                  <p className="editorial mt-5 max-w-[30rem] text-[1.375rem] text-bone sm:text-[1.75rem]">
+                  <p className="editorial mt-6 max-w-[30rem] text-[1.375rem] text-bone sm:text-[1.75rem]">
                     {post.subtitle}
                   </p>
                 )}
@@ -423,7 +430,7 @@ export default function BlogPost() {
                 {/* A name and a face, which a personal blog had nowhere above
                     the fold, beside the two facts that were already here. */}
                 <Byline
-                  className="mt-8 border-t border-edge pt-6"
+                  className="mt-12 border-t border-edge pt-6"
                   meta={
                     <div className="flex flex-wrap items-center gap-2.5">
                       {post.publishedAt && (
@@ -450,7 +457,7 @@ export default function BlogPost() {
                      dimensions at all, so every post loaded with a layout shift. */
                   fetchpriority="high"
                   decoding="async"
-                  className="bleed mt-10 aspect-[16/9] w-full border-y border-edge object-cover sm:rounded-[var(--r-lg)] sm:border"
+                  className="bleed mt-12 aspect-[16/9] w-full border-y border-edge object-cover sm:rounded-[var(--r-lg)] sm:border"
                 />
               )}
 
@@ -470,7 +477,7 @@ export default function BlogPost() {
             </div>
 
             {post.tags.length > 0 && (
-              <ul className="mt-14 flex flex-wrap gap-2">
+              <ul className="mt-section-sm flex flex-wrap gap-2">
                 {post.tags.map((t) => (
                   <li key={t}>
                     <TagPill tag={t} />
@@ -491,12 +498,12 @@ export default function BlogPost() {
               </ul>
             )}
 
-            <div className="mt-10 flex flex-wrap items-center justify-between gap-4 border-t border-edge pt-6">
+            <div className="mt-12 flex flex-wrap items-center justify-between gap-6 border-t border-edge pt-6">
               <Byline />
               <FeedLink />
             </div>
 
-            <div className="mt-12 opacity-70">
+            <div className="mt-section-sm opacity-70">
               <Ridge variant={2} />
             </div>
 

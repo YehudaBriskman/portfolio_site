@@ -12,11 +12,14 @@ import { contact } from "@/data/site";
  */
 export default function SiteFooter() {
   return (
-    <footer className="mt-24 border-t border-edge pt-10">
-      <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+    <footer className="mt-section-sm border-t border-edge pt-12">
+      <div className="grid gap-12 sm:grid-cols-2 lg:grid-cols-4">
         <div>
           <p className="eyebrow">Pages</p>
-          <ul className="mt-4 space-y-1">
+          {/* `space-y-1` and not the usual item gap: every row here already
+              carries a 44px tap target, so the touch rhythm is the rhythm and
+              anything on top of it only makes the footer taller. */}
+          <ul className="mt-3 space-y-1">
             {[
               { to: "/", label: "Home" },
               { to: "/projects", label: "Projects" },
@@ -38,7 +41,7 @@ export default function SiteFooter() {
 
         <div>
           <p className="eyebrow">Work</p>
-          <ul className="mt-4 space-y-1">
+          <ul className="mt-3 space-y-1">
             {[
               { href: "https://windom.app", label: "WindoM", note: "Chrome Web Store" },
               { href: "https://github.com/YehudaBriskman/Bothy", label: "Bothy", note: "Self-hosted" },
@@ -60,7 +63,7 @@ export default function SiteFooter() {
 
         <div>
           <p className="eyebrow">Elsewhere</p>
-          <ul className="mt-4 space-y-1">
+          <ul className="mt-3 space-y-1">
             {links.map((l) => (
               <li key={l.name}>
                 <a
@@ -87,7 +90,7 @@ export default function SiteFooter() {
         <div>
           <p className="eyebrow">Colophon</p>
           {/* Every claim here is checkable, which is the point of the page. */}
-          <p className="mt-4 text-sm leading-relaxed text-bone/70">
+          <p className="mt-3 text-sm leading-relaxed text-bone/70">
             Built with React and TypeScript. Runs on a single Arm machine I administer
             myself, behind Traefik and cert-manager, with the content in CouchDB.
           </p>
@@ -97,9 +100,9 @@ export default function SiteFooter() {
         </div>
       </div>
 
-      <div className="mono mt-10 flex flex-wrap items-center justify-between gap-3 border-t border-edge pt-6 text-xs text-clay">
+      <div className="mono mt-12 flex flex-wrap items-center justify-between gap-3 border-t border-edge pt-6 text-xs text-clay">
         <span>&copy; {new Date().getFullYear()} Yehuda Briskman</span>
-        <span className="flex items-center gap-5">
+        <span className="flex items-center gap-6">
           <span>Tel Aviv, Israel</span>
           {/* Deliberately quiet rather than hidden. The security here is the
               GitHub wall in front of the admin host, not the obscurity of the

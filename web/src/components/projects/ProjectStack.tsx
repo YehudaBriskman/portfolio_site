@@ -20,7 +20,7 @@ export default function ProjectStack({ tech, className = "" }: { tech: string[];
   return (
     <div className={className}>
       <h2 className="mono text-xs uppercase tracking-[0.18em] text-clay">Built with</h2>
-      <p className="mono mt-4 flex flex-wrap items-baseline gap-x-2.5 gap-y-1.5 text-sm leading-relaxed text-bone/85">
+      <p className="mono mt-3 flex flex-wrap items-baseline gap-x-2.5 gap-y-1.5 text-sm leading-relaxed text-bone/85">
         {tech.map((t, i) => (
           <Fragment key={t}>
             {i > 0 && (

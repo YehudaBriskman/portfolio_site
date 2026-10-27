@@ -23,9 +23,9 @@ export default function ProjectBrief({ entry, className = "" }: { entry: Project
   if (rows.length === 0) return null;
 
   return (
-    <dl className={`grid gap-y-9 border-y border-edge py-9 sm:gap-y-11 sm:py-11 ${className}`}>
+    <dl className={`grid gap-12 border-y border-edge py-12 ${className}`}>
       {rows.map(([label, body]) => (
-        <div key={label} className="sm:grid sm:grid-cols-[minmax(0,10rem)_minmax(0,1fr)] sm:gap-10">
+        <div key={label} className="sm:grid sm:grid-cols-[minmax(0,10rem)_minmax(0,1fr)] sm:gap-12">
           <dt className="mono text-xs uppercase tracking-[0.18em] text-clay">{label}</dt>
           <dd className="mt-3 max-w-[62ch] text-base leading-[1.65] text-bone/85 sm:mt-0 sm:text-lg">{body}</dd>
         </div>

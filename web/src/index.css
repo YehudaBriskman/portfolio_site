@@ -368,6 +368,53 @@
 
 @layer components {
   /*
+   * The page measure, in one place.
+   *
+   * `mx-auto max-w-6xl px-5 sm:px-6` appeared at roughly twenty call sites
+   * and had already drifted — px-5 in some, px-6 in others, and nothing
+   * saying which was right. One class now owns the measure and the gutter,
+   * so a change to either is a change to one line.
+   */
+  .wrap {
+    width: 100%;
+    max-width: theme('maxWidth.wrap');
+    margin-inline: auto;
+    padding-inline: theme('spacing.gutter');
+  }
+  /* Display type and full-bleed media get a wider measure than reading does. */
+  .wrap-wide {
+    width: 100%;
+    max-width: theme('maxWidth.wrap-wide');
+    margin-inline: auto;
+    padding-inline: theme('spacing.gutter');
+  }
+
+  /*
+   * Vertical rhythm.
+   *
+   * Sections ran anywhere from py-20 to py-36 with no rule behind the choice.
+   * One clamped step, and a smaller one for sections that sit inside another
+   * rhythm rather than setting their own.
+   */
+  .section-y { padding-block: theme('spacing.section'); }
+  .section-y-sm { padding-block: theme('spacing.section-sm'); }
+
+  /*
+   * Full-bleed without the scrollbar bug.
+   *
+   * `left-1/2 w-screen -translate-x-1/2` is the usual recipe and it is wrong
+   * on any page that scrolls: `100vw` includes the scrollbar, so the element
+   * is reliably 8-17px wider than the visible area. `html` clips it, so it
+   * looks fine and quietly reports an overflow on every measurement. This
+   * breaks out of the measure by exactly the gutter instead, which is the
+   * only thing it needed to escape.
+   */
+  .bleed-x {
+    margin-inline: calc(theme('spacing.gutter') * -1);
+    width: auto;
+  }
+
+  /*
    * Glass, ported from WindoM.
    *
    * Three things carried over from that build, each of which cost a day there:

@@ -9,7 +9,7 @@ import NoteGlyph from "@/components/notes/NoteGlyph";
 import TagPill from "@/components/notes/TagPill";
 import { blog, type Collection, type PostSummary } from "@/services/blog";
 
-const GRID = "grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:gap-6";
+const GRID = "grid grid-cols-1 gap-6 sm:grid-cols-2";
 
 /*
  * The loading state, shaped like the page it precedes.
@@ -122,15 +122,15 @@ export default function Blog() {
 
   return (
     <PageShell layers={NOTES_LAYERS}>
-      <div data-crest data-hue="120 92 150" className="mx-auto w-full max-w-5xl px-5 pt-24 sm:px-6 sm:pt-32 lg:pt-40">
+      <div data-crest data-hue="120 92 150" className="wrap pt-section">
         {/*
           The scenery is anchored to this box rather than to the whole page, so
           the ridgeline lands under the title instead of four thousand pixels
           down beneath the last card, where nobody was ever going to see it.
         */}
-        <header className="isolate relative pb-14 sm:pb-20">
+        <header className="isolate relative pb-section-sm">
           <p className="eyebrow">Notes</p>
-          <h1 className="display mt-4 text-[clamp(2.75rem,11.5vw,4.75rem)] leading-[0.92]">
+          <h1 className="display mt-3 text-[clamp(2.75rem,11.5vw,4.75rem)] leading-[0.92]">
             {site?.title ?? "Writing"}
           </h1>
           <p className="mt-6 max-w-[34rem] text-base leading-[1.7] text-bone/85 sm:text-lg">
@@ -140,15 +140,15 @@ export default function Blog() {
 
           {/* Whose notes these are, and the feed the <head> has advertised
               since the first deploy without anything ever linking it. */}
-          <Byline className="mt-9 max-w-[34rem]" feed />
+          <Byline className="mt-12 max-w-[34rem]" feed />
         </header>
       </div>
 
-      <div className="mx-auto w-full max-w-5xl px-5 pb-24 sm:px-6 sm:pb-32">
+      <div className="wrap pb-section">
         <CollectionFilter projects={projects} active={collection} />
 
         {filtered && (
-          <div className="mt-8 flex flex-wrap items-center gap-3">
+          <div className="mt-12 flex flex-wrap items-center gap-3">
             <span className="eyebrow">Showing</span>
             {tag && <TagPill tag={tag} active />}
             {collection && (
@@ -174,7 +174,7 @@ export default function Blog() {
           </div>
         )}
 
-        <div className="mt-8 sm:mt-12" aria-live="polite" aria-busy={posts === null && !error}>
+        <div className="mt-12" aria-live="polite" aria-busy={posts === null && !error}>
           {error && (
             /*
              * The API runs on one machine I administer, so an unreachable
@@ -186,16 +186,16 @@ export default function Blog() {
              */
             <div className="note-card px-6 py-12 text-left sm:px-10 sm:py-16">
               <p className="eyebrow">Notes unavailable</p>
-              <h2 className="display-tight mt-4 text-[clamp(1.6rem,5.5vw,2.25rem)]">
+              <h2 className="display-tight mt-3 text-[clamp(1.6rem,5.5vw,2.25rem)]">
                 The server didn&rsquo;t answer.
               </h2>
-              <p className="mt-4 max-w-[34rem] text-[1.0625rem] leading-[1.7] text-bone/85">
+              <p className="mt-6 max-w-[34rem] text-[1.0625rem] leading-[1.7] text-bone/85">
                 The page is here; the writing behind it is served by a small machine I run myself,
                 and it isn&rsquo;t responding right now. Usually that means a restart rather than
                 anything permanent.
               </p>
-              <p className="mono mt-4 text-[0.75rem] text-clay">{error}</p>
-              <div className="mt-8 flex flex-wrap gap-3">
+              <p className="mono mt-3 text-[0.75rem] text-clay">{error}</p>
+              <div className="mt-12 flex flex-wrap gap-3">
                 <button type="button" onClick={retry} className="btn btn-solid">
                   Try again
                 </button>
@@ -221,15 +221,15 @@ export default function Blog() {
                   <NoteGlyph seed={tag ?? collection ?? "empty"} />
                 </div>
               </div>
-              <h2 className="display-tight mt-8 text-2xl sm:text-3xl">
+              <h2 className="display-tight mt-12 text-2xl sm:text-3xl">
                 {tag ? `Nothing tagged #${tag}.` : collection ? "Nothing filed here yet." : "Nothing here yet."}
               </h2>
-              <p className="mt-3 max-w-sm text-[0.9375rem] leading-relaxed text-bone/70">
+              <p className="mt-6 max-w-sm text-[0.9375rem] leading-relaxed text-bone/70">
                 {filtered
                   ? "Other notes exist — this filter just doesn’t match any of them."
                   : "The notes go up as the work gets done. The projects are further along."}
               </p>
-              <Link to={filtered ? "/blog" : "/projects"} className="btn btn-quiet mt-8">
+              <Link to={filtered ? "/blog" : "/projects"} className="btn btn-quiet mt-12">
                 {filtered ? "Show all notes" : "See the projects"} <span aria-hidden="true">&rarr;</span>
               </Link>
             </div>
