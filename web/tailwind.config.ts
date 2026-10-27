@@ -24,6 +24,17 @@ export default {
         ridge: rgb("--ridge"),
         haze: rgb("--haze"),
         "haze-2": rgb("--haze-2"),
+        /* The paper palette's own names. The legacy ones above still
+           resolve through index.css while call sites migrate. */
+        paper: rgb("--paper"),
+        "paper-2": rgb("--paper-2"),
+        "paper-3": rgb("--paper-3"),
+        ink: rgb("--ink"),
+        "ink-soft": rgb("--ink-soft"),
+        "ink-faint": rgb("--ink-faint"),
+        rule: rgb("--rule"),
+        "rule-firm": rgb("--rule-firm"),
+        signal: rgb("--signal"),
         // shadcn primitives
         border: rgb("--border"),
         input: rgb("--input"),
