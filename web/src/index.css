@@ -368,6 +368,28 @@
 
 @layer components {
   /*
+   * Tried and dropped: a headline cut out of the plate behind it.
+   *
+   * `background-clip: text` with the plate as the fill, anchored with
+   * `background-attachment: fixed` so the letters show the part of the
+   * photograph they stand in front of. It is the move that makes a page look
+   * authored, and it does not work on this one.
+   *
+   * The reason is structural rather than a matter of tuning. It needs the
+   * letters to be bright and their surround not to be — but every plate here
+   * is full-viewport, so a heading is always made of the same picture it is
+   * standing on. There is no figure and no ground. Tried on the contact
+   * heading (full-bleed sunset) and on Stack (the brightest plate, a band
+   * shape, the heading nominally below the cut): in both, half the word
+   * disappeared into the water. Lifting the fill toward bone far enough to
+   * read it leaves bone type with noise in it, which is not the effect.
+   *
+   * It would work against a plate that is genuinely a shape — type on bare
+   * ground with a bright picture poured into it — so this is worth revisiting
+   * if a section ever gets a plate that does not reach behind its heading.
+   */
+
+  /*
    * The page measure, in one place.
    *
    * `mx-auto max-w-6xl px-5 sm:px-6` appeared at roughly twenty call sites
