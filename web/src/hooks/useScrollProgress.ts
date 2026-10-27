@@ -35,13 +35,11 @@ export function useScrollProgress() {
      * plus a getBoundingClientRect per section, sixty times a second, forces a
      * layout each frame for a list that only changes on navigation or resize.
      */
-    let sections: HTMLElement[] = [];
-    let layerEls: HTMLElement[] = [];
-    const collect = () => {
-      sections = [...document.querySelectorAll<HTMLElement>("[data-crest]")];
-      layerEls = [...document.querySelectorAll<HTMLElement>("[data-layer]")];
-    };
-    collect();
+    /*
+     * Nothing to collect any more. This used to query every section and every
+     * layer so it could measure one against the other each frame; the scene
+     * no longer depends on that relationship.
+     */
 
     /*
      * Writing a custom property on the root invalidates style for everything
@@ -58,112 +56,33 @@ export function useScrollProgress() {
       raf = 0;
 
       /*
-       * Read everything, then write everything.
-       *
-       * This used to interleave: write a custom property, read a section's
-       * getBoundingClientRect, write another, read again. Every write
-       * invalidates style, so each following read forced a synchronous layout —
-       * several per frame, and the same rectangles were measured twice. Batching
-       * the reads means one layout pass, and the writes that follow cannot
-       * invalidate anything we still need to measure.
+       * Two numbers and no layout read. The interleaved read-write pass this
+       * used to run existed to position the layers against their sections;
+       * with the scene static there is nothing to measure.
        */
       const y = window.scrollY;
       const vh = Math.max(1, window.innerHeight);
       const travel = root.scrollHeight - vh;
-      const tops = sections.map((section) => section.getBoundingClientRect().top);
 
-      // Require a minimum travel distance before the palette moves. Without
-      // this a short page races through every band in one flick of the wheel,
-      // which reads as a glitch rather than a descent.
-      const max = Math.max(1, travel, vh * 2.5);
-
-      put("--p", (y / max).toFixed(4));
       put("--vh", (y / vh).toFixed(4));
-      /*
-       * --p is floored by the minimum travel above, so on a short page it
-       * never reaches 1. Anything that needs the real fraction gets this
-       * second, unfloored number instead.
-       *
-       * It is a DOCUMENT figure, and the distinction matters: a post's tags,
-       * link list, prev/next pair and the site footer are all inside
-       * scrollHeight and none of them is reading matter, so a reading
-       * indicator driven by this reads about 70% at the last paragraph. The
-       * bar on a post measures its own article instead; see ReadingBar.
-       */
       put("--pr", (y / Math.max(1, travel)).toFixed(4));
-
-      /*
-       * Position the layers. A layer runs from the moment its section's top
-       * edge enters at the foot of the screen to the moment that edge reaches
-       * the top, then keeps climbing so its colour ends up holding the whole
-       * page rather than leaving the previous layer showing above the ridge.
-       *
-       * Written straight onto the elements. There is no --layer-N custom
-       * property any more: nothing consumed it once the transforms moved here,
-       * and writing five of them to :root every frame invalidated style for the
-       * entire document to feed nobody.
-       */
-      const REST = 0.28;
-      const OVERSHOOT = 0.66;
-      for (const el of layerEls) {
-        const i = Number(el.dataset.layer);
-        if (!i) continue;
-
-        let p: number;
-        if (el.dataset.drive === "progress") {
-          const count = Number(el.dataset.count) || 1;
-          const span = 1 / count;
-          const pr = travel > 0 ? y / travel : 0;
-          p = (pr - i * span * 0.85) / (span * 0.62);
-        } else {
-          const top = tops[i];
-          if (top === undefined) continue;
-          p = (vh - top) / vh;
-        }
-
-        const clamped = p < 0 ? 0 : p > 2 ? 2 : p;
-        const offset =
-          vh - Math.min(clamped, 1) * vh * (1 - REST) - Math.min(Math.max(clamped - 1, 0), 1) * vh * OVERSHOOT;
-        const next = `translate3d(0, ${offset.toFixed(1)}px, 0)`;
-        if (el.style.transform !== next) el.style.transform = next;
-      }
     };
 
     /*
-     * will-change, held only while it is being used.
-     *
-     * It used to be declared statically on every layer and never released,
-     * which keeps a full-viewport compositor texture per layer resident for
-     * the whole session — roughly 36MB on a 1440x1080 desktop and 68MB on a
-     * 390x844 phone at DPR 3. The hint is worth having during a scroll and
-     * worth nothing between them, so it is set on the first frame of a scroll
-     * and dropped once the page has been still for a moment.
+     * No will-change management left to do. It existed to hint four layer
+     * transforms; with nothing transforming, hinting a full-viewport surface
+     * would hold a compositor texture for no reason.
      */
-    let hinted = false;
-    let idle = 0;
-    const setHint = (on: boolean) => {
-      if (hinted === on) return;
-      hinted = on;
-      for (const el of layerEls) el.style.willChange = on ? "transform" : "";
-    };
-
     const onScroll = () => {
-      setHint(true);
-      clearTimeout(idle);
-      idle = window.setTimeout(() => setHint(false), 200);
       if (!raf) raf = requestAnimationFrame(measure);
     };
     measure();
     window.addEventListener("scroll", onScroll, { passive: true });
-    const onResize = () => {
-      collect();
-      onScroll();
-    };
+    const onResize = () => onScroll();
     window.addEventListener("resize", onResize);
     return () => {
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onResize);
-      clearTimeout(idle);
       if (raf) cancelAnimationFrame(raf);
     };
   }, []);

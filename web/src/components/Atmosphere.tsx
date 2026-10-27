@@ -4,20 +4,14 @@ import GlassFilters from "@/components/scene/GlassFilters";
 /*
  * One atmosphere for the whole document.
  *
- * The background is a stack of opaque photographic plates, one per section,
- * each rising over the last with a ridgeline cut into its top edge. See
- * LayerStack.
+ * The background is a set of held photographic plates, one per section,
+ * cross-fading as the viewport changes hands. Nothing rises, nothing drifts.
+ * See LayerStack.
  */
-export default function Atmosphere({
-  layers = LANDING_LAYERS,
-  driveBy = "sections",
-}: {
-  layers?: Layer[];
-  driveBy?: "sections" | "progress";
-}) {
+export default function Atmosphere({ layers = LANDING_LAYERS }: { layers?: Layer[] }) {
   return (
     <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden" aria-hidden="true">
-      <LayerStack layers={layers} driveBy={driveBy} />
+      <LayerStack layers={layers} />
       <GlassFilters />
 
       {/*

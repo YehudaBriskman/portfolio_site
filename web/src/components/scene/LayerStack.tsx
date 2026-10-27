@@ -1,49 +1,30 @@
-/*
- * The page as a stack of photographic plates.
- *
- * One plate per section. Each is opaque and rises from the foot of the screen
- * as its section arrives, covering the one before it. Only a plate's top edge
- * is ever visible, so only the top edge is cut into a ridgeline — every bottom
- * stays hidden behind the next plate, all the way to the footer.
- *
- * A plate rises in two stages: first until its ridge sits high on the screen,
- * which is the moment the handover reads, then onward until the ridge has left
- * the top entirely and the photograph holds the whole page. Without that second
- * stage you spend the body of a section looking at the previous plate through
- * the gap above the ridge, which is a seam rather than a background.
- *
- * What changed, and why
- * ---------------------
- * These layers used to be flat fills with a landscape drawn on them: trees as
- * three ellipses and a zig-zag, birds as two 1.8px arcs, ripples as ellipses
- * 1.6px tall, all at opacities between 0.05 and 0.5, and thirty-nine infinite
- * animations keeping them moving. At that scale and that contrast it read as a
- * small clip-art drawing rather than as a place.
- *
- * The palette comment at the top of index.css says it was sampled from a
- * photograph — a lone tree against layered ridges at sunset, mirrored in still
- * water. So the fix is not to draw the landscape better. It is to stop drawing
- * it: the plates ARE that photograph and three others, graded to the same key
- * at build time (see scripts/build-plates.mjs).
- *
- * The ridgelines survive, because the handover is the one genuinely memorable
- * idea here — but as a MASK on the plate's top edge rather than as a silhouette
- * painted over it. You see the photograph through a ridge-shaped cut, which is
- * the same gesture with a real image behind it.
- */
+import { useEffect, useState } from "react";
 
 /*
- * Ridges with big rounded crowns rather than gentle undulation. The tops are
- * near-circular arcs so the edge reads as a deliberate shape at a glance, which
- * a low swell does not. Unchanged from the drawn version — the shapes were
- * never the problem.
+ * The page as a set of held photographic plates.
+ *
+ * One plate per section, each full-bleed and still. As a section takes the
+ * viewport its plate cross-fades in over the one before it; nothing slides,
+ * nothing parallaxes, nothing drifts.
+ *
+ * What this replaces, and why
+ * ---------------------------
+ * The plates used to rise from the foot of the screen as their section
+ * arrived — 145vh tall, travelling from 100vh to -38vh, positioned by a
+ * requestAnimationFrame loop that measured every section against every layer
+ * on every frame. It was the site's one memorable idea and it cost four
+ * transforms a frame, a permanent compositor texture per layer, a viewport of
+ * runway padding per section, and a pile of overshoot constants.
+ *
+ * It also fought the photographs. A plate that is moving is a plate you are
+ * reading past; a plate that holds still is a place the type is standing in.
+ * That is what windom.app does with its wallpapers and what every reference
+ * this direction is drawn from does with its imagery.
+ *
+ * So the ridgeline masks go too. They existed to shape a moving top edge, and
+ * there is no longer an edge in motion to shape — section boundaries carry
+ * that job now, in CSS, where a shape is one property rather than a path.
  */
-const RIDGES = [
-  "M0,420 L0,330 C64,330 96,196 244,196 C392,196 424,330 488,330 C556,330 588,168 736,168 C884,168 916,330 984,330 C1048,330 1080,214 1224,214 C1368,214 1392,330 1440,330 L1440,420 Z",
-  "M0,420 L0,318 C56,318 84,206 214,206 C344,206 372,318 428,318 C500,318 528,150 684,150 C840,150 868,318 940,318 C1010,318 1038,228 1178,228 C1318,228 1386,318 1440,318 L1440,420 Z",
-  "M0,420 L0,306 C72,306 104,168 262,168 C420,168 452,306 524,306 C596,306 624,222 762,222 C900,222 928,306 1000,306 C1072,306 1104,182 1252,182 C1400,182 1414,306 1440,306 L1440,420 Z",
-  "M0,420 L0,336 C60,336 88,182 232,182 C376,182 404,336 464,336 C532,336 560,238 700,238 C840,238 868,336 936,336 C1008,336 1036,160 1196,160 C1356,160 1394,336 1440,336 L1440,420 Z",
-];
 
 /** The four graded plates, by the stage of day they were shot at. */
 export type Plate = "morning" | "afternoon" | "evening" | "night";
@@ -66,8 +47,6 @@ export type Layer = {
    * has no photograph.
    */
   fill: string;
-  /** Which ridge cuts this plate's top edge. */
-  d: string;
   /** Omitted on the ground layer, which is flat --bitumen and nothing else. */
   plate?: Plate;
   /**
@@ -79,15 +58,6 @@ export type Layer = {
    * Bright plates need more; the aurora needs almost none.
    */
   scrim: number;
-  /**
-   * Per-plate accent, as an `R G B` triple.
-   *
-   * --sodium was measured once, against --bitumen, and then shipped over five
-   * different grounds. On the warm plates it lands at roughly its own hue and
-   * stops reading as an accent at all. Where that happens the layer names a
-   * cooler or paler substitute, and everything under it inherits.
-   */
-  accent?: string;
 };
 
 /*
@@ -100,11 +70,11 @@ export type Layer = {
  * This table is the whole art direction. Re-cutting the story is four lines.
  */
 export const LANDING_LAYERS: Layer[] = [
-  { id: "hero", fill: "15 21 21", d: RIDGES[0], scrim: 0 },
-  { id: "work", fill: "16 24 34", d: RIDGES[0], plate: "night", scrim: 0.58 },
-  { id: "approach", fill: "18 30 26", d: RIDGES[1], plate: "evening", scrim: 0.6 },
-  { id: "stack", fill: "34 44 50", d: RIDGES[2], plate: "afternoon", scrim: 0.72, accent: "244 170 126" },
-  { id: "contact", fill: "48 34 32", d: RIDGES[3], plate: "morning", scrim: 0.64, accent: "246 196 170" },
+  { id: "hero", fill: "10 10 11", scrim: 0 },
+  { id: "work", fill: "16 24 34", plate: "night", scrim: 0.58 },
+  { id: "approach", fill: "18 30 26", plate: "evening", scrim: 0.6 },
+  { id: "stack", fill: "34 44 50", plate: "afternoon", scrim: 0.72 },
+  { id: "contact", fill: "48 34 32", plate: "morning", scrim: 0.64 },
 ];
 
 /*
@@ -116,15 +86,15 @@ export const LANDING_LAYERS: Layer[] = [
  * none of them shifts when the landing page's story is re-cut.
  */
 export const PROJECTS_LAYERS: Layer[] = [
-  { id: "base", fill: "15 21 21", d: RIDGES[0], scrim: 0 },
-  { id: "open", fill: "34 44 50", d: RIDGES[2], plate: "afternoon", scrim: 0.72, accent: "244 170 126" },
-  { id: "far", fill: "16 24 34", d: RIDGES[1], plate: "night", scrim: 0.58 },
+  { id: "base", fill: "10 10 11", scrim: 0 },
+  { id: "open", fill: "34 44 50", plate: "afternoon", scrim: 0.72 },
+  { id: "far", fill: "16 24 34", plate: "night", scrim: 0.58 },
 ];
 
 export const NOTES_LAYERS: Layer[] = [
-  { id: "base", fill: "15 21 21", d: RIDGES[0], scrim: 0 },
-  { id: "dusk", fill: "16 24 34", d: RIDGES[3], plate: "night", scrim: 0.58 },
-  { id: "wood", fill: "18 30 26", d: RIDGES[2], plate: "evening", scrim: 0.6 },
+  { id: "base", fill: "10 10 11", scrim: 0 },
+  { id: "dusk", fill: "16 24 34", plate: "night", scrim: 0.58 },
+  { id: "wood", fill: "18 30 26", plate: "evening", scrim: 0.6 },
 ];
 
 /*
@@ -133,8 +103,8 @@ export const NOTES_LAYERS: Layer[] = [
  * and the scrim runs harder than anywhere else on the site for the same reason.
  */
 export const POST_LAYERS: Layer[] = [
-  { id: "base", fill: "15 21 21", d: RIDGES[0], scrim: 0 },
-  { id: "warm", fill: "48 34 32", d: RIDGES[1], plate: "morning", scrim: 0.78, accent: "246 196 170" },
+  { id: "base", fill: "10 10 11", scrim: 0 },
+  { id: "warm", fill: "48 34 32", plate: "morning", scrim: 0.78 },
 ];
 
 /** Kept as the neutral default for anything that does not choose. */
@@ -142,151 +112,99 @@ export const PAGE_LAYERS = PROJECTS_LAYERS;
 
 export type LayerStackProps = {
   layers: Layer[];
-  driveBy?: "sections" | "progress";
 };
 
-/*
- * Where the ridge rests once the handover lands, and how far past the top the
- * layer travels afterwards. The overshoot has to exceed the ridge's own height
- * on screen, or the crown never clears the viewport.
- * Exported because useScrollProgress does the positioning; see below.
- *
- * These also set how tall a layer needs to be. Its top travels from 100vh down
- * to (REST - OVERSHOOT) = -38vh, so 138vh of height is the minimum that still
- * covers the bottom of the screen at full overshoot; 145vh gives a margin.
- */
-export const REST_VH = 28;
-export const OVERSHOOT_VH = 66;
-const SKY_VH = 30;
-
 /**
- * The ridge as a mask rather than a drawing.
+ * Which plate is showing.
  *
- * Two mask layers: the ridge silhouette across the top band, and a plain
- * rectangle for everything below it. White is kept, so the photograph survives
- * from the ridgeline down and the sky above the crown belongs to whatever plate
- * is behind this one.
+ * An IntersectionObserver over the page's own `[data-crest]` sections, rather
+ * than arithmetic on scroll position: a cross-fade only needs to know which
+ * section owns the viewport, and that is exactly the question an observer
+ * answers without reading layout. The rootMargin picks the band across the
+ * middle of the screen, so a plate changes when a section genuinely takes
+ * over rather than the moment its first pixel appears.
  */
-function ridgeMask(d: string): React.CSSProperties {
-  const svg =
-    `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 420' preserveAspectRatio='none'>` +
-    `<path d='${d}' fill='%23fff'/></svg>`;
-  const image = `url("data:image/svg+xml,${svg.replace(/#/g, "%23").replace(/"/g, "'")}"), linear-gradient(#fff, #fff)`;
-  const size = `100% ${SKY_VH}vh, 100% ${145 - SKY_VH}vh`;
-  const position = `top left, bottom left`;
-  return {
-    maskImage: image,
-    WebkitMaskImage: image,
-    maskSize: size,
-    WebkitMaskSize: size,
-    maskPosition: position,
-    WebkitMaskPosition: position,
-    maskRepeat: "no-repeat",
-    WebkitMaskRepeat: "no-repeat",
-  };
+function useActiveSection(count: number) {
+  const [active, setActive] = useState(0);
+
+  useEffect(() => {
+    const sections = [...document.querySelectorAll<HTMLElement>("[data-crest]")];
+    if (sections.length === 0) return;
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (!e.isIntersecting) continue;
+          const i = sections.indexOf(e.target as HTMLElement);
+          if (i >= 0) setActive(Math.min(i, count - 1));
+        }
+      },
+      { rootMargin: "-45% 0px -45% 0px", threshold: 0 }
+    );
+    sections.forEach((el) => io.observe(el));
+    return () => io.disconnect();
+  }, [count]);
+
+  return active;
 }
 
-export default function LayerStack({ layers, driveBy = "sections" }: LayerStackProps) {
+export default function LayerStack({ layers }: LayerStackProps) {
+  const active = useActiveSection(layers.length);
+
   /*
-   * Positioning happens in useScrollProgress, which writes transform straight
-   * onto these elements. It used to be a calc() over a CSS custom property,
-   * which looks tidy and is the wrong tool: a transform driven by a custom
-   * property cannot take the compositor fast path, so every frame went through
-   * style, layout and paint on the main thread — and because the property lived
-   * on :root, each write invalidated style for the whole document. These
-   * elements only declare what they are; the hook says where they are.
-   *
-   * `will-change` is deliberately absent. It used to be set statically on every
-   * layer and never released, which held four full-viewport textures resident
-   * for the session — roughly 36MB on a desktop and 68MB on a phone at DPR 3.
-   * The hook now sets it on the first scroll and clears it once scrolling
-   * stops.
+   * Every plate is mounted and full-bleed; only opacity changes. Keeping them
+   * all in the tree costs the four decoded images — around 400KB of AVIF
+   * across the whole set — and buys a cross-fade with no blank frame, which
+   * is the trade windom.app makes for the same reason.
    */
   return (
     <div className="absolute inset-0 overflow-hidden" aria-hidden="true">
       {layers.map((l, i) => (
         <div
           key={l.id}
-          data-layer={i}
-          data-drive={driveBy}
-          data-count={layers.length}
-          data-rest={i === 0 ? undefined : ""}
-          className="scene-layer absolute inset-x-0 top-0 h-[145vh]"
+          data-plate={i}
+          data-on={i === active ? "" : undefined}
+          className="scene-plate absolute inset-0"
           style={
             {
               background: `rgb(${l.fill})`,
-              ...(l.accent ? { "--sodium": l.accent } : {}),
-              /*
-               * No inline transform. The starting position is a stylesheet
-               * rule (`.scene-layer`), so the reduced-motion resting pose can
-               * override it in the normal way — an inline style would win over
-               * both, which is how the resting scene ended up stuck at the
-               * off-screen start position. At runtime the scroll hook writes
-               * inline transforms and beats the stylesheet, which is exactly
-               * the precedence we want when motion is allowed.
-               */
             } as React.CSSProperties
           }
         >
           {l.plate && (
-            <div className="absolute inset-0 overflow-hidden" style={ridgeMask(l.d)}>
-              {/*
-                The photograph occupies the top viewport of the layer, and the
-                layer's own fill carries the rest.
-
-                A plate is 145vh tall — tall enough that its ridge can climb
-                clear of the screen — but the photographs are 16:9. Stretching
-                one over the whole height with `object-cover` cropped roughly
-                40% off each side and left a narrow vertical slice on screen,
-                which is why four good pictures were reading as flat colour
-                fields. Held to one viewport the crop is about a tenth, and the
-                picture survives.
-              */}
-              <div className="absolute inset-x-0 top-0 h-screen overflow-hidden">
-                <picture>
-                  <source type="image/avif" srcSet={plateSrcSet(l.plate, "avif")} sizes="100vw" />
-                  <source type="image/webp" srcSet={plateSrcSet(l.plate, "webp")} sizes="100vw" />
-                  {/*
-                   * The first plate is the largest thing on the first screen a
-                   * reader scrolls to, so it loads eagerly and at high
-                   * priority. The rest are several viewports further down and
-                   * can wait.
-                   */}
-                  <img
-                    src={`/plates/plate-${l.plate}-1200.jpg`}
-                    alt=""
-                    width={1920}
-                    height={1080}
-                    loading={i === 1 ? "eager" : "lazy"}
-                    fetchpriority={i === 1 ? "high" : "low"}
-                    decoding="async"
-                    className="h-full w-full object-cover"
-                  />
-                </picture>
-                {/* Into the fill rather than onto an edge, so the join between
-                    the photograph and the colour below it is not a line. */}
-                <div
-                  className="absolute inset-x-0 bottom-0 h-[26vh]"
-                  style={{ background: `linear-gradient(to bottom, transparent, rgb(${l.fill}))` }}
+            <>
+              <picture>
+                <source type="image/avif" srcSet={plateSrcSet(l.plate, "avif")} sizes="100vw" />
+                <source type="image/webp" srcSet={plateSrcSet(l.plate, "webp")} sizes="100vw" />
+                {/*
+                 * The first plate is what a reader meets one screen into the
+                 * page, so it loads eagerly and at high priority. The rest
+                 * are several sections down and can wait.
+                 */}
+                <img
+                  src={`/plates/plate-${l.plate}-1200.jpg`}
+                  alt=""
+                  width={1920}
+                  height={1080}
+                  loading={i <= 1 ? "eager" : "lazy"}
+                  fetchpriority={i === 1 ? "high" : "low"}
+                  decoding="async"
+                  className="h-full w-full object-cover"
                 />
-              </div>
+              </picture>
               {/*
-               * Only the plate's own edges are darkened here. The reading pool
-               * that protects the text is a separate, viewport-anchored layer
-               * in Atmosphere — see the note there. It used to live on this
-               * element, which meant it travelled with the plate: by the time
-               * a section's copy was on screen the pool had slid off the top
-               * with the photograph it was attached to, and the text was left
-               * sitting on whatever part of the picture happened to be behind
-               * it.
+               * Only the plate's own edges. The reading pool that protects
+               * the copy is a single viewport-anchored layer in Atmosphere —
+               * it has to be, because the text is anchored to the viewport
+               * too.
                */}
               <div
-                className="absolute inset-x-0 top-0 h-screen"
+                className="absolute inset-0"
                 style={{
-                  background: `linear-gradient(to bottom, rgb(var(--bitumen) / ${l.scrim * 0.42}) 0%, transparent 22%)`,
+                  background: `linear-gradient(to bottom, rgb(var(--bitumen) / ${l.scrim * 0.42}) 0%, transparent 22%, transparent 72%, rgb(var(--bitumen) / ${Math.min(1, l.scrim + 0.12)}) 100%)`,
                 }}
               />
-            </div>
+            </>
           )}
         </div>
       ))}
