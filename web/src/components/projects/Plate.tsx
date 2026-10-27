@@ -38,7 +38,7 @@ export default function Plate({
 
   return (
     <div
-      className={`card-shot relative flex flex-col justify-between border border-edge p-5 sm:p-7 ${className}`}
+      className={`card-shot relative flex flex-col justify-between rounded-none border border-[rgb(var(--rule))] bg-[rgb(var(--paper-3))] p-5 sm:p-7 ${className}`}
     >
       {/* The `.sun` wash that used to sit here is gone with the accent, and
           nothing replaces it. It was borrowed from the page headers to stop
@@ -46,15 +46,15 @@ export default function Plate({
           photograph — a coloured glow laid over one is the single clearest way
           to announce that there is no photograph. The type and the ruled field
           carry it. */}
-      <span className="mono self-end text-xs uppercase tracking-[0.2em] text-clay">
+      <span className="mono self-end text-xs uppercase tracking-[0.2em] text-[rgb(var(--ink-soft))]">
         {tech.length > 0 ? "stack" : ""}
       </span>
 
       {tech.length > 0 ? (
-        <ul className="mono grid min-w-0 grid-cols-2 gap-x-4 gap-y-1.5 text-[0.75rem] leading-relaxed text-bone/85 sm:gap-x-6 sm:text-[0.8125rem]">
+        <ul className="mono grid min-w-0 grid-cols-2 gap-x-4 gap-y-1.5 text-[0.75rem] leading-relaxed text-ink/85 sm:gap-x-6 sm:text-[0.8125rem]">
           {tech.map((t) => (
             <li key={t} className="truncate">
-              <span className="mr-2 text-clay" aria-hidden="true">
+              <span className="mr-2 text-[rgb(var(--ink-soft))]" aria-hidden="true">
                 ·
               </span>
               {t}
@@ -62,7 +62,7 @@ export default function Plate({
           ))}
         </ul>
       ) : initial ? (
-        <span className="display text-[clamp(3rem,14vw,6rem)] leading-none text-bone/25" aria-hidden="true">
+        <span className="display text-[clamp(3rem,14vw,6rem)] leading-none text-ink/25" aria-hidden="true">
           {initial}
         </span>
       ) : (
@@ -74,14 +74,14 @@ export default function Plate({
           className="block h-24 w-full opacity-60 sm:h-32"
           style={{
             backgroundImage:
-              "repeating-linear-gradient(135deg, rgb(var(--edge)) 0 1px, transparent 1px 11px)",
+              "repeating-linear-gradient(135deg, rgb(var(--rule-firm)) 0 1px, transparent 1px 11px)",
             maskImage: "linear-gradient(to bottom, #000, transparent)",
             WebkitMaskImage: "linear-gradient(to bottom, #000, transparent)",
           }}
         />
       )}
 
-      {tagline && <p className="mt-6 text-[0.8125rem] leading-snug text-bone/70">{tagline}</p>}
+      {tagline && <p className="mt-6 text-[0.8125rem] leading-snug text-ink/70">{tagline}</p>}
     </div>
   );
 }

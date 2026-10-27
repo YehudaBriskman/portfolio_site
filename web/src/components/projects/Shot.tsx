@@ -7,8 +7,18 @@ import { projectImage } from "@/lib/projectImage";
  * `object-top` is the whole point: an app screenshot puts its interface at the
  * top of the frame, so centring the crop — which is what the old `h-36
  * object-cover` did — showed the empty middle of the page and none of the
- * product. The scrim exists so the status chip sitting on top of the image has
- * something to sit on, and lifts on hover to hand the image back.
+ * product.
+ *
+ * What came off with the dark ground
+ * ----------------------------------
+ * There was a gradient scrim over the bottom of every screenshot, there so
+ * the status chip had something to sit on, and `--r-md` of rounding on the
+ * box. Both were right when the image was a glass pane over a photograph and
+ * both are wrong now. The scrim is `--bitumen`, which is paper, so it had
+ * become a cream fog laid over the lower third of every picture; the chip
+ * that needed it has a ground of its own. And the corners are square because
+ * the image sits inside a mount with a visible border — a rounded picture in
+ * a square frame reads as a sticker, not as a print.
  *
  * Which file the browser gets
  * ---------------------------
@@ -49,8 +59,15 @@ export default function Shot({
   const srcSet = card === src ? undefined : `${card} 800w, ${src} 1600w`;
 
   return (
-    <div className={`card-shot relative ${className}`}>
-      {!loaded && <div className="absolute inset-0 animate-pulse-soft bg-edge/40" aria-hidden="true" />}
+    /* `rounded-none` and the border beat `.card-shot` on cascade order rather
+       than on specificity: both selectors weigh the same, and Tailwind's
+       utilities layer is emitted after the components layer the class lives
+       in. The border is the one `.figure-frame > img` would have drawn if
+       this were a bare `<img>` rather than a box with a placeholder in it. */
+    <div className={`card-shot relative rounded-none border border-[rgb(var(--rule))] ${className}`}>
+      {!loaded && (
+        <div className="absolute inset-0 animate-pulse-soft bg-[rgb(var(--rule)_/_0.4)]" aria-hidden="true" />
+      )}
       <img
         src={card}
         srcSet={srcSet}
@@ -61,10 +78,6 @@ export default function Shot({
         decoding="async"
         onLoad={() => setLoaded(true)}
         className={`h-full w-full object-cover object-top ${loaded ? "opacity-100" : "opacity-0"}`}
-      />
-      <div
-        className="pointer-events-none absolute inset-0 bg-gradient-to-t from-bitumen/65 via-transparent to-transparent transition-opacity duration-500 group-hover:opacity-40"
-        aria-hidden="true"
       />
     </div>
   );

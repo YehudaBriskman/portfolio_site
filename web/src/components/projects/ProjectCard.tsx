@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import Shot from "@/components/projects/Shot";
 import Plate from "@/components/projects/Plate";
+import Figure from "@/components/Figure";
 import ProjectFacts from "@/components/projects/ProjectFacts";
 import type { ProjectEntry } from "@/hooks/useProjects";
 
@@ -29,6 +30,15 @@ import type { ProjectEntry } from "@/hooks/useProjects";
  * the compact side-by-side. The difference is structural, so it survives being
  * skimmed.
  *
+ * Three tones, and the picture is the lightest of them
+ * -----------------------------------------------------
+ * The card is `--paper-2`, one step darker than the page, and the mount
+ * inside it is white at 60% over that. So a project reads as a print on a
+ * board laid on a desk: page, board, mount, picture, each separated by value
+ * rather than by a hairline nobody can see. `.card-paper`'s own white wash
+ * is overridden for exactly this reason — two near-white rectangles inside
+ * one another is one rectangle with a seam in it.
+ *
  * Why the title no longer lights up on hover
  * ------------------------------------------
  * It used to go to the accent, and with that retired the honest replacement
@@ -55,25 +65,24 @@ export default function ProjectCard({
   const sizes = lead ? "(min-width: 1200px) 1120px, 100vw" : "(min-width: 1024px) 45vw, 100vw";
   const highlights = lead ? entry.highlights.slice(0, 3) : [];
 
+  /* The state used to be a capsule pinned to the top-left of the screenshot,
+     with a gradient scrim under it so it had something to sit on. A label
+     stuck onto a photograph is a device for when the photograph is the
+     ground; once the picture has a mount and a caption of its own, the state
+     is simply one of the two facts the caption carries, and the scrim and the
+     capsule both go. */
   const figure = (
-    <figure className="relative m-0">
+    <Figure index={index + 1} caption={c.title} note={entry.state}>
       {c.coverImage ? (
         <Shot src={c.coverImage} alt={`${c.title} screenshot`} className={shape} sizes={sizes} eager={eager} />
       ) : (
         <Plate className={shape} title={c.title} tagline={c.tagline} tech={entry.tech} />
       )}
-      {/* The one capsule left on a card. It sits on a photograph rather than on
-          the page, so it needs a ground of its own in a way a line of type
-          over the surface does not. */}
-      <span className="chip chip-hot absolute left-3 top-3">
-        <span className="h-1.5 w-1.5 rounded-full bg-bone" aria-hidden="true" />
-        {entry.state}
-      </span>
-    </figure>
+    </Figure>
   );
 
   const open = (
-    <span className="tap mono mt-6 inline-flex items-center gap-2 py-2 text-xs uppercase tracking-[0.18em] text-bone">
+    <span className="tap mt-6 inline-flex items-center gap-2 py-2 font-display text-lg font-bold [font-variation-settings:'wdth'_112] text-ink">
       Open
       <span aria-hidden="true" className="transition-transform [transition-duration:var(--dur-fast)] group-hover:translate-x-1">
         →
@@ -83,23 +92,23 @@ export default function ProjectCard({
 
   if (lead) {
     return (
-      <Link to={`/projects/${c.slug}`} className="card group block overflow-hidden p-3 sm:p-4">
+      <Link to={`/projects/${c.slug}`} className="card-paper group block bg-[rgb(var(--paper-2))] p-3 sm:p-4">
         {figure}
         <div className="px-2 pb-1 pt-6 sm:px-4 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,0.85fr)] lg:gap-12">
           <div className="min-w-0">
-            <h2 className="display-tight text-[2rem] leading-[1.02] text-bone sm:text-[2.75rem] lg:text-[3.5rem]">
+            <h2 className="display-tight text-[2rem] leading-[1.02] text-ink sm:text-[2.75rem] lg:text-[3.5rem]">
               {c.title}
             </h2>
-            <p className="mt-3 text-lg leading-snug text-bone/85 sm:text-xl">{c.tagline}</p>
-            <p className="mt-6 max-w-[56ch] text-sm leading-relaxed text-bone/70 sm:text-base">{c.description}</p>
+            <p className="mt-3 text-lg leading-snug text-ink/85 sm:text-xl">{c.tagline}</p>
+            <p className="mt-6 max-w-[56ch] text-sm leading-relaxed text-ink/70 sm:text-base">{c.description}</p>
           </div>
 
           <div className="min-w-0 pt-6 lg:pt-3">
             {highlights.length > 0 && (
-              <ul className="space-y-3 border-t border-edge pt-6 lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0">
+              <ul className="space-y-3 border-t border-[rgb(var(--rule))] pt-6 lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0">
                 {highlights.map((h) => (
-                  <li key={h} className="flex gap-3 text-sm leading-snug text-bone/80">
-                    <span className="mt-[0.45rem] h-1.5 w-1.5 shrink-0 rounded-full bg-clay" aria-hidden="true" />
+                  <li key={h} className="flex gap-3 text-sm leading-snug text-ink/80">
+                    <span className="mt-[0.45rem] h-1.5 w-1.5 shrink-0 rounded-full bg-[rgb(var(--ink-soft))]" aria-hidden="true" />
                     {h}
                   </li>
                 ))}
@@ -114,20 +123,19 @@ export default function ProjectCard({
   }
 
   return (
-    <Link to={`/projects/${c.slug}`} className="card group block overflow-hidden p-3 sm:p-4">
-      <div className="lg:grid lg:grid-cols-[2rem_minmax(0,1fr)_minmax(0,1.05fr)] lg:items-center lg:gap-8">
-        <span className="mono hidden self-start pt-3 text-xs tabular-nums text-clay lg:block" aria-hidden="true">
-          {String(index + 1).padStart(2, "0")}
-        </span>
-
+    <Link to={`/projects/${c.slug}`} className="card-paper group block bg-[rgb(var(--paper-2))] p-3 sm:p-4">
+      {/* The 2rem counter column that used to open this row is gone: the
+          figure's own caption now prints the same number, and two numbering
+          systems on one card is one too many. */}
+      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:items-center lg:gap-8">
         {figure}
 
         <div className="px-2 pb-1 pt-5 sm:px-3 sm:pt-6 lg:px-0 lg:py-4 lg:pr-3">
-          <h2 className="display-tight text-[1.6rem] leading-[1.05] text-bone sm:text-3xl lg:text-[2.25rem]">
+          <h2 className="display-tight text-[1.6rem] leading-[1.05] text-ink sm:text-3xl lg:text-[2.25rem]">
             {c.title}
           </h2>
-          <p className="mt-3 text-base leading-snug text-bone/85 sm:text-lg">{c.tagline}</p>
-          <p className="mt-6 hidden max-w-[52ch] text-sm leading-relaxed text-bone/70 sm:block">{c.description}</p>
+          <p className="mt-3 text-base leading-snug text-ink/85 sm:text-lg">{c.tagline}</p>
+          <p className="mt-6 hidden max-w-[52ch] text-sm leading-relaxed text-ink/70 sm:block">{c.description}</p>
 
           <ProjectFacts c={c} className="mt-6" />
 

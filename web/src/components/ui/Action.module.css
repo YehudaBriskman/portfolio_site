@@ -1,0 +1,187 @@
+/*
+ * The action, moved out of the label register.
+ *
+ * Every button on the site was `.btn`: 12px IBM Plex Mono, uppercase, 0.16em
+ * of tracking. That is the same setting as the eyebrows, the dates, the
+ * reading times and the repository facts — so the one thing on a screen the
+ * reader is meant to press looked exactly like the twenty things they are
+ * meant to skim. The site's type scale is deliberately two registers with a
+ * hole in the middle, and the action had been filed in the wrong one.
+ *
+ * It belongs in the display family, one notch down: Archivo at wdth 112 and
+ * weight 700, which is `.display-tight`'s own setting, set at 18-20px in
+ * sentence case. Sentence case rather than small capitals because the label
+ * is a sentence — "See the work" — and capitalising it was what forced the
+ * tracking that made it small and wide in the first place.
+ *
+ * This lives in a module rather than in index.css because index.css is not
+ * this change's to edit yet. The three blocks below are written so they can
+ * be lifted into `.btn` / `.btn-solid` / `.btn-quiet` verbatim once the
+ * promotion happens, at which point this file becomes a re-export.
+ */
+.action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  /* 52px, up from 44. The old height was the tap-target floor treated as a
+     design: the smallest a control is allowed to be, chosen everywhere. A
+     primary action on a page whose headline is 144px can afford to be the
+     size it wants to be. */
+  min-height: 52px;
+  padding-inline: 1.5rem;
+  border-radius: var(--r-pill);
+  /* On every variant, so a solid and an outlined action are the same size
+     and sit on the same baseline when they are side by side. */
+  border: 1px solid transparent;
+  font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif;
+  font-variation-settings: 'wdth' 112;
+  font-weight: 700;
+  font-size: 1.125rem;
+  /* Zero, not `--track-label`. The 0.16em the mono setting needed is what
+     opens small capitals up; at this size in a grotesque it would only pull
+     the word apart. */
+  letter-spacing: 0;
+  line-height: 1;
+  white-space: nowrap;
+  transition: background-color var(--dur-micro) ease, color var(--dur-micro) ease,
+              border-color var(--dur-micro) ease, transform var(--dur-fast) var(--ease-settle);
+}
+
+@media (min-width: 640px) {
+  .action {
+    min-height: 56px;
+    padding-inline: 1.75rem;
+    font-size: 1.25rem;
+  }
+}
+
+.action:active {
+  transform: scale(0.97);
+}
+
+.action:disabled,
+.action[aria-disabled='true'] {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+/*
+ * The one primary action on a screen. Ink on paper at 15.17:1, and the only
+ * place the signal blue is ever filled rather than drawn — which is what the
+ * palette note in index.css means by spending it almost nowhere.
+ */
+.solid {
+  background: rgb(var(--ink));
+  border-color: rgb(var(--ink));
+  color: rgb(var(--paper));
+}
+
+/*
+ * Everything below the primary. A real 1px border in `--ink-soft` rather
+ * than `--rule-firm`: a rule is a hairline between two pieces of content and
+ * measures 2.15:1 on paper, under the 3:1 that a control's own boundary has
+ * to hold. `--ink-soft` is 6.37:1 and is the edge of something you can press.
+ */
+.outline {
+  border-color: rgb(var(--ink-soft));
+  color: rgb(var(--ink));
+}
+
+/*
+ * The third voice, for the links that move you between pages rather than
+ * into one — a back link, an index link. These were pills too, which made a
+ * page offer three equally weighted buttons and no hierarchy at all. In the
+ * editorial italic, underlined, it reads as a reference in a printed article,
+ * which is what it is.
+ */
+.text {
+  min-height: 44px;
+  padding-inline: 0;
+  gap: 0.5rem;
+  border-color: transparent;
+  font-family: 'Instrument Serif', Georgia, 'Times New Roman', serif;
+  font-style: italic;
+  font-weight: 400;
+  font-size: 1.375rem;
+  color: rgb(var(--ink));
+  transition: color var(--dur-micro) ease;
+}
+
+/* The rule goes under the words and not under the arrow. On an inline-flex
+   box `text-decoration` is drawn per item, so an underlined label and an
+   underlined glyph came out as two short rules with the flex gap cut out
+   between them. */
+.text .label {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.26em;
+  text-decoration-color: rgb(var(--rule-firm));
+  transition: text-decoration-color var(--dur-micro) ease;
+}
+
+.text:active {
+  transform: none;
+}
+
+/* Behind a hover query, as everywhere else in this codebase, so a finger
+   never latches a state it cannot leave. */
+@media (hover: hover) and (pointer: fine) {
+  .solid:hover {
+    background: rgb(var(--signal));
+    border-color: rgb(var(--signal));
+    color: rgb(var(--paper));
+  }
+
+  .outline:hover {
+    border-color: rgb(var(--ink));
+    background: rgb(var(--ink) / 0.05);
+  }
+
+  .text:hover {
+    color: rgb(var(--signal));
+  }
+
+  .text:hover .label {
+    text-decoration-color: rgb(var(--signal));
+  }
+}
+
+/*
+ * The glyph gets its own stack.
+ *
+ * Archivo's latin subset carries ↑ and ↓ and nothing else; Instrument Serif's
+ * carries no arrows at all. So →, ← and ↗ were already falling back to
+ * whatever each face's fallback happened to be, which is three different
+ * arrows on one page. Naming a stack that actually has them makes the mark
+ * one shape wherever it appears.
+ */
+.glyph {
+  font-family: ui-sans-serif, system-ui, 'Segoe UI Symbol', 'Noto Sans Symbols 2', sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 0.9em;
+  line-height: 1;
+  transition: transform var(--dur-fast) var(--ease-settle);
+}
+
+/* The mark moves the way it points. A single shared nudge would send the
+   down arrow sideways, which is the kind of detail that reads as nothing in
+   particular rather than as care. */
+@media (hover: hover) and (pointer: fine) {
+  .action:hover .onward {
+    transform: translateX(3px);
+  }
+
+  .action:hover .down {
+    transform: translateY(3px);
+  }
+
+  .action:hover .back {
+    transform: translateX(-3px);
+  }
+
+  .action:hover .out {
+    transform: translate(2px, -2px);
+  }
+}

@@ -22,22 +22,22 @@ export default function ProjectRow({ entry }: { entry: ProjectEntry }) {
   const { collection: c } = entry;
 
   return (
-    <Link to={`/projects/${c.slug}`} className="card group flex min-h-[76px] items-center gap-4 px-5 py-4">
+    <Link to={`/projects/${c.slug}`} className="card-paper group flex min-h-[76px] items-center gap-4 bg-[rgb(var(--paper-2))] px-5 py-4">
       <span className="min-w-0 flex-1">
-        <span className="display-tight block truncate text-lg text-bone">
+        <span className="display-tight block truncate text-lg text-ink">
           {c.title}
         </span>
-        <span className="mono block truncate text-xs text-clay">{c.tagline}</span>
+        <span className="mono block truncate text-xs text-[rgb(var(--ink-soft))]">{c.tagline}</span>
       </span>
 
       {entry.year && (
-        <span className="mono hidden text-xs tabular-nums text-clay sm:block" aria-hidden="true">
+        <span className="mono hidden text-xs tabular-nums text-[rgb(var(--ink-soft))] sm:block" aria-hidden="true">
           {entry.year}
         </span>
       )}
       <span
         aria-hidden="true"
-        className="mono text-xs text-clay transition-transform [transition-duration:var(--dur-fast)] group-hover:translate-x-1"
+        className="mono text-xs text-[rgb(var(--ink-soft))] transition-transform [transition-duration:var(--dur-fast)] group-hover:translate-x-1"
       >
         →
       </span>

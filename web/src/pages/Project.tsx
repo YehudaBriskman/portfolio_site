@@ -5,6 +5,8 @@ import Reveal from "@/components/Reveal";
 import PostList from "@/components/PostList";
 import ProjectMeta from "@/components/ProjectMeta";
 import Shot from "@/components/projects/Shot";
+import Figure from "@/components/Figure";
+import Action from "@/components/ui/Action";
 import Plate from "@/components/projects/Plate";
 import ProjectActions from "@/components/projects/ProjectActions";
 import ProjectBrief from "@/components/projects/ProjectBrief";
@@ -80,15 +82,16 @@ export default function Project() {
 
   /* Near the screenshots' own 2.1:1, so the hero shows the interface rather
      than a band cut out of it. 3:2 on a phone, where 2:1 would be a letterbox
-     130px tall. */
-  const shape = "aspect-[3/2] border border-edge sm:aspect-[2/1]";
+     130px tall. The border the shape used to carry is `Shot`'s own now, so
+     the plate fallback and the screenshot are edged the same way. */
+  const shape = "aspect-[3/2] sm:aspect-[2/1]";
 
   return (
     <PageShell>
       <section data-crest data-hue="88 76 148" className="wrap section-y isolate relative">
-        <Link to="/projects" className="btn btn-quiet -ml-1 text-clay">
-          <span aria-hidden="true">←</span> Projects
-        </Link>
+        <Action tone="text" glyph="back" to="/projects">
+          Projects
+        </Action>
 
         {/* One H1 in every state, including this one — the heading order must
             not depend on how far a fetch got. */}
@@ -96,9 +99,9 @@ export default function Project() {
           <>
             <h1 className="sr-only">Loading project</h1>
             <div className="mt-12 animate-pulse-soft" aria-hidden="true">
-              <div className="h-12 w-2/3 rounded-full bg-edge/40" />
-              <div className="mt-6 h-6 w-1/2 rounded-full bg-edge/25" />
-              <div className="card-shot mt-12 aspect-[3/2] bg-edge/25 sm:aspect-[2/1]" />
+              <div className="h-12 w-2/3 rounded-full bg-[rgb(var(--rule)_/_0.6)]" />
+              <div className="mt-6 h-6 w-1/2 rounded-full bg-[rgb(var(--rule)_/_0.4)]" />
+              <div className="card-shot mt-12 aspect-[3/2] bg-[rgb(var(--rule)_/_0.4)] sm:aspect-[2/1]" />
             </div>
           </>
         )}
@@ -106,10 +109,12 @@ export default function Project() {
         {state === "missing" && (
           <div className="mt-12">
             <h1 className="display text-section">Not here</h1>
-            <p className="mt-6 max-w-[46ch] text-lg text-bone/85">No project at that address.</p>
-            <Link to="/projects" className="btn btn-solid mt-12">
-              See everything <span aria-hidden="true">→</span>
-            </Link>
+            <p className="mt-6 max-w-[46ch] text-lg text-ink/85">No project at that address.</p>
+            <div className="mt-12">
+              <Action tone="solid" glyph="onward" to="/projects">
+                See everything
+              </Action>
+            </div>
           </div>
         )}
 
@@ -118,8 +123,8 @@ export default function Project() {
             {/* The `.sun` wash behind this header went with the accent; the
                 plate stack supplies the light now. */}
             <div className="relative mt-12">
-              <p className="mono flex items-center gap-3 text-xs uppercase tracking-[0.18em] text-clay">
-                <span className="h-2 w-2 shrink-0 rounded-full bg-clay" aria-hidden="true" />
+              <p className="mono flex items-center gap-3 text-xs uppercase tracking-[0.18em] text-[rgb(var(--ink-soft))]">
+                <span className="h-2 w-2 shrink-0 rounded-full bg-[rgb(var(--ink-soft))]" aria-hidden="true" />
                 {entry.status}
                 {entry.year && <span className="tabular-nums">{entry.year}</span>}
               </p>
@@ -129,12 +134,12 @@ export default function Project() {
                   accent's colour it was reading as a second, smaller title
                   competing with the real one directly above it. */}
               {c.tagline && (
-                <p className="editorial mt-6 max-w-[26ch] text-[clamp(1.5rem,4.6vw,2.4rem)] text-bone">
+                <p className="editorial mt-6 max-w-[26ch] text-[clamp(1.5rem,4.6vw,2.4rem)] text-ink">
                   {c.tagline}
                 </p>
               )}
               {c.description && (
-                <p className="mt-6 max-w-[52ch] text-lg leading-[1.6] text-bone/85">{c.description}</p>
+                <p className="mt-6 max-w-[52ch] text-lg leading-[1.6] text-ink/85">{c.description}</p>
               )}
             </div>
 
@@ -150,8 +155,11 @@ export default function Project() {
                 1072px on a wide screen. It matters more here than anywhere: this is the LCP
                 element, and it was being served the 800px variant and upscaled
                 by half again. */}
-            <figure
-              className="m-0 mt-12"
+            <Figure
+              index={1}
+              caption={c.tagline || c.title}
+              note={entry.year ?? undefined}
+              className="mt-12"
               style={reduced ? undefined : { transform: "translate3d(0, calc(var(--vh, 0) * -14px), 0)" }}
             >
               {c.coverImage ? (
@@ -165,7 +173,7 @@ export default function Project() {
               ) : (
                 <Plate className={shape} title={c.title} tagline={c.tagline} tech={entry.tech} />
               )}
-            </figure>
+            </Figure>
 
             <ProjectMeta c={c} />
 
@@ -182,8 +190,8 @@ export default function Project() {
                       detail page being thinner than its own card. */}
                   <ul className="mt-6 grid gap-x-12 gap-y-6 sm:grid-cols-2">
                     {entry.highlights.map((h) => (
-                      <li key={h} className="flex max-w-[46ch] gap-3.5 text-base leading-[1.55] text-bone/85">
-                        <span className="mt-[0.5rem] h-1.5 w-1.5 shrink-0 rounded-full bg-clay" aria-hidden="true" />
+                      <li key={h} className="flex max-w-[46ch] gap-3.5 text-base leading-[1.55] text-ink/85">
+                        <span className="mt-[0.5rem] h-1.5 w-1.5 shrink-0 rounded-full bg-[rgb(var(--ink-soft))]" aria-hidden="true" />
                         {h}
                       </li>
                     ))}
@@ -206,22 +214,22 @@ export default function Project() {
                 <Reveal>
                   <div className="mt-12">
                     <h2 className="display-tight text-2xl sm:text-3xl">Docs</h2>
-                    <ol className="mt-6 divide-y divide-edge border-y border-edge">
+                    <ol className="mt-6 divide-y divide-[rgb(var(--rule))] border-y border-[rgb(var(--rule))]">
                       {docs.map((p, i) => (
                         <li key={p.slug}>
                           <Link to={`/blog/${p.slug}`} className="group flex min-h-[64px] items-center gap-4 py-4">
-                            <span className="mono w-6 shrink-0 text-xs tabular-nums text-clay" aria-hidden="true">
+                            <span className="mono w-6 shrink-0 text-xs tabular-nums text-[rgb(var(--ink-soft))]" aria-hidden="true">
                               {String(i + 1).padStart(2, "0")}
                             </span>
                             <span className="min-w-0 flex-1">
-                              <span className="block text-base text-bone underline decoration-transparent decoration-1 underline-offset-[5px] transition-[text-decoration-color] [transition-duration:var(--dur-fast)] group-hover:decoration-bone/50">
+                              <span className="block text-base text-ink underline decoration-transparent decoration-1 underline-offset-[5px] transition-[text-decoration-color] [transition-duration:var(--dur-fast)] group-hover:decoration-[rgb(var(--ink-soft))]">
                                 {p.title}
                               </span>
-                              {p.subtitle && <span className="mono block truncate text-xs text-clay">{p.subtitle}</span>}
+                              {p.subtitle && <span className="mono block truncate text-xs text-[rgb(var(--ink-soft))]">{p.subtitle}</span>}
                             </span>
                             <span
                               aria-hidden="true"
-                              className="mono text-xs text-clay transition-transform [transition-duration:var(--dur-fast)] group-hover:translate-x-1"
+                              className="mono text-xs text-[rgb(var(--ink-soft))] transition-transform [transition-duration:var(--dur-fast)] group-hover:translate-x-1"
                             >
                               →
                             </span>
@@ -247,8 +255,8 @@ export default function Project() {
                   <div className="mt-6">
                     {posts === null ? (
                       <div className="animate-pulse-soft space-y-3" aria-hidden="true">
-                        <div className="h-5 w-1/2 rounded-full bg-edge/40" />
-                        <div className="h-4 w-2/3 rounded-full bg-edge/25" />
+                        <div className="h-5 w-1/2 rounded-full bg-[rgb(var(--rule)_/_0.6)]" />
+                        <div className="h-4 w-2/3 rounded-full bg-[rgb(var(--rule)_/_0.4)]" />
                       </div>
                     ) : (
                       <PostList posts={notes} />
@@ -273,9 +281,11 @@ export default function Project() {
               </section>
             )}
 
-            <Link to="/projects" className="btn btn-quiet mt-section-sm w-full">
-              <span aria-hidden="true">←</span> All projects
-            </Link>
+            <div className="mt-section-sm">
+              <Action tone="text" glyph="back" to="/projects">
+                All projects
+              </Action>
+            </div>
           </>
         )}
       </section>

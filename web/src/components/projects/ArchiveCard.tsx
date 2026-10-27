@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import Shot from "@/components/projects/Shot";
 import Plate from "@/components/projects/Plate";
+import Figure from "@/components/Figure";
 import type { ProjectEntry } from "@/hooks/useProjects";
 
 /*
@@ -22,12 +23,18 @@ import type { ProjectEntry } from "@/hooks/useProjects";
  * description, a smaller title — because the archive is context for the two
  * projects above it, not a competitor to them.
  */
-export default function ArchiveCard({ entry }: { entry: ProjectEntry }) {
+export default function ArchiveCard({ entry, index }: { entry: ProjectEntry; index: number }) {
   const { collection: c } = entry;
 
   return (
-    <Link to={`/projects/${c.slug}`} className="card group block overflow-hidden p-2.5 sm:p-3">
-      <figure className="m-0">
+    /* `--paper-2`, like the featured cards: the board the print is mounted
+       on. `.card-paper`'s own near-white wash would put one white rectangle
+       inside another and leave the mount with nothing to read against. */
+    <Link to={`/projects/${c.slug}`} className="card-paper group block bg-[rgb(var(--paper-2))] p-2.5 sm:p-3">
+      {/* The year was a third item in the row under the title and is now the
+          far end of the caption, where every other figure on the site puts
+          the same fact. */}
+      <Figure index={index} caption={c.title} note={entry.year ?? undefined}>
         {c.coverImage ? (
           <Shot
             src={c.coverImage}
@@ -38,20 +45,11 @@ export default function ArchiveCard({ entry }: { entry: ProjectEntry }) {
         ) : (
           <Plate className="aspect-[16/9]" title={c.title} tagline={c.tagline} tech={entry.tech} />
         )}
-      </figure>
+      </Figure>
 
-      <div className="flex items-baseline gap-4 px-1.5 pb-1 pt-4 sm:px-2">
-        <span className="min-w-0 flex-1">
-          <h3 className="display-tight truncate text-lg text-bone sm:text-xl">
-            {c.title}
-          </h3>
-          <span className="mono mt-1 block truncate text-xs text-clay">{c.tagline}</span>
-        </span>
-        {entry.year && (
-          <span className="mono shrink-0 text-xs tabular-nums text-clay" aria-hidden="true">
-            {entry.year}
-          </span>
-        )}
+      <div className="px-1.5 pb-1 pt-4 sm:px-2">
+        <h3 className="display-tight truncate text-lg text-ink sm:text-xl">{c.title}</h3>
+        <span className="mono mt-1 block truncate text-xs text-[rgb(var(--ink-soft))]">{c.tagline}</span>
       </div>
     </Link>
   );

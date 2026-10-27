@@ -20,40 +20,40 @@ export default function Projects() {
     <PageShell>
       <section data-crest data-hue="58 106 102" className="wrap section-y isolate relative">
         {/* The `.sun` wash that used to anchor this header went with the
-            accent. There is a photographic plate behind the page now, which is
-            the thing the glow was standing in for when there was nothing but a
-            flat ground here. */}
+            accent, and nothing replaces it: the page is paper and the cards
+            on it are objects with their own edges and shadows, which is what
+            the glow was standing in for. */}
         <header className="relative">
           <p className="eyebrow">Projects</p>
           <h1 className="display mt-3 text-section">What I&rsquo;m building</h1>
-          <p className="mt-6 max-w-[46ch] text-lg leading-[1.6] text-bone/85 sm:text-xl">
+          <p className="mt-6 max-w-[46ch] text-lg leading-[1.6] text-ink/85 sm:text-xl">
             Two things people actually use, and the trail of smaller work that got me there.
           </p>
 
           {/* These were three capsules, which made the count of the shelf look
               like something you could press. They are facts; facts are type. */}
-          <p className="mono mt-12 flex flex-wrap items-baseline gap-x-2.5 gap-y-1 text-xs text-clay">
+          <p className="mono mt-12 flex flex-wrap items-baseline gap-x-2.5 gap-y-1 text-xs text-[rgb(var(--ink-soft))]">
             <span className="inline-flex items-center gap-2">
-              <span className="h-1.5 w-1.5 rounded-full bg-clay" aria-hidden="true" />
-              <b className="font-medium tabular-nums text-bone">{featured.length}</b> in use
+              <span className="h-1.5 w-1.5 rounded-full bg-[rgb(var(--ink-soft))]" aria-hidden="true" />
+              <b className="font-medium tabular-nums text-ink">{featured.length}</b> in use
             </span>
             {archive.length > 0 && (
               <>
-                <span aria-hidden="true" className="text-clay/50">
+                <span aria-hidden="true" className="text-[rgb(var(--ink-soft))]">
                   ·
                 </span>
                 <span>
-                  <b className="font-medium tabular-nums text-bone">{archive.length}</b> earlier
+                  <b className="font-medium tabular-nums text-ink">{archive.length}</b> earlier
                 </span>
               </>
             )}
             {lastPush && (
               <>
-                <span aria-hidden="true" className="text-clay/50">
+                <span aria-hidden="true" className="text-[rgb(var(--ink-soft))]">
                   ·
                 </span>
                 <span>
-                  last push <b className="font-medium text-bone">{relativeTime(lastPush)}</b>
+                  last push <b className="font-medium text-ink">{relativeTime(lastPush)}</b>
                 </span>
               </>
             )}
@@ -65,7 +65,7 @@ export default function Projects() {
         </p>
 
         {state === "error" && (
-          <p className="mt-12 max-w-[52ch] text-sm leading-relaxed text-bone/70">
+          <p className="mt-12 max-w-[52ch] text-sm leading-relaxed text-ink/70">
             Couldn&rsquo;t reach the live index just now, so the repository facts below may be missing. The
             work itself is all here.
           </p>
@@ -96,7 +96,9 @@ export default function Projects() {
               {archive.map((entry, i) => (
                 <li className="min-w-0" key={entry.collection.slug}>
                   <Reveal delay={Math.min(i * 45, 220)} y={12}>
-                    <ArchiveCard entry={entry} />
+                    {/* Plate numbers run on from the featured cards, so the
+                      page is one numbered series rather than two. */}
+                  <ArchiveCard entry={entry} index={featured.length + i + 1} />
                   </Reveal>
                 </li>
               ))}
