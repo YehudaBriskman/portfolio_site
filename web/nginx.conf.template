@@ -24,7 +24,21 @@ gzip_proxied      any;
 gzip_types        application/javascript text/javascript text/css application/json
                   image/svg+xml application/manifest+json application/rss+xml;
 
-resolver 10.43.0.10 valid=30s ipv6=off;   # cluster DNS (kube-dns)
+# The platform's own DNS, whatever the platform is.
+#
+# This was hardcoded to 10.43.0.10 — kube-dns — which is right in the cluster
+# and unreachable anywhere else. Under Docker Compose every proxy_pass that
+# goes through a variable timed out against it for thirty seconds and then
+# fell back to the SPA shell, so the SEO routes silently served the wrong
+# body and the API hung. It looked like the API was down.
+#
+# `NGINX_LOCAL_RESOLVERS` is filled by the base image's own
+# /docker-entrypoint.d/15-local-resolvers.envsh from /etc/resolv.conf, so it
+# is Docker's embedded resolver under Compose and kube-dns in the cluster
+# with nothing to configure in either. That is also why this file is a
+# template: substitution is limited to NGINX_* so nginx's own $variables
+# survive it untouched.
+resolver ${NGINX_LOCAL_RESOLVERS} valid=30s ipv6=off;
 
 server_tokens off;
 
@@ -51,8 +65,29 @@ server {
   absolute_redirect off;
   port_in_redirect off;
 
+  # One name for the API, resolved per request. Declared here because the
+  # first location that uses it is the next one; every SEO route below reads
+  # the same variable.
+  set $api_upstream "api:5000";
+
   location ^~ /api/ {
-    proxy_pass http://api:5000/api/;
+    # Through the variable, not the literal name.
+    #
+    # nginx resolves a hostname written directly into proxy_pass exactly once,
+    # when it starts. Redeploy the API and it gets a new address; nginx keeps
+    # dialling the old one and every /api/ request answers 502 until the web
+    # container is restarted too. A variable forces resolution per request,
+    # which is why every other proxy_pass in this file already uses one —
+    # this location was the only one that did not, so the SEO routes survived
+    # an API redeploy and the entire data layer did not.
+    # No URI part on purpose. With a literal host, `proxy_pass http://api:5000/api/`
+    # replaces the matched `/api/` prefix with `/api/` — a no-op that reads as
+    # deliberate. With a variable, nginx stops doing that substitution and
+    # sends only the URI written here, so the same line delivered every
+    # request to `/api/` and the API answered a JSON 404. Dropping the path
+    # passes the original request URI through untouched, which is what the
+    # literal form was achieving all along.
+    proxy_pass http://$api_upstream;
     proxy_http_version 1.1;
 
     proxy_set_header X-Request-Id       $request_id;
@@ -83,8 +118,6 @@ server {
   # smaller failure than a visitor seeing an error page. 404 is deliberately
   # NOT intercepted — the API returns a real 404 with a shell body, which is
   # exactly what a missing post should answer.
-  set $api_upstream "api:5000";
-
   # The home page too: without this a crawler reads an empty #root and reports
   # the site as having no heading and almost no words.
   location = / {
