@@ -1,7 +1,6 @@
 import { useState, type CSSProperties } from "react";
 import { Link } from "react-router-dom";
 import NoteGlyph from "@/components/notes/NoteGlyph";
-import TagPill from "@/components/notes/TagPill";
 import { formatDate, type PostSummary } from "@/services/blog";
 
 /*
@@ -13,10 +12,26 @@ import { formatDate, type PostSummary } from "@/services/blog";
  * hid the cover image below `sm`, so a phone got nothing but grey type.
  *
  * The whole card is clickable through a stretched pseudo-element on the title
- * link rather than by wrapping everything in one anchor: that keeps the tags and
- * the collection badge as real, separately focusable links instead of illegal
- * nested interactive content, and it leaves exactly one link per card for a
- * screen reader to announce.
+ * link rather than by wrapping everything in one anchor: that keeps the
+ * collection badge a real, separately focusable link instead of illegal nested
+ * interactive content, and it leaves exactly one link per card for a screen
+ * reader to announce.
+ *
+ * What the card no longer does, and why
+ * -------------------------------------
+ * It used to say the same thing three times. Date and reading time, then a
+ * collection badge, then the title, then the subtitle, then an excerpt clamped
+ * to three lines — and the excerpt is derived from the opening of the body, so
+ * on a post with a subtitle it was usually a worse paraphrase of the line
+ * directly above it. Then three tag pills, which repeat what is already at the
+ * foot of the post. One summary line survives: the subtitle when the author
+ * wrote one, the excerpt when they did not.
+ *
+ * It also used to open with a generated skyline on every coverless note. That
+ * glyph varies a sun position and three sway values, which is not enough to
+ * tell two posts apart, and it occupied a 16:9 block — the largest element in
+ * the card — to carry nothing. Only the lead keeps a picture, where one image
+ * is a focal point rather than a repeated texture.
  */
 
 function Cover({ src, alt }: { src: string; alt: string }) {
@@ -50,18 +65,22 @@ export default function NoteCard({
   style,
 }: {
   post: PostSummary;
-  /** The most recent note, given the width and the weight to lead the page. */
+  /** The most recent note, given the width, the picture and the weight to lead. */
   lead?: boolean;
   /** No media, tighter type — the prev/next pair at the foot of a post. */
   compact?: boolean;
-  /** An eyebrow above the title, e.g. "Older" / "Newer". */
+  /** An eyebrow above the title, e.g. "Latest" / "Older". */
   label?: string;
-  /** Set when the note belongs to a project, so a tag result explains itself. */
+  /** Set when the note belongs to a project, so a mixed index explains itself. */
   collectionTitle?: string;
   /** Grid placement and entry animation belong to the caller, not the card. */
   className?: string;
   style?: CSSProperties;
 }) {
+  // One line of summary, never two. The subtitle is written; the excerpt is
+  // machine-cut from the body, so it only speaks when nothing better exists.
+  const summary = post.subtitle ?? post.excerpt;
+
   const meta = (
     <div className="mono flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[0.75rem] tracking-[0.08em] text-clay">
       {post.publishedAt && (
@@ -77,7 +96,7 @@ export default function NoteCard({
   const title = (
     <h2
       className={`display-tight text-bone transition-colors duration-150 group-hover:text-sodium ${
-        lead ? "text-[1.625rem] sm:text-3xl lg:text-[2.125rem]" : compact ? "text-lg" : "text-[1.375rem] sm:text-2xl"
+        lead ? "text-[1.75rem] sm:text-[2.125rem] lg:text-[2.5rem]" : compact ? "text-lg" : "text-[1.375rem] sm:text-2xl"
       }`}
     >
       {/* The stretched overlay: one link, whole card. */}
@@ -85,6 +104,16 @@ export default function NoteCard({
         {post.title}
       </Link>
     </h2>
+  );
+
+  const badge = collectionTitle && (
+    <Link
+      to={`/projects/${post.collection}`}
+      className="relative z-10 inline-flex items-center gap-1.5 rounded-full border border-sodium/35 bg-sodium/10 px-2.5 py-1 mono text-[0.6875rem] uppercase tracking-[0.16em] text-sodium transition-colors duration-150 hover:bg-sodium/20"
+    >
+      <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-sodium" />
+      {collectionTitle}
+    </Link>
   );
 
   if (compact) {
@@ -99,57 +128,61 @@ export default function NoteCard({
     );
   }
 
-  return (
-    <article
-      className={`note-card group relative ${
-        lead
-          ? "note-card--lead sm:col-span-2 sm:grid sm:grid-cols-[1.05fr_1fr] sm:items-stretch lg:grid-cols-[1.2fr_1fr]"
-          : ""
-      } ${className}`}
-      style={style}
-    >
-      <div className={`note-card__media ${lead ? "sm:border-b-0 sm:border-r sm:border-r-edge" : ""}`}>
-        {post.coverImage ? <Cover src={post.coverImage} alt="" /> : <NoteGlyph seed={post.slug} />}
-      </div>
+  if (lead) {
+    return (
+      <article
+        className={`note-card note-card--lead group relative sm:col-span-2 sm:grid sm:grid-cols-[1.05fr_1fr] sm:items-stretch lg:grid-cols-[1.2fr_1fr] ${className}`}
+        style={style}
+      >
+        {/*
+          The lead is the one slot that always carries a picture, which is what
+          makes its footprint predictable enough for the loading skeleton to
+          match it. A real cover when the post has one; the generated skyline
+          when it does not, where a single large plate reads as art direction
+          rather than as the filler it was on twelve cards at once.
+        */}
+        <div className="note-card__media sm:border-b-0 sm:border-r sm:border-r-edge">
+          {post.coverImage ? <Cover src={post.coverImage} alt="" /> : <NoteGlyph seed={post.slug} />}
+        </div>
 
-      <div className={`flex flex-col ${lead ? "p-5 sm:p-7 lg:p-9" : "p-5 sm:p-6"}`}>
+        <div className="flex flex-col p-5 sm:p-7 lg:p-9">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+            {label && <p className="eyebrow">{label}</p>}
+            {badge}
+          </div>
+
+          <div className="mt-3">{title}</div>
+
+          {summary && (
+            <p className="mt-3 text-base leading-[1.6] text-bone/75 sm:text-lg">{summary}</p>
+          )}
+
+          <div className="mt-5 pt-1 sm:mt-auto sm:pt-6">{meta}</div>
+        </div>
+      </article>
+    );
+  }
+
+  return (
+    <article className={`note-card group relative ${className}`} style={style}>
+      {/* No cover, no media block. A grid of mixed heights is honest; a grid of
+          identical generated pictures is not. */}
+      {post.coverImage && (
+        <div className="note-card__media">
+          <Cover src={post.coverImage} alt="" />
+        </div>
+      )}
+
+      <div className="flex flex-col p-5 sm:p-6">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
           {meta}
-          {collectionTitle && (
-            <Link
-              to={`/projects/${post.collection}`}
-              className="relative z-10 inline-flex items-center gap-1.5 rounded-full border border-sodium/35 bg-sodium/10 px-2.5 py-1 mono text-[0.6875rem] uppercase tracking-[0.16em] text-sodium transition-colors duration-150 hover:bg-sodium/20"
-            >
-              <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-sodium" />
-              {collectionTitle}
-            </Link>
-          )}
+          {badge}
         </div>
 
         <div className="mt-3">{title}</div>
 
-        {post.subtitle && (
-          <p className={`mt-2 leading-snug text-bone/75 ${lead ? "text-base sm:text-lg" : "text-[0.9375rem]"}`}>
-            {post.subtitle}
-          </p>
-        )}
-
-        <p
-          className={`mt-3 leading-[1.65] text-bone/70 ${
-            lead ? "line-clamp-4 text-[0.9375rem] sm:text-base" : "line-clamp-3 text-[0.9375rem]"
-          }`}
-        >
-          {post.excerpt}
-        </p>
-
-        {post.tags.length > 0 && (
-          <ul className="relative z-10 mt-auto flex flex-wrap gap-2 pt-5">
-            {post.tags.slice(0, 3).map((t) => (
-              <li key={t}>
-                <TagPill tag={t} />
-              </li>
-            ))}
-          </ul>
+        {summary && (
+          <p className="mt-2.5 line-clamp-3 text-[0.9375rem] leading-[1.65] text-bone/75">{summary}</p>
         )}
       </div>
     </article>
