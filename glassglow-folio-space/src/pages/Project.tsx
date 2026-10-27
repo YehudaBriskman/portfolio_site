@@ -8,8 +8,11 @@ import ProjectMeta from "@/components/ProjectMeta";
 import Shot from "@/components/projects/Shot";
 import Plate from "@/components/projects/Plate";
 import ProjectActions from "@/components/projects/ProjectActions";
+import ProjectBrief from "@/components/projects/ProjectBrief";
+import ProjectDecisions from "@/components/projects/ProjectDecisions";
+import ProjectStack from "@/components/projects/ProjectStack";
 import ProjectRow from "@/components/projects/ProjectRow";
-import { useProjects } from "@/hooks/useProjects";
+import { relatedTo, useProjects } from "@/hooks/useProjects";
 import { blog, type PostSummary } from "@/services/blog";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 
@@ -21,6 +24,20 @@ const SITE_TITLE = "Yehuda Briskman · Full-stack engineer & team lead";
    `p.source === "git"` and nothing else on the page changes. */
 const DOC_TAG = "doc";
 
+/*
+ * The project page.
+ *
+ * It used to hold strictly less than the card that linked to it: a status
+ * line, a title, a two-word tagline, one sentence, a screenshot, a row of
+ * chips, and a Notes heading over "No notes on this one yet." Everything that
+ * argued for the work — the highlights, what was wrong before it existed, what
+ * came of it, the decisions behind it — lived on the landing page or nowhere,
+ * so following the link cost the reader surface instead of buying it.
+ *
+ * Everything below the hero is conditional on content actually existing. A
+ * project with nothing written about it gets a short page, never a long one
+ * made of headings with nothing under them.
+ */
 export default function Project() {
   const { project = "" } = useParams();
   const { items, state: listState } = useProjects();
@@ -28,7 +45,7 @@ export default function Project() {
   const reduced = usePrefersReducedMotion();
 
   const entry = items.find((e) => e.collection.slug === project) ?? null;
-  const others = items.filter((e) => e.collection.slug !== project).slice(0, 2);
+  const others = relatedTo(items, project);
   const state = entry ? "ok" : listState === "loading" ? "loading" : "missing";
 
   useEffect(() => {
@@ -61,7 +78,11 @@ export default function Project() {
   }, [posts]);
 
   const c = entry?.collection;
-  const shape = "aspect-[4/3] border border-edge sm:aspect-[16/10]";
+
+  /* Near the screenshots' own 2.1:1, so the hero shows the interface rather
+     than a band cut out of it. 3:2 on a phone, where 2:1 would be a letterbox
+     130px tall. */
+  const shape = "aspect-[3/2] border border-edge sm:aspect-[2/1]";
 
   return (
     <PageShell layers={PROJECTS_LAYERS}>
@@ -78,7 +99,7 @@ export default function Project() {
             <div className="mt-10 animate-pulse-soft" aria-hidden="true">
               <div className="h-12 w-2/3 rounded-full bg-edge/40" />
               <div className="mt-5 h-6 w-1/2 rounded-full bg-edge/25" />
-              <div className="card-shot mt-10 aspect-[4/3] bg-edge/25 sm:aspect-[16/10]" />
+              <div className="card-shot mt-10 aspect-[3/2] bg-edge/25 sm:aspect-[2/1]" />
             </div>
           </>
         )}
@@ -121,97 +142,134 @@ export default function Project() {
             {/* Reads --vh, which useScrollProgress already publishes on <html>,
                 so the drift costs no listener of its own. On the wrapper rather
                 than the image: the image carries the card's hover transition and
-                would lag a scroll by 0.8s. */}
+                would lag a scroll by 0.8s.
+
+                `sizes` is the figure's real width — the section is capped at
+                max-w-6xl and padded, so this is a little over 1100px on a wide
+                screen. It matters more here than anywhere: this is the LCP
+                element, and it was being served the 800px variant and upscaled
+                by half again. */}
             <figure
               className="m-0 mt-10 sm:mt-14"
               style={reduced ? undefined : { transform: "translate3d(0, calc(var(--vh, 0) * -14px), 0)" }}
             >
               {c.coverImage ? (
-                <Shot src={c.coverImage} alt={`${c.title} screenshot`} className={shape} eager />
+                <Shot
+                  src={c.coverImage}
+                  alt={`${c.title} screenshot`}
+                  className={shape}
+                  sizes="(min-width: 1152px) 1104px, 100vw"
+                  eager
+                />
               ) : (
-                <Plate className={shape} />
+                <Plate className={shape} title={c.title} tagline={c.tagline} tech={entry.tech} />
               )}
             </figure>
 
             <ProjectMeta c={c} />
 
-            {entry.tech.length > 0 && (
-              <div className="mt-10">
-                <p className="mono text-xs uppercase tracking-[0.18em] text-clay">Built with</p>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {entry.tech.map((t) => (
-                    <span key={t} className="chip">
-                      {t}
-                    </span>
-                  ))}
-                </div>
-              </div>
+            <ProjectBrief entry={entry} className="mt-12 sm:mt-16" />
+
+            {entry.highlights.length > 0 && (
+              <Reveal>
+                <section className="mt-14 sm:mt-20" aria-labelledby="highlights-heading">
+                  <h2 id="highlights-heading" className="display-tight text-2xl sm:text-3xl">
+                    Worth knowing
+                  </h2>
+                  {/* The landing page has always shown these and the project
+                      page never did, which is the clearest single case of the
+                      detail page being thinner than its own card. */}
+                  <ul className="mt-7 grid gap-x-10 gap-y-5 sm:grid-cols-2">
+                    {entry.highlights.map((h) => (
+                      <li key={h} className="flex max-w-[46ch] gap-3.5 text-base leading-[1.55] text-bone/85">
+                        <span className="mt-[0.5rem] h-1.5 w-1.5 shrink-0 rounded-full bg-sodium" aria-hidden="true" />
+                        {h}
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              </Reveal>
             )}
+
+            {entry.decisions.length > 0 && (
+              <Reveal>
+                <ProjectDecisions decisions={entry.decisions} className="mt-14 sm:mt-20" />
+              </Reveal>
+            )}
+
+            <ProjectStack tech={entry.tech} className="mt-14 sm:mt-20" />
 
             {docs.length > 0 && (
               <>
-                <div className="-mx-5 mt-14 sm:-mx-6 sm:mt-20">
-                </div>
+                <div className="rule -mx-5 mt-14 sm:-mx-6 sm:mt-20" aria-hidden="true" />
                 <Reveal>
-                  <h2 className="display-tight text-2xl sm:text-3xl">Docs</h2>
-                  <ol className="mt-6 divide-y divide-edge border-y border-edge">
-                    {docs.map((p, i) => (
-                      <li key={p.slug}>
-                        <Link to={`/blog/${p.slug}`} className="group flex min-h-[64px] items-center gap-4 py-4">
-                          <span className="mono w-6 shrink-0 text-xs tabular-nums text-clay" aria-hidden="true">
-                            {String(i + 1).padStart(2, "0")}
-                          </span>
-                          <span className="min-w-0 flex-1">
-                            <span className="block text-base text-bone transition-colors group-hover:text-sodium">
-                              {p.title}
+                  <div className="mt-8">
+                    <h2 className="display-tight text-2xl sm:text-3xl">Docs</h2>
+                    <ol className="mt-6 divide-y divide-edge border-y border-edge">
+                      {docs.map((p, i) => (
+                        <li key={p.slug}>
+                          <Link to={`/blog/${p.slug}`} className="group flex min-h-[64px] items-center gap-4 py-4">
+                            <span className="mono w-6 shrink-0 text-xs tabular-nums text-clay" aria-hidden="true">
+                              {String(i + 1).padStart(2, "0")}
                             </span>
-                            {p.subtitle && <span className="mono block truncate text-xs text-clay">{p.subtitle}</span>}
-                          </span>
-                          <span
-                            aria-hidden="true"
-                            className="mono text-xs text-clay transition-transform [transition-duration:var(--dur-fast)] group-hover:translate-x-1"
-                          >
-                            →
-                          </span>
-                        </Link>
-                      </li>
-                    ))}
-                  </ol>
+                            <span className="min-w-0 flex-1">
+                              <span className="block text-base text-bone transition-colors group-hover:text-sodium">
+                                {p.title}
+                              </span>
+                              {p.subtitle && <span className="mono block truncate text-xs text-clay">{p.subtitle}</span>}
+                            </span>
+                            <span
+                              aria-hidden="true"
+                              className="mono text-xs text-clay transition-transform [transition-duration:var(--dur-fast)] group-hover:translate-x-1"
+                            >
+                              →
+                            </span>
+                          </Link>
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
                 </Reveal>
               </>
             )}
 
-            <div className="-mx-5 mt-14 sm:-mx-6 sm:mt-20">
-            </div>
-            <div className="mt-6">
-              <h2 className="display-tight text-2xl sm:text-3xl">Notes</h2>
-              <div className="mt-6">
-                {posts === null ? (
-                  <div className="animate-pulse-soft space-y-3" aria-hidden="true">
-                    <div className="h-5 w-1/2 rounded-full bg-edge/40" />
-                    <div className="h-4 w-2/3 rounded-full bg-edge/25" />
+            {/* The Notes block used to render its heading unconditionally and
+                then apologise underneath it — "No notes on this one yet." was
+                the last thing most of these pages said. A section with nothing
+                in it is not information, so when the fetch has come back empty
+                there is simply no section. */}
+            {(posts === null || notes.length > 0) && (
+              <>
+                <div className="rule -mx-5 mt-14 sm:-mx-6 sm:mt-20" aria-hidden="true" />
+                <div className="mt-8">
+                  <h2 className="display-tight text-2xl sm:text-3xl">Notes</h2>
+                  <div className="mt-6">
+                    {posts === null ? (
+                      <div className="animate-pulse-soft space-y-3" aria-hidden="true">
+                        <div className="h-5 w-1/2 rounded-full bg-edge/40" />
+                        <div className="h-4 w-2/3 rounded-full bg-edge/25" />
+                      </div>
+                    ) : (
+                      <PostList posts={notes} />
+                    )}
                   </div>
-                ) : notes.length === 0 ? (
-                  <p className="max-w-[52ch] text-base leading-relaxed text-bone/70">
-                    No notes on this one yet.
-                  </p>
-                ) : (
-                  <PostList posts={notes} />
-                )}
-              </div>
-            </div>
+                </div>
+              </>
+            )}
 
             {others.length > 0 && (
-              <div className="relative mt-20 sm:mt-28">
-                <p className="eyebrow">Elsewhere</p>
-                <ul className="mt-6 grid gap-2 sm:grid-cols-2">
+              <section className="relative mt-20 sm:mt-28" aria-labelledby="elsewhere-heading">
+                <h2 id="elsewhere-heading" className="display-tight text-2xl sm:text-3xl">
+                  Elsewhere
+                </h2>
+                <ul className="mt-6 grid gap-3 sm:grid-cols-2">
                   {others.map((o) => (
                     <li key={o.collection.slug}>
                       <ProjectRow entry={o} />
                     </li>
                   ))}
                 </ul>
-              </div>
+              </section>
             )}
 
             <Link to="/projects" className="btn btn-quiet mt-12 w-full">

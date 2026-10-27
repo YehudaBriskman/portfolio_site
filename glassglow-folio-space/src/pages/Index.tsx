@@ -3,6 +3,7 @@ import Hero from "@/components/Hero";
 import Work from "@/components/Work";
 import Approach from "@/components/Approach";
 import Stack from "@/components/Stack";
+import LatestNotes from "@/components/LatestNotes";
 import Contact from "@/components/Contact";
 import SiteFooter from "@/components/SiteFooter";
 import Atmosphere from "@/components/Atmosphere";
@@ -54,6 +55,20 @@ export default function Index() {
 
         <div data-crest className="layer-section">
           <Reveal y={30}><Stack /></Reveal>
+        </div>
+
+        {/*
+          The writing gets a place in the argument, between what I use and how
+          to reach me, rather than existing only as a nav label.
+
+          Deliberately not a `data-crest` layer-section: the plate stack is
+          five deep and there are four photographs, so a sixth crest would
+          either repeat one out of sequence or break the descent. This section
+          rides the plate the stack is already standing on, which also keeps
+          the page from growing another runway.
+        */}
+        <div>
+          <Reveal y={26}><LatestNotes /></Reveal>
         </div>
 
         <div data-crest className="layer-section">

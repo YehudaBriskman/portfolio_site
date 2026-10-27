@@ -2,9 +2,7 @@ import PageShell from "@/components/PageShell";
 import { PROJECTS_LAYERS } from "@/components/scene/LayerStack";
 import Reveal from "@/components/Reveal";
 import ProjectCard from "@/components/projects/ProjectCard";
-import ProjectRow from "@/components/projects/ProjectRow";
-import CardSkeleton from "@/components/projects/CardSkeleton";
-import EmptyProjects from "@/components/projects/EmptyProjects";
+import ArchiveCard from "@/components/projects/ArchiveCard";
 import { useProjects } from "@/hooks/useProjects";
 import { relativeTime } from "@/services/blog";
 
@@ -37,22 +35,34 @@ export default function Projects() {
             Two things people actually use, and the trail of smaller work that got me there.
           </p>
 
-          <div className="rail mt-7">
-            <span className="chip chip-hot">
+          {/* These were three capsules, which made the count of the shelf look
+              like something you could press. They are facts; facts are type. */}
+          <p className="mono mt-7 flex flex-wrap items-baseline gap-x-2.5 gap-y-1 text-xs text-clay">
+            <span className="inline-flex items-center gap-2">
               <span className="h-1.5 w-1.5 rounded-full bg-sodium" aria-hidden="true" />
-              <b>{featured.length}</b> in use
+              <b className="font-medium tabular-nums text-bone">{featured.length}</b> in use
             </span>
             {archive.length > 0 && (
-              <span className="chip">
-                <b>{archive.length}</b> earlier
-              </span>
+              <>
+                <span aria-hidden="true" className="text-clay/50">
+                  ·
+                </span>
+                <span>
+                  <b className="font-medium tabular-nums text-bone">{archive.length}</b> earlier
+                </span>
+              </>
             )}
             {lastPush && (
-              <span className="chip">
-                last push <b>{relativeTime(lastPush)}</b>
-              </span>
+              <>
+                <span aria-hidden="true" className="text-clay/50">
+                  ·
+                </span>
+                <span>
+                  last push <b className="font-medium text-bone">{relativeTime(lastPush)}</b>
+                </span>
+              </>
             )}
-          </div>
+          </p>
         </header>
 
         <p className="sr-only" role="status">
@@ -66,46 +76,37 @@ export default function Projects() {
           </p>
         )}
 
-        {items.length === 0 ? (
-          state === "loading" ? (
-            <div className="mt-12 space-y-6" aria-hidden="true">
-              <CardSkeleton />
-              <CardSkeleton />
-            </div>
-          ) : (
-            <EmptyProjects />
-          )
-        ) : (
-          <>
-            <div className="mt-12 space-y-6 sm:mt-16 sm:space-y-10 lg:space-y-14">
-              {featured.map((entry, i) => (
-                <Reveal key={entry.collection.slug} delay={Math.min(i * 70, 280)}>
-                  {/* The first card is above the fold on a phone, so its
-                      screenshot is the LCP element and must not be lazy. */}
-                  <ProjectCard entry={entry} index={i} eager={i === 0} />
-                </Reveal>
-              ))}
-            </div>
+        {/* No skeleton and no empty state here, and nothing to guard against:
+            `useProjects` is seeded from the project table, so the list is
+            populated on the first paint and `items.length === 0` is not a
+            state it can produce. The two components that used to cover those
+            cases were unreachable the day they were written. */}
+        <div className="mt-12 space-y-6 sm:mt-16 sm:space-y-10 lg:space-y-14">
+          {featured.map((entry, i) => (
+            <Reveal key={entry.collection.slug} delay={Math.min(i * 70, 280)}>
+              {/* The first card is above the fold on a phone, so its
+                  screenshot is the LCP element and must not be lazy. */}
+              <ProjectCard entry={entry} index={i} lead={i === 0} eager={i === 0} />
+            </Reveal>
+          ))}
+        </div>
 
-            {archive.length > 0 && (
-              <>
-                <div className="-mx-5 mt-16 sm:-mx-6 sm:mt-24">
-                </div>
-                <div className="mt-6">
-                  <p className="eyebrow">Learning in public, 2024&ndash;25</p>
-                  <ul className="mt-6 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                    {archive.map((entry, i) => (
-                      <li className="min-w-0" key={entry.collection.slug}>
-                        <Reveal delay={Math.min(i * 45, 220)} y={12}>
-                          <ProjectRow entry={entry} />
-                        </Reveal>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </>
-            )}
-          </>
+        {archive.length > 0 && (
+          <section className="mt-16 sm:mt-24" aria-labelledby="archive-heading">
+            <div className="rule -mx-5 sm:-mx-6" aria-hidden="true" />
+            <h2 id="archive-heading" className="display-tight mt-8 text-2xl sm:text-3xl">
+              Learning in public, 2024&ndash;25
+            </h2>
+            <ul className="mt-8 grid gap-4 sm:grid-cols-2 sm:gap-6">
+              {archive.map((entry, i) => (
+                <li className="min-w-0" key={entry.collection.slug}>
+                  <Reveal delay={Math.min(i * 45, 220)} y={12}>
+                    <ArchiveCard entry={entry} />
+                  </Reveal>
+                </li>
+              ))}
+            </ul>
+          </section>
         )}
       </section>
     </PageShell>

@@ -46,7 +46,10 @@ function Featured({ entry, index }: { entry: ProjectEntry; index: number }) {
             {c.coverImage ? (
               <Shot src={c.coverImage} alt={`${c.title} screenshot`} className={SHAPE} />
             ) : (
-              <Plate className={SHAPE} />
+              /* The plate used to hardcode one project's terminal output and
+               was the fallback for all of them. It now sets whatever it is
+               given, so a coverless project shows its own stack. */
+            <Plate className={SHAPE} title={c.title} tagline={c.tagline} tech={entry.tech} />
             )}
           </Link>
         </Slab>

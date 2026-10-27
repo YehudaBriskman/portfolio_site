@@ -481,7 +481,6 @@
 
   .card-shot { border-radius: var(--r-md); overflow: hidden; background: rgb(var(--bitumen)); }
   .card-shot img { transition: transform var(--dur-settle) var(--ease-settle); }
-  .thumb-round { border-radius: var(--r-pill); overflow: hidden; display: block; }
 
   /* One pill, two weights, 44px tall everywhere — the whole tap-target story. */
   .btn {
@@ -581,6 +580,27 @@
       width: 100vw;
       margin-left: 50%;
       transform: translateX(-50%);
+      max-width: none;
+    }
+  }
+
+  /*
+   * A figure, code block or table at the width of the article rather than the
+   * width of the reading column.
+   *
+   * The prose column is held to 38rem for measure, but the cover and the
+   * title span the article's full content box — so every in-body figure sat
+   * 40px narrower than the image above it and read as a misalignment rather
+   * than as a hierarchy. `100cqw` is the container's own width, so this is
+   * exactly the inset at any size and collapses to nothing by itself once the
+   * column stops being narrower than its container. The query container is
+   * declared on the wrapper around the prose; below `sm`, `.bleed` takes over
+   * and runs these blocks to the edge of the screen instead.
+   */
+  @media (min-width: 640px) {
+    .bleed-column {
+      margin-inline: calc((100% - 100cqw) / 2);
+      width: auto;
       max-width: none;
     }
   }
@@ -697,10 +717,20 @@
 
   /* Tracks --pr 1:1. Deliberately has no transition: it is a position readout,
      not an animation, and easing it would make it lie. */
+  /*
+   * Two channels, because the two readouts measure different things.
+   *
+   * --pr is progress through the whole document, which every other
+   * scroll-driven effect reads. On a post that is a lie about reading
+   * progress: a page carries 1,200-1,800px of tags, footer navigation and
+   * site footer after the last paragraph, so the rail sat near 70% when the
+   * article had actually ended. --pr-read is measured against the article
+   * alone and falls back to --pr wherever nothing sets it.
+   */
   .progress-rail {
     position: fixed; inset-inline: 0; top: 0; height: 2px; z-index: 55;
     transform-origin: left;
-    transform: scaleX(var(--pr, 0));
+    transform: scaleX(var(--pr-read, var(--pr, 0)));
     background: rgb(var(--sodium));
   }
   .progress-rail::after {

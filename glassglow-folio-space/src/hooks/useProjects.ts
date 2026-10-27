@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { blog, type Collection } from "@/services/blog";
-import { projects as seeds, seedToCollection, type Project } from "@/data/projects";
+import { projects as seeds, seedToCollection, type Project, type ProjectDecision } from "@/data/projects";
 
 /*
  * One list of projects for the whole site.
@@ -29,6 +29,16 @@ export type ProjectEntry = {
   year: string | null;
   tech: string[];
   highlights: string[];
+  /*
+   * The brief, and the decisions behind it. All optional, and absent is the
+   * normal case: only the two projects with a written record of their own can
+   * fill these, and a consumer must render nothing at all when they are empty
+   * rather than a heading over a blank.
+   */
+  problem: string | null;
+  role: string | null;
+  outcome: string | null;
+  decisions: ProjectDecision[];
   /** The live product, never the repository — that has its own pill. */
   primaryLink: ProjectLink | null;
   /** Everything in `links` that is not the primary. */
@@ -78,12 +88,40 @@ function merge(collections: Collection[]): ProjectEntry[] {
         year: seed?.year ?? null,
         tech: seed?.tech ?? [],
         highlights: seed?.highlights ?? [],
+        problem: seed?.problem ?? null,
+        role: seed?.role ?? null,
+        outcome: seed?.outcome ?? null,
+        decisions: seed?.decisions ?? [],
         ...splitLinks(c),
       };
     });
 }
 
+/*
+ * Related projects for a detail page.
+ *
+ * This used to be `items.slice(0, 2)` of an order-sorted list, which handed
+ * every page the same two names and told the reader nothing about the one they
+ * were on. Rotating from the current project's own position means each page
+ * points somewhere different, and the list stays stable between visits — which
+ * a random pick would not, and which matters because these are links a reader
+ * may be trying to find again.
+ */
+export function relatedTo(items: ProjectEntry[], slug: string, count = 2): ProjectEntry[] {
+  const here = items.findIndex((e) => e.collection.slug === slug);
+  if (here < 0) return items.slice(0, count);
+  const rotated = [...items.slice(here + 1), ...items.slice(0, here)];
+  return rotated.slice(0, count);
+}
+
 export function useProjects() {
+  /*
+   * Seeded, never empty. The seed table is the floor under this hook, so
+   * `items.length === 0` is not a state the UI has to carry — there is no
+   * skeleton grid and no empty state downstream, because neither could ever be
+   * reached. `state` still reports "loading" so the live repository facts can
+   * arrive late without the page having been blank in the meantime.
+   */
   const [items, setItems] = useState<ProjectEntry[]>(() => merge([]));
   const [state, setState] = useState<ProjectsState>("loading");
 

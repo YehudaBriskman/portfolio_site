@@ -3,7 +3,7 @@ import { useEffect } from "react";
 /*
  * Publishes on <html> and nothing else:
  *   --p          0..1 palette progress, floored to a minimum travel distance
- *   --pr         0..1 true reading progress through the document
+ *   --pr         0..1 unfloored progress through the WHOLE document
  *   --vh         0..n viewports scrolled
  *   --layer-N    0..2 the Nth layer: 0..1 rises to its ridge, 1..2 pushes past
  * Every scroll-linked effect on the site reads these, so there is exactly one
@@ -79,9 +79,17 @@ export function useScrollProgress() {
 
       put("--p", (y / max).toFixed(4));
       put("--vh", (y / vh).toFixed(4));
-      // --p is floored by the minimum travel above, so on a short post it never
-      // reaches 1. A progress indicator driven by it would stop short of the
-      // end and lie about it, hence a second, unfloored number.
+      /*
+       * --p is floored by the minimum travel above, so on a short page it
+       * never reaches 1. Anything that needs the real fraction gets this
+       * second, unfloored number instead.
+       *
+       * It is a DOCUMENT figure, and the distinction matters: a post's tags,
+       * link list, prev/next pair and the site footer are all inside
+       * scrollHeight and none of them is reading matter, so a reading
+       * indicator driven by this reads about 70% at the last paragraph. The
+       * bar on a post measures its own article instead; see ReadingBar.
+       */
       put("--pr", (y / Math.max(1, travel)).toFixed(4));
 
       /*
