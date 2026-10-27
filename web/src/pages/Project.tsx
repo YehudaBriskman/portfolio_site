@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import PageShell from "@/components/PageShell";
-import { PROJECTS_LAYERS } from "@/components/scene/LayerStack";
 import Reveal from "@/components/Reveal";
 import PostList from "@/components/PostList";
 import ProjectMeta from "@/components/ProjectMeta";
@@ -85,7 +84,7 @@ export default function Project() {
   const shape = "aspect-[3/2] border border-edge sm:aspect-[2/1]";
 
   return (
-    <PageShell layers={PROJECTS_LAYERS}>
+    <PageShell>
       <section data-crest data-hue="88 76 148" className="wrap section-y isolate relative">
         <Link to="/projects" className="btn btn-quiet -ml-1 text-clay">
           <span aria-hidden="true">←</span> Projects

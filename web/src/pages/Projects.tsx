@@ -1,5 +1,4 @@
 import PageShell from "@/components/PageShell";
-import { PROJECTS_LAYERS } from "@/components/scene/LayerStack";
 import Reveal from "@/components/Reveal";
 import ProjectCard from "@/components/projects/ProjectCard";
 import ArchiveCard from "@/components/projects/ArchiveCard";
@@ -18,7 +17,7 @@ export default function Projects() {
     .at(-1);
 
   return (
-    <PageShell layers={PROJECTS_LAYERS}>
+    <PageShell>
       <section data-crest data-hue="58 106 102" className="wrap section-y isolate relative">
         {/* The `.sun` wash that used to anchor this header went with the
             accent. There is a photographic plate behind the page now, which is

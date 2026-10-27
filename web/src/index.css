@@ -83,45 +83,66 @@
 @tailwind utilities;
 
 /*
-  Neutral ground, and the photographs supply the colour.
-  ------------------------------------------------------
+  Paper, and the images are objects on it.
+  ----------------------------------------
 
-  The palette used to be sampled from the reference photograph, the ground
-  included: #0F1515 is a desaturated teal. That was defensible while the
-  background was a gradient and a drawing. It stopped being defensible the
-  moment real photographs went behind the page — a tinted ground puts every
-  plate in a colour cast, and nothing on the site is ever actually black.
+  The ground has been three things now and each move was a correction of the
+  last. It began sampled from a photograph, which made it a desaturated teal
+  and put every image in a colour cast. It went dead neutral near-black,
+  which fixed the cast and was right for as long as a photograph filled the
+  screen behind every section.
 
-  Measured against the references this direction is drawn from: Forge sits on
-  #0C0C0C and Daksh on #060606, both dead neutral. The one of them that reads
-  richest in colour is the one with no accent colour at all, because the
-  photography is left to do it.
+  It is paper now, because the photographs have stopped being the background.
+  They are framed objects sitting on a ground, which is how a page shows a
+  picture it wants you to look at rather than one it wants you to read over.
+  Once that is true, a dark ground is only costing contrast.
 
-  So: a neutral axis for every surface and every grey, bone for type, and no
-  chromatic accent in the chrome. Emphasis is weight, width and value, never
-  hue.
+  #ECE8DC is the warm paper daddyyankee.com sits on, and it is here for the
+  same reason it works there: against near-black type it carries enormous
+  display setting without the glare of white, and a photograph dropped onto
+  it reads as a print rather than as a hole cut in the page.
+
+  One signal colour, and it is deliberate rather than inherited. Cream and black
+  alone is an essay; the references that work all put exactly one saturated
+  colour against the paper and spend it almost nowhere. A deep ink blue —
+  not the cobalt DY uses, which would be borrowing their identity rather
+  than their reasoning, and cool enough to agree with the screenshots, which
+  are mostly water and aurora.
 */
 @layer base {
   :root {
-    --bitumen:  10 10 11;      /* #0A0A0B  the ground, dead neutral */
-    --surface:  18 18 20;      /* #121214  raised panels */
-    --edge:     35 35 38;      /* #232326  hairlines */
-    --ridge:    46 46 50;      /* #2E2E32 */
-    --haze:     58 58 63;      /* #3A3A3F */
-    --haze-2:  106 104  98;    /* #6A6862  faint type */
-    --bone:    237 232 224;    /* #EDE8E0  primary type, 16.2:1 on the ground */
-    --clay:    154 151 143;    /* #9A978F  secondary type, 7.1:1 */
+    --paper:    236 232 220;   /* #ECE8DC  the ground */
+    --paper-2:  228 223 209;   /* #E4DFD1  a raised surface on it */
+    --paper-3:  216 210 194;   /* #D8D2C2  a recessed one */
+    --ink:       20  19  15;   /* #14130F  primary type. 15.6:1 on paper. */
+    --ink-soft:  85  82  74;   /* #55524A  secondary type. 6.9:1. */
+    --ink-faint:124 120 109;   /* #7C786D  captions and metadata. 4.6:1. */
+    --rule:     207 201 186;   /* #CFC9BA  hairlines and image borders */
+    --rule-firm:166 159 142;   /* #A69F8E  a border that is meant to be seen */
+    /* `--signal`, not `--accent`: shadcn's primitives already own that name
+       for their subtle-hover surface, and two different meanings under one
+       token is how a palette quietly stops being one. */
+    --signal:    35  64 107;   /* #23406B  links, active state, one button */
+    --signal-ink:255 255 255;  /* type on the signal */
+
     /*
-     * The accent, now spent in one place only.
+     * The old names, still pointing somewhere sensible.
      *
-     * It used to sit on forty-four elements of the home page, which is not an
-     * accent, it is a second body colour. Over photographs it also landed at
-     * roughly the hue of the warm plates and stopped registering as anything
-     * at all. What survives is the admin surface, which has no plates behind
-     * it and uses colour functionally. Public pages get --bone and a weight.
+     * Several hundred call sites across the app say bitumen, bone, clay,
+     * surface and edge. Re-pointing them here inverts the whole site in one
+     * place and lets the call sites be renamed as each component is touched,
+     * rather than in one commit nobody can review.
      */
-    --sodium:  232 129 74;
-    --screen:  106 104  98;    /* retained name, now the faint tone */
+    --bitumen:  var(--paper);
+    --surface:  var(--paper-2);
+    --edge:     var(--rule);
+    --ridge:    var(--rule-firm);
+    --haze:     var(--ink-faint);
+    --haze-2:   var(--ink-faint);
+    --bone:     var(--ink);
+    --clay:     var(--ink-soft);
+    --sodium:   var(--signal);
+    --screen:   var(--ink-faint);
 
     /* shadcn primitives inherit the same values */
     --background: var(--bitumen);
@@ -320,76 +341,6 @@
   .rule { height: 1px; background: rgb(var(--edge)); }
 
   /*
-   * The plates, holding still.
-   *
-   * Every plate is stacked full-bleed in the same place and only its opacity
-   * changes, so the handover between sections is a cross-fade rather than a
-   * rise. The ground plate stays on underneath as the floor; the rest fade in
-   * over it.
-   *
-   * 900ms because this is deliberately the slowest thing on the site. A plate
-   * change is a change of place, and a place that swaps in 200ms reads as a
-   * glitch — windom.app lands on 1.1s for the same four photographs.
-   *
-   * Reduced motion gets the cut without the fade. This used to be handled by
-   * forcing `transform: none`, which stacked every layer at the top and let
-   * the last one in DOM order win permanently — the final sunset plate ended
-   * up behind the hero, giving away the ending on the first screen.
-   */
-  .scene-plate {
-    opacity: 0;
-    transition: opacity 900ms linear;
-  }
-  .scene-plate[data-plate="0"],
-  .scene-plate[data-on] {
-    opacity: 1;
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .scene-plate { transition: none; }
-  }
-
-  /* Grain over large flat gradients: the sky is one enormous smooth ramp and
-     will band badly on wide-gamut displays without it. */
-  /* Skipped on phones: a fixed full-viewport overlay above every other layer
-     is real compositing work for a texture nobody sees at that size. */
-  @media (max-width: 639px) {
-    .grain::after { display: none; }
-  }
-  .grain::after {
-    content: '';
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    z-index: 60;
-    opacity: 0.035;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
-  }
-}
-
-@layer components {
-  /*
-   * Tried and dropped: a headline cut out of the plate behind it.
-   *
-   * `background-clip: text` with the plate as the fill, anchored with
-   * `background-attachment: fixed` so the letters show the part of the
-   * photograph they stand in front of. It is the move that makes a page look
-   * authored, and it does not work on this one.
-   *
-   * The reason is structural rather than a matter of tuning. It needs the
-   * letters to be bright and their surround not to be — but every plate here
-   * is full-viewport, so a heading is always made of the same picture it is
-   * standing on. There is no figure and no ground. Tried on the contact
-   * heading (full-bleed sunset) and on Stack (the brightest plate, a band
-   * shape, the heading nominally below the cut): in both, half the word
-   * disappeared into the water. Lifting the fill toward bone far enough to
-   * read it leaves bone type with noise in it, which is not the effect.
-   *
-   * It would work against a plate that is genuinely a shape — type on bare
-   * ground with a bright picture poured into it — so this is worth revisiting
-   * if a section ever gets a plate that does not reach behind its heading.
-   */
-
-  /*
    * The page measure, in one place.
    *
    * `mx-auto max-w-6xl px-5 sm:px-6` appeared at roughly twenty call sites
@@ -437,88 +388,80 @@
   }
 
   /*
-   * Glass, ported from WindoM.
+   * The glass went with the photographs.
    *
-   * Three things carried over from that build, each of which cost a day there:
+   * Three tiers of `backdrop-filter` were ported here, and the argument for
+   * them was always conditional: glass earns its cost where something
+   * interesting passes behind it, and over a flat ground it is an expensive
+   * way to draw a grey rectangle. That held while the ground was a
+   * photograph. It does not hold on paper.
    *
-   *  1. Blur goes on a child layer, never on the pane. `filter` on the pane
-   *     itself displaces its children and warps the text into illegibility,
-   *     so every tier that blurs does it through `::after` at z-index -1 with
-   *     `isolation: isolate` on the parent.
-   *  2. Never hand-write `-webkit-backdrop-filter` beside the standard
-   *     property. Blink treats it as a true alias, the minifier collapses the
-   *     pair, keeps the prefixed copy and drops the standard one — WindoM
-   *     shipped once with no glass at all this way. The build adds the prefix.
-   *  3. Size inverts the material. A large surface takes a LIGHT veil, because
-   *     a white wash over a photograph reads as glass catching the light. A
-   *     chip has too little area for that to register, so small chrome takes a
-   *     DARK ground and a light border instead.
-   *
-   * And one thing measured here rather than inherited: the chrome tier is
-   * deliberately absent. A `position: fixed`, full-width bar with a
-   * backdrop-filter makes WebKit re-sample and re-blur the strip on every
-   * scroll frame — roughly 3.5ms of GPU time per frame on a low-end Android,
-   * for a bar. The nav stays solid; see the note in Nav.tsx, which was right.
+   * What replaces them is the card below — a real border and a real shadow,
+   * which is what a raised surface on paper actually is. The nav islands
+   * keep their blur, because they are the one thing left with content
+   * moving underneath them.
    */
-
-  /* Large surfaces: a light veil, no blur, an edge lit from above. */
-  .glass {
-    background-color: rgb(255 255 255 / .07);
-    background-image: radial-gradient(130% 100% at 30% -10%,
-      rgb(255 255 255 / .16) 0%, rgb(255 255 255 / .04) 38%, transparent 72%);
-    border: 1px solid rgb(255 255 255 / .18);
-    box-shadow:
-      inset 0 1px 0 0 rgb(255 255 255 / .34),
-      inset 0 14px 22px -16px rgb(255 255 255 / .22),
-      inset 0 -14px 22px -16px rgb(255 255 255 / .08),
-      0 24px 60px -32px rgb(0 0 0 / .78);
-  }
 
   /*
-   * Bounded, non-fixed surfaces that want the plate to bend through them.
-   * Blur stays low on purpose: the refraction below is invisible above about
-   * 10px, because the blur has already destroyed the detail it would displace.
+   * A card. The unit the page is made of now.
+   *
+   * On a dark ground a surface was a slightly lighter rectangle and a
+   * hairline, because that is all a dark ground gives you. Paper gives you
+   * the opposite problem and the better tools: a real border, a real
+   * shadow, and a surface that can be lighter *or* darker than what it
+   * sits on. A card here is a physical thing on a desk, not a region of a
+   * gradient.
    */
-  .glass-thin {
-    isolation: isolate;
-    background-color: rgb(var(--bitumen) / .30);
-    border: 1px solid rgb(255 255 255 / .14);
-    box-shadow: inset 0 1px 0 rgb(255 255 255 / .16), 0 26px 64px -34px rgb(0 0 0 / .9);
+  .card-paper {
+    background: rgb(255 255 255 / .55);
+    border: 1px solid rgb(var(--rule));
+    border-radius: var(--r-md);
+    box-shadow: 0 1px 0 rgb(255 255 255 / .7) inset,
+                0 10px 24px -18px rgb(var(--ink) / .35);
   }
-  .glass-thin::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    z-index: -1;
-    border-radius: inherit;
-    pointer-events: none;
-    backdrop-filter: blur(8px) saturate(170%);
-  }
-  @supports (filter: url('#glass-distort-sm')) {
-    .glass-thin::after { filter: url('#glass-distort-sm'); }
-  }
-
-  /* Small chrome: too little area for a veil to read, so invert it. */
-  .glass-chip {
-    background: rgb(var(--bitumen) / .55);
-    border: 1px solid rgb(255 255 255 / .22);
-  }
-
-  /*
-   * Transparency is a preference, not a given. Where it is declined — or where
-   * the browser cannot blur at all — every tier falls back to the opaque
-   * surface the palette was built on.
-   */
-  @supports not (backdrop-filter: blur(1px)) {
-    .glass-thin { background-color: rgb(var(--surface) / .92); }
-  }
-  @media (prefers-reduced-transparency: reduce) {
-    .glass, .glass-thin, .glass-chip {
-      background-color: rgb(var(--surface));
-      background-image: none;
-      border-color: rgb(var(--edge));
+  @media (hover: hover) and (pointer: fine) {
+    a.card-paper:hover, .card-paper:has(a:hover) {
+      border-color: rgb(var(--rule-firm));
+      box-shadow: 0 1px 0 rgb(255 255 255 / .8) inset,
+                  0 18px 36px -22px rgb(var(--ink) / .45);
     }
-    .glass-thin::after { backdrop-filter: none; filter: none; }
+  }
+
+  /*
+   * A framed image.
+   *
+   * The whole point of retiring the plates: a photograph is an object on
+   * the page now, so it gets the things an object has — an edge you can
+   * see, a mount that separates it from the paper, and a caption that says
+   * what it is. A picture bled to the edges is a background; a picture with
+   * a border is a picture.
+   */
+  .figure-frame {
+    display: block;
+    margin: 0;
+    background: rgb(255 255 255 / .6);
+    border: 1px solid rgb(var(--rule-firm));
+    padding: theme('spacing.3');
+    box-shadow: 0 14px 30px -22px rgb(var(--ink) / .5);
+  }
+  .figure-frame > img,
+  .figure-frame > picture > img {
+    display: block;
+    width: 100%;
+    height: auto;
+    /* The mount is the light thing; the image needs its own edge or it
+       dissolves into the mount at its pale corners. */
+    border: 1px solid rgb(var(--rule));
+  }
+  .figure-frame > figcaption {
+    display: flex;
+    gap: theme('spacing.3');
+    margin-top: theme('spacing.3');
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 0.75rem;
+    letter-spacing: var(--track-label);
+    text-transform: uppercase;
+    color: rgb(var(--ink-faint));
   }
 
   /*
@@ -808,12 +751,6 @@
    * the prose drifts over the pale water band and loses contrast exactly where
    * the reader is most committed. This one layer holds the ground steady.
    */
-  .reading-ground {
-    position: fixed; inset: 0; z-index: -10;
-    pointer-events: none;
-    background: rgb(var(--bitumen) / .82);
-  }
-
   /* Tracks --pr 1:1. Deliberately has no transition: it is a position readout,
      not an animation, and easing it would make it lie. */
   /*

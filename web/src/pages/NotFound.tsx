@@ -1,6 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
 import PageShell from "@/components/PageShell";
-import { POST_LAYERS } from "@/components/scene/LayerStack";
 
 /*
  * The one page that still looked like a different project.
@@ -20,7 +19,7 @@ export default function NotFound() {
   const { pathname } = useLocation();
 
   return (
-    <PageShell layers={POST_LAYERS}>
+    <PageShell>
       <section className="wrap section-y">
         <p className="eyebrow">Error 404</p>
         <h1 className="display mt-3 text-section">Not here</h1>

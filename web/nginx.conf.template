@@ -177,6 +177,20 @@ server {
   }
 
   location @spa {
+    #
+    # The shell must never be cached, and `location = /index.html` was not
+    # enough to say so.
+    #
+    # Every real route — `/`, `/blog`, `/projects`, `/blog/<slug>` — is
+    # served through this named location, and a named location is not the
+    # URI `/index.html`, so that rule never matched any of them. They went
+    # out with an ETag and a Last-Modified and no Cache-Control at all,
+    # which leaves the browser to invent its own freshness lifetime. A
+    # returning visitor could then be handed a stale shell pointing at
+    # hashed asset filenames the next deploy had already deleted — a blank
+    # page, from a cache, with nothing in the logs.
+    #
+    add_header Cache-Control "no-cache" always;
     try_files /index.html =404;
   }
 

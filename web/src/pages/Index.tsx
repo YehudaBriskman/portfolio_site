@@ -7,7 +7,6 @@ import Stack from "@/components/Stack";
 import LatestNotes from "@/components/LatestNotes";
 import Contact from "@/components/Contact";
 import SiteFooter from "@/components/SiteFooter";
-import Atmosphere from "@/components/Atmosphere";
 import Reveal from "@/components/Reveal";
 import { useScrollProgress } from "@/hooks/useScrollProgress";
 
@@ -19,15 +18,17 @@ export default function Index() {
   useScrollProgress();
 
   return (
-    <div className="grain relative min-h-screen">
+    <div className="relative min-h-screen">
+      {/* #content, not #work. Pointing it at the first section scrolled the
+          reader past the page's own h1 and intro — it skipped the content
+          rather than skipping to it. */}
       <a
-        href="#work"
-        onClick={(e) => { if (scrollToAnchor("work")) e.preventDefault(); }}
+        href="#content"
+        onClick={(e) => { if (scrollToAnchor("content")) e.preventDefault(); }}
         className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[70] focus:bg-bone focus:px-4 focus:py-2 focus:text-bitumen"
       >
         Skip to content
       </a>
-      <Atmosphere />
       <Nav />
       {/*
         Every section reads from the same edge.
@@ -41,7 +42,7 @@ export default function Index() {
       */}
       {/* No nav clearance here, unlike PageShell: the hero is a full-height
           section that positions its own first line under the island. */}
-      <main>
+      <main id="content">
         {/* The hero is the person and nothing else. The landscape used to be
             given away in the first screen; now it is assembled on the way down
             and only resolves at the foot of the page. */}

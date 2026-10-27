@@ -2,8 +2,6 @@ import { scrollToAnchor } from "@/lib/scrollToAnchor";
 import type { ReactNode } from "react";
 import Nav from "@/components/Nav";
 import SiteFooter from "@/components/SiteFooter";
-import Atmosphere from "@/components/Atmosphere";
-import { PAGE_LAYERS, type Layer } from "@/components/scene/LayerStack";
 import { useScrollProgress } from "@/hooks/useScrollProgress";
 
 /*
@@ -38,35 +36,15 @@ import { useScrollProgress } from "@/hooks/useScrollProgress";
  * mt-16, mt-20, mt-24, mt-28 inside single sections — taught a reader nothing,
  * because none of it was answering the same question twice.
  */
-export default function PageShell({
-  children,
-  reading = false,
-  layers = PAGE_LAYERS,
-}: {
-  children: ReactNode;
-  /* Each area brings its own landscape; see LayerStack. */
-  layers?: Layer[];
-  /*
-   * Set on long-form pages. Atmosphere's legibility scrim is a horizontal ramp
-   * (0.92 -> 0.55 left to right) tuned for the home page's left-aligned column.
-   * A post is a centred column, so deep in the document its prose drifts over
-   * the thin end of that ramp and onto the pale water band — losing contrast at
-   * exactly the point the reader is most committed. One flat layer holds the
-   * ground steady; measured at 7.3:1 for bone/85 at the palest point.
-   */
-  reading?: boolean;
-}) {
+export default function PageShell({ children }: { children: ReactNode }) {
   useScrollProgress();
   return (
-    <div className="grain relative min-h-screen">
+    <div className="relative min-h-screen">
       <a href="#content"
         onClick={(e) => { if (scrollToAnchor("content")) e.preventDefault(); }}
         className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[70] focus:bg-bone focus:px-4 focus:py-2 focus:text-bitumen">
         Skip to content
       </a>
-      <Atmosphere layers={layers} />
-      {/* After Atmosphere, so it paints over it at the same depth. */}
-      {reading && <div className="reading-ground" aria-hidden="true" />}
       <Nav />
       {/* Nav clearance, once, where the nav is rendered — rather than baked
           into every page's first section, which is how four pages ended up
