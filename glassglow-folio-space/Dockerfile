@@ -2,7 +2,12 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm i --save-dev --legacy-peer-deps --verbose
+# npm ci, not npm i: `npm i` re-resolves from the ranges in package.json and
+# ignores package-lock.json, so the image was free to pick up a different tree
+# than anyone had tested — the lockfile was being carried into the build and
+# then disregarded. --legacy-peer-deps turned out to be unnecessary too; the
+# dependency graph resolves clean without it.
+RUN npm ci
 
 COPY . .
 RUN npm run build
