@@ -1,0 +1,35 @@
+/*
+ * What "pause motion" actually does to the page.
+ *
+ * A plain stylesheet rather than a CSS module, because the class it keys off
+ * is set on `document.body` — outside the React tree — so that the ambient
+ * layers, the scroll reveals and the plate cross-fades all stop too, none of
+ * which the nav renders or can reach.
+ *
+ * The declarations are deliberately the same three that `index.css` already
+ * applies under `prefers-reduced-motion: reduce`, and for the same reason:
+ * `animation-duration: 0` is not the same as `animation: none`. A reveal that
+ * ends at `opacity: 1` must still *arrive* at `opacity: 1`, or pausing the
+ * motion would hide half the page. Running every animation to completion in
+ * 0.01ms lands on the final frame instead of on the first one.
+ *
+ * `animation-play-state: paused` is the obvious-looking alternative and is
+ * the wrong one for the same reason: it freezes each animation at the time it
+ * has reached, which for anything that has not started yet is frame zero —
+ * and with `fill-mode: both` that is the hidden state. Pausing the motion
+ * would have blanked every element that enters by animation.
+ *
+ * Nothing here sets a colour, a size or a position, so this file cannot
+ * collide with the spacing system the rest of the stylesheet carries.
+ */
+body.motion-paused {
+  scroll-behavior: auto;
+}
+
+body.motion-paused *,
+body.motion-paused *::before,
+body.motion-paused *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+}
