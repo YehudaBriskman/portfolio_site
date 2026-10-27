@@ -13,10 +13,17 @@ const items = [
   { id: "contact", label: "Contact" },
 ];
 
-/* The real destinations. These are the whole nav once you leave the home page. */
+/*
+ * The real destinations. These are the whole nav once you leave the home page.
+ *
+ * "Notes", not "Blog". The same place was called Blog here, Notes in the
+ * footer and Writing on its own heading, which is three names for one
+ * destination — and a nav item should name what it contains rather than what
+ * kind of thing it is. The path stays /blog; the label is what people read.
+ */
 const ROUTES = [
   { to: "/projects", label: "Projects" },
-  { to: "/blog", label: "Blog" },
+  { to: "/blog", label: "Notes" },
 ];
 
 /*

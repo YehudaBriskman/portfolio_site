@@ -134,17 +134,30 @@ export default function Hero() {
           </div>
         </div>
 
+        {/*
+          A real primary action.
+
+          `.btn-solid` is defined in the design system and was used exactly
+          zero times on this page: the only way forward from the first screen
+          was an 11px grey mono link in the bottom corner, set in the same
+          voice as the twenty other small capitals on the page. The first
+          screen of a portfolio should have one obvious next move, and the
+          live product is the strongest second.
+        */}
         <div
-          className="flex flex-wrap items-end justify-between gap-6 animate-fade-up"
+          className="flex flex-wrap items-center gap-3 animate-fade-up sm:gap-4"
           style={{ animationDelay: "360ms" }}
         >
-          <a href="https://windom.app" target="_blank" rel="noreferrer noopener"
-            className="mono -my-3 inline-flex min-h-11 items-center py-3 text-xs uppercase tracking-[0.22em] text-clay transition-colors hover:text-sodium">
-            windom.app ↗
+          <a href="#work" className="btn btn-solid">
+            See the work <span aria-hidden="true">↓</span>
           </a>
-          <a href="#work"
-            className="mono -my-3 inline-flex min-h-11 items-center py-3 text-xs uppercase tracking-[0.22em] text-clay transition-colors hover:text-sodium">
-            See the work ↓
+          <a
+            href="https://windom.app"
+            target="_blank"
+            rel="noreferrer noopener"
+            className="btn btn-quiet"
+          >
+            windom.app <span aria-hidden="true">↗</span>
           </a>
         </div>
       </div>
