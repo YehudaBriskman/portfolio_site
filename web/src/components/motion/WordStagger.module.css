@@ -1,0 +1,144 @@
+/*
+ * Words arriving one at a time, in reading rhythm.
+ *
+ * All the component sends across is a delay per word. Everything about how a
+ * word arrives lives here, so the rhythm can be retuned without touching the
+ * splitting logic, and so both of the ways this has to stop — reduced motion,
+ * and no scroll-driven animation — are a few lines at the foot of one file
+ * rather than a second render path in the component.
+ *
+ * Why the words are NOT themselves on the view timeline
+ * -----------------------------------------------------
+ * A scroll-driven animation ignores animation-duration and animation-delay:
+ * its progress is the scroll position, not the clock. Putting the words on
+ * `view()` directly would therefore throw away the per-word delay, which is
+ * the entire effect — and would tie the pace of the sentence to how fast the
+ * wheel is turning, so the line would stop mid-clause whenever the reader
+ * did. The words run on the clock. The scroll only decides when the clock
+ * starts, by way of the gate below.
+ */
+
+.line {
+  position: relative;
+}
+
+.words {
+  display: inline;
+}
+
+.word {
+  /* Transforms and filters need a box, and the box has to keep flowing with
+     the text so long lines still wrap between words. */
+  display: inline-block;
+  /* The per-word offset the component writes. Zero here, so a word that
+     somehow arrives without one is late rather than never. */
+  --t: 0ms;
+
+  opacity: 0;
+  filter: blur(6px);
+  transform: translate3d(0, 0.34em, 0);
+
+  animation-name: arrive;
+  animation-duration: 520ms;
+  animation-timing-function: var(--ease-settle, cubic-bezier(0.16, 1, 0.3, 1));
+  animation-fill-mode: both;
+  animation-delay: var(--t);
+}
+
+@keyframes arrive {
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: none;
+  }
+}
+
+/*
+ * The gate: a scroll-driven animation that does nothing but flip the words
+ * from paused to running as the line comes up the screen.
+ *
+ * A custom property is the only thing a scroll timeline can hand to another
+ * element's time-based animation, and animation-play-state is the one
+ * property that accepts the handoff. The flip is discrete — custom properties
+ * interpolate by swapping, not by blending — so `steps(1, jump-end)` pins the
+ * swap to a known point, the end of the range, instead of the halfway point a
+ * default ease would put it at.
+ *
+ * All of this lives inside @supports (rather than being overridden later)
+ * because the failure mode of getting it wrong is a paragraph that never
+ * appears. A browser that cannot run the gate never sees the pause in the
+ * first place, so the worst it can do is start the sentence early.
+ *
+ * Scrolling back up pauses the line again and scrolling down resumes it
+ * mid-sentence rather than restarting. That is the right behaviour: a
+ * sentence that re-types itself every time it crosses the fold is a toy.
+ */
+@supports (animation-timeline: view()) {
+  .line {
+    --word-play: paused;
+
+    animation-name: release;
+    animation-timing-function: steps(1, jump-end);
+    animation-fill-mode: both;
+    animation-timeline: view();
+    animation-range: entry 0% entry 45%;
+  }
+
+  .word {
+    animation-play-state: var(--word-play, running);
+  }
+}
+
+@keyframes release {
+  from {
+    --word-play: paused;
+  }
+  to {
+    --word-play: running;
+  }
+}
+
+/*
+ * The real sentence, kept in the accessibility tree and out of the picture.
+ * Not display:none and not visibility:hidden — both take it out of the tree,
+ * which is the one thing this copy exists to stay in.
+ */
+.sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/*
+ * Both exits land on the finished sentence, fully present. The delay goes
+ * with the animation: leaving it behind would hold the first state for half
+ * a second with nothing left to animate out of it.
+ */
+@supports not (animation-timeline: view()) {
+  .word {
+    animation: none;
+    opacity: 1;
+    filter: none;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .line {
+    animation: none;
+  }
+
+  .word {
+    animation: none;
+    opacity: 1;
+    filter: none;
+    transform: none;
+  }
+}
