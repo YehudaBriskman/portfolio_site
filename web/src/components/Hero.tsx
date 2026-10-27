@@ -96,23 +96,21 @@ export default function Hero() {
         </p>
 
         {/*
-          The name breaks the column.
+          The name sits in the measure with everything else.
 
-          Everything else on this screen reads inside the 1152px measure; the
-          name does not, because at wdth 125 and weight 900 it is no longer
-          text in a layout, it is the layout. Held inside the column it had to
-          shrink to about 150px to fit, which is the size at which an enormous
-          face just looks like a large one. Out to the gutters it runs to
-          208px and crosses the portrait, which is what the references do
-          with display type and the reason it reads as authored rather than
-          placed.
+          It ran to the gutters for a while, on the argument that display
+          type at this size is the layout rather than text inside one. Edge
+          to edge it touched both sides with no air at all, and on a short
+          window — a laptop at 1878x875 — its two lines took 43% of
+          everything the reader could see before the page had said a word. A
+          name is not worth half of a first screen.
 
-          The gutters, and nothing narrower: the clamp on `text-hero` was
-          sized against the viewport less its gutters ("BRISKMAN" is 7.12em
-          at wdth 125), so holding it to the 72rem measure plus a gutter
-          clipped 46px off the M at 1440 and 150px at 1920.
+          Back in the column, and `text-hero` now caps against the viewport's
+          height as well as its width, so the block holds at roughly a third
+          of the screen whatever shape the window is. It is still the largest
+          thing on the page by a wide margin.
         */}
-        <div className="px-gutter">
+        <div className="wrap">
           {/* One H1, and it names the subject of the site rather than opening
               with a slogan — the slogan still leads visually, one line down. */}
           <h1 className="display text-hero animate-fade-up" style={{ animationDelay: "80ms" }}>
