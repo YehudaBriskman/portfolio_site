@@ -1,0 +1,39 @@
+# The content store, for local work only.
+#
+# `docker-compose.yml` is the production shape: web and api, with CouchDB
+# living wherever the deploy puts it. That is correct there and useless here —
+# a clean checkout has no content store at all, so every blog route answers
+# 500 and the entire notes surface can only ever be seen in its error state.
+# Everything built for it (syntax highlighting, the lead card, the reading
+# bar measured against the article) had shipped without anyone seeing it
+# render a real post.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+#   node backend/scripts/seed-dev-content.mjs
+#
+# The seed is a fixture, not content: see the header of that script.
+services:
+  couch:
+    image: couchdb:3.4
+    environment:
+      - COUCHDB_USER=portfolio_api
+      - COUCHDB_PASSWORD=devonly
+    ports:
+      # Bound to loopback on purpose. CouchDB with a password this guessable
+      # must not be reachable from anything but this machine.
+      - "127.0.0.1:5984:5984"
+    volumes:
+      - couch-data:/opt/couchdb/data
+    restart: unless-stopped
+
+  api:
+    environment:
+      - PORT=5000
+      - COUCHDB_URL=http://couch:5984
+      - COUCHDB_USER=portfolio_api
+      - COUCHDB_PASSWORD=devonly
+    depends_on:
+      - couch
+
+volumes:
+  couch-data:
