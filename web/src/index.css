@@ -1,0 +1,911 @@
+/*
+ * Self-hosted fonts.
+ *
+ * These were loaded from Google, which cost two extra origins (DNS, TLS,
+ * connection) and — worse — made the font files wait on a stylesheet from a
+ * third host before they could even start. Measured on a phone against
+ * production: 1371ms for the CSS, then 1.4-2.0s for each font behind it.
+ *
+ * Served from our own origin they start as soon as the HTML is parsed, and the
+ * two the first screen actually needs are preloaded in index.html. Latin subset
+ * only; the site has no content in the other ranges. `swap` so text is readable
+ * immediately rather than invisible while a font arrives.
+ */
+@font-face {
+  font-family: 'Archivo';
+  font-style: normal;
+  font-weight: 400 900;
+  font-stretch: 100% 125%;
+  font-display: swap;
+  src: url('/fonts/archivo-400-900.woff2') format('woff2');
+}
+/*
+ * No 300 face.
+ *
+ * `body` asked for weight 350. Only static faces are registered here, and CSS
+ * font matching for a target below 400 searches downwards first — so every
+ * paragraph on the site resolved to the Light 300 file. Light on a near-black
+ * ground, with `-webkit-font-smoothing: antialiased` thinning the strokes
+ * further, is why the type measured 8.9:1 and still read as faint: the contrast
+ * was real and there was not enough ink to carry it.
+ *
+ * Dropping the face sends body copy to the 400 file, which `index.html`
+ * already preloads — so this is one fewer request as well as one more
+ * legible page.
+ */
+@font-face {
+  font-family: 'IBM Plex Sans';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/ibm-plex-sans-400.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'IBM Plex Sans';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/ibm-plex-sans-500.woff2') format('woff2');
+}
+/*
+ * The second voice.
+ *
+ * Every reference this direction is drawn from has one: a quiet, high-contrast
+ * italic that says the subtitle while the grotesque shouts the name. Without
+ * it the gap between a 12px label and a 9rem headline reads as a mistake
+ * rather than as a decision — it is the thing that makes the empty middle of
+ * the type scale deliberate. Latin subset, one file, 22KB.
+ */
+@font-face {
+  font-family: 'Instrument Serif';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/instrument-serif-italic.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/ibm-plex-mono-400.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/ibm-plex-mono-500.woff2') format('woff2');
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+  Neutral ground, and the photographs supply the colour.
+  ------------------------------------------------------
+
+  The palette used to be sampled from the reference photograph, the ground
+  included: #0F1515 is a desaturated teal. That was defensible while the
+  background was a gradient and a drawing. It stopped being defensible the
+  moment real photographs went behind the page — a tinted ground puts every
+  plate in a colour cast, and nothing on the site is ever actually black.
+
+  Measured against the references this direction is drawn from: Forge sits on
+  #0C0C0C and Daksh on #060606, both dead neutral. The one of them that reads
+  richest in colour is the one with no accent colour at all, because the
+  photography is left to do it.
+
+  So: a neutral axis for every surface and every grey, bone for type, and no
+  chromatic accent in the chrome. Emphasis is weight, width and value, never
+  hue.
+*/
+@layer base {
+  :root {
+    --bitumen:  10 10 11;      /* #0A0A0B  the ground, dead neutral */
+    --surface:  18 18 20;      /* #121214  raised panels */
+    --edge:     35 35 38;      /* #232326  hairlines */
+    --ridge:    46 46 50;      /* #2E2E32 */
+    --haze:     58 58 63;      /* #3A3A3F */
+    --haze-2:  106 104  98;    /* #6A6862  faint type */
+    --bone:    237 232 224;    /* #EDE8E0  primary type, 16.2:1 on the ground */
+    --clay:    154 151 143;    /* #9A978F  secondary type, 7.1:1 */
+    /*
+     * The accent, now spent in one place only.
+     *
+     * It used to sit on forty-four elements of the home page, which is not an
+     * accent, it is a second body colour. Over photographs it also landed at
+     * roughly the hue of the warm plates and stopped registering as anything
+     * at all. What survives is the admin surface, which has no plates behind
+     * it and uses colour functionally. Public pages get --bone and a weight.
+     */
+    --sodium:  232 129 74;
+    --screen:  106 104  98;    /* retained name, now the faint tone */
+
+    /* shadcn primitives inherit the same values */
+    --background: var(--bitumen);
+    --foreground: var(--bone);
+    --card: var(--surface);
+    --card-foreground: var(--bone);
+    --popover: var(--surface);
+    --popover-foreground: var(--bone);
+    --primary: var(--bone);
+    --primary-foreground: 10 10 11;
+    --secondary: var(--surface);
+    --secondary-foreground: var(--bone);
+    --muted: var(--surface);
+    --muted-foreground: var(--clay);
+    --accent: var(--surface);
+    --accent-foreground: var(--bone);
+    --destructive: 190 60 45;
+    /* #BE3C2D is a fill colour; as text on --bitumen it lands near 3.6:1. This
+       is the same red raised to a legible weight for error text and danger
+       labels. Fills keep --destructive. */
+    --destructive-ink: 232 122 108;
+    --destructive-foreground: var(--bone);
+    --border: var(--edge);
+    --input: var(--edge);
+    --ring: var(--bone);
+    /* Rounded rather than cut. 2px reads as a wireframe; these are the radii of
+       something finished. */
+    /* Elevation. The hairline edge alone is ~1.65:1 against the ground and
+       reads as nothing, so a card needs fill, edge and shadow together before
+       it is a card at all. */
+    --shadow-lift: 0 1px 0 rgb(var(--bone) / .04) inset, 0 18px 40px -24px rgb(0 0 0 / .78);
+    --shadow-press: 0 6px 18px -14px rgb(0 0 0 / .85);
+
+    --r-sm: 10px;
+    --r-md: 16px;
+    --r-lg: 24px;
+    --r-pill: 999px;
+    --radius: var(--r-md);
+
+    /*
+     * Tracking, derived from size rather than chosen per call site.
+     *
+     * There were nine different letter-spacing values across roughly forty
+     * call sites — 0.06 through 0.22em — assigned by eye, one at a time. That
+     * reads as a system from across the room and as noise up close, which is
+     * the worst of both. Three values, and which one you get follows from how
+     * big the text is: large type is set tight because letters drift apart as
+     * they grow, body sits at zero, and only small capitals need opening up.
+     */
+    --track-display: -0.02em;   /* anything above ~2rem */
+    --track-body: 0;
+    --track-label: 0.16em;      /* mono capitals at 11-12px */
+
+    /* Motion. One named curve: instant departure, long settle.
+       Transform and clip-path get the curve; opacity arrives linear.
+       Nothing bounces. */
+    --ease-settle: cubic-bezier(.16, 1, .3, 1);
+    --dur-micro: .15s;
+    --dur-fast: .24s;
+    --dur-settle: .8s;
+    --dur-slow: 1.2s;
+  }
+
+  * { border-color: rgb(var(--edge)); }
+
+  /*
+   * No global smooth scroll.
+   *
+   * Every in-page anchor animated, and `#contact` sits thousands of pixels
+   * down. Blink caps a programmatic smooth scroll at roughly 700ms, so one
+   * click fast-forwarded the whole descent in under a second — the only
+   * non-interruptible, velocity-blind motion on a site whose scroll is
+   * otherwise entirely the reader's. The nav asks for smooth behaviour itself,
+   * per click, where it can decide based on distance.
+   */
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  body {
+    background-color: rgb(var(--bitumen));
+    color: rgb(var(--bone));
+    font-family: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+    /* 400, and it is the weight that actually arrives. See the @font-face note
+       above: 350 resolved to the Light file and took the page with it. */
+    font-weight: 400;
+    /* 17px was the smallest size that still called itself body copy. The
+       references sit their running text at 18-20px and spend the saved
+       hierarchy on the display register instead. */
+    font-size: 1.1875rem;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+    /* The scene's focus states must never shift the layout. */
+    scrollbar-gutter: stable;
+  }
+
+  :focus-visible {
+    outline: 2px solid rgb(var(--bone));
+    outline-offset: 3px;
+  }
+
+  ::selection { background: rgb(var(--bone)); color: rgb(var(--bitumen)); }
+}
+
+@layer components {
+  /*
+   * The display register.
+   *
+   * Archivo carries a width axis from 100% to 125% and the site was using
+   * 112 — the middle of it, which is the one setting that reads as no
+   * decision at all. At 125 and weight 900 the face finally has the presence
+   * the references get from a compressed grotesque, and it costs nothing
+   * because the variable file is already loaded.
+   */
+  .display {
+    font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif;
+    font-variation-settings: 'wdth' 125;
+    font-weight: 900;
+    letter-spacing: var(--track-display);
+    line-height: 0.86;
+    text-transform: uppercase;
+  }
+  .display-tight {
+    font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif;
+    font-variation-settings: 'wdth' 112;
+    font-weight: 700;
+    letter-spacing: var(--track-display);
+    line-height: 1.04;
+  }
+
+  /*
+   * The quiet register. Used for a subtitle under a display line, a pull
+   * quote, or a single word that wants a different tone of voice — never for
+   * running text, which stays in the sans.
+   */
+  .editorial {
+    font-family: 'Instrument Serif', Georgia, 'Times New Roman', serif;
+    font-style: italic;
+    font-weight: 400;
+    letter-spacing: 0;
+    line-height: 1.16;
+  }
+  .mono {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-weight: 400;
+    letter-spacing: 0.06em;
+  }
+  /*
+   * The eyebrow, no longer the accent's main carrier.
+   *
+   * There were twenty of these and every one of them was orange, which is how
+   * an accent becomes a second body colour. 12px is the floor — 11px mono
+   * with this much tracking is decoration you cannot read — and the colour is
+   * the secondary grey, so an eyebrow labels its section instead of competing
+   * with the headline under it.
+   */
+  .eyebrow {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 0.75rem;
+    letter-spacing: var(--track-label);
+    text-transform: uppercase;
+    color: rgb(var(--clay));
+  }
+
+  /* Interactive surfaces share one shape and one motion, so the whole page
+     feels like it was made by the same hand. */
+  .pill {
+    border-radius: var(--r-pill);
+    transition: background-color var(--dur-micro) ease, color var(--dur-micro) ease,
+                border-color var(--dur-micro) ease, transform var(--dur-fast) var(--ease-settle);
+  }
+  .pill:active { transform: scale(0.97); }
+
+  .panel {
+    border-radius: var(--r-lg);
+    /* Was a flat --surface fill with a hairline. Over a photograph that reads
+       as a grey rectangle laid on the picture; the veil reads as something
+       the light is passing through. */
+    background-color: rgb(255 255 255 / .07);
+    background-image: radial-gradient(130% 100% at 30% -10%,
+      rgb(255 255 255 / .16) 0%, rgb(255 255 255 / .04) 38%, transparent 72%);
+    border: 1px solid rgb(255 255 255 / .18);
+    box-shadow:
+      inset 0 1px 0 0 rgb(255 255 255 / .34),
+      0 24px 60px -32px rgb(0 0 0 / .78);
+    transition: border-color var(--dur-fast) ease, background-color var(--dur-fast) ease,
+                transform var(--dur-settle) var(--ease-settle);
+  }
+  .panel:hover { border-color: rgb(255 255 255 / .34); }
+  .rule { height: 1px; background: rgb(var(--edge)); }
+
+  /*
+   * The plates, holding still.
+   *
+   * Every plate is stacked full-bleed in the same place and only its opacity
+   * changes, so the handover between sections is a cross-fade rather than a
+   * rise. The ground plate stays on underneath as the floor; the rest fade in
+   * over it.
+   *
+   * 900ms because this is deliberately the slowest thing on the site. A plate
+   * change is a change of place, and a place that swaps in 200ms reads as a
+   * glitch — windom.app lands on 1.1s for the same four photographs.
+   *
+   * Reduced motion gets the cut without the fade. This used to be handled by
+   * forcing `transform: none`, which stacked every layer at the top and let
+   * the last one in DOM order win permanently — the final sunset plate ended
+   * up behind the hero, giving away the ending on the first screen.
+   */
+  .scene-plate {
+    opacity: 0;
+    transition: opacity 900ms linear;
+  }
+  .scene-plate[data-plate="0"],
+  .scene-plate[data-on] {
+    opacity: 1;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .scene-plate { transition: none; }
+  }
+
+  /* Grain over large flat gradients: the sky is one enormous smooth ramp and
+     will band badly on wide-gamut displays without it. */
+  /* Skipped on phones: a fixed full-viewport overlay above every other layer
+     is real compositing work for a texture nobody sees at that size. */
+  @media (max-width: 639px) {
+    .grain::after { display: none; }
+  }
+  .grain::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 60;
+    opacity: 0.035;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+}
+
+@layer components {
+  /*
+   * Glass, ported from WindoM.
+   *
+   * Three things carried over from that build, each of which cost a day there:
+   *
+   *  1. Blur goes on a child layer, never on the pane. `filter` on the pane
+   *     itself displaces its children and warps the text into illegibility,
+   *     so every tier that blurs does it through `::after` at z-index -1 with
+   *     `isolation: isolate` on the parent.
+   *  2. Never hand-write `-webkit-backdrop-filter` beside the standard
+   *     property. Blink treats it as a true alias, the minifier collapses the
+   *     pair, keeps the prefixed copy and drops the standard one — WindoM
+   *     shipped once with no glass at all this way. The build adds the prefix.
+   *  3. Size inverts the material. A large surface takes a LIGHT veil, because
+   *     a white wash over a photograph reads as glass catching the light. A
+   *     chip has too little area for that to register, so small chrome takes a
+   *     DARK ground and a light border instead.
+   *
+   * And one thing measured here rather than inherited: the chrome tier is
+   * deliberately absent. A `position: fixed`, full-width bar with a
+   * backdrop-filter makes WebKit re-sample and re-blur the strip on every
+   * scroll frame — roughly 3.5ms of GPU time per frame on a low-end Android,
+   * for a bar. The nav stays solid; see the note in Nav.tsx, which was right.
+   */
+
+  /* Large surfaces: a light veil, no blur, an edge lit from above. */
+  .glass {
+    background-color: rgb(255 255 255 / .07);
+    background-image: radial-gradient(130% 100% at 30% -10%,
+      rgb(255 255 255 / .16) 0%, rgb(255 255 255 / .04) 38%, transparent 72%);
+    border: 1px solid rgb(255 255 255 / .18);
+    box-shadow:
+      inset 0 1px 0 0 rgb(255 255 255 / .34),
+      inset 0 14px 22px -16px rgb(255 255 255 / .22),
+      inset 0 -14px 22px -16px rgb(255 255 255 / .08),
+      0 24px 60px -32px rgb(0 0 0 / .78);
+  }
+
+  /*
+   * Bounded, non-fixed surfaces that want the plate to bend through them.
+   * Blur stays low on purpose: the refraction below is invisible above about
+   * 10px, because the blur has already destroyed the detail it would displace.
+   */
+  .glass-thin {
+    isolation: isolate;
+    background-color: rgb(var(--bitumen) / .30);
+    border: 1px solid rgb(255 255 255 / .14);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / .16), 0 26px 64px -34px rgb(0 0 0 / .9);
+  }
+  .glass-thin::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    pointer-events: none;
+    backdrop-filter: blur(8px) saturate(170%);
+  }
+  @supports (filter: url('#glass-distort-sm')) {
+    .glass-thin::after { filter: url('#glass-distort-sm'); }
+  }
+
+  /* Small chrome: too little area for a veil to read, so invert it. */
+  .glass-chip {
+    background: rgb(var(--bitumen) / .55);
+    border: 1px solid rgb(255 255 255 / .22);
+  }
+
+  /*
+   * Transparency is a preference, not a given. Where it is declined — or where
+   * the browser cannot blur at all — every tier falls back to the opaque
+   * surface the palette was built on.
+   */
+  @supports not (backdrop-filter: blur(1px)) {
+    .glass-thin { background-color: rgb(var(--surface) / .92); }
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    .glass, .glass-thin, .glass-chip {
+      background-color: rgb(var(--surface));
+      background-image: none;
+      border-color: rgb(var(--edge));
+    }
+    .glass-thin::after { backdrop-filter: none; filter: none; }
+  }
+
+  /*
+   * The footer's own ground.
+   *
+   * Everything in the footer was measured against --bitumen. Standing it on
+   * whatever colour the last plate had risen to is what made its headings and
+   * the admin link the least legible text on the site.
+   */
+  .footer-ground {
+    position: relative;
+    background: rgb(var(--bitumen));
+    border-top: 1px solid rgb(var(--edge));
+  }
+}
+
+@layer utilities {
+  /*
+   * Mobile legibility floor.
+   *
+   * The 10px and 11px mono labels carry the dates, tags, reading times and
+   * section eyebrows. They read fine on a desktop monitor and are genuinely
+   * too small on a phone. Raised to 12px below `sm` here rather than edited at
+   * roughly twenty call sites, so the desktop setting is untouched.
+   */
+  /* Narrower than it reads. The public surface has no sub-12px labels left —
+     the type direction set 12px as the floor everywhere — so what this still
+     catches is the admin's own `.a-label` and `.a-seg`, which keep the
+     smaller setting because that surface is a dense tool rather than a page
+     anyone reads at arm's length. */
+  @media (max-width: 1023px) {
+    .text-\[0\.625rem\],
+    .text-\[0\.6875rem\],
+    .eyebrow,
+    .a-label,
+    .a-summary,
+    .a-seg > button {
+      font-size: 0.75rem;
+    }
+  }
+}
+
+@layer components {
+  /*
+   * Shared surfaces for the project and notes pages.
+   *
+   * Measured, not styled to taste: text-bone/40 sits at 2.87:1 on --bitumen and
+   * text-bone/55 at 4.33:1, so both fail WCAG AA — /40 fails even the 3:1 bar
+   * for large text. That measurement is the actual source of the "muted" feel.
+   * The floor these classes hold to is: nothing below bone/60 (4.93:1), and
+   * every small mono label uses --clay (6.99:1).
+   */
+
+  .card {
+    border-radius: var(--r-lg);
+    border: 1px solid rgb(255 255 255 / .18);
+    background-color: rgb(255 255 255 / .07);
+    background-image: radial-gradient(130% 100% at 30% -10%,
+      rgb(255 255 255 / .16) 0%, rgb(255 255 255 / .04) 38%, transparent 72%);
+    box-shadow:
+      inset 0 1px 0 0 rgb(255 255 255 / .34),
+      0 24px 60px -32px rgb(0 0 0 / .78);
+    transition: border-color var(--dur-fast) ease, box-shadow var(--dur-fast) ease,
+                transform var(--dur-fast) var(--ease-settle);
+  }
+  /* Behind a hover query so a touch device never latches a stuck hover state. */
+  @media (hover: hover) and (pointer: fine) {
+    .card:hover { border-color: rgb(255 255 255 / .34); }
+    .card:hover .card-shot img { transform: scale(1.035); }
+  }
+  /* The tactile beat on touch, where there is no hover to carry it. */
+  .card:active { transform: scale(.985); box-shadow: var(--shadow-press); }
+  .card:focus-visible { outline-offset: 4px; border-color: rgb(var(--bone)); }
+
+  .card-shot { border-radius: var(--r-md); overflow: hidden; background: rgb(var(--bitumen)); }
+  .card-shot img { transition: transform var(--dur-settle) var(--ease-settle); }
+
+  /* One pill, two weights, 44px tall everywhere — the whole tap-target story. */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+    min-height: 44px; padding-inline: 1.125rem;
+    border-radius: var(--r-pill);
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: .75rem; letter-spacing: var(--track-label); text-transform: uppercase;
+    white-space: nowrap;
+    transition: background-color var(--dur-micro) ease, color var(--dur-micro) ease,
+                border-color var(--dur-micro) ease, transform var(--dur-fast) var(--ease-settle);
+  }
+  .btn:active { transform: scale(.97); }
+  .btn-solid { background: rgb(var(--bone)); color: rgb(var(--bitumen)); }
+  .btn-solid:hover { background: rgb(255 255 255); }
+  .btn-quiet { border: 1px solid rgb(var(--edge)); color: rgb(var(--bone)); }
+  .btn-quiet:hover { border-color: rgb(var(--bone)); color: rgb(var(--bone)); }
+
+  /* Never focusable, never interactive, so the 44px floor does not apply. */
+  .chip {
+    display: inline-flex; align-items: center; gap: .4rem;
+    border-radius: var(--r-pill);
+    border: 1px solid rgb(255 255 255 / .22);
+    background: rgb(var(--bitumen) / .55);
+    padding: .3rem .7rem;
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: .75rem; letter-spacing: .08em;
+    color: rgb(var(--clay));
+    white-space: nowrap;
+  }
+  .chip b { font-weight: 500; color: rgb(var(--bone)); font-variant-numeric: tabular-nums; }
+  .chip-hot { border-color: rgb(255 255 255 / .34); color: rgb(var(--bone)); }
+
+  /* Chips scroll on a phone instead of wrapping into a ragged grey block. */
+  .rail {
+    display: flex; gap: .5rem;
+    overflow-x: auto; overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none; -ms-overflow-style: none;
+    margin-inline: -1.25rem; padding-inline: 1.25rem;
+    -webkit-mask-image: linear-gradient(to right, transparent 0, #000 1.25rem, #000 calc(100% - 1.75rem), transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0, #000 1.25rem, #000 calc(100% - 1.75rem), transparent 100%);
+  }
+  .rail::-webkit-scrollbar { display: none; }
+  .rail > * { flex: 0 0 auto; scroll-snap-align: start; }
+  @media (min-width: 640px) {
+    .rail { flex-wrap: wrap; overflow: visible; margin-inline: 0; padding-inline: 0;
+            -webkit-mask-image: none; mask-image: none; }
+  }
+
+  /*
+   * Retired with the accent.
+   *
+   * `.sun` was a radial wash of sodium used as a page anchor. With the ground
+   * neutral and a photograph behind every section, a coloured glow laid over
+   * the top is the one thing guaranteed to look like it was added afterwards.
+   */
+}
+
+@layer base {
+  /*
+   * Clamp the layout viewport to the visible one.
+   *
+   * Something in the document was widening the initial containing block to
+   * 417px on a 390px screen. `body` already hid the overflow, so nothing
+   * scrolled sideways and it looked fine — but every fixed element sizes to
+   * that block, so the header was 417px wide and its menu button sat 11px off
+   * the right edge of the screen, permanently.
+   *
+   * `clip` rather than `hidden` on purpose: hidden would make the root a scroll
+   * container and break every `position: sticky` in the admin.
+   */
+  html {
+    overflow-x: clip;
+  }
+}
+
+@layer utilities {
+  /*
+   * The touch-target floor, in one place. Costs nothing on a mouse; makes every
+   * control conform on a finger. Applied to links and buttons that would
+   * otherwise inherit their height from 11-12px type.
+   */
+  @media (pointer: coarse) {
+    .tap {
+      min-height: 44px;
+      min-width: 44px;
+      display: inline-flex;
+      align-items: center;
+    }
+  }
+
+  /* Break a figure, code block or table out of the reading column on a phone,
+     where a 350px column minus padding is not enough to show anything. */
+  @media (max-width: 639px) {
+    .bleed {
+      width: 100vw;
+      margin-left: 50%;
+      transform: translateX(-50%);
+      max-width: none;
+    }
+  }
+
+  /*
+   * A figure, code block or table at the width of the article rather than the
+   * width of the reading column.
+   *
+   * The prose column is held to 38rem for measure, but the cover and the
+   * title span the article's full content box — so every in-body figure sat
+   * 40px narrower than the image above it and read as a misalignment rather
+   * than as a hierarchy. `100cqw` is the container's own width, so this is
+   * exactly the inset at any size and collapses to nothing by itself once the
+   * column stops being narrower than its container. The query container is
+   * declared on the wrapper around the prose; below `sm`, `.bleed` takes over
+   * and runs these blocks to the edge of the screen instead.
+   */
+  @media (min-width: 640px) {
+    .bleed-column {
+      margin-inline: calc((100% - 100cqw) / 2);
+      width: auto;
+      max-width: none;
+    }
+  }
+}
+
+@layer components {
+  /*
+   * A section that owns a plate.
+   *
+   * This padding used to be a runway: 96svh, later 36svh, reserved so a
+   * rising plate could finish travelling before any of its content arrived.
+   * Nothing travels now — the plate is already in place and cross-fades — so
+   * the runway became empty page, and the 51% of the home page measured with
+   * no text on it started here.
+   *
+   * What is left is ordinary breathing room. The plate change is what
+   * separates one section from the next.
+   */
+  .layer-section {
+    position: relative;
+    padding-top: 10svh;
+    padding-bottom: 10svh;
+  }
+  @media (max-width: 639px) {
+    .layer-section {
+      padding-top: 6svh;
+      padding-bottom: 6svh;
+    }
+  }
+
+  /* ---------------------------------------------------------------- notes -- */
+
+  .note-card {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-radius: var(--r-lg);
+    border: 1px solid rgb(255 255 255 / .18);
+    background-color: rgb(255 255 255 / .07);
+    background-image: radial-gradient(130% 100% at 30% -10%,
+      rgb(255 255 255 / .16) 0%, rgb(255 255 255 / .04) 38%, transparent 72%);
+    box-shadow: inset 0 1px 0 0 rgb(255 255 255 / .34), 0 24px 60px -32px rgb(0 0 0 / .78);
+    transition: border-color var(--dur-fast) ease, background-color var(--dur-fast) ease,
+                transform var(--dur-micro) var(--ease-settle);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .note-card:hover { border-color: rgb(255 255 255 / .34); background: rgb(var(--surface) / .75); }
+  }
+  .note-card:active { transform: scale(.985); }
+  /* Focus sits on the inner link, but a 3px outline offset inside overflow:hidden
+     is clipped — so the card itself carries the focus signal. */
+  .note-card:focus-within { border-color: rgb(var(--bone)); }
+  .note-card__media {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    background: rgb(var(--surface));
+    border-bottom: 1px solid rgb(var(--edge));
+  }
+  .note-card--lead .note-card__media { aspect-ratio: 4 / 3; }
+  @media (min-width: 640px) {
+    .note-card--lead .note-card__media { aspect-ratio: auto; height: 100%; }
+  }
+
+  .meta-pill {
+    display: inline-flex; align-items: center; gap: .5rem;
+    border-radius: var(--r-pill); border: 1px solid rgb(255 255 255 / .22);
+    background: rgb(var(--bitumen) / .5);
+    padding: .5rem .875rem;
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: .75rem; letter-spacing: .08em;
+    color: rgb(var(--clay));
+  }
+
+  .tag-pill {
+    display: inline-flex; align-items: center;
+    border-radius: var(--r-pill); border: 1px solid rgb(255 255 255 / .22);
+    background: rgb(var(--bitumen) / .5);
+    padding: .375rem .75rem;
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: .75rem; letter-spacing: .06em; text-transform: lowercase;
+    color: rgb(var(--clay));
+    transition: color var(--dur-micro) ease, border-color var(--dur-micro) ease;
+  }
+  .tag-pill:hover, .tag-pill:focus-visible { color: rgb(var(--bone)); border-color: rgb(255 255 255 / .4); }
+  .tag-pill--active { background: rgb(var(--bone)); border-color: transparent; color: rgb(var(--bitumen)); }
+
+  /*
+   * Atmosphere's scrim is a horizontal ramp tuned for the home page's
+   * left-aligned column. A post is a centred column, so deep in the document
+   * the prose drifts over the pale water band and loses contrast exactly where
+   * the reader is most committed. This one layer holds the ground steady.
+   */
+  .reading-ground {
+    position: fixed; inset: 0; z-index: -10;
+    pointer-events: none;
+    background: rgb(var(--bitumen) / .82);
+  }
+
+  /* Tracks --pr 1:1. Deliberately has no transition: it is a position readout,
+     not an animation, and easing it would make it lie. */
+  /*
+   * Two channels, because the two readouts measure different things.
+   *
+   * --pr is progress through the whole document, which every other
+   * scroll-driven effect reads. On a post that is a lie about reading
+   * progress: a page carries 1,200-1,800px of tags, footer navigation and
+   * site footer after the last paragraph, so the rail sat near 70% when the
+   * article had actually ended. --pr-read is measured against the article
+   * alone and falls back to --pr wherever nothing sets it.
+   */
+  .progress-rail {
+    position: fixed; inset-inline: 0; top: 0; height: 2px; z-index: 55;
+    transform-origin: left;
+    transform: scaleX(var(--pr-read, var(--pr, 0)));
+    background: rgb(var(--bone));
+  }
+  .progress-rail::after {
+    content: ''; position: absolute; right: -3px; top: -2px;
+    width: 6px; height: 6px; border-radius: var(--r-pill);
+    background: rgb(var(--bone));
+    box-shadow: 0 0 12px rgb(var(--bone) / .4);
+  }
+
+  /* ---------------------------------------------------------------- admin -- */
+
+  /* Not .panel: .panel:hover turns its border sodium, which makes every static
+     form card look clickable. Admin cards are containers, not links. */
+  .a-card { border-radius: var(--r-md); border: 1px solid rgb(var(--edge)); background: rgb(var(--surface) / .45); }
+  /* Solid, not translucent: there is no scenery behind the admin to reveal, and
+     a solid bar skips backdrop-filter entirely on a low-end phone. */
+  .a-bar { background: rgb(var(--bitumen)); border-color: rgb(var(--edge)); }
+
+  .a-label {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: .6875rem; letter-spacing: var(--track-label); text-transform: uppercase;
+    color: rgb(var(--clay)); display: block; margin-bottom: .5rem;
+  }
+  .a-hint { font-size: .8125rem; line-height: 1.5; color: rgb(var(--bone) / .6); margin-top: .375rem; }
+  .a-error {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: .6875rem; color: rgb(var(--destructive-ink)); margin-top: .375rem;
+  }
+
+  .a-input, .a-select, .a-textarea {
+    width: 100%; min-height: 44px;
+    border-radius: var(--r-sm);
+    border: 1px solid rgb(var(--edge));
+    background: rgb(var(--surface) / .6);
+    color: rgb(var(--bone));
+    padding: .625rem .75rem;
+    /* 16px exactly: iOS Safari zooms the viewport on focus for anything below
+       it, which is most of why editing from a phone is unpleasant today. */
+    font-size: 1rem;
+    line-height: 1.45;
+    transition: border-color var(--dur-micro) ease, background-color var(--dur-micro) ease,
+                box-shadow var(--dur-micro) ease;
+  }
+  .a-textarea { min-height: 8rem; resize: vertical; }
+  .a-select {
+    appearance: none; padding-right: 2.25rem;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%239EA09B' stroke-width='1.5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right .875rem center;
+  }
+  .a-input::placeholder, .a-textarea::placeholder { color: rgb(var(--bone) / .38); }
+  .a-input:hover, .a-select:hover, .a-textarea:hover { background: rgb(var(--surface) / .8); }
+  .a-input:focus, .a-select:focus, .a-textarea:focus {
+    outline: none; border-color: rgb(var(--sodium));
+    box-shadow: 0 0 0 3px rgb(var(--sodium) / .18);
+    background: rgb(var(--surface) / .95);
+  }
+  [aria-invalid="true"].a-input, [aria-invalid="true"].a-textarea, [aria-invalid="true"].a-select {
+    border-color: rgb(var(--destructive-ink) / .7);
+  }
+  .a-input-mono { font-family: 'IBM Plex Mono', ui-monospace, monospace; letter-spacing: .02em; }
+  .a-input-title {
+    font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif;
+    font-weight: 700; letter-spacing: -.02em;
+    font-size: 1.5rem; line-height: 1.15; min-height: 56px;
+  }
+
+  .a-btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+    min-height: 44px; padding: 0 1.125rem;
+    border-radius: var(--r-pill); border: 1px solid rgb(var(--edge));
+    background: transparent; color: rgb(var(--bone) / .85);
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: .75rem; letter-spacing: var(--track-label); text-transform: uppercase; white-space: nowrap;
+    transition: background-color var(--dur-micro) ease, color var(--dur-micro) ease,
+                border-color var(--dur-micro) ease, transform var(--dur-fast) var(--ease-settle);
+  }
+  .a-btn:hover { border-color: rgb(var(--bone) / .45); background: rgb(var(--surface) / .7); }
+  .a-btn:active { transform: scale(.975); }
+  .a-btn:disabled, .a-btn[aria-disabled="true"] { opacity: .38; pointer-events: none; }
+  .a-btn-primary { border-color: rgb(var(--sodium)); color: rgb(var(--sodium)); }
+  .a-btn-primary:hover { background: rgb(var(--sodium)); color: rgb(var(--bitumen)); border-color: rgb(var(--sodium)); }
+  .a-btn-danger { border-color: rgb(var(--destructive-ink) / .5); color: rgb(var(--destructive-ink)); }
+  .a-btn-danger:hover { background: rgb(var(--destructive)); color: rgb(var(--bone)); border-color: rgb(var(--destructive)); }
+  .a-btn-ghost { border-color: transparent; color: rgb(var(--clay)); }
+  .a-btn-ghost:hover { border-color: transparent; background: rgb(var(--surface) / .6); color: rgb(var(--bone)); }
+  .a-icon-btn { width: 44px; height: 44px; padding: 0; border-radius: var(--r-sm); }
+
+  .a-row {
+    display: flex; align-items: center; gap: .75rem;
+    min-height: 64px; padding: .75rem .875rem;
+    border-radius: var(--r-sm);
+    transition: background-color var(--dur-micro) ease;
+  }
+  .a-row:hover { background: rgb(var(--surface) / .6); }
+
+  .a-rail-item {
+    display: flex; align-items: center; justify-content: space-between;
+    min-height: 44px; padding: 0 .875rem; border-radius: var(--r-sm);
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: .75rem; letter-spacing: var(--track-label); text-transform: uppercase;
+    color: rgb(var(--clay));
+    transition: color var(--dur-micro) ease, background-color var(--dur-micro) ease;
+  }
+  .a-rail-item:hover { color: rgb(var(--bone)); background: rgb(var(--surface) / .5); }
+  .a-rail-item[aria-current="page"] {
+    color: rgb(var(--bone)); background: rgb(var(--surface) / .8);
+    box-shadow: inset 2px 0 0 rgb(var(--sodium));
+  }
+
+  .a-seg {
+    display: inline-flex; gap: 2px; padding: 3px;
+    border-radius: var(--r-pill); border: 1px solid rgb(var(--edge));
+    background: rgb(var(--surface) / .5);
+  }
+  .a-seg > button {
+    min-height: 38px; padding: 0 .875rem; border-radius: var(--r-pill);
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: .6875rem; letter-spacing: var(--track-label); text-transform: uppercase;
+    color: rgb(var(--clay));
+    transition: background-color var(--dur-micro) ease, color var(--dur-micro) ease;
+  }
+  .a-seg > button[aria-pressed="true"] { background: rgb(var(--bone) / .1); color: rgb(var(--bone)); }
+
+  .a-chip {
+    display: inline-flex; align-items: center; gap: .375rem;
+    min-height: 32px; padding: 0 .25rem 0 .625rem;
+    border-radius: var(--r-pill); border: 1px solid rgb(var(--edge));
+    background: rgb(var(--surface) / .6);
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: .75rem; color: rgb(var(--bone) / .85);
+  }
+
+  .a-dot { width: 7px; height: 7px; border-radius: 999px; display: inline-block; flex: none; }
+  .a-dot-published { background: rgb(var(--sodium)); }
+  .a-dot-draft { background: rgb(var(--bone) / .45); }
+  .a-dot-archived, .a-dot-hidden { background: transparent; box-shadow: inset 0 0 0 1px rgb(var(--bone) / .35); }
+
+  .a-summary {
+    display: flex; align-items: center; gap: .5rem; min-height: 44px; cursor: pointer;
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: .6875rem; letter-spacing: var(--track-label); text-transform: uppercase;
+    color: rgb(var(--clay)); list-style: none;
+  }
+  .a-summary::-webkit-details-marker { display: none; }
+  .a-summary::before { content: '\25B8'; transition: transform var(--dur-fast) var(--ease-settle); }
+  details[open] > .a-summary::before { transform: rotate(90deg); }
+  details[open] > .a-summary { color: rgb(var(--bone)); }
+}

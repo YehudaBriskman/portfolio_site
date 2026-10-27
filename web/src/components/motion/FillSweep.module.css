@@ -1,0 +1,97 @@
+/*
+ * A heading that fills in as it arrives, rather than fading in.
+ *
+ * A CSS module for the same reason Slab is one: the two rules that make this
+ * inert — reduced motion, and browsers without scroll-driven animation — are
+ * at-rules, and neither an inline style nor a Tailwind utility can carry one.
+ *
+ * The whole effect is one gradient clipped to the glyphs, with a single number
+ * moving the boundary across it. Registering that number is what makes it
+ * animatable at all: an unregistered custom property is a token the engine
+ * swaps in as text, so it would jump from 0 to 100 with nothing in between.
+ * Registered as a <number>, the browser interpolates it on the compositor and
+ * no JavaScript is involved in the sweep.
+ */
+@property --sweep-pos {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 0;
+}
+
+.sweep {
+  /*
+   * Taken as custom properties because these headings sit over photographs.
+   * The "off" state has to stay legible against whatever is behind it, which
+   * is a per-section decision, not something this file can know. The
+   * fallbacks are the page's own ink at full and at a quarter strength.
+   */
+  --sweep-on: rgb(var(--bone, 220 204 194));
+  --sweep-off: rgb(var(--bone, 220 204 194) / 0.24);
+
+  /*
+   * 97deg rather than 90: a fill that advances dead horizontally reads as a
+   * loading bar, and the few degrees of rake make it read as light crossing
+   * the words instead. The 9% offset between the two stops is the width of
+   * the edge — hard enough to be an edge, soft enough not to alias on the
+   * diagonal strokes of the glyphs.
+   */
+  background-image: linear-gradient(
+    97deg,
+    var(--sweep-on) 0%,
+    var(--sweep-on) calc(var(--sweep-pos) * 1%),
+    var(--sweep-off) calc((var(--sweep-pos) + 9) * 1%),
+    var(--sweep-off) 100%
+  );
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+
+  animation-name: sweep;
+  animation-timing-function: linear;
+  animation-fill-mode: both;
+  /*
+   * No animation-duration, deliberately. Under a view timeline the duration
+   * resolves from the range below; naming a time here would run the sweep on
+   * the clock and finish it before the heading had finished arriving.
+   *
+   * The range starts a quarter of the way into the entry rather than at the
+   * first pixel, because a heading that is already full by the time it clears
+   * the fold has done its work off-screen where nobody saw it.
+   */
+  animation-timeline: view();
+  animation-range: entry 24% cover 56%;
+}
+
+@keyframes sweep {
+  from {
+    --sweep-pos: 0;
+  }
+  to {
+    --sweep-pos: 100;
+  }
+}
+
+/*
+ * Degrading and silencing are two different conditions and both have to land
+ * on the same picture: the finished heading, painted flat.
+ *
+ * The gradient is dropped rather than parked at 100, because a browser without
+ * scroll-driven animation may also be one without @property — and there the
+ * unregistered token would leave the heading transparent, which is a blank
+ * page rather than a missing animation.
+ */
+@supports not (animation-timeline: view()) {
+  .sweep {
+    animation: none;
+    background-image: none;
+    color: var(--sweep-on);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sweep {
+    animation: none;
+    background-image: none;
+    color: var(--sweep-on);
+  }
+}

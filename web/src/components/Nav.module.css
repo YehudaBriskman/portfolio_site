@@ -1,0 +1,333 @@
+/*
+ * The nav as a floating island.
+ *
+ * Why this is an island and not a bar
+ * -----------------------------------
+ * The bar this replaces was deliberately solid, and its own comment said so:
+ * a `position: fixed`, full-width strip with a `backdrop-filter` makes WebKit
+ * re-sample and re-blur everything passing underneath it on every single
+ * scroll frame — roughly 3.5ms of GPU time per frame on a low-end Android,
+ * for a bar. That measurement has not changed and the conclusion was right.
+ *
+ * What changed is the area. The cost of a backdrop blur is paid per pixel of
+ * the blurred region, so a strip that spans the viewport is the most
+ * expensive shape the effect has. An island a few hundred pixels wide blurs
+ * perhaps a fifteenth of that, which is the difference between an effect you
+ * cannot afford and one you can — and it is also the better object, because
+ * glass reads as glass when you can see the ground around its edges.
+ *
+ * So: never a full-width blurred bar again. If this ever needs to span the
+ * viewport, it goes back to being opaque.
+ *
+ * Fixed, not sticky — measured, not preferred
+ * -------------------------------------------
+ * The recipe this was built from says `position: sticky; top: 18px`, and in
+ * this document sticky does not stick. `body` carries `overflow-x: hidden`
+ * (index.css), which makes its used `overflow-y` compute to `auto`, which
+ * makes `body` a scroll container. The thing that actually scrolls is `html`.
+ * So a sticky descendant of `body` is measured against a scrollport whose
+ * scrollHeight equals its clientHeight — 7421px against 7421px on the home
+ * page — and a scrollport with no overflow never offsets anything. Verified
+ * in Chromium: at scrollY 1500 the island's own `top` read -1482, which is
+ * the island travelling with the page rather than holding its position.
+ *
+ * `position: fixed` is immune to all of that, and none of the reasoning above
+ * depends on which of the two keeps the island in place: the cost of a
+ * backdrop blur is paid per blurred pixel, and the island is the same few
+ * hundred of them either way. If `body` ever loses `overflow-x: hidden` this
+ * can go back to the recipe verbatim.
+ *
+ * The zero-height dock
+ * --------------------
+ * The dock spans the viewport so the island can centre itself in it, and is
+ * 0px tall so that span catches nothing. Without the collapse, a full-width
+ * 50px box would sit over the top of every page swallowing clicks meant for
+ * the content behind it.
+ */
+.dock {
+  position: fixed;
+  inset-inline: 0;
+  top: 18px;
+  z-index: 50;
+  height: 0;
+}
+
+.island {
+  position: relative;
+  width: max-content;
+  /* A phone must never be able to push this past its own screen. */
+  max-width: calc(100vw - 20px);
+  margin-inline: auto;
+
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  padding: 9px 10px 9px 18px;
+  border-radius: 999px;
+
+  background: rgb(10 10 11 / 0.42);
+  border: 1px solid rgb(255 255 255 / 0.16);
+  /* The inset highlight is the whole illusion: it is the top edge of a piece
+     of glass catching the light, and without it the island is a dark pill. */
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.22),
+    0 18px 40px -26px rgb(0 0 0 / 0.9);
+  /* Standard property only. Blink treats `-webkit-backdrop-filter` as a true
+     alias, so a hand-written pair gets collapsed by the minifier with the
+     prefixed copy kept and the standard one dropped — which ships no glass at
+     all in every other engine. Autoprefixer adds the prefix at build time. */
+  backdrop-filter: blur(14px) saturate(160%);
+}
+
+/*
+ * The sheet the island opens into on a phone.
+ *
+ * Anchored to the dock rather than to the island, so it is outside the
+ * island's backdrop root and samples the page directly instead of sampling
+ * an already-blurred backdrop. Centred under the island, the same material,
+ * one radius softer.
+ */
+.sheet {
+  position: absolute;
+  top: 58px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(20rem, calc(100vw - 24px));
+  padding: 6px;
+  border-radius: 22px;
+
+  background: rgb(10 10 11 / 0.62);
+  border: 1px solid rgb(255 255 255 / 0.16);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.2),
+    0 26px 60px -30px rgb(0 0 0 / 0.95);
+  backdrop-filter: blur(16px) saturate(160%);
+}
+
+/*
+ * Transparency is a preference and glass is a capability, not a given. Both
+ * tiers fall back to the opaque surface the palette was built on — the same
+ * contract `.glass-thin` holds in index.css, so the whole site declines in
+ * one direction.
+ */
+@supports not (backdrop-filter: blur(1px)) {
+  .island,
+  .sheet {
+    background: rgb(var(--surface));
+    border-color: rgb(var(--edge));
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .island,
+  .sheet {
+    background: rgb(var(--surface));
+    border-color: rgb(var(--edge));
+    backdrop-filter: none;
+  }
+}
+
+/* ------------------------------------------------------------- contents -- */
+
+/*
+ * One height for everything in the island.
+ *
+ * Each control is a real 44px target and then gives 7px back at each end, so
+ * the row measures 30px, and the island resolves to 50px once its own border
+ * is counted. The finger gets the floor it needs and the object stays the
+ * size the recipe draws.
+ */
+.wordmark,
+.link,
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-block: -7px;
+  border-radius: 999px;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transition:
+    color var(--dur-micro) ease,
+    background-color var(--dur-micro) ease;
+}
+
+.wordmark,
+.link,
+.toggle {
+  outline-offset: 2px;
+}
+
+.wordmark:focus-visible,
+.link:focus-visible,
+.toggle:focus-visible {
+  outline: 2px solid rgb(var(--bone));
+}
+
+.wordmark {
+  letter-spacing: 0.22em;
+  color: rgb(var(--bone));
+}
+
+/* The period was the accent's last foothold in the chrome. It is a mark of
+   punctuation, so it reads one value down rather than in a second colour. */
+.stop {
+  color: rgb(var(--clay));
+}
+
+/*
+ * The whole map is laid out from `sm` up and folds into the sheet below it,
+ * which is the breakpoint the bar already used. Dropping the links without
+ * putting them anywhere is what once left a phone with two of six
+ * destinations; the sheet is where the other four live.
+ */
+.links {
+  display: none;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 640px) {
+  .links {
+    display: flex;
+  }
+
+  .toggle {
+    display: none;
+  }
+}
+
+/* Flex, so the `<li>` never opens a line box of its own. An inline-flex link
+   sitting on a baseline inherits the body's 19px/1.6 leading and grew the
+   island by 5px it had no reason to be. */
+.links > li {
+  display: flex;
+}
+
+.link {
+  padding-inline: 11px;
+  letter-spacing: var(--track-label);
+  color: rgb(var(--clay));
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .link:hover {
+    color: rgb(var(--bone));
+  }
+}
+
+/*
+ * Where you are, said in value rather than in hue.
+ *
+ * Bone alone would be indistinguishable from the hover state, so the current
+ * destination also takes a pressed-in ground — the same light the island's
+ * own edge is made of, which is the only kind of emphasis this palette has
+ * left and the only kind it wants.
+ */
+.link[aria-current] {
+  color: rgb(var(--bone));
+  background: rgb(255 255 255 / 0.1);
+}
+
+.toggle {
+  justify-content: center;
+  width: 44px;
+  margin-inline: -7px;
+  color: rgb(var(--bone));
+  background: transparent;
+  border: 0;
+}
+
+/* Two bars that cross into an X, so the control reads as one thing in two
+   states rather than as two icons swapping places. */
+.bars {
+  position: relative;
+  display: block;
+  width: 18px;
+  height: 14px;
+}
+
+.bars::before,
+.bars::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  display: block;
+  width: 18px;
+  height: 1px;
+  background: currentColor;
+  transition: transform var(--dur-fast) var(--ease-settle);
+}
+
+.bars::before {
+  top: 3px;
+}
+
+.bars::after {
+  top: 10px;
+}
+
+.toggle[aria-expanded='true'] .bars::before {
+  top: 6px;
+  transform: rotate(45deg);
+}
+
+.toggle[aria-expanded='true'] .bars::after {
+  top: 6px;
+  transform: rotate(-45deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bars::before,
+  .bars::after {
+    transition: none;
+  }
+}
+
+/* ---------------------------------------------------------------- sheet -- */
+
+.sheetList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sheetLink {
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  padding-inline: 14px;
+  border-radius: 16px;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 0.75rem;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: rgb(var(--clay));
+  transition:
+    color var(--dur-micro) ease,
+    background-color var(--dur-micro) ease;
+}
+
+.sheetLink[aria-current] {
+  color: rgb(var(--bone));
+  background: rgb(255 255 255 / 0.1);
+}
+
+.sheetLink:focus-visible {
+  outline: 2px solid rgb(var(--bone));
+  outline-offset: -2px;
+}
+
+/* A hairline between the page's own sections and the site's destinations:
+   they are two different kinds of going somewhere and the sheet should not
+   pretend otherwise. */
+.sheetSplit {
+  height: 1px;
+  margin: 6px 10px;
+  background: rgb(255 255 255 / 0.12);
+}

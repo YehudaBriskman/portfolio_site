@@ -1,6 +1,6 @@
 services:
   web:
-    build: ./glassglow-folio-space
+    build: ./web
     image: portfolio_site-web:latest
     ports:
       - "8080:8080"
