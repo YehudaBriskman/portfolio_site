@@ -47,13 +47,33 @@ export default {
       },
       fontFamily: {
         display: ["Archivo", "ui-sans-serif", "system-ui", "sans-serif"],
+        editorial: ["Instrument Serif", "Georgia", "Times New Roman", "serif"],
         sans: ["IBM Plex Sans", "ui-sans-serif", "system-ui", "sans-serif"],
         mono: ["IBM Plex Mono", "ui-monospace", "monospace"],
       },
       fontSize: {
-        // Display scale is deliberately steep: the hero should dwarf everything.
-        hero: ["clamp(3rem, 9.5vw, 9rem)", { lineHeight: "0.88" }],
-        section: ["clamp(2.15rem, 5vw, 4.25rem)", { lineHeight: "0.95" }],
+        /*
+         * Two registers and a hole.
+         *
+         * The references this is drawn from have nothing between roughly 24px
+         * and 80px — tiny labels, giant display, and a different *voice* in
+         * between rather than a middle size. The previous ceiling of 9rem was
+         * the top of a continuous ramp, which is why nothing on the page ever
+         * read as the most important thing on it.
+         */
+        /*
+         * Sized from the face, not from taste. Measured at wdth 125 / weight
+         * 900, "BRISKMAN" is 7.12em wide and "GET IN TOUCH" is 9.28em — the
+         * two longest strings the site sets in this register. The hero runs
+         * full-bleed so its budget is the viewport less its gutters, and the
+         * section heads live in the 1152px column. Both clamps are the
+         * largest value that still fits the longer string at every width,
+         * which is why they are not round numbers.
+         */
+        hero: ["clamp(2.4rem, 12vw, 13rem)", { lineHeight: "0.84" }],
+        section: ["clamp(2.2rem, 7vw, 7rem)", { lineHeight: "0.88" }],
+        /* The quiet register, sized to sit under a section head. */
+        sub: ["clamp(1.25rem, 3.2vw, 2rem)", { lineHeight: "1.16" }],
       },
       keyframes: {
         "fade-up": { from: { opacity: "0", transform: "translateY(14px)" }, to: { opacity: "1", transform: "none" } },

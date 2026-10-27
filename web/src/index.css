@@ -47,6 +47,22 @@
   font-display: swap;
   src: url('/fonts/ibm-plex-sans-500.woff2') format('woff2');
 }
+/*
+ * The second voice.
+ *
+ * Every reference this direction is drawn from has one: a quiet, high-contrast
+ * italic that says the subtitle while the grotesque shouts the name. Without
+ * it the gap between a 12px label and a 9rem headline reads as a mistake
+ * rather than as a decision — it is the thing that makes the empty middle of
+ * the type scale deliberate. Latin subset, one file, 22KB.
+ */
+@font-face {
+  font-family: 'Instrument Serif';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/instrument-serif-italic.woff2') format('woff2');
+}
 @font-face {
   font-family: 'IBM Plex Mono';
   font-style: normal;
@@ -67,36 +83,45 @@
 @tailwind utilities;
 
 /*
-  Palette sampled directly from the reference photograph — a lone tree against
-  layered ridges at sunset, mirrored in still water. Every value below was read
-  off that image rather than chosen, which is why the scene and the interface
-  agree without being matched by eye.
+  Neutral ground, and the photographs supply the colour.
+  ------------------------------------------------------
 
-    #0F1515  top of the sky            -> page ground
-    #1B2527  upper gradient            -> raised panels
-    #2E3E41  foreground ridge          -> hairlines
-    #556262  mid ridge
-    #7A8583  haze over the far range
-    #9EA09B  atmospheric mist          -> secondary text
-    #DCCCC2  the water, and the pale band at the horizon -> primary text
-    #F77402  the sun. Sampled from the disc itself.      -> the only accent
+  The palette used to be sampled from the reference photograph, the ground
+  included: #0F1515 is a desaturated teal. That was defensible while the
+  background was a gradient and a drawing. It stopped being defensible the
+  moment real photographs went behind the page — a tinted ground puts every
+  plate in a colour cast, and nothing on the site is ever actually black.
+
+  Measured against the references this direction is drawn from: Forge sits on
+  #0C0C0C and Daksh on #060606, both dead neutral. The one of them that reads
+  richest in colour is the one with no accent colour at all, because the
+  photography is left to do it.
+
+  So: a neutral axis for every surface and every grey, bone for type, and no
+  chromatic accent in the chrome. Emphasis is weight, width and value, never
+  hue.
 */
 @layer base {
   :root {
-    --bitumen:  15 21 21;      /* #0F1515 */
-    --surface:  27 37 39;      /* #1B2527 */
-    --edge:     46 62 65;      /* #2E3E41 */
-    --ridge:    55 74 76;      /* #374A4C */
-    --haze:     85 98 98;      /* #556262 */
-    --haze-2:  122 133 131;    /* #7A8583 */
-    --bone:    220 204 194;    /* #DCCCC2 */
-    --clay:    158 160 155;    /* #9EA09B */
-    /* #E8814A — the mean of the sun's disc rather than one hot pixel from its
-       centre. The single-pixel sample read as safety orange; averaged across the
-       disc and its glow it comes out warmer and calmer, which is what the rest
-       of the palette wanted all along. 6.8:1 on the ground. */
+    --bitumen:  10 10 11;      /* #0A0A0B  the ground, dead neutral */
+    --surface:  18 18 20;      /* #121214  raised panels */
+    --edge:     35 35 38;      /* #232326  hairlines */
+    --ridge:    46 46 50;      /* #2E2E32 */
+    --haze:     58 58 63;      /* #3A3A3F */
+    --haze-2:  106 104  98;    /* #6A6862  faint type */
+    --bone:    237 232 224;    /* #EDE8E0  primary type, 16.2:1 on the ground */
+    --clay:    154 151 143;    /* #9A978F  secondary type, 7.1:1 */
+    /*
+     * The accent, now spent in one place only.
+     *
+     * It used to sit on forty-four elements of the home page, which is not an
+     * accent, it is a second body colour. Over photographs it also landed at
+     * roughly the hue of the warm plates and stopped registering as anything
+     * at all. What survives is the admin surface, which has no plates behind
+     * it and uses colour functionally. Public pages get --bone and a weight.
+     */
     --sodium:  232 129 74;
-    --screen:  122 133 131;    /* retained name, now the haze tone */
+    --screen:  106 104  98;    /* retained name, now the faint tone */
 
     /* shadcn primitives inherit the same values */
     --background: var(--bitumen);
@@ -105,14 +130,14 @@
     --card-foreground: var(--bone);
     --popover: var(--surface);
     --popover-foreground: var(--bone);
-    --primary: var(--sodium);
-    --primary-foreground: 15 21 21;
+    --primary: var(--bone);
+    --primary-foreground: 10 10 11;
     --secondary: var(--surface);
     --secondary-foreground: var(--bone);
     --muted: var(--surface);
     --muted-foreground: var(--clay);
     --accent: var(--surface);
-    --accent-foreground: var(--sodium);
+    --accent-foreground: var(--bone);
     --destructive: 190 60 45;
     /* #BE3C2D is a fill colour; as text on --bitumen it lands near 3.6:1. This
        is the same red raised to a legible weight for error text and danger
@@ -121,7 +146,7 @@
     --destructive-foreground: var(--bone);
     --border: var(--edge);
     --input: var(--edge);
-    --ring: var(--sodium);
+    --ring: var(--bone);
     /* Rounded rather than cut. 2px reads as a wireframe; these are the radii of
        something finished. */
     /* Elevation. The hairline edge alone is ~1.65:1 against the ground and
@@ -129,11 +154,6 @@
        it is a card at all. */
     --shadow-lift: 0 1px 0 rgb(var(--bone) / .04) inset, 0 18px 40px -24px rgb(0 0 0 / .78);
     --shadow-press: 0 6px 18px -14px rgb(0 0 0 / .85);
-
-    /* The terrain's colour, and the colour it is leaving. Sections override
-       these as they crest; these defaults are the resting palette. */
-    --crest-hue: 34 48 50;
-    --crest-from: 34 48 50;
 
     --r-sm: 10px;
     --r-md: 16px;
@@ -193,8 +213,11 @@
     /* 400, and it is the weight that actually arrives. See the @font-face note
        above: 350 resolved to the Light file and took the page with it. */
     font-weight: 400;
-    font-size: 1.0625rem;
-    line-height: 1.65;
+    /* 17px was the smallest size that still called itself body copy. The
+       references sit their running text at 18-20px and spend the saved
+       hierarchy on the display register instead. */
+    font-size: 1.1875rem;
+    line-height: 1.6;
     -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
     /* The scene's focus states must never shift the layout. */
@@ -202,39 +225,71 @@
   }
 
   :focus-visible {
-    outline: 2px solid rgb(var(--sodium));
+    outline: 2px solid rgb(var(--bone));
     outline-offset: 3px;
   }
 
-  ::selection { background: rgb(var(--sodium)); color: rgb(var(--bitumen)); }
+  ::selection { background: rgb(var(--bone)); color: rgb(var(--bitumen)); }
 }
 
 @layer components {
+  /*
+   * The display register.
+   *
+   * Archivo carries a width axis from 100% to 125% and the site was using
+   * 112 — the middle of it, which is the one setting that reads as no
+   * decision at all. At 125 and weight 900 the face finally has the presence
+   * the references get from a compressed grotesque, and it costs nothing
+   * because the variable file is already loaded.
+   */
   .display {
     font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif;
-    font-variation-settings: 'wdth' 112;
-    font-weight: 800;
+    font-variation-settings: 'wdth' 125;
+    font-weight: 900;
     letter-spacing: var(--track-display);
-    line-height: 0.9;
+    line-height: 0.86;
+    text-transform: uppercase;
   }
   .display-tight {
     font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif;
-    font-variation-settings: 'wdth' 108;
+    font-variation-settings: 'wdth' 112;
     font-weight: 700;
     letter-spacing: var(--track-display);
-    line-height: 1.0;
+    line-height: 1.04;
+  }
+
+  /*
+   * The quiet register. Used for a subtitle under a display line, a pull
+   * quote, or a single word that wants a different tone of voice — never for
+   * running text, which stays in the sans.
+   */
+  .editorial {
+    font-family: 'Instrument Serif', Georgia, 'Times New Roman', serif;
+    font-style: italic;
+    font-weight: 400;
+    letter-spacing: 0;
+    line-height: 1.16;
   }
   .mono {
     font-family: 'IBM Plex Mono', ui-monospace, monospace;
     font-weight: 400;
     letter-spacing: 0.06em;
   }
+  /*
+   * The eyebrow, no longer the accent's main carrier.
+   *
+   * There were twenty of these and every one of them was orange, which is how
+   * an accent becomes a second body colour. 12px is the floor — 11px mono
+   * with this much tracking is decoration you cannot read — and the colour is
+   * the secondary grey, so an eyebrow labels its section instead of competing
+   * with the headline under it.
+   */
   .eyebrow {
     font-family: 'IBM Plex Mono', ui-monospace, monospace;
-    font-size: 0.6875rem;
+    font-size: 0.75rem;
     letter-spacing: var(--track-label);
     text-transform: uppercase;
-    color: rgb(var(--sodium));
+    color: rgb(var(--clay));
   }
 
   /* Interactive surfaces share one shape and one motion, so the whole page
@@ -261,50 +316,37 @@
     transition: border-color var(--dur-fast) ease, background-color var(--dur-fast) ease,
                 transform var(--dur-settle) var(--ease-settle);
   }
-  .panel:hover { border-color: rgb(var(--sodium) / 0.45); }
+  .panel:hover { border-color: rgb(255 255 255 / .34); }
   .rule { height: 1px; background: rgb(var(--edge)); }
 
   /*
-   * The scene at rest.
+   * The plates, holding still.
    *
-   * Reduced motion used to be handled with `transform: none !important` on
-   * every layer, which is not a resting state: it stacks all of them at the
-   * top of the document, fully opaque, and the last one in DOM order wins
-   * permanently. On the home page that meant the final sunset plate sat behind
-   * the hero — the ending given away on the first screen, on a ground none of
-   * the palette was measured against.
+   * Every plate is stacked full-bleed in the same place and only its opacity
+   * changes, so the handover between sections is a cross-fade rather than a
+   * rise. The ground plate stays on underneath as the floor; the rest fade in
+   * over it.
    *
-   * A still scene instead: the ground, and the first plate pushed to its full
-   * overshoot so it simply fills the viewport with its ridge above the top
-   * edge. One photograph, holding still, which is what a gentler equivalent
-   * looks like here. The scroll hook returns early under the same query so
-   * nothing competes with these rules.
+   * 900ms because this is deliberately the slowest thing on the site. A plate
+   * change is a change of place, and a place that swaps in 200ms reads as a
+   * glitch — windom.app lands on 1.1s for the same four photographs.
+   *
+   * Reduced motion gets the cut without the fade. This used to be handled by
+   * forcing `transform: none`, which stacked every layer at the top and let
+   * the last one in DOM order win permanently — the final sunset plate ended
+   * up behind the hero, giving away the ending on the first screen.
    */
-  /* Every plate but the ground starts below the fold; the scroll hook raises
-     them from there. Declared here rather than inline so the resting rules
-     below can override it. */
-  .scene-layer[data-layer]:not([data-layer="0"]) {
-    transform: translate3d(0, 100vh, 0);
+  .scene-plate {
+    opacity: 0;
+    transition: opacity 900ms linear;
   }
-
+  .scene-plate[data-plate="0"],
+  .scene-plate[data-on] {
+    opacity: 1;
+  }
   @media (prefers-reduced-motion: reduce) {
-    /* The :not() is carrying specificity, not logic — it matches the start
-       rule above (0,3,0) so that this one, coming later, actually wins. */
-    .scene-layer[data-layer="1"]:not([data-layer="0"]) {
-      transform: translate3d(0, -38vh, 0);
-    }
-    .scene-layer[data-layer]:not([data-layer="0"]):not([data-layer="1"]) {
-      display: none;
-    }
+    .scene-plate { transition: none; }
   }
-
-  /* Ambient motion for the landscape's inhabitants. All of it is slow and
-     none of it bounces — the same rule the type animations follow. */
-  @keyframes twinkle { 0%,100% { opacity: .40 } 50% { opacity: .95 } }
-  @keyframes drift   { from { transform: translateX(0) } to { transform: translateX(-1440px) } }
-  @keyframes cross   { from { transform: translateX(-140px) } to { transform: translateX(1580px) } }
-  @keyframes flap    { 0%,100% { transform: scaleY(1) } 50% { transform: scaleY(.55) } }
-  @keyframes sway    { 0%,100% { transform: rotate(-2.5deg) } 50% { transform: rotate(2.5deg) } }
 
   /* Grain over large flat gradients: the sky is one enormous smooth ramp and
      will band badly on wide-gamut displays without it. */
@@ -433,8 +475,11 @@
    * too small on a phone. Raised to 12px below `sm` here rather than edited at
    * roughly twenty call sites, so the desktop setting is untouched.
    */
-  /* Phones and tablets both hold the floor; only a desktop, viewed from
-     further away, keeps the 11px labels. */
+  /* Narrower than it reads. The public surface has no sub-12px labels left —
+     the type direction set 12px as the floor everywhere — so what this still
+     catches is the admin's own `.a-label` and `.a-seg`, which keep the
+     smaller setting because that surface is a dense tool rather than a page
+     anyone reads at arm's length. */
   @media (max-width: 1023px) {
     .text-\[0\.625rem\],
     .text-\[0\.6875rem\],
@@ -472,12 +517,12 @@
   }
   /* Behind a hover query so a touch device never latches a stuck hover state. */
   @media (hover: hover) and (pointer: fine) {
-    .card:hover { border-color: rgb(var(--sodium) / .5); }
+    .card:hover { border-color: rgb(255 255 255 / .34); }
     .card:hover .card-shot img { transform: scale(1.035); }
   }
   /* The tactile beat on touch, where there is no hover to carry it. */
   .card:active { transform: scale(.985); box-shadow: var(--shadow-press); }
-  .card:focus-visible { outline-offset: 4px; border-color: rgb(var(--sodium)); }
+  .card:focus-visible { outline-offset: 4px; border-color: rgb(var(--bone)); }
 
   .card-shot { border-radius: var(--r-md); overflow: hidden; background: rgb(var(--bitumen)); }
   .card-shot img { transition: transform var(--dur-settle) var(--ease-settle); }
@@ -494,10 +539,10 @@
                 border-color var(--dur-micro) ease, transform var(--dur-fast) var(--ease-settle);
   }
   .btn:active { transform: scale(.97); }
-  .btn-solid { background: rgb(var(--sodium)); color: rgb(var(--bitumen)); }
-  .btn-solid:hover { background: rgb(var(--sodium) / .88); }
+  .btn-solid { background: rgb(var(--bone)); color: rgb(var(--bitumen)); }
+  .btn-solid:hover { background: rgb(255 255 255); }
   .btn-quiet { border: 1px solid rgb(var(--edge)); color: rgb(var(--bone)); }
-  .btn-quiet:hover { border-color: rgb(var(--sodium) / .6); color: rgb(var(--sodium)); }
+  .btn-quiet:hover { border-color: rgb(var(--bone)); color: rgb(var(--bone)); }
 
   /* Never focusable, never interactive, so the 44px floor does not apply. */
   .chip {
@@ -512,7 +557,7 @@
     white-space: nowrap;
   }
   .chip b { font-weight: 500; color: rgb(var(--bone)); font-variant-numeric: tabular-nums; }
-  .chip-hot { border-color: rgb(var(--sodium) / .45); color: rgb(var(--sodium)); }
+  .chip-hot { border-color: rgb(255 255 255 / .34); color: rgb(var(--bone)); }
 
   /* Chips scroll on a phone instead of wrapping into a ragged grey block. */
   .rail {
@@ -531,13 +576,13 @@
             -webkit-mask-image: none; mask-image: none; }
   }
 
-  /* The sun from the hero, borrowed as a page anchor. Decorative only, and it
-     never sits under body copy. */
-  .sun {
-    position: absolute; pointer-events: none; border-radius: var(--r-pill);
-    background: radial-gradient(circle,
-      rgb(var(--sodium) / .22) 0%, rgb(var(--sodium) / .07) 42%, rgb(var(--sodium) / 0) 70%);
-  }
+  /*
+   * Retired with the accent.
+   *
+   * `.sun` was a radial wash of sodium used as a page anchor. With the ground
+   * neutral and a photograph behind every section, a coloured glow laid over
+   * the top is the one thing guaranteed to look like it was added afterwards.
+   */
 }
 
 @layer base {
@@ -608,41 +653,26 @@
 
 @layer components {
   /*
-   * A section that owns a layer.
+   * A section that owns a plate.
    *
-   * The handover is the main event, so it gets reserved room rather than
-   * whatever happens to be left over. Each of these is at least a full screen
-   * tall and opens with empty space, so its layer finishes rising before any of
-   * its content arrives — and the timing of that rise never depends on how much
-   * copy the section above it happened to contain.
+   * This padding used to be a runway: 96svh, later 36svh, reserved so a
+   * rising plate could finish travelling before any of its content arrived.
+   * Nothing travels now — the plate is already in place and cross-fades — so
+   * the runway became empty page, and the 51% of the home page measured with
+   * no text on it started here.
    *
-   * The bottom space does the same job at the other end: content finishes well
-   * before the next layer starts climbing, so nothing is ever read across two
-   * backgrounds at once.
+   * What is left is ordinary breathing room. The plate change is what
+   * separates one section from the next.
    */
   .layer-section {
     position: relative;
-    /*
-     * The runway used to be a full screen, on the argument that a layer needs
-     * one viewport of travel before its content may arrive. That was true of
-     * the old handover, which was a pure function of scroll position and could
-     * not start until the section's top edge did. The plates cross-fade on an
-     * intersection ratio instead, so the handover is finished by the time a
-     * third of the section is on screen and the rest of the padding was
-     * reserving room for nothing.
-     *
-     * Measured before: 10,172px of home page, 52 of its 102 hundred-pixel bands
-     * holding no text at all, and four gaps of 1,000-1,200px each. `min-height`
-     * was dead code — 96svh + 18svh already exceeded it under border-box.
-     */
-    padding-top: 36svh;
+    padding-top: 10svh;
     padding-bottom: 10svh;
   }
   @media (max-width: 639px) {
-    /* A phone screen is mostly content, so the entrance takes a smaller cut. */
     .layer-section {
-      padding-top: 22svh;
-      padding-bottom: 8svh;
+      padding-top: 6svh;
+      padding-bottom: 6svh;
     }
   }
 
@@ -662,12 +692,12 @@
                 transform var(--dur-micro) var(--ease-settle);
   }
   @media (hover: hover) and (pointer: fine) {
-    .note-card:hover { border-color: rgb(var(--sodium) / .45); background: rgb(var(--surface) / .75); }
+    .note-card:hover { border-color: rgb(255 255 255 / .34); background: rgb(var(--surface) / .75); }
   }
   .note-card:active { transform: scale(.985); }
   /* Focus sits on the inner link, but a 3px outline offset inside overflow:hidden
      is clipped — so the card itself carries the focus signal. */
-  .note-card:focus-within { border-color: rgb(var(--sodium)); }
+  .note-card:focus-within { border-color: rgb(var(--bone)); }
   .note-card__media {
     position: relative;
     aspect-ratio: 16 / 9;
@@ -700,8 +730,8 @@
     color: rgb(var(--clay));
     transition: color var(--dur-micro) ease, border-color var(--dur-micro) ease;
   }
-  .tag-pill:hover, .tag-pill:focus-visible { color: rgb(var(--sodium)); border-color: rgb(var(--sodium) / .5); }
-  .tag-pill--active { background: rgb(var(--sodium)); border-color: transparent; color: rgb(var(--bitumen)); }
+  .tag-pill:hover, .tag-pill:focus-visible { color: rgb(var(--bone)); border-color: rgb(255 255 255 / .4); }
+  .tag-pill--active { background: rgb(var(--bone)); border-color: transparent; color: rgb(var(--bitumen)); }
 
   /*
    * Atmosphere's scrim is a horizontal ramp tuned for the home page's
@@ -731,13 +761,13 @@
     position: fixed; inset-inline: 0; top: 0; height: 2px; z-index: 55;
     transform-origin: left;
     transform: scaleX(var(--pr-read, var(--pr, 0)));
-    background: rgb(var(--sodium));
+    background: rgb(var(--bone));
   }
   .progress-rail::after {
     content: ''; position: absolute; right: -3px; top: -2px;
     width: 6px; height: 6px; border-radius: var(--r-pill);
-    background: rgb(var(--sodium));
-    box-shadow: 0 0 12px rgb(var(--sodium) / .5);
+    background: rgb(var(--bone));
+    box-shadow: 0 0 12px rgb(var(--bone) / .4);
   }
 
   /* ---------------------------------------------------------------- admin -- */
