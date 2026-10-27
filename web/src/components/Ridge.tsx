@@ -11,14 +11,15 @@ const SHAPES = [
 ];
 
 export default function Ridge({ variant = 0, flip = false }: { variant?: number; flip?: boolean }) {
-  // Breaks out of whatever column it is placed in: several call sites sit inside
-  // a max-w container, where a page-width horizon became a floating bar with a
-  // gap at each end.
+  // Runs to the gutters of whatever column it is placed in, so a horizon is a
+  // horizon rather than a floating bar with a gap at each end.
+  //
+  // `.bleed-x` and not `left-1/2 w-screen -translate-x-1/2`: `100vw` counts the
+  // scrollbar, so that recipe is 8-17px wider than the visible page on every
+  // scrolling document and reports an overflow forever. The horizon only ever
+  // needed to escape the padding.
   return (
-    <div
-      className="pointer-events-none relative left-1/2 h-16 w-screen -translate-x-1/2"
-      aria-hidden="true"
-    >
+    <div className="bleed-x pointer-events-none relative h-16" aria-hidden="true">
       <svg
         viewBox="0 0 1440 64"
         preserveAspectRatio="none"

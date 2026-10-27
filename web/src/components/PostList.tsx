@@ -13,14 +13,14 @@ import type { PostSummary } from "@/services/blog";
 export default function PostList({ posts }: { posts: PostSummary[] }) {
   if (posts.length === 0) {
     return (
-      <div className="note-card mt-2 flex flex-col items-center px-6 py-14 text-center sm:py-16">
+      <div className="note-card mt-3 flex flex-col items-center px-6 py-12 text-center">
         <div className="w-48 overflow-hidden rounded-[var(--r-md)] opacity-40 sm:w-64">
           <div className="aspect-[16/9]">
             <NoteGlyph seed="empty" />
           </div>
         </div>
-        <h2 className="display-tight mt-7 text-xl text-bone sm:text-2xl">Nothing here yet.</h2>
-        <p className="mt-3 max-w-sm text-[0.9375rem] leading-relaxed text-bone/70">
+        <h2 className="display-tight mt-12 text-xl text-bone sm:text-2xl">Nothing here yet.</h2>
+        <p className="mt-6 max-w-sm text-[0.9375rem] leading-relaxed text-bone/70">
           Notes go up as the work gets done. Anything filed here will appear on this page.
         </p>
       </div>
@@ -28,7 +28,7 @@ export default function PostList({ posts }: { posts: PostSummary[] }) {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:gap-6">
+    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
       {posts.map((p) => (
         <NoteCard key={p.slug} post={p} />
       ))}

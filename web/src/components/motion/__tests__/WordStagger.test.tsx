@@ -58,4 +58,33 @@ describe("WordStagger", () => {
 
     expect(container.firstElementChild?.tagName).toBe("LI");
   });
+
+
+  it("compresses a long line so the whole thing lands inside the budget", () => {
+    /*
+     * Twenty words at a flat 110ms beat is 2.1s before the rests are counted,
+     * which is what the hero's opening claim was taking. On a phone the
+     * reader watched the end of their own introduction being typed at them.
+     * The cap scales every delay down together, so the sentence keeps its
+     * shape and loses only its pace.
+     */
+    const { container } = render(
+      <WordStagger>
+        {"I ship products end to end: a Chrome extension in the Web Store, a self-hosted operations console, and the backends under both."}
+      </WordStagger>
+    );
+
+    const last = delays(container).at(-1) ?? "";
+    const ms = Number(last.match(/(\d+)ms/)?.[1] ?? NaN);
+    expect(ms).toBeLessThanOrEqual(1200);
+
+    /* Still a stagger, not a flattened simultaneous reveal. */
+    expect(ms).toBeGreaterThan(900);
+  });
+
+  it("leaves a short line exactly as tuned", () => {
+    const { container } = render(<WordStagger>Wait, then go. Again</WordStagger>);
+    expect(delays(container).at(-1)).toBe("--t: 1000ms;");
+  });
+
 });

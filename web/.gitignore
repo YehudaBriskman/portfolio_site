@@ -12,6 +12,11 @@ dist
 dist-ssr
 *.local
 
+# Vite's dependency pre-bundle cache. It appears here rather than inside
+# node_modules when the project root and the cache root differ, and it is
+# regenerated on every cold start.
+.vite
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

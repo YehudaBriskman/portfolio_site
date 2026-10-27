@@ -1,7 +1,7 @@
 /*
- * The nav as a floating island.
+ * The nav as three floating islands.
  *
- * Why this is an island and not a bar
+ * Why these are islands and not a bar
  * -----------------------------------
  * The bar this replaces was deliberately solid, and its own comment said so:
  * a `position: fixed`, full-width strip with a `backdrop-filter` makes WebKit
@@ -16,8 +16,11 @@
  * cannot afford and one you can — and it is also the better object, because
  * glass reads as glass when you can see the ground around its edges.
  *
- * So: never a full-width blurred bar again. If this ever needs to span the
- * viewport, it goes back to being opaque.
+ * Three of them is still nowhere near a bar: the two side islands are about
+ * 150px each and the centre one about 300px, so the whole chrome blurs some
+ * 600 × 50 pixels against a 1440 × 50 strip, with the gaps between them
+ * costing nothing at all. Never merge them back into a bar. If this ever has
+ * to span the viewport, it goes back to being opaque.
  *
  * Fixed, not sticky — measured, not preferred
  * -------------------------------------------
@@ -32,17 +35,26 @@
  * the island travelling with the page rather than holding its position.
  *
  * `position: fixed` is immune to all of that, and none of the reasoning above
- * depends on which of the two keeps the island in place: the cost of a
- * backdrop blur is paid per blurred pixel, and the island is the same few
- * hundred of them either way. If `body` ever loses `overflow-x: hidden` this
- * can go back to the recipe verbatim.
+ * depends on which of the two keeps the islands in place: the cost of a
+ * backdrop blur is paid per blurred pixel, and they are the same few hundred
+ * of them either way. If `body` ever loses `overflow-x: hidden` this can go
+ * back to the recipe verbatim.
  *
  * The zero-height dock
  * --------------------
- * The dock spans the viewport so the island can centre itself in it, and is
- * 0px tall so that span catches nothing. Without the collapse, a full-width
- * 50px box would sit over the top of every page swallowing clicks meant for
- * the content behind it.
+ * The dock spans the viewport so the centre island can be centred in it, and
+ * is 0px tall so that span catches nothing. Without the collapse, a
+ * full-width 50px box would sit over the top of every page swallowing clicks
+ * meant for the content behind it. The islands overflow it and stay
+ * clickable; it is only the empty space between them that is not there.
+ *
+ * Why the columns are explicit
+ * ----------------------------
+ * `1fr auto 1fr` centres the middle column, and each island names the column
+ * it belongs to rather than being auto-placed into the next free one. That
+ * matters at the collapse below: the side islands become `display: none`, so
+ * an auto-placed centre island would fall into column 1 and the wordmark
+ * would slide to the left edge of a phone instead of staying centred.
  */
 .dock {
   position: fixed;
@@ -50,19 +62,58 @@
   top: 18px;
   z-index: 50;
   height: 0;
+
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: start;
+  gap: 12px;
+  /* A phone must never be able to push an island past its own screen. */
+  padding-inline: clamp(12px, 2vw, 28px);
+}
+
+/*
+ * The collapse.
+ *
+ * Three islands need roughly 600px of island plus two gaps plus the gutters,
+ * and the centre one has to keep its three destinations legible at a mono
+ * 12px. Below 768px that stops being true before it stops being possible —
+ * the islands would meet in the middle with the page's own margins gone. So
+ * the sides fold into the sheet the centre island already opens, which is
+ * also the only collapse that keeps the phone to one tap: everything the
+ * chrome holds is behind the one control, rather than three controls
+ * competing for the same 390px.
+ *
+ * The matching query is `WIDE` in Nav.tsx, which also has to close an open
+ * menu when the viewport crosses it. The two have to agree.
+ */
+.left,
+.right {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .left {
+    display: block;
+    grid-column: 1;
+    justify-self: start;
+  }
+
+  .right {
+    display: block;
+    grid-column: 3;
+    justify-self: end;
+  }
 }
 
 .island {
   position: relative;
   width: max-content;
-  /* A phone must never be able to push this past its own screen. */
-  max-width: calc(100vw - 20px);
-  margin-inline: auto;
+  max-width: 100%;
 
   display: flex;
   align-items: center;
   gap: 22px;
-  padding: 9px 10px 9px 18px;
+  padding: 9px 10px;
   border-radius: 999px;
 
   background: rgb(10 10 11 / 0.42);
@@ -79,20 +130,42 @@
   backdrop-filter: blur(14px) saturate(160%);
 }
 
+.centre {
+  grid-column: 2;
+  justify-self: center;
+  /* The wordmark is letter-spaced, so its last letter already carries a
+     trailing gap; the extra padding is only on the side that does not. */
+  padding-left: 18px;
+}
+
+/* The side islands hold 44px controls that bring their own padding, so they
+   want an inset rather than a margin, and no gap worth the name — two icons
+   22px apart read as two separate objects that happen to share a pill. */
+.sideIsland {
+  gap: 2px;
+  padding-inline: 7px;
+}
+
 /*
- * The sheet the island opens into on a phone.
+ * The sheet the islands fold into on a phone.
  *
  * Anchored to the dock rather than to the island, so it is outside the
  * island's backdrop root and samples the page directly instead of sampling
  * an already-blurred backdrop. Centred under the island, the same material,
  * one radius softer.
+ *
+ * It scrolls rather than growing: three groups is about 420px, which is most
+ * of a phone held in landscape, and a panel taller than the screen with no
+ * way down is worse than a panel you have to scroll.
  */
 .sheet {
   position: absolute;
   top: 58px;
   left: 50%;
   transform: translateX(-50%);
-  width: min(20rem, calc(100vw - 24px));
+  width: min(21rem, calc(100vw - 24px));
+  max-height: calc(100vh - 92px);
+  overflow-y: auto;
   padding: 6px;
   border-radius: 22px;
 
@@ -102,6 +175,14 @@
     inset 0 1px 0 rgb(255 255 255 / 0.2),
     0 26px 60px -30px rgb(0 0 0 / 0.95);
   backdrop-filter: blur(16px) saturate(160%);
+}
+
+/* Above the collapse there is nothing in here that is not already on screen
+   in an island, and the control that opens it is gone. */
+@media (min-width: 768px) {
+  .sheet {
+    display: none;
+  }
 }
 
 /*
@@ -130,12 +211,13 @@
 /* ------------------------------------------------------------- contents -- */
 
 /*
- * One height for everything in the island.
+ * One height for everything in an island.
  *
  * Each control is a real 44px target and then gives 7px back at each end, so
  * the row measures 30px, and the island resolves to 50px once its own border
  * is counted. The finger gets the floor it needs and the object stays the
- * size the recipe draws.
+ * size the recipe draws. The shadcn buttons in the side islands are given the
+ * same arithmetic by their `island` / `islandIcon` sizes; see ui/button.tsx.
  */
 .wordmark,
 .link,
@@ -149,15 +231,10 @@
   font-size: 0.75rem;
   text-transform: uppercase;
   white-space: nowrap;
+  outline-offset: 2px;
   transition:
     color var(--dur-micro) ease,
     background-color var(--dur-micro) ease;
-}
-
-.wordmark,
-.link,
-.toggle {
-  outline-offset: 2px;
 }
 
 .wordmark:focus-visible,
@@ -178,10 +255,10 @@
 }
 
 /*
- * The whole map is laid out from `sm` up and folds into the sheet below it,
- * which is the breakpoint the bar already used. Dropping the links without
- * putting them anywhere is what once left a phone with two of six
- * destinations; the sheet is where the other four live.
+ * Three destinations, laid out from the collapse up and folded into the
+ * sheet below it. This is the whole map now: the home page's section anchors
+ * are gone from the chrome entirely, which is what let the centre island
+ * shrink enough for two more to sit beside it. See Nav.tsx for the argument.
  */
 .links {
   display: none;
@@ -192,7 +269,7 @@
   list-style: none;
 }
 
-@media (min-width: 640px) {
+@media (min-width: 768px) {
   .links {
     display: flex;
   }
@@ -205,8 +282,18 @@
 /* Flex, so the `<li>` never opens a line box of its own. An inline-flex link
    sitting on a baseline inherits the body's 19px/1.6 leading and grew the
    island by 5px it had no reason to be. */
-.links > li {
+.links > li,
+.iconRow > li {
   display: flex;
+}
+
+.iconRow {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
 .link {
@@ -289,7 +376,120 @@
   }
 }
 
+/* ------------------------------------------- shadcn, dressed for the site -- */
+
+/*
+ * Why every selector in this section is doubled.
+ *
+ * These classes are handed to shadcn components, which carry their own
+ * Tailwind utilities for the same properties — `text-sm` on a button,
+ * `bg-popover` on a menu. A single class and a utility have identical
+ * specificity (0,1,0), so which one wins comes down to the order the two
+ * stylesheets end up in, and that order is a build detail: CSS modules are
+ * injected separately in dev and concatenated in dependency order in the
+ * bundle. `.control.control` is (0,2,0) and wins in both, without reaching
+ * for `!important` and without editing the Tailwind layer the rest of the
+ * site is built on.
+ */
+
+/* The chrome's voice, imposed over the button's own `text-sm font-medium`. */
+.control.control {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 0.75rem;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+}
+
+/* The same glass as an island, one step more opaque — a menu is read rather
+   than glanced at, and the ground beneath it is a photograph. */
+.menu.menu {
+  min-width: 11rem;
+  padding: 6px;
+  border-radius: 18px;
+  background: rgb(10 10 11 / 0.72);
+  border: 1px solid rgb(255 255 255 / 0.16);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.2),
+    0 26px 60px -30px rgb(0 0 0 / 0.95);
+  backdrop-filter: blur(16px) saturate(160%);
+  color: rgb(var(--bone));
+}
+
+.menuHead.menuHead {
+  padding: 6px 10px 4px;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 0.625rem;
+  font-weight: 400;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: rgb(var(--haze-2));
+}
+
+/* 44px here too. A menu item is a tap target like any other, and Radix will
+   happily render a 28px row on a phone. */
+.menuItem.menuItem {
+  min-height: 44px;
+  padding-left: 34px;
+  padding-right: 12px;
+  border-radius: 12px;
+  font-size: 0.875rem;
+  color: rgb(var(--clay));
+}
+
+.menuItem.menuItem[data-state='checked'] {
+  color: rgb(var(--bone));
+}
+
+.menuNote.menuNote {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 0.625rem;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: rgb(var(--haze-2));
+  opacity: 1;
+}
+
+.tip.tip {
+  padding: 5px 10px;
+  border-radius: 10px;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 0.6875rem;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: rgb(var(--bone));
+  background: rgb(10 10 11 / 0.78);
+  border: 1px solid rgb(255 255 255 / 0.16);
+  backdrop-filter: blur(12px) saturate(160%);
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+  .menu.menu,
+  .tip.tip {
+    background: rgb(var(--surface));
+    border-color: rgb(var(--edge));
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .menu.menu,
+  .tip.tip {
+    background: rgb(var(--surface));
+    border-color: rgb(var(--edge));
+    backdrop-filter: none;
+  }
+}
+
 /* ---------------------------------------------------------------- sheet -- */
+
+.sheetHead {
+  margin: 0;
+  padding: 10px 14px 4px;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 0.625rem;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: rgb(var(--haze-2));
+}
 
 .sheetList {
   margin: 0;
@@ -323,9 +523,25 @@
   outline-offset: -2px;
 }
 
-/* A hairline between the page's own sections and the site's destinations:
-   they are two different kinds of going somewhere and the sheet should not
-   pretend otherwise. */
+.sheetIcon {
+  width: 16px;
+  height: 16px;
+  margin-right: 12px;
+  /* The glyph is the label's companion here, not its replacement, so it sits
+     one value below the word rather than competing with it. */
+  color: rgb(var(--haze-2));
+}
+
+.sheetControls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px 8px;
+}
+
+/* A hairline between the three groups: they are three different kinds of
+   going somewhere — off the site, around the site, and nowhere at all — and
+   the sheet should not pretend otherwise. */
 .sheetSplit {
   height: 1px;
   margin: 6px 10px;

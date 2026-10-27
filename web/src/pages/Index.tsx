@@ -1,3 +1,4 @@
+import { scrollToAnchor } from "@/lib/scrollToAnchor";
 import Nav from "@/components/Nav";
 import Hero from "@/components/Hero";
 import Work from "@/components/Work";
@@ -21,6 +22,7 @@ export default function Index() {
     <div className="grain relative min-h-screen">
       <a
         href="#work"
+        onClick={(e) => { if (scrollToAnchor("work")) e.preventDefault(); }}
         className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[70] focus:bg-bone focus:px-4 focus:py-2 focus:text-bitumen"
       >
         Skip to content
@@ -37,6 +39,8 @@ export default function Index() {
         column. A right-aligned section put its text over the part of the
         picture the scrim had deliberately left bright.
       */}
+      {/* No nav clearance here, unlike PageShell: the hero is a full-height
+          section that positions its own first line under the island. */}
       <main>
         {/* The hero is the person and nothing else. The landscape used to be
             given away in the first screen; now it is assembled on the way down
@@ -86,7 +90,7 @@ export default function Index() {
         headings and the admin link were the least legible text on the site.
       */}
       <div className="footer-ground">
-        <div className="mx-auto w-full max-w-6xl px-5 pb-16 sm:px-6">
+        <div className="wrap pb-section-sm">
           <SiteFooter />
         </div>
       </div>

@@ -1,4 +1,5 @@
 import WordStagger from "@/components/motion/WordStagger";
+import { scrollToAnchor } from "@/lib/scrollToAnchor";
 
 export default function Hero() {
   return (
@@ -30,7 +31,7 @@ export default function Hero() {
           drifted hundreds of pixels away from everything else on a wide
           display, reading as a separate image rather than part of the page. */}
       <div className="pointer-events-none absolute inset-0 z-[5] hidden sm:block">
-        <div className="relative mx-auto flex h-full max-w-6xl justify-end px-6">
+        <div className="wrap relative flex h-full justify-end">
           {/*
             A light behind him, not a colour wash over the page. Without it the
             cutout sits on the background like a sticker; with it he is standing
@@ -76,8 +77,21 @@ export default function Hero() {
         </div>
       </div>
 
-      <div className="relative z-10 mx-auto flex min-h-[100svh] max-w-6xl flex-col justify-between gap-10 px-6 pb-10 pt-28 sm:gap-0">
-        <p className="eyebrow animate-fade-up">
+      {/*
+        No measure on the column itself.
+
+        Every other section is one `.wrap` and everything inside it; the hero
+        cannot be, because the name has to run wider than the measure and a
+        block cannot escape its parent's max-width without a negative margin
+        in viewport units — which is the scrollbar bug all over again. So the
+        column is full width and each child declares its own measure: `.wrap`
+        for everything that reads, the gutters alone for the name.
+
+        `pt-28` is nav clearance, not rhythm: the island is fixed, 50px tall
+        and 18px down, so the first line has to start below 68px.
+      */}
+      <div className="relative z-10 flex min-h-[100svh] flex-col justify-between gap-12 pb-12 pt-28 sm:gap-0">
+        <p className="wrap eyebrow animate-fade-up">
           Tel Aviv &middot; Full-stack engineer &amp; team lead
         </p>
 
@@ -88,11 +102,17 @@ export default function Hero() {
           name does not, because at wdth 125 and weight 900 it is no longer
           text in a layout, it is the layout. Held inside the column it had to
           shrink to about 150px to fit, which is the size at which an enormous
-          face just looks like a large one. Full-bleed it runs to 208px and
-          crosses the portrait, which is what the references do with display
-          type and the reason it reads as authored rather than placed.
+          face just looks like a large one. Out to the gutters it runs to
+          208px and crosses the portrait, which is what the references do
+          with display type and the reason it reads as authored rather than
+          placed.
+
+          The gutters, and nothing narrower: the clamp on `text-hero` was
+          sized against the viewport less its gutters ("BRISKMAN" is 7.12em
+          at wdth 125), so holding it to the 72rem measure plus a gutter
+          clipped 46px off the M at 1440 and 150px at 1920.
         */}
-        <div className="relative left-1/2 w-screen -translate-x-1/2 px-5 sm:px-6">
+        <div className="px-gutter">
           {/* One H1, and it names the subject of the site rather than opening
               with a slogan — the slogan still leads visually, one line down. */}
           <h1 className="display text-hero animate-fade-up" style={{ animationDelay: "80ms" }}>
@@ -102,7 +122,9 @@ export default function Hero() {
           </h1>
         </div>
 
-        <div className="max-w-3xl">
+        {/* Every child here is already held to its own measure, so the
+            column only has to supply the page's. */}
+        <div className="wrap">
 
           {/*
             The second voice, and the only line on the page entitled to it.
@@ -131,13 +153,13 @@ export default function Hero() {
           */}
           <WordStagger
             as="p"
-            className="mt-8 max-w-lg text-lg leading-[1.65] text-bone sm:text-xl"
+            className="mt-12 max-w-lg text-lg leading-[1.65] text-bone sm:text-xl"
           >
             I ship products end to end: a Chrome extension in the Web Store, a
             self-hosted operations console, and the backends under both.
           </WordStagger>
           <p
-            className="mt-5 max-w-lg text-lg leading-[1.65] text-bone/70 animate-fade-up sm:text-xl"
+            className="mt-6 max-w-lg text-lg leading-[1.65] text-bone/70 animate-fade-up sm:text-xl"
             style={{ animationDelay: "280ms" }}
           >
             Then I write the checks that prove they still work somewhere that
@@ -184,10 +206,18 @@ export default function Hero() {
           live product is the strongest second.
         */}
         <div
-          className="flex flex-wrap items-center gap-3 animate-fade-up sm:gap-4"
+          className="wrap flex flex-wrap items-center gap-3 animate-fade-up"
           style={{ animationDelay: "360ms" }}
         >
-          <a href="#work" className="btn btn-solid">
+          {/* The page's one primary action, and now the longest hop on it —
+              the section links left the chrome, so this is what makes the
+              descent. See lib/scrollToAnchor for why the easing is decided
+              per click rather than by a rule on the document. */}
+          <a
+            href="#work"
+            onClick={(e) => { if (scrollToAnchor("work")) e.preventDefault(); }}
+            className="btn btn-solid"
+          >
             See the work <span aria-hidden="true">↓</span>
           </a>
           <a

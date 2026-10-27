@@ -37,6 +37,25 @@ export default {
         accent: { DEFAULT: rgb("--accent"), foreground: rgb("--accent-foreground") },
         card: { DEFAULT: rgb("--card"), foreground: rgb("--card-foreground") },
       },
+      /*
+       * One measure and one gutter, named.
+       *
+       * Every section was writing its own `mx-auto max-w-6xl px-5 sm:px-6
+       * py-28 sm:py-36`, which is four decisions repeated at twenty call
+       * sites and drifting at most of them — some pages used px-6, some
+       * px-5, and the vertical rhythm ran from py-20 to py-36 with no rule
+       * behind which. These are the two values the whole site measures
+       * against; `.wrap` and `.section-y` in index.css apply them.
+       */
+      maxWidth: {
+        wrap: "72rem",       /* 1152px — the reading and layout measure */
+        "wrap-wide": "88rem", /* 1408px — display type and full-bleed media */
+      },
+      spacing: {
+        gutter: "clamp(1.25rem, 3vw, 2.5rem)",
+        section: "clamp(4rem, 8vw, 8rem)",
+        "section-sm": "clamp(2.5rem, 5vw, 4.5rem)",
+      },
       borderRadius: {
         sm: "var(--r-sm)",
         md: "var(--r-md)",

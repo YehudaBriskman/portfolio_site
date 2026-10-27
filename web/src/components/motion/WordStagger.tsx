@@ -39,16 +39,41 @@ function pauseAfter(word: string): number {
   return 0;
 }
 
+/*
+ * The longest the whole line may take to arrive.
+ *
+ * The beat and the rests are tuned for a short line — the reference this
+ * comes from uses eight-word sentences, which land in under a second. The
+ * hero's opening claim is twenty words, and at a flat 110ms it was still
+ * arriving two and a half seconds after the page settled: on a phone, where
+ * it wraps to four lines, the reader watched the end of their own
+ * introduction being typed at them.
+ *
+ * Rather than forbid long lines, the schedule is compressed to fit this
+ * budget when it overruns. The rests scale with the beat, so the shape of the
+ * sentence survives even though its pace does not — and a short line, which
+ * never reaches the cap, keeps the timing exactly as tuned.
+ */
+const MAX_TOTAL_MS = 1200;
+
 /** Each word with the delay it starts at, measured from the first word. */
 function schedule(text: string): { word: string; delay: number }[] {
   const words = text.trim().split(/\s+/u).filter(Boolean);
   let clock = 0;
 
-  return words.map((word) => {
+  const raw = words.map((word) => {
     const delay = clock;
     clock += STEP_MS + pauseAfter(word);
     return { word, delay };
   });
+
+  /* `clock` has one trailing beat on it for the last word, which nothing
+     waits for; the line is finished when the last word starts. */
+  const span = raw.length > 0 ? raw[raw.length - 1].delay : 0;
+  if (span <= MAX_TOTAL_MS) return raw;
+
+  const scale = MAX_TOTAL_MS / span;
+  return raw.map(({ word, delay }) => ({ word, delay: Math.round(delay * scale) }));
 }
 
 /*

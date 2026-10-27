@@ -36,9 +36,9 @@ export default function CollectionFilter({
   ];
 
   return (
-    <nav aria-label="Filter notes by collection" className="mt-10 sm:mt-14">
+    <nav aria-label="Filter notes by collection" className="mt-12">
       <p className="eyebrow">Collections</p>
-      <ul className="rail mt-4">
+      <ul className="rail mt-3">
         {options.map((option) => {
           const on = option.slug === active;
           return (

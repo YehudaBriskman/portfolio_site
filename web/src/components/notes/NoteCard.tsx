@@ -166,7 +166,7 @@ export default function NoteCard({
             <p className="mt-3 text-base leading-[1.6] text-bone/75 sm:text-lg">{summary}</p>
           )}
 
-          <div className="mt-5 pt-1 sm:mt-auto sm:pt-6">{meta}</div>
+          <div className="mt-6 pt-1 sm:mt-auto sm:pt-6">{meta}</div>
         </div>
       </article>
     );
@@ -191,7 +191,7 @@ export default function NoteCard({
         <div className="mt-3">{title}</div>
 
         {summary && (
-          <p className="mt-2.5 line-clamp-3 text-[0.9375rem] leading-[1.65] text-bone/75">{summary}</p>
+          <p className="mt-3 line-clamp-3 text-[0.9375rem] leading-[1.65] text-bone/75">{summary}</p>
         )}
       </div>
     </article>

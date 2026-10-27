@@ -32,7 +32,7 @@ function Featured({ entry, index }: { entry: ProjectEntry; index: number }) {
   const visit = entry.primaryLink;
 
   return (
-    <article className="group grid items-center gap-8 lg:grid-cols-[1.15fr_1fr] lg:gap-16">
+    <article className="group grid items-center gap-6 lg:grid-cols-[1.15fr_1fr] lg:gap-12">
       {/*
         The screenshot as an object rather than a picture in a frame.
 
@@ -74,7 +74,7 @@ function Featured({ entry, index }: { entry: ProjectEntry; index: number }) {
          * nowhere left to go once the accent was retired. An underline is the
          * oldest signal a run of text is a link and it costs no hue at all.
          */}
-        <h3 className="display-tight mt-4 text-3xl text-bone sm:text-4xl">
+        <h3 className="display-tight mt-3 text-3xl text-bone sm:text-4xl">
           <Link
             to={to}
             className="inline-flex min-h-11 items-center underline decoration-transparent decoration-1 underline-offset-[6px] transition-[text-decoration-color] [transition-duration:var(--dur-fast)] hover:decoration-bone/50 focus-visible:decoration-bone/50"
@@ -83,10 +83,10 @@ function Featured({ entry, index }: { entry: ProjectEntry; index: number }) {
           </Link>
         </h3>
         <p className="mt-3 text-lg text-bone/85">{c.tagline}</p>
-        <p className="mt-5 max-w-md text-sm leading-relaxed text-bone/70">{c.description}</p>
+        <p className="mt-6 max-w-md text-sm leading-relaxed text-bone/70">{c.description}</p>
 
         {entry.highlights.length > 0 && (
-          <ul className="mt-6 space-y-2">
+          <ul className="mt-12 space-y-3">
             {entry.highlights.map((h) => (
               <li key={h} className="flex gap-3 text-[0.8125rem] leading-snug text-bone/85">
                 <span className="mt-[0.45rem] h-px w-4 shrink-0 bg-clay" aria-hidden="true" />
@@ -97,7 +97,7 @@ function Featured({ entry, index }: { entry: ProjectEntry; index: number }) {
         )}
 
         {entry.tech.length > 0 && (
-          <div className="mt-7 flex flex-wrap gap-2">
+          <div className="mt-6 flex flex-wrap gap-2">
             {entry.tech.map((t) => (
               <span key={t} className="chip">
                 {t}
@@ -106,7 +106,7 @@ function Featured({ entry, index }: { entry: ProjectEntry; index: number }) {
           </div>
         )}
 
-        <div className="mt-8 flex flex-wrap gap-3">
+        <div className="mt-12 flex flex-wrap gap-3">
           <Link to={to} className="btn btn-solid">
             The detail <span aria-hidden="true">→</span>
           </Link>
@@ -130,22 +130,31 @@ export default function Work() {
   const { featured } = useProjects();
 
   return (
-    <section id="work" className="isolate relative mx-auto max-w-6xl px-5 py-28 sm:px-6 sm:py-36">
-      <div className="flex items-end gap-6">
+    <section id="work" className="wrap section-y isolate relative">
+      {/*
+        The section head stacks on a phone.
+
+        Heading, hairline and eyebrow on one row is a desktop figure: the
+        heading is display type that will not shrink below its glyphs and the
+        eyebrow is a sentence that must not wrap mid-phrase, so on a 390px
+        screen the row simply ran off the side. Below `sm` it is two lines,
+        which is what the hairline between them was standing in for anyway.
+      */}
+      <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-end sm:gap-6">
         <h2 className="display text-section leading-[0.9]">Work</h2>
         <span className="mb-2 hidden h-px flex-1 bg-edge sm:block" aria-hidden="true" />
-        <p className="eyebrow mb-3 shrink-0">In use</p>
+        <p className="eyebrow shrink-0 sm:mb-3">In use</p>
       </div>
 
       {/* Both featured items share one orientation. Alternating left/right is the
           single most recognisable portfolio-template pattern there is. */}
-      <div className="mt-16 space-y-28">
+      <div className="mt-12 space-y-section-sm">
         {featured.map((entry, i) => (
           <Featured key={entry.collection.slug} entry={entry} index={i} />
         ))}
       </div>
 
-      <Link to="/projects" className="btn btn-quiet mt-24">
+      <Link to="/projects" className="btn btn-quiet mt-section-sm">
         All projects <span aria-hidden="true">→</span>
       </Link>
     </section>

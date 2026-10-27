@@ -73,7 +73,7 @@ export default function ProjectCard({
   );
 
   const open = (
-    <span className="tap mono mt-5 inline-flex items-center gap-2 py-2 text-xs uppercase tracking-[0.18em] text-bone">
+    <span className="tap mono mt-6 inline-flex items-center gap-2 py-2 text-xs uppercase tracking-[0.18em] text-bone">
       Open
       <span aria-hidden="true" className="transition-transform [transition-duration:var(--dur-fast)] group-hover:translate-x-1">
         →
@@ -85,18 +85,18 @@ export default function ProjectCard({
     return (
       <Link to={`/projects/${c.slug}`} className="card group block overflow-hidden p-3 sm:p-4">
         {figure}
-        <div className="px-2 pb-1 pt-6 sm:px-4 sm:pt-8 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,0.85fr)] lg:gap-12">
+        <div className="px-2 pb-1 pt-6 sm:px-4 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,0.85fr)] lg:gap-12">
           <div className="min-w-0">
             <h2 className="display-tight text-[2rem] leading-[1.02] text-bone sm:text-[2.75rem] lg:text-[3.5rem]">
               {c.title}
             </h2>
             <p className="mt-3 text-lg leading-snug text-bone/85 sm:text-xl">{c.tagline}</p>
-            <p className="mt-5 max-w-[56ch] text-sm leading-relaxed text-bone/70 sm:text-base">{c.description}</p>
+            <p className="mt-6 max-w-[56ch] text-sm leading-relaxed text-bone/70 sm:text-base">{c.description}</p>
           </div>
 
           <div className="min-w-0 pt-6 lg:pt-3">
             {highlights.length > 0 && (
-              <ul className="space-y-2.5 border-t border-edge pt-5 lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0">
+              <ul className="space-y-3 border-t border-edge pt-6 lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0">
                 {highlights.map((h) => (
                   <li key={h} className="flex gap-3 text-sm leading-snug text-bone/80">
                     <span className="mt-[0.45rem] h-1.5 w-1.5 shrink-0 rounded-full bg-clay" aria-hidden="true" />
@@ -105,7 +105,7 @@ export default function ProjectCard({
                 ))}
               </ul>
             )}
-            <ProjectFacts c={c} className="mt-5 lg:pl-8" />
+            <ProjectFacts c={c} className="mt-6 lg:pl-8" />
             <span className="block lg:pl-8">{open}</span>
           </div>
         </div>
@@ -126,10 +126,10 @@ export default function ProjectCard({
           <h2 className="display-tight text-[1.6rem] leading-[1.05] text-bone sm:text-3xl lg:text-[2.25rem]">
             {c.title}
           </h2>
-          <p className="mt-2.5 text-base leading-snug text-bone/85 sm:text-lg">{c.tagline}</p>
-          <p className="mt-4 hidden max-w-[52ch] text-sm leading-relaxed text-bone/70 sm:block">{c.description}</p>
+          <p className="mt-3 text-base leading-snug text-bone/85 sm:text-lg">{c.tagline}</p>
+          <p className="mt-6 hidden max-w-[52ch] text-sm leading-relaxed text-bone/70 sm:block">{c.description}</p>
 
-          <ProjectFacts c={c} className="mt-5" />
+          <ProjectFacts c={c} className="mt-6" />
 
           {open}
         </div>

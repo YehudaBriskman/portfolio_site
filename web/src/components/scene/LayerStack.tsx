@@ -26,6 +26,21 @@ import { useEffect, useState } from "react";
  * that job now, in CSS, where a shape is one property rather than a path.
  */
 
+/*
+ * The three regions a plate can occupy.
+ *
+ * Four points each, in the same order, so the browser can interpolate from
+ * one to the next as sections hand over — a shape that changes its point
+ * count snaps instead of moving. The slab and the band both stop short of
+ * the left column, which is where every page puts its reading.
+ */
+/** The whole screen. */
+const FULL = "polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)";
+/** A leaning column on the right, clear of the copy. */
+const SLAB = "polygon(42% 0%, 100% 0%, 100% 100%, 52% 100%)";
+/** A band across the top, cut away at an angle underneath. */
+const BAND = "polygon(0% 0%, 100% 0%, 100% 58%, 0% 76%)";
+
 /** The four graded plates, by the stage of day they were shot at. */
 export type Plate = "morning" | "afternoon" | "evening" | "night";
 
@@ -58,6 +73,21 @@ export type Layer = {
    * Bright plates need more; the aurora needs almost none.
    */
   scrim: number;
+  /**
+   * The region of the screen this plate occupies, as a `clip-path`.
+   *
+   * A plate does not have to be the whole rectangle. Giving each section a
+   * different shape is what stops four photographs behind four sections
+   * reading as one wallpaper that keeps changing colour — the page gains a
+   * geometry of its own, and the ground shows through where the shape stops.
+   *
+   * Two rules, both learned the hard way from the references. Every shape has
+   * the same number of points, because `clip-path` only interpolates between
+   * polygons that do; and none of them crosses the left column, because that
+   * is where the reading is and type half on a photograph is type nobody
+   * finishes. Omit for full bleed.
+   */
+  shape?: string;
 };
 
 /*
@@ -71,10 +101,10 @@ export type Layer = {
  */
 export const LANDING_LAYERS: Layer[] = [
   { id: "hero", fill: "10 10 11", scrim: 0 },
-  { id: "work", fill: "16 24 34", plate: "night", scrim: 0.58 },
-  { id: "approach", fill: "18 30 26", plate: "evening", scrim: 0.6 },
-  { id: "stack", fill: "34 44 50", plate: "afternoon", scrim: 0.72 },
-  { id: "contact", fill: "48 34 32", plate: "morning", scrim: 0.64 },
+  { id: "work", fill: "16 24 34", plate: "night", scrim: 0.58, shape: FULL },
+  { id: "approach", fill: "18 30 26", plate: "evening", scrim: 0.52, shape: SLAB },
+  { id: "stack", fill: "34 44 50", plate: "afternoon", scrim: 0.6, shape: BAND },
+  { id: "contact", fill: "48 34 32", plate: "morning", scrim: 0.64, shape: FULL },
 ];
 
 /*
@@ -87,14 +117,14 @@ export const LANDING_LAYERS: Layer[] = [
  */
 export const PROJECTS_LAYERS: Layer[] = [
   { id: "base", fill: "10 10 11", scrim: 0 },
-  { id: "open", fill: "34 44 50", plate: "afternoon", scrim: 0.72 },
-  { id: "far", fill: "16 24 34", plate: "night", scrim: 0.58 },
+  { id: "open", fill: "34 44 50", plate: "afternoon", scrim: 0.6, shape: BAND },
+  { id: "far", fill: "16 24 34", plate: "night", scrim: 0.58, shape: FULL },
 ];
 
 export const NOTES_LAYERS: Layer[] = [
   { id: "base", fill: "10 10 11", scrim: 0 },
-  { id: "dusk", fill: "16 24 34", plate: "night", scrim: 0.58 },
-  { id: "wood", fill: "18 30 26", plate: "evening", scrim: 0.6 },
+  { id: "dusk", fill: "16 24 34", plate: "night", scrim: 0.58, shape: FULL },
+  { id: "wood", fill: "18 30 26", plate: "evening", scrim: 0.52, shape: SLAB },
 ];
 
 /*
@@ -168,6 +198,7 @@ export default function LayerStack({ layers }: LayerStackProps) {
           style={
             {
               background: `rgb(${l.fill})`,
+              clipPath: l.shape,
             } as React.CSSProperties
           }
         >

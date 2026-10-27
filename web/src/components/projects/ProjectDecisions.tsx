@@ -28,9 +28,9 @@ export default function ProjectDecisions({
       <h2 id="decisions-heading" className="display-tight text-2xl sm:text-3xl">
         Decisions worth defending
       </h2>
-      <ol className="mt-8 divide-y divide-edge border-y border-edge">
+      <ol className="mt-6 divide-y divide-edge border-y border-edge">
         {decisions.map((d, i) => (
-          <li key={d.title} className="py-7 sm:grid sm:grid-cols-[minmax(0,2.5rem)_minmax(0,1fr)] sm:gap-6">
+          <li key={d.title} className="py-6 sm:grid sm:grid-cols-[minmax(0,2.5rem)_minmax(0,1fr)] sm:gap-6">
             <span className="mono text-xs tabular-nums text-clay" aria-hidden="true">
               {String(i + 1).padStart(2, "0")}
             </span>

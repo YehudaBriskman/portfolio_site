@@ -37,11 +37,13 @@ export default function LatestNotes() {
   const posts = (data ?? []).slice(0, SHOWN);
 
   return (
-    <section id="notes" className="relative mx-auto max-w-6xl px-5 py-28 sm:px-6 sm:py-36">
-      <div className="flex items-end gap-6">
+    <section id="notes" className="wrap section-y relative">
+      {/* Same two-line head as Work and Stack below `sm`; this was the second
+          of the two sections running off a 390px screen. */}
+      <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-end sm:gap-6">
         <h2 className="display text-section leading-[0.9]">Notes</h2>
         <span className="mb-2 hidden h-px flex-1 bg-edge sm:block" aria-hidden="true" />
-        <p className="eyebrow mb-3 shrink-0">Decisions and what they cost</p>
+        <p className="eyebrow shrink-0 sm:mb-3">Decisions and what they cost</p>
       </div>
 
       {/*
@@ -54,7 +56,7 @@ export default function LatestNotes() {
        * that depends on the network, so the door never disappears.
        */}
       {isPending && (
-        <ul className="mt-14 space-y-8" aria-hidden="true">
+        <ul className="mt-12 space-y-6" aria-hidden="true">
           {Array.from({ length: SHOWN }, (_, i) => (
             <li key={i} className="max-w-2xl animate-pulse-soft space-y-3">
               <div className="h-3 w-40 rounded-sm bg-bone/10" />
@@ -66,12 +68,12 @@ export default function LatestNotes() {
       )}
 
       {!isPending && posts.length > 0 && (
-        <ul className="mt-14 divide-y divide-edge/70 border-y border-edge/70">
+        <ul className="mt-12 divide-y divide-edge/70 border-y border-edge/70">
           {posts.map((p) => (
             <li key={p.slug}>
               <Link
                 to={`/blog/${p.slug}`}
-                className="group flex flex-col gap-2 py-7 transition-colors sm:flex-row sm:items-baseline sm:gap-10"
+                className="group flex flex-col gap-3 py-6 transition-colors sm:flex-row sm:items-baseline sm:gap-12"
               >
                 <span className="mono shrink-0 text-xs text-clay sm:w-44">
                   {formatDate(p.publishedAt) || "Unpublished"}
@@ -86,7 +88,7 @@ export default function LatestNotes() {
                     {p.title}
                   </span>
                   {p.subtitle && (
-                    <span className="mt-2 block max-w-xl text-base leading-relaxed text-bone/70">
+                    <span className="mt-3 block max-w-xl text-base leading-relaxed text-bone/70">
                       {p.subtitle}
                     </span>
                   )}
@@ -98,14 +100,14 @@ export default function LatestNotes() {
       )}
 
       {!isPending && posts.length === 0 && (
-        <p className="mt-14 max-w-xl text-lg leading-relaxed text-bone/70">
+        <p className="mt-12 max-w-xl text-lg leading-relaxed text-bone/70">
           {isError
             ? "The notes aren't loading just now. They're still there — the index has all of them."
             : "Nothing published yet. The index is where they'll appear."}
         </p>
       )}
 
-      <Link to="/blog" className="btn btn-quiet mt-14">
+      <Link to="/blog" className="btn btn-quiet mt-section-sm">
         All notes <span aria-hidden="true">→</span>
       </Link>
     </section>

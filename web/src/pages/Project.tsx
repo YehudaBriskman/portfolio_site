@@ -86,7 +86,7 @@ export default function Project() {
 
   return (
     <PageShell layers={PROJECTS_LAYERS}>
-      <section data-crest data-hue="88 76 148" className="isolate relative mx-auto max-w-6xl px-5 pb-24 pt-24 sm:px-6 sm:pb-32 sm:pt-32 lg:pt-40">
+      <section data-crest data-hue="88 76 148" className="wrap section-y isolate relative">
         <Link to="/projects" className="btn btn-quiet -ml-1 text-clay">
           <span aria-hidden="true">←</span> Projects
         </Link>
@@ -96,10 +96,10 @@ export default function Project() {
         {state === "loading" && (
           <>
             <h1 className="sr-only">Loading project</h1>
-            <div className="mt-10 animate-pulse-soft" aria-hidden="true">
+            <div className="mt-12 animate-pulse-soft" aria-hidden="true">
               <div className="h-12 w-2/3 rounded-full bg-edge/40" />
-              <div className="mt-5 h-6 w-1/2 rounded-full bg-edge/25" />
-              <div className="card-shot mt-10 aspect-[3/2] bg-edge/25 sm:aspect-[2/1]" />
+              <div className="mt-6 h-6 w-1/2 rounded-full bg-edge/25" />
+              <div className="card-shot mt-12 aspect-[3/2] bg-edge/25 sm:aspect-[2/1]" />
             </div>
           </>
         )}
@@ -107,8 +107,8 @@ export default function Project() {
         {state === "missing" && (
           <div className="mt-12">
             <h1 className="display text-section">Not here</h1>
-            <p className="mt-5 max-w-[46ch] text-lg text-bone/85">No project at that address.</p>
-            <Link to="/projects" className="btn btn-solid mt-8">
+            <p className="mt-6 max-w-[46ch] text-lg text-bone/85">No project at that address.</p>
+            <Link to="/projects" className="btn btn-solid mt-12">
               See everything <span aria-hidden="true">→</span>
             </Link>
           </div>
@@ -118,19 +118,19 @@ export default function Project() {
           <>
             {/* The `.sun` wash behind this header went with the accent; the
                 plate stack supplies the light now. */}
-            <div className="relative mt-8">
+            <div className="relative mt-12">
               <p className="mono flex items-center gap-3 text-xs uppercase tracking-[0.18em] text-clay">
                 <span className="h-2 w-2 shrink-0 rounded-full bg-clay" aria-hidden="true" />
                 {entry.status}
                 {entry.year && <span className="tabular-nums">{entry.year}</span>}
               </p>
-              <h1 className="display mt-4 text-[clamp(2.4rem,7vw,4.5rem)] leading-[0.94]">{c.title}</h1>
+              <h1 className="display mt-3 text-[clamp(2.4rem,7vw,4.5rem)] leading-[0.94]">{c.title}</h1>
               {/* The second voice, under the name. A tagline is a phrase
                   somebody wrote, not a heading, and in the display face at the
                   accent's colour it was reading as a second, smaller title
                   competing with the real one directly above it. */}
               {c.tagline && (
-                <p className="editorial mt-4 max-w-[26ch] text-[clamp(1.5rem,4.6vw,2.4rem)] text-bone">
+                <p className="editorial mt-6 max-w-[26ch] text-[clamp(1.5rem,4.6vw,2.4rem)] text-bone">
                   {c.tagline}
                 </p>
               )}
@@ -139,20 +139,20 @@ export default function Project() {
               )}
             </div>
 
-            <ProjectActions entry={entry} className="mt-8" />
+            <ProjectActions entry={entry} className="mt-12" />
 
             {/* Reads --vh, which useScrollProgress already publishes on <html>,
                 so the drift costs no listener of its own. On the wrapper rather
                 than the image: the image carries the card's hover transition and
                 would lag a scroll by 0.8s.
 
-                `sizes` is the figure's real width — the section is capped at
-                max-w-6xl and padded, so this is a little over 1100px on a wide
-                screen. It matters more here than anywhere: this is the LCP
+                `sizes` is the figure's real width — `.wrap` caps the section
+                at 72rem and takes a 2.5rem gutter off each side, so this is
+                1072px on a wide screen. It matters more here than anywhere: this is the LCP
                 element, and it was being served the 800px variant and upscaled
                 by half again. */}
             <figure
-              className="m-0 mt-10 sm:mt-14"
+              className="m-0 mt-12"
               style={reduced ? undefined : { transform: "translate3d(0, calc(var(--vh, 0) * -14px), 0)" }}
             >
               {c.coverImage ? (
@@ -160,7 +160,7 @@ export default function Project() {
                   src={c.coverImage}
                   alt={`${c.title} screenshot`}
                   className={shape}
-                  sizes="(min-width: 1152px) 1104px, 100vw"
+                  sizes="(min-width: 1152px) 1072px, 100vw"
                   eager
                 />
               ) : (
@@ -170,18 +170,18 @@ export default function Project() {
 
             <ProjectMeta c={c} />
 
-            <ProjectBrief entry={entry} className="mt-12 sm:mt-16" />
+            <ProjectBrief entry={entry} className="mt-section-sm" />
 
             {entry.highlights.length > 0 && (
               <Reveal>
-                <section className="mt-14 sm:mt-20" aria-labelledby="highlights-heading">
+                <section className="mt-section-sm" aria-labelledby="highlights-heading">
                   <h2 id="highlights-heading" className="display-tight text-2xl sm:text-3xl">
                     Worth knowing
                   </h2>
                   {/* The landing page has always shown these and the project
                       page never did, which is the clearest single case of the
                       detail page being thinner than its own card. */}
-                  <ul className="mt-7 grid gap-x-10 gap-y-5 sm:grid-cols-2">
+                  <ul className="mt-6 grid gap-x-12 gap-y-6 sm:grid-cols-2">
                     {entry.highlights.map((h) => (
                       <li key={h} className="flex max-w-[46ch] gap-3.5 text-base leading-[1.55] text-bone/85">
                         <span className="mt-[0.5rem] h-1.5 w-1.5 shrink-0 rounded-full bg-clay" aria-hidden="true" />
@@ -195,17 +195,17 @@ export default function Project() {
 
             {entry.decisions.length > 0 && (
               <Reveal>
-                <ProjectDecisions decisions={entry.decisions} className="mt-14 sm:mt-20" />
+                <ProjectDecisions decisions={entry.decisions} className="mt-section-sm" />
               </Reveal>
             )}
 
-            <ProjectStack tech={entry.tech} className="mt-14 sm:mt-20" />
+            <ProjectStack tech={entry.tech} className="mt-section-sm" />
 
             {docs.length > 0 && (
               <>
-                <div className="rule -mx-5 mt-14 sm:-mx-6 sm:mt-20" aria-hidden="true" />
+                <div className="rule bleed-x mt-section-sm" aria-hidden="true" />
                 <Reveal>
-                  <div className="mt-8">
+                  <div className="mt-12">
                     <h2 className="display-tight text-2xl sm:text-3xl">Docs</h2>
                     <ol className="mt-6 divide-y divide-edge border-y border-edge">
                       {docs.map((p, i) => (
@@ -242,8 +242,8 @@ export default function Project() {
                 there is simply no section. */}
             {(posts === null || notes.length > 0) && (
               <>
-                <div className="rule -mx-5 mt-14 sm:-mx-6 sm:mt-20" aria-hidden="true" />
-                <div className="mt-8">
+                <div className="rule bleed-x mt-section-sm" aria-hidden="true" />
+                <div className="mt-12">
                   <h2 className="display-tight text-2xl sm:text-3xl">Notes</h2>
                   <div className="mt-6">
                     {posts === null ? (
@@ -260,7 +260,7 @@ export default function Project() {
             )}
 
             {others.length > 0 && (
-              <section className="relative mt-20 sm:mt-28" aria-labelledby="elsewhere-heading">
+              <section className="relative mt-section-sm" aria-labelledby="elsewhere-heading">
                 <h2 id="elsewhere-heading" className="display-tight text-2xl sm:text-3xl">
                   Elsewhere
                 </h2>
@@ -274,7 +274,7 @@ export default function Project() {
               </section>
             )}
 
-            <Link to="/projects" className="btn btn-quiet mt-12 w-full">
+            <Link to="/projects" className="btn btn-quiet mt-section-sm w-full">
               <span aria-hidden="true">←</span> All projects
             </Link>
           </>
