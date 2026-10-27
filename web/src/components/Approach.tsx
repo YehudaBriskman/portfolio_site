@@ -1,42 +1,85 @@
+import PaperCard from "@/components/cards/PaperCard";
+import { cardType } from "@/components/cards/cardType";
+import StackDeck from "@/components/cards/StackDeck";
+import InkWipe from "@/components/motion/InkWipe";
+import InkRule from "@/components/motion/InkRule";
 import { about } from "@/data/site";
 
+/*
+ * How I work: an essay, then a pile of evidence.
+ *
+ * The three principles were three columns of prose in a grid, which is the
+ * layout you choose when you want the reader to compare them. Nobody compares
+ * them; they are three separate claims that happen to be about the same
+ * person, and side by side the longest one set the height of the row and the
+ * other two sat in a pool of their own whitespace.
+ *
+ * As a deck they are read the way they are written — one at a time, in order,
+ * each one holding the screen until the next arrives and buries it. The pile
+ * that is left at the bottom is the point: three things, done, with the edges
+ * still showing.
+ *
+ * The intro above it deliberately stays as type on the paper. It is the page
+ * speaking in the first person, and putting a voice in a box turns it into a
+ * specimen.
+ */
 export default function Approach() {
   return (
     <section id="approach" className="wrap section-y isolate relative">
       <div>
         <h2 className="display text-section leading-[0.92]">{about.heading}</h2>
+        {/* --ink-soft via the `clay` alias: 6.37:1 on paper. The alias layer in
+            index.css exists precisely so a call site can be re-pointed when it
+            is touched; renaming the Tailwind token itself belongs with whoever
+            owns tailwind.config.ts. */}
         <p className="eyebrow mt-3">Team lead &middot; Israel Defense Forces</p>
       </div>
 
-      {/* The portrait moved to the hero, so this reads as one measured column of
-          prose instead of text wrapped around an image. Wider leading and a
-          longer measure, because the previous setting was small type packed
-          into a narrow well — technically readable, actually skipped. */}
+      {/* One measured column of prose. Wider leading and a longer measure,
+          because the previous setting was small type packed into a narrow
+          well — technically readable, actually skipped. */}
       <div className="mt-12 max-w-2xl space-y-6">
         {about.intro.map((p) => (
-          <p key={p.slice(0, 24)} className="text-lg leading-[1.7] text-bone/85">
+          <p key={p.slice(0, 24)} className="text-lg leading-[1.7] text-clay">
             {p}
           </p>
         ))}
       </div>
 
-      <ul className="mt-section-sm grid gap-12 sm:grid-cols-2 lg:grid-cols-3">
+      <StackDeck aria-label="How I work, in three principles" className="mt-section-sm">
         {about.principles.map((p, i) => (
-          <li key={p.claim} className="min-w-0">
-            <span className="mono block text-xs tabular-nums text-clay" aria-hidden="true">
-              {String(i + 1).padStart(2, "0")}
-            </span>
-            {/* `.rule` is --edge, which is a hairline measured against the flat
-                ground. This one sits on a photograph, where --edge is simply
-                not there, so the divider carries bone at low alpha instead —
-                the same trick the glass surfaces use to stay visible over a
-                picture without becoming a bright line on one. */}
-            <div className="my-3 h-px w-10 bg-bone/40" />
-            <h3 className="display-tight text-xl leading-snug text-bone">{p.claim}</h3>
-            <p className="mt-6 text-base leading-[1.7] text-bone/70">{p.detail}</p>
-          </li>
+          /*
+           * The ink wipe and the card are two elements rather than one,
+           * because the wipe clips and `.card-paper` casts a shadow: a clip
+           * path on the card itself would shear its own shadow off at the
+           * moment it is doing the most work. The wipe clips a plain wrapper
+           * that is larger than the shadow.
+           */
+          <InkWipe key={p.claim} as="article" className="max-w-3xl">
+            {/*
+             * Column, with the claim pushed to the foot of the card.
+             *
+             * Every card in the pile is the same height — the deck needs that
+             * or a tall card hangs out below the short one meant to be
+             * covering it — and on a wide screen these three paragraphs do
+             * not fill it. Top-aligned that reads as a card someone forgot to
+             * finish. Ordinal at the head, claim and evidence sitting on the
+             * foot, and the air between them is the composition rather than
+             * the leftover.
+             */}
+            <PaperCard solid className="flex flex-col">
+              <p className={cardType.meta} aria-hidden="true">
+                {String(i + 1).padStart(2, "0")} / {String(about.principles.length).padStart(2, "0")}
+              </p>
+              <InkRule className="mt-3 w-10" />
+              <div className="mt-auto pt-12">
+                <h3 className={cardType.title}>{p.claim}</h3>
+                <p className={`${cardType.body} mt-6`}>{p.detail}</p>
+              </div>
+            </PaperCard>
+          </InkWipe>
         ))}
-      </ul>
+      </StackDeck>
     </section>
   );
 }

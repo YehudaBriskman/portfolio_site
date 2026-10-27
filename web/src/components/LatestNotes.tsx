@@ -1,5 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
+import PaperCard from "@/components/cards/PaperCard";
+import { cardType } from "@/components/cards/cardType";
+import InkWipe from "@/components/motion/InkWipe";
+import InkRule from "@/components/motion/InkRule";
 import { blog, formatDate } from "@/services/blog";
 
 /*
@@ -7,13 +11,18 @@ import { blog, formatDate } from "@/services/blog";
  *
  * There wasn't one. The only routes in were a nav item labelled "Blog" and a
  * footer link labelled "Notes" — two names for the same place, both bare
- * labels, neither giving anybody a reason to click. A visitor could read this
- * entire page without learning that the writing exists, let alone what is in
- * it.
+ * labels, neither giving anybody a reason to click.
  *
  * Deliberately not the index's card: a teaser that reproduces the destination
  * is just the destination, twice. Three lines each — when, what, and the one
  * sentence that says whether it is for you — and the titles do the work.
+ *
+ * These were hairline-divided rows, and the rows are now cards because each
+ * one is a door to somewhere else. A row divided by a rule is a line item in
+ * a table of the same thing; a card is a separate object you can pick up, and
+ * three separate objects is what three posts actually are. The cards still
+ * carry no cover image, so the earlier argument holds: this is a list of
+ * reasons to click, not a copy of the index.
  */
 
 const SHOWN = 3;
@@ -42,7 +51,7 @@ export default function LatestNotes() {
           of the two sections running off a 390px screen. */}
       <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-end sm:gap-6">
         <h2 className="display text-section leading-[0.9]">Notes</h2>
-        <span className="mb-2 hidden h-px flex-1 bg-edge sm:block" aria-hidden="true" />
+        <InkRule className="mb-3 hidden min-w-0 flex-1 sm:block" />
         <p className="eyebrow shrink-0 sm:mb-3">Decisions and what they cost</p>
       </div>
 
@@ -58,49 +67,62 @@ export default function LatestNotes() {
       {isPending && (
         <ul className="mt-12 space-y-6" aria-hidden="true">
           {Array.from({ length: SHOWN }, (_, i) => (
-            <li key={i} className="max-w-2xl animate-pulse-soft space-y-3">
-              <div className="h-3 w-40 rounded-sm bg-bone/10" />
-              <div className="h-6 w-3/4 rounded-sm bg-bone/10" />
-              <div className="h-4 w-2/3 rounded-sm bg-bone/5" />
+            <li key={i}>
+              <PaperCard className="animate-pulse-soft space-y-3">
+                <div className="h-3 w-40 rounded-sm bg-clay/20" />
+                <div className="h-6 w-3/4 rounded-sm bg-clay/20" />
+                <div className="h-4 w-2/3 rounded-sm bg-clay/10" />
+              </PaperCard>
             </li>
           ))}
         </ul>
       )}
 
       {!isPending && posts.length > 0 && (
-        <ul className="mt-12 divide-y divide-edge/70 border-y border-edge/70">
+        <ul className="mt-12 space-y-6">
           {posts.map((p) => (
-            <li key={p.slug}>
-              <Link
-                to={`/blog/${p.slug}`}
-                className="group flex flex-col gap-3 py-6 transition-colors sm:flex-row sm:items-baseline sm:gap-12"
-              >
-                <span className="mono shrink-0 text-xs text-clay sm:w-44">
-                  {formatDate(p.publishedAt) || "Unpublished"}
-                  {p.readingMinutes > 0 && ` · ${p.readingMinutes} min`}
-                </span>
-                <span className="min-w-0">
-                  {/* An underline rather than a change of colour: the title is
-                      already bone, and these rows are divided by hairlines
-                      rather than carried in cards, so nothing else in the row
-                      tells you it is a link. */}
-                  <span className="display-tight block text-xl text-bone underline decoration-transparent decoration-1 underline-offset-[6px] transition-[text-decoration-color] [transition-duration:var(--dur-fast)] group-hover:decoration-bone/50 sm:text-2xl">
-                    {p.title}
+            <InkWipe key={p.slug} as="li" direction="right">
+              {/*
+               * The whole card is the link, not a title inside it.
+               *
+               * `.card-paper`'s hover state is written for both shapes — it
+               * keys off `a.card-paper` as well as a card containing a
+               * hovered link — so an anchor carrying the class gets the
+               * border and shadow lift without any of it being restated here.
+               */}
+              <PaperCard as="div" flush>
+                <Link
+                  to={`/blog/${p.slug}`}
+                  className={`${cardType.inset} group flex flex-col gap-3 sm:flex-row sm:items-baseline sm:gap-12`}
+                >
+                  <span className={`${cardType.meta} shrink-0 sm:w-64`}>
+                    {formatDate(p.publishedAt) || "Unpublished"}
+                    {p.readingMinutes > 0 && ` · ${p.readingMinutes} min`}
                   </span>
-                  {p.subtitle && (
-                    <span className="mt-3 block max-w-xl text-base leading-relaxed text-bone/70">
-                      {p.subtitle}
+                  <span className="min-w-0">
+                    {/* An underline rather than a change of colour: the title
+                        is already full-strength ink, so there is no darker to
+                        go. */}
+                    <span
+                      className={`${cardType.title} block underline decoration-transparent decoration-1 underline-offset-[6px] transition-[text-decoration-color] [transition-duration:var(--dur-fast)] group-hover:decoration-ink/50`}
+                    >
+                      {p.title}
                     </span>
-                  )}
-                </span>
-              </Link>
-            </li>
+                    {p.subtitle && (
+                      <span className={`${cardType.body} mt-3 block max-w-xl`}>
+                        {p.subtitle}
+                      </span>
+                    )}
+                  </span>
+                </Link>
+              </PaperCard>
+            </InkWipe>
           ))}
         </ul>
       )}
 
       {!isPending && posts.length === 0 && (
-        <p className="mt-12 max-w-xl text-lg leading-relaxed text-bone/70">
+        <p className="mt-12 max-w-xl text-lg leading-relaxed text-clay">
           {isError
             ? "The notes aren't loading just now. They're still there — the index has all of them."
             : "Nothing published yet. The index is where they'll appear."}

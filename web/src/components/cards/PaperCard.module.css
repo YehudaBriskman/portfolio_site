@@ -1,0 +1,107 @@
+/*
+ * The card, as a component rather than as a class.
+ *
+ * `.card-paper` in index.css already owns what a card *is* on this ground —
+ * the white wash, the real border, the real shadow and the hover state. This
+ * file owns what a card *contains*: its padding, and the handful of type
+ * roles that have to be measured against the card's own surface rather than
+ * against the page's.
+ *
+ * That distinction is the whole reason the type roles live here at all. The
+ * card surface is white at 55% over #ECE8DC, which composites to #F6F5EF —
+ * lighter than the ground, so solid ink gains contrast on it (17.00:1 against
+ * 15.17:1 on paper) and anything set with an *alpha* loses it. Tailwind's
+ * `text-bone/70` measures 6.64:1 on a card; the same role written as a solid
+ * --ink-soft measures 7.13:1. Naming the roles here is what stops the alpha
+ * habit coming back one call site at a time.
+ */
+.card {
+  /* The four-step rhythm documented in PageShell is about the space *between*
+     blocks. A card's inset is a different question — it is the mount around
+     the content — so it clamps with the gutter rather than picking one of the
+     four. Held in a custom property because a card whose whole body is one
+     link has to move the padding onto the anchor, and the two must not drift
+     apart. */
+  --card-inset: clamp(1.25rem, 3.2vw, 2rem);
+  padding: var(--card-inset);
+  /* Set once here so every descendant inherits the measured ink instead of
+     inheriting the body's and being corrected per element. */
+  color: rgb(var(--ink));
+}
+
+/*
+ * A card that hands its padding to a child.
+ *
+ * The case is a card that is entirely one link: the anchor has to fill the
+ * card or the reader has a border around a target they can only hit in the
+ * middle. `.flush` on the card, `.inset` on the anchor, same measurement.
+ *
+ * Not a Tailwind `p-0` on the card. Both that utility and this module class
+ * are single class selectors, so which one wins is decided by the order the
+ * bundler happens to emit them in — a build detail, not a rule. Two classes
+ * from the same file cannot disagree about it.
+ */
+.flush { padding: 0; }
+.inset { padding: var(--card-inset); }
+
+/*
+ * Opaque, for cards that are stacked on other cards.
+ *
+ * `.card-paper` is translucent by design, which is right for a card sitting
+ * alone on paper and wrong the moment two of them overlap: the card
+ * underneath shows straight through the one on top and the stack reads as a
+ * printing error. Painting the same white wash as a background *image* over
+ * an opaque paper background-colour composites to exactly the same colour —
+ * #F6F5EF — while leaving nothing to see through, and it stays correct if
+ * --paper is ever retuned.
+ */
+.card.solid {
+  /* Two class selectors, and the doubling is load-bearing. `.card-paper`
+     writes its fill with the `background` shorthand, which resets
+     `background-image` to none as a side effect — so a single-class override
+     here is both out-specified and silently stripped of half its work. This
+     was measured, not guessed: the first version of the deck was see-through
+     and the text of card one was legible through cards two and three. */
+  background-color: rgb(var(--paper));
+  background-image: linear-gradient(rgb(255 255 255 / .55), rgb(255 255 255 / .55));
+}
+
+/* ------------------------------------------------------------ type roles -- */
+
+/* The card's own heading. Not a section head — those stay on the paper. */
+.title {
+  font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif;
+  font-variation-settings: 'wdth' 112;
+  font-weight: 700;
+  letter-spacing: var(--track-display);
+  line-height: 1.08;
+  font-size: clamp(1.125rem, 2.4vw, 1.5rem);
+  color: rgb(var(--ink));        /* 17.00:1 on the card surface */
+}
+
+.body {
+  font-size: 1rem;
+  line-height: 1.7;
+  color: rgb(var(--ink-soft));   /* 7.13:1 on the card surface */
+}
+
+/*
+ * Metadata: dates, reading times, group notes.
+ *
+ * Deliberately --ink-soft and not --ink-faint. The palette comment documents
+ * --ink-faint as "captions and metadata, 4.6:1", but that figure is measured
+ * against white; against this paper it is 3.60:1 and against a card 4.03:1,
+ * so it fails AA for body text on both. It is a fine colour for a disabled
+ * glyph and it is not a colour for anything anyone has to read.
+ */
+.meta {
+  /* Also the ordinal on a stacked card — "01 / 03" is metadata about the
+     reader's place in the pile, and a second role identical to this one but
+     for the name would only invite the two to drift. */
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 0.75rem;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: rgb(var(--ink-soft));   /* 7.13:1 on the card surface */
+  font-variant-numeric: tabular-nums;
+}
