@@ -39,8 +39,10 @@ export default function PageShell({
       <main id="content">{children}</main>
       {/* Content pages had no footer at all; these are the pages people land on
           from a search, and they offered no way onward. */}
-      <div className="mx-auto w-full max-w-6xl px-5 pb-16 sm:px-6">
-        <SiteFooter />
+      <div className="footer-ground">
+        <div className="mx-auto w-full max-w-6xl px-5 pb-16 sm:px-6">
+          <SiteFooter />
+        </div>
       </div>
     </div>
   );

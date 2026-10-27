@@ -16,6 +16,21 @@ export function useScrollProgress() {
     let raf = 0;
 
     /*
+     * Nothing to drive under reduced motion.
+     *
+     * The layers take a static resting pose from CSS in that case (see
+     * `.scene-layer` in index.css), and this loop used to keep running anyway:
+     * a layout read and four transform writes every frame, all of them
+     * immediately overridden. Returning early also means the inline transforms
+     * never appear, so the stylesheet's resting rules are the only thing
+     * positioning the scene and do not have to fight inline specificity.
+     */
+    const reduced =
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduced) return;
+
+    /*
      * The section list is queried once, not on every frame. querySelectorAll
      * plus a getBoundingClientRect per section, sixty times a second, forces a
      * layout each frame for a list that only changes on navigation or resize.
@@ -106,7 +121,28 @@ export function useScrollProgress() {
       }
     };
 
+    /*
+     * will-change, held only while it is being used.
+     *
+     * It used to be declared statically on every layer and never released,
+     * which keeps a full-viewport compositor texture per layer resident for
+     * the whole session — roughly 36MB on a 1440x1080 desktop and 68MB on a
+     * 390x844 phone at DPR 3. The hint is worth having during a scroll and
+     * worth nothing between them, so it is set on the first frame of a scroll
+     * and dropped once the page has been still for a moment.
+     */
+    let hinted = false;
+    let idle = 0;
+    const setHint = (on: boolean) => {
+      if (hinted === on) return;
+      hinted = on;
+      for (const el of layerEls) el.style.willChange = on ? "transform" : "";
+    };
+
     const onScroll = () => {
+      setHint(true);
+      clearTimeout(idle);
+      idle = window.setTimeout(() => setHint(false), 200);
       if (!raf) raf = requestAnimationFrame(measure);
     };
     measure();
@@ -119,6 +155,7 @@ export function useScrollProgress() {
     return () => {
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onResize);
+      clearTimeout(idle);
       if (raf) cancelAnimationFrame(raf);
     };
   }, []);

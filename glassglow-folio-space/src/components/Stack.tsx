@@ -3,10 +3,10 @@ import { stackGroups } from "@/data/stack";
 export default function Stack() {
   return (
     <section id="stack" className="relative mx-auto max-w-6xl px-6 py-28 sm:py-36">
-      <div className="text-center">
+      <div>
         <p className="eyebrow">Everything below is in a repository you can open</p>
-        <h2 className="display mx-auto mt-4 text-section leading-[0.92]">Stack</h2>
-        <span className="mx-auto mt-7 block h-px w-16 bg-sodium" aria-hidden="true" />
+        <h2 className="display mt-4 text-section leading-[0.92]">Stack</h2>
+        <span className="mt-7 block h-px w-16 bg-sodium" aria-hidden="true" />
       </div>
 
       <div className="mt-16 grid gap-12 md:grid-cols-3">

@@ -19,6 +19,29 @@ const ROUTES = [
   { to: "/blog", label: "Blog" },
 ];
 
+/*
+ * Smooth scrolling, per click, instead of `scroll-behavior: smooth` on <html>.
+ *
+ * The global rule animated every anchor on the site, including the skip link,
+ * and the page is thousands of pixels tall — Blink caps a programmatic smooth
+ * scroll at roughly 700ms, so one click on "Contact" fast-forwarded the entire
+ * descent in under a second. Deciding per click means a short hop can ease and
+ * a long one can simply arrive, which is also what a reader expects of a
+ * table of contents.
+ */
+const SMOOTH_LIMIT_PX = 2600;
+
+function scrollToAnchor(id: string) {
+  const el = document.getElementById(id);
+  if (!el) return false;
+  const reduced =
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const far = Math.abs(el.getBoundingClientRect().top) > SMOOTH_LIMIT_PX;
+  el.scrollIntoView({ behavior: reduced || far ? "auto" : "smooth", block: "start" });
+  return true;
+}
+
 export default function Nav() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
@@ -120,6 +143,7 @@ export default function Nav() {
               <li key={i.id}>
                 <a
                   href={`#${i.id}`}
+                  onClick={(e) => { if (scrollToAnchor(i.id)) e.preventDefault(); }}
                   className={`mono -my-3 block py-3 text-[0.6875rem] uppercase tracking-[0.18em] transition-colors ${
                     active === i.id ? "text-sodium" : "text-clay hover:text-bone"
                   }`}
@@ -182,7 +206,7 @@ export default function Nav() {
               <li key={i.id} className="border-b border-edge/60">
                 <a
                   href={`#${i.id}`}
-                  onClick={close}
+                  onClick={(e) => { close(); if (scrollToAnchor(i.id)) e.preventDefault(); }}
                   className={`mono flex min-h-[3.25rem] items-center text-sm uppercase tracking-[0.18em] transition-colors ${
                     active === i.id ? "text-sodium" : "text-clay hover:text-bone"
                   }`}

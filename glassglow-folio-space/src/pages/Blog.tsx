@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import PageShell from "@/components/PageShell";
 import { NOTES_LAYERS } from "@/components/scene/LayerStack";
-import Scenery from "@/components/scene/Scenery";
 import NoteCard from "@/components/notes/NoteCard";
 import NoteGlyph from "@/components/notes/NoteGlyph";
 import ProjectRail from "@/components/notes/ProjectRail";
@@ -74,7 +73,6 @@ export default function Blog() {
           down beneath the last card, where nobody was ever going to see it.
         */}
         <header className="isolate relative pb-14 sm:pb-20">
-          <Scenery variant="ridge" />
           <p className="eyebrow">Notes</p>
           <h1 className="display mt-4 text-[clamp(2.75rem,11.5vw,4.75rem)] leading-[0.92]">
             {site?.title ?? "Writing"}

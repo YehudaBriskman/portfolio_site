@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import PageShell from "@/components/PageShell";
 import { PROJECTS_LAYERS } from "@/components/scene/LayerStack";
-import Scenery from "@/components/scene/Scenery";
 import Reveal from "@/components/Reveal";
 import PostList from "@/components/PostList";
 import ProjectMeta from "@/components/ProjectMeta";
@@ -204,7 +203,6 @@ export default function Project() {
 
             {others.length > 0 && (
               <div className="relative mt-20 sm:mt-28">
-                <Scenery variant="copse" />
                 <p className="eyebrow">Elsewhere</p>
                 <ul className="mt-6 grid gap-2 sm:grid-cols-2">
                   {others.map((o) => (
