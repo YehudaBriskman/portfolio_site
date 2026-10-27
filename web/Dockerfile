@@ -22,7 +22,15 @@ COPY --from=builder /app/dist /usr/share/nginx/html
 RUN find /usr/share/nginx/html -type f \
       \( -name '*.js' -o -name '*.css' -o -name '*.svg' -o -name '*.json' -o -name '*.html' \) \
       -exec gzip -9 -k -f {} \;
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# A template, not a finished config: the base image's entrypoint runs envsubst
+# over /etc/nginx/templates and writes the result into conf.d. The filter keeps
+# it to NGINX_* so nginx's own $uri, $request_id and $api_upstream are not
+# eaten by the substitution.
+# The base image can fill NGINX_LOCAL_RESOLVERS from /etc/resolv.conf, but
+# only if asked: its helper returns early unless this is set.
+ENV NGINX_ENTRYPOINT_LOCAL_RESOLVERS=1
+ENV NGINX_ENVSUBST_FILTER=NGINX_
+COPY nginx.conf.template /etc/nginx/templates/default.conf.template
 
 EXPOSE 8080
 

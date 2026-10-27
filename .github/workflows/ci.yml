@@ -42,7 +42,7 @@ jobs:
           fail=0
           for f in \
             "$FRONT_DIR/package.json" "$FRONT_DIR/package-lock.json" \
-            "$FRONT_DIR/Dockerfile" "$FRONT_DIR/nginx.conf" \
+            "$FRONT_DIR/Dockerfile" "$FRONT_DIR/nginx.conf.template" \
             "$BACK_DIR/package.json" "$BACK_DIR/package-lock.json" \
             "$BACK_DIR/Dockerfile" \
             docker-compose.yml docker-compose.ci.yml
