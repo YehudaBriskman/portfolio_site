@@ -8,7 +8,7 @@ const KEY = "yb-motion-paused";
  *
  * Separate from the OS `prefers-reduced-motion` setting, and deliberately so:
  * that is a standing preference about every site, this is someone who wants
- * to read *this* page right now without plates cross-fading behind the type.
+ * to read *this* page right now without ink arriving around the type.
  * The two compose rather than compete — the OS setting already collapses the
  * same durations from `index.css`, and this adds a second way in for a reader
  * who is not going to go and change a system preference to get through a
@@ -42,8 +42,9 @@ export function useMotionPaused(): [boolean, () => void] {
   }, []);
 
   /* `document.body` is outside the React tree on purpose: the stylesheet
-     hangs the paused state off it so the layers rendered by Atmosphere, the
-     plate stack and every Reveal stop as well, none of which the nav owns. */
+     hangs the paused state off it so every view-timeline animation on the
+     page — the ink wipes, the iris panels, the rules that draw themselves —
+     stops as well, none of which the nav renders or can reach. */
   useEffect(() => {
     document.body.classList.toggle("motion-paused", paused);
   }, [paused]);

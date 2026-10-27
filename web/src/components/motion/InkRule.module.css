@@ -89,3 +89,38 @@
   animation: none;
   clip-path: none;
 }
+
+/*
+ * Why the rule does not take colour, when the wipe now does.
+ *
+ * InkWipe grew a coloured band at its leading edge, and the obvious next move
+ * is a coloured head travelling along this line as it draws. It was measured
+ * instead of assumed, and it fails on three counts.
+ *
+ * The first is contrast, and it is decisive. This line is one device pixel of
+ * ink — `non-scaling-stroke` guarantees that at every width — and it is drawn
+ * in --rule-firm, which is 2.15:1 against the paper. Of the five transition
+ * hues, yellow is 1.24:1 on that same ground and green is 1.80:1. A coloured
+ * head in either of those is not a brighter line, it is a *gap* in the line:
+ * for the moment it passed, the rule would appear to be drawing itself with a
+ * hole in the front. That is the exact defect the dasharray version of this
+ * file shipped and was rebuilt to remove, arriving back through the door
+ * marked decoration.
+ *
+ * The second is the measure. Most rules on this page are the 2.5rem ticks
+ * inside a card — `w-10`, forty pixels. The wipe's band is 28-56px wide. A
+ * band as long as the line it is travelling along is not a leading edge; the
+ * tick would simply be yellow, then grey, which is a colour change rather
+ * than a stroke of colour, and a colour change with no meaning behind it is
+ * the one thing the palette note in index.css rules out.
+ *
+ * The third is quantity. There are seven of these on a single screen of the
+ * Stack section and one under every card heading on the site. Five hues
+ * rotating through seven hairlines in one viewport is the confetti the whole
+ * approach was supposed to avoid, and it would spend on the smallest marks on
+ * the page the attention that currently belongs to the largest.
+ *
+ * So the rules stay monochrome, and that is what keeps the wipes worth
+ * looking at. Colour on this page means a block of content landing. If the
+ * hairlines carried it too, it would stop meaning anything at all.
+ */

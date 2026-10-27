@@ -1,5 +1,11 @@
 import PageShell from "@/components/PageShell";
-import Reveal from "@/components/Reveal";
+/* InkWipe, not Reveal. Reveal was an IntersectionObserver that translated a
+   section 26px before fading it in; the wipe is scroll-timeline driven and
+   needs no observer. Its stagger props go with it: a scroll-driven animation
+   ignores animation-delay outright, so a per-item delay could only ever have
+   been theatre. Each item now prints when it arrives, which is the same
+   sequence the stagger was imitating. */
+import InkWipe from "@/components/motion/InkWipe";
 import ProjectCard from "@/components/projects/ProjectCard";
 import ArchiveCard from "@/components/projects/ArchiveCard";
 import { useProjects } from "@/hooks/useProjects";
@@ -78,11 +84,11 @@ export default function Projects() {
             cases were unreachable the day they were written. */}
         <div className="mt-12 space-y-6">
           {featured.map((entry, i) => (
-            <Reveal key={entry.collection.slug} delay={Math.min(i * 70, 280)}>
+            <InkWipe key={entry.collection.slug} as="div">
               {/* The first card is above the fold on a phone, so its
                   screenshot is the LCP element and must not be lazy. */}
               <ProjectCard entry={entry} index={i} lead={i === 0} eager={i === 0} />
-            </Reveal>
+            </InkWipe>
           ))}
         </div>
 
@@ -95,11 +101,11 @@ export default function Projects() {
             <ul className="mt-12 grid gap-6 sm:grid-cols-2">
               {archive.map((entry, i) => (
                 <li className="min-w-0" key={entry.collection.slug}>
-                  <Reveal delay={Math.min(i * 45, 220)} y={12}>
+                  <InkWipe as="div">
                     {/* Plate numbers run on from the featured cards, so the
                       page is one numbered series rather than two. */}
                   <ArchiveCard entry={entry} index={featured.length + i + 1} />
-                  </Reveal>
+                  </InkWipe>
                 </li>
               ))}
             </ul>

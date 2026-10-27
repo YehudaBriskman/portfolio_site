@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { projectImage } from "@/lib/projectImage";
+import { shotImage } from "@/lib/projectImage";
 
 /*
  * A screenshot in a fixed aspect box.
@@ -27,8 +27,17 @@ import { projectImage } from "@/lib/projectImage";
  * LCP element — so the one screenshot a reader actually stops on was being
  * upscaled by half again and looked soft. The fix is not to hardcode the
  * larger file either: the archive and the landing page really do want the
- * small one. Both variants are offered and the slot says how wide it is, which
+ * small one. Every variant is offered and the slot says how wide it is, which
  * is the only place that knows.
+ *
+ * It is a `<picture>` rather than a bare `<img srcSet>` because the choice is
+ * now a format as well as a width. A phone was taking the 1600px JPEG — the
+ * only rung wide enough for 390 CSS px at DPR 3 — and spending 133 KB on a
+ * card 300 px across; measured over /projects it pulled 352 KB of screenshots
+ * where a 1440px desktop pulled 215 KB. The rungs at 400 and 1200 give it
+ * somewhere else to land and AVIF makes the landing cheap. The `<img>` keeps
+ * the JPEG ladder, so a browser that reads neither `<source>` is exactly
+ * where it was before.
  *
  * There are no explicit `width`/`height` attributes any more. They said
  * 1600×1000 — an aspect no file on disk has; the real sources are 1600×724
@@ -52,11 +61,10 @@ export default function Shot({
 }) {
   const [loaded, setLoaded] = useState(false);
 
-  /* `projectImage` hands back anything it does not recognise untouched — a
-     cover pasted into the admin, say — and we have no variants of those, so
+  /* `shotImage` hands back anything it does not recognise as a single `src` —
+     a cover pasted into the admin, say — and we have no variants of those, so
      there is nothing to offer the browser a choice between. */
-  const card = projectImage(src, "card") ?? src;
-  const srcSet = card === src ? undefined : `${card} 800w, ${src} 1600w`;
+  const picture = shotImage(src) ?? { sources: [], src };
 
   return (
     /* `rounded-none` and the border beat `.card-shot` on cascade order rather
@@ -68,17 +76,30 @@ export default function Shot({
       {!loaded && (
         <div className="absolute inset-0 animate-pulse-soft bg-[rgb(var(--rule)_/_0.4)]" aria-hidden="true" />
       )}
-      <img
-        src={card}
-        srcSet={srcSet}
-        sizes={srcSet ? sizes : undefined}
-        alt={alt}
-        loading={eager ? "eager" : "lazy"}
-        fetchpriority={eager ? "high" : undefined}
-        decoding="async"
-        onLoad={() => setLoaded(true)}
-        className={`h-full w-full object-cover object-top ${loaded ? "opacity-100" : "opacity-0"}`}
-      />
+      {/* `sizes` is repeated on every `<source>` on purpose: a `<source>` does
+          not inherit the `<img>`'s, and one that omits it falls back to 100vw
+          — which is the exact mistake that made the phone download the
+          1600px file in the first place. */}
+      {/* The wrapper has to be told to be a box. `<picture>` is inline by
+          default, and the image's `h-full` resolves against it, not against
+          the aspect-ratio frame outside — left alone it collapses the
+          screenshot to its intrinsic height and the card loses its shape. */}
+      <picture className="block h-full w-full">
+        {picture.sources.map((source) => (
+          <source key={source.type} type={source.type} srcSet={source.srcSet} sizes={sizes} />
+        ))}
+        <img
+          src={picture.src}
+          srcSet={picture.srcSet}
+          sizes={picture.srcSet ? sizes : undefined}
+          alt={alt}
+          loading={eager ? "eager" : "lazy"}
+          fetchpriority={eager ? "high" : undefined}
+          decoding="async"
+          onLoad={() => setLoaded(true)}
+          className={`h-full w-full object-cover object-top ${loaded ? "opacity-100" : "opacity-0"}`}
+        />
+      </picture>
     </div>
   );
 }

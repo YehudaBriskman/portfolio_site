@@ -48,11 +48,13 @@ const ROUTES = [
 const WIDE = "(min-width: 768px)";
 
 /*
- * Three floating glass islands rather than one bar, or one island.
+ * Three ruled boxes on the paper, rather than one bar, or one island.
  *
- * The reasoning for the shape — and the measurement that makes the glass
- * affordable at this size and ruinous at full width — is in Nav.module.css,
- * next to the rules it governs. Read that before widening anything.
+ * These were glass — translucent near-black under a backdrop blur — and the
+ * material is gone along with the photographs it was glass over. What they
+ * are now, and why an opaque box drawn with a real line is the paper answer
+ * rather than a blur over a flat colour, is in Nav.module.css next to the
+ * rules it governs. Read that before changing anything about how they look.
  *
  * Why three
  * ---------
@@ -68,8 +70,8 @@ const WIDE = "(min-width: 768px)";
  * The `solid` state, and the scroll listener that drove it. It existed
  * because a transparent full-width strip let scrolled body text render
  * through it and collide with the wordmark, so the bar had to acquire a
- * ground the moment the page moved. An island carries its own ground at all
- * times and has edges you can see, so there is no second state to switch to.
+ * ground the moment the page moved. An island is opaque at all times and has
+ * an edge you can see, so there is no second state to switch to.
  *
  * The IntersectionObserver that lit the current section went with the section
  * links it was lighting. Nothing in the chrome is keyed to scroll position

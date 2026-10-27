@@ -114,3 +114,239 @@
   animation: none;
   clip-path: none;
 }
+
+/* ------------------------------------------------------- the wet edge -- */
+
+/*
+ * Colour, and the one place on this page it is allowed to exist.
+ *
+ * The ground is cream, the type is near-black and there is exactly one
+ * saturated colour in the chrome. That is the whole static identity and it is
+ * not up for renegotiation — so the five hues in index.css live here instead,
+ * in the few hundred milliseconds an element takes to arrive. A band of ink
+ * travels with the leading edge of the stroke and is gone by the time the
+ * element has printed. Scroll back up and down and it happens again; stop
+ * scrolling and the page is cream and ink again, exactly as it was.
+ *
+ * Which hue goes where
+ * --------------------
+ * The hue is the element's position in its own group, cycling at five, in a
+ * fixed order. Not random, not per-element-identity, not one hue per section:
+ * the same card gets the same colour on every visit because the rule is
+ * `nth-child` and nothing else.
+ *
+ * Position rather than section is a deliberate choice about *meaning*. If hue
+ * said "you are in the Stack section" then colour would be carrying
+ * information, and a reader who cannot separate #00C875 from #E2445C would be
+ * missing some. Position in a list is already stated twice over — by document
+ * order and, on the deck, by the printed "01 / 03" — so hue here is
+ * decorative by construction and can be removed without anything being lost.
+ *
+ * The order is blue, yellow, red, green, purple. Two things decide it.
+ * Consecutive entries sit far apart on the wheel (215°, 48°, 351°, 155°,
+ * 273°), so a group of any length never looks like it is fading through a
+ * gradient — each arrival is plainly a different colour from the last. And
+ * every group on this page happens to be three long, so the three a reader
+ * actually sees are blue, yellow and red: the primary triad, which is the
+ * fastest possible way of saying "this page has colour in it" without
+ * spending more than three of the five.
+ *
+ * Any one wipe can be overruled by setting --wipe-hue further up the tree, at
+ * a higher specificity than the single class plus pseudo-class here, or
+ * inline. StackDeck does exactly that so the pile does not repeat the run of
+ * the grid below it; see the note in StackDeck.module.css.
+ */
+.wipe:nth-child(5n + 1) { --wipe-hue: var(--hue-blue); }
+.wipe:nth-child(5n + 2) { --wipe-hue: var(--hue-yellow); }
+.wipe:nth-child(5n + 3) { --wipe-hue: var(--hue-red); }
+.wipe:nth-child(5n + 4) { --wipe-hue: var(--hue-green); }
+.wipe:nth-child(5n + 5) { --wipe-hue: var(--hue-purple); }
+
+/*
+ * How wide the band is, and why it is measured in viewport rather than in
+ * percent of the element.
+ *
+ * A percentage of the element would make the band on a 416px deck card four
+ * times the band on a 110px note row, which is backwards: the note row is the
+ * one with less ink on it to begin with. A viewport clamp gives one band for
+ * the whole page — 28px on a 390px phone, 56px on a 1440px desktop — so the
+ * colour is the same gesture wherever it happens and the element only decides
+ * how long it takes to cross.
+ *
+ * Both ends were picked against the thing they fail at. Below about 24px the
+ * band is thinner than a line of body copy and reads as a rendering seam
+ * rather than as ink; above about 72px it covers a quarter of a deck card at
+ * once, which is no longer an edge arriving but a coloured panel fading out,
+ * and that is the colour wash this whole approach exists to avoid.
+ *
+ * Duration is not set here and cannot be. The stroke runs on the same view
+ * timeline as the clip, so the band crosses the element in however long the
+ * reader takes to scroll 84% of its entry range — roughly 200-350ms at an
+ * ordinary flick, and exactly zero if they stop, which is the point of
+ * driving it from scroll rather than from a clock.
+ */
+.wipe {
+  --wipe-band: clamp(1.75rem, 4vw, 3.5rem);
+  /* The band is clipped to the card's own corner radius. Every wipe on this
+     site wraps a `.card-paper`, and a square band crossing a 16px rounded
+     corner puts two coloured nubs on the paper outside the card for the two
+     frames it takes to pass. Held in a property so a wipe around something
+     that is not a card can square it off. */
+  --wipe-radius: var(--r-md);
+  /* The pseudo-element below is positioned against this. Nothing else about
+     the wipe depends on it; it is the containing block and nothing more. */
+  position: relative;
+}
+
+/*
+ * The band itself: one hard-edged strip, not a gradient.
+ *
+ * A soft trailing fade was the obvious finish and it is the wrong one for
+ * this file. The entire argument at the top is that a hard edge says ink
+ * reached paper and a soft one says the compositor is behind — a band that
+ * feathers out behind the stroke reintroduces exactly the blur the clip was
+ * chosen to avoid. So the band has the same two hard edges the stroke has,
+ * raked at the same 1.5rem, and it is simply a second polygon chasing the
+ * first one down the element.
+ *
+ * `mix-blend-mode: multiply` rather than an alpha fill, because this is ink
+ * and ink does not hide what it lands on. An opaque band would paint the
+ * heading out and then hand it back, which is a shutter; multiply darkens the
+ * card and leaves the near-black type near-black, so the words stay words the
+ * whole way through. On the deck's opaque cards it works out at #006EDB from
+ * #0073EA against #F6F5EF; on the translucent ones the backdrop inside the
+ * group is white at 55% over nothing, so the hue comes through closer to full
+ * strength. Type under the band holds 3.76:1 at the worst of the five and
+ * 11.26:1 at the best. The blue is under AA and is accepted for one reason
+ * only: the band is moving, nothing is behind it for more than a frame or
+ * two, and no text on this page has to be read while it crosses.
+ *
+ * The blend cannot reach past the card. `.wipe` already establishes a
+ * stacking context — any `clip-path` does — which isolates the group, and the
+ * box is clipped to the card's own radius on top of that. Checked rather than
+ * asserted: sampling every pixel within 10px of six cards at twenty points
+ * across the wipe, at 390 and at 1440, the widest gap between any two colour
+ * channels outside the card's border box is 21, which is the card's own
+ * shadow on the paper. The hues open a gap of 92 at their dullest.
+ */
+.wipe::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: var(--wipe-radius);
+  background-color: rgb(var(--wipe-hue, var(--hue-blue)));
+  mix-blend-mode: multiply;
+  /* Decorative and on top of a card that is sometimes entirely one link. */
+  pointer-events: none;
+
+  animation-name: ink-band;
+  animation-timing-function: linear;
+  animation-fill-mode: both;
+  /* The same timeline and the same range as the stroke, deliberately
+     restated rather than inherited: the two polygons share a leading edge,
+     and if the ranges ever drift apart the band separates from the stroke it
+     is supposed to be the wet end of. */
+  animation-timeline: view();
+  animation-range: entry 8% entry 92%;
+}
+
+/*
+ * The leading edge of this polygon is the leading edge of `ink-wipe`, written
+ * out again rather than derived: left at 100%+2rem falling to 0%-2rem, right
+ * 1.5rem ahead of it throughout. The trailing edge is that same line pushed
+ * --wipe-band further back. Everything ahead of the leading edge is cut away
+ * by the wipe's own clip, which is why the two can never show a seam between
+ * them — the band's top edge is the stroke's edge, not a second line near it.
+ *
+ * Opacity is a separate track. The band has to be gone when the range closes,
+ * and geometry alone will not do it: at `entry 92%` the stroke's edge has
+ * left the top of the element but the band trailing it has not, so a strip of
+ * colour would be left sitting on the printed card. Fading over the last 15%
+ * is what makes "the ink dries" true rather than approximately true, and it
+ * costs nothing because by then the band is mostly off the top of the box
+ * anyway. The 8% fade-in is the same thing at the other end.
+ */
+@keyframes ink-band {
+  from {
+    opacity: 0;
+    clip-path: polygon(
+      0% calc(100% + 2rem),
+      100% calc(100% + 0.5rem),
+      100% calc(100% + 0.5rem + var(--wipe-band)),
+      0% calc(100% + 2rem + var(--wipe-band))
+    );
+  }
+  8%  { opacity: 1; }
+  85% { opacity: 1; }
+  to {
+    opacity: 0;
+    clip-path: polygon(
+      0% calc(0% - 2rem),
+      100% calc(0% - 3.5rem),
+      100% calc(0% - 3.5rem + var(--wipe-band)),
+      0% calc(0% - 2rem + var(--wipe-band))
+    );
+  }
+}
+
+/* The sideways stroke's band, turned through the same ninety degrees. */
+.right::after {
+  animation-name: ink-band-right;
+}
+
+@keyframes ink-band-right {
+  from {
+    opacity: 0;
+    clip-path: polygon(
+      calc(0% - 0.5rem) 0%,
+      calc(0% - 2rem) 100%,
+      calc(0% - 2rem - var(--wipe-band)) 100%,
+      calc(0% - 0.5rem - var(--wipe-band)) 0%
+    );
+  }
+  8%  { opacity: 1; }
+  85% { opacity: 1; }
+  to {
+    opacity: 0;
+    clip-path: polygon(
+      calc(100% + 3.5rem) 0%,
+      calc(100% + 2rem) 100%,
+      calc(100% + 2rem - var(--wipe-band)) 100%,
+      calc(100% + 3.5rem - var(--wipe-band)) 0%
+    );
+  }
+}
+
+/*
+ * Four ways of switching the colour off, and all four land on a card with no
+ * colour on it at all — which is also where the band lands when it is left to
+ * run, so there is nothing for a fallback to get wrong here.
+ *
+ * `content: none` rather than `animation: none`, because unlike the stroke
+ * the band has no resting state worth keeping: an un-animated band is a
+ * coloured rectangle over the card, which is the single worst outcome
+ * available. Removing the box is the only safe answer, and it is also the
+ * cheapest — no extra layer, no blend, no second clip on a machine that has
+ * already told us it does not want the motion.
+ *
+ * The first three mirror the stroke's own exits exactly. The fourth is
+ * forced-colors, which is new to this file and belongs to the colour rather
+ * than to the motion: in a forced palette the band would be painted in a
+ * system colour it was never chosen for, over type the same system is
+ * repainting, and multiply on top of that is not a design anyone asked for.
+ */
+@supports not (animation-timeline: view()) {
+  .wipe::after { content: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wipe::after { content: none; }
+}
+
+@media (forced-colors: active) {
+  .wipe::after { content: none; }
+}
+
+:global(body.motion-paused) .wipe::after {
+  content: none;
+}

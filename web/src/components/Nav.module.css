@@ -1,44 +1,53 @@
 /*
- * The nav as three floating islands.
+ * The nav as three ruled boxes on the paper.
  *
- * Why these are islands and not a bar
- * -----------------------------------
- * The bar this replaces was deliberately solid, and its own comment said so:
- * a `position: fixed`, full-width strip with a `backdrop-filter` makes WebKit
- * re-sample and re-blur everything passing underneath it on every single
- * scroll frame — roughly 3.5ms of GPU time per frame on a low-end Android,
- * for a bar. That measurement has not changed and the conclusion was right.
+ * What these used to be, and why that stopped working
+ * ---------------------------------------------------
+ * Three floating pills of `backdrop-filter: blur(14px) saturate(160%)` over a
+ * dark translucent ground. The whole justification for that was written in
+ * this file and it was a justification about *area*: a backdrop blur costs per
+ * blurred pixel, so a full-width bar is ruinous and three small islands are
+ * affordable. The arithmetic was right and it is now beside the point, because
+ * the premise under it was that something interesting was moving behind the
+ * glass. Four full-bleed photographic plates have been deleted; the ground is
+ * one flat cream. Blurring a flat colour returns the same flat colour, so the
+ * effect was spending GPU time per frame to draw a rectangle — which is the
+ * argument this file already made against the bar, applied to itself.
  *
- * What changed is the area. The cost of a backdrop blur is paid per pixel of
- * the blurred region, so a strip that spans the viewport is the most
- * expensive shape the effect has. An island a few hundred pixels wide blurs
- * perhaps a fifteenth of that, which is the difference between an effect you
- * cannot afford and one you can — and it is also the better object, because
- * glass reads as glass when you can see the ground around its edges.
+ * It also stopped looking like glass. Translucent near-black over #ECE8DC
+ * composites to a dead olive, and three of them across the top of a cream page
+ * read as smudges rather than as objects.
  *
- * Three of them is still nowhere near a bar: the two side islands are about
- * 150px each and the centre one about 300px, so the whole chrome blurs some
- * 600 × 50 pixels against a 1440 × 50 strip, with the gaps between them
- * costing nothing at all. Never merge them back into a bar. If this ever has
- * to span the viewport, it goes back to being opaque.
+ * What they are instead
+ * ---------------------
+ * Boxes ruled on the sheet. Opaque, filled with exactly the ground colour, and
+ * bounded by a real 1px line — so an island is not a different material
+ * floating over the page, it is a region of the page that has been drawn
+ * around. When the reader scrolls, body copy passes beneath and is cut off at
+ * the rule, which is what an overlay printed on a page does.
+ *
+ * Why `--ink-soft` for that rule and not `--rule-firm`
+ * ----------------------------------------------------
+ * `.btn-quiet` in index.css already settled this and the reasoning transfers
+ * verbatim: `--rule-firm` measures 2.15:1 on paper, which is under the 3:1 a
+ * control's own boundary has to hold, and `--rule` is 1.35:1 and effectively
+ * invisible. `--ink-soft` is 6.37:1. These islands hold the site's navigation,
+ * so their edge is the edge of something you can press, not a hairline between
+ * two paragraphs.
+ *
+ * The fill is `--paper` rather than the white wash a card gets. A card's wash
+ * composites to #F6F5EF, which is 1.12:1 against the ground — on a photograph
+ * that difference was the whole object, and on cream it is nothing. A box that
+ * cannot be told from the page by its fill should not pretend otherwise; the
+ * line is what makes it a box.
  *
  * Fixed, not sticky — measured, not preferred
  * -------------------------------------------
  * The recipe this was built from says `position: sticky; top: 18px`, and in
- * this document sticky does not stick. `body` carries `overflow-x: hidden`
- * (index.css), which makes its used `overflow-y` compute to `auto`, which
- * makes `body` a scroll container. The thing that actually scrolls is `html`.
- * So a sticky descendant of `body` is measured against a scrollport whose
- * scrollHeight equals its clientHeight — 7421px against 7421px on the home
- * page — and a scrollport with no overflow never offsets anything. Verified
- * in Chromium: at scrollY 1500 the island's own `top` read -1482, which is
- * the island travelling with the page rather than holding its position.
- *
- * `position: fixed` is immune to all of that, and none of the reasoning above
- * depends on which of the two keeps the islands in place: the cost of a
- * backdrop blur is paid per blurred pixel, and they are the same few hundred
- * of them either way. If `body` ever loses `overflow-x: hidden` this can go
- * back to the recipe verbatim.
+ * this document sticky does not stick. `body` carries `overflow-x: clip`
+ * (index.css), and the page's scroll container is `html`. Verified in
+ * Chromium: at scrollY 1500 the island's own `top` read -1482, which is the
+ * island travelling with the page rather than holding its position.
  *
  * The zero-height dock
  * --------------------
@@ -105,6 +114,23 @@
   }
 }
 
+/*
+ * One box, one rule, no material.
+ *
+ * `--r-sm` rather than the pill it was. A capsule is the shape of a chip in an
+ * application; a 10px corner on a 50px box is the shape of something printed,
+ * and it is a radius the palette already names. The controls inside are given
+ * the same corner below, or a round button in a square box reads as a button
+ * that missed.
+ *
+ * The shadow is deliberately almost nothing — 20px of blur pulled back by a
+ * 20px spread, so it is a hint of separation under the bottom edge and no
+ * visible cast anywhere else. It exists for one reason: when a line of body
+ * copy scrolls under the island and is cut off at the rule, a completely flat
+ * box makes that read as a clipping bug. A whisper of depth makes it read as
+ * one thing passing behind another. Anything stronger would be a card
+ * hovering over the page, which is what the glass was.
+ */
 .island {
   position: relative;
   width: max-content;
@@ -114,20 +140,11 @@
   align-items: center;
   gap: 22px;
   padding: 9px 10px;
-  border-radius: 999px;
+  border-radius: var(--r-sm);
 
-  background: rgb(10 10 11 / 0.42);
-  border: 1px solid rgb(255 255 255 / 0.16);
-  /* The inset highlight is the whole illusion: it is the top edge of a piece
-     of glass catching the light, and without it the island is a dark pill. */
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.22),
-    0 18px 40px -26px rgb(0 0 0 / 0.9);
-  /* Standard property only. Blink treats `-webkit-backdrop-filter` as a true
-     alias, so a hand-written pair gets collapsed by the minifier with the
-     prefixed copy kept and the standard one dropped — which ships no glass at
-     all in every other engine. Autoprefixer adds the prefix at build time. */
-  backdrop-filter: blur(14px) saturate(160%);
+  background: rgb(var(--paper));
+  border: 1px solid rgb(var(--ink-soft));
+  box-shadow: 0 6px 20px -20px rgb(var(--ink) / 0.5);
 }
 
 .centre {
@@ -140,7 +157,7 @@
 
 /* The side islands hold 44px controls that bring their own padding, so they
    want an inset rather than a margin, and no gap worth the name — two icons
-   22px apart read as two separate objects that happen to share a pill. */
+   22px apart read as two separate objects that happen to share a box. */
 .sideIsland {
   gap: 2px;
   padding-inline: 7px;
@@ -149,10 +166,11 @@
 /*
  * The sheet the islands fold into on a phone.
  *
- * Anchored to the dock rather than to the island, so it is outside the
- * island's backdrop root and samples the page directly instead of sampling
- * an already-blurred backdrop. Centred under the island, the same material,
- * one radius softer.
+ * Anchored to the dock rather than to the island, and centred under it. Same
+ * stock and the same rule as an island, one radius softer, and with a shadow
+ * that is actually allowed to be seen: this one really is lifted off the page
+ * — it covers content and locks the scroll while it is open — and it is the
+ * only thing in the chrome that is.
  *
  * It scrolls rather than growing: three groups is about 420px, which is most
  * of a phone held in landscape, and a panel taller than the screen with no
@@ -167,14 +185,11 @@
   max-height: calc(100vh - 92px);
   overflow-y: auto;
   padding: 6px;
-  border-radius: 22px;
+  border-radius: var(--r-md);
 
-  background: rgb(10 10 11 / 0.62);
-  border: 1px solid rgb(255 255 255 / 0.16);
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.2),
-    0 26px 60px -30px rgb(0 0 0 / 0.95);
-  backdrop-filter: blur(16px) saturate(160%);
+  background: rgb(var(--paper));
+  border: 1px solid rgb(var(--ink-soft));
+  box-shadow: 0 26px 50px -30px rgb(var(--ink) / 0.6);
 }
 
 /* Above the collapse there is nothing in here that is not already on screen
@@ -186,27 +201,12 @@
 }
 
 /*
- * Transparency is a preference and glass is a capability, not a given. Both
- * tiers fall back to the opaque surface the palette was built on — the same
- * contract `.glass-thin` holds in index.css, so the whole site declines in
- * one direction.
+ * The two fallback tiers this file used to carry — `@supports not
+ * (backdrop-filter)` and `prefers-reduced-transparency: reduce` — are gone
+ * with the thing they were guarding. Nothing in the chrome is translucent or
+ * blurred any more, so every engine and every preference gets the same opaque
+ * box, which is the state those blocks were falling back *to*.
  */
-@supports not (backdrop-filter: blur(1px)) {
-  .island,
-  .sheet {
-    background: rgb(var(--surface));
-    border-color: rgb(var(--edge));
-  }
-}
-
-@media (prefers-reduced-transparency: reduce) {
-  .island,
-  .sheet {
-    background: rgb(var(--surface));
-    border-color: rgb(var(--edge));
-    backdrop-filter: none;
-  }
-}
 
 /* ------------------------------------------------------------- contents -- */
 
@@ -226,7 +226,7 @@
   align-items: center;
   min-height: 44px;
   margin-block: -7px;
-  border-radius: 999px;
+  border-radius: var(--r-sm);
   font-family: 'IBM Plex Mono', ui-monospace, monospace;
   font-size: 0.75rem;
   text-transform: uppercase;
@@ -240,18 +240,19 @@
 .wordmark:focus-visible,
 .link:focus-visible,
 .toggle:focus-visible {
-  outline: 2px solid rgb(var(--bone));
+  outline: 2px solid rgb(var(--ink));
 }
 
 .wordmark {
   letter-spacing: 0.22em;
-  color: rgb(var(--bone));
+  /* 15.17:1 on the island's paper fill. */
+  color: rgb(var(--ink));
 }
 
 /* The period was the accent's last foothold in the chrome. It is a mark of
    punctuation, so it reads one value down rather than in a second colour. */
 .stop {
-  color: rgb(var(--clay));
+  color: rgb(var(--ink-soft));
 }
 
 /*
@@ -299,33 +300,44 @@
 .link {
   padding-inline: 11px;
   letter-spacing: var(--track-label);
-  color: rgb(var(--clay));
+  /* 6.37:1 on the island's fill — secondary type, legible at 12px. */
+  color: rgb(var(--ink-soft));
 }
 
 @media (hover: hover) and (pointer: fine) {
   .link:hover {
-    color: rgb(var(--bone));
+    color: rgb(var(--ink));
+    /* The same 6% ink wash `.btn-quiet:hover` uses, so every quiet control on
+       the site darkens by the same amount when a pointer is over it. */
+    background: rgb(var(--ink) / 0.06);
   }
 }
 
 /*
- * Where you are, said in value rather than in hue.
+ * Where you are: the tab that has been inked.
  *
- * Bone alone would be indistinguishable from the hover state, so the current
- * destination also takes a pressed-in ground — the same light the island's
- * own edge is made of, which is the only kind of emphasis this palette has
- * left and the only kind it wants.
+ * On the old dark glass this was a 10% white wash, which was the only emphasis
+ * that palette had. On paper a wash of anything over a near-cream fill is
+ * worth about one and a half to one and reads as a smudge — and it would be
+ * indistinguishable from the hover state directly above, which is the exact
+ * failure the previous comment here was written to avoid.
+ *
+ * So the current destination is filled solid: ink ground, paper type, 15.17:1
+ * each way. It is the same device `.btn-solid` uses for the one primary action
+ * on a screen, which is the right borrowing — "the page you are on" is the one
+ * item in a nav that is not a choice. Still value rather than hue: the signal
+ * blue stays spent on hover states and nowhere permanent.
  */
 .link[aria-current] {
-  color: rgb(var(--bone));
-  background: rgb(255 255 255 / 0.1);
+  color: rgb(var(--paper));
+  background: rgb(var(--ink));
 }
 
 .toggle {
   justify-content: center;
   width: 44px;
   margin-inline: -7px;
-  color: rgb(var(--bone));
+  color: rgb(var(--ink));
   background: transparent;
   border: 0;
 }
@@ -390,6 +402,14 @@
  * bundle. `.control.control` is (0,2,0) and wins in both, without reaching
  * for `!important` and without editing the Tailwind layer the rest of the
  * site is built on.
+ *
+ * The same doubling is what re-dresses the button's `glass` variant. That
+ * variant hovers to `bg-white/10`, which was the only emphasis a dark
+ * translucent island had and is nothing at all on a cream one — white over
+ * near-white. Its hover and open states are restated here as the 6% ink wash
+ * every other quiet control on the site uses. The variant keeps its name,
+ * which is now historical, because renaming it is a change to a shared
+ * component and this is a change to the chrome.
  */
 
 /* The chrome's voice, imposed over the button's own `text-sm font-medium`. */
@@ -398,21 +418,40 @@
   font-size: 0.75rem;
   letter-spacing: var(--track-label);
   text-transform: uppercase;
+  /* `rounded-full` comes from the `island` / `islandIcon` sizes; the boxes
+     these sit in are no longer capsules. */
+  border-radius: var(--r-sm);
+  color: rgb(var(--ink-soft));
 }
 
-/* The same glass as an island, one step more opaque — a menu is read rather
-   than glanced at, and the ground beneath it is a photograph. */
+@media (hover: hover) and (pointer: fine) {
+  .control.control:hover {
+    color: rgb(var(--ink));
+    background: rgb(var(--ink) / 0.06);
+  }
+}
+
+/* An open dropdown has to keep its trigger marked while the pointer is
+   somewhere else entirely — in the menu. */
+.control.control[data-state='open'] {
+  color: rgb(var(--ink));
+  background: rgb(var(--ink) / 0.06);
+}
+
+/*
+ * The language menu: the same stock and the same rule as the box that opened
+ * it, so the panel reads as the island extended rather than as a second
+ * material. One step heavier on the shadow, because unlike an island this
+ * genuinely is lifted and covering something.
+ */
 .menu.menu {
   min-width: 11rem;
   padding: 6px;
-  border-radius: 18px;
-  background: rgb(10 10 11 / 0.72);
-  border: 1px solid rgb(255 255 255 / 0.16);
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.2),
-    0 26px 60px -30px rgb(0 0 0 / 0.95);
-  backdrop-filter: blur(16px) saturate(160%);
-  color: rgb(var(--bone));
+  border-radius: var(--r-sm);
+  background: rgb(var(--paper));
+  border: 1px solid rgb(var(--ink-soft));
+  box-shadow: 0 22px 44px -28px rgb(var(--ink) / 0.6);
+  color: rgb(var(--ink));
 }
 
 .menuHead.menuHead {
@@ -422,7 +461,18 @@
   font-weight: 400;
   letter-spacing: var(--track-label);
   text-transform: uppercase;
-  color: rgb(var(--haze-2));
+  /* `--ink-soft`, not the faint value this used to carry. A group heading is
+     text and has to clear 4.5:1 on the surface it is printed on; the faint
+     token measures 3.60:1 on paper and is documented as non-text only. */
+  color: rgb(var(--ink-soft));
+}
+
+/* The rule under the menu's own heading. shadcn draws it as `bg-white/[0.12]`,
+   which was a visible hairline on dark glass and is nothing at all on paper —
+   white at twelve percent over #ECE8DC. `--rule` is the token for a line
+   between two pieces of content, which is what this is. */
+.menuSplit.menuSplit {
+  background: rgb(var(--rule));
 }
 
 /* 44px here too. A menu item is a tap target like any other, and Radix will
@@ -431,13 +481,13 @@
   min-height: 44px;
   padding-left: 34px;
   padding-right: 12px;
-  border-radius: 12px;
+  border-radius: var(--r-sm);
   font-size: 0.875rem;
-  color: rgb(var(--clay));
+  color: rgb(var(--ink-soft));
 }
 
 .menuItem.menuItem[data-state='checked'] {
-  color: rgb(var(--bone));
+  color: rgb(var(--ink));
 }
 
 .menuNote.menuNote {
@@ -445,38 +495,31 @@
   font-size: 0.625rem;
   letter-spacing: var(--track-label);
   text-transform: uppercase;
-  color: rgb(var(--haze-2));
+  color: rgb(var(--ink-soft));
   opacity: 1;
 }
 
+/*
+ * The tooltip is the one thing in the chrome that inverts.
+ *
+ * Every other surface up here is paper with a line drawn round it, which is
+ * right for objects that are permanently on screen and must not shout. A
+ * tooltip is the opposite kind of thing: it appears for a second, it is an
+ * answer to a question the reader just asked by hovering, and it has to be
+ * read instantly and then forgotten. Stamped in ink with paper type it is
+ * unmistakable at a glance — 15.17:1 — and it cannot be confused with the
+ * island it is pointing at.
+ */
 .tip.tip {
   padding: 5px 10px;
-  border-radius: 10px;
+  border-radius: var(--r-sm);
   font-family: 'IBM Plex Mono', ui-monospace, monospace;
   font-size: 0.6875rem;
   letter-spacing: var(--track-label);
   text-transform: uppercase;
-  color: rgb(var(--bone));
-  background: rgb(10 10 11 / 0.78);
-  border: 1px solid rgb(255 255 255 / 0.16);
-  backdrop-filter: blur(12px) saturate(160%);
-}
-
-@supports not (backdrop-filter: blur(1px)) {
-  .menu.menu,
-  .tip.tip {
-    background: rgb(var(--surface));
-    border-color: rgb(var(--edge));
-  }
-}
-
-@media (prefers-reduced-transparency: reduce) {
-  .menu.menu,
-  .tip.tip {
-    background: rgb(var(--surface));
-    border-color: rgb(var(--edge));
-    backdrop-filter: none;
-  }
+  color: rgb(var(--paper));
+  background: rgb(var(--ink));
+  border: 1px solid rgb(var(--ink));
 }
 
 /* ---------------------------------------------------------------- sheet -- */
@@ -492,7 +535,9 @@
   font-size: 0.75rem;
   letter-spacing: var(--track-label);
   text-transform: uppercase;
-  color: rgb(var(--haze-2));
+  /* Text, so `--ink-soft` and not the faint value: see the note on
+     `.menuHead` above. 6.37:1 on the sheet's paper. */
+  color: rgb(var(--ink-soft));
 }
 
 .sheetList {
@@ -506,24 +551,30 @@
   align-items: center;
   min-height: 48px;
   padding-inline: 14px;
-  border-radius: 16px;
+  border-radius: var(--r-sm);
   font-family: 'IBM Plex Mono', ui-monospace, monospace;
   font-size: 0.75rem;
   letter-spacing: var(--track-label);
   text-transform: uppercase;
-  color: rgb(var(--clay));
+  color: rgb(var(--ink-soft));
   transition:
     color var(--dur-micro) ease,
     background-color var(--dur-micro) ease;
 }
 
+/* The same inked tab as the desktop island, so "you are here" is one idea
+   stated once and read the same way on both layouts. */
 .sheetLink[aria-current] {
-  color: rgb(var(--bone));
-  background: rgb(255 255 255 / 0.1);
+  color: rgb(var(--paper));
+  background: rgb(var(--ink));
+}
+
+.sheetLink[aria-current] .sheetIcon {
+  color: rgb(var(--paper) / 0.75);
 }
 
 .sheetLink:focus-visible {
-  outline: 2px solid rgb(var(--bone));
+  outline: 2px solid rgb(var(--ink));
   outline-offset: -2px;
 }
 
@@ -531,9 +582,15 @@
   width: 16px;
   height: 16px;
   margin-right: 12px;
-  /* The glyph is the label's companion here, not its replacement, so it sits
-     one value below the word rather than competing with it. */
-  color: rgb(var(--haze-2));
+  /*
+   * `--ink-soft`, not `--ink-faint`, even though a glyph is a non-text mark
+   * and the faint token is sanctioned for exactly that. The floor for a
+   * meaningful graphic is 3:1, and the faint value holds 4.04:1 on paper —
+   * but these rows can take the inked ground, where it would fall to 2.92:1.
+   * One value for both states is simpler than a glyph that changes colour to
+   * stay legal.
+   */
+  color: rgb(var(--ink-soft));
 }
 
 .sheetControls {
@@ -545,9 +602,11 @@
 
 /* A hairline between the three groups: they are three different kinds of
    going somewhere — off the site, around the site, and nowhere at all — and
-   the sheet should not pretend otherwise. */
+   the sheet should not pretend otherwise. This one really is a rule between
+   two pieces of content rather than the boundary of a control, which is what
+   `--rule` is for. */
 .sheetSplit {
   height: 1px;
   margin: 6px 10px;
-  background: rgb(255 255 255 / 0.12);
+  background: rgb(var(--rule));
 }

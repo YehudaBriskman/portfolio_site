@@ -70,7 +70,7 @@ export default function LanguageMenu({
         className={styles.menu}
       >
         <DropdownMenuLabel className={styles.menuHead}>Language</DropdownMenuLabel>
-        <DropdownMenuSeparator />
+        <DropdownMenuSeparator className={styles.menuSplit} />
         <DropdownMenuRadioGroup
           value={value}
           onValueChange={(next) => {
