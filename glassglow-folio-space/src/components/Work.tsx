@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
-import Scenery from "@/components/scene/Scenery";
 import Shot from "@/components/projects/Shot";
 import Plate from "@/components/projects/Plate";
+import Slab from "@/components/Slab";
 import { useProjects, type ProjectEntry } from "@/hooks/useProjects";
 
 /*
@@ -25,21 +25,31 @@ const SHAPE = "aspect-[4/3] sm:aspect-[16/10]";
  * pushed these to 855px inside a 350px column on a phone and clipped every line
  * of copy on the card.
  */
-function Featured({ entry }: { entry: ProjectEntry }) {
+function Featured({ entry, index }: { entry: ProjectEntry; index: number }) {
   const { collection: c } = entry;
   const to = `/projects/${c.slug}`;
   const visit = entry.primaryLink;
 
   return (
     <article className="group grid items-center gap-8 lg:grid-cols-[1.15fr_1fr] lg:gap-16">
+      {/*
+        The screenshot as an object rather than a picture in a frame.
+
+        The resting lean alternates down the list so the slabs turn toward one
+        another instead of all facing the same corner, which is the thing that
+        makes a repeated pose read as a template. Flat on a phone and under
+        reduced motion; see Slab.module.css.
+      */}
       <figure className="m-0 min-w-0">
-        <Link to={to} tabIndex={-1} aria-hidden="true" className="block">
-          {c.coverImage ? (
-            <Shot src={c.coverImage} alt={`${c.title} screenshot`} className={SHAPE} />
-          ) : (
-            <Plate className={SHAPE} />
-          )}
-        </Link>
+        <Slab restY={index % 2 === 0 ? -8 : 8} restX={1.5}>
+          <Link to={to} tabIndex={-1} aria-hidden="true" className="block">
+            {c.coverImage ? (
+              <Shot src={c.coverImage} alt={`${c.title} screenshot`} className={SHAPE} />
+            ) : (
+              <Plate className={SHAPE} />
+            )}
+          </Link>
+        </Slab>
       </figure>
 
       <div className="min-w-0">
@@ -103,7 +113,6 @@ export default function Work() {
 
   return (
     <section id="work" className="isolate relative mx-auto max-w-6xl px-5 py-28 sm:px-6 sm:py-36">
-      <Scenery variant="ridge" />
       <div className="flex items-end gap-6">
         <h2 className="display text-section leading-[0.9]">Work</h2>
         <span className="mb-2 hidden h-px flex-1 bg-edge sm:block" aria-hidden="true" />
@@ -113,8 +122,8 @@ export default function Work() {
       {/* Both featured items share one orientation. Alternating left/right is the
           single most recognisable portfolio-template pattern there is. */}
       <div className="mt-16 space-y-28">
-        {featured.map((entry) => (
-          <Featured key={entry.collection.slug} entry={entry} />
+        {featured.map((entry, i) => (
+          <Featured key={entry.collection.slug} entry={entry} index={i} />
         ))}
       </div>
 

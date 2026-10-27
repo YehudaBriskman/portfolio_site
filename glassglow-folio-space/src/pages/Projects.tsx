@@ -1,6 +1,5 @@
 import PageShell from "@/components/PageShell";
 import { PROJECTS_LAYERS } from "@/components/scene/LayerStack";
-import Scenery from "@/components/scene/Scenery";
 import Reveal from "@/components/Reveal";
 import ProjectCard from "@/components/projects/ProjectCard";
 import ProjectRow from "@/components/projects/ProjectRow";
@@ -27,7 +26,6 @@ export default function Projects() {
             a 4000px page the ridgeline sat behind the last card, where it was
             both invisible and a legibility risk. */}
         <header className="relative">
-          <Scenery variant="ridge" />
           <div
             className="sun -z-10 -left-24 -top-16 h-[300px] w-[300px] sm:-left-10 sm:h-[460px] sm:w-[460px]"
             aria-hidden="true"

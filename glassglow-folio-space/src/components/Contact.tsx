@@ -1,6 +1,4 @@
 import { FormEvent, useState } from "react";
-import Scenery from "@/components/scene/Scenery";
-import SiteFooter from "@/components/SiteFooter";
 import { links } from "@/data/links";
 import { contact } from "@/data/site";
 import { sendContactMessage } from "@/services/contact";
@@ -36,7 +34,6 @@ export default function Contact() {
 
   return (
     <section id="contact" className="isolate relative mx-auto max-w-6xl px-6 py-28 sm:py-36">
-      <Scenery variant="ripples" />
       <p className="eyebrow">{contact.location} &middot; {contact.availability}</p>
       <h2 className="display-tight mt-5 text-section">Get in touch</h2>
 
@@ -107,8 +104,6 @@ export default function Contact() {
           </p>
         </div>
       </div>
-
-      <SiteFooter />
     </section>
   );
 }

@@ -1,44 +1,42 @@
 /*
- * The page as a stack of layers.
+ * The page as a stack of photographic plates.
  *
- * One layer per section. Each is opaque and rises from the foot of the screen
- * as its section arrives, covering the one before it. Only a layer's top edge
- * is ever visible, so only the top edge is a ridgeline — every bottom stays
- * hidden behind the next layer, all the way to the footer.
+ * One plate per section. Each is opaque and rises from the foot of the screen
+ * as its section arrives, covering the one before it. Only a plate's top edge
+ * is ever visible, so only the top edge is cut into a ridgeline — every bottom
+ * stays hidden behind the next plate, all the way to the footer.
  *
- * A layer rises in two stages: first until its ridge sits high on the screen,
+ * A plate rises in two stages: first until its ridge sits high on the screen,
  * which is the moment the handover reads, then onward until the ridge has left
- * the top entirely and its colour holds the whole page. Without that second
- * stage you spend the body of a section looking at the previous layer through
+ * the top entirely and the photograph holds the whole page. Without that second
+ * stage you spend the body of a section looking at the previous plate through
  * the gap above the ridge, which is a seam rather than a background.
  *
- * Each layer also carries its own sky: clouds, birds, a sun, trees on its own
- * slope. They belong to the layer and travel with it, so they arrive as part of
- * the handover rather than floating over the page independently of it.
+ * What changed, and why
+ * ---------------------
+ * These layers used to be flat fills with a landscape drawn on them: trees as
+ * three ellipses and a zig-zag, birds as two 1.8px arcs, ripples as ellipses
+ * 1.6px tall, all at opacities between 0.05 and 0.5, and thirty-nine infinite
+ * animations keeping them moving. At that scale and that contrast it read as a
+ * small clip-art drawing rather than as a place.
  *
- * Colours are the site's palette, and the ramp is measured. The least forgiving
- * text is --sodium at 12px needing 4.5:1, which caps any layer at L=0.035.
- * These five sit under that ceiling while swinging across hue, so consecutive
- * steps are 8 to 26 dE apart and read as different colours, not shades of one.
+ * The palette comment at the top of index.css says it was sampled from a
+ * photograph — a lone tree against layered ridges at sunset, mirrored in still
+ * water. So the fix is not to draw the landscape better. It is to stop drawing
+ * it: the plates ARE that photograph and three others, graded to the same key
+ * at build time (see scripts/build-plates.mjs).
+ *
+ * The ridgelines survive, because the handover is the one genuinely memorable
+ * idea here — but as a MASK on the plate's top edge rather than as a silhouette
+ * painted over it. You see the photograph through a ridge-shaped cut, which is
+ * the same gesture with a real image behind it.
  */
-
-/* The ground layer is --bitumen exactly. Anything else leaves a seam wherever a
-   section's own gradient resolves to the token instead of to this. */
-export type Scenery = "clouds" | "birds" | "trees" | "sun" | "stars";
-export type Layer = {
-  id: string;
-  fill: string;
-  d: string;
-  /* A second ridge behind the first, lighter, to give the layer its own depth
-     rather than one flat silhouette. */
-  back?: string;
-  scenery?: Scenery[];
-};
 
 /*
  * Ridges with big rounded crowns rather than gentle undulation. The tops are
  * near-circular arcs so the edge reads as a deliberate shape at a glance, which
- * a low swell does not.
+ * a low swell does not. Unchanged from the drawn version — the shapes were
+ * never the problem.
  */
 const RIDGES = [
   "M0,420 L0,330 C64,330 96,196 244,196 C392,196 424,330 488,330 C556,330 588,168 736,168 C884,168 916,330 984,330 C1048,330 1080,214 1224,214 C1368,214 1392,330 1440,330 L1440,420 Z",
@@ -47,201 +45,100 @@ const RIDGES = [
   "M0,420 L0,336 C60,336 88,182 232,182 C376,182 404,336 464,336 C532,336 560,238 700,238 C840,238 868,336 936,336 C1008,336 1036,160 1196,160 C1356,160 1394,336 1440,336 L1440,420 Z",
 ];
 
+/** The four graded plates, by the stage of day they were shot at. */
+export type Plate = "morning" | "afternoon" | "evening" | "night";
+
+const PLATE_WIDTHS = [800, 1200, 1920] as const;
+
+/**
+ * A plate's srcset, one entry per generated width. The browser picks; we only
+ * have to tell it the element is full-bleed, which `sizes="100vw"` does.
+ */
+function plateSrcSet(plate: Plate, ext: "avif" | "webp"): string {
+  return PLATE_WIDTHS.map((w) => `/plates/plate-${plate}-${w}.${ext} ${w}w`).join(", ");
+}
+
+export type Layer = {
+  id: string;
+  /**
+   * The ground colour. Still required: it fills the plate's own letterboxing
+   * on an extreme aspect ratio, and it is what shows for the one layer that
+   * has no photograph.
+   */
+  fill: string;
+  /** Which ridge cuts this plate's top edge. */
+  d: string;
+  /** Omitted on the ground layer, which is flat --bitumen and nothing else. */
+  plate?: Plate;
+  /**
+   * How hard to hold the photograph down so text stays legible over it.
+   *
+   * A flat wash at this strength turns the picture to mud, which defeats the
+   * point of having one, so the scrim is shaped: a pool under the reading
+   * column and a gradient at the foot, leaving the middle distance alone.
+   * Bright plates need more; the aurora needs almost none.
+   */
+  scrim: number;
+  /**
+   * Per-plate accent, as an `R G B` triple.
+   *
+   * --sodium was measured once, against --bitumen, and then shipped over five
+   * different grounds. On the warm plates it lands at roughly its own hue and
+   * stops reading as an accent at all. Where that happens the layer names a
+   * cooler or paler substitute, and everything under it inherits.
+   */
+  accent?: string;
+};
+
 /*
- * Read down the page these are one journey: night on the hero, first light over
- * the work, open day for the approach, a treeline at the stack, and the sun
- * going down on the water at the contact. Each layer is its own place — its own
- * ridge, its own depth, its own weather — and the order is the story.
+ * Read down the page these are one journey: the dark ground under the hero,
+ * an aurora over the work, a green evening for the approach, open water at the
+ * stack, and the sun going down on the water at the contact — which is the
+ * photograph the whole palette was sampled from, so the page ends on the image
+ * it has been quoting all along.
+ *
+ * This table is the whole art direction. Re-cutting the story is four lines.
  */
 export const LANDING_LAYERS: Layer[] = [
-  { id: "hero", fill: "15 21 21", d: RIDGES[0] },
-  { id: "work", fill: "35 35 35", d: RIDGES[0], back: RIDGES[2], scenery: ["stars", "clouds"] },
-  { id: "approach", fill: "28 44 58", d: RIDGES[1], back: RIDGES[3], scenery: ["clouds", "birds"] },
-  { id: "stack", fill: "64 45 30", d: RIDGES[2], back: RIDGES[0], scenery: ["trees"] },
-  { id: "contact", fill: "85 40 18", d: RIDGES[3], back: RIDGES[1], scenery: ["sun", "birds"] },
+  { id: "hero", fill: "15 21 21", d: RIDGES[0], scrim: 0 },
+  { id: "work", fill: "16 24 34", d: RIDGES[0], plate: "night", scrim: 0.58 },
+  { id: "approach", fill: "18 30 26", d: RIDGES[1], plate: "evening", scrim: 0.6 },
+  { id: "stack", fill: "34 44 50", d: RIDGES[2], plate: "afternoon", scrim: 0.72, accent: "244 170 126" },
+  { id: "contact", fill: "48 34 32", d: RIDGES[3], plate: "morning", scrim: 0.64, accent: "246 196 170" },
 ];
 
 /*
  * Every area gets its own landscape, not a copy of the home page's.
  *
- * The layer stack is what makes that cheap: a page is a colour ramp, a set of
- * ridges and its own weather, declared in one place. Projects reads as open
+ * The stack is what makes that cheap: a page is a set of plates, a set of
+ * ridges and a scrim strength, declared in one place. Projects reads as open
  * daylight, notes as an evening, a single post as one quiet warm room — and
  * none of them shifts when the landing page's story is re-cut.
  */
 export const PROJECTS_LAYERS: Layer[] = [
-  { id: "base", fill: "15 21 21", d: RIDGES[0] },
-  { id: "open", fill: "35 35 35", d: RIDGES[2], back: RIDGES[0], scenery: ["clouds"] },
-  { id: "far", fill: "28 44 58", d: RIDGES[1], back: RIDGES[3], scenery: ["birds"] },
+  { id: "base", fill: "15 21 21", d: RIDGES[0], scrim: 0 },
+  { id: "open", fill: "34 44 50", d: RIDGES[2], plate: "afternoon", scrim: 0.72, accent: "244 170 126" },
+  { id: "far", fill: "16 24 34", d: RIDGES[1], plate: "night", scrim: 0.58 },
 ];
 
 export const NOTES_LAYERS: Layer[] = [
-  { id: "base", fill: "15 21 21", d: RIDGES[0], scenery: ["stars"] },
-  { id: "dusk", fill: "28 44 58", d: RIDGES[3], back: RIDGES[1], scenery: ["stars", "clouds"] },
-  { id: "wood", fill: "64 45 30", d: RIDGES[2], back: RIDGES[0], scenery: ["trees"] },
+  { id: "base", fill: "15 21 21", d: RIDGES[0], scrim: 0 },
+  { id: "dusk", fill: "16 24 34", d: RIDGES[3], plate: "night", scrim: 0.58 },
+  { id: "wood", fill: "18 30 26", d: RIDGES[2], plate: "evening", scrim: 0.6 },
 ];
 
 /*
  * A post is two layers and nothing else. Reading is the job here, so the
- * background changes once, slowly, and never asks for attention mid-paragraph.
+ * background changes once, slowly, and never asks for attention mid-paragraph —
+ * and the scrim runs harder than anywhere else on the site for the same reason.
  */
 export const POST_LAYERS: Layer[] = [
-  { id: "base", fill: "15 21 21", d: RIDGES[0] },
-  { id: "warm", fill: "64 45 30", d: RIDGES[1], back: RIDGES[3], scenery: ["sun"] },
+  { id: "base", fill: "15 21 21", d: RIDGES[0], scrim: 0 },
+  { id: "warm", fill: "48 34 32", d: RIDGES[1], plate: "morning", scrim: 0.78, accent: "246 196 170" },
 ];
 
 /** Kept as the neutral default for anything that does not choose. */
 export const PAGE_LAYERS = PROJECTS_LAYERS;
-
-/*
- * Scenery is drawn in the sky above the ridge, in the layer's own colour
- * lightened or darkened rather than in a new one, so it reads as weather in
- * that landscape instead of decoration laid on top of it.
- */
-/*
- * Scenery, split by what the compositor can actually take.
- *
- * Everything that MOVES is an HTML element with a CSS transform on it, because
- * the compositor can animate those on its own thread. Everything that STAYS
- * still lives in the ridge's SVG, where it is rasterised once with the terrain.
- *
- * That division is the whole point. These were all SVG <g> elements with
- * animations on them, and animating inside an SVG forces the browser to
- * re-rasterise the entire promoted layer texture every frame — measured at 35ms
- * a frame on a throttled phone, against 0 for the same shapes held still.
- */
-
-/** Moving pieces: HTML wrappers, transform-animated, cheap to composite. */
-function MovingScenery({ kind }: { kind: Scenery }) {
-  if (kind === "clouds") {
-    return (
-      <>
-        {[
-          { top: "16%", scale: 1, dur: 190, delay: 0 },
-          { top: "30%", scale: 0.7, dur: 260, delay: -40 },
-          { top: "10%", scale: 0.5, dur: 330, delay: -80 },
-        ].map((c, i) => (
-          <div
-            key={i}
-            className="absolute left-0 w-[200%] motion-reduce:!animate-none"
-            style={{
-              top: c.top,
-              opacity: 0.16,
-              animation: `drift ${c.dur}s linear ${c.delay}s infinite`,
-            }}
-          >
-            <svg viewBox="0 0 2880 60" preserveAspectRatio="none" className="h-[6vh] w-full" role="presentation">
-              {[0, 1440].map((x) => (
-                <g key={x} transform={`translate(${x + i * 260}, 30) scale(${c.scale})`}>
-                  <ellipse cx="120" cy="0" rx="150" ry="17" fill="rgb(var(--bone))" />
-                  <ellipse cx="210" cy="-9" rx="86" ry="13" fill="rgb(var(--bone))" />
-                </g>
-              ))}
-            </svg>
-          </div>
-        ))}
-      </>
-    );
-  }
-
-  if (kind === "birds") {
-    return (
-      <div
-        className="absolute left-0 top-[22%] w-[16%] motion-reduce:!animate-none"
-        style={{ opacity: 0.5, animation: "cross 96s linear -20s infinite" }}
-      >
-        <svg viewBox="0 0 200 40" className="h-[4vh] w-full" role="presentation">
-          <g fill="none" stroke="rgb(var(--bone))" strokeWidth="2.6" strokeLinecap="round">
-            {[[0, 22], [46, 8], [88, 28], [132, 12], [176, 24]].map(([x, y], i) => (
-              <path key={i} d={`M${x},${y} q9,-8 18,0 q9,-8 18,0`} />
-            ))}
-          </g>
-        </svg>
-      </div>
-    );
-  }
-
-  if (kind === "stars") {
-    return (
-      <>
-        {[
-          [6, 10, 3.1], [17, 19, 4.2], [29, 8, 2.6], [39, 23, 5.0], [49, 13, 3.6],
-          [61, 7, 4.6], [70, 21, 2.9], [82, 11, 5.4], [92, 18, 3.3],
-        ].map(([left, top, dur], i) => (
-          <div
-            key={i}
-            className="absolute h-[3px] w-[3px] rounded-full bg-bone motion-reduce:!animate-none"
-            style={{
-              left: `${left}%`,
-              top: `${top}%`,
-              opacity: 0.5,
-              animation: `twinkle ${dur}s ease-in-out ${-i * 0.7}s infinite`,
-            }}
-          />
-        ))}
-      </>
-    );
-  }
-
-  return null;
-}
-
-/** Still pieces: drawn into the ridge's own SVG and rasterised once with it. */
-function StillScenery({ kind, fill, at }: { kind: Scenery; fill: string; at: "sky" | "surface" }) {
-  const ink = `rgb(${fill})`;
-
-  if (at === "surface") {
-    if (kind !== "sun") return null;
-    return (
-      <g>
-        {[
-          [352, 24, 7], [372, 64, 9], [346, 102, 7], [338, 136, 6],
-        ].map(([w, dy, h], i) => (
-          <rect key={i} x={1090 - w / 2} y={336 + dy} width={w} height={h} rx={h / 2}
-                fill="rgb(var(--sodium))" opacity={0.5 - i * 0.1} />
-        ))}
-      </g>
-    );
-  }
-
-  if (kind === "trees") {
-    /*
-     * A treeline, and a still one. Twenty-two trees each running their own sway
-     * was the single most expensive thing on the page; a forest on a distant
-     * ridge does not visibly move anyway.
-     */
-    const TREES: Array<[number, number, number]> = [
-      [176, 214, 0.62], [206, 196, 0.8], [232, 180, 0.95], [262, 170, 1.1],
-      [292, 176, 1.0], [320, 190, 0.84], [348, 208, 0.66], [376, 226, 0.54],
-      [640, 268, 0.5], [676, 246, 0.64], [712, 232, 0.78], [748, 224, 0.9],
-      [784, 228, 0.82], [820, 240, 0.68], [856, 258, 0.55],
-      [1148, 226, 0.6], [1184, 204, 0.78], [1220, 188, 0.98], [1256, 184, 1.06],
-      [1292, 194, 0.88], [1326, 212, 0.7], [1358, 234, 0.56],
-    ];
-    return (
-      <g>
-        {TREES.map(([x, y, sc], i) => (
-          <g key={i} transform={`translate(${x}, ${y}) scale(${sc})`}>
-            <path d="M0,0 L-13,0 L0,-44 L13,0 Z" fill={ink} />
-            <path d="M0,-16 L-9,-16 L0,-54 L9,-16 Z" fill={ink} />
-            <rect x="-1.6" y="-3" width="3.2" height="6" fill={ink} />
-          </g>
-        ))}
-      </g>
-    );
-  }
-
-  if (kind === "sun") {
-    return (
-      <g>
-        <circle cx="1090" cy="150" r="118" fill="rgb(var(--sodium) / 0.13)" />
-        <circle cx="1090" cy="150" r="46" fill="rgb(var(--sodium) / 0.85)" />
-      </g>
-    );
-  }
-
-  return null;
-}
 
 export type LayerStackProps = {
   layers: Layer[];
@@ -257,12 +154,37 @@ export type LayerStackProps = {
  * These also set how tall a layer needs to be. Its top travels from 100vh down
  * to (REST - OVERSHOOT) = -38vh, so 138vh of height is the minimum that still
  * covers the bottom of the screen at full overshoot; 145vh gives a margin.
- * It was 200vh, and five surfaces of that size cost a 67ms hitch on the first
- * scroll while the compositor rasterised them.
  */
 export const REST_VH = 28;
 export const OVERSHOOT_VH = 66;
 const SKY_VH = 30;
+
+/**
+ * The ridge as a mask rather than a drawing.
+ *
+ * Two mask layers: the ridge silhouette across the top band, and a plain
+ * rectangle for everything below it. White is kept, so the photograph survives
+ * from the ridgeline down and the sky above the crown belongs to whatever plate
+ * is behind this one.
+ */
+function ridgeMask(d: string): React.CSSProperties {
+  const svg =
+    `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 420' preserveAspectRatio='none'>` +
+    `<path d='${d}' fill='%23fff'/></svg>`;
+  const image = `url("data:image/svg+xml,${svg.replace(/#/g, "%23").replace(/"/g, "'")}"), linear-gradient(#fff, #fff)`;
+  const size = `100% ${SKY_VH}vh, 100% ${145 - SKY_VH}vh`;
+  const position = `top left, bottom left`;
+  return {
+    maskImage: image,
+    WebkitMaskImage: image,
+    maskSize: size,
+    WebkitMaskSize: size,
+    maskPosition: position,
+    WebkitMaskPosition: position,
+    maskRepeat: "no-repeat",
+    WebkitMaskRepeat: "no-repeat",
+  };
+}
 
 export default function LayerStack({ layers, driveBy = "sections" }: LayerStackProps) {
   /*
@@ -271,62 +193,103 @@ export default function LayerStack({ layers, driveBy = "sections" }: LayerStackP
    * which looks tidy and is the wrong tool: a transform driven by a custom
    * property cannot take the compositor fast path, so every frame went through
    * style, layout and paint on the main thread — and because the property lived
-   * on :root, each write invalidated style for the whole document. After a
-   * flick the ridges visibly arrived late. These elements only declare what
-   * they are; the hook says where they are.
+   * on :root, each write invalidated style for the whole document. These
+   * elements only declare what they are; the hook says where they are.
+   *
+   * `will-change` is deliberately absent. It used to be set statically on every
+   * layer and never released, which held four full-viewport textures resident
+   * for the session — roughly 36MB on a desktop and 68MB on a phone at DPR 3.
+   * The hook now sets it on the first scroll and clears it once scrolling
+   * stops.
    */
   return (
     <div className="absolute inset-0 overflow-hidden" aria-hidden="true">
-      {layers.map((l, i) => {
-        return (
-          <div
-            key={l.id}
-            data-layer={i}
-            data-drive={driveBy}
-            data-count={layers.length}
-            className="absolute inset-x-0 top-0 h-[145vh] motion-reduce:!transform-none"
-            style={
-              i === 0
-                ? { background: `rgb(${l.fill})` }
-                : {
-                    // Starts off-screen; the hook takes over on first frame.
-                    transform: "translate3d(0, 100vh, 0)",
-                    willChange: "transform",
-                  }
-            }
-          >
-            {i > 0 && (
-              <>
-                <div className="relative w-full overflow-hidden" style={{ height: `${SKY_VH}vh` }}>
-                  {(l.scenery ?? []).map((k) => (
-                    <MovingScenery key={k} kind={k} />
-                  ))}
-                  <svg
-                    viewBox="0 0 1440 420"
-                    preserveAspectRatio="none"
-                    className="absolute inset-0 block h-full w-full"
-                    role="presentation"
-                  >
-                    {(l.scenery ?? []).map((k) => (
-                      <StillScenery key={k} kind={k} fill={l.fill} at="sky" />
-                    ))}
-                  {/* The far ridge sits behind, lifted and washed out, so each
-                      layer has its own distance rather than one flat edge. */}
-                    {l.back && (
-                      <path d={l.back} fill={`rgb(${l.fill})`} opacity="0.55" transform="translate(0, -46)" />
-                    )}
-                    <path d={l.d} fill={`rgb(${l.fill})`} />
-                    {(l.scenery ?? []).map((k) => (
-                      <StillScenery key={`${k}-s`} kind={k} fill={l.fill} at="surface" />
-                    ))}
-                  </svg>
-                </div>
-                <div className="h-[115vh] w-full" style={{ background: `rgb(${l.fill})` }} />
-              </>
-            )}
-          </div>
-        );
-      })}
+      {layers.map((l, i) => (
+        <div
+          key={l.id}
+          data-layer={i}
+          data-drive={driveBy}
+          data-count={layers.length}
+          data-rest={i === 0 ? undefined : ""}
+          className="scene-layer absolute inset-x-0 top-0 h-[145vh]"
+          style={
+            {
+              background: `rgb(${l.fill})`,
+              ...(l.accent ? { "--sodium": l.accent } : {}),
+              /*
+               * No inline transform. The starting position is a stylesheet
+               * rule (`.scene-layer`), so the reduced-motion resting pose can
+               * override it in the normal way — an inline style would win over
+               * both, which is how the resting scene ended up stuck at the
+               * off-screen start position. At runtime the scroll hook writes
+               * inline transforms and beats the stylesheet, which is exactly
+               * the precedence we want when motion is allowed.
+               */
+            } as React.CSSProperties
+          }
+        >
+          {l.plate && (
+            <div className="absolute inset-0 overflow-hidden" style={ridgeMask(l.d)}>
+              {/*
+                The photograph occupies the top viewport of the layer, and the
+                layer's own fill carries the rest.
+
+                A plate is 145vh tall — tall enough that its ridge can climb
+                clear of the screen — but the photographs are 16:9. Stretching
+                one over the whole height with `object-cover` cropped roughly
+                40% off each side and left a narrow vertical slice on screen,
+                which is why four good pictures were reading as flat colour
+                fields. Held to one viewport the crop is about a tenth, and the
+                picture survives.
+              */}
+              <div className="absolute inset-x-0 top-0 h-screen overflow-hidden">
+                <picture>
+                  <source type="image/avif" srcSet={plateSrcSet(l.plate, "avif")} sizes="100vw" />
+                  <source type="image/webp" srcSet={plateSrcSet(l.plate, "webp")} sizes="100vw" />
+                  {/*
+                   * The first plate is the largest thing on the first screen a
+                   * reader scrolls to, so it loads eagerly and at high
+                   * priority. The rest are several viewports further down and
+                   * can wait.
+                   */}
+                  <img
+                    src={`/plates/plate-${l.plate}-1200.jpg`}
+                    alt=""
+                    width={1920}
+                    height={1080}
+                    loading={i === 1 ? "eager" : "lazy"}
+                    fetchpriority={i === 1 ? "high" : "low"}
+                    decoding="async"
+                    className="h-full w-full object-cover"
+                  />
+                </picture>
+                {/* Into the fill rather than onto an edge, so the join between
+                    the photograph and the colour below it is not a line. */}
+                <div
+                  className="absolute inset-x-0 bottom-0 h-[26vh]"
+                  style={{ background: `linear-gradient(to bottom, transparent, rgb(${l.fill}))` }}
+                />
+              </div>
+              {/*
+               * Only the plate's own edges are darkened here. The reading pool
+               * that protects the text is a separate, viewport-anchored layer
+               * in Atmosphere — see the note there. It used to live on this
+               * element, which meant it travelled with the plate: by the time
+               * a section's copy was on screen the pool had slid off the top
+               * with the photograph it was attached to, and the text was left
+               * sitting on whatever part of the picture happened to be behind
+               * it.
+               */}
+              <div
+                className="absolute inset-x-0 top-0 h-screen"
+                style={{
+                  background: `linear-gradient(to bottom, rgb(var(--bitumen) / ${l.scrim * 0.42}) 0%, transparent 22%)`,
+                }}
+              />
+            </div>
+          )}
+        </div>
+      ))}
     </div>
   );
 }

@@ -1,11 +1,9 @@
 import { about } from "@/data/site";
-import Scenery from "@/components/scene/Scenery";
 
 export default function Approach() {
   return (
     <section id="approach" className="isolate relative mx-auto max-w-6xl px-6 py-28 sm:py-36">
-      <Scenery variant="copse" />
-      <div className="sm:text-right">
+      <div>
         <h2 className="display text-section leading-[0.92]">{about.heading}</h2>
         <p className="eyebrow mt-4">Team lead &middot; Israel Defense Forces</p>
       </div>
@@ -14,7 +12,7 @@ export default function Approach() {
           prose instead of text wrapped around an image. Wider leading and a
           longer measure, because the previous setting was small type packed
           into a narrow well — technically readable, actually skipped. */}
-      <div className="mt-14 max-w-2xl space-y-6 sm:ml-auto sm:text-right">
+      <div className="mt-14 max-w-2xl space-y-6">
         {about.intro.map((p) => (
           <p key={p.slice(0, 24)} className="text-lg leading-[1.7] text-bone/85">
             {p}
