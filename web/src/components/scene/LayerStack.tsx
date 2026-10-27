@@ -29,17 +29,37 @@ import { useEffect, useState } from "react";
 /*
  * The three regions a plate can occupy.
  *
- * Four points each, in the same order, so the browser can interpolate from
- * one to the next as sections hand over — a shape that changes its point
- * count snaps instead of moving. The slab and the band both stop short of
- * the left column, which is where every page puts its reading.
+ * These were hard `clip-path` polygons, and a hard edge was the wrong tool
+ * here for a reason that is not about taste. A plate is fixed to the
+ * viewport and the content scrolls past it, so the cut sits at one screen
+ * position for ever while the words move through it — which means that at
+ * some scroll offset the diagonal will always run straight across a heading.
+ * It did: a 1px edge slicing through "Stack" and its eyebrow, which reads as
+ * a rendering fault rather than as a shape.
+ *
+ * A mask with a feathered edge says the same thing and survives the
+ * collision. Text crossing a soft boundary reads as atmosphere; text
+ * crossing a hard one reads as a bug. The feather is wide on purpose —
+ * narrow enough to still be a shape, wide enough that no single line of type
+ * ever sits on both sides of it at once.
+ *
+ * Expressed as masks rather than clip-paths because one property then
+ * carries both the region and its falloff, and because a mask interpolates
+ * between any two gradients while a clip-path only interpolates between
+ * polygons with matching point counts.
  */
 /** The whole screen. */
-const FULL = "polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)";
-/** A leaning column on the right, clear of the copy. */
-const SLAB = "polygon(42% 0%, 100% 0%, 100% 100%, 52% 100%)";
-/** A band across the top, cut away at an angle underneath. */
-const BAND = "polygon(0% 0%, 100% 0%, 100% 58%, 0% 76%)";
+const FULL = "none";
+/**
+ * A column on the right, fading out before it reaches the reading. The
+ * boundary is angled a few degrees so it does not read as a rule.
+ */
+const SLAB = "linear-gradient(96deg, transparent 30%, #000 54%, #000 100%)";
+/**
+ * A band across the top, falling away toward the left — the same slope the
+ * polygon had, with 20% of the viewport given over to the fade.
+ */
+const BAND = "linear-gradient(176deg, #000 0%, #000 42%, transparent 64%)";
 
 /** The four graded plates, by the stage of day they were shot at. */
 export type Plate = "morning" | "afternoon" | "evening" | "night";
@@ -81,11 +101,9 @@ export type Layer = {
    * reading as one wallpaper that keeps changing colour — the page gains a
    * geometry of its own, and the ground shows through where the shape stops.
    *
-   * Two rules, both learned the hard way from the references. Every shape has
-   * the same number of points, because `clip-path` only interpolates between
-   * polygons that do; and none of them crosses the left column, because that
-   * is where the reading is and type half on a photograph is type nobody
-   * finishes. Omit for full bleed.
+   * One rule: none of them puts a hard edge where the reading is, because a
+   * fixed plate and scrolling text eventually meet and a hard edge loses
+   * that argument. Omit, or use FULL, for full bleed.
    */
   shape?: string;
 };
@@ -198,7 +216,8 @@ export default function LayerStack({ layers }: LayerStackProps) {
           style={
             {
               background: `rgb(${l.fill})`,
-              clipPath: l.shape,
+              maskImage: l.shape === "none" ? undefined : l.shape,
+              WebkitMaskImage: l.shape === "none" ? undefined : l.shape,
             } as React.CSSProperties
           }
         >
