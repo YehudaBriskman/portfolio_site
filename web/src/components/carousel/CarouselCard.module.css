@@ -1,0 +1,97 @@
+/*
+ * One project, cut down to what a card can honestly carry.
+ *
+ * The block this replaces printed the year, the status, the title, the
+ * tagline, a three-line description, three bulleted highlights, eight
+ * technology chips and three buttons — all at once, for each of two
+ * projects. That is a datasheet, and a datasheet has no business being a
+ * carousel: there is nothing left for the reader to go and find out.
+ *
+ * Almost nothing here is new. The surface, the corner, the resting wash and
+ * the three type roles all come from `PaperCard` and `cardType`, which is
+ * also why this file is short: the only things it owns are the padding a
+ * card holding a framed screenshot needs rather than the one a card holding
+ * prose needs, the two-line ceiling on the tagline, and the rounding of the
+ * mount. See the note at the top of CarouselCard.tsx for what was cut from
+ * the content and where each cut thing already lives.
+ */
+
+/*
+ * `flush`, then padded here — and the padding is a round 12px on purpose.
+ *
+ * `PaperCard`'s own inset clamps to 32px, which is the right mount around a
+ * paragraph and far too much around a picture on a card 336px wide: the
+ * screenshot would lose a fifth of its width to margin.
+ *
+ * 12px is not a guess. `Figure` draws its mount at `--r-lg` and its picture
+ * at `--r-lg` less the 12px of padding between them, so that the two curves
+ * are parallel rather than one square corner inside a round one. Taking the
+ * card out to `--r-xl` and setting its own padding to the same 12px extends
+ * that series by one: 44px card, 32px mount, 20px picture, each 12px inside
+ * the last. Change the padding here and all three corners stop nesting.
+ */
+.card {
+  --card-radius: var(--r-xl);
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding: 0.75rem;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  /* The action is pinned to the foot, so cards with one-line and two-line
+     taglines still line their buttons up across the shelf. */
+  flex: 1 1 auto;
+  padding: 1.125rem 0.5rem 0.25rem;
+}
+
+/*
+ * The one line.
+ *
+ * Not the description — the tagline, which is the sentence each project was
+ * already written with and the only one short enough to be read at a glance
+ * from a moving shelf. Two lines is the ceiling; past that the card is a
+ * paragraph again, and the clamp says so rather than letting one long
+ * tagline set the height of all six cards.
+ */
+.line {
+  margin-top: var(--card-step-tight);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+/*
+ * The small data, set as a line of type rather than as a row of capsules.
+ *
+ * Eight technology chips are what made the old block unreadable, and the
+ * rule the rest of the site already follows is one role per shape: an action
+ * is a pill and a fact is not. These are facts, so they are a sentence of
+ * small type with the values picked out — the same setting `ProjectFacts`
+ * uses on the detail page, in the same `cardType.meta` ink.
+ */
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.5rem;
+  margin-top: var(--card-step);
+}
+
+.factSep {
+  color: rgb(var(--ink-faint));
+}
+
+/* First of the three is the state — what the project *is* right now — and it
+   is the one word on the card worth reading at full strength. */
+.factLead {
+  color: rgb(var(--ink));
+}
+
+.foot {
+  margin-top: auto;
+  padding-top: var(--card-step);
+}

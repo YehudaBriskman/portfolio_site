@@ -1,15 +1,39 @@
 import PageShell from "@/components/PageShell";
 /* InkWipe, not Reveal. Reveal was an IntersectionObserver that translated a
    section 26px before fading it in; the wipe is scroll-timeline driven and
-   needs no observer. Its stagger props go with it: a scroll-driven animation
-   ignores animation-delay outright, so a per-item delay could only ever have
-   been theatre. Each item now prints when it arrives, which is the same
-   sequence the stagger was imitating. */
+   needs no observer. */
 import InkWipe from "@/components/motion/InkWipe";
-import ProjectCard from "@/components/projects/ProjectCard";
-import ArchiveCard from "@/components/projects/ArchiveCard";
+import ProjectCarousel from "@/components/carousel/ProjectCarousel";
 import { useProjects } from "@/hooks/useProjects";
 import { relativeTime } from "@/services/blog";
+
+/*
+ * Every project, on one shelf.
+ *
+ * What this page was
+ * ------------------
+ * Two full-width cards — the first of them a 21:9 screenshot over display
+ * type, a description, three highlights and a row of repository facts —
+ * followed by a heading and a two-by-two grid of four more. Six projects,
+ * four distinct card layouts between them, and about three thousand pixels
+ * of page. Everything on it was also on the six detail pages it links to.
+ *
+ * It is one carousel now, in the same order it was always sorted in: the two
+ * in use, then the four from 2024-25. The grouping heading those four used
+ * to sit under has gone with the grid, and the sentence under the title is
+ * where that distinction now lives — which is honest, because the grouping
+ * was never a filter the reader could act on, and each card states its own
+ * year and its own state anyway.
+ *
+ * The three facts in the header stay. They are the only things on this page
+ * that are about the shelf rather than about one project — how many are in
+ * use, how many came before, and when anything last moved — and a reader
+ * deciding whether this is a live portfolio or an abandoned one is reading
+ * exactly those.
+ */
+
+/* The page's own h1 is not a plate, so the first screenshot is plate one. */
+const FIRST_PLATE = 1;
 
 export default function Projects() {
   const { items, state, featured, archive } = useProjects();
@@ -25,15 +49,12 @@ export default function Projects() {
   return (
     <PageShell>
       <section data-crest data-hue="58 106 102" className="wrap section-y isolate relative">
-        {/* The `.sun` wash that used to anchor this header went with the
-            accent, and nothing replaces it: the page is paper and the cards
-            on it are objects with their own edges and shadows, which is what
-            the glow was standing in for. */}
         <header className="relative">
           <p className="eyebrow">Projects</p>
           <h1 className="display mt-3 text-section">What I&rsquo;m building</h1>
           <p className="mt-6 max-w-[46ch] text-lg leading-[1.6] text-ink/85 sm:text-xl">
-            Two things people actually use, and the trail of smaller work that got me there.
+            Two things people actually use, and the trail of smaller work from 2024&ndash;25 that got me
+            there.
           </p>
 
           {/* These were three capsules, which made the count of the shelf look
@@ -80,37 +101,23 @@ export default function Projects() {
         {/* No skeleton and no empty state here, and nothing to guard against:
             `useProjects` is seeded from the project table, so the list is
             populated on the first paint and `items.length === 0` is not a
-            state it can produce. The two components that used to cover those
-            cases were unreachable the day they were written. */}
-        <div className="mt-12 space-y-6">
-          {featured.map((entry, i) => (
-            <InkWipe key={entry.collection.slug} as="div">
-              {/* The first card is above the fold on a phone, so its
-                  screenshot is the LCP element and must not be lazy. */}
-              <ProjectCard entry={entry} index={i} lead={i === 0} eager={i === 0} />
-            </InkWipe>
-          ))}
+            state it can produce. */}
+        <div className="mt-12">
+          <InkWipe as="div">
+            {/* The first card is above the fold at every width, so its
+                screenshot is the LCP element and must not be lazy. */}
+            <ProjectCarousel
+              entries={items}
+              label="All projects"
+              /* The only heading above the shelf on this page is the h1, so
+                 a card title is an h2 here and an h3 on the home page, where
+                 `Work` sits between. */
+              heading="h2"
+              firstPlate={FIRST_PLATE}
+              eagerFirst
+            />
+          </InkWipe>
         </div>
-
-        {archive.length > 0 && (
-          <section className="mt-section-sm" aria-labelledby="archive-heading">
-            <div className="rule bleed-x" aria-hidden="true" />
-            <h2 id="archive-heading" className="display-tight mt-12 text-2xl sm:text-3xl">
-              Learning in public, 2024&ndash;25
-            </h2>
-            <ul className="mt-12 grid gap-6 sm:grid-cols-2">
-              {archive.map((entry, i) => (
-                <li className="min-w-0" key={entry.collection.slug}>
-                  <InkWipe as="div">
-                    {/* Plate numbers run on from the featured cards, so the
-                      page is one numbered series rather than two. */}
-                  <ArchiveCard entry={entry} index={featured.length + i + 1} />
-                  </InkWipe>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
       </section>
     </PageShell>
   );
