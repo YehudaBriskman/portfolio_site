@@ -5,7 +5,6 @@ import remarkGfm from "remark-gfm";
 import PageShell from "@/components/PageShell";
 import { POST_LAYERS } from "@/components/scene/LayerStack";
 import Ridge from "@/components/Ridge";
-import Scenery from "@/components/scene/Scenery";
 import PostFooterNav from "@/components/notes/PostFooterNav";
 import ReadingBar from "@/components/notes/ReadingBar";
 import TagPill from "@/components/notes/TagPill";
@@ -239,7 +238,6 @@ export default function BlogPost() {
         {post && state === "ok" && (
           <>
             <header className="isolate relative">
-              <Scenery variant="shore" />
 
               {/* On a phone the back affordance lives in the bar at the foot of
                   the screen, where it is still reachable three thousand pixels
@@ -296,7 +294,7 @@ export default function BlogPost() {
                 height={900}
                 /* The largest element above the fold on this page, and it had no
                    dimensions at all, so every post loaded with a layout shift. */
-                fetchPriority="high"
+                fetchpriority="high"
                 decoding="async"
                 className="bleed mt-10 aspect-[16/9] w-full border-y border-edge object-cover sm:rounded-[var(--r-lg)] sm:border"
               />

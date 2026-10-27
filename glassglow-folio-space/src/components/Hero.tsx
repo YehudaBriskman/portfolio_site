@@ -60,7 +60,7 @@ export default function Hero() {
           height={845}
           /* Above the fold and the largest element on it: this is the LCP image,
              so it loads eagerly and at high priority rather than lazily. */
-          fetchPriority="high"
+          fetchpriority="high"
           decoding="async"
           className="h-[74svh] w-auto max-w-none select-none self-end object-contain opacity-70 lg:h-[80svh] lg:opacity-100"
         />
@@ -127,7 +127,7 @@ export default function Hero() {
               alt="Yehuda Briskman"
               width={365}
               height={560}
-              fetchPriority="high"
+              fetchpriority="high"
               decoding="async"
               className="relative h-[38svh] w-auto select-none object-contain"
             />
