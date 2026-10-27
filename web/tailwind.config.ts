@@ -89,7 +89,23 @@ export default {
          * largest value that still fits the longer string at every width,
          * which is why they are not round numbers.
          */
-        hero: ["clamp(2.4rem, 12vw, 13rem)", { lineHeight: "0.84" }],
+        /*
+         * The hero answers to the window's height as well as its width.
+         *
+         * `12vw` alone only knows how wide the window is, so on a short wide
+         * one — a laptop at 1878x875, say — the name grew to 225px and its
+         * two lines took 43% of everything the reader could see before a
+         * single word of the page had been said. Capping with `vh` makes the
+         * block hold at roughly a third of the viewport whatever shape the
+         * window is, and the rem ceiling stops it running away on a large
+         * display.
+         *
+         * 9rem is also the largest size at which "BRISKMAN" — 7.12em at
+         * wdth 125 — still fits the measure's 1072px of content, which is
+         * what lets the name sit inside the column with air at both sides
+         * instead of running edge to edge. 10rem overran it by 67px.
+         */
+        hero: ["min(11vw, 21vh, 9rem)", { lineHeight: "0.86" }],
         section: ["clamp(2.2rem, 7vw, 7rem)", { lineHeight: "0.88" }],
         /* The quiet register, sized to sit under a section head. */
         sub: ["clamp(1.25rem, 3.2vw, 2rem)", { lineHeight: "1.16" }],
