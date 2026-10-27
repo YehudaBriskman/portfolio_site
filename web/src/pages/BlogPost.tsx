@@ -3,7 +3,6 @@ import { Link, useParams } from "react-router-dom";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import PageShell from "@/components/PageShell";
-import { POST_LAYERS } from "@/components/scene/LayerStack";
 import Ridge from "@/components/Ridge";
 import Byline, { FeedLink } from "@/components/notes/Byline";
 import { useCodeHighlight } from "@/components/notes/CodeHighlight";
@@ -314,7 +313,7 @@ export default function BlogPost() {
   const rehypePlugins = useCodeHighlight(post?.body ?? null);
 
   return (
-    <PageShell reading layers={POST_LAYERS}>
+    <PageShell>
       {post && state === "ok" && <ReadingBar title={post.title} target={reading} />}
 
       {/*

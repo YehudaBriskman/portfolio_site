@@ -485,7 +485,11 @@
   margin: 0;
   padding: 10px 14px 4px;
   font-family: 'IBM Plex Mono', ui-monospace, monospace;
-  font-size: 0.625rem;
+  /* 12px, which is the floor the type direction set for every mono label on
+     the public surface. These three were the only things still under it —
+     10px of letterspaced capitals is decoration you cannot read, and they
+     are group headings inside a sheet a phone user is navigating by. */
+  font-size: 0.75rem;
   letter-spacing: var(--track-label);
   text-transform: uppercase;
   color: rgb(var(--haze-2));

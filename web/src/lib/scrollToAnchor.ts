@@ -38,5 +38,27 @@ export function scrollToAnchor(id: string): boolean {
     window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const far = Math.abs(el.getBoundingClientRect().top) > SMOOTH_LIMIT_PX;
   el.scrollIntoView({ behavior: reduced || far ? "auto" : "smooth", block: "start" });
+
+  /*
+   * Move focus, not just the viewport.
+   *
+   * An audit caught this doing nothing for a keyboard user: the skip link
+   * scrolled the page and left focus on itself, so the very next Tab went
+   * straight back into the nav. A skip link that does not move focus skips
+   * nothing — it is a scroll shortcut for people who already had one.
+   *
+   * `tabindex="-1"` is set here rather than in the markup because the
+   * targets are ordinary sections that should not be in the tab order; this
+   * makes them focusable only for the moment they are jumped to. It is
+   * removed again on blur so nothing is left programmatically focusable
+   * that a reader could not have reached before.
+   */
+  const hadTabIndex = el.hasAttribute("tabindex");
+  if (!hadTabIndex) el.setAttribute("tabindex", "-1");
+  el.focus({ preventScroll: true });
+  if (!hadTabIndex) {
+    el.addEventListener("blur", () => el.removeAttribute("tabindex"), { once: true });
+  }
+
   return true;
 }

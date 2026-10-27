@@ -1,8 +1,9 @@
+import Action from "@/components/ui/Action";
 import type { ProjectEntry } from "@/hooks/useProjects";
 
 /*
- * Outbound actions, as 44px pills, above the fold rather than buried under the
- * notes feed where they used to sit as 11px text.
+ * Outbound actions, above the fold rather than buried under the notes feed
+ * where they used to sit as 11px text.
  *
  * Exactly one solid pill per page: the live product if there is one, otherwise
  * the repository. Two competing primaries is the same as none.
@@ -15,31 +16,26 @@ export default function ProjectActions({ entry, className = "" }: { entry: Proje
   if (!primaryLink && !c.repoUrl && otherLinks.length === 0) return null;
 
   return (
-    <div className={`flex flex-wrap gap-3 ${className}`}>
+    <div className={`flex flex-wrap items-center gap-3 sm:gap-4 ${className}`}>
       {primaryLink && (
-        <a className="btn btn-solid" href={primaryLink.url} target="_blank" rel="noreferrer noopener">
-          {primaryLink.label} <span aria-hidden="true">↗</span>
-        </a>
+        <Action tone="solid" glyph="out" href={primaryLink.url}>
+          {primaryLink.label}
+        </Action>
       )}
       {c.repoUrl && (
-        <a
-          className={`btn ${repoIsPrimary ? "btn-solid" : "btn-quiet"}`}
-          href={c.repoUrl}
-          target="_blank"
-          rel="noreferrer noopener"
-        >
-          Source <span aria-hidden="true">↗</span>
-        </a>
+        <Action tone={repoIsPrimary ? "solid" : "outline"} glyph="out" href={c.repoUrl}>
+          Source
+        </Action>
       )}
       {release && (
-        <a className="btn btn-quiet" href={release.url} target="_blank" rel="noreferrer noopener">
-          {release.tag} <span aria-hidden="true">↗</span>
-        </a>
+        <Action tone="outline" glyph="out" href={release.url}>
+          {release.tag}
+        </Action>
       )}
       {otherLinks.map((l) => (
-        <a className="btn btn-quiet" key={l.url} href={l.url} target="_blank" rel="noreferrer noopener">
-          {l.label} <span aria-hidden="true">↗</span>
-        </a>
+        <Action tone="outline" glyph="out" href={l.url} key={l.url}>
+          {l.label}
+        </Action>
       ))}
     </div>
   );

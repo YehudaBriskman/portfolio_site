@@ -83,6 +83,12 @@
     <link rel="preload" href="/fonts/archivo-400-900.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="/fonts/ibm-plex-sans-400.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="/fonts/instrument-serif-italic.woff2" as="font" type="font/woff2" crossorigin />
+    <!-- The mono face is used by every label on the page, but nothing in the
+         HTML references it — it is reached only once React has rendered, so
+         it was starting 2127ms in, behind the bundle, and finishing after
+         2836ms. That is a half-second of labels in the fallback face on a
+         throttled connection. -->
+    <link rel="preload" href="/fonts/ibm-plex-mono-400.woff2" as="font" type="font/woff2" crossorigin />
   </head>
   <body>
     <div id="root"></div>

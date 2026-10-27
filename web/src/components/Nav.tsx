@@ -87,6 +87,7 @@ export default function Nav() {
   const navigate = useNavigate();
   const onHome = pathname === "/";
   const [open, setOpen] = useState(false);
+  const sheetRef = useRef<HTMLDivElement>(null);
   const panelId = "nav-menu";
   const toggleRef = useRef<HTMLButtonElement>(null);
 
@@ -146,6 +147,45 @@ export default function Nav() {
       document.body.style.overflow = previous;
       window.removeEventListener("keydown", onKey);
     };
+  }, [open]);
+
+  /*
+   * Keep Tab inside the open sheet.
+   *
+   * The page behind it is scroll-locked, so without this the eighth Tab
+   * walked out of the sheet and into content the reader could no longer
+   * scroll to — they were typing into a contact form they could not see.
+   * A dialog that covers the page has to own the tab order while it is
+   * open; the scroll lock on its own only makes the escape worse.
+   */
+  useEffect(() => {
+    if (!open) return;
+    const onTab = (e: KeyboardEvent) => {
+      if (e.key !== "Tab") return;
+      const sheet = sheetRef.current;
+      if (!sheet) return;
+      const focusable = [
+        ...sheet.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        ),
+      ].filter((el) => el.offsetParent !== null);
+      /* The toggle lives outside the sheet but belongs to it: it is how the
+         reader got here and how they leave. */
+      const stops = toggleRef.current ? [toggleRef.current, ...focusable] : focusable;
+      if (stops.length === 0) return;
+      const first = stops[0];
+      const last = stops[stops.length - 1];
+      const active = document.activeElement;
+      if (e.shiftKey && active === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && active === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    window.addEventListener("keydown", onTab);
+    return () => window.removeEventListener("keydown", onTab);
   }, [open]);
 
   const close = () => setOpen(false);
@@ -229,7 +269,7 @@ export default function Nav() {
         tree entirely, so without these the "Elsewhere" links and the controls
         would simply not exist for a screen reader on a phone.
       */}
-      <div id={panelId} hidden={!open} className={styles.sheet}>
+      <div ref={sheetRef} id={panelId} hidden={!open} className={styles.sheet}>
         <nav aria-label="Pages">
           <p className={styles.sheetHead}>Pages</p>
           <ul className={styles.sheetList}>

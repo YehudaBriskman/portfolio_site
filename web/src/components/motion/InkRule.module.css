@@ -1,0 +1,91 @@
+/*
+ * A rule that is drawn rather than switched on.
+ *
+ * The hairlines on this page separate a heading from its label, a card from
+ * the paper, a colophon from the footer. They are the smallest marks on the
+ * site and every one of them was appearing instantaneously, which is the one
+ * thing a drawn line never does.
+ *
+ * The mark itself is a real stroke on a real path with a slight wobble in it,
+ * so the line is not machined — at a 3px rendered height the drift is well
+ * under a pixel, which is the whole amount of hand this wants.
+ *
+ * What uncovers it is a hard-edged clip, the same mechanism InkWipe uses, and
+ * that is the second thing this file is about.
+ *
+ * `stroke-dasharray` / `stroke-dashoffset` is the textbook way to draw an SVG
+ * path on, and it was built that way first and measured broken. The path is
+ * stretched to the element with `preserveAspectRatio="none"`, so the stroke
+ * needs `vector-effect: non-scaling-stroke` or a 40px tick and a 1072px
+ * footer rule come out at 0.8px and 4px of ink respectively — a five-fold
+ * swing in weight across one page. But `non-scaling-stroke` moves the stroke,
+ * and with it the dash pattern, into device space, where `pathLength="100"`
+ * no longer normalises anything: on the 238px rule beside the Stack heading,
+ * `stroke-dasharray: 100` rendered as 100px of ink, 100px of gap and 38px of
+ * ink. A finished rule with a hole in the middle, at every width, in every
+ * browser.
+ *
+ * A clip has neither problem. The stroke is drawn once, whole, at one weight,
+ * and the box in front of it opens from the left.
+ */
+.rule {
+  display: block;
+  width: 100%;
+  /* Taller than the 1px the old `div` hairlines were: the stroke needs room
+     to wobble, and `non-scaling-stroke` keeps the ink itself one pixel. */
+  height: 3px;
+  overflow: visible;
+
+  animation-name: ink-draw;
+  animation-timing-function: linear;
+  animation-fill-mode: both;
+  /* Duration resolves from the range, as everywhere else here. The line
+     finishes while the heading it belongs to is still arriving, because a
+     rule that completes after its heading has settled reads as a second,
+     unrelated event. */
+  animation-timeline: view();
+  animation-range: entry 10% cover 18%;
+}
+
+.stroke {
+  fill: none;
+  stroke: rgb(var(--rule-firm));
+  stroke-width: 1;
+  stroke-linecap: square;
+}
+
+/*
+ * The 4px of slack on three sides is the stroke's own width and its square
+ * cap: a clip tight to the 3px box would shave the top and bottom off the
+ * line it is supposed to be revealing. Only the right edge does any work.
+ */
+@keyframes ink-draw {
+  from { clip-path: inset(-4px calc(100% + 4px) -4px -4px); }
+  to   { clip-path: inset(-4px -4px -4px -4px); }
+}
+
+/*
+ * All three exits land on the finished line, and `clip-path: none` rather
+ * than a full-coverage inset for the reason IrisPanel gives: an inset still
+ * establishes a clip, and this element deliberately overflows its own box.
+ *
+ * `body.motion-paused` is cancelled explicitly rather than left to the global
+ * `animation-duration: 0.01ms` rule, for the reason spelled out in InkWipe:
+ * that rule works by running a time-driven animation instantly to its end,
+ * and a progress-driven animation has no duration for it to crush. Without
+ * this block, pausing motion would leave every rule on the page still tied to
+ * the scroll position — which is not a pause, it is the same animation with
+ * the preference ignored.
+ */
+@supports not (animation-timeline: view()) {
+  .rule { animation: none; clip-path: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rule { animation: none; clip-path: none; }
+}
+
+:global(body.motion-paused) .rule {
+  animation: none;
+  clip-path: none;
+}

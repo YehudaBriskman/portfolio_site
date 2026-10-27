@@ -1,6 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
 import PageShell from "@/components/PageShell";
-import { POST_LAYERS } from "@/components/scene/LayerStack";
 
 /*
  * The one page that still looked like a different project.
@@ -20,7 +19,7 @@ export default function NotFound() {
   const { pathname } = useLocation();
 
   return (
-    <PageShell layers={POST_LAYERS}>
+    <PageShell>
       <section className="wrap section-y">
         <p className="eyebrow">Error 404</p>
         <h1 className="display mt-3 text-section">Not here</h1>
@@ -34,7 +33,7 @@ export default function NotFound() {
          * it could not find leaves the reader unable to tell a typo from a
          * dead link, and the one thing they can act on is the spelling.
          */}
-        <p className="mono mt-6 break-all text-xs text-haze-2">{pathname}</p>
+        <p className="mono mt-6 break-all text-xs text-ink-soft">{pathname}</p>
 
         <div className="mt-12 flex flex-wrap gap-3">
           <Link to="/" className="btn btn-solid">

@@ -83,45 +83,78 @@
 @tailwind utilities;
 
 /*
-  Neutral ground, and the photographs supply the colour.
-  ------------------------------------------------------
+  Paper, and the images are objects on it.
+  ----------------------------------------
 
-  The palette used to be sampled from the reference photograph, the ground
-  included: #0F1515 is a desaturated teal. That was defensible while the
-  background was a gradient and a drawing. It stopped being defensible the
-  moment real photographs went behind the page — a tinted ground puts every
-  plate in a colour cast, and nothing on the site is ever actually black.
+  The ground has been three things now and each move was a correction of the
+  last. It began sampled from a photograph, which made it a desaturated teal
+  and put every image in a colour cast. It went dead neutral near-black,
+  which fixed the cast and was right for as long as a photograph filled the
+  screen behind every section.
 
-  Measured against the references this direction is drawn from: Forge sits on
-  #0C0C0C and Daksh on #060606, both dead neutral. The one of them that reads
-  richest in colour is the one with no accent colour at all, because the
-  photography is left to do it.
+  It is paper now, because the photographs have stopped being the background.
+  They are framed objects sitting on a ground, which is how a page shows a
+  picture it wants you to look at rather than one it wants you to read over.
+  Once that is true, a dark ground is only costing contrast.
 
-  So: a neutral axis for every surface and every grey, bone for type, and no
-  chromatic accent in the chrome. Emphasis is weight, width and value, never
-  hue.
+  #ECE8DC is the warm paper daddyyankee.com sits on, and it is here for the
+  same reason it works there: against near-black type it carries enormous
+  display setting without the glare of white, and a photograph dropped onto
+  it reads as a print rather than as a hole cut in the page.
+
+  One signal colour, and it is deliberate rather than inherited. Cream and black
+  alone is an essay; the references that work all put exactly one saturated
+  colour against the paper and spend it almost nowhere. A deep ink blue —
+  not the cobalt DY uses, which would be borrowing their identity rather
+  than their reasoning, and cool enough to agree with the screenshots, which
+  are mostly water and aurora.
 */
 @layer base {
   :root {
-    --bitumen:  10 10 11;      /* #0A0A0B  the ground, dead neutral */
-    --surface:  18 18 20;      /* #121214  raised panels */
-    --edge:     35 35 38;      /* #232326  hairlines */
-    --ridge:    46 46 50;      /* #2E2E32 */
-    --haze:     58 58 63;      /* #3A3A3F */
-    --haze-2:  106 104  98;    /* #6A6862  faint type */
-    --bone:    237 232 224;    /* #EDE8E0  primary type, 16.2:1 on the ground */
-    --clay:    154 151 143;    /* #9A978F  secondary type, 7.1:1 */
+    --paper:    236 232 220;   /* #ECE8DC  the ground */
+    --paper-2:  228 223 209;   /* #E4DFD1  a raised surface on it */
+    --paper-3:  216 210 194;   /* #D8D2C2  a recessed one */
+    --ink:       20  19  15;   /* #14130F  primary type. 15.6:1 on paper. */
+    --ink-soft:  85  82  74;   /* #55524A  secondary type. 6.9:1. */
     /*
-     * The accent, now spent in one place only.
+     * Not a text colour. I labelled this 4.6:1 and it is not — measured
+     * against the rendered glyphs it is 3.60:1 on paper, 4.07:1 on a mount
+     * and 2.92:1 on the recessed surface, so every caption on the site
+     * would have shipped failing AA.
      *
-     * It used to sit on forty-four elements of the home page, which is not an
-     * accent, it is a second body colour. Over photographs it also landed at
-     * roughly the hue of the warm plates and stopped registering as anything
-     * at all. What survives is the admin surface, which has no plates behind
-     * it and uses colour functionally. Public pages get --bone and a weight.
+     * The deeper point is that paper has no room for a third text value:
+     * anything faint enough to read as faint is already below 4.5:1, and
+     * anything that passes is indistinguishable from --ink-soft. So there
+     * are two text colours, and this is for hairlines, icons and
+     * decorative marks only. Captions use --ink-soft.
      */
-    --sodium:  232 129 74;
-    --screen:  106 104  98;    /* retained name, now the faint tone */
+    --ink-faint:124 120 109;   /* #7C786D  NON-TEXT only. 3.6:1 on paper. */
+    --rule:     207 201 186;   /* #CFC9BA  hairlines and image borders */
+    --rule-firm:166 159 142;   /* #A69F8E  a border that is meant to be seen */
+    /* `--signal`, not `--accent`: shadcn's primitives already own that name
+       for their subtle-hover surface, and two different meanings under one
+       token is how a palette quietly stops being one. */
+    --signal:    35  64 107;   /* #23406B  links, active state, one button */
+    --signal-ink:255 255 255;  /* type on the signal */
+
+    /*
+     * The old names, still pointing somewhere sensible.
+     *
+     * Several hundred call sites across the app say bitumen, bone, clay,
+     * surface and edge. Re-pointing them here inverts the whole site in one
+     * place and lets the call sites be renamed as each component is touched,
+     * rather than in one commit nobody can review.
+     */
+    --bitumen:  var(--paper);
+    --surface:  var(--paper-2);
+    --edge:     var(--rule);
+    --ridge:    var(--rule-firm);
+    --haze:     var(--ink-faint);
+    --haze-2:   var(--ink-faint);
+    --bone:     var(--ink);
+    --clay:     var(--ink-soft);
+    --sodium:   var(--signal);
+    --screen:   var(--ink-faint);
 
     /* shadcn primitives inherit the same values */
     --background: var(--bitumen);
@@ -219,8 +252,20 @@
     font-size: 1.1875rem;
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
-    overflow-x: hidden;
-    /* The scene's focus states must never shift the layout. */
+    /*
+     * `clip`, not `hidden` — the same distinction `html` already makes two
+     * rules up, and for the same reason, which this one was quietly
+     * violating.
+     *
+     * When one axis is `hidden` and the other is `visible`, CSS computes the
+     * visible axis to `auto`. That made `body` a scroll container whose
+     * scrollport never actually scrolls, and every `position: sticky` on the
+     * site resolved against it instead of the viewport — so sticky silently
+     * did nothing anywhere. It cost a card deck that scrolled straight off
+     * the top before anyone noticed sticky had never worked here at all.
+     */
+    overflow-x: clip;
+    /* Focus states must never shift the layout. */
     scrollbar-gutter: stable;
   }
 
@@ -320,76 +365,6 @@
   .rule { height: 1px; background: rgb(var(--edge)); }
 
   /*
-   * The plates, holding still.
-   *
-   * Every plate is stacked full-bleed in the same place and only its opacity
-   * changes, so the handover between sections is a cross-fade rather than a
-   * rise. The ground plate stays on underneath as the floor; the rest fade in
-   * over it.
-   *
-   * 900ms because this is deliberately the slowest thing on the site. A plate
-   * change is a change of place, and a place that swaps in 200ms reads as a
-   * glitch — windom.app lands on 1.1s for the same four photographs.
-   *
-   * Reduced motion gets the cut without the fade. This used to be handled by
-   * forcing `transform: none`, which stacked every layer at the top and let
-   * the last one in DOM order win permanently — the final sunset plate ended
-   * up behind the hero, giving away the ending on the first screen.
-   */
-  .scene-plate {
-    opacity: 0;
-    transition: opacity 900ms linear;
-  }
-  .scene-plate[data-plate="0"],
-  .scene-plate[data-on] {
-    opacity: 1;
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .scene-plate { transition: none; }
-  }
-
-  /* Grain over large flat gradients: the sky is one enormous smooth ramp and
-     will band badly on wide-gamut displays without it. */
-  /* Skipped on phones: a fixed full-viewport overlay above every other layer
-     is real compositing work for a texture nobody sees at that size. */
-  @media (max-width: 639px) {
-    .grain::after { display: none; }
-  }
-  .grain::after {
-    content: '';
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    z-index: 60;
-    opacity: 0.035;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
-  }
-}
-
-@layer components {
-  /*
-   * Tried and dropped: a headline cut out of the plate behind it.
-   *
-   * `background-clip: text` with the plate as the fill, anchored with
-   * `background-attachment: fixed` so the letters show the part of the
-   * photograph they stand in front of. It is the move that makes a page look
-   * authored, and it does not work on this one.
-   *
-   * The reason is structural rather than a matter of tuning. It needs the
-   * letters to be bright and their surround not to be — but every plate here
-   * is full-viewport, so a heading is always made of the same picture it is
-   * standing on. There is no figure and no ground. Tried on the contact
-   * heading (full-bleed sunset) and on Stack (the brightest plate, a band
-   * shape, the heading nominally below the cut): in both, half the word
-   * disappeared into the water. Lifting the fill toward bone far enough to
-   * read it leaves bone type with noise in it, which is not the effect.
-   *
-   * It would work against a plate that is genuinely a shape — type on bare
-   * ground with a bright picture poured into it — so this is worth revisiting
-   * if a section ever gets a plate that does not reach behind its heading.
-   */
-
-  /*
    * The page measure, in one place.
    *
    * `mx-auto max-w-6xl px-5 sm:px-6` appeared at roughly twenty call sites
@@ -437,88 +412,83 @@
   }
 
   /*
-   * Glass, ported from WindoM.
+   * The glass went with the photographs.
    *
-   * Three things carried over from that build, each of which cost a day there:
+   * Three tiers of `backdrop-filter` were ported here, and the argument for
+   * them was always conditional: glass earns its cost where something
+   * interesting passes behind it, and over a flat ground it is an expensive
+   * way to draw a grey rectangle. That held while the ground was a
+   * photograph. It does not hold on paper.
    *
-   *  1. Blur goes on a child layer, never on the pane. `filter` on the pane
-   *     itself displaces its children and warps the text into illegibility,
-   *     so every tier that blurs does it through `::after` at z-index -1 with
-   *     `isolation: isolate` on the parent.
-   *  2. Never hand-write `-webkit-backdrop-filter` beside the standard
-   *     property. Blink treats it as a true alias, the minifier collapses the
-   *     pair, keeps the prefixed copy and drops the standard one — WindoM
-   *     shipped once with no glass at all this way. The build adds the prefix.
-   *  3. Size inverts the material. A large surface takes a LIGHT veil, because
-   *     a white wash over a photograph reads as glass catching the light. A
-   *     chip has too little area for that to register, so small chrome takes a
-   *     DARK ground and a light border instead.
-   *
-   * And one thing measured here rather than inherited: the chrome tier is
-   * deliberately absent. A `position: fixed`, full-width bar with a
-   * backdrop-filter makes WebKit re-sample and re-blur the strip on every
-   * scroll frame — roughly 3.5ms of GPU time per frame on a low-end Android,
-   * for a bar. The nav stays solid; see the note in Nav.tsx, which was right.
+   * What replaces them is the card below — a real border and a real shadow,
+   * which is what a raised surface on paper actually is. The nav islands
+   * keep their blur, because they are the one thing left with content
+   * moving underneath them.
    */
-
-  /* Large surfaces: a light veil, no blur, an edge lit from above. */
-  .glass {
-    background-color: rgb(255 255 255 / .07);
-    background-image: radial-gradient(130% 100% at 30% -10%,
-      rgb(255 255 255 / .16) 0%, rgb(255 255 255 / .04) 38%, transparent 72%);
-    border: 1px solid rgb(255 255 255 / .18);
-    box-shadow:
-      inset 0 1px 0 0 rgb(255 255 255 / .34),
-      inset 0 14px 22px -16px rgb(255 255 255 / .22),
-      inset 0 -14px 22px -16px rgb(255 255 255 / .08),
-      0 24px 60px -32px rgb(0 0 0 / .78);
-  }
 
   /*
-   * Bounded, non-fixed surfaces that want the plate to bend through them.
-   * Blur stays low on purpose: the refraction below is invisible above about
-   * 10px, because the blur has already destroyed the detail it would displace.
+   * A card. The unit the page is made of now.
+   *
+   * On a dark ground a surface was a slightly lighter rectangle and a
+   * hairline, because that is all a dark ground gives you. Paper gives you
+   * the opposite problem and the better tools: a real border, a real
+   * shadow, and a surface that can be lighter *or* darker than what it
+   * sits on. A card here is a physical thing on a desk, not a region of a
+   * gradient.
    */
-  .glass-thin {
-    isolation: isolate;
-    background-color: rgb(var(--bitumen) / .30);
-    border: 1px solid rgb(255 255 255 / .14);
-    box-shadow: inset 0 1px 0 rgb(255 255 255 / .16), 0 26px 64px -34px rgb(0 0 0 / .9);
+  .card-paper {
+    background: rgb(255 255 255 / .55);
+    border: 1px solid rgb(var(--rule));
+    border-radius: var(--r-md);
+    box-shadow: 0 1px 0 rgb(255 255 255 / .7) inset,
+                0 10px 24px -18px rgb(var(--ink) / .35);
   }
-  .glass-thin::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    z-index: -1;
-    border-radius: inherit;
-    pointer-events: none;
-    backdrop-filter: blur(8px) saturate(170%);
-  }
-  @supports (filter: url('#glass-distort-sm')) {
-    .glass-thin::after { filter: url('#glass-distort-sm'); }
-  }
-
-  /* Small chrome: too little area for a veil to read, so invert it. */
-  .glass-chip {
-    background: rgb(var(--bitumen) / .55);
-    border: 1px solid rgb(255 255 255 / .22);
-  }
-
-  /*
-   * Transparency is a preference, not a given. Where it is declined — or where
-   * the browser cannot blur at all — every tier falls back to the opaque
-   * surface the palette was built on.
-   */
-  @supports not (backdrop-filter: blur(1px)) {
-    .glass-thin { background-color: rgb(var(--surface) / .92); }
-  }
-  @media (prefers-reduced-transparency: reduce) {
-    .glass, .glass-thin, .glass-chip {
-      background-color: rgb(var(--surface));
-      background-image: none;
-      border-color: rgb(var(--edge));
+  @media (hover: hover) and (pointer: fine) {
+    a.card-paper:hover, .card-paper:has(a:hover) {
+      border-color: rgb(var(--rule-firm));
+      box-shadow: 0 1px 0 rgb(255 255 255 / .8) inset,
+                  0 18px 36px -22px rgb(var(--ink) / .45);
     }
-    .glass-thin::after { backdrop-filter: none; filter: none; }
+  }
+
+  /*
+   * A framed image.
+   *
+   * The whole point of retiring the plates: a photograph is an object on
+   * the page now, so it gets the things an object has — an edge you can
+   * see, a mount that separates it from the paper, and a caption that says
+   * what it is. A picture bled to the edges is a background; a picture with
+   * a border is a picture.
+   */
+  .figure-frame {
+    display: block;
+    margin: 0;
+    background: rgb(255 255 255 / .6);
+    border: 1px solid rgb(var(--rule-firm));
+    padding: theme('spacing.3');
+    box-shadow: 0 14px 30px -22px rgb(var(--ink) / .5);
+  }
+  .figure-frame > img,
+  .figure-frame > picture > img {
+    display: block;
+    width: 100%;
+    height: auto;
+    /* The mount is the light thing; the image needs its own edge or it
+       dissolves into the mount at its pale corners. */
+    border: 1px solid rgb(var(--rule));
+  }
+  .figure-frame > figcaption {
+    display: flex;
+    gap: theme('spacing.3');
+    margin-top: theme('spacing.3');
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 0.75rem;
+    letter-spacing: var(--track-label);
+    text-transform: uppercase;
+    /* --ink-soft, not --ink-faint: see the token note above. A caption is
+       text and has to clear 4.5:1 on the mount it sits on, which this does
+       at 7.21:1 and the faint value does not at 4.07:1. */
+    color: rgb(var(--ink-soft));
   }
 
   /*
@@ -596,22 +566,207 @@
   .card-shot { border-radius: var(--r-md); overflow: hidden; background: rgb(var(--bitumen)); }
   .card-shot img { transition: transform var(--dur-settle) var(--ease-settle); }
 
-  /* One pill, two weights, 44px tall everywhere — the whole tap-target story. */
+  /*
+   * The action, promoted out of the label register.
+   *
+   * Every button was `.btn`: 12px mono, uppercase, 0.16em of tracking — the
+   * same setting as the eyebrows, the dates and the reading times. The one
+   * thing on a screen the reader is meant to press looked exactly like the
+   * twenty things they are meant to skim.
+   *
+   * It is in the display family now, one notch down from a heading, at
+   * 18-20px in sentence case. Lifted here from the module it was prototyped
+   * in so that the pages not yet converted — Contact, the notes index, the
+   * 404 — pick it up without each one being edited, which is what was
+   * leaving two different button designs on the home page at once.
+   */
+  /*
+   * The action, moved out of the label register.
+   *
+   * Every button on the site was `.btn`: 12px IBM Plex Mono, uppercase, 0.16em
+   * of tracking. That is the same setting as the eyebrows, the dates, the
+   * reading times and the repository facts — so the one thing on a screen the
+   * reader is meant to press looked exactly like the twenty things they are
+   * meant to skim. The site's type scale is deliberately two registers with a
+   * hole in the middle, and the action had been filed in the wrong one.
+   *
+   * It belongs in the display family, one notch down: Archivo at wdth 112 and
+   * weight 700, which is `.display-tight`'s own setting, set at 18-20px in
+   * sentence case. Sentence case rather than small capitals because the label
+   * is a sentence — "See the work" — and capitalising it was what forced the
+   * tracking that made it small and wide in the first place.
+   *
+   * This lives in a module rather than in index.css because index.css is not
+   * this change's to edit yet. The three blocks below are written so they can
+   * be lifted into `.btn` / `.btn-solid` / `.btn-quiet` verbatim once the
+   * promotion happens, at which point this file becomes a re-export.
+   */
   .btn {
-    display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
-    min-height: 44px; padding-inline: 1.125rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.625rem;
+    /* 52px, up from 44. The old height was the tap-target floor treated as a
+       design: the smallest a control is allowed to be, chosen everywhere. A
+       primary action on a page whose headline is 144px can afford to be the
+       size it wants to be. */
+    min-height: 52px;
+    padding-inline: 1.5rem;
     border-radius: var(--r-pill);
-    font-family: 'IBM Plex Mono', ui-monospace, monospace;
-    font-size: .75rem; letter-spacing: var(--track-label); text-transform: uppercase;
+    /* On every variant, so a solid and an outlined action are the same size
+       and sit on the same baseline when they are side by side. */
+    border: 1px solid transparent;
+    font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif;
+    font-variation-settings: 'wdth' 112;
+    font-weight: 700;
+    font-size: 1.125rem;
+    /* Zero, not `--track-label`. The 0.16em the mono setting needed is what
+       opens small capitals up; at this size in a grotesque it would only pull
+       the word apart. */
+    letter-spacing: 0;
+    line-height: 1;
     white-space: nowrap;
     transition: background-color var(--dur-micro) ease, color var(--dur-micro) ease,
                 border-color var(--dur-micro) ease, transform var(--dur-fast) var(--ease-settle);
   }
-  .btn:active { transform: scale(.97); }
-  .btn-solid { background: rgb(var(--bone)); color: rgb(var(--bitumen)); }
-  .btn-solid:hover { background: rgb(255 255 255); }
-  .btn-quiet { border: 1px solid rgb(var(--edge)); color: rgb(var(--bone)); }
-  .btn-quiet:hover { border-color: rgb(var(--bone)); color: rgb(var(--bone)); }
+
+  @media (min-width: 640px) {
+    .btn {
+      min-height: 56px;
+      padding-inline: 1.75rem;
+      font-size: 1.25rem;
+    }
+  }
+
+  .btn:active {
+    transform: scale(0.97);
+  }
+
+  .btn:disabled,
+    .btn[aria-disabled='true'] {
+    opacity: 0.45;
+    pointer-events: none;
+  }
+
+  /*
+   * The one primary action on a screen. Ink on paper at 15.17:1, and the only
+   * place the signal blue is ever filled rather than drawn — which is what the
+   * palette note in index.css means by spending it almost nowhere.
+   */
+  .btn-solid {
+    background: rgb(var(--ink));
+    border-color: rgb(var(--ink));
+    color: rgb(var(--paper));
+  }
+
+  /*
+   * Everything below the primary. A real 1px border in `--ink-soft` rather
+   * than `--rule-firm`: a rule is a hairline between two pieces of content and
+   * measures 2.15:1 on paper, under the 3:1 that a control's own boundary has
+   * to hold. `--ink-soft` is 6.37:1 and is the edge of something you can press.
+   */
+  .btn-quiet {
+    border-color: rgb(var(--ink-soft));
+    color: rgb(var(--ink));
+  }
+
+  /*
+   * The third voice, for the links that move you between pages rather than
+   * into one — a back link, an index link. These were pills too, which made a
+   * page offer three equally weighted buttons and no hierarchy at all. In the
+   * editorial italic, underlined, it reads as a reference in a printed article,
+   * which is what it is.
+   */
+  .btn-text {
+    min-height: 44px;
+    padding-inline: 0;
+    gap: 0.5rem;
+    border-color: transparent;
+    font-family: 'Instrument Serif', Georgia, 'Times New Roman', serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: 1.375rem;
+    color: rgb(var(--ink));
+    transition: color var(--dur-micro) ease;
+  }
+
+  /* The rule goes under the words and not under the arrow. On an inline-flex
+     box `text-decoration` is drawn per item, so an underlined label and an
+     underlined glyph came out as two short rules with the flex gap cut out
+     between them. */
+  .btn-text .label {
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.26em;
+    text-decoration-color: rgb(var(--rule-firm));
+    transition: text-decoration-color var(--dur-micro) ease;
+  }
+
+  .btn-text:active {
+    transform: none;
+  }
+
+  /* Behind a hover query, as everywhere else in this codebase, so a finger
+     never latches a state it cannot leave. */
+  @media (hover: hover) and (pointer: fine) {
+    .btn-solid:hover {
+      background: rgb(var(--signal));
+      border-color: rgb(var(--signal));
+      color: rgb(var(--paper));
+    }
+
+    .btn-quiet:hover {
+      border-color: rgb(var(--ink));
+      background: rgb(var(--ink) / 0.05);
+    }
+
+    .text:hover {
+      color: rgb(var(--signal));
+    }
+
+    .text:hover .label {
+      text-decoration-color: rgb(var(--signal));
+    }
+  }
+
+  /*
+   * The glyph gets its own stack.
+   *
+   * Archivo's latin subset carries ↑ and ↓ and nothing else; Instrument Serif's
+   * carries no arrows at all. So →, ← and ↗ were already falling back to
+   * whatever each face's fallback happened to be, which is three different
+   * arrows on one page. Naming a stack that actually has them makes the mark
+   * one shape wherever it appears.
+   */
+  .glyph {
+    font-family: ui-sans-serif, system-ui, 'Segoe UI Symbol', 'Noto Sans Symbols 2', sans-serif;
+    font-style: normal;
+    font-weight: 400;
+    font-size: 0.9em;
+    line-height: 1;
+    transition: transform var(--dur-fast) var(--ease-settle);
+  }
+
+  /* The mark moves the way it points. A single shared nudge would send the
+     down arrow sideways, which is the kind of detail that reads as nothing in
+     particular rather than as care. */
+  @media (hover: hover) and (pointer: fine) {
+    .btn:hover .onward {
+      transform: translateX(3px);
+    }
+
+    .btn:hover .down {
+      transform: translateY(3px);
+    }
+
+    .btn:hover .back {
+      transform: translateX(-3px);
+    }
+
+    .btn:hover .out {
+      transform: translate(2px, -2px);
+    }
+  }
 
   /* Never focusable, never interactive, so the 44px floor does not apply. */
   .chip {
@@ -808,12 +963,6 @@
    * the prose drifts over the pale water band and loses contrast exactly where
    * the reader is most committed. This one layer holds the ground steady.
    */
-  .reading-ground {
-    position: fixed; inset: 0; z-index: -10;
-    pointer-events: none;
-    background: rgb(var(--bitumen) / .82);
-  }
-
   /* Tracks --pr 1:1. Deliberately has no transition: it is a position readout,
      not an animation, and easing it would make it lie. */
   /*

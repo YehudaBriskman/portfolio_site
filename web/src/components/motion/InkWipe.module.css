@@ -1,0 +1,116 @@
+/*
+ * Ink arriving, not opacity changing.
+ *
+ * A fade says "the compositor is still catching up". A hard edge travelling
+ * across the element says something was laid down on the paper. The whole
+ * difference is the edge: `clip-path` has no soft boundary at all, so the
+ * element is either printed or it is not, pixel by pixel, which is the 1-bit
+ * character the reference sites get out of a shader threshold — for the price
+ * of one interpolated polygon.
+ *
+ * The polygon is raked rather than level. A dead-horizontal edge reads as a
+ * progress bar filling; the 1.5rem of fall from right to left reads as a wide
+ * nib being drawn across, and it is the only thing separating this from a
+ * `height` transition.
+ *
+ * The bleed — 2rem outside the box on every side — exists because the element
+ * being wiped is usually a card with a border and a soft shadow, and a clip
+ * path tight to the border box would shear both off. It also means the final
+ * keyframe never crops a focus ring.
+ */
+.wipe {
+  animation-name: ink-wipe;
+  animation-timing-function: linear;
+  animation-fill-mode: both;
+  /*
+   * No animation-duration, for the reason FillSweep gives: under a view
+   * timeline the duration resolves from the range, and naming a time would
+   * run the stroke on the clock while the reader's scroll said otherwise.
+   *
+   * The range closes at `entry 92%` rather than later, so the stroke has
+   * finished by the time the element is fully on screen. Anything still
+   * drawing after that is drawing where the reader has already started
+   * reading. It also matters for the stacking deck: those cards become
+   * `position: sticky` shortly after they finish entering, and a sticky
+   * element stops moving relative to the scrollport — which freezes its own
+   * view progress. A stroke that had not finished by then would never finish.
+   */
+  animation-timeline: view();
+  animation-range: entry 8% entry 92%;
+}
+
+@keyframes ink-wipe {
+  from {
+    clip-path: polygon(
+      calc(0% - 2rem) calc(100% + 2rem),
+      calc(100% + 2rem) calc(100% + 0.5rem),
+      calc(100% + 2rem) calc(100% + 3rem),
+      calc(0% - 2rem) calc(100% + 3rem)
+    );
+  }
+  to {
+    clip-path: polygon(
+      calc(0% - 2rem) calc(0% - 2rem),
+      calc(100% + 2rem) calc(0% - 3.5rem),
+      calc(100% + 2rem) calc(100% + 3rem),
+      calc(0% - 2rem) calc(100% + 3rem)
+    );
+  }
+}
+
+/*
+ * A sideways stroke, for things that are wider than they are tall — a row, a
+ * rule, a line of metadata. Same edge, same rake, turned ninety degrees, so
+ * the page only ever has one idea about how ink arrives.
+ */
+.right {
+  animation-name: ink-wipe-right;
+}
+
+@keyframes ink-wipe-right {
+  from {
+    clip-path: polygon(
+      calc(0% - 2rem) calc(0% - 3rem),
+      calc(0% - 0.5rem) calc(0% - 3rem),
+      calc(0% - 2rem) calc(100% + 3rem),
+      calc(0% - 3.5rem) calc(100% + 3rem)
+    );
+  }
+  to {
+    clip-path: polygon(
+      calc(0% - 2rem) calc(0% - 3rem),
+      calc(100% + 3.5rem) calc(0% - 3rem),
+      calc(100% + 2rem) calc(100% + 3rem),
+      calc(0% - 3.5rem) calc(100% + 3rem)
+    );
+  }
+}
+
+/*
+ * Three ways of switching this off, and all three land on the printed state.
+ *
+ * `clip-path: none` rather than a full-coverage polygon, for the reason
+ * IrisPanel gives: inset(0) and polygon(0 0, 100% 0, ...) both still
+ * establish a clip, and would crop a shadow or a focus ring that legitimately
+ * overhangs the box.
+ *
+ * `body.motion-paused` is handled explicitly rather than left to the global
+ * `animation-duration: 0.01ms` rule. That rule works by running an animation
+ * to completion instantly, which is the right trick for a time-driven
+ * animation and is not defined for a progress-driven one: a view timeline
+ * ignores the duration, so the override would leave the stroke still tied to
+ * the scroll position. Cancelling the animation outright is the only reading
+ * of "pause motion" that cannot leave half a card invisible.
+ */
+@supports not (animation-timeline: view()) {
+  .wipe { animation: none; clip-path: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wipe { animation: none; clip-path: none; }
+}
+
+:global(body.motion-paused) .wipe {
+  animation: none;
+  clip-path: none;
+}

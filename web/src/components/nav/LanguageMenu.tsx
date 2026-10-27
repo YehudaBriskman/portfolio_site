@@ -41,10 +41,19 @@ export default function LanguageMenu({
           variant="glass"
           size="island"
           className={styles.control}
-          aria-label={`Language: ${current.label}`}
+          /*
+           * The accessible name has to contain the visible text.
+           *
+           * This read "Language: English" while the button showed "EN", so a
+           * speech-input user saying "click EN" matched nothing — WCAG 2.5.3,
+           * Label in Name. Naming it from the visible string and letting the
+           * icon carry the rest keeps both audiences pointed at the same
+           * word.
+           */
+          aria-label={`${current.short} — change language`}
         >
           <Languages aria-hidden="true" />
-          <span aria-hidden="true">{current.short}</span>
+          <span>{current.short}</span>
         </Button>
       </DropdownMenuTrigger>
 

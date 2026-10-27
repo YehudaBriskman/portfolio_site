@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import PageShell from "@/components/PageShell";
-import { NOTES_LAYERS } from "@/components/scene/LayerStack";
 import Byline from "@/components/notes/Byline";
 import CollectionFilter from "@/components/notes/CollectionFilter";
 import NoteCard from "@/components/notes/NoteCard";
@@ -121,7 +120,7 @@ export default function Blog() {
   const rest = lead && posts ? posts.slice(1) : (posts ?? []);
 
   return (
-    <PageShell layers={NOTES_LAYERS}>
+    <PageShell>
       <div data-crest data-hue="120 92 150" className="wrap pt-section">
         {/*
           The scenery is anchored to this box rather than to the whole page, so

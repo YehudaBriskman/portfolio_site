@@ -1,0 +1,67 @@
+/*
+ * The caption row, corrected and taken over.
+ *
+ * `.figure-frame > figcaption` in index.css sets this type in `--ink-faint`.
+ * Measured, that is #7C786D on the mount — white at 60% over #ECE8DC, so
+ * #F7F6F1 — which is 4.07:1, under the 4.5:1 that 12px type has to hold. It
+ * is 3.60:1 on the paper ground itself, so the token is not a text colour on
+ * either surface; the note in index.css that calls it 4.6:1 is measuring
+ * something else. `--ink-soft` is 7.21:1 on the mount and 6.37:1 on the
+ * ground, and that is what the caption is set in here.
+ *
+ * The whole row rather than only the colour, because a colour on its own
+ * would not out-specify `.figure-frame > figcaption` — that selector is a
+ * class and an element, and a bare module class is one weight lighter. The
+ * caption is addressed through the figure instead, which carries the same
+ * weight and comes later, and since the rule had to be rewritten anyway it
+ * may as well state the whole setting in one place for both of the surfaces
+ * a figure stands on.
+ */
+.frame {
+  display: block;
+  margin: 0;
+  max-width: 100%;
+}
+
+.frame > .caption {
+  display: flex;
+  align-items: baseline;
+  /* The caption is information, so on a phone it wraps rather than being
+     cut off by the frame it is printed under. */
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  row-gap: 0.375rem;
+  margin-top: 0.75rem;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 0.75rem;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: rgb(var(--ink-soft));
+}
+
+/*
+ * The plate number is the one part of the caption that is a label rather
+ * than a sentence, so it is the one part set at full strength — 17.17:1 on
+ * the mount. Tabular figures because these are a numbered series and a
+ * column of them should line up.
+ */
+.index {
+  color: rgb(var(--ink));
+  font-variant-numeric: tabular-nums;
+  flex: none;
+}
+
+.what {
+  min-width: 0;
+}
+
+/*
+ * The second fact — a year, a state — sits at the far end of the row, so
+ * the caption reads as a printed line with two ends rather than as a list
+ * of three things. It falls under the rest once the row wraps.
+ */
+.note {
+  margin-left: auto;
+  flex: none;
+  font-variant-numeric: tabular-nums;
+}
