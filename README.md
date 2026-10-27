@@ -7,7 +7,7 @@ of an Express API, each in its own container, composed together.
 ## What is here
 
 ```
-glassglow-folio-space/   React + Vite + TypeScript SPA, served by nginx
+web/   React + Vite + TypeScript SPA, served by nginx
 backend/                 Express + TypeScript API
 docker-compose.yml       local: builds both images from source
 docker-compose.ci.yml    deploy: pulls the published images from GHCR
@@ -52,7 +52,7 @@ docker compose up --build
 cd backend && npm ci && npm run dev
 
 # just the site
-cd glassglow-folio-space && npm ci && npm run dev
+cd web && npm ci && npm run dev
 ```
 
 The API reads its configuration through a Zod schema in `backend/src/env.ts`,
@@ -62,7 +62,7 @@ which fails at startup rather than at the first request if something is missing.
 ## Checks
 
 ```bash
-cd glassglow-folio-space && npm run lint && npm run typecheck && npm test && npm run build
+cd web && npm run lint && npm run typecheck && npm test && npm run build
 cd backend              && npm test && npm run build
 ```
 

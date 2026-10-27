@@ -11,7 +11,7 @@ import fs from "fs";
 import path from "path";
 import { renderCardPng, OgCardInput } from "../src/services/og";
 
-const OUT = path.resolve(__dirname, "..", "..", "glassglow-folio-space", "public");
+const OUT = path.resolve(__dirname, "..", "..", "web", "public");
 
 const CARDS: Array<{ file: string; input: OgCardInput }> = [
   {
