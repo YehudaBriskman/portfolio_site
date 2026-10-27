@@ -78,7 +78,11 @@ export default function LatestNotes() {
                   {p.readingMinutes > 0 && ` · ${p.readingMinutes} min`}
                 </span>
                 <span className="min-w-0">
-                  <span className="display-tight block text-xl text-bone transition-colors group-hover:text-sodium sm:text-2xl">
+                  {/* An underline rather than a change of colour: the title is
+                      already bone, and these rows are divided by hairlines
+                      rather than carried in cards, so nothing else in the row
+                      tells you it is a link. */}
+                  <span className="display-tight block text-xl text-bone underline decoration-transparent decoration-1 underline-offset-[6px] transition-[text-decoration-color] [transition-duration:var(--dur-fast)] group-hover:decoration-bone/50 sm:text-2xl">
                     {p.title}
                   </span>
                   {p.subtitle && (

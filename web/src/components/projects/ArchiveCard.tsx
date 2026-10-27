@@ -42,7 +42,7 @@ export default function ArchiveCard({ entry }: { entry: ProjectEntry }) {
 
       <div className="flex items-baseline gap-4 px-1.5 pb-1 pt-4 sm:px-2">
         <span className="min-w-0 flex-1">
-          <h3 className="display-tight truncate text-lg text-bone transition-colors group-hover:text-sodium sm:text-xl">
+          <h3 className="display-tight truncate text-lg text-bone sm:text-xl">
             {c.title}
           </h3>
           <span className="mono mt-1 block truncate text-xs text-clay">{c.tagline}</span>

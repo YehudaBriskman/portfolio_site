@@ -87,15 +87,20 @@ export default function NoteCard({
         <time dateTime={post.publishedAt}>{formatDate(post.publishedAt)}</time>
       )}
       {post.publishedAt && (
-        <span aria-hidden="true" className="h-1 w-1 rounded-full bg-sodium/70" />
+        <span aria-hidden="true" className="h-1 w-1 rounded-full bg-clay" />
       )}
       <span>{post.readingMinutes} min</span>
     </div>
   );
 
+  /* No hover colour on the title: `.note-card:hover` lifts the whole card's
+     border and `.note-card:focus-within` rings it, which is the same signal
+     one level up and on the element that is actually the target. The accent
+     this used to reach for is gone, and bone-on-bone would have been a
+     transition to nothing. */
   const title = (
     <h2
-      className={`display-tight text-bone transition-colors duration-150 group-hover:text-sodium ${
+      className={`display-tight text-bone ${
         lead ? "text-[1.75rem] sm:text-[2.125rem] lg:text-[2.5rem]" : compact ? "text-lg" : "text-[1.375rem] sm:text-2xl"
       }`}
     >
@@ -106,12 +111,16 @@ export default function NoteCard({
     </h2>
   );
 
+  /* A tinted capsule in bone rather than in the accent. It still has to read
+     as a second, separately pressable thing beside the eyebrow next to it, so
+     it keeps a fill and an edge — they are just made of light now, which is
+     also what lets it sit on a card that is itself standing on a photograph. */
   const badge = collectionTitle && (
     <Link
       to={`/projects/${post.collection}`}
-      className="relative z-10 inline-flex items-center gap-1.5 rounded-full border border-sodium/35 bg-sodium/10 px-2.5 py-1 mono text-[0.6875rem] uppercase tracking-[0.16em] text-sodium transition-colors duration-150 hover:bg-sodium/20"
+      className="relative z-10 inline-flex items-center gap-1.5 rounded-full border border-bone/30 bg-bone/10 px-2.5 py-1 mono text-xs uppercase tracking-[0.16em] text-bone transition-colors duration-150 hover:bg-bone/20"
     >
-      <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-sodium" />
+      <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-clay" />
       {collectionTitle}
     </Link>
   );

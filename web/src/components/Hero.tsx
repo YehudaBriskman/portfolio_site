@@ -1,3 +1,5 @@
+import WordStagger from "@/components/motion/WordStagger";
+
 export default function Hero() {
   return (
     <section id="hero" className="relative min-h-[100svh] w-full overflow-hidden">
@@ -32,14 +34,21 @@ export default function Hero() {
           {/*
             A light behind him, not a colour wash over the page. Without it the
             cutout sits on the background like a sticker; with it he is standing
-            in front of something. Warm and off-centre, so it reads as a low sun
-            behind his shoulder rather than a spotlight.
+            in front of something. Off-centre, so it reads as a light source
+            behind his shoulder rather than a spotlight aimed at him.
+
+            It used to be sodium, which is precisely the colour wash this
+            comment claimed it was not: a warm circle a third of the screen
+            across, laid over the only photograph-free screen on the site.
+            Bone gives the same separation out of value, and at a third of the
+            old strength, because an untinted light reads as brighter than a
+            tinted one at the same alpha.
           */}
           <div
             className="absolute bottom-[8%] right-[6%] h-[46svh] w-[46svh] rounded-full sm:right-[10%] sm:h-[56svh] sm:w-[56svh]"
             style={{
               background:
-                "radial-gradient(circle, rgb(var(--sodium) / 0.30) 0%, rgb(var(--sodium) / 0.12) 38%, rgb(var(--sodium) / 0) 70%)",
+                "radial-gradient(circle, rgb(var(--bone) / 0.10) 0%, rgb(var(--bone) / 0.04) 38%, rgb(var(--bone) / 0) 70%)",
               /*
                 The hero clips its own overflow, so a glow that reached the
                 bottom edge was cut off square and read as a lit rectangle
@@ -72,7 +81,18 @@ export default function Hero() {
           Tel Aviv &middot; Full-stack engineer &amp; team lead
         </p>
 
-        <div className="max-w-3xl">
+        {/*
+          The name breaks the column.
+
+          Everything else on this screen reads inside the 1152px measure; the
+          name does not, because at wdth 125 and weight 900 it is no longer
+          text in a layout, it is the layout. Held inside the column it had to
+          shrink to about 150px to fit, which is the size at which an enormous
+          face just looks like a large one. Full-bleed it runs to 208px and
+          crosses the portrait, which is what the references do with display
+          type and the reason it reads as authored rather than placed.
+        */}
+        <div className="relative left-1/2 w-screen -translate-x-1/2 px-5 sm:px-6">
           {/* One H1, and it names the subject of the site rather than opening
               with a slogan — the slogan still leads visually, one line down. */}
           <h1 className="display text-hero animate-fade-up" style={{ animationDelay: "80ms" }}>
@@ -80,23 +100,42 @@ export default function Hero() {
             <br />
             Briskman
           </h1>
+        </div>
 
+        <div className="max-w-3xl">
+
+          {/*
+            The second voice, and the only line on the page entitled to it.
+            This sat in the display face at 22-38px and in the accent colour,
+            which is the one band the type scale no longer has: between a 12px
+            label and a 15rem name there is nothing but a change of voice. In
+            the serif italic the claim reads as something said rather than
+            something printed, and it stops competing with the name above it
+            for the same kind of attention.
+          */}
           <p
-            className="display-tight mt-6 text-[clamp(1.4rem,3.6vw,2.4rem)] text-sodium animate-fade-up"
+            className="editorial mt-6 text-[clamp(1.6rem,4vw,2.6rem)] text-bone animate-fade-up"
             style={{ animationDelay: "150ms" }}
           >
             Built to be used.
           </p>
 
-          {/* Two short statements rather than one dense block: the same claims,
-              set large enough to actually be read. */}
-          <p
-            className="mt-8 max-w-lg text-lg leading-[1.65] text-bone animate-fade-up sm:text-xl"
-            style={{ animationDelay: "220ms" }}
+          {/*
+            Two short statements rather than one dense block: the same claims,
+            set large enough to actually be read.
+
+            The first arrives a word at a time, pausing where the punctuation
+            does. One line on the site gets this — it is the sentence the page
+            exists to make, and an effect used twice stops being an emphasis
+            and starts being a template.
+          */}
+          <WordStagger
+            as="p"
+            className="mt-8 max-w-lg text-lg leading-[1.65] text-bone sm:text-xl"
           >
             I ship products end to end: a Chrome extension in the Web Store, a
             self-hosted operations console, and the backends under both.
-          </p>
+          </WordStagger>
           <p
             className="mt-5 max-w-lg text-lg leading-[1.65] text-bone/70 animate-fade-up sm:text-xl"
             style={{ animationDelay: "280ms" }}
@@ -116,7 +155,7 @@ export default function Hero() {
               className="pointer-events-none absolute bottom-[6%] left-1/2 h-[34svh] w-[34svh] -translate-x-1/2 rounded-full"
               style={{
                 background:
-                  "radial-gradient(circle, rgb(var(--sodium) / 0.30) 0%, rgb(var(--sodium) / 0.12) 38%, rgb(var(--sodium) / 0) 70%)",
+                  "radial-gradient(circle, rgb(var(--bone) / 0.10) 0%, rgb(var(--bone) / 0.04) 38%, rgb(var(--bone) / 0) 70%)",
                 maskImage: "linear-gradient(to bottom, #000 0%, #000 46%, transparent 92%)",
                 WebkitMaskImage: "linear-gradient(to bottom, #000 0%, #000 46%, transparent 92%)",
               }}

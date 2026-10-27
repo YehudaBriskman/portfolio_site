@@ -26,10 +26,11 @@ export function FeedLink({ className = "" }: { className?: string }) {
   return (
     <a
       href="/feed.xml"
-      className={`tap mono inline-flex min-h-[44px] items-center gap-2 text-[0.75rem] uppercase tracking-[0.16em] text-clay transition-colors duration-150 hover:text-sodium ${className}`}
+      className={`tap mono inline-flex min-h-[44px] items-center gap-2 text-xs uppercase tracking-[0.16em] text-clay transition-colors duration-150 hover:text-bone ${className}`}
     >
       {/* The three arcs, drawn rather than imported: one glyph is not worth a
-          dependency, and this one has to sit on a sodium hover anyway. */}
+          dependency, and `stroke="currentColor"` means it follows the label
+          from clay to bone without knowing what either of them is. */}
       <svg
         viewBox="0 0 16 16"
         aria-hidden="true"
@@ -74,7 +75,7 @@ export default function Byline({
         />
         <div className="leading-tight">
           <p className="text-[0.9375rem] text-bone">{AUTHOR.name}</p>
-          <p className="mono mt-1 text-[0.6875rem] tracking-[0.08em] text-clay">
+          <p className="mono mt-1 text-xs tracking-[0.08em] text-clay">
             {AUTHOR.role}
           </p>
         </div>

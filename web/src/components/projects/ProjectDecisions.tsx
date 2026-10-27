@@ -31,7 +31,7 @@ export default function ProjectDecisions({
       <ol className="mt-8 divide-y divide-edge border-y border-edge">
         {decisions.map((d, i) => (
           <li key={d.title} className="py-7 sm:grid sm:grid-cols-[minmax(0,2.5rem)_minmax(0,1fr)] sm:gap-6">
-            <span className="mono text-xs tabular-nums text-sodium" aria-hidden="true">
+            <span className="mono text-xs tabular-nums text-clay" aria-hidden="true">
               {String(i + 1).padStart(2, "0")}
             </span>
             <div className="mt-3 min-w-0 sm:mt-0">

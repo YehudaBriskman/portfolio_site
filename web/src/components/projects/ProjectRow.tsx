@@ -24,7 +24,7 @@ export default function ProjectRow({ entry }: { entry: ProjectEntry }) {
   return (
     <Link to={`/projects/${c.slug}`} className="card group flex min-h-[76px] items-center gap-4 px-5 py-4">
       <span className="min-w-0 flex-1">
-        <span className="display-tight block truncate text-lg text-bone transition-colors group-hover:text-sodium">
+        <span className="display-tight block truncate text-lg text-bone">
           {c.title}
         </span>
         <span className="mono block truncate text-xs text-clay">{c.tagline}</span>

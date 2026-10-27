@@ -48,15 +48,18 @@ export default function CollectionFilter({
                 aria-current={on ? "true" : undefined}
                 className={`tap group inline-flex min-h-[44px] items-center gap-2.5 rounded-full border px-4 py-2.5 transition-colors [transition-duration:var(--dur-micro)] ${
                   on
-                    ? "border-transparent bg-sodium text-bitumen"
-                    : "border-edge bg-surface/50 text-bone hover:border-sodium/50 hover:bg-surface"
+                    ? "border-transparent bg-bone text-bitumen"
+                    : "border-edge bg-surface/50 text-bone hover:border-bone/40 hover:bg-surface"
                 }`}
               >
-                {/* The sun, at the size of a bullet. */}
+                {/* A bullet, and no longer a miniature of a sun the site no
+                    longer draws. Selected inverts the whole chip, so the dot
+                    takes the ground colour and the chip itself is the signal
+                    — which is value doing the work a hue used to. */}
                 <span
                   aria-hidden="true"
                   className={`h-1.5 w-1.5 rounded-full transition-transform [transition-duration:var(--dur-fast)] [transition-timing-function:var(--ease-settle)] motion-safe:group-hover:scale-150 ${
-                    on ? "bg-bitumen" : "bg-sodium"
+                    on ? "bg-bitumen" : "bg-clay"
                   }`}
                 />
                 <span className="text-[0.9375rem]">{option.title}</span>

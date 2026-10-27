@@ -40,10 +40,12 @@ export default function Plate({
     <div
       className={`card-shot relative flex flex-col justify-between border border-edge p-5 sm:p-7 ${className}`}
     >
-      {/* Borrowed from the page headers so the plate reads as part of the same
-          surface family rather than as an empty box with text in it. */}
-      <div className="sun -z-10 -right-16 -top-20 h-[260px] w-[260px]" aria-hidden="true" />
-
+      {/* The `.sun` wash that used to sit here is gone with the accent, and
+          nothing replaces it. It was borrowed from the page headers to stop
+          the plate reading as an empty box, but the plate is a stand-in for a
+          photograph — a coloured glow laid over one is the single clearest way
+          to announce that there is no photograph. The type and the ruled field
+          carry it. */}
       <span className="mono self-end text-xs uppercase tracking-[0.2em] text-clay">
         {tech.length > 0 ? "stack" : ""}
       </span>
@@ -52,7 +54,7 @@ export default function Plate({
         <ul className="mono grid min-w-0 grid-cols-2 gap-x-4 gap-y-1.5 text-[0.75rem] leading-relaxed text-bone/85 sm:gap-x-6 sm:text-[0.8125rem]">
           {tech.map((t) => (
             <li key={t} className="truncate">
-              <span className="mr-2 text-sodium" aria-hidden="true">
+              <span className="mr-2 text-clay" aria-hidden="true">
                 ·
               </span>
               {t}

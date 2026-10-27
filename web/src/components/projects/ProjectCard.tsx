@@ -28,6 +28,15 @@ import type { ProjectEntry } from "@/hooks/useProjects";
  * a size up, and the three highlights that make its case. The followers keep
  * the compact side-by-side. The difference is structural, so it survives being
  * skimmed.
+ *
+ * Why the title no longer lights up on hover
+ * ------------------------------------------
+ * It used to go to the accent, and with that retired the honest replacement
+ * is nothing at all: the whole card is the link, `.card:hover` already lifts
+ * its border and `.card:focus-visible` already rings it, so a second signal
+ * inside the target was telling the reader something they had been told. A
+ * title that changes on hover also implies the title is the hit area, which
+ * here it has never been.
  */
 export default function ProjectCard({
   entry,
@@ -57,14 +66,14 @@ export default function ProjectCard({
           the page, so it needs a ground of its own in a way a line of type
           over the surface does not. */}
       <span className="chip chip-hot absolute left-3 top-3">
-        <span className="h-1.5 w-1.5 rounded-full bg-sodium" aria-hidden="true" />
+        <span className="h-1.5 w-1.5 rounded-full bg-bone" aria-hidden="true" />
         {entry.state}
       </span>
     </figure>
   );
 
   const open = (
-    <span className="tap mono mt-5 inline-flex items-center gap-2 py-2 text-xs uppercase tracking-[0.18em] text-sodium">
+    <span className="tap mono mt-5 inline-flex items-center gap-2 py-2 text-xs uppercase tracking-[0.18em] text-bone">
       Open
       <span aria-hidden="true" className="transition-transform [transition-duration:var(--dur-fast)] group-hover:translate-x-1">
         →
@@ -78,7 +87,7 @@ export default function ProjectCard({
         {figure}
         <div className="px-2 pb-1 pt-6 sm:px-4 sm:pt-8 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,0.85fr)] lg:gap-12">
           <div className="min-w-0">
-            <h2 className="display-tight text-[2rem] leading-[1.02] text-bone transition-colors [transition-duration:var(--dur-micro)] group-hover:text-sodium sm:text-[2.75rem] lg:text-[3.5rem]">
+            <h2 className="display-tight text-[2rem] leading-[1.02] text-bone sm:text-[2.75rem] lg:text-[3.5rem]">
               {c.title}
             </h2>
             <p className="mt-3 text-lg leading-snug text-bone/85 sm:text-xl">{c.tagline}</p>
@@ -90,7 +99,7 @@ export default function ProjectCard({
               <ul className="space-y-2.5 border-t border-edge pt-5 lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0">
                 {highlights.map((h) => (
                   <li key={h} className="flex gap-3 text-sm leading-snug text-bone/80">
-                    <span className="mt-[0.45rem] h-1.5 w-1.5 shrink-0 rounded-full bg-sodium" aria-hidden="true" />
+                    <span className="mt-[0.45rem] h-1.5 w-1.5 shrink-0 rounded-full bg-clay" aria-hidden="true" />
                     {h}
                   </li>
                 ))}
@@ -114,7 +123,7 @@ export default function ProjectCard({
         {figure}
 
         <div className="px-2 pb-1 pt-5 sm:px-3 sm:pt-6 lg:px-0 lg:py-4 lg:pr-3">
-          <h2 className="display-tight text-[1.6rem] leading-[1.05] text-bone transition-colors [transition-duration:var(--dur-micro)] group-hover:text-sodium sm:text-3xl lg:text-[2.25rem]">
+          <h2 className="display-tight text-[1.6rem] leading-[1.05] text-bone sm:text-3xl lg:text-[2.25rem]">
             {c.title}
           </h2>
           <p className="mt-2.5 text-base leading-snug text-bone/85 sm:text-lg">{c.tagline}</p>

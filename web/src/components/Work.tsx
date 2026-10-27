@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import Shot from "@/components/projects/Shot";
 import Plate from "@/components/projects/Plate";
 import Slab from "@/components/Slab";
+import IrisPanel from "@/components/motion/IrisPanel";
 import { useProjects, type ProjectEntry } from "@/hooks/useProjects";
 
 /*
@@ -40,7 +41,10 @@ function Featured({ entry, index }: { entry: ProjectEntry; index: number }) {
         makes a repeated pose read as a template. Flat on a phone and under
         reduced motion; see Slab.module.css.
       */}
-      <figure className="m-0 min-w-0">
+      {/* The screenshot opens from the centre as it arrives rather than
+          fading in — a cut into the page instead of a thing appearing on it.
+          Inside the slab, so the lean and the iris compose. */}
+      <IrisPanel as="figure" className="m-0 min-w-0">
         <Slab restY={index % 2 === 0 ? -8 : 8} restX={1.5}>
           <Link to={to} tabIndex={-1} aria-hidden="true" className="block">
             {c.coverImage ? (
@@ -53,17 +57,28 @@ function Featured({ entry, index }: { entry: ProjectEntry; index: number }) {
             )}
           </Link>
         </Slab>
-      </figure>
+      </IrisPanel>
 
       <div className="min-w-0">
-        <div className="mono flex items-center gap-3 text-[0.6875rem] uppercase tracking-[0.2em] text-clay">
+        {/* The status is the one word in this row worth reading, so it is the
+            one word at full strength. That was the accent's job here and value
+            does it without introducing a colour. */}
+        <div className="mono flex items-center gap-3 text-xs uppercase tracking-[0.2em] text-clay">
           {entry.year && <span className="tabular-nums">{entry.year}</span>}
           <span className="h-px w-6 bg-edge" aria-hidden="true" />
-          <span className="text-sodium">{entry.status}</span>
+          <span className="text-bone">{entry.status}</span>
         </div>
 
+        {/*
+         * The title is already bone, so a hover that changed its colour had
+         * nowhere left to go once the accent was retired. An underline is the
+         * oldest signal a run of text is a link and it costs no hue at all.
+         */}
         <h3 className="display-tight mt-4 text-3xl text-bone sm:text-4xl">
-          <Link to={to} className="inline-flex min-h-11 items-center transition-colors hover:text-sodium focus-visible:text-sodium">
+          <Link
+            to={to}
+            className="inline-flex min-h-11 items-center underline decoration-transparent decoration-1 underline-offset-[6px] transition-[text-decoration-color] [transition-duration:var(--dur-fast)] hover:decoration-bone/50 focus-visible:decoration-bone/50"
+          >
             {c.title}
           </Link>
         </h3>
@@ -74,7 +89,7 @@ function Featured({ entry, index }: { entry: ProjectEntry; index: number }) {
           <ul className="mt-6 space-y-2">
             {entry.highlights.map((h) => (
               <li key={h} className="flex gap-3 text-[0.8125rem] leading-snug text-bone/85">
-                <span className="mt-[0.45rem] h-px w-4 shrink-0 bg-sodium" aria-hidden="true" />
+                <span className="mt-[0.45rem] h-px w-4 shrink-0 bg-clay" aria-hidden="true" />
                 {h}
               </li>
             ))}

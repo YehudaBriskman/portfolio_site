@@ -142,7 +142,7 @@ const markdown: Components = {
   },
   th({ children }) {
     return (
-      <th className="mono border-b border-edge pb-3 pr-6 text-[0.6875rem] uppercase tracking-[0.18em] text-clay">
+      <th className="mono border-b border-edge pb-3 pr-6 text-xs uppercase tracking-[0.18em] text-clay">
         {children}
       </th>
     );
@@ -169,9 +169,12 @@ const markdown: Components = {
  * title being wider than the prose is what gives the page its hierarchy.
  *
  * Body copy is bone/85 (8.9:1) rather than the bone/75 it was, and links carry
- * an underline rather than colour alone — sodium against bone/85 is 1.30:1
- * between the two text colours, well under the 3:1 that would let colour do the
- * job by itself.
+ * an underline rather than colour alone. That rule was written when the accent
+ * was still here and measured 1.30:1 against the surrounding text — far under
+ * the 3:1 that lets colour mark a link on its own — and with the accent
+ * retired the underline is not a reinforcement any more, it is the entire
+ * signal. Which is why it is on at rest and thickens on hover rather than
+ * appearing there.
  *
  * One body size, set here and inherited
  * -------------------------------------
@@ -198,16 +201,25 @@ const PROSE = [
   "prose-h2:mt-14 prose-h2:mb-4 prose-h2:text-[1.6rem] prose-h2:leading-[1.1] prose-h2:text-bone sm:prose-h2:text-[2rem]",
   "prose-h3:mt-10 prose-h3:mb-3 prose-h3:text-[1.3rem] prose-h3:leading-[1.2] prose-h3:text-bone sm:prose-h3:text-[1.5rem]",
   "prose-h4:mt-8 prose-h4:mb-2 prose-h4:text-[1.1875rem] prose-h4:leading-[1.3] prose-h4:text-bone sm:prose-h4:text-[1.3125rem]",
-  // The last two levels step down in voice, not in size: sodium for h5 and a
-  // tracked clay for h6. A heading set smaller than the paragraph under it is
-  // not a heading.
-  "prose-h5:mt-8 prose-h5:mb-2 prose-h5:text-[1.0625rem] prose-h5:leading-[1.4] prose-h5:text-sodium sm:prose-h5:text-[1.1875rem]",
+  /*
+   * The last two levels step down in voice, not in size — a heading set
+   * smaller than the paragraph under it is not a heading. That used to mean
+   * the accent for h5 and tracked clay capitals for h6, and with the accent
+   * gone h5 takes the serif italic instead: the site's own second voice,
+   * which is a larger step away from the sans than any colour was, and the
+   * same move the hero's tagline and a project's make one level up.
+   */
+  "prose-h5:mt-8 prose-h5:mb-2 prose-h5:font-editorial prose-h5:italic prose-h5:font-normal",
+  "prose-h5:text-[1.1875rem] prose-h5:leading-[1.35] prose-h5:tracking-[0] prose-h5:text-bone sm:prose-h5:text-[1.375rem]",
   "prose-h6:mt-8 prose-h6:mb-2 prose-h6:text-[1.0625rem] prose-h6:leading-[1.4] prose-h6:uppercase prose-h6:tracking-[0.1em] prose-h6:text-clay sm:prose-h6:text-[1.1875rem]",
 
-  "prose-li:marker:text-sodium",
+  "prose-li:marker:text-clay",
   "prose-strong:text-bone prose-strong:font-medium",
-  "prose-a:text-sodium prose-a:underline prose-a:decoration-sodium/40 prose-a:decoration-1 prose-a:underline-offset-[0.22em]",
-  "hover:prose-a:decoration-sodium hover:prose-a:decoration-2",
+  // Bone, one step up from the bone/85 the paragraph is set in, and underlined
+  // at rest. The underline is what identifies a link here; the value step is
+  // only what keeps it from disappearing into the sentence around it.
+  "prose-a:text-bone prose-a:underline prose-a:decoration-bone/40 prose-a:decoration-1 prose-a:underline-offset-[0.22em]",
+  "hover:prose-a:decoration-bone hover:prose-a:decoration-2",
   // A pull quote should read as more prominent than the body, not less; the
   // plugin's italic-and-a-rule default reads as less, and so did setting it two
   // points smaller than the paragraph it was lifted from.
@@ -217,7 +229,10 @@ const PROSE = [
   "prose-blockquote:text-bone",
   "[&_blockquote_p:first-of-type]:before:content-none [&_blockquote_p:last-of-type]:after:content-none",
   "prose-code:rounded-[6px] prose-code:border prose-code:border-edge prose-code:bg-surface/70",
-  "prose-code:px-[0.35em] prose-code:py-[0.12em] prose-code:font-normal prose-code:text-sodium",
+  // Bone, matching the code blocks: see CodeHighlight, where the whole theme
+  // was re-keyed to bone and weight so a fenced sample and an inline span now
+  // read as the same material rather than as two different palettes.
+  "prose-code:px-[0.35em] prose-code:py-[0.12em] prose-code:font-normal prose-code:text-bone",
   "prose-code:before:content-none prose-code:after:content-none prose-code:[overflow-wrap:anywhere]",
 ].join(" ");
 
@@ -320,11 +335,11 @@ export default function BlogPost() {
 
         {state === "missing" && (
           <div>
-            <h1 className="display-tight text-section">Not here</h1>
+            <h1 className="display text-section">Not here</h1>
             <p className="mt-4 max-w-[34rem] text-[1.0625rem] leading-[1.7] text-bone/85">
               That post doesn&rsquo;t exist, or isn&rsquo;t published yet. The address may have
-              changed when the notes moved from <code className="mono text-sodium">/notes</code> to{" "}
-              <code className="mono text-sodium">/blog</code>.
+              changed when the notes moved from <code className="mono text-bone">/notes</code> to{" "}
+              <code className="mono text-bone">/blog</code>.
             </p>
             <Link to="/blog" className="btn btn-quiet mt-8">
               <span aria-hidden="true">&larr;</span> All notes
@@ -371,7 +386,7 @@ export default function BlogPost() {
                     into the article. */}
                 <Link
                   to="/blog"
-                  className="mono hidden min-h-[44px] items-center gap-2 rounded-full border border-edge px-4 py-2 text-[0.75rem] uppercase tracking-[0.16em] text-clay transition-colors duration-150 hover:border-sodium/50 hover:text-sodium sm:inline-flex"
+                  className="mono hidden min-h-[44px] items-center gap-2 rounded-full border border-edge px-4 py-2 text-xs uppercase tracking-[0.16em] text-clay transition-colors duration-150 hover:border-bone/40 hover:text-bone sm:inline-flex"
                 >
                   <span aria-hidden="true">&larr;</span> Notes
                 </Link>
@@ -380,9 +395,9 @@ export default function BlogPost() {
                   {collectionTitle ? (
                     <Link
                       to={`/projects/${post.collection}`}
-                      className="tap mono inline-flex min-h-[44px] items-center gap-2 rounded-full border border-sodium/35 bg-sodium/10 px-3.5 py-2 text-[0.6875rem] uppercase tracking-[0.18em] text-sodium transition-colors duration-150 hover:bg-sodium/20"
+                      className="tap mono inline-flex min-h-[44px] items-center gap-2 rounded-full border border-bone/30 bg-bone/10 px-3.5 py-2 text-xs uppercase tracking-[0.18em] text-bone transition-colors duration-150 hover:bg-bone/20"
                     >
-                      <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-sodium" />
+                      <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-clay" />
                       {collectionTitle}
                     </Link>
                   ) : (
@@ -394,8 +409,13 @@ export default function BlogPost() {
                   {post.title}
                 </h1>
 
+                {/* The second voice, under the display line — the one thing
+                    on a post between a 12px label and the title. In the sans
+                    at 18-20px it was simply the first paragraph set slightly
+                    large, which is the register this page has deliberately
+                    emptied out. */}
                 {post.subtitle && (
-                  <p className="mt-5 max-w-[32rem] text-lg leading-[1.5] text-bone/85 sm:text-xl">
+                  <p className="editorial mt-5 max-w-[30rem] text-[1.375rem] text-bone sm:text-[1.75rem]">
                     {post.subtitle}
                   </p>
                 )}
@@ -412,7 +432,7 @@ export default function BlogPost() {
                         </span>
                       )}
                       <span className="meta-pill">
-                        <span aria-hidden="true" className="h-1 w-1 rounded-full bg-sodium" />
+                        <span aria-hidden="true" className="h-1 w-1 rounded-full bg-clay" />
                         {post.readingMinutes} min read
                       </span>
                     </div>

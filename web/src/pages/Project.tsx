@@ -116,19 +116,21 @@ export default function Project() {
 
         {entry && c && (
           <>
+            {/* The `.sun` wash behind this header went with the accent; the
+                plate stack supplies the light now. */}
             <div className="relative mt-8">
-              <div
-                className="sun -z-10 -left-20 -top-24 h-[320px] w-[320px] sm:h-[440px] sm:w-[440px]"
-                aria-hidden="true"
-              />
               <p className="mono flex items-center gap-3 text-xs uppercase tracking-[0.18em] text-clay">
-                <span className="h-2 w-2 shrink-0 rounded-full bg-sodium" aria-hidden="true" />
+                <span className="h-2 w-2 shrink-0 rounded-full bg-clay" aria-hidden="true" />
                 {entry.status}
                 {entry.year && <span className="tabular-nums">{entry.year}</span>}
               </p>
               <h1 className="display mt-4 text-[clamp(2.4rem,7vw,4.5rem)] leading-[0.94]">{c.title}</h1>
+              {/* The second voice, under the name. A tagline is a phrase
+                  somebody wrote, not a heading, and in the display face at the
+                  accent's colour it was reading as a second, smaller title
+                  competing with the real one directly above it. */}
               {c.tagline && (
-                <p className="display-tight mt-4 max-w-[24ch] text-[clamp(1.3rem,4.2vw,2.1rem)] text-sodium">
+                <p className="editorial mt-4 max-w-[26ch] text-[clamp(1.5rem,4.6vw,2.4rem)] text-bone">
                   {c.tagline}
                 </p>
               )}
@@ -182,7 +184,7 @@ export default function Project() {
                   <ul className="mt-7 grid gap-x-10 gap-y-5 sm:grid-cols-2">
                     {entry.highlights.map((h) => (
                       <li key={h} className="flex max-w-[46ch] gap-3.5 text-base leading-[1.55] text-bone/85">
-                        <span className="mt-[0.5rem] h-1.5 w-1.5 shrink-0 rounded-full bg-sodium" aria-hidden="true" />
+                        <span className="mt-[0.5rem] h-1.5 w-1.5 shrink-0 rounded-full bg-clay" aria-hidden="true" />
                         {h}
                       </li>
                     ))}
@@ -213,7 +215,7 @@ export default function Project() {
                               {String(i + 1).padStart(2, "0")}
                             </span>
                             <span className="min-w-0 flex-1">
-                              <span className="block text-base text-bone transition-colors group-hover:text-sodium">
+                              <span className="block text-base text-bone underline decoration-transparent decoration-1 underline-offset-[5px] transition-[text-decoration-color] [transition-duration:var(--dur-fast)] group-hover:decoration-bone/50">
                                 {p.title}
                               </span>
                               {p.subtitle && <span className="mono block truncate text-xs text-clay">{p.subtitle}</span>}

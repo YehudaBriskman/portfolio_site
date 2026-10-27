@@ -4,8 +4,10 @@ import { Link } from "react-router-dom";
  * One tag, one treatment, everywhere.
  *
  * Tags used to be three different things in three places: inert grey spans in
- * the list, hover-sodium links at the foot of a post, and nothing at all on a
- * project page. They are all the same navigation, so they get the same shape.
+ * the list, links that lit up in the old accent at the foot of a post, and
+ * nothing at all on a project page. They are all the same navigation, so they
+ * get the same shape — and the selected one inverts to bone on the ground
+ * rather than filling with a colour.
  *
  * Lowercase rather than uppercase-tracked on purpose — tracked caps read as
  * system chrome, which is most of what made the old list feel like a spec

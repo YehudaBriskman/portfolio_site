@@ -27,7 +27,7 @@ export default function SiteFooter() {
                     and re-booted the whole bundle. */}
                 <Link
                   to={l.to}
-                  className="-my-1 inline-flex min-h-11 items-center text-sm text-bone/85 transition-colors hover:text-sodium sm:min-h-0 sm:py-1"
+                  className="-my-1 inline-flex min-h-11 items-center text-sm text-bone/85 transition-colors hover:text-bone sm:min-h-0 sm:py-1"
                 >
                   {l.label}
                 </Link>
@@ -48,10 +48,10 @@ export default function SiteFooter() {
                   href={l.href}
                   target="_blank"
                   rel="noreferrer noopener"
-                  className="-my-1 inline-flex min-h-11 items-center gap-2 text-sm text-bone/85 transition-colors hover:text-sodium sm:min-h-0 sm:py-1"
+                  className="-my-1 inline-flex min-h-11 items-center gap-2 text-sm text-bone/85 transition-colors hover:text-bone sm:min-h-0 sm:py-1"
                 >
                   {l.label}
-                  <span className="mono text-[0.6875rem] text-clay">{l.note}</span>
+                  <span className="mono text-xs text-clay">{l.note}</span>
                 </a>
               </li>
             ))}
@@ -67,7 +67,7 @@ export default function SiteFooter() {
                   href={l.url}
                   target="_blank"
                   rel="noreferrer noopener"
-                  className="-my-1 inline-flex min-h-11 items-center text-sm capitalize text-bone/85 transition-colors hover:text-sodium sm:min-h-0 sm:py-1"
+                  className="-my-1 inline-flex min-h-11 items-center text-sm capitalize text-bone/85 transition-colors hover:text-bone sm:min-h-0 sm:py-1"
                 >
                   {l.name} <span aria-hidden="true" className="ml-1 text-clay">&#8599;</span>
                 </a>
@@ -76,7 +76,7 @@ export default function SiteFooter() {
             <li>
               <a
                 href={`mailto:${contact.email}`}
-                className="-my-1 inline-flex min-h-11 items-center text-sm text-bone/85 transition-colors hover:text-sodium sm:min-h-0 sm:py-1"
+                className="-my-1 inline-flex min-h-11 items-center text-sm text-bone/85 transition-colors hover:text-bone sm:min-h-0 sm:py-1"
               >
                 Email
               </a>
@@ -91,13 +91,13 @@ export default function SiteFooter() {
             Built with React and TypeScript. Runs on a single Arm machine I administer
             myself, behind Traefik and cert-manager, with the content in CouchDB.
           </p>
-          <p className="mono mt-3 text-[0.6875rem] text-clay">
+          <p className="mono mt-3 text-xs text-clay">
             No trackers. No cookie banner, because there are no cookies.
           </p>
         </div>
       </div>
 
-      <div className="mono mt-10 flex flex-wrap items-center justify-between gap-3 border-t border-edge pt-6 text-[0.6875rem] text-clay">
+      <div className="mono mt-10 flex flex-wrap items-center justify-between gap-3 border-t border-edge pt-6 text-xs text-clay">
         <span>&copy; {new Date().getFullYear()} Yehuda Briskman</span>
         <span className="flex items-center gap-5">
           <span>Tel Aviv, Israel</span>
@@ -106,7 +106,7 @@ export default function SiteFooter() {
               link — pretending otherwise would be the weaker of the two. */}
           <a
             href="https://admin.yehudabriskman.com/admin"
-            className="-my-3 inline-flex min-h-11 items-center py-3 text-clay/20 transition-colors hover:text-sodium focus-visible:text-sodium"
+            className="-my-3 inline-flex min-h-11 items-center py-3 text-clay/20 transition-colors hover:text-bone focus-visible:text-bone"
             aria-label="Admin"
           >
             admin

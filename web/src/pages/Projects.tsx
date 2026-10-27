@@ -20,15 +20,11 @@ export default function Projects() {
   return (
     <PageShell layers={PROJECTS_LAYERS}>
       <section data-crest data-hue="58 106 102" className="isolate relative mx-auto max-w-6xl px-5 pb-24 pt-24 sm:px-6 sm:pb-32 sm:pt-32 lg:pt-40">
-        {/* Scoped to the header rather than the section: anchored to the foot of
-            a 4000px page the ridgeline sat behind the last card, where it was
-            both invisible and a legibility risk. */}
+        {/* The `.sun` wash that used to anchor this header went with the
+            accent. There is a photographic plate behind the page now, which is
+            the thing the glow was standing in for when there was nothing but a
+            flat ground here. */}
         <header className="relative">
-          <div
-            className="sun -z-10 -left-24 -top-16 h-[300px] w-[300px] sm:-left-10 sm:h-[460px] sm:w-[460px]"
-            aria-hidden="true"
-          />
-
           <p className="eyebrow">Projects</p>
           <h1 className="display mt-4 text-section">What I&rsquo;m building</h1>
           <p className="mt-5 max-w-[46ch] text-lg leading-[1.6] text-bone/85 sm:text-xl">
@@ -39,7 +35,7 @@ export default function Projects() {
               like something you could press. They are facts; facts are type. */}
           <p className="mono mt-7 flex flex-wrap items-baseline gap-x-2.5 gap-y-1 text-xs text-clay">
             <span className="inline-flex items-center gap-2">
-              <span className="h-1.5 w-1.5 rounded-full bg-sodium" aria-hidden="true" />
+              <span className="h-1.5 w-1.5 rounded-full bg-clay" aria-hidden="true" />
               <b className="font-medium tabular-nums text-bone">{featured.length}</b> in use
             </span>
             {archive.length > 0 && (

@@ -27,7 +27,9 @@ export default function Stack() {
       <div className="mt-16 grid gap-14 md:grid-cols-3 md:gap-10">
         {stackGroups.map((g) => (
           <div key={g.title}>
-            <span className="block h-px w-8 bg-sodium" aria-hidden="true" />
+            {/* Bone at low alpha rather than --edge: this rule stands on a
+                photograph, and a near-black hairline over one is invisible. */}
+            <span className="block h-px w-8 bg-bone/40" aria-hidden="true" />
             {/*
              * The display face, not another 11px mono capital. The home page
              * was carrying forty-four of those; a group heading is a heading,

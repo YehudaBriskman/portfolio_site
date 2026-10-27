@@ -157,7 +157,7 @@ export default function Blog() {
             <button
               type="button"
               onClick={() => setParams({}, { replace: true })}
-              className="tap mono inline-flex min-h-[44px] items-center py-2 text-[0.75rem] tracking-[0.1em] text-clay transition-colors duration-150 hover:text-sodium"
+              className="tap mono inline-flex min-h-[44px] items-center py-2 text-xs tracking-[0.1em] text-clay transition-colors duration-150 hover:text-bone"
             >
               Show all notes
             </button>
@@ -166,7 +166,7 @@ export default function Blog() {
             {collection && collection !== "site" && (
               <Link
                 to={`/projects/${collection}`}
-                className="tap mono inline-flex min-h-[44px] items-center py-2 text-[0.75rem] tracking-[0.1em] text-sodium transition-colors duration-150 hover:underline"
+                className="tap mono inline-flex min-h-[44px] items-center py-2 text-xs tracking-[0.1em] text-bone transition-colors duration-150 hover:underline"
               >
                 Open the project <span aria-hidden="true" className="ml-1.5">&rarr;</span>
               </Link>

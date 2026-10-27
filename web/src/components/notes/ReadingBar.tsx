@@ -131,10 +131,11 @@ export default function ReadingBar({
 
   return (
     <>
-      {/* Desktop: a hairline under the nav, its leading end the sun from the
-          hero, travelling the width of the page as you read it. It sets
-          --pr-read, the article-only channel, rather than inheriting --pr —
-          the document-wide figure this component exists to stop trusting. */}
+      {/* Desktop: a hairline under the nav travelling the width of the page as
+          you read it, in bone, like `.progress-rail` it takes its shape from.
+          It sets --pr-read, the article-only channel, rather than inheriting
+          --pr — the document-wide figure this component exists to stop
+          trusting. */}
       <div
         ref={railRef}
         className="progress-rail hidden sm:block"
@@ -152,7 +153,7 @@ export default function ReadingBar({
         <div
           ref={fillRef}
           aria-hidden="true"
-          className="absolute inset-x-0 top-0 h-[2px] origin-left bg-sodium"
+          className="absolute inset-x-0 top-0 h-[2px] origin-left bg-bone"
           style={{ transform: "scaleX(0)" }}
         />
         <div className="flex items-center justify-between px-5">

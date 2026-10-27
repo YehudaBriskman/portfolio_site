@@ -12,6 +12,21 @@ import { useId } from "react";
  * The hash is deterministic, so a post keeps its own skyline forever. Nothing
  * animates: this sits a few pixels from body copy, where the reeds and birds of
  * the full scene would be noise.
+ *
+ * What happened to the sun
+ * ------------------------
+ * It was a sodium disc, and it was the only chromatic thing left in this card.
+ * Keeping it would have made the one place the retired accent survived on the
+ * public site a decorative drawing — exactly the use the accent was retired
+ * for — and a small orange circle inside a card standing on a photograph is
+ * the thing most certain to read as a sticker.
+ *
+ * But the disc is not only colour: it is the light source the four bands are
+ * silhouetted against, and without one the glyph is a flat grey ramp with some
+ * hills in it. So the light stays and the hue goes. A pale bone disc over a
+ * neutral sky is the same composition built out of value alone, which is the
+ * rule the rest of the site now runs on — and it finally agrees with the
+ * photographs behind it, none of which is tinted to match an accent either.
  */
 
 /* djb2-ish. Cheap, stable across engines, and only ever used for picking a
@@ -56,16 +71,20 @@ export default function NoteGlyph({ seed, className = "" }: { seed: string; clas
           <stop offset="62%" stopColor="rgb(var(--haze))" stopOpacity="0.55" />
           <stop offset="100%" stopColor="rgb(var(--haze-2))" stopOpacity="0.75" />
         </linearGradient>
+        {/* Less than half the alpha the sodium glow carried. A hue can be laid
+            on thickly and still read as atmosphere; the same strength in bone
+            over a grey sky is a blown-out hole rather than a light in the
+            distance, so value has to be asked for more quietly. */}
         <radialGradient id={`glow-${uid}`}>
-          <stop offset="0%" stopColor="rgb(var(--sodium))" stopOpacity="0.5" />
-          <stop offset="55%" stopColor="rgb(var(--sodium))" stopOpacity="0.1" />
-          <stop offset="100%" stopColor="rgb(var(--sodium))" stopOpacity="0" />
+          <stop offset="0%" stopColor="rgb(var(--bone))" stopOpacity="0.22" />
+          <stop offset="55%" stopColor="rgb(var(--bone))" stopOpacity="0.06" />
+          <stop offset="100%" stopColor="rgb(var(--bone))" stopOpacity="0" />
         </radialGradient>
       </defs>
 
       <rect width="320" height="180" fill={`url(#sky-${uid})`} />
       <circle cx={sunX} cy={sunY} r="52" fill={`url(#glow-${uid})`} />
-      <circle cx={sunX} cy={sunY} r="13" fill="rgb(var(--sodium))" />
+      <circle cx={sunX} cy={sunY} r="13" fill="rgb(var(--bone))" opacity="0.72" />
 
       {/* Aerial perspective: each band is nearer, darker and higher-contrast
           than the one behind it, exactly as in the hero. */}

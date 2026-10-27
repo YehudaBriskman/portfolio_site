@@ -30,12 +30,15 @@ export default function Contact() {
   }
 
   const field =
-    "mt-2 w-full border-0 border-b border-edge bg-transparent px-0 py-3 text-bone placeholder:text-clay/60 focus:border-sodium focus:outline-none focus:ring-0 transition-colors";
+    "mt-2 w-full border-0 border-b border-edge bg-transparent px-0 py-3 text-bone placeholder:text-clay/60 focus:border-bone focus:outline-none focus:ring-0 transition-colors";
 
   return (
     <section id="contact" className="isolate relative mx-auto max-w-6xl px-6 py-28 sm:py-36">
       <p className="eyebrow">{contact.location} &middot; {contact.availability}</p>
-      <h2 className="display-tight mt-5 text-section">Get in touch</h2>
+      {/* `.display`, like every other section head. This was the one that used
+          `.display-tight` at the section size, so it was the only heading on
+          the site set in a narrower face at the same scale as the rest. */}
+      <h2 className="display mt-5 text-section">Get in touch</h2>
 
       <div className="mt-16 grid gap-16 lg:grid-cols-[1.1fr_1fr]">
         <div className="max-w-lg">
@@ -46,29 +49,38 @@ export default function Contact() {
           </p>
         <form onSubmit={onSubmit}>
           <label className="block">
-            <span className="mono text-[0.6875rem] uppercase tracking-[0.22em] text-clay">Name</span>
+            <span className="mono text-xs uppercase tracking-[0.22em] text-clay">Name</span>
             <input name="name" required autoComplete="name" className={field} placeholder="Your name" />
           </label>
           <label className="mt-9 block">
-            <span className="mono text-[0.6875rem] uppercase tracking-[0.22em] text-clay">Email</span>
+            <span className="mono text-xs uppercase tracking-[0.22em] text-clay">Email</span>
             <input name="email" type="email" required autoComplete="email" className={field} placeholder="you@company.com" />
           </label>
           <label className="mt-9 block">
-            <span className="mono text-[0.6875rem] uppercase tracking-[0.22em] text-clay">Message</span>
+            <span className="mono text-xs uppercase tracking-[0.22em] text-clay">Message</span>
             <textarea name="message" required rows={4} className={`${field} resize-none`} placeholder="What are you building?" />
           </label>
 
+          {/* `.btn .btn-solid`, which is what the rest of the site's primary
+              actions already are. This was a hand-rolled pill in the accent
+              colour that happened to be the same shape and a different size,
+              so the one button a visitor is most likely to press was the one
+              button not built out of the design system. */}
           <button
             type="submit"
             disabled={status.kind === "sending"}
-            className="pill mono mt-11 inline-flex items-center gap-3 border border-sodium px-7 py-3.5 text-xs uppercase tracking-[0.22em] text-sodium transition-colors hover:bg-sodium hover:text-ink disabled:cursor-not-allowed disabled:opacity-45"
+            className="btn btn-solid mt-11 disabled:cursor-not-allowed disabled:opacity-45"
           >
             {status.kind === "sending" ? "Sending" : "Send message"}
             <span aria-hidden="true">→</span>
           </button>
 
+          {/* Confirmation at full strength and the failure one step down. The
+              success line was in the accent, which read as a warning rather
+              than as a receipt; the words carry the meaning here either way,
+              and the live region is what actually announces it. */}
           <p aria-live="polite" className="mono mt-5 min-h-[1.25rem] text-xs">
-            {status.kind === "sent" && <span className="text-sodium">Sent. I'll reply to the address you gave.</span>}
+            {status.kind === "sent" && <span className="text-bone">Sent. I'll reply to the address you gave.</span>}
             {status.kind === "error" && <span className="text-clay">{status.message}</span>}
           </p>
         </form>
@@ -77,7 +89,7 @@ export default function Contact() {
         <div>
           <a
             href={`mailto:${contact.email}`}
-            className="display-tight -my-2 flex min-h-11 items-center py-2 text-xl text-bone underline decoration-edge underline-offset-[6px] transition-colors hover:decoration-sodium sm:text-2xl"
+            className="display-tight -my-2 flex min-h-11 items-center py-2 text-xl text-bone underline decoration-bone/30 underline-offset-[6px] transition-colors hover:decoration-bone sm:text-2xl"
           >
             {contact.email}
           </a>
@@ -91,7 +103,7 @@ export default function Contact() {
                     href={l.url}
                     target="_blank"
                     rel="noreferrer noopener"
-                    className="mono -my-3 inline-flex min-h-11 items-center py-3 text-xs uppercase tracking-[0.18em] text-clay transition-colors hover:text-sodium"
+                    className="mono -my-3 inline-flex min-h-11 items-center py-3 text-xs uppercase tracking-[0.18em] text-clay transition-colors hover:text-bone"
                   >
                     {l.name}
                   </a>
@@ -99,7 +111,7 @@ export default function Contact() {
               ))}
           </ul>
 
-          <p className="mono mt-16 border-t border-edge pt-8 text-[0.6875rem] leading-relaxed text-clay">
+          <p className="mono mt-16 border-t border-edge pt-8 text-xs leading-relaxed text-clay">
             Messages reach me directly. No third-party form provider sits in between.
           </p>
         </div>

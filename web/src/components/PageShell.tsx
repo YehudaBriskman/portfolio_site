@@ -29,10 +29,10 @@ export default function PageShell({
   return (
     <div className="grain relative min-h-screen">
       <a href="#content"
-        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[70] focus:bg-sodium focus:px-4 focus:py-2 focus:text-bitumen">
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[70] focus:bg-bone focus:px-4 focus:py-2 focus:text-bitumen">
         Skip to content
       </a>
-      <Atmosphere layers={layers} driveBy="progress" />
+      <Atmosphere layers={layers} />
       {/* After Atmosphere, so it paints over it at the same depth. */}
       {reading && <div className="reading-ground" aria-hidden="true" />}
       <Nav />

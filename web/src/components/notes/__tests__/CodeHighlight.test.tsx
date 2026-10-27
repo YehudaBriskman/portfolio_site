@@ -54,9 +54,15 @@ describe("useCodeHighlight", () => {
       timeout: 15_000,
     });
 
-    // --sodium on a reserved word, rather than whatever GitHub Dark would pick.
-    // jsdom reports inline colours in rgb(), hence the form of this assertion.
-    expect(article.innerHTML).toContain("rgb(232, 129, 74)");
+    /*
+     * Our theme, not whatever GitHub Dark would pick: the numeric literal in
+     * the TypeScript sample gets the one cool tone the palette allows itself.
+     * jsdom reports inline colours in rgb(), hence the form of this assertion.
+     */
+    expect(article.innerHTML).toContain("rgb(143, 168, 190)");
+    // And the retired accent appears nowhere in a code block any more. Keywords
+    // are carried by weight now, which is the site's rule everywhere else too.
+    expect(article.innerHTML).not.toContain("rgb(232, 129, 74)");
     // A fence in a language nobody loaded still renders its text.
     expect(article.textContent).toContain("whatever");
     expect(article.textContent).toContain("const x: number = 1;");

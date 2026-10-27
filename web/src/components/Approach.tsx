@@ -23,10 +23,15 @@ export default function Approach() {
       <ul className="mt-20 grid gap-x-14 gap-y-16 sm:grid-cols-2 lg:grid-cols-3">
         {about.principles.map((p, i) => (
           <li key={p.claim}>
-            <span className="mono block text-xs tabular-nums text-sodium" aria-hidden="true">
+            <span className="mono block text-xs tabular-nums text-clay" aria-hidden="true">
               {String(i + 1).padStart(2, "0")}
             </span>
-            <div className="rule mb-5 mt-3 w-10 bg-sodium" />
+            {/* `.rule` is --edge, which is a hairline measured against the flat
+                ground. This one sits on a photograph, where --edge is simply
+                not there, so the divider carries bone at low alpha instead —
+                the same trick the glass surfaces use to stay visible over a
+                picture without becoming a bright line on one. */}
+            <div className="mb-5 mt-3 h-px w-10 bg-bone/40" />
             <h3 className="display-tight text-xl leading-snug text-bone">{p.claim}</h3>
             <p className="mt-4 text-base leading-[1.7] text-bone/70">{p.detail}</p>
           </li>
