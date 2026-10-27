@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import styles from "./Nav.module.css";
 
 /*
  * Section anchors, in the order the sections appear on the home page. They are
@@ -49,12 +50,33 @@ function scrollToAnchor(id: string) {
   return true;
 }
 
+/*
+ * A floating glass island rather than a full-width bar.
+ *
+ * The reasoning for the shape — and the measurement that makes the glass
+ * affordable at this size and ruinous at full width — is in Nav.module.css,
+ * next to the rules it governs. Read that before widening anything.
+ *
+ * What is gone from the old bar, and why
+ * --------------------------------------
+ * The `solid` state, and the scroll listener that drove it. It existed
+ * because a transparent full-width strip let scrolled body text render
+ * through it and collide with the wordmark, so the bar had to acquire a
+ * ground the moment the page moved. An island carries its own ground at all
+ * times and has edges you can see, so there is no second state to switch to —
+ * and the site is one passive scroll listener lighter for it.
+ *
+ * Everything else the bar got right is still here: the observer that tracks
+ * the section you are in, the disclosure that keeps all six destinations
+ * reachable on a phone, Escape closing it and handing focus back to the
+ * control that opened it, the scroll lock while it is open, closing on a
+ * route change, 44px targets throughout, and the per-click scroll above.
+ */
 export default function Nav() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const onHome = pathname === "/";
   const [active, setActive] = useState("hero");
-  const [solid, setSolid] = useState(false);
   const [open, setOpen] = useState(false);
   const panelId = "nav-menu";
   const toggleRef = useRef<HTMLButtonElement>(null);
@@ -70,15 +92,7 @@ export default function Nav() {
       const el = document.getElementById(id);
       if (el) obs.observe(el);
     });
-    // Solid almost immediately: a transparent fixed bar let scrolled body
-    // text render through it and collide with the wordmark.
-    const onScroll = () => setSolid(window.scrollY > 4);
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => {
-      obs.disconnect();
-      window.removeEventListener("scroll", onScroll);
-    };
+    return () => obs.disconnect();
   }, []);
 
   /* A menu that survives a route change as an invisible open panel is a trap. */
@@ -93,7 +107,7 @@ export default function Nav() {
       // and keyboard users lose their place entirely.
       toggleRef.current?.focus();
     };
-    // The page behind a full-height menu must not scroll under it.
+    // The page behind an open menu must not scroll under it.
     const previous = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     window.addEventListener("keydown", onKey);
@@ -105,19 +119,24 @@ export default function Nav() {
 
   const close = () => setOpen(false);
 
+  /*
+   * `aria-current` is both the accessible answer and the styling hook: the
+   * island has exactly one rule for "you are here" and it is keyed off the
+   * attribute, so the two can never disagree. The section links never carried
+   * it at all before, which left a screen reader with no way to know which of
+   * the four was lit.
+   */
+  const sectionCurrent = (id: string) => (active === id ? ("true" as const) : undefined);
+  const routeCurrent = (to: string) => (pathname.startsWith(to) ? ("page" as const) : undefined);
+
+  const onAnchorClick = (e: React.MouseEvent, id: string) => {
+    close();
+    if (scrollToAnchor(id)) e.preventDefault();
+  };
+
   return (
-    /*
-     * Solid, not blurred. A fixed bar with backdrop-filter has to re-sample and
-     * re-blur everything passing underneath it on every single frame, which on
-     * a phone is enough to make the whole page feel like it is catching up with
-     * your thumb. On a background this dark the blur was buying almost nothing.
-     */
-    <header
-      className={`fixed inset-x-0 top-0 z-50 transition-colors duration-300 ${
-        solid || open ? "border-b border-edge bg-bitumen/95" : ""
-      }`}
-    >
-      <nav className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+    <header className={styles.dock}>
+      <nav className={styles.island} aria-label="Primary">
         <a
           href={onHome ? "#hero" : "/"}
           onClick={(e) => {
@@ -128,19 +147,16 @@ export default function Nav() {
               navigate("/");
             }
           }}
-          className="mono -my-3 inline-flex min-h-11 items-center py-3 text-xs uppercase tracking-[0.22em] text-bone"
+          className={styles.wordmark}
         >
-          Y.B<span className="text-sodium">.</span>
+          Y.B<span className={styles.stop}>.</span>
         </a>
 
-        {/* Desktop: the whole map, laid out. */}
-        <ul className="hidden items-center gap-8 sm:flex">
+        {/* The whole map, laid out, from `sm` up. */}
+        <ul className={styles.links}>
           {!onHome && (
             <li>
-              <Link
-                to="/"
-                className="mono -my-3 block py-3 text-[0.6875rem] uppercase tracking-[0.18em] text-clay transition-colors hover:text-bone"
-              >
+              <Link to="/" className={styles.link}>
                 Home
               </Link>
             </li>
@@ -150,10 +166,9 @@ export default function Nav() {
               <li key={i.id}>
                 <a
                   href={`#${i.id}`}
-                  onClick={(e) => { if (scrollToAnchor(i.id)) e.preventDefault(); }}
-                  className={`mono -my-3 block py-3 text-[0.6875rem] uppercase tracking-[0.18em] transition-colors ${
-                    active === i.id ? "text-sodium" : "text-clay hover:text-bone"
-                  }`}
+                  aria-current={sectionCurrent(i.id)}
+                  onClick={(e) => onAnchorClick(e, i.id)}
+                  className={styles.link}
                 >
                   {i.label}
                 </a>
@@ -161,21 +176,16 @@ export default function Nav() {
             ))}
           {ROUTES.map((r) => (
             <li key={r.to}>
-              <Link
-                to={r.to}
-                aria-current={pathname.startsWith(r.to) ? "page" : undefined}
-                className={`mono -my-3 block py-3 text-[0.6875rem] uppercase tracking-[0.18em] transition-colors ${
-                  pathname.startsWith(r.to) ? "text-sodium" : "text-clay hover:text-bone"
-                }`}
-              >
+              <Link to={r.to} aria-current={routeCurrent(r.to)} className={styles.link}>
                 {r.label}
               </Link>
             </li>
           ))}
         </ul>
 
-        {/* Mobile: a real disclosure. Dropping the links below `sm` left the
-            phone with two of the six destinations and no way to reach the rest. */}
+        {/* Below `sm` the island opens into a sheet instead. Dropping the links
+            without putting them anywhere is what left a phone with two of the
+            six destinations and no way to reach the rest. */}
         <button
           ref={toggleRef}
           type="button"
@@ -183,70 +193,47 @@ export default function Nav() {
           aria-expanded={open}
           aria-controls={panelId}
           aria-label={open ? "Close menu" : "Open menu"}
-          className="-mr-2 flex h-11 w-11 items-center justify-center rounded-[--r-sm] text-bone transition-colors hover:text-sodium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sodium sm:hidden"
+          className={styles.toggle}
         >
-          {/* Two bars that cross into an X, so the control reads as a state
-              rather than as two different icons swapping places. */}
-          <span className="relative block h-4 w-6" aria-hidden="true">
-            <span
-              className={`absolute left-0 block h-px w-6 bg-current transition-transform [transition-duration:var(--dur-fast)] [transition-timing-function:var(--ease-settle)] ${
-                open ? "top-1/2 rotate-45" : "top-1"
-              }`}
-            />
-            <span
-              className={`absolute left-0 block h-px w-6 bg-current transition-transform [transition-duration:var(--dur-fast)] [transition-timing-function:var(--ease-settle)] ${
-                open ? "top-1/2 -rotate-45" : "top-[11px]"
-              }`}
-            />
-          </span>
+          <span className={styles.bars} aria-hidden="true" />
         </button>
       </nav>
 
-      <div
-        id={panelId}
-        hidden={!open}
-        className="border-t border-edge bg-bitumen sm:hidden"
-      >
-        <ul className="mx-auto max-w-6xl px-6 py-2">
+      <div id={panelId} hidden={!open} className={styles.sheet}>
+        <ul className={styles.sheetList}>
           {onHome &&
             items.map((i) => (
-              <li key={i.id} className="border-b border-edge/60">
+              <li key={i.id}>
                 <a
                   href={`#${i.id}`}
-                  onClick={(e) => { close(); if (scrollToAnchor(i.id)) e.preventDefault(); }}
-                  className={`mono flex min-h-[3.25rem] items-center text-sm uppercase tracking-[0.18em] transition-colors ${
-                    active === i.id ? "text-sodium" : "text-clay hover:text-bone"
-                  }`}
+                  aria-current={sectionCurrent(i.id)}
+                  onClick={(e) => onAnchorClick(e, i.id)}
+                  className={styles.sheetLink}
                 >
                   {i.label}
                 </a>
               </li>
             ))}
+          {onHome && <li className={styles.sheetSplit} aria-hidden="true" />}
+          {!onHome && (
+            <li>
+              <Link to="/" onClick={close} className={styles.sheetLink}>
+                Home
+              </Link>
+            </li>
+          )}
           {ROUTES.map((r) => (
-            <li key={r.to} className="border-b border-edge/60 last:border-0">
+            <li key={r.to}>
               <Link
                 to={r.to}
                 onClick={close}
-                aria-current={pathname.startsWith(r.to) ? "page" : undefined}
-                className={`mono flex min-h-[3.25rem] items-center text-sm uppercase tracking-[0.18em] transition-colors ${
-                  pathname.startsWith(r.to) ? "text-sodium" : "text-bone hover:text-sodium"
-                }`}
+                aria-current={routeCurrent(r.to)}
+                className={styles.sheetLink}
               >
                 {r.label}
               </Link>
             </li>
           ))}
-          {!onHome && (
-            <li className="border-b border-edge/60 last:border-0">
-              <Link
-                to="/"
-                onClick={close}
-                className="mono flex min-h-[3.25rem] items-center text-sm uppercase tracking-[0.18em] text-clay transition-colors hover:text-sodium"
-              >
-                Home
-              </Link>
-            </li>
-          )}
         </ul>
       </div>
     </header>
