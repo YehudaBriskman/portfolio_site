@@ -153,6 +153,27 @@
     --hue-yellow: 255 203   0;   /* #FFCB00 */
     --hue-purple: 162  93 220;   /* #A25DDC */
 
+    /*
+     * The same hues, at rest.
+     *
+     * They were introduced for motion only and the page was right to be
+     * careful — but careful turned into colourless: cream, black and one
+     * blue is an essay, and the reference this direction came from is not
+     * an essay. These are the motion hues laid onto the paper at low
+     * strength, so a surface can carry a colour without the page becoming
+     * a chart.
+     *
+     * Each is the hue mixed into --paper, not an alpha over it, so a card
+     * stacked on another card does not darken where they overlap. Type on
+     * any of them is --ink at better than 13:1, measured, because the wash
+     * is light enough to be a tint rather than a fill.
+     */
+    --wash-red:    250 233 235;
+    --wash-blue:   228 238 250;
+    --wash-green:  225 245 236;
+    --wash-yellow: 252 244 219;
+    --wash-purple: 241 233 250;
+
     /* `--signal`, not `--accent`: shadcn's primitives already own that name
        for their subtle-hover surface, and two different meanings under one
        token is how a palette quietly stops being one. */
@@ -207,12 +228,27 @@
     /* Elevation. The hairline edge alone is ~1.65:1 against the ground and
        reads as nothing, so a card needs fill, edge and shadow together before
        it is a card at all. */
-    --shadow-lift: 0 1px 0 rgb(var(--bone) / .04) inset, 0 18px 40px -24px rgb(0 0 0 / .78);
-    --shadow-press: 0 6px 18px -14px rgb(0 0 0 / .85);
+    /* Shadows on paper are shorter and much weaker than shadows on a dark
+       ground: there, a shadow is the only thing separating two near-black
+       surfaces, so it has to be enormous. Here the border does that job and
+       the shadow only has to lift the object a few millimetres. */
+    --shadow-lift: 0 1px 0 rgb(255 255 255 / .7) inset, 0 10px 24px -18px rgb(var(--ink) / .35);
+    --shadow-press: 0 4px 10px -8px rgb(var(--ink) / .4);
 
-    --r-sm: 10px;
-    --r-md: 16px;
-    --r-lg: 24px;
+    /*
+     * Softer than it was, at every step.
+     *
+     * 10/16/24 is the radius ladder of a dense interface, and this is not
+     * one — it is a page of large objects on paper with a lot of air around
+     * them. At that scale a 16px corner on a 400px card is a square with
+     * the sharpness filed off: the eye reads the straight edges and never
+     * registers the corner at all. These are large enough to be seen as
+     * curves, which is what makes a surface feel pressed rather than cut.
+     */
+    --r-sm: 14px;
+    --r-md: 22px;
+    --r-lg: 32px;
+    --r-xl: 44px;
     --r-pill: 999px;
     --radius: var(--r-md);
 
@@ -373,17 +409,17 @@
     /* Was a flat --surface fill with a hairline. Over a photograph that reads
        as a grey rectangle laid on the picture; the veil reads as something
        the light is passing through. */
-    background-color: rgb(255 255 255 / .07);
-    background-image: radial-gradient(130% 100% at 30% -10%,
-      rgb(255 255 255 / .16) 0%, rgb(255 255 255 / .04) 38%, transparent 72%);
-    border: 1px solid rgb(255 255 255 / .18);
-    box-shadow:
-      inset 0 1px 0 0 rgb(255 255 255 / .34),
-      0 24px 60px -32px rgb(0 0 0 / .78);
+    /* Paper, not the near-black ground this was written for: a 7% white veil
+       and a 60px shadow at 78% black made a surface visible on bitumen and
+       make a grey smear on cream. Same construction as `.card-paper`. */
+    background: rgb(255 255 255 / .55);
+    border: 1px solid rgb(var(--rule));
+    box-shadow: 0 1px 0 rgb(255 255 255 / .7) inset,
+                0 10px 24px -18px rgb(var(--ink) / .35);
     transition: border-color var(--dur-fast) ease, background-color var(--dur-fast) ease,
                 transform var(--dur-settle) var(--ease-settle);
   }
-  .panel:hover { border-color: rgb(255 255 255 / .34); }
+  .panel:hover { border-color: rgb(var(--rule-firm)); }
   .rule { height: 1px; background: rgb(var(--edge)); }
 
   /*
@@ -566,19 +602,20 @@
 
   .card {
     border-radius: var(--r-lg);
-    border: 1px solid rgb(255 255 255 / .18);
-    background-color: rgb(255 255 255 / .07);
-    background-image: radial-gradient(130% 100% at 30% -10%,
-      rgb(255 255 255 / .16) 0%, rgb(255 255 255 / .04) 38%, transparent 72%);
-    box-shadow:
-      inset 0 1px 0 0 rgb(255 255 255 / .34),
-      0 24px 60px -32px rgb(0 0 0 / .78);
+    /* The last of the dark-ground construction. A 7% white veil and a 60px
+       shadow at 78% black is how a surface becomes visible on bitumen; on
+       cream it is a grey smear with a bruise under it. Same build as
+       `.card-paper`, which is what every surface on the site now is. */
+    border: 1px solid rgb(var(--rule));
+    background: rgb(255 255 255 / .55);
+    box-shadow: 0 1px 0 rgb(255 255 255 / .7) inset,
+                0 10px 24px -18px rgb(var(--ink) / .35);
     transition: border-color var(--dur-fast) ease, box-shadow var(--dur-fast) ease,
                 transform var(--dur-fast) var(--ease-settle);
   }
   /* Behind a hover query so a touch device never latches a stuck hover state. */
   @media (hover: hover) and (pointer: fine) {
-    .card:hover { border-color: rgb(255 255 255 / .34); }
+    .card:hover { border-color: rgb(var(--rule-firm)); }
     .card:hover .card-shot img { transform: scale(1.035); }
   }
   /* The tactile beat on touch, where there is no hover to carry it. */
@@ -929,16 +966,17 @@
     flex-direction: column;
     overflow: hidden;
     border-radius: var(--r-lg);
-    border: 1px solid rgb(255 255 255 / .18);
-    background-color: rgb(255 255 255 / .07);
-    background-image: radial-gradient(130% 100% at 30% -10%,
-      rgb(255 255 255 / .16) 0%, rgb(255 255 255 / .04) 38%, transparent 72%);
-    box-shadow: inset 0 1px 0 0 rgb(255 255 255 / .34), 0 24px 60px -32px rgb(0 0 0 / .78);
+    /* Repapered. See .card-paper — the dark-ground construction is a grey
+       smear on cream, and NoteCard.module.css had to restate all of it. */
+    border: 1px solid rgb(var(--rule));
+    background: rgb(255 255 255 / .55);
+    box-shadow: 0 1px 0 rgb(255 255 255 / .7) inset,
+                0 10px 24px -18px rgb(var(--ink) / .35);
     transition: border-color var(--dur-fast) ease, background-color var(--dur-fast) ease,
                 transform var(--dur-micro) var(--ease-settle);
   }
   @media (hover: hover) and (pointer: fine) {
-    .note-card:hover { border-color: rgb(255 255 255 / .34); background: rgb(var(--surface) / .75); }
+    .note-card:hover { border-color: rgb(var(--rule-firm)); }
   }
   .note-card:active { transform: scale(.985); }
   /* Focus sits on the inner link, but a 3px outline offset inside overflow:hidden

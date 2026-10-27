@@ -41,6 +41,12 @@ export default {
         "hue-green": rgb("--hue-green"),
         "hue-yellow": rgb("--hue-yellow"),
         "hue-purple": rgb("--hue-purple"),
+        /* The same hues laid on the paper, for surfaces at rest. */
+        "wash-red": rgb("--wash-red"),
+        "wash-blue": rgb("--wash-blue"),
+        "wash-green": rgb("--wash-green"),
+        "wash-yellow": rgb("--wash-yellow"),
+        "wash-purple": rgb("--wash-purple"),
         // shadcn primitives
         border: rgb("--border"),
         input: rgb("--input"),
@@ -77,7 +83,7 @@ export default {
         sm: "var(--r-sm)",
         md: "var(--r-md)",
         lg: "var(--r-lg)",
-        xl: "var(--r-lg)",
+        xl: "var(--r-xl)",
         "2xl": "28px",
         full: "var(--r-pill)",
       },
