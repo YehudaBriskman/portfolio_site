@@ -32,8 +32,20 @@ export default function NotFound() {
          * The path is quoted back deliberately. A 404 that does not say what
          * it could not find leaves the reader unable to tell a typo from a
          * dead link, and the one thing they can act on is the spelling.
+         *
+         * In a well rather than loose on the paper, because that is what it
+         * is: a value, quoted, at 7.35:1 on a fill of white at 70%. As a bare
+         * line of grey mono under a display heading it read as a caption on
+         * the heading rather than as the thing that could not be found. 22px
+         * of corner on a box this size, matching the form fields — it is the
+         * same kind of object, a box with a string in it.
+         *
+         * No wash. There is no group here and so no position for the hue
+         * cycle to read; see the note in BlogPost.tsx.
          */}
-        <p className="mono mt-6 break-all text-xs text-ink-soft">{pathname}</p>
+        <p className="mono mt-6 inline-block max-w-full break-all rounded-[var(--r-md)] border border-ridge bg-white/70 px-4 py-2.5 text-xs text-ink-soft">
+          {pathname}
+        </p>
 
         <div className="mt-12 flex flex-wrap gap-3">
           <Link to="/" className="btn btn-solid">

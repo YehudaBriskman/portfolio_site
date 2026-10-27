@@ -1,5 +1,5 @@
 import PaperCard from "@/components/cards/PaperCard";
-import { cardType } from "@/components/cards/cardType";
+import { cardCycle, cardType } from "@/components/cards/cardType";
 import InkWipe from "@/components/motion/InkWipe";
 import InkRule from "@/components/motion/InkRule";
 import { stackGroups } from "@/data/stack";
@@ -44,11 +44,14 @@ export default function Stack() {
              the longest unbroken run of tool names pushed this column over
              its track and drew on top of the one beside it. The same trap is
              documented in Work.tsx for the same reason. */
-          <InkWipe key={g.title} as="div" className="min-w-0">
+          /* `cardCycle` puts the group's hue on the wipe, and the card inside
+             inherits it as `--card-wash`: three cards, blue then yellow then
+             red, resting in the colour each one is printed in. */
+          <InkWipe key={g.title} as="div" className={`min-w-0 ${cardCycle}`}>
             <PaperCard as="article" className="flex h-full min-w-0 flex-col">
               <h3 className={cardType.title}>{g.title}</h3>
-              <p className={`${cardType.meta} mt-3`}>{g.note}</p>
-              <InkRule className="mt-6 w-10" />
+              <p className={`${cardType.meta} mt-[var(--card-step-tight)]`}>{g.note}</p>
+              <InkRule className="mt-[var(--card-step)] w-10" />
 
               {/*
                * A wrapping list, not a paragraph of spans.
@@ -61,7 +64,9 @@ export default function Stack() {
                * top of the column beside it. Flex wraps on the gaps because
                * the gaps are real boxes.
                */}
-              <ul className={`${cardType.body} mt-6 flex flex-wrap items-baseline gap-x-2 gap-y-1`}>
+              <ul
+                className={`${cardType.body} mt-[var(--card-step)] flex flex-wrap items-baseline gap-x-2 gap-y-1`}
+              >
                 {g.items.map((item, i) => (
                   <li key={item} className="flex items-baseline gap-x-2">
                     {item}

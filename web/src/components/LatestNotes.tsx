@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import PaperCard from "@/components/cards/PaperCard";
-import { cardType } from "@/components/cards/cardType";
+import { cardCycle, cardType } from "@/components/cards/cardType";
 import InkWipe from "@/components/motion/InkWipe";
 import InkRule from "@/components/motion/InkRule";
 import { blog, formatDate } from "@/services/blog";
@@ -67,11 +67,17 @@ export default function LatestNotes() {
       {isPending && (
         <ul className="mt-12 space-y-6" aria-hidden="true">
           {Array.from({ length: SHOWN }, (_, i) => (
-            <li key={i}>
+            /* The cycle class goes on the skeleton too, so the three
+               placeholders are already the three colours the three real cards
+               will arrive in, and nothing changes colour underneath the
+               reader when the request lands. */
+            <li key={i} className={cardCycle}>
               <PaperCard className="animate-pulse-soft space-y-3">
-                <div className="h-3 w-40 rounded-sm bg-clay/20" />
-                <div className="h-6 w-3/4 rounded-sm bg-clay/20" />
-                <div className="h-4 w-2/3 rounded-sm bg-clay/10" />
+                {/* Capsules, not 14px rectangles. A placeholder stands in for
+                    a line of text, and a line of text has no corners. */}
+                <div className="h-3 w-40 rounded-full bg-clay/20" />
+                <div className="h-6 w-3/4 rounded-full bg-clay/20" />
+                <div className="h-4 w-2/3 rounded-full bg-clay/10" />
               </PaperCard>
             </li>
           ))}
@@ -81,7 +87,7 @@ export default function LatestNotes() {
       {!isPending && posts.length > 0 && (
         <ul className="mt-12 space-y-6">
           {posts.map((p) => (
-            <InkWipe key={p.slug} as="li" direction="right">
+            <InkWipe key={p.slug} as="li" direction="right" className={cardCycle}>
               {/*
                * The whole card is the link, not a title inside it.
                *
@@ -91,15 +97,32 @@ export default function LatestNotes() {
                * border and shadow lift without any of it being restated here.
                */}
               <PaperCard as="div" flush>
+                {/*
+                 * The date went from a reserved column to the far end of the
+                 * row.
+                 *
+                 * It had `sm:w-64` with a `sm:gap-12` after it: 304px of
+                 * reserved space for a string of 12px mono that measures
+                 * 237px at its longest, so all three titles started almost a
+                 * third of the way across a 1072px card. Narrowing the column
+                 * only moves the problem — the longest line this list can
+                 * print is "10 September 2026 · 10 min", so any column wide
+                 * enough to hold it is wider than most of what goes in it.
+                 * Set at the right-hand end instead, the dates line up on
+                 * their own right edge, the titles all start at the card's
+                 * inset, and the column holding them apart is gone.
+                 *
+                 * `flex-col-reverse` is what lets the title come first in the
+                 * document while the date still prints above it on a phone.
+                 * A reader of either kind meets the title first on a wide
+                 * screen, and on a narrow one the date is the dateline it has
+                 * always been.
+                 */}
                 <Link
                   to={`/blog/${p.slug}`}
-                  className={`${cardType.inset} group flex flex-col gap-3 sm:flex-row sm:items-baseline sm:gap-12`}
+                  className={`${cardType.inset} group flex flex-col-reverse gap-[var(--card-step-tight)] sm:flex-row sm:items-baseline sm:gap-8`}
                 >
-                  <span className={`${cardType.meta} shrink-0 sm:w-64`}>
-                    {formatDate(p.publishedAt) || "Unpublished"}
-                    {p.readingMinutes > 0 && ` · ${p.readingMinutes} min`}
-                  </span>
-                  <span className="min-w-0">
+                  <span className="min-w-0 sm:flex-1">
                     {/* An underline rather than a change of colour: the title
                         is already full-strength ink, so there is no darker to
                         go. */}
@@ -109,10 +132,14 @@ export default function LatestNotes() {
                       {p.title}
                     </span>
                     {p.subtitle && (
-                      <span className={`${cardType.body} mt-3 block max-w-xl`}>
+                      <span className={`${cardType.body} mt-[var(--card-step-tight)] block max-w-xl`}>
                         {p.subtitle}
                       </span>
                     )}
+                  </span>
+                  <span className={`${cardType.meta} shrink-0 sm:whitespace-nowrap sm:text-right`}>
+                    {formatDate(p.publishedAt) || "Unpublished"}
+                    {p.readingMinutes > 0 && ` · ${p.readingMinutes} min`}
                   </span>
                 </Link>
               </PaperCard>

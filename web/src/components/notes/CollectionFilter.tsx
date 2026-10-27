@@ -46,10 +46,20 @@ export default function CollectionFilter({
               <Link
                 to={option.slug ? `/blog?collection=${encodeURIComponent(option.slug)}` : "/blog"}
                 aria-current={on ? "true" : undefined}
+                /*
+                 * `border-clay` — --ink-soft, 7.35:1 on the chip's fill —
+                 * rather than the `border-edge` that was here. A chip is a
+                 * control, and WCAG 1.4.11 asks 3:1 of a control's boundary;
+                 * --rule measures 1.55:1 on this fill, so the unselected
+                 * chips were a row of words with nothing round them while
+                 * the selected one was a solid black capsule. Half the
+                 * difference between the two states was the border simply
+                 * not being drawn.
+                 */
                 className={`tap group inline-flex min-h-[44px] items-center gap-2.5 rounded-full border px-4 py-2.5 transition-colors [transition-duration:var(--dur-micro)] ${
                   on
-                    ? "border-transparent bg-bone text-bitumen"
-                    : "border-edge bg-surface/50 text-bone hover:border-bone/40 hover:bg-surface"
+                    ? "border-ink bg-ink text-paper"
+                    : "border-clay bg-white/70 text-ink hover:border-ink hover:bg-ink/5"
                 }`}
               >
                 {/* A bullet, and no longer a miniature of a sun the site no
@@ -59,7 +69,7 @@ export default function CollectionFilter({
                 <span
                   aria-hidden="true"
                   className={`h-1.5 w-1.5 rounded-full transition-transform [transition-duration:var(--dur-fast)] [transition-timing-function:var(--ease-settle)] motion-safe:group-hover:scale-150 ${
-                    on ? "bg-bitumen" : "bg-clay"
+                    on ? "bg-paper" : "bg-clay"
                   }`}
                 />
                 <span className="text-[0.9375rem]">{option.title}</span>

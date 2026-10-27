@@ -1,0 +1,126 @@
+/*
+ * The note card, re-cut for paper.
+ *
+ * `.note-card` in index.css is the last surface on the public site still
+ * dressed for the ground this design came off: a 1px border in white at 18%,
+ * a fill of white at 7% with a radial highlight in it, and a 60px shadow in
+ * black at 78%. Every one of those numbers was chosen against a near-black
+ * photograph. On cream they produce a card with no visible edge at all and a
+ * large soft bruise underneath it — which is exactly what the index of the
+ * writing looked like beside the home page's cards, two card designs on one
+ * site.
+ *
+ * So this file restates the surface in the terms `.card-paper` uses: a real
+ * border, a real shadow, an opaque fill, and the corner the rest of the site
+ * now wears. index.css is not this change's to edit; every selector here is
+ * doubled, because `.note-card` weighs one class and which of two equal
+ * declarations wins is decided by the order the bundler emits them in.
+ */
+.card.card {
+  /* The same 32px the home page's cards take, restated here only so that
+     `--card-radius` becomes the handle a bigger card can pull: `.note-card`
+     hard-codes `--r-lg`, and the lead is 1072px across, where 32px is the
+     mistake 22px was on a 341px one. */
+  border-radius: var(--card-radius, var(--r-lg));
+  border: 1px solid rgb(var(--rule-firm));
+  /* Opaque, and the wash when the card has been given one. The radial
+     highlight is dropped rather than retuned: it was a light source for a
+     glass card and there is no glass here. */
+  background-color: rgb(var(--card-wash, 246 245 239));
+  background-image: none;
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.7) inset,
+    0 10px 24px -18px rgb(var(--ink) / 0.35);
+}
+
+/*
+ * Resting is already --rule-firm (2.23-2.41:1 on the washes), so hover has to
+ * move further than it used to or it is a transition to the colour the card
+ * is already wearing. --ink-soft measures 6.60-7.14:1 on these surfaces.
+ */
+@media (hover: hover) and (pointer: fine) {
+  .card.card:hover {
+    border-color: rgb(var(--ink-soft));
+    box-shadow:
+      0 1px 0 rgb(255 255 255 / 0.8) inset,
+      0 18px 36px -22px rgb(var(--ink) / 0.45);
+  }
+}
+
+/* Focus sits on the inner link, and a 3px outline offset inside the card's
+   own `overflow: hidden` is clipped — so the card carries the signal. Solid
+   ink at 15.17:1 against the paper behind it. */
+.card.card:focus-within {
+  border-color: rgb(var(--ink));
+}
+
+/*
+ * The lead is 1072px across and 400px tall, which is half again the deck's
+ * cards and three times a note in the grid beside it. It takes the widest
+ * corner the palette names, for the same reason the deck does.
+ */
+.lead.lead {
+  --card-radius: var(--r-xl);
+}
+
+/*
+ * The picture slot.
+ *
+ * Its ground is the card's own wash rather than `--surface`, because what
+ * fills it when a note has no cover is a generated landscape that reads the
+ * same variable — so the drawing and the panel it is drawn on cannot come
+ * apart. The dividing rule steps up to --rule-firm with the card's border;
+ * at --rule it measured 1.40:1 against the wash and was not there.
+ */
+.media.media {
+  background: rgb(var(--card-wash, var(--paper-2)));
+  /* Both edges, because the lead turns the divider ninety degrees from `sm`
+     up and the colour should not depend on which way round it is. Only the
+     one with a width set is ever drawn. */
+  border-bottom-color: rgb(var(--rule-firm));
+  border-right-color: rgb(var(--rule-firm));
+}
+
+/* ------------------------------------------------------- the hue cycle -- */
+
+/*
+ * The same rule as everywhere else on the site: hue follows position in the
+ * group, cycling at five in the order blue, yellow, red, green, purple. See
+ * the long note in cards/PaperCard.module.css.
+ *
+ * These cards carry no ink wipe — the index fades them up as a grid rather
+ * than printing them one at a time — so there is no stroke for the wash to
+ * agree with here. It is the same cycle read off the same position all the
+ * same, which is what keeps /blog and / looking like one site: a reader who
+ * has seen the three notes on the home page arrive blue, yellow and red
+ * meets the index in the same order.
+ */
+.cycle:nth-child(5n + 1) { --card-wash: var(--wash-blue); }
+.cycle:nth-child(5n + 2) { --card-wash: var(--wash-yellow); }
+.cycle:nth-child(5n + 3) { --card-wash: var(--wash-red); }
+.cycle:nth-child(5n + 4) { --card-wash: var(--wash-green); }
+.cycle:nth-child(5n + 5) { --card-wash: var(--wash-purple); }
+
+/* ------------------------------------------------------------ the badge -- */
+
+/*
+ * The collection chip: a second, separately pressable thing sitting beside
+ * the eyebrow.
+ *
+ * It was `border-bone/30 bg-bone/10`, which is ink at 30% over the card — a
+ * 1.9:1 boundary, under the 3:1 WCAG 1.4.11 asks of the edge of something you
+ * can press. --ink-soft draws it at 5.85-6.30:1 against the fill, and the
+ * fill is the same 6% ink wash every other quiet control on this site uses.
+ * The label is --ink at 13.94-15.01:1 on it.
+ */
+.badge.badge {
+  border-color: rgb(var(--ink-soft));
+  background: rgb(var(--ink) / 0.06);
+  color: rgb(var(--ink));
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .badge.badge:hover {
+    background: rgb(var(--ink) / 0.12);
+  }
+}

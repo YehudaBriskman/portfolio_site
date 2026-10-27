@@ -1,0 +1,76 @@
+/*
+ * The two small capsules the notes pages are made of, re-cut for paper.
+ *
+ * `.tag-pill` and `.meta-pill` in index.css are the last chrome on the public
+ * site still dressed for a near-black ground: a border in white at 22% and a
+ * fill of `--bitumen` at 50%, which on cream is white over near-white and the
+ * ground over the ground. Measured, the border sits at 1.08:1 against the
+ * paper — it is not faint, it is not there — so a row of tags reads as a line
+ * of grey words with uneven spacing rather than as a row of things you can
+ * press.
+ *
+ * One file for both because they are one shape with two jobs: a tag is a
+ * capsule you can press and a meta pill is the same capsule saying a fact.
+ * Splitting them is how they drifted into two borders and two fills last
+ * time. index.css is not this change's to edit, and both global classes weigh
+ * one class, so every selector here is doubled.
+ */
+
+/*
+ * A fact, not a control: no hover, no focus ring, and a quieter edge than the
+ * tag below. --rule-firm measures 2.48:1 on the fill, which is a boundary you
+ * can see and not one that claims to be pressable — a non-interactive
+ * container has no 3:1 floor to clear. The type is --ink-soft at 7.35:1.
+ */
+.meta.meta {
+  border-color: rgb(var(--rule-firm));
+  background: rgb(255 255 255 / 0.7);
+  color: rgb(var(--ink-soft));
+  /* 44px, because these sit in a row with links and a row of mixed heights is
+     the thing that made the byline's metadata look assembled rather than set.
+     The negative block margin keeps the row the height it was. */
+  min-height: 44px;
+  margin-block: -0.5rem;
+}
+
+/*
+ * A tag is a link, so its edge has to clear the 3:1 that WCAG 1.4.11 asks of
+ * the boundary of a control. --rule-firm does not (2.48:1); --ink-soft does,
+ * at 7.35:1, and it is the same edge `.btn-quiet` draws for the same reason.
+ * The label is --ink at 17.50:1 on the fill.
+ */
+.tag.tag {
+  border-color: rgb(var(--ink-soft));
+  background: rgb(255 255 255 / 0.7);
+  color: rgb(var(--ink));
+  min-height: 44px;
+  padding-inline: 0.875rem;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .tag.tag:hover {
+    background: rgb(var(--ink) / 0.08);
+    border-color: rgb(var(--ink));
+  }
+}
+
+/*
+ * Selected inverts rather than filling with a hue, which is the one place on
+ * this site where that is still the right answer: the five washes say "this
+ * card is the third one", and a sixth meaning for colour — "this filter is
+ * on" — would be the moment hue started carrying information somebody could
+ * miss. Ink on paper, 15.17:1, and unmistakable at a glance.
+ */
+.tagActive.tagActive {
+  background: rgb(var(--ink));
+  border-color: rgb(var(--ink));
+  color: rgb(var(--paper));
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .tagActive.tagActive:hover {
+    background: rgb(var(--signal));
+    border-color: rgb(var(--signal));
+    color: rgb(var(--paper));
+  }
+}

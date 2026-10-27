@@ -30,18 +30,18 @@ describe("PaperCard", () => {
     expect(screen.getByRole("complementary", { name: "Other ways to reach me" })).toBeInTheDocument();
   });
 
-  it("adds a class for solid and a class for flush, and neither by default", () => {
+  it("adds a class for flush and nothing by default", () => {
     const plain = render(<PaperCard>a</PaperCard>).container.firstElementChild;
-    const solid = render(<PaperCard solid>b</PaperCard>).container.firstElementChild;
     const flush = render(<PaperCard flush>c</PaperCard>).container.firstElementChild;
 
     const count = (el: Element | null) => (el?.className ?? "").split(" ").filter(Boolean).length;
 
-    /* Solid exists because stacked cards were see-through and the text of
-       card one read through cards two and three; flush exists because a card
-       that is entirely one link has to hand its padding to the anchor. */
-    expect(count(solid)).toBe(count(plain) + 1);
+    /* Flush exists because a card that is entirely one link has to hand its
+       padding to the anchor, or the border promises a target the reader can
+       only hit in the middle. The `solid` variant that used to be tested
+       beside it is gone: every card is painted opaque now, so there is no
+       see-through state left to opt out of. */
     expect(count(flush)).toBe(count(plain) + 1);
-    expect(solid?.className).not.toBe(flush?.className);
+    expect(flush?.className).not.toBe(plain?.className);
   });
 });

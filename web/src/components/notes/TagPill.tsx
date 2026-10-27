@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import styles from "@/components/notes/Pill.module.css";
 
 /*
  * One tag, one treatment, everywhere.
@@ -17,7 +18,7 @@ export default function TagPill({ tag, active = false }: { tag: string; active?:
   return (
     <Link
       to={active ? "/blog" : `/blog?tag=${encodeURIComponent(tag)}`}
-      className={`tap tag-pill ${active ? "tag-pill--active" : ""}`}
+      className={`tap tag-pill ${styles.tag} ${active ? `tag-pill--active ${styles.tagActive}` : ""}`}
       aria-label={active ? `Clear the ${tag} filter` : `Notes tagged ${tag}`}
     >
       <span aria-hidden="true">#{tag}</span>

@@ -56,6 +56,34 @@
   padding: 0;
 }
 
+/*
+ * How wide a deck is, and why it is not a round number.
+ *
+ * The pile was held to `max-w-3xl` — 768px — inside a 1072px column, directly
+ * above a three-column grid of cards on the same column. Two sections, two
+ * card widths, and the 768 agreed with nothing: the grid's tracks are
+ * (100% - 48px) / 3 = 341px at the desktop measure, so the deck's right edge
+ * landed 61px past the second track and read as a card that had not been
+ * lined up rather than as a deliberately narrower one.
+ *
+ * Measured from the grid instead. Two tracks and the gutter between them is
+ * the widest a deck card can be while still ending on a line the page already
+ * draws, and `--deck-cols` / `--deck-gap` restate the grid's own numbers so
+ * the two stay tied if either moves.
+ *
+ * Below the grid's own breakpoint there is only one track, so the deck takes
+ * the whole column like everything else.
+ */
+@media (min-width: 768px) {
+  .deck {
+    --deck-cols: 3;
+    --deck-gap: 1.5rem;
+    max-width: calc(
+      (100% - (var(--deck-cols) - 1) * var(--deck-gap)) / var(--deck-cols) * 2 + var(--deck-gap)
+    );
+  }
+}
+
 .slot {
   position: sticky;
   /* Each card one step lower than the last. --deck-i is written by the
@@ -90,6 +118,23 @@
 .slot > *,
 .slot :global(.card-paper) {
   min-height: var(--deck-card-h);
+}
+
+/*
+ * The deck's cards are the largest objects on the home page — 707px across
+ * and at least 416px tall — so they take the widest corner the palette names.
+ * 32px on a card this size is the same mistake 22px was on a 341px one: a
+ * radius that does not grow with its box stops being read as a radius.
+ *
+ * `--wipe-radius` moves with it. InkWipe clips its coloured band to that
+ * figure precisely so something wrapping a card can correct it; left at the
+ * 22px default the band would put two coloured nubs outside a 44px corner for
+ * the two frames it takes to cross. Set on the slot's child rather than on
+ * the card, because the child is the wipe.
+ */
+.slot > * {
+  --card-radius: var(--r-xl);
+  --wipe-radius: var(--r-xl);
 }
 
 .slot :global(.card-paper) {
@@ -184,15 +229,23 @@
  * two classes. Matching the deck as well puts this rule a class ahead of it,
  * which makes the outcome a rule rather than a question of which stylesheet
  * the bundler emitted last — the same trap `PaperCard.module.css` documents
- * for `.card.solid`.
+ * for its own surface rules.
  *
  * The child selector is `*` because the deck cannot know what the caller
  * wrapped its card in. --wipe-hue is inherited and read by exactly one
  * declaration in one stylesheet, so landing it on a wrapper that is not a
  * wipe costs nothing and does nothing.
  */
-.deck .slot:nth-child(5n + 1) > * { --wipe-hue: var(--hue-red); }
-.deck .slot:nth-child(5n + 2) > * { --wipe-hue: var(--hue-green); }
-.deck .slot:nth-child(5n + 3) > * { --wipe-hue: var(--hue-purple); }
-.deck .slot:nth-child(5n + 4) > * { --wipe-hue: var(--hue-blue); }
-.deck .slot:nth-child(5n + 5) > * { --wipe-hue: var(--hue-yellow); }
+/*
+ * Each line sets the colour twice: once for the stroke that brings the card
+ * in and once for the surface it leaves behind. That is the whole colour rule
+ * on this site — a card rests in the wash of the hue its own wipe arrives in
+ * — and the deck is the one group that has to state it by hand, because the
+ * deck is also the one group whose wipes are offset. See the long note in
+ * PaperCard.module.css for the rule and the reasoning behind the order.
+ */
+.deck .slot:nth-child(5n + 1) > * { --wipe-hue: var(--hue-red);    --card-wash: var(--wash-red); }
+.deck .slot:nth-child(5n + 2) > * { --wipe-hue: var(--hue-green);  --card-wash: var(--wash-green); }
+.deck .slot:nth-child(5n + 3) > * { --wipe-hue: var(--hue-purple); --card-wash: var(--wash-purple); }
+.deck .slot:nth-child(5n + 4) > * { --wipe-hue: var(--hue-blue);   --card-wash: var(--wash-blue); }
+.deck .slot:nth-child(5n + 5) > * { --wipe-hue: var(--hue-yellow); --card-wash: var(--wash-yellow); }
