@@ -191,6 +191,88 @@ export function grammarsIn(body: string): string[] {
   return [...found];
 }
 
+/*
+ * The same fences again, this time with what is inside them.
+ *
+ * The backreference is the point: a block opened with four backticks ends on
+ * four, not on the three that may legitimately appear in its body. This is
+ * only ever used to feed the warm-up below, so a fence it fails to pair is a
+ * grammar that compiles a little later rather than a rendering bug.
+ */
+const FENCE_BLOCK = /^[ \t]{0,3}(`{3,}|~{3,})[ \t]*([A-Za-z0-9_+#.-]+)[^\n]*\n([\s\S]*?)^[ \t]{0,3}\1/gm;
+
+function codeByLanguage(body: string): Map<string, string[]> {
+  const byLang = new Map<string, string[]>();
+  for (const match of body.matchAll(FENCE_BLOCK)) {
+    const lang = match[2]?.toLowerCase();
+    if (!lang || !(lang in GRAMMARS)) continue;
+    const lines = byLang.get(lang) ?? [];
+    lines.push(...match[3].split("\n"));
+    byLang.set(lang, lines);
+  }
+  return byLang;
+}
+
+/*
+ * How much of a post's code the warm-up below is allowed to tokenise.
+ *
+ * Measured per grammar rather than per post, because the cost being paid is
+ * the grammar's, not the sample's: on this site's fixture post the first line
+ * of TypeScript cost 111ms of the 166ms the whole block took, and every line
+ * after the second cost under 2ms. Forty-eight lines is far past the point
+ * where a line still compiles anything new, and it caps the duplicated work
+ * on a post that happens to paste in a thousand-line file.
+ */
+const WARM_LINE_BUDGET = 48;
+
+/*
+ * The warm-up runs in slices: one character, then 1, 1, 2, 4, 8 … lines.
+ *
+ * The single character is not a throwaway. Tokenising anything at all forces
+ * the grammar's root rule to compile, and that one step is most of the bill:
+ * of the 151ms TypeScript took to colour its block here, 79ms was the root,
+ * and for bash it was 52ms of 55ms. Paying it on a task of its own halves the
+ * longest task the reader can be caught by, and it is the floor — a root rule
+ * compiles whole or not at all.
+ *
+ * The rest doubles because the expense keeps falling away: the second line of
+ * TypeScript cost 36ms and the third 2ms. Doubling stops a long block from
+ * becoming one task per line, which would cost more in scheduling than the
+ * tokenising it was splitting up.
+ */
+function* warmSlices(lines: string[]): Generator<string> {
+  yield "x";
+  let at = 0;
+  let size = 1;
+  const end = Math.min(lines.length, WARM_LINE_BUDGET);
+  while (at < end) {
+    yield lines.slice(at, Math.min(at + size, end)).join("\n");
+    at += size;
+    size = at === 1 ? 1 : size * 2;
+  }
+}
+
+/** The slice of `scheduler` we use, so this never has to pull in a DOM lib. */
+type MainThreadScheduler = { yield?: () => Promise<void> };
+
+/**
+ * Hands the main thread back to the browser and resumes on a fresh task.
+ *
+ * `scheduler.yield()` resumes ahead of other pending work where it exists;
+ * a `MessageChannel` is the fallback because `setTimeout(0)` is clamped to
+ * 4ms once a few of them have nested, and the warm-up below can take dozens
+ * of turns on a long post.
+ */
+function yieldToMain(): Promise<void> {
+  const scheduler = (globalThis as { scheduler?: MainThreadScheduler }).scheduler;
+  if (scheduler?.yield) return scheduler.yield();
+  return new Promise((resolve) => {
+    const channel = new MessageChannel();
+    channel.port1.onmessage = () => resolve();
+    channel.port2.postMessage(null);
+  });
+}
+
 /** react-markdown's own plugin list type, so this never has to name `unified`. */
 type RehypePlugins = ComponentProps<typeof ReactMarkdown>["rehypePlugins"];
 
@@ -214,12 +296,23 @@ export function useCodeHighlight(body: string | null): RehypePlugins {
 
     void (async () => {
       try {
-        const [core, engine, rehype] = await Promise.all([
+        /*
+         * One wave, not two.
+         *
+         * The grammars used to be requested only after the runtime had
+         * arrived, which on a 4x-throttled Fast 3G profile put the second
+         * round trip at 3520ms when the first had finished at 3499 — 285ms of
+         * the wait was the connection sitting idle waiting to be told what to
+         * fetch. Nothing in that decision depends on the runtime: `wanted` is
+         * read off the post's own text before any of this starts, so all of
+         * it can be asked for at once.
+         */
+        const [core, engine, rehype, ...modules] = await Promise.all([
           import("shiki/core"),
           import("shiki/engine/javascript"),
           import("@shikijs/rehype/core"),
+          ...wanted.map((lang) => GRAMMARS[lang]()),
         ]);
-        const modules = await Promise.all(wanted.map((lang) => GRAMMARS[lang]()));
 
         const highlighter = await core.createHighlighterCore({
           themes: [NEUTRAL_DARK],
@@ -238,6 +331,48 @@ export function useCodeHighlight(body: string | null): RehypePlugins {
           return;
         }
         built = highlighter;
+
+        /*
+         * Compile the grammars before React is allowed to use them.
+         *
+         * `createHighlighterCore` is nearly free — 12ms on the throttled
+         * profile — because the JavaScript regex engine converts a grammar's
+         * patterns lazily, on the first text it is asked to tokenise. So the
+         * whole cost landed in one place: handing the plugin to react-markdown
+         * fired a single 725ms task, which is a dead tap for anyone who
+         * touched the screen inside it, and three quarters of the post's
+         * 777ms TBT.
+         *
+         * Splitting it needs a tokenisation that is not a render. Each
+         * language's own code is run through the highlighter first, a slice at
+         * a time with the main thread given back between slices, so the same
+         * compilation happens across a dozen short tasks instead of one long
+         * one. The result is cached on the grammar: by the time the plugin is
+         * published the rehype pass itself measures 10ms.
+         *
+         * The reader sees plain code for slightly longer than they used to.
+         * That is the trade, and it is the right way round — plain code is
+         * legible, and a page that will not answer a tap is not.
+         */
+        const code = codeByLanguage(body);
+        for (const lang of wanted) {
+          for (const slice of warmSlices(code.get(lang) ?? [])) {
+            await yieldToMain();
+            // The cleanup has already disposed this highlighter by now — it
+            // runs before the slice that follows the yield — so there is
+            // nothing to tidy up here, only work to stop doing.
+            if (!alive) return;
+            /* A grammar that throws on its own sample would have thrown during
+               the render too; swallowing it here just means that block stays
+               plain, which is what `onError` below already promises. */
+            try {
+              highlighter.codeToHast(slice, { lang, theme: NEUTRAL_DARK.name });
+            } catch {
+              break;
+            }
+          }
+        }
+
         setPlugins([
           /*
            * Three entries, not two: unified spreads everything after the

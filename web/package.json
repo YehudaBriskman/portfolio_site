@@ -10,6 +10,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "lint:fix": "eslint . --fix",
+    "build:shots": "node scripts/build-shots.mjs",
     "typecheck": "tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.node.json --noEmit",
     "test": "vitest run --reporter=dot",
     "test:ci": "vitest run --reporter=dot",
