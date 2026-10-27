@@ -122,8 +122,17 @@ jobs:
             echo "::endgroup::"
           done
 
+  # A skipped matrix job never expands its matrix, so an interpolated job name
+  # is reported verbatim: every pull request showed two checks literally called
+  # "Publish ${{ matrix.name }} image". A static name lets Actions append the
+  # leg itself — "Publish image (web)" when it runs, "Publish image" when it
+  # does not — which is what the Dockerfiles job above has been doing all along.
+  #
+  # The matrix key is `image` rather than `name` for the same reason: a matrix
+  # dimension called `name` sitting next to a job field called `name` reads as
+  # though one sets the other.
   images:
-    name: Publish ${{ matrix.name }} image
+    name: Publish image
     runs-on: ubuntu-latest
     needs: [frontend, backend, dockerfiles, compose]
     if: github.ref == 'refs/heads/main'
@@ -134,9 +143,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: web
+          - image: web
             context: glassglow-folio-space
-          - name: api
+          - image: api
             context: backend
     steps:
       - uses: actions/checkout@v4
@@ -159,14 +168,14 @@ jobs:
           # whatever happens to be in a laptop's working directory.
           platforms: linux/amd64,linux/arm64
           tags: |
-            ${{ env.IMAGE_BASE }}/${{ matrix.name }}:${{ github.sha }}
-            ${{ env.IMAGE_BASE }}/${{ matrix.name }}:latest
+            ${{ env.IMAGE_BASE }}/${{ matrix.image }}:${{ github.sha }}
+            ${{ env.IMAGE_BASE }}/${{ matrix.image }}:latest
           # Replaces kaniko's --cache=true; the layer cache lives in Actions.
-          cache-from: type=gha,scope=${{ matrix.name }}
-          cache-to: type=gha,scope=${{ matrix.name }},mode=max
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,scope=${{ matrix.image }},mode=max
 
   scan:
-    name: Scan ${{ matrix.name }} image
+    name: Scan image
     runs-on: ubuntu-latest
     needs: images
     if: github.ref == 'refs/heads/main'
@@ -178,7 +187,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        name: [web, api]
+        image: [web, api]
     steps:
       - uses: docker/login-action@v3
         with:
@@ -187,7 +196,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - uses: aquasecurity/trivy-action@v0.36.0
         with:
-          image-ref: ${{ env.IMAGE_BASE }}/${{ matrix.name }}:${{ github.sha }}
+          image-ref: ${{ env.IMAGE_BASE }}/${{ matrix.image }}:${{ github.sha }}
           severity: HIGH,CRITICAL
           scanners: vuln
           exit-code: "0"
