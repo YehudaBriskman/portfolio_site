@@ -179,6 +179,11 @@ export function useCollectionIndex(
         return;
       }
 
+      /* Same guard as Rise and useEnteredOnce: an engine without the observer
+         gets the finished state, never a half-built one. Unguarded, the
+         constructor throws during commit and the page renders nothing — which
+         is how this was found. */
+      if (typeof IntersectionObserver === "undefined") return;
       observer = new IntersectionObserver(
         (entries) => {
           for (const e of entries) visible.set(e.target, e.isIntersecting);

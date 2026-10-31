@@ -64,9 +64,9 @@
 /*
  * The ways out, and all of them land on the finished page.
  *
- * There is no `@supports` block here, for the reason BlurShot gives: this is a
- * time-driven animation with no scroll timeline in it, so there is no feature
- * for a browser to be missing. The three exits that do exist are the OS
+ * There is no `@supports` block here, and that is deliberate rather than an
+ * omission: this is a time-driven animation with no scroll timeline in it, so
+ * there is no feature for a browser to be missing. Adding one is cargo cult. The three exits that do exist are the OS
  * preference, the Pause control, and an observer that never fires.
  *
  * `opacity: 1` and `transform: none` are restated in both blocks rather than

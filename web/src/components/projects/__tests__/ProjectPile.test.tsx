@@ -125,10 +125,28 @@ describe("ProjectPile", () => {
 
     const list = screen.getByRole("list", { name: "Selected work" });
     expect(list.tagName).toBe("OL");
-    /* Scoped to the rail's own children. Every label carries its field line
-       as a nested list, so an unscoped `listitem` query counts the specs as
-       well as the objects. */
-    expect(list.querySelectorAll(":scope > li")).toHaveLength(3);
+    /* Scoped to the rail's own children, and to the ones that are not the
+       index's anchor markers. Every label carries its field line as a nested
+       list, so an unscoped `listitem` query counts the specs as well; and
+       each object is preceded by a zero-height `aria-hidden` marker that the
+       chrome watches instead of the sticky slot. */
+    expect(list.querySelectorAll(":scope > li:not([aria-hidden])")).toHaveLength(3);
+    /* The markers are addressable and invisible: one per object, carrying the
+       anchor id, hidden from the accessibility tree so the list still reports
+       three things rather than six. */
+    const markers = list.querySelectorAll(':scope > li[aria-hidden="true"]');
+    expect(markers).toHaveLength(3);
+    expect(Array.from(markers).map((m) => m.id)).toEqual([
+      "object-windom",
+      "object-bothy",
+      "object-icaros",
+    ]);
+    /* And the id is NOT on the slot. It was, and because a sticky slot stops
+       moving the moment it pins, the chrome's probe resolved every object in
+       the pile to the first one. */
+    expect(
+      list.querySelectorAll(':scope > li:not([aria-hidden])[id]'),
+    ).toHaveLength(0);
     expect(screen.getAllByRole("heading", { level: 3 }).map((h) => h.textContent)).toEqual([
       "WindoM",
       "Bothy",
@@ -178,7 +196,7 @@ describe("ProjectPile", () => {
        not walk the last card under the nav bar. */
     expect(rail?.getAttribute("style")).toContain("--pile-n: 3");
 
-    const slots = Array.from(container.querySelectorAll("ol > li"));
+    const slots = Array.from(container.querySelectorAll("ol > li:not([aria-hidden])"));
     expect(slots.map((s) => s.getAttribute("style"))).toEqual([
       expect.stringContaining("--pile-i: 0"),
       expect.stringContaining("--pile-i: 1"),

@@ -2,7 +2,6 @@ import { scrollToAnchor } from "@/lib/scrollToAnchor";
 import type { ReactNode } from "react";
 import Nav from "@/components/Nav";
 import SiteFooter from "@/components/SiteFooter";
-import { useScrollProgress } from "@/hooks/useScrollProgress";
 
 /*
  * The page frame, and the spacing rule the whole site follows.
@@ -37,7 +36,6 @@ import { useScrollProgress } from "@/hooks/useScrollProgress";
  * because none of it was answering the same question twice.
  */
 export default function PageShell({ children }: { children: ReactNode }) {
-  useScrollProgress();
   return (
     <div className="relative min-h-screen">
       <a href="#content"

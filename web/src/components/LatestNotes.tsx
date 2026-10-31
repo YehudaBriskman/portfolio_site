@@ -292,7 +292,23 @@ export default function LatestNotes() {
            sentence 288px to the right of the heading above it rather than
            under it. */
         <div className="wrap">
-          <p className="mt-12 max-w-xl text-lg leading-relaxed text-clay">
+          {/*
+            Announced, not just rendered.
+
+            The shelf goes loading → failed without the heading above it
+            changing, so a reader who is not looking at this section gets no
+            signal that anything resolved. /blog already does this correctly;
+            an audit found the home page's copy of the same failure silent,
+            which is the worse half of an inconsistency.
+
+            `role="status"` rather than `alert`: the notes not loading is not
+            an error the reader has to act on, and an assertive region would
+            cut across whatever they were reading at the time.
+          */}
+          <p
+            role="status"
+            className="mt-12 max-w-xl text-lg leading-relaxed text-clay"
+          >
             {isError
               ? "The notes aren't loading just now. They're still there — the index has all of them."
               : "Nothing published yet. The index is where they'll appear."}

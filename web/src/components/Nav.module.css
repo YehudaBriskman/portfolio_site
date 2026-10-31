@@ -151,7 +151,28 @@
      screen. */
   padding-inline: clamp(12px, 2vw, 28px);
 
-  background: rgb(var(--paper) / 0.74);
+  /*
+   * 0.88, not the 0.74 this shipped with.
+   *
+   * A backdrop filter takes its contrast from whatever happens to be scrolling
+   * under it, which makes the bar the one surface on the site whose legibility
+   * is not a property of the bar. Measured at 0.74: when the 144px display
+   * headline passes beneath, the painted bar background fell from #ECE8D8 to
+   * #C0BCB0 and the links went from 6.35:1 to 4.11:1 — eight of fifteen
+   * controls failing at once, for a 210px window of scroll, invisible to axe
+   * because it declines to resolve a composite.
+   *
+   * And at the boundary of the dark act the same arithmetic ran the other way:
+   * a 0.74 dark tint over paper composites to #444440, which took every
+   * control to 3.93:1 for the ~56px where the panel is under the bar but not
+   * yet behind all of it.
+   *
+   * Opacity is the honest lever. The blur still reads at 0.88 — it is the
+   * saturation and the soft edge that sell the material, not the transparency
+   * — and the alternative, hysteresis on the material swap, fixes one of the
+   * two cases and leaves the headline one untouched.
+   */
+  background: rgb(var(--paper) / 0.88);
   -webkit-backdrop-filter: blur(16px) saturate(150%);
   backdrop-filter: blur(16px) saturate(150%);
   /*
@@ -165,10 +186,22 @@
    * their own contrast.
    */
   border-bottom: 1px solid rgb(var(--rule-firm));
-  transition:
-    background-color var(--dur-fast) ease,
-    border-color var(--dur-fast) ease,
-    color var(--dur-fast) ease;
+  /*
+   * The material swap is a hard cut, and that is a correction.
+   *
+   * It used to ease background, border and colour together over 240ms. Each
+   * of the three interpolates independently, so for the length of the
+   * transition the bar paints a colour that is neither material and the ink
+   * paints a value that belongs to neither — a sweep of the whole page
+   * measured the pair at **1.76:1** (bar rgb(118,115,109), ink
+   * rgb(161,158,148)) at the moment the dark act arrives under the chrome.
+   * At rest the same two measure 6.06:1 and 15.26:1.
+   *
+   * A crossfade between two grounds cannot be made safe by tuning it: the
+   * midpoint of a light ground and a dark one is always the value neither
+   * ink can sit on. The page itself hard-cuts from paper to panel at that
+   * boundary, so the chrome cuts with it.
+   */
 }
 
 /*
@@ -197,18 +230,10 @@
   }
 }
 
-/* The material swap is a colour change over 240ms, which is a transition and
-   therefore something the two off-switches govern. Both of them land on the
-   same answer: the bar changes, it just does not animate while it does. */
-@media (prefers-reduced-motion: reduce) {
-  .bar {
-    transition: none;
-  }
-}
-
-:global(body.motion-paused) .bar {
-  transition: none;
-}
+/* The material swap has no transition to switch off any more — see the note
+   on `.bar` above. The two blocks that used to cancel it are gone with it;
+   there is nothing here for the off-switches to govern, which is the best
+   possible state for a rule the off-switches used to have to know about. */
 
 /* ------------------------------------------------------------ the tracks -- */
 
@@ -398,7 +423,11 @@
      and one that scrolls on it. */
   padding-inline: 12px;
   /* 6.37:1 on paper, 7.0:1 on the panel. Secondary until you are on it. */
-  color: rgb(var(--ink-soft));
+  /* Full-strength ink, not the secondary value. These are the page's primary
+     navigation sitting on a surface whose ground moves; the soft tone is for
+     text with a settled background behind it. The same correction Apple's
+     vibrancy guidance makes for type over translucent chrome. */
+  color: rgb(var(--ink));
   font-weight: 500;
 }
 

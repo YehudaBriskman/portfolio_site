@@ -220,6 +220,24 @@
  * screen, for the same reason the dwell between slots is not: a pinned card
  * is filling it the whole time.
  */
+/*
+ * The index's anchor for each object: zero height, never sticky, never
+ * painted. It sits in the rail's flow immediately above the slot it names, so
+ * it crosses the probe line under the bar exactly when that card arrives —
+ * which a sticky slot cannot do, because from the moment it pins every slot
+ * in the pile reports the same rectangle.
+ *
+ * `scroll-margin-top` is the bar plus a little, so a jump from the index
+ * lands the card clear of the chrome rather than under it.
+ */
+.marker {
+  display: block;
+  height: 0;
+  margin: 0;
+  padding: 0;
+  scroll-margin-top: calc(var(--bar-h, 56px) + 1.5rem);
+}
+
 .rail::after {
   content: "";
   display: block;
@@ -245,7 +263,21 @@
   perspective: 1500px;
 }
 
-.slot + .slot {
+/*
+ * The dwell between arrivals, keyed off the marker rather than off the slot
+ * before it.
+ *
+ * This was `.slot + .slot`, and adding the index's anchor markers between the
+ * slots silently broke it: the element before a slot is now a marker, the
+ * adjacent-sibling selector stopped matching, and the rail lost every gap it
+ * had — 1404px of the peak's scroll budget, with nothing in the stylesheet
+ * looking wrong. Keying off `.marker + .slot` ties the spacing to the thing
+ * that is actually always there.
+ *
+ * `:first-of-type` would not do: the first marker is the first child, so the
+ * slot after it must still take no dwell.
+ */
+.marker:not(:first-child) + .slot {
   margin-top: var(--pile-dwell);
 }
 

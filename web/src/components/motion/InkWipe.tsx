@@ -4,9 +4,8 @@ import styles from "@/components/motion/InkWipe.module.css";
 /**
  * The elements a wipe is allowed to be.
  *
- * A closed union rather than `ElementType`, for the reason IrisPanel gives: a
- * clip path crops whatever it is applied to, so the element has to be one that
- * can own a block of content. `form` is in the list because a contact panel is
+ * A closed union rather than `ElementType`: a clip path crops whatever it is
+ * applied to, so the element has to be one that can own a block of content. `form` is in the list because a contact panel is
  * a form and the document outline should say so.
  */
 export type InkWipeTag =

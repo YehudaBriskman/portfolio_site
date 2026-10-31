@@ -22,6 +22,7 @@ import ProjectRow from "@/components/projects/ProjectRow";
 import { relatedTo, useProjects } from "@/hooks/useProjects";
 import { blog, type PostSummary } from "@/services/blog";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
+import { useScrollProgress } from "@/hooks/useScrollProgress";
 
 const SITE_TITLE = "Yehuda Briskman · Full-stack engineer & team lead";
 
@@ -46,6 +47,9 @@ const DOC_TAG = "doc";
  * made of headings with nothing under them.
  */
 export default function Project() {
+  /* The only page with a --vh reader: the figure drift below. See the hook. */
+  useScrollProgress();
+
   const { project = "" } = useParams();
   const { items, state: listState } = useProjects();
   const [posts, setPosts] = useState<PostSummary[] | null>(null);
@@ -151,12 +155,7 @@ export default function Project() {
 
             <ProjectActions entry={entry} className="mt-12" />
 
-            {/* Reads --vh, which useScrollProgress already publishes on <html>,
-                so the drift costs no listener of its own. On the wrapper rather
-                than the image: the image carries the card's hover transition and
-                would lag a scroll by 0.8s.
-
-                `sizes` is the figure's real width — `.wrap` caps the section
+            {/* `sizes` is the figure's real width — `.wrap` caps the section
                 at 72rem and takes a 2.5rem gutter off each side, so this is
                 1072px on a wide screen. It matters more here than anywhere: this is the LCP
                 element, and it was being served the 800px variant and upscaled
