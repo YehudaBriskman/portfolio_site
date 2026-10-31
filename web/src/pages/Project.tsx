@@ -19,12 +19,11 @@ import ProjectBrief from "@/components/projects/ProjectBrief";
 import ProjectDecisions from "@/components/projects/ProjectDecisions";
 import ProjectStack from "@/components/projects/ProjectStack";
 import ProjectRow from "@/components/projects/ProjectRow";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { relatedTo, useProjects } from "@/hooks/useProjects";
 import { blog, type PostSummary } from "@/services/blog";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import { useScrollProgress } from "@/hooks/useScrollProgress";
-
-const SITE_TITLE = "Yehuda Briskman · Full-stack engineer & team lead";
 
 /* Docs and notes are the same document type on the same shelf, split by one
    tag. `Post.source` already distinguishes authored from repo-ingested content
@@ -72,13 +71,21 @@ export default function Project() {
     };
   }, [project]);
 
-  useEffect(() => {
-    if (!entry) return;
-    document.title = `${entry.collection.title} · Yehuda Briskman`;
-    return () => {
-      document.title = SITE_TITLE;
-    };
-  }, [entry]);
+  /*
+   * The tab title, from the live collection rather than from the URL.
+   *
+   * `lib/pageTitle.ts` already resolves `/projects/icaros` to "Icaros" out of
+   * the seed table, so this is only an improvement in the one case the seed
+   * cannot cover: a published collection with a slug the table does not hold,
+   * or one whose title has been edited since. It is kept for that case, and
+   * because the title should come from the same object the `h1` does.
+   *
+   * What went: the cleanup. It restored the home page's title on unmount, so
+   * every page reached *from* a project page started life titled as the home
+   * page — the same bug, caused by the attempt to be tidy about it. Nothing
+   * needs restoring now that every route change writes a title of its own.
+   */
+  useDocumentTitle(state === "missing" ? "Not found" : (entry?.collection.title ?? null));
 
   const { docs, notes } = useMemo(() => {
     const all = posts ?? [];

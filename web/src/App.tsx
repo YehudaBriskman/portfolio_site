@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
+import RouteAnnouncer from "./components/RouteAnnouncer";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 // Lazy: react-markdown and remark-gfm are ~53 KB gzipped and are only needed on
@@ -41,6 +42,19 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        {/*
+          Above `<Routes>`, and both halves of that position are load-bearing.
+
+          Outside the routes, so its live region is in the document from the
+          first paint and survives every navigation — a region that mounts with
+          the page it is announcing has not been subscribed to yet and loses the
+          announcement. And *before* them in source order, so its effect runs
+          before any page's: the index's one cross-route jump (Contact, which
+          has no page of its own) is finished by an effect in Nav.tsx, and the
+          heading focus set here is the floor that jump then overrides rather
+          than a thing it has to race.
+        */}
+        <RouteAnnouncer />
         <Routes>
           <Route path="/" element={<Index />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
