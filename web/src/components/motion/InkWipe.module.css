@@ -23,9 +23,9 @@
   animation-timing-function: linear;
   animation-fill-mode: both;
   /*
-   * No animation-duration, for the reason FillSweep gives: under a view
-   * timeline the duration resolves from the range, and naming a time would
-   * run the stroke on the clock while the reader's scroll said otherwise.
+   * No animation-duration. Under a view timeline the duration resolves from
+   * the range, and naming a time would run the stroke on the clock while the
+   * reader's scroll said otherwise.
    *
    * The range closes at `entry 92%` rather than later, so the stroke has
    * finished by the time the element is fully on screen. Anything still
@@ -89,10 +89,9 @@
 /*
  * Three ways of switching this off, and all three land on the printed state.
  *
- * `clip-path: none` rather than a full-coverage polygon, for the reason
- * IrisPanel gives: inset(0) and polygon(0 0, 100% 0, ...) both still
- * establish a clip, and would crop a shadow or a focus ring that legitimately
- * overhangs the box.
+ * `clip-path: none` rather than a full-coverage polygon: inset(0) and
+ * polygon(0 0, 100% 0, ...) both still establish a clip, and would crop a
+ * shadow or a focus ring that legitimately overhangs the box.
  *
  * `body.motion-paused` is handled explicitly rather than left to the global
  * `animation-duration: 0.01ms` rule. That rule works by running an animation

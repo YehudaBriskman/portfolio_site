@@ -98,9 +98,30 @@ export default function Rise({ children, className = "" }: RiseProps) {
       return;
     }
 
+    /*
+     * And a seatbelt for the observer that exists but never speaks.
+     *
+     * The guard above covers an engine with no IntersectionObserver. It does
+     * not cover one that constructs fine and then never invokes the callback
+     * — a bug in a polyfill, an extension, a container that confuses the
+     * intersection root. An audit measured that case and found the whole of
+     * the wall text and the whole contact form sitting at `opacity: 0` while
+     * they were on screen, because the hidden state is a CSS floor this
+     * component is the only thing that lifts.
+     *
+     * SpecPlate avoids the same class of bug structurally, by making the
+     * resting CSS value the true one. Rise cannot: a reveal has to start
+     * hidden or there is nothing to reveal. So it gets a deadline instead.
+     * Two seconds is far longer than any real observer takes and far shorter
+     * than a reader will stare at a blank section; the worst case is content
+     * arriving without its rise, which is the right way to fail.
+     */
+    const seatbelt = window.setTimeout(() => setShown(true), 2000);
+
     const io = new IntersectionObserver(
       (entries) => {
         if (!entries.some((e) => e.isIntersecting)) return;
+        window.clearTimeout(seatbelt);
         setShown(true);
         /* Disconnected here rather than on unmount alone: this is the whole of
            "fires once". A reader who scrolls back up has to find the page as
@@ -112,7 +133,10 @@ export default function Rise({ children, className = "" }: RiseProps) {
     );
 
     io.observe(el);
-    return () => io.disconnect();
+    return () => {
+      window.clearTimeout(seatbelt);
+      io.disconnect();
+    };
   }, []);
 
   return (

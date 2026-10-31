@@ -66,8 +66,8 @@
 
 /*
  * All three exits land on the finished line, and `clip-path: none` rather
- * than a full-coverage inset for the reason IrisPanel gives: an inset still
- * establishes a clip, and this element deliberately overflows its own box.
+ * than a full-coverage inset, because an inset still establishes a clip and
+ * this element deliberately overflows its own box.
  *
  * `body.motion-paused` is cancelled explicitly rather than left to the global
  * `animation-duration: 0.01ms` rule, for the reason spelled out in InkWipe:

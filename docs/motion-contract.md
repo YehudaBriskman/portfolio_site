@@ -35,13 +35,18 @@ and **never** N delays. The failure is silent — every element animates, all of
 them at once, and the stagger you wrote has no effect at all.
 
 The corollary is that *something* has to carry the timing when the timing is the
-effect. `WordStagger` needs per-word rests of 110ms, 250ms and 420ms, which no
-range can express, so the words run on the clock and a scroll-driven animation
-is used only as a **gate**: a one-step `steps(1, jump-end)` animation flips a
-custom property that the words read through `animation-play-state`. A custom
-property is the only thing a scroll timeline can hand to a time-driven
-animation, and `animation-play-state` is the one property that accepts the
-handoff. See `motion/WordStagger.module.css`.
+effect — per-word rests in speech rhythm, say, which no range can express. The
+pattern that works is to run the effect on the clock and use the scroll-driven
+animation only as a **gate**: a one-step `steps(1, jump-end)` animation flips a
+custom property the time-driven animation reads. A custom property is the only
+thing a scroll timeline can hand to a time-driven animation.
+
+**Do not reach for `animation-play-state` as that handoff.** It is the one
+property that accepts it, and it is also the property §4 bans: paused means
+frozen at the time reached, which for anything not yet started is frame zero,
+and with `fill-mode: both` frame zero is the hidden state. A retired component
+(`WordStagger`, see the retirement note in §7) did exactly this, and one
+missing `body.motion-paused` block away from blanking its own text.
 
 ### A pinned element's timeline stalls
 
@@ -208,8 +213,8 @@ the trap underneath all three:
   every exit lands on the arrived state, a half-arrived element snaps to
   arrived. It must never snap to hidden.
 - A component with no scroll timeline in it needs **no `@supports` block** —
-  there is no feature for a browser to be missing. `Rise` and `BlurShot` are
-  time-driven and deliberately have none. Adding one there is cargo cult.
+  there is no feature for a browser to be missing. `Rise` is time-driven and
+  deliberately has none. Adding one there is cargo cult.
 
 Two further exits exist for specific effects rather than for motion in general:
 `forced-colors: active` removes `InkWipe`'s coloured band, because in a forced
@@ -293,11 +298,22 @@ direction, or set `fill-rule: evenodd` deliberately and know what it costs.
 |---|---|---|
 | `motion/Rise.tsx` | `reveal` — the measured reveal, fired once | observer + clock |
 | `motion/InkWipe.tsx` | ink arriving as a hard clip edge, plus the coloured band | `view()` |
-| `motion/IrisPanel.tsx` | a panel opening from its centre | `view()` |
-| `motion/FillSweep.tsx` | a heading's fill sweeping across its glyphs | `view()` |
 | `motion/InkRule.tsx` | a hairline drawing itself in | `view()` |
-| `motion/WordStagger.tsx` | a line arriving word by word, in speech rhythm | clock, gated by `view()` |
-| `motion/BlurShot.tsx` | a photograph resolving out of a blurred stand-in | load event |
+
+### Retired, and why
+
+`IrisPanel` (a panel opening from its centre), `FillSweep` (a heading's fill
+sweeping across its glyphs), `WordStagger` (a line arriving word by word) and
+`BlurShot` (a photograph resolving out of a blurred stand-in) were deleted
+once the page became a gallery. All four had no call site; three were missing
+their `body.motion-paused` exit, which the global duration override cannot
+cover because they are progress-driven; and the grammar bans kinetic headlines
+outright, which is `WordStagger`'s whole purpose.
+
+An unused component with a hole in its off-switch is a trap for whoever uses it
+next, so they went rather than being fixed in place. They are in the history if
+a future beat wants one — but it should be rebuilt against §4 rather than
+restored, because what was wrong with them is exactly what §4 exists to say.
 | `nav/useMotionPaused.ts` | the Pause control | — |
 | `nav/motion-paused.css` | what Pause does to the page | — |
 
