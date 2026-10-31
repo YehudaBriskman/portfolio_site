@@ -1,0 +1,99 @@
+/*
+ * One reveal, measured, fired once.
+ *
+ * This is the whole of the entry motion for the title plate and the wall text,
+ * and the numbers in it are the point rather than a starting place:
+ *
+ *   opacity 0 -> 1, and a rise of 14px, over 620ms, on an ease-out curve,
+ *   with the children staggered 60ms apart in reading order.
+ *
+ * Every one of those is a floor and a ceiling at once. A fade with no rise
+ * reads as the compositor catching up — a loading glitch rather than an
+ * arrival. A rise past about 24px stops being an arrival and becomes a slide,
+ * which is a different and much louder statement. Under 30ms of stagger the
+ * children read as one block moving, and over about 80ms the last one arrives
+ * after the reader has started reading the first. Slower, larger or bouncier
+ * is never more premium; the restraint is the signal, and there is nothing
+ * here to tune.
+ *
+ * The stagger is `nth-child` rather than a custom property set per element,
+ * unlike the deck this replaced. Nothing here needs to know its own index for
+ * any other purpose, so a selector costs no markup, no cloning of children and
+ * no inline style — which matters most for the title plate, where the three
+ * things being staggered are the inside of a component this file does not own.
+ *
+ * `--ease-settle` is the page's own curve, so an arrival here and a card
+ * settling under the pointer are the same gesture at different lengths.
+ */
+.group > * {
+  opacity: 0;
+}
+
+.shown > * {
+  animation: rise 620ms var(--ease-settle) both;
+}
+
+/*
+ * Reading order, and a cap on it.
+ *
+ * Five steps is 240ms from the first child to the last, which is inside the
+ * window where the group still reads as one thing arriving. Past the fifth the
+ * delay stops growing: a longer list would otherwise have its foot arriving
+ * most of a second after its head, and that is a queue, not a reveal.
+ */
+.shown > *:nth-child(2) { animation-delay: 60ms; }
+.shown > *:nth-child(3) { animation-delay: 120ms; }
+.shown > *:nth-child(4) { animation-delay: 180ms; }
+.shown > *:nth-child(5) { animation-delay: 240ms; }
+.shown > *:nth-child(n + 6) { animation-delay: 300ms; }
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    /* 14px, written as a length rather than a rem, because it is a distance
+       the eye measures on the screen and not a size that should grow with the
+       type. */
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/*
+ * The ways out, and all of them land on the finished page.
+ *
+ * There is no `@supports` block here, for the reason BlurShot gives: this is a
+ * time-driven animation with no scroll timeline in it, so there is no feature
+ * for a browser to be missing. The three exits that do exist are the OS
+ * preference, the Pause control, and an observer that never fires.
+ *
+ * `opacity: 1` and `transform: none` are restated in both blocks rather than
+ * left to the global `animation-duration: 0.01ms` rule. That rule does land on
+ * the final frame, which is the right trick — but it only applies once the
+ * animation is running, and the animation only starts when the observer has
+ * fired. A reader who has asked for no motion should not be waiting on an
+ * IntersectionObserver to be allowed to see a paragraph, so the hidden state
+ * is cancelled outright and the reveal simply never exists for them.
+ *
+ * That also covers the one failure mode the observer has: an element sitting
+ * inside the bottom 12% of a page too short to scroll never crosses the root
+ * margin, so it would never be revealed. The cure is to not put a reveal
+ * there; this is the seatbelt.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .group > *,
+  .shown > * {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+:global(body.motion-paused) .group > *,
+:global(body.motion-paused) .shown > * {
+  animation: none;
+  opacity: 1;
+  transform: none;
+}
