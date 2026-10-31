@@ -86,6 +86,45 @@ export default defineConfig(() => {
       },
     },
     plugins: [react(), requestLoggerPlugin(API_TARGET)],
+    /*
+     * Four vendor chunks, so a change to the site does not re-download React.
+     *
+     * There was no `build` block at all, which meant everything that is not
+     * behind a lazy route — react, react-dom, react-router, react-query, four
+     * Radix packages, sonner, lucide and zod — shipped inside the entry chunk
+     * with the app. Measured at 527,287 raw / 161,854 gzip, against the
+     * 410kB this was filed at: every copy edit invalidated the whole thing
+     * for every returning visitor.
+     *
+     * The split is by rate of change, not by size. The framework moves a few
+     * times a year, the data layer less often than that, the interface
+     * primitives rarely, and the app moves every time anything is written —
+     * so each gets its own file and a returning reader re-fetches only the
+     * last one. Splitting any finer would trade cache hits for requests;
+     * these four are the boundaries that actually exist.
+     *
+     * Shiki and its grammars are already out of here behind the lazy post
+     * route (1.45MB raw across 24 languages) and stay there.
+     */
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            react: ["react", "react-dom", "react-router-dom"],
+            query: ["@tanstack/react-query"],
+            ui: [
+              "@radix-ui/react-dropdown-menu",
+              "@radix-ui/react-slot",
+              "@radix-ui/react-toast",
+              "@radix-ui/react-tooltip",
+              "sonner",
+              "lucide-react",
+            ],
+            schema: ["zod"],
+          },
+        },
+      },
+    },
     resolve: {
       alias: { "@": path.resolve(__dirname, "./src") },
     },
