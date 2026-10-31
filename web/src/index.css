@@ -461,6 +461,44 @@
     background: rgb(var(--panel));
     color: rgb(var(--ink));
   }
+  /*
+   * The aliases have to be re-pointed too, and this is the same trap one
+   * level deeper.
+   *
+   * `--clay: var(--ink-soft)` is declared on :root, so its value is computed
+   * *there*, against :root's --ink-soft, and what inherits down the tree is
+   * the resolved colour rather than the indirection. Re-pointing --ink-soft on
+   * this subtree therefore changes nothing for the ninety-odd call sites that
+   * still say --clay, --bone, --edge, --surface or --bitumen.
+   *
+   * It fails exactly as quietly as the `color` case above: axe found one
+   * element — a 12px "4 of 6" eyebrow at 2.5:1 — and that was only because it
+   * happened to be text. Every border drawn with --edge on this panel was
+   * wrong too, and a hairline has no contrast rule to fail.
+   *
+   * These go when the last call site is renamed. Until then they are not
+   * optional, and a new alias added above has to be added here as well.
+   */
+  .on-panel {
+    --bitumen: var(--panel);
+    --surface: var(--panel-2);
+    --bone:    var(--panel-ink);
+    --clay:    var(--panel-soft);
+    --edge:    var(--panel-rule);
+    --ridge:   var(--panel-rule);
+    --haze:    var(--panel-soft);
+    --haze-2:  var(--panel-soft);
+    --screen:  var(--panel-soft);
+    --sodium:  var(--accent-on-panel);
+    /* shadcn's primitives alias the aliases, so they freeze at :root too. */
+    --background: var(--panel);
+    --foreground: var(--panel-ink);
+    --card: var(--panel-2);
+    --card-foreground: var(--panel-ink);
+    --muted-foreground: var(--panel-soft);
+    --border: var(--panel-rule);
+  }
+
   .on-panel :is(p, li, dd, .body) {
     line-height: 1.68;
     letter-spacing: 0.004em;
