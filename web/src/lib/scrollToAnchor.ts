@@ -22,6 +22,45 @@
 const SMOOTH_LIMIT_PX = 2600;
 
 /**
+ * Puts keyboard focus on something a reader has just been taken to.
+ *
+ * The one implementation of this on the site, and that is the point of its
+ * being exported rather than left inline below.
+ *
+ * Move focus, not just the viewport
+ * ---------------------------------
+ * An audit caught `scrollToAnchor` doing nothing for a keyboard user: the skip
+ * link scrolled the page and left focus on itself, so the very next Tab went
+ * straight back into the nav. A skip link that does not move focus skips
+ * nothing — it is a scroll shortcut for people who already had one. The same
+ * finding, measured again a release later, is what `RouteAnnouncer` answers for
+ * route changes: `/` -> `/projects` left `document.activeElement` on `<body>`.
+ *
+ * `tabindex="-1"` is set here rather than in the markup because the targets are
+ * ordinary sections and headings that should not be in the tab order; this
+ * makes them focusable only for the moment they are jumped to. It is removed
+ * again on blur so nothing is left programmatically focusable that a reader
+ * could not have reached before. The removal is a `once` listener and not a
+ * timeout, because what ends the borrowed focusability is the reader leaving,
+ * not a duration.
+ *
+ * @param el the heading, section or landmark the reader asked for.
+ * @param preventScroll whether something else owns the scroll position. True
+ *   for an in-page jump, which has already scrolled, and for a history
+ *   traversal, where the browser is restoring where the reader was; false for
+ *   an ordinary route change, where bringing the new page's heading into view
+ *   *is* the scroll that should happen.
+ */
+export function focusForNavigation(el: HTMLElement, preventScroll: boolean): void {
+  const hadTabIndex = el.hasAttribute("tabindex");
+  if (!hadTabIndex) el.setAttribute("tabindex", "-1");
+  el.focus({ preventScroll });
+  if (!hadTabIndex) {
+    el.addEventListener("blur", () => el.removeAttribute("tabindex"), { once: true });
+  }
+}
+
+/**
  * Scrolls to the element with this id, easing only when the trip is short
  * enough to be worth watching.
  *
@@ -58,26 +97,10 @@ export function scrollToAnchor(id: string): boolean {
     block: "start",
   });
 
-  /*
-   * Move focus, not just the viewport.
-   *
-   * An audit caught this doing nothing for a keyboard user: the skip link
-   * scrolled the page and left focus on itself, so the very next Tab went
-   * straight back into the nav. A skip link that does not move focus skips
-   * nothing — it is a scroll shortcut for people who already had one.
-   *
-   * `tabindex="-1"` is set here rather than in the markup because the
-   * targets are ordinary sections that should not be in the tab order; this
-   * makes them focusable only for the moment they are jumped to. It is
-   * removed again on blur so nothing is left programmatically focusable
-   * that a reader could not have reached before.
-   */
-  const hadTabIndex = el.hasAttribute("tabindex");
-  if (!hadTabIndex) el.setAttribute("tabindex", "-1");
-  el.focus({ preventScroll: true });
-  if (!hadTabIndex) {
-    el.addEventListener("blur", () => el.removeAttribute("tabindex"), { once: true });
-  }
+  /* `preventScroll`, because the line above has already put the element
+     exactly where this reader asked for it — letting focus scroll as well
+     would override the easing that was just decided. */
+  focusForNavigation(el, true);
 
   return true;
 }

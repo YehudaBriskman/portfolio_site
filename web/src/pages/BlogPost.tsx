@@ -6,6 +6,7 @@ import PageShell from "@/components/PageShell";
 import Ridge from "@/components/Ridge";
 import Byline, { FeedLink } from "@/components/notes/Byline";
 import { useCodeHighlight } from "@/components/notes/CodeHighlight";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import MetaPill from "@/components/notes/MetaPill";
 /* The two corrections that make `.note-card` and the small capsules read
    as surfaces on paper rather than on the near-black ground they were
@@ -291,9 +292,6 @@ export default function BlogPost() {
         if (!alive) return;
         setPost(p);
         setState("ok");
-        // No SSR here, so the tab title is set on the client. Social crawlers do
-        // not run JS and will not see this — that is a known gap, tracked.
-        document.title = `${p.title} · Yehuda Briskman`;
       })
       .catch((e) => {
         if (!alive) return;
@@ -301,9 +299,28 @@ export default function BlogPost() {
       });
     return () => {
       alive = false;
-      document.title = "Yehuda Briskman · Full-stack engineer & team lead";
     };
   }, [slug, attempt]);
+
+  /*
+   * The tab title, once the post has a name.
+   *
+   * This was two lines inside the fetch above and one in its cleanup, and the
+   * cleanup was the problem: it restored the home page's title on unmount, so
+   * leaving a post set the title back to "Yehuda Briskman · Full-stack
+   * engineer & team lead" — which is to say, every page reached *from* a post
+   * inherited the home page's title, which is the bug a per-route title exists
+   * to fix. `RouteAnnouncer` writes a title on every route change from the path
+   * alone, so there is nothing to restore and no window in which the title is
+   * stale; all this has to do is improve on the path's guess once the real name
+   * lands.
+   *
+   * "Not found" on a missing slug rather than the humanised slug the resolver
+   * guessed, and the same string `seo.route.ts` puts in the head for exactly
+   * these addresses: a post that is unpublished or gone is a 404 wearing a
+   * note's URL, and titling it after the note implies it exists.
+   */
+  useDocumentTitle(state === "missing" ? "Not found" : (post?.title ?? null));
 
   useEffect(() => {
     if (!post) return;

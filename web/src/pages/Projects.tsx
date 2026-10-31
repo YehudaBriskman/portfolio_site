@@ -92,10 +92,24 @@ export default function Projects() {
           </p>
         </header>
 
-        <p className="sr-only" role="status">
-          {state === "loading" ? "Loading projects" : `${items.length} projects`}
-        </p>
-
+        {/*
+         * The `sr-only role="status"` that used to sit here is gone.
+         *
+         * It read "6 projects" — or "Loading projects", a state `useProjects`
+         * cannot produce on this page because it is seeded from the table — and
+         * it was the only route on the site that announced anything at all when
+         * you arrived at it. A count is not a name: it told a reader how many
+         * objects were in a room without telling them which room they had just
+         * walked into, which is the question a route change raises.
+         *
+         * `components/RouteAnnouncer.tsx` now announces every route by name
+         * from one region mounted above `<Routes>`. This one is removed and not
+         * kept beside it, because two polite regions firing on one navigation
+         * is noise a reader cannot turn down, and the counts a reader might
+         * actually want are the three facts in the header directly above —
+         * "2 in use · 4 earlier · last push …" — which are ordinary text and
+         * are read in the ordinary way.
+         */}
         {state === "error" && (
           <p className="mt-12 max-w-[52ch] text-sm leading-relaxed text-ink/70">
             Couldn&rsquo;t reach the live index just now, so the repository facts below may be missing. The

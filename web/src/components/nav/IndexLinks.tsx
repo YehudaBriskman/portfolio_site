@@ -26,7 +26,69 @@ import type { CollectionIndexState } from "./useCollectionIndex";
  * at the leading edge of the bar still use "page", so a screen reader
  * distinguishes "the room you are in" from "the object you are at", which is
  * a real difference and the whole reason the bar has two groups.
+ *
+ * The affordance the two destinations were missing
+ * -----------------------------------------------
+ * An audit measured what "only the trip changes" costs: of the eight items in
+ * `nav[aria-label="Index"]`, six were in-page anchors and two were route
+ * changes, with nothing whatsoever marking which was which. A keyboard user
+ * walking the index was silently navigated off the page on items five and six.
+ *
+ * The decision in `navIndex.ts` is not the bug and is not undone — hiding the
+ * absent items, or pointing them all at the collection page, are both worse,
+ * and that is argued above. What was missing is the one thing that makes the
+ * design honest: an item that will take you somewhere else says so, in the
+ * accessible name and on the screen. See `AWAY_NOTE` and `.awayMark`.
  */
+
+/**
+ * What an item adds to its accessible name when the trip leaves this page.
+ *
+ * One string for every away item rather than a phrasing per case, and the
+ * phrasing is about the object rather than about the link. "Icaros, opens its
+ * own page" was the first draft and it is wrong for one of the eight: Contact
+ * has no page of its own — it is the last plate of the collection, by design —
+ * so from a note its item is a route change *plus* a scroll, and "its own
+ * page" would be a promise the site deliberately does not keep. "On another
+ * page" is true of all eight, which is why it can be derived from `present`
+ * instead of written out per item and kept in step by hand.
+ *
+ * The comma earns its place: most screen readers do not speak it and all of
+ * them pause on it, so the name arrives as a name and then a note about it
+ * rather than as one seven-syllable label.
+ */
+const AWAY_NOTE = ", on another page";
+
+/**
+ * The mark that says the same thing to someone looking at it.
+ *
+ * A chevron, and the first version was `→` — the site's own "onward" glyph out
+ * of `ui/Action.tsx`, borrowed rather than invented, which is the right
+ * instinct and the wrong mark here. It was measured and it does not fit.
+ *
+ * The index's track is 920px wide at 1440. The eight labels set at 819px, and
+ * a note page is the one route where all eight items are away items, so the
+ * arrow was charged eight times: 19px each — a 14px glyph plus its 5px of
+ * air — taking the strip to 971px. The strip is built to scroll and that is a
+ * blessed state below 1336px, but this pushed a page that had 100px of room to
+ * spare into scrolling, with "Contact" clipped mid-word at a desktop width.
+ * Shrinking the arrow does not recover it: 8 x 19 has to come down to 8 x 12.6,
+ * which is a 9px arrow at half ink, which is not an affordance.
+ *
+ * `›` costs 9px and the eight away items set at 902px, so the index fits. It
+ * is also the better mark for the job rather than merely the cheaper one: in a
+ * list of destinations a chevron is the disclosure indicator every reader has
+ * met, which is exactly the claim being made — there is more of this object,
+ * elsewhere. The site already uses one for that meaning (see the note in
+ * `marks.tsx`, and the submenu mark in `ui/dropdown-menu.tsx`), so this is
+ * still a borrowing and not a ninth sign.
+ *
+ * `aria-hidden`, because the accessible name already carries the fact in
+ * words. A mark announced between an object's name and a phrase about it is
+ * the version of this that makes the bar louder for the reader it was supposed
+ * to help.
+ */
+const AWAY_GLYPH = "›";
 
 export type IndexLinksProps = {
   items: readonly NavIndexItem[];
@@ -118,8 +180,39 @@ export default function IndexLinks({ items, state, variant, settle, onPick }: In
                 {item.label}
               </a>
             ) : (
-              <Link to={item.away.to} onClick={(e) => onPick(item, e)} {...common}>
+              /*
+               * `aria-label`, and the visible label leads it.
+               *
+               * WCAG 2.5.3, Label in Name, is satisfied by the name *starting*
+               * with the text on the screen: a reader who says "Icaros" has
+               * said a prefix of this link's name, which is what voice control
+               * needs. It is the same rule that made the language picker read
+               * "EN — change language" rather than "Language: English", and the
+               * reason the note is appended rather than substituted.
+               *
+               * The first draft put the note in an `sr-only` sibling span
+               * instead, which is the usual advice and does not survive
+               * measurement: the accessible name is the concatenation of each
+               * child's contribution with every contribution trimmed, so a
+               * leading space inside the span is discarded and the name
+               * computes as "Icaroson another page" — verified against
+               * dom-accessibility-api, which is the algorithm the test suite
+               * and the browsers agree on. Nothing a text node can carry
+               * guarantees the separator, so the separator is written here
+               * where this component owns the whole string.
+               *
+               * The two halves cannot drift: both are `item.label`.
+               */
+              <Link
+                to={item.away.to}
+                onClick={(e) => onPick(item, e)}
+                aria-label={`${item.label}${AWAY_NOTE}`}
+                {...common}
+              >
                 {item.label}
+                <span aria-hidden="true" className={styles.awayMark}>
+                  {AWAY_GLYPH}
+                </span>
               </Link>
             )}
           </li>
