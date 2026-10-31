@@ -5,6 +5,50 @@ export const contact = {
   email: "yehuda@yehudabriskman.com",
   location: "Tel Aviv, Israel",
   availability: "Open to interesting conversations",
+  /* A duration, so it lives here rather than in the markup — the label schema
+     forbids a count or a duration being typed into a component. It is also a
+     promise, which is the other reason it belongs in one place: it has to be
+     changed in one place when it stops being true. */
+  replyWithin: "Usually within a day",
+};
+
+/*
+ * Object zero: the collection names itself.
+ *
+ * The title plate carries the same three-part label as every project and every
+ * note — name, one line of fact, a mono field line — and the rules about what
+ * may go in it are on the type in `components/gallery/objectLabel.ts`. The one
+ * that bit hardest here: fact, not pitch. This used to open with "Built to be
+ * used.", which is a claim, and a claim on the first screen of a gallery is the
+ * single thing that breaks the grammar — every other label on the page states
+ * what a thing is and refuses to argue for it, so this one does too.
+ *
+ * Only the parts that cannot be counted live here. The numbers on the field
+ * line are derived in `Hero.tsx` from `data/projects.ts`, because a count typed
+ * into content is a count that is wrong the first time the table changes and
+ * nobody notices.
+ */
+export const plate = {
+  /** The collection's own name. Set uppercase by the plate scale, not here. */
+  name: "Yehuda Briskman",
+  /** One line of fact: what the thing is, in the fewest words that are true. */
+  fact: "Full-stack, mostly frontend",
+  /**
+   * Where the work is done, and the country rather than the city on purpose:
+   * `contact.location` already says Tel Aviv for anyone who needs it, and a
+   * field line is read cropped, so the first field has to be the one that
+   * still means something on its own.
+   */
+  where: "Israel",
+  /**
+   * The first year there was shipped work to point at.
+   *
+   * Stated rather than derived, and the only number on the plate that is.
+   * `data/projects.ts` starts in 2024 because that is as far back as its six
+   * entries go, not because nothing shipped before them — deriving this from
+   * the table would print a career that began two years after it did.
+   */
+  shippingSince: 2021,
 };
 
 export const about = {

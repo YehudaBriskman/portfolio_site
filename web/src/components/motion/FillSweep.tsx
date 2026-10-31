@@ -41,6 +41,9 @@ export type FillSweepProps = {
  * most, two colours; the sweep itself is a view-timeline animation in the
  * stylesheet, which means it never touches the main thread and it is inert
  * under reduced motion without this file knowing about the preference.
+ *
+ * The page-level rules this sweep answers to — the two rules of scroll-driven
+ * motion and the three off-switches — are in `docs/motion-contract.md`.
  */
 export default function FillSweep({
   children,

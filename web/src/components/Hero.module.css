@@ -1,0 +1,50 @@
+/*
+ * One rung down, below 700px. That is the whole of this file.
+ *
+ * Everything else about the title plate is the label schema — the faces, the
+ * widths, the gaps between the three parts, the uppercasing of the name — and
+ * none of it is restated here, because a section that restyles the shared label
+ * is a section with its own label, and then the collection is not one.
+ *
+ * Why a step is needed at all
+ * ---------------------------
+ * `text-hero` is `min(11vw, 21vh, 9rem)`, and the plate scale sets the name in
+ * Archivo at wdth 125 / weight 900 / uppercase, where it is wide: "BRISKMAN"
+ * alone measures 7.12em, and "YEHUDA BRISKMAN" roughly 13.7em. A single
+ * viewport-width headline has no idea how many words it is setting, so it keeps
+ * its proportion of the screen and lets the name find however many lines it
+ * needs — which on a phone is where a long name goes to three, four, five lines
+ * and the plate stops being a plate and becomes the page.
+ *
+ * Measured at 390px with the gutter taken off, there is about 350px of content
+ * to set in. At 11vw (42.9px) "BRISKMAN" needs 305px of it, so the name sets as
+ * two lines filling the column edge to edge with no air at either side, and the
+ * fact line and the field line under it are left looking like a footnote to a
+ * poster. At the step below — about 37px on the same screen — the name is still
+ * unmistakably the largest thing on the page, the two lines have a margin to
+ * sit in, and the three parts read as one label again.
+ *
+ * Why 700px and not a Tailwind breakpoint
+ * ---------------------------------------
+ * 700px is where `11vw` crosses 77px, which is the width at which the longest
+ * line of the name stops having room to spare. It is a fact about this name in
+ * this face rather than a device class, so it is written as the number it is.
+ * The rung itself belongs in the type ramp in `tailwind.config.ts`, where
+ * `text-hero` carries its tracking and its leading; that step does not exist
+ * yet, and adding it is not this file's to do.
+ */
+@media (max-width: 699px) {
+  .plate h1 {
+    font-size: clamp(2.4rem, 9.5vw, 4rem);
+    /*
+     * Tracking and leading step with the size, because a size without them is
+     * two thirds of a type decision. `--track-display` is correction for type
+     * above roughly 56px; applied to 37px it stops correcting and starts
+     * closing the counters, so the name takes the head step instead. Leading
+     * runs inverse to size for the same reason — 0.86 is a setting for a line
+     * that is 144px tall.
+     */
+    letter-spacing: var(--track-head);
+    line-height: 0.92;
+  }
+}

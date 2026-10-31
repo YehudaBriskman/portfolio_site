@@ -25,6 +25,10 @@ export type IrisPanelProps = {
  * timeline already knows where the element is relative to the scrollport —
  * and an IntersectionObserver doing the same job would only ever reproduce it
  * one frame late.
+ *
+ * The page-level rules this panel answers to, including why there is no
+ * observer and what has to happen if anything in here is ever pinned, are in
+ * `docs/motion-contract.md`.
  */
 export default function IrisPanel({
   children,

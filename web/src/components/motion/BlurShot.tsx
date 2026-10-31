@@ -45,6 +45,10 @@ export type BlurShotProps = {
  * looking at. So the mount path flips without a transition, forces the style
  * to settle, and only then hands the transition back for anything that
  * follows.
+ *
+ * Nothing here is scroll-driven, so only two of the three off-switches in
+ * `docs/motion-contract.md` apply to it. The contract has the rest of what is
+ * true across every file in this directory.
  */
 export default function BlurShot({
   src,

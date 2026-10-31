@@ -1,120 +1,154 @@
-import { useEffect, useRef, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useEffect, useRef, useState, type MouseEvent } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { scrollToAnchor } from "@/lib/scrollToAnchor";
-import ControlsIsland, { type NavControls } from "./nav/ControlsIsland";
+import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
+import Controls, { type NavControls } from "./nav/Controls";
+import IndexLinks from "./nav/IndexLinks";
 import LanguageMenu from "./nav/LanguageMenu";
+import ElsewhereMarks from "./nav/ElsewhereMarks";
 import MotionToggle from "./nav/MotionToggle";
-import SocialIsland from "./nav/SocialIsland";
+import { NAV_INDEX, NAV_ROUTES, type NavIndexItem } from "./nav/navIndex";
+import { useCollectionIndex } from "./nav/useCollectionIndex";
+import { useDarkChrome } from "./nav/useDarkChrome";
 import { useLocale } from "./nav/locale";
 import { ELSEWHERE } from "./nav/social";
 import { useMotionPaused } from "./nav/useMotionPaused";
 import styles from "./Nav.module.css";
 
 /*
- * The destinations, and only the destinations.
+ * The chrome is an index of objects, and it jumps.
  *
- * The nav used to carry the home page's section anchors as well — Work,
- * Approach, Stack, Contact — alongside the routes. The reasoning for that was
- * sound as far as it went: the anchors were shown on the home page only,
- * because from /projects a link labelled "Approach" is not navigation, it is
- * a trapdoor into a different page's scroll position. That rule is still
- * right and it is the reason the anchors are now gone entirely rather than
- * merely conditional.
+ * What this was, and why a site map was the wrong object
+ * -----------------------------------------------------
+ * Three route links — Home, Projects, Notes — in three ruled islands, which
+ * was a considered answer to the previous question. The reasoning is worth
+ * restating because it is what made the move to an index obvious rather than
+ * decorative:
  *
- * Two things finished the argument. A nav whose contents change when you
- * change page is a nav you have to re-read every time you arrive somewhere,
- * and six items on the home page against three everywhere else is not one
- * object with a state, it is two different navs sharing a shape. And a table
- * of contents for a page belongs to the page: the home page's sections are
- * reachable by scrolling, which is what a reader is already doing, and by the
- * hero's own "See the work" button, which is the one deliberate entry point
- * the first screen has. The chrome's job is the three places the site keeps.
+ *   The nav used to carry the home page's section anchors as well. Those were
+ *   removed on the grounds that a nav whose contents change when you change
+ *   page is a nav you have to re-read every time you arrive somewhere, and
+ *   that from /projects a link labelled "Approach" is not navigation but a
+ *   trapdoor into another page's scroll position. What was left was "the three
+ *   places the site keeps".
  *
- * "Notes", not "Blog". The same place was called Blog here, Notes in the
- * footer and Writing on its own heading, which is three names for one
- * destination — and a nav item should name what it contains rather than what
- * kind of thing it is. The path stays /blog; the label is what people read.
+ * Both of those observations are still true and neither of them was the
+ * problem. The problem is that three route links are a site map, and this site
+ * is not a site: it is a collection. In a gallery the chrome's job is to tell
+ * you what is in the room and take you to it — so the bar carries the objects,
+ * generated from the same table the plates are rendered from
+ * (`nav/navIndex.ts`), with the one you are standing on marked.
+ *
+ * The old objection is answered rather than ignored. The index does not change
+ * between pages: it is the same eight items in the same order everywhere,
+ * because the collection does not change when you open a note. What changes is
+ * only where a given item has to take you — the plate, if it is on this page;
+ * the object's own room, if it is not. That is in `IndexLinks.tsx`.
+ *
+ * What the routes are now
+ * -----------------------
+ * Still here, and no longer the primary thing in the bar. They sit at the
+ * leading edge in the quiet value, labelled "Home", "All work" and "All
+ * notes" — see `NAV_ROUTES` for why "All", which is not a flourish but the
+ * only thing separating the room called Notes from the object called Notes.
+ *
+ * What is gone
+ * ------------
+ * The wordmark. "Y.B." rendered above a first screen that sets the full name
+ * in display type was a second, worse answer to a question the page had
+ * already answered, and a monogram is the one thing in a chrome that cannot
+ * say where it goes. The trip it offered is now a word in the route group.
+ *
+ * The three islands, which are one bar from edge to edge. The grid that
+ * centres the index, the material that inverts over the dark act, and the
+ * reason the blur came back are all in Nav.module.css, next to the rules they
+ * govern.
+ *
+ * What is kept, because it was right
+ * ----------------------------------
+ * The disclosure that keeps everything reachable on a phone, Escape closing it
+ * and handing focus back to the control that opened it, the tab trap and the
+ * scroll lock while it is open, closing on a route change and on a widening
+ * viewport, 44px targets throughout, and `aria-current` on where you are. The
+ * last of those has grown a second meaning; see `IndexLinks.tsx`.
  */
-const ROUTES = [
-  { to: "/", label: "Home" },
-  { to: "/projects", label: "Projects" },
-  { to: "/blog", label: "Notes" },
-];
 
-/* Below this the three islands cannot sit side by side without the centre one
-   losing its links; see the collapse note on `.dock` in Nav.module.css. The
-   same query lives in the stylesheet, and the two have to agree, because this
-   one also has to let go of a menu that CSS has just hidden. */
+/*
+ * The collapse, in JavaScript, agreeing with the one in Nav.module.css.
+ *
+ * Below this the bar holds a single control and the sheet holds everything
+ * else. The stylesheet hides the sheet above this width, which is what makes
+ * the agreement load-bearing rather than tidy: without this query someone who
+ * opened the index on a phone and then rotated it, or dragged a desktop window
+ * wider, is looking at a page whose body is still scroll-locked by a panel
+ * they can no longer see or close.
+ */
 const WIDE = "(min-width: 768px)";
 
 /*
- * Three ruled boxes on the paper, rather than one bar, or one island.
+ * How far down the viewport the bar's lower edge sits, in px.
  *
- * These were glass — translucent near-black under a backdrop blur — and the
- * material is gone along with the photographs it was glass over. What they
- * are now, and why an opaque box drawn with a real line is the paper answer
- * rather than a blur over a flat colour, is in Nav.module.css next to the
- * rules it governs. Read that before changing anything about how they look.
- *
- * Why three
- * ---------
- * The single island had the wordmark, six links and a toggle in one pill,
- * which meant the site's map, the places I exist off the site and the
- * controls over how the page behaves were all the same kind of thing set in
- * the same type at the same size. They are not the same kind of thing, and a
- * reader sorts objects by position long before reading any of them. Left is
- * elsewhere, centre is this site, right is this page's behaviour.
- *
- * What is gone from the old bar, and why
- * --------------------------------------
- * The `solid` state, and the scroll listener that drove it. It existed
- * because a transparent full-width strip let scrolled body text render
- * through it and collide with the wordmark, so the bar had to acquire a
- * ground the moment the page moved. An island is opaque at all times and has
- * an edge you can see, so there is no second state to switch to.
- *
- * The IntersectionObserver that lit the current section went with the section
- * links it was lighting. Nothing in the chrome is keyed to scroll position
- * any more, so the nav now costs one render per route change and nothing per
- * frame.
- *
- * Everything else the bar got right is still here: the disclosure that keeps
- * every destination reachable on a phone, Escape closing it and handing focus
- * back to the control that opened it, the scroll lock while it is open,
- * closing on a route change, 44px targets throughout, and `aria-current` on
- * the destination you are on.
+ * Matches `--bar-h` in Nav.module.css and is the one number the dark-material
+ * observer needs: the band it watches is the viewport's top edge down to here.
+ * A `getBoundingClientRect` on the bar would read the same number at the cost
+ * of a layout read on every resize, for a value that is a constant in the
+ * stylesheet.
  */
+const BAR_H = 56;
+
+/*
+ * How long to keep trying to land a jump that crossed a route.
+ *
+ * "Contact" is the one index item with no room of its own, so from a note it
+ * is a route change *and* a scroll, and the scroll cannot be done until the
+ * home page has rendered the plate. The target exists on the first commit —
+ * `useProjects` is seeded — so in practice this lands on the first frame; the
+ * budget is for a slow commit, and it gives up rather than retrying forever,
+ * because a hash that never resolves is a bug and not something to spin on.
+ */
+const JUMP_FRAMES = 30;
+
 export default function Nav() {
   const { pathname } = useLocation();
-  const navigate = useNavigate();
-  const onHome = pathname === "/";
   const [open, setOpen] = useState(false);
   const sheetRef = useRef<HTMLDivElement>(null);
-  const panelId = "nav-menu";
+  const panelId = "nav-index";
   const toggleRef = useRef<HTMLButtonElement>(null);
 
+  /* Which plates are on this page, and which one the reader is on. One
+     observer, no scroll listener; see the hook. */
+  const indexState = useCollectionIndex(NAV_INDEX, pathname);
+  /* Whether a panel that inverts the ground is under the bar right now. */
+  const dark = useDarkChrome(pathname, BAR_H);
+
   /*
-   * The controls are stateful and appear twice — once in the right island,
-   * once in the sheet — so the state is held here, above both, rather than
-   * inside the components. Two copies of "is motion paused" would be two
-   * answers to a question the reader has already answered once, and only one
-   * of them would match the class actually set on <body>.
+   * The controls are stateful and appear twice — once in the bar, once in the
+   * sheet — so the state is held here, above both, rather than inside the
+   * components. Two copies of "is motion paused" would be two answers to a
+   * question the reader has already answered once, and only one of them would
+   * match the class actually set on <body>.
    */
   const [locale, onSelectLocale] = useLocale();
   const [motionPaused, onToggleMotion] = useMotionPaused();
+  const reduced = usePrefersReducedMotion();
   const controls: NavControls = { locale, onSelectLocale, motionPaused, onToggleMotion };
 
-  /* A menu that survives a route change as an invisible open panel is a trap. */
+  /*
+   * Whether the chrome is allowed to move.
+   *
+   * Both off-switches, composed: the OS preference is a standing answer about
+   * every site, and Pause is this reader deciding about this page. Only the
+   * index strip's own travel is governed by it — the jump itself is left to
+   * `scrollToAnchor`, which already eases or arrives by distance and by the OS
+   * preference. A smooth scroll that a reader asked for by clicking a link is
+   * not the ambient motion either switch was written about.
+   */
+  const settle = !motionPaused && !reduced;
+
+  /* A sheet that survives a route change as an invisible open panel is a
+     trap. */
   useEffect(() => setOpen(false), [pathname]);
 
-  /*
-   * Widening past the breakpoint closes it too.
-   *
-   * The stylesheet hides the sheet above `WIDE`, which would otherwise leave
-   * someone who opened the menu on a phone and then rotated it, or dragged a
-   * desktop window wider, looking at a page whose body is still scroll-locked
-   * by a panel they can no longer see or close.
-   */
   useEffect(() => {
     const mq = window.matchMedia(WIDE);
     const onChange = (e: MediaQueryListEvent) => e.matches && setOpen(false);
@@ -141,7 +175,7 @@ export default function Nav() {
       // and keyboard users lose their place entirely.
       toggleRef.current?.focus();
     };
-    // The page behind an open menu must not scroll under it.
+    // The page behind an open sheet must not scroll under it.
     const previous = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     window.addEventListener("keydown", onKey);
@@ -154,11 +188,11 @@ export default function Nav() {
   /*
    * Keep Tab inside the open sheet.
    *
-   * The page behind it is scroll-locked, so without this the eighth Tab
-   * walked out of the sheet and into content the reader could no longer
-   * scroll to — they were typing into a contact form they could not see.
-   * A dialog that covers the page has to own the tab order while it is
-   * open; the scroll lock on its own only makes the escape worse.
+   * The page behind it is scroll-locked, so without this the eighth Tab walked
+   * out of the sheet and into content the reader could no longer scroll to —
+   * they were typing into a contact form they could not see. A dialog that
+   * covers the page has to own the tab order while it is open; the scroll lock
+   * on its own only makes the escape worse.
    */
   useEffect(() => {
     if (!open) return;
@@ -193,9 +227,35 @@ export default function Nav() {
   const close = () => setOpen(false);
 
   /*
-   * `aria-current` is both the accessible answer and the styling hook: the
-   * island has exactly one rule for "you are here" and it is keyed off the
-   * attribute, so the two can never disagree.
+   * A jump that crossed a route, finished once the new page is on screen.
+   *
+   * Held in a ref and not in state: nothing renders differently because a jump
+   * is pending, and putting it in state would re-render the chrome twice for a
+   * value only this effect reads.
+   */
+  const pendingJump = useRef<string | null>(null);
+
+  useEffect(() => {
+    const id = pendingJump.current;
+    if (!id) return;
+    let frames = 0;
+    let raf = 0;
+    const land = () => {
+      /* `scrollToAnchor` returns false when the id is not in the document yet,
+         which is the only reason to try again — and it moves focus as well as
+         the viewport, which is the whole point of going through it. */
+      if (scrollToAnchor(id) || ++frames > JUMP_FRAMES) {
+        pendingJump.current = null;
+        return;
+      }
+      raf = requestAnimationFrame(land);
+    };
+    raf = requestAnimationFrame(land);
+    return () => cancelAnimationFrame(raf);
+  }, [pathname]);
+
+  /*
+   * `aria-current` for the routes.
    *
    * Home is matched exactly. `startsWith("/")` is true of every path on the
    * site, so the prefix test that is right for /projects and /blog would have
@@ -204,82 +264,151 @@ export default function Nav() {
   const routeCurrent = (to: string) =>
     (to === "/" ? pathname === "/" : pathname.startsWith(to)) ? ("page" as const) : undefined;
 
-  /* The wordmark is the one anchor left in the chrome, and it is the shortest
-     trip on the page, so it is also the one that most wants easing. */
-  const onWordmarkClick = (e: React.MouseEvent) => {
+  /*
+   * Activating an index item.
+   *
+   * Three cases, in the order they are decided:
+   *
+   *   The plate is on this page. Jump to it — and `scrollToAnchor` moves focus
+   *   onto the plate, which is the part that makes this navigation rather than
+   *   a scroll shortcut. A link that moves the viewport and leaves focus in the
+   *   bar does nothing at all for a keyboard user: their next Tab goes to the
+   *   next item in the bar, not into the thing they just asked to see. The same
+   *   audit finding retired the skip link that did this.
+   *
+   *   The object has a room of its own. Let the <Link> navigate; there is
+   *   nothing to scroll to and the new page starts at its own top.
+   *
+   *   The object is a plate on another page — Contact is the only one. Let the
+   *   <Link> navigate and remember the id, which the effect above lands once
+   *   the page has rendered.
+   */
+  const onPick = (item: NavIndexItem, e: MouseEvent<HTMLAnchorElement>) => {
     close();
-    if (!onHome) {
-      // Off the home page this is a route change, not an anchor.
-      e.preventDefault();
-      navigate("/");
+    if (indexState.present.has(item.key)) {
+      if (scrollToAnchor(item.anchor)) e.preventDefault();
       return;
     }
-    if (scrollToAnchor("hero")) e.preventDefault();
+    if (item.away.anchor) pendingJump.current = item.away.anchor;
   };
 
+  /* Home on the home page is the shortest trip in the chrome and the one that
+     most wants easing: it is a hop back to the title plate rather than a route
+     change, and the router would otherwise treat it as navigating to the page
+     you are already on, which does nothing. */
+  const onRoute = (to: string, e: MouseEvent<HTMLAnchorElement>) => {
+    close();
+    if (to === "/" && pathname === "/" && scrollToAnchor("hero")) e.preventDefault();
+  };
+
+  /* What the collapsed index says it is showing. With nothing marked — at the
+     top of the page, before the first plate — it says how many objects are in
+     the room, which is the other thing an index is for. */
+  const now = NAV_INDEX.find((i) => i.key === indexState.current);
+  const nowLabel = now ? now.label : `${NAV_INDEX.length} objects`;
+
   return (
-    <header className={styles.dock}>
-      {/* Left. Folds into the sheet below `WIDE`. */}
-      <div className={styles.left}>
-        <SocialIsland />
-      </div>
+    <header className={styles.dock} data-material={dark ? "dark" : "paper"}>
+      <div className={styles.bar}>
+        {/* Leading edge: the rooms. Folds into the sheet below `WIDE`. */}
+        <div className={styles.lead}>
+          <nav aria-label="Pages">
+            <ul className={styles.routeRow}>
+              {NAV_ROUTES.map((r) => (
+                <li key={r.to}>
+                  <Link
+                    to={r.to}
+                    onClick={(e) => onRoute(r.to, e)}
+                    aria-current={routeCurrent(r.to)}
+                    className={styles.route}
+                  >
+                    {r.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        </div>
 
-      <nav className={`${styles.island} ${styles.centre}`} aria-label="Primary">
-        <a href={onHome ? "#hero" : "/"} onClick={onWordmarkClick} className={styles.wordmark}>
-          Y.B<span className={styles.stop}>.</span>
-        </a>
+        {/* The centre track. Centred by the grid, not by a margin. */}
+        <nav className={styles.indexWrap} aria-label="Index">
+          <IndexLinks
+            items={NAV_INDEX}
+            state={indexState}
+            variant="bar"
+            settle={settle}
+            onPick={onPick}
+          />
+        </nav>
 
-        <ul className={styles.links}>
-          {ROUTES.map((r) => (
-            <li key={r.to}>
-              <Link to={r.to} aria-current={routeCurrent(r.to)} className={styles.link}>
-                {r.label}
-              </Link>
-            </li>
-          ))}
-        </ul>
+        {/*
+          The collapsed index, below `WIDE`, in the same track.
 
-        {/* Below `WIDE` the centre island is the only one left on screen, and
-            this opens it into a sheet holding all three groups. Dropping the
-            links without putting them anywhere is what once left a phone with
-            two of six destinations and no way to reach the rest. */}
+          No `aria-label`: the visible text is "Index" and the name of the
+          object the reader is on, and that text has to *be* the accessible
+          name — WCAG 2.5.3, Label in Name, which is what made the language
+          picker read "EN — change language" rather than "Language: English".
+          `aria-expanded` carries the open state, which is the only thing a
+          label would have had left to say.
+        */}
         <button
           ref={toggleRef}
           type="button"
           onClick={() => setOpen((v) => !v)}
           aria-expanded={open}
           aria-controls={panelId}
-          aria-label={open ? "Close menu" : "Open menu"}
           className={styles.toggle}
         >
+          <span className={styles.toggleStack}>
+            <span className={styles.toggleHead}>Index</span>
+            <span className={styles.toggleNow}>{nowLabel}</span>
+          </span>
           <span className={styles.bars} aria-hidden="true" />
         </button>
-      </nav>
 
-      {/* Right. Folds into the sheet below `WIDE`. */}
-      <div className={styles.right}>
-        <ControlsIsland controls={controls} />
+        {/* Trailing edge: elsewhere, then the switches. Folds into the sheet
+            below `WIDE`. */}
+        <div className={styles.trail}>
+          <nav aria-label="Elsewhere">
+            <ElsewhereMarks />
+          </nav>
+          <span className={styles.split} aria-hidden="true" />
+          <Controls controls={controls} />
+        </div>
       </div>
 
       {/*
-        One sheet, three groups, in the same order the islands sit in from
-        left to right — so the phone layout is the desktop layout rotated
-        rather than a second information architecture to learn.
+        One sheet, four groups, index first.
 
-        Each group keeps the landmark its island had. Below `WIDE` the side
-        islands are `display: none`, which takes them out of the accessibility
-        tree entirely, so without these the "Elsewhere" links and the controls
-        would simply not exist for a screen reader on a phone.
+        The order is the bar read from its centre outwards, which is also the
+        order of how much the chrome thinks each group matters: the objects in
+        the room, the rooms, off the site, and how the page behaves. Each group
+        keeps the landmark it has in the bar. Above `WIDE` the bar's own copies
+        are on screen and the sheet is `display: none`, so no landmark is ever
+        announced twice.
       */}
       <div ref={sheetRef} id={panelId} hidden={!open} className={styles.sheet}>
+        <nav aria-label="Index">
+          <p className={styles.sheetHead}>In the room</p>
+          <IndexLinks
+            items={NAV_INDEX}
+            state={indexState}
+            variant="sheet"
+            settle={settle}
+            onPick={onPick}
+          />
+        </nav>
+
+        <div className={styles.sheetSplit} aria-hidden="true" />
+
         <nav aria-label="Pages">
           <p className={styles.sheetHead}>Pages</p>
           <ul className={styles.sheetList}>
-            {ROUTES.map((r) => (
+            {NAV_ROUTES.map((r) => (
               <li key={r.to}>
                 <Link
                   to={r.to}
-                  onClick={close}
+                  onClick={(e) => onRoute(r.to, e)}
                   aria-current={routeCurrent(r.to)}
                   className={styles.sheetLink}
                 >
@@ -303,9 +432,10 @@ export default function Nav() {
                   className={styles.sheetLink}
                   {...(external ? { target: "_blank", rel: "noreferrer noopener" } : {})}
                 >
-                  {/* Icon and word together here, where there is room for
-                      both. The island drops the word because it has none. */}
-                  <Icon className={styles.sheetIcon} aria-hidden="true" />
+                  {/* Mark and word together here, where there is room for
+                      both — and the address, which the bar leaves out; see the
+                      note on `EMAIL` in social.ts. */}
+                  <Icon className={styles.sheetGlyph} />
                   {label}
                 </a>
               </li>
@@ -317,10 +447,10 @@ export default function Nav() {
 
         <div role="group" aria-label="Site controls">
           <p className={styles.sheetHead}>Controls</p>
-          {/* The same two components the right island renders, not copies of
-              them: the motion toggle owns a stored preference, and two
-              implementations of it would be two chances to disagree about
-              what the reader asked for. */}
+          {/* The same two components the bar renders, not copies of them: the
+              motion toggle owns a stored preference, and two implementations
+              of it would be two chances to disagree about what the reader
+              asked for. */}
           <div className={styles.sheetControls}>
             <LanguageMenu value={locale} onSelect={onSelectLocale} />
             <MotionToggle paused={motionPaused} onToggle={onToggleMotion} />

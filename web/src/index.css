@@ -20,49 +20,25 @@
   src: url('/fonts/archivo-400-900.woff2') format('woff2');
 }
 /*
- * No 300 face.
+ * Two families, and that is the whole type system.
  *
- * `body` asked for weight 350. Only static faces are registered here, and CSS
- * font matching for a target below 400 searches downwards first — so every
- * paragraph on the site resolved to the Light 300 file. Light on a near-black
- * ground, with `-webkit-font-smoothing: antialiased` thinning the strokes
- * further, is why the type measured 8.9:1 and still read as faint: the contrast
- * was real and there was not enough ink to carry it.
+ * What was here: Archivo for display, IBM Plex Sans for prose, Instrument
+ * Serif for a subtitle voice, IBM Plex Mono for labels. Four faces, 218KB,
+ * three preloads on the first screen.
  *
- * Dropping the face sends body copy to the 400 file, which `index.html`
- * already preloads — so this is one fewer request as well as one more
- * legible page.
+ * The floor is two — display carries voice, text carries prose, and a third
+ * is a costume. Archivo sets comfortably at body size, so it carries both and
+ * IBM Plex Sans has no job left. The mono is the second family rather than a
+ * third, because on this site it is not decoration: it *is* the label schema
+ * (see ObjectLabel), the one voice that marks a field line as a field line.
+ *
+ * Instrument Serif went with the tagline it existed to set. A gallery label
+ * reads as fact rather than as an editorial subtitle, and the moment the
+ * italic had nothing to say it was a costume too.
+ *
+ * 113KB and two preloads lighter, on a first screen that now carries no
+ * imagery at all.
  */
-@font-face {
-  font-family: 'IBM Plex Sans';
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  src: url('/fonts/ibm-plex-sans-400.woff2') format('woff2');
-}
-@font-face {
-  font-family: 'IBM Plex Sans';
-  font-style: normal;
-  font-weight: 500;
-  font-display: swap;
-  src: url('/fonts/ibm-plex-sans-500.woff2') format('woff2');
-}
-/*
- * The second voice.
- *
- * Every reference this direction is drawn from has one: a quiet, high-contrast
- * italic that says the subtitle while the grotesque shouts the name. Without
- * it the gap between a 12px label and a 9rem headline reads as a mistake
- * rather than as a decision — it is the thing that makes the empty middle of
- * the type scale deliberate. Latin subset, one file, 22KB.
- */
-@font-face {
-  font-family: 'Instrument Serif';
-  font-style: italic;
-  font-weight: 400;
-  font-display: swap;
-  src: url('/fonts/instrument-serif-italic.woff2') format('woff2');
-}
 @font-face {
   font-family: 'IBM Plex Mono';
   font-style: normal;
@@ -174,6 +150,79 @@
     --wash-yellow: 252 244 219;
     --wash-purple: 241 233 250;
 
+    /*
+     * ──────────────────────────────────────────────────────────────────
+     * Six roles, one accent.
+     * ──────────────────────────────────────────────────────────────────
+     * canvas, surface, ink, ink-soft, accent, accent-ink. The accent owns a
+     * region or a role; scattered small accents are confetti, and a page that
+     * grows a second accent in section seven has no accent at all.
+     *
+     * Which means the five saturated hues below are no longer a palette. The
+     * page is a gallery: white walls, coloured paintings. The colour a reader
+     * sees comes from the work itself — WindoM's aurora, Icaros's orange,
+     * Change11's magenta are vivid and, unlike a token, they are *true*. A
+     * gallery does not paint its walls; it keeps the ground quiet so the
+     * objects can carry the colour.
+     *
+     * The hues survive as the source of each object's own tint (see `tint` in
+     * data/projects.ts), which is a real relationship — the label is tinted by
+     * the work it labels — rather than a rotation through a palette.
+     */
+    --canvas:      var(--paper);
+    --canvas-2:    var(--paper-2);
+    --accent-ink:  255 255 255;
+
+    /*
+     * The one dark act.
+     *
+     * The page is paper everywhere except the pile, and darkness spent once is
+     * an event rather than a backdrop. Off-black, never #000: pure black has no
+     * air in it, and both reference sites land near this (#09090B, #1E1645).
+     *
+     * THE TRAP, and it catches every page that inverts a ground mid-page:
+     * redefining --ink on a subtree does NOT re-ink the text under it. `color`
+     * inherits as a *computed* value, so text whose colour already resolved on
+     * <body> keeps the body's ink however the section redefines the token. It
+     * fails silently — ink on ink, or bone on near-black. `.on-panel` below
+     * restates `color` on the same subtree, and anything that restates the
+     * token has to restate the colour with it.
+     */
+    --panel:       12  12  14;   /* #0C0C0E */
+    --panel-2:     22  22  26;   /* #16161A  a raised surface on it */
+    --panel-ink:  242 240 234;   /* #F2F0EA  14.9:1 on --panel */
+    --panel-soft: 168 164 154;   /* #A8A49A   7.0:1 on --panel */
+    --panel-rule:  48  48  54;
+    /* The accent cannot clear 4.5:1 on both grounds with one stop. One hue,
+       two lightnesses, keyed to the ground. Two hues is not what this
+       licenses. */
+    --accent-on-panel: 122 162 232;  /* #7AA2E8 */
+
+    /*
+     * ──────────────────────────────────────────────────────────────────
+     * The type ramp.
+     * ──────────────────────────────────────────────────────────────────
+     * Tracking tightens as size grows. This is optical correction, not
+     * decoration: a face set at 6rem with default tracking reads loose and
+     * amateur, and one set at 11px with default tracking reads as a smudge.
+     *
+     * Measured off the references rather than guessed —
+     *   zephium.app (GeistSans):  69px -0.050em · 56px -0.045em ·
+     *                             32px -0.035em · 20px -0.012em · 14px -0.006em
+     *   enpitech.dev:             72px -0.028em · 11px mono +0.200em
+     *
+     * We shipped a flat -0.035em on display and nothing anywhere else.
+     *
+     * Line height runs inverse to size and inverse to measure: display 0.94,
+     * body 1.6. Wider lines need more leading.
+     */
+    --track-display: -0.045em;   /* >= 56px */
+    --track-head:    -0.035em;   /* 32 - 56px */
+    --track-sub:     -0.020em;   /* 20 - 32px */
+    --track-body:    -0.006em;
+    --track-field:    0.180em;   /* the mono field line */
+    --measure:        62ch;
+
     /* `--signal`, not `--accent`: shadcn's primitives already own that name
        for their subtle-hover surface, and two different meanings under one
        token is how a palette quietly stops being one. */
@@ -253,18 +302,15 @@
     --radius: var(--r-md);
 
     /*
-     * Tracking, derived from size rather than chosen per call site.
+     * Three values became five, for the reason given on the ramp above: one
+     * tracking for "anything above ~2rem" is still a flat value, it is just
+     * flat across a narrower range. A 7rem title plate and a 2.2rem object
+     * name are two and a half rungs apart and cannot share a setting.
      *
-     * There were nine different letter-spacing values across roughly forty
-     * call sites — 0.06 through 0.22em — assigned by eye, one at a time. That
-     * reads as a system from across the room and as noise up close, which is
-     * the worst of both. Three values, and which one you get follows from how
-     * big the text is: large type is set tight because letters drift apart as
-     * they grow, body sits at zero, and only small capitals need opening up.
+     * `--track-label` stays as the alias the existing call sites use; it now
+     * resolves to the field-line value so the two cannot drift.
      */
-    --track-display: -0.02em;   /* anything above ~2rem */
-    --track-body: 0;
-    --track-label: 0.16em;      /* mono capitals at 11-12px */
+    --track-label: var(--track-field);
 
     /* Motion. One named curve: instant departure, long settle.
        Transform and clip-path get the curve; opacity arrives linear.
@@ -300,7 +346,11 @@
   body {
     background-color: rgb(var(--bitumen));
     color: rgb(var(--bone));
-    font-family: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+    font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif;
+    /* Archivo at wdth 100 is a text width, not the 125 the display register
+       uses. Setting prose in the display width is the classic way a one-family
+       page starts looking like a poster that got too long. */
+    font-variation-settings: 'wdth' 100;
     /* 400, and it is the weight that actually arrives. See the @font-face note
        above: 350 resolved to the Light file and took the page with it. */
     font-weight: 400;
@@ -352,27 +402,109 @@
     letter-spacing: var(--track-display);
     line-height: 0.86;
     text-transform: uppercase;
+    text-wrap: balance;
   }
+  /* A display line set below ~3.5rem is past the point where -0.045em stops
+     being correction and starts closing the counters. The size utilities in
+     tailwind.config.ts carry the right step; this is the floor for anything
+     that sets .display without one. */
+  .display-md { letter-spacing: var(--track-head); }
+  .display-sm { letter-spacing: var(--track-sub); }
   .display-tight {
     font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif;
     font-variation-settings: 'wdth' 112;
     font-weight: 700;
-    letter-spacing: var(--track-display);
+    letter-spacing: var(--track-head);
     line-height: 1.04;
+    text-wrap: balance;
   }
 
   /*
-   * The quiet register. Used for a subtitle under a display line, a pull
-   * quote, or a single word that wants a different tone of voice — never for
-   * running text, which stays in the sans.
+   * The quiet register, kept as a name and not as a face.
+   *
+   * This set Instrument Serif italic, and it existed to say the tagline under
+   * a display line. The gallery has no taglines — an object label reads as
+   * fact, and the moment the italic had nothing to say it was the third
+   * family the floor forbids. The name survives for the handful of call sites
+   * that mean "quieter than the display line above it", and it now does that
+   * in the family the page already has.
    */
   .editorial {
-    font-family: 'Instrument Serif', Georgia, 'Times New Roman', serif;
-    font-style: italic;
+    font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif;
+    font-variation-settings: 'wdth' 100;
     font-weight: 400;
-    letter-spacing: 0;
-    line-height: 1.16;
+    letter-spacing: var(--track-sub);
+    line-height: 1.3;
+    color: rgb(var(--ink-soft));
   }
+
+  /*
+   * The dark act, and the three-axis compensation it needs.
+   *
+   * Light type on a dark ground set with light-ground metrics looks thin and
+   * blurry, and that is the bug most dark sections ship with. It needs more
+   * leading, a touch more tracking and one step more weight — because the
+   * ground bleeds into the strokes rather than the strokes into the ground.
+   *
+   * `color` is restated here, not only the token. See the trap note on
+   * --panel above: without this line the subtree keeps whatever ink `body`
+   * resolved to and the whole act renders at about 1.2:1.
+   */
+  .on-panel {
+    --canvas:    var(--panel);
+    --canvas-2:  var(--panel-2);
+    --ink:       var(--panel-ink);
+    --ink-soft:  var(--panel-soft);
+    --rule:      var(--panel-rule);
+    --rule-firm: var(--panel-rule);
+    --signal:    var(--accent-on-panel);
+    background: rgb(var(--panel));
+    color: rgb(var(--ink));
+  }
+  /*
+   * The aliases have to be re-pointed too, and this is the same trap one
+   * level deeper.
+   *
+   * `--clay: var(--ink-soft)` is declared on :root, so its value is computed
+   * *there*, against :root's --ink-soft, and what inherits down the tree is
+   * the resolved colour rather than the indirection. Re-pointing --ink-soft on
+   * this subtree therefore changes nothing for the ninety-odd call sites that
+   * still say --clay, --bone, --edge, --surface or --bitumen.
+   *
+   * It fails exactly as quietly as the `color` case above: axe found one
+   * element — a 12px "4 of 6" eyebrow at 2.5:1 — and that was only because it
+   * happened to be text. Every border drawn with --edge on this panel was
+   * wrong too, and a hairline has no contrast rule to fail.
+   *
+   * These go when the last call site is renamed. Until then they are not
+   * optional, and a new alias added above has to be added here as well.
+   */
+  .on-panel {
+    --bitumen: var(--panel);
+    --surface: var(--panel-2);
+    --bone:    var(--panel-ink);
+    --clay:    var(--panel-soft);
+    --edge:    var(--panel-rule);
+    --ridge:   var(--panel-rule);
+    --haze:    var(--panel-soft);
+    --haze-2:  var(--panel-soft);
+    --screen:  var(--panel-soft);
+    --sodium:  var(--accent-on-panel);
+    /* shadcn's primitives alias the aliases, so they freeze at :root too. */
+    --background: var(--panel);
+    --foreground: var(--panel-ink);
+    --card: var(--panel-2);
+    --card-foreground: var(--panel-ink);
+    --muted-foreground: var(--panel-soft);
+    --border: var(--panel-rule);
+  }
+
+  .on-panel :is(p, li, dd, .body) {
+    line-height: 1.68;
+    letter-spacing: 0.004em;
+  }
+  .on-panel :is(.display, .display-tight) { font-weight: 900; }
+  .on-panel .field { letter-spacing: calc(var(--track-field) + 0.01em); }
   .mono {
     font-family: 'IBM Plex Mono', ui-monospace, monospace;
     font-weight: 400;
@@ -741,10 +873,11 @@
     padding-inline: 0;
     gap: 0.5rem;
     border-color: transparent;
-    font-family: 'Instrument Serif', Georgia, 'Times New Roman', serif;
-    font-style: italic;
-    font-weight: 400;
-    font-size: 1.375rem;
+    font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif;
+    font-variation-settings: 'wdth' 100;
+    font-weight: 500;
+    font-size: 1.125rem;
+    letter-spacing: var(--track-sub);
     color: rgb(var(--ink));
     transition: color var(--dur-micro) ease;
   }
@@ -791,8 +924,8 @@
   /*
    * The glyph gets its own stack.
    *
-   * Archivo's latin subset carries ↑ and ↓ and nothing else; Instrument Serif's
-   * carries no arrows at all. So →, ← and ↗ were already falling back to
+   * Archivo's latin subset carries ↑ and ↓ and nothing else, so →, ← and ↗
+   * were already falling back to
    * whatever each face's fallback happened to be, which is three different
    * arrows on one page. Naming a stack that actually has them makes the mark
    * one shape wherever it appears.

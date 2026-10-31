@@ -1,0 +1,209 @@
+/*
+ * The spec plate: four real figures, landing.
+ *
+ * The device is `count`, and the only thing that makes it legitimate is that
+ * every number on it is derived from the collection itself — see the long note
+ * at the top of `data/specs.ts` for where each one comes from and for the two
+ * that were cut because they could not be sourced.
+ *
+ * How a number counts up without JavaScript touching it
+ * -----------------------------------------------------
+ * `--spec-n` is a *registered* custom property, which is what makes it
+ * interpolable: an ordinary custom property animates discretely, flipping from
+ * one value to the other half way through. A registered `<integer>` animates
+ * properly, and `counter-reset` reads it on every frame, so the pseudo-element
+ * printing `counter(spec)` renders a different number each frame. No
+ * `requestAnimationFrame` loop, no state, no re-render per digit.
+ *
+ * This is also the one animation on this site that is driven by a clock rather
+ * than by scroll position, and the one place in this codebase where
+ * `animation-duration` is both legal and meaningful. A view timeline would be
+ * wrong here for a reason the stylesheet cannot express: a progress-driven
+ * count runs backwards when the reader scrolls back up, so a figure would
+ * count *down* to zero every time the plate left the screen. "Fires once on
+ * entry" is an event, and an event needs something that can tell one pass from
+ * the next. That is `useEnteredOnce`, which sets `data-counting` and then
+ * disconnects itself for good.
+ *
+ * Which means, unusually, that the global off-switches are exactly right here
+ * and nothing has to be restated. `motion-paused.css` and the reduced-motion
+ * block in `index.css` both collapse `animation-duration` to 0.01ms, which
+ * runs a time-driven animation instantly to its last frame — and the last
+ * frame of this one is the true figure. Every other animated file in this tree
+ * has to cancel its animations by hand because a progress timeline ignores
+ * duration; this one does not.
+ */
+
+/*
+ * Both halves are registered, and the second one matters as much as the first.
+ *
+ * `--spec-to` is written by the component as an inline style — a plain number
+ * from the data. Registering it as `<integer>` is what guarantees the
+ * substitution into `--spec-n` parses: a registered property's value is
+ * resolved and then checked against its syntax, and an unregistered token that
+ * happened to arrive as `6px` or an empty string would otherwise leave
+ * `counter-reset` invalid and the figure blank.
+ */
+@property --spec-to {
+  syntax: "<integer>";
+  inherits: false;
+  initial-value: 0;
+}
+
+@property --spec-n {
+  syntax: "<integer>";
+  inherits: false;
+  initial-value: 0;
+}
+
+/*
+ * Two columns on a phone, one row on a desktop.
+ *
+ * `--spec-columns` is written by the component because it is the one thing
+ * this stylesheet cannot know: the plate drops any figure it could not source,
+ * so the number of columns is a fact about the data and not about the design.
+ */
+.plate {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(2rem, 5vw, 3.5rem) clamp(1.5rem, 4vw, 3rem);
+  margin: 0;
+  margin-top: clamp(2.5rem, 6vw, 4.5rem);
+}
+
+@media (min-width: 768px) {
+  .plate {
+    grid-template-columns: repeat(var(--spec-columns, 4), minmax(0, 1fr));
+  }
+}
+
+/*
+ * `column-reverse`, so the document says what the plate means.
+ *
+ * A description list reads term then value — "Projects, 6" — which is the
+ * order a screen reader needs and the reverse of the order the eye wants,
+ * because the figure is the thing and the caption is the label under it. The
+ * flex direction is the whole of the difference; nothing is hidden or
+ * duplicated to get it.
+ */
+.cell {
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: flex-start;
+  gap: 0.625rem;
+}
+
+/*
+ * The figure.
+ *
+ * Set at the section step, which is the register the page reserves for the
+ * largest thing in a beat. The type ramp has nothing between the object step
+ * (35px) and this one (112px) — the config calls that gap "two registers and a
+ * hole" and means it — and of the two available this is plainly the right
+ * one: a spec plate whose figures are smaller than the heading above them is a
+ * plate about its own heading.
+ */
+.figure {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 0.2em;
+  font-family: "Archivo", ui-sans-serif, system-ui, sans-serif;
+  font-variation-settings: "wdth" 112;
+  font-weight: 800;
+  color: rgb(var(--ink));
+  /*
+   * Without this the plate twitches while it counts: proportional digits are
+   * not the same width, so `1` to `2` is a few pixels of movement and `9` to
+   * `10` is a jump. Tabular figures make every digit the same box, which is
+   * the whole reason the feature exists.
+   */
+  font-variant-numeric: tabular-nums;
+
+  /* The resting value is the true one. The animation below only replaces it
+     while it is running, so an engine that cannot interpolate a registered
+     property — or a reader whose plate never entered the viewport — sees the
+     figure and not a nought. */
+  --spec-n: var(--spec-to);
+  counter-reset: spec var(--spec-n);
+}
+
+/*
+ * The digits, in a box as wide as the number will finally be.
+ *
+ * Tabular figures stop a digit changing width; they do not stop the *count*
+ * changing width, and a figure that ends at 20 spends the first half of its
+ * run one character narrower than it ends. Reserving the final width here is
+ * what keeps the unit beside it, and the caption under it, still — the number
+ * grows into a box that was already the right size.
+ */
+.count {
+  display: inline-block;
+  min-width: calc(var(--spec-digits, 1) * 1ch);
+}
+
+.count::before {
+  content: counter(spec);
+}
+
+/*
+ * The unit belongs to the number, so it is set in the number's face at a
+ * fraction of its size rather than in the caption's. `3` and `yrs` are one
+ * reading; `3` with `YRS SHIPPING` underneath would be two.
+ */
+.unit {
+  font-size: 0.32em;
+  font-weight: 500;
+  letter-spacing: var(--track-sub);
+  color: rgb(var(--ink-soft));
+}
+
+/*
+ * The caption, in the label schema's field voice.
+ *
+ * The size and tracking come from the `text-field` step on the type ramp, and
+ * the family, the capitals and the colour are restated here because
+ * `ObjectLabel` owns those privately in its own module — the schema's third
+ * part is a list of fields and this is a single caption, so it cannot render
+ * through the component. Same step, same family, same colour, so the plate's
+ * captions and every field line on the site are the same voice.
+ */
+.caption {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-weight: 400;
+  text-transform: uppercase;
+  color: rgb(var(--ink-soft));
+}
+
+/*
+ * The count itself, and the only `animation-duration` in this tree that means
+ * anything.
+ *
+ * `--dur-slow` is 1.2s, which is long enough for twenty to be read as
+ * counting and short enough that a figure is not still moving when the reader
+ * has finished with the caption under it. `--ease-settle` rather than linear:
+ * a figure that decelerates onto its value lands, where a linear one simply
+ * stops.
+ *
+ * No `animation-delay`, and not for the usual reason — a delay is perfectly
+ * legal on a time-driven animation. It is because `fill-mode: both` fills
+ * backwards during a delay, so a staggered plate would hold four noughts on
+ * screen for the length of the longest delay, and under reduced motion (where
+ * the duration collapses but the delay does not) those noughts would be most
+ * of what the reader saw.
+ */
+.plate[data-counting] .figure {
+  animation-name: spec-count;
+  animation-duration: var(--dur-slow);
+  animation-timing-function: var(--ease-settle);
+  animation-fill-mode: both;
+}
+
+@keyframes spec-count {
+  from {
+    --spec-n: 0;
+  }
+  to {
+    --spec-n: var(--spec-to);
+  }
+}

@@ -1,312 +1,459 @@
 /*
- * The nav as three ruled boxes on the paper.
+ * One bar, three tracks, two materials.
  *
- * What these used to be, and why that stopped working
- * ---------------------------------------------------
- * Three floating pills of `backdrop-filter: blur(14px) saturate(160%)` over a
- * dark translucent ground. The whole justification for that was written in
- * this file and it was a justification about *area*: a backdrop blur costs per
- * blurred pixel, so a full-width bar is ruinous and three small islands are
- * affordable. The arithmetic was right and it is now beside the point, because
- * the premise under it was that something interesting was moving behind the
- * glass. Four full-bleed photographic plates have been deleted; the ground is
- * one flat cream. Blurring a flat colour returns the same flat colour, so the
- * effect was spending GPU time per frame to draw a rectangle — which is the
- * argument this file already made against the bar, applied to itself.
- *
- * It also stopped looking like glass. Translucent near-black over #ECE8DC
- * composites to a dead olive, and three of them across the top of a cream page
- * read as smudges rather than as objects.
- *
- * What they are instead
- * ---------------------
- * Boxes ruled on the sheet. Opaque, filled with exactly the ground colour, and
- * bounded by a real 1px line — so an island is not a different material
- * floating over the page, it is a region of the page that has been drawn
- * around. When the reader scrolls, body copy passes beneath and is cut off at
- * the rule, which is what an overlay printed on a page does.
- *
- * Why `--ink-soft` for that rule and not `--rule-firm`
- * ----------------------------------------------------
- * `.btn-quiet` in index.css already settled this and the reasoning transfers
- * verbatim: `--rule-firm` measures 2.15:1 on paper, which is under the 3:1 a
- * control's own boundary has to hold, and `--rule` is 1.35:1 and effectively
- * invisible. `--ink-soft` is 6.37:1. These islands hold the site's navigation,
- * so their edge is the edge of something you can press, not a hairline between
- * two paragraphs.
- *
- * The fill is `--paper` rather than the white wash a card gets. A card's wash
- * composites to #F6F5EF, which is 1.12:1 against the ground — on a photograph
- * that difference was the whole object, and on cream it is nothing. A box that
- * cannot be told from the page by its fill should not pretend otherwise; the
- * line is what makes it a box.
- *
- * Fixed, not sticky — measured, not preferred
- * -------------------------------------------
- * The recipe this was built from says `position: sticky; top: 18px`, and in
- * this document sticky does not stick. `body` carries `overflow-x: clip`
- * (index.css), and the page's scroll container is `html`. Verified in
- * Chromium: at scrollY 1500 the island's own `top` read -1482, which is the
- * island travelling with the page rather than holding its position.
- *
- * The zero-height dock
+ * What this used to be
  * --------------------
- * The dock spans the viewport so the centre island can be centred in it, and
- * is 0px tall so that span catches nothing. Without the collapse, a
- * full-width 50px box would sit over the top of every page swallowing clicks
- * meant for the content behind it. The islands overflow it and stay
- * clickable; it is only the empty space between them that is not there.
+ * Three ruled boxes on the paper — elsewhere on the left, the site's three
+ * routes in the middle, the controls on the right — each an opaque pill with a
+ * real 1px line round it. Before that they were glass. Both of those are gone
+ * and the reasoning for the second is worth keeping, because it is the reason
+ * the blur is back:
  *
- * Why the columns are explicit
- * ----------------------------
- * `1fr auto 1fr` centres the middle column, and each island names the column
- * it belongs to rather than being auto-placed into the next free one. That
- * matters at the collapse below: the side islands become `display: none`, so
- * an auto-placed centre island would fall into column 1 and the wordmark
- * would slide to the left edge of a phone instead of staying centred.
+ *   The islands were `backdrop-filter: blur(14px)` over a dark translucent
+ *   ground, and the argument was about area — a blur costs per blurred pixel,
+ *   so three small islands are affordable and a full-width bar is not. The
+ *   arithmetic was right and the premise under it was that something
+ *   interesting was moving behind the glass. Four photographic plates had just
+ *   been deleted and the ground was one flat cream. Blurring a flat colour
+ *   returns the same flat colour, so the effect was spending GPU time per
+ *   frame to draw a rectangle.
+ *
+ * That premise has changed back. The page is a gallery now and the thing
+ * passing under the bar is the work: screenshots, a shelf of notes travelling
+ * sideways, and one act where the ground drops to near-black. An opaque strip
+ * across the top of that is a browser window frame — it cuts the first 56px
+ * off every object and tells the reader the page starts below it. A
+ * translucent one is a sheet laid over the collection, which is what chrome in
+ * a gallery is. The cost is a single 56px strip that never transforms and is
+ * re-rasterised only when what is under it moves, which is the affordable end
+ * of the arithmetic above rather than a repeat of what it warned against.
+ *
+ * Why three explicit tracks
+ * -------------------------
+ * `margin-inline: auto` cannot centre the index, and neither can
+ * `justify-content: space-between`, because the index sits between two groups
+ * that are never the same width — three route links on one side, two marks and
+ * two controls on the other. Centring the middle child of a flex row centres
+ * it against its neighbours, so it lands wherever the difference between them
+ * puts it. `minmax(…, 1fr) auto minmax(…, 1fr)` centres the middle track by
+ * construction: the two outer tracks are the same flexible track, so they
+ * resolve to the same width whatever is inside them, and the middle one is
+ * therefore symmetric about the bar's centre line. Measured at 390, 768 and
+ * 1440 the index's bounding box centre and the viewport centre differ by 0px.
+ *
+ * The declared minimum on those outer tracks is the part that is easy to get
+ * wrong. A bare `1fr` is `minmax(auto, 1fr)`, whose floor is the track's
+ * min-content — so the wider group pushes its own track open, the two stop
+ * being equal, and the centring quietly stops working at exactly the widths
+ * where the bar is tight. A bare `minmax(0, 1fr)` has the opposite fault: the
+ * tracks stay equal and the groups overflow them. Naming one minimum that both
+ * tracks share fixes both: equal by construction, and never narrower than the
+ * wider group needs.
+ *
+ * Which leaves the index as the thing that yields when the bar is too narrow,
+ * and the only yielding an index may do is to scroll. The eight objects
+ * currently in the collection measure 819px set in the display face, so with
+ * the two edge tracks and the gutters the whole index needs a window 1336px
+ * wide; below that the strip scrolls and follows the marked object
+ * (see `IndexLinks.tsx`). Nothing is removed, which is the difference between
+ * an index that is cramped and an index that is lying — and it is why the
+ * answer to "it does not fit" was never to show four of the eight.
+ *
+ * The two materials
+ * -----------------
+ * Paper by default. Over a panel that declares `data-chrome="dark"` the bar
+ * inverts, because a light translucent sheet on a near-black ground
+ * composites to a mid grey — no contrast against the panel underneath and
+ * none left for the type on top, which is the one combination that fails at
+ * both ends at once.
+ *
+ * The inversion is six token re-pointings and nothing else. Every rule in this
+ * file paints from `--paper`, `--ink`, `--ink-soft`, `--rule`, `--rule-firm`
+ * and `--shade`, so re-pointing those on the dock inverts the bar, the pills,
+ * the marks, the menu, the focus rings and the sheet in one place — including
+ * the `@supports` fallback below, which is why there is one of those and not
+ * two. See `[data-material='dark']` for the trap that comes with it.
  */
+
+/*
+ * A global rule, in the stylesheet of the thing that makes it necessary.
+ *
+ * The bar is fixed and 56px tall, so every in-page jump on the site —
+ * `scrollToAnchor`, the skip link, the browser's own fragment navigation on a
+ * reload — aligns its target with the top of the viewport and parks it
+ * underneath the chrome. `scroll-padding-top` on the scrollport is the fix for
+ * all three at once, and the reason it lives here rather than in index.css is
+ * that it is a consequence of the bar's height: the two numbers have to move
+ * together, and they can only do that if they are in the same file.
+ *
+ * `html` and not `body` deliberately: `body` carries `overflow-x: clip`, so
+ * the document's scrollport is `html`, which is also why the bar is fixed
+ * rather than sticky. That was measured — at scrollY 1500 a sticky island read
+ * its own `top` as -1482.
+ */
+:global(html) {
+  /* The bar's height, declared on the document so the clearance below and the
+     bar itself are one number rather than two that have to be kept equal. */
+  --bar-h: 56px;
+  scroll-padding-top: calc(var(--bar-h) + 2rem);
+}
+
 .dock {
+  /* The ground every shadow in the chrome is cast in. Ink on paper; near-black
+     on the panel, because a shadow drawn in the panel's own ink would be a
+     light halo. */
+  --shade: var(--ink);
+
   position: fixed;
   inset-inline: 0;
-  top: 18px;
+  top: 0;
   z-index: 50;
-  height: 0;
-
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: start;
-  gap: 12px;
-  /* A phone must never be able to push an island past its own screen. */
-  padding-inline: clamp(12px, 2vw, 28px);
+  height: var(--bar-h);
 }
 
 /*
- * The collapse.
+ * The dark act.
  *
- * Three islands need roughly 600px of island plus two gaps plus the gutters,
- * and the centre one has to keep its three destinations legible at a mono
- * 12px. Below 768px that stops being true before it stops being possible —
- * the islands would meet in the middle with the page's own margins gone. So
- * the sides fold into the sheet the centre island already opens, which is
- * also the only collapse that keeps the phone to one tap: everything the
- * chrome holds is behind the one control, rather than three controls
- * competing for the same 390px.
+ * THE TRAP, and it is written out at the top of index.css next to `--panel`
+ * because it catches everything that inverts a ground: redefining `--ink` on a
+ * subtree does *not* re-ink the text under it. `color` inherits as a computed
+ * value, so type whose colour already resolved on `<body>` keeps the body's
+ * ink however the subtree re-points the token — and it fails silently, as ink
+ * on ink. The `color` line below is the half that is easy to forget.
  *
- * The matching query is `WIDE` in Nav.tsx, which also has to close an open
- * menu when the viewport crosses it. The two have to agree.
+ * `.on-panel` in index.css does the same remapping and is not used here,
+ * because it also paints `background: rgb(var(--panel))` opaque and restates
+ * the display weights for body copy. The bar is translucent and sets no body
+ * copy; what it wants from that class is the six tokens, so it takes those.
  */
-.left,
-.right {
+.dock[data-material='dark'] {
+  --paper: var(--panel);
+  --ink: var(--panel-ink);
+  --ink-soft: var(--panel-soft);
+  --rule: var(--panel-rule);
+  --rule-firm: var(--panel-rule);
+  --signal: var(--accent-on-panel);
+  --shade: 0 0 0;
+  color: rgb(var(--panel-ink));
+}
+
+.bar {
+  height: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  /* Enough air that the last object in the index and the first mark beside it
+     do not read as one row of things. At 768px, where the index is scrolling
+     and its fade ends a few pixels from the GitHub mark, this is the only
+     thing separating two groups that mean different things. */
+  gap: 14px;
+  /* A phone must never be able to push the bar's contents past its own
+     screen. */
+  padding-inline: clamp(12px, 2vw, 28px);
+
+  background: rgb(var(--paper) / 0.74);
+  -webkit-backdrop-filter: blur(16px) saturate(150%);
+  backdrop-filter: blur(16px) saturate(150%);
+  /*
+   * `--rule-firm` and not `--ink-soft`, which is the opposite of the choice
+   * the islands made, because this line is doing the opposite job. An island's
+   * border was the boundary of something you press and had to clear 3:1;
+   * `--ink-soft` was picked for that and measures 6.37:1. This is a rule
+   * between the chrome and the page — the same kind of line that separates two
+   * blocks of content — and at 6.37:1 it would be the heaviest stroke on the
+   * screen, a black bar under a sheet of paper. The controls inside carry
+   * their own contrast.
+   */
+  border-bottom: 1px solid rgb(var(--rule-firm));
+  transition:
+    background-color var(--dur-fast) ease,
+    border-color var(--dur-fast) ease,
+    color var(--dur-fast) ease;
+}
+
+/*
+ * The two reasons not to blur, and one fallback for both materials.
+ *
+ * A browser with no `backdrop-filter` gets a solid bar rather than a 74%
+ * wash, because 74% of paper over moving body copy with nothing softening it
+ * is text behind text. And a reader who has asked for less transparency gets
+ * the same thing, which is what they asked for.
+ *
+ * One block covers paper and panel because `--paper` is re-pointed by the
+ * material above; the fallback is whichever ground the bar is currently over,
+ * at full strength.
+ */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .bar {
+    background: rgb(var(--paper));
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .bar {
+    background: rgb(var(--paper));
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+/* The material swap is a colour change over 240ms, which is a transition and
+   therefore something the two off-switches govern. Both of them land on the
+   same answer: the bar changes, it just does not animate while it does. */
+@media (prefers-reduced-motion: reduce) {
+  .bar {
+    transition: none;
+  }
+}
+
+:global(body.motion-paused) .bar {
+  transition: none;
+}
+
+/* ------------------------------------------------------------ the tracks -- */
+
+/*
+ * One minimum, shared.
+ *
+ * Measured, not chosen. At the index's floor size the leading group (three
+ * route links) sets 222px and the trailing group (two marks, a hairline, the
+ * language picker and the pause control) sets 208px; 14.25rem is the first
+ * quarter-rem step above the wider of the two. If either group grows a member
+ * this has to be re-measured, because a track narrower than its own contents
+ * is the one way the centring can still break — and it would break silently,
+ * since the group would simply overflow its track.
+ *
+ * It is also as large as it can be. The index needs 819px for its eight
+ * objects, so the first window that holds the whole bar is 819 plus twice this
+ * number plus the gutters and gaps — 1336px, measured by sweeping the viewport
+ * four pixels at a time. Every extra rem here pushes that number out, which is
+ * why the measured 222 is the floor and the target at once.
+ */
+@media (min-width: 768px) {
+  .bar {
+    grid-template-columns:
+      minmax(14.25rem, 1fr)
+      minmax(0, auto)
+      minmax(14.25rem, 1fr);
+  }
+}
+
+/*
+ * Below the collapse the bar holds one control and everything else is in the
+ * sheet. `display: none` rather than `visibility: hidden` so the groups leave
+ * the accessibility tree along with the pixels — a phone must not be able to
+ * tab into a route link that is not on the screen, and the sheet is carrying
+ * its own copy of all of this.
+ */
+.lead,
+.trail,
+.indexWrap {
   display: none;
+  align-items: center;
+  gap: 6px;
 }
 
 @media (min-width: 768px) {
-  .left {
-    display: block;
+  .lead {
+    display: flex;
     grid-column: 1;
     justify-self: start;
   }
 
-  .right {
-    display: block;
+  .trail {
+    display: flex;
     grid-column: 3;
     justify-self: end;
   }
-}
 
-/*
- * One box, one rule, no material.
- *
- * `--r-md` — 22px on a box 50px tall — rather than the pill it was before and
- * rather than the 14px it was after that. The argument against the capsule
- * still holds: a capsule is the shape of a chip in an application and this is
- * something printed. 14px on a 50px box was the other error, though. It is 28%
- * of the height, which the eye reads as a square with the edge filed off,
- * and it was the one hard shape left on a page of soft ones.
- *
- * The controls inside do not take the same corner. They take this one less the
- * padding between them — see `.wordmark, .link, .toggle` below — because two
- * curves separated by a constant gap are concentric and two curves of the same
- * radius separated by a gap are not.
- *
- * The shadow is deliberately almost nothing — 20px of blur pulled back by a
- * 20px spread, so it is a hint of separation under the bottom edge and no
- * visible cast anywhere else. It exists for one reason: when a line of body
- * copy scrolls under the island and is cut off at the rule, a completely flat
- * box makes that read as a clipping bug. A whisper of depth makes it read as
- * one thing passing behind another. Anything stronger would be a card
- * hovering over the page, which is what the glass was.
- */
-.island {
-  position: relative;
-  width: max-content;
-  max-width: 100%;
-
-  display: flex;
-  align-items: center;
-  gap: 22px;
-  padding: 9px 10px;
-  /* The gap the controls inside measure their own corner against. */
-  --island-inset: 9px;
-  border-radius: var(--r-md);
-
-  background: rgb(var(--paper));
-  border: 1px solid rgb(var(--ink-soft));
-  box-shadow: 0 6px 20px -20px rgb(var(--ink) / 0.5);
-}
-
-.centre {
-  grid-column: 2;
-  justify-self: center;
-  /* The wordmark is letter-spaced, so its last letter already carries a
-     trailing gap; the extra padding is only on the side that does not. */
-  padding-left: 18px;
-}
-
-/* The side islands hold 44px controls that bring their own padding, so they
-   want an inset rather than a margin, and no gap worth the name — two icons
-   22px apart read as two separate objects that happen to share a box. */
-.sideIsland {
-  gap: 2px;
-  padding-inline: 7px;
-}
-
-/*
- * The sheet the islands fold into on a phone.
- *
- * Anchored to the dock rather than to the island, and centred under it. Same
- * stock and the same rule as an island, one radius softer, and with a shadow
- * that is actually allowed to be seen: this one really is lifted off the page
- * — it covers content and locks the scroll while it is open — and it is the
- * only thing in the chrome that is.
- *
- * It scrolls rather than growing: three groups is about 420px, which is most
- * of a phone held in landscape, and a panel taller than the screen with no
- * way down is worse than a panel you have to scroll.
- *
- * `--r-lg` on a panel 336px wide and up to 420px tall, against the island's
- * `--r-md` on a 50px one. The two are not the same object and should not wear
- * the same corner; the sheet is nearer in size to a card than to a chip, so
- * it takes the card's.
- */
-.sheet {
-  position: absolute;
-  top: 58px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: min(21rem, calc(100vw - 24px));
-  max-height: calc(100vh - 92px);
-  overflow-y: auto;
-  padding: 6px;
-  --sheet-inset: 6px;
-  border-radius: var(--r-lg);
-
-  background: rgb(var(--paper));
-  border: 1px solid rgb(var(--ink-soft));
-  box-shadow: 0 26px 50px -30px rgb(var(--ink) / 0.6);
-}
-
-/* Above the collapse there is nothing in here that is not already on screen
-   in an island, and the control that opens it is gone. */
-@media (min-width: 768px) {
-  .sheet {
-    display: none;
+  .indexWrap {
+    display: block;
+    grid-column: 2;
+    justify-self: center;
+    /* The track is already centred; this is only so the strip cannot grow past
+       the track it was given. */
+    max-width: 100%;
+    min-width: 0;
   }
 }
 
-/*
- * The two fallback tiers this file used to carry — `@supports not
- * (backdrop-filter)` and `prefers-reduced-transparency: reduce` — are gone
- * with the thing they were guarding. Nothing in the chrome is translucent or
- * blurred any more, so every engine and every preference gets the same opaque
- * box, which is the state those blocks were falling back *to*.
- */
-
-/* ------------------------------------------------------------- contents -- */
+/* ------------------------------------------------------------- the index -- */
 
 /*
- * One height for everything in an island.
+ * The one line that says what is in the room.
  *
- * Each control is a real 44px target and then gives 7px back at each end, so
- * the row measures 30px, and the island resolves to 50px once its own border
- * is counted. The finger gets the floor it needs and the object stays the
- * size the recipe draws. The shadcn buttons in the side islands are given the
- * same arithmetic by their `island` / `islandIcon` sizes; see ui/button.tsx.
+ * A scroll container, always, because whether the index fits is a question
+ * about eight names in a particular typeface at a particular window width and
+ * not something a media query knows. When it fits, nothing scrolls and the
+ * container is invisible. When it does not, it scrolls, snaps, and
+ * `IndexLinks` keeps the marked object inside it.
+ *
+ * The 10px of padding against the 10px of negative margin is what lets the
+ * mask fade without eating the first and last pill: the fade covers the
+ * padding when the strip is at rest, and covers travelling pills once it is
+ * not. Both insets are symmetric, so the strip's box stays centred on the
+ * bar's centre line.
  */
-.wordmark,
-.link,
+.indexStrip {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin: 0 -10px;
+  padding: 0 10px;
+  list-style: none;
+
+  /*
+   * No `max-width: 100%` here, and that cost an hour. The negative margins
+   * make this box 20px wider than the `<nav>` around it, which is the point —
+   * the fade has to happen over something. Capping it at the parent's width
+   * instead clamped it back to the parent and left the 20px of padding with
+   * nowhere to go, so the strip reported a 20px overflow at every width,
+   * including the ones where the index fitted: the last object was clipped on
+   * a 1440px screen with 300px of empty bar either side of it. The track above
+   * is what constrains this; the cap was constraining it twice.
+   */
+  overflow-x: auto;
+  /* A swipe that runs out of index must not start scrolling the page
+     sideways, or on iOS go back a page. */
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  scroll-padding-inline: 10px;
+  /* The bar is 56px tall; a scrollbar inside it would be a third of that. */
+  scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    #000 10px,
+    #000 calc(100% - 10px),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    #000 10px,
+    #000 calc(100% - 10px),
+    transparent 100%
+  );
+}
+
+.indexStrip::-webkit-scrollbar {
+  display: none;
+}
+
+/* Flex, so the `<li>` never opens a line box of its own. An inline-flex link
+   sitting on a baseline inherits the body's leading and grew the bar by 5px it
+   had no reason to be. */
+.indexStrip > li,
+.routeRow > li,
+.markRow > li {
+  display: flex;
+}
+
+.indexStrip > li {
+  scroll-snap-align: center;
+}
+
+/*
+ * The index's voice.
+ *
+ * Not 12px mono capitals, which is what these links were and what every
+ * destination in the chrome was. That setting is the site's field line — the
+ * `FIELD · FIELD` row at the foot of an object's label, dates, eyebrows — and
+ * under the label schema it now means something specific: a spec. Setting the
+ * navigation in it says the chrome is a datasheet about the site. It is also
+ * 12px of letterspaced capitals on a 44px target, which is a line of
+ * decoration in the middle of a big button.
+ *
+ * So: the display face, sentence case, at the `fact` step of the type ramp —
+ * the step the site uses for one line of prose, which is what an object's name
+ * is. The ramp has no rung between `field` (0.72rem) and `fact` (1rem), so the
+ * routes at the leading edge take the same size and are made quieter by value
+ * instead. Two voices out of one size is a smaller lie than a sixth size
+ * invented for the chrome.
+ */
+.indexLink,
+.route,
 .toggle {
   display: inline-flex;
   align-items: center;
+  /* The floor for a finger. The bar is 56px, so a 44px target leaves 6px of
+     air at each end and the whole row still reads as one line. */
   min-height: 44px;
-  margin-block: -7px;
-  /* Concentric with the island: its corner less the padding between the two.
-     22 - 9 = 13px on a row that draws 30px tall, which is the same proportion
-     the island itself carries. A shared radius would have left a widening
-     crescent of island showing at each corner. */
-  border-radius: calc(var(--r-md) - var(--island-inset, 9px));
-  font-family: 'IBM Plex Mono', ui-monospace, monospace;
-  font-size: 0.75rem;
-  text-transform: uppercase;
+  border-radius: var(--r-pill);
+  font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif;
+  font-size: clamp(1rem, 1.4vw, 1.125rem);
+  letter-spacing: var(--track-body);
+  line-height: 1.2;
   white-space: nowrap;
-  outline-offset: 2px;
   transition:
     color var(--dur-micro) ease,
     background-color var(--dur-micro) ease;
 }
 
-.wordmark:focus-visible,
-.link:focus-visible,
-.toggle:focus-visible {
-  outline: 2px solid rgb(var(--ink));
-}
-
-.wordmark {
-  letter-spacing: 0.22em;
-  /* 15.17:1 on the island's paper fill. */
-  color: rgb(var(--ink));
-}
-
-/* The period was the accent's last foothold in the chrome. It is a mark of
-   punctuation, so it reads one value down rather than in a second colour. */
-.stop {
+.indexLink {
+  /* 12px, not the 14 the sheet's rows take. Eight pills on one line is
+     sixteen paddings, so two pixels each is 32px of window — which is a
+     measurable part of the difference between an index that fits on a laptop
+     and one that scrolls on it. */
+  padding-inline: 12px;
+  /* 6.37:1 on paper, 7.0:1 on the panel. Secondary until you are on it. */
   color: rgb(var(--ink-soft));
+  font-weight: 500;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .indexLink:hover,
+  .route:hover {
+    color: rgb(var(--ink));
+    /* The same 6% ink wash every quiet control on the site darkens by. On the
+       panel `--ink` is the panel's near-white, so the same line lightens. */
+    background: rgb(var(--ink) / 0.06);
+  }
 }
 
 /*
- * Three destinations, laid out from the collapse up and folded into the
- * sheet below it. This is the whole map now: the home page's section anchors
- * are gone from the chrome entirely, which is what let the centre island
- * shrink enough for two more to sit beside it. See Nav.tsx for the argument.
+ * Where you are: the object that has been inked.
+ *
+ * A wash of anything over the paper is worth about one and a half to one and
+ * reads as a smudge — and it would be indistinguishable from the hover state
+ * directly above, which is the failure this rule is written to avoid. So the
+ * object the reader is on is filled solid: ink ground, paper type, 15.17:1
+ * each way, and the exact inverse of itself over the dark act for free.
+ *
+ * It is the device `.btn-solid` uses for the one primary action on a screen,
+ * which is the right borrowing: in an index of eight objects, the one you are
+ * standing on is the only entry that is not a choice.
  */
-.links {
-  display: none;
-  align-items: center;
-  gap: 4px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
+.indexLink[aria-current] {
+  color: rgb(var(--paper));
+  background: rgb(var(--ink));
 }
 
-@media (min-width: 768px) {
-  .links {
-    display: flex;
-  }
-
-  .toggle {
-    display: none;
-  }
+/*
+ * The routes, quieter by value and marked differently.
+ *
+ * Two kinds of "current" exist in this bar — the room you are in and the
+ * object you are at — and giving both of them the inked pill would say they
+ * are the same claim at the same strength. The room is a weaker claim: it is
+ * true of the whole page rather than of where you are on it. So it is stated
+ * as full-strength ink with a rule under the word, which is how a printed
+ * index marks a heading, and the fill stays spent on the one object.
+ */
+.route {
+  padding-inline: 10px;
+  color: rgb(var(--ink-soft));
+  font-weight: 400;
 }
 
-/* Flex, so the `<li>` never opens a line box of its own. An inline-flex link
-   sitting on a baseline inherits the body's 19px/1.6 leading and grew the
-   island by 5px it had no reason to be. */
-.links > li,
-.iconRow > li {
-  display: flex;
+.route[aria-current] {
+  color: rgb(var(--ink));
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 5px;
 }
 
-.iconRow {
+.routeRow {
   display: flex;
   align-items: center;
   gap: 2px;
@@ -315,49 +462,179 @@
   list-style: none;
 }
 
-.link {
-  padding-inline: 11px;
-  letter-spacing: var(--track-label);
-  /* 6.37:1 on the island's fill — secondary type, legible at 12px. */
+/* --------------------------------------------------------------- focus --- */
+
+/*
+ * Inset rings, and that is the strip's fault rather than a preference.
+ *
+ * The index is a scroll container, so a 2px ring drawn 2px outside a pill at
+ * either end of it is clipped by the container's own bounds — a keyboard user
+ * tabbing to the first object would see three sides of a ring. Drawing it
+ * inside the pill is visible at every scroll position. The current object
+ * takes the ring in paper instead, because its pill is filled with ink and a
+ * ring in ink inside it is a ring nobody can see.
+ */
+.indexLink:focus-visible,
+.route:focus-visible,
+.toggle:focus-visible,
+.mark:focus-visible {
+  outline: 2px solid rgb(var(--ink));
+  outline-offset: -2px;
+}
+
+.indexLink[aria-current]:focus-visible {
+  outline-color: rgb(var(--paper));
+}
+
+/* --------------------------------------------------------------- marks --- */
+
+.markRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/*
+ * A 19px mark in a 38px pill, with a 44px target around it.
+ *
+ * The three numbers are not in conflict, they are three different things: the
+ * mark is sized to be recognised, the pill is sized to sit in a 56px bar
+ * without becoming the loudest object in it, and the target is sized for a
+ * finger. The pill cannot simply be 44px — four 44px circles across the
+ * trailing edge of the bar read as a toolbar — so the target is grown past the
+ * pill by an `::after` that covers it and 3px of air on every side. 38 + 3 + 3
+ * is 44 exactly.
+ *
+ * Which is also why the gap is 6px and not the 2px the old island used: two
+ * overlapping hit areas mean the mark a reader pressed is not necessarily the
+ * mark that was activated, and at a 2px gap they would overlap by 4px.
+ */
+.mark {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--r-pill);
   color: rgb(var(--ink-soft));
+  transition:
+    color var(--dur-micro) ease,
+    background-color var(--dur-micro) ease;
+}
+
+.mark::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: inherit;
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .link:hover {
+  .mark:hover {
     color: rgb(var(--ink));
-    /* The same 6% ink wash `.btn-quiet:hover` uses, so every quiet control on
-       the site darkens by the same amount when a pointer is over it. */
     background: rgb(var(--ink) / 0.06);
   }
 }
 
-/*
- * Where you are: the tab that has been inked.
- *
- * On the old dark glass this was a 10% white wash, which was the only emphasis
- * that palette had. On paper a wash of anything over a near-cream fill is
- * worth about one and a half to one and reads as a smudge — and it would be
- * indistinguishable from the hover state directly above, which is the exact
- * failure the previous comment here was written to avoid.
- *
- * So the current destination is filled solid: ink ground, paper type, 15.17:1
- * each way. It is the same device `.btn-solid` uses for the one primary action
- * on a screen, which is the right borrowing — "the page you are on" is the one
- * item in a nav that is not a choice. Still value rather than hue: the signal
- * blue stays spent on hover states and nowhere permanent.
- */
-.link[aria-current] {
-  color: rgb(var(--paper));
-  background: rgb(var(--ink));
+.markGlyph {
+  width: 19px;
+  height: 19px;
+  /*
+   * `--ink-soft` through `color`, inherited by `fill: currentColor` on the
+   * path. A logotype is a meaningful graphic, so its floor is 3:1 and not
+   * 4.5:1; this is 6.37:1 on paper and 7.0:1 on the panel, which is the same
+   * value the words beside it take. One value for a mark and the text it sits
+   * with is what keeps the trailing edge reading as one group.
+   */
+  display: block;
 }
 
+/*
+ * The hairline between the marks and the controls.
+ *
+ * Two kinds of thing share the trailing edge: places I exist off this site,
+ * and switches that change how this page behaves. They are not the same kind
+ * of object, and the three islands used to say so by being three boxes. One
+ * bar says it with a rule, which is the cheaper and quieter version of the
+ * same statement. `--rule`, because this is a line between two pieces of
+ * content and not the boundary of a control.
+ */
+.split {
+  width: 1px;
+  height: 20px;
+  margin-inline: 4px;
+  background: rgb(var(--rule));
+}
+
+.controlGroup {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* ------------------------------------------------- the collapsed index --- */
+
+/*
+ * Below the collapse the index becomes one control, and it is still an index.
+ *
+ * Not a hamburger of routes, which is what this used to open: three
+ * destinations behind a glyph that says nothing about what is behind it. This
+ * says where the reader is standing — the marked object's own name, updated as
+ * they pass each plate — and opens the whole index. A phone gets the one piece
+ * of information the bar exists to give before it is touched at all.
+ *
+ * `Index` above the name is set in the field voice, and that is not the voice
+ * the links were just taken out of. The schema is NAME, fact, FIELD; this is a
+ * field naming what the value under it is, which is the one job that setting
+ * has. It is the links that were wearing it wrongly.
+ */
 .toggle {
-  justify-content: center;
-  width: 44px;
-  margin-inline: -7px;
-  color: rgb(var(--ink));
+  gap: 10px;
+  padding-inline: 14px;
   background: transparent;
-  border: 0;
+  border: 1px solid rgb(var(--rule-firm));
+  color: rgb(var(--ink));
+  grid-column: 2;
+  justify-self: center;
+}
+
+@media (min-width: 768px) {
+  .toggle {
+    display: none;
+  }
+}
+
+.toggleStack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  /* A long object name must not push the bars off the control. */
+  min-width: 0;
+}
+
+.toggleHead {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 0.6875rem;
+  letter-spacing: var(--track-field);
+  text-transform: uppercase;
+  line-height: 1;
+  color: rgb(var(--ink-soft));
+}
+
+.toggleNow {
+  max-width: 11rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.9375rem;
+  line-height: 1.1;
+  font-weight: 500;
+  color: rgb(var(--ink));
 }
 
 /* Two bars that cross into an X, so the control reads as one thing in two
@@ -367,6 +644,7 @@
   display: block;
   width: 18px;
   height: 14px;
+  flex: none;
 }
 
 .bars::before,
@@ -406,162 +684,73 @@
   }
 }
 
-/* ------------------------------------------- shadcn, dressed for the site -- */
+:global(body.motion-paused) .bars::before,
+:global(body.motion-paused) .bars::after {
+  transition: none;
+}
+
+/* --------------------------------------------------------------- sheet --- */
 
 /*
- * Why every selector in this section is doubled.
+ * What the bar folds into on a phone.
  *
- * These classes are handed to shadcn components, which carry their own
- * Tailwind utilities for the same properties — `text-sm` on a button,
- * `bg-popover` on a menu. A single class and a utility have identical
- * specificity (0,1,0), so which one wins comes down to the order the two
- * stylesheets end up in, and that order is a build detail: CSS modules are
- * injected separately in dev and concatenated in dependency order in the
- * bundle. `.control.control` is (0,2,0) and wins in both, without reaching
- * for `!important` and without editing the Tailwind layer the rest of the
- * site is built on.
+ * Index first, and that ordering is the whole point: the objects in the room
+ * are what the chrome is for, so they are what a reader meets when they open
+ * it. The rooms come second, the marks third, the controls last — which is
+ * also the order the bar reads in from its centre outwards.
  *
- * The same doubling is what re-dresses the button's `glass` variant. That
- * variant hovers to `bg-white/10`, which was the only emphasis a dark
- * translucent island had and is nothing at all on a cream one — white over
- * near-white. Its hover and open states are restated here as the 6% ink wash
- * every other quiet control on the site uses. The variant keeps its name,
- * which is now historical, because renaming it is a change to a shared
- * component and this is a change to the chrome.
+ * Anchored to the dock rather than to the control that opened it, and centred
+ * under it. Same ground and the same rule as the bar, one radius softer, and
+ * with a shadow that is allowed to be seen: this really is lifted off the page
+ * — it covers content and locks the scroll while it is open — and it is the
+ * only thing in the chrome that is.
+ *
+ * It scrolls rather than growing: eight objects plus three rooms plus three
+ * marks plus the controls is taller than a phone held sideways, and a panel
+ * taller than the screen with no way down is worse than one you have to
+ * scroll.
  */
-
-/* The chrome's voice, imposed over the button's own `text-sm font-medium`. */
-.control.control {
-  font-family: 'IBM Plex Mono', ui-monospace, monospace;
-  font-size: 0.75rem;
-  letter-spacing: var(--track-label);
-  text-transform: uppercase;
-  /* `rounded-full` comes from the `island` / `islandIcon` sizes; the boxes
-     these sit in are no longer capsules. Concentric with the island, like
-     every other control in one. */
-  border-radius: calc(var(--r-md) - var(--island-inset, 9px));
-  color: rgb(var(--ink-soft));
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .control.control:hover {
-    color: rgb(var(--ink));
-    background: rgb(var(--ink) / 0.06);
-  }
-}
-
-/* An open dropdown has to keep its trigger marked while the pointer is
-   somewhere else entirely — in the menu. */
-.control.control[data-state='open'] {
-  color: rgb(var(--ink));
-  background: rgb(var(--ink) / 0.06);
-}
-
-/*
- * The language menu: the same stock and the same rule as the box that opened
- * it, so the panel reads as the island extended rather than as a second
- * material. One step heavier on the shadow, because unlike an island this
- * genuinely is lifted and covering something.
- */
-.menu.menu {
-  min-width: 11rem;
+.sheet {
+  position: absolute;
+  top: calc(var(--bar-h) + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(21rem, calc(100vw - 24px));
+  max-height: calc(100vh - var(--bar-h) - 32px);
+  overflow-y: auto;
   padding: 6px;
-  --menu-inset: 6px;
-  /* The island's corner, because the menu is the island extended. */
-  border-radius: var(--r-md);
+  --sheet-inset: 6px;
+  border-radius: var(--r-lg);
+
   background: rgb(var(--paper));
   border: 1px solid rgb(var(--ink-soft));
-  box-shadow: 0 22px 44px -28px rgb(var(--ink) / 0.6);
-  color: rgb(var(--ink));
+  box-shadow: 0 26px 50px -30px rgb(var(--shade) / 0.6);
 }
 
-.menuHead.menuHead {
-  padding: 6px 10px 4px;
-  font-family: 'IBM Plex Mono', ui-monospace, monospace;
-  font-size: 0.625rem;
-  font-weight: 400;
-  letter-spacing: var(--track-label);
-  text-transform: uppercase;
-  /* `--ink-soft`, not the faint value this used to carry. A group heading is
-     text and has to clear 4.5:1 on the surface it is printed on; the faint
-     token measures 3.60:1 on paper and is documented as non-text only. */
-  color: rgb(var(--ink-soft));
+/* Above the collapse there is nothing in here that is not already on screen in
+   the bar, and the control that opens it is gone. The same 768px is `WIDE` in
+   Nav.tsx, which has to close an open sheet when the viewport crosses it —
+   otherwise someone who opened it on a phone and then rotated the phone is
+   looking at a page whose scroll is still locked by a panel they can no longer
+   see or close. The two have to agree. */
+@media (min-width: 768px) {
+  .sheet {
+    display: none;
+  }
 }
-
-/* The rule under the menu's own heading. shadcn draws it as `bg-white/[0.12]`,
-   which was a visible hairline on dark glass and is nothing at all on paper —
-   white at twelve percent over #ECE8DC. `--rule` is the token for a line
-   between two pieces of content, which is what this is. */
-.menuSplit.menuSplit {
-  background: rgb(var(--rule));
-}
-
-/* 44px here too. A menu item is a tap target like any other, and Radix will
-   happily render a 28px row on a phone. */
-.menuItem.menuItem {
-  min-height: 44px;
-  padding-left: 34px;
-  padding-right: 12px;
-  /* Concentric with the menu: 22 - 6 = 16px. */
-  border-radius: calc(var(--r-md) - var(--menu-inset, 6px));
-  font-size: 0.875rem;
-  color: rgb(var(--ink-soft));
-}
-
-.menuItem.menuItem[data-state='checked'] {
-  color: rgb(var(--ink));
-}
-
-.menuNote.menuNote {
-  font-family: 'IBM Plex Mono', ui-monospace, monospace;
-  font-size: 0.625rem;
-  letter-spacing: var(--track-label);
-  text-transform: uppercase;
-  color: rgb(var(--ink-soft));
-  opacity: 1;
-}
-
-/*
- * The tooltip is the one thing in the chrome that inverts.
- *
- * Every other surface up here is paper with a line drawn round it, which is
- * right for objects that are permanently on screen and must not shout. A
- * tooltip is the opposite kind of thing: it appears for a second, it is an
- * answer to a question the reader just asked by hovering, and it has to be
- * read instantly and then forgotten. Stamped in ink with paper type it is
- * unmistakable at a glance — 15.17:1 — and it cannot be confused with the
- * island it is pointing at.
- */
-.tip.tip {
-  padding: 5px 10px;
-  /* The one capsule left in the chrome, and the only object small enough to
-     earn it: a tooltip draws about 23px tall, where a 14px corner is 61% of
-     the height and already reads as a capsule drawn badly. */
-  border-radius: var(--r-pill);
-  font-family: 'IBM Plex Mono', ui-monospace, monospace;
-  font-size: 0.6875rem;
-  letter-spacing: var(--track-label);
-  text-transform: uppercase;
-  color: rgb(var(--paper));
-  background: rgb(var(--ink));
-  border: 1px solid rgb(var(--ink));
-}
-
-/* ---------------------------------------------------------------- sheet -- */
 
 .sheetHead {
   margin: 0;
   padding: 10px 14px 4px;
   font-family: 'IBM Plex Mono', ui-monospace, monospace;
   /* 12px, which is the floor the type direction set for every mono label on
-     the public surface. These three were the only things still under it —
-     10px of letterspaced capitals is decoration you cannot read, and they
-     are group headings inside a sheet a phone user is navigating by. */
+     the public surface: letterspaced capitals below it are decoration you
+     cannot read, and these are the group headings a phone navigates by. */
   font-size: 0.75rem;
-  letter-spacing: var(--track-label);
+  letter-spacing: var(--track-field);
   text-transform: uppercase;
-  /* Text, so `--ink-soft` and not the faint value: see the note on
-     `.menuHead` above. 6.37:1 on the sheet's paper. */
+  /* Text, so `--ink-soft` and not the faint value, which is documented as
+     non-text only. 6.37:1 on the sheet's paper. */
   color: rgb(var(--ink-soft));
 }
 
@@ -578,24 +767,32 @@
   padding-inline: 14px;
   /* Concentric with the sheet: 32 - 6 = 26px on a 48px row. */
   border-radius: calc(var(--r-lg) - var(--sheet-inset, 6px));
-  font-family: 'IBM Plex Mono', ui-monospace, monospace;
-  font-size: 0.75rem;
-  letter-spacing: var(--track-label);
-  text-transform: uppercase;
+  font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif;
+  font-size: 1rem;
+  letter-spacing: var(--track-body);
   color: rgb(var(--ink-soft));
   transition:
     color var(--dur-micro) ease,
     background-color var(--dur-micro) ease;
 }
 
-/* The same inked tab as the desktop island, so "you are here" is one idea
-   stated once and read the same way on both layouts. */
+/*
+ * The same inked row as the bar, so "you are here" is one idea stated once and
+ * read the same way on both layouts.
+ *
+ * Both kinds of current take it here, where the bar gives the fill to the
+ * object and an underline to the room. The distinction exists in the bar
+ * because both kinds sit on one line a hundred pixels apart; in the sheet they
+ * are in two groups under two headings, so there is nothing for the reader to
+ * tell apart and a second marking style would be a difference with no
+ * difference behind it.
+ */
 .sheetLink[aria-current] {
   color: rgb(var(--paper));
   background: rgb(var(--ink));
 }
 
-.sheetLink[aria-current] .sheetIcon {
+.sheetLink[aria-current] .sheetGlyph {
   color: rgb(var(--paper) / 0.75);
 }
 
@@ -604,18 +801,15 @@
   outline-offset: -2px;
 }
 
-.sheetIcon {
-  width: 16px;
-  height: 16px;
+.sheetLink[aria-current]:focus-visible {
+  outline-color: rgb(var(--paper));
+}
+
+.sheetGlyph {
+  width: 17px;
+  height: 17px;
   margin-right: 12px;
-  /*
-   * `--ink-soft`, not `--ink-faint`, even though a glyph is a non-text mark
-   * and the faint token is sanctioned for exactly that. The floor for a
-   * meaningful graphic is 3:1, and the faint value holds 4.04:1 on paper —
-   * but these rows can take the inked ground, where it would fall to 2.92:1.
-   * One value for both states is simpler than a glyph that changes colour to
-   * stay legal.
-   */
+  flex: none;
   color: rgb(var(--ink-soft));
 }
 
@@ -626,13 +820,189 @@
   padding: 10px 14px 8px;
 }
 
-/* A hairline between the three groups: they are three different kinds of
-   going somewhere — off the site, around the site, and nowhere at all — and
-   the sheet should not pretend otherwise. This one really is a rule between
-   two pieces of content rather than the boundary of a control, which is what
-   `--rule` is for. */
+/* A hairline between the groups: they are different kinds of going somewhere —
+   around this page, around the site, off the site, and nowhere at all — and
+   the sheet should not pretend otherwise. */
 .sheetSplit {
   height: 1px;
   margin: 6px 10px;
   background: rgb(var(--rule));
+}
+
+/* ------------------------------------------- shadcn, dressed for the bar -- */
+
+/*
+ * Why every selector in this section is doubled.
+ *
+ * These classes are handed to shadcn components, which carry their own
+ * Tailwind utilities for the same properties — `text-sm` on a button,
+ * `bg-popover` on a menu. A single class and a utility have identical
+ * specificity (0,1,0), so which one wins comes down to the order the two
+ * stylesheets end up in, and that order is a build detail: CSS modules are
+ * injected separately in dev and concatenated in dependency order in the
+ * bundle. `.control.control` is (0,2,0) and wins in both, without reaching for
+ * `!important` and without editing the Tailwind layer the rest of the site is
+ * built on.
+ *
+ * What is being overridden here is mostly the `glass` variant and the two
+ * `island` sizes, both of which were written for a translucent dark pill: the
+ * variant hovers to `bg-white/10`, which is nothing at all on cream, and the
+ * sizes encode a 44px target that gives 7px back at each end so the old 50px
+ * island would not grow. The bar is 56px and the controls are 38px pills with
+ * their targets grown outwards, like the marks beside them, so that arithmetic
+ * is restated rather than inherited. The variant keeps its name, which is now
+ * historical, because renaming it is a change to a shared component and this
+ * is a change to the chrome.
+ */
+.control.control {
+  position: relative;
+  min-height: 38px;
+  height: 38px;
+  margin-block: 0;
+  border-radius: var(--r-pill);
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 0.75rem;
+  letter-spacing: var(--track-field);
+  text-transform: uppercase;
+  color: rgb(var(--ink-soft));
+  background: transparent;
+}
+
+/* The icon-only one is square; the one with `EN` beside its glyph is not. */
+.controlIcon.controlIcon {
+  width: 38px;
+  padding: 0;
+}
+
+/* The same 3px of grown target the marks use, for the same reason. */
+.control.control::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: inherit;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .control.control:hover {
+    color: rgb(var(--ink));
+    background: rgb(var(--ink) / 0.06);
+  }
+}
+
+/* An open dropdown has to keep its trigger marked while the pointer is
+   somewhere else entirely — in the menu. */
+.control.control[data-state='open'] {
+  color: rgb(var(--ink));
+  background: rgb(var(--ink) / 0.06);
+}
+
+/* shadcn focuses with a ring and a ring offset, which is a band of the page's
+   ground drawn around the control — on a translucent bar that is a hole
+   punched through the material. The chrome focuses with the same flush
+   outline everything else in this file uses. */
+.control.control:focus-visible {
+  outline: 2px solid rgb(var(--ink));
+  outline-offset: -2px;
+  box-shadow: none;
+}
+
+/*
+ * The language menu: the same ground and the same rule as the bar that opened
+ * it, so the panel reads as the bar extended rather than as a second material.
+ * Opaque, unlike the bar — it covers content it is not part of — and one step
+ * heavier on the shadow for the same reason.
+ *
+ * It does not invert with the bar, and cannot: Radix portals this to
+ * `document.body`, so it is outside the dock and never inherits the dark
+ * material's token re-pointings. That is the right outcome rather than a
+ * limitation worked around — the panel hangs below the bar, over the page, so
+ * it belongs to the page's ground and not to the chrome's. The `--shade`
+ * fallback below is there for the same reason: outside the dock that token
+ * does not exist, and `rgb(var(--shade) / .6)` with nothing to substitute is
+ * an invalid declaration, which drops the shadow silently.
+ */
+.menu.menu {
+  min-width: 11rem;
+  padding: 6px;
+  --menu-inset: 6px;
+  border-radius: var(--r-md);
+  background: rgb(var(--paper));
+  border: 1px solid rgb(var(--ink-soft));
+  box-shadow: 0 22px 44px -28px rgb(var(--shade, var(--ink)) / 0.6);
+  color: rgb(var(--ink));
+}
+
+.menuHead.menuHead {
+  padding: 6px 10px 4px;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 0.75rem;
+  font-weight: 400;
+  letter-spacing: var(--track-field);
+  text-transform: uppercase;
+  /* A group heading is text and has to clear 4.5:1 on the surface it is
+     printed on; the faint token measures 3.60:1 on paper and is documented as
+     non-text only. */
+  color: rgb(var(--ink-soft));
+}
+
+/* The rule under the menu's own heading. shadcn draws it as `bg-white/[0.12]`,
+   which was a visible hairline on dark glass and is nothing on paper. */
+.menuSplit.menuSplit {
+  background: rgb(var(--rule));
+}
+
+/* 44px here too. A menu item is a tap target like any other, and Radix will
+   happily render a 28px row on a phone. */
+.menuItem.menuItem {
+  min-height: 44px;
+  padding-left: 34px;
+  padding-right: 12px;
+  /* Concentric with the menu: 22 - 6 = 16px. */
+  border-radius: calc(var(--r-md) - var(--menu-inset, 6px));
+  font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.9375rem;
+  text-transform: none;
+  letter-spacing: var(--track-body);
+  color: rgb(var(--ink-soft));
+}
+
+.menuItem.menuItem[data-state='checked'] {
+  color: rgb(var(--ink));
+}
+
+.menuNote.menuNote {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 0.75rem;
+  letter-spacing: var(--track-field);
+  text-transform: uppercase;
+  color: rgb(var(--ink-soft));
+  opacity: 1;
+}
+
+/*
+ * The tooltip is the one thing in the chrome that is stamped rather than laid
+ * on.
+ *
+ * Every other surface up here is the ground the page is currently on. A
+ * tooltip is a different kind of object: it appears for a second, it answers a
+ * question the reader just asked by hovering, and it has to be read instantly
+ * and then forgotten. Stamped in ink with paper type it is unmistakable at a
+ * glance — 15.17:1 — and it cannot be confused with the mark it is pointing
+ * at. Like the menu above it is portaled to the body and therefore keeps the
+ * page's paper tokens even while the bar is in its dark material, which is
+ * correct: it is hanging over the page, not lying on the bar.
+ */
+.tip.tip {
+  padding: 5px 10px;
+  /* The one capsule small enough to earn it: a tooltip draws about 23px tall,
+     where a 14px corner is 61% of the height and reads as a capsule drawn
+     badly. */
+  border-radius: var(--r-pill);
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 0.6875rem;
+  letter-spacing: var(--track-field);
+  text-transform: uppercase;
+  color: rgb(var(--paper));
+  background: rgb(var(--ink));
+  border: 1px solid rgb(var(--ink));
 }

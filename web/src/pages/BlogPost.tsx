@@ -231,7 +231,7 @@ const PROSE = [
    * which is a larger step away from the sans than any colour was, and the
    * same move the hero's tagline and a project's make one level up.
    */
-  "prose-h5:mt-8 prose-h5:mb-2 prose-h5:font-editorial prose-h5:italic prose-h5:font-normal",
+  "prose-h5:mt-8 prose-h5:mb-2 prose-h5:font-sans italic prose-h5:italic prose-h5:font-normal",
   "prose-h5:text-[1.1875rem] prose-h5:leading-[1.35] prose-h5:tracking-[0] prose-h5:text-bone sm:prose-h5:text-[1.375rem]",
   "prose-h6:mt-8 prose-h6:mb-2 prose-h6:text-[1.0625rem] prose-h6:leading-[1.4] prose-h6:uppercase prose-h6:tracking-[0.1em] prose-h6:text-clay sm:prose-h6:text-[1.1875rem]",
 

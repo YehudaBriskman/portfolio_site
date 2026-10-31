@@ -1,0 +1,118 @@
+/*
+ * One label, three scales.
+ *
+ * The scales differ only in type size and the space between the parts. They do
+ * not differ in structure, in order, or in which voice says which part — the
+ * moment a plate rearranged itself to suit a section, the collection would
+ * stop being one.
+ */
+.label {
+  display: flex;
+  flex-direction: column;
+  /* The three parts are one group, so they are bound by the tightest step on
+     the scale. The air belongs above the name, between this label and whatever
+     precedes it, which is the caller's business and not this component's. */
+  gap: 0.5rem;
+}
+
+.name {
+  margin: 0;
+  font-family: "Archivo", ui-sans-serif, system-ui, sans-serif;
+  font-variation-settings: "wdth" 112;
+  font-weight: 800;
+  color: rgb(var(--ink));
+  text-wrap: balance;
+}
+
+/*
+ * The fact line is prose, so it is set in the text width and the text colour.
+ * Setting it in the display width — the easy mistake with a one-family page —
+ * makes a one-sentence fact read as a small headline, and then the label has
+ * two names and no description.
+ */
+.fact {
+  margin: 0;
+  max-width: var(--measure);
+  font-variation-settings: "wdth" 100;
+  font-weight: 400;
+  color: rgb(var(--ink-soft));
+  text-wrap: pretty;
+}
+
+/*
+ * The field line, and the only place on the site the mono is allowed.
+ *
+ * It is a separator-joined row rather than a list of pills: pills are controls,
+ * and a spec is not clickable. The separator is drawn by CSS so the markup
+ * stays a list and a screen reader reads three items rather than one string
+ * with interpuncts in it.
+ */
+.fields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-weight: 400;
+  text-transform: uppercase;
+  color: rgb(var(--ink-soft));
+}
+
+.field + .field::before {
+  content: "·";
+  /* The separator belongs to the gap, not to the word, so it does not drag the
+     field's own tracking along with it. */
+  margin-inline-end: 0.75rem;
+  letter-spacing: 0;
+  color: rgb(var(--ink-faint));
+}
+
+/* ── the three scales ─────────────────────────────────────────────────── */
+
+/*
+ * Plate: the title plate, object zero. The only place on the site that sets
+ * type above the section register, and it earns that by being the thing the
+ * collection is named after.
+ */
+.plate .name {
+  font-variation-settings: "wdth" 125;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+.plate { gap: 1rem; }
+
+/* Object: a project in the pile, a note on the shelf. The working size. */
+.object .name {
+  font-variation-settings: "wdth" 112;
+}
+
+/*
+ * Inline: a label inside something else — an archive row, a related link.
+ * Same three parts, less air, no change of voice.
+ */
+.inline { gap: 0.3rem; }
+.inline .name {
+  font-weight: 700;
+  font-size: 1.0625rem;
+  line-height: 1.3;
+  letter-spacing: var(--track-sub);
+}
+.inline .fact {
+  font-size: 0.9375rem;
+  line-height: 1.45;
+}
+
+/*
+ * A link's label should not look like a link until the pointer says so. The
+ * underline lands on the name only; underlining a three-part block draws a
+ * rule under the field line as well, which reads as a table border.
+ */
+a:hover .name,
+a:focus-visible .name {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.14em;
+}

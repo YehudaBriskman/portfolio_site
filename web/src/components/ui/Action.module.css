@@ -100,10 +100,11 @@
   padding-inline: 0;
   gap: 0.5rem;
   border-color: transparent;
-  font-family: 'Instrument Serif', Georgia, 'Times New Roman', serif;
-  font-style: italic;
-  font-weight: 400;
-  font-size: 1.375rem;
+  font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif;
+  font-variation-settings: 'wdth' 100;
+  font-weight: 500;
+  font-size: 1.125rem;
+  letter-spacing: var(--track-sub);
   color: rgb(var(--ink));
   transition: color var(--dur-micro) ease;
 }
@@ -150,8 +151,8 @@
 /*
  * The glyph gets its own stack.
  *
- * Archivo's latin subset carries ↑ and ↓ and nothing else; Instrument Serif's
- * carries no arrows at all. So →, ← and ↗ were already falling back to
+ * Archivo's latin subset carries ↑ and ↓ and nothing else, so →, ← and ↗
+ * were already falling back to
  * whatever each face's fallback happened to be, which is three different
  * arrows on one page. Naming a stack that actually has them makes the mark
  * one shape wherever it appears.

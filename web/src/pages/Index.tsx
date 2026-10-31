@@ -29,9 +29,10 @@ import { useScrollProgress } from "@/hooks/useScrollProgress";
  * It was the wrong grain. A reveal on a whole section animates five hundred
  * pixels of heading, copy and three cards as one opaque block, which is a
  * statement about the browser rather than about the content. The sections
- * already print themselves at the grain that means something: Approach and
- * Stack wipe in each card, LatestNotes wipes in each row, Work irises each
- * image. Wrapping all of that in a second, coarser arrival was two animations
+ * already print themselves at the grain that means something, and each at a
+ * different one: Approach wipes in each card, Work irises each image, the
+ * notes shelf travels sideways against the scroll, and the spec plate counts
+ * its figures up once as they arrive. Wrapping all of that in a second, coarser arrival was two animations
  * saying the same thing at different speeds, and the outer one would have
  * clipped the sticky deck inside Approach while it was pinned.
  *
@@ -79,19 +80,26 @@ export default function Index() {
           <Approach />
         </div>
 
+        {/*
+          The shelf, and then the plate — in that order, because the order is
+          the device sequence and not a preference.
+
+          The beat before this pins and holds the reader still for a screen and
+          a half; lateral travel is the strongest contrast available after
+          that, so the shelf takes the slot immediately after it and the plate
+          follows with a third kind of motion. Swapped, the page would read
+          pile, figures, shelf, which puts a static beat between the two that
+          are supposed to answer each other.
+
+          No `layer-section` around the shelf: it is full-bleed, and it rides
+          the space the section above has already opened rather than growing
+          another runway between two sections that read as one thought.
+        */}
+        <LatestNotes />
+
         <div className="layer-section">
           <Stack />
         </div>
-
-        {/*
-          The writing gets a place in the argument, between what I use and how
-          to reach me, rather than existing only as a nav label.
-
-          No `layer-section` rhythm around it: it rides the space the stack
-          above has already opened, which keeps the page from growing another
-          runway between two sections that are reading as one thought.
-        */}
-        <LatestNotes />
 
         <div className="layer-section">
           <Contact />

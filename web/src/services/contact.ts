@@ -1,7 +1,17 @@
 import { z } from "zod";
 import { contact } from "@/data/site";
 
-const ContactSchema = z.object({
+/*
+ * Exported so the form can ask the same question this function will ask.
+ *
+ * Not a second copy of the rules in the component: a field-level error needs
+ * `flatten().fieldErrors`, which only the schema can produce, and the
+ * alternative — re-stating "at least two characters, at least a sentence" in
+ * Contact.tsx — is two validators that drift apart and then disagree with each
+ * other in front of the reader. `sendContactMessage` still parses what it is
+ * handed; the form's parse is for the message, not for the trust.
+ */
+export const ContactSchema = z.object({
   name: z.string().min(2, "Add your name"),
   email: z.string().email("That email address doesn't look right"),
   message: z.string().min(10, "Tell me a little more, at least a sentence"),
