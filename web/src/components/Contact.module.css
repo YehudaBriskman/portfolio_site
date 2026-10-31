@@ -1,0 +1,276 @@
+/*
+ * The inquiry plate: a label, a form in the label's measure, and nothing that
+ * looks like a box.
+ *
+ * The contract this file obeys — the two rules of scroll-driven motion, the
+ * device ledger this beat is listed in, the peak budget and the three
+ * off-switches — is written down in `docs/motion-contract.md`.
+ *
+ * What is deliberately absent, because the grammar or the peak budget forbids
+ * it: no fold, no flight, no magnetic button, and no card. The close is the
+ * collection's last plate, so it is typeset like every other plate and the
+ * form hangs under it in the same measure. A raised surface here would make
+ * the ask a different kind of object from every other object on the page,
+ * which is exactly the thing the gallery grammar exists to prevent.
+ *
+ * There is no @keyframes block in this file, and that is the point.
+ *
+ * The beat is `reveal`, and the reveal is `motion/Rise` — 14px, 620ms,
+ * `--ease-settle`, children 60ms apart in reading order, fired once by an
+ * observer. Writing those four numbers again here is the specific mistake that
+ * file was built to stop: two copies of a measured gesture drift the first
+ * time one of them is touched, and then the page has two reveals that are
+ * nearly the same, which is worse than having two that are plainly different.
+ * So every margin, rule and type setting is here and every millisecond is
+ * there.
+ *
+ * `@supports not (animation-timeline: view())` therefore has nothing to do in
+ * this file. Nothing in this section is on a scroll or view timeline — the
+ * reveal is time-driven and fired by an observer, and the confirmation is
+ * fired by a submit, which is not a scroll position and cannot be expressed as
+ * one. A browser with no scroll-driven animation support loses nothing here.
+ */
+
+/* ────────────────────────────────────────────────────────────── the form ── */
+
+/*
+ * The same measure as the fact line above it, and no motion of its own.
+ *
+ * The form is one step of the group reveal and nothing more. It is deliberately
+ * not wiped, swept or scroll-linked, for the reason the cards that used to be
+ * here gave and which survives the rewrite: a reader arrives at this section to
+ * type, not to watch. A view-timeline animation runs backwards when the reader
+ * scrolls back up, so a clip or an opacity ramp hung on a field can crop or dim
+ * it while it has focus — which is why the one reveal this section gets is the
+ * observer-driven kind that fires once and stays fired. The plate is read; the
+ * form is used.
+ *
+ * `--measure` is the fact line's own 62ch, so the form is exactly as wide as
+ * the sentence above it and the whole plate reads as one block of type rather
+ * than as a label with a widget under it.
+ *
+ * Every margin in this section is set in this file rather than with a Tailwind
+ * utility. A utility and a module rule are both one class, so which of them
+ * wins is decided by the order Vite happens to inject two stylesheets — which
+ * is not something anybody should have to know to move this form down by 8px.
+ */
+.form {
+  margin-top: 2.5rem;
+  max-width: var(--measure);
+}
+
+/* One sentence of instruction, in the body voice. It is the form's
+   `aria-describedby` target, so it is read out before the first field rather
+   than skipped past as decoration. */
+.note {
+  margin: 0 0 2.5rem;
+  max-width: var(--measure);
+  color: rgb(var(--ink-soft));
+}
+
+.field + .field {
+  margin-top: 1.75rem;
+}
+
+/*
+ * The label, in the field line's voice.
+ *
+ * Mono, uppercase, 0.18em — the same setting the plate's own field line
+ * carries, because it is the same kind of text doing the same job: naming a
+ * fact rather than stating one. It is a real `<label>` with a real `for`, and
+ * it is visible. A ruled line with a placeholder in it is the classic way to
+ * lose both: the placeholder disappears the moment anything is typed, so the
+ * field stops having a name exactly when the reader most needs to check what
+ * they put in it, and on a `<span>` inside a label several screen readers
+ * never announced it in the first place.
+ */
+.fieldLabel {
+  display: block;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 0.72rem;
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: var(--track-field);
+  text-transform: uppercase;
+  color: rgb(var(--ink-soft));
+}
+
+/*
+ * A ruled line, and the rule is `--ink-soft`.
+ *
+ * `--rule` and `--rule-firm` are both wrong here, for a measured reason. They
+ * are hairlines between two pieces of content, and on paper they come out at
+ * 1.2:1 and 2.15:1 — under the 3:1 that the boundary of a control someone has
+ * to find is held to. `--ink-soft` is 6.37:1 on `--paper`, which is the same
+ * choice and the same arithmetic `.btn-quiet` makes in index.css.
+ *
+ * No placeholders anywhere in this form. With a visible label above every
+ * field a placeholder is either a second name for the field — one name too
+ * many — or an example the reader has to select and delete.
+ */
+.control {
+  display: block;
+  width: 100%;
+  margin-top: 0.4rem;
+  padding: 0.6rem 0;
+  min-height: 44px;
+  border: 0;
+  border-bottom: 1px solid rgb(var(--ink-soft));
+  border-radius: 0;
+  background: transparent;
+  font-family: inherit;
+  font-size: 1.0625rem;
+  line-height: 1.5;
+  letter-spacing: var(--track-body);
+  color: rgb(var(--ink));
+  transition: border-color var(--dur-micro) ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .control:hover {
+    border-bottom-color: rgb(var(--ink));
+  }
+}
+
+/*
+ * A real outline, not a darker rule.
+ *
+ * A 1px border changing colour is a signal a keyboard user has to hunt for,
+ * and on a field whose entire chrome *is* that 1px border it is barely a
+ * signal at all. The outline sits outside the box and cannot be missed. The
+ * offset keeps it clear of the glyphs, which on a bottom-ruled field would
+ * otherwise sit right on top of the line.
+ */
+.control:focus-visible {
+  border-bottom-color: rgb(var(--ink));
+  outline: 2px solid rgb(var(--ink));
+  outline-offset: 4px;
+}
+
+/* The message field keeps the same bottom rule as the two above it. A box
+   around this one and lines under those two would be two kinds of field in one
+   form, which is the same mistake as two kinds of object in one gallery. */
+.control.message {
+  min-height: 7.5rem;
+  resize: vertical;
+}
+
+/*
+ * An invalid field, marked three ways and by colour in none of them.
+ *
+ * The message under the field is the signal; `aria-invalid` carries the same
+ * fact to the accessibility tree; the rule thickens to 2px, which is a change
+ * of weight rather than of hue. There is deliberately no red: this page spends
+ * its colour inside the motion and nowhere else, and a palette with one accent
+ * has no second one to lose to a reader who cannot separate it from the ink.
+ */
+.control[aria-invalid="true"] {
+  border-bottom-width: 2px;
+  border-bottom-color: rgb(var(--ink));
+}
+
+.fieldError {
+  margin: 0.5rem 0 0;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  letter-spacing: 0.02em;
+  /* Full-strength ink. An error message is the most important text on the
+     screen for as long as it exists, and nothing anyone has to read on this
+     page is set below AA. */
+  color: rgb(var(--ink));
+}
+
+.send {
+  margin-top: 2.5rem;
+}
+
+/* ──────────────────────────────────────────────────────── what came back ── */
+
+/*
+ * The two live regions.
+ *
+ * Both are in the DOM from the first paint and both are usually empty.
+ *
+ * One line of height is reserved between them, on the polite region, and that
+ * is enough: only one of the two ever has anything to say. What the reservation
+ * buys is that the button does not move when a message arrives — the reader's
+ * pointer is still on it, and a control that jumps at the moment it is pressed
+ * is how a form collects a second click it did not want. A long failure does
+ * push the address below it down, which is the right thing to spend the
+ * movement on.
+ */
+.status,
+.failure {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  letter-spacing: 0.02em;
+  color: rgb(var(--ink-soft));
+}
+
+.status {
+  margin: 1rem 0 0;
+  min-height: 1.5rem;
+}
+
+.failure {
+  margin: 0;
+}
+
+/*
+ * The confirmation, at full strength, because it is the last thing the page
+ * says to anyone who finishes reading it.
+ *
+ * `inline-block` is load-bearing: the reveal it is wrapped in rises it 14px,
+ * and `transform` does not apply to an inline box — the receipt would have
+ * appeared without moving, which is the "fade with no rise reads as a loading
+ * glitch" failure from the contract, arrived at by accident.
+ */
+.status strong {
+  display: inline-block;
+  font-weight: 400;
+  color: rgb(var(--ink));
+}
+
+/* A failed send is read, not skimmed. Same ink as the field errors, same
+   argument. */
+.failure:not(:empty) {
+  color: rgb(var(--ink));
+}
+
+/* ──────────────────────────────────────────────────────────── the address ── */
+
+/*
+ * The direct address, under the form.
+ *
+ * It is here for the one case the form cannot cover: the API is down, the send
+ * failed, and the reader needs somewhere to put the message they have just
+ * written. That is also why the failure text names it rather than only
+ * apologising.
+ *
+ * The profiles are not repeated here. They are stated as specs on the plate
+ * above — which is what a field line is for — and they are real links in the
+ * footer of every page on the site, one screen below this one.
+ */
+.direct {
+  margin: 2.5rem 0 0;
+  max-width: var(--measure);
+  font-size: 1.0625rem;
+  line-height: 1.6;
+  color: rgb(var(--ink-soft));
+}
+
+.direct a {
+  color: rgb(var(--ink));
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.26em;
+  text-decoration-color: rgb(var(--ink-soft));
+  transition: text-decoration-color var(--dur-micro) ease;
+}
+
+.direct a:hover,
+.direct a:focus-visible {
+  text-decoration-color: rgb(var(--ink));
+}

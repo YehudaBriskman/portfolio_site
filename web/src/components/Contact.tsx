@@ -1,248 +1,389 @@
-import { FormEvent, useState } from "react";
-import PaperCard from "@/components/cards/PaperCard";
-import { cardType } from "@/components/cards/cardType";
-import InkRule from "@/components/motion/InkRule";
+import { useState } from "react";
+import type { FormEvent } from "react";
+import ObjectLabel from "@/components/gallery/ObjectLabel";
+import { MAX_FIELDS, type LabelField } from "@/components/gallery/objectLabel";
+import Rise, { riseOnLoad } from "@/components/motion/Rise";
+import styles from "@/components/Contact.module.css";
 import { links } from "@/data/links";
 import { contact } from "@/data/site";
-import { sendContactMessage } from "@/services/contact";
+import { ContactSchema, sendContactMessage } from "@/services/contact";
 
-type Status = { kind: "idle" | "sending" | "sent" | "error"; message?: string };
+/** The three things a message is made of. A closed union, so a field's error,
+ *  its id and its name can never be a string the compiler has not seen. */
+type FieldName = "name" | "email" | "message";
+
+type FieldErrors = Partial<Record<FieldName, string>>;
+
+/**
+ * What the form is doing, as one value.
+ *
+ * A discriminated union rather than the `{ kind, message? }` record this used
+ * to be: `message` was optional on every state, so "sent" could carry an error
+ * string and "error" could carry none, and both of those are renderable.
+ */
+type Status =
+  | { kind: "idle" }
+  | { kind: "sending" }
+  | { kind: "sent" }
+  | { kind: "failed"; message: string };
 
 /*
- * Two cards, and neither of them is decoration.
+ * The field line, built from data rather than typed out.
  *
- * A form is the clearest case on the page for a raised surface: it is a
- * single object with a boundary, you put things into it, and the boundary is
- * what tells a reader where "filling this in" starts and stops. Underlined
- * fields floating on the paper had no such edge, which is why the submit
- * button read as belonging to the paragraph above it rather than to the
- * fields above it.
+ * The brief for this plate listed four fields — EMAIL, GITHUB, LINKEDIN and
+ * the reply time — and the schema caps a label at three. Four is a datasheet,
+ * which is what the project blocks were before they were cut back, so one had
+ * to go and EMAIL is the one that earns its place least: the next four hundred
+ * pixels of this page are an email form, and the address itself is printed
+ * under it. A spec that states what the thing directly below it plainly is, is
+ * not a spec.
  *
- * The second card is the way round the form — the address, the profiles, and
- * the sentence about where a message actually goes. It is a card because it
- * is the alternative to the first one, and two alternatives sitting at the
- * same altitude is how a reader sees that they are alternatives.
+ * What is left is the two channels that are *not* on screen and the one fact a
+ * reader cannot get by looking — how long an answer takes. `orderFields` sorts
+ * by kind, so `where` lands before `when` and the line reads
+ * GITHUB · LINKEDIN · USUALLY WITHIN A DAY whatever order they are written in
+ * here.
  *
- * The heading and the invitation above them stay on the paper. A section head
- * in a box has stopped being a section head.
+ * The profiles are sliced to `MAX_FIELDS - 1` rather than handed over whole.
+ * Adding a third profile to `data/links.ts` would otherwise push the field
+ * count to four, and the cap would silently drop the *last* kind in reading
+ * order — the reply time — which is the one field on this plate that is a
+ * promise. Reserving its slot here means a new profile costs a profile, which
+ * is a decision somebody makes, instead of costing the promise, which is a
+ * decision nobody makes.
+ */
+const PROFILE_SLOTS = MAX_FIELDS - 1;
+
+const plateFields: LabelField[] = [
+  ...links.slice(0, PROFILE_SLOTS).map((l): LabelField => ({ kind: "where", value: l.label })),
+  { kind: "when", value: contact.replyWithin },
+];
+
+/*
+ * The collection's last plate.
+ *
+ * The close is not a footer and not a call to action. It is the final object in
+ * the gallery, labelled with the same three-part schema as every project and
+ * every note — name, one line of fact, a field line — rendered through the same
+ * `ObjectLabel` they are, at the same scale. That is the whole idea: the ask
+ * reads as part of the collection rather than as the moment the catalog stops
+ * and the sales page starts.
+ *
+ * Two cards used to be here, and the reasoning that put them there was sound
+ * for the page that existed then: a form is an object with a boundary, and the
+ * aside beside it was its alternative at the same altitude. Both arguments die
+ * with the grammar. In a gallery the plate is the object, and a raised surface
+ * around the ask makes it the one thing on the page that is a different kind of
+ * thing from everything else. The aside's content did not survive either: the
+ * profiles are specs on the plate and links in the footer, the location is in
+ * the colophon, and "no third-party form provider sits in between" was a line
+ * about the implementation of a form, which is not a fact about the work.
+ *
+ * What was cut from the *plan* for this section, and why it matters more than
+ * what was cut from the page: the fields were to ink in as ruled lines and the
+ * whole card was to fold once and fly off the top of the window on send. It
+ * was the right instinct — the close should be the most satisfying moment —
+ * aimed at the wrong page. The engineered peak is the pile, and a page with
+ * three peaks has none, so the budget that would have bought the fold is spent
+ * two sections up.
+ *
+ * One restraint from it survives and is worth more than the animation was:
+ * THE CONFIRMATION LANDS BEFORE OR WITH ANY MOTION, NEVER AFTER IT. A card
+ * that leaves and then says it worked looks like it ate the message. Here it is
+ * satisfied structurally — see the note on the submit handler, and the one on
+ * the receipt's own arrival further down — and the easiest way to keep it true
+ * is the thing the grammar already demanded: nothing in this section exits. The last
+ * screen of the page still has the plate, the form and the address on it after
+ * everything has settled, which is the other half of the brief. A closing act
+ * that fades to an empty stage is the page apologising for existing.
  */
 export default function Contact() {
   const [status, setStatus] = useState<Status>({ kind: "idle" });
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    // Hold the element itself: React nulls currentTarget once the handler
-    // returns, so reaching for it after the await threw — and the mail had
-    // already been sent, so a successful send reported itself as a failure.
+    /* Hold the element itself: React nulls `currentTarget` once the handler
+       returns, so reaching for it after the await threw — and the mail had
+       already been sent, so a successful send reported itself as a failure. */
     const el = e.currentTarget;
     const form = new FormData(el);
-    setStatus({ kind: "sending" });
-    try {
-      await sendContactMessage({
-        name: String(form.get("name") ?? ""),
-        email: String(form.get("email") ?? ""),
-        message: String(form.get("message") ?? ""),
+    const draft = {
+      name: String(form.get("name") ?? ""),
+      email: String(form.get("email") ?? ""),
+      message: String(form.get("message") ?? ""),
+    };
+
+    /*
+     * Asked here with the service's own schema, so a bad field can be named.
+     *
+     * `sendContactMessage` parses what it is handed and throws one string with
+     * every complaint joined by interpuncts, which is the right contract for a
+     * service and useless as an error message: it cannot say *which* field, so
+     * it cannot be attached to one, so the reader gets told something is wrong
+     * with a form of three inputs and has to guess. Parsing here first gives
+     * `fieldErrors`, which is what an `aria-describedby` needs.
+     *
+     * The service still validates. This parse is for the message, not for the
+     * trust.
+     */
+    const parsed = ContactSchema.safeParse(draft);
+    if (!parsed.success) {
+      const flat = parsed.error.flatten().fieldErrors;
+      setFieldErrors({
+        name: flat.name?.[0],
+        email: flat.email?.[0],
+        message: flat.message?.[0],
       });
+      setStatus({
+        kind: "failed",
+        message: "Nothing was sent. There's a note under each field that needs a change.",
+      });
+      /*
+       * Focus deliberately does not move to the first bad field.
+       *
+       * It is the obvious courtesy and it breaks the thing above it: moving
+       * focus queues the new field's own announcement, which on several screen
+       * readers cuts off the alert that has just been inserted — so the reader
+       * is taken to a field and never told why. The alert is the announcement
+       * and the per-field notes are what `aria-describedby` reads out when they
+       * arrive there themselves.
+       */
+      return;
+    }
+
+    setFieldErrors({});
+    setStatus({ kind: "sending" });
+
+    try {
+      await sendContactMessage(parsed.data);
+      /*
+       * The confirmation first, the reset second, and both in one update.
+       *
+       * React batches these into a single commit, so the receipt reaches the
+       * live region in the same paint that empties the fields — the reader is
+       * never shown a cleared form with nothing to explain it. The order is
+       * written this way round anyway, because it is the order the rule is
+       * stated in and the next person to add a step here should have to step
+       * over it.
+       */
       setStatus({ kind: "sent" });
       el.reset();
     } catch (err) {
-      setStatus({ kind: "error", message: err instanceof Error ? err.message : "Couldn't send that" });
+      /*
+       * Nothing is cleared on a failure. Not an oversight — the one thing a
+       * reader cannot recover is the paragraph they just wrote, and a form
+       * that empties itself when the send fails has thrown away the only copy
+       * of the message it was asked to deliver.
+       */
+      const reason = err instanceof Error ? err.message : "something went wrong at my end";
+      setStatus({
+        kind: "failed",
+        message: `Nothing was sent — ${reason}. Your message is still in the fields, and ${contact.email} works too.`,
+      });
     }
   }
 
-  /*
-   * A field with a shape, not a line under some words.
-   *
-   * These were bottom-rules on a transparent ground: no left edge, no right
-   * edge, no corner, and nothing saying where the box you are typing into
-   * begins. A field is now a real recessed well — white at 70% over whatever
-   * wash the card is wearing, a 22px corner on a 48px-tall control, and a
-   * border you can see.
-   *
-   * The border is --ink-soft and not --rule-firm, for the reason `.btn-quiet`
-   * gives in index.css: a rule is a hairline between two pieces of content
-   * and measures 2.50-2.56:1 on this fill, under the 3:1 that the boundary of
-   * a control someone has to find is held to. --ink-soft measures 7.41-7.59:1
-   * on it, across all five washes.
-   *
-   * Focus is a real 2px outline rather than a change of border colour. The
-   * old rule killed the outline outright and leaned on the border going
-   * darker, which is a 1px signal a keyboard user has to hunt for; the
-   * outline sits outside the field and cannot be missed.
-   *
-   * The typed text is --ink at 17.67-18.10:1 on the fill, and the placeholder
-   * --ink-soft at 7.41-7.59:1 rather than an alpha of it, because a
-   * placeholder is read and nothing anyone reads gets to sit below AA.
-   */
-  const field =
-    "mt-[var(--card-step-tight)] w-full rounded-[var(--r-md)] border border-clay bg-white/70 px-4 py-3 text-ink placeholder:text-clay transition-colors focus:border-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink";
+  /* Rendered under the field it belongs to, and referenced from it. The id is
+     derived from the name so the two can never drift apart. */
+  const errorId = (name: FieldName) => `contact-${name}-error`;
 
   return (
-    <section id="contact" className="wrap section-y isolate relative">
-      {/* The availability half of this line has moved into the card below,
-          where it is a fact with a label on it rather than nine more words of
-          12px capitals above a 144px headline. The location stays: an
-          eyebrow's job is to say where in the world the section is speaking
-          from, and that is the half that does it. */}
-      <p className="eyebrow">{contact.location}</p>
-      {/* `.display`, like every other section head. */}
-      <h2 className="display mt-3 text-section">Get in touch</h2>
-
-      {/* 2xl rather than xl. Held to 36rem this paragraph ended a third of
-          the way across a 67rem column with the heading running the full
-          width above it, which is most of the "a lot of empty space to the
-          right" this section was called out for. 42rem is still a reading
-          measure — about 78 characters at this size. */}
-      <p className="mt-12 max-w-2xl text-lg leading-relaxed text-clay">
-        I&rsquo;m employed full-time and not looking for freelance work. I do read everything.
-        If you&rsquo;re hiring, building something you think I&rsquo;d find interesting, or want
-        to talk about anything on this page, write to me.
-      </p>
-
+    <section id="contact" className="wrap section-y">
       {/*
-       * Deliberately no ink wipe on these two cards.
+       * `reveal`, which is beat 5 of the device ledger and the same family as
+       * beat 0 — the two bookends of the page, and the only two places this
+       * family appears. The pile between them is the engineered peak and gets
+       * `pin`; the shelf gets `pan`; the specs get `count`. Nothing adjacent to
+       * this beat is a reveal, which is the rule the ledger exists to keep.
        *
-       * A clip path travelling across a form is motion the reader is about to
-       * interrupt — they arrive here to type, not to watch — and a clip on a
-       * focused field would crop its focus ring while it moved. The cards
-       * further up the page earn the stroke because they are read; these two
-       * are used.
-       *
-       * Which is also why their washes are written here rather than coming
-       * from `cardCycle`: with no wipe there is no stroke for a resting
-       * colour to agree with. The pair takes the next two steps of the cycle
-       * after the three notes above it — green, then purple — so the page
-       * finishes the run instead of replaying it. Offsetting a whole group is
-       * the same move the stacking deck makes, for the same reason.
+       * `Rise` and not a wipe, a sweep or a view timeline — and not three
+       * hand-written delays either. Its three direct children here are the
+       * plate, the form and the address, so they arrive 60ms apart in reading
+       * order, once, and stay arrived; the note in Rise.module.css has why
+       * "once" is the requirement and why a scroll timeline cannot express it.
+       * The grain is right at this size too: a label is one object, so its
+       * name, fact line and field line arrive together rather than as three
+       * events inside one object.
        */}
-      {/*
-       * `items-stretch`, which is the default, rather than the `items-start`
-       * that was here.
-       *
-       * Aligned to the top, the short card stopped 250px above the tall one
-       * and left a quarter of the section as blank paper in the bottom right
-       * corner — the largest hole on the home page. Two alternatives sitting
-       * at the same altitude was the whole argument for making them two
-       * cards; two alternatives of visibly different size is a main one and
-       * an afterthought.
-       */}
-      <div className="mt-12 grid gap-6 lg:grid-cols-[1.1fr_1fr]">
-        <PaperCard className="min-w-0 [--card-wash:var(--wash-green)]">
-          <form onSubmit={onSubmit}>
-            <label className="block">
-              <span className={cardType.meta}>Name</span>
-              <input name="name" required autoComplete="name" className={field} placeholder="Your name" />
-            </label>
-            <label className="mt-[var(--card-step)] block">
-              <span className={cardType.meta}>Email</span>
-              <input name="email" type="email" required autoComplete="email" className={field} placeholder="you@company.com" />
-            </label>
-            <label className="mt-[var(--card-step)] block">
-              <span className={cardType.meta}>Message</span>
-              <textarea name="message" required rows={4} className={`${field} resize-none`} placeholder="What are you building?" />
-            </label>
-
-            {/* `.btn .btn-solid`, which is what the rest of the site's primary
-                actions already are. */}
-            <button
-              type="submit"
-              disabled={status.kind === "sending"}
-              className="btn btn-solid mt-[calc(var(--card-step)*2)] disabled:cursor-not-allowed disabled:opacity-45"
-            >
-              {status.kind === "sending" ? "Sending" : "Send message"}
-              <span aria-hidden="true">→</span>
-            </button>
-
-            {/* Confirmation at full strength and the failure one step down.
-                The words carry the meaning either way; the live region is
-                what actually announces it. */}
-            {/* Not `cardType.meta`: that role is uppercase, and a sentence
-                set in capitals is a sign, not a receipt. --ink-soft, 7.13:1
-                on the card. */}
-            <p aria-live="polite" className="mono mt-[var(--card-step)] min-h-[1.25rem] text-xs text-clay">
-              {status.kind === "sent" && <span className="text-ink">Sent. I'll reply to the address you gave.</span>}
-              {status.kind === "error" && <span>{status.message}</span>}
-            </p>
-          </form>
-        </PaperCard>
+      <Rise>
+        {/*
+         * `scale="object"` and not `plate`.
+         *
+         * The plate scale belongs to object zero — the title plate at the top
+         * of the page, the thing the collection is named after, and the only
+         * type on the site set above the section register. This is the last
+         * object in the collection, not a second cover, so it is labelled at
+         * exactly the size a project in the pile is.
+         *
+         * `nameAs="h2"` because the plate is still this section's heading in
+         * the document. It replaced the section head rather than moving in
+         * underneath one — which is what "typeset exactly like a label" costs,
+         * and the whole reason the ask reads as part of the collection instead
+         * of as the moment the catalog stops and the sales page starts.
+         */}
+        <ObjectLabel
+          scale="object"
+          nameAs="h2"
+          name="Get in touch"
+          fact="Mail reaches me faster than anything else"
+          fields={plateFields}
+        />
 
         {/*
-         * Three blocks spread over the height the form gives this card: how
-         * to write to me, where I am, and what happens to a message.
+         * `noValidate`, with `required` and `type="email"` left on the fields.
          *
-         * `justify-between` over three groups rather than over seven loose
-         * children. Spread across every child, the free space fell between
-         * the address and the hairline under it and pushed the two apart —
-         * which is the one gap in here that is meant to be small, because the
-         * rule belongs to the address above it.
+         * The attributes stay: they are what tells assistive technology that a
+         * field is required and what kind of keyboard a phone should offer. The
+         * native *bubble* goes. It shows for a few seconds and then disappears,
+         * it is announced inconsistently, it cannot be given a contrast ratio,
+         * and it blocks the submit handler — so the legible, announced,
+         * persistent errors this form draws itself would only ever be seen by
+         * someone whose browser had already given up on them.
          */}
-        <PaperCard
-          as="aside"
-          className="flex min-w-0 flex-col justify-between gap-[calc(var(--card-step)*2)] [--card-wash:var(--wash-purple)]"
-          aria-label="Other ways to reach me"
+        <form
+          className={styles.form}
+          onSubmit={onSubmit}
+          noValidate
+          aria-label="Send a message"
+          aria-describedby="contact-note"
         >
-          <div>
-            <a
-            href={`mailto:${contact.email}`}
-              className={`${cardType.title} -my-2 flex min-h-11 items-center break-all py-2 underline decoration-ink/30 underline-offset-[6px] transition-colors hover:decoration-ink`}
-            >
-              {contact.email}
-            </a>
+          <p id="contact-note" className={`${styles.note} text-fact`}>
+            I&rsquo;m employed full-time and not looking for freelance work. I do read
+            everything &mdash; if you&rsquo;re hiring, building something you think
+            I&rsquo;d find interesting, or want to talk about anything on this page,
+            write to me.
+          </p>
 
-            <InkRule className="mt-[var(--card-step)]" />
-
-            <ul className="mt-[var(--card-step)] grid grid-cols-2 gap-x-6 gap-y-3">
-              {links
-                .filter((l) => l.name !== "gmail")
-                .map((l) => (
-                  <li key={l.name}>
-                    <a
-                      href={l.url}
-                      target="_blank"
-                      rel="noreferrer noopener"
-                      className={`${cardType.meta} -my-3 inline-flex min-h-11 items-center py-3 transition-colors hover:text-ink`}
-                    >
-                      {l.name}
-                    </a>
-                  </li>
-                ))}
-            </ul>
+          <div className={styles.field}>
+            <label className={styles.fieldLabel} htmlFor="contact-name">
+              Name
+            </label>
+            <input
+              id="contact-name"
+              name="name"
+              type="text"
+              required
+              autoComplete="name"
+              className={styles.control}
+              aria-invalid={fieldErrors.name ? true : undefined}
+              aria-describedby={fieldErrors.name ? errorId("name") : undefined}
+            />
+            {fieldErrors.name && (
+              <p id={errorId("name")} className={styles.fieldError}>
+                {fieldErrors.name}
+              </p>
+            )}
           </div>
 
-          {/*
-           * Two facts with labels on them, which is what finally gives this
-           * card something to be.
-           *
-           * It held an address, two profile links and one sentence — about
-           * 280px of content — beside a form that stands 650px tall, so
-           * either the pair sat at different heights with a quarter of the
-           * section blank next to the short one, or the short one stretched
-           * and carried 370px of empty card. Neither is a layout problem;
-           * both are the same content problem. The availability line came out
-           * of the eyebrow above, where it was being skimmed past, and the
-           * location is repeated here because this is the card someone reads
-           * when they are deciding whether to write.
-           */}
-          <dl className="grid gap-[var(--card-step)] sm:grid-cols-2 lg:grid-cols-1">
-            <div>
-              <dt className={cardType.meta}>Based in</dt>
-              <dd className={`${cardType.body} mt-[var(--card-step-tight)] text-sm`}>
-                {contact.location}
-              </dd>
-            </div>
-            <div>
-              <dt className={cardType.meta}>Right now</dt>
-              <dd className={`${cardType.body} mt-[var(--card-step-tight)] text-sm`}>
-                {contact.availability}
-              </dd>
-            </div>
-          </dl>
+          <div className={styles.field}>
+            <label className={styles.fieldLabel} htmlFor="contact-email">
+              Email
+            </label>
+            <input
+              id="contact-email"
+              name="email"
+              type="email"
+              required
+              autoComplete="email"
+              className={styles.control}
+              aria-invalid={fieldErrors.email ? true : undefined}
+              aria-describedby={fieldErrors.email ? errorId("email") : undefined}
+            />
+            {fieldErrors.email && (
+              <p id={errorId("email")} className={styles.fieldError}>
+                {fieldErrors.email}
+              </p>
+            )}
+          </div>
 
-          <p className={`${cardType.body} border-t border-ridge pt-[var(--card-step)] text-sm`}>
-            Messages reach me directly. No third-party form provider sits in between.
+          <div className={styles.field}>
+            <label className={styles.fieldLabel} htmlFor="contact-message">
+              Message
+            </label>
+            <textarea
+              id="contact-message"
+              name="message"
+              rows={5}
+              required
+              className={`${styles.control} ${styles.message}`}
+              aria-invalid={fieldErrors.message ? true : undefined}
+              aria-describedby={fieldErrors.message ? errorId("message") : undefined}
+            />
+            {fieldErrors.message && (
+              <p id={errorId("message")} className={styles.fieldError}>
+                {fieldErrors.message}
+              </p>
+            )}
+          </div>
+
+          {/* `.btn .btn-solid`, which is what every primary action on this site
+              already is, and nothing else. No magnet: a control that moves away
+              from the pointer is a joke told once, and the ledger bans the
+              family outright. */}
+          <button
+            type="submit"
+            disabled={status.kind === "sending"}
+            className={`btn btn-solid ${styles.send}`}
+          >
+            {status.kind === "sending" ? "Sending" : "Send message"}
+            <span aria-hidden="true">&rarr;</span>
+          </button>
+
+          {/*
+           * Two live regions, both present from the first paint and both
+           * usually empty.
+           *
+           * They are separate because they are announced differently and a
+           * region cannot change its mind: a receipt is polite and waits for a
+           * gap, a failed send is an alert and does not. Swapping one element's
+           * `role` between the two is the version of this that silently
+           * announces nothing, because the region a screen reader is watching
+           * is the one it saw when the page loaded.
+           *
+           * Neither is created at the moment its text is, for the same reason.
+           * A live region that arrives together with its first content is a
+           * region nobody has subscribed to yet, which loses the announcement
+           * in exactly the case it was written for.
+           */}
+          <p role="status" aria-live="polite" aria-atomic="true" className={styles.status}>
+            {status.kind === "sending" && "Sending"}
+            {status.kind === "sent" && (
+              /*
+               * The confirmation rises into place, and the ordering rule is
+               * satisfied by construction rather than by timing.
+               *
+               * `riseOnLoad` is the same measured reveal the section arrived
+               * with, in its already-on-screen form: the span mounts carrying
+               * both class names, so the animation starts on insertion instead
+               * of waiting for an observer that has long since disconnected.
+               * Borrowing it rather than writing 620ms and 14px again here is
+               * the point — see the head of Contact.module.css.
+               *
+               * Why this cannot announce late: the text is committed to the DOM
+               * in the same React update that sets the state, so the live region
+               * has it, and announces it, before the first animation frame runs.
+               * `opacity` and `transform` do not take an element out of the
+               * accessibility tree, so what rises is a receipt that has already
+               * been read out. And there is no exit motion anywhere in this
+               * section for it to be late to, which is the other half of the
+               * guarantee.
+               */
+              <span className={riseOnLoad}>
+                <strong>Sent. I&rsquo;ll reply to the address you gave.</strong>
+              </span>
+            )}
           </p>
-        </PaperCard>
-      </div>
+          <p role="alert" className={styles.failure}>
+            {status.kind === "failed" ? status.message : null}
+          </p>
+        </form>
+
+        <p className={styles.direct}>
+          Or write to <a href={`mailto:${contact.email}`}>{contact.email}</a> from
+          wherever you keep your mail.
+        </p>
+      </Rise>
     </section>
   );
 }
