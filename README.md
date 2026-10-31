@@ -78,18 +78,32 @@ ghcr.io/yehudabriskman/portfolio_site/api:latest
 Built for `linux/amd64` and `linux/arm64`, because the cluster runs on an arm64
 node.
 
-## How it reaches production, and the gap in that
+## How it reaches production
 
-The site runs on a k3s cluster on a single ARM node. Today the rollout is
-`deploy-portfolio.sh` in the `oci-free` repository: it rsyncs **the working
-directory** to the node, builds there, and imports into containerd — which is
-why the deployments pin `imagePullPolicy: Never`.
+A push to `main` builds both images, publishes them to GHCR multi-arch, and
+rolls them out — `kubectl set image` against the commit sha, so what is running
+is always a commit somebody can check out.
 
-That means the live site can be running code that was never committed, and for
-six weeks it was. The images above exist to replace that: once the deployments
-reference a published tag, a rollout is something that happened in CI from a
-known commit rather than something a laptop did.
+```
+push to main ──▶ build + test ──▶ ghcr.io/…/{web,api}:<sha> ──▶ kubectl set image
+                                                                      │
+                                                 rollout status ──▶ curl the site
+                                                                      │
+                                                        not 200? ──▶ rollout undo
+```
 
+The cluster's API server is not reachable from the internet and is not going to
+be, so the runner joins the tailnet for the length of the job with an ephemeral
+node. Setup — three repository secrets and one cluster secret — is in the
+`oci-free` README next to the manifests.
+
+This replaced `deploy-portfolio.sh`, which rsynced a laptop's working directory
+to the node and built it there. That could put code on the live site that was
+never committed, and for six weeks it did. It had also stopped working
+entirely: it still synced a frontend directory renamed six weeks earlier, so
+rsync failed, `set -e` aborted the run, and the site quietly stopped updating
+with nothing reporting it. The script survives as a fallback with the path
+fixed; it still ships a working directory, which is why it is not the route.
 ## Notes
 
 CORS is restricted to the site's own origins — `/api/email` relays real SMTP, so
