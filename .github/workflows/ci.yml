@@ -252,6 +252,32 @@ jobs:
       # where `set -x`, a shell error or anything that echoes the command can
       # print it; base64 so the embedded newlines survive the round trip
       # without depending on how the value was pasted into the secret.
+      # The tailnet is up before this step, but a path to a specific peer is
+      # not: Tailscale builds one lazily, and the first packet is what builds
+      # it. The first real rollout joined the tailnet successfully and then
+      # timed out on the API server sixty-four seconds later, because kubectl
+      # was the thing discovering the route and kubectl does not retry.
+      #
+      # So: ping to force path discovery, then poll the port until it answers.
+      # A minute is generous for a relay to come up and still finishes long
+      # before kubectl's own 32-second-per-call timeout becomes the clock.
+      - name: Wait for a path to the node
+        run: |
+          set -uo pipefail
+          tailscale status --peers=false || true
+          tailscale ping --timeout=5s -c 3 100.79.242.82 || true
+          for i in $(seq 1 20); do
+            if timeout 5 bash -c 'cat < /dev/null > /dev/tcp/100.79.242.82/6443' 2>/dev/null; then
+              echo "API server answered after ${i} attempt(s)"
+              exit 0
+            fi
+            sleep 3
+          done
+          echo "::error title=No path to the API server::Joined the tailnet but 100.79.242.82:6443 never answered in 60s. A timeout is a dropped packet rather than a refused connection, so look at the tailnet before the cluster: is the ephemeral node listed below, and does the policy permit its tag to reach that port?"
+          tailscale status || true
+          tailscale netcheck || true
+          exit 1
+
       - name: Point kubectl at the cluster
         env:
           KUBECONFIG_B64: ${{ secrets.KUBECONFIG_B64 }}
@@ -264,6 +290,7 @@ jobs:
           kubectl -n prod get deploy web api -o name
 
       - name: Roll out this commit
+        id: rollout
         run: |
           set -euo pipefail
           kubectl -n prod set image deploy/web \
@@ -287,8 +314,11 @@ jobs:
           echo "the site did not return 200 after the rollout" >&2
           exit 1
 
+      # Only when a rollout actually started. Unreachable cluster means there
+      # is nothing to undo, and four more kubectl calls against an API that is
+      # not answering is two further minutes of the same timeout.
       - name: Put it back if it did not
-        if: failure()
+        if: failure() && steps.rollout.outcome == 'success'
         run: |
           kubectl -n prod rollout undo deploy/web || true
           kubectl -n prod rollout undo deploy/api || true
