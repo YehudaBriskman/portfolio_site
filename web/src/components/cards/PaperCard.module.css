@@ -141,12 +141,13 @@
  * element whose position in the group decides the hue. The card inherits
  * `--card-wash` from it.
  *
- * A group can be offset as a whole — the stacking deck already offsets its
- * wipes by three so the pile does not repeat the run of the grid below it,
- * and StackDeck.module.css offsets the washes with them. What never varies is
- * the order inside a group, and what the hue never carries is meaning: the
- * position it encodes is already stated by document order and, on the deck,
- * printed as "01 / 03".
+ * A group can be offset as a whole — the stacking deck used to offset its
+ * wipes by three, with the washes shifted to match, so the pile did not repeat
+ * the run of the grid below it. That deck is retired, so nothing offsets the
+ * cycle at the moment; the mechanism stays because the next group that sits
+ * directly under another one will need it. What never varies is the order
+ * inside a group, and what the hue never carries is meaning: the position it
+ * encodes is already stated by document order.
  */
 .cycle:nth-child(5n + 1) { --card-wash: var(--wash-blue); }
 .cycle:nth-child(5n + 2) { --card-wash: var(--wash-yellow); }

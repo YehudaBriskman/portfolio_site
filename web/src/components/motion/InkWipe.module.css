@@ -153,8 +153,11 @@
  *
  * Any one wipe can be overruled by setting --wipe-hue further up the tree, at
  * a higher specificity than the single class plus pseudo-class here, or
- * inline. StackDeck does exactly that so the pile does not repeat the run of
- * the grid below it; see the note in StackDeck.module.css.
+ * inline. The stacking deck did exactly that — it offset its wipes three steps
+ * so the pile did not replay the run of the grid below it — and it has been
+ * retired along with the fanned hand it dealt, so nothing on the page overrules
+ * the cycle today. The hook is kept because the next group to sit directly
+ * under another one will want it.
  */
 .wipe:nth-child(5n + 1) { --wipe-hue: var(--hue-blue); }
 .wipe:nth-child(5n + 2) { --wipe-hue: var(--hue-yellow); }
