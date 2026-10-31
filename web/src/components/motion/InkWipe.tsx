@@ -43,6 +43,11 @@ export type InkWipeProps = {
  * a frame behind it, and would put a scroll listener back on a site that has
  * none left. The component contributes class names and nothing else, which is
  * also what lets the stylesheet switch the whole effect off from an at-rule.
+ *
+ * The page-level rules this stroke answers to — the two rules of scroll-driven
+ * motion, the three off-switches and the device ledger it is a beat of — are
+ * written down in `docs/motion-contract.md`. The duration note in the
+ * stylesheet is rule 1 of it.
  */
 export default function InkWipe({
   children,

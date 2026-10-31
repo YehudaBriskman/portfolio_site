@@ -104,6 +104,11 @@ function schedule(text: string): { word: string; delay: number }[] {
  * at all. A real text node has no such caveat, and it keeps the sentence
  * available to find-in-page and to translation tools, both of which skip an
  * aria-label entirely.
+ *
+ * The gate in the stylesheet beside this file is the worked example of rule 1
+ * of the motion contract — a scroll-driven animation has no delay and no
+ * duration — which, with the rest of the page's rules, is written down in
+ * `docs/motion-contract.md`.
  */
 export default function WordStagger({
   children,

@@ -20,6 +20,9 @@ export type InkRuleProps = {
  * the pair that makes one path work at every width: the geometry stretches to
  * the box, the ink does not, so a rule spanning 900px of a desktop heading and
  * one spanning 40px inside a card are the same weight of line.
+ *
+ * The page-level rules this line answers to are in
+ * `docs/motion-contract.md`.
  */
 export default function InkRule({ className = "" }: InkRuleProps) {
   return (
