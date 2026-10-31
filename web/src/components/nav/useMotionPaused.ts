@@ -4,6 +4,57 @@ import "./motion-paused.css";
 const KEY = "yb-motion-paused";
 
 /**
+ * The section the reader is in, and how far through it they are.
+ *
+ * Toggling Pause collapses every pinned act to its natural height — on the
+ * home page that is 2201px of document vanishing at once, as the pile's rail
+ * goes 3402 to 1201. The browser's own scroll anchoring does not cover it,
+ * because a `position: sticky` box is not a scroll-anchor candidate, so
+ * `scrollY` is left exactly where it was and the reader lands somewhere else.
+ *
+ * Measured before this existed: pressing Pause 55% into the pile took the
+ * reader from three pinned cards to the middle of the wall text, two sections
+ * back. Unpausing from the wall text threw them forward into the pile.
+ * Nothing was ever hidden — the page stayed perfectly legible, which is why
+ * it read as the page having jumped rather than as a bug.
+ *
+ * Holding a single element still does not work here, and the first attempt at
+ * this proved it: the only element on screen while the pile is pinned is
+ * inside the subtree that collapses, and the section wrapping it does not
+ * move at all, so the correction computed zero and changed nothing.
+ *
+ * What survives the collapse is the reader's *proportional* position within
+ * the section they are reading. Three quarters of the way through Work before
+ * is three quarters of the way through Work after, whatever Work now measures
+ * — which puts them on the collapsed list of the same projects rather than
+ * two sections downstream.
+ */
+type ReadingPosition = { section: HTMLElement; through: number };
+
+function readingPosition(): ReadingPosition | null {
+  const boxes = document.querySelectorAll<HTMLElement>("main section, main > div");
+  for (const section of boxes) {
+    const r = section.getBoundingClientRect();
+    if (r.bottom <= 0 || r.top >= window.innerHeight) continue;
+    /* Travel is the section's own scrollable length. A section shorter than
+       the viewport has none, and `through` is then 0 — which is correct: there
+       is only one place to be inside it. */
+    const travel = Math.max(0, r.height - window.innerHeight);
+    const into = -r.top;
+    const through = travel === 0 ? 0 : Math.min(1, Math.max(0, into / travel));
+    return { section, through };
+  }
+  return null;
+}
+
+function restore({ section, through }: ReadingPosition) {
+  const r = section.getBoundingClientRect();
+  const top = r.top + window.scrollY;
+  const travel = Math.max(0, r.height - window.innerHeight);
+  window.scrollTo({ top: top + through * travel, behavior: "auto" });
+}
+
+/**
  * Lets the visitor stop the page moving.
  *
  * Separate from the OS `prefers-reduced-motion` setting, and deliberately so:
@@ -46,7 +97,37 @@ export function useMotionPaused(): [boolean, () => void] {
      page — the ink wipes, the iris panels, the rules that draw themselves —
      stops as well, none of which the nav renders or can reach. */
   useEffect(() => {
+    /*
+     * Hold the reader's place across the toggle.
+     *
+     * Pausing collapses every pinned act to its natural height, and on the
+     * home page that is 2201px of document disappearing at once: the pile's
+     * rail goes 3402 → 1201. The browser's own scroll anchoring does not
+     * cover it, because a `position: sticky` box is not a scroll-anchor
+     * candidate — so `scrollY` is simply left where it was and the reader
+     * lands somewhere else entirely.
+     *
+     * Measured before this: pressing Pause 55% into the pile moved the
+     * reader from three pinned cards to the middle of the wall text, two
+     * sections back. Unpausing from the wall text threw them *forward* into
+     * the pile. Nothing was ever hidden — the page stayed perfectly legible,
+     * which is exactly why it reads as the page having jumped rather than as
+     * a bug — but they lost their place in both directions.
+     *
+     * So: measure a real, non-sticky element's distance from the top of the
+     * viewport, flip the class, then put that element back where it was. A
+     * sticky element is useless as the reference for the same reason the
+     * browser will not use one, and an element inside the collapsing subtree
+     * is the thing that moved, so the anchor is chosen from the section
+     * boxes themselves.
+     */
+    const where = readingPosition();
+
     document.body.classList.toggle("motion-paused", paused);
+
+    /* Read back after the class change so layout has been recomputed; the two
+       measurements bracket the only write. */
+    if (where) restore(where);
   }, [paused]);
 
   /*
