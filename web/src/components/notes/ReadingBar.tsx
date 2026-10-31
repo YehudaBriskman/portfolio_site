@@ -12,7 +12,7 @@ import { toast } from "sonner";
  *
  * Why this measures for itself
  * ----------------------------
- * The rail used to track --pr, which useScrollProgress derives from the whole
+ * The rail used to track --pr, a document-wide figure derived from the whole
  * document: scrollY over scrollHeight minus a viewport. A post is not the
  * document. After the last paragraph come the tags, the link list, the
  * prev/next pair and the entire site footer — between 1200 and 1800px of

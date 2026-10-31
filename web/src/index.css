@@ -192,7 +192,12 @@
     --panel-2:     22  22  26;   /* #16161A  a raised surface on it */
     --panel-ink:  242 240 234;   /* #F2F0EA  14.9:1 on --panel */
     --panel-soft: 168 164 154;   /* #A8A49A   7.0:1 on --panel */
-    --panel-rule:  48  48  54;
+    /* 1.49:1 against --panel, which an audit flagged against the 3:1 floor
+       for a boundary that identifies a control. Lifted to the point where a
+       card has a visible edge on the dark act even when it carries no
+       screenshot; a hairline on paper is decorative, but here it is the only
+       thing separating one object from the ground. */
+    --panel-rule: 100 100 110;
     /* The accent cannot clear 4.5:1 on both grounds with one stop. One hue,
        two lightnesses, keyed to the ground. Two hues is not what this
        licenses. */
@@ -499,12 +504,38 @@
     --border: var(--panel-rule);
   }
 
+  /*
+   * Three axes, and an audit found only one and a half of them arriving.
+   *
+   * `:is(p, li, dd, .body)` matched the `li` of a field line and overwrote
+   * its 0.18em tracking with 0.004em — a 45x reduction on the smallest type
+   * on the darkest ground, which is the exact opposite of what this block
+   * exists to do. The parent `ul` kept its 0.18em, so the stylesheet read as
+   * if the tracking had survived.
+   *
+   * And `.on-panel .field` never matched anything: the field line carries the
+   * `text-field` utility and a CSS-module class, never a bare `.field`. The
+   * rule meant to carry the compensation had no selector to carry it on.
+   *
+   * Weight was simply absent for body copy — only `.display` got the bump,
+   * and `.display` is not what a fact line is set in.
+   */
   .on-panel :is(p, li, dd, .body) {
     line-height: 1.68;
     letter-spacing: 0.004em;
+    /* Half a step, which is what the axis is for. Archivo carries 400–900 and
+       both reference sites set their dark-ground body at a half-step above
+       their light-ground one for exactly this reason. */
+    font-weight: 450;
   }
   .on-panel :is(.display, .display-tight) { font-weight: 900; }
-  .on-panel .field { letter-spacing: calc(var(--track-field) + 0.01em); }
+  /* Last, and matching the utility rather than a class nothing applies, so it
+     wins the field line back from the rule above. */
+  .on-panel .text-field,
+  .on-panel .text-field li {
+    letter-spacing: calc(var(--track-field) + 0.01em);
+    font-weight: 450;
+  }
   .mono {
     font-family: 'IBM Plex Mono', ui-monospace, monospace;
     font-weight: 400;
@@ -1166,12 +1197,16 @@
    * progress: a page carries 1,200-1,800px of tags, footer navigation and
    * site footer after the last paragraph, so the rail sat near 70% when the
    * article had actually ended. --pr-read is measured against the article
-   * alone and falls back to --pr wherever nothing sets it.
+   * alone.
    */
   .progress-rail {
     position: fixed; inset-inline: 0; top: 0; height: 2px; z-index: 55;
     transform-origin: left;
-    transform: scaleX(var(--pr-read, var(--pr, 0)));
+    /* --pr-read only. The document-wide --pr this used to fall back to was
+       published by a scroll listener that wrote it every frame for no reader:
+       ReadingBar sets --pr-read inline from first paint, so the fallback was
+       unreachable here and unreferenced everywhere else. */
+    transform: scaleX(var(--pr-read, 0));
     background: rgb(var(--bone));
   }
   .progress-rail::after {

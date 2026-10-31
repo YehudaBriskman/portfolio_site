@@ -9,6 +9,22 @@ import { useEffect } from "react";
  * Every scroll-linked effect on the site reads these, so there is exactly one
  * scroll listener no matter how many things animate. Deliberately not a React
  * state value: this changes every frame and must never trigger a re-render.
+ *
+ * ── mounted on one route, deliberately ───────────────────────────────────
+ *
+ * This used to run on every page, from `Index` and from `PageShell`. An audit
+ * measured what that cost and found the home page paying 30fps at 4x CPU
+ * throttling for two root custom properties that nothing on it read: --pr's
+ * only consumer fell back to a value `ReadingBar` always overwrites inline,
+ * and --vh's only consumer is the parallax drift on a project detail page.
+ *
+ * So it is mounted in `pages/Project.tsx` and nowhere else. The home page,
+ * the notes index and every post now have no scroll listener at all, which is
+ * the state the rest of the motion system was built to allow: `view()`
+ * timelines and IntersectionObservers do not need one.
+ *
+ * Before adding this to another page, check that something on it actually
+ * reads --vh. A write with no reader is invisible, permanent and expensive.
  */
 export function useScrollProgress() {
   useEffect(() => {
@@ -62,32 +78,28 @@ export function useScrollProgress() {
        */
       const y = window.scrollY;
       const vh = Math.max(1, window.innerHeight);
-      const travel = root.scrollHeight - vh;
 
       /*
-       * Three decimals, not four, and that is worth 23 frames a second.
+       * One write, three decimals, and it is still the most expensive thing
+       * on any page that mounts this.
        *
        * These are inherited custom properties on the root, so every write
-       * invalidates style for the whole document and re-resolves every
-       * var() in it. The `put()` guard above exists to suppress that when
-       * the value has not changed — but at four decimals a slow scroll
-       * produces a different number on almost every frame, so the guard
-       * almost never fired.
+       * invalidates style for the whole document and re-resolves every var()
+       * in it. The `put()` guard suppresses that when the value has not
+       * changed, and quantising to a hundredth of a viewport means most
+       * frames write nothing.
        *
-       * Measured A/B over a six-second scroll at 4x CPU throttling, with
-       * only these two lines stubbed out: 36.5fps and 141 dropped vsyncs
-       * became 59.7fps and 2. The trace put 4.1 seconds into
-       * UpdateLayoutTree across 160 frames with no script in them at all —
-       * pure style recalculation, for two numbers.
+       * It is not enough on its own. Measured over a six-second scroll at 4x
+       * CPU throttling, with this line and the old --pr line stubbed out:
+       * 29.9fps and 97.5% dropped frames became 59.9fps and 0.3%, and style
+       * recalculation fell from 4.80s to 0.38s of a 6.3s pass. Either write
+       * alone held the page at 30fps, so suppressing one saved nothing — the
+       * cost is per-frame whole-document invalidation, not per-property.
        *
-       * --pr drives a 2px progress rail, so a thousandth of its travel is
-       * far below one pixel on any screen. --vh drives a parallax offset
-       * measured in tens of pixels per viewport, so a hundredth of a
-       * viewport is likewise invisible. Both are now quantised to the point
-       * where most frames write nothing.
+       * Which is why --pr is gone and why this hook is no longer mounted on
+       * every page. It writes one value, for one reader, on one route.
        */
       put("--vh", (Math.round((y / vh) * 100) / 100).toFixed(2));
-      put("--pr", (y / Math.max(1, travel)).toFixed(3));
     };
 
     /*

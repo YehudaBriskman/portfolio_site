@@ -25,7 +25,7 @@ import { useEffect, useState } from "react";
  * band that is exactly the strip the bar occupies turns "is this panel behind
  * the bar" into plain intersection, which the browser answers off the main
  * thread and tells us about only when it changes. The site has no scroll
- * listener left but the one in `useScrollProgress`, and the measurements in
+ * listener left on this page at all, and the measurements in
  * that file are the reason; the chrome is not adding a second.
  */
 
@@ -77,6 +77,11 @@ export function useDarkChrome(pathname: string, barBottom: number): boolean {
        * degenerate case of a window shorter than its own chrome.
        */
       const below = Math.max(0, Math.round(window.innerHeight - barBottom));
+      /* Same guard as Rise and useEnteredOnce: an engine without the observer
+         gets the finished state, never a half-built one. Unguarded, the
+         constructor throws during commit and the page renders nothing — which
+         is how this was found. */
+      if (typeof IntersectionObserver === "undefined") return;
       observer = new IntersectionObserver(
         (entries) => {
           for (const e of entries) {

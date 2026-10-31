@@ -7,7 +7,6 @@ import Stack from "@/components/Stack";
 import LatestNotes from "@/components/LatestNotes";
 import Contact from "@/components/Contact";
 import SiteFooter from "@/components/SiteFooter";
-import { useScrollProgress } from "@/hooks/useScrollProgress";
 
 /*
  * The home page, and nothing between it and its sections.
@@ -50,7 +49,6 @@ import { useScrollProgress } from "@/hooks/useScrollProgress";
  * no reader.
  */
 export default function Index() {
-  useScrollProgress();
 
   return (
     <div className="relative min-h-screen">
