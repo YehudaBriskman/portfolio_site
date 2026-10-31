@@ -460,6 +460,58 @@
 }
 
 /*
+ * The object that is not in this room.
+ *
+ * Six of the eight index items jump within the page and two change route, and
+ * until this rule existed nothing on the screen told them apart — a keyboard
+ * user walking the bar was navigated off the page without warning on items
+ * five and six. The words are in the accessible name (see `AWAY_NOTE` in
+ * IndexLinks.tsx); this is the half a sighted reader gets.
+ *
+ * Quiet, because this is a bar and not a legend. Three decisions that keeps:
+ *
+ *   It is a chevron and not a badge, a second type colour or a border, each of
+ *   which would be a new visual system inside a strip whose whole claim is
+ *   that every item is the same kind of thing. It is not the site's onward
+ *   arrow either, and that one was measured rather than argued about — see
+ *   `AWAY_GLYPH` in IndexLinks.tsx for the 19px-per-item it cost and the
+ *   desktop width at which it clipped "Contact" off the end of the bar.
+ *
+ *   `1em` and not a fixed size, so it tracks the link's own
+ *   `clamp(1rem, 1.4vw, 1.125rem)` rather than growing relatively larger as
+ *   the bar gets smaller — which is the width where it can least afford it. A
+ *   chevron wants the full step where an arrow wanted three-quarters of one:
+ *   it is a thin mark made of two strokes, and shrinking it is what turns it
+ *   from a sign into a speck.
+ *
+ *   0.5 alpha. At full strength the mark reads as loud as the name it follows,
+ *   and on a note page all eight items are away at once: eight chevrons at
+ *   full ink is a row of chevrons with words between them. Half ink on either
+ *   ground keeps it at the edge of noticing, which is where a mark that
+ *   repeats eight times belongs. It is for the eye only, so it is held to no
+ *   contrast minimum — the fact itself is in the accessible name.
+ *
+ * `currentColor`, so the inked pill and the dark act both come for free and
+ * this rule never learns that either exists.
+ */
+.awayMark {
+  margin-inline-start: 4px;
+  font-size: 1em;
+  line-height: 1;
+  color: currentColor;
+  opacity: 0.5;
+  /* The arrow is not type that may wrap away from its word. */
+  flex: none;
+}
+
+/* In the sheet the row is 48px of full width, so the mark goes to the trailing
+   edge where a list of destinations is read from — rather than hanging off the
+   end of the word, which in a stacked list reads as part of the label. */
+.sheetLink .awayMark {
+  margin-inline-start: auto;
+}
+
+/*
  * The routes, quieter by value and marked differently.
  *
  * Two kinds of "current" exist in this bar — the room you are in and the

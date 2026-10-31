@@ -27,13 +27,33 @@ const chrome = () =>
     </MemoryRouter>
   );
 
+/*
+ * What an away item adds to its own name, and the reason most of the
+ * assertions below have to strip it.
+ *
+ * Every item is an away item in jsdom — no plate resolves, so the index falls
+ * back to the object's own page for all eight — and each of them therefore
+ * carries the onward mark and the sr-only phrase that says the trip leaves
+ * this page. Tests whose subject is the list, its order or its destinations
+ * take the visible label back off; the affordance itself is the subject of
+ * "tells a jump from a trip" below.
+ */
+const AWAY = ", on another page";
+const visibleLabel = (el: Element) => (el.textContent ?? "").replace(/›$/, "");
+
+/** A plate for an object, so the index has somewhere on this page to jump to. */
+function plantPlate(slug: string) {
+  const el = document.createElement("div");
+  el.id = objectAnchorId(slug);
+  document.body.append(el);
+  return () => el.remove();
+}
+
 describe("the nav as an index", () => {
   it("prints the collection, in the collection's own order", () => {
     chrome();
     const index = screen.getAllByRole("navigation", { name: "Index" })[0];
-    const names = within(index)
-      .getAllByRole("link")
-      .map((a) => a.textContent);
+    const names = within(index).getAllByRole("link").map(visibleLabel);
 
     /* Generated from the project table rather than from a list in the chrome:
        a project added to the data has to appear here without this file being
@@ -147,6 +167,47 @@ describe("the nav as an index", () => {
     expect(document.body.style.overflow).toBe("");
   });
 
+  it("tells a jump from a trip, on the screen and in the name", async () => {
+    /*
+     * The finding this answers: of the eight items in the index, six were
+     * in-page anchors and two were route changes, with nothing marking which
+     * was which — so a keyboard user walking the bar was navigated off the page
+     * without warning on items five and six.
+     *
+     * Both states have to exist in one render for the test to mean anything, so
+     * one plate is planted in the document. That is the only way to reach the
+     * `present` branch here: `useCollectionIndex` resolves an item's
+     * destination by looking its anchor up in the DOM, which is exactly why
+     * every other test in this file sees eight away links.
+     */
+    const remove = plantPlate(projects[0].slug);
+    try {
+      chrome();
+      const index = screen.getAllByRole("navigation", { name: "Index" })[0];
+      const label = indexLabel(projects[0].title, projects[0].fact);
+
+      /* On this page: a fragment, the bare name, and no mark. An object you are
+         standing next to does not need to be announced as being elsewhere. */
+      const jump = within(index).getByRole("link", { name: label });
+      expect(jump).toHaveAttribute("href", `#${objectAnchorId(projects[0].slug)}`);
+      expect(jump.textContent).toBe(label);
+
+      /* Not on this page: the name says so, and the arrow shows it. */
+      const trip = within(index).getByRole("link", { name: "Notes" + AWAY });
+      expect(trip).toHaveAttribute("href", "/blog");
+      expect(trip.textContent).toContain("›");
+      /* The arrow is for the eye only — announced as "right arrow" between a
+         name and a phrase about it, it would make the bar louder for exactly
+         the reader the affordance is for. */
+      expect(trip.querySelector("[aria-hidden='true']")?.textContent).toBe("›");
+      /* And the visible text still leads the accessible name: WCAG 2.5.3, so
+         "Notes" remains something a reader can say out loud to reach it. */
+      expect(trip.textContent?.startsWith("Notes")).toBe(true);
+    } finally {
+      remove();
+    }
+  });
+
   it("puts the whole index in the sheet, not just the routes", async () => {
     chrome();
     await userEvent.click(screen.getByRole("button", { name: /Index/ }));
@@ -154,7 +215,7 @@ describe("the nav as an index", () => {
     expect(sheet).not.toBeNull();
     const inSheet = within(sheet as HTMLElement);
     for (const item of NAV_INDEX) {
-      expect(inSheet.getByRole("link", { name: item.label })).toBeInTheDocument();
+      expect(inSheet.getByRole("link", { name: item.label + AWAY })).toBeInTheDocument();
     }
     expect(inSheet.getByRole("link", { name: "All work" })).toBeInTheDocument();
     expect(inSheet.getByRole("link", { name: "Email" })).toBeInTheDocument();
