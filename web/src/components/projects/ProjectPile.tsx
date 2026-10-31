@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import { Fragment, type CSSProperties } from "react";
 import { Link } from "react-router-dom";
 import ObjectLabel from "@/components/gallery/ObjectLabel";
 import Plate from "@/components/projects/Plate";
@@ -141,7 +141,33 @@ export default function ProjectPile({
         const { collection: c } = entry;
 
         return (
-          <li
+          <Fragment key={c.slug}>
+            {/*
+              The index's anchor, and the thing it watches, kept out of the
+              sticky box on purpose.
+
+              The slot below is `position: sticky`, so from the moment it pins
+              its rectangle stops moving and every slot in the pile reports the
+              same geometry. The chrome finds the current object with a point
+              probe under the bar (see `nav/useCollectionIndex.ts`), so with
+              the id on the slot that probe resolved to the first project for
+              the whole act — an audit measured the marker stuck on WindoM
+              across 3900px while three other cards came and went on screen.
+
+              This marker is a zero-height sibling that never pins, so it
+              passes under the probe exactly when its card arrives. It also
+              makes a better jump target than the slot did: landing here puts
+              the reader where the card enters rather than where it is parked.
+
+              `aria-hidden` keeps the list reporting four objects rather than
+              eight; the marker is addressable by id and by nothing else.
+            */}
+            <li
+              id={objectAnchorId(c.slug)}
+              className={styles.marker}
+              aria-hidden="true"
+            />
+            <li
             key={c.slug}
             /*
               The plate's own id, so the chrome's index has something to jump
@@ -158,7 +184,6 @@ export default function ProjectPile({
               making it per-card would mean giving every card its own scroll
               extent, which is the pile.
             */
-            id={objectAnchorId(c.slug)}
             className={styles.slot}
             /*
               Two numbers per slot, and both of them belong here rather than
@@ -241,7 +266,8 @@ export default function ProjectPile({
                 />
               </div>
             </Link>
-          </li>
+            </li>
+          </Fragment>
         );
       })}
     </ol>
