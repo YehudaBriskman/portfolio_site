@@ -16,14 +16,6 @@ export type PaperCardProps = {
   children: ReactNode;
   as?: PaperCardTag;
   /**
-   * Opaque fill instead of the translucent default.
-   *
-   * Required wherever cards overlap — the stacking deck — because the shared
-   * `.card-paper` wash lets whatever is behind it through, and what is behind
-   * a stacked card is another card.
-   */
-  solid?: boolean;
-  /**
    * Drop the card's own padding so a child can carry it instead.
    *
    * For a card that is entirely one link: the anchor has to fill the card, or
@@ -40,26 +32,29 @@ export type PaperCardProps = {
 /*
  * A card: the unit the page is made of on this ground.
  *
- * Thin on purpose. The surface belongs to `.card-paper` in index.css so that
- * every card on the site — these, the project cards, the note cards — changes
- * together; this component adds the inset, the measured ink, and the one
- * decision `.card-paper` cannot make for itself, which is whether the card is
- * see-through.
+ * Thin on purpose. The border, the shadow and the lift belong to `.card-paper`
+ * in index.css so that every card on the site — these, the project cards, the
+ * note cards — changes together; this component adds the inset, the measured
+ * ink, the corner and the resting colour.
+ *
+ * The `solid` variant this used to carry is gone. It existed because
+ * `.card-paper` is translucent and a translucent card in a pile lets the card
+ * underneath read straight through it; every card is now painted with an
+ * opaque fill — the same composited colour, or one of the five washes — so
+ * there is no longer a see-through state for a variant to opt out of.
  */
 export default function PaperCard({
   children,
   as = "div",
-  solid = false,
   flush = false,
   "aria-label": ariaLabel,
   className = "",
 }: PaperCardProps) {
   const Tag = as;
-  const fill = solid ? ` ${styles.solid}` : "";
   const pad = flush ? ` ${styles.flush}` : "";
 
   return (
-    <Tag aria-label={ariaLabel} className={`card-paper ${styles.card}${fill}${pad} ${className}`}>
+    <Tag aria-label={ariaLabel} className={`card-paper ${styles.card}${pad} ${className}`}>
       {children}
     </Tag>
   );

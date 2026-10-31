@@ -1,6 +1,5 @@
 import { Children, type CSSProperties, type ReactNode } from "react";
 import styles from "@/components/cards/StackDeck.module.css";
-/* Sticky does not work on this page without it. See the file. */
 
 export type StackDeckProps = {
   /** One card per child. Each is given its own slot and its index in the pile. */

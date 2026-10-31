@@ -9,20 +9,35 @@ import styles from "@/components/cards/PaperCard.module.css";
  * already carrying the warning.
  *
  * These exist at all because contrast on a card is not contrast on the page.
- * The card surface composites to #F6F5EF, lighter than the #ECE8DC ground, so
- * solid ink gains against it (17.00:1 where the paper gives 15.17:1) and
+ * The neutral card surface is #F6F5EF, lighter than the #ECE8DC ground, so
+ * solid ink gains against it (17.02:1 where the paper gives 15.17:1) and
  * anything set with a Tailwind alpha loses: `text-bone/70` measures 6.64:1 on
- * a card, while the same role as a solid --ink-soft measures 7.13:1. Naming
+ * a card, while the same role as a solid --ink-soft measures 7.14:1. Naming
  * the four roles once is what stops the alpha habit returning a call site at
  * a time.
  */
 export const cardType = {
   /** The card's own padding, for the anchor inside a `flush` card. */
   inset: styles.inset,
-  /** The card's heading. --ink, 17.00:1 on the card surface. */
+  /** The card's heading. --ink, 17.02:1 on a card, 15.73:1 on the dullest wash. */
   title: styles.title,
-  /** Running text inside a card. --ink-soft, 7.13:1. */
+  /** Running text inside a card. --ink-soft, 7.14:1 / 6.60:1. */
   body: styles.body,
-  /** Mono capitals: dates, labels, group notes, deck ordinals. --ink-soft, 7.13:1. */
+  /** Mono capitals: dates, labels, group notes, deck ordinals. --ink-soft, 7.14:1 / 6.60:1. */
   meta: styles.meta,
 } as const;
+
+/*
+ * The colour a group of cards rests in.
+ *
+ * Put `cardCycle` on the element whose position in the group decides its hue —
+ * in practice the `InkWipe` wrapper, because the wipe is already the thing
+ * `nth-child` is counting when it picks the colour the card arrives in. The
+ * card inside inherits `--card-wash` from it, so the resting colour and the
+ * arriving colour are the same decision read twice. See the long note in
+ * PaperCard.module.css.
+ *
+ * A group with no wipe can carry it too: it is `nth-child` and nothing else,
+ * and a list of cards is a list of cards whether or not it is animated.
+ */
+export const cardCycle = styles.cycle;

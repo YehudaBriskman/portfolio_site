@@ -6,6 +6,12 @@ import PageShell from "@/components/PageShell";
 import Ridge from "@/components/Ridge";
 import Byline, { FeedLink } from "@/components/notes/Byline";
 import { useCodeHighlight } from "@/components/notes/CodeHighlight";
+import MetaPill from "@/components/notes/MetaPill";
+/* The two corrections that make `.note-card` and the small capsules read
+   as surfaces on paper rather than on the near-black ground they were
+   drawn for. See NoteCard.module.css and Pill.module.css. */
+import card from "@/components/notes/NoteCard.module.css";
+import pill from "@/components/notes/Pill.module.css";
 import PostFooterNav from "@/components/notes/PostFooterNav";
 import ReadingBar from "@/components/notes/ReadingBar";
 import TagPill from "@/components/notes/TagPill";
@@ -97,7 +103,7 @@ const markdown: Components = {
           alt={alt ?? ""}
           loading="lazy"
           decoding="async"
-          className="block w-full border-y border-edge sm:rounded-[var(--r-md)] sm:border"
+          className="block w-full border-y border-edge sm:rounded-[var(--r-lg)] sm:border"
         />
         {title && (
           <span className="mono mt-3 block text-center text-[0.75rem] tracking-[0.06em] text-clay">
@@ -125,7 +131,7 @@ const markdown: Components = {
         /* Focusable because it scrolls: a keyboard-only reader has no other
            way to reach the right-hand end of a long line. */
         tabIndex={0}
-        className={`not-prose ${FULL_WIDTH} my-9 overflow-x-auto border-y border-edge bg-bitumen px-5 py-4 font-mono text-[0.8125rem] leading-[1.65] text-bone/90 [scrollbar-width:thin] sm:rounded-[var(--r-md)] sm:border sm:text-[0.875rem] ${className}`}
+        className={`not-prose ${FULL_WIDTH} my-9 overflow-x-auto border-y border-edge bg-bitumen px-5 py-4 font-mono text-[0.8125rem] leading-[1.65] text-bone/90 [scrollbar-width:thin] sm:rounded-[var(--r-lg)] sm:border sm:text-[0.875rem] ${className}`}
       >
         {children}
       </pre>
@@ -150,7 +156,7 @@ const markdown: Components = {
      separately was the fourth text size inside a single article. */
   td({ children }) {
     return (
-      <td className="border-b border-edge/70 py-3 pr-6 align-top leading-[1.6] text-bone/85">
+      <td className="border-b border-edge py-3 pr-6 align-top leading-[1.6] text-bone/85">
         {children}
       </td>
     );
@@ -188,6 +194,23 @@ const markdown: Components = {
  * Every heading is also at least as large as the body, which `h4` at 17px and
  * `h5`/`h6` at nothing at all previously were not.
  */
+/*
+ * Why there is no colour inside the article.
+ *
+ * The rule the rest of the site runs on is that a surface takes its wash from
+ * its position in a group — five hues, cycling, keyed off `nth-child` (see
+ * cards/PaperCard.module.css). A pull quote, a code block and a table are not
+ * in a group. They are one of a kind, in an arbitrary order, decided by
+ * whoever wrote the post; there is no position for the rule to read, and
+ * picking a hue for them by hand is the lottery the rule exists to avoid.
+ *
+ * So the blocks in here take the shape of the change and not the colour: the
+ * card's 32px corner, a fill of white rather than a grey mixed for a dark
+ * ground, and a border in --rule-firm so the edge is visible at all. The
+ * colour on this page is where the rule can reach it — the collection chip,
+ * the tags, and the two neighbouring notes at the foot, which really are a
+ * group of two.
+ */
 const PROSE = [
   "prose prose-invert mx-auto mt-section-sm max-w-[38rem]",
   "text-[1.0625rem] leading-[1.7] text-bone/85 sm:text-[1.1875rem] sm:leading-[1.75]",
@@ -223,11 +246,11 @@ const PROSE = [
   // plugin's italic-and-a-rule default reads as less, and so did setting it two
   // points smaller than the paragraph it was lifted from.
   "prose-blockquote:my-10 prose-blockquote:not-italic prose-blockquote:font-normal",
-  "prose-blockquote:rounded-[var(--r-md)] prose-blockquote:border prose-blockquote:border-l prose-blockquote:border-edge prose-blockquote:border-l-edge",
-  "prose-blockquote:bg-surface/40 prose-blockquote:px-5 prose-blockquote:py-4",
+  "prose-blockquote:rounded-[var(--r-lg)] prose-blockquote:border prose-blockquote:border-l prose-blockquote:border-ridge prose-blockquote:border-l-ridge",
+  "prose-blockquote:bg-white/60 prose-blockquote:px-6 prose-blockquote:py-5",
   "prose-blockquote:text-bone",
   "[&_blockquote_p:first-of-type]:before:content-none [&_blockquote_p:last-of-type]:after:content-none",
-  "prose-code:rounded-[6px] prose-code:border prose-code:border-edge prose-code:bg-surface/70",
+  "prose-code:rounded-[var(--r-sm)] prose-code:border prose-code:border-ridge prose-code:bg-white/60",
   // Bone, matching the code blocks: see CodeHighlight, where the whole theme
   // was re-keyed to bone and weight so a fenced sample and an inline span now
   // read as the same material rather than as two different palettes.
@@ -331,10 +354,10 @@ export default function BlogPost() {
             <span className="sr-only">Loading the post</span>
             <div aria-hidden="true" className="space-y-5">
               <div className="h-7 w-28 animate-pulse-soft rounded-full bg-surface" />
-              <div className="h-12 w-full animate-pulse-soft rounded-[var(--r-md)] bg-surface sm:h-16" />
-              <div className="h-12 w-3/4 animate-pulse-soft rounded-[var(--r-md)] bg-surface sm:h-16" />
+              <div className="h-12 w-full animate-pulse-soft rounded-full bg-surface sm:h-16" />
+              <div className="h-12 w-3/4 animate-pulse-soft rounded-full bg-surface sm:h-16" />
               <div className="h-5 w-1/2 animate-pulse-soft rounded-full bg-surface" />
-              <div className="aspect-[16/9] w-full animate-pulse-soft rounded-[var(--r-lg)] bg-surface" />
+              <div className="aspect-[16/9] w-full animate-pulse-soft rounded-[var(--r-xl)] bg-surface" />
             </div>
           </div>
         )}
@@ -360,7 +383,7 @@ export default function BlogPost() {
            * offers the one action that can fix it, and leaves two ways onward
            * that do not need the API at all.
            */
-          <div className="note-card px-6 py-12 sm:px-10 sm:py-16">
+          <div className={`note-card ${card.card} px-6 py-12 sm:px-10 sm:py-16`}>
             <p className="eyebrow">Post unavailable</p>
             <h1 className="display-tight mt-3 text-[clamp(1.75rem,6vw,2.5rem)]">
               The server didn&rsquo;t answer.
@@ -392,7 +415,7 @@ export default function BlogPost() {
                     into the article. */}
                 <Link
                   to="/blog"
-                  className="mono hidden min-h-[44px] items-center gap-2 rounded-full border border-edge px-4 py-2 text-xs uppercase tracking-[0.16em] text-clay transition-colors duration-150 hover:border-bone/40 hover:text-bone sm:inline-flex"
+                  className={`mono ${pill.tag} hidden min-h-[44px] items-center gap-2 rounded-full border px-4 py-2 text-xs uppercase tracking-[0.16em] transition-colors duration-150 sm:inline-flex`}
                 >
                   <span aria-hidden="true">&larr;</span> Notes
                 </Link>
@@ -401,7 +424,7 @@ export default function BlogPost() {
                   {collectionTitle ? (
                     <Link
                       to={`/projects/${post.collection}`}
-                      className="tap mono inline-flex min-h-[44px] items-center gap-2 rounded-full border border-bone/30 bg-bone/10 px-3.5 py-2 text-xs uppercase tracking-[0.18em] text-bone transition-colors duration-150 hover:bg-bone/20"
+                      className={`tap mono ${pill.tag} inline-flex min-h-[44px] items-center gap-2 rounded-full border px-3.5 py-2 text-xs uppercase tracking-[0.18em] transition-colors duration-150`}
                     >
                       <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-clay" />
                       {collectionTitle}
@@ -433,14 +456,14 @@ export default function BlogPost() {
                   meta={
                     <div className="flex flex-wrap items-center gap-2.5">
                       {post.publishedAt && (
-                        <span className="meta-pill">
+                        <MetaPill>
                           <time dateTime={post.publishedAt}>{formatDate(post.publishedAt)}</time>
-                        </span>
+                        </MetaPill>
                       )}
-                      <span className="meta-pill">
+                      <MetaPill>
                         <span aria-hidden="true" className="h-1 w-1 rounded-full bg-clay" />
                         {post.readingMinutes} min read
-                      </span>
+                      </MetaPill>
                     </div>
                   }
                 />
@@ -456,7 +479,7 @@ export default function BlogPost() {
                      dimensions at all, so every post loaded with a layout shift. */
                   fetchpriority="high"
                   decoding="async"
-                  className="bleed mt-12 aspect-[16/9] w-full border-y border-edge object-cover sm:rounded-[var(--r-lg)] sm:border"
+                  className="bleed mt-12 aspect-[16/9] w-full border-y border-edge object-cover sm:rounded-[var(--r-xl)] sm:border"
                 />
               )}
 

@@ -17,12 +17,18 @@ export default function PostFooterNav({
   return (
     <nav aria-label="More notes" className="mt-section-sm grid gap-6 sm:grid-cols-2">
       {newer && <NoteCard post={newer} compact label="Newer" />}
-      {/* Held to the second column so "Older" stays on the right when it is
-          the only neighbour — the direction is the whole signal. */}
+      {/*
+       * Held to the second column so "Older" stays on the right when it is
+       * the only neighbour — the direction is the whole signal.
+       *
+       * The placement is a class on the card rather than a wrapping div, and
+       * that is not tidying. A card's resting wash comes from `nth-child`, so
+       * a card that is the only child of a div is always position one: with
+       * the wrapper here, "Newer" and "Older" both came out blue and the pair
+       * read as one object cut in half.
+       */}
       {older && (
-        <div className={newer ? "" : "sm:col-start-2"}>
-          <NoteCard post={older} compact label="Older" />
-        </div>
+        <NoteCard post={older} compact label="Older" className={newer ? "" : "sm:col-start-2"} />
       )}
     </nav>
   );

@@ -21,6 +21,41 @@
   display: block;
   margin: 0;
   max-width: 100%;
+  /*
+   * The mount had no corner at all.
+   *
+   * `.figure-frame` in index.css sets a background, a border, a padding and a
+   * shadow and never names a radius, so every picture on the site sat in a
+   * dead-square box — on the home page, three of them in a column beside
+   * cards that were rounded. 32px is the radius the cards take; a figure is
+   * the same kind of object on the same paper and there is no reason for it
+   * to be the one thing with four right angles.
+   */
+  border-radius: var(--r-lg);
+}
+
+/*
+ * Concentric corners: the inner radius is the outer radius less the gap
+ * between them.
+ *
+ * The mount is 12px of padding wide, so an image drawn with the mount's own
+ * 32px corner would leave a visible crescent of mount showing inside each
+ * corner, and an image drawn square inside a round mount reads as a sticker
+ * on a plate. 20px is the only figure that makes the two curves parallel.
+ *
+ * `overflow: hidden` on the frame would have done the same job in one line
+ * and is deliberately not used: the mount casts a shadow and the image
+ * carries its own border, and clipping the frame would shear both.
+ */
+.frame > :not(figcaption),
+.frame > :not(figcaption) :is(img, picture, canvas, svg),
+/* `.card-shot` is the box `Shot` and `Plate` draw the picture in, and it is
+   not always the figure's direct child — the carousel wraps it in a link, so
+   the rules above round the link and leave a square `overflow: hidden` box
+   inside it cropping the corners straight back off. It also carries an
+   explicit `rounded-none`, which is a single class, so this has to be two. */
+.frame :global(.card-shot) {
+  border-radius: calc(var(--r-lg) - 12px);
 }
 
 .frame > .caption {

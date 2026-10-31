@@ -46,6 +46,11 @@ export default function Approach() {
         ))}
       </div>
 
+      {/* No `cardCycle` on these wipes, unlike every other group of cards on
+          the site. The deck sets both the wipe hue and the resting wash
+          itself, because the pile is offset three steps into the cycle so it
+          does not replay the run of the grid below it; see
+          StackDeck.module.css. */}
       <StackDeck aria-label="How I work, in three principles" className="mt-section-sm">
         {about.principles.map((p, i) => (
           /*
@@ -55,7 +60,10 @@ export default function Approach() {
            * moment it is doing the most work. The wipe clips a plain wrapper
            * that is larger than the shadow.
            */
-          <InkWipe key={p.claim} as="article" className="max-w-3xl">
+          /* No width of its own any more: the deck measures itself against
+             the grid in the section below, so a deck card ends on the same
+             line the second column of the Stack grid ends on. */
+          <InkWipe key={p.claim} as="article">
             {/*
              * Column, with the claim pushed to the foot of the card.
              *
@@ -67,14 +75,19 @@ export default function Approach() {
              * foot, and the air between them is the composition rather than
              * the leftover.
              */}
-            <PaperCard solid className="flex flex-col">
+            <PaperCard className="flex flex-col">
               <p className={cardType.meta} aria-hidden="true">
                 {String(i + 1).padStart(2, "0")} / {String(about.principles.length).padStart(2, "0")}
               </p>
-              <InkRule className="mt-3 w-10" />
-              <div className="mt-auto pt-12">
+              {/* The card's two gaps, named. `--card-step-tight` is a label
+                  and the thing it labels; `--card-step` is one part of a card
+                  and the next. Written as the tokens rather than as `mt-3`
+                  and `mt-6` so that the stack card, the note card and this
+                  one cannot drift apart again. */}
+              <InkRule className="mt-[var(--card-step-tight)] w-10" />
+              <div className="mt-auto pt-[calc(var(--card-step)*2)]">
                 <h3 className={cardType.title}>{p.claim}</h3>
-                <p className={`${cardType.body} mt-6`}>{p.detail}</p>
+                <p className={`${cardType.body} mt-[var(--card-step)]`}>{p.detail}</p>
               </div>
             </PaperCard>
           </InkWipe>

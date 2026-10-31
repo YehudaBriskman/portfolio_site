@@ -1,6 +1,7 @@
 import { useState, type CSSProperties } from "react";
 import { Link } from "react-router-dom";
 import NoteGlyph from "@/components/notes/NoteGlyph";
+import styles from "@/components/notes/NoteCard.module.css";
 import { formatDate, type PostSummary } from "@/services/blog";
 
 /*
@@ -34,11 +35,23 @@ import { formatDate, type PostSummary } from "@/services/blog";
  * is a focal point rather than a repeated texture.
  */
 
+/*
+ * The surface, in one string.
+ *
+ * `.note-card` is the shared class index.css still owns; `styles.card` is the
+ * correction that makes it a surface on paper rather than on the near-black
+ * ground it was drawn for, and `styles.cycle` is the card's place in the hue
+ * cycle, which is what gives it its resting colour. Written once because
+ * three call sites in this file open with it and nothing good comes of them
+ * drifting apart.
+ */
+const SURFACE = `note-card ${styles.card} ${styles.cycle} group relative`;
+
 function Cover({ src, alt }: { src: string; alt: string }) {
   const [loaded, setLoaded] = useState(false);
   return (
     <>
-      {!loaded && <div className="absolute inset-0 animate-pulse-soft bg-surface" />}
+      {!loaded && <div className="absolute inset-0 animate-pulse-soft bg-paper-3" />}
       <img
         src={src}
         alt={alt}
@@ -82,7 +95,7 @@ export default function NoteCard({
   const summary = post.subtitle ?? post.excerpt;
 
   const meta = (
-    <div className="mono flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[0.75rem] tracking-[0.08em] text-clay">
+    <div className="mono flex flex-wrap items-center gap-x-2.5 gap-y-1 whitespace-nowrap text-[0.75rem] tracking-[0.08em] text-clay">
       {post.publishedAt && (
         <time dateTime={post.publishedAt}>{formatDate(post.publishedAt)}</time>
       )}
@@ -111,14 +124,17 @@ export default function NoteCard({
     </h2>
   );
 
-  /* A tinted capsule in bone rather than in the accent. It still has to read
-     as a second, separately pressable thing beside the eyebrow next to it, so
-     it keeps a fill and an edge — they are just made of light now, which is
-     also what lets it sit on a card that is itself standing on a photograph. */
+  /* A tinted capsule. It has to read as a second, separately pressable thing
+     beside the eyebrow next to it, so it keeps a fill and an edge; both are
+     drawn in NoteCard.module.css, where they are measured against the card's
+     wash rather than against the near-black ground they were chosen for.
+     44px tall rather than 26px, because it is a link and a finger has to be
+     able to hit it. The row it sits in carries the same floor whether or not
+     a badge lands in it, so the height is the row's and not the badge's. */
   const badge = collectionTitle && (
     <Link
       to={`/projects/${post.collection}`}
-      className="relative z-10 inline-flex items-center gap-1.5 rounded-full border border-bone/30 bg-bone/10 px-2.5 py-1 mono text-xs uppercase tracking-[0.16em] text-bone transition-colors duration-150 hover:bg-bone/20"
+      className={`${styles.badge} relative z-10 inline-flex min-h-11 items-center gap-1.5 rounded-full border px-3 py-2.5 mono text-xs uppercase tracking-[0.16em] transition-colors duration-150`}
     >
       <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-clay" />
       {collectionTitle}
@@ -127,8 +143,8 @@ export default function NoteCard({
 
   if (compact) {
     return (
-      <article className={`note-card group relative ${className}`} style={style}>
-        <div className="flex flex-col p-5">
+      <article className={`${SURFACE} ${className}`} style={style}>
+        <div className="flex flex-col p-6">
           {label && <p className="eyebrow">{label}</p>}
           <div className={label ? "mt-3" : ""}>{title}</div>
           <div className="mt-3">{meta}</div>
@@ -140,7 +156,7 @@ export default function NoteCard({
   if (lead) {
     return (
       <article
-        className={`note-card note-card--lead group relative sm:col-span-2 sm:grid sm:grid-cols-[1.05fr_1fr] sm:items-stretch lg:grid-cols-[1.2fr_1fr] ${className}`}
+        className={`${SURFACE} ${styles.lead} note-card--lead sm:col-span-2 sm:grid sm:grid-cols-[1.05fr_1fr] sm:items-stretch lg:grid-cols-[1.2fr_1fr] ${className}`}
         style={style}
       >
         {/*
@@ -150,20 +166,31 @@ export default function NoteCard({
           when it does not, where a single large plate reads as art direction
           rather than as the filler it was on twelve cards at once.
         */}
-        <div className="note-card__media sm:border-b-0 sm:border-r sm:border-r-edge">
+        <div className={`note-card__media ${styles.media} sm:border-b-0 sm:border-r`}>
           {post.coverImage ? <Cover src={post.coverImage} alt="" /> : <NoteGlyph seed={post.slug} />}
         </div>
 
-        <div className="flex flex-col p-5 sm:p-7 lg:p-9">
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <div className="flex flex-col p-6 sm:p-8 lg:p-10">
+          {/* `min-h-11` whether or not a badge lands in it. The badge is a
+              link and so has to be a 44px target; with no floor on the row, a
+              card that had one stood 29px taller in its first line than the
+              card beside it in the same grid row, and the two titles started
+              at different heights. */}
+          <div className="-my-1 flex min-h-11 flex-wrap items-center gap-x-3 gap-y-2">
             {label && <p className="eyebrow">{label}</p>}
             {badge}
           </div>
 
           <div className="mt-3">{title}</div>
 
+          {/* --ink-soft, not `text-bone/75`. The alpha passes — it composites
+              to 7.88:1 on a neutral card — but its value moves with whatever
+              wash the card is wearing (7.56:1 on the dullest), and the site
+              already names this role as a solid token at 7.14:1 / 6.60:1. The
+              same role written two ways in two files is how the card on the
+              index stopped matching the card on the home page. */}
           {summary && (
-            <p className="mt-3 text-base leading-[1.6] text-bone/75 sm:text-lg">{summary}</p>
+            <p className="mt-3 text-base leading-[1.6] text-clay sm:text-lg">{summary}</p>
           )}
 
           <div className="mt-6 pt-1 sm:mt-auto sm:pt-6">{meta}</div>
@@ -173,17 +200,23 @@ export default function NoteCard({
   }
 
   return (
-    <article className={`note-card group relative ${className}`} style={style}>
+    <article className={`${SURFACE} ${className}`} style={style}>
       {/* No cover, no media block. A grid of mixed heights is honest; a grid of
           identical generated pictures is not. */}
       {post.coverImage && (
-        <div className="note-card__media">
+        <div className={`note-card__media ${styles.media}`}>
           <Cover src={post.coverImage} alt="" />
         </div>
       )}
 
-      <div className="flex flex-col p-5 sm:p-6">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+      {/* One inset, 24px, at every width. It was 20px below `sm`, which on a
+          phone put the type 20px from a 32px corner — the corner cut into the
+          first word of every title. A card's padding has to clear its own
+          radius. */}
+      <div className="flex flex-col p-6">
+        {/* See the lead: one height for the row whether or not a badge lands
+            in it, so two cards side by side agree. */}
+        <div className="-my-1 flex min-h-11 flex-wrap items-center gap-x-3 gap-y-2">
           {meta}
           {badge}
         </div>
@@ -191,7 +224,7 @@ export default function NoteCard({
         <div className="mt-3">{title}</div>
 
         {summary && (
-          <p className="mt-3 line-clamp-3 text-[0.9375rem] leading-[1.65] text-bone/75">{summary}</p>
+          <p className="mt-3 line-clamp-3 text-[0.9375rem] leading-[1.65] text-clay">{summary}</p>
         )}
       </div>
     </article>

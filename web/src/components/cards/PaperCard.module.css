@@ -1,19 +1,16 @@
 /*
  * The card, as a component rather than as a class.
  *
- * `.card-paper` in index.css already owns what a card *is* on this ground —
- * the white wash, the real border, the real shadow and the hover state. This
- * file owns what a card *contains*: its padding, and the handful of type
- * roles that have to be measured against the card's own surface rather than
- * against the page's.
+ * `.card-paper` in index.css owns what a card *is* on this ground — the
+ * border, the shadow and the hover lift. This file owns what a card *contains*
+ * (its padding and the type roles measured against its own surface), what
+ * shape it is, and what colour it is at rest.
  *
- * That distinction is the whole reason the type roles live here at all. The
- * card surface is white at 55% over #ECE8DC, which composites to #F6F5EF —
- * lighter than the ground, so solid ink gains contrast on it (17.00:1 against
- * 15.17:1 on paper) and anything set with an *alpha* loses it. Tailwind's
- * `text-bone/70` measures 6.64:1 on a card; the same role written as a solid
- * --ink-soft measures 7.13:1. Naming the roles here is what stops the alpha
- * habit coming back one call site at a time.
+ * The type roles live here because contrast on a card is not contrast on the
+ * page: solid ink gains against a card and anything set with a Tailwind alpha
+ * loses. `text-bone/70` measures 6.64:1 on a card; the same role written as a
+ * solid --ink-soft measures 7.14:1. Naming the roles here is what stops the
+ * alpha habit coming back one call site at a time.
  */
 .card {
   /* The four-step rhythm documented in PageShell is about the space *between*
@@ -23,10 +20,88 @@
      link has to move the padding onto the anchor, and the two must not drift
      apart. */
   --card-inset: clamp(1.25rem, 3.2vw, 2rem);
+  /*
+   * Two steps, and only two, for everything inside a card.
+   *
+   * Before this the cards on the home page used `mt-3`, `mt-6` and `mt-12`
+   * between their own parts, with no rule saying which — the stack card put
+   * 24px between its rule and its list, the contact card put 48px between its
+   * link list and its footnote, and the two sat side by side on the same
+   * screen looking like two different components. A card has exactly two
+   * kinds of gap in it: the one between a label and the thing it labels, and
+   * the one between one part of the card and the next.
+   */
+  --card-step-tight: 0.75rem;  /* a label and the thing it labels */
+  --card-step: 1.5rem;         /* one part of the card and the next */
+
   padding: var(--card-inset);
   /* Set once here so every descendant inherits the measured ink instead of
      inheriting the body's and being corrected per element. */
   color: rgb(var(--ink));
+}
+
+/*
+ * Shape and colour, both doubled, and the doubling is load-bearing.
+ *
+ * `.card-paper` writes its fill with the `background` shorthand and its corner
+ * with `border-radius`, and both of those are single class selectors — so a
+ * single-class override here would win or lose depending on the order the
+ * bundler happened to emit two stylesheets in, which is a build detail rather
+ * than a rule. `.card.card` is (0,2,0) and settles it in both directions.
+ *
+ * Radius
+ * ------
+ * 22px was the one corner every card on the site wore, from a 341px stack
+ * column to a 760px deck card. A corner that does not grow with the box it is
+ * on stops being read as a corner at all — at 22px on a card 400px across the
+ * eye registers a square with the edge filed off. 32px is the default because
+ * that is the size of card the page is mostly made of; `--card-radius` is the
+ * handle a bigger one uses, and the deck sets it to 44px.
+ *
+ * Colour
+ * ------
+ * Opaque, always. `.card-paper` is translucent — white at 55% over the ground,
+ * compositing to #F6F5EF — and translucency was never buying anything here:
+ * nothing passes behind a card on this page except another card, which is the
+ * one case where see-through is actively wrong. Painting the composited colour
+ * directly is the same pixel with none of the stacking problem, which is why
+ * the `solid` variant this file used to carry is gone.
+ *
+ * `--card-wash` is where the page's colour lands. It is unset by default, so a
+ * card nobody has placed in a hue cycle is exactly the surface it was before.
+ */
+.card.card {
+  border-radius: var(--card-radius, var(--r-lg));
+  background-color: rgb(var(--card-wash, 246 245 239));
+  /*
+   * --rule-firm, not --rule.
+   *
+   * A washed card is 1.04-1.11 times the luminance of the paper it stands on;
+   * the hue is what the reader sees, not a step in value, so the edge is doing
+   * more of the work of saying "this is an object" than it was. --rule
+   * measures 1.35:1 on paper and 1.40-1.50:1 on the washes, which is a
+   * hairline between two paragraphs; --rule-firm measures 2.15:1 and
+   * 2.23-2.40:1, which is the edge of a thing.
+   */
+  border-color: rgb(var(--rule-firm));
+}
+
+/*
+ * The hover lift, restated for the same specificity reason.
+ *
+ * Resting is already --rule-firm, so the hover had to move further than
+ * `.card-paper`'s does or it would be a transition to the colour the card is
+ * already wearing. --ink-soft is 6.37:1 on paper and 6.60-7.14:1 on the
+ * washes — unmistakably the edge of something you can press.
+ */
+@media (hover: hover) and (pointer: fine) {
+  a.card.card:hover,
+  .card.card:has(a:hover) {
+    border-color: rgb(var(--ink-soft));
+    box-shadow:
+      0 1px 0 rgb(255 255 255 / 0.8) inset,
+      0 18px 36px -22px rgb(var(--ink) / 0.45);
+  }
 }
 
 /*
@@ -44,27 +119,49 @@
 .flush { padding: 0; }
 .inset { padding: var(--card-inset); }
 
+/* ------------------------------------------------------- the hue cycle -- */
+
 /*
- * Opaque, for cards that are stacked on other cards.
+ * Where the page's colour comes from, and the one rule behind it.
  *
- * `.card-paper` is translucent by design, which is right for a card sitting
- * alone on paper and wrong the moment two of them overlap: the card
- * underneath shows straight through the one on top and the stack reads as a
- * printing error. Painting the same white wash as a background *image* over
- * an opaque paper background-colour composites to exactly the same colour —
- * #F6F5EF — while leaving nothing to see through, and it stays correct if
- * --paper is ever retuned.
+ * A card's resting wash is the wash of the hue its own ink wipe arrives in.
+ * The wipe picks that hue from the element's position among its siblings —
+ * blue, yellow, red, green, purple, cycling at five, documented at length in
+ * motion/InkWipe.module.css — so this file reads the same position off the
+ * same element and picks the matching `--wash-*` token. The colour the reader
+ * watches arrive is the colour that stays.
+ *
+ * It is deliberately the same selector shape as the hue rule rather than a
+ * clever derivation from `--wipe-hue`. CSS cannot switch on the value of a
+ * custom property without a style query, and `color-mix` would produce a
+ * fifth, sixth and seventh colour near the five that were actually measured.
+ * Two declarations keyed off one position is the honest version.
+ *
+ * This class goes on the *wipe*, not on the card, because the wipe is the
+ * element whose position in the group decides the hue. The card inherits
+ * `--card-wash` from it.
+ *
+ * A group can be offset as a whole — the stacking deck already offsets its
+ * wipes by three so the pile does not repeat the run of the grid below it,
+ * and StackDeck.module.css offsets the washes with them. What never varies is
+ * the order inside a group, and what the hue never carries is meaning: the
+ * position it encodes is already stated by document order and, on the deck,
+ * printed as "01 / 03".
  */
-.card.solid {
-  /* Two class selectors, and the doubling is load-bearing. `.card-paper`
-     writes its fill with the `background` shorthand, which resets
-     `background-image` to none as a side effect — so a single-class override
-     here is both out-specified and silently stripped of half its work. This
-     was measured, not guessed: the first version of the deck was see-through
-     and the text of card one was legible through cards two and three. */
-  background-color: rgb(var(--paper));
-  background-image: linear-gradient(rgb(255 255 255 / .55), rgb(255 255 255 / .55));
-}
+.cycle:nth-child(5n + 1) { --card-wash: var(--wash-blue); }
+.cycle:nth-child(5n + 2) { --card-wash: var(--wash-yellow); }
+.cycle:nth-child(5n + 3) { --card-wash: var(--wash-red); }
+.cycle:nth-child(5n + 4) { --card-wash: var(--wash-green); }
+.cycle:nth-child(5n + 5) { --card-wash: var(--wash-purple); }
+
+/*
+ * The wipe's coloured band is clipped to the card's corner, and the card's
+ * corner just moved. InkWipe holds that figure in `--wipe-radius` precisely so
+ * something wrapping a card can correct it; left at its 22px default, the band
+ * would show two coloured nubs outside a 32px corner for the two frames it
+ * takes to pass. Doubled because InkWipe sets the same property at (0,1,0).
+ */
+.cycle.cycle { --wipe-radius: var(--r-lg); }
 
 /* ------------------------------------------------------------ type roles -- */
 
@@ -76,13 +173,15 @@
   letter-spacing: var(--track-display);
   line-height: 1.08;
   font-size: clamp(1.125rem, 2.4vw, 1.5rem);
-  color: rgb(var(--ink));        /* 17.00:1 on the card surface */
+  /* 17.02:1 on the neutral card, 15.73:1 on the dullest wash (purple). */
+  color: rgb(var(--ink));
 }
 
 .body {
   font-size: 1rem;
   line-height: 1.7;
-  color: rgb(var(--ink-soft));   /* 7.13:1 on the card surface */
+  /* 7.14:1 on the neutral card, 6.60:1 on the dullest wash. */
+  color: rgb(var(--ink-soft));
 }
 
 /*
@@ -90,9 +189,10 @@
  *
  * Deliberately --ink-soft and not --ink-faint. The palette comment documents
  * --ink-faint as "captions and metadata, 4.6:1", but that figure is measured
- * against white; against this paper it is 3.60:1 and against a card 4.03:1,
- * so it fails AA for body text on both. It is a fine colour for a disabled
- * glyph and it is not a colour for anything anyone has to read.
+ * against white; against this paper it is 3.60:1, against a card 4.04:1 and
+ * against the washes 3.73-4.01:1, so it fails AA for body text on all of
+ * them. It is a fine colour for a disabled glyph and it is not a colour for
+ * anything anyone has to read.
  */
 .meta {
   /* Also the ordinal on a stacked card — "01 / 03" is metadata about the
@@ -102,6 +202,6 @@
   font-size: 0.75rem;
   letter-spacing: var(--track-label);
   text-transform: uppercase;
-  color: rgb(var(--ink-soft));   /* 7.13:1 on the card surface */
+  color: rgb(var(--ink-soft));
   font-variant-numeric: tabular-nums;
 }

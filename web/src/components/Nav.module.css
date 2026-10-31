@@ -117,11 +117,17 @@
 /*
  * One box, one rule, no material.
  *
- * `--r-sm` rather than the pill it was. A capsule is the shape of a chip in an
- * application; a 10px corner on a 50px box is the shape of something printed,
- * and it is a radius the palette already names. The controls inside are given
- * the same corner below, or a round button in a square box reads as a button
- * that missed.
+ * `--r-md` — 22px on a box 50px tall — rather than the pill it was before and
+ * rather than the 14px it was after that. The argument against the capsule
+ * still holds: a capsule is the shape of a chip in an application and this is
+ * something printed. 14px on a 50px box was the other error, though. It is 28%
+ * of the height, which the eye reads as a square with the edge filed off,
+ * and it was the one hard shape left on a page of soft ones.
+ *
+ * The controls inside do not take the same corner. They take this one less the
+ * padding between them — see `.wordmark, .link, .toggle` below — because two
+ * curves separated by a constant gap are concentric and two curves of the same
+ * radius separated by a gap are not.
  *
  * The shadow is deliberately almost nothing — 20px of blur pulled back by a
  * 20px spread, so it is a hint of separation under the bottom edge and no
@@ -140,7 +146,9 @@
   align-items: center;
   gap: 22px;
   padding: 9px 10px;
-  border-radius: var(--r-sm);
+  /* The gap the controls inside measure their own corner against. */
+  --island-inset: 9px;
+  border-radius: var(--r-md);
 
   background: rgb(var(--paper));
   border: 1px solid rgb(var(--ink-soft));
@@ -175,6 +183,11 @@
  * It scrolls rather than growing: three groups is about 420px, which is most
  * of a phone held in landscape, and a panel taller than the screen with no
  * way down is worse than a panel you have to scroll.
+ *
+ * `--r-lg` on a panel 336px wide and up to 420px tall, against the island's
+ * `--r-md` on a 50px one. The two are not the same object and should not wear
+ * the same corner; the sheet is nearer in size to a card than to a chip, so
+ * it takes the card's.
  */
 .sheet {
   position: absolute;
@@ -185,7 +198,8 @@
   max-height: calc(100vh - 92px);
   overflow-y: auto;
   padding: 6px;
-  border-radius: var(--r-md);
+  --sheet-inset: 6px;
+  border-radius: var(--r-lg);
 
   background: rgb(var(--paper));
   border: 1px solid rgb(var(--ink-soft));
@@ -226,7 +240,11 @@
   align-items: center;
   min-height: 44px;
   margin-block: -7px;
-  border-radius: var(--r-sm);
+  /* Concentric with the island: its corner less the padding between the two.
+     22 - 9 = 13px on a row that draws 30px tall, which is the same proportion
+     the island itself carries. A shared radius would have left a widening
+     crescent of island showing at each corner. */
+  border-radius: calc(var(--r-md) - var(--island-inset, 9px));
   font-family: 'IBM Plex Mono', ui-monospace, monospace;
   font-size: 0.75rem;
   text-transform: uppercase;
@@ -419,8 +437,9 @@
   letter-spacing: var(--track-label);
   text-transform: uppercase;
   /* `rounded-full` comes from the `island` / `islandIcon` sizes; the boxes
-     these sit in are no longer capsules. */
-  border-radius: var(--r-sm);
+     these sit in are no longer capsules. Concentric with the island, like
+     every other control in one. */
+  border-radius: calc(var(--r-md) - var(--island-inset, 9px));
   color: rgb(var(--ink-soft));
 }
 
@@ -447,7 +466,9 @@
 .menu.menu {
   min-width: 11rem;
   padding: 6px;
-  border-radius: var(--r-sm);
+  --menu-inset: 6px;
+  /* The island's corner, because the menu is the island extended. */
+  border-radius: var(--r-md);
   background: rgb(var(--paper));
   border: 1px solid rgb(var(--ink-soft));
   box-shadow: 0 22px 44px -28px rgb(var(--ink) / 0.6);
@@ -481,7 +502,8 @@
   min-height: 44px;
   padding-left: 34px;
   padding-right: 12px;
-  border-radius: var(--r-sm);
+  /* Concentric with the menu: 22 - 6 = 16px. */
+  border-radius: calc(var(--r-md) - var(--menu-inset, 6px));
   font-size: 0.875rem;
   color: rgb(var(--ink-soft));
 }
@@ -512,7 +534,10 @@
  */
 .tip.tip {
   padding: 5px 10px;
-  border-radius: var(--r-sm);
+  /* The one capsule left in the chrome, and the only object small enough to
+     earn it: a tooltip draws about 23px tall, where a 14px corner is 61% of
+     the height and already reads as a capsule drawn badly. */
+  border-radius: var(--r-pill);
   font-family: 'IBM Plex Mono', ui-monospace, monospace;
   font-size: 0.6875rem;
   letter-spacing: var(--track-label);
@@ -551,7 +576,8 @@
   align-items: center;
   min-height: 48px;
   padding-inline: 14px;
-  border-radius: var(--r-sm);
+  /* Concentric with the sheet: 32 - 6 = 26px on a 48px row. */
+  border-radius: calc(var(--r-lg) - var(--sheet-inset, 6px));
   font-family: 'IBM Plex Mono', ui-monospace, monospace;
   font-size: 0.75rem;
   letter-spacing: var(--track-label);

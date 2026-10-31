@@ -3,7 +3,13 @@ import { Link, useSearchParams } from "react-router-dom";
 import PageShell from "@/components/PageShell";
 import Byline from "@/components/notes/Byline";
 import CollectionFilter from "@/components/notes/CollectionFilter";
+import MetaPill from "@/components/notes/MetaPill";
 import NoteCard from "@/components/notes/NoteCard";
+/* The correction that makes `.note-card` a surface on paper rather than on
+   the near-black ground it was drawn for. The page borrows it for the
+   boxes that are note-card-shaped without being note cards: the loading
+   skeleton and the two states where there is nothing to list. */
+import card from "@/components/notes/NoteCard.module.css";
 import NoteGlyph from "@/components/notes/NoteGlyph";
 import TagPill from "@/components/notes/TagPill";
 import { blog, type Collection, type PostSummary } from "@/services/blog";
@@ -33,9 +39,9 @@ function Bar({ className }: { className: string }) {
 function Skeleton() {
   return (
     <div className={GRID} aria-hidden="true">
-      <div className="note-card note-card--lead sm:col-span-2 sm:grid sm:grid-cols-[1.05fr_1fr] lg:grid-cols-[1.2fr_1fr]">
-        <div className="note-card__media animate-pulse-soft bg-surface sm:border-b-0 sm:border-r sm:border-r-edge" />
-        <div className="flex flex-col gap-3 p-5 sm:p-7 lg:p-9">
+      <div className={`note-card note-card--lead ${card.card} ${card.lead} ${card.cycle} sm:col-span-2 sm:grid sm:grid-cols-[1.05fr_1fr] lg:grid-cols-[1.2fr_1fr]`}>
+        <div className={`note-card__media ${card.media} animate-pulse-soft sm:border-b-0 sm:border-r`} />
+        <div className="flex flex-col gap-3 p-6 sm:p-8 lg:p-10">
           <Bar className="h-3 w-20" />
           <Bar className="h-8 w-full" />
           <Bar className="h-8 w-3/5" />
@@ -46,8 +52,8 @@ function Skeleton() {
       </div>
 
       {[0, 1, 2, 3].map((i) => (
-        <div key={i} className="note-card">
-          <div className="flex flex-col gap-3 p-5 sm:p-6">
+        <div key={i} className={`note-card ${card.card} ${card.cycle}`}>
+          <div className="flex flex-col gap-3 p-6">
             <Bar className="h-3 w-28" />
             <Bar className="h-6 w-4/5" />
             <Bar className="h-4 w-full" />
@@ -132,7 +138,7 @@ export default function Blog() {
           <h1 className="display mt-3 text-[clamp(2.75rem,11.5vw,4.75rem)] leading-[0.92]">
             {site?.title ?? "Writing"}
           </h1>
-          <p className="mt-6 max-w-[34rem] text-base leading-[1.7] text-bone/85 sm:text-lg">
+          <p className="mt-6 max-w-[34rem] text-base leading-[1.7] text-clay sm:text-lg">
             {site?.description ??
               "Decisions I made and what they cost. Mostly about making software prove it still works somewhere that isn’t my laptop."}
           </p>
@@ -150,9 +156,7 @@ export default function Blog() {
           <div className="mt-12 flex flex-wrap items-center gap-3">
             <span className="eyebrow">Showing</span>
             {tag && <TagPill tag={tag} active />}
-            {collection && (
-              <span className="meta-pill">{titleOf(collection) ?? collection}</span>
-            )}
+            {collection && <MetaPill>{titleOf(collection) ?? collection}</MetaPill>}
             <button
               type="button"
               onClick={() => setParams({}, { replace: true })}
@@ -183,12 +187,12 @@ export default function Blog() {
              * what failed, offers the action that can fix it, and gives two
              * routes onward that need no API at all.
              */
-            <div className="note-card px-6 py-12 text-left sm:px-10 sm:py-16">
+            <div className={`note-card ${card.card} px-6 py-12 text-left sm:px-10 sm:py-16`}>
               <p className="eyebrow">Notes unavailable</p>
               <h2 className="display-tight mt-3 text-[clamp(1.6rem,5.5vw,2.25rem)]">
                 The server didn&rsquo;t answer.
               </h2>
-              <p className="mt-6 max-w-[34rem] text-[1.0625rem] leading-[1.7] text-bone/85">
+              <p className="mt-6 max-w-[34rem] text-[1.0625rem] leading-[1.7] text-clay">
                 The page is here; the writing behind it is served by a small machine I run myself,
                 and it isn&rsquo;t responding right now. Usually that means a restart rather than
                 anything permanent.
@@ -214,8 +218,11 @@ export default function Blog() {
           {!error && posts === null && <Skeleton />}
 
           {!error && posts !== null && posts.length === 0 && (
-            <div className="note-card flex flex-col items-center px-6 py-14 text-center sm:py-20">
-              <div className="w-52 overflow-hidden rounded-[var(--r-md)] opacity-40 sm:w-72">
+            <div className={`note-card ${card.card} flex flex-col items-center px-6 py-14 text-center sm:py-20`}>
+              {/* The glyph's own corner, one step in from the card's 32px for
+                  the 12px of air around it — the same concentric arithmetic
+                  the figure mounts and the nav islands use. */}
+              <div className="w-52 overflow-hidden rounded-[calc(var(--r-lg)-12px)] opacity-80 sm:w-72">
                 <div className="aspect-[16/9]">
                   <NoteGlyph seed={tag ?? collection ?? "empty"} />
                 </div>
@@ -223,7 +230,7 @@ export default function Blog() {
               <h2 className="display-tight mt-12 text-2xl sm:text-3xl">
                 {tag ? `Nothing tagged #${tag}.` : collection ? "Nothing filed here yet." : "Nothing here yet."}
               </h2>
-              <p className="mt-6 max-w-sm text-[0.9375rem] leading-relaxed text-bone/70">
+              <p className="mt-6 max-w-sm text-[0.9375rem] leading-relaxed text-clay">
                 {filtered
                   ? "Other notes exist — this filter just doesn’t match any of them."
                   : "The notes go up as the work gets done. The projects are further along."}
