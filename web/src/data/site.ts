@@ -47,6 +47,10 @@ export const plate = {
    * `data/projects.ts` starts in 2024 because that is as far back as its six
    * entries go, not because nothing shipped before them — deriving this from
    * the table would print a career that began two years after it did.
+   *
+   * Confirmed by the author, which is the only way this one can be checked.
+   * Every other figure on the plate recomputes itself when the table changes;
+   * this one does not, so it is the one to re-ask about rather than trust.
    */
   shippingSince: 2021,
 };
