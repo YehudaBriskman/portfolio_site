@@ -36,7 +36,11 @@ export default function MotionToggle({
         <Button
           variant="glass"
           size="islandIcon"
-          className={styles.control}
+          /* `controlIcon` squares it off. The `islandIcon` size is 44px wide,
+             which was the old island's target; in the bar the pill is 38px and
+             the target is grown outwards instead. See `.control` in
+             Nav.module.css. */
+          className={`${styles.control} ${styles.controlIcon}`}
           onClick={onToggle}
           aria-pressed={paused}
           aria-label={label}

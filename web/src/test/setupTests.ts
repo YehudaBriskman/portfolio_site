@@ -43,3 +43,40 @@ Object.defineProperty(globalThis, 'IntersectionObserver', {
   writable: true,
   configurable: true,
 });
+
+/*
+ * jsdom has no media queries at all, so `window.matchMedia` is simply absent —
+ * not a query that answers false, an undefined function. Anything that asks
+ * the environment a question about itself (reduced motion, the nav's collapse
+ * breakpoint, reduced transparency) therefore throws on mount rather than
+ * taking its default.
+ *
+ * The stub answers "no" to everything and carries a real listener list, which
+ * is the right default for a test: a component under test should behave as it
+ * does for a reader who has asked for nothing, and one that listens for
+ * changes should not have to null-check the thing it listens to.
+ */
+if (typeof globalThis.matchMedia !== 'function') {
+  const matchMedia = (query: string): MediaQueryList => {
+    const listeners = new Set<(e: MediaQueryListEvent) => void>();
+    const list: MediaQueryList = {
+      media: query,
+      matches: false,
+      onchange: null,
+      addEventListener: (_type, cb) => listeners.add(cb as (e: MediaQueryListEvent) => void),
+      removeEventListener: (_type, cb) =>
+        listeners.delete(cb as (e: MediaQueryListEvent) => void),
+      dispatchEvent: () => false,
+      /* The two deprecated ones are still what several libraries reach for. */
+      addListener: (cb) => cb && listeners.add(cb as (e: MediaQueryListEvent) => void),
+      removeListener: (cb) => cb && listeners.delete(cb as (e: MediaQueryListEvent) => void),
+    };
+    return list;
+  };
+
+  Object.defineProperty(globalThis, 'matchMedia', {
+    value: matchMedia,
+    writable: true,
+    configurable: true,
+  });
+}

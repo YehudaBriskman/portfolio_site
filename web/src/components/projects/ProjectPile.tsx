@@ -5,6 +5,7 @@ import Plate from "@/components/projects/Plate";
 import Shot from "@/components/projects/Shot";
 import type { ProjectEntry } from "@/hooks/useProjects";
 import styles from "@/components/projects/ProjectPile.module.css";
+import { objectAnchorId } from "@/lib/objectAnchor";
 
 /*
  * The work, stacked up.
@@ -142,6 +143,22 @@ export default function ProjectPile({
         return (
           <li
             key={c.slug}
+            /*
+              The plate's own id, so the chrome's index has something to jump
+              to. The spelling is `lib/objectAnchor` and never a literal at
+              either end — a hardcoded `#object-windom` in the bar against an
+              `id="windom"` here is exactly the drift that helper exists to
+              make impossible.
+
+              Worth knowing before anyone tries to make the index track each
+              card separately: while the pile is pinned all of its slots share
+              one geometry, so a point probe under the bar resolves to the
+              same slot for the whole act and the first object stays marked
+              through it. That is honest — the reader *is* inside Work — and
+              making it per-card would mean giving every card its own scroll
+              extent, which is the pile.
+            */
+            id={objectAnchorId(c.slug)}
             className={styles.slot}
             /*
               Two numbers per slot, and both of them belong here rather than
