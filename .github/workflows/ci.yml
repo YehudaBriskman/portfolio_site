@@ -201,3 +201,96 @@ jobs:
           scanners: vuln
           exit-code: "0"
           ignore-unfixed: true
+
+  # ----------------------------------------------------------------- deploy --
+  #
+  # The rollout, from a known commit.
+  #
+  # What this replaces: `deploy-portfolio.sh` in the oci-free repository, which
+  # rsynced a laptop's WORKING DIRECTORY to the node, built there, and imported
+  # into containerd. The live site could therefore be running code that was
+  # never committed, and for six weeks it was. It had also quietly stopped
+  # working altogether -- the script still synced a frontend directory that had
+  # been renamed, rsync failed on the missing path, `set -e` aborted the run,
+  # and nothing reported that the site had stopped updating.
+  #
+  # The cluster's API server is not reachable from the internet, by design:
+  # SSH and the Kubernetes API both go over Tailscale and neither is exposed.
+  # So the runner joins the tailnet for the length of the job with an ephemeral
+  # node, rather than the alternative, which is opening the API to the world so
+  # that a CI runner can talk to it.
+  #
+  # `set image` with the commit sha, not `rollout restart` against :latest. A
+  # restart against a moving tag redeploys whatever that tag points at now,
+  # which is not necessarily this commit and is not reproducible; an immutable
+  # tag means the rollout either lands this build or fails.
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    needs: images
+    if: github.ref == 'refs/heads/main'
+    # One rollout at a time. Two merges in quick succession would otherwise
+    # race, and the loser could finish second with the older image.
+    concurrency:
+      group: deploy-prod
+      cancel-in-progress: false
+    environment: production
+    permissions:
+      contents: read
+    steps:
+      - uses: tailscale/github-action@v3
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+          # Ephemeral, so the runner leaves no device behind in the tailnet
+          # when the job ends.
+          version: latest
+
+      # Through the environment, not interpolated into the script. A secret
+      # expanded by the workflow templater becomes part of the command line,
+      # where `set -x`, a shell error or anything that echoes the command can
+      # print it; base64 so the embedded newlines survive the round trip
+      # without depending on how the value was pasted into the secret.
+      - name: Point kubectl at the cluster
+        env:
+          KUBECONFIG_B64: ${{ secrets.KUBECONFIG_B64 }}
+        run: |
+          set -euo pipefail
+          test -n "$KUBECONFIG_B64" || { echo "KUBECONFIG_B64 is not set" >&2; exit 1; }
+          mkdir -p "$HOME/.kube"
+          printf '%s' "$KUBECONFIG_B64" | base64 -d > "$HOME/.kube/config"
+          chmod 600 "$HOME/.kube/config"
+          kubectl -n prod get deploy web api -o name
+
+      - name: Roll out this commit
+        run: |
+          set -euo pipefail
+          kubectl -n prod set image deploy/web \
+            web=${{ env.IMAGE_BASE }}/web:${{ github.sha }}
+          kubectl -n prod set image deploy/api \
+            api=${{ env.IMAGE_BASE }}/api:${{ github.sha }}
+          kubectl -n prod rollout status deploy/web --timeout=300s
+          kubectl -n prod rollout status deploy/api --timeout=300s
+
+      # A rollout that reports success and a site that does not answer are
+      # different things, and only one of them is what was wanted.
+      - name: Check the site actually answers
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 10); do
+            code=$(curl -s -o /dev/null -m 10 -w '%{http_code}' https://yehudabriskman.com/ || true)
+            echo "attempt $i: $code"
+            [ "$code" = "200" ] && exit 0
+            sleep 6
+          done
+          echo "the site did not return 200 after the rollout" >&2
+          exit 1
+
+      - name: Put it back if it did not
+        if: failure()
+        run: |
+          kubectl -n prod rollout undo deploy/web || true
+          kubectl -n prod rollout undo deploy/api || true
+          kubectl -n prod rollout status deploy/web --timeout=180s || true
+          kubectl -n prod rollout status deploy/api --timeout=180s || true
