@@ -87,10 +87,20 @@ export default {
         "2xl": "28px",
         full: "var(--r-pill)",
       },
+      /*
+       * Two families. Display carries voice, text carries prose, and a third
+       * is a costume — the reasoning, and what it cost to find out, is in the
+       * @font-face note at the top of index.css.
+       *
+       * Archivo answers to both `display` and `sans`; the two differ by width
+       * axis, not by file. `editorial` survives as a name so the call sites
+       * that mean "quieter than the line above" keep working, and it now
+       * resolves to the family the page actually has.
+       */
       fontFamily: {
         display: ["Archivo", "ui-sans-serif", "system-ui", "sans-serif"],
-        editorial: ["Instrument Serif", "Georgia", "Times New Roman", "serif"],
-        sans: ["IBM Plex Sans", "ui-sans-serif", "system-ui", "sans-serif"],
+        sans: ["Archivo", "ui-sans-serif", "system-ui", "sans-serif"],
+        editorial: ["Archivo", "ui-sans-serif", "system-ui", "sans-serif"],
         mono: ["IBM Plex Mono", "ui-monospace", "monospace"],
       },
       fontSize: {
@@ -128,10 +138,22 @@ export default {
          * what lets the name sit inside the column with air at both sides
          * instead of running edge to edge. 10rem overran it by 67px.
          */
-        hero: ["min(11vw, 21vh, 9rem)", { lineHeight: "0.86" }],
-        section: ["clamp(2.2rem, 7vw, 7rem)", { lineHeight: "0.88" }],
+        /*
+         * Every step carries its own tracking and leading, because a size
+         * without them is only two thirds of a type decision. Tracking
+         * tightens as the size grows and leading runs inverse to it; the
+         * measured source for the ramp is in index.css next to the tokens.
+         */
+        hero: ["min(11vw, 21vh, 9rem)", { lineHeight: "0.86", letterSpacing: "var(--track-display)" }],
+        section: ["clamp(2.2rem, 7vw, 7rem)", { lineHeight: "0.9", letterSpacing: "var(--track-display)" }],
+        /* An object's own name. Below the section head, above the fact line. */
+        object: ["clamp(1.5rem, 3.4vw, 2.2rem)", { lineHeight: "1.06", letterSpacing: "var(--track-head)" }],
         /* The quiet register, sized to sit under a section head. */
-        sub: ["clamp(1.25rem, 3.2vw, 2rem)", { lineHeight: "1.16" }],
+        sub: ["clamp(1.25rem, 3.2vw, 2rem)", { lineHeight: "1.2", letterSpacing: "var(--track-sub)" }],
+        /* The fact line: prose, one sentence, never a paragraph. */
+        fact: ["clamp(1rem, 1.4vw, 1.125rem)", { lineHeight: "1.5", letterSpacing: "var(--track-body)" }],
+        /* The field line. The only place the mono is allowed to appear. */
+        field: ["0.72rem", { lineHeight: "1.5", letterSpacing: "var(--track-field)" }],
       },
       keyframes: {
         "fade-up": { from: { opacity: "0", transform: "translateY(14px)" }, to: { opacity: "1", transform: "none" } },

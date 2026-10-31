@@ -81,8 +81,6 @@
          index.css. Preload only the two the first screen needs, so they start
          with the HTML rather than after the stylesheet is parsed. -->
     <link rel="preload" href="/fonts/archivo-400-900.woff2" as="font" type="font/woff2" crossorigin />
-    <link rel="preload" href="/fonts/ibm-plex-sans-400.woff2" as="font" type="font/woff2" crossorigin />
-    <link rel="preload" href="/fonts/instrument-serif-italic.woff2" as="font" type="font/woff2" crossorigin />
     <!-- The mono face is used by every label on the page, but nothing in the
          HTML references it — it is reached only once React has rendered, so
          it was starting 2127ms in, behind the bundle, and finishing after
