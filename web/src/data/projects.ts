@@ -1,3 +1,4 @@
+import type { LabelField } from "@/components/gallery/objectLabel";
 import type { Collection } from "@/services/blog";
 
 /*
@@ -15,6 +16,22 @@ import type { Collection } from "@/services/blog";
  * fill a field. The four 2024–25 projects carry no brief and no decisions
  * because no such document exists for them, and an invented one would be worth
  * less than the blank space it filled.
+ *
+ * What the gallery added
+ * ----------------------
+ * Three fields, all of them the label schema's (see
+ * `components/gallery/objectLabel.ts`). `fact` is the old `tagline`, renamed
+ * and in four of six cases rewritten, because the schema's first rule is fact
+ * and not pitch and the old values were failing it in a specific way: four of
+ * them were not sentences at all but category labels — `Teaching platform`,
+ * `Cash tracking`, `Car marketplace` — which tell a reader what shelf the
+ * thing is on and nothing about the thing. The rewrite is noted on each entry
+ * next to the line it replaced, so the judgement can be argued with rather
+ * than only observed.
+ *
+ * `fields` is the two-or-three-item spec line. `tint` is the colour the work
+ * itself is, sampled by hand and marked for the build script; see the note on
+ * `ProjectTint`.
  */
 
 /** A claim the project makes, and the reason behind it. The part worth reading. */
@@ -25,15 +42,67 @@ export type ProjectDecision = {
   body: string;
 };
 
+/**
+ * The project's own colour, as an unpremultiplied sRGB triple.
+ *
+ * A tuple rather than the `"r g b"` string the stylesheets actually consume,
+ * because a string is three numbers with no type on them: nothing would have
+ * caught `"14, 107, 146"` — valid CSS in `rgb()`, invalid inside
+ * `rgb(var(--t) / .3)` — until the tint silently stopped painting. The join
+ * happens once, at the one place a component writes the custom property.
+ *
+ * TEMPORARY, AND WRITTEN DOWN AS SUCH. Every value below was sampled by hand
+ * from the project's own screenshot — `magick <shot> -colors 16 histogram:` —
+ * which means it is a fact today and a stale guess the first time a
+ * screenshot is replaced. It belongs in `scripts/build-shots.mjs`, next to
+ * the code that already opens every one of these files to resize it, emitted
+ * into the same manifest as the srcSet rungs. Until then the number lives
+ * here and the sampling command is in the comment on each one so the next
+ * person can re-run it rather than re-invent it.
+ */
+export type ProjectTint = readonly [number, number, number];
+
 export type Project = {
   /** Must match the collection slug, or the CMS entry will not replace it. */
   slug: string;
   title: string;
-  tagline: string;
+  /**
+   * One line of fact. What the thing is, not why it is good.
+   *
+   * This field was called `tagline` and carried phrases like `Car
+   * marketplace` and `Teaching platform` — category labels, not facts, and in
+   * two places an outright pitch. The rename is the point rather than tidying
+   * up after it: `tagline` is a word that invites a claim, and the label
+   * schema forbids one (see `components/gallery/objectLabel.ts`). The
+   * Collection shape the API returns still calls it `tagline`, so
+   * `seedToCollection` translates; nothing else reads this directly.
+   */
+  fact: string;
+  /**
+   * The label's field line. Two or three, most identifying first.
+   *
+   * Authored rather than derived, because which fact identifies a project is
+   * a judgement: WindoM's is that it is in the Chrome Web Store, Bothy's is
+   * that it is open source. `useProjects` derives a line from the state, the
+   * stack and the year when a project has no seed to say, which is the
+   * fallback and not the rule. Ordering and the cap are applied by
+   * `orderFields`, so the array here can be written in any order.
+   */
+  fields: LabelField[];
   description: string;
   tech: string[];
   /** Optional: not every project is best shown as a screenshot. */
   image?: string;
+  /**
+   * The colour the work itself is, for the surface that labels it.
+   *
+   * The page is a gallery — white walls, coloured paintings — so the only
+   * colour on it comes from the objects. This is that colour, taken from the
+   * object rather than assigned to it, which is the difference between a
+   * relationship and a palette rotation: a project cannot be given the wrong
+   * tint, because its tint is what it looks like.
+   */
+  tint: ProjectTint;
   link?: string;
   /** What to call the outbound link. Shown on the primary action pill. */
   linkLabel?: string;
@@ -68,7 +137,20 @@ export const projects: Project[] = [
   {
     slug: "windom",
     title: "WindoM",
-    tagline: "Every new tab becomes a dashboard",
+    /* Unchanged. It was already a fact: it says what happens, and a reader
+       who installs it can check. */
+    fact: "Every new tab becomes a dashboard",
+    fields: [
+      { kind: "state", value: "In use" },
+      { kind: "tech", value: "React 19" },
+      { kind: "where", value: "Chrome Web Store" },
+    ],
+    /* #188EA7 — the aurora at the top of the dashboard. Sampled:
+       `magick public/projects/windom-800.jpg -resize 160x -colors 16
+       -format %c histogram:info:`; the frame's dominant colour is the
+       near-black #073050 behind it, which is the ground and not the
+       identity. */
+    tint: [24, 142, 167],
     description:
       "A Chrome extension that replaces the new-tab page with a personal dashboard: calendar, inbox, tasks, weather, music and markets in one view. Published on the Chrome Web Store and running for real users, with a Fastify and Postgres backend behind it.",
     tech: ["React 19", "TypeScript", "Vite 8", "Manifest V3", "Fastify 5", "Drizzle ORM", "PostgreSQL 17", "Fly.io"],
@@ -118,7 +200,24 @@ export const projects: Project[] = [
   {
     slug: "bothy",
     title: "Bothy",
-    tagline: "A console that discovers itself",
+    /*
+     * Was "A console that discovers itself", which is a claim about the
+     * software's character rather than a statement of what it does — and the
+     * reflexive verb is doing the persuading. This says the mechanism: one
+     * machine, and the list comes from Docker. A reader can disagree with it,
+     * which is the test.
+     */
+    fact: "A console for one machine that asks Docker what is running",
+    fields: [
+      { kind: "state", value: "Open source" },
+      { kind: "tech", value: "Docker Compose" },
+      { kind: "when", value: "2026" },
+    ],
+    /* NOT SAMPLED, because there is no screenshot to sample — Bothy ships no
+       cover and renders a type plate instead. This is the green of the
+       console's own live dots, which is the one colour the thing has, and it
+       should be replaced with a real sample the moment a shot exists. */
+    tint: [58, 132, 104],
     description:
       "A self-hosted console for a single machine. It reports containers, ports, routes, metrics and files by asking Docker directly rather than reading a list someone has to remember to update, so what it shows is what is actually running.",
     tech: ["React 19", "TypeScript", "Docker Compose", "Traefik v3.7", "Keycloak", "VictoriaMetrics", "Grafana", "Tailscale"],
@@ -160,7 +259,19 @@ export const projects: Project[] = [
   {
     slug: "programming-with-yehuda",
     title: "Programming with Yehuda",
-    tagline: "Teaching platform",
+    /* Was "Teaching platform", which is a category and not a fact — it says
+       what shelf the thing belongs on and nothing about the thing. The
+       description underneath already held the fact; this is it, in one line. */
+    fact: "Programming lessons, grouped by concept and by language",
+    fields: [
+      { kind: "state", value: "Live" },
+      { kind: "tech", value: "React" },
+      { kind: "when", value: "2025" },
+    ],
+    /* #8C5734 — the warm brown of the lesson pages. Same sampling command as
+       WindoM's; this frame is almost entirely neutral greys, so the one
+       chromatic colour in it is the identity by elimination. */
+    tint: [140, 87, 52],
     description: "A platform for learning programming concepts and languages.",
     tech: ["React", "Node.js", "MongoDB", "Vite"],
     image: "/projects/programing_with_yehuda.jpg",
@@ -174,7 +285,17 @@ export const projects: Project[] = [
   {
     slug: "change11",
     title: "Change11",
-    tagline: "Cash tracking",
+    /* Was "Cash tracking" — two words naming a category. Says what it keeps
+       instead. */
+    fact: "A ledger for cash in and cash out",
+    fields: [
+      { kind: "state", value: "Live" },
+      { kind: "tech", value: "React" },
+      { kind: "when", value: "2025" },
+    ],
+    /* #9D67F1 — and the only one of the six where the most common colour in
+       the frame is also the chromatic one. The app is violet. */
+    tint: [157, 103, 241],
     description: "A platform for managing and tracking changes in cash.",
     tech: ["React", "Node.js", "Express", "Vite"],
     image: "/projects/change11.jpg",
@@ -188,7 +309,19 @@ export const projects: Project[] = [
   {
     slug: "icaros",
     title: "Icaros",
-    tagline: "Car marketplace",
+    /* Was "Car marketplace". The replacement is the label schema's own worked
+       example (#38) and it is checkable: the listing pages are server-light
+       and the images are sized for a phone, which is the whole reason the
+       line is worth printing instead of "fast". */
+    fact: "A car marketplace that loads on a phone signal",
+    fields: [
+      { kind: "state", value: "Live" },
+      { kind: "tech", value: "React" },
+      { kind: "when", value: "2025" },
+    ],
+    /* #B04E2E — the rust of the hero car. A small share of the frame and the
+       only saturated colour in it. */
+    tint: [176, 78, 46],
     description: "A web application for managing and selling cars.",
     tech: ["React", "Node.js", "MongoDB", "Vite"],
     image: "/projects/icaros.jpg",
@@ -202,7 +335,18 @@ export const projects: Project[] = [
   {
     slug: "text-encrypting",
     title: "Text Encrypting",
-    tagline: "Encrypt and decrypt in the browser",
+    /* Was "Encrypt and decrypt in the browser" — already a fact, and the one
+       interesting thing about it is where the work happens. Changed from the
+       imperative to the indicative only: a label describes an object, it does
+       not instruct the reader. */
+    fact: "Encrypts and decrypts text in the browser",
+    fields: [
+      { kind: "state", value: "Live" },
+      { kind: "tech", value: "JavaScript" },
+      { kind: "when", value: "2024" },
+    ],
+    /* #6A7A91 — the slate of the panel the text sits in. */
+    tint: [106, 122, 145],
     description: "A web application for encrypting and decrypting text.",
     tech: ["JavaScript", "HTML", "CSS", "Vite"],
     image: "/projects/text_encrypting.jpg",
@@ -226,7 +370,11 @@ export function seedToCollection(p: Project): Collection {
   return {
     slug: p.slug,
     title: p.title,
-    tagline: p.tagline,
+    /* The one place the rename is translated back. `Collection` is the shape
+       the API returns and zod validates, so its field keeps the old name
+       until the backend's own schema moves; the seed table is the side of the
+       boundary that gets to say what the line actually is. */
+    tagline: p.fact,
     description: p.description,
     coverImage: p.image ?? null,
     links: [...primary, ...(p.links ?? [])],

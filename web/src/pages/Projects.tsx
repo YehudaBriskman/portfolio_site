@@ -1,14 +1,10 @@
 import PageShell from "@/components/PageShell";
-/* InkWipe, not Reveal. Reveal was an IntersectionObserver that translated a
-   section 26px before fading it in; the wipe is scroll-timeline driven and
-   needs no observer. */
-import InkWipe from "@/components/motion/InkWipe";
-import ProjectCarousel from "@/components/carousel/ProjectCarousel";
+import ProjectPile from "@/components/projects/ProjectPile";
 import { useProjects } from "@/hooks/useProjects";
 import { relativeTime } from "@/services/blog";
 
 /*
- * Every project, on one shelf.
+ * Every project, in one pile.
  *
  * What this page was
  * ------------------
@@ -18,22 +14,31 @@ import { relativeTime } from "@/services/blog";
  * four distinct card layouts between them, and about three thousand pixels
  * of page. Everything on it was also on the six detail pages it links to.
  *
- * It is one carousel now, in the same order it was always sorted in: the two
- * in use, then the four from 2024-25. The grouping heading those four used
- * to sit under has gone with the grid, and the sentence under the title is
- * where that distinction now lives — which is honest, because the grouping
- * was never a filter the reader could act on, and each card states its own
- * year and its own state anyway.
+ * That became a shelf, and the shelf is now the pile the home page is built
+ * around. It is the same order it was always sorted in: the two in use, then
+ * the four from 2024-25. The grouping heading those four used to sit under
+ * has gone, and the sentence under the title is where the distinction now
+ * lives — which is honest, because the grouping was never a filter the reader
+ * could act on, and each label states its own year and its own state anyway.
+ *
+ * The same component as the home page, rather than a second arrangement of
+ * the same data.
+ * ----------------------------------------------------------------------
+ * This page and the home page were the two places the retired carousel was
+ * used, and reaching for a different device here would mean two ways of
+ * showing a project, drifting apart with every change to either. The pile
+ * does not care what ground it stands on: it reads `--canvas-2`, `--ink` and
+ * `--rule`, which is exactly the set `.on-panel` re-points, so the dark act
+ * is a class on a wrapper and not a prop on a component. The catalogue is the
+ * one page where the whole collection is the subject, so it gets the dark
+ * ground too — the home page's "one dark act" rule is a rule about one page.
  *
  * The three facts in the header stay. They are the only things on this page
- * that are about the shelf rather than about one project — how many are in
- * use, how many came before, and when anything last moved — and a reader
+ * that are about the collection rather than about one project — how many are
+ * in use, how many came before, and when anything last moved — and a reader
  * deciding whether this is a live portfolio or an abandoned one is reading
  * exactly those.
  */
-
-/* The page's own h1 is not a plate, so the first screenshot is plate one. */
-const FIRST_PLATE = 1;
 
 export default function Projects() {
   const { items, state, featured, archive } = useProjects();
@@ -102,23 +107,36 @@ export default function Projects() {
             `useProjects` is seeded from the project table, so the list is
             populated on the first paint and `items.length === 0` is not a
             state it can produce. */}
-        <div className="mt-12">
-          <InkWipe as="div">
-            {/* The first card is above the fold at every width, so its
-                screenshot is the LCP element and must not be lazy. */}
-            <ProjectCarousel
-              entries={items}
-              label="All projects"
-              /* The only heading above the shelf on this page is the h1, so
-                 a card title is an h2 here and an h3 on the home page, where
-                 `Work` sits between. */
-              heading="h2"
-              firstPlate={FIRST_PLATE}
-              eagerFirst
-            />
-          </InkWipe>
-        </div>
       </section>
+
+      {/*
+        The act, on its own ground.
+
+        `.on-panel` is on a full-width wrapper rather than on the section
+        above, because the header is paper and the collection is not: the
+        ground dropping out between the two is the point at which the page
+        stops introducing the work and starts showing it. The class re-points
+        the colour tokens for the whole subtree and restates `color` with
+        them, which is the part that is easy to miss — `color` inherits as a
+        computed value, so redefining `--ink` alone leaves every word in here
+        set in the body's ink on a near-black ground. See the note on
+        `--panel` in index.css.
+      */}
+      <div data-chrome="dark" className="on-panel relative isolate">
+        <div className="wrap section-y">
+          {/* No heading of its own, and the labels are `h2`. The page's
+              `h1` already says what the collection is; a second line saying
+              it again would be a heading added only to justify a heading
+              level. Six `h2`s under the `h1` is the outline a reader
+              navigating by headings actually wants — the page, then its
+              objects.
+
+              `eagerFirst`, because the first card carries the first picture
+              on the page and sits at or just past the fold at every width.
+              Left lazy it is the LCP element and is fetched last. */}
+          <ProjectPile entries={items} label="All projects" heading="h2" eagerFirst />
+        </div>
+      </div>
     </PageShell>
   );
 }

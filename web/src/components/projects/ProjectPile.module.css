@@ -1,0 +1,643 @@
+/*
+ * The pile. The one engineered moment on the page.
+ *
+ * Everything else on the home page was demoted so this could land, which
+ * means the budget is here: the dark ground, the most scroll room, the only
+ * real depth stack. The sentence it exists to earn is "the work stacks up and
+ * you can feel the weight of it", and every number in this file is answerable
+ * to it.
+ *
+ * ── the mechanism ─────────────────────────────────────────────────────────
+ *
+ * Every project is a slot, every slot is `position: sticky`, and each one
+ * pins a little deeper than the one before. A sticky element is constrained
+ * by its containing block — here the rail — and not by its siblings, so a
+ * slot that has pinned does not let go when the next slot arrives. It lets go
+ * when the *rail* leaves. That one fact is the whole difference between a
+ * pile and a slideshow: four cards that each stop 20px short of covering the
+ * last are a stack with four visible edges, where four cards that hand over
+ * one at a time are the same card shown four times.
+ *
+ * The arrival is a scroll-driven animation and runs on the `entry` range and
+ * nothing else. Two rules govern that, and each of them cost a rebuild:
+ *
+ * A SCROLL-DRIVEN ANIMATION HAS NO DELAY AND NO DURATION. Both properties
+ * are ignored the moment `animation-timeline` names a scroll or view
+ * timeline — the range *is* the clock. So a stagger is N ranges and never N
+ * delays, and every `animation-duration` in this file would be a line that
+ * looks like it is doing something and is not. There are none.
+ *
+ * A PINNED ELEMENT'S TIMELINE STALLS. `position: sticky` stops an element
+ * moving relative to the scrollport the instant it pins, and a `view()`
+ * timeline measures exactly that movement — so its progress freezes at
+ * whatever it had reached and never advances again. Anything scheduled past
+ * the pin point never plays. The arrival therefore lives entirely inside
+ * `entry`, which by construction runs before the pin: for a subject shorter
+ * than the scrollport, `entry 100%` is the moment the subject's bottom edge
+ * is flush with the bottom of the window, which is to say while its top edge
+ * is still `100svh - card` from the top of the screen — far below the 92px
+ * the first slot pins at. That inequality is the reason `--pile-stock` is
+ * capped in `svh` below and is not a free choice. Motion that genuinely has
+ * to happen while a card is pinned would need `view-timeline-name` declared
+ * on a static wrapper and the child's `animation-timeline` pointed at that
+ * name; nothing here needs it, which is the cheaper answer.
+ *
+ * ── the three off-switches ────────────────────────────────────────────────
+ *
+ * Reduced motion, the reader's own Pause control, and a browser with no
+ * scroll-driven animation at all. All three have to land on a *finished*
+ * static design and not on a broken animated one, and the specific way that
+ * goes wrong is a card sitting at the first keyframe for ever, waiting for a
+ * timeline that will never tick. So each switch is a line of custom
+ * properties at the foot of this file rather than a copy of the layout, and
+ * each of them cancels the animation outright — `animation-duration: 0.01ms`,
+ * which is what `motion-paused.css` and the reduced-motion block in
+ * `index.css` apply globally, is the right trick for a time-driven animation
+ * and is not defined for a progress-driven one. It would leave the card still
+ * tied to the scroll position.
+ *
+ * The arrival is also transform-only, with no opacity track at all, and that
+ * is the second half of the same insurance: a card half-way through a fade is
+ * a card you can read the card underneath through, which is the double
+ * exposure this whole section is built to avoid — and a card stranded at
+ * `opacity: 0` is simply not there. Stranded at `translateY(110px)` it is a
+ * card in slightly the wrong place, which is a bad frame and not a missing
+ * object.
+ */
+.rail {
+  /*
+   * ── the switches ───────────────────────────────────────────────────────
+   * Four properties that the three off-switches rewrite, so each switch is
+   * one small block and cannot fall out of step with the layout it is
+   * switching off. Read `var(--pile-pin)` below as "sticky, unless something
+   * has said otherwise".
+   *
+   * The arrival is cancelled separately, with a plain `animation-name: none`
+   * on the card, and that is not an inconsistency — it is a CSS Modules
+   * constraint found the hard way. The bundler scopes `@keyframes` names
+   * along with class names, rewriting both the at-rule and any bare
+   * `animation-name` that references it. A name written inside `var()` is
+   * opaque to that rewrite: `animation-name: var(--x, pile-arrive)` survives
+   * verbatim and then names a keyframe that no longer exists under that name.
+   * It fails in complete silence — the computed `animation-name` reads back as
+   * `pile-arrive`, the timeline and the range are both correct, and the
+   * transform is `none` at every point in the range. Measured across seven
+   * positions through a card's whole entry before the cause was found.
+   */
+  --pile-pin: sticky;
+  /*
+   * How far the reader scrolls between one card arriving and the next
+   * starting to climb. This is the only reason the rail is taller than its
+   * cards; it reads as empty page in the markup and is never empty on
+   * screen, because a pinned card is filling it the whole time.
+   *
+   * 52svh is the largest value that still puts two whole arrivals inside a
+   * comfortable flick and the smallest that gives a card a beat alone before
+   * the next edge appears over it. Below about 34svh the cards arrive on top
+   * of one another and the pile reads as a shuffle.
+   */
+  --pile-dwell: 52svh;
+  /*
+   * The beat after the last card, and it is drawn as a block rather than as
+   * padding. See `.rail::after`.
+   */
+  --pile-tail: 30svh;
+  /*
+   * One height for every card in the pile, and the two limits do different
+   * jobs.
+   *
+   * `27rem` is the height the longest label needs at the narrow measure.
+   * `52svh` is the load-bearing one: it is the promise that a card is shorter
+   * than the window by more than the deepest pin offset, which is what keeps
+   * the entry range finishing before the slot pins (see the note above) and
+   * what keeps a pinned card's lower half above the fold. It is also why the
+   * cards are a uniform height at all — a card only occludes the one behind
+   * it if it is at least as tall, and labels are not the same length.
+   */
+  --pile-stock: min(27rem, 52svh);
+
+  /*
+   * ── the geometry ───────────────────────────────────────────────────────
+   *
+   * Where the first card pins. The nav bar is 66px; 92px leaves 26px of
+   * ground between the bar and the top card's edge, which is enough to read
+   * as air rather than as a collision at every width.
+   */
+  --pile-top: 5.75rem;
+  /*
+   * How deep the pile is allowed to get, in total, however many cards are in
+   * it. This is the number that makes the section work with eight projects as
+   * well as with four, and it exists because the offsets are the one part of
+   * a sticky stack that does not scale: four cards at 20px apart is a 60px
+   * spread and eight is 140px, which walks the last card down into the bar's
+   * shadow and costs it the top of its own screenshot.
+   */
+  --pile-spread: 5rem;
+  /*
+   * So the step is derived from the count rather than written out per card.
+   *
+   * At four it resolves to the full 20px — 92, 112, 132, 152 — and the pile
+   * is as deep as it is allowed to be. At eight it resolves to 11.4px and the
+   * eight edges share the same 80px, which is tighter per card and still
+   * plainly a pile. `max(… , 1)` is not defensive dressing: at a count of one
+   * the divisor would be zero and the whole declaration would be invalid,
+   * which in CSS means the slot silently pins at `top: auto` and the section
+   * becomes a plain list.
+   */
+  --pile-step: min(1.25rem, calc(var(--pile-spread) / max(var(--pile-n, 1) - 1, 1)));
+
+  /*
+   * ── the surface ────────────────────────────────────────────────────────
+   *
+   * THE SURFACE HAS TO OCCLUDE, and this is the number that decides whether
+   * it does. A card is tinted with the colour of the work it labels, and at a
+   * low alpha you read the card underneath straight through the one on top:
+   * two labels in the same place, which is not depth but a double exposure.
+   *
+   * This was built at 0.94 on the reasoning that 80% is roughly where
+   * occlusion starts working, and 0.94 fails here — visibly, not marginally.
+   * Photographed and sampled: Bothy's name and its whole field line are
+   * plainly readable through the plinth of the card burying it. The arithmetic
+   * says why, and it is specific to the dark ground. The plinth is #16161A, so
+   * channel 21; bone type is 242. Six per cent of the difference is 13
+   * levels — which on paper is nothing, a 248 ground shifting to 243, and on
+   * this ground is 21 rising to 34, a sixty per cent jump in luminance. The
+   * eye reads contrast as a ratio and not as a difference, so a near-black
+   * surface has no translucency to spend at all.
+   *
+   * Hence 1. The token stays because the number is a finding rather than a
+   * default, and because a caller standing this pile on paper has the room
+   * that this ground does not: the same measurement there puts the floor at
+   * about 0.86.
+   */
+  --pile-skin: 1;
+  /*
+   * The shadow colour, and the reason it is written out rather than taken
+   * from a token.
+   *
+   * DEPTH FROM SEPARATION, NOT FROM A HALO. A shadow with no offset is a glow
+   * and a glow says "this element is selected"; a shadow with real offset and
+   * real blur says one sheet is in front of another. And it is tinted toward
+   * the ground rather than being pure black — #06060A against the panel's
+   * #0C0C0E — because a black shadow on a near-black ground is the one case
+   * where the shadow is *all* the separation there is, and a pure black one
+   * reads as a hole cut in the page instead of as a card above it.
+   *
+   * Not a token because none of the existing ones can be it: `--ink` is bone
+   * on this ground and `--canvas` is the ground itself. A caller standing the
+   * pile on paper has to override this, and would want `var(--ink)`.
+   */
+  --pile-shade: 6 6 10;
+  /*
+   * The neutral a project with no sampled colour falls back to — the panel's
+   * own secondary ink. A tintless card is a grey card, which is honest; the
+   * alternative is picking a hue for a project that has not got one, which is
+   * exactly the palette rotation the gallery grammar replaced.
+   */
+  --pile-tint: var(--panel-soft);
+
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/*
+ * The beat the finished pile gets before it leaves.
+ *
+ * Measured, after getting it wrong: `padding-bottom` on the rail does not do
+ * this. A sticky box is confined to its containing block, and the containing
+ * block of a block-level child is the parent's *content* box — so padding
+ * sits outside the region sticky is allowed to use, and the whole pile was
+ * released at the exact moment the last card finished arriving. At
+ * 1440 × 900 with four projects the fully stacked pile was on screen for
+ * 0px of scroll: the last card landed and the stack lifted off the top of
+ * the window in the same gesture, which is the "fades to an empty stage"
+ * ending in its purest form.
+ *
+ * An empty block child is inside the content box, so it extends the sticky
+ * range by its own height and the four cards hold their positions for
+ * another 30svh. It reads as empty page in the markup and is never empty on
+ * screen, for the same reason the dwell between slots is not: a pinned card
+ * is filling it the whole time.
+ */
+.rail::after {
+  content: "";
+  display: block;
+  height: var(--pile-tail);
+}
+
+.slot {
+  position: var(--pile-pin, sticky);
+  /* The only thing about a slot that depends on where it sits in the pile.
+     `--pile-i` is written by the component and is read exactly twice: here,
+     and by the card's `scroll-margin-top`. */
+  top: calc(var(--pile-top) + var(--pile-i, 0) * var(--pile-step));
+  /*
+   * The stage the arrival is seen through, and it has to be here rather than
+   * on the card: perspective applies to an element's children, so a
+   * `rotateX` on the same box that declares it is drawn flat — the single
+   * most common way a 3D arrival ends up looking like a vertical squash.
+   *
+   * 1500px is a long lens. At 800 the twenty-degree lean throws the card's
+   * top corners far enough out to read as a page turning, which is a
+   * different gesture and a louder one than a sheet being laid down.
+   */
+  perspective: 1500px;
+}
+
+.slot + .slot {
+  margin-top: var(--pile-dwell);
+}
+
+/* ────────────────────────────────────────────────────────────── the card ── */
+
+/*
+ * One card, one link, and nothing else interactive inside it.
+ *
+ * The whole object is the target — the screenshot, the name, the fact line
+ * and the field line are one hit area and one entry in a screen reader's link
+ * list. The alternative that this replaces was a card full of content with a
+ * small "The detail" button at the foot, which is a 400px object offering a
+ * 120px target and announcing itself twice.
+ */
+.card {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  /* The shot takes what is left after the plinth has asked for what it
+     needs. `minmax(0, 1fr)` and not `1fr`, or a wide screenshot refuses to
+     shrink below its intrinsic width and pushes the card out of the column. */
+  grid-template-rows: minmax(0, 1fr) auto;
+  height: var(--pile-stock);
+  overflow: hidden;
+  /* The widest corner the palette names. These are the largest objects on
+     the page; 22px on a 600px card is a square with the sharpness filed off,
+     which the eye reads as a straight edge and never as a curve. */
+  border-radius: var(--r-xl);
+  border: 1px solid rgb(var(--rule));
+  /*
+   * Two layers, in this order. The tint is a background *image*, so it is
+   * painted over the ground colour rather than mixed into it — which is what
+   * lets the ground stay at `--pile-skin` and the tint stay at its own alpha
+   * without the two having to be reasoned about together.
+   *
+   * The gradient is raked slightly off vertical and dies out before the
+   * halfway line. A tint that covers the whole card is a coloured panel and
+   * the section becomes six coloured panels; a tint that is strongest at the
+   * top edge is a colour the *object* has, and the top edge is also the only
+   * part of a buried card that is still on screen.
+   */
+  background-color: rgb(var(--canvas-2) / var(--pile-skin));
+  background-image: linear-gradient(
+    193deg,
+    rgb(var(--pile-tint) / 0.26) 0%,
+    rgb(var(--pile-tint) / 0.07) 42%,
+    rgb(var(--pile-tint) / 0) 68%
+  );
+  /*
+   * Three shadows, and each one is a different relationship.
+   *
+   * The inset at the top is the light catching the card's own leading edge —
+   * one pixel, in the project's colour, and it is what the 20px sliver of a
+   * buried card is actually made of.
+   *
+   * The upward cast is the card throwing shade onto the one it is burying.
+   * This is the shadow that makes two overlapping rectangles read as two
+   * sheets rather than as one drawing, and it needs real offset: at 0 offset
+   * and any blur it is a halo around the whole card and says nothing about
+   * which sheet is in front.
+   *
+   * The downward cast is the card's own drop onto the ground. Much larger
+   * than the equivalent on paper, because on paper the border does most of
+   * the separating and here the border is 1px of #303036 against #0C0C0E —
+   * about 1.4:1, which is to say nothing at all.
+   */
+  box-shadow:
+    0 1px 0 rgb(var(--pile-tint) / 0.45) inset,
+    0 -26px 44px -26px rgb(var(--pile-shade) / 0.9),
+    0 30px 64px -28px rgb(var(--pile-shade) / 0.95);
+  color: rgb(var(--ink));
+  text-decoration: none;
+
+  /*
+   * The arrival.
+   *
+   * No duration and no delay, for the reason at the top of this file: under a
+   * view timeline both are ignored and the range is the clock. The range is
+   * `entry` and only `entry`, which is the window before the slot pins.
+   *
+   * 4% rather than 0% so the card is not already moving as its first pixel
+   * crosses the fold — at 0% the motion starts in the corner of the reader's
+   * eye and reads as a jolt. 92% rather than 100% so it has unambiguously
+   * finished before anything else can happen to it.
+   *
+   * `linear`, and this is the one place a scroll-driven animation inverts the
+   * usual advice. `--ease-settle` was tried first, on the argument that a
+   * front-loaded curve finishes early and so cannot be caught by the pin. It
+   * is finished early in a sense that turns out to be useless: measured at
+   * 1440 x 900, the entry range is exactly one card tall — 432px of scroll —
+   * and the card spends the first half of it below the fold. At `entry 36%`
+   * the curve is already at 95%, so the whole arrival played while the card
+   * was three quarters off the bottom of the screen and what reached the
+   * reader was a card that simply appeared. Under a view timeline the reader's
+   * own scroll is the easing; adding another is adding a second opinion about
+   * a speed only one of them can see.
+   *
+   * `transform-origin` at the bottom edge: the card hinges up off the page
+   * rather than tumbling about its middle, which is the difference between a
+   * sheet being laid onto a pile and a card being dealt.
+   */
+  transform-origin: 50% 100%;
+  animation-name: pile-arrive;
+  animation-fill-mode: both;
+  animation-timing-function: linear;
+  animation-timeline: view();
+  animation-range: entry 4% entry 92%;
+
+  /*
+   * Tabbing into the pile.
+   *
+   * Without this the browser scrolls a focused card flush to the top of the
+   * window, which on this page is behind the fixed nav island — so the one
+   * reader who cannot see where focus went is the one it is hidden from. The
+   * value is the slot's own pin offset plus a little, so a card reached by
+   * Tab lands exactly where it would have come to rest by scrolling.
+   */
+  scroll-margin-top: calc(var(--pile-top) + var(--pile-i, 0) * var(--pile-step) + 0.75rem);
+
+  /* Border and tint only. Deliberately not a transform: the card's transform
+     is owned by the arrival animation, and an animated property beats a
+     non-animated declaration for as long as the animation exists — so a
+     hover transform here would do nothing at all above the fold and then
+     start working once the animation was switched off. */
+  transition: border-color var(--dur-fast) ease, background-color var(--dur-fast) ease;
+}
+
+@media (min-width: 860px) {
+  .card {
+    /* The shot takes the larger share; the plinth takes what a label needs
+       and no more. A 50/50 split makes a screenshot of a web page too small
+       to recognise, which is the only job it has on this card. */
+    grid-template-columns: minmax(0, 1.32fr) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .card:hover {
+    border-color: rgb(var(--pile-tint) / 0.55);
+    /*
+     * `color-mix` and not an alpha, which is the whole lesson of `--pile-skin`
+     * applied to a second surface: the obvious way to lift a card under the
+     * pointer is to let a little more of something through it, and on this
+     * ground there is nothing behind it but the card it is burying. Mixing
+     * eight per cent of the project's own colour into an opaque fill lifts it
+     * by about the same amount and occludes exactly as well as the rest state.
+     * A browser without `color-mix` drops the line and the card still answers
+     * on its border and its arrow.
+     */
+    background-color: color-mix(in srgb, rgb(var(--canvas-2)), rgb(var(--pile-tint)) 8%);
+  }
+}
+
+@keyframes pile-arrive {
+  from {
+    transform: translateY(110px) rotateX(20deg) scale(0.86);
+  }
+  to {
+    transform: none;
+  }
+}
+
+/* ────────────────────────────────────────────────────────────── the shot ── */
+
+.shot {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/*
+ * Reaching into `Shot` and `Plate`, both of which carry `.card-shot`.
+ *
+ * Both were written for the paper ground and both set one there: `.card-shot`
+ * fills with `--bitumen` and `Plate` with `--paper-3`, neither of which
+ * `.on-panel` re-points, so on this card they would paint a cream rectangle
+ * behind the screenshot — visible for as long as the image is loading, and
+ * permanently on the one project that has no screenshot at all.
+ *
+ * Two classes, so this wins on specificity rather than on which stylesheet
+ * the bundler happened to emit last. `Plate`'s fill is a single Tailwind
+ * utility and `.card-shot` is a single class in the components layer; both
+ * lose to a descendant pair. That is the same trap `Shot.tsx` documents from
+ * the other side, where it had to rely on emission order instead.
+ */
+.shot :global(.card-shot) {
+  height: 100%;
+  width: 100%;
+  border: 0;
+  border-radius: 0;
+  background: rgb(var(--canvas));
+}
+
+/*
+ * The type plate, which is what a project with no screenshot gets.
+ *
+ * `Plate` lays its three parts out with `justify-content: space-between`,
+ * which is right in the 16:10 box it was written for and wrong in a card-tall
+ * one: at 600px the heading pins to the top, the stack pins to the bottom and
+ * 400px of nothing sits between them, so the one card without a picture reads
+ * as the one card that failed to load. Centred, the same three parts are a
+ * title page.
+ *
+ * Addressed through a class this component passes down rather than through
+ * `Plate`'s own utilities, so the override is specific to being in a pile and
+ * every other caller of `Plate` is untouched.
+ */
+.shot .plate {
+  justify-content: center;
+  gap: clamp(1.5rem, 4vh, 3rem);
+}
+
+/* The screenshot is not cropped to a ratio here — it fills whatever the grid
+   leaves it, which is the only way a row of cards all the same height can
+   also all be full of picture. `object-top` on the image inside is what makes
+   that safe: an app screenshot puts its interface at the top of the frame. */
+.shot :global(img) {
+  height: 100%;
+  width: 100%;
+}
+
+/*
+ * A seam between the picture and the plinth, drawn in the project's colour.
+ *
+ * Not a border, because the two are adjacent in a grid and a border on either
+ * side would be inside the card's own rounded corner on one end and flush to
+ * the plinth's padding on the other. A pseudo-element can be the full bleed of
+ * the edge it marks and nothing else.
+ */
+.shot::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 1px;
+  background: rgb(var(--pile-tint) / 0.4);
+}
+
+@media (min-width: 860px) {
+  .shot::after {
+    inset: 0 0 0 auto;
+    height: auto;
+    width: 1px;
+  }
+}
+
+/* ──────────────────────────────────────────────────────────── the plinth ── */
+
+/*
+ * Where the label stands.
+ *
+ * `justify-content: space-between` rather than `flex-end`: the mark that says
+ * the card is a door belongs at the top of the plinth and the label at the
+ * foot of it, so the label sits on the card's bottom edge the way a museum
+ * label sits on the plinth rather than floating in the middle of it.
+ */
+.plinth {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1.25rem;
+  min-width: 0;
+  padding: clamp(1.25rem, 2.2vw, 2rem);
+}
+
+/*
+ * The third axis of the dark-act type compensation.
+ *
+ * `index.css` sets the other two on `.on-panel` — more leading and a touch
+ * more tracking on every `p` and `li`, which reaches the fact line and the
+ * field line — and bumps the weight of `.display` and `.display-tight`. The
+ * object name is neither of those: `ObjectLabel` sets its own 800, so on this
+ * ground it is the one piece of type on the card still set with light-ground
+ * metrics, and light type on a dark ground at 800 reads thin because the
+ * ground bleeds into the strokes rather than the strokes into the ground.
+ *
+ * Addressed through the element rather than through the module's own class,
+ * because the class is hashed and belongs to `ObjectLabel`; `nameAs="h3"` is
+ * a contract this component already states at the call site.
+ */
+.label h3 {
+  font-weight: 900;
+  letter-spacing: calc(var(--track-head) + 0.004em);
+}
+
+/*
+ * The mark that says the whole card is a door.
+ *
+ * It is the only affordance the card has besides the cursor and the underline
+ * `ObjectLabel` draws under a hovered name — and it has to be a mark rather
+ * than a button, because a button inside a card that is itself a link is a
+ * nested interactive element and the one thing the markup here is built to
+ * avoid. `aria-hidden` in the component, since it says nothing the link's own
+ * name does not.
+ *
+ * The font stack is the one `Action.module.css` names, for the reason given
+ * there: Archivo's latin subset carries ↑ and ↓ and nothing else, so an
+ * arrow set in the page's own family falls back to whatever each platform
+ * happens to have and the site ends up with three different arrows on it.
+ */
+.onward {
+  align-self: flex-end;
+  font-family: ui-sans-serif, system-ui, "Segoe UI Symbol", "Noto Sans Symbols 2", sans-serif;
+  font-size: 1.125rem;
+  line-height: 1;
+  color: rgb(var(--ink-soft));
+  transition: transform var(--dur-fast) var(--ease-settle), color var(--dur-fast) ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .card:hover .onward {
+    transform: translateX(3px);
+    color: rgb(var(--ink));
+  }
+}
+
+/* ───────────────────────────────────────────────── the three off-switches ── */
+
+/*
+ * Each of the three lands on the same finished thing: an ordinary vertical
+ * list of cards, every one of them at its natural height, full opacity, no
+ * sticky, no stage and no animation. Not a degraded pile — there is no such
+ * object. A pile is a thing scroll does, and where scroll cannot do it the
+ * honest answer is the list the markup already is.
+ *
+ * `animation-name: none` rather than `animation: none`, which would also reset
+ * the timeline and the range and leave nothing for the next reader to see. A
+ * name of `none` has no fill, so the card simply keeps the `transform` from
+ * its own rule, which is nothing. It is the one thing each switch states
+ * outside the custom properties, for the CSS Modules reason documented on
+ * `.rail`.
+ *
+ * `--pile-stock: auto` is the part that is easy to forget. A card still 27rem
+ * tall with nothing stacking on it is a column of tall boxes with a lot of
+ * empty plinth in each, and the uniform height only ever existed so that one
+ * card could cover another.
+ */
+@supports not (animation-timeline: view()) {
+  .rail {
+    --pile-pin: static;
+    --pile-dwell: 1.5rem;
+    --pile-tail: 0px;
+    --pile-stock: auto;
+  }
+  .card {
+    animation-name: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rail {
+    --pile-pin: static;
+    --pile-dwell: 1.5rem;
+    --pile-tail: 0px;
+    --pile-stock: auto;
+  }
+  .card {
+    animation-name: none;
+  }
+}
+
+/*
+ * The reader's own Pause control, which is a different question from the OS
+ * setting and is answered the same way here. See `nav/motion-paused.css`: the
+ * class is on `document.body`, which is why this one selector has to reach
+ * out of the module.
+ */
+:global(body.motion-paused) .rail {
+  --pile-pin: static;
+  --pile-dwell: 1.5rem;
+  --pile-tail: 0px;
+  --pile-stock: auto;
+}
+
+:global(body.motion-paused) .card {
+  animation-name: none;
+}
+
+/*
+ * A forced palette repaints the type and the grounds and leaves the tint and
+ * the three shadows painted in system colours they were never chosen for —
+ * which in practice means a coloured wash over text the browser is already
+ * recolouring. The structure survives; the depth does not, and on a ground
+ * the reader has overridden there is nothing for it to be depth against.
+ */
+@media (forced-colors: active) {
+  .card {
+    background-image: none;
+    box-shadow: none;
+  }
+  .shot::after {
+    background: CanvasText;
+  }
+}

@@ -1,6 +1,13 @@
 import { useEffect, useState } from "react";
+import type { LabelField } from "@/components/gallery/objectLabel";
 import { blog, type Collection } from "@/services/blog";
-import { projects as seeds, seedToCollection, type Project, type ProjectDecision } from "@/data/projects";
+import {
+  projects as seeds,
+  seedToCollection,
+  type Project,
+  type ProjectDecision,
+  type ProjectTint,
+} from "@/data/projects";
 
 /*
  * One list of projects for the whole site.
@@ -29,6 +36,17 @@ export type ProjectEntry = {
   year: string | null;
   tech: string[];
   highlights: string[];
+  /**
+   * The label's field line, in the shape `ObjectLabel` wants it.
+   *
+   * Always populated. A seeded project authors its own — which fact
+   * identifies it is a judgement, not a rule — and anything backed only by a
+   * published collection gets the derived line from `labelFields` below,
+   * because a label with no field line is not the schema.
+   */
+  fields: LabelField[];
+  /** The colour the work is. `null` for a collection with no seed behind it. */
+  tint: ProjectTint | null;
   /*
    * The brief, and the decisions behind it. All optional, and absent is the
    * normal case: only the two projects with a written record of their own can
@@ -63,6 +81,26 @@ function splitLinks(c: Collection) {
   return { primaryLink: outbound[0] ?? null, otherLinks: outbound.slice(1) };
 }
 
+/*
+ * A field line for a project that has no seed to author one.
+ *
+ * The three kinds are deliberately different from one another — what state it
+ * is in, what it is built out of, when it happened — because three facts of
+ * the same kind is a stack list, which is the datasheet #16 cut. `where` and
+ * `count` are absent on purpose: a collection cannot know where a project is
+ * published, and the only number it has is a star count that would be printed
+ * as a boast rather than as a spec.
+ *
+ * Order is irrelevant here. `orderFields` sorts by kind before rendering, so
+ * this is a bag and not a sequence.
+ */
+function labelFields(state: string, tech: string[], year: string | null): LabelField[] {
+  const out: LabelField[] = [{ kind: "state", value: state }];
+  if (tech[0]) out.push({ kind: "tech", value: tech[0] });
+  if (year) out.push({ kind: "when", value: year });
+  return out;
+}
+
 function merge(collections: Collection[]): ProjectEntry[] {
   const seedMap = bySlug(seeds);
   const live = collections.filter((c) => c.kind === "project");
@@ -80,14 +118,22 @@ function merge(collections: Collection[]): ProjectEntry[] {
     .map((c) => {
       const seed = seedMap.get(c.slug) ?? null;
       const release = c.stats?.latestRelease?.tag ?? null;
+      const state = seed?.state ?? release ?? (c.order < FEATURED_BELOW ? "In use" : "Archive");
+      const year = seed?.year ?? null;
+      const tech = seed?.tech ?? [];
       return {
         collection: c,
         live: liveSlugs.has(c.slug),
-        state: seed?.state ?? release ?? (c.order < FEATURED_BELOW ? "In use" : "Archive"),
+        state,
         status: seed?.status ?? (c.order < FEATURED_BELOW ? "In use" : "Earlier work"),
-        year: seed?.year ?? null,
-        tech: seed?.tech ?? [],
+        year,
+        tech,
         highlights: seed?.highlights ?? [],
+        /* An authored line wins outright; `length` and not nullishness,
+           because a seed that declared `fields: []` meant the empty array and
+           an empty field line is not something the schema offers. */
+        fields: seed?.fields?.length ? seed.fields : labelFields(state, tech, year),
+        tint: seed?.tint ?? null,
         problem: seed?.problem ?? null,
         role: seed?.role ?? null,
         outcome: seed?.outcome ?? null,
