@@ -289,6 +289,37 @@ jobs:
           chmod 600 "$HOME/.kube/config"
           kubectl -n prod get deploy web api -o name
 
+      # The manifest lives in another repository, and merging it there does
+      # nothing to the cluster until somebody runs `kubectl apply`. Nothing
+      # reports that gap, and it cost this pipeline its first green rollout:
+      # the deployments still carried `imagePullPolicy: Never` from the old
+      # build-on-the-node arrangement, `set image` changed the tag but not the
+      # policy, and both new pods sat in ErrImageNeverPull until the five
+      # minute rollout timeout gave up and undid the whole thing.
+      #
+      # Two seconds of assertion in exchange for that. It cannot apply the
+      # manifest — that repository is not checked out here, and reaching for
+      # it would mean another credential — but it can refuse to start a
+      # rollout the cluster is not configured to complete, and say which
+      # command closes the gap.
+      - name: The cluster can actually pull
+        run: |
+          set -euo pipefail
+          bad=0
+          for d in web api; do
+            policy=$(kubectl -n prod get deploy "$d" \
+              -o jsonpath='{.spec.template.spec.containers[0].imagePullPolicy}')
+            secrets=$(kubectl -n prod get deploy "$d" \
+              -o jsonpath='{.spec.template.spec.imagePullSecrets[*].name}')
+            echo "$d: imagePullPolicy=$policy imagePullSecrets=[${secrets:-none}]"
+            [ "$policy" = "Never" ] && { echo "  ^ cannot pull from a registry"; bad=1; }
+            case " $secrets " in *" ghcr-pull "*) ;; *) echo "  ^ no ghcr-pull secret"; bad=1;; esac
+          done
+          if [ "$bad" = 1 ]; then
+            echo "::error title=The cluster has drifted from its manifest::The live Deployments are not configured to pull from GHCR, so this rollout would stall in ErrImageNeverPull. Apply the manifest from the oci-free repository first: kubectl apply -f k8s/portfolio.yaml"
+            exit 1
+          fi
+
       - name: Roll out this commit
         id: rollout
         run: |
@@ -297,8 +328,18 @@ jobs:
             web=${{ env.IMAGE_BASE }}/web:${{ github.sha }}
           kubectl -n prod set image deploy/api \
             api=${{ env.IMAGE_BASE }}/api:${{ github.sha }}
-          kubectl -n prod rollout status deploy/web --timeout=300s
-          kubectl -n prod rollout status deploy/api --timeout=300s
+          # `rollout status` reports that it gave up, never why. A pull
+          # failure is the likeliest reason and is invisible without this.
+          for d in web api; do
+            if ! kubectl -n prod rollout status "deploy/$d" --timeout=300s; then
+              echo "::group::why $d did not come up"
+              kubectl -n prod get pods -l "app=$d" \
+                -o custom-columns='POD:.metadata.name,PHASE:.status.phase,REASON:.status.containerStatuses[0].state.waiting.reason,MSG:.status.containerStatuses[0].state.waiting.message'
+              kubectl -n prod describe deploy "$d" | tail -20
+              echo "::endgroup::"
+              exit 1
+            fi
+          done
 
       # A rollout that reports success and a site that does not answer are
       # different things, and only one of them is what was wanted.
