@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
 import { createImagesRouter } from "./routes/images.route";
+import { createGithubRouter } from "./routes/github.route.js";
 import { requestLogger } from "./middlewares/logger";
 import emailRoutes from './routes/email.route.js';
 import blogRoutes from './routes/blog.route.js';
@@ -98,6 +99,15 @@ export function createApp() {
   app.use('/api/admin', adminLimiter, requireAdmin, adminRoutes);
   app.use('/api/email', emailRoutes);
   app.use("/api/images", createImagesRouter());
+  /*
+   * The contribution year, on the read limiter the blog uses.
+   *
+   * One request per home-page load and the answer is a cached array, so the
+   * ceiling only has to be above a reader refreshing; it is deliberately not
+   * the seoLimiter's 600, because nothing here sits on a crawler's path — the
+   * rendered shell in seo.route.ts carries the year's total as prose instead.
+   */
+  app.use("/api/github", readLimiter, createGithubRouter());
 
   // Health
   app.get("/health", (_req, res) => res.json({ ok: true }));

@@ -1,5 +1,6 @@
 import "dotenv/config";
 import { startStatsRefresh } from "./services/github.js";
+import { startContributionsRefresh } from "./services/contributions.js";
 import { couch } from "./db/couch.js";
 import type { Collection } from "./schemas/content.js";
 import { createApp } from "./app";
@@ -23,3 +24,13 @@ startStatsRefresh({
     await couch.put(c._id!, { ...c, updatedAt: new Date().toISOString() });
   },
 });
+
+/*
+ * The contribution year keeps itself warm.
+ *
+ * No injected store, unlike the stats refresh above: a contribution calendar
+ * belongs to no collection document, so the cache is the service's own and this
+ * call only starts its clock. The first reader fills a cold cache regardless,
+ * so a failure here costs a slower first paint and nothing else.
+ */
+startContributionsRefresh();

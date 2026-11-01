@@ -3,6 +3,7 @@ import Nav from "@/components/Nav";
 import Hero from "@/components/Hero";
 import Work from "@/components/Work";
 import Approach from "@/components/Approach";
+import ContributionCity from "@/components/city/ContributionCity";
 import Stack from "@/components/Stack";
 import LatestNotes from "@/components/LatestNotes";
 import Contact from "@/components/Contact";
@@ -76,6 +77,37 @@ export default function Index() {
 
         <div className="layer-section">
           <Approach />
+        </div>
+
+        {/*
+          The year, and the two beats it had to sit between.
+
+          It is the page's one `scrub` — a thing the reader operates by
+          scrolling rather than a thing that happens to them once — so it has
+          no adjacent family to collide with here: `flow` above it, `pan`
+          below. Both of the other candidate slots are closed, and for
+          reasons rather than by preference.
+
+          Not next to the pile. The pile is the page's only engineered peak
+          and the only other act on it with real depth in it; a 3D grid
+          immediately before or after would make the peak read as this
+          section's warm-up. The wall text between them is the separation, and
+          it is the quietest screen on the page precisely so that the two
+          acts either side of it do not meet.
+
+          Not between the shelf and the spec plate. The comment below argues
+          that pair must stay adjacent because the order is the device
+          sequence; dropping a third beat between them would put a static
+          screen between the two sections that answer each other.
+
+          The principles above it are untouched. The issue this came from said
+          the city replaced them, which stopped being true when each of the
+          three got its own typographic arrival — so the city is a section of
+          its own and where the principles finally live is the owner's call,
+          raised in the pull request rather than decided here.
+        */}
+        <div className="layer-section">
+          <ContributionCity />
         </div>
 
         {/*
