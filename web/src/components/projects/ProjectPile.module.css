@@ -18,6 +18,13 @@
  * last are a stack with four visible edges, where four cards that hand over
  * one at a time are the same card shown four times.
  *
+ * Each card arrives the way its own work stands: the state it is in picks the
+ * gesture and its age picks how much of that gesture is left to play, which is
+ * one keyframe reading five custom properties the component writes per slot.
+ * The sentence that relationship is answerable to, the three gestures and the
+ * reason three of the six projects come out identical are all in
+ * `pileArrival.ts`; what is here is only the mechanism.
+ *
  * The arrival is a scroll-driven animation and runs on the `entry` range and
  * nothing else. Two rules govern that, and each of them cost a rebuild:
  *
@@ -48,21 +55,34 @@
  * scroll-driven animation at all. All three have to land on a *finished*
  * static design and not on a broken animated one, and the specific way that
  * goes wrong is a card sitting at the first keyframe for ever, waiting for a
- * timeline that will never tick. So each switch is a line of custom
- * properties at the foot of this file rather than a copy of the layout, and
- * each of them cancels the animation outright — `animation-duration: 0.01ms`,
- * which is what `motion-paused.css` and the reduced-motion block in
- * `index.css` apply globally, is the right trick for a time-driven animation
- * and is not defined for a progress-driven one. It would leave the card still
- * tied to the scroll position.
+ * timeline that will never tick.
+ *
+ * There are three of them and not three per card, which is the point of
+ * putting the per-project variation in the keyframe's *values* rather than in
+ * a keyframe or a range per project: one `animation-name` is cancelled and the
+ * five properties that shaped it have nothing left reading them. Six keyframes
+ * would have needed eighteen cancellations and would have fallen out of step
+ * with the project count the first time one was added.
+ *
+ * So each switch is a line of custom properties at the foot of this file
+ * rather than a copy of the layout, and each of them cancels the animation
+ * outright — `animation-duration: 0.01ms`, which is what `motion-paused.css`
+ * and the reduced-motion block in `index.css` apply globally, is the right
+ * trick for a time-driven animation and is not defined for a progress-driven
+ * one. It would leave the card still tied to the scroll position.
  *
  * The arrival is also transform-only, with no opacity track at all, and that
  * is the second half of the same insurance: a card half-way through a fade is
  * a card you can read the card underneath through, which is the double
  * exposure this whole section is built to avoid — and a card stranded at
- * `opacity: 0` is simply not there. Stranded at `translateY(110px)` it is a
- * card in slightly the wrong place, which is a bad frame and not a missing
- * object.
+ * `opacity: 0` is simply not there. Stranded at the first frame of its own
+ * gesture it is a card in slightly the wrong place, which is a bad frame and
+ * not a missing object. That stays true of all three gestures because every
+ * one of them is bounded the same way: nothing translates more than a card's
+ * own depth, nothing scales above 1, and every rotation sends its moving edge
+ * away from the reader rather than toward them. The last of those is also what
+ * keeps the arrival off the document's horizontal axis — see the note on
+ * `Gesture` in `pileArrival.ts`, which is where the arithmetic lives.
  */
 .rail {
   /*
@@ -375,11 +395,17 @@
    * own scroll is the easing; adding another is adding a second opinion about
    * a speed only one of them can see.
    *
-   * `transform-origin` at the bottom edge: the card hinges up off the page
-   * rather than tumbling about its middle, which is the difference between a
-   * sheet being laid onto a pile and a card being dealt.
+   * `transform-origin` is per project and comes in with the rest of the
+   * gesture, because the hinge *is* most of what distinguishes one arrival
+   * from another: a card pinned at its bottom edge is a sheet being laid onto
+   * a pile, one pinned at its leading edge swings like a door, and one pinned
+   * at its top edge hangs and settles. What none of them is allowed to be is
+   * the centre — a card tumbling about its middle is a card being dealt, which
+   * is a different and much louder gesture than anything this section wants.
+   * The fallback is the bottom edge, which is what every card used before the
+   * arrival was per project.
    */
-  transform-origin: 50% 100%;
+  transform-origin: var(--arrive-origin, 50% 100%);
   animation-name: pile-arrive;
   animation-fill-mode: both;
   animation-timing-function: linear;
@@ -432,9 +458,42 @@
   }
 }
 
+/*
+ * One keyframe, six arrivals.
+ *
+ * The four values come off the slot — `pileArrival.ts` is the only thing that
+ * writes them, and the relationship they encode is argued there. Four
+ * functions and not a `matrix3d`, so the interpolation to `none` stays
+ * per-function: a transform list against `none` is matched against the
+ * identity of each function in the list, which means `translateY` goes to 0px,
+ * both rotations go to 0deg and the scale goes to 1, with no decomposition in
+ * between. A card that needs no swing carries `0deg` rather than being given a
+ * shorter list, because a list whose length changes between the two keyframes
+ * is the one case that *does* fall back to matrix interpolation.
+ *
+ * THE VALUES GO THROUGH `var()` AND THE NAME NEVER DOES, and the distinction
+ * is the trap documented on `.rail`. CSS Modules scopes `@keyframes`
+ * identifiers and rewrites bare `animation-name` references to match; a name
+ * written as `var(--x, pile-arrive)` is opaque to that rewrite and silently
+ * names a keyframe that no longer exists. A length, an angle and a number are
+ * not identifiers and nothing rewrites them. There is a test asserting the
+ * first half of that sentence.
+ *
+ * The fallbacks are the uniform arrival every card had before this was per
+ * project, which is the right thing for a card whose facts say nothing: it
+ * gets the pile's own gesture rather than no gesture. Stated here and not as
+ * defaults on `.rail` because a missing custom property with no fallback makes
+ * the whole `transform` declaration invalid at computed-value time, and for a
+ * non-inherited property that resolves to `none` — an arrival that silently
+ * does not move, which is the failure this file is most tired of.
+ */
 @keyframes pile-arrive {
   from {
-    transform: translateY(110px) rotateX(20deg) scale(0.86);
+    transform:
+      translateY(var(--arrive-lift, 110px))
+      rotateX(var(--arrive-tip, 20deg))
+      rotateY(var(--arrive-swing, 0deg))
+      scale(var(--arrive-shrink, 0.86));
   }
   to {
     transform: none;
@@ -615,6 +674,15 @@
  * tall with nothing stacking on it is a column of tall boxes with a lot of
  * empty plinth in each, and the uniform height only ever existed so that one
  * card could cover another.
+ *
+ * And nothing here mentions the five `--arrive-*` properties, which is not an
+ * omission. They are read by exactly one declaration — the `from` keyframe of
+ * the animation each block above has just cancelled — so with no animation
+ * there is nothing left to read them and the card keeps the `transform: none`
+ * from its own rule, which leaves `transform-origin` with nothing to be the
+ * origin of. That is the whole reason the variation is in values rather than
+ * in a keyframe per project: three blocks stay three blocks however many
+ * projects the pile holds, and a seventh adds nothing to switch off.
  */
 @supports not (animation-timeline: view()) {
   .rail {

@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import ProjectPile from "@/components/projects/ProjectPile";
+import { arrival, newestYear } from "@/components/projects/pileArrival";
 import type { ProjectEntry } from "@/hooks/useProjects";
 import type { Collection } from "@/services/blog";
 
@@ -208,6 +209,148 @@ describe("ProjectPile", () => {
        rather than being assigned a hue it has not got, so the property must
        be absent and not empty. */
     expect(slots[2].getAttribute("style")).not.toContain("--pile-tint");
+  });
+
+  /*
+   * The per-project arrival.
+   *
+   * What a reader sees of this is a browser matter and is checked with a
+   * camera. What is checked here is the part that can be wrong without looking
+   * wrong: that the gesture is derived from the project's facts and not from
+   * its position, that the derivation is total — every state, a missing year,
+   * one project, eight — and that the mechanism keeps the single keyframe name
+   * the CSS Modules rewrite depends on.
+   */
+  describe("the arrival, per project", () => {
+    it("derives the gesture from the state and never from the index", () => {
+      const newest = newestYear(three);
+      const [a, b, c] = three.map((e) => arrival(e, newest));
+
+      /* Three states, three hinges. `In use` is set down on its own bottom
+         edge, `Open source` swings on its leading edge, `Live` hangs from its
+         top edge and settles. */
+      expect(a["--arrive-origin"]).toBe("50% 100%");
+      expect(b["--arrive-origin"]).toBe("0% 50%");
+      expect(c["--arrive-origin"]).toBe("50% 0%");
+
+      /* `In use` rises into its place and `Live` comes down into it, which is
+         the sign of the lift and is the difference a reader actually sees. */
+      expect(Number.parseFloat(a["--arrive-lift"])).toBeGreaterThan(0);
+      expect(Number.parseFloat(c["--arrive-lift"])).toBeLessThan(0);
+
+      /* Only the one that swings has a swing, so the other two cannot be
+         distinguished from each other by an axis neither of them uses. */
+      expect(b["--arrive-swing"]).not.toBe("0deg");
+      expect(a["--arrive-swing"]).toBe("0deg");
+      expect(c["--arrive-swing"]).toBe("0deg");
+
+      /* And the order they are passed in changes nothing about any of them. */
+      const reversed = [...three].reverse();
+      const back = reversed.map((e) => arrival(e, newestYear(reversed)));
+      expect(back[2]).toEqual(a);
+    });
+
+    it("quietens the same gesture as the work gets older", () => {
+      /* Two projects in the same state, two years apart. The gesture is the
+         same and the distance left to travel is not — which is the half of
+         the relationship the state cannot express. */
+      const now = arrival({ state: "Live", year: "2026" }, 2026);
+      const then = arrival({ state: "Live", year: "2024" }, 2026);
+
+      expect(then["--arrive-origin"]).toBe(now["--arrive-origin"]);
+      expect(Math.abs(Number.parseFloat(then["--arrive-lift"]))).toBeLessThan(
+        Math.abs(Number.parseFloat(now["--arrive-lift"]))
+      );
+      expect(Math.abs(Number.parseFloat(then["--arrive-tip"]))).toBeLessThan(
+        Math.abs(Number.parseFloat(now["--arrive-tip"]))
+      );
+      /* The scale attenuates toward 1 and not toward 0: what the age factor
+         shortens is the journey, so the older card starts *closer* to its
+         resting size. Multiplying the scale itself would say the opposite. */
+      expect(Number(then["--arrive-shrink"])).toBeGreaterThan(Number(now["--arrive-shrink"]));
+      expect(Number(then["--arrive-shrink"])).toBeLessThan(1);
+
+      /* The ramp has a floor. A card at a tenth of its gesture does not read
+         as old, it reads as broken. */
+      const ancient = arrival({ state: "Live", year: "2009" }, 2026);
+      expect(ancient).toEqual(then);
+    });
+
+    it("asserts nothing about a project it cannot date", () => {
+      /* Neither end of the ramp: the full gesture would claim this is the
+         newest thing in the section and the floor would claim it is the
+         oldest, and the table has said neither. */
+      const undated = arrival({ state: "Live", year: null }, 2026);
+      expect(undated).toEqual(arrival({ state: "Live", year: "2025" }, 2026));
+      expect(newestYear([{ state: "Live", year: null }])).toBeNull();
+      /* A pile where nothing carries a year still animates. */
+      expect(arrival({ state: "In use", year: null }, null)["--arrive-lift"]).not.toBe("0px");
+    });
+
+    it("gives an unrecognised state the quietest gesture rather than the loudest", () => {
+      /* `state` is not an enum. A published collection with no seed behind it
+         gets a release tag or `Archive`, and neither should be awarded the
+         biggest arrival in the section on the strength of a string nobody has
+         read. */
+      for (const state of ["v1.5.1", "Archive", "", "Sunsetting"]) {
+        expect(arrival({ state, year: "2026" }, 2026)["--arrive-origin"]).toBe(
+          arrival({ state: "Live", year: "2026" }, 2026)["--arrive-origin"]
+        );
+      }
+    });
+
+    it("writes the gesture onto every slot, at one and at eight", () => {
+      const keys = [
+        "--arrive-origin",
+        "--arrive-lift",
+        "--arrive-tip",
+        "--arrive-swing",
+        "--arrive-shrink",
+      ];
+
+      /* One and eight, which are the two counts the geometry is written to
+         survive — the step between pin offsets is derived from the count
+         precisely so that eight do not walk the last card under the bar. */
+      const eight = Array.from({ length: 8 }, (_, i) =>
+        entry({ state: ["In use", "Open source", "Live"][i % 3], year: String(2026 - (i % 4)) }, {
+          slug: `p${i}`,
+          title: `P${i}`,
+        })
+      );
+
+      for (const entries of [[three[0]], eight]) {
+        const { container, unmount } = draw(entries);
+        const slots = Array.from(container.querySelectorAll("ol > li:not([aria-hidden])"));
+        expect(slots).toHaveLength(entries.length);
+        for (const slot of slots) {
+          const style = slot.getAttribute("style") ?? "";
+          for (const k of keys) expect(style).toContain(`${k}:`);
+        }
+        unmount();
+      }
+    });
+
+    it("keeps the per-card difference in the keyframe's values, not in its name", () => {
+      /* The one keyframe reads all four moving values off the slot. Six
+         keyframes would have meant six names to scope and eighteen
+         cancellations in the off-switches, and would have fallen out of step
+         with the project count the first time one was added. */
+      const keyframes = CSS.match(/@keyframes pile-arrive\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
+      for (const v of ["--arrive-lift", "--arrive-tip", "--arrive-swing", "--arrive-shrink"]) {
+        expect(keyframes).toContain(`var(${v},`);
+      }
+      /* Every one of them carries a fallback, and the fallback is the uniform
+         arrival every card had before this was per project. A custom property
+         with no fallback makes the whole `transform` invalid at
+         computed-value time, which for a non-inherited property resolves to
+         `none` — an arrival that silently does not move. */
+      expect(keyframes).not.toMatch(/var\(--arrive-[a-z]+\)/);
+      /* The hinge is per project too, and it also has a fallback. */
+      expect(CSS).toContain("transform-origin: var(--arrive-origin, 50% 100%)");
+      /* And the count of off-switch cancellations has not moved. Three
+         conditions, three lines, whatever N is. */
+      expect(CSS.match(/animation-name: none;/g)).toHaveLength(3);
+    });
   });
 
   it("stands in for a missing screenshot without announcing one", () => {
