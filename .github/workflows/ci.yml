@@ -485,7 +485,7 @@ jobs:
             [ "$code" = "$DEPLOY_EXPECT" ] && exit 0
             sleep 6
           done
-          echo "::error title=$DEPLOY_NS did not answer 200::$DEPLOY_URL never returned 200 after the rollout. On preprod, a 403 means the request did not arrive from the tailnet (check the ipAllowList and that preprod.yehudabriskman.com still resolves to 100.79.242.82); anything else is the build."
+          echo "::error title=$DEPLOY_NS did not answer $DEPLOY_EXPECT::$DEPLOY_URL never returned $DEPLOY_EXPECT after the rollout. On preprod a 302 is healthy and means the forwardAuth gate answered; a 200 there means the gate is open, which is its own problem. A 403 on either means Traefik refused before reaching the app, and anything 5xx is the build."
           exit 1
 
       # Only when a rollout actually started. Unreachable cluster means there
