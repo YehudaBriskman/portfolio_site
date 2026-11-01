@@ -103,16 +103,40 @@ ledger is a page-level document and not a comment.
 | 0 | title plate | **staged assembly** | the collection names itself, in four gated moves |
 | 1 | wall text | `flow` | the quiet before the peak |
 | 2 | **the pile** | `pin` | the work stacks up with weight |
-| 3 | notes shelf | `pan` | lateral travel against vertical scroll |
-| 4 | specs | `count` | real numbers landing |
-| 5 | inquiry plate | `reveal` | the ask, as part of the collection |
+| 3 | the year | `scrub` | a year of work, raised off the page by the reader's own scroll |
+| 4 | notes shelf | `pan` | lateral travel against vertical scroll |
+| 5 | specs | `count` | real numbers landing |
+| 6 | inquiry plate | `reveal` | the ask, as part of the collection |
 
-Five families. No repeat in adjacent beats. `pin` is spent once, on the peak.
+Six families. No repeat in adjacent beats. `pin` is spent once, on the peak,
+and `scrub` is spent once on beat 3 — the grammar bans a *second* scrub and
+has always allowed the first, which is the whole licence beat 3 has.
+
+**Beat 3 is not a second peak, and the test it had to pass is on paper
+rather than on taste.** It does not pin, so it buys no scroll distance beyond
+its own section's height; it has no asset budget, being 365 one-colour boxes
+and no image; and it runs backwards when the reader scrolls back up, which is
+what makes it a thing the reader operates rather than a thing that happens to
+them once. Its three off-switches land on the flat contribution grid, which is
+a finished chart and the one GitHub itself ships — a scrub whose switched-off
+state is a legitimate drawing costs nothing to switch off. Measured at 4×
+CPU throttle it holds within 0.8fps of the pile and 1.6fps of a page with no
+act on it at all; the numbers are in the pull request that added it.
+
+**The order in this table is the intended one and is not the order
+`pages/Index.tsx` renders today.** The page renders the pile *before* the wall
+text, so the shipped sequence is title plate, pile, wall text, the year, notes
+shelf, specs, inquiry plate. `Approach.tsx` still describes itself as "the
+quiet before the peak", which is the arrangement above and not the arrangement
+shipped. Recorded here rather than silently renumbered, because which of the
+two is wrong is a decision about the page and not about this document. No
+adjacent pair repeats a family in either order, which is why the discrepancy
+has never produced a visible fault.
 
 Beat 0 was `reveal` and is now a staged assembly of four moves — letters, then
 the portrait, then the chrome, then the remaining lines — each gated on the
 previous one's real `animationend` rather than on a delay. So `reveal` is no
-longer a matched pair of bookends; beat 5 is the only one left using it, which
+longer a matched pair of bookends; beat 6 is the only one left using it, which
 is a thing to notice rather than a thing to fix.
 
 **Every beat must be able to state its one reason in a sentence.** A beat that
@@ -120,7 +144,8 @@ cannot does not have one, and gets cut rather than kept.
 
 **Banned outright by the gallery grammar**, listed here so they do not creep
 back: `spotlight`, `magnet`, more than one `scrub`, and a
-pinned argument-shaped type act.
+pinned argument-shaped type act. The one `scrub` the page is allowed is now
+spent, on beat 3; a second one is the ban and not a judgement call.
 
 **Allowed and currently unused:** `tilt` on objects the visitor would pick up
 (3–9°; past 12° it is a toy). It is the one pointer device this grammar invites.
@@ -332,6 +357,7 @@ direction, or set `fill-rule: evenodd` deliberately and know what it costs.
 | `motion/Flow.tsx` | `flow` — one gate per item, so a beat can differ per item | observer + clock |
 | `motion/InkWipe.tsx` | ink arriving as a hard clip edge, plus the coloured band | `view()` |
 | `motion/InkRule.tsx` | a hairline drawing itself in | `view()` |
+| `city/ContributionCity.module.css` | `scrub` — one animation turns and raises 365 columns | named `view-timeline` on a static wrapper |
 
 ### Retired, and why
 

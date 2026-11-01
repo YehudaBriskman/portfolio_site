@@ -1,0 +1,593 @@
+/*
+ * The contribution year, raised into a city.
+ *
+ * ── what this is allowed to be ────────────────────────────────────────────
+ *
+ * It is a `scrub`, and it is the page's only one. The grammar bans a second
+ * (see §2 of `docs/motion-contract.md`), and that ban is the reason this
+ * section can exist at all: the page already spends `pin` on the pile, `pan`
+ * on the shelf and `count` on the spec plate, and a fourth beat arriving the
+ * same way as one of those is the failure that ledger exists to catch.
+ *
+ * It is NOT a second peak, and the three things that would make it one are all
+ * absent on purpose. It does not pin, so it buys no scroll distance beyond its
+ * own height — the whole act plays inside the travel the section was already
+ * going to take. It has no asset budget: 365 one-colour boxes and no image.
+ * And it runs forwards and backwards with the reader's scroll, which is what a
+ * scrub is and what a peak is not — a peak happens to you once, a scrub is a
+ * thing you operate. The pile is still the most expensive moment on the page
+ * and nothing here competes with it.
+ *
+ * ── the mechanism, and the part that is worth copying ─────────────────────
+ *
+ * THE WHOLE ACT IS ONE ANIMATED ELEMENT. 365 columns, one animation. That is
+ * the finding this file is for, and it is what made CSS 3D hold its frame
+ * budget without a 3D library.
+ *
+ * The obvious build is 365 scroll-driven animations, one per column, each
+ * interpolating its own height. The cheap build is a single animation on the
+ * scene that includes `scaleZ`: every column carries its height as a STATIC
+ * `translateZ`, and `scaleZ(t)` on their shared `preserve-3d` ancestor scales
+ * every one of those offsets at once. At `scaleZ(0.001)` the whole city is
+ * flat in its own plane; at `scaleZ(1)` it is at full height. One interpolated
+ * matrix, 365 children that are never restyled, and the three stages are three
+ * keyframes of the same animation rather than three coordinated clocks.
+ *
+ * 0.001 AND NOT 0. `scaleZ(0)` is a singular matrix, and a singular matrix on
+ * a `preserve-3d` subtree is where browsers disagree: it has no inverse, so
+ * everything downstream of it — the pseudo-element walls' own rotation, the
+ * perspective division — is undefined rather than flat. The value has to be
+ * small enough to be invisible and not zero; at the storey heights below,
+ * 0.001 is a tenth of a pixel.
+ *
+ * The timeline is declared on `.frame` and read by name from `.scene`, which
+ * is the shape §1 of the contract prescribes. Nothing here is sticky, so a
+ * `view()` on the scene itself would tick — but the scene is the element whose
+ * transform is being animated, and pointing a timeline at the geometry you are
+ * busy changing is the kind of thing that works until someone adds a pin. The
+ * static wrapper owns the clock.
+ *
+ * No duration and no delay anywhere in this file, and that is not an omission:
+ * under a view timeline both are ignored outright and the range is the clock.
+ * The three stages are keyframe percentages for exactly that reason. `linear`
+ * for the same reason the pile is linear — the reader's own scroll is the
+ * easing, and a second curve is a second opinion about a speed only one of
+ * them can see.
+ *
+ * ── the two faces of a column ─────────────────────────────────────────────
+ *
+ * A box in a grid is a top face. What makes it a building is one wall, and the
+ * wall is a pseudo-element rather than a second node: it hangs from the cell's
+ * bottom edge, rotated a quarter turn out of the plane, and its own height is
+ * the storey. So the DOM carries 365 spans and the scene carries one surface
+ * per span plus one per non-empty day, which is the cheapest honest extrusion
+ * available — a four-walled box would be four pseudo-elements and three of
+ * them are never visible from a fixed camera.
+ *
+ * Empty days get no wall at all (`content: none` below) and stay out of
+ * `preserve-3d`, because a day with nothing in it is a paving stone and not a
+ * building. On the 365-day year the profile was taken against, 260 days had
+ * something in them, so 105 cells cost nothing but their own square: 625
+ * surfaces where the naive build would have had 730.
+ */
+
+.figure {
+  margin: 0;
+}
+
+/*
+ * The static box that owns the clock, and the camera.
+ *
+ * Fixed height on purpose. The plane's projected height changes through the
+ * whole act — flat it is seven rows tall, risen and tilted it is nearer three
+ * times that — and a box that sized itself to its transformed child would not
+ * change at all, because transforms do not affect layout. So the height is
+ * declared, and it is declared large enough for the tallest state: a frame cut
+ * to the flat grid would have the finished city hanging out of it over the
+ * heading above.
+ *
+ * `overflow-x: clip` and not `hidden`: `hidden` on one axis forces the other
+ * to `auto`, which would put a scrollbar on the city the first time a column
+ * reached the top of the frame. `clip` is per-axis and does not scroll — and
+ * it is the same guard §5 of the contract requires for any horizontal travel,
+ * since the turn below moves the plane's corners sideways.
+ */
+.frame {
+  /*
+   * ── the switches ───────────────────────────────────────────────────────
+   *
+   * Two properties and one `animation-name`, which is the whole of what the
+   * three off-switches at the foot of this file have to rewrite. Everything
+   * about a column's height goes through `--city-storey`, so a switch that
+   * sets it to zero flattens 365 columns and 365 walls with one declaration
+   * and cannot fall out of step with them.
+   */
+  /*
+   * There is no cell width here, and that is the fix for a real bug.
+   *
+   * It was `clamp(6px, 1.05vw, 15px)`, and 53 columns of a viewport fraction
+   * do not fit in a column that is the viewport less two gutters: at 390px the
+   * grid came out 382px wide inside a 350px frame, and because a grid item
+   * wider than its track overflows toward the end rather than splitting the
+   * difference, `overflow-x: clip` ate the last eleven weeks of the year.
+   * Photographed before it was believed.
+   *
+   * So the week columns are `1fr` of the frame and a cell takes its height
+   * from `aspect-ratio: 1`. The grid can then never be wider than the frame at
+   * any viewport, which is the only guarantee that matters for a chart whose
+   * last column is this December.
+   */
+  --city-gap: clamp(1px, 0.2vw, 3px);
+  /*
+   * One storey: how tall the busiest day of the year stands.
+   *
+   * A viewport fraction, now that the cell is not one. At 1440 it resolves to
+   * 94px against a 14.8px cell — about six and a half cells, which is the
+   * ratio the screenshots in `docs/` were taken at. The floor matters more
+   * than the ceiling: a phone's cell is about 5.6px, and a storey that scaled
+   * with it would put the busiest day of the year 36px up and leave the median
+   * day under a pixel.
+   */
+  --city-storey: clamp(40px, 6.5vw, 94px);
+
+  /*
+   * ── the camera ─────────────────────────────────────────────────────────
+   *
+   * The tilt is the second stage of the arrival and the turn is what makes
+   * the walls visible: at `rotateZ(0)` every wall faces the camera square on
+   * and the city reads as a bar chart seen from the front. A few degrees of
+   * turn is enough to show that the columns have sides without turning the
+   * year's left-to-right axis into a diagonal, which is the thing a reader
+   * is actually following across the grid.
+   */
+  --city-tilt: 48deg;
+  --city-turn: -5deg;
+  /* The flattened state. See the note on singular matrices above. */
+  --city-flat: 0.001;
+
+  margin-top: clamp(2rem, 5vw, 3.5rem);
+  height: clamp(140px, 16vw, 240px);
+  display: grid;
+  place-items: center;
+  /*
+   * A long lens, for the reason `ProjectPile.module.css` gives for the same
+   * number: a short one throws the near corners far enough out that the plane
+   * reads as a page turning toward the reader rather than as ground. The
+   * origin is above centre so the camera looks slightly down on the city
+   * instead of standing on its pavement.
+   */
+  perspective: 1400px;
+  perspective-origin: 50% 34%;
+  overflow-x: clip;
+  view-timeline-name: --city;
+}
+
+/*
+ * The one animated element on the page's one scrub.
+ *
+ * No `transform` of its own. With `animation-fill-mode: both` the 0% keyframe
+ * holds before the range, and the 0% keyframe is the flat grid — so the rest
+ * state and the first frame are the same thing by construction rather than by
+ * two declarations agreeing with each other.
+ */
+.scene {
+  /*
+   * The width is declared here, and the first attempt without it is worth
+   * knowing about: the frame centres its one child, a centred grid item is
+   * sized to fit its content, and the plane inside was asking for `width:
+   * 100%` of this box — so each was waiting on the other, both resolved to
+   * zero, and the city vanished without a single error anywhere.
+   *
+   * The 940px ceiling is the perspective's margin, not a taste about measure.
+   * The frame is the page's 1072px column; a plane filling it would have its
+   * near edge and its tallest roofs magnified past the frame's own sides —
+   * 1400 / (1400 − 47) for the near row and 1400 / (1400 − 94) for a full-height
+   * roof, about 3.5% and 7% — and `overflow-x: clip` would take the first and
+   * last week of the year off. 940 plus 7% is 1006, inside 1072 with room.
+   */
+  width: min(100%, 940px);
+  margin-inline: auto;
+  transform-style: preserve-3d;
+  animation-name: city-raise;
+  animation-fill-mode: both;
+  animation-timing-function: linear;
+  animation-timeline: --city;
+  /*
+   * The range, and it is arithmetic rather than taste.
+   *
+   * `entry` is wrong here: it finishes the instant the frame's bottom edge is
+   * flush with the bottom of the window, so for a box this much shorter than
+   * the viewport the whole act would play out with the city sitting on the
+   * bottom edge of the screen. `cover` spans the frame's entire passage
+   * through the scrollport, which is `viewport + frame` of scroll.
+   *
+   * THE ACT HAS TO START AFTER THE FRAME IS WHOLLY ON SCREEN. A chart that
+   * begins turning while a third of it is still below the fold has shown its
+   * first stage to nobody, and the flat grid is the stage that has to be read
+   * before the other two mean anything. The frame is first fully visible at
+   * `frame / (viewport + frame)` of cover: at the 1440 x 900 the screenshots
+   * in `docs/` were taken at, 240 / 1140 = 21.1%. 28% clears that with room,
+   * and still clears it at 700px of viewport height, where the same quotient
+   * is 25.5%.
+   *
+   * 66% is the other end of the same sum: at 900 it leaves the finished city
+   * in the upper third of the window with the caption under it, and at 700 it
+   * still finishes before the frame's top edge reaches the nav island.
+   */
+  animation-range: cover 28% cover 66%;
+}
+
+/*
+ * The grid, and the one thing it cannot work out for itself.
+ *
+ * Seven rows, flowing in columns, which is the orientation of every
+ * contribution calendar and the reason the first cell needs
+ * `grid-row-start`: GitHub's weeks begin on a Sunday and the first week of a
+ * trailing year is almost always partial, so a grid that flowed from the
+ * top-left corner would draw the whole year one to six rows out of phase with
+ * the weekday it belongs to. `cityPlan.firstRow` is that offset and the
+ * component writes it on the first cell only; auto-flow handles the other 364.
+ */
+.plane {
+  /*
+   * The week count is written by the component because the grid has to declare
+   * it: a trailing year is 53 columns and a shorter window is fewer, and an
+   * implicit track count would let `grid-auto-flow: column` run the year off
+   * the end of the frame rather than fit it inside.
+   */
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(var(--city-weeks, 53), minmax(0, 1fr));
+  grid-template-rows: repeat(7, auto);
+  grid-auto-flow: column;
+  gap: var(--city-gap);
+  transform-style: preserve-3d;
+}
+
+/*
+ * One day.
+ *
+ * ── the two encodings of one number ───────────────────────────────────────
+ *
+ * `--city-rise` is the day's count over the busiest day of the year, written
+ * by the component; `data-step` is which of five bands that count falls in.
+ * Both come off the same integer — the derivation and the reason the bands are
+ * quartiles rather than a linear ramp are in `cityPlan.ts`.
+ *
+ * ── the ramp, and why it stops short of full ink ──────────────────────────
+ *
+ * The bands are the page's own ink at four alphas over the paper ground, which
+ * is the whole palette this chart needs: the site is ink on paper and the
+ * quantity being drawn is how much ink the day took. Nothing here introduces a
+ * hue, so the gallery's one rule about colour — white walls, coloured
+ * paintings — is untouched: a drawing is not a painting.
+ *
+ * The top band is 0.78 and not 1, and that is load-bearing rather than taste.
+ * A wall has to be darker than the face above it or the column has no edge,
+ * and the wall is built by compositing one more fixed shade over the band
+ * (see `--city-shade`). At an alpha of 1 there is nothing left to darken and
+ * the busiest columns would be flat silhouettes.
+ *
+ * ── the measured ramp ─────────────────────────────────────────────────────
+ *
+ * Read out of the rendered page and composited over `--paper` (236 232 220).
+ * The first row of alphas tried was 0.18 / 0.36 / 0.56 / 0.78 and it failed on
+ * its first step: an empty day at 216 against a one-contribution day at 197 is
+ * 1.18:1, which is the difference between "a quiet year" and "a dead one"
+ * drawn as no difference at all. Raised until the five steps are even.
+ *
+ *   step   face            wall            face : wall
+ *   0      rgb(216 210 194)  — none —       —
+ *   1      rgb(176 172 163)  rgb(106 103 96)  2.49 : 1
+ *   2      rgb(137 134 126)  rgb( 85  83 77)  2.11 : 1
+ *   3      rgb(102 100  93)  rgb( 65  63 58)  1.78 : 1
+ *   4      rgb( 68  66  60)  rgb( 46  45 40)  1.37 : 1
+ *
+ * Step to step, the faces run 1.50 : 1, 1.61 : 1, 1.63 : 1, 1.70 : 1 — an
+ * even ramp with no two bands closer than any other pair, which is the whole
+ * requirement for a five-swatch scale.
+ *
+ * None of those is a text contrast ratio and none of them is claimed as one.
+ * Nothing in the scene carries type; what carries the data in words is the
+ * caption and the twelve-month table, which are set in `--ink-soft` on paper
+ * like every other caption on the site.
+ */
+.cell {
+  --city-rise: 0;
+  --city-a: 0;
+  /*
+   * The wall's alpha: the band with one fixed shade composited over it.
+   *
+   * `a + 0.45 * (1 - a)` is source-over with a 0.45 ink layer on top, written
+   * out rather than drawn as a second background layer so that one declaration
+   * carries both faces of the column and the two can never drift.
+   *
+   * One overlay for all four bands rather than a wall colour per band, and the
+   * cost of that is in the table above: the separation between a face and its
+   * own wall falls from 2.49:1 at the palest band to 1.37:1 at the darkest,
+   * because each step has less headroom left than the one before. 1.37:1 is
+   * the weakest edge in the scene and it is on the columns that need it least
+   * — the tallest ones, whose silhouette against the paper is doing the work
+   * the shading does on a short one.
+   */
+  --city-shade: calc(var(--city-a) + 0.45 * (1 - var(--city-a)));
+
+  position: relative;
+  /* Square, and it is the grid's row height rather than the other way round:
+     the week columns are `1fr` of the frame, so this is what makes seven rows
+     as tall as one week is wide at every viewport. */
+  aspect-ratio: 1;
+  /*
+   * An empty day. `--paper-3` is the palette's recessed surface, which is what
+   * a day with nothing in it is: a dent in the paper rather than a mark on it.
+   * It is lighter than the first band, so the five steps are monotonic from
+   * nothing to the busiest day with no reversal in the middle.
+   */
+  background: rgb(var(--paper-3));
+  /* A pixel of radius on a cell that is 14.8px at the desktop measure and
+     5.6px on a phone is the corner filed off and nothing more, which is what
+     keeps 365 of them from reading as a woven texture. */
+  border-radius: 1px;
+}
+
+.cell[data-step="1"] { --city-a: 0.28; }
+.cell[data-step="2"] { --city-a: 0.46; }
+.cell[data-step="3"] { --city-a: 0.62; }
+.cell[data-step="4"] { --city-a: 0.78; }
+
+/*
+ * A day that happened: a top face, lifted, with a wall under it.
+ *
+ * `translateZ` and not `translateY`: the lift has to be along the plane's own
+ * normal, so that the scene's `rotateX` tilts the columns with the ground they
+ * stand on. A `translateY` would lift them within the plane — northward
+ * across the calendar, which is a chart of the wrong thing drawn convincingly.
+ *
+ * `preserve-3d` is on these cells and not on the empty ones because only these
+ * have a child in the 3D scene to preserve. 365 nested 3D rendering contexts
+ * is the cost this file was most worried about; a year's empty days are a
+ * third of them for free.
+ */
+.cell:not([data-step="0"]) {
+  background: rgb(var(--ink) / var(--city-a));
+  transform-style: preserve-3d;
+  transform: translateZ(calc(var(--city-rise) * var(--city-storey)));
+}
+
+/*
+ * The wall, hanging from the top face down to the ground.
+ *
+ * The geometry, because it is not guessable from the declarations. The box is
+ * placed immediately below the cell (`top: 100%`) and is one storey tall, so
+ * before any rotation it lies in the plane pointing south. `transform-origin`
+ * is its own top edge — the seam it shares with the cell — and `rotateX(-90deg)`
+ * swings it out of the plane into negative Z, which is away from the camera
+ * and, because the cell has already been lifted, exactly the gap between the
+ * top face and the ground. Rotated the other way it would stand on top of the
+ * roof.
+ *
+ * Its height is the same product the lift uses rather than `100%` of
+ * anything, so a column's wall and its lift are the same number twice and a
+ * change to `--city-storey` cannot move one without the other.
+ */
+.cell:not([data-step="0"])::after {
+  content: "";
+  position: absolute;
+  inset: 100% 0 auto 0;
+  height: calc(var(--city-rise) * var(--city-storey));
+  background: rgb(var(--ink) / var(--city-shade));
+  transform-origin: 50% 0%;
+  transform: rotateX(-90deg);
+}
+
+/*
+ * Nothing to extrude. `content: none` rather than a zero height, so an empty
+ * day costs no box at all — on a year with a hundred quiet days that is a
+ * hundred surfaces the compositor never sees.
+ */
+.cell[data-step="0"]::after {
+  content: none;
+}
+
+/*
+ * The three stages, as three keyframes of one animation.
+ *
+ * Flat grid, then the turn into perspective, then the rise. They are three
+ * percentages and not three animations because a scroll-driven animation has
+ * no delay to stagger with, and because the whole point of the `scaleZ`
+ * build is that one interpolated matrix carries every column.
+ *
+ * The stages do not overlap, and the 46% hold is what makes it three stages
+ * rather than a tumble: the grid arrives flat and legible, turns while still
+ * flat, and only then grows. Rotating and rising at once reads as one
+ * unreadable swoop, which was the first build.
+ *
+ * The transform list is the same length and the same functions at every
+ * keyframe. A list whose shape changes between keyframes falls back to matrix
+ * decomposition, which interpolates a rotation and a scale through each other
+ * and puts a visible wobble in the middle of the turn.
+ *
+ * The name is a literal `animation-name` above and never reached through a
+ * `var()`. CSS Modules scopes `@keyframes` identifiers and rewrites the bare
+ * references it can see; a name inside `var()` survives the rewrite verbatim
+ * and then points at a keyframe that no longer exists, silently. The values
+ * are angles and numbers, which are not identifiers and which nothing
+ * rewrites — see the same note on `.rail` in `ProjectPile.module.css`.
+ */
+@keyframes city-raise {
+  0% {
+    transform: rotateX(0deg) rotateZ(0deg) scaleZ(var(--city-flat));
+  }
+  46% {
+    transform: rotateX(var(--city-tilt)) rotateZ(var(--city-turn)) scaleZ(var(--city-flat));
+  }
+  100% {
+    transform: rotateX(var(--city-tilt)) rotateZ(var(--city-turn)) scaleZ(1);
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────── the label ── */
+
+.caption {
+  margin-top: clamp(1.5rem, 3vw, 2.25rem);
+  max-width: var(--measure);
+  color: rgb(var(--ink-soft));
+}
+
+/*
+ * The text equivalent, and it is a `details` rather than an `sr-only` block.
+ *
+ * A chart needs a text equivalent, and the reflex is to hide one from sighted
+ * readers — which answers the audit and leaves a sighted keyboard reader with
+ * nothing, on the one section of the page that has no other way in. Opened,
+ * this is twelve months and a total; closed, it is one line in the field
+ * register. It is also the only focusable thing in the section, which is the
+ * other half of the same decision: the columns carry no tooltip and no focus
+ * stop, because 365 tab stops is not access to a chart, it is a trap in front
+ * of one.
+ */
+.table {
+  margin-top: clamp(1.5rem, 3vw, 2.25rem);
+  border-top: 1px solid rgb(var(--rule));
+  padding-top: 1rem;
+}
+
+.summary {
+  cursor: pointer;
+  color: rgb(var(--ink-soft));
+}
+
+.summary:hover {
+  color: rgb(var(--ink));
+}
+
+.months {
+  margin-top: 1.25rem;
+  border-collapse: collapse;
+  /* The twelve rows are a reading column and not a layout: at full width the
+     month and its total sit at opposite ends of the page with a metre of
+     nothing between them. */
+  max-width: 28rem;
+  width: 100%;
+}
+
+.months th,
+.months td {
+  padding: 0.4rem 0 0.4rem;
+  border-bottom: 1px solid rgb(var(--rule));
+  text-align: start;
+}
+
+/*
+ * Both figure columns, lined up on their digits.
+ *
+ * `text-align: end` and not `right`, because the site runs in Hebrew: a figure
+ * column sits at the end of the row, which is the right edge in one language
+ * and the left in the other. `:not(:first-child)` rather than two
+ * `nth-child`es, so a fourth column added later is a figure by default — which
+ * is what every column after the month name is.
+ */
+.months td:not(:first-child),
+.months th:not(:first-child) {
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ───────────────────────────────────────────────── the three off-switches ── */
+
+/*
+ * All three land on the flat grid, which is a finished design and not a
+ * degraded city — it is the chart GitHub itself ships, it still carries the
+ * year in five bands, and it needs no perspective to be read. That is why
+ * this section was buildable under the contract at all: a scrub whose
+ * switched-off state is a legitimate chart is a scrub that costs nothing to
+ * switch off.
+ *
+ * Each is one block of custom properties plus `animation-name: none`, for the
+ * reason the pile's stylesheet argues at length: the global
+ * `animation-duration: 0.01ms !important` that `index.css` and
+ * `nav/motion-paused.css` apply is the right trick for a time-driven
+ * animation and is undefined for a progress-driven one. It would leave the
+ * scene's turn tied to the scroll position.
+ *
+ * `--city-storey: 0px` is the part that cannot be left out. Cancelling the
+ * animation flattens the scene's own turn and does nothing at all to 365
+ * children that are each carrying a static `translateZ`: with the perspective
+ * still on the frame, those columns would stand straight out of the page
+ * toward the reader and be drawn as cells of 365 different sizes. Zero
+ * storeys takes the lift and the wall together, because both are the same
+ * product of the same two properties.
+ *
+ * `perspective: none` goes with it, so there is no camera left to divide by
+ * and the grid is drawn as flat geometry rather than as a 3D scene that
+ * happens to be level. The frame also gives up its height, which was only
+ * ever reserved for a city to stand in.
+ */
+@supports not (animation-timeline: view()) {
+  .frame {
+    --city-storey: 0px;
+    perspective: none;
+    height: auto;
+  }
+  .scene {
+    animation-name: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .frame {
+    --city-storey: 0px;
+    perspective: none;
+    height: auto;
+  }
+  .scene {
+    animation-name: none;
+  }
+}
+
+:global(body.motion-paused) .frame {
+  --city-storey: 0px;
+  perspective: none;
+  height: auto;
+}
+
+:global(body.motion-paused) .scene {
+  animation-name: none;
+}
+
+/*
+ * A fourth exit, and it is about the data rather than about motion.
+ *
+ * An unavailable year has no columns to raise, so the component writes
+ * `data-city="empty"` on the frame and the act is switched off by the same
+ * three declarations the three switches use. Without this the empty grid would
+ * still turn into perspective on scroll — a camera move over an empty plane,
+ * which is a chart performing the absence of its own data.
+ */
+.frame[data-city="empty"] {
+  --city-storey: 0px;
+  perspective: none;
+  height: auto;
+}
+
+.frame[data-city="empty"] .scene {
+  animation-name: none;
+}
+
+/*
+ * In a forced palette every band collapses to one system colour, so the five
+ * steps stop encoding anything and the city becomes a relief map of a chart
+ * nobody can read. The grid keeps its geometry — it is still a year laid out
+ * in weeks — and the `details` below it is doing the work. The same argument
+ * `InkWipe` makes for dropping its coloured band.
+ */
+@media (forced-colors: active) {
+  .frame {
+    --city-storey: 0px;
+    perspective: none;
+    height: auto;
+  }
+  .scene {
+    animation-name: none;
+  }
+}
