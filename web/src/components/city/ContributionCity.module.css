@@ -66,9 +66,13 @@
  *
  * Empty days get no wall at all (`content: none` below) and stay out of
  * `preserve-3d`, because a day with nothing in it is a paving stone and not a
- * building. On the 365-day year the profile was taken against, 260 days had
- * something in them, so 105 cells cost nothing but their own square: 625
- * surfaces where the naive build would have had 730.
+ * building. On the real calendar, 82 of the 365 days have something in them,
+ * so 283 cells cost nothing but their own square: 447 surfaces where a wall
+ * per day would have been 730. The first profile of this file was taken
+ * against a synthetic year with 260 active days and therefore 625 surfaces,
+ * so the real page is the cheaper of the two — which is why the square root
+ * in `cityPlan.ts` costs the compositor nothing measurable: it moves the
+ * columns that were already there and adds none.
  */
 
 .figure {
@@ -121,12 +125,15 @@
   /*
    * One storey: how tall the busiest day of the year stands.
    *
-   * A viewport fraction, now that the cell is not one. At 1440 it resolves to
-   * 94px against a 14.8px cell — about six and a half cells, which is the
+   * A viewport fraction, now that the cell is not one. At 1440 it measures
+   * 93.6px against a 14.9px cell — about six and a quarter cells, which is the
    * ratio the screenshots in `docs/` were taken at. The floor matters more
-   * than the ceiling: a phone's cell is about 5.6px, and a storey that scaled
-   * with it would put the busiest day of the year 36px up and leave the median
-   * day under a pixel.
+   * than the ceiling, and the 40px is doing real work: on a 390px phone the
+   * `6.5vw` term would resolve to 25.4px and the floor overrides it. Against
+   * the real calendar that is the difference between the median active day
+   * standing 12.6px up and standing 8.0px up, and between a
+   * single-contribution day standing 3.0px up and standing 1.9px up — a third
+   * of a cell, on the narrowest screen the city is drawn on.
    */
   --city-storey: clamp(40px, 6.5vw, 94px);
 
@@ -249,10 +256,19 @@
  *
  * ── the two encodings of one number ───────────────────────────────────────
  *
- * `--city-rise` is the day's count over the busiest day of the year, written
- * by the component; `data-step` is which of five bands that count falls in.
- * Both come off the same integer — the derivation and the reason the bands are
- * quartiles rather than a linear ramp are in `cityPlan.ts`.
+ * `--city-rise` is `sqrt(count / busiest)`, written by the component;
+ * `data-step` is which of five bands that count falls in. Both come off the
+ * same integer — the derivation, the reason the bands are quartiles rather
+ * than a linear ramp, and the measurement behind the square root are all in
+ * `cityPlan.ts`.
+ *
+ * THE HEIGHT IS NOT LINEAR IN THE COUNT, so nothing in this file may describe
+ * a column as a proportion of the busiest day. Against the real calendar a
+ * linear rise left 96% of the year under a quarter of the tallest column and
+ * 83% of it flat to within 2%; the square root takes those to 86% and 78%,
+ * and 78% is the share of the year that is genuinely empty. The ordering is
+ * preserved, so a taller column is always a busier day — it is the ratio
+ * between two columns that is not readable off the drawing.
  *
  * ── the ramp, and why it stops short of full ink ──────────────────────────
  *

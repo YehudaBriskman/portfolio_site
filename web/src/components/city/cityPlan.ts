@@ -13,9 +13,11 @@ import type { ContributionDay, ContributionYear } from "@/services/contributions
  *
  * ── the two encodings, and why they are not the same shape ────────────────
  *
- * A column's HEIGHT is linear in the day's count against the busiest day of
- * the year. That is the honest reading of a bar: twice as tall is twice as
- * much, and it is the encoding a reader measures without being told how.
+ * A column's HEIGHT is the SQUARE ROOT of the day's count against the busiest
+ * day of the year. THE HEIGHT SCALE IS NOT LINEAR AND TWO COLUMNS ARE NOT A
+ * RATIO: a column half as tall as another stands for roughly a quarter of its
+ * work, not half of it. That is a real cost and it was paid deliberately, for
+ * a reason that is measured rather than preferred — see the next block.
  *
  * A column's COLOUR is one of five bands, cut at the quartiles of the year's
  * own non-empty days. Five swatches cannot be linear in anything — a linear
@@ -28,6 +30,62 @@ import type { ContributionDay, ContributionYear } from "@/services/contributions
  * Both come off `count`, which is the acceptance criterion: the two encodings
  * differ in resolution and not in source, and neither of them can disagree
  * with the other about which day was busier.
+ *
+ * ── why the height is not linear: the measurement ─────────────────────────
+ *
+ * It was `count / max`, and that was profiled and photographed against a
+ * SYNTHETIC year — 365 days, 260 of them non-empty, busiest 45 — because no
+ * token was available at the time. On a calendar of roughly that shape a
+ * linear rise is an even skyline and the right encoding.
+ *
+ * The real calendar is not that shape. Measured against the live account over
+ * 2025-11-02 → 2026-11-01, with the service's own query:
+ *
+ *   365 days   2,206 contributions   82 active   busiest 172
+ *   median active day 16.5   mean active day 26.9
+ *   top five counts 172, 156, 148, 107, 96
+ *
+ * 82 active days out of 365 is a bursty pattern — a few long sessions rather
+ * than a daily streak — and a tenfold gap between the median active day and
+ * the busiest one is what a linear divisor has to absorb. It cannot:
+ *
+ *   rise      count / max      sqrt(count / max)
+ *   < 0.02    302 / 365  83%   283 / 365  78%
+ *   < 0.05    311 / 365  85%   283 / 365  78%
+ *   < 0.10    326 / 365  89%   293 / 365  80%
+ *   < 0.25    351 / 365  96%   314 / 365  86%
+ *   < 0.50    359 / 365  98%   351 / 365  96%
+ *
+ * The year has 283 empty days, so 283/365 is the floor: a mapping that leaves
+ * 283 columns under 0.05 is leaving exactly the empty ones there. Linear left
+ * 311, which is 28 days of real work drawn as paving. Read off the rendered
+ * page, where the storey measures 93.6px at 1440 and 40.0px on a 390px phone,
+ * a single-contribution day went from 0.6px of lift to 7.1px on a desktop and
+ * from 0.2px to 3.0px on a phone, and the median active day went from 9.3px
+ * to 29.4px. 0.2px is not a building a reader can see, and the day it stands
+ * for was not nothing.
+ *
+ * ── the two mappings that were measured and rejected ──────────────────────
+ *
+ * PERCENTILE-CLAMPED LINEAR — divide by the 95th percentile of the non-empty
+ * days (96 here) and clamp. It keeps a linear reading over most of the range
+ * and fails at both ends of this year: five days land on 1.0 together, so the
+ * busiest day the caption names by date is no longer the tallest column, and a
+ * single-contribution day is still only 0.9px up at the desktop storey.
+ *
+ * QUARTILE BUCKETS of the non-empty days, five discrete heights, matching what
+ * the colour bands already do. Most legible of the three, and it throws away
+ * the thing the height is for: it collapses this year's 43 distinct active
+ * counts to 4 heights and ties 20 days at the top. The height would then carry
+ * exactly the information the colour already carries, cut at exactly the same
+ * three numbers, and the claim above — that the two encodings differ in
+ * RESOLUTION and not in source — would stop being true. A redundant channel is
+ * a reasonable thing to build; it is not this chart.
+ *
+ * SQRT keeps all 43 of them distinct, keeps the busiest day alone at 1.0, is
+ * monotonic so neither encoding can invert the other, and is one `Math.sqrt`
+ * in a derivation that runs once per request. It is the compromise that gives
+ * up the ratio reading and nothing else.
  */
 
 /** The five bands. `0` is an empty day and is the only one with a fixed
@@ -38,8 +96,12 @@ export type CityCell = {
   date: string;
   count: number;
   step: CityStep;
-  /** `0`–`1`, the day's count against the busiest day. The stylesheet
-      multiplies it by one storey; see `--city-storey`. */
+  /**
+   * `0`–`1`, and NOT a proportion of the busiest day: it is
+   * `sqrt(count / max)`, so twice the height is about four times the work.
+   * The stylesheet multiplies it by one storey; see `--city-storey`, and see
+   * the measurement at the top of this file for why it is not linear.
+   */
   rise: number;
 };
 
@@ -174,7 +236,7 @@ export function cityPlan(year: ContributionYear): CityPlan {
   const counts = days.map((d) => d.count);
   const cuts = bandCuts(counts);
   /*
-   * The divisor for every height on the page. `max(1)` is not defensiveness
+   * The divisor inside every height on the page. `max(1)` is not defensiveness
    * about a zero: a year of entirely empty days is reported unavailable by the
    * service and never reaches here, so this guards the arithmetic rather than
    * the data — a `0 / 0` would put `NaN` into 365 inline styles, which CSS
@@ -186,10 +248,19 @@ export function cityPlan(year: ContributionYear): CityPlan {
     date: d.date,
     count: d.count,
     step: bandOf(d.count, cuts),
-    /* Three decimals. The storey is ~100px, so the third decimal is a tenth
-       of a pixel and the fourth is noise in an inline style that ships 365
-       times. */
-    rise: Math.round((d.count / max) * 1000) / 1000,
+    /*
+     * NON-LINEAR, and the whole argument for it is at the top of this file.
+     * `sqrt` and not a division: on the real calendar a plain `count / max`
+     * put 28 days of real work under 0.05 — a fifth of a pixel of lift at the
+     * phone storey — because the busiest day is 172 and the median active day
+     * is 16.5. The square root lifts that median from 0.099 to 0.314 while
+     * leaving the busiest day alone at 1.0.
+     *
+     * Three decimals. The storey measures 93.6px at a desktop width, so the
+     * third decimal is a tenth of a pixel and the fourth is noise in an inline
+     * style that ships 365 times.
+     */
+    rise: Math.round(Math.sqrt(d.count / max) * 1000) / 1000,
   }));
 
   const firstWeekday = utcWeekday(days[0].date);
