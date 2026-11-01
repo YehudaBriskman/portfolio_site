@@ -100,6 +100,7 @@ ledger is a page-level document and not a comment.
 
 | # | beat | device family | the one reason it exists |
 |---|---|---|---|
+| — | entry | **shutter** | the page is behind something, and that something leaves |
 | 0 | title plate | **staged assembly** | the collection names itself, in four gated moves |
 | 1 | wall text | `flow` | the quiet before the peak |
 | 2 | **the pile** | `pin` | the work stacks up with weight |
@@ -108,9 +109,66 @@ ledger is a page-level document and not a comment.
 | 5 | specs | `count` | real numbers landing |
 | 6 | inquiry plate | `reveal` | the ask, as part of the collection |
 
-Six families. No repeat in adjacent beats. `pin` is spent once, on the peak,
+Seven families. No repeat in adjacent beats. `pin` is spent once, on the peak,
 and `scrub` is spent once on beat 3 — the grammar bans a *second* scrub and
 has always allowed the first, which is the whole licence beat 3 has.
+
+**The entry row is not a beat, and the distinction is what keeps it honest.**
+Every other row in this table is a section a reader scrolls to; `shutter` is
+the app's own arrival — `motion/EntryShutter.tsx`, mounted in `App.tsx` above
+`<Routes>`, once per visit and never again on a client-side navigation. It
+therefore cannot repeat against beat 0 in the way adjacency means here: by the
+time beat 0's letters start falling the shutter has already left the document.
+It is in the ledger because it is a new device family on the page and the
+ledger exists so a family is not quietly reused — a black ground and a lit
+grid belong to nothing else on this site, and nothing else may take them.
+
+`shutter` is the one device whose off state is *absence* rather than a finished
+drawing, which is why its exits are a `null` from the component and
+`display: none` in the stylesheet rather than §4's animation-plus-arrived-state
+shape. Reduced motion, Pause — including a Pause only in storage, which the
+class has not been applied from during the first render — and scripting off all
+land on the page with nothing over it.
+
+**It is in the ledger on the same terms as beat 3: a measured cost, not a
+taste.** The first screen is tuned around a measured Largest Contentful Paint,
+and an opaque sheet over the hero is the one thing that could have taken it
+away. Two thirds of that fear was misplaced, for the reason
+`HeroArrival.module.css` already rests on — an element behind an opaque
+sibling is still a painted element, Chrome's LCP has no occlusion check, and a
+solid `background-color` is not itself a contentful candidate, so the sheet
+can neither hide the photograph nor steal the title from it. The reported
+element is the hero portrait in every cell measured, before and after, and CLS
+is 0.000 throughout: the sheet is `position: fixed` and contributes no layout
+at all.
+
+**The third was not misplaced.** 260 extra elements in React's first commit is
+main-thread work in the frame the first paint is waiting on, and it showed up
+exactly where it was looked for. Measured as an **interleaved A/B** — both
+production builds served at once, eleven alternating cold loads a side, order
+flipped each round so neither arm could drift away from the other — the
+all-tiles-in-the-first-commit version cost **+60ms at 1440×900 under 4× CPU**
+and +16ms unthrottled. The fix is in `EntryShutter.tsx`: the first commit is
+one `<div>` with an opaque pseudo-element and the tiles arrive on the next
+frame, which nobody can see because the tiles are black squares drawn on
+black. What ships measures:
+
+| viewport | profile | LCP base | LCP shutter | delta | CLS |
+|---|---|---|---|---|---|
+| 1440×900 | unthrottled | 128ms | 128ms | 0 | 0.000 → 0.000 |
+| 390×844 | unthrottled | 128ms | 124ms | −4ms | 0.000 → 0.000 |
+| 1440×900 | 4× CPU | 384ms | 408ms | +24ms | 0.000 → 0.000 |
+| 390×844 | 4× CPU | 388ms | 372ms | −16ms | 0.000 → 0.000 |
+
+Unthrottled it costs nothing at either width. Under 4× CPU the two cells
+disagree in sign, so the desktop one was re-run at fifteen rounds and held at
+**388 → 408ms, +20ms** — small, real, and about 5% of a figure measured on a
+machine pretending to be four times slower than it is. That is the price of
+the device and it is recorded here rather than rounded away.
+
+A 400kbps network profile was tried and dropped: at 7.7–9.1 seconds it is
+entirely network-bound and several loads produced no LCP entry at all, so it
+measures the connection rather than the device.
 
 **Beat 3 is not a second peak, and the test it had to pass is on paper
 rather than on taste.** It does not pin, so it buys no scroll distance beyond
@@ -364,6 +422,7 @@ direction, or set `fill-rule: evenodd` deliberately and know what it costs.
 | file | device | timeline |
 |---|---|---|
 | `motion/Rise.tsx` | `reveal` — the measured reveal, fired once | observer + clock |
+| `motion/EntryShutter.tsx` | `shutter` — the page arrives from behind a grid | clock, gated on real readiness |
 | `motion/useStagedArrival.ts` | the staged assembly: each move waits on the last | clock, gated on `animationend` |
 | `components/hero-chrome.css` | the bar's part in that sequence, reached from `body` | clock |
 | `motion/Flow.tsx` | `flow` — one gate per item, so a beat can differ per item | observer + clock |
