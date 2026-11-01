@@ -644,7 +644,18 @@
      * is the only place it can be resolved correctly. `--shadow-lift` above is
      * the older construction and does carry `var(--ink)` inside it; it is left
      * alone because every one of its call sites is on paper, and it is the
-     * reason this family is shaped the other way round.
+     * reason this family is shaped the other way round.     *
+     * DECLARED WITH NO CALL SITE, deliberately, and this is the honest state
+     * rather than an oversight. The one thing that used this family was the
+     * section plate, and the owner removed it: a ground is part of the page
+     * and does not cast a shadow onto it. The scale is kept because the
+     * derivation is the expensive part — three steps off the nav island's
+     * measured `0 26px 50px -30px` at x0.5, x1 and x1.6 — and because the
+     * things that legitimately float (cards, the island, a dialog) are where
+     * it belongs when one of them next needs a step. `.note-card` still
+     * carries its own hand-rolled lift and was deliberately not repointed at
+     * this scale in the same pass that removed the plate's; that is a tidy-up
+     * with a visible result, and it needs its own change and its own look.
      */
     --lift-1: 0 13px 25px -15px;
     --lift-2: 0 26px 50px -30px;
@@ -1777,10 +1788,23 @@
    * pushed the document 26px past its own right edge under `overflow-x: clip`
    * — and `Work.tsx` requires the dark act's ground to span the page: its
    * `.on-panel` sits on the <section> rather than on an inner box precisely so
-   * the ground drops out from under the work edge to edge. So the separation
-   * between two plates is vertical: one gutter of bare --paper, the page's own
-   * ground showing between them. Adjacent margins collapse, so that is one
-   * gutter and not two.
+   * the ground drops out from under the work edge to edge.
+   *
+   * A GROUND, NOT A CARD, and this is the correction that defines the rule.
+   * The first version of this gave every plate a gutter of bare paper around
+   * it, a radius on all four corners and a `--lift-3` shadow, which together
+   * turn a change of ground into a stack of floating cards — the owner, on
+   * seeing it: "this is not what i meant, i meant for changing in colors, not
+   * wrappin all in shadows, just the bg". All three go.
+   *
+   * What is left is the thing that was actually asked for: the colour changes
+   * and the boundary between two colours is a curve rather than a straight
+   * line. Plates sit flush, so the only separation is the change of tint, and
+   * the radius is on the block-start corners alone. A square bottom under a
+   * rounded top means the corner notch shows the page's own paper, which is
+   * what draws the curve — the same shape the hero already makes where it
+   * meets the dark act. Rounding all four corners instead would detach the
+   * plate from the page, which is the card this correction removes.
    *
    * NO `overflow: clip`, and this is the one thing worth being careful about.
    * Clipping is the obvious way to hold content inside a rounded corner and it
@@ -1793,14 +1817,13 @@
    */
   .ground {
     position: relative;
-    margin-block: theme('spacing.gutter');
-    border-radius: var(--r-2xl);
     background: rgb(var(--paper));
-    /* Geometry from the family, colour from here — the whole reason the --lift
-       tokens carry no var(). On a panel plate `--shade` still resolves to
-       --ink, which is right: this shadow falls on the cream outside the plate,
-       not on the near-black inside it. */
-    box-shadow: var(--lift-3) rgb(var(--shade) / .5);
+    /* Logical, so the curve is drawn at the top in both writing directions;
+       the two block-end corners stay square so the next plate meets this one
+       without a seam of paper between them. No shadow: a ground does not cast
+       one onto the page it is part of. */
+    border-start-start-radius: var(--r-2xl);
+    border-start-end-radius: var(--r-2xl);
   }
   .ground[data-ground='warm']  { background: rgb(var(--ground-warm)); }
   .ground[data-ground='cool']  { background: rgb(var(--ground-cool)); }
@@ -1821,7 +1844,10 @@
    */
   .ground > .on-panel { background: transparent; }
   @media (max-width: 639px) {
-    .ground { border-radius: var(--r-lg); }
+    .ground {
+      border-start-start-radius: var(--r-lg);
+      border-start-end-radius: var(--r-lg);
+    }
   }
 
   /* ---------------------------------------------------------------- notes -- */
