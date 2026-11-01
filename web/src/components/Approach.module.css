@@ -77,14 +77,17 @@
 .claim {
   margin: 0;
   /*
-   * The display family at the text width, not the poster width: this is a
-   * sentence that happens to be a heading, and at wdth 125 it would read as a
-   * small headline shouting on a quiet page. Weight and size carry the
-   * hierarchy instead, which is all it needs against 19px of body copy.
+   * The display family, held down to a sentence.
+   *
+   * This used to be the same face at wdth 112 rather than the poster's 125,
+   * because this is a sentence that happens to be a heading and the poster
+   * width would read as a small headline shouting on a quiet page. The
+   * display role has no width axis any more — none of the six faces has one
+   * — so size and tracking are the whole of the hierarchy it has against
+   * 19px of body copy, and at this step they are enough.
    */
-  font-family: "Archivo", ui-sans-serif, system-ui, sans-serif;
-  font-variation-settings: "wdth" 112;
-  font-weight: 700;
+  font-family: var(--font-display);
+  font-weight: var(--weight-display);
   font-size: clamp(1.3125rem, 2.2vw, 1.5rem);
   line-height: 1.22;
   letter-spacing: var(--track-sub);

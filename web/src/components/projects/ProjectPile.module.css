@@ -609,17 +609,23 @@
  * `index.css` sets the other two on `.on-panel` — more leading and a touch
  * more tracking on every `p` and `li`, which reaches the fact line and the
  * field line — and bumps the weight of `.display` and `.display-tight`. The
- * object name is neither of those: `ObjectLabel` sets its own 800, so on this
- * ground it is the one piece of type on the card still set with light-ground
- * metrics, and light type on a dark ground at 800 reads thin because the
- * ground bleeds into the strokes rather than the strokes into the ground.
+ * object name is neither of those: `ObjectLabel` sets the display role, so on
+ * this ground it is the one piece of type on the card still set with
+ * light-ground metrics, and light type on a dark ground reads thin because
+ * the ground bleeds into the strokes rather than the strokes into the ground.
+ *
+ * The weight half of that compensation is gone, and not quietly: it was
+ * 800 -> 900 on a variable Archivo, and the display role is a single-master
+ * face in both languages now. `font-synthesis-weight: none` on body means a
+ * 900 here would render at 400 rather than smear, which is a declaration
+ * that looks like it is doing something and is not. Tracking is the axis
+ * that still works, so tracking is what is left.
  *
  * Addressed through the element rather than through the module's own class,
  * because the class is hashed and belongs to `ObjectLabel`; `nameAs="h3"` is
  * a contract this component already states at the call site.
  */
 .label h3 {
-  font-weight: 900;
   letter-spacing: calc(var(--track-head) + 0.004em);
 }
 
@@ -634,9 +640,11 @@
  * name does not.
  *
  * The font stack is the one `Action.module.css` names, for the reason given
- * there: Archivo's latin subset carries ↑ and ↓ and nothing else, so an
+ * there: Google's `latin` range carries ↑ and ↓ and nothing else, so an
  * arrow set in the page's own family falls back to whatever each platform
  * happens to have and the site ends up with three different arrows on it.
+ * Every one of the six faces is cut from that range, so this is not a fact
+ * about Archivo and never was.
  */
 .onward {
   align-self: flex-end;

@@ -88,20 +88,31 @@ export default {
         full: "var(--r-pill)",
       },
       /*
-       * Two families. Display carries voice, text carries prose, and a third
-       * is a costume — the reasoning, and what it cost to find out, is in the
-       * @font-face note at the top of index.css.
+       * Three roles, and not one family named here.
        *
-       * Archivo answers to both `display` and `sans`; the two differ by width
-       * axis, not by file. `editorial` survives as a name so the call sites
-       * that mean "quieter than the line above" keep working, and it now
-       * resolves to the family the page actually has.
+       * Every entry resolves a custom property, because the family a role
+       * points at depends on the document's language and a Tailwind config
+       * is evaluated once at build time. The tokens, the six faces they
+       * select between, and what each one cost in bytes are in the
+       * @font-face note and the token block at the top of index.css.
+       *
+       * `sans` and `editorial` both mean the text role: the first is what
+       * Tailwind's own defaults reach for, the second is the name the call
+       * sites use when they mean "quieter than the line above".
+       *
+       * `mono` is the data role and is no longer a monospace. It keeps the
+       * name because the `.mono` utility it backs is on ~65 elements across
+       * the app and renaming them is a separate commit; `code` is the
+       * generic monospace, for the three places that need characters to
+       * line up in a column rather than a voice — a fenced block, an inline
+       * literal, and the admin's document-path field.
        */
       fontFamily: {
-        display: ["Archivo", "ui-sans-serif", "system-ui", "sans-serif"],
-        sans: ["Archivo", "ui-sans-serif", "system-ui", "sans-serif"],
-        editorial: ["Archivo", "ui-sans-serif", "system-ui", "sans-serif"],
-        mono: ["IBM Plex Mono", "ui-monospace", "monospace"],
+        display: ["var(--font-display)"],
+        sans: ["var(--font-text)"],
+        editorial: ["var(--font-text)"],
+        mono: ["var(--font-data)"],
+        code: ["var(--font-code)"],
       },
       fontSize: {
         /*
@@ -114,13 +125,26 @@ export default {
          * read as the most important thing on it.
          */
         /*
-         * Sized from the face, not from taste. Measured at wdth 125 / weight
-         * 900, "BRISKMAN" is 7.12em wide and "GET IN TOUCH" is 9.28em — the
-         * two longest strings the site sets in this register. The hero runs
-         * full-bleed so its budget is the viewport less its gutters, and the
-         * section heads live in the 1152px column. Both clamps are the
-         * largest value that still fits the longer string at every width,
-         * which is why they are not round numbers.
+         * Sized from the face, not from taste. "BRISKMAN" and "GET IN TOUCH"
+         * are the two longest strings the site sets in this register; the
+         * hero runs full-bleed so its budget is the viewport less its
+         * gutters, and the section heads live in the 1152px column. Both
+         * clamps were the largest value that still fitted the longer string
+         * at every width, which is why they are not round numbers.
+         *
+         * Re-measured in the DOM at each face's own shipped tracking, by
+         * scripts/fontwork/strings.mjs:
+         *
+         *                          BRISKMAN   GET IN TOUCH
+         *   Archivo wdth 125/900   6.92em     8.98em
+         *   Audiowide -0.030em     5.91em     7.70em
+         *   Rubik Glitch 0         5.59em     7.19em
+         *
+         * Both display faces are narrower than the setting these clamps were
+         * cut for, so both clamps now have slack rather than being tight.
+         * They are left as they are: they were chosen against a budget and
+         * the budget has not moved, and growing a headline because the face
+         * shrank is how a ramp stops being a ramp.
          */
         /*
          * The hero answers to the window's height as well as its width.
@@ -133,10 +157,13 @@ export default {
          * window is, and the rem ceiling stops it running away on a large
          * display.
          *
-         * 9rem is also the largest size at which "BRISKMAN" — 7.12em at
-         * wdth 125 — still fits the measure's 1072px of content, which is
-         * what lets the name sit inside the column with air at both sides
-         * instead of running edge to edge. 10rem overran it by 67px.
+         * 9rem was also the largest size at which "BRISKMAN" — 6.92em in
+         * Archivo at wdth 125 — still fitted the measure's 1072px of
+         * content, which is what lets the name sit inside the column with
+         * air at both sides instead of running edge to edge; 10rem overran
+         * it by 67px. In Audiowide at 5.91em the same 9rem sets 851px, so
+         * the ceiling is no longer the binding constraint — the vh cap
+         * above is.
          */
         /*
          * Every step carries its own tracking and leading, because a size
@@ -152,7 +179,8 @@ export default {
         sub: ["clamp(1.25rem, 3.2vw, 2rem)", { lineHeight: "1.2", letterSpacing: "var(--track-sub)" }],
         /* The fact line: prose, one sentence, never a paragraph. */
         fact: ["clamp(1rem, 1.4vw, 1.125rem)", { lineHeight: "1.5", letterSpacing: "var(--track-body)" }],
-        /* The field line. The only place the mono is allowed to appear. */
+        /* The field line. The only place the data role is the whole voice
+           of a block. */
         field: ["0.72rem", { lineHeight: "1.5", letterSpacing: "var(--track-field)" }],
       },
       keyframes: {

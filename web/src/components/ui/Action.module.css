@@ -1,16 +1,17 @@
 /*
  * The action, moved out of the label register.
  *
- * Every button on the site was `.btn`: 12px IBM Plex Mono, uppercase, 0.16em
- * of tracking. That is the same setting as the eyebrows, the dates, the
+ * Every button on the site was `.btn`: 12px in the label voice, uppercase,
+ * 0.16em of tracking. That is the same setting as the eyebrows, the dates, the
  * reading times and the repository facts — so the one thing on a screen the
  * reader is meant to press looked exactly like the twenty things they are
  * meant to skim. The site's type scale is deliberately two registers with a
  * hole in the middle, and the action had been filed in the wrong one.
  *
- * It belongs in the display family, one notch down: Archivo at wdth 112 and
- * weight 700, which is `.display-tight`'s own setting, set at 18-20px in
- * sentence case. Sentence case rather than small capitals because the label
+ * It belongs in the display family, one notch down: `.display-tight`'s own
+ * setting, set at 18-20px in sentence case. That used to mean Archivo at
+ * wdth 112 and weight 700; the display role has neither axis now, so "one
+ * notch down" is carried by the size and the tracking step alone. Sentence case rather than small capitals because the label
  * is a sentence — "See the work" — and capitalising it was what forced the
  * tracking that made it small and wide in the first place.
  *
@@ -34,13 +35,12 @@
   /* On every variant, so a solid and an outlined action are the same size
      and sit on the same baseline when they are side by side. */
   border: 1px solid transparent;
-  font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif;
-  font-variation-settings: 'wdth' 112;
-  font-weight: 700;
+  font-family: var(--font-display);
+  font-weight: var(--weight-display);
   font-size: 1.125rem;
-  /* Zero, not `--track-label`. The 0.16em the mono setting needed is what
-     opens small capitals up; at this size in a grotesque it would only pull
-     the word apart. */
+  /* Zero, not `--track-label`. The 0.16em the label voice needed is what
+     opens small capitals up; at this size in a display face it would only
+     pull the word apart. */
   letter-spacing: 0;
   line-height: 1;
   white-space: nowrap;
@@ -100,9 +100,8 @@
   padding-inline: 0;
   gap: 0.5rem;
   border-color: transparent;
-  font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif;
-  font-variation-settings: 'wdth' 100;
-  font-weight: 500;
+  font-family: var(--font-text);
+  font-weight: var(--weight-text);
   font-size: 1.125rem;
   letter-spacing: var(--track-sub);
   color: rgb(var(--ink));
@@ -151,11 +150,12 @@
 /*
  * The glyph gets its own stack.
  *
- * Archivo's latin subset carries ↑ and ↓ and nothing else, so →, ← and ↗
- * were already falling back to
- * whatever each face's fallback happened to be, which is three different
- * arrows on one page. Naming a stack that actually has them makes the mark
- * one shape wherever it appears.
+ * Google's `latin` range carries ↑ and ↓ and nothing else, so →, ← and ↗
+ * were already falling back to whatever each face's fallback happened to
+ * be, which is three different arrows on one page. That was true of Archivo
+ * and it is true of all six faces, because they are cut from the same
+ * range. Naming a stack that actually has them makes the mark one shape
+ * wherever it appears.
  */
 .glyph {
   font-family: ui-sans-serif, system-ui, 'Segoe UI Symbol', 'Noto Sans Symbols 2', sans-serif;

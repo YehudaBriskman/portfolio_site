@@ -168,10 +168,14 @@
 
 /* The card's own heading. Not a section head — those stay on the paper. */
 .title {
-  font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif;
-  font-variation-settings: 'wdth' 112;
-  font-weight: 700;
-  letter-spacing: var(--track-display);
+  font-family: var(--font-display);
+  font-weight: var(--weight-display);
+  /* --track-head, not --track-display. At the 18-24px this clamps to, the
+     display step is correction for a 100px line and closes the counters
+     here; the head step is what the ramp reserves for 32-56px and is the
+     nearest rung this size can take. Measured against Audiowide along with
+     the rest of the ramp — see the token block in index.css. */
+  letter-spacing: var(--track-head);
   line-height: 1.08;
   font-size: clamp(1.125rem, 2.4vw, 1.5rem);
   /* 17.02:1 on the neutral card, 15.73:1 on the dullest wash (purple). */
@@ -199,7 +203,7 @@
   /* Also the ordinal on a stacked card — "01 / 03" is metadata about the
      reader's place in the pile, and a second role identical to this one but
      for the name would only invite the two to drift. */
-  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-family: var(--font-data);
   font-size: 0.75rem;
   letter-spacing: var(--track-label);
   text-transform: uppercase;

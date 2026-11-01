@@ -363,9 +363,8 @@
  */
 .panelTitle {
   margin: 0;
-  font-family: "Archivo", ui-sans-serif, system-ui, sans-serif;
-  font-variation-settings: "wdth" 112;
-  font-weight: 800;
+  font-family: var(--font-display);
+  font-weight: var(--weight-display);
   font-size: clamp(1.25rem, 2.4vw, 1.5rem);
   line-height: 1.1;
   letter-spacing: var(--track-sub);
@@ -518,9 +517,9 @@
 /*
  * The label, in the field line's voice.
  *
- * Mono, uppercase, 0.18em — the same setting the plate's own field line
- * carries, because it is the same kind of text doing the same job: naming a
- * fact rather than stating one. It is a real `<label>` with a real `for`, and
+ * The data role, uppercase, 0.18em — the same setting the plate's own field
+ * line carries, because it is the same kind of text doing the same job:
+ * naming a fact rather than stating one. It is a real `<label>` with a real `for`, and
  * it is visible. A ruled line with a placeholder in it is the classic way to
  * lose both: the placeholder disappears the moment anything is typed, so the
  * field stops having a name exactly when the reader most needs to check what
@@ -537,9 +536,9 @@
  */
 .fieldLabel {
   display: block;
-  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-family: var(--font-data);
   font-size: 0.72rem;
-  font-weight: 400;
+  font-weight: var(--weight-data);
   line-height: 1.5;
   letter-spacing: var(--track-field);
   text-transform: uppercase;
@@ -671,7 +670,7 @@
 
 .fieldError {
   margin: 0.5rem 0 0;
-  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-family: var(--font-data);
   font-size: 0.78rem;
   line-height: 1.5;
   letter-spacing: 0.02em;
@@ -928,7 +927,7 @@
  */
 .status,
 .failure {
-  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-family: var(--font-data);
   font-size: 0.78rem;
   line-height: 1.5;
   letter-spacing: 0.02em;

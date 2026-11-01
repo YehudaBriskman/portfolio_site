@@ -7,51 +7,147 @@
  * production: 1371ms for the CSS, then 1.4-2.0s for each font behind it.
  *
  * Served from our own origin they start as soon as the HTML is parsed, and the
- * two the first screen actually needs are preloaded in index.html. Latin subset
- * only; the site has no content in the other ranges. `swap` so text is readable
- * immediately rather than invisible while a font arrives.
+ * three the first screen actually needs are preloaded in index.html. `swap` so
+ * text is readable immediately rather than invisible while a font arrives.
+ *
+ * Every file below was cut from the upstream source in google/fonts by
+ * `scripts/fontwork/build.sh`, which records the ranges and the layout
+ * features it keeps and why.
+ *
+ * ──────────────────────────────────────────────────────────────────────
+ * SIX FACES, THREE PER LANGUAGE. ONLY ONE LANGUAGE RENDERS AT A TIME.
+ * ──────────────────────────────────────────────────────────────────────
+ * What was here: Archivo for display and prose, IBM Plex Mono for the label
+ * schema. Two families, 116.9KB, two preloads.
+ *
+ * What is here now is two three-face systems selected by `lang`, under the
+ * token layer below. The byte count per reader, measured on the built files:
+ *
+ *   English  audiowide 13,816 + jim-nightshade 51,532 +
+ *            comic-relief 400 18,032 + 700 22,740            = 106,120  (103.6KB)
+ *   Hebrew   rubik-glitch-hebrew 15,216 + solitreo-hebrew 10,892 +
+ *            playpen-hebrew 11,924                           =  38,032   (37.1KB)
+ *            plus, on any page that also sets Latin — which every page
+ *            does today, because no string on this site is in Hebrew yet —
+ *            the three Latin halves                          = 150,460  (146.9KB)
+ *
+ * The Hebrew faces are split by script on purpose. The Latin half of Rubik
+ * Glitch alone is 81,532 bytes against 15,216 for its Hebrew, so a Hebrew
+ * heading that pays for the Latin it does not set would cost more than the
+ * entire previous type system. `unicode-range` makes the browser fetch each
+ * half only if the page contains a character in it.
+ *
+ * Measured off the network with the built site served locally — see
+ * scripts/fontwork/shoot-app.mjs, which prints what the browser fetched:
+ * 83,380 bytes on the English home page (the three preloads and nothing
+ * else), 233,840 on the same page with `lang="he"`. The second figure is
+ * the English preloads, which a static <link> cannot make conditional on a
+ * language chosen at runtime, plus the three Hebrew faces' Latin halves,
+ * because every string on this page is still Latin. A Hebrew page with
+ * Hebrew copy in it costs the 38,032 above.
  */
+
+/* ── English ──────────────────────────────────────────────────────────── */
+
+/* H1 / hero. One weight; see --weight-display below. */
 @font-face {
-  font-family: 'Archivo';
-  font-style: normal;
-  font-weight: 400 900;
-  font-stretch: 100% 125%;
-  font-display: swap;
-  src: url('/fonts/archivo-400-900.woff2') format('woff2');
-}
-/*
- * Two families, and that is the whole type system.
- *
- * What was here: Archivo for display, IBM Plex Sans for prose, Instrument
- * Serif for a subtitle voice, IBM Plex Mono for labels. Four faces, 218KB,
- * three preloads on the first screen.
- *
- * The floor is two — display carries voice, text carries prose, and a third
- * is a costume. Archivo sets comfortably at body size, so it carries both and
- * IBM Plex Sans has no job left. The mono is the second family rather than a
- * third, because on this site it is not decoration: it *is* the label schema
- * (see ObjectLabel), the one voice that marks a field line as a field line.
- *
- * Instrument Serif went with the tagline it existed to set. A gallery label
- * reads as fact rather than as an editorial subtitle, and the moment the
- * italic had nothing to say it was a costume too.
- *
- * 113KB and two preloads lighter, on a first screen that now carries no
- * imagery at all.
- */
-@font-face {
-  font-family: 'IBM Plex Mono';
+  font-family: 'Audiowide';
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url('/fonts/ibm-plex-mono-400.woff2') format('woff2');
+  src: url('/fonts/audiowide-400.woff2') format('woff2');
+}
+/* Second / sub. One weight. */
+@font-face {
+  font-family: 'Jim Nightshade';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/jim-nightshade-400.woff2') format('woff2');
+}
+/*
+ * Data. Two weights, because this is the one role that still has a real
+ * emphasis to carry — `<b>` inside a chip, `strong` inside a note — and
+ * Comic Relief ships 400 and 700 and nothing between. A CSS request for 500
+ * resolves down to 400 rather than synthesising, which is the intent.
+ */
+@font-face {
+  font-family: 'Comic Relief';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/comic-relief-400.woff2') format('woff2');
 }
 @font-face {
-  font-family: 'IBM Plex Mono';
+  font-family: 'Comic Relief';
   font-style: normal;
-  font-weight: 500;
+  font-weight: 700;
   font-display: swap;
-  src: url('/fonts/ibm-plex-mono-500.woff2') format('woff2');
+  src: url('/fonts/comic-relief-700.woff2') format('woff2');
+}
+
+/* ── Hebrew ───────────────────────────────────────────────────────────── */
+
+/*
+ * The ranges are Google's own `hebrew` and `latin` subset definitions, copied
+ * from the css2 response rather than invented, so a glyph Google would have
+ * served is a glyph we serve.
+ */
+@font-face {
+  font-family: 'Rubik Glitch';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/rubik-glitch-400-hebrew.woff2') format('woff2');
+  unicode-range: U+0307-0308, U+0590-05FF, U+200C-2010, U+20AA, U+25CC, U+FB1D-FB4F;
+}
+@font-face {
+  font-family: 'Rubik Glitch';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/rubik-glitch-400-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Solitreo';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/solitreo-400-hebrew.woff2') format('woff2');
+  unicode-range: U+0307-0308, U+0590-05FF, U+200C-2010, U+20AA, U+25CC, U+FB1D-FB4F;
+}
+@font-face {
+  font-family: 'Solitreo';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/solitreo-400-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/*
+ * Variable on one axis, clipped to the two weights the data role asks for.
+ * `calt` and the stylistic sets are dropped: they are Playpen Sans's
+ * signature at poster size and they are 1023 glyphs / 106,036 bytes against
+ * 360 glyphs / 31,380 without, for alternates nobody can see at the 11-12px
+ * this role sets. Measured by scripts/fontwork/probe-features.sh, which
+ * prints exactly those four figures.
+ */
+@font-face {
+  font-family: 'Playpen Sans Hebrew';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('/fonts/playpen-sans-hebrew-400-700-hebrew.woff2') format('woff2');
+  unicode-range: U+0307-0308, U+0590-05FF, U+200C-2010, U+20AA, U+25CC, U+FB1D-FB4F;
+}
+@font-face {
+  font-family: 'Playpen Sans Hebrew';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('/fonts/playpen-sans-hebrew-400-700-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
 @tailwind base;
@@ -105,6 +201,29 @@
      * decorative marks only. Captions use --ink-soft.
      */
     --ink-faint:124 120 109;   /* #7C786D  NON-TEXT only. 3.6:1 on paper. */
+    /*
+     * What --ink-soft's 6.9:1 does and does not guarantee, now that the text
+     * role is a script.
+     *
+     * A contrast ratio is a property of two colours and says nothing about
+     * how much of the stroke actually reaches them. Measured off the
+     * rendered glyphs instead — coverage-weighted mean of every inked pixel,
+     * which is what the eye integrates over a line — at the 18px fact step
+     * in --ink-soft on paper:
+     *
+     *   Archivo (what it was)   5.04:1
+     *   Solitreo   (Hebrew)     4.97:1
+     *   Jim Nightshade (Eng)    4.46:1
+     *
+     * All three declare 6.37:1 and all three pass an audit. Jim Nightshade
+     * puts about 11% less ink on the page than Archivo did at the same
+     * colour, which is the hairline-script effect: it passes the test and
+     * reads grey. The colours are unchanged — moving --ink-soft to chase a
+     * metric no tool reports would be tuning the palette to a face — but the
+     * measurement is here so the next person knows the margin is thinner
+     * than the 6.37 suggests. Measured by scripts/fontwork/specimen.html;
+     * the render is in docs/type-specimen.
+     */
     --rule:     207 201 186;   /* #CFC9BA  hairlines and image borders */
     --rule-firm:166 159 142;   /* #A69F8E  a border that is meant to be seen */
     /*
@@ -205,27 +324,103 @@
 
     /*
      * ──────────────────────────────────────────────────────────────────
+     * The three type roles.
+     * ──────────────────────────────────────────────────────────────────
+     * display carries voice, text carries prose, data marks a field line as a
+     * field line. Three tokens, defined once here and re-pointed under
+     * `:lang(he)` below; nothing else on the site names a family. That is the
+     * whole reason this layer exists: a stylesheet that names a face has to
+     * name six of them and pick between them, and there were 44 declarations
+     * naming one before this change.
+     *
+     * The fallbacks are the system sans in all three roles, including the two
+     * scripts. `cursive` would have been the honest generic for Jim
+     * Nightshade and Solitreo and it resolves to Comic Sans on Windows and to
+     * nothing predictable elsewhere, which is a worse first paint than a
+     * plain sans under `font-display: swap`.
+     */
+    --font-display: 'Audiowide', ui-sans-serif, system-ui, sans-serif;
+    --font-text:    'Jim Nightshade', ui-sans-serif, system-ui, sans-serif;
+    --font-data:    'Comic Relief', ui-sans-serif, system-ui, sans-serif;
+    /*
+     * Not a fourth role, and not a face: the generic monospace.
+     *
+     * The data role used to be IBM Plex Mono and three things were quietly
+     * relying on that rather than on the role — the fenced code block in a
+     * note, the inline `code` span beside it, and the document-path field
+     * in the admin. Code in a proportional casual face is not a style
+     * choice, it is a column of characters that do not line up, so those
+     * three ask for this instead. It names no webfont and costs no bytes.
+     */
+    --font-code:    ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+    /*
+     * Weights, because five of the six faces have exactly one.
+     *
+     * Audiowide, Jim Nightshade, Rubik Glitch and Solitreo ship a single
+     * master; Comic Relief ships 400 and 700; Playpen Sans Hebrew is variable
+     * and clipped to 400-700. So `font-weight: 900` — which the display
+     * register asked for everywhere — is now a request no file can answer,
+     * and the browser answers it by smearing the 400 outline sideways.
+     * `font-synthesis-weight: none` on `body` turns that off, and these
+     * tokens carry the weight each role can actually render.
+     */
+    --weight-display:     400;
+    --weight-text:        400;
+    --weight-data:        400;
+    --weight-data-strong: 700;
+
+    /*
+     * ──────────────────────────────────────────────────────────────────
      * The type ramp.
      * ──────────────────────────────────────────────────────────────────
      * Tracking tightens as size grows. This is optical correction, not
      * decoration: a face set at 6rem with default tracking reads loose and
      * amateur, and one set at 11px with default tracking reads as a smudge.
      *
-     * Measured off the references rather than guessed —
+     * The ramp below was measured off the references for Archivo —
      *   zephium.app (GeistSans):  69px -0.050em · 56px -0.045em ·
      *                             32px -0.035em · 20px -0.012em · 14px -0.006em
      *   enpitech.dev:             72px -0.028em · 11px mono +0.200em
+     * — and a tracking measured for one face is a statement about that face's
+     * sidebearings, not about the ramp. It does not transfer.
      *
-     * We shipped a flat -0.035em on display and nothing anywhere else.
+     * Re-measured per face by `scripts/fontwork/ramp-probe.mjs`, which renders
+     * the string at 8x, takes a column-wise ink profile, and reports the
+     * narrowest run of blank columns and how many separate ink runs survive.
+     * When the run count drops, two letters have merged.
+     *
+     *   step      size      was        the English face merges at   shipped
+     *   hero      144px     -0.045em   Audiowide       -0.0375em    -0.030em
+     *   section   100.8px   -0.045em   Audiowide       -0.0350em    -0.030em
+     *   object    35.2px    -0.035em   Audiowide       -0.0375em    -0.020em
+     *   sub       32px      -0.020em   Jim Nightshade  -0.0075em    -0.005em
+     *   body      19px      -0.006em   Jim Nightshade  -0.0050em     0em
+     *   field     11.52px   +0.180em   neither, ever                +0.180em
+     *
+     * So the old ramp was past the English display face's merge point at
+     * both display steps — at -0.045em "HAMBURGEVONS" in Audiowide renders
+     * as eleven ink runs instead of twelve — and past the second-level
+     * face's at both text steps. The object step was the one that stayed
+     * just inside, by 0.0025em, and it was leaving 0.13px of gap where
+     * Archivo leaves 0.50px, which is correction that has stopped being
+     * correction.
+     *
+     * The shipped column is, at every step, the tightest value that keeps
+     * every letter separate AND leaves the same residual gap Archivo leaves
+     * at the old value. It is looser than the old ramp everywhere, and that
+     * is a fact about the faces rather than a softening of the idea: both
+     * English faces are drawn with less air between letters than Archivo,
+     * so there is less of it to take away.
      *
      * Line height runs inverse to size and inverse to measure: display 0.94,
      * body 1.6. Wider lines need more leading.
      */
-    --track-display: -0.045em;   /* >= 56px */
-    --track-head:    -0.035em;   /* 32 - 56px */
-    --track-sub:     -0.020em;   /* 20 - 32px */
-    --track-body:    -0.006em;
-    --track-field:    0.180em;   /* the mono field line */
+    --track-display: -0.030em;   /* >= 56px   Audiowide; was -0.045em */
+    --track-head:    -0.020em;   /* 32 - 56px Audiowide; was -0.035em */
+    --track-sub:     -0.005em;   /* 20 - 32px serves both display and text */
+    --track-body:     0em;       /* Jim Nightshade has 0.13px of air at 19px */
+    --track-field:    0.180em;   /* the field line; measured, transfers */
     --measure:        62ch;
 
     /* `--signal`, not `--accent`: shadcn's primitives already own that name
@@ -327,6 +522,62 @@
     --dur-slow: 1.2s;
   }
 
+  /*
+   * ────────────────────────────────────────────────────────────────────
+   * The same three roles, in Hebrew.
+   * ────────────────────────────────────────────────────────────────────
+   * `locale.ts` writes `lang` and `dir` onto <html>, so switching language
+   * switches the type system and the reading direction in one assignment and
+   * no component hears about either.
+   *
+   * Both selectors on purpose. `:root:lang(he)` is the whole document in
+   * Hebrew, which is what the language menu does. `[lang="he"]` is a subtree
+   * marked Hebrew inside an English page — a quoted line, a bilingual note —
+   * and its descendants inherit these custom properties, so the three faces
+   * follow the marked language rather than the page's.
+   *
+   * It sits after :root rather than relying on specificity: `[lang="he"]` is
+   * one attribute selector and `:root` is one pseudo-class, which is a tie,
+   * and a tie is decided by source order.
+   */
+  :root:lang(he),
+  [lang='he'] {
+    --font-display: 'Rubik Glitch', ui-sans-serif, system-ui, sans-serif;
+    --font-text:    'Solitreo', ui-sans-serif, system-ui, sans-serif;
+    --font-data:    'Playpen Sans Hebrew', ui-sans-serif, system-ui, sans-serif;
+
+    /* Rubik Glitch and Solitreo ship one master each; Playpen Sans Hebrew is
+       the variable file, clipped to 400-700. */
+    --weight-display:     400;
+    --weight-text:        400;
+    --weight-data:        400;
+    --weight-data-strong: 700;
+
+    /*
+     * Tracking: zero above the field line, and that is a measurement rather
+     * than a shrug.
+     *
+     * The ramp's negative steps are optical correction for the sidebearings
+     * of a Latin grotesque. Measured by `scripts/fontwork/ramp-probe.mjs`,
+     * neither Hebrew display face has separable letters to correct: Rubik
+     * Glitch renders "מפרטהעבודה" as a single continuous ink run at every
+     * tracking from +0.03em to -0.09em, because its glitch shards already
+     * overlap horizontally, and Solitreo is a connected cursive and does the
+     * same by construction. Tightening either of them buys nothing and pulls
+     * real strokes through each other, so there is no number here to justify
+     * and the honest value is none.
+     *
+     * The field line keeps +0.180em. Playpen Sans Hebrew is not a connecting
+     * face, and at 11.52px the measured gap between glyphs opens from 0.38px
+     * to 2.50px — the same thing the step does for the Latin data face.
+     */
+    --track-display: 0em;
+    --track-head:    0em;
+    --track-sub:     0em;
+    --track-body:    0em;
+    --track-field:   0.180em;
+  }
+
   * { border-color: rgb(var(--edge)); }
 
   /*
@@ -351,14 +602,29 @@
   body {
     background-color: rgb(var(--bitumen));
     color: rgb(var(--bone));
-    font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif;
-    /* Archivo at wdth 100 is a text width, not the 125 the display register
-       uses. Setting prose in the display width is the classic way a one-family
-       page starts looking like a poster that got too long. */
-    font-variation-settings: 'wdth' 100;
-    /* 400, and it is the weight that actually arrives. See the @font-face note
-       above: 350 resolved to the Light file and took the page with it. */
-    font-weight: 400;
+    font-family: var(--font-text);
+    /*
+     * The width axis is gone, and the rule it enforced went with it.
+     *
+     * Prose used to be Archivo at wdth 100 against the display register's
+     * 125 — one file, two widths, which is what let a single family carry
+     * both voices without the page reading as a poster that got too long.
+     * The text role is its own face now, so the separation is the family
+     * rather than an axis, and there is no axis left to set: none of the six
+     * faces has a `wdth`, and Playpen Sans Hebrew's `wght` is the only
+     * variation axis in the whole set.
+     */
+    /*
+     * 400, and it is the only weight four of the six faces have.
+     *
+     * `font-synthesis-weight: none` because the browser's answer to a weight
+     * a file does not contain is to smear the outline sideways, and at the
+     * 144px the hero sets that is visible as a blur rather than as bold. A
+     * weight request that cannot be honoured should do nothing, loudly, not
+     * something, badly. See --weight-display and friends.
+     */
+    font-weight: var(--weight-text);
+    font-synthesis-weight: none;
     /* 17px was the smallest size that still called itself body copy. The
        references sit their running text at 18-20px and spend the saved
        hierarchy on the display register instead. */
@@ -394,31 +660,32 @@
   /*
    * The display register.
    *
-   * Archivo carries a width axis from 100% to 125% and the site was using
-   * 112 — the middle of it, which is the one setting that reads as no
-   * decision at all. At 125 and weight 900 the face finally has the presence
-   * the references get from a compressed grotesque, and it costs nothing
-   * because the variable file is already loaded.
+   * This used to be Archivo at wdth 125 / weight 900 — the width axis pushed
+   * to its end and the weight with it, because a variable file already
+   * loaded makes presence free. The display role is a face of its own now
+   * and has neither axis: Audiowide and Rubik Glitch each ship one master at
+   * 400, so the register's presence has to come from the drawing rather than
+   * from a setting. Both are wide by design, which is the same quality the
+   * 125 was being used to buy.
    */
   .display {
-    font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif;
-    font-variation-settings: 'wdth' 125;
-    font-weight: 900;
+    font-family: var(--font-display);
+    font-weight: var(--weight-display);
     letter-spacing: var(--track-display);
     line-height: 0.86;
     text-transform: uppercase;
     text-wrap: balance;
   }
-  /* A display line set below ~3.5rem is past the point where -0.045em stops
-     being correction and starts closing the counters. The size utilities in
-     tailwind.config.ts carry the right step; this is the floor for anything
-     that sets .display without one. */
+  /* The ramp's steps, applied where a display line is set below the register
+     it was tracked for. The size utilities in tailwind.config.ts carry the
+     right step; this is the floor for anything that sets .display without
+     one. The values themselves were re-measured against Audiowide — see the
+     ramp note in the token block. */
   .display-md { letter-spacing: var(--track-head); }
   .display-sm { letter-spacing: var(--track-sub); }
   .display-tight {
-    font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif;
-    font-variation-settings: 'wdth' 112;
-    font-weight: 700;
+    font-family: var(--font-display);
+    font-weight: var(--weight-display);
     letter-spacing: var(--track-head);
     line-height: 1.04;
     text-wrap: balance;
@@ -435,9 +702,8 @@
    * in the family the page already has.
    */
   .editorial {
-    font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif;
-    font-variation-settings: 'wdth' 100;
-    font-weight: 400;
+    font-family: var(--font-text);
+    font-weight: var(--weight-text);
     letter-spacing: var(--track-sub);
     line-height: 1.3;
     color: rgb(var(--ink-soft));
@@ -519,39 +785,49 @@
    *
    * Weight was simply absent for body copy — only `.display` got the bump,
    * and `.display` is not what a fact line is set in.
+   *
+   * TWO AXES NOW, AND THE THIRD IS GONE RATHER THAN QUIET. Archivo carried
+   * 400–900, so the half-step to 450 was a real interpolation. The text role
+   * is Jim Nightshade in English and Solitreo in Hebrew and both ship a
+   * single master, so `font-weight: 450` is a number no file can produce:
+   * with `font-synthesis-weight: none` on body it renders at 400 and with it
+   * on it renders as a smear. Leading and tracking still compensate; the
+   * weight compensation is a cost of the six-face system and is recorded
+   * here rather than left as a declaration that looks like it is working.
    */
   .on-panel :is(p, li, dd, .body) {
     line-height: 1.68;
     letter-spacing: 0.004em;
-    /* Half a step, which is what the axis is for. Archivo carries 400–900 and
-       both reference sites set their dark-ground body at a half-step above
-       their light-ground one for exactly this reason. */
-    font-weight: 450;
   }
-  .on-panel :is(.display, .display-tight) { font-weight: 900; }
   /* Last, and matching the utility rather than a class nothing applies, so it
      wins the field line back from the rule above. */
   .on-panel .text-field,
   .on-panel .text-field li {
     letter-spacing: calc(var(--track-field) + 0.01em);
-    font-weight: 450;
   }
+  /* The utility keeps the name `mono` because ~65 elements across the app
+     carry it and renaming them is a separate commit. It is the data role, and the data
+     role is a proportional face in both languages now. Anything that needs
+     characters to line up in a column wants `--font-code`, not this. */
   .mono {
-    font-family: 'IBM Plex Mono', ui-monospace, monospace;
-    font-weight: 400;
+    font-family: var(--font-data);
+    font-weight: var(--weight-data);
     letter-spacing: 0.06em;
   }
   /*
    * The eyebrow, no longer the accent's main carrier.
    *
    * There were twenty of these and every one of them was orange, which is how
-   * an accent becomes a second body colour. 12px is the floor — 11px mono
-   * with this much tracking is decoration you cannot read — and the colour is
+   * an accent becomes a second body colour. 12px is the floor — 11px in the
+   * data role with this much tracking is decoration you cannot read — and
+   * that floor was set against a monospace with a 0.516em x-height; Comic
+   * Relief's is 0.540em and Playpen Sans Hebrew's 0.537em, so both of the new
+   * faces sit a little above it at the same size. The colour is
    * the secondary grey, so an eyebrow labels its section instead of competing
    * with the headline under it.
    */
   .eyebrow {
-    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-family: var(--font-data);
     font-size: 0.75rem;
     letter-spacing: var(--track-label);
     text-transform: uppercase;
@@ -702,7 +978,7 @@
     display: flex;
     gap: theme('spacing.3');
     margin-top: theme('spacing.3');
-    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-family: var(--font-data);
     font-size: 0.75rem;
     letter-spacing: var(--track-label);
     text-transform: uppercase;
@@ -730,7 +1006,7 @@
   /*
    * Mobile legibility floor.
    *
-   * The 10px and 11px mono labels carry the dates, tags, reading times and
+   * The 10px and 11px labels in the data role carry the dates, tags, reading times and
    * section eyebrows. They read fine on a desktop monitor and are genuinely
    * too small on a phone. Raised to 12px below `sm` here rather than edited at
    * roughly twenty call sites, so the desktop setting is untouched.
@@ -760,7 +1036,7 @@
    * text-bone/55 at 4.33:1, so both fail WCAG AA — /40 fails even the 3:1 bar
    * for large text. That measurement is the actual source of the "muted" feel.
    * The floor these classes hold to is: nothing below bone/60 (4.93:1), and
-   * every small mono label uses --clay (6.99:1).
+   * every small label in the data role uses --clay (6.99:1).
    */
 
   .card {
@@ -791,7 +1067,8 @@
   /*
    * The action, promoted out of the label register.
    *
-   * Every button was `.btn`: 12px mono, uppercase, 0.16em of tracking — the
+   * Every button was `.btn`: 12px in the label voice, uppercase, 0.16em of
+   * tracking — the
    * same setting as the eyebrows, the dates and the reading times. The one
    * thing on a screen the reader is meant to press looked exactly like the
    * twenty things they are meant to skim.
@@ -805,16 +1082,18 @@
   /*
    * The action, moved out of the label register.
    *
-   * Every button on the site was `.btn`: 12px IBM Plex Mono, uppercase, 0.16em
-   * of tracking. That is the same setting as the eyebrows, the dates, the
+   * Every button on the site was `.btn`: 12px in the label voice, uppercase,
+   * 0.16em of tracking. That is the same setting as the eyebrows, the dates, the
    * reading times and the repository facts — so the one thing on a screen the
    * reader is meant to press looked exactly like the twenty things they are
    * meant to skim. The site's type scale is deliberately two registers with a
    * hole in the middle, and the action had been filed in the wrong one.
    *
-   * It belongs in the display family, one notch down: Archivo at wdth 112 and
-   * weight 700, which is `.display-tight`'s own setting, set at 18-20px in
-   * sentence case. Sentence case rather than small capitals because the label
+   * It belongs in the display family, one notch down: `.display-tight`'s own
+   * setting, set at 18-20px in sentence case. That used to mean Archivo at
+   * wdth 112 and weight 700; the display role has neither axis now, so what
+   * carries "one notch down" is the size and the tracking step alone.
+   * Sentence case rather than small capitals because the label
    * is a sentence — "See the work" — and capitalising it was what forced the
    * tracking that made it small and wide in the first place.
    *
@@ -838,13 +1117,12 @@
     /* On every variant, so a solid and an outlined action are the same size
        and sit on the same baseline when they are side by side. */
     border: 1px solid transparent;
-    font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif;
-    font-variation-settings: 'wdth' 112;
-    font-weight: 700;
+    font-family: var(--font-display);
+    font-weight: var(--weight-display);
     font-size: 1.125rem;
-    /* Zero, not `--track-label`. The 0.16em the mono setting needed is what
-       opens small capitals up; at this size in a grotesque it would only pull
-       the word apart. */
+    /* Zero, not `--track-label`. The 0.16em the label setting needed is what
+       opens small capitals up; at this size in a display face it would only
+       pull the word apart. */
     letter-spacing: 0;
     line-height: 1;
     white-space: nowrap;
@@ -904,9 +1182,8 @@
     padding-inline: 0;
     gap: 0.5rem;
     border-color: transparent;
-    font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif;
-    font-variation-settings: 'wdth' 100;
-    font-weight: 500;
+    font-family: var(--font-text);
+    font-weight: var(--weight-text);
     font-size: 1.125rem;
     letter-spacing: var(--track-sub);
     color: rgb(var(--ink));
@@ -955,11 +1232,12 @@
   /*
    * The glyph gets its own stack.
    *
-   * Archivo's latin subset carries ↑ and ↓ and nothing else, so →, ← and ↗
-   * were already falling back to
-   * whatever each face's fallback happened to be, which is three different
-   * arrows on one page. Naming a stack that actually has them makes the mark
-   * one shape wherever it appears.
+   * Google's `latin` range carries ↑ and ↓ and nothing else, so →, ← and ↗
+   * were already falling back to whatever each face's fallback happened to
+   * be, which is three different arrows on one page. That was true of
+   * Archivo and it is true of all six faces, because they are cut from the
+   * same range. Naming a stack that actually has them makes the mark one
+   * shape wherever it appears.
    */
   .glyph {
     font-family: ui-sans-serif, system-ui, 'Segoe UI Symbol', 'Noto Sans Symbols 2', sans-serif;
@@ -998,12 +1276,15 @@
     border: 1px solid rgb(255 255 255 / .22);
     background: rgb(var(--bitumen) / .55);
     padding: .3rem .7rem;
-    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-family: var(--font-data);
     font-size: .75rem; letter-spacing: .08em;
     color: rgb(var(--clay));
     white-space: nowrap;
   }
-  .chip b { font-weight: 500; color: rgb(var(--bone)); font-variant-numeric: tabular-nums; }
+  /* The one real emphasis the data role still has: Comic Relief ships 700
+     and Playpen Sans Hebrew interpolates to it. 500 would have resolved back
+     down to 400 and read as no emphasis at all. */
+  .chip b { font-weight: var(--weight-data-strong); color: rgb(var(--bone)); font-variant-numeric: tabular-nums; }
   .chip-hot { border-color: rgb(255 255 255 / .34); color: rgb(var(--bone)); }
 
   /* Chips scroll on a phone instead of wrapping into a ragged grey block. */
@@ -1163,7 +1444,7 @@
     border-radius: var(--r-pill); border: 1px solid rgb(255 255 255 / .22);
     background: rgb(var(--bitumen) / .5);
     padding: .5rem .875rem;
-    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-family: var(--font-data);
     font-size: .75rem; letter-spacing: .08em;
     color: rgb(var(--clay));
   }
@@ -1173,7 +1454,7 @@
     border-radius: var(--r-pill); border: 1px solid rgb(255 255 255 / .22);
     background: rgb(var(--bitumen) / .5);
     padding: .375rem .75rem;
-    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-family: var(--font-data);
     font-size: .75rem; letter-spacing: .06em; text-transform: lowercase;
     color: rgb(var(--clay));
     transition: color var(--dur-micro) ease, border-color var(--dur-micro) ease;
@@ -1226,13 +1507,13 @@
   .a-bar { background: rgb(var(--bitumen)); border-color: rgb(var(--edge)); }
 
   .a-label {
-    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-family: var(--font-data);
     font-size: .6875rem; letter-spacing: var(--track-label); text-transform: uppercase;
     color: rgb(var(--clay)); display: block; margin-bottom: .5rem;
   }
   .a-hint { font-size: .8125rem; line-height: 1.5; color: rgb(var(--bone) / .6); margin-top: .375rem; }
   .a-error {
-    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-family: var(--font-data);
     font-size: .6875rem; color: rgb(var(--destructive-ink)); margin-top: .375rem;
   }
 
@@ -1266,10 +1547,10 @@
   [aria-invalid="true"].a-input, [aria-invalid="true"].a-textarea, [aria-invalid="true"].a-select {
     border-color: rgb(var(--destructive-ink) / .7);
   }
-  .a-input-mono { font-family: 'IBM Plex Mono', ui-monospace, monospace; letter-spacing: .02em; }
+  .a-input-mono { font-family: var(--font-code); letter-spacing: .02em; }
   .a-input-title {
-    font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif;
-    font-weight: 700; letter-spacing: -.02em;
+    font-family: var(--font-display);
+    font-weight: var(--weight-display); letter-spacing: var(--track-sub);
     font-size: 1.5rem; line-height: 1.15; min-height: 56px;
   }
 
@@ -1278,7 +1559,7 @@
     min-height: 44px; padding: 0 1.125rem;
     border-radius: var(--r-pill); border: 1px solid rgb(var(--edge));
     background: transparent; color: rgb(var(--bone) / .85);
-    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-family: var(--font-data);
     font-size: .75rem; letter-spacing: var(--track-label); text-transform: uppercase; white-space: nowrap;
     transition: background-color var(--dur-micro) ease, color var(--dur-micro) ease,
                 border-color var(--dur-micro) ease, transform var(--dur-fast) var(--ease-settle);
@@ -1305,7 +1586,7 @@
   .a-rail-item {
     display: flex; align-items: center; justify-content: space-between;
     min-height: 44px; padding: 0 .875rem; border-radius: var(--r-sm);
-    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-family: var(--font-data);
     font-size: .75rem; letter-spacing: var(--track-label); text-transform: uppercase;
     color: rgb(var(--clay));
     transition: color var(--dur-micro) ease, background-color var(--dur-micro) ease;
@@ -1323,7 +1604,7 @@
   }
   .a-seg > button {
     min-height: 38px; padding: 0 .875rem; border-radius: var(--r-pill);
-    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-family: var(--font-data);
     font-size: .6875rem; letter-spacing: var(--track-label); text-transform: uppercase;
     color: rgb(var(--clay));
     transition: background-color var(--dur-micro) ease, color var(--dur-micro) ease;
@@ -1335,7 +1616,7 @@
     min-height: 32px; padding: 0 .25rem 0 .625rem;
     border-radius: var(--r-pill); border: 1px solid rgb(var(--edge));
     background: rgb(var(--surface) / .6);
-    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-family: var(--font-data);
     font-size: .75rem; color: rgb(var(--bone) / .85);
   }
 
@@ -1346,7 +1627,7 @@
 
   .a-summary {
     display: flex; align-items: center; gap: .5rem; min-height: 44px; cursor: pointer;
-    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-family: var(--font-data);
     font-size: .6875rem; letter-spacing: var(--track-label); text-transform: uppercase;
     color: rgb(var(--clay)); list-style: none;
   }
