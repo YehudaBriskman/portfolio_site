@@ -249,7 +249,65 @@ ${items}
 
 /* ------------------------------------------------------------------- robots */
 
-export function buildRobots(): string {
+/** Whether a host asks to be crawled. */
+export type RobotsStance = "open" | "closed";
+/** What ROBOTS_POLICY may say: a stance, or "work it out from SITE_URL". */
+export type RobotsPolicy = "auto" | RobotsStance;
+
+/**
+ * The hosts that may ask to be indexed. Everything else is a copy: preprod
+ * serves URLs byte-identical to production's apart from the hostname, which is
+ * the worst kind of duplicate to hand a crawler.
+ *
+ * Both spellings of the canonical name, because a redirect from www to the
+ * apex does not stop a crawler reading www's robots.txt first.
+ */
+const CANONICAL_HOST = "yehudabriskman.com";
+const INDEXABLE_HOSTS: ReadonlySet<string> = new Set([CANONICAL_HOST, `www.${CANONICAL_HOST}`]);
+
+/**
+ * Closed is the right answer for every host but one, and getting it wrong on
+ * the one deindexes the site — so each step here fails towards open:
+ *
+ *   - SITE_URL's own default in env.ts is the production canonical, so a deploy
+ *     that sets nothing at all is open rather than closed.
+ *   - Only the hostname is compared, lowercased, so a trailing slash, an
+ *     explicit :443, a path or a capital letter cannot flip production shut.
+ *   - A SITE_URL that will not parse returns open. It is a misconfigured host
+ *     either way, and production is the only host where robots.txt is read by
+ *     a crawler at all — preprod has two further layers outside this app.
+ */
+export function robotsStance(siteUrl: string, policy: RobotsPolicy): RobotsStance {
+  if (policy !== "auto") return policy;
+  let hostname: string;
+  try {
+    hostname = new URL(siteUrl).hostname.toLowerCase();
+  } catch {
+    return "open";
+  }
+  return INDEXABLE_HOSTS.has(hostname) ? "open" : "closed";
+}
+
+/**
+ * nginx serves /robots.txt from here on every host, so this is what tells the
+ * hosts apart. It used to say `Allow: /` on all of them and differ only in the
+ * Sitemap line, which left preprod inviting crawlers in; that was safe solely
+ * because of a Traefik ipAllowList and an X-Robots-Tag middleware this app
+ * cannot see, and defence that exists only outside the app is one relaxed
+ * annotation away from not existing.
+ *
+ * No Sitemap line on a closed host, deliberately: a sitemap is a list of URLs
+ * to go and fetch, which contradicts the Disallow directly above it.
+ */
+export function buildRobots(stance: RobotsStance = robotsStance(SITE_URL, env.ROBOTS_POLICY)): string {
+  if (stance === "closed") {
+    return `# Not the canonical host for this site. Its pages are a copy of
+# ${CANONICAL_HOST}'s and must not be indexed in their own right.
+User-agent: *
+Disallow: /
+`;
+  }
+
   return `User-agent: *
 Allow: /
 
