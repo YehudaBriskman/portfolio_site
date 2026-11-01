@@ -37,73 +37,135 @@
 }
 
 /*
- * The picture: one box, the height of the label, with the figure positioned
- * against it.
+ * The screen, and why the type is at the top of it rather than in the middle.
  *
- * The containing block is the point of this element. Anchored to the screen
- * instead, the figure keeps its distance from the foot of the window and
- * loses its relationship with the type on every window the layout was not
- * tuned on — at 768×1024 it lands in the bottom corner with the name a third
- * of a screen above it, which is a photograph beside a title plate, the one
- * arrangement this composition exists to not be. Anchored to the label, the
- * two move together at every height there is.
+ * This box used to centre one block in the viewport with the figure hung off
+ * its end. Centred, the name sat in the middle of the screen with the figure
+ * beside it at the right — a title and a photograph sharing a line, which is
+ * the arrangement this composition has twice been rewritten to not be.
  *
- * It costs no layout of its own: it is a block in a flex column, its height
- * is the label's height, and the figure inside it is out of flow.
+ * Two rows instead: the label takes the height it needs at the top, and the
+ * figure takes everything left over and stands on the floor of the screen.
+ * That is a composition the viewport cannot break, because neither part is
+ * anchored to the viewport — the grid is, and the two parts are anchored to
+ * each other inside it.
+ *
+ * The padding is nav clearance plus a little air, not rhythm: the island is
+ * fixed, 50px tall and 18px down, so nothing may start above 68px. The vh
+ * term lets a tall window push the name down a touch without ever centring
+ * it; the floor and ceiling keep a short window from taking the air back or a
+ * very tall one from reintroducing the centred layout by the back door.
  */
-.composition {
-  position: relative;
+.screen {
+  padding-block-start: clamp(6rem, 5rem + 4vh, 8.5rem);
 }
 
 /*
- * The type, in front.
+ * The picture: the label, then the figure under it, as one object.
+ *
+ * `1fr` on the second row is doing the load-bearing work. The figure is not
+ * given a size at all — it is given whatever the label did not use, which is
+ * why it stands on the bottom of every window without a single media query
+ * about height. The `min-height: 0` is the part that is easy to leave out and
+ * fatal: a grid item's automatic minimum size is its content, so without it
+ * the row refuses to shrink below the photograph's intrinsic height and a
+ * short window scrolls instead of cropping.
+ */
+.composition {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  flex: 1;
+  min-height: 0;
+}
+
+/*
+ * The type, in front and on the centre line.
  *
  * `position: relative` only so that `z-index` applies. The stacking context
  * these two indices are resolved in is `isolation: isolate` on the box above,
  * which is in `HeroArrival.module.css` with the rest of what that element
  * does.
+ *
+ * The two child selectors are element selectors on purpose, and they are the
+ * only two in this file. `ObjectLabel` has no `variant` prop and is not
+ * getting one — that absence is the component, and a `centered` flag is the
+ * first exception that would end it. Centring is a fact about where this
+ * label is standing rather than about what kind of label it is, so it is
+ * stated here, from outside, by the section that knows. `text-align` carries
+ * the name and nothing else: the fact line is a block with a `max-width` and
+ * has to be centred as a box, and the field line is a flex row whose items
+ * `text-align` cannot reach at all.
  */
 .plate {
   position: relative;
   z-index: 1;
+  /* Stated, not left to source order. The figure is first in the markup —
+     it has been since the composition was built, so that the photograph is
+     described before the name it stands behind — and auto-placement would
+     put it in row 1 with the label under it, which is the picture upside
+     down. The two rows are a fact about the composition, so they are
+     written down. */
+  grid-row: 1;
+  text-align: center;
 }
 
 /*
- * The figure, behind the type and out of flow.
+ * The fact line, and the one place the accent role is spent.
  *
- * Out of flow is the reason this screen's CLS is still 0.000 with a
- * photograph on it: an absolutely positioned box contributes no height to
- * anything, so the figure cannot move a line of type however it is sized or
- * however late it decodes.
+ * `margin-inline: auto` because the fact line is a block with a `max-width`
+ * of `--measure`: `text-align` on the parent centres the words inside it and
+ * leaves the box itself at the start edge, which reads as a centred name
+ * above a left-hung sentence.
  *
- * Anchored to the end of the content column and to the top of the label, so
- * the figure's head stands level with the first line of the name and the
- * name crosses its upper half. `inset-inline-end: 0` is the padding edge
- * rather than the text edge, so the figure hangs into the gutter by one
- * gutter's width — which is the difference between a photograph placed in
- * the column beside the type and a photograph the column is standing in
- * front of.
+ * The family is the other half. "Full-stack, mostly frontend" is one line of
+ * seven words at 20px on the first screen, which is the only shape on the
+ * site a face like Jim Nightshade can take without becoming a reading
+ * problem — and the plate is the one object that can carry a third voice,
+ * because it is the object the collection is named after. See `.accent` in
+ * index.css for the licence this is spending.
+ */
+.plate > p {
+  margin-inline: auto;
+  font-family: var(--font-accent);
+  letter-spacing: 0;
+}
+
+.plate > ul {
+  justify-content: center;
+}
+
+/*
+ * The figure: centred, standing on the floor, with its head in the type.
  *
- * The height is written out rather than left to `aspect-ratio`, because the
- * phone rung below has to position the box by its own height and
- * `aspect-ratio` leaves nothing a `calc()` can read. The two numbers are the
- * file's intrinsic pixels, so the box is exactly the right shape before a
- * byte of it has arrived.
+ * It takes the whole of the second row, so its height is the screen less the
+ * label and the clearance — no `--fig-h`, no `calc` against the file's
+ * intrinsic pixels, and nothing to re-derive when the type ramp moves. What
+ * is still written out is the shape of the file, on the `img` element's own
+ * `width`/`height` attributes, so the box is correct before a byte arrives.
  *
- * 26vw at 1440 is 374px against a 1072px column — a third of the width, which
- * is the most it can take before the name starts looking like a caption
- * beside it rather than type in front of it.
+ * CLS stays 0.000 for a different reason than it used to. The figure was out
+ * of flow, so it could not move anything; now it is in flow but in a track
+ * that is sized by subtraction, so its contents cannot change the track and
+ * it still cannot move a line of type.
+ *
+ * `--fig-overlap` is the one deliberate collision in the composition. The
+ * figure's box starts that far above the row it was given, so the head rises
+ * into the foot of the label and the two read as one picture rather than as a
+ * stack of two. It is a vh clamp because the thing it must not do is reach
+ * the name: on a short window there is little gap between the field line and
+ * the floor, and a fixed rem overlap would put a shoulder through the type.
  */
 .portrait {
-  --fig-w: clamp(13rem, 26vw, 23rem);
-  --fig-h: calc(var(--fig-w) * 845 / 551);
+  --fig-overlap: clamp(1.5rem, 6vh, 5rem);
 
-  position: absolute;
+  position: relative;
   z-index: 0;
-  inset-inline-end: 0;
-  top: 0;
-  width: var(--fig-w);
-  height: var(--fig-h);
+  grid-row: 2;
+  justify-self: center;
+  width: min(86vw, 26rem);
+  min-height: 0;
+  margin-block-start: calc(var(--fig-overlap) * -1);
   /* Not a control and not a target: it must not eat a drag, a selection or a
      tap meant for the type standing in front of it. */
   pointer-events: none;
@@ -123,23 +185,22 @@
  * The name is ink on cream and the figure is a cut-out on nothing. Set side
  * by side they are two objects; overlapped at full strength they are a
  * legibility problem, because the ink would be crossing a photograph whose
- * local contrast nobody chose. One gradient answers both: the figure is at
- * full strength at the top outer corner and gone towards the bottom inner
- * one, which is exactly the diagonal the name crosses it on. The type reads
- * *through* the part of the figure that is dissolving into the paper, and the
- * ink never has to compete with anything darker than cream.
+ * local contrast nobody chose.
  *
- * The three stops are measured rather than chosen. The photograph has three
- * dark passages — the hair, the sunglasses and the bag strap — and the ramp
- * is as long as it has to be for the name to clear all three wherever it
- * crosses them. The number that matters is the worst contrast ratio anywhere
- * under a glyph, measured off a screenshot of the settled page with the line
- * hidden and then shown: **4.4:1 for the name at 1440 and 1920, 12.5:1 at
- * 390, and 6.3:1 or better for the two lines under it at every width.** The
- * name is large display type, which has to hold 3:1; the other two are body
- * text and have to hold 4.5:1. Shorten the ramp and the first number is the
- * one that goes — at the previous setting the name measured 1.95:1 across
- * the sunglasses, which is a photograph winning an argument with a title.
+ * The ramp used to run on a 118deg diagonal, because the figure stood at the
+ * end of the line and the name crossed its upper outer corner. It is vertical
+ * now, for the same reason the whole file changed: the figure is centred and
+ * underneath, and the only place type and photograph meet is the figure's top
+ * edge, where the overlap puts the head behind the field line. Full strength
+ * at the foot, gone by the crown.
+ *
+ * `object-position: bottom` is what makes the ramp mean the same thing at
+ * every window. `contain` letterboxes inside a box whose height is decided by
+ * subtraction, so without it the figure floats in the middle of its track on
+ * a tall screen and the mask fades a part of it nothing is crossing.
+ *
+ * **The contrast numbers from the diagonal ramp do not carry over and have
+ * been re-measured; see the note below this rule.**
  *
  * `-webkit-mask-image` alongside the standard property for Safari before
  * 15.4, which is also where `mask-image` without the prefix is a no-op — and
@@ -148,8 +209,9 @@
  */
 .portrait img {
   object-fit: contain;
-  -webkit-mask-image: linear-gradient(118deg, transparent 14%, rgba(0, 0, 0, 0.3) 44%, #000 78%);
-  mask-image: linear-gradient(118deg, transparent 14%, rgba(0, 0, 0, 0.3) 44%, #000 78%);
+  object-position: bottom center;
+  -webkit-mask-image: linear-gradient(to top, #000 60%, rgba(0, 0, 0, 0.5) 85%, transparent 100%);
+  mask-image: linear-gradient(to top, #000 60%, rgba(0, 0, 0, 0.5) 85%, transparent 100%);
 }
 
 /*
@@ -158,8 +220,12 @@
  * The cut-out ends where the photograph was cropped, which is a straight
  * horizontal edge across a torso — the one thing in this composition that
  * would announce it as a pasted-in picture. A short ramp of the ground's own
- * colour over the bottom of the box ends the figure the way the gradient
- * above ends its outline: by running out rather than by stopping.
+ * colour over the bottom of the box ends the figure the way the mask above
+ * ends its crown: by running out rather than by stopping.
+ *
+ * It matters more now than it did. The figure used to end partway down the
+ * screen with paper below it; it now ends on the floor of the first screen,
+ * where a hard horizontal edge would read as the section's own bottom border.
  *
  * Painted as the box's own `::after` rather than as a second layer on the
  * image's mask, because `mask-composite` is the one part of masking whose
@@ -171,7 +237,7 @@
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(to top, rgb(var(--paper)) 0%, rgb(var(--paper) / 0) 20%);
+  background: linear-gradient(to top, rgb(var(--paper)) 0%, rgb(var(--paper) / 0) 14%);
 }
 
 /*
@@ -225,13 +291,10 @@
  *
  * Where the figure goes
  * ---------------------
- * There is no second column on a phone, so it stops being an object at the
- * end of the line and becomes the ground the name is set on: wider, lifted
- * off the foot of the screen, and sitting behind the name rather than beside
- * it. The lift is what puts the dissolving corner of the figure under the
- * type instead of under the field line — bottom-anchored at this width it
- * would be a photograph below the label, which is the arrangement this
- * composition exists to avoid.
+ * Nowhere, now. The composition is the same at every width — label at the
+ * top, figure standing on the floor under it — and the only thing this rung
+ * still changes is how much of the screen the figure takes, because there is
+ * no second column on a phone for it to be an object in.
  */
 @media (max-width: 699px) {
   .plate h1 {
@@ -248,28 +311,21 @@
     line-height: 0.92;
   }
 
+  /*
+   * Wider, because there is no second column for it to be an object in: on a
+   * phone the figure stops being a thing at the end of the line and becomes
+   * the ground the name is set on.
+   *
+   * It no longer needs to be lifted clear of the type, which is what the
+   * `top: calc(7rem - var(--fig-h))` here used to do. That rule existed
+   * because the figure was bottom-heavy under a left-aligned label and the
+   * field line — body text, `--ink-soft` at 0.72rem, almost the full width of
+   * the screen — had nowhere to go but across the bag strap, where it
+   * measured 1.7:1. The figure now starts below the whole label and only its
+   * crown reaches up into it, and the crown is the part the mask has already
+   * faded out. The field line never meets the photograph at all.
+   */
   .portrait {
-    --fig-w: min(62vw, 17rem);
-
-    /*
-     * The figure stands above the label with its foot inside the name, so
-     * the two lines under the name are set on clean paper.
-     *
-     * That is a legibility requirement and not a preference. The fact line
-     * and the field line are `--ink-soft` at 1rem and 0.72rem — body text,
-     * which has to hold 4.5:1 — and the field line is almost the full width
-     * of a phone, so there is nowhere on this screen it could cross the
-     * figure's one dark passage, the bag strap, and still be readable.
-     * Measured over the strap it was 1.7:1. Lifted clear, the three lines
-     * measure 8.9:1, 6.2:1 and 6.4:1, and the name still crosses the
-     * figure's chest, which is the overlap the composition is actually
-     * about. The name is the part that can afford it: it is 37px of primary
-     * ink, and it is set over a pale T-shirt rather than over the strap.
-     *
-     * `7rem` is where the figure's foot lands inside the name's second line,
-     * measured from the top of the label — the one edge of the label whose
-     * position does not move when its content changes.
-     */
-    top: calc(7rem - var(--fig-h));
+    width: min(92vw, 22rem);
   }
 }

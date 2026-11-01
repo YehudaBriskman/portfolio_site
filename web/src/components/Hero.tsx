@@ -198,7 +198,7 @@ export default function Hero() {
         tuned on: at 768×1024 it ends up a photograph in the bottom corner
         with a headline a third of a screen above it.
       */}
-      <div className="wrap flex min-h-[100svh] flex-col pb-16 pt-28 [justify-content:safe_center]">
+      <div className={`wrap flex min-h-[100svh] flex-col ${styles.screen}`}>
         {/*
           The picture: the figure and the label, in one box the height of the
           label. `data-arrived` is the sequence's clock and it is here
