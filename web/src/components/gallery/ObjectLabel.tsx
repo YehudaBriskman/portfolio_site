@@ -24,6 +24,23 @@ export type ObjectLabelProps = ObjectLabelData & {
   scale?: LabelScale;
   nameAs?: NameAs;
   className?: string;
+  /**
+   * Write each field's kind onto its `<li>` as `data-kind`.
+   *
+   * Off by default, so every project and every note renders exactly the
+   * markup it rendered before this existed. It is not a `variant` in
+   * disguise: it changes no size, no voice and no order, and a caller that
+   * turns it on gets the same label with one non-visual attribute on it.
+   *
+   * It exists because the title plate gives each field an arrival derived
+   * from what kind of fact the field states — a place, a count, a span — and
+   * the only other way to reach them from a stylesheet is `:nth-child()`.
+   * `orderFields` sorts by kind, so position and kind agree for any one
+   * label's current contents and disagree silently the moment those contents
+   * change. The kind has to be in the markup for a rule about kinds to keep
+   * meaning what it says.
+   */
+  exposeFieldKinds?: boolean;
 };
 
 /*
@@ -46,6 +63,7 @@ export default function ObjectLabel({
   scale = "object",
   nameAs = "h3",
   className = "",
+  exposeFieldKinds = false,
 }: ObjectLabelProps) {
   const Name = nameAs;
   const ordered = orderFields(fields);
@@ -66,7 +84,15 @@ export default function ObjectLabel({
           {ordered.map((f) => (
             /* Keyed by value, not by index: the shelf re-sorts fields and an
                index key would carry the previous field's DOM across. */
-            <li key={`${f.kind}:${f.value}`} className={styles.field}>
+            <li
+              key={`${f.kind}:${f.value}`}
+              className={styles.field}
+              /* `undefined` and not `""`: an empty attribute would still
+                 match `[data-kind]`, which is the selector the plate's
+                 off-switches use, so every label on the site would start
+                 answering to the title plate's stylesheet. */
+              data-kind={exposeFieldKinds ? f.kind : undefined}
+            >
               {f.value}
             </li>
           ))}

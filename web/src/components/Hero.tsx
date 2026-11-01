@@ -1,9 +1,9 @@
 import ObjectLabel from "@/components/gallery/ObjectLabel";
 import type { LabelField } from "@/components/gallery/objectLabel";
-import { riseOnLoad } from "@/components/motion/Rise";
 import { projects } from "@/data/projects";
 import { plate } from "@/data/site";
 import styles from "@/components/Hero.module.css";
+import arrival from "@/components/HeroArrival.module.css";
 
 /*
  * The first screen: a plate by the door, and nothing else on the wall.
@@ -50,9 +50,18 @@ import styles from "@/components/Hero.module.css";
  * written out there because it is the one choice here that loses something.
  *
  * What is left weighs nothing: no canvas, no gradient, no image, no third
- * webfont, and — because the plate arrives through two class names rather than
- * a component — no JavaScript. That is not thrift for its own sake. It is the
- * whole asset budget, moved to the peak.
+ * webfont, and — because the plate arrives through one class name and a
+ * stylesheet rather than through a component — no JavaScript. That is not
+ * thrift for its own sake. It is the whole asset budget, moved to the peak.
+ *
+ * The beat is `reveal` and it has to stay one. `HeroArrival.module.css` gives
+ * each of the three parts an arrival of its own and each field an arrival
+ * derived from its kind, which is three differences inside one device family
+ * rather than a second device: everything on the plate appears, once, on a
+ * clock, and none of it travels further or longer than the measured reveal in
+ * the contract. The plate is not the page's peak and the restraint is not a
+ * compromise — it is the first screen, it has no imagery, and composed is the
+ * only thing it can be without taking weight off the pile.
  *
  * Where the portrait goes, and why it is not here
  * -----------------------------------------------
@@ -137,15 +146,31 @@ export default function Hero() {
       */}
       <div className="wrap flex min-h-[100svh] flex-col pb-16 pt-28 [justify-content:safe_center]">
         {/*
-          Three things in one group, arriving 60ms apart in reading order: the
-          name, then what it is, then the specs. The classes come from the same
-          stylesheet the wall text below uses, so the two beats arrive with
-          identical numbers — 14px over 620ms — rather than with two hand-typed
-          copies of them that drift the first time one is touched.
+          Three parts, three arrivals, and the field line splits again into
+          one arrival per kind of fact. `HeroArrival.module.css` carries the
+          reasoning for each; the short version is that the name darkens into
+          the paper without moving, the fact line takes the measured 14px rise
+          every other paragraph on the site takes, and the three fields stamp
+          themselves on separately — instantly for a place, up from under the
+          line for a count, slowly for a span of years.
 
-          No observer here. This is the first element in the document and it is
-          in view before an observer could be constructed, so the reveal is two
-          class names and the first screen stays free of JavaScript.
+          This used to be `riseOnLoad`: one reveal on the group, 60ms apart in
+          reading order. It is still the right default and `Rise` still owns
+          it for the wall text below. It was the wrong answer for the plate
+          because the three parts are three kinds of statement, and one device
+          applied to the block says they are three lines of the same thing.
+
+          No observer, and no JavaScript. This is the first element in the
+          document and it is in view before an observer could be constructed,
+          so the whole arrival is one class name and a stylesheet — which also
+          means nothing here can delay the paint of the largest text on the
+          first screen.
+
+          `exposeFieldKinds` is the one hook this needed from the shared
+          label: it writes each field's kind onto its `<li>` so a rule about
+          kinds can be written against the kind rather than against the
+          position `orderFields` happens to sort it into. It is off for every
+          other object on the site.
         */}
         <ObjectLabel
           scale="plate"
@@ -153,7 +178,8 @@ export default function Hero() {
           name={plate.name}
           fact={plate.fact}
           fields={PLATE_FIELDS}
-          className={`${styles.plate} ${riseOnLoad}`}
+          exposeFieldKinds
+          className={`${styles.plate} ${arrival.arrive}`}
         />
       </div>
     </section>
