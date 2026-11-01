@@ -5,9 +5,9 @@ import type { ReactNode } from "react";
  *
  * A personal blog with no name and no face above the fold reads as a content
  * farm, and this one had neither: the index opened on the word "Writing" and
- * the posts opened on a date. The portrait is the same cutout the home page
- * uses, so it costs nothing new — the 365px file is already in the cache for
- * anyone who arrived by way of the front page.
+ * the posts opened on a date. The portrait is the same halftone figure the
+ * home page uses, so it costs nothing new — the 350px file is already in the
+ * cache for anyone who arrived by way of the front page.
  *
  * The feed belongs here too. index.html has advertised /feed.xml since the
  * first deploy and nothing in the interface has ever linked it, which means
@@ -63,14 +63,22 @@ export default function Byline({
     <div className={`flex flex-wrap items-center gap-x-4 gap-y-3 ${className}`}>
       <div className="flex items-center gap-3">
         <img
-          src="/img/yehuda-cut-sm.webp"
+          src="/img/yehuda-ink-sm.webp"
           alt=""
-          width={365}
-          height={560}
+          width={350}
+          height={505}
           loading="lazy"
           decoding="async"
-          /* A head-and-shoulders crop out of a standing cutout: the subject is
-             at the top of the frame, so the circle is anchored there. */
+          /* A head-and-shoulders crop out of a standing figure: the subject is
+             at the top of the frame, so the circle is anchored there.
+
+             The figure is flat `--ink` with an alpha channel rather than a
+             photograph, so the disc it sits on has to stay light. It does:
+             every page that renders a byline is on paper, and `bg-surface`
+             resolves to `--paper-2` there. Inside `.on-panel` it would
+             resolve to the act's near-black and the figure would vanish into
+             it — which is a reason not to put a byline in the dark act, not a
+             reason for this element to opt out of the token. */
           className="h-11 w-11 shrink-0 rounded-full border border-edge bg-surface object-cover object-[50%_8%]"
         />
         <div className="leading-tight">

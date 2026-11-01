@@ -153,8 +153,8 @@ describe("the first screen's hooks", () => {
     /* Intrinsic dimensions, so the box is the right shape before the bytes
        arrive. This is half of why CLS is 0.000 with a photograph on the
        first screen; the other half is that the box is out of flow. */
-    expect(img.getAttribute("width")).toBe("551");
-    expect(img.getAttribute("height")).toBe("845");
+    expect(img.getAttribute("width")).toBe("560");
+    expect(img.getAttribute("height")).toBe("808");
   });
 });
 
