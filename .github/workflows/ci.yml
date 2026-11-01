@@ -314,6 +314,19 @@ jobs:
     env:
       DEPLOY_NS: ${{ startsWith(github.ref, 'refs/tags/v') && 'prod' || 'preprod' }}
       DEPLOY_URL: ${{ startsWith(github.ref, 'refs/tags/v') && 'https://yehudabriskman.com/' || 'https://preprod.yehudabriskman.com/' }}
+      # What a healthy answer looks like, and it differs by environment.
+      #
+      # Prod is public and must return 200. Preprod is behind a forwardAuth
+      # gate, so the healthy answer to an unauthenticated request — which is
+      # all CI can make — is a 302 to the identity provider. Asserting 200
+      # there is asserting the gate is broken, and this check did exactly
+      # that: the first green rollout to preprod was undone by its own health
+      # check, which is the correct behaviour applied to the wrong premise.
+      #
+      # Not "any 2xx or 3xx": a redirect loop and a gate look identical under
+      # that rule, and the whole point of this step is to disbelieve the
+      # rollout. One expected code per environment.
+      DEPLOY_EXPECT: ${{ startsWith(github.ref, 'refs/tags/v') && '200' || '302' }}
     steps:
       - uses: tailscale/github-action@v3
         with:
@@ -468,8 +481,8 @@ jobs:
           set -euo pipefail
           for i in $(seq 1 10); do
             code=$(curl -s -o /dev/null -m 10 -w '%{http_code}' "$DEPLOY_URL" || true)
-            echo "attempt $i: $code"
-            [ "$code" = "200" ] && exit 0
+            echo "attempt $i: $code (expecting $DEPLOY_EXPECT)"
+            [ "$code" = "$DEPLOY_EXPECT" ] && exit 0
             sleep 6
           done
           echo "::error title=$DEPLOY_NS did not answer 200::$DEPLOY_URL never returned 200 after the rollout. On preprod, a 403 means the request did not arrive from the tailnet (check the ipAllowList and that preprod.yehudabriskman.com still resolves to 100.79.242.82); anything else is the build."
