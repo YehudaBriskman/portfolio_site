@@ -16,6 +16,12 @@ name: CI
 on:
   push:
     branches: [main]
+    # Shipping is a decision somebody makes, not a side effect of merging.
+    # `main` stays continuously integrated — every push is built, tested and
+    # published — and a tag is what puts it in front of people. It also gives
+    # a rollback a name: `v1.2.0` is something you can redeploy, where "the
+    # commit before last Tuesday's merge" is something you have to go and find.
+    tags: ["v*"]
   pull_request:
   workflow_dispatch:
 
@@ -135,7 +141,11 @@ jobs:
     name: Publish image
     runs-on: ubuntu-latest
     needs: [frontend, backend, dockerfiles, compose]
-    if: github.ref == 'refs/heads/main'
+    # Both: a main push so every commit is deployable the moment it is tagged,
+    # and the tag itself so a tag on a commit that somehow never built still
+    # produces an image rather than a rollout that fails looking for one. The
+    # second build is almost entirely cache hits.
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
     permissions:
       contents: read
       packages: write
@@ -167,18 +177,33 @@ jobs:
           # option than the current rollout, which builds on the node from
           # whatever happens to be in a laptop's working directory.
           platforms: linux/amd64,linux/arm64
-          tags: |
-            ${{ env.IMAGE_BASE }}/${{ matrix.image }}:${{ github.sha }}
-            ${{ env.IMAGE_BASE }}/${{ matrix.image }}:latest
+          # The sha only. `latest` used to move on every merge, and the k8s
+          # manifest carries `:latest` as the tag a fresh `kubectl apply`
+          # lands on — so an apply between releases would have deployed
+          # unreleased code without anybody choosing to. `latest` is now
+          # written by the release step below and means the last release.
+          tags: ${{ env.IMAGE_BASE }}/${{ matrix.image }}:${{ github.sha }}
           # Replaces kaniko's --cache=true; the layer cache lives in Actions.
           cache-from: type=gha,scope=${{ matrix.image }}
           cache-to: type=gha,scope=${{ matrix.image }},mode=max
+
+      # Aliases, not rebuilds. `imagetools create` writes new tags against the
+      # manifest that already exists, so the release carries the exact bytes
+      # that were tested rather than a second build of the same source.
+      - name: Name the release
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          set -euo pipefail
+          docker buildx imagetools create \
+            --tag ${{ env.IMAGE_BASE }}/${{ matrix.image }}:${{ github.ref_name }} \
+            --tag ${{ env.IMAGE_BASE }}/${{ matrix.image }}:latest \
+            ${{ env.IMAGE_BASE }}/${{ matrix.image }}:${{ github.sha }}
 
   scan:
     name: Scan image
     runs-on: ubuntu-latest
     needs: images
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
     permissions:
       contents: read
       packages: read
@@ -228,7 +253,8 @@ jobs:
     name: Deploy
     runs-on: ubuntu-latest
     needs: images
-    if: github.ref == 'refs/heads/main'
+    # Tags only. A merge to main no longer reaches production.
+    if: startsWith(github.ref, 'refs/tags/v')
     # One rollout at a time. Two merges in quick succession would otherwise
     # race, and the loser could finish second with the older image.
     concurrency:
@@ -328,6 +354,15 @@ jobs:
             web=${{ env.IMAGE_BASE }}/web:${{ github.sha }}
           kubectl -n prod set image deploy/api \
             api=${{ env.IMAGE_BASE }}/api:${{ github.sha }}
+          # The rollout runs on the sha because a sha cannot move and a git
+          # tag can. The version goes on as an annotation so `kubectl describe`
+          # can still answer "which release is this" without anybody having to
+          # map forty hex characters back to a name.
+          for d in web api; do
+            kubectl -n prod annotate deploy "$d" --overwrite \
+              app.kubernetes.io/version="${{ github.ref_name }}" \
+              portfolio.yehudabriskman.com/released-at="$(date -u +%FT%TZ)"
+          done
           # `rollout status` reports that it gave up, never why. A pull
           # failure is the likeliest reason and is invisible without this.
           for d in web api; do
