@@ -31,6 +31,12 @@ RUN find /usr/share/nginx/html -type f \
 ENV NGINX_ENTRYPOINT_LOCAL_RESOLVERS=1
 ENV NGINX_ENVSUBST_FILTER=NGINX_
 COPY nginx.conf.template /etc/nginx/templates/default.conf.template
+# Not under /etc/nginx/templates and not under conf.d, on purpose. templates/
+# is envsubst's input and this file has no variables to substitute; conf.d/ is
+# globbed in at http level by the base config, which would apply these headers
+# a second time outside any server block. snippets/ is only ever reached by the
+# explicit includes in the config above.
+COPY security-headers.conf /etc/nginx/snippets/security-headers.conf
 
 EXPOSE 8080
 
