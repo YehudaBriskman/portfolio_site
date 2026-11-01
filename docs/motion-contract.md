@@ -100,21 +100,26 @@ ledger is a page-level document and not a comment.
 
 | # | beat | device family | the one reason it exists |
 |---|---|---|---|
-| 0 | title plate | `reveal` | the collection names itself |
+| 0 | title plate | **staged assembly** | the collection names itself, in four gated moves |
 | 1 | wall text | `flow` | the quiet before the peak |
 | 2 | **the pile** | `pin` | the work stacks up with weight |
 | 3 | notes shelf | `pan` | lateral travel against vertical scroll |
 | 4 | specs | `count` | real numbers landing |
 | 5 | inquiry plate | `reveal` | the ask, as part of the collection |
 
-Five families. No repeat in adjacent beats. `reveal` is used only as the two
-bookends; `pin` is spent once, on the peak.
+Five families. No repeat in adjacent beats. `pin` is spent once, on the peak.
+
+Beat 0 was `reveal` and is now a staged assembly of four moves — letters, then
+the portrait, then the chrome, then the remaining lines — each gated on the
+previous one's real `animationend` rather than on a delay. So `reveal` is no
+longer a matched pair of bookends; beat 5 is the only one left using it, which
+is a thing to notice rather than a thing to fix.
 
 **Every beat must be able to state its one reason in a sentence.** A beat that
 cannot does not have one, and gets cut rather than kept.
 
 **Banned outright by the gallery grammar**, listed here so they do not creep
-back: `kinetic` headlines, `spotlight`, `magnet`, more than one `scrub`, and a
+back: `spotlight`, `magnet`, more than one `scrub`, and a
 pinned argument-shaped type act.
 
 **Allowed and currently unused:** `tilt` on objects the visitor would pick up
@@ -216,6 +221,14 @@ the trap underneath all three:
   there is no feature for a browser to be missing. `Rise` is time-driven and
   deliberately has none. Adding one there is cargo cult.
 
+**A fourth exit exists, and no stylesheet can see it.** A staged sequence waits
+on each move's `animationend`; if one never fires — a cancelled animation, a
+display change mid-flight, an engine quirk — every stage after it is stranded.
+`useStagedArrival` carries a per-stage deadline for exactly that, and degrades
+to the four delays the hook exists *not* to be, which is the right thing to
+degrade to. The condition lives in TypeScript because it is a fact about an
+event that did not happen, and CSS cannot ask that question.
+
 Two further exits exist for specific effects rather than for motion in general:
 `forced-colors: active` removes `InkWipe`'s coloured band, because in a forced
 palette it would be painted in a system colour it was never chosen for; and an
@@ -224,6 +237,15 @@ which is why `Rise.module.css` cancels its own hidden state under reduced motion
 instead of waiting to be told.
 
 ---
+
+### The one kinetic headline
+
+`kinetic` headlines were banned here, on the grammar's own argument that a
+gallery label is read rather than performed. Beat 0 is now one, on the owner's
+direction, and the ban is lifted for that beat alone — the first screen is the
+page naming itself and is the one place a performance is the point. Everywhere
+else the argument still holds: a project label that assembles itself is a label
+competing with the object it names.
 
 ## 5. What a premium reveal is made of
 
@@ -249,10 +271,18 @@ Each bound is a bound because of what happens outside it:
 - **Under 30ms of stagger** the children read as one block moving; **over about
   80ms** the last one arrives after the reader has started reading the first.
   `Rise` caps the cumulative delay at 300ms, because past that a list has a
-  queue rather than a reveal.
+  queue rather than a reveal. **A split word is not a list.** The title plate's
+  name cascades 14 letters at 38ms for 754ms cumulative, and reads as one
+  object arriving rather than fourteen, because the eye groups glyphs into a
+  word long before it groups cards into a column. The cap is about items a
+  reader counts.
 - **Firing at the fold** means the reveal has already finished somewhere below
   the reader's eyeline. 12% inside means they watch it.
-- **Horizontal travel is banned.** The deleted `Reveal` component pushed
+- **Horizontal travel is banned on anything full-width, and allowed only
+  inside a clip.** The title plate's last stage moves two lines 18px sideways
+  with `overflow-x: clip` on the hero as the guard. That guard is the whole
+  licence: without it this is the bug below.
+- The original ban, and why it exists. The deleted `Reveal` component pushed
   full-width sections 26px past the right edge of the document until they fired,
   so the page reported horizontal overflow for as long as the reader had not
   scrolled that far — with `overflow-x: clip` on the body hiding the scrollbar
@@ -297,6 +327,8 @@ direction, or set `fill-rule: evenodd` deliberately and know what it costs.
 | file | device | timeline |
 |---|---|---|
 | `motion/Rise.tsx` | `reveal` — the measured reveal, fired once | observer + clock |
+| `motion/useStagedArrival.ts` | the staged assembly: each move waits on the last | clock, gated on `animationend` |
+| `components/hero-chrome.css` | the bar's part in that sequence, reached from `body` | clock |
 | `motion/Flow.tsx` | `flow` — one gate per item, so a beat can differ per item | observer + clock |
 | `motion/InkWipe.tsx` | ink arriving as a hard clip edge, plus the coloured band | `view()` |
 | `motion/InkRule.tsx` | a hairline drawing itself in | `view()` |
@@ -322,15 +354,22 @@ Plus two scroll-position publishers, which are not devices:
 `hooks/useScrollProgress.ts` (the home page's palette and layer progress) and
 `components/notes/ReadingBar.tsx` (a post's progress bar).
 
-**No motion component has a scroll listener, a `requestAnimationFrame` loop or
-a piece of React state.** The two hooks above are the whole of the per-frame
-cost on any page: one `scroll` listener each, rAF-throttled, writing custom
-properties on `<html>` rather than React state, and both returning early under
+**No motion component has a scroll listener or a `requestAnimationFrame` loop,
+and none does per-frame work.** The one hook with a scroll listener is
+`useScrollProgress`, mounted on a single route; it is rAF-throttled, writes a
+custom property on `<html>` rather than React state, and returns early under
 `prefers-reduced-motion`. Everything in the table is either a class name a
 stylesheet acts on, or — for `Rise` and `Flow` — one observer that stops
 watching a target the moment it has fired. `Flow` carries no React state at
 all: it writes `data-flow` on each item and the caller's stylesheet does the
 rest, so an arrival costs one attribute and no render.
+
+**One component does hold state, and the rule is narrower than it used to
+read.** `useStagedArrival` keeps an integer for the stage it has reached and
+one `document` listener, both gone when the last stage starts. That is the
+price of a sequence whose steps wait on each other rather than on a stopwatch,
+and it is paid once per mount rather than once per frame — which is the
+property this section is actually about.
 
 **A keyframe name reached through a custom property is invisible to CSS
 Modules.** The scoper renames `@keyframes` and rewrites the `animation-name`
