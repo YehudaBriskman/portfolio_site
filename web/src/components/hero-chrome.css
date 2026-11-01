@@ -1,0 +1,90 @@
+/*
+ * Stage three: the bar drops in from above.
+ *
+ * A plain stylesheet rather than a CSS module, for the same reason
+ * `nav/motion-paused.css` is one: the class it keys off is on `document.body`,
+ * outside the React tree. The bar is `position: fixed`, it is rendered by a
+ * sibling of the section that sequences it, and no amount of scoping inside
+ * `Hero` can reach it. `useStagedArrival` publishes the sequence's token list
+ * on the body precisely so that this file can.
+ *
+ * Nothing in `Nav.tsx` or `Nav.module.css` changed to make this work.
+ * `header[data-material]` is an attribute the bar already renders for its own
+ * dark-act switch, and it is the hook both this file and `Hero.tsx`'s stage
+ * list use — they have to be naming the same element, or the stage after this
+ * one waits for an animation that never runs.
+ *
+ * The guard is `body[data-hero-arrived]`, so every rule here is inert unless
+ * a hero is on the page and has published its state. That is not tidiness: it
+ * means the failure mode of this file is a bar that behaves exactly as it did
+ * before. Every other page on the site renders the same chrome, and a rule
+ * that hid it by default would hide it on all of them the first time the
+ * attribute failed to appear.
+ *
+ * Why this is a drop and not a fade
+ * ---------------------------------
+ * The same rule the rest of the first screen is built on. Nothing here enters
+ * by its own opacity — and in this case for a second reason as well: the bar
+ * is translucent, over a ground whose colour the page is already animating,
+ * so a fade would cross-fade two backdrop filters and read as a smear. A
+ * fixed bar arriving from above its own top edge is the one gesture that is
+ * unambiguously *the chrome*, which is the whole content of this beat.
+ */
+
+body[data-hero-arrived]:not([data-hero-arrived~="chrome"]) header[data-material] {
+  transform: translateY(-100%);
+}
+
+body[data-hero-arrived~="chrome"] header[data-material] {
+  animation: hero-chrome-drop 340ms var(--ease-settle) both;
+}
+
+@keyframes hero-chrome-drop {
+  from { transform: translateY(-100%); }
+  to   { transform: none; }
+}
+
+/*
+ * A keyboard reader who gets there first wins.
+ *
+ * The bar is held above the top edge for about 1.2 seconds, and for that
+ * whole time it is still in the document and still in the tab order — so a
+ * reader tabbing straight off the skip link could put focus on a control
+ * nobody can see. `:focus-within` brings the whole bar down the instant
+ * anything inside it takes focus, which costs one rule and removes the
+ * entire class of problem. It is placed after the rule it overrides and has
+ * the same specificity, which is how it wins; raising the specificity
+ * instead would have meant it also outranked the two off-switches below.
+ */
+body[data-hero-arrived] header[data-material]:focus-within {
+  transform: none;
+}
+
+/*
+ * The ways out, and both land on a bar that is where it belongs.
+ *
+ * `animation: none` *and* `transform: none`, because the two rules being
+ * cancelled are a pre-state and an animation, and leaving either standing
+ * leaves the chrome off the top of the screen. This is §4's trap in its most
+ * literal form: a reader who asked for no motion, and a reader who pressed
+ * Pause, must land on the arrived page, and the arrived page has a navigation
+ * bar on it.
+ *
+ * The `:not()` is restated rather than dropped so that these selectors are at
+ * least as specific as the pre-state they are overriding; `:not()` carries
+ * its argument's specificity, so the pre-state is a point ahead of the plain
+ * form and would otherwise win.
+ */
+@media (prefers-reduced-motion: reduce) {
+  body[data-hero-arrived] header[data-material],
+  body[data-hero-arrived]:not([data-hero-arrived~="chrome"]) header[data-material] {
+    animation: none;
+    transform: none;
+  }
+}
+
+body.motion-paused[data-hero-arrived] header[data-material],
+body.motion-paused[data-hero-arrived]:not([data-hero-arrived~="chrome"]) header[data-material] {
+  animation: none;
+  transform: none;
+}
