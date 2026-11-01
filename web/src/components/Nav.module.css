@@ -176,6 +176,12 @@
 
 .bar {
   height: 100%;
+  /* Above the side panel and the scrim, both of which are full-window and
+     pass under it. The bar is the one part of the chrome that stays live while
+     the panel is open, because the control that opened the panel is in here —
+     the note on `.sheet` is the long version. */
+  position: relative;
+  z-index: 2;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
@@ -652,7 +658,62 @@
   transition: none;
 }
 
-/* --------------------------------------------------------------- sheet --- */
+/* ---------------------------------------------------------- side panel --- */
+
+/*
+ * The scrim, and the scroll lock that lives on it.
+ *
+ * A dropdown does not need one of these and a side panel does: the panel is
+ * modal while it is open, the page behind it is not for reading, and the one
+ * gesture every reader already knows for "put that away" is a tap beside it.
+ *
+ * There are two locks on this panel and they stop different things, which is
+ * why there are two. This is the one that costs nothing: an element with
+ * nothing to scroll in it, made a scroll container and told
+ * `overscroll-behavior: contain`, absorbs a gesture instead of handing it to
+ * the page — the fix `Contact.module.css` worked out for the inquiry dialog,
+ * and it changes no width anywhere. Measured at 390x844 with the panel open
+ * and the page at scrollY 400: a wheel over the scrim and a wheel over the
+ * panel both leave it at 400, and so does a touch drag. What it does not
+ * cover is a wheel over the 56px of bar above it, which is not this element,
+ * and the keyboard, which does not chain through it — a PageDown took the
+ * page from 400 to 1661. Those are the other lock's, on `html`, in Nav.tsx.
+ *
+ * `--shade` is the dock's own ground token, so the dim is ink over the paper
+ * act and pure black over the dark one, the same way every shadow in this
+ * file already inverts with the material.
+ */
+.scrim {
+  position: fixed;
+  inset-inline: 0;
+  inset-block-start: 0;
+  /* Not `inset-block: 0`, and that is the trap this pair of elements hit —
+     the measurement and the reason are in the note on `.sheet`'s height. */
+  height: 100dvh;
+  /* Under the bar. The bar stays lit and live while this is up — see .sheet. */
+  z-index: 0;
+  background: rgb(var(--shade) / 0.46);
+
+  overflow: hidden;
+  overscroll-behavior: contain;
+
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity var(--dur-fast) ease,
+    display var(--dur-fast) allow-discrete;
+}
+
+.scrim:not([hidden]) {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+@starting-style {
+  .scrim:not([hidden]) {
+    opacity: 0;
+  }
+}
 
 /*
  * What the bar folds into on a phone.
@@ -663,43 +724,166 @@
  * drops to the bar's set rather than keeping an index that a phone would be
  * the only place left to find.
  *
- * Anchored to the dock rather than to the control that opened it, and centred
- * under it. Same ground and the same rule as the bar, one radius softer, and
- * with a shadow that is allowed to be seen: this really is lifted off the page
- * — it covers content and locks the scroll while it is open — and it is the
- * only thing in the chrome that is.
+ * It was a 21rem card hanging under the bar, centred on the control that
+ * opened it, and it read as the thing it was shaped like — a dropdown over a
+ * page that was still live behind it. The owner's direction is a side panel:
+ * it comes in from the inline-end edge, it is as tall as the window, and the
+ * page behind it is dimmed and still. Same ground, same radius, same three
+ * groups in the same order; what changed is where it is anchored and what it
+ * does to the page under it.
  *
- * It still scrolls rather than growing, and that is now a guard rather than a
- * routine condition. Three rooms, three marks and the controls fit on a phone
- * held upright, where eight objects on top of them did not; what does not fit
- * is the same panel on a phone held sideways, where the viewport is 390px
- * tall. `max-height` against the viewport covers both without knowing which
- * one it is in.
+ * Three things follow from "full height" and each is a declaration below.
+ *
+ *   The bar stays on top of it. The panel runs the whole window and passes
+ *   *under* the 56px bar rather than starting below it, so the control that
+ *   opened it is still on screen, still lit, still clickable and still turning
+ *   its bars into a cross. A panel that covers its own toggle has only Escape
+ *   and the scrim left to close it, and it puts the focus ring of the first
+ *   tab stop around something nobody can see.
+ *
+ *   The slide is one sign, used twice. There is no logical `translate`, so the
+ *   one fact that has to flip in Hebrew — which edge is off-canvas — is a
+ *   number, read off the `dir` that `locale.ts` writes on <html>. The lift
+ *   reads the same number, so the shadow always falls away from the edge the
+ *   panel is pinned to.
+ *
+ *   It scrolls inside itself rather than growing, and that matters more than
+ *   it did now that it is not capped under the bar. A small phone held
+ *   sideways is the case: measured at 667x375, the panel comes out 336 x
+ *   375.17px with its own scrollbar, which is the whole menu still reachable
+ *   on a window a third of a screen tall. `overscroll-behavior` here is the
+ *   other half of the lock on the scrim — without it the last wheel notch
+ *   inside a panel scrolled to its end is handed straight to the page.
  */
 .sheet {
-  position: absolute;
-  top: calc(var(--bar-h) + 8px);
-  left: 50%;
-  transform: translateX(-50%);
-  width: min(21rem, calc(100vw - 24px));
-  max-height: calc(100vh - var(--bar-h) - 32px);
+  /* 1 is the inline-end edge on the right: off-canvas is +100%, and the lift
+     falls to the left of it. Flipped for Hebrew below. */
+  --panel-side: 1;
+
+  position: fixed;
+  inset-block-start: 0;
+  inset-inline-end: 0;
+  /*
+   * A measured height, and `inset-block: 0` is the thing it is replacing.
+   *
+   * On the home page `hero-chrome.css` hands `header[data-material]` a
+   * `transform` animation with `fill-mode: both`, so the header keeps a
+   * transform animation in effect for the life of the page — which makes it
+   * the containing block for every `position: fixed` descendant, the dock
+   * being 56px tall. Measured at 390x844 with `inset-block: 0`: this panel
+   * came out 336 x 68px and the scrim 375.17 x 56px, both pinned to the bar, and
+   * the page behind them scrolled freely because at mid-screen the pointer was
+   * over the page rather than over either of them.
+   *
+   * Only the block axis needs saying. `inset-inline` and `inset-block-start`
+   * land on the same edges either way, because the dock is `inset-inline: 0`
+   * at `top: 0`; it is the 56px height that a percentage-free inset cannot
+   * see past. `dvh` rather than `vh` because this is as tall as the window on
+   * a phone whose toolbars come and go.
+   */
+  height: 100dvh;
+  z-index: 1;
+  /* `100%` of the containing block and not `100vw`, which includes the
+     scrollbar — `.bleed-x` in index.css carries the long version of that bug.
+     The 21rem is the card's own width, kept; the subtraction is the floor
+     under how much page is left showing beside it, so it never reads as a new
+     screen. At 390 the cap is what binds and 39.17px of dimmed page stays in
+     view; the subtraction only takes over below 360. */
+  width: min(21rem, calc(100% - 24px));
   overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 6px;
+  /* Clear of the bar that is painted over the top of it. */
+  padding-block-start: calc(var(--bar-h) + 6px);
   --sheet-inset: 6px;
-  border-radius: var(--r-lg);
+  /* Only the two corners that are on screen. */
+  border-start-start-radius: var(--r-lg);
+  border-end-start-radius: var(--r-lg);
 
   background: rgb(var(--paper));
-  border: 1px solid rgb(var(--ink-soft));
-  box-shadow: 0 26px 50px -30px rgb(var(--shade) / 0.6);
+  /*
+   * `--rule-firm`, where the floating card used `--ink-soft`, and the bar's
+   * own bottom border already made this argument: `--ink-soft` is the value
+   * picked for the boundary of something you press, and as a line between the
+   * chrome and the page it would be the heaviest stroke on the screen. The
+   * shadow is what says the panel is lifted; the line only has to close its
+   * edge.
+   */
+  border-inline-start: 1px solid rgb(var(--rule-firm));
+  box-shadow: calc(-26px * var(--panel-side)) 0 50px -30px rgb(var(--shade) / 0.6);
+
+  /* The closed state, in full, because this is also the state the panel
+     transitions back to on the way out. */
+  translate: calc(100% * var(--panel-side));
+  pointer-events: none;
+  transition:
+    translate var(--dur-fast) var(--ease-settle),
+    display var(--dur-fast) allow-discrete;
+}
+
+.sheet:not([hidden]) {
+  translate: 0;
+  pointer-events: auto;
+}
+
+/*
+ * The entry, which needs a frame to start from.
+ *
+ * `hidden` is `display: none`, and an element whose first rendered frame is
+ * already the open one has nothing to transition from. `@starting-style` is
+ * that first frame and `allow-discrete` above is what keeps `display: block`
+ * alive for the length of the exit. A browser with neither still opens and
+ * closes correctly — `hidden` does all the work it has always done — it just
+ * arrives without the slide, which is the right thing to lose.
+ */
+@starting-style {
+  .sheet:not([hidden]) {
+    translate: calc(100% * var(--panel-side));
+  }
+}
+
+/*
+ * Hebrew comes in from the other edge, by one sign.
+ *
+ * Matched on the attribute `locale.ts` sets on <html> rather than with
+ * `:dir(rtl)`: the two agree here, and the attribute is the thing this site
+ * actually writes, so there is no feature to be missing in an older engine
+ * and no second place for the reading direction to be decided.
+ */
+:global(html[dir='rtl']) .sheet {
+  --panel-side: -1;
+}
+
+/*
+ * Both off-switches, switching off a transition rather than an animation.
+ *
+ * The global `transition-duration: 0.01ms !important` in index.css and
+ * motion-paused.css already reaches this, and that trick exists to land an
+ * *animation* on its final frame. A slide has nothing to land: the open state
+ * and the closed state are each declared in full above, so `none` is the
+ * honest way to say it and the panel still arrives and leaves. §4 of
+ * docs/motion-contract.md is the long version.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .scrim,
+  .sheet {
+    transition: none;
+  }
+}
+
+:global(body.motion-paused) .scrim,
+:global(body.motion-paused) .sheet {
+  transition: none;
 }
 
 /* Above the collapse there is nothing in here that is not already on screen in
    the bar, and the control that opens it is gone. The same 768px is `WIDE` in
-   Nav.tsx, which has to close an open sheet when the viewport crosses it —
+   Nav.tsx, which has to close an open panel when the viewport crosses it —
    otherwise someone who opened it on a phone and then rotated the phone is
-   looking at a page whose scroll is still locked by a panel they can no longer
-   see or close. The two have to agree. */
+   looking at a page held still by a panel they can no longer see or close.
+   The two have to agree. */
 @media (min-width: 768px) {
+  .scrim,
   .sheet {
     display: none;
   }

@@ -126,14 +126,65 @@ describe("the chrome as the main links only", () => {
     await userEvent.click(toggle);
     expect(toggle).toHaveAttribute("aria-expanded", "true");
     expect(sheet).not.toHaveAttribute("hidden");
-    expect(document.body.style.overflow).toBe("hidden");
 
     /* Escape closes one layer and hands focus back to the control that opened
        it; without the second half the keyboard reader is left on <body>. */
     await userEvent.keyboard("{Escape}");
     expect(sheet).toHaveAttribute("hidden");
     expect(document.activeElement).toBe(toggle);
+  });
+
+  /*
+   * The scroll lock, asserted on the element it is actually on.
+   *
+   * This read `document.body.style.overflow` and passed while the lock did
+   * nothing: measured in Chromium at 390x844, `body`'s overflow left the page
+   * scrolling freely under the open panel and took 15.01px off `#root`,
+   * because `body` carries `scrollbar-gutter: stable` and is not the
+   * scrollport. The two properties below are the pair that holds the page
+   * still *and* holds its width — the long version is in Nav.tsx. `body`
+   * is asserted untouched because that is where the fifteen pixels went.
+   */
+  it("locks the scrollport, not the body, and puts both properties back", async () => {
+    chrome();
+    const toggle = screen.getByRole("button", { name: /Menu/ });
+    const root = document.documentElement;
+
+    await userEvent.click(toggle);
+    expect(root.style.overflow).toBe("hidden");
+    expect(root.style.getPropertyValue("scrollbar-gutter")).toBe("stable");
     expect(document.body.style.overflow).toBe("");
+
+    await userEvent.keyboard("{Escape}");
+    expect(root.style.overflow).toBe("");
+    expect(root.style.getPropertyValue("scrollbar-gutter")).toBe("");
+  });
+
+  /*
+   * The scrim: the dim, the way out, and the half of the lock that is CSS.
+   *
+   * Queried structurally because it is deliberately not in the accessibility
+   * tree — it is a pointer affordance for something Escape and the toggle
+   * already do — and it is the only direct child of the header carrying
+   * `aria-hidden`. Whether it dims or absorbs a wheel is a question for a
+   * browser; what belongs here is that it appears and disappears with the
+   * panel and that dismissing it puts the reader back on the control.
+   */
+  it("opens a scrim with the panel, and a tap on it closes and hands focus back", async () => {
+    const { container } = chrome();
+    const scrim = container.querySelector("header > div[aria-hidden='true']");
+    expect(scrim).not.toBeNull();
+    expect(scrim).toHaveAttribute("hidden");
+
+    const toggle = screen.getByRole("button", { name: /Menu/ });
+    await userEvent.click(toggle);
+    expect(scrim).not.toHaveAttribute("hidden");
+
+    await userEvent.click(scrim as HTMLElement);
+    expect(scrim).toHaveAttribute("hidden");
+    expect(document.getElementById("nav-menu")).toHaveAttribute("hidden");
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(document.activeElement).toBe(toggle);
   });
 
   it("drops the name of the room on an address that is in none of them", () => {

@@ -157,6 +157,40 @@ export default function Nav() {
     return () => mq.removeEventListener("change", onChange);
   }, []);
 
+  /*
+   * Escape, and the scroll lock, which moved off `body` for a measured reason.
+   *
+   * It used to be `document.body.style.overflow = "hidden"`, and in Chromium
+   * at 390x844 against the dev build that did neither of the two things it was
+   * for. It did not lock — a wheel over the page moved it from scrollY 391 to
+   * 891 with the panel open — and it cost width: `#root` and the section under
+   * it went from 375.17px to 360.17px the instant the panel opened, 15.01px of
+   * page gone sideways. That is the fifteen-pixel strip `nav/LanguageMenu.tsx`
+   * documents, arriving by its own route rather than Radix's: `body` already
+   * carries `scrollbar-gutter: stable` (index.css), so making it a scroll
+   * container reserves a gutter the page did not have before. And `body` is
+   * not the scrollport here in any case — `html` is, which is the whole
+   * subject of the `scroll-padding-top` note at the top of Nav.module.css.
+   *
+   * So the lock is on `html`, and the gutter goes with it in the same
+   * assignment. `overflow: hidden` alone takes the scrollbar away and the page
+   * widens into the space it leaves; `scrollbar-gutter: stable` holds that
+   * space open for as long as the panel is up. Measured, same viewport, with
+   * the panel opening: `#root` 375.17px before and 375.17px after, the
+   * document's client width 375px either side, and the page stays where it
+   * was under a wheel, a drag and a PageDown.
+   *
+   * What the gutter costs, since it is not nothing: for as long as the panel
+   * is open the 15px the scrollbar had is painted by the canvas rather than by
+   * Chromium's track, which measured #2C2C2C before and #ECE8DC after. Against
+   * the paper panel that is the same cream and invisible; against the panel
+   * over the dark act, which measured #0C0C0E, it is a cream strip down the
+   * edge of a desktop window narrower than 768px. The alternative is the page
+   * itself moving 15px sideways, which is the thing this is here to stop.
+   *
+   * The scrim carries a second, narrower lock of its own — see `.scrim` in
+   * Nav.module.css for what each of the two was measured to stop.
+   */
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -164,7 +198,7 @@ export default function Nav() {
       /*
        * One Escape, one layer.
        *
-       * The language menu can be opened from inside the sheet, and Radix
+       * The language menu can be opened from inside the panel, and Radix
        * closes it on Escape from its own listener on `document` — which this
        * one on `window` then sees as well, so a single press was dismantling
        * both and dropping the reader back on the page. Escape should undo the
@@ -176,12 +210,16 @@ export default function Nav() {
       // and keyboard users lose their place entirely.
       toggleRef.current?.focus();
     };
-    // The page behind an open sheet must not scroll under it.
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    const root = document.documentElement;
+    const previousOverflow = root.style.overflow;
+    const previousGutter = root.style.getPropertyValue("scrollbar-gutter");
+    root.style.overflow = "hidden";
+    root.style.setProperty("scrollbar-gutter", "stable");
     window.addEventListener("keydown", onKey);
     return () => {
-      document.body.style.overflow = previous;
+      root.style.overflow = previousOverflow;
+      if (previousGutter) root.style.setProperty("scrollbar-gutter", previousGutter);
+      else root.style.removeProperty("scrollbar-gutter");
       window.removeEventListener("keydown", onKey);
     };
   }, [open]);
@@ -230,6 +268,15 @@ export default function Nav() {
   }, [open]);
 
   const close = () => setOpen(false);
+
+  /* A tap on the scrim has to put focus back as well, for the reason Escape
+     does: the reader may have tabbed into the panel first, and everything in
+     there is about to be `hidden`. A link in the panel does not need this —
+     the route change moves focus itself, in RouteAnnouncer. */
+  const dismiss = () => {
+    close();
+    toggleRef.current?.focus();
+  };
 
   /*
    * `aria-current` for the routes, which is the only kind of current left.
@@ -322,15 +369,33 @@ export default function Nav() {
       </div>
 
       {/*
-        One sheet, three groups, rooms first.
+        The dim, and the second way out.
+
+        A tap beside an open panel is how every reader already closes one, so
+        the scrim is the affordance as much as it is the dim — and it carries
+        one half of the scroll lock, which is why it covers the whole window
+        rather than only the page below the bar. Pointer-only and `aria-hidden`: a keyboard
+        has Escape and the toggle, and a second focus stop that does the same
+        thing as both would only lengthen the ring the trap below walks.
+      */}
+      <div className={styles.scrim} hidden={!open} onClick={dismiss} aria-hidden="true" />
+
+      {/*
+        One panel, three groups, rooms first.
 
         The same set the bar carries and in the same order it reads in: where
         you can go on this site, where I am off it, and how this page behaves.
-        It was four groups with the objects at the head of it; the sheet drops
+        It was four groups with the objects at the head of it; the panel drops
         to the bar's set rather than keeping an index a phone would be the only
         place left to find. Each group keeps the landmark it has in the bar.
-        Above `WIDE` the bar's own copies are on screen and the sheet is
+        Above `WIDE` the bar's own copies are on screen and the panel is
         `display: none`, so no landmark is ever announced twice.
+
+        Not `role="dialog"`. It behaves like one now — it is modal, it holds
+        the tab order and Escape closes it — but the thing it holds is three
+        landmarks, and a dialog is a single named region that would swallow
+        them. The toggle's `aria-expanded`/`aria-controls` already say what
+        this is and whether it is open.
       */}
       <div ref={sheetRef} id={panelId} hidden={!open} className={styles.sheet}>
         <nav aria-label="Pages">
