@@ -1,4 +1,5 @@
 import type { Collection } from "../schemas/content.js";
+import { env } from "../env.js";
 
 /*
  * Reads public repository facts from GitHub.
@@ -12,8 +13,13 @@ import type { Collection } from "../schemas/content.js";
  */
 const UA = { "User-Agent": "yehudabriskman.com", Accept: "application/vnd.github+json" };
 
+/* Through `env` rather than `process.env`, so the one variable two services
+   now read is declared and validated in one place. `services/contributions.ts`
+   has no choice about it — GraphQL refuses anonymous requests outright — and a
+   token that is set for one of them and not the other would be the kind of
+   half-configured deploy the schema exists to make visible. */
 function headers() {
-  const t = process.env.GITHUB_TOKEN;
+  const t = env.GITHUB_TOKEN;
   return t ? { ...UA, Authorization: `Bearer ${t}` } : UA;
 }
 

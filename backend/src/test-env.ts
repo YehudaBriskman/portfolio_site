@@ -15,6 +15,12 @@ const DEFAULTS: Record<string, string> = {
   SMTP_PASS: 'test',
   MAIL_FROM: 'test@example.invalid',
   CONTACT_TO: 'test@example.invalid',
+  /* A token the GitHub services can read without any of them reaching GitHub:
+     every test that exercises them stubs `fetch`. It is here rather than in a
+     `beforeEach` because `src/env.ts` parses process.env once, at import time —
+     a variable set after the module graph has loaded is a variable `env` never
+     sees, which is the same reason this file exists at all. */
+  GITHUB_TOKEN: 'test-token',
 };
 
 for (const [key, value] of Object.entries(DEFAULTS)) {

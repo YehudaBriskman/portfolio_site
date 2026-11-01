@@ -32,6 +32,15 @@ const EnvSchema = z.object({
   ADMIN_PROXY_SECRET: z.string().default(""),
   ADMIN_GITHUB_LOGIN: z.string().default("YehudaBriskman"),
 
+  // GitHub. Optional, and the two consumers degrade differently: the REST calls
+  // in services/github.ts work unauthenticated at 60 requests an hour, while
+  // the GraphQL contribution calendar has no anonymous mode at all and reports
+  // itself unavailable without a token. Neither is allowed to fail a boot.
+  GITHUB_TOKEN: z.string().optional(),
+  // Whose year the contribution city draws. Separate from ADMIN_GITHUB_LOGIN,
+  // which answers a different question — who may edit the site.
+  GITHUB_LOGIN: z.string().default("YehudaBriskman"),
+
   // Canonical origin. Every absolute URL the crawlers see is built from this,
   // so it must be the public name of the site and nothing else.
   SITE_URL: z.string().default("https://yehudabriskman.com"),
