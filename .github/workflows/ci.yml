@@ -53,6 +53,7 @@ jobs:
           for f in \
             "$FRONT_DIR/package.json" "$FRONT_DIR/package-lock.json" \
             "$FRONT_DIR/Dockerfile" "$FRONT_DIR/nginx.conf.template" \
+            "$FRONT_DIR/security-headers.conf" \
             "$BACK_DIR/package.json" "$BACK_DIR/package-lock.json" \
             "$BACK_DIR/Dockerfile" \
             docker-compose.yml docker-compose.ci.yml docker-compose.dev.yml \
@@ -61,6 +62,40 @@ jobs:
             if [ ! -f "$f" ]; then echo "::error file=$f::missing"; fail=1; fi
           done
           exit $fail
+
+      # nginx's `add_header` replaces the inherited set rather than extending
+      # it: a location that declares one header of its own loses every header
+      # the server block declared. That is not a thing anybody spots in review
+      # — it cost the live site its HSTS, nosniff, Referrer-Policy and CSP on
+      # the JS bundle, the webmanifest, the images, the fonts, the HTML 404
+      # and every /api/ response, for as long as those blocks had existed.
+      #
+      # So it is checked rather than remembered. Any location that sets a
+      # header must also include security-headers.conf; a location that sets
+      # none inherits correctly and is left alone. Brace depth rather than a
+      # grep, so a block's headers are attributed to that block.
+      - name: Every location that sets a header keeps the security headers
+        run: |
+          set -Eeuo pipefail
+          bad=$(awk '
+            /^[[:space:]]*location[[:space:]]/ { inloc = 1; name = $0; adds = 0; incs = 0; depth = 0 }
+            inloc {
+              if ($0 ~ /add_header/)              adds = 1
+              if ($0 ~ /security-headers\.conf/)  incs = 1
+              depth += gsub(/\{/, "{")
+              depth -= gsub(/\}/, "}")
+              if (depth <= 0) {
+                if (adds && !incs) { sub(/^[[:space:]]+/, "", name); print "  " name }
+                inloc = 0
+              }
+            }
+          ' "$FRONT_DIR/nginx.conf.template")
+          if [ -n "$bad" ]; then
+            echo "::error file=$FRONT_DIR/nginx.conf.template::These locations set a header of their own and so drop the server-level security headers. Add 'include /etc/nginx/snippets/security-headers.conf;' to each:"
+            printf '%s\n' "$bad"
+            exit 1
+          fi
+          echo "OK"
 
   frontend:
     name: Frontend

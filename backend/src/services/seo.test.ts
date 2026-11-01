@@ -6,6 +6,7 @@ import {
   clampDescription,
   markdownToFallbackHtml,
   renderShellWithMeta,
+  robotsStance,
   type PageMeta,
 } from "./seo.js";
 import type { Collection, Post } from "../schemas/content.js";
@@ -122,6 +123,54 @@ describe("buildRobots", () => {
     const txt = buildRobots();
     expect(txt).toContain("Sitemap: https://yehudabriskman.com/sitemap.xml");
     expect(txt).toContain("Disallow: /admin");
+  });
+
+  // No SITE_URL and no ROBOTS_POLICY in the test environment, which is the
+  // same state a deploy that configures neither is in: it must come out open,
+  // because the alternative is a production host that asks to be deindexed.
+  it("is open by default", () => {
+    expect(buildRobots()).toContain("Allow: /");
+  });
+
+  it("disallows everything and names no sitemap when closed", () => {
+    const txt = buildRobots("closed");
+    expect(txt).toContain("Disallow: /");
+    expect(txt).not.toContain("Allow: /");
+    expect(txt).not.toContain("Sitemap:");
+  });
+});
+
+describe("robotsStance", () => {
+  // Closed is correct for every host but one. The asymmetry is the point:
+  // leaving preprod open costs duplicate URLs behind two other gates, while
+  // closing production deindexes the site, so each case here is written as
+  // "this must not close production" rather than "this should close preprod".
+  it("closes a host that is not the canonical one", () => {
+    expect(robotsStance("https://preprod.yehudabriskman.com", "auto")).toBe("closed");
+    expect(robotsStance("http://localhost:8080", "auto")).toBe("closed");
+    expect(robotsStance("https://yehudabriskman.com.example.net", "auto")).toBe("closed");
+  });
+
+  it("keeps the canonical host open however SITE_URL is spelled", () => {
+    for (const url of [
+      "https://yehudabriskman.com",
+      "https://yehudabriskman.com/",
+      "https://YehudaBriskman.com",
+      "https://www.yehudabriskman.com",
+      "https://yehudabriskman.com:443/some/base",
+    ]) {
+      expect(robotsStance(url, "auto")).toBe("open");
+    }
+  });
+
+  it("falls open on a SITE_URL that does not parse", () => {
+    expect(robotsStance("yehudabriskman.com", "auto")).toBe("open");
+    expect(robotsStance("", "auto")).toBe("open");
+  });
+
+  it("lets ROBOTS_POLICY override the derivation in both directions", () => {
+    expect(robotsStance("https://preprod.yehudabriskman.com", "open")).toBe("open");
+    expect(robotsStance("https://yehudabriskman.com", "closed")).toBe("closed");
   });
 });
 

@@ -44,6 +44,12 @@ const EnvSchema = z.object({
   // Canonical origin. Every absolute URL the crawlers see is built from this,
   // so it must be the public name of the site and nothing else.
   SITE_URL: z.string().default("https://yehudabriskman.com"),
+  // Whether this host asks to be crawled. `auto` reads it off SITE_URL — the
+  // canonical host is open, every other host is closed — which is what every
+  // deploy wants and what no deploy has to configure. `open` and `closed` say
+  // it outright, for a host the derivation would get wrong: a second
+  // production hostname, or a preprod that somebody wants crawled on purpose.
+  ROBOTS_POLICY: z.enum(['auto', 'open', 'closed']).default('auto'),
   // Where the built SPA shell is served from, for per-URL head injection.
   WEB_ORIGIN: z.string().default("http://web"),
 })

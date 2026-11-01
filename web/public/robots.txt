@@ -6,6 +6,16 @@
 # right on the only host a crawler can reach, and a fallback that dropped the
 # line would lose sitemap discovery on production for as long as the failure
 # was cached.
+#
+# `Allow: /` is hardcoded for the same reason, and is the one thing here that
+# the API's own answer no longer agrees with: the API serves `Disallow: /` on
+# any host that is not the canonical one, and this file cannot, because it is
+# baked into an image that every host shares and has no SITE_URL to read. A
+# non-production host therefore reverts to inviting crawlers in for the length
+# of an API outage. That is tolerable where it happens — preprod is reachable
+# only from the tailnet and every response there carries X-Robots-Tag: noindex
+# — but it is the remaining gap, and closing it means a per-host file rather
+# than a per-image one.
 
 User-agent: *
 Allow: /

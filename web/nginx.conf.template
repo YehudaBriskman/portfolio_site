@@ -49,12 +49,12 @@ server {
   root /usr/share/nginx/html;
   index index.html;
 
-  # Applied to every response, including errors and redirects.
-  add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
-  add_header X-Content-Type-Options "nosniff" always;
-  add_header Referrer-Policy "strict-origin-when-cross-origin" always;
-  # The site embeds nothing and should be embedded by nobody.
-  add_header Content-Security-Policy "frame-ancestors 'none'" always;
+  # Applied to every response, including errors and redirects — but only to
+  # responses from blocks that declare no add_header of their own, because
+  # nginx's add_header replaces the inherited set instead of extending it.
+  # Hence the file: every location below that sets a header of its own
+  # includes it too, and CI's preflight fails the build if one forgets.
+  include /etc/nginx/snippets/security-headers.conf;
 
   # public/projects/ is a real directory of screenshots, and it collides with
   # the /projects route. try_files' "$uri/" matched the directory and answered
@@ -103,6 +103,7 @@ server {
     # The upstream address is a pod IP. Useful in a log, not on a public
     # response; the request id is enough to correlate one.
     add_header X-Request-Id $request_id always;
+    include /etc/nginx/snippets/security-headers.conf;
   }
 
   # ---------------------------------------------------------------- SEO ----
@@ -205,6 +206,7 @@ server {
     # page, from a cache, with nothing in the logs.
     #
     add_header Cache-Control "no-cache" always;
+    include /etc/nginx/snippets/security-headers.conf;
     try_files /index.html =404;
   }
 
@@ -231,12 +233,11 @@ server {
   # to every crawler, whereas the SPA shell would be a 200 of HTML parsed as
   # robots directives, and a crawler reading `<!doctype html>` as a rule file
   # does unpredictable things with the rest of it.
-  # No add_header here, deliberately: nginx's add_header replaces the
-  # server-level set rather than adding to it, so a Cache-Control line here
-  # would quietly strip HSTS and nosniff off this response — and the block at
-  # the top of this server says those apply to every response. The file is
-  # served with an ETag and a Last-Modified, so a crawler revalidates anyway,
-  # and Google caches robots.txt for about a day whatever the headers say.
+  # Still no Cache-Control here, but that is now a caching decision rather
+  # than a security one: the file goes out with an ETag and a Last-Modified so
+  # a crawler revalidates anyway, and Google caches robots.txt for about a day
+  # whatever the headers say. Adding one would cost nothing now: it would come
+  # with security-headers.conf alongside it, the way every other block's does.
   location @static_robots {
     error_page 404 = @plain_404;
     try_files /robots.txt =404;
@@ -247,6 +248,7 @@ server {
   location = /site.webmanifest {
     default_type application/manifest+json;
     add_header Cache-Control "public, max-age=86400" always;
+    include /etc/nginx/snippets/security-headers.conf;
   }
 
   # A missing asset gets a plain 404, not the app shell: the HTML body is
@@ -260,12 +262,14 @@ server {
   # Content-hashed build output really is immutable.
   location ~* ^/assets/.*\.(js|css|woff2?)$ {
     add_header Cache-Control "public, max-age=31536000, immutable" always;
+    include /etc/nginx/snippets/security-headers.conf;
     error_page 404 = @plain_404;
     try_files $uri =404;
   }
 
   location ~* ^/fonts/.*\.woff2?$ {
     add_header Cache-Control "public, max-age=31536000, immutable" always;
+    include /etc/nginx/snippets/security-headers.conf;
     error_page 404 = @plain_404;
     try_files $uri =404;
   }
@@ -281,12 +285,17 @@ server {
   # the same kind of thing as the rest of this list and expire the same way.
   location ~* \.(png|jpe?g|gif|webp|avif|svg|ico|mp4|webm)$ {
     add_header Cache-Control "public, max-age=86400" always;
+    include /etc/nginx/snippets/security-headers.conf;
     error_page 404 = @plain_404;
     try_files $uri =404;
   }
 
+  # Also where every HTML 404 lands: `error_page 404 /index.html` at the foot
+  # of this server is an internal redirect to this URI, so the not-found
+  # document is served from here and not from @spa.
   location = /index.html {
     add_header Cache-Control "no-cache" always;
+    include /etc/nginx/snippets/security-headers.conf;
   }
 
   #
