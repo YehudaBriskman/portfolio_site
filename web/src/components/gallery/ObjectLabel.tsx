@@ -1,3 +1,4 @@
+import { Fragment, type CSSProperties, type ReactNode } from "react";
 import { orderFields, type ObjectLabelData } from "@/components/gallery/objectLabel";
 import styles from "@/components/gallery/ObjectLabel.module.css";
 
@@ -41,7 +42,67 @@ export type ObjectLabelProps = ObjectLabelData & {
    * meaning what it says.
    */
   exposeFieldKinds?: boolean;
+  /**
+   * Set the name as one span per letter, inside one span per word.
+   *
+   * Off by default, so every project and every note sets its name as the one
+   * text node it has always been. Like `exposeFieldKinds` this is a hook and
+   * not a `variant`: it changes no size, no voice, no order and no colour,
+   * and the string in the document is character-for-character the same one.
+   *
+   * It exists because the title plate's name arrives one letter at a time,
+   * and a `transform` has no effect on a non-replaced inline box — so the
+   * letters have to be elements before any stylesheet can move them. Three
+   * things the split has to preserve, and each is a line below rather than a
+   * hope: the accessible name stays one string (`aria-label`), the copied
+   * text stays one string (the spaces between words are real text nodes, and
+   * the spans add no characters), and a word never breaks across lines (each
+   * word is one inline-block, so the only break opportunities are the spaces
+   * that were always there).
+   */
+  splitName?: boolean;
 };
+
+/**
+ * The name as word spans of letter spans.
+ *
+ * `--letter` carries the letter's index across the whole name rather than
+ * within its word, because the thing a stylesheet wants from it is the
+ * position in the reading order — a per-word counter would restart the
+ * cascade at every space. `data-letter-last` marks the end of that order so a
+ * sequence can wait for the name to finish without counting elements itself.
+ */
+function splitIntoLetters(name: string): ReactNode {
+  const words = name.split(" ");
+  const total = [...name].filter((c) => c !== " ").length;
+  let index = 0;
+
+  return words.map((word, w) => (
+    /* The space is a real text node between two inline-blocks: it is the
+       break opportunity the line needs and the character the clipboard
+       needs, and a `gap` or a margin would be neither. */
+    <Fragment key={`${w}:${word}`}>
+      {w > 0 && " "}
+      <span className={styles.word} data-word="">
+        {[...word].map((ch, i) => {
+          const at = index;
+          index += 1;
+          return (
+            <span
+              key={`${i}:${ch}`}
+              className={styles.letter}
+              data-letter=""
+              data-letter-last={at === total - 1 ? "" : undefined}
+              style={{ "--letter": at } as CSSProperties}
+            >
+              {ch}
+            </span>
+          );
+        })}
+      </span>
+    </Fragment>
+  ));
+}
 
 /*
  * Every object on this site is labelled through here.
@@ -64,6 +125,7 @@ export default function ObjectLabel({
   nameAs = "h3",
   className = "",
   exposeFieldKinds = false,
+  splitName = false,
 }: ObjectLabelProps) {
   const Name = nameAs;
   const ordered = orderFields(fields);
@@ -75,7 +137,16 @@ export default function ObjectLabel({
 
   return (
     <div className={`${styles.label} ${styles[scale]} ${className}`}>
-      <Name className={`${styles.name} ${nameSize}`}>{name}</Name>
+      <Name
+        className={`${styles.name} ${nameSize}`}
+        /* The one string, stated once, for the one consumer that reads a
+           heading as a label rather than as a box of text. Absent when the
+           name is a single text node, because an `aria-label` that repeats
+           the content is a second copy of it to keep in step. */
+        aria-label={splitName ? name : undefined}
+      >
+        {splitName ? splitIntoLetters(name) : name}
+      </Name>
       <p className={`${styles.fact} ${scale === "inline" ? "" : "text-fact"}`}>
         {fact}
       </p>

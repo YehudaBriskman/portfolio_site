@@ -25,6 +25,33 @@
 }
 
 /*
+ * The two boxes `splitName` makes, and nothing about how they move.
+ *
+ * They are here rather than in the caller's stylesheet because they are what
+ * the split *is* — a name set as boxes instead of as one run of text — and a
+ * caller that forgot either of them would get a name that breaks mid-word or
+ * letters that ignore every transform aimed at them. The timing of the
+ * arrival is the caller's business and none of it is here.
+ *
+ * `inline-block` on the letter, because `transform` does nothing at all to a
+ * non-replaced inline box: it is not ignored loudly, it is simply dropped.
+ * `inline-block` on the word with `white-space: nowrap`, because once the
+ * letters are boxes every one of them is a break opportunity, and a display
+ * name that can break between any two characters will.
+ */
+.word {
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.letter {
+  display: inline-block;
+  /* The ground a per-letter mask is positioned against. Nothing in this file
+     draws one; this is the containing block it would need. */
+  position: relative;
+}
+
+/*
  * The fact line is prose, so it is set in the text width and the text colour.
  * Setting it in the display width — the easy mistake with a one-family page —
  * makes a one-sentence fact read as a small headline, and then the label has
