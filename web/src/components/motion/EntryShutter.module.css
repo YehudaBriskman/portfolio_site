@@ -1,0 +1,272 @@
+/*
+ * The shutter the page arrives from behind: a grid of glowing squares over a
+ * black ground, which leaves tile by tile outward from the centre of the
+ * window.
+ *
+ * `EntryShutter.tsx` owns *when* — what readiness means, what the ceiling is,
+ * and the one delay number per tile. This file owns *what the leaving is*: how
+ * a tile is drawn, how long it takes to go, and the two conditions under which
+ * it is never drawn at all.
+ *
+ * THE THING THIS HAD TO NOT COST
+ * ------------------------------
+ * The first screen is tuned around a measured LCP. `HeroArrival.module.css`
+ * explains it at length: starting the `h1` at `opacity: 0` disqualified the
+ * largest text on the page as a paint candidate, and the whole mask technique
+ * exists because **an element hidden behind an opaque sibling is still a
+ * painted element.** Chrome's Largest Contentful Paint has no occlusion check.
+ *
+ * A full-screen black overlay is that same opaque sibling at page scale, and
+ * the two halves of the argument are both load-bearing:
+ *
+ *   - It does not hide the hero from LCP, for the reason above. The portrait
+ *     is reported at first paint while this sheet is completely over it,
+ *     exactly as the paper mask over the figure already is.
+ *   - It cannot *become* the LCP element either, because a solid
+ *     `background-color` is not contentful. The candidate set is images,
+ *     text, video posters and `background-image`; a black box with an inset
+ *     box-shadow is none of them. So it cannot steal the title from the
+ *     photograph the way a full-bleed `background-image` splash would.
+ *
+ * What was left to be afraid of was main-thread work: 260 extra elements in
+ * React's first commit, on a page whose first paint is 132ms. That one is
+ * real, it is not a thing a stylesheet argument can talk its way out of, and
+ * it was measured rather than reasoned about — **+60ms of LCP at 1440x900
+ * under 4x CPU throttling**, interleaved A/B, eleven alternating cold loads a
+ * side. `EntryShutter.tsx` carries the fix: the tiles are not in the first
+ * commit at all, they arrive on the next frame, and the black that frame
+ * needs is the `::before` below. The numbers either side are in the pull
+ * request and in the ledger row for this device.
+ *
+ * Two more consequences of the same fear are in the rules below rather than
+ * in the prose, and both matter more than they look:
+ *
+ * **No animation exists before the sheet is leaving.** Every `animation`
+ * declaration here is behind `[data-state="leaving"]`. Declared on the tiles
+ * from the start — even paused, even with a delay — 260 opacity-and-transform
+ * animations would be 260 compositor layers promoted while the page behind
+ * them is still being painted.
+ *
+ * **No `will-change`.** Same reason, stated the other way round: it is the one
+ * property whose entire purpose is to do that promotion early, and early here
+ * means *before the paint being measured*. A tile is a 72px square with no
+ * content; the compositor does not need the warning.
+ *
+ * WHY THIS BLACK IS NOT THE SITE'S BLACK
+ * --------------------------------------
+ * `#000`, flat, on the owner's explicit instruction — and the site's dark-act
+ * token is deliberately *not* that. `--panel` is `#0C0C0E`, chosen in
+ * `index.css` because a true black has no air in it and a dark surface the
+ * page rests on needs some.
+ *
+ * The departure is defensible for one reason only: this is not a surface the
+ * page rests on. It is a shutter that leaves, and it is gone inside a second.
+ * `--panel` is the ground of a section a reader scrolls through and reads type
+ * on; nothing here is ever read, and the flatter the ground the more the glow
+ * on the tile edges is the only thing the eye has to look at. Were this
+ * surface ever to become something that stays — a modal scrim, a splash with a
+ * word on it — it would take `--panel` and this comment would be wrong.
+ *
+ * The glow is `--accent-on-panel` and not a new colour. `index.css` defines
+ * the accent as one hue at two lightnesses keyed to the ground, and says in as
+ * many words that two hues is not what that licenses. This ground is dark, so
+ * the dark-ground stop is the one that applies. Nothing in the sequence is
+ * readable, so there is no contrast ratio to record: the glow is drawn on
+ * tile edges, never under type, and the first thing with any text on it is the
+ * page itself, after the shutter has gone.
+ */
+
+/*
+ * The sheet.
+ *
+ * `fixed` and not `absolute`: it covers the window, and it must keep covering
+ * it if anything scrolls underneath. It contributes no layout at all, which is
+ * why this device cannot move CLS — measured at 0.000 before and after, and it
+ * is a property of `position: fixed` rather than a happy result.
+ *
+ * `z-index: 200` is above everything the app can put on screen — the fixed bar
+ * is 50, the reading bar 55, the skip link 70 on focus, the toast viewport
+ * 100. Nothing above 55 can exist at first entry, when the only thing on the
+ * page is the page; the number is chosen to be unambiguous rather than tight.
+ *
+ * `pointer-events` flips with the state and not with the animation. While the
+ * sheet is opaque it swallows clicks, because a reader clicking a link they
+ * cannot see is a click that lands somewhere they did not choose. The instant
+ * it begins leaving it stops taking them, so the last third of a second is not
+ * a dead zone over a page that is already visible and already interactive.
+ */
+.shutter {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  grid-template-columns: var(--col-tracks);
+  grid-template-rows: var(--row-tracks);
+  pointer-events: auto;
+}
+
+.shutter[data-state="leaving"] {
+  pointer-events: none;
+}
+
+/*
+ * The seam insurance.
+ *
+ * The tracks are whole pixels and add up to the window exactly —
+ * `EntryShutter.tsx` says why, and it is about line weight rather than about
+ * seams — so the tiles should tile. This is the belt to that pair of braces:
+ * a rounding error anywhere in the chain shows as a hairline of whatever is
+ * behind the grid, and what is behind the grid is the lit page.
+ *
+ * One opaque sheet behind the tiles removes the question for as long as the
+ * shutter is up. It is dropped outright the moment the tiles start to go,
+ * rather than faded: a ground that outlived the first tile would be a black
+ * sheet over the hole that tile just opened, which is the one thing it must
+ * not be.
+ *
+ * It is also the whole of the first painted frame. The tiles are one frame
+ * behind the sheet, for the 60ms of LCP that costs — so for that frame this
+ * pseudo-element is the only thing between the reader and the page, and it
+ * has to be opaque on its own rather than relying on 260 black squares that
+ * have not been rendered yet.
+ */
+.shutter::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: #000;
+}
+
+.shutter[data-state="leaving"]::before {
+  display: none;
+}
+
+/*
+ * One tile: a square of black with a lit edge.
+ *
+ * Inset shadows and no `border`, because a border is part of the box the grid
+ * is sizing and would come out of the tile rather than off the line between
+ * two of them.
+ *
+ * **Each tile draws two of its four edges, not four.** A 1px inset ring on
+ * every tile paints each boundary twice, once from each side, and two
+ * hairlines at 0.3 on the same pixel is a line at nearly 0.51 — against 0.3
+ * at the window's own edges, where there is only one tile to draw them. The
+ * grid comes out brighter in the middle than at the sides for no reason the
+ * eye can name. This is the other half of the fix the integer tracks in
+ * `EntryShutter.tsx` start: tracks put every line on a pixel, and drawing
+ * each line once puts every line at the same alpha.
+ *
+ * Drawing only the inline-end and block-end edges means no boundary is ever
+ * painted twice, so every line in the grid is the same line. The window's own
+ * top and left edges go undrawn, which is right: the grid is the thing over
+ * the page, not a frame around it.
+ *
+ * The hairlines carry the grid and the third shadow carries the glow. The
+ * negative spread on it is what makes it a glow rather than a second border —
+ * it pulls the shadow in from the edge so it fades into the middle of the
+ * tile instead of stopping at a hard line — and it is the one of the three
+ * that may overlap a neighbour's, because a gradient doubling at the join is
+ * what a lit edge looks like.
+ */
+.tile {
+  background: #000;
+  box-shadow:
+    inset -1px 0 0 0 rgb(var(--accent-on-panel) / 0.3),
+    inset 0 -1px 0 0 rgb(var(--accent-on-panel) / 0.3),
+    inset 0 0 20px -7px rgb(var(--accent-on-panel) / 0.7);
+}
+
+/*
+ * The leaving, and the three numbers in it.
+ *
+ * **320ms a tile.** A tile is one of two hundred and sixty and is not an
+ * object anyone is waiting to read, so §5's 620ms — which is measured for a
+ * paragraph arriving — would be three times too slow here. Short enough that
+ * the eye reads the wave rather than any single square.
+ *
+ * **`--tile-delay`, 0 to 420ms, from the real centre of the window.**
+ * `EntryShutter.tsx` computes it from the pixel distance between the tile's
+ * centre and the window's, normalised by the distance to the corner, which is
+ * the only version of "from the centre" that survives a window that is not
+ * 16:9. A delay computed in grid coordinates makes the wave an ellipse on
+ * every screen whose cells are not square, and the cells are never quite
+ * square.
+ *
+ * Together that is 740ms from the first tile going to the last one gone. §5's
+ * 300ms cumulative stagger cap is about a list of items a reader counts, and
+ * the same exception the name's fourteen letters take applies with more force
+ * to a field of 260 squares: nobody counts them, and the wave is the thing
+ * being looked at.
+ *
+ * **`scale(0.82)` on the way out, not opacity alone.** §5's rule that a fade
+ * with no travel reads as the compositor catching up is about content
+ * arriving, and this is decoration leaving — but the reading is the same
+ * either way. A tile that only fades is a tile the browser lost; a tile that
+ * shrinks as it fades is a tile being taken away, and the lit edge coming in
+ * with it is what makes the grid look like it is being dismantled rather than
+ * turned off.
+ *
+ * `forwards` and not `both`: frame zero of this keyframe is the tile's resting
+ * state, so there is nothing to fill backwards, and `both` on 260 elements
+ * would be 260 animations holding a value they already had.
+ */
+.shutter[data-state="leaving"] .tile {
+  animation: shutter-tile 320ms var(--ease-settle) var(--tile-delay, 0ms) forwards;
+}
+
+@keyframes shutter-tile {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.82);
+  }
+}
+
+/* ── the ways out ─────────────────────────────────────────────────────── */
+
+/*
+ * Both of these are the second lock, and the first one is in TypeScript.
+ *
+ * `EntryShutter.tsx` reads the same two conditions during its first render
+ * and returns `null`, so for a reader who has asked for no motion this
+ * subtree is never in the document at all — which is the only exit that is
+ * honestly *no loader* rather than a loader that resolves instantly. These
+ * rules exist because the alternative to stating them is trusting that the
+ * check in the component is never refactored into an effect, and one frame of
+ * full-screen black over the whole page is not a thing to leave to trust.
+ *
+ * `display: none` and not the `animation: none` + arrived-state pattern §4
+ * prescribes. That shape is for an element that is part of the page and has to
+ * end up visible; the arrived state of this device is *absent*, and the one
+ * declaration that means absent is this one. Restating "the tiles are
+ * transparent" would leave a fixed sheet over the document waiting on a
+ * timeout to take it away.
+ *
+ * The global `animation-duration: 0.01ms !important` in `index.css` and
+ * `nav/motion-paused.css` is not enough on its own, and it is worth saying
+ * why: it would run the dissolve to completion in a frame, which lands on the
+ * right state — and still paints one frame of a black grid over the first
+ * screen on its way there. That frame is the entire thing both of these
+ * readers are asking not to see.
+ *
+ * There is **no `@supports` block**, and that is a decision rather than an
+ * omission. §4 is explicit that a component with no scroll timeline has no
+ * feature for a browser to be missing, and every animation here is
+ * time-driven: the shutter is up before anything has been scrolled. The real
+ * "this engine runs no CSS animation at all" failure is handled where it can
+ * be asked about — the unmount timeout in `EntryShutter.tsx` takes the sheet
+ * away whether or not a single keyframe ever ran.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .shutter {
+    display: none;
+  }
+}
+
+:global(body.motion-paused) .shutter {
+  display: none;
+}

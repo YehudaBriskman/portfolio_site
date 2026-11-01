@@ -1,7 +1,17 @@
 import { useEffect, useState } from "react";
 import "./motion-paused.css";
 
-const KEY = "yb-motion-paused";
+/**
+ * Where the choice is remembered.
+ *
+ * Exported because one other component has to read it directly. The restore
+ * below happens in an effect, so `body.motion-paused` is not on the body
+ * during the first render — which every motion component on the site accepts,
+ * paying one frame of motion for someone who asked for none. `EntryShutter`
+ * cannot: its first frame is the whole window going black, so it reads this
+ * key itself rather than waiting for the class. The argument is in that file.
+ */
+export const MOTION_PAUSED_KEY = "yb-motion-paused";
 
 /**
  * The section the reader is in, and how far through it they are.
@@ -85,7 +95,7 @@ export function useMotionPaused(): [boolean, () => void] {
 
   useEffect(() => {
     try {
-      if (localStorage.getItem(KEY) === "1") setPaused(true);
+      if (localStorage.getItem(MOTION_PAUSED_KEY) === "1") setPaused(true);
     } catch {
       // Private browsing, or site data blocked. Motion simply stays on; not
       // being able to remember the choice is not a reason to refuse it.
@@ -143,7 +153,7 @@ export function useMotionPaused(): [boolean, () => void] {
     setPaused((was) => {
       const next = !was;
       try {
-        localStorage.setItem(KEY, next ? "1" : "0");
+        localStorage.setItem(MOTION_PAUSED_KEY, next ? "1" : "0");
       } catch {
         // See above: the preference still applies for this visit.
       }
