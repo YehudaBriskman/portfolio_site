@@ -1,13 +1,184 @@
 /*
- * One rung down, below 700px. That is the whole of this file.
+ * Where the picture's two halves sit, and one rung of type below 700px.
  *
  * Everything else about the title plate is the label schema — the faces, the
  * widths, the gaps between the three parts, the uppercasing of the name — and
  * none of it is restated here, because a section that restyles the shared label
- * is a section with its own label, and then the collection is not one.
+ * is a section with its own label, and then the collection is not one. What is
+ * here is the one thing the shared label cannot know: that on this screen it is
+ * standing in front of a photograph.
  *
- * Why a step is needed at all
- * ---------------------------
+ * How the figure is placed against the type is in this file. *When* it arrives
+ * is in `HeroArrival.module.css`. They hang off the same two elements and they
+ * are not the same subject: this one can be recomposed without reading a
+ * keyframe, and the arrival can be retimed without reading a media query.
+ */
+
+/*
+ * The guard on the one gesture that travels sideways.
+ *
+ * The fact line and the field line enter from their own sides, 18px each, and
+ * horizontal travel is banned in `docs/motion-contract.md` §5 for a measured
+ * reason: the deleted `Reveal` pushed full-width sections 26px past the right
+ * edge of the document until they fired, so the page reported horizontal
+ * overflow for as long as the reader had not scrolled that far. Neither line
+ * here is full-width and neither can reach the edge — the gutter is never
+ * below 20px — but this makes that a property of the section instead of an
+ * arithmetic coincidence a future gutter could take away.
+ *
+ * `clip` rather than `hidden`, and on one axis: `hidden` would make this a
+ * scroll container in both directions, which changes what `position: sticky`
+ * means for everything inside it and gives the section a scrollport it has no
+ * use for. `overflow-x: clip` with the block axis left visible is the one
+ * combination that is allowed to be asymmetric.
+ */
+.hero {
+  overflow-x: clip;
+}
+
+/*
+ * The picture: one box, the height of the label, with the figure positioned
+ * against it.
+ *
+ * The containing block is the point of this element. Anchored to the screen
+ * instead, the figure keeps its distance from the foot of the window and
+ * loses its relationship with the type on every window the layout was not
+ * tuned on — at 768×1024 it lands in the bottom corner with the name a third
+ * of a screen above it, which is a photograph beside a title plate, the one
+ * arrangement this composition exists to not be. Anchored to the label, the
+ * two move together at every height there is.
+ *
+ * It costs no layout of its own: it is a block in a flex column, its height
+ * is the label's height, and the figure inside it is out of flow.
+ */
+.composition {
+  position: relative;
+}
+
+/*
+ * The type, in front.
+ *
+ * `position: relative` only so that `z-index` applies. The stacking context
+ * these two indices are resolved in is `isolation: isolate` on the box above,
+ * which is in `HeroArrival.module.css` with the rest of what that element
+ * does.
+ */
+.plate {
+  position: relative;
+  z-index: 1;
+}
+
+/*
+ * The figure, behind the type and out of flow.
+ *
+ * Out of flow is the reason this screen's CLS is still 0.000 with a
+ * photograph on it: an absolutely positioned box contributes no height to
+ * anything, so the figure cannot move a line of type however it is sized or
+ * however late it decodes.
+ *
+ * Anchored to the end of the content column and to the top of the label, so
+ * the figure's head stands level with the first line of the name and the
+ * name crosses its upper half. `inset-inline-end: 0` is the padding edge
+ * rather than the text edge, so the figure hangs into the gutter by one
+ * gutter's width — which is the difference between a photograph placed in
+ * the column beside the type and a photograph the column is standing in
+ * front of.
+ *
+ * The height is written out rather than left to `aspect-ratio`, because the
+ * phone rung below has to position the box by its own height and
+ * `aspect-ratio` leaves nothing a `calc()` can read. The two numbers are the
+ * file's intrinsic pixels, so the box is exactly the right shape before a
+ * byte of it has arrived.
+ *
+ * 26vw at 1440 is 374px against a 1072px column — a third of the width, which
+ * is the most it can take before the name starts looking like a caption
+ * beside it rather than type in front of it.
+ */
+.portrait {
+  --fig-w: clamp(13rem, 26vw, 23rem);
+  --fig-h: calc(var(--fig-w) * 845 / 551);
+
+  position: absolute;
+  z-index: 0;
+  inset-inline-end: 0;
+  top: 0;
+  width: var(--fig-w);
+  height: var(--fig-h);
+  /* Not a control and not a target: it must not eat a drag, a selection or a
+     tap meant for the type standing in front of it. */
+  pointer-events: none;
+}
+
+.portrait picture,
+.portrait img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/*
+ * The dissolve, which is what makes this a composition rather than a
+ * photograph with a headline over it.
+ *
+ * The name is ink on cream and the figure is a cut-out on nothing. Set side
+ * by side they are two objects; overlapped at full strength they are a
+ * legibility problem, because the ink would be crossing a photograph whose
+ * local contrast nobody chose. One gradient answers both: the figure is at
+ * full strength at the top outer corner and gone towards the bottom inner
+ * one, which is exactly the diagonal the name crosses it on. The type reads
+ * *through* the part of the figure that is dissolving into the paper, and the
+ * ink never has to compete with anything darker than cream.
+ *
+ * The three stops are measured rather than chosen. The photograph has three
+ * dark passages — the hair, the sunglasses and the bag strap — and the ramp
+ * is as long as it has to be for the name to clear all three wherever it
+ * crosses them. The number that matters is the worst contrast ratio anywhere
+ * under a glyph, measured off a screenshot of the settled page with the line
+ * hidden and then shown: **4.4:1 for the name at 1440 and 1920, 12.5:1 at
+ * 390, and 6.3:1 or better for the two lines under it at every width.** The
+ * name is large display type, which has to hold 3:1; the other two are body
+ * text and have to hold 4.5:1. Shorten the ramp and the first number is the
+ * one that goes — at the previous setting the name measured 1.95:1 across
+ * the sunglasses, which is a photograph winning an argument with a title.
+ *
+ * `-webkit-mask-image` alongside the standard property for Safari before
+ * 15.4, which is also where `mask-image` without the prefix is a no-op — and
+ * a no-op here is not a missing effect, it is the figure at full strength
+ * under the type.
+ */
+.portrait img {
+  object-fit: contain;
+  -webkit-mask-image: linear-gradient(118deg, transparent 14%, rgba(0, 0, 0, 0.3) 44%, #000 78%);
+  mask-image: linear-gradient(118deg, transparent 14%, rgba(0, 0, 0, 0.3) 44%, #000 78%);
+}
+
+/*
+ * The foot of the figure, dissolved into the paper.
+ *
+ * The cut-out ends where the photograph was cropped, which is a straight
+ * horizontal edge across a torso — the one thing in this composition that
+ * would announce it as a pasted-in picture. A short ramp of the ground's own
+ * colour over the bottom of the box ends the figure the way the gradient
+ * above ends its outline: by running out rather than by stopping.
+ *
+ * Painted as the box's own `::after` rather than as a second layer on the
+ * image's mask, because `mask-composite` is the one part of masking whose
+ * prefixed and unprefixed forms take different keywords, and a composite
+ * that silently falls back to the wrong operator here would erase the figure
+ * rather than soften it.
+ */
+.portrait::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgb(var(--paper)) 0%, rgb(var(--paper) / 0) 20%);
+}
+
+/*
+ * One rung down, below 700px, and the figure moves rather than shrinks.
+ *
+ * Why a type step is needed at all
+ * --------------------------------
  * `text-hero` is `min(11vw, 21vh, 9rem)`, and the plate scale sets the name in
  * Archivo at wdth 125 / weight 900 / uppercase, where it is wide: "BRISKMAN"
  * alone measures 7.12em, and "YEHUDA BRISKMAN" roughly 13.7em. A single
@@ -24,6 +195,10 @@
  * unmistakably the largest thing on the page, the two lines have a margin to
  * sit in, and the three parts read as one label again.
  *
+ * `splitName` makes this stricter rather than looser: every word is one
+ * inline-block, so the only places the name can break are the spaces it always
+ * had. Two words cannot become five lines.
+ *
  * Why 700px and not a Tailwind breakpoint
  * ---------------------------------------
  * 700px is where `11vw` crosses 77px, which is the width at which the longest
@@ -32,6 +207,16 @@
  * The rung itself belongs in the type ramp in `tailwind.config.ts`, where
  * `text-hero` carries its tracking and its leading; that step does not exist
  * yet, and adding it is not this file's to do.
+ *
+ * Where the figure goes
+ * ---------------------
+ * There is no second column on a phone, so it stops being an object at the
+ * end of the line and becomes the ground the name is set on: wider, lifted
+ * off the foot of the screen, and sitting behind the name rather than beside
+ * it. The lift is what puts the dissolving corner of the figure under the
+ * type instead of under the field line — bottom-anchored at this width it
+ * would be a photograph below the label, which is the arrangement this
+ * composition exists to avoid.
  */
 @media (max-width: 699px) {
   .plate h1 {
@@ -46,5 +231,30 @@
      */
     letter-spacing: var(--track-head);
     line-height: 0.92;
+  }
+
+  .portrait {
+    --fig-w: min(62vw, 17rem);
+
+    /*
+     * The figure stands above the label with its foot inside the name, so
+     * the two lines under the name are set on clean paper.
+     *
+     * That is a legibility requirement and not a preference. The fact line
+     * and the field line are `--ink-soft` at 1rem and 0.72rem — body text,
+     * which has to hold 4.5:1 — and the field line is almost the full width
+     * of a phone, so there is nowhere on this screen it could cross the
+     * figure's one dark passage, the bag strap, and still be readable.
+     * Measured over the strap it was 1.7:1. Lifted clear, the three lines
+     * measure 8.9:1, 6.2:1 and 6.4:1, and the name still crosses the
+     * figure's chest, which is the overlap the composition is actually
+     * about. The name is the part that can afford it: it is 37px of primary
+     * ink, and it is set over a pale T-shirt rather than over the strap.
+     *
+     * `7rem` is where the figure's foot lands inside the name's second line,
+     * measured from the top of the label — the one edge of the label whose
+     * position does not move when its content changes.
+     */
+    top: calc(7rem - var(--fig-h));
   }
 }

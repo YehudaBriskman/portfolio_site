@@ -1,331 +1,398 @@
 /*
- * How the title plate arrives, part by part.
+ * How the first screen assembles itself, in four moves.
  *
- * The plate is object zero in the collection and it carries the same
- * three-part label as every project and every note: a name, one line of fact,
- * a mono field line. Until now all three arrived through `riseOnLoad` — one
- * reveal applied to the group, 14px over 620ms, children 60ms apart. That is
- * the right default and it was the wrong answer here, for one reason: the
- * three parts are three different kinds of statement, and a single device
- * applied to a block says they are three lines of the same thing.
+ * The order is the whole design and it is not written here. `Hero.tsx` lists
+ * the stages and `useStagedArrival` makes each one wait for the previous
+ * one's `animationend`; what this file owns is what each move *is* — how far,
+ * how long, and in which direction. The handshake between the two is one
+ * attribute on the section:
  *
- * So each part gets the arrival that belongs to it, and the field line goes
- * one level further and gives each field an arrival derived from its
- * `FieldKind`. That last part is the whole discipline of this file: a
- * per-item difference has to encode something true about the item, or it is a
- * random stagger with a story told over it afterwards.
+ *     data-arrived="name"                      the name is falling
+ *     data-arrived="name portrait"             the figure is rising
+ *     data-arrived="name portrait chrome"      the bar is dropping
+ *     data-arrived="name portrait chrome text" the two lines are coming in
  *
- *   NAME                  the ink takes.  Colour only, no travel, 760ms.
- *   one line of fact      the measured rise.  14px over 620ms.
- *   WHERE · COUNT · WHEN  three stamps, one per kind.  See below.
+ * A token list and not a number, read with `~=`, because every rule here is
+ * "this stage has begun" and not "this stage is the current one". Keyed to
+ * the current stage, each part would snap back to its hidden state the
+ * instant the next stage started.
  *
- * The three devices differ along three different axes — tone, travel,
- * discreteness — rather than being the same gesture at three sizes, which is
- * what makes them read as three arrivals instead of one stagger. Nothing here
- * is bigger, slower or bouncier than the measured reveal in
- * `docs/motion-contract.md` §5; the plate is not the page's peak and must not
- * compete with the pile, so every departure from that table is sideways
- * rather than upward.
+ *   NAME                  one letter at a time, from above
+ *   the figure            from below, once the name is whole
+ *   the bar               from above, once the figure has arrived
+ *   one line of fact      in from the left
+ *   WHERE · COUNT · WHEN  in from the right
+ *
+ * The bar is not in this file. It is fixed, it is rendered by a sibling of
+ * the section that sequences it, and the only thing that can reach it is a
+ * plain stylesheet hung off the body — `hero-chrome.css`, which is the third
+ * stage and says so.
+ *
+ * THE ONE RULE EVERYTHING HERE IS SHAPED BY
+ * -----------------------------------------
+ * Nothing on this screen enters by its own opacity, and nothing is clipped
+ * away before it enters. Both are the same bug wearing two hats: an element
+ * that is transparent or clipped at first paint is not a Largest Contentful
+ * Paint candidate, so the largest text on the first screen stops counting as
+ * painted until its animation ends. That is not a theory about this page —
+ * it is what this page measured. The reveal before the one before this
+ * started the `h1` at `opacity: 0` and LCP was reported at the end of the
+ * reveal; removing the fade put it at 112-160ms with CLS at 0.000.
+ *
+ * A per-letter entry walks straight back into it. What is done instead is
+ * the other half of the same idea: **the ink is painted in the first frame
+ * and a paper-coloured mask is moved off it.** The glyphs are at full
+ * strength from the start, the photograph is decoded and painted from the
+ * start, and what arrives is the retreat of a rectangle the colour of the
+ * ground.
+ *
+ * Measured either side of this change, eleven and nine cold loads of a
+ * production build served locally, median reported: **LCP 136ms → 132ms at
+ * 1440×900 and 116ms → 120ms at 390×844, CLS 0.000 → 0.000 at both.** The
+ * largest element is now the photograph rather than the name, and it is
+ * reported at first paint while it is still completely covered — an element
+ * hidden behind an opaque sibling is still a painted element, which is the
+ * property this whole technique rests on and the reason it was measured
+ * before it was written rather than after.
+ *
+ * The two lines in the fourth stage are the exception, and may fade: they are
+ * 1rem and 0.72rem of secondary ink, nowhere near the largest text on the
+ * screen, and by the time they move the paint candidate was decided a second
+ * and a half ago.
+ *
+ * What this replaces
+ * ------------------
+ * Three devices, one per part, each derived from what kind of statement the
+ * part was: the name darkened into the paper without moving, the fact line
+ * took the measured 14px rise, and each field stamped itself on according to
+ * whether it was a place, a count or a span. That was the right answer to a
+ * plate alone on paper, where the only question a reveal can ask is how the
+ * three parts differ. It is not an answer to a composed picture, where the
+ * question is what order the picture assembles in — and a per-kind stagger
+ * inside stage four would be a fourth idea competing with the three the
+ * sequence already has.
  *
  * Why this is not in Hero.module.css
  * ----------------------------------
- * That file is the type rung the plate needs below 700px, and it is a
- * statement about size. This is a statement about time. They happen to hang
- * off the same element and they are not the same subject; keeping them apart
- * means the rung can be retuned without reading a keyframe and the arrival
- * can be retimed without reading a media query.
+ * That file is where the picture is composed: where the figure sits, how big
+ * it is, which type rung the name takes below 700px. It is a statement about
+ * space. This is a statement about time. They hang off the same two elements
+ * and they are not the same subject.
  *
  * Why the selectors reach inside ObjectLabel
  * ------------------------------------------
  * `ObjectLabel` is shared with every object on the site and has no API for
  * styling its parts individually — deliberately, because a `variant` prop is
- * the moment the collection stops being one. The alternative was three new
- * class-name props on a shared component, which is a much larger change to
- * everyone else's markup than the one hook this needs. So the name is reached
- * as `h1` (the plate is the only label on the site that asks for one) and the
- * fact line as the label's single direct `<p>`.
- *
- * The fields are the exception, and they are reached by `data-kind` rather
- * than by `:nth-child()`. That is not a convenience. `orderFields` sorts by
- * kind, so the plate's three fields land at positions 1, 2, 3 today — but a
- * stylesheet keyed to those positions would silently hand `ISRAEL`'s arrival
- * to a `tech` field the first time the plate's content changed, and nothing
- * would error. The kind has to travel in the markup for the rule to keep
- * meaning what it says; `exposeFieldKinds` on `ObjectLabel` is opt-in and off
- * by default, so no project and no note renders a byte differently.
+ * the moment the collection stops being one. So the name is reached as `h1`
+ * (the plate is the only label on the site that asks for one), the fact line
+ * as the `<p>` that directly follows it, and the field line as the only
+ * `<ul>` on this screen. The letters are the exception and are reached by
+ * `[data-letter]`, which `splitName` writes: a stylesheet that counted
+ * `:nth-child()` would be describing one spelling of one name.
  */
 
-/* ── the name: the ink takes ──────────────────────────────────────────── */
+/* ── the clock ────────────────────────────────────────────────────────── */
 
 /*
- * Colour, and nothing else. The name does not move and does not fade.
+ * The section that carries `data-arrived`, and the stacking context the
+ * picture is layered in.
  *
- * Two reasons, and the second is the one that decided it.
- *
- * It is the heaviest type on the site — Archivo at wdth 125 / weight 900,
- * uppercase, up to 9rem — and the heaviest thing in a room is the thing that
- * does not slide when you lean on it. A name that travels reads as a caption
- * looking for its position; a name that darkens into the paper reads as
- * something struck into the plate. The page's whole palette is ink on cream,
- * so ink arriving at strength is the one gesture here that is already the
- * site's own metaphor rather than an effect borrowed onto it.
- *
- * And it is the LCP element. `riseOnLoad` started it at `opacity: 0`, which
- * takes the largest text on the first screen out of the running as a paint
- * candidate for the length of the animation — the plate measurably reported
- * its Largest Contentful Paint at the end of the reveal rather than at first
- * paint. A colour ramp is fully opaque on frame one, so the name is painted
- * immediately and then settles. The motion costs the hero nothing it did not
- * already spend, which is the only budget this screen has.
- *
- * `--ink-soft` and not `--ink-faint` as the start. The faint token is marked
- * non-text in `index.css` at 3.6:1 and the name is text a reader is reading
- * while this runs; `--ink-soft` is 6.9:1 on paper, so the name is never below
- * AA for large type at any frame of its arrival — it has simply not fully
- * taken yet. The band in `InkWipe` can accept 3.76:1 because nothing has to
- * be read while it crosses. This is the opposite case.
- *
- * No transform, so no compositing layer is promoted on the LCP element and
- * the repaint is fifteen glyphs for 760ms. 760ms rather than 620ms because
- * mass is the point: it is the first thing to start and the last of the two
- * permanent facts on the plate to come to rest.
+ * `isolation: isolate` rather than leaving it to the `z-index` on the label:
+ * the figure and the type have to be ordered against each other and against
+ * nothing else on the page. Without it the two indices below would be
+ * competing with the fixed bar's `z-index: 50` in the root context, which is
+ * a fight this section should not be able to pick.
  */
-.arrive h1 {
-  animation: plate-ink 760ms var(--ease-settle) both;
+.stage {
+  isolation: isolate;
 }
 
-@keyframes plate-ink {
-  from { color: rgb(var(--ink-soft)); }
-  to   { color: rgb(var(--ink)); }
-}
-
-/* ── the fact line: the measured rise ─────────────────────────────────── */
+/* ── stage one: the name, one letter at a time, from above ────────────── */
 
 /*
- * The canonical reveal, unmodified: 14px of `translateY` over 620ms on
- * `--ease-settle`, which is the measurement in §5 of the contract and the
- * same numbers `Rise` applies to the wall text below.
+ * Every letter is painted, at full ink, in the first frame. What falls is a
+ * rectangle of paper that was covering it.
  *
- * It is unmodified on purpose. The fact line is the only part of the plate
- * that is prose — a sentence, set in the text width and the text colour, read
- * rather than scanned — and prose on this site arrives one way. Giving it a
- * device of its own would have been the easy third effect and it would have
- * made the plate louder than the beat it belongs to; letting it arrive as
- * every other paragraph on the page does is what makes the name's stillness
- * and the field line's stamping legible as departures at all. A set of three
- * differences needs something to be different *from*.
+ * The mask is a pseudo-element on the letter, so it travels with the letter
+ * and the two never need to agree about position. It retreats by scaling to
+ * nothing from its bottom edge, which uncovers the glyph from the top down —
+ * a letter being lowered into place behind a wall whose top edge is coming
+ * down with it. `scaleY(0)` and not `translateY(100%)`, which would park a
+ * paper rectangle permanently over the line below.
  *
- * It is also the only part of the plate that travels as a whole, which is the
- * second axis spent and the reason the fields below are not allowed to rise
- * as a group.
+ * The four insets are not one number, and the asymmetry is the whole of what
+ * this took to get right. A letter's box is its advance *plus* the display
+ * tracking, which is `-0.045em` — negative, so the box is narrower than the
+ * glyph and the ink hangs out of it. Left as `inset: 0` the overhang shows:
+ * a two-pixel hook of the next letter's ink standing on the paper before its
+ * turn, which is visible on "BRISKMAN" and exactly as cheap-looking as it
+ * sounds.
  *
- * 80ms behind the name. Inside the 30-80ms stagger window in §5: under 30ms
- * the two read as one block, over 80ms the fact line arrives after the reader
- * has started on the name.
+ * So the mask bleeds, but only where bleeding is free. Pseudo-elements paint
+ * in document order, so a mask can safely overhang the letters *after* it —
+ * their own masks are painted on top — and must not overhang the letters
+ * before it, whose ink has already landed and would be wiped by a sheet of
+ * paper arriving late. That makes the inline-end and the foot generous and
+ * the inline-start zero. The head is bounded by the leading: at 0.86
+ * line-height and a 0.72em cap there is about 0.14em of air between two
+ * lines of the name, so 0.1em clears the cap with room and still cannot
+ * reach the line above.
+ *
+ * 16px of travel on the letter itself, under §5's 24px ceiling, past which a
+ * rise reads as a slide. A length and not an em: this is a distance the eye
+ * measures on the screen, not a size that should grow with the type.
+ *
+ * 38ms between letters. §5's stagger window is 30-80ms and its cumulative cap
+ * is 300ms, which a fourteen-letter cascade cannot honour at any step above
+ * about 20ms — that cap is written about a list of four items, where
+ * anything longer is a queue, and a name is not a list. What governs here
+ * instead is the stage: at 38ms the whole name is down in 754ms, which keeps
+ * the first move under a second and the four moves together at about two.
  */
-.arrive > p {
-  animation: plate-rise 620ms var(--ease-settle) 80ms both;
+.stage[data-arrived] [data-letter]::after {
+  content: "";
+  position: absolute;
+  inset: -0.1em -0.09em -0.16em 0;
+  background: rgb(var(--paper));
+  transform-origin: 50% 100%;
 }
 
-@keyframes plate-rise {
-  from {
-    opacity: 0;
-    /* A length and not a rem: this is a distance the eye measures on the
-       screen, not a size that should grow with the type. */
-    transform: translateY(14px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
+.stage[data-arrived~="name"] [data-letter] {
+  animation: plate-letter 260ms var(--ease-settle) calc(var(--letter) * 38ms) both;
 }
 
-/* ── the field line: one arrival per kind ─────────────────────────────── */
+.stage[data-arrived~="name"] [data-letter]::after {
+  animation: plate-letter-mask 260ms var(--ease-settle) calc(var(--letter) * 38ms) both;
+}
+
+@keyframes plate-letter {
+  from { transform: translateY(-16px); }
+  to   { transform: none; }
+}
+
+@keyframes plate-letter-mask {
+  from { transform: scaleY(1); }
+  to   { transform: scaleY(0); }
+}
+
+/* ── stage two: the figure, from below ────────────────────────────────── */
 
 /*
- * Three fields, three arrivals, and the difference between them is what kind
- * of fact each one is.
+ * The same move, turned over: the photograph is painted and decoded in the
+ * first frame, and a sheet of paper over it retreats downward so the figure
+ * is uncovered head first. That reading — more of someone appearing as they
+ * come up from behind something — is what "from below" means for a figure,
+ * and it is the opposite reading from the type above, which is uncovered top
+ * first *while falling*. One technique, two gestures, because the direction
+ * of the travel underneath it is reversed.
  *
- *   ISRAEL                a place      `where`
- *   5 LIVE                a quantity   `count`
- *   SHIPPING SINCE 2021   a duration   `when`
+ * 14px, the measured rise in §5 exactly, and 520ms rather than the measured
+ * 620ms: the stage is one object rather than a group, and it is the second
+ * of four moves on a screen that should not take longer to assemble than it
+ * takes to read.
  *
- * `FieldKind` in `gallery/objectLabel.ts` is a closed union precisely so that
- * the shelf and the pile can act on a field without reading its contents, and
- * this is the same move applied to time instead of to layout. The rules below
- * are written against the kind, so they are true for any plate that states a
- * place, a count and a span — not for this plate's current wording.
+ * `-16px` at the foot of the sheet and not `0`. The figure rises by 14, so
+ * for the length of the rise its lower edge hangs that far below the box the
+ * sheet covers, and a sliver of the photograph would be showing under the
+ * sheet for the whole stage. Two pixels of margin on top of the fourteen. At
+ * `scaleY(0)` the sheet has no height at all, so the overhang costs nothing
+ * once the stage is over.
  *
- * None of the three rises as a group. The fact line above already spent
- * travel-as-a-block, and the field line is not a block: it is a row of
- * discrete marks, in the only monospace on the site, uppercased, separated by
- * interpuncts the stylesheet draws. A row of stamps assembling itself one
- * stamp at a time is the thing that mono-and-uppercase already looks like.
- *
- * The stagger is 150ms, 210ms, 260ms — 60ms and 50ms apart, inside §5's
- * window, and the last of them is 40ms short of the 300ms cumulative cap that
- * stops a reveal becoming a queue.
+ * There are no resting rules for the letters or for the figure, and that is
+ * deliberate: `fill-mode: both` means frame zero of each is the keyframe's
+ * own `from`, and a second statement of it here would be a second definition
+ * of "not yet" to keep in step. The two lines in stage four do need one —
+ * nothing covers them, so without a resting `opacity: 0` they would simply
+ * be there from the start.
  */
+.stage[data-arrived] .mask {
+  position: absolute;
+  inset: 0 0 -16px;
+  background: rgb(var(--paper));
+  transform-origin: 50% 100%;
+}
+
+.stage[data-arrived~="portrait"] [data-portrait] img {
+  animation: plate-figure 520ms var(--ease-settle) both;
+}
+
+.stage[data-arrived~="portrait"] .mask {
+  animation: plate-figure-mask 520ms var(--ease-settle) both;
+}
+
+@keyframes plate-figure {
+  from { transform: translateY(14px); }
+  to   { transform: none; }
+}
+
+@keyframes plate-figure-mask {
+  from { transform: scaleY(1); }
+  to   { transform: scaleY(0); }
+}
+
+/* ── stage four: the two remaining lines, each from its own side ──────── */
 
 /*
- * `where` — a place does not arrive. It is where the work is done, it was
- * true before the page loaded and it will be true after it, and the schema
- * puts it first exactly because it is the field still on screen when the line
- * is cropped. So it is the one field with no duration and no travel at all:
- * `steps(1, jump-end)` holds it at nothing and then it is simply there.
+ * Stage three is the bar and is in `hero-chrome.css`. This is what waits for
+ * it.
  *
- * The 150ms is the step's own length rather than an `animation-delay`, which
- * is the honest shape for this — a stamp has a moment, not a duration, and
- * writing the moment as the length of the single step says so in one
- * declaration instead of two that have to be read together.
- */
-.arrive [data-kind="where"] {
-  animation: plate-stamp 150ms steps(1, jump-end) both;
-}
-
-@keyframes plate-stamp {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-
-/*
- * `count` — a count is accumulated. Five things were shipped one after
- * another until there were five, and it is the only number on the plate that
- * is derived rather than typed: `Hero.tsx` counts it off the project table so
- * that it cannot go stale. A tally grows upward, so this is the one field
- * that comes up from under its own line — 10px, which is less than the fact
- * line's 14px because it is a word and not a sentence, and far enough under
- * §5's 24px ceiling that it cannot read as a slide.
- */
-.arrive [data-kind="count"] {
-  animation: plate-tally 480ms var(--ease-settle) 210ms both;
-}
-
-@keyframes plate-tally {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-/*
- * `when` — a duration is a span, and it is the only field on the plate whose
- * content has length: four years of it. So it is the field that arrives over
- * time rather than over distance. 2px of travel, which is barely a move, and
- * 700ms, which is the longest arrival on the plate after the name's.
+ * Horizontal travel, which §5 bans outright, and the ban is worth restating
+ * rather than quietly breaking: the deleted `Reveal` pushed full-width
+ * sections 26px past the right edge of the document until they fired, so the
+ * page reported horizontal overflow for as long as the reader had not
+ * scrolled that far — with `overflow-x: clip` on the body hiding the
+ * scrollbar and not the bug. The owner's direction is that each remaining
+ * piece enters from its own side, which cannot be done without it.
  *
- * That pairing is the whole idea. The two slowest things on the plate are the
- * name and the span of years, which are also the two facts on it that are not
- * about this week. The quantity settles at 690ms and the span at 960ms, so
- * the last thing to come to rest on the first screen is the oldest statement
- * on it.
+ * What makes it safe here is that neither line is full-width and neither
+ * reaches the edge: 18px of travel inside a gutter that is `clamp(1.25rem,
+ * 3vw, 2.5rem)` and therefore never below 20px. `#hero` carries
+ * `overflow-x: clip` on top of that, so the guarantee is a property of the
+ * section rather than an arithmetic coincidence that a future gutter could
+ * take away. The page's horizontal overflow is measured at 0 at 390px and at
+ * 1440px, which is the check that would have caught `Reveal`.
+ *
+ * These two may fade, and nothing above them may. They are 1rem and 0.72rem
+ * of secondary ink, they are not remotely the largest text on the screen,
+ * and the paint candidate was settled a second and a half before they move.
+ *
+ * 90ms apart, which is ten past the far end of §5's 30-80ms window, and
+ * deliberately so: that window is measured for children travelling the same
+ * way, where anything slower arrives after the reader has started on the
+ * first. These two travel in opposite directions, and close together a pair
+ * moving apart reads as one line splitting rather than as two lines
+ * arriving.
  */
-.arrive [data-kind="when"] {
-  animation: plate-span 700ms var(--ease-settle) 260ms both;
+.stage[data-arrived] h1 + p {
+  opacity: 0;
+  transform: translateX(-18px);
 }
 
-@keyframes plate-span {
-  from {
-    opacity: 0;
-    transform: translateY(2px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
+.stage[data-arrived] ul {
+  opacity: 0;
+  transform: translateX(18px);
+}
+
+.stage[data-arrived~="text"] h1 + p {
+  animation: plate-from-start 460ms var(--ease-settle) both;
+}
+
+.stage[data-arrived~="text"] ul {
+  animation: plate-from-end 460ms var(--ease-settle) 90ms both;
+}
+
+@keyframes plate-from-start {
+  from { opacity: 0; transform: translateX(-18px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes plate-from-end {
+  from { opacity: 0; transform: translateX(18px); }
+  to   { opacity: 1; transform: none; }
 }
 
 /* ── the ways out ─────────────────────────────────────────────────────── */
 
 /*
- * Two exits, and both land on the finished plate.
+ * Two exits here, a third in `hero-chrome.css` for the bar, and all of them
+ * land on the finished picture.
  *
- * There is no `@supports not (animation-timeline: view())` block here, and
- * that is a decision rather than an omission. §4 of the contract is explicit
- * about it: a component with no scroll timeline in it has no feature for a
- * browser to be missing, and adding the block anyway is cargo cult. Every
- * animation in this file is time-driven, because the plate is the first thing
- * in the document and fires on load — an `IntersectionObserver` would be
- * observing an element that is already in view, and a view timeline would run
- * the name backwards out of its own ink the moment the reader scrolled up.
- * The test for this file asserts that `animation-timeline` never appears in
- * it, so the absence of the block stays correct rather than merely being
- * correct today.
+ * There is still no `@supports not (animation-timeline: view())` block, and
+ * it is still a decision rather than an omission. §4 of the contract is
+ * explicit: a component with no scroll timeline has no feature for a browser
+ * to be missing, and adding the block anyway is cargo cult. Every animation
+ * in this file is time-driven, because the hero is the first thing in the
+ * document and fires on load — an `IntersectionObserver` would be observing
+ * an element already in view, and a view timeline would run the name
+ * backwards out of its own ink the moment the reader scrolled up. The test
+ * asserts `animation-timeline` never appears here, so the absence of the
+ * block stays correct rather than merely being correct today.
+ *
+ * There *is* a fourth failure mode that no stylesheet can see, and it is new
+ * with the sequence: a stage whose `animationend` never arrives, so the next
+ * token is never published and the rules below it never match. That exit is
+ * in TypeScript, because the condition is, and `useStagedArrival` carries
+ * the seatbelt and the argument for it.
  *
  * `animation: none` plus the arrived values restated, rather than leaning on
  * the global `animation-duration: 0.01ms !important` in `index.css` and
  * `nav/motion-paused.css`. That rule does land on the final frame and is the
  * right trick for a time-driven animation, so it would in fact work here —
  * but Pause can be toggled mid-arrival, and an exit that depends on an
- * animation still being live is one refactor away from being an exit that
- * depends on nothing. Restating costs four declarations and removes the
+ * animation still being live is one refactor away from an exit that depends
+ * on nothing. Restating costs a handful of declarations and removes the
  * question.
  *
  * `animation-play-state: paused` is the trap §4 names and is not used: it
  * freezes each animation at the time it has reached, which for anything not
- * yet started is frame zero, and frame zero here is `opacity: 0`. "Pause
- * motion" would blank the fact line and two thirds of the field line.
+ * yet started is frame zero — and frame zero here is a sheet of paper over
+ * the name. "Pause motion" would blank the first screen.
  *
- * The colour is restated on the name only. Pushing `color: rgb(var(--ink))`
- * across the whole label would repaint the fact line and the field line in
- * primary ink — both are `--ink-soft` by the label schema — and turn an
- * off-switch into a restyle. That one is easy to write by accident: the three
- * parts share a selector list everywhere else in this file.
+ * The masks' arrived state is `scaleY(0)` and not `opacity: 0`, because that
+ * is what the keyframes end on and an exit that lands somewhere else is a
+ * second definition of "arrived" to keep in step with the first.
  */
 @media (prefers-reduced-motion: reduce) {
-  .arrive h1 {
-    animation: none;
-    color: rgb(var(--ink));
-  }
-
-  .arrive > p,
-  .arrive [data-kind] {
+  .stage[data-arrived] [data-letter],
+  .stage[data-arrived] [data-portrait] img,
+  .stage[data-arrived] h1 + p,
+  .stage[data-arrived] ul {
     animation: none;
     opacity: 1;
     transform: none;
   }
+
+  .stage[data-arrived] [data-letter]::after,
+  .stage[data-arrived] .mask {
+    animation: none;
+    transform: scaleY(0);
+  }
 }
 
-:global(body.motion-paused) .arrive h1 {
-  animation: none;
-  color: rgb(var(--ink));
-}
-
-:global(body.motion-paused) .arrive > p,
-:global(body.motion-paused) .arrive [data-kind] {
+:global(body.motion-paused) .stage[data-arrived] [data-letter],
+:global(body.motion-paused) .stage[data-arrived] [data-portrait] img,
+:global(body.motion-paused) .stage[data-arrived] h1 + p,
+:global(body.motion-paused) .stage[data-arrived] ul {
   animation: none;
   opacity: 1;
   transform: none;
 }
 
+:global(body.motion-paused) .stage[data-arrived] [data-letter]::after,
+:global(body.motion-paused) .stage[data-arrived] .mask {
+  animation: none;
+  transform: scaleY(0);
+}
+
 /*
  * What is deliberately not here, because each cost something to find out.
  *
+ * **Opacity on anything above the fourth stage.** Written out at the top of
+ * this file: it is the measured regression this whole technique exists to
+ * avoid. A letter that fades, a figure that fades, or a mask implemented as
+ * a clip rather than as an opaque sibling — all three take the first screen's
+ * paint candidate out of the running until the animation ends.
+ *
  * **The name's variable axes.** Archivo is a variable font and the obvious
- * reading of "the ink takes" is `font-variation-settings` travelling from a
- * lighter, narrower setting to wdth 125 / weight 900. It animates, it looks
- * good for about four frames, and it reflows the LCP element on every one of
- * them: the name's advance width changes, `text-wrap: balance` rebreaks the
- * line under it, and on a phone the plate shifts through two and three lines
- * on the way to its final setting. Layout shift on the first screen is not a
- * cost this effect could ever earn back. Same verdict, same reason, for
- * `letter-spacing` and for any `text-indent`.
+ * reading of a name taking shape is `font-variation-settings` travelling
+ * from a lighter, narrower setting to wdth 125 / weight 900. It animates, it
+ * looks good for about four frames, and it reflows the largest element on the
+ * screen on every one of them: the name's advance width changes, `text-wrap:
+ * balance` rebreaks the line under it, and on a phone the plate shifts
+ * through two and three lines on the way to its final setting. Layout shift
+ * on the first screen is not a cost this effect could ever earn back. Same
+ * verdict, same reason, for `letter-spacing` and for any `text-indent`.
  *
  * **A wipe along the fact line.** A soft mask travelling left to right across
- * the sentence reads as a hand writing it and was the first design for that
- * part. It is wrong twice over. `InkWipe.module.css` argues at length that a
- * hard edge says ink reached paper and a soft one says the compositor is
- * behind, so a feathered wipe here would contradict the page's own account of
- * how ink arrives — and a hard-edged one would be `InkWipe` itself, which is
- * the pile's device two beats later. The hero does not get to spend the
- * peak's effect first.
+ * the sentence reads as a hand writing it. It is wrong twice over.
+ * `InkWipe.module.css` argues at length that a hard edge says ink reached
+ * paper and a soft one says the compositor is behind, so a feathered wipe
+ * here would contradict the page's own account of how ink arrives — and a
+ * hard-edged one would be `InkWipe` itself, which is the pile's device two
+ * beats later. The hero does not get to spend the peak's effect first.
  *
  * **A count that counts up.** `5 LIVE` ticking from zero is the most obvious
- * per-kind treatment available and it belongs to beat 4, where real numbers
- * landing is that section's one reason to exist. Spending `count` on the
+ * treatment the field line could take and it belongs to beat 4, where real
+ * numbers landing is that section's one reason to exist. Spending it on the
  * title plate would leave the specs with a device the page had already seen.
  */
