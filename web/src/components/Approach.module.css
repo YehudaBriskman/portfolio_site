@@ -23,6 +23,30 @@
  */
 .wall {
   max-width: var(--measure);
+  /*
+   * The column is centred; nothing inside it is.
+   *
+   * This is the only thing #85 changed in this beat, and it is the smaller
+   * half of a decision whose larger half was to leave everything else here
+   * alone. The four `text-section` heads on this page are centred now, and
+   * this section's head is not: it is set at `text-sub` for the reason given
+   * at the top of `Approach.tsx` — a wall text in a gallery is titled, not
+   * billboarded — and a 24px head centred over four paragraphs would be a
+   * quiet head pretending to be a loud one. The paragraphs are not centred
+   * either, and never may be: a centred paragraph has a ragged left edge, and
+   * the left edge is what the eye returns to on every line.
+   *
+   * What was left was a 62ch column hung on the start edge of a 72rem wrap,
+   * with the whole far half of the page empty, between two sections that had
+   * both just moved to the centre line. Centring the box fixes that without
+   * touching a single `text-align`: the column moves under the page's centre
+   * and every line inside it still starts flush on the column's own start
+   * edge. `margin-inline`, so it is the start edge in Hebrew too.
+   *
+   * One line, and reverting it is one line, if the owner would rather this
+   * beat kept the page's left margin.
+   */
+  margin-inline: auto;
 }
 
 /*

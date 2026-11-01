@@ -58,13 +58,14 @@ export default function SpecPlate() {
      * The heading is what the reader sees and it says what this is now.
      */
     <section id="stack" className="wrap section-y relative">
-      {/* Stacks below `sm` for the reason the other section heads give: a
-          display heading and an unbreakable eyebrow do not share a 350px
-          row. */}
-      <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-end sm:gap-6">
+      {/* Centred, like the three other heads on this page; the layout and the
+          argument for the flanking pair of rules are in `.section-head` in
+          index.css. */}
+      <div className="section-head">
+        <InkRule className="section-head-rule" />
         <h2 className="display text-section leading-[0.9]">Specs</h2>
-        <InkRule className="mb-3 hidden min-w-0 flex-1 sm:block" />
-        <p className="eyebrow shrink-0 sm:mb-3">Counted from the work, not claimed</p>
+        <InkRule className="section-head-rule" />
+        <p className="eyebrow section-head-note">Counted from the work, not claimed</p>
       </div>
 
       {/*

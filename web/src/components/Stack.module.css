@@ -89,8 +89,64 @@
 .cell {
   display: flex;
   flex-direction: column-reverse;
-  align-items: flex-start;
+  /* Centred, because the stacked plate is the default form — see the note
+     below, and the one rule that undoes it inside the file's own 768px
+     query. */
+  align-items: center;
+  text-align: center;
   gap: 0.625rem;
+}
+
+/*
+ * Why the stacked plate is centred and the desktop row is not.
+ *
+ * The owner asked for the page's numbers to be centred on a phone, and the
+ * reason is visible at 390px: the plate is two columns directly under a
+ * centred section head, and the two lines of a cell are nowhere near the same
+ * width. Measured in the DOM at 390px, where each cell is 161px wide:
+ *
+ *             figure   caption
+ *   PROJECTS   34.6px   81.4px
+ *   LIVE       34.6px   37.8px
+ *   TOOLS      69.2px   54.1px
+ *   SHIPPING   64.0px   79.7px
+ *
+ * Every cell leaves 50-80px of its width empty, and which of its two lines
+ * overhangs the other changes from cell to cell: the caption is more than
+ * twice the figure under PROJECTS and the figure is the longer line under
+ * TOOLS. Hung from the start edge that is four differently ragged stacks in
+ * two columns under a centred heading. Centred, each caption sits under the
+ * middle of the number it names and the two columns balance.
+ *
+ * The desktop row keeps its start edge deliberately. At 768px and up the four
+ * figures are a row the eye scans along, which is a table of figures and
+ * wants a common start edge; it is also the only reading in which 6, 5, 20
+ * and 3 line up as a set rather than as four separately positioned numbers.
+ * Whether that is still right under a centred head is the owner's call and is
+ * raised in the pull request rather than decided here.
+ *
+ * WHICH THRESHOLD, AND WHY IT IS NOT 700px. The site's phone rung is 699px —
+ * the long note at the foot of `Hero.module.css` derives it — and it is the
+ * obvious place to hang a mobile-only rule. It is the wrong place for this
+ * one. What this rule is about is not the window being a phone, it is the
+ * plate being in its stacked form, and the plate's two forms are defined by
+ * the `min-width: 768px` query already in this file. Written at 699px the two
+ * would disagree between 700px and 767px: a two-column stack, start-aligned,
+ * under a centred head — the exact composition above, shipped in a 68px band.
+ * So the centring is the default and the one query that already knows which
+ * form the plate is in is the one that undoes it. No threshold is added to
+ * this file, which is also what "not a new breakpoint" was asking for.
+ *
+ * `align-items` rather than `justify-content`, because the cell is a
+ * `column-reverse` flex box and the cross axis is the inline one. That and
+ * `text-align` are both logical, so the Hebrew plate centres the same way.
+ */
+@media (min-width: 768px) {
+  .cell {
+    align-items: flex-start;
+    /* `start`, not `left`: the plate is set in Hebrew too. */
+    text-align: start;
+  }
 }
 
 /*
