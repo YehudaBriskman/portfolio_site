@@ -30,34 +30,71 @@
  *
  * Why three explicit tracks
  * -------------------------
- * `margin-inline: auto` cannot centre the index, and neither can
- * `justify-content: space-between`, because the index sits between two groups
- * that are never the same width — three route links on one side, two marks and
- * two controls on the other. Centring the middle child of a flex row centres
- * it against its neighbours, so it lands wherever the difference between them
- * puts it. `minmax(…, 1fr) auto minmax(…, 1fr)` centres the middle track by
- * construction: the two outer tracks are the same flexible track, so they
- * resolve to the same width whatever is inside them, and the middle one is
- * therefore symmetric about the bar's centre line. Measured at 390, 768 and
- * 1440 the index's bounding box centre and the viewport centre differ by 0px.
+ * `margin-inline: auto` cannot centre the middle of this bar, and neither can
+ * `justify-content: space-between`, because that middle sits between two
+ * groups that are never the same width — three route links on one side, two
+ * marks and two controls on the other. Centring the middle child of a flex row
+ * centres it against its neighbours, so it lands wherever the difference
+ * between them puts it. `minmax(0, 1fr) auto minmax(0, 1fr)` centres the
+ * middle track by construction: the two outer tracks are the same flexible
+ * track, so they resolve to the same width whatever is inside them, and the
+ * middle one is therefore symmetric about the bar's centre line.
  *
- * The declared minimum on those outer tracks is the part that is easy to get
- * wrong. A bare `1fr` is `minmax(auto, 1fr)`, whose floor is the track's
- * min-content — so the wider group pushes its own track open, the two stop
- * being equal, and the centring quietly stops working at exactly the widths
- * where the bar is tight. A bare `minmax(0, 1fr)` has the opposite fault: the
- * tracks stay equal and the groups overflow them. Naming one minimum that both
- * tracks share fixes both: equal by construction, and never narrower than the
- * wider group needs.
+ * What is in that middle track has changed completely, which is why the
+ * measurement below is new rather than inherited. It used to be the index —
+ * eight object names, 819px of display type at 1440, which needed a 1336px
+ * window to fit and scrolled on every laptop below that. The index is gone
+ * (the reasoning is at the head of Nav.tsx), so above the collapse the middle
+ * track is *empty*: it resolves to 0px, the two outer tracks split everything
+ * else, and the rooms sit at one edge of the bar with the marks and switches
+ * at the other. Below the collapse it holds the one control the bar keeps, and
+ * that is where the centring is now load-bearing — a 56px bar with a single
+ * object in it has nothing else to be symmetric about.
  *
- * Which leaves the index as the thing that yields when the bar is too narrow,
- * and the only yielding an index may do is to scroll. The eight objects
- * currently in the collection measure 819px set in the display face, so with
- * the two edge tracks and the gutters the whole index needs a window 1336px
- * wide; below that the strip scrolls and follows the marked object
- * (see `IndexLinks.tsx`). Nothing is removed, which is the difference between
- * an index that is cramped and an index that is lying — and it is why the
- * answer to "it does not fit" was never to show four of the eight.
+ * Measured by reading the resolved `grid-template-columns` off the bar and
+ * comparing the middle track's own centre with the viewport's: 0.000px at 320,
+ * 390, 500, 900, 1440, 1500 and 1920; 0.001px at 768 and 1336; 0.006px at
+ * 1280; 0.011px at 1024; 0.012px at 767. The previous arrangement held 0.6px
+ * at every width from 320 to 1500, so the worst case here is fifty times
+ * tighter than the worst case there.
+ *
+ * The residue is not drift and it is not the middle track. The two outer
+ * tracks are one `1fr` resolved twice, so a viewport whose remaining width is
+ * an odd number of hundredths splits into two tracks that differ in the last
+ * place, and the middle track inherits half of that difference. It appears
+ * only where the arithmetic does not divide — the exact widths above are the
+ * even ones — and it is two orders of magnitude below a device pixel.
+ *
+ * Below the collapse, where the centring is the load-bearing half, the control
+ * itself is exact: the toggle's own centre measured 0.000px from the viewport
+ * centre at 320, 390, 500 and 767, because `justify-self: center` re-centres
+ * it inside whatever the track resolved to. The hundredths above are a
+ * property of the track, not of anything the reader can see in it.
+ *
+ * One number that is no longer a measurement of anything: the bar's own
+ * horizontal overflow. It read 0 at every width from 320 to 1920, document and
+ * bar alike. The index made the strip a scroll container on every window below
+ * 1336; there is nothing left in it that can overflow.
+ *
+ * The declared minimum on the outer tracks has been retired with the index
+ * that needed it. It was `minmax(14.25rem, 1fr)` above the collapse, measured
+ * so that neither group could push its own track open and break the equality
+ * the centring depends on. With nothing in the middle there is nothing for the
+ * two tracks to be equal *for*, and the floor was also what capped how much
+ * room the index could have. Both ends of that trade are gone, so one rule
+ * serves both breakpoints. The groups still fit: at 768, the narrowest width
+ * at which they are on screen at all, each outer track resolves to 354.6px
+ * against a leading group that measures 222.3px and a trailing group that
+ * measures 207.7px, so neither is near overflowing the half of the bar it is
+ * given.
+ *
+ * The leading group is not a fixed number, which matters to anyone restoring
+ * a floor: `.route` is set in `clamp(1rem, 1.4vw, 1.125rem)`, so the three
+ * words grow with the window and the group measures 222.3px at 768, 241.2px
+ * at 1280 and 242.1px from about 1286 — where the clamp tops out — upward.
+ * 242.1px against a 354.6px track is the tightest the pair ever gets, and it
+ * gets tighter nowhere above it, because the track grows and the group does
+ * not.
  *
  * The two materials
  * -----------------
@@ -142,10 +179,13 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
-  /* Enough air that the last object in the index and the first mark beside it
-     do not read as one row of things. At 768px, where the index is scrolling
-     and its fade ends a few pixels from the GitHub mark, this is the only
-     thing separating two groups that mean different things. */
+  /* The gutter between the tracks, and the floor on how close the rooms and
+     the marks may ever come to each other. It used to be the only thing
+     separating the last object in the index from the first mark beside it at
+     768px; with the middle track empty the two groups are half a bar apart and
+     this is holding a boundary nothing currently reaches — which is the right
+     state for a gutter to be in, and the reason it is not tuned down to
+     match the slack. */
   gap: 14px;
   /* A phone must never be able to push the bar's contents past its own
      screen. */
@@ -238,30 +278,24 @@
 /* ------------------------------------------------------------ the tracks -- */
 
 /*
- * One minimum, shared.
+ * There is no second grid at the collapse, and that is the one simplification
+ * this change makes rather than merely a deletion.
  *
- * Measured, not chosen. At the index's floor size the leading group (three
- * route links) sets 222px and the trailing group (two marks, a hairline, the
- * language picker and the pause control) sets 208px; 14.25rem is the first
- * quarter-rem step above the wider of the two. If either group grows a member
- * this has to be re-measured, because a track narrower than its own contents
- * is the one way the centring can still break — and it would break silently,
- * since the group would simply overflow its track.
+ * Above 768 the bar used to redeclare its tracks as
+ * `minmax(14.25rem, 1fr) minmax(0, auto) minmax(14.25rem, 1fr)`: a measured
+ * floor, set at the first quarter-rem step above the wider of the two edge
+ * groups, so that neither could push its own track open and quietly break the
+ * equality the centring depends on. That floor only mattered because something
+ * was being centred between the two groups. Nothing is now — the middle track
+ * is empty above the collapse — so the base rule is the whole rule, and the
+ * two breakpoints cannot drift apart because there is only one of them.
  *
- * It is also as large as it can be. The index needs 819px for its eight
- * objects, so the first window that holds the whole bar is 819 plus twice this
- * number plus the gutters and gaps — 1336px, measured by sweeping the viewport
- * four pixels at a time. Every extra rem here pushes that number out, which is
- * why the measured 222 is the floor and the target at once.
+ * If anything is ever put back in the centre track at desktop widths, the
+ * floor comes back with it, and it has to be re-measured rather than restored
+ * from here: 242.1px and 207.7px were the two groups at their widest as they
+ * stood — see the head of this file for how the leading one varies with the
+ * window — and either can grow a member.
  */
-@media (min-width: 768px) {
-  .bar {
-    grid-template-columns:
-      minmax(14.25rem, 1fr)
-      minmax(0, auto)
-      minmax(14.25rem, 1fr);
-  }
-}
 
 /*
  * Below the collapse the bar holds one control and everything else is in the
@@ -271,8 +305,7 @@
  * its own copy of all of this.
  */
 .lead,
-.trail,
-.indexWrap {
+.trail {
   display: none;
   align-items: center;
   gap: 6px;
@@ -290,114 +323,35 @@
     grid-column: 3;
     justify-self: end;
   }
-
-  .indexWrap {
-    display: block;
-    grid-column: 2;
-    justify-self: center;
-    /* The track is already centred; this is only so the strip cannot grow past
-       the track it was given. */
-    max-width: 100%;
-    min-width: 0;
-  }
 }
 
-/* ------------------------------------------------------------- the index -- */
-
-/*
- * The one line that says what is in the room.
- *
- * A scroll container, always, because whether the index fits is a question
- * about eight names in a particular typeface at a particular window width and
- * not something a media query knows. When it fits, nothing scrolls and the
- * container is invisible. When it does not, it scrolls, snaps, and
- * `IndexLinks` keeps the marked object inside it.
- *
- * The 10px of padding against the 10px of negative margin is what lets the
- * mask fade without eating the first and last pill: the fade covers the
- * padding when the strip is at rest, and covers travelling pills once it is
- * not. Both insets are symmetric, so the strip's box stays centred on the
- * bar's centre line.
- */
-.indexStrip {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  margin: 0 -10px;
-  padding: 0 10px;
-  list-style: none;
-
-  /*
-   * No `max-width: 100%` here, and that cost an hour. The negative margins
-   * make this box 20px wider than the `<nav>` around it, which is the point —
-   * the fade has to happen over something. Capping it at the parent's width
-   * instead clamped it back to the parent and left the 20px of padding with
-   * nowhere to go, so the strip reported a 20px overflow at every width,
-   * including the ones where the index fitted: the last object was clipped on
-   * a 1440px screen with 300px of empty bar either side of it. The track above
-   * is what constrains this; the cap was constraining it twice.
-   */
-  overflow-x: auto;
-  /* A swipe that runs out of index must not start scrolling the page
-     sideways, or on iOS go back a page. */
-  overscroll-behavior-x: contain;
-  scroll-snap-type: x proximity;
-  scroll-padding-inline: 10px;
-  /* The bar is 56px tall; a scrollbar inside it would be a third of that. */
-  scrollbar-width: none;
-  -webkit-mask-image: linear-gradient(
-    to right,
-    transparent 0,
-    #000 10px,
-    #000 calc(100% - 10px),
-    transparent 100%
-  );
-  mask-image: linear-gradient(
-    to right,
-    transparent 0,
-    #000 10px,
-    #000 calc(100% - 10px),
-    transparent 100%
-  );
-}
-
-.indexStrip::-webkit-scrollbar {
-  display: none;
-}
+/* -------------------------------------------------------------- the rooms -- */
 
 /* Flex, so the `<li>` never opens a line box of its own. An inline-flex link
    sitting on a baseline inherits the body's leading and grew the bar by 5px it
    had no reason to be. */
-.indexStrip > li,
 .routeRow > li,
 .markRow > li {
   display: flex;
 }
 
-.indexStrip > li {
-  scroll-snap-align: center;
-}
-
 /*
- * The index's voice.
+ * The chrome's voice for anything you can go to.
  *
- * Not 12px mono capitals, which is what these links were and what every
- * destination in the chrome was. That setting is the site's field line — the
- * `FIELD · FIELD` row at the foot of an object's label, dates, eyebrows — and
- * under the label schema it now means something specific: a spec. Setting the
- * navigation in it says the chrome is a datasheet about the site. It is also
- * 12px of letterspaced capitals on a 44px target, which is a line of
- * decoration in the middle of a big button.
+ * Not 12px mono capitals, which is what every destination in the chrome used
+ * to be. That setting is the site's field line — the `FIELD · FIELD` row at
+ * the foot of an object's label, dates, eyebrows — and under the label schema
+ * it means something specific: a spec. Setting the navigation in it says the
+ * chrome is a datasheet about the site. It is also 12px of letterspaced
+ * capitals on a 44px target, which is a line of decoration in the middle of a
+ * big button.
  *
  * So: the display face, sentence case, at the `fact` step of the type ramp —
- * the step the site uses for one line of prose, which is what an object's name
- * is. The ramp has no rung between `field` (0.72rem) and `fact` (1rem), so the
- * routes at the leading edge take the same size and are made quieter by value
- * instead. Two voices out of one size is a smaller lie than a sixth size
- * invented for the chrome.
+ * the step the site uses for one line of prose, which is what the name of a
+ * place is. The ramp has no rung between `field` (0.72rem) and `fact` (1rem),
+ * and this takes the upper one; a sixth size invented for the chrome would be
+ * the worse of the two lies.
  */
-.indexLink,
 .route,
 .toggle {
   display: inline-flex;
@@ -416,23 +370,7 @@
     background-color var(--dur-micro) ease;
 }
 
-.indexLink {
-  /* 12px, not the 14 the sheet's rows take. Eight pills on one line is
-     sixteen paddings, so two pixels each is 32px of window — which is a
-     measurable part of the difference between an index that fits on a laptop
-     and one that scrolls on it. */
-  padding-inline: 12px;
-  /* 6.37:1 on paper, 7.0:1 on the panel. Secondary until you are on it. */
-  /* Full-strength ink, not the secondary value. These are the page's primary
-     navigation sitting on a surface whose ground moves; the soft tone is for
-     text with a settled background behind it. The same correction Apple's
-     vibrancy guidance makes for type over translucent chrome. */
-  color: rgb(var(--ink));
-  font-weight: 500;
-}
-
 @media (hover: hover) and (pointer: fine) {
-  .indexLink:hover,
   .route:hover {
     color: rgb(var(--ink));
     /* The same 6% ink wash every quiet control on the site darkens by. On the
@@ -442,84 +380,24 @@
 }
 
 /*
- * Where you are: the object that has been inked.
+ * Two values and a rule, which is what "you are here" costs in a bar of three
+ * words.
  *
- * A wash of anything over the paper is worth about one and a half to one and
- * reads as a smudge — and it would be indistinguishable from the hover state
- * directly above, which is the failure this rule is written to avoid. So the
- * object the reader is on is filled solid: ink ground, paper type, 15.17:1
- * each way, and the exact inverse of itself over the dark act for free.
+ * The soft value used to be about rank: the index owned the centre of the bar
+ * and the rooms were deliberately quieter than the objects in them. There is
+ * no index to be quieter than now, and the value is doing a better job than it
+ * was — it is the difference between the room you are in and the two you are
+ * not, stated in the same place a reader is already looking. 6.37:1 on paper
+ * and 7.0:1 on the panel for the two that are not current; full ink for the
+ * one that is.
  *
- * It is the device `.btn-solid` uses for the one primary action on a screen,
- * which is the right borrowing: in an index of eight objects, the one you are
- * standing on is the only entry that is not a choice.
- */
-.indexLink[aria-current] {
-  color: rgb(var(--paper));
-  background: rgb(var(--ink));
-}
-
-/*
- * The object that is not in this room.
- *
- * Six of the eight index items jump within the page and two change route, and
- * until this rule existed nothing on the screen told them apart — a keyboard
- * user walking the bar was navigated off the page without warning on items
- * five and six. The words are in the accessible name (see `AWAY_NOTE` in
- * IndexLinks.tsx); this is the half a sighted reader gets.
- *
- * Quiet, because this is a bar and not a legend. Three decisions that keeps:
- *
- *   It is a chevron and not a badge, a second type colour or a border, each of
- *   which would be a new visual system inside a strip whose whole claim is
- *   that every item is the same kind of thing. It is not the site's onward
- *   arrow either, and that one was measured rather than argued about — see
- *   `AWAY_GLYPH` in IndexLinks.tsx for the 19px-per-item it cost and the
- *   desktop width at which it clipped "Contact" off the end of the bar.
- *
- *   `1em` and not a fixed size, so it tracks the link's own
- *   `clamp(1rem, 1.4vw, 1.125rem)` rather than growing relatively larger as
- *   the bar gets smaller — which is the width where it can least afford it. A
- *   chevron wants the full step where an arrow wanted three-quarters of one:
- *   it is a thin mark made of two strokes, and shrinking it is what turns it
- *   from a sign into a speck.
- *
- *   0.5 alpha. At full strength the mark reads as loud as the name it follows,
- *   and on a note page all eight items are away at once: eight chevrons at
- *   full ink is a row of chevrons with words between them. Half ink on either
- *   ground keeps it at the edge of noticing, which is where a mark that
- *   repeats eight times belongs. It is for the eye only, so it is held to no
- *   contrast minimum — the fact itself is in the accessible name.
- *
- * `currentColor`, so the inked pill and the dark act both come for free and
- * this rule never learns that either exists.
- */
-.awayMark {
-  margin-inline-start: 4px;
-  font-size: 1em;
-  line-height: 1;
-  color: currentColor;
-  opacity: 0.5;
-  /* The arrow is not type that may wrap away from its word. */
-  flex: none;
-}
-
-/* In the sheet the row is 48px of full width, so the mark goes to the trailing
-   edge where a list of destinations is read from — rather than hanging off the
-   end of the word, which in a stacked list reads as part of the label. */
-.sheetLink .awayMark {
-  margin-inline-start: auto;
-}
-
-/*
- * The routes, quieter by value and marked differently.
- *
- * Two kinds of "current" exist in this bar — the room you are in and the
- * object you are at — and giving both of them the inked pill would say they
- * are the same claim at the same strength. The room is a weaker claim: it is
- * true of the whole page rather than of where you are on it. So it is stated
- * as full-strength ink with a rule under the word, which is how a printed
- * index marks a heading, and the fill stays spent on the one object.
+ * The rule under the current word is the second half, and it is kept rather
+ * than promoted. The inked pill — paper type on an ink ground, 15.17:1 each
+ * way — is now unspent, because it used to be reserved for the single object
+ * the reader was standing on. It is not taken: a solid black capsule around
+ * "Home" would be the loudest object in a chrome whose whole brief was to get
+ * quieter. A 1px rule at a 5px offset is how a printed index marks a heading,
+ * and in a bar with three words in it that is legible at a glance.
  */
 .route {
   padding-inline: 10px;
@@ -546,25 +424,22 @@
 /* --------------------------------------------------------------- focus --- */
 
 /*
- * Inset rings, and that is the strip's fault rather than a preference.
+ * Inset rings, flush with the control.
  *
- * The index is a scroll container, so a 2px ring drawn 2px outside a pill at
- * either end of it is clipped by the container's own bounds — a keyboard user
- * tabbing to the first object would see three sides of a ring. Drawing it
- * inside the pill is visible at every scroll position. The current object
- * takes the ring in paper instead, because its pill is filled with ink and a
- * ring in ink inside it is a ring nobody can see.
+ * The first reason was the index: it was a scroll container, so a ring drawn
+ * outside a pill at either end of it was clipped by the container's own bounds
+ * and a keyboard user tabbing to the first object saw three sides of a ring.
+ * That container is gone and the inset ring stays, on the reason the shadcn
+ * controls at the trailing edge are already held to further down this file — a
+ * ring drawn in the page's ground around a control on a translucent bar is a
+ * hole punched through the material. Everything in the chrome focuses the same
+ * way, and nothing in it has a ring that needs room outside its own box.
  */
-.indexLink:focus-visible,
 .route:focus-visible,
 .toggle:focus-visible,
 .mark:focus-visible {
   outline: 2px solid rgb(var(--ink));
   outline-offset: -2px;
-}
-
-.indexLink[aria-current]:focus-visible {
-  outline-color: rgb(var(--paper));
 }
 
 /* --------------------------------------------------------------- marks --- */
@@ -657,21 +532,26 @@
   gap: 2px;
 }
 
-/* ------------------------------------------------- the collapsed index --- */
+/* -------------------------------------------------- the collapsed menu --- */
 
 /*
- * Below the collapse the index becomes one control, and it is still an index.
+ * Below the collapse the bar becomes one control, and it is a menu again.
  *
- * Not a hamburger of routes, which is what this used to open: three
- * destinations behind a glyph that says nothing about what is behind it. This
- * says where the reader is standing — the marked object's own name, updated as
- * they pass each plate — and opens the whole index. A phone gets the one piece
- * of information the bar exists to give before it is touched at all.
+ * Which is worth saying plainly, because the note this replaces spent its
+ * first line insisting it was not: it opened the whole index, and said which
+ * object the reader was standing on, so calling it a hamburger would have been
+ * wrong. With the index gone it opens three rooms, two marks and two switches,
+ * and that is a menu however it is labelled.
  *
- * `Index` above the name is set in the field voice, and that is not the voice
- * the links were just taken out of. The schema is NAME, fact, FIELD; this is a
- * field naming what the value under it is, which is the one job that setting
- * has. It is the links that were wearing it wrongly.
+ * What keeps it from being the unlabelled hamburger this started as is the
+ * second line: the name of the room the reader is in, which is the most a
+ * phone's bar can still say for free and is read before the control is touched
+ * at all. On an address that is in none of the three rooms the line is absent
+ * rather than guessed.
+ *
+ * `Menu` above the name is set in the field voice. The schema is NAME, fact,
+ * FIELD; this is a field naming what the value under it is, which is the one
+ * job that setting has.
  */
 .toggle {
   gap: 10px;
@@ -694,7 +574,7 @@
   flex-direction: column;
   align-items: flex-start;
   gap: 1px;
-  /* A long object name must not push the bars off the control. */
+  /* A long label must not push the bars off the control. */
   min-width: 0;
 }
 
@@ -707,10 +587,12 @@
   color: rgb(var(--ink-soft));
 }
 
+/* No cap and no ellipsis any more. Those were for a name out of the
+   collection, which could be anything the data said; the three it can print
+   now are a constant in `nav/navRoutes.ts` and the longest of them sets 61px.
+   `nowrap` stays, because a two-word label breaking in half is the one thing
+   that would grow the 56px bar. */
 .toggleNow {
-  max-width: 11rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 0.9375rem;
   line-height: 1.1;
@@ -775,10 +657,11 @@
 /*
  * What the bar folds into on a phone.
  *
- * Index first, and that ordering is the whole point: the objects in the room
- * are what the chrome is for, so they are what a reader meets when they open
- * it. The rooms come second, the marks third, the controls last — which is
- * also the order the bar reads in from its centre outwards.
+ * Rooms first, then the marks, then the switches — the same set the bar
+ * carries and in the same order. It used to lead with the index, on the
+ * grounds that the objects in the room are what the chrome is for; the sheet
+ * drops to the bar's set rather than keeping an index that a phone would be
+ * the only place left to find.
  *
  * Anchored to the dock rather than to the control that opened it, and centred
  * under it. Same ground and the same rule as the bar, one radius softer, and
@@ -786,10 +669,12 @@
  * — it covers content and locks the scroll while it is open — and it is the
  * only thing in the chrome that is.
  *
- * It scrolls rather than growing: eight objects plus three rooms plus three
- * marks plus the controls is taller than a phone held sideways, and a panel
- * taller than the screen with no way down is worse than one you have to
- * scroll.
+ * It still scrolls rather than growing, and that is now a guard rather than a
+ * routine condition. Three rooms, three marks and the controls fit on a phone
+ * held upright, where eight objects on top of them did not; what does not fit
+ * is the same panel on a phone held sideways, where the viewport is 390px
+ * tall. `max-height` against the viewport covers both without knowing which
+ * one it is in.
  */
 .sheet {
   position: absolute;
@@ -858,15 +743,22 @@
 }
 
 /*
- * The same inked row as the bar, so "you are here" is one idea stated once and
- * read the same way on both layouts.
+ * The inked row, which is where the fill the bar no longer spends still earns
+ * itself.
  *
- * Both kinds of current take it here, where the bar gives the fill to the
- * object and an underline to the room. The distinction exists in the bar
- * because both kinds sit on one line a hundred pixels apart; in the sheet they
- * are in two groups under two headings, so there is nothing for the reader to
- * tell apart and a second marking style would be a difference with no
- * difference behind it.
+ * The bar marks the current room with a value change and a rule under the
+ * word, because it has three words on one line and a solid capsule among them
+ * would be the loudest thing in the chrome. A sheet row is 48px of the full
+ * width of the panel, with the next row directly beneath it: at that size a
+ * 1px underline is a hairline in a stack of hairlines, and the solid fill is
+ * the only marking that reads as "this row, not the one under it" — ink
+ * ground, paper type, 15.17:1 each way, and the exact inverse of itself over
+ * the dark material for free.
+ *
+ * There is one kind of current to mark now. It used to be two — the room you
+ * were in and the object you were at — and the sheet gave both the fill
+ * because they sat in two groups under two headings with nothing for the
+ * reader to tell apart.
  */
 .sheetLink[aria-current] {
   color: rgb(var(--paper));
@@ -902,8 +794,9 @@
 }
 
 /* A hairline between the groups: they are different kinds of going somewhere —
-   around this page, around the site, off the site, and nowhere at all — and
-   the sheet should not pretend otherwise. */
+   around the site, off the site, and nowhere at all — and the sheet should not
+   pretend otherwise. Three of those now rather than four; the one that has
+   gone is "around this page". */
 .sheetSplit {
   height: 1px;
   margin: 6px 10px;

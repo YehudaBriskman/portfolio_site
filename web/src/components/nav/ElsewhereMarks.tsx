@@ -5,13 +5,17 @@ import { PROFILES } from "./social";
 /**
  * Where to find me that is not this site, as marks.
  *
- * Mark-only, and that is now an argument about the bar rather than about
- * width. The bar has one voice for anything you can go to — display face,
- * sentence case, a pill — and it is spent on the index, because the index is
- * what the bar is for. Two more words in that voice at the trailing edge
- * would read as two more objects in the collection, which GitHub and LinkedIn
- * are not: they are the same person, elsewhere. A logotype says that without
- * joining the sentence.
+ * Mark-only, and that is an argument about the bar rather than about width.
+ * The bar has one voice for anything you can go to — display face, sentence
+ * case, a pill — and it is spent on the three rooms this site keeps. Two more
+ * words in that voice at the trailing edge would read as two more rooms, which
+ * GitHub and LinkedIn are not: they are the same person, elsewhere. A logotype
+ * says that without joining the sentence.
+ *
+ * The argument has if anything got stronger since it was written, when the
+ * voice was spent on an index of eight objects and these two would have been
+ * the ninth and tenth. A bar with three words in it has room for five, and the
+ * reason not to is still that the two extra would be the wrong kind of thing.
  *
  * The names are not lost. Every mark carries an `aria-label`, which is what a
  * screen reader announces, and a tooltip, which is what a hovering pointer

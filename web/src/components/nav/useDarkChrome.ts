@@ -14,27 +14,42 @@ import { useEffect, useState } from "react";
  *     <section data-chrome="dark"> … </section>
  *
  * The attribute is the contract. The alternative — the chrome keeping a list
- * of which section ids are dark — is the same drift the index was built to
- * avoid, one beat at a time, and it would be wrong the first time a panel
- * moved. A panel that inverts the ground declares it, and anything that
- * declares it gets the inverted chrome for free.
+ * of which section ids are dark — would be wrong the first time a panel moved,
+ * and it is the one remaining place the chrome could still grow an opinion
+ * about the page's contents now that the index of objects has gone. A panel
+ * that inverts the ground declares it, and anything that declares it gets the
+ * inverted chrome for free.
  *
  * One observer, no scroll listener
  * --------------------------------
  * `rootMargin` does the work a scroll handler would. Collapsing the root to a
  * band that is exactly the strip the bar occupies turns "is this panel behind
  * the bar" into plain intersection, which the browser answers off the main
- * thread and tells us about only when it changes. The site has no scroll
- * listener left on this page at all, and the measurements in
- * that file are the reason; the chrome is not adding a second.
+ * thread and tells us about only when it changes. The home page has no scroll
+ * listener on it at all — the one that is left on the site is in
+ * `hooks/useScrollProgress.ts`, and the measurements written up there are why
+ * there is only one; the chrome is not adding a second.
  */
 
 /** The selector a panel opts in with. Exported so a test can speak the contract. */
 export const DARK_PANEL_SELECTOR = '[data-chrome="dark"]';
 
-/* Same reasoning, and the same value, as the late read in
-   `useCollectionIndex`: the panel is in the document on the first paint, but
-   which beats exist can change once when the collections API answers. */
+/**
+ * One late re-read, in milliseconds.
+ *
+ * `useProjects` is seeded from the project table, so the panel is in the
+ * document on the first paint and the pass below finds it. What can still
+ * change is which beats exist: a published collection arriving from the API
+ * outranks the seed, so a section can be added or removed once, shortly after
+ * mount. This is that once.
+ *
+ * Deliberately not a MutationObserver — the whole page re-renders on that
+ * response, and a subtree observer would be woken by every unrelated commit
+ * for the lifetime of the session. This number used to be stated once and
+ * shared with the index's own late read, which was the other half of the same
+ * reasoning; the index is gone and the reasoning is written out here, where
+ * the one remaining reader of it lives.
+ */
 const LATE_READ_MS = 900;
 
 /**

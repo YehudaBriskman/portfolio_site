@@ -51,13 +51,21 @@ export const PROFILES: Elsewhere[] = links.map((l) => ({
  * that list is defined as outbound profiles and the footer prints it with an
  * "opens elsewhere" arrow that a mailto: should not get.
  *
- * Why the bar leaves it out, now that the bar has an index: the inquiry plate
- * is an object in that index, two items from the end, and it is a form. A
- * mailto beside it is a second answer to "how do I reach him" sitting a
- * hundred pixels from the first, and it is the worse one — it hands the
- * reader's own mail client a blank message. The sheet still lists it, because
- * on a phone a mailto is the one of the two that opens an app the reader
- * already has.
+ * Why the bar leaves it out. The argument used to be about proximity: the bar
+ * carried an index of objects, the inquiry plate was one of them two items
+ * from the end, and a mailto beside it was a second answer to "how do I reach
+ * him" sitting a hundred pixels from the first — the worse one, because it
+ * hands the reader's own mail client a blank message.
+ *
+ * The index has gone and the conclusion has not moved. The bar now carries
+ * rooms, and the ask is deliberately not a room: it is typeset as the last
+ * plate of the collection, where the page has already said enough for the
+ * reader to know what to write. A mailto in the bar would be the only
+ * destination in it that is not a place, and it would still be the worse of
+ * the two answers.
+ *
+ * The sheet still lists it, because on a phone a mailto is the one of the two
+ * that opens an app the reader already has.
  */
 export const EMAIL: Elsewhere = {
   key: "email",
