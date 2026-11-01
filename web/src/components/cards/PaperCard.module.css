@@ -168,8 +168,13 @@
 
 /* The card's own heading. Not a section head — those stay on the paper. */
 .title {
-  font-family: var(--font-display);
-  font-weight: var(--weight-display);
+  /* The text face at its real 700, not the display face. The display role is
+     drawn for the section register and up; this is set below 32px, where a
+     wide geometric face stops being a quieter headline and starts being a
+     slower read. Same division as `.display` / `.display-tight` in
+     index.css. */
+  font-family: var(--font-text);
+  font-weight: var(--weight-text-strong);
   /* --track-head, not --track-display. At the 18-24px this clamps to, the
      display step is correction for a 100px line and closes the counters
      here; the head step is what the ramp reserves for 32-56px and is the

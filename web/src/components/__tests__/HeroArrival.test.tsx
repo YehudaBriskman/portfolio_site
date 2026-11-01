@@ -369,13 +369,27 @@ describe("what the first screen may not spend", () => {
     expect(strip(hero)).toMatch(/\.hero \{[^}]*overflow-x: clip/);
   });
 
-  it("keeps the figure out of flow, which is why the screen cannot shift", () => {
+  it("sizes the figure's track by subtraction, which is why the screen cannot shift", () => {
     const hero = strip(readFileSync(resolve(HERE, "../Hero.module.css"), "utf8"));
 
-    /* An absolutely positioned box contributes no height to anything, so the
-       photograph cannot move a line of type however it is sized or however
-       late it decodes. CLS is measured at 0.000 at 390px and at 1440px and
-       this is the reason. */
-    expect(hero).toMatch(/\.portrait \{[^}]*position: absolute/);
+    /*
+     * This used to assert `position: absolute` on the figure, on the grounds
+     * that an out-of-flow box contributes no height and so cannot move a line
+     * of type. The composition changed — the figure is centred and standing on
+     * the floor of the screen rather than hung off the end of the label — and
+     * it is in flow now. The protection did not go away; it moved.
+     *
+     * The figure is the `1fr` row of a two-row grid whose height is the
+     * screen. Its track is what the label did not use, so the track is decided
+     * before the photograph is consulted and nothing the photograph does can
+     * change it. `min-height: 0` is the half of that which is easy to lose: a
+     * grid item's automatic minimum size is its content, so without it the row
+     * refuses to shrink below the image's intrinsic height and the figure
+     * starts pushing the page down again on a short window.
+     *
+     * Both halves are asserted because either one alone is not the guarantee.
+     */
+    expect(hero).toMatch(/\.composition \{[^}]*grid-template-rows: auto 1fr/);
+    expect(hero).toMatch(/\.portrait \{[^}]*min-height: 0/);
   });
 });

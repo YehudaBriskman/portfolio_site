@@ -19,11 +19,21 @@
     <link rel="canonical" href="https://yehudabriskman.com/" />
     <meta name="robots" content="index, follow, max-image-preview:large" />
     <meta name="author" content="Yehuda Briskman" />
-    <meta name="theme-color" content="#0F1515" />
-    <meta name="color-scheme" content="dark" />
+    <!-- Paper, because that is the ground the site is actually on. Both of
+         these said #0F1515 / dark, which was the palette before the gallery
+         rebuild and is now nowhere in the stylesheet: the browser painted a
+         near-black canvas and dark form controls for the moment before the CSS
+         landed, then flipped to cream. -->
+    <meta name="theme-color" content="#ECE8DC" />
+    <meta name="color-scheme" content="light" />
 
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <link rel="alternate icon" href="/favicon.ico" sizes="any" />
+    <!-- No SVG icon any more. The mark is a bust cut from the portrait on the
+         first screen, and there is no tracer in this toolchain to turn a
+         photograph's alpha channel into paths — an SVG wrapping a raster is
+         the raster with extra bytes. The .ico carries 48/32/16 so the tab gets
+         a size drawn for it rather than a 512 squeezed down. -->
+    <link rel="icon" href="/favicon.ico" sizes="48x48 32x32 16x16" />
+    <link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
     <link rel="alternate" type="application/rss+xml" title="Yehuda Briskman · Notes" href="/feed.xml" />
@@ -84,16 +94,30 @@
          index.css. Preload only what the first screen needs, so those files
          start with the HTML rather than after the stylesheet is parsed.
 
-         Three rather than two, because the first screen is a title plate and
-         a title plate is all three roles at once: the name in display, the
-         fact line in text, the field line in data. Archivo used to carry the
-         first two from one file, which is the only reason two preloads ever
-         covered it.
+         Two, and which two changed when the roles did. The first screen is
+         a title plate and a plate is three roles at once — the name in
+         display, the fact line in the accent, the field line in data — but
+         the accent face is the most expensive file in the set and it is
+         spent on one line of seven words:
 
-         Preloaded bytes still go down: 90,104 + 14,708 = 104,812 before,
-         13,816 + 51,532 + 18,032 = 83,380 now. Four more requests on the
-         first screen would not be, which is why comic-relief-700 — reached
-         only by emphasis inside prose — is not here.
+           audiowide-400        13,816   the name, and the LCP element
+           comic-relief-400     18,032   the field line, the nav, all prose
+           jim-nightshade-400   51,532   "Full-stack, mostly frontend"
+
+         So the accent comes off the critical path. Preloaded bytes go
+         104,812 (the two Archivo files this started as) to 83,380 (three
+         faces, when the text role was still the script) to **31,848**. The
+         fact line now swaps a moment after first paint, which is the right
+         trade for the one line on the screen that is neither the heading nor
+         the thing being measured.
+
+         comic-relief-700 (22,740) is not here either, and that is a closer
+         call than it was: it used to be reached only by emphasis inside
+         prose, and it is now the heading voice everywhere below the section
+         register — every object name, every `.display-tight`. None of those
+         are on the home page's first screen. The first card's name on
+         /projects is, and that page is the one to measure before deciding
+         this stays a two-file preload.
 
          English only, and that is a limitation rather than an oversight. The
          language is chosen at runtime by `nav/locale.ts`, so a static
@@ -102,12 +126,11 @@
          start when the stylesheet resolves, which is what every font on this
          site did before the first preload was added. -->
     <link rel="preload" href="/fonts/audiowide-400.woff2" as="font" type="font/woff2" crossorigin />
-    <link rel="preload" href="/fonts/jim-nightshade-400.woff2" as="font" type="font/woff2" crossorigin />
-    <!-- The data face is used by every label on the page, but nothing in the
-         HTML references it — it is reached only once React has rendered, so
-         it was starting 2127ms in, behind the bundle, and finishing after
-         2836ms. That is a half-second of labels in the fallback face on a
-         throttled connection. -->
+    <!-- The text face carries the field line, the nav and every paragraph on
+         the page, and nothing in the HTML references it — it is reached only
+         once React has rendered, so it was starting 2127ms in, behind the
+         bundle, and finishing after 2836ms. That is a half-second of the
+         whole page in the fallback face on a throttled connection. -->
     <link rel="preload" href="/fonts/comic-relief-400.woff2" as="font" type="font/woff2" crossorigin />
   </head>
   <body>
