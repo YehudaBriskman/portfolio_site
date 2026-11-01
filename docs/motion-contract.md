@@ -123,6 +123,18 @@ state is a legitimate drawing costs nothing to switch off. Measured at 4×
 CPU throttle it holds within 0.8fps of the pile and 1.6fps of a page with no
 act on it at all; the numbers are in the pull request that added it.
 
+Both of those were taken against a **synthetic** 365-day calendar, because no
+token was available at the time, and the shape of that year is what made a
+linear column height look right for as long as it did (see #81). Re-profiled
+against the real calendar when the height was changed to a square root — same
+harness, 4× CPU throttle, five passes after a discarded warm-up — the city
+runs at a median 54.6fps against 54.1fps for the old linear heights on the
+identical page, and about 5.7fps under the same section with `motion-paused`
+set. The scale change is inside the run-to-run spread; the cost of the act
+itself is the 5.7fps, and it is paid on a beat the reader can switch off into
+a finished chart. Nothing about the column count or the one-animation build
+changed, which is why it was never expected to move.
+
 **The order in this table is the intended one and is not the order
 `pages/Index.tsx` renders today.** The page renders the pile *before* the wall
 text, so the shipped sequence is title plate, pile, wall text, the year, notes
