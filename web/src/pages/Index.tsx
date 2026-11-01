@@ -83,7 +83,7 @@ export default function Index() {
           <Work />
         </div>
 
-        <div className="layer-section ground" data-ground="warm">
+        <div className="layer-section">
           <Approach />
         </div>
 
@@ -114,7 +114,7 @@ export default function Index() {
           its own and where the principles finally live is the owner's call,
           raised in the pull request rather than decided here.
         */}
-        <div className="layer-section ground" data-ground="warm">
+        <div className="layer-section">
           <ContributionCity />
         </div>
 
@@ -142,15 +142,15 @@ export default function Index() {
           no padding. Safe because the shelf's own overflow is internal to its
           scroller and it uses no negative margins to escape this box.
         */}
-        <div className="ground" data-ground="cool">
+        <div>
           <LatestNotes />
         </div>
 
-        <div className="layer-section ground" data-ground="cool">
+        <div className="layer-section">
           <Stack />
         </div>
 
-        <div className="layer-section ground" data-ground="warm">
+        <div className="layer-section">
           <Contact />
         </div>
       </main>
