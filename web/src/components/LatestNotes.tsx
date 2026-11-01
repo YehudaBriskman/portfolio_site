@@ -172,12 +172,15 @@ export default function LatestNotes() {
      * left edge in its own padding. See `--shelf-inset`.
      */
     <section id="notes" className={`${styles.section} section-y relative`}>
-      {/* Same two-line head as the sections above below `sm`; a display
-          heading and an unbreakable eyebrow do not share a 350px row. */}
-      <div className="wrap flex flex-col items-start gap-3 sm:flex-row sm:items-end sm:gap-6">
+      {/* The same centred head as the other three sections — `.section-head`
+          in index.css — still carrying `.wrap` itself, because the section
+          around it is full-bleed for the shelf and only the head and the way
+          out stand in the measure. */}
+      <div className="wrap section-head">
+        <InkRule className="section-head-rule" />
         <h2 className="display text-section leading-[0.9]">Notes</h2>
-        <InkRule className="mb-3 hidden min-w-0 flex-1 sm:block" />
-        <p className="eyebrow shrink-0 sm:mb-3">Decisions and what they cost</p>
+        <InkRule className="section-head-rule" />
+        <p className="eyebrow section-head-note">Decisions and what they cost</p>
       </div>
 
       {/*

@@ -76,6 +76,53 @@
  * finished state.
  */
 
+/* ─────────────────────────────────────────────────────────────── the plate ── */
+
+/*
+ * The last object's label, centred — stated here, from outside, by the file
+ * that knows where this label is standing.
+ *
+ * `ObjectLabel` has no `variant` prop and is not getting one; that absence is
+ * the component, and a `centered` flag is the first exception that would end
+ * it. The title plate makes exactly this argument in `Hero.module.css` and
+ * this is the same three declarations for the same reason, because this is
+ * the other place on the site where a label is the whole width of a section
+ * rather than a row inside a card:
+ *
+ *   `text-align` carries the name and nothing else;
+ *   the fact line is a block with a `max-width` of `--measure`, so the words
+ *   centre inside it while the box stays at the start edge unless it is given
+ *   `margin-inline: auto` as well;
+ *   the field line is a flex row, which `text-align` cannot reach at all.
+ *
+ * One of the three on its own is a label that looks broken rather than one
+ * that looks centred, which is why they are written together.
+ *
+ * `margin-inline` and `justify-content`, both logical, so the Hebrew plate
+ * centres the same way the English one does.
+ *
+ * WHAT IS NOT CENTRED, AND IT IS THE LOAD-BEARING HALF. The ask below is a
+ * paragraph; the address under it is a sentence. Centred text has a ragged
+ * left edge and the left edge is what the eye returns to on every line, so
+ * neither of them gets `text-align: center` and neither ever should. What
+ * they get instead is `margin-inline: auto` on the boxes they already had —
+ * the reading column moves under the centred label, and the lines inside it
+ * stay flush to the column's own start edge. A centred head over a column
+ * of ranged type is an ordinary setting; a centred head over a column hung
+ * off the far side of a 72rem wrap is the broken one this avoids.
+ */
+.label {
+  text-align: center;
+}
+
+.label > p {
+  margin-inline: auto;
+}
+
+.label > ul {
+  justify-content: center;
+}
+
 /* ───────────────────────────────────────────────────────────────── the ask ── */
 
 /*
@@ -89,6 +136,9 @@
 .ask {
   margin-top: 2.5rem;
   max-width: var(--measure);
+  /* The column, under the centred label above it. The text inside stays
+     ranged from its own start edge — see the note on `.label`. */
+  margin-inline: auto;
 }
 
 /*
@@ -175,7 +225,9 @@
  * footer of every page on the site, one screen below this one.
  */
 .direct {
-  margin: 2.5rem 0 0;
+  /* `auto` on the inline sides for the reason `.ask` above gives: the box is
+     centred under the label, the sentence inside it is not. */
+  margin: 2.5rem auto 0;
   max-width: var(--measure);
   font-size: 1.0625rem;
   line-height: 1.6;

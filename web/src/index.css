@@ -1111,6 +1111,86 @@
     color: rgb(var(--clay));
   }
 
+  /*
+   * The section head, centred, and what that did to the hairline.
+   *
+   * Four sections on the home page set the same three things — a `.display`
+   * heading at `text-section`, a drawn hairline, and an eyebrow — and until
+   * now all four wrote the same flex row inline: heading at the start, rule
+   * filling the gap, eyebrow at the end. The title plate was centred in #73
+   * and nothing else was, so the first screen read as a different layout from
+   * everything under it; #85 is carrying the centring through, and the four
+   * heads are the first place it lands.
+   *
+   * It is one class here rather than four copies of a grid because the four
+   * heads were already one composition typed out four times. The layout is
+   * the only thing shared: each caller keeps its own rule element, because
+   * three of them draw an `InkRule` and the dark act draws a plain span.
+   *
+   * WHY THE RULE IS NOW A PAIR. A single hairline between a heading and an
+   * eyebrow is a span: it exists to join two things that sit at opposite ends
+   * of a row. Centre the heading and there is no span left to make — the
+   * eyebrow has moved under it — so the one rule either becomes decoration or
+   * it becomes two, flanking the word, which is the oldest centred-head
+   * setting there is and the one place the mark still means something. The
+   * two halves keep drawing left to right, so the gesture reads as one sweep
+   * crossing the head rather than as two marks appearing.
+   *
+   * Grid and not flex, because the eyebrow has to span the full width on its
+   * own row while the three items above it share one: `grid-column: 1 / -1`
+   * states that in one declaration, where flex would need a wrap and a basis
+   * and would still put the eyebrow wherever the line break fell.
+   *
+   * `minmax(0, 1fr)` on the two rule tracks and `auto` on the heading: the
+   * heading takes the width its glyphs need and the rules divide what is
+   * left, so a long head simply gets shorter rules rather than wrapping. The
+   * `0` floor is what lets them reach zero on a narrow window instead of
+   * forcing the row wider than the measure.
+   *
+   * 0.75rem between the rows is the `mt-3` step from the rhythm documented in
+   * `PageShell.tsx` — bind a label to the thing it names — which is what the
+   * eyebrow under a heading is.
+   *
+   * `text-align: center` is direction-agnostic and so is every other
+   * declaration here; nothing in this block has a physical side in it, which
+   * is the requirement on a page that also runs in Hebrew.
+   */
+  .section-head {
+    display: grid;
+    justify-items: center;
+    align-items: center;
+    row-gap: 0.75rem;
+    text-align: center;
+  }
+
+  /*
+   * Below the row breakpoint there is nothing for a rule to flank: the
+   * heading is most of the width and the two tracks either side of it would
+   * be a few pixels of ink each. The heads already hid their single rule
+   * below `sm` for the same reason, so this is that rule kept rather than a
+   * new threshold — 640px, the one the four call sites were already using.
+   */
+  .section-head-rule {
+    display: none;
+  }
+
+  @media (min-width: 640px) {
+    .section-head {
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+      column-gap: clamp(1rem, 3vw, 2rem);
+    }
+    .section-head-rule {
+      display: block;
+      /* The rule has no measure of its own — see `InkRule` — so it has to be
+         told to fill its track. `justify-items: center` above would otherwise
+         shrink it to its content box. */
+      justify-self: stretch;
+    }
+    .section-head-note {
+      grid-column: 1 / -1;
+    }
+  }
+
   /* Interactive surfaces share one shape and one motion, so the whole page
      feels like it was made by the same hand. */
   .pill {

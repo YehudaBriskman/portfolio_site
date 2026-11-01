@@ -70,24 +70,24 @@ export default function Work() {
     <section id="work" data-chrome="dark" className="on-panel relative isolate">
       <div className="wrap section-y">
         {/*
-          The section head stacks on a phone.
+          The section head, centred, with the eyebrow on its own line.
 
-          Heading, hairline and eyebrow on one row is a desktop figure: the
-          heading is display type that will not shrink below its glyphs and the
-          eyebrow is a sentence that must not wrap mid-phrase, so on a 390px
-          screen the row simply ran off the side. Below `sm` it is two lines,
-          which is what the hairline between them was standing in for anyway.
+          The layout is `.section-head` in index.css, shared with the three
+          other heads on this page; the long note there has why the one
+          hairline became two and why the eyebrow moved under the heading.
+          What is local is the rule itself: this head is inside the dark act,
+          and a plain span in `--rule-firm` — which `.on-panel` re-points to
+          the panel's own hairline colour — is what it has always drawn
+          rather than the `InkRule` the cream sections use.
         */}
-        <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-end sm:gap-6">
+        <div className="section-head">
+          <span className="section-head-rule h-px bg-[rgb(var(--rule-firm))]" aria-hidden="true" />
           <h2 className="display text-section leading-[0.9]">Work</h2>
-          <span
-            className="mb-2 hidden h-px flex-1 bg-[rgb(var(--rule-firm))] sm:block"
-            aria-hidden="true"
-          />
+          <span className="section-head-rule h-px bg-[rgb(var(--rule-firm))]" aria-hidden="true" />
           {/* A count is the honest eyebrow and it is also the more useful one:
               it says there is more, which is what the link at the foot is
               for. */}
-          <p className="eyebrow shrink-0 tabular-nums sm:mb-3">
+          <p className="eyebrow section-head-note tabular-nums">
             {shown.length} of {items.length}
           </p>
         </div>

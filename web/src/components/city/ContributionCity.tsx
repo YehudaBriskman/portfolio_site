@@ -135,12 +135,13 @@ export default function ContributionCity() {
 
   return (
     <section id="year" className="wrap section-y">
-      {/* The same two-line head every section below `sm` takes: a display
-          heading and an unbreakable eyebrow do not share a 350px row. */}
-      <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-end sm:gap-6">
+      {/* The same centred head every section on this page takes; the layout
+          is `.section-head` in index.css. */}
+      <div className="section-head">
+        <InkRule className="section-head-rule" />
         <h2 className="display text-section leading-[0.9]">The year</h2>
-        <InkRule className="mb-3 hidden min-w-0 flex-1 sm:block" />
-        <p className="eyebrow shrink-0 tabular-nums sm:mb-3">
+        <InkRule className="section-head-rule" />
+        <p className="eyebrow section-head-note tabular-nums">
           {windowLabel(plan, year?.from ?? null, year?.to ?? null)}
         </p>
       </div>

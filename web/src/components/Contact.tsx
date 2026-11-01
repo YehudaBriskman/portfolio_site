@@ -390,12 +390,20 @@ export default function Contact() {
          * and the whole reason the ask reads as part of the collection instead
          * of as the moment the catalog stops and the sales page starts.
          */}
+        {/*
+         * `className` and not a prop on the component, which is the whole of
+         * how centring is said on this site: the label does not know it is
+         * centred, the section does. The three declarations it takes and why
+         * one of them alone looks broken are on `.label` in
+         * `Contact.module.css`.
+         */}
         <ObjectLabel
           scale="object"
           nameAs="h2"
           name="Get in touch"
           fact="Mail reaches me faster than anything else"
           fields={plateFields}
+          className={styles.label}
         />
 
         {/*
