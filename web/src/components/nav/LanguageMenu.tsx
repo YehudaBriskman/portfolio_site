@@ -35,7 +35,33 @@ export default function LanguageMenu({
   const current = LOCALES.find((l) => l.code === value) ?? LOCALES[0];
 
   return (
-    <DropdownMenu>
+    /*
+     * `modal={false}`, and it fixes a visible bug rather than being a
+     * preference.
+     *
+     * Radix's modal dropdown engages a scroll lock: `overflow: hidden` on
+     * `body`, which stops body's overflow propagating to the viewport and
+     * makes body its own scroll container. Measured on the live site at
+     * 1440px: `#root` and everything under it went from 1440px to 1425px the
+     * instant the menu opened, while `body` stayed 1440 — so fifteen pixels
+     * of paper appeared down the right-hand edge, full height, with the dark
+     * act no longer reaching it. On a page that hard-cuts between a cream
+     * ground and a near-black one, that strip is the most visible thing on
+     * the screen.
+     *
+     * The lock is also the wrong instrument here. A language picker is a
+     * popover, not a modal: it does not need the document frozen behind it,
+     * and freezing it costs a relayout of the entire page to show four
+     * words. The mobile sheet still locks scroll, because a full-screen menu
+     * genuinely is modal.
+     *
+     * Everything the modal mode was providing that this menu actually needs
+     * — focus moving into the content, Escape, click-outside, focus
+     * returning to the trigger — Radix keeps in non-modal mode. What is given
+     * up is the scroll lock and the outside-pointer block, and both of those
+     * are behaviours a dropdown should not have had.
+     */
+    <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
         <Button
           variant="glass"
