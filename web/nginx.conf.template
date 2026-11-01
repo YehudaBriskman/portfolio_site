@@ -144,6 +144,20 @@ server {
     error_page 500 502 503 504 = @spa;
   }
 
+  # robots.txt is proxied for the same reason the sitemap is: the copy in
+  # web/public/ is baked at image-build time and hardcodes
+  # `Sitemap: https://yehudabriskman.com/sitemap.xml`, so every host built from
+  # this image served a robots.txt claiming to be production — preprod points
+  # crawlers at production's sitemap today. The API builds the body from
+  # SITE_URL, which is per-environment, so each host names itself.
+  location = /robots.txt {
+    proxy_pass http://$api_upstream/api/seo/robots.txt;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_intercept_errors on;
+    error_page 500 502 503 504 = @static_robots;
+  }
+
   location = /blog {
     proxy_pass http://$api_upstream/api/seo/render/blog;
     proxy_set_header Host $host;
@@ -199,6 +213,33 @@ server {
   location @empty_sitemap {
     default_type application/xml;
     return 200 '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>';
+  }
+
+  # The static file, which is what every host served until the location above
+  # existed. Falling back to it rather than to a `return 200` keeps one copy of
+  # the rules in the repository instead of a second, divergent copy inlined
+  # here, and the only line it can get wrong is the Sitemap one — which is
+  # correct on production, the one host where a crawler can read it at all.
+  #
+  # Serving something matters more than serving the right thing here: Google
+  # treats a 5xx on robots.txt as "crawl nothing from this host" and keeps
+  # treating it that way for up to a day on a cached failure, so a brief API
+  # outage would otherwise cost far more than slightly stale rules.
+  #
+  # A missing file is deliberately a plain 404 and not the server's
+  # `error_page 404 /index.html`: a 404 on robots.txt means "no restrictions"
+  # to every crawler, whereas the SPA shell would be a 200 of HTML parsed as
+  # robots directives, and a crawler reading `<!doctype html>` as a rule file
+  # does unpredictable things with the rest of it.
+  # No add_header here, deliberately: nginx's add_header replaces the
+  # server-level set rather than adding to it, so a Cache-Control line here
+  # would quietly strip HSTS and nosniff off this response — and the block at
+  # the top of this server says those apply to every response. The file is
+  # served with an ETag and a Last-Modified, so a crawler revalidates anyway,
+  # and Google caches robots.txt for about a day whatever the headers say.
+  location @static_robots {
+    error_page 404 = @plain_404;
+    try_files /robots.txt =404;
   }
 
   # nginx's default mime table has no entry for .webmanifest, so it was served

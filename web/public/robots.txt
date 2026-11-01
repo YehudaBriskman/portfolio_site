@@ -1,3 +1,12 @@
+# The fallback copy. nginx answers /robots.txt from the API, which builds this
+# same body from SITE_URL so each host names its own sitemap; this file is
+# served only when that call fails with a 5xx.
+#
+# The Sitemap line below is therefore production's and stays hardcoded: it is
+# right on the only host a crawler can reach, and a fallback that dropped the
+# line would lose sitemap discovery on production for as long as the failure
+# was cached.
+
 User-agent: *
 Allow: /
 
