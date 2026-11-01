@@ -21,6 +21,10 @@ on:
     # published — and a tag is what puts it in front of people. It also gives
     # a rollback a name: `v1.2.0` is something you can redeploy, where "the
     # commit before last Tuesday's merge" is something you have to go and find.
+    #
+    # A merge does roll out, but to `preprod` — a tailnet-only copy of the site
+    # on its own host, so merged work has somewhere to be looked at before
+    # anybody decides to tag it. Production still moves only on a tag.
     tags: ["v*"]
   pull_request:
   workflow_dispatch:
@@ -240,7 +244,25 @@ jobs:
 
   # ----------------------------------------------------------------- deploy --
   #
-  # The rollout, from a known commit.
+  # The rollout, from a known commit, to one of two environments.
+  #
+  # A tag rolls out to `prod`; a push to `main` rolls out to `preprod`, which
+  # is the same two Deployments in their own namespace on their own host, so
+  # merged work can be looked at before anybody decides to release it.
+  #
+  # ONE job rather than two, and the ternaries at the top are the price of it.
+  # The valuable part of this job is not `set image` — it is the preflight that
+  # refuses to start a rollout the cluster cannot finish, the group that says
+  # *why* a rollout stalled, the curl that distinguishes "rollout succeeded"
+  # from "site answers", and the undo. Those are the things preprod most needs,
+  # because preprod is where a bad build should be caught. Copied into a second
+  # job they would be ~80 duplicated lines, and the first one to be fixed in
+  # only one place turns preprod into an environment that tests a pipeline
+  # nobody runs. Three expressions in one place is the cheaper duplication.
+  #
+  # The matrix alternative was rejected for a different reason: a matrix would
+  # expand to both legs and need `if` on every step, and the two legs are
+  # mutually exclusive — one ref is never both a tag and a branch.
   #
   # What this replaces: `deploy-portfolio.sh` in the oci-free repository, which
   # rsynced a laptop's WORKING DIRECTORY to the node, built there, and imported
@@ -264,16 +286,34 @@ jobs:
     name: Deploy
     runs-on: ubuntu-latest
     needs: images
-    # Tags only. A merge to main no longer reaches production.
-    if: startsWith(github.ref, 'refs/tags/v')
-    # One rollout at a time. Two merges in quick succession would otherwise
-    # race, and the loser could finish second with the older image.
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+    # One rollout at a time per environment. Two merges in quick succession
+    # would otherwise race, and the loser could finish second with the older
+    # image. Per environment rather than globally: a tag and a merge touch
+    # different namespaces and have no reason to queue behind each other.
     concurrency:
-      group: deploy-prod
+      group: deploy-${{ startsWith(github.ref, 'refs/tags/v') && 'prod' || 'preprod' }}
       cancel-in-progress: false
-    environment: production
+    # The `production` environment is where a required reviewer goes if a human
+    # step before a live rollout is ever wanted; `preprod` deliberately has
+    # none, since being able to look at `main` without asking is the point.
+    #
+    # Note for whoever adds that reviewer: if KUBECONFIG_B64 or the Tailscale
+    # secrets are ever moved from repository secrets to *environment* secrets
+    # on `production`, they must be added to `preprod` too, or this job starts
+    # failing on every merge with an empty kubeconfig.
+    environment:
+      name: ${{ startsWith(github.ref, 'refs/tags/v') && 'production' || 'preprod' }}
+      url: ${{ startsWith(github.ref, 'refs/tags/v') && 'https://yehudabriskman.com/' || 'https://preprod.yehudabriskman.com/' }}
     permissions:
       contents: read
+    # What differs between the two environments, resolved once here so no step
+    # below has to ask which one it is in. The third difference — what the
+    # rollout is called — is computed in the rollout step itself, because
+    # workflow expressions cannot take a substring of a sha.
+    env:
+      DEPLOY_NS: ${{ startsWith(github.ref, 'refs/tags/v') && 'prod' || 'preprod' }}
+      DEPLOY_URL: ${{ startsWith(github.ref, 'refs/tags/v') && 'https://yehudabriskman.com/' || 'https://preprod.yehudabriskman.com/' }}
     steps:
       - uses: tailscale/github-action@v3
         with:
@@ -324,7 +364,13 @@ jobs:
           mkdir -p "$HOME/.kube"
           printf '%s' "$KUBECONFIG_B64" | base64 -d > "$HOME/.kube/config"
           chmod 600 "$HOME/.kube/config"
-          kubectl -n prod get deploy web api -o name
+          # The kubeconfig's own context says `prod`; every call passes -n, so
+          # one credential serves both namespaces. The RBAC behind it grants
+          # the same two verbs on the same two Deployment names in each.
+          if ! kubectl -n "$DEPLOY_NS" get deploy web api -o name; then
+            echo "::error title=Nothing to roll out in $DEPLOY_NS::Either the namespace has not been set up yet or the token is not bound in it. For a first preprod rollout, from the oci-free repository: kubectl apply -f k8s/portfolio-preprod.yaml -f k8s/tailnet-only-middleware.yaml -f k8s/ci-rollout-rbac.yaml && ./k8s/preprod-secrets.sh"
+            exit 1
+          fi
 
       # The manifest lives in another repository, and merging it there does
       # nothing to the cluster until somebody runs `kubectl apply`. Nothing
@@ -339,49 +385,69 @@ jobs:
       # it would mean another credential — but it can refuse to start a
       # rollout the cluster is not configured to complete, and say which
       # command closes the gap.
+      #
+      # It runs for preprod too, where the same drift is likelier rather than
+      # less: preprod is applied by hand once and then left for weeks.
       - name: The cluster can actually pull
         run: |
           set -euo pipefail
           bad=0
           for d in web api; do
-            policy=$(kubectl -n prod get deploy "$d" \
+            policy=$(kubectl -n "$DEPLOY_NS" get deploy "$d" \
               -o jsonpath='{.spec.template.spec.containers[0].imagePullPolicy}')
-            secrets=$(kubectl -n prod get deploy "$d" \
+            secrets=$(kubectl -n "$DEPLOY_NS" get deploy "$d" \
               -o jsonpath='{.spec.template.spec.imagePullSecrets[*].name}')
             echo "$d: imagePullPolicy=$policy imagePullSecrets=[${secrets:-none}]"
             [ "$policy" = "Never" ] && { echo "  ^ cannot pull from a registry"; bad=1; }
             case " $secrets " in *" ghcr-pull "*) ;; *) echo "  ^ no ghcr-pull secret"; bad=1;; esac
           done
           if [ "$bad" = 1 ]; then
-            echo "::error title=The cluster has drifted from its manifest::The live Deployments are not configured to pull from GHCR, so this rollout would stall in ErrImageNeverPull. Apply the manifest from the oci-free repository first: kubectl apply -f k8s/portfolio.yaml"
+            manifest=$([ "$DEPLOY_NS" = prod ] && echo k8s/portfolio.yaml || echo k8s/portfolio-preprod.yaml)
+            echo "::error title=The cluster has drifted from its manifest::The live Deployments in $DEPLOY_NS are not configured to pull from GHCR, so this rollout would stall in ErrImageNeverPull. Apply the manifest from the oci-free repository first: kubectl apply -f $manifest"
             exit 1
           fi
 
+      # Both environments roll out the commit sha. Preprod does NOT roll out
+      # `:latest` and does not write it: `:latest` means the last release, and
+      # it means that because the k8s manifests carry it as the tag a fresh
+      # `kubectl apply` lands on. A preprod that moved `:latest` on every merge
+      # would put unreleased code behind a production apply, which is the exact
+      # failure the tag split was introduced to remove.
       - name: Roll out this commit
         id: rollout
         run: |
           set -euo pipefail
-          kubectl -n prod set image deploy/web \
+          kubectl -n "$DEPLOY_NS" set image deploy/web \
             web=${{ env.IMAGE_BASE }}/web:${{ github.sha }}
-          kubectl -n prod set image deploy/api \
+          kubectl -n "$DEPLOY_NS" set image deploy/api \
             api=${{ env.IMAGE_BASE }}/api:${{ github.sha }}
           # The rollout runs on the sha because a sha cannot move and a git
           # tag can. The version goes on as an annotation so `kubectl describe`
           # can still answer "which release is this" without anybody having to
-          # map forty hex characters back to a name.
+          # map forty hex characters back to a name. On preprod there is no
+          # release to name, so it carries the branch and the short sha —
+          # enough to paste straight into `git show`.
+          if [ "$DEPLOY_NS" = prod ]; then
+            release="${{ github.ref_name }}"
+          else
+            release="main-${GITHUB_SHA:0:7}"
+          fi
           for d in web api; do
-            kubectl -n prod annotate deploy "$d" --overwrite \
-              app.kubernetes.io/version="${{ github.ref_name }}" \
+            kubectl -n "$DEPLOY_NS" annotate deploy "$d" --overwrite \
+              app.kubernetes.io/version="$release" \
               portfolio.yehudabriskman.com/released-at="$(date -u +%FT%TZ)"
           done
           # `rollout status` reports that it gave up, never why. A pull
           # failure is the likeliest reason and is invisible without this.
+          # On a first preprod rollout the likeliest reason is instead a
+          # missing secret — the pods wait in CreateContainerConfigError,
+          # which the REASON column below names.
           for d in web api; do
-            if ! kubectl -n prod rollout status "deploy/$d" --timeout=300s; then
+            if ! kubectl -n "$DEPLOY_NS" rollout status "deploy/$d" --timeout=300s; then
               echo "::group::why $d did not come up"
-              kubectl -n prod get pods -l "app=$d" \
+              kubectl -n "$DEPLOY_NS" get pods -l "app=$d" \
                 -o custom-columns='POD:.metadata.name,PHASE:.status.phase,REASON:.status.containerStatuses[0].state.waiting.reason,MSG:.status.containerStatuses[0].state.waiting.message'
-              kubectl -n prod describe deploy "$d" | tail -20
+              kubectl -n "$DEPLOY_NS" describe deploy "$d" | tail -20
               echo "::endgroup::"
               exit 1
             fi
@@ -389,16 +455,24 @@ jobs:
 
       # A rollout that reports success and a site that does not answer are
       # different things, and only one of them is what was wanted.
+      #
+      # The preprod host is tailnet-only — a Traefik ipAllowList on
+      # 100.64.0.0/10, and its DNS record points at the node's tailnet
+      # address. This check therefore only passes because the runner is still
+      # on the tailnet from the first step, which also means a 403 here is a
+      # statement about the tailnet rather than about the build. Said out loud
+      # in the failure message, because it is not a guess anybody should have
+      # to make twice.
       - name: Check the site actually answers
         run: |
           set -euo pipefail
           for i in $(seq 1 10); do
-            code=$(curl -s -o /dev/null -m 10 -w '%{http_code}' https://yehudabriskman.com/ || true)
+            code=$(curl -s -o /dev/null -m 10 -w '%{http_code}' "$DEPLOY_URL" || true)
             echo "attempt $i: $code"
             [ "$code" = "200" ] && exit 0
             sleep 6
           done
-          echo "the site did not return 200 after the rollout" >&2
+          echo "::error title=$DEPLOY_NS did not answer 200::$DEPLOY_URL never returned 200 after the rollout. On preprod, a 403 means the request did not arrive from the tailnet (check the ipAllowList and that preprod.yehudabriskman.com still resolves to 100.79.242.82); anything else is the build."
           exit 1
 
       # Only when a rollout actually started. Unreachable cluster means there
@@ -407,7 +481,7 @@ jobs:
       - name: Put it back if it did not
         if: failure() && steps.rollout.outcome == 'success'
         run: |
-          kubectl -n prod rollout undo deploy/web || true
-          kubectl -n prod rollout undo deploy/api || true
-          kubectl -n prod rollout status deploy/web --timeout=180s || true
-          kubectl -n prod rollout status deploy/api --timeout=180s || true
+          kubectl -n "$DEPLOY_NS" rollout undo deploy/web || true
+          kubectl -n "$DEPLOY_NS" rollout undo deploy/api || true
+          kubectl -n "$DEPLOY_NS" rollout status deploy/web --timeout=180s || true
+          kubectl -n "$DEPLOY_NS" rollout status deploy/api --timeout=180s || true

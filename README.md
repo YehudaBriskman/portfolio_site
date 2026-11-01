@@ -103,8 +103,9 @@ node.
 ## How it reaches production
 
 Merging does not ship. A push to `main` is built, tested, and published to
-GHCR under its commit sha — so every commit on `main` is deployable — but
-nothing reaches the site until somebody tags it.
+GHCR under its commit sha — so every commit on `main` is deployable — and it
+rolls out to **preprod**, a copy of the site on its own host that only the
+tailnet can reach. Nothing reaches the live site until somebody tags it.
 
 ```sh
 git tag -a v1.2.0 -m "what changed"
@@ -112,16 +113,30 @@ git push origin v1.2.0
 ```
 
 ```
-push to main ──▶ build + test ──▶ ghcr.io/…:<sha>                (no deploy)
+push to main ──▶ build + test ──▶ ghcr.io/…:<sha>
+                                        │
+                        kubectl set image <sha>  ──▶ preprod ns
+                                        │
+                     rollout status ──▶ curl preprod.yehudabriskman.com
+                                        │
+                               not 200? ──▶ rollout undo
 
 push a tag   ──▶ build + test ──▶ ghcr.io/…:<sha>, :<tag>, :latest
                                         │
-                              kubectl set image <sha>
+                        kubectl set image <sha>  ──▶ prod ns
                                         │
                         rollout status ──▶ curl the site
                                         │
                                not 200? ──▶ rollout undo
 ```
+
+Both rollouts are the same job, parameterised on the ref. The valuable part of
+it is not `set image`: it is the preflight that refuses to start a rollout the
+cluster is not configured to finish, the diagnostic that says *why* a rollout
+stalled, the curl that tells "the rollout succeeded" apart from "the site
+answers", and the undo. Those are exactly what a preprod is for, and copied
+into a second job they would be eighty lines that drift until preprod is
+testing a pipeline nobody runs.
 
 Three things follow from the split, and each is the reason for it:
 
@@ -133,7 +148,8 @@ have to go and find.
 **`:latest` means the last release**, not the last merge. The k8s manifest
 carries `:latest` as the tag a fresh `kubectl apply` lands on, so while it
 moved on every merge an apply between releases would have quietly deployed
-unreleased code.
+unreleased code. Preprod does not weaken that: it rolls out the sha like prod
+does, and writes no tag at all.
 
 **The rollout runs on the sha, not the tag.** A sha cannot move and a git tag
 can. The version is written on as an annotation, so `kubectl describe deploy`
