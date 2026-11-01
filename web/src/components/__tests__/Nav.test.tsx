@@ -4,101 +4,37 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Nav from "@/components/Nav";
-import { indexLabel, NAV_INDEX } from "@/components/nav/navIndex";
-import { objectAnchorId } from "@/lib/objectAnchor";
-import { projects } from "@/data/projects";
+import { NAV_ROUTES } from "@/components/nav/navRoutes";
 
 /*
  * What is worth testing in the chrome is the promises, not the markup.
  *
- * jsdom has no layout and the IntersectionObserver in `setupTests.ts` is a
- * stub that never fires, which is exactly the state the nav has to survive:
- * no plate resolves, so every index item falls back to the object's own page.
- * That is the degraded path and it is the one most likely to rot, because in
- * a browser on the home page it is never taken.
+ * The promise this file was written around has changed: the bar used to be an
+ * index generated from the project table, and most of these tests were about
+ * what happened when a plate was or was not in the document. The bar now
+ * carries three rooms, two marks and two switches, and the thing most likely
+ * to rot is the *absence* — a chrome that quietly grows an object link again,
+ * or a sheet that keeps one after the bar has dropped it. So the assertions
+ * are about the set, and they are written so that anything added to it fails
+ * them rather than slipping past.
+ *
+ * jsdom has no layout, which is why the tab trap is not tested here: the trap
+ * filters its focus stops by `offsetParent !== null`, and in jsdom that is
+ * null for every element, so the trap correctly declines to act and there is
+ * nothing to assert. It is measured in a browser instead.
  */
 
-const chrome = () =>
+const chrome = (at = "/") =>
   render(
-    <MemoryRouter initialEntries={["/"]}>
+    <MemoryRouter initialEntries={[at]}>
       <TooltipProvider>
         <Nav />
       </TooltipProvider>
     </MemoryRouter>
   );
 
-/*
- * What an away item adds to its own name, and the reason most of the
- * assertions below have to strip it.
- *
- * Every item is an away item in jsdom — no plate resolves, so the index falls
- * back to the object's own page for all eight — and each of them therefore
- * carries the onward mark and the sr-only phrase that says the trip leaves
- * this page. Tests whose subject is the list, its order or its destinations
- * take the visible label back off; the affordance itself is the subject of
- * "tells a jump from a trip" below.
- */
-const AWAY = ", on another page";
-const visibleLabel = (el: Element) => (el.textContent ?? "").replace(/›$/, "");
-
-/** A plate for an object, so the index has somewhere on this page to jump to. */
-function plantPlate(slug: string) {
-  const el = document.createElement("div");
-  el.id = objectAnchorId(slug);
-  document.body.append(el);
-  return () => el.remove();
-}
-
-describe("the nav as an index", () => {
-  it("prints the collection, in the collection's own order", () => {
-    chrome();
-    const index = screen.getAllByRole("navigation", { name: "Index" })[0];
-    const names = within(index).getAllByRole("link").map(visibleLabel);
-
-    /* Generated from the project table rather than from a list in the chrome:
-       a project added to the data has to appear here without this file being
-       touched, which is the whole claim the index makes. */
-    const expected = [...projects]
-      .sort((a, b) => a.order - b.order)
-      .map((p) => indexLabel(p.title, p.fact));
-
-    expect(names).toEqual([...expected, "Notes", "Contact"]);
-  });
-
-  it("points every object at somewhere real when no plate is on the page", () => {
-    chrome();
-    const index = screen.getAllByRole("navigation", { name: "Index" })[0];
-    /* The failure this guards against is an index of eight `#anchor` links on
-       a page that has none of them — eight clicks that do nothing at all. */
-    for (const link of within(index).getAllByRole("link")) {
-      /* A route, never a fragment: Contact's is "/" plus a scroll the chrome
-         finishes once the collection page has painted. */
-      expect(link.getAttribute("href")).toMatch(/^\//);
-    }
-  });
-
-  it("gives each object the anchor the plates are told to publish", () => {
-    /* The chrome and the gallery agree on one spelling through one function;
-       this is the assertion that the chrome is actually using it. */
-    for (const p of projects) {
-      const item = NAV_INDEX.find((i) => i.key === p.slug);
-      expect(item?.anchor).toBe(objectAnchorId(p.slug));
-    }
-  });
-
-  it("shortens only the name that cannot fit, and never to a stub", () => {
-    expect(indexLabel("WindoM", "Every new tab becomes a dashboard")).toBe("WindoM");
-    expect(indexLabel("Programming with Yehuda", "Programming lessons, by concept")).toBe(
-      "Programming"
-    );
-    /* A fact line opening on a one- or two-letter word names nothing, so the
-       real title survives rather than being replaced by "A". */
-    expect(indexLabel("An Extremely Long Name", "A thing that does things")).toBe(
-      "An Extremely Long Name"
-    );
-  });
-
-  it("carries the routes without letting them impersonate the objects", () => {
+describe("the chrome as the main links only", () => {
+  it("carries the three rooms and nothing else you can navigate to", () => {
     chrome();
     const pages = screen.getAllByRole("navigation", { name: "Pages" })[0];
     const labels = within(pages)
@@ -106,24 +42,57 @@ describe("the nav as an index", () => {
       .map((a) => a.textContent);
     expect(labels).toEqual(["Home", "All work", "All notes"]);
 
-    /* "All notes" rather than "Notes": the index already has an item by that
-       name pointing at the shelf, and two links a hundred pixels apart with
-       one label and two destinations is the thing this naming prevents. */
-    const index = screen.getAllByRole("navigation", { name: "Index" })[0];
-    expect(within(index).getByText("Notes")).toBeInTheDocument();
-    expect(within(pages).queryByText("Notes")).toBeNull();
+    /* The index landmark is gone rather than emptied: an empty `nav` that a
+       screen reader still announces is the half-finished version of this. */
+    expect(screen.queryAllByRole("navigation", { name: "Index" })).toHaveLength(0);
   });
 
-  it("marks the room you are in as the page, and nothing as the location", () => {
+  it("holds no link to an object's plate anywhere in the chrome", () => {
+    const { container } = chrome();
+    /* The whole header, bar and sheet together, including the sheet while it
+       is hidden — the failure this guards against is an object index that
+       survives on a phone after being taken out of the bar. */
+    const hrefs = [...container.querySelectorAll("a[href]")].map((a) => a.getAttribute("href"));
+    expect(hrefs.filter((h) => h?.includes("#object-"))).toEqual([]);
+    /* No in-page fragment at all: every destination in the chrome is a room,
+       an outbound profile or a mailto. "Home" is the one exception and it is
+       a route — the hop back to the title plate is done in code so that the
+       same link is a route change from anywhere else. */
+    expect(hrefs.filter((h) => h?.startsWith("#"))).toEqual([]);
+  });
+
+  it("names the labels 'All work' and 'All notes', which the page's own headings need", () => {
     chrome();
     const pages = screen.getAllByRole("navigation", { name: "Pages" })[0];
-    expect(within(pages).getByRole("link", { name: "Home" })).toHaveAttribute(
+    /* The home page sets `<h2>Work</h2>` over four of however many projects
+       exist and `<h2>Notes</h2>` over a shelf of four. A bar link labelled
+       "Notes" and a section heading reading "Notes" one scroll apart are two
+       names for two different things, and the two are never on screen together
+       to be compared. */
+    expect(within(pages).queryByText("Notes")).toBeNull();
+    expect(within(pages).queryByText("Projects")).toBeNull();
+  });
+
+  it("marks the room you are in as the page, and marks nothing as a location", () => {
+    chrome("/projects/icaros");
+    const pages = screen.getAllByRole("navigation", { name: "Pages" })[0];
+    /* The prefix match is what marks the room from inside it: a project page
+       is still "All work". */
+    expect(within(pages).getByRole("link", { name: "All work" })).toHaveAttribute(
       "aria-current",
       "page"
     );
-    /* Nothing is marked `location` here because no plate resolved. A stray
-       `location` in this state would mean the mark was being derived from the
-       route rather than from where the reader actually is. */
+    expect(within(pages).getByRole("link", { name: "Home" })).not.toHaveAttribute("aria-current");
+
+    /*
+     * `aria-current="location"` has one less meaning than it had.
+     *
+     * It used to track which object the reader was standing on, through the
+     * pile, and the decision to let that go rather than replace it is written
+     * out at the head of Nav.tsx. A stray `location` here would mean a
+     * current-object indicator had come back without that decision being
+     * revisited.
+     */
     expect(document.querySelectorAll('[aria-current="location"]')).toHaveLength(0);
   });
 
@@ -142,16 +111,16 @@ describe("the nav as an index", () => {
     expect(within(elsewhere).getByRole("link", { name: "LinkedIn" })).toBeInTheDocument();
   });
 
-  it("collapses to the index rather than to a menu button", async () => {
-    chrome();
-    /* The control names what it opens and says where the reader is — with no
-       plate resolved, how many objects are in the room. A control that said
-       only "Open menu" would be the hamburger this replaced. */
-    const toggle = screen.getByRole("button", { name: /Index/ });
-    expect(toggle).toHaveTextContent(String(NAV_INDEX.length));
+  it("collapses to a menu that says which room you are in", async () => {
+    chrome("/blog");
+    /* Not an unlabelled hamburger: the control names what it opens and where
+       the reader is, which is the one piece of wayfinding a phone's bar can
+       still give before it is touched. */
+    const toggle = screen.getByRole("button", { name: /Menu/ });
+    expect(toggle).toHaveTextContent("All notes");
     expect(toggle).toHaveAttribute("aria-expanded", "false");
 
-    const sheet = document.getElementById("nav-index");
+    const sheet = document.getElementById("nav-menu");
     expect(sheet).toHaveAttribute("hidden");
 
     await userEvent.click(toggle);
@@ -167,57 +136,33 @@ describe("the nav as an index", () => {
     expect(document.body.style.overflow).toBe("");
   });
 
-  it("tells a jump from a trip, on the screen and in the name", async () => {
-    /*
-     * The finding this answers: of the eight items in the index, six were
-     * in-page anchors and two were route changes, with nothing marking which
-     * was which — so a keyboard user walking the bar was navigated off the page
-     * without warning on items five and six.
-     *
-     * Both states have to exist in one render for the test to mean anything, so
-     * one plate is planted in the document. That is the only way to reach the
-     * `present` branch here: `useCollectionIndex` resolves an item's
-     * destination by looking its anchor up in the DOM, which is exactly why
-     * every other test in this file sees eight away links.
-     */
-    const remove = plantPlate(projects[0].slug);
-    try {
-      chrome();
-      const index = screen.getAllByRole("navigation", { name: "Index" })[0];
-      const label = indexLabel(projects[0].title, projects[0].fact);
-
-      /* On this page: a fragment, the bare name, and no mark. An object you are
-         standing next to does not need to be announced as being elsewhere. */
-      const jump = within(index).getByRole("link", { name: label });
-      expect(jump).toHaveAttribute("href", `#${objectAnchorId(projects[0].slug)}`);
-      expect(jump.textContent).toBe(label);
-
-      /* Not on this page: the name says so, and the arrow shows it. */
-      const trip = within(index).getByRole("link", { name: "Notes" + AWAY });
-      expect(trip).toHaveAttribute("href", "/blog");
-      expect(trip.textContent).toContain("›");
-      /* The arrow is for the eye only — announced as "right arrow" between a
-         name and a phrase about it, it would make the bar louder for exactly
-         the reader the affordance is for. */
-      expect(trip.querySelector("[aria-hidden='true']")?.textContent).toBe("›");
-      /* And the visible text still leads the accessible name: WCAG 2.5.3, so
-         "Notes" remains something a reader can say out loud to reach it. */
-      expect(trip.textContent?.startsWith("Notes")).toBe(true);
-    } finally {
-      remove();
-    }
+  it("drops the name of the room on an address that is in none of them", () => {
+    chrome("/nowhere-at-all");
+    const toggle = screen.getByRole("button", { name: /Menu/ });
+    /* A 404 is not a room. The line is absent rather than guessing, and the
+       control is still a control. */
+    for (const r of NAV_ROUTES) expect(toggle).not.toHaveTextContent(r.label);
   });
 
-  it("puts the whole index in the sheet, not just the routes", async () => {
+  it("gives the sheet the same set the bar carries", async () => {
     chrome();
-    await userEvent.click(screen.getByRole("button", { name: /Index/ }));
-    const sheet = document.getElementById("nav-index");
+    await userEvent.click(screen.getByRole("button", { name: /Menu/ }));
+    const sheet = document.getElementById("nav-menu");
     expect(sheet).not.toBeNull();
     const inSheet = within(sheet as HTMLElement);
-    for (const item of NAV_INDEX) {
-      expect(inSheet.getByRole("link", { name: item.label + AWAY })).toBeInTheDocument();
+
+    for (const r of NAV_ROUTES) {
+      expect(inSheet.getByRole("link", { name: r.label })).toBeInTheDocument();
     }
-    expect(inSheet.getByRole("link", { name: "All work" })).toBeInTheDocument();
+    /* The marks become words here, where there is room for both, and the
+       address is the one thing the sheet carries that the bar does not — see
+       the note on `EMAIL` in nav/social.ts. */
+    expect(inSheet.getByRole("link", { name: "GitHub" })).toBeInTheDocument();
     expect(inSheet.getByRole("link", { name: "Email" })).toBeInTheDocument();
+
+    /* Three rooms, two profiles, one address: six links and no seventh. The
+       count is the assertion — an index put back in the sheet would pass every
+       check above this line. */
+    expect(inSheet.getAllByRole("link")).toHaveLength(6);
   });
 });

@@ -1,14 +1,11 @@
 import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { scrollToAnchor } from "@/lib/scrollToAnchor";
-import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import Controls, { type NavControls } from "./nav/Controls";
-import IndexLinks from "./nav/IndexLinks";
 import LanguageMenu from "./nav/LanguageMenu";
 import ElsewhereMarks from "./nav/ElsewhereMarks";
 import MotionToggle from "./nav/MotionToggle";
-import { NAV_INDEX, NAV_ROUTES, type NavIndexItem } from "./nav/navIndex";
-import { useCollectionIndex } from "./nav/useCollectionIndex";
+import { NAV_ROUTES } from "./nav/navRoutes";
 import { useDarkChrome } from "./nav/useDarkChrome";
 import { useLocale } from "./nav/locale";
 import { ELSEWHERE } from "./nav/social";
@@ -16,61 +13,93 @@ import { useMotionPaused } from "./nav/useMotionPaused";
 import styles from "./Nav.module.css";
 
 /*
- * The chrome is an index of objects, and it jumps.
+ * The chrome carries the rooms, the marks and the two switches. Nothing else.
  *
- * What this was, and why a site map was the wrong object
- * -----------------------------------------------------
- * Three route links — Home, Projects, Notes — in three ruled islands, which
- * was a considered answer to the previous question. The reasoning is worth
- * restating because it is what made the move to an index obvious rather than
- * decorative:
+ * What this was, and why the index is gone
+ * ---------------------------------------
+ * An index of objects. The bar generated an item per project out of
+ * `data/projects.ts`, plus the notes shelf and the inquiry plate — eight
+ * names across the centre of the bar, each jumping to its plate if that plate
+ * was in the document and routing to the object's own room if it was not,
+ * with the one the reader was standing on filled solid. The argument was that
+ * in a gallery the chrome's job is to say what is in the room and take you to
+ * it, and a bar of three route links is a site map for a site that is really a
+ * collection.
  *
- *   The nav used to carry the home page's section anchors as well. Those were
- *   removed on the grounds that a nav whose contents change when you change
- *   page is a nav you have to re-read every time you arrive somewhere, and
- *   that from /projects a link labelled "Approach" is not navigation but a
- *   trapdoor into another page's scroll position. What was left was "the three
- *   places the site keeps".
+ * That argument was sound and it is not what settled this. The owner has seen
+ * it running and wants a quieter chrome, which is a judgement about the thing
+ * itself rather than about the reasoning for it. Two measurements are worth
+ * keeping as the record of what "full" meant: at 1440 the eight names alone
+ * set 819px, and the first window that held the whole bar without the strip
+ * scrolling was 1336px — so on every laptop the site is actually read on, the
+ * chrome was a scroll container.
  *
- * Both of those observations are still true and neither of them was the
- * problem. The problem is that three route links are a site map, and this site
- * is not a site: it is a collection. In a gallery the chrome's job is to tell
- * you what is in the room and take you to it — so the bar carries the objects,
- * generated from the same table the plates are rendered from
- * (`nav/navIndex.ts`), with the one you are standing on marked.
+ * What went with it: `navIndex.ts` (now `navRoutes.ts`, routes only),
+ * `useCollectionIndex.ts` and `IndexLinks.tsx`. The chrome no longer reads the
+ * collection, observes the page's plates, or holds a pending cross-route jump.
  *
- * The old objection is answered rather than ignored. The index does not change
- * between pages: it is the same eight items in the same order everywhere,
- * because the collection does not change when you open a note. What changes is
- * only where a given item has to take you — the plate, if it is on this page;
- * the object's own room, if it is not. That is in `IndexLinks.tsx`.
+ * The wayfinding that goes with it, and the decision taken about it
+ * ----------------------------------------------------------------
+ * The index was also the only thing on the site telling a reader who is not
+ * looking at the screen *which object they were currently on* —
+ * `aria-current="location"` tracked through the pile by a point probe under
+ * the bar. Deleting the index deletes that, and deleting it and replacing it
+ * with nothing would be a regression for exactly one reader. Three options
+ * were open; this is the first of them, and the other two are declined for
+ * reasons rather than by omission.
  *
- * What the routes are now
- * -----------------------
- * Still here, and no longer the primary thing in the bar. They sit at the
- * leading edge in the quiet value, labelled "Home", "All work" and "All
- * notes" — see `NAV_ROUTES` for why "All", which is not a flourish but the
- * only thing separating the room called Notes from the object called Notes.
+ *   Accept it, which is what this does. Two things carried the weight and both
+ *   survive. The page's heading outline *is* the in-page index: `h1` on the
+ *   hero, `h2` per section, and an `h3` per object inside the pile (see
+ *   `nameAs` in `projects/ProjectPile.tsx`). Read off the home page it is
+ *   `h1` Yehuda Briskman, `h2` Work over an `h3` each for WindoM, Bothy,
+ *   Programming with Yehuda and Change11, then `h2` How I work, Notes, Specs
+ *   and Get in touch — which is every in-page destination the index had, in
+ *   the order the page reads, in context, and jumpable. The index's eight
+ *   items were those six plus two that were route changes to projects not on
+ *   this page at all (#45 measured them as the undifferentiated items five and
+ *   six); those are now reached through "All work", which is what a link to a
+ *   room is for. So the outline is not a reduced index — it is the same set
+ *   with the two liars taken out of it.
  *
- * What is gone
- * ------------
- * The wordmark. "Y.B." rendered above a first screen that sets the full name
- * in display type was a second, worse answer to a question the page had
- * already answered, and a monogram is the one thing in a chrome that cannot
- * say where it goes. The trip it offered is now a word in the route group.
+ *   And "where am I" is a different question for this reader than for
+ *   a sighted one: their position is the virtual cursor, which is already in
+ *   the content and already announces each heading as it passes. The strip's
+ *   marked pill answered a question about *scroll offset*, which is the
+ *   sighted reader's question — and that reader is the one the owner is making
+ *   the bar quieter for. The skip link to `#content` and the per-route title,
+ *   announcement and focus move in `RouteAnnouncer.tsx` are untouched.
  *
- * The three islands, which are one bar from edge to edge. The grid that
- * centres the index, the material that inverts over the dark act, and the
- * reason the blur came back are all in Nav.module.css, next to the rules they
- * govern.
+ *   A one-item current-section indicator in the bar is declined twice over. It
+ *   fails the brief — a word in the chrome that rewrites itself as the reader
+ *   scrolls is the loudest thing in a bar whose whole point is now to be quiet
+ *   — and it would keep the entire observer apparatus (a point probe, eleven
+ *   thresholds, a late re-read, a resize re-pick) alive to feed one span.
+ *
+ *   Moving the index into the page, at the head of the work section, is the
+ *   better design and is not refused on its merits: in context, next to the
+ *   objects it names, is where a table of contents belongs, and it is the one
+ *   option that gives something back rather than relying on what is already
+ *   there. It is not done here because it is a change to the work section,
+ *   which is being rebuilt in another branch as this is written, and because
+ *   an index of plates belongs to whoever owns the plates. If the owner wants
+ *   it, that is where it goes, and the heading outline is the floor it would
+ *   be improving on rather than a gap it would be filling.
+ *
+ * `aria-current` therefore has one meaning again, "page", which is the meaning
+ * it had before #45 gave it two. The room you are in is marked in the bar and
+ * in the sheet, and on a phone the collapsed control names it before it is
+ * touched.
  *
  * What is kept, because it was right
  * ----------------------------------
  * The disclosure that keeps everything reachable on a phone, Escape closing it
  * and handing focus back to the control that opened it, the tab trap and the
  * scroll lock while it is open, closing on a route change and on a widening
- * viewport, 44px targets throughout, and `aria-current` on where you are. The
- * last of those has grown a second meaning; see `IndexLinks.tsx`.
+ * viewport, 44px targets throughout, no wordmark, and the dark material over
+ * the one act that inverts the ground. The grid that centres the middle track
+ * and the material that inverts are in Nav.module.css, next to the rules they
+ * govern.
  */
 
 /*
@@ -79,7 +108,7 @@ import styles from "./Nav.module.css";
  * Below this the bar holds a single control and the sheet holds everything
  * else. The stylesheet hides the sheet above this width, which is what makes
  * the agreement load-bearing rather than tidy: without this query someone who
- * opened the index on a phone and then rotated it, or dragged a desktop window
+ * opened the sheet on a phone and then rotated it, or dragged a desktop window
  * wider, is looking at a page whose body is still scroll-locked by a panel
  * they can no longer see or close.
  */
@@ -96,28 +125,13 @@ const WIDE = "(min-width: 768px)";
  */
 const BAR_H = 56;
 
-/*
- * How long to keep trying to land a jump that crossed a route.
- *
- * "Contact" is the one index item with no room of its own, so from a note it
- * is a route change *and* a scroll, and the scroll cannot be done until the
- * home page has rendered the plate. The target exists on the first commit —
- * `useProjects` is seeded — so in practice this lands on the first frame; the
- * budget is for a slow commit, and it gives up rather than retrying forever,
- * because a hash that never resolves is a bug and not something to spin on.
- */
-const JUMP_FRAMES = 30;
-
 export default function Nav() {
   const { pathname } = useLocation();
   const [open, setOpen] = useState(false);
   const sheetRef = useRef<HTMLDivElement>(null);
-  const panelId = "nav-index";
+  const panelId = "nav-menu";
   const toggleRef = useRef<HTMLButtonElement>(null);
 
-  /* Which plates are on this page, and which one the reader is on. One
-     observer, no scroll listener; see the hook. */
-  const indexState = useCollectionIndex(NAV_INDEX, pathname);
   /* Whether a panel that inverts the ground is under the bar right now. */
   const dark = useDarkChrome(pathname, BAR_H);
 
@@ -130,20 +144,7 @@ export default function Nav() {
    */
   const [locale, onSelectLocale] = useLocale();
   const [motionPaused, onToggleMotion] = useMotionPaused();
-  const reduced = usePrefersReducedMotion();
   const controls: NavControls = { locale, onSelectLocale, motionPaused, onToggleMotion };
-
-  /*
-   * Whether the chrome is allowed to move.
-   *
-   * Both off-switches, composed: the OS preference is a standing answer about
-   * every site, and Pause is this reader deciding about this page. Only the
-   * index strip's own travel is governed by it — the jump itself is left to
-   * `scrollToAnchor`, which already eases or arrives by distance and by the OS
-   * preference. A smooth scroll that a reader asked for by clicking a link is
-   * not the ambient motion either switch was written about.
-   */
-  const settle = !motionPaused && !reduced;
 
   /* A sheet that survives a route change as an invisible open panel is a
      trap. */
@@ -188,11 +189,15 @@ export default function Nav() {
   /*
    * Keep Tab inside the open sheet.
    *
-   * The page behind it is scroll-locked, so without this the eighth Tab walked
+   * The page behind it is scroll-locked, so without this the last Tab walked
    * out of the sheet and into content the reader could no longer scroll to —
    * they were typing into a contact form they could not see. A dialog that
    * covers the page has to own the tab order while it is open; the scroll lock
    * on its own only makes the escape worse.
+   *
+   * The sheet is shorter than it was — three groups rather than four — and
+   * that changes nothing here, because this walks whatever is focusable inside
+   * it rather than a count of rows.
    */
   useEffect(() => {
     if (!open) return;
@@ -227,70 +232,16 @@ export default function Nav() {
   const close = () => setOpen(false);
 
   /*
-   * A jump that crossed a route, finished once the new page is on screen.
-   *
-   * Held in a ref and not in state: nothing renders differently because a jump
-   * is pending, and putting it in state would re-render the chrome twice for a
-   * value only this effect reads.
-   */
-  const pendingJump = useRef<string | null>(null);
-
-  useEffect(() => {
-    const id = pendingJump.current;
-    if (!id) return;
-    let frames = 0;
-    let raf = 0;
-    const land = () => {
-      /* `scrollToAnchor` returns false when the id is not in the document yet,
-         which is the only reason to try again — and it moves focus as well as
-         the viewport, which is the whole point of going through it. */
-      if (scrollToAnchor(id) || ++frames > JUMP_FRAMES) {
-        pendingJump.current = null;
-        return;
-      }
-      raf = requestAnimationFrame(land);
-    };
-    raf = requestAnimationFrame(land);
-    return () => cancelAnimationFrame(raf);
-  }, [pathname]);
-
-  /*
-   * `aria-current` for the routes.
+   * `aria-current` for the routes, which is the only kind of current left.
    *
    * Home is matched exactly. `startsWith("/")` is true of every path on the
    * site, so the prefix test that is right for /projects and /blog would have
-   * marked Home as current on all three.
+   * marked Home as current on all three. The prefix is also what marks the
+   * room from inside it: on /projects/icaros and on a post, "All work" and
+   * "All notes" are still where the reader is.
    */
   const routeCurrent = (to: string) =>
     (to === "/" ? pathname === "/" : pathname.startsWith(to)) ? ("page" as const) : undefined;
-
-  /*
-   * Activating an index item.
-   *
-   * Three cases, in the order they are decided:
-   *
-   *   The plate is on this page. Jump to it — and `scrollToAnchor` moves focus
-   *   onto the plate, which is the part that makes this navigation rather than
-   *   a scroll shortcut. A link that moves the viewport and leaves focus in the
-   *   bar does nothing at all for a keyboard user: their next Tab goes to the
-   *   next item in the bar, not into the thing they just asked to see. The same
-   *   audit finding retired the skip link that did this.
-   *
-   *   The object has a room of its own. Let the <Link> navigate; there is
-   *   nothing to scroll to and the new page starts at its own top.
-   *
-   *   The object is a plate on another page — Contact is the only one. Let the
-   *   <Link> navigate and remember the id, which the effect above lands once
-   *   the page has rendered.
-   */
-  const onPick = (item: NavIndexItem, e: MouseEvent<HTMLAnchorElement>) => {
-    close();
-    if (indexState.present.has(item.key)) {
-      if (scrollToAnchor(item.anchor)) e.preventDefault();
-      return;
-    }
-    if (item.away.anchor) pendingJump.current = item.away.anchor;
-  };
 
   /* Home on the home page is the shortest trip in the chrome and the one that
      most wants easing: it is a hop back to the title plate rather than a route
@@ -301,11 +252,10 @@ export default function Nav() {
     if (to === "/" && pathname === "/" && scrollToAnchor("hero")) e.preventDefault();
   };
 
-  /* What the collapsed index says it is showing. With nothing marked — at the
-     top of the page, before the first plate — it says how many objects are in
-     the room, which is the other thing an index is for. */
-  const now = NAV_INDEX.find((i) => i.key === indexState.current);
-  const nowLabel = now ? now.label : `${NAV_INDEX.length} objects`;
+  /* The room the reader is in, for the collapsed control to name. `undefined`
+     on an address that is in none of them — the 404 and the admin routes —
+     where the control drops to its one line rather than inventing a room. */
+  const here = NAV_ROUTES.find((r) => routeCurrent(r.to));
 
   return (
     <header className={styles.dock} data-material={dark ? "dark" : "paper"}>
@@ -330,26 +280,20 @@ export default function Nav() {
           </nav>
         </div>
 
-        {/* The centre track. Centred by the grid, not by a margin. */}
-        <nav className={styles.indexWrap} aria-label="Index">
-          <IndexLinks
-            items={NAV_INDEX}
-            state={indexState}
-            variant="bar"
-            settle={settle}
-            onPick={onPick}
-          />
-        </nav>
-
         {/*
-          The collapsed index, below `WIDE`, in the same track.
+          The collapsed menu, below `WIDE`, in the centre track.
 
-          No `aria-label`: the visible text is "Index" and the name of the
-          object the reader is on, and that text has to *be* the accessible
-          name — WCAG 2.5.3, Label in Name, which is what made the language
-          picker read "EN — change language" rather than "Language: English".
-          `aria-expanded` carries the open state, which is the only thing a
-          label would have had left to say.
+          It names the room you are in before it is touched, which is the one
+          piece of information a phone's bar can still give for free. That is
+          not much, and it is deliberately not a running commentary on scroll
+          position — see the head of this file.
+
+          No `aria-label`: the visible text is "Menu" and the name of the room,
+          and that text has to *be* the accessible name — WCAG 2.5.3, Label in
+          Name, which is what made the language picker read "EN — change
+          language" rather than "Language: English". `aria-expanded` carries the
+          open state, which is the only thing a label would have had left to
+          say.
         */}
         <button
           ref={toggleRef}
@@ -360,8 +304,8 @@ export default function Nav() {
           className={styles.toggle}
         >
           <span className={styles.toggleStack}>
-            <span className={styles.toggleHead}>Index</span>
-            <span className={styles.toggleNow}>{nowLabel}</span>
+            <span className={styles.toggleHead}>Menu</span>
+            {here ? <span className={styles.toggleNow}>{here.label}</span> : null}
           </span>
           <span className={styles.bars} aria-hidden="true" />
         </button>
@@ -378,29 +322,17 @@ export default function Nav() {
       </div>
 
       {/*
-        One sheet, four groups, index first.
+        One sheet, three groups, rooms first.
 
-        The order is the bar read from its centre outwards, which is also the
-        order of how much the chrome thinks each group matters: the objects in
-        the room, the rooms, off the site, and how the page behaves. Each group
-        keeps the landmark it has in the bar. Above `WIDE` the bar's own copies
-        are on screen and the sheet is `display: none`, so no landmark is ever
-        announced twice.
+        The same set the bar carries and in the same order it reads in: where
+        you can go on this site, where I am off it, and how this page behaves.
+        It was four groups with the objects at the head of it; the sheet drops
+        to the bar's set rather than keeping an index a phone would be the only
+        place left to find. Each group keeps the landmark it has in the bar.
+        Above `WIDE` the bar's own copies are on screen and the sheet is
+        `display: none`, so no landmark is ever announced twice.
       */}
       <div ref={sheetRef} id={panelId} hidden={!open} className={styles.sheet}>
-        <nav aria-label="Index">
-          <p className={styles.sheetHead}>In the room</p>
-          <IndexLinks
-            items={NAV_INDEX}
-            state={indexState}
-            variant="sheet"
-            settle={settle}
-            onPick={onPick}
-          />
-        </nav>
-
-        <div className={styles.sheetSplit} aria-hidden="true" />
-
         <nav aria-label="Pages">
           <p className={styles.sheetHead}>Pages</p>
           <ul className={styles.sheetList}>
