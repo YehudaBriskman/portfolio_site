@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildFeed,
+  buildRobots,
   buildSitemap,
   clampDescription,
   markdownToFallbackHtml,
@@ -109,6 +110,18 @@ describe("buildFeed", () => {
     const xml = buildFeed([post()]);
     expect(xml).toContain("<guid isPermaLink=\"true\">https://yehudabriskman.com/blog/a-post</guid>");
     expect(xml).toContain("<title>A post</title>");
+  });
+});
+
+describe("buildRobots", () => {
+  // nginx now serves /robots.txt from this function on every host, so the
+  // Sitemap line is the only thing telling preprod apart from production. If
+  // it ever stopped coming from SITE_URL, every host would be back to
+  // advertising production's sitemap with nothing to notice it.
+  it("names the sitemap on SITE_URL's own host and keeps /admin out", () => {
+    const txt = buildRobots();
+    expect(txt).toContain("Sitemap: https://yehudabriskman.com/sitemap.xml");
+    expect(txt).toContain("Disallow: /admin");
   });
 });
 
