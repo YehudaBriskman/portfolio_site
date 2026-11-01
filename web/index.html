@@ -1,5 +1,8 @@
 <!DOCTYPE html>
-<html lang="en">
+<!-- `dir` as well as `lang`: both are read by the stylesheet before React
+     exists, and `nav/locale.ts` rewrites the pair together when the language
+     changes. -->
+<html lang="en" dir="ltr">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -78,15 +81,34 @@
     </script>
 
     <!-- Fonts are served from this origin; see the @font-face block in
-         index.css. Preload only the two the first screen needs, so they start
-         with the HTML rather than after the stylesheet is parsed. -->
-    <link rel="preload" href="/fonts/archivo-400-900.woff2" as="font" type="font/woff2" crossorigin />
-    <!-- The mono face is used by every label on the page, but nothing in the
+         index.css. Preload only what the first screen needs, so those files
+         start with the HTML rather than after the stylesheet is parsed.
+
+         Three rather than two, because the first screen is a title plate and
+         a title plate is all three roles at once: the name in display, the
+         fact line in text, the field line in data. Archivo used to carry the
+         first two from one file, which is the only reason two preloads ever
+         covered it.
+
+         Preloaded bytes still go down: 90,104 + 14,708 = 104,812 before,
+         13,816 + 51,532 + 18,032 = 83,380 now. Four more requests on the
+         first screen would not be, which is why comic-relief-700 — reached
+         only by emphasis inside prose — is not here.
+
+         English only, and that is a limitation rather than an oversight. The
+         language is chosen at runtime by `nav/locale.ts`, so a static
+         preload cannot know it; preloading both languages would make every
+         English reader pay for Hebrew they will never see. The Hebrew files
+         start when the stylesheet resolves, which is what every font on this
+         site did before the first preload was added. -->
+    <link rel="preload" href="/fonts/audiowide-400.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/jim-nightshade-400.woff2" as="font" type="font/woff2" crossorigin />
+    <!-- The data face is used by every label on the page, but nothing in the
          HTML references it — it is reached only once React has rendered, so
          it was starting 2127ms in, behind the bundle, and finishing after
          2836ms. That is a half-second of labels in the fallback face on a
          throttled connection. -->
-    <link rel="preload" href="/fonts/ibm-plex-mono-400.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/comic-relief-400.woff2" as="font" type="font/woff2" crossorigin />
   </head>
   <body>
     <div id="root"></div>

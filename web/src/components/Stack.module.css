@@ -108,15 +108,33 @@
   display: flex;
   align-items: baseline;
   gap: 0.2em;
-  font-family: "Archivo", ui-sans-serif, system-ui, sans-serif;
-  font-variation-settings: "wdth" 112;
-  font-weight: 800;
+  font-family: var(--font-display);
+  font-weight: var(--weight-display);
   color: rgb(var(--ink));
   /*
-   * Without this the plate twitches while it counts: proportional digits are
-   * not the same width, so `1` to `2` is a few pixels of movement and `9` to
-   * `10` is a jump. Tabular figures make every digit the same box, which is
-   * the whole reason the feature exists.
+   * THIS DECLARATION NO LONGER WORKS IN ENGLISH, AND THE COUNT JITTERS.
+   *
+   * `tabular-nums` asks for the OpenType `tnum` feature. A face that does
+   * not ship the feature ignores the request silently, and the plate then
+   * counts up in whatever widths its digits happen to be drawn at.
+   *
+   * Measured in the DOM — a real span, laid out by the engine, with and
+   * without the declaration; see scripts/fontwork/ramp-probe.mjs and the
+   * specimen in docs/type-specimen. At this step's 100.8px, widest digit
+   * advance less narrowest, with tabular-nums asked for:
+   *
+   *   Archivo (what this was)      0.0px   tnum present
+   *   IBM Plex Mono                0.0px   monospaced anyway
+   *   Rubik Glitch  (Hebrew)       0.0px   tnum present
+   *   Audiowide     (English)     57.5px   NO tnum: '1' is 35.7px, '0' 93.3px
+   *
+   * So the Hebrew plate is steady and the English plate is not: every figure
+   * that passes a 1 on its way up loses 57.5px of width and gets it back,
+   * four times on one screen. `.count` below reserves the final width, so
+   * nothing *around* the number moves and this reads as the digits breathing
+   * rather than as the layout tearing — but it is still the thing the
+   * declaration was put here to prevent. The fix is a display face with
+   * tnum, which is the owner's call and not this file's.
    */
   font-variant-numeric: tabular-nums;
 
@@ -136,6 +154,13 @@
  * run one character narrower than it ends. Reserving the final width here is
  * what keeps the unit beside it, and the caption under it, still — the number
  * grows into a box that was already the right size.
+ *
+ * It is also what contains the damage from the note on `.figure` above. `1ch`
+ * is the advance of the zero, and in Audiowide the zero is the *widest* digit
+ * (0.925em against the one's 0.354em), so the reserved box is wider than any
+ * number that can appear in it. The digits move inside the box; the box does
+ * not move. That is luck rather than design — a face whose zero is narrow
+ * would let the count push the unit sideways as well.
  */
 .count {
   display: inline-block;
@@ -153,7 +178,7 @@
  */
 .unit {
   font-size: 0.32em;
-  font-weight: 500;
+  font-weight: var(--weight-display);
   letter-spacing: var(--track-sub);
   color: rgb(var(--ink-soft));
 }
@@ -169,8 +194,8 @@
  * captions and every field line on the site are the same voice.
  */
 .caption {
-  font-family: "IBM Plex Mono", ui-monospace, monospace;
-  font-weight: 400;
+  font-family: var(--font-data);
+  font-weight: var(--weight-data);
   text-transform: uppercase;
   color: rgb(var(--ink-soft));
 }

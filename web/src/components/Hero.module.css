@@ -180,18 +180,27 @@
  * Why a type step is needed at all
  * --------------------------------
  * `text-hero` is `min(11vw, 21vh, 9rem)`, and the plate scale sets the name in
- * Archivo at wdth 125 / weight 900 / uppercase, where it is wide: "BRISKMAN"
- * alone measures 7.12em, and "YEHUDA BRISKMAN" roughly 13.7em. A single
- * viewport-width headline has no idea how many words it is setting, so it keeps
- * its proportion of the screen and lets the name find however many lines it
- * needs — which on a phone is where a long name goes to three, four, five lines
- * and the plate stops being a plate and becomes the page.
+ * the display role, uppercase, where it is wide. A single viewport-width
+ * headline has no idea how many words it is setting, so it keeps its
+ * proportion of the screen and lets the name find however many lines it needs
+ * — which on a phone is where a long name goes to three, four, five lines and
+ * the plate stops being a plate and becomes the page.
  *
  * Measured at 390px with the gutter taken off, there is about 350px of content
- * to set in. At 11vw (42.9px) "BRISKMAN" needs 305px of it, so the name sets as
- * two lines filling the column edge to edge with no air at either side, and the
- * fact line and the field line under it are left looking like a footnote to a
- * poster. At the step below — about 37px on the same screen — the name is still
+ * to set in. At 11vw (42.9px) and the shipped tracking, re-measured in the DOM
+ * by scripts/fontwork/strings.mjs:
+ *
+ *                            BRISKMAN    YEHUDA BRISKMAN
+ *   Archivo wdth 125/900     6.92em      12.56em      (297px / 539px)
+ *   Audiowide -0.030em       5.91em      10.90em      (254px / 468px)
+ *   Rubik Glitch 0           5.59em      10.12em      (240px / 434px)
+ *
+ * Audiowide is a narrower drawing than Archivo was at wdth 125, which takes
+ * the one-word case off the edge of the column — but the name this plate
+ * actually sets is the full one, and at 468px against 350px it is still two
+ * lines filling the column edge to edge with no air at either side, with the
+ * fact line and the field line under it looking like a footnote to a poster.
+ * At the step below — about 37px on the same screen — the name is still
  * unmistakably the largest thing on the page, the two lines have a margin to
  * sit in, and the three parts read as one label again.
  *
@@ -204,6 +213,12 @@
  * 700px is where `11vw` crosses 77px, which is the width at which the longest
  * line of the name stops having room to spare. It is a fact about this name in
  * this face rather than a device class, so it is written as the number it is.
+ * It was derived for Archivo, where "BRISKMAN" at 77px is 533px inside a
+ * 658px column; in Audiowide the same line is 455px, so the breakpoint is now
+ * conservative rather than exact. Left where it is deliberately — moving a
+ * threshold because the face got narrower buys a slightly larger name on a
+ * 650px window and risks the long name on every screen below it, and the
+ * number above is what a later pass would need to re-derive it.
  * The rung itself belongs in the type ramp in `tailwind.config.ts`, where
  * `text-hero` carries its tracking and its leading; that step does not exist
  * yet, and adding it is not this file's to do.

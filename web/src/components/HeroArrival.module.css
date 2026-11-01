@@ -373,15 +373,21 @@
  * a clip rather than as an opaque sibling — all three take the first screen's
  * paint candidate out of the running until the animation ends.
  *
- * **The name's variable axes.** Archivo is a variable font and the obvious
- * reading of a name taking shape is `font-variation-settings` travelling
- * from a lighter, narrower setting to wdth 125 / weight 900. It animates, it
- * looks good for about four frames, and it reflows the largest element on the
- * screen on every one of them: the name's advance width changes, `text-wrap:
- * balance` rebreaks the line under it, and on a phone the plate shifts
- * through two and three lines on the way to its final setting. Layout shift
- * on the first screen is not a cost this effect could ever earn back. Same
- * verdict, same reason, for `letter-spacing` and for any `text-indent`.
+ * **Animating the name's width or weight.** Worth recording because it was
+ * rejected on its merits before it became impossible. The display face was
+ * Archivo, which is variable, and the obvious reading of a name taking shape
+ * is `font-variation-settings` travelling from a lighter, narrower setting
+ * to wdth 125 / weight 900. It animates, it looks good for about four
+ * frames, and it reflows the largest element on the screen on every one of
+ * them: the name's advance width changes, `text-wrap: balance` rebreaks the
+ * line under it, and on a phone the plate shifts through two and three lines
+ * on the way to its final setting. Layout shift on the first screen is not a
+ * cost this effect could ever earn back.
+ *
+ * The display face is Audiowide now and ships one weight with no axes at
+ * all, so there is nothing left to animate — but the verdict is the one that
+ * matters, because it is the same verdict, for the same reason, for
+ * `letter-spacing` and for any `text-indent`, and both of those still work.
  *
  * **A wipe along the fact line.** A soft mask travelling left to right across
  * the sentence reads as a hand writing it. It is wrong twice over.

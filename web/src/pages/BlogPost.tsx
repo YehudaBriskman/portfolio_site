@@ -132,7 +132,13 @@ const markdown: Components = {
         /* Focusable because it scrolls: a keyboard-only reader has no other
            way to reach the right-hand end of a long line. */
         tabIndex={0}
-        className={`not-prose ${FULL_WIDTH} my-9 overflow-x-auto border-y border-edge bg-bitumen px-5 py-4 font-mono text-[0.8125rem] leading-[1.65] text-bone/90 [scrollbar-width:thin] sm:rounded-[var(--r-lg)] sm:border sm:text-[0.875rem] ${className}`}
+        /* `font-code`, not `font-mono`. The data role used to be IBM Plex
+           Mono and a code block could reach a monospace by asking for the
+           role; it is a proportional casual face in both languages now, and
+           a fenced sample set in one is a column of characters that do not
+           line up. `font-code` is the generic monospace and names no
+           webfont — see the token block in index.css. */
+        className={`not-prose ${FULL_WIDTH} my-9 overflow-x-auto border-y border-edge bg-bitumen px-5 py-4 font-code text-[0.8125rem] leading-[1.65] text-bone/90 [scrollbar-width:thin] sm:rounded-[var(--r-lg)] sm:border sm:text-[0.875rem] ${className}`}
       >
         {children}
       </pre>
@@ -251,6 +257,11 @@ const PROSE = [
   "prose-blockquote:bg-white/60 prose-blockquote:px-6 prose-blockquote:py-5",
   "prose-blockquote:text-bone",
   "[&_blockquote_p:first-of-type]:before:content-none [&_blockquote_p:last-of-type]:after:content-none",
+  // `font-code` for the same reason the <pre> above takes it: an inline code
+  // span is a literal, and a literal set in a handwriting face stops reading
+  // as one. Tailwind Typography's own default for `code` is the theme's
+  // `mono`, which is the data role now, so this has to be stated.
+  "prose-code:font-code",
   "prose-code:rounded-[var(--r-sm)] prose-code:border prose-code:border-ridge prose-code:bg-white/60",
   // Bone, matching the code blocks: see CodeHighlight, where the whole theme
   // was re-keyed to bone and weight so a fenced sample and an inline span now

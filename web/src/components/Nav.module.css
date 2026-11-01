@@ -338,8 +338,8 @@
 /*
  * The chrome's voice for anything you can go to.
  *
- * Not 12px mono capitals, which is what every destination in the chrome used
- * to be. That setting is the site's field line — the `FIELD · FIELD` row at
+ * Not 12px letterspaced capitals in the data role, which is what every
+ * destination in the chrome used to be. That setting is the site's field line — the `FIELD · FIELD` row at
  * the foot of an object's label, dates, eyebrows — and under the label schema
  * it means something specific: a spec. Setting the navigation in it says the
  * chrome is a datasheet about the site. It is also 12px of letterspaced
@@ -360,7 +360,7 @@
      air at each end and the whole row still reads as one line. */
   min-height: 44px;
   border-radius: var(--r-pill);
-  font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-text);
   font-size: clamp(1rem, 1.4vw, 1.125rem);
   letter-spacing: var(--track-body);
   line-height: 1.2;
@@ -402,7 +402,7 @@
 .route {
   padding-inline: 10px;
   color: rgb(var(--ink-soft));
-  font-weight: 400;
+  font-weight: var(--weight-text);
 }
 
 .route[aria-current] {
@@ -579,7 +579,7 @@
 }
 
 .toggleHead {
-  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-family: var(--font-data);
   font-size: 0.6875rem;
   letter-spacing: var(--track-field);
   text-transform: uppercase;
@@ -596,7 +596,7 @@
   white-space: nowrap;
   font-size: 0.9375rem;
   line-height: 1.1;
-  font-weight: 500;
+  font-weight: var(--weight-text);
   color: rgb(var(--ink));
 }
 
@@ -708,9 +708,9 @@
 .sheetHead {
   margin: 0;
   padding: 10px 14px 4px;
-  font-family: 'IBM Plex Mono', ui-monospace, monospace;
-  /* 12px, which is the floor the type direction set for every mono label on
-     the public surface: letterspaced capitals below it are decoration you
+  font-family: var(--font-data);
+  /* 12px, which is the floor the type direction set for every label in the
+     data role on the public surface: letterspaced capitals below it are decoration you
      cannot read, and these are the group headings a phone navigates by. */
   font-size: 0.75rem;
   letter-spacing: var(--track-field);
@@ -733,7 +733,7 @@
   padding-inline: 14px;
   /* Concentric with the sheet: 32 - 6 = 26px on a 48px row. */
   border-radius: calc(var(--r-lg) - var(--sheet-inset, 6px));
-  font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-text);
   font-size: 1rem;
   letter-spacing: var(--track-body);
   color: rgb(var(--ink-soft));
@@ -834,7 +834,7 @@
   height: 38px;
   margin-block: 0;
   border-radius: var(--r-pill);
-  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-family: var(--font-data);
   font-size: 0.75rem;
   letter-spacing: var(--track-field);
   text-transform: uppercase;
@@ -908,9 +908,9 @@
 
 .menuHead.menuHead {
   padding: 6px 10px 4px;
-  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-family: var(--font-data);
   font-size: 0.75rem;
-  font-weight: 400;
+  font-weight: var(--weight-data);
   letter-spacing: var(--track-field);
   text-transform: uppercase;
   /* A group heading is text and has to clear 4.5:1 on the surface it is
@@ -933,7 +933,7 @@
   padding-right: 12px;
   /* Concentric with the menu: 22 - 6 = 16px. */
   border-radius: calc(var(--r-md) - var(--menu-inset, 6px));
-  font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-text);
   font-size: 0.9375rem;
   text-transform: none;
   letter-spacing: var(--track-body);
@@ -945,7 +945,7 @@
 }
 
 .menuNote.menuNote {
-  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-family: var(--font-data);
   font-size: 0.75rem;
   letter-spacing: var(--track-field);
   text-transform: uppercase;
@@ -972,7 +972,7 @@
      where a 14px corner is 61% of the height and reads as a capsule drawn
      badly. */
   border-radius: var(--r-pill);
-  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-family: var(--font-data);
   font-size: 0.6875rem;
   letter-spacing: var(--track-field);
   text-transform: uppercase;
