@@ -47,6 +47,12 @@ export default {
         "wash-green": rgb("--wash-green"),
         "wash-yellow": rgb("--wash-yellow"),
         "wash-purple": rgb("--wash-purple"),
+        /* The section plates. Named here so a utility can agree with a plate
+           — a card that has to sit flush on one, say — but the plates
+           themselves are painted by `.ground[data-ground]` in index.css and
+           never by a class on a section. */
+        "ground-warm": rgb("--ground-warm"),
+        "ground-cool": rgb("--ground-cool"),
         // shadcn primitives
         border: rgb("--border"),
         input: rgb("--input"),
@@ -84,7 +90,10 @@ export default {
         md: "var(--r-md)",
         lg: "var(--r-lg)",
         xl: "var(--r-xl)",
-        "2xl": "28px",
+        /* Was a hard 28px, which is off the ladder in index.css — between
+           --r-md's 22 and --r-lg's 32 — and had zero call sites, so nothing
+           on the site had ever rendered it. It is the plate rung now. */
+        "2xl": "var(--r-2xl)",
         full: "var(--r-pill)",
       },
       /*
