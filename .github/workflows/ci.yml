@@ -51,7 +51,8 @@ jobs:
             "$FRONT_DIR/Dockerfile" "$FRONT_DIR/nginx.conf.template" \
             "$BACK_DIR/package.json" "$BACK_DIR/package-lock.json" \
             "$BACK_DIR/Dockerfile" \
-            docker-compose.yml docker-compose.ci.yml
+            docker-compose.yml docker-compose.ci.yml docker-compose.dev.yml \
+            Makefile
           do
             if [ ! -f "$f" ]; then echo "::error file=$f::missing"; fail=1; fi
           done
@@ -119,11 +120,21 @@ jobs:
     needs: preflight
     steps:
       - uses: actions/checkout@v4
+      # The dev overlay is checked as an overlay, not on its own: it has no
+      # build or image for `api`, because it only adds environment to the
+      # service the base file defines. Parsed alone it is invalid, which is
+      # why it needs its own entry rather than another name in a loop — and
+      # why it went unchecked until `make up` started depending on it.
       - run: |
           set -Eeuo pipefail
-          for f in docker-compose.yml docker-compose.ci.yml; do
-            echo "::group::$f"
-            docker compose -f "$f" config >/dev/null
+          for files in \
+            "-f docker-compose.yml" \
+            "-f docker-compose.ci.yml" \
+            "-f docker-compose.yml -f docker-compose.dev.yml"
+          do
+            echo "::group::docker compose $files"
+            # shellcheck disable=SC2086
+            docker compose $files config >/dev/null
             echo "OK"
             echo "::endgroup::"
           done

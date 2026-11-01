@@ -9,7 +9,9 @@ of an Express API, each in its own container, composed together.
 ```
 web/   React + Vite + TypeScript SPA, served by nginx
 backend/                 Express + TypeScript API
+Makefile                 local: `make up`, and the rest of the day's commands
 docker-compose.yml       local: builds both images from source
+docker-compose.dev.yml   local: the content store, the mail sink, the API's env
 docker-compose.ci.yml    deploy: pulls the published images from GHCR
 ```
 
@@ -45,14 +47,30 @@ new post needs no asset work.
 ## Running it
 
 ```bash
-# everything, built from source
-docker compose up --build
+make up      # build, start, and wait until http://localhost:8080 answers
+make seed    # fixture posts, so /blog renders instead of erroring
+make down    # stop; `make clean` also drops the content store
+make         # the full list
+```
 
-# just the API
+`make up` is `docker compose -f docker-compose.yml -f docker-compose.dev.yml`
+with a readiness wait in front of it, and the compose files remain the source
+of truth — the Makefile knows nothing they do not, so running compose by hand
+still works. It is a Makefile rather than the nicer-reading `justfile` because
+`just` is a binary that has to be installed first, and `make` is not.
+
+The dev overlay supplies the three things production supplies some other way: a
+CouchDB to hold content, a mail sink so the contact form can be used without
+relaying anything anywhere, and the API's configuration. That last one matters
+more than it sounds — `backend/.env` is gitignored, the API parses its
+configuration with Zod at startup, and before the overlay carried it a clean
+checkout did not get a degraded API, it got one that exited before listening.
+
+Two services running from source, without containers:
+
+```bash
 cd backend && npm ci && npm run dev
-
-# just the site
-cd web && npm ci && npm run dev
+cd web     && npm ci && npm run dev
 ```
 
 The API reads its configuration through a Zod schema in `backend/src/env.ts`,
@@ -60,6 +78,10 @@ which fails at startup rather than at the first request if something is missing.
 `backend/.env.example` lists what it wants.
 
 ## Checks
+
+```bash
+make check   # exactly the two lines below, in order
+```
 
 ```bash
 cd web && npm run lint && npm run typecheck && npm test && npm run build

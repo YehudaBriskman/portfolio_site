@@ -1,15 +1,21 @@
-# The content store, for local work only.
+# Everything the production shape leaves to the deploy, supplied locally.
 #
 # `docker-compose.yml` is the production shape: web and api, with CouchDB
-# living wherever the deploy puts it. That is correct there and useless here —
-# a clean checkout has no content store at all, so every blog route answers
-# 500 and the entire notes surface can only ever be seen in its error state.
-# Everything built for it (syntax highlighting, the lead card, the reading
-# bar measured against the article) had shipped without anyone seeing it
-# render a real post.
+# living wherever the deploy puts it and the API's configuration arriving from
+# a secret. That is correct there and useless here — a clean checkout has no
+# content store at all, so every blog route answers 500 and the entire notes
+# surface can only ever be seen in its error state. Everything built for it
+# (syntax highlighting, the lead card, the reading bar measured against the
+# article) had shipped without anyone seeing it render a real post.
 #
-#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
-#   node backend/scripts/seed-dev-content.mjs
+# It also had no `backend/.env`, which is gitignored, and the API parses its
+# configuration with Zod at startup: a clean checkout did not get a broken
+# contact form, it got an API that exited before listening. Everything below
+# that is not CouchDB is there so `make up` works on a checkout with no files
+# anybody had to be told to create.
+#
+#   make up        # or: docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+#   make seed
 #
 # The seed is a fixture, not content: see the header of that script.
 services:
@@ -26,14 +32,63 @@ services:
       - couch-data:/opt/couchdb/data
     restart: unless-stopped
 
+  # Where local mail goes, which is nowhere.
+  #
+  # The contact form relays real SMTP in production. On a laptop it must not,
+  # and the way to guarantee that is to leave no credential around that could:
+  # the API below is pointed at this, which accepts any login and delivers
+  # nothing. The alternative — leaving SMTP_HOST unroutable — boots fine and
+  # makes the one feature with a send button permanently indistinguishable
+  # from a real outage.
+  #
+  # Same image and same two flags as the preprod namespace in the oci-free
+  # repository, deliberately: local and preprod fail the same way or not at all.
+  mail:
+    image: axllent/mailpit:v1.21
+    environment:
+      # nodemailer always sends an auth block, and a sink that rejects the
+      # login looks like a mail failure rather than a sink.
+      - MP_SMTP_AUTH_ACCEPT_ANY=true
+      - MP_SMTP_AUTH_ALLOW_INSECURE=true
+    ports:
+      # The UI. Loopback only, for the same reason CouchDB is.
+      - "127.0.0.1:8025:8025"
+    restart: unless-stopped
+
   api:
     environment:
       - PORT=5000
       - COUCHDB_URL=http://couch:5984
       - COUCHDB_USER=portfolio_api
       - COUCHDB_PASSWORD=devonly
+      # These override `backend/.env` if one exists — `environment` wins over
+      # `env_file` in Compose — and that is the intent rather than a side
+      # effect. A developer who has filled in real Gmail credentials for a
+      # production deploy should not discover them by receiving a test
+      # message from their own laptop.
+      - EMAIL_PROVIDER=smtp
+      - SMTP_HOST=mail
+      - SMTP_PORT=1025
+      - SMTP_SECURE=false
+      - SMTP_USER=dev
+      - SMTP_PASS=dev
+      # `.invalid` is reserved by RFC 2606 and resolves nowhere, so even if
+      # the sink were swapped for something real these have no destination.
+      - MAIL_FROM=noreply@localhost.invalid
+      - CONTACT_TO=contact@localhost.invalid
+      # Every absolute URL the API emits is built from SITE_URL, so locally it
+      # is the address in the browser's bar and not the live site.
+      - SITE_URL=http://localhost:8080
+      # Not the default `http://web`. In the cluster the web Service listens
+      # on 80 and forwards to 8080; under Compose there is no Service, so the
+      # container's own port is the only one there is. With the default, every
+      # SEO route fails to fetch the shell, returns 500, and nginx quietly
+      # falls back to the plain SPA — the page still loads and the head is
+      # silently the wrong one, which is the failure that is hardest to see.
+      - WEB_ORIGIN=http://web:8080
     depends_on:
       - couch
+      - mail
 
 volumes:
   couch-data:
