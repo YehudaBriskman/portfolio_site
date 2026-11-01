@@ -649,6 +649,34 @@
     }
   }
 
+  /*
+   * One sixteenth bigger on a phone, and nowhere else.
+   *
+   * 16px is the right default on a desktop, where a line of prose is read at
+   * arm's length in a 640px measure. It is a little small on a phone held
+   * closer with a 350px measure and 9 or 10 words to a line, which is what
+   * the owner reported looking at the home page on a handset.
+   *
+   * It is set on `html` rather than on `body` or on a list of components,
+   * because every size on this site is a rem or a clamp with a rem in it:
+   * moving the root moves the whole ramp in proportion and keeps every
+   * relationship in it intact. A per-component bump would be a second type
+   * scale that agrees with the first everywhere except where someone forgot.
+   *
+   * 106.25% is 17px, which is one step and deliberately not two. 18px starts
+   * breaking the name onto a third line and pushes the field line — the
+   * widest single line on the first screen — past the gutter.
+   *
+   * The viewport-relative sizes do not move at all, which is correct: the
+   * hero name is `clamp(2.4rem, 9.5vw, 4rem)`, and at 390px the 2.4rem floor
+   * is what is in effect, so the name steps with everything else. Above its
+   * crossover the vw term wins and the rung has no say, which is the right
+   * answer for type that is already measured against the screen.
+   */
+  @media (max-width: 700px) {
+    html { font-size: 106.25%; }
+  }
+
   body {
     background-color: rgb(var(--bitumen));
     color: rgb(var(--bone));

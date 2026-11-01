@@ -27,11 +27,16 @@
     <meta name="theme-color" content="#ECE8DC" />
     <meta name="color-scheme" content="light" />
 
-    <!-- No SVG icon any more. The mark is a bust cut from the portrait on the
-         first screen, and there is no tracer in this toolchain to turn a
-         photograph's alpha channel into paths — an SVG wrapping a raster is
-         the raster with extra bytes. The .ico carries 48/32/16 so the tab gets
-         a size drawn for it rather than a 512 squeezed down. -->
+    <!-- The SVG first, and it is not decoration: it is the only one of these
+         that can answer `prefers-color-scheme`. A tab strip is the one
+         surface on the web a site does not get to style and it is dark for
+         roughly half of everyone, so the mark paints ink on a light strip and
+         paper on a dark one, over a transparent ground in both. The .ico is
+         the fallback for Safari and for anything that ignores the SVG, and it
+         carries 48/32/16 so the tab gets a size drawn for it rather than a
+         512 squeezed down. Both are the same bust; see the note in
+         favicon.svg for why it is an inverted bitmap and not a traced path. -->
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="icon" href="/favicon.ico" sizes="48x48 32x32 16x16" />
     <link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
