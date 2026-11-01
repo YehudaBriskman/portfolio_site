@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import Contact from "@/components/Contact";
 import { ContactSchema, sendContactMessage } from "@/services/contact";
@@ -16,6 +16,48 @@ vi.mock("@/services/contact", async (importOriginal) => {
 
 const send = vi.mocked(sendContactMessage);
 
+/*
+ * jsdom implements the `<dialog>` element's `open` attribute and none of its
+ * behaviour — no `showModal`, no `close`, no top layer, no Escape. So the
+ * methods are installed here, with the two side effects the component actually
+ * depends on: the attribute, and the `close` event every route out ends at.
+ *
+ * This is a shim and not a mock of the component's own code. Without it the
+ * tests would exercise the no-`showModal` fallback branch and prove nothing
+ * about the path that ships, and `vi.spyOn` would have nothing to attach to.
+ * What the shim cannot supply — focus trapping, the inert background, Escape —
+ * is the half of this feature that was moved onto the platform precisely so
+ * that it is not ours to test; it is measured in a real browser instead.
+ */
+beforeAll(() => {
+  HTMLDialogElement.prototype.show = function show(this: HTMLDialogElement) {
+    this.setAttribute("open", "");
+  };
+  HTMLDialogElement.prototype.showModal = function showModal(this: HTMLDialogElement) {
+    this.setAttribute("open", "");
+  };
+  HTMLDialogElement.prototype.close = function close(this: HTMLDialogElement) {
+    this.removeAttribute("open");
+    this.dispatchEvent(new Event("close"));
+  };
+});
+
+const dialog = () => {
+  const el = document.querySelector("dialog");
+  if (!el) throw new Error("the section rendered no dialog element");
+  return el;
+};
+
+const trigger = () => screen.getByRole("button", { name: /^write a message/i });
+
+/** Render the section and ask for the form, which is where every test about a
+ *  field has to start now that the form is behind a button. */
+async function openDialog() {
+  render(<Contact />);
+  await userEvent.click(trigger());
+  return dialog();
+}
+
 /** A message that passes the schema, so a test about the send is not quietly
  *  a test about validation. */
 async function fillIn() {
@@ -28,8 +70,8 @@ async function fillIn() {
 }
 
 /*
- * What is worth testing here is not the markup — it is the four promises the
- * close makes, each of which has a specific way of being broken silently.
+ * What is worth testing here is not the markup — it is the promises the close
+ * makes, each of which has a specific way of being broken silently.
  */
 describe("Contact", () => {
   beforeEach(() => {
@@ -52,12 +94,124 @@ describe("Contact", () => {
     expect(fields).toEqual(["GitHub", "LinkedIn", "Usually within a day"]);
   });
 
-  it("has both live regions in the DOM before anything is submitted", () => {
+  it("is a plate and one button, with the form out of the initial render path", () => {
     render(<Contact />);
 
-    /* The whole point of the two regions: a screen reader subscribes to what
-       was there when the page loaded. Creating either of them along with its
-       first message loses the announcement in exactly the case it exists for. */
+    /* The dialog element is in the document from the first render and empty,
+       which is what makes the live regions inside it correct when they arrive:
+       they are there from the only "first paint" a reader of this dialog ever
+       sees. Nothing of the form is. */
+    expect(dialog()).toBeInTheDocument();
+    expect(dialog()).not.toHaveAttribute("open");
+    expect(dialog()).toBeEmptyDOMElement();
+    expect(screen.queryByLabelText("Name")).not.toBeInTheDocument();
+    expect(screen.queryByRole("form")).not.toBeInTheDocument();
+  });
+
+  it("opens as a modal, with nothing hand-rolled on top of it", async () => {
+    const showModal = vi.spyOn(HTMLDialogElement.prototype, "showModal");
+    const show = vi.spyOn(HTMLDialogElement.prototype, "show");
+
+    await openDialog();
+
+    /* `showModal` and not `show`. The second one gives the top layer and none
+       of the focus trapping, the inert background or the Escape handling —
+       which is the trap that looks like the same call. */
+    expect(showModal).toHaveBeenCalledTimes(1);
+    expect(show).not.toHaveBeenCalled();
+    expect(dialog()).toHaveAttribute("open");
+
+    /* Restored here rather than left to a global `restoreMocks`: these two
+       spies sit on a prototype every other test in this file uses. */
+    showModal.mockRestore();
+    show.mockRestore();
+  });
+
+  it("puts focus on the first field when it opens", async () => {
+    await openDialog();
+
+    /* Explicitly, after the element is showing — not with `autoFocus`, which
+       React applies on mount, in the same commit, before `showModal` has put
+       the element in the top layer. */
+    expect(screen.getByLabelText("Name")).toHaveFocus();
+  });
+
+  it("returns focus to the trigger however it was closed", async () => {
+    await openDialog();
+    await userEvent.click(screen.getByRole("button", { name: "Close" }));
+
+    expect(dialog()).not.toHaveAttribute("open");
+    expect(trigger()).toHaveFocus();
+  });
+
+  it("returns focus to the trigger on a close it did not initiate", async () => {
+    await openDialog();
+
+    /*
+     * Escape, as far as this component can see it. The keystroke is the
+     * browser's to handle and jsdom does not implement it at all, so what is
+     * pinned here is the only trace Escape leaves behind: the element's own
+     * `close` event, fired without anything in React having asked for it. One
+     * listener on that event is why the four routes out — Escape, the close
+     * button, the backdrop and a programmatic close — all return focus in one
+     * place instead of in four, and Escape is the one that would have been
+     * forgotten.
+     */
+    fireEvent(dialog(), new Event("close"));
+
+    expect(trigger()).toHaveFocus();
+  });
+
+  it("keeps every word, and the dialog, when the send fails", async () => {
+    send.mockRejectedValue(new Error("the mail host refused the connection"));
+    await openDialog();
+    await fillIn();
+
+    await userEvent.click(screen.getByRole("button", { name: /send message/i }));
+
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Nothing was sent"));
+
+    /* The one thing a reader cannot recover is the paragraph they just wrote —
+       and a dialog that shuts itself on a failure has thrown away the only copy
+       of the message it was asked to deliver. */
+    expect(dialog()).toHaveAttribute("open");
+    expect(screen.getByLabelText("Name")).toHaveValue("Dana Levi");
+    expect(screen.getByLabelText("Email")).toHaveValue("dana@example.com");
+    expect(screen.getByLabelText("Message")).toHaveValue(
+      "I read the note on sticky timelines and have a question about it."
+    );
+    expect(screen.getByRole("status")).toHaveTextContent("");
+  });
+
+  it("keeps a closed dialog's fields, so one stray Escape costs nothing", async () => {
+    await openDialog();
+    await userEvent.type(screen.getByLabelText("Name"), "Dana Levi");
+
+    await userEvent.click(screen.getByRole("button", { name: "Close" }));
+    await userEvent.click(trigger());
+
+    /* Escape is a single keystroke and easy to hit by accident. If closing the
+       dialog unmounted the fields, that keystroke would throw away the
+       paragraph the reader had just written. */
+    expect(screen.getByLabelText("Name")).toHaveValue("Dana Levi");
+  });
+
+  it("has both live regions in the dialog's subtree before anything is submitted", () => {
+    render(<Contact />);
+
+    /* Neither region exists before the dialog does, and that is the point: a
+       screen reader subscribes to what was in the subtree when the subtree
+       appeared, and this subtree appears the moment the reader asks for it.
+       There is no spare time in which a region could be added later, so a
+       region created along with its first message loses the announcement in
+       exactly the case it exists for. */
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("has both live regions in the DOM before anything is submitted", async () => {
+    await openDialog();
+
     expect(screen.getByRole("status")).toBeInTheDocument();
     expect(screen.getByRole("alert")).toBeInTheDocument();
     expect(screen.getByRole("status")).toHaveTextContent("");
@@ -65,7 +219,7 @@ describe("Contact", () => {
 
   it("puts the confirmation inside the live region, not merely on the page", async () => {
     send.mockResolvedValue(true);
-    render(<Contact />);
+    await openDialog();
     await fillIn();
 
     await userEvent.click(screen.getByRole("button", { name: /send message/i }));
@@ -80,26 +234,27 @@ describe("Contact", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("");
   });
 
-  it("leaves every word in the fields when the send fails", async () => {
-    send.mockRejectedValue(new Error("the mail host refused the connection"));
-    render(<Contact />);
+  it("does not close itself on a successful send", async () => {
+    send.mockResolvedValue(true);
+    await openDialog();
     await fillIn();
 
     await userEvent.click(screen.getByRole("button", { name: /send message/i }));
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Sent."));
 
-    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Nothing was sent"));
-    /* The one thing a reader cannot recover is the paragraph they just wrote. */
-    expect(screen.getByLabelText("Name")).toHaveValue("Dana Levi");
-    expect(screen.getByLabelText("Email")).toHaveValue("dana@example.com");
-    expect(screen.getByLabelText("Message")).toHaveValue(
-      "I read the note on sticky timelines and have a question about it."
-    );
-    expect(screen.getByRole("status")).toHaveTextContent("");
+    /*
+     * The one rule this section inherited from the cut plan: the confirmation
+     * lands before or with any exit motion, never after it. A dialog that
+     * closed itself on send would be exit motion racing an announcement that
+     * had just been queued, in a subtree about to leave the accessibility tree.
+     * Nothing in this section exits, which is what makes the rule structural.
+     */
+    expect(dialog()).toHaveAttribute("open");
   });
 
   it("marks the resolution on the form in the same commit as the receipt", async () => {
     send.mockResolvedValue(true);
-    render(<Contact />);
+    await openDialog();
     await fillIn();
 
     const form = screen.getByRole("form", { name: "Send a message" });
@@ -119,9 +274,33 @@ describe("Contact", () => {
     expect(screen.getByRole("status")).toHaveTextContent("Sent.");
   });
 
+  it("leaves a statement where the ask was, so the section resolves", async () => {
+    send.mockResolvedValue(true);
+    await openDialog();
+    await fillIn();
+
+    await userEvent.click(screen.getByRole("button", { name: /send message/i }));
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Sent."));
+
+    await userEvent.click(screen.getByRole("button", { name: "Close" }));
+
+    /*
+     * Closing a dialog that has just said "sent" must not return the reader to
+     * the exact page they started on — that is the "looks like it ate the
+     * message" failure arriving one step later than it used to. The statement
+     * outlives the dialog's status, and the trigger is demoted to a second
+     * message rather than still asking for a first one.
+     */
+    expect(dialog()).not.toHaveAttribute("open");
+    expect(screen.getByText("Sent. I’ll reply to the address you gave.")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /write another message/i })
+    ).toBeInTheDocument();
+  });
+
   it("does not resolve anything when the send failed", async () => {
     send.mockRejectedValue(new Error("the mail host refused the connection"));
-    render(<Contact />);
+    await openDialog();
     await fillIn();
 
     await userEvent.click(screen.getByRole("button", { name: /send message/i }));
@@ -130,10 +309,11 @@ describe("Contact", () => {
     /* A closing gesture on a message that never left is the page congratulating
        itself for losing it. */
     expect(screen.getByRole("form", { name: "Send a message" })).not.toHaveAttribute("data-sent");
+    expect(screen.queryByText("Sent. I’ll reply to the address you gave.")).not.toBeInTheDocument();
   });
 
-  it("gives every field its own ink strip, and keeps all three out of the a11y tree", () => {
-    render(<Contact />);
+  it("gives every field its own ink strip, and keeps all three out of the a11y tree", async () => {
+    await openDialog();
 
     /* One decorative strip per field, directly after the control it belongs to.
        The only reason they are elements at all is that `input` and `textarea`
@@ -147,8 +327,8 @@ describe("Contact", () => {
     }
   });
 
-  it("keeps the email field's native constraints in step with the schema", () => {
-    render(<Contact />);
+  it("keeps the email field's native constraints in step with the schema", async () => {
+    await openDialog();
     const email = screen.getByLabelText("Email");
     const pattern = email.getAttribute("pattern");
     expect(pattern).toBeTruthy();
@@ -173,8 +353,8 @@ describe("Contact", () => {
     }
   });
 
-  it("keeps a real label bound to every control", () => {
-    render(<Contact />);
+  it("keeps a real label bound to every control", async () => {
+    await openDialog();
 
     /* The regression this exists to catch is a ruled line with a placeholder
        in it: the name disappears the moment anything is typed, which is exactly
@@ -189,7 +369,7 @@ describe("Contact", () => {
   });
 
   it("names the field that is wrong, in text, and sends nothing", async () => {
-    render(<Contact />);
+    await openDialog();
 
     await userEvent.type(screen.getByLabelText("Name"), "D");
     await userEvent.type(screen.getByLabelText("Email"), "not-an-address");
@@ -197,6 +377,9 @@ describe("Contact", () => {
 
     expect(send).not.toHaveBeenCalled();
     expect(screen.getByRole("alert")).toHaveTextContent("Nothing was sent");
+    /* And it stays open, or the notes it has just drawn are notes nobody can
+       read. */
+    expect(dialog()).toHaveAttribute("open");
 
     /* The error is text and it is tied to its field. Colour carries none of
        this, which is why the test can read it at all. */
@@ -207,5 +390,16 @@ describe("Contact", () => {
     expect(document.getElementById(describedBy ?? "")).toHaveTextContent(
       "That email address doesn't look right"
     );
+  });
+
+  it("names the dialog with the heading the reader can see", async () => {
+    await openDialog();
+
+    /* `aria-labelledby` and not `aria-label`: the name read out on the way in
+       is the heading on the screen, which is the cheapest way to make a dialog
+       feel like the thing that was pressed rather than a new place. */
+    const labelledBy = dialog().getAttribute("aria-labelledby");
+    expect(labelledBy).toBeTruthy();
+    expect(document.getElementById(labelledBy ?? "")).toHaveTextContent("Write a message");
   });
 });
