@@ -78,8 +78,61 @@ describe("cityPlan", () => {
   });
 
   it("takes a column's height from its own count against the busiest day", () => {
+    /* `sqrt(count / max)`, deliberately not `count / max` — see the
+       measurement at the top of `cityPlan.ts`. Asserted as literal values
+       rather than through the formula, so that a change to the mapping has to
+       be made here on purpose, with the numbers in front of whoever makes it. */
     const plan = cityPlan(year(run("2026-01-04", [0, 5, 10, 2])));
-    expect(plan.cells.map((c) => c.rise)).toEqual([0, 0.5, 1, 0.2]);
+    expect(plan.cells.map((c) => c.rise)).toEqual([0, 0.707, 1, 0.447]);
+  });
+
+  it("is not a ratio, and is not allowed to drift back into one", () => {
+    /* Half the height is a quarter of the work. This is the cost the square
+       root buys legibility with, and it is stated as a test because it is the
+       one property of this chart a reader could be misled by — the comment
+       that warns them is in `cityPlan.ts` and in the component. */
+    const plan = cityPlan(year(run("2026-01-04", [100, 25])));
+    expect(plan.cells[1].rise).toBe(0.5);
+  });
+
+  it("leaves the busiest day alone at full height", () => {
+    /* The property that ruled out dividing by a percentile and clamping.
+       Against the real year's top five counts, a 95th-percentile divisor puts
+       five days on 1.0 together and the busiest day — the one the caption
+       names by date — stops being the tallest column in its own chart. */
+    const plan = cityPlan(year(run("2026-01-04", [96, 107, 148, 156, 172])));
+    expect(plan.cells.filter((c) => c.rise >= 1)).toHaveLength(1);
+    expect(plan.busiest?.count).toBe(172);
+  });
+
+  it("gives every distinct count its own height, which five buckets would not", () => {
+    /* The property that ruled out quartile buckets for the height. The colour
+       is already cut on those quartiles; a bucketed height would carry the
+       same information cut at the same three numbers, and the chart would have
+       one encoding drawn twice instead of two at different resolutions. */
+    const counts = [0, 1, 2, 3, 4, 8, 16, 17, 27, 34, 50, 96, 172];
+    const plan = cityPlan(year(run("2026-01-04", counts)));
+    expect(new Set(plan.cells.map((c) => c.rise)).size).toBe(counts.length);
+  });
+
+  it("keeps an ordinary day of a bursty year off the ground", () => {
+    /*
+     * The failure this mapping exists to fix, in the shape it was measured in:
+     * 365 days, 82 of them active, busiest 172, ordinary active day 16. Under
+     * `count / max` a 16-contribution day came out at 0.093 — 0.2px of lift at
+     * the phone storey, which is a day of real work drawn as paving.
+     *
+     * The two assertions are the acceptance criterion. Nothing below 0.05 but
+     * the days that are genuinely empty, and an ordinary day standing at
+     * roughly a third of the tallest column rather than a tenth of it.
+     */
+    const counts = [172, ...Array<number>(81).fill(16), ...Array<number>(283).fill(0)];
+    const plan = cityPlan(year(run("2025-11-02", counts)));
+
+    const flat = plan.cells.filter((c) => c.rise < 0.05);
+    expect(flat).toHaveLength(283);
+    expect(flat.every((c) => c.count === 0)).toBe(true);
+    expect(plan.cells[1].rise).toBeGreaterThan(0.3);
   });
 
   it("gives an empty day no height and no band", () => {

@@ -174,7 +174,11 @@ export default function ContributionCity() {
 
                     `--city-rise` is the day's own height, the only
                     per-element value in the whole scene and the reason the
-                    stylesheet needs one keyframe rather than 365.
+                    stylesheet needs one keyframe rather than 365. It is
+                    `sqrt(count / busiest)` and NOT a proportion of the
+                    busiest day — two columns are not a ratio, which is a
+                    thing a reader is owed and the measurement behind it is
+                    in `cityPlan.ts`.
 
                     `gridRowStart` puts the first day on its own weekday. The
                     other 364 flow from it; writing it on every cell would be
