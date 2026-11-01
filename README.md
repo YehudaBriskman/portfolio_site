@@ -80,22 +80,51 @@ node.
 
 ## How it reaches production
 
-A push to `main` builds both images, publishes them to GHCR multi-arch, and
-rolls them out — `kubectl set image` against the commit sha, so what is running
-is always a commit somebody can check out.
+Merging does not ship. A push to `main` is built, tested, and published to
+GHCR under its commit sha — so every commit on `main` is deployable — but
+nothing reaches the site until somebody tags it.
+
+```sh
+git tag -a v1.2.0 -m "what changed"
+git push origin v1.2.0
+```
 
 ```
-push to main ──▶ build + test ──▶ ghcr.io/…/{web,api}:<sha> ──▶ kubectl set image
-                                                                      │
-                                                 rollout status ──▶ curl the site
-                                                                      │
-                                                        not 200? ──▶ rollout undo
+push to main ──▶ build + test ──▶ ghcr.io/…:<sha>                (no deploy)
+
+push a tag   ──▶ build + test ──▶ ghcr.io/…:<sha>, :<tag>, :latest
+                                        │
+                              kubectl set image <sha>
+                                        │
+                        rollout status ──▶ curl the site
+                                        │
+                               not 200? ──▶ rollout undo
 ```
+
+Three things follow from the split, and each is the reason for it:
+
+**Releasing is a decision.** `main` stays continuously integrated rather than
+continuously released, and a rollback has a name — `v1.2.0` is something you
+can redeploy, where "the commit before last Tuesday's merge" is something you
+have to go and find.
+
+**`:latest` means the last release**, not the last merge. The k8s manifest
+carries `:latest` as the tag a fresh `kubectl apply` lands on, so while it
+moved on every merge an apply between releases would have quietly deployed
+unreleased code.
+
+**The rollout runs on the sha, not the tag.** A sha cannot move and a git tag
+can. The version is written on as an annotation, so `kubectl describe deploy`
+still answers "which release is live" without mapping hex back to a name.
+
+The release tags are aliases rather than rebuilds — `imagetools create` points
+new tags at the manifest that already passed, so what ships is the exact bytes
+that were tested.
 
 The cluster's API server is not reachable from the internet and is not going to
-be, so the runner joins the tailnet for the length of the job with an ephemeral
-node. Setup — three repository secrets and one cluster secret — is in the
-`oci-free` README next to the manifests.
+be, so the runner joins the tailnet for the length of the job. Setup — three
+repository secrets and one cluster secret — is in the `oci-free` README next to
+the manifests.
 
 This replaced `deploy-portfolio.sh`, which rsynced a laptop's working directory
 to the node and built it there. That could put code on the live site that was
