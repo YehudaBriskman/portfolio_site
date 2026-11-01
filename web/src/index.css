@@ -186,8 +186,94 @@
     --paper:    236 232 220;   /* #ECE8DC  the ground */
     --paper-2:  228 223 209;   /* #E4DFD1  a raised surface on it */
     --paper-3:  216 210 194;   /* #D8D2C2  a recessed one */
-    --ink:       20  19  15;   /* #14130F  primary type. 15.6:1 on paper. */
-    --ink-soft:  85  82  74;   /* #55524A  secondary type. 6.9:1. */
+
+    /*
+     * ──────────────────────────────────────────────────────────────────
+     * The ground scale, and the decision it reverses.
+     * ──────────────────────────────────────────────────────────────────
+     * THIS OVERRIDES "white walls, coloured paintings" BELOW. The owner asked
+     * for it in #84, in one breath: "add soft colors to the bg's like in the
+     * hero section and behind objects and titles, separation between sections
+     * with different colours also to be more circled and not so flat, add
+     * shadows and weight". It is their call and it is not argued here. What
+     * the flat system bought is written down anyway, because this repo's
+     * convention is that overridden reasoning stays legible — a future reader
+     * should see a trade, not an oversight.
+     *
+     * What one ground bought
+     *   A project's own sampled tint (`tint` in data/projects.ts) was the only
+     *   unregistered colour on the page, so it was automatically the most
+     *   saturated thing on it and no section could compete with the work
+     *   inside it. And every text ratio in this block was a single number,
+     *   measured once against --paper, true wherever the text went.
+     *
+     * What is traded for the plates
+     *   Three grounds instead of one, so every text ratio is three numbers —
+     *   the table below — and anything that travels between sections has to
+     *   hold on the worst of them. The gallery claim now rests on these tints
+     *   staying weak: four and five points of luminance off paper, with no
+     *   chroma a reader would name as a colour. That is the discipline that
+     *   keeps a project's tint the loudest thing on the page. A third tint, or
+     *   a stronger one, spends it.
+     *
+     * Both are mixes of --paper toward a wash that already exists rather than
+     * new hues: warm is paper 40% toward --wash-yellow, cool is paper 85%
+     * toward --wash-blue. Two measured properties make them safe.
+     *
+     *   Both sit ABOVE paper in luminance — 84.61 and 83.88 against 80.71 —
+     *   so no ratio stated against paper anywhere in this file is invalidated
+     *   downward. Every one of them improves on a plate; none degrades.
+     *
+     *   They are 0.73 of a luminance point from each other, so the step from
+     *   one plate to the next reads as a change of HUE and not of brightness.
+     *   That is what makes a boundary a change of surface rather than a
+     *   different website.
+     *
+     *   ground          value         hex      L      ink    soft   faint
+     *   --paper         236 232 220   #ECE8DC  80.71  15.17   6.37   3.60
+     *   --ground-warm   242 237 220   #F2EDDC  84.61  15.86   6.66   3.76
+     *   --ground-cool   229 237 246   #E5EDF6  83.88  15.73   6.60   3.73
+     *
+     * On the white-at-55% card the notes and project surfaces are built from,
+     * which composites over whichever plate it stands on: --ink 17.02 / 17.33
+     * / 17.27 and --ink-soft 7.14 / 7.27 / 7.25, in the same column order.
+     * Body text holds 4.5:1 on all three grounds and on all three cards.
+     *
+     * WHICH SECTION TAKES WHICH, and the rule is not alternation. A ground
+     * changes where the SUBJECT changes, so two sections that are one thought
+     * share a plate colour and the shared colour is the argument:
+     *
+     *   Hero       --paper          the ground the owner pointed at
+     *   Work       --panel          the one dark act, unchanged
+     *   Approach   --ground-warm    how the work gets made
+     *   The Year   --ground-warm    the same subject, so the same ground
+     *   Notes      --ground-cool    the record
+     *   Specs      --ground-cool    also the record; Index.tsx argues this
+     *                               pair must stay adjacent, and one ground
+     *                               across both is that argument made visible
+     *   Contact    --ground-warm    closes where the hero opened
+     *   footer     --paper          back to the page's own ground
+     *
+     * Applied by `.ground[data-ground]` in the components layer below, never
+     * by a background typed into a section's own stylesheet: five sections
+     * each painting their own ground is the flatness problem replaced by five
+     * palettes.
+     */
+    --ground-warm: 242 237 220;   /* #F2EDDC  paper 40% -> --wash-yellow */
+    --ground-cool: 229 237 246;   /* #E5EDF6  paper 85% -> --wash-blue   */
+
+    --ink:       20  19  15;   /* #14130F  primary type. 15.17:1 on paper. */
+    --ink-soft:  85  82  74;   /* #55524A  secondary type. 6.37:1 on paper. */
+    /*
+     * Both of those numbers are corrections, and both were wrong before this
+     * change rather than because of it. --ink was labelled 15.6:1 and
+     * measures 15.17:1. --ink-soft was labelled 6.9:1 here and 6.37:1 in its
+     * own note sixty lines down — a file disagreeing with itself about its
+     * second-most-used colour. 6.37 is the measured value and is now the only
+     * one stated. Neither crosses a threshold, which is precisely why they
+     * survived this long: a number nobody re-measures is a number nobody can
+     * trust, and three of the five in this block were off.
+     */
     /*
      * Not a text colour. I labelled this 4.6:1 and it is not — measured
      * against the rendered glyphs it is 3.60:1 on paper, 4.07:1 on a mount
@@ -309,8 +395,14 @@
      */
     --panel:       12  12  14;   /* #0C0C0E */
     --panel-2:     22  22  26;   /* #16161A  a raised surface on it */
-    --panel-ink:  242 240 234;   /* #F2F0EA  14.9:1 on --panel */
-    --panel-soft: 168 164 154;   /* #A8A49A   7.0:1 on --panel */
+    /* Re-measured alongside the grounds above, and both labels understated
+       what the dark act actually holds: 14.9 and 7.0 were stated, 17.15 and
+       7.86 are measured against #0C0C0E. Erring safe is still erring — a
+       ratio that is wrong by two and a half points is not a ratio anyone can
+       reason from. Nothing about the dark act changes in this commit except
+       the two numbers describing it. */
+    --panel-ink:  242 240 234;   /* #F2F0EA  17.15:1 on --panel */
+    --panel-soft: 168 164 154;   /* #A8A49A   7.86:1 on --panel */
     /* 1.49:1 against --panel, which an audit flagged against the 3:1 floor
        for a boundary that identifies a control. Lifted to the point where a
        card has a visible edge on the dark act even when it carries no
@@ -530,6 +622,51 @@
     --shadow-press: 0 4px 10px -8px rgb(var(--ink) / .4);
 
     /*
+     * One shadow family for the page's objects, declared as GEOMETRY ONLY.
+     *
+     * The house shadow is the nav island's `0 26px 50px -30px` — before #84
+     * it was the only shadow on the site and the only one anyone has judged
+     * against this paper. These three are that offset, blur and spread at
+     * x0.5, x1 and x1.6, so the page has one shadow seen from three distances
+     * rather than four components that each invented one.
+     *
+     * THERE IS NO `var()` INSIDE THEM, and that is the trap on --panel above
+     * turned into a rule. A property declared on `:root` whose value contains
+     * `var(--shade)` resolves ON `:root`; what inherits into `.on-panel` is
+     * the already-resolved colour, so a colour-bearing shadow token would bake
+     * the light ground's shade into the dark act and cast an ink shadow onto a
+     * ground that is already near-black. Geometry here, colour at the use
+     * site:
+     *
+     *   box-shadow: var(--lift-3) rgb(var(--shade) / .5);
+     *
+     * which re-resolves `--shade` wherever the declaration is written, which
+     * is the only place it can be resolved correctly. `--shadow-lift` above is
+     * the older construction and does carry `var(--ink)` inside it; it is left
+     * alone because every one of its call sites is on paper, and it is the
+     * reason this family is shaped the other way round.
+     */
+    --lift-1: 0 13px 25px -15px;
+    --lift-2: 0 26px 50px -30px;
+    --lift-3: 0 42px 80px -48px;
+
+    /*
+     * The ground every shadow is cast in, and it belongs here rather than on
+     * one component.
+     *
+     * It existed only on `.dock` in Nav.module.css, which is why that file has
+     * to write `rgb(var(--shade, var(--ink)) / 0.6)` for the language menu:
+     * Radix portals the menu to <body>, outside the dock, where the token
+     * simply did not exist — and `rgb(var(--shade) / .6)` with nothing to
+     * substitute is an invalid declaration, so the shadow dropped silently.
+     * Declared on :root it exists everywhere. `.on-panel` restates it as pure
+     * black exactly as `.dock[data-material='dark']` already does, because a
+     * shadow drawn in the panel's own ink would be a light halo. The fallback
+     * in Nav.module.css is left in place: it costs nothing and it records why.
+     */
+    --shade: var(--ink);
+
+    /*
      * Softer than it was, at every step.
      *
      * 10/16/24 is the radius ladder of a dense interface, and this is not
@@ -543,6 +680,21 @@
     --r-md: 22px;
     --r-lg: 32px;
     --r-xl: 44px;
+    /*
+     * A fifth rung, for the section plates, and it continues the ladder rather
+     * than being picked.
+     *
+     * 14 / 22 / 32 / 44 steps by about 1.45 each time, and 64 is the next step
+     * at that ratio. A plate is an order of magnitude wider than a card, so
+     * --r-xl across 1440px of ground is exactly the square-with-its-sharpness-
+     * filed-off this ladder's own note warns about. Phones step back down to
+     * --r-lg, because 64px of corner on a 390px plate is a lozenge.
+     *
+     * `borderRadius["2xl"]` in tailwind.config.ts was a stray 28px typed off
+     * this ladder with zero call sites. It points here now, so the utility and
+     * the token cannot disagree.
+     */
+    --r-2xl: 64px;
     --r-pill: 999px;
     --radius: var(--r-md);
 
@@ -849,6 +1001,11 @@
     --rule:      var(--panel-rule);
     --rule-firm: var(--panel-rule);
     --signal:    var(--accent-on-panel);
+    /* Pure black, as `.dock[data-material='dark']` already sets it, and for
+       the same reason: a shadow cast in the panel's own ink is a light halo.
+       It has to be RESTATED here and not inherited — see the geometry-only
+       note on --lift-1 above, and the trap on --panel. */
+    --shade:     0 0 0;
     background: rgb(var(--panel));
     color: rgb(var(--ink));
   }
@@ -1525,6 +1682,66 @@
       padding-top: 6svh;
       padding-bottom: 6svh;
     }
+  }
+
+  /*
+   * The plate: a section's own ground, with an edge and a weight.
+   *
+   * The scale, the measured ratios and the rule for which section takes which
+   * tint are in the token block at the top of this file. This is only the
+   * application, and it is one class for all of them on purpose.
+   *
+   * FULL WIDTH, which is a constraint and not a taste. An inline inset would
+   * re-open the horizontal-overflow history this page has already paid for
+   * twice — see the note at the head of Index.tsx, where two section wrappers
+   * pushed the document 26px past its own right edge under `overflow-x: clip`
+   * — and `Work.tsx` requires the dark act's ground to span the page: its
+   * `.on-panel` sits on the <section> rather than on an inner box precisely so
+   * the ground drops out from under the work edge to edge. So the separation
+   * between two plates is vertical: one gutter of bare --paper, the page's own
+   * ground showing between them. Adjacent margins collapse, so that is one
+   * gutter and not two.
+   *
+   * NO `overflow: clip`, and this is the one thing worth being careful about.
+   * Clipping is the obvious way to hold content inside a rounded corner and it
+   * cannot be used here: a clip container is a containing block for the sticky
+   * pile inside Work and a fresh scope for every `animation-timeline: view()`
+   * under it, and the pile's two scroll-timeline traps are written up in
+   * ProjectPile.module.css. It is not needed either — every section carries
+   * `section-y` and `.layer-section` adds 10svh on top of that, so nothing
+   * inside a plate comes near its corners.
+   */
+  .ground {
+    position: relative;
+    margin-block: theme('spacing.gutter');
+    border-radius: var(--r-2xl);
+    background: rgb(var(--paper));
+    /* Geometry from the family, colour from here — the whole reason the --lift
+       tokens carry no var(). On a panel plate `--shade` still resolves to
+       --ink, which is right: this shadow falls on the cream outside the plate,
+       not on the near-black inside it. */
+    box-shadow: var(--lift-3) rgb(var(--shade) / .5);
+  }
+  .ground[data-ground='warm']  { background: rgb(var(--ground-warm)); }
+  .ground[data-ground='cool']  { background: rgb(var(--ground-cool)); }
+  .ground[data-ground='panel'] { background: rgb(var(--panel)); }
+  /*
+   * The dark act's own fill, handed to its wrapper.
+   *
+   * `.on-panel` paints `background: rgb(var(--panel))` with square corners, so
+   * inside a rounded plate it would square the plate off again — the one place
+   * where the absence of `overflow: clip` above is visible. Letting the
+   * wrapper paint the panel colour and the section paint nothing gets rounded
+   * corners on the dark ground without a clip container anywhere near the
+   * pile. The class keeps every one of its token re-pointings and its `color`;
+   * only the fill moves one element out, which is where the plate already is.
+   *
+   * Scoped to a direct child so the other `.on-panel` on the site — the full
+   * width wrapper in Projects.tsx, which stands on no plate — is untouched.
+   */
+  .ground > .on-panel { background: transparent; }
+  @media (max-width: 639px) {
+    .ground { border-radius: var(--r-lg); }
   }
 
   /* ---------------------------------------------------------------- notes -- */

@@ -71,11 +71,19 @@ export default function Index() {
             rhythm — it is the only full-height section on the page. */}
         <Hero />
 
-        <div className="layer-section">
+        {/*
+          The plates, and the rule is in index.css next to the ground scale:
+          the ground changes where the SUBJECT changes, not every other
+          section. Approach and the year share warm because they are one
+          thought — how the work gets made — and the shelf and the spec plate
+          share cool for the same reason the comment below insists they stay
+          adjacent. Contact closes on warm, where the hero opened.
+        */}
+        <div className="layer-section ground" data-ground="panel">
           <Work />
         </div>
 
-        <div className="layer-section">
+        <div className="layer-section ground" data-ground="warm">
           <Approach />
         </div>
 
@@ -106,7 +114,7 @@ export default function Index() {
           its own and where the principles finally live is the owner's call,
           raised in the pull request rather than decided here.
         */}
-        <div className="layer-section">
+        <div className="layer-section ground" data-ground="warm">
           <ContributionCity />
         </div>
 
@@ -125,13 +133,24 @@ export default function Index() {
           the space the section above has already opened rather than growing
           another runway between two sections that read as one thought.
         */}
-        <LatestNotes />
+        {/*
+          A bare `.ground`, with no `layer-section` on it — the comment above
+          is the reason, and it still holds: the shelf is full-bleed and rides
+          the space the section before it has already opened rather than
+          growing a second runway. What it needs from a plate is the ground,
+          the corners and the shadow, and `.ground` is exactly those three and
+          no padding. Safe because the shelf's own overflow is internal to its
+          scroller and it uses no negative margins to escape this box.
+        */}
+        <div className="ground" data-ground="cool">
+          <LatestNotes />
+        </div>
 
-        <div className="layer-section">
+        <div className="layer-section ground" data-ground="cool">
           <Stack />
         </div>
 
-        <div className="layer-section">
+        <div className="layer-section ground" data-ground="warm">
           <Contact />
         </div>
       </main>
