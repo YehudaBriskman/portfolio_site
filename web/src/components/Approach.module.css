@@ -2,10 +2,15 @@
  * Prose on paper. The spacing is the design.
  *
  * There is nothing drawn in this file — no border, no surface, no shadow, no
- * colour that is not ink. Every rule here is a margin or a measure, because
- * this beat exists to be the quiet before the peak and the only way to make
- * three unrelated claims read as three separate things, without a card around
- * each of them, is to get the air between them right.
+ * colour that is not ink. Every rule here is a margin, a measure or an
+ * arrival, because this beat exists to be the quiet before the peak and the
+ * only way to make three unrelated claims read as three separate things,
+ * without a card around each of them, is to get the air between them right.
+ *
+ * The second half of the file is the beat's device, `flow`, and the one thing
+ * worth knowing before reading it is that the spacing above is what makes the
+ * motion legible: three gestures that differ by 14px say nothing at all if the
+ * things they move are not already clearly three separate things.
  */
 
 /*
@@ -107,4 +112,338 @@
   /* The short side of that ratio. Close enough to the claim that the two are
      plainly one object, and not so close that the heading sits on it. */
   margin-top: 0.6rem;
+}
+
+/* ------------------------------------------------------ the arrival -- */
+
+/*
+ * `flow`: each item arrives on its own crossing, and three of them arrive
+ * differently because they say different things.
+ *
+ * The gate is `components/motion/Flow.tsx` and it contributes exactly one
+ * attribute per item — `data-flow="wait"` once it has been armed,
+ * `data-flow="in"` once that item is 12% inside the viewport, and nothing at
+ * all if the observer never ran. Everything below is this file's, because the
+ * per-principle differences are an argument about the prose and belong next to
+ * it.
+ *
+ * Why the resting state is the finished state
+ * -------------------------------------------
+ * `Rise` holds its children at `opacity: 0` from the stylesheet and needs
+ * JavaScript to lift the floor, which is why it also needs a deadline in case
+ * the observer never speaks: the hidden state is the default and the finished
+ * page is the exception. This file is the other way round. Nothing here is
+ * hidden unless `data-flow="wait"` says so, and only the gate can say it — so
+ * no React, no observer, a silent observer or an exception before the effect
+ * runs all land on the same place, which is the section, readable, with no
+ * motion in it. `SpecPlate` makes the same argument about its figures: the
+ * resting value is the true one.
+ *
+ * It is also why `animation-fill-mode` is `backwards` and not `both`
+ * everywhere below. Backwards covers the stagger — without it an item would
+ * paint its finished state for the length of its delay and then jump to
+ * nothing — and the absence of a forwards fill is what hands each element back
+ * to its resting value the instant the animation is over. That matters most
+ * for the printed treatment: a forwards fill would leave an `inset()` clip
+ * established on that block for the rest of the page's life, cropping anything
+ * that legitimately overhangs it.
+ *
+ * The numbers are §5's and they are not tuned here
+ * -----------------------------------------------
+ * 14px of travel, ~620ms, `--ease-settle`, a 60ms step in reading order
+ * capped at 300ms, fired once, triggered 12% inside the viewport. What varies
+ * per principle is which 14px, in which direction, in how many moves, or
+ * whether anything moves at all — never how far or how long, because louder
+ * or slower is the one way this beat could start competing with the pile.
+ */
+
+/*
+ * One rule applies the animation to an item, one applies it to an item's
+ * parts, and the treatments are custom properties rather than more selectors.
+ *
+ * This is not a style preference. The two cancels at the foot of this file
+ * have to beat every animated declaration in it, and a per-treatment selector
+ * like `.wall > .fromEmpty[data-flow="in"] > *` outranks any cancel written
+ * against `[data-flow]` alone — so the cancel would lose to the thing it is
+ * cancelling, under reduced motion, silently. Keeping every `animation-*`
+ * declaration at exactly these two selectors means the exits are written
+ * against the same shape and win on source order, which is a property of the
+ * file that can be read rather than a specificity sum that has to be
+ * recomputed every time a treatment is added.
+ */
+.wall {
+  --flow-dur: 620ms;
+}
+
+/*
+ * The hidden state, and the only thing in this file that hides anything.
+ *
+ * `opacity` alone, even for the printed treatment whose own arrival is a clip:
+ * at the instant an item flips from `wait` to `in` this rule stops matching
+ * and the animation's first frame takes over in the same frame, so one
+ * mechanism covers the wait and the keyframes cover the arrival. A clip here
+ * as well would be two hidden states to keep in step for no gain.
+ */
+.wall > [data-flow="wait"] {
+  opacity: 0;
+}
+
+/*
+ * The step between items, in reading order.
+ *
+ * Each item has its own trigger, so on a phone — where the section is three
+ * screens tall — the cadence comes from the scroll and this does nothing. It
+ * is for the ordinary desktop case, where four or five items are inside the
+ * viewport at the same instant and would otherwise land as one block, which is
+ * the coarse-grained arrival this beat was rebuilt to stop doing.
+ *
+ * 60ms is the middle of §5's 30-80ms, and it stops growing at 300ms for the
+ * reason given there: past that a list has a queue rather than a reveal. It is
+ * a custom property and not an `animation-delay` because two of the three
+ * treatments animate an item's *parts*, and `animation-delay` does not
+ * inherit — a custom property does, so an item's position in the beat reaches
+ * its children without being restated.
+ */
+.wall > * { --flow-step: 0ms; }
+.wall > *:nth-child(2) { --flow-step: 60ms; }
+.wall > *:nth-child(3) { --flow-step: 120ms; }
+.wall > *:nth-child(4) { --flow-step: 180ms; }
+.wall > *:nth-child(5) { --flow-step: 240ms; }
+.wall > *:nth-child(n + 6) { --flow-step: 300ms; }
+
+/*
+ * The family's gesture, on the item.
+ *
+ * `--flow-item` defaults to the plain rise, so an item added to this beat
+ * without a treatment arrives correctly rather than appearing instantly: the
+ * default has to be the right answer, because the next person to add a
+ * paragraph here will not read this file first.
+ */
+.wall > [data-flow="in"] {
+  animation-name: var(--flow-item, flow-rise);
+  animation-duration: var(--flow-dur);
+  animation-timing-function: var(--flow-ease, var(--ease-settle));
+  animation-fill-mode: backwards;
+  animation-delay: var(--flow-step, 0ms);
+}
+
+/*
+ * The same gesture, on an item's parts, for the two treatments that work on a
+ * claim and its detail rather than on the block holding both.
+ *
+ * `--flow-child` defaults to `none`, so the heading group and the standfirst —
+ * which arrive as single objects — have nothing applied to their children.
+ */
+.wall > [data-flow="in"] > * {
+  animation-name: var(--flow-child, none);
+  animation-duration: var(--flow-dur);
+  animation-timing-function: var(--flow-child-ease, var(--ease-settle));
+  animation-fill-mode: backwards;
+  animation-delay: var(--flow-step, 0ms);
+}
+
+/* ---- Install from empty, every time ---------------------------------- */
+
+/*
+ * The rise arrives in three equal moves rather than one, because this install
+ * is never resumed: it is run again from an empty directory on every pull
+ * request and twice more each night, and three discrete runs is what that
+ * looks like at 14px.
+ *
+ * Opacity and travel are two animations rather than one so that only the
+ * travel is stepped. Stepping both would strobe the type — three discrete
+ * opacities is a flicker, and a flicker on body copy is the loading glitch §5
+ * is about, not a device. The ink comes up smoothly on the page's own curve
+ * and the position ratchets underneath it, which reads as a mechanism
+ * repeating rather than as dropped frames.
+ *
+ * `steps(3, jump-end)` holds 14px, 9.33px and 4.67px for ~207ms each and lands
+ * on the resting value at the end. Three was not chosen for the look of it; it
+ * is the number of times that repository installs itself from nothing before
+ * anything is allowed to merge.
+ *
+ * Both halves carry the same delay, so the claim and its detail come up
+ * together with no stagger between them. That is the second half of the same
+ * argument: a clone into an empty directory has no partial state for a second
+ * step to arrive after, so this is the one item in the beat with no internal
+ * order at all.
+ */
+.wall > .fromEmpty {
+  --flow-item: none;
+}
+
+.wall > .fromEmpty > * {
+  --flow-child: flow-ink, flow-ratchet;
+  --flow-child-ease: var(--ease-settle), steps(3, jump-end);
+}
+
+/* ---- A check that cannot fail is not a check -------------------------- */
+
+/*
+ * The two halves arrive from opposite directions and meet on the line between
+ * them, because a check only means anything if the other outcome was
+ * reachable — so the claim has to be able to come down.
+ *
+ * Everything else on this page rises. This is the one element allowed to
+ * arrive against that grain, and it is 14px of it: at a glance it is the same
+ * arrival as the rest of the beat, and to anyone watching it is two possible
+ * outcomes resolving onto one line. The two halves share a delay rather than
+ * following §5's reading-order step, because a meeting that happens 60ms apart
+ * is not a meeting; the step between this item and the one above it still
+ * applies, so the beat keeps its order.
+ *
+ * The claim starts 14px above its resting position, which is inside the
+ * 44-68px of air above every principle, so nothing it passes through is
+ * occupied and nothing below it moves.
+ */
+.wall > .meet {
+  --flow-item: none;
+}
+
+.wall > .meet > .claim { --flow-child: flow-fall; }
+.wall > .meet > .detail { --flow-child: flow-rise; }
+
+/* ---- Generated, never committed -------------------------------------- */
+
+/*
+ * Nothing moves and nothing fades. The block is already in its final place and
+ * the only thing the arrival changes is whether it has been printed, which is
+ * the difference between a value being written and a value being shown.
+ *
+ * A hard edge rather than a fade, for the reason `InkWipe` argues at length: a
+ * soft boundary says the compositor is behind, and an edge crossing the box
+ * says something was laid down on the paper. It is level rather than raked,
+ * which is the one place this parts company with the wipes on the cards — a
+ * rake is their signature and reusing it here would be the same device twice,
+ * and on four lines of prose a level edge reads as a line of type being set.
+ *
+ * `linear`, and it is the only animation in this file that is not on
+ * `--ease-settle`. A print head travels at one speed; an edge that decelerated
+ * would be an object settling into place, which is exactly what the other two
+ * treatments are and what this one is deliberately not. The last line would
+ * also spend 400ms of a 620ms run creeping into view, and a slow crawl is the
+ * one way this treatment could start asking to be watched.
+ *
+ * The clip keeps 0.3em of slack on the three edges it is not working on, so
+ * descenders and a focus ring are never shaved; the bottom edge does all the
+ * work. Because the fill mode is `backwards` and not `both`, the clip is gone
+ * — back to the resting `none` — the moment the run ends, rather than left
+ * established on the block for the rest of the page's life.
+ */
+.wall > .printed {
+  --flow-item: flow-print;
+  --flow-ease: linear;
+}
+
+/*
+ * The five keyframes are `:global`, and this one is a trap rather than a
+ * preference.
+ *
+ * CSS Modules renames `@keyframes` along with the classes, and rewrites the
+ * `animation-name` declarations that refer to them — but it can only rewrite a
+ * name it can *see*. Every name above is reached through a custom property, so
+ * what the scoper sees is `var(--flow-item, flow-rise)` and a declaration of
+ * `--flow-child`, neither of which it treats as an animation name. Left
+ * scoped, the keyframes ship as `_flow-rise_1clta_1` while the rules ask for
+ * `flow-rise`, and the result is the signature failure of this whole area:
+ * every animation resolves to nothing, in silence, with no error and no
+ * warning anywhere. It was caught by reading the built stylesheet, which is
+ * the only place it is visible.
+ *
+ * Declaring them global is the fix rather than abandoning the custom
+ * properties, because the properties are what keep every `animation-*`
+ * declaration in this file at two selectors and therefore keep the exits at
+ * the foot of it winning. `flow-` is the namespace — `index.css` already
+ * carries global `enter`, `exit` and `fade-up`, and every other module here
+ * keeps its own prefix — so the names cannot collide with another beat's.
+ */
+@keyframes :global(flow-rise) {
+  from {
+    opacity: 0;
+    /* 14px, as a length and not a rem: it is a distance the eye measures on
+       the screen, not a size that should grow with the type. */
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* The same arrival, from the other side. */
+@keyframes :global(flow-fall) {
+  from {
+    opacity: 0;
+    transform: translateY(-14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* The two halves of the stepped rise, kept apart so only one of them steps. */
+@keyframes :global(flow-ink) {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes :global(flow-ratchet) {
+  from { transform: translateY(14px); }
+  to { transform: none; }
+}
+
+@keyframes :global(flow-print) {
+  from { clip-path: inset(-0.3em -0.5em 100% -0.5em); }
+  to { clip-path: inset(-0.3em -0.5em -0.3em -0.5em); }
+}
+
+/*
+ * The ways out, and all of them land on finished, readable prose.
+ *
+ * There is no `@supports not (animation-timeline: view())` block here, and
+ * that is a decision rather than an omission. §4 is explicit about it: a
+ * component with no scroll timeline in it has no feature for a browser to be
+ * missing, and adding the block anyway is cargo cult. Nothing in this file
+ * names a timeline — the gate is an observer precisely because body copy must
+ * not re-hide itself on the way back up — so an engine without
+ * `animation-timeline` runs this beat exactly as a current one does. The third
+ * exit this beat does have is the structural one described at the top: an
+ * observer that never speaks, or never exists, leaves the resting state on the
+ * page, and the resting state is the finished state.
+ *
+ * Both blocks restate the arrived values instead of leaning on the global
+ * `animation-duration: 0.01ms !important` in `index.css` and
+ * `nav/motion-paused.css`. That rule does land on the final frame of a
+ * time-driven animation, which is the right trick — but the floor above it is
+ * not an animation, and a reader who has asked for no motion should not be
+ * waiting on an IntersectionObserver for permission to read a paragraph. So
+ * the animations are cancelled outright and the hidden state is cancelled with
+ * them.
+ *
+ * Pause can be toggled mid-scroll, while an item is half arrived. Every
+ * declaration here is the finished value, so a half-arrived paragraph snaps to
+ * arrived and never to hidden — which is the trap §4 exists to name.
+ *
+ * These two blocks are last in the file on purpose. They are written at the
+ * same specificity as the rules they cancel, so source order is what makes
+ * them win, and moving them up would quietly re-enable the motion they are
+ * here to switch off.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .wall > [data-flow],
+  .wall > [data-flow] > * {
+    animation: none;
+    opacity: 1;
+    transform: none;
+    clip-path: none;
+  }
+}
+
+:global(body.motion-paused) .wall > [data-flow],
+:global(body.motion-paused) .wall > [data-flow] > * {
+  animation: none;
+  opacity: 1;
+  transform: none;
+  clip-path: none;
 }

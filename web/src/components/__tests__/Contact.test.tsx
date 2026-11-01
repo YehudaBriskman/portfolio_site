@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import Contact from "@/components/Contact";
-import { sendContactMessage } from "@/services/contact";
+import { ContactSchema, sendContactMessage } from "@/services/contact";
 
 /*
  * Only the send is replaced. `ContactSchema` is kept real on purpose: the form
@@ -95,6 +95,97 @@ describe("Contact", () => {
       "I read the note on sticky timelines and have a question about it."
     );
     expect(screen.getByRole("status")).toHaveTextContent("");
+  });
+
+  it("marks the resolution on the form in the same commit as the receipt", async () => {
+    send.mockResolvedValue(true);
+    render(<Contact />);
+    await fillIn();
+
+    const form = screen.getByRole("form", { name: "Send a message" });
+    expect(form).not.toHaveAttribute("data-sent");
+
+    await userEvent.click(screen.getByRole("button", { name: /send message/i }));
+
+    /*
+     * The ordering rule, as something a test can hold onto. `data-sent` is what
+     * the three field rules draw themselves out on, so it is the first frame of
+     * the section's closing gesture — and it must never be true before the
+     * receipt is in the live region. One React commit sets both, so the only way
+     * to break this is to move one of them into a timer or an effect, and this
+     * assertion is what notices.
+     */
+    await waitFor(() => expect(form).toHaveAttribute("data-sent", "true"));
+    expect(screen.getByRole("status")).toHaveTextContent("Sent.");
+  });
+
+  it("does not resolve anything when the send failed", async () => {
+    send.mockRejectedValue(new Error("the mail host refused the connection"));
+    render(<Contact />);
+    await fillIn();
+
+    await userEvent.click(screen.getByRole("button", { name: /send message/i }));
+
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Nothing was sent"));
+    /* A closing gesture on a message that never left is the page congratulating
+       itself for losing it. */
+    expect(screen.getByRole("form", { name: "Send a message" })).not.toHaveAttribute("data-sent");
+  });
+
+  it("gives every field its own ink strip, and keeps all three out of the a11y tree", () => {
+    render(<Contact />);
+
+    /* One decorative strip per field, directly after the control it belongs to.
+       The only reason they are elements at all is that `input` and `textarea`
+       render no pseudo-elements; nothing about them is information, so nothing
+       about them may reach a reader who is being read to. A field that lost its
+       strip would simply stop having a treatment, silently. */
+    for (const name of ["Name", "Email", "Message"]) {
+      const strip = screen.getByLabelText(name).nextElementSibling;
+      expect(strip).toHaveAttribute("aria-hidden", "true");
+      expect(strip).toBeEmptyDOMElement();
+    }
+  });
+
+  it("keeps the email field's native constraints in step with the schema", () => {
+    render(<Contact />);
+    const email = screen.getByLabelText("Email");
+    const pattern = email.getAttribute("pattern");
+    expect(pattern).toBeTruthy();
+    const native = new RegExp(`^(?:${pattern})$`);
+
+    /*
+     * The decorative seal on the email rule is `:user-valid`, so what the
+     * browser thinks "well formed" means has to be what the schema thinks it
+     * means — otherwise the mark closes on an address the submit then rejects.
+     * `type="email"` alone does not: the HTML email type wants no top-level
+     * domain, and the schema's regex does. `dana@exam` is that gap, and the
+     * `pattern` attribute is what closes it.
+     */
+    expect(ContactSchema.shape.email.safeParse("dana@exam").success).toBe(false);
+    expect(native.test("dana@exam")).toBe(false);
+
+    /* And it must reject nothing the schema accepts, or the seal would simply
+       stop appearing for perfectly good addresses. */
+    for (const good of ["dana@example.com", "d.levi+x@mail.co.uk", "a@b.io"]) {
+      expect(ContactSchema.shape.email.safeParse(good).success).toBe(true);
+      expect(native.test(good)).toBe(true);
+    }
+  });
+
+  it("keeps a real label bound to every control", () => {
+    render(<Contact />);
+
+    /* The regression this exists to catch is a ruled line with a placeholder
+       in it: the name disappears the moment anything is typed, which is exactly
+       when the reader wants to check what they put in. Three `for`/`id` pairs,
+       and no placeholder anywhere. */
+    for (const name of ["Name", "Email", "Message"]) {
+      const control = screen.getByLabelText(name);
+      expect(control.id).toBeTruthy();
+      expect(document.querySelector(`label[for="${control.id}"]`)).toHaveTextContent(name);
+      expect(control).not.toHaveAttribute("placeholder");
+    }
   });
 
   it("names the field that is wrong, in text, and sends nothing", async () => {

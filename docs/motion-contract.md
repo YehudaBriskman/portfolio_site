@@ -297,6 +297,7 @@ direction, or set `fill-rule: evenodd` deliberately and know what it costs.
 | file | device | timeline |
 |---|---|---|
 | `motion/Rise.tsx` | `reveal` — the measured reveal, fired once | observer + clock |
+| `motion/Flow.tsx` | `flow` — one gate per item, so a beat can differ per item | observer + clock |
 | `motion/InkWipe.tsx` | ink arriving as a hard clip edge, plus the coloured band | `view()` |
 | `motion/InkRule.tsx` | a hairline drawing itself in | `view()` |
 
@@ -326,8 +327,18 @@ a piece of React state.** The two hooks above are the whole of the per-frame
 cost on any page: one `scroll` listener each, rAF-throttled, writing custom
 properties on `<html>` rather than React state, and both returning early under
 `prefers-reduced-motion`. Everything in the table is either a class name a
-stylesheet acts on, or — for `Rise` — one observer that disconnects the moment
-it has fired.
+stylesheet acts on, or — for `Rise` and `Flow` — one observer that stops
+watching a target the moment it has fired. `Flow` carries no React state at
+all: it writes `data-flow` on each item and the caller's stylesheet does the
+rest, so an arrival costs one attribute and no render.
+
+**A keyframe name reached through a custom property is invisible to CSS
+Modules.** The scoper renames `@keyframes` and rewrites the `animation-name`
+declarations it can see, and `var(--flow-item, flow-rise)` is not one of them —
+so the keyframes ship renamed while the rules still ask for the original, and
+every animation in the file resolves to nothing, silently. Either declare those
+keyframes `@keyframes :global(name)` or keep the name in a literal
+`animation-name`. `Approach.module.css` takes the first route and says why.
 
 Keep it that way. The reason this page can afford as much motion as it carries
 is that almost none of it costs anything per frame, and the first component that

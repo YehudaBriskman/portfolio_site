@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import ObjectLabel from "@/components/gallery/ObjectLabel";
 import Plate from "@/components/projects/Plate";
 import Shot from "@/components/projects/Shot";
+import { arrival, newestYear } from "@/components/projects/pileArrival";
 import type { ProjectEntry } from "@/hooks/useProjects";
 import styles from "@/components/projects/ProjectPile.module.css";
 import { objectAnchorId } from "@/lib/objectAnchor";
@@ -30,14 +31,22 @@ import { objectAnchorId } from "@/lib/objectAnchor";
  * ── what this component actually does ─────────────────────────────────────
  *
  * Almost nothing, and that is deliberate. It wraps each project in a slot and
- * tells the slot two numbers: where it sits in the pile and what colour the
- * work is. Everything that moves is in the stylesheet, because all three of
- * the conditions that have to switch the motion off are at-rules — a media
- * query, a support query and a class on `document.body` — and not one of them
- * can be expressed in an inline style or a Tailwind utility. There is no
- * state, no ref, no observer and no scroll listener; the pinning is layout
- * and the arrival is a view timeline, both of which the compositor resolves
- * without this file being involved.
+ * tells the slot what it cannot work out for itself: where it sits in the
+ * pile, what colour the work is, and the shape of its own arrival. Everything
+ * that moves is in the stylesheet, because all three of the conditions that
+ * have to switch the motion off are at-rules — a media query, a support query
+ * and a class on `document.body` — and not one of them can be expressed in an
+ * inline style or a Tailwind utility. There is no state, no ref, no observer
+ * and no scroll listener; the pinning is layout and the arrival is a view
+ * timeline, both of which the compositor resolves without this file being
+ * involved.
+ *
+ * The arrival is per project and not per slot. Each card comes in the way its
+ * own work stands — the state picks the gesture, the year picks how much of it
+ * is left to play — which is five custom properties the stylesheet's one
+ * keyframe reads. The derivation and the sentence it is answerable to are in
+ * `projects/pileArrival.ts`, including the reason three of the six projects
+ * come out identical and why no field was invented to separate them.
  *
  * The two traps that cost a rebuild each — that a scroll-driven animation
  * ignores delay and duration, and that a pinned element's view timeline
@@ -124,6 +133,15 @@ export default function ProjectPile({
 }: ProjectPileProps) {
   if (entries.length === 0) return null;
 
+  /*
+    The one fact about the pile that no single card can know: which of them is
+    the most recent. An arrival's amplitude is measured against it, so it is
+    read once here rather than recomputed per row — and deliberately not
+    memoised, because it is a loop over at most eight strings and a `useMemo`
+    would cost more to read than it saves.
+  */
+  const newest = newestYear(entries);
+
   return (
     /*
       `--pile-n` is the one thing the stylesheet cannot work out for itself,
@@ -186,7 +204,7 @@ export default function ProjectPile({
             */
             className={styles.slot}
             /*
-              Two numbers per slot, and both of them belong here rather than
+              Three things per slot, and all of them belong here rather than
               in the stylesheet.
 
               `--pile-i` is the slot's position, which decides where it pins
@@ -194,7 +212,9 @@ export default function ProjectPile({
               than left to `nth-child` because the stylesheet would then need
               one rule per possible position and the count is not fixed —
               four on the home page, six in the catalogue, however many the
-              CMS has tomorrow.
+              CMS has tomorrow. It is also the *only* index-shaped value here:
+              nothing about how a card moves is derived from it, because a
+              position in a list is a fact about the list.
 
               `--pile-tint` is the colour of the work itself, sampled from the
               project's own screenshot (see `ProjectTint` in data/projects.ts).
@@ -203,11 +223,20 @@ export default function ProjectPile({
               coloured paintings. A project with no sampled colour is left to
               the neutral the stylesheet falls back to rather than being
               assigned a hue it has not got.
+
+              The five `--arrive-*` properties are the card's own arrival,
+              derived from its state and its year. They are set on the slot
+              rather than on the card because custom properties inherit and
+              the slot is already the one element this file styles — the
+              keyframe that reads them is on the card. A card that somehow
+              receives none of them still animates: the keyframe carries the
+              old uniform arrival as its fallbacks.
             */
             style={
               {
                 "--pile-i": i,
                 ...(entry.tint ? { "--pile-tint": entry.tint.join(" ") } : {}),
+                ...arrival(entry, newest),
               } as CSSProperties
             }
           >

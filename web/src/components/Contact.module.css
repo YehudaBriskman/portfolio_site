@@ -13,22 +13,48 @@
  * the ask a different kind of object from every other object on the page,
  * which is exactly the thing the gallery grammar exists to prevent.
  *
- * There is no @keyframes block in this file, and that is the point.
+ * The group reveal is still `motion/Rise` — 14px, 620ms, `--ease-settle`,
+ * children 60ms apart in reading order, fired once by an observer. None of
+ * those four numbers is restated here and none ever should be: two copies of a
+ * measured gesture drift the first time one of them is touched, and then the
+ * page has two reveals that are nearly the same, which is worse than having
+ * two that are plainly different.
  *
- * The beat is `reveal`, and the reveal is `motion/Rise` — 14px, 620ms,
- * `--ease-settle`, children 60ms apart in reading order, fired once by an
- * observer. Writing those four numbers again here is the specific mistake that
- * file was built to stop: two copies of a measured gesture drift the first
- * time one of them is touched, and then the page has two reveals that are
- * nearly the same, which is worse than having two that are plainly different.
- * So every margin, rule and type setting is here and every millisecond is
- * there.
+ * What this file does own
+ * -----------------------
+ * The ink on the three field rules, which is a different device from the
+ * reveal and is the only motion on this page that carries *information* rather
+ * than emphasis. A name, an address and a message are three different kinds of
+ * answer, and each field's rule says which: see the three blocks below, each
+ * with its one sentence. A per-field effect that is only three easings says
+ * nothing, and three things that say nothing are worse than one thing that
+ * says it once.
  *
- * `@supports not (animation-timeline: view())` therefore has nothing to do in
- * this file. Nothing in this section is on a scroll or view timeline — the
- * reveal is time-driven and fired by an observer, and the confirmation is
- * fired by a submit, which is not a scroll position and cannot be expressed as
- * one. A browser with no scroll-driven animation support loses nothing here.
+ * And the section's full stop. The last feeling is the one the reader carries
+ * off the page, so this one has to resolve rather than trail into the footer:
+ * on a successful send the three rules draw out to one flush length under the
+ * receipt, and the section signs off with a rule across the column that ends
+ * on a printer's end-mark.
+ *
+ * The clock, and why it is a clock
+ * --------------------------------
+ * Every animation in this file except the closing rule is time-driven, gated
+ * by `motion/Arrived` — one observer, fired once, publishing `data-arrived`
+ * for the delays below to sequence off. A view timeline was the obvious choice
+ * and is the wrong one here: it runs backwards when the reader scrolls up, and
+ * these rules are the boundaries of controls. A boundary that un-draws itself
+ * because somebody scrolled, or that dims while the field it belongs to has
+ * focus, is a worse defect than an animation nobody noticed. The ink is also
+ * purely additive — the control's own 1px rule is painted by CSS at rest and
+ * never animated — so a gate that never fires costs the flourish and leaves a
+ * complete, legible, usable form.
+ *
+ * `@supports not (animation-timeline: view())` therefore has exactly one
+ * subject in this file, the closing rule, which is the one mark here that does
+ * ride a view timeline. Per the contract's §4 the time-driven animations get
+ * no `@supports` block, because there is no feature for a browser to be
+ * missing; they do get the other two exits, explicitly, each landing on the
+ * finished state.
  */
 
 /* ────────────────────────────────────────────────────────────── the form ── */
@@ -36,14 +62,12 @@
 /*
  * The same measure as the fact line above it, and no motion of its own.
  *
- * The form is one step of the group reveal and nothing more. It is deliberately
- * not wiped, swept or scroll-linked, for the reason the cards that used to be
- * here gave and which survives the rewrite: a reader arrives at this section to
- * type, not to watch. A view-timeline animation runs backwards when the reader
- * scrolls back up, so a clip or an opacity ramp hung on a field can crop or dim
- * it while it has focus — which is why the one reveal this section gets is the
- * observer-driven kind that fires once and stays fired. The plate is read; the
- * form is used.
+ * The form as a block is one step of the group reveal and nothing more. It is
+ * deliberately not wiped, swept or scroll-linked, for the reason the cards that
+ * used to be here gave and which survives the rewrite: a reader arrives at this
+ * section to type, not to watch. Whatever happens to a field happens *under*
+ * it, on a 2px strip that is not the field's boundary and cannot crop, dim or
+ * move anything the reader is working in. The plate is read; the form is used.
  *
  * `--measure` is the fact line's own 62ch, so the form is exactly as wide as
  * the sentence above it and the whole plate reads as one block of type rather
@@ -59,6 +83,13 @@
   max-width: var(--measure);
 }
 
+/* The gate's wrapper carries no box of its own. It exists so the stylesheet
+   has one element to read `data-arrived` from, and so the form stays a single
+   step of the reveal above it rather than becoming two. */
+.arrival {
+  display: block;
+}
+
 /* One sentence of instruction, in the body voice. It is the form's
    `aria-describedby` target, so it is read out before the first field rather
    than skipped past as decoration. */
@@ -68,8 +99,75 @@
   color: rgb(var(--ink-soft));
 }
 
+/* ──────────────────────────────────────────────── one field at a time ── */
+
+/*
+ * The three knobs a field has, and the reason they are custom properties.
+ *
+ * `--field-w` is how much room the field claims, `--ink-w` is how far its ink
+ * reaches, `--ink-at` is when that ink arrives and `--seal-at` is when it
+ * re-inks on a successful send. Every per-field difference below is one of
+ * these four values, which is the point: the differences are structural and
+ * can be read off in four lines, rather than being four hand-tuned animation
+ * shorthands that happen to differ.
+ *
+ * The defaults are the message field's, because that is the unremarkable case
+ * — the full measure, and nothing special.
+ */
+.field {
+  --field-w: 100%;
+  --ink-w: var(--field-w);
+  --ink-at: 860ms;
+  --seal-at: 160ms;
+}
+
 .field + .field {
   margin-top: 1.75rem;
+}
+
+/*
+ * NAME — a name is one short answer written in one stroke, so its rule is the
+ * length of the answer rather than of the measure, and the ink crosses it once
+ * from left to right with nothing else moving.
+ *
+ * 24ch is about four times the longest first name anybody has and still
+ * obviously a short field, which is the whole signal: the reader can see how
+ * much is being asked for before reading the label.
+ */
+.fieldName {
+  --field-w: 24ch;
+  --ink-at: 700ms;
+  --seal-at: 0ms;
+}
+
+/*
+ * EMAIL — an address is the one answer that can be fully present and still
+ * wrong, so its rule is inked from both ends inward and left open at the
+ * centre, and that gap is closed by a mark that appears only once the address
+ * is a well-formed one.
+ *
+ * 36ch is a little over the length of a long address. Sized between the name
+ * and the message on purpose: the three fields step up in width in reading
+ * order, which is the shape of the form before a word of it is read.
+ */
+.fieldEmail {
+  --field-w: 36ch;
+  --ink-at: 780ms;
+  --seal-at: 80ms;
+  /* How far each half reaches, so the two stop 1.2ch short of each other.
+     The seal below is the same 1.2ch, because it is that gap. */
+  --ink-half: calc(50% - 0.6ch);
+}
+
+/*
+ * MESSAGE — this is the only field where the reader does real work, so it
+ * takes the whole measure and claims more room as it is used, growing to hold
+ * what they write instead of asking them to scroll inside a five-line box; its
+ * ink opens outward from the centre because it is the one answer with no fixed
+ * end.
+ */
+.fieldMessage {
+  --field-w: 100%;
 }
 
 /*
@@ -83,6 +181,14 @@
  * field stops having a name exactly when the reader most needs to check what
  * they put in it, and on a `<span>` inside a label several screen readers
  * never announced it in the first place.
+ *
+ * All three labels behave identically, and that is a decision rather than an
+ * omission. A label's whole job is to name the field; three names that behaved
+ * differently from each other would make the form's chrome the subject of the
+ * form. The per-field difference lives where it can mean something — in the
+ * measure of the field and the ink on its rule — and the labels stay the one
+ * constant the reader can navigate by. The focus tint is the only thing that
+ * moves here, and it is the same on all three.
  */
 .fieldLabel {
   display: block;
@@ -93,6 +199,13 @@
   letter-spacing: var(--track-field);
   text-transform: uppercase;
   color: rgb(var(--ink-soft));
+  transition: color var(--dur-micro) ease;
+}
+
+/* `:focus-within` on the wrapper, because the label is written *before* the
+   control and no sibling combinator reaches backwards. */
+.field:focus-within .fieldLabel {
+  color: rgb(var(--ink));
 }
 
 /*
@@ -104,6 +217,16 @@
  * to find is held to. `--ink-soft` is 6.37:1 on `--paper`, which is the same
  * choice and the same arithmetic `.btn-quiet` makes in index.css.
  *
+ * This border is painted at rest and is never animated, clipped or faded. It
+ * is the one thing in the section that has to be true in every frame and in
+ * every state — before the gate fires, after it, under a cancelled animation
+ * and on a browser that ran none of them. Everything that moves moves on the
+ * strip below it.
+ *
+ * `max-width` and not `width`, so the field's measure is a ceiling: on a phone
+ * every field is the column width and the stepped widths simply stop being a
+ * signal, which is better than a 36ch field with a horizontal scrollbar.
+ *
  * No placeholders anywhere in this form. With a visible label above every
  * field a placeholder is either a second name for the field — one name too
  * many — or an example the reader has to select and delete.
@@ -111,6 +234,7 @@
 .control {
   display: block;
   width: 100%;
+  max-width: var(--field-w);
   margin-top: 0.4rem;
   padding: 0.6rem 0;
   min-height: 44px;
@@ -147,12 +271,34 @@
   outline-offset: 4px;
 }
 
-/* The message field keeps the same bottom rule as the two above it. A box
-   around this one and lines under those two would be two kinds of field in one
-   form, which is the same mistake as two kinds of object in one gallery. */
+/*
+ * The message field keeps the same bottom rule as the two above it. A box
+ * around this one and lines under those two would be two kinds of field in one
+ * form, which is the same mistake as two kinds of object in one gallery.
+ *
+ * What it does not keep is a fixed height. `field-sizing: content` is the whole
+ * of the third field's treatment: the one field where the reader does real work
+ * is the one field that grows to hold it, so a long message is read back in
+ * full instead of through a five-line window. `min-height` holds the resting
+ * box at the five rows the markup asks for, and `max-height` stops a very long
+ * message from pushing the send button off the screen — past that it scrolls,
+ * which is the point at which a textarea has earned a scrollbar.
+ *
+ * `resize: vertical` stays, and stays *last* in intent: a reader who drags the
+ * handle has said what height they want, and the browser honours that over the
+ * content sizing.
+ */
 .control.message {
   min-height: 7.5rem;
   resize: vertical;
+}
+
+@supports (field-sizing: content) {
+  .control.message {
+    field-sizing: content;
+    max-height: 22rem;
+    overflow-y: auto;
+  }
 }
 
 /*
@@ -163,6 +309,10 @@
  * of weight rather than of hue. There is deliberately no red: this page spends
  * its colour inside the motion and nowhere else, and a palette with one accent
  * has no second one to lose to a reader who cannot separate it from the ink.
+ *
+ * The weight channel is why the ink below never *rests* at 2px: the only
+ * standing 2px rule in this form is an invalid one, and a decorative mark that
+ * looked the same would have spent an error channel on a flourish.
  */
 .control[aria-invalid="true"] {
   border-bottom-width: 2px;
@@ -181,11 +331,225 @@
   color: rgb(var(--ink));
 }
 
+/* ─────────────────────────────────────────────────────────────── the ink ── */
+
+/*
+ * The strip the ink is laid on.
+ *
+ * An element and not a pseudo-element, for one reason: `input` and `textarea`
+ * do not render `::before` or `::after` in any engine that matters, so a mark
+ * that lies along a field's own rule has to be a box of its own. It is 2px
+ * tall and pulled 2px up, so it covers the hairline and the pixel above it,
+ * and it contributes nothing to the flow — the error note under it sits
+ * exactly where it did.
+ *
+ * `pointer-events: none` because it crosses the bottom edge of a control and a
+ * decorative strip must never eat a click aimed at the last line of a textarea.
+ */
+.ink {
+  display: block;
+  position: relative;
+  /*
+   * The control's own type size, and it is not cosmetic: `--field-w` is written
+   * in `ch`, which resolves against whichever element it lands on. The section
+   * sets 19px and the control sets 17px, so the same `24ch` came out as 261px
+   * on the strip and 234px on the field — a 27px tail of ink hanging past the
+   * end of the rule it was supposed to be drawing. Measured on the render.
+   */
+  font-size: 1.0625rem;
+  width: var(--ink-w);
+  max-width: 100%;
+  height: 2px;
+  margin-top: -2px;
+  pointer-events: none;
+  /* The only property that moves on a send. 620ms of ink-drawing lands on top
+     of it, so the two read as one gesture. */
+  transition: width 620ms var(--ease-settle);
+}
+
+/*
+ * The ink itself, resting at nothing.
+ *
+ * `background-size` rather than `transform: scaleX`, which would be the
+ * compositor-friendly choice and cannot do the email field: two halves
+ * travelling toward each other need two origins, and one element has one.
+ * Two background layers have two anchors, so the three directions below are
+ * three positions of the same keyframe instead of three different techniques.
+ * The cost is paint on a 2px strip, three times, once — which is nothing, and
+ * the contract's real rule about per-frame cost (nothing on this page measures
+ * anything on scroll) is untouched.
+ */
+.ink::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(rgb(var(--ink)), rgb(var(--ink)));
+  background-repeat: no-repeat;
+  background-position: left center;
+  background-size: 0 100%;
+  opacity: 0;
+}
+
+/* Centre-anchored, so it opens outward in both directions at once. */
+.inkMessage::after {
+  background-position: center center;
+}
+
+/* Two layers, anchored to the two ends, so they travel inward. */
+.inkEmail::after {
+  background-image:
+    linear-gradient(rgb(var(--ink)), rgb(var(--ink))),
+    linear-gradient(rgb(var(--ink)), rgb(var(--ink)));
+  background-position: left center, right center;
+  background-size: 0 100%, 0 100%;
+}
+
+/*
+ * The seal on the email rule: the gap, filled.
+ *
+ * It is `:user-valid` and not a keystroke handler: no React state, no listener,
+ * and the constraints it reads are the ones on the element — `required`,
+ * `type="email"` and the `pattern` that reconciles the HTML email type with the
+ * schema's dotted domain, which is argued out at the call site. `noValidate` on
+ * the form suppresses the native bubble and the native submit block; it does
+ * not touch the validity state these pseudo-classes report, which was measured
+ * on the render rather than assumed.
+ *
+ * When it lands is the browser's call, and the browser is right. Chrome sets
+ * the interacted flag as the reader leaves the field and tracks it live from
+ * then on, so the first seal appears on the way out of the field rather than
+ * mid-word.
+ *
+ * It only ever says yes. There is no `:user-invalid` counterpart and there must
+ * not be one: a mark that appeared while somebody was halfway through typing an
+ * address would be the form telling them they are wrong before they have
+ * finished being right. Which is also why this is not a fourth error channel
+ * and does not need announcing — the three that report a real failure are
+ * `aria-invalid`, the note under the field, and the rule's weight, and all
+ * three still only appear on a submit.
+ *
+ * The selector stands alone rather than joining a list, so that an engine
+ * without `:user-valid` drops this rule and nothing else.
+ */
+.inkEmail::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  left: 50%;
+  width: 1.2ch;
+  margin-left: -0.6ch;
+  background: rgb(var(--ink));
+  transform: scaleX(0);
+  transition: transform var(--dur-fast) var(--ease-settle);
+}
+
+.control:user-valid + .inkEmail::before {
+  transform: scaleX(1);
+}
+
+/*
+ * The sequence, once the reader has reached the form.
+ *
+ * Each rule draws over 620ms on `--ease-settle` — the page's own curve and the
+ * reveal's own length, so the ink and the arrival above it are the same gesture
+ * at the same speed — and then absorbs over 420ms, leaving the field exactly as
+ * the CSS rests it. Nothing persists, which is what keeps a decorative mark out
+ * of the error channel the 2px invalid rule owns.
+ *
+ * The starts are 80ms apart in reading order, the top of the contract's
+ * measured stagger band, and they begin at 700ms: the form itself arrives 60ms
+ * into a 620ms reveal, and ink drawn onto a rule that is still fading in and
+ * travelling 14px reads as a rendering fault rather than as a stroke.
+ *
+ * `both` on the absorb is doing real work: during its delay the backwards fill
+ * holds the ink at full strength, so one animation draws and the other holds
+ * and then releases, with no third animation and no keyframe doing two jobs.
+ */
+.arrival[data-arrived="true"] .inkName::after,
+.arrival[data-arrived="true"] .inkMessage::after {
+  animation:
+    ink-across 620ms var(--ease-settle) var(--ink-at) both,
+    ink-absorb 420ms linear calc(var(--ink-at) + 620ms) both;
+}
+
+.arrival[data-arrived="true"] .inkEmail::after {
+  animation:
+    ink-inward 620ms var(--ease-settle) var(--ink-at) both,
+    ink-absorb 420ms linear calc(var(--ink-at) + 620ms) both;
+}
+
+/* An implicit `from` in all three: the resting declaration above *is* the
+   first frame, so there is one place that says where the ink starts. */
+@keyframes ink-across {
+  to { background-size: 100% 100%; }
+}
+
+@keyframes ink-inward {
+  to { background-size: var(--ink-half) 100%, var(--ink-half) 100%; }
+}
+
+@keyframes ink-absorb {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+/* ─────────────────────────────────────────────────────── what came back ── */
+
 .send {
   margin-top: 2.5rem;
 }
 
-/* ──────────────────────────────────────────────────────── what came back ── */
+/*
+ * The resolution: three rules of three different lengths become one length.
+ *
+ * This is the section's answer to the one thing the close has to do that no
+ * other beat does — it has to resolve. The three fields arrive stepped (24ch,
+ * 36ch, the measure) because they are asking for three different sizes of
+ * answer; on a successful send that difference stops being true, because the
+ * three answers have left as one message. So the ink extends to a single flush
+ * length and draws across all three in reading order, 80ms apart, with the
+ * receipt rising underneath.
+ *
+ * It is additive and nothing exits — the plate, the form and the address are
+ * all still on the last screen of the page afterwards, which is the other half
+ * of the brief. And it starts in the same React commit that puts the receipt in
+ * the live region, which is what makes the ordering rule structural: the
+ * confirmation is in the DOM, and announced, before the first frame that moves
+ * on account of it. `--seal-at` starts at 0ms for exactly that reason — the
+ * first frame of this gesture is the first frame after the receipt exists.
+ *
+ * The specificity is four classes to the arrival block's three, so this wins
+ * on weight rather than on which rule happens to be written second.
+ */
+.form[data-sent="true"] .field {
+  --ink-w: 100%;
+}
+
+.form[data-sent="true"] .field .ink::after {
+  /* One layer, left-anchored, for all three — including the email field, whose
+     two halves have nothing left to close on. */
+  background-image: linear-gradient(rgb(var(--ink)), rgb(var(--ink)));
+  background-position: left center;
+  background-size: 0 100%;
+  opacity: 1;
+  animation: ink-seal 620ms var(--ease-settle) var(--seal-at) both;
+}
+
+/*
+ * The same two frames as `ink-across`, under a second name, and the duplication
+ * is load-bearing.
+ *
+ * A CSS animation's identity is its name and its position in the list, so
+ * swapping an element from `ink-across` to `ink-across` is not a new animation
+ * — it is the finished one having its delay edited, which leaves it finished.
+ * Measured on the render: the email field re-drew, because its arrival
+ * animation was `ink-inward` and the name genuinely changed, while the name and
+ * message fields snapped straight to full ink. A second name is what makes all
+ * three start over.
+ */
+@keyframes ink-seal {
+  to { background-size: 100% 100%; }
+}
 
 /*
  * The two live regions.
@@ -273,4 +637,146 @@
 .direct a:hover,
 .direct a:focus-visible {
   text-decoration-color: rgb(var(--ink));
+}
+
+/* ───────────────────────────────────────────────────────── the full stop ── */
+
+/*
+ * The last mark on the page.
+ *
+ * A gallery catalogue does not stop, it closes, and a close is a rule across
+ * the column that ends on an end-mark — the filled square a printed article
+ * puts after its last sentence. Without it this section runs out of content and
+ * the footer starts, which overwrites whatever the peak two sections up
+ * achieved; the brief's word for what an ending has to do is *resolve*, and a
+ * full stop is the cheapest honest way to do it.
+ *
+ * This is the one mark in the section on a view timeline, and it is allowed to
+ * be: it is decorative, it is the boundary of nothing, and reversal — scrolling
+ * back up un-draws it — is the same licence every other drawn rule on the site
+ * has. It is also why there is an `@supports` block in this file at all.
+ *
+ * `entry 0% cover 24%` and not `entry 0% entry 100%`, which is the trap a 1px
+ * element sets: the `entry` range is as long as the element plus nothing, so on
+ * a hairline it is a one-pixel scroll range and the rule appears instantly.
+ * `cover` is measured against the element *plus the viewport*, so 24% of it is
+ * about a quarter of a screen of scrolling — a line being drawn rather than a
+ * line being switched on. `InkRule` makes the same move for the same reason.
+ */
+.closing {
+  display: block;
+  position: relative;
+  margin-top: 4.5rem;
+  height: 1px;
+  background: rgb(var(--rule-firm));
+
+  animation-name: close-draw;
+  animation-timing-function: linear;
+  animation-fill-mode: both;
+  animation-timeline: view();
+  animation-range: entry 0% cover 24%;
+}
+
+/* The end-mark. Full-strength enough to read as a terminal rather than as a
+   thickening of the line, and small enough not to become a bullet. */
+.closing::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: -3px;
+  width: 7px;
+  height: 7px;
+  background: rgb(var(--ink-soft));
+}
+
+/* The slack on three sides is the end-mark's own overhang: a clip tight to the
+   1px line would shave the square it is supposed to be revealing. Only the
+   right edge does any work. */
+@keyframes close-draw {
+  from { clip-path: inset(-8px 100% -8px 0); }
+  to   { clip-path: inset(-8px -8px -8px 0); }
+}
+
+/* ────────────────────────────────────────────────────── the off-switches ── */
+
+/*
+ * Three independent conditions, three exits, and every one of them lands on a
+ * complete and usable form.
+ *
+ * What "the finished state" is here is worth stating, because it differs per
+ * mark. The arrival ink finishes *absorbed* — invisible — so cancelling it
+ * leaves the field exactly as the CSS rests it, which is the field with its
+ * own 1px rule and nothing else. The send's ink finishes drawn, so cancelling
+ * that one has to restate the drawn background. The closing rule finishes
+ * fully revealed. Nothing anywhere in this file lands on a first frame, and
+ * nothing that is a control boundary is involved in any of it.
+ *
+ * The global `animation-duration: 0.01ms` in index.css and nav/motion-paused.css
+ * would in fact land these particular animations correctly, because they are
+ * time-driven and that trick works by running a clock instantly to its end.
+ * They are cancelled explicitly anyway: the next mark added to this file may
+ * not be time-driven, and a block that already says what the arrived state is
+ * is a block somebody has to update rather than one they can fail to notice.
+ *
+ * `@supports` covers only the closing rule, which is the only progress-driven
+ * mark here. Adding one for the rest would be cargo cult — there is no feature
+ * for a browser to be missing in a 620ms animation.
+ */
+@supports not (animation-timeline: view()) {
+  .closing {
+    animation: none;
+    clip-path: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .arrival[data-arrived="true"] .inkName::after,
+  .arrival[data-arrived="true"] .inkEmail::after,
+  .arrival[data-arrived="true"] .inkMessage::after {
+    animation: none;
+    opacity: 0;
+  }
+
+  .form[data-sent="true"] .field .ink::after {
+    animation: none;
+    opacity: 1;
+    background-size: 100% 100%;
+  }
+
+  .ink,
+  .inkEmail::before,
+  .fieldLabel,
+  .control {
+    transition: none;
+  }
+
+  .closing {
+    animation: none;
+    clip-path: none;
+  }
+}
+
+:global(body.motion-paused) .arrival[data-arrived="true"] .inkName::after,
+:global(body.motion-paused) .arrival[data-arrived="true"] .inkEmail::after,
+:global(body.motion-paused) .arrival[data-arrived="true"] .inkMessage::after {
+  animation: none;
+  opacity: 0;
+}
+
+:global(body.motion-paused) .form[data-sent="true"] .field .ink::after {
+  animation: none;
+  opacity: 1;
+  background-size: 100% 100%;
+}
+
+:global(body.motion-paused) .ink,
+:global(body.motion-paused) .inkEmail::before,
+:global(body.motion-paused) .fieldLabel,
+:global(body.motion-paused) .control {
+  transition: none;
+}
+
+:global(body.motion-paused) .closing {
+  animation: none;
+  clip-path: none;
 }
