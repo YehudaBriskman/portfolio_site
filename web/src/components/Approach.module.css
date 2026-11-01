@@ -86,8 +86,13 @@
    * — so size and tracking are the whole of the hierarchy it has against
    * 19px of body copy, and at this step they are enough.
    */
-  font-family: var(--font-display);
-  font-weight: var(--weight-display);
+  /* The text face at its real 700, not the display face. The display role is
+     drawn for the section register and up; this is set below 32px, where a
+     wide geometric face stops being a quieter headline and starts being a
+     slower read. Same division as `.display` / `.display-tight` in
+     index.css. */
+  font-family: var(--font-text);
+  font-weight: var(--weight-text-strong);
   font-size: clamp(1.3125rem, 2.2vw, 1.5rem);
   line-height: 1.22;
   letter-spacing: var(--track-sub);

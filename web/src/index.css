@@ -327,20 +327,51 @@
      * The three type roles.
      * ──────────────────────────────────────────────────────────────────
      * display carries voice, text carries prose, data marks a field line as a
-     * field line. Three tokens, defined once here and re-pointed under
+     * field line. Four tokens, defined once here and re-pointed under
      * `:lang(he)` below; nothing else on the site names a family. That is the
      * whole reason this layer exists: a stylesheet that names a face has to
      * name six of them and pick between them, and there were 44 declarations
      * naming one before this change.
      *
-     * The fallbacks are the system sans in all three roles, including the two
+     * ── why there is a fourth role, and why the text role changed hands ──
+     *
+     * Three roles were mapped straight onto the three faces each language was
+     * given: display, second voice, data. That put **Jim Nightshade on `body`**
+     * — so every paragraph, every nav link, every menu item and every button
+     * on the site was set in a calligraphic script, and the one face in the
+     * set drawn for continuous reading was spending its life on a 11.52px
+     * field line nobody looks at twice. The owner's words, looking at the
+     * About page: "its not readable at all... the regular one should be the
+     * one you see the most, i almost cant see him at ALL".
+     *
+     * They were right, and the type specimen said the same thing before the
+     * screenshot did: `docs/type-specimen/` measures Solitreo rendering a
+     * 14-character Hebrew string as **one continuous ink run at every
+     * tracking value from +0.03em to -0.09em**, which is a face with no
+     * inter-letter gap to grade. A script that cannot be tracked cannot be
+     * set as text.
+     *
+     * So the second voice is its own role now and is spent rather than
+     * inherited. `--font-text` is the face that carries reading; `--font-accent`
+     * is the one that is allowed to be beautiful, and it appears in exactly
+     * two places on the site — see `.accent` below.
+     *
+     * `--font-data` and `--font-text` resolve to the same face today, and the
+     * two tokens stay separate anyway. They are different roles — one is
+     * prose, one is a spec line that is uppercased and tracked to +0.18em —
+     * and the field line is the one place a monospace would still earn its
+     * bytes. Keeping the token means that is one line to change rather than
+     * fourteen.
+     *
+     * The fallbacks are the system sans in all four roles, including the two
      * scripts. `cursive` would have been the honest generic for Jim
      * Nightshade and Solitreo and it resolves to Comic Sans on Windows and to
      * nothing predictable elsewhere, which is a worse first paint than a
      * plain sans under `font-display: swap`.
      */
     --font-display: 'Audiowide', ui-sans-serif, system-ui, sans-serif;
-    --font-text:    'Jim Nightshade', ui-sans-serif, system-ui, sans-serif;
+    --font-text:    'Comic Relief', ui-sans-serif, system-ui, sans-serif;
+    --font-accent:  'Jim Nightshade', ui-sans-serif, system-ui, sans-serif;
     --font-data:    'Comic Relief', ui-sans-serif, system-ui, sans-serif;
     /*
      * Not a fourth role, and not a face: the generic monospace.
@@ -367,6 +398,20 @@
      */
     --weight-display:     400;
     --weight-text:        400;
+    /*
+     * The one real bold in the set, and the reason the display role could be
+     * pulled back off small type at all.
+     *
+     * Comic Relief ships a 700 master and Playpen Sans Hebrew is variable to
+     * 700, so both text faces can carry a heading without the browser being
+     * asked to invent one. Everything that used to be set in the display face
+     * below the section register — object names, `.display-tight`, buttons —
+     * is this instead. It is not available in the accent or display roles:
+     * Audiowide, Jim Nightshade, Rubik Glitch and Solitreo have one master
+     * each, and `font-synthesis-weight: none` on `body` means asking those
+     * for a 700 gets a 400.
+     */
+    --weight-text-strong: 700;
     --weight-data:        400;
     --weight-data-strong: 700;
 
@@ -543,13 +588,18 @@
   :root:lang(he),
   [lang='he'] {
     --font-display: 'Rubik Glitch', ui-sans-serif, system-ui, sans-serif;
-    --font-text:    'Solitreo', ui-sans-serif, system-ui, sans-serif;
+    --font-text:    'Playpen Sans Hebrew', ui-sans-serif, system-ui, sans-serif;
+    --font-accent:  'Solitreo', ui-sans-serif, system-ui, sans-serif;
     --font-data:    'Playpen Sans Hebrew', ui-sans-serif, system-ui, sans-serif;
 
     /* Rubik Glitch and Solitreo ship one master each; Playpen Sans Hebrew is
        the variable file, clipped to 400-700. */
     --weight-display:     400;
     --weight-text:        400;
+    /* Playpen Sans Hebrew is variable 400-700, so Hebrew has a real bold in
+       the text role exactly as English does. Solitreo and Rubik Glitch have
+       one master each and are never asked for one. */
+    --weight-text-strong: 700;
     --weight-data:        400;
     --weight-data-strong: 700;
 
@@ -683,12 +733,54 @@
      ramp note in the token block. */
   .display-md { letter-spacing: var(--track-head); }
   .display-sm { letter-spacing: var(--track-sub); }
+  /*
+   * The heading step below the section register, and it is not display type.
+   *
+   * `.display` is set at `text-section` and above — 32px at the floor, 112px
+   * at the ceiling — which is where Audiowide and Rubik Glitch are drawn to
+   * live. `.display-tight` is the rung under it and it is applied at
+   * `text-lg` and `text-xl`: an 18px `h3` on a project page, a 20px spec
+   * value, a truncated row title. A wide geometric display face at 18px is
+   * not a quieter version of itself, it is an unreadable one — which is what
+   * the About page looked like, and what the owner reported.
+   *
+   * So the name stays and the family does not. It is the text face at its
+   * real 700, which is a heading voice the reader can actually read, and the
+   * tracking stays on the head step because that is a fact about the size
+   * rather than about the face.
+   */
   .display-tight {
-    font-family: var(--font-display);
-    font-weight: var(--weight-display);
+    font-family: var(--font-text);
+    font-weight: var(--weight-text-strong);
     letter-spacing: var(--track-head);
     line-height: 1.04;
     text-wrap: balance;
+  }
+
+  /*
+   * The second voice, and the whole of its licence.
+   *
+   * Jim Nightshade in English, Solitreo in Hebrew: the two faces in the set
+   * that are beautiful and cannot be read in quantity. This class is how they
+   * are spent, and there is exactly **one** call site on the site today — the
+   * fact line on the title plate, which names it through the token in
+   * `Hero.module.css` because that is the file that knows the plate is a
+   * plate. One line, 20px, on the first screen, and not the only way to get
+   * at anything it says.
+   *
+   * There is no pull quote in a note yet; when there is, it is the second
+   * place this belongs. Before adding a third, check whether the thing is a
+   * control or a paragraph — those are what this role was doing before, and
+   * both are why it needed to become a role of its own.
+   */
+  .accent {
+    font-family: var(--font-accent);
+    font-weight: var(--weight-text);
+    /* Zero, not the size's step. The ramp in the token block was re-measured
+       per face and both script faces came out at zero above the field line:
+       they are connecting hands with no inter-letter gap to grade, so any
+       negative tracking pulls strokes through each other. */
+    letter-spacing: 0;
   }
 
   /*
@@ -1117,8 +1209,11 @@
     /* On every variant, so a solid and an outlined action are the same size
        and sit on the same baseline when they are side by side. */
     border: 1px solid transparent;
-    font-family: var(--font-display);
-    font-weight: var(--weight-display);
+    /* The text face, not the display face. A button is a control with a verb
+       on it at 18px, which is the same argument as `.display-tight` above and
+       the same size it is made at. */
+    font-family: var(--font-text);
+    font-weight: var(--weight-text-strong);
     font-size: 1.125rem;
     /* Zero, not `--track-label`. The 0.16em the label setting needed is what
        opens small capitals up; at this size in a display face it would only
@@ -1548,9 +1643,13 @@
     border-color: rgb(var(--destructive-ink) / .7);
   }
   .a-input-mono { font-family: var(--font-code); letter-spacing: .02em; }
+  /* The text face: this is a 24px input someone types a title *into*, not a
+     title. The display face set the caret jumping between wide geometric
+     advances and gave the admin a field that looked like the published page
+     while being the least like it of anything on the site. */
   .a-input-title {
-    font-family: var(--font-display);
-    font-weight: var(--weight-display); letter-spacing: var(--track-sub);
+    font-family: var(--font-text);
+    font-weight: var(--weight-text-strong); letter-spacing: var(--track-sub);
     font-size: 1.5rem; line-height: 1.15; min-height: 56px;
   }
 

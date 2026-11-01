@@ -15,10 +15,26 @@
   gap: 0.5rem;
 }
 
+/*
+ * The name, and the one scale that gets the display face.
+ *
+ * The display role is drawn for the section register and up — 32px at the
+ * floor. Of the three scales here only `plate` is in that band: it is the
+ * title plate, set at `text-hero`, which bottoms out at 2.4rem on a phone and
+ * reaches 9rem on a desktop. `object` is a project name at 35px and `inline`
+ * is a row title at 17px, and both of those were being set in Audiowide and
+ * Rubik Glitch because they share this rule. At 17px that is not a smaller
+ * headline, it is a name a reader has to work at.
+ *
+ * So the default is the text face at its real 700 — a heading voice rather
+ * than a display one — and `plate` overrides it below. Which is the same
+ * division `.display` and `.display-tight` make in `index.css`, for the same
+ * reason and at the same size.
+ */
 .name {
   margin: 0;
-  font-family: var(--font-display);
-  font-weight: var(--weight-display);
+  font-family: var(--font-text);
+  font-weight: var(--weight-text-strong);
   color: rgb(var(--ink));
   text-wrap: balance;
 }
@@ -110,6 +126,8 @@
  * collection is named after.
  */
 .plate .name {
+  font-family: var(--font-display);
+  font-weight: var(--weight-display);
   text-transform: uppercase;
 }
 .plate { gap: 1rem; }
