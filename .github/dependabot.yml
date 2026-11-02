@@ -25,10 +25,16 @@
 # History: until 2026-11-02 this grouped minor+patch only and opened each
 # major on its own. That produced eleven PRs in one morning (#139-#150), each
 # rewriting the same lockfiles, so every merge conflicted the rest.
+#
+# No `cooldown` yet (zizmor's dependabot-cooldown, ignored on each entry). A
+# cooldown holds a new release back for some days before Dependabot offers
+# it, which blunts a hijacked release but also delays every fix. That is an
+# owner's policy call, not a side effect of adding a linter, so it is left for
+# a deliberate change. Security updates are not subject to cooldown either way.
 
 version: 2
 updates:
-  - package-ecosystem: npm
+  - package-ecosystem: npm # zizmor: ignore[dependabot-cooldown]
     directories: ["/web", "/backend"]
     schedule:
       interval: weekly
@@ -89,7 +95,7 @@ updates:
   # digest when upstream republishes `node:*-alpine` or `nginx:alpine` with
   # fixed OS packages - without it the pin would freeze the image's CVEs in
   # place, which is the opposite of what it is for.
-  - package-ecosystem: docker
+  - package-ecosystem: docker # zizmor: ignore[dependabot-cooldown]
     directories: ["/web", "/backend"]
     schedule:
       interval: weekly
@@ -106,7 +112,7 @@ updates:
 
   # The action runtimes are why every run warned about Node 20; majors here
   # are where that happens, so they are not ignored.
-  - package-ecosystem: github-actions
+  - package-ecosystem: github-actions # zizmor: ignore[dependabot-cooldown]
     directory: /
     schedule:
       interval: weekly

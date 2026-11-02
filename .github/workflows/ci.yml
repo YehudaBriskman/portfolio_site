@@ -32,6 +32,17 @@ on:
 permissions:
   contents: read
 
+# A second push to a pull request makes the first run's answer worthless, so
+# that run is cancelled. Nothing else is: every other event gets a group of
+# its own (the run id), so a push to main or a tag never waits behind, and is
+# never cancelled by, another run. A shared group would not be safe even with
+# cancel-in-progress off - a group holds one pending run, and a third arrival
+# cancels the one that was waiting. Deploy never runs on a pull request, and
+# keeps its own per-environment group below with cancel-in-progress: false.
+concurrency:
+  group: ci-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || format('run-{0}', github.run_id) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 env:
   FRONT_DIR: web
   BACK_DIR: backend
@@ -41,14 +52,33 @@ env:
   NPM_CONFIG_AUDIT: "false"
 
 jobs:
-  preflight:
-    name: Preflight
+  # Every check that needs only the source: no install, no build. These were
+  # four jobs (Preflight, Dockerfiles x2, Compose files parse) of a few seconds
+  # each, every one paying for its own runner and checkout; they are steps of
+  # one job now, and the workflow lint joined them.
+  #
+  # `!cancelled()` on every step after the checkout, so one failing assertion
+  # does not hide the next - the separate jobs used to report independently,
+  # and the Dockerfiles matrix had fail-fast off for the same reason.
+  #
+  # Frontend and Backend do not wait for this job. It used to gate them, which
+  # cost nothing when it was ten seconds of file checks; with hadolint and the
+  # workflow lint in it, it would sit on the critical path. Nothing is
+  # published unless it passes: Scan and Publish image both need it.
+  static:
+    name: Static
     runs-on: ubuntu-latest
+    # Measured ~1 min; ten covers a slow image pull for hadolint.
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Dependabot supersede keeps security updates it cannot prove covered (#201)
+        if: ${{ !cancelled() }}
         run: node --test .github/scripts/supersede-select.test.mjs
       - name: Every file the build assumes is present
+        if: ${{ !cancelled() }}
         run: |
           set -Eeuo pipefail
           fail=0
@@ -77,6 +107,7 @@ jobs:
       # none inherits correctly and is left alone. Brace depth rather than a
       # grep, so a block's headers are attributed to that block.
       - name: Every location that sets a header keeps the security headers
+        if: ${{ !cancelled() }}
         run: |
           set -Eeuo pipefail
           bad=$(awk '
@@ -99,22 +130,95 @@ jobs:
           fi
           echo "OK"
 
+      # Was the `Dockerfiles` matrix job; one step per file so each reports.
+      - name: Dockerfile lint (web)
+        if: ${{ !cancelled() }}
+        uses: hadolint/hadolint-action@06be81baf89a55ffd0e24b8f04a4185738dd3387 # v3.5.0
+        with:
+          dockerfile: web/Dockerfile
+          failure-threshold: error
+      - name: Dockerfile lint (backend)
+        if: ${{ !cancelled() }}
+        uses: hadolint/hadolint-action@06be81baf89a55ffd0e24b8f04a4185738dd3387 # v3.5.0
+        with:
+          dockerfile: backend/Dockerfile
+          failure-threshold: error
+
+      # Was the `Compose files parse` job.
+      #
+      # The dev overlay is checked as an overlay, not on its own: it has no
+      # build or image for `api`, because it only adds environment to the
+      # service the base file defines. Parsed alone it is invalid, which is
+      # why it needs its own entry rather than another name in a loop — and
+      # why it went unchecked until `make up` started depending on it.
+      - name: Compose files parse
+        if: ${{ !cancelled() }}
+        run: |
+          set -Eeuo pipefail
+          for files in \
+            "-f docker-compose.yml" \
+            "-f docker-compose.ci.yml" \
+            "-f docker-compose.yml -f docker-compose.dev.yml"
+          do
+            echo "::group::docker compose $files"
+            # shellcheck disable=SC2086
+            docker compose $files config >/dev/null
+            echo "OK"
+            echo "::endgroup::"
+          done
+
+      # The workflows are code that holds a registry token and a kubeconfig;
+      # they get linted like code. actionlint for correctness (expressions,
+      # needs, shellcheck over every `run:`), zizmor for security (unpinned
+      # actions, template injection, credential persistence). Exact versions:
+      # actionlint's tarball is checked against the sha256 its release
+      # publishes, and zizmor is pinned on PyPI. Bumping either is a deliberate
+      # edit here - a new rule should arrive in a pull request, not on Monday.
+      - name: Workflow lint (actionlint)
+        if: ${{ !cancelled() }}
+        env:
+          ACTIONLINT_VERSION: 1.7.12
+          ACTIONLINT_SHA256: 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
+        run: |
+          set -Eeuo pipefail
+          tgz="actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+          curl -fsSLo "$RUNNER_TEMP/$tgz" \
+            "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/$tgz"
+          echo "$ACTIONLINT_SHA256  $RUNNER_TEMP/$tgz" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/$tgz" -C "$RUNNER_TEMP" actionlint
+          "$RUNNER_TEMP/actionlint" -color
+      - name: Workflow security lint (zizmor)
+        if: ${{ !cancelled() }}
+        env:
+          ZIZMOR_VERSION: 1.31.1
+          # Read-only; lets the online audits resolve pinned commits and
+          # check that each version comment matches the sha it sits beside.
+          GH_TOKEN: ${{ github.token }}
+        run: pipx run --spec "zizmor==${ZIZMOR_VERSION}" zizmor --format github .
+
   frontend:
     name: Frontend
     runs-on: ubuntu-latest
-    needs: preflight
+    # Measured: median ~2.5 min, slowest 4.2 (2026-11-02, 39 runs).
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: web
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # The npm cache feeds this test job only; no image is built from it (the
+      # Dockerfiles run their own `npm ci`). And `npm ci` checks every tarball
+      # against the lockfile's integrity hash, so a tampered cache entry fails
+      # the install rather than reaching the build.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           # The version the images run (node:24-alpine). 20 is end-of-life,
           # and testing on one major while shipping another is how a runtime
           # difference reaches production unrehearsed.
           node-version: 24
-          cache: npm
+          cache: npm # zizmor: ignore[cache-poisoning]
           cache-dependency-path: web/package-lock.json
       - run: npm ci
       # What ships, not what builds it: --omit=dev, because a ReDoS in a
@@ -152,16 +256,20 @@ jobs:
   backend:
     name: Backend
     runs-on: ubuntu-latest
-    needs: preflight
+    # Measured: median ~0.4 min, slowest 1.7.
+    timeout-minutes: 10
     defaults:
       run:
         working-directory: backend
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # Cache: same reasoning as Frontend's.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
-          cache: npm
+          cache: npm # zizmor: ignore[cache-poisoning]
           cache-dependency-path: backend/package-lock.json
       - run: npm ci
       - name: Runtime dependencies carry no high advisory
@@ -170,51 +278,11 @@ jobs:
       - run: npm test
       - run: npm run build
 
-  dockerfiles:
-    name: Dockerfiles
-    runs-on: ubuntu-latest
-    needs: preflight
-    strategy:
-      fail-fast: false
-      matrix:
-        dir: [web, backend]
-    steps:
-      - uses: actions/checkout@v7
-      - uses: hadolint/hadolint-action@v3.5.0
-        with:
-          dockerfile: ${{ matrix.dir }}/Dockerfile
-          failure-threshold: error
-
-  compose:
-    name: Compose files parse
-    runs-on: ubuntu-latest
-    needs: preflight
-    steps:
-      - uses: actions/checkout@v7
-      # The dev overlay is checked as an overlay, not on its own: it has no
-      # build or image for `api`, because it only adds environment to the
-      # service the base file defines. Parsed alone it is invalid, which is
-      # why it needs its own entry rather than another name in a loop — and
-      # why it went unchecked until `make up` started depending on it.
-      - run: |
-          set -Eeuo pipefail
-          for files in \
-            "-f docker-compose.yml" \
-            "-f docker-compose.ci.yml" \
-            "-f docker-compose.yml -f docker-compose.dev.yml"
-          do
-            echo "::group::docker compose $files"
-            # shellcheck disable=SC2086
-            docker compose $files config >/dev/null
-            echo "OK"
-            echo "::endgroup::"
-          done
-
   # A skipped matrix job never expands its matrix, so an interpolated job name
   # is reported verbatim: every pull request showed two checks literally called
   # "Publish ${{ matrix.name }} image". A static name lets Actions append the
   # leg itself — "Publish image (web)" when it runs, "Publish image" when it
-  # does not — which is what the Dockerfiles job above has been doing all along.
+  # does not — which is what the Scan image job below has been doing all along.
   #
   # The matrix key is `image` rather than `name` for the same reason: a matrix
   # dimension called `name` sitting next to a job field called `name` reads as
@@ -222,7 +290,11 @@ jobs:
   images:
     name: Publish image
     runs-on: ubuntu-latest
-    needs: [frontend, backend, dockerfiles, compose, scan]
+    needs: [static, frontend, backend, scan]
+    # Measured: median ~2.1 min, slowest 4.2, on a warm layer cache. A cold
+    # cache rebuilds the arm64 leg under emulation, `npm ci` included, which
+    # is far slower than anything in the sample - hence the margin.
+    timeout-minutes: 45
     # Both: a main push so every commit is deployable the moment it is tagged,
     # and the tag itself so a tag on a commit that somehow never built still
     # produces an image rather than a rollout that fails looking for one. The
@@ -240,18 +312,20 @@ jobs:
           - image: api
             context: backend
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       # The cluster these images are for runs on an arm64 node. An amd64-only
       # image cannot be pulled there at all, so a single-platform build would
       # publish something nothing can run.
-      - uses: docker/setup-qemu-action@v4
-      - uses: docker/setup-buildx-action@v4
-      - uses: docker/login-action@v4
+      - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: docker/build-push-action@v7
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: ${{ matrix.context }}
           push: true
@@ -272,14 +346,22 @@ jobs:
       # Aliases, not rebuilds. `imagetools create` writes new tags against the
       # manifest that already exists, so the release carries the exact bytes
       # that were tested rather than a second build of the same source.
+      #
+      # The tag name reaches the shell through env, not `${{ }}` inside the
+      # script: a ref name is text somebody typed, and pasted into a script
+      # it would be run as part of it.
       - name: Name the release
         if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          REPO: ${{ env.IMAGE_BASE }}/${{ matrix.image }}
+          RELEASE: ${{ github.ref_name }}
+          SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
           docker buildx imagetools create \
-            --tag ${{ env.IMAGE_BASE }}/${{ matrix.image }}:${{ github.ref_name }} \
-            --tag ${{ env.IMAGE_BASE }}/${{ matrix.image }}:latest \
-            ${{ env.IMAGE_BASE }}/${{ matrix.image }}:${{ github.sha }}
+            --tag "$REPO:$RELEASE" \
+            --tag "$REPO:latest" \
+            "$REPO:$SHA"
 
   # A gate, and a gate before anything is published.
   #
@@ -308,7 +390,11 @@ jobs:
   scan:
     name: Scan image
     runs-on: ubuntu-latest
-    needs: [dockerfiles]
+    # Was `needs: [dockerfiles]`: a Dockerfile that fails lint is not built.
+    needs: [static]
+    # Measured: median ~1.2 min, slowest 3.6. A cold layer cache rebuilds the
+    # image from scratch and Trivy may fetch its database.
+    timeout-minutes: 20
     permissions:
       contents: read
     strategy:
@@ -320,9 +406,11 @@ jobs:
           - image: api
             context: backend
     steps:
-      - uses: actions/checkout@v7
-      - uses: docker/setup-buildx-action@v4
-      - uses: docker/build-push-action@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: ${{ matrix.context }}
           push: false
@@ -400,6 +488,10 @@ jobs:
   deploy:
     name: Deploy
     runs-on: ubuntu-latest
+    # Measured median ~0.6 min, slowest 1.9. The worst case it is written for
+    # is longer: a minute for a path to the node, a 300s rollout wait per
+    # Deployment, then a 180s undo per Deployment - about twenty minutes.
+    timeout-minutes: 30
     needs: images
     if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
     # One rollout at a time per environment. Two merges in quick succession

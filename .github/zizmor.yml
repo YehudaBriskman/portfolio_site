@@ -1,0 +1,23 @@
+# zizmor configuration. Run in CI by the Static job (.github/workflows/ci.yml).
+#
+# Every finding is fixed or carries an inline `# zizmor: ignore[...]` with its
+# reason, beside the line it is about. This file holds only what cannot be
+# said inline.
+rules:
+  template-injection:
+    ignore:
+      # Deploy's `release="${{ github.ref_name }}"`. Not edited from here
+      # (the Deploy job belongs to #199/#200); #214 moves it into env, and
+      # this entry goes when that lands. A line number, so it is checked on
+      # every rebase: if line 660 is ever something else, delete this entry.
+      - ci.yml:660
+  unpinned-uses:
+    config:
+      policies:
+        # The Deploy job still names `tailscale/github-action@v4`. That job is
+        # being rewritten in its own pull requests (#199, #200, #214) and is
+        # not edited from here, so its pin follows there. This entry is the
+        # only tag pin allowed anywhere; every other action must be pinned to
+        # a full commit sha. Remove it once Deploy is pinned.
+        "tailscale/github-action": ref-pin
+        "*": hash-pin
