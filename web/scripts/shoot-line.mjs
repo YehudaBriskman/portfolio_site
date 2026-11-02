@@ -1,22 +1,27 @@
 /*
- * The living line (#176, #178): /story and the home page's "How I work",
- * both directions, a laptop and a phone.
+ * The living line (#176, #178, #191): /story and the home page's "How I
+ * work", both directions, a laptop and a phone.
  *
  * What it shoots, into `docs/line/`:
  *
  *   story-<lang>-<window>-<n>-<where>.png
  *   approach-<lang>-<window>-<n>-<where>.png
  *
- * at several depths, including each page's first loop with the window's
- * middle — the line's tip — on the circle's centre, so the loop is caught
- * half drawn; then reduced motion and Pause at that same depth, which must
+ * at several depths: the line's start (on /story the seed dot, on the
+ * home page the work run's centre as the frame lets go, with the line
+ * flowing out of the stage), a section-to-section turn, each page's first
+ * loop with the window's middle — the line's tip — on the circle's centre,
+ * so the loop is caught half drawn, and a turn reached again by scrolling
+ * back up; then reduced motion and Pause at that same depth, which must
  * both show the whole line drawn. The third switch (no `animation-timeline`)
  * cannot be faked in Chromium and is held by the stylesheet tests.
  *
  * It also prints, per shot, how much of the line is drawn (1 − the computed
  * `stroke-dashoffset`), and checks the geometry rule the line exists under:
- * no point of the path inside any text box on the page. A crossing fails the
- * run.
+ * no point of any strand of the ribbon inside any text box on the page —
+ * the section's own, and on the home page the work section's too, which the
+ * line runs out of (the cards excepted: the line is behind them). A
+ * crossing fails the run.
  *
  * RUNNING IT
  * ----------
@@ -83,95 +88,112 @@ async function scrollTo(page, y) {
   await frames(page, 4);
 }
 
-/* Put the element's point at `f` of its height on the window's middle line. */
-async function centre(page, sel, f = 0.5) {
+/* Put the element's point at `f` of its height, plus `dy` px, on the window's middle line. */
+async function centre(page, sel, f = 0.5, dy = 0) {
   const y = await page.evaluate(
-    ([s, k]) => {
+    ([s, k, d]) => {
       const r = document.querySelector(s).getBoundingClientRect();
-      return r.top + window.scrollY + r.height * k - window.innerHeight / 2;
+      return r.top + window.scrollY + r.height * k + d - window.innerHeight / 2;
     },
-    [sel, f],
+    [sel, f, dy],
   );
   await scrollTo(page, y);
 }
 
 /* How much of the line is drawn, and whether any of it runs through text. */
-async function probe(page, scope) {
-  return page.evaluate((sc) => {
+async function probe(page, scope, also) {
+  return page.evaluate(([sc, more]) => {
     const root = document.querySelector(`${sc} [data-living-line]`);
-    const path = root.querySelector("path");
-    const off = parseFloat(getComputedStyle(path).strokeDashoffset);
+    const ink = root.querySelector("[data-strand]");
+    const off = parseFloat(getComputedStyle(ink).strokeDashoffset);
     const base = root.getBoundingClientRect();
     const boxes = [];
-    for (const el of root.querySelectorAll("h1,h2,h3,p,dt,dd,a")) {
-      if (el.closest("svg")) continue;
+    const texts = [...root.querySelectorAll("h1,h2,h3,p,dt,dd,a")];
+    if (more) texts.push(...document.querySelectorAll(`${more} :is(h1,h2,h3,p,dt,dd,a)`));
+    for (const el of texts) {
+      if (el.closest("svg") || el.closest("[data-run-stage]")) continue;
       for (const r of el.getClientRects()) {
         if (r.width && r.height) boxes.push([r.left - base.left, r.top - base.top, r.right - base.left, r.bottom - base.top, el.textContent.slice(0, 24)]);
       }
     }
-    const len = path.getTotalLength();
     const hits = [];
-    for (let s = 0; s <= len; s += 4) {
-      const p = path.getPointAtLength(s);
-      for (const [l, t, r, b, txt] of boxes) {
-        if (p.x > l + 1 && p.x < r - 1 && p.y > t + 1 && p.y < b - 1) hits.push(`${Math.round(p.x)},${Math.round(p.y)} in "${txt}"`);
+    for (const path of root.querySelectorAll("[data-strand]")) {
+      if (!path.getAttribute("d")) continue;
+      const len = path.getTotalLength();
+      for (let s = 0; s <= len; s += 4) {
+        const p = path.getPointAtLength(s);
+        for (const [l, t, r, b, txt] of boxes) {
+          if (p.x > l + 1 && p.x < r - 1 && p.y > t + 1 && p.y < b - 1) hits.push(`${Math.round(p.x)},${Math.round(p.y)} in "${txt}"`);
+        }
       }
     }
     return { drawn: Math.round((1 - off) * 1000) / 1000, hits: [...new Set(hits)].slice(0, 5) };
-  }, scope);
+  }, [scope, also ?? null]);
 }
 
 let failed = false;
 async function shoot(page, scope, name) {
   await page.screenshot({ path: `${OUT}/${name}.png` });
-  const { drawn, hits } = await probe(page, scope);
+  const { drawn, hits } = await probe(page, scope, PAGES[name.split("-")[0]]?.also);
   console.log(`${name}  drawn=${drawn}${hits.length ? `  CROSSES ${hits.join("; ")}` : ""}`);
   if (hits.length) failed = true;
 }
 
+const LOOP = "[data-line*='circle-around']";
+const END = `[data-line*='"end"']`;
+
 const PAGES = {
   story: {
     route: "/story",
-    ready: "ol[aria-label='Timeline'] [data-line='loop']",
+    ready: `ol[aria-label='Timeline'] ${LOOP}`,
     scope: "[data-page='story']",
     async walk(page, at) {
       await shoot(page, this.scope, at(0, "opening"));
+      await centre(page, "[data-page='story'] [data-line*='origin']", 0.5, 40);
+      await shoot(page, this.scope, at(1, "seed"));
       await centre(page, "#start-2021 [data-written]", 0.5);
-      await shoot(page, this.scope, at(1, "first-beat"));
-      await centre(page, "#icaros", 0.0);
-      await shoot(page, this.scope, at(2, "swing"));
-      await centre(page, "#loop-open [data-line='loop']", 0.5);
-      await shoot(page, this.scope, at(3, "loop-mid-draw"));
-      await centre(page, "#loop-open [data-line='loop']", 1.1);
-      await shoot(page, this.scope, at(4, "loop-drawn"));
+      await shoot(page, this.scope, at(2, "first-beat"));
+      await centre(page, "#icaros", 0.0, -60);
+      await shoot(page, this.scope, at(3, "turn"));
+      await centre(page, `#loop-open ${LOOP}`, 0.5);
+      await shoot(page, this.scope, at(4, "loop-mid-draw"));
+      await centre(page, `#loop-open ${LOOP}`, 1.1);
+      await shoot(page, this.scope, at(5, "loop-drawn"));
       await centre(page, "#bothy", 0.6);
-      await shoot(page, this.scope, at(5, "overlap"));
-      await centre(page, "#loop-team [data-line='loop']", 0.5);
-      await shoot(page, this.scope, at(6, "last-loop-mid-draw"));
+      await shoot(page, this.scope, at(6, "overlap"));
+      await centre(page, `#loop-team ${LOOP}`, 0.5);
+      await shoot(page, this.scope, at(7, "last-loop-mid-draw"));
       await centre(page, "#now", 0.9);
-      await shoot(page, this.scope, at(7, "now"));
+      await shoot(page, this.scope, at(8, "now"));
+      await centre(page, "#icaros", 0.0, -60);
+      await shoot(page, this.scope, at(9, "turn-back-up"));
     },
-    depth: ["#loop-open [data-line='loop']", 0.5],
+    depth: [`#loop-open ${LOOP}`, 0.5],
   },
   approach: {
     route: "/",
     ready: "#approach h3",
     scope: "#approach",
+    also: "#work",
     async walk(page, at) {
-      await centre(page, "#approach header", 0.2);
-      await shoot(page, this.scope, at(0, "head"));
-      await centre(page, "#approach [data-line='end']", 0.8);
-      await shoot(page, this.scope, at(1, "sections"));
-      await centre(page, "#approach [data-line='loop']", 0.5);
-      await shoot(page, this.scope, at(2, "loop-mid-draw"));
+      await centre(page, "[data-line-origin='work-run']", 0, 4);
+      await shoot(page, this.scope, at(0, "start"));
+      await centre(page, "[data-line-origin='work-run']", 0, 260);
+      await shoot(page, this.scope, at(1, "out-of-the-run"));
+      await centre(page, "#approach header", 0.0, -40);
+      await shoot(page, this.scope, at(2, "into-the-head"));
+      await centre(page, `#approach ${END}`, 0.0, -50);
+      await shoot(page, this.scope, at(3, "turn"));
+      await centre(page, `#approach ${LOOP}`, 0.5);
+      await shoot(page, this.scope, at(4, "loop-mid-draw"));
       await centre(page, "#approach [data-line-hold]", 1.0);
-      await shoot(page, this.scope, at(3, "first-principle"));
+      await shoot(page, this.scope, at(5, "first-principle"));
       await centre(page, "#approach [data-line-hold]:last-of-type", 1.0);
-      await shoot(page, this.scope, at(4, "last-principle"));
-      await centre(page, "#approach [data-line-hold]", 0.3);
-      await shoot(page, this.scope, at(5, "back-up"));
+      await shoot(page, this.scope, at(6, "last-principle"));
+      await centre(page, `#approach ${END}`, 0.0, -50);
+      await shoot(page, this.scope, at(7, "turn-back-up"));
     },
-    depth: ["#approach [data-line='loop']", 0.5],
+    depth: [`#approach ${LOOP}`, 0.5],
   },
 };
 

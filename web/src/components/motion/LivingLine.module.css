@@ -1,19 +1,15 @@
 /*
  * `line` — the living line's ink, its clock, and every way out of it.
- * The geometry and the reasons are in `lineTrace.ts` and `LivingLine.tsx`.
+ * The geometry is `lineMoves.ts`, the ribbon `ribbon.ts`, the reasons
+ * `LivingLine.tsx`.
  */
 
 /*
  * THE CONTAINER
  *
  * Its inline padding is the two lanes the line runs down (`--line-lane`;
- * a caller may set it). The line is centred in each, so content never comes
- * within half a lane of it.
- *
- * It names the view timeline the stroke reads, inset by half the window at
- * each end: progress 0 is the container's top on the window's middle line,
- * progress 1 its bottom there, so progress `p` is the middle of the window
- * at `p × height` — the height `lineTrace.ts` maps to a length.
+ * a caller may set it). The ribbon is centred in each and is narrower than
+ * the lane, so content never comes within reach of it.
  *
  * `isolation` keeps the SVG's `z-index: -1` inside this box, behind the
  * content and above the page's ground.
@@ -24,55 +20,63 @@
   /* The default is a fallback, not a declaration of `--line-lane` here, so
      a caller's class sets it whatever order the two sheets load in. */
   padding-inline: var(--line-lane, clamp(1.5rem, 4vw, 3.5rem));
-  view-timeline: --living-line block;
-  view-timeline-inset: 50%;
 }
 
+/*
+ * THE DRAWING, AND THE CLOCK
+ *
+ * The SVG is the container's box, grown upward when the line starts above
+ * it (`LivingLine.tsx` writes `top` and `height`). It is also the subject
+ * of the view timeline the ink reads, inset by half the window at each
+ * end: progress 0 is the drawing's top on the window's middle line,
+ * progress 1 its foot there, so progress `p` is the middle of the window at
+ * `p` of the drawing's height — the height `lineMoves.ts` maps to a length.
+ * The timeline is on the drawing and not the container so that a line
+ * that starts in the section above is drawn as the reader passes it there.
+ */
 .svg {
   position: absolute;
-  inset: 0;
+  inset-inline: 0;
+  top: 0;
   width: 100%;
   height: 100%;
   z-index: -1;
   overflow: visible;
   pointer-events: none;
+  view-timeline: --living-line block;
+  view-timeline-inset: 50%;
 }
 
 /*
- * THE STROKE
+ * THE INK
  *
- * The site's one signal ink (8.5:1 on paper; it is a non-text mark and
- * needs 3:1), at the weight of a pen rather than of a rule.
- *
- * `pathLength="1"` on the path, so `stroke-dasharray: 1 1` is one dash as
- * long as the whole line and one gap as long again, and `stroke-dashoffset`
- * from 1 to 0 draws it from its start. The resting value is 0: drawn.
- *
- * THE CLOCK
+ * Every strand carries the same clock, so the ribbon
+ * draws as one. `pathLength="1"` on each, so `stroke-dasharray: 1 1` is one
+ * dash as long as the whole line and one gap as long again, and
+ * `stroke-dashoffset` from 1 to 0 draws it from its start. The resting
+ * value is 0: drawn.
  *
  * One keyframe with a stop at every whole percentage, each reading the
- * offset `lineTrace.ts` computed for that height of the container from a
- * custom property `LivingLine.tsx` writes on the path. A keyframe selector
- * cannot be a variable, but a keyframe value can, and a custom property is
- * the only way a measured number reaches a keyframe without writing a
- * stylesheet at runtime. Between stops the scroll interpolates linearly; a
- * stop is 1% of the container's height. Before the first measurement every
+ * offset `lineMoves.ts` computed for that height from a custom property
+ * `LivingLine.tsx` writes on the SVG (inherited by every path). A keyframe
+ * selector cannot be a variable, but a keyframe value can, and a custom
+ * property is the only way a measured number reaches a keyframe without
+ * writing a stylesheet at runtime. Before the first measurement every
  * variable falls back to 0 — drawn.
  *
  * Linear, fill `both`: nothing has a state but the scroll position, so it
  * reverses exactly on the way up.
  */
-.path {
-  fill: none;
-  stroke: rgb(var(--signal));
-  stroke-width: 1.5;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  vector-effect: non-scaling-stroke;
+.ink {
   stroke-dasharray: 1 1;
   stroke-dashoffset: 0;
   animation: living-line linear both;
   animation-timeline: --living-line;
+}
+
+/* The /story line's seed: a dot it grows out of. Always there. */
+.dot {
+  stroke: none;
 }
 
 /* One stop per percentage: `--l<i>` at `i%`. Generated; keep it 0–100. */
@@ -189,26 +193,26 @@
  * named. Pause toggled mid-scroll snaps a half-drawn line to drawn.
  */
 @supports not (animation-timeline: view()) {
-  .path {
+  .ink {
     animation: none;
     stroke-dashoffset: 0;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .path {
+  .ink {
     animation: none;
     stroke-dashoffset: 0;
   }
 }
 
-:global(body.motion-paused) .path {
+:global(body.motion-paused) .ink {
   animation: none;
   stroke-dashoffset: 0;
 }
 
 @media print {
-  .path {
+  .ink {
     animation: none;
     stroke-dashoffset: 0;
   }
@@ -216,7 +220,7 @@
 
 /* In a forced palette the line is a system colour like every other mark. */
 @media (forced-colors: active) {
-  .path {
-    stroke: CanvasText;
+  .dot {
+    fill: CanvasText;
   }
 }

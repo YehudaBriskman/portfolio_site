@@ -294,8 +294,21 @@ and the SVG stretches one period into it with `preserveAspectRatio="none"`
 box and `run-x`'s two ends in step. Measured in the browser, every card on
 screen stands within 0.4px of the drawn line, at both windows and in both
 directions.
-*The light.* A haze and a band rest on the line in the work's own tints
-(teal, green, the act's blue, violet). A brighter copy shows through a soft
+*A ribbon of strands (#192).* The owner asked for it thicker, and "not one fat
+stroke but a bunch of fine lines like the current one, offset and phased, to
+form a ribbon". A haze and seven fine strands rest on the line in the work's
+own tints (teal, green, the act's blue, violet): each strand at its own
+offset across the ribbon, drifting about it on its own wavelength and phase,
+so they braid rather than run as rails (`motion/ribbon.ts`, rendered by
+`motion/Strands.tsx`, which the living line uses too).
+*It sweeps in (#192).* The ribbon is not there before the run: as the stage
+comes up into the window it is uncovered from the reading end — the side
+the cards arrive from — by a soft-edged window sliding in while the drawing
+inside is carried back by the same amount, so it holds still on the curve.
+Range `entry 40%` to `contain 6%`: whole just after the pin, ahead of the
+first card. Scroll back and it leaves the way it came; the shot reached
+going back up reads the same sweep as the one going down.
+*The light.* A brighter copy of the strands shows through a soft
 46cqw window that sweeps from the reading end to past the start once a card.
 The window and the copy inside it move by opposite transforms, so the copy
 holds still on the curve while the light passes. It is scrubbed and
@@ -309,10 +322,12 @@ no curve. There the aurora becomes one still ribbon down the list's middle,
 behind the cards, fully drawn with no surge, so each gap still shows the
 cards on one line. With no `animation-timeline` support, and in forced
 colours, it is hidden, because the list is the whole fallback.
-*Not the living line.* `line` (#176/#183) is ink: one stroke drawn on by
-scroll beside the reading. This is light: always fully drawn, under the
-work, on a dark act. The two never share a page section.
-Shots: `docs/work-run/aurora-<w>x<h>[-he]-<t>.png`, `-reduced`, `-paused`
+*And the living line.* Since #191 the living line wears this ribbon too, and
+starts here: at the run's centre, behind the cards, as the frame lets go,
+and flows down out of the act into "How I work". The aurora is light along
+the work; the line is that light drawn on by the reader's scroll.
+Shots: `docs/work-run/aurora-<w>x<h>[-he]-<t>.png`, `-sweep-<t>.png` (t < 0:
+before the pin) and `-sweep--0.12-back.png`, `-reduced`, `-paused`
 (`web/scripts/shoot-work-aurora.mjs`). Measured with
 `measure-work-fps.mjs` at 4× throttle, interleaved against a build of
 `main`, medians: 1440×900 **45.1 → 44.2fps** (7 rounds), 390×844
@@ -1191,74 +1206,127 @@ within the table. Per frame the wall writes `transform` on the tiles in the
 lower third and `opacity` on their shade layers. That is compositor work, not
 layout.
 
-### `line`: /story and "How I work" (#176, #178)
+### `line`: /story and "How I work" (#176, #178, #191)
 
 One primitive, `motion/LivingLine.tsx`, used twice; there is no second
-line. It is one SVG path behind its container, drawn by scroll with its tip
+line. It is one ribbon behind its container, drawn by scroll with its tip
 on the middle of the window, and reversed exactly on the way up.
 
-**The path is measured, not declared.** The caller marks boxes with
-`data-line`: `start`/`end` (run down that lane for the box's height) or
-`loop` (go once round the box). The lanes are the container's own inline
-padding, which holds nothing, and every sideways move happens in the margin
-between two stations, so the line cannot cross text by construction. A loop
-is entered and left down its vertical tangent, never by a swing out of the
-widest point (that would cut the circle's lower half). A loop inside a
-`data-line-hold` box — a figure inside its principle — spends the hold's
-whole height on that tangent, so the claim beside it is never crossed. The
-geometry is a pure function (`lineTrace.ts`, unit-tested); it is re-run on a
-resize of the container (which catches pictures and late fonts), on
-`document.fonts` finishing, and on a change of `dir` or `lang`.
-`web/scripts/shoot-line.mjs` samples every 4px of the drawn path against
-every text box on both pages, both directions, both windows, and fails the
-run on a crossing; it found one (the phone figure's loop clipping the
-claim's half-leading) and the figure's margin moved for it.
+**Built from moves, declared in data (#191).** Each box the line visits
+carries its moves as JSON on `data-line`, and the moves are written in data
+beside the content they belong to (`STORY_LINE` in `data/story.ts`,
+`approachLine` in `data/site.ts`; a beat, section or principle may carry its
+own `line`). The composer (`lineMoves.ts`) runs the boxes in document order
+and each move draws from the pen's current point:
 
-**The tip is held on the window's middle.** Length is not height — a swing
+| move | what it draws |
+|---|---|
+| `origin` | starts the line at the box's centre (or top); `dot` marks it |
+| `line-to` | straight down a lane (`start`, `end`, `centre`, `here`) to the box's foot, or to `until`'s foot; turns into the lane first if it is elsewhere |
+| `round` | a turn to a lane in circular arcs, in the gap above the box |
+| `circle-around` | once round the box: in down the circle's vertical tangent, round, out down the same tangent; `pad`, `side`, and a `data-line-hold` box spent on the tangent |
+
+More are added with `defineMove(name, impl)`, and an unknown name runs down
+the start lane, so content written before its move exists (the admin panel,
+#163) still draws a line that keeps out of the text. Any number of boxes
+composes: the unit test runs 1, 2, 12 and 40.
+
+**Rounder and freer: no corner anywhere.** The invariant that makes it so is
+that every move starts and ends heading straight down, and inside a move
+every change of direction is a circular arc tangent to what is either side.
+A turn between lanes is the largest circle the gap allows: two quarter
+circles of half the gap with a straight between them when the lanes are
+further apart than the gap is tall, otherwise one S of two arcs and no
+straight at all. The owner's "two hard cuts (right then down)" was the
+old cubic swing, whose corners tightened to nothing across a wide page.
+`lineMoves.test.ts` holds the three rules for any boxes and moves: the path
+is continuous, its tangent is continuous (no angle between consecutive
+segments), and no point of it comes within the ribbon's half-width of a
+text box. It also holds the right-to-left mirror point for point.
+
+**Never across text, measured in the browser too.** The lanes are the
+container's own inline padding, which holds nothing, and every turn happens
+in the margin between two boxes. `web/scripts/shoot-line.mjs` samples every
+4px of every strand on both pages, both directions, both windows, against
+every text box in the section (and on the home page the work section's,
+which the line runs out of), and fails the run on a crossing. None.
+
+**The tip is held on the window's middle.** Length is not height — a turn
 is longer than the drop it makes and a loop is a circumference spent on one
 diameter — so a linear `stroke-dashoffset` drifts hundreds of pixels by the
-second loop. The trace gives every piece a span of height (a loop's circle
-owns the circle's own diameter) and samples the length drawn at 101 evenly
-spaced heights; one keyframe with a stop at every percentage reads each
-value from a custom property the component writes on the path. A keyframe
-selector cannot be a variable; a keyframe *value* can, and that is the only
-way a measured number reaches a keyframe without writing a stylesheet at
-runtime. No React state, no listener, nothing per frame.
+second loop. Every move hands its pieces over with a span of height (a
+turn owns its own drop; a loop's way in and its circle share the circle's
+height) and the length drawn is sampled at 101 evenly spaced heights; one
+keyframe with a stop at every percentage reads each value from a custom
+property the component writes on the SVG. A keyframe selector cannot be a
+variable; a keyframe *value* can, and that is the only way a measured
+number reaches a keyframe without writing a stylesheet at runtime. No
+React state, no listener, nothing per frame.
+
+**The aurora's look (#191, #192).** The line is dressed by the same pieces
+as the run's aurora (`motion/Strands.tsx`, `ribbon.ts`): five fine strands
+braided about the path, each at its own offset and drifting on its own
+phase, gathered to a point at each end, in the aurora's teal, green, blue
+and violet repeating every 1100px down the page.
+Every strand has the same points at the same distances, so the dash reaches
+the same place on each and the ribbon draws as one. The ribbon's half-width
+comes from the lane (up to 9px), and the composer keeps that half-width
+clear of every box. There is no glow under it: a wide faint stroke under
+the strands cost a tenth of the frame rate at 4× throttle (50.3 → 45.5fps
+on "How I work"), and a blur would cost more, re-rasterised every frame as
+the dash moves. Sampling every 8px instead of 5 and five strands instead of
+six were the rest of the trim.
+
+**Where it starts.** /story: a dot in the middle of the page before the first
+beat (`origin` with `dot`, on an empty seed box), and the line sweeps from
+it to the first beat's lane. Home: behind the work run's dark stage, at its
+centre. The run's stage carries an empty marker where the frame's centre is
+when it lets go (`data-line-origin="work-run"`); `LivingLine`'s `from`
+names it, so the line starts outside its own container. It runs straight
+down out of the work section (`until: "section"`, so it never turns across
+"All projects"), turns into the head's lane, and carries on. The drawing
+and its view timeline grow upward to reach the start — the timeline is on
+the SVG, not the container, for exactly that — and paint order puts it
+behind the cards: the wall is `z-index: 1`, over the dark act's ground and
+seams, and the work section `z-index: 2`, over the line.
 
 **/story.** Pictures alternate sides beat by beat; the line runs down the
-lane on the picture's side, so it swings across the page in each gap.
+lane on the picture's side, so it turns across the page in each gap.
 Each beat's words take one of three layouts, a data field
 (`LAYOUTS` in `data/story.ts`): `beside` (default), `under` (a caption) and
 `overlap` (a paper card over the picture's inner lower corner). Three
 interludes — after the third beat, the sixth and the eighth, so they come
 closer together towards now — are loops drawn round a few words in the
 middle of the page. The words are HTML, written by the pen; both languages
-are in the DOM with their own `lang`, and the stylesheet shows one. The
-spine and the knots it replaces are retired.
+are in the DOM with their own `lang`, and the stylesheet shows one.
 
-**"How I work".** The line comes down beside the head, swings lane to lane
-through the short sections (counted back from the last so the line reaches
-the first figure from outside the rail), and loops round each principle's
-figure. The figures keep their own strokes and their own clock.
+**"How I work".** Out of the run, beside the head, lane to lane through the
+short sections (counted back from the last so the line reaches the first
+figure from outside the rail), and once round each principle's figure. The
+figures keep their own strokes and their own clock.
 
 **Off-switches.** The resting declaration is the drawn line, and all three
-switches and print cancel the animation and restate `stroke-dashoffset: 0`
-(`LivingLine.module.css`). Measured: reduced motion and Pause both report
-`drawn=1` at the depth where motion-on is mid-loop. Shots in `docs/line/`.
+switches and print cancel the animation on every strand and
+restate `stroke-dashoffset: 0` (`LivingLine.module.css`). Measured: reduced
+motion and Pause both report `drawn=1` at the depth where motion-on is
+mid-loop. Under them the run is a plain list, and its start marker moves to
+the foot of the still ribbon down the list, so the line continues it. Shots
+in `docs/line/`: each page's start, a section-to-section turn, loops half
+drawn, the same turn reached again scrolling up, EN and HE, 1440×900 and
+390×844.
 
 **Frame cost**, 4× CPU throttle, wheel-scrolled through the section with
 real input (`web/scripts/measure-line-fps.mjs`, interleaved arms, a
 discarded warm-up, against a build of `main`), medians:
 
-| | `main` | with the line |
+| | `main` | with the ribbon |
 |---|---|---|
-| "How I work", 1440×900, 9 rounds | 34.3fps | 33.6fps |
-| /story timeline, 1440×900, 7 rounds | 60.1fps | 60.1fps |
-| /story timeline, 390×844, 5 rounds | 59.0fps | 59.6fps |
+| "How I work", 1440×900, 7 rounds | 47.1fps | 50.7fps |
+| /story timeline, 1440×900, 5 rounds | 59.7fps | 60.0fps |
+| the work run, 1440×900, 5 rounds (`measure-work-fps.mjs`) | 42.5fps | 41.5fps |
 
-The approach difference is inside its own spread (both arms ran 23–38 on
-a loaded box; an earlier, busier run read 16.9 against 15.0). The cost is
-the repaint of one path per frame; nothing is laid out on scroll.
+Five thin strokes repaint per frame where one did; nothing is laid out on
+scroll, and the run's sweep is two compositor transforms.
 
 ---
 
@@ -1494,7 +1562,7 @@ direction, or set `fill-rule: evenodd` deliberately and know what it costs.
 | `projects/Gallery.module.css`, `notes/NoteTile.module.css` | what hangs in a cell: a project tile, a note card. No motion of their own | — |
 | `gallery/FilterControl.tsx` + `Rail.tsx` | the filter card, its popovers and the phone's sheet. No motion: they appear and go | — |
 | `projects/ProjectRun.module.css` | `pin` — the work travelling along a curve under a held frame; one lap per card, staggered by range | named `view-timeline` on the static stage, the frame held inside it |
-| `projects/RunAurora.tsx` + `runCurve.ts` | the run's aurora: light on the cards' own curve, a window sweeping along it once a card; a still ribbon down the plain list with motion off | the run's `--run` timeline, iterated once per card |
+| `projects/RunAurora.tsx` + `runCurve.ts` | the run's aurora: a ribbon of seven strands on the cards' own curve, swept in from the reading end as the stage arrives, a window sweeping along it once a card; a still ribbon of strands down the plain list with motion off | the run's `--run` timeline: the sweep on `entry 40%`–`contain 6%`, the surge iterated once per card |
 | `LatestNotes.module.css` | `pan`, held — the notes walk past under a held frame, one card-width per step | named `view-timeline` on the static stage (inset 0), the frame held inside it |
 | `city/ContributionCity.module.css` | `scrub` — one animation turns and raises 365 columns, a second dollies the camera down the year | named `view-timeline` on a static wrapper, the frame held over it |
 | `city/useCityHand.ts` | the year's orbit and its one readout — a drag turns the city, a point reads a day | pointer events; a settle loop only between release and rest |
@@ -1504,7 +1572,8 @@ direction, or set `fill-rule: evenodd` deliberately and know what it costs.
 | `gallery/SkeletonGate.tsx` | the box that holds a region's height, and the 180ms before it is inked | clock |
 | `ground/DarkAct.module.css` | `drift` — two lights crossing at each seam of the dark ground | named `view-timeline` `--seam` per seam |
 | `index.css` `.section-head::after` | the shutter, echoed — a lattice leaving each section head outward from its word | named `view-timeline` on the head, inset to the lower third |
-| `motion/LivingLine.tsx` + `lineTrace.ts` | `line` — one SVG path behind a page or section, measured off the laid-out boxes, its tip held on the window's middle; loops round `data-line="loop"` boxes | named `view-timeline` on the container (inset 50%); a 101-stop keyframe reads offsets the trace writes as custom properties |
+| `motion/LivingLine.tsx` + `lineMoves.ts` | `line` — one ribbon behind a page or section, composed from the moves each box declares in data (`origin`, `line-to`, `round`, `circle-around`, and a registry for more) and measured off the laid-out boxes, its tip held on the window's middle | named `view-timeline` on the drawing (inset 50%), grown upward when the line starts above its container; a 101-stop keyframe reads offsets the composer writes as custom properties |
+| `motion/Strands.tsx` + `ribbon.ts` | the aurora's ribbon, shared: fine strands braided about any path, and the one set of aurora colours, for the run's aurora and the living line | — (geometry; the callers own the clock) |
 | `motion/Written.tsx` | `pen` — running text written one word after another as it rises through the lower half of the window | named `view-timeline` on the paragraph; word `i` of `n` owns the slice `i/n`–`(i+1)/n` |
 
 ### Retired, and why
@@ -1608,7 +1677,7 @@ animation.
 | running text, word by word (`Written`) | /, /story, /projects/:slug, /blog/:slug | named view timeline per paragraph (+ a two-way near-watch observer for cost) | scrubbed |
 | one line (`LivingLine`) | /, /story | named view timeline | scrubbed |
 | approach figures (`approach-draw`) | / | named view timeline per principle | scrubbed |
-| the run: cards, lean, arrive, surge, aurora (`ProjectRun`, `RunAurora`) | / | `--run` | scrubbed |
+| the run: cards, lean, arrive, surge, aurora and its sweep in (`ProjectRun`, `RunAurora`) | / | `--run` | scrubbed |
 | dark-act seam lights (`DarkAct`) | / | `--seam` per seam | **scrubbed** (#162; were 71s / 97s loops behind an observer) |
 | the year: raise and dolly (`ContributionCity`) | / | `--city` | scrubbed |
 | the year's waiting band | / (while loading) | `--city` | **scrubbed** (#162; was a 1.5s loop) |

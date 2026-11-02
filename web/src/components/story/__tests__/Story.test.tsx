@@ -74,7 +74,7 @@ describe("Story", () => {
     lis.forEach((li, i) => {
       const side = i % 2 === 0 ? "start" : "end";
       expect(li.dataset.side).toBe(side);
-      expect(li.dataset.line).toBe(side);
+      expect(JSON.parse(li.dataset.line!)).toEqual([{ move: "line-to", lane: side }]);
       expect(li.dataset.layout).toBe(beats[i].layout);
     });
   });
@@ -86,15 +86,21 @@ describe("Story", () => {
     for (const x of interludes) {
       const li = list.querySelector<HTMLElement>(`#${x.id}`)!;
       expect(li.previousElementSibling).toHaveAttribute("id", x.after);
-      const loop = li.querySelector("[data-line='loop']")!;
+      const loop = li.querySelector<HTMLElement>("[data-line*='circle-around']")!;
+      expect(JSON.parse(loop.dataset.line!)[0]).toMatchObject({ move: "circle-around" });
       expect(loop.querySelector("[lang='en']")?.textContent).toBe(x.words.en);
       expect(loop.querySelector("[lang='he']")?.textContent).toBe(x.words.he);
       expect(loop.querySelector("svg, text")).toBeNull();
     }
     /* One line for the whole timeline, out of the accessibility tree. */
     const lines = screen.getByRole("list", { name: "Timeline" }).closest("[data-living-line]")!;
-    expect(lines.querySelectorAll(":scope > svg path")).toHaveLength(1);
+    expect(lines.querySelectorAll(":scope > svg [data-strand]").length).toBeGreaterThan(1);
     expect(lines.querySelector(":scope > svg")).toHaveAttribute("aria-hidden", "true");
+    /* It grows from a dot in the middle of the page, before the first beat (#191). */
+    const seed = lines.querySelector<HTMLElement>(":scope > [data-line*='origin']")!;
+    expect(seed).toHaveAttribute("aria-hidden", "true");
+    expect(JSON.parse(seed.dataset.line!)).toEqual([{ move: "origin", dot: true }]);
+    expect(seed.nextElementSibling).toBe(list);
   });
 
   it("keeps an empty slot out of the accessibility tree", () => {

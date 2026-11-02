@@ -66,6 +66,17 @@
   --line-lane: clamp(1.75rem, 4.5vw, 4rem);
 }
 
+/*
+ * The seed (#191): the line starts at a dot in the middle of the page and
+ * grows down out of it. The box is empty and only gives the dot its place —
+ * its centre — and the line room to turn from the middle to the first
+ * beat's lane in one round sweep rather than a tight corner.
+ */
+.seed {
+  display: block;
+  height: clamp(7rem, 24vh, 13rem);
+}
+
 .timeline {
   list-style: none;
   margin: 0;

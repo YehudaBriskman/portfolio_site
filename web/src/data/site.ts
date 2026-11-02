@@ -1,6 +1,8 @@
 /* Replaces paragraphs.ts. Every sentence here should survive a hiring manager
    asking "prove it". No adjectives that can't be checked. */
 
+import type { LineMove } from "@/components/motion/lineMoves";
+
 export const contact = {
   email: "yehuda@yehudabriskman.com",
   location: "Tel Aviv, Israel",
@@ -153,8 +155,42 @@ export const heroPhrases = [
  * The role is "technical team lead" and nothing more specific — see the
  * employer rule above `heroPhrases`.
  */
-export type ApproachSection = { label: string; lines: string[] };
-export type ApproachPrinciple = { claim: string; lines: string[] };
+/*
+ * Each section and principle may carry its own `line` — the living line's
+ * moves there (#191, vocabulary in `motion/lineMoves.ts`). Without one it
+ * takes `approachLine`'s default below, so a section added later, by hand
+ * or from the admin panel (#163), still draws a line.
+ */
+export type ApproachSection = { label: string; lines: string[]; line?: LineMove[] };
+export type ApproachPrinciple = { claim: string; lines: string[]; line?: LineMove[] };
+
+/**
+ * The living line through "How I work" (#191), as data.
+ *
+ * It starts behind the work run's dark stage, at its centre, where the
+ * aurora runs: the run's stage carries an empty marker there
+ * (`data-line-origin="work-run"`). From it the line runs straight down out
+ * of the work section (`until: "section"`, so it never turns across the
+ * link at the act's foot), turns in a circle to the head's lane, and comes
+ * down beside the head; then lane to lane through the short sections; then
+ * once round each principle's figure.
+ *
+ * The lanes alternate counted back from the last short section, so that one
+ * is always on the start side — the rail's side — and the line reaches the
+ * first figure from outside the rail. From the end lane it would meet the
+ * circle on its inner side and run down the gutter beside the claim.
+ */
+export const approachLine = {
+  from: {
+    selector: "[data-line-origin='work-run']",
+    moves: [{ move: "origin" }, { move: "line-to", lane: "here", until: "section" }] as LineMove[],
+  },
+  /** The head is k = 0, the short sections 1…last. */
+  section: (k: number, last: number): LineMove[] => [
+    { move: "line-to", lane: (last - k) % 2 === 0 ? "start" : "end" },
+  ],
+  principle: [{ move: "circle-around", pad: 12 }] as LineMove[],
+};
 
 export const about: {
   heading: string;

@@ -1,5 +1,6 @@
 import { projects as seedProjects, type Project } from "@/data/projects";
 import { plate } from "@/data/site";
+import type { LineMove } from "@/components/motion/lineMoves";
 
 /*
  * The story: the work told along the other axis (#46), as a timeline (#158).
@@ -62,6 +63,26 @@ export type BeatKind = "start" | "project" | "role";
  */
 export type BeatLayout = "beside" | "under" | "overlap";
 
+/*
+ * THE LINE'S MOVES (#191)
+ * -----------------------
+ * The living line is composed from moves each piece of content declares
+ * (`motion/lineMoves.ts` has the vocabulary). These are the story's
+ * defaults; a beat or an interlude may carry its own `line` instead, and
+ * content added later — by hand or from the admin panel (#163) — draws a
+ * line with no more than these: every beat runs down the lane on its
+ * picture's side, every interlude is circled, and the composer turns in
+ * circles between them, whatever the count.
+ */
+export const STORY_LINE = {
+  /** The seed: a dot in the middle of the page, before the first beat. */
+  origin: [{ move: "origin", dot: true }] as LineMove[],
+  /** A beat: down the lane on the picture's side. */
+  beat: (side: "start" | "end"): LineMove[] => [{ move: "line-to", lane: side }],
+  /** An interlude: once round its words, with 10px of clearance. */
+  interlude: [{ move: "circle-around", pad: 10 }] as LineMove[],
+};
+
 export const LAYOUT_DEFAULT: BeatLayout = "beside";
 
 /** A moment between beats: a few words the line draws a loop round. */
@@ -71,6 +92,8 @@ export type Interlude = {
   after: string;
   /** The words, in each language the site is written in. Real text, not a picture of it. */
   words: { en: string; he: string };
+  /** The line's moves here, if not `STORY_LINE.interlude`. */
+  line?: LineMove[];
 };
 
 export type Beat = {
@@ -89,6 +112,8 @@ export type Beat = {
   /** A project beat's page. */
   href?: string;
   layout: BeatLayout;
+  /** The line's moves here, if not `STORY_LINE.beat(side)`. */
+  line?: LineMove[];
 };
 
 export type Story = {

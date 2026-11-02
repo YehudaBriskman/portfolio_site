@@ -4,7 +4,8 @@ import PageShell from "@/components/PageShell";
 import Written from "@/components/motion/Written";
 import LivingLine from "@/components/motion/LivingLine";
 import styles from "@/components/story/Story.module.css";
-import { buildStory, type Beat, type Interlude } from "@/data/story";
+import { lineAttr } from "@/components/motion/lineMoves";
+import { STORY_LINE, buildStory, type Beat, type Interlude } from "@/data/story";
 
 /*
  * /story — the work along the year, as a timeline (#46, #158, #176).
@@ -15,9 +16,10 @@ import { buildStory, type Beat, type Interlude } from "@/data/story";
  *
  * THE LINE
  * --------
- * One line runs the length of the timeline (`motion/LivingLine`). It runs
+ * One line runs the length of the timeline (`motion/LivingLine`), grown
+ * from a dot in the middle of the page above the first beat. It runs
  * down the lane on the side of each beat's picture — and the pictures
- * alternate sides — so it swings across the page between beats. Three times
+ * alternate sides — so it turns across the page between beats, in circular arcs. Three times
  * it breaks out of the timeline into an interlude: it draws a loop in the
  * middle of the page round a few words, and carries on down. The words are
  * real text, written by the pen like every other line here.
@@ -57,7 +59,7 @@ function Plate({ beat }: { beat: Beat }) {
 function BeatItem({ beat, side }: { beat: Beat; side: "start" | "end" }) {
   const headId = `${beat.id}-title`;
   return (
-    <li id={beat.id} className={styles.beat} data-kind={beat.kind} data-layout={beat.layout} data-side={side} data-line={side}>
+    <li id={beat.id} className={styles.beat} data-kind={beat.kind} data-layout={beat.layout} data-side={side} data-line={lineAttr(beat.line ?? STORY_LINE.beat(side))}>
       <div className={styles.beatText}>
         <p className={`${styles.when} text-field`}>{beat.when}</p>
         <h2 id={headId} className={`display ${styles.title}`}>
@@ -78,13 +80,13 @@ function BeatItem({ beat, side }: { beat: Beat; side: "start" | "end" }) {
 
 /*
  * An interlude: the loop's box, square, the words centred in it. The line
- * is drawn round the box with `data-line-pad` of clearance, so the words sit
+ * is drawn round the box with its move's `pad` of clearance, so the words sit
  * inside the circle's inscribed square with room to spare.
  */
 function InterludeItem({ interlude }: { interlude: Interlude }) {
   return (
     <li id={interlude.id} className={styles.interlude} data-kind="interlude">
-      <div className={styles.loop} data-line="loop" data-line-pad="10">
+      <div className={styles.loop} data-line={lineAttr(interlude.line ?? STORY_LINE.interlude)}>
         <Written className={styles.loopWords} lang="en">
           {interlude.words.en}
         </Written>
@@ -114,6 +116,9 @@ export default function Story() {
 
         <div className="wrap">
           <LivingLine className={styles.lined}>
+            {/* The seed (#191): a dot in the middle of the page, before the
+                first beat, that the line grows out of. Decoration only. */}
+            <span className={styles.seed} data-line={lineAttr(STORY_LINE.origin)} aria-hidden="true" />
             <ol className={styles.timeline} aria-label="Timeline">
               {story.beats.map((b, i) => (
                 <Fragment key={b.id}>
