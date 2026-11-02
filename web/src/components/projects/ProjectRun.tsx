@@ -68,8 +68,8 @@ export type ProjectRunProps = {
 };
 
 /*
- * Above 700px a card is at most 20rem in the run and 40rem in the plain list;
- * on a phone it is about three quarters of the window in the run and the full
+ * Above 700px a card is at most 28rem in the run and 40rem in the plain list;
+ * on a phone it is four fifths of the window in the run and the full
  * column in the list. The larger of each pair is the hint.
  */
 const SHOT_SIZES = "(min-width: 700px) 640px, 92vw";
