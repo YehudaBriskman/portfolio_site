@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import PageShell from "@/components/PageShell";
 import Written from "@/components/motion/Written";
@@ -49,8 +49,10 @@ const DOC_TAG = "doc";
  * made of headings with nothing under them.
  */
 export default function Project() {
-  /* The only page with a --vh reader: the figure drift below. See the hook. */
-  useScrollProgress();
+  /* The only page with a --vh reader: the figure drift below, which is also
+     where it is written. See the hook. */
+  const drift = useRef<HTMLDivElement>(null);
+  useScrollProgress(drift);
 
   const { project = "" } = useParams();
   const { items, state: listState } = useProjects();
@@ -177,25 +179,27 @@ export default function Project() {
                 1072px on a wide screen. It matters more here than anywhere: this is the LCP
                 element, and it was being served the 800px variant and upscaled
                 by half again. */}
-            <Figure
-              index={1}
-              caption={c.tagline || c.title}
-              note={entry.year ?? undefined}
+            {/* The drift's own box: `--vh` is written here and read here, so
+                a scroll re-styles this figure and not the document (#174). */}
+            <div
+              ref={drift}
               className="mt-12"
               style={reduced ? undefined : { transform: "translate3d(0, calc(var(--vh, 0) * -14px), 0)" }}
             >
-              {c.coverImage ? (
-                <Shot
-                  src={c.coverImage}
-                  alt={`${c.title} screenshot`}
-                  className={shape}
-                  sizes="(min-width: 1152px) 1072px, 100vw"
-                  eager
-                />
-              ) : (
-                <Plate className={shape} title={c.title} tagline={c.tagline} tech={entry.tech} />
-              )}
-            </Figure>
+              <Figure index={1} caption={c.tagline || c.title} note={entry.year ?? undefined}>
+                {c.coverImage ? (
+                  <Shot
+                    src={c.coverImage}
+                    alt={`${c.title} screenshot`}
+                    className={shape}
+                    sizes="(min-width: 1152px) 1072px, 100vw"
+                    eager
+                  />
+                ) : (
+                  <Plate className={shape} title={c.title} tagline={c.tagline} tech={entry.tech} />
+                )}
+              </Figure>
+            </div>
 
             <ProjectMeta c={c} />
 

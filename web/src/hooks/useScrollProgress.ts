@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, type RefObject } from "react";
 
 /*
  * Publishes on <html> and nothing else:
@@ -25,10 +25,24 @@ import { useEffect } from "react";
  *
  * Before adding this to another page, check that something on it actually
  * reads --vh. A write with no reader is invisible, permanent and expensive.
+ *
+ * ── and on the one element that reads it, when it is given one (#174) ────
+ *
+ * Measured on a project page at 4x CPU throttle (`scripts/measure-written.mjs`),
+ * the root write still re-styled about 1,100 elements every frame of a scroll
+ * — 63–80ms of style a frame, a long task on every frame, with the site's
+ * Pause on or off. That, and not the pen, was what made a project page's
+ * sections slow to appear. Its only reader is one figure's transform, so the
+ * page now hands the hook that element and the write lands there: an
+ * inherited custom property invalidates the subtree it is set on, and this
+ * one is a figure.
  */
-export function useScrollProgress() {
+export function useScrollProgress(target?: RefObject<HTMLElement | null>) {
   useEffect(() => {
-    const root = document.documentElement;
+    /* Read per write, not once: the figure renders after the project loads,
+       so it is not there on the first frame. Until it is, nothing reads the
+       value and nothing is written. */
+    const at = (): HTMLElement | null => (target ? target.current : document.documentElement);
     let raf = 0;
 
     /*
@@ -62,11 +76,19 @@ export function useScrollProgress() {
      * that reads it, so only write when the value has actually changed. During
      * a slow scroll most frames produce the same rounded value.
      */
-    const last: Record<string, string> = {};
+    let last: Record<string, string> = {};
+    let lastEl: HTMLElement | null = null;
     const put = (name: string, value: string) => {
+      const el = at();
+      if (!el) return;
+      /* A new element (the page re-rendered it) has none of the old values. */
+      if (el !== lastEl) {
+        lastEl = el;
+        last = {};
+      }
       if (last[name] === value) return;
       last[name] = value;
-      root.style.setProperty(name, value);
+      el.style.setProperty(name, value);
     };
     const measure = () => {
       raf = 0;
@@ -119,5 +141,5 @@ export function useScrollProgress() {
       window.removeEventListener("resize", onResize);
       if (raf) cancelAnimationFrame(raf);
     };
-  }, []);
+  }, [target]);
 }
