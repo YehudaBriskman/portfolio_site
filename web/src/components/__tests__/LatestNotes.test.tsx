@@ -141,39 +141,71 @@ describe("the notes shelf", () => {
     expect(CSS).toContain("@media (prefers-reduced-motion: reduce)");
     expect(CSS).toContain(":global(body.motion-paused)");
 
-    /* Three blocks, each choosing the vertical list and each cancelling the
-       two animations by name. `animation-name: none` rather than a shorter
-       duration: a view timeline ignores duration, so shortening it would
-       leave the track welded to the scroll position.
-
-       By name, and not through the property switch the layout uses, because
-       CSS Modules cannot rewrite a keyframes name inside a `var()` fallback —
-       the first build of this file did exactly that and the shelf never
-       moved. A test that only counted the custom properties would have
-       passed. */
+    /* Three blocks, each giving the runway back, un-pinning the frame,
+       choosing the vertical list and cancelling the pan by name.
+       `animation-name: none` rather than a shorter duration: a view timeline
+       ignores duration, so shortening it would leave the track welded to the
+       scroll position. */
     expect(CSS.match(/animation-name:\s*none/g)).toHaveLength(3);
-    expect(CSS.match(/--shelf-direction:\s*column/g)).toHaveLength(3);
-    expect(CSS.match(/--shelf-tilt:\s*0deg/g)).toHaveLength(3);
+    expect(CSS.match(/flex-direction:\s*column/g)?.length).toBeGreaterThanOrEqual(3);
+    expect(CSS.match(/position:\s*static/g)).toHaveLength(3);
+    expect(CSS.match(/height:\s*auto/g)?.length).toBeGreaterThanOrEqual(6);
     expect(CSS).not.toMatch(/animation-name:\s*var\(/);
   });
 
-  it("drives the pan from a named timeline and never from a duration", () => {
-    /* `view()` inside the shelf would be measured against the shelf — a box
-       that does not scroll vertically — so the name is declared on the static
-       section and read from inside it. */
+  it("pins like the run: a static stage owns the timeline, a sticky frame is held inside it", () => {
+    /* The run's mechanism (#57), not a second one. `view()` on anything in
+       the held frame would stall the moment it pins, so the name is declared
+       on the static stage and read from inside it. */
     expect(CSS).toContain("view-timeline-name: --notes-shelf");
     expect(CSS).toContain("animation-timeline: --notes-shelf");
+    expect(CSS).toMatch(/\.frame\s*\{[^}]*position:\s*sticky/);
+    expect(CSS).toMatch(/\.frame\s*\{[^}]*overflow:\s*clip/);
+    expect(CSS).toContain("animation-range: contain 0% contain 100%");
     expect(CSS).not.toMatch(/animation-duration/);
     expect(CSS).not.toMatch(/animation-delay/);
 
-    /* Six ranges, not six delays: a delay is ignored under a progress
-       timeline, so a stagger written that way silently does nothing. */
-    expect(CSS.match(/animation-range:/g)?.length).toBeGreaterThanOrEqual(7);
-
-    /* No scroll-snap anywhere. A snap area is the transformed border box, so
-       snap points on a track the page is translating would move while the
-       scroller tried to land on them. */
+    /* The document is the one scroll container: no second scroller inside
+       the held frame, and nothing to snap. */
+    expect(CSS).not.toMatch(/overflow-x:\s*auto/);
     expect(CSS).not.toMatch(/scroll-snap/);
+  });
+
+  it("gives every note a marker, a keyboard way past, and no extra list items", async () => {
+    posts.mockResolvedValue([
+      note(),
+      note({ slug: "paper", title: "Paper, and what it costs" }),
+    ]);
+    const { container } = mount();
+    await screen.findAllByRole("link", { name: /Why sticky|Paper, and/ });
+
+    /* One marker per note, hidden and outside the list. */
+    const marks = container.querySelectorAll("[data-shelf-mark]");
+    expect(marks).toHaveLength(2);
+    for (const m of marks) expect(m.getAttribute("aria-hidden")).toBe("true");
+    expect(screen.getByRole("list", { name: "Latest notes" }).children).toHaveLength(2);
+
+    /* The skip link names its target, and the target exists. */
+    const skip = screen.getByRole("link", { name: "Skip past the notes" });
+    const id = skip.getAttribute("href")!.slice(1);
+    expect(document.getElementById(id)).not.toBeNull();
+  });
+
+  it("shows a cover only when the note has one, and never as a second name", async () => {
+    posts.mockResolvedValue([
+      note({ slug: "with", title: "With a cover", coverImage: "https://example.com/c.jpg" }),
+      note({ slug: "without", title: "Without one" }),
+    ]);
+    const { container } = mount();
+    await screen.findByRole("heading", { level: 3, name: "With a cover" });
+
+    const cards = container.querySelectorAll("[data-shelf-i] a");
+    expect(cards[0].querySelectorAll("img")).toHaveLength(1);
+    expect(cards[0].querySelector("img")!.getAttribute("alt")).toBe("");
+    expect(cards[1].querySelectorAll("img")).toHaveLength(0);
+
+    /* The pale washed card is gone: no hue cycle, no paper-card surface. */
+    expect(container.querySelector(".card-paper")).toBeNull();
   });
 
   it("shows a skeleton shelf while the notes are on their way", async () => {
@@ -218,27 +250,11 @@ describe("the notes shelf", () => {
   });
 
   it("switches the skeleton's wrapped lines off wherever the shelf becomes a list", () => {
-    /*
-     * The fallback card is the full page measure where the shelf's is
-     * `clamp(16rem, 76vw, 23rem)`, so the name and the fact each fit on one
-     * line in the list and wrap to two on the shelf. Measured at 1440x900:
-     * every shelf card is 180.55px and every fallback card 136.70px, and a
-     * skeleton drawing the shelf's line counts in the list over-reserved by
-     * 263px across the six.
-     *
-     * It is the seventh thing the three exits switch, and like the other
-     * six it is a custom property rather than three copies of a rule —
-     * `@supports not`, `@media` and a body class cannot be written as one
-     * selector, so the alternative is three chances to be right in two of
-     * them.
-     */
+    /* A shelf card is 23rem and its name and fact wrap to two lines; the
+       list card is 40rem and they do not. Drawn the shelf's way in the list,
+       the skeleton over-reserves and the page shrinks when the notes land. */
     expect(CSS.match(/--shelf-ghost-extra:\s*none/g)).toHaveLength(3);
-    expect(CSS).toContain("--shelf-ghost-extra: block");
     expect(CSS).toMatch(/display:\s*var\(--shelf-ghost-extra/);
-
-    /* Never the field row. Its three capsules are siblings of one another,
-       so `:not(:first-child)` there would delete two thirds of the field
-       line rather than a wrapped second row. */
     expect(CSS).not.toMatch(/data-sk-block="fields"\]\s*\[data-sk-line\]:not/);
   });
 });
