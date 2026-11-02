@@ -4,14 +4,47 @@ import fs from "fs";
 import path from "path";
 import os from "os";
 import { createApp } from "./app";
+import { couch } from "./db/couch";
 
 describe("backend API", () => {
-  it("GET /health → 200 { ok:true }", async () => {
+  it("GET /health → 200 { ok:true, version } and nothing else", async () => {
     const app = createApp();
     const res = await request(app).get("/health");
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ ok: true });
+    // No BUILD_SHA in the test environment, so the build reads as `dev`. The
+    // exact shape is asserted so a field added later is a decision, not a leak.
+    expect(res.body).toEqual({ ok: true, version: "dev" });
     expect(res.headers["content-type"]).toMatch(/application\/json/);
+  });
+
+  describe("GET /health/ready", () => {
+    afterEach(() => vi.restoreAllMocks());
+
+    it("→ 200 when the store answers, with the build it is running", async () => {
+      vi.spyOn(couch, "reachable").mockResolvedValue(true);
+      const res = await request(createApp()).get("/health/ready");
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ ok: true, db: "up", version: "dev" });
+    });
+
+    it("→ 503 when the store does not, so a rollout onto a dead store fails", async () => {
+      vi.spyOn(couch, "reachable").mockResolvedValue(false);
+      const res = await request(createApp()).get("/health/ready");
+      expect(res.status).toBe(503);
+      expect(res.body).toEqual({ ok: false, db: "down", version: "dev" });
+    });
+
+    it("leaves liveness alone when the store is down", async () => {
+      const spy = vi.spyOn(couch, "reachable").mockResolvedValue(false);
+      const res = await request(createApp()).get("/health");
+      expect(res.status).toBe(200);
+      expect(spy).not.toHaveBeenCalled();
+    });
+  });
+
+  it("is not reachable under /api, which is all nginx forwards", async () => {
+    const res = await request(createApp()).get("/api/health/ready");
+    expect(res.status).toBe(404);
   });
 
   it("allows the site's own origins and refuses everyone else", async () => {

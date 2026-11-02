@@ -12,6 +12,11 @@ COPY package*.json ./
 RUN npm ci
 
 COPY . .
+# The commit this image is, written into the shell as <meta name="build-sha">
+# by vite.config.ts so the Deploy job can ask a pod which build it serves
+# (#200). An ARG is in the environment of the RUN below and nowhere else, and
+# it costs no cache: `COPY . .` above already changes on every commit.
+ARG BUILD_SHA=dev
 RUN npm run build
 
 # Pinned by digest for the same reason as the builder; the floating

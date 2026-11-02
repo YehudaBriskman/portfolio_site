@@ -52,6 +52,15 @@ const EnvSchema = z.object({
   ROBOTS_POLICY: z.enum(['auto', 'open', 'closed']).default('auto'),
   // Where the built SPA shell is served from, for per-URL head injection.
   WEB_ORIGIN: z.string().default("http://web"),
+
+  // The commit this image was built from, baked in by the Dockerfile's
+  // BUILD_SHA build-arg so the Deploy job can ask a pod which build it is
+  // running (#200). Anything that is not a hex sha reads as `dev`: the value
+  // is echoed by /health, and an unexpected string has no business there.
+  BUILD_SHA: z
+    .string()
+    .default("dev")
+    .transform((v) => (/^[0-9a-f]{7,40}$/.test(v) ? v : "dev")),
 })
 .superRefine((env, ctx) => {
   if (env.EMAIL_PROVIDER === 'smtp') {

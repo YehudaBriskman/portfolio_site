@@ -19,6 +19,11 @@
     <link rel="canonical" href="https://yehudabriskman.com/" />
     <meta name="robots" content="index, follow, max-image-preview:large" />
     <meta name="author" content="Yehuda Briskman" />
+    <!-- The commit this build is from, filled in by vite.config.ts. The
+         Deploy job reads it off /index.html to confirm the rollout landed the
+         build it meant to (#200). A meta tag rather than a header so the CSP
+         and the shared security-headers snippet stay exactly as they are. -->
+    <meta name="build-sha" content="%BUILD_SHA%" />
     <!-- Paper, because that is the ground the site is actually on. Both of
          these said #0F1515 / dark, which was the palette before the gallery
          rebuild and is now nowhere in the stylesheet: the browser painted a

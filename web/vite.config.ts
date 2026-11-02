@@ -80,6 +80,24 @@ function requestLoggerPlugin(apiBase: string): Plugin {
   };
 }
 
+/*
+ * Writes the commit into the shell's <meta name="build-sha"> (#200).
+ *
+ * BUILD_SHA is the Dockerfile's build-arg; a local build has none and says
+ * `dev`. Anything that is not a hex sha is also `dev`, because the value is
+ * written into HTML and a build-arg is not the place to discover that.
+ */
+function buildShaPlugin(): Plugin {
+  const raw = process.env.BUILD_SHA ?? "";
+  const sha = /^[0-9a-f]{7,40}$/.test(raw) ? raw : "dev";
+  return {
+    name: "build-sha",
+    // "pre", so it runs ahead of Vite's own %ENV% substitution, which
+    // would otherwise warn that BUILD_SHA is not one of its variables.
+    transformIndexHtml: { order: "pre", handler: (html) => html.replaceAll("%BUILD_SHA%", sha) },
+  };
+}
+
 export default defineConfig(() => {
   const API_TARGET = "http://localhost:5000";
 
@@ -91,7 +109,7 @@ export default defineConfig(() => {
         "/api": apiProxy(API_TARGET),
       },
     },
-    plugins: [react(), requestLoggerPlugin(API_TARGET)],
+    plugins: [react(), requestLoggerPlugin(API_TARGET), buildShaPlugin()],
     /*
      * Four vendor chunks, so a change to the site does not re-download React.
      *
