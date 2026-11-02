@@ -52,7 +52,7 @@ import styles from "./Nav.module.css";
  *   Accept it, which is what this does. Two things carried the weight and both
  *   survive. The page's heading outline *is* the in-page index: `h1` on the
  *   hero, `h2` per section, and an `h3` per object inside the pile (see
- *   `nameAs` in `projects/ProjectPile.tsx`). Read off the home page it is
+ *   `projects/ProjectRun.tsx`). Read off the home page it is
  *   `h1` Yehuda Briskman, `h2` Work over an `h3` each for WindoM, Bothy,
  *   Programming with Yehuda and Change11, then `h2` How I work, Notes, Specs
  *   and Get in touch — which is every in-page destination the index had, in

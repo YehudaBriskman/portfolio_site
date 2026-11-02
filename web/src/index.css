@@ -2274,7 +2274,7 @@
    * cannot be used here: a clip container is a containing block for the sticky
    * pile inside Work and a fresh scope for every `animation-timeline: view()`
    * under it, and the pile's two scroll-timeline traps are written up in
-   * ProjectPile.module.css. It is not needed either — every section carries
+   * ProjectRun.module.css. It is not needed either — every section carries
    * `section-y` and `.layer-section` adds 10svh on top of that, so nothing
    * inside a plate comes near its corners.
    */
