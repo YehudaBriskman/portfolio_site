@@ -123,7 +123,7 @@ type Fact = { label: string; value: string };
  * with an expiry date and `replyWithin` is a promise, and both have to be
  * changeable in one place.
  */
-const CURRENTLY: Fact = { label: "Currently", value: plate.currently };
+const CURRENTLY: Fact = { label: "Building", value: plate.currently };
 const REPLIES: Fact = { label: "Replies", value: contact.replyWithin };
 
 /*

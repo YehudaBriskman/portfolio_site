@@ -153,7 +153,7 @@ export default function Approach() {
           {/* 12px mono, uppercase, at +0.18em — the same field register every
               object label on the site uses for its specs. It labels the
               section instead of competing with it. */}
-          <p className="eyebrow mt-3">Team lead &middot; Israel Defense Forces</p>
+          <p className="eyebrow mt-3">Full-stack &middot; Technical lead</p>
         </div>
 
         {/* The page speaking in the first person, which is why it is type on
