@@ -196,6 +196,16 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: pipx run --spec "zizmor==${ZIZMOR_VERSION}" zizmor --format github .
 
+      # The Deploy job's rollback and readiness logic, against a fake kubectl
+      # and curl: it only ever runs for real on main, after a merge, which is
+      # the worst place to find out that a recovery path does not recover.
+      - name: Deploy scripts lint clean and their decisions hold
+        if: ${{ !cancelled() }}
+        run: |
+          set -Eeuo pipefail
+          shellcheck .github/scripts/*.sh
+          bash .github/scripts/deploy.test.sh
+
   frontend:
     name: Frontend
     runs-on: ubuntu-latest
@@ -540,7 +550,15 @@ jobs:
       # that rule, and the whole point of this step is to disbelieve the
       # rollout. One expected code per environment.
       DEPLOY_EXPECT: ${{ startsWith(github.ref, 'refs/tags/v') && '200' || '302' }}
+      # What .github/scripts/deploy.sh rolls out and then asks the pods for.
+      DEPLOY_SHA: ${{ github.sha }}
+      DEPLOY_REF_NAME: ${{ github.ref_name }}
     steps:
+      # For .github/scripts/deploy.sh. Nothing is built here.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
       - uses: tailscale/github-action@v4
         with:
           oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
@@ -601,7 +619,9 @@ jobs:
           chmod 600 "$HOME/.kube/config"
           # The kubeconfig's own context says `prod`; every call passes -n, so
           # one credential serves both namespaces. The RBAC behind it grants
-          # the same two verbs on the same two Deployment names in each.
+          # the same verbs on the same two Deployment names in each, plus
+          # read on pods and ReplicaSets and, for the readiness check,
+          # create on pods/portforward (k8s/ci-rollout-rbac.yaml in oci-free).
           if ! kubectl -n "$DEPLOY_NS" get deploy web api -o name; then
             echo "::error title=Nothing to roll out in $DEPLOY_NS::Either the namespace has not been set up yet or the token is not bound in it. For a first preprod rollout, from the oci-free repository: kubectl apply -f k8s/portfolio-preprod.yaml -f k8s/tailnet-only-middleware.yaml -f k8s/ci-rollout-rbac.yaml && ./k8s/preprod-secrets.sh"
             exit 1
@@ -642,51 +662,47 @@ jobs:
             exit 1
           fi
 
+      # The in-cluster readiness check below needs `create` on
+      # pods/portforward. Asked now, while nothing has been changed, so a
+      # missing grant fails a deploy that has nothing to undo.
+      - name: CI may reach the pods
+        run: .github/scripts/deploy.sh preflight
+
+      # The way back, written down before the first patch (#199): both
+      # Deployments' exact images, digest-pinned where they are. A recovery
+      # sets these strings back rather than `rollout undo`, which goes to the
+      # previous ReplicaSet — and after a half-finished rollout, or for a
+      # Deployment the failed run never reached, that is not what was running.
+      - name: Record what is running
+        id: record
+        run: .github/scripts/deploy.sh record
+
       # Both environments roll out the commit sha. Preprod does NOT roll out
       # `:latest` and does not write it: `:latest` means the last release, and
       # it means that because the k8s manifests carry it as the tag a fresh
       # `kubectl apply` lands on. A preprod that moved `:latest` on every merge
       # would put unreleased code behind a production apply, which is the exact
       # failure the tag split was introduced to remove.
+      #
+      # `set image` to the sha, the annotations, and `rollout status` with the
+      # reason a stuck rollout is stuck all live in deploy.sh. It marks the
+      # environment as changed before the first patch, so a failure anywhere
+      # after that point — the second patch, the wait, either check below —
+      # puts both Deployments back, not only the case where the rollout itself
+      # finished.
       - name: Roll out this commit
         id: rollout
-        run: |
-          set -euo pipefail
-          kubectl -n "$DEPLOY_NS" set image deploy/web \
-            web=${{ env.IMAGE_BASE }}/web:${{ github.sha }}
-          kubectl -n "$DEPLOY_NS" set image deploy/api \
-            api=${{ env.IMAGE_BASE }}/api:${{ github.sha }}
-          # The rollout runs on the sha because a sha cannot move and a git
-          # tag can. The version goes on as an annotation so `kubectl describe`
-          # can still answer "which release is this" without anybody having to
-          # map forty hex characters back to a name. On preprod there is no
-          # release to name, so it carries the branch and the short sha —
-          # enough to paste straight into `git show`.
-          if [ "$DEPLOY_NS" = prod ]; then
-            release="${{ github.ref_name }}"
-          else
-            release="main-${GITHUB_SHA:0:7}"
-          fi
-          for d in web api; do
-            kubectl -n "$DEPLOY_NS" annotate deploy "$d" --overwrite \
-              app.kubernetes.io/version="$release" \
-              portfolio.yehudabriskman.com/released-at="$(date -u +%FT%TZ)"
-          done
-          # `rollout status` reports that it gave up, never why. A pull
-          # failure is the likeliest reason and is invisible without this.
-          # On a first preprod rollout the likeliest reason is instead a
-          # missing secret — the pods wait in CreateContainerConfigError,
-          # which the REASON column below names.
-          for d in web api; do
-            if ! kubectl -n "$DEPLOY_NS" rollout status "deploy/$d" --timeout=300s; then
-              echo "::group::why $d did not come up"
-              kubectl -n "$DEPLOY_NS" get pods -l "app=$d" \
-                -o custom-columns='POD:.metadata.name,PHASE:.status.phase,REASON:.status.containerStatuses[0].state.waiting.reason,MSG:.status.containerStatuses[0].state.waiting.message'
-              kubectl -n "$DEPLOY_NS" describe deploy "$d" | tail -20
-              echo "::endgroup::"
-              exit 1
-            fi
-          done
+        run: .github/scripts/deploy.sh rollout
+
+      # Inside the cluster, past Traefik and the forwardAuth gate (#200). The
+      # boundary check below can only see the gate on preprod — a 302 says
+      # forwardAuth answered and nothing about the app — so this is where the
+      # app is asserted: api /health/ready says the store is up, web's root is
+      # the real document by its bytes, and both report this commit's sha.
+      # Through `kubectl port-forward` to the Deployments, because the CI Role
+      # can read Deployments and pods but not Services.
+      - name: The pods are this build, and ready
+        run: .github/scripts/deploy.sh readiness
 
       # A rollout that reports success and a site that does not answer are
       # different things, and only one of them is what was wanted.
@@ -710,13 +726,15 @@ jobs:
           echo "::error title=$DEPLOY_NS did not answer $DEPLOY_EXPECT::$DEPLOY_URL never returned $DEPLOY_EXPECT after the rollout. On preprod a 302 is healthy and means the forwardAuth gate answered; a 200 there means the gate is open, which is its own problem. A 403 on either means Traefik refused before reaching the app, and anything 5xx is the build."
           exit 1
 
-      # Only when a rollout actually started. Unreachable cluster means there
-      # is nothing to undo, and four more kubectl calls against an API that is
-      # not answering is two further minutes of the same timeout.
+      # Only once something was recorded, and deploy.sh acts only if the
+      # environment was actually changed. Unreachable cluster means there is
+      # nothing to undo, and more kubectl calls against an API that is not
+      # answering is minutes more of the same timeout.
+      #
+      # On a cancel as well as a failure: a run cancelled between the two
+      # patches leaves the namespace half-changed exactly as a failure does.
+      # A recovery that does not come back healthy is its own ::error, so it
+      # is not read as the original failure repeating itself.
       - name: Put it back if it did not
-        if: failure() && steps.rollout.outcome == 'success'
-        run: |
-          kubectl -n "$DEPLOY_NS" rollout undo deploy/web || true
-          kubectl -n "$DEPLOY_NS" rollout undo deploy/api || true
-          kubectl -n "$DEPLOY_NS" rollout status deploy/web --timeout=180s || true
-          kubectl -n "$DEPLOY_NS" rollout status deploy/api --timeout=180s || true
+        if: (failure() || cancelled()) && steps.record.outcome == 'success'
+        run: .github/scripts/deploy.sh recover
