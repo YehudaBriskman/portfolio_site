@@ -83,10 +83,48 @@ export function createApp() {
     legacyHeaders: false,
   });
 
-  // Behind nginx and Traefik, so the client address arrives in X-Forwarded-For.
-  // Trust exactly one hop: trusting them all lets a client spoof the header and
-  // hand itself a fresh rate-limit bucket per request.
-  app.set("trust proxy", 1);
+  /*
+   * Two hops, because there are two proxies, and the count is read off the
+   * deploy rather than guessed.
+   *
+   * The path a request takes in production and in preprod, from the manifests
+   * in the oci-free repository (k8s/portfolio.yaml, k8s/portfolio-preprod.yaml,
+   * k8s/traefik-config.yaml):
+   *
+   *     client ──▶ Traefik (k3s ingress) ──▶ nginx (web pod) ──▶ this process
+   *
+   * Nothing sits in front of Traefik. The apex and www resolve straight to the
+   * node's public address (no CDN proxy; checked with `dig` on 2026-11-02), and
+   * Traefik's Service runs `externalTrafficPolicy: Local`, which is what stops
+   * kube-proxy rewriting the source address — the preprod ipAllowList only
+   * works because Traefik sees the real client. So Traefik puts the client in
+   * X-Forwarded-For, nginx appends Traefik's pod address with
+   * `$proxy_add_x_forwarded_for`, and the socket this process reads is nginx's.
+   * Express walks that chain from the right, one entry per trusted hop:
+   *
+   *     socket = nginx    trusted (hop 1) → step to the last XFF entry
+   *     XFF[-1] = Traefik trusted (hop 2) → step to the one before it
+   *     XFF[-2] = client  ← req.ip
+   *
+   * This said 1 until #121, which stopped one step short: req.ip was Traefik's
+   * pod address for every visitor, so every limiter below was one bucket for
+   * the whole internet, and five messages from anybody silenced the contact
+   * form for everybody for fifteen minutes.
+   *
+   * A count, and never `true`. Trusting every hop makes req.ip the leftmost
+   * X-Forwarded-For entry, which is whatever the client typed; one header per
+   * request would then buy a fresh bucket per request. With a count, anything a
+   * client writes into the header lands to the left of the address Traefik
+   * appended and is never reached. If a hop is ever added or removed — a CDN in
+   * front, nginx taken out of the path — this number changes with it, and
+   * src/rate-limit.test.ts is where the topology is written down as a test.
+   *
+   * Under Docker Compose there is no Traefik, so the chain is one hop short:
+   * req.ip is the Docker network's gateway, and an X-Forwarded-For sent by the
+   * client itself would be believed. That is acceptable on a laptop and only
+   * there, which is why the count follows the cluster and not the Compose file.
+   */
+  app.set("trust proxy", 2);
 
   app.use("/api/email", mailBurstLimiter, mailSendLimiter);
   app.use("/api/images", readLimiter);

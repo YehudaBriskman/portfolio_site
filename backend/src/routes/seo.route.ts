@@ -31,6 +31,20 @@ function escapeHtml(value: string): string {
 const SITE_TITLE = "Yehuda Briskman · Full-stack engineer & team lead";
 const SITE_DESCRIPTION =
   "Full-stack engineer and team lead in Tel Aviv. I ship products end to end and build the checks that prove they still work.";
+/*
+ * The share-card wording, copied from og:description in web/index.html.
+ *
+ * The home page is the one URL that is served both ways — as the built shell
+ * when the API is down and as this route's render when it is up — so the two
+ * heads must say the same thing, or a link's preview depends on which of them a
+ * scraper happened to catch. Until #125 the render wrote SITE_DESCRIPTION into
+ * og:description as well, and the card read differently from the shell's. The
+ * home-page test in seo.route.test.ts renders the real index.html through this
+ * route and compares every og: and twitter: tag, so a change to either copy
+ * that is not made to both fails there rather than in somebody's link preview.
+ */
+const SITE_SOCIAL_DESCRIPTION =
+  "I ship products end to end, and build the checks that prove they work. Tel Aviv.";
 
 async function publishedPosts(): Promise<Post[]> {
   const { docs } = await couch.find<Post>({
@@ -218,6 +232,7 @@ router.get(
     await sendShell(res, {
       title: SITE_TITLE,
       description: SITE_DESCRIPTION,
+      socialDescription: SITE_SOCIAL_DESCRIPTION,
       canonical: absoluteUrl("/"),
       image: absoluteUrl("/og.png"),
       imageAlt: "Yehuda Briskman, full-stack engineer and team lead",

@@ -116,6 +116,14 @@ export type PageMeta = {
   description: string;
   /** Absolute canonical URL. */
   canonical: string;
+  /**
+   * What og:description and twitter:description say, when it should not be the
+   * search snippet. A share card already shows the title and the image, so the
+   * shell's own copy (web/index.html) words it differently from the
+   * `description` a search result shows under the title. Defaulting to
+   * `description` keeps every other page exactly as it was.
+   */
+  socialDescription?: string;
   /** Absolute image URL, 1200x630. */
   image: string;
   imageAlt: string;
@@ -331,9 +339,41 @@ const MANAGED_TAG_PATTERNS: RegExp[] = [
   /<script\s+type=["']application\/ld\+json["'][\s\S]*?<\/script>/gi,
 ];
 
+/*
+ * og:image:type, read off the image URL rather than declared per page.
+ *
+ * The shell declares `og:image:type`, and MANAGED_TAG_PATTERNS strips every og:
+ * tag before the block below is written — so until #125 the rendered pages were
+ * the only ones on the site without it. Every card this API points at is a PNG
+ * (/og.png, /og-blog.png and the cards rendered under /api/seo/og/), but the
+ * type follows the extension so that a JPEG card one day cannot be announced as
+ * a PNG. An extension this does not know omits the tag, which is what a scraper
+ * copes with best: no type is a guess, a wrong type is a broken preview.
+ */
+const IMAGE_TYPES: Record<string, string> = {
+  png: "image/png",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  webp: "image/webp",
+  gif: "image/gif",
+};
+
+export function imageTypeFor(url: string): string | null {
+  let pathname = url;
+  try {
+    pathname = new URL(url).pathname;
+  } catch {
+    // A relative path: take it as it is.
+  }
+  const ext = /\.([a-z0-9]+)$/i.exec(pathname)?.[1]?.toLowerCase();
+  return (ext && IMAGE_TYPES[ext]) || null;
+}
+
 function metaBlock(meta: PageMeta): string {
   const title = escapeAttr(meta.title);
   const description = escapeAttr(clampDescription(meta.description));
+  const socialDescription = escapeAttr(clampDescription(meta.socialDescription ?? meta.description));
+  const imageType = imageTypeFor(meta.image);
   const lines: string[] = [
     `<title>${escapeXml(meta.title)}</title>`,
     `<meta name="description" content="${description}" />`,
@@ -348,9 +388,10 @@ function metaBlock(meta: PageMeta): string {
     `<meta property="og:site_name" content="Yehuda Briskman" />`,
     `<meta property="og:locale" content="en_US" />`,
     `<meta property="og:title" content="${title}" />`,
-    `<meta property="og:description" content="${description}" />`,
+    `<meta property="og:description" content="${socialDescription}" />`,
     `<meta property="og:url" content="${escapeAttr(meta.canonical)}" />`,
     `<meta property="og:image" content="${escapeAttr(meta.image)}" />`,
+    ...(imageType ? [`<meta property="og:image:type" content="${imageType}" />`] : []),
     `<meta property="og:image:width" content="1200" />`,
     `<meta property="og:image:height" content="630" />`,
     `<meta property="og:image:alt" content="${escapeAttr(meta.imageAlt)}" />`,
@@ -358,7 +399,7 @@ function metaBlock(meta: PageMeta): string {
     // under its own prefix rather than assumed to carry over.
     `<meta name="twitter:card" content="summary_large_image" />`,
     `<meta name="twitter:title" content="${title}" />`,
-    `<meta name="twitter:description" content="${description}" />`,
+    `<meta name="twitter:description" content="${socialDescription}" />`,
     `<meta name="twitter:image" content="${escapeAttr(meta.image)}" />`,
     `<meta name="twitter:image:alt" content="${escapeAttr(meta.imageAlt)}" />`,
   );
