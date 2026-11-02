@@ -172,6 +172,10 @@
    * on the steep phone arc above it read as a stray blue curve. The arc fix
    * is the substantive half of this; the alpha comes down so that the line
    * is an edge rather than a colour even where the curve is tightest.
+   *
+   * That was not enough on a phone, measured in WebKit: below 639px this
+   * hairline is dropped altogether, and so is the crest's. The figures are in
+   * the note above the `@media` block at the end of this file.
    */
   box-shadow:
     inset 0 1px 0 rgb(var(--accent-on-panel) / 0.3),
@@ -362,6 +366,72 @@
   border-start-start-radius: 50% 100%;
   border-start-end-radius: 50% 100%;
   box-shadow: 0 -1px 0 rgb(var(--accent-on-panel) / 0.42);
+}
+
+/*
+ * ── on a phone, neither arc carries a hairline (#107, second pass) ────────
+ *
+ * #108 cut the top hairline from 0.42 to 0.3 and measured the result in
+ * headless Chromium. The owner still saw lines on an iPhone 14, so this pass
+ * was measured in Playwright's WebKit (the engine every iOS browser is) at the
+ * `iPhone 14` descriptor — 390x844, DPR 3 — and in Chromium at the same
+ * descriptor. THE TWO ENGINES AGREE TO WITHIN A FEW LEVELS; nothing below is
+ * WebKit-specific. The lines are the two hairlines, and both are still there:
+ *
+ *   junction        sampled 1 CSS px (3 device px) on the arc   under it
+ *   act top, x=195  WebKit rgb(60,78,110)  Chromium rgb(60,77,110)  rgb(33,40,55)
+ *   act top, x=10   WebKit rgb(66,83,116)  Chromium rgb(64,83,115)  rgb(41,50,69)
+ *   foot,    x=195  WebKit rgb(60,78,109)  Chromium rgb(59,77,108)  paper
+ *   foot,    x=10   WebKit rgb(68,88,121)  Chromium rgb(67,86,120)  paper
+ *
+ * 1. THE FOOT. `.crest`'s outset hairline was never touched: #108 lowered the
+ *    alpha on `.act` and this one stayed at 0.42, so it still reads the exact
+ *    rgb(66,86,122)-class blue that #108 condemned — at the junction the
+ *    original report named, "where the dark act meets the paper below it".
+ * 2. THE TOP. 0.3 on its own would composite to about rgb(45,57,80), but the
+ *    hairline sits on the first pixel of the 0.34 inset glow and of the seam
+ *    wash, and the three stack to rgb(60,78,110) — a step of ~1.6:1 against the
+ *    ground right under it, which is a stroke, not a glint. Lowering the alpha
+ *    again would only chase the stack.
+ *
+ * Why a phone and not every width: the hairline is 1 CSS px whatever the
+ * arc, and the arc is what scales. At 1440 that is 1px against a 63px rise,
+ * a glint on a long shallow edge; at 390 it is 1px against a 17px rise, so the
+ * line is four times the share of the gesture and reads as a curve drawn ON
+ * the page rather than as an edge OF it. The paper/panel edge needs no help to
+ * be seen on a phone — it is 16:1 — and the light still arrives: the inset
+ * glow at the top and the seam wash leaking past the crest's flanks are both
+ * kept, so the junction is lit, just not outlined.
+ *
+ * 639px is the page's own phone breakpoint (`.layer-section`, the plate radii
+ * in `index.css`). Above it nothing changes, and the 1440x900 crops in
+ * `docs/section-grounds/seams/dark-act-webkit/` are byte-identical before and
+ * after this rule.
+ *
+ * Ruled out, with samples, so the next pass does not re-open them:
+ *  - a sub-pixel seam between the act and the paper at DPR 3. The act's top
+ *    lands at 995.6 device px and its foot at 995.5; every column walked
+ *    goes paper -> hairline -> ground with no gap row, in both engines.
+ *  - the `.seam` boxes' clipped edges. With the drift running and the levels
+ *    stretched 0..40 -> 0..255, no edge of either seam box is visible.
+ *  - the "tonal step" rgb(8,8,10) -> rgb(12,12,14) recorded on #107. The only
+ *    pixels darker than `--panel` anywhere in either act are inside the Work
+ *    card's own drop shadow (bounded by the card, y 1570-1991 device px in the
+ *    top shot); none exist in the year act at all. It is the card's
+ *    `--shade: 0 0 0` lift, not the act.
+ *  - the bar's bottom rule, rgb(100,100,110) over the act, is `Nav.module.css`
+ *    painting `--rule-firm` in its dark material. It crosses the act only
+ *    while the act is under the fixed bar and it is the same rule the bar
+ *    draws over paper; it belongs to the chrome, not to this file.
+ */
+@media (max-width: 639px) {
+  .act {
+    box-shadow: inset 0 14px 24px -20px rgb(var(--accent-on-panel) / 0.34);
+  }
+
+  .crest {
+    box-shadow: none;
+  }
 }
 
 /* ─────────────────────────────────────── the off-switches, and a fourth ── */
