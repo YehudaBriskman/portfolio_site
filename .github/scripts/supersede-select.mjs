@@ -1,10 +1,17 @@
 #!/usr/bin/env node
-// Which open Dependabot PRs does a newly opened one supersede? (#201)
+// Which open Dependabot PRs are superseded by a newer one? (#201, #228)
 //
-//   node supersede-select.mjs <new-pr.json> <open-prs.json>
+//   node supersede-select.mjs <open-prs.json>
 //
-// Each PR is { number, headRefName, title, body, labels } as `gh pr ... --json`
-// prints it. Prints the numbers to close, one per line.
+// Each PR is { number, headRefName, title, body, labels } as `gh pr list --json`
+// prints it. Prints `<old> <by>` per PR to close, one per line: `old` is
+// superseded and `by` is the open PR that supersedes it.
+//
+// The sweep (selectSweep) takes the newest open PR of each ecosystem as the
+// "new" PR and applies selectToClose to it against the rest. Only a PR that
+// stays open supersedes anything, so a security PR is closed only when a PR
+// that survives the sweep provably contains its fix. Running it again changes
+// nothing until Dependabot opens another PR.
 //
 // Rules:
 //   - Only lower-numbered PRs in the same ecosystem (`dependabot/<eco>/...`).
@@ -168,13 +175,23 @@ export function selectToClose(newPr, openPrs) {
     .sort((x, y) => x - y);
 }
 
+export function selectSweep(openPrs) {
+  const newest = new Map();
+  for (const pr of openPrs) {
+    const eco = ecosystem(pr.headRefName);
+    if (eco && (!newest.has(eco) || pr.number > newest.get(eco).number)) newest.set(eco, pr);
+  }
+  return [...newest.values()]
+    .flatMap((n) => selectToClose(n, openPrs).map((close) => ({ close, by: n.number })))
+    .sort((x, y) => x.close - y.close);
+}
+
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  const [newPath, openPath] = process.argv.slice(2);
-  if (!newPath || !openPath) {
-    console.error("usage: supersede-select.mjs <new-pr.json> <open-prs.json>");
+  const [openPath] = process.argv.slice(2);
+  if (!openPath) {
+    console.error("usage: supersede-select.mjs <open-prs.json>");
     process.exit(2);
   }
-  const newPr = JSON.parse(readFileSync(newPath, "utf8"));
   const openPrs = JSON.parse(readFileSync(openPath, "utf8"));
-  for (const n of selectToClose(newPr, openPrs)) console.log(n);
+  for (const { close, by } of selectSweep(openPrs)) console.log(`${close} ${by}`);
 }

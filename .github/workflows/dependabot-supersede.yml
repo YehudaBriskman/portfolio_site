@@ -1,4 +1,4 @@
-# Close older Dependabot PRs when a newer one opens for the same ecosystem.
+# Close older Dependabot PRs once a newer one is open for the same ecosystem.
 #
 # Policy (see .github/dependabot.yml): at most one open Dependabot PR per
 # ecosystem. Grouping plus `open-pull-requests-limit: 1` covers almost every
@@ -9,57 +9,79 @@
 # Without it those stack up beside the group PR and conflict with it on every
 # merge, because they all rewrite the same lockfiles.
 #
+# A scheduled sweep: every open Dependabot PR is listed, and the newest one per
+# ecosystem supersedes the older ones it may close.
+#
 # The ecosystem is read from the branch name Dependabot always uses,
 # `dependabot/<ecosystem>/...` (npm_and_yarn, docker, github_actions). The npm
 # and docker entries each cover every directory, so one ecosystem is one PR.
 #
 # Which PRs to close is decided by .github/scripts/supersede-select.mjs
-# (tested in CI's preflight job). A security update is closed only when the new
-# PR provably bumps the same dependency, in the same directory, to the same or
-# a higher version (#201): a newer group PR that lacks the fix must not drop it.
+# (tested in CI's preflight job). A security update is closed only when the
+# newest PR provably bumps the same dependency, in the same directory, to the
+# same or a higher version (#201): a newer group PR that lacks the fix must not
+# drop it.
 #
-# Why pull_request_target: on a `pull_request` event raised by Dependabot,
-# GITHUB_TOKEN is read-only whatever `permissions:` says, so the close would
-# fail. pull_request_target runs in the base repository's context. It is safe
-# here because nothing from the PR is checked out or executed: the checkout is
-# the default branch (for the selection script), and the PR's number and branch
-# reach the shell only through env, never through `${{ }}` in the script.
+# Why a schedule, not pull_request_target (#228). This ran on
+# pull_request_target until GitHub announced "pull_request_target blocked by
+# default December 2":
+#   https://github.blog/changelog/2026-11-02-pull_request_target-blocked-by-default-december-2
+#   https://github.blog/changelog/2026-09-17-workflow-execution-protections-in-github-actions-generally-available/
+# "For public repositories that do not already have an applicable event policy,
+# GitHub is introducing a default rule that disables pull_request_target."
+# "This default does not apply to private or internal repositories." Enforced
+# December 2nd, 2026 (moved from November 2 by an editor's note of October 21),
+# with brownouts on November 9 and 16, 16:00-18:00 UTC. The rule covers every
+# pull_request_target run, not only fork PRs, so Dependabot's same-repo
+# branches are blocked too, and this repository is public. Allowing it again
+# takes an Actions event policy; a schedule needs no setting at all.
+#
+# A `pull_request` run is no substitute: raised by Dependabot, its GITHUB_TOKEN
+# is read-only whatever `permissions:` says, so the close would fail. A
+# scheduled run is raised by the repository, gets the permissions below, and
+# never sees PR code: the checkout is the default branch (for the selection
+# script), and PR numbers reach the shell only as the script's validated
+# output, never through `${{ }}`. Dependabot runs weekly (dependabot.yml), so a
+# sweep every three hours is prompt enough; workflow_dispatch runs one now.
 
 name: Dependabot supersede
 
 on:
-  # Deliberate, for the reason in the header: no PR code is checked out or run.
-  pull_request_target: # zizmor: ignore[dangerous-triggers]
-    types: [opened]
+  schedule:
+    - cron: "17 */3 * * *"
+  workflow_dispatch:
 
 permissions:
   contents: read
   pull-requests: write
 
+concurrency:
+  group: dependabot-supersede
+  cancel-in-progress: false
+
 jobs:
   supersede:
-    if: github.event.pull_request.user.login == 'dependabot[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.repository.default_branch }}
           persist-credentials: false
           sparse-checkout: .github/scripts
-      - name: Close older open Dependabot PRs the new one supersedes
+      - name: Close open Dependabot PRs a newer one supersedes
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
-          NEW: ${{ github.event.pull_request.number }}
         run: |
           set -euo pipefail
-          fields=number,headRefName,title,body,labels
-          gh pr view "$NEW" --json "$fields" > "$RUNNER_TEMP/new.json"
           gh pr list --author 'app/dependabot' --state open --limit 100 \
-              --json "$fields" > "$RUNNER_TEMP/open.json"
-          node .github/scripts/supersede-select.mjs "$RUNNER_TEMP/new.json" "$RUNNER_TEMP/open.json" |
-          while read -r old; do
-            echo "Closing #${old}: superseded by #${NEW}"
-            gh pr close "$old" --delete-branch --comment "Superseded by #${NEW}"
-          done
+              --json number,headRefName,title,body,labels > "$RUNNER_TEMP/open.json"
+          node .github/scripts/supersede-select.mjs "$RUNNER_TEMP/open.json" > "$RUNNER_TEMP/close.txt"
+          while read -r old by; do
+            if [[ ! "$old" =~ ^[0-9]+$ || ! "$by" =~ ^[0-9]+$ ]]; then
+              echo "::error::unexpected selection output: ${old} ${by}"
+              exit 1
+            fi
+            echo "Closing #${old}: superseded by #${by}"
+            gh pr close "$old" --delete-branch --comment "Superseded by #${by}"
+          done < "$RUNNER_TEMP/close.txt"
