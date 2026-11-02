@@ -157,16 +157,15 @@
  * THE CLOCK
  * The principle names it (`--approach-fig`), with the pen's own insets, so the
  * drawing and the writing beside it run on the same window: the clock starts
- * when the principle's top reaches 85% of the window's height and ends when
- * its bottom reaches 45%. The figure takes the first half of that, in five
- * steps of 10%, and is finished while the lines beside it are still being
- * written — the picture is the summary, and it should be complete by the time
- * the reader is reading the detail.
+ * when the principle's top reaches 95% of the window's height and ends when
+ * its bottom reaches 62% (#174; it was 85% and 45%). The figure takes the
+ * first half of that, in five steps of 10%, and is finished while the lines
+ * beside it are still being written — the picture is the summary, and it
+ * should be complete by the time the reader is reading the detail.
  *
- * Measured at 1440×900: the principle is about 330px tall, so the clock is
- * 690px of scroll and the figure is drawn over the first 345 of them, between
- * its top at 85% and 47% of the window. At 390×844 it is drawn over about
- * 450px and finished with its top near a third of the way down.
+ * At 1440×900 the principle is about 330px tall, so the clock is about 630px
+ * of scroll and the figure is drawn over the first 315 of them, between its
+ * top at 95% and about 60% of the window.
  *
  * THE STROKE
  * `pathLength={1}` on every mark, so `stroke-dasharray: 1 1` is one dash as
@@ -181,7 +180,8 @@
  */
 .principle {
   view-timeline: --approach-fig block;
-  view-timeline-inset: 45vh 15vh;
+  /* The pen's insets, moved with it in #174 (were 45vh 15vh). */
+  view-timeline-inset: 62vh 5vh;
 }
 
 /* The box the line loops round: exactly the figure, so the circle is

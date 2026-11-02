@@ -228,12 +228,50 @@ async function startPreview() {
 const { base, stop } = await startPreview();
 const browser = await chromium.launch({ executablePath: process.env.CHROME || undefined, args: ["--no-sandbox"] });
 
-async function audit(route, lang, [label, width, height], { failing = false } = {}) {
+/*
+ * The pen's off state, measured rather than assumed (#174).
+ *
+ * An unwritten word is deliberately texture — `--ink` at 22%, 1.60:1 — and
+ * that is only defensible because the text's real state is full ink and a
+ * reader who turns motion off gets exactly that. So every run checks it: each
+ * word `motion/Written` made must be painted in the ink its paragraph
+ * resolves `--ink` to, at full alpha. axe then measures the contrast of that
+ * written state like any other text. The reduced-motion runs cover one
+ * switch; the `paused` runs below cover the site's own Pause, with motion
+ * otherwise on. The third, a browser without `animation-timeline`, cannot be
+ * faked in Chromium and is held by the stylesheet tests.
+ */
+async function unwrittenWords(page) {
+  return page.evaluate(() => {
+    const bad = [];
+    for (const p of document.querySelectorAll("[data-written]")) {
+      const probe = document.createElement("span");
+      probe.style.color = "rgb(var(--ink))";
+      p.append(probe);
+      const ink = getComputedStyle(probe).color;
+      probe.remove();
+      for (const w of p.querySelectorAll(":scope [data-word]")) {
+        if (w.closest("[data-written]") !== p) continue;
+        const c = getComputedStyle(w).color;
+        if (c !== ink) bad.push(`"${w.textContent}" is ${c}, not ${ink}`);
+      }
+    }
+    return bad;
+  });
+}
+
+async function audit(route, lang, [label, width, height], { failing = false, paused = false } = {}) {
   /* Reduced motion so the entry shutter and the arrivals settle at once:
      axe measures contrast against what is painted, and a heading caught
      mid-fade reads as a contrast failure that no reader ever sees. The
-     motion paths themselves are covered by hand in the audit. */
-  const context = await browser.newContext({ viewport: { width, height }, reducedMotion: "reduce" });
+     motion paths themselves are covered by hand in the audit.
+     `paused` instead leaves motion on and sets the site's own Pause before
+     the page loads, the way a returning reader who paused it arrives. */
+  const context = await browser.newContext({
+    viewport: { width, height },
+    reducedMotion: paused ? "no-preference" : "reduce",
+  });
+  if (paused) await context.addInitScript(() => localStorage.setItem("yb-motion-paused", "1"));
   await context.route("**/api/**", (r) => {
     const { status, body } = answer(r.request().url(), failing);
     return r.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
@@ -257,7 +295,13 @@ async function audit(route, lang, [label, width, height], { failing = false } = 
     .waitForFunction(() => document.querySelector("h1") !== null, null, { polling: 500, timeout: 15_000 })
     .catch(() => errors.push("no h1 rendered"));
   await page.evaluate(() => document.fonts.ready);
+  if (paused) {
+    await page
+      .waitForFunction(() => document.body.classList.contains("motion-paused"), null, { polling: 500, timeout: 15_000 })
+      .catch(() => errors.push("Pause never applied"));
+  }
   await page.waitForTimeout(600);
+  for (const w of (await unwrittenWords(page)).slice(0, 3)) errors.push(`pen off state not at ink: ${w}`);
 
   await page.addScriptTag({ content: AXE });
   const result = await page.evaluate(
@@ -269,7 +313,7 @@ async function audit(route, lang, [label, width, height], { failing = false } = 
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   await context.close();
   return {
-    route: route + (failing ? " (API down)" : ""),
+    route: route + (failing ? " (API down)" : "") + (paused ? " (Pause)" : ""),
     lang,
     window: label,
     overflow,
@@ -293,6 +337,11 @@ try {
   }
   results.push(await audit("/blog", "en", WINDOWS[0], { failing: true }));
   results.push(await audit("/blog/fixture-post", "en", WINDOWS[1], { failing: true }));
+  /* The pen's prose, under the site's own Pause rather than reduced motion. */
+  for (const route of ["/", "/story", "/projects/bothy", "/blog/fixture-post"]) {
+    results.push(await audit(route, "en", WINDOWS[0], { paused: true }));
+    results.push(await audit(route, "he", WINDOWS[1], { paused: true }));
+  }
 } finally {
   await browser.close();
   stop();
