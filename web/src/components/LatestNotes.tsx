@@ -1,6 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
+import LabelSkeleton from "@/components/gallery/LabelSkeleton";
 import ObjectLabel from "@/components/gallery/ObjectLabel";
+import SkeletonGate from "@/components/gallery/SkeletonGate";
 import type { LabelField } from "@/components/gallery/objectLabel";
 import PaperCard from "@/components/cards/PaperCard";
 import { cardCycle, cardType } from "@/components/cards/cardType";
@@ -192,28 +194,54 @@ export default function LatestNotes() {
        * the only part that depends on the network. The door never disappears.
        */}
       {isPending && (
-        <div className={styles.viewport}>
-          <ul className={styles.track} aria-hidden="true">
+        /*
+         * The shelf, with the labels not written yet.
+         *
+         * `SkeletonGate` carries the `aria-hidden` and the 180ms before any
+         * of this is painted; the shelf's own `.viewport` class is passed
+         * through it so the box is the same box either way. Note the one
+         * thing that is *not* here any more: `tabIndex`, `role="group"` and
+         * the shelf's accessible name. A scroller with nothing in it is not
+         * a region a reader should be able to tab into and find empty.
+         */
+        <SkeletonGate className={styles.viewport}>
+          <ul className={styles.track}>
             {Array.from({ length: SHOWN }, (_, i) => (
               /* The cycle class goes on the slot, so the six placeholders are
                  already the six colours the six real cards will arrive in and
                  nothing changes colour underneath the reader when the request
                  lands. */
               <li key={i} className={`${styles.slot} ${cardCycle}`}>
-                <PaperCard as="div" className={`${styles.card} animate-pulse-soft`}>
-                  <div className={styles.ghost}>
-                    {/* Capsules, not rectangles: a placeholder stands in for a
-                        line of text, and a line of text has no corners. The
-                        three are the three parts of the label. */}
-                    <div className={styles.ghostName} />
-                    <div className={styles.ghostFact} />
-                    <div className={styles.ghostField} />
+                <PaperCard as="div" flush className={styles.card}>
+                  {/*
+                    `cardType.inset` and the same `.face` the real card's link
+                    carries, because the padding is the link's and not the
+                    card's — `flush` above. A placeholder inside the card's
+                    own padding instead would be 32px narrower and 64px
+                    shorter than the thing it stands in for.
+
+                    Two name lines, two fact lines, three fields. Counted off
+                    the loaded shelf rather than guessed: at the desktop
+                    measure the longest of the six titles wraps to two and
+                    the subtitle under it to two, and `align-items: stretch`
+                    on the track means the tallest card is the height of all
+                    six. A skeleton built from the *shortest* card would be
+                    the right shape and the wrong height.
+                  */}
+                  <div className={`${cardType.inset} ${styles.face}`}>
+                    <LabelSkeleton
+                      scale="inline"
+                      nameLines={2}
+                      factLines={2}
+                      fields={3}
+                      className={styles.ghostLabel}
+                    />
                   </div>
                 </PaperCard>
               </li>
             ))}
           </ul>
-        </div>
+        </SkeletonGate>
       )}
 
       {!isPending && posts.length > 0 && (

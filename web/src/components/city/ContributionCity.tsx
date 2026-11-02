@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 import { useQuery } from "@tanstack/react-query";
 import InkRule from "@/components/motion/InkRule";
+import SkeletonLines from "@/components/gallery/SkeletonLines";
 import { cityPlan, EMPTY_PLAN, type CityPlan } from "@/components/city/cityPlan";
 import { contributionYear } from "@/services/contributions";
 import styles from "@/components/city/ContributionCity.module.css";
@@ -41,15 +42,32 @@ import styles from "@/components/city/ContributionCity.module.css";
  * twelve months as a table. The `details` is deliberately not `sr-only`; the
  * reasoning is on `.table` in the stylesheet.
  *
- * Three states, and one of them is a design
- * -----------------------------------------
- * Pending, unavailable and present. The first two draw the same thing — the
- * flat 53-week lattice with nothing in it — because an empty grid is what this
- * chart looks like with no data, and it is the state the three off-switches
- * land on anyway. The unavailable one adds the server's own sentence under it.
- * Nothing in this file can produce a column from anything other than a real
- * count: the plan is derived in `cityPlan.ts` from `days`, and `days` is empty
- * in every failure the service reports.
+ * Three states, and loading is not the same state as empty
+ * ---------------------------------------------------------
+ * Pending, unavailable and present. Pending and unavailable both draw the
+ * flat 53-week lattice, because an empty grid is what this chart looks like
+ * with no data and it is the state the three off-switches land on anyway.
+ * They are not the same drawing, though, and the difference is the whole of
+ * what a skeleton is for here:
+ *
+ *   **unavailable** — the lattice at its own height, perfectly still, with
+ *   the server's sentence under it. This is a finished chart of nothing and
+ *   nothing more is coming. It should not shimmer, and it should not reserve
+ *   room for columns that will never stand in it.
+ *
+ *   **pending** — the same lattice, standing in the city's full height, with
+ *   one band of light crossing it. The reserved height is the point of it
+ *   and it was measured rather than assumed: the frame is `height: auto`
+ *   when empty and `clamp(140px, 16vw, 240px)` when a year is in it, so the
+ *   arriving city used to push everything under it down by 108.69px at
+ *   1440x900 — a layout shift of 0.0345 for a reader parked on the section,
+ *   invisible from the top of the page, which is why it survived this long.
+ *
+ * So a reserved height and a moving band mean *coming*; the collapsed height
+ * and stillness mean *this is the chart*. Nothing in this file can produce a
+ * column from anything other than a real count — the plan is derived in
+ * `cityPlan.ts` from `days`, and `days` is empty in every failure the
+ * service reports — so the lattice is honest in both.
  */
 
 /** The window a trailing year spans, in week columns. See `EMPTY_PLAN`. */
@@ -149,13 +167,18 @@ export default function ContributionCity() {
       <figure className={styles.figure}>
         {/*
           The frame owns the clock and the camera; the scene is the one thing
-          that moves. `data-city="empty"` switches the act off from the data
-          side — see the fourth exit in the stylesheet.
+          that moves. `data-city` switches the act off from the data side and
+          carries three values, not two — see the fourth exit in the
+          stylesheet, and the argument at the top of this file for why a year
+          that is still coming is not the same state as a year that is not.
 
           `aria-hidden` on the scene and not on the frame, so the frame stays
           an ordinary box in the tree and the figure keeps its caption.
         */}
-        <div className={styles.frame} data-city={empty ? "empty" : "year"}>
+        <div
+          className={styles.frame}
+          data-city={isPending ? "pending" : empty ? "empty" : "year"}
+        >
           <div className={styles.scene} aria-hidden="true">
             {/* The week count is the one thing the grid cannot derive: a
                 trailing year is 53 columns, a shorter window is fewer, and
@@ -228,6 +251,38 @@ export default function ContributionCity() {
           )}
         </figcaption>
       </figure>
+
+      {/*
+        The disclosure's own place in the page, held while the year is on its
+        way.
+
+        It is the last of the three things this section grows by when the
+        request lands, and the largest: 36.19px of control plus its 36px of
+        margin, measured at 1440x900. Reserved rather than left to arrive,
+        because a skeleton that reserves the chart and not the row under it
+        has moved the shift rather than removed it.
+
+        A line of skeleton and not an empty `details`. The component's own
+        rule below is that a disclosure promising a table and opening onto
+        nothing is worse than no control at all — so what stands here is the
+        box the control will occupy, at the control's own type step, with a
+        capsule where its label will be. It is `aria-hidden` and not
+        focusable, so there is nothing for a keyboard reader to find and no
+        promise made that the response has not kept.
+
+        The one state this is wrong for is a year that turns out unavailable,
+        where it disappears and the page shrinks by the same 72.19px. That is
+        the failure path trading places with the success path, which is the
+        right way round: the shift used to be paid on every successful load
+        and is now paid only when the server could not answer.
+      */}
+      {isPending && (
+        <div className={styles.table} aria-hidden="true">
+          <p className="eyebrow">
+            <SkeletonLines lines={1} tail="11rem" />
+          </p>
+        </div>
+      )}
 
       {/*
         The text equivalent. Present only when there is a year to tabulate —

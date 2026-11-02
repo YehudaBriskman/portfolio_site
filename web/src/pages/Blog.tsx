@@ -10,6 +10,8 @@ import NoteCard from "@/components/notes/NoteCard";
    boxes that are note-card-shaped without being note cards: the loading
    skeleton and the two states where there is nothing to list. */
 import card from "@/components/notes/NoteCard.module.css";
+import SkeletonGate from "@/components/gallery/SkeletonGate";
+import SkeletonLines from "@/components/gallery/SkeletonLines";
 import NoteGlyph from "@/components/notes/NoteGlyph";
 import TagPill from "@/components/notes/TagPill";
 import { blog, type Collection, type PostSummary } from "@/services/blog";
@@ -31,37 +33,100 @@ const GRID = "grid grid-cols-1 gap-6 sm:grid-cols-2";
  * the one slot that always carries media, whatever the post has. The cards
  * after it are text-only here because a note only gets a picture if it has a
  * real cover, which is not knowable before the request lands.
+ *
+ * ── why this is not `LabelSkeleton` ───────────────────────────────────────
+ *
+ * Because a note card is not an object label. `NoteCard` has a badge row, a
+ * stretched link, and its own type steps — `display-tight` at 24px for the
+ * title where the label's `object` scale is 35px — so the schema-shaped
+ * skeleton would be the wrong shape *and* the wrong height here. What is
+ * shared is the thing worth sharing: `SkeletonLines` draws the lines, so the
+ * capsule, the sweep, the two off-switches and the gate are the same ones the
+ * notes shelf uses, and every line below takes its height from the card's own
+ * type step rather than from a literal. The rows mirror `NoteCard`'s markup
+ * class for class, which is the only way this can stay the right height when
+ * that component is next edited.
+ *
+ * ── the one thing this cannot get right, and the measurement for it ───────
+ *
+ * How many notes there are. The grid is a lead plus `ceil((n-1)/2)` rows and
+ * `n` is what the request is for, so no placeholder can reserve the real
+ * height of this region — the honest thing is to reserve the shape of it and
+ * let the document grow at its bottom edge, which is below the fold on
+ * arrival at every width this page is drawn at. Measured against the loaded
+ * grid: a card row is 199px, so each row the response carries beyond the two
+ * reserved here is 199px of growth under the reader's feet rather than in
+ * front of them.
  */
-function Bar({ className }: { className: string }) {
-  return <div className={`animate-pulse-soft rounded-full bg-surface ${className}`} />;
+
+/** A row of the card's own type, with the skeleton's lines set in it. */
+function Lines({ className, lines, tail }: { className: string; lines: number; tail?: string }) {
+  return (
+    <div className={className}>
+      <SkeletonLines lines={lines} tail={tail} />
+    </div>
+  );
 }
+
+/*
+ * The counts, and where each was counted.
+ *
+ * Taken off the loaded grid at 1440x900 rather than chosen: the lead's title
+ * runs to three lines at 41.6px and its summary to one at 28px, which is the
+ * 338px the lead measures; a grid card's title runs to two lines at 32px and
+ * its summary to one at 24.75px, which is the 199px a grid row measures.
+ * Two rows of those are reserved — enough to fill the viewport from where the
+ * grid starts, and never more than the response will bring.
+ */
+const LEAD_TITLE_LINES = 3;
+const CARD_TITLE_LINES = 2;
+const ROWS = 2;
 
 function Skeleton() {
   return (
-    <div className={GRID} aria-hidden="true">
-      <div className={`note-card note-card--lead ${card.card} ${card.lead} ${card.cycle} sm:col-span-2 sm:grid sm:grid-cols-[1.05fr_1fr] lg:grid-cols-[1.2fr_1fr]`}>
-        <div className={`note-card__media ${card.media} animate-pulse-soft sm:border-b-0 sm:border-r`} />
-        <div className="flex flex-col gap-3 p-6 sm:p-8 lg:p-10">
-          <Bar className="h-3 w-20" />
-          <Bar className="h-8 w-full" />
-          <Bar className="h-8 w-3/5" />
-          <Bar className="h-4 w-full" />
-          <Bar className="h-4 w-4/5" />
-          <Bar className="mt-auto h-3 w-32" />
+    <SkeletonGate className={GRID}>
+      <div
+        className={`note-card note-card--lead ${card.card} ${card.lead} ${card.cycle} sm:col-span-2 sm:grid sm:grid-cols-[1.05fr_1fr] sm:items-stretch lg:grid-cols-[1.2fr_1fr]`}
+      >
+        {/* The media slot, empty. It is the one part of a note card whose
+            footprint is known before the response: the lead always carries a
+            picture, a real cover or the generated skyline, and the panel is
+            stretched to the text column either way. */}
+        <div className={`note-card__media ${card.media} sm:border-b-0 sm:border-r`} />
+        <div className="flex flex-col p-6 sm:p-8 lg:p-10">
+          {/* The badge row's 44px floor, which `NoteCard` holds whether or not
+              a badge lands in it. Reproduced empty rather than filled: the
+              row's height is the card's and not the badge's, so the
+              placeholder needs the floor and not a capsule. */}
+          <div className="-my-1 flex min-h-11 flex-wrap items-center gap-x-3 gap-y-2" />
+          <Lines
+            className="mt-3 display-tight text-[1.75rem] sm:text-[2.125rem] lg:text-[2.5rem]"
+            lines={LEAD_TITLE_LINES}
+          />
+          <Lines className="mt-3 text-base leading-[1.6] sm:text-lg" lines={1} />
+          <Lines className="mono mt-6 pt-1 text-[0.75rem] sm:mt-auto sm:pt-6" lines={1} tail="9rem" />
         </div>
       </div>
 
-      {[0, 1, 2, 3].map((i) => (
+      {Array.from({ length: ROWS * 2 }, (_, i) => (
         <div key={i} className={`note-card ${card.card} ${card.cycle}`}>
-          <div className="flex flex-col gap-3 p-6">
-            <Bar className="h-3 w-28" />
-            <Bar className="h-6 w-4/5" />
-            <Bar className="h-4 w-full" />
-            <Bar className="h-4 w-2/3" />
+          <div className="flex flex-col p-6">
+            {/* The date-and-minutes row, which on a grid card shares the
+                badge row's 44px floor. One capsule rather than two: the
+                separator between them is a dot `NoteCard` draws itself, and
+                a placeholder that reproduces punctuation is drawing content
+                it has not got. */}
+            <Lines
+              className="mono -my-1 flex min-h-11 flex-wrap items-center text-[0.75rem]"
+              lines={1}
+              tail="7.5rem"
+            />
+            <Lines className="mt-3 display-tight text-[1.375rem] sm:text-2xl" lines={CARD_TITLE_LINES} />
+            <Lines className="mt-3 text-[0.9375rem] leading-[1.65]" lines={1} />
           </div>
         </div>
       ))}
-    </div>
+    </SkeletonGate>
   );
 }
 

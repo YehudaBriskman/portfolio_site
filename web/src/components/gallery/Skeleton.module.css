@@ -1,0 +1,235 @@
+/*
+ * What every skeleton on this site is made of: one line, the sweep across
+ * it, and the delay before any of it is painted.
+ *
+ * Three components share this sheet and they are one device.
+ * `SkeletonLines.tsx` is the primitive that draws a run of lines,
+ * `LabelSkeleton.tsx` composes three runs of them into the object label's
+ * own shape, and `SkeletonGate.tsx` is the box that holds a region's height
+ * while the gate below decides whether anything is painted in it at all.
+ *
+ * There is no height anywhere in here, and that is the point. A line's box
+ * is a line box of its parent's own type step, made by a zero-width space in
+ * a `::before`, so a skeleton line is exactly as tall as the line of text it
+ * stands in for — at whatever viewport the reader is at, in whatever text
+ * size they have set, after the next change to the type scale. The
+ * alternative is `height: 1.25rem`, which is what all three of the
+ * placeholders this replaced did, and which is a number that agrees with the
+ * type scale on the day it is written and never again.
+ */
+
+/*
+ * One line.
+ *
+ * `::before` makes the box and `::after` paints the capsule, which is the
+ * split that lets the capsule be shorter than its line without the line
+ * being shorter than a line. The capsule is absolutely positioned, so
+ * nothing about how it is drawn — its height, its radius, its sweep — can
+ * reach the layout, and the only thing that decides this element's height is
+ * the `line-height` it inherits.
+ */
+.line {
+  position: relative;
+  display: block;
+  width: var(--sk-w, 100%);
+}
+
+.line::before {
+  /* A zero-width space, and it is load-bearing: an empty block has no line
+     box at all, and `line-height` on its own gives it no height. One
+     invisible character is what turns the declared line-height into a box.
+     It is inside `aria-hidden` markup and adds no width, so it is in the
+     accessibility tree nowhere and in the reader's selection as nothing. */
+  content: "\200B";
+}
+
+.line::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  top: 50%;
+  translate: 0 -50%;
+
+  /*
+   * About two thirds of the em: the band a line of Latin text actually
+   * occupies between its baseline and its cap height. A capsule as tall as
+   * its own line box would close the leading between two rows and the block
+   * would read as a solid slab rather than as lines of text — which is the
+   * one thing a text placeholder has to get right, because it is all it is
+   * saying.
+   */
+  height: 0.66em;
+  border-radius: var(--r-pill);
+
+  /*
+   * A dent in the paper, built out of `--ink` rather than out of `--paper-3`.
+   *
+   * `--paper-3` is the palette's recessed surface and is exactly the right
+   * colour here — it is what `city/ContributionCity.module.css` paints an
+   * empty day with. It is also one of the tokens `.on-panel` does *not*
+   * re-point, so a skeleton drawn in it would stay pale clay on the dark
+   * ground of the catalogue. `--ink` is re-pointed, so this one declaration
+   * is a recess on paper and a faint raise on the panel, which is what a
+   * dent is on each of them.
+   */
+  background-color: rgb(var(--ink) / 0.09);
+}
+
+/* ── the sweep ────────────────────────────────────────────────────────── */
+
+/*
+ * One band of light travelling along the capsule.
+ *
+ * A pulse in opacity was the other option and is what the three placeholders
+ * this replaces all did. §5 of `docs/motion-contract.md` rules it out in as
+ * many words for content arriving — *a fade with no travel reads as a
+ * loading glitch, because opacity alone is the one thing a slow network also
+ * does* — and the irony of using it for a loading state is not an argument
+ * for it: a whole region breathing in and out is a page that looks broken,
+ * where a band crossing a shape reads as a surface being filled in.
+ *
+ * It is one `background-position` animation on a gradient that is already
+ * painted, so there is no second element, no opacity on a compositor layer
+ * per capsule, and nothing per frame for the main thread.
+ *
+ * The stops are deliberately wide and the peak is low. At `0.05` over a
+ * `0.09` fill this is a band that is just visible on paper and does not
+ * become a highlight travelling across the page; a skeleton that draws the
+ * eye is a placeholder competing with the content it is apologising for.
+ */
+.line::after {
+  background-image: linear-gradient(
+    100deg,
+    transparent 30%,
+    rgb(var(--ink) / 0.05) 50%,
+    transparent 70%
+  );
+  background-size: 260% 100%;
+  background-repeat: no-repeat;
+  animation: sk-sweep 1.5s linear infinite;
+}
+
+@keyframes sk-sweep {
+  from {
+    background-position: 160% 0;
+  }
+  to {
+    background-position: -60% 0;
+  }
+}
+
+/*
+ * The same sweep, the other way, for a page set right to left.
+ *
+ * The band follows the reading direction because that is what makes it read
+ * as filling the line in rather than as wiping it away, and a
+ * `background-position` has no logical form to do it for us. Two keyframes
+ * and an explicit `animation-name`: a name reached through a custom property
+ * is invisible to the CSS Modules scoper, which is §7's documented trap and
+ * fails silently.
+ */
+:global(html[dir="rtl"]) .line::after {
+  animation-name: sk-sweep-rtl;
+}
+
+@keyframes sk-sweep-rtl {
+  from {
+    background-position: -60% 0;
+  }
+  to {
+    background-position: 160% 0;
+  }
+}
+
+/*
+ * ── the two off-switches, and the one thing they must not touch ──────────
+ *
+ * A sweep is motion, so both of the standing conditions cancel it outright
+ * and land it on the finished state, which for a skeleton is the flat
+ * capsule. The gradient goes with the animation: left painted, a stopped
+ * sweep is a bright band parked at wherever the last frame left it, which is
+ * a highlight on a surface nothing is happening to.
+ *
+ * There is no `@supports not (animation-timeline: view())` block, and that
+ * is a decision rather than an omission. §4 of the contract is explicit that
+ * a component with no scroll timeline has no feature for a browser to be
+ * missing, and every clock in this file is a time-driven one.
+ *
+ * What neither switch touches is `.gate` below. Both of the global rules
+ * these conditions carry — `animation-duration: 0.01ms !important` in
+ * `index.css` and in `nav/motion-paused.css` — override the duration and
+ * leave the *delay* alone, which is exactly right: the gate is not motion,
+ * it is a decision about whether a placeholder is shown at all, and a reader
+ * who has asked for less motion has not asked to be shown more flicker.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .line::after {
+    animation: none;
+    background-image: none;
+  }
+}
+
+:global(body.motion-paused) .line::after {
+  animation: none;
+  background-image: none;
+}
+
+/* ── the gate ─────────────────────────────────────────────────────────── */
+
+/*
+ * The delay before a skeleton is painted, and why it is a delay and not a
+ * floor.
+ *
+ * **There is no minimum display time.** A skeleton guaranteed 400ms of screen
+ * time is 400ms of delay the site did not have, and on a warm React Query
+ * cache the request does not go out at all — the right number of frames of
+ * placeholder there is zero. So nothing here holds a skeleton open; the
+ * whole of the timing is at the front.
+ *
+ * **180ms before it appears.** Above the ~100ms band inside which a response
+ * reads as instantaneous, so anything that feels instant paints no
+ * placeholder at all; far below the ~1s band at which a reader starts to
+ * feel they are waiting, so the gate never adds a wait of its own.
+ *
+ * Measured against this app rather than taken on faith. Watching the notes
+ * shelf in the browser, at 1440x900, with the skeleton's computed opacity
+ * polled every frame:
+ *
+ *     added latency    in the DOM for    actually painted
+ *     none                      ~44ms    never
+ *     150ms                    ~191ms    never
+ *     400ms                    ~431ms    245ms
+ *     1200ms                  ~1242ms    1060ms
+ *
+ * The first two rows are the whole point: on a local or warm response the
+ * placeholder is built, laid out, and thrown away without a reader ever
+ * seeing it, and the region simply fills in. The second two are the other
+ * half — once a response is slow enough to be worth explaining, the
+ * skeleton is on screen long enough to read as a state rather than as a
+ * flicker.
+ *
+ * **Opacity, over a box that already has its full height.** This is the part
+ * that is easy to get wrong and expensive to get wrong: delaying the
+ * *element* would mean the region has no height for 180ms and then suddenly
+ * has one, which is a layout shift — the exact fault a skeleton exists to
+ * prevent, introduced by the mechanism meant to polish it. The skeleton is
+ * in the document and occupying its space from the first frame; only the ink
+ * waits.
+ *
+ * `both` and a 1ms duration, so the fill carries `opacity: 0` backwards
+ * through the delay and the animation is a step rather than a fade. A fade
+ * in would be a second thing arriving before the content, which is one more
+ * than the reader asked for.
+ */
+.gate {
+  animation: sk-gate 1ms linear var(--sk-gate, 180ms) both;
+}
+
+@keyframes sk-gate {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

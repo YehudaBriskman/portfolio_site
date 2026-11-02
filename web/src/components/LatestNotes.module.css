@@ -98,6 +98,27 @@
      the grammar allows; past about 12 it is a toy. Alternating sign is below,
      so the shelf does not lean all one way. */
   --shelf-tilt: 4deg;
+
+  /*
+   * Whether the loading skeleton draws its second line of name and of fact.
+   *
+   * The seventh thing the three exits switch, and it is here with the other
+   * six for the reason this file already gives: the three conditions cannot
+   * be written as one selector, so anything that differs between the shelf
+   * and the fallback list is a custom property or it is three copies of
+   * itself.
+   *
+   * A card is `clamp(16rem, 76vw, 23rem)` as a shelf and the full page
+   * measure as a list, and the difference is two wrapped lines per card.
+   * Measured at 1440x900 with the request held: every card in the shelf is
+   * 180.55px with a 114.55px label of two name lines and two fact lines, and
+   * every card in the fallback list is 136.70px with a 70.70px label of one
+   * of each. A skeleton that drew the shelf's two lines in the list's card
+   * over-reserved by 263px across the six and the page shrank when the notes
+   * landed — which is a layout shift pointing the other way, and no better
+   * for pointing that way.
+   */
+  --shelf-ghost-extra: block;
 }
 
 /*
@@ -293,48 +314,26 @@
   }
 }
 
-/* ------------------------------------------------------- the skeletons -- */
+/* ------------------------------------------------------- the skeleton -- */
 
 /*
- * The loading state is the shelf, not a different component.
+ * The loading state is the shelf, not a different component: the same
+ * viewport, the same track, the same six slots in the same six washes, with
+ * `gallery/LabelSkeleton` where the label will be. What this class adds is
+ * the one thing the gallery's skeleton cannot know, which is that this
+ * region has two layouts.
  *
- * `/blog` has shipped its error card as the most-seen state on the page
- * before now, so the three states here are not an afterthought: a reader who
- * arrives while the API is cold sees a shelf with the right shape in the
- * right place, and the heading and the way through are static markup either
- * way.
+ * `[data-sk-block]` and `[data-sk-line]` are hooks in the markup rather than
+ * scoped class names, because a CSS module cannot see another module's
+ * names — the same reason `ObjectLabel` writes `data-kind` rather than
+ * leaving a rule to count with `:nth-child()`. The fields block is
+ * deliberately not matched: its three capsules are siblings of one another,
+ * so `:not(:first-child)` there would delete two thirds of the field line
+ * rather than a wrapped second row.
  */
-.ghost {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.ghostLine {
-  height: 0.75rem;
-  border-radius: var(--r-pill);
-  background-color: rgb(var(--ink-soft) / 0.2);
-}
-
-.ghostName {
-  height: 1.25rem;
-  width: 80%;
-  border-radius: var(--r-pill);
-  background-color: rgb(var(--ink-soft) / 0.2);
-}
-
-.ghostFact {
-  height: 0.875rem;
-  width: 62%;
-  border-radius: var(--r-pill);
-  background-color: rgb(var(--ink-soft) / 0.12);
-}
-
-.ghostField {
-  height: 0.625rem;
-  width: 45%;
-  border-radius: var(--r-pill);
-  background-color: rgb(var(--ink-soft) / 0.12);
+.ghostLabel [data-sk-block="name"] [data-sk-line]:not(:first-child),
+.ghostLabel [data-sk-block="fact"] [data-sk-line]:not(:first-child) {
+  display: var(--shelf-ghost-extra, block);
 }
 
 /* ---------------------------------------------------- the three exits -- */
@@ -383,6 +382,7 @@
     --shelf-gap: 1.5rem;
     --shelf-drift: 0rem;
     --shelf-tilt: 0deg;
+    --shelf-ghost-extra: none;
   }
 
   .track,
@@ -400,6 +400,7 @@
     --shelf-gap: 1.5rem;
     --shelf-drift: 0rem;
     --shelf-tilt: 0deg;
+    --shelf-ghost-extra: none;
   }
 
   .track,
@@ -416,6 +417,7 @@
   --shelf-gap: 1.5rem;
   --shelf-drift: 0rem;
   --shelf-tilt: 0deg;
+  --shelf-ghost-extra: none;
 }
 
 :global(body.motion-paused) .track,
