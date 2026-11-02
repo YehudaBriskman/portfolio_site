@@ -1,4 +1,4 @@
-import { useRef, type KeyboardEvent, type ReactNode } from "react";
+import { useEffect, useRef, type KeyboardEvent, type ReactNode } from "react";
 import styles from "@/components/work/Tabs.module.css";
 import { count as fmt, useLang } from "@/components/dashboard/i18n";
 import { panelId, tabId } from "@/components/work/order";
@@ -34,6 +34,18 @@ export default function Tabs<K extends string>({
 }) {
   const lang = useLang();
   const refs = useRef(new Map<string, HTMLButtonElement>());
+
+  /* On a phone the row scrolls sideways; the selected tab is kept in it, so
+     a link to `?tab=docs` does not open on a tab the reader cannot see. Only
+     the row scrolls: the page is left where it is. */
+  useEffect(() => {
+    const el = refs.current.get(selected);
+    const row = el?.parentElement;
+    if (!el || !row || row.scrollWidth <= row.clientWidth) return;
+    const a = el.getBoundingClientRect();
+    const b = row.getBoundingClientRect();
+    if (a.left < b.left || a.right > b.right) row.scrollLeft += a.left + a.width / 2 - (b.left + b.width / 2);
+  }, [selected]);
 
   const go = (i: number) => {
     const next = tabs[(i + tabs.length) % tabs.length];

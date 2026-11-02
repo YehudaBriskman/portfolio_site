@@ -184,3 +184,14 @@ a.row:hover .rowTitle {
   cursor: pointer;
   min-height: 2.75rem;
 }
+
+/* A phone: the icons go, so four tabs and their counts fit the row more
+   often than not; when they still do not, the row scrolls (above). */
+@media (max-width: 30rem) {
+  .icon {
+    display: none;
+  }
+  .tab {
+    padding-inline: 0.5rem;
+  }
+}
