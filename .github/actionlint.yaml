@@ -1,0 +1,14 @@
+# actionlint configuration. Run in CI by the Static job (.github/workflows/ci.yml).
+paths:
+  # SC2016 ("expressions don't expand in single quotes") fires on the API
+  # server probe in Deploy and in the drift check:
+  #   timeout 5 bash -c 'cat < /dev/null > /dev/tcp/$NODE_IP/6443'
+  # The quotes are deliberate. $NODE_IP is in the step's env, so the inner
+  # bash expands it; expanding it in the outer shell would paste a secret
+  # into a command line instead. Scoped to these two files, not repo-wide.
+  .github/workflows/ci.yml:
+    ignore:
+      - 'SC2016'
+  .github/workflows/deploy-drift.yml:
+    ignore:
+      - 'SC2016'
