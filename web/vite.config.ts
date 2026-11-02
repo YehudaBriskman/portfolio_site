@@ -105,6 +105,17 @@ export default defineConfig(() => {
      *
      * Shiki and its grammars are already out of here behind the lazy post
      * route (1.45MB raw across 24 languages) and stay there.
+     *
+     * A package named here is preloaded by every route that imports any part
+     * of the chunk, so a list may only hold what the entry itself renders
+     * (#126). `ui` is the Radix the nav draws on every public page — the
+     * language menu, the tooltips, the Slot under Button — and nothing else.
+     * sonner and lucide-react used to be in it too: sonner is raised only by
+     * the post's reading bar, so it now lands in that route's chunk, and
+     * lucide is per-icon ESM that Rollup already splits by importer. Naming
+     * them here dragged both onto `/`, `/blog` and `/projects`, which render
+     * neither. Do not add a package to a list without checking it is used
+     * above `<Routes>` or in the chrome.
      */
     build: {
       rollupOptions: {
@@ -115,10 +126,7 @@ export default defineConfig(() => {
             ui: [
               "@radix-ui/react-dropdown-menu",
               "@radix-ui/react-slot",
-              "@radix-ui/react-toast",
               "@radix-ui/react-tooltip",
-              "sonner",
-              "lucide-react",
             ],
             schema: ["zod"],
           },
