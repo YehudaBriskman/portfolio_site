@@ -7,10 +7,8 @@ rules:
   unpinned-uses:
     config:
       policies:
-        # The Deploy job still names `tailscale/github-action@v4`. That job is
-        # being rewritten in its own pull requests (#199, #200, #214) and is
-        # not edited from here, so its pin follows there. This entry is the
-        # only tag pin allowed anywhere; every other action must be pinned to
-        # a full commit sha. Remove it once Deploy is pinned.
-        "tailscale/github-action": ref-pin
+        # Every action, first-party included, is pinned to a full commit sha
+        # with its version in a comment; Dependabot's github-actions entry
+        # moves the sha and rewrites the comment. No exceptions since #206
+        # pinned the last tag (tailscale/github-action in Deploy).
         "*": hash-pin

@@ -233,6 +233,46 @@ every main commit. Reusing an unchanged image's digest needs a proof that
 every input is identical (context tree, base image digests, build args,
 toolchain), which the evidence now records but nothing yet compares.
 
+### After #206 (supply chain and security)
+
+| Workflow / job (check name) | Runs on | Permissions beyond `contents: read` | Timeout (min) |
+|---|---|---|---|
+| CI › Static: two new steps | every run | none | 10 |
+| CI › Publish image: provenance + SBOM attestations | main, a rebuild from a tag | `packages: write`, `id-token: write`, `attestations: write` | 15 |
+| CI › Release manifest: provenance attestation | main, a rebuild from a tag | `packages: write`, `id-token: write`, `attestations: write` | 10 |
+| Deploy drift › Rescan deployed images | daily 07:00 UTC, manual | `packages: read` | 20 |
+| CodeQL › Analyze (javascript-typescript) | PRs, main, Mondays 04:41 UTC | `security-events: write` | 20 |
+| Secret scan › Full history (gitleaks) | Mondays 05:17 UTC, manual | none | 10 |
+
+- **Pinning.** Every action in every workflow is on a full commit sha with
+  its version in a comment, and zizmor's `unpinned-uses` allows no
+  exception. Dependabot's `github-actions` entry updates sha pins and
+  rewrites the comment. Every checkout has `persist-credentials: false`;
+  deploy-drift's `git fetch` needs none because the repository is public.
+- **Secrets.** Static runs a pinned, checksum-verified gitleaks
+  (`.github/scripts/secret-scan.sh`) over a PR's `base..head`, every
+  intermediate commit included, and over a push to main's `before..after`
+  (a force push scans everything reachable). Redacted, no report file. A
+  finding exits 3; gitleaks failing exits 2. Weekly: every ref.
+- **Exceptions.** `.trivyignore.yaml` entries need `id` (no wildcard),
+  `statement`, `owner` and an `expired_at` after today and at most 92 days
+  out; Static fails otherwise (`exceptions-check.mjs`).
+- **Rescan.** The drift job reads the digest each web and api Deployment
+  runs in preprod and prod; the Rescan job, with no cluster credential,
+  scans each distinct digest with today's DB under CI's policy and
+  exceptions (`.github/scripts/rescan.sh`). Exit 1 is a finding; exit 2 is
+  a scanner error (DB download, DB older than 48 h, a scan that did not
+  finish), never reported as clean.
+- **Attestations.** Scan image writes a CycloneDX SBOM of the archive it
+  scanned (on PRs too, checked non-empty). Publish image attests SLSA
+  provenance and that SBOM to each pushed digest, Release manifest attests
+  provenance to the manifest's digest, all with `actions/attest` and
+  pushed to GHCR. Verify:
+  `gh attestation verify oci://ghcr.io/yehudabriskman/portfolio_site/web@sha256:<digest> --repo YehudaBriskman/portfolio_site`
+  (add `--predicate-type https://cyclonedx.org/bom` for the SBOM).
+- **CodeQL** (`security-extended`, `build-mode: none`) is not a required
+  check. The ruleset change that makes it one is in #206's pull request.
+
 ---
 
 ## 2. Baseline

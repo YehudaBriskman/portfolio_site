@@ -10,11 +10,24 @@
 # forgotten:
 #   - `statement` says why it cannot be fixed now, or why it is not reachable
 #     here. "No fix upstream" is a reason; "it is noisy" is not.
-#   - `expired_at` is mandatory in practice. Trivy stops honouring the entry on
-#     that date and the build fails again, so the decision gets made again
-#     with whatever upstream has shipped since. Three months at most.
+#   - `owner` is the GitHub login who decides again when it expires. Trivy
+#     ignores the field; the check below does not.
+#   - `expired_at` is mandatory. Trivy stops honouring the entry on that date
+#     and the build fails again, so the decision gets made again with
+#     whatever upstream has shipped since. Three months at most.
+#   - `id` names one finding. No wildcards.
 #   - `paths` narrows it to the package that carries it where possible, so one
 #     acceptance does not quietly cover a second copy elsewhere in the image.
+#
+# Static (ci.yml) enforces the first four on every pull request, with
+# .github/scripts/exceptions-check.mjs: an entry missing a statement or an
+# owner, expired, or expiring more than 92 days out fails it, so an expiry is
+# met in review rather than on the day of a release. Within 14 days of
+# expiring it warns.
+#
+# The same file is read by Scan image, Promote release and the scheduled
+# rescan of the deployed digests (deploy-drift.yml), so an acceptance is made
+# once and holds, or lapses, everywhere at the same time.
 #
 # A HIGH with no fix available does not need an entry: the scan already
 # passes it (see the comment on the scan job). A CRITICAL always does.
@@ -27,6 +40,7 @@
 #     statement: >-
 #       No fixed release yet (upstream issue #123). Only reachable through
 #       example's CLI, which the image never runs.
+#     owner: YehudaBriskman
 #     expired_at: 2027-02-01
 
 vulnerabilities: []
