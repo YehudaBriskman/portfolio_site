@@ -61,6 +61,10 @@ export function toPublicSummary(p: Post) {
     // Read straight from CouchDB, so a document written before the field
     // existed carries nothing; null is "not featured", never undefined.
     featured: p.featured ?? null,
+    /* When the note was last saved (#225), for the area page's "updated"
+       mark. The admin save path stamps it on every write; a legacy document
+       without one says null rather than nothing. */
+    updatedAt: p.updatedAt ?? null,
   };
 }
 
@@ -142,18 +146,43 @@ export function toPublicCollection(c: Collection) {
     links: c.links,
     order: c.order,
     // The repo config itself stays private — it names paths and branches. Only
-    // the numbers and a link to the repo are public.
+    // the numbers, a link to the repo and the paths the owner opted in to
+    // publishing (`docPaths`) are public.
     repoUrl: c.repo ? `https://github.com/${c.repo.owner}/${c.repo.name}` : null,
+    docs: publicDocs(c.repo),
     stats: c.stats
       ? {
           stars: c.stats.stars,
+          // `forks` and `fetchedAt` (#225): the area page shows each fact with
+          // the time it was read. Older documents carry neither.
+          forks: c.stats.forks ?? null,
           language: c.stats.language,
           license: c.stats.license,
           pushedAt: c.stats.pushedAt,
           latestRelease: c.stats.latestRelease,
+          fetchedAt: c.stats.fetchedAt ?? null,
         }
       : null,
   };
+}
+
+/*
+ * The repo docs an area may link (#225): one GitHub link per opted-in path.
+ * `docPaths` is the owner's explicit list of what may ever be published, so
+ * a path that is in it is public by definition; a repo with none gives none.
+ */
+export function publicDocs(repo: Collection["repo"]): { path: string; url: string }[] {
+  if (!repo) return [];
+  return (repo.docPaths ?? [])
+    .map((raw) => raw.trim().replace(/^\/+/, ""))
+    .filter((path) => path.length > 0 && !path.split("/").includes(".."))
+    .map((path) => ({
+      path,
+      url: `https://github.com/${repo.owner}/${repo.name}/blob/${encodeURIComponent(repo.branch ?? "main")}/${path
+        .split("/")
+        .map(encodeURIComponent)
+        .join("/")}`,
+    }));
 }
 
 /*
