@@ -4,97 +4,94 @@ import {
   isValidElement,
   useLayoutEffect,
   useRef,
+  type CSSProperties,
   type HTMLAttributes,
   type ReactElement,
   type ReactNode,
   type Ref,
 } from "react";
 import styles from "@/components/motion/Written.module.css";
+import { penRange } from "@/components/motion/penClock";
 
 /*
  * `pen` — prose that is written as it is read.
  *
  * Wrap any block of reading text in this and nothing else: a paragraph, a
- * list item, a definition, a markdown body's paragraphs. Every word in it is
- * muted except the words crossing a band across the lower middle of the
- * viewport, which are at full ink, and the band moves through each line
- * word by word in reading order — so a sentence appears to be set at the
- * moment the reader's eye reaches it, and is un-set again if they scroll back
- * up. The call site passes nothing per word and knows nothing about lines;
- * that is the whole of the API, and it is the requirement in #98 rather than
- * a convenience. The first time a section re-implements this in its own
- * stylesheet the primitive has failed.
+ * list item, a definition, a markdown body's paragraphs. Every word starts
+ * muted, and as the paragraph rises through the window the pen inks it ONE
+ * WORD AFTER ANOTHER, in reading order, and leaves what it wrote at full ink —
+ * so a sentence is written out the way a hand writes it, and is un-written,
+ * word by word in the opposite order, if the reader scrolls back up. Scroll is
+ * the only clock: nothing here runs on a timer or fires once.
  *
- * Where it starts from
- * --------------------
+ * The call site passes nothing per word and knows nothing about lines; that is
+ * the whole of the API, and it is the requirement in #98 rather than a
+ * convenience.
+ *
+ * THE CLOCK, AND WHY IT IS A WORD COUNT (#158)
+ * --------------------------------------------
+ * The first version placed each word on the paragraph's clock by geometry: its
+ * line's offset from the paragraph's top (`--line`, measured) plus its place
+ * along the line times one line-height (`--pen`), and lit it for the height of
+ * a 14vh band. Measured in Chromium on /story, that gave:
+ *
+ *   - a step of `1lh / words-on-the-line` between neighbours — about 2px of
+ *     scroll at 15 words to a 31px line — against a ramp of 8% of the band,
+ *     about 10px. So five words were mid-ramp at once: a smear, not a pen;
+ *   - a whole line written in one line-height of scroll, 31px, which is a
+ *     third of one mouse-wheel notch. One notch wrote three lines at once —
+ *     "a block appears all at once";
+ *   - every word lit for a band's height, 126px, which is four lines — "two
+ *     lines go to full ink at the same time", and it was more than two.
+ *
+ * The pace was tied to the text's own movement, so the pen could never be
+ * slower than the scroll that carried it. Now the paragraph's clock is split
+ * by word count instead: word `i` of `n` owns exactly the slice `i/n` to
+ * `(i+1)/n` of it, ramps from muted to ink across that slice and nothing else,
+ * and holds ink after. Two consequences, both pinned by the tests:
+ *
+ *   - at any scroll position at most ONE word is between muted and ink; every
+ *     word before it is at ink and every word after it is muted;
+ *   - the slices tile the clock with no gap and no overlap, so the pen never
+ *     pauses and never writes two words at once, across line breaks too.
+ *
+ * The clock (`Written.module.css`) runs from the paragraph's top reaching
+ * 85% of the window's height to its bottom reaching 45%, so a paragraph of
+ * `h` px gets `h + 40vh` of scroll: about 15px a word for a two-line beat on
+ * /story, 5–8px a word for a long post paragraph — slow enough to watch, and
+ * finished before the paragraph is out of the reading zone.
+ *
+ * The index is known at render time, so there is no measurement any more: no
+ * `ResizeObserver`, no font-load pass, no `getClientRects`. A resize, a font
+ * swap or a different wrap cannot desynchronise it, because nothing about it
+ * depends on where the lines break. Logical order is DOM order, which is the
+ * reading order in a Hebrew paragraph, in English under `dir="rtl"` and for
+ * an English word inside a Hebrew line alike.
+ *
+ * WHERE THE SPLIT STARTS FROM
+ * ---------------------------
  * `ObjectLabel`'s `splitName` already solved the three things a split must not
- * break, and this keeps all three for the same reasons: the accessible text
- * stays one string, the copied text stays one string (the spaces are the
- * original text nodes and the spans add no characters), and a word never
- * breaks across lines. It solves them differently, and the difference is the
- * reason this exists as its own component rather than as a `splitName` for
- * paragraphs.
+ * break, and this keeps all three: the accessible text stays one string, the
+ * copied text stays one string (the spaces are the original text nodes and
+ * the spans add no characters), and a word never breaks across lines.
  *
- * A WORD HERE IS AN INLINE SPAN AND NEVER AN INLINE-BLOCK. `splitName` needs
- * boxes because a `transform` does nothing to a non-replaced inline box. This
- * effect is colour, and `color` applies to an inline box perfectly well, so
- * nothing here is a box — and that one choice removes two failures at once:
+ * A WORD HERE IS AN INLINE SPAN AND NEVER AN INLINE-BLOCK. The effect is
+ * colour, and `color` applies to an inline box perfectly well:
  *
  *   - BIDI. An inline-block is an atomic inline, which the bidi algorithm
  *     treats as a neutral object character; a run of them in an RTL paragraph
- *     is laid out right to left. That is the bug #110 found on the hero, where
- *     `dir="rtl"` turned the name into ADUHEY NAMXSIRB, and it is fixed there
- *     with `direction: ltr` — which is right for a Latin name and would be
- *     *wrong* for a paragraph, because a paragraph may be Hebrew, or Hebrew with
- *     an English product name inside it. An inline span with `unicode-bidi:
- *     normal` is invisible to the bidi algorithm: the text resolves exactly as
- *     it would unsplit, in either direction, in either script, mixed. Tested in
- *     both, in a real browser, and the screenshots are in docs/written.
- *   - LINE BREAKING. An inline-block is a break opportunity on each side, so
- *     `splitName` has to put `white-space: nowrap` on every word to stop a
- *     name breaking mid-word. An inline span is not a break opportunity at
- *     all. The only break opportunities in the paragraph are the spaces that
- *     were always there, `text-wrap: pretty` and `balance` see the same text,
- *     and the line breaks are not "kept" so much as never touched — measured
- *     word-for-word against the unsplit paragraph, not asserted.
+ *     is laid out right to left (#110's ADUHEY NAMXSIRB). An inline span with
+ *     `unicode-bidi: normal` is invisible to the bidi algorithm.
+ *   - LINE BREAKING. An inline span is not a break opportunity. The only
+ *     break opportunities in the paragraph are the spaces that were always
+ *     there.
  *
- * Why there is any JavaScript at all
- * ----------------------------------
- * Two reasons, and the first was found rather than expected.
+ * One `view()` per paragraph, not per word: on an inline box `view()`
+ * resolves to the block it is laid out in, so the paragraph names the clock
+ * (`--written-clock`) and every word reads it.
  *
- * A `view()` timeline on an inline box does not follow the box. Measured in
- * Chromium, every word of a three-line paragraph reported the same progress:
- * an inline subject resolves to the block it is laid out in. So the clock
- * belongs to the paragraph (`.written` names it), and each word has to be told
- * where on that clock its line is — `--line`, in px from the paragraph's top.
- *
- * And words on one line share one vertical position, so even a timeline per
- * word could only light a whole line at once — which reads as a highlighter
- * bar moving down the page, not as writing. Writing moves *along* the line,
- * so each word is also told how far along its line it is — `--pen`, 0 to just
- * under 1, in *logical* order. The stylesheet delays the word by that fraction
- * of one line of scroll, so the pen crosses one line in the scroll it takes
- * the next line to arrive and the hand-off is continuous.
- *
- * Only layout knows where lines break, so both are read once per layout — on
- * mount, when the box resizes, and when the web fonts land — and never on
- * scroll.
- *
- * Logical order, not x. In a Hebrew paragraph the pen runs right to left; in
- * an English sentence set in a right-to-left page (which is every sentence on
- * this site under the second locale — `nav/locale.ts` switches direction and
- * not strings) it runs left to right; and an English word inside a Hebrew
- * line is reached when the reader reaches it. The DOM order *is* the reading
- * order in all three cases, and x is right in only one of them.
- *
- * No scroll listener, no `requestAnimationFrame`, no React state, and one
- * `ResizeObserver` for the whole page rather than one per paragraph. Until
- * the measurement runs — or if it never does — every word sits at the top of
- * the paragraph's clock and the whole paragraph is lit while its first line
- * crosses the band: a coarser version of the effect, and never hidden text.
- *
- * What it costs is measured in the pull request and in
- * `docs/motion-contract.md` §2, and the off-switches are in the stylesheet.
+ * Two shared observers park paragraphs that are outside the reading zone —
+ * see `watch` — and the off-switches are in the stylesheet.
  */
 
 /** The elements prose arrives in. A heading is not one: a heading is read at a glance, not word by word. */
@@ -125,26 +122,32 @@ const LEAVE = new Set(["code", "pre", "kbd", "samp", "svg", "math", "script", "s
  *
  * ASCII whitespace and not `\s`: `\s` also matches U+00A0, and a no-break
  * space is exactly the character an author types to say *these two words are
- * one unit on the line*. Splitting at it would not change where the line
- * breaks (the span boundary is not a break opportunity either) but it would
- * make the pen treat "10 km" as two words, which is the opposite of what the
- * author asked for.
+ * one unit on the line*, so the pen writes "10 km" as one word.
  */
 const BREAK = /([\t\n\f\r ]+)/;
 
-function splitText(text: string): ReactNode[] {
-  return text.split(BREAK).map((part, i) =>
+type Walk = { count: number; total: number };
+
+function splitText(text: string, walk: Walk): ReactNode[] {
+  return text.split(BREAK).map((part, i) => {
     /* Odd indices are the captured whitespace: returned as the original
        string, so it is a real text node with the real character in it — the
        break opportunity the line needs and the space the clipboard needs. */
-    i % 2 === 1 || part === "" ? (
-      part
-    ) : (
-      <span key={i} className={styles.word} data-word="">
+    if (i % 2 === 1 || part === "") return part;
+    const k = walk.count;
+    walk.count += 1;
+    const [from, to] = penRange(k, walk.total);
+    return (
+      <span
+        key={i}
+        className={styles.word}
+        data-word=""
+        style={{ "--pen-from": from, "--pen-to": to } as CSSProperties}
+      >
         {part}
       </span>
-    ),
-  );
+    );
+  });
 }
 
 function tagOf(el: ReactElement): string | undefined {
@@ -153,16 +156,15 @@ function tagOf(el: ReactElement): string | undefined {
   return typeof node?.tagName === "string" ? node.tagName : undefined;
 }
 
-function split(children: ReactNode): ReactNode {
+function split(children: ReactNode, walk: Walk): ReactNode {
   return Children.map(children, (child) => {
-    if (typeof child === "string") return splitText(child);
-    if (typeof child === "number") return splitText(String(child));
+    if (typeof child === "string") return splitText(child, walk);
+    if (typeof child === "number") return splitText(String(child), walk);
     if (!isValidElement(child)) return child;
 
     const props = child.props as { children?: ReactNode; "data-written"?: string };
-    /* A nested `Written` measures and splits its own text; splitting it here
-       too would be harmless to the text and would hand it spans it did not
-       make. */
+    /* A nested `Written` splits and clocks its own text; its words are on its
+       clock, not this one, and are not counted here. */
     if (child.type === Written) return child;
     if (props["data-written"] === "off") return child;
     const tag = tagOf(child);
@@ -172,108 +174,28 @@ function split(children: ReactNode): ReactNode {
     /* Same element, same props, same key — only its text is split. A link
        stays the link, with its href and its handlers, and its name stays its
        text: the spans are inside it, not around it. */
-    return cloneElement(child, undefined, split(props.children));
+    return cloneElement(child, undefined, split(props.children, walk));
   });
 }
 
-/* ------------------------------------------------------------ the measure -- */
-
 /*
- * Which line each word is on, how far down the paragraph that line is, and
- * how far along it the word is.
- *
- * Two numbers per word, because the clock is the paragraph's and not the
- * word's — the component comment says why. An inline-block would have
- * carried its own clock and brought #110's bidi reversal back with it; two
- * numbers per layout are the cheaper price.
- *
- * Only this paragraph's own words: a nested `Written` names its own
- * timeline, so its words are placed against its box by its own measurement,
- * and an outer one writing over them would place them against the wrong one.
- *
- * Returns the writes rather than doing them, so that a resize which lands on
- * forty paragraphs at once reads all forty and then writes all forty: one
- * layout, then style invalidation, rather than forty alternations of the two.
- * Neither property changes geometry, but a read after a pending style change
- * still has to flush the style first.
- *
- * A word is on a new line when its first fragment starts at or below the
- * bottom of the line before it. Not "a different top": a superscript, a
- * larger inline `code` or a link with padding shifts a top by a pixel or two
- * without being a new line, and overlap is the test that ignores all of them.
- * `getClientRects()[0]` and not the bounding box, because a long URL allowed
- * to break inside itself has two fragments and belongs to the line it starts
- * on.
+ * Two passes: the first counts the words, so the second can hand each one
+ * its slice of a clock whose length it now knows. Paragraph-sized work, once
+ * per render.
  */
-function measure(root: HTMLElement): () => void {
-  const words = Array.from(root.querySelectorAll<HTMLElement>("[data-word]")).filter(
-    (w) => w.parentElement?.closest("[data-written]") === root,
-  );
-  const origin = root.getBoundingClientRect().top;
-  const pens = new Array<string>(words.length).fill("0");
-  const lines = new Array<string>(words.length).fill("0px");
-
-  let start = 0;
-  let lineTop = Infinity;
-  let lineBottom = -Infinity;
-  const close = (end: number) => {
-    const n = end - start;
-    const y = `${Math.round((lineTop - origin) * 2) / 2}px`;
-    for (let i = start; i < end; i += 1) {
-      pens[i] = ((i - start) / n).toFixed(3);
-      lines[i] = y;
-    }
-  };
-
-  words.forEach((word, i) => {
-    const rect = word.getClientRects()[0];
-    if (!rect) return;
-    if (i > start && rect.top >= lineBottom - 0.5) {
-      close(i);
-      start = i;
-      lineTop = rect.top;
-      lineBottom = rect.bottom;
-    } else {
-      lineTop = Math.min(lineTop, rect.top);
-      lineBottom = Math.max(lineBottom, rect.bottom);
-    }
-  });
-  if (words.length > 0 && Number.isFinite(lineTop)) close(words.length);
-
-  return () => {
-    words.forEach((word, i) => {
-      /* Written straight to the element, so a resize costs no React render;
-         React never owns these because no word is given a `style`. Compared
-         first, so a resize that moved nothing invalidates nothing. */
-      if (word.style.getPropertyValue("--pen") !== pens[i]) word.style.setProperty("--pen", pens[i]);
-      if (word.style.getPropertyValue("--line") !== lines[i]) word.style.setProperty("--line", lines[i]);
-    });
-  };
+function splitAll(children: ReactNode): ReactNode {
+  const count: Walk = { count: 0, total: 1 };
+  split(children, count);
+  return split(children, { count: 0, total: count.count });
 }
 
-/*
- * One observer for every `Written` on the page.
- *
- * A blog post is forty paragraphs, and forty observers each delivering a
- * callback in the same frame is forty read-write passes; one observer is one
- * callback holding forty entries, which is what makes the batching above
- * possible at all.
- */
-const roots = new Set<HTMLElement>();
-let observer: ResizeObserver | null = null;
+/* ------------------------------------------------------- the near-watch -- */
 
-function remeasure(targets: Iterable<HTMLElement>) {
-  const writes: Array<() => void> = [];
-  for (const el of targets) if (el.isConnected) writes.push(measure(el));
-  writes.forEach((w) => w());
-}
-
-/* The effect only runs where scroll-driven animation does; anywhere else the
-   numbers would be computed for a stylesheet that never reads them. */
+/* The effect only runs where scroll-driven animation does. */
 function canRun(): boolean {
   return (
     typeof window !== "undefined" &&
-    typeof ResizeObserver === "function" &&
+    typeof IntersectionObserver === "function" &&
     typeof CSS !== "undefined" &&
     typeof CSS.supports === "function" &&
     CSS.supports("animation-timeline: view()")
@@ -281,58 +203,67 @@ function canRun(): boolean {
 }
 
 /*
- * Which paragraphs are near the band, and the only ones that animate.
+ * Which paragraphs are in the reading zone, and the only ones that animate.
  *
- * Measured, the cost of `pen` is the number of words animating, not the
- * number of words split: with every word cancelled the spans cost nothing
- * measurable, and with every word animating a frame paid for all of them —
- * every word's colour is resolved again on every frame the paragraph's clock
- * moves, including the ones sitting in a fill state that cannot change. So a
- * paragraph that is nowhere near the band is told so, and the stylesheet
- * parks its words at muted with no animation at all; a post of forty
- * paragraphs animates the two or three that are being read.
+ * Measured (motion-contract §2), the cost of `pen` is the number of words
+ * animating, not the number split: every animating word's colour is resolved
+ * again on every frame its paragraph's clock moves, including words sitting
+ * in a fill state that cannot change. So a paragraph outside the zone is told
+ * where it is, and the stylesheet stops its animation:
  *
- * The window is wider than the band on both sides — 50% to 80% of the
- * height against the band's 58% to 72% — so a paragraph is live before its
- * first line reaches the band's foot and stays live until its last word has
- * finished un-writing; parking it is then a change from muted to the same
- * muted. A paragraph is parked only when the observer *says* it is outside:
- * with no attribute at all it animates, so an observer that never fires
- * leaves the effect running rather than the text stuck.
+ *   - `below`: not reached yet, so every word is muted — the clock's start;
+ *   - `above`: passed, so every word is at ink — the clock's end.
  *
- * Fires on crossings, not on scroll: one attribute per paragraph per
- * crossing, and nothing between them. This is the page's fourth
- * IntersectionObserver, after `Rise`, `useEnteredOnce` and `DarkAct`.
+ * Both are exactly the values the animation's own fill would hold there, so
+ * crossing in or out of the zone changes nothing a reader can see. The zone
+ * is the window from 40% of its height down to its foot, which contains the
+ * whole clock (top at 85% to bottom at 45%) with a margin either side.
+ *
+ * TWO OBSERVERS, because one cannot tell `above` from `below` reliably. An
+ * observer reports crossings of its own zone, and a jump — a fragment link, a
+ * restored scroll position, Home/End — can carry a paragraph from below the
+ * window to far above it without ever intersecting the zone, so no callback
+ * comes and a paragraph that is now above keeps saying `below`, muted
+ * forever. (Found in the screenshots for #158.) So the second observer's zone
+ * is everything above the zone's top edge, out to a distance no page reaches:
+ * passing the edge in either direction, by any means, crosses it.
+ *
+ * Fires on crossings, not on scroll. With no attribute at all the paragraph
+ * animates, so an observer that never fires leaves the effect running rather
+ * than the text stuck.
  */
 let near: IntersectionObserver | null = null;
+let past: IntersectionObserver | null = null;
+
+function settle(t: HTMLElement) {
+  const { penNear, penPast } = t.dataset;
+  if (penNear === undefined || penPast === undefined) return;
+  t.dataset.pen = penNear === "1" ? "live" : penPast === "1" ? "above" : "below";
+}
+
+function observer(key: "penNear" | "penPast", rootMargin: string): IntersectionObserver {
+  return new IntersectionObserver(
+    (entries) => {
+      for (const e of entries) {
+        const t = e.target as HTMLElement;
+        t.dataset[key] = e.isIntersecting ? "1" : "0";
+        settle(t);
+      }
+    },
+    { rootMargin },
+  );
+}
 
 function watch(el: HTMLElement): () => void {
   if (!canRun()) return () => {};
-  if (!observer) {
-    observer = new ResizeObserver((entries) => remeasure(entries.map((e) => e.target as HTMLElement)));
-    /* A web font that arrives after first paint can move every break in a
-       paragraph without changing its height, which a ResizeObserver would not
-       see. Once, for the page, when the faces are in. */
-    document.fonts?.ready.then(() => remeasure(roots)).catch(() => {});
-  }
-  if (!near && typeof IntersectionObserver === "function") {
-    near = new IntersectionObserver(
-      (entries) => {
-        for (const e of entries) {
-          (e.target as HTMLElement).dataset.pen = e.isIntersecting ? "live" : "rest";
-        }
-      },
-      { rootMargin: "-50% 0px -20% 0px" },
-    );
-  }
-  roots.add(el);
-  /* `observe` delivers an initial callback, which is the first measurement. */
-  observer.observe(el);
-  near?.observe(el);
+  near ??= observer("penNear", "-40% 0px 0px 0px");
+  /* From the zone's top edge (40% of the window) upwards, without end. */
+  past ??= observer("penPast", "1000000px 0px -60% 0px");
+  near.observe(el);
+  past.observe(el);
   return () => {
-    roots.delete(el);
-    observer?.unobserve(el);
     near?.unobserve(el);
+    past?.unobserve(el);
   };
 }
 
@@ -341,9 +272,6 @@ function watch(el: HTMLElement): () => void {
 export default function Written({ as = "p", className = "", children, ...rest }: WrittenProps) {
   const ref = useRef<HTMLElement>(null);
 
-  /* Layout effect, so the first measurement is queued before first paint;
-     the observer still delivers it, which keeps every measurement on the one
-     batched path. */
   useLayoutEffect(() => {
     const el = ref.current;
     return el ? watch(el) : undefined;
@@ -357,7 +285,7 @@ export default function Written({ as = "p", className = "", children, ...rest }:
       className={`${styles.written} ${className}`.trimEnd()}
       data-written=""
     >
-      {split(children)}
+      {splitAll(children)}
     </Tag>
   );
 }

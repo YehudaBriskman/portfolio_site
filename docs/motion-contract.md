@@ -396,10 +396,12 @@ measures the connection rather than the device.
 **`pen` is not a beat, and it is not a peak — it is how running text is
 read.** `motion/Written.tsx` wraps prose, not sections: the wall text's
 paragraphs, a post's paragraphs and list items, a project's description,
-brief and decisions. Every word is muted except the words crossing a band
-from 58% to 72% of the window's height, which are at full ink, and inside the
-band the pen moves along each line in reading order — so a sentence is set as
-the eye reaches it, and un-set if the reader scrolls back. It sits beside
+brief and decisions. Every word starts muted, and as the paragraph rises
+from 85% of the window's height to 45% the pen inks it one word after
+another in reading order and leaves it at ink — so a sentence is written out
+as the eye reaches it, and un-written word by word if the reader scrolls
+back (#158: word `i` of `n` owns the slice `i/n`–`(i+1)/n` of the
+paragraph's clock, so at most one word is ever mid-stroke). It sits beside
 `flow` on the wall text without colliding with it, because they answer
 different questions: `flow` is *when a block arrives*, once; `pen` is *which
 words are being read*, on every pass, and it is the same on every page that
@@ -451,10 +453,14 @@ fourth exit for the same reason. Screenshots of all three switches are in
 - **A `view()` timeline on an inline box does not track the box.** Every word
   of a three-line paragraph reported the same progress in Chromium: an inline
   subject resolves to the block it is laid out in. So the paragraph names the
-  timeline and each word is placed on it by its line's offset (`--line`) and
-  its place along the line (`--pen`), both measured once per layout by one
-  `ResizeObserver` for the whole page — the page's first, and it fires on
-  mount, on resize and once when the web fonts land, never on scroll.
+  timeline and each word reads it through its own slice (`--pen-from`,
+  `--pen-to`), set at render from the word's index — no measurement.
+- **Placing the pen by geometry wrote blocks, not words (#158).** The first
+  version put each word at its line's offset plus `1lh × its place along the
+  line`, lit for a 14vh band: a word-to-word step of ~2px against a ramp of
+  ~10px, a whole line per 31px of scroll (a third of a wheel notch), and four
+  lines lit at once. The pace was tied to the text's own movement. A word
+  count is not, and is immune to resizes and font swaps besides.
 - **The split is inline spans, never inline-blocks, and that is what keeps
   bidi.** An inline-block is a neutral object to the bidi algorithm; the hero
   found this as ADUHEY NAMXSIRB under `dir="rtl"` (#110) and fixed it with
@@ -484,9 +490,11 @@ the band, which takes the long case back to main's number. It
 cannot do the same for the wall text, because the wall text is short
 enough that most of it is near the band at once; there the pen costs about
 7ms a frame at 4x throttle, on a section with no other scroll work, and it
-is that or nothing for those words. If a real device ever shows that cost,
-the cheaper step is per-line rather than per-word: the same clock and the
-same `--line`, with one span per line instead of one per word.
+is that or nothing for those words. Since #158 a parked paragraph is
+`below` (muted) or `above` (ink), each the value its fill would hold there,
+told apart by a second observer whose zone runs from the zone's top edge
+upwards without end, so a jump past the zone cannot leave a read paragraph
+muted.
 
 **The sweep row is not a beat either, and for a different reason from the
 shutter's.** `shutter` is not a beat because it happens before the page;
@@ -932,7 +940,7 @@ direction, or set `fill-rule: evenodd` deliberately and know what it costs.
 | `gallery/SkeletonGate.tsx` | the box that holds a region's height, and the 180ms before it is inked | clock |
 | `ground/DarkAct.module.css` | `drift` — two lights crossing at each seam of the dark ground | clock, gated off-screen by an observer |
 | `index.css` `.section-head::after` | the shutter, echoed — a lattice leaving each section head outward from its word | named `view-timeline` on the head, inset to the lower third |
-| `motion/Written.tsx` | `pen` — running text set word by word as it crosses a band in the lower middle of the window | named `view-timeline` on the paragraph; per-word place on it measured once per layout |
+| `motion/Written.tsx` | `pen` — running text written one word after another as it rises through the lower half of the window | named `view-timeline` on the paragraph; word `i` of `n` owns the slice `i/n`–`(i+1)/n` |
 
 ### Retired, and why
 
