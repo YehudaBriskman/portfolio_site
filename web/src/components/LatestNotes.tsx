@@ -1,97 +1,96 @@
+import { useCallback, type CSSProperties, type FocusEvent, type MouseEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import LabelSkeleton from "@/components/gallery/LabelSkeleton";
 import ObjectLabel from "@/components/gallery/ObjectLabel";
 import SkeletonGate from "@/components/gallery/SkeletonGate";
 import type { LabelField } from "@/components/gallery/objectLabel";
-import PaperCard from "@/components/cards/PaperCard";
-import { cardCycle, cardType } from "@/components/cards/cardType";
 import InkRule from "@/components/motion/InkRule";
+import Shot from "@/components/projects/Shot";
 import { projects } from "@/data/projects";
 import { blog, type PostSummary } from "@/services/blog";
 import styles from "@/components/LatestNotes.module.css";
 
 /*
- * The notes, as a shelf you walk along.
+ * The notes, as a shelf the reader's scroll carries past (#159).
  *
- * What this is for
- * ----------------
- * The beat before this is the pile, which pins and holds the reader in one
- * place for a screen and a half. Lateral travel is the strongest contrast
- * available after being held still, which is why the grammar names `pan` as
- * the spine of a gallery and why this section is the one that gets it: the
- * reader scrolls down, the shelf travels sideways, and the pile reads as a
- * peak because the thing after it does not behave like it.
+ * What changed, and what it copies
+ * --------------------------------
+ * The shelf used to drift sideways while the page moved on underneath it: the
+ * section scrolled away at full speed and the pan was a garnish on top. The
+ * owner's note was that it "still moves the whole page". Now the stage pins,
+ * and while it is held the reader's scroll walks the shelf past inside it,
+ * then releases. Scrolling up walks it back, exactly — scroll is the clock,
+ * as in the contribution city (#111).
  *
- * The motion is all in the stylesheet — a named view timeline on the section
- * and six ranges — so there is no scroll listener, no index in state and no
- * re-render as the reader moves. This file decides what a note's label says
- * and which of the three states the section is in, and nothing else.
+ * It is not a new mechanism. It is the work run's (`projects/ProjectRun.tsx`,
+ * #57): a static stage that owns a named view timeline, a sticky frame one
+ * window tall inside it, a transform keyed to the stage's `contain` range,
+ * and the document as the one real scroll container. Wheel, touch, the
+ * scrollbar, Space, Page Down, Home and End all move the page, and the page
+ * is the clock, so every one of them drives the shelf without a line of
+ * script. The frame clips; it does not scroll, so there is no second
+ * scroller to fight the first.
  *
- * What it replaced, twice over
- * ----------------------------
- * First a hairline-divided table of three rows, then three cards in a
- * vertical list. Both were fine and neither was a device: five sections that
- * behave identically are one section shown five times, and this was the
- * fourth of five sections arriving the same way.
+ * What differs from the run is only the shape of the travel: a flat row,
+ * every card at the same height, sliding by one card-width per step of
+ * scroll — the shelf's `pan`, not the run's curve. The ledger
+ * (docs/motion-contract.md §2) argues why a held pan is still a pan.
  *
- * The peeling-corner hover is gone with them. It was a pointer effect that
- * did nothing at all on touch — half the readers paying for the other half's
- * cursor — and the grammar reserves pointer work for a lean on objects you
- * would pick up. There is one here now, at 4deg, gated to a fine pointer.
+ * The one piece of script is the run's keyboard answer, unchanged in kind.
+ * A card's place on screen is a transform, so Tab reaching a card still off
+ * to the right has nothing the browser can scroll sideways to. On focus the
+ * page is scrolled to the moment that card stands in the middle of the
+ * frame; the moment is a zero-height marker the stylesheet places in the
+ * runway, so the formula lives once, in CSS. With motion off the markers are
+ * inert and the browser's own focus scrolling does the job on the plain list.
+ * And a way past it: a skip link ahead of the stage, visible on focus, that
+ * moves focus to just after it. No trap.
+ *
+ * The ground
+ * ----------
+ * The pale washed cards are gone. Each note now shows its cover when it has
+ * one, on the paper the page talks on; a note without one is the label alone
+ * in a hairline frame, standing on the same floor line. The other option the
+ * issue offered — a dark ground with borders — would have been a third dark
+ * act, and the argument against it is in `LatestNotes.module.css` beside the
+ * card, where the next person to reach for it will be standing.
  *
  * Deliberately not the ARIA carousel
  * ----------------------------------
- * The tabbed-carousel pattern — a tablist of dots, one visible panel, the
- * rest `aria-hidden` — is the obvious reading of a horizontal strip of cards
- * and it is wrong here for the same concrete reason it was wrong on the
- * project carousel: it would hide five of six notes from a screen reader in
- * exchange for an effect a screen reader never sees. What this actually is,
- * in markup and in the accessibility tree, is a list of links in a box
- * narrower than the list. Every card is present, laid out, and in the tab
- * order at all times, in document order. That is also what lets all three
- * switch-offs land on a plain vertical list without anything being lost.
+ * A tablist of dots with one visible panel would hide five of six notes from a
+ * screen reader in exchange for an effect a screen reader never sees. What this
+ * is, in markup and in the accessibility tree, is a list of links. Every card
+ * is present, laid out, and in the tab order at all times, in document order.
+ * That is also what lets all three switch-offs land on a plain vertical list
+ * without anything being lost.
  */
 
 /*
- * Six, where the row of cards showed three.
- *
- * A shelf needs enough on it to be worth walking along: at the desktop
- * measure three cards do not fill the frame, so there is nothing to scroll
- * and the pan has nothing to pan across. Six is the length at which the shelf
- * overflows at every width this site supports, and it is also as many ranges
- * as the stylesheet staggers.
+ * Six, as before. A shelf needs enough on it to be worth walking along, and
+ * six steps of 18svh is a 108svh hold — under the year's 120svh and well
+ * under the run's 220svh, which is the order the peak rule asks for.
  */
 const SHOWN = 6;
 
 /*
- * The most a fact line may run to before it is cut.
- *
- * Measured rather than chosen: at the shelf's card width this is a shade
- * under three lines of the label's fact step, which is the point at which the
- * cards in a row stop being able to share a height without one of them
- * looking half-empty.
+ * The most a fact line may run to before it is cut: a shade under three lines
+ * of the label's fact step at the shelf's card width.
  */
 const FACT_MAX = 118;
 
+/* A card is at most 23rem on the shelf and 40rem in the plain list; on a
+   phone it is three quarters of the window either way. */
+const COVER_SIZES = "(min-width: 700px) 640px, 92vw";
+
 /**
- * Which project a note belongs to, by slug.
- *
- * Notes carry a collection slug and nothing else, and the field line has to
- * print a name. Built from the seed table rather than fetched, because this
- * is the home page and a second request to label three fields would be a
- * second thing that can fail. A note in no project prints `Notes`, which is
- * the collection it is actually in.
+ * Which project a note belongs to, by slug. Built from the seed table rather
+ * than fetched: this is the home page, and a second request to label three
+ * fields would be a second thing that can fail.
  */
 const projectTitles = new Map(projects.map((p) => [p.slug, p.title]));
 
-/**
- * The date, short enough to survive being cropped.
- *
- * `formatDate` prints "10 September 2026", which is right in a byline and
- * wrong in a field line — it is the last of three fields on a card that is
- * half-visible for most of its life, so it gets the form that fits.
- */
+/** The date, short enough to survive being cropped. */
 function monthAndYear(iso: string | null): string {
   if (!iso) return "";
   const when = new Date(iso);
@@ -100,13 +99,9 @@ function monthAndYear(iso: string | null): string {
 }
 
 /**
- * One sentence, and never two.
- *
- * The subtitle is written by the author and is used as it stands. The excerpt
- * is machine-cut from the opening of the body, so it only speaks when there
- * is no subtitle, and then only as far as its first full stop: a label is
- * read, a paragraph on a card is skipped, and the note's own page has the
- * rest of it.
+ * One sentence, and never two. The subtitle is the author's and is used as it
+ * stands; the machine-cut excerpt speaks only when there is no subtitle, and
+ * then only as far as its first full stop.
  */
 function factLine(post: PostSummary): string {
   const written = post.subtitle?.trim();
@@ -122,14 +117,9 @@ function factLine(post: PostSummary): string {
 }
 
 /**
- * The note's field line: where it lives, how long it takes, when it landed.
- *
- * Order is `orderFields`' business and not this function's, but the kinds are
- * chosen so that the order it produces puts the most identifying fact first —
- * which on a shelf is the one still on screen when the rest of the card is
- * not. A field with nothing behind it is omitted rather than printed empty:
- * an unpublished note has no date and a note the reading estimate could not
- * measure has no minutes.
+ * Where it lives, how long it takes, when it landed — most identifying first,
+ * because on a travelling shelf the first field is the one still on screen
+ * when the rest of the card is not. An empty field is omitted, not printed.
  */
 function noteFields(post: PostSummary): LabelField[] {
   const fields: LabelField[] = [
@@ -143,41 +133,48 @@ function noteFields(post: PostSummary): LabelField[] {
   return fields;
 }
 
+/** Is the shelf actually moving? One read covers all three off-switches. */
+function running(track: Element): boolean {
+  return getComputedStyle(track).animationName !== "none";
+}
+
+/* Where the skip link lands. */
+const ONWARD = "notes-shelf-onward";
+
 export default function LatestNotes() {
   const { data, isPending, isError } = useQuery({
     queryKey: ["notes", "latest"],
     queryFn: () => blog.posts(),
     staleTime: 5 * 60 * 1000,
-    /*
-     * One retry, not the default three.
-     *
-     * This is a shelf on a page the reader is scrolling past, not the thing
-     * they came for. Three attempts with backoff keeps the skeleton on screen
-     * for ten seconds before admitting anything is wrong, which is longer
-     * than anyone spends here — the honest sentence is better arriving fast.
-     */
+    /* One retry, not three: this is a shelf on a page the reader is scrolling
+       past, and the honest sentence is better arriving fast. */
     retry: 1,
   });
 
   const posts = (data ?? []).slice(0, SHOWN);
 
+  /* The run's keyboard answer: scroll the document — the real scroll
+     container — to the focused card's marker. `instant`, because focus has
+     already moved and a smooth scroll would be the page moving on its own. */
+  const onFocus = useCallback((e: FocusEvent<HTMLUListElement>) => {
+    const slot = (e.target as HTMLElement).closest<HTMLElement>("[data-shelf-i]");
+    if (!slot || !running(e.currentTarget)) return;
+    const stage = slot.closest<HTMLElement>("[data-shelf-stage]");
+    const marker = stage?.querySelector<HTMLElement>(
+      `[data-shelf-mark="${slot.dataset.shelfI}"]`
+    );
+    marker?.scrollIntoView({ behavior: "instant", block: "start" });
+  }, []);
+
+  const skip = useCallback((e: MouseEvent<HTMLAnchorElement>) => {
+    const target = document.getElementById(e.currentTarget.hash.slice(1));
+    if (!target) return;
+    e.preventDefault();
+    target.focus({ preventScroll: false });
+  }, []);
+
   return (
-    /*
-     * The section is not `.wrap`, and that is the one structural change.
-     *
-     * The shelf has to be full-bleed: a 20rem drift inside a 72rem column
-     * would spend its life visibly misaligned with the heading above it, and
-     * breaking out of the measure with `100vw` is how a page acquires a
-     * horizontal scrollbar nobody can account for — `100vw` includes the
-     * vertical scrollbar. So the section is full width, the heading and the
-     * way out carry `.wrap` themselves, and the shelf reproduces `.wrap`'s
-     * left edge in its own padding. See `--shelf-inset`.
-     */
-    <section id="notes" className={`${styles.section} section-y relative`}>
-      {/* The same centred head as the other three sections — `.section-head`
-          in index.css — still carrying `.wrap` itself, because the section
-          around it is full-bleed for the shelf and only the head and the way
-          out stand in the measure. */}
+    <section id="notes" className="section-y relative">
       <div className="wrap section-head">
         <InkRule className="section-head-rule" />
         <h2 className="display text-section leading-[0.9]">Notes</h2>
@@ -186,156 +183,132 @@ export default function LatestNotes() {
       </div>
 
       {/*
-       * Three states, and the section survives all of them.
-       *
-       * `/blog` has shipped its error card as the most-seen state on the page
-       * before now, so this is not an afterthought: the heading, the
+       * Three states, and the section survives all of them: the heading, the
        * invitation and the way through are static markup, and the shelf is
-       * the only part that depends on the network. The door never disappears.
+       * the only part that depends on the network.
        */}
       {isPending && (
         /*
-         * The shelf, with the labels not written yet.
-         *
-         * `SkeletonGate` carries the `aria-hidden` and the 180ms before any
-         * of this is painted; the shelf's own `.viewport` class is passed
-         * through it so the box is the same box either way. Note the one
-         * thing that is *not* here any more: `tabIndex`, `role="group"` and
-         * the shelf's accessible name. A scroller with nothing in it is not
-         * a region a reader should be able to tab into and find empty.
+         * The shelf with the labels not written yet: the same stage, the same
+         * hold, the same six slots, so nothing moves under the reader when the
+         * request lands. `SkeletonGate` carries the `aria-hidden` and the
+         * 180ms before any of it is painted. No markers, no focus handler and
+         * no skip link — there is nothing in it to reach.
          */
-        <SkeletonGate className={styles.viewport}>
-          <ul className={styles.track}>
-            {Array.from({ length: SHOWN }, (_, i) => (
-              /* The cycle class goes on the slot, so the six placeholders are
-                 already the six colours the six real cards will arrive in and
-                 nothing changes colour underneath the reader when the request
-                 lands. */
-              <li key={i} className={`${styles.slot} ${cardCycle}`}>
-                <PaperCard as="div" flush className={styles.card}>
-                  {/*
-                    `cardType.inset` and the same `.face` the real card's link
-                    carries, because the padding is the link's and not the
-                    card's — `flush` above. A placeholder inside the card's
-                    own padding instead would be 32px narrower and 64px
-                    shorter than the thing it stands in for.
-
-                    Two name lines, two fact lines, three fields. Counted off
-                    the loaded shelf rather than guessed: at the desktop
-                    measure the longest of the six titles wraps to two and
-                    the subtitle under it to two, and `align-items: stretch`
-                    on the track means the tallest card is the height of all
-                    six. A skeleton built from the *shortest* card would be
-                    the right shape and the wrong height.
-                  */}
-                  <div className={`${cardType.inset} ${styles.face}`}>
-                    <LabelSkeleton
-                      scale="inline"
-                      nameLines={2}
-                      factLines={2}
-                      fields={3}
-                      className={styles.ghostLabel}
-                    />
-                  </div>
-                </PaperCard>
-              </li>
-            ))}
-          </ul>
+        <SkeletonGate className={styles.stage}>
+          <div
+            className={styles.stageInner}
+            style={{ "--shelf-n": SHOWN } as CSSProperties}
+          >
+            <div className={styles.frame}>
+              <ul className={styles.track}>
+                {Array.from({ length: SHOWN }, (_, i) => (
+                  <li key={i} className={styles.slot}>
+                    <div className={styles.card}>
+                      <div className={styles.plinth}>
+                        <LabelSkeleton
+                          scale="inline"
+                          nameLines={2}
+                          factLines={2}
+                          fields={3}
+                          className={styles.ghostLabel}
+                        />
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
         </SkeletonGate>
       )}
 
       {!isPending && posts.length > 0 && (
-        /*
-         * `tabindex="0"` is the part of this that matters most.
-         *
-         * A focusable scroller is how the arrow keys, Home/End and
-         * Page Up/Down come to work, and it is what axe's
-         * `scrollable-region-focusable` exists to check for. Chrome has
-         * lately started focusing scrollers on its own; saying so explicitly
-         * makes the behaviour the same everywhere.
-         *
-         * `role="group"` with a name, and deliberately nothing else: the one
-         * thing the list semantics do not convey is that this box is a window
-         * with more in it than you can see. No `aria-roledescription`, no
-         * tablist, nothing hidden — see the note at the top of the file.
-         */
-        <div
-          className={styles.viewport}
-          tabIndex={0}
-          role="group"
-          aria-label="Notes shelf"
-        >
-          <ul className={styles.track}>
-            {posts.map((post) => (
-              /* The hue is decided by position among siblings, so `cardCycle`
-                 goes on the slot — the sibling — and the card inside inherits
-                 `--card-wash` from it. Same five colours, same order, as
-                 every other group of cards on the site. */
-              <li key={post.slug} className={`${styles.slot} ${cardCycle}`}>
-                {/* The lean is one element in from the slot, which is
-                    carrying a scroll-driven transform. The two cannot share
-                    an element; see the note on `.card`. */}
-                <PaperCard as="div" flush className={styles.card}>
-                  {/*
-                   * The whole card is the link, not the name inside it.
-                   * `.card-paper`'s hover state is written for both shapes —
-                   * `a.card-paper` and a card containing a hovered link — so
-                   * the border and shadow lift without any of it being
-                   * restated here.
-                   */}
-                  <Link to={`/blog/${post.slug}`} className={`${cardType.inset} ${styles.face}`}>
-                    {/*
-                     * `scale="inline"`, and it is the crop that decides it.
-                     *
-                     * A label on a travelling shelf is half-visible for far
-                     * longer than it is whole, so it has to identify its note
-                     * from its first 40% — which at this card width is about
-                     * 145px. Measured: at the label's `object` step (35px at
-                     * the desktop measure) that is four characters, and
-                     * "Why " identifies nothing. At the `inline` step it is
-                     * thirteen, which is enough to tell every title in the
-                     * collection apart, and the field line underneath opens
-                     * with the most identifying field by construction.
-                     *
-                     * The alternative was a wider card, and the arithmetic
-                     * kills it: 13 characters at 35px needs a 650px card,
-                     * which is two objects on screen and not a shelf.
-                     */}
-                    <ObjectLabel
-                      scale="inline"
-                      nameAs="h3"
-                      name={post.title}
-                      fact={factLine(post)}
-                      fields={noteFields(post)}
-                    />
-                  </Link>
-                </PaperCard>
-              </li>
-            ))}
-          </ul>
+        <div className={styles.act}>
+          <div className="wrap">
+            <a
+              href={`#${ONWARD}`}
+              onClick={skip}
+              className={`${styles.skip} sr-only focus:not-sr-only`}
+            >
+              Skip past the notes
+            </a>
+          </div>
+
+          {/*
+            The static stage owns the clock: as tall as the frame plus the
+            runway, still travelling while the frame inside it is held. Its
+            named view timeline is what the track reads (motion contract §1).
+          */}
+          <div className={styles.stage} data-shelf-stage="">
+            <div
+              className={styles.stageInner}
+              style={{ "--shelf-n": posts.length } as CSSProperties}
+            >
+              {posts.map((post, i) => (
+                /* Each card's moment in the runway, placed by the stylesheet.
+                   `aria-hidden` and outside the list, so the list announces
+                   exactly its notes. */
+                <span
+                  key={`mark-${post.slug}`}
+                  data-shelf-mark={i}
+                  className={styles.mark}
+                  style={{ "--shelf-i": i } as CSSProperties}
+                  aria-hidden="true"
+                />
+              ))}
+
+              <div className={styles.frame}>
+                <ul className={styles.track} aria-label="Latest notes" onFocus={onFocus}>
+                  {posts.map((post, i) => (
+                    <li key={post.slug} data-shelf-i={i} className={styles.slot}>
+                      <Link
+                        to={`/blog/${post.slug}`}
+                        className={styles.card}
+                        data-cover={post.coverImage ? "" : undefined}
+                      >
+                        {post.coverImage && (
+                          /* Decorative: the label beside it names the note,
+                             and an alt here would be read before the title. */
+                          <div className={styles.cover}>
+                            <Shot src={post.coverImage} alt="" sizes={COVER_SIZES} />
+                          </div>
+                        )}
+                        <div className={styles.plinth}>
+                          {/* `inline`: a label on a travelling shelf is half
+                              visible for longer than it is whole, and at this
+                              step its first 145px still name the note. */}
+                          <ObjectLabel
+                            scale="inline"
+                            nameAs="h3"
+                            name={post.title}
+                            fact={factLine(post)}
+                            fields={noteFields(post)}
+                            className={styles.label}
+                          />
+                          <span className={styles.onward} aria-hidden="true">
+                            &rarr;
+                          </span>
+                        </div>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          {/* Focusable by script only, so the next Tab goes on to whatever
+              follows the shelf. */}
+          <span id={ONWARD} tabIndex={-1} className={styles.onwardMark} />
         </div>
       )}
 
       {!isPending && posts.length === 0 && (
-        /* The measure and the width are two elements, not one. `.wrap` sets
-           `max-width` and `margin-inline: auto`, so a `max-w-xl` on the same
-           element wins the width and keeps the centring — which put this
-           sentence 288px to the right of the heading above it rather than
-           under it. */
         <div className="wrap">
-          {/*
-            Announced, not just rendered.
-
-            The shelf goes loading → failed without the heading above it
-            changing, so a reader who is not looking at this section gets no
-            signal that anything resolved. /blog already does this correctly;
-            an audit found the home page's copy of the same failure silent,
-            which is the worse half of an inconsistency.
-
-            `role="status"` rather than `alert`: the notes not loading is not
-            an error the reader has to act on, and an assertive region would
-            cut across whatever they were reading at the time.
-          */}
+          {/* Announced, not just rendered: the shelf goes loading → failed
+              without the heading changing. `status`, not `alert` — nothing
+              here is an error the reader has to act on. */}
           <p
             role="status"
             className="mt-12 max-w-xl text-lg leading-relaxed text-clay"

@@ -1,426 +1,410 @@
 /*
- * The notes shelf: lateral travel driven by vertical scroll.
+ * The notes shelf, held (#159). Same mechanism as the work run (#57); read
+ * `projects/ProjectRun.module.css` first, this file only says where it
+ * differs.
  *
- * The beat before this one is the pile, which holds the reader in one place
- * for a screen and a half. Coming off that, sideways is the strongest
- * movement available — and it is a large part of why the pile lands at all,
- * because a peak is only a peak against something that behaves differently.
- * So the shelf pans: the reader scrolls down, and the objects travel left.
+ * ── the mechanism ─────────────────────────────────────────────────────────
  *
- * It is a real scroll container
- * -----------------------------
- * `overflow-x: auto` on a box with a wider track in it, and nothing else.
- * Drag with momentum, the wheel, a trackpad, the arrow keys, Home/End, the
- * browser's own scroll-into-view when a card's link is tabbed to, and the
- * whole thing present in the accessibility tree as a list of links — none of
- * that is written here and none of it can be got wrong. A reimplementation
- * with a pointer handler and a translated track would have to guess when a
- * press is a drag, and would have to reproduce every one of those by hand.
+ * STAGE + FRAME. `.stageInner` is static and as tall as the window plus the
+ * runway; `.frame` inside it is `position: sticky` and one window tall. The
+ * frame is held while the stage keeps travelling, which converts vertical
+ * scroll distance into lateral travel. The timeline is the stage's named view
+ * timeline (`--notes-shelf`) and the track reads it by name — a `view()` on
+ * anything inside the frame would resolve against a held box and stall the
+ * moment it pins (motion contract §1).
  *
- * The drift is a second, ambient thing on top of that scroll position: the
- * reader's `scrollLeft` and the page's own progress compose, so moving the
- * shelf by hand still works while the page is moving it too.
+ * (`.stage` around it exists for one reason: the loading skeleton's
+ * `SkeletonGate` owns its outermost element's class but not its style, and
+ * the runway's height depends on how many notes there are. So the count
+ * goes on the inner box and the inner box is the stage.)
  *
- * Two traps, both of which cost a rebuild somewhere in this codebase
- * -----------------------------------------------------------------
- * `view()` resolves against the element's *nearest scrollport*, and for
- * anything inside this shelf that is the shelf, not the page. A card in here
- * carrying `animation-timeline: view()` would be measured against a box that
- * does not scroll vertically at all, so its timeline is inactive and the
- * animation never runs. That is why the timeline is named on the section —
- * which is static, in the document's scroller — and read by name from inside.
- * It is the same shape as the sticky rule (a pinned element's own timeline
- * stalls, so the name goes on the static wrapper) arriving for a different
- * reason, and it is also why no `InkWipe` may be nested inside this scroller.
+ * The scroll container underneath is the document. The frame clips, it does
+ * not scroll: no second scroller, nothing to snap, no horizontal overflow on
+ * the page. The shelf used to be an `overflow-x: auto` box with an ambient
+ * drift on top; that is gone with the pin, because a held frame that is ALSO
+ * a scroller is two clocks for one row, and the reader could drag the shelf
+ * out of step with the scroll that is supposed to own it.
  *
- * And there is no `scroll-snap` here, deliberately. A snap area is the
- * *transformed* border box of the element carrying `scroll-snap-align`, so a
- * track that is being translated by the page's scroll has snap points that
- * move while the scroller is trying to land on them. The carousel this
- * replaces documents what that looks like when the transform is static;
- * driving the transform from scroll would make the two chase each other
- * every frame. A shelf that pans does not need to snap, and the arrow keys
- * behave correctly on a scroller with no snap — the 40px-versus-snap-point
- * fight that needed a JavaScript key handler in the carousel does not exist.
+ * ONE STEP PER CARD. The track is a flat row; its travel is written in
+ * card-steps (`--shelf-step`, one card plus one gap), from "the first card one
+ * step right of centre" to "the last card centred". So card i stands in the
+ * middle of the frame at exactly (i + 1) / n of the hold, and the keyboard
+ * marker for it is that fraction of the runway — no length is divided by a
+ * length anywhere, so nothing here leans on typed arithmetic.
+ *
+ *   translateX(u) = 50cqw − card/2 − u · step     u from −1 to n − 1
+ *
+ * The runway is `n × --shelf-per`, 18svh a card: six notes hold for 108svh,
+ * under the year's 120svh and well under the run's 220svh (peak rule, §3).
+ *
+ * One animation, on `transform`, on one element. A frame of the shelf is a
+ * re-composite of one layer: no layout and no paint.
+ *
+ * ── the three off-switches ────────────────────────────────────────────────
+ *
+ * Reduced motion, Pause and no `animation-timeline` all land on the same
+ * finished state: no pin, no runway, no travel — a plain vertical list of the
+ * same cards in a 40rem measure, each whole. Each block cancels the
+ * animation by name (a view timeline ignores the global 0.01ms duration
+ * override, §4) and restates the layout, as the run's do, because the three
+ * conditions cannot be written as one selector.
  */
 
-/*
- * The section is the static wrapper, and it owns the clock.
- *
- * Everything the shelf animates reads `--notes-shelf` by name. No
- * `timeline-scope` is declared: a named timeline is already in scope for the
- * declaring element's descendants, and the track is one. Hoisting it with
- * `timeline-scope` onto the same element that declares it is an edge of the
- * spec worth not standing on.
- */
-.section {
-  view-timeline-name: --notes-shelf;
+.act {
+  position: relative;
+}
 
-  /*
-   * How far the shelf travels, in one number.
-   *
-   * About a card and a half at the desktop measure. Small enough that no
-   * reachable card is ever pushed out of the scroller's range, large enough
-   * to read as travel rather than as a layout wobble — below roughly 4rem
-   * the whole gesture looks like a rounding error.
-   */
-  --shelf-drift: clamp(4rem, 26vw, 20rem);
+.skip:focus-visible {
+  display: inline-block;
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid rgb(var(--rule-firm));
+  border-radius: var(--r-md);
+  color: rgb(var(--ink));
+  background: rgb(var(--canvas));
+}
 
-  /*
-   * One card, and therefore how many you can see.
-   *
-   * A length rather than a percentage for the reason the carousel gives: the
-   * track's inline padding is computed against the scroller and a flex basis
-   * against the scroller's content box, so one of the two has to be absolute.
-   * 23rem leaves two cards and most of a third inside the measure; 76vw is a
-   * phone, which is one card with the next one showing at the edge so it is
-   * obvious there are more.
-   */
+.stage {
+  margin-top: clamp(0.5rem, 2vw, 1.5rem);
+}
+
+.stageInner {
   --shelf-card: clamp(16rem, 76vw, 23rem);
   --shelf-gap: clamp(0.875rem, 2vw, 1.5rem);
+  --shelf-step: calc(var(--shelf-card) + var(--shelf-gap));
+  --shelf-per: 18svh;
+  --shelf-runway: calc(var(--shelf-n, 6) * var(--shelf-per));
 
+  position: relative;
+  height: calc(100svh + var(--shelf-runway));
+  view-timeline-name: --notes-shelf;
   /*
-   * Where the first card sits when the shelf has settled.
-   *
-   * The shelf is full-bleed — it has to be, or a drift of 20rem inside a
-   * 72rem column is a shelf that spends its life misaligned with the heading
-   * above it — so its own inset has to reproduce what `.wrap` does to the
-   * heading, or the two start at different places and the section reads as
-   * two unrelated blocks. `100%` here is the scroller's content box, which is
-   * the viewport, so this is `.wrap`'s left edge expressed from the inside.
+   * Zero, not the initial `auto`. `auto` takes the document's
+   * `scroll-padding-top` (the bar and 2rem, Nav.module.css) as an inset, and
+   * that shifted the whole range 88px off the hold: measured at 1440×900, a
+   * focused card's marker landed at exactly 4/6 of the runway and the track
+   * stood at 0.634 of its travel — the card 66px left of centre. With no
+   * inset the range is the hold itself: progress 0 the moment the frame
+   * pins, 1 the moment it lets go.
    */
-  --shelf-inset: max(
-    clamp(1.25rem, 3vw, 2.5rem),
-    calc((100% - 72rem) / 2 + clamp(1.25rem, 3vw, 2.5rem))
-  );
-
-  /* How far a card leans when the pointer picks it up. 4deg, in the 3-9deg
-     the grammar allows; past about 12 it is a toy. Alternating sign is below,
-     so the shelf does not lean all one way. */
-  --shelf-tilt: 4deg;
-
-  /*
-   * Whether the loading skeleton draws its second line of name and of fact.
-   *
-   * The seventh thing the three exits switch, and it is here with the other
-   * six for the reason this file already gives: the three conditions cannot
-   * be written as one selector, so anything that differs between the shelf
-   * and the fallback list is a custom property or it is three copies of
-   * itself.
-   *
-   * A card is `clamp(16rem, 76vw, 23rem)` as a shelf and the full page
-   * measure as a list, and the difference is two wrapped lines per card.
-   * Measured at 1440x900 with the request held: every card in the shelf is
-   * 180.55px with a 114.55px label of two name lines and two fact lines, and
-   * every card in the fallback list is 136.70px with a 70.70px label of one
-   * of each. A skeleton that drew the shelf's two lines in the list's card
-   * over-reserved by 263px across the six and the page shrank when the notes
-   * landed — which is a layout shift pointing the other way, and no better
-   * for pointing that way.
-   */
-  --shelf-ghost-extra: block;
+  view-timeline-inset: 0;
 }
 
 /*
- * The scroller.
- *
- * The scrollbar is left visible and styled down rather than hidden. The
- * carousel could hide its own because it shipped a control row that replaced
- * every job the scrollbar was doing — a position, and a way to move. This has
- * no control row, so the scrollbar is the only thing on screen that says the
- * shelf can be dragged, and a thin rule in the paper's own greys is a cheaper
- * answer than rebuilding it.
+ * A card's moment: (i + 1) / n of the way along the contain range — the stage
+ * less one window — which is where that card crosses the middle of the frame.
+ * The negative margin cancels the document's `scroll-padding-top`
+ * (Nav.module.css), exactly as the run's marker does.
  */
-.viewport {
-  /* The air between the heading and the shelf. The track carries its own
-     block padding for the shadows and the lean, so this is the gap less that
-     — one measurement, not two stacked ones. */
-  margin-top: clamp(1rem, 3vw, 2.25rem);
-  overflow-x: var(--shelf-overflow, auto);
-  /* So a sideways flick at the end of the shelf does not turn into the
-     browser's back gesture. */
-  overscroll-behavior-x: contain;
-  scrollbar-width: thin;
-  scrollbar-color: rgb(var(--rule-firm)) transparent;
-  /* When the browser scrolls a tabbed-to card into view, land it where the
-     settled shelf starts rather than hard against the edge. */
-  scroll-padding-inline: var(--shelf-inset);
+.mark {
+  position: absolute;
+  left: 0;
+  top: calc((var(--shelf-i, 0) + 1) / var(--shelf-n, 6) * (100% - 100svh));
+  width: 1px;
+  height: 0;
+  scroll-margin-top: calc(-1 * (var(--bar-h, 56px) + 2rem));
+  pointer-events: none;
 }
 
-/*
- * The track, and the drift.
- *
- * `width: max-content` is load-bearing and the reason is in the carousel's
- * stylesheet: left as an ordinary block the track is exactly as wide as the
- * scroller, its cards overflow, and its trailing padding sits inside a border
- * box that ends where the scroller ends — so the last card can never be
- * brought to the left edge. Sizing the track to its contents puts both
- * paddings inside the scrollable overflow where they belong.
- *
- * The leading padding is the inset plus the whole drift, and that is what
- * keeps every card reachable. The track travels left by exactly `--shelf-drift`
- * over the range, so the content's left edge moves from `inset + drift` to
- * `inset` and never crosses the scroller's own left edge. Translating further
- * left than that would park cards in the region a scroll container cannot
- * reach — `scrollLeft` has no negative side — and tabbing to one of them
- * would ask the browser to scroll somewhere it cannot go.
- */
+.frame {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  padding-top: var(--bar-h, 56px);
+  display: grid;
+  align-content: center;
+  overflow: clip;
+  container-type: inline-size;
+  /* The travel is computed in ltr; right to left mirrors the frame instead
+     (below), so the row inside it is always laid out one way. */
+  direction: ltr;
+}
+
 .track {
   display: flex;
-  flex-direction: var(--shelf-direction, row);
-  align-items: stretch;
+  /* A shelf: the objects stand on one floor line, so a note with a cover is
+     taller than one without and nobody's label floats in empty paper. */
+  align-items: flex-end;
   gap: var(--shelf-gap);
+  width: max-content;
   margin: 0;
+  /* Room for a focus ring and the hover lift; the frame clips. */
+  padding-block: 1rem;
   list-style: none;
-  width: var(--shelf-track-width, max-content);
-  /* Room for the cards' shadows and for the 4deg lean, both of which leave
-     the border box; the scroller clips on both axes. */
-  padding-block: clamp(1rem, 2.4vw, 1.75rem);
-  padding-inline: calc(var(--shelf-inset) + var(--shelf-drift)) var(--shelf-inset);
 
-  /*
-   * No duration and no delay, because there cannot be either: under a
-   * progress timeline both are ignored and the range is the clock.
-   *
-   * The range closes at `cover 50%` — the instant the section is centred in
-   * the viewport — rather than at `cover 100%`. The travel is linear across
-   * its range, so a range covering the whole pass would leave the shelf
-   * exactly half-drifted at the moment the reader is actually looking at it,
-   * which is a first card sitting 10rem to the right of the heading above it.
-   * Ending where the section centres means the settled position and the read
-   * position are the same position, and the whole approach — a viewport and a
-   * half of scrolling — is spent travelling.
-   */
-  /* Named directly, not through a custom property, and that is a bug worth
-     writing down: CSS Modules rewrites `@keyframes shelf-pan` to a hashed
-     name and rewrites `animation-name: shelf-pan` to match, but it cannot see
-     inside `var(--shelf-pan, shelf-pan)`. The first build of this file routed
-     the name through the same property switch as the layout below, and the
-     shelf sat at its leading padding with `transform: none` at every scroll
-     position — a 320px gap and no travel at all, on an animation that looked
-     correct in the stylesheet. So the three exits cancel this by name. */
   animation-name: shelf-pan;
   animation-timing-function: linear;
   animation-fill-mode: both;
   animation-timeline: --notes-shelf;
-  animation-range: cover 0% cover 50%;
+  animation-range: contain 0% contain 100%;
 }
 
 @keyframes shelf-pan {
   from {
-    transform: translateX(0);
+    transform: translateX(calc(50cqw - var(--shelf-card) / 2 + var(--shelf-step)));
   }
   to {
-    transform: translateX(calc(-1 * var(--shelf-drift)));
+    transform: translateX(
+      calc(50cqw - var(--shelf-card) / 2 - (var(--shelf-n, 6) - 1) * var(--shelf-step))
+    );
   }
 }
 
-/*
- * Each object at its own pace.
- *
- * Six cards, six ranges, and not one delay anywhere: `animation-delay` is
- * ignored under a progress timeline, so a stagger has to be N ranges rather
- * than N delays. Each card trails its slot by a little and catches up over a
- * range of its own, so they arrive in order instead of as one block sliding.
- *
- * The lag is positive — the card starts to the *right* of where it belongs
- * and settles left into place. Rightward excursion inside a scroll container
- * is scrollable area, so a card part-way through its arrival can still be
- * reached; a leftward one could not.
- */
 .slot {
   flex: 0 0 var(--shelf-card);
   min-width: 0;
   display: flex;
-
-  --shelf-lag: 2rem;
-  /* By name, for the reason given on `.track`. */
-  animation-name: shelf-arrive;
-  animation-timing-function: linear;
-  animation-fill-mode: both;
-  animation-timeline: --notes-shelf;
 }
 
-@keyframes shelf-arrive {
-  from {
-    transform: translateX(var(--shelf-lag));
-  }
-  to {
-    transform: translateX(0);
-  }
+/* A focused card is drawn over its neighbours' focus rings. */
+.slot:focus-within {
+  z-index: 1;
 }
-
-/* Written out rather than computed from an index, because a range is not a
-   number and `calc()` inside `animation-range` is the kind of thing that
-   silently resolves to the default. Six is the shelf's length; a seventh card
-   falls back to the base rule above and simply arrives with the last one. */
-.slot:nth-child(1) { --shelf-lag: 1.5rem; animation-range: cover 0% cover 30%; }
-.slot:nth-child(2) { --shelf-lag: 2rem;   animation-range: cover 4% cover 34%; }
-.slot:nth-child(3) { --shelf-lag: 2.5rem; animation-range: cover 8% cover 38%; }
-.slot:nth-child(4) { --shelf-lag: 3rem;   animation-range: cover 12% cover 42%; }
-.slot:nth-child(5) { --shelf-lag: 3.5rem; animation-range: cover 16% cover 46%; }
-.slot:nth-child(6) { --shelf-lag: 4rem;   animation-range: cover 20% cover 50%; }
 
 /*
- * The card, one element in from the slot.
+ * The card, and the ground it stands on.
  *
- * The split is not tidiness: the slot is carrying a transform from a
- * scroll-driven animation, and an animation wins over a declared `transform`
- * for as long as it is in effect. A hover lean written on the same element
- * would be overwritten every frame the reader scrolls. So the slot does
- * layout and travel, and the card does the thing a pointer asks for.
+ * THE CHOICE: covers on paper, not a dark ground. The issue offered two ways
+ * off the pale washed cards — each note showing its cover, or the section on
+ * a dark ground with the notes split by borders — and asked for the choice to
+ * be argued against the two-dark-act ceiling in `ground/DarkAct.tsx`. Argued:
+ *
+ *   1. The subject rule picks the dark sections, and it does not pick this
+ *      one. DarkAct names the shelf explicitly: Approach, the shelf, the spec
+ *      plate and the close are the page talking ABOUT the work, "and the page
+ *      talks on paper". Notes are writing about decisions; dark here would
+ *      say "this is the work", which is untrue.
+ *   2. Adjacency, which is worse than the count. The shelf comes straight
+ *      after the year, and the year is dark. A dark shelf would butt against
+ *      it — and DarkAct's own words for that are "two dark acts with nothing
+ *      between them are one long dark act with a seam in it". So it would not
+ *      even read as a third act; it would read as the year running on into
+ *      the notes, and the year's foot seam (the paper crest) would vanish.
+ *   3. The footer's exemption (#160) does not stretch to cover it. The footer
+ *      escapes the ceiling on four conditions; a dark shelf fails three of
+ *      them — it would have a section head, sit in the page's sequence, and
+ *      carry something a reader came for.
+ *
+ * So the dark option needs the ceiling rewritten and the paper run after the
+ * year broken; the cover option needs neither. A note without a cover is not
+ * given a stand-in picture — the generated skyline was retired from NoteCard
+ * for carrying nothing — but the label alone, in the same hairline frame.
+ *
+ * CONTRAST, measured on the rendered shelf at 1440×900 (see
+ * docs/motion-contract.md, the shelf's ledger entry): the name in `--ink`
+ * 15.17:1 on paper, the fact and field lines in `--ink-soft` 6.37:1, the
+ * arrow likewise. No text is ever set over a cover — the label is under the
+ * picture, on paper — so no scrim and no image-dependent contrast. The frame
+ * is `--rule-firm`, 2.15:1 against paper: the card does not depend on it to be
+ * found (its text does that), so the 3:1 non-text floor does not bind, and a
+ * firmer line would be the "border that shouts" the paper grammar avoids.
  */
 .card {
   display: flex;
   flex: 1 1 auto;
-  min-width: 0;
-}
-
-/* The anchor is the whole card, so the border is not promising a target that
-   only the middle of the card can hit. `.card-paper`'s hover state is written
-   for both shapes — `a.card-paper` and a card containing a hovered link — so
-   the lift comes for free. */
-.face {
-  display: flex;
-  flex: 1 1 auto;
-  min-width: 0;
   flex-direction: column;
-  justify-content: flex-start;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid rgb(var(--rule-firm));
+  border-radius: var(--r-xl);
+  background: rgb(var(--canvas));
+  color: rgb(var(--ink));
   text-decoration: none;
-  color: inherit;
+  transition:
+    transform var(--dur-fast) var(--ease-settle),
+    border-color var(--dur-fast) ease;
 }
 
-/*
- * The lean, and the one place on this page a pointer effect is allowed.
- *
- * Gated to a fine pointer that can hover, because this replaces a peeling
- * corner that did nothing at all on touch — a gesture only half the readers
- * could ever see, spending its whole budget on the other half's cursor. The
- * sign alternates so a row of leaning cards reads as objects picked up and
- * put back rather than as a shelf that is falling over.
- */
 @media (hover: hover) and (pointer: fine) {
-  .card {
-    transition: transform var(--dur-fast) var(--ease-settle);
-  }
-
-  .slot:nth-child(even) .card {
-    --shelf-tilt: -4deg;
-  }
-
-  .card:hover,
-  .card:focus-within {
-    transform: rotate(var(--shelf-tilt)) translateY(-0.25rem);
+  .card:hover {
+    border-color: rgb(var(--ink-soft));
+    transform: translateY(-0.25rem);
   }
 }
 
-/* ------------------------------------------------------- the skeleton -- */
+.cover {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  min-width: 0;
+  overflow: hidden;
+  border-bottom: 1px solid rgb(var(--rule));
+}
 
-/*
- * The loading state is the shelf, not a different component: the same
- * viewport, the same track, the same six slots in the same six washes, with
- * `gallery/LabelSkeleton` where the label will be. What this class adds is
- * the one thing the gallery's skeleton cannot know, which is that this
- * region has two layouts.
- *
- * `[data-sk-block]` and `[data-sk-line]` are hooks in the markup rather than
- * scoped class names, because a CSS module cannot see another module's
- * names — the same reason `ObjectLabel` writes `data-kind` rather than
- * leaving a rule to count with `:nth-child()`. The fields block is
- * deliberately not matched: its three capsules are siblings of one another,
- * so `:not(:first-child)` there would delete two thirds of the field line
- * rather than a wrapped second row.
- */
+.cover :global(.card-shot) {
+  height: 100%;
+  width: 100%;
+  border: 0;
+  border-radius: 0;
+}
+
+.cover :global(img) {
+  height: 100%;
+  width: 100%;
+}
+
+/* The label at the start edge, the arrow at the end — the run's plinth. A
+   card on a travelling shelf is cropped on the right while it enters, which
+   is where the reader meets it, so the name is set where it is seen first. */
+.plinth {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  min-width: 0;
+  padding: clamp(1rem, 2vw, 1.5rem);
+}
+
+.label {
+  min-width: 0;
+}
+
+.onward {
+  flex: none;
+  font-family: ui-sans-serif, system-ui, "Segoe UI Symbol", "Noto Sans Symbols 2", sans-serif;
+  font-size: 1.125rem;
+  line-height: 1;
+  color: rgb(var(--ink-soft));
+}
+
+.onwardMark {
+  display: block;
+  height: 0;
+  outline: none;
+}
+
+/* The skeleton's wrapped second lines: drawn on the shelf, where a card is
+   23rem and the name and fact wrap; not in the 40rem list, where they don't.
+   Switched with the rest of the layout in the three blocks below. */
 .ghostLabel [data-sk-block="name"] [data-sk-line]:not(:first-child),
 .ghostLabel [data-sk-block="fact"] [data-sk-line]:not(:first-child) {
   display: var(--shelf-ghost-extra, block);
 }
 
-/* ---------------------------------------------------- the three exits -- */
+/* Right to left the shelf comes in from the left: the frame is mirrored and
+   each card mirrored back, as on the run. The frame stays `ltr` so the
+   travel above is computed one way; the card restores the page's direction
+   for its own text. */
+:global(html[dir="rtl"]) .frame {
+  scale: -1 1;
+}
 
-/*
- * Every switch-off lands on the same finished design: a plain vertical list
- * of note cards in the page measure, which is what this section was before it
- * became a shelf and is a perfectly good way to read three links.
- *
- * It is one set of seven properties and one cancelled animation, which is the
- * whole reason the rules above
- * read their layout out of custom properties rather than stating it: the
- * three conditions cannot be written as one selector — `@supports not` and
- * `@media` do not compose, and the pause is a class on `body` set at runtime
- * — so the alternative was three copies of the layout itself, which is three
- * chances for the fallback to be right in two of them.
- *
- * `--shelf-inset` is deliberately *not* switched. It already resolves to
- * `.wrap`'s left edge, so a full-width track with that padding puts a column
- * of cards in exactly the page measure; a second set of values for the same
- * measurement is how two parts of a page stop lining up.
- *
- * `animation-name: none` cancels the two animations outright rather than
- * leaning on the global `animation-duration: 0.01ms` that `motion-paused.css`
- * and the reduced-motion block in `index.css` apply. That trick runs a
- * time-driven animation instantly to its last frame and is not defined for a
- * progress-driven one: a view timeline ignores duration, so the override
- * would leave the track still welded to the scroll position. With the name
- * gone both elements fall back to their own declarations, and neither
- * declares a transform.
- *
- * The name is cancelled here rather than switched through a property with the
- * rest of the layout, because CSS Modules cannot rewrite a keyframes name it
- * finds inside a `var()` fallback. See the note on `.track`.
- *
- * The slots need nothing said about them. `flex-basis: auto` in a column is a
- * card as tall as its own label, and the track's `align-items: stretch` gives
- * it the full width — the list is the flex container's own doing.
- */
+:global(html[dir="rtl"]) .card {
+  scale: -1 1;
+  direction: rtl;
+}
+
+/* ── the three off-switches, one finished state ─────────────────────────── */
+
 @supports not (animation-timeline: view()) {
-  .section {
-    --shelf-overflow: visible;
-    --shelf-direction: column;
-    --shelf-track-width: auto;
-    --shelf-card: auto;
-    --shelf-gap: 1.5rem;
-    --shelf-drift: 0rem;
-    --shelf-tilt: 0deg;
+  .stageInner {
+    height: auto;
     --shelf-ghost-extra: none;
   }
-
-  .track,
-  .slot {
+  .frame {
+    position: static;
+    height: auto;
+    padding-top: 0;
+    overflow: visible;
+    container-type: normal;
+    direction: inherit;
+  }
+  .track {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1.5rem;
+    width: auto;
+    max-width: 40rem;
+    margin-inline: auto;
+    padding-inline: clamp(1.25rem, 3vw, 2.5rem);
     animation-name: none;
+  }
+  .slot {
+    flex-basis: auto;
+  }
+  .mark {
+    top: 0;
+  }
+  :global(html[dir="rtl"]) .frame,
+  :global(html[dir="rtl"]) .card {
+    scale: none;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .section {
-    --shelf-overflow: visible;
-    --shelf-direction: column;
-    --shelf-track-width: auto;
-    --shelf-card: auto;
-    --shelf-gap: 1.5rem;
-    --shelf-drift: 0rem;
-    --shelf-tilt: 0deg;
+  .stageInner {
+    height: auto;
     --shelf-ghost-extra: none;
   }
-
-  .track,
-  .slot {
+  .frame {
+    position: static;
+    height: auto;
+    padding-top: 0;
+    overflow: visible;
+    container-type: normal;
+    direction: inherit;
+  }
+  .track {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1.5rem;
+    width: auto;
+    max-width: 40rem;
+    margin-inline: auto;
+    padding-inline: clamp(1.25rem, 3vw, 2.5rem);
     animation-name: none;
+  }
+  .slot {
+    flex-basis: auto;
+  }
+  .mark {
+    top: 0;
+  }
+  :global(html[dir="rtl"]) .frame,
+  :global(html[dir="rtl"]) .card {
+    scale: none;
   }
 }
 
-:global(body.motion-paused) .section {
-  --shelf-overflow: visible;
-  --shelf-direction: column;
-  --shelf-track-width: auto;
-  --shelf-card: auto;
-  --shelf-gap: 1.5rem;
-  --shelf-drift: 0rem;
-  --shelf-tilt: 0deg;
+:global(body.motion-paused) .stageInner {
+  height: auto;
   --shelf-ghost-extra: none;
 }
 
-:global(body.motion-paused) .track,
-:global(body.motion-paused) .slot {
+:global(body.motion-paused) .frame {
+  position: static;
+  height: auto;
+  padding-top: 0;
+  overflow: visible;
+  container-type: normal;
+  direction: inherit;
+}
+
+:global(body.motion-paused) .track {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 1.5rem;
+  width: auto;
+  max-width: 40rem;
+  margin-inline: auto;
+  padding-inline: clamp(1.25rem, 3vw, 2.5rem);
   animation-name: none;
+}
+
+:global(body.motion-paused) .slot {
+  flex-basis: auto;
+}
+
+:global(body.motion-paused) .mark {
+  top: 0;
+}
+
+:global(html[dir="rtl"] body.motion-paused) .frame,
+:global(html[dir="rtl"] body.motion-paused) .card {
+  scale: none;
+}
+
+@media (forced-colors: active) {
+  .card {
+    border-color: CanvasText;
+  }
 }
