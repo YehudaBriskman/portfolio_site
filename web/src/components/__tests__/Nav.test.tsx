@@ -34,13 +34,13 @@ const chrome = (at = "/") =>
   );
 
 describe("the chrome as the main links only", () => {
-  it("carries the three rooms and nothing else you can navigate to", () => {
+  it("carries the four rooms and nothing else you can navigate to", () => {
     chrome();
     const pages = screen.getAllByRole("navigation", { name: "Pages" })[0];
     const labels = within(pages)
       .getAllByRole("link")
       .map((a) => a.textContent);
-    expect(labels).toEqual(["Home", "All work", "All notes"]);
+    expect(labels).toEqual(["Home", "All work", "The story", "All notes"]);
 
     /* The index landmark is gone rather than emptied: an empty `nav` that a
        screen reader still announces is the half-finished version of this. */
@@ -211,9 +211,10 @@ describe("the chrome as the main links only", () => {
     expect(inSheet.getByRole("link", { name: "GitHub" })).toBeInTheDocument();
     expect(inSheet.getByRole("link", { name: "Email" })).toBeInTheDocument();
 
-    /* Three rooms, two profiles, one address: six links and no seventh. The
+    /* Four rooms (the story joined in #46), two profiles, one address: seven
+       links and no eighth. The
        count is the assertion — an index put back in the sheet would pass every
        check above this line. */
-    expect(inSheet.getAllByRole("link")).toHaveLength(6);
+    expect(inSheet.getAllByRole("link")).toHaveLength(7);
   });
 });
