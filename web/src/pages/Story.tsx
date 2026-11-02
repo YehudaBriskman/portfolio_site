@@ -33,7 +33,7 @@ import { STORY_LINE, buildStory, type Beat, type Interlude } from "@/data/story"
  *   | device   | what it is                                                        |
  *   |----------|-------------------------------------------------------------------|
  *   | line     | the one line, its tip on the middle of the window (`LivingLine`) |
- *   | plate    | a beat's picture card, uncovered as it rises into the window      |
+ *   | plate    | a beat's picture, laid sideways out of the line's lane (#195)    |
  *   | pen      | a beat's lines and a loop's words, word after word (`Written`)    |
  *
  * All three off-switches — reduced motion, the site's Pause, and a browser
