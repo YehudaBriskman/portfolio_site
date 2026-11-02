@@ -147,7 +147,19 @@ const markdown: Components = {
 
   table({ children }) {
     return (
-      <div className={`not-prose ${FULL_WIDTH} my-9 overflow-x-auto px-5 [scrollbar-width:thin] sm:px-0`}>
+      /*
+       * Focusable for the same reason the code block is (WCAG 2.1.1, found by
+       * the #99 audit): the table holds a 30rem minimum, so below ~560px this
+       * box scrolls sideways, and without a tab stop a keyboard reader cannot
+       * reach the columns past the edge. A focusable box with no role or name
+       * is announced as nothing at all, hence the region and its label.
+       */
+      <div
+        tabIndex={0}
+        role="region"
+        aria-label="Table, scrolls sideways"
+        className={`not-prose ${FULL_WIDTH} my-9 overflow-x-auto px-5 [scrollbar-width:thin] sm:px-0`}
+      >
         <table className="w-full min-w-[30rem] border-collapse text-left">{children}</table>
       </div>
     );
