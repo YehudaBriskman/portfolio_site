@@ -199,3 +199,24 @@ describe("ProjectRun right to left", () => {
     expect(CSS).not.toMatch(/scale:\s*-1/);
   });
 });
+
+/*
+ * The owner's preprod pass (#170): one size of card, and a timeline that
+ * starts where the pin does.
+ */
+describe("ProjectRun.module.css, one box", () => {
+  it("does not scale a card on its way in, whatever its arrival", () => {
+    const arrive = CSS.match(/@keyframes run-arrive\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
+    expect(arrive).not.toMatch(/scale\(/);
+  });
+
+  it("reserves and clamps the plinth's lines, so content cannot move the edge", () => {
+    expect(CSS).toMatch(/\.label > :first-child\s*\{[^}]*line-clamp:\s*1/);
+    expect(CSS).toMatch(/\.label > p\s*\{[^}]*line-clamp:\s*2;[^}]*block-size:\s*2lh/);
+    expect(CSS).toMatch(/\.label > ul\s*\{[^}]*block-size:\s*1lh;[^}]*overflow:\s*hidden/);
+  });
+
+  it("zeroes the view timeline's inset, so scroll-padding cannot shift it off the pin", () => {
+    expect(CSS).toMatch(/\.stage\s*\{[^}]*view-timeline-inset:\s*0;/);
+  });
+});
