@@ -241,6 +241,10 @@ export default function ProjectRun({ entries, label, heading }: ProjectRunProps)
           />
         ))}
 
+        {/* Where the living line in "How I work" starts (#191): the run's
+            centre as the frame lets go. Empty; measured, never read. */}
+        <span className={styles.origin} data-line-origin="work-run" aria-hidden="true" />
+
         <div className={styles.frame}>
           {/* The aurora along the cards' path (#181), behind the list. */}
           <RunAurora />

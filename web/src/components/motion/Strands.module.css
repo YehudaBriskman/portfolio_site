@@ -1,0 +1,41 @@
+/*
+ * The strands' dress (#192): fine lines, each its own weight and strength,
+ * so the ribbon has a bright core and a fraying edge rather than a row of
+ * equal rails. A caller scales every weight at once with `--strand-w`.
+ *
+ * `stroke-opacity`, not `opacity`: an opacity on a path asks for a
+ * compositing group of its own, and a stroke alpha is free.
+ *
+ * `vector-effect` keeps a strand's weight in screen pixels when the run's
+ * aurora stretches its curve to the frame.
+ */
+.ribbon {
+  fill: none;
+}
+
+.strand {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+  stroke-width: var(--strand-w, 1px);
+  stroke-opacity: 0.7;
+}
+
+/* Outer to inner and back: the middle strands carry the light. */
+.strand[data-strand="0"] { stroke-width: calc(var(--strand-w, 1px) * 0.8); stroke-opacity: 0.5; }
+.strand[data-strand="1"] { stroke-width: calc(var(--strand-w, 1px) * 1.1); stroke-opacity: 0.75; }
+.strand[data-strand="2"] { stroke-width: calc(var(--strand-w, 1px) * 1.5); stroke-opacity: 0.95; }
+.strand[data-strand="3"] { stroke-width: calc(var(--strand-w, 1px) * 1.2); stroke-opacity: 0.85; }
+.strand[data-strand="4"] { stroke-width: calc(var(--strand-w, 1px) * 0.9); stroke-opacity: 0.7; }
+.strand[data-strand="5"] { stroke-width: calc(var(--strand-w, 1px) * 1.3); stroke-opacity: 0.85; }
+.strand[data-strand="6"] { stroke-width: calc(var(--strand-w, 1px) * 0.8); stroke-opacity: 0.55; }
+
+@media (forced-colors: active) {
+  .ribbon {
+    stroke: CanvasText;
+  }
+  .strand {
+    stroke-opacity: 1;
+  }
+}

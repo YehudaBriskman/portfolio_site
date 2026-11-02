@@ -1,11 +1,15 @@
 /*
- * The aurora along the work run (#181), a laptop and a phone, English and
- * Hebrew.
+ * The aurora along the work run (#181, #192), a laptop and a phone, English
+ * and Hebrew.
  *
  * What it shoots, into `docs/work-run/`:
  *
  *   aurora-<w>x<h>[-he]-<t>.png   the held frame at point t of the stage's
  *                                 contain range
+ *   aurora-<w>x<h>[-he]-sweep-<t> the ribbon sweeping in from the reading
+ *                                 end as the stage comes up (t < 0: before
+ *                                 the frame pins), and the same depth again
+ *                                 reached by scrolling back up (`-back`)
  *   aurora-<w>x<h>-reduced.png    prefers-reduced-motion: the still ribbon
  *                                 down the plain list
  *   aurora-<w>x<h>-paused.png     body.motion-paused: the same
@@ -38,6 +42,8 @@ const WINDOWS = [
   [390, 844],
 ];
 const POINTS = [0.15, 0.5, 0.85];
+/* Before the pin: the ribbon is sweeping in (#192). */
+const SWEEP = [-0.22, -0.12, -0.04];
 
 const browser = await chromium.launch({
   executablePath: process.env.CHROME || undefined,
@@ -131,6 +137,15 @@ for (const rtl of [false, true]) {
   for (const [w, h] of WINDOWS) {
     const tag = `${w}x${h}${rtl ? "-he" : ""}`;
     const page = await open(w, h, { rtl });
+    for (const t of SWEEP) {
+      await toPoint(page, t);
+      await page.screenshot({ path: `${OUT}/aurora-${tag}-sweep-${t}.png` });
+      console.log(tag, "sweep", t, await page.evaluate(sweepAt));
+    }
+    await toPoint(page, 0.3);
+    await toPoint(page, -0.12);
+    await page.screenshot({ path: `${OUT}/aurora-${tag}-sweep--0.12-back.png` });
+    console.log(tag, "sweep back -0.12", await page.evaluate(sweepAt));
     for (const t of POINTS) await toPoint(page, t);
     const forward = {};
     for (const t of POINTS) {
@@ -177,14 +192,22 @@ for (const [w, h] of WINDOWS) {
   await paused.close();
 }
 
+/* How far in the ribbon's window is: 0 off the frame, 1 home. */
+function sweepAt() {
+  const s = document.querySelector("[data-run-sweep]");
+  const m = new DOMMatrix(getComputedStyle(s).transform);
+  const w = s.parentElement.getBoundingClientRect().width;
+  return (1 - Math.abs(m.m41) / (1.3 * w)).toFixed(3);
+}
+
 function stillState() {
   const a = document.querySelector("[data-run-aurora]");
   const ribbon = getComputedStyle(a, "::before");
-  const surge = a.querySelector("[data-run-surge]");
+  const sweep = a.querySelector("[data-run-sweep]");
   return {
     ribbon: ribbon.content !== "none" && ribbon.content !== "normal",
     ribbonHeight: Math.round(a.getBoundingClientRect().height),
-    surge: getComputedStyle(surge).display,
+    sweep: getComputedStyle(sweep).display,
   };
 }
 
