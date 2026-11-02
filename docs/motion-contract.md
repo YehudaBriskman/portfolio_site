@@ -911,12 +911,14 @@ capsule. A skeleton that vanished under those conditions would leave the
 region with no height, which is the layout shift the device exists to
 prevent.
 
-**The breath row is not a beat either: it is the one thing on the page that
-loops while the reader does nothing, and the row is there so it stays the
-only one.** `HeroCorners.tsx` puts a 0.5rem lamp of `--signal` in the title
-plate's end corner, breathing over 6.4s with a ring leaving it once a breath,
-and beside it the owner's README asides — "Technology", "Build boldly" — one
-at a time, every 3.6s. A soft light that rises and falls means *this is on*.
+**The breath row is not a beat either.** Until #162 it was the one thing on
+the page that looped while the reader did nothing; since #162 it does not
+loop at all — the lamp breathes three times and the phrases turn across the
+first 36% of the hero's exit, on the hero's `--hero` view timeline, and run
+back on the way up (§8). `HeroCorners.tsx` puts a 0.5rem lamp of `--signal`
+in the title plate's end corner, with a ring leaving it once a breath, and
+beside it the owner's README asides — "Technology", "Build boldly" — one at a
+time. A soft light that rises and falls means *this is on*.
 Nothing else on the site may say that with a loop, and this may not be
 borrowed for an attract loop on a control, a "new" badge, or a pulsing
 anything elsewhere; a second ambient loop on the page makes the first one
@@ -1328,8 +1330,21 @@ the trap underneath all three:
   every exit lands on the arrived state, a half-arrived element snaps to
   arrived. It must never snap to hidden.
 - A component with no scroll timeline in it needs **no `@supports` block** —
-  there is no feature for a browser to be missing. `Rise` is time-driven and
-  deliberately has none. Adding one there is cargo cult.
+  there is no feature for a browser to be missing. Since #162 that is only
+  the exemptions in §8 (the entry shutter, the form's ink). Adding one there
+  is cargo cult.
+- **The gate shape, and why #162 prefers it.** Where a component's resting
+  state *is* its finished state, the animation can be declared only inside
+  one positive gate — `@supports (animation-timeline: view())`, then
+  `@media (prefers-reduced-motion: no-preference)`, then
+  `body:not(.motion-paused)` — and nothing at all outside it. All three
+  switches then render the finished state by construction, with no exit
+  block to keep in step. The hero, its corners, the spec count, the drift,
+  the skeleton sweep and the two `scrub-*` utilities are written that way.
+  The `@supports` half is not decoration: without it an engine that drops
+  `animation-timeline` reads `animation: x linear both` as a zero-length
+  clock animation and `fill: both` holds the *last* frame — which, for the
+  hero, is the dismantled screen.
 - **Not every animation is motion, and the one exception is a timer.** The
   skeletons' gate (`gallery/Skeleton.module.css`) is a 1ms animation whose
   only job is its 180ms *delay*: it holds a placeholder's ink off the screen
@@ -1343,20 +1358,15 @@ the trap underneath all three:
   landing on a flat capsule; the two live on different elements precisely so
   one can be switched off without taking the other with it.
 
-**A fourth exit exists, and no stylesheet can see it.** A staged sequence waits
-on each move's `animationend`; if one never fires — a cancelled animation, a
-display change mid-flight, an engine quirk — every stage after it is stranded.
-`useStagedArrival` carries a per-stage deadline for exactly that, and degrades
-to the four delays the hook exists *not* to be, which is the right thing to
-degrade to. The condition lives in TypeScript because it is a fact about an
-event that did not happen, and CSS cannot ask that question.
+There used to be a fourth exit in TypeScript — `useStagedArrival`'s
+per-stage deadline for an `animationend` that never fired. It went with the
+staged arrival in #162; a scroll-driven animation has no event to wait for.
 
 Two further exits exist for specific effects rather than for motion in general:
 `forced-colors: active` removes `InkWipe`'s coloured band, because in a forced
 palette it would be painted in a system colour it was never chosen for; and an
 `IntersectionObserver` that never fires has to land on the finished page too,
-which is why `Rise.module.css` cancels its own hidden state under reduced motion
-instead of waiting to be told.
+which is why `Written` animates when no observer has told it where it is.
 
 ---
 
@@ -1371,9 +1381,12 @@ competing with the object it names.
 
 ## 5. What a premium reveal is made of
 
-Measured, and the numbers are the point rather than a starting place. The
-canonical implementation is `web/src/components/motion/Rise.tsx` and its
-stylesheet; borrow it rather than writing these numbers again.
+Measured, and the numbers are the point rather than a starting place. Since
+#162 they are scrubbed rather than timed: the canonical implementation is the
+`.scrub-rise` utility in `index.css` (14px and opacity across the element's
+`entry`). `Rise`, the clock version these numbers were measured on, was
+deleted in #162; the duration, stagger, trigger and "once" rows below are
+its history, kept because the bounds they argue for still bound a scrub.
 
 | | |
 |---|---|
@@ -1413,14 +1426,12 @@ Each bound is a bound because of what happens outside it:
 Slower, larger or bouncier is never more premium. The restraint is the signal,
 and there is nothing here to tune.
 
-**"Once" is why a reveal uses an observer on a page that otherwise has none.** A
-view timeline ties progress to scroll position, so scrolling back up runs it
-backwards. That is exactly right for ink arriving on a card and exactly wrong
-for content, which must not re-hide itself when the reader looks away — and
-"once" is not something a scroll timeline can express. Every *other* arrival on
-this site is a view timeline with no observer and no state, because the timeline
-already knows where the element is and an `IntersectionObserver` reproducing
-that would only ever be a frame behind it.
+**"Once" is retired (#162).** The argument here was that content must not
+re-hide itself when the reader looks away, so a reveal had to fire once on an
+observer. The owner overruled it for the whole site: "reverse when scrolling
+up, all controllable with simple scrolling. no more." Every arrival is now a
+view timeline with no observer and no state, and runs backwards on the way
+up; `scrollOnly.test.ts` fails on a new one-shot reveal.
 
 ---
 
@@ -1449,12 +1460,12 @@ direction, or set `fill-rule: evenodd` deliberately and know what it costs.
 | file | device | timeline |
 |---|---|---|
 | `nav/useTuckedBar.ts` + `Nav.module.css` (tuck) | the bar lifts and fades on the way down, returns on the way up or on focus; no travel with motion off | scroll direction, no per-frame write |
-| `motion/Rise.tsx` | `reveal` — the measured reveal, fired once (no beat on the home page uses it since #160) | observer + clock |
 | `Contact.module.css` `.surface` | `surface` — each part of the close rising out of its own baseline | `view()` per part |
 | `motion/EntryShutter.tsx` | `shutter` — the page arrives from behind a grid | clock, gated on real readiness |
-| `motion/useStagedArrival.ts` | the staged assembly: each move waits on the last | clock, gated on `animationend` |
-| `components/hero-chrome.css` | the bar's part in that sequence, reached from `body` | clock |
-| `motion/Flow.tsx` | `flow` — one gate per item, so a beat can differ per item (no beat on the home page uses it since #157) | observer + clock |
+| `HeroArrival.module.css` | the staged assembly, reversed: the plate comes apart as the hero leaves and goes back together on the way up | named `view-timeline` `--hero` on the section, `exit` ranges |
+| `HeroCorners.module.css` | `breath` — the phrases turn and the lamp breathes across the hero's exit; the corners go last | `--hero` |
+| `Stack.module.css` | `count` — each figure counts from nought as the plate comes up, and back down as it goes | named `view-timeline` `--specs` on the plate |
+| `index.css` `.scrub-rise` / `.scrub-pulse` | the notes index's card rise and every loading placeholder's pulse | `view()` |
 | `Approach.module.css` + `ApproachFigures.tsx` | `draw` — each principle's figure, stroke by stroke | named `view-timeline` per principle |
 | `motion/InkWipe.tsx` | ink arriving as a hard clip edge, plus the coloured band | `view()` |
 | `motion/InkRule.tsx` | a hairline drawing itself in | `view()` |
@@ -1465,11 +1476,11 @@ direction, or set `fill-rule: evenodd` deliberately and know what it costs.
 | `LatestNotes.module.css` | `pan`, held — the notes walk past under a held frame, one card-width per step | named `view-timeline` on the static stage (inset 0), the frame held inside it |
 | `city/ContributionCity.module.css` | `scrub` — one animation turns and raises 365 columns, a second dollies the camera down the year | named `view-timeline` on a static wrapper, the frame held over it |
 | `city/useCityHand.ts` | the year's orbit and its one readout — a drag turns the city, a point reads a day | pointer events; a settle loop only between release and rest |
-| `gallery/Skeleton.module.css` | `sweep` — one line of a placeholder, the band across it, and the gate before it | clock |
+| `gallery/Skeleton.module.css` | `sweep` — one line of a placeholder, the band across it, and the gate before it | named `view-timeline` per line; the gate is a clock (§8) |
 | `gallery/SkeletonLines.tsx` | the primitive: a run of lines as tall as the type they stand in for | — |
 | `gallery/LabelSkeleton.tsx` | the object label's three parts, in the label's own stylesheet | — |
 | `gallery/SkeletonGate.tsx` | the box that holds a region's height, and the 180ms before it is inked | clock |
-| `ground/DarkAct.module.css` | `drift` — two lights crossing at each seam of the dark ground | clock, gated off-screen by an observer |
+| `ground/DarkAct.module.css` | `drift` — two lights crossing at each seam of the dark ground | named `view-timeline` `--seam` per seam |
 | `index.css` `.section-head::after` | the shutter, echoed — a lattice leaving each section head outward from its word | named `view-timeline` on the head, inset to the lower third |
 | `motion/LivingLine.tsx` + `lineTrace.ts` | `line` — one SVG path behind a page or section, measured off the laid-out boxes, its tip held on the window's middle; loops round `data-line="loop"` boxes | named `view-timeline` on the container (inset 50%); a 101-stop keyframe reads offsets the trace writes as custom properties |
 | `motion/Written.tsx` | `pen` — running text written one word after another as it rises through the lower half of the window | named `view-timeline` on the paragraph; word `i` of `n` owns the slice `i/n`–`(i+1)/n` |
@@ -1490,6 +1501,12 @@ arrangement until #169) was deleted with its stylesheet and tests once
 arrival (`pileArrival.ts`) survives, because the run still uses it, and the
 pile's notes on sticky timelines are in the history and in §1.
 
+`Rise`, `Arrived` and `Flow` (fire-once reveals on an observer and a
+clock), `useStagedArrival` and `hero-chrome.css` (the hero's clock-driven
+sequence) and `useEnteredOnce` (the spec plate's starting gun) were deleted
+in #162, when every animation moved onto scroll. Three of them had no call
+site left; the other three were replaced by view timelines.
+
 An unused component with a hole in its off-switch is a trap for whoever uses it
 next, so they went rather than being fixed in place. They are in the history if
 a future beat wants one — but it should be rebuilt against §4 rather than
@@ -1497,12 +1514,12 @@ restored, because what was wrong with them is exactly what §4 exists to say.
 | `nav/useMotionPaused.ts` | the Pause control | — |
 | `nav/motion-paused.css` | what Pause does to the page | — |
 
-`ground/DarkAct.tsx` is the third component on the site with an
-`IntersectionObserver` in it, after `Rise` and `useEnteredOnce`, and it is the
-first whose observer does not fire once and stop. It fires on the way in and
-on the way out, twice per visit per act, and writes one attribute — which is
-still not a listener and still not per-frame work, and is the price of an
-ambient loop that refuses to run for nobody.
+Since #162 the site has two `IntersectionObserver`s and neither reveals
+anything: `Written`'s near-watch (which paragraphs are in the reading zone,
+both ways, so words that cannot change stop animating) and `useDarkChrome`
+(the bar's material over the dark acts). `DarkAct`'s observer, `Rise`'s and
+`useEnteredOnce`'s went with the clocks they gated. `scrollOnly.test.ts`
+pins the list.
 
 Plus two scroll-position publishers, which are not devices:
 `hooks/useScrollProgress.ts` (the home page's palette and layer progress) and
@@ -1520,17 +1537,10 @@ Otherwise no component does per-frame work. The one hook with a scroll listener 
 `useScrollProgress`, mounted on a single route; it is rAF-throttled, writes a
 custom property on `<html>` rather than React state, and returns early under
 `prefers-reduced-motion`. Everything in the table is either a class name a
-stylesheet acts on, or — for `Rise` and `Flow` — one observer that stops
-watching a target the moment it has fired. `Flow` carries no React state at
-all: it writes `data-flow` on each item and the caller's stylesheet does the
-rest, so an arrival costs one attribute and no render.
+stylesheet acts on.
 
-**One component does hold state, and the rule is narrower than it used to
-read.** `useStagedArrival` keeps an integer for the stage it has reached and
-one `document` listener, both gone when the last stage starts. That is the
-price of a sequence whose steps wait on each other rather than on a stopwatch,
-and it is paid once per mount rather than once per frame — which is the
-property this section is actually about.
+**No motion component holds state since #162.** `useStagedArrival`, which
+kept an integer for the hero's stage, went with the clock it sequenced.
 
 **A keyframe name reached through a custom property is invisible to CSS
 Modules.** The scoper renames `@keyframes` and rewrites the `animation-name`
@@ -1543,3 +1553,69 @@ keyframes `@keyframes :global(name)` or keep the name in a literal
 Keep it that way. The reason this page can afford as much motion as it carries
 is that almost none of it costs anything per frame, and the first component that
 measures something on scroll is the one that takes that away.
+
+---
+
+## 8. The inventory (#162)
+
+The owner's rule, 2026-11-02: "the titles and all the animations need to be
+handled like the way that the github get handled — reverse when scrolling
+up, all controllable with simple scrolling. no more." This is every
+animation and transition on the site after that sweep, by route, and how it
+is driven. **Scrubbed** means a scroll or view timeline: no delay, no
+duration, the same frame at the same scroll position on the way down and on
+the way up. Every scrubbed row lands on its finished state under all three
+off-switches (§4).
+
+`web/src/components/motion/__tests__/scrollOnly.test.ts` holds it: a
+`@keyframes` animation with no `animation-timeline` on the same element fails
+unless it is in that file's `ALLOWED` list, which mirrors the exempt rows
+here; so do a new `IntersectionObserver`, a Web Animations API call, a
+Tailwind `animate-*` class outside the Radix menus, or a Tailwind theme
+animation.
+
+| element | route | mechanism | status |
+|---|---|---|---|
+| entry shutter (`EntryShutter`) | every route, first load | clock, gated on readiness | **exempt**: the one page-load moment, not a scroll |
+| title plate: name letters, fact line, field line, figure (`HeroArrival.module.css`) | / | `--hero` view timeline, `exit` ranges | **scrubbed** (#162; was a staged clock sequence on load) |
+| nav bar dropping in with the plate (`hero-chrome.css`) | / | — | **removed** (#162): the bar is simply there; its tuck is below |
+| lamp breath and ring, rotating phrases (`HeroCorners`) | / | `--hero` | **scrubbed** (#162; were 6.4s / 3.6s infinite loops) |
+| hero corners sinking under paper | / | `--hero` | **scrubbed** (#162; were the last stage of the clock sequence) |
+| section heads' lattice (`.section-head::after`) | /, /projects, /story | `--section-head` view timeline | scrubbed |
+| section-head and hairline rules (`InkRule`) | /, /projects/:slug | `view()` | scrubbed |
+| running text, word by word (`Written`) | /, /story, /projects/:slug, /blog/:slug | named view timeline per paragraph (+ a two-way near-watch observer for cost) | scrubbed |
+| one line (`LivingLine`) | /, /story | named view timeline | scrubbed |
+| approach figures (`approach-draw`) | / | named view timeline per principle | scrubbed |
+| the run: cards, lean, arrive, surge, aurora (`ProjectRun`, `RunAurora`) | / | `--run` | scrubbed |
+| dark-act seam lights (`DarkAct`) | / | `--seam` per seam | **scrubbed** (#162; were 71s / 97s loops behind an observer) |
+| the year: raise and dolly (`ContributionCity`) | / | `--city` | scrubbed |
+| the year's waiting band | / (while loading) | `--city` | **scrubbed** (#162; was a 1.5s loop) |
+| the year's drag-to-turn and settle (`useCityHand`) | / | pointer + a settle loop after release | **exempt**: direct manipulation |
+| notes shelf pan (`LatestNotes`) | / | named view timeline | scrubbed |
+| spec count (`Stack`) | / | `--specs` | **scrubbed** (#162; was a 1.2s clock fired once by `useEnteredOnce`) |
+| close: surface, label, full stop (`Contact`) | / | `view()` per part | scrubbed |
+| contact dialog: scrim, panel, field ink, send seal | / and the nav's Contact | transitions and clock keyframes | **exempt**: dialog open/close and a reply to Send |
+| /story plates (`story-plate`) | /story | `view()` | scrubbed |
+| gallery tiles assembling (`assemble`, `assemble-shade`) | /projects | `--tile` per tile | scrubbed |
+| gallery filter re-hang (view transition) | /projects | `startViewTransition` | **exempt**: filter re-hang |
+| stats panel bars (`draw-bar`) | /projects | named view timeline | scrubbed |
+| ink wipe on the cover and band (`InkWipe`) | /projects/:slug | `view()` | scrubbed |
+| notes index cards rising (`.scrub-rise`) | /blog | `view()`, `entry` | **scrubbed** (#162; was Tailwind `animate-fade-up`, 0.7s on mount) |
+| loading placeholders' pulse (`.scrub-pulse`) | /projects/:slug, /blog/:slug, note covers, project shots, the admin "Saving" dot | `view()`, `cover` | **scrubbed** (#162; was Tailwind `animate-pulse-soft`, 2.4s infinite) |
+| skeleton sweep (`Skeleton`) | /, /projects, /blog | `--sk-line` per line | **scrubbed** (#162; was a 1.5s loop) |
+| skeleton gate (`sk-gate`) | wherever a skeleton shows | 1ms step after a 180ms delay | **exempt**: not motion — a visibility threshold (§4) |
+| reading bar (`ReadingBar`) | /blog/:slug | scroll position, rAF-throttled | scrubbed (a readout, not an animation) |
+| tucking nav bar (`useTuckedBar`) | every route | scroll direction → a short transition | **exempt**: the tucking bar |
+| bar material over the dark acts (`useDarkChrome`) | / | two-way observer → colour transition | **exempt**: part of the nav chrome; follows position both ways |
+| mobile menu sheet and scrim, menu bars | every route | transitions | **exempt**: menu open |
+| language / motion dropdown menus and tooltips (Radix, `animate-in`/`animate-out`) | every route | tailwindcss-animate | **exempt**: menu open, hover/focus |
+| card tilt, note cards growing, pills, buttons, links, chips, glyph nudges, form controls | every route, admin login | `:hover` / `:focus` / `:active` transitions | **exempt**: hover/focus |
+| in-page anchor smooth scroll (`scrollToAnchor`) | every route | per click | **exempt**: a reply to a click |
+| admin login | /admin/posts | form-control focus transitions only | **exempt**: focus |
+| 404, /accessibility | — | nothing of their own beyond the shared chrome above | — |
+
+Counted: 37 rows. 9 were converted from a clock or a one-shot trigger to a
+scroll timeline in #162, and the bar's drop was removed outright; 14 were
+already scrubbed; 12 are exempt for the reasons given; 1 row is routes with
+nothing of their own. `Rise`, `Arrived` and
+`Flow` were on no route and were deleted.
