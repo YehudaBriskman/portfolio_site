@@ -1781,3 +1781,4 @@ were removed (the panel was deleted; the notes now arrive on the gallery wall,
 whose row widened to /blog), and the filter popovers and phone sheet were added
 as a row with no motion at all. So today: 21 scrubbed, 12 exempt, 3 removed,
 2 with nothing of their own.
+
