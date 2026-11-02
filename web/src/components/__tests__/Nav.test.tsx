@@ -41,7 +41,15 @@ describe("the chrome as the main links only", () => {
     const labels = within(pages)
       .getAllByRole("link")
       .map((a) => a.textContent);
-    expect(labels).toEqual(["Home", "All work", "The story", "All notes"]);
+    /* The owner's words in the owner's order (#222). The routes under them
+       did not move, so the order is asserted with the addresses too. */
+    expect(labels).toEqual(["Home", "Journey", "Work", "Blogs"]);
+    expect(within(pages).getAllByRole("link").map((a) => a.getAttribute("href"))).toEqual([
+      "/",
+      "/story",
+      "/projects",
+      "/blog",
+    ]);
 
     /* The index landmark is gone rather than emptied: an empty `nav` that a
        screen reader still announces is the half-finished version of this. */
@@ -62,24 +70,19 @@ describe("the chrome as the main links only", () => {
     expect(hrefs.filter((h) => h?.startsWith("#"))).toEqual([]);
   });
 
-  it("names the labels 'All work' and 'All notes', which the page's own headings need", () => {
-    chrome();
-    const pages = screen.getAllByRole("navigation", { name: "Pages" })[0];
-    /* The home page sets `<h2>Work</h2>` over four of however many projects
-       exist and `<h2>Notes</h2>` over a shelf of four. A bar link labelled
-       "Notes" and a section heading reading "Notes" one scroll apart are two
-       names for two different things, and the two are never on screen together
-       to be compared. */
-    expect(within(pages).queryByText("Notes")).toBeNull();
-    expect(within(pages).queryByText("Projects")).toBeNull();
+  it("carries a Hebrew label for every room, in the same order", () => {
+    /* The Hebrew locale is still disabled (see locale.ts), so this is checked
+       on the table rather than on screen: when it is switched on, every room
+       has to have its word already, and no two rooms may share one. */
+    expect(NAV_ROUTES.map((r) => r.label.he)).toEqual(["בית", "המסע", "עבודות", "בלוגים"]);
   });
 
   it("marks the room you are in as the page, and marks nothing as a location", () => {
     chrome("/projects/icaros");
     const pages = screen.getAllByRole("navigation", { name: "Pages" })[0];
     /* The prefix match is what marks the room from inside it: a project page
-       is still "All work". */
-    expect(within(pages).getByRole("link", { name: "All work" })).toHaveAttribute(
+       is still "Work". */
+    expect(within(pages).getByRole("link", { name: "Work" })).toHaveAttribute(
       "aria-current",
       "page"
     );
@@ -118,7 +121,7 @@ describe("the chrome as the main links only", () => {
        second line of a cramped pill and is said by the page's h1 and by the
        sheet's inked row. Its accessible name is exactly its visible text. */
     const toggle = screen.getByRole("button", { name: "Menu" });
-    for (const r of NAV_ROUTES) expect(toggle).not.toHaveTextContent(r.label);
+    for (const r of NAV_ROUTES) expect(toggle).not.toHaveTextContent(r.label.en);
     expect(toggle).toHaveAttribute("aria-expanded", "false");
 
     const sheet = document.getElementById("nav-menu");
@@ -127,7 +130,7 @@ describe("the chrome as the main links only", () => {
     await userEvent.click(toggle);
     expect(toggle).toHaveAttribute("aria-expanded", "true");
     expect(sheet).not.toHaveAttribute("hidden");
-    expect(within(sheet!).getByRole("link", { name: "All notes" })).toHaveAttribute(
+    expect(within(sheet!).getByRole("link", { name: "Blogs" })).toHaveAttribute(
       "aria-current",
       "page"
     );
@@ -200,7 +203,7 @@ describe("the chrome as the main links only", () => {
     const inSheet = within(sheet as HTMLElement);
 
     for (const r of NAV_ROUTES) {
-      expect(inSheet.getByRole("link", { name: r.label })).toBeInTheDocument();
+      expect(inSheet.getByRole("link", { name: r.label.en })).toBeInTheDocument();
     }
     /* The marks become words here, where there is room for both, and the
        address is the one thing the sheet carries that the bar does not — see
@@ -265,7 +268,7 @@ describe("the bar getting out of the way", () => {
     chrome();
     scrollTo(400);
     expect(dock()).toHaveAttribute("data-tucked");
-    act(() => screen.getAllByRole("link", { name: "All work" })[0].focus());
+    act(() => screen.getAllByRole("link", { name: "Work" })[0].focus());
     expect(dock()).not.toHaveAttribute("data-tucked");
   });
 

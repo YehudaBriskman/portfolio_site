@@ -186,7 +186,7 @@ export default function ReadingBar({
         />
         <div className="flex items-center justify-between px-5">
           <Link to="/blog" className="tap inline-flex min-h-[44px] items-center gap-2 py-3.5 text-[0.9375rem] text-bone">
-            <span aria-hidden="true">&larr;</span> Notes
+            <span aria-hidden="true">&larr;</span> Blogs
           </Link>
           <button type="button" onClick={share} className="tap inline-flex min-h-[44px] items-center gap-2 py-3.5 text-[0.9375rem] text-clay">
             Share <span aria-hidden="true">&#8599;</span>

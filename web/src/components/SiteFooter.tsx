@@ -78,8 +78,9 @@ export default function SiteFooter() {
             <ul className="mt-3 space-y-1">
               {[
                 { to: "/", label: "Home" },
-                { to: "/projects", label: "Projects" },
-                { to: "/blog", label: "Notes" },
+                { to: "/story", label: "Journey" },
+                { to: "/projects", label: "Work" },
+                { to: "/blog", label: "Blogs" },
               ].map((l) => (
                 <li key={l.to}>
                   {/* Route change, not a page load: an anchor here re-downloaded

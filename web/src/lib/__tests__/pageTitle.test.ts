@@ -9,7 +9,7 @@ import { projects } from "@/data/projects";
  *
  * The strings are not arbitrary and that is what most of these assert.
  * `backend/src/routes/seo.route.ts` already rewrites the head per URL for
- * crawlers and writes `Projects · Yehuda Briskman`, `Notes · Yehuda Briskman`
+ * crawlers and writes `Work · Yehuda Briskman`, `Blogs · Yehuda Briskman`
  * and `Not found · Yehuda Briskman`; a reader and a crawler seeing two
  * different titles for one address is the bug the per-route title was supposed
  * to fix, so these are the server's own strings written down a second time on
@@ -27,8 +27,8 @@ describe("the name a route gives itself", () => {
     expect(new Set(titles).size).toBe(4);
     expect(titles).toEqual([
       HOME_TITLE,
-      "Projects · Yehuda Briskman",
-      "Notes · Yehuda Briskman",
+      "Work · Yehuda Briskman",
+      "Blogs · Yehuda Briskman",
       "Not found · Yehuda Briskman",
     ]);
   });
@@ -40,17 +40,24 @@ describe("the name a route gives itself", () => {
   });
 
   it("announces a name and not a sentence", () => {
-    expect(pageIdentityFor("/projects").name).toBe("Projects");
-    expect(pageIdentityFor("/blog").name).toBe("Notes");
+    expect(pageIdentityFor("/projects").name).toBe("Work");
+    expect(pageIdentityFor("/blog").name).toBe("Blogs");
     expect(pageIdentityFor("/nope").name).toBe("Not found");
   });
 
-  it("says Notes where the route says blog", () => {
+  it("says Blogs where the route says blog", () => {
     /* The route is `/blog` only because links to that address are already
-       out in the world. Every word the site prints for it says Notes — the
-       nav's "All notes", the page's eyebrow, the feed's title — and the
-       title is not the place to contradict all three. */
-    expect(pageIdentityFor("/blog").title).toBe("Notes · Yehuda Briskman");
+       out in the world. The room's name is Blogs (#222) — the bar, the
+       page's eyebrow and the footer all say it — and the title is not the
+       place to contradict them. */
+    expect(pageIdentityFor("/blog").title).toBe("Blogs · Yehuda Briskman");
+  });
+
+  it("names the story route by the bar's word for it", () => {
+    expect(pageIdentityFor("/story")).toEqual({
+      name: "Journey",
+      title: "Journey · Yehuda Briskman",
+    });
   });
 
   it("names a project out of the same table the plates come from", () => {
@@ -89,7 +96,7 @@ describe("the name a route gives itself", () => {
      * means the live region is written the same string twice, which React
      * turns into no second announcement at all.
      */
-    expect(pageIdentityFor("/notes").name).toBe("Notes");
+    expect(pageIdentityFor("/notes").name).toBe("Blogs");
     expect(pageIdentityFor("/notes/some-note").name).toBe(
       pageIdentityFor("/blog/some-note").name
     );
@@ -119,7 +126,7 @@ describe("the name a route gives itself", () => {
   });
 
   it("treats a trailing slash and a deep stray path as the addresses they are", () => {
-    expect(pageIdentityFor("/projects/").name).toBe("Projects");
+    expect(pageIdentityFor("/projects/").name).toBe("Work");
     /* Three segments under /projects matches no route, so it is the 404 — the
        resolver must not fall back to naming the page after its first segment,
        which would title a dead address as if it worked. */

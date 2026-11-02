@@ -25,8 +25,8 @@ function Page({ heading }: { heading: string }) {
   return (
     <main>
       <h1>{heading}</h1>
-      <Link to="/projects">All work</Link>
-      <Link to="/blog">All notes</Link>
+      <Link to="/projects">Work</Link>
+      <Link to="/blog">Blogs</Link>
       <Link to="/projects/icaros">Icaros</Link>
       <Link to="/nothing-is-here">Nowhere</Link>
     </main>
@@ -91,7 +91,7 @@ describe("announcing a route change", () => {
     expect(document.activeElement).toBe(document.body);
     expect(region()).toHaveTextContent("");
     /* The title is still corrected, because a title is not an interruption. */
-    expect(document.title).toBe("Projects · Yehuda Briskman");
+    expect(document.title).toBe("Work · Yehuda Briskman");
   });
 
   it("leaves a title the server has already written for this URL alone", () => {
@@ -109,13 +109,13 @@ describe("announcing a route change", () => {
 
   it("names the page, titles the tab and focuses the heading on a bar link", async () => {
     site();
-    await userEvent.click(screen.getByRole("link", { name: "All work" }));
+    await userEvent.click(screen.getByRole("link", { name: "Work" }));
 
-    await waitFor(() => expect(document.title).toBe("Projects · Yehuda Briskman"));
+    await waitFor(() => expect(document.title).toBe("Work · Yehuda Briskman"));
     /* By name, not by count. `/projects` used to carry its own region reading
        "6 projects", which tells a reader how many objects are in a room
        without telling them which room they have walked into. */
-    expect(region()).toHaveTextContent("Projects");
+    expect(region()).toHaveTextContent("Work");
     await waitFor(() => expect(document.activeElement).toBe(heading()));
     /* Borrowed focusability, and only while the reader is on it — the same
        `tabindex="-1"`-removed-on-blur pattern `scrollToAnchor` uses for
@@ -125,7 +125,7 @@ describe("announcing a route change", () => {
 
   it("never leaves focus on the body, which is where every route change left it", async () => {
     site();
-    for (const name of ["All work", "All notes", "Icaros"]) {
+    for (const name of ["Work", "Blogs", "Icaros"]) {
       await userEvent.click(screen.getByRole("link", { name }));
       await waitFor(() => expect(document.activeElement).toBe(heading()));
       expect(document.activeElement).not.toBe(document.body);
@@ -134,7 +134,7 @@ describe("announcing a route change", () => {
 
   it("gives up the borrowed tabindex when the reader leaves the heading", async () => {
     site();
-    await userEvent.click(screen.getByRole("link", { name: "All work" }));
+    await userEvent.click(screen.getByRole("link", { name: "Work" }));
     await waitFor(() => expect(document.activeElement).toBe(heading()));
     const h1 = heading();
     h1.blur();
@@ -166,7 +166,7 @@ describe("announcing a route change", () => {
         </Routes>
       </MemoryRouter>
     );
-    expect(document.title).toBe("Notes · Yehuda Briskman");
+    expect(document.title).toBe("Blogs · Yehuda Briskman");
   });
 
   it("focuses the heading of the page it announced, not the one it left", async () => {
@@ -190,7 +190,7 @@ describe("announcing a route change", () => {
     );
     const leaving = within(container).getByRole("heading", { level: 1 });
 
-    await userEvent.click(within(container).getByRole("link", { name: "All notes" }));
+    await userEvent.click(within(container).getByRole("link", { name: "Blogs" }));
 
     const arriving = await waitFor(() =>
       within(container).getByRole("heading", { level: 1, name: "Writing" })
@@ -220,7 +220,7 @@ describe("announcing a route change", () => {
     );
     const h1 = within(container).getByRole("heading", { level: 1 });
 
-    await userEvent.click(within(container).getByRole("link", { name: "All notes" }));
+    await userEvent.click(within(container).getByRole("link", { name: "Blogs" }));
 
     await waitFor(() => expect(document.activeElement).toBe(h1), { timeout: 1500 });
     /* The same node throughout, carrying the new page's name. */
@@ -247,7 +247,7 @@ describe("announcing a route change", () => {
       </MemoryRouter>
     );
 
-    await userEvent.click(within(container).getByRole("link", { name: "All work" }));
+    await userEvent.click(within(container).getByRole("link", { name: "Work" }));
     await waitFor(() =>
       expect(document.activeElement).toBe(
         within(container).getByRole("heading", { level: 1, name: "What I'm building" })
@@ -310,7 +310,7 @@ function ReconciledHeading() {
   return (
     <main>
       <h1>{HEADINGS[pathname] ?? pathname}</h1>
-      <Link to="/blog">All notes</Link>
+      <Link to="/blog">Blogs</Link>
       <Link to="/">Home</Link>
     </main>
   );

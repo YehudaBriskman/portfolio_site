@@ -72,7 +72,7 @@ describe("the chrome across a route change", () => {
     const skip = screen.getByRole("link", { name: "Skip to content" });
     expect(screen.getByRole("heading", { name: "Home" })).toBeInTheDocument();
 
-    await user.click(routeLink("All notes"));
+    await user.click(routeLink("Blogs"));
 
     /* The navigation happened — a different page component is mounted… */
     expect(screen.getByRole("heading", { name: "Notes" })).toBeInTheDocument();
@@ -86,7 +86,7 @@ describe("the chrome across a route change", () => {
 
     /* And it re-rendered for the new route rather than freezing on the old
        one: the room it marks as current followed the reader. */
-    expect(routeLink("All notes")).toHaveAttribute("aria-current", "page");
+    expect(routeLink("Blogs")).toHaveAttribute("aria-current", "page");
     expect(routeLink("Home")).not.toHaveAttribute("aria-current");
   });
 
@@ -99,7 +99,7 @@ describe("the chrome across a route change", () => {
     expect(toggle).toHaveAttribute("aria-expanded", "true");
 
     /* The sheet's own copy of the link — the one a phone reader taps. */
-    const links = screen.getAllByRole("link", { name: "All notes", hidden: true });
+    const links = screen.getAllByRole("link", { name: "Blogs", hidden: true });
     await user.click(links[links.length - 1]);
 
     expect(screen.getByRole("heading", { name: "Notes" })).toBeInTheDocument();
@@ -162,7 +162,7 @@ describe("the dark-chrome observer under a hoisted chrome", () => {
     );
 
     const bar = screen.getByRole("banner");
-    await user.click(routeLink("All work"));
+    await user.click(routeLink("Work"));
 
     /* The address has moved and the page has not: the bar is still here, and
        nothing on the page is dark yet. */

@@ -173,7 +173,7 @@ export default function Blog() {
           down beneath the last card, where nobody was ever going to see it.
         */}
         <header className="isolate relative pb-section-sm">
-          <p className="eyebrow">Notes</p>
+          <p className="eyebrow">Blogs</p>
           <h1 className="display mt-3 text-[clamp(2.75rem,11.5vw,4.75rem)] leading-[0.92]">
             {site?.title ?? "Writing"}
           </h1>

@@ -161,7 +161,7 @@ smoke: ## Check the running stack end to end
 	printf '%-34s' 'GET /blog (rendered, not shell)'; \
 	blog=$$(curl -sS -m 10 $(SITE)/blog || true); \
 	case "$$blog" in \
-	  *'<h1>Notes</h1>'*) \
+	  *'<h1>Blogs</h1>'*) \
 	    printf 'ok, %s\n' "$$(printf '%s' "$$blog" | grep -o '<title>[^<]*</title>' | head -1)";; \
 	  *) printf 'FAIL\n\n'; \
 	     echo '  /blog came back without the rendered <h1>, so nginx fell back'; \
