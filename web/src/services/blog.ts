@@ -12,6 +12,8 @@ const SummarySchema = z.object({
   collection: z.string().default("site"),
   coverImage: z.string().nullable().default(null),
   readingMinutes: z.number(),
+  /* The owner's pick for "top posts", 1 first; null is not featured. */
+  featured: z.number().nullable().optional(),
 });
 
 const PostSchema = SummarySchema.extend({
@@ -43,6 +45,26 @@ const CollectionSchema = z.object({
 export type PostSummary = z.infer<typeof SummarySchema>;
 export type Post = z.infer<typeof PostSchema>;
 export type Collection = z.infer<typeof CollectionSchema>;
+
+/* Shared with services/activity.ts, which extends the area with its counts. */
+export { CollectionSchema, SummarySchema };
+
+/**
+ * "Top posts" without analytics: featured ones in their order, then the
+ * newest. The site keeps no view counts, so this is the owner's pick.
+ */
+export function topPosts<T extends Pick<PostSummary, "featured" | "publishedAt">>(posts: T[], n = 3): T[] {
+  return [...posts]
+    .sort((a, b) => {
+      if (a.featured != null || b.featured != null) {
+        if (a.featured == null) return 1;
+        if (b.featured == null) return -1;
+        if (a.featured !== b.featured) return a.featured - b.featured;
+      }
+      return (b.publishedAt ?? "").localeCompare(a.publishedAt ?? "");
+    })
+    .slice(0, n);
+}
 
 /** The envelope every blog endpoint returns; the payload is validated by zod. */
 type JsonEnvelope = Record<string, unknown>;

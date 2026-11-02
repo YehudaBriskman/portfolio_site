@@ -18,13 +18,27 @@ type Draft = {
   collection: string;
   coverImage: string;
   links: LinkRow[];
+  /* Held as text while editing; "" is not featured. */
+  featured: string;
   _rev?: string;
 };
 
 const EMPTY: Draft = {
   slug: "", title: "", subtitle: "", excerpt: "", body: "",
-  status: "draft", tags: "", collection: "site", coverImage: "", links: [],
+  status: "draft", tags: "", collection: "site", coverImage: "", links: [], featured: "",
 };
+
+/**
+ * "" clears. Anything else goes to the server, which rejects what is not an
+ * integer 1–99 and names the field. Text that is not a number is sent as
+ * text, never as NaN: JSON writes NaN as null, which would silently clear it.
+ */
+function featuredValue(text: string): number | string | null {
+  const t = text.trim();
+  if (t === "") return null;
+  const n = Number(t);
+  return Number.isFinite(n) ? n : t;
+}
 
 export default function AdminEditor() {
   const { slug } = useParams();
@@ -52,7 +66,8 @@ export default function AdminEditor() {
         setD({
           slug: p.slug, title: p.title, subtitle: p.subtitle ?? "", excerpt: p.excerpt,
           body: p.body, status: p.status, tags: p.tags.join(", "), collection: p.collection,
-          coverImage: p.coverImage ?? "", links: toLinkRows(p.links), _rev: p._rev,
+          coverImage: p.coverImage ?? "", links: toLinkRows(p.links),
+          featured: p.featured == null ? "" : String(p.featured), _rev: p._rev,
         });
         setLoading(false);
       })
@@ -103,12 +118,16 @@ export default function AdminEditor() {
           collection: d.collection,
           coverImage: d.coverImage.trim() || null,
           links: d.links.filter((l) => l.label && l.url),
+          featured: featuredValue(d.featured),
           _rev: rev ?? d._rev,
         });
         setD((p) => ({ ...p, _rev: saved._rev, status: saved.status }));
         setSave({ kind: "saved", at: new Date() });
+        setFieldErrors({});
         if (isNew) nav(`/admin/posts/${saved.slug}`, { replace: true });
       } catch (e) {
+        // The server names the rejected field; the featured input shows its own.
+        if (e instanceof AdminValidationError) setFieldErrors(e.fieldErrors);
         const message = e instanceof Error ? e.message : "Save failed";
         // A 409 is a conversation, not an error message. The old copy told the
         // author to "reload and reapply" with nothing to reload with, and the
@@ -130,7 +149,8 @@ export default function AdminEditor() {
       setD({
         slug: live.slug, title: live.title, subtitle: live.subtitle ?? "", excerpt: live.excerpt,
         body: live.body, status: live.status, tags: live.tags.join(", "), collection: live.collection,
-        coverImage: live.coverImage ?? "", links: toLinkRows(live.links), _rev: live._rev,
+        coverImage: live.coverImage ?? "", links: toLinkRows(live.links),
+        featured: live.featured == null ? "" : String(live.featured), _rev: live._rev,
       });
       setSave({ kind: "idle" });
     } catch (e) {
@@ -257,6 +277,20 @@ export default function AdminEditor() {
                 <span className="a-label">Cover image URL</span>
                 <input value={d.coverImage} onChange={(e) => set("coverImage", e.target.value)} className="a-input a-input-mono" placeholder="https://…" />
                 <span className="a-hint">Must be a full https:// URL, or the save is rejected.</span>
+              </label>
+              <label className="block">
+                <span className="a-label">Featured order</span>
+                <input
+                  value={d.featured}
+                  onChange={(e) => set("featured", e.target.value)}
+                  className="a-input a-input-mono"
+                  inputMode="numeric"
+                  placeholder="Not featured"
+                  aria-invalid={fieldErrors.featured ? true : undefined}
+                />
+                <span className="a-hint">
+                  {fieldErrors.featured ?? "1 comes first among the top posts. Leave empty to rank by date."}
+                </span>
               </label>
               <label className="block sm:col-span-2">
                 <span className="a-label">Subtitle</span>
