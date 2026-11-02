@@ -134,6 +134,12 @@ check: ## Run the gates CI runs: lint, typecheck, tests, builds
 # anything to act on. Run against preprod while it was still broken, the old
 # recipe exited 0 and printed an empty line where the posts belonged. That is
 # why the body is captured into a variable and matched here.
+#
+# The /blog check asserts on the body for the same reason and a different
+# failure: an empty content store. It used to print whatever <title> came
+# back, and the SPA shell has a perfectly good <title> of its own, so a
+# fallback was indistinguishable from a render. It now requires the heading
+# the renderer emits, which the built index.html does not contain anywhere.
 smoke: ## Check the running stack end to end
 	@set -e; \
 	printf '%-34s' 'GET /'; \
@@ -152,7 +158,19 @@ smoke: ## Check the running stack end to end
 	     echo '  with no documents: run `make seed`.'; \
 	     exit 1;; \
 	esac; \
-	printf '%-34s' 'GET /blog (rendered head)'; \
-	curl -fsS $(SITE)/blog | grep -o '<title>[^<]*</title>' | head -1; \
+	printf '%-34s' 'GET /blog (rendered, not shell)'; \
+	blog=$$(curl -sS -m 10 $(SITE)/blog || true); \
+	case "$$blog" in \
+	  *'<h1>Notes</h1>'*) \
+	    printf 'ok, %s\n' "$$(printf '%s' "$$blog" | grep -o '<title>[^<]*</title>' | head -1)";; \
+	  *) printf 'FAIL\n\n'; \
+	     echo '  /blog came back without the rendered <h1>, so nginx fell back'; \
+	     echo '  to @spa and served the bare shell — with a 200. The built'; \
+	     echo '  index.html contains no <h1> at all, which is exactly what'; \
+	     echo '  makes the fallback detectable from the body and not from the'; \
+	     echo '  status. The <title> is not enough on its own: the shell ships'; \
+	     echo '  one, so the old check here accepted the fallback as a pass.'; \
+	     exit 1;; \
+	esac; \
 	printf '%-34s' 'GET /robots.txt'; \
 	curl -fsS -o /dev/null -w '%{http_code}\n' $(SITE)/robots.txt
