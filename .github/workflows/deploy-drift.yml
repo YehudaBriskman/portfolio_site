@@ -15,6 +15,16 @@
 # Why a separate workflow rather than a job in ci.yml: this has to run when
 # nobody has pushed. That is exactly the condition it exists to detect, and a
 # job in ci.yml can only run when ci.yml runs.
+#
+# The second question, same schedule (#206): is what is running still clean?
+# A scan is evidence about the advisories known the day it ran. So the drift
+# job also reads the exact digest each web and api Deployment runs in preprod
+# and prod, and the Rescan job scans those digests with today's vulnerability
+# database under CI's policy and exceptions file. It builds nothing and
+# deploys nothing, and it holds no cluster credential: only the digests cross
+# from one job to the other. A finding and a scanner error fail it
+# differently (.github/scripts/rescan.sh), and the summary has a row per
+# environment and component.
 name: Deploy drift
 
 on:
@@ -32,16 +42,22 @@ permissions:
 
 jobs:
   drift:
+    name: Drift
     runs-on: ubuntu-latest
     # A tailnet join of up to a minute, then a few kubectl reads. Ten minutes
     # is several times that; a hung run should not hold a runner for six hours.
     timeout-minutes: 10
+    permissions:
+      contents: read
+    outputs:
+      # [{env, app, image}] for web and api in preprod and prod.
+      targets: ${{ steps.running.outputs.targets }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          # Credentials stay: the job fetches origin/main again further down,
-          # and nothing here uploads the workspace as an artifact.
-          # zizmor: ignore[artipacked]
+          # The repository is public, so the `git fetch` below needs no
+          # credential, and none is left in .git/config (#206).
+          persist-credentials: false
           # `git rev-list --count <sha>..origin/main` needs the history that
           # contains <sha>, and the default shallow clone does not have it.
           # A shallow checkout here fails as "unknown revision", which reads
@@ -92,6 +108,13 @@ jobs:
           mkdir -p "$HOME/.kube"
           printf '%s' "$KUBECONFIG_B64" | base64 -d > "$HOME/.kube/config"
           chmod 600 "$HOME/.kube/config"
+
+      # For the Rescan job: the image each Deployment's pod template names,
+      # which since #205 is a digest. Before the drift check, which can fail
+      # the job; a stale environment still deserves a scan.
+      - name: Which digests are running
+        id: running
+        run: .github/scripts/rescan.sh targets
 
       # Two thresholds, because the two environments mean different things.
       #
@@ -158,3 +181,41 @@ jobs:
           done
 
           exit "$status"
+
+  # The running digests against today's vulnerability database (#206), with
+  # the policy and .trivyignore.yaml Scan image and Promote release use. No
+  # tailnet and no kubeconfig here: the digests arrive as the drift job's
+  # output, and this job only reads the registry.
+  #
+  #   exit 1  a running image fails the policy today: fix and release, or
+  #           record a reviewed exception
+  #   exit 2  a scanner error (DB download, stale DB, a scan that did not
+  #           complete): nothing is known, which is not "clean"
+  rescan:
+    name: Rescan deployed images
+    runs-on: ubuntu-latest
+    needs: [drift]
+    # Whether or not drift passed: a stale environment still runs an image.
+    # Only when the drift job got as far as reading the Deployments.
+    if: ${{ !cancelled() && needs.drift.outputs.targets != '' }}
+    # A database download and up to four remote image scans.
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      # Pulling the images' layers from GHCR.
+      packages: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install trivy
+        run: .github/scripts/rescan.sh install-trivy
+      - uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Scan what is running, with today's database
+        env:
+          TARGETS: ${{ needs.drift.outputs.targets }}
+        run: .github/scripts/rescan.sh scan
