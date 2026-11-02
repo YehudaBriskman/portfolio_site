@@ -538,6 +538,147 @@
   outline: none;
 }
 
+/*
+ * The aurora (#181). One line of light on the cards' own path, behind them,
+ * so it shows in each gap and joins every card to the next.
+ *
+ * ON THE PATH. Every card's centre lies on one fixed curve in the frame (the
+ * header of `runCurve.ts` derives it from run-x and run-y): half a card past
+ * each edge, one `--run-amp` either side of the middle, one period of the
+ * sine. `.curve` is that box, set from the same custom properties the slot
+ * uses, and the SVG inside it stretches one period into it. Measured in the
+ * browser, every card centre sits within 1px of the drawn line, at both
+ * window sizes and in both directions (`web/scripts/shoot-work-aurora.mjs`).
+ *
+ * The cq units have to resolve against a box the size of `.run`, which is a
+ * size container; `.aurora` is the same box (the frame below the bar) and is
+ * a size container itself, so its children read the same 100cqw.
+ *
+ * THE LIGHT. A haze and a band rest on the line. The surge is a soft window,
+ * 46cqw wide, that crosses the frame from the reading end to past the start
+ * once a card; the copy of the line inside it is carried the other way by
+ * the same amount, so it stays on the curve while the window passes over it.
+ * Two transforms on the run's timeline, nothing repainted; the iteration
+ * count divides the hold, since a scroll-driven animation has no duration.
+ *
+ * RIGHT TO LEFT. The window runs the other way by `--run-dir`, and the
+ * drawing is turned by `scale: var(--run-dir) 1`: it is a sine with no text
+ * in it, so turning the picture is mirroring it, and the curve's box is
+ * anchored at `inset-inline-start` as the slot is.
+ *
+ * Distinct from the living line on /story and "How I work" (#176/#183) on
+ * purpose: that line is ink, one stroke drawn on by scroll beside the
+ * reading. This is light, always fully drawn, under the work.
+ */
+.aurora {
+  position: absolute;
+  inset: var(--bar-h, 56px) 0 0 0;
+  container-type: size;
+  pointer-events: none;
+}
+
+.defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+
+.curve {
+  position: absolute;
+  inset-inline-start: calc(-0.65 * var(--run-card));
+  top: calc(50% - var(--run-amp));
+  width: calc(100cqw + 1.3 * var(--run-card));
+  height: calc(2 * var(--run-amp));
+  overflow: visible;
+  scale: var(--run-dir) 1;
+}
+
+.curve path {
+  fill: none;
+  stroke: url(#run-aurora);
+}
+
+.haze {
+  opacity: 0.3;
+  filter: blur(14px);
+}
+
+.haze path {
+  stroke-width: 34px;
+}
+
+.band {
+  opacity: 0.55;
+  filter: blur(2.5px);
+}
+
+.band path {
+  stroke-width: 5px;
+}
+
+.surge {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  width: 46cqw;
+  overflow: clip;
+  mask-image: linear-gradient(90deg, transparent, #000 45%, #000 55%, transparent);
+  animation-name: run-surge;
+}
+
+.surgeIn {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  width: 100cqw;
+  animation-name: run-surge-hold;
+}
+
+.surge,
+.surgeIn {
+  animation-fill-mode: both;
+  animation-timing-function: linear;
+  animation-timeline: --run;
+  animation-range: contain 0% contain 100%;
+  animation-iteration-count: var(--run-n, 4);
+}
+
+@keyframes run-surge {
+  from {
+    transform: translateX(calc(var(--run-dir) * 100cqw));
+  }
+  to {
+    transform: translateX(calc(var(--run-dir) * -46cqw));
+  }
+}
+
+@keyframes run-surge-hold {
+  from {
+    transform: translateX(calc(var(--run-dir) * -100cqw));
+  }
+  to {
+    transform: translateX(calc(var(--run-dir) * 46cqw));
+  }
+}
+
+.glow {
+  opacity: 0.9;
+  filter: blur(5px);
+}
+
+.glow path {
+  stroke-width: 12px;
+}
+
+.core {
+  opacity: 0.85;
+}
+
+.core path {
+  stroke: rgb(236 244 255);
+  stroke-width: 1.5px;
+}
+
 /* ── the three off-switches, one finished state ─────────────────────────── */
 
 @supports not (animation-timeline: view()) {
@@ -573,6 +714,10 @@
   .mark {
     top: 0;
   }
+  /* The plain list is the whole fallback: no curve, no aurora. */
+  .aurora {
+    display: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -603,6 +748,31 @@
   }
   .mark {
     top: 0;
+  }
+  .aurora {
+    inset: 0;
+    container-type: normal;
+  }
+  .aurora > * {
+    display: none;
+  }
+  .aurora::before {
+    content: "";
+    position: absolute;
+    inset-block: 3rem;
+    left: calc(50% - 1.5px);
+    width: 3px;
+    border-radius: 2px;
+    background: linear-gradient(
+      180deg,
+      rgb(24 142 167),
+      rgb(58 132 104),
+      rgb(122 162 232),
+      rgb(157 103 241),
+      rgb(24 142 167)
+    );
+    box-shadow: 0 0 16px 3px rgb(122 162 232 / 0.3);
+    opacity: 0.7;
   }
 }
 
@@ -640,7 +810,43 @@
   top: 0;
 }
 
+/*
+ * Under reduced motion and Pause the run is the plain list and there is no
+ * curve, so the aurora becomes one still ribbon down the list's middle,
+ * behind the cards: fully drawn, no surge, and each gap still shows the
+ * cards strung on one line. With no scroll-driven animation at all it is
+ * hidden: there the list is the whole fallback.
+ */
+:global(body.motion-paused) .aurora {
+  inset: 0;
+  container-type: normal;
+}
+:global(body.motion-paused) .aurora > * {
+  display: none;
+}
+:global(body.motion-paused) .aurora::before {
+  content: "";
+  position: absolute;
+  inset-block: 3rem;
+  left: calc(50% - 1.5px);
+  width: 3px;
+  border-radius: 2px;
+  background: linear-gradient(
+    180deg,
+    rgb(24 142 167),
+    rgb(58 132 104),
+    rgb(122 162 232),
+    rgb(157 103 241),
+    rgb(24 142 167)
+  );
+  box-shadow: 0 0 16px 3px rgb(122 162 232 / 0.3);
+  opacity: 0.7;
+}
+
 @media (forced-colors: active) {
+  .aurora {
+    display: none;
+  }
   .face {
     background-image: none;
     box-shadow: none;

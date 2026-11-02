@@ -6,6 +6,14 @@ import { MemoryRouter } from "react-router-dom";
 import ProjectRun from "@/components/projects/ProjectRun";
 import type { ProjectEntry } from "@/hooks/useProjects";
 import type { Collection } from "@/services/blog";
+import {
+  CURVE_H,
+  CURVE_PATH,
+  CURVE_W,
+  cardCentre,
+  curveBox,
+  curveY,
+} from "@/components/projects/runCurve";
 
 /*
  * jsdom has no layout and no scroll-driven animation, so the run itself — the
@@ -127,7 +135,8 @@ describe("ProjectRun", () => {
 describe("ProjectRun.module.css", () => {
   it("drives the run by scroll alone, from the static stage's named timeline", () => {
     expect(CSS).toMatch(/\.stage\s*\{[^}]*view-timeline-name:\s*--run/);
-    expect(CSS.match(/animation-timeline:\s*--run/g)).toHaveLength(2);
+    /* slot, card, and the aurora's surge with its counter-move (#181) */
+    expect(CSS.match(/animation-timeline:\s*--run/g)).toHaveLength(3);
     expect(CSS).not.toMatch(/animation-timeline:\s*view\(\)\s*;/);
     expect(CSS).not.toMatch(/animation-(duration|delay)/);
     expect(CSS).not.toMatch(/scroll-snap/);
@@ -271,5 +280,127 @@ describe("ProjectRun tilt", () => {
     );
     expect(alphas.length).toBeGreaterThanOrEqual(4);
     alphas.forEach((a) => expect(a).toBeLessThanOrEqual(0.4));
+  });
+});
+
+/*
+ * The aurora (#181): one line of light on the cards' own path. jsdom cannot
+ * lay it out, so what is held here is the geometry (pure, in runCurve.ts),
+ * the stylesheet's box for it, which must be the same numbers the slot moves
+ * by, and the off-switches. The drawn line is measured against the cards in
+ * a browser by `scripts/shoot-work-aurora.mjs`.
+ */
+describe("ProjectRun aurora", () => {
+  /* The drawn curve's height at a point x of the run, in the run's box. */
+  function drawnY(x: number, W: number, H: number, c: number, A: number, rtl = false) {
+    const box = curveBox(W, H, c, A);
+    let u = (x - box.left) / box.width;
+    /* `scale: var(--run-dir) 1` turns the drawing about its own centre. */
+    if (rtl) u = 1 - u;
+    return box.top + (curveY(u) / CURVE_H) * box.height;
+  }
+
+  /* run box, card, amplitude: 1440×900 and 390×844 as the browser has them */
+  const WINDOWS = [
+    [1440, 844, 448, 67.52],
+    [390, 788, 312, 39],
+    [1024, 712, 448, 56.96],
+  ] as const;
+
+  it.each(WINDOWS)("puts every card centre on the drawn line (%i wide)", (W, H, c, A) => {
+    for (let p = 0; p <= 1.0001; p += 0.05) {
+      const { x, y } = cardCentre(p, W, H, c, A);
+      expect(Math.abs(drawnY(x, W, H, c, A) - y)).toBeLessThan(0.01);
+    }
+  });
+
+  it.each(WINDOWS)("mirrors onto the mirrored run in Hebrew (%i wide)", (W, H, c, A) => {
+    for (let p = 0; p <= 1.0001; p += 0.05) {
+      const { x, y } = cardCentre(p, W, H, c, A);
+      /* A Hebrew card at lap p stands where the English one does, mirrored. */
+      expect(Math.abs(drawnY(W - x, W, H, c, A, true) - y)).toBeLessThan(0.01);
+    }
+  });
+
+  it("samples the path finely enough to stay within half a pixel of the sine", () => {
+    const pts = Array.from(CURVE_PATH.matchAll(/(-?[\d.]+) (-?[\d.]+)/g), (m) => [
+      Number(m[1]),
+      Number(m[2]),
+    ]);
+    expect(pts.length).toBeGreaterThan(200);
+    expect(pts[0]).toEqual([0, 50]);
+    expect(pts.at(-1)).toEqual([CURVE_W, 50]);
+    /* Worst chord sag, at a tall window's amplitude (100 units → 135px). */
+    for (let i = 1; i < pts.length; i += 1) {
+      const mid = (pts[i - 1][0] + pts[i][0]) / 2;
+      const chord = (pts[i - 1][1] + pts[i][1]) / 2;
+      expect(Math.abs(chord - curveY(mid / CURVE_W)) * 1.35).toBeLessThan(0.5);
+    }
+  });
+
+  it("sets the curve's box from the numbers the slot moves by", () => {
+    /* runCurve.ts derives the box from these two ends of run-x: if they
+       change, the box must change with them. */
+    const x = CSS.match(/@keyframes run-x\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
+    expect(x).toMatch(/translateX\(calc\(var\(--run-dir\) \* \(100cqw \+ 15%\)\)\)/);
+    expect(x).toMatch(/translateX\(calc\(var\(--run-dir\) \* -115%\)\)/);
+    expect(CSS).toMatch(/\n\.slot\s*\{[^}]*width:\s*var\(--run-card\)/);
+    const curve = CSS.match(/\n\.curve\s*\{([^}]*)\}/)?.[1] ?? "";
+    expect(curve).toMatch(/inset-inline-start:\s*calc\(-0\.65 \* var\(--run-card\)\)/);
+    expect(curve).toMatch(/top:\s*calc\(50% - var\(--run-amp\)\)/);
+    expect(curve).toMatch(/width:\s*calc\(100cqw \+ 1\.3 \* var\(--run-card\)\)/);
+    expect(curve).toMatch(/height:\s*calc\(2 \* var\(--run-amp\)\)/);
+    expect(curve).toMatch(/scale:\s*var\(--run-dir\) 1/);
+    /* The same box as the run, and a size container, so 100cqw agrees. */
+    expect(CSS).toMatch(
+      /\n\.aurora\s*\{[^}]*inset:\s*var\(--bar-h, 56px\) 0 0 0;[^}]*container-type:\s*size/
+    );
+  });
+
+  it("sweeps its light on the run's timeline, the way the cards travel", () => {
+    for (const name of ["run-surge", "run-surge-hold"]) {
+      const kf = CSS.match(new RegExp(`@keyframes ${name}\\s*\\{([\\s\\S]*?)\\n\\}`))?.[1] ?? "";
+      expect(kf.match(/translateX\(calc\(var\(--run-dir\)/g)).toHaveLength(2);
+    }
+    expect(CSS).toMatch(/\.surge,\s*\.surgeIn\s*\{[^}]*animation-timeline:\s*--run;/);
+  });
+
+  it("is drawn behind the list, hidden from assistive technology", () => {
+    const { container } = draw(three);
+    const aurora = container.querySelector("[data-run-aurora]")!;
+    expect(aurora.getAttribute("aria-hidden")).toBe("true");
+    expect(aurora.closest("ol")).toBeNull();
+    expect(aurora.nextElementSibling?.tagName).toBe("OL");
+    expect(screen.getByRole("list", { name: "Selected work" }).children).toHaveLength(3);
+  });
+
+  const still = (body: string) => {
+    expect(body).toMatch(/\.aurora\s*\{[^}]*container-type:\s*normal/);
+    expect(body).toMatch(/\.aurora > \*\s*\{\s*display:\s*none/);
+    expect(body).toMatch(
+      /\.aurora::before\s*\{[^}]*content:\s*"";[^}]*background:\s*linear-gradient/
+    );
+  };
+
+  it("is a still ribbon under reduced motion", () => {
+    const body =
+      CSS.match(/@media \(prefers-reduced-motion: reduce\)\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
+    still(body);
+  });
+
+  it("is the same still ribbon under Pause", () => {
+    const paused = Array.from(
+      CSS.matchAll(/:global\(body\.motion-paused\) (\.aurora[^{]*\{[^}]*\})/g),
+      (m) => m[1]
+    ).join("\n");
+    still(paused);
+  });
+
+  it("is hidden where scroll-driven animation is missing, and in forced colours", () => {
+    const none =
+      CSS.match(/@supports not \(animation-timeline: view\(\)\)\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
+    expect(none).toMatch(/\.aurora\s*\{\s*display:\s*none/);
+    const forced = CSS.match(/@media \(forced-colors: active\)\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
+    expect(forced).toMatch(/\.aurora\s*\{\s*display:\s*none/);
   });
 });
