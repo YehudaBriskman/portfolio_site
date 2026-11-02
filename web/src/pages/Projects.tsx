@@ -60,7 +60,7 @@ export default function Projects() {
     <PageShell>
       <section data-crest data-hue="58 106 102" className="wrap-wide section-y isolate relative">
         <header className="relative">
-          <p className="eyebrow">Projects</p>
+          <p className="eyebrow">Work</p>
           <h1 className="display mt-3 text-section">What I&rsquo;ve built</h1>
           <p className="mt-6 max-w-[46ch] text-lg leading-[1.6] text-ink/85 sm:text-xl">
             Every project in one index, with the year it is from and the state it is in. Open any of them

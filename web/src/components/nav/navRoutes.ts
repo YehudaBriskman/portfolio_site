@@ -1,6 +1,6 @@
 /*
- * The three rooms the site keeps, which are now the whole of what the bar
- * takes you to.
+ * The four rooms the site keeps, which are the whole of what the bar takes
+ * you to.
  *
  * What this file used to be
  * -------------------------
@@ -9,43 +9,59 @@
  * one you were standing on marked. That reasoning is written up where it was
  * reversed (see the head of `Nav.tsx`); what matters here is that the
  * generation is gone, so the chrome no longer imports the collection at all.
- * A bar that lists three fixed rooms has no table to drift from, which is why
+ * A bar that lists four fixed rooms has no table to drift from, which is why
  * a hand-written array is the right shape now and was the wrong one then.
  *
- * Why the labels say "All"
- * ------------------------
- * The first reason for "All notes" was that the index also carried an item
- * called Notes, pointing at the shelf, and two links a hundred pixels apart
- * with one label and two destinations is the kind of thing that makes a reader
- * stop trusting a nav. That particular collision has gone with the index.
+ * Home, Journey, Work, Blogs — and why in that order (#222)
+ * --------------------------------------------------------
+ * The owner's words and the owner's order. It reads as a person before it
+ * reads as a catalogue: who this is (Home), how he got here (Journey), what he
+ * has made (Work), what he writes (Blogs). The account comes before the
+ * evidence, which is the order a stranger asks the questions in, and the two
+ * rooms that are lists sit together at the end of the bar.
  *
- * The labels stay anyway, because the collision was never only with the bar's
- * own item: the home page sets `<h2>Work</h2>` over four of however many
- * projects exist, and `<h2>Notes</h2>` over a shelf of four. A reader who has
- * just passed those headings and then follows a bar link labelled "Notes"
- * arrives at a room of all of them and has no way to know whether it is the
- * same thing one scroll higher. "All" is the word that separates the room from
- * the section — one scroll apart rather than a hundred pixels, which is worse
- * rather than better, because the two are never on screen together to be
- * compared.
+ * The labels are single words, and the bar no longer says "All". "All work"
+ * and "All notes" were there to keep the room apart from the home page's
+ * `<h2>Work</h2>` and `<h2>Notes</h2>`, which show four of each. That is now
+ * carried by the room rather than the bar: each room opens on its own name as
+ * its eyebrow, the document title and the route announcer say the same word,
+ * and the home sections end in an onward link to the whole set. The bar
+ * reading as four plain nouns, the same size and weight, is worth more than a
+ * qualifier on two of them that only the home page needed.
+ *
+ * "Journey" is the page at `/story` (#46): a chaptered account of the work
+ * along the other axis — the collection says what exists, this says how it
+ * got there. It is still not "About" and not "CV": it names no employer, and
+ * a label promising a résumé would be a label for a page that does not exist.
+ *
+ * "Blogs" is the page at `/blog`. The posts inside it are still called notes
+ * where the prose talks about them one at a time; the room's name is Blogs.
  *
  * "Home" is a word rather than a monogram. "Y.B." rendered above a first
  * screen that sets the full name in display type was a second, worse answer to
  * a question the page had already answered, and a monogram is the one thing in
  * a chrome that cannot say where it goes.
  *
- * "The story" is the fourth room (#46), and it sits after "All work" because
- * it is the same work along the other axis — the collection says what exists,
- * the story says how it got there — so the two are read as a pair. It is not
- * "About" and not "CV": the page is a chaptered account of the work, it names
- * no employer, and a label promising a résumé would be a label for a page
- * that does not exist.
+ * The routes did not move. `/story`, `/projects` and `/blog` are addresses
+ * that have been shared, so renaming the rooms changes only the words.
+ *
+ * Hebrew
+ * ------
+ * Each label carries its Hebrew alongside it, in the same order: בית, המסע,
+ * עבודות, בלוגים. The definite article on המסע ("the journey") because a bare
+ * מסע reads as "a trip"; עבודות rather than פרויקטים because it is the word
+ * the English chose (work, not projects) and the native one; בלוגים as the
+ * plain loanword every Hebrew reader already uses for this. The Hebrew locale
+ * is listed and disabled (see `locale.ts`), so these are on screen only once
+ * it is switched on — they live here so that the switch is one line.
  */
-export type NavRoute = { to: string; label: string };
+import type { LocaleCode } from "./locale";
+
+export type NavRoute = { to: string; label: Record<LocaleCode, string> };
 
 export const NAV_ROUTES: readonly NavRoute[] = [
-  { to: "/", label: "Home" },
-  { to: "/projects", label: "All work" },
-  { to: "/story", label: "The story" },
-  { to: "/blog", label: "All notes" },
+  { to: "/", label: { en: "Home", he: "בית" } },
+  { to: "/story", label: { en: "Journey", he: "המסע" } },
+  { to: "/projects", label: { en: "Work", he: "עבודות" } },
+  { to: "/blog", label: { en: "Blogs", he: "בלוגים" } },
 ];

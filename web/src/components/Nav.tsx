@@ -59,7 +59,7 @@ import styles from "./Nav.module.css";
  *   the order the page reads, in context, and jumpable. The index's eight
  *   items were those six plus two that were route changes to projects not on
  *   this page at all (#45 measured them as the undifferentiated items five and
- *   six); those are now reached through "All work", which is what a link to a
+ *   six); those are now reached through "Work", which is what a link to a
  *   room is for. So the outline is not a reduced index — it is the same set
  *   with the two liars taken out of it.
  *
@@ -339,7 +339,7 @@ export default function Nav() {
                     aria-current={routeCurrent(r.to)}
                     className={styles.route}
                   >
-                    {r.label}
+                    {r.label[locale]}
                   </Link>
                 </li>
               ))}
@@ -443,7 +443,7 @@ export default function Nav() {
                   aria-current={routeCurrent(r.to)}
                   className={styles.sheetLink}
                 >
-                  {r.label}
+                  {r.label[locale]}
                 </Link>
               </li>
             ))}

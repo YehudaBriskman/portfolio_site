@@ -23,10 +23,10 @@
  *                                      after the click — no smooth scroll
  *   a filter (same path, new query)    the page stays where it was
  *
- * The inventory it was written against — 45 internal link sites, by kind:
+ * The inventory it was written against — 46 internal link sites, by kind:
  *
- *   nav       4   Home, All work, The story, All notes (bar, and the sheet)
- *   footer    4   Home, Projects, Notes, Accessibility
+ *   nav       4   Home, Journey, Work, Blogs (bar, and the sheet)
+ *   footer    5   Home, Journey, Work, Blogs, Accessibility
  *   cards    11   run card, gallery card, the wall rail, project row, note card and its area
  *                 link, shelf post, Blog area link, a project's posts, story
  *                 beat title, a post's area link
@@ -333,7 +333,7 @@ for (const w of WINDOWS) {
   const [win] = w;
   const page = await open(w);
 
-  /* nav: home scrolled deep -> All work lands at the top */
+  /* nav: home scrolled deep -> Work lands at the top */
   await goto(page, "/");
   await scrollTo(page, 3000);
   await openSheetIfPhone(page, win);
@@ -392,7 +392,7 @@ for (const w of WINDOWS) {
     record("filter keeps the place", win, before > 0 && Math.abs(after - before) <= 48, `scrollY ${after}, was ${before}`);
   }
 
-  /* footer: foot of the home page -> Notes */
+  /* footer: foot of the home page -> Blogs */
   await goto(page, "/");
   await page.evaluate(() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "instant" }));
   await settle(page);

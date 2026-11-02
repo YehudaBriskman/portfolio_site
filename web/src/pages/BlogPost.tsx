@@ -440,7 +440,7 @@ export default function BlogPost() {
               <code className="mono text-bone">/blog</code>.
             </p>
             <Link to="/blog" className="btn btn-quiet mt-12">
-              <span aria-hidden="true">&larr;</span> All notes
+              <span aria-hidden="true">&larr;</span> Blogs
             </Link>
           </div>
         )}
@@ -466,10 +466,10 @@ export default function BlogPost() {
                 Try again
               </button>
               <Link to="/blog" className="btn btn-quiet">
-                All notes
+                Blogs
               </Link>
               <Link to="/projects" className="btn btn-quiet">
-                Projects
+                Work
               </Link>
             </div>
           </div>
@@ -486,7 +486,7 @@ export default function BlogPost() {
                   to="/blog"
                   className={`mono ${pill.tag} hidden min-h-[44px] items-center gap-2 rounded-full border px-4 py-2 text-xs uppercase tracking-[0.16em] transition-colors duration-150 sm:inline-flex`}
                 >
-                  <span aria-hidden="true">&larr;</span> Notes
+                  <span aria-hidden="true">&larr;</span> Blogs
                 </Link>
 
                 <div className="mt-12">

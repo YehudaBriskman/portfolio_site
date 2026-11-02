@@ -259,7 +259,7 @@ router.get(
   asyncHandler(async (_req, res) => {
     const posts = await publishedPosts();
     await sendShell(res, {
-      title: "Notes · Yehuda Briskman",
+      title: "Blogs · Yehuda Briskman",
       description:
         "Writing on backend engineering, infrastructure, and shipping products end to end.",
       canonical: absoluteUrl("/blog"),
@@ -271,7 +271,7 @@ router.get(
        * pages that should be handing Google the link graph for everything else,
        * so they now list what they actually contain.
        */
-      bodyHtml: `<main><h1>Notes</h1><p>Writing on backend engineering, infrastructure, and shipping products end to end, plus notes from each of my projects.</p><ul>${posts
+      bodyHtml: `<main><h1>Blogs</h1><p>Writing on backend engineering, infrastructure, and shipping products end to end, plus notes from each of my projects.</p><ul>${posts
         .filter((p) => !p.seo.noindex)
         .sort((a, b) => (b.publishedAt ?? "").localeCompare(a.publishedAt ?? ""))
         .map(
@@ -294,14 +294,14 @@ router.get(
     for (const c of live) merged.set(c.slug, { title: c.title, tagline: c.tagline || c.description });
     const entries = [...merged.entries()];
     await sendShell(res, {
-      title: "Projects · Yehuda Briskman",
+      title: "Work · Yehuda Briskman",
       description:
         "Things I have built and run end to end, each with its own notes, documentation and source.",
       canonical: absoluteUrl("/projects"),
       image: absoluteUrl("/og-projects.png"),
       imageAlt: "Projects by Yehuda Briskman",
       type: "website",
-      bodyHtml: `<main><h1>Projects</h1><p>Things I have built and run end to end, each with its own notes, documentation and source.</p><ul>${entries
+      bodyHtml: `<main><h1>Work</h1><p>Things I have built and run end to end, each with its own notes, documentation and source.</p><ul>${entries
         .map(
           ([slug, entry]) =>
             `<li><a href="/projects/${escapeHtml(slug)}">${escapeHtml(entry.title)}</a> — ${escapeHtml(entry.tagline)}</li>`,

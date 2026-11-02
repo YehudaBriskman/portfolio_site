@@ -29,7 +29,7 @@ import { projects } from "@/data/projects";
  * The format is not invented here
  * -------------------------------
  * `backend/src/routes/seo.route.ts` already rewrites the head per URL for
- * crawlers, and it writes `Projects · Yehuda Briskman`, `Notes · Yehuda
+ * crawlers, and it writes `Work · Yehuda Briskman`, `Blogs · Yehuda
  * Briskman`, `Not found · Yehuda Briskman` and `${post.title} · Yehuda
  * Briskman`. Those strings are the contract; this file reproduces them rather
  * than choosing a second format, because a crawler and a reader seeing two
@@ -174,18 +174,18 @@ export function pageIdentityFor(pathname: string): PageIdentity {
   if (segments.length === 0) return { name: "Home", title: HOME_TITLE };
 
   if (first === "projects") {
-    if (!second) return identity("Projects");
+    if (!second) return identity("Work");
     if (segments.length === 2) return identity(projectName(second));
   }
 
-  if (first === "story" && segments.length === 1) return identity("The story");
+  if (first === "story" && segments.length === 1) return identity("Journey");
 
   if (first === "blog") {
-    /* "Notes", not "Blog". The route is `/blog` for the sake of the links
-       already shared at that address; every word the site prints for it — the
-       nav's "All notes", the page's own eyebrow, the feed's title — says
-       Notes, and the title is not the place to contradict all three. */
-    if (!second) return identity("Notes");
+    /* "Blogs", the room's name since #222. The route stays `/blog` for the
+       sake of the links already shared at that address; the bar, the page's
+       own eyebrow and the footer all say Blogs, and the title is not the
+       place to contradict them. */
+    if (!second) return identity("Blogs");
     if (segments.length === 2) return identity(humaniseSlug(second));
   }
 

@@ -332,7 +332,7 @@ export default function Project() {
 
             <div className="mt-section-sm">
               <Action tone="text" glyph="back" to="/projects">
-                All projects
+                Work
               </Action>
             </div>
           </>
