@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import Written from "@/components/motion/Written";
-import { inkAt, penRange } from "@/components/motion/penClock";
+import { inkAt, inkedAt, PEN_INSETS, PEN_MUTED, penRange } from "@/components/motion/penClock";
 
 /*
  * What a split must not change, pinned against the unsplit paragraph.
@@ -160,9 +160,33 @@ describe("Written.module.css", () => {
 
   it("rests at full ink, so every way out lands on legible prose", () => {
     expect(word).toMatch(/color:\s*rgb\(var\(--ink\)\)/);
-    /* Muted is the page's second text colour and never the non-text one. */
-    expect(CSS).not.toMatch(/--ink-faint/);
-    expect(CSS).toMatch(/color:\s*rgb\(var\(--ink-soft\)\)/);
+  });
+
+  it("mutes an unwritten word to texture: the same ink at 22%, never a second text colour (#174)", () => {
+    const muted = Number(CSS.match(/--pen-muted:\s*([\d.]+)/)?.[1]);
+    expect(muted).toBe(PEN_MUTED);
+    /* Texture, not text. 0.22 of --ink over paper is 1.60:1 (below); an
+       alpha above about a third would read as grey text again, which is what
+       the owner sent back. */
+    expect(muted).toBeGreaterThan(0.1);
+    expect(muted).toBeLessThanOrEqual(0.3);
+    /* An alpha on the one ink, so it follows `.on-panel` with no second rule;
+       never the page's secondary text colour or the non-text one. */
+    expect(CSS).not.toMatch(/--ink-soft|--ink-faint/);
+    expect(CSS.match(/rgb\(var\(--ink\) \/ var\(--pen-muted\)\)/g)).toHaveLength(2);
+  });
+
+  it("writes on a clock that finishes before the eye arrives (#174)", () => {
+    const [top, foot] = (CSS.match(/view-timeline-inset:\s*(\d+)vh (\d+)vh/) ?? []).slice(1).map(Number);
+    /* The stylesheet and the arithmetic agree on the clock. */
+    expect({ top: top / 100, foot: foot / 100 }).toEqual(PEN_INSETS);
+    /* Every word, first to last, is inked below the window's middle — where
+       the next lines are, not where the eye is reading. The old clock (45vh
+       15vh) inked the last word at 0.45, and failed this. */
+    for (let f = 0; f <= 1; f += 0.05) expect(inkedAt(f)).toBeGreaterThanOrEqual(0.6);
+    expect(inkedAt(0)).toBeCloseTo(0.95);
+    expect(inkedAt(1)).toBeCloseTo(0.62);
+    expect(inkedAt(1, { top: 0.45, foot: 0.15 })).toBeLessThan(0.5);
   });
 
   it("cancels the animation under each of the three off-switches", () => {
@@ -207,7 +231,7 @@ describe("Written.module.css", () => {
   it("fills muted before the slice and ink after, so a written word stays written", () => {
     expect(word).toMatch(/animation-fill-mode:\s*both/);
     const frames = CSS.match(/@keyframes written-pen\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
-    expect(frames).toMatch(/from\s*\{\s*color:\s*rgb\(var\(--ink-soft\)\);\s*\}/);
+    expect(frames).toMatch(/from\s*\{\s*color:\s*rgb\(var\(--ink\) \/ var\(--pen-muted\)\);\s*\}/);
     expect(frames).toMatch(/to\s*\{\s*color:\s*rgb\(var\(--ink\)\);\s*\}/);
   });
 });

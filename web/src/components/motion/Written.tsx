@@ -56,10 +56,17 @@ import { penRange } from "@/components/motion/penClock";
  *     pauses and never writes two words at once, across line breaks too.
  *
  * The clock (`Written.module.css`) runs from the paragraph's top reaching
- * 85% of the window's height to its bottom reaching 45%, so a paragraph of
- * `h` px gets `h + 40vh` of scroll: about 15px a word for a two-line beat on
- * /story, 5–8px a word for a long post paragraph — slow enough to watch, and
- * finished before the paragraph is out of the reading zone.
+ * 95% of the window's height to its bottom reaching 62%, so a paragraph of
+ * `h` px gets `h + 33vh` of scroll — slow enough to watch, and finished
+ * before the eye, which reads in the upper half of the window, gets there.
+ * (Until #174 it ran from 85% to 45%, and the reader arrived at the unwritten
+ * tail of every paragraph before the pen did: measured, that was the lag.)
+ *
+ * The words keep one animation each, on purpose (#174). The alternative —
+ * one registered `--pen` number animated on the paragraph, each word working
+ * its ink out from it — was built and measured: it re-styles every word of
+ * every live paragraph on every frame through inheritance, and cost a long
+ * post 16.8ms of style a frame at 4x throttle against 3.0ms for this.
  *
  * The index is known at render time, so there is no measurement any more: no
  * `ResizeObserver`, no font-load pass, no `getClientRects`. A resize, a font
@@ -216,8 +223,10 @@ function canRun(): boolean {
  *
  * Both are exactly the values the animation's own fill would hold there, so
  * crossing in or out of the zone changes nothing a reader can see. The zone
- * is the window from 40% of its height down to its foot, which contains the
- * whole clock (top at 85% to bottom at 45%) with a margin either side.
+ * is the window from 58% of its height down to its foot, which contains the
+ * whole clock (top at 95% to bottom at 62%) with a margin either side. It is
+ * 42% of the window where it was 60% before #174, so fewer paragraphs are
+ * live at once.
  *
  * TWO OBSERVERS, because one cannot tell `above` from `below` reliably. An
  * observer reports crossings of its own zone, and a jump — a fragment link, a
@@ -256,9 +265,9 @@ function observer(key: "penNear" | "penPast", rootMargin: string): IntersectionO
 
 function watch(el: HTMLElement): () => void {
   if (!canRun()) return () => {};
-  near ??= observer("penNear", "-40% 0px 0px 0px");
-  /* From the zone's top edge (40% of the window) upwards, without end. */
-  past ??= observer("penPast", "1000000px 0px -60% 0px");
+  near ??= observer("penNear", "-58% 0px 0px 0px");
+  /* From the zone's top edge (58% of the window) upwards, without end. */
+  past ??= observer("penPast", "1000000px 0px -42% 0px");
   near.observe(el);
   past.observe(el);
   return () => {
