@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -7,6 +7,8 @@ import Ridge from "@/components/Ridge";
 import Written from "@/components/motion/Written";
 import Byline, { FeedLink } from "@/components/notes/Byline";
 import { useCodeHighlight } from "@/components/notes/CodeHighlight";
+import { H2, H3, H4 } from "@/components/notes/headingAnchors";
+import { rehypeHeadingIds } from "@/components/notes/headingIds";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import MetaPill from "@/components/notes/MetaPill";
 /* The two corrections that make `.note-card` and the small capsules read
@@ -76,9 +78,11 @@ function MarkdownRule() {
  */
 const markdown: Components = {
   h1: ({ children }) => <h1 className="display-tight">{children}</h1>,
-  h2: ({ children }) => <h2 className="display-tight">{children}</h2>,
-  h3: ({ children }) => <h3 className="display-tight">{children}</h3>,
-  h4: ({ children }) => <h4 className="display-tight">{children}</h4>,
+  /* h2–h4 carry an id and a button that copies a link to them (#225);
+     `rehypeHeadingIds` below is where the id comes from. */
+  h2: ({ children, id }) => <H2 id={id}>{children}</H2>,
+  h3: ({ children, id }) => <H3 id={id}>{children}</H3>,
+  h4: ({ children, id }) => <H4 id={id}>{children}</H4>,
   h5: ({ children }) => <h5 className="display-tight">{children}</h5>,
   h6: ({ children }) => <h6 className="display-tight">{children}</h6>,
 
@@ -402,7 +406,9 @@ export default function BlogPost() {
 
   // Nothing is highlighted on the first paint. The pipeline arrives a moment
   // later and re-renders the body in colour; until then it is plain text.
-  const rehypePlugins = useCodeHighlight(post?.body ?? null);
+  const highlight = useCodeHighlight(post?.body ?? null);
+  /* Heading ids first, so the highlighter never sees a heading without one. */
+  const rehypePlugins = useMemo(() => [rehypeHeadingIds, ...(highlight ?? [])], [highlight]);
 
   return (
     <PageShell>

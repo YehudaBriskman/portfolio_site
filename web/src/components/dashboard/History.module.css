@@ -1,0 +1,566 @@
+/*
+ * An area's history (#225), on the dashboard's ground.
+ *
+ * Every number here is the shell's (`Dashboard.module.css`): 12px of card
+ * padding, rows 12px top and bottom, hairlines in `--dash-line-soft`
+ * between rows and nothing else, titles 15px/600 in full ink, meta 12px/400
+ * in the soft ink. Borders only, no shadow, no fill at rest.
+ *
+ * What is this page's own:
+ *   - the day head, GitHub's "Commits on …" strip, in the same tint as the
+ *     feed's month heads so the two pages read as one system;
+ *   - the short id, in the code face, tabular, the one thing on a row that
+ *     is set in a different voice;
+ *   - the action buttons, 32px squares (44px on a coarse pointer) that sit
+ *     quiet in the soft ink and take full ink on hover or focus;
+ *   - the topic bar, the only colour on the page apart from the glyphs.
+ *
+ * Logical properties throughout, so Hebrew mirrors it; the id, the repo
+ * path and the doc paths are LTR islands set in the markup.
+ *
+ * MOTION: none. Colour on hover and focus in `--dur-micro`, as the shell.
+ */
+
+.historyWrap {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.historyHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 1rem;
+}
+
+.filterBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.75rem;
+  margin: 0;
+  font-size: 0.8125rem;
+}
+
+.filterName {
+  color: rgb(var(--ink-soft));
+}
+
+.filterName > span {
+  color: rgb(var(--ink));
+  font-weight: 600;
+}
+
+.keysHint {
+  margin: 0;
+  margin-inline-start: auto;
+  font-size: 0.75rem;
+  color: rgb(var(--ink-soft));
+}
+
+.keysHint kbd {
+  display: inline-grid;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  place-items: center;
+  padding-inline: 0.25rem;
+  border: 1px solid var(--dash-line);
+  border-radius: 4px;
+  font-family: var(--font-code);
+  font-size: 0.6875rem;
+  line-height: 1;
+  color: rgb(var(--ink));
+}
+
+/* A keyboard path is offered where there is likely a keyboard. */
+@media (pointer: coarse), (max-width: 40rem) {
+  .keysHint {
+    display: none;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────── days */
+
+.history {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  container-type: inline-size;
+}
+
+.day {
+  min-width: 0;
+  border: 1px solid var(--dash-line);
+  border-radius: var(--dash-r);
+}
+
+.dayHead {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0.5rem calc(var(--dash-pad) + 4px);
+  border-block-end: 1px solid var(--dash-line-soft);
+  border-start-start-radius: var(--dash-r);
+  border-start-end-radius: var(--dash-r);
+  background: rgb(var(--panel-ink) / 0.03);
+  font-family: var(--font-text);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: rgb(var(--ink-soft));
+}
+
+.dayHead svg {
+  width: 14px;
+  height: 14px;
+  flex: none;
+}
+
+.rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* ─────────────────────────────────────────────────────────────── rows */
+
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 0.5rem 1rem;
+  padding: var(--dash-pad) calc(var(--dash-pad) + 4px);
+  transition: background-color var(--dur-micro) ease;
+}
+
+.row + .row {
+  border-block-start: 1px solid var(--dash-line-soft);
+}
+
+.row:hover,
+.row:focus-within {
+  background: var(--dash-hover);
+}
+
+.row:last-child {
+  border-end-start-radius: var(--dash-r);
+  border-end-end-radius: var(--dash-r);
+}
+
+/* Too narrow for the actions beside the title: they go under it. */
+@container (max-width: 34rem) {
+  .row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.rowBody {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: rgb(var(--ink));
+  text-decoration: none;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
+}
+
+.title:hover {
+  color: rgb(var(--signal));
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* The excerpt's first line: context, not reading. One line, cut with an
+   ellipsis; the title above it is what identifies the note and wraps. */
+.excerpt {
+  margin: 0;
+  overflow: hidden;
+  color: rgb(var(--ink-soft));
+  font-size: 0.8125rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0;
+  font-size: 0.75rem;
+  color: rgb(var(--ink-soft));
+}
+
+.updated {
+  display: inline-flex;
+  align-items: center;
+  margin-inline-start: 0.625rem;
+  padding-inline: 0.4375rem;
+  border: 1px solid var(--dash-line);
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: rgb(var(--ink));
+}
+
+/* ─────────────────────────────────────────────────────────────── actions */
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.id {
+  padding: 0.125rem 0.375rem;
+  border-radius: 4px;
+  font-family: var(--font-code);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums slashed-zero;
+  color: rgb(var(--ink-soft));
+  unicode-bidi: isolate;
+}
+
+.buttons {
+  display: inline-flex;
+  border: 1px solid var(--dash-line);
+  border-radius: var(--dash-r-inner);
+}
+
+.buttons > * + * {
+  border-inline-start: 1px solid var(--dash-line);
+}
+
+.action {
+  display: inline-grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: rgb(var(--ink-soft));
+  cursor: pointer;
+  text-decoration: none;
+  transition:
+    color var(--dur-micro) ease,
+    background-color var(--dur-micro) ease;
+}
+
+.action svg {
+  width: 16px;
+  height: 16px;
+}
+
+.action:hover,
+.action:focus-visible,
+.action[aria-expanded="true"] {
+  background: var(--dash-hover);
+  color: rgb(var(--ink));
+}
+
+@media (pointer: coarse) {
+  .action {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+}
+
+.shareWrap {
+  position: relative;
+  display: inline-flex;
+  border-inline-start: 1px solid var(--dash-line);
+}
+
+/* The fallback when the browser has no Web Share: shown and hidden, no
+   transition. It hangs from the button's inline end so it never runs off
+   the screen's edge in either direction. */
+.shareMenu {
+  position: absolute;
+  z-index: 5;
+  inset-block-start: calc(100% + 0.375rem);
+  inset-inline-end: -1px;
+  min-width: 11rem;
+  padding: 0.25rem;
+  border: 1px solid var(--dash-line);
+  border-radius: var(--dash-r-inner);
+  background: rgb(var(--panel));
+}
+
+.shareMenu ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.shareItem {
+  display: flex;
+  width: 100%;
+  min-height: 2.25rem;
+  align-items: center;
+  gap: 0.5rem;
+  padding-inline: 0.625rem;
+  border: 0;
+  border-radius: calc(var(--dash-r-inner) - 2px);
+  background: transparent;
+  color: rgb(var(--ink));
+  font: inherit;
+  font-size: 0.8125rem;
+  text-align: start;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.shareItem svg {
+  width: 14px;
+  height: 14px;
+  color: rgb(var(--ink-soft));
+}
+
+.shareItem:hover,
+.shareItem:focus-visible {
+  background: var(--dash-hover);
+}
+
+/* ─────────────────────────────────────────────────────────────── facts */
+
+.facts {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.factList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+  margin: 0;
+}
+
+.fact {
+  display: flex;
+  align-items: baseline;
+  gap: 0.375rem;
+}
+
+.factLabel {
+  font-size: 0.75rem;
+  color: rgb(var(--ink-soft));
+}
+
+.factValue {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.375rem;
+  margin: 0;
+  font-weight: 600;
+  color: rgb(var(--ink));
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+.langDot {
+  display: inline-block;
+  width: 0.625rem;
+  height: 0.625rem;
+  align-self: center;
+  border-radius: 50%;
+}
+
+.factLink {
+  color: rgb(var(--signal));
+  text-decoration: none;
+  unicode-bidi: isolate;
+}
+
+.factLink:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.factWhen {
+  font-weight: 400;
+  font-size: 0.75rem;
+  color: rgb(var(--ink-soft));
+}
+
+.asOf {
+  margin: 0;
+  font-size: 0.75rem;
+  color: rgb(var(--ink-soft));
+}
+
+/* ─────────────────────────────────────────────────────────────── aside */
+
+.side {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.sideCard {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  padding: var(--dash-pad);
+  border: 1px solid var(--dash-line);
+  border-radius: var(--dash-r);
+}
+
+.sideTitle {
+  margin: 0;
+  font-family: var(--font-text);
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: rgb(var(--ink));
+}
+
+.sideLinks {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sideLink {
+  display: flex;
+  min-height: 2.25rem;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 0.5rem;
+  margin-inline: -0.5rem;
+  padding-inline: 0.5rem;
+  border-radius: var(--dash-r-inner);
+  color: rgb(var(--ink));
+  text-decoration: none;
+  transition: background-color var(--dur-micro) ease;
+}
+
+.sideLink:hover {
+  background: var(--dash-hover);
+}
+
+.sideLink svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  color: rgb(var(--ink-soft));
+}
+
+/* The one way onward that matters most is the project: it takes the link
+   blue, and nothing else in the card does. */
+.sideLink[data-primary] {
+  color: rgb(var(--signal));
+  font-weight: 600;
+}
+
+.sideLink[data-primary] svg {
+  color: currentColor;
+}
+
+.sideUrl,
+.docPath {
+  min-width: 0;
+  font-family: var(--font-code);
+  font-size: 0.75rem;
+  color: rgb(var(--ink-soft));
+  overflow-wrap: anywhere;
+  unicode-bidi: isolate;
+}
+
+.sideUrl {
+  flex-basis: 100%;
+  padding-inline-start: 1.5rem;
+}
+
+.docPath {
+  color: rgb(var(--ink));
+}
+
+/* ─────────────────────────────────────────────────────────────── topics */
+
+.topics {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.bar {
+  display: flex;
+  height: 0.5rem;
+  gap: 2px;
+  overflow: hidden;
+  border-radius: 999px;
+}
+
+.barPart {
+  min-width: 2px;
+  flex-basis: 0;
+}
+
+.legend {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.legendItem {
+  display: grid;
+  min-height: 2rem;
+  grid-template-columns: 0.625rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.5rem;
+  margin-inline: -0.5rem;
+  padding-inline: 0.5rem;
+  border-radius: var(--dash-r-inner);
+  color: rgb(var(--ink));
+  font-size: 0.8125rem;
+  text-decoration: none;
+}
+
+a.legendItem:hover {
+  background: var(--dash-hover);
+}
+
+a.legendItem[aria-current="true"] {
+  background: rgb(var(--panel-ink) / 0.08);
+  font-weight: 600;
+}
+
+.legendDot {
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 50%;
+}
+
+.legendLabel {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* A share is a compared number: tabular figures, and right-aligned in its
+   own cell (physical, in both languages) so the units digits line up down
+   the legend (data-display: numeric alignment is physical). */
+.legendPct {
+  min-width: 2.25rem;
+  color: rgb(var(--ink-soft));
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}

@@ -77,10 +77,33 @@ type Props = {
   bar?: ReactNode;
   /** How many filters are on, for the button's badge. */
   count?: number;
+  /**
+   * The top of the main column, ahead of everything else in it: a page's
+   * title. Only matters with `asideFirst`, which would otherwise put the
+   * aside above the title.
+   */
+  head?: ReactNode;
+  /**
+   * When the aside cannot sit beside the main column, put it under `head`
+   * and above the rest rather than at the end. An area's page (#225) uses
+   * it: its aside is the way to the project, the feed and the docs, which a
+   * phone reader wants before a long history.
+   */
+  asideFirst?: boolean;
   children: ReactNode;
 };
 
-export default function DashboardShell({ railLabel, rail, asideLabel, aside, bar, count = 0, children }: Props) {
+export default function DashboardShell({
+  railLabel,
+  rail,
+  asideLabel,
+  aside,
+  bar,
+  count = 0,
+  head,
+  asideFirst = false,
+  children,
+}: Props) {
   const mode = useDashboardMode();
   const [t] = useWords();
   const sheet = useRef<HTMLDialogElement>(null);
@@ -129,8 +152,10 @@ export default function DashboardShell({ railLabel, rail, asideLabel, aside, bar
               {bar}
             </div>
           )}
+          {head}
+          {mode !== "three" && asideFirst && asideNode}
           {children}
-          {mode !== "three" && asideNode}
+          {mode !== "three" && !asideFirst && asideNode}
         </div>
 
         {mode === "three" && asideNode}

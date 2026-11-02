@@ -277,7 +277,22 @@ export default function Project() {
               <>
                 <div className="rule bleed-x mt-section-sm" aria-hidden="true" />
                 <div className="mt-12">
-                  <h2 className="display-tight text-2xl sm:text-3xl">Notes</h2>
+                  <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
+                    <h2 className="display-tight text-2xl sm:text-3xl">Notes</h2>
+                    {/* The area's whole history (#225): every note filed
+                        under this project, docs included, as the count says. */}
+                    {posts !== null && posts.length > 0 && (
+                      <Link
+                        to={`/blog/area/${encodeURIComponent(project)}`}
+                        className="tap inline-flex min-h-[44px] items-center gap-1.5 text-sm font-semibold text-signal underline-offset-4 hover:underline"
+                      >
+                        Notes (<span className="tabular-nums">{posts.length}</span>)
+                        <span aria-hidden="true" className="inline-block rtl:-scale-x-100">
+                          →
+                        </span>
+                      </Link>
+                    )}
+                  </div>
                   <div className="mt-6">
                     {posts === null ? (
                       /*
