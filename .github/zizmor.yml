@@ -9,8 +9,8 @@ rules:
       # Deploy's `release="${{ github.ref_name }}"`. Not edited from here
       # (the Deploy job belongs to #199/#200); #214 moves it into env, and
       # this entry goes when that lands. A line number, so it is checked on
-      # every rebase: if line 660 is ever something else, delete this entry.
-      - ci.yml:660
+      # every rebase: if line 715 is ever something else, delete this entry.
+      - ci.yml:715
   unpinned-uses:
     config:
       policies:

@@ -5,9 +5,12 @@
 #   - Images are pushed on `main` only. GitLab pushed on every pipeline, which
 #     filled the registry with one image per branch push and gave a pull request
 #     write access to the tag production pulls.
-#   - Jobs are no longer skipped by changed path. The per-path rules were half
-#     the old file's length and the whole build is a few minutes; a skipped job
-#     that should have run costs more than the minutes it saves.
+#   - No per-job path rules. GitLab's were half the old file's length, and a
+#     skipped job that should have run costs more than the minutes it saves.
+#     Pull requests are narrowed again since #203, but by one tested script
+#     (.github/scripts/ci-classify.mjs, the `classify` job) that selects
+#     everything whenever it is unsure, and one `CI gate` job that fails on
+#     any skip classification did not ask for. Main and tags run everything.
 #
 # `typecheck` is new: the script existed and nothing ever ran it.
 
@@ -52,6 +55,43 @@ env:
   NPM_CONFIG_AUDIT: "false"
 
 jobs:
+  # Which jobs this change needs (#203). The rules, and why each one, are in
+  # the script's header; its table tests run in Static. The workflow itself
+  # always runs (no top-level `paths:`): a required check that never starts
+  # blocks a merge forever, and one that is filtered out reads as a pass.
+  #
+  # Full history (`fetch-depth: 0`) so the diff comes from local git: the
+  # merge-base of a pull request, or a push's `before`, has to be in the
+  # clone. The API's changed-file list is paginated and capped, and a
+  # truncated list looks exactly like a small change. Anything git cannot
+  # answer selects everything.
+  #
+  # Event fields reach the script through env, never `${{ }}` in the script.
+  classify:
+    name: Classify changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      ok: ${{ steps.classify.outputs.ok }}
+      jobs: ${{ steps.classify.outputs.jobs }}
+      scan_matrix: ${{ steps.classify.outputs.scan_matrix }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - id: classify
+        name: Select jobs from the changed paths
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.event.after }}
+          FORCED: ${{ github.event.forced }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: node .github/scripts/ci-classify.mjs
+
   # Every check that needs only the source: no install, no build. These were
   # four jobs (Preflight, Dockerfiles x2, Compose files parse) of a few seconds
   # each, every one paying for its own runner and checkout; they are steps of
@@ -77,6 +117,12 @@ jobs:
       - name: Dependabot supersede keeps security updates it cannot prove covered (#201)
         if: ${{ !cancelled() }}
         run: node --test .github/scripts/supersede-select.test.mjs
+      # The selection and the gate decide which checks run at all, so a bug
+      # in either removes coverage silently. Here rather than in `classify`
+      # so a docs-only change still runs them.
+      - name: Change classification and the CI gate (#203)
+        if: ${{ !cancelled() }}
+        run: node --test .github/scripts/ci-classify.test.mjs .github/scripts/ci-gate.test.mjs
       - name: Every file the build assumes is present
         if: ${{ !cancelled() }}
         run: |
@@ -199,6 +245,8 @@ jobs:
   frontend:
     name: Frontend
     runs-on: ubuntu-latest
+    needs: [classify]
+    if: fromJSON(needs.classify.outputs.jobs).frontend
     # Measured: median ~2.5 min, slowest 4.2 (2026-11-02, 39 runs).
     timeout-minutes: 15
     defaults:
@@ -256,6 +304,8 @@ jobs:
   backend:
     name: Backend
     runs-on: ubuntu-latest
+    needs: [classify]
+    if: fromJSON(needs.classify.outputs.jobs).backend
     # Measured: median ~0.4 min, slowest 1.7.
     timeout-minutes: 10
     defaults:
@@ -299,6 +349,11 @@ jobs:
     # and the tag itself so a tag on a commit that somehow never built still
     # produces an image rather than a rollout that fails looking for one. The
     # second build is almost entirely cache hits.
+    #
+    # Both images, every time: Deploy sets web AND api to this sha, so an
+    # api-only merge still needs a web image. That is why classification
+    # selects everything on these refs and narrows only pull requests; reusing
+    # an unchanged image's digest instead is #205.
     if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
     permissions:
       contents: read
@@ -391,7 +446,11 @@ jobs:
     name: Scan image
     runs-on: ubuntu-latest
     # Was `needs: [dockerfiles]`: a Dockerfile that fails lint is not built.
-    needs: [static]
+    needs: [static, classify]
+    # A leg per selected image: `[{image: web, context: web}, ...]`, the same
+    # keys as before, so a leg keeps its check name ("Scan image (web, web)").
+    # An empty matrix is an error rather than a skip, hence the `if`.
+    if: fromJSON(needs.classify.outputs.jobs).scan
     # Measured: median ~1.2 min, slowest 3.6. A cold layer cache rebuilds the
     # image from scratch and Trivy may fetch its database.
     timeout-minutes: 20
@@ -400,11 +459,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - image: web
-            context: web
-          - image: api
-            context: backend
+        include: ${{ fromJSON(needs.classify.outputs.scan_matrix) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -714,3 +769,37 @@ jobs:
           kubectl -n "$DEPLOY_NS" rollout undo deploy/api || true
           kubectl -n "$DEPLOY_NS" rollout status deploy/web --timeout=180s || true
           kubectl -n "$DEPLOY_NS" rollout status deploy/api --timeout=180s || true
+
+  # ------------------------------------------------------------------- gate --
+  #
+  # The one required check (#203). Frontend, Backend and the Scan legs skip
+  # when classification does not select them, and a skipped job cannot be a
+  # required check: it either never reports under its name, and the merge
+  # waits forever, or it reports "skipped", which a ruleset reads as a pass
+  # whether or not the skip was meant. So the ruleset requires this instead,
+  # and this asks the question properly (.github/scripts/ci-gate.mjs, tested
+  # in Static): classification succeeded, every selected job succeeded, and
+  # every skip is one classification asked for. Failure, cancellation or an
+  # unexplained skip fails it.
+  #
+  # `always()`, not `!cancelled()`: a gate that is skipped when the run is
+  # cancelled would be a skipped required check, which passes.
+  #
+  # It needs every job, Publish image and Deploy included, so on main it is
+  # green only once the rollout is. Static's tests hold `needs` equal to the
+  # jobs classification selects; a new job has to be added to both.
+  gate:
+    name: CI gate
+    runs-on: ubuntu-latest
+    needs: [classify, static, frontend, backend, scan, images, deploy]
+    if: always()
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: .github/scripts
+      - name: Every selected job passed, every skip was selected
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: node .github/scripts/ci-gate.mjs
