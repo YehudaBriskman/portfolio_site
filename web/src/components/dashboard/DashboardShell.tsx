@@ -134,7 +134,6 @@ export default function DashboardShell({
                 type="button"
                 className={styles.sheetOpen}
                 aria-haspopup="dialog"
-                aria-label={count > 0 ? `${t.browse}, ${count} ${t.filter.toLowerCase()}` : undefined}
                 onClick={() => sheet.current?.showModal?.()}
               >
                 <span className={styles.burger} aria-hidden="true">
@@ -143,10 +142,15 @@ export default function DashboardShell({
                   <span />
                 </span>
                 {t.browse}
+                {/* The name is the content, not an aria-label: a label that
+                    reworded "Browse" and the badge failed SC 2.5.3 (label in
+                    name) once a filter was on. Read as "Browse 2 filter". */}
                 {count > 0 && (
-                  <span className={styles.badge} aria-hidden="true">
-                    {count}
-                  </span>
+                  <>
+                    {" "}
+                    <span className={styles.badge}>{count}</span>{" "}
+                    <span className="sr-only">{t.filter.toLowerCase()}</span>
+                  </>
                 )}
               </button>
               {bar}
