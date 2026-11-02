@@ -3,6 +3,7 @@ import { couch } from "../db/couch.js";
 import { asyncHandler } from "../middlewares/asyncHandler.js";
 import { renderCardPng } from "../services/og.js";
 import {
+  LOG_CHANNEL,
   SITE_URL,
   absoluteUrl,
   buildFeed,
@@ -307,6 +308,29 @@ router.get(
             `<li><a href="/projects/${escapeHtml(slug)}">${escapeHtml(entry.title)}</a> — ${escapeHtml(entry.tagline)}</li>`,
         )
         .join("")}</ul></main>`,
+    });
+  })
+);
+
+/*
+ * The channel log (#226). nginx sends every `/blog/<one segment>` here as a
+ * post slug, and `log` is not a post, so without this route the page would be
+ * served as a 404 shell. It is a page of its own: a 200, its own title, and
+ * its feed in the head where a feed reader looks for it.
+ */
+router.get(
+  "/render/blog/log",
+  asyncHandler(async (_req, res) => {
+    await sendShell(res, {
+      title: "Channel log · Yehuda Briskman",
+      description:
+        "Everything that happens on the site, newest first: notes, releases, pushes, site releases and new areas.",
+      canonical: absoluteUrl("/blog/log"),
+      image: absoluteUrl("/og-blog.png"),
+      imageAlt: "Notes by Yehuda Briskman",
+      type: "website",
+      feeds: [{ title: LOG_CHANNEL.title, href: LOG_CHANNEL.self }],
+      bodyHtml: `<main><h1>Channel log</h1><p>Everything that happens on the site, newest first.</p><p><a href="/blog">Blogs</a> · <a href="${escapeHtml(LOG_CHANNEL.self)}">RSS</a></p></main>`,
     });
   })
 );
