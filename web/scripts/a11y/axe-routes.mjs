@@ -86,6 +86,7 @@ const ROUTES = [
   "/blog",
   "/blog?view=feed",
   "/blog/area/site",
+  "/blog/area/bothy",
   "/blog/fixture-post",
   "/accessibility",
   "/a-page-that-does-not-exist",
@@ -116,7 +117,26 @@ const AREA = {
   stats: null,
   noteCount: 1,
   lastActivityAt: at(1),
-  topics: ["ci"],
+  topics: [{ tag: "ci", count: 1 }],
+};
+/* A project area linked to a repo (#225): its facts, docs and side card. */
+const BOTHY = {
+  ...AREA,
+  slug: "bothy",
+  title: "Bothy",
+  tagline: "The box's portal.",
+  kind: "project",
+  repoUrl: "https://github.com/example/bothy",
+  docs: [{ path: "docs/README.md", url: "https://github.com/example/bothy/blob/main/docs/README.md" }],
+  stats: {
+    stars: 12,
+    forks: 3,
+    language: "TypeScript",
+    license: "MIT",
+    pushedAt: at(2),
+    latestRelease: { tag: "v1.9.0", url: "https://github.com/example/bothy/releases/tag/v1.9.0", publishedAt: at(5) },
+    fetchedAt: at(1),
+  },
 };
 const EVENTS = [
   { id: "post:fixture-post", kind: "post", at: at(1), area: { slug: "site", title: "The site" }, title: "A fixture note", href: "/blog/fixture-post", meta: {} },
@@ -129,6 +149,7 @@ const SUMMARY = {
   subtitle: "Long enough to wrap at 320px, which is the point of it",
   excerpt: "A short excerpt, so the list has the shape it has in production.",
   publishedAt: at(3),
+  updatedAt: at(1),
   tags: ["accessibility", "process"],
   collection: "site",
   coverImage: null,
@@ -180,7 +201,7 @@ function answer(url, failing) {
   if (p === "/blog/collections") return { status: 200, body: { items: [] } };
   if (p.startsWith("/blog/collections/")) return { status: 404, body: {} };
   /* The Blogs dashboard (#224): its areas and the site's activity. */
-  if (p === "/areas") return { status: 200, body: { items: [AREA] } };
+  if (p === "/areas") return { status: 200, body: { items: [AREA, BOTHY] } };
   if (p === "/activity") return { status: 200, body: { items: EVENTS, nextCursor: null } };
   if (p === "/github/contributions") {
     const days = contributionDays();

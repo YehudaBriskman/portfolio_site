@@ -87,7 +87,7 @@ const AREA = {
   stats: null,
   noteCount: 1,
   lastActivityAt: at(1),
-  topics: ["ci"],
+  topics: [{ tag: "ci", count: 1 }],
 };
 const EVENTS = [
   { id: "post:fixture-post", kind: "post", at: at(1), area: { slug: "site", title: "The site" }, title: "A fixture note", href: "/blog/fixture-post", meta: {} },

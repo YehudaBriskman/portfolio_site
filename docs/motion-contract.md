@@ -1106,6 +1106,7 @@ board, year lanes) and asked for the board, mixed with the lanes' panel.
 | `/projects` (and `/blog` from #193 until #224) | **`assemble`** | each band of the wall closes in from its own edges as it comes up the window: a piece on the left slides in from the left, a piece on the right from the right, a piece in the middle rises. So the wall is hung by the time the eye reaches it, and nothing in the reading band moves |
 | ~~`/projects` panel~~ | ~~`draw`, on bars~~ | **removed in #193** with the panel itself: the owner's call, "it doesn't belong" |
 | `/blog` (#224) | **none** | the notes left the wall for a dashboard: compact rows and cards a reader scans, filters and opens. Nothing on it arrives, rises or assembles; what moves is what the reader moves |
+| `/blog/area/:slug` (#225) | **none** | an area's notes as a commit history on the same shell: read by scanning down days and acting on a row, so nothing arrives and nothing is spent |
 
 **#224: /blog is a dashboard, and has no device.** The notes index became a
 three-column dashboard (a side rail of views, areas and filters; a middle of
@@ -1118,6 +1119,17 @@ Home/Feed switch is a navigation, the phone's rail sheet is a native
 keep the shared sweep with its three off-switches. Its dark ground (the note
 cards' `#185` panel, now edge to edge, with `data-chrome="dark"`) is a ground,
 not an act: see `ground/DarkAct.tsx`.
+
+**#225: an area's history has no device either.** `/blog/area/:slug`
+replaced #224's interim list with the area's notes grouped by day, each row
+with a short id and three actions, the repo's facts in the header and a side
+card. Every change on it answers the reader and none is animated: a copied
+link swaps its icon for a tick for two seconds (a state, not a transition)
+and says so in a polite live region; the share fallback (copy, LinkedIn, X)
+is shown and hidden; a heading's copy-link button inside a note does the
+same; `j`/`k` move focus, and the only scroll is the browser's own on focus,
+never a smooth one; the topic filter is a navigation. Hover and focus keep
+the shell's `--dur-micro` colour change.
 
 **#193: one gallery for both pages.** The wall, its sizes, `assemble`, the
 re-hang and the three off-switches moved out of `projects/` into
@@ -1768,6 +1780,7 @@ animation.
 | filter popovers, the rail's phone sheet (`FilterControl`, `Rail`) | /projects, /blog | none: shown and hidden, no transition | — (#193) |
 | notes hung on the gallery wall (`NoteTile` in `Wall`) | /blog | — | **removed** (#224): the index is a dashboard of rows and cards, and nothing on it arrives |
 | Blogs dashboard: tree open/close, Home/Feed switch, the phone's rail `<dialog>`, the timeline (`dashboard/`) | /blog, /blog/area/:slug | none: shown and hidden, no transition; hover/focus as the row below | — (#224) |
+| area history: day groups, copy-link tick, share fallback, `j`/`k` focus, topic filter (`dashboard/History.tsx`); a note's heading copy-link (`notes/headingAnchors.tsx`) | /blog/area/:slug, /blog/:slug | none: a two-second icon state, shown and hidden, focus without smooth scroll; hover/focus as the row below | — (#225) |
 | stats panel bars (`draw-bar`) | /projects | — | **removed** (#193): the panel was deleted |
 | ink wipe on the cover and band (`InkWipe`) | /projects/:slug | `view()` | scrubbed |
 | notes index cards rising (`.scrub-rise`) | /blog | — | **removed** (#193): the notes hang on the gallery wall and arrive by `assemble` (row above) |
@@ -1784,7 +1797,7 @@ animation.
 | admin login | /admin/posts | form-control focus transitions only | **exempt**: focus |
 | 404, /accessibility | — | nothing of their own beyond the shared chrome above | — |
 
-Counted: 40 rows (#224 added the last two; see below). 9 were converted from a clock or a one-shot trigger to a
+Counted: 41 rows (#224 added two and #225 one; see below). 9 were converted from a clock or a one-shot trigger to a
 scroll timeline in #162, and the bar's drop was removed outright; 14 were
 already scrubbed; 13 are exempt for the reasons given (the hero's
 entry arrival joined them in #194); 1 row is routes with
@@ -1801,3 +1814,7 @@ as a row with no motion at all. So today: 21 scrubbed, 12 exempt, 3 removed,
 /projects alone, a row records the notes leaving the wall (removed), and a row
 records the dashboard, which has nothing of its own. So: 21 scrubbed, 12
 exempt, 4 removed, 3 with nothing of their own.
+
+#225 added one row, the area history and the heading copy-link, with
+nothing of its own. So: 21 scrubbed, 12 exempt, 4 removed, 4 with nothing of
+their own.
