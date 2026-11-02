@@ -127,6 +127,31 @@
 }
 
 /*
+ * A paragraph nowhere near the band, parked.
+ *
+ * `Written.tsx` writes `data-pen="rest"` on a paragraph its observer has
+ * seen outside the window round the band, and here its words drop their
+ * animation and hold the muted colour they would have been filled at anyway
+ * — so the frame cost is the paragraphs being read rather than every
+ * paragraph on the page. The reasoning and the measurement are on the
+ * observer.
+ *
+ * Only while the effect is running. The three conditions are restated here
+ * in the positive rather than relying on the exits below to undo this,
+ * because this rule *sets a colour*: an exit that only cancelled the
+ * animation would leave a parked paragraph muted for a reader who asked for
+ * no motion, which is the one outcome every exit exists to prevent.
+ */
+@supports (animation-timeline: view()) {
+  @media screen and (prefers-reduced-motion: no-preference) {
+    :global(body:not(.motion-paused)) .written[data-pen="rest"] .word {
+      animation: none;
+      color: rgb(var(--ink-soft));
+    }
+  }
+}
+
+/*
  * The ways out. Each cancels the animation outright and lands on the base
  * rule, which is full ink — never on frame zero, which is muted.
  *

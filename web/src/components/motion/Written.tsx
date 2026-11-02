@@ -280,6 +280,32 @@ function canRun(): boolean {
   );
 }
 
+/*
+ * Which paragraphs are near the band, and the only ones that animate.
+ *
+ * Measured, the cost of `pen` is the number of words animating, not the
+ * number of words split: with every word cancelled the spans cost nothing
+ * measurable, and with every word animating a frame paid for all of them —
+ * every word's colour is resolved again on every frame the paragraph's clock
+ * moves, including the ones sitting in a fill state that cannot change. So a
+ * paragraph that is nowhere near the band is told so, and the stylesheet
+ * parks its words at muted with no animation at all; a post of forty
+ * paragraphs animates the two or three that are being read.
+ *
+ * The window is wider than the band on both sides — 50% to 80% of the
+ * height against the band's 58% to 72% — so a paragraph is live before its
+ * first line reaches the band's foot and stays live until its last word has
+ * finished un-writing; parking it is then a change from muted to the same
+ * muted. A paragraph is parked only when the observer *says* it is outside:
+ * with no attribute at all it animates, so an observer that never fires
+ * leaves the effect running rather than the text stuck.
+ *
+ * Fires on crossings, not on scroll: one attribute per paragraph per
+ * crossing, and nothing between them. This is the page's fourth
+ * IntersectionObserver, after `Rise`, `useEnteredOnce` and `DarkAct`.
+ */
+let near: IntersectionObserver | null = null;
+
 function watch(el: HTMLElement): () => void {
   if (!canRun()) return () => {};
   if (!observer) {
@@ -289,12 +315,24 @@ function watch(el: HTMLElement): () => void {
        see. Once, for the page, when the faces are in. */
     document.fonts?.ready.then(() => remeasure(roots)).catch(() => {});
   }
+  if (!near && typeof IntersectionObserver === "function") {
+    near = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          (e.target as HTMLElement).dataset.pen = e.isIntersecting ? "live" : "rest";
+        }
+      },
+      { rootMargin: "-50% 0px -20% 0px" },
+    );
+  }
   roots.add(el);
   /* `observe` delivers an initial callback, which is the first measurement. */
   observer.observe(el);
+  near?.observe(el);
   return () => {
     roots.delete(el);
     observer?.unobserve(el);
+    near?.unobserve(el);
   };
 }
 

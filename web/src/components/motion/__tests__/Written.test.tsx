@@ -176,6 +176,16 @@ describe("Written.module.css", () => {
     expect(CSS).toMatch(/:global\(body\.motion-paused\) \.word\s*\{\s*animation:\s*none;\s*\}/);
   });
 
+  it("parks a far paragraph at muted only while the effect is running", () => {
+    /* The parked rule sets a colour, so it must sit inside all three
+       conditions; anywhere else it would hold a reader who asked for no
+       motion at muted, which no exit below would undo. */
+    expect(CSS).toMatch(
+      /@supports \(animation-timeline: view\(\)\)\s*\{\s*@media screen and \(prefers-reduced-motion: no-preference\)\s*\{\s*:global\(body:not\(\.motion-paused\)\) \.written\[data-pen="rest"\] \.word\s*\{/,
+    );
+    expect(CSS.match(/data-pen="rest"/g)).toHaveLength(1);
+  });
+
   it("names no delay and no duration, because the range is the clock", () => {
     expect(CSS).not.toMatch(/animation-(delay|duration)/);
     /* The paragraph's clock, not `view()` on the word: an inline box's view
