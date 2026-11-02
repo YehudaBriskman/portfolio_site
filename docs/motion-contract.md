@@ -102,6 +102,7 @@ ledger is a page-level document and not a comment.
 |---|---|---|---|
 | — | entry | **shutter** | the page is behind something, and that something leaves |
 | — | any waiting region | **sweep** | a region says what shape is coming, and that it is coming |
+| — | the dark ground | **drift** | the dark act is a gap between two sheets, with light behind it |
 | 0 | title plate | **staged assembly** | the collection names itself, in four gated moves |
 | 1 | wall text | `flow` | the quiet before the peak |
 | 2 | **the pile** | `pin` | the work stacks up with weight |
@@ -110,7 +111,7 @@ ledger is a page-level document and not a comment.
 | 5 | specs | `count` | real numbers landing |
 | 6 | inquiry plate | `reveal` | the ask, as part of the collection |
 
-Eight families. No repeat in adjacent beats. `pin` is spent once, on the peak,
+Nine families. No repeat in adjacent beats. `pin` is spent once, on the peak,
 and `scrub` is spent once on beat 3 — the grammar bans a *second* scrub and
 has always allowed the first, which is the whole licence beat 3 has.
 
@@ -123,6 +124,139 @@ time beat 0's letters start falling the shutter has already left the document.
 It is in the ledger because it is a new device family on the page and the
 ledger exists so a family is not quietly reused — a black ground and a lit
 grid belong to nothing else on this site, and nothing else may take them.
+
+**`drift` is not a beat either, and it is not a section — it is a ground.**
+`components/ground/DarkAct.tsx` wraps the two sections that leave the paper,
+and the light moving at their boundaries belongs to the ground rather than to
+either act, which is why it has no number. It runs under beat 2 and beat 3
+both, and it cannot collide with either on adjacency for the same reason the
+entry row cannot: it is not a thing the reader scrolls *to*.
+
+**There are two dark acts and the ceiling is two.** Work and the year are the
+only two sections on the home page whose subject is the work itself — the
+objects, and the labour that made them. Everything between and after is the
+page talking about the work, and the page talks on paper. A third is a
+different page. Approach sits between them, which `pages/Index.tsx` had
+already argued for on motion grounds (two acts with real depth in them must
+not meet) and which now does the same job for the ground: two dark acts with
+nothing between them are one long dark act with a seam in it.
+
+**What `drift` actually is, after the first idea was thrown away.** The
+obvious build is a full-bleed brightness field — slow soft veils of a lighter
+tone drifting across the dark. It cannot be built honestly on `#0C0C0E`, and
+the reason is arithmetic rather than taste. The ground sits at 0.37% of
+relative luminance and every surface standing on it is within two points of
+that, so a field faint enough to leave them alone is invisible and a field a
+reader can see inverts them:
+
+| ground | L | `--panel-rule` | the grid's empty day |
+|---|---|---|---|
+| `--panel` | 0.3728% | 3.3408:1 | 1.2341:1 |
+| + one veil of `--panel-ink` at .055 → `rgb(25 25 26)` | 0.9765% | **3.0033:1** | **1.1094:1** |
+
+Both rows re-measured. The first is read off the rendered act; the second is
+source-over arithmetic on those same tokens, and reproduces as shown. One
+veil is already enough to settle it: the hairline drops to 3.0033:1, which is
+*at* the 3:1 non-text floor rather than above it with room, and the grid's
+empty day falls from 1.2341:1 to 1.1094:1 — past the 1.18:1 step this
+codebase has already rejected once as "no difference at all", so the first
+step of a five-band scale goes quietly flat. The veiled ground is itself only
+1.1124:1 off the bare one, so what is being bought at that price is a field a
+reader can barely see.
+
+A second veil was recorded as taking the hairline to 2.60:1 and the empty day
+to 1.04:1 — *below its own ground*, reversing the first step outright. **That
+row is not re-stated as measured here**: it was a tinted layer and the tint's
+value is not recorded anywhere, so it cannot be reproduced from what the repo
+holds. The one-veil row is sufficient for the decision and is the one above.
+
+So the light is at the seams and nowhere else. Each junction carries two
+sources that travel along it at different rates — a broad blue wash and a
+narrow white highlight crossing it — and what reads as another layer is the
+moment they pass. The seam is a clipped box 1.8 arcs tall, 114px at 1440 and
+50px at 390 against 205px and 115px of padding before the first line of
+content, so the ground a reader reads on is *exactly* `--panel`: sampled off
+a screenshot beside the heading, beside the caption, above the grid, in the
+grid's own gutter and at the act's inline edge, all rgb(12 12 14), 1.00:1
+against the token. Every ratio in `index.css` stated against `--panel` still
+holds inside the act, as a property of the geometry rather than as a sum of
+percentages.
+
+**The edge it lights is the other half of the device, and it is not a
+radius.** #92's `--r-2xl` on the two block-start corners is kept as a budget
+and spent across the page: each corner takes `50%` in the inline axis, so the
+two curves meet and the act's top edge is one shallow arc. The foot is the
+same arc in paper, rising into the dark, so both junctions crest the same way
+and the dark band stays a constant thickness bowed over the page rather than a
+lozenge. A hairline of `--accent-on-panel` rides both, which is the same light
+the shutter's tile edges carry and is where that light went after the shutter
+left.
+
+**Measured, at 4x CPU throttle, 1440x900, nine passes per arm after a
+discarded warm-up, interleaved against `main` with the arm order flipped each
+round. Frames counted by `requestAnimationFrame` while a real scroll gesture
+is synthesized through the input pipeline — a scripted per-frame `scrollTo`
+forces layout on every tick and measures the harness instead of the page.**
+
+| act | `main` | with the device | with the drift cancelled |
+|---|---|---|---|
+| beat 2, the pile | 59.8fps | 59.7 (−0.1) | — |
+| beat 3, the year | 56.8fps | **50.5 (−6.3)** | 53.4 (−3.3) |
+
+Medians of nine; the standard deviations are 0.3 / 0.3 on beat 2 and 2.8 / 3.9
+on beat 3, so beat 2's −0.1 is inside the spread and beat 3's −6.3 is not.
+
+Beat 2 is free. Beat 3 is not: the drift's own share is 3.0fps and everything
+else the act adds — the arc, the crest, the hairlines, the seam boxes, the
+inverted ramp, the extra nodes and the two observers — is another 3.3fps. The
+cost lands on beat 3 and not beat 2 because that is where the seams composite
+alongside the 365-column city; on beat 2 only one seam is in view at a time
+and the pile is 2D.
+
+**THE RENDERER IS SOFTWARE AND THAT MATTERS HERE.** These numbers were taken
+in headless Chromium reporting `ANGLE (Google, Vulkan 1.3.0 (SwiftShader
+Device (Subzero)), SwiftShader driver)` — there is no GPU in this environment,
+so the seams' large animated gradient layers are rasterised and composited on
+the CPU. That penalises exactly this device more than a GPU-backed reader
+would experience it, so beat 3's figure is an upper bound rather than a
+reader's number. The renderer the first set of figures for this device was
+taken under is not recorded anywhere in this repo or in the pull request, so
+whether the two sets are comparable cannot be established; they are not
+assumed to be.
+
+Two findings from when the device was built are kept because the code still
+answers to them, and they are flagged rather than restated as current: a
+`linear-gradient` mask on the seam was found redundant next to the clip and
+removed, and a full-width *second* source was rejected in favour of a narrow
+highlight crossing the first — same parallax, about a sixth of the pixels.
+`will-change: transform` was tried and measured worse, the same finding
+`EntryShutter.module.css` reports from the other direction. **Those three
+figures were not re-taken**, because the rejected variants are no longer in
+the file to measure.
+
+Largest Contentful Paint is not distinguishable, over 35 interleaved cold
+loads a side at 4x CPU. `main` means 484.9ms (median 488.0, sd 25.3, range
+448–560); this branch means 501.3ms (median 484.0, sd 42.2, range 452–612).
+The pooled mean is +16.3ms and the median is −4.0ms — the two statistics
+disagree in sign over the same seventy loads, which is the honest summary and
+it is nothing. CLS was 0.0000 in all seventy and the hero photograph was the
+reported element in all seventy.
+
+**The device runs only while its act is on screen.** A continuously running
+animation has to justify itself while nobody is looking and it cannot, so
+`DarkAct.tsx` carries the page's third IntersectionObserver — one per act,
+firing at most twice a visit, flipping one attribute the stylesheet reads. Its
+`rootMargin` is a full viewport on the block axis, so the loops are always
+cancelled and restarted while the act is entirely off screen; cancelling
+restarts a loop at 0%, and that is only safe because nobody can see it happen.
+
+Its three off-switches land on the act with its boundary intact — both arcs,
+both hairlines, the crest, and a flat `--panel` ground. Nothing is hidden and
+nothing is half-drawn; what goes is the movement. The third switch is a real
+`@supports` rather than the reflex §4 warns about: there is no
+`animation-timeline` here to be missing, but without `overflow: clip` the
+sources paint past the arc onto the paper and past the seam onto the ground a
+reader reads on, and that is both a visible fault and an unmeasurable ground.
 
 `shutter` is the one device whose off state is *absence* rather than a finished
 drawing, which is why its exits are a `null` from the component and
@@ -200,6 +334,23 @@ element, no per-capsule compositor layer and nothing per frame on the main
 thread. The one place that could have gone wrong is the contribution
 lattice's 371 cells, which take a single band across the frame rather than
 one animation each.
+
+**A SWEEP'S PEAK IS A PROPERTY OF ITS GROUND, AND THE FAMILY NOW SPANS TWO.**
+The band is `rgb(var(--ink) / a)`, so it darkens the surface it crosses on
+paper and lightens it on a dark act with no second declaration — `.on-panel`
+re-points `--ink`. The alpha does not carry across, and it fails in the
+direction nobody expects: on a near-black ground the same alpha is too
+strong. Measured, 0.05 over the lattice is a step of dL* 3.44 on `--paper-3`
+and 4.77 on `--panel-3` — 1.39x — so the placeholder out-shouts the chart it
+stands in for rather than sinking into the dark. The contribution lattice is
+solved at 0.035 for that reason, which reproduces paper's step at dL* 3.36.
+CIE L* and not a WCAG ratio, because the ratio's 5% flare term dominates at
+0.37% of luminance and inflates every small step there; the two metrics agree
+anyway, at 0.0349 and 0.0365. Anything new in this family that lands on a
+dark act has to be re-solved the same way, and the capsule in
+`gallery/Skeleton.module.css` carries paper's 0.05 deliberately — salience
+scales with area, and a 0.66em capsule at that step is not a 230x1152px frame
+at it.
 
 Its off state is a finished drawing and not absence, which is the ordinary §4
 shape and the opposite of the shutter's: under reduced motion or Pause the
@@ -281,8 +432,17 @@ A page with three peaks has none. The old plan had a smoke hero, colour splats
 and a card pile all competing at maximum effort, and the measurable result was
 that nothing on the page read as the most important thing on it. The current
 peak is the pile (beat 2) — *the work stacks up and you can feel the weight of
-it* — and it is the only place the page spends `pin`, the only dark act, and the
-only section allowed to cost a frame budget.
+it* — and it is the only place the page spends `pin` and the only section
+allowed to cost a frame budget.
+
+It is no longer the only dark act. It was, and the ground was part of what
+made it the peak; it is now one of two, with the year, on the subject rule in
+`index.css` rather than on importance. That does not move the peak, because
+the ground was never what the peak rule was about: the pile still pins, still
+takes the most scroll room, still carries the only asset budget, and the year
+still buys no scroll distance beyond its own height. What the pair costs it is
+the ground as a *signal* of the peak, and §2's ledger row for `drift` is where
+that trade is recorded.
 
 The practical consequence is that good ideas get cut for being in the wrong
 place rather than for being bad. The close was to have its form fold once and
@@ -483,6 +643,7 @@ direction, or set `fill-rule: evenodd` deliberately and know what it costs.
 | `gallery/SkeletonLines.tsx` | the primitive: a run of lines as tall as the type they stand in for | — |
 | `gallery/LabelSkeleton.tsx` | the object label's three parts, in the label's own stylesheet | — |
 | `gallery/SkeletonGate.tsx` | the box that holds a region's height, and the 180ms before it is inked | clock |
+| `ground/DarkAct.module.css` | `drift` — two lights crossing at each seam of the dark ground | clock, gated off-screen by an observer |
 
 ### Retired, and why
 
@@ -500,6 +661,13 @@ a future beat wants one — but it should be rebuilt against §4 rather than
 restored, because what was wrong with them is exactly what §4 exists to say.
 | `nav/useMotionPaused.ts` | the Pause control | — |
 | `nav/motion-paused.css` | what Pause does to the page | — |
+
+`ground/DarkAct.tsx` is the third component on the site with an
+`IntersectionObserver` in it, after `Rise` and `useEnteredOnce`, and it is the
+first whose observer does not fire once and stop. It fires on the way in and
+on the way out, twice per visit per act, and writes one attribute — which is
+still not a listener and still not per-frame work, and is the price of an
+ambient loop that refuses to run for nobody.
 
 Plus two scroll-position publishers, which are not devices:
 `hooks/useScrollProgress.ts` (the home page's palette and layer progress) and

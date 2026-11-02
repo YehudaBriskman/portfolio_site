@@ -4,6 +4,7 @@ import Hero from "@/components/Hero";
 import Work from "@/components/Work";
 import Approach from "@/components/Approach";
 import ContributionCity from "@/components/city/ContributionCity";
+import DarkAct from "@/components/ground/DarkAct";
 import Stack from "@/components/Stack";
 import LatestNotes from "@/components/LatestNotes";
 import Contact from "@/components/Contact";
@@ -72,17 +73,29 @@ export default function Index() {
         <Hero />
 
         {/*
-          The plates, and the rule is in index.css next to the ground scale:
-          the ground changes where the SUBJECT changes, not every other
-          section. Approach and the year share warm because they are one
-          thought — how the work gets made — and the shelf and the spec plate
-          share cool for the same reason the comment below insists they stay
-          adjacent. Contact closes on warm, where the hero opened.
+          The two dark acts, and the rule for them is in index.css next to the
+          ground scale: the ground changes where the SUBJECT changes, not every
+          other section. Work and the year are the only two sections on this
+          page whose subject is the work itself — the objects, and the labour
+          that made them — so they are the two that leave the paper. The four
+          sections between and after them are the page talking about the work,
+          and they talk on the page's own ground. `DarkAct` carries the whole
+          argument and the ceiling of two.
         */}
-        <div className="layer-section ground" data-ground="panel">
+        <DarkAct>
           <Work />
-        </div>
+        </DarkAct>
 
+        {/*
+          The wall text, and it is now doing two jobs with one screen.
+
+          It was already the separation between the pile and the year, because
+          both of those acts carry real depth and neither should read as the
+          other's warm-up — the long version is in the comment below. With both
+          of them now on the dark ground it is also the only thing keeping the
+          two from reading as one dark act with a seam in it. Quietest screen
+          on the page, and load-bearing twice.
+        */}
         <div className="layer-section">
           <Approach />
         </div>
@@ -114,9 +127,9 @@ export default function Index() {
           its own and where the principles finally live is the owner's call,
           raised in the pull request rather than decided here.
         */}
-        <div className="layer-section">
+        <DarkAct>
           <ContributionCity />
-        </div>
+        </DarkAct>
 
         {/*
           The shelf, and then the plate — in that order, because the order is
