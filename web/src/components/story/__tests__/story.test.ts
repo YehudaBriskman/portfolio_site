@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildStory, RATIO } from "@/data/story";
+import { buildStory, LAYOUT_DEFAULT, RATIO } from "@/data/story";
 import { projects, type Project } from "@/data/projects";
 import { plate } from "@/data/site";
 
@@ -92,6 +92,38 @@ describe("buildStory", () => {
       for (const text of own) expect(text).not.toMatch(/\b(at|for|with) (the )?[A-Z]/);
     }
     expect(beats.at(-1)!.title).toBe("Technical team lead");
+  });
+
+  it("gives every beat a layout, beside unless the data says otherwise", () => {
+    const { beats } = buildStory();
+    for (const b of beats) expect(["beside", "under", "overlap"]).toContain(b.layout);
+    expect(beats[0].layout).toBe(LAYOUT_DEFAULT);
+    expect(LAYOUT_DEFAULT).toBe("beside");
+    /* All three are in use, so the owner can see each one on the page. */
+    expect(new Set(beats.map((b) => b.layout)).size).toBe(3);
+    expect(() => buildStory(projects, LINES, {}, [], { "no-such-beat": "under" })).toThrow(/no-such-beat/);
+  });
+
+  it("puts interludes between beats, closer together as it goes, in both languages", () => {
+    const { beats, interludes } = buildStory();
+    const at = interludes.map((i) => beats.findIndex((b) => b.id === i.after));
+    expect(at.every((n) => n >= 0)).toBe(true);
+    expect(at).toEqual([...at].sort((a, b) => a - b));
+    /* Never two loops in a row, and never one before the second beat. */
+    expect(at[0]).toBeGreaterThanOrEqual(1);
+    const gaps = at.slice(1).map((n, i) => n - at[i]);
+    expect(gaps.every((g) => g >= 1)).toBe(true);
+    expect(gaps.at(-1)).toBeLessThanOrEqual(gaps[0]);
+    for (const i of interludes) {
+      expect(i.words.en.split(/\s+/).length).toBeLessThanOrEqual(6);
+      expect(i.words.he).toMatch(/\p{Script=Hebrew}/u);
+    }
+  });
+
+  it("refuses an interlude after a beat that does not exist, or with a language missing", () => {
+    const bad = (after: string, he = "מילים") => [{ id: "x", after, words: { en: "Words.", he } }];
+    expect(() => buildStory(projects, LINES, {}, bad("no-such-beat"))).toThrow(/no-such-beat/);
+    expect(() => buildStory(projects, LINES, {}, bad("windom", " "))).toThrow(/missing a language/);
   });
 
   /* The owner's tone rule (#158): what happened, no hedging, no gaps explained. */

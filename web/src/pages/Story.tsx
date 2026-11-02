@@ -1,33 +1,42 @@
-import { useMemo, type CSSProperties } from "react";
+import { Fragment, useMemo, type CSSProperties } from "react";
 import { Link } from "react-router-dom";
 import PageShell from "@/components/PageShell";
 import Written from "@/components/motion/Written";
+import LivingLine from "@/components/motion/LivingLine";
 import styles from "@/components/story/Story.module.css";
-import { buildStory, type Beat } from "@/data/story";
+import { buildStory, type Beat, type Interlude } from "@/data/story";
 
 /*
- * /story — the work along the year, as a timeline (#46, #158).
+ * /story — the work along the year, as a timeline (#46, #158, #176).
  *
  * Many short beats, each a year or a moment, a line or two and a picture,
  * with real space between them. The beats are built by `data/story.ts` from
  * the project table and cannot drift from it; the reasoning is there.
  *
+ * THE LINE
+ * --------
+ * One line runs the length of the timeline (`motion/LivingLine`). It runs
+ * down the lane on the side of each beat's picture — and the pictures
+ * alternate sides — so it swings across the page between beats. Three times
+ * it breaks out of the timeline into an interlude: it draws a loop in the
+ * middle of the page round a few words, and carries on down. The words are
+ * real text, written by the pen like every other line here.
+ *
  * MOTION: SCROLL IS THE CLOCK
  * ---------------------------
  * Everything on this page that moves is scrubbed by scroll position and runs
  * backwards, exactly, when the reader scrolls up. Nothing fires once, nothing
- * runs on a timer. Four devices, all in `Story.module.css` except the pen:
+ * runs on a timer.
  *
- *   | device   | what it is                                                       |
- *   |----------|------------------------------------------------------------------|
- *   | spine    | the timeline's rule, drawn down to the middle of the window      |
- *   | knot     | a beat's mark on the spine, filled as the spine's tip passes it  |
- *   | plate    | a beat's picture card, uncovered as it rises into the window     |
- *   | pen      | a beat's lines, written word after word (`motion/Written`)       |
+ *   | device   | what it is                                                        |
+ *   |----------|-------------------------------------------------------------------|
+ *   | line     | the one line, its tip on the middle of the window (`LivingLine`) |
+ *   | plate    | a beat's picture card, uncovered as it rises into the window      |
+ *   | pen      | a beat's lines and a loop's words, word after word (`Written`)    |
  *
  * All three off-switches — reduced motion, the site's Pause, and a browser
- * without scroll-driven animation — land on the finished state: the spine
- * drawn, every knot filled, every plate uncovered, every word at ink.
+ * without scroll-driven animation — land on the finished state: the line
+ * drawn, every plate uncovered, every word at ink.
  */
 
 function Plate({ beat }: { beat: Beat }) {
@@ -45,10 +54,10 @@ function Plate({ beat }: { beat: Beat }) {
   return <div className={`${styles.plate} ${styles.plateEmpty}`} style={shape} aria-hidden="true" />;
 }
 
-function BeatItem({ beat }: { beat: Beat }) {
+function BeatItem({ beat, side }: { beat: Beat; side: "start" | "end" }) {
   const headId = `${beat.id}-title`;
   return (
-    <li id={beat.id} className={styles.beat} data-kind={beat.kind}>
+    <li id={beat.id} className={styles.beat} data-kind={beat.kind} data-layout={beat.layout} data-side={side} data-line={side}>
       <div className={styles.beatText}>
         <p className={`${styles.when} text-field`}>{beat.when}</p>
         <h2 id={headId} className={`display ${styles.title}`}>
@@ -63,6 +72,26 @@ function BeatItem({ beat }: { beat: Beat }) {
         <Written className={styles.lines}>{beat.lines.join(" ")}</Written>
       </div>
       <Plate beat={beat} />
+    </li>
+  );
+}
+
+/*
+ * An interlude: the loop's box, square, the words centred in it. The line
+ * is drawn round the box with `data-line-pad` of clearance, so the words sit
+ * inside the circle's inscribed square with room to spare.
+ */
+function InterludeItem({ interlude }: { interlude: Interlude }) {
+  return (
+    <li id={interlude.id} className={styles.interlude} data-kind="interlude">
+      <div className={styles.loop} data-line="loop" data-line-pad="10">
+        <Written className={styles.loopWords} lang="en">
+          {interlude.words.en}
+        </Written>
+        <Written className={styles.loopWords} lang="he" dir="rtl">
+          {interlude.words.he}
+        </Written>
+      </div>
     </li>
   );
 }
@@ -84,11 +113,20 @@ export default function Story() {
         </header>
 
         <div className="wrap">
-          <ol className={styles.timeline} aria-label="Timeline">
-            {story.beats.map((b) => (
-              <BeatItem key={b.id} beat={b} />
-            ))}
-          </ol>
+          <LivingLine className={styles.lined}>
+            <ol className={styles.timeline} aria-label="Timeline">
+              {story.beats.map((b, i) => (
+                <Fragment key={b.id}>
+                  <BeatItem beat={b} side={i % 2 === 0 ? "start" : "end"} />
+                  {story.interludes
+                    .filter((x) => x.after === b.id)
+                    .map((x) => (
+                      <InterludeItem key={x.id} interlude={x} />
+                    ))}
+                </Fragment>
+              ))}
+            </ol>
+          </LivingLine>
         </div>
 
         <section aria-labelledby="close-title" className={`wrap ${styles.close}`}>

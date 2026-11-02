@@ -1,0 +1,203 @@
+/*
+ * The living line (#176, #178): /story and the home page's "How I work",
+ * both directions, a laptop and a phone.
+ *
+ * What it shoots, into `docs/line/`:
+ *
+ *   story-<lang>-<window>-<n>-<where>.png
+ *   approach-<lang>-<window>-<n>-<where>.png
+ *
+ * at several depths, including each page's first loop with the window's
+ * middle — the line's tip — on the circle's centre, so the loop is caught
+ * half drawn; then reduced motion and Pause at that same depth, which must
+ * both show the whole line drawn. The third switch (no `animation-timeline`)
+ * cannot be faked in Chromium and is held by the stylesheet tests.
+ *
+ * It also prints, per shot, how much of the line is drawn (1 − the computed
+ * `stroke-dashoffset`), and checks the geometry rule the line exists under:
+ * no point of the path inside any text box on the page. A crossing fails the
+ * run.
+ *
+ * RUNNING IT
+ * ----------
+ * `npm run build`, `npx vite preview --port 4561 --strictPort`, then
+ * `xvfb-run -a node scripts/shoot-line.mjs`. `BASE` points it elsewhere.
+ * Frames are driven by throwaway screenshots (this box's headless Chromium
+ * has almost no frame clock), and every wait polls at 500ms.
+ *
+ * HEBREW: the locale is listed and disabled until the strings exist, so
+ * `lang` and `dir` are written directly. The interlude words have Hebrew of
+ * their own; the rest of the copy stays English.
+ */
+import { chromium } from "playwright-core";
+import { mkdirSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const HERE = dirname(fileURLToPath(import.meta.url));
+const OUT = process.argv[2] ?? resolve(HERE, "../../docs/line");
+const BASE = process.env.BASE ?? "http://127.0.0.1:4561";
+const ONLY = process.env.ONLY; // "story" | "approach"
+
+mkdirSync(OUT, { recursive: true });
+
+const WINDOWS = [
+  ["desktop", 1440, 900],
+  ["phone", 390, 844],
+];
+
+const browser = await chromium.launch({ args: ["--no-sandbox", "--font-render-hinting=none"] });
+
+async function frames(page, n = 4) {
+  for (let i = 0; i < n; i += 1) {
+    await page.screenshot({ timeout: 20000 }).catch(() => {});
+    await page.waitForTimeout(150);
+  }
+}
+
+async function open(route, ready, lang, width, height, { reduced = false } = {}) {
+  const page = await browser.newPage({
+    viewport: { width, height },
+    deviceScaleFactor: 1,
+    reducedMotion: reduced ? "reduce" : "no-preference",
+  });
+  await page.goto(`${BASE}${route}`, { waitUntil: "load" });
+  await page.waitForFunction((sel) => document.querySelector(sel), ready, { polling: 500, timeout: 30000 });
+  if (lang === "he") {
+    await page.evaluate(() => {
+      document.documentElement.lang = "he";
+      document.documentElement.dir = "rtl";
+    });
+  }
+  await page.evaluate(() => document.fonts.ready);
+  for (let i = 0; i < 40; i += 1) {
+    await frames(page, 1);
+    if (await page.evaluate(() => !document.querySelector('[class*="_shutter_"]'))) break;
+  }
+  await frames(page, 4);
+  return page;
+}
+
+async function scrollTo(page, y) {
+  await page.evaluate((top) => window.scrollTo({ top, behavior: "instant" }), y);
+  await frames(page, 4);
+}
+
+/* Put the element's point at `f` of its height on the window's middle line. */
+async function centre(page, sel, f = 0.5) {
+  const y = await page.evaluate(
+    ([s, k]) => {
+      const r = document.querySelector(s).getBoundingClientRect();
+      return r.top + window.scrollY + r.height * k - window.innerHeight / 2;
+    },
+    [sel, f],
+  );
+  await scrollTo(page, y);
+}
+
+/* How much of the line is drawn, and whether any of it runs through text. */
+async function probe(page, scope) {
+  return page.evaluate((sc) => {
+    const root = document.querySelector(`${sc} [data-living-line]`);
+    const path = root.querySelector("path");
+    const off = parseFloat(getComputedStyle(path).strokeDashoffset);
+    const base = root.getBoundingClientRect();
+    const boxes = [];
+    for (const el of root.querySelectorAll("h1,h2,h3,p,dt,dd,a")) {
+      if (el.closest("svg")) continue;
+      for (const r of el.getClientRects()) {
+        if (r.width && r.height) boxes.push([r.left - base.left, r.top - base.top, r.right - base.left, r.bottom - base.top, el.textContent.slice(0, 24)]);
+      }
+    }
+    const len = path.getTotalLength();
+    const hits = [];
+    for (let s = 0; s <= len; s += 4) {
+      const p = path.getPointAtLength(s);
+      for (const [l, t, r, b, txt] of boxes) {
+        if (p.x > l + 1 && p.x < r - 1 && p.y > t + 1 && p.y < b - 1) hits.push(`${Math.round(p.x)},${Math.round(p.y)} in "${txt}"`);
+      }
+    }
+    return { drawn: Math.round((1 - off) * 1000) / 1000, hits: [...new Set(hits)].slice(0, 5) };
+  }, scope);
+}
+
+let failed = false;
+async function shoot(page, scope, name) {
+  await page.screenshot({ path: `${OUT}/${name}.png` });
+  const { drawn, hits } = await probe(page, scope);
+  console.log(`${name}  drawn=${drawn}${hits.length ? `  CROSSES ${hits.join("; ")}` : ""}`);
+  if (hits.length) failed = true;
+}
+
+const PAGES = {
+  story: {
+    route: "/story",
+    ready: "ol[aria-label='Timeline'] [data-line='loop']",
+    scope: "[data-page='story']",
+    async walk(page, at) {
+      await shoot(page, this.scope, at(0, "opening"));
+      await centre(page, "#start-2021 [data-written]", 0.5);
+      await shoot(page, this.scope, at(1, "first-beat"));
+      await centre(page, "#icaros", 0.0);
+      await shoot(page, this.scope, at(2, "swing"));
+      await centre(page, "#loop-open [data-line='loop']", 0.5);
+      await shoot(page, this.scope, at(3, "loop-mid-draw"));
+      await centre(page, "#loop-open [data-line='loop']", 1.1);
+      await shoot(page, this.scope, at(4, "loop-drawn"));
+      await centre(page, "#bothy", 0.6);
+      await shoot(page, this.scope, at(5, "overlap"));
+      await centre(page, "#loop-team [data-line='loop']", 0.5);
+      await shoot(page, this.scope, at(6, "last-loop-mid-draw"));
+      await centre(page, "#now", 0.9);
+      await shoot(page, this.scope, at(7, "now"));
+    },
+    depth: ["#loop-open [data-line='loop']", 0.5],
+  },
+  approach: {
+    route: "/",
+    ready: "#approach h3",
+    scope: "#approach",
+    async walk(page, at) {
+      await centre(page, "#approach header", 0.2);
+      await shoot(page, this.scope, at(0, "head"));
+      await centre(page, "#approach [data-line='end']", 0.8);
+      await shoot(page, this.scope, at(1, "sections"));
+      await centre(page, "#approach [data-line='loop']", 0.5);
+      await shoot(page, this.scope, at(2, "loop-mid-draw"));
+      await centre(page, "#approach [data-line-hold]", 1.0);
+      await shoot(page, this.scope, at(3, "first-principle"));
+      await centre(page, "#approach [data-line-hold]:last-of-type", 1.0);
+      await shoot(page, this.scope, at(4, "last-principle"));
+      await centre(page, "#approach [data-line-hold]", 0.3);
+      await shoot(page, this.scope, at(5, "back-up"));
+    },
+    depth: ["#approach [data-line='loop']", 0.5],
+  },
+};
+
+for (const [key, pg] of Object.entries(PAGES)) {
+  if (ONLY && ONLY !== key) continue;
+  for (const lang of ["en", "he"]) {
+    for (const [win, width, height] of WINDOWS) {
+      const page = await open(pg.route, pg.ready, lang, width, height);
+      await pg.walk(page, (n, where) => `${key}-${lang}-${win}-${n}-${where}`);
+      await page.close();
+    }
+  }
+  for (const [name, opts, before] of [
+    ["reduced", { reduced: true }, null],
+    ["paused", {}, () => document.body.classList.add("motion-paused")],
+  ]) {
+    const page = await open(pg.route, pg.ready, "en", 1440, 900, opts);
+    if (before) await page.evaluate(before);
+    await centre(page, ...pg.depth);
+    await shoot(page, pg.scope, `${key}-en-desktop-off-${name}`);
+    await page.close();
+  }
+}
+
+await browser.close();
+if (failed) {
+  console.error("the line crosses text");
+  process.exit(1);
+}

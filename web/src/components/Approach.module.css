@@ -38,8 +38,12 @@
   --rail: 7.5rem;
   --rail-gap: clamp(1.5rem, 3vw, 2.75rem);
 
+  /* The living line's two lanes (#178) are this box's inline padding, so the
+     column keeps its width and the lanes are added outside it. */
+  --line-lane: clamp(1.25rem, 3vw, 2.75rem);
+
   font-size: var(--read);
-  max-width: calc(var(--rail) + var(--rail-gap) + var(--measure-read));
+  max-width: calc(var(--rail) + var(--rail-gap) + var(--measure-read) + 2 * var(--line-lane));
   /* The column is centred; nothing inside it is — a centred paragraph has a
      ragged start edge, and the start edge is what the eye returns to. */
   margin-inline: auto;
@@ -180,11 +184,20 @@
   view-timeline-inset: 45vh 15vh;
 }
 
+/* The box the line loops round: exactly the figure, so the circle is
+   centred on the drawing. */
+.ring {
+  width: fit-content;
+}
+
 .figure {
   display: block;
   width: 4.75rem;
   height: 4.75rem;
-  margin-bottom: 1.25rem;
+  /* Clear of the living line's loop (#178): the circle is 12px outside the
+     figure, and the claim's first line box must start below it. Measured
+     at 390: at 1.25rem the circle cut the claim's top half-leading. */
+  margin-bottom: 2.25rem;
   overflow: visible;
 }
 

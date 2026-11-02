@@ -1,9 +1,11 @@
 /*
- * The story page (#46, #158): a timeline of short beats.
+ * The story page (#46, #158, #176): a timeline of short beats, and one line
+ * running the length of it.
  *
- * Every side here is logical — `inline-start`, `inset-inline`, `text-align:
- * start` — because the page runs in Hebrew as well, and the spine stands at
- * the start of the reading direction, the right-hand edge in RTL.
+ * Every side here is logical — `inline-start`, grid lines, `text-align:
+ * start` — because the page runs in Hebrew as well, and everything mirrors:
+ * a picture "on the start side" is on the right in RTL, and the line's lane
+ * with it (`LivingLine` resolves its lanes from the computed direction).
  *
  * No colour is invented. Every value is a site token, so the page's grounds,
  * inks and rules are the ones whose ratios are measured in `index.css`.
@@ -11,12 +13,12 @@
  * MOTION. Scroll is the clock (owner, 2026-11-02): every animation in this
  * file reads a scroll timeline, so it is scrubbed by scroll position and runs
  * backwards exactly when the reader scrolls up. No `transition`, no
- * duration, nothing started by an observer. The exits are at the foot of the
- * file, and each lands on the finished state.
+ * duration, nothing started by an observer. The line's own clock and exits
+ * are in `motion/LivingLine.module.css`; this file's exits are at its foot,
+ * and each lands on the finished state.
  */
 
 .story {
-  --spine: 1.25rem;
   position: relative;
 }
 
@@ -52,105 +54,214 @@
   direction: ltr;
 }
 
+
 /* ---------------------------------------------------------- timeline -- */
 
 /*
- * The list, and its spine.
- *
- * The spine is a hairline at the inline start, drawn down by the reader's
- * scroll so that its tip sits at the middle of the window: the list names a
- * view timeline inset by half the window at each end, so its `cover` range
- * runs from the list's top reaching the middle to its bottom reaching the
- * middle — exactly the list's own height of scroll — and a `scaleY` from 0
- * to 1 over that range keeps the tip on the window's middle line throughout.
+ * The list, inside the line's container. The container's inline padding is
+ * the line's two lanes; the list fills the space between them, so nothing
+ * in it can reach a lane.
  */
+.lined {
+  --line-lane: clamp(1.75rem, 4.5vw, 4rem);
+}
+
 .timeline {
-  position: relative;
   list-style: none;
-  margin-block: 0;
+  margin: 0;
   padding-inline: 0;
   padding-block: clamp(2rem, 6vh, 4rem) clamp(4rem, 10vh, 8rem);
-  view-timeline: --story-line block;
-  view-timeline-inset: 50%;
-}
-
-.timeline::before {
-  content: "";
-  position: absolute;
-  inset-block: 0;
-  inset-inline-start: calc(var(--spine) / 2);
-  width: 1px;
-  background: rgb(var(--rule-firm));
-  transform-origin: top;
-  animation: story-spine linear both;
-  animation-timeline: --story-line;
-}
-
-@keyframes story-spine {
-  from {
-    transform: scaleY(0);
-  }
-  to {
-    transform: scaleY(1);
-  }
 }
 
 /*
- * A beat. Real space between them — the owner's ask — and on a wide window
- * the text and its picture side by side, the picture the larger.
+ * Real space between beats — the owner's ask — and it is where the line
+ * swings from one lane to the other, so it is also the room the swing needs
+ * to read as a curve rather than a step.
  */
-.beat {
-  position: relative;
-  display: grid;
-  gap: 1.5rem;
-  padding-inline-start: calc(var(--spine) + 1.5rem);
-  /* The whole beat is a view timeline with the same half-window inset as the
-     spine, so `cover 0%` here is "the spine's tip has reached this beat". */
-  view-timeline: --story-beat block;
-  view-timeline-inset: 50%;
-}
-
-.beat + .beat {
+.timeline > li + li {
   margin-top: clamp(6rem, 18vh, 11rem);
 }
 
+/*
+ * A beat: its words and its picture, in one of three layouts (`data-layout`,
+ * chosen per beat in `data/story.ts`) on one of two sides (`data-side`, the
+ * picture's side, alternating). The line runs down the lane on the picture's
+ * side for the beat's whole height.
+ *
+ * On a phone every layout stacks: the picture, then the words. The picture
+ * keeps to its side at 88% of the width, so the alternation still reads, and
+ * `overlap` keeps its card over the picture's foot.
+ *
+ * The words come first in the DOM — a reader hears the year and the title
+ * before the picture's place — and are placed second by the grid.
+ */
+.beat {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  row-gap: 1.25rem;
+}
+
+.beat > .plate {
+  grid-row: 1;
+  width: 88%;
+}
+
+.beat[data-side="end"] > .plate {
+  justify-self: end;
+}
+
+.beat > .beatText {
+  grid-row: 2;
+}
+
+.beat[data-layout="overlap"] > .plate {
+  width: 100%;
+}
+
+.beat[data-layout="overlap"] > .beatText {
+  position: relative;
+  margin-top: -3.5rem;
+  margin-inline-start: 1.25rem;
+  padding: 1.25rem 1.25rem 0;
+  background: rgb(var(--paper));
+  border-radius: var(--r-md);
+}
+
+.beat[data-layout="overlap"][data-side="end"] > .beatText {
+  margin-inline: 0 1.25rem;
+}
+
+/*
+ * From 48rem: twelve columns.
+ *
+ *   beside   picture 7 columns on its side, words 5 on the other, centred
+ *            on the picture's height;
+ *   under    picture 8 columns on its side, the words beneath it from its
+ *            inner edge, 6 columns — a caption;
+ *   overlap  picture 9 columns, the words on a paper card 5 columns wide
+ *            that comes up over the picture's inner lower corner by 6rem.
+ *
+ * Grid lines follow the inline direction, so `1 / 8` is the right-hand seven
+ * columns in Hebrew without a rule of its own.
+ */
 @media (min-width: 48rem) {
   .beat {
-    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
-    gap: clamp(2rem, 4vw, 4rem);
-    align-items: start;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    column-gap: clamp(1.25rem, 2.5vw, 2.5rem);
+    row-gap: 1.5rem;
+  }
+
+  /* The whole grid area. Not `auto`: an empty card has no content to size
+     to, and `auto` under `justify-self: end` shrinks it to nothing. */
+  .beat > .plate,
+  .beat[data-side="end"] > .plate,
+  .beat[data-layout="overlap"] > .plate {
+    width: 100%;
+    justify-self: stretch;
+  }
+
+  .beat[data-layout="beside"] {
+    align-items: center;
+  }
+  .beat[data-layout="beside"][data-side="start"] > .plate {
+    grid-area: 1 / 1 / 2 / 8;
+  }
+  .beat[data-layout="beside"][data-side="start"] > .beatText {
+    grid-area: 1 / 8 / 2 / 13;
+  }
+  .beat[data-layout="beside"][data-side="end"] > .plate {
+    grid-area: 1 / 6 / 2 / 13;
+  }
+  .beat[data-layout="beside"][data-side="end"] > .beatText {
+    grid-area: 1 / 1 / 2 / 6;
+  }
+
+  .beat[data-layout="under"][data-side="start"] > .plate {
+    grid-area: 1 / 1 / 2 / 9;
+  }
+  .beat[data-layout="under"][data-side="start"] > .beatText {
+    grid-area: 2 / 3 / 3 / 9;
+  }
+  .beat[data-layout="under"][data-side="end"] > .plate {
+    grid-area: 1 / 5 / 2 / 13;
+  }
+  .beat[data-layout="under"][data-side="end"] > .beatText {
+    grid-area: 2 / 5 / 3 / 11;
+  }
+
+  .beat[data-layout="overlap"] > .beatText {
+    margin: -6rem 0 0;
+    padding: clamp(1.5rem, 2.5vw, 2.25rem);
+    z-index: 1;
+  }
+  .beat[data-layout="overlap"][data-side="start"] > .plate {
+    grid-area: 1 / 1 / 2 / 10;
+  }
+  .beat[data-layout="overlap"][data-side="start"] > .beatText {
+    grid-area: 2 / 7 / 3 / 13;
+  }
+  .beat[data-layout="overlap"][data-side="end"] > .plate {
+    grid-area: 1 / 4 / 2 / 13;
+  }
+  .beat[data-layout="overlap"][data-side="end"] > .beatText {
+    grid-area: 2 / 1 / 3 / 7;
   }
 }
 
 /*
- * The knot: the beat's mark on the spine. Hollow until the spine's tip
- * reaches the beat, filled across the next 2rem of scroll, so the tip and the
- * knot agree about where the reader is. On the first line of the time label.
+ * An interlude: the line leaves the timeline and goes once round a few
+ * words in the middle of the page.
+ *
+ * The box is square and the circle is drawn round it with 10px clearance
+ * (`data-line-pad`), so its radius is half the side plus 10. The words are
+ * held to the middle 70% of the side, which is inside the circle's
+ * inscribed square (71%), so no letter can touch the line.
+ *
+ * Only one language is shown: the Hebrew under <html lang="he">, the
+ * English otherwise. The other is `display: none`, so it is out of the
+ * accessibility tree as well as out of sight.
  */
-.beat::before {
-  content: "";
-  position: absolute;
-  inset-inline-start: calc(var(--spine) / 2 - 0.4375rem);
-  top: 0.2rem;
-  width: 0.875rem;
-  height: 0.875rem;
-  border-radius: var(--r-pill);
-  border: 1px solid rgb(var(--rule-firm));
-  background: rgb(var(--paper));
-  animation: story-knot linear both;
-  animation-timeline: --story-beat;
-  animation-range: cover 0rem cover 2rem;
+.interlude {
+  display: grid;
+  justify-items: center;
 }
 
-@keyframes story-knot {
-  from {
-    background-color: rgb(var(--paper));
-    border-color: rgb(var(--rule-firm));
-  }
-  to {
-    background-color: rgb(var(--signal));
-    border-color: rgb(var(--signal));
-  }
+.loop {
+  display: grid;
+  place-items: center;
+  width: clamp(13rem, 24vw, 18rem);
+  aspect-ratio: 1;
+  text-align: center;
+}
+
+/* 70% of the box, not 15% padding: a padding percentage is of the
+   containing block — the whole timeline's width — and left the words no
+   room at all. A grid item's percentage width is of its own area. */
+.loop > * {
+  max-width: 70%;
+}
+
+.loopWords {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: var(--weight-display);
+  font-size: clamp(1.15rem, 0.9rem + 0.8vw, 1.5rem);
+  line-height: 1.12;
+  letter-spacing: var(--track-display);
+  color: rgb(var(--ink));
+  text-wrap: balance;
+}
+
+.loopWords:lang(he) {
+  display: none;
+}
+
+:root:lang(he) .loopWords:lang(he) {
+  display: block;
+}
+
+:root:lang(he) .loopWords:lang(en) {
+  display: none;
 }
 
 .beatText {
@@ -293,54 +404,34 @@
   text-underline-offset: 0.3em;
 }
 
+
 /* ------------------------------------------------------------- exits -- */
 
 /*
- * Every exit cancels the animations outright and lands on the base rules,
- * which are the finished state: the spine has no transform (drawn), the knot
- * takes the filled colours below, the plate has no clip (uncovered). Never on
+ * Every exit cancels the animation outright and lands on the base rule,
+ * which is the finished state: the plate has no clip (uncovered). Never on
  * frame zero. The global `animation-duration: 0.01ms !important` that reduced
  * motion and Pause carry does nothing to a scroll-driven animation (motion
- * contract §4), so each switch is named here.
+ * contract §4), so each switch is named here. The line's exits are in
+ * `motion/LivingLine.module.css` and land on the line drawn.
  */
 @supports not (animation-timeline: view()) {
-  .timeline::before,
-  .beat::before,
   .plate {
     animation: none;
-  }
-  .beat::before {
-    background-color: rgb(var(--signal));
-    border-color: rgb(var(--signal));
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .timeline::before,
-  .beat::before,
   .plate {
     animation: none;
   }
-  .beat::before {
-    background-color: rgb(var(--signal));
-    border-color: rgb(var(--signal));
-  }
 }
 
-:global(body.motion-paused) .timeline::before,
-:global(body.motion-paused) .beat::before,
 :global(body.motion-paused) .plate {
   animation: none;
 }
 
-:global(body.motion-paused) .beat::before {
-  background-color: rgb(var(--signal));
-  border-color: rgb(var(--signal));
-}
-
 @media print {
-  .timeline::before,
-  .beat::before,
   .plate {
     animation: none;
   }
