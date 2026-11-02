@@ -1,4 +1,11 @@
-import { useCallback, type CSSProperties, type FocusEvent, type MouseEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  type CSSProperties,
+  type FocusEvent,
+  type MouseEvent,
+} from "react";
 import { Link } from "react-router-dom";
 import ObjectLabel from "@/components/gallery/ObjectLabel";
 import Plate from "@/components/projects/Plate";
@@ -45,6 +52,18 @@ import { objectAnchorId } from "@/lib/objectAnchor";
  * to the top. The formula lives once, in CSS, beside the ranges that use it.
  * With motion off the markers are inert and the browser's own focus scrolling
  * does the job on the plain list.
+ *
+ * The second is the tilt (#177). Under a fine pointer, the card the pointer is
+ * over turns a few degrees towards it in 3D. One passive `pointermove` on the
+ * list notes where the pointer is and, at most once a frame, writes where it
+ * sits on the card as two numbers from -1 to 1 (`--tilt-x`, `--tilt-y`) on
+ * the card's face. That is all it does: no React state, no re-render, and the
+ * stylesheet turns the numbers into a rotation, so the three off-switches and
+ * touch, which are all at-rules or a class, simply never apply them. The face
+ * is an element inside the link, so its transform is its own and never
+ * overwrites the lean or the arrival the link carries; and the link, which
+ * does not tilt, is what is hovered, so the hit area holds still while the
+ * face turns.
  *
  * And a way past it: a skip link ahead of the run, visible on focus, that
  * moves focus to just after the stage, so a keyboard reader is never made to
@@ -109,6 +128,63 @@ export default function ProjectRun({ entries, label, heading }: ProjectRunProps)
     marker?.scrollIntoView({ behavior: "instant", block: "start" });
   }, []);
 
+  const listRef = useRef<HTMLOListElement>(null);
+
+  useEffect(() => {
+    const list = listRef.current;
+    if (!list) return;
+    const fine = window.matchMedia("(hover: hover) and (pointer: fine)");
+    let card: HTMLElement | null = null;
+    let face: HTMLElement | null = null;
+    let x = 0;
+    let y = 0;
+    let frame = 0;
+
+    const unit = (v: number) => Math.max(-1, Math.min(1, v)).toFixed(3);
+    const write = () => {
+      frame = 0;
+      if (!card || !face) return;
+      const r = card.getBoundingClientRect();
+      face.style.setProperty("--tilt-x", unit(((x - r.left) / r.width) * 2 - 1));
+      face.style.setProperty("--tilt-y", unit(((y - r.top) / r.height) * 2 - 1));
+    };
+    const release = () => {
+      face?.style.removeProperty("--tilt-x");
+      face?.style.removeProperty("--tilt-y");
+      card = face = null;
+    };
+    const onMove = (e: PointerEvent) => {
+      if (e.pointerType !== "mouse" || !fine.matches) return;
+      const next = (e.target as Element).closest<HTMLElement>("[data-run-card]");
+      if (next !== card) {
+        release();
+        const slot = next?.closest("[data-run-i]");
+        /* Off-switches on, or touch: nothing is written at all. */
+        if (next && slot && running(slot)) {
+          card = next;
+          face = next.querySelector<HTMLElement>("[data-run-face]");
+        }
+      }
+      if (!card) return;
+      x = e.clientX;
+      y = e.clientY;
+      if (!frame) frame = requestAnimationFrame(write);
+    };
+    const onLeave = () => {
+      cancelAnimationFrame(frame);
+      frame = 0;
+      release();
+    };
+
+    list.addEventListener("pointermove", onMove, { passive: true });
+    list.addEventListener("pointerleave", onLeave, { passive: true });
+    return () => {
+      list.removeEventListener("pointermove", onMove);
+      list.removeEventListener("pointerleave", onLeave);
+      onLeave();
+    };
+  }, []);
+
   const skip = useCallback((e: MouseEvent<HTMLAnchorElement>) => {
     const target = document.getElementById(e.currentTarget.hash.slice(1));
     if (!target) return;
@@ -161,7 +237,7 @@ export default function ProjectRun({ entries, label, heading }: ProjectRunProps)
         ))}
 
         <div className={styles.frame}>
-          <ol className={styles.run} aria-label={label} onFocus={onFocus}>
+          <ol ref={listRef} className={styles.run} aria-label={label} onFocus={onFocus}>
             {entries.map((entry, i) => {
               const { collection: c } = entry;
               const arrive = arrival(entry, newest);
@@ -179,30 +255,32 @@ export default function ProjectRun({ entries, label, heading }: ProjectRunProps)
                     } as CSSProperties
                   }
                 >
-                  <Link to={`/projects/${c.slug}`} className={styles.card}>
-                    <div className={styles.shot}>
-                      {c.coverImage ? (
-                        <Shot src={c.coverImage} alt="" sizes={SHOT_SIZES} />
-                      ) : (
-                        <Plate
-                          className={styles.plate}
-                          title={c.title}
-                          tech={entry.tech.slice(0, PLATE_TECH)}
+                  <Link to={`/projects/${c.slug}`} className={styles.card} data-run-card="">
+                    <div className={styles.face} data-run-face="">
+                      <div className={styles.shot}>
+                        {c.coverImage ? (
+                          <Shot src={c.coverImage} alt="" sizes={SHOT_SIZES} />
+                        ) : (
+                          <Plate
+                            className={styles.plate}
+                            title={c.title}
+                            tech={entry.tech.slice(0, PLATE_TECH)}
+                          />
+                        )}
+                      </div>
+                      <div className={styles.plinth}>
+                        <ObjectLabel
+                          name={c.title}
+                          fact={c.tagline}
+                          fields={entry.fields}
+                          scale="object"
+                          nameAs={heading}
+                          className={styles.label}
                         />
-                      )}
-                    </div>
-                    <div className={styles.plinth}>
-                      <ObjectLabel
-                        name={c.title}
-                        fact={c.tagline}
-                        fields={entry.fields}
-                        scale="object"
-                        nameAs={heading}
-                        className={styles.label}
-                      />
-                      <span className={styles.onward} aria-hidden="true">
-                        &rarr;
-                      </span>
+                        <span className={styles.onward} aria-hidden="true">
+                          &rarr;
+                        </span>
+                      </div>
                     </div>
                   </Link>
                 </li>

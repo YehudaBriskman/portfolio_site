@@ -292,7 +292,42 @@
   }
 }
 
+/*
+ * The link and its face (#177). The link carries the run's two card-level
+ * animations, the lean and the arrival, and is the hit area; the face inside
+ * it is everything that is seen — the edge, the paper, the shadow — and the
+ * only thing the tilt turns. Two elements, so the tilt's `transform` never
+ * meets the arrival's, and the hovered box does not move under the pointer
+ * while the face turns.
+ */
 .card {
+  display: block;
+  border-radius: var(--r-xl);
+  color: rgb(var(--ink));
+  text-decoration: none;
+  outline: none;
+
+  /* The lean pivots on the card's centre; the arrival carries its own
+     origin inside the keyframe (below), so the two do not have to share. */
+  animation-name: run-lean, run-arrive;
+  animation-fill-mode: both;
+  animation-timing-function: linear;
+  animation-timeline: --run;
+  animation-range:
+    contain calc(var(--run-at) * 100%) contain calc((var(--run-at) + var(--run-lap)) * 100%),
+    contain calc(var(--run-at) * 100%) contain calc((var(--run-at) + var(--run-lap) / 3) * 100%);
+}
+
+/*
+ * The shadow is depth on paper, not a drop: five layers, each faint, the
+ * tight ones for the contact edge and the wide ones for the lift, summing to
+ * about what the single heavy shadow it replaces showed at its darkest but
+ * with no hard rim. The offsets are short and the blur does the work, so as
+ * the card leans with the curve — and the shadow, drawn by the face, turns
+ * with it — the shift sideways is a few pixels at the steepest lean and the
+ * shadow still reads as falling below the card.
+ */
+.face {
   display: grid;
   grid-template-rows: auto auto;
   overflow: hidden;
@@ -307,27 +342,66 @@
   );
   box-shadow:
     0 1px 0 rgb(var(--run-tint) / 0.45) inset,
-    0 30px 64px -28px rgb(var(--run-shade) / 0.95);
-  color: rgb(var(--ink));
-  text-decoration: none;
+    0 1px 2px rgb(var(--run-shade) / 0.18),
+    0 3px 6px -1px rgb(var(--run-shade) / 0.16),
+    0 8px 16px -4px rgb(var(--run-shade) / 0.2),
+    0 18px 36px -10px rgb(var(--run-shade) / 0.26),
+    0 36px 72px -24px rgb(var(--run-shade) / 0.34);
 
-  /* The lean pivots on the card's centre; the arrival carries its own
-     origin inside the keyframe (below), so the two do not have to share. */
-  animation-name: run-lean, run-arrive;
-  animation-fill-mode: both;
-  animation-timing-function: linear;
-  animation-timeline: --run;
-  animation-range:
-    contain calc(var(--run-at) * 100%) contain calc((var(--run-at) + var(--run-lap)) * 100%),
-    contain calc(var(--run-at) * 100%) contain calc((var(--run-at) + var(--run-lap) / 3) * 100%);
+  /* Easing back on leave is the base transition: the settle, unhurried. */
+  transition:
+    border-color var(--dur-fast) ease,
+    background-color var(--dur-fast) ease,
+    transform var(--dur-settle) var(--ease-settle);
+}
 
-  transition: border-color var(--dur-fast) ease, background-color var(--dur-fast) ease;
+/* The ring is the face's, so it turns with what it marks. */
+.card:focus-visible > .face {
+  outline: 2px solid rgb(var(--bone));
+  outline-offset: 3px;
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .card:hover {
+  .card:hover > .face {
     border-color: rgb(var(--run-tint) / 0.55);
     background-color: color-mix(in srgb, rgb(var(--canvas-2)), rgb(var(--run-tint)) 8%);
+  }
+}
+
+/*
+ * The tilt (#177). Direct manipulation, so it may be time-based: the face
+ * turns towards the pointer by up to `--tilt-max` on each axis — the edge
+ * under the pointer goes down into the page — from the two numbers the
+ * component writes, following them over a short transition and settling back
+ * flat over the long one when the pointer leaves. Keyboard focus has no
+ * pointer, so it gets one fixed, gentle turn, the onward edge forward.
+ *
+ * Only where there is a fine pointer that hovers, and only with motion
+ * allowed: touch and reduced motion never match this block, and Pause and no
+ * scroll-driven animation cancel it below. The tilt is physical — the pointer
+ * is where it is — so it does not take `--run-dir`; the focus turn, which
+ * points onward, does.
+ */
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .card {
+    --tilt-max: 6deg;
+    --tilt-depth: 900px;
+  }
+  .card:focus-visible > .face {
+    will-change: transform;
+    transform: perspective(var(--tilt-depth)) rotateX(-2deg) rotateY(calc(var(--run-dir) * -3deg));
+  }
+  .card:hover > .face {
+    will-change: transform;
+    transform: perspective(var(--tilt-depth)) rotateX(calc(var(--tilt-y, 0) * -1 * var(--tilt-max)))
+      rotateY(calc(var(--tilt-x, 0) * var(--tilt-max)));
+    transition:
+      border-color var(--dur-fast) ease,
+      background-color var(--dur-fast) ease,
+      transform var(--dur-micro) ease-out;
+  }
+  :global(body.motion-paused) .card > .face {
+    transform: none;
   }
 }
 
@@ -492,6 +566,10 @@
   .card {
     animation-name: none;
   }
+  /* No moving run, no turning card: the plain list is held still. */
+  .run .card:is(:hover, :focus-visible) > .face {
+    transform: none;
+  }
   .mark {
     top: 0;
   }
@@ -563,7 +641,7 @@
 }
 
 @media (forced-colors: active) {
-  .card {
+  .face {
     background-image: none;
     box-shadow: none;
   }
