@@ -108,7 +108,7 @@ ledger is a page-level document and not a comment.
 | 0 | title plate | **staged assembly** | the collection names itself, in four gated moves |
 | — | the plate's end corner | **breath** | one small light is on, and says one thing at a time |
 | 1 | wall text | `flow` | the quiet before the peak |
-| 2 | **the pile** | `pin` | the work stacks up with weight |
+| 2 | **the run** | `pin` | the work arrives along one line, and the reader's scroll is what moves it |
 | 3 | the year | `scrub` | a year of work, raised off the page by the reader's own scroll |
 | 4 | notes shelf | `pan` | lateral travel against vertical scroll |
 | 5 | specs | `count` | real numbers landing |
@@ -117,6 +117,37 @@ ledger is a page-level document and not a comment.
 Ten families. No repeat in adjacent beats. The head row reuses the entry's family on purpose and is argued below. `pin` is spent once, on the peak,
 and `scrub` is spent once on beat 3 — the grammar bans a *second* scrub and
 has always allowed the first, which is the whole licence beat 3 has.
+
+**Beat 2 changed from the pile to the run on the owner's call (#57, reopened
+2026-11-02), and it moves lateral travel next to beat 4's `pan`.** The family
+is still `pin` — a held frame the scroll buys time in, spent once — but what
+moves inside it is now sideways: the cards come in from the right and travel
+left along one snaking curve, each leaning with its tangent
+(`projects/ProjectRun.module.css`). That is a cousin of the notes shelf's
+`pan`, and it is allowed for two reasons that have to stay true: the two are
+never adjacent (the wall text and the year sit between them in either order
+this section discusses), and they are not the same device — the shelf is a
+flat row the page slides past at its own height, the run is a held stage with
+the work arriving one by one on a curve. If a later change puts them next to
+each other, one of them changes family. The owner's house rule for this beat
+is the city's (#111): **scroll is the clock** — every part of it is scrubbed
+by the stage's named timeline, reverses exactly on the way up (frames forward
+and back are byte-identical below the bar, which tucks on the way down;
+`web/scripts/shoot-work-run.mjs`, shots in `docs/work-run/`), and nothing is on a timer or
+fired once. Each card's arrival is still its own, carried unchanged from the
+pile (`pileArrival.ts`). All three off-switches land on the plain vertical
+list, with no pin and no runway.
+
+Measured at 4× CPU throttle, 1440×900, wheel-scrolled through the whole
+`#work` section with real input events, rAF frames over wall clock, five
+passes per arm after a discarded warm-up, interleaved with the order flipped
+each round (`web/scripts/measure-work-fps.mjs`): **`main` (the pile) 16.3fps,
+the run 15.6fps**, medians, with both arms spreading 11.7–17.0 — the
+difference is inside the spread. The absolute numbers are this harness under
+SwiftShader with a 16ms pause per wheel step and are not comparable with the
+tables below; the comparison is. The run animates only `transform`,
+`translate`, `rotate` and the card's arrival transform — no layout and no
+paint per frame.
 
 **The entry row is not a beat, and the distinction is what keeps it honest.**
 Every other row in this table is a section a reader scrolls to; `shutter` is
@@ -573,10 +604,11 @@ bought no scroll distance beyond its own section's height. #111 asked for more
 of it — bigger, and more time — and a scrub's only clock is scroll, so it now
 holds its frame (`position: sticky`) over a 120svh runway, on a static stage
 that owns the named timeline exactly as §1 prescribes. That makes it a held
-beat, and the test is now comparative and measured: the pile holds for about
-238svh (four 52svh cards and a 30svh tail) and the year for 120svh; the work
-section is 3919px against the year's 2360px at 1440×900 and 3667px against
-2059px at 390×844, same page, same data. The pile keeps the most scroll room,
+beat, and the test is now comparative and measured: the run holds for 220svh
+(55svh a card, four cards) and the year for 120svh; the work section is
+3397px against the year's 2360px at 1440×900, same page, same data. (The
+pile it replaced held about 238svh, a 3919px section.) The run keeps the most
+scroll room,
 the only asset budget and `pin` as its *move*; what the year holds still for
 is a camera dolly down its own grid, which is the scrub continuing rather than
 a second family arriving. It has no asset budget, being 365 one-colour boxes
@@ -620,8 +652,8 @@ a finished chart. Nothing about the column count or the one-animation build
 changed, which is why it was never expected to move.
 
 **The order in this table is the intended one and is not the order
-`pages/Index.tsx` renders today.** The page renders the pile *before* the wall
-text, so the shipped sequence is title plate, pile, wall text, the year, notes
+`pages/Index.tsx` renders today.** The page renders the run *before* the wall
+text, so the shipped sequence is title plate, run, wall text, the year, notes
 shelf, specs, inquiry plate. `Approach.tsx` still describes itself as "the
 quiet before the peak", which is the arrangement above and not the arrangement
 shipped. Recorded here rather than silently renumbered, because which of the
@@ -643,7 +675,7 @@ back: `spotlight`, `magnet`, more than one `scrub`, and a
 pinned argument-shaped type act. The one `scrub` the page is allowed is now
 spent, on beat 3; a second one is the ban and not a judgement call. Holding
 the year's frame for its runway (#111) does not spend `pin` a second time:
-`pin` is the pile's move — cards stacking under a held frame — and a held
+`pin` is the run's move — the work travelling under a held frame — and a held
 scrub is still a scrub. It does spend scroll, which the next rule counts.
 
 **Allowed and currently unused:** `tilt` on objects the visitor would pick up
@@ -674,17 +706,17 @@ it, and the most scroll room. Everything else is support.
 A page with three peaks has none. The old plan had a smoke hero, colour splats
 and a card pile all competing at maximum effort, and the measurable result was
 that nothing on the page read as the most important thing on it. The current
-peak is the pile (beat 2) — *the work stacks up and you can feel the weight of
-it* — and it is the only place the page spends `pin` and the only section
+peak is the run (beat 2) — *the work arrives along one line, and the reader's
+scroll is what moves it* — and it is the only place the page spends `pin` and the only section
 allowed to cost a frame budget.
 
 It is no longer the only dark act. It was, and the ground was part of what
 made it the peak; it is now one of two, with the year, on the subject rule in
 `index.css` rather than on importance. That does not move the peak, because
-the ground was never what the peak rule was about: the pile still pins, still
+the ground was never what the peak rule was about: the run still pins, still
 takes the most scroll room, still carries the only asset budget, and the year
 — which since #111 does hold its frame — holds it for half the distance the
-pile does (120svh against about 238svh), measured in §2. What the pair costs it is
+run does (120svh against 220svh), measured in §2. What the pair costs it is
 the ground as a *signal* of the peak, and §2's ledger row for `drift` is where
 that trade is recorded.
 
@@ -883,6 +915,7 @@ direction, or set `fill-rule: evenodd` deliberately and know what it costs.
 | `motion/Flow.tsx` | `flow` — one gate per item, so a beat can differ per item | observer + clock |
 | `motion/InkWipe.tsx` | ink arriving as a hard clip edge, plus the coloured band | `view()` |
 | `motion/InkRule.tsx` | a hairline drawing itself in | `view()` |
+| `projects/ProjectRun.module.css` | `pin` — the work travelling along a curve under a held frame; one lap per card, staggered by range | named `view-timeline` on the static stage, the frame held inside it |
 | `city/ContributionCity.module.css` | `scrub` — one animation turns and raises 365 columns, a second dollies the camera down the year | named `view-timeline` on a static wrapper, the frame held over it |
 | `city/useCityHand.ts` | the year's orbit and its one readout — a drag turns the city, a point reads a day | pointer events; a settle loop only between release and rest |
 | `gallery/Skeleton.module.css` | `sweep` — one line of a placeholder, the band across it, and the gate before it | clock |
