@@ -97,8 +97,10 @@ ghcr.io/yehudabriskman/portfolio_site/web:latest
 ghcr.io/yehudabriskman/portfolio_site/api:latest
 ```
 
-Built for `linux/amd64` and `linux/arm64`, because the cluster runs on an arm64
-node.
+Built for `linux/arm64` only, natively on an arm64 runner, because the cluster
+runs on an arm64 node and nothing else pulls them. The image Trivy scans is the
+image that is pushed, and the Publish image log proves it. To run them on an
+amd64 machine, build from source with `docker-compose.yml` instead.
 
 ## How it reaches production
 
