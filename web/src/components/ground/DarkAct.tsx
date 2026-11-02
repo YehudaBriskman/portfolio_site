@@ -75,7 +75,7 @@ import styles from "@/components/ground/DarkAct.module.css";
  * by shape — the acts are arched plates in the middle of the scroll, the
  * footer is a flat band at the bottom of every route — and not by colour.
  *
- * ── /projects and /blog have no dark section at all (#193) ───────────────
+ * ── /projects has no dark section at all (#193) ──────────────────────────
  *
  * #175 put a dark stats panel over the catalogue and argued here that it was
  * an instrument, not a third act. #193 deleted it on the owner's word ("it
@@ -84,14 +84,15 @@ import styles from "@/components/ground/DarkAct.module.css";
  * rail, and nothing on it carries `data-chrome="dark"`, so the nav island
  * keeps its paper material the whole way down.
  *
- * /blog hangs the notes on the same wall as dark CARDS (`DarkCard.module.css`,
- * #179), and those are not acts either, for the reason that file gives: the
- * ground stays paper, each card is a small object with paper on every side,
- * and none of them carries `data-chrome="dark"`. A 17rem card passing under
- * the bar is not a ground the bar is lying on, so the island does not invert
- * for it. If the wall ever goes dark as a whole, or a card goes edge to edge,
- * it has become a ground, the ceiling above applies, and the nav needs
- * `data-chrome="dark"` on it.
+ * /blog hung the notes on the same wall as dark cards from #193, and argued
+ * here that a card is not a ground. #224 then made /blog a dashboard whose
+ * whole ground is the cards' dark panel (`DarkCard.module.css`, #185), edge to
+ * edge under the nav, so it carries `.on-panel` and `data-chrome="dark"` and
+ * the island inverts over it, as this note said it would have to. That is a
+ * ground, not an act: the page is one surface from the nav to the footer with
+ * no paper beat before or after it, no seams and no drift, so the ceiling on
+ * dark ACTS, which counts beats of one page's argument, does not count it.
+ * `dashboard/DashboardShell.tsx` holds the case beside the code.
  *
  * ── what a dark act needs, and the half of it that fails silently ─────────
  *

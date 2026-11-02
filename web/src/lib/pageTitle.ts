@@ -186,6 +186,9 @@ export function pageIdentityFor(pathname: string): PageIdentity {
        own eyebrow and the footer all say Blogs, and the title is not the
        place to contradict them. */
     if (!second) return identity("Blogs");
+    /* The channel log (#226) does not exist yet; its route is the 404. */
+    if (second === "log" && segments.length === 2) return identity("Not found");
+    if (second === "area" && third && segments.length === 3) return identity(humaniseSlug(third));
     if (segments.length === 2) return identity(humaniseSlug(second));
   }
 

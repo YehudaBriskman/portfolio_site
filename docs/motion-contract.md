@@ -1103,8 +1103,21 @@ board, year lanes) and asked for the board, mixed with the lanes' panel.
 
 | page | device family | the one reason it exists |
 |---|---|---|
-| `/projects`, `/blog` | **`assemble`** | each band of the wall closes in from its own edges as it comes up the window: a piece on the left slides in from the left, a piece on the right from the right, a piece in the middle rises. So the wall is hung by the time the eye reaches it, and nothing in the reading band moves |
+| `/projects` (and `/blog` from #193 until #224) | **`assemble`** | each band of the wall closes in from its own edges as it comes up the window: a piece on the left slides in from the left, a piece on the right from the right, a piece in the middle rises. So the wall is hung by the time the eye reaches it, and nothing in the reading band moves |
 | ~~`/projects` panel~~ | ~~`draw`, on bars~~ | **removed in #193** with the panel itself: the owner's call, "it doesn't belong" |
+| `/blog` (#224) | **none** | the notes left the wall for a dashboard: compact rows and cards a reader scans, filters and opens. Nothing on it arrives, rises or assembles; what moves is what the reader moves |
+
+**#224: /blog is a dashboard, and has no device.** The notes index became a
+three-column dashboard (a side rail of views, areas and filters; a middle of
+search, top posts, a tree of areas and the latest notes; a timeline of the
+site's activity). It is read the way a working tool is read, by scanning and
+picking, so it gets no scroll act at all: the tree opens and closes at once
+(its twisty turns with the shared `--dur-micro` hover/focus transition), the
+Home/Feed switch is a navigation, the phone's rail sheet is a native
+`<dialog>` shown and hidden without a transition, and the loading skeletons
+keep the shared sweep with its three off-switches. Its dark ground (the note
+cards' `#185` panel, now edge to edge, with `data-chrome="dark"`) is a ground,
+not an act: see `ground/DarkAct.tsx`.
 
 **#193: one gallery for both pages.** The wall, its sizes, `assemble`, the
 re-hang and the three off-switches moved out of `projects/` into
@@ -1750,9 +1763,11 @@ animation.
 | close: surface, label, full stop (`Contact`) | / | `view()` per part | scrubbed |
 | contact dialog: scrim, panel, field ink, send seal | / and the nav's Contact | transitions and clock keyframes | **exempt**: dialog open/close and a reply to Send |
 | /story plates arriving (`story-plate`) | /story | `view()`, `cover 5vh cover 50vh` | scrubbed (#195: opened sideways out of the line's lane; was a foot clip that ran below the fold) |
-| gallery pieces assembling (`assemble`, `assemble-shade`, `gallery/Wall`) | /projects, /blog | `--tile` per cell | scrubbed (on /blog since #193) |
-| gallery filter re-hang (view transition) | /projects, /blog | `startViewTransition` | **exempt**: filter re-hang |
+| gallery pieces assembling (`assemble`, `assemble-shade`, `gallery/Wall`) | /projects | `--tile` per cell | scrubbed (on /blog from #193 until #224) |
+| gallery filter re-hang (view transition) | /projects | `startViewTransition` | **exempt**: filter re-hang |
 | filter popovers, the rail's phone sheet (`FilterControl`, `Rail`) | /projects, /blog | none: shown and hidden, no transition | — (#193) |
+| notes hung on the gallery wall (`NoteTile` in `Wall`) | /blog | — | **removed** (#224): the index is a dashboard of rows and cards, and nothing on it arrives |
+| Blogs dashboard: tree open/close, Home/Feed switch, the phone's rail `<dialog>`, the timeline (`dashboard/`) | /blog, /blog/area/:slug | none: shown and hidden, no transition; hover/focus as the row below | — (#224) |
 | stats panel bars (`draw-bar`) | /projects | — | **removed** (#193): the panel was deleted |
 | ink wipe on the cover and band (`InkWipe`) | /projects/:slug | `view()` | scrubbed |
 | notes index cards rising (`.scrub-rise`) | /blog | — | **removed** (#193): the notes hang on the gallery wall and arrive by `assemble` (row above) |
@@ -1769,7 +1784,7 @@ animation.
 | admin login | /admin/posts | form-control focus transitions only | **exempt**: focus |
 | 404, /accessibility | — | nothing of their own beyond the shared chrome above | — |
 
-Counted: 38 rows. 9 were converted from a clock or a one-shot trigger to a
+Counted: 40 rows (#224 added the last two; see below). 9 were converted from a clock or a one-shot trigger to a
 scroll timeline in #162, and the bar's drop was removed outright; 14 were
 already scrubbed; 13 are exempt for the reasons given (the hero's
 entry arrival joined them in #194); 1 row is routes with
@@ -1781,3 +1796,8 @@ were removed (the panel was deleted; the notes now arrive on the gallery wall,
 whose row widened to /blog), and the filter popovers and phone sheet were added
 as a row with no motion at all. So today: 21 scrubbed, 12 exempt, 3 removed,
 2 with nothing of their own.
+
+#224 took /blog off the wall: the assemble and re-hang rows now name
+/projects alone, a row records the notes leaving the wall (removed), and a row
+records the dashboard, which has nothing of its own. So: 21 scrubbed, 12
+exempt, 4 removed, 3 with nothing of their own.
