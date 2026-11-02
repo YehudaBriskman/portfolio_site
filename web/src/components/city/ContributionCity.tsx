@@ -57,27 +57,25 @@ import styles from "@/components/city/ContributionCity.module.css";
  * and height "differ in resolution and not in source" is untouched by that —
  * it is a claim about `count`, and the ground does not get a vote.
  *
- * Why the columns are touchable and still not focusable
- * ------------------------------------------------------
- * GitHub's grid gives every day a tooltip, and copying that here would put 365
- * focus stops in front of a reader navigating by keyboard — which is not
- * access to a chart, it is a queue in front of one. So the scene is
- * `aria-hidden` and the data has a real text equivalent instead: a caption
- * with the window, the total and the busiest day, and a `details` holding the
- * twelve months as a table. The `details` is deliberately not `sr-only`; the
+ * Why the columns are touchable, and one stop rather than 365
+ * -------------------------------------------------------------
+ * GitHub's grid gives every day a tooltip and a focus stop, and copying that
+ * here would put 365 stops in front of a reader navigating by keyboard —
+ * which is not access to a chart, it is a queue in front of one. So the scene
+ * is `aria-hidden` and the data has a real text equivalent: a caption with the
+ * window, the total and the busiest day, and a `details` holding the twelve
+ * months as a table. The `details` is deliberately not `sr-only`; the
  * reasoning is on `.table` in the stylesheet.
  *
- * #111 asked for the city to answer a hand, and that argument survives it
- * untouched because the hand never asks for focus. A pointer can turn the city
- * and point at one day; the day it points at is written into ONE shared
- * readout, which is `aria-hidden` like the scene it describes — it is a
- * pointer's view of the same data the caption and the table already give in
- * full, at month resolution rather than day resolution. No column has a
- * tabindex, a role or a label, and there is still exactly zero focus stops in
- * the figure. What a pointer gets that a keyboard does not is one day's exact
- * count; the table is the place to add a day view if that ever matters more
- * than a queue of 365 stops costs. `data-date` and `data-count` are on real
- * cells only, so the empty lattice has nothing to read.
+ * #111 let a pointer turn the city and read one day. #190 asked that every
+ * object, buildings included, show its date and count on hover, on keyboard
+ * focus and on tap — so there is ONE shared tooltip, stood over whichever
+ * object is being read, and the frame is ONE focus stop whose arrow keys rove
+ * between days (the grid pattern without 365 tabindexes). No column has a
+ * tabindex, a role or a label. The tooltip is `aria-hidden` like the scene;
+ * a keyboard reader hears one polite status line instead, written only on
+ * keyboard moves. `data-date` and `data-count` are on real cells only, so the
+ * empty lattice has nothing to read and the frame is not focusable then.
 
  * Three states, and loading is not the same state as empty
  * ---------------------------------------------------------
@@ -191,12 +189,13 @@ export default function ContributionCity() {
   const empty = plan.cells.length === 0;
   const live = !isPending && !empty;
 
-  /* Three refs for the hand, and the only three in the file. They are read
+  /* Four refs for the hand, and the only four in the file. They are read
      once, by the effect in `useCityHand`, and never drive a render. */
   const frameRef = useRef<HTMLDivElement>(null);
   const orbitRef = useRef<HTMLDivElement>(null);
-  const readingRef = useRef<HTMLSpanElement>(null);
-  useCityHand(frameRef, orbitRef, readingRef, live);
+  const tipRef = useRef<HTMLSpanElement>(null);
+  const sayRef = useRef<HTMLSpanElement>(null);
+  useCityHand(frameRef, orbitRef, tipRef, sayRef, live);
 
   return (
     <section id="year" data-chrome="dark" className="on-panel relative isolate">
@@ -252,7 +251,23 @@ export default function ContributionCity() {
             className={styles.stage}
             data-city={isPending ? "pending" : empty ? "empty" : "year"}
           >
-            <div ref={frameRef} className={styles.frame}>
+            {/*
+              One focus stop for the whole year (#190), and only once there is
+              a year in it. The arrows rove between days inside; the label says
+              so, because a group is otherwise silent about its keys.
+            */}
+            <div
+              ref={frameRef}
+              className={styles.frame}
+              {...(live
+                ? {
+                    tabIndex: 0,
+                    role: "group",
+                    "aria-label":
+                      "The year, day by day. Arrow keys move between days, Home and End go to the first and last.",
+                  }
+                : {})}
+            >
               <div className={styles.scene} aria-hidden="true">
                 {/* The hand's turn, written by `useCityHand` as one inline
                     transform, and the scroll's dolly inside it. The nesting
@@ -311,7 +326,7 @@ export default function ContributionCity() {
               </div>
 
               {/*
-                The one readout, shared by all 365 columns.
+                The hint line, shared by all 365 columns.
 
                 `aria-hidden` with the scene, because it is the scene's legend
                 and says nothing the table does not: a screen reader reaching it
@@ -333,8 +348,23 @@ export default function ContributionCity() {
                   <span className={styles.hint} data-hint="touch">
                     Swipe sideways to turn · tap a day
                   </span>
-                  <span ref={readingRef} className={styles.reading} />
                 </div>
+              )}
+
+              {/*
+                The tooltip, shared by every object in the scene: the date and
+                the count of whichever day is pointed at, tapped or reached by
+                the arrows, stood over that object by `useCityHand`. Out of
+                flow and moved by `transform` alone, so showing it shifts
+                nothing. `aria-hidden` for the readout's reason; the keyboard's
+                spoken copy is the status line under it, written only when the
+                keyboard moves.
+              */}
+              {live && (
+                <>
+                  <span ref={tipRef} className={styles.tip} aria-hidden="true" />
+                  <span ref={sayRef} className="sr-only" role="status" />
+                </>
               )}
             </div>
           </div>

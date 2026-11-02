@@ -872,7 +872,7 @@
 /* ──────────────────────────────────────────────────────────── the readout ── */
 
 /*
- * The one readout the 365 columns share.
+ * The hint line the 365 columns share.
  *
  * In the frame's lower corner, on the page's own left edge: the inset is
  * `.wrap`'s gutter expressed from inside a full-bleed box, the same sum
@@ -887,11 +887,13 @@
  * stand on without standing on a column. `pointer-events: none` so it never
  * takes a hover from the column behind it.
  *
- * Two hints and one reading. At rest a hint says what the hand can do, in
- * the words of the pointer the reader has: `(hover: hover)` is a mouse or a
- * trackpad, `(hover: none)` is a finger. Once a column is read the hints give
- * way to the reading, and a tap on bare ground or the pointer leaving the
- * frame gives it back.
+ * Two hints. At rest a hint says what the hand can do, in the words of the
+ * pointer the reader has: `(hover: hover)` is a mouse or a trackpad,
+ * `(hover: none)` is a finger. Since #190 the day itself is read in the
+ * tooltip over its object (`.tip`, below) rather than in this corner, so
+ * while a day is read the hint steps aside — hidden, not removed, so the
+ * corner keeps its line box — and a tap on bare ground, Escape or the
+ * pointer leaving the frame gives it back.
  */
 .readout {
   position: absolute;
@@ -906,14 +908,62 @@
   pointer-events: none;
 }
 
-.reading,
 .frame[data-reading] .hint {
-  display: none;
+  visibility: hidden;
 }
 
-.frame[data-reading] .reading {
-  display: inline;
-  color: rgb(var(--ink));
+/*
+ * The tooltip (#190): the one object every day in the scene shares.
+ *
+ * The site's tooltip, the nav's `.tip` in `Nav.module.css`: a pill stamped in
+ * ink, the data face at 11px, tracked and set in capitals. Stamped in THIS
+ * ground's ink — `--ink` is `--panel-ink` on the dark act and the type is the
+ * ground — for the reason the nav gives: a tooltip is an object hanging over
+ * the scene, not a mark lying in it, and inverting the ground is what makes it
+ * read as one at a glance.
+ *
+ * Out of flow at the frame's physical origin and placed by `transform` from
+ * `useCityHand` (the anchor is a projected rect, which is physical), so it can
+ * appear, move and vanish without moving a pixel of layout. `visibility` and
+ * not `display`, so it can be measured before it is shown and the first
+ * placement is already the right one. `pointer-events: none` so it never takes
+ * a hover from the object under it. No transition: it follows a pointer
+ * across columns, and a fade per column is a smear.
+ */
+.tip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  max-width: calc(100% - 16px);
+  padding: 5px 10px;
+  border-radius: var(--r-pill);
+  font-family: var(--font-data);
+  font-size: 0.6875rem;
+  line-height: 1.2;
+  letter-spacing: var(--track-field);
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+  color: rgb(var(--canvas));
+  background: rgb(var(--ink));
+  border: 1px solid rgb(var(--ink));
+  box-shadow: 0 6px 18px rgb(var(--shade) / 0.35);
+  pointer-events: none;
+  visibility: hidden;
+  z-index: 1;
+}
+
+.frame[data-reading] .tip {
+  visibility: visible;
+}
+
+/* The frame is the year's one focus stop, and it is full-bleed: the global
+   ring's outward offset would be cut by the page's own clip at both edges, so
+   this one is drawn inside. */
+.frame:focus-visible {
+  outline-offset: -4px;
 }
 
 @media (hover: hover) {
@@ -1399,5 +1449,11 @@
      column whose band no longer shows; the table is the reading here. */
   .readout {
     display: none;
+  }
+  .tip {
+    forced-color-adjust: none;
+    color: Canvas;
+    background: CanvasText;
+    border-color: CanvasText;
   }
 }

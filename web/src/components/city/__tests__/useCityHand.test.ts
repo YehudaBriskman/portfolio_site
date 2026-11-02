@@ -20,14 +20,33 @@ describe("the readout", () => {
     expect(readoutText("2026-08-18", 1)).toMatch(/· 1 contribution$/);
   });
 
-  it("says nothing rather than a nought", () => {
-    /* "0 contributions" reads as a measurement of a day; "nothing" is what
-       an empty cell in this chart means. */
-    expect(readoutText("2026-03-07", 0)).toBe("Sat, 7 Mar 2026 · nothing");
+  it("says an empty day in words rather than a nought", () => {
+    /* "0" under a flat tile reads as a measurement nobody took. */
+    expect(readoutText("2026-03-07", 0)).toBe("Sat, 7 Mar 2026 · no contributions");
   });
 
   it("groups thousands", () => {
     expect(readoutText("2026-08-17", 1234)).toMatch(/1,234 contributions$/);
+  });
+});
+
+describe("the readout in Hebrew", () => {
+  it("formats the date with Intl for he-IL, still on the calendar day", () => {
+    const text = readoutText("2026-08-17", 172, "he");
+    const day = new Intl.DateTimeFormat("he-IL", {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      timeZone: "UTC",
+    }).format(new Date("2026-08-17T00:00:00Z"));
+    expect(text).toBe(`${day} · 172 תרומות`);
+    expect(text).toContain("17");
+  });
+
+  it("uses the singular and the empty-day phrase", () => {
+    expect(readoutText("2026-08-18", 1, "he")).toMatch(/· תרומה אחת$/);
+    expect(readoutText("2026-08-18", 0, "he")).toMatch(/· אין תרומות$/);
   });
 });
 

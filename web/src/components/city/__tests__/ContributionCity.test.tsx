@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import ContributionCity from "@/components/city/ContributionCity";
 import { contributionYear, type ContributionYear } from "@/services/contributions";
 
@@ -173,14 +173,59 @@ describe("ContributionCity", () => {
     expect(section?.querySelector(":scope > .wrap")).not.toBeNull();
   });
 
-  it("puts no focus stop in the scene", async () => {
+  it("puts one focus stop on the year, and none in the scene", async () => {
     fetchYear.mockResolvedValue(YEAR);
     const { container } = mount();
     await waitFor(() => expect(container.querySelectorAll("[data-step]")).toHaveLength(7));
-    /* The only thing a reader can tab to in this section is the table's own
-       control. 365 tab stops is not access to a chart. */
-    expect(container.querySelectorAll("a, button, [tabindex]")).toHaveLength(0);
+    /* The frame is the one stop (#190); the arrows rove inside it. 365 tab
+       stops is not access to a chart. */
+    const stops = container.querySelectorAll("a, button, [tabindex]");
+    expect(stops).toHaveLength(1);
+    expect(stops[0]).toHaveAttribute("tabindex", "0");
+    expect(stops[0]).toHaveAttribute("role", "group");
+    expect(stops[0].getAttribute("aria-label")).toMatch(/Arrow keys/);
+    expect(container.querySelector('[aria-hidden="true"] [tabindex]')).toBeNull();
     expect(container.querySelectorAll("summary")).toHaveLength(1);
+  });
+
+  it("reads a day from the keyboard into the tooltip and the status line", async () => {
+    fetchYear.mockResolvedValue(YEAR);
+    const { container } = mount();
+    await waitFor(() => expect(container.querySelectorAll("[data-step]")).toHaveLength(7));
+    const frame = container.querySelector<HTMLElement>("[tabindex]")!;
+    const status = screen.getByRole("status");
+
+    /* End is the last day of the fixture, 10 January 2026, at 6. */
+    fireEvent.keyDown(frame, { key: "End" });
+    expect(frame).toHaveAttribute("data-reading");
+    expect(status.textContent).toBe("Sat, 10 Jan 2026 · 6 contributions");
+    expect(container.querySelector("[data-hot]")).toHaveAttribute("data-date", "2026-01-10");
+    expect(frame.textContent).toContain("Sat, 10 Jan 2026 · 6 contributions");
+
+    /* Up is the day before; Home the first. */
+    fireEvent.keyDown(frame, { key: "ArrowUp" });
+    expect(container.querySelector("[data-hot]")).toHaveAttribute("data-date", "2026-01-09");
+    fireEvent.keyDown(frame, { key: "Home" });
+    expect(container.querySelector("[data-hot]")).toHaveAttribute("data-date", "2026-01-04");
+
+    /* Escape puts it away, and leaving the frame does too. */
+    fireEvent.keyDown(frame, { key: "Escape" });
+    expect(frame).not.toHaveAttribute("data-reading");
+    expect(container.querySelector("[data-hot]")).toBeNull();
+  });
+
+  it("speaks Hebrew when the document is in Hebrew", async () => {
+    document.documentElement.lang = "he";
+    try {
+      fetchYear.mockResolvedValue(YEAR);
+      const { container } = mount();
+      await waitFor(() => expect(container.querySelectorAll("[data-step]")).toHaveLength(7));
+      const frame = container.querySelector<HTMLElement>("[tabindex]")!;
+      fireEvent.keyDown(frame, { key: "End" });
+      expect(screen.getByRole("status").textContent).toMatch(/· 6 תרומות$/);
+    } finally {
+      document.documentElement.lang = "en";
+    }
   });
 
   it("gives the hand one readout, hidden with the scene it describes", async () => {
