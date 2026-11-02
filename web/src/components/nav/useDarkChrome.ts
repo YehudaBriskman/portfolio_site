@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { PAGE_COMMIT, usePageCommits } from "./pageCommit";
 
 /*
  * Is a dark panel under the bar.
@@ -54,13 +55,18 @@ const LATE_READ_MS = 900;
 
 /**
  * @param pathname the current route. The chrome does not unmount between
- *   routes, so the panels have to be looked for again when the page changes.
+ *   routes — since #63 it sits above `<Routes>` in `SiteChrome.tsx`, and
+ *   before that this sentence was not true — so the panels have to be looked
+ *   for again when the page changes. The pathname alone is not enough to know
+ *   *when*: a lazy page arrives after its address does, and the page-commit
+ *   signal below is what tells the observer it has.
  * @param barBottom how far down the viewport the bar's lower edge sits, in
  *   px. The band this observer watches is the viewport's top edge down to
  *   here — the strip the bar is actually covering.
  */
 export function useDarkChrome(pathname: string, barBottom: number): boolean {
   const [dark, setDark] = useState(false);
+  const commits = usePageCommits();
 
   useEffect(() => {
     let observer: IntersectionObserver | null = null;
@@ -122,12 +128,25 @@ export function useDarkChrome(pathname: string, barBottom: number): boolean {
      * that forgets to invert.
      */
     window.addEventListener("resize", build);
+
+    /*
+     * Rebuilt when a page shell mounts under the chrome. On a warm navigation
+     * the page is already in the document when the pathname effect above
+     * runs, and this is a second, redundant build of the same observer —
+     * cheap, and not worth a guard. On a cold one it is the only build that
+     * sees the page at all: the pathname changed while the lazy chunk was
+     * still on the wire, the first pass found an empty `<Suspense>`, and the
+     * one late read would have been a race against the network. The long
+     * version is in `pageCommit.ts`.
+     */
+    commits?.addEventListener(PAGE_COMMIT, build);
     return () => {
       window.clearTimeout(late);
       window.removeEventListener("resize", build);
+      commits?.removeEventListener(PAGE_COMMIT, build);
       observer?.disconnect();
     };
-  }, [pathname, barBottom]);
+  }, [pathname, barBottom, commits]);
 
   return dark;
 }
