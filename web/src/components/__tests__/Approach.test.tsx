@@ -1,30 +1,32 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import Approach from "@/components/Approach";
 import { about } from "@/data/site";
 
 /*
- * The arrivals are keyframes jsdom will not run, so what is worth asserting is
- * the one thing that can rot without anyone noticing: the coupling between a
- * principle's words and the treatment chosen for them.
- *
- * Each of the three differences encodes what its claim says — the reasoning is
- * beside the mapping in `Approach.tsx` — and the mapping is keyed by the claim
- * text. So an edit to the copy in `data/site.ts` can quietly detach a reason
- * from the sentence it was written about, and the only places that would
- * notice are this file and a careful reader of the page. The fallback is
- * deliberate rather than defensive, and it is tested below too: an unrecognised
- * claim takes the family's plain gesture instead of inheriting the argument
- * that belonged to a different sentence.
+ * jsdom runs no scroll timeline and draws nothing, so what is asserted here is
+ * what can rot without anyone noticing: every line of copy on the page as its
+ * own pen-written paragraph, the coupling between a claim and the figure drawn
+ * for it, the figures out of the accessibility tree, the employer rule, and
+ * the stylesheet's three off-switches landing on the drawn state. What the
+ * figures look like mid-scroll is in `docs/approach/`.
  */
 
-function principleFor(container: HTMLElement, claim: string): HTMLElement {
+const css = readFileSync(resolve(__dirname, "../Approach.module.css"), "utf8");
+
+function principleFor(claim: string): HTMLElement {
   const heading = screen.getByRole("heading", { name: claim, level: 3 });
-  const item = heading.parentElement;
+  const item = heading.parentElement?.parentElement;
   if (!item) throw new Error(`no item around ${claim}`);
-  expect(container).toContainElement(item);
   return item;
 }
+
+/* `Written` sets each word as its own span, so a paragraph is found by its
+   whole textContent — what a reader and the clipboard get. */
+const paragraph = (text: string) =>
+  screen.getByText((_, el) => el?.hasAttribute("data-written") === true && el.textContent === text);
 
 afterEach(() => {
   vi.doUnmock("@/data/site");
@@ -32,72 +34,81 @@ afterEach(() => {
 });
 
 describe("Approach", () => {
-  it("puts the whole beat on the page as prose", () => {
+  it("puts every line on the page as its own written paragraph", () => {
     render(<Approach />);
-    /* The prose is `motion/Written`, which sets each word as its own inline
-       span, so `getByText(sentence)` — which compares an element's own text
-       nodes — no longer sees a sentence. The paragraph is found by its whole
-       textContent instead, which is what a reader and the clipboard get. */
-    const paragraph = (text: string) =>
-      screen.getByText((_, el) => el?.hasAttribute("data-written") === true && el.textContent === text);
-
     expect(screen.getByRole("heading", { name: about.heading, level: 2 })).toBeInTheDocument();
-    for (const text of about.intro) {
-      expect(paragraph(text)).toBeInTheDocument();
+    for (const section of about.intro) {
+      expect(screen.getByText((_, el) => el?.tagName === "P" && !el.hasAttribute("data-written") && el.textContent === section.label)).toBeInTheDocument();
+      for (const line of section.lines) expect(paragraph(line).tagName).toBe("P");
     }
-    for (const principle of about.principles) {
-      expect(
-        screen.getByRole("heading", { name: principle.claim, level: 3 })
-      ).toBeInTheDocument();
-      expect(paragraph(principle.detail)).toBeInTheDocument();
+    for (const p of about.principles) {
+      expect(screen.getByRole("heading", { name: p.claim, level: 3 })).toBeInTheDocument();
+      for (const line of p.lines) expect(paragraph(line)).toBeInTheDocument();
     }
   });
 
-  it("gives each principle a treatment of its own", () => {
-    const { container } = render(<Approach />);
+  it("keeps every paragraph short, so it reads as a beat and not a wall", () => {
+    const lines = [...about.intro.flatMap((s) => s.lines), ...about.principles.flatMap((p) => p.lines)];
+    for (const line of lines) {
+      expect(line.split(/\s+/).length, line).toBeLessThanOrEqual(45);
+    }
+  });
 
-    const classes = about.principles.map((p) => {
-      const names = principleFor(container, p.claim).className.split(" ").filter(Boolean);
-      /* Two classes: the spacing that makes it a principle, and the arrival
-         that makes it this one. */
-      expect(names).toHaveLength(2);
-      return names[1];
+  it("draws a different figure for each principle, out of the accessibility tree", () => {
+    render(<Approach />);
+    const names = about.principles.map((p) => {
+      const svg = principleFor(p.claim).querySelector("svg");
+      expect(svg, p.claim).not.toBeNull();
+      expect(svg?.getAttribute("aria-hidden")).toBe("true");
+      /* Every mark is on the clock and normalised to one unit long. */
+      const marks = svg?.querySelectorAll("[data-step]") ?? [];
+      expect(marks.length).toBeGreaterThan(3);
+      for (const m of marks) expect(m.getAttribute("pathLength")).toBe("1");
+      return svg?.getAttribute("data-figure");
     });
-
-    /* Three different treatments, not one effect applied three times. If this
-       fails, either a claim has been reworded out of the mapping or two
-       principles have been handed the same argument. */
-    expect(new Set(classes).size).toBe(3);
+    expect(new Set(names).size).toBe(about.principles.length);
   });
 
-  it("leaves the five items as direct children of the group, in reading order", () => {
-    const { container } = render(<Approach />);
-    const group = container.querySelector("section > div");
-
-    /* The gate watches direct children and the stylesheet steps them by
-       `nth-child`, so the grain is the markup: the heading and its eyebrow are
-       one item, the standfirst is one, and each principle is one. */
-    expect(group?.children).toHaveLength(2 + about.principles.length);
-  });
-
-  it("falls back to the plain arrival for a claim it does not recognise", async () => {
+  it("draws no figure for a claim nobody drew one for", async () => {
     vi.resetModules();
     vi.doMock("@/data/site", () => ({
       about: {
         heading: "How I work",
-        intro: ["One paragraph of voice."],
-        principles: [{ claim: "A claim nobody wrote a reason for", detail: "Its detail." }],
+        intro: [{ label: "Now", lines: ["One line of voice."] }],
+        principles: [{ claim: "A claim nobody drew", lines: ["Its line."] }],
       },
     }));
-
     const { default: Fresh } = await import("@/components/Approach");
-    const { container } = render(<Fresh />);
-    const item = principleFor(container, "A claim nobody wrote a reason for");
+    render(<Fresh />);
+    expect(principleFor("A claim nobody drew").querySelector("svg")).toBeNull();
+  });
 
-    /* One class, and no empty or `undefined` second one: the spacing is
-       intact, the arrival is the family's default, and nothing claims to
-       encode a meaning it was not written for. */
-    expect(item.className.split(" ").filter(Boolean)).toHaveLength(1);
-    expect(item.className).not.toContain("undefined");
+  it("calls the role a technical team lead and names no employer", () => {
+    const { container } = render(<Approach />);
+    const text = container.textContent ?? "";
+    expect(text).toContain("Technical team lead");
+    expect(text).toContain("technical team lead");
+    expect(text).not.toMatch(/Technical lead\b/);
+  });
+
+  it("scrubs every stroke by scroll and nothing by time", () => {
+    expect(css).toMatch(/animation-timeline:\s*--approach-fig/);
+    expect(css).not.toMatch(/animation-duration|animation-delay|transition/);
+    expect(css).not.toMatch(/\d+ms/);
+  });
+
+  it("lands all three off-switches, and print, on the drawn figure", () => {
+    const exits = [
+      /@supports not \(animation-timeline: view\(\)\)\s*\{\s*\.figure \[data-step\]\s*\{([^}]*)\}/,
+      /@media \(prefers-reduced-motion: reduce\)\s*\{\s*\.figure \[data-step\]\s*\{([^}]*)\}/,
+      /:global\(body\.motion-paused\) \.figure \[data-step\]\s*\{([^}]*)\}/,
+      /@media print\s*\{\s*\.figure \[data-step\]\s*\{([^}]*)\}/,
+    ];
+    for (const exit of exits) {
+      const body = css.match(exit)?.[1] ?? "";
+      expect(body, String(exit)).toMatch(/animation:\s*none/);
+      expect(body).toMatch(/stroke-dashoffset:\s*0/);
+      expect(body).toMatch(/stroke-opacity:\s*1/);
+    }
   });
 });
