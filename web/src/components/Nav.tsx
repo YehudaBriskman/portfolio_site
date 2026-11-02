@@ -7,6 +7,7 @@ import ElsewhereMarks from "./nav/ElsewhereMarks";
 import MotionToggle from "./nav/MotionToggle";
 import { NAV_ROUTES } from "./nav/navRoutes";
 import { useDarkChrome } from "./nav/useDarkChrome";
+import { useTuckedBar } from "./nav/useTuckedBar";
 import { useLocale } from "./nav/locale";
 import { ELSEWHERE } from "./nav/social";
 import { useMotionPaused } from "./nav/useMotionPaused";
@@ -88,8 +89,8 @@ import styles from "./Nav.module.css";
  *
  * `aria-current` therefore has one meaning again, "page", which is the meaning
  * it had before #45 gave it two. The room you are in is marked in the bar and
- * in the sheet, and on a phone the collapsed control names it before it is
- * touched.
+ * in the sheet. On a phone the collapsed control used to name it as well, and
+ * no longer does — the note on the toggle below says why (#161).
  *
  * What is kept, because it was right
  * ----------------------------------
@@ -134,6 +135,12 @@ export default function Nav() {
 
   /* Whether a panel that inverts the ground is under the bar right now. */
   const dark = useDarkChrome(pathname, BAR_H);
+
+  /* Whether the bar is out of the way above the window, because the reader is
+     scrolling forward (#161). Never while the panel is open: the control that
+     closes it is in the bar. `useDarkChrome` keeps watching the strip while
+     the bar is away, so it comes back already in the right material. */
+  const [tucked, reveal] = useTuckedBar(pathname, BAR_H, open);
 
   /*
    * The controls are stateful and appear twice — once in the bar, once in the
@@ -308,13 +315,17 @@ export default function Nav() {
     if (to === "/" && pathname === "/" && scrollToAnchor("hero")) e.preventDefault();
   };
 
-  /* The room the reader is in, for the collapsed control to name. `undefined`
-     on an address that is in none of them — the 404 and the admin routes —
-     where the control drops to its one line rather than inventing a room. */
-  const here = NAV_ROUTES.find((r) => routeCurrent(r.to));
-
   return (
-    <header className={styles.dock} data-material={dark ? "dark" : "paper"}>
+    /* `onFocus` is React's bubbling focus — `focusin` — so focus arriving on
+       anything inside the bar un-tucks it, and it stays back after focus moves
+       on. The stylesheet holds it on screen *while* keyboard focus is inside;
+       this is what keeps it there afterwards. */
+    <header
+      className={styles.dock}
+      data-material={dark ? "dark" : "paper"}
+      data-tucked={tucked ? "" : undefined}
+      onFocus={reveal}
+    >
       <div className={styles.bar}>
         {/* Leading edge: the rooms. Folds into the sheet below `WIDE`. */}
         <div className={styles.lead}>
@@ -337,19 +348,36 @@ export default function Nav() {
         </div>
 
         {/*
-          The collapsed menu, below `WIDE`, in the centre track.
+          The collapsed menu, below `WIDE`, in the centre track. One word and
+          the bars, on one line.
 
-          It names the room you are in before it is touched, which is the one
-          piece of information a phone's bar can still give for free. That is
-          not much, and it is deliberately not a running commentary on scroll
-          position — see the head of this file.
+          It used to be two lines — MENU over the name of the room you were in
+          — and #161 drops the second. Not because naming the room was wrong
+          but because, on a phone, it was the third place saying it and the
+          worst-placed of the three:
 
-          No `aria-label`: the visible text is "Menu" and the name of the room,
-          and that text has to *be* the accessible name — WCAG 2.5.3, Label in
-          Name, which is what made the language picker read "EN — change
-          language" rather than "Language: English". `aria-expanded` carries the
-          open state, which is the only thing a label would have had left to
-          say.
+            The page says it first. Every room opens on its own title, set as
+            the page's `h1` near the top — "What I'm building", "The long way
+            round" — which says where the reader is in the page's own words
+            rather than the menu's, and on a phone it is on the first screen.
+
+            The menu says it best. Open it and the room you are in is the one
+            row filled solid ink — the loudest mark in the chrome, at the one
+            moment the reader is choosing where to go.
+
+            And the bar now tucks away while the reader moves down a page, so
+            the label was on screen in exactly two places: at the top of the
+            page, under which the `h1` already says it, and on the way back up,
+            when the reader is reaching for the menu rather than reading it.
+
+          What it cost to keep it was the pill itself: an 11px field label over
+          a 15px value inside a 44px control is two type sizes stacked in a
+          space sized for one, and that cramped stack is what read badly.
+
+          No `aria-label`: the visible text is "Menu", and that text has to *be*
+          the accessible name — WCAG 2.5.3, Label in Name. `aria-expanded`
+          carries the open state, which is the only thing a label would have
+          had left to say.
         */}
         <button
           ref={toggleRef}
@@ -359,10 +387,7 @@ export default function Nav() {
           aria-controls={panelId}
           className={styles.toggle}
         >
-          <span className={styles.toggleStack}>
-            <span className={styles.toggleHead}>Menu</span>
-            {here ? <span className={styles.toggleNow}>{here.label}</span> : null}
-          </span>
+          <span>Menu</span>
           <span className={styles.bars} aria-hidden="true" />
         </button>
 
