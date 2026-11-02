@@ -277,6 +277,47 @@ after a warm-up, interleaved: **`main` 59.4fps, the tilt 58.5fps**
 (medians). Style recalculation per move rose from 3.4ms to 6.4ms
 (throttled), script from 0.8ms to 1.4ms, and layout stayed at 0.
 
+**An aurora runs along the cards' path and joins them (#181).** The owner
+asked for something that connects all the cards: "an energy line in aurora
+style on the place they are sliding". Three were prototyped and shot (an
+aurora ribbon, a fine track with a pulse, a thread from card to card), and
+the owner picked the aurora. It is not a new family and not a second beat.
+It belongs to the run, plays on the run's own timeline and is spent inside
+the same `pin`.
+*On the path, not near it.* Every card plays the same lap, so every card's
+centre lies on one curve fixed in the frame. The curve runs from half a card
+past each edge and one `--run-amp` either side of the middle, and it is one
+period of the sine. `runCurve.ts` derives this from `run-x` and `run-y`.
+`.curve` is that box, set from the same custom properties the slot moves by,
+and the SVG stretches one period into it with `preserveAspectRatio="none"`
+(a stretched sine is still the sine). The stylesheet is tested to keep the
+box and `run-x`'s two ends in step. Measured in the browser, every card on
+screen stands within 0.4px of the drawn line, at both windows and in both
+directions.
+*The light.* A haze and a band rest on the line in the work's own tints
+(teal, green, the act's blue, violet). A brighter copy shows through a soft
+46cqw window that sweeps from the reading end to past the start once a card.
+The window and the copy inside it move by opposite transforms, so the copy
+holds still on the curve while the light passes. It is scrubbed and
+reversed like everything in the run: frames reached going back are
+byte-identical.
+*Hebrew.* The window's travel takes `--run-dir`, and the drawing is turned
+by `scale: var(--run-dir) 1`. That is a picture of a sine with no text in
+it, and the run's own "no `scale: -1`" rule is about text and hit areas.
+*Off-switches.* Reduced motion and Pause land on the plain list, which has
+no curve. There the aurora becomes one still ribbon down the list's middle,
+behind the cards, fully drawn with no surge, so each gap still shows the
+cards on one line. With no `animation-timeline` support, and in forced
+colours, it is hidden, because the list is the whole fallback.
+*Not the living line.* `line` (#176/#183) is ink: one stroke drawn on by
+scroll beside the reading. This is light: always fully drawn, under the
+work, on a dark act. The two never share a page section.
+Shots: `docs/work-run/aurora-<w>x<h>[-he]-<t>.png`, `-reduced`, `-paused`
+(`web/scripts/shoot-work-aurora.mjs`). Measured with
+`measure-work-fps.mjs` at 4× throttle, interleaved against a build of
+`main`, medians: 1440×900 **45.1 → 44.2fps** (7 rounds), 390×844
+**46.4 → 46.3fps** (5 rounds), both inside the run-to-run spread.
+
 **Beat 4 holds its frame now, and it is still `pan` (#159).** The owner's note
 was that the shelf "still moves the whole page": it drifted sideways while the
 section scrolled away at full speed, so the pan was a garnish on a section
@@ -1414,6 +1455,7 @@ direction, or set `fill-rule: evenodd` deliberately and know what it costs.
 | `motion/InkRule.tsx` | a hairline drawing itself in | `view()` |
 | `projects/ProjectIndex.module.css` | `riffle` — /projects only: each catalogue row stands up on its top edge as it enters the lower quarter, and its rule draws in from the reading edge | named `view-timeline` on each static `<li>`, read by the link inside it |
 | `projects/ProjectRun.module.css` | `pin` — the work travelling along a curve under a held frame; one lap per card, staggered by range | named `view-timeline` on the static stage, the frame held inside it |
+| `projects/RunAurora.tsx` + `runCurve.ts` | the run's aurora: light on the cards' own curve, a window sweeping along it once a card; a still ribbon down the plain list with motion off | the run's `--run` timeline, iterated once per card |
 | `LatestNotes.module.css` | `pan`, held — the notes walk past under a held frame, one card-width per step | named `view-timeline` on the static stage (inset 0), the frame held inside it |
 | `city/ContributionCity.module.css` | `scrub` — one animation turns and raises 365 columns, a second dollies the camera down the year | named `view-timeline` on a static wrapper, the frame held over it |
 | `city/useCityHand.ts` | the year's orbit and its one readout — a drag turns the city, a point reads a day | pointer events; a settle loop only between release and rest |

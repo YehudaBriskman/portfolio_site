@@ -14,6 +14,7 @@ import { arrival, newestYear } from "@/components/projects/pileArrival";
 import type { ProjectEntry } from "@/hooks/useProjects";
 import styles from "@/components/projects/ProjectRun.module.css";
 import { objectAnchorId } from "@/lib/objectAnchor";
+import RunAurora from "@/components/projects/RunAurora";
 
 /*
  * The work, travelling along a curve (#57, reopened by the owner 2026-11-02).
@@ -64,6 +65,10 @@ import { objectAnchorId } from "@/lib/objectAnchor";
  * overwrites the lean or the arrival the link carries; and the link, which
  * does not tilt, is what is hovered, so the hit area holds still while the
  * face turns.
+ *
+ * Behind the cards runs the aurora (#181, `RunAurora.tsx`): one line of
+ * light on the cards' own path, so every card is visibly on the same road
+ * as its neighbours. Decoration, `aria-hidden`, all stylesheet.
  *
  * And a way past it: a skip link ahead of the run, visible on focus, that
  * moves focus to just after the stage, so a keyboard reader is never made to
@@ -237,6 +242,8 @@ export default function ProjectRun({ entries, label, heading }: ProjectRunProps)
         ))}
 
         <div className={styles.frame}>
+          {/* The aurora along the cards' path (#181), behind the list. */}
+          <RunAurora />
           <ol ref={listRef} className={styles.run} aria-label={label} onFocus={onFocus}>
             {entries.map((entry, i) => {
               const { collection: c } = entry;
