@@ -278,19 +278,26 @@
  *
  * ── the ramp, and why it stops short of full ink ──────────────────────────
  *
- * The bands are the page's own ink at four alphas over the paper ground, which
- * is the whole palette this chart needs: the site is ink on paper and the
+ * The bands are the page's own ink at four alphas over the ground, which is
+ * the whole palette this chart needs: the site is ink on a sheet and the
  * quantity being drawn is how much ink the day took. Nothing here introduces a
  * hue, so the gallery's one rule about colour — white walls, coloured
  * paintings — is untouched: a drawing is not a painting.
  *
- * The top band is 0.78 and not 1, and that is load-bearing rather than taste.
- * A wall has to be darker than the face above it or the column has no edge,
- * and the wall is built by compositing one more fixed shade over the band
- * (see `--city-shade`). At an alpha of 1 there is nothing left to darken and
- * the busiest columns would be flat silhouettes.
+ * THERE ARE TWO MEASURED RAMPS BELOW, one per ground, and the paper one is
+ * first because it is the one the numbers were originally derived on. The grid
+ * stands on the dark act today; the paper ramp is what it falls back to if it
+ * is ever placed on the page's own ground again, and it is kept measured
+ * rather than deleted because the dark one is derived FROM it.
  *
- * ── the measured ramp ─────────────────────────────────────────────────────
+ * The top band is 0.78 and not 1 on paper, and that is load-bearing rather
+ * than taste. A wall has to be darker than the face above it or the column has
+ * no edge, and on paper the wall is built by compositing one more fixed shade
+ * of ink over the band (see `--city-shade`). At an alpha of 1 there is nothing
+ * left to darken and the busiest columns would be flat silhouettes. That
+ * particular ceiling does not bind on the dark act — see the second table.
+ *
+ * ── the measured ramp, on paper ───────────────────────────────────────────
  *
  * Read out of the rendered page and composited over `--paper` (236 232 220).
  * The first row of alphas tried was 0.18 / 0.36 / 0.56 / 0.78 and it failed on
@@ -298,21 +305,97 @@
  * 1.18:1, which is the difference between "a quiet year" and "a dead one"
  * drawn as no difference at all. Raised until the five steps are even.
  *
- *   step   face            wall            face : wall
- *   0      rgb(216 210 194)  — none —       —
- *   1      rgb(176 172 163)  rgb(106 103 96)  2.49 : 1
- *   2      rgb(137 134 126)  rgb( 85  83 77)  2.11 : 1
- *   3      rgb(102 100  93)  rgb( 65  63 58)  1.78 : 1
- *   4      rgb( 68  66  60)  rgb( 46  45 40)  1.37 : 1
+ *   step   a     face              wall              vs prev   vs ground   face : wall
+ *   0      —     rgb(216 210 194)    — none —           —        1.2317 : 1     —
+ *   1      0.28  rgb(176 172 163)  rgb(106 103  96)  1.5004 : 1  1.8481 : 1  2.4923 : 1
+ *   2      0.46  rgb(137 134 126)  rgb( 85  83  77)  1.6062 : 1  2.9684 : 1  2.1148 : 1
+ *   3      0.62  rgb(102 100  93)  rgb( 65  63  58)  1.6286 : 1  4.8345 : 1  1.7757 : 1
+ *   4      0.78  rgb( 68  66  60)  rgb( 46  45  40)  1.6963 : 1  8.2010 : 1  1.3733 : 1
  *
- * Step to step, the faces run 1.50 : 1, 1.61 : 1, 1.63 : 1, 1.70 : 1 — an
- * even ramp with no two bands closer than any other pair, which is the whole
- * requirement for a five-swatch scale.
+ * Step to step the faces run 1.5004 / 1.6062 / 1.6286 / 1.6963 — an even ramp
+ * with no two bands closer than any other pair, which is the whole requirement
+ * for a five-swatch scale. Re-read out of the rendered page by taking
+ * `.on-panel` off the section, which is the only way this fallback can be
+ * measured now that the grid ships on the dark act.
+ *
+ * -- the same ramp, re-derived on the dark act ----------------------------
+ *
+ * The year is the page's second dark act now, so this chart stands on
+ * `--panel` and the ramp above is the wrong way up. The source does not
+ * change and neither does the claim in `cityPlan.ts` that the two encodings
+ * "differ in resolution and not in source": both still come off `count`, the
+ * bands are still the quartiles of this year's own non-empty days, and the
+ * height is still the square root. What inverts is the DIRECTION of the ink.
+ * More ink on paper is darker; more ink on the dark act is lighter, and
+ * `rgb(var(--ink) / a)` already follows the ground because `.on-panel`
+ * re-points `--ink`.
+ *
+ * Two things do not follow it, and both had to be re-measured.
+ *
+ * THE EMPTY DAY, which was a literal `--paper-3` and is now the `--canvas-3`
+ * role. The dark act's recess is `--panel-3`, and it is LIGHTER than its
+ * ground because `--panel` has 0.37% of relative luminance and there is no
+ * room underneath it. It is placed at the same 1.23:1 step `--paper-3` takes
+ * off `--paper`, so a day with nothing in it is the same depth of dent on
+ * either ground — the derivation is in the `--panel-3` note in `index.css`.
+ *
+ * THE WALL, which composited a fixed layer of INK over the band. On this
+ * ground that would make a wall LIGHTER than the roof above it, which draws
+ * lit sides under dark tops and reads as a hole rather than as a solid. The
+ * operation is identical and the overlay swaps to the GROUND: see
+ * `--city-shade` below.
+ *
+ * The alphas are re-derived too, because the paper alphas on this ground give
+ * steps of 1.84 / 1.87 / 1.62 / 1.53 — a ramp that flattens toward the top,
+ * where the paper one opens out. Solved for four equal multiplicative steps
+ * from `--panel-3` to a ceiling chosen so the busiest band stands off its
+ * ground by what the paper band 4 stands off paper (8.20:1), then read back
+ * out of the rendered page the same way the paper table above was:
+ *
+ *   step   a     face              wall              vs prev   vs ground   face : wall
+ *   0      —     rgb( 34  34  39)    — none —           —        1.2341 : 1     —
+ *   1      0.24  rgb( 67  67  67)  rgb( 43  42  43)  1.6006 : 1  1.9753 : 1  1.4451 : 1
+ *   2      0.38  rgb( 99  99  98)  rgb( 60  59  60)  1.6450 : 1  3.2494 : 1  1.8543 : 1
+ *   3      0.53  rgb(134 133 131)  rgb( 79  78  78)  1.6314 : 1  5.3011 : 1  2.2496 : 1
+ *   4      0.70  rgb(173 172 168)  rgb(100 100  98)  1.6226 : 1  8.6019 : 1  2.6103 : 1
+ *
+ * 1.6006 / 1.6450 / 1.6314 / 1.6226 against the paper ramp's 1.5004 / 1.6062 /
+ * 1.6286 / 1.6963, and 8.6019:1 at the top against paper's 8.2010:1. It is the
+ * same scale, measured on the other side. Both tables above were read out of
+ * the same rendered page in one pass, so the two are comparable.
+ *
+ * Two properties of the paper ramp survive the inversion and are worth
+ * stating because they were not aimed at:
+ *
+ *   The weakest face-to-wall edge in the scene IMPROVES, from 1.3733:1 to
+ *   1.4451:1, and it moves from the tallest columns (band 4 on paper) to the
+ *   shortest (band 1 here). On paper the headroom ran out at the dark end;
+ *   here it runs out at the dim end, where a column stands 3.0px up on a
+ *   phone and has barely any wall to shade. The tallest columns now get the
+ *   strongest edge, 2.6103:1.
+ *
+ *   Band 4 sits between `--panel-soft` (168 164 154) and `--panel-ink`
+ *   (242 240 234), exactly as band 4 on paper sits between `--ink-soft` and
+ *   `--ink`. In L*: band 4 is 70.33 against soft at 67.43 and ink at 94.80,
+ *   measured. The chart never out-inks the type that labels it, on either
+ *   ground, and that was not arranged — it falls out of matching the top
+ *   band's separation from its own ground.
+ *
+ * The ceiling is 0.70 rather than paper's 0.78, and the reason the paper
+ * ceiling had — "a wall has to be darker than the face above it or the column
+ * has no edge, and at an alpha of 1 there is nothing left to darken" — does
+ * not apply here. The wall composites toward the ground now, so there is
+ * headroom all the way to 1.0. What sets 0.70 is the band's separation from
+ * its ground, above.
  *
  * None of those is a text contrast ratio and none of them is claimed as one.
  * Nothing in the scene carries type; what carries the data in words is the
- * caption and the twelve-month table, which are set in `--ink-soft` on paper
- * like every other caption on the site.
+ * caption and the twelve-month table, and on this ground those are
+ * `--panel-soft` at 7.8560:1 and `--panel-ink` at 17.1489:1, with the table's
+ * hairlines in `--panel-rule` at 3.3408:1. All three are re-measured against
+ * the real ground rather than against a brightened one: the drift in
+ * `ground/DarkAct.module.css` is masked to zero before it reaches any of
+ * them, and that file carries the measurement.
  */
 .cell {
   --city-rise: 0;
@@ -320,7 +403,7 @@
   /*
    * The wall's alpha: the band with one fixed shade composited over it.
    *
-   * `a + 0.45 * (1 - a)` is source-over with a 0.45 ink layer on top, written
+   * `a + 0.45 * (1 - a)` is source-over with a 0.45 INK layer on top, written
    * out rather than drawn as a second background layer so that one declaration
    * carries both faces of the column and the two can never drift.
    *
@@ -329,8 +412,9 @@
    * own wall falls from 2.49:1 at the palest band to 1.37:1 at the darkest,
    * because each step has less headroom left than the one before. 1.37:1 is
    * the weakest edge in the scene and it is on the columns that need it least
-   * — the tallest ones, whose silhouette against the paper is doing the work
-   * the shading does on a short one.
+   * — the tallest ones, whose silhouette against the ground is doing the work
+   * the shading does on a short one. On the dark act the shortfall lands at
+   * the other end of the ramp and is smaller; the second table says where.
    */
   --city-shade: calc(var(--city-a) + 0.45 * (1 - var(--city-a)));
 
@@ -340,12 +424,17 @@
      as tall as one week is wide at every viewport. */
   aspect-ratio: 1;
   /*
-   * An empty day. `--paper-3` is the palette's recessed surface, which is what
-   * a day with nothing in it is: a dent in the paper rather than a mark on it.
-   * It is lighter than the first band, so the five steps are monotonic from
-   * nothing to the busiest day with no reversal in the middle.
+   * An empty day. `--canvas-3` is the palette's recessed surface, which is
+   * what a day with nothing in it is: a dent in the sheet rather than a mark
+   * on it. It is one step off the ground and one step short of the first band,
+   * so the five steps are monotonic from nothing to the busiest day with no
+   * reversal in the middle.
+   *
+   * The ROLE and not `--paper-3`, which is what this was: the grid stands on
+   * the dark act now, where the recess is `--panel-3` and points the other
+   * way. One declaration, right on both grounds.
    */
-  background: rgb(var(--paper-3));
+  background: rgb(var(--canvas-3));
   /* A pixel of radius on a cell that is 14.8px at the desktop measure and
      5.6px on a phone is the corner filed off and nothing more, which is what
      keeps 365 of them from reading as a woven texture. */
@@ -356,6 +445,32 @@
 .cell[data-step="2"] { --city-a: 0.46; }
 .cell[data-step="3"] { --city-a: 0.62; }
 .cell[data-step="4"] { --city-a: 0.78; }
+
+/*
+ * The same scale, on the other side of the ground. Both tables are in the
+ * ramp note above and both were measured rather than converted.
+ *
+ * `:global(.on-panel)` because the class is applied by `index.css` to the
+ * <section> this component renders, which is outside the module's scope — and
+ * it is keyed on the ground rather than on a `data-` attribute of this
+ * component's own, so a grid placed on a dark act anywhere takes the right
+ * ramp without being told.
+ *
+ * The wall is the band with 0.45 of THE GROUND over it, where the paper rule
+ * above is the band with 0.45 of the INK over it. `a * (1 - 0.45)` is the same
+ * source-over operation with the overlay's colour swapped, which is what keeps
+ * a wall darker than its own roof on a ground where more ink means lighter.
+ * Written as `* 0.55` rather than as a second composite, so the one number in
+ * this file that is the overlay's strength stays the same 0.45 read both ways.
+ */
+:global(.on-panel) .cell {
+  --city-shade: calc(var(--city-a) * 0.55);
+}
+
+:global(.on-panel) .cell[data-step="1"] { --city-a: 0.24; }
+:global(.on-panel) .cell[data-step="2"] { --city-a: 0.38; }
+:global(.on-panel) .cell[data-step="3"] { --city-a: 0.53; }
+:global(.on-panel) .cell[data-step="4"] { --city-a: 0.70; }
 
 /*
  * A day that happened: a top face, lifted, with a wall under it.
@@ -623,6 +738,19 @@
  * draw the flat lattice and neither may run the act, so the three
  * declarations are shared — and then they part company over the one property
  * that is not about motion at all.
+ *
+ * BOTH STATES WERE RE-DERIVED when this section became a dark act, because
+ * the distinction between them is carried in colour and motion and both of
+ * those were measured on paper. Only one of the two needed a new number.
+ *
+ * `empty` needed none. It is the lattice and nothing else, and the lattice is
+ * `--canvas-3` — a role, re-pointed to `--panel-3`, which is placed at the
+ * same step off its ground that `--paper-3` takes off paper: 1.2341:1 here
+ * against 1.2317:1 there, measured. So a still lattice is exactly as deep a
+ * dent on either ground, and the state that says "this is the chart" says it
+ * at the same volume it always did.
+ *
+ * `pending` needed one, and the band's own note below carries the solve.
  */
 .frame[data-city="empty"],
 .frame[data-city="pending"] {
@@ -674,6 +802,51 @@
  * Absolutely positioned, so it is not a grid item of the frame and
  * contributes no layout at all; `pointer-events: none` because there is
  * nothing under it to click and nothing here to catch.
+ *
+ * ── the peak, re-solved for the ground this grid now stands on ───────────
+ *
+ * `rgb(var(--ink) / a)` already points the right way on either ground,
+ * because `.on-panel` re-points `--ink` — so the band darkens the lattice on
+ * paper and lightens it here with no second declaration. What does NOT carry
+ * over is the alpha, and the direction it fails in is the opposite of the
+ * one to expect: on a near-black ground the same alpha is too STRONG, not
+ * too faint.
+ *
+ * The band's whole job is to be just visible and no more; a placeholder that
+ * draws the eye is competing with the content it is apologising for. So the
+ * figure to preserve is the size of the step it makes over the surface it
+ * crosses, which is the lattice — `--canvas-3`, filling all but the
+ * 1-to-3px gutters.
+ *
+ *   ground      lattice           band peak at a      dL*     ratio
+ *   --paper     --paper-3         0.05  rgb(206 200 185)  3.44   1.1015:1
+ *   --panel     --panel-3         0.05  rgb( 44  44  49)  4.77   1.1400:1
+ *   --panel     --panel-3         0.035 rgb( 41  41  46)  3.36   1.0941:1
+ *
+ * Carried across unchanged, 0.05 is 1.39x the step it makes on paper. CIE L*
+ * and not the WCAG ratio, because the ratio's 5% flare term dominates at
+ * 0.37% of luminance and inflates every small step there — it is a
+ * legibility metric for type, and this is a near-threshold step over a
+ * surface with no type on it. The two metrics agree anyway: solving for
+ * paper's dL* gives 0.0349 and solving for paper's ratio gives 0.0365, so
+ * 0.035 is the answer either way and the choice is not sensitive to which
+ * one is used.
+ *
+ * The ceiling is clear by a wide margin at 0.035: the peak is 1.35:1 off the
+ * ground against the dimmest real column face at 1.98:1, so the band never
+ * out-inks the chart it stands in for. Over the gutters, where the backdrop
+ * is `--panel` rather than the lattice, it is a smaller step still (dL* 3.02,
+ * 1.06:1) — the lattice is the harder case, which is why it is the one
+ * solved for.
+ *
+ * The one-line capsule below the frame keeps `gallery/Skeleton.module.css`'s
+ * own 0.05 and is deliberately not touched. Measured, it is the same 1.35x
+ * over-shoot on this ground (dL* 3.56 on paper against 4.79 here) — but
+ * salience scales with area, and a 0.66em capsule at that step is not a
+ * 230x1152px frame at it. That file's `--ink` fill was written for a dark
+ * ground on purpose and lands at 1.2147:1 off `--panel` against 1.1970:1 off
+ * `--paper`, which is the same dent; the arm is recorded here rather than
+ * added there because the city is its only dark-ground call site today.
  */
 .frame[data-city="pending"]::after {
   content: "";
@@ -683,7 +856,7 @@
   background-image: linear-gradient(
     100deg,
     transparent 35%,
-    rgb(var(--ink) / 0.05) 50%,
+    rgb(var(--ink) / 0.035) 50%,
     transparent 65%
   );
   background-size: 260% 100%;

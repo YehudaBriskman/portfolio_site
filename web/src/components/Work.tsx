@@ -3,7 +3,7 @@ import ProjectPile from "@/components/projects/ProjectPile";
 import { useProjects } from "@/hooks/useProjects";
 
 /*
- * The peak of the page, and the only dark act on it.
+ * The peak of the page, and the first of its two dark acts.
  *
  * What this section has been, twice
  * ---------------------------------
@@ -49,6 +49,19 @@ import { useProjects } from "@/hooks/useProjects";
  * the same element and a dark fill would have been a 1152px rectangle on
  * cream. `data-chrome="dark"` is the hook the nav observes to invert itself
  * while the reader is inside the act.
+ *
+ * The ground is now shared, and the pair is the argument
+ * ------------------------------------------------------
+ * There is a second dark act: the contribution year. The two are the only
+ * sections on the home page whose subject is the work itself — the objects,
+ * and the labour that made them — and the ceiling is two. The argument, and
+ * the boundary and the drifting light that come with the ground, are in
+ * `components/ground/DarkAct.tsx`, which wraps both.
+ *
+ * It costs this section the dark ground as a signal that it is the peak, and
+ * that trade is recorded in §3 of `docs/motion-contract.md`. What makes this
+ * the peak is unchanged: it is the only beat that pins, the only one with an
+ * asset budget, and the one with the most scroll room.
  */
 
 /*

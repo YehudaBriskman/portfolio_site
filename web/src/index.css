@@ -241,23 +241,43 @@
      *
      * WHICH SECTION TAKES WHICH, and the rule is not alternation. A ground
      * changes where the SUBJECT changes, so two sections that are one thought
-     * share a plate colour and the shared colour is the argument:
+     * share a ground and the shared ground is the argument:
      *
      *   Hero       --paper          the ground the owner pointed at
-     *   Work       --panel          the one dark act, unchanged
-     *   Approach   --ground-warm    how the work gets made
-     *   The Year   --ground-warm    the same subject, so the same ground
-     *   Notes      --ground-cool    the record
-     *   Specs      --ground-cool    also the record; Index.tsx argues this
-     *                               pair must stay adjacent, and one ground
-     *                               across both is that argument made visible
-     *   Contact    --ground-warm    closes where the hero opened
+     *   Work       --panel          the first dark act: the objects
+     *   Approach   --paper          the separator, and it is load-bearing
+     *   The Year   --panel          the second dark act: the labour
+     *   Notes      --paper          the record
+     *   Specs      --paper          also the record
+     *   Contact    --paper          closes where the hero opened
      *   footer     --paper          back to the page's own ground
      *
-     * Applied by `.ground[data-ground]` in the components layer below, never
-     * by a background typed into a section's own stylesheet: five sections
-     * each painting their own ground is the flatness problem replaced by five
-     * palettes.
+     * THE WARM AND COOL TINTS ARE NOT APPLIED ANYWHERE, and that is #92
+     * rather than an oversight: four of the six tinted plates went back to
+     * the page's own ground when a plate stopped being a card. The two tokens
+     * stay defined and the trade above stays written down, which is this
+     * repo's convention for reasoning that was overridden rather than wrong.
+     *
+     * So the only ground that is painted is the dark one, and it is painted
+     * TWICE. The pair is the whole budget — the ceiling is two dark acts on a
+     * page and a third is a different page — and the pair is chosen on the
+     * subject rule above: Work is the work that was made, the Year is the
+     * making of it, and those two are the only sections on this page whose
+     * subject is the work itself. Everything between and after them is the
+     * page talking ABOUT the work, and talks on paper.
+     *
+     * Approach between them is not a gap, it is the separation. `Index.tsx`
+     * already argued that the wall text has to sit between the pile and the
+     * year because both of those acts carry real depth and neither should read
+     * as the other's warm-up. That argument was written about motion and it
+     * holds verbatim about ground: two dark acts with nothing between them are
+     * one long dark act with a seam in it.
+     *
+     * Applied by `.ground[data-ground]` in the components layer below — and
+     * for the dark act, by `components/ground/DarkAct.tsx`, which owns the
+     * seam and the drift — never by a background typed into a section's own
+     * stylesheet: five sections each painting their own ground is the flatness
+     * problem replaced by five palettes.
      */
     --ground-warm: 242 237 220;   /* #F2EDDC  paper 40% -> --wash-yellow */
     --ground-cool: 229 237 246;   /* #E5EDF6  paper 85% -> --wash-blue   */
@@ -376,6 +396,11 @@
      */
     --canvas:      var(--paper);
     --canvas-2:    var(--paper-2);
+    /* The recessed surface, as a role. One call site — the empty day in the
+       contribution grid — and it is a role rather than a direct `--paper-3`
+       because that grid now stands on the dark act, where the recess is
+       `--panel-3` and points the other way. See `--panel-3` below. */
+    --canvas-3:    var(--paper-3);
     --accent-ink:  255 255 255;
 
     /*
@@ -395,14 +420,39 @@
      */
     --panel:       12  12  14;   /* #0C0C0E */
     --panel-2:     22  22  26;   /* #16161A  a raised surface on it */
+    /*
+     * The dark act's dent, and it goes UP because there is nowhere down.
+     *
+     * `--paper-3` is the paper ground's recessed surface and it is DARKER than
+     * the paper: a day with nothing in it is a dent in the sheet rather than a
+     * mark on it. The dark act cannot copy that. `--panel` sits at 0.37% of
+     * relative luminance, so there is no room underneath it — `#000000` is
+     * 1.0746:1 away from it, which this file has already ruled out as a step a
+     * reader can see (see the first-step note in `ContributionCity.module.css`,
+     * where 1.18:1 was rejected as "no difference at all").
+     *
+     * So the dent is placed at the SAME SIZE of step, in the only direction
+     * available. `--paper-3` is 1.2317:1 off `--paper`; this is 1.2341:1 off
+     * `--panel`, both read out of the rendered page in one pass. An empty day
+     * is therefore the same depth of dent on either ground to within 0.002,
+     * which is what lets one `.cell` rule read `--canvas-3` and be right on
+     * both.
+     *
+     * It is also the floor under the drifting ground in `DarkAct.module.css`:
+     * a weather layer is part of the GROUND, so it must never rise above the
+     * first surface that stands on the ground, and this is that surface. That
+     * is why the drift is confined to the act's two seams and does not pass
+     * under the grid — the long version is in that file.
+     */
+    --panel-3:     34  34  39;   /* #222227  1.2341:1 off --panel */
     /* Re-measured alongside the grounds above, and both labels understated
-       what the dark act actually holds: 14.9 and 7.0 were stated, 17.15 and
-       7.86 are measured against #0C0C0E. Erring safe is still erring — a
+       what the dark act actually holds: 14.9 and 7.0 were stated, 17.1489 and
+       7.8560 are measured against #0C0C0E. Erring safe is still erring — a
        ratio that is wrong by two and a half points is not a ratio anyone can
        reason from. Nothing about the dark act changes in this commit except
        the two numbers describing it. */
-    --panel-ink:  242 240 234;   /* #F2F0EA  17.15:1 on --panel */
-    --panel-soft: 168 164 154;   /* #A8A49A   7.86:1 on --panel */
+    --panel-ink:  242 240 234;   /* #F2F0EA  17.1489:1 on --panel */
+    --panel-soft: 168 164 154;   /* #A8A49A   7.8560:1 on --panel */
     /* 1.49:1 against --panel, which an audit flagged against the 3:1 floor
        for a boundary that identifies a control. Lifted to the point where a
        card has a visible edge on the dark act even when it carries no
@@ -1007,6 +1057,7 @@
   .on-panel {
     --canvas:    var(--panel);
     --canvas-2:  var(--panel-2);
+    --canvas-3:  var(--panel-3);
     --ink:       var(--panel-ink);
     --ink-soft:  var(--panel-soft);
     --rule:      var(--panel-rule);
@@ -1818,10 +1869,33 @@
   .ground {
     position: relative;
     background: rgb(var(--paper));
-    /* Logical, so the curve is drawn at the top in both writing directions;
-       the two block-end corners stay square so the next plate meets this one
-       without a seam of paper between them. No shadow: a ground does not cast
-       one onto the page it is part of. */
+  }
+  /*
+   * The generic plate edge, and the dark act does not take it.
+   *
+   * Logical, so the curve is drawn at the top in both writing directions; the
+   * two block-end corners stay square so the next plate meets this one without
+   * a seam of paper between them. No shadow: a ground does not cast one onto
+   * the page it is part of.
+   *
+   * `:not([data-ground='panel'])` because the dark act draws its own boundary
+   * in `components/ground/DarkAct.module.css` — one long arc across the whole
+   * page rather than two corner curves, with a hairline of light on it. The
+   * amount of curve is unchanged; `--r-2xl` is still the budget and it is
+   * spread rather than pinched.
+   *
+   * EXCLUDED HERE RATHER THAN OVERRIDDEN THERE, and the exclusion is why this
+   * selector is shaped like that. `.ground` and the module's own class are
+   * both a single class; Tailwind's `@layer` directive is not a native cascade
+   * layer and CSS Modules output is unlayered too, so the two rules would TIE
+   * on specificity and the winner would be whichever stylesheet the bundler
+   * emitted last — observed as the plain radius in development, and not a
+   * thing to leave to the bundler in production. Raising the specificity here
+   * instead would only move the problem, since nothing a module can write
+   * beats a class plus an attribute. So the panel plate is never given a
+   * radius to fight over.
+   */
+  .ground:not([data-ground='panel']) {
     border-start-start-radius: var(--r-2xl);
     border-start-end-radius: var(--r-2xl);
   }
@@ -1844,7 +1918,7 @@
    */
   .ground > .on-panel { background: transparent; }
   @media (max-width: 639px) {
-    .ground {
+    .ground:not([data-ground='panel']) {
       border-start-start-radius: var(--r-lg);
       border-start-end-radius: var(--r-lg);
     }

@@ -32,6 +32,24 @@ import styles from "@/components/city/ContributionCity.module.css";
  * keep. The grid is 365 spans with one custom property each, written once when
  * the request lands and never touched again.
  *
+ * The ground, and why this section is the one that got the second one
+ * --------------------------------------------------------------------
+ * It stands on the dark act now. The obvious reason is the nice sentence — a
+ * city, at night — and that is the weaker one, because it would justify a
+ * dark ground under any section that happened to have a 3D act in it. The
+ * reason that holds is the rule `index.css` already applies to every ground
+ * on the site: a ground changes where the SUBJECT changes. Work is the work
+ * that was made and this is the making of it, and those two are the only
+ * sections on the page whose subject is the work itself. Everything between
+ * and after is the page talking about the work, and it talks on paper.
+ *
+ * The ceiling is two, the argument is in `components/ground/DarkAct.tsx`, and
+ * the thing it cost is in the stylesheet beside this file: the cells are ink
+ * over the ground, so the whole five-band ramp had to be re-derived and
+ * re-measured on the other side of it. The claim in `cityPlan.ts` that colour
+ * and height "differ in resolution and not in source" is untouched by that —
+ * it is a claim about `count`, and the ground does not get a vote.
+ *
  * Why the columns are not interactive
  * -----------------------------------
  * GitHub's grid gives every day a tooltip, and copying that here would put 365
@@ -152,180 +170,208 @@ export default function ContributionCity() {
   const empty = plan.cells.length === 0;
 
   return (
-    <section id="year" className="wrap section-y">
-      {/* The same centred head every section on this page takes; the layout
-          is `.section-head` in index.css. */}
-      <div className="section-head">
-        <InkRule className="section-head-rule" />
-        <h2 className="display text-section leading-[0.9]">The year</h2>
-        <InkRule className="section-head-rule" />
-        <p className="eyebrow section-head-note tabular-nums">
-          {windowLabel(plan, year?.from ?? null, year?.to ?? null)}
-        </p>
-      </div>
-
-      <figure className={styles.figure}>
-        {/*
-          The frame owns the clock and the camera; the scene is the one thing
-          that moves. `data-city` switches the act off from the data side and
-          carries three values, not two — see the fourth exit in the
-          stylesheet, and the argument at the top of this file for why a year
-          that is still coming is not the same state as a year that is not.
-
-          `aria-hidden` on the scene and not on the frame, so the frame stays
-          an ordinary box in the tree and the figure keeps its caption.
-        */}
-        <div
-          className={styles.frame}
-          data-city={isPending ? "pending" : empty ? "empty" : "year"}
-        >
-          <div className={styles.scene} aria-hidden="true">
-            {/* The week count is the one thing the grid cannot derive: a
-                trailing year is 53 columns, a shorter window is fewer, and
-                `grid-auto-flow: column` with no declared track count would run
-                the year off the end of the frame instead of fitting it in. */}
-            <div
-              className={styles.plane}
-              style={{ "--city-weeks": plan.weeks } as CSSProperties}
-            >
-              {cells.map((cell, i) => (
-                <span
-                  key={cell.date}
-                  className={styles.cell}
-                  data-step={cell.step}
-                  /*
-                    Two values, and only the first cell gets the second.
-
-                    `--city-rise` is the day's own height, the only
-                    per-element value in the whole scene and the reason the
-                    stylesheet needs one keyframe rather than 365. It is
-                    `sqrt(count / busiest)` and NOT a proportion of the
-                    busiest day — two columns are not a ratio, which is a
-                    thing a reader is owed and the measurement behind it is
-                    in `cityPlan.ts`.
-
-                    `gridRowStart` puts the first day on its own weekday. The
-                    other 364 flow from it; writing it on every cell would be
-                    364 declarations that agree with the one before them.
-                  */
-                  style={
-                    {
-                      "--city-rise": cell.rise,
-                      ...(i === 0 ? { gridRowStart: plan.firstRow } : {}),
-                    } as CSSProperties
-                  }
-                />
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/*
-          The caption, and it is the chart's sentence rather than its title.
-
-          Three states print three different things and one of them is the
-          server's own line, used as it stands: the service generalises every
-          failure to one sentence on purpose — "bad credentials" is between the
-          deploy and its operator — so there is nothing here to translate.
-        */}
-        <figcaption className={styles.caption}>
-          {isPending && "Reading the year…"}
-          {!isPending && year?.error}
-          {!isPending && !empty && plan.total !== null && (
-            <>
-              {count(plan.total)} contributions over {count(plan.cells.length)} days,{" "}
-              {year?.from && year?.to && (
-                <>
-                  {longDate(year.from)} to {longDate(year.to)}
-                </>
-              )}
-              . {count(plan.active)} of those days have something in them
-              {plan.busiest && (
-                <>
-                  ; the busiest is {longDate(plan.busiest.date)}, at{" "}
-                  {count(plan.busiest.count)}
-                </>
-              )}
-              .
-            </>
-          )}
-        </figcaption>
-      </figure>
-
+    <section id="year" data-chrome="dark" className="on-panel relative isolate">
       {/*
-        The disclosure's own place in the page, held while the year is on its
-        way.
+        The ground is on the <section> and the measure is one level in, which
+        is the shape `Work.tsx` argues for and the reason is the same: the
+        ground has to drop out from under the act edge to edge. With
+        `.on-panel` and `.wrap` on one element the dark act would be a 1152px
+        rectangle standing on paper.
 
-        It is the last of the three things this section grows by when the
-        request lands, and the largest: 36.19px of control plus its 36px of
-        margin, measured at 1440x900. Reserved rather than left to arrive,
-        because a skeleton that reserves the chart and not the row under it
-        has moved the shift rather than removed it.
-
-        A line of skeleton and not an empty `details`. The component's own
-        rule below is that a disclosure promising a table and opening onto
-        nothing is worse than no control at all — so what stands here is the
-        box the control will occupy, at the control's own type step, with a
-        capsule where its label will be. It is `aria-hidden` and not
-        focusable, so there is nothing for a keyboard reader to find and no
-        promise made that the response has not kept.
-
-        The one state this is wrong for is a year that turns out unavailable,
-        where it disappears and the page shrinks by the same 72.19px. That is
-        the failure path trading places with the success path, which is the
-        right way round: the shift used to be paid on every successful load
-        and is now paid only when the server could not answer.
+        `data-chrome="dark"` is the other half of a dark act and it is the half
+        that fails silently if it is left off — it is the hook
+        `nav/useDarkChrome.ts` observes to switch the nav island's material
+        while this section passes under it. `.on-panel` alone would leave the
+        bar in its paper material over a near-black ground.
       */}
-      {isPending && (
-        <div className={styles.table} aria-hidden="true">
-          <p className="eyebrow">
-            <SkeletonLines lines={1} tail="11rem" />
+      <div className="wrap section-y">
+        {/* The same centred head every section on this page takes; the layout
+            is `.section-head` in index.css. */}
+        <div className="section-head">
+          <InkRule className="section-head-rule" />
+          <h2 className="display text-section leading-[0.9]">The year</h2>
+          <InkRule className="section-head-rule" />
+          <p className="eyebrow section-head-note tabular-nums">
+            {windowLabel(plan, year?.from ?? null, year?.to ?? null)}
           </p>
         </div>
-      )}
 
-      {/*
-        The text equivalent. Present only when there is a year to tabulate —
-        an empty `details` promising a table and opening onto nothing is worse
-        than no control at all, and the caption has already said why it is
-        empty.
-      */}
-      {!empty && plan.months.length > 0 && (
-        <details className={styles.table}>
-          <summary className={`eyebrow ${styles.summary}`}>The year as a table</summary>
-          <table className={styles.months}>
-            <caption className="sr-only">
-              Contributions by month over the trailing year, with the number of
-              days of each month that fall inside the window.
-            </caption>
-            <thead>
-              <tr>
-                <th scope="col" className="eyebrow">
-                  Month
-                </th>
-                <th scope="col" className="eyebrow">
-                  Days
-                </th>
-                <th scope="col" className="eyebrow">
-                  Contributions
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {plan.months.map((m) => (
-                <tr key={m.label}>
-                  <th scope="row">{m.label}</th>
-                  {/* The first and last month of a trailing window are both
-                      partial, which a reader comparing twelve totals has to be
-                      told before the comparison means anything. */}
-                  <td>{m.days}</td>
-                  <td>{count(m.total)}</td>
+        <figure className={styles.figure}>
+          {/*
+            The frame owns the clock and the camera; the scene is the one thing
+            that moves. `data-city` switches the act off from the data side and
+            carries three values, not two — see the fourth exit in the
+            stylesheet, and the argument at the top of this file for why a year
+            that is still coming is not the same state as a year that is not.
+
+            `aria-hidden` on the scene and not on the frame, so the frame stays
+            an ordinary box in the tree and the figure keeps its caption.
+          */}
+          <div
+            className={styles.frame}
+            data-city={isPending ? "pending" : empty ? "empty" : "year"}
+          >
+            <div className={styles.scene} aria-hidden="true">
+              {/* The week count is the one thing the grid cannot derive: a
+                  trailing year is 53 columns, a shorter window is fewer, and
+                  `grid-auto-flow: column` with no declared track count would run
+                  the year off the end of the frame instead of fitting it in. */}
+              <div
+                className={styles.plane}
+                style={{ "--city-weeks": plan.weeks } as CSSProperties}
+              >
+                {cells.map((cell, i) => (
+                  <span
+                    key={cell.date}
+                    className={styles.cell}
+                    data-step={cell.step}
+                    /*
+                      Two values, and only the first cell gets the second.
+
+                      `--city-rise` is the day's own height, the only
+                      per-element value in the whole scene and the reason the
+                      stylesheet needs one keyframe rather than 365. It is
+                      `sqrt(count / busiest)` and NOT a proportion of the
+                      busiest day — two columns are not a ratio, which is a
+                      thing a reader is owed and the measurement behind it is
+                      in `cityPlan.ts`.
+
+                      `gridRowStart` puts the first day on its own weekday. The
+                      other 364 flow from it; writing it on every cell would be
+                      364 declarations that agree with the one before them.
+                    */
+                    style={
+                      {
+                        "--city-rise": cell.rise,
+                        ...(i === 0 ? { gridRowStart: plan.firstRow } : {}),
+                      } as CSSProperties
+                    }
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/*
+            The caption, and it is the chart's sentence rather than its title.
+
+            Three states print three different things and one of them is the
+            server's own line, used as it stands: the service generalises every
+            failure to one sentence on purpose — "bad credentials" is between the
+            deploy and its operator — so there is nothing here to translate.
+          */}
+          <figcaption className={styles.caption}>
+            {isPending && "Reading the year…"}
+            {!isPending && year?.error}
+            {!isPending && !empty && plan.total !== null && (
+              <>
+                {count(plan.total)} contributions over {count(plan.cells.length)} days,{" "}
+                {year?.from && year?.to && (
+                  <>
+                    {longDate(year.from)} to {longDate(year.to)}
+                  </>
+                )}
+                . {count(plan.active)} of those days have something in them
+                {plan.busiest && (
+                  <>
+                    ; the busiest is {longDate(plan.busiest.date)}, at{" "}
+                    {count(plan.busiest.count)}
+                  </>
+                )}
+                .
+              </>
+            )}
+          </figcaption>
+        </figure>
+
+        {/*
+          The disclosure's own place in the page, held while the year is on its
+          way.
+
+          It is the last of the three things this section grows by when the
+          request lands, and the largest: 36.19px of control plus its 36px of
+          margin, measured at 1440x900. Reserved rather than left to arrive,
+          because a skeleton that reserves the chart and not the row under it
+          has moved the shift rather than removed it.
+
+          A line of skeleton and not an empty `details`. The component's own
+          rule below is that a disclosure promising a table and opening onto
+          nothing is worse than no control at all — so what stands here is the
+          box the control will occupy, at the control's own type step, with a
+          capsule where its label will be. It is `aria-hidden` and not
+          focusable, so there is nothing for a keyboard reader to find and no
+          promise made that the response has not kept.
+
+          The one state this is wrong for is a year that turns out unavailable,
+          where it disappears and the page shrinks by the same 72.19px. That is
+          the failure path trading places with the success path, which is the
+          right way round: the shift used to be paid on every successful load
+          and is now paid only when the server could not answer.
+        */}
+        {isPending && (
+          <div className={styles.table} aria-hidden="true">
+            {/*
+              A `div` and not a `p`, and on this ground that is worth 0.97px.
+
+              `index.css` gives the dark act a leading and tracking
+              compensation for body copy — `.on-panel :is(p, li, dd, .body)`
+              at `line-height: 1.68` — because the text face needs more air
+              over a near-black ground. A `p` picks it up at a specificity
+              `.eyebrow` cannot beat. The control this line stands in for is a
+              `summary`, which is not in that list and keeps the eyebrow's own
+              1.6, so the placeholder was 20.16px against the summary's
+              19.19px and the row 37.16px against 36.19px — measured at
+              1440x900, in the rendered page, on both arms.
+            */}
+            <div className="eyebrow">
+              <SkeletonLines lines={1} tail="11rem" />
+            </div>
+          </div>
+        )}
+
+        {/*
+          The text equivalent. Present only when there is a year to tabulate —
+          an empty `details` promising a table and opening onto nothing is worse
+          than no control at all, and the caption has already said why it is
+          empty.
+        */}
+        {!empty && plan.months.length > 0 && (
+          <details className={styles.table}>
+            <summary className={`eyebrow ${styles.summary}`}>The year as a table</summary>
+            <table className={styles.months}>
+              <caption className="sr-only">
+                Contributions by month over the trailing year, with the number of
+                days of each month that fall inside the window.
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col" className="eyebrow">
+                    Month
+                  </th>
+                  <th scope="col" className="eyebrow">
+                    Days
+                  </th>
+                  <th scope="col" className="eyebrow">
+                    Contributions
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </details>
-      )}
+              </thead>
+              <tbody>
+                {plan.months.map((m) => (
+                  <tr key={m.label}>
+                    <th scope="row">{m.label}</th>
+                    {/* The first and last month of a trailing window are both
+                        partial, which a reader comparing twelve totals has to be
+                        told before the comparison means anything. */}
+                    <td>{m.days}</td>
+                    <td>{count(m.total)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </details>
+        )}
+      </div>
     </section>
   );
 }

@@ -1,0 +1,405 @@
+/*
+ * The dark act: its ground, its two seams, and the light moving behind them.
+ *
+ * `DarkAct.tsx` owns WHICH sections get one and why there are exactly two. This
+ * file owns what one looks like — the shape of the boundary, the drift, and the
+ * one measurement the drift is not allowed to break.
+ *
+ * ── the boundary, and why it is not a radius ──────────────────────────────
+ *
+ * #92 drew it as `--r-2xl` on the two block-start corners alone. That was the
+ * right correction (a plate is a ground, not a card) and the owner's follow-up
+ * is that it is dull: "create the edge of that in some nice view".
+ *
+ * The amount of curve is unchanged. The 64px of `--r-2xl` is still the whole
+ * budget; it is spent across the page instead of pinched into two corners.
+ * Each block-start corner takes a radius of `50%` in the inline axis, so the
+ * two corner curves meet at the centre and there is no straight segment left
+ * between them: the act's top edge is ONE shallow arc from side to side. At
+ * 1440 that is a 63.36px rise over a 1440px chord, and the hairline on it is what
+ * makes a 4% rise legible as a curve rather than as a crooked line.
+ *
+ * The foot is the same arc, in paper, rising into the dark (`.crest`). So both
+ * junctions are the same gesture and both crest the same way, which is the
+ * part that stops the pair reading as a lozenge: the dark band keeps a
+ * constant thickness and is bowed over the page, rather than being pinched at
+ * its ends into an object with a top and a bottom. Two sheets interleaving,
+ * with the act between them — which is also what the drift below is for.
+ *
+ * ── THE ONE MEASUREMENT THE DRIFT MAY NOT BREAK ──────────────────────────
+ *
+ * A weather layer is part of the GROUND, so it must never rise above the first
+ * surface standing on the ground. On paper that is nearly free. On `--panel`
+ * it is the whole problem, and it was measured before anything was built:
+ *
+ *   ground                                       L        --panel-rule  empty cell
+ *   --panel                                      0.3728%    3.3408:1     1.2341:1
+ *   + one veil of --panel-ink at .055 -> 25 25 26 0.9765%    3.0033:1     1.1094:1
+ *
+ * Both rows re-measured: the first off the rendered act, the second by
+ * source-over on those same tokens. One veil settles it on its own. It is the
+ * faintest field that is visible at all and it is barely that — 1.1124:1
+ * against bare `--panel`, under the 1.18:1 that the first-step note in
+ * `ContributionCity.module.css` already threw out as "no difference at all".
+ * And it has already cost both floors: `--panel-rule` falls to 3.0033:1,
+ * sitting ON the 3:1 non-text floor rather than above it with room, and the
+ * grid's empty day falls from 1.2341:1 to 1.1094:1, flattening the first step
+ * of a five-band scale. A field strong enough for a reader to see goes further
+ * and takes the empty day BELOW its own ground, inverting that step outright.
+ *
+ * A two-veil row was recorded here originally, at 2.60:1 and 1.04:1. It is NOT
+ * restated as measured: it used a tinted layer whose value is recorded
+ * nowhere, so it cannot be reproduced from what this repo holds. One veil is
+ * sufficient for the decision and is the row above.
+ *
+ * So a full-bleed brightness field on this ground is not a thing that can be
+ * built honestly, and that is a fact about `#0C0C0E` rather than about taste:
+ * the ground has 0.37% of luminance and every surface on it is within two
+ * points of that. The first idea was that field, and it was thrown away here.
+ *
+ * ── what the drift is instead ─────────────────────────────────────────────
+ *
+ * Light, at the seams, and nowhere else. Each junction carries two soft
+ * sources that travel along it in opposite directions at different periods —
+ * so the lit edge changes its brightest point and its colour temperature as
+ * they pass each other, which is parallax, which is the only thing that
+ * actually reads as another layer. The act becomes a gap between two sheets
+ * with something luminous moving behind it.
+ *
+ * The guarantee is structural rather than arithmetic. `.seam` is a clipped
+ * box, so the light is not merely faint where content stands, it is absent:
+ * every ratio in `index.css` stated against `--panel` is stated against the
+ * real ground everywhere a reader reads. Sampled rather than argued — the
+ * ground beside the heading, beside the caption, above the grid, in the
+ * grid's own gutter and at the act's inline edge all read exactly
+ * rgb(12 12 14) off a screenshot of the rendered page, 1.00:1 against the
+ * token.
+ *
+ * The seam's reach is `--act-arc * 1.8`, which measures 114.05px at 1440 and
+ * 50.39px at 390, against 205.19px and 118.63px of padding before the first line of
+ * content (`.layer-section`'s 10svh/6svh plus `section-y`'s
+ * `clamp(4rem, 8vw, 8rem)`), both read out of the DOM.
+ *
+ * The two colours are the two stops the dark ground already has — the accent
+ * at its dark-ground lightness, and the panel's own ink. No new hue: the
+ * accent on black is already established on this page as light caught on an
+ * edge, which is what the shutter's tile edges are, and this is where that
+ * light went after the shutter left.
+ *
+ * ── the token trap, and it bit once in review ─────────────────────────────
+ *
+ * The colours are named `--accent-on-panel` and `--panel-ink` rather than the
+ * `--signal` and `--ink` ROLES, and the reason is the trap at the head of the
+ * `--panel` block in `index.css`. `.on-panel` is on the SECTION; this element
+ * is its parent. A role token read here resolves on `:root`, where `--signal`
+ * is `35 64 107` — the deep ink blue measured for paper — so the seam would
+ * have been lit in the paper accent on a near-black ground, at 1.6:1, and
+ * nothing would have thrown.
+ */
+
+.act {
+  /*
+   * The arc's amplitude. `--r-2xl` is 64px and `--r-lg` is 32px; this is the
+   * same pair as a fluid value so the rise is proportionate at every width
+   * rather than stepping at one breakpoint. 4.4vw resolves to 63.4px at 1440
+   * and is floored at 28px, which is 7.2% of a 390px phone — past about 10%
+   * the arc stops being a boundary and becomes an arch.
+   */
+  --act-arc: clamp(28px, 4.4vw, 64px);
+  /*
+   * How far a seam's light reaches inward, and it is set by the frame budget
+   * rather than by the clearance.
+   *
+   * It was 2.4 arcs, which is the largest multiple that still clears the
+   * padding before the first line of content. The clearance was never the
+   * binding constraint: the broad source is a full-page-width layer and its
+   * cost is its area, so a third off the height is a third off the fill. 1.8
+   * arcs measures 114.05px at 1440 and 50.39px at 390, against 205.19px and 118.63px of
+   * padding, and it bought frames on the year act at 4x CPU — which also
+   * reads better, because the light now hugs the arc instead of washing the
+   * top of the act.
+   */
+  --act-seam: calc(var(--act-arc) * 1.8);
+
+  position: relative;
+  /*
+   * Stated here and not left to `.ground[data-ground='panel']`, because this
+   * element's children are absolutely positioned against it and the fill has
+   * to be the thing they sit on rather than something a sibling rule supplies.
+   * `index.css` still hands `.ground > .on-panel` a transparent background,
+   * which is what keeps the section from squaring off the arc.
+   */
+  background: rgb(var(--panel));
+  /*
+   * 50% in the inline axis, so the two corner curves meet and the edge is one
+   * arc. Logical longhands, so the arc is at the block-start in both writing
+   * directions; the inline axis is symmetrical here, so Hebrew and English
+   * draw the identical curve.
+   */
+  border-start-start-radius: 50% var(--act-arc);
+  border-start-end-radius: 50% var(--act-arc);
+  /*
+   * The hairline that makes the arc readable, and the bleed under it. Inset,
+   * so both follow the radius; drawn in the accent at the lightness measured
+   * for this ground. No `overflow` anywhere on this element — the long reason
+   * is on `.ground` in `index.css` and it is the sticky pile inside Work.
+   */
+  box-shadow:
+    inset 0 1px 0 rgb(var(--accent-on-panel) / 0.42),
+    inset 0 14px 24px -20px rgb(var(--accent-on-panel) / 0.34);
+}
+
+/*
+ * A seam: the band of ground a junction's light is allowed to occupy.
+ *
+ * `overflow: clip` is the whole guarantee and it is a hard one: nothing inside
+ * this box paints outside it, so the light cannot reach a line of type however
+ * far a source drifts. The seam is `--act-arc * 1.8` tall, which is 114.05px at
+ * 1440 and 50.39px at 390, against 205.19px and 118.63px of padding before the first
+ * line of content — both measured in the rendered page, not computed from the
+ * stylesheet. The sources below also fall to zero inside the box on their own
+ * gradient stops, so the clip never actually cuts anything visible; it is
+ * there to make "the light is absent where a reader reads" a property of the
+ * geometry rather than a sum of percentages.
+ *
+ * THERE WAS A MASK HERE AND IT COST FRAMES. A `linear-gradient` mask on the
+ * seam was the first way of guaranteeing the zero, and it is redundant next to
+ * the clip — the gradients already reach zero at about 76% of the seam. It is
+ * not free, because a masked container with animating children has to be
+ * composited into its own texture and re-masked every frame.
+ *
+ * THE FIGURES FOR THAT ARE HISTORY AND ARE NOT RESTATED. The mask is no longer
+ * in this file, so there is nothing left here to measure it against; the same
+ * goes for the full-width second source and for the `will-change` trial below.
+ * What the layer costs AS IT SHIPS is in `docs/motion-contract.md`, re-taken
+ * and with the renderer stated — which matters, because this environment has
+ * no GPU and composites these gradients on the CPU.
+ *
+ * `clip` and not `hidden`, the same distinction `body` and the city's frame
+ * both make: `hidden` on one axis computes the other to `auto` and makes the
+ * element a scrollport. A scrollport here would be a fresh scope for every
+ * view timeline underneath it — but there is nothing underneath it, which is
+ * exactly why clipping is safe HERE and is forbidden on `.act` itself.
+ */
+.seam {
+  position: absolute;
+  inset-inline: 0;
+  block-size: var(--act-seam);
+  overflow: clip;
+  pointer-events: none;
+  /* Behind every piece of content in the act, and the section above it is
+     `position: relative`, so it paints later regardless. Stated rather than
+     left to paint order, because the crest below depends on the order too. */
+  z-index: 0;
+}
+
+.seam[data-edge="start"] {
+  inset-block-start: 0;
+  border-start-start-radius: 50% var(--act-arc);
+  border-start-end-radius: 50% var(--act-arc);
+  /* Where a source's ellipse is centred: on the arc at the block-start, on
+     the foot at the block-end. The block axis is vertical in every writing
+     mode this site runs, so this is a position and not a direction that needs
+     a logical spelling. */
+  --seam-y: 0%;
+}
+
+.seam[data-edge="end"] {
+  inset-block-end: 0;
+  --seam-y: 100%;
+}
+
+/*
+ * The two sources, and they are deliberately different sizes.
+ *
+ * TWO INDEPENDENT LIGHTS IS THE WHOLE IDEA — one drifting gradient is a
+ * gradient with a loop on it, and what reads as another layer is the moment
+ * two of them cross and the lit point of the seam shifts and cools. What is
+ * NOT free is the second one's fill: a full-width second source was measured
+ * to cost several frames on its own when it was tried — far too much for a
+ * ground. So the second is a narrow highlight that crosses the first rather
+ * than a second wash of the same size — same parallax, about a sixth of the
+ * pixels. The figure is not restated: see the note on the mask above.
+ *
+ * `translate3d` and nothing else. No scale, which would re-rasterise the
+ * gradient every frame. And NO `will-change`: it was tried and measured worse,
+ * which is `EntryShutter.module.css`'s argument arriving at the same place
+ * from the other direction. The figure is not restated: see the note on the
+ * mask above. The z-component of the
+ * translate already asks for the promotion that matters.
+ *
+ * `alternate` with `ease-in-out`, not a wrapping loop. A radial gradient has
+ * no tile period, so a loop that ran one way would have to snap back; at 71
+ * and 97 seconds a reversal is slower than any reader's attention and the two
+ * periods are far enough apart that the pair does not visibly repeat.
+ *
+ * The keyframe names are literal `animation-name` values. A name reached
+ * through a `var()` survives CSS Modules' scoping verbatim and then points at
+ * a `@keyframes` that has been renamed, silently — §7 of the motion contract,
+ * and the same note is on `.rail` in `ProjectPile.module.css`.
+ */
+.seam::before,
+.seam::after {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+  animation-timing-function: ease-in-out;
+}
+
+/*
+ * The wash: broad, blue, and the one that lights the junction.
+ *
+ * 0.19 at its centre, and it was 0.3 on the first render. At 0.3 across the
+ * seam the junction read as a stage light behind a curtain rather than as an
+ * edge with light on it, and the year's act is short enough that both of its
+ * seams are on screen at once, which doubles whatever either one is doing.
+ * The ellipse was tightened with it — 112% of the seam's height rather than
+ * 150% — so the light hugs the arc instead of washing the top of the act.
+ *
+ * It is also the expensive one: measured on its own it accounts for nearly all
+ * of the layer's cost, because the cost of a composited layer is its area and
+ * this one is the full width of the page. That is why the second source is a
+ * narrow highlight and why the seam gave back a third of its height.
+ *
+ * Wider than the seam by 18% at each end, so a drift of 10% of its own width
+ * never pulls an edge into view: the box is 136% of the seam, 10% of that is
+ * 13.6%, and -18% + 13.6% is still outside the seam on the near side.
+ */
+.seam::before {
+  inset-inline: -18%;
+  background-image: radial-gradient(
+    62% 112% at 32% var(--seam-y),
+    rgb(var(--accent-on-panel) / 0.19),
+    rgb(var(--accent-on-panel) / 0) 68%
+  );
+  animation-name: seam-wash;
+  animation-duration: 71s;
+}
+
+/*
+ * The highlight: narrow, white, and travelling the other way.
+ *
+ * A quarter of the seam wide, and it crosses the wash rather than covering it.
+ * It travels from 12% to 296% of its OWN width, which is 3% to 77% of the
+ * seam — most of the junction, at a sixth of the second wash's fill cost.
+ */
+.seam::after {
+  inset-inline-start: 0;
+  inline-size: 26%;
+  background-image: radial-gradient(
+    78% 104% at 50% var(--seam-y),
+    rgb(var(--panel-ink) / 0.13),
+    rgb(var(--panel-ink) / 0) 72%
+  );
+  animation-name: seam-spark;
+  animation-duration: 97s;
+}
+
+@keyframes seam-wash {
+  from { transform: translate3d(-10%, 0, 0); }
+  to   { transform: translate3d(10%, 0, 0); }
+}
+
+@keyframes seam-spark {
+  from { transform: translate3d(12%, 0, 0); }
+  to   { transform: translate3d(296%, 0, 0); }
+}
+
+/*
+ * The foot: paper rising into the dark.
+ *
+ * `50%` inline and `100%` block of a box whose height IS the arc, so the two
+ * corner curves are quarter-ellipses meeting at the apex and the element is a
+ * dome rather than a rounded rectangle. The outset hairline follows that
+ * radius and therefore lands on the dark side of the paper, which is the only
+ * side it can be seen from.
+ *
+ * Last in the DOM and positioned, so it paints over the end seam. The light
+ * is then occluded in the middle of the junction and visible around the
+ * dome's flanks, which is what light leaking past a near object does, and it
+ * is the reason the drift at this junction reads differently from the drift at
+ * the other one with the same two sources behind it.
+ */
+.crest {
+  position: absolute;
+  inset-block-end: 0;
+  inset-inline: 0;
+  block-size: var(--act-arc);
+  z-index: 1;
+  pointer-events: none;
+  background: rgb(var(--paper));
+  border-start-start-radius: 50% 100%;
+  border-start-end-radius: 50% 100%;
+  box-shadow: 0 -1px 0 rgb(var(--accent-on-panel) / 0.42);
+}
+
+/* ─────────────────────────────────────── the off-switches, and a fourth ── */
+
+/*
+ * All of them land on a flat dark fill with its two lit arcs, which is a
+ * finished state and not a degraded one: the boundary is still drawn, still
+ * curved and still lit, and the only thing missing is that the light has
+ * stopped moving. Nothing in the act is hidden under any switch, which is the
+ * failure mode §4 of the contract is written against.
+ *
+ * `animation-name: none` and not `animation-play-state: paused`. §4 bans the
+ * latter outright and the ban is narrower than this case needs — these loops
+ * have no `fill-mode` and no hidden first frame — but the exit has to be the
+ * same shape as every other exit on the site, and cancelling is the shape.
+ * What the loops lose by cancelling is their position, which is the next note.
+ */
+
+@media (prefers-reduced-motion: reduce) {
+  .seam::before,
+  .seam::after {
+    animation-name: none;
+  }
+}
+
+:global(body.motion-paused) .seam::before,
+:global(body.motion-paused) .seam::after {
+  animation-name: none;
+}
+
+/*
+ * The third switch, and it is a real one rather than a reflex.
+ *
+ * §4 says a component with no scroll timeline needs no `@supports` block and
+ * that adding one is cargo cult, which is correct: these are time-driven and
+ * there is no `animation-timeline` for an engine to be missing. What CAN be
+ * missing is the one property the measurement above depends on. Without
+ * `overflow: clip` the sources paint past the arc onto the paper above and
+ * past the seam onto the ground a reader reads on, and the guarantee that
+ * every ratio in `index.css` holds inside the act stops being a guarantee.
+ * That is a visible fault and an unmeasurable ground, so the seams are not
+ * drawn at all and the act keeps its arcs and its hairlines, which is the
+ * same finished state the other two switches land on.
+ */
+@supports not (overflow: clip) {
+  .seam {
+    display: none;
+  }
+}
+
+/*
+ * The fourth exit: nobody is looking.
+ *
+ * A continuously running animation has to justify itself while off-screen, and
+ * it cannot, so `DarkAct.tsx` writes `data-drift="off"` when the act leaves the
+ * viewport and the loops are cancelled. Cancelling loses the drift's position
+ * and restarts it at 0%, which would be a visible jump if the switch happened
+ * in view — it cannot, because the observer's `rootMargin` puts the boundary
+ * a full viewport outside the window on both sides. By the time the act is
+ * back on screen the loops have been running again for a screen's worth of
+ * scrolling.
+ *
+ * Written as an attribute the stylesheet reads rather than as a style the hook
+ * applies, for the reason §7 gives: an arrival should cost one attribute and no
+ * render beyond the one that sets it.
+ */
+.act[data-drift="off"] .seam::before,
+.act[data-drift="off"] .seam::after {
+  animation-name: none;
+}
