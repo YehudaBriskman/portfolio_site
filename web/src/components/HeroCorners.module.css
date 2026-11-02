@@ -300,11 +300,26 @@
       animation-timeline: --hero, auto;
       animation-range: exit 36% exit 48%, normal;
     }
+
+    /* Held under the cover on the arrival's first frame (#219): sunk and
+       masked, so the lifting tiles show nothing that has already arrived.
+       `HeroArrival.module.css` has why it is a hold layer and not a rule. */
+    :global(body:not(.motion-paused)) :global([data-arrival="held"]) .corners > * > * {
+      animation: corner-out linear both, corner-held both;
+      animation-timeline: --hero, auto;
+      animation-range: exit 36% exit 48%, normal;
+    }
+
+    :global(body:not(.motion-paused)) :global([data-arrival="held"]) .corners > * > *::before {
+      animation: corner-mask-up linear both, corner-mask-held both;
+      animation-timeline: --hero, auto;
+      animation-range: exit 36% exit 48%, normal;
+    }
   }
 }
 
 /* The same arrival alone, for an engine with no view timelines, with the
-   mask it needs for the length of it. */
+   mask it needs for the length of the hold and the arrival. */
 @supports not (animation-timeline: view()) {
   @media (prefers-reduced-motion: no-preference) {
     :global(body:not(.motion-paused)) :global([data-arrival="play"]) .corners > * > * {
@@ -323,7 +338,33 @@
       pointer-events: none;
       animation: corner-mask-down 460ms var(--ease-settle) 480ms backwards;
     }
+
+    :global(body:not(.motion-paused)) :global([data-arrival="held"]) .corners > * > * {
+      position: relative;
+      animation: corner-held both;
+    }
+
+    :global(body:not(.motion-paused)) :global([data-arrival="held"]) .corners > * > *::before {
+      content: "";
+      position: absolute;
+      inset: 0 -0.12em -0.2em;
+      z-index: 1;
+      background: rgb(var(--paper));
+      transform-origin: 50% 100%;
+      pointer-events: none;
+      animation: corner-mask-held both;
+    }
   }
+}
+
+/* The hold under the cover (#219): the `from` of the arrival, to the
+   character, so the arrival starts where the hold left the corners. */
+@keyframes corner-held {
+  from, to { transform: translateY(14px); }
+}
+
+@keyframes corner-mask-held {
+  from, to { transform: scaleY(1); }
 }
 
 @keyframes corner-in {

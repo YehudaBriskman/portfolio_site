@@ -269,8 +269,9 @@ describe("the arrival waits for the cover to lift (#194)", () => {
     const { container } = render(<Hero />);
     const stage = stageOf(container);
 
-    /* Under the cover: held, which the stylesheet does not match — so the
-       screen is whole and painted, and LCP is decided as it always was. */
+    /* Under the cover: held, which the stylesheet holds on the arrival's
+       first frame (#219) — painted, but sunk under its paper, so the lifting
+       tiles do not show a screen that has already arrived. */
     expect(getEntry()).toBe("covered");
     expect(stage).toHaveAttribute("data-arrival", "held");
     expect(screen.getByRole("img")).toBeInTheDocument();
@@ -372,6 +373,53 @@ describe("the arrival waits for the cover to lift (#194)", () => {
       expect(frames).toMatch(/to\s+\{ transform: (none|scaleY\(0\)); \}/);
     }
   });
+
+  it("holds every moving part on the arrival's first frame under the cover, so it arrives once (#219)", () => {
+    /*
+     * The owner saw the arrival twice: `held` declared nothing, so the
+     * finished screen showed through the gaps as the tiles left, and then
+     * `play` threw it back to the `from` frame and it arrived again.
+     * Measured, the screen matched its finished frame for ~200ms before the
+     * clear and was 12.6% off it the frame after.
+     *
+     * So `held` declares a hold layer for each part the arrival moves, in
+     * both blocks, and each hold is its arrival's `from` to the character:
+     * the arrival starts on the frame the hold left, with no jump.
+     */
+    const keyframe = (css: string, name: string) =>
+      css.match(new RegExp(`@keyframes ${name} \\{[\\s\\S]*?\\n\\}`))?.[0] ?? "";
+    const fromOf = (css: string, name: string) =>
+      keyframe(css, name).match(/from\s+\{ ([^}]*) \}/)?.[1].trim();
+    const heldOf = (css: string, name: string) =>
+      keyframe(css, name).match(/from, to \{ ([^}]*) \}/)?.[1].trim();
+
+    const pairs: [string, string, string, string][] = [
+      [ARRIVAL, "[data-letter]", "plate-letter-held", "plate-letter-in"],
+      [ARRIVAL, "[data-letter]::after", "plate-mask-held", "plate-mask-down"],
+      [ARRIVAL, "h1 + p", "plate-start-held", "plate-from-start"],
+      [ARRIVAL, "ul", "plate-end-held", "plate-from-end"],
+      [ARRIVAL, "[data-portrait] img", "plate-figure-held", "plate-figure-in"],
+      [ARRIVAL, ".mask", "plate-mask-held", "plate-mask-down"],
+      [CORNERS, ".corners > * > *", "corner-held", "corner-in"],
+      [CORNERS, ".corners > * > *::before", "corner-mask-held", "corner-mask-down"],
+    ];
+    for (const [css, part, held, arrival] of pairs) {
+      expect(heldOf(css, held), `no @keyframes ${held}`).toBeTruthy();
+      expect(heldOf(css, held), `${held} is not ${arrival}'s from`).toBe(fromOf(css, arrival));
+
+      for (const block of [atBlock(css, GATE), atBlock(css, NO_TIMELINES)]) {
+        const rules = [...block.matchAll(/([^{}]+)\{([^{}]*)\}/g)].filter(
+          ([, selector]) => selector.includes('[data-arrival="held"]') && selector.trim().endsWith(part),
+        );
+        expect(rules.length, `${part} has no held rule`).toBe(1);
+        const [, , body] = rules[0];
+        /* A hold, not a clock: no duration, no delay — it neither moves nor
+           ends. And last in the list, so it wins over the exit's fill. */
+        expect(body).toMatch(new RegExp(`\\b${held} both;`));
+        expect(body).not.toMatch(/\d+m?s\b/);
+      }
+    }
+  });
 });
 
 describe("the first screen's off-switches", () => {
@@ -385,14 +433,15 @@ describe("the first screen's off-switches", () => {
     const rest = outsideGate(ARRIVAL);
     /* The one other block is the entry's arrival for an engine with no view
        timelines (#194): behind the other two switches, and only for a stage
-       the shutter has told to play. */
+       that is part of the entry — held under the cover (#219) or told to
+       play. A hero with no `data-arrival` matches none of it. */
     const fallback = atBlock(rest, NO_TIMELINES);
     expect(fallback).toContain("@media (prefers-reduced-motion: no-preference)");
     const selectors = fallback.match(/[^{}]+(?=\{)/g)!.slice(2);
     expect(selectors.length).toBeGreaterThan(0);
     for (const selector of selectors) {
       expect(selector).toContain("body:not(.motion-paused)");
-      expect(selector).toContain('[data-arrival="play"]');
+      expect(selector).toMatch(/\[data-arrival(="(held|play)")?\]/);
     }
     expect(rest.replace(fallback, "")).not.toMatch(/animation(-name)?:/);
     expect(rest.replace(fallback, "")).not.toMatch(/content:/);
@@ -718,12 +767,13 @@ describe("the hero's light", () => {
        phrase up and the rest down. */
     const outside = outsideGate(CORNERS);
     /* Bar the entry's arrival for an engine with no view timelines (#194),
-       which sits behind the other two switches and a stage told to play. */
+       which sits behind the other two switches and a stage that is part of
+       the entry: held under the cover (#219) or told to play. */
     const fallback = atBlock(outside, NO_TIMELINES);
     expect(fallback).toContain("@media (prefers-reduced-motion: no-preference)");
     for (const selector of fallback.match(/[^{}]+(?=\{)/g)!.slice(2)) {
       expect(selector).toContain("body:not(.motion-paused)");
-      expect(selector).toContain('[data-arrival="play"]');
+      expect(selector).toMatch(/\[data-arrival="(held|play)"\]/);
     }
     const rest = outside.replace(fallback, "");
     expect(rest).not.toMatch(/animation(-name)?:/);

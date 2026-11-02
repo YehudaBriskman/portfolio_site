@@ -203,9 +203,10 @@ const PRIORITY: { fetchpriority: "high" } = { fetchpriority: "high" };
  * Whether this hero is part of the visit's entry, and if so where it is.
  *
  *   "held"  mounted under the shutter, which has not finished lifting. The
- *           stylesheet declares nothing for it: the screen is whole and
- *           painted under the cover, so LCP is decided exactly as before,
- *           and only the arrival is held back.
+ *           stylesheet holds every moving part on the arrival's first
+ *           frame (#219) — painted, so LCP is decided as before, but under
+ *           its paper, so the lifting tiles do not show a screen that has
+ *           already arrived and then arrive it a second time.
  *   "play"  the shutter's last tile has finished leaving (`clearing`), or
  *           the sheet is gone. The arrival is declared, and so starts, in
  *           the commit the signal arrives in.
