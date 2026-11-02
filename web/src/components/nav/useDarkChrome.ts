@@ -4,28 +4,11 @@ import { PAGE_COMMIT, usePageCommits } from "./pageCommit";
 /*
  * Is a dark panel under the bar.
  *
- * The bar is a translucent sheet of paper, and the page is not paper
- * everywhere. Over a dark ground that sheet composites to a mid grey: no
- * contrast against the panel it is lying on, and none left for the type lying
- * on it. So the bar inverts, and this is the one question it needs answered
- * to know when.
- *
- * What declares dark, as of #179: the two dark acts on the home page (Work
- * and the Year, `ground/DarkAct.tsx`), the notes room — the home page's shelf
- * section and, on `/blog`, the whole of `<main>` through `PageShell`'s
- * `ground="room"` — and the footer on every route. The room is a different
- * dark from the acts and this hook does not care: the bar has one dark
- * material and both grounds are dark enough to want it.
- *
- * The seam between the year and the room is a band of paper at least as tall
- * as the bar (`LatestNotes.module.css`, `.ground`), so on the way down the
- * bar goes dark over the year, back to paper over the band, and dark again
- * over the room. That flip is wanted, not a flicker to be smoothed: it is the
- * chrome reporting the same boundary the page draws, and a bar that stayed
- * dark across the band would be telling the reader the year runs on into the
- * notes, which is the one reading the band exists to prevent. The count below
- * is what keeps it to exactly one flip each way — the act and the room are
- * never in the band at the same time, because the paper is between them.
+ * The page is paper everywhere except one act — the pile — and the bar is a
+ * translucent sheet of that paper. Over the dark act that sheet composites to
+ * a mid grey: no contrast against the panel it is lying on, and none left for
+ * the type lying on it. So the bar inverts, and this is the one question it
+ * needs answered to know when.
  *
  * A panel opts in rather than being recognised:
  *

@@ -1,5 +1,5 @@
 /*
- * The notes on the dark (#179), a laptop and a phone.
+ * The notes as dark cards on paper (#179), a laptop and a phone.
  *
  * What it shoots, into `docs/notes/`:
  *
@@ -7,17 +7,16 @@
  *   dark-<w>x<h>-home-hover.png   the same, the centred card hovered (on the
  *                                 phone: a touch context, where every card
  *                                 stands open and there is nothing to hover)
- *   dark-<w>x<h>-seam.png         the foot of the year, the paper band and
- *                                 the head of the notes room
  *   dark-<w>x<h>-blog.png         /blog, at rest
  *   dark-<w>x<h>-blog-hover.png   /blog, the second card hovered (laptop only)
  *   dark-<w>x<h>-reduced.png      the home shelf with reduced motion
  *
  * and prints what is not a picture: every card's height at rest (they must
  * all be one number), whether hovering moved any neighbour, the bar's
- * material over the year, the band and the room, horizontal overflow, and
- * the measured WCAG contrast of the text, secondary text and edges on the
- * room.
+ * material over the notes (paper: the section is not a dark ground), the
+ * section's own ground, horizontal overflow, and the measured WCAG contrast
+ * of the text and secondary text on a card's fill, and of the card's fill and
+ * edge against the paper it stands on.
  *
  * The API is stubbed the way `shoot-notes-shelf.mjs` stubs it: six notes,
  * three with a cover, three without.
@@ -173,7 +172,9 @@ async function contrast(page, picks) {
       out[k] =
         mode === "edge"
           ? ratio(rgb(cs.borderTopColor), ground(el.parentElement))
-          : ratio(rgb(cs.color), ground(el));
+          : mode === "fill"
+            ? ratio(rgb(cs.backgroundColor), ground(el.parentElement))
+            : ratio(rgb(cs.color), ground(el));
     }
     return out;
   }, picks);
@@ -184,7 +185,8 @@ const HOME_PICKS = [
   ["fields", "#notes [data-shelf-i] a li"],
   ["description", "#notes [data-shelf-i] a p"],
   ["arrow", "#notes [data-shelf-i] a > div > span[aria-hidden]"],
-  ["card edge vs room", "#notes [data-shelf-i] a", "edge"],
+  ["card fill vs paper", "#notes [data-shelf-i] a", "fill"],
+  ["card edge vs paper", "#notes [data-shelf-i] a", "edge"],
   ["section head", "#notes h2"],
   ["eyebrow", "#notes .section-head-note"],
 ];
@@ -194,7 +196,8 @@ const BLOG_PICKS = [
   ["card title", "main article h2"],
   ["card date", "main article time"],
   ["card description", "main article p.text-clay"],
-  ["card edge vs room", "main article > div", "edge"],
+  ["card fill vs paper", "main article > div", "fill"],
+  ["card edge vs paper", "main article > div", "edge"],
 ];
 
 for (const [w, h] of WINDOWS) {
@@ -209,7 +212,14 @@ for (const [w, h] of WINDOWS) {
   await page.screenshot({ path: `${OUT}/dark-${tag}-home-rest.png` });
   const rest = await boxes(page, "#notes [data-shelf-i] > a");
   console.log(tag, "home card heights", JSON.stringify(rest.map((b) => b.h)));
-  console.log(tag, "bar over the room", await bar(page));
+  console.log(tag, "bar over the notes", await bar(page));
+  console.log(
+    tag,
+    "section ground",
+    await page.evaluate(() => getComputedStyle(document.querySelector("#notes")).backgroundColor),
+    "dark grounds in #notes",
+    await page.evaluate(() => document.querySelectorAll("#notes [data-chrome], #notes[data-chrome]").length)
+  );
   console.log(tag, "home contrast", JSON.stringify(await contrast(page, HOME_PICKS)));
 
   if (!phone) {
@@ -240,38 +250,6 @@ for (const [w, h] of WINDOWS) {
       getComputedStyle(document.querySelector("#notes [data-shelf-i] a p")).opacity));
   }
 
-  /* The seam: the year's foot, the band, the room's head. */
-  const seamY = await page.evaluate(() => {
-    const room = document.querySelector("#notes");
-    return Math.round(room.getBoundingClientRect().top + window.scrollY - window.innerHeight * 0.55);
-  });
-  const read = [];
-  for (const dy of [-200, 0, 260]) {
-    await page.evaluate((y) => window.scrollTo({ top: y, behavior: "instant" }), seamY + dy);
-    await frames(page, 3);
-    await page.waitForTimeout(300);
-    await frames(page, 1);
-    if (dy === 0) await page.screenshot({ path: `${OUT}/dark-${tag}-seam.png` });
-    read.push(await bar(page));
-  }
-  /* Where the bar sits over the band, exactly. */
-  const bandMid = await page.evaluate(() => {
-    const room = document.querySelector("#notes");
-    const top = room.getBoundingClientRect().top + window.scrollY;
-    const gap = parseFloat(getComputedStyle(room).marginTop);
-    return Math.round(top - gap / 2 - 40);
-  });
-  await page.evaluate((y) => window.scrollTo({ top: y, behavior: "instant" }), bandMid);
-  await frames(page, 3);
-  await page.waitForTimeout(300);
-  console.log(tag, "bar: above seam / at seam / below", JSON.stringify(read), "over the band", await bar(page));
-  console.log(
-    tag,
-    "band",
-    await page.evaluate(() => getComputedStyle(document.querySelector("#notes")).marginTop),
-    "room ground",
-    await page.evaluate(() => getComputedStyle(document.querySelector("#notes")).backgroundColor)
-  );
   console.log(tag, "home x-overflow", await overflow(page));
   await page.context().close();
 
