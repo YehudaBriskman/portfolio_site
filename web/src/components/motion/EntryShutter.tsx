@@ -128,7 +128,7 @@ const clamp = (n: number, min: number, max: number) => Math.min(max, Math.max(mi
  * re-flowed mid-dissolve would restart every tile's animation from a new
  * delay.
  */
-type Grid = { cols: number; rows: number; colTracks: string; rowTracks: string; delays: readonly number[] };
+type Grid = { cols: number; rows: number; colTracks: string; rowTracks: string; delays: readonly number[]; last: number };
 
 /**
  * The track sizes, as whole pixels that add up to the window exactly.
@@ -194,7 +194,10 @@ function plan(width: number, height: number): Grid {
     }
   }
 
-  return { cols, rows, colTracks: tracks(width, cols), rowTracks: tracks(height, rows), delays };
+  /* The tile that finishes last: the largest delay, first of any tie. */
+  const last = delays.indexOf(Math.max(...delays));
+
+  return { cols, rows, colTracks: tracks(width, cols), rowTracks: tracks(height, rows), delays, last };
 }
 
 /**
@@ -330,6 +333,12 @@ export default function EntryShutter() {
    * later, by which point the centre of the window has been uncovered for
    * most of a second.
    */
+  /* An event handler and not an effect: the tile's own `animationend` is the
+     moment, and nothing about it is React state. If it never fires (a
+     backgrounded tab), `gone` still moves the entry on, and a waiting hero
+     plays then. */
+  const clearing = () => setEntry("clearing");
+
   useLayoutEffect(() => {
     if (phase === "leaving") setEntry("lifting");
     else if (phase === "gone") setEntry("lifted");
@@ -368,7 +377,17 @@ export default function EntryShutter() {
             const tile: TileStyle = { "--tile-delay": `${delay}ms` };
             /* The index is the key and the grid never reorders: it is built
                once and every tile's identity is its position in it. */
-            return <span key={i} className={styles.tile} style={tile} />;
+            return (
+              <span
+                key={i}
+                className={styles.tile}
+                style={tile}
+                /* The last tile to leave says the window is clear (#194):
+                   `clearing`, which is what the hero's arrival waits for.
+                   `motion/entry.ts` has the arithmetic that put it here. */
+                onAnimationEnd={i === grid.last ? clearing : undefined}
+              />
+            );
           })}
     </div>
   );

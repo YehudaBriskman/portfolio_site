@@ -128,8 +128,9 @@ import { getEntry, subscribeEntry, type Entry } from "@/components/motion/entry"
  * about *when*. The arrival used to start at mount, and the entry shutter
  * lifts when the page is ready, which is always later — so the whole thing
  * played behind the cover and the reader was shown a screen that had already
- * arrived. Now it waits for the shutter to say it is lifting
- * (`motion/entry.ts`), and only a hero that mounted under the cover waits at
+ * arrived. Now it waits for the shutter to say the window is clear — its
+ * last tile has finished leaving (`motion/entry.ts`, which has why that
+ * moment and not the first tile) — and only a hero that mounted under the cover waits at
  * all: one that mounts after it (a client-side navigation back here) is not
  * part of the entry and is simply whole. See `useArrival` below.
  *
@@ -201,12 +202,13 @@ const PRIORITY: { fetchpriority: "high" } = { fetchpriority: "high" };
 /*
  * Whether this hero is part of the visit's entry, and if so where it is.
  *
- *   "held"  mounted under the shutter, which has not started to lift. The
+ *   "held"  mounted under the shutter, which has not finished lifting. The
  *           stylesheet declares nothing for it: the screen is whole and
  *           painted under the cover, so LCP is decided exactly as before,
  *           and only the arrival is held back.
- *   "play"  the shutter has started to lift. The arrival is declared, and so
- *           starts, in the commit the signal arrives in.
+ *   "play"  the shutter's last tile has finished leaving (`clearing`), or
+ *           the sheet is gone. The arrival is declared, and so starts, in
+ *           the commit the signal arrives in.
  *   absent  not part of the entry: mounted after the shutter left, or there
  *           was no shutter because motion is off. Nothing to play.
  *
@@ -222,7 +224,7 @@ function useArrival(): Arrival {
   const entry = useSyncExternalStore(subscribeEntry, getEntry, alwaysLifted);
   const [inEntry] = useState(() => getEntry() !== "lifted");
   if (!inEntry) return undefined;
-  return entry === "covered" ? "held" : "play";
+  return entry === "covered" || entry === "lifting" ? "held" : "play";
 }
 
 export default function Hero() {

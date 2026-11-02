@@ -265,7 +265,7 @@ describe("the arrival waits for the cover to lift (#194)", () => {
   const stageOf = (container: HTMLElement) =>
     container.querySelector("[data-portrait]")!.parentElement as HTMLElement;
 
-  it("holds the arrival while the shutter covers the page, and plays it on the commit the lift starts in", () => {
+  it("holds the arrival through the whole lift, and plays it on the commit the window clears in", () => {
     const { container } = render(<Hero />);
     const stage = stageOf(container);
 
@@ -275,7 +275,13 @@ describe("the arrival waits for the cover to lift (#194)", () => {
     expect(stage).toHaveAttribute("data-arrival", "held");
     expect(screen.getByRole("img")).toBeInTheDocument();
 
+    /* Still held while the tiles are leaving: starting here put three
+       quarters of the arrival under the grid. */
     act(() => setEntry("lifting"));
+    expect(stage).toHaveAttribute("data-arrival", "held");
+
+    /* The last tile has left: the window is clear, and the arrival starts. */
+    act(() => setEntry("clearing"));
     expect(stage).toHaveAttribute("data-arrival", "play");
 
     /* And it stays playing when the shutter is gone: a hero that read
@@ -289,6 +295,16 @@ describe("the arrival waits for the cover to lift (#194)", () => {
        signal, not a duration, so a short wait is still a wait. */
     const { container } = render(<Hero />);
     act(() => setEntry("lifting"));
+    act(() => setEntry("clearing"));
+    expect(stageOf(container)).toHaveAttribute("data-arrival", "play");
+  });
+
+  it("plays anyway if the last tile's animationend never comes", () => {
+    /* A backgrounded tab can drop the event; the sheet's own removal still
+       moves the entry on, and a hero that skipped `clearing` plays then. */
+    const { container } = render(<Hero />);
+    act(() => setEntry("lifting"));
+    act(() => setEntry("lifted"));
     expect(stageOf(container)).toHaveAttribute("data-arrival", "play");
   });
 

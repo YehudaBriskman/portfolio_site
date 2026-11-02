@@ -282,7 +282,7 @@
     }
 
     /* The corners' part of the entry's arrival (#194): last, 480ms after the
-       shutter starts to lift, layered on the exit so the scroll has them back
+       shutter's last tile has left, layered on the exit so the scroll has them back
        the moment it ends. `HeroArrival.module.css` has the whole sequence and
        why it waits for the shutter. */
     :global(body:not(.motion-paused)) :global([data-arrival="play"]) .corners > * > * {
