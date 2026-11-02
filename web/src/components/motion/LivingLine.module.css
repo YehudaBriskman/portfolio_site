@@ -1,0 +1,222 @@
+/*
+ * `line` — the living line's ink, its clock, and every way out of it.
+ * The geometry and the reasons are in `lineTrace.ts` and `LivingLine.tsx`.
+ */
+
+/*
+ * THE CONTAINER
+ *
+ * Its inline padding is the two lanes the line runs down (`--line-lane`;
+ * a caller may set it). The line is centred in each, so content never comes
+ * within half a lane of it.
+ *
+ * It names the view timeline the stroke reads, inset by half the window at
+ * each end: progress 0 is the container's top on the window's middle line,
+ * progress 1 its bottom there, so progress `p` is the middle of the window
+ * at `p × height` — the height `lineTrace.ts` maps to a length.
+ *
+ * `isolation` keeps the SVG's `z-index: -1` inside this box, behind the
+ * content and above the page's ground.
+ */
+.line {
+  position: relative;
+  isolation: isolate;
+  /* The default is a fallback, not a declaration of `--line-lane` here, so
+     a caller's class sets it whatever order the two sheets load in. */
+  padding-inline: var(--line-lane, clamp(1.5rem, 4vw, 3.5rem));
+  view-timeline: --living-line block;
+  view-timeline-inset: 50%;
+}
+
+.svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  overflow: visible;
+  pointer-events: none;
+}
+
+/*
+ * THE STROKE
+ *
+ * The site's one signal ink (8.5:1 on paper; it is a non-text mark and
+ * needs 3:1), at the weight of a pen rather than of a rule.
+ *
+ * `pathLength="1"` on the path, so `stroke-dasharray: 1 1` is one dash as
+ * long as the whole line and one gap as long again, and `stroke-dashoffset`
+ * from 1 to 0 draws it from its start. The resting value is 0: drawn.
+ *
+ * THE CLOCK
+ *
+ * One keyframe with a stop at every whole percentage, each reading the
+ * offset `lineTrace.ts` computed for that height of the container from a
+ * custom property `LivingLine.tsx` writes on the path. A keyframe selector
+ * cannot be a variable, but a keyframe value can, and a custom property is
+ * the only way a measured number reaches a keyframe without writing a
+ * stylesheet at runtime. Between stops the scroll interpolates linearly; a
+ * stop is 1% of the container's height. Before the first measurement every
+ * variable falls back to 0 — drawn.
+ *
+ * Linear, fill `both`: nothing has a state but the scroll position, so it
+ * reverses exactly on the way up.
+ */
+.path {
+  fill: none;
+  stroke: rgb(var(--signal));
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+  stroke-dasharray: 1 1;
+  stroke-dashoffset: 0;
+  animation: living-line linear both;
+  animation-timeline: --living-line;
+}
+
+/* One stop per percentage: `--l<i>` at `i%`. Generated; keep it 0–100. */
+@keyframes living-line {
+  0% { stroke-dashoffset: var(--l0, 0); }
+  1% { stroke-dashoffset: var(--l1, 0); }
+  2% { stroke-dashoffset: var(--l2, 0); }
+  3% { stroke-dashoffset: var(--l3, 0); }
+  4% { stroke-dashoffset: var(--l4, 0); }
+  5% { stroke-dashoffset: var(--l5, 0); }
+  6% { stroke-dashoffset: var(--l6, 0); }
+  7% { stroke-dashoffset: var(--l7, 0); }
+  8% { stroke-dashoffset: var(--l8, 0); }
+  9% { stroke-dashoffset: var(--l9, 0); }
+  10% { stroke-dashoffset: var(--l10, 0); }
+  11% { stroke-dashoffset: var(--l11, 0); }
+  12% { stroke-dashoffset: var(--l12, 0); }
+  13% { stroke-dashoffset: var(--l13, 0); }
+  14% { stroke-dashoffset: var(--l14, 0); }
+  15% { stroke-dashoffset: var(--l15, 0); }
+  16% { stroke-dashoffset: var(--l16, 0); }
+  17% { stroke-dashoffset: var(--l17, 0); }
+  18% { stroke-dashoffset: var(--l18, 0); }
+  19% { stroke-dashoffset: var(--l19, 0); }
+  20% { stroke-dashoffset: var(--l20, 0); }
+  21% { stroke-dashoffset: var(--l21, 0); }
+  22% { stroke-dashoffset: var(--l22, 0); }
+  23% { stroke-dashoffset: var(--l23, 0); }
+  24% { stroke-dashoffset: var(--l24, 0); }
+  25% { stroke-dashoffset: var(--l25, 0); }
+  26% { stroke-dashoffset: var(--l26, 0); }
+  27% { stroke-dashoffset: var(--l27, 0); }
+  28% { stroke-dashoffset: var(--l28, 0); }
+  29% { stroke-dashoffset: var(--l29, 0); }
+  30% { stroke-dashoffset: var(--l30, 0); }
+  31% { stroke-dashoffset: var(--l31, 0); }
+  32% { stroke-dashoffset: var(--l32, 0); }
+  33% { stroke-dashoffset: var(--l33, 0); }
+  34% { stroke-dashoffset: var(--l34, 0); }
+  35% { stroke-dashoffset: var(--l35, 0); }
+  36% { stroke-dashoffset: var(--l36, 0); }
+  37% { stroke-dashoffset: var(--l37, 0); }
+  38% { stroke-dashoffset: var(--l38, 0); }
+  39% { stroke-dashoffset: var(--l39, 0); }
+  40% { stroke-dashoffset: var(--l40, 0); }
+  41% { stroke-dashoffset: var(--l41, 0); }
+  42% { stroke-dashoffset: var(--l42, 0); }
+  43% { stroke-dashoffset: var(--l43, 0); }
+  44% { stroke-dashoffset: var(--l44, 0); }
+  45% { stroke-dashoffset: var(--l45, 0); }
+  46% { stroke-dashoffset: var(--l46, 0); }
+  47% { stroke-dashoffset: var(--l47, 0); }
+  48% { stroke-dashoffset: var(--l48, 0); }
+  49% { stroke-dashoffset: var(--l49, 0); }
+  50% { stroke-dashoffset: var(--l50, 0); }
+  51% { stroke-dashoffset: var(--l51, 0); }
+  52% { stroke-dashoffset: var(--l52, 0); }
+  53% { stroke-dashoffset: var(--l53, 0); }
+  54% { stroke-dashoffset: var(--l54, 0); }
+  55% { stroke-dashoffset: var(--l55, 0); }
+  56% { stroke-dashoffset: var(--l56, 0); }
+  57% { stroke-dashoffset: var(--l57, 0); }
+  58% { stroke-dashoffset: var(--l58, 0); }
+  59% { stroke-dashoffset: var(--l59, 0); }
+  60% { stroke-dashoffset: var(--l60, 0); }
+  61% { stroke-dashoffset: var(--l61, 0); }
+  62% { stroke-dashoffset: var(--l62, 0); }
+  63% { stroke-dashoffset: var(--l63, 0); }
+  64% { stroke-dashoffset: var(--l64, 0); }
+  65% { stroke-dashoffset: var(--l65, 0); }
+  66% { stroke-dashoffset: var(--l66, 0); }
+  67% { stroke-dashoffset: var(--l67, 0); }
+  68% { stroke-dashoffset: var(--l68, 0); }
+  69% { stroke-dashoffset: var(--l69, 0); }
+  70% { stroke-dashoffset: var(--l70, 0); }
+  71% { stroke-dashoffset: var(--l71, 0); }
+  72% { stroke-dashoffset: var(--l72, 0); }
+  73% { stroke-dashoffset: var(--l73, 0); }
+  74% { stroke-dashoffset: var(--l74, 0); }
+  75% { stroke-dashoffset: var(--l75, 0); }
+  76% { stroke-dashoffset: var(--l76, 0); }
+  77% { stroke-dashoffset: var(--l77, 0); }
+  78% { stroke-dashoffset: var(--l78, 0); }
+  79% { stroke-dashoffset: var(--l79, 0); }
+  80% { stroke-dashoffset: var(--l80, 0); }
+  81% { stroke-dashoffset: var(--l81, 0); }
+  82% { stroke-dashoffset: var(--l82, 0); }
+  83% { stroke-dashoffset: var(--l83, 0); }
+  84% { stroke-dashoffset: var(--l84, 0); }
+  85% { stroke-dashoffset: var(--l85, 0); }
+  86% { stroke-dashoffset: var(--l86, 0); }
+  87% { stroke-dashoffset: var(--l87, 0); }
+  88% { stroke-dashoffset: var(--l88, 0); }
+  89% { stroke-dashoffset: var(--l89, 0); }
+  90% { stroke-dashoffset: var(--l90, 0); }
+  91% { stroke-dashoffset: var(--l91, 0); }
+  92% { stroke-dashoffset: var(--l92, 0); }
+  93% { stroke-dashoffset: var(--l93, 0); }
+  94% { stroke-dashoffset: var(--l94, 0); }
+  95% { stroke-dashoffset: var(--l95, 0); }
+  96% { stroke-dashoffset: var(--l96, 0); }
+  97% { stroke-dashoffset: var(--l97, 0); }
+  98% { stroke-dashoffset: var(--l98, 0); }
+  99% { stroke-dashoffset: var(--l99, 0); }
+  100% { stroke-dashoffset: var(--l100, 0); }
+}
+
+/*
+ * The three off-switches, and print, land on the line fully drawn and
+ * still. The resting declaration is already the drawn line, so cancelling
+ * the animation is the whole exit; the value is restated so each exit reads
+ * as complete. The global `animation-duration: 0.01ms !important` does
+ * nothing to a scroll-driven animation (motion contract §4), so each is
+ * named. Pause toggled mid-scroll snaps a half-drawn line to drawn.
+ */
+@supports not (animation-timeline: view()) {
+  .path {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .path {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+}
+
+:global(body.motion-paused) .path {
+  animation: none;
+  stroke-dashoffset: 0;
+}
+
+@media print {
+  .path {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+}
+
+/* In a forced palette the line is a system colour like every other mark. */
+@media (forced-colors: active) {
+  .path {
+    stroke: CanvasText;
+  }
+}
