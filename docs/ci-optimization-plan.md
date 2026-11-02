@@ -85,6 +85,49 @@ set to require is `Static`, `Frontend`, `Backend`, `Scan image (web, web)`,
 `Scan image (api, backend)`. The ruleset is an external setting and is
 changed by the owner, not by a workflow change.
 
+### After P2 (#203)
+
+Two jobs are added, and three become conditional on pull requests:
+
+| Job (check name) | Runs on | Needs | Timeout (min) |
+|---|---|---|---|
+| Classify changes | every event | - | 5 |
+| Static | every event | - | 10 |
+| Frontend | web selected | Classify | 15 |
+| Backend | backend selected | Classify | 10 |
+| Scan image (web, web), Scan image (api, backend) | a leg per selected image | Static, Classify | 20 |
+| Publish image, Deploy | main, `v*` tags (unchanged) | as before | 45, 30 |
+| CI gate | always | every job above | 5 |
+
+**Classification** (`.github/scripts/ci-classify.mjs`, table tests in
+`ci-classify.test.mjs`) diffs a pull request from the merge-base to its head,
+and a push from `before` to `after`, with local git over full history, never
+the API's capped file list. `web/**` selects Frontend and the web scan,
+`backend/**` Backend and the api scan, `docs/**` and root `*.md` nothing
+beyond Static. Workflows and CI scripts, lockfiles and manifests,
+Dockerfiles and `.dockerignore`, nginx config, Compose, the Makefile,
+tsconfig, eslint config, the Trivy ignore file and any path no rule names
+select everything; so do a missing `before`, a force push, missing history,
+a diff error, an empty diff and every event other than a pull request or a
+push. Renames and copies count both paths, deletions their old path.
+
+**Main and `v*` tags select everything.** Deploy sets both Deployments to the
+commit's sha, so an api-only merge still needs a web image. The push diff is
+computed and shown in the job summary, but only pull requests are narrowed
+until digest reuse (P4, #205).
+
+**CI gate** (`.github/scripts/ci-gate.mjs`, tests in `ci-gate.test.mjs`)
+runs with `if: always()` and needs every job. It passes only when
+classification succeeded, every selected job succeeded, and every skipped
+job was one classification did not select. A failure, a cancellation, an
+unexplained skip or a failed classification fails it. Static runs both test
+files on every change, docs-only included.
+
+**Required checks after P2:** `Static` and `CI gate`. Frontend, Backend and
+the Scan legs can now be skipped on purpose, so they must not be required:
+a skipped leg reports as `Scan image` rather than under its own name, and a
+required check that never reports blocks the merge.
+
 ---
 
 ## 2. Baseline
