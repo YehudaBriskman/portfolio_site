@@ -476,6 +476,19 @@ for (const w of WINDOWS) {
   await click(page, 'a[href="#contact"]');
   await expectLanded(page, "contact", "hero #contact lands on contact", win);
 
+  /* channel log (#226): the timeline's "View full channel log" -> the log,
+     and a row of the log -> the note it names */
+  await goto(page, "/blog");
+  await page.waitForSelector('a[href="/blog/log"]', { timeout: 15000 });
+  await reveal(page, 'a[href="/blog/log"]');
+  await click(page, 'a[href="/blog/log"]');
+  await waitPath(page, "/blog/log");
+  await expectTop(page, "channel log link -> top of /blog/log", win);
+  await page.waitForSelector('main a[data-event-link][href="/blog/fixture-post"]', { timeout: 15000 });
+  await click(page, 'main a[data-event-link][href="/blog/fixture-post"]');
+  await waitPath(page, "/blog/fixture-post");
+  await expectTop(page, "channel log row -> top of post", win);
+
   /* skip link: first Tab, Enter, focus on #content */
   await goto(page, "/projects");
   await page.keyboard.press("Tab");

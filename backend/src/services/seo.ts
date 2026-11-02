@@ -140,6 +140,12 @@ export type PageMeta = {
    * H1 and real prose instead of an empty div.
    */
   bodyHtml?: string;
+  /**
+   * The page's feeds, as `<link rel="alternate">` (#226). A feed reader finds
+   * a feed in the raw HTML and never runs the app, so the page's own
+   * client-side link is not enough on its own. Paths, made absolute here.
+   */
+  feeds?: { title: string; href: string }[];
 };
 
 /* ------------------------------------------------------------------ sitemap */
@@ -259,6 +265,81 @@ ${p.tags.map((t) => `      <category>${escapeXml(t)}</category>`).join("\n")}
     .join("\n");
 
   const updated = published[0]?.publishedAt ?? new Date().toISOString();
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>${escapeXml(channel.title)}</title>
+    <link>${escapeXml(absoluteUrl(channel.link))}</link>
+    <description>${escapeXml(channel.description)}</description>
+    <language>en</language>
+    <lastBuildDate>${escapeXml(new Date(updated).toUTCString())}</lastBuildDate>
+    <atom:link href="${escapeXml(absoluteUrl(channel.self))}" rel="self" type="application/rss+xml"/>
+${items}
+  </channel>
+</rss>
+`;
+}
+
+/* ---------------------------------------------------------- the channel log */
+
+/** What the log feed needs from an activity event (`services/activity.ts`). */
+export type FeedEvent = {
+  id: string;
+  kind: string;
+  at: string;
+  area: { slug: string; title: string } | null;
+  title: string;
+  href: string;
+  meta: Record<string, unknown>;
+};
+
+/** The words a feed reader shows before an event's title, per kind. */
+const LOG_KIND: Record<string, string> = {
+  post: "New note",
+  release: "Release",
+  push: "Pushed",
+  site: "Site release",
+  area: "New area",
+};
+
+/** The channel log's channel (#226): every kind of event, linking to /blog/log. */
+export const LOG_CHANNEL: FeedChannel = {
+  title: "Yehuda Briskman · Channel log",
+  link: "/blog/log",
+  description: "Everything that happens on the site: notes, releases, pushes, site releases and new areas.",
+  self: "/api/seo/feed/log.xml",
+};
+
+/**
+ * The channel log as RSS 2.0, in the same shape as `buildFeed` (#226).
+ *
+ * An event's `href` is a site path for notes and areas and a GitHub URL for
+ * repo events; the first is made absolute and the second passed through. The
+ * guid is the event's own id, not its link: a push and a release can link to
+ * the same repository, and a reader must not fold them into one item.
+ */
+export function buildActivityFeed(events: FeedEvent[], channel: FeedChannel = LOG_CHANNEL): string {
+  const latest = events.slice(0, 50);
+  const items = latest
+    .map((e) => {
+      const url = /^https?:\/\//.test(e.href) ? e.href : absoluteUrl(e.href);
+      const kind = LOG_KIND[e.kind] ?? e.kind;
+      const excerpt = typeof e.meta.excerpt === "string" ? e.meta.excerpt : "";
+      const description = excerpt || (e.area ? `${kind} in ${e.area.title}.` : `${kind}.`);
+      const categories = [kind, ...(e.area ? [e.area.title] : [])];
+      return `    <item>
+      <title>${escapeXml(`${kind}: ${e.title}`)}</title>
+      <link>${escapeXml(url)}</link>
+      <guid isPermaLink="false">${escapeXml(e.id)}</guid>
+      <pubDate>${escapeXml(new Date(e.at).toUTCString())}</pubDate>
+      <description>${escapeXml(description)}</description>
+${categories.map((c) => `      <category>${escapeXml(c)}</category>`).join("\n")}
+    </item>`;
+    })
+    .join("\n");
+
+  const updated = latest[0]?.at ?? new Date().toISOString();
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
@@ -429,6 +510,12 @@ function metaBlock(meta: PageMeta): string {
     if (meta.modifiedAt) lines.push(`<meta property="article:modified_time" content="${escapeAttr(meta.modifiedAt)}" />`);
     lines.push(`<meta property="article:author" content="Yehuda Briskman" />`);
     for (const tag of meta.tags ?? []) lines.push(`<meta property="article:tag" content="${escapeAttr(tag)}" />`);
+  }
+
+  for (const f of meta.feeds ?? []) {
+    lines.push(
+      `<link rel="alternate" type="application/rss+xml" title="${escapeAttr(f.title)}" href="${escapeAttr(absoluteUrl(f.href))}" />`,
+    );
   }
 
   if (meta.jsonLd) {

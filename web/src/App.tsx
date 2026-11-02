@@ -19,6 +19,7 @@ const Story = lazy(() => import("./pages/Story"));
 const BlogPost = lazy(() => import("./pages/BlogPost"));
 // An area of the notes (#224's interim list; #225 turns it into the history).
 const BlogArea = lazy(() => import("./pages/BlogArea"));
+const BlogLog = lazy(() => import("./pages/BlogLog"));
 // The accessibility statement: plain text, read rarely, so not on the
 // home page's bill either.
 const Accessibility = lazy(() => import("./pages/Accessibility"));
@@ -126,10 +127,9 @@ const App = () => (
             {/* An area's notes. Above `/blog/:slug` only for reading order:
                 the router ranks a static segment over a dynamic one anyway. */}
             <Route path="/blog/area/:slug" element={<Suspense fallback={null}><BlogArea /></Suspense>} />
-            {/* The full channel log is #226. The dashboard already links to
-                it, so until it exists the address is an honest 404 rather
-                than a note called "log" that the API then fails to find. */}
-            <Route path="/blog/log" element={<NotFound />} />
+            {/* The full channel log (#226): every event, by day. A static
+                segment, so the router ranks it above `/blog/:slug`. */}
+            <Route path="/blog/log" element={<Suspense fallback={null}><BlogLog /></Suspense>} />
             <Route path="/blog/:slug" element={<Suspense fallback={null}><BlogPost /></Suspense>} />
             <Route path="/accessibility" element={<Suspense fallback={null}><Accessibility /></Suspense>} />
             {/* The 404 is a reader's page too, and keeps the bar. */}

@@ -91,6 +91,8 @@ const ROUTES = [
   "/blog?view=feed",
   "/blog/area/site",
   "/blog/area/bothy",
+  "/blog/log",
+  "/blog/log?kind=release&area=site",
   "/blog/fixture-post",
   "/accessibility",
   "/a-page-that-does-not-exist",
@@ -393,6 +395,7 @@ try {
   }
   results.push(await audit("/blog", "en", WINDOWS[0], { failing: true }));
   results.push(await audit("/blog/fixture-post", "en", WINDOWS[1], { failing: true }));
+  results.push(await audit("/blog/log", "en", WINDOWS[1], { failing: true }));
   /* The pen's prose, under the site's own Pause rather than reduced motion. */
   for (const route of ["/", "/story", "/projects/bothy", "/blog/fixture-post"]) {
     results.push(await audit(route, "en", WINDOWS[0], { paused: true }));
