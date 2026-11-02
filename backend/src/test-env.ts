@@ -21,6 +21,12 @@ const DEFAULTS: Record<string, string> = {
      a variable set after the module graph has loaded is a variable `env` never
      sees, which is the same reason this file exists at all. */
   GITHUB_TOKEN: 'test-token',
+  /* The admin gate fails closed on an empty secret (see requireAdmin), which
+     is right for a deploy and makes every admin route untestable past the 401.
+     A fixed value here lets the admin tests present the proof header; they
+     read it back from `env` rather than repeating it, so a developer whose
+     .env already sets one is not broken by this. */
+  ADMIN_PROXY_SECRET: 'test-admin-proxy-secret',
 };
 
 for (const [key, value] of Object.entries(DEFAULTS)) {
