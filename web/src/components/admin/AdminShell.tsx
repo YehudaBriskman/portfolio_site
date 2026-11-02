@@ -5,7 +5,9 @@ import { admin } from "@/services/admin";
 /*
  * The admin's own shell.
  *
- * It deliberately does not reuse PageShell. PageShell mounts the public Nav —
+ * It deliberately does not reuse PageShell, nor sit under `SiteChrome`, the
+ * layout route that has mounted the public Nav since #63 (PageShell did before
+ * that). The public Nav was, when this was written,
  * whose links are Work / Approach / Stack / Contact, anchors to sections that
  * exist on no admin page — so every link in the admin navbar quietly navigated
  * out of the admin, and on a phone it showed two links to the marketing site

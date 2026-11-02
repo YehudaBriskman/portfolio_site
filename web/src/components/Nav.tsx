@@ -147,7 +147,10 @@ export default function Nav() {
   const controls: NavControls = { locale, onSelectLocale, motionPaused, onToggleMotion };
 
   /* A sheet that survives a route change as an invisible open panel is a
-     trap. */
+     trap. Until #63 this was belt-and-braces: the bar was rendered by the page
+     shell and unmounted on every navigation, which closed the sheet by
+     destroying it. The bar now lives in `SiteChrome.tsx` above the routes and
+     is never destroyed, so this effect is the only thing that closes it. */
   useEffect(() => setOpen(false), [pathname]);
 
   useEffect(() => {

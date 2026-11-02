@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
 import RouteAnnouncer from "./components/RouteAnnouncer";
 import EntryShutter from "./components/motion/EntryShutter";
+import SiteChrome from "./components/SiteChrome";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 // Lazy: react-markdown and remark-gfm are ~53 KB gzipped and are only needed on
@@ -50,10 +51,12 @@ const App = () => (
           first paint and survives every navigation — a region that mounts with
           the page it is announcing has not been subscribed to yet and loses the
           announcement. And *before* them in source order, so its effect runs
-          before any page's: the index's one cross-route jump (Contact, which
-          has no page of its own) is finished by an effect in Nav.tsx, and the
-          heading focus set here is the floor that jump then overrides rather
-          than a thing it has to race.
+          before any page's *and before the chrome's*, which since #63 is a
+          layout route inside `<Routes>` below. The heading focus set here is
+          the floor that anything later overrides rather than a thing it has to
+          race. The one effect that used to rely on that — the index's
+          cross-route jump to Contact, finished in Nav.tsx — went with the
+          object index in #56; the ordering is kept for the next one.
         */}
         <RouteAnnouncer />
         {/*
@@ -85,14 +88,31 @@ const App = () => (
         */}
         <EntryShutter />
         <Routes>
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="/blog" element={<Suspense fallback={null}><Blog /></Suspense>} />
-          <Route path="/projects" element={<Suspense fallback={null}><Projects /></Suspense>} />
-          <Route path="/projects/:project" element={<Suspense fallback={null}><Project /></Suspense>} />
-          {/* the short-lived /blog/c/ shape, kept so nothing dangles */}
-          <Route path="/blog/c/:project" element={<LegacyCollectionRedirect />} />
-          <Route path="/blog/:slug" element={<Suspense fallback={null}><BlogPost /></Suspense>} />
+          {/*
+            The public chrome, as a pathless layout route (#63). Every page a
+            reader can reach renders inside its `<Outlet />`, so the skip link
+            and the bar are mounted once and survive every navigation between
+            them, instead of being torn down with the page shell that used to
+            render them. `SiteChrome.tsx` carries the argument and what it cost.
+
+            The Suspense boundaries stay per route and *inside* this, which is
+            the half of the move a reader can see: a lazy chunk on the wire now
+            blanks the page, not the bar above it.
+
+            Admin is outside, deliberately: it has its own shell and chrome.
+          */}
+          <Route element={<SiteChrome />}>
+            <Route path="/" element={<Index />} />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="/blog" element={<Suspense fallback={null}><Blog /></Suspense>} />
+            <Route path="/projects" element={<Suspense fallback={null}><Projects /></Suspense>} />
+            <Route path="/projects/:project" element={<Suspense fallback={null}><Project /></Suspense>} />
+            {/* the short-lived /blog/c/ shape, kept so nothing dangles */}
+            <Route path="/blog/c/:project" element={<LegacyCollectionRedirect />} />
+            <Route path="/blog/:slug" element={<Suspense fallback={null}><BlogPost /></Suspense>} />
+            {/* The 404 is a reader's page too, and keeps the bar. */}
+            <Route path="*" element={<NotFound />} />
+          </Route>
           {/* Old path kept so anything already shared still resolves. */}
           <Route path="/notes" element={<Navigate to="/blog" replace />} />
           <Route path="/notes/:slug" element={<LegacyNoteRedirect />} />
@@ -104,7 +124,6 @@ const App = () => (
           <Route path="/admin/areas" element={<Suspense fallback={null}><AdminAreas /></Suspense>} />
           <Route path="/admin/areas/:slug" element={<Suspense fallback={null}><AdminCollection /></Suspense>} />
           <Route path="/admin/collections/:slug" element={<LegacyAreaRedirect />} />
-          <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
     </TooltipProvider>
