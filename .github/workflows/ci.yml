@@ -46,6 +46,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+      - name: Dependabot supersede keeps security updates it cannot prove covered (#201)
+        run: node --test .github/scripts/supersede-select.test.mjs
       - name: Every file the build assumes is present
         run: |
           set -Eeuo pipefail

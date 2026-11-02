@@ -13,11 +13,17 @@
 # `dependabot/<ecosystem>/...` (npm_and_yarn, docker, github_actions). The npm
 # and docker entries each cover every directory, so one ecosystem is one PR.
 #
+# Which PRs to close is decided by .github/scripts/supersede-select.mjs
+# (tested in CI's preflight job). A security update is closed only when the new
+# PR provably bumps the same dependency, in the same directory, to the same or
+# a higher version (#201): a newer group PR that lacks the fix must not drop it.
+#
 # Why pull_request_target: on a `pull_request` event raised by Dependabot,
 # GITHUB_TOKEN is read-only whatever `permissions:` says, so the close would
 # fail. pull_request_target runs in the base repository's context. It is safe
-# here because nothing from the PR is checked out or executed - the job reads
-# only the event's number and branch name and calls `gh`.
+# here because nothing from the PR is checked out or executed: the checkout is
+# the default branch (for the selection script), and the PR's number and branch
+# reach the shell only through env, never through `${{ }}` in the script.
 
 name: Dependabot supersede
 
@@ -26,6 +32,7 @@ on:
     types: [opened]
 
 permissions:
+  contents: read
   pull-requests: write
 
 jobs:
@@ -34,24 +41,24 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Close older (lower-numbered) open Dependabot PRs for the same ecosystem
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+          sparse-checkout: .github/scripts
+      - name: Close older open Dependabot PRs the new one supersedes
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
           NEW: ${{ github.event.pull_request.number }}
-          BRANCH: ${{ github.event.pull_request.head.ref }}
         run: |
           set -euo pipefail
-          eco=$(printf '%s' "$BRANCH" | cut -d/ -f2)
-          if [ -z "$eco" ]; then
-            echo "No ecosystem in branch '$BRANCH'; nothing to do."
-            exit 0
-          fi
-          prefix="dependabot/${eco}/"
+          fields=number,headRefName,title,body,labels
+          gh pr view "$NEW" --json "$fields" > "$RUNNER_TEMP/new.json"
           gh pr list --author 'app/dependabot' --state open --limit 100 \
-              --json number,headRefName \
-              --jq ".[] | select(.number < ${NEW}) | select(.headRefName | startswith(\"${prefix}\")) | .number" |
+              --json "$fields" > "$RUNNER_TEMP/open.json"
+          node .github/scripts/supersede-select.mjs "$RUNNER_TEMP/new.json" "$RUNNER_TEMP/open.json" |
           while read -r old; do
-            echo "Closing #${old}: superseded by #${NEW} (${eco})"
+            echo "Closing #${old}: superseded by #${NEW}"
             gh pr close "$old" --delete-branch --comment "Superseded by #${NEW}"
           done
