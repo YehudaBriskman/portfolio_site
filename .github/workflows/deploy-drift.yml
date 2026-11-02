@@ -33,16 +33,22 @@ permissions:
 jobs:
   drift:
     runs-on: ubuntu-latest
+    # A tailnet join of up to a minute, then a few kubectl reads. Ten minutes
+    # is several times that; a hung run should not hold a runner for six hours.
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          # Credentials stay: the job fetches origin/main again further down,
+          # and nothing here uploads the workspace as an artifact.
+          # zizmor: ignore[artipacked]
           # `git rev-list --count <sha>..origin/main` needs the history that
           # contains <sha>, and the default shallow clone does not have it.
           # A shallow checkout here fails as "unknown revision", which reads
           # like a broken deployment rather than a broken checkout.
           fetch-depth: 0
 
-      - uses: tailscale/github-action@v4
+      - uses: tailscale/github-action@064b10558093f38325e838ddea35486bdc6b1d5c # v4.4.0
         with:
           oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
           oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
