@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import PageShell from "@/components/PageShell";
+import Written from "@/components/motion/Written";
 /* InkWipe, not Reveal. Reveal was an IntersectionObserver that translated a
    section 26px before fading it in; the wipe is scroll-timeline driven and
    needs no observer. Its stagger props go with it: a scroll-driven animation
@@ -158,7 +159,7 @@ export default function Project() {
                 </p>
               )}
               {c.description && (
-                <p className="mt-6 max-w-[52ch] text-lg leading-[1.6] text-ink/85">{c.description}</p>
+                <Written className="mt-6 max-w-[52ch] text-lg leading-[1.6] text-ink/85">{c.description}</Written>
               )}
             </div>
 

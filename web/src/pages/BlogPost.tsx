@@ -4,6 +4,7 @@ import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import PageShell from "@/components/PageShell";
 import Ridge from "@/components/Ridge";
+import Written from "@/components/motion/Written";
 import Byline, { FeedLink } from "@/components/notes/Byline";
 import { useCodeHighlight } from "@/components/notes/CodeHighlight";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
@@ -182,6 +183,27 @@ const markdown: Components = {
   },
 
   hr: MarkdownRule,
+
+  /*
+   * The running text is written as it is read — `motion/Written`.
+   *
+   * Paragraphs and list items, because those are where a post is prose. Not
+   * headings (read at a glance), not table cells (data, read across a row
+   * rather than along a line), and not code, which `Written` leaves alone by
+   * tag wherever it meets it. A blockquote is reached through the paragraphs
+   * inside it, and a loose list item's own paragraph is a nested `Written`
+   * that the item's skips rather than splitting twice.
+   *
+   * `node` is react-markdown's hast node and is dropped here so it does not
+   * land on the DOM as an attribute; `className` is kept because GFM's task
+   * lists put one on the item.
+   */
+  p: ({ children }) => <Written>{children}</Written>,
+  li: ({ children, className }) => (
+    <Written as="li" className={className}>
+      {children}
+    </Written>
+  ),
 };
 
 /*

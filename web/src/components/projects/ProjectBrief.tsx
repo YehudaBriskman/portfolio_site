@@ -1,4 +1,5 @@
 import type { ProjectEntry } from "@/hooks/useProjects";
+import Written from "@/components/motion/Written";
 
 /*
  * The three questions a project page has to answer.
@@ -27,7 +28,7 @@ export default function ProjectBrief({ entry, className = "" }: { entry: Project
       {rows.map(([label, body]) => (
         <div key={label} className="sm:grid sm:grid-cols-[minmax(0,10rem)_minmax(0,1fr)] sm:gap-12">
           <dt className="mono text-xs uppercase tracking-[0.18em] text-clay">{label}</dt>
-          <dd className="mt-3 max-w-[62ch] text-base leading-[1.65] text-bone/85 sm:mt-0 sm:text-lg">{body}</dd>
+          <Written as="dd" className="mt-3 max-w-[62ch] text-base leading-[1.65] text-bone/85 sm:mt-0 sm:text-lg">{body}</Written>
         </div>
       ))}
     </dl>
