@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import Written from "@/components/motion/Written";
+import { inkAt, penRange } from "@/components/motion/penClock";
 
 /*
  * What a split must not change, pinned against the unsplit paragraph.
@@ -55,11 +56,10 @@ describe("Written", () => {
          word box; the only break opportunities must be the original spaces,
          which are text nodes directly in the paragraph. */
       expect(w.textContent).not.toMatch(/[\t\n\f\r ]/);
-      /* Nothing on the word but its class and its marker: no `style` from
-         React (the pen position is written by the measurement, which jsdom
-         never runs), no role, no label — an inline span the accessibility
-         tree flattens into its paragraph. */
-      expect(w.getAttributeNames().sort()).toEqual(["class", "data-word"]);
+      /* Nothing on the word but its class, its marker and its slice of the
+         clock: no role, no label — an inline span the accessibility tree
+         flattens into its paragraph. */
+      expect(w.getAttributeNames().sort()).toEqual(["class", "data-word", "style"]);
       expect(w.tagName).toBe("SPAN");
     }
     const loose = [...written.childNodes].filter((n) => n.nodeType === Node.TEXT_NODE);
@@ -176,14 +176,16 @@ describe("Written.module.css", () => {
     expect(CSS).toMatch(/:global\(body\.motion-paused\) \.word\s*\{\s*animation:\s*none;\s*\}/);
   });
 
-  it("parks a far paragraph at muted only while the effect is running", () => {
-    /* The parked rule sets a colour, so it must sit inside all three
+  it("parks a far paragraph at its own fill, and only while the effect is running", () => {
+    /* The `below` rule sets a colour, so it must sit inside all three
        conditions; anywhere else it would hold a reader who asked for no
        motion at muted, which no exit below would undo. */
     expect(CSS).toMatch(
-      /@supports \(animation-timeline: view\(\)\)\s*\{\s*@media screen and \(prefers-reduced-motion: no-preference\)\s*\{\s*:global\(body:not\(\.motion-paused\)\) \.written\[data-pen="rest"\] \.word\s*\{/,
+      /@supports \(animation-timeline: view\(\)\)\s*\{\s*@media screen and \(prefers-reduced-motion: no-preference\)\s*\{\s*:global\(body:not\(\.motion-paused\)\) \.written\[data-pen="below"\] \.word\s*\{/,
     );
-    expect(CSS.match(/data-pen="rest"/g)).toHaveLength(1);
+    expect(CSS.match(/data-pen="below"/g)).toHaveLength(1);
+    /* Passed is the clock's end, which is ink: the base rule, so no colour. */
+    expect(CSS).toMatch(/\.written\[data-pen="above"\] \.word\s*\{\s*animation:\s*none;\s*\}/);
   });
 
   it("names no delay and no duration, because the range is the clock", () => {
@@ -193,5 +195,112 @@ describe("Written.module.css", () => {
        progress whatever line it was on. */
     expect(word).toMatch(/animation-timeline:\s*--written-clock/);
     expect(CSS).toMatch(/\.written\s*\{[^}]*view-timeline:\s*--written-clock block/);
+  });
+
+  it("reads each word's slice and nothing geometric", () => {
+    expect(word).toMatch(/animation-range:\s*cover var\(--pen-from, 0%\) cover var\(--pen-to, 100%\)/);
+    /* Line-height and band units are what tied the pace to the text's own
+       movement (#158); neither may come back into the range. */
+    expect(CSS).not.toMatch(/--line|\blh\b|--written-band/);
+  });
+
+  it("fills muted before the slice and ink after, so a written word stays written", () => {
+    expect(word).toMatch(/animation-fill-mode:\s*both/);
+    const frames = CSS.match(/@keyframes written-pen\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
+    expect(frames).toMatch(/from\s*\{\s*color:\s*rgb\(var\(--ink-soft\)\);\s*\}/);
+    expect(frames).toMatch(/to\s*\{\s*color:\s*rgb\(var\(--ink\)\);\s*\}/);
+  });
+});
+
+/*
+ * The pen writes ONE WORD AFTER ANOTHER (#158).
+ *
+ * The bug this pins: the pen used to be placed by geometry — a line's offset
+ * plus a fraction of one line-height per word, each word lit for a 14vh band —
+ * so about five words were mid-ramp at once and four lines sat at full ink
+ * together. Now each word owns the slice i/n..(i+1)/n of its paragraph's
+ * clock, and these hold that from the rendered markup, not from a list typed
+ * here.
+ */
+function ownWords(el: Element): HTMLElement[] {
+  return [...el.querySelectorAll<HTMLElement>("[data-word]")].filter(
+    (w) => w.parentElement?.closest("[data-written]") === el,
+  );
+}
+
+function slices(el: Element): Array<[number, number]> {
+  return ownWords(el).map((w) => [
+    parseFloat(w.style.getPropertyValue("--pen-from")),
+    parseFloat(w.style.getPropertyValue("--pen-to")),
+  ]);
+}
+
+function expectTiled(s: Array<[number, number]>) {
+  expect(s[0][0]).toBe(0);
+  expect(s.at(-1)![1]).toBe(100);
+  s.forEach(([from, to], i) => {
+    expect(to).toBeGreaterThan(from);
+    /* No gap and no overlap: the pen never pauses and never writes two
+       words at once. */
+    if (i > 0) expect(from).toBe(s[i - 1][1]);
+  });
+}
+
+describe("Written, the per-word progression", () => {
+  const LONG = Array.from({ length: 57 }, (_, i) => `word${i}`).join(" ");
+
+  it("gives every word its own slice of the clock, in reading order, tiling it exactly", () => {
+    for (const text of [ENGLISH, HEBREW, LONG, "one"]) {
+      cleanup();
+      const el = render(<Written data-testid="w">{text}</Written>).getByTestId("w");
+      const s = slices(el);
+      expect(s).toHaveLength(text.split(" ").length);
+      expectTiled(s);
+    }
+  });
+
+  it("counts across inline elements in DOM order and leaves code and a nested Written off the clock", () => {
+    const el = render(
+      <Written data-testid="w">
+        Read <a href="/x">the note</a> then <code>npm ci</code> and <em>decide</em>{" "}
+        <Written as="div">inner words here</Written>
+      </Written>,
+    ).getByTestId("w");
+    expect(ownWords(el).map((w) => w.textContent)).toEqual(["Read", "the", "note", "then", "and", "decide"]);
+    expectTiled(slices(el));
+    /* The inner one has a clock of its own, three words long. */
+    const inner = el.querySelector("div[data-written]")!;
+    expect(slices(inner).map(([a]) => Math.round(a))).toEqual([0, 33, 67]);
+  });
+
+  it("has at most one word mid-stroke at any point, with ink before it and muted after", () => {
+    for (const n of [1, 2, 7, 15, 34, 150]) {
+      for (let step = 0; step <= 1000; step += 1) {
+        const p = step / 1000;
+        const ink = Array.from({ length: n }, (_, i) => inkAt(p, i, n));
+        expect(ink.filter((v) => v > 0 && v < 1).length).toBeLessThanOrEqual(1);
+        /* A prefix at ink, then at most one word moving, then muted: never
+           a word at ink after a word that is not. */
+        const firstNotInk = ink.findIndex((v) => v < 1);
+        if (firstNotInk >= 0) expect(ink.slice(firstNotInk + 1).every((v) => v === 0)).toBe(true);
+      }
+    }
+  });
+
+  it("writes word after word as the clock advances, and un-writes in reverse", () => {
+    const n = 12;
+    const lit = (p: number) => Array.from({ length: n }, (_, i) => inkAt(p, i, n)).filter((v) => v === 1).length;
+    const forward = Array.from({ length: n + 1 }, (_, k) => lit(k / n));
+    expect(forward).toEqual(Array.from({ length: n + 1 }, (_, k) => k));
+    /* Read back down, the same positions give the same counts: the scroll
+       is the clock, and the clock has no memory. */
+    const back = Array.from({ length: n + 1 }, (_, k) => lit((n - k) / n));
+    expect(back).toEqual([...forward].reverse());
+  });
+
+  it("renders the same ranges the arithmetic describes", () => {
+    expect(penRange(0, 4)).toEqual(["0%", "25%"]);
+    expect(penRange(3, 4)).toEqual(["75%", "100%"]);
+    expect(penRange(1, 3)).toEqual(["33.3333%", "66.6667%"]);
   });
 });
