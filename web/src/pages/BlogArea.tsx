@@ -1,35 +1,47 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
-import { FileText, House, Rss } from "lucide-react";
+import { Link, useParams, useSearchParams } from "react-router-dom";
+import { House, Rss } from "lucide-react";
 import PageShell from "@/components/PageShell";
 import DashboardShell from "@/components/dashboard/DashboardShell";
-import Timeline from "@/components/dashboard/Timeline";
-import { AreaGlyph, Chip, Chips, DashCard, OwnerCard, Row, RowList, TopList, ViewNav } from "@/components/dashboard/Parts";
-import { ListSkeleton, RowsSkeleton } from "@/components/dashboard/Skeletons";
+import { AreaGlyph, OwnerCard, TopList, ViewNav } from "@/components/dashboard/Parts";
+import { ListSkeleton } from "@/components/dashboard/Skeletons";
+import { AreaSideCard, HistoryList, HistorySkeleton, RepoFacts, TopicBar } from "@/components/dashboard/History";
 import styles from "@/components/dashboard/Dashboard.module.css";
-import { shortDate, useWords } from "@/components/dashboard/i18n";
+import history from "@/components/dashboard/History.module.css";
+import { useWords } from "@/components/dashboard/i18n";
+import { useHistoryWords } from "@/components/dashboard/historyWords";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { blog, type PostSummary } from "@/services/blog";
-import { activity, areaFeedUrl, type ActivityEvent, type Area } from "@/services/activity";
+import { activity, areaFeedUrl, type Area } from "@/services/activity";
 
 /*
- * An area: `/blog/area/:slug` — the INTERIM page.
+ * An area: `/blog/area/:slug` (#225). The area's notes as a commit history.
  *
- * #225 makes this the area's history in a commits look, with sharing, ids
- * and repo facts. Until it lands, the dashboard's tree, rows and rail link
- * here and get a plain filtered list on the same shell: the area's notes,
- * newest first, its feed, and the area's own slice of the activity feed on
- * the right. It is deliberately small, so #225 replaces the middle column
- * rather than unpicking a design.
+ * It replaces #224's interim filtered list on the same shell. The middle is
+ * the history, one card per day, each note a row with its short id and its
+ * three actions; the header is the area and, when it is linked to a repo,
+ * the repo's facts from the stored stats; the aside is the way out — the
+ * project, the repo, the area's feed, its published docs — and what the
+ * area's notes are about.
+ *
+ * THE URL HOLDS THE FILTER. `?topic=<tag>` narrows the history to one topic;
+ * the topic chips on the rows and the legend in the aside both write it, and
+ * a second press on the current topic clears it. Nothing else is state.
+ *
+ * STATES. A skeleton in the rows' shape while the notes load; an error with
+ * a retry; "no area by that name" for a slug that is not one; an empty area
+ * that offers its feed; a filter that matches nothing, with the way back.
  */
 
 export default function BlogArea() {
   const { slug = "" } = useParams();
+  const [params] = useSearchParams();
+  const topic = params.get("topic");
   const [t, lang] = useWords();
+  const [w] = useHistoryWords();
   const [posts, setPosts] = useState<PostSummary[] | null>(null);
   const [areas, setAreas] = useState<Area[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [events, setEvents] = useState<ActivityEvent[] | null>(null);
-  const [eventsError, setEventsError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
 
   const [seen, setSeen] = useState(`${slug}:${attempt}`);
@@ -37,8 +49,6 @@ export default function BlogArea() {
     setSeen(`${slug}:${attempt}`);
     setPosts(null);
     setError(null);
-    setEvents(null);
-    setEventsError(null);
   }
   const retry = useCallback(() => setAttempt((n) => n + 1), []);
 
@@ -52,18 +62,21 @@ export default function BlogArea() {
       .areas()
       .then((a) => alive && setAreas(a))
       .catch(() => alive && setAreas([]));
-    activity
-      .page({ area: slug, limit: 6 })
-      .then((p) => alive && setEvents(p.items))
-      .catch((e) => alive && setEventsError(e instanceof Error ? e.message : "Failed to load"));
     return () => {
       alive = false;
     };
   }, [slug, attempt]);
 
-  const area = areas?.find((a) => a.slug === slug);
-  const title = area?.title ?? (slug === "site" ? "The site" : slug);
-  const notes = [...(posts ?? [])].sort((a, b) => (b.publishedAt ?? "").localeCompare(a.publishedAt ?? ""));
+  const area = areas?.find((a) => a.slug === slug) ?? null;
+  const title = area?.title ?? (slug === "site" ? (lang === "he" ? "האתר" : "The site") : slug);
+  useDocumentTitle(area?.title ?? null);
+
+  const all = posts ?? [];
+  const shown = topic ? all.filter((p) => p.tags.includes(topic)) : all;
+  const base = `/blog/area/${encodeURIComponent(slug)}`;
+  const topicHref = (tag: string) => `${base}?topic=${encodeURIComponent(tag)}`;
+  const legendHref = (tag: string) => (tag === topic ? base : topicHref(tag));
+  const missing = areas !== null && !area && posts !== null && all.length === 0;
 
   const rail = (
     <>
@@ -94,37 +107,42 @@ export default function BlogArea() {
     </>
   );
 
+  const aside = (
+    <AreaSideCard area={area} slug={slug} feedUrl={areaFeedUrl(slug)}>
+      {posts === null ? <ListSkeleton lines={3} /> : <TopicBar posts={all} topicHref={legendHref} current={topic} />}
+    </AreaSideCard>
+  );
+
+  const head = (
+    <header className={styles.hello}>
+      <h1 className={`${styles.greeting} ${styles.areaTitle}`}>
+        <AreaGlyph seed={slug} size={28} />
+        <span translate="no">{title}</span>
+      </h1>
+      {area?.tagline && (
+        <p className={styles.lede}>
+          <bdi>{area.tagline}</bdi>
+        </p>
+      )}
+      {area?.stats && <RepoFacts stats={area.stats} repoUrl={area.repoUrl} />}
+    </header>
+  );
+
   return (
     <PageShell>
       <DashboardShell
         railLabel={lang === "he" ? "עיון ברשימות" : "Browse the notes"}
         rail={rail}
-        asideLabel={t.timeline}
-        aside={<Timeline events={events} error={eventsError} onRetry={retry} logHref="/blog/log" />}
+        asideLabel={w.aboutArea}
+        aside={aside}
+        asideFirst
+        head={head}
       >
-        <header className={styles.hello}>
-          <h1 className={`${styles.greeting} ${styles.areaTitle}`}>
-            <AreaGlyph seed={slug} size={28} />
-            <span translate="no">{title}</span>
-          </h1>
-          {area?.tagline && <p className={styles.lede}>{area.tagline}</p>}
-          <p className={styles.lede}>{t.areaInterim}</p>
-          <div className={styles.actions}>
-            <a href={areaFeedUrl(slug)} className={styles.button}>
-              <Rss size={14} aria-hidden="true" />
-              &nbsp;RSS
-            </a>
-            {area?.kind === "project" && (
-              <Link to={`/projects/${slug}`} className={styles.button}>
-                {t.goToProject}
-              </Link>
-            )}
-          </div>
-        </header>
 
         {error && (
           <div className={styles.message} role="alert">
             <h2 className={styles.messageTitle}>{error === "not-found" ? t.areaMissing : t.notesFailedTitle}</h2>
+            {error !== "not-found" && <p className={styles.messageBody}>{t.notesFailedBody}</p>}
             <div className={styles.actions}>
               {error !== "not-found" && (
                 <button type="button" className={styles.button} data-primary="" onClick={retry}>
@@ -139,52 +157,60 @@ export default function BlogArea() {
         )}
 
         {!error && posts === null && (
-          <DashCard title={t.everything} busy flush>
-            <RowsSkeleton rows={6} />
-          </DashCard>
+          <section className={history.historyWrap} aria-busy="true" aria-label={w.historyLabel}>
+            <HistorySkeleton />
+          </section>
         )}
 
-        {!error && posts !== null && notes.length === 0 && (
+        {!error && posts !== null && all.length === 0 && (
           <div className={styles.message}>
-            <h2 className={styles.messageTitle}>{areas !== null && !area ? t.areaMissing : t.emptyTitle}</h2>
-            <Link to="/blog" className={styles.button}>
-              {t.backTo}
-            </Link>
+            <h2 className={styles.messageTitle}>{missing ? t.areaMissing : w.emptyArea}</h2>
+            {!missing && <p className={styles.messageBody}>{w.emptyAreaBody}</p>}
+            <div className={styles.actions}>
+              {!missing && (
+                <a href={areaFeedUrl(slug)} className={styles.button} data-primary="">
+                  {w.rss}
+                </a>
+              )}
+              <Link to="/blog" className={styles.button}>
+                {t.backTo}
+              </Link>
+            </div>
           </div>
         )}
 
-        {!error && notes.length > 0 && (
-          <DashCard title={t.notes(notes.length)} flush>
-            <RowList>
-              {notes.map((p) => (
-                <Row
-                  key={p.slug}
-                  icon={<FileText />}
-                  title={p.title}
-                  to={`/blog/${p.slug}`}
-                  meta={[
-                    p.publishedAt ? (
-                      <time key="d" dateTime={p.publishedAt}>
-                        {shortDate(p.publishedAt, lang)}
-                      </time>
-                    ) : null,
-                    t.minRead(p.readingMinutes),
-                  ]}
-                  chips={
-                    p.tags.length > 0 ? (
-                      <Chips label={lang === "he" ? "נושא" : "Topic"}>
-                        {p.tags.map((tag) => (
-                          <Chip key={tag} to={`/blog?view=feed&tag=${encodeURIComponent(tag)}`}>
-                            {tag}
-                          </Chip>
-                        ))}
-                      </Chips>
-                    ) : undefined
-                  }
-                />
-              ))}
-            </RowList>
-          </DashCard>
+        {!error && all.length > 0 && (
+          <section className={history.historyWrap} aria-labelledby="area-history-title">
+            <div className={history.historyHead}>
+              <h2 id="area-history-title" className={styles.sectionTitle}>
+                {w.shown(shown.length, all.length)}
+              </h2>
+              {topic && (
+                <p className={history.filterBar}>
+                  <span className={history.filterName}>
+                    {`${w.filteredBy}: `}
+                    <span translate="no">{topic}</span>
+                  </span>
+                  <Link to={base} className={styles.sectionAction}>
+                    {w.clearFilter}
+                  </Link>
+                </p>
+              )}
+              <p className={history.keysHint}>
+                <kbd translate="no">j</kbd> <kbd translate="no">k</kbd> {w.keysHint}
+              </p>
+            </div>
+            {shown.length > 0 ? (
+              <HistoryList posts={shown} topicHref={topicHref} />
+            ) : (
+              <div className={styles.message}>
+                <h3 className={styles.messageTitle}>{t.noMatch}</h3>
+                <Link to={base} className={styles.button}>
+                  {w.clearFilter}
+                </Link>
+              </div>
+            )}
+          </section>
         )}
       </DashboardShell>
     </PageShell>

@@ -14,6 +14,8 @@ const SummarySchema = z.object({
   readingMinutes: z.number(),
   /* The owner's pick for "top posts", 1 first; null is not featured. */
   featured: z.number().nullable().optional(),
+  /* Last saved (#225); an "updated" mark when well after publishing. */
+  updatedAt: z.string().nullable().optional(),
 });
 
 const PostSchema = SummarySchema.extend({
@@ -23,10 +25,13 @@ const PostSchema = SummarySchema.extend({
 
 const StatsSchema = z.object({
   stars: z.number().nullable(),
+  forks: z.number().nullable().optional(),
   language: z.string().nullable(),
   license: z.string().nullable(),
   pushedAt: z.string().nullable(),
   latestRelease: z.object({ tag: z.string(), url: z.string(), publishedAt: z.string().nullable() }).nullable(),
+  /* When the scheduled job read these numbers (#225): every fact's "as of". */
+  fetchedAt: z.string().nullable().optional(),
 });
 
 const CollectionSchema = z.object({
@@ -40,6 +45,8 @@ const CollectionSchema = z.object({
   kind: z.enum(["site", "project"]).default("project"),
   repoUrl: z.string().nullable().default(null),
   stats: StatsSchema.nullable().default(null),
+  /* The repo paths the owner opted in to publishing, as GitHub links (#225). */
+  docs: z.array(z.object({ path: z.string(), url: z.string() })).optional(),
 });
 
 export type PostSummary = z.infer<typeof SummarySchema>;
