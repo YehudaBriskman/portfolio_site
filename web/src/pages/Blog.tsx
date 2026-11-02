@@ -5,10 +5,12 @@ import Byline from "@/components/notes/Byline";
 import CollectionFilter from "@/components/notes/CollectionFilter";
 import MetaPill from "@/components/notes/MetaPill";
 import NoteCard from "@/components/notes/NoteCard";
-/* The correction that makes `.note-card` a surface on paper rather than on
-   the near-black ground it was drawn for. The page borrows it for the
-   boxes that are note-card-shaped without being note cards: the loading
-   skeleton and the two states where there is nothing to list. */
+/* The card's own stylesheet, borrowed for the boxes that are
+   note-card-shaped without being note cards: the loading skeleton (which
+   uses the slot and the face, so it is the card's height by construction)
+   and the two states where there is nothing to list. On this page all of
+   them stand on the notes room, and the stylesheet's `.on-panel` block is
+   what dresses them for it. */
 import card from "@/components/notes/NoteCard.module.css";
 import SkeletonGate from "@/components/gallery/SkeletonGate";
 import SkeletonLines from "@/components/gallery/SkeletonLines";
@@ -24,39 +26,33 @@ const GRID = "grid grid-cols-1 gap-6 sm:grid-cols-2";
  * App.tsx renders this route behind `<Suspense fallback={null}>`, so the first
  * thing a visitor to /blog sees is nothing at all; these are the first pixels
  * on the screen and whatever they claim about the layout is what the reader
- * watches get corrected. Three identical cards claimed something false: the
- * real grid opens with a lead that spans both columns and splits into a
- * picture and a text panel, so the content always arrived a card-height taller
- * than the placeholder and shoved the page down.
+ * watches get corrected.
  *
- * The lead is the half worth matching exactly, and it can be: the lead card is
- * the one slot that always carries media, whatever the post has. The cards
- * after it are text-only here because a note only gets a picture if it has a
- * real cover, which is not knowable before the request lands.
+ * Since #179 every note card is one height, the lead included, so the
+ * placeholder can be exact where it used to be an estimate: the slot and the
+ * face are `NoteCard`'s own classes, so each placeholder is the height of
+ * the card that replaces it by construction rather than by measurement. The
+ * lead always carries media, so its picture column is drawn; the cards after
+ * it are drawn without, because a note only gets a picture if it has a real
+ * cover and that is not knowable before the request lands — which moves the
+ * date line to the head of the card, exactly as a coverless card does.
  *
  * ── why this is not `LabelSkeleton` ───────────────────────────────────────
  *
  * Because a note card is not an object label. `NoteCard` has a badge row, a
- * stretched link, and its own type steps — `display-tight` at 24px for the
- * title where the label's `object` scale is 35px — so the schema-shaped
- * skeleton would be the wrong shape *and* the wrong height here. What is
- * shared is the thing worth sharing: `SkeletonLines` draws the lines, so the
- * capsule, the sweep, the two off-switches and the gate are the same ones the
- * notes shelf uses, and every line below takes its height from the card's own
- * type step rather than from a literal. The rows mirror `NoteCard`'s markup
- * class for class, which is the only way this can stay the right height when
- * that component is next edited.
+ * stretched link, and its own type steps, so the schema-shaped skeleton would
+ * be the wrong shape here. What is shared is the thing worth sharing:
+ * `SkeletonLines` draws the lines, so the capsule, the sweep, the two
+ * off-switches and the gate are the same ones the notes shelf uses, and
+ * every line below takes its height from the card's own type step.
  *
- * ── the one thing this cannot get right, and the measurement for it ───────
+ * ── the one thing this cannot get right ───────────────────────────────────
  *
  * How many notes there are. The grid is a lead plus `ceil((n-1)/2)` rows and
  * `n` is what the request is for, so no placeholder can reserve the real
  * height of this region — the honest thing is to reserve the shape of it and
  * let the document grow at its bottom edge, which is below the fold on
- * arrival at every width this page is drawn at. Measured against the loaded
- * grid: a card row is 199px, so each row the response carries beyond the two
- * reserved here is 199px of growth under the reader's feet rather than in
- * front of them.
+ * arrival at every width this page is drawn at.
  */
 
 /** A row of the card's own type, with the skeleton's lines set in it. */
@@ -68,16 +64,6 @@ function Lines({ className, lines, tail }: { className: string; lines: number; t
   );
 }
 
-/*
- * The counts, and where each was counted.
- *
- * Taken off the loaded grid at 1440x900 rather than chosen: the lead's title
- * runs to three lines at 41.6px and its summary to one at 28px, which is the
- * 338px the lead measures; a grid card's title runs to two lines at 32px and
- * its summary to one at 24.75px, which is the 199px a grid row measures.
- * Two rows of those are reserved — enough to fill the viewport from where the
- * grid starts, and never more than the response will bring.
- */
 const LEAD_TITLE_LINES = 3;
 const CARD_TITLE_LINES = 2;
 const ROWS = 2;
@@ -85,44 +71,35 @@ const ROWS = 2;
 function Skeleton() {
   return (
     <SkeletonGate className={GRID}>
-      <div
-        className={`note-card note-card--lead ${card.card} ${card.lead} ${card.cycle} sm:col-span-2 sm:grid sm:grid-cols-[1.05fr_1fr] sm:items-stretch lg:grid-cols-[1.2fr_1fr]`}
-      >
-        {/* The media slot, empty. It is the one part of a note card whose
-            footprint is known before the response: the lead always carries a
-            picture, a real cover or the generated skyline, and the panel is
-            stretched to the text column either way. */}
-        <div className={`note-card__media ${card.media} sm:border-b-0 sm:border-r`} />
-        <div className="flex flex-col p-6 sm:p-8 lg:p-10">
-          {/* The badge row's 44px floor, which `NoteCard` holds whether or not
-              a badge lands in it. Reproduced empty rather than filled: the
-              row's height is the card's and not the badge's, so the
-              placeholder needs the floor and not a capsule. */}
-          <div className="-my-1 flex min-h-11 flex-wrap items-center gap-x-3 gap-y-2" />
+      <div className={`${card.slot} ${card.cycle} sm:col-span-2`}>
+        <div
+          className={`note-card note-card--lead ${card.card} ${card.face} ${card.lead}`}
+          data-cover=""
+        >
+          {/* The media slot, empty: the one part of a note card whose
+              footprint is known before the response. */}
+          <div className={`note-card__media ${card.media}`} />
+          {/* The badge row's 44px floor, reproduced empty: the row's height
+              is the card's and not the badge's. */}
+          <div className={`${card.head} -my-1 flex min-h-11 flex-wrap items-center gap-x-3 gap-y-2`} />
           <Lines
-            className="mt-3 display-tight text-[1.75rem] sm:text-[2.125rem] lg:text-[2.5rem]"
+            className={`${card.title} display-tight text-[1.75rem] sm:text-[2.125rem] lg:text-[2.5rem]`}
             lines={LEAD_TITLE_LINES}
           />
-          <Lines className="mt-3 text-base leading-[1.6] sm:text-lg" lines={1} />
-          <Lines className="mono mt-6 pt-1 text-[0.75rem] sm:mt-auto sm:pt-6" lines={1} tail="9rem" />
         </div>
       </div>
 
       {Array.from({ length: ROWS * 2 }, (_, i) => (
-        <div key={i} className={`note-card ${card.card} ${card.cycle}`}>
-          <div className="flex flex-col p-6">
-            {/* The date-and-minutes row, which on a grid card shares the
-                badge row's 44px floor. One capsule rather than two: the
-                separator between them is a dot `NoteCard` draws itself, and
-                a placeholder that reproduces punctuation is drawing content
-                it has not got. */}
+        <div key={i} className={`${card.slot} ${card.cycle}`}>
+          <div className={`note-card ${card.card} ${card.face}`}>
+            {/* The date-and-minutes row. One capsule rather than two: the
+                separator between them is a dot `NoteCard` draws itself. */}
             <Lines
-              className="mono -my-1 flex min-h-11 flex-wrap items-center text-[0.75rem]"
+              className={`${card.head} mono -my-1 flex min-h-11 flex-wrap items-center text-[0.75rem]`}
               lines={1}
               tail="7.5rem"
             />
-            <Lines className="mt-3 display-tight text-[1.375rem] sm:text-2xl" lines={CARD_TITLE_LINES} />
-            <Lines className="mt-3 text-[0.9375rem] leading-[1.65]" lines={1} />
+            <Lines className={`${card.title} display-tight text-[1.375rem] sm:text-2xl`} lines={CARD_TITLE_LINES} />
           </div>
         </div>
       ))}
@@ -199,7 +176,13 @@ export default function Blog() {
   const rest = lead && posts ? posts.slice(1) : (posts ?? []);
 
   return (
-    <PageShell>
+    /*
+     * The notes room (#179): the whole page on the notes' own dark, the
+     * same ground as the home page's shelf. On `<main>`, through the shell,
+     * so there is no strip of paper under the bar and the chrome finds the
+     * dark in the page's first commit — `PageShell.tsx` has the why.
+     */
+    <PageShell ground="room">
       <div data-crest data-hue="120 92 150" className="wrap pt-section">
         {/*
           The scenery is anchored to this box rather than to the whole page, so
@@ -272,7 +255,7 @@ export default function Blog() {
               </p>
               <p className="mono mt-3 text-[0.75rem] text-clay">{error}</p>
               <div className="mt-12 flex flex-wrap gap-3">
-                <button type="button" onClick={retry} className="btn btn-solid">
+                <button type="button" onClick={retry} className={`btn btn-solid ${card.solid}`}>
                   Try again
                 </button>
                 <Link to="/projects" className="btn btn-quiet">

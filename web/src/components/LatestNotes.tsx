@@ -9,6 +9,7 @@ import InkRule from "@/components/motion/InkRule";
 import Shot from "@/components/projects/Shot";
 import { projects } from "@/data/projects";
 import { blog, type PostSummary } from "@/services/blog";
+import room from "@/components/ground/NotesRoom.module.css";
 import styles from "@/components/LatestNotes.module.css";
 
 /*
@@ -49,12 +50,26 @@ import styles from "@/components/LatestNotes.module.css";
  *
  * The ground
  * ----------
- * The pale washed cards are gone. Each note now shows its cover when it has
- * one, on the paper the page talks on; a note without one is the label alone
- * in a hairline frame, standing on the same floor line. The other option the
- * issue offered — a dark ground with borders — would have been a third dark
- * act, and the argument against it is in `LatestNotes.module.css` beside the
- * card, where the next person to reach for it will be standing.
+ * Dark, since #179 — the notes room, a warm flat dark that is deliberately
+ * not one of the page's two dark acts. #171 put the shelf on paper and argued
+ * that a dark shelf would run on out of the year; the owner overrode that,
+ * and the seam it worried about is solved rather than avoided: a band of
+ * paper, a flat edge against the act's arc, and a different dark. The three
+ * are argued in `LatestNotes.module.css` at `.ground`, and what it cost the
+ * ceiling is in `ground/DarkAct.tsx`.
+ *
+ * `.on-panel` and `data-chrome="dark"` are on the section itself, like the
+ * acts', and for the same split `ground/DarkAct.tsx` describes: the first
+ * re-inks the subtree, the second tells the nav island it is over a dark
+ * ground. Both are static markup, present in every state of the query, so the
+ * chrome finds the room in the page's first commit.
+ *
+ * The cards
+ * ---------
+ * One height, every one; covers where a note has one. On hover and keyboard
+ * focus a card grows into the room its slot already reserved and its
+ * description slides in; on touch, with reduced motion and with Pause the
+ * description is simply there. The mechanism is in the stylesheet at `.card`.
  *
  * Deliberately not the ARIA carousel
  * ----------------------------------
@@ -74,10 +89,12 @@ import styles from "@/components/LatestNotes.module.css";
 const SHOWN = 6;
 
 /*
- * The most a fact line may run to before it is cut: a shade under three lines
- * of the label's fact step at the shelf's card width.
+ * The most a description may run to before it is cut: a shade under the two
+ * lines the card opens by, at the label's fact step and the phone's card
+ * width. The stylesheet clamps at two lines as well; this cut is the one that
+ * lands on a word boundary.
  */
-const FACT_MAX = 118;
+const FACT_MAX = 84;
 
 /* A card is at most 23rem on the shelf and 40rem in the plain list; on a
    phone it is three quarters of the window either way. */
@@ -174,7 +191,11 @@ export default function LatestNotes() {
   }, []);
 
   return (
-    <section id="notes" className="section-y relative">
+    <section
+      id="notes"
+      data-chrome="dark"
+      className={`on-panel ${room.room} ${styles.ground} section-y relative`}
+    >
       <div className="wrap section-head">
         <InkRule className="section-head-rule" />
         <h2 className="display text-section leading-[0.9]">Notes</h2>
@@ -205,7 +226,7 @@ export default function LatestNotes() {
                 {Array.from({ length: SHOWN }, (_, i) => (
                   <li key={i} className={styles.slot}>
                     <div className={styles.card}>
-                      <div className={styles.plinth}>
+                      <div className={`${styles.plinth} ${styles.ghost}`}>
                         <LabelSkeleton
                           scale="inline"
                           nameLines={2}
@@ -260,12 +281,16 @@ export default function LatestNotes() {
 
               <div className={styles.frame}>
                 <ul className={styles.track} aria-label="Latest notes" onFocus={onFocus}>
-                  {posts.map((post, i) => (
+                  {posts.map((post, i) => {
+                    const fact = factLine(post);
+                    return (
                     <li key={post.slug} data-shelf-i={i} className={styles.slot}>
                       <Link
                         to={`/blog/${post.slug}`}
                         className={styles.card}
                         data-cover={post.coverImage ? "" : undefined}
+                        /* Only a card with something to say grows to say it. */
+                        data-desc={fact ? "" : undefined}
                       >
                         {post.coverImage && (
                           /* Decorative: the label beside it names the note,
@@ -282,7 +307,7 @@ export default function LatestNotes() {
                             scale="inline"
                             nameAs="h3"
                             name={post.title}
-                            fact={factLine(post)}
+                            fact={fact}
                             fields={noteFields(post)}
                             className={styles.label}
                           />
@@ -292,7 +317,8 @@ export default function LatestNotes() {
                         </div>
                       </Link>
                     </li>
-                  ))}
+                    );
+                  })}
                 </ul>
               </div>
             </div>

@@ -74,3 +74,30 @@
     color: rgb(var(--paper));
   }
 }
+
+/*
+ * On the notes room (#179), where `/blog`'s "Showing" row stands. The white
+ * at 70% above is paper's fill and stays paper's; on the room it would be a
+ * pale chip carrying the room's light ink. So the fill becomes the room's
+ * raised surface and everything else already follows the ground through the
+ * roles: the tag's edge `--ink-soft` 6.14:1 on the fill, its label `--ink`
+ * 13.39:1, and the selected tag ink with the ground's own colour in it.
+ */
+:global(.on-panel) .meta.meta,
+:global(.on-panel) .tag.tag {
+  background: rgb(var(--canvas-2));
+}
+
+:global(.on-panel) .tagActive.tagActive {
+  background: rgb(var(--ink));
+  color: rgb(var(--canvas));
+}
+
+@media (hover: hover) and (pointer: fine) {
+  :global(.on-panel) .tag.tag:hover {
+    background: rgb(var(--ink) / 0.12);
+  }
+  :global(.on-panel) .tagActive.tagActive:hover {
+    color: rgb(var(--canvas));
+  }
+}

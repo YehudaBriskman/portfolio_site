@@ -140,13 +140,13 @@ export default function Index() {
           another runway between two sections that read as one thought.
         */}
         {/*
-          A bare `.ground`, with no `layer-section` on it — the comment above
-          is the reason, and it still holds: the shelf is full-bleed and rides
-          the space the section before it has already opened rather than
-          growing a second runway. What it needs from a plate is the ground,
-          the corners and the shadow, and `.ground` is exactly those three and
-          no padding. Safe because the shelf's own overflow is internal to its
-          scroller and it uses no negative margins to escape this box.
+          The notes room (#179): the shelf stands on a dark of its own, and
+          the section carries it — `.on-panel`, the room's stops and
+          `data-chrome` are on `<section id="notes">`. It stands off the year
+          behind a band of paper, which is the seam; `LatestNotes.module.css`
+          at `.ground` argues it and `ground/DarkAct.tsx` says what it cost the
+          ceiling. Still no `layer-section`: the shelf is full-bleed and rides
+          the space the section before it has already opened.
         */}
         <div>
           <LatestNotes />

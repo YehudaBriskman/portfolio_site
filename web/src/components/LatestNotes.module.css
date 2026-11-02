@@ -50,6 +50,34 @@
  * conditions cannot be written as one selector.
  */
 
+/*
+ * The seam with the year (#179).
+ *
+ * The year above is a dark act and this section is the notes room, and they
+ * must read as two things. Three differences do it, strongest first:
+ *
+ *   1. A band of paper. The section stands off the act by this margin, so
+ *      after the year's crest the page shows its own ground again, edge to
+ *      edge, before the room begins. Paper to either dark is ~15:1, so the
+ *      band is the one boundary nobody can miss, at any width, in forced
+ *      colours or not.
+ *   2. A different edge. The act opens and closes on arcs (`DarkAct`); the
+ *      room is a flat plate with square corners and no seam light, so the
+ *      shape says "a different kind of place" even in a cropped screenshot.
+ *   3. A different dark. Warm and lighter than the act's neutral
+ *      (`NotesRoom.module.css`): 1.13:1 between them. Too small to be a
+ *      boundary on its own, which is why it is third; it is what stops the
+ *      two from reading as one material once the band has scrolled away.
+ *
+ * The band is never smaller than the bar is tall, so the nav island — which
+ * reads the ground under it through `data-chrome` (`nav/useDarkChrome.ts`) —
+ * goes back to paper across it and inverts again for the room. The chrome
+ * shows the seam too.
+ */
+.ground {
+  margin-block-start: clamp(5rem, 9vw, 7.5rem);
+}
+
 .act {
   position: relative;
 }
@@ -74,6 +102,10 @@
   --shelf-step: calc(var(--shelf-card) + var(--shelf-gap));
   --shelf-per: 18svh;
   --shelf-runway: calc(var(--shelf-n, 6) * var(--shelf-per));
+  /* The card at rest, and what it grows by to show its description: two
+     lines of the fact at the room's leading, and the card's foot padding. */
+  --note-rest: clamp(18rem, 10rem + 30vw, 21.5rem);
+  --note-grow: calc(2 * 0.9375rem * 1.68 + clamp(1rem, 2vw, 1.5rem));
 
   position: relative;
   height: calc(100svh + var(--shelf-runway));
@@ -122,13 +154,13 @@
 
 .track {
   display: flex;
-  /* A shelf: the objects stand on one floor line, so a note with a cover is
-     taller than one without and nobody's label floats in empty paper. */
-  align-items: flex-end;
+  /* Every slot is one height (below), so the row is one height; the cards
+     hang from its top edge and grow down into their own slots. */
+  align-items: flex-start;
   gap: var(--shelf-gap);
   width: max-content;
   margin: 0;
-  /* Room for a focus ring and the hover lift; the frame clips. */
+  /* Room for a focus ring; the frame clips. */
   padding-block: 1rem;
   list-style: none;
 
@@ -150,10 +182,24 @@
   }
 }
 
+/*
+ * The slot is the card's footprint, and it never changes.
+ *
+ * Every slot is the resting height plus the growth, whatever the note
+ * carries, so the row is one height (#179) and a card that grows on hover
+ * grows into room that was already its own: the neighbours do not move, the
+ * track does not move, and the pinned frame's scroll-to-transform mapping
+ * does not move. `contain: layout` keeps the growth's relayout inside the
+ * slot. The card hangs from the top of it, so the title under the pointer
+ * stays where the pointer is and the card opens downward like a drawer.
+ */
 .slot {
   flex: 0 0 var(--shelf-card);
   min-width: 0;
   display: flex;
+  align-items: flex-start;
+  height: calc(var(--note-rest) + var(--note-grow));
+  contain: layout;
 }
 
 /* A focused card is drawn over its neighbours' focus rings. */
@@ -162,70 +208,183 @@
 }
 
 /*
- * The card, and the ground it stands on.
+ * The card, on the room (#179).
  *
- * THE CHOICE: covers on paper, not a dark ground. The issue offered two ways
- * off the pale washed cards — each note showing its cover, or the section on
- * a dark ground with the notes split by borders — and asked for the choice to
- * be argued against the two-dark-act ceiling in `ground/DarkAct.tsx`. Argued:
+ * THE GROUND. The shelf stands on the notes room, the warm dark in
+ * `ground/NotesRoom.module.css`, by the owner's decision on #179 — which
+ * overrides #171's argument for paper. What that did to the ceiling, and how
+ * the room is kept from running on out of the year, is in `ground/DarkAct.tsx`.
+ * A card is the room's raised surface (`--canvas-2`) with the room's rule for
+ * an edge; covers stay where a note has one, and a note without one is not
+ * given a stand-in picture.
  *
- *   1. The subject rule picks the dark sections, and it does not pick this
- *      one. DarkAct names the shelf explicitly: Approach, the shelf, the spec
- *      plate and the close are the page talking ABOUT the work, "and the page
- *      talks on paper". Notes are writing about decisions; dark here would
- *      say "this is the work", which is untrue.
- *   2. Adjacency, which is worse than the count. The shelf comes straight
- *      after the year, and the year is dark. A dark shelf would butt against
- *      it — and DarkAct's own words for that are "two dark acts with nothing
- *      between them are one long dark act with a seam in it". So it would not
- *      even read as a third act; it would read as the year running on into
- *      the notes, and the year's foot seam (the paper crest) would vanish.
- *   3. The footer's exemption (#160) does not stretch to cover it. The footer
- *      escapes the ceiling on four conditions; a dark shelf fails three of
- *      them — it would have a section head, sit in the page's sequence, and
- *      carry something a reader came for.
+ * ONE HEIGHT. `--note-rest` is the card's height at rest, stated rather than
+ * left to the content, so a note with a cover and a note without, a one-line
+ * title and a two-line one, all stand exactly as tall. The cover row is the
+ * give: `minmax(0, 1fr)`, so it takes what the label leaves and the picture
+ * crops to it. The name is clamped to two lines (four without a cover), so
+ * the label cannot take more than it was given.
  *
- * So the dark option needs the ceiling rewritten and the paper run after the
- * year broken; the cover option needs neither. A note without a cover is not
- * given a stand-in picture — the generated skyline was retired from NoteCard
- * for carrying nothing — but the label alone, in the same hairline frame.
+ * THE DESCRIPTION. The label's fact line is the note's description: the
+ * subtitle when the author wrote one, else one sentence of the excerpt —
+ * both straight off `/api/blog/posts` (`subtitle`, `excerpt`). It is the last
+ * row of the grid, and that row is `--note-open` tall: zero at rest, so the
+ * card's own `overflow: hidden` keeps the sentence just under its foot, and
+ * `--note-grow` on hover or keyboard focus, so the card grows by exactly that
+ * row and the sentence slides up into it. Always in the DOM, so a screen
+ * reader hears it as part of the link whether or not anything is open.
  *
- * CONTRAST, measured on the rendered shelf at 1440×900 (see
- * docs/motion-contract.md, the shelf's ledger entry): the name in `--ink`
- * 15.17:1 on paper, the fact and field lines in `--ink-soft` 6.37:1, the
- * arrow likewise. No text is ever set over a cover — the label is under the
- * picture, on paper — so no scrim and no image-dependent contrast. The frame
- * is `--rule-firm`, 2.15:1 against paper: the card does not depend on it to be
- * found (its text does that), so the 3:1 non-text floor does not bind, and a
- * firmer line would be the "border that shouts" the paper grammar avoids.
+ * `--note-open` is a registered length so it can be transitioned — the card's
+ * height and the row's are both written in it, so they move as one. That
+ * is time-based, and that is allowed here: hover and focus are direct
+ * manipulation, not scroll. It does cost layout per frame, on one card, for
+ * one `--dur-fast`, inside a slot that contains it. An engine without
+ * `@property` opens the card in one step, which is the same finished state.
+ *
+ * ON TOUCH, and with reduced motion or Pause, the card stands open from the
+ * start and does not move: a phone has no hover to ask with, and the
+ * finished state is the open one. Heights stay equal, because every card is
+ * open at once.
+ *
+ * CONTRAST, measured on the rendered room by `scripts/shoot-notes-dark.mjs`
+ * (stops in NotesRoom.module.css): the name in `--ink` 13.39:1 on the card,
+ * the fact, the fields and the arrow in `--ink-soft` 6.14:1, the card's edge
+ * 3.58:1 against the room.
  */
+@property --note-open {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 0px;
+}
+
 .card {
-  display: flex;
+  --note-open: 0px;
+  --pad: clamp(1rem, 2vw, 1.5rem);
+
+  display: grid;
   flex: 1 1 auto;
-  flex-direction: column;
   min-width: 0;
+  height: calc(var(--note-rest) + var(--note-open));
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: minmax(0, 1fr) auto auto var(--note-open);
+  grid-template-areas:
+    "cover  cover"
+    "name   onward"
+    "fields onward"
+    "fact   fact";
   overflow: hidden;
   border: 1px solid rgb(var(--rule-firm));
   border-radius: var(--r-xl);
-  background: rgb(var(--canvas));
+  background: rgb(var(--canvas-2));
   color: rgb(var(--ink));
   text-decoration: none;
   transition:
-    transform var(--dur-fast) var(--ease-settle),
+    --note-open var(--dur-fast) var(--ease-settle),
     border-color var(--dur-fast) ease;
+}
+
+/* Without a cover the field line goes to the head of the card, as a dateline,
+   and the name stands on the floor at a larger size: an index card, not a
+   picture card with the picture missing. */
+.card:not([data-cover]) {
+  grid-template-rows: auto minmax(0, 1fr) auto var(--note-open);
+  grid-template-areas:
+    "fields fields"
+    ".      ."
+    "name   onward"
+    "fact   fact";
+}
+
+/* The plinth and the label are boxes for the markup's sake; on the card their
+   children are the grid's items. Neither carries a role, so `contents` takes
+   nothing out of the accessibility tree. */
+.plinth,
+.label {
+  display: contents;
+}
+
+.label > h3 {
+  grid-area: name;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  padding: var(--pad) 0 0 var(--pad);
+}
+
+.card:not([data-cover]) .label > h3 {
+  -webkit-line-clamp: 4;
+  font-size: clamp(1.25rem, 1rem + 0.9vw, 1.625rem);
+  line-height: 1.18;
+  padding-block-end: var(--pad);
+}
+
+.label > ul {
+  grid-area: fields;
+  margin-top: 0.3rem;
+  padding: 0 var(--pad) var(--pad);
+  white-space: nowrap;
+}
+
+.card:not([data-cover]) .label > ul {
+  margin-top: 0;
+  padding-block: var(--pad) 0;
+}
+
+.label > p {
+  grid-area: fact;
+  align-self: start;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  margin-top: calc(var(--pad) * -0.4);
+  padding: 0 var(--pad);
+  color: rgb(var(--ink-soft));
+  opacity: 0;
+  transform: translateY(0.75rem);
+  transition:
+    opacity var(--dur-fast) ease,
+    transform var(--dur-fast) var(--ease-settle);
 }
 
 @media (hover: hover) and (pointer: fine) {
   .card:hover {
     border-color: rgb(var(--ink-soft));
-    transform: translateY(-0.25rem);
+  }
+  .card[data-desc]:hover {
+    --note-open: var(--note-grow);
+  }
+}
+
+.card[data-desc]:focus-visible {
+  --note-open: var(--note-grow);
+}
+
+.card:hover .label > p,
+.card:focus-visible .label > p {
+  opacity: 1;
+  transform: none;
+}
+
+/* No hover to ask with: open from the start, and still. */
+@media not ((hover: hover) and (pointer: fine)) {
+  .card {
+    --note-open: var(--note-grow);
+    transition: none;
+  }
+  .label > p {
+    opacity: 1;
+    transform: none;
+    transition: none;
   }
 }
 
 .cover {
+  grid-area: cover;
   position: relative;
-  aspect-ratio: 16 / 10;
   min-width: 0;
+  min-height: 0;
   overflow: hidden;
   border-bottom: 1px solid rgb(var(--rule));
 }
@@ -240,26 +399,23 @@
 .cover :global(img) {
   height: 100%;
   width: 100%;
+  object-fit: cover;
 }
 
-/* The label at the start edge, the arrow at the end — the run's plinth. A
-   card on a travelling shelf is cropped on the right while it enters, which
-   is where the reader meets it, so the name is set where it is seen first. */
-.plinth {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 1rem;
-  min-width: 0;
-  padding: clamp(1rem, 2vw, 1.5rem);
+/* The skeleton's plinth stays a box: it has one child, the ghost label, and
+   it stands on the card's floor where the real label will. */
+.plinth.ghost {
+  display: block;
+  grid-row: 3;
+  grid-column: 1 / -1;
+  padding: var(--pad);
 }
 
-.label {
-  min-width: 0;
-}
-
+/* The arrow at the end of the name — the run's plinth, kept. */
 .onward {
-  flex: none;
+  grid-area: onward;
+  align-self: end;
+  padding: 0 var(--pad) var(--pad) 0;
   font-family: ui-sans-serif, system-ui, "Segoe UI Symbol", "Noto Sans Symbols 2", sans-serif;
   font-size: 1.125rem;
   line-height: 1;
@@ -363,6 +519,16 @@
   :global(html[dir="rtl"]) .card {
     scale: none;
   }
+  /* No growth: every card stands open, with its description simply there. */
+  .card {
+    --note-open: var(--note-grow);
+    transition: none;
+  }
+  .label > p {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
 }
 
 :global(body.motion-paused) .stageInner {
@@ -401,6 +567,17 @@
 :global(html[dir="rtl"] body.motion-paused) .frame,
 :global(html[dir="rtl"] body.motion-paused) .card {
   scale: none;
+}
+
+:global(body.motion-paused) .card {
+  --note-open: var(--note-grow);
+  transition: none;
+}
+
+:global(body.motion-paused) .label > p {
+  opacity: 1;
+  transform: none;
+  transition: none;
 }
 
 @media (forced-colors: active) {
