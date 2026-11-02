@@ -54,7 +54,7 @@ function Cover({ src, alt }: { src: string; alt: string }) {
   const [loaded, setLoaded] = useState(false);
   return (
     <>
-      {!loaded && <div className="absolute inset-0 animate-pulse-soft bg-paper-3" />}
+      {!loaded && <div className="absolute inset-0 scrub-pulse bg-paper-3" />}
       <img
         src={src}
         alt={alt}

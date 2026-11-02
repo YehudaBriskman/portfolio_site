@@ -301,7 +301,7 @@ export default function Blog() {
                   lead
                   label="Latest"
                   collectionTitle={lead.collection === "site" ? undefined : titleOf(lead.collection)}
-                  className="animate-fade-up"
+                  className="scrub-rise"
                 />
               )}
               {rest.map((p) => (
@@ -309,7 +309,7 @@ export default function Blog() {
                   key={p.slug}
                   post={p}
                   collectionTitle={p.collection === "site" ? undefined : titleOf(p.collection)}
-                  className="animate-fade-up"
+                  className="scrub-rise"
                 />
               ))}
             </div>

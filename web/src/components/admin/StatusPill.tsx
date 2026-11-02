@@ -37,7 +37,7 @@ export default function StatusPill({ state }: { state: SaveState }) {
       )}
       {state.kind === "saving" && (
         <>
-          <span className="a-dot animate-pulse-soft bg-sodium" aria-hidden="true" />
+          <span className="a-dot scrub-pulse bg-sodium" aria-hidden="true" />
           <span className="text-clay">Saving</span>
         </>
       )}

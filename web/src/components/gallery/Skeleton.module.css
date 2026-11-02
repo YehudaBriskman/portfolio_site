@@ -88,25 +88,61 @@
  * for it: a whole region breathing in and out is a page that looks broken,
  * where a band crossing a shape reads as a surface being filled in.
  *
- * It is one `background-position` animation on a gradient that is already
- * painted, so there is no second element, no opacity on a compositor layer
- * per capsule, and nothing per frame for the main thread.
+ * It is one `background-position` animation on a gradient, so there is no
+ * second element, no opacity on a compositor layer per capsule, and nothing
+ * per frame for the main thread.
  *
  * The stops are deliberately wide and the peak is low. At `0.05` over a
  * `0.09` fill this is a band that is just visible on paper and does not
  * become a highlight travelling across the page; a skeleton that draws the
  * eye is a placeholder competing with the content it is apologising for.
+ *
+ * DRIVEN BY SCROLL, SINCE #162
+ * ----------------------------
+ * It was a 1.5s loop on a clock. The owner's rule for the whole site —
+ * every animation controllable with simple scrolling, reversing on the way
+ * up — retired the clock, so the band now crosses each line as the line
+ * crosses the window, on the line's own view timeline, and runs back when
+ * the reader does. A placeholder the reader is not scrolling past is a still
+ * capsule with the band parked on it, which says "this is coming" exactly
+ * as well, with nothing moving on its own.
+ *
+ * The band and its animation are declared only inside the three-condition
+ * gate — view timelines run, no reduced motion, no Pause — so every
+ * off-switch is the finished state, a flat capsule, by construction. Left
+ * painted outside the gate, a stopped sweep would be a bright band parked
+ * on a surface nothing is happening to.
  */
-.line::after {
-  background-image: linear-gradient(
-    100deg,
-    transparent 30%,
-    rgb(var(--ink) / 0.05) 50%,
-    transparent 70%
-  );
-  background-size: 260% 100%;
-  background-repeat: no-repeat;
-  animation: sk-sweep 1.5s linear infinite;
+.line {
+  view-timeline: --sk-line block;
+}
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    :global(body:not(.motion-paused)) .line::after {
+      background-image: linear-gradient(
+        100deg,
+        transparent 30%,
+        rgb(var(--ink) / 0.05) 50%,
+        transparent 70%
+      );
+      background-size: 260% 100%;
+      background-repeat: no-repeat;
+      animation: sk-sweep linear both;
+      animation-timeline: --sk-line;
+      animation-range: cover 0% cover 100%;
+    }
+
+    /* The same sweep, the other way, for a page set right to left: the band
+       follows the reading direction because that reads as filling the line
+       in rather than wiping it away, and `background-position` has no
+       logical form. An explicit `animation-name`, because a name reached
+       through a custom property is invisible to the CSS Modules scoper
+       (§7). */
+    :global(html[dir="rtl"] body:not(.motion-paused)) .line::after {
+      animation-name: sk-sweep-rtl;
+    }
+  }
 }
 
 @keyframes sk-sweep {
@@ -116,20 +152,6 @@
   to {
     background-position: -60% 0;
   }
-}
-
-/*
- * The same sweep, the other way, for a page set right to left.
- *
- * The band follows the reading direction because that is what makes it read
- * as filling the line in rather than as wiping it away, and a
- * `background-position` has no logical form to do it for us. Two keyframes
- * and an explicit `animation-name`: a name reached through a custom property
- * is invisible to the CSS Modules scoper, which is §7's documented trap and
- * fails silently.
- */
-:global(html[dir="rtl"]) .line::after {
-  animation-name: sk-sweep-rtl;
 }
 
 @keyframes sk-sweep-rtl {
@@ -142,37 +164,14 @@
 }
 
 /*
- * ── the two off-switches, and the one thing they must not touch ──────────
- *
- * A sweep is motion, so both of the standing conditions cancel it outright
- * and land it on the finished state, which for a skeleton is the flat
- * capsule. The gradient goes with the animation: left painted, a stopped
- * sweep is a bright band parked at wherever the last frame left it, which is
- * a highlight on a surface nothing is happening to.
- *
- * There is no `@supports not (animation-timeline: view())` block, and that
- * is a decision rather than an omission. §4 of the contract is explicit that
- * a component with no scroll timeline has no feature for a browser to be
- * missing, and every clock in this file is a time-driven one.
- *
- * What neither switch touches is `.gate` below. Both of the global rules
- * these conditions carry — `animation-duration: 0.01ms !important` in
- * `index.css` and in `nav/motion-paused.css` — override the duration and
- * leave the *delay* alone, which is exactly right: the gate is not motion,
- * it is a decision about whether a placeholder is shown at all, and a reader
- * who has asked for less motion has not asked to be shown more flicker.
+ * What no switch touches is `.gate` below. It is not motion — a 1ms opacity
+ * step whose only job is its 180ms delay — and it is the one clock on the
+ * site the #162 audit keeps on purpose (`docs/motion-contract.md` §8). The
+ * global `animation-duration: 0.01ms !important` that reduced motion and
+ * Pause carry overrides the duration and leaves the delay alone, which is
+ * right: a reader who has asked for less motion has not asked to be shown
+ * more flicker.
  */
-@media (prefers-reduced-motion: reduce) {
-  .line::after {
-    animation: none;
-    background-image: none;
-  }
-}
-
-:global(body.motion-paused) .line::after {
-  animation: none;
-  background-image: none;
-}
 
 /* ── the gate ─────────────────────────────────────────────────────────── */
 

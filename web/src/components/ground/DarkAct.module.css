@@ -215,6 +215,7 @@
  * exactly why clipping is safe HERE and is forbidden on `.act` itself.
  */
 .seam {
+  view-timeline: --seam block;
   position: absolute;
   inset-inline: 0;
   block-size: var(--act-seam);
@@ -261,10 +262,14 @@
  * mask above. The z-component of the
  * translate already asks for the promotion that matters.
  *
- * `alternate` with `ease-in-out`, not a wrapping loop. A radial gradient has
- * no tile period, so a loop that ran one way would have to snap back; at 71
- * and 97 seconds a reversal is slower than any reader's attention and the two
- * periods are far enough apart that the pair does not visibly repeat.
+ * Driven by the reader's scroll since #162, not by a clock. They were a 71s
+ * and a 97s loop, alternating, the last things on the page that moved while
+ * the reader did nothing; the owner's rule — every animation controllable
+ * with simple scrolling, reversing on the way up — retired the clock. Each
+ * seam is now its own named view timeline, `--seam`, and its two lights
+ * cross it over the seam's `cover` range: the wash a fifth of its width, the
+ * highlight nearly three, at different rates so the lit point still shifts
+ * and cools as they pass, and runs back when the reader does.
  *
  * The keyframe names are literal `animation-name` values. A name reached
  * through a `var()` survives CSS Modules' scoping verbatim and then points at
@@ -276,9 +281,6 @@
   content: "";
   position: absolute;
   inset-block: 0;
-  animation-iteration-count: infinite;
-  animation-direction: alternate;
-  animation-timing-function: ease-in-out;
 }
 
 /*
@@ -307,8 +309,6 @@
     rgb(var(--accent-on-panel) / 0.19),
     rgb(var(--accent-on-panel) / 0) 68%
   );
-  animation-name: seam-wash;
-  animation-duration: 71s;
 }
 
 /*
@@ -326,8 +326,6 @@
     rgb(var(--panel-ink) / 0.13),
     rgb(var(--panel-ink) / 0) 72%
   );
-  animation-name: seam-spark;
-  animation-duration: 97s;
 }
 
 @keyframes seam-wash {
@@ -338,6 +336,29 @@
 @keyframes seam-spark {
   from { transform: translate3d(12%, 0, 0); }
   to   { transform: translate3d(296%, 0, 0); }
+}
+
+/* Declared only inside the three-condition gate — view timelines run, no
+   reduced motion, no Pause — so every off-switch is the still lights, with
+   nothing to cancel. */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    :global(body:not(.motion-paused)) .seam::before,
+    :global(body:not(.motion-paused)) .seam::after {
+      animation-timing-function: linear;
+      animation-fill-mode: both;
+      animation-timeline: --seam;
+      animation-range: cover 0% cover 100%;
+    }
+
+    :global(body:not(.motion-paused)) .seam::before {
+      animation-name: seam-wash;
+    }
+
+    :global(body:not(.motion-paused)) .seam::after {
+      animation-name: seam-spark;
+    }
+  }
 }
 
 /*
@@ -443,32 +464,17 @@
  * stopped moving. Nothing in the act is hidden under any switch, which is the
  * failure mode §4 of the contract is written against.
  *
- * `animation-name: none` and not `animation-play-state: paused`. §4 bans the
- * latter outright and the ban is narrower than this case needs — these loops
- * have no `fill-mode` and no hidden first frame — but the exit has to be the
- * same shape as every other exit on the site, and cancelling is the shape.
- * What the loops lose by cancelling is their position, which is the next note.
+ * There is nothing to cancel: the drift is declared only inside the gate
+ * above, so outside it the lights are simply where their resting position
+ * puts them. No `animation-play-state` anywhere — §4 bans it.
  */
-
-@media (prefers-reduced-motion: reduce) {
-  .seam::before,
-  .seam::after {
-    animation-name: none;
-  }
-}
-
-:global(body.motion-paused) .seam::before,
-:global(body.motion-paused) .seam::after {
-  animation-name: none;
-}
 
 /*
  * The third switch, and it is a real one rather than a reflex.
  *
- * §4 says a component with no scroll timeline needs no `@supports` block and
- * that adding one is cargo cult, which is correct: these are time-driven and
- * there is no `animation-timeline` for an engine to be missing. What CAN be
- * missing is the one property the measurement above depends on. Without
+ * The `@supports (animation-timeline: view())` gate above covers the drift.
+ * What else CAN be missing is the one property the measurement above
+ * depends on. Without
  * `overflow: clip` the sources paint past the arc onto the paper above and
  * past the seam onto the ground a reader reads on, and the guarantee that
  * every ratio in `index.css` holds inside the act stops being a guarantee.
@@ -478,27 +484,7 @@
  */
 @supports not (overflow: clip) {
   .seam {
+  view-timeline: --seam block;
     display: none;
   }
-}
-
-/*
- * The fourth exit: nobody is looking.
- *
- * A continuously running animation has to justify itself while off-screen, and
- * it cannot, so `DarkAct.tsx` writes `data-drift="off"` when the act leaves the
- * viewport and the loops are cancelled. Cancelling loses the drift's position
- * and restarts it at 0%, which would be a visible jump if the switch happened
- * in view — it cannot, because the observer's `rootMargin` puts the boundary
- * a full viewport outside the window on both sides. By the time the act is
- * back on screen the loops have been running again for a screen's worth of
- * scrolling.
- *
- * Written as an attribute the stylesheet reads rather than as a style the hook
- * applies, for the reason §7 gives: an arrival should cost one attribute and no
- * render beyond the one that sets it.
- */
-.act[data-drift="off"] .seam::before,
-.act[data-drift="off"] .seam::after {
-  animation-name: none;
 }

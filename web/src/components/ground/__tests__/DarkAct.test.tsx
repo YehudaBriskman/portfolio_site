@@ -68,39 +68,13 @@ describe("DarkAct", () => {
     expect(container.querySelector('[data-edge="end"]')).not.toBeNull();
   });
 
-  it("starts with the drift off when the engine can tell it when to run", () => {
-    /* `setupTests.ts` installs an IntersectionObserver that never fires, which
-       is exactly the state a real page is in between mount and the observer's
-       first callback. The act must be quiet in it. */
+  it("keeps no state and no observer, because the drift runs on scroll (#162)", () => {
     const { container } = render(
       <DarkAct>
         <section id="probe">content</section>
       </DarkAct>,
     );
-    expect(container.firstElementChild).toHaveAttribute("data-drift", "off");
-  });
-
-  it("starts with the drift on when the engine cannot observe at all", () => {
-    /* No observer, no pause — and the finished state of this layer is the one
-       that moves. `useEnteredOnce` takes the same position for the same
-       reason: an optimisation that is unavailable is not a reason to withhold
-       the page. */
-    const observer = globalThis.IntersectionObserver;
-    /* `Reflect.deleteProperty` rather than `delete`, which TypeScript refuses
-       on a non-optional global — and rather than assigning `undefined`, which
-       would leave the property present and `typeof` answering "undefined"
-       instead of the absence a real engine would present. */
-    Reflect.deleteProperty(globalThis, "IntersectionObserver");
-    try {
-      const { container } = render(
-        <DarkAct>
-          <section id="probe">content</section>
-        </DarkAct>,
-      );
-      expect(container.firstElementChild).toHaveAttribute("data-drift", "on");
-    } finally {
-      globalThis.IntersectionObserver = observer;
-    }
+    expect(container.firstElementChild).not.toHaveAttribute("data-drift");
   });
 
   it("stands on the page's own plate classes rather than reinventing them", () => {
@@ -172,59 +146,41 @@ describe("the dark act's edge", () => {
 });
 
 describe("the dark act's off-switches", () => {
-  const switches: [string, RegExp][] = [
-    ["prefers-reduced-motion", /@media \(prefers-reduced-motion: reduce\)/],
-    ["body.motion-paused", /body\.motion-paused/],
+  const gates: [string, RegExp][] = [
+    ["view timelines run", /@supports \(animation-timeline: view\(\)\)/],
+    ["no reduced motion", /@media \(prefers-reduced-motion: no-preference\)/],
+    ["Pause is off", /body:not\(\.motion-paused\)/],
     ["absent overflow: clip", /@supports not \(overflow: clip\)/],
-    ["off-screen", /\[data-drift="off"\]/],
   ];
 
-  for (const [name, re] of switches) {
-    it(`${name} exists`, () => expect(CSS).toMatch(re));
+  for (const [name, re] of gates) {
+    it(`gates the drift on: ${name}`, () => expect(CSS).toMatch(re));
   }
 
-  it("cancels the drift rather than pausing it", () => {
-    /*
-     * §4 of the motion contract bans `animation-play-state: paused` outright:
-     * it freezes an animation at the time it has reached, which for anything
-     * with `fill-mode: both` that has not started is the hidden state. These
-     * loops have no fill and no hidden frame, so the ban is wider than this
-     * case needs — but every exit on this site is the same shape, and the
-     * shape is cancelling.
-     */
+  it("declares the drift only inside the gate, so every switch is the still lights", () => {
     expect(CSS).not.toMatch(/animation-play-state/);
-    /* One per switch: reduced motion, Pause, and off-screen. The `@supports`
-       guard takes the seams away entirely instead, because without the clip
-       there is no safe place to put the light. */
-    const cancels = CSS.split(/animation-name:\s*none/).length - 1;
-    expect(cancels).toBe(3);
+    const gate = CSS.slice(CSS.indexOf("@supports (animation-timeline: view())"));
+    const before = CSS.slice(0, CSS.indexOf("@supports (animation-timeline: view())"));
+    expect(before).not.toMatch(/animation-name:\s*seam/);
+    expect(gate).toMatch(/animation-name:\s*seam-wash/);
+    expect(gate).toMatch(/animation-name:\s*seam-spark/);
   });
 
   it("leaves the boundary drawn under every switch", () => {
-    /*
-     * The thing each exit must NOT do. `.act`'s arc and hairline and the
-     * crest are not animated at all, so a reader who has asked for no motion
-     * still gets the edge — but only as long as no switch reaches for the
-     * elements that carry it rather than for the animations.
-     */
-    const blocks = CSS.match(/@media \(prefers-reduced-motion: reduce\)\s*\{[\s\S]*?\n\}/g) ?? [];
-    expect(blocks).toHaveLength(1);
-    for (const block of blocks) {
-      expect(block).not.toMatch(/\.crest/);
-      expect(block).not.toMatch(/display:\s*none/);
-    }
+    /* No switch reaches for `.crest` or hides an element: the arcs are not
+       animated, so a reader who asked for no motion still gets the edge. */
+    expect(CSS).not.toMatch(/prefers-reduced-motion: reduce/);
+    const gate = CSS.slice(CSS.indexOf("@supports (animation-timeline: view())"));
+    const gateBlock = gate.slice(0, gate.indexOf("\n}\n") + 3);
+    expect(gateBlock).not.toMatch(/\.crest/);
+    expect(gateBlock).not.toMatch(/display:\s*none/);
   });
 
-  it("declares a duration on both sources, because they are time-driven", () => {
-    /*
-     * The inverse of the check the city's suite makes. A view timeline ignores
-     * duration outright and the range is the clock; these loops have no
-     * timeline, so a missing duration would be an animation that completes in
-     * the UA default of zero seconds and never appears to run.
-     */
-    expect(CSS).toMatch(/animation-duration:\s*71s/);
-    expect(CSS).toMatch(/animation-duration:\s*97s/);
-    expect(CSS).not.toMatch(/animation-timeline/);
+  it("drives both sources by each seam's own view timeline, on no clock", () => {
+    expect(CSS).toMatch(/view-timeline:\s*--seam/);
+    expect(CSS).toMatch(/animation-timeline:\s*--seam/);
+    expect(CSS).not.toMatch(/animation-duration/);
+    expect(CSS).not.toMatch(/infinite/);
   });
 
   it("names its keyframes in a literal animation-name and never through a var()", () => {
