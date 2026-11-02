@@ -1253,6 +1253,257 @@
     }
   }
 
+  /*
+   * How a section head arrives: from behind a small lattice of the shutter's
+   * tiles, which leaves outward from the word as the head crosses the lower
+   * third of the window.
+   *
+   * WHAT IT ECHOES, AND WHY AN ECHO IS NOT A REPEAT
+   * -----------------------------------------------
+   * `motion/EntryShutter.tsx` is the app's own arrival: a grid of black
+   * squares with lit edges over the page, leaving one at a time outward from
+   * the centre of the window. The owner asked (#104) for the four heads to
+   * read as a relative of it, so the page has one idea about how things
+   * arrive rather than five. `docs/motion-contract.md` §2 keeps the ledger
+   * row that argues for taking that family a second time; the short version
+   * is that this is the same family at a different scale, clock and
+   * granularity, and every one of those three is a deliberate difference:
+   *
+   *   - **scale**: 24px tiles (16px on a phone) across one row of type,
+   *     against 72px tiles across the whole window;
+   *   - **clock**: the reader's scroll, against a timer that runs once a
+   *     visit and is gone inside a second;
+   *   - **granularity**: one painted field with a moving mask, against 260
+   *     elements each with its own animation.
+   *
+   * THE ONE RULE THIS IS BUILT AROUND: LEGIBLE AT EVERY FRAME
+   * ---------------------------------------------------------
+   * A scroll-driven reveal is a state a reader can park in — stop scrolling
+   * and the head stays half-arrived for as long as they like. So unlike the
+   * shutter, whose tiles are opaque because nothing behind them is read
+   * until they have gone, these tiles are a veil: the ground's own colour at
+   * 0.36 over the word. That number is the whole trade, solved rather than
+   * chosen. The veiled ink is `0.36·ground + 0.64·ink`, which is
+   *
+   *   on paper   15.17:1 bare → 5.16:1 at the thickest frame
+   *   on --panel 17.15:1 bare → 7.29:1 at the thickest frame
+   *
+   * — above 4.5:1 on both grounds, which is the body-text floor and not the
+   * 3:1 a 32–112px display face would be allowed. 0.40 takes paper to
+   * 4.54:1, at the floor with no room; 0.36 is the step back from it. The
+   * ratios were also read off screenshots of the first letter while the veil
+   * stood fully over it (6.17:1 on paper, 7.41:1 on the dark act — the lit
+   * edges crossing the glyph only darken it further on paper).
+   *
+   * The veil covers **the heading's row only** — the word and its two rules,
+   * never the eyebrow under it. A 12px eyebrow at `--clay` is 6.37:1 bare and
+   * would not survive any veil this one is worth drawing; the eyebrow is not
+   * what is arriving.
+   *
+   * Everything colour-based is a token `.on-panel` re-points: the veil is
+   * `--canvas` (paper, or `--panel` in the two dark acts) and the lit edges
+   * are `--signal` (the paper accent, or `--accent-on-panel` — the exact
+   * light the shutter's own edges carry). So the same declaration is a pale
+   * grid on paper and the shutter's blue grid in the dark, and over a bare
+   * ground the veil is invisible: ground on ground. It only shows where it
+   * stands over the word, which is the only place it is meant to.
+   */
+  @property --head-wave {
+    syntax: "<length-percentage>";
+    inherits: false;
+    initial-value: 0%;
+  }
+
+  /*
+   * The head is the clock.
+   *
+   * The timeline is declared on the static `.section-head` itself and read by
+   * its pseudo-element. None of the four heads is pinned — `WORK` sits in the
+   * pile's act but above the sticky stage, not inside it — so the stalled-
+   * timeline trap in motion-contract §1 does not apply; it is named here so
+   * that whoever moves a head into a sticky box knows this has to move with
+   * it, to a static wrapper.
+   *
+   * **The lower third is an inset, not an offset.** `view-timeline-inset:
+   * 66.667% 0` shrinks the scrollport this timeline measures against to the
+   * bottom third of the window, so every range keyword below means "the
+   * lower third" on every window height without a magic number in it. The
+   * range is then `entry 0% → exit 0%`: from the head's top edge rising past
+   * the bottom of the window to the same edge reaching the top of the lower
+   * third. That is a third of a viewport of scroll — 300px at 900, 281px on
+   * a phone — and it is the "it should take time" in the brief: a
+   * scroll-driven animation ignores `animation-duration` outright (§1), so
+   * the only way to make it take time is to give it distance.
+   *
+   * Two rows stated explicitly, so `grid-row: 1 / 2` below is a real line
+   * pair. Without them the rows are implicit, and an absolutely positioned
+   * child that names an implicit line has it treated as `auto` — the
+   * padding edge — which put the veil over the eyebrow on the first build.
+   * Every head is the same two rows already: the heading with its rules,
+   * then the note.
+   */
+  .section-head {
+    --head-tile: 16px;
+    grid-template-rows: auto auto;
+    position: relative;
+    isolation: isolate;
+    view-timeline: --section-head block;
+    view-timeline-inset: 66.667% 0%;
+  }
+
+  /*
+   * 24px from the row breakpoint up, 16px under it. Integer pixels and not a
+   * `vw` clamp, for the reason `EntryShutter.tsx`'s `tracks()` gives: a
+   * fractional period puts some lines on whole device pixels and some across
+   * two, and the grid comes out with visibly uneven line weights. With an
+   * integer period and `background-position: center` every line has the
+   * same sub-pixel phase, so every line is the same line.
+   */
+  @media (min-width: 640px) {
+    .section-head {
+      --head-tile: 24px;
+    }
+  }
+
+  /*
+   * The lattice. One element per head, whatever its width, and no DOM: four
+   * heads stay four boxes, and nothing here touches the components that
+   * render them.
+   *
+   * Above the word and not behind it, because a veil behind type veils
+   * nothing. `pointer-events: none` so the heading stays selectable through
+   * it, and `isolation` on the head keeps the `z-index` inside the head
+   * rather than competing with the nav island's.
+   *
+   * Drawn the way a shutter tile is drawn, scaled down: the inline-end and
+   * block-end edges only, so no boundary is painted twice (the shutter's
+   * module has the arithmetic on why two 0.3 hairlines on one pixel read as
+   * 0.51); a glow pulled in from the edges, which is what makes the grid
+   * *lit* rather than ruled; and the veil underneath. The glow is the
+   * expensive layer — a radial gradient per tile — and it was measured on
+   * and off (motion-contract §2); it stays because without it the lattice is
+   * graph paper and not the shutter's grid.
+   *
+   * A half tile above and below the row, so the ascenders and the rules'
+   * draw-in margin are inside it rather than clipped at its edge.
+   */
+  .section-head::after {
+    content: "";
+    position: absolute;
+    grid-column: 1 / -1;
+    grid-row: 1 / 2;
+    inset-inline: 0;
+    inset-block: calc(var(--head-tile) * -0.5);
+    z-index: 1;
+    pointer-events: none;
+
+    background-image:
+      linear-gradient(to left, rgb(var(--signal) / 0.3) 1px, transparent 1px),
+      linear-gradient(to top, rgb(var(--signal) / 0.3) 1px, transparent 1px),
+      radial-gradient(farthest-side, transparent 60%, rgb(var(--signal) / 0.07)),
+      linear-gradient(rgb(var(--canvas) / 0.36) 0 0);
+    background-size:
+      var(--head-tile) var(--head-tile),
+      var(--head-tile) var(--head-tile),
+      var(--head-tile) var(--head-tile),
+      100% 100%;
+    background-position: center;
+
+    /*
+     * The leaving, as a mask.
+     *
+     * A circle opening from the centre of the row, with a front one and a
+     * half tiles soft, so the tiles at the front are half-gone and the ones
+     * behind it are gone — a wave, rather than a hole with a hard edge.
+     *
+     * `circle farthest-corner` and a stop in percent is the shutter's own
+     * normalisation, done by the gradient instead of by a loop: the ray of a
+     * farthest-corner circle *is* the distance from the centre to the
+     * furthest corner, so 0% is the middle of the word and 100% is the last
+     * tile, whatever shape the row is. A circle and not an ellipse for the
+     * same reason the shutter's delays are in pixels — the wave is meant to
+     * be round on the glass, and an ellipse fitted to a 1152x130 row would be
+     * a flat lozenge that clears the rules before the word's own edges.
+     *
+     * The second layer fades the lattice out at both inline ends, so the
+     * field reads as a surface the head is behind rather than as a box with
+     * corners. Intersected, so a tile is shown only where both say so.
+     *
+     * The declared `--head-wave` is the **arrived** value, past the far
+     * corner. The animation overrides it while its timeline is active; if the
+     * timeline is ever inactive — a subject with no box, a scroller that
+     * cannot scroll — the declaration underneath is what renders, and it is
+     * the head with nothing over it. Any failure lands on arrived.
+     */
+    --head-wave: calc(100% + var(--head-tile) * 2);
+    mask-image:
+      radial-gradient(circle farthest-corner at 50% 50%,
+        transparent calc(var(--head-wave) - var(--head-tile) * 1.5),
+        #000 var(--head-wave)),
+      linear-gradient(to right, transparent, #000 10%, #000 90%, transparent);
+    mask-composite: intersect;
+
+    /* The shorthand first: it resets `animation-timeline` to `auto`, so the
+       longhand has to come after it or it is silently thrown away. Linear,
+       because the reader's scroll is the easing — the keyframes below carry
+       the only shaping. */
+    animation: head-tiles linear both;
+    animation-timeline: --section-head;
+    animation-range: entry 0% exit 0%;
+  }
+
+  /*
+   * Half the scroll for the word, half for the rules.
+   *
+   * A linear wave would clear the word in the first third of the range —
+   * at 1440 the word's half-width is about 30% of the row's half-diagonal —
+   * and spend the rest uncovering hairlines, so the thing that is arriving
+   * would be done almost as soon as it is on screen. 30% at the halfway
+   * point holds the veil on the word's outer letters until the head is
+   * halfway up the lower third; the second half of the range takes the rest of the lattice out to
+   * the ends. This is the scroll-driven way to say what the shutter says with
+   * its delays: the centre first, and the edges last.
+   */
+  @keyframes head-tiles {
+    from { --head-wave: 0%; }
+    50%  { --head-wave: 30%; }
+    to   { --head-wave: calc(100% + var(--head-tile) * 2); }
+  }
+
+  /*
+   * The ways out, and every one of them is `display: none`.
+   *
+   * That is the ordinary §4 shape and not the shutter's exception, even
+   * though it reads like the shutter's: the arrived state of this device is
+   * *the lattice gone*, so removing the pseudo-element is the arrived state,
+   * exactly, rather than a cancelled animation restating it. The head itself
+   * is never touched by any of this — it is fully present, legible and
+   * unanimated in every one of them, which is the requirement.
+   *
+   *   - No `animation-timeline`: the timeline would not run, and a lattice
+   *     that never left would veil every head for good.
+   *   - Reduced motion and Pause: the reader asked for the head, not for a
+   *     faster version of its arrival. The global `0.01ms` duration override
+   *     both carry is no help here — §4: a scroll-driven animation ignores
+   *     the duration, so the veil would still be tied to the scroll.
+   *   - Forced colours and print, which are not motion switches and are here
+   *     for the same reason as the first: a veil over type in a
+   *     high-contrast theme is the opposite of what that reader set, and a
+   *     printed page has no scroll to clear it with.
+   *
+   * Pause can be pressed with a head half-arrived. It snaps to arrived,
+   * never to veiled.
+   */
+  @supports not (animation-timeline: view()) {
+    .section-head::after { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce), (forced-colors: active), print {
+    .section-head::after { display: none; }
+  }
+  body.motion-paused .section-head::after {
+    display: none;
+  }
+
   /* Interactive surfaces share one shape and one motion, so the whole page
      feels like it was made by the same hand. */
   .pill {

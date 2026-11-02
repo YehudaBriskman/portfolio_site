@@ -103,6 +103,7 @@ ledger is a page-level document and not a comment.
 | — | entry | **shutter** | the page is behind something, and that something leaves |
 | — | any waiting region | **sweep** | a region says what shape is coming, and that it is coming |
 | — | the dark ground | **drift** | the dark act is a gap between two sheets, with light behind it |
+| — | every section head | **shutter**, echoed | a section arrives the way the app did, at the scale of its name |
 | 0 | title plate | **staged assembly** | the collection names itself, in four gated moves |
 | 1 | wall text | `flow` | the quiet before the peak |
 | 2 | **the pile** | `pin` | the work stacks up with weight |
@@ -111,7 +112,7 @@ ledger is a page-level document and not a comment.
 | 5 | specs | `count` | real numbers landing |
 | 6 | inquiry plate | `reveal` | the ask, as part of the collection |
 
-Nine families. No repeat in adjacent beats. `pin` is spent once, on the peak,
+Nine families. No repeat in adjacent beats. The head row reuses the entry's family on purpose and is argued below. `pin` is spent once, on the peak,
 and `scrub` is spent once on beat 3 — the grammar bans a *second* scrub and
 has always allowed the first, which is the whole licence beat 3 has.
 
@@ -123,7 +124,92 @@ therefore cannot repeat against beat 0 in the way adjacency means here: by the
 time beat 0's letters start falling the shutter has already left the document.
 It is in the ledger because it is a new device family on the page and the
 ledger exists so a family is not quietly reused — a black ground and a lit
-grid belong to nothing else on this site, and nothing else may take them.
+grid belong to nothing else on this site, and nothing else may take them —
+with one exception, the section heads, taken openly and argued in the
+next paragraph. The black ground is still the shutter's alone.
+
+**The heads take the shutter's family a second time, and that is an
+override of this table's own rule, argued here rather than taken quietly
+(#104).** The owner asked for `WORK`, `THE YEAR`, `NOTES` and `SPECS` to
+arrive "in a way close to the appearing of the app (the tiles)", which is a
+direct request to reuse a family the ledger exists to keep from being reused.
+The case for it rests on three things, and if any of them stops being true
+the override goes with it:
+
+- **It is an echo and not a repeat: same family, different scale, clock and
+  granularity.** The shutter is 72px tiles over the whole window, on a timer,
+  once a visit, as 260 elements. The heads are 24px tiles (16px on a phone)
+  over one row of type, on the reader's scroll, every time, as one painted
+  pseudo-element per head with a moving mask. What is shared is the reading —
+  a lit grid leaving from the centre outward, uncovering what was behind it —
+  and that is the part the owner asked for. What is not shared is everything
+  a reader could mistake for the shutter happening again: it never covers the
+  window, never goes black, never stops the reader, and is never opaque.
+- **The heads are not a beat, so they cannot sit next to the shutter, or next
+  to themselves, in the sense adjacency means here.** Like `drift` and
+  `sweep`, the head is a frame every section shares rather than a section a
+  reader scrolls *to*, and the four of them already share one layout
+  (`.section-head`) for the same reason: the page's punctuation should be
+  consistent precisely so the beats between them can differ. A different
+  arrival per head would be four more devices on a page this table already
+  counts at nine. The nearest the echo comes to its source is the work head,
+  and between them sit the whole title plate and its four gated moves.
+- **It is not a second `scrub`, though it is driven by scroll.** The ban on a
+  second scrub is about a second *drawing the reader operates* — beat 3's 365
+  columns, raised by the scroll and lowered again. The lattice is not a
+  drawing and carries no information; it is a threshold the head passes
+  through, a third of a viewport long, and like `InkRule`'s hairline (which
+  has always been scroll-driven in three of these same heads without being a scrub) it
+  is reversible because every `view()` timeline is, not because reversing it
+  is the point.
+
+**What it had to not cost, and what it measured.** The head is a state a
+reader can park in — stop scrolling mid-arrival and it stays there — so the
+tiles are a veil and not a shutter: the ground's own colour at 0.36 over the
+word, solved against the floor rather than chosen. The thickest frame holds
+the word at **5.16:1 on paper and 7.29:1 on `--panel`** (15.17 and 17.15
+bare), above 4.5:1 on both — the body-text floor, not the 3:1 a display size
+would be allowed. Read off screenshots with the veil fully over the first
+letter: 6.17:1 and 7.41:1. The veil covers the heading's row and never the
+eyebrow, which at 12px is the one line on the head no veil could be drawn
+over. `index.css` has the arithmetic beside the rule.
+
+It runs in the lower third and nowhere else: the head's view timeline is
+inset to the bottom third of the window (`view-timeline-inset: 66.667% 0`)
+and the range is `entry 0%` to `exit 0%` against that inset — from the head's
+top edge rising past the bottom of the window to the same edge reaching the
+top of the lower third, 300px of scroll at 900 and 281px on a phone. No delay
+and no duration does any timing; the only shaping is a keyframe at 50% that
+holds the veil on the word's outer letters for the first half of that
+distance, so the centre-first, edges-last order the shutter gets from its
+delays comes from the keyframes instead.
+
+Measured at 4× CPU throttle, 1440x900, nine passes per arm after a discarded
+warm-up, interleaved against `main` with the order flipped each round; frames
+counted by `requestAnimationFrame` across a real wheel gesture of 450px that
+carries the head through its whole range. Medians of nine:
+
+| head | `main` | with the lattice | with the glow layer removed |
+|---|---|---|---|
+| `WORK`, dark act | 60.0fps | 58.0 (−2.0) | 59.5 (−0.5) |
+| `SPECS`, paper | 58.7fps | 55.1 (−3.6) | 56.0 (−2.7) |
+
+The spread is wide on this harness — standard deviations of 4 to 9fps per
+cell — so neither delta is cleanly outside it, and both are reported rather
+than called free. The glow is the expensive layer (a radial gradient per
+tile) and it stays because without it the lattice is graph paper and not the
+shutter's lit grid; the third column is what removing it would buy. The cost
+is paid only for the third of a viewport the head is in range, on a head the
+reader can switch off into a plain one. The same renderer caveat as the
+drift's applies, and more so: these were taken under SwiftShader with no GPU,
+which rasterises the masked layer on the CPU every frame. Nothing about the
+first screen changed, so LCP was not re-taken — every head is below the fold
+and none is a paint candidate.
+
+Its off-switches — reduced motion, Pause, no `animation-timeline`, and also
+forced colours and print — all remove the pseudo-element, which is the
+arrived state exactly: the head itself is never animated, so a head with no
+lattice over it is a finished head and not a cancelled one.
 
 **`drift` is not a beat either, and it is not a section — it is a ground.**
 `components/ground/DarkAct.tsx` wraps the two sections that leave the paper,
@@ -644,6 +730,7 @@ direction, or set `fill-rule: evenodd` deliberately and know what it costs.
 | `gallery/LabelSkeleton.tsx` | the object label's three parts, in the label's own stylesheet | — |
 | `gallery/SkeletonGate.tsx` | the box that holds a region's height, and the 180ms before it is inked | clock |
 | `ground/DarkAct.module.css` | `drift` — two lights crossing at each seam of the dark ground | clock, gated off-screen by an observer |
+| `index.css` `.section-head::after` | the shutter, echoed — a lattice leaving each section head outward from its word | named `view-timeline` on the head, inset to the lower third |
 
 ### Retired, and why
 
