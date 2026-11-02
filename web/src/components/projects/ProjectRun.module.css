@@ -119,6 +119,25 @@
 }
 
 .stage {
+  /* The still ribbon's strands, as a mask of hairlines across 22px. */
+  --run-strands-still: linear-gradient(
+    90deg,
+    transparent 0 1px,
+    rgb(0 0 0 / 0.5) 1px 2px,
+    transparent 2px 4.5px,
+    rgb(0 0 0 / 0.75) 4.5px 5.6px,
+    transparent 5.6px 8px,
+    #000 8px 9.5px,
+    transparent 9.5px 11.5px,
+    rgb(0 0 0 / 0.85) 11.5px 12.7px,
+    transparent 12.7px 15px,
+    rgb(0 0 0 / 0.7) 15px 16px,
+    transparent 16px 18.5px,
+    rgb(0 0 0 / 0.85) 18.5px 19.8px,
+    transparent 19.8px 21px,
+    rgb(0 0 0 / 0.55) 21px 22px
+  );
+
   /* Shape. See the header for what each one means. */
   --run-lead: -0.0435;
   --run-k: 0.315;
@@ -554,7 +573,21 @@
  * size container; `.aurora` is the same box (the frame below the bar) and is
  * a size container itself, so its children read the same 100cqw.
  *
- * THE LIGHT. A haze and a band rest on the line. The surge is a soft window,
+ * THE RIBBON (#192). A haze and seven fine strands rest on the line — the
+ * strands braided about it, each at its own offset and phase
+ * (`motion/ribbon.ts`), which is the living line's dress too. It is
+ * thicker than the one band it replaces and still made of hairlines.
+ *
+ * THE SWEEP IN (#192). The ribbon enters from the reading end as the stage
+ * comes up into the window: `.sweep` is a soft-edged window 130cqw wide that
+ * slides in from that side, and `.sweepIn` carries the drawing back by the
+ * same amount, so the ribbon is uncovered in place rather than dragged.
+ * The soft edge is the window's first 30cqw, which ends off the frame, so
+ * the whole ribbon shows once it is in. It is whole just after the frame
+ * pins (`contain 6%`), ahead of the first card. Two transforms on the run's
+ * timeline; scroll back and it leaves the way it came.
+ *
+ * THE LIGHT. The surge is a soft window,
  * 46cqw wide, that crosses the frame from the reading end to past the start
  * once a card; the copy of the line inside it is carried the other way by
  * the same amount, so it stays on the curve while the window passes over it.
@@ -583,6 +616,22 @@
   height: 0;
 }
 
+/*
+ * Where the living line starts (#191): the centre of the run's box at the
+ * moment the frame lets go, which is where the stage's last window is. The
+ * line in "How I work" is drawn from here, behind the cards and the
+ * aurora, as the run leaves. An empty marker, measured by `LivingLine`.
+ * Under the off-switches it sits at the foot of the still ribbon instead.
+ */
+.origin {
+  position: absolute;
+  inset-inline-start: 50%;
+  bottom: calc((100svh - var(--bar-h, 56px)) / 2);
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
 .curve {
   position: absolute;
   inset-inline-start: calc(-0.65 * var(--run-card));
@@ -598,22 +647,65 @@
   stroke: url(#run-aurora);
 }
 
+.sweep {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: -30cqw;
+  width: 130cqw;
+  /* Transparent at the leading edge, whole from 30cqw in: towards the
+     reading end, which is the right in English and the left in Hebrew. */
+  mask-image: linear-gradient(calc(var(--run-dir) * 90deg), transparent, #000 23%);
+  mask-repeat: no-repeat;
+  animation-name: run-sweep;
+}
+
+.sweepIn {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 30cqw;
+  width: 100cqw;
+  animation-name: run-sweep-hold;
+}
+
+.sweep,
+.sweepIn {
+  animation-fill-mode: both;
+  animation-timing-function: linear;
+  animation-timeline: --run;
+  animation-range: entry 40% contain 6%;
+}
+
+@keyframes run-sweep {
+  from {
+    transform: translateX(calc(var(--run-dir) * 130cqw));
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes run-sweep-hold {
+  from {
+    transform: translateX(calc(var(--run-dir) * -130cqw));
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
 .haze {
   opacity: 0.3;
   filter: blur(14px);
 }
 
 .haze path {
-  stroke-width: 34px;
+  stroke-width: 46px;
 }
 
-.band {
-  opacity: 0.55;
-  filter: blur(2.5px);
-}
-
-.band path {
-  stroke-width: 5px;
+/* The strands: hairlines, the middle ones a little heavier (Strands.module.css). */
+.ribbon {
+  --strand-w: 1.25px;
+  opacity: 0.9;
 }
 
 .surge {
@@ -667,16 +759,16 @@
 }
 
 .glow path {
-  stroke-width: 12px;
+  stroke-width: 20px;
 }
 
 .core {
+  --strand-w: 1px;
   opacity: 0.85;
 }
 
 .core path {
   stroke: rgb(236 244 255);
-  stroke-width: 1.5px;
 }
 
 /* ── the three off-switches, one finished state ─────────────────────────── */
@@ -717,6 +809,9 @@
   /* The plain list is the whole fallback: no curve, no aurora. */
   .aurora {
     display: none;
+  }
+  .origin {
+    bottom: 3rem;
   }
 }
 
@@ -760,9 +855,8 @@
     content: "";
     position: absolute;
     inset-block: 3rem;
-    left: calc(50% - 1.5px);
-    width: 3px;
-    border-radius: 2px;
+    left: calc(50% - 11px);
+    width: 22px;
     background: linear-gradient(
       180deg,
       rgb(24 142 167),
@@ -771,8 +865,11 @@
       rgb(157 103 241),
       rgb(24 142 167)
     );
-    box-shadow: 0 0 16px 3px rgb(122 162 232 / 0.3);
-    opacity: 0.7;
+    mask-image: var(--run-strands-still);
+    opacity: 0.85;
+  }
+  .origin {
+    bottom: 3rem;
   }
 }
 
@@ -813,8 +910,10 @@
 /*
  * Under reduced motion and Pause the run is the plain list and there is no
  * curve, so the aurora becomes one still ribbon down the list's middle,
- * behind the cards: fully drawn, no surge, and each gap still shows the
- * cards strung on one line. With no scroll-driven animation at all it is
+ * behind the cards: fully drawn, no surge, no sweep, and each gap still
+ * shows the cards strung on one line. It is still made of strands — seven
+ * stripes of one gradient, cut by a mask of hairlines (`--run-strands-still`)
+ * — and the living line below starts from its foot (`.origin`). With no scroll-driven animation at all it is
  * hidden: there the list is the whole fallback.
  */
 :global(body.motion-paused) .aurora {
@@ -828,9 +927,8 @@
   content: "";
   position: absolute;
   inset-block: 3rem;
-  left: calc(50% - 1.5px);
-  width: 3px;
-  border-radius: 2px;
+  left: calc(50% - 11px);
+  width: 22px;
   background: linear-gradient(
     180deg,
     rgb(24 142 167),
@@ -839,8 +937,12 @@
     rgb(157 103 241),
     rgb(24 142 167)
   );
-  box-shadow: 0 0 16px 3px rgb(122 162 232 / 0.3);
-  opacity: 0.7;
+  mask-image: var(--run-strands-still);
+  opacity: 0.85;
+}
+
+:global(body.motion-paused) .origin {
+  bottom: 3rem;
 }
 
 @media (forced-colors: active) {

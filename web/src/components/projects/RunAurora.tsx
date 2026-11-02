@@ -1,30 +1,64 @@
-import { CURVE_H, CURVE_PATH, CURVE_W } from "@/components/projects/runCurve";
+import type { ReactNode } from "react";
+import { CURVE_H, CURVE_PATH, CURVE_W, curveY } from "@/components/projects/runCurve";
+import { strandPaths, type StrandPoint } from "@/components/motion/ribbon";
+import { AuroraGradient, Strands } from "@/components/motion/Strands";
 import styles from "@/components/projects/ProjectRun.module.css";
 
 /*
- * The aurora along the run (#181).
+ * The aurora along the run (#181, #192).
  *
  * The owner asked for something that joins all the cards: "an energy line in
  * aurora style, on the place they are sliding". This is that line, drawn on
  * the cards' own path (`runCurve.ts`) behind them, so it shows in the gaps
  * between neighbours and runs out past the first and the last.
  *
+ * A RIBBON OF STRANDS (#192). Thicker, and not one fat stroke: seven fine
+ * lines braided about the curve, each at its own offset and drifting on its
+ * own phase (`motion/ribbon.ts`), under a wide soft haze. The living line
+ * on "How I work" and /story is dressed by the same two pieces
+ * (`motion/Strands.tsx`), so the site's light is one ribbon in one set of
+ * colours.
+ *
  * Its colours are the work's: the tints of the projects themselves, teal,
  * green, the dark act's blue and violet, so the light along the line is made
  * of what travels on it.
  *
- * Two layers rest — a wide soft haze and a narrower band — and one moves: a
- * brighter copy of the line, seen through a soft window that sweeps from the
- * reading end towards the start once a card. The window and the copy inside
- * it are moved by two opposite transforms on the run's own timeline, so the
- * copy holds still on the curve while the light passes along it; nothing is
- * repainted, and the scroll is the only clock. Scroll back and it runs back.
+ * IT SWEEPS IN (#192). The ribbon is not there before the run: it enters
+ * from the reading end, the side the cards arrive from, as the stage comes
+ * up into the window, and is whole just after the frame pins — ahead of the
+ * first card. A soft-edged window slides in from that side while the
+ * drawing inside it is carried the other way by the same amount, so the
+ * ribbon holds still on the curve and is uncovered rather than dragged. Two
+ * transforms on the run's own timeline; scroll back and it leaves the way
+ * it came.
+ *
+ * And one light moves along it: a brighter copy of the strands, seen through
+ * a soft window that sweeps from the reading end towards the start once a
+ * card, by the same pair of opposite transforms. Nothing is repainted; the
+ * scroll is the only clock.
  *
  * Everything here is `aria-hidden` decoration. The stylesheet does the rest,
  * the three off-switches included.
  */
 
-function Curve({ className }: { className: string }) {
+/** Strands in the ribbon, and its half-width in the curve's viewBox units (100 tall). */
+const COUNT = 7;
+const HALF = 12;
+const SAMPLES = 240;
+
+/*
+ * The curve's points for the ribbon. The viewBox is stretched to the frame,
+ * so a normal in it is not a normal on screen; the strands are offset
+ * straight up and down instead, which on a sine this shallow reads the same.
+ */
+const POINTS: StrandPoint[] = Array.from({ length: SAMPLES + 1 }, (_, i) => {
+  const u = i / SAMPLES;
+  return { x: u * CURVE_W, y: curveY(u), s: u * CURVE_W, tx: 1, ty: 0 };
+});
+
+const RUN_STRANDS = strandPaths(POINTS, { count: COUNT, half: HALF, wave: 210, across: [0, 1] });
+
+function Curve({ className, children }: { className: string; children?: ReactNode }) {
   return (
     <svg
       className={`${styles.curve} ${className}`}
@@ -32,7 +66,7 @@ function Curve({ className }: { className: string }) {
       preserveAspectRatio="none"
       focusable="false"
     >
-      <path d={CURVE_PATH} vectorEffect="non-scaling-stroke" />
+      {children ?? <path d={CURVE_PATH} vectorEffect="non-scaling-stroke" />}
     </svg>
   );
 }
@@ -42,21 +76,23 @@ export default function RunAurora() {
     <div className={styles.aurora} aria-hidden="true" data-run-aurora="">
       <svg className={styles.defs} focusable="false">
         <defs>
-          <linearGradient id="run-aurora" x1="0" x2="1" y1="0" y2="0">
-            <stop offset="0" stopColor="rgb(24 142 167)" />
-            <stop offset="0.3" stopColor="rgb(58 132 104)" />
-            <stop offset="0.55" stopColor="rgb(122 162 232)" />
-            <stop offset="0.8" stopColor="rgb(157 103 241)" />
-            <stop offset="1" stopColor="rgb(24 142 167)" />
-          </linearGradient>
+          <AuroraGradient id="run-aurora" />
         </defs>
       </svg>
-      <Curve className={styles.haze} />
-      <Curve className={styles.band} />
-      <div className={styles.surge} data-run-surge="">
-        <div className={styles.surgeIn}>
-          <Curve className={styles.glow} />
-          <Curve className={styles.core} />
+      <div className={styles.sweep} data-run-sweep="">
+        <div className={styles.sweepIn}>
+          <Curve className={styles.haze} />
+          <Curve className={styles.ribbon}>
+            <Strands stroke="url(#run-aurora)" ds={RUN_STRANDS} />
+          </Curve>
+          <div className={styles.surge} data-run-surge="">
+            <div className={styles.surgeIn}>
+              <Curve className={styles.glow} />
+              <Curve className={styles.core}>
+                <Strands stroke="rgb(236 244 255)" ds={RUN_STRANDS} />
+              </Curve>
+            </div>
+          </div>
         </div>
       </div>
     </div>

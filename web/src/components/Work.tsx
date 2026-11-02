@@ -83,8 +83,11 @@ export default function Work() {
   const { items } = useProjects();
   const shown = items.slice(0, HOME_COUNT);
 
+  /* `z-[2]`: over the living line, which starts at the run's centre and
+     reaches up into this act from "How I work" (#191, Approach.module.css),
+     so the line is behind the cards and their aurora, not over them. */
   return (
-    <section id="work" data-chrome="dark" className="on-panel relative isolate">
+    <section id="work" data-chrome="dark" className="on-panel relative isolate z-[2]">
       <div className="wrap section-y">
         {/*
           The section head, centred, with the eyebrow on its own line.

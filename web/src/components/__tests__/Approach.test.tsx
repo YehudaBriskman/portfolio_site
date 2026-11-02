@@ -71,7 +71,8 @@ describe("Approach", () => {
 
   it("draws no figure for a claim nobody drew one for", async () => {
     vi.resetModules();
-    vi.doMock("@/data/site", () => ({
+    vi.doMock("@/data/site", async (actual) => ({
+      ...(await actual<typeof import("@/data/site")>()),
       about: {
         heading: "How I work",
         intro: [{ label: "Now", lines: ["One line of voice."] }],
@@ -83,19 +84,21 @@ describe("Approach", () => {
     expect(principleFor("A claim nobody drew").querySelector("svg")).toBeNull();
   });
 
-  it("runs one line behind the section, swinging between the sections and looping round each figure", () => {
+  it("runs one line behind the section, turning between the sections and looping round each figure", () => {
     const { container } = render(<Approach />);
     const line = container.querySelectorAll("[data-living-line]");
     expect(line).toHaveLength(1);
-    expect(line[0].querySelectorAll(":scope > svg path")).toHaveLength(1);
-    const sides = [...container.querySelectorAll<HTMLElement>("[data-line='start'], [data-line='end']")].map((el) => el.dataset.line);
+    expect(line[0].querySelectorAll(":scope > svg [data-strand]").length).toBeGreaterThan(1);
+    const sides = [...container.querySelectorAll<HTMLElement>("[data-line*='line-to']")].map(
+      (el) => JSON.parse(el.dataset.line!)[0].lane,
+    );
     /* The head, then each short section on the other side from the last. */
     expect(sides).toHaveLength(about.intro.length + 1);
     sides.forEach((s, i) => i && expect(s).not.toBe(sides[i - 1]));
     for (const p of about.principles) {
       const item = principleFor(p.claim);
       expect(item).toHaveAttribute("data-line-hold");
-      expect(item.querySelector("[data-line='loop'] svg[data-figure]")).not.toBeNull();
+      expect(item.querySelector("[data-line*='circle-around'] svg[data-figure]")).not.toBeNull();
     }
   });
 

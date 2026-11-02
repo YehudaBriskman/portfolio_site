@@ -42,6 +42,12 @@
      column keeps its width and the lanes are added outside it. */
   --line-lane: clamp(1.25rem, 3vw, 2.75rem);
 
+  /* The line starts in the dark act above (#191) and its drawing reaches up
+     into it, so the wall is lifted over the act's ground and its seams —
+     and under the work section itself (`z-index: 2` in `Work.tsx`), so the
+     line runs behind the run's cards and its aurora, out of the stage. */
+  z-index: 1;
+
   font-size: var(--read);
   max-width: calc(var(--rail) + var(--rail-gap) + var(--measure-read) + 2 * var(--line-lane));
   /* The column is centred; nothing inside it is — a centred paragraph has a
