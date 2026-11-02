@@ -37,7 +37,21 @@ export default function Plate({
   const initial = title?.trim().slice(0, 1).toUpperCase() ?? "";
 
   return (
+    /*
+     * Hidden from assistive technology, because it is a picture's stand-in
+     * and every word on it is a copy (#99 audit). In a project card it was
+     * set first in source, so the coverless card's link was announced as
+     * "stack React 19 TypeScript Docker Compose Traefik v3.7 Bothy…" — the
+     * name a link announces has to lead with where it goes, which is why the
+     * screenshot in the same slot carries `alt=""`. On the detail page the
+     * full stack is listed again by `ProjectStack` below the figure.
+     *
+     * It is also what makes the plate's clipping under a text-spacing
+     * override (WCAG 1.4.12) harmless: its rows truncate and its box is a
+     * fixed aspect, but nothing on it exists only on it.
+     */
     <div
+      aria-hidden="true"
       className={`card-shot relative flex flex-col justify-between rounded-none border border-[rgb(var(--rule))] bg-[rgb(var(--paper-3))] p-5 sm:p-7 ${className}`}
     >
       {/* The `.sun` wash that used to sit here is gone with the accent, and
