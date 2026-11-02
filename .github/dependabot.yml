@@ -1,76 +1,96 @@
 # Dependabot: the part of #122 that keeps it fixed.
 #
-# Most of the advisories that issue cleared needed no breaking change at all -
-# proxy-addr's CRITICAL was one `npm audit fix` away - and nothing asked
-# anybody to apply them. This asks, weekly, in pull requests that run the same CI gates as any
-# other change: the runtime `npm audit` and the image scan.
+# POLICY - at most three open Dependabot pull requests, ever: one per ecosystem.
 #
-# Grouping: minor and patch updates arrive as ONE pull request per ecosystem
-# per directory, because a dozen single-package PRs a week is how a queue gets
-# ignored. Majors stay separate - each is a migration and deserves its own
-# review (nodemailer 7 -> 10 was one). Security updates are not grouped and
-# not limited: they open as soon as an advisory lands, whatever the schedule.
+#   npm             /web and /backend together, every update type, one PR
+#   docker          every Dockerfile directory, every update type, one PR
+#   github-actions  every workflow, every update type, one PR
+#
+# Each entry has ONE group matching every dependency and every update type
+# (major, minor, patch), and `open-pull-requests-limit: 1`. A newer version
+# does not open a second PR beside the first: Dependabot rebuilds the open
+# group PR in place. What grouping cannot catch (a security update, which
+# opens outside any group, or a PR left over from an older config) is closed
+# by .github/workflows/dependabot-supersede.yml, which closes any older open
+# Dependabot PR for the same ecosystem when a new one opens.
+#
+# The price of one PR per ecosystem: a major that breaks the build holds back
+# everything else in that PR. That is what `ignore` is for - a major we have
+# decided not to take yet goes there, with when to revisit it, and the rest
+# keep flowing. Do not let a red group PR sit; move the culprit into `ignore`.
+#
+# Security updates are not limited by open-pull-requests-limit and open as soon
+# as an advisory lands, whatever the schedule.
+#
+# History: until 2026-11-02 this grouped minor+patch only and opened each
+# major on its own. That produced eleven PRs in one morning (#139-#150), each
+# rewriting the same lockfiles, so every merge conflicted the rest.
 
 version: 2
 updates:
   - package-ecosystem: npm
-    directory: /web
+    directories: ["/web", "/backend"]
     schedule:
       interval: weekly
       day: monday
-    open-pull-requests-limit: 5
+      time: "06:00"
+      timezone: Asia/Jerusalem
+    open-pull-requests-limit: 1
     commit-message:
-      prefix: "chore(web)"
+      prefix: "chore(deps)"
     groups:
-      web-minor-and-patch:
-        update-types: [minor, patch]
-
-  - package-ecosystem: npm
-    directory: /backend
-    schedule:
-      interval: weekly
-      day: monday
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: "chore(backend)"
-    groups:
-      backend-minor-and-patch:
-        update-types: [minor, patch]
+      npm-all:
+        patterns: ["*"]
+        update-types: ["major", "minor", "patch"]
     ignore:
       # Express 5 is a migration (path syntax, removed APIs, req.query
       # semantics), not a version bump, and 4.x is still patched - the
       # advisories in #122 were all fixed within 4. Revisit deliberately, not
       # from a bot's pull request. Security updates ignore this rule anyway.
       - dependency-name: express
-        update-types: [version-update:semver-major]
+        update-types: ["version-update:semver-major"]
       - dependency-name: "@types/express"
-        update-types: [version-update:semver-major]
+        update-types: ["version-update:semver-major"]
+      # TypeScript 7 (the Go-native compiler). /backend is on it already: it
+      # only runs plain `tsc`. /web stays on 5.x because typescript-eslint
+      # (which lints /web with type information) declares
+      # `typescript: >=4.8.4 <6.1.0` as of 8.72. Revisit when a typescript-eslint
+      # release widens that peer range to 7; then bump /web by hand and drop this.
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
 
   # Both Dockerfiles pin their bases by tag AND digest. This is what moves the
-  # digest when upstream republishes `node:24-alpine` or `nginx:alpine` with
+  # digest when upstream republishes `node:*-alpine` or `nginx:alpine` with
   # fixed OS packages - without it the pin would freeze the image's CVEs in
   # place, which is the opposite of what it is for.
   - package-ecosystem: docker
-    directories: [/web, /backend]
+    directories: ["/web", "/backend"]
     schedule:
       interval: weekly
       day: monday
+      time: "06:00"
+      timezone: Asia/Jerusalem
+    open-pull-requests-limit: 1
     commit-message:
       prefix: "chore(docker)"
     groups:
-      base-images:
+      docker-all:
         patterns: ["*"]
+        update-types: ["major", "minor", "patch"]
 
   # The action runtimes are why every run warned about Node 20; majors here
-  # are where that happens, so they are not ignored. Grouped because they
-  # usually move together (docker/* release in lockstep).
+  # are where that happens, so they are not ignored.
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
       day: monday
+      time: "06:00"
+      timezone: Asia/Jerusalem
+    open-pull-requests-limit: 1
     commit-message:
       prefix: "ci"
     groups:
-      actions:
+      actions-all:
         patterns: ["*"]
+        update-types: ["major", "minor", "patch"]
