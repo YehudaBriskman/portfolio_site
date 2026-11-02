@@ -280,7 +280,60 @@
       animation-timeline: --hero;
       animation-range: exit 36% exit 48%;
     }
+
+    /* The corners' part of the entry's arrival (#194): last, 480ms after the
+       shutter starts to lift, layered on the exit so the scroll has them back
+       the moment it ends. `HeroArrival.module.css` has the whole sequence and
+       why it waits for the shutter. */
+    :global(body:not(.motion-paused)) :global([data-arrival="play"]) .corners > * > * {
+      animation:
+        corner-out linear both,
+        corner-in 460ms var(--ease-settle) 480ms backwards;
+      animation-timeline: --hero, auto;
+      animation-range: exit 36% exit 48%, normal;
+    }
+
+    :global(body:not(.motion-paused)) :global([data-arrival="play"]) .corners > * > *::before {
+      animation:
+        corner-mask-up linear both,
+        corner-mask-down 460ms var(--ease-settle) 480ms backwards;
+      animation-timeline: --hero, auto;
+      animation-range: exit 36% exit 48%, normal;
+    }
   }
+}
+
+/* The same arrival alone, for an engine with no view timelines, with the
+   mask it needs for the length of it. */
+@supports not (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    :global(body:not(.motion-paused)) :global([data-arrival="play"]) .corners > * > * {
+      position: relative;
+      animation: corner-in 460ms var(--ease-settle) 480ms backwards;
+    }
+
+    :global(body:not(.motion-paused)) :global([data-arrival="play"]) .corners > * > *::before {
+      content: "";
+      position: absolute;
+      inset: 0 -0.12em -0.2em;
+      z-index: 1;
+      background: rgb(var(--paper));
+      transform-origin: 50% 100%;
+      transform: scaleY(0);
+      pointer-events: none;
+      animation: corner-mask-down 460ms var(--ease-settle) 480ms backwards;
+    }
+  }
+}
+
+@keyframes corner-in {
+  from { transform: translateY(14px); }
+  to   { transform: none; }
+}
+
+@keyframes corner-mask-down {
+  from { transform: scaleY(1); }
+  to   { transform: scaleY(0); }
 }
 
 @keyframes phrase-turn {

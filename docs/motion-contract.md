@@ -1600,6 +1600,7 @@ animation.
 |---|---|---|---|
 | entry shutter (`EntryShutter`) | every route, first load | clock, gated on readiness | **exempt**: the one page-load moment, not a scroll |
 | title plate: name letters, fact line, field line, figure (`HeroArrival.module.css`) | / | `--hero` view timeline, `exit` ranges | **scrubbed** (#162; was a staged clock sequence on load) |
+| title plate and corners arriving, once a visit (`HeroArrival.module.css`, `HeroCorners.module.css`) | /, first load only | clock, started by the shutter's `lifting` signal (`motion/entry.ts`), layered on the scrubbed exit and filling `backwards` | **exempt** (#194): part of the page load, as the shutter is; a hero mounted after the entry, or under any off-switch, never plays it |
 | nav bar dropping in with the plate (`hero-chrome.css`) | / | — | **removed** (#162): the bar is simply there; its tuck is below |
 | lamp breath and ring, rotating phrases (`HeroCorners`) | / | `--hero` | **scrubbed** (#162; were 6.4s / 3.6s infinite loops) |
 | hero corners sinking under paper | / | `--hero` | **scrubbed** (#162; were the last stage of the clock sequence) |
@@ -1639,7 +1640,8 @@ animation.
 
 Counted: 38 rows. 9 were converted from a clock or a one-shot trigger to a
 scroll timeline in #162, and the bar's drop was removed outright; 14 were
-already scrubbed; 12 are exempt for the reasons given; 1 row is routes with
+already scrubbed; 13 are exempt for the reasons given (the hero's
+entry arrival joined them in #194); 1 row is routes with
 nothing of their own. `Rise`, `Arrived` and
 `Flow` were on no route and were deleted.
 

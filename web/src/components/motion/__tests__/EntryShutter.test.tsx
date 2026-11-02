@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, render } from "@testing-library/react";
 import EntryShutter from "@/components/motion/EntryShutter";
+import { getEntry, resetEntryForTests } from "@/components/motion/entry";
 import { MOTION_PAUSED_KEY } from "@/components/nav/useMotionPaused";
 
 /*
@@ -176,6 +177,9 @@ async function frames(n: number) {
 beforeEach(() => {
   viewport(1440, 900);
   installStorage();
+  /* The entry is decided once a visit (`motion/entry.ts`); each test is a
+     visit of its own. */
+  resetEntryForTests();
 });
 
 afterEach(() => {
@@ -394,6 +398,49 @@ describe("the leaving", () => {
        the sheet's `pointer-events` and `z-index: 200` facts about one second
        of the visit rather than about the rest of it. */
     expect(container).toBeEmptyDOMElement();
+  });
+
+  it("tells the page the moment it starts to lift, and again when it is gone (#194)", async () => {
+    /*
+     * The hero's arrival waits on this and on nothing else. The signal has to
+     * go out with the `leaving` commit itself — not on a guessed delay, and
+     * not at `gone`, 820ms later, when the centre of the window has long been
+     * uncovered.
+     */
+    vi.useFakeTimers();
+    const lifting = vi.fn();
+    window.addEventListener("entry:lifting", lifting);
+    const { container } = render(<EntryShutter />);
+
+    expect(getEntry()).toBe("covered");
+    expect(document.documentElement.dataset.entry).toBe("covered");
+
+    await frames(1);
+    expect(container.firstElementChild).toHaveAttribute("data-state", "grid");
+    expect(getEntry()).toBe("covered");
+
+    await frames(2);
+    expect(container.firstElementChild).toHaveAttribute("data-state", "leaving");
+    expect(getEntry()).toBe("lifting");
+    expect(document.documentElement.dataset.entry).toBe("lifting");
+    expect(lifting).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(820);
+    });
+    expect(container).toBeEmptyDOMElement();
+    expect(getEntry()).toBe("lifted");
+    window.removeEventListener("entry:lifting", lifting);
+  });
+
+  it("starts the entry lifted when there is no shutter to wait for", () => {
+    document.body.classList.add("motion-paused");
+    const { container } = render(<EntryShutter />);
+
+    /* Nothing covers the page, so nothing on it may be held for a cover. */
+    expect(container).toBeEmptyDOMElement();
+    expect(getEntry()).toBe("lifted");
+    expect(document.documentElement.dataset.entry).toBe("lifted");
   });
 
   it("goes anyway when readiness never settles", async () => {
