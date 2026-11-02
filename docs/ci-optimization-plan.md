@@ -128,6 +128,58 @@ the Scan legs can now be skipped on purpose, so they must not be required:
 a skipped leg reports as `Scan image` rather than under its own name, and a
 required check that never reports blocks the merge.
 
+### After P3 (#204)
+
+| Job (check name) | Runs on | Runner | Needs | Timeout (min) |
+|---|---|---|---|---|
+| Scan image (web, web), Scan image (api, backend) | a leg per selected image | `ubuntu-24.04-arm` | Static, Classify | 20 |
+| Publish image (web), Publish image (api) | main, `v*` tags | `ubuntu-24.04-arm` | Static, Frontend, Backend, Scan | 15 |
+
+Everything else is as after P2, and the required checks are unchanged
+(`Static`, `CI gate`).
+
+**One candidate per component.** Scan image builds each selected image once,
+natively for `linux/arm64`, into a docker-archive
+(`outputs: type=docker,dest=…`), and Trivy scans that archive with the same
+policy as before: every CRITICAL whether or not a fix exists, HIGH where a
+fix exists, `.trivyignore.yaml` for reviewed exceptions. A scanner or
+database error exits non-zero and fails the leg. On main and tags the
+archive is uploaded as an artifact (one day's retention) and Publish image
+pushes it; nothing is built twice and nothing runs under QEMU.
+
+**Digest identity** (`.github/scripts/candidate.sh`, tested against a fake
+`docker` in Static by `candidate.test.sh`). The scan leg records the image
+ID (the config digest, which names every layer by its uncompressed digest)
+and the archive's sha256 as job outputs. Publish image refuses an archive
+that does not hash to the recorded sha256, loads and pushes it, reads the
+manifest back from GHCR, and fails unless its config digest equals the
+scanned image ID. The log prints the scanned image ID, the pushed manifest
+digest and the pushed image ID. The manifest digest is what the cluster
+pulls; it differs from BuildKit's own because `docker push` recompresses
+the layers, which is why the assertion is on the config digest.
+
+**Permissions.** Scan image has `contents: read` only, on every event; a
+pull request builds and scans, uploads nothing and pushes nothing. Publish
+image alone has `packages: write`, and runs only on main and `v*` tags.
+
+**Cache.** BuildKit's `gha` cache, one scope per component and platform:
+`web-arm64`, `api-arm64` (`mode=max`). The old `web` and `api` scopes are
+no longer read or written. A pull request's cache writes land in its own
+ref's scope, which main never reads.
+
+**amd64 is no longer built.** Consumers checked on 2026-11-02:
+
+- the cluster (oci-free `k8s/portfolio.yaml`, `k8s/portfolio-preprod.yaml`)
+  runs on one arm64 node (Ampere A1) and pulls `web`/`api` from GHCR;
+- oci-free's `deploy-portfolio.sh` is retired (it built on the node);
+- `docker-compose.ci.yml` names the GHCR images, but nothing runs it (no
+  Makefile target, no workflow, no script in either repository), and the
+  packages are private;
+- no other file in this repository, oci-free or `~/stacks` names the images.
+
+Nothing consumes amd64, so no manual multi-arch path was kept. An amd64
+host runs the site from source with `docker-compose.yml`.
+
 ---
 
 ## 2. Baseline
@@ -195,9 +247,12 @@ over four runners, which is what Static consolidates.
 
 - A main push builds each image twice: once amd64-only to scan, once
   amd64+arm64 to publish. The published arm64 image is not the bytes that
-  were scanned. That is P3/P4's subject (#207), not P1's.
+  were scanned. That is P3/P4's subject (#207), not P1's. **Fixed by P3:**
+  one native arm64 build per image, and the scanned archive is what is pushed.
 - A `v*` tag on an already-built main commit runs the whole pipeline again,
-  publish builds included (mostly cache hits).
+  publish builds included (mostly cache hits). **Still true after P3:** the
+  tag run builds, scans and pushes its own candidate under `:<sha>`;
+  promoting main's recorded digest instead is P4 (#205).
 
 ---
 
@@ -212,3 +267,59 @@ measured rather than assumed:
   then Frontend;
 - runs cancelled by a newer push to the same pull request, and the minutes
   they would otherwise have run.
+
+### P3 (#204), measured on 2026-11-02
+
+**Before:** the three `push` runs on main with P1's job layout
+(41525961101, 41527119821, 41528918814; warm cache), and the slowest of the
+last 60 main runs (41424010215, 09:51 UTC, a cold arm64 publish).
+**After:** two `workflow_dispatch` runs of a throwaway branch identical to
+this change except that Publish image pushed to `:p3-test-<sha>` and then
+deleted that package version (41530378134 on an empty cache, 41531416417
+on the cache the first one wrote), and the pull request's first run
+(41530210402, empty cache). A dispatch on a branch runs no Deploy (main
+only, ~0.6 to 0.9 min in the before runs), so its wall clock stops at
+Publish image and the CI gate. Three and two runs: medians, not
+percentiles.
+
+Per run (minutes):
+
+| | Before, main, warm (n=3) | Before, main, cold publish (n=1) | After, full, cold (n=1) | After, full, warm (n=1) | After, PR, cold (n=1) |
+|---|---|---|---|---|---|
+| Wall clock | 6.27 (5.40-7.95) | 18.98 | 6.30 | 4.48 | 5.80 |
+| Sum of job durations | 10.22 (9.93-11.17) | - | 12.10 | 6.43 | 11.57 |
+| Image builds | 4 (2 amd64 scan, 2 amd64+arm64 publish) | 4 | 2 (arm64) | 2 (arm64) | 2 (arm64) |
+
+Per job (minutes):
+
+| Job | Before, warm (median of 3) | Before, cold publish | After, cold | After, warm | After, PR cold |
+|---|---|---|---|---|---|
+| Frontend | 3.72 | - | 3.77 | 3.58 | 4.00 |
+| Scan image (web) | 1.27 | - | 1.38 | 0.55 | 1.67 |
+| Scan image (api) | 0.93 | - | 4.33 | 0.63 | 3.55 |
+| Publish image (web) | 1.88 | 15.25 (slowest leg) | 0.47 | 0.35 | - |
+| Publish image (api) | 0.78 | - | 1.07 | 0.40 | - |
+| Deploy | 0.80 | - | not run | not run | - |
+
+What the numbers say:
+
+- Warm, the critical path is Frontend; Scan and Publish image no longer
+  add to it beyond ~0.4 min of push. Cold, a native arm64 build of web
+  took 40 s and of api 26 s (the build step); the QEMU publish this
+  replaces took 15.25 min in the slowest main run.
+- Both cold api scan legs spent minutes after their last step (3.25 min in
+  the dispatch, 2.4 in the pull request), in the runner's "Cleaning up
+  orphan processes", not in any step of ours (in the dispatch, the build,
+  both scans and the upload were done in 57 s). It did not recur warm. Watch for it on main; it is runner-side and the 20-minute timeout
+  covers it.
+- A warm rebuild of the same commit produced the same image IDs
+  (`sha256:5ef95dae…` web, `sha256:334d6828…` api) as the cold one; the
+  archives' sha256 differ, which is why the archive hash is checked only
+  within one run.
+- Digest identity, from the dry run's log (cold run): web scanned
+  `sha256:5ef95dae66480cbbca460ca14754a8d6bfad96f0bc5b4d413501da621c00f495`,
+  pushed `web@sha256:06eddafeae568d2389179a98d227d982108ab6ff72a19b861a61640f541b9fce`
+  whose config is that same ID; api scanned
+  `sha256:334d6828a74f3c5915983acc40018bedc07b7b9beff87e6dcef2e9dd214e14ba`,
+  pushed `api@sha256:474d710ea9f0f3588a166ed801fdc39ea21ebec195187564fdff5bd6c4613656`,
+  same config. Both throwaway versions were deleted by the same job.
