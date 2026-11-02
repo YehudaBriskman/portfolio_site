@@ -1033,93 +1033,98 @@ than about motion:
 When a beat changes, this table changes with it. A ledger that describes the
 previous build is worse than no ledger.
 
-### /projects: the catalogue, and why it is not the run (#169)
+### /projects: the catalogue, and why it is not the run (#169, #175)
 
 The table above is the home page's. `/projects` is a different page with a
-different job, and since #169 it has its own device rather than a second
-copy of the home page's.
+different job, and since #169 it has had its own device rather than a second
+copy of the home page's. #173 made that device `riffle`, a register whose rows
+stood up one at a time. #175 replaced it with a gallery wall under an
+instrument panel, on the owner's call: "bigger", "more like a dashboard",
+"almost like an images gallery". He chose it from three options (a ledger, a
+board, year lanes) and asked for the board, mixed with the lanes' panel.
 
 | page | device family | the one reason it exists |
 |---|---|---|
-| `/projects` | **`riffle`** | each row stands up out of the lower part of the window like the next card in a drawer, so the register is ruled and upright by the time the eye reaches it |
+| `/projects` | **`assemble`** | each band of the wall closes in from its own edges as it comes up the window: a tile on the left slides in from the left, a tile on the right from the right, a tile in the middle rises. So the wall is hung by the time the eye reaches it, and nothing in the reading band moves |
+| `/projects` panel | `draw`, on bars | the projects-per-year bars grow from their baseline as the panel comes up, and shrink back on the way up |
 
-**The owner's words are the brief:** the catalogue "shouldn't be like the
-landing page, it's not the same purpose". The run is branding — a curated
-few, one at a time, the page's peak. The catalogue is the full set, 4 today
-and 40 later, and a reader there is scanning and choosing, not being shown.
-Before #169 the catalogue was the pile, on the argument that two ways of
-showing a project would drift apart; that argument was about code reuse, and
-the owner's is about purpose, which wins.
+**The owner's brief still holds:** the catalogue "shouldn't be like the
+landing page, it's not the same purpose". The run is branding: a curated few,
+one at a time, the page's peak. The catalogue is the full set, 6 today and 40
+later, and a reader there is scanning and choosing, not being shown. What #175
+changed is how that scanning is done. The register let a reader scan by eye
+down a column. The wall leads with the picture, which is the strongest thing
+most projects have, and moves the scanning into filters. State, year and stack
+are always on screen and kept in the URL (`?state=&year=&stack=`). Each chip
+counts what it would show given the other two filters, so a zero is visible
+before it is pressed.
 
-**What makes `riffle` its own family and not `pin`, `pan` or `flow` again.**
+**What makes `assemble` its own family and not `pin`, `pan` or `flow` again.**
 Four tests, and it has to keep passing all of them:
 
-- **Nothing is held.** No `position: sticky`, no runway, no stage. The page is
-  exactly as tall as the list (1969px for six projects at 1440×900, 4783px
-  for twenty-six), where the run adds 55svh of scroll per card and the pile
-  added a pinned slot per card. That is the scaling argument in one line: a
-  held device charges scroll per item, so it is only affordable for a curated
-  few, and the catalogue is by definition not curated.
-- **No lateral travel.** The run moves cards sideways along a curve and the
-  shelf pans; a row here rotates about its own top edge (`rotateX`) and moves
-  nowhere. The only thing that has a direction is the hairline drawn in from
-  the reading edge, which mirrors in RTL (`transform-origin` flips under
-  `html[dir="rtl"]`).
-- **Per-row clock, not per-act.** Each `<li>` names its own `view-timeline`
-  and the link inside it reads it, so the 40th row behaves exactly like the
-  first and there is no count in the stylesheet at all. The run divides one
-  stage's timeline by `--run-n`; this has no `n`.
-- **Not `flow` or `reveal`.** Those fire once on an observer and a clock and
-  never reverse. `riffle` is scrubbed: `entry 0%` to `cover 25%` of each row,
-  so it reverses exactly on the way up and is a pure function of scroll
-  position. Six offsets compared scrolling down and back up, EN and HE, 6 and
-  26 projects, laptop and phone (`web/scripts/shoot-projects-index.mjs`,
-  frames in `docs/projects-index/`): 44 of 48 byte-identical below the bar,
-  and the other four are RTL frames differing in 2 pixels by at most 7/255 on
-  a tipped row's text — rasteriser noise, not a different state.
+- **Nothing is held.** No sticky, no runway, no stage. The page is exactly as
+  tall as the wall: 4,748px for 26 projects at 1440×900 and 6,490px
+  on a 390×844 phone. The options' uniform board measured about 12,400px on
+  the phone, and the phone now gets one short row per project with an
+  occasional full-bleed lead. A held device charges scroll per item, so it is
+  only affordable for a curated few.
+- **Lateral travel, but no path.** The run carries a card along a curve
+  through a held frame. Here each tile makes one short move into its own cell
+  and stops, and the direction comes from where the cell is. Which third of
+  the wall a cell is in can't be known from CSS once `grid-auto-flow: dense`
+  has packed it, so `Gallery.tsx` reads it from layout and writes it as
+  `data-from`. It does this once on mount, again on a `ResizeObserver` or a
+  change of contents, and never per frame. In one column every cell is in the
+  middle, so there the sides alternate. The sides are physical, so RTL
+  mirrors for free: a tile hung on the left comes from the left.
+- **Per-tile clock, not per-act.** Each `<li>` names its own `view-timeline`
+  and the `<article>` inside it reads it, `entry 0%` to `cover 32%`. A tile's
+  size (`lead` 2×2, `wide` 2×1, `tile` 1×1) comes from its data in
+  `catalogue.ts`. A featured project from the newest two years is hung large;
+  active recent work, or older featured work, is hung wide. Size is never
+  taken from position, and no count appears in either file.
+- **Not `flow` or `reveal`.** Both are scrubbed. The same offset reached
+  scrolling down and scrolling up paints byte-identical pixels below the bar:
+  24 of 24 offsets, across EN and HE, 6 and 26 projects, laptop and phone
+  (`web/scripts/shoot-projects-gallery.mjs`, frames in `docs/projects-gallery/`).
 
-**It is not a peak and it does not compete with one.** Different page, so §3
-does not count it against the run, and it is deliberately quiet: by a
-quarter of the way up the window every row is upright, flat and still, so the
-part of the screen a reader is actually reading never moves. Type is never
-faded — the tipped leaf's shade is an overlay, not opacity on the words.
+**One time-based thing, and why it is allowed.** A filter re-hangs the wall.
+That is direct manipulation, so the filter links ask the router for a view
+transition. Each tile carries its own `view-transition-name` and glides to its
+new cell in `--dur-fast`, and tiles leaving or arriving cross-fade. It answers
+a press; it is never driven by scroll.
 
-**It is not `spotlight` either**, which the grammar bans. Nothing is singled
-out: every row does the same thing at the same height, and the effect sits
-in the margin of attention (the bottom quarter) rather than at its centre.
+**It is not a peak, and it is not `spotlight`.** Every tile does the same
+thing at the same height, and by a third of the way up the window the wall is
+flat and still. Type is never faded: the travelling tile's shade is an
+overlay, not opacity on the words.
 
-**The off-switches land on the plain register.** Reduced motion, Pause and
-no `animation-timeline` each cancel all three animations (leaf, shade,
-rule) and restate upright, unshaded, fully ruled. A row that takes focus also
-cancels its own (`.row:focus-within`) and asks for `scroll-margin-block-end:
-34svh`, so Tab never parks the reader on a tipped leaf.
+**The off-switches land on the plain wall and the drawn chart.** Reduced
+motion, Pause and no `animation-timeline` each cancel the tile, its shade and
+the bars outright. Reduced motion and Pause also cut the re-hang to an
+instant swap. A tile that takes focus cancels its own arrival and asks for
+`scroll-margin-block-end: 30svh`.
 
-**The filter earns its place by count, not by design.** A state filter
-(`?state=`, deep-linkable) appears from nine projects and two states up
-(`projects/catalogue.ts`); with six it would hide less than it costs to
-read. Year is not filtered because it is already the register's first
-column. This is the only count-dependent thing on the page, and it decides
-whether a control exists, never how anything moves.
+**The panel is dark, and it is not a third dark act.** That argument sits
+beside the ceiling it answers to, in `ground/DarkAct.tsx`. It carries
+`.on-panel` and `data-chrome="dark"`, so the nav changes material while it
+passes under.
 
 **What it costs, measured (2026-11-02).** 4× CPU throttle, 1440×900, the whole
 document wheel-scrolled with real input events, rAF frames over wall clock,
 five interleaved passes per arm after a warm-up
-(`web/scripts/measure-projects-fps.mjs`), against the pile it replaced on the
-same harness:
+(`web/scripts/measure-projects-fps.mjs`), against the register it replaced on
+the same harness:
 
 | arm | 6 projects | 26 projects (20 mocked) |
 |---|---|---|
-| `main`, the pile | 42.9fps (41.1–44.5) | 43.4fps (39.3–44.1) |
-| the register, riffling | 51.7fps (50.9–53.2) | 46.6fps (46.3–47.1) |
-| the register, reduced motion (no riffle) | 59.1fps (51.8–60.7) | 60.3fps (60.0–60.4) |
+| `main`, the register (`riffle`) | 38.4 fps (35.1–43.9) | 46.9 fps (39.8–47.2) |
+| the wall (`assemble`, bars drawing) | 41.7 fps (41.0–45.4) | 59.5 fps (47.0–60.1) |
+| the wall, reduced motion | 46.5 fps (42.7–51.6) | 59.0 fps (40.6–60.6) |
 
-The register is cheaper than the pile it replaced at both counts. It does
-get dearer with more rows — 26 rows put more of them in the riffle band per
-screen on the phone-sized ones and more timelines on the page — but it is
-still above the pile at 26, and the cost is per row on screen, not per row in
-the list, so 40 costs what 26 does. Absolute numbers are SwiftShader under
-this harness and only comparable within the table. Per frame the riffle writes `transform` on the rows in the
-lower quarter and `opacity` on their shade layers — compositor work, no
+Medians, with the range over five passes. The wall is no slower than the register at either count, and faster at 26. Absolute numbers are SwiftShader under this harness and comparable only
+within the table. Per frame the wall writes `transform` on the tiles in the
+lower third and `opacity` on their shade layers. That is compositor work, not
 layout.
 
 ### `line`: /story and "How I work" (#176, #178)
@@ -1412,7 +1417,8 @@ direction, or set `fill-rule: evenodd` deliberately and know what it costs.
 | `Approach.module.css` + `ApproachFigures.tsx` | `draw` — each principle's figure, stroke by stroke | named `view-timeline` per principle |
 | `motion/InkWipe.tsx` | ink arriving as a hard clip edge, plus the coloured band | `view()` |
 | `motion/InkRule.tsx` | a hairline drawing itself in | `view()` |
-| `projects/ProjectIndex.module.css` | `riffle` — /projects only: each catalogue row stands up on its top edge as it enters the lower quarter, and its rule draws in from the reading edge | named `view-timeline` on each static `<li>`, read by the link inside it |
+| `projects/Gallery.module.css` + `Gallery.tsx` | `assemble`, /projects only: each tile slides in from its own side of the wall (or rises, in the middle third), and a filter re-hangs the wall with a short view transition | named `view-timeline` on each static `<li>`, read by the `<article>` inside it; side read from layout once into `data-from` |
+| `projects/StatsPanel.module.css` | the panel's bars grow from their baseline as it comes up the window | named `view-timeline` on the panel |
 | `projects/ProjectRun.module.css` | `pin` — the work travelling along a curve under a held frame; one lap per card, staggered by range | named `view-timeline` on the static stage, the frame held inside it |
 | `LatestNotes.module.css` | `pan`, held — the notes walk past under a held frame, one card-width per step | named `view-timeline` on the static stage (inset 0), the frame held inside it |
 | `city/ContributionCity.module.css` | `scrub` — one animation turns and raises 365 columns, a second dollies the camera down the year | named `view-timeline` on a static wrapper, the frame held over it |

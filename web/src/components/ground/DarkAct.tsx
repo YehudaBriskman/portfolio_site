@@ -75,6 +75,18 @@ import styles from "@/components/ground/DarkAct.module.css";
  * by shape — the acts are arched plates in the middle of the scroll, the
  * footer is a flat band at the bottom of every route — and not by colour.
  *
+ * ── /projects has a dark panel, and it is not an act either (#175) ────────
+ *
+ * The catalogue's stats panel (`projects/StatsPanel.tsx`) stands on
+ * `--panel` as well. The ceiling counts the home page's acts, and this is a
+ * different page; but the same test applies, and it passes the same way the
+ * footer does. It does not use this component (no arc, seams or drift), it
+ * has no section head, and it is not a beat with a subject: it is an
+ * instrument, a figure inside the catalogue's own paper section with paper
+ * on every side of it. Dark there means "this is a readout", the way a dark
+ * screen in a gallery is a readout and not a room. If it ever goes edge to
+ * edge or picks up a crest, it has become an act and this argument is void.
+ *
  * ── what a dark act needs, and the half of it that fails silently ─────────
  *
  * `.on-panel` AND `data-chrome="dark"`, and the two are not interchangeable.
