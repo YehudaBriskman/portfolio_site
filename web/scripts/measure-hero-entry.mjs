@@ -43,6 +43,10 @@ const probe = () => {
     window.addEventListener(
       type,
       (e) => {
+        /* The `*-held` layers (#219) are the hold under the cover, not the
+           arrival: they start at mount and never move. CSS modules hash
+           the name, so it is matched inside rather than at the end. */
+        if (e.animationName.includes("-held")) return;
         if (e.target.closest?.("#hero")) t.hero.push({ type, name: e.animationName, t: now() });
         else if (type === "animationstart" && e.animationName.includes("shutter")) t.tiles ??= now();
         else if (type === "animationend" && e.animationName.includes("shutter")) t.tilesEnd = now();

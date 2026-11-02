@@ -64,12 +64,15 @@ const ALLOWED: Record<string, { names: string[]; why: string }> = {
     why: "the form's ink: a reply to opening the dialog and to pressing Send",
   },
   "components/HeroArrival.module.css": {
-    names: ["plate-letter-in", "plate-mask-down", "plate-from-start", "plate-from-end", "plate-figure-in"],
-    why: "the hero's arrival, once a visit, started by the entry shutter lifting (#194): part of the page load",
+    names: [
+      "plate-letter-in", "plate-mask-down", "plate-from-start", "plate-from-end", "plate-figure-in",
+      "plate-letter-held", "plate-mask-held", "plate-start-held", "plate-end-held", "plate-figure-held",
+    ],
+    why: "the hero's arrival, once a visit, started by the entry shutter lifting (#194), and the still hold on its first frame under the cover (#219): part of the page load",
   },
   "components/HeroCorners.module.css": {
-    names: ["corner-in", "corner-mask-down"],
-    why: "the corners' part of the same arrival (#194)",
+    names: ["corner-in", "corner-mask-down", "corner-held", "corner-mask-held"],
+    why: "the corners' part of the same arrival (#194) and of its hold (#219)",
   },
   "components/gallery/Skeleton.module.css": {
     names: ["sk-gate"],
