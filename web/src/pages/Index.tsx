@@ -1,5 +1,4 @@
-import { scrollToAnchor } from "@/lib/scrollToAnchor";
-import Nav from "@/components/Nav";
+import { usePageCommitted } from "@/components/nav/pageCommit";
 import Hero from "@/components/Hero";
 import Work from "@/components/Work";
 import Approach from "@/components/Approach";
@@ -51,20 +50,14 @@ import SiteFooter from "@/components/SiteFooter";
  * no reader.
  */
 export default function Index() {
+  /* The skip link and the bar are not rendered here any more; they are in
+     `SiteChrome.tsx`, above the routes, so they survive navigating away from
+     this page (#63). This tells that chrome the page — and the two dark acts
+     on it — is now in the document. */
+  usePageCommitted();
 
   return (
     <div className="relative min-h-screen">
-      {/* #content, not #work. Pointing it at the first section scrolled the
-          reader past the page's own h1 and intro — it skipped the content
-          rather than skipping to it. */}
-      <a
-        href="#content"
-        onClick={(e) => { if (scrollToAnchor("content")) e.preventDefault(); }}
-        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[70] focus:bg-bone focus:px-4 focus:py-2 focus:text-bitumen"
-      >
-        Skip to content
-      </a>
-      <Nav />
       {/* No nav clearance here, unlike PageShell: the hero is a full-height
           section that positions its own first line under the island. */}
       <main id="content">
