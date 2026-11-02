@@ -220,3 +220,56 @@ describe("ProjectRun.module.css, one box", () => {
     expect(CSS).toMatch(/\.stage\s*\{[^}]*view-timeline-inset:\s*0;/);
   });
 });
+
+/*
+ * Shadow and tilt (#177): the face inside each link turns towards a fine
+ * pointer, composed with the run's transforms rather than replacing them.
+ */
+describe("ProjectRun tilt", () => {
+  it("gives every card a face inside its link", () => {
+    const { container } = draw(three);
+    const links = container.querySelectorAll("[data-run-card]");
+    expect(links).toHaveLength(3);
+    links.forEach((l) => {
+      expect(l.tagName).toBe("A");
+      expect(l.querySelector(":scope > [data-run-face]")).not.toBeNull();
+    });
+  });
+
+  it("writes nothing for a touch pointer", () => {
+    const { container } = draw(three);
+    const face = container.querySelector<HTMLElement>("[data-run-face]")!;
+    const move = new Event("pointermove", { bubbles: true });
+    Object.defineProperty(move, "pointerType", { value: "touch" });
+    face.dispatchEvent(move);
+    expect(face.getAttribute("style") ?? "").not.toMatch(/--tilt/);
+  });
+
+  it("turns the face, never the link that carries the lean and the arrival", () => {
+    const rules = CSS.match(
+      /[^{}]+\{[^{}]*\btransform:\s*perspective\(var\(--tilt-depth\)\)[^{}]*\}/g
+    );
+    expect(rules).not.toBeNull();
+    rules!.forEach((r) => expect(r.split("{")[0].trim()).toMatch(/> \.face$/));
+  });
+
+  it("tilts only under a fine hovering pointer with motion allowed, and Pause cancels it", () => {
+    const block =
+      CSS.match(
+        /@media \(hover: hover\) and \(pointer: fine\) and \(prefers-reduced-motion: no-preference\)\s*\{([\s\S]*?)\n\}/
+      )?.[1] ?? "";
+    expect(block).toMatch(/\.card:hover > \.face\s*\{[^}]*rotateY\(calc\(var\(--tilt-x/);
+    expect(block).toMatch(/\.card:focus-visible > \.face\s*\{[^}]*var\(--run-dir\)/);
+    expect(block).toMatch(/body\.motion-paused\) \.card > \.face\s*\{\s*transform:\s*none/);
+    expect(CSS.match(/--tilt-x/g)).toHaveLength(1);
+  });
+
+  it("casts a layered, low-opacity shadow", () => {
+    const face = CSS.match(/\n\.face\s*\{([^}]*)\}/)?.[1] ?? "";
+    const alphas = Array.from(face.matchAll(/rgb\(var\(--run-shade\) \/ ([\d.]+)\)/g), (m) =>
+      Number(m[1])
+    );
+    expect(alphas.length).toBeGreaterThanOrEqual(4);
+    alphas.forEach((a) => expect(a).toBeLessThanOrEqual(0.4));
+  });
+});
