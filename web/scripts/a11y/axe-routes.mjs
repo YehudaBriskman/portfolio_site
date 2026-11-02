@@ -82,7 +82,11 @@ const TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 const ROUTES = [
   "/",
   "/projects",
+  "/projects?sort=name",
   "/projects/bothy",
+  "/projects/bothy?tab=notes",
+  "/projects/bothy?tab=releases",
+  "/projects/bothy?tab=docs",
   "/blog",
   "/blog?view=feed",
   "/blog/area/site",
@@ -141,6 +145,10 @@ const BOTHY = {
 const EVENTS = [
   { id: "post:fixture-post", kind: "post", at: at(1), area: { slug: "site", title: "The site" }, title: "A fixture note", href: "/blog/fixture-post", meta: {} },
   { id: "site:v1", kind: "site", at: at(3), area: null, title: "Site v1.0.0", href: "https://github.com/example/site/releases/tag/v1.0.0", meta: {} },
+  /* Work (#227): a project's release and push, for the cards' strips, the
+     releases aside and the project page's Releases tab. */
+  { id: "release:bothy:v1.9.0", kind: "release", at: at(4), area: { slug: "bothy", title: "Bothy" }, title: "Bothy v1.9.0", href: "https://github.com/example/bothy/releases/tag/v1.9.0", meta: { tag: "v1.9.0" } },
+  { id: "push:bothy", kind: "push", at: at(2), area: { slug: "bothy", title: "Bothy" }, title: "Pushed to Bothy", href: "https://github.com/example/bothy", meta: {} },
 ];
 
 const SUMMARY = {
