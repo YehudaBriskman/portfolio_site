@@ -303,12 +303,19 @@ export default function BlogPost() {
 
   const retry = useCallback(() => setAttempt((n) => n + 1), []);
 
-  useEffect(() => {
-    let alive = true;
+  /* Another slug, or a retry, starts from nothing in the render that asks for
+     it — not an effect later, which painted the old post for one frame. */
+  const [shownFor, setShownFor] = useState({ slug, attempt });
+  if (shownFor.slug !== slug || shownFor.attempt !== attempt) {
+    setShownFor({ slug, attempt });
     setState("loading");
     setPost(null);
     setCollectionTitle(null);
     setNeighbours({ newer: null, older: null });
+  }
+
+  useEffect(() => {
+    let alive = true;
     blog
       .post(slug)
       .then((p) => {

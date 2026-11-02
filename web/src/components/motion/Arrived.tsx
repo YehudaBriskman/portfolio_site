@@ -72,18 +72,13 @@ export default function Arrived({
   rootMargin = "0px 0px -12% 0px",
 }: ArrivedProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const [arrived, setArrived] = useState(false);
+  /* jsdom has no observer unless a test installs one, and neither does an
+     engine old enough to matter. Either way the answer is the arrived page. */
+  const [arrived, setArrived] = useState(() => typeof IntersectionObserver === "undefined");
 
   useEffect(() => {
     const el = ref.current;
-    if (!el) return;
-
-    /* jsdom has no observer unless a test installs one, and neither does an
-       engine old enough to matter. Either way the answer is the arrived page. */
-    if (typeof IntersectionObserver === "undefined") {
-      setArrived(true);
-      return;
-    }
+    if (!el || typeof IntersectionObserver === "undefined") return;
 
     const seatbelt = window.setTimeout(() => setArrived(true), 2000);
 

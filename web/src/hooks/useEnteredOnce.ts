@@ -27,24 +27,20 @@ import { useEffect, useRef, useState } from "react";
  */
 export function useEnteredOnce<T extends Element>(threshold = 0.35) {
   const ref = useRef<T | null>(null);
-  const [entered, setEntered] = useState(false);
+  /*
+   * No observer, no waiting. An engine without IntersectionObserver gets
+   * the figures immediately — which is the same place all three off-switches
+   * land, and the only honest fallback for a plate whose whole job is to
+   * state true numbers. A count that never fires because the API it needed
+   * was missing would leave four noughts on the page. Decided in the
+   * initialiser, so the first render already says so.
+   */
+  const [entered, setEntered] = useState(() => typeof IntersectionObserver !== "function");
 
   useEffect(() => {
     if (entered) return;
     const el = ref.current;
     if (!el) return;
-
-    /*
-     * No observer, no waiting. An engine without IntersectionObserver gets
-     * the figures immediately — which is the same place all three off-switches
-     * land, and the only honest fallback for a plate whose whole job is to
-     * state true numbers. A count that never fires because the API it needed
-     * was missing would leave four noughts on the page.
-     */
-    if (typeof IntersectionObserver !== "function") {
-      setEntered(true);
-      return;
-    }
 
     const observer = new IntersectionObserver(
       (entries) => {

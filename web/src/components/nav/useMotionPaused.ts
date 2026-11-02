@@ -95,6 +95,9 @@ export function useMotionPaused(): [boolean, () => void] {
 
   useEffect(() => {
     try {
+      /* Reading an external store after mount, on purpose: see the comment on
+         the initialiser above for why it cannot be read during render. */
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (localStorage.getItem(MOTION_PAUSED_KEY) === "1") setPaused(true);
     } catch {
       // Private browsing, or site data blocked. Motion simply stays on; not

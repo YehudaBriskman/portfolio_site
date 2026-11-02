@@ -283,8 +283,15 @@ type RehypePlugins = ComponentProps<typeof ReactMarkdown>["rehypePlugins"];
 export function useCodeHighlight(body: string | null): RehypePlugins {
   const [plugins, setPlugins] = useState<RehypePlugins>(undefined);
 
-  useEffect(() => {
+  /* A new body drops the old pipeline in the same render, not one effect
+     later: its highlighter is disposed by the cleanup below. */
+  const [forBody, setForBody] = useState(body);
+  if (forBody !== body) {
+    setForBody(body);
     setPlugins(undefined);
+  }
+
+  useEffect(() => {
     if (!body) return;
 
     // A post with no fenced code never touches the network for any of this.

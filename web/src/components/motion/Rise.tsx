@@ -84,19 +84,15 @@ export default function Rise({ children, className = "" }: RiseProps) {
    * a condition the page has already failed by the time it matters: if React
    * did not run, there is no page to reveal.
    */
-  const [shown, setShown] = useState(false);
+  /* jsdom has no observer unless a test installs one, and neither does a
+     browser old enough to matter here. Either way the answer is the finished
+     page, not a blank one — decided in the initialiser, so it is never hidden
+     at all. */
+  const [shown, setShown] = useState(() => typeof IntersectionObserver === "undefined");
 
   useEffect(() => {
     const el = ref.current;
-    if (!el) return;
-
-    /* jsdom has no observer unless a test installs one, and neither does a
-       browser old enough to matter here. Either way the answer is the finished
-       page, not a blank one. */
-    if (typeof IntersectionObserver === "undefined") {
-      setShown(true);
-      return;
-    }
+    if (!el || typeof IntersectionObserver === "undefined") return;
 
     /*
      * And a seatbelt for the observer that exists but never speaks.
