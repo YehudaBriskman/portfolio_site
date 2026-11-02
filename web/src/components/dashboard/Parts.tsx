@@ -1,0 +1,318 @@
+import { useId, useRef, useState, type ReactNode } from "react";
+import { Link } from "react-router-dom";
+import { Search } from "lucide-react";
+import styles from "@/components/dashboard/Dashboard.module.css";
+import { AUTHOR } from "@/components/notes/Byline";
+import { useWords } from "@/components/dashboard/i18n";
+
+/*
+ * The dashboard's small parts (#224), shared by every page on the shell:
+ * a card, a row, a chip, an area's glyph, and the rail's three blocks — who,
+ * which view, and the top areas.
+ *
+ * Density is GitHub's and it is one decision held everywhere: 12px of card
+ * padding, rows 12px tall in padding around a 14px title and 12px meta, a
+ * hairline between rows and nothing else. Hierarchy is weight and ink, not
+ * size: a title is 600 in full ink, meta is 400 in the soft ink, and the
+ * only colour at rest is the link blue on "View all" and the area glyphs.
+ */
+
+/* ─────────────────────────────────────────────────────────────── card */
+
+export function DashCard({
+  title,
+  action,
+  children,
+  className = "",
+  flush = false,
+  bare = false,
+  busy,
+}: {
+  title: ReactNode;
+  /** "View all", top right, GitHub's place for it. */
+  action?: { to: string; label: string; describe?: string };
+  children: ReactNode;
+  className?: string;
+  /** Rows run edge to edge rather than inside the card's padding. */
+  flush?: boolean;
+  /** No frame of its own: its children are cards already. */
+  bare?: boolean;
+  busy?: boolean;
+}) {
+  const id = useId();
+  return (
+    <section className={`${styles.section} ${className}`} aria-labelledby={id} aria-busy={busy || undefined}>
+      <div className={styles.sectionHead}>
+        <h2 id={id} className={styles.sectionTitle}>
+          {title}
+        </h2>
+        {action && (
+          <Link to={action.to} className={styles.sectionAction}>
+            {action.label}
+            {action.describe && <span className="sr-only">{`: ${action.describe}`}</span>}
+          </Link>
+        )}
+      </div>
+      {bare ? (
+        children
+      ) : (
+        <div className={styles.card} data-flush={flush ? "" : undefined}>
+          {children}
+        </div>
+      )}
+    </section>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────── rows */
+
+export function RowList({ children, label }: { children: ReactNode; label?: string }) {
+  return (
+    <ul className={styles.rows} aria-label={label}>
+      {children}
+    </ul>
+  );
+}
+
+export function Row({
+  icon,
+  title,
+  to,
+  meta,
+  chips,
+  badge,
+}: {
+  icon: ReactNode;
+  title: string;
+  to: string;
+  /** Already-formatted pieces, joined with a middle dot. */
+  meta: ReactNode[];
+  chips?: ReactNode;
+  badge?: ReactNode;
+}) {
+  const parts = meta.filter((m) => m !== null && m !== undefined && m !== "");
+  return (
+    <li className={styles.row}>
+      <span className={styles.rowIcon} aria-hidden="true">
+        {icon}
+      </span>
+      <div className={styles.rowBody}>
+        <div className={styles.rowTitleLine}>
+          <Link to={to} className={styles.rowTitle}>
+            {title}
+          </Link>
+          {badge}
+        </div>
+        <div className={styles.rowMeta}>
+          {parts.map((m, i) => (
+            <span key={i} className={styles.metaPart}>
+              {m}
+            </span>
+          ))}
+        </div>
+        {chips}
+      </div>
+    </li>
+  );
+}
+
+export function Chips({ children, label }: { children: ReactNode; label: string }) {
+  return (
+    <ul className={styles.chips} aria-label={label}>
+      {children}
+    </ul>
+  );
+}
+
+export function Chip({ to, children, current }: { to: string; children: ReactNode; current?: boolean }) {
+  return (
+    <li>
+      <Link to={to} className={styles.chip} aria-current={current ? "true" : undefined} translate="no">
+        {children}
+      </Link>
+    </li>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────── glyph */
+
+const HUES = ["--hue-blue", "--hue-green", "--hue-yellow", "--hue-purple", "--hue-red"];
+
+function hash(s: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+/**
+ * An area's glyph: GitHub's identicon in the site's own terms. A 3×3 field
+ * of lit squares, mirrored, in one of the brand hues — the same squares the
+ * entry shutter leaves in, at the size of a favicon. Seeded by the slug, so
+ * an area is recognisable by its mark wherever it appears.
+ */
+export function AreaGlyph({ seed, size = 16 }: { seed: string; size?: number }) {
+  const h = hash(seed);
+  const hue = HUES[h % HUES.length];
+  const cells: [number, number][] = [];
+  for (let row = 0; row < 3; row++) {
+    for (let col = 0; col < 2; col++) {
+      if ((h >> (row * 2 + col + 3)) & 1) {
+        cells.push([col, row]);
+        if (col === 0) cells.push([2, row]);
+      }
+    }
+  }
+  if (cells.length === 0) cells.push([1, 1]);
+  return (
+    <svg
+      viewBox="0 0 3 3"
+      width={size}
+      height={size}
+      className={styles.glyph}
+      aria-hidden="true"
+      focusable="false"
+      shapeRendering="crispEdges"
+    >
+      {cells.map(([x, y]) => (
+        <rect key={`${x}${y}`} x={x} y={y} width="1" height="1" style={{ fill: `rgb(var(${hue}))` }} />
+      ))}
+    </svg>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────── rail */
+
+/** Whose dashboard this is. The role is the one the owner asked for. */
+export function OwnerCard() {
+  const [t] = useWords();
+  return (
+    <div className={styles.owner}>
+      <span className={styles.avatar}>
+        <img src="/img/yehuda-cut-sm.webp" alt="" width={365} height={560} decoding="async" />
+      </span>
+      <span className={styles.ownerText}>
+        <span className={styles.ownerName} translate="no">
+          {AUTHOR.name}
+        </span>
+        <span className={styles.ownerRole}>{t.role}</span>
+      </span>
+    </div>
+  );
+}
+
+export type ViewLink = { key: string; label: string; to: string; icon: ReactNode; current: boolean };
+
+/** Home and Feed: the two views, each a URL. */
+export function ViewNav({ label, views }: { label: string; views: ViewLink[] }) {
+  return (
+    <nav aria-label={label} className={styles.views}>
+      <ul>
+        {views.map((v) => (
+          <li key={v.key}>
+            <Link to={v.to} className={styles.view} aria-current={v.current ? "page" : undefined}>
+              <span aria-hidden="true">{v.icon}</span>
+              {v.label}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  );
+}
+
+export type TopItem = { key: string; label: string; to: string; count?: number; icon?: ReactNode };
+
+/**
+ * A ranked list with a search and "Show more": GitHub's "Top repositories".
+ * The search filters what is listed as it is typed; it is a convenience
+ * over a short list, so it lives in this component and not in the URL.
+ */
+export function TopList({ title, items, limit = 7 }: { title: string; items: TopItem[]; limit?: number }) {
+  const [t, lang] = useWords();
+  const [searching, setSearching] = useState(false);
+  const [q, setQ] = useState("");
+  const [all, setAll] = useState(false);
+  const headingId = useId();
+  const inputId = useId();
+  const input = useRef<HTMLInputElement>(null);
+
+  const needle = q.trim().toLocaleLowerCase();
+  const matched = needle
+    ? items.filter((i) => i.label.toLocaleLowerCase().includes(needle) || i.key.includes(needle))
+    : items;
+  const shown = all || needle ? matched : matched.slice(0, limit);
+  const nf = new Intl.NumberFormat(lang === "he" ? "he-IL" : "en-GB");
+
+  return (
+    <section className={styles.top} aria-labelledby={headingId}>
+      <div className={styles.topHead}>
+        <h2 id={headingId} className={styles.railTitle}>
+          {title}
+        </h2>
+        <button
+          type="button"
+          className={styles.iconButton}
+          aria-expanded={searching}
+          aria-controls={inputId}
+          aria-label={t.findArea}
+          onClick={() => {
+            const next = !searching;
+            setSearching(next);
+            if (!next) setQ("");
+            else queueMicrotask(() => input.current?.focus());
+          }}
+        >
+          <Search size={16} aria-hidden="true" />
+        </button>
+      </div>
+      <div hidden={!searching}>
+        <label htmlFor={inputId} className="sr-only">
+          {t.findArea}
+        </label>
+        <input
+          ref={input}
+          id={inputId}
+          type="search"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") {
+              setQ("");
+              setSearching(false);
+            }
+          }}
+          placeholder={`${t.findArea}…`}
+          autoComplete="off"
+          spellCheck={false}
+          dir="auto"
+          className={styles.topInput}
+        />
+      </div>
+      {shown.length > 0 ? (
+        <ul className={styles.topList}>
+          {shown.map((i) => (
+            <li key={i.key}>
+              <Link to={i.to} className={styles.topItem}>
+                {i.icon}
+                <span className={styles.topLabel}>{i.label}</span>
+                {i.count !== undefined && <span className={styles.topCount}>{nf.format(i.count)}</span>}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <div className={styles.topEmpty} role="status">
+          {t.noAreaMatch}
+        </div>
+      )}
+      {!needle && matched.length > limit && (
+        <button type="button" className={styles.more} aria-expanded={all} onClick={() => setAll(!all)}>
+          {all ? t.showLess : t.showMore}
+        </button>
+      )}
+    </section>
+  );
+}

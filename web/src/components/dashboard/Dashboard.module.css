@@ -1,0 +1,1319 @@
+/*
+ * The dashboard shell and its parts (#224), shared by Blogs, an area (#225),
+ * the channel log (#226) and Work (#227).
+ *
+ * GitHub's dashboard in structure and density; the site's own material.
+ *
+ * GROUND   the note cards' dark (#185) edge to edge: `.on-panel` plus the
+ *          stops in `notes/DarkCard.module.css` on the shell's root, so every
+ *          `--ink`, `--ink-soft`, `--rule` and `--signal` below already
+ *          resolves to the dark side.
+ * DEPTH    borders only, and quiet ones: a card is the ground with a
+ *          hairline round it (`--dash-line`), never a lifted fill and never
+ *          a shadow. A shadow does not read on this ground and the site's
+ *          paper cards already own the lifted look.
+ * DENSITY  one number, held: 12px inside a card, 12px of row padding, 8px
+ *          between a row's lines. Titles 14px/600 in full ink, meta 12px/400
+ *          in the soft ink (6.98:1 on the fill). Hierarchy is weight and ink.
+ * COLOUR   the link blue (`--signal`, re-pointed to `--accent-on-panel`) for
+ *          "View all" and onward links, the brand hues only in the area
+ *          glyphs, and nothing else at rest.
+ * MOTION   none of its own. Hover and focus change colour in `--dur-micro`;
+ *          nothing slides, grows or fades in. The skeleton's sweep is the
+ *          site's (`gallery/Skeleton.module.css`) with its off-switches.
+ *
+ * Everything is in logical properties, so Hebrew mirrors the whole page.
+ * The one physical thing is the arrow on "View full channel log →", which
+ * is flipped under `:dir(rtl)` because a glyph does not mirror itself.
+ */
+
+.ground {
+  --dash-line: rgb(var(--panel-rule) / 0.5);
+  --dash-line-soft: rgb(var(--panel-rule) / 0.3);
+  --dash-hover: rgb(var(--panel-ink) / 0.05);
+  --dash-inset: rgb(0 0 0 / 0.22);
+  --dash-r: calc(var(--r-sm) - 4px);
+  --dash-r-inner: calc(var(--r-sm) - 8px);
+  --dash-pad: 12px;
+
+  /*
+   * The ground starts at the top of the window, under the nav island, rather
+   * than 4rem down where `PageShell` clears the bar for paper pages: a strip
+   * of paper above a dark dashboard is a seam with nothing to say. The
+   * clearance moves inside, as padding, so the content still starts below
+   * the island.
+   */
+  margin-block-start: -4rem;
+  padding-block-start: 4rem;
+  min-height: 100svh;
+  font-family: var(--font-text);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+.ground :is(p, li, dd) {
+  line-height: inherit;
+  letter-spacing: inherit;
+}
+
+.frame {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 100rem;
+  margin-inline: auto;
+}
+
+.ground[data-mode="two"] .frame {
+  grid-template-columns: 18rem minmax(0, 1fr);
+}
+
+.ground[data-mode="three"] .frame {
+  grid-template-columns: 18rem minmax(0, 1fr) 21rem;
+}
+
+/* ─────────────────────────────────────────────────────────────── rail */
+
+.rail {
+  border-inline-end: 1px solid var(--dash-line-soft);
+}
+
+.railInner {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 1.5rem 1rem 2.5rem;
+}
+
+.railInner > * + *,
+.sheetBody > * + * {
+  padding-block-start: 1.25rem;
+  border-block-start: 1px solid var(--dash-line-soft);
+}
+
+.railTitle {
+  margin: 0;
+  font-family: var(--font-text);
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: rgb(var(--ink));
+}
+
+.owner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* The cut-out portrait on a light disc: it has an alpha channel and was
+   shot for paper, so the disc stays paper on the dark ground. */
+.avatar {
+  flex: none;
+  width: 2.5rem;
+  height: 2.5rem;
+  overflow: hidden;
+  border-radius: 50%;
+  background: rgb(var(--paper-2));
+  box-shadow: 0 0 0 1px var(--dash-line);
+}
+
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 8%;
+}
+
+.ownerText {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.ownerName {
+  font-weight: 600;
+  color: rgb(var(--ink));
+}
+
+.ownerRole {
+  font-size: 0.75rem;
+  color: rgb(var(--ink-soft));
+}
+
+.views ul,
+.topList,
+.rows,
+.chips,
+.offers,
+.timeline,
+.tree,
+.treeGroup {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.views ul {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.view {
+  position: relative;
+  display: flex;
+  min-height: 2.25rem;
+  align-items: center;
+  gap: 0.625rem;
+  padding-inline: 0.625rem;
+  border-radius: var(--dash-r-inner);
+  color: rgb(var(--ink));
+  text-decoration: none;
+  transition: background-color var(--dur-micro) ease;
+}
+
+.view:hover {
+  background: var(--dash-hover);
+}
+
+/* The current view: a raised fill and GitHub's bar at the inline start. */
+.view[aria-current="page"] {
+  background: rgb(var(--panel-ink) / 0.08);
+  font-weight: 600;
+}
+
+.view[aria-current="page"]::before {
+  content: "";
+  position: absolute;
+  inset-block: 6px;
+  inset-inline-start: -0.5rem;
+  width: 4px;
+  border-radius: 2px;
+  background: rgb(var(--signal));
+}
+
+.view svg {
+  width: 16px;
+  height: 16px;
+  color: rgb(var(--ink-soft));
+}
+
+.top {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.topHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.iconButton {
+  display: inline-grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border: 0;
+  border-radius: var(--dash-r-inner);
+  background: transparent;
+  color: rgb(var(--ink-soft));
+  cursor: pointer;
+  transition:
+    background-color var(--dur-micro) ease,
+    color var(--dur-micro) ease;
+}
+
+.iconButton:hover,
+.iconButton[aria-expanded="true"] {
+  background: var(--dash-hover);
+  color: rgb(var(--ink));
+}
+
+.topInput {
+  width: 100%;
+  min-height: 2.25rem;
+  padding-inline: 0.625rem;
+  border: 1px solid var(--dash-line);
+  border-radius: var(--dash-r-inner);
+  background: var(--dash-inset);
+  color: rgb(var(--ink));
+  font: inherit;
+  font-size: max(16px, 0.875rem);
+}
+
+.topInput::placeholder {
+  color: rgb(var(--ink-soft));
+}
+
+.topList {
+  display: flex;
+  flex-direction: column;
+}
+
+.topItem {
+  display: flex;
+  min-height: 2rem;
+  align-items: center;
+  gap: 0.625rem;
+  padding-inline: 0.5rem;
+  margin-inline: -0.5rem;
+  border-radius: var(--dash-r-inner);
+  color: rgb(var(--ink));
+  text-decoration: none;
+  transition: background-color var(--dur-micro) ease;
+}
+
+.topItem:hover {
+  background: var(--dash-hover);
+}
+
+.topLabel {
+  min-width: 0;
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+
+.topCount,
+.treeMeta {
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  color: rgb(var(--ink-soft));
+}
+
+.topEmpty {
+  font-size: 0.8125rem;
+  color: rgb(var(--ink-soft));
+}
+
+.more,
+.textButton {
+  align-self: flex-start;
+  min-height: 2rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: rgb(var(--ink-soft));
+  font: inherit;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.more:hover,
+.textButton:hover {
+  color: rgb(var(--signal));
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.glyph {
+  flex: none;
+  border-radius: 3px;
+  background: rgb(var(--panel-ink) / 0.06);
+  box-shadow: 0 0 0 1px var(--dash-line-soft);
+}
+
+/* The filter card, re-seated on the ground: the control is the gallery's
+   own (#193), and only its paper lift is taken off here. */
+.railFilter > section {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+/* Its heading in the rail's voice, beside "Top areas", rather than the
+   gallery card's display face. */
+.railFilter > section h2 {
+  font-family: var(--font-text);
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+/* ─────────────────────────────────────────────────────────────── main */
+
+.main {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2rem;
+  padding: 2rem clamp(1rem, 3vw, 2.5rem) 4rem;
+}
+
+.ground[data-mode="three"] .main > *,
+.ground[data-mode="two"] .main > * {
+  width: 100%;
+  max-width: 62rem;
+  margin-inline: auto;
+}
+
+.aside {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.ground[data-mode="three"] .aside {
+  padding: 2rem clamp(1rem, 2vw, 2rem) 4rem 0;
+}
+
+/* ─────────────────────────────────────────────────────────────── phone */
+
+.sheetBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sheetOpen {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  gap: 0.5rem;
+  padding-inline: 0.875rem;
+  border: 1px solid var(--dash-line);
+  border-radius: var(--dash-r-inner);
+  background: transparent;
+  color: rgb(var(--ink));
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.burger {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.burger span {
+  display: block;
+  width: 14px;
+  height: 1.5px;
+  border-radius: 1px;
+  background: currentColor;
+}
+
+.badge {
+  display: inline-grid;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  place-items: center;
+  padding-inline: 0.25rem;
+  border-radius: 999px;
+  background: rgb(var(--ink));
+  color: rgb(var(--panel));
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* A drawer from the inline start, as GitHub's own is on a phone: it is the
+   rail, so it comes from where the rail is. No transition. */
+.sheet {
+  position: fixed;
+  inset-block: 0;
+  inset-inline-start: 0;
+  inset-inline-end: auto;
+  width: min(20rem, 88vw);
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-inline-end: 1px solid var(--dash-line);
+  overscroll-behavior: contain;
+  font-family: var(--font-text);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.sheet[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+.sheet::backdrop {
+  background: rgb(0 0 0 / 0.55);
+}
+
+.sheetHead {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  padding-block-start: max(0.75rem, env(safe-area-inset-top));
+  border-block-end: 1px solid var(--dash-line-soft);
+}
+
+.sheetTitle {
+  margin: 0;
+  font-family: var(--font-text);
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.sheetClose {
+  position: relative;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 0;
+  border-radius: var(--dash-r-inner);
+  background: transparent;
+  color: rgb(var(--ink));
+  cursor: pointer;
+}
+
+.sheetClose span::before,
+.sheetClose span::after {
+  content: "";
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: 50%;
+  width: 16px;
+  height: 1.5px;
+  margin: -0.75px 0 0 -8px;
+  background: currentColor;
+  transform: rotate(45deg);
+}
+
+.sheetClose span::after {
+  transform: rotate(-45deg);
+}
+
+.sheetBody {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 1.25rem 1rem;
+  padding-block-end: max(1.25rem, env(safe-area-inset-bottom));
+  overflow-y: auto;
+}
+
+/* ─────────────────────────────────────────────────────────────── cards */
+
+.section {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.sectionHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.sectionTitle {
+  margin: 0;
+  font-family: var(--font-text);
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: rgb(var(--ink));
+}
+
+.sectionAction,
+.timelineMore {
+  display: inline-flex;
+  min-height: 1.5rem;
+  align-items: center;
+  font-size: 0.8125rem;
+  color: rgb(var(--signal));
+  text-decoration: none;
+}
+
+.sectionAction:hover,
+.timelineMore:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.card {
+  min-width: 0;
+  padding: var(--dash-pad);
+  border: 1px solid var(--dash-line);
+  border-radius: var(--dash-r);
+}
+
+.card[data-flush] {
+  padding: 0;
+}
+
+/* ─────────────────────────────────────────────────────────────── rows */
+
+.rows > .row {
+  display: grid;
+  grid-template-columns: 1rem minmax(0, 1fr);
+  gap: 0.75rem;
+  padding: var(--dash-pad) calc(var(--dash-pad) + 4px);
+  transition: background-color var(--dur-micro) ease;
+}
+
+.rows > .row + .row {
+  border-block-start: 1px solid var(--dash-line-soft);
+}
+
+.rows > .row:hover {
+  background: var(--dash-hover);
+}
+
+.rows > .row:first-child {
+  border-start-start-radius: var(--dash-r);
+  border-start-end-radius: var(--dash-r);
+}
+
+.rows > .row:last-child {
+  border-end-start-radius: var(--dash-r);
+  border-end-end-radius: var(--dash-r);
+}
+
+.rowIcon {
+  display: grid;
+  height: 1.3125rem;
+  place-items: center;
+  color: rgb(var(--ink-soft));
+}
+
+.rowIcon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.rowBody {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.rowTitleLine {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.rowTitle {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: rgb(var(--ink));
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.rowTitle:hover,
+.postTitle a:hover {
+  color: rgb(var(--signal));
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.rowMeta,
+.postMeta {
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.75rem;
+  color: rgb(var(--ink-soft));
+}
+
+.metaPart + .metaPart::before {
+  content: "·";
+  padding-inline: 0.375rem;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  padding-block-start: 0.25rem;
+}
+
+.chip {
+  display: inline-flex;
+  min-height: 1.5rem;
+  align-items: center;
+  padding-inline: 0.5rem;
+  border: 1px solid var(--dash-line);
+  border-radius: 999px;
+  color: rgb(var(--ink-soft));
+  font-size: 0.75rem;
+  text-decoration: none;
+  transition:
+    color var(--dur-micro) ease,
+    border-color var(--dur-micro) ease;
+}
+
+/* A 24px target, which the WCAG 2.2 minimum is; a phone gets a taller
+   invisible hit area without the chip itself growing. */
+@media (pointer: coarse) {
+  .chip {
+    position: relative;
+  }
+  .chip::after {
+    content: "";
+    position: absolute;
+    inset: -10px -2px;
+  }
+}
+
+.chip:hover,
+.chip[aria-current="true"] {
+  border-color: rgb(var(--ink-soft));
+  color: rgb(var(--ink));
+}
+
+.chip[aria-current="true"] {
+  background: rgb(var(--panel-ink) / 0.08);
+}
+
+.featured {
+  display: inline-flex;
+  align-items: center;
+  padding-inline: 0.4375rem;
+  border: 1px solid var(--dash-line);
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: rgb(var(--ink-soft));
+}
+
+/* ─────────────────────────────────────────────────────────────── greeting */
+
+.hello {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.greeting {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 4vw, 2rem);
+  font-weight: var(--weight-display);
+  line-height: 1.15;
+  letter-spacing: var(--track-sub);
+  color: rgb(var(--ink));
+  text-wrap: balance;
+}
+
+.areaTitle {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.lede {
+  margin: 0;
+  max-width: 60ch;
+  color: rgb(var(--ink-soft));
+  text-wrap: pretty;
+}
+
+/* ─────────────────────────────────────────────────────────────── ask */
+
+.ask {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.askBox {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--dash-line);
+  border-radius: var(--dash-r);
+  background: var(--dash-inset);
+  transition: border-color var(--dur-micro) ease;
+}
+
+.askBox:focus-within {
+  border-color: rgb(var(--ink-soft));
+}
+
+.askInput {
+  display: block;
+  width: 100%;
+  min-height: 3.5rem;
+  padding: 0.875rem 1rem 0.25rem;
+  border: 0;
+  background: transparent;
+  color: rgb(var(--ink));
+  font: inherit;
+  font-size: max(16px, 0.9375rem);
+  resize: none;
+}
+
+/* The box draws the focus edge for the field inside it. */
+.askInput:focus-visible {
+  outline: none;
+}
+
+.askBox:has(.askInput:focus-visible) {
+  outline: 2px solid rgb(var(--ink));
+  outline-offset: 2px;
+}
+
+.askInput::placeholder {
+  color: rgb(var(--ink-soft));
+}
+
+.askTools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.625rem 0.625rem;
+}
+
+.askTool {
+  display: inline-flex;
+  min-height: 2rem;
+  align-items: center;
+  gap: 0.375rem;
+  padding-inline: 0.625rem;
+  border: 1px solid var(--dash-line);
+  border-radius: var(--dash-r-inner);
+  background: transparent;
+  color: rgb(var(--ink));
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color var(--dur-micro) ease;
+}
+
+.askTool:hover {
+  background: var(--dash-hover);
+}
+
+.askHint {
+  min-width: 0;
+  flex: 1;
+  font-size: 0.75rem;
+  color: rgb(var(--ink-soft));
+}
+
+.askSubmit {
+  display: inline-grid;
+  width: 2.25rem;
+  height: 2.25rem;
+  place-items: center;
+  border: 0;
+  border-radius: var(--dash-r-inner);
+  background: transparent;
+  color: rgb(var(--ink));
+  cursor: pointer;
+}
+
+.askSubmit:hover {
+  background: var(--dash-hover);
+}
+
+.offers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+.offer {
+  display: inline-flex;
+  min-height: 2rem;
+  align-items: center;
+  gap: 0.125rem;
+  padding-inline: 0.625rem;
+  border: 1px solid rgb(var(--signal) / 0.6);
+  border-radius: 999px;
+  background: transparent;
+  color: rgb(var(--ink));
+  font: inherit;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.offer:hover {
+  background: var(--dash-hover);
+}
+
+.quickChips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.quickChip {
+  display: inline-flex;
+  min-height: 2.25rem;
+  align-items: center;
+  gap: 0.375rem;
+  padding-inline: 0.875rem;
+  border: 1px solid var(--dash-line);
+  border-radius: var(--dash-r-inner);
+  color: rgb(var(--ink));
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background-color var(--dur-micro) ease;
+}
+
+.quickChip:hover {
+  background: var(--dash-hover);
+}
+
+.quickChip svg {
+  width: 14px;
+  height: 14px;
+  color: rgb(var(--ink-soft));
+}
+
+/* ─────────────────────────────────────────────────────────────── top posts */
+
+.posts {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@container (min-width: 40rem) {
+  .posts {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.postsWrap {
+  container-type: inline-size;
+}
+
+.post {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: var(--dash-pad) calc(var(--dash-pad) + 4px);
+  border: 1px solid var(--dash-line);
+  border-radius: var(--dash-r);
+  transition: border-color var(--dur-micro) ease;
+}
+
+.post:hover {
+  border-color: rgb(var(--ink-soft));
+}
+
+.postHead {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: rgb(var(--ink-soft));
+}
+
+.postArea {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.postTitle {
+  margin: 0;
+  font-family: var(--font-text);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: 0;
+}
+
+.postTitle a {
+  color: rgb(var(--ink));
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.postExcerpt {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  color: rgb(var(--ink-soft));
+  font-size: 0.8125rem;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+}
+
+.postMeta {
+  margin-block-start: auto;
+}
+
+/* ─────────────────────────────────────────────────────────────── tree */
+
+.tree {
+  padding-block: 0.375rem;
+}
+
+.treeBranch {
+  outline-offset: -2px;
+}
+
+.treeBranch:focus-visible {
+  outline: none;
+}
+
+.treeBranch:focus-visible > .treeRow,
+.treeLeaf:focus-visible {
+  outline: 2px solid rgb(var(--ink));
+  outline-offset: -2px;
+}
+
+.treeRow {
+  --indent: calc((var(--level, 1) - 1) * 1.5rem);
+  display: flex;
+  min-height: 2rem;
+  align-items: center;
+  gap: 0.5rem;
+  padding-inline: calc(0.75rem + var(--indent)) 0.75rem;
+  border-radius: var(--dash-r-inner);
+  margin-inline: 0.375rem;
+  color: rgb(var(--ink));
+  text-decoration: none;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color var(--dur-micro) ease;
+}
+
+.treeRow[data-level="2"] {
+  --level: 2;
+}
+
+.treeRow[data-level="3"] {
+  --level: 3;
+}
+
+.treeRow:hover {
+  background: var(--dash-hover);
+}
+
+.treeLeaf {
+  color: rgb(var(--ink));
+}
+
+.treeLeaf svg {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  color: rgb(var(--ink-soft));
+}
+
+.treeLabel {
+  min-width: 0;
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+
+.treeBranch > .treeRow .treeLabel {
+  font-weight: 600;
+}
+
+/* A chevron drawn in CSS: it points at the inline end when shut, down when
+   open, so it points the right way in Hebrew without a second glyph. */
+.treeTwisty {
+  flex: none;
+  width: 0.75rem;
+  height: 0.75rem;
+  display: grid;
+  place-items: center;
+}
+
+.treeTwisty::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-block-start: 1.5px solid rgb(var(--ink-soft));
+  border-inline-end: 1.5px solid rgb(var(--ink-soft));
+  transform: rotate(45deg);
+}
+
+.treeTwisty:dir(rtl)::before {
+  transform: rotate(-45deg);
+}
+
+.treeTwisty[data-open]::before {
+  transform: rotate(135deg);
+}
+
+.treeGroup {
+  position: relative;
+}
+
+/* The guide line under an open branch, at the twisty's centre. */
+.treeGroup::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: calc(0.375rem + 0.75rem + 0.375rem);
+  border-inline-start: 1px solid var(--dash-line-soft);
+}
+
+.treeHint {
+  margin: 0;
+  padding: 0.5rem 1rem;
+  border-block-start: 1px solid var(--dash-line-soft);
+  font-size: 0.75rem;
+  color: rgb(var(--ink-soft));
+}
+
+/* ─────────────────────────────────────────────────────────────── timeline */
+
+.timelineCard {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1px solid var(--dash-line);
+  border-radius: var(--dash-r);
+}
+
+.timelineTitle {
+  margin: 0;
+  font-family: var(--font-text);
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.timeline {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* The rail the dots sit on. */
+.timeline::before {
+  content: "";
+  position: absolute;
+  inset-block: 0.5rem 0;
+  inset-inline-start: 9px;
+  border-inline-start: 1px solid var(--dash-line);
+}
+
+.event {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1.25rem minmax(0, 1fr);
+  column-gap: 0.75rem;
+  row-gap: 0.125rem;
+}
+
+.eventDot {
+  grid-row: 1 / span 3;
+  display: grid;
+  width: 1.25rem;
+  height: 1.25rem;
+  place-items: center;
+  border: 1px solid var(--dash-line);
+  border-radius: 50%;
+  background: rgb(var(--panel));
+  color: rgb(var(--ink-soft));
+}
+
+.eventWhen {
+  font-size: 0.75rem;
+  color: rgb(var(--ink-soft));
+}
+
+.eventTitle {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.eventLink {
+  color: rgb(var(--ink));
+  text-decoration: none;
+}
+
+.eventLink:hover {
+  color: rgb(var(--signal));
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.eventArea {
+  font-size: 0.75rem;
+  color: rgb(var(--ink-soft));
+}
+
+.quiet {
+  color: rgb(var(--ink-soft));
+}
+
+.inlineError {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.75rem;
+  color: rgb(var(--ink-soft));
+}
+
+.timelineMore {
+  align-self: flex-start;
+}
+
+/* Under the list, it lines up with the titles rather than the dots. */
+.timeline + .timelineMore {
+  margin-inline-start: 2rem;
+}
+
+.arrow {
+  display: inline-block;
+  white-space: pre;
+}
+
+.arrow:dir(rtl) {
+  transform: scaleX(-1);
+}
+
+/* ─────────────────────────────────────────────────────────────── messages */
+
+.message {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1.5rem;
+  border: 1px solid var(--dash-line);
+  border-radius: var(--dash-r);
+}
+
+.messageTitle {
+  margin: 0;
+  font-family: var(--font-text);
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.messageBody {
+  margin: 0;
+  max-width: 60ch;
+  color: rgb(var(--ink-soft));
+}
+
+.messageCode {
+  font-family: var(--font-code);
+  font-size: 0.75rem;
+  color: rgb(var(--ink-soft));
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.button {
+  display: inline-flex;
+  min-height: 2.25rem;
+  align-items: center;
+  padding-inline: 0.875rem;
+  border: 1px solid var(--dash-line);
+  border-radius: var(--dash-r-inner);
+  background: transparent;
+  color: rgb(var(--ink));
+  font: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color var(--dur-micro) ease;
+}
+
+.button:hover {
+  background: var(--dash-hover);
+}
+
+.button[data-primary] {
+  border-color: rgb(var(--ink));
+  background: rgb(var(--ink));
+  color: rgb(var(--panel));
+}
+
+.monthHead {
+  margin: 0;
+  padding: 0.5rem calc(var(--dash-pad) + 4px);
+  border-block-end: 1px solid var(--dash-line-soft);
+  background: rgb(var(--panel-ink) / 0.03);
+  font-family: var(--font-text);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: rgb(var(--ink-soft));
+}
+
+.month + .month {
+  border-block-start: 1px solid var(--dash-line-soft);
+}
+
+.month:first-child .monthHead {
+  border-start-start-radius: var(--dash-r);
+  border-start-end-radius: var(--dash-r);
+}
+
+.feedFoot {
+  display: flex;
+  justify-content: center;
+  padding: var(--dash-pad);
+  border-block-start: 1px solid var(--dash-line-soft);
+  color: rgb(var(--ink-soft));
+  font-size: 0.8125rem;
+}
+
+/* ─────────────────────────────────────────────────────────────── skeletons */
+
+.skRow {
+  display: grid;
+  grid-template-columns: 1rem minmax(0, 1fr);
+  gap: 0.75rem;
+  padding: var(--dash-pad) calc(var(--dash-pad) + 4px);
+}
+
+.skRow + .skRow {
+  border-block-start: 1px solid var(--dash-line-soft);
+}
+
+.skIcon {
+  width: 1rem;
+  height: 1rem;
+  margin-block-start: 0.15rem;
+  border-radius: 4px;
+  background: rgb(var(--panel-ink) / 0.08);
+}
+
+.skLines {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+.skMeta {
+  font-size: 0.75rem;
+}
