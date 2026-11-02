@@ -118,13 +118,59 @@ check: ## Run the gates CI runs: lint, typecheck, tests, builds
 # Not a test suite — four requests that between them prove the whole chain is
 # wired: nginx serves, nginx reaches the API, the API reaches CouchDB, and the
 # API is rendering per-URL heads rather than falling back to the plain shell.
+#
+# The /api/ check asserts on the response *body*, and that is the point of
+# this target rather than a refinement of it. Every HTML route proxies to the
+# API's renderer under `error_page 500 502 503 504 = @spa`, so when the API is
+# unreachable the visitor is handed the bare SPA shell with a 200 and nothing
+# anywhere reports a problem. This target therefore passed green throughout
+# the preprod outage where nginx could not resolve the api Service and
+# answered 502 to every single /api/ request.
+#
+# It was blind to that 502 for a second and independent reason, worth keeping
+# in mind before anyone writes another check here: the line was
+# `curl -fs ... | head -c 60`, and a pipeline's exit status is the last
+# command's, so curl's failure was discarded by `head` and `set -e` never had
+# anything to act on. Run against preprod while it was still broken, the old
+# recipe exited 0 and printed an empty line where the posts belonged. That is
+# why the body is captured into a variable and matched here.
+#
+# The /blog check asserts on the body for the same reason and a different
+# failure: an empty content store. It used to print whatever <title> came
+# back, and the SPA shell has a perfectly good <title> of its own, so a
+# fallback was indistinguishable from a render. It now requires the heading
+# the renderer emits, which the built index.html does not contain anywhere.
 smoke: ## Check the running stack end to end
 	@set -e; \
 	printf '%-34s' 'GET /'; \
-	curl -fs -o /dev/null -w '%{http_code}\n' $(SITE)/; \
-	printf '%-34s' 'GET /api/blog/posts'; \
-	curl -fs $(SITE)/api/blog/posts | head -c 60; echo; \
-	printf '%-34s' 'GET /blog (rendered head)'; \
-	curl -fs $(SITE)/blog | grep -o '<title>[^<]*</title>' | head -1; \
+	curl -fsS -o /dev/null -w '%{http_code}\n' $(SITE)/; \
+	printf '%-34s' 'GET /api/blog/posts (body)'; \
+	body=$$(curl -sS -m 10 $(SITE)/api/blog/posts || true); \
+	case "$$body" in \
+	  *'"ok":true'*'"slug"'*) \
+	    printf 'ok, %s posts\n' "$$(printf '%s' "$$body" | grep -o '"slug"' | wc -l | tr -d ' ')";; \
+	  *) printf 'FAIL\n\n'; \
+	     echo '  /api/blog/posts did not answer with posts. First 200 bytes:'; \
+	     printf '    %s\n\n' "$$(printf '%s' "$$body" | head -c 200)"; \
+	     echo '  An empty body is nginx unable to reach the API (502) — check'; \
+	     echo '  that NGINX_API_HOST names a host nginx can resolve absolutely.'; \
+	     echo '  A 404, or an items list with nothing in it, is a content store'; \
+	     echo '  with no documents: run `make seed`.'; \
+	     exit 1;; \
+	esac; \
+	printf '%-34s' 'GET /blog (rendered, not shell)'; \
+	blog=$$(curl -sS -m 10 $(SITE)/blog || true); \
+	case "$$blog" in \
+	  *'<h1>Notes</h1>'*) \
+	    printf 'ok, %s\n' "$$(printf '%s' "$$blog" | grep -o '<title>[^<]*</title>' | head -1)";; \
+	  *) printf 'FAIL\n\n'; \
+	     echo '  /blog came back without the rendered <h1>, so nginx fell back'; \
+	     echo '  to @spa and served the bare shell — with a 200. The built'; \
+	     echo '  index.html contains no <h1> at all, which is exactly what'; \
+	     echo '  makes the fallback detectable from the body and not from the'; \
+	     echo '  status. The <title> is not enough on its own: the shell ships'; \
+	     echo '  one, so the old check here accepted the fallback as a pass.'; \
+	     exit 1;; \
+	esac; \
 	printf '%-34s' 'GET /robots.txt'; \
-	curl -fs -o /dev/null -w '%{http_code}\n' $(SITE)/robots.txt
+	curl -fsS -o /dev/null -w '%{http_code}\n' $(SITE)/robots.txt
