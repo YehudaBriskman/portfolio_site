@@ -58,6 +58,9 @@ COPY nginx.conf.template /etc/nginx/templates/default.conf.template
 # a second time outside any server block. snippets/ is only ever reached by the
 # explicit includes in the config above.
 COPY security-headers.conf /etc/nginx/snippets/security-headers.conf
+# The request headers every proxy_pass location sends upstream, for the same
+# reason and to the same place: proxy_set_header does not inherit either.
+COPY proxy-headers.conf /etc/nginx/snippets/proxy-headers.conf
 
 EXPOSE 8080
 
