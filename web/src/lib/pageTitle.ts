@@ -178,6 +178,8 @@ export function pageIdentityFor(pathname: string): PageIdentity {
     if (segments.length === 2) return identity(projectName(second));
   }
 
+  if (first === "story" && segments.length === 1) return identity("The story");
+
   if (first === "blog") {
     /* "Notes", not "Blog". The route is `/blog` for the sake of the links
        already shared at that address; every word the site prints for it — the

@@ -14,6 +14,9 @@ import NotFound from "./pages/NotFound";
 const Blog = lazy(() => import("./pages/Blog"));
 const Projects = lazy(() => import("./pages/Projects"));
 const Project = lazy(() => import("./pages/Project"));
+// The story (#46): lazy like every route but the home page, so the collection
+// does not pay for a second route most first visits never open.
+const Story = lazy(() => import("./pages/Story"));
 const BlogPost = lazy(() => import("./pages/BlogPost"));
 // Admin is edge-gated, but lazy anyway so the editor never reaches a reader.
 const Admin = lazy(() => import("./pages/Admin"));
@@ -107,6 +110,7 @@ const App = () => (
             <Route path="/blog" element={<Suspense fallback={null}><Blog /></Suspense>} />
             <Route path="/projects" element={<Suspense fallback={null}><Projects /></Suspense>} />
             <Route path="/projects/:project" element={<Suspense fallback={null}><Project /></Suspense>} />
+            <Route path="/story" element={<Suspense fallback={null}><Story /></Suspense>} />
             {/* the short-lived /blog/c/ shape, kept so nothing dangles */}
             <Route path="/blog/c/:project" element={<LegacyCollectionRedirect />} />
             <Route path="/blog/:slug" element={<Suspense fallback={null}><BlogPost /></Suspense>} />

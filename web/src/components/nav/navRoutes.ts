@@ -33,11 +33,19 @@
  * screen that sets the full name in display type was a second, worse answer to
  * a question the page had already answered, and a monogram is the one thing in
  * a chrome that cannot say where it goes.
+ *
+ * "The story" is the fourth room (#46), and it sits after "All work" because
+ * it is the same work along the other axis — the collection says what exists,
+ * the story says how it got there — so the two are read as a pair. It is not
+ * "About" and not "CV": the page is a chaptered account of the work, it names
+ * no employer, and a label promising a résumé would be a label for a page
+ * that does not exist.
  */
 export type NavRoute = { to: string; label: string };
 
 export const NAV_ROUTES: readonly NavRoute[] = [
   { to: "/", label: "Home" },
   { to: "/projects", label: "All work" },
+  { to: "/story", label: "The story" },
   { to: "/blog", label: "All notes" },
 ];
