@@ -1088,8 +1088,23 @@ board, year lanes) and asked for the board, mixed with the lanes' panel.
 
 | page | device family | the one reason it exists |
 |---|---|---|
-| `/projects` | **`assemble`** | each band of the wall closes in from its own edges as it comes up the window: a tile on the left slides in from the left, a tile on the right from the right, a tile in the middle rises. So the wall is hung by the time the eye reaches it, and nothing in the reading band moves |
-| `/projects` panel | `draw`, on bars | the projects-per-year bars grow from their baseline as the panel comes up, and shrink back on the way up |
+| `/projects`, `/blog` | **`assemble`** | each band of the wall closes in from its own edges as it comes up the window: a piece on the left slides in from the left, a piece on the right from the right, a piece in the middle rises. So the wall is hung by the time the eye reaches it, and nothing in the reading band moves |
+| ~~`/projects` panel~~ | ~~`draw`, on bars~~ | **removed in #193** with the panel itself: the owner's call, "it doesn't belong" |
+
+**#193: one gallery for both pages.** The wall, its sizes, `assemble`, the
+re-hang and the three off-switches moved out of `projects/` into
+`gallery/Wall.tsx` + `Wall.module.css`, and `/blog` hangs the notes on it
+in their dark cards (`notes/NoteTile.tsx`) instead of the two-column grid and
+its `.scrub-rise` (retired: it had no other caller). What is in a cell is the
+page's; the motion is the wall's, on a `.piece` wrapper, so neither a project
+tile nor a note card animates anything of its own. The wall now shares its row
+with a side rail, so its columns follow the wall's own width
+(`@container`), not the window's. Both pages filter from the same rail
+(`gallery/Rail.tsx`) and the same control (`gallery/FilterControl.tsx`):
+popover multi-selects, the choices as removable tokens, "Clear all". None of
+it moves: a popover and the phone's sheet appear and go without a transition,
+so the only motion a filter causes is the wall's re-hang, already exempt
+below and already cut by reduced motion and Pause.
 
 **The owner's brief still holds:** the catalogue "shouldn't be like the
 landing page, it's not the same purpose". The run is branding: a curated few,
@@ -1098,9 +1113,10 @@ later, and a reader there is scanning and choosing, not being shown. What #175
 changed is how that scanning is done. The register let a reader scan by eye
 down a column. The wall leads with the picture, which is the strongest thing
 most projects have, and moves the scanning into filters. State, year and stack
-are always on screen and kept in the URL (`?state=&year=&stack=`). Each chip
-counts what it would show given the other two filters, so a zero is visible
-before it is pressed.
+are always on screen and kept in the URL (`?state=&year=&stack=`; since #193
+each takes several values, `?stack=Go&stack=Rust`). Each option counts what it
+would show given the other two filters, so a zero is visible before it is
+pressed.
 
 **What makes `assemble` its own family and not `pin`, `pan` or `flow` again.**
 Four tests, and it has to keep passing all of them:
@@ -1142,16 +1158,21 @@ thing at the same height, and by a third of the way up the window the wall is
 flat and still. Type is never faded: the travelling tile's shade is an
 overlay, not opacity on the words.
 
-**The off-switches land on the plain wall and the drawn chart.** Reduced
-motion, Pause and no `animation-timeline` each cancel the tile, its shade and
-the bars outright. Reduced motion and Pause also cut the re-hang to an
-instant swap. A tile that takes focus cancels its own arrival and asks for
-`scroll-margin-block-end: 30svh`.
+**The off-switches land on the plain wall.** Reduced motion, Pause and no
+`animation-timeline` each cancel the piece and its shade outright (no
+`animation-play-state`, which would freeze every piece below the fold half-way
+in). Reduced motion and Pause also cut the re-hang to an instant swap. A piece
+that takes focus cancels its own arrival and asks for
+`scroll-margin-block-end: 30svh`. `gallery/__tests__/Gallery.test.tsx` holds
+all of it on the stylesheet text, and holds that the pieces' own stylesheets
+(`projects/Gallery.module.css`, `notes/NoteTile.module.css`) and the rail's
+and filter's carry no keyframes at all.
 
-**The panel is dark, and it is not a third dark act.** That argument sits
-beside the ceiling it answers to, in `ground/DarkAct.tsx`. It carries
-`.on-panel` and `data-chrome="dark"`, so the nav changes material while it
-passes under.
+**No dark ground on either page (#193).** The panel was the one dark thing on
+/projects and it is gone, so nothing there carries `data-chrome="dark"` and
+the nav keeps its paper material the whole way down. The notes' cards are
+dark, but as cards on paper, not a ground: no `data-chrome`, no inversion.
+The argument, and what would void it, is in `ground/DarkAct.tsx`.
 
 **What it costs, measured (2026-11-02).** 4× CPU throttle, 1440×900, the whole
 document wheel-scrolled with real input events, rAF frames over wall clock,
@@ -1465,12 +1486,13 @@ direction, or set `fill-rule: evenodd` deliberately and know what it costs.
 | `HeroArrival.module.css` | the staged assembly, reversed: the plate comes apart as the hero leaves and goes back together on the way up | named `view-timeline` `--hero` on the section, `exit` ranges |
 | `HeroCorners.module.css` | `breath` — the phrases turn and the lamp breathes across the hero's exit; the corners go last | `--hero` |
 | `Stack.module.css` | `count` — each figure counts from nought as the plate comes up, and back down as it goes | named `view-timeline` `--specs` on the plate |
-| `index.css` `.scrub-rise` / `.scrub-pulse` | the notes index's card rise and every loading placeholder's pulse | `view()` |
+| `index.css` `.scrub-pulse` | every loading placeholder's pulse (`.scrub-rise` retired in #193) | `view()` |
 | `Approach.module.css` + `ApproachFigures.tsx` | `draw` — each principle's figure, stroke by stroke | named `view-timeline` per principle |
 | `motion/InkWipe.tsx` | ink arriving as a hard clip edge, plus the coloured band | `view()` |
 | `motion/InkRule.tsx` | a hairline drawing itself in | `view()` |
-| `projects/Gallery.module.css` + `Gallery.tsx` | `assemble`, /projects only: each tile slides in from its own side of the wall (or rises, in the middle third), and a filter re-hangs the wall with a short view transition | named `view-timeline` on each static `<li>`, read by the `<article>` inside it; side read from layout once into `data-from` |
-| `projects/StatsPanel.module.css` | the panel's bars grow from their baseline as it comes up the window | named `view-timeline` on the panel |
+| `gallery/Wall.module.css` + `Wall.tsx` | `assemble`, /projects and /blog (#193): each piece slides in from its own side of the wall (or rises, in the middle third), and a filter re-hangs the wall with a short view transition | named `view-timeline` on each static `<li>`, read by the `.piece` inside it; side read from layout once into `data-from` |
+| `projects/Gallery.module.css`, `notes/NoteTile.module.css` | what hangs in a cell: a project tile, a note card. No motion of their own | — |
+| `gallery/FilterControl.tsx` + `Rail.tsx` | the filter card, its popovers and the phone's sheet. No motion: they appear and go | — |
 | `projects/ProjectRun.module.css` | `pin` — the work travelling along a curve under a held frame; one lap per card, staggered by range | named `view-timeline` on the static stage, the frame held inside it |
 | `projects/RunAurora.tsx` + `runCurve.ts` | the run's aurora: light on the cards' own curve, a window sweeping along it once a card; a still ribbon down the plain list with motion off | the run's `--run` timeline, iterated once per card |
 | `LatestNotes.module.css` | `pan`, held — the notes walk past under a held frame, one card-width per step | named `view-timeline` on the static stage (inset 0), the frame held inside it |
@@ -1596,11 +1618,12 @@ animation.
 | close: surface, label, full stop (`Contact`) | / | `view()` per part | scrubbed |
 | contact dialog: scrim, panel, field ink, send seal | / and the nav's Contact | transitions and clock keyframes | **exempt**: dialog open/close and a reply to Send |
 | /story plates (`story-plate`) | /story | `view()` | scrubbed |
-| gallery tiles assembling (`assemble`, `assemble-shade`) | /projects | `--tile` per tile | scrubbed |
-| gallery filter re-hang (view transition) | /projects | `startViewTransition` | **exempt**: filter re-hang |
-| stats panel bars (`draw-bar`) | /projects | named view timeline | scrubbed |
+| gallery pieces assembling (`assemble`, `assemble-shade`, `gallery/Wall`) | /projects, /blog | `--tile` per cell | scrubbed (on /blog since #193) |
+| gallery filter re-hang (view transition) | /projects, /blog | `startViewTransition` | **exempt**: filter re-hang |
+| filter popovers, the rail's phone sheet (`FilterControl`, `Rail`) | /projects, /blog | none: shown and hidden, no transition | — (#193) |
+| stats panel bars (`draw-bar`) | /projects | — | **removed** (#193): the panel was deleted |
 | ink wipe on the cover and band (`InkWipe`) | /projects/:slug | `view()` | scrubbed |
-| notes index cards rising (`.scrub-rise`) | /blog | `view()`, `entry` | **scrubbed** (#162; was Tailwind `animate-fade-up`, 0.7s on mount) |
+| notes index cards rising (`.scrub-rise`) | /blog | — | **removed** (#193): the notes hang on the gallery wall and arrive by `assemble` (row above) |
 | loading placeholders' pulse (`.scrub-pulse`) | /projects/:slug, /blog/:slug, note covers, project shots, the admin "Saving" dot | `view()`, `cover` | **scrubbed** (#162; was Tailwind `animate-pulse-soft`, 2.4s infinite) |
 | skeleton sweep (`Skeleton`) | /, /projects, /blog | `--sk-line` per line | **scrubbed** (#162; was a 1.5s loop) |
 | skeleton gate (`sk-gate`) | wherever a skeleton shows | 1ms step after a 180ms delay | **exempt**: not motion — a visibility threshold (§4) |
@@ -1614,8 +1637,14 @@ animation.
 | admin login | /admin/posts | form-control focus transitions only | **exempt**: focus |
 | 404, /accessibility | — | nothing of their own beyond the shared chrome above | — |
 
-Counted: 37 rows. 9 were converted from a clock or a one-shot trigger to a
+Counted: 38 rows. 9 were converted from a clock or a one-shot trigger to a
 scroll timeline in #162, and the bar's drop was removed outright; 14 were
 already scrubbed; 12 are exempt for the reasons given; 1 row is routes with
 nothing of their own. `Rise`, `Arrived` and
 `Flow` were on no route and were deleted.
+
+#193 moved the ledger by three rows: the stats bars and the notes' `.scrub-rise`
+were removed (the panel was deleted; the notes now arrive on the gallery wall,
+whose row widened to /blog), and the filter popovers and phone sheet were added
+as a row with no motion at all. So today: 21 scrubbed, 12 exempt, 3 removed,
+2 with nothing of their own.
