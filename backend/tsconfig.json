@@ -4,7 +4,15 @@
     "module": "commonjs",
     "rootDir": "./src",
     "outDir": "./dist",
-    "moduleResolution": "Node",
+    // TS 7 removed node10 ("Node"). node16/nodenext would demand explicit
+    // extensions on dynamic imports in tests; "bundler" keeps node10's
+    // extensionless lookup while honouring package exports. Emit is unchanged:
+    // still CommonJS, and Node's own require() does the runtime resolution.
+    "moduleResolution": "bundler",
+    // @emailjs/nodejs ships an exports map with no "types" condition, so any
+    // resolver that honours exports (everything but the node10 that TS 7
+    // removed) finds its JS and no declarations. Point at the ones it ships.
+    "paths": { "@emailjs/nodejs": ["./node_modules/@emailjs/nodejs/mjs/index.d.ts"] },
     "lib": ["ES2020"],
     "strict": true,
     "esModuleInterop": true,

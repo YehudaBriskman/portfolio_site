@@ -1,0 +1,57 @@
+# Close older Dependabot PRs when a newer one opens for the same ecosystem.
+#
+# Policy (see .github/dependabot.yml): at most one open Dependabot PR per
+# ecosystem. Grouping plus `open-pull-requests-limit: 1` covers almost every
+# case - Dependabot rebuilds the open group PR in place. This catches the rest:
+#   - security updates, which open outside any group and ignore the limit;
+#   - PRs left over from an older config (the pre-2026-11-02 per-major PRs);
+#   - Dependabot opening a fresh group PR instead of rebasing a stale one.
+# Without it those stack up beside the group PR and conflict with it on every
+# merge, because they all rewrite the same lockfiles.
+#
+# The ecosystem is read from the branch name Dependabot always uses,
+# `dependabot/<ecosystem>/...` (npm_and_yarn, docker, github_actions). The npm
+# and docker entries each cover every directory, so one ecosystem is one PR.
+#
+# Why pull_request_target: on a `pull_request` event raised by Dependabot,
+# GITHUB_TOKEN is read-only whatever `permissions:` says, so the close would
+# fail. pull_request_target runs in the base repository's context. It is safe
+# here because nothing from the PR is checked out or executed - the job reads
+# only the event's number and branch name and calls `gh`.
+
+name: Dependabot supersede
+
+on:
+  pull_request_target:
+    types: [opened]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  supersede:
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Close older (lower-numbered) open Dependabot PRs for the same ecosystem
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          NEW: ${{ github.event.pull_request.number }}
+          BRANCH: ${{ github.event.pull_request.head.ref }}
+        run: |
+          set -euo pipefail
+          eco=$(printf '%s' "$BRANCH" | cut -d/ -f2)
+          if [ -z "$eco" ]; then
+            echo "No ecosystem in branch '$BRANCH'; nothing to do."
+            exit 0
+          fi
+          prefix="dependabot/${eco}/"
+          gh pr list --author 'app/dependabot' --state open --limit 100 \
+              --json number,headRefName \
+              --jq ".[] | select(.number < ${NEW}) | select(.headRefName | startswith(\"${prefix}\")) | .number" |
+          while read -r old; do
+            echo "Closing #${old}: superseded by #${NEW} (${eco})"
+            gh pr close "$old" --delete-branch --comment "Superseded by #${NEW}"
+          done
