@@ -1,0 +1,317 @@
+#!/usr/bin/env node
+/*
+ * The automated half of the accessibility audit (issue #99).
+ *
+ * WHAT THIS IS, AND WHAT IT IS NOT
+ *
+ * axe-core run against every public route, in both reading directions, at the
+ * desktop width and at 320px. It is the *floor*: the rules axe can decide from
+ * the DOM — names, roles, contrast it can measure, landmarks, duplicate ids,
+ * heading order, `lang`. It is not the audit. The keyboard walk, focus
+ * visibility and obscuring, target size by hand, text spacing and the reduced
+ * motion contract are in `docs/accessibility/audit.md`, because axe catches
+ * perhaps a third of what a person finds and a green run here must never be
+ * quoted as conformance.
+ *
+ * It exists so the floor stays where the audit left it. A pull request that
+ * drops a name off a button or a heading level out of a page fails CI here,
+ * rather than waiting for the next person who thinks to look.
+ *
+ * WHY A SCRIPT AND NOT A VITEST FILE
+ *
+ * The unit suite runs in jsdom, and jsdom has no layout: no computed colour
+ * against a painted ground, no boxes, no viewport. Contrast — the rule this
+ * site's whole token block is argued against — is unanswerable there. So this
+ * drives a real Chromium against the built site, and runs as its own step
+ * after `npm run build`.
+ *
+ * THE API IS STUBBED, DELIBERATELY
+ *
+ * /blog and /blog/:slug read CouchDB through the API. CI has no API, and an
+ * audit of the error state is an audit of the wrong page. So every /api/
+ * request is answered here with a small fixture shaped like the real envelope
+ * (and validated by the same zod schemas in the app, so a drifted fixture
+ * shows up as an error state the run then reports). The error states are
+ * still pages a reader can land on, so the run also takes /blog once with
+ * the API failing.
+ *
+ * HEBREW
+ *
+ * The Hebrew locale is listed and disabled (see `nav/locale.ts`) because
+ * there are no Hebrew strings yet. What does exist is the right-to-left half:
+ * `:root:lang(he)` switches all three faces and the layout is in logical
+ * properties. That half is audited the way `shoot-first-screen.mjs` shoots
+ * it, by setting `lang` and `dir` on <html> after load. It answers "does the
+ * RTL layout hold", not "is the Hebrew site accessible" — there is no Hebrew
+ * site yet to ask.
+ *
+ * RUNNING IT
+ *
+ *   npm run build && npm run a11y
+ *
+ * It starts `vite preview` on its own port unless BASE is given. `playwright-
+ * core` is pinned in package.json and finds its own browser build; on a
+ * machine without it, `npx playwright-core install chromium-headless-shell`.
+ * CHROME overrides the binary. Exit 1 on any violation; `--json <file>`
+ * writes the raw results for the audit document.
+ */
+import { chromium } from "playwright-core";
+import { spawn } from "node:child_process";
+import { readFileSync, writeFileSync } from "node:fs";
+import { createRequire } from "node:module";
+import { createServer } from "node:net";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const HERE = dirname(fileURLToPath(import.meta.url));
+const WEB = resolve(HERE, "../..");
+const require = createRequire(import.meta.url);
+const AXE = readFileSync(require.resolve("axe-core/axe.min.js"), "utf8");
+
+const jsonOut = (() => {
+  const i = process.argv.indexOf("--json");
+  return i > -1 ? process.argv[i + 1] : null;
+})();
+
+/* WCAG 2.2 A and AA, which is the target the issue sets. IS 5568 — the
+   Israeli legal floor — is WCAG 2.0 AA with national changes, so it is a
+   subset of this run apart from 2.4.10 (section headings, AAA in WCAG and AA
+   in IS 5568), which no automated rule decides and the manual audit covers. */
+const TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
+
+const ROUTES = [
+  "/",
+  "/projects",
+  "/projects/bothy",
+  "/blog",
+  "/blog/fixture-post",
+  "/accessibility",
+  "/a-page-that-does-not-exist",
+];
+
+const WINDOWS = [
+  ["desktop", 1440, 900],
+  /* 1.4.10 Reflow: 320 CSS px is the width the criterion names. */
+  ["narrow", 320, 568],
+];
+
+/* ---------------------------------------------------------------- fixtures */
+
+const at = (days) => new Date(Date.UTC(2026, 9, 1) - days * 86_400_000).toISOString();
+
+const SUMMARY = {
+  slug: "fixture-post",
+  title: "A fixture note for the audit",
+  subtitle: "Long enough to wrap at 320px, which is the point of it",
+  excerpt: "A short excerpt, so the list has the shape it has in production.",
+  publishedAt: at(3),
+  tags: ["accessibility", "process"],
+  collection: "site",
+  coverImage: null,
+  readingMinutes: 2,
+};
+
+/* The body exercises what the prose renderer emits: headings below the
+   page's h1, a list, a link, inline and fenced code, a table, a quote. */
+const BODY = `Opening paragraph with a [link to the projects](/projects) and \`inline code\`.
+
+## A section
+
+- one
+- two
+
+> A quotation, set as the prose renders it.
+
+\`\`\`ts
+const audited = true;
+\`\`\`
+
+| Criterion | Status |
+| --- | --- |
+| 1.4.10 | pass |
+
+### A subsection
+
+Closing paragraph.`;
+
+const POST = { ...SUMMARY, body: BODY, links: [{ label: "Repository", url: "https://example.com/" }] };
+
+function contributionDays() {
+  const days = [];
+  const end = Date.UTC(2026, 9, 1);
+  for (let i = 364; i >= 0; i--) {
+    const d = new Date(end - i * 86_400_000).toISOString().slice(0, 10);
+    days.push({ date: d, count: (i * 7) % 5 === 0 ? 0 : (i * 13) % 9 });
+  }
+  return days;
+}
+
+function answer(url, failing) {
+  if (failing) return { status: 503, body: { error: "unavailable" } };
+  const p = new URL(url).pathname.replace(/^\/api/, "");
+  if (p === "/blog/posts") return { status: 200, body: { items: [SUMMARY] } };
+  if (p.startsWith("/blog/posts/")) {
+    return p.endsWith("/fixture-post") ? { status: 200, body: { post: POST } } : { status: 404, body: {} };
+  }
+  if (p === "/blog/collections") return { status: 200, body: { items: [] } };
+  if (p.startsWith("/blog/collections/")) return { status: 404, body: {} };
+  if (p === "/github/contributions") {
+    const days = contributionDays();
+    return {
+      status: 200,
+      body: {
+        contributions: {
+          from: days[0].date,
+          to: days.at(-1).date,
+          total: days.reduce((n, d) => n + d.count, 0),
+          days,
+          fetchedAt: at(0),
+          error: null,
+        },
+      },
+    };
+  }
+  return { status: 404, body: {} };
+}
+
+/* ------------------------------------------------------------------ server */
+
+/* A port the OS hands out, never a fixed one. The first version of this
+   script used a fixed port, found someone else's static server already on
+   it, and audited a directory listing — clean. So the port is fresh, and the
+   page that answers must be this site's before anything is measured. */
+function freePort() {
+  return new Promise((ok, fail) => {
+    const srv = createServer();
+    srv.unref();
+    srv.on("error", fail);
+    srv.listen(0, "127.0.0.1", () => {
+      const { port } = srv.address();
+      srv.close(() => ok(port));
+    });
+  });
+}
+
+async function isThisSite(base) {
+  const res = await fetch(base);
+  return res.ok && (await res.text()).includes('id="root"');
+}
+
+async function startPreview() {
+  if (process.env.BASE) {
+    if (!(await isThisSite(process.env.BASE))) throw new Error(`${process.env.BASE} is not this site`);
+    return { base: process.env.BASE, stop: () => {} };
+  }
+  const port = await freePort();
+  const child = spawn(
+    process.execPath,
+    [resolve(WEB, "node_modules/vite/bin/vite.js"), "preview", "--port", String(port), "--strictPort", "--host", "127.0.0.1"],
+    { cwd: WEB, stdio: ["ignore", "pipe", "pipe"] },
+  );
+  let exited = false;
+  child.on("exit", () => (exited = true));
+  const base = `http://127.0.0.1:${port}`;
+  for (let i = 0; i < 60 && !exited; i++) {
+    try {
+      if (await isThisSite(base)) return { base, stop: () => child.kill() };
+    } catch {
+      /* not up yet */
+    }
+    await new Promise((r) => setTimeout(r, 250));
+  }
+  child.kill();
+  throw new Error("vite preview never answered with this site — was `npm run build` run first?");
+}
+
+/* -------------------------------------------------------------------- run */
+
+const { base, stop } = await startPreview();
+const browser = await chromium.launch({ executablePath: process.env.CHROME || undefined, args: ["--no-sandbox"] });
+
+async function audit(route, lang, [label, width, height], { failing = false } = {}) {
+  /* Reduced motion so the entry shutter and the arrivals settle at once:
+     axe measures contrast against what is painted, and a heading caught
+     mid-fade reads as a contrast failure that no reader ever sees. The
+     motion paths themselves are covered by hand in the audit. */
+  const context = await browser.newContext({ viewport: { width, height }, reducedMotion: "reduce" });
+  await context.route("**/api/**", (r) => {
+    const { status, body } = answer(r.request().url(), failing);
+    return r.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
+  });
+  const page = await context.newPage();
+  const errors = [];
+  page.on("pageerror", (e) => errors.push(String(e)));
+  await page.goto(base + route, { waitUntil: "load" });
+  if (lang === "he") {
+    await page.evaluate(() => {
+      document.documentElement.lang = "he";
+      document.documentElement.dir = "rtl";
+    });
+  }
+  /* Headless Chromium on the dev box has almost no rAF clock, so the
+     default rAF polling would wait on a frame that never comes. */
+  await page
+    .waitForFunction(() => !document.querySelector("div[data-state][aria-hidden='true']"), null, { polling: 500, timeout: 15_000 })
+    .catch(() => errors.push("entry shutter never left"));
+  await page
+    .waitForFunction(() => document.querySelector("h1") !== null, null, { polling: 500, timeout: 15_000 })
+    .catch(() => errors.push("no h1 rendered"));
+  await page.evaluate(() => document.fonts.ready);
+  await page.waitForTimeout(600);
+
+  await page.addScriptTag({ content: AXE });
+  const result = await page.evaluate(
+    (tags) => window.axe.run(document, { runOnly: { type: "tag", values: tags }, resultTypes: ["violations"] }),
+    TAGS,
+  );
+  /* 1.4.10 is not an axe rule. Checked directly: nothing may push the
+     document wider than the viewport at 320px. */
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  await context.close();
+  return {
+    route: route + (failing ? " (API down)" : ""),
+    lang,
+    window: label,
+    overflow,
+    errors,
+    violations: result.violations.map((v) => ({
+      id: v.id,
+      impact: v.impact,
+      help: v.help,
+      tags: v.tags.filter((t) => /^wcag\d/.test(t)),
+      nodes: v.nodes.map((n) => ({ target: n.target.join(" "), summary: n.failureSummary })),
+    })),
+  };
+}
+
+const results = [];
+try {
+  for (const lang of ["en", "he"]) {
+    for (const win of WINDOWS) {
+      for (const route of ROUTES) results.push(await audit(route, lang, win));
+    }
+  }
+  results.push(await audit("/blog", "en", WINDOWS[0], { failing: true }));
+  results.push(await audit("/blog/fixture-post", "en", WINDOWS[1], { failing: true }));
+} finally {
+  await browser.close();
+  stop();
+}
+
+let failed = 0;
+for (const r of results) {
+  const bad = r.violations.length > 0 || r.overflow > 0 || r.errors.length > 0;
+  if (!bad) continue;
+  failed++;
+  console.log(`\n✗ ${r.route}  [${r.lang}, ${r.window}]`);
+  if (r.overflow > 0) console.log(`  1.4.10 reflow: document is ${r.overflow}px wider than the viewport`);
+  for (const e of r.errors) console.log(`  page error: ${e}`);
+  for (const v of r.violations) {
+    console.log(`  ${v.id} (${v.impact}; ${v.tags.join(", ")}): ${v.help}`);
+    for (const n of v.nodes.slice(0, 4)) console.log(`    ${n.target}`);
+    if (v.nodes.length > 4) console.log(`    …and ${v.nodes.length - 4} more`);
+  }
+}
+if (jsonOut) writeFileSync(jsonOut, JSON.stringify(results, null, 2));
+console.log(`\n${results.length - failed}/${results.length} route runs clean (axe ${TAGS.join(" ")}; reflow at 320px)`);
+process.exit(failed ? 1 : 0);

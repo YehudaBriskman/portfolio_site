@@ -126,6 +126,19 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+      # The accessibility floor (#99): axe-core over every public route, in
+      # both reading directions, at 1440px and at 320px, against the build
+      # that just shipped. A floor and not the audit — the manual half lives
+      # in docs/accessibility/audit.md — but it is the half that can regress
+      # silently in a pull request, so it is the half CI holds.
+      #
+      # `playwright-core` downloads no browser on install, so the build the
+      # pin wants is fetched here. `--with-deps` because the runner image
+      # does not carry Chromium's shared libraries.
+      - name: Install the browser the accessibility check drives
+        run: npx playwright-core install --with-deps chromium-headless-shell
+      - name: Accessibility floor (axe, WCAG 2.2 AA)
+        run: npm run a11y
       - name: Report what shipped
         run: du -sh dist
 

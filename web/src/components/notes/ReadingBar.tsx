@@ -40,6 +40,17 @@ export default function ReadingBar({
   target: RefObject<HTMLElement | null>;
 }) {
   const [shown, setShown] = useState(false);
+  /*
+   * Focus inside the bar shows it, whatever the scroll position (WCAG 2.4.11,
+   * found by the #99 audit). It hides itself in the first 240px of a post by
+   * sliding below the screen — but its two controls are still in the tab
+   * order there, so a keyboard reader on a phone tabbed onto "Notes" and
+   * "Share" and saw no focus at all: the focused control was off the bottom
+   * edge. Taking them out of the order while hidden would also work, and
+   * would make the second tab stop on the page depend on how far it has been
+   * scrolled.
+   */
+  const [focused, setFocused] = useState(false);
   const railRef = useRef<HTMLDivElement>(null);
   const fillRef = useRef<HTMLDivElement>(null);
 
@@ -106,7 +117,20 @@ export default function ReadingBar({
         : null;
     if (observer && target.current) observer.observe(target.current);
 
+    /*
+     * The bar is fixed over the foot of the screen, so the browser's own
+     * scroll-into-view on Tab would happily park a focused link underneath
+     * it (WCAG 2.4.11). The top bar answers the same problem with
+     * `scroll-padding-top` in Nav.module.css; this is the bottom half, and
+     * it is only set while a post is mounted. Harmless above `sm`, where the
+     * bar is not drawn and there is nothing for the padding to clear but a
+     * few lines of slack.
+     */
+    const root = document.documentElement;
+    root.style.scrollPaddingBottom = "calc(4.5rem + env(safe-area-inset-bottom))";
+
     return () => {
+      root.style.scrollPaddingBottom = "";
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onResize);
       observer?.disconnect();
@@ -145,8 +169,12 @@ export default function ReadingBar({
 
       <div
         className="fixed inset-x-0 bottom-0 z-40 border-t border-edge bg-bitumen/95 pb-[env(safe-area-inset-bottom)] sm:hidden"
+        onFocus={() => setFocused(true)}
+        onBlur={(e) => {
+          if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setFocused(false);
+        }}
         style={{
-          transform: shown ? "none" : "translateY(100%)",
+          transform: shown || focused ? "none" : "translateY(100%)",
           transition: "transform var(--dur-fast) var(--ease-settle)",
         }}
       >

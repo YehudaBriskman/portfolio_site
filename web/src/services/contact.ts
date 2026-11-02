@@ -13,7 +13,10 @@ import { contact } from "@/data/site";
  */
 export const ContactSchema = z.object({
   name: z.string().min(2, "Add your name"),
-  email: z.string().email("That email address doesn't look right"),
+  /* The shape is spelled out, not only rejected (WCAG 3.3.3, #99 audit): when
+     the fix is known the message has to say what it is, and "doesn't look
+     right" alone left the reader guessing which part was wrong. */
+  email: z.string().email("That email address doesn't look right. It should look like name@example.com"),
   message: z.string().min(10, "Tell me a little more, at least a sentence"),
 });
 

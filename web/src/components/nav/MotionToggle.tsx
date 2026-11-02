@@ -14,8 +14,16 @@ import styles from "../Nav.module.css";
  * here.
  *
  * `aria-pressed` rather than two buttons or a checkbox: it is one control
- * with a state, and the label changes with it, so the state is readable for
- * anyone the attribute does not reach.
+ * with a state.
+ *
+ * The accessible name does not change with that state, and that is a
+ * correction (#99 audit). It used to flip to "Play motion" when pressed,
+ * which a screen reader announced as "Play motion, toggle button, pressed"
+ * — a sentence that says motion is playing at exactly the moment it is not.
+ * A toggle's name names the thing being toggled and `aria-pressed` carries
+ * the state; that is the WAI-ARIA APG's rule for toggle buttons, and why it
+ * has the rule. The sighted reader still gets the change twice: the icon
+ * swaps to Play, and the tooltip says what a press will do next.
  *
  * Presentational, with the state and the stored preference in
  * `useMotionPaused`, because this button is rendered both in the controls
@@ -28,7 +36,7 @@ export default function MotionToggle({
   paused: boolean;
   onToggle: () => void;
 }) {
-  const label = paused ? "Play motion" : "Pause motion";
+  const tip = paused ? "Motion paused. Press to play" : "Pause motion";
 
   return (
     <Tooltip>
@@ -43,13 +51,13 @@ export default function MotionToggle({
           className={`${styles.control} ${styles.controlIcon}`}
           onClick={onToggle}
           aria-pressed={paused}
-          aria-label={label}
+          aria-label="Pause motion"
         >
           {paused ? <Play aria-hidden="true" /> : <Pause aria-hidden="true" />}
         </Button>
       </TooltipTrigger>
       <TooltipContent sideOffset={10} className={styles.tip}>
-        {label}
+        {tip}
       </TooltipContent>
     </Tooltip>
   );
