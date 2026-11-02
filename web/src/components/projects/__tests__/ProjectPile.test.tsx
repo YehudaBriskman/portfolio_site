@@ -184,7 +184,10 @@ describe("ProjectPile", () => {
        in it, which is what lets a screen reader read three facts rather than
        one run-on. The separators are drawn by CSS. */
     const fields = screen.getByText("Docker Compose");
-    expect(fields.tagName).toBe("LI");
+    /* The text node sits in a `<bdi>` inside the `<li>` (issue #112), so the
+       item is its parent: one list item per fact, still. */
+    expect(fields.tagName).toBe("BDI");
+    expect(fields.parentElement?.tagName).toBe("LI");
     expect(fields.closest("ul")?.textContent).toBe("Open sourceDocker Compose");
   });
 
