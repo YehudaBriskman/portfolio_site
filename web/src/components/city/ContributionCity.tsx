@@ -1,8 +1,9 @@
-import type { CSSProperties } from "react";
+import { useRef, type CSSProperties } from "react";
 import { useQuery } from "@tanstack/react-query";
 import InkRule from "@/components/motion/InkRule";
 import SkeletonLines from "@/components/gallery/SkeletonLines";
 import { cityPlan, EMPTY_PLAN, type CityPlan } from "@/components/city/cityPlan";
+import { useCityHand } from "@/components/city/useCityHand";
 import { contributionYear } from "@/services/contributions";
 import styles from "@/components/city/ContributionCity.module.css";
 
@@ -20,18 +21,24 @@ import styles from "@/components/city/ContributionCity.module.css";
  *
  * Where the motion lives, and what this file decides
  * --------------------------------------------------
- * Nothing that moves is here. The arrival is one scroll-driven animation on
- * one element and the whole argument for it — why a scrub, why it is not a
- * second peak, why 365 columns cost one animation rather than 365 — is at the
- * top of `ContributionCity.module.css`, next to the declarations answerable to
- * it. This file decides what a column is worth, what the caption says, and
- * which of the three states the section is in.
+ * The arrival is two scroll-driven animations — the tilt-and-rise on the
+ * scene and the camera's dolly inside it — and the whole argument for them —
+ * why a scrub, why a held runway is still not a second peak, why 365 columns
+ * cost two animations rather than 365 — is at the top of
+ * `ContributionCity.module.css`, next to the declarations answerable to it.
+ * This file decides what a column is worth, what the caption says, which of
+ * the three states the section is in, and (since #111) where the reader's own
+ * hand is let in.
  *
- * There is no state, no ref, no observer and no scroll listener, which is the
- * property §7 of the motion contract asks every component on this page to
- * keep. The grid is 365 spans with one custom property each, written once when
- * the request lands and never touched again.
- *
+ * The scroll still has no listener. The grid is 365 spans with one custom
+ * property each, written once when the request lands and never touched again
+ * by React. What #111 added is three refs and one hook, `useCityHand`, which
+ * listens to POINTER events on the frame — never to scroll — and writes a
+ * single inline `rotateZ` and two data attributes. It runs a settle loop only
+ * between a release and the city coming to rest, under a second or so; that
+ * is the one documented exception to §7's "no rAF loops", and the reasoning
+ * (and what it costs, measured) is at the top of `useCityHand.ts`.
+
  * The ground, and why this section is the one that got the second one
  * --------------------------------------------------------------------
  * It stands on the dark act now. The obvious reason is the nice sentence — a
@@ -50,8 +57,8 @@ import styles from "@/components/city/ContributionCity.module.css";
  * and height "differ in resolution and not in source" is untouched by that —
  * it is a claim about `count`, and the ground does not get a vote.
  *
- * Why the columns are not interactive
- * -----------------------------------
+ * Why the columns are touchable and still not focusable
+ * ------------------------------------------------------
  * GitHub's grid gives every day a tooltip, and copying that here would put 365
  * focus stops in front of a reader navigating by keyboard — which is not
  * access to a chart, it is a queue in front of one. So the scene is
@@ -60,6 +67,18 @@ import styles from "@/components/city/ContributionCity.module.css";
  * twelve months as a table. The `details` is deliberately not `sr-only`; the
  * reasoning is on `.table` in the stylesheet.
  *
+ * #111 asked for the city to answer a hand, and that argument survives it
+ * untouched because the hand never asks for focus. A pointer can turn the city
+ * and point at one day; the day it points at is written into ONE shared
+ * readout, which is `aria-hidden` like the scene it describes — it is a
+ * pointer's view of the same data the caption and the table already give in
+ * full, at month resolution rather than day resolution. No column has a
+ * tabindex, a role or a label, and there is still exactly zero focus stops in
+ * the figure. What a pointer gets that a keyboard does not is one day's exact
+ * count; the table is the place to add a day view if that ever matters more
+ * than a queue of 365 stops costs. `data-date` and `data-count` are on real
+ * cells only, so the empty lattice has nothing to read.
+
  * Three states, and loading is not the same state as empty
  * ---------------------------------------------------------
  * Pending, unavailable and present. Pending and unavailable both draw the
@@ -75,11 +94,13 @@ import styles from "@/components/city/ContributionCity.module.css";
  *
  *   **pending** — the same lattice, standing in the city's full height, with
  *   one band of light crossing it. The reserved height is the point of it
- *   and it was measured rather than assumed: the frame is `height: auto`
- *   when empty and `clamp(140px, 16vw, 240px)` when a year is in it, so the
- *   arriving city used to push everything under it down by 108.69px at
- *   1440x900 — a layout shift of 0.0345 for a reader parked on the section,
- *   invisible from the top of the page, which is why it survived this long.
+ *   and it was measured rather than assumed: before #111 the frame was
+ *   `height: auto` when empty and `clamp(140px, 16vw, 240px)` when a year
+ *   was in it, and the arriving city pushed everything under it down by
+ *   108.69px at 1440x900 — a layout shift of 0.0345 for a reader parked on
+ *   the section. Since #111 the stage is the held frame plus its runway, and
+ *   pending keeps that whole height for the same reason; only unavailable
+ *   gives it up.
  *
  * So a reserved height and a moving band mean *coming*; the collapsed height
  * and stillness mean *this is the chart*. Nothing in this file can produce a
@@ -168,6 +189,14 @@ export default function ContributionCity() {
   const plan = year ? cityPlan(year) : EMPTY_PLAN;
   const cells = cellsOf(plan);
   const empty = plan.cells.length === 0;
+  const live = !isPending && !empty;
+
+  /* Three refs for the hand, and the only three in the file. They are read
+     once, by the effect in `useCityHand`, and never drive a render. */
+  const frameRef = useRef<HTMLDivElement>(null);
+  const orbitRef = useRef<HTMLDivElement>(null);
+  const readingRef = useRef<HTMLSpanElement>(null);
+  useCityHand(frameRef, orbitRef, readingRef, live);
 
   return (
     <section id="year" data-chrome="dark" className="on-panel relative isolate">
@@ -198,57 +227,115 @@ export default function ContributionCity() {
 
         <figure className={styles.figure}>
           {/*
-            The frame owns the clock and the camera; the scene is the one thing
-            that moves. `data-city` switches the act off from the data side and
-            carries three values, not two — see the fourth exit in the
-            stylesheet, and the argument at the top of this file for why a year
-            that is still coming is not the same state as a year that is not.
+            Three boxes where there was one, and each owns one thing.
 
-            `aria-hidden` on the scene and not on the frame, so the frame stays
-            an ordinary box in the tree and the figure keeps its caption.
+            The STAGE owns the clock and the scroll it costs. It is the static
+            wrapper §1 of the motion contract prescribes for anything held: as
+            tall as the frame plus the travel the act is allowed to buy, still
+            moving through the scrollport while the frame is held, so its view
+            timeline keeps ticking. `data-city` is on it because the data side
+            switches the travel off along with the act, and it carries three
+            values, not two — see the fourth exit in the stylesheet, and the
+            argument at the top of this file for why a year that is still
+            coming is not the same state as a year that is not.
+
+            The FRAME is the camera, held in the window by `position: sticky`
+            while the stage runs past it. It is also the one surface the hand
+            touches: the listeners in `useCityHand` are on it, and its
+            `touch-action` decides what a finger may do here.
+
+            The SCENE is what moves. `aria-hidden` on the scene and not on the
+            frame, so the frame stays an ordinary box in the tree and the
+            figure keeps its caption.
           */}
           <div
-            className={styles.frame}
+            className={styles.stage}
             data-city={isPending ? "pending" : empty ? "empty" : "year"}
           >
-            <div className={styles.scene} aria-hidden="true">
-              {/* The week count is the one thing the grid cannot derive: a
-                  trailing year is 53 columns, a shorter window is fewer, and
-                  `grid-auto-flow: column` with no declared track count would run
-                  the year off the end of the frame instead of fitting it in. */}
-              <div
-                className={styles.plane}
-                style={{ "--city-weeks": plan.weeks } as CSSProperties}
-              >
-                {cells.map((cell, i) => (
-                  <span
-                    key={cell.date}
-                    className={styles.cell}
-                    data-step={cell.step}
-                    /*
-                      Two values, and only the first cell gets the second.
+            <div ref={frameRef} className={styles.frame}>
+              <div className={styles.scene} aria-hidden="true">
+                {/* The hand's turn, written by `useCityHand` as one inline
+                    transform, and the scroll's dolly inside it. The nesting
+                    order is the geometry — `.orbit` in the stylesheet says
+                    why. */}
+                <div ref={orbitRef} className={styles.orbit}>
+                  <div className={styles.dolly}>
+                    {/* The week count is the one thing the grid cannot derive: a
+                        trailing year is 53 columns, a shorter window is fewer, and
+                        `grid-auto-flow: column` with no declared track count would run
+                        the year off the end of the frame instead of fitting it in. */}
+                    <div
+                      className={styles.plane}
+                      style={{ "--city-weeks": plan.weeks } as CSSProperties}
+                    >
+                      {cells.map((cell, i) => (
+                        <span
+                          key={cell.date}
+                          className={styles.cell}
+                          data-step={cell.step}
+                          /*
+                            The date and the count ride on the cell for the pointer's
+                            readout and nothing else: the hand hit-tests a column and
+                            reads them back off it, so the readout can never disagree
+                            with the column it lit. Placeholders carry neither, so a
+                            pending or empty lattice has nothing to read.
+                          */
+                          data-date={empty ? undefined : cell.date}
+                          data-count={empty ? undefined : cell.count}
+                          /*
+                            Two values, and only the first cell gets the second.
 
-                      `--city-rise` is the day's own height, the only
-                      per-element value in the whole scene and the reason the
-                      stylesheet needs one keyframe rather than 365. It is
-                      `sqrt(count / busiest)` and NOT a proportion of the
-                      busiest day — two columns are not a ratio, which is a
-                      thing a reader is owed and the measurement behind it is
-                      in `cityPlan.ts`.
+                            `--city-rise` is the day's own height, the only
+                            per-element value in the whole scene and the reason the
+                            stylesheet needs one keyframe rather than 365. It is
+                            `sqrt(count / busiest)` and NOT a proportion of the
+                            busiest day — two columns are not a ratio, which is a
+                            thing a reader is owed and the measurement behind it is
+                            in `cityPlan.ts`.
 
-                      `gridRowStart` puts the first day on its own weekday. The
-                      other 364 flow from it; writing it on every cell would be
-                      364 declarations that agree with the one before them.
-                    */
-                    style={
-                      {
-                        "--city-rise": cell.rise,
-                        ...(i === 0 ? { gridRowStart: plan.firstRow } : {}),
-                      } as CSSProperties
-                    }
-                  />
-                ))}
+                            `gridRowStart` puts the first day on its own weekday. The
+                            other 364 flow from it; writing it on every cell would be
+                            364 declarations that agree with the one before them.
+                          */
+                          style={
+                            {
+                              "--city-rise": cell.rise,
+                              ...(i === 0 ? { gridRowStart: plan.firstRow } : {}),
+                            } as CSSProperties
+                          }
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </div>
               </div>
+
+              {/*
+                The one readout, shared by all 365 columns.
+
+                `aria-hidden` with the scene, because it is the scene's legend
+                and says nothing the table does not: a screen reader reaching it
+                would hear a hint about dragging, which it cannot do, and a date
+                it did not ask for. Not a live region for the same reason —
+                announcing every column a mouse crosses is noise on a path that
+                already has the year as text.
+
+                Two hints, one per kind of pointer; the stylesheet shows the one
+                that matches `(hover: hover)`. Drawn only with a year in the
+                scene: a lattice with nothing in it has nothing to read and
+                nothing worth turning.
+              */}
+              {live && (
+                <div className={`eyebrow ${styles.readout}`} aria-hidden="true">
+                  <span className={styles.hint} data-hint="pointer">
+                    Drag to turn the city · point at a day
+                  </span>
+                  <span className={styles.hint} data-hint="touch">
+                    Swipe sideways to turn · tap a day
+                  </span>
+                  <span ref={readingRef} className={styles.reading} />
+                </div>
+              )}
             </div>
           </div>
 

@@ -9,20 +9,56 @@
  * on the shelf and `count` on the spec plate, and a fourth beat arriving the
  * same way as one of those is the failure that ledger exists to catch.
  *
- * It is NOT a second peak, and the three things that would make it one are all
- * absent on purpose. It does not pin, so it buys no scroll distance beyond its
- * own height — the whole act plays inside the travel the section was already
- * going to take. It has no asset budget: 365 one-colour boxes and no image.
- * And it runs forwards and backwards with the reader's scroll, which is what a
- * scrub is and what a peak is not — a peak happens to you once, a scrub is a
- * thing you operate. The pile is still the most expensive moment on the page
- * and nothing here competes with it.
+ * It is NOT a second peak, and since #111 that is a measured claim rather than
+ * one that holds by having nothing to measure.
+ *
+ * Until #111 the act did not hold the frame at all, so it bought no scroll
+ * beyond its own height and the question never came up. The owner asked for
+ * more of it — "bigger, and take more time and scroll" — and the only honest
+ * way to give a scrub more time is to give it more scroll, because scroll is
+ * its clock. So the frame is now held (`position: sticky`) while a taller
+ * stage runs past it, and the act plays out over that runway. Holding is what
+ * the pile does, so the test is no longer "does it hold" but "does it hold
+ * for less, and cost less, than the peak does", and every term of that is a
+ * number:
+ *
+ *   RUNWAY.   The year holds for `--city-runway`, 120svh. The pile holds four
+ *             cards at 52svh each plus a 30svh tail — 238svh — and its section
+ *             is 3919px against the year's 2360px at 1440x900 (3667px against
+ *             2059px at 390x844), measured on the same page with the same
+ *             data. The year buys half the held travel the pile buys and is
+ *             still the shorter section by a third. §3's "the most scroll room" stays
+ *             the pile's.
+ *   ASSETS.   None: 365 one-colour boxes and no image, as before.
+ *   DIRECTION. It runs forwards and backwards with the reader's scroll, which
+ *             is what a scrub is and what a peak is not — a peak happens to
+ *             you once, a scrub is a thing you operate. Scrolling back up
+ *             flies the camera back down the year and lays the city flat.
+ *   FRAMES.   Measured at 4x CPU throttle (CDP), dev build, the act scrolled
+ *             end to end by wheel, median of five passes after a warm-up.
+ *             1440x900: 22-23fps, against 28.8fps for main's smaller,
+ *             unpinned city on the same harness; 390x844: 32-34fps, against
+ *             34.2fps. A drag-and-throw holds 29fps and 43-48fps. Paused
+ *             (no animation), 46-56fps and 33-60fps — the harness is noisy
+ *             at the top and these are ranges, not decimals. The desktop
+ *             cost is the frame area: the same 365 boxes, drawn three times
+ *             as large. `will-change` on the two animated boxes was tried and
+ *             measured no different (23.5fps); it is not in this file.
+ *
+ * What the extra runway is spent on is the camera, not the columns: the three
+ * stages keep their order and their proportions, and the travel after them is
+ * a slow dolly down the year — in close, then along from the oldest week to
+ * this one. It is the reader travelling through the year rather than past it,
+ * which is the ask, and it ends on the most recent months, which is the crop
+ * a phone needs anyway (see `--city-zoom`).
  *
  * ── the mechanism, and the part that is worth copying ─────────────────────
  *
- * THE WHOLE ACT IS ONE ANIMATED ELEMENT. 365 columns, one animation. That is
- * the finding this file is for, and it is what made CSS 3D hold its frame
- * budget without a 3D library.
+ * THE WHOLE ACT IS TWO ANIMATED ELEMENTS, and neither is a column. 365
+ * columns, two animations — the tilt-and-rise on `.scene` and the camera's
+ * dolly on `.dolly` (it was one until #111 added the dolly; why it could not
+ * stay one is on `.orbit`). That is the finding this file is for, and it is
+ * what made CSS 3D hold its frame budget without a 3D library.
  *
  * The obvious build is 365 scroll-driven animations, one per column, each
  * interpolating its own height. The cheap build is a single animation on the
@@ -40,11 +76,12 @@
  * small enough to be invisible and not zero; at the storey heights below,
  * 0.001 is a tenth of a pixel.
  *
- * The timeline is declared on `.frame` and read by name from `.scene`, which
- * is the shape §1 of the contract prescribes. Nothing here is sticky, so a
- * `view()` on the scene itself would tick — but the scene is the element whose
- * transform is being animated, and pointing a timeline at the geometry you are
- * busy changing is the kind of thing that works until someone adds a pin. The
+ * The timeline is declared on `.stage` and read by name from `.scene` and
+ * `.dolly`, which is the shape §1 of the contract prescribes — and since #111
+ * it is no longer a precaution. The frame is sticky now, and a `view()` on
+ * the frame or anything in it would freeze the instant it pinned, at whatever
+ * stage the city had reached. The old note here said pointing a timeline at
+ * the moving geometry "works until someone adds a pin"; someone did. The
  * static wrapper owns the clock.
  *
  * No duration and no delay anywhere in this file, and that is not an omission:
@@ -80,62 +117,70 @@
 }
 
 /*
- * The static box that owns the clock, and the camera.
+ * The stage: the static box that owns the clock, and the scroll the act costs.
  *
- * Fixed height on purpose. The plane's projected height changes through the
- * whole act — flat it is seven rows tall, risen and tilted it is nearer three
- * times that — and a box that sized itself to its transformed child would not
- * change at all, because transforms do not affect layout. So the height is
- * declared, and it is declared large enough for the tallest state: a frame cut
- * to the flat grid would have the finished city hanging out of it over the
- * heading above.
+ * Full bleed. Until #111 the city stood in the page's 1072px column, which at
+ * 1440 is three quarters of the window — and the ask was for "far more of the
+ * viewport". So the stage steps out of `.wrap` to the window's edges (the
+ * negative margins below) and the scene inside it is sized from the window,
+ * not from the column. `body` is `overflow-x: clip`, so the half-scrollbar a
+ * `50vw` margin reaches past on a desktop with classic scrollbars is clipped
+ * and scrolls nothing — and the frame clips its own contents besides.
  *
- * `overflow-x: clip` and not `hidden`: `hidden` on one axis forces the other
- * to `auto`, which would put a scrollbar on the city the first time a column
- * reached the top of the frame. `clip` is per-axis and does not scroll — and
- * it is the same guard §5 of the contract requires for any horizontal travel,
- * since the turn below moves the plane's corners sideways.
+ * Its height is the frame plus the runway, and that sum is the whole cost of
+ * the act in scroll. The frame is held for exactly `--city-runway` of it: it
+ * pins when the stage's top reaches the frame's `top`, and lets go when the
+ * stage's bottom does. The arithmetic against the pile is in the header.
  */
-.frame {
+.stage {
   /*
    * ── the switches ───────────────────────────────────────────────────────
    *
-   * Two properties and one `animation-name`, which is the whole of what the
-   * three off-switches at the foot of this file have to rewrite. Everything
-   * about a column's height goes through `--city-storey`, so a switch that
-   * sets it to zero flattens 365 columns and 365 walls with one declaration
-   * and cannot fall out of step with them.
+   * Everything the off-switches at the foot of this file rewrite is a
+   * custom property declared here or an `animation-name`, because the
+   * three conditions cannot be written as one selector and anything that
+   * differs between them is a property or it is three copies of itself.
+   * Everything about a column's height goes through `--city-storey`, so the
+   * one exit that flattens the city — forced colours, and the data side's
+   * empty year — sets it to zero and takes 365 lifts and 365 walls with it.
    */
+
   /*
-   * There is no cell width here, and that is the fix for a real bug.
+   * How wide the year is drawn, before the camera moves in.
    *
-   * It was `clamp(6px, 1.05vw, 15px)`, and 53 columns of a viewport fraction
-   * do not fit in a column that is the viewport less two gutters: at 390px the
-   * grid came out 382px wide inside a 350px frame, and because a grid item
-   * wider than its track overflows toward the end rather than splitting the
-   * difference, `overflow-x: clip` ate the last eleven weeks of the year.
-   * Photographed before it was believed.
+   * There is no cell width, and that is the fix for a real bug: a cell of
+   * `clamp(6px, 1.05vw, 15px)` gave 53 columns that did not fit a 350px frame,
+   * and `overflow-x: clip` ate the last eleven weeks of the year. The week
+   * columns are `1fr` of this span and a cell takes its height from
+   * `aspect-ratio: 1`, so the grid can never be wider than the span.
    *
-   * So the week columns are `1fr` of the frame and a cell takes its height
-   * from `aspect-ratio: 1`. The grid can then never be wider than the frame at
-   * any viewport, which is the only guarantee that matters for a chart whose
-   * last column is this December.
+   * The span is the window less a gutter either side, to a ceiling. The
+   * ceiling was 940px when the city stood in the 1072px column, and it was the
+   * perspective's margin rather than taste: a plane filling its frame has its
+   * near edge and tallest roofs magnified past the frame's sides (1400 /
+   * (1400 − 47) for the near row, about 3.5%), and the clip would take the
+   * first and last week off. Full bleed, the frame is the window, so the same
+   * margin allows 1180 inside 1440 with 130px either side — the year 26% wider
+   * than it was before the camera has moved at all.
    */
+  --city-span: min(100vw - 2 * clamp(1rem, 4vw, 2.5rem), 1180px);
   --city-gap: clamp(1px, 0.2vw, 3px);
   /*
    * One storey: how tall the busiest day of the year stands.
    *
-   * A viewport fraction, now that the cell is not one. At 1440 it measures
-   * 93.6px against a 14.9px cell — about six and a quarter cells, which is the
-   * ratio the screenshots in `docs/` were taken at. The floor matters more
-   * than the ceiling, and the 40px is doing real work: on a 390px phone the
-   * `6.5vw` term would resolve to 25.4px and the floor overrides it. Against
-   * the real calendar that is the difference between the median active day
-   * standing 12.6px up and standing 8.0px up, and between a
-   * single-contribution day standing 3.0px up and standing 1.9px up — a third
-   * of a cell, on the narrowest screen the city is drawn on.
+   * A fraction of the span rather than of the viewport, so the city keeps its
+   * proportions as the span grows: 0.118 of the span is about six and a
+   * quarter cells, the ratio the screenshots in `docs/contribution-city/`
+   * have always been taken at. That is 139px at 1440.
+   *
+   * The floor matters more than the ceiling, and the 40px is doing real work:
+   * on a 390px phone the span term resolves to 42px and only just clears it,
+   * and on a 360px one the floor takes over. Against the real calendar that is
+   * the difference between a single-contribution day standing 3.0px up and
+   * standing 1.9px up — a third of a cell, on the narrowest screen the city is
+   * drawn on. The dolly below multiplies all of it once the camera moves in.
    */
-  --city-storey: clamp(40px, 6.5vw, 94px);
+  --city-storey: max(40px, calc(var(--city-span) * 0.118));
 
   /*
    * ── the camera ─────────────────────────────────────────────────────────
@@ -143,25 +188,115 @@
    * The tilt is the second stage of the arrival and the turn is what makes
    * the walls visible: at `rotateZ(0)` every wall faces the camera square on
    * and the city reads as a bar chart seen from the front. A few degrees of
-   * turn is enough to show that the columns have sides without turning the
-   * year's left-to-right axis into a diagonal, which is the thing a reader
-   * is actually following across the grid.
+   * turn shows that the columns have sides without turning the year's
+   * left-to-right axis into a diagonal, which is the thing a reader is
+   * following across the grid. The hand adds to this turn (`useCityHand`
+   * reads it, to know which side wall faces the camera) and never replaces
+   * it.
    */
-  --city-tilt: 48deg;
-  --city-turn: -5deg;
+  --city-tilt: 52deg;
+  --city-turn: -8deg;
   /* The flattened state. See the note on singular matrices above. */
   --city-flat: 0.001;
+  /*
+   * How close the camera comes, once the city has risen.
+   *
+   * The dolly is the act's use of the runway #111 bought, and on a phone it
+   * is also the answer to the hardest case in that issue: 53 weeks across
+   * 358px is a 6px cell, which reads as texture rather than as a city. So the
+   * phone does not shrink the year to fit and leave it there. It shows the
+   * whole year flat and then risen — the three stages need the whole year to
+   * mean anything — and then the camera comes in 3.2x, to a 21px cell, and
+   * travels the year to this week. The desktop comes in 1.8x, to a 40px cell,
+   * because its span already reads as a city and the move there is about
+   * travel more than magnification. The two values are below and in the
+   * narrow-screen block.
+   */
+  --city-zoom: 1.8;
+  /*
+   * Which way is "later" along the grid, as a sign. Positive in a
+   * left-to-right document. `grid-auto-flow: column` follows the writing
+   * direction, so in Hebrew the oldest week is on the right and the dolly has
+   * to travel the other way to end on this week — see the `rtl` rule below.
+   */
+  --city-dir: 1;
+
+  /*
+   * ── the runway ─────────────────────────────────────────────────────────
+   *
+   * How tall the frame is, and how long it is held. The frame is most of a
+   * window — the issue's "far more of the viewport" — and short of all of it
+   * so the section's caption and the nav island never sit on top of the
+   * camera. The runway is the held travel the header argues against the
+   * pile's 238svh.
+   */
+  --city-frame: min(78svh, 760px);
+  --city-runway: 120svh;
+  /*
+   * The frame's height when nothing is held: the three off-switches, which
+   * land on the risen city at the span with no runway to travel. Cut to that
+   * picture rather than to the camera's close-up, so a still city is not
+   * floating in a window's worth of dark.
+   */
+  --city-rest: clamp(240px, 30vw, 420px);
 
   margin-top: clamp(2rem, 5vw, 3.5rem);
-  height: clamp(140px, 16vw, 240px);
+  margin-inline: calc(50% - 50vw);
+  height: calc(var(--city-frame) + var(--city-runway));
+  view-timeline-name: --city;
+}
+
+/* The phone, where the camera has further to come. See `--city-zoom`. */
+@media (max-width: 640px) {
+  .stage {
+    --city-zoom: 3.2;
+    --city-frame: min(66svh, 560px);
+  }
+}
+
+:global(html[dir="rtl"]) .stage {
+  --city-dir: -1;
+}
+
+/*
+ * The frame: the camera, held still while the stage runs past it.
+ *
+ * `top` centres it in the window, so the city is held in the middle of the
+ * screen rather than under the nav island. `svh` and not `vh` because a phone's
+ * address bar collapses mid-scroll, and a sticky offset that jumped by the
+ * bar's height half way through the act would jolt the camera the reader is
+ * steering.
+ *
+ * `overflow: clip` on both axes now. It was `overflow-x: clip` alone, with the
+ * vertical left open so a column could stand above the frame's top edge; once
+ * the camera comes in, the near row passes below the frame and the tallest
+ * roofs above it, and both have to be cut at the camera's edge rather than
+ * drawn over the caption. `clip` and not `hidden`: `hidden` makes a scroll
+ * container, and a sticky box that is also a scroll container for its own
+ * children is a second scrollport nobody asked for.
+ *
+ * ── the hand ──────────────────────────────────────────────────────────
+ *
+ * `touch-action: pan-y` IS the gesture split, and it is a declaration rather
+ * than code so the browser can make it before any script runs. A vertical
+ * swipe on the city is the page's scroll and the browser keeps it without
+ * consulting `useCityHand`; only horizontal travel and taps are handed over.
+ * Pinch-zoom is deliberately not in the list either: the page's own zoom is
+ * an accessibility affordance and the city is not allowed to eat it — a
+ * pinch on the city zooms the page, as it would anywhere else.
+ *
+ * `user-select: none` so a mouse drag turns the city rather than selecting the
+ * caption under it.
+ */
+.frame {
+  position: sticky;
+  top: calc((100svh - var(--city-frame)) / 2);
+  height: var(--city-frame);
   display: grid;
   place-items: center;
-  /* The containing block the waiting band is laid over, and nothing else
-     depends on it. A grid container's `::after` is a grid item unless it is
-     taken out of flow, and taking it out of flow needs something for `inset`
-     to resolve against; `static` would hand it the nearest positioned
-     ancestor, which is a layout box the size of the page. */
-  position: relative;
+  /* The containing block for the waiting band and the readout, both of which
+     are laid over the frame out of flow. */
+  overflow: clip;
   /*
    * A long lens, for the reason `ProjectPile.module.css` gives for the same
    * number: a short one throws the near corners far enough out that the plane
@@ -171,12 +306,18 @@
    */
   perspective: 1400px;
   perspective-origin: 50% 34%;
-  overflow-x: clip;
-  view-timeline-name: --city;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: grab;
+}
+
+.frame[data-turning] {
+  cursor: grabbing;
 }
 
 /*
- * The one animated element on the page's one scrub.
+ * The scroll's half of the camera: tilt, turn, and the rise.
  *
  * No `transform` of its own. With `animation-fill-mode: both` the 0% keyframe
  * holds before the range, and the 0% keyframe is the flat grid — so the rest
@@ -185,49 +326,85 @@
  */
 .scene {
   /*
-   * The width is declared here, and the first attempt without it is worth
-   * knowing about: the frame centres its one child, a centred grid item is
-   * sized to fit its content, and the plane inside was asking for `width:
-   * 100%` of this box — so each was waiting on the other, both resolved to
-   * zero, and the city vanished without a single error anywhere.
-   *
-   * The 940px ceiling is the perspective's margin, not a taste about measure.
-   * The frame is the page's 1072px column; a plane filling it would have its
-   * near edge and its tallest roofs magnified past the frame's own sides —
-   * 1400 / (1400 − 47) for the near row and 1400 / (1400 − 94) for a full-height
-   * roof, about 3.5% and 7% — and `overflow-x: clip` would take the first and
-   * last week of the year off. 940 plus 7% is 1006, inside 1072 with room.
+   * The width is declared, and the first attempt without it is worth knowing
+   * about: the frame centres its one child, a centred grid item is sized to
+   * fit its content, and the plane inside was asking for `width: 100%` of
+   * this box — so each was waiting on the other, both resolved to zero, and
+   * the city vanished without a single error anywhere.
    */
-  width: min(100%, 940px);
-  margin-inline: auto;
+  width: var(--city-span);
   transform-style: preserve-3d;
   animation-name: city-raise;
   animation-fill-mode: both;
   animation-timing-function: linear;
   animation-timeline: --city;
   /*
-   * The range, and it is arithmetic rather than taste.
+   * The range, and it is the held stretch exactly.
    *
-   * `entry` is wrong here: it finishes the instant the frame's bottom edge is
-   * flush with the bottom of the window, so for a box this much shorter than
-   * the viewport the whole act would play out with the city sitting on the
-   * bottom edge of the screen. `cover` spans the frame's entire passage
-   * through the scrollport, which is `viewport + frame` of scroll.
+   * `contain` on a subject taller than the scrollport runs from the stage's
+   * top meeting the window's top to its bottom meeting the window's bottom —
+   * which sits inside the stretch the frame is held for, by the frame's own
+   * `top` offset at each end. So the act starts a beat after the frame has
+   * settled in the middle of the window and finishes a beat before it lets
+   * go, and both beats are still frames: the flat year held before anything
+   * moves, the last of the dolly held before the page takes the frame away.
    *
-   * THE ACT HAS TO START AFTER THE FRAME IS WHOLLY ON SCREEN. A chart that
-   * begins turning while a third of it is still below the fold has shown its
-   * first stage to nobody, and the flat grid is the stage that has to be read
-   * before the other two mean anything. The frame is first fully visible at
-   * `frame / (viewport + frame)` of cover: at the 1440 x 900 the screenshots
-   * in `docs/` were taken at, 240 / 1140 = 21.1%. 28% clears that with room,
-   * and still clears it at 700px of viewport height, where the same quotient
-   * is 25.5%.
-   *
-   * 66% is the other end of the same sum: at 900 it leaves the finished city
-   * in the upper third of the window with the caption under it, and at 700 it
-   * still finishes before the frame's top edge reaches the nav island.
+   * It was `cover 28% cover 66%` when nothing was held, and the reason the
+   * 28% existed — the act must not begin while the frame is partly below the
+   * fold, because the flat grid is the stage that has to be read first — is
+   * now true by construction: nothing moves until the frame is pinned whole
+   * in the middle of the window.
    */
-  animation-range: cover 28% cover 66%;
+  animation-range: contain 0% contain 100%;
+}
+
+/*
+ * The hand's half of the camera, between the scroll's two halves.
+ *
+ * WHY THREE BOXES. The hand's turn is a rotation about the ground's own
+ * normal, so it has to come AFTER the tilt in the transform chain — a turn
+ * applied outside the tilt rolls the camera instead of orbiting the city. And
+ * it has to come BEFORE the dolly's translation, so the city turns about the
+ * point the camera is looking at rather than about the middle of the year,
+ * which with the camera in close on December is a point a metre off screen
+ * that would swing the visible weeks out of the frame.
+ *
+ * One element cannot hold all three: an animation owns the `transform`
+ * property outright, and an inline style under it would be overridden on
+ * every frame. So the tilt and rise animate `.scene`, the dolly animates
+ * `.dolly`, and the hand writes this box's `transform` inline between them.
+ * The scene's `scaleZ` commutes with both of the others — a Z scale does not
+ * care about a turn about Z or a slide along the ground — which is why the
+ * rise can stay outermost and still lift every column straight up.
+ *
+ * No transition. The hand's turn follows the finger exactly while a finger is
+ * on it, and the coast and settle after a release are a spring in
+ * `useCityHand`, which has to start from the speed the hand left behind — a
+ * CSS transition has no input for that.
+ */
+.orbit {
+  transform-style: preserve-3d;
+}
+
+/*
+ * The dolly: the camera coming in close and travelling the year.
+ *
+ * Scale and slide inside the tilt, so it reads as the camera moving rather
+ * than as the picture being enlarged. The scale is `scale3d` with the same
+ * factor on all three axes, and the first build is the reason: a 2D `scale`
+ * grows every footprint and leaves every height alone, so the closer the
+ * camera came the flatter the city got — at 3.2x on a phone the busiest day
+ * stood a third of a cell tall. Photographed before it was believed. It shares the
+ * scene's timeline and range; the keyframes hold it still until the city has
+ * risen.
+ */
+.dolly {
+  transform-style: preserve-3d;
+  animation-name: city-dolly;
+  animation-fill-mode: both;
+  animation-timing-function: linear;
+  animation-timeline: --city;
+  animation-range: contain 0% contain 100%;
 }
 
 /*
@@ -417,6 +594,8 @@
    * the other end of the ramp and is smaller; the second table says where.
    */
   --city-shade: calc(var(--city-a) + 0.45 * (1 - var(--city-a)));
+  /* The flank, at 0.25 of the same overlay: see `::before` below. */
+  --city-flank: calc(var(--city-a) + 0.25 * (1 - var(--city-a)));
 
   position: relative;
   /* Square, and it is the grid's row height rather than the other way round:
@@ -465,6 +644,7 @@
  */
 :global(.on-panel) .cell {
   --city-shade: calc(var(--city-a) * 0.55);
+  --city-flank: calc(var(--city-a) * 0.75);
 }
 
 :global(.on-panel) .cell[data-step="1"] { --city-a: 0.24; }
@@ -484,9 +664,22 @@
  * have a child in the 3D scene to preserve. 365 nested 3D rendering contexts
  * is the cost this file was most worried about; a year's empty days are a
  * third of them for free.
+ *
+ * OPAQUE, since #111, and it is the same colour. Every face here was a
+ * translucent ink over whatever was behind it, and the ramp tables above were
+ * read out of the page composited over the bare ground. That was invisible
+ * at a 15px cell; at the size #111 draws the city, a column's own south wall
+ * and its neighbours showed through its roof and the city read as glass. So
+ * each face is now that composite, done in advance — `color-mix` in sRGB, the
+ * space the browser composites alpha in, of the ink over `--canvas` (the
+ * ground role, `--panel` here) — which lands on exactly the measured value
+ * over a plain ground and stops being see-through. The translucent line above
+ * each `color-mix` is the fallback for an engine without it, which draws the
+ * glass city and nothing worse.
  */
 .cell:not([data-step="0"]) {
   background: rgb(var(--ink) / var(--city-a));
+  background: color-mix(in srgb, rgb(var(--ink)) calc(var(--city-a) * 100%), rgb(var(--canvas)));
   transform-style: preserve-3d;
   transform: translateZ(calc(var(--city-rise) * var(--city-storey)));
 }
@@ -513,8 +706,50 @@
   inset: 100% 0 auto 0;
   height: calc(var(--city-rise) * var(--city-storey));
   background: rgb(var(--ink) / var(--city-shade));
+  background: color-mix(in srgb, rgb(var(--ink)) calc(var(--city-shade) * 100%), rgb(var(--canvas)));
   transform-origin: 50% 0%;
   transform: rotateX(-90deg);
+}
+
+/*
+ * The flank: one side wall, on whichever side faces the camera.
+ *
+ * Added with #111, because the hand can turn the city. At the scroll's own
+ * -8deg a column's sides are edge-on and a top face plus one south wall reads
+ * as a solid; turned 30 degrees by a finger, the side comes round into view,
+ * and a column without one is a folded card — you see into it. A full box
+ * would be a wall on each side, and only ever one of the two faces the camera
+ * at a time: which one is the sign of the total turn, which `useCityHand`
+ * knows and writes as `data-side` on the frame when it changes. That flips
+ * every flank in one restyle, at the instant the city is square on — the
+ * one moment when neither side is visible, so the swap is never seen.
+ *
+ * So the city is three surfaces per active day rather than two: 82 more on
+ * the real calendar, 529 in all. The frame numbers in the pull request are
+ * taken with them.
+ *
+ * The same geometry as the south wall, turned a quarter: placed against the
+ * cell's side edge, hinged on that edge, `rotateY` swings it down out of the
+ * plane to the ground. Its shade sits between the face and the south wall —
+ * 0.25 of the overlay where the south wall takes 0.45 — so the three faces of
+ * a column are three distinct values, which is what makes a box read as lit
+ * from one direction rather than as three panels of one colour.
+ */
+.cell:not([data-step="0"])::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 100%;
+  width: calc(var(--city-rise) * var(--city-storey));
+  background: rgb(var(--ink) / var(--city-flank));
+  background: color-mix(in srgb, rgb(var(--ink)) calc(var(--city-flank) * 100%), rgb(var(--canvas)));
+  transform-origin: 0% 50%;
+  transform: rotateY(90deg);
+}
+
+.frame[data-side="left"] .cell:not([data-step="0"])::before {
+  inset: 0 100% 0 auto;
+  transform-origin: 100% 50%;
+  transform: rotateY(-90deg);
 }
 
 /*
@@ -522,8 +757,30 @@
  * day costs no box at all — on a year with a hundred quiet days that is a
  * hundred surfaces the compositor never sees.
  */
-.cell[data-step="0"]::after {
+.cell[data-step="0"]::after,
+.cell[data-step="0"]::before {
   content: none;
+}
+
+/*
+ * The column the pointer is reading.
+ *
+ * Full ink on the top face, and the walls follow because they are composited
+ * off the same `--city-a`: one declaration lights all three faces and the
+ * shading between them survives. On the dark act full ink is `--panel-ink`,
+ * 17.15:1 off the ground and 2.0:1 above the brightest band's face — a step
+ * nothing else in the scene takes, which is what lets one lit column be found
+ * among 365 without a colour the gallery's rule would not allow. An empty day
+ * lights to the first band's value, so pointing at a quiet day still shows
+ * which day it is.
+ */
+.cell[data-hot] {
+  --city-a: 1;
+}
+
+.cell[data-step="0"][data-hot] {
+  background: rgb(var(--ink) / 0.5);
+  background: color-mix(in srgb, rgb(var(--ink)) 50%, rgb(var(--canvas)));
 }
 
 /*
@@ -534,9 +791,9 @@
  * no delay to stagger with, and because the whole point of the `scaleZ`
  * build is that one interpolated matrix carries every column.
  *
- * The stages do not overlap, and the 46% hold is what makes it three stages
- * rather than a tumble: the grid arrives flat and legible, turns while still
- * flat, and only then grows. Rotating and rising at once reads as one
+ * The stages do not overlap, and the turn finishing before the rise starts is
+ * what makes it three stages rather than a tumble: the grid arrives flat and
+ * legible, turns while still flat, and only then grows. Rotating and rising at once reads as one
  * unreadable swoop, which was the first build.
  *
  * The transform list is the same length and the same functions at every
@@ -551,15 +808,123 @@
  * are angles and numbers, which are not identifiers and which nothing
  * rewrites — see the same note on `.rail` in `ProjectPile.module.css`.
  */
+/*
+ * THE PERCENTAGES, since #111. They are a share of the held stretch now
+ * rather than of a passage through the window, and the three stages keep the
+ * proportions they had to each other — the hold, the turn, the rise — and
+ * then hand the rest of the runway to the dolly:
+ *
+ *   0–10%   the flat year, held. The frame has just pinned, and this is the
+ *           stage that has to be read before the other two mean anything.
+ *   10–30%  the turn into perspective, still flat.
+ *   30–48%  the rise.
+ *   48–100% the camera: in close over the oldest weeks, then along the year
+ *           to this one (`city-dolly`, below).
+ *
+ * At 120svh of runway the three stages together take 58svh, which is about
+ * what the whole act took before #111 (38% of a `cover` range of 100svh plus
+ * the frame) — so the arrival is not slower, it is the same arrival with a
+ * journey after it. That was deliberate: a flat-to-risen that took twice as
+ * long would read as a loading bar.
+ */
 @keyframes city-raise {
-  0% {
+  0%,
+  10% {
     transform: rotateX(0deg) rotateZ(0deg) scaleZ(var(--city-flat));
   }
-  46% {
+  30% {
     transform: rotateX(var(--city-tilt)) rotateZ(var(--city-turn)) scaleZ(var(--city-flat));
   }
+  48%,
   100% {
     transform: rotateX(var(--city-tilt)) rotateZ(var(--city-turn)) scaleZ(1);
+  }
+}
+
+/*
+ * The dolly, on the same clock.
+ *
+ * `translateX` is in percent of the dolly's own width, which is the span, so
+ * the arithmetic is the whole year's width and needs no measurement. Scaling
+ * about the centre by k leaves the point at the centre of the frame where it
+ * was; sliding by `(k − 1) × 50%` first brings the year's first week to it,
+ * and the same slide negated brings the last. `--city-dir` flips both for a
+ * right-to-left grid. Same function list at every keyframe, for the reason on
+ * `city-raise` above.
+ *
+ * The in-close move (48–60%) is short and the travel (60–100%) is long,
+ * because the travel is the part with something to read in it: 40% of 120svh
+ * is 48svh to cross 53 weeks, about a week per centimetre of thumb.
+ */
+@keyframes city-dolly {
+  0%,
+  48% {
+    transform: translateX(0) scale3d(1, 1, 1);
+  }
+  60% {
+    transform: translateX(calc((var(--city-zoom) - 1) * 50% * var(--city-dir))) scale3d(var(--city-zoom), var(--city-zoom), var(--city-zoom));
+  }
+  100% {
+    transform: translateX(calc((var(--city-zoom) - 1) * -50% * var(--city-dir))) scale3d(var(--city-zoom), var(--city-zoom), var(--city-zoom));
+  }
+}
+
+/* ──────────────────────────────────────────────────────────── the readout ── */
+
+/*
+ * The one readout the 365 columns share.
+ *
+ * In the frame's lower corner, on the page's own left edge: the inset is
+ * `.wrap`'s gutter expressed from inside a full-bleed box, the same sum
+ * `LatestNotes.module.css` makes for its shelf, so the line sits under the
+ * section heading's column rather than against the window's edge.
+ *
+ * One line in the eyebrow register, `--ink-soft` on the dark ground, which is
+ * the caption's colour and is measured there: 7.8560:1 against `--panel`. It
+ * is laid over the frame, not under it, so the camera's field is not cut
+ * short by a row of type — and it is over the near edge of the ground, where
+ * the city is at its lowest, which is the only part of the frame a line can
+ * stand on without standing on a column. `pointer-events: none` so it never
+ * takes a hover from the column behind it.
+ *
+ * Two hints and one reading. At rest a hint says what the hand can do, in
+ * the words of the pointer the reader has: `(hover: hover)` is a mouse or a
+ * trackpad, `(hover: none)` is a finger. Once a column is read the hints give
+ * way to the reading, and a tap on bare ground or the pointer leaving the
+ * frame gives it back.
+ */
+.readout {
+  position: absolute;
+  inset-inline-start: max(
+    clamp(1.25rem, 3vw, 2.5rem),
+    calc((100% - 72rem) / 2 + clamp(1.25rem, 3vw, 2.5rem))
+  );
+  inset-inline-end: clamp(1.25rem, 3vw, 2.5rem);
+  bottom: clamp(0.75rem, 2svh, 1.5rem);
+  color: rgb(var(--ink-soft));
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+.reading,
+.frame[data-reading] .hint {
+  display: none;
+}
+
+.frame[data-reading] .reading {
+  display: inline;
+  color: rgb(var(--ink));
+}
+
+@media (hover: hover) {
+  .hint[data-hint="touch"] {
+    display: none;
+  }
+}
+
+@media (hover: none) {
+  .hint[data-hint="pointer"] {
+    display: none;
   }
 }
 
@@ -665,79 +1030,133 @@
 /* ───────────────────────────────────────────────── the three off-switches ── */
 
 /*
- * All three land on the flat grid, which is a finished design and not a
- * degraded city — it is the chart GitHub itself ships, it still carries the
- * year in five bands, and it needs no perspective to be read. That is why
- * this section was buildable under the contract at all: a scrub whose
- * switched-off state is a legitimate chart is a scrub that costs nothing to
- * switch off.
+ * All three land on the RISEN city, standing still, and that is a change of
+ * finished state that #111 asked for by name.
  *
- * Each is one block of custom properties plus `animation-name: none`, for the
- * reason the pile's stylesheet argues at length: the global
- * `animation-duration: 0.01ms !important` that `index.css` and
- * `nav/motion-paused.css` apply is the right trick for a time-driven
+ * Until #111 they landed on the flat grid, and the argument was a good one:
+ * it is a finished chart, it is the one GitHub ships, and a scrub whose
+ * off-state is a legitimate drawing costs nothing to switch off. It is still
+ * true of the flat grid. What changed is which drawing is the finished one.
+ * The section is the city now — the owner's word for it is "something nice
+ * and we need to show that more" — and a reader who asked for less motion
+ * asked for less MOTION, not for less city. The risen city at rest is as
+ * finished as the flat grid and more of what the section is for, so it is
+ * the state the switches land on. §4's rule is that every exit lands on the
+ * finished state and never on the first frame; this is that rule applied to
+ * a section whose finished state moved.
+ *
+ * Why the risen city and not the end of the dolly: the dolly's last frame is
+ * the last few months up close, which is a crop. Still, with no scroll to
+ * travel it by, a crop is a chart with most of its year cut off. The risen
+ * whole is the last frame that shows all of it.
+ *
+ * Each is one block per box, for the reason the pile's stylesheet argues at
+ * length: the global `animation-duration: 0.01ms !important` that `index.css`
+ * and `nav/motion-paused.css` apply is the right trick for a time-driven
  * animation and is undefined for a progress-driven one. It would leave the
- * scene's turn tied to the scroll position.
+ * camera tied to the scroll position. So each switch cancels both animations
+ * outright and writes the arrived transform itself:
  *
- * `--city-storey: 0px` is the part that cannot be left out. Cancelling the
- * animation flattens the scene's own turn and does nothing at all to 365
- * children that are each carrying a static `translateZ`: with the perspective
- * still on the frame, those columns would stand straight out of the page
- * toward the reader and be drawn as cells of 365 different sizes. Zero
- * storeys takes the lift and the wall together, because both are the same
- * product of the same two properties.
+ *   `.stage` gives up the runway. Nothing moves, so there is nothing for the
+ *   reader to spend scroll on; holding a still picture for 120svh would be a
+ *   blank stretch of page with a photograph pinned in it.
+ *   `.frame` stops being held and takes the rest height, which is cut to the
+ *   risen city at the span rather than to the camera's close-up.
+ *   `.scene` is written at the risen keyframe: tilted, turned, `scaleZ(1)`.
+ *   `.dolly` is written at rest: the whole year, no zoom.
  *
- * `perspective: none` goes with it, so there is no camera left to divide by
- * and the grid is drawn as flat geometry rather than as a 3D scene that
- * happens to be level. The frame also gives up its height, which was only
- * ever reserved for a city to stand in.
+ * The hand still works under all three. Turning the city with a finger is
+ * the reader moving it, which is not motion the page started, and
+ * `useCityHand` drops the coast and the settle under the two switches a
+ * reader sets — what is turned stays turned.
+ *
+ * Pause toggled MID-ACT is the case §4 warns about, and it lands right: the
+ * camera snaps to the risen city, never to the flat grid or to a blank. The
+ * page does get shorter by the runway under the reader at that moment, which
+ * is the same trade the pile makes when Pause unstacks its cards; a still
+ * picture held for 120svh is the worse of the two.
  */
 @supports not (animation-timeline: view()) {
-  .frame {
-    --city-storey: 0px;
-    perspective: none;
+  .stage {
     height: auto;
+  }
+  .frame {
+    position: relative;
+    top: auto;
+    height: var(--city-rest);
   }
   .scene {
     animation-name: none;
+    transform: rotateX(var(--city-tilt)) rotateZ(var(--city-turn)) scaleZ(1);
+  }
+  .dolly {
+    animation-name: none;
+    transform: none;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .frame {
-    --city-storey: 0px;
-    perspective: none;
+  .stage {
     height: auto;
+  }
+  .frame {
+    position: relative;
+    top: auto;
+    height: var(--city-rest);
   }
   .scene {
     animation-name: none;
+    transform: rotateX(var(--city-tilt)) rotateZ(var(--city-turn)) scaleZ(1);
+  }
+  .dolly {
+    animation-name: none;
+    transform: none;
   }
 }
 
-:global(body.motion-paused) .frame {
-  --city-storey: 0px;
-  perspective: none;
+:global(body.motion-paused) .stage {
   height: auto;
+}
+
+:global(body.motion-paused) .frame {
+  position: relative;
+  top: auto;
+  height: var(--city-rest);
 }
 
 :global(body.motion-paused) .scene {
   animation-name: none;
+  transform: rotateX(var(--city-tilt)) rotateZ(var(--city-turn)) scaleZ(1);
+}
+
+:global(body.motion-paused) .dolly {
+  animation-name: none;
+  transform: none;
 }
 
 /*
  * A fourth exit, and it is about the data rather than about motion.
  *
  * A year with no days in it has no columns to raise, so the component writes
- * `data-city` on the frame and the act is switched off by the same three
- * declarations the three switches use. Without this the empty grid would
- * still turn into perspective on scroll — a camera move over an empty plane,
- * which is a chart performing the absence of its own data.
+ * `data-city` on the stage and the act is switched off from the data side.
+ * Without this the empty grid would still turn into perspective on scroll —
+ * a camera move over an empty plane, which is a chart performing the absence
+ * of its own data. THIS exit still lands on the flat grid, because with no
+ * data the flat lattice is the only honest drawing: there is no city to
+ * stand up.
+ *
+ * `transform: none` on the scene, which the three switches above made
+ * necessary. Each of them writes the risen transform on `.scene`, and a
+ * pending year under reduced motion would otherwise keep the tilt with the
+ * perspective taken away — a lattice squashed to 62% of its own height by a
+ * rotation nobody can see. The selector here outranks all three, so a year
+ * with no data is flat under every switch.
  *
  * TWO VALUES REACH THIS AND THEY ARE NOT THE SAME STATE. `empty` is a year
  * that could not be read; `pending` is one that has not arrived yet. Both
- * draw the flat lattice and neither may run the act, so the three
- * declarations are shared — and then they part company over the one property
- * that is not about motion at all.
+ * draw the flat lattice and neither may run the act, so the act-off
+ * declarations are shared — and then they part company over the one thing
+ * that is not about motion at all, which is height.
  *
  * BOTH STATES WERE RE-DERIVED when this section became a dark act, because
  * the distinction between them is carried in colour and motion and both of
@@ -752,38 +1171,59 @@
  *
  * `pending` needed one, and the band's own note below carries the solve.
  */
-.frame[data-city="empty"],
-.frame[data-city="pending"] {
+.stage[data-city="empty"],
+.stage[data-city="pending"] {
   --city-storey: 0px;
-  perspective: none;
 }
 
-.frame[data-city="empty"] .scene,
-.frame[data-city="pending"] .scene {
+.stage[data-city="empty"] .frame,
+.stage[data-city="pending"] .frame {
+  perspective: none;
+  cursor: auto;
+}
+
+.stage[data-city="empty"] .scene,
+.stage[data-city="pending"] .scene {
   animation-name: none;
+  transform: none;
+}
+
+.stage[data-city="empty"] .dolly,
+.stage[data-city="pending"] .dolly {
+  animation-name: none;
+  transform: none;
 }
 
 /*
  * The height, which is the whole of the difference between the two.
  *
- * `height: auto` gives up the room a city stands in, and that is right for a
- * year that will never arrive: the flat lattice is the finished drawing, and
- * reserving ninety pixels of air above it for columns that are not coming is
- * a chart apologising for itself.
+ * Giving up the room gives up the room a city stands in AND the runway it
+ * travels, and that is right for a year that will never arrive: the flat
+ * lattice is the finished drawing, and reserving a window and a half of
+ * scroll for a camera move over nothing is a chart apologising for itself.
  *
- * It is wrong for a year that is still on its way, and measurably so. The
- * frame is `clamp(140px, 16vw, 240px)` with a year in it and `auto` without,
- * which at 1440x900 is 230.39px against 121.70px — so the arriving city
- * dropped everything below it by 108.69px, a layout shift of 0.0345 for a
- * reader parked on the section. It never showed in the site's headline CLS
- * because the section is four screens down and a shift outside the viewport
- * is not counted, which is the only reason it survived to be found.
+ * It is wrong for a year that is still on its way, and measurably so. With a
+ * year in it the stage is the frame plus the runway; without, `auto`. Before
+ * #111 that difference was 108.69px at 1440x900 and it was a layout shift of
+ * 0.0345 for a reader parked on the section; with the runway it is the better
+ * part of two windows, and every reader below the section would have the page
+ * pulled out from under them when the request landed.
  *
- * So `pending` keeps the declared height by simply not restating it: the
- * rule above deliberately drops `height` out of the shared set, and this is
- * the comment that stops the next reader putting it back.
+ * So `pending` keeps the declared stage — frame, runway and the hold — by
+ * simply not restating any of it: the rule below names `empty` alone, and
+ * this is the comment that stops the next reader adding `pending` to it. The
+ * lattice is held in the middle of the window while the reader scrolls past
+ * it, still and flat, with the waiting band crossing it; when the year lands
+ * the city takes up the act from wherever the scroll has got to, which is
+ * what a scrub does anyway.
  */
-.frame[data-city="empty"] {
+.stage[data-city="empty"] {
+  height: auto;
+}
+
+.stage[data-city="empty"] .frame {
+  position: relative;
+  top: auto;
   height: auto;
 }
 
@@ -848,7 +1288,7 @@
  * `--paper`, which is the same dent; the arm is recorded here rather than
  * added there because the city is its only dark-ground call site today.
  */
-.frame[data-city="pending"]::after {
+.stage[data-city="pending"] .frame::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -879,7 +1319,7 @@
    wiped away. Two keyframes and an explicit `animation-name`, because a name
    reached through a custom property is invisible to the CSS Modules scoper
    and fails silently — §7 of the motion contract. */
-:global(html[dir="rtl"]) .frame[data-city="pending"]::after {
+:global(html[dir="rtl"]) .stage[data-city="pending"] .frame::after {
   animation-name: city-waiting-rtl;
 }
 
@@ -906,13 +1346,13 @@
  * the scrub, which does.
  */
 @media (prefers-reduced-motion: reduce) {
-  .frame[data-city="pending"]::after {
+  .stage[data-city="pending"] .frame::after {
     animation: none;
     background-image: none;
   }
 }
 
-:global(body.motion-paused) .frame[data-city="pending"]::after {
+:global(body.motion-paused) .stage[data-city="pending"] .frame::after {
   animation: none;
   background-image: none;
 }
@@ -925,12 +1365,27 @@
  * `InkWipe` makes for dropping its coloured band.
  */
 @media (forced-colors: active) {
-  .frame {
+  .stage {
     --city-storey: 0px;
+    height: auto;
+  }
+  .frame {
+    position: relative;
+    top: auto;
     perspective: none;
     height: auto;
   }
   .scene {
     animation-name: none;
+    transform: none;
+  }
+  .dolly {
+    animation-name: none;
+    transform: none;
+  }
+  /* The readout would be a system-coloured line naming the day under a
+     column whose band no longer shows; the table is the reading here. */
+  .readout {
+    display: none;
   }
 }
