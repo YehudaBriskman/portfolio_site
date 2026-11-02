@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
-# Drives deploy.sh against a fake `kubectl` and a fake `curl` on PATH, and
-# asserts which calls it made (#199, #200). No cluster and no network: the
-# fakes keep each Deployment's image in a file, and the "pods" answer
-# according to the image they were last set to.
+# Drives deploy.sh against a fake `kubectl`, `curl` and `oras` on PATH, and
+# asserts which calls it made (#199, #200, #205). No cluster, no registry and
+# no network: the fakes keep each Deployment's image in a file, the "pods"
+# answer according to the image they were last set to, and the "registry"
+# holds a release manifest for a commit when a file says so. The guard's
+# history questions go to real git, in throwaway repositories.
 #
 #   bash .github/scripts/deploy.test.sh
 set -euo pipefail
@@ -15,6 +17,14 @@ trap 'rm -rf "$ROOT"' EXIT
 BASE=ghcr.io/yehudabriskman/portfolio_site
 NEW=1111111111111111111111111111111111111111
 OLD=2222222222222222222222222222222222222222
+# Digests whose first 40 hex digits are the commit they were built from, so
+# the fake pods can say which build they are. Web and api differ.
+WPAD=aaaaaaaaaaaaaaaaaaaaaaaa
+APAD=bbbbbbbbbbbbbbbbbbbbbbbb
+NEW_WEB="$BASE/web@sha256:$NEW$WPAD"
+NEW_API="$BASE/api@sha256:$NEW$APAD"
+OLD_WEB="$BASE/web@sha256:$OLD$WPAD"
+OLD_API="$BASE/api@sha256:$OLD$APAD"
 
 # ---------------------------------------------------------------- the fakes
 mkdir -p "$ROOT/bin"
@@ -25,7 +35,8 @@ cat >"$ROOT/bin/kubectl" <<'FAKE'
 #   FAKE_FAIL      regex; a call (after `-n NS`) matching it exits 1
 #   FAKE_CANI      the answer to `auth can-i` (default yes)
 #   FAKE_STUCK     regex; `rollout status deploy/X` fails while X's image matches
-#   FAKE_PODS_<d>  lines `rollout status`-independent pods report as imageID
+#   FAKE_PODS_<d>  the imageID lines X's pods report; unset, they report the
+#                  Deployment's image when that is a digest
 set -u
 F="$FAKE_DIR"
 echo "kubectl $*" >>"$F/calls"
@@ -47,11 +58,15 @@ case "$1" in
         *'.image}') cat "$F/img.$d" ;;
         *'version}') cat "$F/ann.$d.version" 2>/dev/null || true ;;
         *'released-at}') cat "$F/ann.$d.released-at" 2>/dev/null || true ;;
+        *'source-sha}') cat "$F/ann.$d.source-sha" 2>/dev/null || true ;;
       esac
     elif [ "$2" = pods ]; then
       d="${4#app=}"
       case "$*" in
-        *imageID*) var="FAKE_PODS_$d"; printf '%s\n' "${!var:-}" ;;
+        *imageID*)
+          var="FAKE_PODS_$d"
+          if [ -n "${!var+x}" ]; then printf '%s\n' "${!var}"
+          elif grep -q @sha256: "$F/img.$d"; then echo "docker-pullable://$(cat "$F/img.$d")"; fi ;;
         *) echo "POD PHASE REASON MSG"; echo "$d-x Pending ErrImagePull nope" ;;
       esac
     fi
@@ -117,6 +132,7 @@ d=$(cat "$F/pf.$port")
 img=$(cat "$F/img.$d")
 sha="dev"
 [[ "$img" =~ :([0-9a-f]{40})$ ]] && sha="${BASH_REMATCH[1]}"
+[[ "$img" =~ @sha256:([0-9a-f]{40})[0-9a-f]{24}$ ]] && sha="${BASH_REMATCH[1]}"
 [ -n "${FAKE_NOVER:-}" ] && [[ "$img" =~ $FAKE_NOVER ]] && sha="dev"
 broken=0; [ -n "${FAKE_BROKEN:-}" ] && [[ "$img" =~ $FAKE_BROKEN ]] && broken=1
 legacy=0; [ -n "${FAKE_LEGACY:-}" ] && [[ "$img" =~ $FAKE_LEGACY ]] && legacy=1
@@ -135,29 +151,51 @@ case "$d:$path" in
   *) reply 404 '' ;;
 esac
 FAKE
-chmod +x "$ROOT/bin/kubectl" "$ROOT/bin/curl"
+
+cat >"$ROOT/bin/oras" <<'FAKE'
+#!/usr/bin/env bash
+# Fake oras: `manifest fetch --descriptor <base>/manifest:<sha>` succeeds when
+# $FAKE_DIR/manifests/<sha> exists.
+set -u
+F="$FAKE_DIR"
+echo "oras $*" >>"$F/calls"
+if [ "$1 $2 $3" = "manifest fetch --descriptor" ]; then
+  [ -e "$F/manifests/${4##*:}" ] || { echo "Error: $4: not found" >&2; exit 1; }
+  echo '{"mediaType":"application/vnd.oci.image.manifest.v1+json","digest":"sha256:feed","size":1}'
+  exit 0
+fi
+echo "fake oras: unhandled: $*" >&2
+exit 1
+FAKE
+chmod +x "$ROOT/bin/kubectl" "$ROOT/bin/curl" "$ROOT/bin/oras"
 
 # ------------------------------------------------------------------ harness
 PASS=0; FAIL=0; CASE=""; RC=0; OUT=""
+RUN_DIR="$ROOT"
 
 scenario() {
   CASE="$1"
   export FAKE_DIR="$ROOT/case-$PASS-$FAIL-$RANDOM"
-  mkdir -p "$FAKE_DIR"
+  mkdir -p "$FAKE_DIR/manifests"
   : >"$FAKE_DIR/calls"
+  : >"$FAKE_DIR/github_output"
   printf '%s' "$BASE/web:$OLD" >"$FAKE_DIR/img.web"
   printf '%s' "$BASE/api:$OLD" >"$FAKE_DIR/img.api"
   printf '%s' "main-2222222" >"$FAKE_DIR/ann.web.version"
   printf '%s' "main-2222222" >"$FAKE_DIR/ann.api.version"
   unset FAKE_FAIL FAKE_CANI FAKE_STUCK FAKE_BROKEN FAKE_NOVER FAKE_LEGACY FAKE_HOLLOW FAKE_PODS_web FAKE_PODS_api
   export DEPLOY_STATE="$FAKE_DIR/state"
+  NS=preprod; SHA="$NEW"; REF_NAME=main; WEB_IMG="$NEW_WEB"; API_IMG="$NEW_API"; ROLLBACK=""
+  RUN_DIR="$ROOT"
 }
 
 # run <subcommand...>: RC and OUT, never aborts the harness.
 run() {
   set +e
-  OUT=$(PATH="$ROOT/bin:$PATH" DEPLOY_NS=preprod IMAGE_BASE="$BASE" DEPLOY_SHA="$NEW" \
-    DEPLOY_REF_NAME=main READY_ATTEMPTS=2 READY_SLEEP=0 \
+  OUT=$(cd "$RUN_DIR" && PATH="$ROOT/bin:$PATH" DEPLOY_NS="$NS" IMAGE_BASE="$BASE" DEPLOY_SHA="$SHA" \
+    DEPLOY_REF_NAME="$REF_NAME" DEPLOY_WEB_IMAGE="$WEB_IMG" DEPLOY_API_IMAGE="$API_IMG" \
+    ROLLBACK="$ROLLBACK" GITHUB_OUTPUT="$FAKE_DIR/github_output" \
+    READY_ATTEMPTS=2 READY_SLEEP=0 \
     bash "$DEPLOY" "$@" 2>&1)
   RC=$?
   set -e
@@ -178,6 +216,8 @@ not_called() { if grep -qE -- "$1" "$FAKE_DIR/calls"; then bad "unexpected call 
 said() { if grep -qE -- "$1" "$FAKE_DIR/out"; then ok; else bad "output lacks: $1"; fi; }
 not_said() { if grep -qE -- "$1" "$FAKE_DIR/out"; then bad "output has: $1"; else ok; fi; }
 image_is() { if [ "$(cat "$FAKE_DIR/img.$1")" = "$2" ]; then ok; else bad "$1 is $(cat "$FAKE_DIR/img.$1"), wanted $2"; fi; }
+ann_is() { if [ "$(cat "$FAKE_DIR/ann.$1.$2" 2>/dev/null || echo '<none>')" = "$3" ]; then ok; else bad "$1 $2 is $(cat "$FAKE_DIR/ann.$1.$2" 2>/dev/null || echo '<none>'), wanted $3"; fi; }
+proceed_is() { if grep -qx "proceed=$1" "$FAKE_DIR/github_output"; then ok; else bad "GITHUB_OUTPUT has '$(tr '\n' ' ' <"$FAKE_DIR/github_output")', wanted proceed=$1"; fi; }
 # after <a> <b>: the last call matching b comes after the first call matching a.
 after() {
   local a b
@@ -189,24 +229,62 @@ calls_since_mark() { : >"$FAKE_DIR/calls"; }
 
 # -------------------------------------------------------------- scenarios
 
-scenario "happy path: record, roll out, ready on the new sha"
+scenario "happy path: record, roll out the manifest's digests, ready on the new sha"
 run preflight; rc_is 0
 run record; rc_is 0
 run rollout; rc_is 0
-called "set image deploy/web web=$BASE/web:$NEW"
-called "set image deploy/api api=$BASE/api:$NEW"
+called "set image deploy/web web=$NEW_WEB"
+called "set image deploy/api api=$NEW_API"
 called "annotate deploy web --overwrite app.kubernetes.io/version=main-1111111"
+ann_is api source-sha "$NEW"
 run readiness; rc_is 0
 called "port-forward deploy/api 15000:5000"
 called "port-forward deploy/web 18080:8080"
 called "curl http://127.0.0.1:15000/health/ready"
 called "curl http://127.0.0.1:18080/index.html"
+called "get pods -l app=api -o jsonpath=.*imageID"
+said "digests: both Deployments and all their pods run the manifest's digests"
 not_called "rollout undo"
+
+scenario "rollout refuses a tag: only a digest from the manifest is rolled out"
+run record; rc_is 0
+WEB_IMG="$BASE/web:$NEW" run rollout; rc_not0
+said "No digest for web"
+not_called "set image"
+if [ -e "$DEPLOY_STATE/mutated" ]; then bad "marked mutated before refusing"; else ok; fi
+
+scenario "rollout refuses a digest of another repository"
+run record; rc_is 0
+API_IMG="ghcr.io/someone/else/api@sha256:$NEW$APAD" run rollout; rc_not0
+said "No digest for api"
+not_called "set image"
+
+scenario "rollout refuses a missing manifest image"
+run record; rc_is 0
+API_IMG="" run rollout; rc_not0
+said "DEPLOY_API_IMAGE is 'unset'"
+not_called "set image"
+
+scenario "readiness fails when a pod runs another digest than the manifest"
+run record; rc_is 0
+run rollout; rc_is 0
+export FAKE_PODS_api="docker-pullable://$NEW_API
+docker-pullable://$OLD_API"
+run readiness; rc_not0
+said "api: pods run"
+said "title=preprod is not ready"
+
+scenario "readiness fails when the Deployment names another image than the manifest"
+run record; rc_is 0
+run rollout; rc_is 0
+printf '%s' "$OLD_WEB" >"$FAKE_DIR/img.web"
+run readiness; rc_not0
+said "web: the Deployment names $OLD_WEB"
 
 scenario "web patch succeeds, api patch fails: both go back to the recorded images"
 run record; rc_is 0
-FAKE_FAIL="set image deploy/api api=.*:$NEW" run rollout; rc_not0
-image_is web "$BASE/web:$NEW"
+FAKE_FAIL="set image deploy/api api=.*$NEW" run rollout; rc_not0
+image_is web "$NEW_WEB"
 calls_since_mark
 run recover; rc_is 0
 called "set image deploy/web web=$BASE/web:$OLD"
@@ -218,13 +296,33 @@ image_is web "$BASE/web:$OLD"
 image_is api "$BASE/api:$OLD"
 called "annotate deploy web --overwrite app.kubernetes.io/version=main-2222222"
 called "annotate deploy web portfolio.yehudabriskman.com/released-at-"
+called "annotate deploy web portfolio.yehudabriskman.com/source-sha-"
+ann_is web source-sha "<none>"
 not_called "rollout undo"
 said "title=Rolled back"
 not_said "RECOVERY FAILED"
 
+scenario "digest to digest: a failed rollout goes back to the recorded digests and source-sha"
+printf '%s' "$OLD_WEB" >"$FAKE_DIR/img.web"
+printf '%s' "$OLD_API" >"$FAKE_DIR/img.api"
+printf '%s' "$OLD" >"$FAKE_DIR/ann.web.source-sha"
+printf '%s' "$OLD" >"$FAKE_DIR/ann.api.source-sha"
+run record; rc_is 0
+if [ "$(cat "$DEPLOY_STATE/api.image")" = "$OLD_API" ]; then ok; else bad "api recorded $(cat "$DEPLOY_STATE/api.image")"; fi
+export FAKE_STUCK="$NEW"
+run rollout; rc_not0
+calls_since_mark
+run recover; rc_is 0
+called "set image deploy/web web=$OLD_WEB"
+called "set image deploy/api api=$OLD_API"
+image_is web "$OLD_WEB"
+image_is api "$OLD_API"
+ann_is api source-sha "$OLD"
+said "title=Rolled back"
+
 scenario "rollout times out on api: both go back"
 run record; rc_is 0
-export FAKE_STUCK=":$NEW\$"
+export FAKE_STUCK="$NEW"
 run rollout; rc_not0
 said "why api did not come up"
 called "get pods -l app=api -o custom-columns"
@@ -238,7 +336,7 @@ said "title=Rolled back"
 scenario "readiness fails (db down on the new build): both go back"
 run record; rc_is 0
 run rollout; rc_is 0
-export FAKE_BROKEN=":$NEW\$"
+export FAKE_BROKEN="$NEW"
 run readiness; rc_not0
 said "api: /health/ready answered 503"
 said "title=preprod is not ready"
@@ -252,20 +350,19 @@ said "title=Rolled back"
 scenario "readiness fails on version: the pods are not running this commit"
 run record; rc_is 0
 run rollout; rc_is 0
-FAKE_NOVER=":$NEW\$" run readiness; rc_not0
+FAKE_NOVER="$NEW" run readiness; rc_not0
 said "running an unversioned build|running dev, not $NEW"
 
 scenario "readiness fails on the web document"
 run record; rc_is 0
 run rollout; rc_is 0
-printf '%s' "$BASE/api:$NEW" >"$FAKE_DIR/img.api"
-FAKE_BROKEN="web:$NEW\$" run readiness; rc_not0
+FAKE_BROKEN="web@sha256:$NEW" run readiness; rc_not0
 said "web: / answered 502"
 
 scenario "readiness fails on a 200 that is not the site"
 run record; rc_is 0
 run rollout; rc_is 0
-FAKE_HOLLOW="web:$NEW\$" run readiness; rc_not0
+FAKE_HOLLOW="web@sha256:$NEW" run readiness; rc_not0
 said "web: / answered 200 without the shell"
 
 scenario "recovery itself fails: a separate, loud error"
@@ -290,7 +387,7 @@ said "::error title=RECOVERY FAILED in preprod::"
 
 scenario "recovery onto a build from before /health/ready"
 run record; rc_is 0
-FAKE_FAIL="set image deploy/api api=.*:$NEW" run rollout; rc_not0
+FAKE_FAIL="set image deploy/api api=.*$NEW" run rollout; rc_not0
 export FAKE_LEGACY=":$OLD\$"
 run recover; rc_is 0
 called "curl http://127.0.0.1:15000/health\$"
@@ -342,12 +439,129 @@ said "api runs a moving tag"
 
 scenario "prod names the release by its tag"
 run record; rc_is 0
-set +e
-OUT=$(PATH="$ROOT/bin:$PATH" DEPLOY_NS=prod IMAGE_BASE="$BASE" DEPLOY_SHA="$NEW" DEPLOY_REF_NAME=v9.9.9 \
-  bash "$DEPLOY" rollout 2>&1); RC=$?
-set -e
+NS=prod REF_NAME=v9.9.9 run rollout
 rc_is 0
 called "kubectl -n prod annotate deploy api --overwrite app.kubernetes.io/version=v9.9.9"
+called "kubectl -n prod set image deploy/api api=$NEW_API"
+
+# ------------------------------------------------------- the guard (#205)
+#
+# A real repository with main's first-parent line m1 - m2 - m3 - M4, where M4
+# merges a branch whose own commit b1 is not one of main's pushes, and a
+# commit x1 that is not on main at all. "origin" is a bare copy.
+G="$ROOT/git"
+gitc() { git -C "$G/work" -c user.name=t -c user.email=t@t -c commit.gpgsign=false -c tag.gpgsign=false "$@"; }
+mkdir -p "$G"
+git init -q --bare -b main "$G/origin.git"
+git init -q -b main "$G/work"
+gitc remote add origin "$G/origin.git"
+commit() { gitc commit -q --allow-empty -m "$1"; gitc rev-parse HEAD; }
+M1=$(commit m1)
+M2=$(commit m2)
+M3=$(commit m3)
+gitc checkout -q -b topic
+B1=$(commit b1)
+gitc checkout -q main
+gitc merge -q --no-ff -m M4 topic
+M4=$(gitc rev-parse HEAD)
+gitc tag v1.1.0 "$M2"
+gitc tag -a -m v1.2.0 v1.2.0 "$M3"
+gitc push -q origin main --tags
+gitc checkout -q -b stray "$M1"
+X1=$(commit x1)
+gitc checkout -q main
+# The clone deploy.sh runs in has fallen behind origin: main was at M2 when
+# it checked out, which is the case the guard exists for.
+git clone -q "$G/origin.git" "$G/clone"
+git -C "$G/clone" -c advice.detachedHead=false checkout -q "$M2"
+git -C "$G/clone" update-ref refs/remotes/origin/main "$M2"
+git -C "$G/clone" fetch -q "$G/work" "$X1"
+
+guard_case() { scenario "$1"; RUN_DIR="$G/clone"; }
+
+guard_case "preprod guard: the newest main commit proceeds"
+SHA="$M4" run guard; rc_is 0
+proceed_is true
+
+guard_case "preprod guard: a newer main commit with a manifest makes this one stale: skip, not fail"
+touch "$FAKE_DIR/manifests/$M3"
+SHA="$M2" run guard; rc_is 0
+proceed_is false
+said "::notice title=Skipped: preprod has a newer release::main $M3"
+called "oras manifest fetch --descriptor $BASE/manifest:$M4"
+not_called "set image"
+
+guard_case "preprod guard: sees main as it is now, not as the checkout saw it"
+touch "$FAKE_DIR/manifests/$M4"
+SHA="$M3" run guard; rc_is 0
+proceed_is false
+
+guard_case "preprod guard: newer commits without a manifest (still building, or failed) do not block"
+SHA="$M2" run guard; rc_is 0
+proceed_is true
+called "oras manifest fetch --descriptor $BASE/manifest:$M3"
+
+guard_case "preprod guard: a merged branch's own commit is not one of main's releases"
+touch "$FAKE_DIR/manifests/$B1"
+SHA="$M3" run guard; rc_is 0
+proceed_is true
+not_called "manifest:$B1"
+
+guard_case "preprod guard: a commit that is not on main is refused"
+SHA="$X1" run guard; rc_not0
+said "is not on main"
+not_called "set image"
+
+guard_case "preprod guard: main cannot be fetched: refuse, do not guess"
+SHA="$M3" DEPLOY_GIT_REMOTE=nowhere run guard; rc_not0
+said "Cannot read main"
+
+prod_case() {
+  guard_case "$1"
+  NS=prod
+  printf '%s' "$2" >"$FAKE_DIR/ann.api.version"
+  if [ -n "$3" ]; then printf '%s' "$3" >"$FAKE_DIR/ann.api.source-sha"; fi
+}
+
+prod_case "prod guard: an older tag than prod runs is refused" v1.2.0 "$M3"
+SHA="$M2" REF_NAME=v1.1.0 run guard; rc_not0
+proceed_is false
+said "Refused: v1.1.0 is older than prod"
+said "ancestor of the running $M3"
+said "lower version than the running v1.2.0"
+
+prod_case "prod guard: an older tag with rollback is allowed, loudly" v1.2.0 "$M3"
+SHA="$M2" REF_NAME=v1.1.0 ROLLBACK=true run guard; rc_is 0
+proceed_is true
+said "::warning title=Rollback::"
+
+prod_case "prod guard: a newer tag proceeds" v1.1.0 "$M2"
+SHA="$M4" REF_NAME=v1.3.0 run guard; rc_is 0
+proceed_is true
+not_said "Refused"
+
+prod_case "prod guard: the same commit under a new tag (a redeploy) proceeds" v1.2.0 "$M3"
+SHA="$M3" REF_NAME=v1.2.1 run guard; rc_is 0
+proceed_is true
+
+prod_case "prod guard: before source-sha existed, the running version is resolved through its tag" v1.2.0 ""
+SHA="$M2" REF_NAME=v1.1.0 run guard; rc_not0
+said "ancestor of the running $M3"
+
+prod_case "prod guard: a lower version on a newer commit is refused too" v2.0.0 "$M2"
+SHA="$M3" REF_NAME=v1.9.0 run guard; rc_not0
+said "lower version than the running v2.0.0"
+not_said "ancestor"
+
+prod_case "prod guard: nothing known about prod (first release by digest) proceeds" "" ""
+printf '%s' "$BASE/api:latest" >"$FAKE_DIR/img.api"
+SHA="$M3" REF_NAME=v1.2.0 run guard; rc_is 0
+proceed_is true
+
+prod_case "prod guard: an old commit-tag image still orders by history" "" ""
+printf '%s' "$BASE/api:$M3" >"$FAKE_DIR/img.api"
+SHA="$M2" REF_NAME=v1.1.0 run guard; rc_not0
+said "ancestor of the running $M3"
 
 echo "deploy.sh: $PASS passed, $FAIL failed"
 [ "$FAIL" = 0 ]

@@ -29,12 +29,28 @@
 //     to add a rule, not a reason to skip a check.
 // Static runs on every change, docs-only included.
 //
-// Release refs select everything. Publish image and Deploy run on main and
-// v* tags, and Deploy sets BOTH images to this commit's sha, so a main push
-// that touched only the api must still build web. Narrowing there waits for
-// digest reuse (#205); until then only pull requests are narrowed. The diff
-// is still computed and reported on a release ref, so the step summary shows
-// what it would have selected.
+// The mode, from the event and the ref (#205):
+//   - pr       a pull request: narrowed as above; publishes and deploys nothing.
+//   - main     main (push or manual): everything. Publish image, Release
+//              manifest and Deploy (preprod) run, and Deploy sets BOTH images
+//              from the manifest, so a main push that touched only the api
+//              must still build web. Reusing an unchanged component's digest
+//              would need a dependency-aware proof that its effective inputs
+//              are identical; #205 left that out, so main builds both.
+//   - promote  a v* tag: builds NOTHING. Static, then Promote release (the
+//              manifest main CI recorded for the tag's commit, re-scanned),
+//              then Deploy (prod). Frontend, Backend, Scan and Publish image
+//              are not selected: their evidence is main's run for that commit.
+//   - rebuild  a manual run on a v* tag with `rebuild: true`: the one way to
+//              release a commit main never recorded. Everything main runs,
+//              then Promote release on the manifest THIS run wrote.
+//   - other    a manual run on any other branch: everything, publishes nothing.
+// The diff is still computed and reported on a release ref, so the step
+// summary shows what it would have selected.
+//
+// `sha` is the commit this run is about, resolved ONCE here: for a tag, the
+// commit the tag points to (an annotated tag is peeled); otherwise the
+// event's sha. Every later job reads it from here.
 
 import { execFileSync } from "node:child_process";
 import { appendFileSync } from "node:fs";
@@ -63,7 +79,7 @@ const RULES = [
   { re: /^[^/]+\.md$/, component: "docs" },
 ];
 
-export const JOBS = ["static", "frontend", "backend", "scan", "images", "deploy"];
+export const JOBS = ["static", "frontend", "backend", "scan", "images", "release", "promote", "deploy"];
 
 export function classifyPath(path) {
   for (const r of RULES) {
@@ -90,6 +106,34 @@ export function parseNameStatus(out) {
 
 export const isReleaseRef = (ref) => ref === "refs/heads/main" || (ref ?? "").startsWith("refs/tags/v");
 
+export function releaseMode({ event, ref, rebuild }) {
+  if (event === "pull_request") return "pr";
+  if (ref === "refs/heads/main") return "main";
+  if ((ref ?? "").startsWith("refs/tags/v")) {
+    return event === "workflow_dispatch" && String(rebuild) === "true" ? "rebuild" : "promote";
+  }
+  return "other";
+}
+
+const SHA = /^[0-9a-f]{40}$/;
+
+// The commit this run is about. A tag is peeled to its commit by git, once;
+// anything git cannot answer is an error, never a guess.
+export function resolveSha(ctx, mode, git) {
+  if (mode === "promote" || mode === "rebuild") {
+    let sha;
+    try {
+      sha = git(["rev-parse", "--verify", "--quiet", `${ctx.ref}^{commit}`]).trim();
+    } catch (e) {
+      throw new Error(`cannot resolve ${ctx.ref} to a commit: ${String(e?.message ?? e).split("\n")[0]}`);
+    }
+    if (!SHA.test(sha)) throw new Error(`${ctx.ref} resolved to ${JSON.stringify(sha)}, not a commit sha`);
+    return sha;
+  }
+  if (!SHA.test(ctx.sha ?? "")) throw new Error(`no commit sha for this event (${JSON.stringify(ctx.sha)})`);
+  return ctx.sha;
+}
+
 // Which commits to compare, or why to compare none and select everything.
 export function planDiff(ctx) {
   const { event } = ctx;
@@ -107,7 +151,9 @@ export function planDiff(ctx) {
 }
 
 // The selection, from a list of changed paths (or a reason there is none).
-export function classify({ paths, full, release }) {
+// `release: true` is shorthand for mode "main".
+export function classify({ paths, full, release, mode }) {
+  mode ??= release ? "main" : "pr";
   const changed = { web: false, backend: false, static: true, docs: false };
   const reasons = [];
   if (full) reasons.push(full);
@@ -121,14 +167,18 @@ export function classify({ paths, full, release }) {
   }
   const all = reasons.length > 0;
   if (all) changed.web = changed.backend = true;
-  // Narrowing on a pull request only; see the header.
-  const web = changed.web || release;
-  const backend = changed.backend || release;
-  if (release && !all) reasons.push("release ref: Publish image and Deploy need both images (#205)");
+  // Narrowing on a pull request only; a tag builds nothing; see the header.
+  const build = mode === "main" || mode === "rebuild";
+  const promote = mode === "promote" || mode === "rebuild";
+  const web = mode === "promote" ? false : changed.web || build;
+  const backend = mode === "promote" ? false : changed.backend || build;
+  if (build && !all) reasons.push("release ref: Deploy needs both images (#205)");
+  if (mode === "promote") reasons.push("v* tag: promote the manifest main recorded for this commit; build nothing (#205)");
   const scan = [];
   if (web) scan.push({ image: "web", context: "web" });
   if (backend) scan.push({ image: "api", context: "backend" });
   return {
+    mode,
     components: { web, backend, static: true, docs: changed.docs },
     changed,
     jobs: {
@@ -136,8 +186,10 @@ export function classify({ paths, full, release }) {
       frontend: web,
       backend,
       scan: scan.length > 0,
-      images: release,
-      deploy: release,
+      images: build,
+      release: build,
+      promote,
+      deploy: build || promote,
     },
     scanMatrix: scan,
     full: all,
@@ -145,36 +197,42 @@ export function classify({ paths, full, release }) {
   };
 }
 
-// The whole step, with git injected so the tests can make it fail.
+// The whole step, with git injected so the tests can make it fail. Throws
+// only when the commit itself cannot be named (a tag git cannot resolve).
 export function run(env, git) {
   const ctx = {
     event: env.EVENT_NAME,
     ref: env.REF,
+    sha: env.SHA,
+    rebuild: env.REBUILD,
     before: env.BEFORE,
     after: env.AFTER,
     forced: env.FORCED,
     baseSha: env.BASE_SHA,
     headSha: env.HEAD_SHA,
   };
-  const release = isReleaseRef(ctx.ref);
+  const mode = releaseMode(ctx);
+  const sha = resolveSha(ctx, mode, git);
   const plan = planDiff(ctx);
-  if (plan.full) return { ...classify({ full: plan.full, release }), plan };
+  if (plan.full) return { ...classify({ full: plan.full, mode }), plan, sha };
   let paths;
   try {
-    for (const sha of [plan.base, plan.head]) git(["cat-file", "-e", `${sha}^{commit}`]);
+    for (const c of [plan.base, plan.head]) git(["cat-file", "-e", `${c}^{commit}`]);
     const from = plan.mergeBase ? git(["merge-base", plan.base, plan.head]).trim() : plan.base;
     paths = parseNameStatus(git(["diff", "--name-status", "-z", "-M", from, plan.head]));
     plan.from = from;
   } catch (e) {
     const msg = String(e?.message ?? e).split("\n")[0];
-    return { ...classify({ full: `could not diff ${plan.base}..${plan.head}: ${msg}`, release }), plan };
+    return { ...classify({ full: `could not diff ${plan.base}..${plan.head}: ${msg}`, mode }), plan, sha };
   }
-  return { ...classify({ paths, release }), plan, paths };
+  return { ...classify({ paths, mode }), plan, paths, sha };
 }
 
 export function outputs(r) {
   return {
     ok: "true",
+    mode: r.mode,
+    sha: r.sha ?? "",
     web: String(r.components.web),
     backend: String(r.components.backend),
     docs: String(r.components.docs),
@@ -185,7 +243,7 @@ export function outputs(r) {
 }
 
 function summary(r) {
-  const lines = ["### Change classification", ""];
+  const lines = ["### Change classification", "", `Mode \`${r.mode}\`, commit \`${r.sha}\`.`, ""];
   lines.push(`| Job | Selected |`, `|---|---|`);
   for (const j of JOBS) lines.push(`| ${j} | ${r.jobs[j] ? "yes" : "no"} |`);
   lines.push("");
@@ -203,7 +261,13 @@ function summary(r) {
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
   const git = (args) => execFileSync("git", args, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], maxBuffer: 64 << 20 });
-  const r = run(process.env, git);
+  let r;
+  try {
+    r = run(process.env, git);
+  } catch (e) {
+    console.log(`::error title=Cannot name the commit this run is about::${e.message}`);
+    process.exit(1);
+  }
   const out = outputs(r);
   const text = Object.entries(out).map(([k, v]) => `${k}=${v}\n`).join("");
   process.stdout.write(text);

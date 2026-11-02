@@ -28,9 +28,31 @@ on:
     # A merge does roll out, but to `preprod` — a tailnet-only copy of the site
     # on its own host, so merged work has somewhere to be looked at before
     # anybody decides to tag it. Production still moves only on a tag.
+    #
+    # A tag builds nothing (#205). Main CI builds both images once, scans
+    # them, and records their digests in a release manifest in GHCR; the tag
+    # resolves to one commit, checks it is on main, fetches the manifest main
+    # wrote for exactly that commit, re-scans those digests against today's
+    # vulnerability database, and deploys them. No manifest, no release.
     tags: ["v*"]
   pull_request:
+  # Both inputs mean something only when run from a v* tag ("Use workflow
+  # from" the tag). On main and other branches they are ignored.
   workflow_dispatch:
+    inputs:
+      rebuild:
+        description: >-
+          From a v* tag only: build, test and scan the tag's commit again in
+          this run, record a fresh manifest, and promote that. For a commit
+          main never recorded. Every gate main runs still runs.
+        type: boolean
+        default: false
+      rollback:
+        description: >-
+          From a v* tag only: allow deploying a release older than the one
+          prod runs. Without it an older tag is refused.
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -75,6 +97,11 @@ jobs:
       ok: ${{ steps.classify.outputs.ok }}
       jobs: ${{ steps.classify.outputs.jobs }}
       scan_matrix: ${{ steps.classify.outputs.scan_matrix }}
+      # pr | main | promote | rebuild | other, and the commit this run is
+      # about: a tag is resolved to its commit here, once, and every later
+      # job uses this rather than github.sha (#205).
+      mode: ${{ steps.classify.outputs.mode }}
+      sha: ${{ steps.classify.outputs.sha }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -85,6 +112,8 @@ jobs:
         env:
           EVENT_NAME: ${{ github.event_name }}
           REF: ${{ github.ref }}
+          SHA: ${{ github.sha }}
+          REBUILD: ${{ inputs.rebuild }}
           BEFORE: ${{ github.event.before }}
           AFTER: ${{ github.event.after }}
           FORCED: ${{ github.event.forced }}
@@ -242,17 +271,21 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: pipx run --spec "zizmor==${ZIZMOR_VERSION}" zizmor --format github .
 
-      # The Deploy job's rollback and readiness logic, against a fake kubectl
-      # and curl, and the publish path's proof that it pushes the scanned
-      # image, against a fake docker: both only ever run for real on main,
-      # after a merge, which is the worst place to find out they are wrong.
-      - name: Deploy and publish scripts lint clean and their decisions hold
+      # The Deploy job's rollback, readiness and stale-deploy logic, against a
+      # fake kubectl, curl and oras; the publish path's proof that it pushes
+      # the scanned image, against a fake docker; and the release manifest's
+      # checks (tag on main, missing or mismatched manifest, the run that
+      # wrote it), against a fake registry and API (#205). All of them only
+      # ever run for real on main or a tag, after a merge, which is the worst
+      # place to find out they are wrong.
+      - name: Deploy, publish and release scripts lint clean and their decisions hold
         if: ${{ !cancelled() }}
         run: |
           set -Eeuo pipefail
           shellcheck .github/scripts/*.sh
           bash .github/scripts/deploy.test.sh
           bash .github/scripts/candidate.test.sh
+          bash .github/scripts/release.test.sh
 
   frontend:
     name: Frontend
@@ -265,9 +298,12 @@ jobs:
       run:
         working-directory: web
     steps:
+      # Off a pull request, the commit classification resolved: the same one
+      # Scan image builds, which matters for a rebuild from a tag (#205).
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          ref: ${{ github.event_name != 'pull_request' && needs.classify.outputs.sha || '' }}
       # The npm cache feeds this test job only; no image is built from it (the
       # Dockerfiles run their own `npm ci`). And `npm ci` checks every tarball
       # against the lockfile's integrity hash, so a tampered cache entry fails
@@ -327,6 +363,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          ref: ${{ github.event_name != 'pull_request' && needs.classify.outputs.sha || '' }}
       # Cache: same reasoning as Frontend's.
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -400,6 +437,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          ref: ${{ github.event_name != 'pull_request' && needs.classify.outputs.sha || '' }}
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
       - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
@@ -414,11 +452,11 @@ jobs:
           # lands on - so an apply between releases would have deployed
           # unreleased code without anybody choosing to. `latest` is written
           # by Publish image on a tag, and means the last release.
-          tags: ${{ env.IMAGE_BASE }}/${{ matrix.image }}:${{ github.sha }}
+          tags: ${{ env.IMAGE_BASE }}/${{ matrix.image }}:${{ needs.classify.outputs.sha }}
           # The commit, baked in so a running pod can say which build it is:
           # the api on /health, web in <meta name="build-sha">. The Deploy
           # job asserts on both after a rollout (#200).
-          build-args: BUILD_SHA=${{ github.sha }}
+          build-args: BUILD_SHA=${{ needs.classify.outputs.sha }}
           # The layer cache, one scope per component and platform. A pull
           # request's writes land in its own ref's cache, which main never
           # reads; a miss costs time, never a step.
@@ -474,6 +512,32 @@ jobs:
           # The layers are gzip already; zipping them again is time for nothing.
           compression-level: 0
 
+      # The scan's half of the release manifest (#205): the effective build
+      # inputs (the context's git tree, Dockerfile, lockfile, base image
+      # digests, build argument), the tool versions, and the scan result with
+      # the vulnerability database's timestamp, plus the findings as JSON
+      # from the same database. Release manifest joins it to the pushed
+      # digest. Same condition as the upload above.
+      - name: Record what was built and what the scan saw
+        if: fromJSON(needs.classify.outputs.jobs).images
+        env:
+          SOURCE_SHA: ${{ needs.classify.outputs.sha }}
+          CANDIDATE: ${{ runner.temp }}/candidate.tar
+          IMAGE_ID: ${{ steps.candidate.outputs[format('{0}_id', matrix.image)] }}
+          ARCHIVE_SHA256: ${{ steps.candidate.outputs[format('{0}_sha256', matrix.image)] }}
+          EVIDENCE_DIR: ${{ runner.temp }}/evidence
+          IMAGE: ${{ matrix.image }}
+          CONTEXT: ${{ matrix.context }}
+        run: .github/scripts/release.sh evidence "$IMAGE" "$CONTEXT"
+      - name: Hand the evidence to Release manifest
+        if: fromJSON(needs.classify.outputs.jobs).images
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: evidence-${{ matrix.image }}
+          path: ${{ runner.temp }}/evidence/
+          if-no-files-found: error
+          retention-days: 1
+
   # A skipped matrix job never expands its matrix, so an interpolated job name
   # is reported verbatim. A static name lets Actions append the leg itself -
   # "Publish image (web)" when it runs, "Publish image" when it does not.
@@ -485,21 +549,26 @@ jobs:
   images:
     name: Publish image
     runs-on: ubuntu-24.04-arm
-    needs: [static, frontend, backend, scan]
+    needs: [classify, static, frontend, backend, scan]
     # A download, a load and a push of one image.
     timeout-minutes: 15
-    # Both: a main push so every commit is deployable the moment it is tagged,
-    # and the tag itself so a tag on a commit that somehow never built still
-    # produces an image rather than a rollout that fails looking for one.
+    # Main (and a rebuild from a tag), so every main commit is deployable the
+    # moment it is tagged. A plain tag push publishes nothing (#205): it
+    # promotes the digests main already published.
     #
-    # Both images, every time: Deploy sets web AND api to this sha, so an
-    # api-only merge still needs a web image. That is why classification
-    # selects everything on these refs and narrows only pull requests; reusing
-    # an unchanged image's digest instead is #205.
-    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+    # Both images, every time: Deploy sets web AND api from the manifest, so
+    # an api-only merge still needs a web image. Reusing an unchanged image's
+    # digest needs a dependency-aware proof that its inputs are identical,
+    # and #205 left that out.
+    if: fromJSON(needs.classify.outputs.jobs).images
     permissions:
       contents: read
       packages: write
+    # Per image, as Scan image's are: the pushed manifest digest, which is
+    # what Release manifest records and Deploy rolls out.
+    outputs:
+      web_digest: ${{ steps.push.outputs.web_digest }}
+      api_digest: ${{ steps.push.outputs.api_digest }}
     strategy:
       fail-fast: false
       matrix:
@@ -527,32 +596,217 @@ jobs:
       # IDs and the pushed digest are printed; a mismatch fails here, before
       # Deploy can roll anything out.
       - name: Push the scanned candidate, and prove it is what was scanned
+        id: push
         env:
           EXPECT_ID: ${{ needs.scan.outputs[format('{0}_id', matrix.image)] }}
           EXPECT_SHA256: ${{ needs.scan.outputs[format('{0}_sha256', matrix.image)] }}
           CANDIDATE: ${{ runner.temp }}/candidate/candidate.tar
-          REF: ${{ env.IMAGE_BASE }}/${{ matrix.image }}:${{ github.sha }}
+          REF: ${{ env.IMAGE_BASE }}/${{ matrix.image }}:${{ needs.classify.outputs.sha }}
+          PREFIX: ${{ matrix.image }}
         run: .github/scripts/candidate.sh publish "$CANDIDATE" "$REF"
 
-      # Aliases, not rebuilds. `imagetools create` writes new tags against the
-      # manifest that already exists, so the release carries the exact bytes
-      # that were tested rather than a second build of the same source.
+  # ------------------------------------------------------- release manifest --
+  #
+  # What this commit's release IS, written once and kept (#205): the source
+  # sha; each image by digest (`ghcr.io/...@sha256:`) with its image ID; the
+  # build inputs (context tree, Dockerfile, lockfile, base image digests);
+  # tool versions; the platform; the scan result and the vulnerability DB's
+  # timestamp; and this run's id and attempt. Stored in GHCR as an OCI
+  # artifact, `<IMAGE_BASE>/manifest:<sha>`, next to the images, because a
+  # redeploy or a tag next month must not depend on a run artifact that
+  # expires in days. The run artifact uploaded below is a convenience for
+  # reading it in the browser; nothing reads it back.
+  #
+  # Deploy (preprod now, prod on a tag) reads the manifest from GHCR, by the
+  # digest this job reports, and rolls out the digests it names.
+  release:
+    name: Release manifest
+    runs-on: ubuntu-latest
+    needs: [classify, scan, images]
+    if: fromJSON(needs.classify.outputs.jobs).release
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      manifest_digest: ${{ steps.push.outputs.manifest_digest }}
+    env:
+      PLATFORM: linux/arm64
+      SOURCE_SHA: ${{ needs.classify.outputs.sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: .github/scripts
+      # From this run only, checked against the digest recorded at upload.
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: evidence-*
+          merge-multiple: true
+          path: ${{ runner.temp }}/release
+      - name: Install oras
+        run: .github/scripts/release.sh install-oras
+      - uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Write the manifest
+        env:
+          WEB_DIGEST: ${{ needs.images.outputs.web_digest }}
+          API_DIGEST: ${{ needs.images.outputs.api_digest }}
+        run: .github/scripts/release.sh assemble "$RUNNER_TEMP/release"
+      # Pushed, then read back by digest and compared byte for byte.
+      - name: Store it in GHCR
+        id: push
+        run: .github/scripts/release.sh push "$RUNNER_TEMP/release"
+      - name: A copy to read in the browser (not the record)
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-manifest
+          path: ${{ runner.temp }}/release/manifest.json
+          if-no-files-found: error
+          retention-days: 30
+
+  # -------------------------------------------------------- promote release --
+  #
+  # A v* tag, and the only path to prod (#205). Builds nothing. In order:
+  #
+  #   1. The commit: classification resolved the tag to one commit, once.
+  #      It must be on main.
+  #   2. The manifest main CI recorded for exactly that commit, from GHCR,
+  #      by digest. Missing, for another commit, or not a release manifest:
+  #      the release stops, saying so.
+  #   3. The run it names: this repository's CI, on main, for that commit,
+  #      and in that attempt Static, Frontend, Backend, both Scan legs, both
+  #      Publish legs and Release manifest all passed. (A rebuild instead
+  #      requires the manifest this run just wrote.)
+  #   4. Those digests re-scanned against today's vulnerability database,
+  #      with the same policy: an advisory published since main scanned them
+  #      stops the release.
+  #   5. The tag's name on the images and on the manifest, as aliases of the
+  #      digests (`imagetools create`, `oras tag`), never a rebuild.
+  #
+  # The one way past a missing manifest is a manual run from the tag with
+  # `rebuild: true`, which runs every build, test and scan job first.
+  promote:
+    name: Promote release
+    runs-on: ubuntu-latest
+    needs: [classify, static, release]
+    if: >-
+      !cancelled()
+      && fromJSON(needs.classify.outputs.jobs).promote
+      && needs.static.result == 'success'
+      && needs.release.result == (fromJSON(needs.classify.outputs.jobs).release && 'success' || 'skipped')
+    # Two remote image scans and a few registry calls.
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      # The tag's name on the images and the manifest.
+      packages: write
+      # To ask GitHub about the run the manifest names.
+      actions: read
+    outputs:
+      manifest_digest: ${{ steps.manifest.outputs.manifest_digest }}
+    env:
+      PLATFORM: linux/arm64
+      SOURCE_SHA: ${{ needs.classify.outputs.sha }}
+    steps:
+      # Full history: whether the commit is on main is a git question.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Install oras
+        run: .github/scripts/release.sh install-oras
+      - uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: The tag's commit is on main
+        run: .github/scripts/release.sh on-main "$SOURCE_SHA"
+      - name: Main recorded a release for this commit
+        id: manifest
+        env:
+          # Empty on a tag push; on a rebuild, what Release manifest wrote.
+          EXPECT_MANIFEST_DIGEST: ${{ needs.release.outputs.manifest_digest }}
+        run: .github/scripts/release.sh fetch "$SOURCE_SHA" "$RUNNER_TEMP/release"
+      - name: It came from a passing main CI run for this commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REBUILD_RUN_ID: ${{ fromJSON(needs.classify.outputs.jobs).release && github.run_id || '' }}
+        run: .github/scripts/release.sh origin "$RUNNER_TEMP/release/manifest.json"
+
+      # The policy Scan image applies, on the registry's bytes, today.
+      - name: web, CRITICAL, fixed or not (today's DB)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ${{ steps.manifest.outputs.web_image }}
+          scanners: vuln
+          severity: CRITICAL
+          ignore-unfixed: false
+          trivyignores: .trivyignore.yaml
+          exit-code: "1"
+      - name: web, HIGH where a fix exists (today's DB)
+        if: success() || failure()
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ${{ steps.manifest.outputs.web_image }}
+          scanners: vuln
+          severity: HIGH
+          ignore-unfixed: true
+          trivyignores: .trivyignore.yaml
+          exit-code: "1"
+          skip-setup-trivy: true
+      - name: api, CRITICAL, fixed or not (today's DB)
+        if: success() || failure()
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ${{ steps.manifest.outputs.api_image }}
+          scanners: vuln
+          severity: CRITICAL
+          ignore-unfixed: false
+          trivyignores: .trivyignore.yaml
+          exit-code: "1"
+          skip-setup-trivy: true
+      - name: api, HIGH where a fix exists (today's DB)
+        if: success() || failure()
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ${{ steps.manifest.outputs.api_image }}
+          scanners: vuln
+          severity: HIGH
+          ignore-unfixed: true
+          trivyignores: .trivyignore.yaml
+          exit-code: "1"
+          skip-setup-trivy: true
+      - name: Which database the re-scan used
+        if: success() || failure()
+        run: |
+          set -uo pipefail
+          t=$(command -v trivy || echo "$HOME/.local/bin/trivy-bin/trivy")
+          db=$("$t" version --format json --cache-dir "$GITHUB_WORKSPACE/.cache/trivy" | jq -c .VulnerabilityDB)
+          echo "re-scanned with $db"
+          echo "Re-scanned against vulnerability DB \`$db\`" >>"$GITHUB_STEP_SUMMARY"
+
+      # Aliases, not rebuilds: new names for the digests main published.
+      # `:latest` moves only once prod is running the release (Deploy).
       #
       # The tag name reaches the shell through env, not `${{ }}` inside the
       # script: a ref name is text somebody typed, and pasted into a script
       # it would be run as part of it.
       - name: Name the release
-        if: startsWith(github.ref, 'refs/tags/v')
         env:
-          REPO: ${{ env.IMAGE_BASE }}/${{ matrix.image }}
           RELEASE: ${{ github.ref_name }}
-          SHA: ${{ github.sha }}
+          WEB_IMAGE: ${{ steps.manifest.outputs.web_image }}
+          API_IMAGE: ${{ steps.manifest.outputs.api_image }}
+          MANIFEST_DIGEST: ${{ steps.manifest.outputs.manifest_digest }}
         run: |
           set -euo pipefail
-          docker buildx imagetools create \
-            --tag "$REPO:$RELEASE" \
-            --tag "$REPO:latest" \
-            "$REPO:$SHA"
+          docker buildx imagetools create --tag "$IMAGE_BASE/web:$RELEASE" "$WEB_IMAGE"
+          docker buildx imagetools create --tag "$IMAGE_BASE/api:$RELEASE" "$API_IMAGE"
+          oras tag "$IMAGE_BASE/manifest@$MANIFEST_DIGEST" "$RELEASE"
 
   # ----------------------------------------------------------------- deploy --
   #
@@ -590,10 +844,11 @@ jobs:
   # node, rather than the alternative, which is opening the API to the world so
   # that a CI runner can talk to it.
   #
-  # `set image` with the commit sha, not `rollout restart` against :latest. A
+  # `set image` to the digests the release manifest names (#205), not
+  # `rollout restart` against :latest and no longer the commit-sha tag. A
   # restart against a moving tag redeploys whatever that tag points at now,
-  # which is not necessarily this commit and is not reproducible; an immutable
-  # tag means the rollout either lands this build or fails.
+  # which is not necessarily this commit and is not reproducible; a digest
+  # cannot move at all, and it is the exact image that was scanned.
   deploy:
     name: Deploy
     runs-on: ubuntu-latest
@@ -601,12 +856,23 @@ jobs:
     # is longer: a minute for a path to the node, a 300s rollout wait per
     # Deployment, then a 180s undo per Deployment - about twenty minutes.
     timeout-minutes: 30
-    needs: images
-    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+    # Main: once Release manifest has stored the manifest. A tag (or a
+    # rebuild from one): once Promote release has vetted it.
+    needs: [classify, release, promote]
+    if: >-
+      !cancelled()
+      && fromJSON(needs.classify.outputs.jobs).deploy
+      && ((fromJSON(needs.classify.outputs.jobs).promote && needs.promote.result == 'success')
+        || (!fromJSON(needs.classify.outputs.jobs).promote && needs.release.result == 'success'))
     # One rollout at a time per environment. Two merges in quick succession
-    # would otherwise race, and the loser could finish second with the older
-    # image. Per environment rather than globally: a tag and a merge touch
-    # different namespaces and have no reason to queue behind each other.
+    # would otherwise race. Per environment rather than globally: a tag and a
+    # merge touch different namespaces and have no reason to queue behind each
+    # other.
+    #
+    # The lock is not the ordering (#205): runs take it in whatever order
+    # they reach it, and a re-run takes it days later. So the first thing
+    # done inside it is `deploy.sh guard`, which asks again whether this is
+    # still the release to roll out.
     concurrency:
       group: deploy-${{ startsWith(github.ref, 'refs/tags/v') && 'prod' || 'preprod' }}
       cancel-in-progress: false
@@ -623,6 +889,9 @@ jobs:
       url: ${{ startsWith(github.ref, 'refs/tags/v') && 'https://yehudabriskman.com/' || 'https://preprod.yehudabriskman.com/' }}
     permissions:
       contents: read
+      # Reading the release manifest, and moving `:latest` once prod runs
+      # the release.
+      packages: write
     # What differs between the two environments, resolved once here so no step
     # below has to ask which one it is in. The third difference — what the
     # rollout is called — is computed in the rollout step itself, because
@@ -643,14 +912,21 @@ jobs:
       # that rule, and the whole point of this step is to disbelieve the
       # rollout. One expected code per environment.
       DEPLOY_EXPECT: ${{ startsWith(github.ref, 'refs/tags/v') && '200' || '302' }}
-      # What .github/scripts/deploy.sh rolls out and then asks the pods for.
-      DEPLOY_SHA: ${{ github.sha }}
+      # The commit .github/scripts/deploy.sh asks the pods for, and the one
+      # whose release manifest it rolls out. Resolved once, by classify.
+      DEPLOY_SHA: ${{ needs.classify.outputs.sha }}
       DEPLOY_REF_NAME: ${{ github.ref_name }}
+      # The manifest digest the job before this one wrote or vetted; Deploy
+      # refuses a manifest:<sha> that has changed since.
+      EXPECT_MANIFEST_DIGEST: ${{ needs.promote.outputs.manifest_digest || needs.release.outputs.manifest_digest }}
+      PLATFORM: linux/arm64
     steps:
-      # For .github/scripts/deploy.sh. Nothing is built here.
+      # For the scripts, and full history for the guard's questions about
+      # main. Nothing is built here.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 0
 
       - uses: tailscale/github-action@v4
         with:
@@ -755,10 +1031,37 @@ jobs:
             exit 1
           fi
 
+      # The release manifest for this commit, from GHCR (#205): never a run
+      # artifact, which may have expired. By the digest the job before wrote
+      # or vetted, and validated again: this commit, these two repositories,
+      # digests only. Its two image digests are all that is rolled out.
+      - name: Install oras
+        run: .github/scripts/release.sh install-oras
+      - uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Read the release manifest
+        id: manifest
+        run: .github/scripts/release.sh fetch "$DEPLOY_SHA" "$RUNNER_TEMP/release"
+
+      # Inside the deploy lock, before anything changes: is this still the
+      # release to roll out? Preprod skips (green, with a notice) when a newer
+      # main commit already has a manifest. Prod refuses a release older than
+      # the running one unless this run was started with `rollback: true`.
+      # Every step that touches the cluster below checks `proceed`.
+      - name: Is this still the release to roll out
+        id: guard
+        env:
+          ROLLBACK: ${{ inputs.rollback }}
+        run: .github/scripts/deploy.sh guard
+
       # The in-cluster readiness check below needs `create` on
       # pods/portforward. Asked now, while nothing has been changed, so a
       # missing grant fails a deploy that has nothing to undo.
       - name: CI may reach the pods
+        if: steps.guard.outputs.proceed == 'true'
         run: .github/scripts/deploy.sh preflight
 
       # The way back, written down before the first patch (#199): both
@@ -768,33 +1071,44 @@ jobs:
       # Deployment the failed run never reached, that is not what was running.
       - name: Record what is running
         id: record
+        if: steps.guard.outputs.proceed == 'true'
         run: .github/scripts/deploy.sh record
 
-      # Both environments roll out the commit sha. Preprod does NOT roll out
-      # `:latest` and does not write it: `:latest` means the last release, and
-      # it means that because the k8s manifests carry it as the tag a fresh
-      # `kubectl apply` lands on. A preprod that moved `:latest` on every merge
-      # would put unreleased code behind a production apply, which is the exact
-      # failure the tag split was introduced to remove.
+      # Both environments roll out the manifest's digests. Preprod does NOT
+      # roll out `:latest` and does not write it: `:latest` means the last
+      # release, and it means that because the k8s manifests carry it as the
+      # tag a fresh `kubectl apply` lands on. A preprod that moved `:latest`
+      # on every merge would put unreleased code behind a production apply,
+      # which is the exact failure the tag split was introduced to remove.
       #
-      # `set image` to the sha, the annotations, and `rollout status` with the
-      # reason a stuck rollout is stuck all live in deploy.sh. It marks the
-      # environment as changed before the first patch, so a failure anywhere
-      # after that point — the second patch, the wait, either check below —
-      # puts both Deployments back, not only the case where the rollout itself
-      # finished.
-      - name: Roll out this commit
+      # `set image` to the digests, the annotations (version, released-at,
+      # source-sha), and `rollout status` with the reason a stuck rollout is
+      # stuck all live in deploy.sh. It marks the environment as changed
+      # before the first patch, so a failure anywhere after that point — the
+      # second patch, the wait, either check below — puts both Deployments
+      # back, not only the case where the rollout itself finished.
+      - name: Roll out this release
         id: rollout
+        if: steps.guard.outputs.proceed == 'true'
+        env:
+          DEPLOY_WEB_IMAGE: ${{ steps.manifest.outputs.web_image }}
+          DEPLOY_API_IMAGE: ${{ steps.manifest.outputs.api_image }}
         run: .github/scripts/deploy.sh rollout
 
       # Inside the cluster, past Traefik and the forwardAuth gate (#200). The
       # boundary check below can only see the gate on preprod — a 302 says
       # forwardAuth answered and nothing about the app — so this is where the
-      # app is asserted: api /health/ready says the store is up, web's root is
-      # the real document by its bytes, and both report this commit's sha.
-      # Through `kubectl port-forward` to the Deployments, because the CI Role
-      # can read Deployments and pods but not Services.
+      # app is asserted: both Deployments and every pod run the manifest's
+      # digests (the kubelet's imageID, #205), api /health/ready says the
+      # store is up, web's root is the real document by its bytes, and both
+      # report this commit's sha. Through `kubectl port-forward` to the
+      # Deployments, because the CI Role can read Deployments and pods but
+      # not Services.
       - name: The pods are this build, and ready
+        if: steps.guard.outputs.proceed == 'true'
+        env:
+          DEPLOY_WEB_IMAGE: ${{ steps.manifest.outputs.web_image }}
+          DEPLOY_API_IMAGE: ${{ steps.manifest.outputs.api_image }}
         run: .github/scripts/deploy.sh readiness
 
       # A rollout that reports success and a site that does not answer are
@@ -808,6 +1122,7 @@ jobs:
       # in the failure message, because it is not a guess anybody should have
       # to make twice.
       - name: Check the site actually answers
+        if: steps.guard.outputs.proceed == 'true'
         run: |
           set -euo pipefail
           for i in $(seq 1 10); do
@@ -832,6 +1147,20 @@ jobs:
         if: (failure() || cancelled()) && steps.record.outcome == 'success'
         run: .github/scripts/deploy.sh recover
 
+      # `:latest` is the last release prod actually runs, which is what a
+      # fresh `kubectl apply` of the oci-free manifests lands on. So it moves
+      # here, after the rollout and both checks passed, and never in Promote
+      # release: a release the guard refused must not become `:latest`.
+      - name: Name it the latest release
+        if: steps.guard.outputs.proceed == 'true' && env.DEPLOY_NS == 'prod'
+        env:
+          WEB_IMAGE: ${{ steps.manifest.outputs.web_image }}
+          API_IMAGE: ${{ steps.manifest.outputs.api_image }}
+        run: |
+          set -euo pipefail
+          docker buildx imagetools create --tag "$IMAGE_BASE/web:latest" "$WEB_IMAGE"
+          docker buildx imagetools create --tag "$IMAGE_BASE/api:latest" "$API_IMAGE"
+
   # ------------------------------------------------------------------- gate --
   #
   # The one required check (#203). Frontend, Backend and the Scan legs skip
@@ -853,7 +1182,7 @@ jobs:
   gate:
     name: CI gate
     runs-on: ubuntu-latest
-    needs: [classify, static, frontend, backend, scan, images, deploy]
+    needs: [classify, static, frontend, backend, scan, images, release, promote, deploy]
     if: always()
     timeout-minutes: 5
     steps:

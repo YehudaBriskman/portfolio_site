@@ -104,10 +104,12 @@ amd64 machine, build from source with `docker-compose.yml` instead.
 
 ## How it reaches production
 
-Merging does not ship. A push to `main` is built, tested, and published to
-GHCR under its commit sha — so every commit on `main` is deployable — and it
-rolls out to **preprod**, a copy of the site on its own host that only the
-tailnet can reach. Nothing reaches the live site until somebody tags it.
+Merging does not ship. A push to `main` is built, tested, scanned and
+published to GHCR, and CI records a **release manifest** for that commit — the
+source sha, both images by digest, their build inputs and scan result — so
+every commit on `main` is deployable. It then rolls out to **preprod**, a copy
+of the site on its own host that only the tailnet can reach. Nothing reaches
+the live site until somebody tags it.
 
 ```sh
 git tag -a v1.2.0 -m "what changed"
@@ -115,21 +117,29 @@ git push origin v1.2.0
 ```
 
 ```
-push to main ──▶ build + test ──▶ ghcr.io/…:<sha>
+push to main ──▶ build + test + scan ──▶ ghcr.io/…/web@sha256:…, api@sha256:…
                                         │
-                        kubectl set image <sha>  ──▶ preprod ns
+                     ghcr.io/…/manifest:<sha>   (the release manifest)
                                         │
-                     rollout status ──▶ curl preprod.yehudabriskman.com
+             newer main release already? ──▶ skip (notice)
                                         │
-                               not 200? ──▶ rollout undo
+                kubectl set image <digest>  ──▶ preprod ns
+                                        │
+          rollout status, pods run the digests, curl preprod
+                                        │
+                                  failed? ──▶ put back what ran before
 
-push a tag   ──▶ build + test ──▶ ghcr.io/…:<sha>, :<tag>, :latest
+push a tag   ──▶ tag's commit on main? ──▶ manifest:<sha> from main CI
+             (nothing is built)         │
+                    re-scan the digests against today's database
                                         │
-                        kubectl set image <sha>  ──▶ prod ns
+                  older than prod? ──▶ refused (unless rollback: true)
                                         │
-                        rollout status ──▶ curl the site
+                kubectl set image <digest>  ──▶ prod ns
                                         │
-                               not 200? ──▶ rollout undo
+          rollout status, pods run the digests, curl the site
+                                        │
+                     failed? ──▶ put back   passed? ──▶ :latest
 ```
 
 Both rollouts are the same job, parameterised on the ref. The valuable part of
@@ -147,19 +157,25 @@ continuously released, and a rollback has a name — `v1.2.0` is something you
 can redeploy, where "the commit before last Tuesday's merge" is something you
 have to go and find.
 
-**`:latest` means the last release**, not the last merge. The k8s manifest
-carries `:latest` as the tag a fresh `kubectl apply` lands on, so while it
-moved on every merge an apply between releases would have quietly deployed
-unreleased code. Preprod does not weaken that: it rolls out the sha like prod
-does, and writes no tag at all.
+**`:latest` means the last release prod runs**, not the last merge. The k8s
+manifest carries `:latest` as the tag a fresh `kubectl apply` lands on, so
+while it moved on every merge an apply between releases would have quietly
+deployed unreleased code. It now moves only after a prod rollout passed.
+Preprod writes no tag at all.
 
-**The rollout runs on the sha, not the tag.** A sha cannot move and a git tag
-can. The version is written on as an annotation, so `kubectl describe deploy`
-still answers "which release is live" without mapping hex back to a name.
+**The rollout runs on the digest, not a tag.** A digest cannot move, and it is
+the exact image that was scanned. The version and the source commit are
+written on as annotations, so `kubectl describe deploy` still answers "which
+release is live" without mapping hex back to a name.
 
-The release tags are aliases rather than rebuilds — `imagetools create` points
-new tags at the manifest that already passed, so what ships is the exact bytes
-that were tested.
+**A tag builds nothing.** It promotes the digests main CI already built,
+tested, scanned and recorded for that commit; the release tags are aliases
+(`imagetools create`), never rebuilds. A tag on a commit main never recorded
+fails, saying so, and the one way past that is a manual run of CI from the tag
+with `rebuild: true`, which runs every gate first. To go back to an older
+release, run CI from its tag with `rollback: true`; without it a release older
+than prod's is refused. Release images, manifests and `v*` tags are never
+pruned.
 
 The cluster's API server is not reachable from the internet and is not going to
 be, so the runner joins the tailnet for the length of the job. Setup — three

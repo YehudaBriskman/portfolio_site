@@ -2,15 +2,24 @@
 # The Deploy job's cluster work: what runs now, the rollout, the in-cluster
 # readiness check, and putting things back (#199, #200).
 #
+#   deploy.sh guard       is this still the release to roll out? (#205) Writes
+#                         proceed=true|false; refuses an older prod release
 #   deploy.sh preflight   CI may port-forward here; refuse before touching anything
 #   deploy.sh record      write down both Deployments' images; nothing is changed
-#   deploy.sh rollout     mark the environment mutated, then set image, annotate, wait
+#   deploy.sh rollout     mark the environment mutated, then set image (by
+#                         digest), annotate, wait
 #   deploy.sh readiness   through port-forward: api ready + DB up, web serves the
-#                         document, both report $DEPLOY_SHA
+#                         document, both report $DEPLOY_SHA, and every pod runs
+#                         the digest the release manifest names
 #   deploy.sh recover     if anything was mutated, set both back to what was
 #                         recorded, wait, and check readiness again
 #
-# Inputs (environment): DEPLOY_NS, IMAGE_BASE, DEPLOY_SHA, DEPLOY_REF_NAME.
+# Inputs (environment): DEPLOY_NS, IMAGE_BASE, DEPLOY_SHA, DEPLOY_REF_NAME,
+# and DEPLOY_WEB_IMAGE / DEPLOY_API_IMAGE: `<IMAGE_BASE>/<app>@sha256:<64 hex>`,
+# read from the release manifest (.github/scripts/release.sh). A tag is
+# refused: the manifest's digests are what was scanned and what is deployed.
+# The guard also reads ROLLBACK (prod: "true" allows an older release) and
+# DEPLOY_GIT_REMOTE (default origin).
 # State lives in DEPLOY_STATE (default $RUNNER_TEMP/deploy-state), because each
 # subcommand runs in its own workflow step and the steps share only the disk.
 #
@@ -21,7 +30,9 @@ set -euo pipefail
 : "${DEPLOY_NS:?DEPLOY_NS is not set}"
 STATE="${DEPLOY_STATE:-${RUNNER_TEMP:-/tmp}/deploy-state}"
 APPS=(web api)
-ANNOTATIONS=(app.kubernetes.io/version portfolio.yehudabriskman.com/released-at)
+# source-sha is the commit, because the image string is a digest now and no
+# longer says which commit it was built from (Deploy drift reads it, #205).
+ANNOTATIONS=(app.kubernetes.io/version portfolio.yehudabriskman.com/released-at portfolio.yehudabriskman.com/source-sha)
 
 ROLLOUT_TIMEOUT="${ROLLOUT_TIMEOUT:-300s}"
 RECOVERY_TIMEOUT="${RECOVERY_TIMEOUT:-180s}"
@@ -35,6 +46,119 @@ WEB_LOCAL_PORT="${DEPLOY_PF_WEB_PORT:-18080}"
 k() { kubectl -n "$DEPLOY_NS" "$@"; }
 
 need() { : "${!1:?$1 is not set}"; }
+
+# ---------------------------------------------------------------------- guard
+#
+# Concurrency is not ordering (#205). The deploy group runs one rollout per
+# environment at a time, but not in the order the commits landed: a run that
+# waited behind the lock, or was re-run a day later, would otherwise put an
+# older build over a newer one. So this runs first INSIDE the lock, and asks
+# the question again with what is true now.
+#
+#   preprod  Is $DEPLOY_SHA still the newest main commit with a successful
+#            candidate (a release manifest in GHCR)? If a newer one has one,
+#            this run is stale: proceed=false, a notice, and success. The
+#            newer run deploys, or has already.
+#   prod     Is this release older than the one prod runs? Older by commit
+#            (an ancestor of the running commit) or by version (a lower
+#            vX.Y.Z). Then refuse, as a failure, unless ROLLBACK=true: going
+#            back is a deliberate act, not something a late tag does.
+#
+# Writes proceed=true|false to $GITHUB_OUTPUT; every later step checks it.
+GUARD_MAX="${GUARD_MAX:-50}"
+
+proceed() {
+  echo "proceed=$1" >>"${GITHUB_OUTPUT:-/dev/null}"
+  echo "proceed=$1"
+}
+
+manifest_exists() {
+  oras manifest fetch --descriptor "$IMAGE_BASE/manifest:$1" >/dev/null 2>&1
+}
+
+guard_preprod() {
+  local remote="${DEPLOY_GIT_REMOTE:-origin}" head c
+  if ! git fetch -q "$remote" "+refs/heads/main:refs/remotes/$remote/main"; then
+    echo "::error title=Cannot read main::git fetch $remote main failed, so whether $DEPLOY_SHA is still the newest release cannot be told. Nothing has been changed."
+    return 1
+  fi
+  head=$(git rev-parse "refs/remotes/$remote/main")
+  if ! git merge-base --is-ancestor "$DEPLOY_SHA" "$head"; then
+    echo "::error title=$DEPLOY_SHA is not on main::Preprod rolls out main's commits, and main ($head) does not contain this one. Nothing has been changed."
+    return 1
+  fi
+  # Newest first, along main's own line: a merged branch's inner commits were
+  # never main pushes and have no manifests of their own.
+  for c in $(git rev-list --first-parent --max-count="$GUARD_MAX" "$DEPLOY_SHA..$head"); do
+    if manifest_exists "$c"; then
+      echo "::notice title=Skipped: preprod has a newer release::main $c is newer than $DEPLOY_SHA and has its own release manifest, so its run deploys preprod (or already has). Rolling this one out would put an older build over it. Nothing has been changed."
+      proceed false
+      return 0
+    fi
+  done
+  echo "$DEPLOY_SHA is the newest main commit with a release manifest (main is at $head)"
+  proceed true
+}
+
+# The version and commit prod runs now, from the api Deployment's
+# annotations; older deploys carried no source-sha, so a v* version
+# annotation is resolved through git, and a commit-sha image tag is read last.
+running_prod() {
+  local ver sha img
+  ver=$(k get deploy api -o "jsonpath={.metadata.annotations.app\\.kubernetes\\.io/version}" 2>/dev/null || true)
+  sha=$(k get deploy api -o "jsonpath={.metadata.annotations.portfolio\\.yehudabriskman\\.com/source-sha}" 2>/dev/null || true)
+  if [ -z "$sha" ] && [[ "$ver" == v* ]]; then
+    sha=$(git rev-parse -q --verify "refs/tags/$ver^{commit}" 2>/dev/null || true)
+  fi
+  if [ -z "$sha" ]; then
+    img=$(k get deploy api -o "jsonpath={.spec.template.spec.containers[?(@.name==\"api\")].image}" 2>/dev/null || true)
+    [[ "${img##*:}" =~ ^[0-9a-f]{40}$ ]] && sha="${img##*:}"
+  fi
+  printf '%s %s\n' "${ver:--}" "${sha:--}"
+}
+
+guard_prod() {
+  need DEPLOY_REF_NAME
+  local ver sha why="" low remote="${DEPLOY_GIT_REMOTE:-origin}"
+  # Main and the tags as they are now, so a release that landed while this
+  # run waited for the lock is in the history it is compared against.
+  git fetch -q "$remote" "+refs/heads/main:refs/remotes/$remote/main" "+refs/tags/*:refs/tags/*" ||
+    echo "::warning title=Could not refresh main and tags::Comparing against the history this checkout already has."
+  read -r ver sha < <(running_prod)
+  [ "$ver" = - ] && ver=""
+  [ "$sha" = - ] && sha=""
+  echo "prod runs ${ver:-an unnamed release} (${sha:-commit unknown}); this is $DEPLOY_REF_NAME ($DEPLOY_SHA)"
+  if [ -n "$sha" ] && [ "$sha" != "$DEPLOY_SHA" ]; then
+    if ! git cat-file -e "$sha^{commit}" 2>/dev/null; then
+      echo "::warning title=Cannot order against prod::prod runs $sha, which is not a commit in this clone, so its age cannot be compared by history."
+    elif git merge-base --is-ancestor "$DEPLOY_SHA" "$sha"; then
+      why="its commit $DEPLOY_SHA is an ancestor of the running $sha"
+    fi
+  fi
+  local semver='^v[0-9]+\.[0-9]+\.[0-9]+$'
+  if [[ "$ver" =~ $semver ]] && [[ "$DEPLOY_REF_NAME" =~ $semver ]] && [ "$ver" != "$DEPLOY_REF_NAME" ]; then
+    low=$(printf '%s\n%s\n' "${ver#v}" "${DEPLOY_REF_NAME#v}" | sort -V | head -1)
+    if [ "$low" = "${DEPLOY_REF_NAME#v}" ]; then
+      why="${why:+$why, and }$DEPLOY_REF_NAME is a lower version than the running $ver"
+    fi
+  fi
+  if [ -n "$why" ]; then
+    if [ "${ROLLBACK:-false}" = true ]; then
+      echo "::warning title=Rollback::Deploying $DEPLOY_REF_NAME over the newer ${ver:-$sha} because the run asked for a rollback: $why."
+    else
+      echo "::error title=Refused: $DEPLOY_REF_NAME is older than prod::$why. A late or re-run tag must not overwrite a newer release. To go back on purpose, run CI from the tag with rollback: true (Actions > CI > Run workflow, 'Use workflow from' the tag). Nothing has been changed."
+      proceed false
+      return 1
+    fi
+  fi
+  proceed true
+}
+
+guard() {
+  need DEPLOY_SHA
+  need IMAGE_BASE
+  if [ "$DEPLOY_NS" = prod ]; then guard_prod; else guard_preprod; fi
+}
 
 # ------------------------------------------------------------------ preflight
 #
@@ -125,23 +249,39 @@ wait_rollouts() {
   return "$ok"
 }
 
+# target <app>: the image the release manifest names for it, which must be a
+# digest of that app's repository. Anything else is refused before any patch.
+target() {
+  local d="$1" var img
+  var="DEPLOY_$(printf '%s' "$1" | tr '[:lower:]' '[:upper:]')_IMAGE"
+  img="${!var:-}"
+  if ! [[ "$img" =~ ^${IMAGE_BASE//./\\.}/$d@sha256:[0-9a-f]{64}$ ]]; then
+    echo "::error title=No digest for $d::$var is '${img:-unset}', not $IMAGE_BASE/$d@sha256:<digest>. Deploy rolls out only the digests the release manifest names (#205)." >&2
+    return 1
+  fi
+  echo "$img"
+}
+
 rollout() {
   need IMAGE_BASE
   need DEPLOY_SHA
-  local d release
+  local d release img
   for d in "${APPS[@]}"; do
     if [ ! -s "$STATE/$d.image" ]; then
       echo "::error title=Nothing recorded for $d::Refusing to change a Deployment without a recorded way back. Run 'deploy.sh record' first."
       return 1
     fi
+    target "$d" >/dev/null || return 1
   done
   # From here on the environment may differ from what was recorded, whatever
   # happens next: a patch that times out on the client may still have landed.
   date -u +%FT%TZ >"$STATE/mutated"
 
-  # The sha, not `rollout restart` against a moving tag: a sha cannot move.
+  # The digest, not a tag and not `rollout restart`: a digest cannot move, and
+  # it is the exact image the release manifest says was scanned.
   for d in "${APPS[@]}"; do
-    k set image "deploy/$d" "$d=$IMAGE_BASE/$d:$DEPLOY_SHA"
+    img=$(target "$d")
+    k set image "deploy/$d" "$d=$img"
   done
   # The version goes on as an annotation so `kubectl describe` can answer
   # "which release is this". Preprod has no release to name, so it carries
@@ -154,7 +294,8 @@ rollout() {
   for d in "${APPS[@]}"; do
     k annotate deploy "$d" --overwrite \
       app.kubernetes.io/version="$release" \
-      portfolio.yehudabriskman.com/released-at="$(date -u +%FT%TZ)"
+      portfolio.yehudabriskman.com/released-at="$(date -u +%FT%TZ)" \
+      portfolio.yehudabriskman.com/source-sha="$DEPLOY_SHA"
   done
   wait_rollouts "$ROLLOUT_TIMEOUT"
 }
@@ -259,6 +400,33 @@ check_web() {
   echo "  web: serves the document${want:+, built from $want}"
 }
 
+# check_digests: the Deployment's spec and every pod behind it name the
+# digest the release manifest does (#205: deployed digests equal the
+# manifest). A pod's imageID is what the kubelet actually pulled, so this is
+# the registry's word, not ours. Retried with the rest: a pod of the old
+# ReplicaSet can still be listed for a moment after `rollout status` returns.
+check_digests() {
+  local d want spec ids n bad
+  for d in "${APPS[@]}"; do
+    want=$(target "$d") || return 1
+    spec=$(k get deploy "$d" -o "jsonpath={.spec.template.spec.containers[?(@.name==\"$d\")].image}" 2>/dev/null || true)
+    if [ "$spec" != "$want" ]; then
+      echo "  $d: the Deployment names ${spec:-nothing}, not the manifest's $want"
+      return 1
+    fi
+    ids=$(k get pods -l "app=$d" \
+      -o "jsonpath={range .items[*]}{.status.containerStatuses[?(@.name==\"$d\")].imageID}{\"\\n\"}{end}" \
+      2>/dev/null | grep . || true)
+    n=$(printf '%s\n' "$ids" | grep -c . || true)
+    bad=$(printf '%s\n' "$ids" | grep . | grep -v -- "@${want#*@}\$" || true)
+    if [ "$n" = 0 ] || [ -n "$bad" ]; then
+      echo "  $d: pods run [$(printf '%s' "$ids" | tr '\n' ' ')], not only ${want#*@}"
+      return 1
+    fi
+  done
+  echo "  digests: both Deployments and all their pods run the manifest's digests"
+}
+
 # readiness [--recovery]
 readiness() {
   local want="" legacy=0 i
@@ -266,18 +434,19 @@ readiness() {
     legacy=1
   else
     need DEPLOY_SHA
+    need IMAGE_BASE
     want="$DEPLOY_SHA"
   fi
   mkdir -p "$STATE"
   for i in $(seq 1 "$READY_ATTEMPTS"); do
     echo "readiness attempt $i/$READY_ATTEMPTS"
-    if check_api "$want" "$legacy" && check_web "$want"; then
+    if { [ "$legacy" = 1 ] || check_digests; } && check_api "$want" "$legacy" && check_web "$want"; then
       return 0
     fi
     [ "$i" -lt "$READY_ATTEMPTS" ] && sleep "$READY_SLEEP"
   done
   if [ "$legacy" = 0 ]; then
-    echo "::error title=$DEPLOY_NS is not ready::Inside the cluster, after the rollout, the api and web pods did not both answer healthy and report $DEPLOY_SHA. The lines above say which, and what they answered instead."
+    echo "::error title=$DEPLOY_NS is not ready::Inside the cluster, after the rollout, the api and web pods did not all run the manifest's digests, answer healthy and report $DEPLOY_SHA. The lines above say which, and what they answered instead."
   fi
   return 1
 }
@@ -323,10 +492,10 @@ recover() {
 }
 
 case "${1-}" in
-  preflight | record | rollout | recover) "$1" ;;
+  guard | preflight | record | rollout | recover) "$1" ;;
   readiness) shift; readiness "$@" ;;
   *)
-    echo "usage: $0 {preflight|record|rollout|readiness [--recovery]|recover}" >&2
+    echo "usage: $0 {guard|preflight|record|rollout|readiness [--recovery]|recover}" >&2
     exit 2
     ;;
 esac

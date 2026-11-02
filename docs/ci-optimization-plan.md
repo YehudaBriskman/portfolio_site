@@ -180,6 +180,59 @@ ref's scope, which main never reads.
 Nothing consumes amd64, so no manual multi-arch path was kept. An amd64
 host runs the site from source with `docker-compose.yml`.
 
+### After P4 (#205)
+
+| Job (check name) | Runs on | Runner | Needs | Timeout (min) |
+|---|---|---|---|---|
+| Publish image (web), Publish image (api) | main, a rebuild from a tag | `ubuntu-24.04-arm` | Classify, Static, Frontend, Backend, Scan | 15 |
+| Release manifest | main, a rebuild from a tag | `ubuntu-latest` | Classify, Scan, Publish | 10 |
+| Promote release | `v*` tag (push, or a run from the tag) | `ubuntu-latest` | Classify, Static, Release manifest | 20 |
+| Deploy | main → preprod, tag → prod | `ubuntu-latest` | Classify, Release manifest, Promote | 30 |
+
+The required checks are unchanged (`Static`, `CI gate`); the gate now
+also needs Release manifest and Promote release.
+
+**Modes** (Classify's `mode` output, with the commit it resolved once as
+`sha`): `pr`, `main`, `promote` (a `v*` tag push, or a run from the tag),
+`rebuild` (a run from a tag with `rebuild: true`), `other`. A tag push
+selects Static, Promote and Deploy only: **a tag builds nothing.**
+
+**The release manifest** (`.github/scripts/release.sh`, tested in Static by
+`release.test.sh`). Main CI writes one per commit: source sha, each image as
+`ghcr.io/yehudabriskman/portfolio_site/<image>@sha256:…` with its image ID,
+the build inputs (context git tree, Dockerfile, lockfile, base image
+digests, build argument), tool versions, platform, the scan result with
+the Trivy DB timestamp, and the run id and attempt. It is stored as an OCI
+artifact at `ghcr.io/yehudabriskman/portfolio_site/manifest:<sha>` (pushed
+with a pinned, checksum-verified oras), read back and compared after the
+push. A run artifact `release-manifest` (30 days) is a convenience only.
+
+**Promotion.** The tag's commit must be on main; the manifest for exactly
+that commit must exist; the run it names must be this repository's CI on
+main for that commit, with Static, Frontend, Backend, both Scan legs, both
+Publish legs and Release manifest green in that attempt. Then both digests
+are re-scanned against the current database with the same policy, and the
+tag is added to the images and the manifest as aliases. No manifest stops
+the release; `rebuild: true` is the only path past it.
+
+**Deploy** rolls out the manifest's digests (never a tag), annotates the
+source sha, and checks that both Deployments and every pod's `imageID`
+carry them. Inside the deploy lock, `deploy.sh guard` decides first:
+preprod skips with a notice when a newer main commit already has a
+manifest; prod refuses a release older than the running one unless the run
+was started with `rollback: true`. `:latest` moves only after a passing prod
+deploy.
+
+**Retention.** Release images, manifests and `v*` tags, and any digest a
+manifest references, are never pruned. Checked 2026-11-03: no workflow in
+this repository deletes package versions. Anything added later that prunes
+GHCR must skip all three.
+
+**Left out: unchanged-component reuse.** Both images are still built on
+every main commit. Reusing an unchanged image's digest needs a proof that
+every input is identical (context tree, base image digests, build args,
+toolchain), which the evidence now records but nothing yet compares.
+
 ---
 
 ## 2. Baseline

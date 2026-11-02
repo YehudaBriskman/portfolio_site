@@ -14,7 +14,8 @@
 # Inputs (environment):
 #   describe: PLATFORM (linux/arm64), PREFIX (the image name, for the outputs
 #             `<PREFIX>_id` and `<PREFIX>_sha256` in $GITHUB_OUTPUT)
-#   publish:  PLATFORM, EXPECT_ID and EXPECT_SHA256 (the scan job's outputs)
+#   publish:  PLATFORM, EXPECT_ID and EXPECT_SHA256 (the scan job's outputs),
+#             PREFIX (for the output `<PREFIX>_digest`, the pushed manifest)
 #
 # WHAT "THE SAME BYTES" IS CHECKED AGAINST
 #
@@ -101,6 +102,12 @@ publish() {
   [ "$pushed_id" = "$EXPECT_ID" ] ||
     die "Pushed image is not the scanned image" "$ref carries config ${pushed_id:-none}; the scan saw $EXPECT_ID"
   echo "identical: the registry holds the image that was scanned"
+  # The digest the release manifest records and Deploy rolls out (#205), as
+  # `<PREFIX>_digest`. Only a real digest: a deploy pins exactly this string.
+  [[ $digest =~ ^sha256:[0-9a-f]{64}$ ]] || die "No pushed digest" "the registry answered '$digest' for $ref"
+  if [ -n "${GITHUB_OUTPUT:-}" ] && [ -n "${PREFIX:-}" ]; then
+    printf '%s_digest=%s\n' "$PREFIX" "$digest" >>"$GITHUB_OUTPUT"
+  fi
   if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
     printf '| Published | Scanned image ID | Pushed manifest |\n|---|---|---|\n| %s | %s | %s |\n' \
       "$ref" "$EXPECT_ID" "$digest" >>"$GITHUB_STEP_SUMMARY"
