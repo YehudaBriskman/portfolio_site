@@ -56,18 +56,19 @@ export const plate = {
   /*
    * What the owner does now, for the corner that states it.
    *
-   * Authored rather than derived, because nothing in the repository knows it:
-   * `data/projects.ts` is a table of products and this is a job. The long
-   * form — "a team leader at the Israel Defense Forces, in Tel Aviv" — is in
-   * `about.intro` and is the sentence this is the short version of; the
-   * abbreviation is here because the corner it stands in is one line of the
-   * field line's voice and the place is already on the plate.
+   * Authored rather than derived, because nothing in the repository knows it.
+   *
+   * THE EMPLOYER IS NEVER NAMED ON THIS SITE. The owner's current employer is
+   * not public information — not here, not in `about.intro`, not in the
+   * crawlable echo in `backend/src/routes/seo.route.ts`, not in a render under
+   * `docs/`. Say what the work is, never whose it is. This line used to name
+   * it and was removed for exactly that reason.
    *
    * Like `contact.replyWithin`, this is a fact with an expiry date: it has to
    * be changed in one place when it stops being true, which is why it is in
    * this file rather than typed into a component.
    */
-  currently: "Team lead, IDF",
+  currently: "Products, end to end",
 };
 
 /*
@@ -132,7 +133,7 @@ export const plateTitles: Record<"portfolio" | "explore", PlateTitle> = {
 export const about = {
   heading: "How I work",
   intro: [
-    "I'm a full-stack engineer and a team leader at the Israel Defense Forces, in Tel Aviv. I lead a small team building and running internal software, and I still write and review code every day. I never wanted the version of the job where you stop.",
+    "I'm a full-stack engineer and a technical team lead in Tel Aviv. I lead a small team building and running internal software, and I still write and review code every day. I never wanted the version of the job where you stop.",
     "Before that I was a full-stack engineer at Momentum Tailored Solutions.",
     "Outside work I ship my own products end to end: WindoM, a Chrome extension published in the Web Store, and Bothy, a console that reports what's running by asking Docker rather than by reading a list someone has to remember to update.",
   ],
