@@ -40,6 +40,35 @@
 }
 
 /*
+ * The reading direction of a name that has been cut into boxes.
+ *
+ * A bug, and a visible one: set `dir="rtl"` on the document and the title
+ * plate rendered YEHUDA BRISKMAN as ADUHEY NAMXSIRB. Nothing was reversing
+ * the string — an inline-block is an *atomic inline-level box*, which the
+ * bidi algorithm treats as a neutral object character, and a run of neutrals
+ * in an RTL paragraph is laid out right to left. So the split turns a name
+ * into fourteen neutral objects and the paragraph reverses both the letters
+ * inside each word and the words inside the line. An unsplit name is a run of
+ * strong left-to-right characters and has never had the problem, which is why
+ * it arrived with `splitName` and not with Hebrew.
+ *
+ * `direction: ltr` on the element that holds the boxes puts the paragraph
+ * back. It is correct for every name this site sets, because every one of
+ * them is Latin — there is no translation layer, and `nav/locale.ts` says so
+ * at length: the second locale switches the faces and the direction and not
+ * the strings. The day a name is written in Hebrew this has to become
+ * conditional on the name rather than on the split, and the test that pins
+ * it names that.
+ *
+ * It does not touch alignment. `text-align: center` on the title plate is
+ * stated by the section that knows the label is centred, and `direction`
+ * changes which edge is the start, not which edge the text is aligned to.
+ */
+.split {
+  direction: ltr;
+}
+
+/*
  * The two boxes `splitName` makes, and nothing about how they move.
  *
  * They are here rather than in the caller's stylesheet because they are what

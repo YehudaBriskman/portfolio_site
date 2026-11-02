@@ -55,6 +55,65 @@ export const plate = {
   shippingSince: 2021,
 };
 
+/*
+ * The two title treatments issue #100 asks to choose between, and the thing
+ * they displace.
+ *
+ * `plate.name` above is still "Yehuda Briskman" and is still what `main`
+ * ships. These are proposals: the owner's ask was that the `h1` becomes
+ * PORTFOLIO set very large, or EXPLORE MY PORTFOLIO a little less large, and
+ * both are built so the choice can be made from renders.
+ *
+ * WHAT CHANGES BESIDES THE STRING
+ * -------------------------------
+ * The name leaves the `h1`, and the `h1` is the page's accessible name and
+ * its strongest on-page signal. So each of these carries the name in its
+ * fact line instead — the label schema's second slot, "what the thing is",
+ * which is exactly the slot a category label needs filling in. Set in the
+ * accent face at 18px rather than in display type at the 158px PORTFOLIO
+ * measures at 1440x900, which is a real loss and is the cost of the trade
+ * rather than a thing to hide.
+ *
+ * It is not the only place the name lives, and that is what makes the trade
+ * survivable: `index.html` carries it in `<title>`, in `meta[name=author]`,
+ * in `og:title`, in `og:site_name`, in `twitter:title` and twice in the
+ * JSON-LD graph, as the Person's `name` and the WebSite's. Every one of
+ * those was checked against these strings and none of them had to move,
+ * because none of them ever said "portfolio" — they say who the site is by.
+ *
+ * Cased here and uppercased by the plate scale, as `plate.name` is, so the
+ * accessible name a screen reader announces is a sentence rather than a
+ * shout.
+ */
+export type PlateTitle = { name: string; fact: string };
+
+/*
+ * The name and the field it works in, one line, with the name first.
+ *
+ * Shared by both options deliberately: the thing the `h1` stops saying is
+ * the same thing in both cases, so the sentence that recovers it should not
+ * differ between them. An em dash and not a full stop, because this is one
+ * statement — who, then what — rather than two sentences in a slot the
+ * schema describes as "a sentence".
+ */
+const NAMED_FACT = `${plate.name} — full-stack, mostly frontend`;
+
+export const plateTitles: Record<"portfolio" | "explore", PlateTitle> = {
+  /*
+   * Nine characters, one word, 6.41em in Audiowide at the display tracking —
+   * re-measured in the DOM, see the rung in `Hero.module.css`. One word
+   * cannot break, so this is one line at every width the site has, which is
+   * most of what makes it read as "very large".
+   */
+  portfolio: { name: "Portfolio", fact: NAMED_FACT },
+  /*
+   * Twenty characters in three words, 13.98em on one line and 7.29em on its
+   * longest line when it breaks after "MY". It breaks at every width, which
+   * is why it is the option that is a little less large.
+   */
+  explore: { name: "Explore my portfolio", fact: NAMED_FACT },
+};
+
 export const about = {
   heading: "How I work",
   intro: [

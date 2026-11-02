@@ -1,10 +1,12 @@
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import Hero from "@/components/Hero";
 import ObjectLabel from "@/components/gallery/ObjectLabel";
+import { heroTitle } from "@/components/heroFirstScreen";
+import { plate, plateTitles } from "@/data/site";
 
 /*
  * The first screen's arrival is a sequencer, two stylesheets and a split
@@ -29,6 +31,7 @@ import ObjectLabel from "@/components/gallery/ObjectLabel";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ARRIVAL_CSS = readFileSync(resolve(HERE, "../HeroArrival.module.css"), "utf8");
 const CHROME_CSS = readFileSync(resolve(HERE, "../hero-chrome.css"), "utf8");
+const INDEX_HTML = readFileSync(resolve(HERE, "../../../index.html"), "utf8");
 
 /*
  * A stylesheet with every comment removed.
@@ -64,6 +67,21 @@ function pausedRules(css: string): string[] {
 }
 
 const REDUCED = "(prefers-reduced-motion: reduce)";
+
+/*
+ * The strings the plate is currently set with, read the way `Hero` reads them.
+ *
+ * Hard-coded "Yehuda Briskman" here until issue #100; the `h1` is now one of
+ * three candidates and the suite has to assert the split's invariants against
+ * whichever one is in force rather than against one spelling of one of them.
+ * What keeps that from asserting nothing is the pair of concrete assertions
+ * below it: the chosen candidate is pinned by name, and the one thing that
+ * must be true of every candidate — that the person's name is still somewhere
+ * on the first screen — is asserted as a string.
+ */
+const TITLE = heroTitle === "name" ? { name: plate.name, fact: plate.fact } : plateTitles[heroTitle];
+const LETTERS = [...TITLE.name].filter((c) => c !== " ").length;
+const WORDS = TITLE.name.split(" ");
 
 afterEach(() => {
   delete document.body.dataset.heroArrived;
@@ -135,7 +153,7 @@ describe("the first screen's hooks", () => {
        all reading the same three statements and looking at the same
        photograph. */
     expect(screen.getByRole("heading", { level: 1 })).toBeInTheDocument();
-    expect(screen.getByText("Full-stack, mostly frontend")).toBeInTheDocument();
+    expect(screen.getByText(TITLE.fact)).toBeInTheDocument();
     expect(screen.getByText("Israel")).toBeInTheDocument();
     expect(screen.getByRole("img")).toBeInTheDocument();
   });
@@ -172,9 +190,7 @@ describe("the name, split into letters", () => {
 
     /* The accessible name is the one thing the split could quietly break,
        and the one thing nothing on screen would show. */
-    expect(screen.getByRole("heading", { level: 1 })).toHaveAccessibleName(
-      "Yehuda Briskman"
-    );
+    expect(screen.getByRole("heading", { level: 1 })).toHaveAccessibleName(TITLE.name);
   });
 
   it("copies as one string, with the spaces it always had", () => {
@@ -184,7 +200,7 @@ describe("the name, split into letters", () => {
     /* The spans add no characters, and the space between the words is a real
        text node rather than a gap or a margin — so a selection dragged
        across the name yields the name. */
-    expect(h1.textContent).toBe("Yehuda Briskman");
+    expect(h1.textContent).toBe(TITLE.name);
   });
 
   it("makes every word one box, so a name cannot break mid-word", () => {
@@ -195,8 +211,8 @@ describe("the name, split into letters", () => {
        Without the word box, "BRISKMAN" can set as four lines on a phone —
        which is the failure the type rung below 700px exists to prevent and
        would have been reintroduced underneath it. */
-    expect(words.length).toBe(2);
-    expect([...words].map((w) => w.textContent)).toEqual(["Yehuda", "Briskman"]);
+    expect(words.length).toBe(WORDS.length);
+    expect([...words].map((w) => w.textContent)).toEqual(WORDS);
   });
 
   it("numbers the letters across the whole name, not within each word", () => {
@@ -205,12 +221,37 @@ describe("the name, split into letters", () => {
 
     /* The cascade is one run in reading order. A per-word counter would
        restart it at the space, and the two words would fall at once. */
-    expect(letters.length).toBe(14);
+    expect(letters.length).toBe(LETTERS);
     expect(letters.map((l) => l.style.getPropertyValue("--letter"))).toEqual(
-      Array.from({ length: 14 }, (_, i) => String(i))
+      Array.from({ length: LETTERS }, (_, i) => String(i))
     );
     expect(letters.at(-1)?.hasAttribute("data-letter-last")).toBe(true);
     expect(letters.filter((l) => l.hasAttribute("data-letter-last")).length).toBe(1);
+  });
+
+  it("keeps the letters in reading order when the document turns around", () => {
+    const { container } = render(<Hero />);
+    const h1 = container.querySelector("h1");
+    const label = readFileSync(
+      resolve(HERE, "../gallery/ObjectLabel.module.css"),
+      "utf8"
+    );
+
+    /*
+     * The split turns a name into one atomic inline-level box per letter, and
+     * the bidi algorithm treats an atomic box as a neutral object — so in an
+     * RTL paragraph the run is laid out right to left and the title plate
+     * rendered YEHUDA BRISKMAN as ADUHEY NAMXSIRB. The fix is one declaration
+     * on the element that holds the boxes, and it is only correct while every
+     * name on this site is Latin: the day one is written in Hebrew it has to
+     * become conditional on the name rather than on the split.
+     *
+     * jsdom lays out no CSS, so what is pinned is the pair — the class is on
+     * the split name, and the class carries the direction.
+     */
+    const cls = [...(h1?.classList ?? [])].find((c) => c.includes("split"));
+    expect(cls, "no split class on the split name").toBeDefined();
+    expect(strip(label)).toMatch(/\.split \{[^}]*direction: ltr/);
   });
 
   it("leaves every other label on the site a single text node", () => {
@@ -225,6 +266,11 @@ describe("the name, split into letters", () => {
     expect(container.querySelectorAll("[data-letter]").length).toBe(0);
     expect(container.querySelectorAll("[data-word]").length).toBe(0);
     expect(container.querySelector("h3")?.getAttribute("aria-label")).toBeNull();
+    /* And no direction of its own: an unsplit name is a run of strong
+       characters and has never needed one. */
+    expect(
+      [...(container.querySelector("h3")?.classList ?? [])].some((c) => c.includes("split"))
+    ).toBe(false);
   });
 });
 
@@ -399,5 +445,82 @@ describe("what the first screen may not spend", () => {
      */
     expect(hero).toMatch(/\.composition \{[^}]*grid-template-rows: auto 1fr/);
     expect(hero).toMatch(/\.portrait \{[^}]*min-height: 0/);
+  });
+});
+
+/*
+ * What issue #100 puts on the first screen, and the three things that have to
+ * stay true whichever candidate the owner picks.
+ *
+ * This whole block is scaffolding around a decision that has not been made.
+ * When it is, the flag collapses to a constant and the first test here — the
+ * one that pins which candidate is proposed — is the one that has to be
+ * deliberately rewritten rather than quietly passing.
+ */
+describe("the first screen's proposals", () => {
+  it("ships the candidate it recommends, and says so out loud", () => {
+    /* Not a tautology: this constant is the proposal. A change to it is a
+       change to what the PR is asking for, and it should not be possible to
+       make it by accident while editing a stylesheet. */
+    expect(heroTitle).toBe("portfolio");
+  });
+
+  it("keeps the person's name on the first screen after it leaves the h1", () => {
+    render(<Hero />);
+    const h1 = screen.getByRole("heading", { level: 1 });
+
+    /*
+     * The one invariant #100 cannot be allowed to break. `Yehuda Briskman` is
+     * the page's accessible name and its strongest on-page signal; a title
+     * that says PORTFOLIO has to put it somewhere real rather than nowhere.
+     * It is in the fact line, assembled from `plate.name` so it is written
+     * once — which is why this asserts the rendered text and not the constant.
+     */
+    expect(screen.getByText(/Yehuda Briskman/)).toBeInTheDocument();
+    if (heroTitle !== "name") expect(h1.textContent).not.toMatch(/Yehuda/);
+  });
+
+  it("agrees with the head of the document about who the site is by", () => {
+    /*
+     * The `h1` is not the only place the name lives, and that is the whole
+     * reason moving it out of the `h1` is survivable. If one of these ever
+     * starts saying "portfolio" instead of the name, the page and its own
+     * head have stopped agreeing and the trade this change made is off.
+     */
+    for (const tag of [
+      "<title>Yehuda Briskman",
+      'name="author" content="Yehuda Briskman"',
+      'property="og:site_name" content="Yehuda Briskman"',
+      '"name": "Yehuda Briskman"',
+    ]) {
+      expect(INDEX_HTML).toContain(tag);
+    }
+    expect(INDEX_HTML).not.toMatch(/portfolio/i);
+  });
+
+  it("sets each title option so the words it has cannot break mid-word", () => {
+    /*
+     * The type rungs in `Hero.module.css` are derived from the measured
+     * advance width of the *longest unbreakable line* of each string, and
+     * `splitName` makes every word one inline-block — so the word count is
+     * the thing the derivation rests on. A string that gained a word would
+     * silently invalidate a clamp that no test could otherwise see.
+     */
+    expect(plateTitles.portfolio.name.split(" ")).toHaveLength(1);
+    expect(plateTitles.explore.name.split(" ")).toHaveLength(3);
+    for (const title of Object.values(plateTitles)) {
+      expect(title.fact).toContain(plate.name);
+    }
+  });
+
+  it("gives every title option a rung derived for its own longest line", () => {
+    const hero = strip(readFileSync(resolve(HERE, "../Hero.module.css"), "utf8"));
+
+    /* One rung per proposed string at each of the two breakpoints. The
+       default ships `portfolio`, so a missing `explore` rung is a candidate
+       that renders at the wrong size only when someone looks at it. */
+    for (const which of ["portfolio", "explore"]) {
+      expect(hero.match(new RegExp(`\\[data-title="${which}"\\] \\.plate h1`, "g"))).toHaveLength(2);
+    }
   });
 });
