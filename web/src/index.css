@@ -308,7 +308,7 @@
      *   Notes      --paper          the record
      *   Specs      --paper          also the record
      *   Contact    --paper          closes where the hero opened
-     *   footer     --paper          back to the page's own ground
+     *   footer     --panel          chrome, not an act: see DarkAct.tsx (#160)
      *
      * THE WARM AND COOL TINTS ARE NOT APPLIED ANYWHERE, and that is #92
      * rather than an oversight: four of the six tinted plates went back to
@@ -1295,6 +1295,12 @@
   .on-panel .text-field li {
     letter-spacing: calc(var(--track-field) + 0.01em);
   }
+  /* The same rescue for the eyebrow, which is a `<p>` and so lost its label
+     tracking to the prose rule above — found when the footer went dark
+     (#160): its column heads were set at 0.004em instead of the label's own. */
+  .on-panel .eyebrow {
+    letter-spacing: calc(var(--track-label) + 0.01em);
+  }
   /* The utility keeps the name `mono` because ~65 elements across the app
      carry it and renaming them is a separate commit. It is the data role, and the data
      role is a proportional face in both languages now. Anything that needs
@@ -1810,16 +1816,20 @@
   }
 
   /*
-   * The footer's own ground.
+   * The footer's own ground, and it is the dark one (#160).
    *
-   * Everything in the footer was measured against --bitumen. Standing it on
-   * whatever colour the last plate had risen to is what made its headings and
-   * the admin link the least legible text on the site.
+   * It stands on its own ground rather than on whatever colour the last plate
+   * had risen to, which is what once made its headings the least legible
+   * text on the site. Since #160 that ground is `--panel`: the footer carries
+   * `.on-panel`, which repaints it and re-points every token, so this rule
+   * only positions it. No top border: the change of ground IS the edge, at
+   * 15.95:1 paper to panel, and a hairline along it would say it twice.
+   *
+   * It is chrome and not a third dark act; the argument is beside the
+   * ceiling, in `components/ground/DarkAct.tsx`.
    */
   .footer-ground {
     position: relative;
-    background: rgb(var(--bitumen));
-    border-top: 1px solid rgb(var(--edge));
   }
 }
 

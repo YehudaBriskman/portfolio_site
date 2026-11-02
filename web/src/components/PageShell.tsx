@@ -59,11 +59,7 @@ export default function PageShell({ children }: { children: ReactNode }) {
       </main>
       {/* Content pages had no footer at all; these are the pages people land on
           from a search, and they offered no way onward. */}
-      <div className="footer-ground">
-        <div className="wrap pb-section-sm">
-          <SiteFooter />
-        </div>
-      </div>
+      <SiteFooter />
     </div>
   );
 }
