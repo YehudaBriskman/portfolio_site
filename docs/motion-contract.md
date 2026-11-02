@@ -472,15 +472,44 @@ It is time-driven, so it has no `@supports` block. Under `forced-colors` the
 lamp is removed, since a system colour would paint it in a hue nobody chose.
 
 **Beat 3 is not a second peak, and the test it had to pass is on paper
-rather than on taste.** It does not pin, so it buys no scroll distance beyond
-its own section's height; it has no asset budget, being 365 one-colour boxes
+rather than on taste.** Until #111 the test was easy: it did not pin, so it
+bought no scroll distance beyond its own section's height. #111 asked for more
+of it — bigger, and more time — and a scrub's only clock is scroll, so it now
+holds its frame (`position: sticky`) over a 120svh runway, on a static stage
+that owns the named timeline exactly as §1 prescribes. That makes it a held
+beat, and the test is now comparative and measured: the pile holds for about
+238svh (four 52svh cards and a 30svh tail) and the year for 120svh; the work
+section is 3919px against the year's 2360px at 1440×900 and 3667px against
+2059px at 390×844, same page, same data. The pile keeps the most scroll room,
+the only asset budget and `pin` as its *move*; what the year holds still for
+is a camera dolly down its own grid, which is the scrub continuing rather than
+a second family arriving. It has no asset budget, being 365 one-colour boxes
 and no image; and it runs backwards when the reader scrolls back up, which is
 what makes it a thing the reader operates rather than a thing that happens to
-them once. Its three off-switches land on the flat contribution grid, which is
-a finished chart and the one GitHub itself ships — a scrub whose switched-off
-state is a legitimate drawing costs nothing to switch off. Measured at 4×
-CPU throttle it holds within 0.8fps of the pile and 1.6fps of a page with no
-act on it at all; the numbers are in the pull request that added it.
+them once.
+
+Its three off-switches land on the **risen** city, still, at rest height and
+with the runway given back — not on the flat grid, which is where they landed
+before #111. §4 says an off-switch lands on the finished state, and the
+finished state of this act is the city, not its first frame; the issue asked
+for exactly that. The flat lattice is now only what the *data* exits draw (a
+year still coming, or one that could not be read).
+
+Since #111 the city also answers a hand: drag sideways to turn it a few tens
+of degrees (it settles back), and point or tap at a column for one shared
+readout of that day. It is direct manipulation of the act's own camera rather
+than a pointer device bolted on, and none of it is focusable — the scene and
+its readout stay `aria-hidden`, and the caption and the twelve-month table are
+still the whole accessible path. `touch-action: pan-y` leaves a vertical swipe
+to the page, so on a phone the scroll that drives the act is never taken from
+the reader.
+
+Measured at 4× CPU throttle on the #111 build (dev server, wheel-scrolled end
+to end, median of five passes after a warm-up): 22–23fps at 1440×900 against
+28.8fps for the pre-#111 city on the identical harness, and 32–34fps at
+390×844 against 34.2fps. Dragging holds 29fps and 43–48fps. The desktop cost
+is frame area — the same boxes, drawn about three times as large — and it is
+paid on a beat the reader can switch off into a finished chart.
 
 Both of those were taken against a **synthetic** 365-day calendar, because no
 token was available at the time, and the shape of that year is what made a
@@ -516,10 +545,16 @@ cannot does not have one, and gets cut rather than kept.
 **Banned outright by the gallery grammar**, listed here so they do not creep
 back: `spotlight`, `magnet`, more than one `scrub`, and a
 pinned argument-shaped type act. The one `scrub` the page is allowed is now
-spent, on beat 3; a second one is the ban and not a judgement call.
+spent, on beat 3; a second one is the ban and not a judgement call. Holding
+the year's frame for its runway (#111) does not spend `pin` a second time:
+`pin` is the pile's move — cards stacking under a held frame — and a held
+scrub is still a scrub. It does spend scroll, which the next rule counts.
 
 **Allowed and currently unused:** `tilt` on objects the visitor would pick up
 (3–9°; past 12° it is a toy). It is the one pointer device this grammar invites.
+The year's orbit (#111) is not this: it is a drag on a scene's camera, with a
+rubber band at 30° and a hard stop at 48°, and it does nothing until the
+reader presses — a hover never moves it.
 
 Two rules about the cost of a beat, both of which are about page height rather
 than about motion:
@@ -552,7 +587,8 @@ made it the peak; it is now one of two, with the year, on the subject rule in
 `index.css` rather than on importance. That does not move the peak, because
 the ground was never what the peak rule was about: the pile still pins, still
 takes the most scroll room, still carries the only asset budget, and the year
-still buys no scroll distance beyond its own height. What the pair costs it is
+— which since #111 does hold its frame — holds it for half the distance the
+pile does (120svh against about 238svh), measured in §2. What the pair costs it is
 the ground as a *signal* of the peak, and §2's ledger row for `drift` is where
 that trade is recorded.
 
@@ -750,7 +786,8 @@ direction, or set `fill-rule: evenodd` deliberately and know what it costs.
 | `motion/Flow.tsx` | `flow` — one gate per item, so a beat can differ per item | observer + clock |
 | `motion/InkWipe.tsx` | ink arriving as a hard clip edge, plus the coloured band | `view()` |
 | `motion/InkRule.tsx` | a hairline drawing itself in | `view()` |
-| `city/ContributionCity.module.css` | `scrub` — one animation turns and raises 365 columns | named `view-timeline` on a static wrapper |
+| `city/ContributionCity.module.css` | `scrub` — one animation turns and raises 365 columns, a second dollies the camera down the year | named `view-timeline` on a static wrapper, the frame held over it |
+| `city/useCityHand.ts` | the year's orbit and its one readout — a drag turns the city, a point reads a day | pointer events; a settle loop only between release and rest |
 | `gallery/Skeleton.module.css` | `sweep` — one line of a placeholder, the band across it, and the gate before it | clock |
 | `gallery/SkeletonLines.tsx` | the primitive: a run of lines as tall as the type they stand in for | — |
 | `gallery/LabelSkeleton.tsx` | the object label's three parts, in the label's own stylesheet | — |
@@ -786,8 +823,15 @@ Plus two scroll-position publishers, which are not devices:
 `hooks/useScrollProgress.ts` (the home page's palette and layer progress) and
 `components/notes/ReadingBar.tsx` (a post's progress bar).
 
-**No motion component has a scroll listener or a `requestAnimationFrame` loop,
-and none does per-frame work.** The one hook with a scroll listener is
+**No motion component has a scroll listener, and only one has a
+`requestAnimationFrame` loop — `useCityHand`, for under a second after the
+reader lets go.** It turns the city back to rest on a damped spring, writes
+one inline `rotateZ` per frame and no React state, never starts without a
+press, and under reduced motion or Pause it does not coast or settle at all:
+the city snaps back on release. That is the whole of the exception; it is
+answering a hand, not a clock, and measured it costs the act nothing it was
+not already paying (29fps dragging against 22–23fps scrolling, 4× throttle).
+Otherwise no component does per-frame work. The one hook with a scroll listener is
 `useScrollProgress`, mounted on a single route; it is rAF-throttled, writes a
 custom property on `<html>` rather than React state, and returns early under
 `prefers-reduced-motion`. Everything in the table is either a class name a

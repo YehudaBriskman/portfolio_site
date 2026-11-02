@@ -92,9 +92,9 @@ describe("ContributionCity", () => {
     await screen.findByText(/21 contributions over 7 days/);
     /* Every cell is inside the hidden scene: 365 unlabelled divs are not a
        chart's accessible content and must not pretend to be. */
-    /* Through the frame, because the section head's hairline is aria-hidden
-       too and is the first match in document order. */
-    const scene = container.querySelector('[data-city] > [aria-hidden="true"]');
+    /* Through the stage and its held frame, because the section head's
+       hairline is aria-hidden too and is the first match in document order. */
+    const scene = container.querySelector('[data-city] > div > [aria-hidden="true"]');
     expect(scene).not.toBeNull();
     for (const cell of container.querySelectorAll("[data-step]")) {
       expect(scene?.contains(cell)).toBe(true);
@@ -182,15 +182,48 @@ describe("ContributionCity", () => {
     expect(container.querySelectorAll("a, button, [tabindex]")).toHaveLength(0);
     expect(container.querySelectorAll("summary")).toHaveLength(1);
   });
+
+  it("gives the hand one readout, hidden with the scene it describes", async () => {
+    fetchYear.mockResolvedValue(YEAR);
+    const { container } = mount();
+    await waitFor(() => expect(container.querySelectorAll("[data-step]")).toHaveLength(7));
+    /* One readout for 365 columns, never one per column — and outside the
+       accessibility tree, because the caption and the table already say all
+       of it in text. A hint about dragging is noise to a reader who cannot. */
+    const readouts = container.querySelectorAll("[data-hint]");
+    expect(readouts).toHaveLength(2);
+    const readout = readouts[0].parentElement;
+    expect(readout?.closest('[aria-hidden="true"]')).toBe(readout);
+    expect(readout?.getAttribute("aria-live")).toBeNull();
+    /* Every real cell carries what the readout prints, so it can never
+       disagree with the column it lit. */
+    for (const cell of container.querySelectorAll("[data-step]")) {
+      expect(cell.getAttribute("data-date")).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(cell.getAttribute("data-count")).toMatch(/^\d+$/);
+    }
+  });
+
+  it("offers nothing to read or turn when the year is absent", async () => {
+    fetchYear.mockResolvedValue(UNAVAILABLE);
+    const { container } = mount();
+    await screen.findByText(UNAVAILABLE.error as string);
+    expect(container.querySelectorAll("[data-hint]")).toHaveLength(0);
+    expect(container.querySelectorAll("[data-date]")).toHaveLength(0);
+  });
 });
 
 describe("the stylesheet's three off-switches", () => {
   /*
-   * Each has to cancel the animation outright AND take the storey to zero. The
-   * second half is the one that is easy to lose: cancelling the animation
-   * flattens the scene's own turn and does nothing to 365 children each
-   * carrying a static `translateZ`, which with the perspective still in place
-   * would stand them out of the page toward the reader.
+   * Each has to cancel BOTH animations outright, and land somewhere a reader
+   * can read. Before #111 that somewhere was the flat lattice, and every
+   * switch took the storey to zero with it. Since #111 the motion switches
+   * land on the RISEN city instead — the issue asks for exactly that, and a
+   * reader who has asked for no motion is owed the finished chart, not its
+   * empty first frame (§4: an off-switch lands on the finished state). So the
+   * invariant is no longer "cancels implies flattens"; it is that every
+   * motion switch writes the risen transform by hand and gives the runway
+   * back, and that only the DATA exits (pending, empty) and forced colours
+   * flatten.
    */
   const switches: [string, RegExp][] = [
     ["@supports not (animation-timeline: view())", /@supports not \(animation-timeline: view\(\)\)/],
@@ -204,15 +237,45 @@ describe("the stylesheet's three off-switches", () => {
     });
   }
 
-  it("every block that cancels the animation also flattens the storey", () => {
-    const cancels = CSS.split(/\banimation-name:\s*none\b/).length - 1;
-    const flattens = CSS.split(/--city-storey:\s*0px/).length - 1;
-    /* Four of each: the three switches plus the data-side exit for an
-       unavailable year, and the forced-colors block makes five. They are
-       counted together rather than parsed into rules because the failure
-       being guarded is one of them being added without the other. */
-    expect(cancels).toBeGreaterThanOrEqual(3);
-    expect(cancels).toBe(flattens);
+  /**
+   * The switch's text, from `opener` to the end of its `.dolly` rule — the
+   * last of the four boxes each switch has to touch, in source order.
+   */
+  function blockAfter(opener: string): string {
+    const at = CSS.indexOf(opener);
+    expect(at).toBeGreaterThan(-1);
+    const dolly = CSS.indexOf(".dolly {", at);
+    expect(dolly).toBeGreaterThan(at);
+    return CSS.slice(at, CSS.indexOf("}", dolly) + 1);
+  }
+
+  for (const [name, opener] of [
+    ["@supports not", "@supports not (animation-timeline: view())"],
+    ["reduced motion", "@media (prefers-reduced-motion: reduce) {\n  .stage {"],
+    ["Pause", ":global(body.motion-paused) .stage {"],
+  ] as const) {
+    it(`${name} lands on the risen city, still, and gives the runway back`, () => {
+      const block = blockAfter(opener);
+      /* Both animated boxes cancelled — cancelling one leaves the other
+         welded to a clock that may never tick. */
+      expect(block.split(/animation-name:\s*none/).length - 1).toBeGreaterThanOrEqual(2);
+      /* The finished state, written out: tilted, turned, full height. */
+      expect(block).toMatch(/rotateX\(var\(--city-tilt\)\) rotateZ\(var\(--city-turn\)\) scaleZ\(1\)/);
+      /* And no held frame over a runway nothing will play on. */
+      expect(block).toMatch(/height:\s*auto/);
+      expect(block).toMatch(/position:\s*relative/);
+      /* Not flattened: that is the data exits' job, not the motion switches'. */
+      expect(block).not.toMatch(/--city-storey:\s*0px/);
+    });
+  }
+
+  it("flattens only where there is no year to stand up, or no colour to read", () => {
+    /* The data exits and forced colours: two declarations, no more. A third
+       would be a motion switch that has gone back to the empty lattice. */
+    expect(CSS.split(/--city-storey:\s*0px/).length - 1).toBe(2);
+    expect(CSS).toMatch(
+      /\.stage\[data-city="empty"\],\s*\.stage\[data-city="pending"\]\s*\{\s*--city-storey:\s*0px/,
+    );
   });
 
   it("names its keyframes in a literal animation-name and never through a var()", () => {
@@ -355,19 +418,22 @@ describe("the stylesheet's three off-switches", () => {
   it("gives up the city's height only when the year is not coming", () => {
     /*
      * The whole of the difference between the two flat states, and the
-     * shift it removes: the frame is `clamp(140px, 16vw, 240px)` with a
-     * year in it and `auto` without, which at 1440x900 is 230.39px against
-     * 121.70px. Reserving it while pending is 108.69px that the arriving
-     * city no longer drops on everything below it.
+     * shift it removes. Before #111 it was the frame's own height (108.69px
+     * at 1440x900); since #111 it is the held frame plus its runway, well
+     * over a screen, and dropping that on everything below when the year
+     * lands would be a far worse shift than the one this was written for.
      *
-     * So `pending` shares the three act-off declarations and must NOT share
-     * `height: auto`. A rule that lumps the two together is the regression
-     * this is guarding, and it would look entirely reasonable.
+     * So `pending` shares the act-off declarations and must NOT share
+     * `height: auto`, on the stage or on the frame. A rule that lumps the two
+     * together is the regression this is guarding, and it would look
+     * entirely reasonable.
      */
-    expect(CSS).toMatch(/\.frame\[data-city="empty"\],\s*\.frame\[data-city="pending"\]/);
-    const collapse = CSS.slice(CSS.indexOf('.frame[data-city="empty"] {'));
+    expect(CSS).toMatch(/\.stage\[data-city="empty"\],\s*\.stage\[data-city="pending"\]/);
+    const collapse = CSS.slice(CSS.indexOf('.stage[data-city="empty"] {'));
     expect(collapse.slice(0, collapse.indexOf("}"))).toContain("height: auto");
-    expect(CSS).not.toMatch(/\.frame\[data-city="pending"\][^{]*\{[^}]*height:\s*auto/);
+    const frame = CSS.slice(CSS.indexOf('.stage[data-city="empty"] .frame {'));
+    expect(frame.slice(0, frame.indexOf("}"))).toContain("height: auto");
+    expect(CSS).not.toMatch(/\.stage\[data-city="pending"\][^{,]*\{[^}]*height:\s*auto/);
   });
 
   it("re-solves the waiting band for the ground, rather than carrying paper's alpha over", () => {
@@ -386,7 +452,7 @@ describe("the stylesheet's three off-switches", () => {
      * that gets silently inherited the next time the ground moves — hence an
      * assertion rather than only a comment.
      */
-    const band = CSS.slice(CSS.indexOf('.frame[data-city="pending"]::after'));
+    const band = CSS.slice(CSS.indexOf('.stage[data-city="pending"] .frame::after'));
     const decl = band.slice(0, band.indexOf("}"));
     expect(decl).toMatch(/rgb\(var\(--ink\) \/ 0\.035\)/);
     expect(decl).not.toMatch(/rgb\(var\(--ink\) \/ 0\.05\)/);
@@ -396,7 +462,7 @@ describe("the stylesheet's three off-switches", () => {
     /* A sweep is motion. Both standing conditions cancel it and remove the
        gradient with it — a stopped sweep that keeps its band is a highlight
        parked on a surface nothing is happening to. */
-    const waiting = CSS.slice(CSS.indexOf('.frame[data-city="pending"]::after'));
+    const waiting = CSS.slice(CSS.indexOf('.stage[data-city="pending"] .frame::after'));
     for (const guard of ["@media (prefers-reduced-motion: reduce)", "body.motion-paused"]) {
       const at = waiting.indexOf(guard);
       expect(at).toBeGreaterThan(-1);
