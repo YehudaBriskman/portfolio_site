@@ -60,13 +60,18 @@ export function useTuckedBar(
   const [tucked, setTucked] = useState(false);
   const reveal = useCallback(() => setTucked(false), []);
 
-  useEffect(() => setTucked(false), [pathname]);
+  /* A new page, and the side panel opening or closing, each start the bar
+     shown. Done while rendering rather than in an effect: React's pattern for
+     resetting state when an input changes, which re-renders once, before
+     paint, and does not trip react-hooks' set-state-in-effect rule (#156). */
+  const [seen, setSeen] = useState({ pathname, held });
+  if (seen.pathname !== pathname || seen.held !== held) {
+    setSeen({ pathname, held });
+    setTucked(false);
+  }
 
   useEffect(() => {
-    if (held) {
-      setTucked(false);
-      return;
-    }
+    if (held) return;
     /* `last` is the previous offset; `run` is how far the reader has gone
        since they last changed direction, and `dir` is that direction. */
     let last = Math.max(0, window.scrollY);
