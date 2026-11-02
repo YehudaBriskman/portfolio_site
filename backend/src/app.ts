@@ -9,6 +9,7 @@ import blogRoutes from './routes/blog.route.js';
 import adminRoutes from './routes/admin.route.js';
 import seoRoutes from './routes/seo.route.js';
 import { requireAdmin } from './middlewares/requireAdmin.js';
+import { errorHandler } from './middlewares/errorHandler.js';
 
 export function createApp() {
   const app = express();
@@ -114,6 +115,11 @@ export function createApp() {
 
   // 404 כללי (לא חובה, אבל שימושי)
   app.use((_req, res) => res.status(404).json({ error: "Not Found" }));
+
+  // Last, and with four arguments: Express only routes a thrown or forwarded
+  // error to a handler of that arity, and only to one mounted after the
+  // routes. See middlewares/errorHandler.ts for the shape and the statuses.
+  app.use(errorHandler);
 
   return app;
 }
