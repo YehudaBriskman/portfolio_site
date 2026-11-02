@@ -1,7 +1,7 @@
 // Table tests for supersede-select.mjs (#201). Run: node --test .github/scripts/
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { compareVersions, isSecurity, parseUpdates, selectToClose } from "./supersede-select.mjs";
+import { compareVersions, isSecurity, parseUpdates, selectSweep, selectToClose } from "./supersede-select.mjs";
 
 const FOOTER_SEC =
   "\n\n---\nYou can disable automated security fix PRs for this repo from the [Security Alerts page](https://github.com/o/r/network/alerts).";
@@ -124,6 +124,41 @@ for (const c of cases) {
     assert.deepEqual(selectToClose(c.newPr, c.open), c.close);
   });
 }
+
+test("sweep: the newest PR per ecosystem supersedes the older ones", () => {
+  const open = [
+    group(150, { "/web": [["react", "18.3.1", "19.3.1"]] }),
+    group(160, { "/web": [["vite", "7.1.12", "8.3.5"]] }),
+    group(170, { "/web": [["vite", "7.1.12", "8.3.6"]] }),
+    { ...group(155, { "/web": [["node", "24", "26"]] }), headRefName: "dependabot/docker/x" },
+  ];
+  assert.deepEqual(selectSweep(open), [
+    { close: 150, by: 170 },
+    { close: 160, by: 170 },
+  ]);
+});
+
+test("sweep: a security PR is kept unless a newer PR covers it", () => {
+  const kept = [sec(190, "jsdom", "27.1.0", "27.1.4"), group(200, { "/web": [["vite", "7.1.12", "8.3.5"]] })];
+  assert.deepEqual(selectSweep(kept), []);
+  const covered = [sec(190, "jsdom", "27.1.0", "27.1.4"), group(200, { "/web": [["jsdom", "27.1.0", "30.1.3"]] })];
+  assert.deepEqual(selectSweep(covered), [{ close: 190, by: 200 }]);
+});
+
+test("sweep: only a surviving PR supersedes, so a fix is never dropped via an older PR", () => {
+  // 195 covers 190, but 200 supersedes 195 and lacks the fix: 190 stays open.
+  const open = [
+    sec(190, "jsdom", "27.1.0", "27.1.4"),
+    group(195, { "/web": [["jsdom", "27.1.0", "27.1.5"]] }),
+    group(200, { "/web": [["vite", "7.1.12", "8.3.5"]] }),
+  ];
+  assert.deepEqual(selectSweep(open), [{ close: 195, by: 200 }]);
+});
+
+test("sweep: nothing to do is idempotent", () => {
+  assert.deepEqual(selectSweep([]), []);
+  assert.deepEqual(selectSweep([group(200, { "/web": [["vite", "7.1.12", "8.3.5"]] })]), []);
+});
 
 test("real formats from this repo parse (#153, #135, #137, #139)", () => {
   const g153 = {
