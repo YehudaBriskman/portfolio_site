@@ -172,6 +172,24 @@ describe("admin posts", () => {
     expect(res.body.ok).toBe(false);
   });
 
+  it("sets, keeps and clears a post's featured order", async () => {
+    vi.spyOn(couch, "get").mockResolvedValue({ ...storedPost("pick"), featured: 2 });
+    const put = vi.spyOn(couch, "put").mockResolvedValue({ ok: true });
+    const app = createApp();
+    const write = (body: Record<string, unknown>) =>
+      asAdmin(request(app).put("/api/admin/posts/pick").send({ title: "Pick", _rev: "3-abc", ...body }));
+
+    expect((await write({ featured: 1 })).body.post.featured).toBe(1);
+    // A client that does not send the field leaves it alone.
+    expect((await write({})).body.post.featured).toBe(2);
+    expect((await write({ featured: null })).body.post.featured).toBeNull();
+    expect(put).toHaveBeenCalledTimes(3);
+
+    const bad = await write({ featured: 0 });
+    expect(bad.status).toBe(400);
+    expect(bad.body.details.fieldErrors).toHaveProperty("featured");
+  });
+
   it("archives rather than deletes", async () => {
     vi.spyOn(couch, "get").mockResolvedValue(storedPost("old-post"));
     const put = vi.spyOn(couch, "put").mockResolvedValue({ ok: true });

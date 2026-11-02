@@ -75,6 +75,8 @@ describe("GET /api/blog/posts", () => {
     expect(res.body.items[0]).not.toHaveProperty("_rev");
     expect(res.body.items[0]).not.toHaveProperty("status");
     expect(res.body.items[0]).not.toHaveProperty("body");
+    // `featured` is public, and null on a document written before it existed.
+    expect(res.body.items[0].featured).toBeNull();
 
     // Drafts are excluded in the selector, so they never cross the wire.
     const query = find.mock.calls[0][0] as { selector: Record<string, unknown> };

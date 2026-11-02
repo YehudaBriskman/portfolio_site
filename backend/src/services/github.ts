@@ -1,4 +1,4 @@
-import type { Collection } from "../schemas/content.js";
+import type { Collection, SiteRelease, SiteReleases } from "../schemas/content.js";
 import { env } from "../env.js";
 
 /*
@@ -73,6 +73,42 @@ export async function fetchRepoStats(repo: NonNullable<Collection["repo"]>) {
   };
 }
 
+type ReleaseListItem = ReleaseResponse & { name: string | null; draft: boolean; prerelease: boolean };
+
+/** Only `v*` tags count as site releases; drafts and prereleases never do. */
+export function pickSiteReleases(list: ReleaseListItem[]): SiteRelease[] {
+  return list
+    .filter((r) => !r.draft && !r.prerelease && r.published_at && /^v/.test(r.tag_name))
+    .map((r) => ({ tag: r.tag_name, name: r.name || null, url: r.html_url, publishedAt: r.published_at! }))
+    .sort((a, b) => b.publishedAt.localeCompare(a.publishedAt))
+    .slice(0, 50);
+}
+
+/*
+ * This site's own releases, as the stored document the activity feed reads.
+ *
+ * `previous` is the last stored list: a failed fetch keeps it and records the
+ * failure, so an outage at GitHub shows stale releases rather than none.
+ */
+export async function fetchSiteReleases(
+  repo: { owner: string; name: string },
+  previous: SiteReleases | null,
+): Promise<SiteReleases> {
+  const url = `https://api.github.com/repos/${encodeURIComponent(repo.owner)}/${encodeURIComponent(repo.name)}/releases?per_page=50`;
+  const list = await get<ReleaseListItem[]>(url);
+  const base = {
+    _id: "site-releases" as const,
+    ...(previous?._rev ? { _rev: previous._rev } : {}),
+    type: "site-releases" as const,
+    repo: { owner: repo.owner, name: repo.name },
+    fetchedAt: new Date().toISOString(),
+  };
+  if (!Array.isArray(list)) {
+    return { ...base, items: previous?.items ?? [], error: "Could not reach GitHub, or the repository is not public." };
+  }
+  return { ...base, items: pickSiteReleases(list), error: null };
+}
+
 /*
  * Periodic refresh. One replica runs the API, so an in-process timer is enough
  * and avoids a CronJob that would need its own credentials to call back in.
@@ -82,6 +118,13 @@ export async function fetchRepoStats(repo: NonNullable<Collection["repo"]>) {
 export function startStatsRefresh(opts: {
   list: () => Promise<Collection[]>;
   save: (c: Collection) => Promise<void>;
+  /* The site's own releases, refreshed on the same tick. Optional so a caller
+     that only wants the area stats does not have to provide a store for them. */
+  siteReleases?: {
+    repo: { owner: string; name: string };
+    load: () => Promise<SiteReleases | null>;
+    save: (doc: SiteReleases) => Promise<void>;
+  };
   everyMs?: number;
 }) {
   const every = opts.everyMs ?? 15 * 60 * 1000;
@@ -95,6 +138,15 @@ export function startStatsRefresh(opts: {
       }
     } catch {
       // Deliberately swallowed: a failed refresh must never take the API down.
+    }
+    // Separately guarded, so a failure in one never starves the other.
+    if (opts.siteReleases) {
+      try {
+        const sr = opts.siteReleases;
+        await sr.save(await fetchSiteReleases(sr.repo, await sr.load()));
+      } catch {
+        // Same reasoning as above.
+      }
     }
   };
   // Wait a little on boot so a restart does not race the database coming up.

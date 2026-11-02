@@ -30,6 +30,10 @@ export const PostSchema = z.object({
   coverImage: z.string().url().nullable().default(null),
   links: z.array(z.object({ label: z.string().min(1).max(60), url: z.string().url() })).max(8).default([]),
   readingMinutes: z.number().int().positive(),
+  /* An optional hand-set order for "top posts": 1 comes first. The site keeps
+     no analytics, so "top" cannot mean views; it means the owner's pick, then
+     the newest. Null is not featured. */
+  featured: z.number().int().min(1).max(99).nullable().default(null),
   seo: z
     .object({
       title: z.string().nullable().default(null),
@@ -54,6 +58,9 @@ export function toPublicSummary(p: Post) {
     collection: p.collection,
     coverImage: p.coverImage,
     readingMinutes: p.readingMinutes,
+    // Read straight from CouchDB, so a document written before the field
+    // existed carries nothing; null is "not featured", never undefined.
+    featured: p.featured ?? null,
   };
 }
 
@@ -148,3 +155,30 @@ export function toPublicCollection(c: Collection) {
       : null,
   };
 }
+
+/*
+ * This site's own releases, `v*` tags on the portfolio repository.
+ *
+ * Fetched on the same schedule as the area stats and stored in one document,
+ * so the activity feed reads a stored list and never calls GitHub during a
+ * request. A failed fetch keeps the last good list and records why.
+ */
+export const SiteReleaseSchema = z.object({
+  tag: z.string(),
+  name: z.string().nullable().default(null),
+  url: z.string(),
+  publishedAt: z.string(),
+});
+
+export const SiteReleasesSchema = z.object({
+  _id: z.literal("site-releases"),
+  _rev: z.string().optional(),
+  type: z.literal("site-releases"),
+  repo: z.object({ owner: z.string(), name: z.string() }),
+  items: z.array(SiteReleaseSchema).max(100).default([]),
+  fetchedAt: z.string().nullable().default(null),
+  error: z.string().nullable().default(null),
+});
+
+export type SiteRelease = z.infer<typeof SiteReleaseSchema>;
+export type SiteReleases = z.infer<typeof SiteReleasesSchema>;

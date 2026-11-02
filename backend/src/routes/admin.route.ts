@@ -28,6 +28,9 @@ const PostWrite = z.object({
   coverImage: z.string().url().nullable().default(null),
   links: z.array(LinkSchema).max(8).default([]),
   publishedAt: z.string().datetime().nullable().default(null),
+  /* Optional, not defaulted: a client that does not know the field leaves it
+     as it was, and only an explicit null clears it. */
+  featured: z.number().int().min(1).max(99).nullable().optional(),
   _rev: z.string().optional(),
 });
 
@@ -135,6 +138,7 @@ router.put(
       links: i.links,
       source: existing?.source ?? "authored",
       readingMinutes: readingMinutes(i.body),
+      featured: i.featured === undefined ? existing?.featured ?? null : i.featured,
       seo: existing?.seo ?? { title: null, description: null, canonical: null, noindex: false },
     };
 
