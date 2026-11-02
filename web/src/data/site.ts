@@ -172,7 +172,7 @@ export const about: {
     },
     {
       label: "Before",
-      lines: ["Before that I was a full-stack engineer at Momentum Tailored Solutions."],
+      lines: ["Before that I was a full-stack engineer."],
     },
     {
       label: "Outside work",
