@@ -6,8 +6,7 @@ import { render, screen } from "@testing-library/react";
 import Hero from "@/components/Hero";
 import ObjectLabel from "@/components/gallery/ObjectLabel";
 import HeroCorners from "@/components/HeroCorners";
-import { heroCorners, heroTitle } from "@/components/heroFirstScreen";
-import { contact, plate, plateTitles } from "@/data/site";
+import { contact, heroPhrases, plate, plateTitle } from "@/data/site";
 
 /*
  * The first screen's arrival is a sequencer, two stylesheets and a split
@@ -72,17 +71,12 @@ function pausedRules(css: string): string[] {
 const REDUCED = "(prefers-reduced-motion: reduce)";
 
 /*
- * The strings the plate is currently set with, read the way `Hero` reads them.
- *
- * Hard-coded "Yehuda Briskman" here until issue #100; the `h1` is now one of
- * three candidates and the suite has to assert the split's invariants against
- * whichever one is in force rather than against one spelling of one of them.
- * What keeps that from asserting nothing is the pair of concrete assertions
- * below it: the chosen candidate is pinned by name, and the one thing that
- * must be true of every candidate — that the person's name is still somewhere
- * on the first screen — is asserted as a string.
+ * The string the plate is set with, read from where `Hero` reads it, so the
+ * split's invariants are asserted against the title that ships. What keeps
+ * that from asserting nothing is the concrete test further down that pins it
+ * to PORTFOLIO by name.
  */
-const TITLE = heroTitle === "name" ? { name: plate.name, fact: plate.fact } : plateTitles[heroTitle];
+const TITLE = plateTitle;
 const LETTERS = [...TITLE.name].filter((c) => c !== " ").length;
 const WORDS = TITLE.name.split(" ");
 
@@ -452,21 +446,17 @@ describe("what the first screen may not spend", () => {
 });
 
 /*
- * What issues #100 and #101 put on the first screen, and the three things
- * that have to stay true whichever candidate the owner picks.
- *
- * This whole block is scaffolding around a decision that has not been made.
- * When it is, the flag collapses to a constant and the first test here — the
- * one that pins which candidate is proposed — is the one that has to be
- * deliberately rewritten rather than quietly passing.
+ * What issues #100 and #101 put on the first screen, now that the owner has
+ * picked: PORTFOLIO in the h1, the ask in one corner and the light in the
+ * other.
  */
-describe("the first screen's proposals", () => {
-  it("ships the candidate it recommends, and says so out loud", () => {
-    /* Not a tautology: these two constants are the proposal. A change to
-       either is a change to what the PR is asking for, and it should not be
-       possible to make it by accident while editing a stylesheet. */
-    expect(heroTitle).toBe("portfolio");
-    expect(heroCorners).toBe("ask");
+describe("the first screen's title", () => {
+  it("sets PORTFOLIO, the title the owner picked", () => {
+    /* Not a tautology: the switch that offered three titles is gone, and
+       this is what stops a fourth arriving by an edit to a data file. */
+    render(<Hero />);
+    const h1 = screen.getByRole("heading", { level: 1 });
+    expect(h1.getAttribute("aria-label")).toBe("Portfolio");
   });
 
   it("keeps the person's name on the first screen after it leaves the h1", () => {
@@ -481,7 +471,8 @@ describe("the first screen's proposals", () => {
      * once — which is why this asserts the rendered text and not the constant.
      */
     expect(screen.getByText(/Yehuda Briskman/)).toBeInTheDocument();
-    if (heroTitle !== "name") expect(h1.textContent).not.toMatch(/Yehuda/);
+    expect(h1.textContent).not.toMatch(/Yehuda/);
+    expect(plateTitle.fact).toContain(plate.name);
   });
 
   it("agrees with the head of the document about who the site is by", () => {
@@ -502,50 +493,83 @@ describe("the first screen's proposals", () => {
     expect(INDEX_HTML).not.toMatch(/portfolio/i);
   });
 
-  it("sets each title option so the words it has cannot break mid-word", () => {
+  it("is one word, which is what its rung was derived from", () => {
     /*
-     * The type rungs in `Hero.module.css` are derived from the measured
-     * advance width of the *longest unbreakable line* of each string, and
-     * `splitName` makes every word one inline-block — so the word count is
-     * the thing the derivation rests on. A string that gained a word would
-     * silently invalidate a clamp that no test could otherwise see.
+     * The rung in `Hero.module.css` is derived from the measured advance
+     * width of the longest unbreakable line, and `splitName` makes every word
+     * one inline-block — so the word count is the thing the derivation rests
+     * on. A title that gained a word would silently invalidate a clamp no
+     * test could otherwise see.
      */
-    expect(plateTitles.portfolio.name.split(" ")).toHaveLength(1);
-    expect(plateTitles.explore.name.split(" ")).toHaveLength(3);
-    for (const title of Object.values(plateTitles)) {
-      expect(title.fact).toContain(plate.name);
+    expect(plateTitle.name.split(" ")).toHaveLength(1);
+    const hero = strip(readFileSync(resolve(HERE, "../Hero.module.css"), "utf8"));
+    expect(hero.match(/\.composition \.plate h1 \{/g)).toHaveLength(2);
+    expect(hero).not.toMatch(/data-title/);
+  });
+});
+
+/*
+ * The field line under RTL and at 320px — issue #112.
+ *
+ * jsdom has no bidi algorithm and no layout, so neither the reordering nor
+ * the wrap can be observed here; both were verified in Chromium at 320 and
+ * 390 in both directions, with the renders in `docs/hero-first-screen/`.
+ * What can be pinned is the mechanism each fix rests on.
+ */
+describe("the field line, in both directions and at every width", () => {
+  it("isolates every value, so a number and a word cannot swap under RTL", () => {
+    document.documentElement.dir = "rtl";
+    try {
+      const { container } = render(<Hero />);
+      const items = [...container.querySelectorAll("#hero ul > li")];
+      expect(items.length).toBe(3);
+
+      /*
+       * `5 live` inside an RTL paragraph is a European number, a neutral
+       * space and a Latin word: the space takes the paragraph's direction,
+       * and the two runs are laid out right to left as `LIVE 5`. A `<bdi>`
+       * with no `dir` is `dir="auto"` — the value resolves its own direction
+       * from its own first strong character, inside an isolate the page's
+       * direction cannot reach. A `dir` on it would pin every value to one
+       * direction, which is wrong the day a value is Hebrew.
+       */
+      for (const li of items) {
+        const bdi = li.querySelector(":scope > bdi");
+        expect(bdi, `no isolate in "${li.textContent}"`).not.toBeNull();
+        expect(bdi!.textContent).toBe(li.textContent);
+        expect(bdi!.hasAttribute("dir")).toBe(false);
+      }
+      expect(items.some((li) => /^\d+ live$/.test(li.textContent ?? ""))).toBe(true);
+    } finally {
+      document.documentElement.removeAttribute("dir");
     }
   });
 
-  it("gives every title option a rung derived for its own longest line", () => {
+  it("isolates the values on every label, not only the hero's", () => {
+    const { container } = render(
+      <ObjectLabel name="WindoM" fact="A new tab" fields={[{ kind: "when", value: "2024" }]} />,
+    );
+    expect(container.querySelector("li > bdi")?.textContent).toBe("2024");
+  });
+
+  it("breaks before the span on a narrow plate, and drops its separator there", () => {
     const hero = strip(readFileSync(resolve(HERE, "../Hero.module.css"), "utf8"));
 
-    /* One rung per proposed string at each of the two breakpoints. The
-       default ships `portfolio`, so a missing `explore` rung is a candidate
-       that renders at the wrong size only when someone looks at it. */
-    for (const which of ["portfolio", "explore"]) {
-      expect(hero.match(new RegExp(`\\[data-title="${which}"\\] \\.plate h1`, "g"))).toHaveLength(2);
-    }
+    /* The wrap used to land wherever the row ran out, carrying the next
+       field's leading `·` onto the start of a line. The break is now chosen:
+       the span alone on the second line, with no separator. */
+    expect(hero).toMatch(/\.plate \{\s*container-type: inline-size;/);
+    const at = hero.indexOf("@container (max-width: 23rem)");
+    expect(at).toBeGreaterThan(-1);
+    const block = hero.slice(at, hero.indexOf("\n}", at));
+    expect(block).toMatch(/\[data-kind="when"\] \{\s*flex-basis: 100%/);
+    expect(block).toMatch(/\[data-kind="when"\]::before \{\s*content: none/);
   });
 });
 
 describe("the hero's lower corners", () => {
-  it("renders all three candidates, and renders nothing for the bare one", () => {
-    /* `bare` is a candidate and not an absence of one, so it is asserted to
-       produce no element at all rather than two empty positioned boxes. */
-    const { container: ask } = render(<HeroCorners which="ask" />);
-    expect(ask.querySelector('[data-hero-corners="ask"]')).not.toBeNull();
-
-    const { container: facts } = render(<HeroCorners which="facts" />);
-    expect(facts.querySelector('[data-hero-corners="facts"]')).not.toBeNull();
-
-    const { container: bare } = render(<HeroCorners which="bare" />);
-    expect(bare.querySelector("[data-hero-corners]")).toBeNull();
-    expect(bare.firstChild).toBeNull();
-  });
-
   it("points the one affordance at the ask plate, not at a blank mail window", () => {
-    render(<HeroCorners which="ask" />);
+    render(<HeroCorners />);
     const link = screen.getByRole("link", { name: /get in touch/i });
 
     /* `nav/social.ts` argues that a `mailto:` is the worse of the two
@@ -556,24 +580,12 @@ describe("the hero's lower corners", () => {
     expect(screen.getByText(contact.replyWithin)).toBeInTheDocument();
   });
 
-  it("states facts and never a pitch, in both fact candidates", () => {
-    render(<HeroCorners which="facts" />);
-
-    /* The label schema's first rule, which applies to anything that reads as
-       a label. Both of these are checkable: one is a job, one is a bound with
-       a number in it. */
-    expect(screen.getByText(plate.currently)).toBeInTheDocument();
-    expect(screen.getByText(contact.replyWithin)).toBeInTheDocument();
-  });
-
-  it("uses a description list, so the field line's own rule cannot catch it", () => {
-    const { container } = render(<HeroCorners which="facts" />);
+  it("adds no list, so the field line's own rule cannot catch it", () => {
+    const { container } = render(<HeroCorners />);
 
     /* `HeroArrival.module.css` reaches the plate's field line as "the only
-       `ul` on this screen". A second list set as a `ul` would be animated as
-       though it were the plate's specs and left at `opacity: 0` by the field
-       line's resting rule. */
-    expect(container.querySelectorAll("dl").length).toBe(2);
+       `ul` on this screen". A second list would be animated as though it
+       were the plate's specs and left at `opacity: 0` by its resting rule. */
     expect(container.querySelectorAll("ul").length).toBe(0);
   });
 
@@ -607,5 +619,61 @@ describe("the hero's lower corners", () => {
       expect(frames).not.toMatch(/opacity/);
     }
     expect(ARRIVAL).toMatch(/\[data-hero-corners\] > \*::after \{[\s\S]*?background: rgb\(var\(--paper\)\)/);
+  });
+
+  it("never names the employer, in the corner that once did", () => {
+    /* PR #114: the owner's employer is not public and must not appear
+       anywhere on the site. This corner is where it last stood. */
+    const { container } = render(<HeroCorners />);
+    expect(container.textContent).not.toMatch(/\bIDF\b|Defen[cs]e Forces/i);
+  });
+});
+
+/*
+ * The light in the end corner: what a screen reader hears, and its exits.
+ */
+describe("the hero's light", () => {
+  it("gives a screen reader one stable sentence, not a ticker", () => {
+    const { container } = render(<HeroCorners />);
+    const light = container.querySelector("[data-hero-light]")!;
+
+    /* The rotating stack is hidden from the accessibility tree and a single
+       visually hidden sentence carries every phrase, read once. Nothing here
+       is live: a phrase changing on a timer is not news. */
+    const hidden = light.querySelector(".sr-only");
+    expect(hidden?.textContent).toBe(heroPhrases.join(", "));
+    const visible = light.querySelectorAll('[aria-hidden="true"] > span');
+    expect(visible.length).toBe(heroPhrases.length);
+    expect(container.querySelector("[aria-live]")).toBeNull();
+    expect(container.querySelector('[role="status"], [role="marquee"], [role="timer"]')).toBeNull();
+  });
+
+  it("keeps the phrase list the length its keyframes were derived for", () => {
+    /* The stops in `@keyframes phrase-turn` are percentages of an n-slot
+       cycle worked out for five. A sixth phrase would still rotate — `--n`
+       follows the list — but its cross-fades would land between slots. */
+    expect(heroPhrases).toHaveLength(5);
+  });
+
+  it("waits for the arrival to finish before anything in it moves", () => {
+    for (const part of [".lamp", ".lamp::after", ".phrase"]) {
+      const rule = new RegExp(`\\[data-arrived~="text"\\] \\${part} \\{\\s*animation:`);
+      expect(CORNERS, part).toMatch(rule);
+    }
+  });
+
+  it("lands every off-switch on a still lamp and the first phrase", () => {
+    const reduced = mediaBlock(CORNERS, REDUCED);
+    expect(reduced).toMatch(/\.lamp,[\s\S]*?\.phrase \{\s*animation: none;/);
+    expect(reduced).toMatch(/\.phrase:first-child \{\s*opacity: 1;/);
+
+    const paused = pausedRules(CORNERS);
+    expect(paused.filter((r) => /animation: none/.test(r)).length).toBe(1);
+    expect(paused.join("\n")).toMatch(/\.phrase:first-child \{\s*opacity: 1;/);
+
+    /* Time-driven, so no feature for a browser to be missing — §4 calls an
+       `@supports` block here cargo cult. */
+    expect(CORNERS).not.toMatch(/@supports/);
+    expect(CORNERS).not.toMatch(/animation-play-state/);
   });
 });

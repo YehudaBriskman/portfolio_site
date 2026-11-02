@@ -1,9 +1,9 @@
 /*
  * Where the hero's corner blocks stand, and the one thing they may not cost.
  *
- * The three candidates and the argument for each are at the head of
- * `HeroCorners.tsx`. This file is about space: which corner, how far in, and
- * what happens at the width where there are no corners.
+ * What stands in each corner, and why, is at the head of `HeroCorners.tsx`.
+ * This file is about space — which corner, how far in, and what happens at
+ * the width where there are no corners — and about the light's motion.
  *
  * WHY EVERYTHING HERE IS OUT OF FLOW
  * ----------------------------------
@@ -110,46 +110,245 @@
   text-align: end;
 }
 
-/* ── the fact blocks ──────────────────────────────────────────────────── */
+/* ── the light ────────────────────────────────────────────────────────── */
 
 /*
- * A label over a value, in the field line's own voice.
+ * A small lamp at the corner, and the README's voice beside it.
  *
- * The voice is the point: these are specs, and the data role is the one this
- * site gives to specs. What separates them from the plate's field line is the
- * shape — a label above a value rather than three values in a row — so a
- * reader does not read them as a fourth and fifth field of the label 400px
- * above them.
+ * WHAT IT IS MADE OF
+ * ------------------
+ * A 0.5rem disc of `--signal` with a soft halo, and a ring that leaves it now
+ * and then. `--signal` because it is the one colour on this paper that is not
+ * ink — the deep blue index.css spends on links and the one button — and a
+ * light drawn in ink would read as a full stop. Nothing else on the first
+ * screen is that colour, so the lamp is the only lit thing in the picture and
+ * does not need to be large to be found.
  *
- * `--ink-faint` is deliberately not used for the label, tempting as a third
- * step down is: index.css marks it NON-TEXT only at 3.6:1 on paper. Both
- * lines are `--ink-soft` at 6.37:1, measured, and the difference between them
- * is size and tracking rather than contrast.
+ * The phrases are set in the text face, `--ink-soft`, at the size the old
+ * fact value used. Not the field line's voice: these are asides, not specs,
+ * and a tracked uppercase phrase would read as a sixth fact. `nowrap`,
+ * because a phrase that breaks while it fades reads as two; the list in
+ * `data/site.ts` is kept short enough that none has to.
+ *
+ * WHY IT IS CALM, AND HOW CALM
+ * ----------------------------
+ * The first screen has a performance in it already: the name falls, the
+ * figure rises, the bar drops, the lines come in. A light that pulsed through
+ * that would be a second performer, so nothing here moves until the arrival
+ * has published its last token (`data-arrived~="text"`) and the corner has
+ * risen into place — the lamp's 1.2s delay is the corners' own 180ms + 460ms
+ * with air after it, and the first phrase holds for a full 3.6s slot, so the
+ * first change of words comes about three seconds after the corner settles.
+ * Until then, and whenever motion is off, the lamp is lit and still and the
+ * first phrase is the one on the screen.
+ *
+ * Then: the lamp breathes over 6.4s — a scale of 0.86 to 1 and the halo
+ * opening with it, which at 8px is a change of about a pixel — and a ring
+ * leaves it once per breath, reaching 2.6x and fading to nothing. The phrase
+ * changes every 3.6s with a 0.5s cross-fade and a 0.3em drift upward, the
+ * same direction everything on this screen arrives from. Slower than a
+ * reader's glance and quicker than their patience: at 3.6s a phrase has been
+ * read twice before it leaves.
+ *
+ * ON THE LEDGER
+ * -------------
+ * `docs/motion-contract.md` §2 has a row for it, `breath`, as an ambient
+ * device rather than a beat — like `sweep`, it costs no page height and no
+ * scroll distance, and it belongs to the title plate's corner rather than to
+ * a section. It is the only thing on the page that loops while the reader
+ * does nothing; that is what the row is there to stop anything else from
+ * quietly doing too.
  */
-.fact {
-  margin: 0;
+.light {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.6rem;
 }
 
-.factLabel {
-  margin: 0;
-  font-family: var(--font-data);
-  font-weight: var(--weight-data);
-  font-size: 0.72rem;
-  line-height: 1.5;
-  /* A no-op in Hebrew, which has no case — the same note the shared field
-     line carries. The voice there is the size and the tracking alone. */
-  text-transform: uppercase;
-  letter-spacing: var(--track-field);
-  color: rgb(var(--ink-soft));
+/*
+ * The phrases share one grid cell, so the block is always as wide as its
+ * longest phrase and the corner cannot change size as they turn — the ask on
+ * the other side of the frame never moves. `justify-items: end` keeps each
+ * phrase against the lamp whatever its length, so the gap between word and
+ * light is the same 0.6rem for every phrase.
+ */
+.phrases {
+  display: grid;
+  justify-items: end;
 }
 
-.factValue {
-  margin: 0;
+.phrase {
+  grid-area: 1 / 1;
   font-family: var(--font-text);
   font-weight: var(--weight-text);
   font-size: 0.875rem;
   line-height: 1.35;
+  white-space: nowrap;
   color: rgb(var(--ink-soft));
+  /* At rest — before the arrival is done, and under every off-switch — the
+     first phrase is the corner's whole statement and the rest are not there. */
+  opacity: 0;
+}
+
+.phrase:first-child {
+  opacity: 1;
+}
+
+.lamp {
+  position: relative;
+  flex: none;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 35% 35%,
+    rgb(var(--signal) / 0.75),
+    rgb(var(--signal)) 70%
+  );
+  box-shadow:
+    0 0 0 3px rgb(var(--signal) / 0.12),
+    0 0 12px 2px rgb(var(--signal) / 0.35);
+}
+
+/* The ring that leaves the lamp. Painted at rest as nothing — scale 1 under
+   the disc at opacity 0 — so the off state needs no exit for it. */
+.lamp::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1px solid rgb(var(--signal) / 0.6);
+  opacity: 0;
+}
+
+[data-arrived~="text"] .lamp {
+  animation: lamp-breathe 6.4s ease-in-out 1.2s infinite;
+}
+
+[data-arrived~="text"] .lamp::after {
+  animation: lamp-ring 6.4s cubic-bezier(0.2, 0.6, 0.3, 1) 1.2s infinite;
+}
+
+/*
+ * The rotation: one keyframe set, offset per phrase.
+ *
+ * Each phrase is on screen for the first `1/n` of the cycle, so phrase `i`
+ * has to start `i` slots late. A positive delay would do that and would hold
+ * every later phrase on its first keyframe — visible — until its turn, so it
+ * is written as the equivalent negative one, `i - n` slots, which starts each
+ * phrase already part-way through its cycle and in its hidden stretch. Phrase
+ * 0 alone starts at zero, on its visible keyframe — the same frame the rest
+ * state shows — so the moment the rotation begins is not a visible event.
+ *
+ * No gate delay on the phrases, unlike the lamp's 1.2s, and that was found
+ * the hard way: the slots are a cycle, so the slot before phrase 0's is the
+ * last phrase's, and any positive offset added to these delays shows the
+ * last phrase on top of the first for its length. Starting with the stage
+ * costs nothing: phrase 0 holds for its whole 3.6s slot, so the first change
+ * comes three seconds after the corners have settled.
+ *
+ * The percentages assume five phrases at 3.6s, an 18s cycle: visible to 17.2%
+ * (3.1s), gone by 20% (3.6s), back in from 97.2%. A list of a different length
+ * changes `--n` by itself but these stops would want re-deriving, and the
+ * test that pins the list length is there to make that a conscious act.
+ */
+[data-arrived~="text"] .phrase {
+  animation: phrase-turn calc(var(--n) * 3.6s) ease-in-out
+    calc((var(--i) - var(--n)) * 3.6s) infinite;
+}
+
+[data-arrived~="text"] .phrase:first-child {
+  animation-delay: 0s;
+}
+
+@keyframes lamp-breathe {
+  0%, 100% {
+    transform: scale(0.86);
+    box-shadow:
+      0 0 0 2px rgb(var(--signal) / 0.1),
+      0 0 8px 1px rgb(var(--signal) / 0.25);
+  }
+  50% {
+    transform: scale(1);
+    box-shadow:
+      0 0 0 3px rgb(var(--signal) / 0.14),
+      0 0 14px 3px rgb(var(--signal) / 0.4);
+  }
+}
+
+@keyframes lamp-ring {
+  0%   { transform: scale(1);   opacity: 0; }
+  10%  { transform: scale(1.2); opacity: 0.55; }
+  55%  { transform: scale(2.6); opacity: 0; }
+  100% { transform: scale(2.6); opacity: 0; }
+}
+
+@keyframes phrase-turn {
+  0%     { opacity: 1; transform: none; }
+  17.2%  { opacity: 1; transform: none; }
+  20%    { opacity: 0; transform: translateY(-0.3em); }
+  97.2%  { opacity: 0; transform: translateY(0.3em); }
+  100%   { opacity: 1; transform: none; }
+}
+
+/*
+ * The ways out, all three of them landing on a lit, still lamp and the first
+ * phrase.
+ *
+ * Reduced motion and Pause each get `animation: none` and the rest values
+ * restated, for the reason `HeroArrival.module.css` gives at length: the
+ * global `animation-duration: 0.01ms !important` would in fact land these on
+ * a frame, but on an infinite animation it is the iteration-count override
+ * beside it that does the work, and an exit that depends on two global
+ * declarations staying paired is one refactor from an exit that depends on
+ * nothing. Restating is four declarations.
+ *
+ * There is no `@supports not (animation-timeline: view())` block, and that is
+ * the contract's own rule rather than an omission: every animation here is
+ * time-driven, so there is no feature for a browser to be missing, and a
+ * browser without view timelines runs this exactly as one with them does.
+ */
+@media (prefers-reduced-motion: reduce) {
+  [data-arrived] .lamp,
+  [data-arrived] .lamp::after,
+  [data-arrived] .phrase {
+    animation: none;
+    transform: none;
+  }
+
+  [data-arrived] .lamp::after,
+  [data-arrived] .phrase {
+    opacity: 0;
+  }
+
+  [data-arrived] .phrase:first-child {
+    opacity: 1;
+  }
+}
+
+:global(body.motion-paused) [data-arrived] .lamp,
+:global(body.motion-paused) [data-arrived] .lamp::after,
+:global(body.motion-paused) [data-arrived] .phrase {
+  animation: none;
+  transform: none;
+}
+
+:global(body.motion-paused) [data-arrived] .lamp::after,
+:global(body.motion-paused) [data-arrived] .phrase {
+  opacity: 0;
+}
+
+:global(body.motion-paused) [data-arrived] .phrase:first-child {
+  opacity: 1;
+}
+
+/* In a forced palette the disc and its halo would be painted in a system
+   colour nobody chose; the phrase is the statement, so the lamp goes. */
+@media (forced-colors: active) {
+  .lamp {
+    display: none;
+  }
 }
 
 /* ── the one affordance ───────────────────────────────────────────────── */
@@ -167,7 +366,7 @@
  * of them coming back. What is wanted is the weight of a statement a reader
  * can click, which is the text face at its real 700 with an underline that
  * is already there — a link that only looks like a link on hover is a link a
- * reader has to discover, and the whole claim of this candidate is that this
+ * reader has to discover, and the whole claim of this corner is that this
  * is the one thing on the screen worth pointing out.
  *
  * `pointer-events: auto` takes back what the frame gave away. 44px of block
@@ -195,10 +394,6 @@
 .askLink:hover {
   text-decoration-color: rgb(var(--ink-soft));
   text-underline-offset: 0.24em;
-}
-
-.end .askLink {
-  align-self: flex-end;
 }
 
 .askBound {
@@ -268,15 +463,14 @@
  *
  * Sampled the way the two rejected placements were — the real page with the
  * corner type made transparent, so what is read is what the glyphs stand on —
- * every line of both candidates comes back 236,232,220 at its darkest pixel,
+ * every line of both proposals that were built comes back 236,232,220 at its darkest pixel,
  * which is the paper token exactly, at 320x568, 360x740, 390x667, 390x844,
  * 430x932 and 1440x900. That is `--ink` at 15.17:1 and `--ink-soft` at
  * 6.37:1, which are the numbers those two tokens are specified at.
  *
  * The row stays a row, which is the other half of the answer. Bottom-aligned,
- * the taller block is 57px and the two are 200px and 107px wide against the
- * 348px column measured at 390x844, so they sit at the two ends of one line
- * with 41px between them.
+ * the ask is the taller block and the light sits level with the ask's bound,
+ * so at 390x844 they are the two ends of one line.
  * The honest description of the phone layout is that the two corners become
  * the two ends of the line at the foot of the screen — still a composition,
  * still the same markup, and still logical properties, which is why Hebrew
@@ -308,5 +502,38 @@
   .start,
   .end {
     max-width: 13rem;
+  }
+
+  /*
+   * Where the wrap at 320px lands, chosen rather than left to the line
+   * breaker (issue #112).
+   *
+   * Left alone, both blocks shrank in proportion to their width and each
+   * broke greedily wherever its box ran out: `USUALLY WITHIN A / DAY` in
+   * the start corner and the two-word fact that then stood in the end
+   * corner split after its comma. Two breaks, both mid-phrase, where the
+   * arithmetic only ever needed one — at 320px the frame is 278px, the bound
+   * is 201px, and the end block is far narrower, so one of them has to give
+   * and the other never does.
+   *
+   * The end block is the one that holds. It is now the light, and its
+   * phrases are `nowrap` because a phrase that breaks while it fades reads
+   * as two; so it takes its own width (`flex-shrink: 0`, under the 13rem
+   * cap above) and the start block takes what is left. The phrase list in
+   * `data/site.ts` is held short for exactly this.
+   *
+   * The start block then breaks once, balanced: `text-wrap: balance` sets
+   * the bound as `USUALLY / WITHIN A DAY`, which keeps the bound — "within
+   * a day" — whole and leaves the hedge on its own. Greedy breaking gets
+   * the opposite and strands `DAY`. At 390px nothing wraps and none of this
+   * changes a pixel; it is a rule about the break, not about the size.
+   */
+  .end {
+    flex-shrink: 0;
+  }
+
+  .start,
+  .end {
+    text-wrap: balance;
   }
 }

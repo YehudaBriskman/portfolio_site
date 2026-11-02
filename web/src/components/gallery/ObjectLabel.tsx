@@ -164,7 +164,29 @@ export default function ObjectLabel({
                  answering to the title plate's stylesheet. */
               data-kind={exposeFieldKinds ? f.kind : undefined}
             >
-              {f.value}
+              {/*
+                Each value in its own bidi isolate, direction taken from its
+                own first strong character (issue #112).
+
+                A field value is data — a count, a place, a span of years —
+                and its direction is a fact about the value, not about the
+                page around it. Left to inherit, `5 live` on an RTL page is a
+                European number, a neutral space and a Latin word inside a
+                right-to-left paragraph: the space resolves to the paragraph
+                direction, the number and the word become two runs, and they
+                are laid out right to left as `LIVE 5`. The same reordering
+                #110 fixed for the hero name, one level down.
+
+                `<bdi>` rather than `dir="ltr"` on the `<li>`: its default is
+                `dir="auto"`, so `5 live` resolves LTR from the `l` while a
+                Hebrew value, when the strings exist, resolves RTL from its
+                own first letter — and an isolate cannot leak its direction
+                into the separator the next `<li>` draws. An element and not
+                `unicode-bidi: isolate` in the stylesheet, because the
+                isolation has to survive the stylesheet not loading, and a
+                screen reader's text is unchanged by it.
+              */}
+              <bdi>{f.value}</bdi>
             </li>
           ))}
         </ul>
