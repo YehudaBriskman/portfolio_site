@@ -1,35 +1,19 @@
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import Gallery from "@/components/projects/Gallery";
-import Filters from "@/components/projects/Filters";
-import StatsPanel from "@/components/projects/StatsPanel";
-import {
-  applyFilters,
-  hrefWith,
-  kindOf,
-  optionsFor,
-  sizesOf,
-  stackOf,
-  summarise,
-} from "@/components/projects/catalogue";
+import { applyFilters, kindOf, optionsFor, sizesOf, stackOf } from "@/components/projects/catalogue";
 import type { ProjectEntry } from "@/hooks/useProjects";
 import type { Collection } from "@/services/blog";
 
 /*
- * jsdom has no layout and no scroll timeline, so the wall's arrival and the
- * chart's drawing are checked in a browser (docs/projects-gallery/). What can
- * break silently, and is checked here: every project is on the wall with one
- * link to its page; sizes come from data, not position; the filters narrow
- * by URL and count honestly; and every stylesheet carries all three
- * off-switches. The last is asserted on the stylesheet text, because jsdom
- * resolves neither `@supports` nor the cascade behind it.
+ * jsdom has no layout and no scroll timeline, so the wall's arrival is
+ * checked in a browser (docs/projects-gallery/, docs/gallery-filters/). What
+ * can break silently, and is checked here: every project is on the wall with
+ * one link to its page; sizes come from data, not position; the filters
+ * narrow and count honestly. The wall's off-switches and the filter control
+ * are the shared gallery's, tested in `gallery/__tests__/Gallery.test.tsx`.
  */
-
-const css = (name: string) =>
-  readFileSync(resolve(process.cwd(), `src/components/projects/${name}`), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
 
 const collection = (over: Partial<Collection> = {}): Collection => ({
   slug: "windom",
@@ -118,67 +102,32 @@ describe("filters", () => {
   const entries = many(12);
 
   it("narrows by every facet at once", () => {
-    const shown = applyFilters(entries, { state: "Live", stack: "Go" });
+    const shown = applyFilters(entries, { state: ["Live"], stack: ["Go"] });
     expect(shown.every((e) => e.state === "Live" && stackOf(e).includes("Go"))).toBe(true);
     expect(shown.length).toBeGreaterThan(0);
   });
 
-  it("counts each chip against the other two filters, so a zero is visible before it is pressed", () => {
-    const years = optionsFor(entries, "year", { state: "Live" });
+  it("reads two values in one facet as either, and two facets as both", () => {
+    expect(applyFilters(entries, { stack: ["Go", "React"] })).toHaveLength(entries.length);
+    const both = applyFilters(entries, { stack: ["Go", "React"], state: ["Archive"] });
+    expect(both.length).toBeGreaterThan(0);
+    expect(both.every((e) => e.state === "Archive")).toBe(true);
+  });
+
+  it("counts each option against the other two filters, so a zero is visible before it is pressed", () => {
+    const years = optionsFor(entries, "year", { state: ["Live"] });
     for (const y of years) {
-      expect(y.count).toBe(applyFilters(entries, { state: "Live", year: y.value }).length);
+      expect(y.count).toBe(applyFilters(entries, { state: ["Live"], year: [y.value] }).length);
     }
     expect(years.map((y) => y.value)).toEqual([...years.map((y) => y.value)].sort().reverse());
   });
 
-  it("keeps a selected value that no chip would offer, so a stale link still shows its choice", () => {
-    expect(optionsFor(entries, "stack", { stack: "Cobol" }).map((o) => o.value)).toContain("Cobol");
-  });
-
-  it("writes the URL, and pressing the active chip clears its facet", () => {
-    expect(hrefWith({ state: "Live" }, "year", "2024")).toBe("/projects?state=Live&year=2024");
-    expect(hrefWith({ state: "Live", year: "2024" }, "state", null)).toBe("/projects?year=2024");
-    expect(hrefWith({}, "stack", null)).toBe("/projects");
-  });
-
-  it("renders one labelled group per facet, with the active chip marked", () => {
-    const filters = { state: "Live" };
-    render(
-      <MemoryRouter>
-        <Filters
-          filters={filters}
-          options={{
-            state: optionsFor(entries, "state", filters),
-            year: optionsFor(entries, "year", filters),
-            stack: optionsFor(entries, "stack", filters),
-          }}
-        />
-      </MemoryRouter>
-    );
-    for (const name of ["State", "Year", "Stack"]) expect(screen.getByRole("group", { name })).toBeTruthy();
-    const live = within(screen.getByRole("group", { name: "State" })).getByRole("link", { current: true });
-    expect(live.getAttribute("href")).toBe("/projects");
-    expect(screen.getByRole("link", { name: "Clear filters" }).getAttribute("href")).toBe("/projects");
+  it("keeps a selected value that no option would offer, so a stale link still shows its choice", () => {
+    expect(optionsFor(entries, "stack", { stack: ["Cobol"] }).map((o) => o.value)).toContain("Cobol");
   });
 });
 
-describe("the panel", () => {
-  it("keeps the empty years between the first and the last, and prints every count", () => {
-    const entries = [entry(0, { year: "2019" }), entry(1, { year: "2022" }), entry(2, { year: "2022" })];
-    const summary = summarise(entries);
-    expect(summary.byYear).toEqual([
-      { year: 2019, count: 1 },
-      { year: 2020, count: 0 },
-      { year: 2021, count: 0 },
-      { year: 2022, count: 2 },
-    ]);
-    render(<StatsPanel summary={summary} total={3} activeYear="2022" />);
-    const panel = screen.getByRole("region", { name: "The catalogue at a glance" });
-    expect(panel.getAttribute("data-chrome")).toBe("dark");
-    expect(panel.className).toContain("on-panel");
-    expect(panel.textContent).toContain("2 in 2022");
-  });
-
+describe("states", () => {
   it("groups states into families for the dot, and leaves the word to say which", () => {
     expect(["Live", "In use", "Open source", "v2.1.0", "Archive"].map(kindOf)).toEqual([
       "live",
@@ -187,30 +136,5 @@ describe("the panel", () => {
       "release",
       "rest",
     ]);
-  });
-});
-
-describe("the three off-switches", () => {
-  it.each([
-    ["Gallery.module.css", ".tile"],
-    ["StatsPanel.module.css", ".bar"],
-  ])("%s cancels the scroll animation under each of them", (file, sel) => {
-    const text = css(file);
-    for (const gate of [
-      /@supports not \(animation-timeline: view\(\)\) \{([\s\S]*?)\n\}/,
-      /@media \(prefers-reduced-motion: reduce\) \{([\s\S]*?)\n\}/,
-      /:global\(body\.motion-paused\) ([^{]+)\{[^}]*\}/,
-    ]) {
-      const block = text.match(gate);
-      expect(block, `${file}: ${gate}`).not.toBeNull();
-      expect(block![0]).toContain(sel);
-      expect(block![0]).toMatch(/animation: none/);
-    }
-  });
-
-  it("cuts the filter's re-hang under reduced motion and Pause", () => {
-    const text = css("Gallery.module.css");
-    expect(text).toMatch(/prefers-reduced-motion: reduce\)[\s\S]*::view-transition-group\(\*\)[\s\S]*animation: none/);
-    expect(text).toMatch(/:global\(html:has\(body\.motion-paused\)\)::view-transition-group\(\*\)/);
   });
 });

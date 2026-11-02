@@ -75,17 +75,23 @@ import styles from "@/components/ground/DarkAct.module.css";
  * by shape — the acts are arched plates in the middle of the scroll, the
  * footer is a flat band at the bottom of every route — and not by colour.
  *
- * ── /projects has a dark panel, and it is not an act either (#175) ────────
+ * ── /projects and /blog have no dark section at all (#193) ───────────────
  *
- * The catalogue's stats panel (`projects/StatsPanel.tsx`) stands on
- * `--panel` as well. The ceiling counts the home page's acts, and this is a
- * different page; but the same test applies, and it passes the same way the
- * footer does. It does not use this component (no arc, seams or drift), it
- * has no section head, and it is not a beat with a subject: it is an
- * instrument, a figure inside the catalogue's own paper section with paper
- * on every side of it. Dark there means "this is a readout", the way a dark
- * screen in a gallery is a readout and not a room. If it ever goes edge to
- * edge or picks up a crest, it has become an act and this argument is void.
+ * #175 put a dark stats panel over the catalogue and argued here that it was
+ * an instrument, not a third act. #193 deleted it on the owner's word ("it
+ * doesn't belong"), so there is nothing left to argue: /projects is paper
+ * from the hero to the footer, its filters are a paper card in the side
+ * rail, and nothing on it carries `data-chrome="dark"`, so the nav island
+ * keeps its paper material the whole way down.
+ *
+ * /blog hangs the notes on the same wall as dark CARDS (`DarkCard.module.css`,
+ * #179), and those are not acts either, for the reason that file gives: the
+ * ground stays paper, each card is a small object with paper on every side,
+ * and none of them carries `data-chrome="dark"`. A 17rem card passing under
+ * the bar is not a ground the bar is lying on, so the island does not invert
+ * for it. If the wall ever goes dark as a whole, or a card goes edge to edge,
+ * it has become a ground, the ceiling above applies, and the nav needs
+ * `data-chrome="dark"` on it.
  *
  * ── what a dark act needs, and the half of it that fails silently ─────────
  *

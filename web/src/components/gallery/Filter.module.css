@@ -1,0 +1,421 @@
+/*
+ * The filter control (#193): a paper card in the rail, a row per facet, the
+ * active choices as tokens under them.
+ *
+ * Radii are concentric: the card is --r-md (22px) with 10px of padding, so
+ * the rows and the popover inside it take 12px and the popover's options,
+ * 6px further in, take 6px. Every control is a 44px target. All placement is
+ * logical, so the whole card mirrors under `dir="rtl"`.
+ *
+ * Motion: none of its own. The popover appears and goes; the only animated
+ * thing a choice causes is the wall's re-hang, which is the wall's
+ * (`Wall.module.css`) and is cut under the off-switches there.
+ */
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 10px;
+  border: 1px solid rgb(var(--rule-firm));
+  border-radius: var(--r-md);
+  background: rgb(var(--paper));
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.7) inset,
+    0 10px 24px -20px rgb(var(--ink) / 0.4);
+}
+
+.cardHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.35rem 0.5rem 0;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: var(--weight-display);
+  font-size: 1.125rem;
+  line-height: 1.1;
+  letter-spacing: var(--track-sub);
+}
+
+.tally {
+  margin: 0;
+  font-family: var(--font-data);
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+  color: rgb(var(--ink-soft));
+  white-space: nowrap;
+}
+
+.tally b {
+  font-weight: var(--weight-data-strong, 700);
+  color: rgb(var(--ink));
+}
+
+.selects {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* ── a facet: the trigger and its popover ─────────────────────────────── */
+
+.select {
+  position: relative;
+}
+
+.trigger {
+  display: flex;
+  width: 100%;
+  min-height: 44px;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.85rem;
+  border: 1px solid rgb(var(--rule-firm));
+  border-radius: 12px;
+  background: rgb(var(--paper-2) / 0.55);
+  color: rgb(var(--ink));
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition:
+    border-color var(--dur-micro) ease,
+    background-color var(--dur-micro) ease;
+}
+
+.trigger[data-on] {
+  border-color: rgb(var(--ink-soft));
+  background: rgb(var(--paper));
+}
+
+.trigger[aria-expanded="true"] {
+  border-color: rgb(var(--ink));
+  background: rgb(var(--paper));
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .trigger:hover {
+    border-color: rgb(var(--ink));
+  }
+}
+
+.trigger:focus-visible {
+  outline: 2px solid rgb(var(--ink));
+  outline-offset: 2px;
+}
+
+.facet {
+  flex: none;
+  font-size: 0.9375rem;
+}
+
+.summary {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  font-family: var(--font-data);
+  font-size: 0.875rem;
+  color: rgb(var(--ink-soft));
+  text-align: end;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.trigger[data-on] .summary {
+  color: rgb(var(--ink));
+}
+
+/* A chevron drawn from two borders, so it is ink and needs no icon font.
+   Physical borders: it points down (or up) in either direction, and a
+   logical one would turn it sideways under `dir="rtl"`. */
+.chevron {
+  flex: none;
+  width: 0.45rem;
+  height: 0.45rem;
+  margin-block-start: -0.2rem;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg);
+}
+
+.trigger[aria-expanded="true"] .chevron {
+  margin-block-start: 0.2rem;
+  transform: rotate(-135deg);
+}
+
+.popover {
+  position: absolute;
+  z-index: 30;
+  inset-block-start: calc(100% + 6px);
+  inset-inline-start: 0;
+  min-width: 100%;
+  width: max-content;
+  max-width: min(20rem, calc(100vw - 2rem));
+  padding: 6px;
+  border: 1px solid rgb(var(--ink-soft));
+  border-radius: 12px;
+  background: rgb(var(--paper));
+  box-shadow:
+    0 2px 4px -2px rgb(var(--ink) / 0.18),
+    0 22px 40px -18px rgb(var(--ink) / 0.45);
+}
+
+.options {
+  display: flex;
+  max-height: min(18rem, 50svh);
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  list-style: none;
+}
+
+.option {
+  display: flex;
+  min-height: 40px;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.35rem 0.6rem;
+  border-radius: 6px;
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+}
+
+@media (pointer: coarse) {
+  .option {
+    min-height: 44px;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .option:hover {
+    background: rgb(var(--ink) / 0.06);
+  }
+}
+
+.option:focus-visible {
+  outline: 2px solid rgb(var(--ink));
+  outline-offset: -2px;
+  background: rgb(var(--ink) / 0.06);
+}
+
+/* The tick box: a square that fills with ink and carries a check drawn from
+   two borders when chosen. The words never change colour, so the state is
+   never told by colour alone. */
+.box {
+  position: relative;
+  flex: none;
+  width: 1rem;
+  height: 1rem;
+  border: 1.5px solid rgb(var(--ink-soft));
+  border-radius: 4px;
+}
+
+.option[aria-selected="true"] .box {
+  border-color: rgb(var(--ink));
+  background: rgb(var(--ink));
+}
+
+.option[aria-selected="true"] .box::after {
+  content: "";
+  position: absolute;
+  top: 1px;
+  left: 4px;
+  width: 4px;
+  height: 8px;
+  /* Physical, not logical: a tick is the same shape in Hebrew. */
+  border-right: 2px solid rgb(var(--paper));
+  border-bottom: 2px solid rgb(var(--paper));
+  transform: rotate(45deg);
+}
+
+.value {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow-wrap: anywhere;
+  font-size: 0.9375rem;
+}
+
+.count {
+  flex: none;
+  font-family: var(--font-data);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+  color: rgb(var(--ink-soft));
+}
+
+/* A value that would show nothing given the other filters: still pressable,
+   so a reader can widen a facet from it, and said by the count, not hidden. */
+.option[data-empty] .value {
+  color: rgb(var(--ink-soft));
+}
+
+/* In the phone's sheet the popover drops into the flow under its trigger:
+   the sheet scrolls, and a box hung over it would be clipped by it. */
+:global([data-place="sheet"]) .popover {
+  position: static;
+  margin-block-start: 6px;
+  max-width: none;
+  width: auto;
+  box-shadow: none;
+}
+
+:global([data-place="sheet"]) .options {
+  max-height: none;
+}
+
+/* ── tokens ───────────────────────────────────────────────────────────── */
+
+.tokens {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 0.75rem;
+  padding: 0.25rem 0.15rem 0.15rem;
+}
+
+.tokens[hidden] {
+  display: none;
+}
+
+.tokenList {
+  display: contents;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.token {
+  display: inline-flex;
+  min-height: 36px;
+  max-width: 100%;
+  align-items: center;
+  gap: 0.45rem;
+  padding-block: 0.3rem;
+  padding-inline: 0.8rem 0.55rem;
+  border-radius: 999px;
+  background: rgb(var(--ink));
+  color: rgb(var(--paper));
+  font-size: 0.875rem;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+  transition: background-color var(--dur-micro) ease;
+}
+
+@media (pointer: coarse) {
+  .token {
+    min-height: 44px;
+  }
+}
+
+.tokenFacet {
+  color: rgb(var(--paper) / 0.72);
+  font-size: 0.8125rem;
+}
+
+.token:focus-visible {
+  outline: 2px solid rgb(var(--ink));
+  outline-offset: 2px;
+}
+
+/* The ×, two crossed bars. */
+.cross {
+  position: relative;
+  flex: none;
+  width: 1.1rem;
+  height: 1.1rem;
+  border-radius: 50%;
+  background: rgb(var(--paper) / 0.16);
+}
+
+.cross::before,
+.cross::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0.6rem;
+  height: 1.5px;
+  background: rgb(var(--paper));
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.cross::after {
+  transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .token:hover {
+    background: rgb(var(--ink) / 0.82);
+  }
+}
+
+.clear {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  padding-inline: 0.25rem;
+  color: rgb(var(--ink));
+  font-size: 0.875rem;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+@media (pointer: coarse) {
+  .clear {
+    min-height: 44px;
+  }
+}
+
+.clear:focus-visible {
+  outline: 2px solid rgb(var(--ink));
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ── the search field ─────────────────────────────────────────────────── */
+
+.search {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.searchLabel {
+  padding-inline: 0.5rem;
+  font-size: 0.875rem;
+  color: rgb(var(--ink-soft));
+}
+
+.searchInput {
+  width: 100%;
+  min-height: 44px;
+  padding: 0.5rem 0.85rem;
+  border: 1px solid rgb(var(--rule-firm));
+  border-radius: 12px;
+  background: rgb(var(--paper));
+  color: rgb(var(--ink));
+  font: inherit;
+  /* 16px, or iOS zooms the page on focus. */
+  font-size: 1rem;
+}
+
+.searchInput::placeholder {
+  color: rgb(var(--ink-soft));
+}
+
+.searchInput:focus-visible {
+  outline: 2px solid rgb(var(--ink));
+  outline-offset: 2px;
+  border-color: rgb(var(--ink));
+}

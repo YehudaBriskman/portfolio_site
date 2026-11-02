@@ -1,0 +1,299 @@
+/*
+ * The side rail and its phone sheet (#193). See `Rail.tsx`.
+ *
+ * The rail is the grid's first column, so `dir="rtl"` puts it on the right
+ * with no rule of its own. Nothing here moves: the sheet opens and closes
+ * without a transition, so it has nothing to cut under the off-switches.
+ */
+
+.layout {
+  display: block;
+}
+
+@media (min-width: 64rem) {
+  .layout {
+    display: grid;
+    grid-template-columns: 16.5rem minmax(0, 1fr);
+    align-items: start;
+    gap: clamp(2rem, 3vw, 3.5rem);
+  }
+}
+
+.main {
+  min-width: 0;
+}
+
+/* Sticky under the nav bar. Only the index scrolls inside it, so the filter
+   card's popovers are never clipped by the rail. */
+.rail {
+  position: sticky;
+  inset-block-start: calc(var(--bar-h, 56px) + 1.25rem);
+  display: flex;
+  max-height: calc(100svh - var(--bar-h, 56px) - 2.5rem);
+  flex-direction: column;
+  gap: 1.5rem;
+  /* Above the wall's pieces, so an open popover hangs over the tiles. */
+  z-index: 5;
+}
+
+/* ── the index ────────────────────────────────────────────────────────── */
+
+.index {
+  display: flex;
+  min-height: 0;
+  flex: 0 1 auto;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.indexTitle {
+  margin: 0;
+  padding-inline: 0.75rem;
+  font-family: var(--font-display);
+  font-weight: var(--weight-display);
+  font-size: 1.125rem;
+  letter-spacing: var(--track-sub);
+}
+
+.indexScroll {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-block-end: 0.5rem;
+  scrollbar-width: thin;
+}
+
+.group + .group {
+  margin-block-start: 0.85rem;
+}
+
+.groupLabel {
+  margin: 0;
+  padding: 0.25rem 0.75rem;
+  font-family: var(--font-data);
+  font-size: 0.8125rem;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  color: rgb(var(--ink-soft));
+}
+
+.entries {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-inline-start: 1px solid rgb(var(--rule-firm));
+  margin-inline-start: 0.75rem;
+}
+
+.entry {
+  display: block;
+  padding: 0.4rem 0.75rem;
+  color: rgb(var(--ink));
+  font-size: 0.9375rem;
+  line-height: 1.35;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+  border-inline-start: 2px solid transparent;
+  margin-inline-start: -1.5px;
+  transition: border-color var(--dur-micro) ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .entry:hover {
+    border-inline-start-color: rgb(var(--ink));
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+}
+
+.entry:focus-visible {
+  outline: 2px solid rgb(var(--ink));
+  outline-offset: -2px;
+  border-radius: 6px;
+}
+
+@media (pointer: coarse) {
+  .entry {
+    padding-block: 0.7rem;
+  }
+}
+
+/* ── narrow: the button, and the sheet it opens ───────────────────────── */
+
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 0.75rem;
+  margin-block-end: 1.5rem;
+}
+
+.open {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 1.1rem;
+  border: 1px solid rgb(var(--ink));
+  border-radius: 999px;
+  background: rgb(var(--paper));
+  color: rgb(var(--ink));
+  font: inherit;
+  font-size: 0.9375rem;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.open:focus-visible {
+  outline: 2px solid rgb(var(--ink));
+  outline-offset: 2px;
+}
+
+/* Three bars of falling length: the filter mark, drawn, not an icon font. */
+.openIcon {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.openIcon span {
+  display: block;
+  height: 1.5px;
+  background: currentColor;
+}
+
+.openIcon span:nth-child(1) { width: 14px; }
+.openIcon span:nth-child(2) { width: 9px; }
+.openIcon span:nth-child(3) { width: 4px; }
+
+.badge {
+  display: inline-grid;
+  min-width: 1.4rem;
+  height: 1.4rem;
+  place-items: center;
+  padding-inline: 0.3rem;
+  border-radius: 999px;
+  background: rgb(var(--ink));
+  color: rgb(var(--paper));
+  font-family: var(--font-data);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.sheet {
+  /* Pinned to the foot of the window, the width of a phone, a sheet. */
+  position: fixed;
+  inset: auto 0 0;
+  width: 100%;
+  max-width: 34rem;
+  max-height: 88svh;
+  margin: auto auto 0;
+  padding: 0;
+  border: 1px solid rgb(var(--rule-firm));
+  border-block-end: 0;
+  border-radius: var(--r-md) var(--r-md) 0 0;
+  background: rgb(var(--paper));
+  color: rgb(var(--ink));
+  overscroll-behavior: contain;
+  box-shadow: 0 -18px 40px -24px rgb(var(--ink) / 0.5);
+}
+
+.sheet[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+.sheet::backdrop {
+  background: rgb(28 26 22 / 0.45);
+}
+
+.sheetHead {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 0.75rem 0.5rem 1.25rem;
+  padding-inline: 1.25rem 0.75rem;
+}
+
+.sheetTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: var(--weight-display);
+  font-size: 1.25rem;
+  letter-spacing: var(--track-sub);
+}
+
+.x {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: rgb(var(--ink));
+  cursor: pointer;
+}
+
+.x span::before,
+.x span::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 18px;
+  height: 1.5px;
+  background: currentColor;
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.x span::after {
+  transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+.x:focus-visible {
+  outline: 2px solid rgb(var(--ink));
+  outline-offset: -2px;
+}
+
+.sheetBody {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 0.25rem 1rem 1rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.sheetFoot {
+  flex: none;
+  padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom, 0px));
+  border-block-start: 1px solid rgb(var(--rule-firm));
+}
+
+.done {
+  width: 100%;
+  min-height: 48px;
+  border: 0;
+  border-radius: 999px;
+  background: rgb(var(--ink));
+  color: rgb(var(--paper));
+  font: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.done:focus-visible {
+  outline: 2px solid rgb(var(--ink));
+  outline-offset: 2px;
+}
+
+/* The index inside the sheet is part of the sheet's own scroll. */
+.sheetBody .indexScroll {
+  overflow: visible;
+}
