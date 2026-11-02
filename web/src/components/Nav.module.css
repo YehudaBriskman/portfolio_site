@@ -171,6 +171,27 @@
   --rule-firm: var(--panel-rule);
   --signal: var(--accent-on-panel);
   --shade: 0 0 0;
+  /*
+   * The bar's own bottom rule, and why it has none in this material (#117).
+   *
+   * Every other stroke in the chrome is the boundary of something you press
+   * and keeps `--panel-rule`. This one is a rule between the chrome and the
+   * page, the one stroke that runs the full width of the screen, so over the
+   * dark act it was the first thing a phone saw. Measured: on paper the rule
+   * is `--rule-firm` on `--paper`, 2.15:1. Here it was `--panel-rule` on
+   * `--panel`, 3.34:1 — the same line 55% heavier, and a light line on a dark
+   * ground reads heavier again than its ratio says.
+   *
+   * Matching the paper ratio was built first (`--panel-ink` at 0.26, 2.11:1)
+   * and rendered at 390x844 DPR 3: still a full-width grey stroke across the
+   * act. So it goes. The dark material only ever stands over a dark ground —
+   * `useDarkChrome` swaps it by what is under the bar — and there the bar and
+   * the ground are the same colour, so the rule was separating a thing from
+   * itself. The blur's soft edge and the content's own borders do that job.
+   * On paper the rule stays: over paper the bar is translucent paper on a
+   * page of type, and there the line is what says where the chrome ends.
+   */
+  --bar-rule: transparent;
   color: rgb(var(--panel-ink));
 }
 
@@ -231,7 +252,7 @@
    * screen, a black bar under a sheet of paper. The controls inside carry
    * their own contrast.
    */
-  border-bottom: 1px solid rgb(var(--rule-firm));
+  border-bottom: 1px solid var(--bar-rule, rgb(var(--rule-firm)));
   /*
    * The material swap is a hard cut, and that is a correction.
    *
