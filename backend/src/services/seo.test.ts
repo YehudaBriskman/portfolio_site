@@ -189,6 +189,26 @@ describe("renderShellWithMeta", () => {
     expect(html).toContain('name="twitter:image" content="https://yehudabriskman.com/og.png"');
   });
 
+  // The shell's og:image:type is stripped with the rest of its og: tags, so the
+  // block has to write it back or the rendered pages are the only ones without
+  // it (#125). It follows the image's extension; an unknown one omits the tag.
+  it("writes og:image:type back, from the image's extension", () => {
+    expect(renderShellWithMeta(SHELL, meta())).toContain('<meta property="og:image:type" content="image/png" />');
+    expect(renderShellWithMeta(SHELL, meta({ image: "https://yehudabriskman.com/card.JPG?v=2" }))).toContain(
+      'property="og:image:type" content="image/jpeg"',
+    );
+    expect(renderShellWithMeta(SHELL, meta({ image: "https://yehudabriskman.com/card" }))).not.toContain("og:image:type");
+  });
+
+  it("uses socialDescription for the share tags and description for the snippet", () => {
+    const html = renderShellWithMeta(SHELL, meta({ socialDescription: "Share copy." }));
+    expect(html).toContain('<meta name="description" content="New description." />');
+    expect(html).toContain('<meta property="og:description" content="Share copy." />');
+    expect(html).toContain('<meta name="twitter:description" content="Share copy." />');
+    // And without one, every page reads exactly as it did before.
+    expect(renderShellWithMeta(SHELL, meta())).toContain('<meta property="og:description" content="New description." />');
+  });
+
   it("marks noindex pages and leaves the rest indexable", () => {
     expect(renderShellWithMeta(SHELL, meta({ noindex: true }))).toContain('content="noindex, follow"');
     expect(renderShellWithMeta(SHELL, meta())).toContain('content="index, follow, max-image-preview:large"');

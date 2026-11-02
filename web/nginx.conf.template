@@ -151,6 +151,10 @@ server {
   # NOT intercepted — the API returns a real 404 with a shell body, which is
   # exactly what a missing post should answer.
   #
+  # That fallback is for pages. The three crawler files each have one of their
+  # own — an empty urlset, the static robots.txt, and a 503 for the feed —
+  # because a program parsing XML or rules has no use for an HTML shell.
+  #
   # Every proxied location includes proxy-headers.conf, for the same
   # inheritance reason the security headers are a snippet; see that file.
   # The home page too: without this a crawler reads an empty #root and reports
@@ -173,7 +177,7 @@ server {
     proxy_pass http://$api_upstream/api/seo/feed.xml;
     include /etc/nginx/snippets/proxy-headers.conf;
     proxy_intercept_errors on;
-    error_page 500 502 503 504 = @spa;
+    error_page 500 502 503 504 = @feed_unavailable;
   }
 
   # robots.txt is proxied for the same reason the sitemap is: the copy in
@@ -241,6 +245,41 @@ server {
   location @empty_sitemap {
     default_type application/xml;
     return 200 '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>';
+  }
+
+  # The feed fails honestly: a 503 that says when to come back, never the shell.
+  #
+  # It used to fall back to @spa like the rendered pages, and that is the right
+  # fallback for a page and the wrong one for anything a program parses.
+  # Measured on production with the API down (#125): 200, text/html, 5,360
+  # bytes of app shell at /feed.xml. A feed reader takes the 200 at its word,
+  # tries to parse <!doctype html> as RSS, and either marks the subscription
+  # broken or — worse — decides the feed now has no items.
+  #
+  # Why a 503 and not an empty feed, when the sitemap above gets an empty
+  # urlset: the two readers treat "empty" differently. Search Console retries
+  # a valid empty sitemap and loses nothing, because it already holds the
+  # URLs. A feed reader that is told the channel has no items has been told
+  # something false, and some of them act on it. A 503 with Retry-After is
+  # the one answer every reader understands as "temporary, ask again", and it
+  # is what the API itself would have said had nginx let it through.
+  #
+  # Plain text, so that nothing which sniffs a body can mistake it for a feed
+  # or a page, and no-store, so that no cache between here and the reader
+  # keeps the outage after the API is back.
+  #
+  # The empty `types` block is what makes it plain text. default_type only
+  # applies when the extension is not in the mime table, and the URI here is
+  # still /feed.xml — without it nginx labelled this sentence `text/xml`, which
+  # is measured, not assumed (the @empty_sitemap above goes out as text/xml for
+  # the same reason, and there it is harmless because its body is XML).
+  location @feed_unavailable {
+    types { }
+    default_type text/plain;
+    add_header Retry-After 300 always;
+    add_header Cache-Control "no-store" always;
+    include /etc/nginx/snippets/security-headers.conf;
+    return 503 "feed temporarily unavailable\n";
   }
 
   # The static file, which is what every host served until the location above
