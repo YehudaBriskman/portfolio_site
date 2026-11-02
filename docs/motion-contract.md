@@ -1108,6 +1108,7 @@ board, year lanes) and asked for the board, mixed with the lanes' panel.
 | `/blog` (#224) | **none** | the notes left the wall for a dashboard: compact rows and cards a reader scans, filters and opens. Nothing on it arrives, rises or assembles; what moves is what the reader moves |
 | `/blog/area/:slug` (#225) | **none** | an area's notes as a commit history on the same shell: read by scanning down days and acting on a row, so nothing arrives and nothing is spent |
 | `/projects` (#227) | **none** | the work left the wall for the same dashboard: repository cards a reader scans, sorts, filters and opens. Nothing on it arrives either |
+| `/blog/log` (#226) | **none** | the channel log is the dashboard's shell with a list of days in the middle: a reader scans it, filters it and asks for more. "Load more" appends rows where they belong, at once, and moves focus to the first of them; a filter is a navigation |
 
 **#224: /blog is a dashboard, and has no device.** The notes index became a
 three-column dashboard (a side rail of views, areas and filters; a middle of
@@ -1797,6 +1798,7 @@ animation.
 | area history: day groups, copy-link tick, share fallback, `j`/`k` focus, topic filter (`dashboard/History.tsx`); a note's heading copy-link (`notes/headingAnchors.tsx`) | /blog/area/:slug, /blog/:slug | none: a two-second icon state, shown and hidden, focus without smooth scroll; hover/focus as the row below | — (#225) |
 | Work dashboard: sort switch, repository cards and their activity strips, the releases timeline, the phone's rail `<dialog>` (`work/`, `dashboard/`) | /projects | none: a re-sort is a navigation that keeps the scroll; the strip is drawn once; hover/focus change colour in `--dur-micro` | — (#227) |
 | project tabs: the selected underline, the panels (`work/Tabs.tsx`) | /projects/:slug | none: drawn on the selected tab, panels shown and hidden; colour in `--dur-micro` | — (#227) |
+| channel log: days of rows, the kind and area filters, "Load more", the phone's rail `<dialog>` (`pages/BlogLog`) | /blog/log | none: rows appended and filters applied without a transition; hover/focus as the row below; skeletons as the sweep row | — (#226) |
 | stats panel bars (`draw-bar`) | /projects | — | **removed** (#193): the panel was deleted |
 | ink wipe on the cover and band (`InkWipe`) | /projects/:slug | `view()` | scrubbed |
 | notes index cards rising (`.scrub-rise`) | /blog | — | **removed** (#193): the notes hang on the gallery wall and arrive by `assemble` (row above) |
@@ -1834,3 +1836,9 @@ exempt, 4 removed, 3 with nothing of their own.
 #225 added one row, the area history and the heading copy-link, with
 nothing of its own. So: 21 scrubbed, 12 exempt, 4 removed, 4 with nothing of
 their own.
+
+#226 added the channel log, `/blog/log`, as one row with nothing of its own:
+it is on the dashboard's shell, its rows arrive with "Load more" rather than
+on scroll (no infinite scroll, so no arrival to animate), and its filters are
+links. Counted again after #225, #227 and #226 had all landed: 45 rows; 20
+scrubbed, 12 exempt, 6 removed, 7 with nothing of their own.
