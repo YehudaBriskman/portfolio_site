@@ -1103,10 +1103,11 @@ board, year lanes) and asked for the board, mixed with the lanes' panel.
 
 | page | device family | the one reason it exists |
 |---|---|---|
-| `/projects` (and `/blog` from #193 until #224) | **`assemble`** | each band of the wall closes in from its own edges as it comes up the window: a piece on the left slides in from the left, a piece on the right from the right, a piece in the middle rises. So the wall is hung by the time the eye reaches it, and nothing in the reading band moves |
+| ~~`/projects` (#175 until #227) and `/blog` (#193 until #224)~~ | ~~**`assemble`**~~ | **retired in #227**, when the last page on the wall became a dashboard; the row is kept for what it was: each band of the wall closes in from its own edges as it comes up the window: a piece on the left slides in from the left, a piece on the right from the right, a piece in the middle rises. So the wall is hung by the time the eye reaches it, and nothing in the reading band moves |
 | ~~`/projects` panel~~ | ~~`draw`, on bars~~ | **removed in #193** with the panel itself: the owner's call, "it doesn't belong" |
 | `/blog` (#224) | **none** | the notes left the wall for a dashboard: compact rows and cards a reader scans, filters and opens. Nothing on it arrives, rises or assembles; what moves is what the reader moves |
 | `/blog/area/:slug` (#225) | **none** | an area's notes as a commit history on the same shell: read by scanning down days and acting on a row, so nothing arrives and nothing is spent |
+| `/projects` (#227) | **none** | the work left the wall for the same dashboard: repository cards a reader scans, sorts, filters and opens. Nothing on it arrives either |
 
 **#224: /blog is a dashboard, and has no device.** The notes index became a
 three-column dashboard (a side rail of views, areas and filters; a middle of
@@ -1130,6 +1131,19 @@ is shown and hidden; a heading's copy-link button inside a note does the
 same; `j`/`k` move focus, and the only scroll is the browser's own on focus,
 never a smooth one; the topic filter is a navigation. Hover and focus keep
 the shell's `--dur-micro` colour change.
+**#227: /projects is a dashboard too, and has no device.** Work moved onto
+the Blogs shell (`dashboard/DashboardShell.tsx`): the filter control, Pinned
+and the areas with notes in the rail; pinned repository cards and a sortable
+list in the middle; the latest releases on the right. The sort is a link
+(`?sort=`) that replaces the URL and keeps the scroll, so the list re-orders
+in place with no transition. Each card's strip of pushes and releases is a
+still diagram, placed by date and drawn once. The project page gains GitHub's
+tabs (`work/Tabs.tsx`, `?tab=`): the underline is drawn on the selected tab,
+not slid to it, and a panel appears without a transition. The Overview panel
+keeps the page's existing devices (`InkWipe`, `Written`, the figure's drift)
+unchanged; the other three panels have none. With no page on it any more,
+`gallery/Wall.tsx` and `projects/Gallery.tsx` are left in place, unused, for
+the owner to delete or keep, as #224 did with `NoteTile`.
 
 **#193: one gallery for both pages.** The wall, its sizes, `assemble`, the
 re-hang and the three off-switches moved out of `projects/` into
@@ -1645,7 +1659,7 @@ direction, or set `fill-rule: evenodd` deliberately and know what it costs.
 | `Approach.module.css` + `ApproachFigures.tsx` | `draw` — each principle's figure, stroke by stroke | named `view-timeline` per principle |
 | `motion/InkWipe.tsx` | ink arriving as a hard clip edge, plus the coloured band | `view()` |
 | `motion/InkRule.tsx` | a hairline drawing itself in | `view()` |
-| `gallery/Wall.module.css` + `Wall.tsx` | `assemble`, /projects and /blog (#193): each piece slides in from its own side of the wall (or rises, in the middle third), and a filter re-hangs the wall with a short view transition | named `view-timeline` on each static `<li>`, read by the `.piece` inside it; side read from layout once into `data-from` |
+| `gallery/Wall.module.css` + `Wall.tsx` | `assemble`, unused since #227 (was /projects, and /blog from #193 until #224): each piece slides in from its own side of the wall (or rises, in the middle third), and a filter re-hangs the wall with a short view transition | named `view-timeline` on each static `<li>`, read by the `.piece` inside it; side read from layout once into `data-from` |
 | `projects/Gallery.module.css`, `notes/NoteTile.module.css` | what hangs in a cell: a project tile, a note card. No motion of their own | — |
 | `gallery/FilterControl.tsx` + `Rail.tsx` | the filter card, its popovers and the phone's sheet. No motion: they appear and go | — |
 | `projects/ProjectRun.module.css` | `pin` — the work travelling along a curve under a held frame; one lap per card, staggered by range | named `view-timeline` on the static stage, the frame held inside it |
@@ -1775,12 +1789,14 @@ animation.
 | close: surface, label, full stop (`Contact`) | / | `view()` per part | scrubbed |
 | contact dialog: scrim, panel, field ink, send seal | / and the nav's Contact | transitions and clock keyframes | **exempt**: dialog open/close and a reply to Send |
 | /story plates arriving (`story-plate`) | /story | `view()`, `cover 5vh cover 50vh` | scrubbed (#195: opened sideways out of the line's lane; was a foot clip that ran below the fold) |
-| gallery pieces assembling (`assemble`, `assemble-shade`, `gallery/Wall`) | /projects | `--tile` per cell | scrubbed (on /blog from #193 until #224) |
-| gallery filter re-hang (view transition) | /projects | `startViewTransition` | **exempt**: filter re-hang |
+| gallery pieces assembling (`assemble`, `assemble-shade`, `gallery/Wall`) | — | — | **removed** (#227): /projects became a dashboard of repository cards; it was on /blog from #193 until #224 |
+| gallery filter re-hang (view transition) | — | — | **removed** (#227) with the wall: a filter now narrows the cards at once |
 | filter popovers, the rail's phone sheet (`FilterControl`, `Rail`) | /projects, /blog | none: shown and hidden, no transition | — (#193) |
 | notes hung on the gallery wall (`NoteTile` in `Wall`) | /blog | — | **removed** (#224): the index is a dashboard of rows and cards, and nothing on it arrives |
 | Blogs dashboard: tree open/close, Home/Feed switch, the phone's rail `<dialog>`, the timeline (`dashboard/`) | /blog, /blog/area/:slug | none: shown and hidden, no transition; hover/focus as the row below | — (#224) |
 | area history: day groups, copy-link tick, share fallback, `j`/`k` focus, topic filter (`dashboard/History.tsx`); a note's heading copy-link (`notes/headingAnchors.tsx`) | /blog/area/:slug, /blog/:slug | none: a two-second icon state, shown and hidden, focus without smooth scroll; hover/focus as the row below | — (#225) |
+| Work dashboard: sort switch, repository cards and their activity strips, the releases timeline, the phone's rail `<dialog>` (`work/`, `dashboard/`) | /projects | none: a re-sort is a navigation that keeps the scroll; the strip is drawn once; hover/focus change colour in `--dur-micro` | — (#227) |
+| project tabs: the selected underline, the panels (`work/Tabs.tsx`) | /projects/:slug | none: drawn on the selected tab, panels shown and hidden; colour in `--dur-micro` | — (#227) |
 | stats panel bars (`draw-bar`) | /projects | — | **removed** (#193): the panel was deleted |
 | ink wipe on the cover and band (`InkWipe`) | /projects/:slug | `view()` | scrubbed |
 | notes index cards rising (`.scrub-rise`) | /blog | — | **removed** (#193): the notes hang on the gallery wall and arrive by `assemble` (row above) |
