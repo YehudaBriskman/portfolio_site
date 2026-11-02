@@ -107,16 +107,73 @@ ledger is a page-level document and not a comment.
 | — | any running text | **pen** | prose is set as the reader's eye reaches it |
 | 0 | title plate | **staged assembly** | the collection names itself, in four gated moves |
 | — | the plate's end corner | **breath** | one small light is on, and says one thing at a time |
-| 1 | wall text | `flow` | the quiet before the peak |
+| 1 | wall text | `draw` | the method, drawn beside the sentence that names it, by the reader's scroll |
 | 2 | **the run** | `pin` | the work arrives along one line, and the reader's scroll is what moves it |
 | 3 | the year | `scrub` | a year of work, raised off the page by the reader's own scroll |
 | 4 | notes shelf | `pan`, held | the notes walk past a held frame, one card-width per step of the reader's scroll |
 | 5 | specs | `count` | real numbers landing |
 | 6 | inquiry plate | `surface` | the ask comes up out of the sheet, part by part, as the reader arrives |
 
-Ten families (`reveal` left the page with #160; `surface` took its place). No repeat in adjacent beats. The head row reuses the entry's family on purpose and is argued below. `pin` is spent once, on the peak,
+Ten families (`reveal` left the page with #160; `surface` took its place; `flow` left with #157 and `draw` took its place). No repeat in adjacent beats. The head row reuses the entry's family on purpose and is argued below. `pin` is spent once, on the peak,
 and `scrub` is spent once on beat 3 — the grammar bans a *second* scrub and
 has always allowed the first, which is the whole licence beat 3 has.
+
+**Beat 1 changed from `flow` to `draw` on the owner's call (#157,
+2026-11-02).** The wall text was three paragraphs and three principles at body
+size, arriving through `flow` — 14px of rise on a 620ms clock, fired once by an
+observer. The owner asked for bigger type, more room, prose that reads like
+/story, and a small diagram per principle that *shows* the method; and the
+house rule that came with it (the city's, #111) is that **scroll is the
+clock** — nothing on a timer, nothing fired once, everything reversing exactly
+on the way up. A 620ms arrival is precisely what that rule forbids, so `flow`
+left the beat rather than being kept alongside.
+
+What is there now (`Approach.tsx`, `ApproachFigures.tsx`,
+`Approach.module.css`):
+
+- **The prose** is short sections — a mono label in a narrow rail, then one
+  or two paragraphs of a sentence or two each — every paragraph a `Written`
+  on its own clock, so it is written word by word like a /story beat. Reading
+  size 22px on a desktop (was 19px), the floor unchanged at the body size on
+  a phone; the measure re-derived for the new size, **42ch = 651px, a median
+  of 59 characters a line** (measured off the laid-out words at 1440×900; the
+  old 62ch at 19px held about 80, because this face's `ch` is wider than its
+  average letter). Gaps: 0.85em between paragraphs, 3.5–5rem between
+  sections, 5.5–8.5rem above a principle.
+- **`draw`**: one 96-unit inline SVG per principle in the rail — an empty box
+  that the clone drops into and the three-line install fills from the floor;
+  one run forking into a pass and a fail drawn at the same moment; a key held
+  above a line of commits by a path that stops at a bar. Every mark has
+  `pathLength="1"` and a `data-step`; one keyframe takes `stroke-dashoffset`
+  1 → 0, linear, fill `both`, on the principle's named `view-timeline`
+  (`--approach-fig`, the pen's own insets, so drawing and writing share a
+  window), five steps of 10% across the first half of it. The figures are
+  `aria-hidden`: the sentences beside them say everything they show. They
+  are direction-neutral, so the Hebrew page draws the same marks with the
+  rail on the right.
+- **Off-switches.** Reduced motion, Pause, no `animation-timeline`, and print
+  all cancel the animation and restate `stroke-dashoffset: 0`,
+  `stroke-opacity: 1` — the drawn figure. The resting declaration is the
+  drawn figure too, so a missed exit still shows it finished.
+
+Measured: frames down and back up at the same depth match (figure 1 at
+`drawn=0.56` both ways on a desktop, `0.37` on a phone); both switches that
+Chromium can fake show `drawn=1` at a depth where motion-on is half drawn.
+Contrast on `--paper`: prose muted 6.37:1 and inked 15.17:1 (the pen's), the
+labels 6.37:1, the strokes 6.37:1 and the accent (`--signal`) 8.5:1 — the
+figures are non-text and need 3:1. `npm run a11y` 30/30 clean. Frame cost at
+4× CPU throttle, 1440×900, wheel-scrolled through `#approach`
+(`web/scripts/measure-approach-fps.mjs`, nine interleaved rounds after a
+warm-up): **`main` 31.8fps, this build 33.8fps**, medians, both arms spreading
+about 24–38 on a loaded box — no regression, and the section is now 2052px
+against 1238px, so the same wheel distance covers less of it per frame. Shots
+in `docs/approach/` (`web/scripts/shoot-approach.mjs`).
+
+The family's neighbours are `pin` (the run) and `scrub` (the year). `draw` is
+neither: it holds nothing and moves nothing across the page — it is line work
+drawn in place at the size of a glyph, which is the scale of `InkRule`'s
+hairline rather than the year's camera. If a later beat draws strokes by
+scroll at section scale, it is `scrub` and must not sit next to this one.
 
 **Beat 2 changed from the pile to the run on the owner's call (#57, reopened
 2026-11-02), and it moves lateral travel next to beat 4's `pan`.** The family
@@ -497,8 +554,9 @@ from 85% of the window's height to 45% the pen inks it one word after
 another in reading order and leaves it at ink — so a sentence is written out
 as the eye reaches it, and un-written word by word if the reader scrolls
 back (#158: word `i` of `n` owns the slice `i/n`–`(i+1)/n` of the
-paragraph's clock, so at most one word is ever mid-stroke). It sits beside
-`flow` on the wall text without colliding with it, because they answer
+paragraph's clock, so at most one word is ever mid-stroke). It sat beside
+`flow` on the wall text without colliding with it (until #157 retired
+`flow` there), because they answer
 different questions: `flow` is *when a block arrives*, once; `pen` is *which
 words are being read*, on every pass, and it is the same on every page that
 has prose. A family that is a property of a kind of content rather than of a
@@ -727,9 +785,9 @@ changed, which is why it was never expected to move.
 **The order in this table is the intended one and is not the order
 `pages/Index.tsx` renders today.** The page renders the run *before* the wall
 text, so the shipped sequence is title plate, run, wall text, the year, notes
-shelf, specs, inquiry plate. `Approach.tsx` still describes itself as "the
+shelf, specs, inquiry plate. `Approach.tsx` used to describe itself as "the
 quiet before the peak", which is the arrangement above and not the arrangement
-shipped. Recorded here rather than silently renumbered, because which of the
+shipped; since #157 it describes neither. Recorded here rather than silently renumbered, because which of the
 two is wrong is a decision about the page and not about this document. No
 adjacent pair repeats a family in either order, which is why the discrepancy
 has never produced a visible fault.
@@ -800,7 +858,7 @@ reader presses — a hover never moves it.
 Two rules about the cost of a beat, both of which are about page height rather
 than about motion:
 
-- A `flow` section directly after the pinned act takes **reduced** padding. The
+- The wall text, directly after the pinned act, takes **reduced** padding. The
   stage needs a full viewport to scroll off, and full section padding on top of
   that delays the next section's first content by another screen.
 - Every pinned beat buys its time in scroll distance, and the reader pays for
@@ -1026,7 +1084,8 @@ direction, or set `fill-rule: evenodd` deliberately and know what it costs.
 | `motion/EntryShutter.tsx` | `shutter` — the page arrives from behind a grid | clock, gated on real readiness |
 | `motion/useStagedArrival.ts` | the staged assembly: each move waits on the last | clock, gated on `animationend` |
 | `components/hero-chrome.css` | the bar's part in that sequence, reached from `body` | clock |
-| `motion/Flow.tsx` | `flow` — one gate per item, so a beat can differ per item | observer + clock |
+| `motion/Flow.tsx` | `flow` — one gate per item, so a beat can differ per item (no beat on the home page uses it since #157) | observer + clock |
+| `Approach.module.css` + `ApproachFigures.tsx` | `draw` — each principle's figure, stroke by stroke | named `view-timeline` per principle |
 | `motion/InkWipe.tsx` | ink arriving as a hard clip edge, plus the coloured band | `view()` |
 | `motion/InkRule.tsx` | a hairline drawing itself in | `view()` |
 | `projects/ProjectRun.module.css` | `pin` — the work travelling along a curve under a held frame; one lap per card, staggered by range | named `view-timeline` on the static stage, the frame held inside it |
@@ -1099,7 +1158,7 @@ declarations it can see, and `var(--flow-item, flow-rise)` is not one of them �
 so the keyframes ship renamed while the rules still ask for the original, and
 every animation in the file resolves to nothing, silently. Either declare those
 keyframes `@keyframes :global(name)` or keep the name in a literal
-`animation-name`. `Approach.module.css` takes the first route and says why.
+`animation-name`. `Approach.module.css` took the first route until #157 removed its keyframes from custom properties; `draw` names its one keyframe in the `animation` shorthand, where the scoper sees it.
 
 Keep it that way. The reason this page can afford as much motion as it carries
 is that almost none of it costs anything per frame, and the first component that
