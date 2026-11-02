@@ -3,26 +3,28 @@
  *
  * WHY THIS FILE EXISTS AT ALL, AND WHEN IT SHOULD STOP EXISTING
  * -------------------------------------------------------------
- * Issue #100 asks what the `h1` should say, and asks for *options* rather
- * than an implementation: two title treatments to choose between. So this is
- * a proposal with working code behind it. Every candidate is built, every
- * candidate renders, and the default is the one recommended rather than the
- * only one that exists.
+ * Issues #100 and #101 both ask what belongs on the first screen, and both
+ * ask for *options* rather than an implementation: #100 for two title
+ * treatments to choose between, #101 for two or three things the lower
+ * corners could carry. So this is a proposal with working code behind it.
+ * Every candidate is built, every candidate renders, and the default is the
+ * one recommended rather than the only one that exists.
  *
- * The moment the owner picks, this file collapses: the chosen member of the
- * union becomes the only one, `read` and the guard below are deleted, and
- * `Hero.tsx` reads a plain constant. It is written to be deleted, which is
- * the only honest shape for a switch whose whole purpose is a decision that
- * has not been made yet.
+ * The moment the owner picks, this file collapses: the chosen member of each
+ * union becomes the only one, `read` and the two guards below are deleted,
+ * and `Hero.tsx` reads a plain constant. It is written to be deleted, which
+ * is the only honest shape for a switch whose whole purpose is a decision
+ * that has not been made yet.
  *
  * WHY THE OVERRIDE IS A URL PARAMETER
  * -----------------------------------
- * The alternative is a build per candidate, and a screenshot set nobody can
- * reproduce without running all of them. One build that answers `?title=`
- * lets the owner stand on the real page and compare, and lets the committed
- * renders be regenerated from a single artifact. It is read once, at module
- * scope, so nothing re-reads the URL mid-session and no component takes a
- * prop it will not have after the decision.
+ * The alternative is a build per candidate, which is six builds for two
+ * independent choices and a screenshot set nobody can reproduce without
+ * running all six. One build that answers `?title=` and `?corners=` lets the
+ * owner stand on the real page and compare, and lets the committed renders be
+ * regenerated from a single artifact. It is read once, at module scope, so
+ * nothing re-reads the URL mid-session and no component takes a prop it will
+ * not have after the decision.
  *
  * Unknown and absent values both fall through to the default, so a mistyped
  * parameter shows the recommendation rather than a blank screen — and the
@@ -41,20 +43,37 @@
  */
 export type HeroTitle = "portfolio" | "explore" | "name";
 
+/**
+ * What stands in the hero's two lower corners, from issue #101.
+ *
+ * `ask`    One affordance at the start corner with its own honest bound
+ *          under it, one fact at the end corner. The recommendation.
+ * `facts`  A fact in each corner, nothing clickable.
+ * `bare`   Nothing. The composition as it ships today, argued rather than
+ *          assumed — see the head of `HeroCorners.tsx`.
+ */
+export type HeroCorners = "ask" | "facts" | "bare";
+
 const TITLES: readonly HeroTitle[] = ["portfolio", "explore", "name"];
+const CORNERS: readonly HeroCorners[] = ["ask", "facts", "bare"];
 
 /*
- * The recommendation, and the whole of what "one flag away" means.
+ * The recommendations, and the whole of what "one flag away" means.
  *
  * `portfolio` over `explore`: the label schema's first rule is fact and not
  * pitch, and `EXPLORE MY PORTFOLIO` is an imperative — the same objection
  * that cut the "See the work" pill, restated at 132px in the page's one
  * heading. `PORTFOLIO` is a category label, which is a weaker thing to say
  * than a name but is at least a statement rather than an instruction.
+ *
+ * `ask` over `facts` and `bare`: the argument is at the head of
+ * `HeroCorners.tsx`, next to the markup it is about.
  */
 const DEFAULT_TITLE: HeroTitle = "portfolio";
+const DEFAULT_CORNERS: HeroCorners = "ask";
 
 const isTitle = (v: string): v is HeroTitle => (TITLES as readonly string[]).includes(v);
+const isCorners = (v: string): v is HeroCorners => (CORNERS as readonly string[]).includes(v);
 
 /**
  * The query string, once, with no window at all in a test or a prerender.
@@ -71,3 +90,4 @@ function read<T extends string>(key: string, guard: (v: string) => v is T, fallb
 }
 
 export const heroTitle: HeroTitle = read("title", isTitle, DEFAULT_TITLE);
+export const heroCorners: HeroCorners = read("corners", isCorners, DEFAULT_CORNERS);

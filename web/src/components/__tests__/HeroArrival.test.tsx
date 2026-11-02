@@ -5,8 +5,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import Hero from "@/components/Hero";
 import ObjectLabel from "@/components/gallery/ObjectLabel";
-import { heroTitle } from "@/components/heroFirstScreen";
-import { plate, plateTitles } from "@/data/site";
+import HeroCorners from "@/components/HeroCorners";
+import { heroCorners, heroTitle } from "@/components/heroFirstScreen";
+import { contact, plate, plateTitles } from "@/data/site";
 
 /*
  * The first screen's arrival is a sequencer, two stylesheets and a split
@@ -31,6 +32,7 @@ import { plate, plateTitles } from "@/data/site";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ARRIVAL_CSS = readFileSync(resolve(HERE, "../HeroArrival.module.css"), "utf8");
 const CHROME_CSS = readFileSync(resolve(HERE, "../hero-chrome.css"), "utf8");
+const CORNERS_CSS = readFileSync(resolve(HERE, "../HeroCorners.module.css"), "utf8");
 const INDEX_HTML = readFileSync(resolve(HERE, "../../../index.html"), "utf8");
 
 /*
@@ -44,6 +46,7 @@ const INDEX_HTML = readFileSync(resolve(HERE, "../../../index.html"), "utf8");
 const strip = (css: string) => css.replace(/\/\*[\s\S]*?\*\//g, "");
 const ARRIVAL = strip(ARRIVAL_CSS);
 const CHROME = strip(CHROME_CSS);
+const CORNERS = strip(CORNERS_CSS);
 
 /** The body of the first `@media` block whose condition matches, braces balanced. */
 function mediaBlock(css: string, condition: string): string {
@@ -449,8 +452,8 @@ describe("what the first screen may not spend", () => {
 });
 
 /*
- * What issue #100 puts on the first screen, and the three things that have to
- * stay true whichever candidate the owner picks.
+ * What issues #100 and #101 put on the first screen, and the three things
+ * that have to stay true whichever candidate the owner picks.
  *
  * This whole block is scaffolding around a decision that has not been made.
  * When it is, the flag collapses to a constant and the first test here — the
@@ -459,10 +462,11 @@ describe("what the first screen may not spend", () => {
  */
 describe("the first screen's proposals", () => {
   it("ships the candidate it recommends, and says so out loud", () => {
-    /* Not a tautology: this constant is the proposal. A change to it is a
-       change to what the PR is asking for, and it should not be possible to
-       make it by accident while editing a stylesheet. */
+    /* Not a tautology: these two constants are the proposal. A change to
+       either is a change to what the PR is asking for, and it should not be
+       possible to make it by accident while editing a stylesheet. */
     expect(heroTitle).toBe("portfolio");
+    expect(heroCorners).toBe("ask");
   });
 
   it("keeps the person's name on the first screen after it leaves the h1", () => {
@@ -522,5 +526,86 @@ describe("the first screen's proposals", () => {
     for (const which of ["portfolio", "explore"]) {
       expect(hero.match(new RegExp(`\\[data-title="${which}"\\] \\.plate h1`, "g"))).toHaveLength(2);
     }
+  });
+});
+
+describe("the hero's lower corners", () => {
+  it("renders all three candidates, and renders nothing for the bare one", () => {
+    /* `bare` is a candidate and not an absence of one, so it is asserted to
+       produce no element at all rather than two empty positioned boxes. */
+    const { container: ask } = render(<HeroCorners which="ask" />);
+    expect(ask.querySelector('[data-hero-corners="ask"]')).not.toBeNull();
+
+    const { container: facts } = render(<HeroCorners which="facts" />);
+    expect(facts.querySelector('[data-hero-corners="facts"]')).not.toBeNull();
+
+    const { container: bare } = render(<HeroCorners which="bare" />);
+    expect(bare.querySelector("[data-hero-corners]")).toBeNull();
+    expect(bare.firstChild).toBeNull();
+  });
+
+  it("points the one affordance at the ask plate, not at a blank mail window", () => {
+    render(<HeroCorners which="ask" />);
+    const link = screen.getByRole("link", { name: /get in touch/i });
+
+    /* `nav/social.ts` argues that a `mailto:` is the worse of the two
+       answers because it hands the reader's own mail client an empty
+       message. The plate at `#contact` has a form, the address and the
+       context to write from. */
+    expect(link.getAttribute("href")).toBe("#contact");
+    expect(screen.getByText(contact.replyWithin)).toBeInTheDocument();
+  });
+
+  it("states facts and never a pitch, in both fact candidates", () => {
+    render(<HeroCorners which="facts" />);
+
+    /* The label schema's first rule, which applies to anything that reads as
+       a label. Both of these are checkable: one is a job, one is a bound with
+       a number in it. */
+    expect(screen.getByText(plate.currently)).toBeInTheDocument();
+    expect(screen.getByText(contact.replyWithin)).toBeInTheDocument();
+  });
+
+  it("uses a description list, so the field line's own rule cannot catch it", () => {
+    const { container } = render(<HeroCorners which="facts" />);
+
+    /* `HeroArrival.module.css` reaches the plate's field line as "the only
+       `ul` on this screen". A second list set as a `ul` would be animated as
+       though it were the plate's specs and left at `opacity: 0` by the field
+       line's resting rule. */
+    expect(container.querySelectorAll("dl").length).toBe(2);
+    expect(container.querySelectorAll("ul").length).toBe(0);
+  });
+
+  it("stays out of flow, which is why the figure's track cannot change", () => {
+    /* The figure gets whatever row 1 did not use. An in-flow corner block
+       would shrink the photograph on the longest string it ever holds, and a
+       taller one would change the track it is in. */
+    expect(CORNERS).toMatch(/\.corners \{[^}]*position: absolute/);
+  });
+
+  it("is written in logical properties, because both corners swap in Hebrew", () => {
+    /* `nav/locale.ts` writes `lang` and `dir` together, so the start corner
+       is on the right in Hebrew. A physical `left`/`right` here would be a
+       statement about English, and the same reasoning is why the arrival is
+       a rise rather than an entry from each side. */
+    expect(CORNERS).not.toMatch(/(^|[^-])\b(left|right)\s*:/m);
+    expect(CORNERS).toMatch(/inset-inline/);
+    expect(ARRIVAL).toMatch(/@keyframes plate-corner \{[\s\S]*?translateY/);
+  });
+
+  it("joins the sequence, and enters by a paper mask rather than by fading", () => {
+    /* A new element on this screen either joins the four stages or is
+       deliberately outside them. These join the end of stage four — and they
+       take the same opaque-sheet technique the name and the figure take, so
+       the claim that nothing on this screen enters by its own opacity stays a
+       sentence with one exception in it rather than two. */
+    expect(ARRIVAL).toMatch(/\[data-arrived~="text"\] \[data-hero-corners\] > \* \{/);
+    for (const name of ["plate-corner", "plate-corner-mask"]) {
+      const frames = ARRIVAL.match(new RegExp(`@keyframes ${name} \\{[\\s\\S]*?\\n\\}`))?.[0] ?? "";
+      expect(frames, `no @keyframes ${name}`).not.toBe("");
+      expect(frames).not.toMatch(/opacity/);
+    }
+    expect(ARRIVAL).toMatch(/\[data-hero-corners\] > \*::after \{[\s\S]*?background: rgb\(var\(--paper\)\)/);
   });
 });

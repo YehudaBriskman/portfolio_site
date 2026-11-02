@@ -55,9 +55,17 @@
  * term lets a tall window push the name down a touch without ever centring
  * it; the floor and ceiling keep a short window from taking the air back or a
  * very tall one from reintroducing the centred layout by the back door.
+ *
+ * It is a named custom property and not a bare value because one other rule
+ * needs the same number: the corner frame in `HeroCorners.module.css` has to
+ * find the bottom of the *first screen*, and the only way to get there from
+ * inside the composition is to know how far down the composition starts. Two
+ * copies of this clamp would be two answers to where the type begins.
  */
 .screen {
-  padding-block-start: clamp(6rem, 5rem + 4vh, 8.5rem);
+  --screen-pad: clamp(6rem, 5rem + 4vh, 8.5rem);
+
+  padding-block-start: var(--screen-pad);
 }
 
 /*

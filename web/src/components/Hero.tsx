@@ -3,6 +3,7 @@ import type { LabelField } from "@/components/gallery/objectLabel";
 import { useStagedArrival, type ArrivalStage } from "@/components/motion/useStagedArrival";
 import { projects } from "@/data/projects";
 import { plate, plateTitles } from "@/data/site";
+import HeroCorners from "@/components/HeroCorners";
 import { heroTitle } from "@/components/heroFirstScreen";
 import styles from "@/components/Hero.module.css";
 import arrival from "@/components/HeroArrival.module.css";
@@ -86,6 +87,15 @@ import "@/components/hero-chrome.css";
  * the first screen had, and it was a button telling a reader to do the thing
  * they are already doing. The chrome keeps the three destinations the site
  * actually has, /projects among them, and scrolling needs no affordance.
+ *
+ * That argument is still the test anything in the lower corners has to pass,
+ * and issue #101 asks what belongs there. `HeroCorners` builds three
+ * candidates and carries the argument for and against each at its head; the
+ * default is one quiet affordance pointing at the ask plate, which is the one
+ * destination the bar deliberately does not carry and the one thing a reader
+ * cannot reach by the gesture they are already making. `?corners=facts` and
+ * `?corners=bare` render the other two, and "bare" is a real candidate rather
+ * than a placeholder for not having decided.
  *
  * The portrait, and the argument it had to answer
  * -----------------------------------------------
@@ -351,6 +361,14 @@ export default function Hero() {
             splitName
             className={styles.plate}
           />
+
+          {/*
+            The lower corners — issue #101. Out of flow against this box, so
+            they are in neither of the two grid rows and cannot shrink the
+            figure's track or move a line of type. The argument for each
+            candidate is at the head of `HeroCorners.tsx`.
+          */}
+          <HeroCorners />
         </div>
       </div>
     </section>

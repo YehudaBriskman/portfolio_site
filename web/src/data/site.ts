@@ -53,6 +53,21 @@ export const plate = {
    * this one does not, so it is the one to re-ask about rather than trust.
    */
   shippingSince: 2021,
+  /*
+   * What the owner does now, for the corner that states it.
+   *
+   * Authored rather than derived, because nothing in the repository knows it:
+   * `data/projects.ts` is a table of products and this is a job. The long
+   * form — "a team leader at the Israel Defense Forces, in Tel Aviv" — is in
+   * `about.intro` and is the sentence this is the short version of; the
+   * abbreviation is here because the corner it stands in is one line of the
+   * field line's voice and the place is already on the plate.
+   *
+   * Like `contact.replyWithin`, this is a fact with an expiry date: it has to
+   * be changed in one place when it stops being true, which is why it is in
+   * this file rather than typed into a component.
+   */
+  currently: "Team lead, IDF",
 };
 
 /*
