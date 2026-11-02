@@ -621,9 +621,9 @@ measures the connection rather than the device.
 read.** `motion/Written.tsx` wraps prose, not sections: the wall text's
 paragraphs, a post's paragraphs and list items, a project's description,
 brief and decisions. Every word starts muted, and as the paragraph rises
-from 85% of the window's height to 45% the pen inks it one word after
-another in reading order and leaves it at ink — so a sentence is written out
-as the eye reaches it, and un-written word by word if the reader scrolls
+from 95% of the window's height to 62% (#174; it was 85% to 45%) the pen
+inks it one word after another in reading order and leaves it at ink — so a
+sentence is written out just ahead of the eye, and un-written word by word if the reader scrolls
 back (#158: word `i` of `n` owns the slice `i/n`–`(i+1)/n` of the
 paragraph's clock, so at most one word is ever mid-stroke). It sat beside
 `flow` on the wall text without colliding with it (until #157 retired
@@ -637,41 +637,74 @@ keeps `sweep` and `drift` out of the beat numbering.
 It is not the page's third engineered peak, on the peak rule's own terms. It
 buys no scroll distance — it pins nothing, and a paragraph is exactly as tall
 as it was. It has no asset budget: no image, no canvas, no layer, nothing
-but the colour of text that was already there. It never makes anything less
-legible than the page set it: the muted state is `--ink-soft`, the colour the
-wall text was already designed in, and the band only *adds* ink. And its
-off state is not a lesser version of it but the page with all prose at full
-ink, which costs a reader nothing to choose. A peak is the thing the page
+but the colour of text that was already there. Its muted state is
+deliberately texture rather than text (#174, argued next), and it is never
+what a reader is left with: every word is at full ink before the eye
+reaches it, and the off state is not a lesser version of the pen but the
+page with all prose at full ink, which costs a reader nothing to choose. A peak is the thing the page
 spends its budget on; this spends a frame cost, measured below, and nothing
 else.
 
-**Muted is `--ink-soft`, and there is no third value to choose.**
-`index.css` already settled it: paper has no room for a third text colour,
-and `--ink-faint` (3.60:1) is non-text. Measured on every ground it is used
-on — computed from the tokens and confirmed against the rendered ground
-sampled beside the text:
+**Muted is texture: `--ink` at 22%, a deliberate contrast exception
+(#174).** Until #174 the muted state was `--ink-soft`, the page's second
+text colour, chosen so the pen could never make anything less legible than
+the page set it. The owner sent that back from preprod: "the text that are
+supposed to be muted are still too bold, need to be very muted, to be FEELED
+as muted and not to read until I come to him." He was right on the pen's own
+terms. At 6.37:1 a paragraph not yet written *is* a paragraph — a reader
+reads it in grey and the pen has nothing left to give. So the unwritten
+state is now the same ink at an alpha of 0.22: the paragraph's shape is on
+the page — where it sits, how far it runs — and its words are not legible
+until the pen reaches them.
 
-| where | ground | muted `--ink-soft` | lit / rest `--ink` |
-|---|---|---|---|
-| wall text, home | `--paper` #ECE8DC | 6.37:1 | 15.17:1 |
-| a post's body | `--paper` #ECE8DC | 6.37:1 | 15.17:1 |
-| a project page | `--paper` #ECE8DC | 6.37:1 | 15.17:1 |
-| any prose inside a dark act | `--panel` #0C0C0E (via `.on-panel`) | 7.86:1 | 17.15:1 |
+| where | ground | muted, before (`--ink-soft`) | muted, after (`--ink` / 0.22) | written / off (`--ink`) |
+|---|---|---|---|---|
+| wall text, home | `--paper` #ECE8DC | #55524A, 6.37:1 | ≈ #BCB9AF, **1.60:1** | 15.17:1 |
+| a post's body, /story, a project page, the contact close | `--paper` #ECE8DC | #55524A, 6.37:1 | ≈ #BCB9AF, **1.60:1** | 15.17:1 |
+| any prose inside a dark act (via `.on-panel`) | `--panel` #0C0C0E | #A8A49A, 7.86:1 | ≈ #3F3E3E, **1.83:1** | 17.15:1 |
 
-No `Written` sits inside a dark act today; the last row is there because
-`.on-panel` re-points both tokens and the stylesheet does nothing extra, so
-the day one does it is already measured. The rendered-glyph figures
-`index.css` records for the text face (coverage-weighted, lowest on paper
-4.69:1 for a 12px chip in `--ink-soft`) apply to the muted state exactly as
-they applied to the wall text before this change: it is the same colour on
-the same face, at body sizes that sit above that lowest row.
+Weight is not touched. The text face (Atkinson Hyperlegible Next) is
+variable from 400 to 700 and is set at 400, so there is no lighter weight
+to drop to, and any weight change moves advance widths and so line breaks —
+which the pen must never do. Colour is the whole effect, and it stays one
+`color` declaration on an inline span.
 
-**Its rest state is full ink, which is the off state.** Reduced motion,
-Pause and a browser without `animation-timeline` each cancel the animation
-and land on `--ink` — not on the caller's colour, because most prose here is
-set in `--ink-soft` and landing there would be landing on muted. Print is a
-fourth exit for the same reason. Screenshots of all three switches are in
-`docs/written/`.
+Why the exception holds, and the conditions it holds under — each one is
+checked, not assumed:
+
+1. **The muted state is decorative, not content.** It carries no
+   information the written state does not; it is the written state, not
+   yet arrived. 1.4.3 is a floor for text a reader is meant to read, and
+   the pen guarantees a reader never has to read it: the clock (below)
+   inks every word while it is still in the lower part of the window, so
+   the eye — which reads above the middle — meets only written words.
+   `scripts/measure-written.mjs` measures exactly this as `waited`: the
+   share of the scroll at which any word in the top half of the window is
+   not at ink. It is 0% on every consumer at both widths.
+2. **The text's real state is full ink, 15.17:1.** It is the state every
+   word is left in, the state of everything above the reader, and the
+   state the accessibility tree and the clipboard have always had (the
+   spans add no characters and no roles).
+3. **All three off-switches show full ink.** Reduced motion, the site's
+   Pause and a browser without `animation-timeline` each cancel the
+   animation and land on `--ink` — not on the caller's colour, because most
+   prose here is set in `--ink-soft`, and landing there would land short of
+   written. Print is a fourth exit. `npm run a11y` now checks it: on every
+   route, both directions and both widths, under reduced motion, and on
+   `/`, `/story`, a project and a post under Pause with motion otherwise
+   on, every word `Written` made must compute to its paragraph's `--ink` at
+   full alpha, and axe measures the contrast of that state.
+4. **It is never the colour of anything else.** `--ink-faint` (3.60:1)
+   stays non-text and the pen does not use it; the muted alpha exists only
+   inside `Written.module.css`, only before a word's slice of the clock, and
+   only while the effect is running.
+
+The rendered-glyph figures `index.css` records for the text face
+(coverage-weighted, lowest on paper 4.69:1 for a 12px chip in `--ink-soft`)
+are for the written state now, and it clears them with room: body copy in
+`--ink`. Screenshots of the off-switches are in `docs/written/`
+(`174-after-off-*.png`), beside the mid-paragraph shots of every consumer
+before and after.
 
 **Two things it found that are worth not rediscovering.**
 
@@ -720,6 +753,68 @@ is that or nothing for those words. Since #158 a parked paragraph is
 told apart by a second observer whose zone runs from the zone's top edge
 upwards without end, so a jump past the zone cannot leave a read paragraph
 muted.
+
+**"Laggy to appear" was timing, not frames (#174, measured 2026-11-02).**
+The owner's second note was that sections are slow to appear. Two causes
+were possible and they need different fixes, so both were measured on every
+consumer with `web/scripts/measure-written.mjs`, main against the branch:
+
+- *Timing.* Scrolled in 12px steps with a frame driven per step, the window
+  position (0 top, 1 foot) at which each paragraph's first and last words
+  reach full ink, as a median over the route's paragraphs, and `waited`:
+  the share of steps at which any word in the top half of the window — where
+  the eye is — was still not at ink.
+- *Frames.* At 4x CPU throttle, 16px a frame, the round trip of one
+  `HeadlessExperimental.beginFrame` (median), with a `devtools.timeline`
+  trace for style recalc and paint per frame and the count of tasks over
+  50ms. Three rounds, arms interleaved; the same with the site's Pause on
+  isolates what the pen itself costs. (Wall time on this box moves with its
+  load; the trace's re-styled element counts do not, and agree.)
+
+| consumer, 1440×900 | first / last word inked, main | branch | `waited`, main → branch | frame median, main → branch (paused) |
+|---|---|---|---|---|
+| Approach (home) | 0.82 / 0.41 | 0.93 / 0.58 | 34% → **0%** | 18.9 → 18.4ms (11.3) |
+| contact close | 0.83 / 0.42 | 0.93 / 0.58 | 10% → **0%** | 18.9 → 19.1ms (0.9) |
+| /story | 0.82 / 0.41 | 0.92 / 0.58 | 16% → **0%** | 7.5 → 7.7ms (4.4) |
+| a long post | 0.84 / 0.41 | 0.94 / 0.58 | 36% → **0%** | 16.5 → 17.0ms (9.7) |
+| a project page | 0.83 / 0.41 | 0.94 / 0.58 | 22% → **0%** | 83.1 → **14.7ms** (11.5); long tasks 180 → 0 |
+
+| consumer, 390×844 | first / last, main | branch | `waited` | frame median (paused) |
+|---|---|---|---|---|
+| Approach (home) | 0.82 / 0.41 | 0.92 / 0.57 | 30% → **0%** | 19.7 → 17.2ms (9.5) |
+| contact close | 0.83 / 0.41 | 0.93 / 0.58 | 7% → **0%** | 17.8 → 17.3ms (2.1) |
+| /story | 0.81 / 0.41 | 0.91 / 0.58 | 15% → **0%** | 6.2 → 6.0ms (3.5) |
+| a long post | 0.84 / 0.41 | 0.94 / 0.58 | 29% → **0%** | 14.2 → 13.6ms (8.3) |
+| a project page | 0.83 / 0.41 | 0.93 / 0.58 | 19% → **0%** | 76.4 → **11.2ms** (9.8); long tasks 244 → 0 |
+
+What it says. The old clock finished a paragraph with its last word at 41%
+of the window — above the middle, where the reader already is — so for a
+sixth to a third of every scroll the reader was looking at words the pen had
+not written yet. That is the lag the owner felt, and it would have got much
+worse with the new muted state, because a word at 1.60:1 cannot be read
+ahead of the pen the way `--ink-soft` could. The new clock (95% → 62%)
+writes every word while it is in the lower part of the window: 0% on every
+consumer at both widths, and no paragraph left unwritten at the foot of any
+page (the measurement scrolls to the end and counts).
+
+The pen's frame cost did not cause it and did not change: it is 3–9ms a
+frame at 4x throttle over Pause, the same on both arms, with no long tasks.
+It is spent in style recalc and paint of the words of live paragraphs, as
+measured before. The option of one animation per paragraph instead of one
+per word — a registered `--pen` number animated on the paragraph, each word
+computing its ink from it — was built and measured, and is worse: it
+re-styles every word of a live paragraph through inheritance on every frame,
+and a long post's style went from 3.0 to 16.8ms a frame. So the words keep
+their own animations, and the near-watch zone tightens with the clock (58%
+to the foot, from 40%) so fewer paragraphs are live at once.
+
+**What the measurement found that was not the pen: project pages.** A
+project page cost 63–95ms of style recalc a frame at 4x throttle, a long task
+on every frame, with the pen paused as much as running: about 1,100 elements
+re-styled per frame. `useScrollProgress` wrote `--vh` on `<html>` on every
+scroll frame for the cover figure's drift, and an inherited custom property
+written on the root invalidates the whole document. The value is now written
+on the drifting figure's own box, its only reader — measured on its own (3 rounds, 4x), 83 → 14.7ms a frame at 1440×900 and 76 → 11.2ms at 390×844, style 85 → 3.4ms, ~1,100 → 45 elements re-styled a frame, and no long tasks where every frame was one.
 
 **The sweep row is not a beat either, and for a different reason from the
 shutter's.** `shutter` is not a beat because it happens before the page;
