@@ -32,7 +32,7 @@
     "eslint": "^9.39.1",
     "supertest": "^7.3.1",
     "tsx": "^4.23.15",
-    "typescript": "^5.9.3",
+    "typescript": "^7.0.2",
     "vitest": "^4.0.7"
   },
   "author": "Your Name",
