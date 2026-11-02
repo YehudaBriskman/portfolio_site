@@ -72,7 +72,7 @@ export default function Story() {
 
   return (
     <PageShell>
-      <div className={styles.story}>
+      <div className={styles.story} data-page="story">
         <header className={`wrap ${styles.open}`}>
           <p className="eyebrow">The story</p>
           <h1 className={`display ${styles.openTitle}`}>The long way round</h1>

@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { render, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import Story from "@/pages/Story";
 import { buildStory } from "@/data/story";
@@ -17,24 +17,30 @@ const CSS = readFileSync(resolve(process.cwd(), "src/components/story/Story.modu
   "",
 );
 
+/*
+ * Queries are scoped to the story's own root, not the whole render:
+ * `PageShell` also renders the site footer, whose headings and landmarks
+ * belong to another component and may change without this page changing.
+ */
 function renderStory() {
-  return render(
+  const { container } = render(
     <MemoryRouter initialEntries={["/story"]}>
       <Story />
     </MemoryRouter>,
   );
+  return within(container.querySelector<HTMLElement>('[data-page="story"]')!);
 }
 
 describe("Story", () => {
   it("is one h1, a heading per beat in timeline order, and the close", () => {
-    renderStory();
+    const screen = renderStory();
     expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
     const h2s = screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent);
     expect(h2s).toEqual([...buildStory().beats.map((b) => b.title), "So far"]);
   });
 
   it("is a list of beats, each with its time, its lines written by the pen, and a slot", () => {
-    renderStory();
+    const screen = renderStory();
     const list = screen.getByRole("list", { name: "Timeline" });
     const items = within(list).getAllByRole("listitem");
     const beats = buildStory().beats;
@@ -51,7 +57,7 @@ describe("Story", () => {
   });
 
   it("links every project beat to its own page", () => {
-    renderStory();
+    const screen = renderStory();
     for (const b of buildStory().beats.filter((x) => x.href)) {
       const head = screen.getByRole("heading", { level: 2, name: b.title });
       expect(head.querySelector("a")).toHaveAttribute("href", b.href);
@@ -59,7 +65,7 @@ describe("Story", () => {
   });
 
   it("keeps an empty slot out of the accessibility tree", () => {
-    renderStory();
+    const screen = renderStory();
     const list = screen.getByRole("list", { name: "Timeline" });
     const empty = [...list.querySelectorAll(":scope > li > :last-child")].filter((el) => !el.querySelector("img"));
     expect(empty.length).toBeGreaterThan(0);
@@ -67,7 +73,7 @@ describe("Story", () => {
   });
 
   it("prints its figures", () => {
-    renderStory();
+    const screen = renderStory();
     for (const f of buildStory().figures) {
       const term = screen.getByText(f.caption, { selector: "dt" });
       expect(term.nextElementSibling).toHaveTextContent(String(f.value));
