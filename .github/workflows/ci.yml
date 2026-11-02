@@ -163,6 +163,10 @@ jobs:
       # commit, file, line and rule, never the value, and no report is
       # written. The weekly full-history scan is secret-scan.yml. Event
       # fields reach the script through env only.
+      # Its own step: $GITHUB_PATH reaches the steps after it, not itself.
+      - name: Install gitleaks
+        if: ${{ !cancelled() }}
+        run: .github/scripts/secret-scan.sh install
       - name: No secrets in the new commits (gitleaks)
         if: ${{ !cancelled() }}
         env:
@@ -172,10 +176,7 @@ jobs:
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           BEFORE: ${{ github.event.before }}
           AFTER: ${{ github.event.after }}
-        run: |
-          set -Eeuo pipefail
-          .github/scripts/secret-scan.sh install
-          .github/scripts/secret-scan.sh scan
+        run: .github/scripts/secret-scan.sh scan
 
       # Every accepted scanner finding has a reason, an owner and an expiry
       # at most three months out, and none has expired (#206). Trivy would
