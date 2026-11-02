@@ -140,6 +140,22 @@ describe("Story.module.css", () => {
     expect(CSS).toMatch(/:global\(body\.motion-paused\) \.plate\s*\{\s*animation:\s*none;/);
   });
 
+  it("lays each plate out of the line's lane, mirrored in RTL, ending on the line's tip (#195)", () => {
+    const plate = CSS.match(/\n\.plate\s*\{[^}]*\}/)?.[0] ?? "";
+    /* Start side, LTR: the lane is on the left, so the right inset closes. */
+    expect(plate).toMatch(/--plate-from-l:\s*0%/);
+    expect(plate).toMatch(/--plate-from-r:\s*87\.5%/);
+    /* Same distance on every window, ending with the plate's top on the middle. */
+    expect(plate).toMatch(/animation-range:\s*cover 5vh cover 50vh/);
+    const flipped = CSS.match(/\.beat\[data-side="end"\] > \.plate,\s*:global\(html\[dir="rtl"\]\) \.beat\[data-side="start"\] > \.plate\s*\{[^}]*\}/)?.[0] ?? "";
+    expect(flipped).toMatch(/--plate-from-l:\s*87\.5%/);
+    expect(flipped).toMatch(/--plate-from-r:\s*0%/);
+    const rtlEnd = CSS.match(/:global\(html\[dir="rtl"\]\) \.beat\[data-side="end"\] > \.plate\s*\{[^}]*\}/)?.[0] ?? "";
+    expect(rtlEnd).toMatch(/--plate-from-l:\s*0%/);
+    /* The finished state is the base rule: no clip outside the keyframe. */
+    expect(plate).not.toMatch(/clip-path/);
+  });
+
   it("shows one language's interlude words at a time", () => {
     expect(CSS).toMatch(/\.loopWords:lang\(he\)\s*\{\s*display:\s*none;/);
     expect(CSS).toMatch(/:root:lang\(he\) \.loopWords:lang\(he\)\s*\{\s*display:\s*block;/);

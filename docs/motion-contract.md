@@ -108,7 +108,7 @@ ledger is a page-level document and not a comment.
 | 0 | title plate | **staged assembly** | the collection names itself, in four gated moves |
 | — | the plate's end corner | **breath** | one small light is on, and says one thing at a time |
 | 1 | wall text | `draw` + `line` | the method, drawn beside the sentence that names it, by the reader's scroll; one line joins it all up |
-| — | /story, and beat 1 | **`line`** | one line drawn by scroll under the reading, which swings between the content and breaks out into a loop round a few words or a figure |
+| — | /story, and beat 1 | **`line`** | one line drawn by scroll under the reading, which swings between the content and breaks out into a loop round a few words or a figure; on /story each picture is laid out of the line's lane just before the tip reaches it (#195), part of the same act |
 | 2 | **the run** | `pin` | the work arrives along one line, and the reader's scroll is what moves it |
 | 3 | the year | `scrub` | a year of work, raised off the page by the reader's own scroll |
 | 4 | notes shelf | `pan`, held | the notes walk past a held frame, one card-width per step of the reader's scroll |
@@ -1328,6 +1328,68 @@ discarded warm-up, against a build of `main`), medians:
 Five thin strokes repaint per frame where one did; nothing is laid out on
 scroll, and the run's sweep is two compositor transforms.
 
+### /story's pictures: laid out of the line's lane (#195)
+
+The owner (2026-11-02): the pictures on /story, and the empty cards that hold
+their place, "appear with no animation". They had one — a clip closing the
+plate's lower 35% across its own `entry` — and it was invisible for a reason
+worth keeping: **the part a foot clip hides is the part still below the fold
+while the element enters.** The motion ran, measurably, where no one could
+see it. Any arrival clipped from the foot over `entry` has this fault.
+
+Three candidates were tried against the beats and the line:
+
+| candidate | what it does | verdict |
+|---|---|---|
+| **lane wipe** | the plate opens sideways from its outer edge — the edge on the line's lane, since the line runs down the picture's side — to its inner edge, and is whole when its top reaches the window's middle, where the line's tip is held | **chosen** |
+| develop | the card's skeleton ground resolves into the image (`filter` from flat and grey, or opacity over the ground) | rejected: an empty card *is* the skeleton ground, so a placeholder has nothing to develop into and the two would not share one treatment; a reader parked mid-way sees a washed-out photograph; `filter` repaints the image every frame |
+| follow the tip | the clip's lower edge sits on the window's middle, so the picture is uncovered exactly as far as the line has drawn | rejected: at rest the lower half of every window holds half a picture, which reads as broken, not as arriving — the line already carries "how far you've read", and a second gauge says it twice |
+
+**Why the lane wipe.** It is the line's gesture, made by the picture: the
+line runs down the picture's side, and the picture is laid out from that side
+just before the line gets there, so the two read as one act — not a second
+device beside the line. A sideways edge is on screen for the whole of its
+travel, which is the fix. It uses one hard `clip-path` edge with the card's
+own round corners, the 1-bit edge the project pages' ink wipe argues for, so
+the site has one idea of how a thing is laid on the paper. And nothing inside
+the plate moves, so a photograph and an empty card — the same box, the same
+`ratio` — take the identical arrival; a reader stopped half-way sees part of a
+true picture.
+
+**The numbers.** `animation-range: cover 5vh cover 50vh`: lengths from the
+plate's cover start, so it takes 45% of the window's scroll on a laptop or a
+phone whatever the plate's height, and it ends with the plate's top on the
+window's middle — the line's tip. It starts from a strip an eighth of the
+plate wide on the lane side, so the card's place is marked as it comes up; one
+keyframe curve (`cubic-bezier(0.3, 0.3, 0.4, 1)`, about three quarters open
+half-way) settles it onto the inner edge as the line arrives. Scroll is the
+only input, so it reverses exactly.
+
+**RTL.** `inset()` has no logical form, so the side is two custom
+properties into one keyframe: a start-side plate closes its right inset in
+English and its left in Hebrew; an end-side plate the reverse. Measured in
+the shots' log (`pictures-he-*`: `inset(0 0 0 76.7%)` where English reads
+`inset(0 76.7% 0 0)`).
+
+**Off-switches.** Unchanged and still correct: all three and print cancel
+the animation, and the base rule has no clip, so the plate is whole. Measured:
+reduced motion and Pause both report `clip-path: none` at mid-arrival depth.
+
+**The line still never crosses text.** The clip changes no box;
+`shoot-line.mjs` re-run on the branch, both pages, both directions, both
+windows: 76 frames, no crossing.
+
+**Frame cost**, 4x CPU throttle, `measure-line-fps.mjs` through the /story
+timeline, interleaved against a build of `main`, 5 rounds, medians: 1440×900
+60.1 → 60.1fps; 390×844 60.1 → 60.1fps. The animated property and the
+element are the ones `main` already animated; only the inset that moves
+changed.
+
+Shots in `docs/story-pictures/` (`scripts/shoot-story-pictures.mjs`): a
+beat's plate at the start, middle and end of its arrival, the middle again
+with a real picture in the card, and scrolled back to the start; EN and HE,
+1440×900 and 390×844; reduced motion and Pause on the laptop.
+
 ---
 
 ## 3. The peak rule
@@ -1687,7 +1749,7 @@ animation.
 | spec count (`Stack`) | / | `--specs` | **scrubbed** (#162; was a 1.2s clock fired once by `useEnteredOnce`) |
 | close: surface, label, full stop (`Contact`) | / | `view()` per part | scrubbed |
 | contact dialog: scrim, panel, field ink, send seal | / and the nav's Contact | transitions and clock keyframes | **exempt**: dialog open/close and a reply to Send |
-| /story plates (`story-plate`) | /story | `view()` | scrubbed |
+| /story plates arriving (`story-plate`) | /story | `view()`, `cover 5vh cover 50vh` | scrubbed (#195: opened sideways out of the line's lane; was a foot clip that ran below the fold) |
 | gallery pieces assembling (`assemble`, `assemble-shade`, `gallery/Wall`) | /projects, /blog | `--tile` per cell | scrubbed (on /blog since #193) |
 | gallery filter re-hang (view transition) | /projects, /blog | `startViewTransition` | **exempt**: filter re-hang |
 | filter popovers, the rail's phone sheet (`FilterControl`, `Rail`) | /projects, /blog | none: shown and hidden, no transition | — (#193) |

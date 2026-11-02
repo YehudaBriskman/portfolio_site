@@ -329,12 +329,40 @@
  * `--ink` at 0.09 — without the sweep: the sweep says "loading", and nothing
  * is loading here; the picture is simply not supplied yet.
  *
- * Uncovered from the foot as it rises into the window: a clip from 35% to
- * nothing across its own entry, on its own `view()`. Not opacity on the
- * picture, which would leave a reader parked mid-entry with a washed-out
- * photograph.
+ * ARRIVAL (#195): laid out of the line's lane. The plate opens sideways
+ * from its outer edge — the edge on the line's lane, since the line runs
+ * down the picture's side — to its inner edge, as it rises through the
+ * lower half of the window, and is whole by the time its top reaches the
+ * window's middle, which is where the line's tip is held. So the line
+ * arrives at a picture that has just been laid beside it, and carries on
+ * down its side.
+ *
+ * Why sideways and not from the foot: the clip it replaces closed the
+ * plate's lower 35% across its own entry, and that is exactly the part
+ * still below the fold while it enters — the motion ran where no one could
+ * see it, which is why the pictures seemed simply to be there. A sideways
+ * edge is on screen for the whole of its travel.
+ *
+ * The range is in lengths from the plate's cover start (its top on the
+ * window's foot), not percentages of its entry, so the arrival takes the
+ * same scroll — 45% of the window — whatever the plate's height on a
+ * laptop or a phone, and always ends on the line's tip.
+ *
+ * It starts from a strip, not from nothing: an eighth of the plate, on the
+ * lane side, so the card's place is already marked as it comes up. The
+ * edge is hard (`clip-path`, no soft mask): a picture is either laid on the
+ * paper or not, the same 1-bit edge as the project pages' ink wipe. Nothing
+ * inside moves, so the photograph and the empty card — the same box — take
+ * the identical arrival, and a reader stopped mid-way sees part of a true
+ * picture, never a washed-out one.
+ *
+ * Which inset opens is physical (`inset()` has no logical form): the start
+ * side is the left in English and the right in Hebrew. Two custom
+ * properties carry it into the one keyframe.
  */
 .plate {
+  --plate-from-l: 0%;
+  --plate-from-r: 87.5%;
   margin: 0;
   width: 100%;
   overflow: hidden;
@@ -342,7 +370,18 @@
   background-color: rgb(var(--ink) / 0.09);
   animation: story-plate linear both;
   animation-timeline: view();
-  animation-range: entry 0% entry 100%;
+  animation-range: cover 5vh cover 50vh;
+}
+
+.beat[data-side="end"] > .plate,
+:global(html[dir="rtl"]) .beat[data-side="start"] > .plate {
+  --plate-from-l: 87.5%;
+  --plate-from-r: 0%;
+}
+
+:global(html[dir="rtl"]) .beat[data-side="end"] > .plate {
+  --plate-from-l: 0%;
+  --plate-from-r: 87.5%;
 }
 
 .plateImg {
@@ -352,9 +391,13 @@
   object-fit: cover;
 }
 
+/* Steady off the lane, slowing onto the inner edge — three quarters open
+   half-way, so the last of it settles as the line arrives. The curve is per
+   keyframe, so it is still a function of scroll alone and reverses exactly. */
 @keyframes story-plate {
   from {
-    clip-path: inset(0 0 35% 0 round var(--r-md));
+    clip-path: inset(0 var(--plate-from-r) 0 var(--plate-from-l) round var(--r-md));
+    animation-timing-function: cubic-bezier(0.3, 0.3, 0.4, 1);
   }
   to {
     clip-path: inset(0 0 0 0 round var(--r-md));
