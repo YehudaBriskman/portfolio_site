@@ -153,3 +153,49 @@ describe("ProjectRun.module.css", () => {
     expect(CSS).toMatch(/body\.motion-paused\) \.stage\s*\{[^}]*height:\s*auto/);
   });
 });
+
+/*
+ * Right to left (#168): the run mirrors — in from the left, along the
+ * mirrored curve, leaning the other way — through one sign, not a second
+ * code path and not a `scale(-1)` that draws the text backwards.
+ */
+describe("ProjectRun right to left", () => {
+  it("renders the same list, skip link and moments under dir=rtl", () => {
+    document.documentElement.dir = "rtl";
+    try {
+      const { container } = draw(three);
+      expect(screen.getByRole("list", { name: "Selected work" }).children).toHaveLength(3);
+      const skip = screen.getByRole("link", { name: "Skip past the work" });
+      expect(document.getElementById(skip.getAttribute("href")!.slice(1))).not.toBeNull();
+      expect(container.querySelectorAll("[data-run-mark]")).toHaveLength(3);
+      /* No direction-specific markup: the stylesheet alone turns it. */
+      expect(container.innerHTML).not.toMatch(/rtl|run-dir/);
+    } finally {
+      document.documentElement.dir = "ltr";
+    }
+  });
+
+  it("turns on one direction factor, set by the dir attribute locale.ts writes", () => {
+    expect(CSS).toMatch(/\.stage\s*\{[^}]*--run-dir:\s*1;/);
+    expect(CSS).toMatch(/html\[dir="rtl"\]\) \.stage\s*\{\s*--run-dir:\s*-1;\s*\}/);
+    expect(CSS.match(/html\[dir="rtl"\]/g)).toHaveLength(1);
+  });
+
+  it("anchors the travel at the reading start, not the left", () => {
+    expect(CSS).toMatch(/\.slot\s*\{[^}]*inset-inline-start:\s*0/);
+    expect(CSS).not.toMatch(/(^|[\s;{])left:\s*0/);
+  });
+
+  it("multiplies the travel, the lean and the arrival's swing by it", () => {
+    const x = CSS.match(/@keyframes run-x\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
+    expect(x.match(/translateX\(calc\(var\(--run-dir\)/g)).toHaveLength(2);
+    const lean = CSS.match(/@keyframes run-lean\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
+    expect(lean.match(/rotate:\s*calc\([^;]*var\(--run-dir\)/g)).toHaveLength(3);
+    const arrive = CSS.match(/@keyframes run-arrive\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
+    expect(arrive).toMatch(/rotateY\(calc\(var\(--run-dir\) \* var\(--arrive-swing/);
+  });
+
+  it("does not mirror by scale", () => {
+    expect(CSS).not.toMatch(/scale:\s*-1/);
+  });
+});
