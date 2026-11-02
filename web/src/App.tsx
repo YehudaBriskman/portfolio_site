@@ -3,6 +3,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
 import RouteAnnouncer from "./components/RouteAnnouncer";
+import ScrollManager from "./components/ScrollManager";
 import EntryShutter from "./components/motion/EntryShutter";
 import SiteChrome from "./components/SiteChrome";
 import Index from "./pages/Index";
@@ -61,6 +62,14 @@ const App = () => (
           object index in #56; the ordering is kept for the next one.
         */}
         <RouteAnnouncer />
+        {/*
+          Where the reader lands (#196): the top of a new page, the target of
+          a hash once it exists, the old position on Back and Forward. Above
+          `<Routes>` for the same reason as the announcer — it has to outlive
+          every page it is scrolling — and it owns the scroll alone, which is
+          why the announcer's focus move never scrolls.
+        */}
+        <ScrollManager />
         {/*
           The entry shutter: the window black behind a grid of lit squares,
           which leaves tile by tile from the centre once the page is actually
