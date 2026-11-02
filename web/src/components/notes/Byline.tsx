@@ -63,17 +63,17 @@ export default function Byline({
     <div className={`flex flex-wrap items-center gap-x-4 gap-y-3 ${className}`}>
       <div className="flex items-center gap-3">
         <img
-          src="/img/yehuda-ink-sm.webp"
+          src="/img/yehuda-cut-sm.webp"
           alt=""
-          width={350}
-          height={505}
+          width={365}
+          height={560}
           loading="lazy"
           decoding="async"
           /* A head-and-shoulders crop out of a standing figure: the subject is
              at the top of the frame, so the circle is anchored there.
 
-             The figure is flat `--ink` with an alpha channel rather than a
-             photograph, so the disc it sits on has to stay light. It does:
+             The figure is a cut-out photograph with an alpha channel, so the
+             disc it sits on has to stay light. It does:
              every page that renders a byline is on paper, and `bg-surface`
              resolves to `--paper-2` there. Inside `.on-panel` it would
              resolve to the act's near-black and the figure would vanish into

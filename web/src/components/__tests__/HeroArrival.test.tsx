@@ -151,10 +151,18 @@ describe("the first screen's hooks", () => {
     expect((img.getAttribute("alt") ?? "").length).toBeGreaterThan(40);
 
     /* Intrinsic dimensions, so the box is the right shape before the bytes
-       arrive. This is half of why CLS is 0.000 with a photograph on the
-       first screen; the other half is that the box is out of flow. */
-    expect(img.getAttribute("width")).toBe("560");
-    expect(img.getAttribute("height")).toBe("808");
+       arrive. This is half of why the first screen does not shift with a
+       photograph on it; the other half is that the figure's grid track is
+       sized by subtraction, so its contents cannot change the track.
+
+       551x845 is the cut-out photograph. It was briefly 560x808, the
+       halftone drawing that replaced it, and the owner asked for the
+       photograph back on sight — so these two numbers are the asset's and
+       have to move with it. A width/height pair left behind after an asset
+       swap is a layout shift that no test on this page would otherwise
+       catch. */
+    expect(img.getAttribute("width")).toBe("551");
+    expect(img.getAttribute("height")).toBe("845");
   });
 });
 
