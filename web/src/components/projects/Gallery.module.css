@@ -1,0 +1,490 @@
+/*
+ * The gallery wall, and `assemble`, which closes each band of it in from the
+ * edges.
+ *
+ * LAYOUT
+ * ------
+ * Four columns on a laptop, three, two, then one on a phone. A row track is
+ * a fixed height, so a `lead` (2x2) and a `wide` (2x1) are exact multiples of
+ * a `tile` and `grid-auto-flow: dense` can pack them with no hole at any
+ * count. A wide tile lays its picture and caption side by side; a lead and a
+ * tile stack them.
+ *
+ * On a phone a `tile` and a `wide` become one short row each (a 7rem picture
+ * and its caption), and a `lead` goes full-bleed — the occasional big
+ * picture in a column of small ones. That is what holds the phone page to
+ * about a third of the 12,400px the uniform board measured.
+ *
+ * MOTION
+ * ------
+ * Each `<li>` names a view timeline and the `<article>` inside it reads it:
+ * the cell is the clock, the tile is the hand, so the transform is never on
+ * the box being measured. Range `entry 0%` to `cover 32%`, a fraction of the
+ * window and not a count of tiles. Only `transform` changes per frame, plus
+ * `opacity` on a shade layer over the tile, never on its type.
+ */
+
+.frame {
+  /* Out to the wrap's padding edge and clipped there: the sideways arrival
+     must not make the page scroll sideways, and the phone's full-bleed lead
+     needs the gutter to bleed into. */
+  --gutter: clamp(1.25rem, 3vw, 2.5rem);
+  margin-inline: calc(var(--gutter) * -1);
+  padding-inline: var(--gutter);
+  overflow-x: clip;
+}
+
+.wall {
+  --cols: 4;
+  --row: 18rem;
+  display: grid;
+  grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+  grid-auto-rows: var(--row);
+  grid-auto-flow: dense;
+  gap: clamp(1rem, 1.6vw, 1.5rem);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cell {
+  --tx: 0%;
+  --ty: 28%;
+  --rot: 0deg;
+  --sc: 0.9;
+  min-width: 0;
+  view-timeline-name: --tile;
+  scroll-margin-block-start: calc(var(--bar-h, 56px) + 1rem);
+  scroll-margin-block-end: 30svh;
+}
+
+.cell[data-size="lead"] {
+  grid-column: span 2;
+  grid-row: span 2;
+}
+
+.cell[data-size="wide"] {
+  grid-column: span 2;
+}
+
+.cell[data-from="left"] {
+  --tx: -62%;
+  --ty: 0%;
+  --rot: -3deg;
+  --sc: 1;
+}
+
+.cell[data-from="right"] {
+  --tx: 62%;
+  --ty: 0%;
+  --rot: 3deg;
+  --sc: 1;
+}
+
+.tile {
+  position: relative;
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  border: 1px solid rgb(var(--rule-firm));
+  background: rgb(var(--canvas));
+  animation: assemble linear both;
+  animation-timeline: --tile;
+  animation-range: entry 0% cover 32%;
+  transition: border-color var(--dur-micro) ease;
+}
+
+.tile::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgb(var(--canvas));
+  opacity: 0;
+  pointer-events: none;
+  animation: assemble-shade linear both;
+  animation-timeline: --tile;
+  animation-range: entry 0% cover 32%;
+}
+
+.cell[data-size="wide"] .tile {
+  flex-direction: row;
+}
+
+.tile:hover {
+  border-color: rgb(var(--ink));
+}
+
+.tile:focus-within {
+  outline: 2px solid rgb(var(--ink));
+  outline-offset: 3px;
+}
+
+/* Focus lands on the finished state. */
+.cell:focus-within .tile,
+.cell:focus-within .tile::after {
+  animation: none;
+}
+
+.picture {
+  position: relative;
+  display: block;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  border-block-end: 1px solid rgb(var(--rule));
+}
+
+.cell[data-size="wide"] .picture {
+  flex: 0 0 58%;
+  border-block-end: 0;
+  border-inline-end: 1px solid rgb(var(--rule));
+}
+
+.shot {
+  height: 100%;
+}
+
+.swatch {
+  display: grid;
+  height: 100%;
+  place-items: center;
+  background: rgb(var(--tint, var(--ink-soft)) / 0.16);
+  font-family: var(--font-display);
+  font-size: clamp(3rem, 2rem + 3vw, 6rem);
+  color: rgb(var(--ink) / 0.6);
+  text-transform: uppercase;
+}
+
+.caption {
+  display: flex;
+  flex: none;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.9rem 1.1rem 1rem;
+}
+
+.cell[data-size="wide"] .caption {
+  flex: 1 1 0;
+  justify-content: flex-end;
+  padding: 1.25rem;
+}
+
+.cell[data-size="lead"] .caption {
+  gap: 0.6rem;
+  padding: 1.25rem 1.5rem 1.4rem;
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.name {
+  min-width: 0;
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: var(--weight-display);
+  font-size: 1.25rem;
+  line-height: 1.1;
+  letter-spacing: var(--track-sub);
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+
+.cell[data-size="lead"] .name {
+  font-size: clamp(1.5rem, 1rem + 1.4vw, 2.25rem);
+  letter-spacing: var(--track-head);
+}
+
+.cell[data-size="wide"] .name {
+  font-size: 1.5rem;
+}
+
+/* One click: the whole tile opens the project. */
+.open {
+  color: inherit;
+  text-decoration: none;
+}
+
+.open::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+.open:focus-visible {
+  outline: none;
+}
+
+.tile:hover .open {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.18em;
+}
+
+.year {
+  flex: none;
+  font-family: var(--font-data);
+  font-size: 0.9375rem;
+  font-variant-numeric: tabular-nums;
+  color: rgb(var(--ink-soft));
+}
+
+.fact {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  font-size: 0.9375rem;
+  line-height: 1.45;
+  color: rgb(var(--ink) / 0.85);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  /* Two lines held even for a one-line tagline, so the captions along a row
+     start at the same height and the pictures above them match. */
+  min-height: calc(2 * 1.45em);
+}
+
+.cell[data-size="lead"] .fact {
+  font-size: 1.0625rem;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.75rem;
+}
+
+.state {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-family: var(--font-data);
+  font-size: 0.875rem;
+}
+
+.dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  flex: none;
+  border-radius: 50%;
+  background: rgb(var(--ink-faint));
+}
+
+.state[data-kind="live"] .dot { background: rgb(var(--hue-green)); }
+.state[data-kind="use"] .dot { background: rgb(var(--hue-blue)); }
+.state[data-kind="open"] .dot { background: rgb(var(--hue-purple)); }
+.state[data-kind="release"] .dot { background: rgb(var(--hue-yellow)); }
+
+.stack {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stack li {
+  padding: 0.15rem 0.5rem;
+  background: rgb(var(--ink) / 0.06);
+  font-family: var(--font-data);
+  font-size: 0.8125rem;
+  white-space: nowrap;
+}
+
+.links {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 1rem;
+  margin: 0;
+}
+
+.out {
+  display: inline-flex;
+  min-height: 28px;
+  align-items: center;
+  font-size: 0.9375rem;
+  color: rgb(var(--signal));
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* A 1x1 tile is a picture with a label: the line, the stack and the links
+   wait on the project page, one click away. */
+.cell[data-size="tile"] .links {
+  display: none;
+}
+
+@media (max-width: 1099px) {
+  .wall { --cols: 3; }
+}
+
+@media (max-width: 899px) {
+  .wall { --cols: 2; --row: 21rem; }
+}
+
+@media (max-width: 699px) {
+  .wall {
+    --cols: 1;
+    grid-auto-rows: auto;
+    gap: 0.75rem;
+  }
+
+  .cell[data-size] {
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+  .cell[data-size] .tile {
+    flex-direction: row;
+  }
+
+  .cell[data-size] .picture {
+    flex: 0 0 7rem;
+    aspect-ratio: 1;
+    border-block-end: 0;
+    border-inline-end: 1px solid rgb(var(--rule));
+  }
+
+  .cell[data-size] .caption {
+    flex: 1 1 0;
+    justify-content: center;
+    gap: 0.3rem;
+    padding: 0.7rem 0.85rem;
+  }
+
+  .cell[data-size] .name {
+    font-size: 1.0625rem;
+  }
+
+  .cell[data-size] .fact {
+    min-height: 0;
+    -webkit-line-clamp: 1;
+    line-clamp: 1;
+    font-size: 0.875rem;
+  }
+
+  .cell[data-size] .stack,
+  .cell[data-size] .links {
+    display: none;
+  }
+
+  .swatch {
+    font-size: 2.25rem;
+  }
+
+  /* The lead goes full-bleed: the picture across the whole phone. */
+  .cell[data-size="lead"] {
+    margin-inline: calc(var(--gutter) * -1);
+    margin-block: 0.75rem;
+  }
+
+  .cell[data-size="lead"] .tile {
+    flex-direction: column;
+    border-inline: 0;
+  }
+
+  .cell[data-size="lead"] .picture {
+    flex: none;
+    aspect-ratio: 16 / 10;
+    border-inline-end: 0;
+    border-block-end: 1px solid rgb(var(--rule));
+  }
+
+  .cell[data-size="lead"] .caption {
+    padding: 1rem var(--gutter) 1.1rem;
+    gap: 0.45rem;
+  }
+
+  .cell[data-size="lead"] .name {
+    font-size: 1.5rem;
+  }
+
+  .cell[data-size="lead"] .fact {
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+  }
+
+  .cell[data-size="lead"] .links {
+    display: flex;
+  }
+
+  .cell[data-size="lead"] .swatch {
+    font-size: 4.5rem;
+  }
+}
+
+@keyframes assemble {
+  from {
+    transform: translate(var(--tx), var(--ty)) rotate(var(--rot)) scale(var(--sc));
+  }
+  to {
+    transform: none;
+  }
+}
+
+@keyframes assemble-shade {
+  from { opacity: 0.7; }
+  to { opacity: 0; }
+}
+
+/*
+ * A filter re-hangs the wall. That is direct manipulation, so it is a short,
+ * time-based view transition (the filter links ask for one) rather than
+ * scroll: each tile keeps its own name and glides to its new place, and a
+ * tile leaving or arriving cross-fades.
+ */
+::view-transition-group(*) {
+  animation-duration: var(--dur-fast);
+  animation-timing-function: var(--ease-settle);
+}
+
+::view-transition-old(*),
+::view-transition-new(*) {
+  animation-duration: var(--dur-fast);
+}
+
+/*
+ * The three off-switches (motion contract §4). Each cancels the arrival
+ * outright, which leaves the plain wall — no `animation-play-state`, which
+ * would freeze every tile below the fold half-way in — and the re-hang on a
+ * filter is cut to an instant swap.
+ */
+@supports not (animation-timeline: view()) {
+  .tile,
+  .tile::after {
+    animation: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tile,
+  .tile::after {
+    animation: none;
+  }
+
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none;
+  }
+}
+
+:global(body.motion-paused) .tile,
+:global(body.motion-paused) .tile::after {
+  animation: none;
+}
+
+:global(html:has(body.motion-paused))::view-transition-group(*),
+:global(html:has(body.motion-paused))::view-transition-old(*),
+:global(html:has(body.motion-paused))::view-transition-new(*) {
+  animation: none;
+}

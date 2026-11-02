@@ -8,8 +8,8 @@
  * events, and counts rAF frames over wall clock; a discarded warm-up pass
  * per arm, then rounds interleaved with the order flipped each round, same
  * as `measure-work-fps.mjs`. `SET=many` mocks twenty collections through
- * `page.route` (nothing is written to the data); `REDUCED=1` runs the arm
- * under prefers-reduced-motion, which is the plain list with no riffle.
+ * `page.route` (nothing is written to the data); a label ending `-reduced` runs its arm
+ * under prefers-reduced-motion, which is the plain page with nothing scrubbed.
  */
 import { chromium } from "playwright-core";
 
