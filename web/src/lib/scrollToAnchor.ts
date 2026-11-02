@@ -61,6 +61,19 @@ export function focusForNavigation(el: HTMLElement, preventScroll: boolean): voi
 }
 
 /**
+ * The element a fragment names: the id first, then a named anchor, which is
+ * the order the HTML standard gives for finding a fragment's target. Markdown
+ * renderers and old content still emit `<a name>`.
+ */
+export function findAnchor(fragment: string): HTMLElement | null {
+  if (!fragment) return null;
+  return (
+    document.getElementById(fragment) ??
+    document.querySelector<HTMLElement>(`a[name="${CSS.escape(fragment)}"]`)
+  );
+}
+
+/**
  * Scrolls to the element with this id, easing only when the trip is short
  * enough to be worth watching.
  *

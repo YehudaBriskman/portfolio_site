@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useLocation, useNavigationType } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { focusForNavigation } from "@/lib/scrollToAnchor";
 import { HOME_TITLE, pageIdentityFor } from "@/lib/pageTitle";
 
@@ -39,12 +39,9 @@ import { HOME_TITLE, pageIdentityFor } from "@/lib/pageTitle";
  *
  * What this deliberately does not do
  * ----------------------------------
- * It does not scroll. It focuses, and on an ordinary route change it lets that
- * focus bring the heading into view, which is the same thing arrived at for the
- * right reason — the reader is put *on* the new page's heading rather than at a
- * scroll offset that happens to show it. Scroll restoration proper is a
- * separate concern with its own failure modes; see the `preventScroll` note
- * below for the two cases where something else already owns the position.
+ * It does not scroll, and its focus move does not either. Where the reader
+ * lands is `ScrollManager`'s, beside this in App.tsx (#196); see the note at
+ * the focus move below for why letting focus scroll was not the same thing.
  *
  * It also fires on the first render for the title only, never for focus.
  * Moving focus on initial page load is its own accessibility bug: nobody asked
@@ -127,7 +124,6 @@ function headingTarget(): HTMLElement | null {
 
 export default function RouteAnnouncer() {
   const { pathname, hash } = useLocation();
-  const navigationType = useNavigationType();
   const [announcement, setAnnouncement] = useState("");
 
   /*
@@ -136,8 +132,8 @@ export default function RouteAnnouncer() {
    * a second ref — and a ref rather than state because nothing renders
    * differently for having been announced.
    *
-   * It also absorbs the case the dependency list cannot: `hash` and
-   * `navigationType` are read here, so they are dependencies, so a hash-only
+   * It also absorbs the case the dependency list cannot: `hash` is read
+   * here, so it is a dependency, so a hash-only
    * change re-runs this effect. A fragment change is not a new page — it must
    * not re-announce and must not steal focus from whatever `scrollToAnchor`
    * has just put it on — and comparing the pathname is the whole guard.
@@ -193,25 +189,21 @@ export default function RouteAnnouncer() {
     setAnnouncement(name);
 
     /*
-     * `preventScroll` is true exactly when something else already owns the
-     * scroll position.
+     * A hash in the URL is the reader's stated destination, and
+     * `ScrollManager` is on its way to it and moves focus there itself;
+     * focusing the heading at all would be taking it off them, so this skips
+     * the focus move outright.
      *
-     *   A hash in the URL. The fragment is the reader's stated destination and
-     *   `scrollToAnchor` is on its way to it; focusing the heading at all
-     *   would be taking it off them, so this skips the focus move outright
-     *   rather than merely not scrolling.
-     *
-     *   A history traversal. Back and Forward restore where the reader was,
-     *   and yanking them to the top of a page they are returning to mid-read
-     *   is the same bug as focusing on first load. They still get the heading
-     *   focused — "nothing lands on `<body>`" has to hold for Back too — but
-     *   the viewport stays where the browser put it.
-     *
-     * Anything else is a link the reader just activated, where bringing the
-     * new page's heading into view is precisely what they asked for.
+     * Otherwise the heading is focused and never scrolled to. This used to
+     * let focus scroll on an ordinary link, and that was the only thing that
+     * moved the page on a route change — it put the heading in view, which is
+     * the top only when the heading is the first thing on the page; the 404's
+     * "Home" landed at scrollY 28 (#196). `ScrollManager` owns the position
+     * now: the first pixel on a link, the old place on Back and Forward.
+     * Focus still lands on the heading in every case, so "nothing lands on
+     * `<body>`" holds for Back too.
      */
     if (hash) return;
-    const preventScroll = navigationType === "POP";
 
     /*
      * The heading that was on screen when this navigation was announced — the
@@ -226,7 +218,7 @@ export default function RouteAnnouncer() {
     const started = performance.now();
 
     const take = (target: HTMLElement) => {
-      focusForNavigation(target, preventScroll);
+      focusForNavigation(target, true);
       ours = target;
     };
 
@@ -264,7 +256,7 @@ export default function RouteAnnouncer() {
     };
     raf = requestAnimationFrame(land);
     return () => cancelAnimationFrame(raf);
-  }, [pathname, hash, navigationType]);
+  }, [pathname, hash]);
 
   /*
    * Polite, atomic, and empty until it is not.

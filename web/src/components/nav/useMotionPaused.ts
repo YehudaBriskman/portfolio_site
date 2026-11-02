@@ -134,6 +134,16 @@ export function useMotionPaused(): [boolean, () => void] {
      * is the thing that moved, so the anchor is chosen from the section
      * boxes themselves.
      */
+    /*
+     * Only when the class actually changes. This effect also runs on mount,
+     * with nothing to toggle, and the restore then was not a no-op: a reader
+     * near a section's foot reads as `through` 1, so restoring put that
+     * section's bottom at the viewport's — and a cold load of `/#contact` on
+     * a phone, already landed under the bar, was thrown 487px off the plate
+     * (#196).
+     */
+    if (document.body.classList.contains("motion-paused") === paused) return;
+
     const where = readingPosition();
 
     document.body.classList.toggle("motion-paused", paused);

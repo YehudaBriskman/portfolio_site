@@ -139,6 +139,11 @@ jobs:
         run: npx playwright-core install --with-deps chromium-headless-shell
       - name: Accessibility floor (axe, WCAG 2.2 AA)
         run: npm run a11y
+      # Every link lands on its target (#196): the top of a new page, a hash's
+      # element under the bar, the old place on Back and Forward, at a laptop
+      # and a phone, against the same build.
+      - name: Links land where they point
+        run: npm run links
       - name: Report what shipped
         run: du -sh dist
 

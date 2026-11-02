@@ -15,7 +15,8 @@
     "test": "vitest run --reporter=dot",
     "test:ci": "vitest run --reporter=dot",
     "test:watch": "vitest",
-    "a11y": "node scripts/a11y/axe-routes.mjs"
+    "a11y": "node scripts/a11y/axe-routes.mjs",
+    "links": "node scripts/links/land.mjs"
   },
   "dependencies": {
     "@radix-ui/react-dropdown-menu": "^2.2.1",
