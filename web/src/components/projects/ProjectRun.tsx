@@ -12,7 +12,8 @@ import { objectAnchorId } from "@/lib/objectAnchor";
  * The work, travelling along a curve (#57, reopened by the owner 2026-11-02).
  *
  * The home page's peak. The stage pins, and while it is held the reader's
- * scroll carries the projects in from the right and along one snaking line,
+ * scroll carries the projects in from the reading end (the right in English,
+ * the left in Hebrew, #168) and along one snaking line,
  * each card held at the angle of the curve where it is. Several are on screen
  * at once, partly cropped at the edges, so the run reads as one continuous
  * line rather than as a slideshow of separate arrivals. Scrolling back up
@@ -35,7 +36,7 @@ import { objectAnchorId } from "@/lib/objectAnchor";
  *
  * The one piece of script is the keyboard answer. A card's place on screen is
  * a transform driven by the scroll position, so Tab reaching a card that is
- * still off to the right has nothing the browser can scroll sideways to: the
+ * still off at the reading end has nothing the browser can scroll sideways to: the
  * frame clips, it does not scroll. So on focus the page is scrolled — the
  * real scroll container, the document — to the moment that card stands in
  * the middle of the curve. The moment is not computed here: each card has a
@@ -67,8 +68,8 @@ export type ProjectRunProps = {
 };
 
 /*
- * Above 700px a card is at most 20rem in the run and 40rem in the plain list;
- * on a phone it is about three quarters of the window in the run and the full
+ * Above 700px a card is at most 28rem in the run and 40rem in the plain list;
+ * on a phone it is four fifths of the window in the run and the full
  * column in the list. The larger of each pair is the hint.
  */
 const SHOT_SIZES = "(min-width: 700px) 640px, 92vw";

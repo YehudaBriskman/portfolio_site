@@ -1,7 +1,8 @@
 /*
  * The run. The one engineered moment on the page (#57).
  *
- * The projects arrive from the right and travel leftward along one snaking
+ * The projects arrive from the reading end (the right in English, the left
+ * in Hebrew) and travel towards the start along one snaking
  * curve, each held at the angle of the curve where it stands, while the
  * stage is pinned. The reader's scroll is the only clock: stop and the line
  * stops, scroll up and it runs back along the same curve exactly.
@@ -23,17 +24,21 @@
  * to fight the first, nothing to snap, and no horizontal overflow on the
  * document.
  *
- * ONE LINE, N RANGES. Every card plays the same lap — on at the right edge,
- * off past the left — and they differ only in *when*: card i's range starts
+ * ONE LINE, N RANGES. Every card plays the same lap — on at the reading end,
+ * off past the start — and they differ only in *when*: card i's range starts
  * `i × gap` later on the stage's `contain` range. A scroll-driven animation
  * has no delay (§1), so the stagger is the ranges and nothing else. Three
  * numbers set the shape and the rest is derived:
  *
- *   --run-lead  how much of the hold passes on an empty stage before the
- *               first card enters (it enters against nothing, as the issue
- *               asks)
+ *   --run-lead  where the first card's lap starts on the hold. Slightly
+ *               negative: the owner asked for the work to start arriving a
+ *               little earlier (#170), so the first card's edge shows just
+ *               before the frame pins — about 7% of a window sooner than
+ *               the shipped run, measured with the inset fixed (below)
  *   --run-k     the spacing between neighbours, as a fraction of a lap —
- *               wider on a phone, where a card is most of the window
+ *               wider on a phone, where a card is most of the window; set
+ *               with the card width so the edge gap is about a third of a
+ *               card on a laptop and a few rem on a phone
  *   --run-end   how far along its lap the *last* card is when the hold ends,
  *               so the act exits on a line still in view and never on an
  *               empty stage
@@ -47,7 +52,7 @@
  * THE CURVE. Three animations, all on the same range, each on its own
  * property so they compose instead of overriding:
  *
- *   slot `transform`  run-x     the travel: linear, right edge to past the left
+ *   slot `transform`  run-x     the travel: linear, reading end to past the start
  *   slot `translate`  run-y     one full sine of height across the lap
  *   card `rotate`     run-lean  the tangent of that sine, so a card leans
  *                               with the road it is on
@@ -72,6 +77,16 @@
  * open, settled from above — and its year how much of it is left. It plays on
  * the link inside the slot over the first third of that card's lap, so it is
  * finished by the time the card reaches the middle of the window.
+ *
+ * RIGHT TO LEFT. In Hebrew the run mirrors (#168): the cards arrive from the
+ * left, travel rightward along the mirrored curve and lean the other way.
+ * That is one number, `--run-dir` — 1, or −1 under `html[dir="rtl"]` — and every
+ * horizontal quantity is multiplied by it: the travel, the lean, the
+ * arrival's origin and swing, the arrow and its nudge. The slot is anchored
+ * at `inset-inline-start`, so the travel is measured from the reading start
+ * in both directions. The height of the curve is vertical and does not turn.
+ * Nothing is mirrored by `scale`, so the text, the focus ring and the hit
+ * area are never drawn backwards and then turned round again.
  *
  * ── the three off-switches ────────────────────────────────────────────────
  *
@@ -105,8 +120,8 @@
 
 .stage {
   /* Shape. See the header for what each one means. */
-  --run-lead: 0.04;
-  --run-k: 0.3;
+  --run-lead: -0.0435;
+  --run-k: 0.315;
   --run-end: 0.62;
   --run-lap: calc((1 - var(--run-lead)) / ((var(--run-n, 4) - 1) * var(--run-k) + var(--run-end)));
   --run-gap: calc(var(--run-k) * var(--run-lap));
@@ -117,7 +132,7 @@
 
   /* Card and curve. In `cq*` units of the run, which is the frame less the
      bar, so the curve is drawn in the space it is seen in. */
-  --run-card: min(20rem, 70cqw);
+  --run-card: min(28rem, 80cqw);
   --run-amp: min(8cqh, 10cqw);
   /* The tangent's steepest lean, from the sine's own slope — 2πA over the
      lap's width — capped so a phone's tighter curve does not tip a card
@@ -127,16 +142,34 @@
   --run-tint: var(--panel-soft);
   --run-shade: 6 6 10;
 
+  /* The reading direction as a sign: every horizontal quantity in the run is
+     multiplied by it. See RIGHT TO LEFT in the header. */
+  --run-dir: 1;
+
   position: relative;
   /* Full bleed out of the section's measure; `body` clips the x axis. */
   margin-inline: calc(50% - 50vw);
   height: calc(100svh + var(--run-runway));
   view-timeline-name: --run;
+  /* Explicitly zero. The default, `auto`, takes the document's 88px
+     `scroll-padding-top` (Nav.module.css) as an inset, so the timeline ran
+     88px ahead of the pin and a focused card landed 57px off centre on a
+     laptop; the notes stage found the same (#171). */
+  view-timeline-inset: 0;
+}
+
+/*
+ * Matched on the attribute `locale.ts` writes on <html>, as Nav's sheet is,
+ * and not with `:dir(rtl)`: the build lowers `:dir()` to a list of `:lang()`
+ * selectors, which would tie the run's direction to the language instead.
+ */
+:global(html[dir="rtl"]) .stage {
+  --run-dir: -1;
 }
 
 @media (max-width: 699px) {
   .stage {
-    --run-k: 0.42;
+    --run-k: 0.43;
     --run-end: 0.55;
   }
 }
@@ -152,7 +185,7 @@
 .mark {
   --run-at: calc(var(--run-lead) + var(--run-i, 0) * var(--run-gap));
   position: absolute;
-  left: 0;
+  inset-inline-start: 0;
   top: calc((var(--run-at) + var(--run-lap) / 2) * (100% - 100svh));
   width: 1px;
   height: 0;
@@ -180,7 +213,7 @@
 .slot {
   --run-at: calc(var(--run-lead) + var(--run-i, 0) * var(--run-gap));
   position: absolute;
-  left: 0;
+  inset-inline-start: 0;
   top: 50%;
   width: var(--run-card);
 
@@ -198,12 +231,14 @@
   z-index: 1;
 }
 
+/* From past the reading end to past the reading start: right to left in
+   English, left to right in Hebrew. */
 @keyframes run-x {
   from {
-    transform: translateX(calc(100cqw + 15%));
+    transform: translateX(calc(var(--run-dir) * (100cqw + 15%)));
   }
   to {
-    transform: translateX(-115%);
+    transform: translateX(calc(var(--run-dir) * -115%));
   }
 }
 
@@ -233,10 +268,11 @@
 
 /* The lean is the curve's slope: steepest at each crossing, level at each
    crest — a cosine, so its easings are the height's, swapped. Negative at
-   the right edge: the road is rising towards it. */
+   the reading end in English: the road is rising towards it. The sign of the
+   direction turns it, so a Hebrew card leans the other way. */
 @keyframes run-lean {
   0% {
-    rotate: calc(-1 * var(--run-lean));
+    rotate: calc(-1 * var(--run-dir) * var(--run-lean));
     animation-timing-function: cubic-bezier(0.12, 0, 0.39, 0);
   }
   25% {
@@ -244,7 +280,7 @@
     animation-timing-function: cubic-bezier(0.61, 1, 0.88, 1);
   }
   50% {
-    rotate: var(--run-lean);
+    rotate: calc(var(--run-dir) * var(--run-lean));
     animation-timing-function: cubic-bezier(0.12, 0, 0.39, 0);
   }
   75% {
@@ -252,7 +288,7 @@
     animation-timing-function: cubic-bezier(0.61, 1, 0.88, 1);
   }
   100% {
-    rotate: calc(-1 * var(--run-lean));
+    rotate: calc(-1 * var(--run-dir) * var(--run-lean));
   }
 }
 
@@ -295,32 +331,33 @@
   }
 }
 
-/* The pile's keyframe, with two things folded in that used to come from
+/* The pile's keyframe, less its `scale` (every card on the run is one size,
+   arriving included: #170), with two things folded in that used to come from
    elsewhere: the perspective the pile's slot lent it, and the gesture's
    origin. `transform-origin` is shared with the lean, which must pivot on the
    centre, so the origin is written as the translate pair a transform-origin
    is — out to the origin, transform, back — from the offsets the component
-   splits off `--arrive-origin`. */
+   splits off `--arrive-origin`. The x offset and the swing take the
+   direction's sign, so a card that swings open from the left edge in English
+   swings open from the right in Hebrew. */
 @keyframes run-arrive {
   from {
     transform:
-      translate(var(--arrive-ox, 0%), var(--arrive-oy, 50%))
+      translate(calc(var(--run-dir) * var(--arrive-ox, 0%)), var(--arrive-oy, 50%))
       perspective(1400px)
       translateY(var(--arrive-lift, 110px))
       rotateX(var(--arrive-tip, 20deg))
-      rotateY(var(--arrive-swing, 0deg))
-      scale(var(--arrive-shrink, 0.86))
-      translate(calc(-1 * var(--arrive-ox, 0%)), calc(-1 * var(--arrive-oy, 50%)));
+      rotateY(calc(var(--run-dir) * var(--arrive-swing, 0deg)))
+      translate(calc(-1 * var(--run-dir) * var(--arrive-ox, 0%)), calc(-1 * var(--arrive-oy, 50%)));
   }
   to {
     transform:
-      translate(var(--arrive-ox, 0%), var(--arrive-oy, 50%))
+      translate(calc(var(--run-dir) * var(--arrive-ox, 0%)), var(--arrive-oy, 50%))
       perspective(1400px)
       translateY(0)
       rotateX(0deg)
       rotateY(0deg)
-      scale(1)
-      translate(calc(-1 * var(--arrive-ox, 0%)), calc(-1 * var(--arrive-oy, 50%)));
+      translate(calc(-1 * var(--run-dir) * var(--arrive-ox, 0%)), calc(-1 * var(--arrive-oy, 50%)));
   }
 }
 
@@ -360,7 +397,7 @@
 /*
  * The label is at the start edge, under the picture, and the arrow at the
  * end. A card on a travelling run is cropped far longer than it is whole —
- * on the right while it enters, and that is where the reader meets it — so
+ * at its start edge while it enters, and that is where the reader meets it — so
  * the name and the fact are set where the window shows them first.
  */
 .plinth {
@@ -376,18 +413,47 @@
   min-width: 0;
 }
 
+/* One box for every card (#170): the width is `--run-card` and the height is
+   the picture's 16:10 plus a plinth of exactly one line of name, two of
+   fact and one of fields — each part both clamped to and reserving its
+   lines, so a short tagline or a long title cannot move the card's edge. */
+.label > :first-child,
+.label > p {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.label > :first-child {
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+}
+
+.label > p {
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  block-size: 2lh;
+}
+
+.label > ul {
+  block-size: 1lh;
+  overflow: hidden;
+}
+
 .onward {
   flex: none;
   font-family: ui-sans-serif, system-ui, "Segoe UI Symbol", "Noto Sans Symbols 2", sans-serif;
   font-size: 1.125rem;
   line-height: 1;
   color: rgb(var(--ink-soft));
+  /* The arrow points onward, which is the reading end: turned in Hebrew. */
+  scale: var(--run-dir) 1;
   transition: transform var(--dur-fast) var(--ease-settle), color var(--dur-fast) ease;
 }
 
 @media (hover: hover) and (pointer: fine) {
   .card:hover .onward {
-    transform: translateX(3px);
+    transform: translateX(calc(var(--run-dir) * 3px));
     color: rgb(var(--ink));
   }
 }
@@ -396,19 +462,6 @@
   display: block;
   height: 0;
   outline: none;
-}
-
-/*
- * Right to left, the run comes in from the left. The whole run is mirrored
- * and each card mirrored back, so the curve, the lean and the travel all turn
- * round together and the text inside reads the right way.
- */
-:global(html[dir="rtl"]) .run {
-  scale: -1 1;
-}
-
-:global(html[dir="rtl"]) .card {
-  scale: -1 1;
 }
 
 /* ── the three off-switches, one finished state ─────────────────────────── */
@@ -442,10 +495,6 @@
   .mark {
     top: 0;
   }
-  :global(html[dir="rtl"]) .run,
-  :global(html[dir="rtl"]) .card {
-    scale: none;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -476,10 +525,6 @@
   }
   .mark {
     top: 0;
-  }
-  :global(html[dir="rtl"]) .run,
-  :global(html[dir="rtl"]) .card {
-    scale: none;
   }
 }
 
@@ -515,11 +560,6 @@
 
 :global(body.motion-paused) .mark {
   top: 0;
-}
-
-:global(html[dir="rtl"] body.motion-paused) .run,
-:global(html[dir="rtl"] body.motion-paused) .card {
-  scale: none;
 }
 
 @media (forced-colors: active) {

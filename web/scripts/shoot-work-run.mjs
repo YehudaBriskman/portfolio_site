@@ -12,6 +12,12 @@
  *   run-<w>x<h>-reduced.png     prefers-reduced-motion: the plain list
  *   run-<w>x<h>-paused.png      body.motion-paused: the same plain list
  *
+ * With `RUN_DIR=rtl` it shoots the Hebrew run (#168) into the same folder
+ * with `-he` after the size: `<html>` gets `dir="rtl" lang="he"` before any
+ * frame, as `locale.ts` would set it, since the switcher keeps Hebrew
+ * disabled until the strings exist. `RUN_POINTS=0.12,0.5,0.88` narrows the
+ * forward points.
+ *
  * and prints the checks that are not pictures: the document's horizontal
  * overflow, whether the reverse frames are byte-identical to the forward
  * ones, and where the focused card landed.
@@ -38,7 +44,10 @@ const WINDOWS = [
   [1440, 900],
   [390, 844],
 ];
-const POINTS = [0, 0.12, 0.3, 0.5, 0.7, 0.88, 1];
+const RTL = process.env.RUN_DIR === "rtl";
+const POINTS = process.env.RUN_POINTS
+  ? process.env.RUN_POINTS.split(",").map(Number)
+  : [0, 0.12, 0.3, 0.5, 0.7, 0.88, 1];
 
 const browser = await chromium.launch({
   executablePath: process.env.CHROME || undefined,
@@ -60,6 +69,12 @@ async function open(width, height, { reduced = false } = {}) {
   });
   page.on("pageerror", (e) => console.log("pageerror", e.message));
   await page.goto(`${BASE}/`, { waitUntil: "load" });
+  if (RTL) {
+    await page.evaluate(() => {
+      document.documentElement.dir = "rtl";
+      document.documentElement.lang = "he";
+    });
+  }
   await page.waitForFunction(() => document.querySelector("[data-run-stage] a"), null, {
     polling: 500,
     timeout: 20000,
@@ -97,7 +112,7 @@ async function overflow(page) {
 }
 
 for (const [w, h] of WINDOWS) {
-  const tag = `${w}x${h}`;
+  const tag = `${w}x${h}${RTL ? "-he" : ""}`;
   const page = await open(w, h);
   /* One pass through first, so every screenshot has loaded and faded in and
      a reverse frame differs from its forward frame only if the run does. */
@@ -115,7 +130,7 @@ for (const [w, h] of WINDOWS) {
   await page.screenshot({ path: `${OUT}/run-${tag}-${String(n).padStart(2, "0")}-exit.png` });
 
   /* Back up: every point must reproduce its forward frame. */
-  for (const t of [0.7, 0.3]) {
+  for (const t of [0.7, 0.3].filter((p) => p in forward)) {
     await toPoint(page, t);
     await page.screenshot({ path: `${OUT}/run-${tag}-back-${t}.png` });
     const buf = await page.screenshot({ clip: below(w, h) });
