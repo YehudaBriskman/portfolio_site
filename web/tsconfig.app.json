@@ -1,8 +1,11 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
+    /* ES2022, not ES2020: the app already uses `Array.prototype.at`, which
+       only type-checked because @types/node <= 22 declared it globally. Vite's
+       default build target (baseline widely available) ships it natively. */
+    "target": "ES2022",
     "useDefineForClassFields": true,
-    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "skipLibCheck": true,
 

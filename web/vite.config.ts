@@ -32,6 +32,12 @@ function makeIdGen() {
 }
 const nextId = makeIdGen();
 
+/** A module id inside one of the named packages' own directories. */
+function pkg(...names: string[]) {
+  const alt = names.map((n) => n.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&")).join("|");
+  return new RegExp(`[\\\\/]node_modules[\\\\/](?:${alt})[\\\\/]`);
+}
+
 function apiProxy(target: string): ProxyOptions {
   return {
     target,
@@ -116,25 +122,29 @@ export default defineConfig(() => {
      * them here dragged both onto `/`, `/blog` and `/projects`, which render
      * neither. Do not add a package to a list without checking it is used
      * above `<Routes>` or in the chrome.
+     *
+     * Vite 8 bundles with Rolldown, which has no object form of
+     * `manualChunks`; the same four groups are `codeSplitting` groups matched
+     * on the package directory. `react-router` is named beside
+     * `react-router-dom` because v7 moved the code into it and left `-dom` a
+     * re-export.
      */
     build: {
-      rollupOptions: {
+      rolldownOptions: {
         output: {
-          manualChunks: {
-            react: ["react", "react-dom", "react-router-dom"],
-            query: ["@tanstack/react-query"],
-            ui: [
-              "@radix-ui/react-dropdown-menu",
-              "@radix-ui/react-slot",
-              "@radix-ui/react-tooltip",
+          codeSplitting: {
+            groups: [
+              { name: "react", test: pkg("react", "react-dom", "scheduler", "react-router", "react-router-dom") },
+              { name: "query", test: pkg("@tanstack/react-query", "@tanstack/query-core") },
+              { name: "ui", test: pkg("@radix-ui/react-dropdown-menu", "@radix-ui/react-slot", "@radix-ui/react-tooltip") },
+              { name: "schema", test: pkg("zod") },
             ],
-            schema: ["zod"],
           },
         },
       },
     },
     resolve: {
-      alias: { "@": path.resolve(__dirname, "./src") },
+      alias: { "@": path.resolve(import.meta.dirname, "./src") },
     },
   };
 });
