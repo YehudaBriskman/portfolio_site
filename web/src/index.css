@@ -24,7 +24,8 @@
  * token layer below. The byte count per reader, measured on the built files:
  *
  *   English  audiowide 13,816 + jim-nightshade 51,532 +
- *            comic-relief 400 18,032 + 700 22,740            = 106,120  (103.6KB)
+ *            atkinson-hyperlegible-next 400-700 20,056       =  85,404   (83.4KB)
+ *            (was comic-relief 400 18,032 + 700 22,740       = 106,120 before #97)
  *   Hebrew   rubik-glitch-hebrew 15,216 + solitreo-hebrew 10,892 +
  *            playpen-hebrew 11,924                           =  38,032   (37.1KB)
  *            plus, on any page that also sets Latin — which every page
@@ -45,6 +46,13 @@
  * language chosen at runtime, plus the three Hebrew faces' Latin halves,
  * because every string on this page is still Latin. A Hebrew page with
  * Hebrew copy in it costs the 38,032 above.
+ *
+ * Re-measured for #97 by scripts/fontwork/shoot-reading-face.mjs, on
+ * production builds of main and of this change: the English home page
+ * fetches 106,120 -> 85,404 bytes (every font it touches, preloaded or not,
+ * now that the ask link puts a 700 on the first screen), and the same page
+ * with `lang="he"` 256,580 -> 235,864. The difference is the reading face
+ * and nothing else; the Hebrew faces are byte-identical.
  */
 
 /* ── English ──────────────────────────────────────────────────────────── */
@@ -66,24 +74,74 @@
   src: url('/fonts/jim-nightshade-400.woff2') format('woff2');
 }
 /*
- * Data. Two weights, because this is the one role that still has a real
- * emphasis to carry — `<b>` inside a chip, `strong` inside a note — and
- * Comic Relief ships 400 and 700 and nothing between. A CSS request for 500
- * resolves down to 400 rather than synthesising, which is the intent.
+ * Text and data. Issue #97: Atkinson Hyperlegible Next, replacing Comic
+ * Relief, which was the best reading face in the set when #73 gave it the
+ * job and is the one the owner calls childish.
+ *
+ * Next and not the 2020 Atkinson Hyperlegible. They are the same design on
+ * the pairs the face exists for — `scripts/fontwork/legibility.mjs` puts
+ * their mean distinctness over twelve confusable pairs at 0.401 and 0.396,
+ * Next ahead on l/I, n/h and rn/m, the original on I/1, O/0 and p/q, the
+ * rest level (Comic Relief: 0.344) — and Next is the release
+ * the Braille Institute still maintains. The byte case is the decider: the
+ * original is two hinted statics, 16,676 + 17,080, and Next is one variable
+ * file clipped to 400..700 at 20,056 for both weights.
+ *
+ * ONE FILE FOR BOTH WEIGHTS, AND WHAT THAT CHANGES. Comic Relief was two
+ * statics, and a CSS request for 500 resolved down to 400. This file is
+ * variable across 400..700, so `font-medium` on a `<b>` — four call sites,
+ * the counts on /projects and the project facts — now renders a real 500.
+ * That is what Playpen Sans Hebrew has always done with the same request,
+ * so the two languages now agree, and it is what `font-medium` means.
+ * 700 is a real master on the axis, not a synthesis, so
+ * `--weight-text-strong` holds exactly as #73 needs it to.
+ *
+ * Unhinted, where Comic Relief was hinted: google/fonts ships Next without
+ * TrueType instructions. Chromium on Windows renders through DirectWrite,
+ * which ignores horizontal hinting at these sizes anyway; recorded here so a
+ * soft 11.52px field line on an old Windows box has a known suspect.
+ *
+ * `unicode-range` is the Latin subset it was cut to, so the declaration says
+ * truthfully what the file can draw: a Hebrew character in an English page's
+ * text role falls straight through to the system sans rather than asking a
+ * file that has no Hebrew in it.
+ *
+ * `size-adjust: 108.9%`, AND WHY THE FACE IS SCALED RATHER THAN THE RAMP.
+ * Atkinson is drawn small on its body: x-height 0.496em against Comic
+ * Relief's 0.540em, and every advance 6-7.5% narrower at the same
+ * font-size. Swapped in at 100% it reads as the whole site's text dropping
+ * a size, which is backwards for a change made in the name of legibility.
+ * And every size in the ramp, the 62ch measure, the phone root's 106.25%,
+ * the 15rem corner blocks and the field line's fit at 390px were all
+ * settled looking at Comic Relief's apparent size. 0.540 / 0.496 = 1.089
+ * gives Atkinson Comic Relief's x-height exactly, so each of those numbers
+ * keeps the meaning it was chosen for and only the letterforms change.
+ * Measured in the DOM by scripts/fontwork/widths.html: at 108.9% the field line is 1.6% narrower than it
+ * was, running text 2.4% wider, the ask link 1.7% wider — against 6-7.5%
+ * narrower everywhere unadjusted. `ch` is font-relative, so the 62ch
+ * measure scales with the face and stays ~62 characters.
+ *
+ * Contrast, re-measured off the rendered glyphs at all fifteen sizes the
+ * two roles are set at (specimen.html, coverage-weighted, size-adjust in
+ * effect): on paper the lowest is 4.69:1 for a 12px chip in --ink-soft,
+ * against Comic Relief's 4.75:1 there, and every row clears 4.5:1. The
+ * largest move is body copy in --ink, 9.96 -> 9.56:1 — Atkinson's strokes
+ * are slightly lighter at 400 — and the bold steps gain (+0.07 to +0.24).
+ * On the panel every row is within 0.09 of what it was.
+ *
+ * Caps come out at 0.727em against Comic Relief's 0.759em, so the
+ * uppercase field line and eyebrows are about 4% smaller in cap height than
+ * before. Matching caps instead would have made prose 4% larger than it
+ * was; the x-height is what running text is read by, so it wins.
  */
 @font-face {
-  font-family: 'Comic Relief';
+  font-family: 'Atkinson Hyperlegible Next';
   font-style: normal;
-  font-weight: 400;
+  font-weight: 400 700;
   font-display: swap;
-  src: url('/fonts/comic-relief-400.woff2') format('woff2');
-}
-@font-face {
-  font-family: 'Comic Relief';
-  font-style: normal;
-  font-weight: 700;
-  font-display: swap;
-  src: url('/fonts/comic-relief-700.woff2') format('woff2');
+  size-adjust: 108.9%;
+  src: url('/fonts/atkinson-hyperlegible-next-400-700.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
 /* ── Hebrew ───────────────────────────────────────────────────────────── */
@@ -510,11 +568,29 @@
      * Nightshade and Solitreo and it resolves to Comic Sans on Windows and to
      * nothing predictable elsewhere, which is a worse first paint than a
      * plain sans under `font-display: swap`.
+     *
+     * ── why the text face changed hands again (#97) ──
+     *
+     * #73 gave reading to Comic Relief because it was the best face drawn
+     * for continuous reading among the three it had. The owner's word for it
+     * since is "childish", and the role is now Atkinson Hyperlegible Next:
+     * the Braille Institute's face, drawn so the pairs that collapse at small
+     * sizes and low acuity stay apart. That is measured, not taken on trust —
+     * `scripts/fontwork/legibility.mjs` renders twelve confusable pairs,
+     * blurs them the way a low-acuity eye does, and scores how different
+     * they still are. Mean distinctness 0.401 against Comic Relief's 0.344,
+     * and the gains are where the face says they are: I/1 0.716 against
+     * 0.401, l/1 0.853 against 0.282. Comic Relief still wins rn/m, because
+     * it is drawn wide and loose — the one place character and legibility
+     * were pulling the same way.
+     *
+     * Only the text and data roles moved. Display and accent are untouched,
+     * and the four-role split #73 settled stands as it was.
      */
     --font-display: 'Audiowide', ui-sans-serif, system-ui, sans-serif;
-    --font-text:    'Comic Relief', ui-sans-serif, system-ui, sans-serif;
+    --font-text:    'Atkinson Hyperlegible Next', ui-sans-serif, system-ui, sans-serif;
     --font-accent:  'Jim Nightshade', ui-sans-serif, system-ui, sans-serif;
-    --font-data:    'Comic Relief', ui-sans-serif, system-ui, sans-serif;
+    --font-data:    'Atkinson Hyperlegible Next', ui-sans-serif, system-ui, sans-serif;
     /*
      * Not a fourth role, and not a face: the generic monospace.
      *
@@ -531,8 +607,8 @@
      * Weights, because five of the six faces have exactly one.
      *
      * Audiowide, Jim Nightshade, Rubik Glitch and Solitreo ship a single
-     * master; Comic Relief ships 400 and 700; Playpen Sans Hebrew is variable
-     * and clipped to 400-700. So `font-weight: 900` — which the display
+     * master; Atkinson Hyperlegible Next and Playpen Sans Hebrew are
+     * variable and each clipped to 400-700. So `font-weight: 900` — which the display
      * register asked for everywhere — is now a request no file can answer,
      * and the browser answers it by smearing the 400 outline sideways.
      * `font-synthesis-weight: none` on `body` turns that off, and these
@@ -544,9 +620,13 @@
      * The one real bold in the set, and the reason the display role could be
      * pulled back off small type at all.
      *
-     * Comic Relief ships a 700 master and Playpen Sans Hebrew is variable to
-     * 700, so both text faces can carry a heading without the browser being
-     * asked to invent one. Everything that used to be set in the display face
+     * Atkinson Hyperlegible Next and Playpen Sans Hebrew are both variable
+     * to 700 — 700 is a drawn master on Atkinson's 200..800 axis, not an
+     * interpolation guess — so both text faces can carry a heading without
+     * the browser being asked to invent one. Confirmed rather than assumed
+     * (#97): `document.fonts` reports the face loaded at 400 and 700, and a
+     * 700 run measures wider than the 400 by the drawn bold's advances,
+     * which a `font-synthesis-weight: none` fallback to 400 would not. Everything that used to be set in the display face
      * below the section register — object names, `.display-tight`, buttons —
      * is this instead. It is not available in the accent or display roles:
      * Audiowide, Jim Nightshade, Rubik Glitch and Solitreo have one master
@@ -600,14 +680,45 @@
      * English faces are drawn with less air between letters than Archivo,
      * so there is less of it to take away.
      *
+     * RE-DERIVED FOR THE READING FACE (#97), and every value held. The text
+     * and data steps were measured again by the same method, now inside
+     * `scripts/fontwork/specimen.html` (its ramp table), for Comic Relief
+     * and Atkinson Hyperlegible Next at its 108.9% size-adjust, at the
+     * weight each step ships at. Atkinson's own column:
+     *
+     *   step                 size     merges at   residue-matched  shipped
+     *   head (object, 700)   35.2px   -0.0225em   -0.0150em        -0.020em
+     *   sub                  32px     -0.0400em   -0.0275em        -0.005em
+     *   ask (sub, 700)       17px     -0.0150em   +0.0075em        -0.005em
+     *   body                 19px     -0.0200em   +0.0025em         0em
+     *   field                11.52px  -0.0350em   (never)          +0.180em
+     *
+     * Head is the one worth reading. Comic Relief merged *at* -0.020em —
+     * two letters of a bold object name were touching at 35.2px for as long
+     * as #73's text-strong headings have shipped — and Atkinson clears it by
+     * 0.0025em with 0.13px of gap. The residue-matched value for the text
+     * face alone is -0.015em; the token is shared with Audiowide, for which
+     * -0.020em is right, and splitting it means editing `.display-tight` and
+     * the object scale, which is outside this block. Recorded, not changed.
+     *
+     * Body: the derived value is +0.0025em, which at 19px is 0.05px and one
+     * 0.125px measurement quantum from zero. 0 holds; it was measured.
+     *
+     * Field: at +0.180em Atkinson leaves 2.50px between glyphs at 11.52px,
+     * which is exactly what Playpen Sans Hebrew leaves at the same step (see
+     * the Hebrew block below) — so the two languages' field lines now carry
+     * the same air. IBM Plex Mono's 3.25px is a monospace's built-in gap and
+     * no proportional face reaches it short of +0.24em, which is a word
+     * spacing, not a letter spacing.
+     *
      * Line height runs inverse to size and inverse to measure: display 0.94,
      * body 1.6. Wider lines need more leading.
      */
     --track-display: -0.030em;   /* >= 56px   Audiowide; was -0.045em */
-    --track-head:    -0.020em;   /* 32 - 56px Audiowide; was -0.035em */
+    --track-head:    -0.020em;   /* 32 - 56px Audiowide; Atkinson 700 clears it by 0.0025em */
     --track-sub:     -0.005em;   /* 20 - 32px serves both display and text */
-    --track-body:     0em;       /* Jim Nightshade has 0.13px of air at 19px */
-    --track-field:    0.180em;   /* the field line; measured, transfers */
+    --track-body:     0em;       /* Atkinson derives +0.0025em: one quantum, held at 0 */
+    --track-field:    0.180em;   /* 2.50px of air, the same as Playpen Sans Hebrew */
     --measure:        62ch;
 
     /* `--signal`, not `--accent`: shadcn's primitives already own that name
@@ -797,6 +908,46 @@
    * It sits after :root rather than relying on specificity: `[lang="he"]` is
    * one attribute selector and `:root` is one pseudo-class, which is a tie,
    * and a tie is decided by source order.
+   */
+  /*
+   * WHY HEBREW KEEPS PLAYPEN SANS HEBREW (#97).
+   *
+   * Atkinson Hyperlegible has no Hebrew — not the 2020 release, not Next —
+   * so English moving to it decides nothing here, and the question #97 asks
+   * is whether a Hebrew face chosen on the same grounds, legibility before
+   * character, would beat the one Hebrew has. It was measured rather than
+   * argued. `scripts/fontwork/legibility.mjs` renders twelve pairs Hebrew
+   * readers confuse — ד/ר, ב/כ, ה/ח, ח/ת, ו/ז, ו/ן, ז/ן, ס/ם, ג/נ, י/ו,
+   * כ/נ, ע/צ — blurs them as a low-acuity eye does (σ 0.6px at 16px), and
+   * scores how different each pair still is, for Playpen Sans Hebrew and
+   * the seven Hebrew sans faces on Google Fonts drawn for text:
+   *
+   *   face                  worst pair   mean   (0 = identical, 1 = no ink shared)
+   *   Playpen Sans Hebrew   0.207        0.423
+   *   Heebo                 0.113        0.283
+   *   Varela Round          0.128        0.260
+   *   Noto Sans Hebrew      0.111        0.258
+   *   Assistant             0.106        0.250
+   *   Rubik                 0.054        0.238
+   *   Open Sans             0.065        0.225
+   *   Alef                  0.090        0.210
+   *
+   * Playpen is the most legible face in the set by this measure, by a wide
+   * margin, on the worst pair and on the mean. The reason is the same one
+   * that makes it look playful: a handwriting-derived face draws ה with its
+   * gap open and ח closed, ו and ז with different heads, ס round and ם
+   * square, where a grotesque harmonises those shapes toward each other —
+   * which is exactly what a low-acuity reader cannot afford. In English
+   * "childish" and "hard to tell apart" were the same complaint about the
+   * same face; in Hebrew they come apart, and legibility is the one #97 asks
+   * to put first. So Hebrew is unchanged, and the two languages read in
+   * different faces, which the display and accent roles already did.
+   *
+   * What this does not measure is familiarity — a reader's eye is trained
+   * on grotesques — and that is the argument for a switch if one comes. The
+   * strongest candidate if it does is Heebo: the best mean among the
+   * grotesques (Varela Round edges it on the worst pair), 7,984 bytes for its Hebrew half at 400..700 against
+   * Playpen's 11,924. Cut by `probe-reading-face.sh`; not shipped.
    */
   :root:lang(he),
   [lang='he'] {
