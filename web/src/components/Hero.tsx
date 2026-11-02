@@ -1,3 +1,4 @@
+import { useState, useSyncExternalStore } from "react";
 import ObjectLabel from "@/components/gallery/ObjectLabel";
 import type { LabelField } from "@/components/gallery/objectLabel";
 import { projects } from "@/data/projects";
@@ -5,6 +6,7 @@ import { plate, plateTitle } from "@/data/site";
 import HeroCorners from "@/components/HeroCorners";
 import styles from "@/components/Hero.module.css";
 import arrival from "@/components/HeroArrival.module.css";
+import { getEntry, subscribeEntry, type Entry } from "@/components/motion/entry";
 
 /*
  * The first screen: one composed picture, assembled in four moves.
@@ -115,12 +117,21 @@ import arrival from "@/components/HeroArrival.module.css";
  *
  * The arrival, and the one thing it must not cost
  * -----------------------------------------------
- * Since #162 there is no arrival on a clock. The screen is whole at scroll 0
- * and, as the section leaves through the top of the window, each part makes
- * its old arrival gesture backwards — the letters lift under a paper mask,
- * the figure sinks behind one, the two lines slide back to their sides — and
- * scrolling up runs every one of them forwards. All of it is
- * `HeroArrival.module.css`, on the section's own `--hero` view timeline.
+ * Since #162 the screen is whole at scroll 0 and, as the section leaves
+ * through the top of the window, each part makes its arrival gesture
+ * backwards — the letters lift under a paper mask, the figure sinks behind
+ * one, the two lines slide back to their sides — and scrolling up runs every
+ * one of them forwards. All of it is `HeroArrival.module.css`, on the
+ * section's own `--hero` view timeline.
+ *
+ * Once a visit the same gestures also run forwards on their own, and #194 is
+ * about *when*. The arrival used to start at mount, and the entry shutter
+ * lifts when the page is ready, which is always later — so the whole thing
+ * played behind the cover and the reader was shown a screen that had already
+ * arrived. Now it waits for the shutter to say it is lifting
+ * (`motion/entry.ts`), and only a hero that mounted under the cover waits at
+ * all: one that mounts after it (a client-side navigation back here) is not
+ * part of the entry and is simply whole. See `useArrival` below.
  *
  * The constraint underneath all of it: **the ink is painted on frame one.**
  * The previous reveal started the `h1` at `opacity: 0`, which takes the
@@ -187,7 +198,35 @@ const PLATE_FIELDS: LabelField[] = [
  */
 const PRIORITY: { fetchpriority: "high" } = { fetchpriority: "high" };
 
+/*
+ * Whether this hero is part of the visit's entry, and if so where it is.
+ *
+ *   "held"  mounted under the shutter, which has not started to lift. The
+ *           stylesheet declares nothing for it: the screen is whole and
+ *           painted under the cover, so LCP is decided exactly as before,
+ *           and only the arrival is held back.
+ *   "play"  the shutter has started to lift. The arrival is declared, and so
+ *           starts, in the commit the signal arrives in.
+ *   absent  not part of the entry: mounted after the shutter left, or there
+ *           was no shutter because motion is off. Nothing to play.
+ *
+ * Whether it is part of the entry is read once, at mount, and never again —
+ * the store only moves forward, so a later read would only ever say "lifted"
+ * and switch a playing arrival off halfway.
+ */
+type Arrival = "held" | "play" | undefined;
+
+const alwaysLifted = (): Entry => "lifted";
+
+function useArrival(): Arrival {
+  const entry = useSyncExternalStore(subscribeEntry, getEntry, alwaysLifted);
+  const [inEntry] = useState(() => getEntry() !== "lifted");
+  if (!inEntry) return undefined;
+  return entry === "covered" ? "held" : "play";
+}
+
 export default function Hero() {
+  const arrives = useArrival();
   return (
     /*
       `overflow-x: clip` and not `hidden`: the two remaining lines enter from
@@ -227,7 +266,7 @@ export default function Hero() {
           label. The section around it carries the `--hero` timeline every
           part of the picture reads.
         */}
-        <div className={`${styles.composition} ${arrival.stage}`}>
+        <div className={`${styles.composition} ${arrival.stage}`} data-arrival={arrives}>
           {/*
             The figure, out of flow and underneath the type.
 

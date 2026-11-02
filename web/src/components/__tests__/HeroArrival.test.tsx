@@ -1,8 +1,9 @@
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { act, render, screen } from "@testing-library/react";
+import { getEntry, resetEntryForTests, setEntry } from "@/components/motion/entry";
 import Hero from "@/components/Hero";
 import ObjectLabel from "@/components/gallery/ObjectLabel";
 import HeroCorners from "@/components/HeroCorners";
@@ -58,6 +59,7 @@ function atBlock(css: string, prelude: string): string {
 }
 
 const GATE = "@supports (animation-timeline: view())";
+const NO_TIMELINES = "@supports not (animation-timeline: view())";
 
 /* Everything outside the gate: what every off-switch renders. */
 function outsideGate(css: string): string {
@@ -113,7 +115,11 @@ describe("the first screen's hooks", () => {
     expect(document.body.dataset.heroArrived).toBeUndefined();
     expect(ARRIVAL).toMatch(/view-timeline:\s*--hero/);
     expect(ARRIVAL).toMatch(/animation-timeline:\s*--hero/);
-    expect(ARRIVAL).not.toMatch(/\d+ms/);
+    /* The one clock left is the entry's arrival (#194), and it is reachable
+       only through the attribute the shutter's signal puts on the stage. */
+    const clocked = [...ARRIVAL.matchAll(/([^{}]+)\{[^{}]*\d+ms[^{}]*\}/g)].map((m) => m[1].trim());
+    expect(clocked.length).toBeGreaterThan(0);
+    for (const selector of clocked) expect(selector).toContain('[data-arrival="play"]');
     /* Each letter knows how many there are, so the last can go first. */
     const letter = container.querySelector<HTMLElement>("[data-letter]");
     expect(letter?.style.getPropertyValue("--letters")).toBe(String(LETTERS));
@@ -248,6 +254,110 @@ describe("the name, split into letters", () => {
   });
 });
 
+describe("the arrival waits for the cover to lift (#194)", () => {
+  /* Each test is its own visit: the entry is decided once a visit. */
+  beforeEach(() => resetEntryForTests());
+  afterEach(() => {
+    vi.restoreAllMocks();
+    resetEntryForTests();
+  });
+
+  const stageOf = (container: HTMLElement) =>
+    container.querySelector("[data-portrait]")!.parentElement as HTMLElement;
+
+  it("holds the arrival while the shutter covers the page, and plays it on the commit the lift starts in", () => {
+    const { container } = render(<Hero />);
+    const stage = stageOf(container);
+
+    /* Under the cover: held, which the stylesheet does not match — so the
+       screen is whole and painted, and LCP is decided as it always was. */
+    expect(getEntry()).toBe("covered");
+    expect(stage).toHaveAttribute("data-arrival", "held");
+    expect(screen.getByRole("img")).toBeInTheDocument();
+
+    act(() => setEntry("lifting"));
+    expect(stage).toHaveAttribute("data-arrival", "play");
+
+    /* And it stays playing when the shutter is gone: a hero that read
+       "lifted" at that point would cut its own arrival off halfway. */
+    act(() => setEntry("lifted"));
+    expect(stage).toHaveAttribute("data-arrival", "play");
+  });
+
+  it("still plays on a cached load, where the lift is a frame or two away", () => {
+    /* The fast case is the same case: what the hero waits for is the
+       signal, not a duration, so a short wait is still a wait. */
+    const { container } = render(<Hero />);
+    act(() => setEntry("lifting"));
+    expect(stageOf(container)).toHaveAttribute("data-arrival", "play");
+  });
+
+  it("does not arrive at all when it mounts after the entry", () => {
+    /* A client-side navigation back to the home page: the shutter has been
+       and gone, and this hero is not part of the visit's arrival. */
+    getEntry();
+    setEntry("lifting");
+    setEntry("lifted");
+    const { container } = render(<Hero />);
+    expect(stageOf(container)).not.toHaveAttribute("data-arrival");
+  });
+
+  it.each([
+    ["reduced motion", () => {
+      vi.spyOn(window, "matchMedia").mockImplementation(
+        (query: string) =>
+          ({
+            matches: query.includes("reduce"),
+            media: query,
+            onchange: null,
+            addEventListener: () => {},
+            removeEventListener: () => {},
+            addListener: () => {},
+            removeListener: () => {},
+            dispatchEvent: () => false,
+          }) as MediaQueryList
+      );
+    }],
+    ["Pause", () => document.body.classList.add("motion-paused")],
+  ])("shows the finished screen at once under %s", (_, switchOff) => {
+    switchOff();
+    const { container } = render(<Hero />);
+    /* No shutter, so nothing to wait for and nothing to play. The third
+       switch — no view timelines — is the stylesheet's to answer, and the
+       off-switch tests below and above hold it. */
+    expect(getEntry()).toBe("lifted");
+    expect(stageOf(container)).not.toHaveAttribute("data-arrival");
+    document.body.classList.remove("motion-paused");
+  });
+
+  it("declares the arrival only for a stage that has been told to play", () => {
+    const gate = atBlock(ARRIVAL, GATE);
+    for (const name of ["plate-letter-in", "plate-mask-down", "plate-figure-in", "plate-from-start", "plate-from-end"]) {
+      const rules = [...gate.matchAll(new RegExp(`([^{}]+)\\{[^{}]*\\b${name}\\b[^{}]*\\}`, "g"))];
+      expect(rules.length, `${name} is not declared`).toBeGreaterThan(0);
+      for (const [, selector] of rules) expect(selector).toContain('[data-arrival="play"]');
+    }
+    for (const name of ["corner-in", "corner-mask-down"]) {
+      const rules = [...CORNERS.matchAll(new RegExp(`([^{}]+)\\{[^{}]*\\b${name}\\b[^{}]*\\}`, "g"))];
+      expect(rules.length, `${name} is not declared`).toBeGreaterThan(0);
+      for (const [, selector] of rules) expect(selector).toContain('[data-arrival="play"]');
+    }
+    /* Layered after the exit and filling backwards only, so it wins while it
+       runs and lets go of the element the moment it ends. */
+    expect(gate).toMatch(/plate-letter-out linear both,\s*plate-letter-in [^;]*backwards;\s*animation-timeline: --hero, auto;/);
+    expect(ARRIVAL).not.toMatch(/plate-[a-z-]+-in [^;,]*\bboth\b/);
+  });
+
+  it("brings no opacity to the name or the figure on the way in", () => {
+    for (const name of ["plate-letter-in", "plate-mask-down", "plate-figure-in"]) {
+      const frames = ARRIVAL.match(new RegExp(`@keyframes ${name} \\{[\\s\\S]*?\\n\\}`))?.[0] ?? "";
+      expect(frames, `no @keyframes ${name}`).not.toBe("");
+      expect(frames).not.toMatch(/opacity/);
+      expect(frames).toMatch(/to\s+\{ transform: (none|scaleY\(0\)); \}/);
+    }
+  });
+});
+
 describe("the first screen's off-switches", () => {
   it("declares every animation, and every mask, only inside the three-condition gate", () => {
     /* View timelines run, no reduced motion, no Pause. Outside that gate
@@ -256,8 +366,20 @@ describe("the first screen's off-switches", () => {
     const gate = atBlock(ARRIVAL, GATE);
     expect(gate).toContain("@media (prefers-reduced-motion: no-preference)");
     expect(gate).toContain("body:not(.motion-paused)");
-    expect(outsideGate(ARRIVAL)).not.toMatch(/animation(-name)?:/);
-    expect(outsideGate(ARRIVAL)).not.toMatch(/content:/);
+    const rest = outsideGate(ARRIVAL);
+    /* The one other block is the entry's arrival for an engine with no view
+       timelines (#194): behind the other two switches, and only for a stage
+       the shutter has told to play. */
+    const fallback = atBlock(rest, NO_TIMELINES);
+    expect(fallback).toContain("@media (prefers-reduced-motion: no-preference)");
+    const selectors = fallback.match(/[^{}]+(?=\{)/g)!.slice(2);
+    expect(selectors.length).toBeGreaterThan(0);
+    for (const selector of selectors) {
+      expect(selector).toContain("body:not(.motion-paused)");
+      expect(selector).toContain('[data-arrival="play"]');
+    }
+    expect(rest.replace(fallback, "")).not.toMatch(/animation(-name)?:/);
+    expect(rest.replace(fallback, "")).not.toMatch(/content:/);
     for (const part of ["[data-letter]", "[data-portrait] img", "h1 + p", "ul", ".mask"]) {
       expect(gate).toContain(part);
     }
@@ -578,7 +700,16 @@ describe("the hero's light", () => {
   it("lands every off-switch on a still lamp and the first phrase", () => {
     /* Outside the gate is what every switch shows: no animation, the first
        phrase up and the rest down. */
-    const rest = outsideGate(CORNERS);
+    const outside = outsideGate(CORNERS);
+    /* Bar the entry's arrival for an engine with no view timelines (#194),
+       which sits behind the other two switches and a stage told to play. */
+    const fallback = atBlock(outside, NO_TIMELINES);
+    expect(fallback).toContain("@media (prefers-reduced-motion: no-preference)");
+    for (const selector of fallback.match(/[^{}]+(?=\{)/g)!.slice(2)) {
+      expect(selector).toContain("body:not(.motion-paused)");
+      expect(selector).toContain('[data-arrival="play"]');
+    }
+    const rest = outside.replace(fallback, "");
     expect(rest).not.toMatch(/animation(-name)?:/);
     expect(rest).toMatch(/\.phrase \{[^}]*opacity: 0/);
     expect(rest).toMatch(/\.phrase:first-child \{\s*opacity: 1;/);

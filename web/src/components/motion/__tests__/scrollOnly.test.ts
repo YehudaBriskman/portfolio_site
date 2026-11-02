@@ -63,6 +63,14 @@ const ALLOWED: Record<string, { names: string[]; why: string }> = {
     names: ["ink-across", "ink-inward", "ink-absorb", "ink-seal"],
     why: "the form's ink: a reply to opening the dialog and to pressing Send",
   },
+  "components/HeroArrival.module.css": {
+    names: ["plate-letter-in", "plate-mask-down", "plate-from-start", "plate-from-end", "plate-figure-in"],
+    why: "the hero's arrival, once a visit, started by the entry shutter lifting (#194): part of the page load",
+  },
+  "components/HeroCorners.module.css": {
+    names: ["corner-in", "corner-mask-down"],
+    why: "the corners' part of the same arrival (#194)",
+  },
   "components/gallery/Skeleton.module.css": {
     names: ["sk-gate"],
     why: "not motion: a 1ms opacity step whose only job is a 180ms visibility threshold",
@@ -123,6 +131,44 @@ function animationNames(body: string): string[] {
   return names;
 }
 
+/* Split on commas that are not inside parentheses. */
+function topLevel(value: string): string[] {
+  const out: string[] = [];
+  let depth = 0;
+  let mark = 0;
+  for (let i = 0; i < value.length; i += 1) {
+    if (value[i] === "(") depth += 1;
+    else if (value[i] === ")") depth -= 1;
+    else if (value[i] === "," && depth === 0) {
+      out.push(value.slice(mark, i).trim());
+      mark = i + 1;
+    }
+  }
+  out.push(value.slice(mark).trim());
+  return out;
+}
+
+/*
+ * For a rule whose `animation` shorthand and `animation-timeline` are both
+ * lists, the keyframe names on the layers whose timeline is `auto` — the
+ * clocks. `null` when the rule is not layered, so the caller judges it the
+ * ordinary way.
+ */
+function layeredClocks(body: string): string[] | null {
+  const shorthand = body.match(/(?:^|;|\s)animation\s*:\s*([^;]+)/)?.[1];
+  const timeline = body.match(/animation-timeline\s*:\s*([^;]+)/)?.[1];
+  if (!shorthand || !timeline) return null;
+  const layers = topLevel(shorthand);
+  const timelines = topLevel(timeline);
+  if (layers.length < 2) return null;
+  const clocks: string[] = [];
+  layers.forEach((layer, i) => {
+    const name = layer.split(/\s+/).find((token) => KEYFRAMES.has(token));
+    if (name && timelines[i % timelines.length] === "auto") clocks.push(name);
+  });
+  return clocks;
+}
+
 type Finding = { file: string; name: string; selector: string };
 
 function clockAnimations(): Finding[] {
@@ -135,6 +181,15 @@ function clockAnimations(): Finding[] {
         .flatMap((r) => r.selectors.map(subject)),
     );
     for (const r of all) {
+      /* A layered rule — several animations and a timeline list in the same
+         body — is judged layer by layer: a layer whose timeline is `auto` is
+         a clock however scrubbed its neighbours are. Without this, a clock
+         could ride in on a rule that also names a scroll timeline. */
+      const layered = layeredClocks(r.body);
+      if (layered) {
+        for (const name of layered) found.push({ file: rel(file), name, selector: r.selectors.join(", ") });
+        continue;
+      }
       /* A bare `animation-name` swap — an RTL or a modifier class — keeps
          the timeline the cascade already gave the element, because only the
          `animation` shorthand resets `animation-timeline`. So it passes in a
@@ -195,6 +250,17 @@ describe("every animation on the site is scrubbed by scroll (#162)", () => {
     const clock = all.filter((r) => animationNames(r.body).length && !r.selectors.some((s) => timed.has(subject(s))));
     KEYFRAMES.delete("rise");
     expect(clock.map((r) => r.selectors[0])).toEqual([".a"]);
+  });
+
+  it("catches a clock layered onto a scrubbed animation", () => {
+    KEYFRAMES.add("rise");
+    KEYFRAMES.add("fall");
+    const scrubbed = layeredClocks("animation: rise linear both, fall linear both; animation-timeline: view(), --x");
+    const layered = layeredClocks("animation: rise linear both, fall 260ms ease calc(var(--i) * 38ms) backwards; animation-timeline: --x, auto");
+    KEYFRAMES.delete("rise");
+    KEYFRAMES.delete("fall");
+    expect(scrubbed).toEqual([]);
+    expect(layered).toEqual(["fall"]);
   });
 
   it("has no Tailwind clock animation left in the theme", () => {

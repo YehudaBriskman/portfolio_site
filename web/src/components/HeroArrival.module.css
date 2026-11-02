@@ -62,6 +62,43 @@
  * would read `animation: plate-letter-out linear both` as a zero-length
  * animation on the clock — and `fill: both` would hold the *last* frame,
  * which here is the dismantled screen. That half is not decoration.
+ *
+ * THE ARRIVAL, ONCE, WHEN THE COVER LIFTS (#194)
+ * ----------------------------------------------
+ * The owner's next word on the same screen: the hero's appearing has to be
+ * seen, and it was not — the old clock started at mount and the entry
+ * shutter lifts when the page is *ready*, so the arrival played behind the
+ * grid. So the gestures run forwards once a visit as well, on a clock, and
+ * the clock starts when the shutter says it has started to lift: `Hero.tsx`
+ * puts `data-arrival="play"` on the stage in that commit
+ * (`motion/entry.ts` is the signal). Until then the stage says `held` and
+ * nothing here matches it, so the screen under the cover is the finished,
+ * painted screen and LCP is decided exactly as it was. A hero that is not
+ * part of the entry — mounted after the shutter left, or under any
+ * off-switch, where there is no shutter — never gets the attribute.
+ *
+ * It is the one clock in this file and it is exempt for the shutter's own
+ * reason (motion-contract §8): it is the page load, not a scroll.
+ *
+ *   NAME                  0ms, first letter first, 38ms apart, 260ms each
+ *   the figure            120ms, 520ms, up from behind its paper
+ *   one line of fact      300ms, 460ms, in from the start side
+ *   WHERE · COUNT · WHEN  390ms, 460ms, in from the end side
+ *   the corners           480ms, 460ms (`HeroCorners.module.css`)
+ *
+ * About a second in all, from the first tile leaving; the tiles take 740ms
+ * to clear the window from the centre out, so the name — near the centre —
+ * is uncovered as it starts to fall and the corners are last on both counts.
+ *
+ * Where the engine runs view timelines, each arrival is a second layer on
+ * the element's scrubbed exit rather than a rule of its own — `animation` is
+ * one property, and a rule that set only the arrival would delete the exit.
+ * The arrival is listed *last*, so it wins while it runs, and fills
+ * `backwards` rather than `both`, so the moment it ends it lets go and the
+ * scroll has the element again. Where the engine does not, the arrival is
+ * the only layer and needs the masks declared for it, which is the second
+ * block. Both blocks sit behind the same two switches the exit does; the
+ * third switch is what decides which of them applies.
  */
 
 .timeline {
@@ -128,7 +165,128 @@
       animation-timeline: --hero;
       animation-range: exit 16% exit 44%;
     }
+
+    /* The arrival, layered on the exit (#194). See the head of the file. */
+    :global(body:not(.motion-paused)) .stage[data-arrival="play"] [data-letter] {
+      animation:
+        plate-letter-out linear both,
+        plate-letter-in 260ms var(--ease-settle) calc(var(--letter) * 38ms) backwards;
+      animation-timeline: --hero, auto;
+      animation-range: exit var(--out-at) exit calc(var(--out-at) + 8%), normal;
+    }
+
+    :global(body:not(.motion-paused)) .stage[data-arrival="play"] [data-letter]::after {
+      animation:
+        plate-mask-up linear both,
+        plate-mask-down 260ms var(--ease-settle) calc(var(--letter) * 38ms) backwards;
+      animation-timeline: --hero, auto;
+      animation-range: exit var(--out-at) exit calc(var(--out-at) + 8%), normal;
+    }
+
+    :global(body:not(.motion-paused)) .stage[data-arrival="play"] h1 + p {
+      animation:
+        plate-to-start linear both,
+        plate-from-start 460ms var(--ease-settle) 300ms backwards;
+      animation-timeline: --hero, auto;
+      animation-range: exit 6% exit 24%, normal;
+    }
+
+    :global(body:not(.motion-paused)) .stage[data-arrival="play"] ul {
+      animation:
+        plate-to-end linear both,
+        plate-from-end 460ms var(--ease-settle) 390ms backwards;
+      animation-timeline: --hero, auto;
+      animation-range: exit 10% exit 28%, normal;
+    }
+
+    :global(body:not(.motion-paused)) .stage[data-arrival="play"] [data-portrait] img {
+      animation:
+        plate-figure-out linear both,
+        plate-figure-in 520ms var(--ease-settle) 120ms backwards;
+      animation-timeline: --hero, auto;
+      animation-range: exit 16% exit 44%, normal;
+    }
+
+    :global(body:not(.motion-paused)) .stage[data-arrival="play"] .mask {
+      animation:
+        plate-mask-up linear both,
+        plate-mask-down 520ms var(--ease-settle) 120ms backwards;
+      animation-timeline: --hero, auto;
+      animation-range: exit 16% exit 44%, normal;
+    }
   }
+}
+
+/* The arrival alone, for an engine with no view timelines (#194). There is
+   no exit to layer on and no mask declared yet, so this block brings its
+   own, for the length of the arrival only. */
+@supports not (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    :global(body:not(.motion-paused)) .stage[data-arrival="play"] [data-letter]::after,
+    :global(body:not(.motion-paused)) .stage[data-arrival="play"] .mask {
+      content: "";
+      position: absolute;
+      background: rgb(var(--paper));
+      transform-origin: 50% 100%;
+      transform: scaleY(0);
+      pointer-events: none;
+    }
+
+    :global(body:not(.motion-paused)) .stage[data-arrival="play"] [data-letter]::after {
+      inset: -0.1em -0.09em -0.16em 0;
+      animation: plate-mask-down 260ms var(--ease-settle) calc(var(--letter) * 38ms) backwards;
+    }
+
+    :global(body:not(.motion-paused)) .stage[data-arrival="play"] [data-letter] {
+      animation: plate-letter-in 260ms var(--ease-settle) calc(var(--letter) * 38ms) backwards;
+    }
+
+    :global(body:not(.motion-paused)) .stage[data-arrival="play"] h1 + p {
+      animation: plate-from-start 460ms var(--ease-settle) 300ms backwards;
+    }
+
+    :global(body:not(.motion-paused)) .stage[data-arrival="play"] ul {
+      animation: plate-from-end 460ms var(--ease-settle) 390ms backwards;
+    }
+
+    :global(body:not(.motion-paused)) .stage[data-arrival="play"] [data-portrait] img {
+      animation: plate-figure-in 520ms var(--ease-settle) 120ms backwards;
+    }
+
+    :global(body:not(.motion-paused)) .stage[data-arrival="play"] .mask {
+      inset: 0 0 -16px;
+      animation: plate-mask-down 520ms var(--ease-settle) 120ms backwards;
+    }
+  }
+}
+
+/* The arrival's keyframes run the other way: each `to` is the finished
+   screen, and `from` is the exit's last frame, so arrival and exit are one
+   gesture played in two directions. None of the name's or the figure's
+   carries opacity, for the reason at the head of the file. */
+@keyframes plate-letter-in {
+  from { transform: translateY(-16px); }
+  to   { transform: none; }
+}
+
+@keyframes plate-mask-down {
+  from { transform: scaleY(1); }
+  to   { transform: scaleY(0); }
+}
+
+@keyframes plate-figure-in {
+  from { transform: translateY(14px); }
+  to   { transform: none; }
+}
+
+@keyframes plate-from-start {
+  from { opacity: 0; transform: translateX(-18px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes plate-from-end {
+  from { opacity: 0; transform: translateX(18px); }
+  to   { opacity: 1; transform: none; }
 }
 
 /* Each keyframe's `from` is the finished screen, written out rather than left

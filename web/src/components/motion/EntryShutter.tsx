@@ -1,5 +1,5 @@
-import { useEffect, useState, type CSSProperties } from "react";
-import { MOTION_PAUSED_KEY } from "@/components/nav/useMotionPaused";
+import { useEffect, useLayoutEffect, useState, type CSSProperties } from "react";
+import { getEntry, setEntry } from "@/components/motion/entry";
 import styles from "@/components/motion/EntryShutter.module.css";
 
 /*
@@ -198,27 +198,6 @@ function plan(width: number, height: number): Grid {
 }
 
 /**
- * Whether this reader has asked for no motion, by any of the three routes.
- *
- * Reduced motion and a missing `body.motion-paused`, plus the stored Pause
- * preference the class has not been applied from yet. See the note above for
- * why this one component pays for that third read.
- */
-function motionIsOff(): boolean {
-  if (typeof window === "undefined") return true;
-  if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false) return true;
-  if (document.body.classList.contains("motion-paused")) return true;
-  try {
-    return localStorage.getItem(MOTION_PAUSED_KEY) === "1";
-  } catch {
-    /* Private browsing, or site data blocked. Not being able to read the
-       stored choice is not a reason to refuse the loader; the class arrives
-       an effect later and the stylesheet takes it from there. */
-    return false;
-  }
-}
-
-/**
  * Everything in the first screen that has not finished loading.
  *
  * Measured against the viewport rather than the document, because the shutter
@@ -282,7 +261,7 @@ export default function EntryShutter() {
    * the first painted frame is. An effect would be a frame too late, and the
    * frame it would be late by is the one where the whole window is black.
    */
-  const [phase, setPhase] = useState<Phase>(() => (motionIsOff() ? "gone" : "ground"));
+  const [phase, setPhase] = useState<Phase>(() => (getEntry() === "lifted" ? "gone" : "ground"));
   const [grid] = useState<Grid>(() =>
     typeof window === "undefined" ? plan(0, 0) : plan(window.innerWidth, window.innerHeight)
   );
@@ -334,6 +313,26 @@ export default function EntryShutter() {
       live = false;
       window.clearTimeout(ceiling);
     };
+  }, [phase]);
+
+  /*
+   * Tell the page where the entry is (#194). `motion/entry.ts` has why.
+   *
+   * A layout effect, so the signal goes out in the same commit that puts
+   * `data-state="leaving"` on the sheet: a component reading it through
+   * `useSyncExternalStore` re-renders synchronously, before the browser
+   * paints, and its arrival starts on the very frame the first tile does.
+   * A passive effect would be a frame behind, and that frame is the one the
+   * centre tiles are already fading in.
+   *
+   * `lifting` is the moment the reader starts seeing the page, which is
+   * what anything waiting on the cover is waiting for — not `gone`, 820ms
+   * later, by which point the centre of the window has been uncovered for
+   * most of a second.
+   */
+  useLayoutEffect(() => {
+    if (phase === "leaving") setEntry("lifting");
+    else if (phase === "gone") setEntry("lifted");
   }, [phase]);
 
   /* The sheet's own exit, on a clock. See `UNMOUNT_MS`. */
