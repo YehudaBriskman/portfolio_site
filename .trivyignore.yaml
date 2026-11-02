@@ -1,0 +1,32 @@
+# Findings the image scan in .github/workflows/ci.yml is told to accept.
+#
+# Empty, and that is the goal state: on the day this file was written both
+# images scanned clean at HIGH and CRITICAL. It exists so that the next
+# finding nobody can fix yet has one reviewed place to go, instead of the
+# scan being switched back to report-only - which is how it ran until #122,
+# failing nothing while 30-odd HIGHs shipped.
+#
+# The rules for an entry, because an ignore list is where findings go to be
+# forgotten:
+#   - `statement` says why it cannot be fixed now, or why it is not reachable
+#     here. "No fix upstream" is a reason; "it is noisy" is not.
+#   - `expired_at` is mandatory in practice. Trivy stops honouring the entry on
+#     that date and the build fails again, so the decision gets made again
+#     with whatever upstream has shipped since. Three months at most.
+#   - `paths` narrows it to the package that carries it where possible, so one
+#     acceptance does not quietly cover a second copy elsewhere in the image.
+#
+# A HIGH with no fix available does not need an entry: the scan already
+# passes it (see the comment on the scan job). A CRITICAL always does.
+#
+# Shape of an entry:
+#
+#   - id: CVE-2026-00000
+#     paths:
+#       - "usr/local/lib/node_modules/example/package.json"
+#     statement: >-
+#       No fixed release yet (upstream issue #123). Only reachable through
+#       example's CLI, which the image never runs.
+#     expired_at: 2027-02-01
+
+vulnerabilities: []

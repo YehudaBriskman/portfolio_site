@@ -1,4 +1,6 @@
-FROM node:20-alpine AS builder
+# Build stage only - nothing from it ships but dist/. Node 24 because 20 is
+# end-of-life; pinned by tag and digest, and Dependabot moves the digest.
+FROM node:24-alpine@sha256:8a32c8cf649a49915a66e81e7a609223c708d0adabf288ee3f4077d765542f85 AS builder
 WORKDIR /app
 
 COPY package*.json ./
@@ -12,9 +14,15 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-FROM nginx:alpine AS runner
+# Pinned by digest for the same reason as the builder; the floating
+# `nginx:alpine` meant a build was as old as whatever the builder had cached.
+FROM nginx:alpine@sha256:785835ea65db4bba6f021acc0f3be91b0fef76a53fe41f8588c6698d2aed0606 AS runner
 
-RUN apk add --no-cache curl
+# `apk upgrade` because nearly every finding on this image is an Alpine
+# package (curl, libexpat, pcre2, libuuid, brotli) fixed upstream before the
+# nginx image was republished with it. A rebuild should carry the fix the day
+# Alpine ships it, not the day the base image catches up.
+RUN apk upgrade --no-cache && apk add --no-cache curl
 
 RUN rm -rf /usr/share/nginx/html/*
 COPY --from=builder /app/dist /usr/share/nginx/html

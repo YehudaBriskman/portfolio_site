@@ -1,0 +1,76 @@
+# Dependabot: the part of #122 that keeps it fixed.
+#
+# Most of the advisories that issue cleared needed no breaking change at all -
+# proxy-addr's CRITICAL was one `npm audit fix` away - and nothing asked
+# anybody to apply them. This asks, weekly, in pull requests that run the same CI gates as any
+# other change: the runtime `npm audit` and the image scan.
+#
+# Grouping: minor and patch updates arrive as ONE pull request per ecosystem
+# per directory, because a dozen single-package PRs a week is how a queue gets
+# ignored. Majors stay separate - each is a migration and deserves its own
+# review (nodemailer 7 -> 10 was one). Security updates are not grouped and
+# not limited: they open as soon as an advisory lands, whatever the schedule.
+
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /web
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(web)"
+    groups:
+      web-minor-and-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: npm
+    directory: /backend
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(backend)"
+    groups:
+      backend-minor-and-patch:
+        update-types: [minor, patch]
+    ignore:
+      # Express 5 is a migration (path syntax, removed APIs, req.query
+      # semantics), not a version bump, and 4.x is still patched - the
+      # advisories in #122 were all fixed within 4. Revisit deliberately, not
+      # from a bot's pull request. Security updates ignore this rule anyway.
+      - dependency-name: express
+        update-types: [version-update:semver-major]
+      - dependency-name: "@types/express"
+        update-types: [version-update:semver-major]
+
+  # Both Dockerfiles pin their bases by tag AND digest. This is what moves the
+  # digest when upstream republishes `node:24-alpine` or `nginx:alpine` with
+  # fixed OS packages - without it the pin would freeze the image's CVEs in
+  # place, which is the opposite of what it is for.
+  - package-ecosystem: docker
+    directories: [/web, /backend]
+    schedule:
+      interval: weekly
+      day: monday
+    commit-message:
+      prefix: "chore(docker)"
+    groups:
+      base-images:
+        patterns: ["*"]
+
+  # The action runtimes are why every run warned about Node 20; majors here
+  # are where that happens, so they are not ignored. Grouped because they
+  # usually move together (docker/* release in lockstep).
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    commit-message:
+      prefix: "ci"
+    groups:
+      actions:
+        patterns: ["*"]
