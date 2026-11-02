@@ -23,11 +23,11 @@
  *                                      after the click — no smooth scroll
  *   a filter (same path, new query)    the page stays where it was
  *
- * The inventory it was written against — 46 internal link sites, by kind:
+ * The inventory it was written against — 45 internal link sites, by kind:
  *
  *   nav       4   Home, All work, The story, All notes (bar, and the sheet)
  *   footer    4   Home, Projects, Notes, Accessibility
- *   cards    10   run card, gallery card, project row, note card and its area
+ *   cards    11   run card, gallery card, the wall rail, project row, note card and its area
  *                 link, shelf post, Blog area link, a project's posts, story
  *                 beat title, a post's area link
  *   CTAs     17   Work onward, shelf "All notes", project back/onward, post
@@ -36,7 +36,8 @@
  *   contact   2   hero "Get in touch" (#contact), Accessibility (/#contact)
  *   in-text   1   every link inside a post's markdown
  *   skip      3   #content in the chrome, "skip past" the run and the shelf
- *   filters   5   project facets and clear, tags, areas, the projects reset
+ *   filters   3   active-filter tokens, the clear, the search box (one wall
+ *                 control for /projects and /blog)
  *
  * One representative of each kind is pressed, plus cold loads of a hash on
  * the eager home page and on three lazy routes.
@@ -368,16 +369,27 @@ for (const w of WINDOWS) {
   await waitPath(page, "/projects");
   await expectTop(page, "CTA (project back) -> top", win);
 
-  /* filter: same path, new query — the page stays where it was */
-  const filter = page.locator('main a[href^="/projects?"]').first();
-  if (await filter.count()) {
-    const filterHref = await filter.getAttribute("href");
-    await reveal(page, `main a[href="${filterHref}"]`);
-    const before = await page.evaluate(() => Math.round(window.scrollY));
-    await click(page, `main a[href="${filterHref}"]`);
-    await page.waitForFunction(() => location.search !== "", null, { polling: 250, timeout: 5000 });
+  /* filter: same path, new query — the page stays where it was. A filter's
+     own links are the active-filter tokens (the popover's options are menu
+     items), so the run starts from a filtered address and removes one. */
+  await goto(page, "/projects?state=In+use");
+  const token = await page.waitForSelector("main a[data-token]", { timeout: 8000 }).catch(() => null);
+  if (!token) {
+    record("filter keeps the place", win, false, "no active-filter token on /projects?state=In+use");
+  } else {
+    /* The tokens sit at the head of the wall, where the top and "where it
+       was" can be the same number. So the page is scrolled until the token
+       is just under the bar, which makes the two outcomes differ. */
+    const tokenTop = await page.evaluate(
+      () => document.querySelector("main a[data-token]").getBoundingClientRect().top + window.scrollY,
+    );
+    const before = await scrollTo(page, Math.max(0, Math.round(tokenTop - 140)));
+    await click(page, "main a[data-token]");
+    await page.waitForFunction(() => location.search === "", null, { polling: 250, timeout: 5000 });
     const after = await settle(page);
-    record("filter keeps the place", win, Math.abs(after - before) <= 4, `scrollY ${after}, was ${before}`);
+    /* Within a token row: the row folds away with its last token, and scroll
+       anchoring takes up that much. Reset to the top is the failure. */
+    record("filter keeps the place", win, before > 0 && Math.abs(after - before) <= 48, `scrollY ${after}, was ${before}`);
   }
 
   /* footer: foot of the home page -> Notes */
