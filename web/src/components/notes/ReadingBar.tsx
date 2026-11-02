@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { Link } from "react-router-dom";
-import { toast } from "sonner";
+import { Toaster, toast } from "@/components/ui/sonner";
 
 /*
  * Where you are, and the two things you might want next.
@@ -165,6 +165,10 @@ export default function ReadingBar({
           </button>
         </div>
       </div>
+      {/* The toaster for "Link copied", here rather than in App: this is the
+          only thing on the site that raises a toast, so sonner loads with the
+          post and not with every page. */}
+      <Toaster />
     </>
   );
 }
