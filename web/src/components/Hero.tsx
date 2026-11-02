@@ -231,21 +231,16 @@ export default function Hero() {
           */}
           <div className={styles.portrait} data-portrait="">
             <picture>
-              {/* The 350px file below the type rung's breakpoint, which is
+              {/* The 365px file below the type rung's breakpoint, which is
                   also where the figure stops being a third of the screen's
-                  width. Serving the 560px original there is 32kB spent on a
-                  box that is never wider than 242 CSS pixels.
-
-                  The small file is not the large one resampled: it is screened
-                  again at 350px with a cell scaled to match, because a halftone
-                  that is scaled down stops being a grid of dots and becomes
-                  noise — which costs more bytes than the dots it replaced. */}
-              <source media="(max-width: 699px)" srcSet="/img/yehuda-ink-sm.webp" />
+                  width. Serving the 551px original there is 17kB spent on a
+                  box that is never wider than 242 CSS pixels. */}
+              <source media="(max-width: 699px)" srcSet="/img/yehuda-cut-sm.webp" />
               <img
-                src="/img/yehuda-ink.webp"
-                alt="Yehuda Briskman, drawn as a halftone: a head and shoulders built out of a grid of ink dots on the paper, with no features legible."
-                width={560}
-                height={808}
+                src="/img/yehuda-cut.webp"
+                alt="Yehuda Briskman: a cut-out photograph from the waist up, in round sunglasses and a pale T-shirt, a bag strap across one shoulder, looking off to the side."
+                width={551}
+                height={845}
                 {...PRIORITY}
                 decoding="async"
               />
