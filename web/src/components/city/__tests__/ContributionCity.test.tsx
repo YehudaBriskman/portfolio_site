@@ -205,4 +205,85 @@ describe("the stylesheet's three off-switches", () => {
     expect(CSS).toMatch(/--city-flat:\s*0\.001/);
     expect(CSS).not.toMatch(/scaleZ\(0\)/);
   });
+
+  it("tells a year that is coming apart from one that is not", async () => {
+    /*
+     * The distinction this section turns on. Both states draw the flat
+     * lattice, because that is what this chart looks like with no data in
+     * it — but a year still on its way reserves the room the city will
+     * stand in and a year that could not be read does not, and the only
+     * thing carrying that difference is this attribute.
+     */
+    fetchYear.mockReturnValue(new Promise(() => {}));
+    const { container } = mount();
+    await waitFor(() =>
+      expect(container.querySelector("[data-city]")?.getAttribute("data-city")).toBe("pending")
+    );
+    /* The lattice, at its full 53 weeks, in the pending state as in the
+       empty one: a skeleton of a chart is the chart with the data taken
+       out, not a grey box where the chart goes. */
+    expect(container.querySelectorAll("[data-step]")).toHaveLength(53 * 7);
+  });
+
+  it("holds the disclosure's place while the year is coming, and promises nothing", async () => {
+    /*
+     * 36.19px of control plus 36px of margin at 1440x900, measured — the
+     * largest of the three things this section grows by when the request
+     * lands. Reserved as a line of skeleton rather than as an empty
+     * `details`: the rule in the component is that a disclosure opening
+     * onto nothing is worse than no control at all, so what stands here is
+     * the box with a capsule in it and no control for a reader to find.
+     */
+    fetchYear.mockReturnValue(new Promise(() => {}));
+    const { container } = mount();
+    await waitFor(() => expect(container.querySelector("[data-sk-line]")).not.toBeNull());
+
+    expect(screen.queryByText("The year as a table")).toBeNull();
+    expect(container.querySelector("details")).toBeNull();
+    for (const line of container.querySelectorAll("[data-sk-line]")) {
+      expect(line.closest('[aria-hidden="true"]')).not.toBeNull();
+    }
+  });
+
+  it("says a year could not be read rather than that one is coming", async () => {
+    fetchYear.mockResolvedValue(UNAVAILABLE);
+    const { container } = mount();
+    await screen.findByText(UNAVAILABLE.error as string);
+    expect(container.querySelector("[data-city]")?.getAttribute("data-city")).toBe("empty");
+    /* And nothing is still waiting: the placeholder for the disclosure goes
+       with the pending state, because the table is not coming either. */
+    expect(container.querySelector("[data-sk-line]")).toBeNull();
+  });
+
+  it("gives up the city's height only when the year is not coming", () => {
+    /*
+     * The whole of the difference between the two flat states, and the
+     * shift it removes: the frame is `clamp(140px, 16vw, 240px)` with a
+     * year in it and `auto` without, which at 1440x900 is 230.39px against
+     * 121.70px. Reserving it while pending is 108.69px that the arriving
+     * city no longer drops on everything below it.
+     *
+     * So `pending` shares the three act-off declarations and must NOT share
+     * `height: auto`. A rule that lumps the two together is the regression
+     * this is guarding, and it would look entirely reasonable.
+     */
+    expect(CSS).toMatch(/\.frame\[data-city="empty"\],\s*\.frame\[data-city="pending"\]/);
+    const collapse = CSS.slice(CSS.indexOf('.frame[data-city="empty"] {'));
+    expect(collapse.slice(0, collapse.indexOf("}"))).toContain("height: auto");
+    expect(CSS).not.toMatch(/\.frame\[data-city="pending"\][^{]*\{[^}]*height:\s*auto/);
+  });
+
+  it("stops the waiting band under both off-switches rather than slowing it", () => {
+    /* A sweep is motion. Both standing conditions cancel it and remove the
+       gradient with it — a stopped sweep that keeps its band is a highlight
+       parked on a surface nothing is happening to. */
+    const waiting = CSS.slice(CSS.indexOf('.frame[data-city="pending"]::after'));
+    for (const guard of ["@media (prefers-reduced-motion: reduce)", "body.motion-paused"]) {
+      const at = waiting.indexOf(guard);
+      expect(at).toBeGreaterThan(-1);
+      const block = waiting.slice(at, at + 260);
+      expect(block).toContain("animation: none");
+      expect(block).toContain("background-image: none");
+    }
+  });
 });

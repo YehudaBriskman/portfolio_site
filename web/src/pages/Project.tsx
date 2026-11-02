@@ -9,6 +9,8 @@ import PageShell from "@/components/PageShell";
    sequence the stagger was imitating. */
 import InkWipe from "@/components/motion/InkWipe";
 import PostList from "@/components/PostList";
+import SkeletonGate from "@/components/gallery/SkeletonGate";
+import SkeletonLines from "@/components/gallery/SkeletonLines";
 import ProjectMeta from "@/components/ProjectMeta";
 import Shot from "@/components/projects/Shot";
 import Figure from "@/components/Figure";
@@ -266,10 +268,33 @@ export default function Project() {
                   <h2 className="display-tight text-2xl sm:text-3xl">Notes</h2>
                   <div className="mt-6">
                     {posts === null ? (
-                      <div className="animate-pulse-soft space-y-3" aria-hidden="true">
-                        <div className="h-5 w-1/2 rounded-full bg-[rgb(var(--rule)_/_0.6)]" />
-                        <div className="h-4 w-2/3 rounded-full bg-[rgb(var(--rule)_/_0.4)]" />
-                      </div>
+                      /*
+                       * Two bars in a column stood here, 5px and 4px tall,
+                       * against a list of note cards that is 199px a row.
+                       * This is the same two-column grid `PostList` renders,
+                       * with one row of it reserved — a project's note list
+                       * is short and one row is the common case, and the
+                       * lines inside take their height from the card's own
+                       * type step rather than from a literal. See
+                       * `gallery/SkeletonLines.tsx`.
+                       */
+                      <SkeletonGate className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                        {[0, 1].map((i) => (
+                          <div key={i} className="note-card">
+                            <div className="flex flex-col p-6">
+                              <div className="mono -my-1 flex min-h-11 flex-wrap items-center text-[0.75rem]">
+                                <SkeletonLines lines={1} tail="7.5rem" />
+                              </div>
+                              <div className="mt-3 display-tight text-[1.375rem] sm:text-2xl">
+                                <SkeletonLines lines={2} />
+                              </div>
+                              <div className="mt-3 text-[0.9375rem] leading-[1.65]">
+                                <SkeletonLines lines={1} />
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </SkeletonGate>
                     ) : (
                       <PostList posts={notes} />
                     )}

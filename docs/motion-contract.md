@@ -101,6 +101,7 @@ ledger is a page-level document and not a comment.
 | # | beat | device family | the one reason it exists |
 |---|---|---|---|
 | — | entry | **shutter** | the page is behind something, and that something leaves |
+| — | any waiting region | **sweep** | a region says what shape is coming, and that it is coming |
 | 0 | title plate | **staged assembly** | the collection names itself, in four gated moves |
 | 1 | wall text | `flow` | the quiet before the peak |
 | 2 | **the pile** | `pin` | the work stacks up with weight |
@@ -109,7 +110,7 @@ ledger is a page-level document and not a comment.
 | 5 | specs | `count` | real numbers landing |
 | 6 | inquiry plate | `reveal` | the ask, as part of the collection |
 
-Seven families. No repeat in adjacent beats. `pin` is spent once, on the peak,
+Eight families. No repeat in adjacent beats. `pin` is spent once, on the peak,
 and `scrub` is spent once on beat 3 — the grammar bans a *second* scrub and
 has always allowed the first, which is the whole licence beat 3 has.
 
@@ -169,6 +170,43 @@ the device and it is recorded here rather than rounded away.
 A 400kbps network profile was tried and dropped: at 7.7–9.1 seconds it is
 entirely network-bound and several loads produced no LCP entry at all, so it
 measures the connection rather than the device.
+
+**The sweep row is not a beat either, and for a different reason from the
+shutter's.** `shutter` is not a beat because it happens before the page;
+`sweep` is not a beat because it is not on the page at all when anything is
+working. It is what a region does while it is waiting — one band of light
+crossing the shape of the content that has not arrived — and on a warm cache
+or a local response it is never painted, which is the measured normal case
+and not a degenerate one. See §4's note on the gate.
+
+It is in the ledger on the ledger's own terms: it is a new family, and a
+family is listed so that it is not quietly reused. A band travelling along a
+shape means *this is coming*. Nothing else on the site may say that, and this
+may not be borrowed to say anything else — in particular it is not a hover
+shine, not an attract loop on a control, and not a way to make a finished
+region look busy. The empty contribution lattice is the case worth naming:
+the same drawing carries the sweep when a year is on its way and must not
+carry it when the year could not be read, because then nothing is coming and
+the chart is finished.
+
+Three properties keep it out of the beat sequence's budget, and all three
+were the conditions for adding it. It costs no page height, because the
+region it fills is a region the content was going to occupy anyway — that is
+the whole point of it, and the measurements are in the pull request for #83.
+It costs no scroll distance and has no range, being time-driven. And it is
+one `background-position` animation on a gradient that is already painted,
+so a region of thirty placeholder lines is thirty cheap paints and no second
+element, no per-capsule compositor layer and nothing per frame on the main
+thread. The one place that could have gone wrong is the contribution
+lattice's 371 cells, which take a single band across the frame rather than
+one animation each.
+
+Its off state is a finished drawing and not absence, which is the ordinary §4
+shape and the opposite of the shutter's: under reduced motion or Pause the
+band and its gradient are both cancelled and what is left is the flat
+capsule. A skeleton that vanished under those conditions would leave the
+region with no height, which is the layout shift the device exists to
+prevent.
 
 **Beat 3 is not a second peak, and the test it had to pass is on paper
 rather than on taste.** It does not pin, so it buys no scroll distance beyond
@@ -315,6 +353,18 @@ the trap underneath all three:
 - A component with no scroll timeline in it needs **no `@supports` block** —
   there is no feature for a browser to be missing. `Rise` is time-driven and
   deliberately has none. Adding one there is cargo cult.
+- **Not every animation is motion, and the one exception is a timer.** The
+  skeletons' gate (`gallery/Skeleton.module.css`) is a 1ms animation whose
+  only job is its 180ms *delay*: it holds a placeholder's ink off the screen
+  for long enough that a response which was never slow leaves no trace of
+  having been loaded. The global `animation-duration: 0.01ms !important` both
+  standing conditions carry overrides the duration and leaves the delay
+  alone, so the gate keeps working under both without a line being written —
+  which is right, because a reader who asked for less motion has not asked to
+  be shown more flicker. **Do not cancel it in an off-switch block.** The
+  sweep that crosses the placeholder *is* motion and is cancelled in both,
+  landing on a flat capsule; the two live on different elements precisely so
+  one can be switched off without taking the other with it.
 
 **A fourth exit exists, and no stylesheet can see it.** A staged sequence waits
 on each move's `animationend`; if one never fires — a cancelled animation, a
@@ -429,6 +479,10 @@ direction, or set `fill-rule: evenodd` deliberately and know what it costs.
 | `motion/InkWipe.tsx` | ink arriving as a hard clip edge, plus the coloured band | `view()` |
 | `motion/InkRule.tsx` | a hairline drawing itself in | `view()` |
 | `city/ContributionCity.module.css` | `scrub` — one animation turns and raises 365 columns | named `view-timeline` on a static wrapper |
+| `gallery/Skeleton.module.css` | `sweep` — one line of a placeholder, the band across it, and the gate before it | clock |
+| `gallery/SkeletonLines.tsx` | the primitive: a run of lines as tall as the type they stand in for | — |
+| `gallery/LabelSkeleton.tsx` | the object label's three parts, in the label's own stylesheet | — |
+| `gallery/SkeletonGate.tsx` | the box that holds a region's height, and the 180ms before it is inked | clock |
 
 ### Retired, and why
 

@@ -175,4 +175,70 @@ describe("the notes shelf", () => {
        scroller tried to land on them. */
     expect(CSS).not.toMatch(/scroll-snap/);
   });
+
+  it("shows a skeleton shelf while the notes are on their way", async () => {
+    /* Held pending on purpose: a promise that never settles is the only way
+       to look at the loading state, and it is the state a reader on a cold
+       connection spends the longest in. */
+    posts.mockReturnValue(new Promise(() => {}));
+    const { container } = mount();
+
+    /* Six placeholders, because the shelf shows six and a skeleton that
+       reserves fewer is a shelf that grows a card when the request lands. */
+    await waitFor(() =>
+      expect(container.querySelectorAll('[data-sk-block="name"]')).toHaveLength(6)
+    );
+
+    /* The schema's three parts, in the placeholder as in the label. */
+    for (const block of ["name", "fact", "fields"]) {
+      expect(container.querySelector(`[data-sk-block="${block}"]`)).not.toBeNull();
+    }
+  });
+
+  it("announces nothing at all while it is loading", async () => {
+    posts.mockReturnValue(new Promise(() => {}));
+    const { container } = mount();
+    await waitFor(() => expect(container.querySelector("[data-sk-line]")).not.toBeNull());
+
+    /* Every line is under a hidden box: thirty shimmering divs entering the
+       accessibility tree and leaving it a second later is noise a reader
+       cannot turn down. Asked as "has a hidden ancestor" rather than
+       "is inside the first hidden element", because the section head's own
+       hairline is `aria-hidden` and comes first in document order — the
+       same trap the city's suite documents. */
+    for (const line of container.querySelectorAll("[data-sk-line]")) {
+      expect(line.closest('[aria-hidden="true"]')).not.toBeNull();
+    }
+
+    /* And the scroller's own semantics are withheld until there is
+       something in it. A `role="group"` named "Notes shelf" that a reader
+       can tab into and find empty is worse than no region at all. */
+    expect(screen.queryByRole("group", { name: "Notes shelf" })).toBeNull();
+    expect(screen.queryByRole("status")).toBeNull();
+  });
+
+  it("switches the skeleton's wrapped lines off wherever the shelf becomes a list", () => {
+    /*
+     * The fallback card is the full page measure where the shelf's is
+     * `clamp(16rem, 76vw, 23rem)`, so the name and the fact each fit on one
+     * line in the list and wrap to two on the shelf. Measured at 1440x900:
+     * every shelf card is 180.55px and every fallback card 136.70px, and a
+     * skeleton drawing the shelf's line counts in the list over-reserved by
+     * 263px across the six.
+     *
+     * It is the seventh thing the three exits switch, and like the other
+     * six it is a custom property rather than three copies of a rule —
+     * `@supports not`, `@media` and a body class cannot be written as one
+     * selector, so the alternative is three chances to be right in two of
+     * them.
+     */
+    expect(CSS.match(/--shelf-ghost-extra:\s*none/g)).toHaveLength(3);
+    expect(CSS).toContain("--shelf-ghost-extra: block");
+    expect(CSS).toMatch(/display:\s*var\(--shelf-ghost-extra/);
+
+    /* Never the field row. Its three capsules are siblings of one another,
+       so `:not(:first-child)` there would delete two thirds of the field
+       line rather than a wrapped second row. */
+    expect(CSS).not.toMatch(/data-sk-block="fields"\]\s*\[data-sk-line\]:not/);
+  });
 });
