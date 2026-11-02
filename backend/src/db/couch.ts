@@ -10,8 +10,22 @@ const db = "portfolio_content";
 const auth =
   "Basic " + Buffer.from(`${env.COUCHDB_USER}:${env.COUCHDB_PASSWORD}`).toString("base64");
 
+/*
+ * Every failure of the store, answered or not.
+ *
+ * `status` is CouchDB's own status when it answered, and 0 when it did not —
+ * connection refused, a name that does not resolve, or the timeout below
+ * aborting the request. Those used to escape as fetch's bare TypeError or
+ * AbortError, which the error handler could not tell from a bug in the API and
+ * answered with 500. An unreachable store is the same fault as a store that
+ * answers 5xx — upstream of us — so it is the same class and gets the same 502
+ * (#131). 0 is safe for the callers that branch on status: they look for 404
+ * and 412, which an unreachable store can never be.
+ */
 export class CouchError extends Error {
-  constructor(readonly status: number, message: string) {
+  /* `cause` is a field rather than ES2022's `Error` option because this
+     package's lib target predates it; pino's serializer reads it either way. */
+  constructor(readonly status: number, message: string, readonly cause?: unknown) {
     super(message);
   }
 }
@@ -20,16 +34,21 @@ async function call<T>(path: string, init: RequestInit = {}, timeoutMs = 8000): 
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
-    const res = await fetch(`${base}/${db}${path}`, {
-      ...init,
-      signal: ctrl.signal,
-      headers: {
-        Authorization: auth,
-        "Content-Type": "application/json",
-        Accept: "application/json",
-        ...(init.headers ?? {}),
-      },
-    });
+    let res: Response;
+    try {
+      res = await fetch(`${base}/${db}${path}`, {
+        ...init,
+        signal: ctrl.signal,
+        headers: {
+          Authorization: auth,
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          ...(init.headers ?? {}),
+        },
+      });
+    } catch (cause) {
+      throw new CouchError(0, `couch unreachable on ${path}`, cause);
+    }
     if (!res.ok) throw new CouchError(res.status, `couch ${res.status} on ${path}`);
     return (await res.json()) as T;
   } finally {

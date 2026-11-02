@@ -36,7 +36,7 @@ describe("backend API", () => {
     const app = createApp();
     const res = await request(app).get("/nope");
     expect(res.status).toBe(404);
-    expect(res.body).toEqual({ error: "Not Found" });
+    expect(res.body).toEqual({ ok: false, error: "Not Found" });
   });
 
   it("GET /api/images/:name returns 404 with router-specific message when missing", async () => {
