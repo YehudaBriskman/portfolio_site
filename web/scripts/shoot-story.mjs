@@ -1,34 +1,31 @@
 /*
- * The story page (#46), both languages, a laptop and a phone.
+ * The story page (#46, #158), both directions, a laptop and a phone.
  *
  * What it shoots, into `docs/story/`:
  *
- *   story-<lang>-<window>-<n>-<beat>.png
+ *   story-<lang>-<window>-<n>-<where>.png
  *
- * one frame per beat of the ledger at the head of `pages/Story.tsx` — the
- * opening, each chapter with its head near the top of the window, the peak
- * twice (part-way through its ink, and arrived while still held), and the
- * close — plus `paused` and `reduced` frames of the peak mid-run, which must
- * be identical to its arrived frame: every off-switch lands on arrived.
+ * the opening, then the timeline at several depths — each with a beat's
+ * lines part-way through being written, so the frame shows the pen mid-line —
+ * and the close; plus reduced motion and Pause at the same depth, which must
+ * both show the finished state (spine drawn, knots filled, plates uncovered,
+ * every word at ink). The third switch, a browser without scroll-driven
+ * animation, cannot be faked in Chromium — CSS `@supports` answers for the
+ * engine — so it is held by the stylesheet tests instead.
  *
  * RUNNING IT
  * ----------
  * `npm run build`, `npx vite preview --port 4397 --strictPort`, then
  * `xvfb-run -a node scripts/shoot-story.mjs`. `BASE` points it elsewhere.
- * Same harness notes as `fontwork/shoot-first-screen.mjs`, which this
- * follows: `playwright-core` from this project's own pin, `xvfb-run`
- * because headless Chromium on a box with no display has almost no frame
- * clock, and frames driven by throwaway screenshots rather than waited for —
- * an IntersectionObserver reports on a frame, so a rail that is never given
- * one never moves.
+ * `playwright-core` from this project's own pin, `xvfb-run` because headless
+ * Chromium on a box with no display has almost no frame clock, and frames
+ * driven by throwaway screenshots rather than waited for.
  *
  * HEBREW
  * ------
- * As in that script: the locale is listed and disabled until the strings
- * exist, so `lang` and `dir` are written directly — what `applyLocale` will
- * do once it is enabled. The copy stays English; what is under test is the
- * direction (the rail moves to the right-hand edge, the peak's ink travels
- * right to left) and the Hebrew faces.
+ * The locale is listed and disabled until the strings exist, so `lang` and
+ * `dir` are written directly. The copy stays English; what is under test is
+ * the direction (the spine moves to the right-hand edge) and the faces.
  */
 import { chromium } from "playwright-core";
 import { mkdirSync } from "node:fs";
@@ -85,29 +82,19 @@ async function open(lang, width, height, { reduced = false } = {}) {
 
 async function scrollTo(page, y) {
   await page.evaluate((top) => window.scrollTo({ top, behavior: "instant" }), y);
-  /* Flow's and Rise's arrivals are 620ms plus a stagger; the count is 1.2s. */
-  await frames(page, 6);
-  await page.waitForTimeout(900);
-  await frames(page, 2);
+  await frames(page, 4);
 }
 
-/* A chapter with its head 96px under the top of the window, clear of the bar. */
-async function toChapter(page, selector) {
+/* Beat `id`'s lines with their top at `at` (0..1) of the window's height:
+   about 0.7 puts the pen part-way through a two-line beat. */
+async function toBeat(page, id, at = 0.7) {
   const y = await page.evaluate(
-    (sel) => document.querySelector(sel).getBoundingClientRect().top + window.scrollY - 96,
-    selector,
+    ([sel, f]) => {
+      const el = document.querySelector(`#${sel} [data-written]`);
+      return el.getBoundingClientRect().top + window.scrollY - window.innerHeight * f;
+    },
+    [id, at],
   );
-  await scrollTo(page, y);
-}
-
-/* A point `t` (0..1) through the peak's `contain` range: the run's top at the
-   window's top, to its bottom at the window's bottom. */
-async function toPeak(page, t) {
-  const y = await page.evaluate((at) => {
-    const run = document.querySelector('[class*="_peakRun_"]');
-    const top = run.getBoundingClientRect().top + window.scrollY;
-    return top + (run.offsetHeight - window.innerHeight) * at;
-  }, t);
   await scrollTo(page, y);
 }
 
@@ -116,45 +103,40 @@ async function shoot(page, name) {
   console.log(name);
 }
 
+const ids = await (async () => {
+  const page = await open("en", 1440, 900);
+  const list = await page.evaluate(() => [...document.querySelectorAll("ol[aria-label='Timeline'] > li")].map((l) => l.id));
+  await page.close();
+  return list;
+})();
+const picks = [ids[0], ids[2], ids[Math.floor(ids.length / 2) + 1], ids.at(-1)];
+
 for (const lang of ["en", "he"]) {
   for (const [win, width, height] of WINDOWS) {
-    const at = (n, beat) => `story-${lang}-${win}-${n}-${beat}`;
+    const at = (n, where) => `story-${lang}-${win}-${n}-${where}`;
     const page = await open(lang, width, height);
     await shoot(page, at(0, "opening"));
-    await toChapter(page, "#before");
-    await shoot(page, at(1, "before"));
-    await toChapter(page, "#y2024");
-    await shoot(page, at(2, "y2024"));
-    await toChapter(page, "#y2025");
-    await shoot(page, at(3, "y2025"));
-    await toChapter(page, "#y2026");
-    await shoot(page, at(4, "peak-head"));
-    await toPeak(page, 0.25);
-    await shoot(page, at(4, "peak-inking"));
-    await toPeak(page, 0.75);
-    await shoot(page, at(4, "peak-arrived"));
-    await toChapter(page, "#now");
-    await shoot(page, at(5, "now"));
-    await toChapter(page, "#close-title");
-    await shoot(page, at(6, "close"));
+    for (const [i, id] of picks.entries()) {
+      await toBeat(page, id);
+      await shoot(page, at(i + 1, id));
+    }
+    await page.evaluate(() => window.scrollTo({ top: document.body.scrollHeight, behavior: "instant" }));
+    await frames(page, 4);
+    await shoot(page, at(picks.length + 1, "close"));
     await page.close();
   }
 }
 
-/* The off-switches, on the one device that is this page's own and
-   progress-driven. Mid-ink, where an exit that landed on the first frame
-   rather than the last would show. */
-{
-  const page = await open("en", 1440, 900, { reduced: true });
-  await toPeak(page, 0.25);
-  await shoot(page, "story-en-desktop-off-reduced");
-  await page.close();
-}
-{
-  const page = await open("en", 1440, 900);
-  await page.evaluate(() => document.body.classList.add("motion-paused"));
-  await toPeak(page, 0.25);
-  await shoot(page, "story-en-desktop-off-paused");
+/* The off-switches, at a depth where the pen is mid-line with motion on. */
+const DEPTH = picks[1];
+for (const [name, opts, before] of [
+  ["reduced", { reduced: true }, null],
+  ["paused", {}, () => document.body.classList.add("motion-paused")],
+]) {
+  const page = await open("en", 1440, 900, opts);
+  if (before) await page.evaluate(before);
+  await toBeat(page, DEPTH);
+  await shoot(page, `story-en-desktop-off-${name}`);
   await page.close();
 }
 

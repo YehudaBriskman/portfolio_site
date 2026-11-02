@@ -1,134 +1,101 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { act, render, screen, within } from "@testing-library/react";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { describe, expect, it } from "vitest";
+import { render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import Story from "@/pages/Story";
 import { buildStory } from "@/data/story";
 
 /*
- * The page in jsdom, which cannot see layout: so this asserts the structure
- * and the rail's bookkeeping, and the look is held by the screenshots in
- * `docs/story/` instead.
- *
- * The rail is driven by one IntersectionObserver. jsdom has none, and the
- * global stub in `setupTests.ts` never calls back, so this installs one that
- * hands the test its callback and lets it say "this chapter is now in the
- * band" — which is the only question the rail ever asks.
+ * The page in jsdom, which cannot see layout: so this asserts the structure,
+ * and the stylesheet's motion rules as text. The look is held by the
+ * screenshots in `docs/story/`.
  */
 
-type Fire = (target: Element, isIntersecting?: boolean) => void;
-let fire: Fire = () => {};
-const original = globalThis.IntersectionObserver;
-
-beforeEach(() => {
-  const observers: { cb: IntersectionObserverCallback; margin?: string }[] = [];
-  class Controlled {
-    constructor(cb: IntersectionObserverCallback, opts?: IntersectionObserverInit) {
-      observers.push({ cb, margin: opts?.rootMargin });
-    }
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-    takeRecords() {
-      return [];
-    }
-  }
-  globalThis.IntersectionObserver = Controlled as unknown as typeof IntersectionObserver;
-  fire = (target, isIntersecting = true) => {
-    /* The rail's band is the only observer with a -48% margin. */
-    const rail = observers.find((o) => o.margin?.startsWith("-48%"));
-    act(() => {
-      rail?.cb([{ target, isIntersecting } as IntersectionObserverEntry], {} as IntersectionObserver);
-    });
-  };
-});
-
-afterEach(() => {
-  globalThis.IntersectionObserver = original;
-});
+const CSS = readFileSync(resolve(process.cwd(), "src/components/story/Story.module.css"), "utf8").replace(
+  /\/\*[\s\S]*?\*\//g,
+  "",
+);
 
 function renderStory() {
   return render(
     <MemoryRouter initialEntries={["/story"]}>
       <Story />
-    </MemoryRouter>
+    </MemoryRouter>,
   );
 }
 
 describe("Story", () => {
-  it("is one h1 and a chapter heading per chapter, in order", () => {
+  it("is one h1, a heading per beat in timeline order, and the close", () => {
     renderStory();
-    const story = buildStory();
     expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
     const h2s = screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent);
-    expect(h2s).toEqual([...story.chapters.map((c) => c.title), "The walk so far"]);
+    expect(h2s).toEqual([...buildStory().beats.map((b) => b.title), "So far"]);
   });
 
-  it("puts every project in as evidence, linked to its own page", () => {
+  it("is a list of beats, each with its time, its lines written by the pen, and a slot", () => {
     renderStory();
-    for (const c of buildStory().chapters) {
-      for (const p of c.projects) {
-        const name = screen.getByRole("heading", { level: 3, name: p.title });
-        expect(name.closest("a")).toHaveAttribute("href", `/projects/${p.slug}`);
-      }
+    const list = screen.getByRole("list", { name: "Timeline" });
+    const items = within(list).getAllByRole("listitem");
+    const beats = buildStory().beats;
+    expect(items).toHaveLength(beats.length);
+    items.forEach((li, i) => {
+      expect(li).toHaveAttribute("id", beats[i].id);
+      expect(li).toHaveTextContent(beats[i].when);
+      const written = li.querySelector("[data-written]");
+      expect(written?.textContent).toBe(beats[i].lines.join(" "));
+      /* The slot holds its shape whether or not the picture is there. */
+      const slot = li.lastElementChild as HTMLElement;
+      expect(slot.style.aspectRatio).toBe(beats[i].ratio.replace(/\s/g, " "));
+    });
+  });
+
+  it("links every project beat to its own page", () => {
+    renderStory();
+    for (const b of buildStory().beats.filter((x) => x.href)) {
+      const head = screen.getByRole("heading", { level: 2, name: b.title });
+      expect(head.querySelector("a")).toHaveAttribute("href", b.href);
     }
   });
 
-  it("marks the peak as the one dark panel for the chrome", () => {
-    const { container } = renderStory();
-    /* Inside <main>: the site footer is dark chrome on every route since
-       #160, and it is not a section of the story. */
-    const dark = container.querySelectorAll('main [data-chrome="dark"]');
-    expect(dark).toHaveLength(1);
-    expect(within(dark[0] as HTMLElement).getByRole("heading", { level: 2 }).textContent).toBe(
-      buildStory().chapters.find((c) => c.peak)!.title
-    );
+  it("keeps an empty slot out of the accessibility tree", () => {
+    renderStory();
+    const list = screen.getByRole("list", { name: "Timeline" });
+    const empty = [...list.querySelectorAll(":scope > li > :last-child")].filter((el) => !el.querySelector("img"));
+    expect(empty.length).toBeGreaterThan(0);
+    for (const el of empty) expect(el).toHaveAttribute("aria-hidden", "true");
   });
 
-  it("counts the years and keeps every mark it has passed", () => {
-    const { container } = renderStory();
-    const story = buildStory();
-    const year = container.querySelector("[data-rail-year]")!;
-    const dots = () => [...container.querySelectorAll("[data-rail-year] + * > i")];
-    const mark = (i: number) => container.querySelector(`[data-rail-mark="${i}"]`)!;
-
-    expect(year.textContent).toBe(String(story.firstYear));
-    expect(dots().filter((d) => d.hasAttribute("data-passed"))).toHaveLength(0);
-
-    fire(mark(2));
-    expect(year.textContent).toBe(String(story.chapters[2].railYear));
-    expect(dots().map((d) => d.hasAttribute("data-passed"))).toEqual(
-      story.chapters.map((_, i) => i <= 2)
-    );
-
-    /* Back up to the first chapter: the year follows, the marks do not. */
-    fire(mark(0));
-    expect(year.textContent).toBe(String(story.chapters[0].railYear));
-    expect(dots().filter((d) => d.hasAttribute("data-passed"))).toHaveLength(3);
-    expect(dots()[0]).toHaveAttribute("data-here");
-  });
-
-  it("inverts the rail over the peak and only there", () => {
-    const { container } = renderStory();
-    const story = buildStory();
-    const rail = container.querySelector("[data-rail-year]")!.parentElement!;
-    const peak = story.chapters.findIndex((c) => c.peak);
-
-    fire(container.querySelector(`[data-rail-mark="${peak}"]`)!);
-    expect(rail).toHaveAttribute("data-dark");
-    fire(container.querySelector(`[data-rail-mark="${peak + 1}"]`)!);
-    expect(rail).not.toHaveAttribute("data-dark");
-  });
-
-  it("keeps the rail out of the accessibility tree", () => {
-    const { container } = renderStory();
-    expect(container.querySelector("[data-rail-year]")!.parentElement).toHaveAttribute("aria-hidden", "true");
-  });
-
-  it("prints the figures for a screen reader whatever the count is doing", () => {
+  it("prints its figures", () => {
     renderStory();
     for (const f of buildStory().figures) {
       const term = screen.getByText(f.caption, { selector: "dt" });
       expect(term.nextElementSibling).toHaveTextContent(String(f.value));
     }
+  });
+});
+
+describe("Story.module.css", () => {
+  it("drives every animation by scroll, never by time", () => {
+    /* Scroll is the clock: no transition, no duration, no delay anywhere. */
+    expect(CSS).not.toMatch(/transition|animation-(duration|delay)|\d+m?s\b/);
+    const animated = [...CSS.matchAll(/animation:\s*(story-[a-z]+)/g)].map((m) => m[1]);
+    expect(animated.sort()).toEqual(["story-knot", "story-plate", "story-spine"]);
+    for (const name of animated) {
+      const rule = CSS.match(new RegExp(`\\{[^}]*animation:\\s*${name}[^}]*\\}`))?.[0] ?? "";
+      expect(rule).toMatch(/animation-timeline:\s*(view\(\)|--story-[a-z]+)/);
+    }
+  });
+
+  it("cancels every animation under each of the three off-switches", () => {
+    const off = /\.timeline::before,\s*\.beat::before,\s*\.plate\s*\{\s*animation:\s*none;/;
+    for (const gate of [/@supports not \(animation-timeline: view\(\)\)\s*\{\s*/, /@media \(prefers-reduced-motion: reduce\)\s*\{\s*/]) {
+      expect(CSS).toMatch(new RegExp(gate.source + off.source));
+    }
+    expect(CSS).toMatch(
+      /:global\(body\.motion-paused\) \.timeline::before,\s*:global\(body\.motion-paused\) \.beat::before,\s*:global\(body\.motion-paused\) \.plate\s*\{\s*animation:\s*none;/,
+    );
+    /* The knot's finished state is filled; each exit says so. */
+    expect(CSS.match(/\.beat::before\s*\{\s*background-color:\s*rgb\(var\(--signal\)\)/g)).toHaveLength(3);
   });
 });

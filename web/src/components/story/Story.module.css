@@ -1,192 +1,34 @@
 /*
- * The story page (#46): its layout, its rail, and the two devices that are
- * its own — the peak's ink and the close's count. The ledger is at the head
- * of `pages/Story.tsx`; the borrowed devices (`Rise`, `Flow`, `InkRule`,
- * `InkWipe`, the `DarkAct` ground) carry their own stylesheets and exits.
+ * The story page (#46, #158): a timeline of short beats.
  *
  * Every side here is logical — `inline-start`, `inset-inline`, `text-align:
- * start` — because the page runs in Hebrew as well, and the rail in
- * particular has to stand at the start of the reading direction, which is
- * the right-hand edge in RTL. The one physical direction in the file is the
- * peak's ink gradient, which has no logical form, and it is restated for
- * `dir="rtl"` beside the rule.
+ * start` — because the page runs in Hebrew as well, and the spine stands at
+ * the start of the reading direction, the right-hand edge in RTL.
  *
  * No colour is invented. Every value is a site token, so the page's grounds,
  * inks and rules are the ones whose ratios are measured in `index.css`.
+ *
+ * MOTION. Scroll is the clock (owner, 2026-11-02): every animation in this
+ * file reads a scroll timeline, so it is scrubbed by scroll position and runs
+ * backwards exactly when the reader scrolls up. No `transition`, no
+ * duration, nothing started by an observer. The exits are at the foot of the
+ * file, and each lands on the finished state.
  */
-
-/* ------------------------------------------------------------- frame -- */
 
 .story {
-  /* 5.5rem: wide enough for a four-digit year in the data face at 1.5rem
-     with its own breathing room, and no wider — every pixel of it is taken
-     from the reading column at the narrowest width that shows it. */
-  --rail: 5.5rem;
+  --spine: 1.25rem;
   position: relative;
-}
-
-/*
- * Clearing the rail without moving the grounds.
- *
- * The rail is fixed over the page, and the page's grounds — the paper and
- * the peak's dark act — run full-bleed under it on purpose: the rail is a
- * translucent sheet that takes the ink of whatever is behind it, and a
- * ground that stopped at its edge would leave it nothing to take. So the
- * grounds are not padded; the *column* is. `.wrap` is centred at 72rem, so on
- * a wide window its own margin already clears the rail and this adds
- * nothing; between 62rem and roughly 84rem the margin is narrower than the
- * rail and the start padding grows by exactly the difference.
- *
- * `clamp(1.25rem, 3vw, 2.5rem)` is the site gutter (`spacing.gutter` in
- * `tailwind.config.ts`), restated because a CSS module is not run through
- * Tailwind's `theme()`.
- */
-@media (min-width: 62rem) {
-  .story :global(.wrap) {
-    padding-inline-start: max(
-      clamp(1.25rem, 3vw, 2.5rem),
-      calc(var(--rail) + 2rem - max(0px, (100vw - 72rem) / 2))
-    );
-  }
-}
-
-/* -------------------------------------------------------------- rail -- */
-
-/*
- * The rail. Display only from 62rem: below that there is no spare column,
- * and the chapter kickers print every year in text anyway.
- *
- * `z-index: 40`, under the nav bar's 50, so where the two cross at the top of
- * the window the bar wins — it is the thing a reader can press.
- */
-.rail {
-  position: fixed;
-  inset-block: 0;
-  inset-inline-start: 0;
-  width: var(--rail);
-  z-index: 40;
-  display: none;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 1rem;
-  pointer-events: none;
-  color: rgb(var(--ink));
-  border-inline-end: 1px solid rgb(var(--rule));
-  background: rgb(var(--paper) / 0.86);
-  backdrop-filter: blur(8px);
-  transition:
-    color var(--dur-fast) ease,
-    border-color var(--dur-fast) ease,
-    background-color var(--dur-fast) ease;
-}
-
-@media (min-width: 62rem) {
-  .rail {
-    display: flex;
-  }
-}
-
-/*
- * Over the peak, the panel's own inks. The same pair of tokens `.on-panel`
- * re-points, named directly because the rail is not inside the act — it is
- * fixed over it — so it cannot inherit them.
- */
-.rail[data-dark] {
-  color: rgb(var(--panel-ink));
-  border-inline-end-color: rgb(var(--panel-rule));
-  background: rgb(var(--panel) / 0.88);
-}
-
-.railCap {
-  writing-mode: vertical-rl;
-  font-family: var(--font-data);
-  font-size: 0.72rem;
-  letter-spacing: var(--track-field);
-  text-transform: uppercase;
-  color: rgb(var(--ink-soft));
-}
-
-.rail[data-dark] .railCap {
-  color: rgb(var(--panel-soft));
-}
-
-/* Tabular, so 2024 → 2025 does not shuffle the column sideways. */
-.railYear {
-  font-family: var(--font-data);
-  font-weight: var(--weight-data-strong);
-  font-size: 1.5rem;
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-}
-
-.railMarks {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.6rem;
-}
-
-/*
- * A mark: unlit, lit, and here.
- *
- * Unlit is `--rule-firm`, the border "meant to be seen" — 3:1 class, which
- * is the non-text floor and the reason it is not the fainter `--rule`. Lit is
- * the signal. The mark the reader is in is larger as well as lit, so "where
- * am I" and "where have I been" are two different answers and not one colour
- * doing both.
- */
-.railDot {
-  display: block;
-  width: 7px;
-  height: 7px;
-  border-radius: 999px;
-  background: rgb(var(--rule-firm));
-  transition:
-    background-color var(--dur-fast) ease,
-    transform var(--dur-fast) ease;
-}
-
-.railDot[data-passed] {
-  background: rgb(var(--signal));
-}
-
-.railDot[data-here] {
-  transform: scale(1.6);
-}
-
-.rail[data-dark] .railDot {
-  background: rgb(var(--panel-rule));
-}
-
-.rail[data-dark] .railDot[data-passed] {
-  background: rgb(var(--accent-on-panel));
-}
-
-/* The rail's transitions are motion too, and go with the other switches. */
-@media (prefers-reduced-motion: reduce) {
-  .rail,
-  .railDot {
-    transition: none;
-  }
-}
-
-:global(body.motion-paused) .rail,
-:global(body.motion-paused) .railDot {
-  transition: none;
 }
 
 /* ----------------------------------------------------------- opening -- */
 
 .open {
-  padding-block: clamp(4rem, 14vh, 9rem) clamp(3rem, 9vh, 6rem);
+  padding-block: clamp(4rem, 14vh, 9rem) clamp(2rem, 6vh, 4rem);
 }
 
 /*
  * The title. Display face, but not the home page's `text-hero`: that rung
  * is sized for one nine-letter word, and "The long way round" is four.
- * Balanced so it breaks into even lines rather than a long line and an
- * orphan.
  */
 .openTitle {
   margin-top: 0.75rem;
@@ -196,427 +38,204 @@
   max-width: 14ch;
 }
 
-.lede {
-  margin-top: 1.5rem;
-  max-width: 46ch;
-  font-size: clamp(1.125rem, 1.8vw, 1.3rem);
-  line-height: 1.55;
-  color: rgb(var(--ink) / 0.85);
-  text-wrap: pretty;
-}
-
 .sig {
   margin-top: 2rem;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem 1.4rem;
   text-transform: uppercase;
   color: rgb(var(--ink-soft));
   font-variant-numeric: tabular-nums;
 }
 
-/* ---------------------------------------------------------- chapters -- */
-
-/*
- * A chapter, on paper. The rhythm is the site's section step, and the
- * hairline between chapters is the page's punctuation: the story is one
- * column of continuous prose, and the rule is the only thing that says a
- * chapter ended. Not on the first, which follows the opening, and not around
- * the peak, whose ground change says it louder.
- */
-.chapter {
-  padding-block: clamp(4rem, 8vw, 8rem);
-}
-
-.chapter + .chapter {
-  border-top: 1px solid rgb(var(--rule));
-}
-
-.head {
-  display: grid;
-  gap: 0.75rem;
-  margin-bottom: 2rem;
-}
-
-.kicker {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.6rem;
-  font-variant-numeric: tabular-nums;
-}
-
-/*
- * The span is an isolate: "2021–2023" is a number range, and inside a
- * Hebrew line an unisolated range is the classic bidi trap — the en dash
- * is neutral, so the two years can be laid out in the wrong order.
- */
-.span {
+/* A year span is a number, not a phrase: kept left to right in RTL. */
+.sig span,
+.when {
   unicode-bidi: isolate;
   direction: ltr;
 }
 
+/* ---------------------------------------------------------- timeline -- */
+
 /*
- * The chapter title. Between `text-object` and `text-section` on purpose:
- * the longest title is "The year strangers started installing it", which at
- * the section rung would run five lines on a phone and read as a poster
- * rather than the head of a chapter.
+ * The list, and its spine.
+ *
+ * The spine is a hairline at the inline start, drawn down by the reader's
+ * scroll so that its tip sits at the middle of the window: the list names a
+ * view timeline inset by half the window at each end, so its `cover` range
+ * runs from the list's top reaching the middle to its bottom reaching the
+ * middle — exactly the list's own height of scroll — and a `scaleY` from 0
+ * to 1 over that range keeps the tip on the window's middle line throughout.
  */
+.timeline {
+  position: relative;
+  list-style: none;
+  margin-block: 0;
+  padding-inline: 0;
+  padding-block: clamp(2rem, 6vh, 4rem) clamp(4rem, 10vh, 8rem);
+  view-timeline: --story-line block;
+  view-timeline-inset: 50%;
+}
+
+.timeline::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: calc(var(--spine) / 2);
+  width: 1px;
+  background: rgb(var(--rule-firm));
+  transform-origin: top;
+  animation: story-spine linear both;
+  animation-timeline: --story-line;
+}
+
+@keyframes story-spine {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+/*
+ * A beat. Real space between them — the owner's ask — and on a wide window
+ * the text and its picture side by side, the picture the larger.
+ */
+.beat {
+  position: relative;
+  display: grid;
+  gap: 1.5rem;
+  padding-inline-start: calc(var(--spine) + 1.5rem);
+  /* The whole beat is a view timeline with the same half-window inset as the
+     spine, so `cover 0%` here is "the spine's tip has reached this beat". */
+  view-timeline: --story-beat block;
+  view-timeline-inset: 50%;
+}
+
+.beat + .beat {
+  margin-top: clamp(6rem, 18vh, 11rem);
+}
+
+@media (min-width: 48rem) {
+  .beat {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    gap: clamp(2rem, 4vw, 4rem);
+    align-items: start;
+  }
+}
+
+/*
+ * The knot: the beat's mark on the spine. Hollow until the spine's tip
+ * reaches the beat, filled across the next 2rem of scroll, so the tip and the
+ * knot agree about where the reader is. On the first line of the time label.
+ */
+.beat::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: calc(var(--spine) / 2 - 0.4375rem);
+  top: 0.2rem;
+  width: 0.875rem;
+  height: 0.875rem;
+  border-radius: var(--r-pill);
+  border: 1px solid rgb(var(--rule-firm));
+  background: rgb(var(--paper));
+  animation: story-knot linear both;
+  animation-timeline: --story-beat;
+  animation-range: cover 0rem cover 2rem;
+}
+
+@keyframes story-knot {
+  from {
+    background-color: rgb(var(--paper));
+    border-color: rgb(var(--rule-firm));
+  }
+  to {
+    background-color: rgb(var(--signal));
+    border-color: rgb(var(--signal));
+  }
+}
+
+.beatText {
+  display: grid;
+  gap: 0.75rem;
+  align-content: start;
+}
+
+.when {
+  font-variant-numeric: tabular-nums;
+  text-transform: uppercase;
+  color: rgb(var(--ink-soft));
+  justify-self: start;
+}
+
 .title {
-  font-size: clamp(1.9rem, 4.6vw, 3.6rem);
-  line-height: 1;
+  font-size: clamp(1.75rem, 3.6vw, 2.75rem);
+  line-height: 1.02;
   text-wrap: balance;
-  max-width: 22ch;
 }
 
-/*
- * The reading measure. The text face at the site's body size, at the 62ch
- * the prose on `/blog` reads at.
- */
-.prose {
-  max-width: 62ch;
+.titleLink {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+  text-decoration-color: rgb(var(--rule-firm));
 }
 
-.prose p {
-  font-size: clamp(1.0625rem, 1.3vw, 1.175rem);
-  line-height: 1.65;
+.titleLink:hover {
+  text-decoration-color: currentColor;
+}
+
+.titleLink:focus-visible {
+  outline: 2px solid rgb(var(--signal));
+  outline-offset: 4px;
+  border-radius: 2px;
+}
+
+.lines {
+  max-width: 40ch;
+  font-size: clamp(1.0625rem, 1.5vw, 1.2rem);
+  line-height: 1.6;
+  color: rgb(var(--ink-soft));
   text-wrap: pretty;
 }
 
-.prose p + p {
-  margin-top: 1.1rem;
-}
-
-/* ------------------------------------------------------------- asks -- */
-
 /*
- * A gap only the author can fill. Dashed, because it is unfinished and must
- * look it: a solid card would read as a pull quote, and this is the one
- * thing on the page that is not a claim. The label is in the signal colour
- * so the eye can find all three by scanning.
+ * The plate: the beat's picture, or the card that holds its place.
+ *
+ * Its shape is the data's `ratio`, set on the element, so the card and the
+ * picture that will replace it are the same box and nothing moves when one
+ * arrives. The empty card is the skeleton ground — `Skeleton.module.css`'s
+ * `--ink` at 0.09 — without the sweep: the sweep says "loading", and nothing
+ * is loading here; the picture is simply not supplied yet.
+ *
+ * Uncovered from the foot as it rises into the window: a clip from 35% to
+ * nothing across its own entry, on its own `view()`. Not opacity on the
+ * picture, which would leave a reader parked mid-entry with a washed-out
+ * photograph.
  */
-.ask {
-  margin-top: 2rem;
-  max-width: 62ch;
-  padding: 1rem 1.15rem;
-  border: 1px dashed rgb(var(--rule-firm));
-  border-radius: var(--r-lg, 14px);
-  background: rgb(var(--canvas-2) / 0.6);
-}
-
-.ask p {
-  font-size: 0.975rem;
-  line-height: 1.6;
-  color: rgb(var(--ink-soft));
-}
-
-.ask .askLabel {
-  margin-bottom: 0.4rem;
-  font-family: var(--font-data);
-  font-size: 0.72rem;
-  letter-spacing: var(--track-field);
-  text-transform: uppercase;
-  color: rgb(var(--signal));
-}
-
-/* On the dark ground the signal is the panel's accent; see `--accent-on-panel`. */
-:global(.on-panel) .ask .askLabel {
-  color: rgb(var(--accent-on-panel));
-}
-
-/* --------------------------------------------------------- evidence -- */
-
-.evidenceGrid {
-  margin-top: 2.5rem;
-  display: grid;
-  gap: 1.5rem;
-  grid-template-columns: minmax(0, 1fr);
-}
-
-@media (min-width: 48rem) {
-  .evidenceGrid {
-    grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr));
-  }
-}
-
-/*
- * One project, as evidence. The screenshot and the collection's own label,
- * on a raised surface; the whole card is the link to the project's page.
- */
-.evidence {
-  display: grid;
-  gap: 1rem;
-  align-content: start;
-  padding: 0.9rem;
-  border: 1px solid rgb(var(--rule));
-  border-radius: var(--r-lg, 14px);
-  background: rgb(var(--canvas-2) / 0.7);
-  color: inherit;
-  text-decoration: none;
-  transition: border-color var(--dur-fast) ease;
-}
-
-.evidence:hover {
-  border-color: rgb(var(--rule-firm));
-}
-
-.evidence:focus-visible {
-  outline: 2px solid rgb(var(--signal));
-  outline-offset: 3px;
-}
-
-:global(.on-panel) .evidence:focus-visible {
-  outline-color: rgb(var(--accent-on-panel));
-}
-
-.evidenceShot {
-  aspect-ratio: 16 / 10;
+.plate {
+  margin: 0;
+  width: 100%;
   overflow: hidden;
-  border-radius: calc(var(--r-lg, 14px) - 4px);
+  border-radius: var(--r-md);
+  background-color: rgb(var(--ink) / 0.09);
+  animation: story-plate linear both;
+  animation-timeline: view();
+  animation-range: entry 0% entry 100%;
 }
 
-/* A label with no picture keeps a hairline where the picture would be, so
-   the cards in one row still share a top edge. */
-.evidenceBare {
+.plateImg {
   display: block;
-  height: 1px;
-  background: rgb(var(--rule));
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
-/*
- * `flow`, for a year of several projects. `Flow` writes `data-flow` on each
- * card and nothing else; the arrival is here, and it is §5's reveal per item
- * — 14px, 620ms, `--ease-settle`, 60ms a step — because the device's meaning
- * is *each on its own crossing*, not a new kind of movement. Resting state is
- * the finished state; only `wait` hides anything (`Approach.module.css` has
- * the long argument, and this follows it exactly).
- */
-.flow > [data-flow="wait"] {
-  opacity: 0;
-}
-
-.flow > * { --flow-step: 0ms; }
-.flow > *:nth-child(2) { --flow-step: 60ms; }
-.flow > *:nth-child(3) { --flow-step: 120ms; }
-.flow > *:nth-child(n + 4) { --flow-step: 180ms; }
-
-.flow > [data-flow="in"] {
-  animation: story-flow 620ms var(--ease-settle) var(--flow-step) backwards;
-}
-
-@keyframes story-flow {
+@keyframes story-plate {
   from {
-    opacity: 0;
-    transform: translateY(14px);
-  }
-}
-
-/* No `@supports` block: there is no timeline here to be missing (§4). */
-@media (prefers-reduced-motion: reduce) {
-  .flow > [data-flow] {
-    animation: none;
-    opacity: 1;
-    transform: none;
-  }
-}
-
-:global(body.motion-paused) .flow > [data-flow] {
-  animation: none;
-  opacity: 1;
-  transform: none;
-}
-
-/* `draw`: the hairline under the empty chapter's one paragraph. */
-.draw {
-  margin-top: 2rem;
-  max-width: 62ch;
-}
-
-/* -------------------------------------------------------------- peak -- */
-
-.peak {
-  padding-block: clamp(4rem, 8vw, 8rem);
-}
-
-/*
- * The run: the static box that owns the clock (motion-contract §1).
- *
- * 220svh on a laptop — the most scroll room on the page, which §3 gives the
- * peak and nothing else: about 1.2 windows of holding after the line has
- * arrived at its pin. 170svh on a phone, where a window is short and the
- * same hold would be a page of black. `svh`, so the run does not resize as a
- * phone's toolbar collapses mid-hold.
- */
-.peakRun {
-  height: 170svh;
-  view-timeline-name: --story-peak;
-  view-timeline-axis: block;
-}
-
-@media (min-width: 48rem) {
-  .peakRun {
-    height: 220svh;
-  }
-}
-
-/* The held line, pinned in the middle of the window for the length of the
-   run. Sticky, so leaving the run lets it go in document order with no
-   script and no jump. */
-.peakHold {
-  position: sticky;
-  top: 0;
-  height: 100svh;
-  display: grid;
-  align-content: center;
-}
-
-.peakLine {
-  font-family: var(--font-display);
-  font-weight: var(--weight-display);
-  font-size: clamp(1.75rem, 4.6vw, 4rem);
-  line-height: 1.12;
-  letter-spacing: var(--track-sub);
-  max-width: 24ch;
-  text-wrap: balance;
-  color: rgb(var(--panel-ink));
-}
-
-/*
- * The line they keep, inked by the reader's own scroll.
- *
- * One background, two halves: the full panel ink and the soft panel ink,
- * meeting at a hard edge, clipped to the glyphs. The background is twice
- * the element's width, so sliding its position from one end to the other
- * moves the edge across the line. The clock is the run's named timeline —
- * not `view()`, which on a pinned element stalls (§1) — over the first 55%
- * of `contain`, which is "while held": the edge finishes crossing with a
- * screen of holding left, so the reader sees the finished line held, not the
- * last letter landing as the pin lets go.
- *
- * WHY IT IS NEVER HIDDEN. A pinned line is a state a reader can park in, so
- * every frame of it has to be readable. The un-inked half is
- * `--panel-soft`, 7.86:1 on `--panel` — above the 4.5:1 body floor, not just
- * the 3:1 display one — so at every scroll position both sentences can be
- * read and what travels is emphasis. Arrived is `--panel-ink`, 17.15:1.
- *
- * The edge moves in the reading direction, so it is physical and has to be
- * stated twice: from the left in English, from the right in Hebrew.
- */
-.peakKeep {
-  background-image: linear-gradient(
-    to right,
-    rgb(var(--panel-ink)) 50%,
-    rgb(var(--panel-soft)) 50%
-  );
-  background-size: 200% 100%;
-  background-position: 0% 0;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  /* Each line of a wrapped inline carries its own copy of the background,
-     so the edge crosses every line at once — one stroke down the column —
-     rather than the gradient being sliced across the inline's fragments. */
-  -webkit-box-decoration-break: clone;
-  box-decoration-break: clone;
-  animation: story-keep linear both;
-  animation-timeline: --story-peak;
-  animation-range: contain 0% contain 55%;
-}
-
-@keyframes story-keep {
-  from {
-    background-position: 100% 0;
+    clip-path: inset(0 0 35% 0 round var(--r-md));
   }
   to {
-    background-position: 0% 0;
-  }
-}
-
-:global(html[dir="rtl"]) .peakKeep {
-  background-image: linear-gradient(
-    to left,
-    rgb(var(--panel-ink)) 50%,
-    rgb(var(--panel-soft)) 50%
-  );
-  background-position: 100% 0;
-  animation-name: story-keep-rtl;
-}
-
-@keyframes story-keep-rtl {
-  from {
-    background-position: 0% 0;
-  }
-  to {
-    background-position: 100% 0;
-  }
-}
-
-/*
- * The exits, and every one lands on the arrived line: the plain panel ink,
- * no gradient, no clip. Not the soft ink — that is the *un*-arrived state —
- * and not a frozen gradient, which `animation-play-state` would give (§4).
- *
- * The run's height is kept under every switch. It is scroll room rather than
- * motion: the held line still holds, which is a layout fact a reader can
- * scroll past, and taking the height away would make the peak the *shortest*
- * chapter for exactly the readers who asked for less motion. The pin is
- * kept for the same reason — sticky positioning is not animation.
- *
- * Forced colours and print are exits as well: a gradient clipped to text is
- * painted over by a forced palette, which leaves transparent glyphs; and a
- * printer gets ink, not a background a print dialog may drop.
- *
- * Each exit names the RTL selector too. `html[dir="rtl"] .peakKeep` outweighs
- * a bare `.peakKeep`, so an exit written only against the bare class would
- * lose to the Hebrew gradient and leave a reduced-motion reader in Hebrew
- * with the half-inked line frozen at its first frame. The paused exit already
- * weighs the same as the RTL rule and wins on source order.
- */
-@supports not (animation-timeline: view()) {
-  .peakKeep,
-  :global(html[dir="rtl"]) .peakKeep {
-    animation: none;
-    background: none;
-    color: rgb(var(--panel-ink));
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .peakKeep,
-  :global(html[dir="rtl"]) .peakKeep {
-    animation: none;
-    background: none;
-    color: rgb(var(--panel-ink));
-  }
-}
-
-:global(body.motion-paused) .peakKeep {
-  animation: none;
-  background: none;
-  color: rgb(var(--panel-ink));
-}
-
-@media (forced-colors: active) {
-  .peakKeep,
-  :global(html[dir="rtl"]) .peakKeep {
-    animation: none;
-    background: none;
-    color: CanvasText;
-  }
-}
-
-@media print {
-  .peakRun {
-    height: auto;
-  }
-  .peakHold {
-    position: static;
-    height: auto;
-  }
-  .peakKeep,
-  :global(html[dir="rtl"]) .peakKeep {
-    animation: none;
-    background: none;
-    color: inherit;
+    clip-path: inset(0 0 0 0 round var(--r-md));
   }
 }
 
@@ -627,35 +246,9 @@
   border-top: 1px solid rgb(var(--rule));
 }
 
-.closeNote {
-  margin-top: 1rem;
-  max-width: 52ch;
-  color: rgb(var(--ink-soft));
-}
-
-/*
- * `count`. The mechanism is the spec plate's (`Stack.module.css` has the
- * full argument): a registered integer property animated from nought to the
- * figure, printed through a CSS counter, started once by `useEnteredOnce`.
- * Restated here rather than imported because the plate's classes are that
- * component's internals. The resting value is the true one — `--story-n`
- * defaults to the figure — so no animation, no observer, or an engine that
- * cannot interpolate a registered property all print the real number.
- *
- * Time-driven, so there is no `@supports` block, and the global
- * `animation-duration: 0.01ms !important` under both standing switches runs
- * it to its last frame at once, which is the arrived figure.
- */
-@property --story-to {
-  syntax: "<integer>";
-  inherits: false;
-  initial-value: 0;
-}
-
-@property --story-n {
-  syntax: "<integer>";
-  inherits: false;
-  initial-value: 0;
+.closeTitle {
+  font-size: clamp(1.75rem, 3.6vw, 2.75rem);
+  line-height: 1.02;
 }
 
 .figures {
@@ -684,30 +277,6 @@
   font-size: clamp(2.5rem, 6vw, 4rem);
   line-height: 1;
   font-variant-numeric: tabular-nums;
-  --story-n: var(--story-to);
-  counter-reset: story var(--story-n);
-}
-
-.count {
-  display: inline-block;
-  min-width: calc(var(--story-digits, 1) * 1ch);
-}
-
-.count::before {
-  content: counter(story);
-}
-
-.figures[data-counting] .figureValue {
-  animation: story-count var(--dur-slow) var(--ease-settle) both;
-}
-
-@keyframes story-count {
-  from {
-    --story-n: 0;
-  }
-  to {
-    --story-n: var(--story-to);
-  }
 }
 
 .onward {
@@ -722,4 +291,57 @@
   color: rgb(var(--signal));
   text-decoration: underline;
   text-underline-offset: 0.3em;
+}
+
+/* ------------------------------------------------------------- exits -- */
+
+/*
+ * Every exit cancels the animations outright and lands on the base rules,
+ * which are the finished state: the spine has no transform (drawn), the knot
+ * takes the filled colours below, the plate has no clip (uncovered). Never on
+ * frame zero. The global `animation-duration: 0.01ms !important` that reduced
+ * motion and Pause carry does nothing to a scroll-driven animation (motion
+ * contract §4), so each switch is named here.
+ */
+@supports not (animation-timeline: view()) {
+  .timeline::before,
+  .beat::before,
+  .plate {
+    animation: none;
+  }
+  .beat::before {
+    background-color: rgb(var(--signal));
+    border-color: rgb(var(--signal));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .timeline::before,
+  .beat::before,
+  .plate {
+    animation: none;
+  }
+  .beat::before {
+    background-color: rgb(var(--signal));
+    border-color: rgb(var(--signal));
+  }
+}
+
+:global(body.motion-paused) .timeline::before,
+:global(body.motion-paused) .beat::before,
+:global(body.motion-paused) .plate {
+  animation: none;
+}
+
+:global(body.motion-paused) .beat::before {
+  background-color: rgb(var(--signal));
+  border-color: rgb(var(--signal));
+}
+
+@media print {
+  .timeline::before,
+  .beat::before,
+  .plate {
+    animation: none;
+  }
 }
