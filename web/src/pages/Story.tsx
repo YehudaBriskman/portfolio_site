@@ -6,6 +6,7 @@ import Flow from "@/components/motion/Flow";
 import InkRule from "@/components/motion/InkRule";
 import InkWipe from "@/components/motion/InkWipe";
 import Rise from "@/components/motion/Rise";
+import Written from "@/components/motion/Written";
 import ObjectLabel from "@/components/gallery/ObjectLabel";
 import Shot from "@/components/projects/Shot";
 import YearRail from "@/components/story/YearRail";
@@ -42,7 +43,7 @@ import { useEnteredOnce } from "@/hooks/useEnteredOnce";
  *   | 2 | 2024              | wipe     | one thing, arriving whole behind a single edge             |
  *   | 3 | 2025              | flow     | three things, each arriving on its own crossing            |
  *   | 4 | **2026, the peak**| **pin**  | the reader is held while the line they keep is inked       |
- *   | 5 | now               | reveal   | the present tense, plainly (TODO #98: `speak`, see below)  |
+ *   | 5 | now               | pen      | the present tense, set at the pace it is read              |
  *   | 6 | the close         | count    | the walk, totalled from the table                          |
  *
  * Seven families across seven beats and two frames — tally, drift, reveal,
@@ -73,13 +74,16 @@ import { useEnteredOnce } from "@/hooks/useEnteredOnce";
  *   these three are (see `figures` in `data/story.ts`). It is time-driven and
  *   fires once, so scrolling back does not count the walk down again.
  *
- * TODO(#98): the "now" chapter is the obvious home for the word-by-word prose
- * primitive being built in #98, whose family would be `speak` — the present
- * tense, arriving at the pace it is read. It is not merged, and this page
- * deliberately does not grow a private copy of it: a second word-stagger in
- * the tree is how `WordStagger` was retired (§7). When #98 lands, swap the
- * `Rise` around the now-chapter's prose for it and change row 5 above to
- * `speak`; the ledger then carries eight families and still repeats none.
+ * - `pen` in the "now" chapter: `motion/Written`, the site's one word-by-word
+ *   primitive (#98), so a word is at full ink as it crosses a band in the
+ *   lower middle of the window and the present tense arrives at the pace it
+ *   is read. This page was waiting for it rather than growing a private copy
+ *   — a second word-stagger in the tree is how `WordStagger` was retired
+ *   (§7). The family was pencilled in here as `speak`; it is `pen` in the
+ *   contract's ledger, and the row above uses the contract's name. Only this
+ *   chapter takes it: the years' prose stays plain, so the pen is a change
+ *   of register at the present tense rather than the page's texture, and the
+ *   ledger carries eight families and still repeats none.
  *
  * Every device on the page answers to motion-contract §4's three
  * off-switches, and each lands on the arrived state: `Rise`, `Flow`,
@@ -299,13 +303,16 @@ export default function Story() {
     }
     if (c.kind === "now") {
       return (
-        /* TODO(#98): replace this `Rise` with the word-by-word primitive. */
-        <Rise className={styles.prose}>
+        /* No `Rise` round this any more: the pen is how this chapter's
+           prose arrives, and a block lifting in while its words are being
+           set would be two devices on one beat. The ask is not prose, so it
+           is not written; it arrives with the chapter. */
+        <div className={styles.prose}>
           {c.body.map((p) => (
-            <p key={p}>{p}</p>
+            <Written key={p}>{p}</Written>
           ))}
           <Ask chapter={c} />
-        </Rise>
+        </div>
       );
     }
     /* A year. One project arrives behind one edge; several arrive one by

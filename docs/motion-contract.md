@@ -104,6 +104,7 @@ ledger is a page-level document and not a comment.
 | — | any waiting region | **sweep** | a region says what shape is coming, and that it is coming |
 | — | the dark ground | **drift** | the dark act is a gap between two sheets, with light behind it |
 | — | every section head | **shutter**, echoed | a section arrives the way the app did, at the scale of its name |
+| — | any running text | **pen** | prose is set as the reader's eye reaches it |
 | 0 | title plate | **staged assembly** | the collection names itself, in four gated moves |
 | — | the plate's end corner | **breath** | one small light is on, and says one thing at a time |
 | 1 | wall text | `flow` | the quiet before the peak |
@@ -391,6 +392,101 @@ the device and it is recorded here rather than rounded away.
 A 400kbps network profile was tried and dropped: at 7.7–9.1 seconds it is
 entirely network-bound and several loads produced no LCP entry at all, so it
 measures the connection rather than the device.
+
+**`pen` is not a beat, and it is not a peak — it is how running text is
+read.** `motion/Written.tsx` wraps prose, not sections: the wall text's
+paragraphs, a post's paragraphs and list items, a project's description,
+brief and decisions. Every word is muted except the words crossing a band
+from 58% to 72% of the window's height, which are at full ink, and inside the
+band the pen moves along each line in reading order — so a sentence is set as
+the eye reaches it, and un-set if the reader scrolls back. It sits beside
+`flow` on the wall text without colliding with it, because they answer
+different questions: `flow` is *when a block arrives*, once; `pen` is *which
+words are being read*, on every pass, and it is the same on every page that
+has prose. A family that is a property of a kind of content rather than of a
+place on the page has no neighbour to repeat, which is the same argument that
+keeps `sweep` and `drift` out of the beat numbering.
+
+It is not the page's third engineered peak, on the peak rule's own terms. It
+buys no scroll distance — it pins nothing, and a paragraph is exactly as tall
+as it was. It has no asset budget: no image, no canvas, no layer, nothing
+but the colour of text that was already there. It never makes anything less
+legible than the page set it: the muted state is `--ink-soft`, the colour the
+wall text was already designed in, and the band only *adds* ink. And its
+off state is not a lesser version of it but the page with all prose at full
+ink, which costs a reader nothing to choose. A peak is the thing the page
+spends its budget on; this spends a frame cost, measured below, and nothing
+else.
+
+**Muted is `--ink-soft`, and there is no third value to choose.**
+`index.css` already settled it: paper has no room for a third text colour,
+and `--ink-faint` (3.60:1) is non-text. Measured on every ground it is used
+on — computed from the tokens and confirmed against the rendered ground
+sampled beside the text:
+
+| where | ground | muted `--ink-soft` | lit / rest `--ink` |
+|---|---|---|---|
+| wall text, home | `--paper` #ECE8DC | 6.37:1 | 15.17:1 |
+| a post's body | `--paper` #ECE8DC | 6.37:1 | 15.17:1 |
+| a project page | `--paper` #ECE8DC | 6.37:1 | 15.17:1 |
+| any prose inside a dark act | `--panel` #0C0C0E (via `.on-panel`) | 7.86:1 | 17.15:1 |
+
+No `Written` sits inside a dark act today; the last row is there because
+`.on-panel` re-points both tokens and the stylesheet does nothing extra, so
+the day one does it is already measured. The rendered-glyph figures
+`index.css` records for the text face (coverage-weighted, lowest on paper
+4.69:1 for a 12px chip in `--ink-soft`) apply to the muted state exactly as
+they applied to the wall text before this change: it is the same colour on
+the same face, at body sizes that sit above that lowest row.
+
+**Its rest state is full ink, which is the off state.** Reduced motion,
+Pause and a browser without `animation-timeline` each cancel the animation
+and land on `--ink` — not on the caller's colour, because most prose here is
+set in `--ink-soft` and landing there would be landing on muted. Print is a
+fourth exit for the same reason. Screenshots of all three switches are in
+`docs/written/`.
+
+**Two things it found that are worth not rediscovering.**
+
+- **A `view()` timeline on an inline box does not track the box.** Every word
+  of a three-line paragraph reported the same progress in Chromium: an inline
+  subject resolves to the block it is laid out in. So the paragraph names the
+  timeline and each word is placed on it by its line's offset (`--line`) and
+  its place along the line (`--pen`), both measured once per layout by one
+  `ResizeObserver` for the whole page — the page's first, and it fires on
+  mount, on resize and once when the web fonts land, never on scroll.
+- **The split is inline spans, never inline-blocks, and that is what keeps
+  bidi.** An inline-block is a neutral object to the bidi algorithm; the hero
+  found this as ADUHEY NAMXSIRB under `dir="rtl"` (#110) and fixed it with
+  `direction: ltr`, which is right for a Latin name and wrong for a
+  paragraph that may be Hebrew. An inline span is invisible to bidi. Measured
+  word-for-word against an unsplit twin of every wall-text paragraph — in
+  English, in English under `dir="rtl"`, and in Hebrew with Latin names
+  inside — no word moved by more than 0.38px and no paragraph changed height.
+
+**What it costs, measured (2026-11-02).** At 4x CPU throttle, scrolled 16px
+a frame through the wall text, main against this branch, arms interleaved
+and the order flipped each round. Frame time is the round trip of one
+`HeadlessExperimental.beginFrame` in a software-rendered headless shell,
+because Chromium on this box has no frame clock of its own (README rule 6):
+the numbers compare arms with each other and are not fps on a device.
+
+| case | main | pen, every paragraph live | pen, parked off-band | pen, paused |
+|---|---|---|---|---|
+| wall text, 230 words (5 rounds; gate 3) | 16.9 ms | 24.6 ms | 23.5 ms | 13.9 ms |
+| five times the prose, 1,127 words (3 rounds) | 15.9 ms | 28.9 ms | **16.2 ms** | — |
+
+What that says. The spans are free: paused, with every word split and none
+animating, is no slower than main. The cost is words animating, and it
+grows with how many: ungated, five times the prose costs five-times-ish
+more. Hence the observer that parks a paragraph outside the window round
+the band, which takes the long case back to main's number. It
+cannot do the same for the wall text, because the wall text is short
+enough that most of it is near the band at once; there the pen costs about
+7ms a frame at 4x throttle, on a section with no other scroll work, and it
+is that or nothing for those words. If a real device ever shows that cost,
+the cheaper step is per-line rather than per-word: the same clock and the
+same `--line`, with one span per line instead of one per word.
 
 **The sweep row is not a beat either, and for a different reason from the
 shutter's.** `shutter` is not a beat because it happens before the page;
@@ -794,6 +890,7 @@ direction, or set `fill-rule: evenodd` deliberately and know what it costs.
 | `gallery/SkeletonGate.tsx` | the box that holds a region's height, and the 180ms before it is inked | clock |
 | `ground/DarkAct.module.css` | `drift` — two lights crossing at each seam of the dark ground | clock, gated off-screen by an observer |
 | `index.css` `.section-head::after` | the shutter, echoed — a lattice leaving each section head outward from its word | named `view-timeline` on the head, inset to the lower third |
+| `motion/Written.tsx` | `pen` — running text set word by word as it crosses a band in the lower middle of the window | named `view-timeline` on the paragraph; per-word place on it measured once per layout |
 
 ### Retired, and why
 

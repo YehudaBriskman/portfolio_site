@@ -34,16 +34,22 @@ afterEach(() => {
 describe("Approach", () => {
   it("puts the whole beat on the page as prose", () => {
     render(<Approach />);
+    /* The prose is `motion/Written`, which sets each word as its own inline
+       span, so `getByText(sentence)` — which compares an element's own text
+       nodes — no longer sees a sentence. The paragraph is found by its whole
+       textContent instead, which is what a reader and the clipboard get. */
+    const paragraph = (text: string) =>
+      screen.getByText((_, el) => el?.hasAttribute("data-written") === true && el.textContent === text);
 
     expect(screen.getByRole("heading", { name: about.heading, level: 2 })).toBeInTheDocument();
-    for (const paragraph of about.intro) {
-      expect(screen.getByText(paragraph)).toBeInTheDocument();
+    for (const text of about.intro) {
+      expect(paragraph(text)).toBeInTheDocument();
     }
     for (const principle of about.principles) {
       expect(
         screen.getByRole("heading", { name: principle.claim, level: 3 })
       ).toBeInTheDocument();
-      expect(screen.getByText(principle.detail)).toBeInTheDocument();
+      expect(paragraph(principle.detail)).toBeInTheDocument();
     }
   });
 

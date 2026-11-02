@@ -1,4 +1,5 @@
 import type { ProjectDecision } from "@/data/projects";
+import Written from "@/components/motion/Written";
 
 /*
  * The decisions, with the reasoning kept in.
@@ -36,7 +37,7 @@ export default function ProjectDecisions({
             </span>
             <div className="mt-3 min-w-0 sm:mt-0">
               <h3 className="display-tight max-w-[46ch] text-lg leading-snug text-bone sm:text-xl">{d.title}</h3>
-              <p className="mt-3 max-w-[66ch] text-base leading-[1.65] text-bone/75">{d.body}</p>
+              <Written className="mt-3 max-w-[66ch] text-base leading-[1.65] text-bone/75">{d.body}</Written>
             </div>
           </li>
         ))}

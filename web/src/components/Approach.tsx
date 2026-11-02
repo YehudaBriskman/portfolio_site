@@ -1,4 +1,5 @@
 import Flow from "@/components/motion/Flow";
+import Written from "@/components/motion/Written";
 import { about } from "@/data/site";
 import styles from "@/components/Approach.module.css";
 
@@ -158,12 +159,20 @@ export default function Approach() {
 
         {/* The page speaking in the first person, which is why it is type on
             the paper and not type in a box: putting a voice in a box turns it
-            into a specimen. */}
+            into a specimen.
+
+            `Written`, not `<p>`: the prose is set word by word as the reader
+            reaches it (`motion/Written`, the `pen` row in the ledger). That is
+            not this beat's device and does not compete with it — `flow`
+            decides when a block arrives, once; `pen` is how any running text
+            on the site is read, on every pass, and it is the same on a post
+            or a project page as here. The heading and the claims are not
+            wrapped: a heading is read at a glance. */}
         <div className={styles.intro}>
           {about.intro.map((p) => (
-            <p key={p.slice(0, 24)} className={styles.prose}>
+            <Written key={p.slice(0, 24)} className={styles.prose}>
               {p}
-            </p>
+            </Written>
           ))}
         </div>
 
@@ -185,7 +194,7 @@ export default function Approach() {
             className={`${styles.principle} ${treatment[p.claim] ?? ""}`.trimEnd()}
           >
             <h3 className={styles.claim}>{p.claim}</h3>
-            <p className={`${styles.prose} ${styles.detail}`}>{p.detail}</p>
+            <Written className={`${styles.prose} ${styles.detail}`}>{p.detail}</Written>
           </div>
         ))}
       </Flow>

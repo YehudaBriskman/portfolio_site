@@ -1,0 +1,185 @@
+/*
+ * `pen` — what `Written.tsx` does to a word, and every way out of it.
+ *
+ * The component makes the words and measures the lines; everything a reader
+ * sees is here. The page-level rules this answers to are
+ * `docs/motion-contract.md` §1 (the range is the clock) and §4 (three
+ * off-switches, each landing on the finished state).
+ */
+
+/*
+ * The clock, and the band.
+ *
+ * The paragraph owns the timeline and every word in it reads that one. Not
+ * `view()` on each word: on an inline box `view()` resolves to the block the
+ * box is laid out in, so every word of a paragraph reported the same progress
+ * whatever line it was on — measured, and the reason `Written.tsx` writes
+ * `--line`. Naming the paragraph's timeline says out loud what was happening
+ * implicitly, and makes a nested `Written` (a list item's own paragraph) the
+ * owner of its own words rather than whichever ancestor the engine picked.
+ *
+ * The inset is the band. 58vh off the top and 28vh off the bottom leave a
+ * band from 58% to 72% of the window — the lower middle, where the eye
+ * reaches for the next line rather than where the line is already read — and
+ * `cover` on that is "the paragraph is crossing the band". 14vh is three to
+ * four lines of body text at 1440x900 and at 390x844 alike; on a phone a line
+ * is five words and the lit stretch is a phrase, on a desktop half a sentence.
+ * The three numbers are `vh` and not `%` only so that `--written-band` below
+ * can be the same quantity in the unit `animation-range` accepts; they live
+ * here, once, and nothing else on the page knows them.
+ *
+ * A viewport-relative band is the case §1 warns about. Nothing this wraps is
+ * pinned and nothing should be: a pinned paragraph stops moving relative to
+ * the scrollport, its timeline stalls, and the pen would stop mid-sentence.
+ * Prose inside a sticky act would need its clock moved to a static wrapper.
+ */
+.written {
+  --written-top: 58vh;
+  --written-foot: 28vh;
+  --written-band: calc(100vh - var(--written-top) - var(--written-foot));
+  view-timeline: --written-clock block;
+  view-timeline-inset: var(--written-top) var(--written-foot);
+}
+
+/*
+ * THE FINISHED STATE IS FULL INK, AND IT IS THE BASE RULE.
+ *
+ * Not the caller's colour. Most of the prose this wraps is set in
+ * `--ink-soft`, which is exactly what "muted" resolves to below, so landing on
+ * the caller's colour would land every off-switch on muted text — the one
+ * outcome #98 rules out by name. A reader who turns motion off gets the
+ * paragraph in `--ink`: 15.17:1 on paper, 17.15:1 on the dark act.
+ *
+ * On the word and not on the root, because the root's colour loses to any
+ * rule on a descendant — a markdown body's `prose-p:` utilities, a link's own
+ * ink — and inheritance cannot win that fight. One consequence, accepted: a
+ * link inside written prose takes the pen's ink like the words round it, and
+ * is identified by its underline, which every link in a body on this site
+ * already carries for exactly that reason.
+ *
+ * `color` and nothing else. No `display`, no `white-space`, no `position`:
+ * the word is an inline box and has to stay one, and the component comment
+ * says why that one fact is what keeps both bidi and line breaking untouched.
+ */
+.word {
+  color: rgb(var(--ink));
+
+  animation-name: written-pen;
+  animation-timing-function: linear;
+  animation-fill-mode: both;
+  animation-timeline: --written-clock;
+  /*
+   * Where on the paragraph's clock this word is lit.
+   *
+   * `--line` is the distance from the paragraph's top to this word's line,
+   * so the word starts when its own line, not the paragraph, reaches the
+   * band's foot. `--pen` is its place along that line in reading order, 0 to
+   * just under 1, and shifts it by that fraction of one line height: a line is
+   * written in the scroll it takes to rise one line, which is exactly when the
+   * next line reaches the foot, so the pen leaves the end of one line as it
+   * arrives at the start of the next. Both written by the component once per
+   * layout; both default to 0, which lights the paragraph as a block.
+   *
+   * Lit for one band's height of scroll from there, at every word, so the
+   * trailing edge un-writes in the same order the leading edge wrote.
+   *
+   * `lh` resolves against the word's own line-height, which is the leading of
+   * the paragraph it is in, so a 1.7-leaded wall text and a 1.65-leaded post
+   * both hand off cleanly without a number in this file knowing either.
+   *
+   * No delay, no duration: §1, the range is the clock and both are ignored.
+   */
+  animation-range:
+    cover calc(var(--line, 0px) + var(--pen, 0) * 1lh)
+    cover calc(var(--line, 0px) + var(--pen, 0) * 1lh + var(--written-band));
+}
+
+/*
+ * Muted, then ink, then muted.
+ *
+ * MUTED IS `--ink-soft`, THE PAGE'S SECOND TEXT COLOUR, AND THERE IS NO THIRD.
+ * `index.css` says it plainly: paper has no room for a third text value —
+ * anything faint enough to read as faint is under 4.5:1, which is why
+ * `--ink-faint` (3.60:1) is marked non-text and is not available here. So the
+ * effect never makes anything fainter than the page already sets it: the
+ * muted state of a wall text is the colour that wall text was designed in,
+ * and the band *adds* ink to it. Measured on every ground it is used on, and
+ * the table is in `docs/motion-contract.md` §2.
+ *
+ * `--ink` and `--ink-soft` and not literals, so `.on-panel` re-points both
+ * and a paragraph on the dark act is muted in `--panel-soft` and lit in
+ * `--panel-ink` with no second rule.
+ *
+ * 8% of the range for each ramp: about 0.3 of a line of scroll, so the pen
+ * has a soft nib three or four words wide rather than words snapping on one
+ * at a time — a word at full ink next to a word at muted with nothing between
+ * reads as a cursor, and this is a hand.
+ */
+@keyframes written-pen {
+  0%,
+  100% {
+    color: rgb(var(--ink-soft));
+  }
+  8%,
+  92% {
+    color: rgb(var(--ink));
+  }
+}
+
+/*
+ * A paragraph nowhere near the band, parked.
+ *
+ * `Written.tsx` writes `data-pen="rest"` on a paragraph its observer has
+ * seen outside the window round the band, and here its words drop their
+ * animation and hold the muted colour they would have been filled at anyway
+ * — so the frame cost is the paragraphs being read rather than every
+ * paragraph on the page. The reasoning and the measurement are on the
+ * observer.
+ *
+ * Only while the effect is running. The three conditions are restated here
+ * in the positive rather than relying on the exits below to undo this,
+ * because this rule *sets a colour*: an exit that only cancelled the
+ * animation would leave a parked paragraph muted for a reader who asked for
+ * no motion, which is the one outcome every exit exists to prevent.
+ */
+@supports (animation-timeline: view()) {
+  @media screen and (prefers-reduced-motion: no-preference) {
+    :global(body:not(.motion-paused)) .written[data-pen="rest"] .word {
+      animation: none;
+      color: rgb(var(--ink-soft));
+    }
+  }
+}
+
+/*
+ * The ways out. Each cancels the animation outright and lands on the base
+ * rule, which is full ink — never on frame zero, which is muted.
+ *
+ * The global `animation-duration: 0.01ms !important` that reduced motion and
+ * Pause both carry does nothing to a progress-driven animation (§4), so
+ * leaving this to it would leave every word muted outside the band forever.
+ *
+ * Without `animation-timeline` support there is no clock, and the keyframes
+ * would run on the document timeline with no duration — instantly, to the
+ * last frame, which is muted. That is a browser that cannot run the effect,
+ * not a reader who asked for less of it, and it gets the prose.
+ */
+@supports not (animation-timeline: view()) {
+  .word { animation: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .word { animation: none; }
+}
+
+:global(body.motion-paused) .word {
+  animation: none;
+}
+
+/*
+ * Paper has no scroll position. A printed page is read all at once, and the
+ * band would land wherever the print engine happened to put the viewport.
+ */
+@media print {
+  .word { animation: none; }
+}
