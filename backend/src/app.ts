@@ -113,8 +113,12 @@ export function createApp() {
   // Health
   app.get("/health", (_req, res) => res.json({ ok: true }));
 
-  // 404 כללי (לא חובה, אבל שימושי)
-  app.use((_req, res) => res.status(404).json({ error: "Not Found" }));
+  /*
+   * The catch-all 404, in the same `{ ok: false, error }` shape every other
+   * failure answers in (`middlewares/errorHandler.ts`), so a client has one
+   * thing to check rather than one shape per way of failing (#131).
+   */
+  app.use((_req, res) => res.status(404).json({ ok: false, error: "Not Found" }));
 
   // Last, and with four arguments: Express only routes a thrown or forwarded
   // error to a handler of that arity, and only to one mounted after the
