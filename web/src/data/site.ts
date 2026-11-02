@@ -1,4 +1,4 @@
-/* Replaces paragraphs.ts. Every sentence here should survive a hiring manager
+/* Replaced paragraphs.ts. Every sentence here should survive a hiring manager
    asking "prove it". No adjectives that can't be checked. */
 
 import type { LineMove } from "@/components/motion/lineMoves";
