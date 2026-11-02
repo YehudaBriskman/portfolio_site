@@ -1,10 +1,11 @@
-import { describe, expect, it } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { afterEach, describe, expect, it } from "vitest";
+import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Nav from "@/components/Nav";
 import { NAV_ROUTES } from "@/components/nav/navRoutes";
+import { TUCK_SLACK } from "@/components/nav/useTuckedBar";
 
 /*
  * What is worth testing in the chrome is the promises, not the markup.
@@ -111,13 +112,13 @@ describe("the chrome as the main links only", () => {
     expect(within(elsewhere).getByRole("link", { name: "LinkedIn" })).toBeInTheDocument();
   });
 
-  it("collapses to a menu that says which room you are in", async () => {
+  it("collapses to one word, and the open menu is what marks the room", async () => {
     chrome("/blog");
-    /* Not an unlabelled hamburger: the control names what it opens and where
-       the reader is, which is the one piece of wayfinding a phone's bar can
-       still give before it is touched. */
-    const toggle = screen.getByRole("button", { name: /Menu/ });
-    expect(toggle).toHaveTextContent("All notes");
+    /* #161: the control is "Menu" and nothing else — the room's name was the
+       second line of a cramped pill and is said by the page's h1 and by the
+       sheet's inked row. Its accessible name is exactly its visible text. */
+    const toggle = screen.getByRole("button", { name: "Menu" });
+    for (const r of NAV_ROUTES) expect(toggle).not.toHaveTextContent(r.label);
     expect(toggle).toHaveAttribute("aria-expanded", "false");
 
     const sheet = document.getElementById("nav-menu");
@@ -126,6 +127,10 @@ describe("the chrome as the main links only", () => {
     await userEvent.click(toggle);
     expect(toggle).toHaveAttribute("aria-expanded", "true");
     expect(sheet).not.toHaveAttribute("hidden");
+    expect(within(sheet!).getByRole("link", { name: "All notes" })).toHaveAttribute(
+      "aria-current",
+      "page"
+    );
 
     /* Escape closes one layer and hands focus back to the control that opened
        it; without the second half the keyboard reader is left on <body>. */
@@ -187,14 +192,6 @@ describe("the chrome as the main links only", () => {
     expect(document.activeElement).toBe(toggle);
   });
 
-  it("drops the name of the room on an address that is in none of them", () => {
-    chrome("/nowhere-at-all");
-    const toggle = screen.getByRole("button", { name: /Menu/ });
-    /* A 404 is not a room. The line is absent rather than guessing, and the
-       control is still a control. */
-    for (const r of NAV_ROUTES) expect(toggle).not.toHaveTextContent(r.label);
-  });
-
   it("gives the sheet the same set the bar carries", async () => {
     chrome();
     await userEvent.click(screen.getByRole("button", { name: /Menu/ }));
@@ -216,5 +213,67 @@ describe("the chrome as the main links only", () => {
        count is the assertion — an index put back in the sheet would pass every
        check above this line. */
     expect(inSheet.getAllByRole("link")).toHaveLength(7);
+  });
+});
+
+/*
+ * #161: the bar tucks away on the way down and comes back on the way up.
+ *
+ * jsdom has no scrolling, so `scrollY` is set by hand and the event fired; the
+ * travel and the fade are CSS and are measured in a browser (docs/nav/). What
+ * is asserted is the promise the script makes: when `data-tucked` is set.
+ */
+describe("the bar getting out of the way", () => {
+  const scrollTo = (y: number) =>
+    act(() => {
+      Object.defineProperty(window, "scrollY", { value: y, configurable: true });
+      window.dispatchEvent(new Event("scroll"));
+    });
+  const dock = () => document.querySelector("header")!;
+
+  afterEach(() => {
+    Object.defineProperty(window, "scrollY", { value: 0, configurable: true });
+  });
+
+  it("tucks on the way down and comes back on the way up", () => {
+    chrome();
+    expect(dock()).not.toHaveAttribute("data-tucked");
+    scrollTo(400);
+    expect(dock()).toHaveAttribute("data-tucked");
+    scrollTo(400 - TUCK_SLACK);
+    expect(dock()).not.toHaveAttribute("data-tucked");
+  });
+
+  it("ignores a settle shorter than the slack", () => {
+    chrome();
+    scrollTo(400);
+    scrollTo(399);
+    expect(dock()).toHaveAttribute("data-tucked");
+  });
+
+  it("never tucks within its own height of the top", () => {
+    chrome();
+    scrollTo(40);
+    expect(dock()).not.toHaveAttribute("data-tucked");
+    scrollTo(400);
+    scrollTo(500);
+    scrollTo(20);
+    expect(dock()).not.toHaveAttribute("data-tucked");
+  });
+
+  it("comes back when anything in it takes focus", () => {
+    chrome();
+    scrollTo(400);
+    expect(dock()).toHaveAttribute("data-tucked");
+    act(() => screen.getAllByRole("link", { name: "All work" })[0].focus());
+    expect(dock()).not.toHaveAttribute("data-tucked");
+  });
+
+  it("stays while the panel is open", async () => {
+    chrome();
+    await userEvent.click(screen.getByRole("button", { name: "Menu" }));
+    scrollTo(400);
+    scrollTo(800);
+    expect(dock()).not.toHaveAttribute("data-tucked");
   });
 });

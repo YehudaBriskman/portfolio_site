@@ -875,6 +875,7 @@ direction, or set `fill-rule: evenodd` deliberately and know what it costs.
 
 | file | device | timeline |
 |---|---|---|
+| `nav/useTuckedBar.ts` + `Nav.module.css` (tuck) | the bar lifts and fades on the way down, returns on the way up or on focus; no travel with motion off | scroll direction, no per-frame write |
 | `motion/Rise.tsx` | `reveal` — the measured reveal, fired once | observer + clock |
 | `motion/EntryShutter.tsx` | `shutter` — the page arrives from behind a grid | clock, gated on real readiness |
 | `motion/useStagedArrival.ts` | the staged assembly: each move waits on the last | clock, gated on `animationend` |

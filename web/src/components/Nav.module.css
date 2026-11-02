@@ -302,6 +302,88 @@
    there is nothing here for the off-switches to govern, which is the best
    possible state for a rule the off-switches used to have to know about. */
 
+/* ---------------------------------------------------------------- tuck --- */
+
+/*
+ * Out of the way while the reader goes forward (#161).
+ *
+ * `useTuckedBar` sets `data-tucked` on the dock when the reader has scrolled
+ * down past the slack, and clears it when they turn back up, reach the top,
+ * change page, open the panel or put focus in the bar. Everything about how
+ * the bar leaves is here.
+ *
+ * It lifts by its own height and fades as it goes, so it is gone rather than
+ * parked as a translucent strip over the pinned acts — the pile and the year
+ * are held frames, and a 12%-transparent bar over a held frame is the bar
+ * sitting on the work for the whole of its run, which is what the owner
+ * asked to stop. Lift and fade together: the lift alone leaves the blur's
+ * soft lower edge visible for the length of the move, and the fade alone
+ * leaves a 56px invisible box at the top of the window that still catches
+ * taps.
+ *
+ * On `.bar`, with `translate`, and both of those are load-bearing:
+ *
+ *   `hero-chrome.css` animates `transform` on the header itself, with
+ *   `fill-mode: both`, for the life of the home page. A `transform` here on
+ *   the header would be overridden by that animation and do nothing on the
+ *   one page that most needs it; `translate` on the child composes with it
+ *   instead of fighting it.
+ *
+ *   The dock is `position: fixed`, so nothing here moves the page. There is no
+ *   reserved space to collapse and no `top` to animate — the layout is the
+ *   same with the bar shown or away, which is what "no jump" means here.
+ *
+ * `pointer-events: none` on the dock while tucked, because the dock is still a
+ * 56px box at the top of the window even with the bar lifted out of it, and an
+ * invisible box that swallows taps is worse than a visible one.
+ *
+ * And the one override: `:has(:focus-visible)`. A reader tabbing into the bar
+ * while it is away must find it on screen at once, before any script has run
+ * — a focus ring on a control above the window is a focus ring nobody sees.
+ * Keyboard focus only: a mouse click on the language switch leaves focus on
+ * the button, and `:focus-within` would have pinned the bar on screen for the
+ * rest of the page. The script clears `data-tucked` on any focus as well, so
+ * the bar stays back after focus moves on.
+ *
+ * The material keeps working while the bar is away: `useDarkChrome` watches
+ * the strip, not the bar, so it comes back already in the right material. And
+ * the transition is on translate and opacity only — the material swap stays
+ * the hard cut the note on `.bar` argues for.
+ */
+.dock .bar {
+  transition:
+    translate var(--dur-fast) var(--ease-settle),
+    opacity var(--dur-fast) ease;
+}
+
+.dock[data-tucked]:not(:has(:focus-visible)) {
+  pointer-events: none;
+}
+
+.dock[data-tucked]:not(:has(:focus-visible)) .bar {
+  translate: 0 -100%;
+  opacity: 0;
+}
+
+/*
+ * With motion off, the bar toggles in place: no travel, only present or not.
+ *
+ * Both off-switches, as everywhere else in the chrome. The global
+ * `transition-duration: 0.01ms !important` already makes the fade a cut; what
+ * it cannot do is take the lift away, because a 0.01ms move is still a move —
+ * the bar would land 56px up rather than vanish where it is. So the lift goes,
+ * and the opacity is the whole of the change.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .dock[data-tucked]:not(:has(:focus-visible)) .bar {
+    translate: none;
+  }
+}
+
+:global(body.motion-paused) .dock[data-tucked]:not(:has(:focus-visible)) .bar {
+  translate: none;
+}
+
 /* ------------------------------------------------------------ the tracks -- */
 
 /*
@@ -570,19 +652,21 @@
  * wrong. With the index gone it opens three rooms, two marks and two switches,
  * and that is a menu however it is labelled.
  *
- * What keeps it from being the unlabelled hamburger this started as is the
- * second line: the name of the room the reader is in, which is the most a
- * phone's bar can still say for free and is read before the control is touched
- * at all. On an address that is in none of the three rooms the line is absent
- * rather than guessed.
+ * It used to carry a second line, the name of the room the reader was in, set
+ * in the field voice under MENU. #161 drops it, and the argument is on the
+ * toggle in Nav.tsx: on a phone the page's own `h1` and the sheet's inked row
+ * already say it, and once the bar tucks away on the way down the label was
+ * only ever on screen where one of those two was saying it too. What it cost
+ * was two type sizes stacked in a 44px pill, which is what read badly.
  *
- * `Menu` above the name is set in the field voice. The schema is NAME, fact,
- * FIELD; this is a field naming what the value under it is, which is the one
- * job that setting has.
+ * So "Menu" is set in the voice the routes are set in above the collapse —
+ * the display face, sentence case, at the `fact` step — because on a phone
+ * this control *is* the routes, folded. One word and the bars, on one line,
+ * centred in the bar.
  */
 .toggle {
   gap: 10px;
-  padding-inline: 14px;
+  padding-inline: 16px;
   background: transparent;
   border: 1px solid rgb(var(--rule-firm));
   color: rgb(var(--ink));
@@ -594,37 +678,6 @@
   .toggle {
     display: none;
   }
-}
-
-.toggleStack {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 1px;
-  /* A long label must not push the bars off the control. */
-  min-width: 0;
-}
-
-.toggleHead {
-  font-family: var(--font-data);
-  font-size: 0.6875rem;
-  letter-spacing: var(--track-field);
-  text-transform: uppercase;
-  line-height: 1;
-  color: rgb(var(--ink-soft));
-}
-
-/* No cap and no ellipsis any more. Those were for a name out of the
-   collection, which could be anything the data said; the three it can print
-   now are a constant in `nav/navRoutes.ts` and the longest of them sets 61px.
-   `nowrap` stays, because a two-word label breaking in half is the one thing
-   that would grow the 56px bar. */
-.toggleNow {
-  white-space: nowrap;
-  font-size: 0.9375rem;
-  line-height: 1.1;
-  font-weight: var(--weight-text);
-  color: rgb(var(--ink));
 }
 
 /* Two bars that cross into an X, so the control reads as one thing in two
