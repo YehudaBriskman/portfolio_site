@@ -1,45 +1,28 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 384" width="384" height="384" role="img" aria-label="Yehuda Briskman">
   <!--
     The site in one mark: the bust from the portrait on the first screen,
-    reduced to its own alpha channel with the round lenses knocked out.
+    reduced to its own alpha channel with the round lenses knocked out, set
+    on a white disc.
 
-    Two things this format does that a PNG cannot.
+    **Why the disc.** This mark used to have no ground and to pick its own
+    colour through `prefers-color-scheme`, inverting to near-white on a dark
+    OS. That reads the OS setting, not the tab strip's: a browser with its
+    own dark theme on a light OS painted ink on near-black, and the figure
+    disappeared (reported by the owner from a dark Chrome tab). A disc
+    makes the icon carry its own ground, so it is legible on every strip
+    with no colour-scheme rule at all, and the lenses — holes — now show
+    the disc's white, which is what makes them read as glasses.
 
-    **It has no ground.** The mark is the figure and nothing else, so it sits
-    on whatever the browser's tab strip happens to be rather than carrying a
-    cream rectangle into a dark one.
+    **The geometry**, shared with every raster icon (they are all built from
+    this file by `scripts/brand/build-icons.py`): the figure is 86% of the
+    disc's diameter, centred, and dropped to the bottom so the shoulders run
+    off the edge and are clipped by the disc, like a portrait in a roundel.
 
-    **It picks its own colour.** A tab strip is the one surface on the web a
-    site does not get to style, and it is dark for roughly half of everyone.
-    `prefers-color-scheme` is the only way an icon can answer that, and only
-    an SVG favicon can carry it — which is why this file exists alongside the
-    .ico. Measured in Chromium, sampling the painted bitmap at (250,170):
-    rgb(20,19,15) under `colorScheme: light`, rgb(235,236,240) under `dark`,
-    and rgba(0,0,0,0) in the corner under both. The dark value is the ink
-    inverted rather than the site's paper (#ECE8DC): drawing the mark in
-    #131723 instead would land exactly on paper in dark and a blue-black in
-    light, and the light tab strip is both the commoner case and the one
-    where the brand ink is worth being exact about. Safari does not
-    honour it and falls back to the .ico, where the ink version is what it
-    gets; that is the right way round, since Safari's tab strip is light by
-    default.
-
-    **Why an inverted bitmap rather than a mask.** There is no tracer in this
-    toolchain, so the mark is a bitmap either way: a 2-colour PNG at 384px,
-    1,428 bytes, which base64 carries at about 1.9kB. The obvious shape —
-    a `rect` filled with a themed colour through a `<mask>` whose content is
-    the silhouette — does not render: Chromium paints the rect unmasked, so
-    the icon is a solid square in both schemes. A `filter: invert(1)` on the
-    image itself inverts the ink to paper and leaves the alpha channel alone,
-    which is the same result with one moving part instead of three. A traced
-    path would beat both and is the thing to do if a tracer is ever added;
-    it is not worth hand-authoring a bezier of someone's hair to save 2kB.
-
-    The lenses are holes rather than a second shape, so they take the tab's
-    own colour and stay visible on both grounds without a second rule.
+    **Why a bitmap and not a path.** There is no tracer in this toolchain, so
+    the figure is a 2-colour PNG at 384px, about 1.9kB as base64. A traced
+    path would beat it and is the thing to do if a tracer is ever added.
   -->
-  <style>
-    @media (prefers-color-scheme: dark) { .ink { filter: invert(1); } }
-  </style>
-  <image class="ink" width="384" height="384" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAYAAAAGACAMAAACTGUWNAAAABlBMVEX///8UEw+/vYTRAAAAAXRSTlMAQObYZgAABTxJREFUeNrt3dtOKlkYRlF4/5fu1qi76W04LIoapf8cxnhFQn2TVR4u5HRKXuf89vkv/TyGOn/Rz2SoAjDnv+mnNMn5XACqABt7m++OAc+36Ov4qe6c7+b+JVi0YYAKrLhrvbvmr8CC/+337Yr3rl+BBXes+Mj+FXjQjR3fvj62/+cpOt/3o1WuvpQf3b7z8LDr2z0foAI3bDBxCZ6xQ4AKXFMAao/5S3DFXgEq8L3d9i/At/bbvwTf2XX/Gvxt9wAVuLD//jW4UACsAJgJUIUvBcBggAq8kQEqcMIBKqADVKAAXAGwAkzevwQ+wPQCev4CcHoBTe8/PoFef3oAPf74AEcooCeYvv/sAnr78QEOUUBvUIDh9P7jE+j1pxfQ248PcIgCeoMCTKbHL8Ah6BVKoEcowGB6+/EBjlFgcgI9/fgAx0igNyjAZHr8AhyA3qAAk+nxpwfQ208PsDRVBViAxWwF2CDAEw9t/2ueWagCGzhCAL2Btj5QAbayPE8BtrG+TgW2UQBueZoCbKMA2vIy7b8VFaACHwqALe9SgI0UACsAtjpLATZDCuiLPhJzBPRVH8jiLAXACoC1P1aAzSzt8uQdqAJ/rO3S/ptZ26UAm1ncpQBb6RaEFYBam+bJ+QvwRwEwE0Bf9XEsbtP+W1lbpwOwmaV5nt2/AJ/W9nl6/wJ8Whro+f0L8GFpoQ32L8C7tYm22L8A75Y22mT/ArxZWWmb+dv/dPeUjz+iAHdZmKoAT2x9ulhS/7sOvQgI8HXhePqJ+18E0NsPD3AQepACDKP3Hh/gcAX0HuMT6DWmF9BbsAYHqaB3oA0OQG8wff/RAQ5RQG/Q/pPp9acH0OMXgNMLaHr/Amh6gPYfrgAFmK0ABZit+bECYO2PFQArAFYArPmxAmAF0NpfKwBWAKz9sfbH2h8rgNb8WAGwAmAFwNofKwDX/FgBsAJg7a8VwOoEaAXACqC1v9b+WAGwAmAFwNofKwBWAKwAWAGw5scKgBVAa3+sAFz7Y+2PFUArAFcArQBaAaz2x14WoAL3aX+sAFgBrPanXjZ/+9+nAMyr31lbX9/BvXL6AtzW/lgBsAJgrw9QgWva39lh+wJcUwBpxzeU15d6QLttX4Bv7bt/AS7tvH4BLuy/fgEuFAAi438kmF4Bbt9BKMDo1YdG0DtPL6BXnhzgvOPfeApwufwPoseavv/vCHB+//hhy/+aBHq/8QX0fMML6O1GJ9CrjS+gRyvAL6P3nL3+jyugx5peQE81vIDeaXwCvdL0AHqk8Q30QuMT6H2GB9DrTE+gpxkfQc8yPIAeZXoDPcj4BnqN8QX0GMMT6CHGN9ArFGAyPf70/Y8QQV++1/5a+3MFwAqAtb5WAK0AXAGwAmAF8AqAFQArgNf+XAGw5sfaHysAVgCsAFoBsPbX2l8rAFYArABaAbD21wqgFQBrfq0AVidAK4DW/loBsAJgzY8VAGt/rfmxAmAF4AqAFUBrf6wAVncgrf219tcKgLU/VgCsAFgBsObXCoAVACsA1v5Y+2vtr7W/VgGr/bECaO2PtT9WAKz9sQJwBcDaH2t/rABYAbT2xzoBWPtjBcAKoDW/1v5aBaxH12//rfXqxwqAFQBrfq4AWAGw9sc6AVoBrPbHugVp7Y8VAOsWhLU/1/xYAbACaAXA2h8rAFYArgBY+2PtjxUAa3+tAlj7YwXAmh8rAFYArv2xAmAF0AqAFQArAFYArO/CWL+LaacSYBXATtfoJzfCqQTU6VQB61aBKrzWPftX4IUKoBUAK4D1n5X/AewGIBQIc1NBAAAAAElFTkSuQmCC"/>
+  <defs><clipPath id="disc"><circle cx="192" cy="192" r="192"/></clipPath></defs>
+  <circle cx="192" cy="192" r="192" fill="#fff"/>
+  <image clip-path="url(#disc)" x="27" y="54" width="330" height="330" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAYAAAAGACAMAAACTGUWNAAAABlBMVEX///8UEw+/vYTRAAAAAXRSTlMAQObYZgAABTxJREFUeNrt3dtOKlkYRlF4/5fu1qi76W04LIoapf8cxnhFQn2TVR4u5HRKXuf89vkv/TyGOn/Rz2SoAjDnv+mnNMn5XACqABt7m++OAc+36Ov4qe6c7+b+JVi0YYAKrLhrvbvmr8CC/+337Yr3rl+BBXes+Mj+FXjQjR3fvj62/+cpOt/3o1WuvpQf3b7z8LDr2z0foAI3bDBxCZ6xQ4AKXFMAao/5S3DFXgEq8L3d9i/At/bbvwTf2XX/Gvxt9wAVuLD//jW4UACsAJgJUIUvBcBggAq8kQEqcMIBKqADVKAAXAGwAkzevwQ+wPQCev4CcHoBTe8/PoFef3oAPf74AEcooCeYvv/sAnr78QEOUUBvUIDh9P7jE+j1pxfQ248PcIgCeoMCTKbHL8Ah6BVKoEcowGB6+/EBjlFgcgI9/fgAx0igNyjAZHr8AhyA3qAAk+nxpwfQ208PsDRVBViAxWwF2CDAEw9t/2ueWagCGzhCAL2Btj5QAbayPE8BtrG+TgW2UQBueZoCbKMA2vIy7b8VFaACHwqALe9SgI0UACsAtjpLATZDCuiLPhJzBPRVH8jiLAXACoC1P1aAzSzt8uQdqAJ/rO3S/ptZ26UAm1ncpQBb6RaEFYBam+bJ+QvwRwEwE0Bf9XEsbtP+W1lbpwOwmaV5nt2/AJ/W9nl6/wJ8Whro+f0L8GFpoQ32L8C7tYm22L8A75Y22mT/ArxZWWmb+dv/dPeUjz+iAHdZmKoAT2x9ulhS/7sOvQgI8HXhePqJ+18E0NsPD3AQepACDKP3Hh/gcAX0HuMT6DWmF9BbsAYHqaB3oA0OQG8wff/RAQ5RQG/Q/pPp9acH0OMXgNMLaHr/Amh6gPYfrgAFmK0ABZit+bECYO2PFQArAFYArPmxAmAF0NpfKwBWAKz9sfbH2h8rgNb8WAGwAmAFwNofKwDX/FgBsAJg7a8VwOoEaAXACqC1v9b+WAGwAmAFwNofKwBWAKwAWAGw5scKgBVAa3+sAFz7Y+2PFUArAFcArQBaAaz2x14WoAL3aX+sAFgBrPanXjZ/+9+nAMyr31lbX9/BvXL6AtzW/lgBsAJgrw9QgWva39lh+wJcUwBpxzeU15d6QLttX4Bv7bt/AS7tvH4BLuy/fgEuFAAi438kmF4Bbt9BKMDo1YdG0DtPL6BXnhzgvOPfeApwufwPoseavv/vCHB+//hhy/+aBHq/8QX0fMML6O1GJ9CrjS+gRyvAL6P3nL3+jyugx5peQE81vIDeaXwCvdL0AHqk8Q30QuMT6H2GB9DrTE+gpxkfQc8yPIAeZXoDPcj4BnqN8QX0GMMT6CHGN9ArFGAyPf70/Y8QQV++1/5a+3MFwAqAtb5WAK0AXAGwAmAF8AqAFQArgNf+XAGw5sfaHysAVgCsAFoBsPbX2l8rAFYArABaAbD21wqgFQBrfq0AVidAK4DW/loBsAJgzY8VAGt/rfmxAmAF4AqAFUBrf6wAVncgrf219tcKgLU/VgCsAFgBsObXCoAVACsA1v5Y+2vtr7W/VgGr/bECaO2PtT9WAKz9sQJwBcDaH2t/rABYAbT2xzoBWPtjBcAKoDW/1v5aBaxH12//rfXqxwqAFQBrfq4AWAGw9sc6AVoBrPbHugVp7Y8VAOsWhLU/1/xYAbACaAXA2h8rAFYArgBY+2PtjxUAa3+tAlj7YwXAmh8rAFYArv2xAmAF0AqAFQArAFYArO/CWL+LaacSYBXATtfoJzfCqQTU6VQB61aBKrzWPftX4IUKoBUAK4D1n5X/AewGIBQIc1NBAAAAAElFTkSuQmCC"/>
 </svg>
