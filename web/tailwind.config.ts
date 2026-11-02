@@ -192,14 +192,6 @@ export default {
            of a block. */
         field: ["0.72rem", { lineHeight: "1.5", letterSpacing: "var(--track-field)" }],
       },
-      keyframes: {
-        "fade-up": { from: { opacity: "0", transform: "translateY(14px)" }, to: { opacity: "1", transform: "none" } },
-        "pulse-soft": { "0%,100%": { opacity: "0.35" }, "50%": { opacity: "1" } },
-      },
-      animation: {
-        "fade-up": "fade-up 0.7s cubic-bezier(0.16,1,0.3,1) both",
-        "pulse-soft": "pulse-soft 2.4s ease-in-out infinite",
-      },
     },
   },
   plugins: [tailwindcssAnimate, typography],

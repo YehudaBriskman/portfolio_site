@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import styles from "@/components/ground/DarkAct.module.css";
 
 /*
@@ -104,74 +104,24 @@ import styles from "@/components/ground/DarkAct.module.css";
  * palette. `index.css` hands `.ground > .on-panel` a transparent background
  * for exactly that split.
  *
- * ── the observer, on a page that is proud of having almost none ───────────
+ * ── no observer, since #162 ──────────────────────────────────────────────
  *
- * There is one, and §7 of the motion contract is the standard it has to meet:
- * no scroll listener, no `requestAnimationFrame`, no per-frame work, and no
- * React state churn. This fires at most twice per visit to each act — once in,
- * once out — and all it does is flip one attribute that the stylesheet reads.
- * The drift is four composited layers being translated, which is the kind of
- * work the compositor does for free and the main thread does not see at all;
- * what it is not free of is GPU time, and a layer animating under a reader who
- * is three sections away has no claim on that.
- *
- * `rootMargin: 100% 0px` puts the boundary a full viewport above and below the
- * window, so the switch is always made while the act is entirely off screen.
- * That is what makes cancelling the loops safe: cancelling restarts them at
- * 0%, and nobody is watching when it happens.
+ * The drift used to be two clock loops (71s and 97s) and this component kept
+ * an `IntersectionObserver` to cancel them while the act was off screen. The
+ * owner's rule — every animation controllable with simple scrolling,
+ * reversing on the way up — moved the drift onto each seam's own view
+ * timeline, and a scroll-driven animation does no work while its subject is
+ * out of range. So the observer, its state and its attribute went: the
+ * component is markup and nothing else.
  */
-
-/**
- * Does this reader's engine have the API the pause depends on?
- *
- * No observer, no pause — and the act drifts, which is the right fallback for
- * the same reason `useEnteredOnce` takes it: the finished state of this layer
- * is the one that moves, and an engine with no `IntersectionObserver` should
- * get the page rather than get a flat fill because an optimisation was
- * unavailable.
- */
-function canObserve(): boolean {
-  return typeof IntersectionObserver === "function";
-}
 
 type DarkActProps = {
   children: ReactNode;
 };
 
 export default function DarkAct({ children }: DarkActProps) {
-  const ref = useRef<HTMLDivElement | null>(null);
-  const [drifting, setDrifting] = useState(() => !canObserve());
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el || !canObserve()) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        /*
-         * `some` rather than `entries[0]`: one target, but a single callback
-         * can carry several records for it when the element crosses the
-         * boundary more than once inside one frame, and the last record is
-         * not guaranteed to be the current one in every engine. Any
-         * intersecting record means the act is in reach.
-         */
-        setDrifting(entries.some((entry) => entry.isIntersecting));
-      },
-      /*
-       * A full viewport of slack on the block axis and none on the inline
-       * axis. The act is always the full width of the page, so an inline
-       * margin would only ever widen a box that already spans the window.
-       */
-      { rootMargin: "100% 0px" }
-    );
-
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-
   return (
     <div
-      ref={ref}
       /*
        * `layer-section` and `ground` are the page's own plate classes and they
        * stay — the breathing room and the panel fill are not this component's
@@ -181,7 +131,6 @@ export default function DarkAct({ children }: DarkActProps) {
        */
       className={`layer-section ground ${styles.act}`}
       data-ground="panel"
-      data-drift={drifting ? "on" : "off"}
     >
       {/* Both seams are in the DOM under every switch. What the switches take
           away is the movement, never the boundary — the arcs and their

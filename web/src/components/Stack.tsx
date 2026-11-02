@@ -1,7 +1,6 @@
 import type { CSSProperties } from "react";
 import InkRule from "@/components/motion/InkRule";
 import { specFigures } from "@/data/specs";
-import { useEnteredOnce } from "@/hooks/useEnteredOnce";
 import styles from "@/components/Stack.module.css";
 
 /*
@@ -19,7 +18,7 @@ import styles from "@/components/Stack.module.css";
  * that no logo wall ever told anybody about its author.
  *
  * What stands here instead is the collection's spec plate — a small set of
- * figures about the work, counted up as they arrive. Both of the reference
+ * figures about the work, counted up by the reader's scroll as they arrive. Both of the reference
  * sites close on exactly this; the most quietly confident thing on zephium.app
  * is `40 MB / Instant / Lighter / Longer` with four tiny captions under it.
  *
@@ -40,14 +39,6 @@ import styles from "@/components/Stack.module.css";
  * and the count is the stronger of the two by a distance.
  */
 export default function SpecPlate() {
-  /*
-   * One observation, once, and then the observer is gone. The flag starts the
-   * stylesheet's clock; everything else about the motion — the duration, the
-   * easing, and all three ways of switching it off — lives in the CSS where
-   * the at-rules can reach it.
-   */
-  const [plate, counting] = useEnteredOnce<HTMLDListElement>();
-
   return (
     /*
      * `id="stack"` outlives the name on purpose.
@@ -75,13 +66,8 @@ export default function SpecPlate() {
        * a screen reader still reads "Projects, 6" rather than "6, Projects".
        */}
       <dl
-        ref={plate}
         className={styles.plate}
         style={{ "--spec-columns": specFigures.length } as CSSProperties}
-        /* The attribute is the starting gun and nothing else. Present means
-           the count has been armed once; it is never removed, because a
-           figure that has landed does not un-land. */
-        data-counting={counting ? "" : undefined}
       >
         {specFigures.map((figure) => (
           <div key={figure.caption} className={styles.cell}>

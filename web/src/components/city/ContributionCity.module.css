@@ -1301,7 +1301,13 @@
   );
   background-size: 260% 100%;
   background-repeat: no-repeat;
-  animation: city-waiting 1.5s linear infinite;
+  /* On the reader's scroll since #162, not on a 1.5s loop: the band crosses
+     the waiting frame as the stage crosses the window, on the stage's own
+     `--city` timeline (the frame is pinned, so it cannot be its own clock —
+     §1), and runs back on the way up. */
+  animation: city-waiting linear both;
+  animation-timeline: --city;
+  animation-range: cover 0% cover 100%;
 }
 
 @keyframes city-waiting {
@@ -1339,12 +1345,18 @@
  * stopped sweep is a bright band parked wherever the last frame left it,
  * which is a highlight over a surface nothing is happening to.
  *
- * There is no `@supports not (animation-timeline: view())` arm, and that is
- * deliberate rather than an oversight: this clock is time-driven, and §4 is
- * explicit that an animation with no scroll timeline has no feature for a
- * browser to be missing. The `@supports` block higher up this file is for
- * the scrub, which does.
+ * And, since the band went onto the scroll in #162, a third arm: an engine
+ * with no view timelines would read the shorthand as a zero-length clock
+ * animation and park the band on its last frame, so it lands on the same
+ * flat lattice the other two do.
  */
+@supports not (animation-timeline: view()) {
+  .stage[data-city="pending"] .frame::after {
+    animation: none;
+    background-image: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .stage[data-city="pending"] .frame::after {
     animation: none;

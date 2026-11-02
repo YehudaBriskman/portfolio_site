@@ -15,23 +15,21 @@
  * printing `counter(spec)` renders a different number each frame. No
  * `requestAnimationFrame` loop, no state, no re-render per digit.
  *
- * This is also the one animation on this site that is driven by a clock rather
- * than by scroll position, and the one place in this codebase where
- * `animation-duration` is both legal and meaningful. A view timeline would be
- * wrong here for a reason the stylesheet cannot express: a progress-driven
- * count runs backwards when the reader scrolls back up, so a figure would
- * count *down* to zero every time the plate left the screen. "Fires once on
- * entry" is an event, and an event needs something that can tell one pass from
- * the next. That is `useEnteredOnce`, which sets `data-counting` and then
- * disconnects itself for good.
+ * Driven by the reader's scroll, since #162. It was the one animation on the
+ * site on a clock, on the argument that a progress-driven count runs
+ * backwards — a figure counting *down* to nought as the plate leaves. That
+ * is now exactly what the owner asked for: "reverse when scrolling up, all
+ * controllable with simple scrolling." So the plate is its own named view
+ * timeline, `--specs`, and every figure counts from nought to its value as
+ * the plate comes up the window and back down as it goes. `useEnteredOnce`,
+ * the observer that used to fire the clock, went with it.
  *
- * Which means, unusually, that the global off-switches are exactly right here
- * and nothing has to be restated. `motion-paused.css` and the reduced-motion
- * block in `index.css` both collapse `animation-duration` to 0.01ms, which
- * runs a time-driven animation instantly to its last frame — and the last
- * frame of this one is the true figure. Every other animated file in this tree
- * has to cancel its animations by hand because a progress timeline ignores
- * duration; this one does not.
+ * The off-switches are by construction: the animation is declared only when
+ * view timelines run, reduced motion is not asked for and Pause is off, and
+ * the resting value of `--spec-n` is the true figure. Without that gate an
+ * engine with no `animation-timeline` would run `spec-count` as a
+ * zero-length clock animation, which lands on its last frame — also the
+ * true figure, but by accident rather than by statement.
  */
 
 /*
@@ -257,27 +255,26 @@
 }
 
 /*
- * The count itself, and the only `animation-duration` in this tree that means
- * anything.
+ * The count itself.
  *
- * `--dur-slow` is 1.2s, which is long enough for twenty to be read as
- * counting and short enough that a figure is not still moving when the reader
- * has finished with the caption under it. `--ease-settle` rather than linear:
- * a figure that decelerates onto its value lands, where a linear one simply
- * stops.
- *
- * No `animation-delay`, and not for the usual reason — a delay is perfectly
- * legal on a time-driven animation. It is because `fill-mode: both` fills
- * backwards during a delay, so a staggered plate would hold four noughts on
- * screen for the length of the longest delay, and under reduced motion (where
- * the duration collapses but the delay does not) those noughts would be most
- * of what the reader saw.
+ * The range is the plate's own: from the moment its top is a tenth of the
+ * way into the window to the moment it is 45% through its cover, which puts
+ * the last digit landing while the plate is in the middle of the window
+ * rather than at its foot. Linear, because the reader's scroll is the easing
+ * now, and one range for all four so the plate counts as one object.
  */
-.plate[data-counting] .figure {
-  animation-name: spec-count;
-  animation-duration: var(--dur-slow);
-  animation-timing-function: var(--ease-settle);
-  animation-fill-mode: both;
+.plate {
+  view-timeline: --specs block;
+}
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    :global(body:not(.motion-paused)) .plate .figure {
+      animation: spec-count linear both;
+      animation-timeline: --specs;
+      animation-range: entry 10% cover 45%;
+    }
+  }
 }
 
 @keyframes spec-count {

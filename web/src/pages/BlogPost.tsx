@@ -422,11 +422,11 @@ export default function BlogPost() {
           <div aria-busy="true" aria-live="polite">
             <span className="sr-only">Loading the post</span>
             <div aria-hidden="true" className="space-y-5">
-              <div className="h-7 w-28 animate-pulse-soft rounded-full bg-surface" />
-              <div className="h-12 w-full animate-pulse-soft rounded-full bg-surface sm:h-16" />
-              <div className="h-12 w-3/4 animate-pulse-soft rounded-full bg-surface sm:h-16" />
-              <div className="h-5 w-1/2 animate-pulse-soft rounded-full bg-surface" />
-              <div className="aspect-[16/9] w-full animate-pulse-soft rounded-[var(--r-xl)] bg-surface" />
+              <div className="h-7 w-28 scrub-pulse rounded-full bg-surface" />
+              <div className="h-12 w-full scrub-pulse rounded-full bg-surface sm:h-16" />
+              <div className="h-12 w-3/4 scrub-pulse rounded-full bg-surface sm:h-16" />
+              <div className="h-5 w-1/2 scrub-pulse rounded-full bg-surface" />
+              <div className="aspect-[16/9] w-full scrub-pulse rounded-[var(--r-xl)] bg-surface" />
             </div>
           </div>
         )}

@@ -81,8 +81,10 @@ export default function Accessibility() {
 
           <h2 className="display display-md pt-6 text-object">Motion, and the Pause button</h2>
           <p>
-            Parts of the site move: sections draw themselves in as you scroll, and the first
-            screen cycles through a few short phrases. There are two ways to stop all of it.
+            Parts of the site move, and they move with your scrolling: sections draw themselves
+            in on the way down and undo it on the way back up. Apart from a short curtain when a
+            page first loads, and replies to what you click, tap or point at, nothing moves on
+            its own. There are two ways to stop all of it.
           </p>
           <ul className="list-disc space-y-2 ps-6">
             <li>

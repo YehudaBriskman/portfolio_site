@@ -57,10 +57,9 @@ import styles from "@/components/motion/EntryShutter.module.css";
  * this is the one place on the site where that distinction is worth the import.
  * `useMotionPaused` restores the stored choice in an effect, so for a
  * returning reader who pressed Pause last visit `body.motion-paused` is not on
- * the body yet at first render. `useStagedArrival` accepts that and pays one
- * frame of motion for it, correctly — one frame of a letter moving is
- * nothing. One frame of the entire window going black is not, so this reads
- * the key directly.
+ * the body yet at first render. A scroll-driven animation can afford that
+ * one frame — at scroll 0 nothing on the first screen is mid-move. One frame
+ * of the entire window going black is not, so this reads the key directly.
  *
  * NO-JS, FOR FREE
  * ---------------
@@ -201,7 +200,7 @@ function plan(width: number, height: number): Grid {
 /**
  * Whether this reader has asked for no motion, by any of the three routes.
  *
- * The same two conditions `useStagedArrival` reads, plus the stored Pause
+ * Reduced motion and a missing `body.motion-paused`, plus the stored Pause
  * preference the class has not been applied from yet. See the note above for
  * why this one component pays for that third read.
  */

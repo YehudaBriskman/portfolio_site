@@ -127,7 +127,7 @@ export default function Project() {
         {state === "loading" && (
           <>
             <h1 className="sr-only">Loading project</h1>
-            <div className="mt-12 animate-pulse-soft" aria-hidden="true">
+            <div className="mt-12 scrub-pulse" aria-hidden="true">
               <div className="h-12 w-2/3 rounded-full bg-[rgb(var(--rule)_/_0.6)]" />
               <div className="mt-6 h-6 w-1/2 rounded-full bg-[rgb(var(--rule)_/_0.4)]" />
               <div className="card-shot mt-12 aspect-[3/2] bg-[rgb(var(--rule)_/_0.4)] sm:aspect-[2/1]" />

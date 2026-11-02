@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import Hero from "@/components/Hero";
 import ObjectLabel from "@/components/gallery/ObjectLabel";
@@ -9,28 +9,23 @@ import HeroCorners from "@/components/HeroCorners";
 import { contact, heroPhrases, plate, plateTitle } from "@/data/site";
 
 /*
- * The first screen's arrival is a sequencer, two stylesheets and a split
- * name, and vitest can see exactly one of those three run. jsdom lays out no
- * CSS — the modules are not even processed into rules — so what is pinned
- * here is the contract around the motion rather than the motion itself: the
- * hooks each stylesheet selects on, the markup the split produces, and the
- * off-switches, which are the part of a motion component that is equally
- * invisible when it works and when it does not. The ordering of the stages
- * is `motion/__tests__/useStagedArrival.test.tsx`, which is where the
- * waiting lives.
+ * The first screen comes apart on the reader's scroll as it leaves, and goes
+ * back together as they return (#162) — two stylesheets and a split name,
+ * and vitest can see none of it run. jsdom lays out no CSS, so what is
+ * pinned here is the contract around the motion: the hooks each stylesheet
+ * selects on, the markup the split produces, and the off-switches, which
+ * are the part of a motion component that is equally invisible when it
+ * works and when it does not.
  *
- * The off-switch assertions read the stylesheets as text, which is unusual
- * for this repo and is the only instrument there is: no computed style to
- * interrogate and, for those two files, no JavaScript branch to drive. Every
- * one of them is a failure `docs/motion-contract.md` §4 exists to describe —
- * a reduced-motion reader left looking at a sheet of paper over the name, a
- * Pause toggle that leaves the navigation bar above the top of the window,
- * an exit that lands on frame zero instead of on the finished page.
+ * The off-switch assertions read the stylesheets as text, which is the only
+ * instrument there is. Every one of them is a failure
+ * `docs/motion-contract.md` §4 exists to describe — a reduced-motion reader
+ * left looking at a sheet of paper over the name, an exit that lands on
+ * frame zero instead of on the finished page.
  */
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ARRIVAL_CSS = readFileSync(resolve(HERE, "../HeroArrival.module.css"), "utf8");
-const CHROME_CSS = readFileSync(resolve(HERE, "../hero-chrome.css"), "utf8");
 const CORNERS_CSS = readFileSync(resolve(HERE, "../HeroCorners.module.css"), "utf8");
 const INDEX_HTML = readFileSync(resolve(HERE, "../../../index.html"), "utf8");
 
@@ -44,13 +39,12 @@ const INDEX_HTML = readFileSync(resolve(HERE, "../../../index.html"), "utf8");
  */
 const strip = (css: string) => css.replace(/\/\*[\s\S]*?\*\//g, "");
 const ARRIVAL = strip(ARRIVAL_CSS);
-const CHROME = strip(CHROME_CSS);
 const CORNERS = strip(CORNERS_CSS);
 
-/** The body of the first `@media` block whose condition matches, braces balanced. */
-function mediaBlock(css: string, condition: string): string {
-  const at = css.indexOf(`@media ${condition}`);
-  expect(at, `no @media ${condition} block`).toBeGreaterThan(-1);
+/** The body of the first at-rule block whose prelude matches, braces balanced. */
+function atBlock(css: string, prelude: string): string {
+  const at = css.indexOf(prelude);
+  expect(at, `no ${prelude} block`).toBeGreaterThan(-1);
 
   let depth = 0;
   for (let i = css.indexOf("{", at); i < css.length; i += 1) {
@@ -60,15 +54,15 @@ function mediaBlock(css: string, condition: string): string {
       if (depth === 0) return css.slice(at, i + 1);
     }
   }
-  throw new Error(`unbalanced @media ${condition}`);
+  throw new Error(`unbalanced ${prelude}`);
 }
 
-/** Every top-level rule keyed off the Pause class. */
-function pausedRules(css: string): string[] {
-  return css.match(/[^{}]*motion-paused[^{]*\{[^}]*\}/g) ?? [];
-}
+const GATE = "@supports (animation-timeline: view())";
 
-const REDUCED = "(prefers-reduced-motion: reduce)";
+/* Everything outside the gate: what every off-switch renders. */
+function outsideGate(css: string): string {
+  return css.replace(atBlock(css, GATE), "");
+}
 
 /*
  * The string the plate is set with, read from where `Hero` reads it, so the
@@ -79,10 +73,6 @@ const REDUCED = "(prefers-reduced-motion: reduce)";
 const TITLE = plateTitle;
 const LETTERS = [...TITLE.name].filter((c) => c !== " ").length;
 const WORDS = TITLE.name.split(" ");
-
-afterEach(() => {
-  delete document.body.dataset.heroArrived;
-});
 
 describe("the first screen's hooks", () => {
   it("states every field kind its stylesheet animates", () => {
@@ -100,46 +90,33 @@ describe("the first screen's hooks", () => {
 
   it("renders the four parts the stylesheets reach for", () => {
     const { container } = render(<Hero />);
-    const stage = container.querySelector("[data-arrived]");
+    const stage = container.querySelector("#hero h1")?.closest("div[class]")?.parentElement;
 
     /* Every one of these is a selector into markup this file does not own —
        three of them into `ObjectLabel`, which is shared with every object on
        the site — so each is pinned here rather than discovered in a browser
        later. */
-    expect(stage).not.toBeNull();
-    expect(stage?.querySelector("h1")).not.toBeNull();
-    expect(stage?.querySelectorAll("h1 + p").length).toBe(1);
-    expect(stage?.querySelectorAll("ul").length).toBe(1);
-    expect(stage?.querySelectorAll("[data-letter]").length).toBeGreaterThan(1);
-    expect(stage?.querySelectorAll("[data-letter-last]").length).toBe(1);
-    expect(stage?.querySelector("[data-portrait] img")).not.toBeNull();
-    expect(stage?.querySelector("[data-portrait-mask]")).not.toBeNull();
+    expect(stage).toBeTruthy();
+    const hero = container.querySelector("#hero")!;
+    expect(hero.querySelectorAll("h1 + p").length).toBe(1);
+    expect(hero.querySelectorAll("ul").length).toBe(1);
+    expect(hero.querySelectorAll("[data-letter]").length).toBe(LETTERS);
+    expect(hero.querySelector("[data-portrait] img")).not.toBeNull();
+    expect(hero.querySelector("[data-portrait-mask]")).not.toBeNull();
   });
 
-  it("waits for the last letter and for the mask, by the selectors it animates", () => {
+  it("hangs every part on the section's own timeline, and on no clock (#162)", () => {
     const { container } = render(<Hero />);
-
-    /* The sequencer's gates and the stylesheet's rules have to be naming the
-       same elements. They are written in two different files in two
-       different languages, and nothing but this connects them: a gate that
-       names an element the stylesheet never animates waits out its seatbelt
-       every time, which looks exactly like a slow sequence. */
-    for (const gate of ["[data-letter-last]", "[data-portrait-mask]"]) {
-      expect(container.querySelector(gate)).not.toBeNull();
-    }
-    expect(ARRIVAL).toContain("[data-letter]");
-    expect(ARRIVAL).toContain(".mask");
-    expect(CHROME).toContain("header[data-material]");
-  });
-
-  it("publishes the sequence on the body, for the one stage outside the tree", () => {
-    render(<Hero />);
-
-    /* The bar is `position: fixed` and is rendered by a sibling of this
-       section. `hero-chrome.css` keys off the body because there is nothing
-       else both of them can see. */
-    expect(document.body.dataset.heroArrived).toBe("name");
-    expect(CHROME).toContain("body[data-hero-arrived]");
+    /* The section carries the timeline and nothing carries a sequence: no
+       `data-arrived`, no token list on the body. */
+    expect(container.querySelector("[data-arrived]")).toBeNull();
+    expect(document.body.dataset.heroArrived).toBeUndefined();
+    expect(ARRIVAL).toMatch(/view-timeline:\s*--hero/);
+    expect(ARRIVAL).toMatch(/animation-timeline:\s*--hero/);
+    expect(ARRIVAL).not.toMatch(/\d+ms/);
+    /* Each letter knows how many there are, so the last can go first. */
+    const letter = container.querySelector<HTMLElement>("[data-letter]");
+    expect(letter?.style.getPropertyValue("--letters")).toBe(String(LETTERS));
   });
 
   it("puts the whole screen in the document whether or not it has arrived", () => {
@@ -272,101 +249,37 @@ describe("the name, split into letters", () => {
 });
 
 describe("the first screen's off-switches", () => {
-  it("cancels every animation outright under reduced motion", () => {
-    const block = mediaBlock(ARRIVAL, REDUCED);
-
-    /* `animation: none` and not a shortened duration. The global
-       `animation-duration: 0.01ms` in index.css would in fact land these on
-       their final frame — they are time-driven — but an exit that depends on
-       the animation still being live is one refactor away from depending on
-       nothing at all. */
-    expect(block).toMatch(/animation: none/);
-    expect(block.match(/animation: none/g)?.length).toBe(2);
+  it("declares every animation, and every mask, only inside the three-condition gate", () => {
+    /* View timelines run, no reduced motion, no Pause. Outside that gate
+       nothing is declared, so all three switches render the finished screen
+       by construction — there is no exit block to fall out of step. */
+    const gate = atBlock(ARRIVAL, GATE);
+    expect(gate).toContain("@media (prefers-reduced-motion: no-preference)");
+    expect(gate).toContain("body:not(.motion-paused)");
+    expect(outsideGate(ARRIVAL)).not.toMatch(/animation(-name)?:/);
+    expect(outsideGate(ARRIVAL)).not.toMatch(/content:/);
     for (const part of ["[data-letter]", "[data-portrait] img", "h1 + p", "ul", ".mask"]) {
-      expect(block).toContain(part);
+      expect(gate).toContain(part);
     }
   });
 
-  it("lands reduced motion on the finished screen, never on frame zero", () => {
-    const block = mediaBlock(ARRIVAL, REDUCED);
-
-    /* Frame zero for the two lines is `opacity: 0`, and frame zero for the
-       name and the figure is a sheet of paper over them. An exit that only
-       cancelled the animations would leave the first screen blank. */
-    expect(block).toMatch(/opacity: 1/);
-    expect(block).toMatch(/transform: none/);
-    expect(block).toMatch(/transform: scaleY\(0\)/);
-  });
-
-  it("lands the Pause toggle on the finished screen too", () => {
-    const paused = pausedRules(ARRIVAL);
-
-    /* Pause hangs a class on `document.body`, outside the React tree, which
-       is why this is a stylesheet's job and not a component's — and it can
-       be hit mid-sequence, so it has to land on arrived rather than on
-       whatever frame each animation had reached. */
-    expect(paused.length).toBe(2);
-    expect(paused.filter((r) => /animation: none/.test(r)).length).toBe(2);
-    expect(paused.join("\n")).toMatch(/opacity: 1/);
-    expect(paused.join("\n")).toMatch(/transform: none/);
-    expect(paused.join("\n")).toMatch(/transform: scaleY\(0\)/);
-  });
-
-  it("brings the bar back down under both switches", () => {
-    /* The chrome's pre-state is `translateY(-100%)`, which is the one exit
-       in this change that hides a navigation bar if it is got wrong. Both
-       switches have to cancel the animation *and* restate the transform:
-       cancelling alone leaves the pre-state standing and the bar off the top
-       of the window for good. */
-    const reduced = mediaBlock(CHROME, REDUCED);
-    const paused = pausedRules(CHROME);
-
-    for (const block of [reduced, ...paused]) {
-      expect(block).toMatch(/animation: none/);
-      expect(block).toMatch(/transform: none/);
-    }
-    expect(paused.length).toBeGreaterThan(0);
-  });
-
-  it("keeps the bar reachable by keyboard while it is held above the window", () => {
-    /* It is in the document and in the tab order for the whole second or so
-       it is out of sight, so a reader tabbing off the skip link could put
-       focus on a control nobody can see. */
-    expect(CHROME).toMatch(/header\[data-material\]:focus-within\s*\{[^}]*transform: none/);
-  });
-
-  it("leaves every page without a hero exactly as it was", () => {
-    /* Every rule in the chrome's stylesheet is guarded on the attribute the
-       hero publishes, so a page with no hero — or a hero whose sequencer
-       never ran — gets the bar it has always had. An unguarded rule here
-       would hide the navigation on the whole site. */
-    const rules = CHROME.match(/[^{}]+\{[^}]*\}/g) ?? [];
-    const onTheBar = rules.filter((r) => /header\[data-material\]/.test(r));
-    expect(onTheBar.length).toBeGreaterThan(3);
-    for (const rule of onTheBar) {
-      expect(rule).toMatch(/body(\.motion-paused)?\[data-hero-arrived[~\]]/);
+  it("starts every keyframe on the finished screen, so scroll 0 is arrived", () => {
+    for (const [name, from] of [
+      ["plate-letter-out", /from \{ transform: none; \}/],
+      ["plate-mask-up", /from \{ transform: scaleY\(0\); \}/],
+      ["plate-figure-out", /from \{ transform: none; \}/],
+      ["plate-to-start", /from \{ opacity: 1; transform: none; \}/],
+      ["plate-to-end", /from \{ opacity: 1; transform: none; \}/],
+    ] as const) {
+      const frames = ARRIVAL.match(new RegExp(`@keyframes ${name} \\{[\\s\\S]*?\\n\\}`))?.[0] ?? "";
+      expect(frames, `no @keyframes ${name}`).not.toBe("");
+      expect(frames).toMatch(from);
     }
   });
 
   it("never reaches for animation-play-state", () => {
-    /* §4's named trap. It freezes an animation at the time it has reached,
-       which for one that has not started is frame zero — and with
-       `fill-mode: both` frame zero here is a sheet of paper over the name.
-       "Pause motion" would blank the first screen. */
     expect(ARRIVAL).not.toMatch(/animation-play-state/);
-    expect(CHROME).not.toMatch(/animation-play-state/);
-  });
-
-  it("needs no @supports block, and stays the kind of file that does not", () => {
-    /* The hero fires on load, so every animation here is time-driven and
-       there is no feature for a browser to be missing. §4 calls the block
-       cargo cult in that case. This assertion is what keeps the claim true
-       rather than merely true today: the day anything here grows a scroll
-       timeline, this fails and the third exit has to be written. */
-    for (const css of [ARRIVAL, CHROME]) {
-      expect(css).not.toMatch(/animation-timeline/);
-      expect(css).not.toMatch(/@supports/);
-    }
+    expect(CORNERS).not.toMatch(/animation-play-state/);
   });
 });
 
@@ -384,12 +297,12 @@ describe("what the first screen may not spend", () => {
      * secondary ink and the paint candidate was settled a second and a half
      * before they move.
      */
-    for (const name of ["plate-letter", "plate-letter-mask", "plate-figure", "plate-figure-mask"]) {
+    for (const name of ["plate-letter-out", "plate-mask-up", "plate-figure-out"]) {
       const frames = ARRIVAL.match(new RegExp(`@keyframes ${name} \\{[\\s\\S]*?\\n\\}`))?.[0] ?? "";
       expect(frames, `no @keyframes ${name}`).not.toBe("");
       expect(frames).not.toMatch(/opacity/);
     }
-    expect(ARRIVAL).toMatch(/@keyframes plate-from-start \{[\s\S]*?opacity: 0/);
+    expect(ARRIVAL).toMatch(/@keyframes plate-to-start \{[\s\S]*?opacity: 0/);
   });
 
   it("holds the masks in the ground's own colour, not in a clip", () => {
@@ -397,8 +310,7 @@ describe("what the first screen may not spend", () => {
        is clipped away at first paint is not a paint candidate either. What
        makes this work is that an element covered by an opaque sibling is
        still a painted element. */
-    expect(ARRIVAL).toMatch(/\[data-letter\]::after \{[\s\S]*?background: rgb\(var\(--paper\)\)/);
-    expect(ARRIVAL).toMatch(/\.mask \{[\s\S]*?background: rgb\(var\(--paper\)\)/);
+    expect(ARRIVAL).toMatch(/\[data-letter\]::after,[\s\S]*?\.mask \{[^}]*background: rgb\(var\(--paper\)\)/);
     expect(ARRIVAL).not.toMatch(/clip-path/);
   });
 
@@ -603,22 +515,21 @@ describe("the hero's lower corners", () => {
        a rise rather than an entry from each side. */
     expect(CORNERS).not.toMatch(/(^|[^-])\b(left|right)\s*:/m);
     expect(CORNERS).toMatch(/inset-inline/);
-    expect(ARRIVAL).toMatch(/@keyframes plate-corner \{[\s\S]*?translateY/);
+    expect(CORNERS).toMatch(/@keyframes corner-out \{[\s\S]*?translateY/);
   });
 
-  it("joins the sequence, and enters by a paper mask rather than by fading", () => {
-    /* A new element on this screen either joins the four stages or is
-       deliberately outside them. These join the end of stage four — and they
-       take the same opaque-sheet technique the name and the figure take, so
-       the claim that nothing on this screen enters by its own opacity stays a
-       sentence with one exception in it rather than two. */
-    expect(ARRIVAL).toMatch(/\[data-arrived~="text"\] \[data-hero-corners\] > \* \{/);
-    for (const name of ["plate-corner", "plate-corner-mask"]) {
-      const frames = ARRIVAL.match(new RegExp(`@keyframes ${name} \\{[\\s\\S]*?\\n\\}`))?.[0] ?? "";
+  it("comes apart last, under a paper mask rather than by fading", () => {
+    /* The corners are the last thing to leave the window, so they are the
+       last to come apart, and they take the same opaque-sheet technique the
+       name and the figure take. */
+    const gate = atBlock(CORNERS, GATE);
+    expect(gate).toMatch(/\.corners > \* > \* \{[^}]*animation: corner-out/);
+    expect(gate).toMatch(/\.corners > \* > \*::before \{[^}]*background: rgb\(var\(--paper\)\)/);
+    for (const name of ["corner-out", "corner-mask-up"]) {
+      const frames = CORNERS.match(new RegExp(`@keyframes ${name} \\{[\\s\\S]*?\\n\\}`))?.[0] ?? "";
       expect(frames, `no @keyframes ${name}`).not.toBe("");
       expect(frames).not.toMatch(/opacity/);
     }
-    expect(ARRIVAL).toMatch(/\[data-hero-corners\] > \*::after \{[\s\S]*?background: rgb\(var\(--paper\)\)/);
   });
 
   it("never names the employer, in the corner that once did", () => {
@@ -648,32 +559,30 @@ describe("the hero's light", () => {
     expect(container.querySelector('[role="status"], [role="marquee"], [role="timer"]')).toBeNull();
   });
 
-  it("keeps the phrase list the length its keyframes were derived for", () => {
-    /* The stops in `@keyframes phrase-turn` are percentages of an n-slot
-       cycle worked out for five. A sixth phrase would still rotate — `--n`
-       follows the list — but its cross-fades would land between slots. */
+  it("keeps the phrase list the length the slices were tuned for", () => {
+    /* Each phrase owns 36% / n of the exit; five is what the range was
+       measured at. A sixth would still turn — `--n` follows the list — but
+       each slice would be shorter than a glance. */
     expect(heroPhrases).toHaveLength(5);
   });
 
-  it("waits for the arrival to finish before anything in it moves", () => {
-    for (const part of [".lamp", ".lamp::after", ".phrase"]) {
-      const rule = new RegExp(`\\[data-arrived~="text"\\] \\${part} \\{\\s*animation:`);
-      expect(CORNERS, part).toMatch(rule);
+  it("turns the phrases and breathes the lamp on the reader's scroll, on no clock", () => {
+    const gate = atBlock(CORNERS, GATE);
+    for (const part of [".phrase", ".lamp", ".lamp::after"]) {
+      expect(gate, part).toMatch(new RegExp(`\\${part} \\{[^}]*animation-timeline: --hero`));
     }
+    expect(CORNERS).not.toMatch(/infinite/);
+    expect(CORNERS).not.toMatch(/\d(\.\d+)?s\b/);
   });
 
   it("lands every off-switch on a still lamp and the first phrase", () => {
-    const reduced = mediaBlock(CORNERS, REDUCED);
-    expect(reduced).toMatch(/\.lamp,[\s\S]*?\.phrase \{\s*animation: none;/);
-    expect(reduced).toMatch(/\.phrase:first-child \{\s*opacity: 1;/);
-
-    const paused = pausedRules(CORNERS);
-    expect(paused.filter((r) => /animation: none/.test(r)).length).toBe(1);
-    expect(paused.join("\n")).toMatch(/\.phrase:first-child \{\s*opacity: 1;/);
-
-    /* Time-driven, so no feature for a browser to be missing — §4 calls an
-       `@supports` block here cargo cult. */
-    expect(CORNERS).not.toMatch(/@supports/);
-    expect(CORNERS).not.toMatch(/animation-play-state/);
+    /* Outside the gate is what every switch shows: no animation, the first
+       phrase up and the rest down. */
+    const rest = outsideGate(CORNERS);
+    expect(rest).not.toMatch(/animation(-name)?:/);
+    expect(rest).toMatch(/\.phrase \{[^}]*opacity: 0/);
+    expect(rest).toMatch(/\.phrase:first-child \{\s*opacity: 1;/);
+    expect(atBlock(CORNERS, GATE)).toContain("@media (prefers-reduced-motion: no-preference)");
+    expect(atBlock(CORNERS, GATE)).toContain("body:not(.motion-paused)");
   });
 });

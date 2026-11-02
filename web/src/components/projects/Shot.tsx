@@ -74,7 +74,7 @@ export default function Shot({
        this were a bare `<img>` rather than a box with a placeholder in it. */
     <div className={`card-shot relative rounded-none border border-[rgb(var(--rule))] ${className}`}>
       {!loaded && (
-        <div className="absolute inset-0 animate-pulse-soft bg-[rgb(var(--rule)_/_0.4)]" aria-hidden="true" />
+        <div className="absolute inset-0 scrub-pulse bg-[rgb(var(--rule)_/_0.4)]" aria-hidden="true" />
       )}
       {/* `sizes` is repeated on every `<source>` on purpose: a `<source>` does
           not inherit the `<img>`'s, and one that omits it falls back to 100vw

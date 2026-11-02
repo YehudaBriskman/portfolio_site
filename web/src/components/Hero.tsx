@@ -1,12 +1,10 @@
 import ObjectLabel from "@/components/gallery/ObjectLabel";
 import type { LabelField } from "@/components/gallery/objectLabel";
-import { useStagedArrival, type ArrivalStage } from "@/components/motion/useStagedArrival";
 import { projects } from "@/data/projects";
 import { plate, plateTitle } from "@/data/site";
 import HeroCorners from "@/components/HeroCorners";
 import styles from "@/components/Hero.module.css";
 import arrival from "@/components/HeroArrival.module.css";
-import "@/components/hero-chrome.css";
 
 /*
  * The first screen: one composed picture, assembled in four moves.
@@ -117,12 +115,12 @@ import "@/components/hero-chrome.css";
  *
  * The arrival, and the one thing it must not cost
  * -----------------------------------------------
- * Four stages, in order, each waiting on the one before: the name a letter at
- * a time from above, then the figure from below, then the bar from above,
- * then the two remaining lines from their own sides. `useStagedArrival` owns
- * the waiting and `HeroArrival.module.css` owns the gestures; the reason they
- * are two files is that one is a statement about order and the other is a
- * statement about distance and duration.
+ * Since #162 there is no arrival on a clock. The screen is whole at scroll 0
+ * and, as the section leaves through the top of the window, each part makes
+ * its old arrival gesture backwards — the letters lift under a paper mask,
+ * the figure sinks behind one, the two lines slide back to their sides — and
+ * scrolling up runs every one of them forwards. All of it is
+ * `HeroArrival.module.css`, on the section's own `--hero` view timeline.
  *
  * The constraint underneath all of it: **the ink is painted on frame one.**
  * The previous reveal started the `h1` at `opacity: 0`, which takes the
@@ -178,31 +176,6 @@ const PLATE_FIELDS: LabelField[] = [
 ];
 
 /*
- * The order, and what each step is waiting for.
- *
- * A module constant rather than a value built in the render, because it is
- * the identity the sequencer's effect depends on: rebuilt every render, it
- * would tear down and re-arm the listener on every state change.
- *
- * Each selector names the element whose animation finishing *is* that stage
- * finishing, which in every case is the last one to start:
- *
- *   name      the last letter of the name, marked by `splitName`
- *   portrait  the mask over the figure, which outlasts the figure's own rise
- *   chrome    the bar itself, which is not in this component's tree at all
- *   text      nothing — it is last, and nothing waits for it
- *
- * `header[data-material]` is the one selector here that reaches outside this
- * file's own markup, and it is the same hook `hero-chrome.css` animates on:
- * the stylesheet and the sequencer have to be talking about the same element
- * or the step waits for something that never moves. It is an attribute the
- * nav already renders for its own dark-act switch, so nothing was added to
- * `Nav.tsx` to make this possible — and if it ever stops being rendered, the
- * seatbelt in `useStagedArrival` finishes the sequence rather than stalling
- * it, and the bar is left where the chrome stage's `:not()` guard leaves it,
- * which is visible.
- */
-/*
  * The one loading hint the figure needs, spelled the way React 18 will pass
  * on.
  *
@@ -214,16 +187,7 @@ const PLATE_FIELDS: LabelField[] = [
  */
 const PRIORITY: { fetchpriority: "high" } = { fetchpriority: "high" };
 
-const ARRIVAL_STAGES: readonly ArrivalStage[] = [
-  { name: "name", endsWith: "[data-letter-last]" },
-  { name: "portrait", endsWith: "[data-portrait-mask]" },
-  { name: "chrome", endsWith: "header[data-material]" },
-  { name: "text" },
-];
-
 export default function Hero() {
-  const arrived = useStagedArrival({ stages: ARRIVAL_STAGES, publishAs: "heroArrived" });
-
   return (
     /*
       `overflow-x: clip` and not `hidden`: the two remaining lines enter from
@@ -237,7 +201,7 @@ export default function Hero() {
       `clip` leaves the block axis alone, so the section is still a normal
       scrolling box and nothing inside it becomes a scroll container.
     */
-    <section id="hero" className={`relative w-full ${styles.hero}`}>
+    <section id="hero" className={`relative w-full ${styles.hero} ${arrival.timeline}`}>
       {/*
         `pt-28` is nav clearance, not rhythm: the island is fixed, 50px tall
         and 18px down, so the first line has to start below 68px.
@@ -260,10 +224,10 @@ export default function Hero() {
       <div className={`wrap flex min-h-[100svh] flex-col ${styles.screen}`}>
         {/*
           The picture: the figure and the label, in one box the height of the
-          label. `data-arrived` is the sequence's clock and it is here
-          because it has to be an ancestor of both halves.
+          label. The section around it carries the `--hero` timeline every
+          part of the picture reads.
         */}
-        <div className={`${styles.composition} ${arrival.stage}`} data-arrived={arrived}>
+        <div className={`${styles.composition} ${arrival.stage}`}>
           {/*
             The figure, out of flow and underneath the type.
 
@@ -304,19 +268,9 @@ export default function Hero() {
           </div>
 
           {/*
-            Four parts of one picture, four arrivals, and the order between
-            them is the sequence above rather than four delays that land in
-            it. `HeroArrival.module.css` carries the reasoning for each
-            gesture; the short version is that the name falls a letter at a
-            time from above, the figure rises from below once the name is
-            whole, the bar drops from above once the figure has, and the fact
-            line and the field line come in from their own sides last.
-
-            This used to be one reveal on the group, 60ms apart in reading
-            order, and then three devices keyed to what kind of statement each
-            part is. Both were right for a plate alone on paper. Neither is an
-            answer to a composed screen, where the question is not how each
-            part differs but what order the picture assembles in.
+            Four parts of one picture, each taken apart by the reader's scroll
+            as the section leaves and put back as it returns.
+            `HeroArrival.module.css` carries the ranges and the reasoning.
 
             `splitName` is the one new hook this needed from the shared label:
             a `transform` does nothing to a non-replaced inline box, so the

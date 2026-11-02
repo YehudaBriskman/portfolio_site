@@ -323,11 +323,12 @@
  *
  * On `.bar`, with `translate`, and both of those are load-bearing:
  *
- *   `hero-chrome.css` animates `transform` on the header itself, with
- *   `fill-mode: both`, for the life of the home page. A `transform` here on
- *   the header would be overridden by that animation and do nothing on the
- *   one page that most needs it; `translate` on the child composes with it
- *   instead of fighting it.
+ *   Until #162, `hero-chrome.css` animated `transform` on the header itself,
+ *   with `fill-mode: both`, for the life of the home page, and a `transform`
+ *   here on the header would have been overridden by it. That file is gone
+ *   with the clock-driven arrival; `translate` on the child stays, because
+ *   it composes with anything a later header rule does instead of fighting
+ *   it.
  *
  *   The dock is `position: fixed`, so nothing here moves the page. There is no
  *   reserved space to collapse and no `top` to animate — the layout is the
@@ -840,11 +841,12 @@
   /*
    * A measured height, and `inset-block: 0` is the thing it is replacing.
    *
-   * On the home page `hero-chrome.css` hands `header[data-material]` a
-   * `transform` animation with `fill-mode: both`, so the header keeps a
-   * transform animation in effect for the life of the page — which makes it
-   * the containing block for every `position: fixed` descendant, the dock
-   * being 56px tall. Measured at 390x844 with `inset-block: 0`: this panel
+   * Until #162 the home page's `hero-chrome.css` handed `header[data-material]`
+   * a `transform` animation with `fill-mode: both`, which made the header the
+   * containing block for every `position: fixed` descendant, the dock being
+   * 56px tall. That animation is gone; the measured height stays, because any
+   * transform, filter or containment a later rule puts on the header brings
+   * the same trap back. Measured at 390x844 with `inset-block: 0`: this panel
    * came out 336 x 68px and the scrim 375.17 x 56px, both pinned to the bar, and
    * the page behind them scrolled freely because at mid-screen the pointer was
    * over the page rather than over either of them.

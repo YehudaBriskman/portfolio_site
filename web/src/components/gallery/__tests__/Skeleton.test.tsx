@@ -180,44 +180,34 @@ describe("the skeleton stylesheet", () => {
     expect(CSS).toContain('content: "\\200B"');
   });
 
-  it("stops the sweep and removes the band under both off-switches", () => {
-    /*
-     * A shimmer is motion, so both standing conditions have to land it on
-     * the finished state — a flat capsule. Cancelling the animation without
-     * removing the gradient leaves a bright band parked wherever the last
-     * frame stopped, which is a highlight on a surface nothing is happening
-     * to; that is why both declarations are asserted rather than one.
-     */
-    for (const guard of [
-      "@media (prefers-reduced-motion: reduce)",
-      "body.motion-paused",
-    ]) {
-      const at = CSS.indexOf(guard);
-      expect(at).toBeGreaterThan(-1);
-      const block = CSS.slice(at, at + 220);
-      expect(block).toContain("animation: none");
-      expect(block).toContain("background-image: none");
-    }
+  it("draws the band only inside the three-condition gate, so every switch is a flat capsule", () => {
+    /* A shimmer is motion, so every off-switch has to land it on the finished
+       state — a flat capsule. Both the animation and the gradient live inside
+       the gate: a cancelled animation with the gradient left painted is a
+       bright band parked on a surface nothing is happening to. */
+    const at = CSS.indexOf("@supports (animation-timeline: view())");
+    expect(at).toBeGreaterThan(-1);
+    const before = CSS.slice(0, at);
+    expect(before).not.toMatch(/background-image:/);
+    expect(before).not.toMatch(/animation:\s*sk-sweep/);
+    const gate = CSS.slice(at, CSS.indexOf("@keyframes sk-sweep"));
+    expect(gate).toContain("prefers-reduced-motion: no-preference");
+    expect(gate).toContain("body:not(.motion-paused)");
+    expect(gate).toContain("background-image:");
+    expect(gate).toMatch(/animation-timeline:\s*--sk-line/);
   });
 
-  it("leaves the gate alone under both off-switches", () => {
-    /*
-     * The gate is a decision about whether a placeholder is shown at all,
-     * not a piece of motion, and a reader who has asked for less motion has
-     * not asked to be shown more flicker. The global
-     * `animation-duration: 0.01ms !important` both conditions carry
-     * overrides the duration and leaves the delay alone, so the gate keeps
-     * working on its own — provided nothing here cancels it by name.
-     */
-    for (const guard of [
-      "@media (prefers-reduced-motion: reduce)",
-      ":global(body.motion-paused)",
-    ]) {
-      /* The guard's own block only — `.gate` is declared further down the
-         file, so a slice to the end would always match it. */
-      const at = CSS.indexOf(guard);
-      expect(CSS.slice(at, CSS.indexOf("}", CSS.indexOf("{", at)) + 2)).not.toContain(".gate");
-    }
+  it("runs the sweep on the reader's scroll, on no clock (#162)", () => {
+    expect(CSS).not.toMatch(/sk-sweep[^;{]*infinite/);
+    expect(CSS).not.toMatch(/sk-sweep 1\.5s/);
+  });
+
+  it("leaves the gate alone under every off-switch", () => {
+    /* The gate is a decision about whether a placeholder is shown at all,
+       not motion; it is declared once, outside every switch. */
+    const gate = CSS.slice(CSS.indexOf("@supports (animation-timeline: view())"), CSS.indexOf("@keyframes sk-sweep"));
+    expect(gate).not.toContain(".gate");
+    expect(CSS).not.toMatch(/prefers-reduced-motion: reduce/);
   });
 
   it("has no minimum display time anywhere in it", () => {

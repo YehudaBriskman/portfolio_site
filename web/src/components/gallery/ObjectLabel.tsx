@@ -93,7 +93,7 @@ function splitIntoLetters(name: string): ReactNode {
               className={styles.letter}
               data-letter=""
               data-letter-last={at === total - 1 ? "" : undefined}
-              style={{ "--letter": at } as CSSProperties}
+              style={{ "--letter": at, "--letters": total } as CSSProperties}
             >
               {ch}
             </span>

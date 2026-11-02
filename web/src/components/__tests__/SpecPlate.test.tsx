@@ -50,27 +50,28 @@ describe("the spec plate", () => {
     );
   });
 
-  it("does not arm the count until the plate has been seen", () => {
-    const { container } = render(<SpecPlate />);
-
-    /* `IntersectionObserver` is a no-op stub in this suite, so the plate is
-       in its un-entered state — which has to be the true figures and not four
-       noughts, because that state is also what a browser without the API, a
-       paused page and a reduced-motion reader all land on. */
-    expect(container.querySelector("[data-counting]")).toBeNull();
+  it("rests on the true figures, which is what every off-switch shows", () => {
+    /* jsdom runs no animation, so what it renders is the resting state —
+       which has to be the true figures and not four noughts, because that
+       state is also what a browser without view timelines, a paused page and
+       a reduced-motion reader all land on. */
+    render(<SpecPlate />);
     expect(screen.getByText(String(specFigures[0].value))).toBeInTheDocument();
   });
 
-  it("counts on a clock, which is the one place in this tree that is allowed", () => {
-    /* A view timeline would run the count backwards on the way back up the
-       page, so the figure would count down to zero every time the plate left
-       the screen. "Once, on entry" is an event, and an event needs a clock. */
-    expect(CSS).toContain("animation-duration: var(--dur-slow)");
-    expect(CSS).not.toMatch(/animation-timeline/);
-    /* And no delay, because `fill-mode: both` fills backwards through one —
-       a staggered plate would hold noughts on screen for its length, and
-       under reduced motion the duration collapses while the delay does not. */
-    expect(CSS).not.toMatch(/animation-delay/);
+  it("counts on the reader's scroll, both ways, and on no clock (#162)", () => {
+    /* The owner's rule: reverse when scrolling up, all controllable with
+       simple scrolling. A view timeline counts down on the way back up,
+       which is now the point rather than the objection. */
+    expect(CSS).toMatch(/view-timeline:\s*--specs/);
+    expect(CSS).toMatch(/animation-timeline:\s*--specs/);
+    expect(CSS).not.toMatch(/animation-duration/);
+    expect(CSS).not.toMatch(/data-counting/);
+    /* Declared only inside the three-condition gate, so every off-switch is
+       the resting value by construction. */
+    expect(CSS).toMatch(/@supports \(animation-timeline: view\(\)\)/);
+    expect(CSS).toMatch(/prefers-reduced-motion: no-preference/);
+    expect(CSS).toMatch(/body:not\(\.motion-paused\)/);
   });
 
   it("registers the properties it interpolates, and rests on the true value", () => {

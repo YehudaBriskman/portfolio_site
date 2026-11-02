@@ -1857,6 +1857,53 @@
       font-size: 0.75rem;
     }
   }
+
+  /*
+   * The two small utilities that replaced Tailwind's clock animations (#162).
+   *
+   * `scrub-rise` (a 0.7s rise, fired once on mount, on the notes index)
+   * and `scrub-pulse` (a 2.4s opacity loop, forever, on every loading
+   * placeholder) were the last time-driven motion outside the exemptions in
+   * `docs/motion-contract.md` §8. The owner's rule is that every animation
+   * is controllable with simple scrolling and reverses on the way up, so both
+   * are now on the element's own view timeline:
+   *
+   *   .scrub-rise    the measured rise (14px, opacity) across the element's
+   *                  entry, so a card in view at load is already arrived and
+   *                  one further down rises as the reader brings it up;
+   *   .scrub-pulse   two dips in strength across the placeholder's pass
+   *                  through the window, so a waiting shape still reads as
+   *                  waiting while the reader moves, and is still otherwise.
+   *
+   * Both are declared only inside the three-condition gate — view timelines
+   * run, no reduced motion, no Pause — so every off-switch is the resting
+   * state: arrived, and full strength.
+   */
+  @supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+      body:not(.motion-paused) .scrub-rise {
+        animation: scrub-rise linear both;
+        animation-timeline: view();
+        animation-range: entry 0% entry 100%;
+      }
+
+      body:not(.motion-paused) .scrub-pulse {
+        animation: scrub-pulse linear both;
+        animation-timeline: view();
+        animation-range: cover 0% cover 100%;
+      }
+    }
+  }
+}
+
+@keyframes scrub-rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes scrub-pulse {
+  0%, 50%, 100% { opacity: 1; }
+  25%, 75%      { opacity: 0.35; }
 }
 
 @layer components {

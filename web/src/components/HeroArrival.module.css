@@ -1,505 +1,162 @@
 /*
- * How the first screen assembles itself, in four moves.
+ * How the first screen comes apart as the reader leaves it, and goes back
+ * together as they return (#162).
  *
- * The order is the whole design and it is not written here. `Hero.tsx` lists
- * the stages and `useStagedArrival` makes each one wait for the previous
- * one's `animationend`; what this file owns is what each move *is* — how far,
- * how long, and in which direction. The handshake between the two is one
- * attribute on the section:
+ * Until #162 this file was a staged arrival on a clock: the name fell a
+ * letter at a time, then the figure rose, then the bar dropped, then the two
+ * lines came in from their sides, each move waiting on the last one's
+ * `animationend` through `useStagedArrival`. It ran once, on load, and the
+ * owner's rule for the whole site retired it: "the titles and all the
+ * animations need to be handled like the way that the github get handled —
+ * reverse when scrolling up, all controllable with simple scrolling. no
+ * more." The hook, `hero-chrome.css` and the clock went with it.
  *
- *     data-arrived="name"                      the name is falling
- *     data-arrived="name portrait"             the figure is rising
- *     data-arrived="name portrait chrome"      the bar is dropping
- *     data-arrived="name portrait chrome text" the two lines are coming in
+ * The first screen is the one place a scroll-driven *arrival* cannot work:
+ * at scroll 0 it is already in view, so there is no "on the way in" for a
+ * reader to scrub through, and starting it unassembled would leave the
+ * largest text on the page unpainted until someone scrolled. So the gestures
+ * the arrival used are kept and the clock is turned around: the screen is
+ * whole at scroll 0, and as the section leaves through the top of the window
+ * each part makes its own arrival gesture backwards — the letters lift under
+ * a paper mask, the figure sinks behind one, the two lines slide back to
+ * their own sides. Scrolling up runs every one of them forwards, which is the
+ * arrival, at the reader's pace instead of the page's.
  *
- * A token list and not a number, read with `~=`, because every rule here is
- * "this stage has begun" and not "this stage is the current one". Keyed to
- * the current stage, each part would snap back to its hidden state the
- * instant the next stage started.
+ * WHICH PART GOES WHEN
+ * --------------------
+ * By geometry, not by the old order. A part that comes apart after it has
+ * left the window is a part nobody saw come apart, and the type is at the
+ * top of the screen — it is the first thing out. All ranges are on the
+ * section's own `exit`, so a percentage is that fraction of the hero's
+ * height scrolled past:
  *
- *   NAME                  one letter at a time, from above
- *   the figure            from below, once the name is whole
- *   the bar               from above, once the figure has arrived
- *   one line of fact      in from the left
- *   WHERE · COUNT · WHEN  in from the right
- *
- * The bar is not in this file. It is fixed, it is rendered by a sibling of
- * the section that sequences it, and the only thing that can reach it is a
- * plain stylesheet hung off the body — `hero-chrome.css`, which is the third
- * stage and says so.
+ *   NAME                  exit  0% – 24%, last letter first
+ *   one line of fact      exit  6% – 24%, back out to the left
+ *   WHERE · COUNT · WHEN  exit 10% – 28%, back out to the right
+ *   the figure            exit 16% – 44%, down behind its paper
+ *   the corners           exit 36% – 48%, after the light has turned
+ *                         (`HeroCorners.module.css`)
  *
  * THE ONE RULE EVERYTHING HERE IS SHAPED BY
  * -----------------------------------------
- * Nothing on this screen enters by its own opacity, and nothing is clipped
- * away before it enters. Both are the same bug wearing two hats: an element
- * that is transparent or clipped at first paint is not a Largest Contentful
- * Paint candidate, so the largest text on the first screen stops counting as
- * painted until its animation ends. That is not a theory about this page —
- * it is what this page measured. The reveal before the one before this
- * started the `h1` at `opacity: 0` and LCP was reported at the end of the
- * reveal; removing the fade put it at 112-160ms with CLS at 0.000.
+ * Nothing on this screen is transparent or clipped at first paint: an
+ * element that is, is not a Largest Contentful Paint candidate, and this
+ * page measured that bug once (LCP reported at the end of a reveal). Every
+ * mask is a paper-coloured box moved over the ink, never a clip on it, and
+ * at scroll 0 every animation is before its range — on its `from` frame,
+ * which is the finished screen. LCP is decided before a single one moves.
  *
- * A per-letter entry walks straight back into it. What is done instead is
- * the other half of the same idea: **the ink is painted in the first frame
- * and a paper-coloured mask is moved off it.** The glyphs are at full
- * strength from the start, the photograph is decoded and painted from the
- * start, and what arrives is the retreat of a rectangle the colour of the
- * ground.
- *
- * Measured either side of this change, eleven and nine cold loads of a
- * production build served locally, median reported: **LCP 136ms → 132ms at
- * 1440×900 and 116ms → 120ms at 390×844, CLS 0.000 → 0.000 at both.** The
- * largest element is now the photograph rather than the name, and it is
- * reported at first paint while it is still completely covered — an element
- * hidden behind an opaque sibling is still a painted element, which is the
- * property this whole technique rests on and the reason it was measured
- * before it was written rather than after.
- *
- * The two lines in the fourth stage are the exception, and may fade: they are
- * 1rem and 0.72rem of secondary ink, nowhere near the largest text on the
- * screen, and by the time they move the paint candidate was decided a second
- * and a half ago.
- *
- * What this replaces
- * ------------------
- * Three devices, one per part, each derived from what kind of statement the
- * part was: the name darkened into the paper without moving, the fact line
- * took the measured 14px rise, and each field stamped itself on according to
- * whether it was a place, a count or a span. That was the right answer to a
- * plate alone on paper, where the only question a reveal can ask is how the
- * three parts differ. It is not an answer to a composed picture, where the
- * question is what order the picture assembles in — and a per-kind stagger
- * inside stage four would be a fourth idea competing with the three the
- * sequence already has.
- *
- * Why this is not in Hero.module.css
- * ----------------------------------
- * That file is where the picture is composed: where the figure sits, how big
- * it is, which type rung the name takes below 700px. It is a statement about
- * space. This is a statement about time. They hang off the same two elements
- * and they are not the same subject.
- *
- * Why the selectors reach inside ObjectLabel
- * ------------------------------------------
- * `ObjectLabel` is shared with every object on the site and has no API for
- * styling its parts individually — deliberately, because a `variant` prop is
- * the moment the collection stops being one. So the name is reached as `h1`
- * (the plate is the only label on the site that asks for one), the fact line
- * as the `<p>` that directly follows it, and the field line as the only
- * `<ul>` on this screen. The letters are the exception and are reached by
- * `[data-letter]`, which `splitName` writes: a stylesheet that counted
- * `:nth-child()` would be describing one spelling of one name.
- */
-
-/* ── the clock ────────────────────────────────────────────────────────── */
-
-/*
- * The section that carries `data-arrived`, and the stacking context the
- * picture is layered in.
- *
- * `isolation: isolate` rather than leaving it to the `z-index` on the label:
- * the figure and the type have to be ordered against each other and against
- * nothing else on the page. Without it the two indices below would be
- * competing with the fixed bar's `z-index: 50` in the root context, which is
- * a fight this section should not be able to pick.
- */
-.stage {
-  isolation: isolate;
-}
-
-/* ── stage one: the name, one letter at a time, from above ────────────── */
-
-/*
- * Every letter is painted, at full ink, in the first frame. What falls is a
- * rectangle of paper that was covering it.
- *
- * The mask is a pseudo-element on the letter, so it travels with the letter
- * and the two never need to agree about position. It retreats by scaling to
- * nothing from its bottom edge, which uncovers the glyph from the top down —
- * a letter being lowered into place behind a wall whose top edge is coming
- * down with it. `scaleY(0)` and not `translateY(100%)`, which would park a
- * paper rectangle permanently over the line below.
- *
- * The four insets are not one number, and the asymmetry is the whole of what
- * this took to get right. A letter's box is its advance *plus* the display
- * tracking, which is `-0.045em` — negative, so the box is narrower than the
- * glyph and the ink hangs out of it. Left as `inset: 0` the overhang shows:
- * a two-pixel hook of the next letter's ink standing on the paper before its
- * turn, which is visible on "BRISKMAN" and exactly as cheap-looking as it
- * sounds.
- *
- * So the mask bleeds, but only where bleeding is free. Pseudo-elements paint
- * in document order, so a mask can safely overhang the letters *after* it —
- * their own masks are painted on top — and must not overhang the letters
- * before it, whose ink has already landed and would be wiped by a sheet of
- * paper arriving late. That makes the inline-end and the foot generous and
- * the inline-start zero. The head is bounded by the leading: at 0.86
- * line-height and a 0.72em cap there is about 0.14em of air between two
- * lines of the name, so 0.1em clears the cap with room and still cannot
- * reach the line above.
- *
- * 16px of travel on the letter itself, under §5's 24px ceiling, past which a
- * rise reads as a slide. A length and not an em: this is a distance the eye
- * measures on the screen, not a size that should grow with the type.
- *
- * 38ms between letters. §5's stagger window is 30-80ms and its cumulative cap
- * is 300ms, which a fourteen-letter cascade cannot honour at any step above
- * about 20ms — that cap is written about a list of four items, where
- * anything longer is a queue, and a name is not a list. What governs here
- * instead is the stage: at 38ms the whole name is down in 754ms, which keeps
- * the first move under a second and the four moves together at about two.
- */
-.stage[data-arrived] [data-letter]::after {
-  content: "";
-  position: absolute;
-  inset: -0.1em -0.09em -0.16em 0;
-  background: rgb(var(--paper));
-  transform-origin: 50% 100%;
-}
-
-.stage[data-arrived~="name"] [data-letter] {
-  animation: plate-letter 260ms var(--ease-settle) calc(var(--letter) * 38ms) both;
-}
-
-.stage[data-arrived~="name"] [data-letter]::after {
-  animation: plate-letter-mask 260ms var(--ease-settle) calc(var(--letter) * 38ms) both;
-}
-
-@keyframes plate-letter {
-  from { transform: translateY(-16px); }
-  to   { transform: none; }
-}
-
-@keyframes plate-letter-mask {
-  from { transform: scaleY(1); }
-  to   { transform: scaleY(0); }
-}
-
-/* ── stage two: the figure, from below ────────────────────────────────── */
-
-/*
- * The same move, turned over: the photograph is painted and decoded in the
- * first frame, and a sheet of paper over it retreats downward so the figure
- * is uncovered head first. That reading — more of someone appearing as they
- * come up from behind something — is what "from below" means for a figure,
- * and it is the opposite reading from the type above, which is uncovered top
- * first *while falling*. One technique, two gestures, because the direction
- * of the travel underneath it is reversed.
- *
- * 14px, the measured rise in §5 exactly, and 520ms rather than the measured
- * 620ms: the stage is one object rather than a group, and it is the second
- * of four moves on a screen that should not take longer to assemble than it
- * takes to read.
- *
- * `-16px` at the foot of the sheet and not `0`. The figure rises by 14, so
- * for the length of the rise its lower edge hangs that far below the box the
- * sheet covers, and a sliver of the photograph would be showing under the
- * sheet for the whole stage. Two pixels of margin on top of the fourteen. At
- * `scaleY(0)` the sheet has no height at all, so the overhang costs nothing
- * once the stage is over.
- *
- * There are no resting rules for the letters or for the figure, and that is
- * deliberate: `fill-mode: both` means frame zero of each is the keyframe's
- * own `from`, and a second statement of it here would be a second definition
- * of "not yet" to keep in step. The two lines in stage four do need one —
- * nothing covers them, so without a resting `opacity: 0` they would simply
- * be there from the start.
- */
-.stage[data-arrived] .mask {
-  position: absolute;
-  inset: 0 0 -16px;
-  background: rgb(var(--paper));
-  transform-origin: 50% 100%;
-}
-
-.stage[data-arrived~="portrait"] [data-portrait] img {
-  animation: plate-figure 520ms var(--ease-settle) both;
-}
-
-.stage[data-arrived~="portrait"] .mask {
-  animation: plate-figure-mask 520ms var(--ease-settle) both;
-}
-
-@keyframes plate-figure {
-  from { transform: translateY(14px); }
-  to   { transform: none; }
-}
-
-@keyframes plate-figure-mask {
-  from { transform: scaleY(1); }
-  to   { transform: scaleY(0); }
-}
-
-/* ── stage four: the two remaining lines, each from its own side ──────── */
-
-/*
- * Stage three is the bar and is in `hero-chrome.css`. This is what waits for
- * it.
- *
- * Horizontal travel, which §5 bans outright, and the ban is worth restating
- * rather than quietly breaking: the deleted `Reveal` pushed full-width
- * sections 26px past the right edge of the document until they fired, so the
- * page reported horizontal overflow for as long as the reader had not
- * scrolled that far — with `overflow-x: clip` on the body hiding the
- * scrollbar and not the bug. The owner's direction is that each remaining
- * piece enters from its own side, which cannot be done without it.
- *
- * What makes it safe here is that neither line is full-width and neither
- * reaches the edge: 18px of travel inside a gutter that is `clamp(1.25rem,
- * 3vw, 2.5rem)` and therefore never below 20px. `#hero` carries
- * `overflow-x: clip` on top of that, so the guarantee is a property of the
- * section rather than an arithmetic coincidence that a future gutter could
- * take away. The page's horizontal overflow is measured at 0 at 390px and at
- * 1440px, which is the check that would have caught `Reveal`.
- *
- * These two may fade, and nothing above them may. They are 1rem and 0.72rem
- * of secondary ink, they are not remotely the largest text on the screen,
- * and the paint candidate was settled a second and a half before they move.
- *
- * 90ms apart, which is ten past the far end of §5's 30-80ms window, and
- * deliberately so: that window is measured for children travelling the same
- * way, where anything slower arrives after the reader has started on the
- * first. These two travel in opposite directions, and close together a pair
- * moving apart reads as one line splitting rather than as two lines
- * arriving.
- */
-.stage[data-arrived] h1 + p {
-  opacity: 0;
-  transform: translateX(-18px);
-}
-
-.stage[data-arrived] ul {
-  opacity: 0;
-  transform: translateX(18px);
-}
-
-.stage[data-arrived~="text"] h1 + p {
-  animation: plate-from-start 460ms var(--ease-settle) both;
-}
-
-.stage[data-arrived~="text"] ul {
-  animation: plate-from-end 460ms var(--ease-settle) 90ms both;
-}
-
-@keyframes plate-from-start {
-  from { opacity: 0; transform: translateX(-18px); }
-  to   { opacity: 1; transform: none; }
-}
-
-@keyframes plate-from-end {
-  from { opacity: 0; transform: translateX(18px); }
-  to   { opacity: 1; transform: none; }
-}
-
-/* ── stage four, continued: the two corner blocks ─────────────────────── */
-
-/*
- * The lower corners — issue #101 — and the one question a
- * new element on this screen has to answer: does it join the sequence, or is
- * it deliberately outside it?
- *
- * It joins, at the end of stage four. Stage four is everything that is not
- * the picture, and these are the last two statements on the screen; a block
- * that appeared before the field line would be arguing it was more important
- * than the plate's own specs, and one outside the sequence entirely would be
- * the only thing on the first screen that simply exists.
- *
- * 180ms after the field line's own 90ms, so the order is fact line, field
- * line, corners. Both corners move together on one delay rather than
- * staggering against each other: they are at opposite ends of the screen and
- * a reader cannot watch both, so a stagger between them is a difference
- * nobody can see paid for with 90ms of the stage.
- *
- * WHY A RISE AND NOT AN ENTRY FROM EACH SIDE
- * ------------------------------------------
- * The obvious gesture is the one the two lines above take — each piece in
- * from its own side — and these blocks sit at the two sides, so it would read.
- * It is rejected for a reason that is not about taste: `translateX` is a
- * physical axis and there is no logical form of it. The two corners swap
- * sides in Hebrew, so a sideways entry would need the travel negated under
- * `[dir="rtl"]`, which is a second statement of the same gesture to keep in
- * step — and it would spend the horizontal exception §5 grants this screen a
- * third and fourth time. A rise needs no direction at all, and 14px is the
- * figure's own measured rise, which is the right relation: these blocks stand
- * on the same floor the figure does.
- *
- * WHY THE PAPER MASK AND NOT A FADE
+ * THE OFF-SWITCHES, BY CONSTRUCTION
  * ---------------------------------
- * The two lines in stage four are allowed to fade, on the argument at the top
- * of this file: they are small secondary ink and the paint candidate was
- * settled a second earlier. That argument would cover these as well — they are
- * 0.72rem and 1.0625rem — and it is still not what is done here, because the
- * technique this screen is built on is cheaper than the licence it grants.
- * An opaque sheet of the ground's colour over text that is already painted
- * costs one pseudo-element and leaves nothing on the screen entering by its
- * own opacity, which is a simpler sentence to keep true than one with two
- * exceptions in it.
+ * Every animation here, and the masks they move, is declared only inside
+ * one gate: the engine runs view timelines, the reader has not asked for
+ * reduced motion, and Pause is not on. Outside it nothing is declared at
+ * all, so the screen is exactly its finished state under each of the three
+ * switches with no exit block to keep in step. This is the shape `Written`
+ * uses for its live state, and it is the safer of the two shapes §4 allows
+ * for a file whose resting state *is* the finished one: there is no frame
+ * zero to land on by mistake, because without the gate there is no
+ * animation to have a frame zero.
  *
- * Measured against `main` rather than against an earlier build of this
- * branch, and interleaved: both production builds served in turn on the same
- * port, the bundle hash asserted on every block so neither run can be of the
- * wrong app, nine cold loads per block per viewport and two rounds each.
- * Sequential runs were not good enough — the first attempt put this branch
- * 20ms behind and a second pass showed the machine had simply drifted
- * between them.
- *
- *               1440x900              390x844
- *   main        144ms [132-312]       136ms [124-152]
- *   with these  144ms [132-160]       132ms [124-152]
- *
- * CLS 0.000 on every one of the seventy-two loads, and the photograph is the
- * candidate on every one of them. The corners cost nothing that can be told
- * apart from the spread.
- *
- * The mask bleeds a little on three sides and not at the head, which is the
- * same asymmetry the letters' masks have for a different reason: below 700px
- * these blocks stand on the figure's dissolved foot, and a sheet of paper
- * reaching up out of the block would cover a sliver of the photograph that
- * the ramp in `Hero.module.css` has not finished dissolving. At the foot and
- * the two inline edges there is nothing but ground to overhang.
+ * Without the `@supports` half, an engine that drops `animation-timeline`
+ * would read `animation: plate-letter-out linear both` as a zero-length
+ * animation on the clock — and `fill: both` would hold the *last* frame,
+ * which here is the dismantled screen. That half is not decoration.
  */
-.stage[data-arrived] [data-hero-corners] > * {
-  position: relative;
+
+.timeline {
+  view-timeline: --hero block;
 }
 
-.stage[data-arrived] [data-hero-corners] > *::after {
-  content: "";
-  position: absolute;
-  inset: 0 -0.12em -0.2em;
-  background: rgb(var(--paper));
-  transform-origin: 50% 100%;
-}
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    /* The masks exist only where something can move them. */
+    :global(body:not(.motion-paused)) .stage [data-letter]::after,
+    :global(body:not(.motion-paused)) .stage .mask {
+      content: "";
+      position: absolute;
+      background: rgb(var(--paper));
+      transform-origin: 50% 100%;
+      transform: scaleY(0);
+      pointer-events: none;
+    }
 
-.stage[data-arrived~="text"] [data-hero-corners] > * {
-  animation: plate-corner 460ms var(--ease-settle) 180ms both;
-}
+    :global(body:not(.motion-paused)) .stage [data-letter]::after {
+      inset: -0.1em -0.09em -0.16em 0;
+    }
 
-.stage[data-arrived~="text"] [data-hero-corners] > *::after {
-  animation: plate-corner-mask 460ms var(--ease-settle) 180ms both;
-}
+    :global(body:not(.motion-paused)) .stage .mask {
+      inset: 0 0 -16px;
+    }
 
-@keyframes plate-corner {
-  from { transform: translateY(14px); }
-  to   { transform: none; }
-}
+    /* The shorthands first, each followed by its timeline: `animation`
+       resets `animation-timeline` to `auto`. */
+    :global(body:not(.motion-paused)) .stage [data-letter] {
+      /* Last letter first: letter i of n starts (n - 1 - i) steps in. */
+      --out-at: calc((var(--letters, 9) - 1 - var(--letter)) * 2%);
+      animation: plate-letter-out linear both;
+      animation-timeline: --hero;
+      animation-range: exit var(--out-at) exit calc(var(--out-at) + 8%);
+    }
 
-@keyframes plate-corner-mask {
-  from { transform: scaleY(1); }
-  to   { transform: scaleY(0); }
-}
+    :global(body:not(.motion-paused)) .stage [data-letter]::after {
+      animation: plate-mask-up linear both;
+      animation-timeline: --hero;
+      animation-range: exit var(--out-at) exit calc(var(--out-at) + 8%);
+    }
 
-/* ── the ways out ─────────────────────────────────────────────────────── */
+    :global(body:not(.motion-paused)) .stage h1 + p {
+      animation: plate-to-start linear both;
+      animation-timeline: --hero;
+      animation-range: exit 6% exit 24%;
+    }
 
-/*
- * Two exits here, a third in `hero-chrome.css` for the bar, and all of them
- * land on the finished picture.
- *
- * There is still no `@supports not (animation-timeline: view())` block, and
- * it is still a decision rather than an omission. §4 of the contract is
- * explicit: a component with no scroll timeline has no feature for a browser
- * to be missing, and adding the block anyway is cargo cult. Every animation
- * in this file is time-driven, because the hero is the first thing in the
- * document and fires on load — an `IntersectionObserver` would be observing
- * an element already in view, and a view timeline would run the name
- * backwards out of its own ink the moment the reader scrolled up. The test
- * asserts `animation-timeline` never appears here, so the absence of the
- * block stays correct rather than merely being correct today.
- *
- * There *is* a fourth failure mode that no stylesheet can see, and it is new
- * with the sequence: a stage whose `animationend` never arrives, so the next
- * token is never published and the rules below it never match. That exit is
- * in TypeScript, because the condition is, and `useStagedArrival` carries
- * the seatbelt and the argument for it.
- *
- * `animation: none` plus the arrived values restated, rather than leaning on
- * the global `animation-duration: 0.01ms !important` in `index.css` and
- * `nav/motion-paused.css`. That rule does land on the final frame and is the
- * right trick for a time-driven animation, so it would in fact work here —
- * but Pause can be toggled mid-arrival, and an exit that depends on an
- * animation still being live is one refactor away from an exit that depends
- * on nothing. Restating costs a handful of declarations and removes the
- * question.
- *
- * `animation-play-state: paused` is the trap §4 names and is not used: it
- * freezes each animation at the time it has reached, which for anything not
- * yet started is frame zero — and frame zero here is a sheet of paper over
- * the name. "Pause motion" would blank the first screen.
- *
- * The masks' arrived state is `scaleY(0)` and not `opacity: 0`, because that
- * is what the keyframes end on and an exit that lands somewhere else is a
- * second definition of "arrived" to keep in step with the first.
- */
-@media (prefers-reduced-motion: reduce) {
-  .stage[data-arrived] [data-letter],
-  .stage[data-arrived] [data-portrait] img,
-  .stage[data-arrived] h1 + p,
-  .stage[data-arrived] ul,
-  .stage[data-arrived] [data-hero-corners] > * {
-    animation: none;
-    opacity: 1;
-    transform: none;
-  }
+    :global(body:not(.motion-paused)) .stage ul {
+      animation: plate-to-end linear both;
+      animation-timeline: --hero;
+      animation-range: exit 10% exit 28%;
+    }
 
-  .stage[data-arrived] [data-letter]::after,
-  .stage[data-arrived] .mask,
-  .stage[data-arrived] [data-hero-corners] > *::after {
-    animation: none;
-    transform: scaleY(0);
+    :global(body:not(.motion-paused)) .stage [data-portrait] img {
+      animation: plate-figure-out linear both;
+      animation-timeline: --hero;
+      animation-range: exit 16% exit 44%;
+    }
+
+    :global(body:not(.motion-paused)) .stage .mask {
+      animation: plate-mask-up linear both;
+      animation-timeline: --hero;
+      animation-range: exit 16% exit 44%;
+    }
   }
 }
 
-:global(body.motion-paused) .stage[data-arrived] [data-letter],
-:global(body.motion-paused) .stage[data-arrived] [data-portrait] img,
-:global(body.motion-paused) .stage[data-arrived] h1 + p,
-:global(body.motion-paused) .stage[data-arrived] ul,
-:global(body.motion-paused) .stage[data-arrived] [data-hero-corners] > * {
-  animation: none;
-  opacity: 1;
-  transform: none;
+/* Each keyframe's `from` is the finished screen, written out rather than left
+   implicit, so the frame a reader sees at scroll 0 is stated in this file. */
+@keyframes plate-letter-out {
+  from { transform: none; }
+  to   { transform: translateY(-16px); }
 }
 
-:global(body.motion-paused) .stage[data-arrived] [data-letter]::after,
-:global(body.motion-paused) .stage[data-arrived] .mask,
-:global(body.motion-paused) .stage[data-arrived] [data-hero-corners] > *::after {
-  animation: none;
-  transform: scaleY(0);
+@keyframes plate-mask-up {
+  from { transform: scaleY(0); }
+  to   { transform: scaleY(1); }
 }
 
-/*
- * What is deliberately not here, because each cost something to find out.
- *
- * **Opacity on anything above the fourth stage.** Written out at the top of
- * this file: it is the measured regression this whole technique exists to
- * avoid. A letter that fades, a figure that fades, or a mask implemented as
- * a clip rather than as an opaque sibling — all three take the first screen's
- * paint candidate out of the running until the animation ends.
- *
- * **Animating the name's width or weight.** Worth recording because it was
- * rejected on its merits before it became impossible. The display face was
- * Archivo, which is variable, and the obvious reading of a name taking shape
- * is `font-variation-settings` travelling from a lighter, narrower setting
- * to wdth 125 / weight 900. It animates, it looks good for about four
- * frames, and it reflows the largest element on the screen on every one of
- * them: the name's advance width changes, `text-wrap: balance` rebreaks the
- * line under it, and on a phone the plate shifts through two and three lines
- * on the way to its final setting. Layout shift on the first screen is not a
- * cost this effect could ever earn back.
- *
- * The display face is Audiowide now and ships one weight with no axes at
- * all, so there is nothing left to animate — but the verdict is the one that
- * matters, because it is the same verdict, for the same reason, for
- * `letter-spacing` and for any `text-indent`, and both of those still work.
- *
- * **A wipe along the fact line.** A soft mask travelling left to right across
- * the sentence reads as a hand writing it. It is wrong twice over.
- * `InkWipe.module.css` argues at length that a hard edge says ink reached
- * paper and a soft one says the compositor is behind, so a feathered wipe
- * here would contradict the page's own account of how ink arrives — and a
- * hard-edged one would be `InkWipe` itself, which is the pile's device two
- * beats later. The hero does not get to spend the peak's effect first.
- *
- * **A count that counts up.** `5 LIVE` ticking from zero is the most obvious
- * treatment the field line could take and it belongs to beat 4, where real
- * numbers landing is that section's one reason to exist. Spending it on the
- * title plate would leave the specs with a device the page had already seen.
- */
+@keyframes plate-figure-out {
+  from { transform: none; }
+  to   { transform: translateY(14px); }
+}
+
+/* The two lines are the exception that may fade, as they always were: 1rem
+   and 0.72rem of secondary ink, never the paint candidate. Sideways travel
+   is licensed by `overflow-x: clip` on the hero (`Hero.module.css`). */
+@keyframes plate-to-start {
+  from { opacity: 1; transform: none; }
+  to   { opacity: 0; transform: translateX(-18px); }
+}
+
+@keyframes plate-to-end {
+  from { opacity: 1; transform: none; }
+  to   { opacity: 0; transform: translateX(18px); }
+}
