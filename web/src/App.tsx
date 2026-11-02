@@ -16,6 +16,9 @@ const Project = lazy(() => import("./pages/Project"));
 // does not pay for a second route most first visits never open.
 const Story = lazy(() => import("./pages/Story"));
 const BlogPost = lazy(() => import("./pages/BlogPost"));
+// The accessibility statement: plain text, read rarely, so not on the
+// home page's bill either.
+const Accessibility = lazy(() => import("./pages/Accessibility"));
 // Admin is edge-gated, but lazy anyway so the editor never reaches a reader.
 const Admin = lazy(() => import("./pages/Admin"));
 const AdminEditor = lazy(() => import("./pages/AdminEditor"));
@@ -110,6 +113,7 @@ const App = () => (
             {/* the short-lived /blog/c/ shape, kept so nothing dangles */}
             <Route path="/blog/c/:project" element={<LegacyCollectionRedirect />} />
             <Route path="/blog/:slug" element={<Suspense fallback={null}><BlogPost /></Suspense>} />
+            <Route path="/accessibility" element={<Suspense fallback={null}><Accessibility /></Suspense>} />
             {/* The 404 is a reader's page too, and keeps the bar. */}
             <Route path="*" element={<NotFound />} />
           </Route>

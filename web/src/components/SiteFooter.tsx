@@ -128,6 +128,17 @@ export default function SiteFooter() {
         <span className="flex items-center gap-6">
           <span>Tel Aviv, Israel</span>
           {/*
+           * The accessibility statement, on every page because the footer is
+           * (#99). Same treatment and the same 44px target as the admin link
+           * beside it: quiet, but a link a keyboard and a magnifier can find.
+           */}
+          <Link
+            to="/accessibility"
+            className="-my-3 inline-flex min-h-11 items-center py-3 text-clay transition-colors hover:text-ink focus-visible:text-ink"
+          >
+            accessibility
+          </Link>
+          {/*
            * Quiet, and now actually legible.
            *
            * This was --clay at 20% alpha, which composites to 1.34:1 on
