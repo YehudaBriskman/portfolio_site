@@ -258,19 +258,24 @@ describe("the notes shelf", () => {
     expect(CSS).not.toMatch(/data-sk-block="fields"\]\s*\[data-sk-line\]:not/);
   });
 
-  /* #179: the room, one height, and the card that opens. */
+  /* #179: dark cards on paper, one height, and the card that opens. */
 
-  it("stands on the notes room and tells the chrome so, in every state", () => {
-    /* Pending on purpose: the declaration has to be in the page's first
-       commit, before the notes arrive, or the bar is paper over a dark
-       section until something else makes the chrome look again. */
-    posts.mockReturnValue(new Promise(() => {}));
+  it("keeps the section on paper and makes each card dark", async () => {
+    posts.mockResolvedValue([note(), note({ slug: "paper", title: "Paper, and what it costs" })]);
     const { container } = mount();
+    await screen.findByRole("heading", { level: 3, name: "Paper, and what it costs" });
+
+    /* The section is the page's paper: not a dark ground, not an act, and
+       nothing in it asks the nav island to invert. */
     const section = container.querySelector("section#notes")!;
-    expect(section.getAttribute("data-chrome")).toBe("dark");
-    expect(section.classList.contains("on-panel")).toBe(true);
-    /* Not a dark act: the room has no arc, no seams, no crest. */
+    expect(section.classList.contains("on-panel")).toBe(false);
     expect(section.closest('[data-ground="panel"]')).toBeNull();
+    expect(container.querySelector("[data-chrome]")).toBeNull();
+
+    /* Each card re-inks itself, and only itself. */
+    const cards = container.querySelectorAll("[data-shelf-i] a");
+    for (const c of cards) expect(c.classList.contains("on-panel")).toBe(true);
+    expect(container.querySelectorAll(".on-panel")).toHaveLength(cards.length);
   });
 
   it("marks only a card with something to say as one that opens", async () => {

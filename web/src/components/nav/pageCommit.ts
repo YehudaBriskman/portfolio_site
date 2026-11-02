@@ -30,14 +30,6 @@ import { createContext, useContext, useEffect } from "react";
  * anyone who is not listening, and the page never re-renders for having sent
  * it.
  *
- * The one page whose dark is not a section (#179). `/blog` puts its whole
- * `<main>` on the notes room, and the declaration is on `<main>` itself,
- * rendered by `PageShell` — the same component that calls
- * `usePageCommitted()`. So the panel is in the document in the very commit
- * whose effect sends the signal, before the page's own request for the notes
- * has even left; nothing the API does can make the chrome miss it. That is
- * why the dark went on the shell and not on a box inside the page.
- *
  * Why not a MutationObserver, which would also see the panel arrive: the
  * reasoning at `LATE_READ_MS` in `useDarkChrome.ts` still holds — a subtree
  * observer on a page that re-renders on every API response would be woken by

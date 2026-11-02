@@ -7,11 +7,12 @@ import MetaPill from "@/components/notes/MetaPill";
 import NoteCard from "@/components/notes/NoteCard";
 /* The card's own stylesheet, borrowed for the boxes that are
    note-card-shaped without being note cards: the loading skeleton (which
-   uses the slot and the face, so it is the card's height by construction)
-   and the two states where there is nothing to list. On this page all of
-   them stand on the notes room, and the stylesheet's `.on-panel` block is
-   what dresses them for it. */
+   uses the slot and the face, so it is the card's height by construction,
+   and is dark like the cards it stands in for) and the two states where
+   there is nothing to list, which stay paper cards — they are messages
+   from the page, not notes. */
 import card from "@/components/notes/NoteCard.module.css";
+import dark from "@/components/notes/DarkCard.module.css";
 import SkeletonGate from "@/components/gallery/SkeletonGate";
 import SkeletonLines from "@/components/gallery/SkeletonLines";
 import NoteGlyph from "@/components/notes/NoteGlyph";
@@ -73,7 +74,7 @@ function Skeleton() {
     <SkeletonGate className={GRID}>
       <div className={`${card.slot} ${card.cycle} sm:col-span-2`}>
         <div
-          className={`note-card note-card--lead ${card.card} ${card.face} ${card.lead}`}
+          className={`note-card note-card--lead on-panel ${dark.dark} ${card.card} ${card.face} ${card.lead}`}
           data-cover=""
         >
           {/* The media slot, empty: the one part of a note card whose
@@ -91,7 +92,7 @@ function Skeleton() {
 
       {Array.from({ length: ROWS * 2 }, (_, i) => (
         <div key={i} className={`${card.slot} ${card.cycle}`}>
-          <div className={`note-card ${card.card} ${card.face}`}>
+          <div className={`note-card on-panel ${dark.dark} ${card.card} ${card.face}`}>
             {/* The date-and-minutes row. One capsule rather than two: the
                 separator between them is a dot `NoteCard` draws itself. */}
             <Lines
@@ -176,13 +177,7 @@ export default function Blog() {
   const rest = lead && posts ? posts.slice(1) : (posts ?? []);
 
   return (
-    /*
-     * The notes room (#179): the whole page on the notes' own dark, the
-     * same ground as the home page's shelf. On `<main>`, through the shell,
-     * so there is no strip of paper under the bar and the chrome finds the
-     * dark in the page's first commit — `PageShell.tsx` has the why.
-     */
-    <PageShell ground="room">
+    <PageShell>
       <div data-crest data-hue="120 92 150" className="wrap pt-section">
         {/*
           The scenery is anchored to this box rather than to the whole page, so
@@ -255,7 +250,7 @@ export default function Blog() {
               </p>
               <p className="mono mt-3 text-[0.75rem] text-clay">{error}</p>
               <div className="mt-12 flex flex-wrap gap-3">
-                <button type="button" onClick={retry} className={`btn btn-solid ${card.solid}`}>
+                <button type="button" onClick={retry} className="btn btn-solid">
                   Try again
                 </button>
                 <Link to="/projects" className="btn btn-quiet">

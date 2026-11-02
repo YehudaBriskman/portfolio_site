@@ -1,6 +1,7 @@
 import { useState, type CSSProperties } from "react";
 import { Link } from "react-router-dom";
 import NoteGlyph from "@/components/notes/NoteGlyph";
+import dark from "@/components/notes/DarkCard.module.css";
 import styles from "@/components/notes/NoteCard.module.css";
 import { formatDate, type PostSummary } from "@/services/blog";
 
@@ -155,7 +156,10 @@ export default function NoteCard({
   }
 
   /*
-   * The lead and the grid card, one shape since #179.
+   * The lead and the grid card, one shape since #179, and dark: a dark
+   * card on the page's paper. `.on-panel` and the card's stops
+   * (`DarkCard.module.css`) are on the face, so it re-inks and the page
+   * around it does not.
    *
    * The article is the SLOT: one height for every card in the grid, the
    * resting height plus the growth, so a card that opens on hover opens into
@@ -176,7 +180,7 @@ export default function NoteCard({
       style={style}
     >
       <div
-        className={`${SURFACE} ${styles.face} ${lead ? `note-card--lead ${styles.lead}` : ""}`}
+        className={`${SURFACE} on-panel ${dark.dark} ${styles.face} ${lead ? `note-card--lead ${styles.lead}` : ""}`}
         data-cover={media ? "" : undefined}
         /* Only a card with something to say grows to say it. */
         data-desc={summary ? "" : undefined}

@@ -50,34 +50,6 @@
  * conditions cannot be written as one selector.
  */
 
-/*
- * The seam with the year (#179).
- *
- * The year above is a dark act and this section is the notes room, and they
- * must read as two things. Three differences do it, strongest first:
- *
- *   1. A band of paper. The section stands off the act by this margin, so
- *      after the year's crest the page shows its own ground again, edge to
- *      edge, before the room begins. Paper to either dark is ~15:1, so the
- *      band is the one boundary nobody can miss, at any width, in forced
- *      colours or not.
- *   2. A different edge. The act opens and closes on arcs (`DarkAct`); the
- *      room is a flat plate with square corners and no seam light, so the
- *      shape says "a different kind of place" even in a cropped screenshot.
- *   3. A different dark. Warm and lighter than the act's neutral
- *      (`NotesRoom.module.css`): 1.13:1 between them. Too small to be a
- *      boundary on its own, which is why it is third; it is what stops the
- *      two from reading as one material once the band has scrolled away.
- *
- * The band is never smaller than the bar is tall, so the nav island — which
- * reads the ground under it through `data-chrome` (`nav/useDarkChrome.ts`) —
- * goes back to paper across it and inverts again for the room. The chrome
- * shows the seam too.
- */
-.ground {
-  margin-block-start: clamp(5rem, 9vw, 7.5rem);
-}
-
 .act {
   position: relative;
 }
@@ -103,7 +75,7 @@
   --shelf-per: 18svh;
   --shelf-runway: calc(var(--shelf-n, 6) * var(--shelf-per));
   /* The card at rest, and what it grows by to show its description: two
-     lines of the fact at the room's leading, and the card's foot padding. */
+     lines of the fact at the dark card's leading, and the card's foot padding. */
   --note-rest: clamp(18rem, 10rem + 30vw, 21.5rem);
   --note-grow: calc(2 * 0.9375rem * 1.68 + clamp(1rem, 2vw, 1.5rem));
 
@@ -200,6 +172,8 @@
   align-items: flex-start;
   height: calc(var(--note-rest) + var(--note-grow));
   contain: layout;
+  /* The paper's ink, resolved here on paper, for the card's focus ring. */
+  --paper-side-ink: var(--ink);
 }
 
 /* A focused card is drawn over its neighbours' focus rings. */
@@ -208,14 +182,14 @@
 }
 
 /*
- * The card, on the room (#179).
+ * The card: dark, on paper (#179).
  *
- * THE GROUND. The shelf stands on the notes room, the warm dark in
- * `ground/NotesRoom.module.css`, by the owner's decision on #179 — which
- * overrides #171's argument for paper. What that did to the ceiling, and how
- * the room is kept from running on out of the year, is in `ground/DarkAct.tsx`.
- * A card is the room's raised surface (`--canvas-2`) with the room's rule for
- * an edge; covers stay where a note has one, and a note without one is not
+ * THE GROUND stays paper; the CARD is dark. Each card carries `.on-panel`
+ * and the stops in `notes/DarkCard.module.css` on its own element, so its
+ * fill is the warm dark and everything inside it re-inks, while the section
+ * around it — and the nav island over it — stay on paper. The edge is the
+ * card's rule, chosen to clear 3:1 against both the paper outside and the
+ * fill inside. Covers stay where a note has one; a note without one is not
  * given a stand-in picture.
  *
  * ONE HEIGHT. `--note-rest` is the card's height at rest, stated rather than
@@ -246,10 +220,18 @@
  * finished state is the open one. Heights stay equal, because every card is
  * open at once.
  *
- * CONTRAST, measured on the rendered room by `scripts/shoot-notes-dark.mjs`
- * (stops in NotesRoom.module.css): the name in `--ink` 13.39:1 on the card,
- * the fact, the fields and the arrow in `--ink-soft` 6.14:1, the card's edge
- * 3.58:1 against the room.
+ * CONTRAST, measured on the rendered page by `scripts/shoot-notes-dark.mjs`
+ * (stops in DarkCard.module.css): the name in `--ink` 15.25:1 on the card's
+ * fill, the fact, the fields and the arrow in `--ink-soft` 6.98:1, and the
+ * card's edge 3.96:1 against the paper it stands on (3.58:1 against its own
+ * fill).
+ *
+ * FOCUS. The card is the link, so its focus ring is drawn outside it, on
+ * paper — and the site's ring is `--bone`, which `.on-panel` has re-pointed
+ * on this element to the card's light ink: 1.07:1 against paper, a ring that
+ * is not there. `--paper-side-ink` is the paper's ink, captured on the slot
+ * (which is still on paper) and inherited as a value, so the ring is drawn
+ * in it: 15.17:1 on paper.
  */
 @property --note-open {
   syntax: "<length>";
@@ -275,7 +257,7 @@
   overflow: hidden;
   border: 1px solid rgb(var(--rule-firm));
   border-radius: var(--r-xl);
-  background: rgb(var(--canvas-2));
+  background: rgb(var(--canvas));
   color: rgb(var(--ink));
   text-decoration: none;
   transition:
@@ -359,6 +341,10 @@
 
 .card[data-desc]:focus-visible {
   --note-open: var(--note-grow);
+}
+
+.card:focus-visible {
+  outline-color: rgb(var(--paper-side-ink));
 }
 
 .card:hover .label > p,

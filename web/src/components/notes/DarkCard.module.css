@@ -1,0 +1,49 @@
+/*
+ * The note card's dark: a dark card on paper (#179).
+ *
+ * The ground of the notes stays paper — on the home page and on `/blog`.
+ * What is dark is each note CARD. (#182 read #179 as "the section is dark"
+ * and put the whole shelf and the whole of `/blog` on this colour; the owner
+ * corrected it: the cards, not the section. So there is no dark section to
+ * count, the dark-act ceiling in `DarkAct.tsx` is as it was, and the nav
+ * island never inverts for a note.)
+ *
+ * ── how it is applied ─────────────────────────────────────────────────────
+ *
+ * On the card element, always beside `.on-panel`, never instead of it.
+ * `.on-panel` re-points `--canvas`, `--ink`, `--rule`, `color` and the
+ * aliases to the `--panel-*` stops with `var()`, and a `var()` in a custom
+ * property resolves on the element that declares it. So restating the
+ * `--panel-*` stops HERE, on that same element, moves every role the card's
+ * contents read — the fill, the type, the rule — with no second role block.
+ * `.on-panel` also paints the card's fill (`--panel`, which is this file's
+ * ground colour) and restates `color`, so text that resolved on paper does
+ * not keep the paper's ink (the trap written up at `--panel` in index.css).
+ *
+ * `--panel-ink` and `--panel-soft` are NOT restated: the type is the dark
+ * act's type; only the fill under it changes — warmer and lighter than the
+ * act's near-black, so a note card does not read as a piece of an act.
+ *
+ * ── the stops, measured ───────────────────────────────────────────────────
+ *
+ * WCAG contrast, computed from the values below and re-read off the rendered
+ * page by `scripts/shoot-notes-dark.mjs`:
+ *
+ *   card fill    #1C1A16   14.18:1 against paper: the card is found by its
+ *                          fill before anything else
+ *   --panel-ink  on fill  15.25:1   (titles, names)
+ *   --panel-soft on fill   6.98:1   (dates, fields, the description)
+ *   rule         on fill   3.58:1   against paper 3.96:1
+ *
+ * The border is the one value chosen for BOTH sides: it clears 3:1 against
+ * the paper the card stands on and against the fill inside it, so the edge
+ * is a line of its own rather than the fill's silhouette — visible as a
+ * border, and still a 1.4.11 boundary in forced-light screenshots where a
+ * cover runs to the card's edge.
+ */
+.dark {
+  --panel: 28 26 22; /* #1C1A16  the card's fill */
+  --panel-2: 40 37 32; /* #282520  a surface raised on it */
+  --panel-3: 52 48 42; /* #34302A  the recess under a cover */
+  --panel-rule: 118 113 104; /* #767168  the edge and the divider */
+}

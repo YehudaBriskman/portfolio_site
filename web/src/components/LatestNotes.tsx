@@ -9,7 +9,7 @@ import InkRule from "@/components/motion/InkRule";
 import Shot from "@/components/projects/Shot";
 import { projects } from "@/data/projects";
 import { blog, type PostSummary } from "@/services/blog";
-import room from "@/components/ground/NotesRoom.module.css";
+import dark from "@/components/notes/DarkCard.module.css";
 import styles from "@/components/LatestNotes.module.css";
 
 /*
@@ -48,21 +48,16 @@ import styles from "@/components/LatestNotes.module.css";
  * And a way past it: a skip link ahead of the stage, visible on focus, that
  * moves focus to just after it. No trap.
  *
- * The ground
- * ----------
- * Dark, since #179 — the notes room, a warm flat dark that is deliberately
- * not one of the page's two dark acts. #171 put the shelf on paper and argued
- * that a dark shelf would run on out of the year; the owner overrode that,
- * and the seam it worried about is solved rather than avoided: a band of
- * paper, a flat edge against the act's arc, and a different dark. The three
- * are argued in `LatestNotes.module.css` at `.ground`, and what it cost the
- * ceiling is in `ground/DarkAct.tsx`.
- *
- * `.on-panel` and `data-chrome="dark"` are on the section itself, like the
- * acts', and for the same split `ground/DarkAct.tsx` describes: the first
- * re-inks the subtree, the second tells the nav island it is over a dark
- * ground. Both are static markup, present in every state of the query, so the
- * chrome finds the room in the page's first commit.
+ * The ground, and the cards on it
+ * -------------------------------
+ * The section is paper, the page's own ground, as #171 left it: the notes are
+ * the page talking about the work, and the dark-act ceiling in
+ * `ground/DarkAct.tsx` is untouched. What is dark is each CARD (#179, as the
+ * owner corrected it after #182 darkened the whole section): a warm dark
+ * card with a border, standing on paper. `.on-panel` and the card's own
+ * stops (`notes/DarkCard.module.css`) are on the card element itself, so
+ * every role inside it re-inks, and nothing outside it does. No
+ * `data-chrome` anywhere: a card is not a ground the nav passes over.
  *
  * The cards
  * ---------
@@ -193,8 +188,7 @@ export default function LatestNotes() {
   return (
     <section
       id="notes"
-      data-chrome="dark"
-      className={`on-panel ${room.room} ${styles.ground} section-y relative`}
+      className="section-y relative"
     >
       <div className="wrap section-head">
         <InkRule className="section-head-rule" />
@@ -225,7 +219,7 @@ export default function LatestNotes() {
               <ul className={styles.track}>
                 {Array.from({ length: SHOWN }, (_, i) => (
                   <li key={i} className={styles.slot}>
-                    <div className={styles.card}>
+                    <div className={`on-panel ${dark.dark} ${styles.card}`}>
                       <div className={`${styles.plinth} ${styles.ghost}`}>
                         <LabelSkeleton
                           scale="inline"
@@ -287,7 +281,7 @@ export default function LatestNotes() {
                     <li key={post.slug} data-shelf-i={i} className={styles.slot}>
                       <Link
                         to={`/blog/${post.slug}`}
-                        className={styles.card}
+                        className={`on-panel ${dark.dark} ${styles.card}`}
                         data-cover={post.coverImage ? "" : undefined}
                         /* Only a card with something to say grows to say it. */
                         data-desc={fact ? "" : undefined}

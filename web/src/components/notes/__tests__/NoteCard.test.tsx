@@ -4,12 +4,11 @@ import { describe, expect, it } from "vitest";
 import { render } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import NoteCard from "@/components/notes/NoteCard";
-import PageShell from "@/components/PageShell";
 import type { PostSummary } from "@/services/blog";
 
 /*
  * The note card on /blog (#179): one height, a description that opens, and
- * the room it stands on. jsdom has no layout, so the heights themselves are
+ * a dark card on the page's paper. jsdom has no layout, so the heights themselves are
  * measured in a browser (`scripts/shoot-notes-dark.mjs`); what is checked
  * here is the contract the stylesheet's heights rest on, and the stylesheet's
  * own at-rules, which jsdom does not evaluate.
@@ -82,35 +81,21 @@ describe("the note card", () => {
     expect(CSS).toMatch(/:global\(body\.motion-paused\) \.face\s*\{\s*--note-open:\s*var\(--note-grow\);\s*transition:\s*none/);
   });
 
-  it("drops paper's washes on the room", () => {
-    expect(CSS).toMatch(/:global\(\.on-panel\) \.card\.card\s*\{[^}]*background-color:\s*rgb\(var\(--canvas-2\)\)/);
-  });
-});
-
-describe("the shell's room", () => {
-  it("puts the whole of main on the room and declares it to the chrome", () => {
-    const { container } = render(
-      <MemoryRouter>
-        <PageShell ground="room">
-          <p>notes</p>
-        </PageShell>
-      </MemoryRouter>
-    );
-    const main = container.querySelector("main")!;
-    expect(main.getAttribute("data-chrome")).toBe("dark");
-    expect(main.classList.contains("on-panel")).toBe(true);
+  it("is a dark card itself, on a page that stays paper", () => {
+    const face = card(note()).querySelector("article > div")!;
+    expect(face.classList.contains("on-panel")).toBe(true);
+    /* Not a ground the nav passes over. */
+    expect(face.hasAttribute("data-chrome")).toBe(false);
+    /* The washes are paper's and the face drops them for its dark fill. */
+    expect(CSS).toMatch(/\.card\.card\.face\s*\{[^}]*background-color:\s*rgb\(var\(--canvas\)\)/);
   });
 
-  it("stays on paper by default", () => {
-    const { container } = render(
+  it("leaves the compact prev/next card on paper", () => {
+    const root = render(
       <MemoryRouter>
-        <PageShell>
-          <p>a page</p>
-        </PageShell>
+        <NoteCard post={note()} compact />
       </MemoryRouter>
-    );
-    const main = container.querySelector("main")!;
-    expect(main.hasAttribute("data-chrome")).toBe(false);
-    expect(main.classList.contains("on-panel")).toBe(false);
+    ).container;
+    expect(root.querySelector(".on-panel")).toBeNull();
   });
 });
