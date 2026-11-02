@@ -110,7 +110,7 @@ ledger is a page-level document and not a comment.
 | 1 | wall text | `flow` | the quiet before the peak |
 | 2 | **the run** | `pin` | the work arrives along one line, and the reader's scroll is what moves it |
 | 3 | the year | `scrub` | a year of work, raised off the page by the reader's own scroll |
-| 4 | notes shelf | `pan` | lateral travel against vertical scroll |
+| 4 | notes shelf | `pan`, held | the notes walk past a held frame, one card-width per step of the reader's scroll |
 | 5 | specs | `count` | real numbers landing |
 | 6 | inquiry plate | `surface` | the ask comes up out of the sheet, part by part, as the reader arrives |
 
@@ -148,6 +148,71 @@ SwiftShader with a 16ms pause per wheel step and are not comparable with the
 tables below; the comparison is. The run animates only `transform`,
 `translate`, `rotate` and the card's arrival transform — no layout and no
 paint per frame.
+
+**Beat 4 holds its frame now, and it is still `pan` (#159).** The owner's note
+was that the shelf "still moves the whole page": it drifted sideways while the
+section scrolled away at full speed, so the pan was a garnish on a section
+that never stopped. It now pins the way the run does, with the run's
+mechanism and not a second one — a static stage owning a named view timeline
+(`--notes-shelf`), a sticky frame one window tall inside it, the track's
+`transform` keyed to the stage's `contain` range, the document as the one real
+scroll container, a marker per card in the runway that focus scrolls to, and a
+skip link past the stage (`LatestNotes.tsx`, `LatestNotes.module.css`). The
+old `overflow-x: auto` scroller went with the drift: a held frame that is also
+a scroller is two clocks for one row.
+
+- **A held pan is still a pan, by the argument the year already made.** "A
+  held scrub is still a scrub" (§3's ban list) is what lets beat 3 hold its
+  frame without spending `pin`; the same sentence covers this. `pin` is the
+  run's move — the work arriving one by one along a curve under a held frame,
+  each card with its own arrival. The shelf is a flat row at one height that
+  slides by one card-width per step, with no arrival, no lean and no curve.
+- **The hold is the shortest of the three.** 18svh a card, 108svh for six,
+  against the year's 120svh and the run's 220svh, so the peak keeps the most
+  scroll room (§3). Measured at 1440×900 the section is 2376px, against 709px
+  for the drifting shelf it replaced; that is the price, and "every pinned
+  beat buys its time in scroll distance" (§3) is where it is counted.
+- **Not adjacent to the run.** The year sits between them in the shipped
+  order and the wall text and the year in the intended one, so the run/shelf
+  adjacency clause above still holds. It is adjacent to the year, which also
+  holds; the families differ (`scrub` against `pan`) and so does what moves —
+  a camera down a grid against a row going sideways.
+- **The timeline's inset is zero, and that is a measurement.** A view
+  timeline's `view-timeline-inset` defaults to `auto`, which takes the
+  document's `scroll-padding-top` (the bar and 2rem, 88px). Left at `auto`,
+  a focused card's marker landed exactly on 4/6 of the runway and the track
+  stood at 0.634 of its travel — the card 66px off centre. At `0` the range is
+  the hold itself, and the focused card lands within a pixel of centre at both
+  widths (720 of 1440, 194.5 of 390).
+- **Scroll is the clock.** Every frame is a function of scroll position:
+  frames reached by scrolling back up are byte-identical below the bar to the
+  frames reached going down at 1440×900, and at 390×844 identical but for one
+  row differing by 1/255 — sub-pixel rounding of the scroll offset, not motion
+  (`web/scripts/shoot-notes-shelf.mjs`, shots in `docs/notes/`). No horizontal
+  overflow at any point, in either direction, under right-to-left too.
+- **All three off-switches land on the plain list**: no pin, no runway, no
+  travel, the same cards whole in a 40rem column — each block cancels the
+  animation by name and restates the layout, as the run's do.
+- **The ground: covers on paper, not a dark act.** The pale washed cards are
+  gone. A note with a cover shows it above its label; one without is the label
+  alone in the same `--rule-firm` frame, standing on the same floor line. A
+  dark ground was the other option and it fails the ceiling in
+  `ground/DarkAct.tsx` three ways — the subject rule names the shelf as the
+  page talking about the work, the shelf directly follows the dark year and
+  would merge with it into "one long dark act with a seam in it", and it fails
+  three of the four conditions the footer's exemption (#160) rests on. The full
+  argument is beside the card in `LatestNotes.module.css`. Contrast, measured
+  on the rendered card with motion on and off: name 15.17:1, fact, field line
+  and arrow 6.37:1, all on paper; no text is ever set over a cover. The frame
+  is 2.15:1 and identifies nothing on its own.
+- **Frame cost.** 4× CPU throttle, 1440×900, wheel-scrolled through `#notes`
+  with real input, five passes per arm after a discarded warm-up, interleaved
+  with the order flipped (`web/scripts/measure-notes-fps.mjs`, API stubbed to
+  the same six notes): **`main` 30.6fps, the held shelf 34.3fps**, medians,
+  ranges 30.0–34.9 and 32.1–37.6. The difference is near the spread; what it
+  says is that the hold costs nothing, which is what one `transform` on one
+  layer predicts — the drifting shelf animated seven elements, this animates
+  one.
 
 **The entry row is not a beat, and the distinction is what keeps it honest.**
 Every other row in this table is a section a reader scrolls to; `shutter` is
@@ -965,6 +1030,7 @@ direction, or set `fill-rule: evenodd` deliberately and know what it costs.
 | `motion/InkWipe.tsx` | ink arriving as a hard clip edge, plus the coloured band | `view()` |
 | `motion/InkRule.tsx` | a hairline drawing itself in | `view()` |
 | `projects/ProjectRun.module.css` | `pin` — the work travelling along a curve under a held frame; one lap per card, staggered by range | named `view-timeline` on the static stage, the frame held inside it |
+| `LatestNotes.module.css` | `pan`, held — the notes walk past under a held frame, one card-width per step | named `view-timeline` on the static stage (inset 0), the frame held inside it |
 | `city/ContributionCity.module.css` | `scrub` — one animation turns and raises 365 columns, a second dollies the camera down the year | named `view-timeline` on a static wrapper, the frame held over it |
 | `city/useCityHand.ts` | the year's orbit and its one readout — a drag turns the city, a point reads a day | pointer events; a settle loop only between release and rest |
 | `gallery/Skeleton.module.css` | `sweep` — one line of a placeholder, the band across it, and the gate before it | clock |
