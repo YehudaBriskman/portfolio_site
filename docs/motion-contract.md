@@ -195,6 +195,20 @@ fired once. Each card's arrival is still its own, carried unchanged from the
 pile (`pileArrival.ts`). All three off-switches land on the plain vertical
 list, with no pin and no runway.
 
+**In Hebrew the run mirrors (#168).** The cards come in from the *left*,
+travel rightward along the mirrored curve and lean the other way, and the
+arrival's swing and the onward arrow turn with them. It is one sign,
+`--run-dir` (1, or −1 under `html[dir="rtl"]`, the attribute `locale.ts`
+writes — not `:dir(rtl)`, which the build lowers to a `:lang()` list), and
+every horizontal quantity in the run is multiplied by it; the slot is anchored
+at `inset-inline-start`. There is no second code path and no `scale: -1`
+mirror. The skip link, focus-scrolls-to-card and the three off-switches are
+untouched by it: the markers are vertical, and the plain list is already
+logical. Shot with `RUN_DIR=rtl` (files `run-<w>x<h>-he-*.png`): every
+Hebrew frame is the English one mirrored to the pixel — the focused card sits
+at 487–887 in English and 553–953 in Hebrew at 1440 — and reverses
+byte-identically.
+
 Measured at 4× CPU throttle, 1440×900, wheel-scrolled through the whole
 `#work` section with real input events, rAF frames over wall clock, five
 passes per arm after a discarded warm-up, interleaved with the order flipped
