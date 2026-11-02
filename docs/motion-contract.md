@@ -1669,7 +1669,7 @@ animation.
 |---|---|---|---|
 | entry shutter (`EntryShutter`) | every route, first load | clock, gated on readiness | **exempt**: the one page-load moment, not a scroll |
 | title plate: name letters, fact line, field line, figure (`HeroArrival.module.css`) | / | `--hero` view timeline, `exit` ranges | **scrubbed** (#162; was a staged clock sequence on load) |
-| title plate and corners arriving, once a visit (`HeroArrival.module.css`, `HeroCorners.module.css`) | /, first load only | clock, started by the shutter's `lifting` signal (`motion/entry.ts`), layered on the scrubbed exit and filling `backwards` | **exempt** (#194): part of the page load, as the shutter is; a hero mounted after the entry, or under any off-switch, never plays it |
+| title plate and corners arriving, once a visit (`HeroArrival.module.css`, `HeroCorners.module.css`) | /, first load only | clock, started by the shutter's `clearing` signal (its last tile's `animationend`) (`motion/entry.ts`), layered on the scrubbed exit and filling `backwards` | **exempt** (#194): part of the page load, as the shutter is; a hero mounted after the entry, or under any off-switch, never plays it |
 | nav bar dropping in with the plate (`hero-chrome.css`) | / | — | **removed** (#162): the bar is simply there; its tuck is below |
 | lamp breath and ring, rotating phrases (`HeroCorners`) | / | `--hero` | **scrubbed** (#162; were 6.4s / 3.6s infinite loops) |
 | hero corners sinking under paper | / | `--hero` | **scrubbed** (#162; were the last stage of the clock sequence) |

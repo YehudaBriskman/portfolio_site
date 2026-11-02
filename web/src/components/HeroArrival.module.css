@@ -69,8 +69,9 @@
  * seen, and it was not — the old clock started at mount and the entry
  * shutter lifts when the page is *ready*, so the arrival played behind the
  * grid. So the gestures run forwards once a visit as well, on a clock, and
- * the clock starts when the shutter says it has started to lift: `Hero.tsx`
- * puts `data-arrival="play"` on the stage in that commit
+ * the clock starts when the shutter says the window is clear — its last
+ * tile has finished leaving: `Hero.tsx` puts `data-arrival="play"` on the
+ * stage in that commit
  * (`motion/entry.ts` is the signal). Until then the stage says `held` and
  * nothing here matches it, so the screen under the cover is the finished,
  * painted screen and LCP is decided exactly as it was. A hero that is not
@@ -86,9 +87,10 @@
  *   WHERE · COUNT · WHEN  390ms, 460ms, in from the end side
  *   the corners           480ms, 460ms (`HeroCorners.module.css`)
  *
- * About a second in all, from the first tile leaving; the tiles take 740ms
- * to clear the window from the centre out, so the name — near the centre —
- * is uncovered as it starts to fall and the corners are last on both counts.
+ * About 940ms in all, from the last tile leaving. It started at the *first*
+ * tile at first, and measured that way three quarters of it played under
+ * the lifting grid; from the last one, nearly all of it plays after the
+ * sheet has gone (`motion/entry.ts` has the arithmetic).
  *
  * Where the engine runs view timelines, each arrival is a second layer on
  * the element's scrubbed exit rather than a rule of its own — `animation` is

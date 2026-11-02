@@ -45,6 +45,7 @@ const probe = () => {
       (e) => {
         if (e.target.closest?.("#hero")) t.hero.push({ type, name: e.animationName, t: now() });
         else if (type === "animationstart" && e.animationName.includes("shutter")) t.tiles ??= now();
+        else if (type === "animationend" && e.animationName.includes("shutter")) t.tilesEnd = now();
       },
       true,
     );
@@ -127,6 +128,7 @@ for (let r = 0; r < runs; r += 1) {
       liftStart: t.shutter.leaving,
       coverGone: t.shutter.removed,
       tilesMove: t.tiles,
+      tilesDone: t.tilesEnd,
       play: t.play,
       heroStart: first,
       heroEnd: last,
@@ -134,6 +136,10 @@ for (let r = 0; r < runs; r += 1) {
       "start−lift": first == null ? "none" : first - t.shutter.leaving,
       "start−tiles": first == null ? "none" : first - t.tiles,
       "end−gone": last == null ? "none" : last - t.shutter.removed,
+      /* The share of the arrival, start to end, that runs after the sheet has
+         left the document. */
+      "after cover": first == null || last == null ? "none"
+        : `${Math.round((100 * Math.min(last - first, Math.max(0, last - t.shutter.removed))) / (last - first))}%`,
     });
     await page.close();
     console.error(`${label} ${r + 1} ${kind} done`);

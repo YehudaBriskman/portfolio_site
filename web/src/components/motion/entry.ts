@@ -1,7 +1,8 @@
 import { MOTION_PAUSED_KEY } from "@/components/nav/useMotionPaused";
 
 /*
- * Where the visit's entry is: still behind the shutter, lifting, or lifted.
+ * Where the visit's entry is: still behind the shutter, lifting, clearing,
+ * or lifted.
  *
  * WHY THIS EXISTS (#194)
  * ----------------------
@@ -22,9 +23,31 @@ import { MOTION_PAUSED_KEY } from "@/components/nav/useMotionPaused";
  *   - `getEntry` / `subscribeEntry` — a store for React, read through
  *     `useSyncExternalStore`, so a component re-renders in the same commit
  *     the shutter publishes from.
- *   - `<html data-entry="covered|lifting|lifted">` — for a stylesheet, a
- *     test or a measuring script that does not want React.
- *   - an `entry:lifting` / `entry:lifted` event on `window`.
+ *   - `<html data-entry="covered|lifting|clearing|lifted">` — for a
+ *     stylesheet, a test or a measuring script that does not want React.
+ *   - an `entry:lifting` / `entry:clearing` / `entry:lifted` event on
+ *     `window`.
+ *
+ * The four steps, all read off the shutter's own timeline:
+ *
+ *   covered   the sheet is up (or about to be)
+ *   lifting   the first tile has started to leave (`data-state="leaving"`)
+ *   clearing  the last tile has finished leaving — its `animationend`. The
+ *             window is clear; only the transparent sheet is still in the
+ *             document, for the 80ms grace before it is removed.
+ *   lifted    the sheet has left the document
+ *
+ * WHY THE HERO WAITS FOR `clearing` AND NOT FOR `lifting`
+ * -------------------------------------------------------
+ * The first version of #194 started the arrival at `lifting`. Measured, it
+ * then finished 215-245ms after the sheet was gone: three quarters of it
+ * still played under the tiles. The owner's ask is that the arrival is
+ * *seen*, which the review turned into a number — at least 85% of it after
+ * the cover. The arrival is about 940ms and the sheet is removed 820ms after
+ * `lifting`, so it cannot start before ~680ms into a 740ms wave: 92% of the
+ * lift, which is in practice the last ring of tiles finishing. That is an
+ * event the shutter already has, so the signal is that event, not a clock
+ * guessing at it.
  *
  * It only moves forward. The shutter runs once a visit, so `lifted` is final,
  * and a component that mounts after it (a client-side navigation back to the
@@ -39,9 +62,9 @@ import { MOTION_PAUSED_KEY } from "@/components/nav/useMotionPaused";
  * waiting on it can never disagree about whether there is a cover.
  */
 
-export type Entry = "covered" | "lifting" | "lifted";
+export type Entry = "covered" | "lifting" | "clearing" | "lifted";
 
-const ORDER: readonly Entry[] = ["covered", "lifting", "lifted"];
+const ORDER: readonly Entry[] = ["covered", "lifting", "clearing", "lifted"];
 
 /**
  * Whether this reader has asked for no motion, by any of the three routes.

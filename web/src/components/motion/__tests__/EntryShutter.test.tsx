@@ -174,6 +174,16 @@ async function frames(n: number) {
   }
 }
 
+/*
+ * A tile's `animationend`. jsdom has no `AnimationEvent`, so React listens
+ * for the prefixed `webkitAnimationEnd` there and for `animationend` in a
+ * browser; both are sent so the test does not depend on which.
+ */
+function animationEnd(el: Element) {
+  el.dispatchEvent(new Event("animationend", { bubbles: true }));
+  el.dispatchEvent(new Event("webkitAnimationEnd", { bubbles: true }));
+}
+
 beforeEach(() => {
   viewport(1440, 900);
   installStorage();
@@ -400,7 +410,7 @@ describe("the leaving", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it("tells the page the moment it starts to lift, and again when it is gone (#194)", async () => {
+  it("tells the page when it starts to lift, when the window is clear, and when it is gone (#194)", async () => {
     /*
      * The hero's arrival waits on this and on nothing else. The signal has to
      * go out with the `leaving` commit itself — not on a guessed delay, and
@@ -424,6 +434,23 @@ describe("the leaving", () => {
     expect(getEntry()).toBe("lifting");
     expect(document.documentElement.dataset.entry).toBe("lifting");
     expect(lifting).toHaveBeenCalledTimes(1);
+
+    /* The last tile to leave is the one at the largest delay — a corner —
+       and its `animationend` says the window is clear. jsdom runs no CSS, so
+       the event is fired by hand on exactly that tile; any other tile's end
+       says nothing. */
+    const tiles = [...container.querySelectorAll<HTMLElement>("span")];
+    const delays = tiles.map((t) => Number.parseInt(t.style.getPropertyValue("--tile-delay"), 10));
+    const last = delays.indexOf(Math.max(...delays));
+    act(() => {
+      animationEnd(tiles[0]);
+    });
+    expect(getEntry()).toBe(last === 0 ? "clearing" : "lifting");
+    act(() => {
+      animationEnd(tiles[last]);
+    });
+    expect(getEntry()).toBe("clearing");
+    expect(document.documentElement.dataset.entry).toBe("clearing");
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(820);
