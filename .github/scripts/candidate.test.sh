@@ -34,11 +34,11 @@ case "$1 ${2-}" in
     if [ "${FAKE_INDEX:-}" = 1 ] && [[ "$*" != *@* ]]; then
       if [ "$4" = --raw ]; then
         jq -nc '{mediaType:"application/vnd.oci.image.index.v1+json", manifests:[
-          {digest:"sha256:aaaa", platform:{os:"linux", architecture:"amd64"}},
-          {digest:"sha256:bbbb", platform:{os:"linux", architecture:"arm64"}}]}'
+          {digest:"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", platform:{os:"linux", architecture:"amd64"}},
+          {digest:"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", platform:{os:"linux", architecture:"arm64"}}]}'
       else echo '{"digest":"sha256:index"}'; fi
     elif [ "$4" = --raw ] || [ "${5-}" = --raw ]; then echo "$m"
-    else echo '{"digest":"sha256:manifest"}'; fi ;;
+    else echo "{\"digest\":\"sha256:${FAKE_MANIFEST_HEX:-eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee}\"}"; fi ;;
 esac
 FAKE
 chmod +x "$ROOT/bin/docker"
@@ -115,8 +115,15 @@ called "docker load -i $ARM"
 called "docker push $REF"
 said "scanned image ID:  $ARM_ID"
 said "pushed image ID:   $ARM_ID"
-said "pushed manifest:   ${REF%:*}@sha256:manifest"
+said "pushed manifest:   ${REF%:*}@sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
 said "identical"
+# The digest Release manifest records and Deploy rolls out (#205).
+if grep -qx "web_digest=sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" "$FAKE_DIR/output"; then ok; else bad "outputs: $(cat "$FAKE_DIR/output" 2>/dev/null)"; fi
+
+FAKE_MANIFEST_HEX=nothex run "publish: a registry answer that is not a digest is not recorded" publish "$ARM" "$REF"
+rc_is 1
+said "No pushed digest"
+if grep -q web_digest "$FAKE_DIR/output" 2>/dev/null; then bad "recorded a non-digest"; else ok; fi
 
 EXPECT_SHA256=0000 run "publish: an archive other than the scanned one is never loaded" publish "$ARM" "$REF"
 rc_is 1
@@ -139,8 +146,8 @@ not_called "docker push"
 
 FAKE_INDEX=1 run "publish: an index is resolved to its arm64 manifest" publish "$ARM" "$REF"
 rc_is 0
-called "imagetools inspect --raw ${REF%:*}@sha256:bbbb"
-said "pushed manifest:   ${REF%:*}@sha256:bbbb"
+called "imagetools inspect --raw ${REF%:*}@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+said "pushed manifest:   ${REF%:*}@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
 
 echo "candidate.test.sh: $PASS passed, $FAIL failed"
 [ "$FAIL" = 0 ]
