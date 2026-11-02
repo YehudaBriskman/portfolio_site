@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Confusable pairs</title>
+<!--
+  Issue #97: is a face legible, measured rather than asserted.
+
+  "Hyperlegible" is a claim about specific letter pairs — the ones that
+  collapse into each other at small sizes and low acuity. So this page renders
+  each pair in each candidate, blurs it the way a low-acuity eye does, and
+  reports how different the two blurred images still are.
+
+  Served from `web/` (not `public/`, so nothing here reaches production):
+
+    (cd web && python3 -m http.server 4227)
+    node web/scripts/fontwork/legibility.mjs
+
+  The candidate files are the ones probe-reading-face.sh cut into ./probe,
+  exactly as build.sh would cut them, so the outlines measured are the
+  outlines that would ship.
+
+  THE METRIC
+  ----------
+  Each glyph is drawn alone at the reading size, onto a white canvas, in black,
+  with its ink box centred horizontally on a shared axis and sitting on a
+  shared baseline. The canvas is then blurred by a Gaussian of `sigma` CSS px
+  — 0 is a sharp eye on a good screen, 0.6px is roughly the acuity loss the
+  Braille Institute drew Atkinson for — and the two coverage maps are compared:
+
+    distance = sum |a - b| / sum (a + b)
+
+  0 is two identical images; 1 is two images with no ink in common. The
+  number that matters per face is the *worst* pair, because a reader stumbles
+  on the one pair that collapses, not on the average. Mirror pairs (b/d, p/q)
+  are compared with one glyph flipped, which is the test for "drawn as a
+  mirror image of the other": a face that passes it scores high.
+-->
+<style>
+  /* Latin candidates for the English text and data roles. */
+  @font-face { font-family: 'Comic Relief'; src: url('probe/comic-relief-400.woff2'); }
+  @font-face { font-family: 'Atkinson Hyperlegible'; src: url('probe/atkinson-400.woff2'); }
+  @font-face { font-family: 'Atkinson Hyperlegible Next'; src: url('probe/atkinson-next-400.woff2'); }
+  /* Hebrew candidates for the Hebrew text and data roles, Hebrew halves only. */
+  @font-face { font-family: 'Playpen Sans Hebrew'; src: url('probe/playpen-hebrew.woff2'); font-weight: 400 700; }
+  @font-face { font-family: 'Noto Sans Hebrew'; src: url('probe/noto-sans-hebrew-hebrew.woff2'); font-weight: 400 700; }
+  @font-face { font-family: 'Heebo'; src: url('probe/heebo-hebrew.woff2'); font-weight: 400 700; }
+  @font-face { font-family: 'Assistant'; src: url('probe/assistant-hebrew.woff2'); font-weight: 400 700; }
+  @font-face { font-family: 'Rubik'; src: url('probe/rubik-hebrew.woff2'); font-weight: 400 700; }
+  @font-face { font-family: 'Alef'; src: url('probe/alef-400-hebrew.woff2'); }
+  @font-face { font-family: 'Open Sans'; src: url('probe/opensans-hebrew.woff2'); font-weight: 400 700; }
+  @font-face { font-family: 'Varela Round'; src: url('probe/varela-round-400-hebrew.woff2'); }
+  body { font: 13px/1.4 ui-monospace, monospace; margin: 24px; background: #ECE8DC; color: #14130F; }
+  table { border-collapse: collapse; margin-bottom: 24px; }
+  td, th { border: 1px solid #A69F8E; padding: 2px 8px; text-align: right; }
+  th:first-child, td:first-child { text-align: left; }
+  .low { color: #BE3C2D; font-weight: 700; }
+  .sample { font-size: 28px; text-align: left; }
+</style>
+</head>
+<body>
+<div id="out"></div>
+<script type="module">
+const LATIN = ['Comic Relief', 'Atkinson Hyperlegible', 'Atkinson Hyperlegible Next'];
+const HEBREW = ['Playpen Sans Hebrew', 'Noto Sans Hebrew', 'Heebo', 'Assistant', 'Rubik', 'Alef', 'Open Sans', 'Varela Round'];
+
+/* [a, b, mirror?] — the pairs each script's readers are known to confuse. */
+const LATIN_PAIRS = [
+  ['l', 'I'], ['I', '1'], ['l', '1'], ['O', '0'], ['a', 'o'], ['e', 'c'],
+  ['c', 'o'], ['n', 'h'], ['rn', 'm'], ['cl', 'd'], ['b', 'd', true], ['p', 'q', true],
+];
+const HEBREW_PAIRS = [
+  ['ד', 'ר'], ['ב', 'כ'], ['ה', 'ח'], ['ח', 'ת'], ['ו', 'ז'], ['ו', 'ן'],
+  ['ז', 'ן'], ['ס', 'ם'], ['ג', 'נ'], ['י', 'ו'], ['כ', 'נ'], ['ע', 'צ'],
+];
+
+const SIZE = 16;      // CSS px: the field line is 11.52, the body 19; 16 sits between
+const SCALE = 4;      // supersample, then compare at that resolution
+const W = SIZE * SCALE * 3, H = SIZE * SCALE * 2;
+
+function coverage(face, text, sigma, mirror = false) {
+  const c = document.createElement('canvas');
+  c.width = W; c.height = H;
+  const g = c.getContext('2d', { willReadFrequently: true });
+  g.fillStyle = '#fff'; g.fillRect(0, 0, W, H);
+  g.font = `${SIZE * SCALE}px "${face}"`;
+  g.textBaseline = 'alphabetic';
+  const m = g.measureText(text);
+  // Centre the *ink* box on the canvas axis, not the advance.
+  const inkW = m.actualBoundingBoxLeft + m.actualBoundingBoxRight;
+  const x = W / 2 - inkW / 2 + m.actualBoundingBoxLeft;
+  g.save();
+  if (mirror) { g.translate(W, 0); g.scale(-1, 1); }
+  g.fillStyle = '#000';
+  g.fillText(text, x, H * 0.7);
+  g.restore();
+  const d = g.getImageData(0, 0, W, H).data;
+  const a = new Float32Array(W * H);
+  for (let i = 0; i < a.length; i++) a[i] = 1 - d[i * 4] / 255;
+  return sigma > 0 ? blur(a, sigma * SCALE) : a;
+}
+
+/*
+ * A separable Gaussian in plain JS rather than `ctx.filter = 'blur()'`. The
+ * canvas filter is a GPU path; on a headless Chromium with no GPU it fell back
+ * to something slow enough to hold the main thread for minutes over the ~800
+ * glyphs this page draws. This is the same kernel, deterministic, in ~1s.
+ */
+function blur(src, s) {
+  const r = Math.ceil(s * 3), k = [];
+  let n = 0;
+  for (let i = -r; i <= r; i++) { const v = Math.exp(-(i * i) / (2 * s * s)); k.push(v); n += v; }
+  for (let i = 0; i < k.length; i++) k[i] /= n;
+  const tmp = new Float32Array(src.length), out = new Float32Array(src.length);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    let acc = 0;
+    for (let i = -r; i <= r; i++) { const xx = x + i; if (xx >= 0 && xx < W) acc += src[y * W + xx] * k[i + r]; }
+    tmp[y * W + x] = acc;
+  }
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    let acc = 0;
+    for (let i = -r; i <= r; i++) { const yy = y + i; if (yy >= 0 && yy < H) acc += tmp[yy * W + x] * k[i + r]; }
+    out[y * W + x] = acc;
+  }
+  return out;
+}
+
+function distance(face, p, q, mirror, sigma) {
+  const a = coverage(face, p, sigma);
+  const b = coverage(face, q, sigma, mirror);
+  let diff = 0, sum = 0;
+  for (let i = 0; i < a.length; i++) { diff += Math.abs(a[i] - b[i]); sum += a[i] + b[i]; }
+  return sum ? diff / sum : 0;
+}
+
+/* Letter height at the same font-size, the Hebrew analogue of x-height: the
+   ink height of a flat-topped letter, as a fraction of the em. Two faces at
+   one font-size do not look one size. */
+function inkHeight(face, ch) {
+  const c = document.createElement('canvas').getContext('2d');
+  c.font = `1000px "${face}"`;
+  const m = c.measureText(ch);
+  return (m.actualBoundingBoxAscent) / 1000;
+}
+
+function table(title, faces, pairs, heightChar, sigma) {
+  const rows = faces.map((f) => {
+    const ds = pairs.map(([p, q, mir]) => distance(f, p, q, !!mir, sigma));
+    return { f, ds, min: Math.min(...ds), mean: ds.reduce((s, x) => s + x, 0) / ds.length, h: inkHeight(f, heightChar) };
+  });
+  const t = document.createElement('table');
+  t.className = 'm';
+  t.dataset.title = `${title} · blur sigma ${sigma}px`;
+  t.innerHTML = `<tr><th>${title} · σ ${sigma}px</th>` +
+    pairs.map(([p, q, mir]) => `<th>${p}/${q}${mir ? '⇋' : ''}</th>`).join('') +
+    `<th>worst</th><th>mean</th><th>${heightChar} height/em</th><th class="sample">sample</th></tr>`;
+  const worst = Math.min(...rows.map((r) => r.min));
+  for (const r of rows) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${r.f}</td>` + r.ds.map((d) => `<td class="${d === r.min ? 'low' : ''}">${d.toFixed(3)}</td>`).join('') +
+      `<td>${r.min.toFixed(3)}</td><td>${r.mean.toFixed(3)}</td><td>${r.h.toFixed(3)}</td>` +
+      `<td class="sample" style="font-family:'${r.f}'">${pairs.map(([p, q]) => p + q).join(' ')}</td>`;
+    t.appendChild(tr);
+  }
+  return t;
+}
+
+await document.fonts.load('16px "Comic Relief"');
+for (const f of [...LATIN, ...HEBREW]) await document.fonts.load(`16px "${f}"`, f === 'Comic Relief' || f.startsWith('Atkinson') ? 'a' : 'א');
+await document.fonts.ready;
+const out = document.getElementById('out');
+for (const sigma of [0, 0.6]) {
+  out.append(table('Latin', LATIN, LATIN_PAIRS, 'x', sigma));
+  out.append(table('Hebrew', HEBREW, HEBREW_PAIRS, 'ה', sigma));
+}
+document.documentElement.dataset.ready = '1';
+</script>
+</body>
+</html>

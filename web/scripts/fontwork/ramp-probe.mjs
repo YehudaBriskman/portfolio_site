@@ -7,6 +7,16 @@
  * value is the reference — whatever residual gap it leaves is the gap the ramp
  * was tuned to produce, so the right value for another face is the one that
  * leaves the same residue in that face.
+ *
+ * SUPERSEDED FOR THE TEXT AND DATA ROLES (#97). This script was written when
+ * the second-level face was Jim Nightshade and the data face Comic Relief,
+ * against the #65 specimen at `/__specimen.html`, which no longer exists in
+ * that form. The display steps it derives are still the record behind
+ * --track-display and --track-head for Audiowide. The text and data steps are
+ * now derived by the same method inside specimen.html (its ramp table, also
+ * exposed as `window.__ramp`), for Comic Relief and Atkinson Hyperlegible Next
+ * side by side, at the weights those steps actually ship at — which this
+ * script never measured, because nothing was set at 700 when it was written.
  */
 import { chromium } from "/home/yehuda/projects/army/unisync/MVP/node_modules/playwright-core/index.mjs";
 

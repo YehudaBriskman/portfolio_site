@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Builds the ten woff2 files the site serves, from the sources fetch-ttf.sh
+# Builds the nine woff2 files the site serves, from the sources fetch-ttf.sh
 # pulled out of google/fonts. Run it from anywhere; it writes into
 # web/public/fonts and prints the byte count of everything it wrote.
 #
@@ -40,8 +40,21 @@ echo "— English: latin only. The site's English content comes out of CouchDB"
 echo "  at runtime, so the range cannot be narrowed to what this repo contains."
 cut Audiowide-Regular.ttf       audiowide-400.woff2      "$LATIN"
 cut JimNightshade-Regular.ttf   jim-nightshade-400.woff2 "$LATIN"
-cut ComicRelief-Regular.ttf     comic-relief-400.woff2   "$LATIN"
-cut ComicRelief-Bold.ttf        comic-relief-700.woff2   "$LATIN"
+# The reading face, issue #97. Atkinson Hyperlegible Next rather than the 2020
+# static pair: same letterforms where it counts (legibility.mjs measures the
+# two within a few hundredths on every confusable pair), and its one variable
+# file clipped to 400..700 is 20,056 bytes for both weights against 16,676 +
+# 17,080 for the two hinted statics (probe-reading-face.sh). Clipped for the
+# same reason Playpen is: the text and data roles ask for 400 and 700.
+#
+# Run on 2026-11-02, this script reproduced every committed file byte for byte
+# except the two Playpen halves (11,888 / 43,748 against the committed 11,924
+# / 43,812): the variable source in google/fonts has moved since they were
+# cut. Those two were left as committed, because #97 does not change Hebrew
+# and a reading-face PR should not quietly re-cut a face it is not about.
+fonttools varLib.instancer -q -o "$TTF/AtkinsonHyperlegibleNext-400-700.ttf" \
+  "$TTF/AtkinsonHyperlegibleNext-var.ttf" 'wght=400:700'
+cut AtkinsonHyperlegibleNext-400-700.ttf atkinson-hyperlegible-next-400-700.woff2 "$LATIN"
 
 echo "— Hebrew: split by script, because the Latin half of each of these faces"
 echo "  is the expensive half and a Hebrew heading does not need it."

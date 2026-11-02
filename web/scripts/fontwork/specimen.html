@@ -2,215 +2,160 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Six faces, at the sizes they ship at</title>
+<title>The reading face, before and after</title>
 <!--
-  The type specimen behind GitHub issue #65.
+  The type specimen, rebuilt for issue #97.
 
-  It is deliberately NOT in public/: it would otherwise be served from the
-  production origin. To run it:
+  #65 built this page to judge six faces against the two they replaced. #73
+  moved the text role off the scripts and onto Comic Relief, and the page was
+  never rebuilt for it — it went on measuring Jim Nightshade as the body face
+  for a site that no longer set a paragraph in it. So the comparison it
+  carried had quietly stopped being honest. This version is about the one
+  role #97 changes: every size the text and data roles are set at, in the
+  face they were (Comic Relief) beside the face they are (Atkinson
+  Hyperlegible Next, at the `size-adjust` index.css gives it). The display
+  and accent rows are kept, small, because they are what the reading face has
+  to sit beside, not because they changed.
 
-    cp web/scripts/fontwork/specimen.html web/public/__specimen.html
-    (cd web/public && python3 -m http.server 4226)
+  It is deliberately NOT in public/, so it can never be served from the
+  production origin. Served from `web/`:
+
+    bash web/scripts/fontwork/probe-reading-face.sh     # Comic Relief, for "before"
+    git show 90fca42^:web/public/fonts/archivo-400-900.woff2   > web/scripts/fontwork/probe/archivo-400-900.woff2
+    git show 90fca42^:web/public/fonts/ibm-plex-mono-400.woff2 > web/scripts/fontwork/probe/ibm-plex-mono-400.woff2
+    (cd web && python3 -m http.server 4227)
     node web/scripts/fontwork/shoot.mjs docs/type-specimen
-    rm web/public/__specimen.html
 
-  Every number it prints is measured in the browser at load: contrast off the
-  rendered glyph coverage, digit advances off a real laid-out span, and the
-  tracking ramp off a column-wise ink profile of each face.
+  The two `git show` lines restore the incumbents the ramp's reference
+  residue is defined against (see ramp-probe.mjs). Every number the page
+  prints is measured in the browser at load.
 -->
 <style>
-  /* The six candidates, from the files public/fonts actually serves. */
-  @font-face { font-family: 'Audiowide'; src: url('/fonts/audiowide-400.woff2') format('woff2'); font-weight: 400; }
-  @font-face { font-family: 'Jim Nightshade'; src: url('/fonts/jim-nightshade-400.woff2') format('woff2'); font-weight: 400; }
-  @font-face { font-family: 'Comic Relief'; src: url('/fonts/comic-relief-400.woff2') format('woff2'); font-weight: 400; }
-  @font-face { font-family: 'Comic Relief'; src: url('/fonts/comic-relief-700.woff2') format('woff2'); font-weight: 700; }
-  @font-face { font-family: 'Rubik Glitch'; src: url('/fonts/rubik-glitch-400-hebrew.woff2') format('woff2'); font-weight: 400; unicode-range: U+0307-0308,U+0590-05FF,U+200C-2010,U+20AA,U+25CC,U+FB1D-FB4F; }
-  @font-face { font-family: 'Rubik Glitch'; src: url('/fonts/rubik-glitch-400-latin.woff2') format('woff2'); font-weight: 400; }
-  @font-face { font-family: 'Solitreo'; src: url('/fonts/solitreo-400-hebrew.woff2') format('woff2'); font-weight: 400; unicode-range: U+0307-0308,U+0590-05FF,U+200C-2010,U+20AA,U+25CC,U+FB1D-FB4F; }
-  @font-face { font-family: 'Solitreo'; src: url('/fonts/solitreo-400-latin.woff2') format('woff2'); font-weight: 400; }
-  @font-face { font-family: 'Playpen Sans Hebrew'; src: url('/fonts/playpen-sans-hebrew-400-700-hebrew.woff2') format('woff2'); font-weight: 400 700; unicode-range: U+0307-0308,U+0590-05FF,U+200C-2010,U+20AA,U+25CC,U+FB1D-FB4F; }
-  @font-face { font-family: 'Playpen Sans Hebrew'; src: url('/fonts/playpen-sans-hebrew-400-700-latin.woff2') format('woff2'); font-weight: 400 700; }
-  /*
-   * The incumbents, for side-by-side.
-   *
-   * These two files are no longer in public/fonts — they went out with the
-   * change this page was written to judge — so every Archivo and IBM Plex
-   * Mono row below now renders in the browser's fallback. The comparison
-   * they existed for is preserved as the screenshots in docs/type-specimen,
-   * which were taken while both were still being served. To reproduce it,
-   * restore the two files at these paths from `git show <commit>^:...`.
-   */
-  @font-face { font-family: 'Archivo'; src: url('/fonts/archivo-400-900.woff2') format('woff2'); font-weight: 400 900; font-stretch: 100% 125%; }
-  @font-face { font-family: 'IBM Plex Mono'; src: url('/fonts/ibm-plex-mono-400.woff2') format('woff2'); font-weight: 400; }
+  /* What ships, from the files public/fonts serves. */
+  @font-face { font-family: 'Audiowide'; src: url('../../public/fonts/audiowide-400.woff2') format('woff2'); font-weight: 400; }
+  @font-face { font-family: 'Jim Nightshade'; src: url('../../public/fonts/jim-nightshade-400.woff2') format('woff2'); font-weight: 400; }
+  /* Exactly the production declaration, size-adjust included: a specimen
+     that measured the face at 100% would be measuring a face nobody sees. */
+  @font-face { font-family: 'Atkinson Hyperlegible Next'; src: url('../../public/fonts/atkinson-hyperlegible-next-400-700.woff2') format('woff2'); font-weight: 400 700; size-adjust: 108.9%; }
+  @font-face { font-family: 'Rubik Glitch'; src: url('../../public/fonts/rubik-glitch-400-hebrew.woff2') format('woff2'); unicode-range: U+0307-0308,U+0590-05FF,U+200C-2010,U+20AA,U+25CC,U+FB1D-FB4F; }
+  @font-face { font-family: 'Solitreo'; src: url('../../public/fonts/solitreo-400-hebrew.woff2') format('woff2'); unicode-range: U+0307-0308,U+0590-05FF,U+200C-2010,U+20AA,U+25CC,U+FB1D-FB4F; }
+  @font-face { font-family: 'Playpen Sans Hebrew'; src: url('../../public/fonts/playpen-sans-hebrew-400-700-hebrew.woff2') format('woff2'); font-weight: 400 700; unicode-range: U+0307-0308,U+0590-05FF,U+200C-2010,U+20AA,U+25CC,U+FB1D-FB4F; }
+  @font-face { font-family: 'Playpen Sans Hebrew'; src: url('../../public/fonts/playpen-sans-hebrew-400-700-latin.woff2') format('woff2'); font-weight: 400 700; }
+  /* What it replaces, cut by probe-reading-face.sh into ./probe. */
+  @font-face { font-family: 'Comic Relief'; src: url('probe/comic-relief-400.woff2') format('woff2'); font-weight: 400; }
+  @font-face { font-family: 'Comic Relief'; src: url('probe/comic-relief-700.woff2') format('woff2'); font-weight: 700; }
+  /* The ramp's reference faces, restored from history (see the head). */
+  @font-face { font-family: 'Archivo'; src: url('probe/archivo-400-900.woff2') format('woff2'); font-weight: 400 900; font-stretch: 100% 125%; }
+  @font-face { font-family: 'IBM Plex Mono'; src: url('probe/ibm-plex-mono-400.woff2') format('woff2'); font-weight: 400; }
 
   :root {
-    --paper: #ECE8DC; --paper-2: #E4DFD1;
-    --ink: #14130F; --ink-soft: #55524A; --ink-faint: #7C786D; --rule: #CFC9BA;
-    --panel: #0C0C0E; --panel-ink: #F2F0EA; --panel-soft: #A8A49A; --panel-rule: #64646E;
-    /* The shipped ramp, re-measured per face — see the token block in
-       index.css. The `.was-*` rules below pin Archivo's old values instead,
-       so each pair is each setting at its own tracking rather than both at
-       one of them. */
+    --paper: #ECE8DC; --ink: #14130F; --ink-soft: #55524A; --rule: #CFC9BA;
+    --panel: #0C0C0E; --panel-ink: #F2F0EA; --panel-soft: #A8A49A;
     --track-display: -0.030em; --track-head: -0.020em; --track-sub: -0.005em;
     --track-body: 0em; --track-field: 0.180em;
-    --old-display: -0.045em; --old-sub: -0.020em; --old-body: -0.006em;
+    --was: 'Comic Relief', sans-serif;
+    --now: 'Atkinson Hyperlegible Next', sans-serif;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: var(--paper); color: var(--ink); font-family: 'Archivo', sans-serif; }
+  body { background: var(--paper); color: var(--ink); font-family: ui-monospace, monospace; }
   .ground { padding: 40px; }
   .paper { background: var(--paper); color: var(--ink); }
   .panel { background: var(--panel); color: var(--panel-ink); }
-  .panel .soft { color: var(--panel-soft); }
   .paper .soft { color: var(--ink-soft); }
+  .panel .soft { color: var(--panel-soft); }
   h2.rule {
-    font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: .2em;
-    text-transform: uppercase; opacity: .65; margin: 34px 0 12px;
-    border-top: 1px solid currentColor; padding-top: 8px;
+    font: 11px/1.4 ui-monospace, monospace; letter-spacing: .2em; text-transform: uppercase;
+    opacity: .65; margin: 34px 0 12px; border-top: 1px solid currentColor; padding-top: 8px;
   }
-  .tag {
-    font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: .12em;
-    text-transform: uppercase; opacity: .6; display: block; margin-bottom: 4px;
-  }
-  .row { margin-bottom: 22px; }
+  .tag { font: 10px ui-monospace, monospace; letter-spacing: .12em; text-transform: uppercase; opacity: .6; display: block; margin-bottom: 4px; }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-bottom: 22px; }
+  @media (max-width: 700px) { .pair { grid-template-columns: 1fr; gap: 14px; } .ground { padding: 20px 16px; } }
+  .was { font-family: var(--was); }
+  .now { font-family: var(--now); }
 
-  /* ── the six, in the roles and at the computed sizes ─────────────── */
-  .hero-en { font-family: 'Audiowide', sans-serif; font-size: 144px; line-height: .86; letter-spacing: var(--track-display); text-transform: uppercase; }
-  .hero-he { font-family: 'Rubik Glitch', sans-serif; font-size: 144px; line-height: .86; letter-spacing: var(--track-display); }
-  .sect-en { font-family: 'Audiowide', sans-serif; font-size: 100.8px; line-height: .9; letter-spacing: var(--track-display); text-transform: uppercase; }
-  .sect-he { font-family: 'Rubik Glitch', sans-serif; font-size: 100.8px; line-height: .9; letter-spacing: var(--track-display); }
-  .obj-en  { font-family: 'Audiowide', sans-serif; font-size: 35.2px; line-height: 1.06; letter-spacing: var(--track-head); }
-  .obj-he  { font-family: 'Rubik Glitch', sans-serif; font-size: 35.2px; line-height: 1.06; letter-spacing: var(--track-head); }
+  /* The context the reading face sits beside: unchanged roles, small. */
+  .hero  { font-family: 'Audiowide'; font-size: clamp(56px, 10vw, 144px); line-height: .86; letter-spacing: var(--track-display); text-transform: uppercase; }
+  .accent { font-family: 'Jim Nightshade'; font-size: 20px; line-height: 1.3; }
 
-  .sub-en  { font-family: 'Jim Nightshade', serif; font-size: 32px; line-height: 1.2; letter-spacing: var(--track-sub); }
-  .sub-he  { font-family: 'Solitreo', serif; font-size: 32px; line-height: 1.2; letter-spacing: var(--track-sub); }
-  .fact-en { font-family: 'Jim Nightshade', serif; font-size: 18px; line-height: 1.5; letter-spacing: var(--track-body); max-width: 62ch; }
-  .fact-he { font-family: 'Solitreo', serif; font-size: 18px; line-height: 1.5; letter-spacing: var(--track-body); max-width: 62ch; }
-  .body-en { font-family: 'Jim Nightshade', serif; font-size: 19px; line-height: 1.6; letter-spacing: var(--track-body); max-width: 62ch; }
-  .body-he { font-family: 'Solitreo', serif; font-size: 19px; line-height: 1.6; letter-spacing: var(--track-body); max-width: 62ch; }
+  /* The text and data roles at the sizes and tracking they ship at. */
+  .object { font-size: 35.2px; font-weight: 700; line-height: 1.06; letter-spacing: var(--track-head); }
+  .sub    { font-size: 32px; line-height: 1.2; letter-spacing: var(--track-sub); }
+  .body   { font-size: 19px; line-height: 1.6; letter-spacing: var(--track-body); max-width: 62ch; }
+  .fact   { font-size: 18px; line-height: 1.5; letter-spacing: var(--track-body); }
+  .ask    { font-size: 17px; font-weight: 700; letter-spacing: var(--track-sub); text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: .16em; }
+  .corner { font-size: 14px; line-height: 1.35; }
+  .field  { font-size: 11.52px; line-height: 1.5; letter-spacing: var(--track-field); text-transform: uppercase; }
+  .eyebrow{ font-size: 12px; letter-spacing: var(--track-field); text-transform: uppercase; }
+  .conf   { font-size: 16px; letter-spacing: .04em; }
+  .he     { font-family: 'Playpen Sans Hebrew'; }
 
-  .field-en { font-family: 'Comic Relief', sans-serif; font-size: 11.52px; line-height: 1.5; letter-spacing: var(--track-field); text-transform: uppercase; }
-  .field-he { font-family: 'Playpen Sans Hebrew', sans-serif; font-size: 11.52px; line-height: 1.5; letter-spacing: var(--track-field); text-transform: uppercase; }
-  .eyebrow-en { font-family: 'Comic Relief', sans-serif; font-size: 12px; letter-spacing: var(--track-field); text-transform: uppercase; }
-  .eyebrow-he { font-family: 'Playpen Sans Hebrew', sans-serif; font-size: 12px; letter-spacing: var(--track-field); text-transform: uppercase; }
-
-  /* The incumbents at the same steps. */
-  .was-hero { font-family: 'Archivo', sans-serif; font-variation-settings: 'wdth' 125; font-weight: 900; font-size: 144px; line-height: .86; letter-spacing: var(--old-display); text-transform: uppercase; }
-  .was-sub { font-family: 'Archivo', sans-serif; font-weight: 400; font-size: 32px; letter-spacing: var(--old-sub); }
-  .was-fact { font-family: 'Archivo', sans-serif; font-weight: 400; font-size: 18px; line-height: 1.5; letter-spacing: var(--old-body); max-width: 62ch; }
-  .was-field { font-family: 'IBM Plex Mono', monospace; font-size: 11.52px; line-height: 1.5; letter-spacing: var(--track-field); text-transform: uppercase; }
-
-  /* The spec plate's figure, in all three candidates. */
-  .fig { display: flex; align-items: baseline; gap: 28px; }
-  .fig > span { font-size: 100.8px; line-height: .9; }
-  .fig-aw { font-family: 'Audiowide', sans-serif; font-variant-numeric: tabular-nums; }
-  .fig-rg { font-family: 'Rubik Glitch', sans-serif; font-variant-numeric: tabular-nums; }
-  .fig-ar { font-family: 'Archivo', sans-serif; font-weight: 800; font-variant-numeric: tabular-nums; }
-
-  .ladder { display: grid; grid-template-columns: max-content 1fr; gap: 4px 18px; align-items: baseline; }
-  .ladder .n { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: .1em; opacity: .55; white-space: nowrap; }
-
-  table.m { border-collapse: collapse; font-family: 'IBM Plex Mono', monospace; font-size: 11px; }
-  table.m th, table.m td { border: 1px solid currentColor; padding: 3px 8px; text-align: left; }
-  table.m th { font-weight: 400; opacity: .6; }
-  .warn { color: #BE3C2D; }
-  /* Each row is one frame of the count, set exactly as `.count` sets it:
-     left-aligned inside a box of `--spec-digits * 1ch`. A face with tabular
-     figures draws a straight right edge down the column; one without draws a
-     saw. */
-  .ladder-count { display: flex; gap: 40px; flex-wrap: wrap; }
-  .ladder-count section { }
-  .ladder-count h3 {
-    font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: .12em;
-    text-transform: uppercase; opacity: .6; font-weight: 400; margin-bottom: 6px;
-  }
-  .ladder-count b {
-    display: block; font-weight: 400; font-size: 34px; line-height: 1.04;
-    font-variant-numeric: tabular-nums;
-    min-width: calc(2 * 1ch);
-    border-right: 1px solid rgb(190 60 45 / .55);
-    width: max-content;
-  }
+  table.m { border-collapse: collapse; font: 11px ui-monospace, monospace; margin-bottom: 18px; }
+  table.m th, table.m td { border: 1px solid currentColor; padding: 3px 8px; text-align: right; }
+  table.m th:first-child, table.m td:first-child { text-align: left; }
+  table.m th { font-weight: 400; opacity: .7; }
+  #m-paper, #m-panel { overflow-x: auto; }
+  @media (max-width: 700px) { table.m { font-size: 9px; } table.m th, table.m td { padding: 2px 4px; } }
+  .warn { color: #BE3C2D; font-weight: 700; }
   .panel .warn { color: #E87A6C; }
 </style>
 </head>
 <body>
 
 <section class="ground paper" id="paper">
-  <h2 class="rule">Ground: paper #ECE8DC · ink #14130F · the sizes are the computed values of the shipped ramp at 1440&times;900</h2>
+  <h2 class="rule">Paper #ECE8DC · left: Comic Relief (what it was) · right: Atkinson Hyperlegible Next at size-adjust 108.9% (what it is)</h2>
 
-  <div class="row"><span class="tag">H1 / hero &middot; 144px &middot; track -0.030em &middot; English &middot; Audiowide</span>
-    <div class="hero-en">Briskman</div></div>
-  <div class="row"><span class="tag">H1 / hero &middot; 144px &middot; Hebrew &middot; Rubik Glitch</span>
-    <div class="hero-he" dir="rtl">בריסקמן</div></div>
-  <div class="row"><span class="tag">H1 / hero &middot; 144px &middot; what it replaces &middot; Archivo wdth 125 wght 900</span>
-    <div class="was-hero">Briskman</div></div>
+  <div class="row"><span class="tag">Context, unchanged by #97 · display Audiowide · accent Jim Nightshade</span>
+    <div class="hero">Portfolio</div>
+    <div class="accent soft">Full-stack, mostly frontend</div></div>
 
-  <div class="row"><span class="tag">Section head &middot; 100.8px &middot; Audiowide / Rubik Glitch</span>
-    <div class="sect-en">Specs</div>
-    <div class="sect-he" dir="rtl">מפרט</div></div>
-
-  <div class="row"><span class="tag">Object name &middot; 35.2px &middot; track -0.020em</span>
-    <div class="obj-en">WindoM</div>
-    <div class="obj-he" dir="rtl">ווינדום</div></div>
-
-  <h2 class="rule">Second level &middot; the role that is read rather than admired</h2>
-  <div class="row"><span class="tag">Sub &middot; 32px &middot; track -0.005em &middot; Jim Nightshade</span>
-    <div class="sub-en">Counted from the work, not claimed</div></div>
-  <div class="row"><span class="tag">Sub &middot; 32px &middot; track 0 &middot; Solitreo</span>
-    <div class="sub-he" dir="rtl">נמדד מתוך העבודה, לא נטען</div></div>
-  <div class="row"><span class="tag">Sub &middot; 32px &middot; what it replaces &middot; Archivo wdth 100 wght 400 &middot; track -0.020em</span>
-    <div class="was-sub">Counted from the work, not claimed</div></div>
-
-  <div class="row"><span class="tag">Fact line &middot; 18px &middot; track 0 &middot; Jim Nightshade &middot; real copy</span>
-    <div class="fact-en">A window manager for Chrome that tiles tabs the way a desktop tiles windows. Built in React 19, shipped to the Chrome Web Store, in use today.</div></div>
-  <div class="row"><span class="tag">Fact line &middot; 18px &middot; Solitreo &middot; real copy, Hebrew</span>
-    <div class="fact-he" dir="rtl">מנהל חלונות לכרום שמסדר לשוניות כמו שמחשב מסדר חלונות. נבנה ב‑React 19, פורסם בחנות התוספים של כרום, ובשימוש כיום.</div></div>
-  <div class="row"><span class="tag">Fact line &middot; 18px &middot; what it replaces &middot; Archivo</span>
-    <div class="was-fact">A window manager for Chrome that tiles tabs the way a desktop tiles windows. Built in React 19, shipped to the Chrome Web Store, in use today.</div></div>
-
-  <div class="row"><span class="tag">Body copy &middot; 19px &middot; line-height 1.6 &middot; the running-text test</span>
-    <div class="body-en">I ship products end to end and build the checks that prove they still work. Nine years of it, mostly in places where the thing had to go out on a date somebody else had already promised. This paragraph is here because second-level type is read at length, and a face that is charming for six words is not necessarily a face you can read for sixty.</div></div>
-  <div class="row"><span class="tag">Body copy &middot; 19px &middot; Solitreo &middot; the running-text test</span>
-    <div class="body-he" dir="rtl">אני בונה מוצרים מקצה לקצה ואת הבדיקות שמוכיחות שהם ממשיכים לעבוד. תשע שנים, בעיקר במקומות שבהם הדבר היה חייב לצאת בתאריך שמישהו אחר כבר הבטיח. הפסקה הזאת נמצאת כאן מפני שטקסט בדרג שני נקרא לאורך, ופנים־אות שמקסימות בשש מילים אינן בהכרח פנים־אות שאפשר לקרוא בהן שישים.</div></div>
-
-  <h2 class="rule">Data role &middot; the field line &middot; 11.52px uppercase, +0.180em tracking</h2>
-  <div class="ladder">
-    <span class="n">Comic Relief</span><span class="field-en soft">React 19 &middot; Chrome Web Store &middot; In use</span>
-    <span class="n">Playpen Sans Hebrew</span><span class="field-he soft" dir="rtl">ריאקט 19 &middot; חנות התוספים &middot; בשימוש</span>
-    <span class="n">IBM Plex Mono (today)</span><span class="was-field soft">React 19 &middot; Chrome Web Store &middot; In use</span>
-    <span class="n">Comic Relief 12px</span><span class="eyebrow-en soft">Counted from the work, not claimed</span>
-    <span class="n">Playpen 12px</span><span class="eyebrow-he soft" dir="rtl">נמדד מתוך העבודה</span>
-    <span class="n">Plex Mono 12px</span><span class="was-field soft" style="font-size:12px">Counted from the work, not claimed</span>
+  <h2 class="rule">Text role, at every step it is set at</h2>
+  <div class="pair">
+    <div><span class="tag">object name · 35.2px · 700 · track-head −0.020em</span><div class="object was">WindoM</div></div>
+    <div><span class="tag">object name · 35.2px · 700 · track-head −0.020em</span><div class="object now">WindoM</div></div>
+  </div>
+  <div class="pair">
+    <div><span class="tag">sub · 32px · track-sub −0.005em</span><div class="sub was">Counted from the work, not claimed</div></div>
+    <div><span class="tag">sub · 32px · track-sub −0.005em</span><div class="sub now">Counted from the work, not claimed</div></div>
+  </div>
+  <div class="pair">
+    <div><span class="tag">body · 19px · line-height 1.6 · 62ch</span><div class="body was">I ship products end to end and build the checks that prove they still work. Nine years of it, mostly in places where the thing had to go out on a date somebody else had already promised. A face that is charming for six words is not necessarily a face you can read for sixty.</div></div>
+    <div><span class="tag">body · 19px · line-height 1.6 · 62ch</span><div class="body now">I ship products end to end and build the checks that prove they still work. Nine years of it, mostly in places where the thing had to go out on a date somebody else had already promised. A face that is charming for six words is not necessarily a face you can read for sixty.</div></div>
+  </div>
+  <div class="pair">
+    <div><span class="tag">fact · 18px · soft ink</span><div class="fact was soft">A window manager for Chrome that tiles tabs the way a desktop tiles windows. Built in React 19, in use today.</div></div>
+    <div><span class="tag">fact · 18px · soft ink</span><div class="fact now soft">A window manager for Chrome that tiles tabs the way a desktop tiles windows. Built in React 19, in use today.</div></div>
+  </div>
+  <div class="pair">
+    <div><span class="tag">hero ask link · 17px · 700 · corner value · 14px</span><div><span class="ask was">See the work</span></div><div class="corner was soft">Tel Aviv · open to frontend roles</div></div>
+    <div><span class="tag">hero ask link · 17px · 700 · corner value · 14px</span><div><span class="ask now">See the work</span></div><div class="corner now soft">Tel Aviv · open to frontend roles</div></div>
   </div>
 
-  <h2 class="rule">The spec plate counts up &middot; 100.8px &middot; font-variant-numeric: tabular-nums requested on all three</h2>
-  <div class="fig">
-    <span class="fig-aw">0&nbsp;1&nbsp;6&nbsp;20</span>
+  <h2 class="rule">Data role · 11.52px and 12px uppercase · +0.180em</h2>
+  <div class="pair">
+    <div><span class="tag">field line</span><div class="field was soft">Full-stack · React 19 · In use · 9 years</div><span class="tag" style="margin-top:8px">eyebrow</span><div class="eyebrow was soft">Counted from the work, not claimed</div></div>
+    <div><span class="tag">field line</span><div class="field now soft">Full-stack · React 19 · In use · 9 years</div><span class="tag" style="margin-top:8px">eyebrow</span><div class="eyebrow now soft">Counted from the work, not claimed</div></div>
   </div>
-  <div class="fig"><span class="fig-rg">0&nbsp;1&nbsp;6&nbsp;20</span></div>
-  <div class="fig"><span class="fig-ar">0&nbsp;1&nbsp;6&nbsp;20</span></div>
 
-  <h2 class="rule">Every frame of the count to twenty, left-aligned as the plate sets it &middot; the right edge is the jitter</h2>
-  <div id="count-ladder" class="ladder-count"></div>
+  <h2 class="rule">The pairs the face exists for · 16px · scored by legibility.mjs</h2>
+  <div class="pair">
+    <div class="conf was">Il1 · O0 · rn m · cl d · a o · e c · b d p q · 1I1l</div>
+    <div class="conf now">Il1 · O0 · rn m · cl d · a o · e c · b d p q · 1I1l</div>
+  </div>
+
+  <h2 class="rule">Hebrew · unchanged by #97 · Playpen Sans Hebrew keeps the text and data roles</h2>
+  <div class="row"><div class="body he" dir="rtl" lang="he">אני בונה מוצרים מקצה לקצה ואת הבדיקות שמוכיחות שהם ממשיכים לעבוד. תשע שנים, בעיקר במקומות שבהם הדבר היה חייב לצאת בתאריך שמישהו אחר כבר הבטיח.</div>
+    <div class="field he soft" dir="rtl" lang="he" style="margin-top:8px">ריאקט 19 · חנות התוספים · בשימוש</div>
+    <div class="conf he" dir="rtl" lang="he" style="margin-top:8px">ד ר · ב כ · ה ח · ח ת · ו ז ן · ס ם · ג נ · י ו</div></div>
 
   <h2 class="rule">Measured on the rendered pixels</h2>
   <div id="m-paper"></div>
 </section>
 
 <section class="ground panel" id="panel">
-  <h2 class="rule">Ground: panel #0C0C0E &middot; ink #F2F0EA &middot; the dark act</h2>
-  <div class="row"><span class="tag">H1 / hero &middot; 144px</span><div class="hero-en">Briskman</div></div>
-  <div class="row"><span class="tag">H1 / hero &middot; 144px &middot; Rubik Glitch</span><div class="hero-he" dir="rtl">בריסקמן</div></div>
-  <div class="row"><span class="tag">Sub &middot; 32px &middot; Jim Nightshade</span><div class="sub-en">Counted from the work, not claimed</div></div>
-  <div class="row"><span class="tag">Sub &middot; 32px &middot; Solitreo</span><div class="sub-he" dir="rtl">נמדד מתוך העבודה, לא נטען</div></div>
-  <div class="row"><span class="tag">Fact line &middot; 18px &middot; Jim Nightshade &middot; soft ink #A8A49A</span>
-    <div class="fact-en soft">A window manager for Chrome that tiles tabs the way a desktop tiles windows. Built in React 19, shipped to the Chrome Web Store, in use today.</div></div>
-  <div class="row"><span class="tag">Fact line &middot; 18px &middot; Solitreo &middot; soft ink</span>
-    <div class="fact-he soft" dir="rtl">מנהל חלונות לכרום שמסדר לשוניות כמו שמחשב מסדר חלונות. נבנה ב‑React 19, פורסם בחנות התוספים של כרום.</div></div>
-  <div class="ladder" style="margin-top:18px">
-    <span class="n">Comic Relief 11.52px</span><span class="field-en soft">React 19 &middot; Chrome Web Store &middot; In use</span>
-    <span class="n">Playpen 11.52px</span><span class="field-he soft" dir="rtl">ריאקט 19 &middot; חנות התוספים &middot; בשימוש</span>
-    <span class="n">Plex Mono 11.52px</span><span class="was-field soft">React 19 &middot; Chrome Web Store &middot; In use</span>
+  <h2 class="rule">Panel #0C0C0E · the dark act · left Comic Relief · right Atkinson Hyperlegible Next</h2>
+  <div class="pair">
+    <div><div class="object was">WindoM</div><div class="body was">I ship products end to end and build the checks that prove they still work.</div><div class="fact was soft">Built in React 19, in use today.</div><div class="field was soft">Full-stack · React 19 · In use</div></div>
+    <div><div class="object now">WindoM</div><div class="body now">I ship products end to end and build the checks that prove they still work.</div><div class="fact now soft">Built in React 19, in use today.</div><div class="field now soft">Full-stack · React 19 · In use</div></div>
   </div>
   <h2 class="rule">Measured on the rendered pixels</h2>
   <div id="m-panel"></div>
@@ -218,254 +163,194 @@
 
 <script type="module">
 /*
- * Contrast measured off the glyphs rather than off the two hex values.
+ * Contrast off the glyphs, not off the two hex values.
  *
- * A hairline script can pass a colour-contrast check and still read grey,
- * because at 18px none of its stems ever reaches full coverage: every pixel
- * of the stroke is a blend of ink and ground. So three numbers per row —
- *   nominal   the two declared colours, which is what an audit tool reports
- *   darkest   the darkest pixel the glyphs actually produce
- *   weighted  the coverage-weighted mean of every inked pixel, which is the
- *             value the eye integrates over a line of text
+ * A ratio is a property of two colours and says nothing about how much of
+ * the stroke reaches them. So, per row: `nominal` is what an audit tool
+ * reports; `weighted` is the coverage-weighted mean luminance of every inked
+ * pixel against the ground — the value the eye integrates over a line. x-height
+ * and stroke weight move the second at identical colour, which is the whole
+ * reason to re-measure when the face changes (#71 recorded Comic Relief at
+ * 4.81:1 where IBM Plex Mono gave 4.67:1 at the same token).
+ *
+ * Rendered with the DOM font stack, so size-adjust is in effect: a canvas
+ * `font` shorthand honours @font-face descriptors exactly as layout does.
  */
 const srgb = (c) => { c /= 255; return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; };
 const lum = ([r, g, b]) => 0.2126 * srgb(r) + 0.7152 * srgb(g) + 0.0722 * srgb(b);
-const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+const ratioL = (a, b) => { const [x, y] = [a, b].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
 const hex = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
 
-function measure(text, font, size, tracking, fg, bg, scale = 4) {
+function measure(text, face, weight, size, tracking, upper, fg, bg, scale = 4) {
+  const t = upper ? text.toUpperCase() : text;
   const c = document.createElement('canvas');
-  const ctx = c.getContext('2d', { willReadFrequently: true });
-  ctx.font = `${size * scale}px ${font}`;
-  const w = Math.ceil(ctx.measureText(text).width) + 40 * scale;
-  c.width = w; c.height = Math.ceil(size * scale * 2.2);
+  const font = `${weight} ${size * scale}px "${face}"`;
+  const probe = c.getContext('2d');
+  probe.font = font;
+  c.width = Math.ceil(probe.measureText(t).width * 1.4) + 40 * scale;
+  c.height = Math.ceil(size * scale * 2.2);
   const g = c.getContext('2d', { willReadFrequently: true });
   g.fillStyle = `rgb(${bg.join(',')})`; g.fillRect(0, 0, c.width, c.height);
-  g.font = `${size * scale}px ${font}`;
+  g.font = font;
   g.letterSpacing = `${tracking * size * scale}px`;
   g.fillStyle = `rgb(${fg.join(',')})`;
   g.textBaseline = 'alphabetic';
-  g.fillText(text, 10 * scale, size * scale * 1.3);
+  g.fillText(t, 10 * scale, size * scale * 1.4);
   const px = g.getImageData(0, 0, c.width, c.height).data;
   const bgL = lum(bg), fgL = lum(fg);
-  let darkest = bg, best = 0, sumCov = 0, sumCovLum = 0;
+  let sumCov = 0, sumCovLum = 0;
   for (let i = 0; i < px.length; i += 4) {
-    const p = [px[i], px[i + 1], px[i + 2]];
-    const l = lum(p);
-    // Coverage: how far this pixel has travelled from ground toward ink.
-    const cov = Math.abs(bgL - fgL) < 1e-6 ? 0 : (bgL - l) / (bgL - fgL);
+    const l = lum([px[i], px[i + 1], px[i + 2]]);
+    const cov = (bgL - l) / (bgL - fgL);
     if (cov > 0.02) { sumCov += cov; sumCovLum += cov * l; }
-    if (cov > best) { best = cov; darkest = p; }
   }
-  const meanL = sumCov > 0 ? sumCovLum / sumCov : bgL;
-  const wRatio = (() => { const [x, y] = [bgL, meanL].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); })();
-  return {
-    nominal: ratio(fg, bg),
-    darkest: ratio(darkest, bg),
-    weighted: wRatio,
-    coverage: best,
-  };
+  return { nominal: ratioL(fgL, bgL), weighted: ratioL(bgL, sumCov ? sumCovLum / sumCov : bgL) };
 }
 
-const PAPER = hex('#ECE8DC'), INK = hex('#14130F'), INKSOFT = hex('#55524A');
-const PANEL = hex('#0C0C0E'), PINK = hex('#F2F0EA'), PSOFT = hex('#A8A49A');
-
-const ROWS = [
-  ['hero 144px', 'Audiowide', 144, -0.045, 'ink'],
-  ['hero 144px', 'Rubik Glitch', 144, -0.045, 'ink', 'בריסקמן'],
-  ['hero 144px', 'Archivo', 144, -0.045, 'ink'],
-  ['sub 32px', 'Jim Nightshade', 32, -0.02, 'ink'],
-  ['sub 32px', 'Solitreo', 32, -0.02, 'ink', 'נמדד מתוך העבודה'],
-  ['fact 18px', 'Jim Nightshade', 18, -0.006, 'soft'],
-  ['fact 18px', 'Solitreo', 18, -0.006, 'soft', 'מנהל חלונות לכרום'],
-  ['fact 18px', 'Archivo', 18, -0.006, 'soft'],
-  ['field 11.52px', 'Comic Relief', 11.52, 0.18, 'soft', 'REACT 19 · IN USE'],
-  ['field 11.52px', 'Playpen Sans Hebrew', 11.52, 0.18, 'soft', 'ריאקט 19 · בשימוש'],
-  ['field 11.52px', 'IBM Plex Mono', 11.52, 0.18, 'soft', 'REACT 19 · IN USE'],
+/* Every size the text and data roles are set at, from index.css and the
+   component modules: [label, px, weight, tracking em, uppercase, colour]. */
+const SIZES = [
+  ['label 11px',       11,    400, 0.18,  true,  'soft'],
+  ['field 11.52px',    11.52, 400, 0.18,  true,  'soft'],
+  ['eyebrow 12px',     12,    400, 0.18,  true,  'soft'],
+  ['chip 12px',        12,    400, 0.08,  false, 'soft'],
+  ['hint 13px',        13,    400, 0,     false, 'soft'],
+  ['corner 14px',      14,    400, 0,     false, 'soft'],
+  ['nav 15px',         15,    400, 0,     false, 'ink'],
+  ['nav 16px',         16,    400, 0,     false, 'ink'],
+  ['ask 17px 700',     17,    700, -0.005, false, 'ink'],
+  ['fact 18px',        18,    400, 0,     false, 'soft'],
+  ['body 19px',        19,    400, 0,     false, 'ink'],
+  ['body 19px soft',   19,    400, 0,     false, 'soft'],
+  ['phone body 20.2px',20.19, 400, 0,     false, 'ink'],
+  ['title 24px 700',   24,    700, -0.005, false, 'ink'],
+  ['object 35.2px 700',35.2,  700, -0.02, false, 'ink'],
 ];
+const FACES = ['Comic Relief', 'Atkinson Hyperlegible Next'];
+const SAMPLE = 'Counted from the work, not claimed';
 
-function table(bg, inkC, softC) {
+function contrastTable(bg, ink, soft) {
   const t = document.createElement('table');
   t.className = 'm';
-  t.innerHTML = '<tr><th>role</th><th>face</th><th>colour</th><th>nominal</th><th>darkest px</th><th>coverage-weighted</th><th>max coverage</th></tr>';
-  for (const [role, face, size, track, which, sample] of ROWS) {
-    const fg = which === 'ink' ? inkC : softC;
-    const m = measure(sample ?? 'Counted from the work', `"${face}"`, size, track, fg, bg);
-    const fail = m.weighted < 4.5 && size < 24;
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${role}</td><td>${face}</td><td>${which}</td>` +
-      `<td>${m.nominal.toFixed(2)}:1</td><td>${m.darkest.toFixed(2)}:1</td>` +
-      `<td class="${fail ? 'warn' : ''}">${m.weighted.toFixed(2)}:1</td>` +
-      `<td>${(m.coverage * 100).toFixed(0)}%</td>`;
-    t.appendChild(tr);
+  t.innerHTML = '<tr><th>size</th><th>colour</th><th>nominal</th>' +
+    FACES.map((f) => `<th>${f}<br>weighted</th>`).join('') + '<th>Δ</th></tr>';
+  for (const [label, size, w, tr, up, which] of SIZES) {
+    const fg = which === 'ink' ? ink : soft;
+    const ms = FACES.map((f) => measure(SAMPLE, f, w, size, tr, up, fg, bg));
+    const row = document.createElement('tr');
+    row.innerHTML = `<td>${label}</td><td>${which}</td><td>${ms[0].nominal.toFixed(2)}:1</td>` +
+      ms.map((m) => `<td class="${m.weighted < 4.5 && size < 24 ? 'warn' : ''}">${m.weighted.toFixed(2)}:1</td>`).join('') +
+      `<td>${(ms[1].weighted - ms[0].weighted >= 0 ? '+' : '')}${(ms[1].weighted - ms[0].weighted).toFixed(2)}</td>`;
+    t.appendChild(row);
   }
   return t;
 }
 
 /*
- * Digit-advance spread, measured in the DOM.
- *
- * Not on a canvas: `fontVariantNumeric` is not a 2D-context property, so a
- * canvas measurement of "with tabular figures" and "without" returns the same
- * number twice and reports every face as having no tnum. The widths below come
- * from a real inline span laid out by the engine, with and without
- * `font-variant-numeric: tabular-nums`, which is the declaration the spec
- * plate actually makes.
+ * The tracking ramp for the text and data roles, re-derived rather than
+ * inherited. Same method as ramp-probe.mjs, which this table is the
+ * in-page copy of: a column-wise ink profile at 8x, the narrowest run of
+ * blank columns, and how many separate ink runs survive. When the run count
+ * drops, two letters have merged. The target residue at each step is what
+ * the incumbent the ramp was tuned on leaves at the shipped value —
+ * Archivo for prose, IBM Plex Mono for the field line.
  */
-function spanWidth(face, size, text, tabular) {
-  const s = document.createElement('span');
-  s.style.cssText = `position:absolute;visibility:hidden;white-space:pre;font:${size}px "${face}";` +
-    (tabular ? 'font-variant-numeric:tabular-nums;' : 'font-variant-numeric:normal;');
-  s.textContent = text;
-  document.body.appendChild(s);
-  const w = s.getBoundingClientRect().width;
-  s.remove();
-  return w;
-}
-
-function digitTable() {
-  const t = document.createElement('table');
-  t.className = 'm';
-  t.innerHTML = '<tr><th>face</th><th>digit spread, proportional</th>' +
-    '<th>digit spread, tabular-nums asked for</th><th>tnum honoured</th>' +
-    '<th>jitter 0&rarr;20 at 100.8px</th></tr>';
-  for (const face of ['Audiowide', 'Rubik Glitch', 'Comic Relief', 'Playpen Sans Hebrew', 'Solitreo', 'Archivo', 'IBM Plex Mono']) {
-    const prop = [...'0123456789'].map((d) => spanWidth(face, 100.8, d, false));
-    const tab = [...'0123456789'].map((d) => spanWidth(face, 100.8, d, true));
-    const pSpread = Math.max(...prop) - Math.min(...prop);
-    const tSpread = Math.max(...tab) - Math.min(...tab);
-    /* The widest and narrowest string the plate ever shows while counting to
-       twenty, which is the movement a reader actually sees. */
-    const run = [];
-    for (let n = 0; n <= 20; n++) run.push(spanWidth(face, 100.8, String(n), true));
-    const jitter = Math.max(...run.slice(0, 10)) - Math.min(...run.slice(0, 10));
-    const ok = tSpread < 0.5;
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${face}</td><td>${pSpread.toFixed(1)}px</td>` +
-      `<td class="${ok ? '' : 'warn'}">${tSpread.toFixed(1)}px</td>` +
-      `<td class="${ok ? '' : 'warn'}">${ok ? 'yes' : 'NO'}</td>` +
-      `<td class="${jitter > 1 ? 'warn' : ''}">${jitter.toFixed(1)}px</td>`;
-    t.appendChild(tr);
-  }
-  return t;
-}
-
-/*
- * The tracking ramp, measured against each face instead of inherited.
- *
- * The ramp was measured for Archivo, a grotesque with tight sidebearings, and
- * tightening by 4.5% of the em is correction there. On a face that is drawn
- * wide to begin with it is a different amount of correction, and on one drawn
- * narrow it closes the gaps. So: render the string, take a column-wise ink
- * profile, and report the narrowest run of blank columns between two inked
- * ones. That is the gap the eye actually sees. Zero means the strokes touch —
- * which is the design for a connecting script and a defect for anything else.
- */
-function minInkGap(face, sizePx, trackEm, text, scale = 6) {
+function profile(face, weight, sizePx, trackEm, text, scale = 8) {
   const c = document.createElement('canvas');
-  const ctx = c.getContext('2d', { willReadFrequently: true });
   const px = sizePx * scale;
-  ctx.font = `${px}px "${face}"`;
-  ctx.letterSpacing = `${trackEm * px}px`;
-  c.width = Math.ceil(ctx.measureText(text).width) + px;
+  const font = `${weight} ${px}px "${face}"`;
+  const m = c.getContext('2d');
+  m.font = font;
+  c.width = Math.ceil(m.measureText(text).width * 1.3) + px;
   c.height = Math.ceil(px * 2.4);
   const g = c.getContext('2d', { willReadFrequently: true });
   g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
-  g.font = `${px}px "${face}"`;
-  g.letterSpacing = `${trackEm * px}px`;
+  g.font = font; g.letterSpacing = `${trackEm * px}px`;
   g.fillStyle = '#000'; g.textBaseline = 'alphabetic';
   g.fillText(text, px * 0.3, px * 1.5);
   const d = g.getImageData(0, 0, c.width, c.height).data;
-  const inked = new Array(c.width).fill(false);
-  for (let x = 0; x < c.width; x++) {
-    for (let y = 0; y < c.height; y++) {
-      // 50% coverage, so a stray antialias pixel is not counted as a stroke.
-      if (d[(y * c.width + x) * 4] < 128) { inked[x] = true; break; }
-    }
-  }
-  let first = inked.indexOf(true), last = inked.lastIndexOf(true);
-  if (first < 0) return null;
-  let min = Infinity, run = 0, gaps = 0;
+  const ink = new Array(c.width).fill(false);
+  for (let x = 0; x < c.width; x++)
+    for (let y = 0; y < c.height; y++)
+      if (d[(y * c.width + x) * 4] < 128) { ink[x] = true; break; }
+  const first = ink.indexOf(true), last = ink.lastIndexOf(true);
+  if (first < 0) return { gap: 0, runs: 0 };
+  let min = Infinity, run = 0, runs = 1;
   for (let x = first; x <= last; x++) {
-    if (!inked[x]) { run++; } else if (run > 0) { min = Math.min(min, run); gaps++; run = 0; }
+    if (!ink[x]) run++;
+    else if (run > 0) { min = Math.min(min, run); runs++; run = 0; }
   }
-  return { gapPx: min === Infinity ? 0 : min / scale, gaps };
+  return { gap: (min === Infinity ? 0 : min) / scale, runs };
 }
 
+/* [step, size, weight, shipped tracking, reference face, reference tracking, string] */
 const RAMP = [
-  ['hero',    144,   -0.045],
-  ['section', 100.8, -0.045],
-  ['object',  35.2,  -0.035],
-  ['sub',     32,    -0.020],
-  ['body',    19,    -0.006],
-  ['fact',    18,    -0.006],
-  ['field',   11.52,  0.180],
+  ['head (object, 700)', 35.2,  700, -0.020, 'Archivo', -0.035, 'Hamburgevons'],
+  ['sub',                32,    400, -0.005, 'Archivo', -0.020, 'Hamburgevons'],
+  ['ask (sub, 700)',     17,    700, -0.005, 'Archivo', -0.020, 'Hamburgevons'],
+  ['body',               19,    400,  0,     'Archivo', -0.006, 'Hamburgevons quick'],
+  ['field',              11.52, 400,  0.180, 'IBM Plex Mono', 0.180, 'REACT 19 IN USE'],
 ];
-const ROLE_FACE = {
-  display: ['Audiowide', 'Rubik Glitch', 'Archivo'],
-  text:    ['Jim Nightshade', 'Solitreo', 'Archivo'],
-  data:    ['Comic Relief', 'Playpen Sans Hebrew', 'IBM Plex Mono'],
-};
-const SAMPLE = {
-  'Audiowide': 'HAMBURGEVONS', 'Archivo': 'HAMBURGEVONS',
-  'Rubik Glitch': 'מפרטהעבודה', 'Jim Nightshade': 'Hamburgevons',
-  'Solitreo': 'נמדדמתוךהעבודה', 'Comic Relief': 'REACT 19 IN USE',
-  'Playpen Sans Hebrew': 'חנותהתוספים', 'IBM Plex Mono': 'REACT 19 IN USE',
-};
+const rampRows = [];
 function rampTable() {
   const t = document.createElement('table');
   t.className = 'm';
-  t.innerHTML = '<tr><th colspan="7">Why the ramp was re-measured: the OLD ' +
-    'Archivo values, applied to each face</th></tr>' +
-    '<tr><th>step</th><th>size</th><th>old tracking</th><th>face</th>' +
-    '<th>gap at tracking 0</th><th>gap at old tracking</th><th>change</th></tr>';
-  for (const [step, size, track] of RAMP) {
-    const faces = step === 'field' ? ROLE_FACE.data
-      : (step === 'body' || step === 'fact' || step === 'sub') ? ROLE_FACE.text
-      : ROLE_FACE.display;
-    for (const face of faces) {
-      const text = step === 'field' && /Comic|Plex/.test(face) ? SAMPLE[face] : SAMPLE[face];
-      const a = minInkGap(face, size, 0, text);
-      const b = minInkGap(face, size, track, text);
-      if (!a || !b) continue;
-      const delta = b.gapPx - a.gapPx;
-      const bad = b.gapPx < 0.5 && a.gapPx >= 0.5;
-      const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${step}</td><td>${size}px</td><td>${track}em</td><td>${face}</td>` +
-        `<td>${a.gapPx.toFixed(2)}px</td>` +
-        `<td class="${bad ? 'warn' : ''}">${b.gapPx.toFixed(2)}px</td>` +
-        `<td class="${bad ? 'warn' : ''}">${delta >= 0 ? '+' : ''}${delta.toFixed(2)}px</td>`;
-      t.appendChild(tr);
+  t.innerHTML = '<tr><th>step</th><th>size</th><th>face</th><th>runs@0</th><th>gap@0</th>' +
+    '<th>gap@shipped</th><th>target gap</th><th>merges at</th><th>tightest at target</th><th>shipped</th></tr>';
+  for (const [step, size, w, shipped, ref, refT, text] of RAMP) {
+    const target = profile(ref, w, size, refT, text).gap;
+    for (const face of FACES) {
+      const nat = profile(face, w, size, 0, text);
+      const at = profile(face, w, size, shipped, text);
+      let merge = null, best = null;
+      for (let k = 0; k <= 48; k++) {
+        const tr = Number((0.03 - k * 0.0025).toFixed(4));
+        const p = profile(face, w, size, tr, text);
+        if (p.runs < nat.runs) { if (merge === null) merge = tr; continue; }
+        if (merge === null && p.gap + 1e-9 >= target) best = tr;
+      }
+      const row = { step, size, face, runs: nat.runs, gap0: nat.gap, gapS: at.gap, target, merge, best, shipped };
+      rampRows.push(row);
+      const r = document.createElement('tr');
+      const past = merge !== null && shipped <= merge;
+      r.innerHTML = `<td>${step}</td><td>${size}px</td><td>${face}</td><td>${nat.runs}</td>` +
+        `<td>${nat.gap.toFixed(2)}px</td><td class="${past ? 'warn' : ''}">${at.gap.toFixed(2)}px</td>` +
+        `<td>${target.toFixed(2)}px</td><td>${merge === null ? 'never' : merge.toFixed(4) + 'em'}</td>` +
+        `<td>${best === null ? '—' : best.toFixed(4) + 'em'}</td><td>${shipped}em</td>`;
+      t.appendChild(r);
     }
   }
   return t;
 }
 
-function countLadder() {
-  const wrap = document.createElement('div');
-  wrap.style.cssText = 'display:flex;gap:40px;flex-wrap:wrap';
-  for (const [face, label] of [
-    ['Audiowide', 'Audiowide (English display)'],
-    ['Rubik Glitch', 'Rubik Glitch (Hebrew display)'],
-    ['Archivo', 'Archivo (what it replaces)'],
-  ]) {
-    const col = document.createElement('section');
-    col.innerHTML = `<h3>${label}</h3>`;
-    for (let n = 0; n <= 20; n++) {
-      const b = document.createElement('b');
-      b.style.fontFamily = `"${face}"`;
-      b.textContent = String(n);
-      col.appendChild(b);
-    }
-    wrap.appendChild(col);
+/* 700 is a real master: the bold run must be wider than the regular by the
+   drawn bold's advances. With synthesis off, a missing 700 would render the
+   400 and the two widths would be equal. */
+function weightTable() {
+  const t = document.createElement('table');
+  t.className = 'm';
+  t.innerHTML = '<tr><th>face</th><th>400 width</th><th>500 width</th><th>700 width</th><th>fonts.check 700</th></tr>';
+  for (const f of FACES) {
+    const w = (wt) => { const s = document.createElement('span');
+      s.style.cssText = `position:absolute;white-space:pre;font:${wt} 100px "${f}";font-synthesis-weight:none`;
+      s.textContent = 'Hamburgevons'; document.body.append(s); const r = s.getBoundingClientRect().width; s.remove(); return r; };
+    const r = document.createElement('tr');
+    r.innerHTML = `<td>${f}</td><td>${w(400).toFixed(1)}</td><td>${w(500).toFixed(1)}</td><td>${w(700).toFixed(1)}</td><td>${document.fonts.check(`700 16px "${f}"`)}</td>`;
+    t.appendChild(r);
   }
-  return wrap;
+  return t;
 }
 
+for (const f of ['Comic Relief', 'Atkinson Hyperlegible Next', 'Archivo', 'IBM Plex Mono']) {
+  await document.fonts.load(`400 16px "${f}"`);
+  await document.fonts.load(`700 16px "${f}"`);
+}
 await document.fonts.ready;
-document.getElementById('m-paper').append(table(PAPER, INK, INKSOFT), document.createElement('br'), digitTable(), document.createElement('br'), rampTable());
-document.getElementById('count-ladder').append(countLadder());
-document.getElementById('m-panel').append(table(PANEL, PINK, PSOFT));
+const PAPER = hex('#ECE8DC'), INK = hex('#14130F'), INKSOFT = hex('#55524A');
+const PANEL = hex('#0C0C0E'), PINK = hex('#F2F0EA'), PSOFT = hex('#A8A49A');
+document.getElementById('m-paper').append(contrastTable(PAPER, INK, INKSOFT), rampTable(), weightTable());
+document.getElementById('m-panel').append(contrastTable(PANEL, PINK, PSOFT));
+window.__ramp = rampRows;
 document.documentElement.dataset.ready = '1';
 </script>
 </body>
