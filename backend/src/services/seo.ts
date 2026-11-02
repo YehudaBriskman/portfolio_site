@@ -217,7 +217,27 @@ export function buildSitemap(posts: Post[], collections: Collection[]): string {
 
 /* --------------------------------------------------------------------- feed */
 
-export function buildFeed(posts: Post[]): string {
+/** What a feed says about itself. The defaults are the site-wide /feed.xml. */
+export type FeedChannel = { title: string; link: string; description: string; self: string };
+
+const SITE_CHANNEL: FeedChannel = {
+  title: "Yehuda Briskman · Notes",
+  link: "/blog",
+  description: "Writing on backend engineering, infrastructure, and shipping products end to end.",
+  self: "/feed.xml",
+};
+
+/** One area's channel: its notes only, linking to the area's history page. */
+export function areaChannel(c: Pick<Collection, "slug" | "title" | "tagline" | "description">): FeedChannel {
+  return {
+    title: `Yehuda Briskman · ${c.title}`,
+    link: `/blog/area/${c.slug}`,
+    description: c.tagline || c.description || `Notes on ${c.title}.`,
+    self: `/api/seo/feed/${c.slug}.xml`,
+  };
+}
+
+export function buildFeed(posts: Post[], channel: FeedChannel = SITE_CHANNEL): string {
   const published = posts
     .filter((p) => !p.seo.noindex)
     .sort((a, b) => (b.publishedAt ?? "").localeCompare(a.publishedAt ?? ""))
@@ -243,12 +263,12 @@ ${p.tags.map((t) => `      <category>${escapeXml(t)}</category>`).join("\n")}
   return `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>Yehuda Briskman · Notes</title>
-    <link>${escapeXml(absoluteUrl("/blog"))}</link>
-    <description>Writing on backend engineering, infrastructure, and shipping products end to end.</description>
+    <title>${escapeXml(channel.title)}</title>
+    <link>${escapeXml(absoluteUrl(channel.link))}</link>
+    <description>${escapeXml(channel.description)}</description>
     <language>en</language>
     <lastBuildDate>${escapeXml(new Date(updated).toUTCString())}</lastBuildDate>
-    <atom:link href="${escapeXml(absoluteUrl("/feed.xml"))}" rel="self" type="application/rss+xml"/>
+    <atom:link href="${escapeXml(absoluteUrl(channel.self))}" rel="self" type="application/rss+xml"/>
 ${items}
   </channel>
 </rss>

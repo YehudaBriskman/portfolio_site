@@ -40,6 +40,9 @@ const EnvSchema = z.object({
   // Whose year the contribution city draws. Separate from ADMIN_GITHUB_LOGIN,
   // which answers a different question — who may edit the site.
   GITHUB_LOGIN: z.string().default("YehudaBriskman"),
+  // This site's own repository, `owner/name`. Its `v*` releases are the
+  // activity feed's `site` events, fetched on the stats schedule.
+  SITE_REPO: z.string().regex(/^[\w.-]+\/[\w.-]+$/).default("YehudaBriskman/portfolio_site"),
 
   // Canonical origin. Every absolute URL the crawlers see is built from this,
   // so it must be the public name of the site and nothing else.

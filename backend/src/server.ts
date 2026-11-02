@@ -3,6 +3,7 @@ import { startStatsRefresh } from "./services/github.js";
 import { startContributionsRefresh } from "./services/contributions.js";
 import { couch } from "./db/couch.js";
 import type { Collection } from "./schemas/content.js";
+import { loadSiteReleases } from "./services/activity.js";
 import { createApp } from "./app";
 import { env } from './env.js';
 import { logger } from './logger.js';
@@ -67,6 +68,14 @@ ensureContentStore()
         (await couch.find<Collection>({ selector: { type: "collection" }, limit: 100 })).docs,
       save: async (c) => {
         await couch.put(c._id!, { ...c, updatedAt: new Date().toISOString() });
+      },
+      // The site's own `v*` releases, for the activity feed's `site` events.
+      siteReleases: {
+        repo: { owner: env.SITE_REPO.split("/")[0], name: env.SITE_REPO.split("/")[1] },
+        load: loadSiteReleases,
+        save: async (doc) => {
+          await couch.put(doc._id, doc);
+        },
       },
     });
   });

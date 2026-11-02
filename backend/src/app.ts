@@ -8,6 +8,8 @@ import emailRoutes from './routes/email.route.js';
 import blogRoutes from './routes/blog.route.js';
 import adminRoutes from './routes/admin.route.js';
 import seoRoutes from './routes/seo.route.js';
+import feedRoutes from './routes/feeds.route.js';
+import { activityRouter, areasRouter } from './routes/activity.route.js';
 import { requireAdmin } from './middlewares/requireAdmin.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 import { couch } from './db/couch.js';
@@ -134,6 +136,9 @@ export function createApp() {
   // Routers
 
   app.use('/api/blog', readLimiter, blogRoutes);
+  app.use('/api/activity', readLimiter, activityRouter);
+  app.use('/api/areas', readLimiter, areasRouter);
+  app.use('/api/seo/feed', seoLimiter, feedRoutes);
   app.use('/api/seo', seoLimiter, seoRoutes);
   // The gate holds, but an unmetered endpoint is an oracle for guessing the
   // proxy secret. Every other route is limited; this one was not.

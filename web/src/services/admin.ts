@@ -18,6 +18,7 @@ const AdminPostSchema = z.object({
   coverImage: z.string().nullable().default(null),
   links: z.array(LinkSchema).default([]),
   readingMinutes: z.number(),
+  featured: z.number().nullable().default(null),
 });
 
 const AdminCollectionSchema = z.object({
