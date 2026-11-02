@@ -2,44 +2,58 @@ import { Link, useSearchParams } from "react-router-dom";
 import PageShell from "@/components/PageShell";
 import SkeletonGate from "@/components/gallery/SkeletonGate";
 import SkeletonLines from "@/components/gallery/SkeletonLines";
-import ProjectIndex from "@/components/projects/ProjectIndex";
-import StateFilter from "@/components/projects/StateFilter";
-import { filterEarnsPlace, statesOf } from "@/components/projects/catalogue";
+import Filters from "@/components/projects/Filters";
+import Gallery from "@/components/projects/Gallery";
+import StatsPanel from "@/components/projects/StatsPanel";
+import {
+  FACETS,
+  applyFilters,
+  optionsFor,
+  sizesOf,
+  summarise,
+  type Filters as FilterSet,
+} from "@/components/projects/catalogue";
 import { useProjects } from "@/hooks/useProjects";
 import { relativeTime } from "@/services/blog";
 
 /*
- * The catalogue: every project, in a register a reader can run down.
+ * The catalogue: every project, hung as a gallery wall under an instrument
+ * panel, with filters a reader can link to.
  *
- * This page used to be the home page's device a second time — the pile, and
- * before that the shelf — on the argument that two ways of showing a project
- * would drift apart. The owner's call (#169) is that the two pages do not
- * have the same job: the home page's run is branding, a curated few moving
- * on a curve, and this is the full set, which has to hold four projects or
- * forty and let a reader find and open any one of them fast. So it gets its
- * own arrangement, `ProjectIndex`, and its own device, `riffle` — the
- * argument that it is not the run wearing a different hat is the ledger
- * entry in `docs/motion-contract.md`.
+ * #169 gave this page its own job — the full set, four projects or forty,
+ * found and opened fast — and #173 answered it with a register. #175 is the
+ * owner's second answer to the same job: bigger, more like a dashboard,
+ * "almost like an images gallery". So the picture leads (`Gallery`), the
+ * collection's shape is a panel over it (`StatsPanel`), and the register's
+ * column-scanning moved into filters (`Filters`, facets in `catalogue.ts`).
  *
- * The three facts in the header stay. They are the only things on this page
- * about the collection rather than about one project — how many are in use,
- * how many came before, and when anything last moved. The last of them is
- * the page's one async region: the seeds carry no repository facts, so it is
- * a skeleton until the live index answers and nothing at all if it never
- * does.
+ * The three facts in the header stay: how many are in use, how many came
+ * before, and when anything last moved. The last is the page's one async
+ * region — a skeleton until the live index answers, and nothing at all if it
+ * never does.
  */
 
 export default function Projects() {
   const { items, state, featured, archive } = useProjects();
   const [params] = useSearchParams();
 
-  const states = statesOf(items);
-  const filterable = filterEarnsPlace(items.length, states);
-  /* A `?state=` the register cannot offer (a stale link, or a list that has
-     shrunk under the threshold) is honoured rather than silently dropped, so
-     the empty state below can say so and offer the way back. */
-  const active = params.get("state");
-  const shown = active ? items.filter((e) => e.state === active) : items;
+  /* A facet the catalogue cannot offer (a stale link) is honoured rather
+     than dropped, so the empty state below can say so and offer the way back. */
+  const filters: FilterSet = Object.fromEntries(
+    FACETS.map((f) => [f, params.get(f) ?? undefined]).filter(([, v]) => v)
+  );
+  const active = FACETS.some((f) => filters[f]);
+  const shown = applyFilters(items, filters);
+  const options = {
+    state: optionsFor(items, "state", filters),
+    year: optionsFor(items, "year", filters),
+    stack: optionsFor(items, "stack", filters),
+  };
+  /* Over the whole set, so narrowing the wall never resizes a project. */
+  const sizes = sizesOf(items);
+  const label = active
+    ? `Projects: ${FACETS.map((f) => filters[f]).filter(Boolean).join(", ")}`
+    : "All projects";
 
   const lastPush = items
     .map((e) => e.collection.stats?.pushedAt)
@@ -49,7 +63,7 @@ export default function Projects() {
 
   return (
     <PageShell>
-      <section data-crest data-hue="58 106 102" className="wrap section-y isolate relative">
+      <section data-crest data-hue="58 106 102" className="wrap-wide section-y isolate relative">
         <header className="relative">
           <p className="eyebrow">Projects</p>
           <h1 className="display mt-3 text-section">What I&rsquo;ve built</h1>
@@ -96,11 +110,12 @@ export default function Projects() {
             project is still listed below.
           </p>
         )}
-
-        {filterable && <StateFilter states={states} total={items.length} active={active} />}
       </section>
 
-      <div className="wrap pb-section">
+      <div className="wrap-wide pb-section">
+        <StatsPanel summary={summarise(items)} total={items.length} activeYear={filters.year ?? null} />
+        <Filters filters={filters} options={options} />
+
         {/* Always in the tree, so the count is announced when a filter changes
             it: a live region inserted already holding its text says nothing. */}
         <div aria-live="polite">
@@ -113,12 +128,18 @@ export default function Projects() {
         </div>
 
         {shown.length > 0 ? (
-          <ProjectIndex entries={shown} label={active ? `Projects: ${active}` : "All projects"} />
+          <Gallery entries={shown} sizes={sizes} label={label} />
         ) : (
-          /* Only a filter can empty the register — `useProjects` is seeded and
-             never returns nothing — so the way out is the filter's own. */
+          /* Only a filter can empty the wall — `useProjects` is seeded and
+             never returns nothing — so the way out is the filters' own. */
           <div className="max-w-[52ch] py-12">
-            <p className="text-lg leading-relaxed">No project is in the state &ldquo;{active}&rdquo; right now.</p>
+            <p className="text-lg leading-relaxed">
+              No project matches{" "}
+              {FACETS.filter((f) => filters[f])
+                .map((f) => `${f} \u201c${filters[f]}\u201d`)
+                .join(" and ")}
+              . Remove a filter above, or start again from the whole catalogue.
+            </p>
             <Link
               to="/projects"
               className="tap mt-4 inline-flex min-h-[44px] items-center text-ink underline underline-offset-4"
