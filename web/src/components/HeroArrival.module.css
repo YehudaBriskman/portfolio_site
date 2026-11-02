@@ -291,6 +291,103 @@
   to   { opacity: 1; transform: none; }
 }
 
+/* ── stage four, continued: the two corner blocks ─────────────────────── */
+
+/*
+ * The candidates for the lower corners — issue #101 — and the one question a
+ * new element on this screen has to answer: does it join the sequence, or is
+ * it deliberately outside it?
+ *
+ * It joins, at the end of stage four. Stage four is everything that is not
+ * the picture, and these are the last two statements on the screen; a block
+ * that appeared before the field line would be arguing it was more important
+ * than the plate's own specs, and one outside the sequence entirely would be
+ * the only thing on the first screen that simply exists.
+ *
+ * 180ms after the field line's own 90ms, so the order is fact line, field
+ * line, corners. Both corners move together on one delay rather than
+ * staggering against each other: they are at opposite ends of the screen and
+ * a reader cannot watch both, so a stagger between them is a difference
+ * nobody can see paid for with 90ms of the stage.
+ *
+ * WHY A RISE AND NOT AN ENTRY FROM EACH SIDE
+ * ------------------------------------------
+ * The obvious gesture is the one the two lines above take — each piece in
+ * from its own side — and these blocks sit at the two sides, so it would read.
+ * It is rejected for a reason that is not about taste: `translateX` is a
+ * physical axis and there is no logical form of it. The two corners swap
+ * sides in Hebrew, so a sideways entry would need the travel negated under
+ * `[dir="rtl"]`, which is a second statement of the same gesture to keep in
+ * step — and it would spend the horizontal exception §5 grants this screen a
+ * third and fourth time. A rise needs no direction at all, and 14px is the
+ * figure's own measured rise, which is the right relation: these blocks stand
+ * on the same floor the figure does.
+ *
+ * WHY THE PAPER MASK AND NOT A FADE
+ * ---------------------------------
+ * The two lines in stage four are allowed to fade, on the argument at the top
+ * of this file: they are small secondary ink and the paint candidate was
+ * settled a second earlier. That argument would cover these as well — they are
+ * 0.72rem and 1.0625rem — and it is still not what is done here, because the
+ * technique this screen is built on is cheaper than the licence it grants.
+ * An opaque sheet of the ground's colour over text that is already painted
+ * costs one pseudo-element and leaves nothing on the screen entering by its
+ * own opacity, which is a simpler sentence to keep true than one with two
+ * exceptions in it.
+ *
+ * Measured against `main` rather than against an earlier build of this
+ * branch, and interleaved: both production builds served in turn on the same
+ * port, the bundle hash asserted on every block so neither run can be of the
+ * wrong app, nine cold loads per block per viewport and two rounds each.
+ * Sequential runs were not good enough — the first attempt put this branch
+ * 20ms behind and a second pass showed the machine had simply drifted
+ * between them.
+ *
+ *               1440x900              390x844
+ *   main        144ms [132-312]       136ms [124-152]
+ *   with these  144ms [132-160]       132ms [124-152]
+ *
+ * CLS 0.000 on every one of the seventy-two loads, and the photograph is the
+ * candidate on every one of them. The corners cost nothing that can be told
+ * apart from the spread.
+ *
+ * The mask bleeds a little on three sides and not at the head, which is the
+ * same asymmetry the letters' masks have for a different reason: below 700px
+ * these blocks stand on the figure's dissolved foot, and a sheet of paper
+ * reaching up out of the block would cover a sliver of the photograph that
+ * the ramp in `Hero.module.css` has not finished dissolving. At the foot and
+ * the two inline edges there is nothing but ground to overhang.
+ */
+.stage[data-arrived] [data-hero-corners] > * {
+  position: relative;
+}
+
+.stage[data-arrived] [data-hero-corners] > *::after {
+  content: "";
+  position: absolute;
+  inset: 0 -0.12em -0.2em;
+  background: rgb(var(--paper));
+  transform-origin: 50% 100%;
+}
+
+.stage[data-arrived~="text"] [data-hero-corners] > * {
+  animation: plate-corner 460ms var(--ease-settle) 180ms both;
+}
+
+.stage[data-arrived~="text"] [data-hero-corners] > *::after {
+  animation: plate-corner-mask 460ms var(--ease-settle) 180ms both;
+}
+
+@keyframes plate-corner {
+  from { transform: translateY(14px); }
+  to   { transform: none; }
+}
+
+@keyframes plate-corner-mask {
+  from { transform: scaleY(1); }
+  to   { transform: scaleY(0); }
+}
+
 /* ── the ways out ─────────────────────────────────────────────────────── */
 
 /*
@@ -336,14 +433,16 @@
   .stage[data-arrived] [data-letter],
   .stage[data-arrived] [data-portrait] img,
   .stage[data-arrived] h1 + p,
-  .stage[data-arrived] ul {
+  .stage[data-arrived] ul,
+  .stage[data-arrived] [data-hero-corners] > * {
     animation: none;
     opacity: 1;
     transform: none;
   }
 
   .stage[data-arrived] [data-letter]::after,
-  .stage[data-arrived] .mask {
+  .stage[data-arrived] .mask,
+  .stage[data-arrived] [data-hero-corners] > *::after {
     animation: none;
     transform: scaleY(0);
   }
@@ -352,14 +451,16 @@
 :global(body.motion-paused) .stage[data-arrived] [data-letter],
 :global(body.motion-paused) .stage[data-arrived] [data-portrait] img,
 :global(body.motion-paused) .stage[data-arrived] h1 + p,
-:global(body.motion-paused) .stage[data-arrived] ul {
+:global(body.motion-paused) .stage[data-arrived] ul,
+:global(body.motion-paused) .stage[data-arrived] [data-hero-corners] > * {
   animation: none;
   opacity: 1;
   transform: none;
 }
 
 :global(body.motion-paused) .stage[data-arrived] [data-letter]::after,
-:global(body.motion-paused) .stage[data-arrived] .mask {
+:global(body.motion-paused) .stage[data-arrived] .mask,
+:global(body.motion-paused) .stage[data-arrived] [data-hero-corners] > *::after {
   animation: none;
   transform: scaleY(0);
 }

@@ -55,9 +55,17 @@
  * term lets a tall window push the name down a touch without ever centring
  * it; the floor and ceiling keep a short window from taking the air back or a
  * very tall one from reintroducing the centred layout by the back door.
+ *
+ * It is a named custom property and not a bare value because one other rule
+ * needs the same number: the corner frame in `HeroCorners.module.css` has to
+ * find the bottom of the *first screen*, and the only way to get there from
+ * inside the composition is to know how far down the composition starts. Two
+ * copies of this clamp would be two answers to where the type begins.
  */
 .screen {
-  padding-block-start: clamp(6rem, 5rem + 4vh, 8.5rem);
+  --screen-pad: clamp(6rem, 5rem + 4vh, 8.5rem);
+
+  padding-block-start: var(--screen-pad);
 }
 
 /*
@@ -327,5 +335,120 @@
    */
   .portrait {
     width: min(92vw, 22rem);
+  }
+}
+
+/*
+ * The two title treatments' own rungs — issue #100.
+ *
+ * WHY THESE ARE HERE AND NOT IN THE TYPE RAMP
+ * -------------------------------------------
+ * Same reason the rung below 700px is here, and the note above it still
+ * stands: the step belongs in `text-hero` in `tailwind.config.ts`, and until
+ * that ramp grows a step this file is where the plate's own size is stated.
+ * There is a second reason now. `text-hero` is also what the ask plate's
+ * heading is set at — `Contact.tsx` renders `scale="plate"` — so moving the
+ * ceiling in the ramp would resize a section this change has no business
+ * touching. A rule scoped to the hero's own composition cannot.
+ *
+ * HOW THE TWO SIZES WERE DERIVED
+ * ------------------------------
+ * Re-measured in the DOM of the built page, both display faces at their own
+ * shipped tracking, by the method in `scripts/fontwork/strings.mjs`. The two
+ * values the ramp was cut for reproduce exactly, which is what makes the new
+ * ones comparable:
+ *
+ *                          BRISKMAN  YEHUDA BRISKMAN  PORTFOLIO  EXPLORE MY  EXPLORE MY PORTFOLIO
+ *   Audiowide -0.030em      5.91em       10.90em        6.41em     7.29em          13.98em
+ *   Audiowide -0.020em      5.99em       11.05em        6.50em     7.39em          14.18em
+ *   Rubik Glitch -0.030em   5.35em        9.67em        5.69em     6.31em          12.13em
+ *   Rubik Glitch -0.020em   5.43em        9.82em        5.78em     6.41em          12.33em
+ *
+ * Rubik Glitch is the Hebrew display face and is narrower than Audiowide at
+ * every one of these strings, so English is the binding case and both rungs
+ * are derived against Audiowide. That is the opposite of an accident: it is
+ * why one number can serve both languages.
+ *
+ * The budget. The hero sets inside `.wrap`, which is `max-width: 72rem` with a
+ * gutter of `clamp(1.25rem, 3vw, 2.5rem)` — so 1072px of content at any
+ * window from 1232px up, and `vw - 2 * gutter` below that. At 390px, which is
+ * where the gutter is at its 20px floor, it is 350px.
+ *
+ * PORTFOLIO — one word, so it cannot break
+ * ----------------------------------------
+ * `splitName` makes every word one inline-block, and this string is one word,
+ * so it is one line at every width the site has. That is most of what makes
+ * it read as very large: the name it replaces sets as two lines at 1440 and
+ * at 390 both.
+ *
+ * At 6.41em the overflow point in the 1072px column is 167px, or 10.45rem. So
+ * the ceiling is 10rem, which is the largest round rung with air at both
+ * sides: 1026px of ink and 23px of margin either way, from 1455px up where
+ * the rem term is the one that binds. At 1440x900 itself `11vw` is still the
+ * smallest of the three, the name sets at 158.4px, and the line measures
+ * 1017px in the DOM against the 1072px column — 95% of it, which is a long
+ * way past where the ramp's own note says a headline should sit and exactly
+ * what "very large" was asked for. Dropping this back to 9rem returns the
+ * line to 923px and 86% if the owner wants the air back; it is one number.
+ * `21vh` still binds below a 755px-tall window, so the cap that keeps the
+ * name from eating a short screen is untouched.
+ *
+ * At the phone rung the arithmetic is the other way round. `9.5vw` was derived
+ * for a 15-character name that had to be allowed to break; 9 characters that
+ * cannot break have room to spare — 237px of the 348px column measured at
+ * 390px, which is a title with a quarter of the line empty. 348px / 6.50em
+ * (the head tracking this rung takes) is 53.5px, so `12.5vw` sets 48.8px at
+ * 390px and the line measures 317px in the DOM, 91% of the column. The floor
+ * is 2.6rem rather than something tidier because 320px is the narrowest
+ * screen this has to survive: 278px of content there, measured, and
+ * 2.6rem x 6.50em is 270px.
+ *
+ * EXPLORE MY PORTFOLIO — three words, and it breaks everywhere
+ * -----------------------------------------------------------
+ * `text-wrap: balance` has two breaks to choose between and takes the even
+ * one: EXPLORE MY / PORTFOLIO at 7.29em and 6.41em, rather than EXPLORE /
+ * MY PORTFOLIO at 5.31em and 8.38em. So the line to budget against is 7.29em,
+ * not the 13.98em of the whole string.
+ *
+ * At the existing 9rem ceiling that line would be 7.29em x 144px = 1050px in
+ * a 1072px column — 98%, running edge to edge, which is precisely the setting
+ * the ramp's own note says it exists to avoid. "A little less large" is the
+ * correction the string is asking for: 8.25rem is 132px, and the longest line
+ * then measures 963px in the DOM, 90% of the column, which is where the other
+ * display sizes on this site sit.
+ *
+ * On a phone the same line governs at 7.39em: 348px / 7.39em is 47.1px, and
+ * `10.8vw` sets 42.1px at 390px for a line measured at 312px. Three lines
+ * would allow 53px — PORTFOLIO alone is the limit then — but three lines of
+ * title on an 844px screen is 116px of row 1, and row 1 is what the figure's
+ * track is subtracted from.
+ */
+
+[data-title="portfolio"] .plate h1 {
+  font-size: min(11vw, 21vh, 10rem);
+}
+
+[data-title="explore"] .plate h1 {
+  font-size: min(11vw, 21vh, 8.25rem);
+}
+
+@media (max-width: 699px) {
+  /*
+   * Both take the head tracking rather than the display tracking, for the
+   * reason the rung above states: `--track-display` is a correction for type
+   * above roughly 56px, and applied to 42-49px it stops correcting and starts
+   * closing the counters. The widths above are quoted at both trackings so
+   * this choice can be checked rather than taken on trust.
+   */
+  [data-title="portfolio"] .plate h1 {
+    font-size: clamp(2.6rem, 12.5vw, 4.6rem);
+    letter-spacing: var(--track-head);
+    line-height: 0.92;
+  }
+
+  [data-title="explore"] .plate h1 {
+    font-size: clamp(2.2rem, 10.8vw, 3.9rem);
+    letter-spacing: var(--track-head);
+    line-height: 0.92;
   }
 }

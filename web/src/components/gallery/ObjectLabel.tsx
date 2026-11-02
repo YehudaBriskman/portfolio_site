@@ -138,7 +138,7 @@ export default function ObjectLabel({
   return (
     <div className={`${styles.label} ${styles[scale]} ${className}`}>
       <Name
-        className={`${styles.name} ${nameSize}`}
+        className={`${styles.name} ${nameSize} ${splitName ? styles.split : ""}`}
         /* The one string, stated once, for the one consumer that reads a
            heading as a label rather than as a box of text. Absent when the
            name is a single text node, because an `aria-label` that repeats

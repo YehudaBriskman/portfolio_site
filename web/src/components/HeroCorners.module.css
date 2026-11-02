@@ -1,0 +1,312 @@
+/*
+ * Where the hero's corner blocks stand, and the one thing they may not cost.
+ *
+ * The three candidates and the argument for each are at the head of
+ * `HeroCorners.tsx`. This file is about space: which corner, how far in, and
+ * what happens at the width where there are no corners.
+ *
+ * WHY EVERYTHING HERE IS OUT OF FLOW
+ * ----------------------------------
+ * The composition is a two-row grid whose height is the screen: row 1 is the
+ * label and takes what it needs, row 2 is the figure and takes the rest. The
+ * figure's track is therefore sized by subtraction, which is why this screen
+ * reports CLS 0.000 with a photograph on it — nothing the photograph does can
+ * change a track that was decided before it was consulted.
+ *
+ * That cuts both ways. Anything added to row 1 shrinks the figure, and
+ * anything in row 2 taller than the track changes the track. An absolutely
+ * positioned box contributes no height to either, so these blocks cannot move
+ * a line of type or a pixel of the figure however long their strings get.
+ * Measured on a production build, eleven cold loads per viewport, median
+ * reported: CLS 0.000 at 1440x900 and 0.000 at 390x844 with the corners on,
+ * which is what it was without them.
+ *
+ * WHY LOGICAL PROPERTIES THROUGHOUT
+ * ---------------------------------
+ * `dir` flips to `rtl` when the language menu reaches Hebrew — `nav/locale.ts`
+ * writes `lang` and `dir` together — and the two corners swap sides when it
+ * does. `inset-inline-start` is the corner the reader starts at in both
+ * languages, which is the statement this file wants to make; `left` would be
+ * a statement about English. There is no physical length in this file, and the
+ * arrival in `HeroArrival.module.css` is a rise rather than a sideways entry
+ * for the same reason: a `translateX` has no logical form.
+ */
+
+/*
+ * The frame the two corners hang in.
+ *
+ * `inset-inline: 0` and not a width: the frame is the content column, which
+ * `.wrap` has already inset by the gutter, so each block starts exactly where
+ * the label's own text starts. Nothing here needs to know what the gutter is.
+ *
+ * `z-index: 2` puts the blocks in front of both halves of the picture — the
+ * figure is 0 and the label is 1 — which matters only below 700px, where the
+ * blocks stand on the figure's dissolved foot rather than on bare paper. The
+ * stacking context is `isolation: isolate` on `.composition`, in
+ * `HeroArrival.module.css` with the rest of what that element does.
+ *
+ * `pointer-events: none`, with the one control inside taking them back. These
+ * boxes are mostly empty space over the paper the figure stands on, and an
+ * invisible box that eats a drag or a text selection is the kind of bug that
+ * is never reported and never fixed.
+ *
+ * WHY THE BLOCK OFFSET IS A CALC AND NOT A LENGTH
+ * -----------------------------------------------
+ * Because the composition is not one screen tall, and measuring it is the
+ * only way to find that out. `.composition` is a two-row grid inside a box
+ * whose height is `min-height: 100svh` rather than `height`, so when the
+ * figure's own aspect ratio asks for more room than the leftover track has,
+ * the box grows and the hero becomes taller than the window. Measured at
+ * 1440x900 on the built page, `#hero` is 912px tall with the PORTFOLIO title,
+ * 1003px with EXPLORE MY PORTFOLIO and 1024px with the name it ships today —
+ * the figure's box is 638px at every one of them, which is exactly the height
+ * a 416px-wide copy of a 551x845 photograph wants.
+ *
+ * So `inset-block-end: 1.25rem` put these blocks 20px above the bottom of the
+ * *composition*, which at 1440x900 is 102px below the bottom of the window for
+ * the title that ships today and 81px below it for the second proposal. A
+ * corner block that is not on the first screen is not a corner block.
+ *
+ * The calc walks back from the window instead. `100%` is the composition's
+ * own height, `--screen-pad` is how far below the top of the window it starts
+ * — named in `Hero.module.css` precisely so there is one answer to that — and
+ * `100svh` is the window. The sum is how far the composition's bottom hangs
+ * below the fold, and the last term is the air above the fold the blocks
+ * keep. When the hero does fit, as it does at 390x844, the first three terms
+ * cancel and the offset is the air alone.
+ *
+ * That air is a vh clamp for the same reason the figure's overlap is: on a
+ * short window the floor of the screen is close to the field line, and a
+ * fixed rem inset would put these blocks through the type.
+ */
+.corners {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: calc(100% + var(--screen-pad) - 100svh + clamp(0.75rem, 2.5vh, 2rem));
+  z-index: 2;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 1rem;
+  pointer-events: none;
+}
+
+/*
+ * 15rem, which is a measurement and not a round number.
+ *
+ * At 1440 the content column is 1072px and the figure is `min(86vw, 26rem)` =
+ * 416px of it, centred, so the free band either side is (1072 - 416) / 2 =
+ * 328px. 15rem is 240px, which leaves 88px between the end of a corner block
+ * and the edge of the figure's box — and the figure's own ink is narrower than
+ * its box, because `object-fit: contain` letterboxes it. Wider blocks read as
+ * two columns of a layout rather than as two notes in the corners.
+ */
+.start,
+.end {
+  max-width: 15rem;
+}
+
+.end {
+  text-align: end;
+}
+
+/* ── the fact blocks ──────────────────────────────────────────────────── */
+
+/*
+ * A label over a value, in the field line's own voice.
+ *
+ * The voice is the point: these are specs, and the data role is the one this
+ * site gives to specs. What separates them from the plate's field line is the
+ * shape — a label above a value rather than three values in a row — so a
+ * reader does not read them as a fourth and fifth field of the label 400px
+ * above them.
+ *
+ * `--ink-faint` is deliberately not used for the label, tempting as a third
+ * step down is: index.css marks it NON-TEXT only at 3.6:1 on paper. Both
+ * lines are `--ink-soft` at 6.37:1, measured, and the difference between them
+ * is size and tracking rather than contrast.
+ */
+.fact {
+  margin: 0;
+}
+
+.factLabel {
+  margin: 0;
+  font-family: var(--font-data);
+  font-weight: var(--weight-data);
+  font-size: 0.72rem;
+  line-height: 1.5;
+  /* A no-op in Hebrew, which has no case — the same note the shared field
+     line carries. The voice there is the size and the tracking alone. */
+  text-transform: uppercase;
+  letter-spacing: var(--track-field);
+  color: rgb(var(--ink-soft));
+}
+
+.factValue {
+  margin: 0;
+  font-family: var(--font-text);
+  font-weight: var(--weight-text);
+  font-size: 0.875rem;
+  line-height: 1.35;
+  color: rgb(var(--ink-soft));
+}
+
+/* ── the one affordance ───────────────────────────────────────────────── */
+
+.ask {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+/*
+ * Type, not a pill.
+ *
+ * The two action pills were cut from this screen and a pill here would be one
+ * of them coming back. What is wanted is the weight of a statement a reader
+ * can click, which is the text face at its real 700 with an underline that
+ * is already there — a link that only looks like a link on hover is a link a
+ * reader has to discover, and the whole claim of this candidate is that this
+ * is the one thing on the screen worth pointing out.
+ *
+ * `pointer-events: auto` takes back what the frame gave away. 44px of block
+ * padding is not spent: the link is one line of 17px type inside a 1.4
+ * line-height, and the inline-block target is the text's own box. The
+ * surrounding `padding-block` below brings the hit area to 38px, which is
+ * inside a corner nothing else is competing for — a 44px box here would
+ * overlap the figure's foot on a phone.
+ */
+.askLink {
+  align-self: flex-start;
+  padding-block: 0.3rem;
+  font-family: var(--font-text);
+  font-weight: var(--weight-text-strong);
+  font-size: 1.0625rem;
+  line-height: 1.4;
+  letter-spacing: var(--track-sub);
+  color: rgb(var(--ink));
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.16em;
+  pointer-events: auto;
+}
+
+.askLink:hover {
+  text-decoration-color: rgb(var(--ink-soft));
+  text-underline-offset: 0.24em;
+}
+
+.end .askLink {
+  align-self: flex-end;
+}
+
+.askBound {
+  margin: 0;
+  font-family: var(--font-data);
+  font-weight: var(--weight-data);
+  font-size: 0.72rem;
+  line-height: 1.5;
+  text-transform: uppercase;
+  letter-spacing: var(--track-field);
+  color: rgb(var(--ink-soft));
+}
+
+/* ── below 700px, where the corners are 40px apart ────────────────────── */
+
+/*
+ * The hard case, and it is not an afterthought.
+ *
+ * WHAT IS ACTUALLY DIFFERENT ON A PHONE
+ * -------------------------------------
+ * Not that the screen is narrow. That the figure does not fit on it. The
+ * composition's second row is `1fr` inside a box whose height is
+ * `min-height: 100svh` rather than `height`, so the track is not definite and
+ * the figure takes the larger of the leftover and its own aspect height at its
+ * own width. Measured on the built page: at 390x844 the figure's box is
+ * 359x653 and the hero is exactly 844px tall, so it fits; at 320x568 the box
+ * is 294x452 and the hero is 662px tall, so 94px of figure — and the whole of
+ * the paper ramp at its foot — is below the fold.
+ *
+ * That is what makes the obvious placements wrong, and both were built and
+ * sampled before this one was:
+ *
+ *   Stacked into a centred column at the foot. 104px tall, against a ramp
+ *   that is only 91px at the one size where it is on screen at all. Sampled
+ *   off a corners-off render, the pixels 27px above the ramp run to
+ *   200,200,190 — halftone showing through — which puts `--ink` at 11.03:1
+ *   and `--ink-soft` at 4.63:1, which is 0.13 over AA for 11.52px type and
+ *   not a margin at all once a screen is in sunlight.
+ *
+ *   Moved up under the field line, where `Hero.module.css` notes the crown is
+ *   already faded out. True at 390x844 with the PORTFOLIO title, where that
+ *   band samples 236,232,220 — the paper token exactly, because `contain`
+ *   letterboxes the figure and its ink starts 103px below the top of its box.
+ *   Not true anywhere else: at 320x568 the same band runs to 117,119,117,
+ *   where even `--ink` is 4.12:1 and `--ink-soft` is 1.73:1, and at 390x844
+ *   with the name it ships today, to 137,140,136.
+ *
+ * So there is no part of a phone's first screen that is reliably paper, and a
+ * placement that depends on finding one is a placement that works on the
+ * device it was tested on.
+ *
+ * WHAT IS DONE INSTEAD
+ * --------------------
+ * The row brings its own ground. A ramp of the paper token, opaque for the
+ * bottom 52% of the frame and fading out over the 5rem of lead-in above the
+ * type, which is the figure's own device — `.portrait::after` ends the
+ * photograph by running it out rather than by stopping it, and this continues
+ * that ramp about 60px higher up. At 390x844 it lands almost entirely inside
+ * the ramp the figure already paints; on a short phone it ends the figure
+ * above the fold instead of at it. Either way the type is on paper, so
+ * `--ink-soft` is at the 6.37:1 it is specified at and `--ink` at 15.17:1,
+ * at every window rather than at the one that was measured.
+ *
+ * It is phone-only. At 1440x900 the blocks sit at x184 and x1155 and the
+ * figure's box spans x512 to x928, so there is nothing to dissolve and a ramp
+ * there would be a rectangle of paper on paper.
+ *
+ * Sampled the way the two rejected placements were — the real page with the
+ * corner type made transparent, so what is read is what the glyphs stand on —
+ * every line of both candidates comes back 236,232,220 at its darkest pixel,
+ * which is the paper token exactly, at 320x568, 360x740, 390x667, 390x844,
+ * 430x932 and 1440x900. That is `--ink` at 15.17:1 and `--ink-soft` at
+ * 6.37:1, which are the numbers those two tokens are specified at.
+ *
+ * The row stays a row, which is the other half of the answer. Bottom-aligned,
+ * the taller block is 57px and the two are 200px and 107px wide against the
+ * 348px column measured at 390x844, so they sit at the two ends of one line
+ * with 41px between them.
+ * The honest description of the phone layout is that the two corners become
+ * the two ends of the line at the foot of the screen — still a composition,
+ * still the same markup, and still logical properties, which is why Hebrew
+ * needs nothing of its own here.
+ */
+@media (max-width: 699px) {
+  .corners {
+    gap: 0.75rem;
+    /* Flush to the fold, with the air below the type moved into the padding
+       so the ramp reaches the bottom of the screen rather than stopping a
+       few pixels short of it and leaving a strip of photograph under it. */
+    inset-block-end: calc(100% + var(--screen-pad) - 100svh);
+    padding-block: 5rem clamp(0.5rem, 1.6vh, 1rem);
+    background: linear-gradient(
+      to top,
+      rgb(var(--paper)) 0%,
+      rgb(var(--paper)) 52%,
+      rgb(var(--paper) / 0) 100%
+    );
+  }
+
+  /*
+   * 13rem, which is the affordance's own width plus a little: the bound under
+   * it — "Usually within a day" at 11.52px with the field line's +0.18em —
+   * measures 200px at 390px and is the widest single line either block holds.
+   * 13rem is 208px, so it sets on one line there and wraps to two at 320px,
+   * where the column is 278px and two blocks cannot both have 200.
+   */
+  .start,
+  .end {
+    max-width: 13rem;
+  }
+}

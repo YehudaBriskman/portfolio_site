@@ -2,7 +2,9 @@ import ObjectLabel from "@/components/gallery/ObjectLabel";
 import type { LabelField } from "@/components/gallery/objectLabel";
 import { useStagedArrival, type ArrivalStage } from "@/components/motion/useStagedArrival";
 import { projects } from "@/data/projects";
-import { plate } from "@/data/site";
+import { plate, plateTitles } from "@/data/site";
+import HeroCorners from "@/components/HeroCorners";
+import { heroTitle } from "@/components/heroFirstScreen";
 import styles from "@/components/Hero.module.css";
 import arrival from "@/components/HeroArrival.module.css";
 import "@/components/hero-chrome.css";
@@ -16,17 +18,62 @@ import "@/components/hero-chrome.css";
  * collection starts at the top of the page — object one already in view,
  * already labelled, with no separate title treatment — and the hero world is
  * typographic, where type is the imagery and scale contrast does every job a
- * photograph would have done. The resolution is this:
+ * photograph would have done. The resolution was this:
  *
  *     the name is object zero, labelled in exactly the same schema as the work.
  *
  * A museum does not open with a slogan. It opens with a plate by the door, set
- * in the same type as every label inside, telling you whose collection this is.
- * So this file renders no label of its own: it hands three strings to the same
- * `ObjectLabel` the projects and the notes go through, at the one scale that is
- * allowed to be bigger. There is no variant prop to reach for and that absence
- * is the point — the first exception granted to one section is the moment the
- * page becomes a grid of unrelated things again.
+ * in the same type as every label inside. So this file renders no label of its
+ * own: it hands three strings to the same `ObjectLabel` the projects and the
+ * notes go through, at the one scale that is allowed to be bigger. There is no
+ * variant prop to reach for and that absence is the point — the first
+ * exception granted to one section is the moment the page becomes a grid of
+ * unrelated things again.
+ *
+ * WHAT ISSUE #100 CHANGES ABOUT THAT SENTENCE, AND WHAT IT DOES NOT
+ * -----------------------------------------------------------------
+ * The owner's direction is that the `h1` should say PORTFOLIO, set very
+ * large, or EXPLORE MY PORTFOLIO a little less large. Both are built; the
+ * default here is the first; `?title=explore` and `?title=name` render the
+ * other two. See `heroFirstScreen.ts` for why that is a URL parameter and
+ * when it should stop being one.
+ *
+ * The half of the sentence above that survives is the half that was doing the
+ * work. The collection still names itself through the same `ObjectLabel`, in
+ * the same three-part schema, at the same one scale allowed to be bigger, with
+ * no variant prop — every word of that is still true and is still the reason
+ * this file has no label of its own.
+ *
+ * The half that does not survive is "the name". PORTFOLIO is not a name, it is
+ * a category: the plate by the door stops saying whose collection this is and
+ * says that this is a collection. That is a weaker thing to say and it is also
+ * a more useful one — a stranger who lands here learns what the site is before
+ * they learn who it is by — and it is the owner's call to make. What this file
+ * may not do is keep asserting the old sentence while rendering the new one.
+ *
+ * So object zero is still object zero and is still labelled in the work's own
+ * schema. What it is the label *of* has changed: it labels the collection
+ * rather than the person, and the person moved one line down. Which is the
+ * next note.
+ *
+ * WHERE THE NAME WENT
+ * -------------------
+ * Into the fact line, as its subject: "Yehuda Briskman — full-stack, mostly
+ * frontend". The `h1` is the page's accessible name and its strongest on-page
+ * signal, so the name could not simply leave it; the label schema's second
+ * slot is "what the thing is", which is exactly the slot a category label
+ * leaves unanswered. The string is assembled in `data/site.ts` from
+ * `plate.name`, so the name is still written in the repository exactly once.
+ *
+ * The cost, stated rather than hidden: the name goes from display type — 158px
+ * at 1440x900 with PORTFOLIO, 132px with EXPLORE MY PORTFOLIO, both measured
+ * in the DOM — to 18px of the accent face. What makes that survivable is that
+ * the `h1` was never the only place it lived — `index.html` carries it in
+ * `<title>`, in `meta[name=author]`, in `og:title`, in `og:site_name`, in
+ * `twitter:title` and twice in the JSON-LD graph. Every one of those was read
+ * against these strings and none had to change, because none of them ever said
+ * "portfolio": they say who the site is by, which is the thing the `h1` has
+ * stopped saying.
  *
  * What the screen used to carry, and why none of it is here
  * ---------------------------------------------------------
@@ -40,6 +87,15 @@ import "@/components/hero-chrome.css";
  * the first screen had, and it was a button telling a reader to do the thing
  * they are already doing. The chrome keeps the three destinations the site
  * actually has, /projects among them, and scrolling needs no affordance.
+ *
+ * That argument is still the test anything in the lower corners has to pass,
+ * and issue #101 asks what belongs there. `HeroCorners` builds three
+ * candidates and carries the argument for and against each at its head; the
+ * default is one quiet affordance pointing at the ask plate, which is the one
+ * destination the bar deliberately does not carry and the one thing a reader
+ * cannot reach by the gesture they are already making. `?corners=facts` and
+ * `?corners=bare` render the other two, and "bare" is a real candidate rather
+ * than a placeholder for not having decided.
  *
  * The portrait, and the argument it had to answer
  * -----------------------------------------------
@@ -169,6 +225,17 @@ const ARRIVAL_STAGES: readonly ArrivalStage[] = [
   { name: "text" },
 ];
 
+/*
+ * The two strings the plate sets, for whichever title treatment is in force.
+ *
+ * `name` is what `main` ships and is kept renderable so the two proposals can
+ * be compared against the thing they would replace rather than only against
+ * each other. It reads `plate` directly; the other two read `plateTitles`,
+ * which assembles its fact line from `plate.name` — so the name is written in
+ * the repository exactly once whichever of the three is chosen.
+ */
+const TITLE = heroTitle === "name" ? { name: plate.name, fact: plate.fact } : plateTitles[heroTitle];
+
 export default function Hero() {
   const arrived = useStagedArrival({ stages: ARRIVAL_STAGES, publishAs: "heroArrived" });
 
@@ -211,7 +278,17 @@ export default function Hero() {
           label. `data-arrived` is the sequence's clock and it is here
           because it has to be an ancestor of both halves.
         */}
-        <div className={`${styles.composition} ${arrival.stage}`} data-arrived={arrived}>
+        {/*
+          `data-title` is the hook the type rung in `Hero.module.css` selects
+          on. It is on this element and not on the label because the rung is a
+          fact about the composition — which string is standing in front of the
+          photograph — and `ObjectLabel` takes a `className` and no attributes.
+        */}
+        <div
+          className={`${styles.composition} ${arrival.stage}`}
+          data-arrived={arrived}
+          data-title={heroTitle}
+        >
           {/*
             The figure, out of flow and underneath the type.
 
@@ -277,13 +354,21 @@ export default function Hero() {
           <ObjectLabel
             scale="plate"
             nameAs="h1"
-            name={plate.name}
-            fact={plate.fact}
+            name={TITLE.name}
+            fact={TITLE.fact}
             fields={PLATE_FIELDS}
             exposeFieldKinds
             splitName
             className={styles.plate}
           />
+
+          {/*
+            The lower corners — issue #101. Out of flow against this box, so
+            they are in neither of the two grid rows and cannot shrink the
+            figure's track or move a line of type. The argument for each
+            candidate is at the head of `HeroCorners.tsx`.
+          */}
+          <HeroCorners />
         </div>
       </div>
     </section>
