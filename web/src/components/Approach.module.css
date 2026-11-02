@@ -1,481 +1,278 @@
 /*
- * Prose on paper. The spacing is the design.
+ * How I work — prose on paper, a rail of small drawings beside it (#157).
  *
- * There is nothing drawn in this file — no border, no surface, no shadow, no
- * colour that is not ink. Every rule here is a margin, a measure or an
- * arrival, because this beat exists to be the quiet before the peak and the
- * only way to make three unrelated claims read as three separate things,
- * without a card around each of them, is to get the air between them right.
- *
- * The second half of the file is the beat's device, `flow`, and the one thing
- * worth knowing before reading it is that the spacing above is what makes the
- * motion legible: three gestures that differ by 14px say nothing at all if the
- * things they move are not already clearly three separate things.
+ * Still nothing drawn around anything: no border, no surface, no shadow. The
+ * spacing is the design, and the only ink that is not type is the figures.
  */
 
 /*
- * One column, 62ch.
+ * THE READING SIZE, AND THE MEASURE RE-DERIVED FOR IT
+ * ---------------------------------------------------
+ * The prose was set at the page's body size, 19px, in a 62ch column. It now
+ * runs from 1.25rem on a phone (21.25px under the phone root's 106.25%) to
+ * 1.375rem — 22px — from about 1280px up: a step up the page's own ramp, not
+ * a new size.
  *
- * `--measure` is the site's reading width and it resolves against this
- * element's own font size, so the column is 62 characters of the page's body
- * setting rather than 62 of whatever the last thing set. The previous version
- * used `max-w-2xl` — 42rem, a number with no relationship to the type in it.
+ * 62ch was chosen for 19px. Kept in `ch` at 22px it would grow with the type
+ * to about 760px of line, and count the same 62 characters at a size where
+ * the eye needs fewer per line, because each one is bigger and the return
+ * sweep is longer. So the measure is re-derived for the new size: 54ch, which
+ * measured in Chromium at 1440px is 652px of line holding a median of 61
+ * characters of this copy (the `ch` of this face is wider than its average
+ * letter, which is why the count of real characters is above the `ch`
+ * figure). That is the middle of the 45-75 range for the larger size, the
+ * column is about the physical width the old one was, and the leading drops
+ * from 1.7 to 1.62 because leading runs with the measure and the measure is
+ * now shorter in characters.
+ *
+ * `--read` is set on the wall and the measure is in `ch` of that size, so
+ * the column is 54 characters of the reading setting, wherever it is read.
  */
 .wall {
-  max-width: var(--measure);
-  /*
-   * The column is centred; nothing inside it is.
-   *
-   * This is the only thing #85 changed in this beat, and it is the smaller
-   * half of a decision whose larger half was to leave everything else here
-   * alone. The four `text-section` heads on this page are centred now, and
-   * this section's head is not: it is set at `text-sub` for the reason given
-   * at the top of `Approach.tsx` — a wall text in a gallery is titled, not
-   * billboarded — and a 24px head centred over four paragraphs would be a
-   * quiet head pretending to be a loud one. The paragraphs are not centred
-   * either, and never may be: a centred paragraph has a ragged left edge, and
-   * the left edge is what the eye returns to on every line.
-   *
-   * What was left was a 62ch column hung on the start edge of a 72rem wrap,
-   * with the whole far half of the page empty, between two sections that had
-   * both just moved to the centre line. Centring the box fixes that without
-   * touching a single `text-align`: the column moves under the page's centre
-   * and every line inside it still starts flush on the column's own start
-   * edge. `margin-inline`, so it is the start edge in Hebrew too.
-   *
-   * One line, and reverting it is one line, if the owner would rather this
-   * beat kept the page's left margin.
-   */
+  --read: clamp(1.1875rem, 0.95rem + 0.6vw, 1.375rem);
+  --measure-read: 42ch;
+  /* The rail: the labels and the figures. 7.5rem holds a 96-unit figure at
+     120px, where a 2-unit stroke is a 2.5px line — the weight of the claim's
+     stems beside it — and the longest label ("Outside work") on one line in
+     the field register. */
+  --rail: 7.5rem;
+  --rail-gap: clamp(1.5rem, 3vw, 2.75rem);
+
+  font-size: var(--read);
+  max-width: calc(var(--rail) + var(--rail-gap) + var(--measure-read));
+  /* The column is centred; nothing inside it is — a centred paragraph has a
+     ragged start edge, and the start edge is what the eye returns to. */
   margin-inline: auto;
 }
 
 /*
- * The section head keeps `text-sub`'s leading and tracking and overrides only
- * its floor, because that floor is wrong here.
+ * One rail, one column, from 48rem up.
  *
- * `text-sub` bottoms out at 1.25rem, which on a 390px screen is 20px — one
- * pixel above the page's body copy and, measured on the phone, *smaller* than
- * the 21px claims below it. A section head that is outranked by the headings
- * inside it is not a quiet head, it is a broken one. 1.5rem is the smallest
- * floor that keeps the three steps in order: 24px head, 21px claim, 19px body.
- *
- * Written as `.wall .head` and not `.head`, which is not tidiness: a module
- * class and a Tailwind utility are both one class, so the winner is whichever
- * stylesheet was injected last — and that is `index.css`, measured. A single
- * class here loses to `text-sub` silently and the floor never applies.
+ * Every label and figure in the first track, every line of prose in the
+ * second, so the whole section has one start edge for its text. Each beat
+ * repeats the template rather than using `subgrid`, which says the same thing
+ * and keeps the phone layout (no grid at all) one rule away.
  */
-.wall .head {
-  margin: 0;
-  font-size: clamp(1.5rem, 3.2vw, 2rem);
-}
+@media (min-width: 48rem) {
+  .top,
+  .beat,
+  .principle {
+    display: grid;
+    grid-template-columns: var(--rail) minmax(0, 1fr);
+    column-gap: var(--rail-gap);
+    align-items: start;
+  }
 
-.intro {
-  /*
-   * Smaller than the air above a principle, on purpose. The standfirst belongs
-   * to the heading above it; the principles are each their own boundary.
-   */
-  margin-top: clamp(1.5rem, 3vw, 2rem);
-}
-
-.intro .prose + .prose {
-  margin-top: 1.15rem;
+  .top > * {
+    grid-column: 2;
+  }
 }
 
 /*
- * The space above a heading is bigger than the space below it.
+ * The head. A step below the other section heads, still — a wall text is
+ * titled, not billboarded — but a step above where it was, so it keeps its
+ * rank over 32px claims: 34px on a phone, 48px on a desktop.
  *
- * This is the most common spacing error there is and it is worth being
- * explicit about why it is an error. A heading and its paragraph are one
- * object; the gap belongs to the *boundary* between that object and the one
- * before it. Put the big gap under the heading instead and every heading
- * attaches itself to the paragraph above — which is the wrong paragraph — and
- * the page reads as one list of items rather than as three separate things
- * said one after another. Measured, the ratio runs from 44px over 10px on a
- * phone to 68px over 10px on a desktop, and the first principle takes the same
- * gap as the other two so the run has no seam in it.
+ * Written as `.wall .head` because a single module class loses to `text-sub`
+ * in `index.css`, which is injected later — measured, when this was a single
+ * class the floor silently never applied.
  */
+.wall .head {
+  margin: 0;
+  font-size: clamp(2rem, 1.2rem + 2.6vw, 3rem);
+  line-height: 1.04;
+}
+
+/*
+ * The vertical rhythm.
+ *
+ * Three distances, each bigger than the last, and each a boundary of a
+ * different size: between two paragraphs of one section (0.85em — a breath),
+ * between two intro sections (3.5-5rem — a new thing said), and above a
+ * principle (5.5-8.5rem — a new claim, with a drawing that needs the air
+ * above it to be read as belonging to what follows). The old build ran 1.15rem
+ * and 2.75-4.25rem; the issue asked for more room and this is all of it.
+ */
+.beat {
+  margin-top: clamp(3.5rem, 7vw, 5rem);
+}
+
+.top + .beat {
+  margin-top: clamp(3rem, 6vw, 4.5rem);
+}
+
 .principle {
-  margin-top: clamp(2.75rem, 6vw, 4.25rem);
+  margin-top: clamp(5.5rem, 11vw, 8.5rem);
+}
+
+.text {
+  min-width: 0;
+  max-width: var(--measure-read);
+}
+
+.prose {
+  margin: 0;
+  line-height: 1.62;
+  color: rgb(var(--ink-soft));
+  text-wrap: pretty;
+}
+
+.prose + .prose {
+  margin-top: 0.85em;
+}
+
+/* The label sits on the first line of its section on a wide window — its
+   cap height near the prose's — and above it on a phone. */
+.label {
+  margin: 0 0 0.75rem;
+}
+
+@media (min-width: 48rem) {
+  .label {
+    margin: 0;
+    padding-top: 0.55em;
+  }
 }
 
 .claim {
-  margin: 0;
-  /*
-   * The display family, held down to a sentence.
-   *
-   * This used to be the same face at wdth 112 rather than the poster's 125,
-   * because this is a sentence that happens to be a heading and the poster
-   * width would read as a small headline shouting on a quiet page. The
-   * display role has no width axis any more — none of the six faces has one
-   * — so size and tracking are the whole of the hierarchy it has against
-   * 19px of body copy, and at this step they are enough.
-   */
-  /* The text face at its real 700, not the display face. The display role is
-     drawn for the section register and up; this is set below 32px, where a
-     wide geometric face stops being a quieter headline and starts being a
-     slower read. Same division as `.display` / `.display-tight` in
-     index.css. */
+  margin: 0 0 0.6em;
   font-family: var(--font-text);
   font-weight: var(--weight-text-strong);
-  font-size: clamp(1.3125rem, 2.2vw, 1.5rem);
-  line-height: 1.22;
+  font-size: clamp(1.5rem, 1.1rem + 1.2vw, 2rem);
+  line-height: 1.18;
   letter-spacing: var(--track-sub);
   color: rgb(var(--ink));
   text-wrap: balance;
 }
 
+/* ------------------------------------------------------- the figures -- */
+
 /*
- * The body, in the page's own size rather than a step down.
+ * `draw`: each figure's strokes drawn by the reader's scroll.
  *
- * This copy used to be `text-lg` — 18px, under the 19px the page sets its
- * running text at, which is the quiet way a section tells a reader it is less
- * important than the rest of the page. On the screen whose entire job is to be
- * read as prose, it is the one place that cannot afford to be smaller. 1.7
- * leading because the measure is long; leading runs with measure.
+ * THE CLOCK
+ * The principle names it (`--approach-fig`), with the pen's own insets, so the
+ * drawing and the writing beside it run on the same window: the clock starts
+ * when the principle's top reaches 85% of the window's height and ends when
+ * its bottom reaches 45%. The figure takes the first half of that, in five
+ * steps of 10%, and is finished while the lines beside it are still being
+ * written — the picture is the summary, and it should be complete by the time
+ * the reader is reading the detail.
+ *
+ * Measured at 1440×900: the principle is about 330px tall, so the clock is
+ * 690px of scroll and the figure is drawn over the first 345 of them, between
+ * its top at 85% and 47% of the window. At 390×844 it is drawn over about
+ * 450px and finished with its top near a third of the way down.
+ *
+ * THE STROKE
+ * `pathLength={1}` on every mark, so `stroke-dasharray: 1 1` is one dash as
+ * long as the mark and one gap as long again, and `stroke-dashoffset` from 1
+ * to 0 draws any of them from its start. The first 1% of the keyframe also
+ * lifts the stroke's opacity, because a zero-length dash with a round cap is
+ * still a dot — without it every undrawn mark would show its start point.
+ *
+ * Linear: the scroll is the easing. Fill `both`: before its range a stroke is
+ * undrawn and after it drawn, which is what makes it reverse exactly on the
+ * way up — nothing here has a state of its own beyond the scroll position.
  */
-.prose {
-  margin: 0;
-  line-height: 1.7;
-  color: rgb(var(--ink-soft));
-  text-wrap: pretty;
+.principle {
+  view-timeline: --approach-fig block;
+  view-timeline-inset: 45vh 15vh;
 }
 
-.detail {
-  /* The short side of that ratio. Close enough to the claim that the two are
-     plainly one object, and not so close that the heading sits on it. */
-  margin-top: 0.6rem;
+.figure {
+  display: block;
+  width: 4.75rem;
+  height: 4.75rem;
+  margin-bottom: 1.25rem;
+  overflow: visible;
 }
 
-/* ------------------------------------------------------ the arrival -- */
-
-/*
- * `flow`: each item arrives on its own crossing, and three of them arrive
- * differently because they say different things.
- *
- * The gate is `components/motion/Flow.tsx` and it contributes exactly one
- * attribute per item — `data-flow="wait"` once it has been armed,
- * `data-flow="in"` once that item is 12% inside the viewport, and nothing at
- * all if the observer never ran. Everything below is this file's, because the
- * per-principle differences are an argument about the prose and belong next to
- * it.
- *
- * Why the resting state is the finished state
- * -------------------------------------------
- * `Rise` holds its children at `opacity: 0` from the stylesheet and needs
- * JavaScript to lift the floor, which is why it also needs a deadline in case
- * the observer never speaks: the hidden state is the default and the finished
- * page is the exception. This file is the other way round. Nothing here is
- * hidden unless `data-flow="wait"` says so, and only the gate can say it — so
- * no React, no observer, a silent observer or an exception before the effect
- * runs all land on the same place, which is the section, readable, with no
- * motion in it. `SpecPlate` makes the same argument about its figures: the
- * resting value is the true one.
- *
- * It is also why `animation-fill-mode` is `backwards` and not `both`
- * everywhere below. Backwards covers the stagger — without it an item would
- * paint its finished state for the length of its delay and then jump to
- * nothing — and the absence of a forwards fill is what hands each element back
- * to its resting value the instant the animation is over. That matters most
- * for the printed treatment: a forwards fill would leave an `inset()` clip
- * established on that block for the rest of the page's life, cropping anything
- * that legitimately overhangs it.
- *
- * The numbers are §5's and they are not tuned here
- * -----------------------------------------------
- * 14px of travel, ~620ms, `--ease-settle`, a 60ms step in reading order
- * capped at 300ms, fired once, triggered 12% inside the viewport. What varies
- * per principle is which 14px, in which direction, in how many moves, or
- * whether anything moves at all — never how far or how long, because louder
- * or slower is the one way this beat could start competing with the pile.
- */
-
-/*
- * One rule applies the animation to an item, one applies it to an item's
- * parts, and the treatments are custom properties rather than more selectors.
- *
- * This is not a style preference. The two cancels at the foot of this file
- * have to beat every animated declaration in it, and a per-treatment selector
- * like `.wall > .fromEmpty[data-flow="in"] > *` outranks any cancel written
- * against `[data-flow]` alone — so the cancel would lose to the thing it is
- * cancelling, under reduced motion, silently. Keeping every `animation-*`
- * declaration at exactly these two selectors means the exits are written
- * against the same shape and win on source order, which is a property of the
- * file that can be read rather than a specificity sum that has to be
- * recomputed every time a treatment is added.
- */
-.wall {
-  --flow-dur: 620ms;
-}
-
-/*
- * The hidden state, and the only thing in this file that hides anything.
- *
- * `opacity` alone, even for the printed treatment whose own arrival is a clip:
- * at the instant an item flips from `wait` to `in` this rule stops matching
- * and the animation's first frame takes over in the same frame, so one
- * mechanism covers the wait and the keyframes cover the arrival. A clip here
- * as well would be two hidden states to keep in step for no gain.
- */
-.wall > [data-flow="wait"] {
-  opacity: 0;
-}
-
-/*
- * The step between items, in reading order.
- *
- * Each item has its own trigger, so on a phone — where the section is three
- * screens tall — the cadence comes from the scroll and this does nothing. It
- * is for the ordinary desktop case, where four or five items are inside the
- * viewport at the same instant and would otherwise land as one block, which is
- * the coarse-grained arrival this beat was rebuilt to stop doing.
- *
- * 60ms is the middle of §5's 30-80ms, and it stops growing at 300ms for the
- * reason given there: past that a list has a queue rather than a reveal. It is
- * a custom property and not an `animation-delay` because two of the three
- * treatments animate an item's *parts*, and `animation-delay` does not
- * inherit — a custom property does, so an item's position in the beat reaches
- * its children without being restated.
- */
-.wall > * { --flow-step: 0ms; }
-.wall > *:nth-child(2) { --flow-step: 60ms; }
-.wall > *:nth-child(3) { --flow-step: 120ms; }
-.wall > *:nth-child(4) { --flow-step: 180ms; }
-.wall > *:nth-child(5) { --flow-step: 240ms; }
-.wall > *:nth-child(n + 6) { --flow-step: 300ms; }
-
-/*
- * The family's gesture, on the item.
- *
- * `--flow-item` defaults to the plain rise, so an item added to this beat
- * without a treatment arrives correctly rather than appearing instantly: the
- * default has to be the right answer, because the next person to add a
- * paragraph here will not read this file first.
- */
-.wall > [data-flow="in"] {
-  animation-name: var(--flow-item, flow-rise);
-  animation-duration: var(--flow-dur);
-  animation-timing-function: var(--flow-ease, var(--ease-settle));
-  animation-fill-mode: backwards;
-  animation-delay: var(--flow-step, 0ms);
-}
-
-/*
- * The same gesture, on an item's parts, for the two treatments that work on a
- * claim and its detail rather than on the block holding both.
- *
- * `--flow-child` defaults to `none`, so the heading group and the standfirst —
- * which arrive as single objects — have nothing applied to their children.
- */
-.wall > [data-flow="in"] > * {
-  animation-name: var(--flow-child, none);
-  animation-duration: var(--flow-dur);
-  animation-timing-function: var(--flow-child-ease, var(--ease-settle));
-  animation-fill-mode: backwards;
-  animation-delay: var(--flow-step, 0ms);
-}
-
-/* ---- Install from empty, every time ---------------------------------- */
-
-/*
- * The rise arrives in three equal moves rather than one, because this install
- * is never resumed: it is run again from an empty directory on every pull
- * request and twice more each night, and three discrete runs is what that
- * looks like at 14px.
- *
- * Opacity and travel are two animations rather than one so that only the
- * travel is stepped. Stepping both would strobe the type — three discrete
- * opacities is a flicker, and a flicker on body copy is the loading glitch §5
- * is about, not a device. The ink comes up smoothly on the page's own curve
- * and the position ratchets underneath it, which reads as a mechanism
- * repeating rather than as dropped frames.
- *
- * `steps(3, jump-end)` holds 14px, 9.33px and 4.67px for ~207ms each and lands
- * on the resting value at the end. Three was not chosen for the look of it; it
- * is the number of times that repository installs itself from nothing before
- * anything is allowed to merge.
- *
- * Both halves carry the same delay, so the claim and its detail come up
- * together with no stagger between them. That is the second half of the same
- * argument: a clone into an empty directory has no partial state for a second
- * step to arrive after, so this is the one item in the beat with no internal
- * order at all.
- */
-.wall > .fromEmpty {
-  --flow-item: none;
-}
-
-.wall > .fromEmpty > * {
-  --flow-child: flow-ink, flow-ratchet;
-  --flow-child-ease: var(--ease-settle), steps(3, jump-end);
-}
-
-/* ---- A check that cannot fail is not a check -------------------------- */
-
-/*
- * The two halves arrive from opposite directions and meet on the line between
- * them, because a check only means anything if the other outcome was
- * reachable — so the claim has to be able to come down.
- *
- * Everything else on this page rises. This is the one element allowed to
- * arrive against that grain, and it is 14px of it: at a glance it is the same
- * arrival as the rest of the beat, and to anyone watching it is two possible
- * outcomes resolving onto one line. The two halves share a delay rather than
- * following §5's reading-order step, because a meeting that happens 60ms apart
- * is not a meeting; the step between this item and the one above it still
- * applies, so the beat keeps its order.
- *
- * The claim starts 14px above its resting position, which is inside the
- * 44-68px of air above every principle, so nothing it passes through is
- * occupied and nothing below it moves.
- */
-.wall > .meet {
-  --flow-item: none;
-}
-
-.wall > .meet > .claim { --flow-child: flow-fall; }
-.wall > .meet > .detail { --flow-child: flow-rise; }
-
-/* ---- Generated, never committed -------------------------------------- */
-
-/*
- * Nothing moves and nothing fades. The block is already in its final place and
- * the only thing the arrival changes is whether it has been printed, which is
- * the difference between a value being written and a value being shown.
- *
- * A hard edge rather than a fade, for the reason `InkWipe` argues at length: a
- * soft boundary says the compositor is behind, and an edge crossing the box
- * says something was laid down on the paper. It is level rather than raked,
- * which is the one place this parts company with the wipes on the cards — a
- * rake is their signature and reusing it here would be the same device twice,
- * and on four lines of prose a level edge reads as a line of type being set.
- *
- * `linear`, and it is the only animation in this file that is not on
- * `--ease-settle`. A print head travels at one speed; an edge that decelerated
- * would be an object settling into place, which is exactly what the other two
- * treatments are and what this one is deliberately not. The last line would
- * also spend 400ms of a 620ms run creeping into view, and a slow crawl is the
- * one way this treatment could start asking to be watched.
- *
- * The clip keeps 0.3em of slack on the three edges it is not working on, so
- * descenders and a focus ring are never shaved; the bottom edge does all the
- * work. Because the fill mode is `backwards` and not `both`, the clip is gone
- * — back to the resting `none` — the moment the run ends, rather than left
- * established on the block for the rest of the page's life.
- */
-.wall > .printed {
-  --flow-item: flow-print;
-  --flow-ease: linear;
-}
-
-/*
- * The five keyframes are `:global`, and this one is a trap rather than a
- * preference.
- *
- * CSS Modules renames `@keyframes` along with the classes, and rewrites the
- * `animation-name` declarations that refer to them — but it can only rewrite a
- * name it can *see*. Every name above is reached through a custom property, so
- * what the scoper sees is `var(--flow-item, flow-rise)` and a declaration of
- * `--flow-child`, neither of which it treats as an animation name. Left
- * scoped, the keyframes ship as `_flow-rise_1clta_1` while the rules ask for
- * `flow-rise`, and the result is the signature failure of this whole area:
- * every animation resolves to nothing, in silence, with no error and no
- * warning anywhere. It was caught by reading the built stylesheet, which is
- * the only place it is visible.
- *
- * Declaring them global is the fix rather than abandoning the custom
- * properties, because the properties are what keep every `animation-*`
- * declaration in this file at two selectors and therefore keep the exits at
- * the foot of it winning. `flow-` is the namespace — `index.css` already
- * carries global `enter`, `exit` and `fade-up`, and every other module here
- * keeps its own prefix — so the names cannot collide with another beat's.
- */
-@keyframes :global(flow-rise) {
-  from {
-    opacity: 0;
-    /* 14px, as a length and not a rem: it is a distance the eye measures on
-       the screen, not a size that should grow with the type. */
-    transform: translateY(14px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
+@media (min-width: 48rem) {
+  .figure {
+    width: var(--rail);
+    height: var(--rail);
+    margin: 0;
   }
 }
 
-/* The same arrival, from the other side. */
-@keyframes :global(flow-fall) {
-  from {
-    opacity: 0;
-    transform: translateY(-14px);
+.figure [data-step] {
+  fill: none;
+  stroke: rgb(var(--ink-soft));
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1 1;
+  stroke-dashoffset: 0;
+
+  animation: approach-draw linear both;
+  animation-timeline: --approach-fig;
+}
+
+/* The one accent per figure — what fills the empty box, the pass, the stop —
+   in the site's one signal ink. Contrast on paper is in the ledger. */
+.figure .fill {
+  stroke: rgb(var(--signal));
+}
+
+.figure [data-step="1"] { animation-range: cover 0% cover 10%; }
+.figure [data-step="2"] { animation-range: cover 10% cover 20%; }
+.figure [data-step="3"] { animation-range: cover 20% cover 30%; }
+.figure [data-step="4"] { animation-range: cover 30% cover 40%; }
+.figure [data-step="5"] { animation-range: cover 40% cover 50%; }
+
+@keyframes approach-draw {
+  0% {
+    stroke-dashoffset: 1;
+    stroke-opacity: 0;
   }
-  to {
-    opacity: 1;
-    transform: none;
+  1% {
+    stroke-opacity: 1;
   }
-}
-
-/* The two halves of the stepped rise, kept apart so only one of them steps. */
-@keyframes :global(flow-ink) {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes :global(flow-ratchet) {
-  from { transform: translateY(14px); }
-  to { transform: none; }
-}
-
-@keyframes :global(flow-print) {
-  from { clip-path: inset(-0.3em -0.5em 100% -0.5em); }
-  to { clip-path: inset(-0.3em -0.5em -0.3em -0.5em); }
+  100% {
+    stroke-dashoffset: 0;
+    stroke-opacity: 1;
+  }
 }
 
 /*
- * The ways out, and all of them land on finished, readable prose.
+ * The three off-switches, and print, all land on the drawn figure.
  *
- * There is no `@supports not (animation-timeline: view())` block here, and
- * that is a decision rather than an omission. §4 is explicit about it: a
- * component with no scroll timeline in it has no feature for a browser to be
- * missing, and adding the block anyway is cargo cult. Nothing in this file
- * names a timeline — the gate is an observer precisely because body copy must
- * not re-hide itself on the way back up — so an engine without
- * `animation-timeline` runs this beat exactly as a current one does. The third
- * exit this beat does have is the structural one described at the top: an
- * observer that never speaks, or never exists, leaves the resting state on the
- * page, and the resting state is the finished state.
+ * The resting declarations above are the finished state (offset 0, full
+ * opacity), so cancelling the animation is the whole of each exit; the
+ * values are restated anyway so the exit reads as complete on its own. They
+ * are last in the file and at the same specificity as the rule they cancel,
+ * so source order is what makes them win.
  *
- * Both blocks restate the arrived values instead of leaning on the global
- * `animation-duration: 0.01ms !important` in `index.css` and
- * `nav/motion-paused.css`. That rule does land on the final frame of a
- * time-driven animation, which is the right trick — but the floor above it is
- * not an animation, and a reader who has asked for no motion should not be
- * waiting on an IntersectionObserver for permission to read a paragraph. So
- * the animations are cancelled outright and the hidden state is cancelled with
- * them.
- *
- * Pause can be toggled mid-scroll, while an item is half arrived. Every
- * declaration here is the finished value, so a half-arrived paragraph snaps to
- * arrived and never to hidden — which is the trap §4 exists to name.
- *
- * These two blocks are last in the file on purpose. They are written at the
- * same specificity as the rules they cancel, so source order is what makes
- * them win, and moving them up would quietly re-enable the motion they are
- * here to switch off.
+ * Pause can be toggled mid-scroll with a figure half drawn; every exit is the
+ * finished value, so it snaps to drawn, never to blank.
  */
-@media (prefers-reduced-motion: reduce) {
-  .wall > [data-flow],
-  .wall > [data-flow] > * {
+@supports not (animation-timeline: view()) {
+  .figure [data-step] {
     animation: none;
-    opacity: 1;
-    transform: none;
-    clip-path: none;
+    stroke-dashoffset: 0;
+    stroke-opacity: 1;
   }
 }
 
-:global(body.motion-paused) .wall > [data-flow],
-:global(body.motion-paused) .wall > [data-flow] > * {
+@media (prefers-reduced-motion: reduce) {
+  .figure [data-step] {
+    animation: none;
+    stroke-dashoffset: 0;
+    stroke-opacity: 1;
+  }
+}
+
+:global(body.motion-paused) .figure [data-step] {
   animation: none;
-  opacity: 1;
-  transform: none;
-  clip-path: none;
+  stroke-dashoffset: 0;
+  stroke-opacity: 1;
+}
+
+@media print {
+  .figure [data-step] {
+    animation: none;
+    stroke-dashoffset: 0;
+    stroke-opacity: 1;
+  }
 }
