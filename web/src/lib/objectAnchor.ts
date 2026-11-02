@@ -16,8 +16,8 @@
  * removing the only caller is exactly when a promise like this rots unnoticed:
  * a cold load of `/#object-windom` settles at scrollY 1076 and `/#object-bothy`
  * at 1508, each with its own card on screen. And the elements carrying them
- * are load-bearing in the pile for a second reason entirely — see `.marker` in
- * `projects/ProjectPile.module.css`, where the dwell between arrivals is keyed
+ * are load-bearing in the run for a second reason entirely — see `.mark` in
+ * `projects/ProjectRun.module.css`, where the dwell between arrivals is keyed
  * off them, so deleting the now-uncalled anchors would take 1404px of the
  * peak's scroll budget with them.
  *
