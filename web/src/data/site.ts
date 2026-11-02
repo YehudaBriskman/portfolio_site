@@ -29,10 +29,12 @@ export const contact = {
  * nobody notices.
  */
 export const plate = {
-  /** The collection's own name. Set uppercase by the plate scale, not here. */
+  /**
+   * The owner's name, written once. It is not the plate's `h1` — that is
+   * `plateTitle` below — but the subject of its fact line, and the string
+   * every other place on the site that names him is checked against.
+   */
   name: "Yehuda Briskman",
-  /** One line of fact: what the thing is, in the fewest words that are true. */
-  fact: "Full-stack, mostly frontend",
   /**
    * Where the work is done, and the country rather than the city on purpose:
    * `contact.location` already says Tel Aviv for anyone who needs it, and a
@@ -53,82 +55,90 @@ export const plate = {
    * this one does not, so it is the one to re-ask about rather than trust.
    */
   shippingSince: 2021,
-  /*
-   * What the owner does now, for the corner that states it.
-   *
-   * Authored rather than derived, because nothing in the repository knows it.
-   *
-   * THE EMPLOYER IS NEVER NAMED ON THIS SITE. The owner's current employer is
-   * not public information — not here, not in `about.intro`, not in the
-   * crawlable echo in `backend/src/routes/seo.route.ts`, not in a render under
-   * `docs/`. Say what the work is, never whose it is. This line used to name
-   * it and was removed for exactly that reason.
-   *
-   * Like `contact.replyWithin`, this is a fact with an expiry date: it has to
-   * be changed in one place when it stops being true, which is why it is in
-   * this file rather than typed into a component.
-   */
-  currently: "Products, end to end",
 };
 
 /*
- * The two title treatments issue #100 asks to choose between, and the thing
- * they displace.
+ * What the plate's `h1` says: PORTFOLIO, set very large — the owner's pick
+ * from issue #100, over EXPLORE MY PORTFOLIO and over the name `main` used
+ * to set there.
  *
- * `plate.name` above is still "Yehuda Briskman" and is still what `main`
- * ships. These are proposals: the owner's ask was that the `h1` becomes
- * PORTFOLIO set very large, or EXPLORE MY PORTFOLIO a little less large, and
- * both are built so the choice can be made from renders.
- *
- * WHAT CHANGES BESIDES THE STRING
+ * WHAT CHANGED BESIDES THE STRING
  * -------------------------------
- * The name leaves the `h1`, and the `h1` is the page's accessible name and
- * its strongest on-page signal. So each of these carries the name in its
- * fact line instead — the label schema's second slot, "what the thing is",
- * which is exactly the slot a category label needs filling in. Set in the
- * accent face at 18px rather than in display type at the 158px PORTFOLIO
- * measures at 1440x900, which is a real loss and is the cost of the trade
- * rather than a thing to hide.
+ * The name left the `h1`, and the `h1` is the page's accessible name and its
+ * strongest on-page signal. So the name is carried in the fact line instead —
+ * the label schema's second slot, "what the thing is", which is exactly the
+ * slot a category label leaves unanswered. Set in the accent face at 18px
+ * rather than in display type at the 158px PORTFOLIO measures at 1440x900,
+ * which is a real loss and is the cost of the trade rather than a thing to
+ * hide.
  *
  * It is not the only place the name lives, and that is what makes the trade
  * survivable: `index.html` carries it in `<title>`, in `meta[name=author]`,
  * in `og:title`, in `og:site_name`, in `twitter:title` and twice in the
- * JSON-LD graph, as the Person's `name` and the WebSite's. Every one of
- * those was checked against these strings and none of them had to move,
- * because none of them ever said "portfolio" — they say who the site is by.
+ * JSON-LD graph, as the Person's `name` and the WebSite's. None of those had
+ * to move, because none of them ever said "portfolio" — they say who the
+ * site is by.
  *
- * Cased here and uppercased by the plate scale, as `plate.name` is, so the
- * accessible name a screen reader announces is a sentence rather than a
- * shout.
+ * `name`: nine characters, one word, 6.41em in Audiowide at the display
+ * tracking — measured in the DOM, see the rung in `Hero.module.css`. One word
+ * cannot break, so it is one line at every width the site has, which is most
+ * of what makes it read as very large. Cased here and uppercased by the plate
+ * scale, so the accessible name a screen reader announces is a word rather
+ * than a shout.
+ *
+ * `fact`: the name and the field it works in, with the name first. An em dash
+ * and not a full stop, because this is one statement — who, then what —
+ * rather than two sentences in a slot the schema describes as "a sentence".
+ * Assembled from `plate.name`, so the name is written in this file once.
  */
-export type PlateTitle = { name: string; fact: string };
+export const plateTitle = {
+  name: "Portfolio",
+  fact: `${plate.name} — full-stack, mostly frontend`,
+} as const;
 
 /*
- * The name and the field it works in, one line, with the name first.
+ * What the light in the hero's end corner says, one phrase at a time.
  *
- * Shared by both options deliberately: the thing the `h1` stops saying is
- * the same thing in both cases, so the sentence that recovers it should not
- * differ between them. An em dash and not a full stop, because this is one
- * statement — who, then what — rather than two sentences in a slot the
- * schema describes as "a sentence".
+ * The owner's brief for that corner: "a modern light circle or something like
+ * that, maybe some nice comments like 'Technology'", in the voice of his
+ * GitHub profile README — "Full-Stack Engineer · Technical Lead · Product
+ * Builder", and its motto, "Build boldly. Question assumptions. Keep
+ * improving." These are that voice, cut to what fits beside a light.
+ *
+ * NOT A DATASHEET
+ * ---------------
+ * The corner used to carry a fact with a label over it. These are not facts
+ * and do not pretend to be: they are the README's asides, which is why they
+ * are set in the text face and the soft ink rather than in the field line's
+ * voice — a phrase dressed as a spec would be a sixth fact on a screen whose
+ * field line is capped at three.
+ *
+ * THE EMPLOYER IS NEVER NAMED ON THIS SITE. The owner's current employer is
+ * not public information — not here, not in `about.intro`, not in the
+ * crawlable echo in `backend/src/routes/seo.route.ts`, not in a render under
+ * `docs/`. Say what the work is, never whose it is. The corner these phrases
+ * replace once named it, which is how that rule came to be written.
+ *
+ * WHY THEY ARE SHORT
+ * ------------------
+ * At 320px the corner frame is 278px and the ask in the other corner needs
+ * 104px of it, so the longest phrase here sets the end block's width and has
+ * to leave the ask room: "Product builder" is about 115px in the text face at
+ * 0.875rem, and every phrase is held to roughly that. A longer one would not
+ * wrap — the phrases are `nowrap`, because a phrase that breaks while it
+ * fades reads as two — it would squeeze the ask instead. Re-shoot at 320
+ * after changing this list.
+ *
+ * The first phrase is the one shown when motion is off and before the hero
+ * has finished arriving, so it is the one that has to stand on its own.
  */
-const NAMED_FACT = `${plate.name} — full-stack, mostly frontend`;
-
-export const plateTitles: Record<"portfolio" | "explore", PlateTitle> = {
-  /*
-   * Nine characters, one word, 6.41em in Audiowide at the display tracking —
-   * re-measured in the DOM, see the rung in `Hero.module.css`. One word
-   * cannot break, so this is one line at every width the site has, which is
-   * most of what makes it read as "very large".
-   */
-  portfolio: { name: "Portfolio", fact: NAMED_FACT },
-  /*
-   * Twenty characters in three words, 13.98em on one line and 7.29em on its
-   * longest line when it breaks after "MY". It breaks at every width, which
-   * is why it is the option that is a little less large.
-   */
-  explore: { name: "Explore my portfolio", fact: NAMED_FACT },
-};
+export const heroPhrases = [
+  "Technology",
+  "Product builder",
+  "Build boldly",
+  "Applied AI",
+  "Keep improving",
+] as const;
 
 export const about = {
   heading: "How I work",

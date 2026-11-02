@@ -105,6 +105,7 @@ ledger is a page-level document and not a comment.
 | — | the dark ground | **drift** | the dark act is a gap between two sheets, with light behind it |
 | — | every section head | **shutter**, echoed | a section arrives the way the app did, at the scale of its name |
 | 0 | title plate | **staged assembly** | the collection names itself, in four gated moves |
+| — | the plate's end corner | **breath** | one small light is on, and says one thing at a time |
 | 1 | wall text | `flow` | the quiet before the peak |
 | 2 | **the pile** | `pin` | the work stacks up with weight |
 | 3 | the year | `scrub` | a year of work, raised off the page by the reader's own scroll |
@@ -112,7 +113,7 @@ ledger is a page-level document and not a comment.
 | 5 | specs | `count` | real numbers landing |
 | 6 | inquiry plate | `reveal` | the ask, as part of the collection |
 
-Nine families. No repeat in adjacent beats. The head row reuses the entry's family on purpose and is argued below. `pin` is spent once, on the peak,
+Ten families. No repeat in adjacent beats. The head row reuses the entry's family on purpose and is argued below. `pin` is spent once, on the peak,
 and `scrub` is spent once on beat 3 — the grammar bans a *second* scrub and
 has always allowed the first, which is the whole licence beat 3 has.
 
@@ -444,6 +445,31 @@ band and its gradient are both cancelled and what is left is the flat
 capsule. A skeleton that vanished under those conditions would leave the
 region with no height, which is the layout shift the device exists to
 prevent.
+
+**The breath row is not a beat either: it is the one thing on the page that
+loops while the reader does nothing, and the row is there so it stays the
+only one.** `HeroCorners.tsx` puts a 0.5rem lamp of `--signal` in the title
+plate's end corner, breathing over 6.4s with a ring leaving it once a breath,
+and beside it the owner's README asides — "Technology", "Build boldly" — one
+at a time, every 3.6s. A soft light that rises and falls means *this is on*.
+Nothing else on the site may say that with a loop, and this may not be
+borrowed for an attract loop on a control, a "new" badge, or a pulsing
+anything elsewhere; a second ambient loop on the page makes the first one
+wallpaper.
+
+It cannot compete with beat 0 because it waits for it: nothing in it moves
+until the staged assembly publishes its last token, and the lamp waits a
+further 1.2s for the corners to settle. It costs no page height and no scroll
+distance, being out of flow in a corner; it is three compositor-friendly
+animations (`transform`, `opacity`, `box-shadow` on an 8px disc) and no
+script — the rotation is one keyframe set offset per phrase, so there is no
+timer and no render per change. A screen reader hears one stable sentence of
+every phrase and the rotating stack is `aria-hidden`; nothing is `aria-live`.
+
+Its off state is the ordinary §4 shape: under reduced motion and Pause the
+lamp is lit and still and the first phrase is the corner's whole statement.
+It is time-driven, so it has no `@supports` block. Under `forced-colors` the
+lamp is removed, since a system colour would paint it in a hue nobody chose.
 
 **Beat 3 is not a second peak, and the test it had to pass is on paper
 rather than on taste.** It does not pin, so it buys no scroll distance beyond

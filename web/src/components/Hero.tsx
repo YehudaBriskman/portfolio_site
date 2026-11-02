@@ -2,9 +2,8 @@ import ObjectLabel from "@/components/gallery/ObjectLabel";
 import type { LabelField } from "@/components/gallery/objectLabel";
 import { useStagedArrival, type ArrivalStage } from "@/components/motion/useStagedArrival";
 import { projects } from "@/data/projects";
-import { plate, plateTitles } from "@/data/site";
+import { plate, plateTitle } from "@/data/site";
 import HeroCorners from "@/components/HeroCorners";
-import { heroTitle } from "@/components/heroFirstScreen";
 import styles from "@/components/Hero.module.css";
 import arrival from "@/components/HeroArrival.module.css";
 import "@/components/hero-chrome.css";
@@ -32,11 +31,10 @@ import "@/components/hero-chrome.css";
  *
  * WHAT ISSUE #100 CHANGES ABOUT THAT SENTENCE, AND WHAT IT DOES NOT
  * -----------------------------------------------------------------
- * The owner's direction is that the `h1` should say PORTFOLIO, set very
- * large, or EXPLORE MY PORTFOLIO a little less large. Both are built; the
- * default here is the first; `?title=explore` and `?title=name` render the
- * other two. See `heroFirstScreen.ts` for why that is a URL parameter and
- * when it should stop being one.
+ * The `h1` says PORTFOLIO, set very large. The owner was offered that and
+ * EXPLORE MY PORTFOLIO, both built and rendered against the name `main` set
+ * here before, and picked the first; the other two are gone rather than
+ * switched off.
  *
  * The half of the sentence above that survives is the half that was doing the
  * work. The collection still names itself through the same `ObjectLabel`, in
@@ -65,9 +63,8 @@ import "@/components/hero-chrome.css";
  * leaves unanswered. The string is assembled in `data/site.ts` from
  * `plate.name`, so the name is still written in the repository exactly once.
  *
- * The cost, stated rather than hidden: the name goes from display type — 158px
- * at 1440x900 with PORTFOLIO, 132px with EXPLORE MY PORTFOLIO, both measured
- * in the DOM — to 18px of the accent face. What makes that survivable is that
+ * The cost, stated rather than hidden: the name goes from display type — the
+ * h1 is 158px at 1440x900, measured in the DOM — to 18px of the accent face. What makes that survivable is that
  * the `h1` was never the only place it lived — `index.html` carries it in
  * `<title>`, in `meta[name=author]`, in `og:title`, in `og:site_name`, in
  * `twitter:title` and twice in the JSON-LD graph. Every one of those was read
@@ -89,13 +86,12 @@ import "@/components/hero-chrome.css";
  * actually has, /projects among them, and scrolling needs no affordance.
  *
  * That argument is still the test anything in the lower corners has to pass,
- * and issue #101 asks what belongs there. `HeroCorners` builds three
- * candidates and carries the argument for and against each at its head; the
- * default is one quiet affordance pointing at the ask plate, which is the one
- * destination the bar deliberately does not carry and the one thing a reader
- * cannot reach by the gesture they are already making. `?corners=facts` and
- * `?corners=bare` render the other two, and "bare" is a real candidate rather
- * than a placeholder for not having decided.
+ * and issue #101 asked what belongs there. The answer, picked by the owner
+ * from three that were built, is one quiet affordance pointing at the ask
+ * plate — the one destination the bar deliberately does not carry and the one
+ * thing a reader cannot reach by the gesture they are already making — and,
+ * in the other corner, a small light with the README's voice beside it.
+ * `HeroCorners` carries the argument for both at its head.
  *
  * The portrait, and the argument it had to answer
  * -----------------------------------------------
@@ -225,17 +221,6 @@ const ARRIVAL_STAGES: readonly ArrivalStage[] = [
   { name: "text" },
 ];
 
-/*
- * The two strings the plate sets, for whichever title treatment is in force.
- *
- * `name` is what `main` ships and is kept renderable so the two proposals can
- * be compared against the thing they would replace rather than only against
- * each other. It reads `plate` directly; the other two read `plateTitles`,
- * which assembles its fact line from `plate.name` — so the name is written in
- * the repository exactly once whichever of the three is chosen.
- */
-const TITLE = heroTitle === "name" ? { name: plate.name, fact: plate.fact } : plateTitles[heroTitle];
-
 export default function Hero() {
   const arrived = useStagedArrival({ stages: ARRIVAL_STAGES, publishAs: "heroArrived" });
 
@@ -278,17 +263,7 @@ export default function Hero() {
           label. `data-arrived` is the sequence's clock and it is here
           because it has to be an ancestor of both halves.
         */}
-        {/*
-          `data-title` is the hook the type rung in `Hero.module.css` selects
-          on. It is on this element and not on the label because the rung is a
-          fact about the composition — which string is standing in front of the
-          photograph — and `ObjectLabel` takes a `className` and no attributes.
-        */}
-        <div
-          className={`${styles.composition} ${arrival.stage}`}
-          data-arrived={arrived}
-          data-title={heroTitle}
-        >
+        <div className={`${styles.composition} ${arrival.stage}`} data-arrived={arrived}>
           {/*
             The figure, out of flow and underneath the type.
 
@@ -354,8 +329,8 @@ export default function Hero() {
           <ObjectLabel
             scale="plate"
             nameAs="h1"
-            name={TITLE.name}
-            fact={TITLE.fact}
+            name={plateTitle.name}
+            fact={plateTitle.fact}
             fields={PLATE_FIELDS}
             exposeFieldKinds
             splitName
