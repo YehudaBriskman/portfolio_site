@@ -30,6 +30,19 @@ RUN find /usr/share/nginx/html -type f \
 # only if asked: its helper returns early unless this is set.
 ENV NGINX_ENTRYPOINT_LOCAL_RESOLVERS=1
 ENV NGINX_ENVSUBST_FILTER=NGINX_
+# The API's host, and the default is the Compose/`docker run` case: on a
+# user-defined Docker network `api` is the service name and resolves as-is.
+#
+# In Kubernetes it must be the fully-qualified `api.<namespace>.svc.cluster.local`
+# and the web Deployment overrides it per namespace, because nginx's `resolver`
+# does not use /etc/resolv.conf's `search` list and a bare `api` is therefore
+# looked up as an absolute name with no record. The long explanation is on the
+# `set $api_upstream` line in nginx.conf.template.
+#
+# Declared here rather than left to envsubst's empty default on purpose: this
+# is the one place that can state a default at all, and an unset variable
+# survives substitution literally and stops nginx at startup.
+ENV NGINX_API_HOST=api
 COPY nginx.conf.template /etc/nginx/templates/default.conf.template
 # Not under /etc/nginx/templates and not under conf.d, on purpose. templates/
 # is envsubst's input and this file has no variables to substitute; conf.d/ is

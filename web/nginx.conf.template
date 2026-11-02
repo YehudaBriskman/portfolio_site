@@ -66,9 +66,44 @@ server {
   port_in_redirect off;
 
   # One name for the API, resolved per request. Declared here because the
-  # first location that uses it is the next one; every SEO route below reads
-  # the same variable.
-  set $api_upstream "api:5000";
+  # first location that uses it is the next one; all nine proxy_pass lines in
+  # this file — /api/, the four crawler files and the four rendered shells —
+  # read this one variable, so the host is stated once.
+  #
+  # The host is templated, and that is the whole repair for the preprod 502s.
+  #
+  # `resolver` above takes *nameservers* from /etc/resolv.conf and nothing
+  # else: nginx has no equivalent of libc's `search` list and never appends a
+  # domain. So it asked kube-dns for the bare name `api` as an absolute name,
+  # which has no record, and every /api/ request answered 502 with
+  #
+  #     api could not be resolved (3: Host not found)
+  #
+  # in the error log. A shell in the same pod resolves `api` perfectly well,
+  # which is exactly what made this read as "the API is down" rather than as a
+  # resolver problem — libc appends the search domains and nginx does not. The
+  # pod's list is
+  #
+  #     search preprod.svc.cluster.local svc.cluster.local cluster.local ...
+  #
+  # so inside the cluster the only name that resolves with no search list is
+  # the fully-qualified `api.<namespace>.svc.cluster.local`.
+  #
+  # That name cannot simply be written here: this one template also serves
+  # Docker Compose, where the host is the Compose service name `api` on a
+  # user-defined network and no domain is appended to anything. So the host
+  # arrives as a variable — defaulted to `api` by ENV in the Dockerfile, which
+  # is what Compose and a plain `docker run` get, and overridden per namespace
+  # by the web Deployment in the oci-free repository.
+  #
+  # NGINX_API_HOST and not API_HOST: NGINX_ENVSUBST_FILTER is pinned to NGINX_
+  # in the Dockerfile so that nginx's own $uri, $request_id and $api_upstream
+  # survive envsubst, and a name outside that prefix would be copied into the
+  # output untouched. Note what happens if it is ever unset at build time: it
+  # also survives literally, and nginx then refuses to start on an unknown
+  # variable rather than booting with an empty host. That is the loud failure,
+  # and it is the right one for the value every API call depends on.
+  set $api_upstream "${NGINX_API_HOST}:5000";
 
   location ^~ /api/ {
     # Through the variable, not the literal name.
