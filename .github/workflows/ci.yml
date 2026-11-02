@@ -243,14 +243,16 @@ jobs:
         run: pipx run --spec "zizmor==${ZIZMOR_VERSION}" zizmor --format github .
 
       # The Deploy job's rollback and readiness logic, against a fake kubectl
-      # and curl: it only ever runs for real on main, after a merge, which is
-      # the worst place to find out that a recovery path does not recover.
-      - name: Deploy scripts lint clean and their decisions hold
+      # and curl, and the publish path's proof that it pushes the scanned
+      # image, against a fake docker: both only ever run for real on main,
+      # after a merge, which is the worst place to find out they are wrong.
+      - name: Deploy and publish scripts lint clean and their decisions hold
         if: ${{ !cancelled() }}
         run: |
           set -Eeuo pipefail
           shellcheck .github/scripts/*.sh
           bash .github/scripts/deploy.test.sh
+          bash .github/scripts/candidate.test.sh
 
   frontend:
     name: Frontend
@@ -338,27 +340,157 @@ jobs:
       - run: npm test
       - run: npm run build
 
-  # A skipped matrix job never expands its matrix, so an interpolated job name
-  # is reported verbatim: every pull request showed two checks literally called
-  # "Publish ${{ matrix.name }} image". A static name lets Actions append the
-  # leg itself — "Publish image (web)" when it runs, "Publish image" when it
-  # does not — which is what the Scan image job below has been doing all along.
+  # A gate, and the one place an image is built (#204).
   #
-  # The matrix key is `image` rather than `name` for the same reason: a matrix
-  # dimension called `name` sitting next to a job field called `name` reads as
-  # though one sets the other.
+  # One candidate per component: built natively for linux/arm64 - the
+  # cluster's only node is an Ampere A1 - on an arm64 runner, written to a
+  # docker-archive, and scanned there. On main and tags that same archive is
+  # handed to Publish image, which pushes it without building anything. So
+  # the image that rolls out is the image Trivy judged, and Publish image
+  # proves it in its log (.github/scripts/candidate.sh).
+  #
+  # Until #204 this job built a separate amd64 image to scan, and Publish
+  # image built amd64 and arm64 again, arm64 under QEMU (~15 min on a cold
+  # cache): the bytes that shipped had never been scanned, and the scanned
+  # bytes never shipped. Nothing consumes amd64 (docs/ci-optimization-plan.md,
+  # "After P3"), so it is no longer built.
+  #
+  # No packages:write here: a pull request builds and scans and stops. The
+  # archive is uploaded only when classification selects Publish image,
+  # which is main and v* tags.
+  #
+  # The policy is two calls rather than one, because Trivy's single
+  # `ignore-unfixed` switch cannot say it:
+  #   - CRITICAL fails whether or not a fix exists. An unfixable CRITICAL is
+  #     a decision for a person, made in .trivyignore.yaml with a reason and
+  #     an expiry - not something the pipeline waves through on its own.
+  #   - HIGH fails only once upstream has shipped a fix. Before then there is
+  #     nothing to upgrade to, and failing would teach everyone to ignore red.
+  # Both read the same ignore file, so an accepted finding is accepted once.
+  # A scanner or vulnerability-database error exits non-zero as well, so it
+  # fails the leg rather than reading as a clean scan.
+  scan:
+    name: Scan image
+    runs-on: ubuntu-24.04-arm
+    # Was `needs: [dockerfiles]`: a Dockerfile that fails lint is not built.
+    needs: [static, classify]
+    # A leg per selected image: `[{image: web, context: web}, ...]`, the same
+    # keys as before, so a leg keeps its check name ("Scan image (web, web)").
+    # An empty matrix is an error rather than a skip, hence the `if`.
+    if: fromJSON(needs.classify.outputs.jobs).scan
+    # A cold layer cache rebuilds the image from scratch and Trivy may fetch
+    # its database. Native, so no emulation multiplier.
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    # Per image, because a matrix's legs share one set of job outputs: the
+    # web leg sets web_*, the api leg api_*, and neither overwrites the other.
+    outputs:
+      web_id: ${{ steps.candidate.outputs.web_id }}
+      web_sha256: ${{ steps.candidate.outputs.web_sha256 }}
+      api_id: ${{ steps.candidate.outputs.api_id }}
+      api_sha256: ${{ steps.candidate.outputs.api_sha256 }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.classify.outputs.scan_matrix) }}
+    env:
+      PLATFORM: linux/arm64
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: ${{ matrix.context }}
+          push: false
+          platforms: ${{ env.PLATFORM }}
+          # A docker-archive on disk: Trivy reads it, and Publish image loads
+          # and pushes it. Named as Deploy will set it.
+          outputs: type=docker,dest=${{ runner.temp }}/candidate.tar
+          # The sha only. `latest` used to move on every merge, and the k8s
+          # manifest carries `:latest` as the tag a fresh `kubectl apply`
+          # lands on - so an apply between releases would have deployed
+          # unreleased code without anybody choosing to. `latest` is written
+          # by Publish image on a tag, and means the last release.
+          tags: ${{ env.IMAGE_BASE }}/${{ matrix.image }}:${{ github.sha }}
+          # The commit, baked in so a running pod can say which build it is:
+          # the api on /health, web in <meta name="build-sha">. The Deploy
+          # job asserts on both after a rollout (#200).
+          build-args: BUILD_SHA=${{ github.sha }}
+          # The layer cache, one scope per component and platform. A pull
+          # request's writes land in its own ref's cache, which main never
+          # reads; a miss costs time, never a step.
+          cache-from: type=gha,scope=${{ matrix.image }}-arm64
+          cache-to: type=gha,scope=${{ matrix.image }}-arm64,mode=max
+
+      # The identity the scan vouches for: the image ID (its config digest)
+      # and the archive's sha256, checked for the right platform and printed.
+      - name: What was built
+        id: candidate
+        env:
+          PREFIX: ${{ matrix.image }}
+          CANDIDATE: ${{ runner.temp }}/candidate.tar
+        run: .github/scripts/candidate.sh describe "$CANDIDATE"
+
+      # Pinned to a commit, not the tag: trivy-action's tags were rewritten to
+      # malicious commits in March 2026, and a tag is only a name somebody can
+      # move. Dependabot updates a sha pin and keeps the version comment.
+      - name: CRITICAL, fixed or not
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          input: ${{ runner.temp }}/candidate.tar
+          scanners: vuln
+          severity: CRITICAL
+          ignore-unfixed: false
+          trivyignores: .trivyignore.yaml
+          exit-code: "1"
+      # Every input restated rather than left to defaults, so neither call's
+      # policy depends on what the other one set up in this job.
+      - name: HIGH, where a fix exists
+        if: success() || failure()
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          input: ${{ runner.temp }}/candidate.tar
+          scanners: vuln
+          severity: HIGH
+          ignore-unfixed: true
+          trivyignores: .trivyignore.yaml
+          exit-code: "1"
+          skip-setup-trivy: true
+
+      # Only once both scans passed (the implicit `success()`), and only for
+      # a run that publishes. A day is plenty: Publish image runs minutes
+      # later, and a redeploy uses the registry, never this artifact.
+      - name: Hand the scanned candidate to Publish image
+        if: fromJSON(needs.classify.outputs.jobs).images
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: candidate-${{ matrix.image }}
+          path: ${{ runner.temp }}/candidate.tar
+          if-no-files-found: error
+          retention-days: 1
+          # The layers are gzip already; zipping them again is time for nothing.
+          compression-level: 0
+
+  # A skipped matrix job never expands its matrix, so an interpolated job name
+  # is reported verbatim. A static name lets Actions append the leg itself -
+  # "Publish image (web)" when it runs, "Publish image" when it does not.
+  #
+  # Pushes the archive Scan image built and scanned, and builds nothing
+  # (#204). It needs the tests as well as the scan, so nothing is published
+  # for a commit whose tests failed, and it is the only job that holds
+  # packages:write.
   images:
     name: Publish image
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     needs: [static, frontend, backend, scan]
-    # Measured: median ~2.1 min, slowest 4.2, on a warm layer cache. A cold
-    # cache rebuilds the arm64 leg under emulation, `npm ci` included, which
-    # is far slower than anything in the sample - hence the margin.
-    timeout-minutes: 45
+    # A download, a load and a push of one image.
+    timeout-minutes: 15
     # Both: a main push so every commit is deployable the moment it is tagged,
     # and the tag itself so a tag on a commit that somehow never built still
-    # produces an image rather than a rollout that fails looking for one. The
-    # second build is almost entirely cache hits.
+    # produces an image rather than a rollout that fails looking for one.
     #
     # Both images, every time: Deploy sets web AND api to this sha, so an
     # api-only merge still needs a web image. That is why classification
@@ -371,46 +503,36 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - image: web
-            context: web
-          - image: api
-            context: backend
+        image: [web, api]
+    env:
+      PLATFORM: linux/arm64
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      # The cluster these images are for runs on an arm64 node. An amd64-only
-      # image cannot be pulled there at all, so a single-platform build would
-      # publish something nothing can run.
-      - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
-      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+          sparse-checkout: .github/scripts
+      # From this run only (the default run-id), and checked against the
+      # digest recorded at upload (`digest-mismatch` defaults to error).
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: candidate-${{ matrix.image }}
+          path: ${{ runner.temp }}/candidate
       - uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
-        with:
-          context: ${{ matrix.context }}
-          push: true
-          # arm64 is emulated here, which is slow. It is still the cheaper
-          # option than the current rollout, which builds on the node from
-          # whatever happens to be in a laptop's working directory.
-          platforms: linux/amd64,linux/arm64
-          # The sha only. `latest` used to move on every merge, and the k8s
-          # manifest carries `:latest` as the tag a fresh `kubectl apply`
-          # lands on — so an apply between releases would have deployed
-          # unreleased code without anybody choosing to. `latest` is now
-          # written by the release step below and means the last release.
-          tags: ${{ env.IMAGE_BASE }}/${{ matrix.image }}:${{ github.sha }}
-          # The commit, baked in so a running pod can say which build it is:
-          # the api on /health, web in <meta name="build-sha">. The Deploy
-          # job asserts on both after a rollout (#200).
-          build-args: BUILD_SHA=${{ github.sha }}
-          # Replaces kaniko's --cache=true; the layer cache lives in Actions.
-          cache-from: type=gha,scope=${{ matrix.image }}
-          cache-to: type=gha,scope=${{ matrix.image }},mode=max
+      # The archive must hash to what the scan recorded, and after the push
+      # the registry's manifest must carry the image ID the scan saw. Both
+      # IDs and the pushed digest are printed; a mismatch fails here, before
+      # Deploy can roll anything out.
+      - name: Push the scanned candidate, and prove it is what was scanned
+        env:
+          EXPECT_ID: ${{ needs.scan.outputs[format('{0}_id', matrix.image)] }}
+          EXPECT_SHA256: ${{ needs.scan.outputs[format('{0}_sha256', matrix.image)] }}
+          CANDIDATE: ${{ runner.temp }}/candidate/candidate.tar
+          REF: ${{ env.IMAGE_BASE }}/${{ matrix.image }}:${{ github.sha }}
+        run: .github/scripts/candidate.sh publish "$CANDIDATE" "$REF"
 
       # Aliases, not rebuilds. `imagetools create` writes new tags against the
       # manifest that already exists, so the release carries the exact bytes
@@ -431,90 +553,6 @@ jobs:
             --tag "$REPO:$RELEASE" \
             --tag "$REPO:latest" \
             "$REPO:$SHA"
-
-  # A gate, and a gate before anything is published.
-  #
-  # It used to run after `images`, on main only, with `continue-on-error` and
-  # `exit-code: "0"` - a report nobody had to read, about an image that was
-  # already pushed and already rolling out, since `deploy` never needed it. A
-  # scan that cannot fail and runs after the deploy has started is decoration.
-  #
-  # Now it runs on every pull request and push, builds the image locally and
-  # scans that, and `images` needs it: a finding stops the publish and so the
-  # rollout, and on a pull request it shows up before the merge rather than
-  # after it. amd64 only - the arm64 leg is the same Dockerfile over the same
-  # Alpine and npm package sets, and emulating it here doubles the wait to
-  # learn nothing new. It reads the Actions layer cache but does not write
-  # it: an amd64-only write to that scope would evict the arm64 layers the
-  # publish job relies on.
-  #
-  # The policy is two calls rather than one, because Trivy's single
-  # `ignore-unfixed` switch cannot say it:
-  #   - CRITICAL fails whether or not a fix exists. An unfixable CRITICAL is
-  #     a decision for a person, made in .trivyignore.yaml with a reason and
-  #     an expiry - not something the pipeline waves through on its own.
-  #   - HIGH fails only once upstream has shipped a fix. Before then there is
-  #     nothing to upgrade to, and failing would teach everyone to ignore red.
-  # Both read the same ignore file, so an accepted finding is accepted once.
-  scan:
-    name: Scan image
-    runs-on: ubuntu-latest
-    # Was `needs: [dockerfiles]`: a Dockerfile that fails lint is not built.
-    needs: [static, classify]
-    # A leg per selected image: `[{image: web, context: web}, ...]`, the same
-    # keys as before, so a leg keeps its check name ("Scan image (web, web)").
-    # An empty matrix is an error rather than a skip, hence the `if`.
-    if: fromJSON(needs.classify.outputs.jobs).scan
-    # Measured: median ~1.2 min, slowest 3.6. A cold layer cache rebuilds the
-    # image from scratch and Trivy may fetch its database.
-    timeout-minutes: 20
-    permissions:
-      contents: read
-    strategy:
-      fail-fast: false
-      matrix:
-        include: ${{ fromJSON(needs.classify.outputs.scan_matrix) }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
-      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
-        with:
-          context: ${{ matrix.context }}
-          push: false
-          load: true
-          platforms: linux/amd64
-          tags: scan/${{ matrix.image }}:${{ github.sha }}
-          # Same as the publish, so the scan judges the image that ships.
-          build-args: BUILD_SHA=${{ github.sha }}
-          cache-from: type=gha,scope=${{ matrix.image }}
-
-      # Pinned to a commit, not the tag: trivy-action's tags were rewritten to
-      # malicious commits in March 2026, and a tag is only a name somebody can
-      # move. Dependabot updates a sha pin and keeps the version comment.
-      - name: CRITICAL, fixed or not
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
-        with:
-          image-ref: scan/${{ matrix.image }}:${{ github.sha }}
-          scanners: vuln
-          severity: CRITICAL
-          ignore-unfixed: false
-          trivyignores: .trivyignore.yaml
-          exit-code: "1"
-      # Every input restated rather than left to defaults, so neither call's
-      # policy depends on what the other one set up in this job.
-      - name: HIGH, where a fix exists
-        if: success() || failure()
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
-        with:
-          image-ref: scan/${{ matrix.image }}:${{ github.sha }}
-          scanners: vuln
-          severity: HIGH
-          ignore-unfixed: true
-          trivyignores: .trivyignore.yaml
-          exit-code: "1"
-          skip-setup-trivy: true
 
   # ----------------------------------------------------------------- deploy --
   #
