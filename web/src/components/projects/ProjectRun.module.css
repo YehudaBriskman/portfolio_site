@@ -1,0 +1,533 @@
+/*
+ * The run. The one engineered moment on the page (#57).
+ *
+ * The projects arrive from the right and travel leftward along one snaking
+ * curve, each held at the angle of the curve where it stands, while the
+ * stage is pinned. The reader's scroll is the only clock: stop and the line
+ * stops, scroll up and it runs back along the same curve exactly.
+ *
+ * ── the mechanism ─────────────────────────────────────────────────────────
+ *
+ * STAGE + FRAME. `.stage` is static and as tall as the window plus the
+ * runway; `.frame` inside it is `position: sticky` and one window tall. The
+ * frame is held while the stage keeps travelling, which converts vertical
+ * scroll distance into lateral travel. The timeline is the stage's named
+ * view timeline (`--run`) and every card reads it by name — a `view()` on a
+ * card would resolve against the pinned frame and stall the moment it pins
+ * (motion contract §1).
+ *
+ * The scroll container underneath is the document. Wheel, momentum, touch,
+ * the scrollbar, Space, Page Down, Home and End all move the page, and the
+ * page is the clock, so every one of them drives the run without a line of
+ * script. The frame clips rather than scrolls, so there is no second scroller
+ * to fight the first, nothing to snap, and no horizontal overflow on the
+ * document.
+ *
+ * ONE LINE, N RANGES. Every card plays the same lap — on at the right edge,
+ * off past the left — and they differ only in *when*: card i's range starts
+ * `i × gap` later on the stage's `contain` range. A scroll-driven animation
+ * has no delay (§1), so the stagger is the ranges and nothing else. Three
+ * numbers set the shape and the rest is derived:
+ *
+ *   --run-lead  how much of the hold passes on an empty stage before the
+ *               first card enters (it enters against nothing, as the issue
+ *               asks)
+ *   --run-k     the spacing between neighbours, as a fraction of a lap —
+ *               wider on a phone, where a card is most of the window
+ *   --run-end   how far along its lap the *last* card is when the hold ends,
+ *               so the act exits on a line still in view and never on an
+ *               empty stage
+ *
+ *   lap = (1 − lead) / ((n − 1)·k + end)       gap = k · lap
+ *
+ * so four projects or eight share one runway shape; the runway itself grows
+ * with the count (`--run-per`) so a card's crossing is the same distance of
+ * scroll whatever n is.
+ *
+ * THE CURVE. Three animations, all on the same range, each on its own
+ * property so they compose instead of overriding:
+ *
+ *   slot `transform`  run-x     the travel: linear, right edge to past the left
+ *   slot `translate`  run-y     one full sine of height across the lap
+ *   card `rotate`     run-lean  the tangent of that sine, so a card leans
+ *                               with the road it is on
+ *
+ * The lean is on the card and not the slot for a reason that cost a reshoot:
+ * on one element `rotate` is applied *outside* `transform`, so a slot that
+ * leaned rotated its own 500px of travel with it and the whole line sagged
+ * by a hundred pixels at the middle. Both translations stay on the slot,
+ * where nothing rotates them.
+ *
+ * A sine from five keyframes is exact at the five and needs the right easing
+ * between: from a crossing to a crest the height eases out, from a crest to
+ * a crossing it eases in, and the lean — a cosine — does the opposite. That
+ * is why height and lean are two animations: the timing function lives on
+ * the keyframe, and the two need different ones at the same offsets.
+ *
+ * All three are compositor properties, as is the arrival below, so a frame of
+ * the run is a re-composite of four layers and no layout or paint.
+ *
+ * THE ARRIVAL, PER PROJECT. Carried from the pile unchanged
+ * (`pileArrival.ts`): the card's state picks a gesture — set down, swung
+ * open, settled from above — and its year how much of it is left. It plays on
+ * the link inside the slot over the first third of that card's lap, so it is
+ * finished by the time the card reaches the middle of the window.
+ *
+ * ── the three off-switches ────────────────────────────────────────────────
+ *
+ * Reduced motion, Pause and no `animation-timeline` all land on the same
+ * finished state: no pin, no runway, no lateral travel — a plain vertical list
+ * of the same cards in the page measure, every one of them whole. Each block
+ * cancels the animations outright and restates that layout, because a view
+ * timeline ignores the global 0.01ms duration override (§4). And the size
+ * containment the run needs for its `cq*` units is switched off with it, or
+ * the list would collapse to zero height.
+ */
+
+.act {
+  position: relative;
+}
+
+/*
+ * The skip link sits in the section's measure, above the stage. It is
+ * `sr-only` until focused; the visible state is set here rather than in
+ * utilities so it reads as part of the dark act.
+ */
+.skip:focus-visible {
+  display: inline-block;
+  margin-bottom: 1rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid rgb(var(--rule-firm));
+  border-radius: var(--r-md);
+  color: rgb(var(--ink));
+  background: rgb(var(--canvas-2));
+}
+
+.stage {
+  /* Shape. See the header for what each one means. */
+  --run-lead: 0.04;
+  --run-k: 0.3;
+  --run-end: 0.62;
+  --run-lap: calc((1 - var(--run-lead)) / ((var(--run-n, 4) - 1) * var(--run-k) + var(--run-end)));
+  --run-gap: calc(var(--run-k) * var(--run-lap));
+  /* Scroll bought per card. 55svh a card is 220svh held for the home page's
+     four — still the most scroll room on the page (the year holds 120svh). */
+  --run-per: 55svh;
+  --run-runway: calc(var(--run-n, 4) * var(--run-per));
+
+  /* Card and curve. In `cq*` units of the run, which is the frame less the
+     bar, so the curve is drawn in the space it is seen in. */
+  --run-card: min(20rem, 70cqw);
+  --run-amp: min(8cqh, 10cqw);
+  /* The tangent's steepest lean, from the sine's own slope — 2πA over the
+     lap's width — capped so a phone's tighter curve does not tip a card
+     past the point of reading as held. */
+  --run-lean: min(11deg, atan2(calc(6.2832 * var(--run-amp)), calc(100cqw + var(--run-card))));
+
+  --run-tint: var(--panel-soft);
+  --run-shade: 6 6 10;
+
+  position: relative;
+  /* Full bleed out of the section's measure; `body` clips the x axis. */
+  margin-inline: calc(50% - 50vw);
+  height: calc(100svh + var(--run-runway));
+  view-timeline-name: --run;
+}
+
+@media (max-width: 699px) {
+  .stage {
+    --run-k: 0.42;
+    --run-end: 0.55;
+  }
+}
+
+/*
+ * A card's moment in the runway: where its lap is half run, which is where it
+ * crosses the middle of the window. `top` as a share of the contain range —
+ * the stage's height less one window — so scrolling this to the top of the
+ * window puts the timeline exactly there. The negative margin cancels the
+ * document's `scroll-padding-top` (Nav.module.css), which would otherwise
+ * stop the scroll a bar-and-a-bit short.
+ */
+.mark {
+  --run-at: calc(var(--run-lead) + var(--run-i, 0) * var(--run-gap));
+  position: absolute;
+  left: 0;
+  top: calc((var(--run-at) + var(--run-lap) / 2) * (100% - 100svh));
+  width: 1px;
+  height: 0;
+  scroll-margin-top: calc(-1 * (var(--bar-h, 56px) + 2rem));
+  pointer-events: none;
+}
+
+.frame {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  padding-top: var(--bar-h, 56px);
+  overflow: clip;
+}
+
+.run {
+  position: relative;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  container-type: size;
+}
+
+.slot {
+  --run-at: calc(var(--run-lead) + var(--run-i, 0) * var(--run-gap));
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: var(--run-card);
+
+  animation-name: run-x, run-y;
+  animation-fill-mode: both;
+  animation-timing-function: linear;
+  animation-timeline: --run;
+  animation-range:
+    contain calc(var(--run-at) * 100%)
+    contain calc((var(--run-at) + var(--run-lap)) * 100%);
+}
+
+/* A focused card is drawn over the neighbour it may overlap at a crest. */
+.slot:focus-within {
+  z-index: 1;
+}
+
+@keyframes run-x {
+  from {
+    transform: translateX(calc(100cqw + 15%));
+  }
+  to {
+    transform: translateX(-115%);
+  }
+}
+
+/* Easing for a quarter sine: from a crossing (fast) to a crest (still), and
+   back. */
+@keyframes run-y {
+  0% {
+    translate: 0 -50%;
+    animation-timing-function: cubic-bezier(0.61, 1, 0.88, 1);
+  }
+  25% {
+    translate: 0 calc(-50% + var(--run-amp));
+    animation-timing-function: cubic-bezier(0.12, 0, 0.39, 0);
+  }
+  50% {
+    translate: 0 -50%;
+    animation-timing-function: cubic-bezier(0.61, 1, 0.88, 1);
+  }
+  75% {
+    translate: 0 calc(-50% - var(--run-amp));
+    animation-timing-function: cubic-bezier(0.12, 0, 0.39, 0);
+  }
+  100% {
+    translate: 0 -50%;
+  }
+}
+
+/* The lean is the curve's slope: steepest at each crossing, level at each
+   crest — a cosine, so its easings are the height's, swapped. Negative at
+   the right edge: the road is rising towards it. */
+@keyframes run-lean {
+  0% {
+    rotate: calc(-1 * var(--run-lean));
+    animation-timing-function: cubic-bezier(0.12, 0, 0.39, 0);
+  }
+  25% {
+    rotate: 0deg;
+    animation-timing-function: cubic-bezier(0.61, 1, 0.88, 1);
+  }
+  50% {
+    rotate: var(--run-lean);
+    animation-timing-function: cubic-bezier(0.12, 0, 0.39, 0);
+  }
+  75% {
+    rotate: 0deg;
+    animation-timing-function: cubic-bezier(0.61, 1, 0.88, 1);
+  }
+  100% {
+    rotate: calc(-1 * var(--run-lean));
+  }
+}
+
+.card {
+  display: grid;
+  grid-template-rows: auto auto;
+  overflow: hidden;
+  border-radius: var(--r-xl);
+  border: 1px solid rgb(var(--rule));
+  background-color: rgb(var(--canvas-2));
+  background-image: linear-gradient(
+    193deg,
+    rgb(var(--run-tint) / 0.26) 0%,
+    rgb(var(--run-tint) / 0.07) 42%,
+    rgb(var(--run-tint) / 0) 68%
+  );
+  box-shadow:
+    0 1px 0 rgb(var(--run-tint) / 0.45) inset,
+    0 30px 64px -28px rgb(var(--run-shade) / 0.95);
+  color: rgb(var(--ink));
+  text-decoration: none;
+
+  /* The lean pivots on the card's centre; the arrival carries its own
+     origin inside the keyframe (below), so the two do not have to share. */
+  animation-name: run-lean, run-arrive;
+  animation-fill-mode: both;
+  animation-timing-function: linear;
+  animation-timeline: --run;
+  animation-range:
+    contain calc(var(--run-at) * 100%) contain calc((var(--run-at) + var(--run-lap)) * 100%),
+    contain calc(var(--run-at) * 100%) contain calc((var(--run-at) + var(--run-lap) / 3) * 100%);
+
+  transition: border-color var(--dur-fast) ease, background-color var(--dur-fast) ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .card:hover {
+    border-color: rgb(var(--run-tint) / 0.55);
+    background-color: color-mix(in srgb, rgb(var(--canvas-2)), rgb(var(--run-tint)) 8%);
+  }
+}
+
+/* The pile's keyframe, with two things folded in that used to come from
+   elsewhere: the perspective the pile's slot lent it, and the gesture's
+   origin. `transform-origin` is shared with the lean, which must pivot on the
+   centre, so the origin is written as the translate pair a transform-origin
+   is — out to the origin, transform, back — from the offsets the component
+   splits off `--arrive-origin`. */
+@keyframes run-arrive {
+  from {
+    transform:
+      translate(var(--arrive-ox, 0%), var(--arrive-oy, 50%))
+      perspective(1400px)
+      translateY(var(--arrive-lift, 110px))
+      rotateX(var(--arrive-tip, 20deg))
+      rotateY(var(--arrive-swing, 0deg))
+      scale(var(--arrive-shrink, 0.86))
+      translate(calc(-1 * var(--arrive-ox, 0%)), calc(-1 * var(--arrive-oy, 50%)));
+  }
+  to {
+    transform:
+      translate(var(--arrive-ox, 0%), var(--arrive-oy, 50%))
+      perspective(1400px)
+      translateY(0)
+      rotateX(0deg)
+      rotateY(0deg)
+      scale(1)
+      translate(calc(-1 * var(--arrive-ox, 0%)), calc(-1 * var(--arrive-oy, 50%)));
+  }
+}
+
+.shot {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.shot :global(.card-shot) {
+  height: 100%;
+  width: 100%;
+  border: 0;
+  border-radius: 0;
+  background: rgb(var(--canvas));
+}
+
+.shot :global(img) {
+  height: 100%;
+  width: 100%;
+}
+
+.shot .plate {
+  height: 100%;
+  justify-content: center;
+}
+
+.shot::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 1px;
+  background: rgb(var(--run-tint) / 0.4);
+}
+
+/*
+ * The label is at the start edge, under the picture, and the arrow at the
+ * end. A card on a travelling run is cropped far longer than it is whole —
+ * on the right while it enters, and that is where the reader meets it — so
+ * the name and the fact are set where the window shows them first.
+ */
+.plinth {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  min-width: 0;
+  padding: clamp(1rem, 2vw, 1.5rem);
+}
+
+.label {
+  min-width: 0;
+}
+
+.onward {
+  flex: none;
+  font-family: ui-sans-serif, system-ui, "Segoe UI Symbol", "Noto Sans Symbols 2", sans-serif;
+  font-size: 1.125rem;
+  line-height: 1;
+  color: rgb(var(--ink-soft));
+  transition: transform var(--dur-fast) var(--ease-settle), color var(--dur-fast) ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .card:hover .onward {
+    transform: translateX(3px);
+    color: rgb(var(--ink));
+  }
+}
+
+.onwardMark {
+  display: block;
+  height: 0;
+  outline: none;
+}
+
+/*
+ * Right to left, the run comes in from the left. The whole run is mirrored
+ * and each card mirrored back, so the curve, the lean and the travel all turn
+ * round together and the text inside reads the right way.
+ */
+:global(html[dir="rtl"]) .run {
+  scale: -1 1;
+}
+
+:global(html[dir="rtl"]) .card {
+  scale: -1 1;
+}
+
+/* ── the three off-switches, one finished state ─────────────────────────── */
+
+@supports not (animation-timeline: view()) {
+  .stage {
+    height: auto;
+    margin-inline: 0;
+  }
+  .frame {
+    position: static;
+    height: auto;
+    padding-top: 0;
+    overflow: visible;
+  }
+  .run {
+    container-type: normal;
+    display: grid;
+    gap: 1.5rem;
+    max-width: 40rem;
+    margin-inline: auto;
+  }
+  .slot {
+    position: static;
+    width: auto;
+    animation-name: none;
+  }
+  .card {
+    animation-name: none;
+  }
+  .mark {
+    top: 0;
+  }
+  :global(html[dir="rtl"]) .run,
+  :global(html[dir="rtl"]) .card {
+    scale: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stage {
+    height: auto;
+    margin-inline: 0;
+  }
+  .frame {
+    position: static;
+    height: auto;
+    padding-top: 0;
+    overflow: visible;
+  }
+  .run {
+    container-type: normal;
+    display: grid;
+    gap: 1.5rem;
+    max-width: 40rem;
+    margin-inline: auto;
+  }
+  .slot {
+    position: static;
+    width: auto;
+    animation-name: none;
+  }
+  .card {
+    animation-name: none;
+  }
+  .mark {
+    top: 0;
+  }
+  :global(html[dir="rtl"]) .run,
+  :global(html[dir="rtl"]) .card {
+    scale: none;
+  }
+}
+
+:global(body.motion-paused) .stage {
+  height: auto;
+  margin-inline: 0;
+}
+
+:global(body.motion-paused) .frame {
+  position: static;
+  height: auto;
+  padding-top: 0;
+  overflow: visible;
+}
+
+:global(body.motion-paused) .run {
+  container-type: normal;
+  display: grid;
+  gap: 1.5rem;
+  max-width: 40rem;
+  margin-inline: auto;
+}
+
+:global(body.motion-paused) .slot {
+  position: static;
+  width: auto;
+  animation-name: none;
+}
+
+:global(body.motion-paused) .card {
+  animation-name: none;
+}
+
+:global(body.motion-paused) .mark {
+  top: 0;
+}
+
+:global(html[dir="rtl"] body.motion-paused) .run,
+:global(html[dir="rtl"] body.motion-paused) .card {
+  scale: none;
+}
+
+@media (forced-colors: active) {
+  .card {
+    background-image: none;
+    box-shadow: none;
+  }
+  .shot::after {
+    background: CanvasText;
+  }
+}

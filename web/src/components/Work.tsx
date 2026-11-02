@@ -1,5 +1,5 @@
 import Action from "@/components/ui/Action";
-import ProjectPile from "@/components/projects/ProjectPile";
+import ProjectRun from "@/components/projects/ProjectRun";
 import { useProjects } from "@/hooks/useProjects";
 
 /*
@@ -23,14 +23,18 @@ import { useProjects } from "@/hooks/useProjects";
  * time by design, so six projects read as six separate glances rather than as
  * a body of work.
  *
+ * Then a pile, which answered quantity by stacking.
+ *
  * What it is now
  * --------------
- * A pile, and everything else on the page has been demoted so this can land.
- * It gets the dark ground, the most scroll room of any beat, and a beat of
- * silence before it. The mechanism and the two scroll-timeline traps behind it
- * are documented in `projects/ProjectPile.module.css`; the shape of the markup
- * and the reason there is exactly one link per card are in
- * `projects/ProjectPile.tsx`.
+ * A run (#57, reopened by the owner on 2026-11-02): the stage pins and the
+ * reader's scroll carries the projects in from the right and along one
+ * snaking curve, each card held at the angle of the road it is on, two or
+ * three on screen at once. Scrolling up runs them back exactly. It keeps the
+ * peak's whole budget — the dark ground, the most scroll room, the only
+ * asset budget, a beat of silence before it. The mechanism is documented in
+ * `projects/ProjectRun.module.css` and the markup and keyboard answer in
+ * `projects/ProjectRun.tsx`.
  *
  * The ground, and the trap in inverting one mid-page
  * --------------------------------------------------
@@ -67,11 +71,11 @@ import { useProjects } from "@/hooks/useProjects";
 /*
  * How many fit on the home page.
  *
- * Four is the point where the pile is unmistakably a pile — three edges
- * showing above the card you are reading — and the point past which the home
- * page starts doing the catalogue's job. It is also the count the offsets are
- * tuned for: the step shrinks as the count grows so that eight would still
- * fit, but four is where each edge gets its full 20px.
+ * Four is enough for the run to read as a line — two or three cards on a
+ * laptop's screen at once for most of the hold — and the point past which the
+ * home page starts doing the catalogue's job. The run's spacing and runway are
+ * derived from the count, so changing this changes the hold's length and not
+ * its shape.
  */
 const HOME_COUNT = 4;
 
@@ -105,22 +109,19 @@ export default function Work() {
           </p>
         </div>
 
+        {/* Nothing eager. The run is two screens down on this page, so none
+            of its screenshots is the LCP element. */}
         <div className="mt-12">
-          {/* No eager first card. The pile is two screens down on this page,
-              so none of its screenshots is the LCP element and loading one at
-              high priority would be taking bandwidth from the hero. */}
-          <ProjectPile entries={shown} label="Selected work" heading="h3" />
+          <ProjectRun entries={shown} label="Selected work" heading="h3" />
         </div>
 
         {/*
-          The way out of the act, and it has to be close behind the pile.
+          The way out of the act, and it has to be close behind the run.
 
-          Sticky is bounded by the rail's padding box, so the last card
-          unpins as the rail's foot passes — and whatever is under it is what
-          the reader sees on the last screen of the section. `mt-section-sm`
-          rather than the full step: at the larger spacing the pile left the
-          screen with nothing having arrived to replace it, which is the one
-          ending a peak cannot have.
+          The frame unpins as the stage's foot passes, with the last card
+          still mid-curve, and whatever is under it is what the reader sees
+          next. `mt-section-sm` rather than the full step, so the link arrives
+          while the run is still leaving rather than after an empty screen.
         */}
         <div className="mt-section-sm">
           <Action tone="text" glyph="onward" to="/projects">
