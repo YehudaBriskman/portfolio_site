@@ -107,7 +107,7 @@ function identity(name: string): PageIdentity {
  * the better thing to be caught showing.
  */
 export function humaniseSlug(slug: string): string {
-  let text = slug;
+  let text: string;
   try {
     /* A slug arrives from the address bar, so it can be percent-encoded and it
        can be malformed — `decodeURIComponent("%E0")` throws. A name is not

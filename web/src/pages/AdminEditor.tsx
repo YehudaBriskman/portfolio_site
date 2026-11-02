@@ -73,21 +73,21 @@ export default function AdminEditor() {
     return () => window.removeEventListener("beforeunload", warn);
   }, [dirty]);
 
-  const set = (k: keyof Draft, v: string) =>
+  // Any field edit moves the page out of a terminal state and into "dirty",
+  // so the bar stops claiming the document is saved the moment it is not.
+  // Done in the edit itself: an effect on the draft also fired on mount, on
+  // load and on the _rev a save writes back, none of which is an edit.
+  const markDirty = () => setSave((s) => (s.kind === "saving" ? s : { kind: "dirty" }));
+
+  const set = (k: keyof Draft, v: string) => {
     setD((prev) => {
       const next = { ...prev, [k]: v };
       // Derive the slug from the title until the author edits it by hand.
       if (k === "title" && !slugTouched) next.slug = slugify(v);
       return next;
     });
-
-  useEffect(() => {
-    // Any field edit moves the page out of a terminal state and into "dirty",
-    // so the bar stops claiming the document is saved the moment it is not.
-    setSave((s) => (s.kind === "saving" ? s : { kind: "dirty" }));
-    // Intentionally keyed on the draft only.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [d]);
+    markDirty();
+  };
 
   const commit = useCallback(
     async (status?: Draft["status"], rev?: string) => {
@@ -297,7 +297,7 @@ export default function AdminEditor() {
                 </span>
               </label>
               <div className="mt-6">
-                <LinkEditor links={d.links} onChange={(links) => setD((p) => ({ ...p, links }))} />
+                <LinkEditor links={d.links} onChange={(links) => { setD((p) => ({ ...p, links })); markDirty(); }} />
               </div>
             </div>
           </details>

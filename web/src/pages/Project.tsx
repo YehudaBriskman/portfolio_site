@@ -61,9 +61,16 @@ export default function Project() {
   const others = relatedTo(items, project);
   const state = entry ? "ok" : listState === "loading" ? "loading" : "missing";
 
+  /* Another project's notes are cleared in the render that changes project,
+     not an effect later. */
+  const [postsFor, setPostsFor] = useState(project);
+  if (postsFor !== project) {
+    setPostsFor(project);
+    setPosts(null);
+  }
+
   useEffect(() => {
     let alive = true;
-    setPosts(null);
     blog
       .posts({ collection: project })
       // A project with no shelf yet is not an error — it simply has no notes.

@@ -156,10 +156,18 @@ export default function Blog() {
     };
   }, [attempt]);
 
-  useEffect(() => {
-    let alive = true;
+  /* A new filter or a retry clears the old answer in the render that asks
+     for the new one, not an effect later. */
+  const asked = `${tag}\u0000${collection}\u0000${attempt}`;
+  const [shown, setShown] = useState(asked);
+  if (shown !== asked) {
+    setShown(asked);
     setPosts(null);
     setError(null);
+  }
+
+  useEffect(() => {
+    let alive = true;
     /*
      * Everything, by default.
      *

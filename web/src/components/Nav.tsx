@@ -150,8 +150,14 @@ export default function Nav() {
      trap. Until #63 this was belt-and-braces: the bar was rendered by the page
      shell and unmounted on every navigation, which closed the sheet by
      destroying it. The bar now lives in `SiteChrome.tsx` above the routes and
-     is never destroyed, so this effect is the only thing that closes it. */
-  useEffect(() => setOpen(false), [pathname]);
+     is never destroyed, so this is the only thing that closes it. Adjusted
+     during render rather than in an effect, so the closed sheet lands in the
+     same commit as the new route instead of one render after it. */
+  const [sheetPath, setSheetPath] = useState(pathname);
+  if (sheetPath !== pathname) {
+    setSheetPath(pathname);
+    setOpen(false);
+  }
 
   useEffect(() => {
     const mq = window.matchMedia(WIDE);

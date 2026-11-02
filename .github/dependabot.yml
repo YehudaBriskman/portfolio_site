@@ -58,6 +58,32 @@ updates:
       # release widens that peer range to 7; then bump /web by hand and drop this.
       - dependency-name: typescript
         update-types: ["version-update:semver-major"]
+      # Tailwind 4 (and tailwind-merge 3, which supports only Tailwind 4). Tried
+      # with the official `@tailwindcss/upgrade` on 2026-11-02 and measured
+      # against 3.4 at 1440x900 and 390x844 on /, /story, /blog, a post,
+      # /projects and a project: 11 of 16 full-page shots changed height (up to
+      # +136px on the phone home page), so it is a redesign, not a bump. What
+      # migrating needs, in order:
+      # - index.css's `@layer base/components/utilities` blocks become native
+      #   cascade layers in v4, and unlayered rules now beat every utility. The
+      #   file was written against v3's hoisting; audit it block by block.
+      # - Fix what the tool got wrong, all of which it did silently: it crashed
+      #   on the `.text-\[0\.625rem\]` override (rename that selector first);
+      #   it rewrote `ActionTone = "outline"` to "outline-solid" (a string, not
+      #   a class); it wrote `--font-display: var(--font-display)` and friends
+      #   into @theme (self-reference); it turned `body.motion-paused …` into
+      #   the invalid `:is(.motion-paused)body …`; and it moved each nested
+      #   `@media` mobile floor above the declaration it overrides, so the
+      #   desktop size wins on phones.
+      # - v4 preflight and default changes (border colour, ring width,
+      #   placeholder, button cursor, `space-*` selectors) against the measured
+      #   contrast and type ramp.
+      # - Re-shoot the same pages to a pixel diff of antialiasing only, then
+      #   drop both entries here. Security updates ignore this rule anyway.
+      - dependency-name: tailwindcss
+        update-types: ["version-update:semver-major"]
+      - dependency-name: tailwind-merge
+        update-types: ["version-update:semver-major"]
 
   # Both Dockerfiles pin their bases by tag AND digest. This is what moves the
   # digest when upstream republishes `node:*-alpine` or `nginx:alpine` with
