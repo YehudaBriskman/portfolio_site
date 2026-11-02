@@ -84,6 +84,8 @@ const ROUTES = [
   "/projects",
   "/projects/bothy",
   "/blog",
+  "/blog?view=feed",
+  "/blog/area/site",
   "/blog/fixture-post",
   "/accessibility",
   "/a-page-that-does-not-exist",
@@ -98,6 +100,28 @@ const WINDOWS = [
 /* ---------------------------------------------------------------- fixtures */
 
 const at = (days) => new Date(Date.UTC(2026, 9, 1) - days * 86_400_000).toISOString();
+
+/* The one area the fixture note is filed under, and two events for the
+   dashboard's timeline: one on the site, one leaving it. */
+const AREA = {
+  slug: "site",
+  title: "The site",
+  tagline: "This portfolio.",
+  description: "",
+  coverImage: null,
+  links: [],
+  order: 0,
+  kind: "site",
+  repoUrl: null,
+  stats: null,
+  noteCount: 1,
+  lastActivityAt: at(1),
+  topics: ["ci"],
+};
+const EVENTS = [
+  { id: "post:fixture-post", kind: "post", at: at(1), area: { slug: "site", title: "The site" }, title: "A fixture note", href: "/blog/fixture-post", meta: {} },
+  { id: "site:v1", kind: "site", at: at(3), area: null, title: "Site v1.0.0", href: "https://github.com/example/site/releases/tag/v1.0.0", meta: {} },
+];
 
 const SUMMARY = {
   slug: "fixture-post",
@@ -155,6 +179,9 @@ function answer(url, failing) {
   }
   if (p === "/blog/collections") return { status: 200, body: { items: [] } };
   if (p.startsWith("/blog/collections/")) return { status: 404, body: {} };
+  /* The Blogs dashboard (#224): its areas and the site's activity. */
+  if (p === "/areas") return { status: 200, body: { items: [AREA] } };
+  if (p === "/activity") return { status: 200, body: { items: EVENTS, nextCursor: null } };
   if (p === "/github/contributions") {
     const days = contributionDays();
     return {
