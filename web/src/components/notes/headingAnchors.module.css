@@ -1,0 +1,58 @@
+/*
+ * A heading and its copy-link button (#225).
+ *
+ * The wrapper is a plain block with no padding or border, so the heading's
+ * prose margins collapse through it exactly as they did before it existed.
+ * The button sits at the heading's inline end, in space the heading leaves
+ * for it, and is in the soft ink until it is hovered or focused: findable,
+ * never louder than the heading it serves. No transition beyond the shared
+ * hover/focus colour change.
+ */
+
+.wrap {
+  position: relative;
+}
+
+.wrap > :is(h2, h3, h4) {
+  padding-inline-end: 2.5rem;
+  /* Clears the nav island when the fragment is followed. */
+  scroll-margin-block-start: 6rem;
+}
+
+.button {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-end: 0;
+  display: grid;
+  width: 2.25rem;
+  height: 2.25rem;
+  place-items: center;
+  border: 0;
+  border-radius: var(--r-sm, 8px);
+  background: transparent;
+  color: rgb(var(--ink-soft));
+  cursor: pointer;
+  opacity: 0.6;
+  transition:
+    opacity var(--dur-micro, 120ms) ease,
+    color var(--dur-micro, 120ms) ease;
+}
+
+.wrap:hover .button,
+.button:focus-visible {
+  opacity: 1;
+  color: rgb(var(--ink));
+}
+
+.button:focus-visible {
+  outline: 2px solid rgb(var(--signal));
+  outline-offset: 2px;
+}
+
+@media (pointer: coarse) {
+  .button {
+    width: 2.75rem;
+    height: 2.75rem;
+    opacity: 1;
+  }
+}
