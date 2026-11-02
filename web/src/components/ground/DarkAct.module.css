@@ -105,7 +105,26 @@
    * and is floored at 28px, which is 7.2% of a 390px phone — past about 10%
    * the arc stops being a boundary and becomes an arch.
    */
-  --act-arc: clamp(28px, 4.4vw, 64px);
+  /*
+   * The arc's rise, and why there is no floor on it any more.
+   *
+   * This was `clamp(28px, 4.4vw, 64px)`. The vw term is the design — a rise
+   * that is a constant fraction of the width, so the curve is the same
+   * shallow arc at every size. The 28px floor defeated it in the one place
+   * it mattered: at 1440px the vw term gives 63px of rise over 1440 of
+   * width, a ratio of 1:23, but at 390px the floor wins at 28px over 390,
+   * which is 1:14. **The arc came out 40% steeper on a phone than on a
+   * desktop** — measured off the rendered page at 390x844, the paper edge
+   * rose 24.0 CSS px from centre to corner — and a steeper curve with a
+   * hairline on it is a line drawn across the page rather than an edge.
+   * That is what the owner reported seeing.
+   *
+   * A floor is the right instinct for a radius that must stay visible; it is
+   * wrong for one whose whole purpose is to hold a proportion. The ceiling
+   * stays, because past ~1455px the arc would keep deepening with no width
+   * left to justify it.
+   */
+  --act-arc: min(4.4vw, 64px);
   /*
    * How far a seam's light reaches inward, and it is set by the frame budget
    * rather than by the clearance.
@@ -144,8 +163,18 @@
    * for this ground. No `overflow` anywhere on this element — the long reason
    * is on `.ground` in `index.css` and it is the sticky pile inside Work.
    */
+  /*
+   * The hairline that rides the arc, and the one thing it must not become.
+   *
+   * At 0.42 over `--panel` it measured rgb(66,86,122) at the corners on a
+   * phone: a legibly *blue* line on a site that is ink on paper with one
+   * accent. On a shallow desktop arc that reads as an edge catching light;
+   * on the steep phone arc above it read as a stray blue curve. The arc fix
+   * is the substantive half of this; the alpha comes down so that the line
+   * is an edge rather than a colour even where the curve is tightest.
+   */
   box-shadow:
-    inset 0 1px 0 rgb(var(--accent-on-panel) / 0.42),
+    inset 0 1px 0 rgb(var(--accent-on-panel) / 0.3),
     inset 0 14px 24px -20px rgb(var(--accent-on-panel) / 0.34);
 }
 
