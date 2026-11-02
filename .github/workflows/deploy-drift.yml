@@ -54,17 +54,26 @@ jobs:
       # Tailscale builds one lazily and the first packet is what builds it, so
       # kubectl discovering the route is kubectl timing out.
       - name: Wait for a path to the node
+        # The node's tailnet address lives in a secret rather than in this
+        # file because the repository is public. It is only reachable from
+        # inside the tailnet, but there is no reason to publish it.
+        env:
+          NODE_IP: ${{ secrets.TAILNET_NODE_IP }}
         run: |
           set -uo pipefail
-          tailscale ping --timeout=5s -c 3 100.79.242.82 || true
+          if [ -z "$NODE_IP" ]; then
+            echo "::error title=TAILNET_NODE_IP is not set::Add the cluster node's tailnet address as the repository secret TAILNET_NODE_IP."
+            exit 1
+          fi
+          tailscale ping --timeout=5s -c 3 "$NODE_IP" || true
           for i in $(seq 1 20); do
-            if timeout 5 bash -c 'cat < /dev/null > /dev/tcp/100.79.242.82/6443' 2>/dev/null; then
+            if timeout 5 bash -c 'cat < /dev/null > /dev/tcp/$NODE_IP/6443' 2>/dev/null; then
               echo "API server answered after ${i} attempt(s)"
               exit 0
             fi
             sleep 3
           done
-          echo "::error title=No path to the API server::Joined the tailnet but 100.79.242.82:6443 never answered in 60s."
+          echo "::error title=No path to the API server::Joined the tailnet but $NODE_IP:6443 never answered in 60s."
           tailscale status || true
           exit 1
 

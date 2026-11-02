@@ -460,18 +460,27 @@ jobs:
       # A minute is generous for a relay to come up and still finishes long
       # before kubectl's own 32-second-per-call timeout becomes the clock.
       - name: Wait for a path to the node
+        # The node's tailnet address lives in a secret rather than in this
+        # file because the repository is public. It is only reachable from
+        # inside the tailnet, but there is no reason to publish it.
+        env:
+          NODE_IP: ${{ secrets.TAILNET_NODE_IP }}
         run: |
           set -uo pipefail
+          if [ -z "$NODE_IP" ]; then
+            echo "::error title=TAILNET_NODE_IP is not set::Add the cluster node's tailnet address as the repository secret TAILNET_NODE_IP."
+            exit 1
+          fi
           tailscale status --peers=false || true
-          tailscale ping --timeout=5s -c 3 100.79.242.82 || true
+          tailscale ping --timeout=5s -c 3 "$NODE_IP" || true
           for i in $(seq 1 20); do
-            if timeout 5 bash -c 'cat < /dev/null > /dev/tcp/100.79.242.82/6443' 2>/dev/null; then
+            if timeout 5 bash -c 'cat < /dev/null > /dev/tcp/$NODE_IP/6443' 2>/dev/null; then
               echo "API server answered after ${i} attempt(s)"
               exit 0
             fi
             sleep 3
           done
-          echo "::error title=No path to the API server::Joined the tailnet but 100.79.242.82:6443 never answered in 60s. A timeout is a dropped packet rather than a refused connection, so look at the tailnet before the cluster: is the ephemeral node listed below, and does the policy permit its tag to reach that port?"
+          echo "::error title=No path to the API server::Joined the tailnet but $NODE_IP:6443 never answered in 60s. A timeout is a dropped packet rather than a refused connection, so look at the tailnet before the cluster: is the ephemeral node listed below, and does the policy permit its tag to reach that port?"
           tailscale status || true
           tailscale netcheck || true
           exit 1
