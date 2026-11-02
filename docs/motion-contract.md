@@ -237,6 +237,31 @@ tables below; the comparison is. The run animates only `transform`,
 `translate`, `rotate` and the card's arrival transform — no layout and no
 paint per frame.
 
+**The run's cards cast a soft shadow and tilt towards the pointer (#177).**
+Each link now holds a *face*: the link keeps the lean and the arrival, and is
+the hit area; the face is what is seen (edge, paper, shadow) and the only
+thing the tilt turns. The tilt's `transform` is the face's own, so it never
+meets the arrival's and never overwrites the scroll-driven ones, and the
+hovered box holds still while the face turns, so the edge does not flicker
+in and out of hover. The shadow is five faint layers (each ≤ 0.34 alpha)
+with short offsets, so as it turns with the card's lean it shifts a few
+pixels sideways at most and still reads as falling below. The tilt is direct
+manipulation, so it may be time-based: up to 6° on each axis, the edge under
+the pointer going into the page, following over `--dur-micro` and settling
+back over `--dur-settle`. Keyboard focus gets one fixed turn (−2°, 3°) that
+points onward and takes `--run-dir`; the pointer tilt is physical and does
+not. One passive `pointermove` on the list writes `--tilt-x`/`--tilt-y`
+(−1…1) on the face at most once a frame, with no React state. It writes only
+for a mouse under `(hover: hover) and (pointer: fine)`, and only while the
+run is running, and the rules live in a block that touch and reduced motion
+never match; Pause and no `animation-timeline` cancel them. Cards stay
+448×460. Shots: `docs/work-run/tilt-1440x900[-he]-{hover,focus}.png`
+(`web/scripts/shoot-work-tilt.mjs`). Measured by the same script (`MEASURE=`)
+at 4× throttle, 240 real pointer moves across the middle card, five rounds
+after a warm-up, interleaved: **`main` 59.4fps, the tilt 58.5fps**
+(medians). Style recalculation per move rose from 3.4ms to 6.4ms
+(throttled), script from 0.8ms to 1.4ms, and layout stayed at 0.
+
 **Beat 4 holds its frame now, and it is still `pan` (#159).** The owner's note
 was that the shelf "still moves the whole page": it drifted sideways while the
 section scrolled away at full speed, so the pan was a garnish on a section
