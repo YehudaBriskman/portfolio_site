@@ -85,6 +85,13 @@ async function toPoint(page, t) {
   await frames(page, 1);
 }
 
+/* Everything under the bar. The bar tucks away on the way down and returns on
+   the way up, so it is the one strip of the window that is meant to differ
+   between a forward frame and its reverse. */
+function below(w, h) {
+  return { x: 0, y: 56, width: w, height: h - 56 };
+}
+
 async function overflow(page) {
   return page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
 }
@@ -99,8 +106,8 @@ for (const [w, h] of WINDOWS) {
   let n = 0;
   for (const t of POINTS) {
     await toPoint(page, t);
-    const buf = await page.screenshot({ path: `${OUT}/run-${tag}-${String(n).padStart(2, "0")}-${t}.png` });
-    forward[t] = buf;
+    await page.screenshot({ path: `${OUT}/run-${tag}-${String(n).padStart(2, "0")}-${t}.png` });
+    forward[t] = await page.screenshot({ clip: below(w, h) });
     console.log(tag, "t", t, "x-overflow", await overflow(page));
     n += 1;
   }
@@ -110,7 +117,8 @@ for (const [w, h] of WINDOWS) {
   /* Back up: every point must reproduce its forward frame. */
   for (const t of [0.7, 0.3]) {
     await toPoint(page, t);
-    const buf = await page.screenshot({ path: `${OUT}/run-${tag}-back-${t}.png` });
+    await page.screenshot({ path: `${OUT}/run-${tag}-back-${t}.png` });
+    const buf = await page.screenshot({ clip: below(w, h) });
     console.log(tag, "reverse", t, buf.equals(forward[t]) ? "identical" : "DIFFERS");
   }
 
