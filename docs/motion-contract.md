@@ -107,7 +107,8 @@ ledger is a page-level document and not a comment.
 | — | any running text | **pen** | prose is set as the reader's eye reaches it |
 | 0 | title plate | **staged assembly** | the collection names itself, in four gated moves |
 | — | the plate's end corner | **breath** | one small light is on, and says one thing at a time |
-| 1 | wall text | `draw` | the method, drawn beside the sentence that names it, by the reader's scroll |
+| 1 | wall text | `draw` + `line` | the method, drawn beside the sentence that names it, by the reader's scroll; one line joins it all up |
+| — | /story, and beat 1 | **`line`** | one line drawn by scroll under the reading, which swings between the content and breaks out into a loop round a few words or a figure |
 | 2 | **the run** | `pin` | the work arrives along one line, and the reader's scroll is what moves it |
 | 3 | the year | `scrub` | a year of work, raised off the page by the reader's own scroll |
 | 4 | notes shelf | `pan`, held | the notes walk past a held frame, one card-width per step of the reader's scroll |
@@ -174,6 +175,20 @@ neither: it holds nothing and moves nothing across the page — it is line work
 drawn in place at the size of a glyph, which is the scale of `InkRule`'s
 hairline rather than the year's camera. If a later beat draws strokes by
 scroll at section scale, it is `scrub` and must not sit next to this one.
+
+**The owner overrode that last sentence for this beat (#178, 2026-11-02),
+and the line that resulted is its own family, `line`, not a second `scrub`.**
+The ask was for /story's line to run behind the whole of "How I work",
+weaving between the short sections and the principle figures. It is a
+section-scale stroke drawn by scroll, which is what the sentence above
+calls `scrub` — but `scrub`, as the ban below defines it, is "a drawing the
+reader operates or that carries information", and this one does neither:
+it holds no frame, moves no object, and says nothing a sentence beside it
+does not. So it is recorded as `line` (row below) and the beat's family
+column is `draw` + `line`. It sits next to `pin` and `scrub` and repeats
+neither; what keeps it from being a third peak is that it is 1.5px of one
+ink behind text, holds nothing, and costs nothing per frame beyond the
+paint of one path (measured in the row's note).
 
 **Beat 2 changed from the pile to the run on the owner's call (#57, reopened
 2026-11-02), and it moves lateral travel next to beat 4's `pan`.** The family
@@ -1012,6 +1027,75 @@ this harness and only comparable within the table. Per frame the riffle writes `
 lower quarter and `opacity` on their shade layers — compositor work, no
 layout.
 
+### `line`: /story and "How I work" (#176, #178)
+
+One primitive, `motion/LivingLine.tsx`, used twice; there is no second
+line. It is one SVG path behind its container, drawn by scroll with its tip
+on the middle of the window, and reversed exactly on the way up.
+
+**The path is measured, not declared.** The caller marks boxes with
+`data-line`: `start`/`end` (run down that lane for the box's height) or
+`loop` (go once round the box). The lanes are the container's own inline
+padding, which holds nothing, and every sideways move happens in the margin
+between two stations, so the line cannot cross text by construction. A loop
+is entered and left down its vertical tangent, never by a swing out of the
+widest point (that would cut the circle's lower half). A loop inside a
+`data-line-hold` box — a figure inside its principle — spends the hold's
+whole height on that tangent, so the claim beside it is never crossed. The
+geometry is a pure function (`lineTrace.ts`, unit-tested); it is re-run on a
+resize of the container (which catches pictures and late fonts), on
+`document.fonts` finishing, and on a change of `dir` or `lang`.
+`web/scripts/shoot-line.mjs` samples every 4px of the drawn path against
+every text box on both pages, both directions, both windows, and fails the
+run on a crossing; it found one (the phone figure's loop clipping the
+claim's half-leading) and the figure's margin moved for it.
+
+**The tip is held on the window's middle.** Length is not height — a swing
+is longer than the drop it makes and a loop is a circumference spent on one
+diameter — so a linear `stroke-dashoffset` drifts hundreds of pixels by the
+second loop. The trace gives every piece a span of height (a loop's circle
+owns the circle's own diameter) and samples the length drawn at 101 evenly
+spaced heights; one keyframe with a stop at every percentage reads each
+value from a custom property the component writes on the path. A keyframe
+selector cannot be a variable; a keyframe *value* can, and that is the only
+way a measured number reaches a keyframe without writing a stylesheet at
+runtime. No React state, no listener, nothing per frame.
+
+**/story.** Pictures alternate sides beat by beat; the line runs down the
+lane on the picture's side, so it swings across the page in each gap.
+Each beat's words take one of three layouts, a data field
+(`LAYOUTS` in `data/story.ts`): `beside` (default), `under` (a caption) and
+`overlap` (a paper card over the picture's inner lower corner). Three
+interludes — after the third beat, the sixth and the eighth, so they come
+closer together towards now — are loops drawn round a few words in the
+middle of the page. The words are HTML, written by the pen; both languages
+are in the DOM with their own `lang`, and the stylesheet shows one. The
+spine and the knots it replaces are retired.
+
+**"How I work".** The line comes down beside the head, swings lane to lane
+through the short sections (counted back from the last so the line reaches
+the first figure from outside the rail), and loops round each principle's
+figure. The figures keep their own strokes and their own clock.
+
+**Off-switches.** The resting declaration is the drawn line, and all three
+switches and print cancel the animation and restate `stroke-dashoffset: 0`
+(`LivingLine.module.css`). Measured: reduced motion and Pause both report
+`drawn=1` at the depth where motion-on is mid-loop. Shots in `docs/line/`.
+
+**Frame cost**, 4× CPU throttle, wheel-scrolled through the section with
+real input (`web/scripts/measure-line-fps.mjs`, interleaved arms, a
+discarded warm-up, against a build of `main`), medians:
+
+| | `main` | with the line |
+|---|---|---|
+| "How I work", 1440×900, 9 rounds | 34.3fps | 33.6fps |
+| /story timeline, 1440×900, 7 rounds | 60.1fps | 60.1fps |
+| /story timeline, 390×844, 5 rounds | 59.0fps | 59.6fps |
+
+The approach difference is inside its own spread (both arms ran 23–38 on
+a loaded box; an earlier, busier run read 16.9 against 15.0). The cost is
+the repaint of one path per frame; nothing is laid out on scroll.
+
 ---
 
 ## 3. The peak rule
@@ -1244,6 +1328,7 @@ direction, or set `fill-rule: evenodd` deliberately and know what it costs.
 | `gallery/SkeletonGate.tsx` | the box that holds a region's height, and the 180ms before it is inked | clock |
 | `ground/DarkAct.module.css` | `drift` — two lights crossing at each seam of the dark ground | clock, gated off-screen by an observer |
 | `index.css` `.section-head::after` | the shutter, echoed — a lattice leaving each section head outward from its word | named `view-timeline` on the head, inset to the lower third |
+| `motion/LivingLine.tsx` + `lineTrace.ts` | `line` — one SVG path behind a page or section, measured off the laid-out boxes, its tip held on the window's middle; loops round `data-line="loop"` boxes | named `view-timeline` on the container (inset 50%); a 101-stop keyframe reads offsets the trace writes as custom properties |
 | `motion/Written.tsx` | `pen` — running text written one word after another as it rises through the lower half of the window | named `view-timeline` on the paragraph; word `i` of `n` owns the slice `i/n`–`(i+1)/n` |
 
 ### Retired, and why
