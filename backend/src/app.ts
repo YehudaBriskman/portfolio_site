@@ -10,6 +10,8 @@ import adminRoutes from './routes/admin.route.js';
 import seoRoutes from './routes/seo.route.js';
 import { requireAdmin } from './middlewares/requireAdmin.js';
 import { errorHandler } from './middlewares/errorHandler.js';
+import { couch } from './db/couch.js';
+import { env } from './env.js';
 
 export function createApp() {
   const app = express();
@@ -148,8 +150,24 @@ export function createApp() {
    */
   app.use("/api/github", readLimiter, createGithubRouter());
 
-  // Health
-  app.get("/health", (_req, res) => res.json({ ok: true }));
+  /*
+   * Health, in two depths. Neither is reachable from outside: nginx forwards
+   * only /api/* to this process, so both are answered to the container's own
+   * HEALTHCHECK and to the Deploy job, which reaches them through
+   * `kubectl port-forward`.
+   *
+   * /health is liveness and stays independent of the store, so a CouchDB
+   * outage does not mark the API container unhealthy and get it restarted for
+   * a fault it cannot fix. /health/ready is what the Deploy job asserts on
+   * after a rollout: the store answered, and this is the build it rolled out
+   * (#200). `version` is the commit sha and nothing else; the repository is
+   * public, so it tells nobody anything they could not read already.
+   */
+  app.get("/health", (_req, res) => res.json({ ok: true, version: env.BUILD_SHA }));
+  app.get("/health/ready", async (_req, res) => {
+    const up = await couch.reachable();
+    res.status(up ? 200 : 503).json({ ok: up, db: up ? "up" : "down", version: env.BUILD_SHA });
+  });
 
   /*
    * The catch-all 404, in the same `{ ok: false, error }` shape every other

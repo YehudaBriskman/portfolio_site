@@ -51,6 +51,11 @@ COPY src/uploads ./uploads
 # still fixes everything else, and the scan judges what was actually built.
 RUN apk upgrade --no-cache && apk add --no-cache curl
 
+# The commit this image is, for /health to report (#200). Late on purpose:
+# it changes on every commit, and every layer below it is rebuilt when it does.
+ARG BUILD_SHA=dev
+ENV BUILD_SHA=$BUILD_SHA
+
 USER node
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s \
