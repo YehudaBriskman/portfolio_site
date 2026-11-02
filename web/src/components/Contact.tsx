@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { FormEvent, MouseEvent } from "react";
 import ObjectLabel from "@/components/gallery/ObjectLabel";
 import { MAX_FIELDS, type LabelField } from "@/components/gallery/objectLabel";
-import Rise, { riseOnLoad } from "@/components/motion/Rise";
+import Written from "@/components/motion/Written";
 import styles from "@/components/Contact.module.css";
 import { links } from "@/data/links";
 import { contact } from "@/data/site";
@@ -95,8 +95,8 @@ const plateFields: LabelField[] = [
  * A name, an address and a message are three different kinds of input, and a
  * per-field effect is only worth having if it says which is which. Three
  * easings is not that. So each field differs in the two things a reader can
- * actually read — the measure of the rule and the way the ink arrives on it —
- * and the full sentence for each sits beside it below.
+ * actually read — the room the field claims and the way the ink arrives on
+ * its foot — and the full sentence for each sits beside it in the stylesheet.
  *
  * The one restraint from the cut plan, and the thing the dialog puts at risk
  * -------------------------------------------------------------------------
@@ -116,9 +116,8 @@ const plateFields: LabelField[] = [
  * the page, so the close cannot trail away into a footer — whatever the peak
  * did gets overwritten by whatever the ending does. A button on an empty stage
  * resolves nothing, so three marks do that work and all three are additive:
- * the three field rules, which arrive at three different lengths, draw out to
- * one flush length under the receipt — the three answers leaving as one
- * message; the section itself changes state behind the dialog, so that closing
+ * the three field rules, which inked in three different ways, re-ink as one
+ * stroke under the receipt — the three answers leaving as one message; the section itself changes state behind the dialog, so that closing
  * it leaves a statement where the ask was rather than the page the reader
  * started on; and the section signs off with a rule across the column ending
  * in a printer's end-mark, which fills once a message has actually gone.
@@ -353,28 +352,23 @@ export default function Contact() {
   return (
     <section id="contact" className="wrap section-y">
       {/*
-       * `reveal`, which is beat 5 of the device ledger and the same family as
-       * beat 0 — the two bookends of the page, and the only two places this
-       * family appears. The pile between them is the engineered peak and gets
-       * `pin`; the shelf gets `pan`; the specs get `count`. Nothing adjacent to
-       * this beat is a reveal, which is the rule the ledger exists to keep.
+       * `surface`, beat 6 of the device ledger in docs/motion-contract.md
+       * (#160). It used to be `reveal` — `motion/Rise`, an observer that fired
+       * once — and the house rule is now that scroll is the clock: every
+       * arrival is scrubbed by scroll position and reversed exactly when the
+       * reader scrolls back up. So each part of the plate rises out of its own
+       * baseline on its own `view()` timeline, and the paragraph takes the pen
+       * like every other paragraph on the site. All of it is CSS; this
+       * component holds no motion state.
        *
-       * The dialog is not a sixth beat and does not get a sixth family. It is
-       * this beat continued — the same object, opened — so it arrives on the
-       * same reveal, borrowed from the same stylesheet, at the same 14px and
-       * 620ms.
+       * `.plate` is the box the focus rule reads: a keyboard reader who lands
+       * on the button mid-arrival gets the whole plate arrived at once.
        *
-       * `Rise` and not a wipe, a sweep or a view timeline — and not three
-       * hand-written delays either. Its three direct children here are the
-       * plate, the ask and the address, so they arrive 60ms apart in reading
-       * order, once, and stay arrived; the note in Rise.module.css has why
-       * "once" is the requirement and why a scroll timeline cannot express it.
-       * The grain is right at this size too: a label is one object, so its
-       * name, fact line and field line arrive together rather than as three
-       * events inside one object, and the paragraph and the button it belongs
-       * to arrive as the one thing they are.
+       * The dialog is not a seventh beat and does not get a family. It is
+       * this beat continued — the same object, opened — and it answers a
+       * press rather than a scroll, so it is the one thing here on a clock.
        */}
-      <Rise>
+      <div className={styles.plate}>
         {/*
          * `scale="object"` and not `plate`.
          *
@@ -423,12 +417,12 @@ export default function Contact() {
          * had above its first field.
          */}
         <div className={styles.ask}>
-          <p className={`${styles.note} text-fact`}>
+          <Written as="p" className={`${styles.note} text-fact`}>
             I&rsquo;m employed full-time and not looking for freelance work. I do read
             everything &mdash; if you&rsquo;re hiring, building something you think
             I&rsquo;d find interesting, or want to talk about anything on this page,
             write to me.
-          </p>
+          </Written>
 
           {/*
            * The section's own half of the receipt, and it is not a live region.
@@ -448,7 +442,7 @@ export default function Contact() {
            * arrived by the time they can see it.
            */}
           {answered && (
-            <p className={styles.signoff}>
+            <p className={`${styles.signoff} ${styles.surface}`}>
               <strong>Sent. I&rsquo;ll reply to the address you gave.</strong>
             </p>
           )}
@@ -471,7 +465,7 @@ export default function Contact() {
           <button
             ref={triggerRef}
             type="button"
-            className={`btn ${answered ? "btn-quiet" : "btn-solid"} ${styles.open}`}
+            className={`btn ${answered ? "btn-quiet" : "btn-solid"} ${styles.open} ${styles.surface}`}
             onClick={() => {
               setEverOpened(true);
               setOpen(true);
@@ -482,16 +476,15 @@ export default function Contact() {
           </button>
         </div>
 
-        <p className={styles.direct}>
+        <p className={`${styles.direct} ${styles.surface}`}>
           Or write to <a href={`mailto:${contact.email}`}>{contact.email}</a> from
           wherever you keep your mail.
         </p>
-      </Rise>
+      </div>
 
       {/*
-       * The dialog, outside the `Rise` for the same reason the full stop is:
-       * a direct child of the group inherits the group's `animation`
-       * shorthand, and the panel inside declares its own.
+       * The dialog, outside the plate: nothing in the top layer may sit inside
+       * a box that is being clipped and translated by a scroll timeline.
        *
        * `aria-labelledby` and not `aria-label`, so the name the reader is told
        * on the way in is the heading they can see. The heading repeats the
@@ -515,19 +508,24 @@ export default function Contact() {
       >
         {everOpened && (
           /*
-           * `riseOnLoad` — the measured reveal in its already-on-screen form,
-           * borrowed rather than rewritten, so the dialog arrives with the
-           * page's own numbers and there is still exactly one copy of them.
-           * Its two children stagger 60ms apart, which is what the ink
-           * sequence in the stylesheet is timed against: the form arrives 60ms
-           * into a 620ms reveal and the first rule inks at 700ms, the same
-           * arithmetic it had when the form was printed on the page.
+           * The panel opens and closes on a transition in the stylesheet
+           * (`.dialog[open] .panel` and its `@starting-style`), not on a class
+           * set here: the open is the `open` attribute, so there is one source
+           * of truth for whether the dialog is showing and the animation
+           * cannot disagree with it.
            */
-          <div className={`${styles.panel} ${riseOnLoad}`}>
+          <div className={styles.panel}>
             <div className={styles.panelHead}>
-              <h2 id={TITLE_ID} className={styles.panelTitle}>
-                Write a message
-              </h2>
+              <div>
+                <h2 id={TITLE_ID} className={styles.panelTitle}>
+                  Write a message
+                </h2>
+                {/* Said once, here, so no field needs a "required" mark of
+                    its own. */}
+                <p className={styles.panelLede}>
+                  All three fields are needed. {contact.replyWithin}.
+                </p>
+              </div>
               {/* A visible way out for a pointer, next to the two the browser
                   already gives — Escape and the backdrop. It is `.btn-quiet`
                   cut down to the 44px tap floor: a dismiss is secondary, and a
@@ -596,9 +594,9 @@ export default function Contact() {
               >
                 {/*
                  * NAME — a name is one short answer written in one stroke, so
-                 * its rule is the length of the answer rather than of the
-                 * measure, and the ink crosses it once from left to right with
-                 * nothing else moving.
+                 * it takes the narrower of the two columns, and the ink
+                 * crosses its foot once from left to right with nothing else
+                 * moving.
                  *
                  * `minLength` mirrors the schema's `min(2)` rather than
                  * restating it: it is what tells assistive technology the
@@ -702,7 +700,7 @@ export default function Contact() {
 
                 {/*
                  * MESSAGE — this is the only field where the reader does real
-                 * work, so it takes the whole measure and it claims more room
+                 * work, so it takes the whole width and it claims more room
                  * as it is used, growing to hold what they write instead of
                  * asking them to scroll inside a five-line box; its ink opens
                  * outward from the centre because it is the one answer with no
@@ -733,14 +731,19 @@ export default function Contact() {
                   )}
                 </div>
 
-                <button
-                  type="submit"
-                  disabled={status.kind === "sending"}
-                  className={`btn btn-solid ${styles.send}`}
-                >
-                  {status.kind === "sending" ? "Sending" : "Send message"}
-                  <span aria-hidden="true">&rarr;</span>
-                </button>
+                {/* Above the send, where the eye is when it fails. */}
+                <p role="alert" className={styles.failure}>
+                  {status.kind === "failed" ? status.message : null}
+                </p>
+                <div className={styles.foot}>
+                  <button
+                    type="submit"
+                    disabled={status.kind === "sending"}
+                    className="btn btn-solid"
+                  >
+                    {status.kind === "sending" ? "Sending" : "Send message"}
+                    <span aria-hidden="true">&rarr;</span>
+                  </button>
 
                 {/*
                  * Two live regions, both present from this subtree's first
@@ -763,37 +766,24 @@ export default function Contact() {
                  * for it, so there is no spare time in which a region could be
                  * added later.
                  */}
-                <p role="status" aria-live="polite" aria-atomic="true" className={styles.status}>
-                  {status.kind === "sending" && "Sending"}
-                  {status.kind === "sent" && (
-                    /*
-                     * The confirmation rises into place, and the ordering rule
-                     * is satisfied by construction rather than by timing.
-                     *
-                     * `riseOnLoad` is the same measured reveal the panel
-                     * arrived with, in its already-on-screen form: the span
-                     * mounts carrying both class names, so the animation starts
-                     * on insertion instead of waiting for an observer that is
-                     * not watching anything in here.
-                     *
-                     * Why this cannot announce late: the text is committed to
-                     * the DOM in the same React update that sets the state, so
-                     * the live region has it, and announces it, before the
-                     * first animation frame runs. `opacity` and `transform` do
-                     * not take an element out of the accessibility tree, so
-                     * what rises is a receipt that has already been read out.
-                     * And there is no exit motion anywhere in this section for
-                     * it to be late to — the dialog does not close itself,
-                     * which is the whole of that guarantee.
-                     */
-                    <span className={riseOnLoad}>
-                      <strong>Sent. I&rsquo;ll reply to the address you gave.</strong>
-                    </span>
-                  )}
-                </p>
-                <p role="alert" className={styles.failure}>
-                  {status.kind === "failed" ? status.message : null}
-                </p>
+                  <p role="status" aria-live="polite" aria-atomic="true" className={styles.status}>
+                    {status.kind === "sending" && "Sending"}
+                    {status.kind === "sent" && (
+                      /*
+                       * The receipt, and the ordering rule is satisfied by
+                       * construction rather than by timing: the text is
+                       * committed in the same React update that sets the
+                       * state, so the live region has it before any frame
+                       * runs, and nothing moves on account of it — there is no
+                       * exit motion in this section for it to be late to,
+                       * because the dialog does not close itself.
+                       */
+                      <span className={styles.receipt}>
+                        Sent. I&rsquo;ll reply to the address you gave.
+                      </span>
+                    )}
+                  </p>
+                </div>
               </form>
             </div>
           </div>
@@ -801,19 +791,11 @@ export default function Contact() {
       </dialog>
 
       {/*
-       * The full stop, and it is outside the `Rise` on purpose.
+       * The full stop, and it is outside the plate on purpose: it is not
+       * part of the plate's arrival. It is the last thing in the section, and
+       * it is drawn as the reader arrives at it, on its own timeline.
        *
-       * Inside, it would be a fourth child of the group and would inherit the
-       * group's `animation` shorthand, which would overwrite the one it
-       * declares for itself — two animations on one element, one of them
-       * progress-driven, resolved by whichever stylesheet Vite happened to
-       * inject second. Outside, it owns its own clock, and it should: this mark
-       * is not part of the plate's arrival. It is the last thing on the page,
-       * and it is drawn as the reader arrives at it.
-       *
-       * It is the one progress-driven mark in this section, which is what gives
-       * the `@supports not (animation-timeline: view())` block in the
-       * stylesheet something real to do. Reversal — scrolling back up un-draws
+       * Reversal — scrolling back up un-draws
        * it — is not a defect here the way it would be on a field rule: this is
        * a decorative hairline that is not the boundary of anything, which is
        * the same licence every other drawn rule on the site has.

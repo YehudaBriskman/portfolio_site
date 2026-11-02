@@ -34,6 +34,47 @@ import styles from "@/components/ground/DarkAct.module.css";
  * verbatim about ground. Two dark acts with nothing between them are one long
  * dark act with a seam in it.
  *
+ * ── the footer is dark too, and it is not a third act (#160) ──────────────
+ *
+ * Since #160 the site footer stands on `--panel`. That reads like a breach of
+ * the ceiling above, and the case that it is not has to be made here, beside
+ * the ceiling, or the next reader will either count it and cut it or not
+ * count it and take it as licence for a fourth.
+ *
+ * What the ceiling counts is SECTIONS — beats of the page's argument, each
+ * with a subject. The subject rule picks which two go dark, and the ceiling
+ * exists because a third dark section dilutes "dark means the work is the
+ * thing on screen" until it means nothing. The footer has no subject in that
+ * sense. It is on every route, not only this one; it is the same on a post
+ * as on the home page; and it says nothing about the work — it is
+ * navigation, a colophon and a copyright line. It is chrome, like the nav
+ * island, which has gone dark over these acts since `nav/useDarkChrome.ts`
+ * taught it to, without anybody counting the island as an act either.
+ *
+ * Four things keep that claim honest, and if any of them stops being true the
+ * footer IS a third act and the ceiling applies to it:
+ *
+ *   1. It does not use this component. No arc, no seams, no drift, no crest.
+ *      Those are what make an act read as a gap between two sheets with light
+ *      behind it; the footer has a straight edge and no motion at all, so it
+ *      reads as the edge of the page, which is what it is.
+ *   2. It has no section head and nothing that would put it in the page's
+ *      sequence of named things.
+ *   3. It is the last thing on every page, so it can never sit between two
+ *      sections and break the paper run the way a mid-page act does. On the
+ *      home page Notes, Specs and Contact stand between the year and the
+ *      footer — three paper sections, more separation than Approach gives
+ *      the two acts — and the close still closes on paper, where the hero
+ *      opened.
+ *   4. It carries nothing a reader came for. A ground that marks the work
+ *      would be diluted by a third section about the work; a ground that
+ *      marks "the page has ended" is a different signal on the same paint.
+ *
+ * The cost, said plainly: dark now means two things on the home page, "the
+ * work" mid-page and "the end" at the foot. They are told apart by place and
+ * by shape — the acts are arched plates in the middle of the scroll, the
+ * footer is a flat band at the bottom of every route — and not by colour.
+ *
  * ── what a dark act needs, and the half of it that fails silently ─────────
  *
  * `.on-panel` AND `data-chrome="dark"`, and the two are not interchangeable.

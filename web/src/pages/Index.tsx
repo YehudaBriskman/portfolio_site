@@ -171,11 +171,7 @@ export default function Index() {
         the column headings and the admin link were the least legible text on
         the site.
       */}
-      <div className="footer-ground">
-        <div className="wrap pb-section-sm">
-          <SiteFooter />
-        </div>
-      </div>
+      <SiteFooter />
     </div>
   );
 }

@@ -112,9 +112,9 @@ ledger is a page-level document and not a comment.
 | 3 | the year | `scrub` | a year of work, raised off the page by the reader's own scroll |
 | 4 | notes shelf | `pan` | lateral travel against vertical scroll |
 | 5 | specs | `count` | real numbers landing |
-| 6 | inquiry plate | `reveal` | the ask, as part of the collection |
+| 6 | inquiry plate | `surface` | the ask comes up out of the sheet, part by part, as the reader arrives |
 
-Ten families. No repeat in adjacent beats. The head row reuses the entry's family on purpose and is argued below. `pin` is spent once, on the peak,
+Ten families (`reveal` left the page with #160; `surface` took its place). No repeat in adjacent beats. The head row reuses the entry's family on purpose and is argued below. `pin` is spent once, on the peak,
 and `scrub` is spent once on beat 3 — the grammar bans a *second* scrub and
 has always allowed the first, which is the whole licence beat 3 has.
 
@@ -631,9 +631,49 @@ has never produced a visible fault.
 
 Beat 0 was `reveal` and is now a staged assembly of four moves — letters, then
 the portrait, then the chrome, then the remaining lines — each gated on the
-previous one's real `animationend` rather than on a delay. So `reveal` is no
-longer a matched pair of bookends; beat 6 is the only one left using it, which
-is a thing to notice rather than a thing to fix.
+previous one's real `animationend` rather than on a delay. So `reveal` stopped
+being a matched pair of bookends, and since #160 no beat uses it at all.
+
+**Beat 6 is `surface` (#160), and it is scrubbed, not fired.** The owner's house
+rule (2026-11-02) is that scroll is the clock: every arrival is driven by scroll
+position and reversed exactly when the reader scrolls up, nothing on a timer and
+nothing fired once by a trigger. The close was the last beat still on `Rise`.
+Each part of the plate that is not running text — name, fact line, field line,
+the button, the receipt, the address — rises out of its own baseline: translated
+up by its own height while a clip on its bottom edge opens by the same amount,
+so the visible edge stays where the part will rest. The paragraph takes the pen,
+as every paragraph does. The closing rule keeps the scroll-drawn hairline it
+already had. Code: `Contact.module.css`, `.surface` and `@keyframes surface`.
+
+- **Not `count`, its neighbour.** Beat 5 lands numbers; beat 6 moves no value
+  and draws no figure, so the adjacency rule holds.
+- **Not a second `scrub`.** Same argument as the heads above: nothing here is a
+  drawing the reader operates or that carries information. It is reversible
+  because every `view()` timeline is, and because the house rule asks for it.
+- **Not a veil, so nothing to measure at a parked frame.** A clip is binary per
+  pixel: whatever can be seen of a part is at full ink (15.17:1 for the name,
+  6.37:1 for the soft lines on paper). An opacity fade would have parked text
+  under 4.5:1 for as long as the reader stopped scrolling, which is why there
+  is none.
+- **One timeline per part, not one per plate.** A shared timeline gives each
+  part a range in scroll distance from the plate's top edge, and on a phone a
+  part 400px down would finish arriving before entering the window. On its own
+  `view()` each part runs `entry 30%` to `cover 36%` (about 320px at 900), so
+  the order is reading order because the layout is. `ease-out`, not
+  `--ease-settle`: on a scroll timeline the curve maps distance, and the
+  settle curve had a part fully arrived 130px into the window.
+- **A focused control is never in a slot.** `.plate:focus-within` cancels the
+  animation, so a keyboard reader tabbing onto a half-risen button gets the
+  whole plate arrived.
+- All three off-switches cancel it outright and land on the resting CSS, which
+  is the arrived state (§4).
+
+The contact dialog is not a beat. It answers a press, not a scroll, so it is
+the one thing in the section on a clock: the scrim fades and the panel rises
+16px from 98.5% over 420ms on `--ease-settle`, and leaves in 180ms. The close
+animates only because `display` and `overlay` transition as discrete
+properties; `@starting-style` is the open's first frame. Under reduced motion
+or Pause it opens and closes without moving.
 
 **Every beat must be able to state its one reason in a sentence.** A beat that
 cannot does not have one, and gets cut rather than kept.
@@ -876,7 +916,8 @@ direction, or set `fill-rule: evenodd` deliberately and know what it costs.
 | file | device | timeline |
 |---|---|---|
 | `nav/useTuckedBar.ts` + `Nav.module.css` (tuck) | the bar lifts and fades on the way down, returns on the way up or on focus; no travel with motion off | scroll direction, no per-frame write |
-| `motion/Rise.tsx` | `reveal` — the measured reveal, fired once | observer + clock |
+| `motion/Rise.tsx` | `reveal` — the measured reveal, fired once (no beat on the home page uses it since #160) | observer + clock |
+| `Contact.module.css` `.surface` | `surface` — each part of the close rising out of its own baseline | `view()` per part |
 | `motion/EntryShutter.tsx` | `shutter` — the page arrives from behind a grid | clock, gated on real readiness |
 | `motion/useStagedArrival.ts` | the staged assembly: each move waits on the last | clock, gated on `animationend` |
 | `components/hero-chrome.css` | the bar's part in that sequence, reached from `body` | clock |

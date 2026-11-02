@@ -75,7 +75,9 @@ describe("Story", () => {
 
   it("marks the peak as the one dark panel for the chrome", () => {
     const { container } = renderStory();
-    const dark = container.querySelectorAll('[data-chrome="dark"]');
+    /* Inside <main>: the site footer is dark chrome on every route since
+       #160, and it is not a section of the story. */
+    const dark = container.querySelectorAll('main [data-chrome="dark"]');
     expect(dark).toHaveLength(1);
     expect(within(dark[0] as HTMLElement).getByRole("heading", { level: 2 }).textContent).toBe(
       buildStory().chapters.find((c) => c.peak)!.title

@@ -17,63 +17,38 @@
  * rule above — it is the other side of it. A thing in the top layer is not in
  * the collection; it is the drawer the last object opens into, and a drawer
  * that was flat on the page behind it would be a form floating in mid-air over
- * type it does not cover. It gets a ground, an edge and a head, and nothing
- * else: no shadow stack, no glass, no radius larger than the page already
- * spends, and no motion of its own beyond the reveal the plate already uses.
+ * type it does not cover.
  *
- * The group reveal is still `motion/Rise` — 14px, 620ms, `--ease-settle`,
- * children 60ms apart in reading order, fired once by an observer; the dialog
- * borrows the same stylesheet in its already-on-screen form. None of those four
- * numbers is restated here and none ever should be: two copies of a measured
- * gesture drift the first time one of them is touched, and then the page has
- * two reveals that are nearly the same, which is worse than having two that are
- * plainly different.
+ * Two clocks, and which one each mark is on (#160)
+ * ------------------------------------------------
+ * The house rule is that scroll is the clock: every arrival on the page is
+ * scrubbed by scroll position, reversed exactly when the reader scrolls up,
+ * and never fired once by a trigger. The plate obeys it. It used to arrive on
+ * `motion/Rise`, an observer that fired once, and it now arrives on `surface`
+ * — each of its parts rising out of its own baseline on its own `view()`
+ * timeline, see the block below.
  *
- * What this file does own
- * -----------------------
- * The ink on the three field rules, which is a different device from the
- * reveal and is the only motion on this page that carries *information* rather
- * than emphasis. A name, an address and a message are three different kinds of
- * answer, and each field's rule says which: see the three blocks below, each
- * with its one sentence. A per-field effect that is only three easings says
- * nothing, and three things that say nothing are worse than one thing that
- * says it once.
+ * The dialog is the one exception the rule names, and it is on a clock for a
+ * reason rather than by default: it is answering a press, not a scroll. A
+ * dialog that opened in proportion to how far somebody had scrolled would be
+ * a dialog that did not open. So it opens and closes on a short transition,
+ * and the three field rules ink in on the same clock; under reduced motion or
+ * Pause it simply appears and disappears.
+ *
+ * What this file owns
+ * -------------------
+ * The ink on the three field rules, which is the only motion on this page that
+ * carries *information* rather than emphasis. A name, an address and a
+ * message are three different kinds of answer, and each field's rule says
+ * which: see the three blocks below, each with its one sentence.
  *
  * And the section's full stop. The last feeling is the one the reader carries
- * off the page, so this one has to resolve rather than trail into the footer —
- * and that is harder now than it was when the form was printed here, because a
- * button on an empty stage resolves nothing. Three marks do that work and all
- * three are additive: the three field rules draw out to one flush length under
- * the receipt inside the dialog; the section itself changes state behind the
- * dialog, so closing it leaves a statement where the ask was; and the section
- * signs off with a rule across the column ending on a printer's end-mark,
- * which fills once a message has actually gone.
- *
- * The clock, and why it is a clock
- * --------------------------------
- * Every animation in this file except the closing rule is time-driven, and
- * there is no observer gating any of it any more. There used to be one — the
- * form was printed at the foot of a long page, a clock starts when an element
- * is painted, and those two moments were thousands of pixels apart, so
- * `motion/Arrived` supplied the missing half. In a dialog they coincide: this
- * subtree is painted at the instant the reader asks for it, so opening the
- * dialog *is* the gate, and the gate component is one fewer thing in the way.
- *
- * A view timeline was the obvious alternative and is still the wrong one here:
- * it runs backwards when the reader scrolls up, and these rules are the
- * boundaries of controls. A boundary that un-draws itself because somebody
- * scrolled, or that dims while the field it belongs to has focus, is a worse
- * defect than an animation nobody noticed. The ink is also purely additive —
- * the control's own 1px rule is painted by CSS at rest and never animated — so
- * an animation that never runs costs the flourish and leaves a complete,
- * legible, usable form.
- *
- * `@supports not (animation-timeline: view())` therefore has exactly one
- * subject in this file, the closing rule, which is the one mark here that does
- * ride a view timeline. Per the contract's §4 the time-driven animations get
- * no `@supports` block, because there is no feature for a browser to be
- * missing; they do get the other two exits, explicitly, each landing on the
- * finished state.
+ * off the page, so this one has to resolve rather than trail into the footer.
+ * Three marks do that work and all three are additive: the three field rules
+ * re-ink under the receipt inside the dialog; the section itself changes state
+ * behind the dialog, so closing it leaves a statement where the ask was; and
+ * the section signs off with a rule across the column ending on a printer's
+ * end-mark, which fills once a message has actually gone.
  */
 
 /* ─────────────────────────────────────────────────────────────── the plate ── */
@@ -123,15 +98,90 @@
   justify-content: center;
 }
 
+/* ───────────────────────────────────────────────────── surface, the arrival ── */
+
+/*
+ * `surface`: each part of the last plate rises out of its own baseline as the
+ * reader arrives, and sinks back into it if they turn round (#160).
+ *
+ * The one reason it exists, in the ledger's terms: the ask is the last thing
+ * the collection says, and it should come up out of the sheet rather than be
+ * dropped onto it. It is beat 6 of the device ledger in
+ * `docs/motion-contract.md`, where the argument against the neighbouring beats
+ * is written down.
+ *
+ * WHAT MOVES. Every part that is not running text — the name, the fact line,
+ * the field line, the receipt, the button and the address — is translated up
+ * by its own height while a clip on its own bottom edge opens by the same
+ * amount, so the bottom edge of the visible part stays where the element will
+ * come to rest. The part rises out of a slot at its baseline instead of
+ * sliding up the page. The paragraph between them is running text and takes
+ * the pen (`motion/Written`), which is the house device for every paragraph on
+ * the site and is not restated here.
+ *
+ * WHY A CLIP AND NOT OPACITY. A view timeline is a state a reader can park in:
+ * stop scrolling halfway and the plate stays halfway. A fade parked at 40% is
+ * type at 40% contrast, which is a legibility fault for as long as the reader
+ * stays there. A clip is binary per pixel — every glyph that can be seen is at
+ * full ink, 15.17:1 on paper for the name and 6.37:1 for the soft lines — so
+ * there is no parked frame with anything under the body-text floor in it.
+ *
+ * THE CLOCK. Each part is the subject of its own anonymous `view()` timeline,
+ * not one shared timeline on the plate. A shared timeline would have to give
+ * each part a range in scroll distance from the plate's top edge, and a part
+ * 400px down a phone-width plate would finish arriving before it had entered
+ * the window. On its own timeline each part runs from 30% of its own height
+ * past the bottom edge (`entry 30%`) to 36% of the way across the window
+ * (`cover 36%`) — about 320px of scroll at 900, so a part lands a little
+ * above the lower third and is watched doing it — so the
+ * order is reading order because the layout is, and no range carries a
+ * number that a reflow can make wrong. No delay, no duration (§1 of the
+ * contract: both are ignored on a scroll timeline). `ease-out` and not
+ * `--ease-settle`: on a scroll timeline the curve maps distance, not time,
+ * and the settle curve is 90% done in the first fifth of the range, which
+ * measured as a part that had arrived 130px into the window.
+ *
+ * The slack on the top and the sides of the clip is the glyphs' own overhang
+ * and the button's focus ring; only the bottom edge does any work, and it
+ * ends 0.6em below the box so a descender is never shaved in the arrived
+ * frame.
+ */
+.surface,
+.label > * {
+  animation-name: surface;
+  animation-timing-function: ease-out;
+  animation-fill-mode: both;
+  animation-timeline: view();
+  animation-range: entry 30% cover 36%;
+}
+
+@keyframes surface {
+  from {
+    translate: 0 100%;
+    clip-path: inset(-0.6em -1em 100% -1em);
+  }
+  to {
+    translate: 0 0;
+    clip-path: inset(-0.6em -1em -0.6em -1em);
+  }
+}
+
+/*
+ * A focused control is never in a slot. A keyboard reader who tabs onto the
+ * button while the plate is half arrived gets the browser's own scroll to the
+ * focused element, which can stop with the button only partly risen; the
+ * whole plate lands the moment focus is anywhere inside it.
+ */
+.plate:focus-within :is(.surface, .label > *) {
+  animation: none;
+}
 /* ───────────────────────────────────────────────────────────────── the ask ── */
 
 /*
- * The paragraph, the receipt and the button, as one step of the reveal.
- *
- * A direct child of `Rise` is one beat of the stagger, so this wrapper is what
- * makes the sentence and the action it belongs to arrive together instead of as
- * two events. It carries no box: the plate is read, and a frame around the ask
- * would be the raised surface the header rules out.
+ * The paragraph, the receipt and the button, in one column under the label.
+ * It carries no box: the plate is read, and a frame around the ask would be
+ * the raised surface the header rules out. Each of its children arrives on
+ * its own timeline (see `surface` above), so this wrapper is layout only.
  */
 .ask {
   margin-top: 2.5rem;
@@ -264,34 +314,41 @@
  * obvious place and the fragile one. `::backdrop` exists only for a dialog that
  * was opened with `showModal()`; an engine with `<dialog>` and no `showModal`
  * falls back to the `open` attribute alone, and there the scrim would quietly
- * not exist and the form would float over readable type. A full-viewport
- * element with its own background is the version that is a scrim in both cases.
- * `::backdrop` is then flattened below so there is exactly one source for the
+ * not exist. A full-viewport element with its own background is a scrim in
+ * both cases, and `::backdrop` is flattened so there is one source of
  * darkness rather than two that multiply.
  *
- * `inset: 0` and not `100dvh`: a top-layer fixed box resolves against the
- * viewport, so this is already exactly the viewport with no unit to be wrong
- * about — and it means the whole area outside the panel belongs to this
- * element, which is what makes a backdrop click identifiable as
- * `event.target === dialog` instead of as a hit test against the panel's box.
+ * `inset: 0` makes the whole area outside the panel belong to this element,
+ * which is what makes a backdrop click identifiable as `event.target ===
+ * dialog` instead of as a hit test against the panel's box.
  *
  * `overflow: hidden` with `overscroll-behavior: contain` is the scroll lock,
- * and it is the one thing `showModal()` does *not* give you. An inert
- * background cannot be clicked, focused or read, and it scrolls perfectly
- * well: measured on the render, a wheel over the scrim moved the page 500px
- * under a modal dialog. The usual cure is `overflow: hidden` on `<html>` while
- * the dialog is open, and it is the wrong one here twice over — it removes the
- * scrollbar and shifts the whole page sideways at the moment a dialog opens,
- * and index.css carries a long note about what mixing overflow values on the
- * document elements has already cost this site once.
+ * and it is the one thing `showModal()` does *not* give you: measured on the
+ * render, a wheel over the scrim moved the page 500px under a modal dialog.
+ * Making this element the scroll container keeps the fix where the dialog is,
+ * with no `overflow` toggled on `<html>` and so no layout shift on open.
  *
- * Making *this* element a scroll container instead keeps the fix where the
- * dialog is. It has nothing to scroll, because the panel is capped at its
- * content box and scrolls inside itself; `contain` is what stops that nothing
- * from being handed on to the page behind it. Nothing outside the dialog
- * changes, so there is no layout shift and no state to put back on close.
+ * THE OPEN AND THE CLOSE (#160). A press, so a clock — see the header. The
+ * scrim fades; the panel rises 16px and comes up from 98.5% scale on
+ * `--ease-settle`, and leaves faster and straighter than it came, because a
+ * dismissal the reader asked for should get out of the way rather than
+ * perform. The close is animated at all only because `display` and `overlay`
+ * are transitioned as discrete properties: without `allow-discrete` the
+ * element drops out of the top layer on the frame `open` is removed, and
+ * there is nothing left to fade. `@starting-style` is the open's first frame —
+ * the one style a freshly displayed element has never had and so cannot
+ * transition from without being told.
+ *
+ * None of this delays anything a reader depends on. Focus moves to the first
+ * field on the frame the dialog opens, and returns to the trigger on the
+ * frame the `close` event fires; the transition plays around both. An engine
+ * without `@starting-style` or discrete transitions gets the dialog that
+ * appears and disappears, which is exactly what reduced motion asks for.
  */
 .dialog {
+  --open-in: 280ms;
+  --open-out: 180ms;
+
   display: none;
   position: fixed;
   inset: 0;
@@ -302,60 +359,62 @@
   margin: 0;
   padding: 0;
   border: 0;
-  /* Ink and not black: the page's own darkest value at 60%, so the scrim is
-     the same colour the type is and the paper behind it warms rather than
-     greys. */
-  background: rgb(var(--ink) / 0.6);
+  /* The scrim is the page's own ink, not black, so the paper behind it warms
+     rather than greys. */
+  background: rgb(var(--ink) / 0.55);
   color: rgb(var(--ink));
   overflow: hidden;
   overscroll-behavior: contain;
+  opacity: 0;
+  transition:
+    opacity var(--open-out) ease-in,
+    display var(--open-out) allow-discrete,
+    overlay var(--open-out) allow-discrete;
 }
 
 .dialog::backdrop {
   background: transparent;
 }
 
-/*
- * Edge to edge on a phone, and that is the soft-keyboard decision.
- *
- * A centred panel with air around it is the right shape on a desktop and the
- * wrong one at 390px with a keyboard up, where the usable area is about half a
- * screen: the panel ends up centred on a viewport the reader can only see the
- * middle of, and the way out goes off the top. Full-bleed means the head is at
- * the top of the layout viewport, the body is a scrollport of its own, and the
- * browser's "scroll the focused field into view" lands inside that scrollport
- * rather than dragging the whole dialog around.
- *
- * Written mobile-first, so the narrow case is the one that needs no media
- * query to be correct.
- */
 .dialog[open] {
   display: flex;
   align-items: stretch;
   justify-content: center;
   padding: 0;
+  opacity: 1;
+  transition:
+    opacity var(--open-in) ease-out,
+    display var(--open-in) allow-discrete,
+    overlay var(--open-in) allow-discrete;
+}
+
+@starting-style {
+  .dialog[open] {
+    opacity: 0;
+  }
 }
 
 @media (min-width: 640px) {
   .dialog[open] {
     align-items: center;
-    /* Air on all four sides, so the backdrop is reachable by pointer at every
-       edge and the panel reads as a thing on top of the page rather than as a
-       new page. */
+    /* Breathing room on every side, so the scrim shows at the panel's edge and
+       the panel reads as a thing on top of the page rather than a new page. */
     padding: clamp(1rem, 4vh, 2.5rem) 1.5rem;
   }
 }
 
 /*
- * The panel: a column with a fixed head and a scrolling body.
+ * The panel: a ground, an edge and a head.
  *
- * `min-height: 0` on a flex column is the declaration this layout does not work
- * without. A flex item's default `min-height: auto` refuses to shrink below its
- * content, so the body would grow past the panel's cap, the panel past the
- * dialog's, and the overflow that was meant to scroll inside the body would
- * instead be clipped by the dialog with no scrollbar anywhere.
+ * On a phone it is the whole window — a sheet, because with a soft keyboard up
+ * there is no room for a scrim around it — and it rises 24px. From 640px it is
+ * a 40rem card, the width at which the name and the address sit side by side
+ * without either getting narrow, and it rises 16px from 98.5%.
  */
 .panel {
+  --rise: 24px;
+  --from-scale: 1;
+
   display: flex;
   flex-direction: column;
   width: 100%;
@@ -363,105 +422,107 @@
   max-height: 100%;
   background: rgb(var(--paper));
   color: rgb(var(--ink));
+  translate: 0 var(--rise);
+  scale: var(--from-scale);
+  transition:
+    translate var(--open-out) cubic-bezier(0.4, 0, 1, 1),
+    scale var(--open-out) cubic-bezier(0.4, 0, 1, 1);
+}
+
+.dialog[open] .panel {
+  translate: 0 0;
+  scale: 1;
+  transition:
+    translate 420ms var(--ease-settle),
+    scale 420ms var(--ease-settle);
+}
+
+@starting-style {
+  .dialog[open] .panel {
+    translate: 0 var(--rise);
+    scale: var(--from-scale);
+  }
 }
 
 @media (min-width: 640px) {
   .panel {
-    /* Wider than `--measure` by the width of the two gutters, so the form's
-       own 62ch measure is what limits the fields and the panel is not a second
-       opinion about the same number. */
-    max-width: calc(var(--measure) + 6rem);
+    --rise: 16px;
+    --from-scale: 0.985;
+
+    max-width: 40rem;
     border-radius: var(--r-md);
-    /* The one lift in the section. A panel over a 60% scrim does not need a
-       shadow to separate from the page, but it does need one to not look
-       pasted on; a single soft drop at low alpha is the whole of it. */
-    box-shadow: 0 24px 60px -24px rgb(var(--ink) / 0.5);
+    /* A single soft drop at low alpha: enough not to look pasted on, and no
+       shadow stack. */
+    box-shadow: 0 24px 60px -24px rgb(var(--shade, 0 0 0) / 0.45);
   }
 }
 
 /*
- * The head, and it does not scroll.
+ * The head: the title, one line under it, and the way out.
  *
- * `flex: none` rather than a sticky position: sticky inside a scrollport that
- * is also the thing being scrolled would put the head over the first field at
- * every scroll position except the top. A head outside the scrollport is simply
- * always there, which is what a dismiss control has to be on a phone.
+ * The line under the title is the reply time from `data/site.ts` and the fact
+ * that all three fields are needed — the two things a reader wants to know
+ * before typing, said once, so no field has to carry a "required" mark of its
+ * own.
+ *
+ * Its divider is `--rule`, a hairline between two pieces of content, and the
+ * one at the foot of the form is the same. Neither is the boundary of
+ * anything a reader has to find, which is the case the stronger tokens below
+ * are measured for.
  */
 .panelHead {
   flex: none;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
-  padding: 1.25rem 1.5rem;
-  border-bottom: 1px solid rgb(var(--rule-firm));
-  /* The safe area on a notched phone, where the dialog is full-bleed. */
+  padding: 1.25rem 1.25rem 1.125rem 1.5rem;
   padding-top: max(1.25rem, env(safe-area-inset-top));
+  border-bottom: 1px solid rgb(var(--rule));
 }
 
 @media (min-width: 640px) {
   .panelHead {
-    padding: 1.5rem 2rem;
+    padding: 1.75rem 1.5rem 1.375rem 2rem;
   }
 }
 
-/*
- * The dialog's accessible name, and the thing the reader can see.
- *
- * Display register, one notch under an object's own name: this is a heading
- * inside an object rather than the name of a new one. It repeats the trigger's
- * words rather than paraphrasing them, which is the cheapest way to make a
- * dialog feel like the thing that was pressed instead of a new place.
- */
 .panelTitle {
   margin: 0;
-  /* The text face at its real 700, not the display face. The display role is
-     drawn for the section register and up; this is set below 32px, where a
+  /* The text face, not the display face: this is set below 32px, where a
      wide geometric face stops being a quieter headline and starts being a
-     slower read. Same division as `.display` / `.display-tight` in
-     index.css. */
+     slower read. */
   font-family: var(--font-text);
   font-weight: var(--weight-text-strong);
   font-size: clamp(1.25rem, 2.4vw, 1.5rem);
-  line-height: 1.1;
+  line-height: 1.15;
   letter-spacing: var(--track-sub);
   color: rgb(var(--ink));
   text-wrap: balance;
 }
 
-/*
- * The visible way out, next to the two the browser already gives.
- *
- * Cut down to the 44px tap floor from `.btn`'s 52/56: a dismiss is secondary,
- * and a 56px pill in a dialog header competes with the send for the only
- * primary action on the screen.
- *
- * The selector is `.panelHead .dismiss` and not `.dismiss`, which is the one
- * piece of specificity arithmetic in this file worth stating. `.btn` is a
- * single class in index.css and so is a module class, so which of them wins
- * `min-height` would be decided by the order Vite happened to inject two
- * stylesheets — not something anybody should have to know to make a button
- * smaller. Two classes wins on weight instead. Everything else in this file
- * that sits next to `.btn` only ever sets a margin, which `.btn` has no
- * opinion about.
- */
+/* --ink-soft, 6.37:1 on paper. */
+.panelLede {
+  margin: 0.375rem 0 0;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: rgb(var(--ink-soft));
+}
+
+/* `.btn-quiet` cut down to the 44px tap floor: a dismiss is secondary, and a
+   56px pill in a dialog header competes with the send. */
 .panelHead .dismiss {
+  flex: none;
   min-height: 44px;
   padding-inline: 1rem;
   font-size: 1rem;
 }
 
 /*
- * The scrolling half, and it is why there is a panel at all rather than a form
- * with a border.
- *
- * `overscroll-behavior: contain` stops a flick that reaches the end of this box
- * from handing the scroll on to the page behind the dialog, which is the one
- * way a modal still lets the reader move the thing it is covering.
- *
- * The inline padding is also the clearance for `.control:focus-visible`, which
- * draws a 2px outline at a 4px offset. A scrollport whose padding was tighter
- * than 6px would clip the focus ring of every field in it against its own edge.
+ * The scrolling half of the panel, and the reason there is a panel at all.
+ * At 390px with a soft keyboard up the top layer is about half a phone; the
+ * head stays put, this box scrolls, and the browser's own "scroll the focused
+ * field into view" lands inside it.
  */
 .panelBody {
   flex: 1 1 auto;
@@ -469,132 +530,108 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 1.5rem;
-  /* The home-key bar on a notched phone, where the dialog is full-bleed. */
   padding-bottom: max(2rem, env(safe-area-inset-bottom));
 }
 
 @media (min-width: 640px) {
   .panelBody {
-    padding: 2rem;
+    padding: 1.75rem 2rem 2rem;
   }
 }
 
-/* ────────────────────────────────────────────────────────────────── the form ── */
-
 /*
- * The same measure as the fact line on the plate, and no motion of its own.
+ * The form is a grid: name and address on one row from 640px, the message
+ * and the foot across the whole width under them.
  *
- * The form as a block is one step of the panel's reveal and nothing more. It is
- * deliberately not wiped, swept or scroll-linked, for the reason the cards that
- * used to be here gave and which survives the rewrite: a reader who has opened
- * this dialog is here to type, not to watch. Whatever happens to a field
- * happens *under* it, on a 2px strip that is not the field's boundary and
- * cannot crop, dim or move anything the reader is working in.
+ * The two columns are 2fr and 3fr, which keeps the one signal the old stepped
+ * rules carried — a name is a shorter answer than an address — without a
+ * ragged right edge. On a phone it is one column and the signal simply stops,
+ * which is better than a 36ch field with a horizontal scrollbar.
  *
- * Every margin in this section is set in this file rather than with a Tailwind
- * utility. A utility and a module rule are both one class, so which of them
- * wins is decided by the order Vite happens to inject two stylesheets — which
- * is not something anybody should have to know to move this form down by 8px.
+ * Every margin here is set in this file rather than with a utility: a utility
+ * and a module rule are both one class, so which wins is decided by the order
+ * Vite injects two stylesheets.
  */
 .form {
-  max-width: var(--measure);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.5rem 1rem;
+}
+
+@media (min-width: 640px) {
+  .form {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  }
+}
+
+.fieldMessage,
+.foot,
+.failure {
+  grid-column: 1 / -1;
 }
 
 /* ─────────────────────────────────────────────────── one field at a time ── */
 
 /*
- * The four knobs a field has, and the reason they are custom properties.
+ * The two knobs a field has: when its ink arrives (`--ink-at`) and when it
+ * re-inks on a successful send (`--seal-at`). Every per-field difference
+ * below is one of them or the direction the ink travels.
  *
- * `--field-w` is how much room the field claims, `--ink-w` is how far its ink
- * reaches, `--ink-at` is when that ink arrives and `--seal-at` is when it
- * re-inks on a successful send. Every per-field difference below is one of
- * these four values, which is the point: the differences are structural and
- * can be read off in four lines, rather than being four hand-tuned animation
- * shorthands that happen to differ.
- *
- * The defaults are the message field's, because that is the unremarkable case
- * — the full measure, and nothing special.
+ * The starts are 80ms apart in reading order, the top of the contract's
+ * stagger band, and they begin at 300ms — once the panel has travelled most
+ * of its 420ms, because ink drawn on a box that is still moving reads as a
+ * rendering fault rather than as a stroke.
  */
 .field {
-  --field-w: 100%;
-  --ink-w: var(--field-w);
-  --ink-at: 860ms;
+  --ink-at: 460ms;
   --seal-at: 160ms;
+  /* The well's corner, which the ink stays inside. */
+  --well-r: 12px;
+  position: relative;
+  min-width: 0;
 }
 
-.field + .field {
-  margin-top: 1.75rem;
-}
-
-/*
- * NAME — a name is one short answer written in one stroke, so its rule is the
- * length of the answer rather than of the measure, and the ink crosses it once
- * from left to right with nothing else moving.
- *
- * 24ch is about four times the longest first name anybody has and still
- * obviously a short field, which is the whole signal: the reader can see how
- * much is being asked for before reading the label.
- */
+/* NAME — one short answer written in one stroke: the ink crosses the rule
+   once, left to right, with nothing else moving. */
 .fieldName {
-  --field-w: 24ch;
-  --ink-at: 700ms;
+  --ink-at: 300ms;
   --seal-at: 0ms;
 }
 
-/*
- * EMAIL — an address is the one answer that can be fully present and still
- * wrong, so its rule is inked from both ends inward and left open at the
- * centre, and that gap is closed by a mark that appears only once the address
- * is a well-formed one.
- *
- * 36ch is a little over the length of a long address. Sized between the name
- * and the message on purpose: the three fields step up in width in reading
- * order, which is the shape of the form before a word of it is read.
- */
+/* EMAIL — the one answer that can be fully present and still wrong: the ink
+   comes in from both ends and leaves a gap at the centre, which a mark closes
+   only once the address is well formed. */
 .fieldEmail {
-  --field-w: 36ch;
-  --ink-at: 780ms;
+  --ink-at: 380ms;
   --seal-at: 80ms;
   /* How far each half reaches, so the two stop 1.2ch short of each other.
      The seal below is the same 1.2ch, because it is that gap. */
   --ink-half: calc(50% - 0.6ch);
 }
 
-/*
- * MESSAGE — this is the only field where the reader does real work, so it
- * takes the whole measure and claims more room as it is used, growing to hold
- * what they write instead of asking them to scroll inside a five-line box; its
- * ink opens outward from the centre because it is the one answer with no fixed
- * end.
- */
+/* MESSAGE — the only field where the reader does real work: it grows to
+   hold what they write, and its ink opens outward from the centre because it
+   is the one answer with no fixed end. */
 .fieldMessage {
-  --field-w: 100%;
+  --ink-at: 460ms;
 }
 
 /*
- * The label, in the field line's voice.
+ * The label, in the field line's voice: the data role, uppercase, 0.18em —
+ * the plate's own field line, because it is the same kind of text doing the
+ * same job. It is a real `<label>` with a real `for`, visible, and there are
+ * no placeholders anywhere in this form: a placeholder disappears the moment
+ * anything is typed, which is exactly when the reader wants to check what
+ * they put in.
  *
- * The data role, uppercase, 0.18em — the same setting the plate's own field
- * line carries, because it is the same kind of text doing the same job:
- * naming a fact rather than stating one. It is a real `<label>` with a real `for`, and
- * it is visible. A ruled line with a placeholder in it is the classic way to
- * lose both: the placeholder disappears the moment anything is typed, so the
- * field stops having a name exactly when the reader most needs to check what
- * they put in it, and on a `<span>` inside a label several screen readers
- * never announced it in the first place.
- *
- * All three labels behave identically, and that is a decision rather than an
- * omission. A label's whole job is to name the field; three names that behaved
- * differently from each other would make the form's chrome the subject of the
- * form. The per-field difference lives where it can mean something — in the
- * measure of the field and the ink on its rule — and the labels stay the one
- * constant the reader can navigate by. The focus tint is the only thing that
- * moves here, and it is the same on all three.
+ * --ink-soft at rest (6.37:1 on paper) and --ink while its field has focus;
+ * `:focus-within` on the wrapper, because the label is written before the
+ * control and no sibling combinator reaches backwards.
  */
 .fieldLabel {
   display: block;
   font-family: var(--font-data);
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: var(--weight-data);
   line-height: 1.5;
   letter-spacing: var(--track-field);
@@ -603,102 +640,73 @@
   transition: color var(--dur-micro) ease;
 }
 
-/* `:focus-within` on the wrapper, because the label is written *before* the
-   control and no sibling combinator reaches backwards. */
 .field:focus-within .fieldLabel {
   color: rgb(var(--ink));
 }
 
 /*
- * A ruled line, and the rule is `--ink-soft`.
+ * The control is a well now, not a ruled line (#160).
  *
- * `--rule` and `--rule-firm` are both wrong here, for a measured reason. They
- * are hairlines between two pieces of content, and on paper they come out at
- * 1.2:1 and 2.15:1 — under the 3:1 that the boundary of a control someone has
- * to find is held to. `--ink-soft` is 6.37:1 on `--paper`, which is the same
- * choice and the same arithmetic `.btn-quiet` makes in index.css. The panel's
- * own head rule *is* `--rule-firm`, and that is not an inconsistency: a
- * separator between two pieces of content is the case those tokens were
- * measured for, and the boundary of something you type into is not.
+ * A ruled line asked the reader to find a 1px boundary on paper; a well is a
+ * box they can see before they read its label, and its whole area is the
+ * target. It is lighter than the paper — the one surface on the site that is
+ * — because it is the one place a reader writes on.
  *
- * This border is painted at rest and is never animated, clipped or faded. It
- * is the one thing in the form that has to be true in every frame and in
- * every state — before the ink runs, after it, under a cancelled animation
- * and on a browser that ran none of them. Everything that moves moves on the
- * strip below it.
+ * MEASURED, because every number here is a boundary somebody has to find.
+ * The well is #F6F5EF (white at 55% over --paper). Its border is --ink-soft at
+ * 70%, which composites to #85837C: 3.47:1 against the well and 3.10:1
+ * against the paper outside it, both over the 3:1 that WCAG 1.4.11 holds the
+ * edge of a control to. --rule-firm, the obvious token, is 2.41:1 and 2.15:1
+ * and was not used for that reason. Type in the well is --ink at 17.02:1.
  *
- * `max-width` and not `width`, so the field's measure is a ceiling: on a phone
- * every field is the column width and the stepped widths simply stop being a
- * signal, which is better than a 36ch field with a horizontal scrollbar.
+ * The border is painted at rest and is never animated, clipped or faded. It
+ * is the one thing in the form that has to be true in every frame and every
+ * state; everything that moves moves on the 2px strip inside its foot.
  *
- * No placeholders anywhere in this form. With a visible label above every
- * field a placeholder is either a second name for the field — one name too
- * many — or an example the reader has to select and delete.
+ * Focus is a 2px --signal ring 2px outside the border (8.50:1 on paper, 9.53:1
+ * on the well) with the border going to full ink — two cues, so it does not
+ * rest on colour alone.
  */
 .control {
   display: block;
   width: 100%;
-  max-width: var(--field-w);
-  margin-top: 0.4rem;
-  padding: 0.6rem 0;
-  min-height: 44px;
-  border: 0;
-  border-bottom: 1px solid rgb(var(--ink-soft));
-  border-radius: 0;
-  background: transparent;
+  margin-top: 0.5rem;
+  padding: 0.75rem 0.875rem;
+  min-height: 48px;
+  border: 1px solid rgb(var(--ink-soft) / 0.7);
+  border-radius: var(--well-r);
+  background: rgb(255 255 255 / 0.55);
   font-family: inherit;
   font-size: 1.0625rem;
   line-height: 1.5;
   letter-spacing: var(--track-body);
   color: rgb(var(--ink));
-  transition: border-color var(--dur-micro) ease;
+  transition:
+    border-color var(--dur-micro) ease,
+    background-color var(--dur-micro) ease,
+    box-shadow var(--dur-micro) ease;
 }
 
 @media (hover: hover) and (pointer: fine) {
   .control:hover {
-    border-bottom-color: rgb(var(--ink));
+    border-color: rgb(var(--ink-soft));
   }
 }
 
-/*
- * A real outline, not a darker rule.
- *
- * A 1px border changing colour is a signal a keyboard user has to hunt for,
- * and on a field whose entire chrome *is* that 1px border it is barely a
- * signal at all. The outline sits outside the box and cannot be missed. The
- * offset keeps it clear of the glyphs, which on a bottom-ruled field would
- * otherwise sit right on top of the line — and `.panelBody` carries enough
- * padding for the ring not to be clipped by its own scrollport.
- */
 .control:focus-visible {
-  border-bottom-color: rgb(var(--ink));
-  outline: 2px solid rgb(var(--ink));
-  outline-offset: 4px;
+  border-color: rgb(var(--ink));
+  background: rgb(255 255 255 / 0.85);
+  outline: 2px solid rgb(var(--signal));
+  outline-offset: 2px;
 }
 
-/*
- * The message field keeps the same bottom rule as the two above it. A box
- * around this one and lines under those two would be two kinds of field in one
- * form, which is the same mistake as two kinds of object in one gallery.
- *
- * What it does not keep is a fixed height. `field-sizing: content` is the whole
- * of the third field's treatment: the one field where the reader does real work
- * is the one field that grows to hold it, so a long message is read back in
- * full instead of through a five-line window. `min-height` holds the resting
- * box at the five rows the markup asks for, and `max-height` stops a very long
- * message from pushing the send button out of the panel's scrollport — past
- * that it scrolls, which is the point at which a textarea has earned a
- * scrollbar.
- *
- * `resize: vertical` stays, and stays *last* in intent: a reader who drags the
- * handle has said what height they want, and the browser honours that over the
- * content sizing.
- */
 .control.message {
-  min-height: 7.5rem;
+  min-height: 8.5rem;
   resize: vertical;
 }
 
+/* The field grows with what is written, up to a ceiling, instead of asking
+   for a scroll inside a five-line box. */
 @supports (field-sizing: content) {
   .control.message {
     field-sizing: content;
@@ -708,83 +716,81 @@
 }
 
 /*
- * An invalid field, marked three ways and by colour in none of them.
+ * The error state, and colour carries none of it on its own.
  *
- * The message under the field is the signal; `aria-invalid` carries the same
- * fact to the accessibility tree; the rule thickens to 2px, which is a change
- * of weight rather than of hue. There is deliberately no red: this page spends
- * its colour inside the motion and nowhere else, and a palette with one accent
- * has no second one to lose to a reader who cannot separate it from the ink.
- *
- * The weight channel is why the ink below never *rests* at 2px: the only
- * standing 2px rule in this form is an invalid one, and a decorative mark that
- * looked the same would have spent an error channel on a flourish.
+ * The border thickens to 2px (an inset shadow, so the box does not move) in
+ * --error, #A1291B: 6.02:1 on paper and 6.75:1 on the well, well over the
+ * 3:1 for a boundary. The message under it is set in --ink, not in red, so
+ * the sentence a reader has to act on is at 15.17:1 rather than at whatever
+ * a red can manage; the red is on the mark beside it and on the border, which
+ * are the two things that say "this one" at a glance. The words are the
+ * schema's own — "It should look like name@example.com" is #136's fix for
+ * 3.3.3 — tied to the control by `aria-describedby` and `aria-invalid`.
  */
+.form {
+  --error: 161 41 27;
+}
+
 .control[aria-invalid="true"] {
-  border-bottom-width: 2px;
-  border-bottom-color: rgb(var(--ink));
+  border-color: rgb(var(--error));
+  box-shadow: inset 0 0 0 1px rgb(var(--error));
+}
+
+.control[aria-invalid="true"]:focus-visible {
+  outline-color: rgb(var(--error));
 }
 
 .fieldError {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
   margin: 0.5rem 0 0;
-  font-family: var(--font-data);
-  font-size: 0.78rem;
-  line-height: 1.5;
-  letter-spacing: 0.02em;
-  /* Full-strength ink. An error message is the most important text on the
-     screen for as long as it exists, and nothing anyone has to read on this
-     page is set below AA. */
+  font-size: 0.875rem;
+  line-height: 1.45;
   color: rgb(var(--ink));
 }
 
-/* ─────────────────────────────────────────────────────────────── the ink ── */
+/* The mark. `content: "!" / ""` gives it an empty alternative, so a screen
+   reader that reads generated content does not say "exclamation mark" before
+   every error. */
+.fieldError::before {
+  content: "!" / "";
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 1.125rem;
+  height: 1.125rem;
+  margin-top: 0.08rem;
+  border-radius: 50%;
+  background: rgb(var(--error));
+  color: rgb(255 255 255);
+  font-family: var(--font-data);
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* ───────────────────────────────────────────────────────────── the ink ── */
 
 /*
- * The strip the ink is laid on.
+ * The ink layer, a 2px strip inside the foot of each well.
  *
- * An element and not a pseudo-element, for one reason: `input` and `textarea`
- * do not render `::before` or `::after` in any engine that matters, so a mark
- * that lies along a field's own rule has to be a box of its own. It is 2px
- * tall and pulled 2px up, so it covers the hairline and the pixel above it,
- * and it contributes nothing to the flow — the error note under it sits
- * exactly where it did.
- *
- * `pointer-events: none` because it crosses the bottom edge of a control and a
- * decorative strip must never eat a click aimed at the last line of a textarea.
+ * It is a sibling element because `input` and `textarea` render no
+ * pseudo-elements. It sits on the bottom border, inset by the well's corner
+ * radius so it never pokes out past the curve, and it is purely additive: the
+ * border it lies on is painted at rest, so an animation that never runs costs
+ * the flourish and leaves a complete form.
  */
 .ink {
   display: block;
   position: relative;
-  /*
-   * The control's own type size, and it is not cosmetic: `--field-w` is written
-   * in `ch`, which resolves against whichever element it lands on. The section
-   * sets 19px and the control sets 17px, so the same `24ch` came out as 261px
-   * on the strip and 234px on the field — a 27px tail of ink hanging past the
-   * end of the rule it was supposed to be drawing. Measured on the render.
-   */
   font-size: 1.0625rem;
-  width: var(--ink-w);
-  max-width: 100%;
+  width: calc(100% - 2 * var(--well-r));
   height: 2px;
-  margin-top: -2px;
+  margin: -2px var(--well-r) 0;
   pointer-events: none;
-  /* The only property that moves on a send. 620ms of ink-drawing lands on top
-     of it, so the two read as one gesture. */
-  transition: width 620ms var(--ease-settle);
 }
 
-/*
- * The ink itself, resting at nothing.
- *
- * `background-size` rather than `transform: scaleX`, which would be the
- * compositor-friendly choice and cannot do the email field: two halves
- * travelling toward each other need two origins, and one element has one.
- * Two background layers have two anchors, so the three directions below are
- * three positions of the same keyframe instead of three different techniques.
- * The cost is paint on a 2px strip, three times, once — which is nothing, and
- * the contract's real rule about per-frame cost (nothing on this page measures
- * anything on scroll) is untouched.
- */
 .ink::after {
   content: "";
   position: absolute;
@@ -796,12 +802,10 @@
   opacity: 0;
 }
 
-/* Centre-anchored, so it opens outward in both directions at once. */
 .inkMessage::after {
   background-position: center center;
 }
 
-/* Two layers, anchored to the two ends, so they travel inward. */
 .inkEmail::after {
   background-image:
     linear-gradient(rgb(var(--ink)), rgb(var(--ink))),
@@ -810,33 +814,8 @@
   background-size: 0 100%, 0 100%;
 }
 
-/*
- * The seal on the email rule: the gap, filled.
- *
- * It is `:user-valid` and not a keystroke handler: no React state, no listener,
- * and the constraints it reads are the ones on the element — `required`,
- * `type="email"` and the `pattern` that reconciles the HTML email type with the
- * schema's dotted domain, which is argued out at the call site. `noValidate` on
- * the form suppresses the native bubble and the native submit block; it does
- * not touch the validity state these pseudo-classes report, which was measured
- * on the render rather than assumed.
- *
- * When it lands is the browser's call, and the browser is right. Chrome sets
- * the interacted flag as the reader leaves the field and tracks it live from
- * then on, so the first seal appears on the way out of the field rather than
- * mid-word.
- *
- * It only ever says yes. There is no `:user-invalid` counterpart and there must
- * not be one: a mark that appeared while somebody was halfway through typing an
- * address would be the form telling them they are wrong before they have
- * finished being right. Which is also why this is not a fourth error channel
- * and does not need announcing — the three that report a real failure are
- * `aria-invalid`, the note under the field, and the rule's weight, and all
- * three still only appear on a submit.
- *
- * The selector stands alone rather than joining a list, so that an engine
- * without `:user-valid` drops this rule and nothing else.
- */
+/* The address's seal: the 1.2ch at the centre, closed only once the browser
+   agrees the address is well formed. */
 .inkEmail::before {
   content: "";
   position: absolute;
@@ -854,30 +833,15 @@
 }
 
 /*
- * The sequence, and opening the dialog is what starts it.
+ * The sequence. Each rule draws over 620ms on `--ease-settle` and then absorbs
+ * over 420ms, leaving the well exactly as the CSS rests it — nothing persists,
+ * which keeps a decorative mark out of the error channel the border owns.
+ * `both` on the absorb holds the ink at full strength through its delay, so
+ * one animation draws and the other holds and releases.
  *
- * There is no gate selector on these rules any more and none is needed. A clock
- * starts when the element it is on is painted, and this subtree is painted in
- * the commit that opens the dialog — so the first frame of the ink is the first
- * frame the reader could possibly be looking at. The observer that used to
- * supply that moment, back when the form was printed at the foot of a very long
- * page, has nothing left to answer.
- *
- * Each rule draws over 620ms on `--ease-settle` — the page's own curve and the
- * reveal's own length, so the ink and the panel above it are the same gesture
- * at the same speed — and then absorbs over 420ms, leaving the field exactly as
- * the CSS rests it. Nothing persists, which is what keeps a decorative mark out
- * of the error channel the 2px invalid rule owns.
- *
- * The starts are 80ms apart in reading order, the top of the contract's
- * measured stagger band, and they begin at 700ms: the form is inside the
- * panel's second child, so it arrives 60ms into a 620ms reveal, and ink drawn
- * onto a rule that is still fading in and travelling 14px reads as a rendering
- * fault rather than as a stroke.
- *
- * `both` on the absorb is doing real work: during its delay the backwards fill
- * holds the ink at full strength, so one animation draws and the other holds
- * and then releases, with no third animation and no keyframe doing two jobs.
+ * It runs once, the first time the dialog opens, because that is when this
+ * subtree mounts; reopening finds the fields — and every word in them — where
+ * they were, and the ink does not perform a second time.
  */
 .inkName::after,
 .inkMessage::after {
@@ -893,7 +857,7 @@
 }
 
 /* An implicit `from` in all three: the resting declaration above *is* the
-   first frame, so there is one place that says where the ink starts. */
+   first frame. */
 @keyframes ink-across {
   to { background-size: 100% 100%; }
 }
@@ -907,42 +871,84 @@
   to { opacity: 0; }
 }
 
-/* ─────────────────────────────────────────────────────── what came back ── */
+/* ─────────────────────────────────────────────────────── the foot and send ── */
 
-.send {
-  margin-top: 2.5rem;
+/*
+ * The send, and the line it answers on, behind a hairline.
+ *
+ * The status sits beside the button rather than under it, because "Sending"
+ * and the receipt are about that press and belong where the eye already is.
+ */
+.foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem 1.5rem;
+  margin-top: 0.25rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgb(var(--rule));
+}
+
+.status {
+  margin: 0;
+  min-height: 1.5rem;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: rgb(var(--ink-soft));
 }
 
 /*
- * The resolution: three rules of three different lengths become one length.
- *
- * This is the dialog's half of the one thing the close has to do that no other
- * beat does — it has to resolve. The three fields arrive stepped (24ch, 36ch,
- * the measure) because they are asking for three different sizes of answer; on
- * a successful send that difference stops being true, because the three answers
- * have left as one message. So the ink extends to a single flush length and
- * draws across all three in reading order, 80ms apart, with the receipt rising
- * underneath.
- *
- * It is additive and nothing exits. The dialog does not close itself, so the
- * panel, the fields and the receipt are all still on the screen afterwards —
- * which is also the whole of the ordering guarantee from the contract's §3:
- * there is no exit motion anywhere in this section for an announcement to be
- * late to. And the gesture starts in the same React commit that puts the
- * receipt in the live region, which is what makes that rule structural rather
- * than a matter of timing. `--seal-at` starts at 0ms for exactly that reason —
- * the first frame of this gesture is the first frame after the receipt exists.
- *
- * The specificity is four classes to the arrival block's one, so this wins on
- * weight rather than on which rule happens to be written second.
+ * The receipt. `--ink`, a check drawn in CSS beside it, and no motion: it is
+ * in the live region in the commit the send resolves, and anything that
+ * moved on account of it would be motion after the confirmation, which the
+ * close's one inherited rule forbids.
  */
-.form[data-sent="true"] .field {
-  --ink-w: 100%;
+.receipt {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: var(--weight-text-strong, 600);
+  color: rgb(var(--ink));
 }
 
+.receipt::before {
+  content: "";
+  flex: none;
+  width: 0.4rem;
+  height: 0.75rem;
+  margin: -0.2rem 0.2rem 0 0.25rem;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  rotate: 45deg;
+}
+
+/*
+ * The failure, as a callout when there is one, and nothing at all when there
+ * is not. It stays in the DOM and in the a11y tree either way — a live region
+ * that is created with its first message is announced inconsistently — so
+ * the empty state is a box with no padding, no border and no height, rather
+ * than `display: none`.
+ */
+.failure {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: rgb(var(--ink));
+}
+
+.failure:not(:empty) {
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  border-inline-start: 3px solid rgb(var(--error));
+  background: rgb(var(--error) / 0.07);
+}
+
+/*
+ * The resolution, inside the dialog: the three rules re-ink full-strength
+ * under the receipt and stay drawn — the three answers leaving as one
+ * message. Set by `data-sent` in the same commit as the receipt.
+ */
 .form[data-sent="true"] .field .ink::after {
-  /* One layer, left-anchored, for all three — including the email field, whose
-     two halves have nothing left to close on. */
   background-image: linear-gradient(rgb(var(--ink)), rgb(var(--ink)));
   background-position: left center;
   background-size: 0 100%;
@@ -950,78 +956,12 @@
   animation: ink-seal 620ms var(--ease-settle) var(--seal-at) both;
 }
 
-/*
- * The same two frames as `ink-across`, under a second name, and the duplication
- * is load-bearing.
- *
- * A CSS animation's identity is its name and its position in the list, so
- * swapping an element from `ink-across` to `ink-across` is not a new animation
- * — it is the finished one having its delay edited, which leaves it finished.
- * Measured on the render: the email field re-drew, because its arrival
- * animation was `ink-inward` and the name genuinely changed, while the name and
- * message fields snapped straight to full ink. A second name is what makes all
- * three start over.
- */
 @keyframes ink-seal {
   to { background-size: 100% 100%; }
 }
 
-/*
- * The two live regions.
- *
- * Both are in this subtree from its first paint and both are usually empty, and
- * in a dialog that is a sharper requirement than it was on a page rather than a
- * softer one: the subtree is created the moment the reader asks for it, so there
- * is no spare time in which a region could be added later.
- *
- * One line of height is reserved between them, on the polite region, and that
- * is enough: only one of the two ever has anything to say. What the reservation
- * buys is that the button does not move when a message arrives — the reader's
- * pointer is still on it, and a control that jumps at the moment it is pressed
- * is how a form collects a second click it did not want. A long failure does
- * push the bottom of the panel's scrollport down, which is the right thing to
- * spend the movement on.
- */
-.status,
-.failure {
-  font-family: var(--font-data);
-  font-size: 0.78rem;
-  line-height: 1.5;
-  letter-spacing: 0.02em;
-  color: rgb(var(--ink-soft));
-}
+/* ─────────────────────────────────────────────────────────── the full stop ── */
 
-.status {
-  margin: 1rem 0 0;
-  min-height: 1.5rem;
-}
-
-.failure {
-  margin: 0;
-}
-
-/*
- * The confirmation, at full strength, because it is the last thing the page
- * says to anyone who finishes reading it.
- *
- * `inline-block` is load-bearing: the reveal it is wrapped in rises it 14px,
- * and `transform` does not apply to an inline box — the receipt would have
- * appeared without moving, which is the "fade with no rise reads as a loading
- * glitch" failure from the contract, arrived at by accident.
- */
-.status strong {
-  display: inline-block;
-  font-weight: 400;
-  color: rgb(var(--ink));
-}
-
-/* A failed send is read, not skimmed. Same ink as the field errors, same
-   argument. */
-.failure:not(:empty) {
-  color: rgb(var(--ink));
-}
-
-/* ───────────────────────────────────────────────────────── the full stop ── */
 
 /*
  * The last mark on the page.
@@ -1091,62 +1031,74 @@
   to   { clip-path: inset(-8px -8px -8px 0); }
 }
 
-/* ───────────────────────────────────────────────── a forced palette ── */
+/* ───────────────────────────────────────────────────── a forced palette ── */
 
 /*
- * In a forced palette every background on the panel is replaced with the
- * system's own, including the scrim — so the one thing that stops being true is
- * that the panel is a distinguishable surface over the page. A border in
- * `CanvasText` is what says "this is a box on top of something", and it is the
- * only declaration this mode needs: nothing else in this file carries a colour
- * a forced palette would not already have replaced correctly.
+ * In a forced palette every background is replaced with the system's own,
+ * the scrim and the wells included — so a border in `CanvasText` is what
+ * says "this is a box on top of something", and the error mark needs a
+ * system colour it can stand on.
  */
 @media (forced-colors: active) {
   .panel {
     border: 1px solid CanvasText;
+  }
+
+  .fieldError::before {
+    background: CanvasText;
+    color: Canvas;
   }
 }
 
 /* ───────────────────────────────────────────────────── the off-switches ── */
 
 /*
- * Three independent conditions, three exits, and every one of them lands on a
- * dialog that opens, a form that is complete and usable, and a section that
- * still resolves.
+ * Three independent conditions, three exits, and every one of them lands on
+ * the finished state: a plate that has arrived, a dialog that opens and
+ * closes without moving, a form that is complete, and a section that still
+ * resolves.
  *
- * What "the finished state" is here is worth stating, because it differs per
- * mark. The arrival ink finishes *absorbed* — invisible — so cancelling it
- * leaves the field exactly as the CSS rests it, which is the field with its
- * own 1px rule and nothing else. The send's ink finishes drawn, so cancelling
- * that one has to restate the drawn background. The closing rule finishes
- * fully revealed. Nothing anywhere in this file lands on a first frame, and
- * nothing that is a control boundary is involved in any of it.
+ * The finished state differs per mark. `surface` and the closing rule finish
+ * arrived and fully drawn, and the resting CSS of both IS that state, so
+ * cancelling the animation is the whole exit — §4 of the contract: a scroll
+ * timeline ignores the global 0.01ms duration override, so it has to be
+ * cancelled here outright. The arrival ink finishes absorbed, invisible; the
+ * send's ink finishes drawn and has to be restated. The dialog's transitions
+ * are cancelled rather than shortened, so it is open or closed and never on
+ * its way.
  *
- * Nothing here touches the dialog's own layout, and that is the point of
- * listing it: the panel has no entry animation of its own, so with all three
- * switches thrown the dialog still opens, still traps focus, still closes on
- * Escape, and simply arrives without the reveal. The reveal it does carry is
- * `motion/Rise`'s, cancelled in `Rise.module.css` by the same two blocks.
- *
- * The global `animation-duration: 0.01ms` in index.css and nav/motion-paused.css
- * would in fact land these particular animations correctly, because they are
- * time-driven and that trick works by running a clock instantly to its end.
- * They are cancelled explicitly anyway: the next mark added to this file may
- * not be time-driven, and a block that already says what the arrived state is
- * is a block somebody has to update rather than one they can fail to notice.
- *
- * `@supports` covers only the closing rule, which is the only progress-driven
- * mark here. Adding one for the rest would be cargo cult — there is no feature
- * for a browser to be missing in a 620ms animation.
+ * `surface` and the closing rule are the only subjects of the `@supports`
+ * block, because they are the only marks on a view timeline; the dialog and
+ * the ink are on a clock and there is no feature for a browser to be missing.
  */
 @supports not (animation-timeline: view()) {
+  .surface,
+  .label > *,
   .closing {
     animation: none;
     clip-path: none;
+    translate: none;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .surface,
+  .label > *,
+  .closing {
+    animation: none;
+    clip-path: none;
+    translate: none;
+  }
+
+  .dialog,
+  .dialog[open],
+  .panel,
+  .dialog[open] .panel {
+    transition: none;
+    translate: none;
+    scale: none;
+  }
+
   .inkName::after,
   .inkEmail::after,
   .inkMessage::after {
@@ -1160,7 +1112,6 @@
     background-size: 100% 100%;
   }
 
-  .ink,
   .inkEmail::before,
   .fieldLabel,
   .control,
@@ -1168,11 +1119,23 @@
   .direct a {
     transition: none;
   }
+}
 
-  .closing {
-    animation: none;
-    clip-path: none;
-  }
+:global(body.motion-paused) .surface,
+:global(body.motion-paused) .label > *,
+:global(body.motion-paused) .closing {
+  animation: none;
+  clip-path: none;
+  translate: none;
+}
+
+:global(body.motion-paused) .dialog,
+:global(body.motion-paused) .dialog[open],
+:global(body.motion-paused) .panel,
+:global(body.motion-paused) .dialog[open] .panel {
+  transition: none;
+  translate: none;
+  scale: none;
 }
 
 :global(body.motion-paused) .inkName::after,
@@ -1188,16 +1151,10 @@
   background-size: 100% 100%;
 }
 
-:global(body.motion-paused) .ink,
 :global(body.motion-paused) .inkEmail::before,
 :global(body.motion-paused) .fieldLabel,
 :global(body.motion-paused) .control,
 :global(body.motion-paused) .closing::after,
 :global(body.motion-paused) .direct a {
   transition: none;
-}
-
-:global(body.motion-paused) .closing {
-  animation: none;
-  clip-path: none;
 }
