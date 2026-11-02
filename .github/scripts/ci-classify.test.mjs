@@ -9,12 +9,13 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { JOBS, classify, classifyPath, outputs, parseNameStatus, planDiff, run } from "./ci-classify.mjs";
 
-const PR = { EVENT_NAME: "pull_request", REF: "refs/pull/9/merge", BASE_SHA: "b".repeat(40), HEAD_SHA: "h".repeat(40) };
-const PUSH = { EVENT_NAME: "push", REF: "refs/heads/main", BEFORE: "1".repeat(40), AFTER: "2".repeat(40), FORCED: "false" };
+const PR = { EVENT_NAME: "pull_request", REF: "refs/pull/9/merge", SHA: "9".repeat(40), BASE_SHA: "b".repeat(40), HEAD_SHA: "h".repeat(40) };
+const PUSH = { EVENT_NAME: "push", REF: "refs/heads/main", SHA: "2".repeat(40), BEFORE: "1".repeat(40), AFTER: "2".repeat(40), FORCED: "false" };
 
 // A fake git that answers a diff with the given name-status records.
-const fakeGit = (records, { fail } = {}) => (args) => {
+const fakeGit = (records, { fail, tag } = {}) => (args) => {
   if (fail && fail(args)) throw new Error(`fatal: ${args.join(" ")} failed`);
+  if (args[0] === "rev-parse" && tag) return tag + "\n";
   if (args[0] === "cat-file") return "";
   if (args[0] === "merge-base") return "m".repeat(40) + "\n";
   if (args[0] === "diff") return records.map((r) => r.join("\0") + "\0").join("");
@@ -143,8 +144,8 @@ const fullCases = [
   ["7.3 force push", { ...PUSH, FORCED: "true" }, /force push/],
   ["push without shas", { ...PUSH, BEFORE: "" }, /without before/],
   ["PR without shas", { ...PR, BASE_SHA: "" }, /without base/],
-  ["workflow_dispatch", { EVENT_NAME: "workflow_dispatch", REF: "refs/heads/main" }, /workflow_dispatch/],
-  ["unknown event", { EVENT_NAME: "merge_group", REF: "refs/heads/gh-readonly-queue/main/x" }, /merge_group/],
+  ["workflow_dispatch", { EVENT_NAME: "workflow_dispatch", REF: "refs/heads/main", SHA: "2".repeat(40) }, /workflow_dispatch/],
+  ["unknown event", { EVENT_NAME: "merge_group", REF: "refs/heads/gh-readonly-queue/main/x", SHA: "2".repeat(40) }, /merge_group/],
 ];
 for (const [name, env, why] of fullCases) {
   test(name, () => {
@@ -189,30 +190,77 @@ test("PR diffs from the merge-base, push from before", () => {
 
 // --- release refs ------------------------------------------------------------
 
+// Main builds both images and records them; it never promotes (#205).
+const MAIN_JOBS = ["static", "frontend", "backend", "scan", "images", "release", "deploy"];
+// A tag builds nothing: Static, the promotion, the deploy.
+const TAG_JOBS = ["static", "promote", "deploy"];
+const TAG_COMMIT = "c".repeat(40);
+const TAG = { ...PUSH, REF: "refs/tags/v1.2.0", BEFORE: "0".repeat(40), AFTER: "a".repeat(40), SHA: "a".repeat(40) };
+
 test("main push: diff is narrow, selection is not (Deploy needs both images, #205)", () => {
   const r = run(PUSH, fakeGit([["M", "backend/src/a.ts"]]));
   assert.deepEqual(r.changed, { web: false, backend: true, static: true, docs: false });
-  assert.deepEqual(selected(r), JOBS);
+  assert.deepEqual(selected(r), MAIN_JOBS);
   assert.deepEqual(scanned(r), ["web", "api"]);
   assert.match(r.reasons.join("\n"), /release ref/);
+  assert.equal(r.mode, "main");
+  assert.equal(r.sha, PUSH.SHA);
 });
-test("main push, docs only: still publishes and deploys both images", () => {
-  assert.deepEqual(selected(run(PUSH, fakeGit([["M", "docs/a.md"]]))), JOBS);
+test("main push, docs only: still publishes, records and deploys both images", () => {
+  assert.deepEqual(selected(run(PUSH, fakeGit([["M", "docs/a.md"]]))), MAIN_JOBS);
 });
-test("tag push", () => {
-  const r = run({ ...PUSH, REF: "refs/tags/v1.2.0", BEFORE: "0".repeat(40) }, fakeGit([]));
+test("tag push: builds nothing, promotes and deploys", () => {
+  const r = run(TAG, fakeGit([], { tag: TAG_COMMIT }));
+  assert.deepEqual(selected(r), TAG_JOBS);
+  assert.deepEqual(scanned(r), []);
+  assert.equal(r.mode, "promote");
+  assert.match(r.reasons.join("\n"), /build nothing/);
+});
+test("tag push: the tag is resolved to its commit once, by git, peeled", () => {
+  const seen = [];
+  const git = (a) => (seen.push(a), fakeGit([], { tag: TAG_COMMIT })(a));
+  const r = run(TAG, git);
+  // The tag object's own sha (AFTER, SHA) is not the commit; the peeled one is.
+  assert.equal(r.sha, TAG_COMMIT);
+  assert.equal(outputs(r).sha, TAG_COMMIT);
+  assert.deepEqual(seen.filter((a) => a[0] === "rev-parse"), [["rev-parse", "--verify", "--quiet", "refs/tags/v1.2.0^{commit}"]]);
+});
+test("tag push: a tag git cannot resolve is an error, never a guess", () => {
+  assert.throws(() => run(TAG, fakeGit([], { fail: (a) => a[0] === "rev-parse" })), /cannot resolve refs\/tags\/v1.2.0/);
+  assert.throws(() => run(TAG, fakeGit([], { tag: "not-a-sha" })), /not a commit sha/);
+});
+test("manual run on a tag without rebuild promotes, like a push", () => {
+  const r = run({ EVENT_NAME: "workflow_dispatch", REF: "refs/tags/v1.2.0", SHA: "a".repeat(40), REBUILD: "false" }, fakeGit([], { tag: TAG_COMMIT }));
+  assert.deepEqual(selected(r), TAG_JOBS);
+  assert.equal(r.mode, "promote");
+});
+test("manual run on a tag with rebuild: the full, gated build, then the promotion", () => {
+  const r = run({ EVENT_NAME: "workflow_dispatch", REF: "refs/tags/v1.2.0", SHA: "a".repeat(40), REBUILD: "true" }, fakeGit([], { tag: TAG_COMMIT }));
   assert.deepEqual(selected(r), JOBS);
+  assert.deepEqual(scanned(r), ["web", "api"]);
+  assert.equal(r.mode, "rebuild");
+  assert.equal(r.sha, TAG_COMMIT);
+});
+test("rebuild is only a manual input: a tag push that somehow carries it still promotes", () => {
+  assert.equal(run({ ...TAG, REBUILD: "true" }, fakeGit([], { tag: TAG_COMMIT })).mode, "promote");
+});
+test("rebuild on main changes nothing: main always builds", () => {
+  const r = run({ EVENT_NAME: "workflow_dispatch", REF: "refs/heads/main", SHA: PUSH.SHA, REBUILD: "true" }, fakeGit([]));
+  assert.deepEqual(selected(r), MAIN_JOBS);
 });
 test("manual run on main publishes, as Deploy's own `if` would", () => {
-  assert.deepEqual(selected(run({ EVENT_NAME: "workflow_dispatch", REF: "refs/heads/main" }, fakeGit([]))), JOBS);
+  assert.deepEqual(selected(run({ EVENT_NAME: "workflow_dispatch", REF: "refs/heads/main", SHA: PUSH.SHA }, fakeGit([]))), MAIN_JOBS);
 });
 test("manual run on another branch does not publish", () => {
-  const r = run({ EVENT_NAME: "workflow_dispatch", REF: "refs/heads/x" }, fakeGit([]));
+  const r = run({ EVENT_NAME: "workflow_dispatch", REF: "refs/heads/x", SHA: PUSH.SHA }, fakeGit([]));
   assert.deepEqual(selected(r), ALL_PR);
 });
 test("a tag not starting with v is not a release", () => {
   assert.equal(classify({ full: "x", release: false }).jobs.images, false);
   assert.deepEqual(selected(run({ ...PUSH, REF: "refs/tags/x1", BEFORE: "0".repeat(40) }, fakeGit([]))), ALL_PR);
+});
+test("an event without a usable sha is an error", () => {
+  assert.throws(() => run({ ...PUSH, SHA: "" }, fakeGit([])), /no commit sha/);
 });
 
 // --- 7.4: forks and Dependabot -----------------------------------------------
@@ -261,7 +309,9 @@ test("outputs are strings the workflow can compare", () => {
   assert.equal(o.web, "true");
   assert.equal(o.backend, "false");
   assert.deepEqual(JSON.parse(o.scan_matrix), [{ image: "web", context: "web" }]);
-  assert.deepEqual(JSON.parse(o.jobs), { static: true, frontend: true, backend: false, scan: true, images: false, deploy: false });
+  assert.deepEqual(JSON.parse(o.jobs), { static: true, frontend: true, backend: false, scan: true, images: false, release: false, promote: false, deploy: false });
+  assert.equal(o.mode, "pr");
+  assert.equal(o.sha, PR.SHA);
   assert.equal(outputs(pr(["M", "docs/a.md"])).scan_matrix, "[]");
 });
 

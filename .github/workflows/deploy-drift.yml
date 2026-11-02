@@ -128,7 +128,13 @@ jobs:
               continue
             fi
 
-            sha=${image##*:}
+            # Since #205 Deploy rolls out `<repo>@sha256:<digest>`, which
+            # names no commit, and records the commit in this annotation.
+            # The image tag is the fallback for a Deployment rolled out
+            # before that, or applied by hand.
+            sha=$(kubectl -n "$ns" get deploy api \
+              -o jsonpath='{.metadata.annotations.portfolio\.yehudabriskman\.com/source-sha}' 2>/dev/null || true)
+            [ -n "$sha" ] || sha=${image##*:}
             # The manifests carry `:latest` as the tag a fresh `kubectl apply`
             # lands on, so a namespace that has been applied but never rolled
             # out reports a tag that is not a commit. That is worth saying out
