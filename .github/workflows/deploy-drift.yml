@@ -34,7 +34,7 @@ jobs:
   drift:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # `git rev-list --count <sha>..origin/main` needs the history that
           # contains <sha>, and the default shallow clone does not have it.
@@ -42,7 +42,7 @@ jobs:
           # like a broken deployment rather than a broken checkout.
           fetch-depth: 0
 
-      - uses: tailscale/github-action@v3
+      - uses: tailscale/github-action@v4
         with:
           oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
           oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
