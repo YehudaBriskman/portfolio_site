@@ -1868,25 +1868,19 @@
    * is controllable with simple scrolling and reverses on the way up, so both
    * are now on the element's own view timeline:
    *
-   *   .scrub-rise    the measured rise (14px, opacity) across the element's
-   *                  entry, so a card in view at load is already arrived and
-   *                  one further down rises as the reader brings it up;
+   *   .scrub-rise    retired in #193, when the notes index became the
+   *                  gallery wall and took the wall's `assemble` instead
+   *                  (`gallery/Wall.module.css`); it had no other caller;
    *   .scrub-pulse   two dips in strength across the placeholder's pass
    *                  through the window, so a waiting shape still reads as
    *                  waiting while the reader moves, and is still otherwise.
    *
-   * Both are declared only inside the three-condition gate — view timelines
+   * The pulse is declared only inside the three-condition gate — view timelines
    * run, no reduced motion, no Pause — so every off-switch is the resting
-   * state: arrived, and full strength.
+   * state: full strength.
    */
   @supports (animation-timeline: view()) {
     @media (prefers-reduced-motion: no-preference) {
-      body:not(.motion-paused) .scrub-rise {
-        animation: scrub-rise linear both;
-        animation-timeline: view();
-        animation-range: entry 0% entry 100%;
-      }
-
       body:not(.motion-paused) .scrub-pulse {
         animation: scrub-pulse linear both;
         animation-timeline: view();
@@ -1894,11 +1888,6 @@
       }
     }
   }
-}
-
-@keyframes scrub-rise {
-  from { opacity: 0; transform: translateY(14px); }
-  to   { opacity: 1; transform: none; }
 }
 
 @keyframes scrub-pulse {

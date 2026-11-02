@@ -1,0 +1,284 @@
+/*
+ * A note on the gallery wall (#193), in the notes' dark card (#179, #185).
+ *
+ * The fill, type and edge come from `.on-panel` + `DarkCard.module.css` on
+ * the same element (the measured stops are there: 15.25:1 titles, 6.98:1
+ * dates and summary, a 3.58:1 / 3.96:1 edge). This file is only the shape.
+ *
+ *   tile  1x1   when, title, summary, badge — type only
+ *   wide  2x1   the cover at the inline start, the words beside it
+ *   lead  2x2   the cover (or the generated skyline) over the words
+ *
+ * In one column (the wall's container under 560px) every card is as tall as
+ * its words; the lead keeps its picture on top and goes edge to edge.
+ *
+ * No motion of its own: the arrival is the wall's piece, and hover changes
+ * only the border.
+ */
+
+/* The wall's row, for notes: a little shorter than a project's, which has a
+   picture in every tile. */
+.wall {
+  --wall-row: 17rem;
+}
+
+.tile {
+  position: relative;
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid rgb(var(--rule-firm));
+  border-radius: var(--r-md);
+  transition: border-color var(--dur-micro) ease;
+}
+
+.tile[data-size="lead"] {
+  border-radius: var(--r-lg);
+}
+
+.tile[data-size="wide"] {
+  flex-direction: row;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .tile:hover {
+    border-color: rgb(var(--ink-soft));
+  }
+}
+
+/* The focus ring is drawn outside the card, on paper, so it takes the
+   card's own dark fill (14.18:1 against paper) rather than its ink, which
+   `.on-panel` has turned light. */
+.tile:focus-within {
+  outline: 2px solid rgb(var(--panel));
+  outline-offset: 3px;
+}
+
+.media {
+  position: relative;
+  flex: 1 1 55%;
+  min-height: 0;
+  overflow: hidden;
+  background: rgb(var(--canvas-3));
+  border-block-end: 1px solid rgb(var(--rule-firm));
+}
+
+.tile[data-size="wide"] .media {
+  flex: 0 0 44%;
+  border-block-end: 0;
+  border-inline-end: 1px solid rgb(var(--rule-firm));
+}
+
+.media img,
+.media svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.body {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 1.15rem 1.25rem 1.25rem;
+}
+
+.tile[data-size="lead"] .body {
+  flex: 0 0 auto;
+  padding: 1.4rem 1.75rem 1.6rem;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+  align-items: center;
+  gap: 0.25rem 0.6rem;
+  margin: 0;
+  font-family: var(--font-data);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+  color: rgb(var(--ink-soft));
+}
+
+.dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.title {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  font-family: var(--font-display);
+  font-weight: var(--weight-display);
+  font-size: 1.375rem;
+  line-height: 1.12;
+  letter-spacing: var(--track-sub);
+  color: rgb(var(--ink));
+  text-wrap: balance;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
+}
+
+.tile[data-size="lead"] .title {
+  font-size: clamp(1.625rem, 1.1rem + 1.3vw, 2.375rem);
+  letter-spacing: var(--track-head);
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.tile[data-size="wide"] .title {
+  font-size: 1.5rem;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+}
+
+.open {
+  color: inherit;
+  text-decoration: none;
+}
+
+.open::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+.open:focus-visible {
+  outline: none;
+}
+
+.tile:hover .open {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.18em;
+}
+
+.desc {
+  display: -webkit-box;
+  margin: 0;
+  margin-block-start: auto;
+  overflow: hidden;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: rgb(var(--ink-soft));
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.badge {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  min-height: 44px;
+  align-self: flex-start;
+  align-items: center;
+  gap: 0.45rem;
+  margin-block: -0.35rem -0.6rem;
+  padding-inline: 0.75rem;
+  border: 1px solid rgb(var(--ink-soft));
+  border-radius: 999px;
+  background: rgb(var(--ink) / 0.06);
+  color: rgb(var(--ink));
+  font-family: var(--font-data);
+  font-size: 0.8125rem;
+  text-decoration: none;
+  transition: background-color var(--dur-micro) ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .badge:hover {
+    background: rgb(var(--ink) / 0.14);
+  }
+}
+
+.badge:focus-visible {
+  outline: 2px solid rgb(var(--ink));
+  outline-offset: 2px;
+}
+
+.badgeDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgb(var(--ink-soft));
+}
+
+/* A tile with a desc and a badge runs out of room in 17rem: the badge wins
+   (it is a link) and the summary drops to one line. */
+.tile[data-size="tile"]:has(.badge) .desc {
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+}
+
+/* The loading state's title: the title's own type step, without the clamp,
+   so each skeleton line is a title line tall. */
+.skTitle {
+  font-family: var(--font-display);
+  font-size: 1.375rem;
+  line-height: 1.12;
+}
+
+.tile[data-size="lead"] .skTitle {
+  font-size: clamp(1.625rem, 1.1rem + 1.3vw, 2.375rem);
+}
+
+/* The rail's placeholder: the filter card's outline, its rows as lines. */
+.railSkeleton {
+  padding: 1rem;
+  border: 1px solid rgb(var(--rule-firm));
+  border-radius: var(--r-md);
+  font-size: 1.75rem;
+  line-height: 1.6;
+}
+
+@container (max-width: 559px) {
+  .tile[data-size] {
+    flex-direction: column;
+  }
+
+  .tile[data-size] .media {
+    flex: none;
+    aspect-ratio: 16 / 9;
+    border-inline-end: 0;
+    border-block-end: 1px solid rgb(var(--rule-firm));
+  }
+
+  .tile[data-size="wide"] .media {
+    display: none;
+  }
+
+  .tile[data-size] .title {
+    font-size: 1.25rem;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+  }
+
+  .tile[data-size="lead"] {
+    border-radius: 0;
+    border-inline: 0;
+  }
+
+  .tile[data-size="lead"] .body {
+    padding: 1.1rem var(--gutter) 1.25rem;
+  }
+
+  .tile[data-size="lead"] .title {
+    font-size: 1.625rem;
+  }
+
+  .desc {
+    margin-block-start: 0;
+  }
+}

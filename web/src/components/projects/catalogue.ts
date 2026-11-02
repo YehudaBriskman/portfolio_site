@@ -1,29 +1,33 @@
 import type { ProjectEntry } from "@/hooks/useProjects";
 import { FEATURED_BELOW } from "@/hooks/useProjects";
+import {
+  facetOptions,
+  matchesSelection,
+  type FacetOption,
+  type Selection,
+} from "@/components/gallery/facets";
 
 /*
  * The catalogue's facts: what a project's year, stack and size are, and how
  * the three filters narrow the set. No React here, so all of it is tested
- * without a renderer.
+ * without a renderer. The URL and counting rules are the gallery's, shared
+ * with /blog, and argued in `gallery/facets.ts`.
  *
- * THE FILTERS (#175)
- * ------------------
+ * THE FILTERS (#175, #193)
+ * ------------------------
  * State, year and stack, each a facet of the URL (`?state=&year=&stack=`), so
- * a filtered view can be linked and survives Back. They are always on screen.
- * #169 hid the state filter until nine projects; the owner asked for them
- * outright, and a gallery of mixed sizes is harder to scan by eye than a
- * register was, so the filters are now how a reader narrows it, not a
- * concession to a long list.
- *
- * Each chip's count is the number of projects it would show given the OTHER
- * two filters, so a count is the honest answer to "what happens if I press
- * this" and a zero is visible before it is pressed.
+ * a filtered view can be linked and survives Back. Since #193 each one takes
+ * several values (`?stack=Go&stack=Rust` is Go or Rust) and is chosen in a
+ * popover list rather than a row of chips, so the stack list no longer has to
+ * be cut to fit a line: it lists every stack two projects share, the most
+ * used first, and a stack only one project uses still filters from the URL.
  */
 
 export type Facet = "state" | "year" | "stack";
 export const FACETS: Facet[] = ["state", "year", "stack"];
 
-export type Filters = Partial<Record<Facet, string>>;
+export type Filters = Selection<Facet>;
+export type { FacetOption };
 
 /** An API-only collection has no seeded year; its last push is the nearest honest one. */
 export function yearOf(entry: ProjectEntry): string | null {
@@ -37,7 +41,7 @@ export function stackOf(entry: ProjectEntry): string[] {
   return lang ? [lang] : [];
 }
 
-function valuesOf(entry: ProjectEntry, facet: Facet): string[] {
+export function valuesOf(entry: ProjectEntry, facet: Facet): string[] {
   if (facet === "state") return [entry.state];
   if (facet === "year") {
     const y = yearOf(entry);
@@ -47,52 +51,22 @@ function valuesOf(entry: ProjectEntry, facet: Facet): string[] {
 }
 
 export function matches(entry: ProjectEntry, filters: Filters, except?: Facet): boolean {
-  return FACETS.every((f) => f === except || !filters[f] || valuesOf(entry, f).includes(filters[f]!));
+  return matchesSelection(entry, filters, FACETS, valuesOf, except);
 }
 
 export function applyFilters(entries: ProjectEntry[], filters: Filters): ProjectEntry[] {
   return entries.filter((e) => matches(e, filters));
 }
 
-export type FacetOption = { value: string; count: number };
-
-/*
- * The stack list is the one that grows without bound — every project brings
- * its own libraries — so it is cut to the ones that group something: used by
- * two projects or more, at most `STACK_CHIPS` of them. A stack outside that
- * cut still filters from the URL; it just has no chip unless it is the one
- * selected.
- */
-export const STACK_CHIPS = 10;
-
 export function optionsFor(entries: ProjectEntry[], facet: Facet, filters: Filters): FacetOption[] {
-  const all = new Map<string, number>();
-  const narrowed = new Map<string, number>();
-  for (const e of entries) {
-    const hit = matches(e, filters, facet);
-    for (const v of valuesOf(e, facet)) {
-      all.set(v, (all.get(v) ?? 0) + 1);
-      if (hit) narrowed.set(v, (narrowed.get(v) ?? 0) + 1);
-    }
-  }
-  let values = [...all.keys()];
-  if (facet === "year") values.sort((a, b) => b.localeCompare(a));
-  if (facet === "stack") {
-    values.sort((a, b) => all.get(b)! - all.get(a)! || a.localeCompare(b));
-    values = values.filter((v) => all.get(v)! > 1).slice(0, STACK_CHIPS);
-  }
-  const active = filters[facet];
-  if (active && !values.includes(active)) values.push(active);
-  return values.map((value) => ({ value, count: narrowed.get(value) ?? 0 }));
-}
-
-/** The URL for the current filters with one facet set, or cleared when it is already the active one. */
-export function hrefWith(filters: Filters, facet: Facet, value: string | null): string {
-  const next: Filters = { ...filters, [facet]: value ?? undefined };
-  const params = new URLSearchParams();
-  for (const f of FACETS) if (next[f]) params.set(f, next[f]!);
-  const q = params.toString();
-  return q ? `/projects?${q}` : "/projects";
+  return facetOptions(
+    entries,
+    facet,
+    filters,
+    FACETS,
+    valuesOf,
+    facet === "year" ? { order: "desc" } : facet === "stack" ? { order: "count", min: 2 } : {}
+  );
 }
 
 /*
@@ -143,29 +117,4 @@ export function kindOf(state: string): StateKind {
   if (s.includes("open")) return "open";
   if (/^v\d/.test(s)) return "release";
   return "rest";
-}
-
-export type Summary = {
-  byState: FacetOption[];
-  byYear: { year: number; count: number }[];
-};
-
-/** Counts by state, and projects per year with the empty years in between kept. */
-export function summarise(entries: ProjectEntry[]): Summary {
-  const states = new Map<string, number>();
-  const years = new Map<number, number>();
-  for (const e of entries) {
-    states.set(e.state, (states.get(e.state) ?? 0) + 1);
-    const y = Number(yearOf(e));
-    if (y) years.set(y, (years.get(y) ?? 0) + 1);
-  }
-  const ys = [...years.keys()].sort((a, b) => a - b);
-  const byYear: Summary["byYear"] = [];
-  if (ys.length) for (let y = ys[0]; y <= ys.at(-1)!; y += 1) byYear.push({ year: y, count: years.get(y) ?? 0 });
-  return {
-    byState: [...states]
-      .map(([value, count]) => ({ value, count }))
-      .sort((a, b) => b.count - a.count || a.value.localeCompare(b.value)),
-    byYear,
-  };
 }
