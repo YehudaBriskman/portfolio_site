@@ -35,6 +35,7 @@ export default function Timeline({
   onRetry,
   logHref,
   title,
+  empty,
 }: {
   /** null while loading. */
   events: ActivityEvent[] | null;
@@ -42,6 +43,8 @@ export default function Timeline({
   onRetry: () => void;
   logHref: string;
   title?: string;
+  /** What an empty card says; the site-wide wording by default. */
+  empty?: string;
 }) {
   const [t, lang] = useWords();
   /* One clock for every age on the card, read once, so two events from the
@@ -79,7 +82,7 @@ export default function Timeline({
           </ol>
         </SkeletonGate>
       ) : events.length === 0 ? (
-        <div className={styles.quiet}>{t.noEvents}</div>
+        <div className={styles.quiet}>{empty ?? t.noEvents}</div>
       ) : (
         <ol className={styles.timeline}>
           {events.map((e) => {

@@ -417,6 +417,23 @@ for (const w of WINDOWS) {
     record("filter keeps the place", win, before > 0 && Math.abs(after - before) <= 48, `scrollY ${after}, was ${before}`);
   }
 
+  /* sort (#227): same path, new query — the list re-sorts under the reader
+     rather than throwing them back to the top. */
+  await goto(page, "/projects");
+  const sorter = await page.waitForSelector('main a[href="/projects?sort=name"]', { timeout: 8000 }).catch(() => null);
+  if (!sorter) {
+    record("sort keeps the place", win, false, "no Name sort link on /projects");
+  } else {
+    const sortTop = await page.evaluate(
+      () => document.querySelector('main a[href="/projects?sort=name"]').getBoundingClientRect().top + window.scrollY,
+    );
+    const before = await scrollTo(page, Math.max(0, Math.round(sortTop - 160)));
+    await click(page, 'main a[href="/projects?sort=name"]');
+    await page.waitForFunction(() => location.search === "?sort=name", null, { polling: 250, timeout: 5000 });
+    const after = await settle(page);
+    record("sort keeps the place", win, before > 0 && Math.abs(after - before) <= 4, `scrollY ${after}, was ${before}`);
+  }
+
   /* footer: foot of the home page -> Blogs */
   await goto(page, "/");
   await page.evaluate(() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "instant" }));

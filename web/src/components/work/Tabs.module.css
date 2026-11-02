@@ -1,0 +1,197 @@
+/*
+ * The project page's tabs (#227): GitHub's underline nav on the site's paper.
+ * A hairline across the full width, the selected tab drawn on it in the ink
+ * with a 2px bar, the rest in the soft ink. Counts are a quiet capsule.
+ * Logical properties, so Hebrew mirrors it; the list scrolls sideways on a
+ * phone rather than wrapping into two rows.
+ */
+
+.bar {
+  border-block-end: 1px solid rgb(var(--rule));
+}
+
+.list {
+  display: flex;
+  gap: 0.25rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin-block-end: -1px;
+}
+
+.tab {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  min-height: 2.75rem;
+  align-items: center;
+  gap: 0.5rem;
+  padding-inline: 0.75rem;
+  border: 0;
+  border-block-end: 2px solid transparent;
+  background: none;
+  color: rgb(var(--ink-soft));
+  font-family: var(--font-text);
+  font-size: 0.9375rem;
+  cursor: pointer;
+  transition:
+    color var(--dur-micro) ease,
+    border-color var(--dur-micro) ease;
+}
+
+.tab:hover {
+  color: rgb(var(--ink));
+  border-block-end-color: rgb(var(--rule));
+}
+
+.tab[aria-selected="true"] {
+  color: rgb(var(--ink));
+  font-weight: 600;
+  border-block-end-color: rgb(var(--ink));
+}
+
+.tab:focus-visible {
+  outline: 2px solid rgb(var(--signal));
+  outline-offset: -4px;
+  border-radius: 6px;
+}
+
+.icon {
+  display: inline-flex;
+}
+
+.icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.count {
+  display: inline-flex;
+  min-width: 1.25rem;
+  justify-content: center;
+  padding-inline: 0.375rem;
+  border-radius: 999px;
+  background: rgb(var(--rule) / 0.6);
+  color: rgb(var(--ink));
+  font-size: 0.75rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.25rem;
+}
+
+/* ─────────────────────────────────────────────────────────────── panels */
+
+.panel {
+  padding-block-start: 2.5rem;
+}
+
+.panel:focus-visible {
+  outline: 2px solid rgb(var(--signal));
+  outline-offset: 6px;
+  border-radius: 4px;
+}
+
+.panelLede {
+  margin: 0;
+  max-width: 60ch;
+  color: rgb(var(--ink-soft));
+}
+
+.rows {
+  margin: 1.5rem 0 0;
+  padding: 0;
+  list-style: none;
+  border-block: 1px solid rgb(var(--rule));
+}
+
+.rows > li + li {
+  border-block-start: 1px solid rgb(var(--rule));
+}
+
+.row {
+  display: flex;
+  min-height: 4rem;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 1rem;
+  padding-block: 0.875rem;
+  color: rgb(var(--ink));
+  text-decoration: none;
+}
+
+.rowTitle {
+  min-width: 0;
+  flex: 1 1 16rem;
+  font-weight: 600;
+}
+
+a.row:hover .rowTitle {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.rowMeta {
+  color: rgb(var(--ink-soft));
+  font-size: 0.8125rem;
+}
+
+.tagName {
+  font-family: var(--font-code);
+  font-size: 0.875rem;
+}
+
+.latest {
+  display: inline-flex;
+  align-items: center;
+  padding-inline: 0.5rem;
+  border: 1px solid rgb(var(--hue-green));
+  border-radius: 999px;
+  color: rgb(var(--ink));
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.empty {
+  margin-block-start: 1.5rem;
+  padding: 1.5rem;
+  border: 1px dashed rgb(var(--rule));
+  border-radius: 8px;
+  color: rgb(var(--ink-soft));
+}
+
+.onward {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  margin-block-start: 1rem;
+  color: rgb(var(--ink));
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+:dir(rtl) .flip {
+  display: inline-block;
+  transform: scaleX(-1);
+}
+
+.retry {
+  margin-inline-start: 0.75rem;
+  border: 0;
+  background: none;
+  color: rgb(var(--ink));
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  cursor: pointer;
+  min-height: 2.75rem;
+}
+
+/* A phone: the icons go, so four tabs and their counts fit the row more
+   often than not; when they still do not, the row scrolls (above). */
+@media (max-width: 30rem) {
+  .icon {
+    display: none;
+  }
+  .tab {
+    padding-inline: 0.5rem;
+  }
+}
