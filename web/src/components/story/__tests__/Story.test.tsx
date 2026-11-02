@@ -42,7 +42,9 @@ describe("Story", () => {
   it("is a list of beats, each with its time, its lines written by the pen, and a slot", () => {
     const screen = renderStory();
     const list = screen.getByRole("list", { name: "Timeline" });
-    const items = within(list).getAllByRole("listitem");
+    const items = within(list)
+      .getAllByRole("listitem")
+      .filter((li) => li.dataset.kind !== "interlude");
     const beats = buildStory().beats;
     expect(items).toHaveLength(beats.length);
     items.forEach((li, i) => {
@@ -64,10 +66,41 @@ describe("Story", () => {
     }
   });
 
+  it("alternates the pictures' sides and runs the line down the picture's side", () => {
+    const screen = renderStory();
+    const list = screen.getByRole("list", { name: "Timeline" });
+    const beats = buildStory().beats;
+    const lis = [...list.querySelectorAll<HTMLElement>(":scope > li:not([data-kind='interlude'])")];
+    lis.forEach((li, i) => {
+      const side = i % 2 === 0 ? "start" : "end";
+      expect(li.dataset.side).toBe(side);
+      expect(li.dataset.line).toBe(side);
+      expect(li.dataset.layout).toBe(beats[i].layout);
+    });
+  });
+
+  it("draws a loop round each interlude's words, real text in both languages, after its beat", () => {
+    const screen = renderStory();
+    const list = screen.getByRole("list", { name: "Timeline" });
+    const { interludes } = buildStory();
+    for (const x of interludes) {
+      const li = list.querySelector<HTMLElement>(`#${x.id}`)!;
+      expect(li.previousElementSibling).toHaveAttribute("id", x.after);
+      const loop = li.querySelector("[data-line='loop']")!;
+      expect(loop.querySelector("[lang='en']")?.textContent).toBe(x.words.en);
+      expect(loop.querySelector("[lang='he']")?.textContent).toBe(x.words.he);
+      expect(loop.querySelector("svg, text")).toBeNull();
+    }
+    /* One line for the whole timeline, out of the accessibility tree. */
+    const lines = screen.getByRole("list", { name: "Timeline" }).closest("[data-living-line]")!;
+    expect(lines.querySelectorAll(":scope > svg path")).toHaveLength(1);
+    expect(lines.querySelector(":scope > svg")).toHaveAttribute("aria-hidden", "true");
+  });
+
   it("keeps an empty slot out of the accessibility tree", () => {
     const screen = renderStory();
     const list = screen.getByRole("list", { name: "Timeline" });
-    const empty = [...list.querySelectorAll(":scope > li > :last-child")].filter((el) => !el.querySelector("img"));
+    const empty = [...list.querySelectorAll(":scope > li:not([data-kind='interlude']) > :last-child")].filter((el) => !el.querySelector("img"));
     expect(empty.length).toBeGreaterThan(0);
     for (const el of empty) expect(el).toHaveAttribute("aria-hidden", "true");
   });
@@ -86,7 +119,7 @@ describe("Story.module.css", () => {
     /* Scroll is the clock: no transition, no duration, no delay anywhere. */
     expect(CSS).not.toMatch(/transition|animation-(duration|delay)|\d+m?s\b/);
     const animated = [...CSS.matchAll(/animation:\s*(story-[a-z]+)/g)].map((m) => m[1]);
-    expect(animated.sort()).toEqual(["story-knot", "story-plate", "story-spine"]);
+    expect(animated.sort()).toEqual(["story-plate"]);
     for (const name of animated) {
       const rule = CSS.match(new RegExp(`\\{[^}]*animation:\\s*${name}[^}]*\\}`))?.[0] ?? "";
       expect(rule).toMatch(/animation-timeline:\s*(view\(\)|--story-[a-z]+)/);
@@ -94,14 +127,16 @@ describe("Story.module.css", () => {
   });
 
   it("cancels every animation under each of the three off-switches", () => {
-    const off = /\.timeline::before,\s*\.beat::before,\s*\.plate\s*\{\s*animation:\s*none;/;
+    const off = /\.plate\s*\{\s*animation:\s*none;/;
     for (const gate of [/@supports not \(animation-timeline: view\(\)\)\s*\{\s*/, /@media \(prefers-reduced-motion: reduce\)\s*\{\s*/]) {
       expect(CSS).toMatch(new RegExp(gate.source + off.source));
     }
-    expect(CSS).toMatch(
-      /:global\(body\.motion-paused\) \.timeline::before,\s*:global\(body\.motion-paused\) \.beat::before,\s*:global\(body\.motion-paused\) \.plate\s*\{\s*animation:\s*none;/,
-    );
-    /* The knot's finished state is filled; each exit says so. */
-    expect(CSS.match(/\.beat::before\s*\{\s*background-color:\s*rgb\(var\(--signal\)\)/g)).toHaveLength(3);
+    expect(CSS).toMatch(/:global\(body\.motion-paused\) \.plate\s*\{\s*animation:\s*none;/);
+  });
+
+  it("shows one language's interlude words at a time", () => {
+    expect(CSS).toMatch(/\.loopWords:lang\(he\)\s*\{\s*display:\s*none;/);
+    expect(CSS).toMatch(/:root:lang\(he\) \.loopWords:lang\(he\)\s*\{\s*display:\s*block;/);
+    expect(CSS).toMatch(/:root:lang\(he\) \.loopWords:lang\(en\)\s*\{\s*display:\s*none;/);
   });
 });

@@ -45,6 +45,34 @@ export type StoryImage = { src: string; alt: string };
 
 export type BeatKind = "start" | "project" | "role";
 
+/*
+ * HOW A BEAT'S WORDS SIT AGAINST ITS PICTURE
+ * ------------------------------------------
+ * Three layouts, chosen per beat in `LAYOUTS` below; the owner picks.
+ *
+ *   beside   the words in a narrow column beside the picture (the default);
+ *   under    a smaller picture, the words beneath it as its caption;
+ *   overlap  a larger picture, the words on a paper card laid over its
+ *            inner lower corner.
+ *
+ * The picture's side alternates beat by beat whatever the layout, and the
+ * living line runs down the lane on the picture's side. On a phone all three
+ * stack — picture, then words — and overlap keeps its card over the
+ * picture's foot.
+ */
+export type BeatLayout = "beside" | "under" | "overlap";
+
+export const LAYOUT_DEFAULT: BeatLayout = "beside";
+
+/** A moment between beats: a few words the line draws a loop round. */
+export type Interlude = {
+  id: string;
+  /** The beat it follows. */
+  after: string;
+  /** The words, in each language the site is written in. Real text, not a picture of it. */
+  words: { en: string; he: string };
+};
+
 export type Beat = {
   /** Stable, unique, and the fragment the beat can be linked at. */
   id: string;
@@ -60,10 +88,13 @@ export type Beat = {
   image?: StoryImage;
   /** A project beat's page. */
   href?: string;
+  layout: BeatLayout;
 };
 
 export type Story = {
   beats: Beat[];
+  /** In beat order; each names the beat it follows. */
+  interludes: Interlude[];
   firstYear: number;
   lastYear: number;
   /** Counted from the table, never typed — see the close. */
@@ -117,6 +148,45 @@ const ROLES: Array<Pick<Beat, "id" | "when" | "title" | "lines">> = [
 ];
 
 /**
+ * Layouts, keyed by beat id; a beat not named here is `beside`. Changing a
+ * beat's layout is this one line.
+ */
+const LAYOUTS: Record<string, BeatLayout> = {
+  "programming-with-yehuda": "overlap",
+  icaros: "under",
+  bothy: "overlap",
+  now: "under",
+};
+
+/*
+ * The interludes: where the line breaks out of the timeline and draws a loop
+ * round a few words. Closer together as the story goes on — after three
+ * beats, three more, then two — so the scroll gathers pace towards now. Each
+ * names the beat it follows, and `buildStory` refuses one that names no beat.
+ *
+ * Both languages are in the DOM, each with its own `lang`; the stylesheet
+ * shows the Hebrew under <html lang="he"> and the English otherwise, and the
+ * one not shown is `display: none`, so a screen reader hears one.
+ */
+const INTERLUDES: Interlude[] = [
+  {
+    id: "loop-open",
+    after: "programming-with-yehuda",
+    words: { en: "Things other people could open.", he: "דברים שאחרים יכולים לפתוח." },
+  },
+  {
+    id: "loop-rely",
+    after: "windom",
+    words: { en: "Then, things they relied on.", he: "ואז, דברים שסומכים עליהם." },
+  },
+  {
+    id: "loop-team",
+    after: "full-stack",
+    words: { en: "Then, a team.", he: "ואז, צוות." },
+  },
+];
+
+/**
  * Pictures, keyed by beat id. Empty until the owner supplies them; each one
  * replaces that beat's empty card with no layout shift.
  */
@@ -133,6 +203,8 @@ export function buildStory(
   table: readonly Project[] = seedProjects,
   lines: Record<string, string> = LINES,
   images: Record<string, StoryImage> = IMAGES,
+  interludes: Interlude[] = INTERLUDES,
+  layouts: Record<string, BeatLayout> = LAYOUTS,
 ): Story {
   for (const p of table) {
     if (!lines[p.slug]) throw new Error(`story: the project table has ${p.slug} and no line for it`);
@@ -145,7 +217,7 @@ export function buildStory(
   const firstYear = plate.shippingSince;
   const lastYear = Math.max(...table.map((p) => Number(p.year)));
 
-  const beats: Omit<Beat, "ratio" | "image">[] = [
+  const beats: Omit<Beat, "ratio" | "image" | "layout">[] = [
     { id: `start-${firstYear}`, kind: "start", when: String(firstYear), ...START },
     ...ordered.map((p) => ({
       id: p.slug,
@@ -163,6 +235,14 @@ export function buildStory(
   for (const id of Object.keys(images)) {
     if (!ids.has(id)) throw new Error(`story: a picture for ${id}, which is not a beat`);
   }
+  for (const id of Object.keys(layouts)) {
+    if (!ids.has(id)) throw new Error(`story: a layout for ${id}, which is not a beat`);
+  }
+  for (const i of interludes) {
+    if (!ids.has(i.after)) throw new Error(`story: interlude ${i.id} follows ${i.after}, which is not a beat`);
+    if (!i.words.en.trim() || !i.words.he.trim()) throw new Error(`story: interlude ${i.id} is missing a language`);
+  }
+  const order = beats.map((b) => b.id);
 
   /*
    * The close's figures, each counted from the table:
@@ -174,7 +254,8 @@ export function buildStory(
   const inStore = table.filter((p) => p.fields.some((f) => f.kind === "where" && /store/i.test(f.value))).length;
 
   return {
-    beats: beats.map((b) => ({ ...b, ratio: RATIO, image: images[b.id] })),
+    beats: beats.map((b) => ({ ...b, ratio: RATIO, image: images[b.id], layout: layouts[b.id] ?? LAYOUT_DEFAULT })),
+    interludes: [...interludes].sort((a, b) => order.indexOf(a.after) - order.indexOf(b.after)),
     firstYear,
     lastYear,
     figures: [
