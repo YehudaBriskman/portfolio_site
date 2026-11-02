@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { usePageCommitted } from "@/components/nav/pageCommit";
 import SiteFooter from "@/components/SiteFooter";
+import room from "@/components/ground/NotesRoom.module.css";
 
 /*
  * The page frame, and the spacing rule the whole site follows.
@@ -41,8 +42,27 @@ import SiteFooter from "@/components/SiteFooter";
  * are in `SiteChrome.tsx` now, once, above the routes. What stays is what
  * genuinely differs per shell: whether the first section needs clearing under
  * the bar, and the footer.
+ *
+ * The ground, when a page is not on paper
+ * ---------------------------------------
+ * `ground="room"` puts the whole of `<main>` on the notes room (#179) — today
+ * that is `/blog`. It goes on `<main>` and not on a box the page renders,
+ * for two reasons. The clearance above is `<main>`'s own padding, so a box
+ * inside it would leave a 64px strip of paper under the bar at the top of a
+ * dark page. And `data-chrome="dark"` on `<main>` is in the document in the
+ * same commit as `usePageCommitted()` below fires, whatever state the page's
+ * own requests are in, so the chrome's rebuild on that signal always finds
+ * it (`nav/pageCommit.ts`).
  */
-export default function PageShell({ children }: { children: ReactNode }) {
+export default function PageShell({
+  children,
+  ground = "paper",
+}: {
+  children: ReactNode;
+  /** `room`: the notes' dark ground, chrome and all. Paper otherwise. */
+  ground?: "paper" | "room";
+}) {
+  const dark = ground === "room";
   /* Tells the chrome this page is now in the document — see `pageCommit.ts`
      for why the pathname alone cannot. */
   usePageCommitted();
@@ -54,7 +74,11 @@ export default function PageShell({ children }: { children: ReactNode }) {
           with four different values for it. The island is fixed, 50px tall
           and 18px down; 4rem here plus the section's own top rhythm clears
           68px at every width. */}
-      <main id="content" className="pt-16">
+      <main
+        id="content"
+        className={dark ? `on-panel ${room.room} ${room.foot} pt-16` : "pt-16"}
+        data-chrome={dark ? "dark" : undefined}
+      >
         {children}
       </main>
       {/* Content pages had no footer at all; these are the pages people land on

@@ -124,3 +124,264 @@
     background: rgb(var(--ink) / 0.12);
   }
 }
+
+/* ------------------------------------------------- one height, and open -- */
+
+/*
+ * Every note card the same height, and a description that slides in (#179).
+ *
+ * The SLOT is the article, and it is the grid's child: the card's height at
+ * rest plus what it grows by, for every card on the page whatever it
+ * carries. The FACE is the card, hung from the top of the slot. At rest it is
+ * `--note-rest` tall; on hover or focus it grows by `--note-grow` into the
+ * slot's own spare room, so the row, the neighbours and the page below do
+ * not move. `contain: layout` keeps the growth's relayout inside the slot.
+ *
+ * The face is a grid whose last row is `--note-open`: zero at rest, so the
+ * description sits just under the card's foot behind its `overflow: hidden`,
+ * and the full growth when open, so the card grows by exactly that row and
+ * the description slides up into it. The height and the row are both written
+ * in the one registered length, so they cannot come apart mid-transition.
+ * The picture row is the give: `minmax(0, 1fr)`, so it takes what the type
+ * leaves and the cover crops to it. Titles are clamped (two lines on a
+ * picture card, four without, three on the lead) so the type cannot take
+ * more than it was given.
+ *
+ * Time-based on purpose: hover and focus are direct manipulation, not
+ * scroll. On touch, with reduced motion and with Pause, every card stands
+ * open from the start and nothing moves, so heights stay equal there too.
+ */
+@property --note-open {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 0px;
+}
+
+.slot {
+  --note-rest: clamp(23rem, 20rem + 6vw, 26rem);
+  --note-grow: 4.75rem;
+  --pad: 1.5rem;
+  height: calc(var(--note-rest) + var(--note-grow));
+  contain: layout;
+}
+
+.face {
+  --note-open: 0px;
+  display: grid;
+  height: calc(var(--note-rest) + var(--note-open));
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto auto var(--note-open);
+  grid-template-areas:
+    "media"
+    "head"
+    "title"
+    "desc";
+  transition:
+    --note-open var(--dur-fast) var(--ease-settle),
+    border-color var(--dur-fast) ease,
+    box-shadow var(--dur-fast) ease,
+    transform var(--dur-micro) var(--ease-settle);
+}
+
+/* No picture: the date line heads the card and the title stands on its
+   floor, larger, as an index card rather than a picture card missing one. */
+.face:not([data-cover]) {
+  grid-template-rows: auto minmax(0, 1fr) auto var(--note-open);
+  grid-template-areas:
+    "head"
+    "."
+    "title"
+    "desc";
+}
+
+.media.media {
+  grid-area: media;
+  aspect-ratio: auto;
+  height: auto;
+  min-height: 0;
+}
+
+.head {
+  grid-area: head;
+  margin: 0;
+  padding: var(--pad) var(--pad) 0;
+}
+
+.title {
+  grid-area: title;
+  padding: 0.75rem var(--pad) var(--pad);
+}
+
+.title > h2 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.face:not([data-cover]) .title > h2 {
+  -webkit-line-clamp: 4;
+  font-size: clamp(1.625rem, 1.3rem + 1.2vw, 2.125rem);
+  line-height: 1.12;
+}
+
+.desc {
+  grid-area: desc;
+  align-self: start;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  margin-top: -0.75rem;
+  padding: 0 var(--pad);
+  font-size: 0.9375rem;
+  opacity: 0;
+  transform: translateY(0.75rem);
+  transition:
+    opacity var(--dur-fast) ease,
+    transform var(--dur-fast) var(--ease-settle);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .face[data-desc]:hover {
+    --note-open: var(--note-grow);
+  }
+  .face:hover .desc {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.face[data-desc]:focus-within {
+  --note-open: var(--note-grow);
+}
+
+.face:focus-within .desc {
+  opacity: 1;
+  transform: none;
+}
+
+/*
+ * The lead, from `sm` up: the picture down the start side, the type in a
+ * column beside it — and the same height as every other card. Its title gets
+ * three lines at its larger size.
+ */
+@media (min-width: 640px) {
+  .lead.lead {
+    --pad: 2rem;
+    grid-template-columns: 1.05fr 1fr;
+    grid-template-rows: auto minmax(0, 1fr) auto var(--note-open);
+    grid-template-areas:
+      "media head"
+      "media ."
+      "media title"
+      "media desc";
+  }
+  .lead.lead .media {
+    border-bottom-width: 0;
+    border-inline-end: 1px solid rgb(var(--rule-firm));
+  }
+  .lead.lead .title > h2 {
+    -webkit-line-clamp: 3;
+  }
+}
+
+@media (min-width: 1024px) {
+  .lead.lead {
+    --pad: 2.5rem;
+    grid-template-columns: 1.2fr 1fr;
+  }
+}
+
+/* No hover to ask with: open from the start, and still. */
+@media not ((hover: hover) and (pointer: fine)) {
+  .face {
+    --note-open: var(--note-grow);
+  }
+  .desc {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .face {
+    --note-open: var(--note-grow);
+    transition: none;
+  }
+  .desc {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+:global(body.motion-paused) .face {
+  --note-open: var(--note-grow);
+  transition: none;
+}
+
+:global(body.motion-paused) .desc {
+  opacity: 1;
+  transform: none;
+  transition: none;
+}
+
+/* ------------------------------------------------------- on the room -- */
+
+/*
+ * The same card on the notes room (`ground/NotesRoom.module.css`), which is
+ * where `/blog` stands since #179.
+ *
+ * The washes are paper's: pale tints that only work as a step off cream. On
+ * the room a wash would be a light card in a dark room with the room's light
+ * ink on it. So on the room every card is the room's raised surface,
+ * `--canvas-2`, and the hue cycle is a paper device that does not come into
+ * the room. The inset white highlight goes with the washes; the shadow is
+ * cast in black, as `.on-panel` restates `--shade` for the same reason.
+ *
+ * Measured on the rendered page (scripts/shoot-notes-dark.mjs): title
+ * `--ink` 13.39:1 on the card, date, minutes and description `--ink-soft`
+ * 6.14:1, the card's edge 3.58:1 against the room.
+ */
+:global(.on-panel) .card.card {
+  border-color: rgb(var(--rule-firm));
+  background-color: rgb(var(--canvas-2));
+  box-shadow: 0 12px 28px -20px rgb(0 0 0 / 0.7);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  :global(.on-panel) .card.card:hover {
+    border-color: rgb(var(--ink-soft));
+    box-shadow: 0 18px 36px -22px rgb(0 0 0 / 0.8);
+  }
+}
+
+:global(.on-panel) .card.card:focus-within {
+  border-color: rgb(var(--ink));
+}
+
+:global(.on-panel) .media.media {
+  background: rgb(var(--canvas-3));
+  border-bottom-color: rgb(var(--rule-firm));
+  border-right-color: rgb(var(--rule-firm));
+}
+
+/*
+ * `/blog`'s one solid button — "Try again", on the error card — on the room.
+ * `.btn-solid` fills with `--ink` and sets its word in `--paper` by name;
+ * on the room `--ink` is the room's light ink and paper on it measured
+ * 1.07:1 (axe, /blog with the API down). The word takes the ground's own
+ * colour instead, 15.25:1 on the fill; on hover the fill is the room's
+ * `--signal` and the word stays the ground, 6.75:1.
+ */
+:global(.on-panel) .solid.solid {
+  color: rgb(var(--canvas));
+}
+
+@media (hover: hover) and (pointer: fine) {
+  :global(.on-panel) .solid.solid:hover {
+    color: rgb(var(--canvas));
+  }
+}

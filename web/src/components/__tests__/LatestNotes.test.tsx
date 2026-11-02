@@ -257,4 +257,52 @@ describe("the notes shelf", () => {
     expect(CSS).toMatch(/display:\s*var\(--shelf-ghost-extra/);
     expect(CSS).not.toMatch(/data-sk-block="fields"\]\s*\[data-sk-line\]:not/);
   });
+
+  /* #179: the room, one height, and the card that opens. */
+
+  it("stands on the notes room and tells the chrome so, in every state", () => {
+    /* Pending on purpose: the declaration has to be in the page's first
+       commit, before the notes arrive, or the bar is paper over a dark
+       section until something else makes the chrome look again. */
+    posts.mockReturnValue(new Promise(() => {}));
+    const { container } = mount();
+    const section = container.querySelector("section#notes")!;
+    expect(section.getAttribute("data-chrome")).toBe("dark");
+    expect(section.classList.contains("on-panel")).toBe(true);
+    /* Not a dark act: the room has no arc, no seams, no crest. */
+    expect(section.closest('[data-ground="panel"]')).toBeNull();
+  });
+
+  it("marks only a card with something to say as one that opens", async () => {
+    posts.mockResolvedValue([
+      note(),
+      note({ slug: "mute", title: "Nothing to add", subtitle: null, excerpt: "" }),
+    ]);
+    const { container } = mount();
+    await screen.findByRole("heading", { level: 3, name: "Nothing to add" });
+
+    const cards = container.querySelectorAll("[data-shelf-i] a");
+    expect(cards[0].hasAttribute("data-desc")).toBe(true);
+    expect(cards[1].hasAttribute("data-desc")).toBe(false);
+    /* The description is in the link whether or not it is showing, so it is
+       read with the card rather than only by somebody with a pointer. */
+    expect(cards[0].textContent).toContain("What a pinned element does to a view timeline");
+  });
+
+  it("gives every slot one height and grows the card inside it", () => {
+    /* The slot is rest plus growth for every card; the card is rest plus
+       whatever is open. So the row never changes height and the neighbours
+       never move when one card opens. */
+    expect(CSS).toMatch(/\.slot\s*\{[^}]*height:\s*calc\(var\(--note-rest\) \+ var\(--note-grow\)\)/);
+    expect(CSS).toMatch(/\.card\s*\{[^}]*height:\s*calc\(var\(--note-rest\) \+ var\(--note-open\)\)/);
+    expect(CSS).toMatch(/@property --note-open/);
+  });
+
+  it("opens every card, without moving, where there is no hover or no motion", () => {
+    /* Touch, reduced motion and Pause: the description is simply there. */
+    expect(CSS).toMatch(/@media not \(\(hover: hover\) and \(pointer: fine\)\)\s*\{\s*\.card\s*\{\s*--note-open:\s*var\(--note-grow\)/);
+    const reduced = CSS.slice(CSS.indexOf("@media (prefers-reduced-motion: reduce)"));
+    expect(reduced).toMatch(/\.card\s*\{\s*--note-open:\s*var\(--note-grow\);\s*transition:\s*none/);
+    expect(CSS).toMatch(/:global\(body\.motion-paused\) \.card\s*\{\s*--note-open:\s*var\(--note-grow\);\s*transition:\s*none/);
+  });
 });

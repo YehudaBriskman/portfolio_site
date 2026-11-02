@@ -73,13 +73,13 @@ export default function Byline({
              at the top of the frame, so the circle is anchored there.
 
              The figure is a cut-out photograph with an alpha channel, so the
-             disc it sits on has to stay light. It does:
-             every page that renders a byline is on paper, and `bg-surface`
-             resolves to `--paper-2` there. Inside `.on-panel` it would
-             resolve to the act's near-black and the figure would vanish into
-             it — which is a reason not to put a byline in the dark act, not a
-             reason for this element to opt out of the token. */
-          className="h-11 w-11 shrink-0 rounded-full border border-edge bg-surface object-cover object-[50%_8%]"
+             disc it sits on has to stay light — and since #179 a byline
+             does stand on a dark ground, at the head of `/blog` on the notes
+             room. `bg-surface` would follow the ground there and the figure
+             would vanish into it, so the disc is `--paper-2` by name: the
+             one element here whose colour is a property of the photograph,
+             not of the ground. The edge still follows the ground. */
+          className="h-11 w-11 shrink-0 rounded-full border border-edge bg-paper-2 object-cover object-[50%_8%]"
         />
         <div className="leading-tight">
           <p className="text-[0.9375rem] text-bone">{AUTHOR.name}</p>

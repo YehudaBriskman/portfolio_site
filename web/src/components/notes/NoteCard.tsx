@@ -40,12 +40,14 @@ import { formatDate, type PostSummary } from "@/services/blog";
  *
  * `.note-card` is the shared class index.css still owns; `styles.card` is the
  * correction that makes it a surface on paper rather than on the near-black
- * ground it was drawn for, and `styles.cycle` is the card's place in the hue
- * cycle, which is what gives it its resting colour. Written once because
- * three call sites in this file open with it and nothing good comes of them
- * drifting apart.
+ * ground it was drawn for. `styles.cycle` — the card's place in the hue cycle,
+ * which gives it its resting colour on paper — is not in it any more: it is
+ * an `nth-child` rule, so it has to sit on whatever is the grid's child, and
+ * since #179 that is the slot around the card rather than the card. Written
+ * once because the call sites in this file open with it and nothing good
+ * comes of them drifting apart.
  */
-const SURFACE = `note-card ${styles.card} ${styles.cycle} group relative`;
+const SURFACE = `note-card ${styles.card} group relative`;
 
 function Cover({ src, alt }: { src: string; alt: string }) {
   const [loaded, setLoaded] = useState(false);
@@ -78,7 +80,7 @@ export default function NoteCard({
   style,
 }: {
   post: PostSummary;
-  /** The most recent note, given the width, the picture and the weight to lead. */
+  /** The most recent note, given the width and the picture to lead. */
   lead?: boolean;
   /** No media, tighter type — the prev/next pair at the foot of a post. */
   compact?: boolean;
@@ -92,7 +94,9 @@ export default function NoteCard({
 }) {
   // One line of summary, never two. The subtitle is written; the excerpt is
   // machine-cut from the body, so it only speaks when nothing better exists.
-  const summary = post.subtitle ?? post.excerpt;
+  // An empty excerpt is the API's default (`backend/src/routes/admin.route.ts`),
+  // so it is trimmed before it is trusted to be there.
+  const summary = post.subtitle?.trim() || post.excerpt.trim();
 
   const meta = (
     <div className="mono flex flex-wrap items-center gap-x-2.5 gap-y-1 whitespace-nowrap text-[0.75rem] tracking-[0.08em] text-clay">
@@ -108,9 +112,7 @@ export default function NoteCard({
 
   /* No hover colour on the title: `.note-card:hover` lifts the whole card's
      border and `.note-card:focus-within` rings it, which is the same signal
-     one level up and on the element that is actually the target. The accent
-     this used to reach for is gone, and bone-on-bone would have been a
-     transition to nothing. */
+     one level up and on the element that is actually the target. */
   const title = (
     <h2
       className={`display-tight text-bone ${
@@ -126,11 +128,10 @@ export default function NoteCard({
 
   /* A tinted capsule. It has to read as a second, separately pressable thing
      beside the eyebrow next to it, so it keeps a fill and an edge; both are
-     drawn in NoteCard.module.css, where they are measured against the card's
-     wash rather than against the near-black ground they were chosen for.
-     44px tall rather than 26px, because it is a link and a finger has to be
-     able to hit it. The row it sits in carries the same floor whether or not
-     a badge lands in it, so the height is the row's and not the badge's. */
+     drawn in NoteCard.module.css. 44px tall rather than 26px, because it is a
+     link and a finger has to be able to hit it. The row it sits in carries
+     the same floor whether or not a badge lands in it, so the height is the
+     row's and not the badge's. */
   const badge = collectionTitle && (
     <Link
       to={`/projects/${post.collection}`}
@@ -143,7 +144,7 @@ export default function NoteCard({
 
   if (compact) {
     return (
-      <article className={`${SURFACE} ${className}`} style={style}>
+      <article className={`${SURFACE} ${styles.cycle} ${className}`} style={style}>
         <div className="flex flex-col p-6">
           {label && <p className="eyebrow">{label}</p>}
           <div className={label ? "mt-3" : ""}>{title}</div>
@@ -153,79 +154,57 @@ export default function NoteCard({
     );
   }
 
-  if (lead) {
-    return (
-      <article
-        className={`${SURFACE} ${styles.lead} note-card--lead sm:col-span-2 sm:grid sm:grid-cols-[1.05fr_1fr] sm:items-stretch lg:grid-cols-[1.2fr_1fr] ${className}`}
-        style={style}
-      >
-        {/*
-          The lead is the one slot that always carries a picture, which is what
-          makes its footprint predictable enough for the loading skeleton to
-          match it. A real cover when the post has one; the generated skyline
-          when it does not, where a single large plate reads as art direction
-          rather than as the filler it was on twelve cards at once.
-        */}
-        <div className={`note-card__media ${styles.media} sm:border-b-0 sm:border-r`}>
-          {post.coverImage ? <Cover src={post.coverImage} alt="" /> : <NoteGlyph seed={post.slug} />}
-        </div>
-
-        <div className="flex flex-col p-6 sm:p-8 lg:p-10">
-          {/* `min-h-11` whether or not a badge lands in it. The badge is a
-              link and so has to be a 44px target; with no floor on the row, a
-              card that had one stood 29px taller in its first line than the
-              card beside it in the same grid row, and the two titles started
-              at different heights. */}
-          <div className="-my-1 flex min-h-11 flex-wrap items-center gap-x-3 gap-y-2">
-            {label && <p className="eyebrow">{label}</p>}
-            {badge}
-          </div>
-
-          <div className="mt-3">{title}</div>
-
-          {/* --ink-soft, not `text-bone/75`. The alpha passes — it composites
-              to 7.88:1 on a neutral card — but its value moves with whatever
-              wash the card is wearing (7.56:1 on the dullest), and the site
-              already names this role as a solid token at 7.14:1 / 6.60:1. The
-              same role written two ways in two files is how the card on the
-              index stopped matching the card on the home page. */}
-          {summary && (
-            <p className="mt-3 text-base leading-[1.6] text-clay sm:text-lg">{summary}</p>
-          )}
-
-          <div className="mt-6 pt-1 sm:mt-auto sm:pt-6">{meta}</div>
-        </div>
-      </article>
-    );
-  }
+  /*
+   * The lead and the grid card, one shape since #179.
+   *
+   * The article is the SLOT: one height for every card in the grid, the
+   * resting height plus the growth, so a card that opens on hover opens into
+   * room that was already its own and nothing beside or below it moves. The
+   * face inside it is the card. Its rows are named in NoteCard.module.css;
+   * the markup only says which part is which.
+   *
+   * The lead keeps its width and its picture — the real cover, or the
+   * generated skyline where one large plate reads as art direction — and
+   * loses its extra height: every note card is the same height now, the lead
+   * included, and the picture is what gives.
+   */
+  const media = lead || post.coverImage;
 
   return (
-    <article className={`${SURFACE} ${className}`} style={style}>
-      {/* No cover, no media block. A grid of mixed heights is honest; a grid of
-          identical generated pictures is not. */}
-      {post.coverImage && (
-        <div className={`note-card__media ${styles.media}`}>
-          <Cover src={post.coverImage} alt="" />
-        </div>
-      )}
+    <article
+      className={`${styles.slot} ${styles.cycle} ${lead ? "sm:col-span-2" : ""} ${className}`}
+      style={style}
+    >
+      <div
+        className={`${SURFACE} ${styles.face} ${lead ? `note-card--lead ${styles.lead}` : ""}`}
+        data-cover={media ? "" : undefined}
+        /* Only a card with something to say grows to say it. */
+        data-desc={summary ? "" : undefined}
+      >
+        {media && (
+          /* Decorative: the title names the note, and an alt here would be
+             read before it. */
+          <div className={`note-card__media ${styles.media}`}>
+            {post.coverImage ? <Cover src={post.coverImage} alt="" /> : <NoteGlyph seed={post.slug} />}
+          </div>
+        )}
 
-      {/* One inset, 24px, at every width. It was 20px below `sm`, which on a
-          phone put the type 20px from a 32px corner — the corner cut into the
-          first word of every title. A card's padding has to clear its own
-          radius. */}
-      <div className="flex flex-col p-6">
-        {/* See the lead: one height for the row whether or not a badge lands
-            in it, so two cards side by side agree. */}
-        <div className="-my-1 flex min-h-11 flex-wrap items-center gap-x-3 gap-y-2">
+        {/* `min-h-11` whether or not a badge lands in it: the badge is a
+            44px target, and with no floor on the row a card that had one
+            stood taller in its first line than the card beside it. */}
+        <div className={`${styles.head} -my-1 flex min-h-11 flex-wrap items-center gap-x-3 gap-y-2`}>
+          {label && <p className="eyebrow">{label}</p>}
           {meta}
           {badge}
         </div>
 
-        <div className="mt-3">{title}</div>
+        <div className={styles.title}>{title}</div>
 
-        {summary && (
-          <p className="mt-3 line-clamp-3 text-[0.9375rem] leading-[1.65] text-clay">{summary}</p>
-        )}
+        {/* The description. In the DOM always, so it is read with the card;
+            shown by the stylesheet — on hover and focus, or from the start
+            where there is no hover to ask with. `--ink-soft` through the
+            `text-clay` alias, a solid token on either ground. */}
+        {summary && <p className={`${styles.desc} text-clay`}>{summary}</p>}
       </div>
     </article>
   );
