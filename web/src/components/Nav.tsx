@@ -12,6 +12,7 @@ import { useTuckedBar } from "./nav/useTuckedBar";
 import { useLocale } from "./nav/locale";
 import { useElsewhere } from "./nav/social";
 import { useMotionPaused } from "./nav/useMotionPaused";
+import { useChromeWords } from "@/i18n/chrome";
 import styles from "./Nav.module.css";
 
 /*
@@ -152,6 +153,7 @@ export default function Nav() {
    * match the class actually set on <body>.
    */
   const [locale, onSelectLocale] = useLocale();
+  const w = useChromeWords();
   const [motionPaused, onToggleMotion] = useMotionPaused();
   const controls: NavControls = { locale, onSelectLocale, motionPaused, onToggleMotion };
 
@@ -331,7 +333,7 @@ export default function Nav() {
       <div className={styles.bar}>
         {/* Leading edge: the rooms. Folds into the sheet below `WIDE`. */}
         <div className={styles.lead}>
-          <nav aria-label="Pages">
+          <nav aria-label={w.pages}>
             <ul className={styles.routeRow}>
               {NAV_ROUTES.map((r) => (
                 <li key={r.to}>
@@ -389,14 +391,14 @@ export default function Nav() {
           aria-controls={panelId}
           className={styles.toggle}
         >
-          <span>Menu</span>
+          <span>{w.menu}</span>
           <span className={styles.bars} aria-hidden="true" />
         </button>
 
         {/* Trailing edge: elsewhere, then the switches. Folds into the sheet
             below `WIDE`. */}
         <div className={styles.trail}>
-          <nav aria-label="Elsewhere">
+          <nav aria-label={w.elsewhere}>
             <ElsewhereMarks />
           </nav>
           <span className={styles.split} aria-hidden="true" />
@@ -434,8 +436,8 @@ export default function Nav() {
         this is and whether it is open.
       */}
       <div ref={sheetRef} id={panelId} hidden={!open} className={styles.sheet}>
-        <nav aria-label="Pages">
-          <p className={styles.sheetHead}>Pages</p>
+        <nav aria-label={w.pages}>
+          <p className={styles.sheetHead}>{w.pages}</p>
           <ul className={styles.sheetList}>
             {NAV_ROUTES.map((r) => (
               <li key={r.to}>
@@ -454,8 +456,8 @@ export default function Nav() {
 
         <div className={styles.sheetSplit} aria-hidden="true" />
 
-        <nav aria-label="Elsewhere">
-          <p className={styles.sheetHead}>Elsewhere</p>
+        <nav aria-label={w.elsewhere}>
+          <p className={styles.sheetHead}>{w.elsewhere}</p>
           <ul className={styles.sheetList}>
             {elsewhere.map(({ key, href, label, Icon, external }) => (
               <li key={key}>
@@ -478,8 +480,8 @@ export default function Nav() {
 
         <div className={styles.sheetSplit} aria-hidden="true" />
 
-        <div role="group" aria-label="Site controls">
-          <p className={styles.sheetHead}>Controls</p>
+        <div role="group" aria-label={w.siteControls}>
+          <p className={styles.sheetHead}>{w.controls}</p>
           {/* The same two components the bar renders, not copies of them: the
               motion toggle owns a stored preference, and two implementations
               of it would be two chances to disagree about what the reader

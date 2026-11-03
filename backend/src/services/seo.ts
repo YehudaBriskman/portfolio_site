@@ -18,6 +18,20 @@ export function absoluteUrl(pathname: string): string {
   return `${SITE_URL}${pathname.startsWith("/") ? pathname : `/${pathname}`}`;
 }
 
+/*
+ * The site's two languages (#248). English is the bare address and Hebrew the
+ * same address under `/he` (web/src/i18n/routing.ts), so a page's two
+ * versions are each other's `hreflang` alternates.
+ */
+export type Lang = "en" | "he";
+export const LANGS: readonly Lang[] = ["en", "he"];
+
+/** An unprefixed path in a language: (`/blog`, `he`) → `/he/blog`, (`/`, `he`) → `/he`. */
+export function pathIn(pathname: string, lang: Lang): string {
+  if (lang === "en") return pathname;
+  return pathname === "/" ? "/he" : `/he${pathname}`;
+}
+
 function escapeXml(s: string): string {
   return s
     .replace(/&/g, "&amp;")
@@ -153,6 +167,13 @@ export type PageMeta = {
    * client-side link is not enough on its own. Paths, made absolute here.
    */
   feeds?: { title: string; href: string }[];
+  /** The page's language (#248). English when absent. */
+  lang?: Lang;
+  /**
+   * The page's unprefixed path, when it exists in both languages: the head
+   * then carries `hreflang` alternates for each, and `x-default` → English.
+   */
+  path?: string;
 };
 
 /* ------------------------------------------------------------------ sitemap */
@@ -182,6 +203,10 @@ const STATIC_ENTRIES: SitemapEntry[] = [
 ];
 
 export function buildSitemap(posts: Post[], collections: Collection[]): string {
+  return buildSitemapEntries(sitemapEntries(posts, collections));
+}
+
+function sitemapEntries(posts: Post[], collections: Collection[]): SitemapEntry[] {
   /*
    * The static routes carry the most recent content date rather than nothing.
    * A <url> with no <lastmod> gives a crawler no reason to come back, and these
@@ -217,9 +242,26 @@ export function buildSitemap(posts: Post[], collections: Collection[]): string {
     });
   }
 
+  return entries;
+}
+
+/*
+ * Every page twice, once per language, each listing both as alternates
+ * (#248): the sitemap form of `hreflang`, which Google reads in place of, or
+ * as well as, the tags in each page's head.
+ */
+function buildSitemapEntries(entries: SitemapEntry[]): string {
+  const alternates = (loc: string) =>
+    [
+      ...LANGS.map(
+        (l) => `    <xhtml:link rel="alternate" hreflang="${l}" href="${escapeXml(absoluteUrl(pathIn(loc, l)))}" />`,
+      ),
+      `    <xhtml:link rel="alternate" hreflang="x-default" href="${escapeXml(absoluteUrl(loc))}" />`,
+    ];
   const urls = entries
+    .flatMap((e) => LANGS.map((lang) => ({ ...e, lang })))
     .map((e) => {
-      const parts = [`    <loc>${escapeXml(absoluteUrl(e.loc))}</loc>`];
+      const parts = [`    <loc>${escapeXml(absoluteUrl(pathIn(e.loc, e.lang)))}</loc>`, ...alternates(e.loc)];
       if (e.lastmod) parts.push(`    <lastmod>${escapeXml(new Date(e.lastmod).toISOString())}</lastmod>`);
       if (e.changefreq) parts.push(`    <changefreq>${e.changefreq}</changefreq>`);
       if (e.priority !== undefined) parts.push(`    <priority>${e.priority.toFixed(1)}</priority>`);
@@ -227,7 +269,7 @@ export function buildSitemap(posts: Post[], collections: Collection[]): string {
     })
     .join("\n");
 
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`;
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n${urls}\n</urlset>\n`;
 }
 
 /* --------------------------------------------------------------------- feed */
@@ -447,6 +489,7 @@ const MANAGED_TAG_PATTERNS: RegExp[] = [
   /<meta\s+name=["']twitter:[^"']*["'][^>]*>/gi,
   /<meta\s+name=["']robots["'][^>]*>/gi,
   /<script\s+type=["']application\/ld\+json["'][\s\S]*?<\/script>/gi,
+  /<link\s+rel=["']alternate["']\s+hreflang=[^>]*>/gi,
 ];
 
 /*
@@ -490,13 +533,23 @@ function metaBlock(meta: PageMeta): string {
     `<link rel="canonical" href="${escapeAttr(meta.canonical)}" />`,
   ];
 
+  if (meta.path !== undefined) {
+    for (const l of LANGS) {
+      lines.push(`<link rel="alternate" hreflang="${l}" href="${escapeAttr(absoluteUrl(pathIn(meta.path, l)))}" />`);
+    }
+    lines.push(`<link rel="alternate" hreflang="x-default" href="${escapeAttr(absoluteUrl(meta.path))}" />`);
+  }
+
   if (meta.noindex) lines.push(`<meta name="robots" content="noindex, follow" />`);
   else lines.push(`<meta name="robots" content="index, follow, max-image-preview:large" />`);
 
   lines.push(
     `<meta property="og:type" content="${meta.type}" />`,
     `<meta property="og:site_name" content="Yehuda Briskman" />`,
-    `<meta property="og:locale" content="en_US" />`,
+    `<meta property="og:locale" content="${meta.lang === "he" ? "he_IL" : "en_US"}" />`,
+    ...(meta.path !== undefined
+      ? [`<meta property="og:locale:alternate" content="${meta.lang === "he" ? "en_US" : "he_IL"}" />`]
+      : []),
     `<meta property="og:title" content="${title}" />`,
     `<meta property="og:description" content="${socialDescription}" />`,
     `<meta property="og:url" content="${escapeAttr(meta.canonical)}" />`,
@@ -625,6 +678,11 @@ export function routePreloadLinks(shell: string, route: string): string[] {
 export function renderShellWithMeta(shell: string, meta: PageMeta): string {
   const preloads = meta.route ? routePreloadLinks(shell, meta.route) : [];
   let html = shell.replace(ROUTE_PRELOAD_META, "");
+  /* The document's language and direction (#248): the shell ships English,
+     and a Hebrew page has to say so before any script runs. */
+  if (meta.lang === "he") {
+    html = html.replace(/<html\b[^>]*>/i, '<html lang="he" dir="rtl">');
+  }
   for (const pattern of MANAGED_TAG_PATTERNS) html = html.replace(pattern, "");
 
   // Matches the empty root div the build emits. If the shell ever stops

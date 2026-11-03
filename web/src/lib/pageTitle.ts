@@ -1,4 +1,7 @@
 import { contentView } from "@/content/store";
+import type { Lang } from "@/components/dashboard/i18n";
+import { usePageNames } from "@/i18n/chrome";
+import { currentLang } from "@/i18n/routing";
 
 /*
  * What a page is called, derived from nothing but its URL.
@@ -84,8 +87,8 @@ export function documentTitleFor(name: string): string {
  * announcement stays the bare name, because inside the admin every page is an
  * admin page and the word would be on all of them.
  */
-function adminIdentity(name: string): PageIdentity {
-  return { name, title: `${name} · Admin · ${SITE_NAME}` };
+function adminIdentity(name: string, admin = "Admin"): PageIdentity {
+  return { name, title: `${name} · ${admin} · ${SITE_NAME}` };
 }
 
 function identity(name: string): PageIdentity {
@@ -158,7 +161,9 @@ function canonicalSegments(segments: readonly string[]): readonly string[] {
  *   resolves to something: an address matching no route is the 404, which is a
  *   page like any other and the one the audit found titled as the home page.
  */
-export function pageIdentityFor(pathname: string): PageIdentity {
+export function pageIdentityFor(pathname: string, lang: Lang = currentLang()): PageIdentity {
+  const n = usePageNames.of(lang);
+  const admin = (name: string) => adminIdentity(name, n.admin);
   const segments = canonicalSegments(pathname.split("/").filter(Boolean));
   const [first, second, third] = segments;
 
@@ -171,47 +176,47 @@ export function pageIdentityFor(pathname: string): PageIdentity {
    * "Yehuda Briskman · Full-stack engineer & team lead" read out after every
    * click on the word Home is a paragraph where a word was asked for.
    */
-  if (segments.length === 0) return { name: "Home", title: HOME_TITLE };
+  if (segments.length === 0) return { name: n.home, title: lang === "en" ? HOME_TITLE : n.homeTitle };
 
   if (first === "projects") {
-    if (!second) return identity("Work");
+    if (!second) return identity(n.work);
     if (segments.length === 2) return identity(projectName(second));
   }
 
-  if (first === "story" && segments.length === 1) return identity("Journey");
+  if (first === "story" && segments.length === 1) return identity(n.journey);
 
   /* The remote MCP server's page (#263), named as seo.route.ts names it. */
-  if (first === "developers" && second === "mcp" && segments.length === 2) return identity("MCP server");
+  if (first === "developers" && second === "mcp" && segments.length === 2) return identity(n.mcp);
 
   if (first === "blog") {
     /* "Blogs", the room's name since #222. The route stays `/blog` for the
        sake of the links already shared at that address; the bar, the page's
        own eyebrow and the footer all say Blogs, and the title is not the
        place to contradict them. */
-    if (!second) return identity("Blogs");
+    if (!second) return identity(n.blogs);
     /* The channel log (#226), named as seo.route.ts names it. */
-    if (second === "log" && segments.length === 2) return identity("Channel log");
+    if (second === "log" && segments.length === 2) return identity(n.log);
     if (second === "area" && third && segments.length === 3) return identity(humaniseSlug(third));
     if (segments.length === 2) return identity(humaniseSlug(second));
   }
 
   if (first === "admin") {
     if (second === "posts") {
-      if (!third) return adminIdentity("Posts");
+      if (!third) return admin(n.posts);
       if (segments.length === 3) {
-        return adminIdentity(third === "new" ? "New post" : `Editing ${humaniseSlug(third)}`);
+        return admin(third === "new" ? n.newPost : n.editing(humaniseSlug(third)));
       }
     }
-    if (second === "connections" && !third) return adminIdentity("Connected apps");
+    if (second === "connections" && !third) return admin(n.connections);
     if (second === "areas") {
-      if (!third) return adminIdentity("Areas");
+      if (!third) return admin(n.areas);
       if (segments.length === 3) {
-        return adminIdentity(third === "new" ? "New area" : `Editing ${humaniseSlug(third)}`);
+        return admin(third === "new" ? n.newArea : n.editing(humaniseSlug(third)));
       }
     }
   }
 
   /* Everything else is the catch-all route, and it says so. "Not found" is
      the string seo.route.ts puts in the head for the same addresses. */
-  return identity("Not found");
+  return identity(n.notFound);
 }

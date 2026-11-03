@@ -1,0 +1,139 @@
+// @vitest-environment node
+/*
+ * The test that fails on a UI string with no Hebrew (#248).
+ *
+ * `words.test.ts` proves every table has its Hebrew; this proves the strings
+ * are in a table at all. It reads every component with the TypeScript parser
+ * and fails on English written straight into the markup: text between tags,
+ * and the attributes a reader hears or sees (`aria-label`, `title`,
+ * `placeholder`, `alt`, `label`). Strings in code (`cond ? "Show" : "Hide"`)
+ * are not seen by it; the tables and review carry those.
+ *
+ * Two lists say what is allowed:
+ *
+ *   LATIN   text that is the same in both languages: names, marks, symbols.
+ *   PENDING files not yet moved onto the tables. It only ever shrinks: a file
+ *           on it that has become clean fails too, so it is taken off.
+ */
+import fs from "node:fs";
+import path from "node:path";
+import ts from "typescript";
+import { describe, expect, it } from "vitest";
+
+const SRC = path.resolve(__dirname, "../..");
+
+const ATTRS = new Set(["aria-label", "title", "placeholder", "alt", "label", "aria-description"]);
+
+/* Same in both languages. */
+const LATIN = new Set([
+  "RSS",
+  "LinkedIn",
+  "GitHub",
+  "WindoM",
+  "Yehuda Briskman",
+  "MCP",
+  "claude.ai",
+  "Claude Code",
+]);
+
+/*
+ * Not scanned at all: the shadcn primitives (no words of their own), and the
+ * admin's forms, which are the owner's editing tool rather than the site. The
+ * admin's chrome is scanned; its forms stay in English for now, as #248's
+ * PR says.
+ */
+const SKIP_DIRS = ["components/ui/", "__tests__/", "test/"];
+const SKIP_FILES = /^(pages\/Admin(?!Shell)[A-Za-z]*\.tsx|components\/admin\/(?!AdminShell)[^/]+\.tsx|components\/admin\/content\/.*|components\/LinkEditor\.tsx)$/;
+
+const PENDING = new Set<string>([
+  "components/admin/AdminShell.tsx",
+  "components/Approach.tsx",
+  "components/city/ContributionCity.tsx",
+  "components/Contact.tsx",
+  "components/Figure.tsx",
+  "components/gallery/FilterControl.tsx",
+  "components/gallery/Rail.tsx",
+  "components/HeroCorners.tsx",
+  "components/Hero.tsx",
+  "components/LatestNotes.tsx",
+  "components/notes/NoteCard.tsx",
+  "components/notes/NoteTile.tsx",
+  "components/notes/PostFooterNav.tsx",
+  "components/notes/ReadingBar.tsx",
+  "components/PostList.tsx",
+  "components/projects/Gallery.tsx",
+  "components/projects/ProjectActions.tsx",
+  "components/projects/ProjectDecisions.tsx",
+  "components/projects/ProjectRun.tsx",
+  "components/projects/ProjectStack.tsx",
+  "components/Stack.tsx",
+  "components/Work.tsx",
+  "pages/Accessibility.tsx",
+  "pages/BlogPost.tsx",
+  "pages/DevelopersMcp.tsx",
+  "pages/Project.tsx",
+  "pages/Story.tsx",
+]);
+
+function files(dir: string, out: string[] = []): string[] {
+  for (const name of fs.readdirSync(dir)) {
+    const full = path.join(dir, name);
+    if (fs.statSync(full).isDirectory()) files(full, out);
+    else if (full.endsWith(".tsx")) out.push(full);
+  }
+  return out;
+}
+
+function english(file: string): string[] {
+  const text = fs.readFileSync(file, "utf8");
+  const src = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  const hits: string[] = [];
+  const check = (s: string) => {
+    const t = s.replace(/&[a-z]+;|&#\d+;/g, " ").replace(/\s+/g, " ").trim();
+    if (/[A-Za-z]{2}/.test(t) && !LATIN.has(t)) hits.push(t.slice(0, 60));
+  };
+  const visit = (n: ts.Node) => {
+    if (ts.isJsxText(n)) check(n.getText());
+    if (
+      ts.isJsxAttribute(n) &&
+      ATTRS.has(n.name.getText()) &&
+      n.initializer &&
+      ts.isStringLiteral(n.initializer)
+    ) {
+      check(n.initializer.text);
+    }
+    ts.forEachChild(n, visit);
+  };
+  visit(src);
+  return hits;
+}
+
+const scanned = files(SRC)
+  .map((f) => path.relative(SRC, f).split(path.sep).join("/"))
+  .filter((f) => !SKIP_DIRS.some((d) => f.startsWith(d) || f.includes(`/${d}`)))
+  .filter((f) => !SKIP_FILES.test(f));
+
+describe("no UI string is written in English only (#248)", () => {
+  it("scans the components", () => {
+    expect(scanned.length).toBeGreaterThan(50);
+  });
+
+  const untranslated: string[] = [];
+  const nowClean: string[] = [];
+  for (const f of scanned) {
+    const hits = english(path.join(SRC, f));
+    if (PENDING.has(f)) {
+      if (hits.length === 0) nowClean.push(f);
+    } else if (hits.length > 0) {
+      untranslated.push(...hits.map((h) => `${f}: "${h}"`));
+    }
+  }
+
+  it("every string in the markup comes from a word table", () => {
+    expect(untranslated).toEqual([]);
+  });
+
+  it("the pending list only shrinks", () => {
+    expect(nowClean).toEqual([]);
+  });
+});

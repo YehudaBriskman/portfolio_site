@@ -1,5 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import PageShell from "@/components/PageShell";
+import { useNotFoundWords } from "@/i18n/chrome";
 
 /*
  * The one page that still looked like a different project.
@@ -17,15 +18,16 @@ import PageShell from "@/components/PageShell";
  */
 export default function NotFound() {
   const { pathname } = useLocation();
+  const w = useNotFoundWords();
 
   return (
     <PageShell>
       <section className="wrap section-y">
-        <p className="eyebrow">Error 404</p>
-        <h1 className="display mt-3 text-section">Not here</h1>
+        <p className="eyebrow">{w.eyebrow}</p>
+        <h1 className="display mt-3 text-section">{w.title}</h1>
 
         <p className="editorial mt-6 max-w-xl text-sub text-clay">
-          Whatever was at this address has moved, or never existed.
+          {w.body}
         </p>
 
         {/*
@@ -49,13 +51,13 @@ export default function NotFound() {
 
         <div className="mt-12 flex flex-wrap gap-3">
           <Link to="/" className="btn btn-solid">
-            Home
+            {w.home}
           </Link>
           <Link to="/projects" className="btn btn-quiet">
-            Projects
+            {w.projects}
           </Link>
           <Link to="/blog" className="btn btn-quiet">
-            Notes
+            {w.notes}
           </Link>
         </div>
       </section>

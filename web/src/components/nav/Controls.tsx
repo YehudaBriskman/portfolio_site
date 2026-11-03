@@ -3,6 +3,7 @@ import LanguageMenu from "./LanguageMenu";
 import MotionToggle from "./MotionToggle";
 import ThemeMenu from "./ThemeMenu";
 import type { LocaleCode } from "./locale";
+import { useChromeWords } from "@/i18n/chrome";
 
 /**
  * Everything the chrome lets you change about how the site behaves, as
@@ -40,8 +41,9 @@ export type NavControls = {
  * entire reason this wrapper exists.
  */
 export default function Controls({ controls }: { controls: NavControls }) {
+  const w = useChromeWords();
   return (
-    <div role="group" aria-label="Site controls" className={styles.controlGroup}>
+    <div role="group" aria-label={w.siteControls} className={styles.controlGroup}>
       <LanguageMenu value={controls.locale} onSelect={controls.onSelectLocale} />
       <ThemeMenu />
       <MotionToggle paused={controls.motionPaused} onToggle={controls.onToggleMotion} />

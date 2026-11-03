@@ -8,6 +8,8 @@ import EntryShutter from "./components/motion/EntryShutter";
 import SiteChrome from "./components/SiteChrome";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
+import { useLang } from "./components/dashboard/i18n";
+import { basenameFor } from "./i18n/routing";
 // Lazy: react-markdown and remark-gfm are ~53 KB gzipped and are only needed on
 // /notes. The home page must not pay for the blog renderer.
 const Blog = lazy(() => import("./pages/Blog"));
@@ -54,10 +56,19 @@ function LegacyNoteRedirect() {
   return <Navigate to={`/blog/${slug}`} replace />;
 }
 
-const App = () => (
+/*
+ * The language is in the address (#248, `i18n/routing.ts`): Hebrew is mounted
+ * under `/he`, so every link in the tree resolves inside it. Keyed on the
+ * language, because a router cannot change its basename under a location it
+ * already holds; switching language rebuilds it against the new address. The
+ * entry shutter does not replay: it reads the entry state, which has lifted.
+ */
+const App = () => {
+  const lang = useLang();
+  return (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <BrowserRouter>
+      <BrowserRouter key={lang} basename={basenameFor(lang)}>
         {/*
           Above `<Routes>`, and both halves of that position are load-bearing.
 
@@ -168,6 +179,7 @@ const App = () => (
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
-);
+  );
+};
 
 export default App;

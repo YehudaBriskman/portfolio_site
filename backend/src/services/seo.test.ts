@@ -96,8 +96,18 @@ describe("buildSitemap", () => {
 
   it("does not list a project twice once it has a real collection", () => {
     const xml = buildSitemap([], [collection({ slug: "windom", title: "WindoM" })]);
-    const hits = xml.match(/\/projects\/windom</g) ?? [];
-    expect(hits).toHaveLength(1);
+    // Once per language (#248): the English address and its Hebrew twin.
+    expect(xml.match(/<loc>[^<]*\/projects\/windom<\/loc>/g) ?? []).toHaveLength(2);
+    expect(xml.match(/<loc>[^<]*\/he\/projects\/windom<\/loc>/g) ?? []).toHaveLength(1);
+  });
+
+  it("lists every page in both languages, each naming the other (#248)", () => {
+    const xml = buildSitemap([], []);
+    expect(xml).toContain('xmlns:xhtml="http://www.w3.org/1999/xhtml"');
+    expect(xml).toMatch(/<loc>[^<]*\/he\/blog<\/loc>/);
+    expect(xml).toMatch(/<loc>[^<]*\/he<\/loc>/);
+    expect(xml).toMatch(/<xhtml:link rel="alternate" hreflang="he" href="[^"]*\/he\/blog" \/>/);
+    expect(xml).toMatch(/<xhtml:link rel="alternate" hreflang="x-default" href="[^"]*\/blog" \/>/);
   });
 
   it("omits noindex posts, so the sitemap never contradicts the meta tag", () => {
