@@ -284,16 +284,22 @@ export default function Hero() {
             */}
             <div className={styles.portrait} data-portrait="">
               <picture>
-                {/* The 365px file below the type rung's breakpoint, which is
-                    also where the figure stops being a third of the screen's
-                    width. Serving the 551px original there is 17kB spent on a
-                    box that is never wider than 242 CSS pixels. */}
-                <source
-                  media="(max-width: 699px)"
-                  srcSet="/img/yehuda-cut-sm.webp"
-                />
+                {/* Two widths of one file, chosen by the browser against the
+                    screen's density (#127). `sizes` restates the box from
+                    `Hero.module.css`: min(92vw, 22rem) below 700px, else
+                    min(86vw, 26rem). It used to be a `media` switch that sent
+                    every phone the 365px file, on the reasoning that the box
+                    was never wider than 242 CSS px. It is 359 at 390 wide, so
+                    a 3x phone was upscaling that file three times over.
+
+                    551px is the largest master there is, and nothing here is
+                    upscaled past it: a 2x phone now gets 0.77 file pixels per
+                    device pixel instead of 0.51, and a 2x desktop stays at
+                    0.66. A true 2x needs a master at least 1248px wide. */}
                 <img
                   src="/img/yehuda-cut.webp"
+                  srcSet="/img/yehuda-cut-sm.webp 365w, /img/yehuda-cut.webp 551w"
+                  sizes="(max-width: 699px) min(92vw, 22rem), min(86vw, 26rem)"
                   alt="Yehuda Briskman: a cut-out photograph from the waist up, in round sunglasses and a pale T-shirt, a bag strap across one shoulder, looking off to the side."
                   width={551}
                   height={845}
