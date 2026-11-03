@@ -134,12 +134,19 @@ export type PageMeta = {
   noindex?: boolean;
   jsonLd?: Record<string, unknown>;
   /**
-   * Content placed inside #root for clients that do not run JavaScript.
-   * React's createRoot clears the container before its first render, so a
-   * browser never sees this — but a crawler reading the raw HTML finds a real
-   * H1 and real prose instead of an empty div.
+   * Content placed inside #root for clients that do not run JavaScript, so a
+   * crawler reading the raw HTML finds a real H1 and real prose instead of an
+   * empty div. React's createRoot clears the container on its first render,
+   * but a browser paints the HTML before the bundle runs — so this is wrapped
+   * and covered for script-running visitors; see FALLBACK_STYLE.
    */
   bodyHtml?: string;
+  /**
+   * The lazy page this URL renders (`Project`, `BlogPost`, …), so its chunk can
+   * be preloaded from the head instead of being discovered after React mounts.
+   * See routePreloadLinks.
+   */
+  route?: string;
   /**
    * The page's feeds, as `<link rel="alternate">` (#226). A feed reader finds
    * a feed in the raw HTML and never runs the app, so the page's own
@@ -527,27 +534,114 @@ function metaBlock(meta: PageMeta): string {
   return lines.map((l) => `    ${l}`).join("\n");
 }
 
+/*
+ * The crawler fallback, as a visitor whose browser runs the app sees it: the
+ * first frame of the app's own entry loader, and nothing else.
+ *
+ * The owner's report: refreshing /projects/windom showed "WindoM / Every new
+ * tab becomes a dashboard" as raw text in the top-left corner, then the
+ * loader, then the page. The browser paints #root's fallback before the bundle
+ * has run; React then replaces it with the entry shutter, which starts as an
+ * opaque black sheet (`motion/EntryShutter.module.css`, `.shutter::before`,
+ * z-index 200). So the fallback now paints *as* that sheet: its text is
+ * `visibility: hidden` and a fixed black layer covers the viewport, and the
+ * frame React swaps in is the same frame. Under `prefers-reduced-motion` the
+ * shutter does not render at all, so neither does the sheet — the fallback is
+ * just hidden, on the paper the page then arrives on.
+ *
+ * Hidden by default and shown by `<noscript>`, rather than hidden under
+ * `@media (scripting: enabled)`: a `<style>` inside `<noscript>` in the head
+ * applies exactly when scripting is off, in every browser that ever shipped,
+ * while the `scripting` media feature arrived in 2023 (Chrome 120, Safari 17)
+ * and an older browser would treat it as false and keep the flash. One
+ * mechanism, no fallback needed for the fallback.
+ *
+ * Not cloaking: every client gets the same DOM, and a crawler reads the text
+ * whether or not it applies CSS. Only the paint differs, and only for a client
+ * about to replace the content anyway.
+ *
+ * The eight-second reveal is the safety net. If the bundle never runs — a
+ * blocked script, or the rolling-deploy race that once served a shell whose
+ * <script src> no longer existed — the reader gets the text instead of a
+ * black screen. A healthy load replaces #root long before then.
+ *
+ * Both are inline `<style>` blocks, which the CSP allows (`style-src 'self'
+ * 'unsafe-inline'`); there is no inline script, so `script-src 'self'` holds.
+ */
+export const FALLBACK_ATTR = "data-seo-fallback";
+export const FALLBACK_REVEAL_MS = 8000;
+const FALLBACK_STYLE =
+  `<style ${FALLBACK_ATTR}>` +
+  `[${FALLBACK_ATTR}]{visibility:hidden;animation:seo-fallback-show 0s ${FALLBACK_REVEAL_MS}ms forwards}` +
+  `[${FALLBACK_ATTR}]::before{content:"";position:fixed;inset:0;z-index:200;background:#000;visibility:visible;animation:seo-fallback-hide 0s ${FALLBACK_REVEAL_MS}ms forwards}` +
+  `@keyframes seo-fallback-show{to{visibility:visible}}` +
+  `@keyframes seo-fallback-hide{to{visibility:hidden}}` +
+  `@media (prefers-reduced-motion:reduce){[${FALLBACK_ATTR}]::before{display:none}}` +
+  `</style>`;
+const FALLBACK_NOSCRIPT =
+  `<noscript><style>[${FALLBACK_ATTR}]{visibility:visible;animation:none}[${FALLBACK_ATTR}]::before{display:none}</style></noscript>`;
+
+/*
+ * The route's own chunk, preloaded from the head.
+ *
+ * Every page but the home is a lazy route, so on a cold load the browser
+ * fetched the entry, ran it, rendered the route, and only then discovered the
+ * page's chunk — one round trip after the bundle, behind the entry shutter.
+ * The build writes one `<meta name="route-preload">` per lazy page into the
+ * shell (web/vite.config.ts, routePreloadPlugin), naming its chunk, the
+ * chunks it imports and its CSS. Here the one for this URL becomes real
+ * preload links, and every other one is dropped. A shell without the metas
+ * (the dev server) simply gets no preloads.
+ */
+const ROUTE_PRELOAD_META = /<meta\s+name=["']route-preload["'][^>]*>\s*/gi;
+const ASSET_PATH = /^\/assets\/[\w.-]+\.(?:js|css)$/;
+
+export function routePreloadLinks(shell: string, route: string): string[] {
+  for (const tag of shell.match(ROUTE_PRELOAD_META) ?? []) {
+    const name = /data-route=["']([^"']*)["']/i.exec(tag)?.[1];
+    if (name !== route) continue;
+    const content = /content=["']([^"']*)["']/i.exec(tag)?.[1] ?? "";
+    // Only the build's own hashed asset paths: this is HTML written into the
+    // head, and the shell is fetched over the network.
+    return content
+      .split(/\s+/)
+      .filter((p) => ASSET_PATH.test(p))
+      .map((p) =>
+        p.endsWith(".css")
+          ? `<link rel="preload" as="style" crossorigin href="${p}" />`
+          : `<link rel="modulepreload" crossorigin href="${p}" />`,
+      );
+  }
+  return [];
+}
+
 /**
  * Replace the shell's build-time head tags with the ones for this URL. The rest
  * of the document is untouched, so the app boots exactly as it does normally —
  * this changes what a crawler reads, not what a browser runs.
  */
 export function renderShellWithMeta(shell: string, meta: PageMeta): string {
-  let html = shell;
+  const preloads = meta.route ? routePreloadLinks(shell, meta.route) : [];
+  let html = shell.replace(ROUTE_PRELOAD_META, "");
   for (const pattern of MANAGED_TAG_PATTERNS) html = html.replace(pattern, "");
 
-  const block = metaBlock(meta);
+  // Matches the empty root div the build emits. If the shell ever stops
+  // shipping one, the page still renders — it just loses the fallback.
+  const root = /<div id=["']root["']\s*>\s*<\/div>/i;
+  const fallback = Boolean(meta.bodyHtml) && root.test(html);
+
+  const head = [metaBlock(meta)];
+  if (fallback) head.push(`    ${FALLBACK_STYLE}`, `    ${FALLBACK_NOSCRIPT}`);
+  for (const link of preloads) head.push(`    ${link}`);
+  const block = head.join("\n");
+
   html = html.includes("</head>")
-    ? html.replace("</head>", `${block}\n  </head>`)
+    ? html.replace("</head>", () => `${block}\n  </head>`)
     : `${block}\n${html}`;
 
-  if (meta.bodyHtml) {
-    // Matches the empty root div the build emits. If the shell ever stops
-    // shipping one, the page still renders — it just loses the fallback.
-    html = html.replace(
-      /<div id=["']root["']\s*>\s*<\/div>/i,
-      `<div id="root">${meta.bodyHtml}</div>`,
-    );
+  if (fallback) {
+    // A function, so a "$&" or "$1" in the content is text, not a pattern.
+    html = html.replace(root, () => `<div id="root"><div ${FALLBACK_ATTR}>${meta.bodyHtml}</div></div>`);
   }
 
   return html;

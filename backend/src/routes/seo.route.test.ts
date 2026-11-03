@@ -297,3 +297,124 @@ describe.each([
     expect(find).not.toHaveBeenCalled();
   });
 });
+
+/*
+ * Every URL nginx sends through /api/seo/render, refreshed by a browser that
+ * runs the app (the owner's report: raw fallback text, then the loader, then
+ * the page). Each must carry its crawler content in #root, wrapped so that a
+ * script-running visitor sees the entry shutter's black sheet instead of the
+ * text, and each lazy page must preload its own chunk from the head.
+ */
+describe("the crawler fallback on every rendered page", () => {
+  const T = "2026-10-01T00:00:00.000Z";
+  const BLOB = "https://raw.githubusercontent.com/YehudaBriskman/WindoM/blob/main/site/public/images/banner.png";
+  const RAW = "https://raw.githubusercontent.com/YehudaBriskman/WindoM/main/site/public/images/banner.png";
+  const windom = {
+    _id: "collection:windom",
+    type: "collection",
+    slug: "windom",
+    title: "WindoM",
+    tagline: "Every new tab becomes a dashboard",
+    description: "",
+    coverImage: BLOB,
+    links: [],
+    order: 1,
+    status: "published",
+    kind: "project",
+    repo: null,
+    stats: null,
+    createdAt: T,
+    updatedAt: T,
+  };
+  const note = {
+    _id: "post:a-note",
+    type: "post",
+    slug: "a-note",
+    title: "A note",
+    subtitle: null,
+    excerpt: "An excerpt.",
+    body: "Body.",
+    status: "published",
+    publishedAt: T,
+    createdAt: T,
+    updatedAt: T,
+    tags: [],
+    collection: "windom",
+    coverImage: "https://github.com/YehudaBriskman/WindoM/blob/main/site/public/images/banner.png?raw=true",
+    readingMinutes: 1,
+    seo: { title: null, description: null, canonical: null, noindex: false },
+  };
+  const PAGES = ["Accessibility", "Blog", "BlogArea", "BlogLog", "BlogPost", "Project", "Projects", "Story"];
+  // The shell as the build writes it: one route-preload meta per lazy page.
+  const BUILT = INDEX_HTML.replace(
+    "</head>",
+    `${PAGES.map((p) => `<meta name="route-preload" data-route="${p}" content="/assets/${p}-x1.js /assets/${p}-x2.css" />`).join("\n")}\n</head>`,
+  );
+
+  beforeEach(() => {
+    resetShellCache();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(BUILT, { status: 200, headers: { "content-type": "text/html" } })),
+    );
+    vi.spyOn(couch, "find").mockImplementation(async (query: unknown) => {
+      const s = (query as { selector: { type: string; slug?: string } }).selector;
+      if (s.type === "post") return { docs: (s.slug && s.slug !== note.slug ? [] : [note]) as never[] };
+      if (s.type === "collection") return { docs: (s.slug && s.slug !== windom.slug ? [] : [windom]) as never[] };
+      return { docs: [] as never[] };
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+    resetShellCache();
+  });
+
+  it.each([
+    { url: "/", page: null, text: "<h1" },
+    { url: "/story", page: "Story", text: "The long way round" },
+    { url: "/accessibility", page: "Accessibility", text: "<h1>Accessibility</h1>" },
+    { url: "/blog", page: "Blog", text: "<h1>Blogs</h1>" },
+    { url: "/blog/log", page: "BlogLog", text: "<h1>Channel log</h1>" },
+    { url: "/blog/a-note", page: "BlogPost", text: "<h1>A note</h1>" },
+    { url: "/blog/area/windom", page: "BlogArea", text: "<h1>WindoM</h1>" },
+    { url: "/projects", page: "Projects", text: "<h1>Work</h1>" },
+    { url: "/projects/windom", page: "Project", text: "<h1>WindoM</h1><p>Every new tab becomes a dashboard</p>" },
+  ])("$url hides its fallback from a script-running visitor and keeps it in the DOM", async ({ url, page, text }) => {
+    const res = await request(createApp()).get(`/api/seo/render${url === "/" ? "/home" : url}`);
+    expect(res.status).toBe(200);
+    const head = res.text.slice(0, res.text.indexOf("</head>"));
+    const body = res.text.slice(res.text.indexOf("</head>"));
+
+    expect(body).toMatch(/<div id="root"><div data-seo-fallback>/);
+    expect(body).toContain(text);
+    expect(head).toContain("<style data-seo-fallback>[data-seo-fallback]{visibility:hidden;");
+    expect(head).toContain("<noscript><style>[data-seo-fallback]{visibility:visible;");
+
+    expect(res.text).not.toContain('name="route-preload"');
+    if (page) {
+      expect(head).toContain(`<link rel="modulepreload" crossorigin href="/assets/${page}-x1.js" />`);
+      expect(head).toContain(`<link rel="preload" as="style" crossorigin href="/assets/${page}-x2.css" />`);
+      for (const other of PAGES.filter((p) => p !== page)) expect(head).not.toContain(`/assets/${other}-x1.js`);
+    } else {
+      // The home page is not a lazy route; its code is the entry itself.
+      expect(head).not.toContain('rel="modulepreload"');
+    }
+  });
+
+  /*
+   * WindoM's og:image was a raw.githubusercontent.com URL with `/blob/` still
+   * in it, which 404s. Whatever form a GitHub file link was stored in, the head
+   * names the raw file.
+   */
+  it.each([
+    { url: "/projects/windom", key: "og:image" },
+    { url: "/projects/windom", key: "twitter:image" },
+    { url: "/blog/area/windom", key: "og:image" },
+    { url: "/blog/a-note", key: "og:image" },
+  ])("$url writes a raw image URL into $key, never a /blob/ one", async ({ url, key }) => {
+    const res = await request(createApp()).get(`/api/seo/render${url}`);
+    expect(socialTags(res.text).get(key)).toBe(RAW);
+  });
+});
