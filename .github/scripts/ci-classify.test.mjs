@@ -37,8 +37,10 @@ const cases = [
   ["backend only", [["M", "backend/src/server.ts"]], ["static", "backend", "scan"], ["api"], false],
   ["web and backend", [["M", "web/src/a.ts"], ["M", "backend/src/b.ts"]], ["static", "frontend", "backend", "scan"], ["web", "api"], false],
   ["web and docs", [["M", "web/src/a.ts"], ["M", "docs/a.md"]], ["static", "frontend", "scan"], ["web"], false],
+  ["mcp only: its own job, no image", [["M", "mcp/src/server.ts"], ["A", "mcp/README.md"]], ["static", "mcp"], [], false],
+  ["mcp and backend", [["M", "mcp/src/api.ts"], ["M", "backend/src/app.ts"]], ["static", "backend", "mcp", "scan"], ["api"], false],
 ];
-const ALL_PR = ["static", "frontend", "backend", "scan"];
+const ALL_PR = ["static", "frontend", "backend", "mcp", "scan"];
 const widening = [
   ["Dockerfile (web)", "web/Dockerfile"],
   ["Dockerfile (backend)", "backend/Dockerfile"],
@@ -47,6 +49,8 @@ const widening = [
   ["backend lockfile (dependency only)", "backend/package-lock.json"],
   ["bun lockfile", "web/bun.lockb"],
   ["package manifest", "backend/package.json"],
+  ["mcp package manifest", "mcp/package.json"],
+  ["mcp tsconfig", "mcp/tsconfig.json"],
   ["nginx template", "web/nginx.conf.template"],
   ["security headers", "web/security-headers.conf"],
   ["proxy headers", "web/proxy-headers.conf"],
@@ -191,7 +195,7 @@ test("PR diffs from the merge-base, push from before", () => {
 // --- release refs ------------------------------------------------------------
 
 // Main builds both images and records them; it never promotes (#205).
-const MAIN_JOBS = ["static", "frontend", "backend", "scan", "images", "release", "deploy"];
+const MAIN_JOBS = ["static", "frontend", "backend", "mcp", "scan", "images", "release", "deploy"];
 // A tag builds nothing: Static, the promotion, the deploy.
 const TAG_JOBS = ["static", "promote", "deploy"];
 const TAG_COMMIT = "c".repeat(40);
@@ -199,7 +203,7 @@ const TAG = { ...PUSH, REF: "refs/tags/v1.2.0", BEFORE: "0".repeat(40), AFTER: "
 
 test("main push: diff is narrow, selection is not (Deploy needs both images, #205)", () => {
   const r = run(PUSH, fakeGit([["M", "backend/src/a.ts"]]));
-  assert.deepEqual(r.changed, { web: false, backend: true, static: true, docs: false });
+  assert.deepEqual(r.changed, { web: false, backend: true, mcp: false, static: true, docs: false });
   assert.deepEqual(selected(r), MAIN_JOBS);
   assert.deepEqual(scanned(r), ["web", "api"]);
   assert.match(r.reasons.join("\n"), /release ref/);
@@ -288,7 +292,7 @@ test("7.4 a Dependabot lockfile PR needs no token and selects every check", () =
 
 test("7.4 classify, gate and the PR jobs use no secrets", () => {
   const jobs = jobBlocks();
-  for (const j of ["classify", "static", "frontend", "backend", "scan", "gate"]) {
+  for (const j of ["classify", "static", "frontend", "backend", "mcp", "scan", "gate"]) {
     assert.ok(jobs[j], `job ${j} not found in ci.yml`);
     assert.doesNotMatch(jobs[j], /secrets\./, `${j} must run without secrets (fork and Dependabot PRs)`);
   }
@@ -309,7 +313,7 @@ test("outputs are strings the workflow can compare", () => {
   assert.equal(o.web, "true");
   assert.equal(o.backend, "false");
   assert.deepEqual(JSON.parse(o.scan_matrix), [{ image: "web", context: "web" }]);
-  assert.deepEqual(JSON.parse(o.jobs), { static: true, frontend: true, backend: false, scan: true, images: false, release: false, promote: false, deploy: false });
+  assert.deepEqual(JSON.parse(o.jobs), { static: true, frontend: true, backend: false, mcp: false, scan: true, images: false, release: false, promote: false, deploy: false });
   assert.equal(o.mode, "pr");
   assert.equal(o.sha, PR.SHA);
   assert.equal(outputs(pr(["M", "docs/a.md"])).scan_matrix, "[]");

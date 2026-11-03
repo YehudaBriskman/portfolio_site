@@ -9,6 +9,7 @@ of an Express API, each in its own container, composed together.
 ```
 web/   React + Vite + TypeScript SPA, served by nginx
 backend/                 Express + TypeScript API
+mcp/                     MCP server over the API, for Claude Code (see mcp/README.md)
 Makefile                 local: `make up`, and the rest of the day's commands
 docker-compose.yml       local: builds both images from source
 docker-compose.dev.yml   local: the content store, the mail sink, the API's env
@@ -34,7 +35,7 @@ routes rather than rebuilding it per page.
 |---|---|
 | `/api/blog` | published content, read-only |
 | `/api/seo` | per-URL rendered heads, `sitemap.xml`, `feed.xml`, OG images |
-| `/api/admin` | authoring; requires the admin gate |
+| `/api/admin` | authoring; requires the admin gate, or a scoped API token (`mcp/README.md`) |
 | `/api/email` | the contact form, rate-limited in two tiers |
 | `/api/images` | project and post imagery |
 
