@@ -542,6 +542,15 @@ word table, the pattern `SETTINGS_ISSUES` already uses in `site-settings.ts`.
 The glossary (category rules + the term table) is exposed as an MCP resource
 (`glossary://he`) so a client drafting Hebrew can read it.
 
+> **As built (#307):** `put_translation` writes through a new
+> `PUT /api/admin/translations/draft` `{ type, id, rev?, units: [{ path, he }], dryRun }`
+> (dry run by default), which finds each unit server-side, stamps it like an
+> admin save and returns the glossary lint as `warnings`. Areas have no draft,
+> so it refuses them. `save_post_draft`/`save_area` did not gain `he`:
+> `put_translation` is the one way an MCP client writes Hebrew. The backend
+> carries a checked copy of the glossary (`backend/src/i18n/`) for the lint
+> and for `GET /api/admin/translations/glossary`, which backs the resource.
+
 ## 9. Operations
 
 ### 9.1 Tests and gates

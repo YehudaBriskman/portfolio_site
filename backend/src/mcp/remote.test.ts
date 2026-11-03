@@ -276,7 +276,7 @@ const toolNames = async (app: ReturnType<typeof createApp>, path: string, token?
 };
 
 const PUBLIC = ["get_area", "get_post", "list_activity", "list_areas", "list_posts", "list_tags"];
-const ADMIN_READ = ["admin_get_post", "admin_list_posts", "list_media", "read_audit_log"];
+const ADMIN_READ = ["admin_get_post", "admin_list_posts", "get_translation", "list_media", "list_translations", "read_audit_log"];
 
 /* ---------------------------------------------------------------- tests -- */
 

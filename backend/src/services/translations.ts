@@ -1,5 +1,6 @@
 import { couch, CouchError } from "../db/couch.js";
-import type { Collection, Post } from "../schemas/content.js";
+import { lintHebrew, type LintIssue } from "../i18n/glossary.js";
+import { PostContentSchema, PostSchema, type Collection, type Post } from "../schemas/content.js";
 import {
   COLLECTION_FIELDS,
   POST_FIELDS,
@@ -13,14 +14,16 @@ import {
   coverage,
   itemStatus,
   postTranslation,
+  stampHebrewMeta,
+  stampTexts,
   textUnits,
   type TranslationCounts,
   type TranslationItem,
   type TranslationStatus,
   type TranslationType,
 } from "../schemas/i18n.js";
-import { CONTENT_KEYS, type ContentKey } from "../schemas/site-content.js";
-import { getContentDoc, seedFor } from "./site-content.js";
+import { CONTENT_KEYS, CONTENT_SCHEMAS, type ContentDoc, type ContentKey } from "../schemas/site-content.js";
+import { contentId, getContentDoc, seedFor } from "./site-content.js";
 
 /*
  * Everything the owner has written, as translation items (#301).
@@ -284,6 +287,132 @@ export async function ackTranslation(input: AckInput): Promise<AckResult> {
   const rev = await save(next);
   if (rev === null) return conflictAck;
   return { ok: true, rev, target: next._id, before, after: next };
+}
+
+/* ------------------------------------------------- Hebrew into the draft */
+
+/*
+ * Writes Hebrew for one or more units of one item into its DRAFT (#307, the
+ * MCP's put_translation). Nothing goes live: a published note gets a draft (or
+ * its draft is updated), a content document's draft is written, and the owner
+ * publishes from the admin as for any other edit. A note that is not published
+ * has no live version, so its Hebrew is written where its draft lives, on the
+ * note itself. Areas have no draft, so they are refused.
+ *
+ * The fingerprints are stamped exactly as a save from the admin stamps them,
+ * and every Hebrew string is linted against the glossary; the warnings come
+ * back with the result and never block the write.
+ */
+
+export type DraftUnit = { path: string; he: string };
+export type DraftInput = { type: TranslationType; id: string; rev?: string; units: DraftUnit[]; dryRun: boolean };
+export type DraftChange = { path: string; en: string; before: string | null; after: string | null };
+export type DraftWarning = LintIssue & { path: string };
+export type DraftResult =
+  | {
+      ok: true;
+      dryRun: boolean;
+      target: string;
+      changes: DraftChange[];
+      warnings: DraftWarning[];
+      rev?: string;
+      audit?: { target: string; before: unknown; after: unknown };
+    }
+  | { ok: false; status: 400 | 404 | 409; error: string };
+
+const noDraft = { ok: false as const, status: 400 as const, error: "Areas have no draft. Edit an area's Hebrew in the admin." };
+const tooLong = (path: string) => ({ ok: false as const, status: 400 as const, error: `The Hebrew for ${path} is too long.` });
+
+const clean = (v: string) => v.trim();
+const orNull = (v: unknown) => (typeof v === "string" && v.trim() ? v : null);
+
+function lintUnits(units: DraftUnit[]): DraftWarning[] {
+  return units.flatMap((u) => lintHebrew(u.he).map((w) => ({ ...w, path: u.path })));
+}
+
+/** A note's content as the draft editor holds it: its draft, or what is live. */
+function postContentOf(doc: Post) {
+  return PostContentSchema.parse(doc.draft ?? doc);
+}
+
+async function postDraft(input: DraftInput): Promise<DraftResult> {
+  const id = `post:${input.id}`;
+  const doc = await tryGet<Post>(id);
+  if (!doc) return notFound;
+  if (input.rev !== undefined && doc._rev !== input.rev) return conflictAck;
+  for (const u of input.units) if (!POST_HE.has(u.path)) return notFound;
+
+  const published = doc.status === "published";
+  const content = published ? postContentOf(doc) : PostContentSchema.parse(doc);
+  const he: Record<string, string | null> = { title: "", subtitle: "", excerpt: "", body: "", ...(content.he ?? {}) };
+  const changes: DraftChange[] = [];
+  for (const u of input.units) {
+    const after = clean(u.he);
+    const before = orNull(he[u.path]);
+    if ((before ?? "") !== after) changes.push({ path: u.path, en: String((content as Record<string, unknown>)[u.path] ?? ""), before, after: after || null });
+    he[u.path] = after;
+  }
+  const warnings = lintUnits(input.units);
+  if (input.dryRun || changes.length === 0) return { ok: true, dryRun: input.dryRun, target: id, changes, warnings };
+
+  const nextHe = PostContentSchema.shape.he.safeParse(he);
+  if (!nextHe.success) return tooLong(String(nextHe.error.issues[0]?.path.join(".") ?? ""));
+  const prevs = [
+    { he: doc.draft?.he, meta: doc.draft?.heMeta },
+    { he: doc.he, meta: doc.heMeta },
+  ];
+  const now = new Date().toISOString();
+  const before = structuredClone(doc);
+  let next: Post;
+  if (published) {
+    const draft = { ...content, he: nextHe.data };
+    next = { ...doc, draft: { ...draft, heMeta: stampHebrewMeta(draft.he, draft, prevs, POST_FIELDS.map((f) => f.field)) }, draftSavedAt: now } as Post;
+  } else {
+    next = { ...doc, he: nextHe.data, heMeta: stampHebrewMeta(nextHe.data, doc, prevs, POST_FIELDS.map((f) => f.field)), updatedAt: now, draftSavedAt: now } as Post;
+  }
+  const valid = PostSchema.safeParse(next);
+  if (!valid.success) return { ok: false, status: 400, error: "The note would not be valid with this Hebrew." };
+  const rev = await save({ ...next, _id: id });
+  if (rev === null) return conflictAck;
+  return { ok: true, dryRun: false, target: id, changes, warnings, rev, audit: { target: id, before, after: next } };
+}
+
+async function contentDraft(key: ContentKey, input: DraftInput): Promise<DraftResult> {
+  const existing = await getContentDoc(key);
+  if (input.rev !== undefined && (existing?._rev ?? null) !== (input.rev || null)) return conflictAck;
+  const published = existing ? existing.published : seedFor(key);
+  const base = structuredClone(existing?.draft ?? published) as unknown;
+  const changes: DraftChange[] = [];
+  for (const u of input.units) {
+    const t = locate(key, base, input.id, u.path);
+    if (!isText(t)) return notFound;
+    const after = clean(u.he);
+    const before = orNull(t.he);
+    if ((before ?? "") !== after) changes.push({ path: u.path, en: t.en, before, after: after || null });
+    if (after) t.he = after;
+    else delete t.he;
+  }
+  const target = contentId(key);
+  const warnings = lintUnits(input.units);
+  if (input.dryRun || changes.length === 0) return { ok: true, dryRun: input.dryRun, target, changes, warnings };
+
+  const parsed = CONTENT_SCHEMAS[key].safeParse(base);
+  if (!parsed.success) return tooLong(parsed.error.issues[0]?.path.join(".") ?? "");
+  const data = stampTexts(parsed.data as unknown, [existing?.draft, published]);
+  const now = new Date().toISOString();
+  const next: ContentDoc = existing
+    ? { ...existing, draft: data, updatedAt: now }
+    : { _id: target, type: "content", key, published, draft: data, createdAt: now, updatedAt: now, publishedAt: now, source: "seed" } as ContentDoc;
+  const rev = await save(next);
+  if (rev === null) return conflictAck;
+  return { ok: true, dryRun: false, target, changes, warnings, rev, audit: { target, before: existing, after: next } };
+}
+
+export async function putTranslationDraft(input: DraftInput): Promise<DraftResult> {
+  if (input.type === "area") return noDraft;
+  if (input.type === "post") return postDraft(input);
+  const key = CONTENT_KEY_OF[input.type];
+  return key ? contentDraft(key, input) : notFound;
 }
 
 /* -------------------------------------------------------------- the report */
