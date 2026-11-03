@@ -2832,14 +2832,12 @@
     padding-bottom: .5rem; border-bottom: 1px solid rgb(var(--rule-firm) / .5);
     font-size: 1.25rem; font-weight: 700; line-height: 1.3; color: rgb(var(--ink));
   }
-  /* An editor's actions on a desktop: sticky at the foot of the form, the
-     same bar a phone pins to the bottom of the screen. */
-  .a-action-bar {
-    position: sticky; bottom: 0; z-index: 5;
-    align-items: center; gap: .75rem;
-    margin-top: 2rem; padding: .75rem 1rem;
-    border: 1px solid rgb(var(--rule-firm) / .5); border-radius: 6px;
-    background: rgb(var(--paper-2));
+  /* An editor's bar at every width (#288): fixed to the screen's bottom,
+     beside the nav on a desktop rather than under it. `.a-main` is padded by
+     its measured height, so it never covers the last of the content. */
+  @media (min-width: 1024px) {
+    .a-bottom-all { inset-inline-start: 15rem; }
+    .a-bottom-all > * { max-width: 76rem; margin-inline: auto; padding-inline: 2rem; }
   }
 
   /* ---- boxes, rows and tables: GitHub's Box */

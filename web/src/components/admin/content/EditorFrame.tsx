@@ -53,6 +53,7 @@ export default function EditorFrame<T>({ title, section, intro, preview, editor,
     <AdminShell
       title={title}
       section={section}
+      barEverywhere
       bottomBar={
         <div className="flex items-center justify-between gap-2 px-3 py-2">
           <StatusPill state={state} />
@@ -113,11 +114,6 @@ export default function EditorFrame<T>({ title, section, intro, preview, editor,
         <IssuesContext.Provider value={issueMap}>
           <form noValidate onSubmit={(e) => e.preventDefault()}>
             {children(value)}
-            {/* The same bar the phone pins to the screen's bottom (#288). */}
-            <div className="a-action-bar hidden lg:flex">
-              <StatusPill state={state} />
-              <span className="ms-auto flex gap-2">{actions}</span>
-            </div>
           </form>
         </IssuesContext.Provider>
       )}

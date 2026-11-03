@@ -320,7 +320,7 @@ export const PROSE = [
   "prose-h2:mt-14 prose-h2:mb-4 prose-h2:text-[1.6rem] prose-h2:leading-[1.1] prose-h2:text-bone sm:prose-h2:text-[2rem]",
   "prose-h3:mt-10 prose-h3:mb-3 prose-h3:text-[1.3rem] prose-h3:leading-[1.2] prose-h3:text-bone sm:prose-h3:text-[1.5rem]",
   "prose-h4:mt-8 prose-h4:mb-2 prose-h4:text-[1.1875rem] prose-h4:leading-[1.3] prose-h4:text-bone sm:prose-h4:text-[1.3125rem]",
-  "prose-h5:mt-8 prose-h5:mb-2 prose-h5:font-sans italic prose-h5:italic prose-h5:font-normal",
+  "prose-h5:mt-8 prose-h5:mb-2 prose-h5:font-sans prose-h5:italic prose-h5:font-normal",
   "prose-h5:text-[1.1875rem] prose-h5:leading-[1.35] prose-h5:tracking-[0] prose-h5:text-bone sm:prose-h5:text-[1.375rem]",
   "prose-h6:mt-8 prose-h6:mb-2 prose-h6:text-[1.0625rem] prose-h6:leading-[1.4] prose-h6:uppercase prose-h6:tracking-[0.1em] prose-h6:text-clay sm:prose-h6:text-[1.1875rem]",
   "prose-li:marker:text-clay",

@@ -455,7 +455,7 @@ export default function AdminEditor() {
   const setBody = (v: string) => edit(bodyLang === "he" ? "heBody" : "body", v);
 
   return (
-    <AdminShell title={heading} section="posts" backTo="/admin/posts" bottomBar={<div className="px-4 py-2">{actions}</div>}>
+    <AdminShell title={heading} section="posts" backTo="/admin/posts" barEverywhere bottomBar={<div className="px-4 py-2">{actions}</div>}>
       {loading ? (
         <p className="mono mt-4 text-xs text-clay">{w.loading}</p>
       ) : (
@@ -717,7 +717,6 @@ export default function AdminEditor() {
             </div>
           </details>
 
-          <div className={`${styles.actionBar} hidden lg:block`}>{actions}</div>
         </form>
       )}
 

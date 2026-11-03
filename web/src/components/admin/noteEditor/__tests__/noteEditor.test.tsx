@@ -112,7 +112,13 @@ vi.mock("@/services/admin", async (orig) => ({
   admin: api,
 }));
 vi.mock("@/components/admin/AdminShell", () => ({
-  default: ({ children }: { children: React.ReactNode }) => <main>{children}</main>,
+  /* The editor's actions live only in the shell's bottom bar (#288). */
+  default: ({ children, bottomBar }: { children: React.ReactNode; bottomBar?: React.ReactNode }) => (
+    <>
+      <main>{children}</main>
+      {bottomBar}
+    </>
+  ),
 }));
 
 async function open() {
