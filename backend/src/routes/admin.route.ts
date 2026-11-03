@@ -28,6 +28,7 @@ import {
   type StoredToken,
 } from "../services/apiTokenFormat.js";
 import adminContentRoutes from "./admin-content.route.js";
+import adminSettingsRoutes from "./admin-settings.route.js";
 
 const router = Router();
 
@@ -91,6 +92,9 @@ router.get("/me", (req, res) => res.json({ ok: true, ...req.admin }));
 
 /* The site's own content (#163): projects, the story, the site copy. */
 router.use("/content", adminContentRoutes);
+
+/* The site's settings (#254): section order and visibility, the visual defaults. */
+router.use("/settings", adminSettingsRoutes);
 
 /* The media library (#253): its own file, behind this router's gate and audit. */
 router.use("/media", mediaRoutes);

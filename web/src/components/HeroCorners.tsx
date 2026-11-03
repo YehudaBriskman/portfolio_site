@@ -1,5 +1,7 @@
 import type { CSSProperties } from "react";
 import { useContent } from "@/content/store";
+import { sectionVisible } from "@/settings/schema";
+import { useSiteSettings } from "@/settings/store";
 import { scrollToAnchor } from "@/lib/scrollToAnchor";
 import styles from "@/components/HeroCorners.module.css";
 
@@ -105,6 +107,10 @@ import styles from "@/components/HeroCorners.module.css";
  */
 function Ask() {
   const { contact } = useContent().site;
+  /* The ask points at the contact plate; with the plate hidden (#254) it
+     would point at nothing, so it goes with it. */
+  const contactShown = sectionVisible(useSiteSettings(), "contact");
+  if (!contactShown) return null;
   return (
     <div className={styles.ask}>
       <a

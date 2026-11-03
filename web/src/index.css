@@ -1015,6 +1015,24 @@
   }
 
   /*
+   * The accent presets (#254), chosen by the owner in /admin/settings and
+   * written as `data-accent` on <html> (theme-boot.js, before first paint).
+   * Only `--signal` and the type on it move. The values are the table in
+   * `src/settings/accents.ts`, measured there at 4.5:1 or better on every
+   * ground in both themes; a test holds these rules to that table.
+   *
+   * After the dark block, and each dark rule one attribute more specific
+   * than its light one, so a light preset never leaks into the dark theme.
+   * `ink` is index.css's own signal above and has no rule.
+   */
+  :root[data-accent='pine'] { --signal: 30 90 70; --signal-ink: 255 255 255; }
+  :root[data-theme='dark'][data-accent='pine'] { --signal: 109 198 162; --signal-ink: 20 19 15; }
+  :root[data-accent='plum'] { --signal: 90 45 112; --signal-ink: 255 255 255; }
+  :root[data-theme='dark'][data-accent='plum'] { --signal: 201 162 234; --signal-ink: 20 19 15; }
+  :root[data-accent='rust'] { --signal: 138 58 18; --signal-ink: 255 255 255; }
+  :root[data-theme='dark'][data-accent='rust'] { --signal: 240 163 116; --signal-ink: 20 19 15; }
+
+  /*
    * ────────────────────────────────────────────────────────────────────
    * The same three roles, in Hebrew.
    * ────────────────────────────────────────────────────────────────────

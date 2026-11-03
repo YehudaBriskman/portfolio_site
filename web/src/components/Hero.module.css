@@ -70,21 +70,24 @@
   view-timeline: --hero block;
 }
 
+/* `.held` only when a dark act comes next (#254: the owner can reorder the
+   page). A paper section has no opaque ground of its own to slide over the
+   hero with, so after one the hero scrolls away as it did before the hold. */
 @media (min-height: 34rem) {
-  .holder {
+  .held {
     margin-block-end: -100svh;
   }
 
   /* The screen's worth of room to stay pinned in. Content, not padding: a
      sticky box is held inside its container's content box, so a padding
      here would give it nowhere to go. */
-  .holder::after {
+  .held::after {
     content: "";
     display: block;
     height: 100svh;
   }
 
-  .holder > .hero {
+  .held > .hero {
     position: sticky;
     top: 0;
   }

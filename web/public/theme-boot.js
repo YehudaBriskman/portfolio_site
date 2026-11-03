@@ -40,6 +40,13 @@
     choice = dark ? "dark" : "light";
   }
   root.setAttribute("data-theme", choice);
+  /* The owner's accent preset (#254), from the meta the API's render
+     writes. Only a known preset is applied; `ink` is the stylesheet's own
+     and needs no attribute. The list is src/settings/accents.ts's, and a
+     test holds the two equal. */
+  var accentMeta = document.querySelector('meta[name="site-accent"]');
+  var accent = accentMeta ? accentMeta.getAttribute("content") : null;
+  if (accent === "pine" || accent === "plum" || accent === "rust") root.setAttribute("data-accent", accent);
   var color = document.querySelector('meta[name="theme-color"]');
   if (color) color.setAttribute("content", choice === "dark" ? "#1C1A16" : "#ECE8DC");
 })();

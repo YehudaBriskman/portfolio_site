@@ -20,7 +20,7 @@ import { markAdminSeen } from "@/components/notes/reader/adminSession";
  * stays on the public site.
  */
 
-export type AdminSection = "posts" | "areas" | "projects" | "story" | "site-copy" | "media" | "connections";
+export type AdminSection = "posts" | "areas" | "projects" | "story" | "site-copy" | "media" | "settings" | "connections";
 type Section = AdminSection;
 
 const SECTIONS: Array<{ id: Section; to: string; label: string }> = [
@@ -32,6 +32,8 @@ const SECTIONS: Array<{ id: Section; to: string; label: string }> = [
   { id: "site-copy", to: "/admin/site-copy", label: "Site copy" },
   /* The media library (#253). */
   { id: "media", to: "/admin/media", label: "Media" },
+  /* Section order, visibility and the visual defaults (#254). */
+  { id: "settings", to: "/admin/settings", label: "Settings" },
   { id: "connections", to: "/admin/connections", label: "Connected apps" },
 ];
 

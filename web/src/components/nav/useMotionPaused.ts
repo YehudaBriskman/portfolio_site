@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { siteMotionPaused, useSiteSettings } from "@/settings/store";
 import "./motion-paused.css";
 
 /**
@@ -93,17 +94,23 @@ export function useMotionPaused(): [boolean, () => void] {
    */
   const [paused, setPaused] = useState(false);
 
+  /* The owner's motion default (#254), for a reader who has not chosen. It
+     only ever pauses: a reader's own "0" (they pressed Play) wins, and the OS
+     setting and the missing-feature exit apply on top whatever it says. */
+  const settings = useSiteSettings();
   useEffect(() => {
     try {
       /* Reading an external store after mount, on purpose: see the comment on
          the initialiser above for why it cannot be read during render. */
+      const stored = localStorage.getItem(MOTION_PAUSED_KEY);
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      if (localStorage.getItem(MOTION_PAUSED_KEY) === "1") setPaused(true);
+      if (stored === "1" || (stored === null && siteMotionPaused())) setPaused(true);
     } catch {
       // Private browsing, or site data blocked. Motion simply stays on; not
       // being able to remember the choice is not a reason to refuse it.
+      if (siteMotionPaused()) setPaused(true);
     }
-  }, []);
+  }, [settings]);
 
   /* `document.body` is outside the React tree on purpose: the stylesheet
      hangs the paused state off it so every view-timeline animation on the

@@ -1,0 +1,382 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import AdminShell from "@/components/admin/AdminShell";
+import { issueText, useSettingsWords } from "@/components/admin/settings/words";
+import { INTL, useLang } from "@/components/dashboard/i18n";
+import { ContentConflictError, ContentInvalidError, type Issue } from "@/services/adminContent";
+import { adminSettings, type SettingsView } from "@/services/adminSettings";
+import { ACCENT_PRESETS, css } from "@/settings/accents";
+import {
+  ACCENTS,
+  MOTION_DEFAULTS,
+  SiteSettingsSchema,
+  THEME_DEFAULTS,
+  type SiteSettings,
+} from "@/settings/schema";
+import { setSettings } from "@/settings/store";
+
+/*
+ * /admin/settings (#254): the home page's order and visibility, and the
+ * visual defaults, with the history of every save and a way to put one back.
+ *
+ * Reordering is two buttons per row rather than drag and drop: they work
+ * from a keyboard and a screen reader with no extra machinery, and focus
+ * follows the moved row. The shared schema checks the working copy on every
+ * change, so the ledger rule (no two dark acts side by side) is shown beside
+ * the row before Save is pressed, and Save is refused until it is fixed; the
+ * server checks it again.
+ *
+ * Colour is chosen from presets, each shown as its swatch in both themes.
+ */
+
+type Status = "idle" | "saving" | "saved" | "conflict" | "failed" | "unauthorised";
+
+function differences(a: SiteSettings, b: SiteSettings): number {
+  let n = 0;
+  a.home.sections.forEach((s, i) => {
+    const o = b.home.sections[i];
+    if (!o || o.id !== s.id || o.visible !== s.visible) n += 1;
+  });
+  for (const k of ["theme", "motion", "accent"] as const) if (a.visuals[k] !== b.visuals[k]) n += 1;
+  return n;
+}
+
+export default function AdminSettings() {
+  const w = useSettingsWords();
+  const lang = useLang();
+  const [view, setView] = useState<SettingsView | null>(null);
+  const [draft, setDraft] = useState<SiteSettings | null>(null);
+  const [status, setStatus] = useState<Status>("idle");
+  const [loadError, setLoadError] = useState(false);
+  const [serverIssues, setServerIssues] = useState<Issue[]>([]);
+
+  const take = useCallback((v: SettingsView) => {
+    setView(v);
+    setDraft(structuredClone(v.settings));
+    setServerIssues([]);
+    /* The admin is a page of this site: what it shows itself in follows the save. */
+    setSettings(v.settings);
+  }, []);
+
+  const fetchView = useCallback(() => {
+    adminSettings
+      .get()
+      .then(take)
+      .catch((e: unknown) => {
+        if (e instanceof Error && e.message === "not-authorised") setStatus("unauthorised");
+        else setLoadError(true);
+      });
+  }, [take]);
+
+  useEffect(fetchView, [fetchView]);
+
+  const load = () => {
+    setLoadError(false);
+    setStatus("idle");
+    fetchView();
+  };
+
+  /* Move focus to the button that moved with its row, after the re-render. */
+  const focusAfter = useRef<string | null>(null);
+  useEffect(() => {
+    if (!focusAfter.current) return;
+    document.getElementById(focusAfter.current)?.focus();
+    focusAfter.current = null;
+  }, [draft]);
+
+  const localIssues = useMemo<Issue[]>(() => {
+    if (!draft) return [];
+    const parsed = SiteSettingsSchema.safeParse(draft);
+    return parsed.success ? [] : parsed.error.issues.map((i) => ({ path: i.path.map(String).join("."), message: i.message }));
+  }, [draft]);
+  const issues = localIssues.length > 0 ? localIssues : serverIssues;
+  const issueAt = (path: string) => issues.find((i) => i.path === path);
+  const general = issues.filter((i) => !/^home\.sections\.\d+/.test(i.path));
+  const dirty = Boolean(view && draft && JSON.stringify(view.settings) !== JSON.stringify(draft));
+
+  const edit = (fn: (d: SiteSettings) => void) => {
+    setDraft((d) => {
+      if (!d) return d;
+      const next = structuredClone(d);
+      fn(next);
+      return next;
+    });
+    setStatus("idle");
+    setServerIssues([]);
+  };
+
+  const move = (i: number, by: -1 | 1) => {
+    if (!draft) return;
+    const j = i + by;
+    if (j < 0 || j >= draft.home.sections.length) return;
+    const id = draft.home.sections[i].id;
+    edit((d) => {
+      const [row] = d.home.sections.splice(i, 1);
+      d.home.sections.splice(j, 0, row);
+    });
+    /* Keep focus on the same control unless it has run out of room. */
+    const edge = (by === -1 && j === 0) || (by === 1 && j === draft.home.sections.length - 1);
+    focusAfter.current = `settings-${id}-${edge ? (by === -1 ? "down" : "up") : by === -1 ? "up" : "down"}`;
+  };
+
+  const run = async (op: () => Promise<SettingsView>) => {
+    setStatus("saving");
+    try {
+      take(await op());
+      setStatus("saved");
+    } catch (e) {
+      if (e instanceof ContentConflictError) setStatus("conflict");
+      else if (e instanceof ContentInvalidError) {
+        setServerIssues(e.issues);
+        setStatus("failed");
+      } else setStatus("failed");
+    }
+  };
+
+  const save = () => {
+    if (!draft || !view || localIssues.length > 0) return;
+    void run(() => adminSettings.save(draft, view._rev));
+  };
+
+  const when = (iso: string) => {
+    const d = new Date(iso);
+    return Number.isNaN(d.getTime())
+      ? ""
+      : d.toLocaleString(INTL[lang], { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  };
+
+  const statusText =
+    status === "saving"
+      ? w.saving
+      : status === "saved"
+        ? w.saved
+        : status === "conflict"
+          ? w.conflict
+          : status === "failed" && issues.length === 0
+            ? w.loadFailed
+            : dirty
+              ? w.unsaved
+              : "";
+
+  const actions = (
+    <span className="flex gap-2">
+      <button type="button" className="a-btn a-btn-ghost" disabled={!dirty || status === "saving"} onClick={() => view && take(view)}>
+        {w.reset}
+      </button>
+      <button
+        type="button"
+        className="a-btn a-btn-primary"
+        disabled={!dirty || status === "saving" || localIssues.length > 0}
+        onClick={save}
+      >
+        {w.save}
+      </button>
+    </span>
+  );
+
+  const statusLine = (
+    <span
+      role="status"
+      className={`mono min-h-[1.25rem] text-[0.6875rem] uppercase tracking-[0.18em] ${status === "conflict" || status === "failed" ? "text-[rgb(var(--destructive-ink))]" : "text-clay"}`}
+    >
+      {statusText}
+    </span>
+  );
+
+  return (
+    <AdminShell
+      title={w.title}
+      section="settings"
+      bottomBar={
+        <div className="flex items-center justify-between gap-2 px-3 py-2">
+          {statusLine}
+          {actions}
+        </div>
+      }
+    >
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <h1 className="display-tight text-[1.75rem] lg:text-[2.25rem]">{w.title}</h1>
+        <div className="hidden items-center gap-3 lg:flex">
+          {statusLine}
+          {actions}
+        </div>
+      </div>
+      <p className="a-hint mt-3 max-w-prose">{w.intro}</p>
+
+      {status === "unauthorised" && <p className="a-card mt-8 p-4 text-sm">{w.notAuthorised}</p>}
+      {loadError && <p className="a-card mt-8 p-4 text-sm">{w.loadFailed}</p>}
+      {!loadError && status !== "unauthorised" && !draft && <p className="mono mt-8 text-xs text-clay">{w.loading}</p>}
+      {status === "conflict" && (
+        <p className="mt-4">
+          <button type="button" className="a-btn a-btn-ghost" onClick={load}>
+            {w.reload}
+          </button>
+        </p>
+      )}
+
+      {general.length > 0 && (
+        <ul className="a-card mt-4 space-y-1 p-4">
+          {general.map((i) => (
+            <li key={i.path + i.message} className="a-error mt-0">
+              {issueText(w, i.message)}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {draft && view && (
+        <form noValidate onSubmit={(e) => (e.preventDefault(), save())} className="max-w-3xl">
+          <section className="mt-10 space-y-4" aria-labelledby="settings-home">
+            <h2 id="settings-home" className="display-tight text-xl">
+              {w.homeHeading}
+            </h2>
+            <p className="a-hint">{w.homeHint}</p>
+            <ol className="space-y-2">
+              <li className="a-card flex items-center gap-3 p-3 text-sm text-clay">
+                <span className="mono w-6 text-end tabular-nums">0</span>
+                <span>{w.hero}</span>
+              </li>
+              {draft.home.sections.map((s, i) => {
+                const name = w.sections[s.id];
+                const issue = issueAt(`home.sections.${i}`) ?? issueAt(`home.sections.${i}.id`);
+                const errId = `settings-${s.id}-error`;
+                return (
+                  <li key={s.id} className="a-card p-3" aria-describedby={issue ? errId : undefined}>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <span className="mono w-6 text-end text-sm tabular-nums text-clay">{i + 1}</span>
+                      <span className={`min-w-0 flex-1 text-sm ${s.visible ? "" : "text-clay line-through"}`}>{name}</span>
+                      <label className="flex min-h-[44px] items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          id={`settings-${s.id}-visible`}
+                          checked={s.visible}
+                          aria-label={w.show(name)}
+                          onChange={(e) => edit((d) => void (d.home.sections[i].visible = e.target.checked))}
+                        />
+                        <span aria-hidden="true">{s.visible ? w.shown : w.hidden}</span>
+                      </label>
+                      <span className="flex gap-1">
+                        <button
+                          type="button"
+                          id={`settings-${s.id}-up`}
+                          className="a-btn a-btn-ghost a-icon-btn"
+                          aria-label={w.moveUp(name)}
+                          disabled={i === 0}
+                          onClick={() => move(i, -1)}
+                        >
+                          <span aria-hidden="true">↑</span>
+                        </button>
+                        <button
+                          type="button"
+                          id={`settings-${s.id}-down`}
+                          className="a-btn a-btn-ghost a-icon-btn"
+                          aria-label={w.moveDown(name)}
+                          disabled={i === draft.home.sections.length - 1}
+                          onClick={() => move(i, 1)}
+                        >
+                          <span aria-hidden="true">↓</span>
+                        </button>
+                      </span>
+                    </div>
+                    {issue && (
+                      <p id={errId} className="a-error">
+                        {issueText(w, issue.message)}
+                      </p>
+                    )}
+                  </li>
+                );
+              })}
+            </ol>
+          </section>
+
+          <section className="mt-10 space-y-6" aria-labelledby="settings-visuals">
+            <h2 id="settings-visuals" className="display-tight text-xl">
+              {w.visualsHeading}
+            </h2>
+
+            <fieldset>
+              <legend className="a-label">{w.themeLegend}</legend>
+              <p className="a-hint">{w.themeHint}</p>
+              <div className="mt-2 flex flex-wrap gap-4">
+                {THEME_DEFAULTS.map((t) => (
+                  <label key={t} className="flex min-h-[44px] items-center gap-2 text-sm">
+                    <input type="radio" name="settings-theme" value={t} checked={draft.visuals.theme === t} onChange={() => edit((d) => void (d.visuals.theme = t))} />
+                    {w.themes[t]}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+
+            <fieldset>
+              <legend className="a-label">{w.motionLegend}</legend>
+              <p className="a-hint">{w.motionHint}</p>
+              <div className="mt-2 flex flex-wrap gap-4">
+                {MOTION_DEFAULTS.map((m) => (
+                  <label key={m} className="flex min-h-[44px] items-center gap-2 text-sm">
+                    <input type="radio" name="settings-motion" value={m} checked={draft.visuals.motion === m} onChange={() => edit((d) => void (d.visuals.motion = m))} />
+                    {w.motions[m]}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+
+            <fieldset>
+              <legend className="a-label">{w.accentLegend}</legend>
+              <p className="a-hint">{w.accentHint}</p>
+              <div className="mt-2 grid gap-3 sm:grid-cols-2">
+                {ACCENTS.map((a) => {
+                  const p = ACCENT_PRESETS[a];
+                  return (
+                    <label key={a} className="a-card flex min-h-[44px] items-center gap-3 p-3 text-sm">
+                      <input type="radio" name="settings-accent" value={a} checked={draft.visuals.accent === a} onChange={() => edit((d) => void (d.visuals.accent = a))} />
+                      <span aria-hidden="true" className="flex overflow-hidden rounded-full border border-[rgb(var(--rule-firm))]">
+                        <span className="block h-6 w-6" style={{ background: css(p.light.signal) }} />
+                        <span className="block h-6 w-6" style={{ background: css(p.dark.signal) }} />
+                      </span>
+                      {w.accents[a]}
+                    </label>
+                  );
+                })}
+              </div>
+            </fieldset>
+          </section>
+
+          <section className="mt-10 space-y-3" aria-labelledby="settings-history">
+            <h2 id="settings-history" className="display-tight text-xl">
+              {w.historyHeading}
+            </h2>
+            {!view.exists ? (
+              <p className="a-hint">{w.historyEmpty}</p>
+            ) : (
+              <ol className="space-y-2">
+                <li className="a-card flex flex-wrap items-center gap-3 p-3 text-sm">
+                  <span className="min-w-0 flex-1">
+                    {w.version(view.version)} · {w.current}
+                  </span>
+                  {view.updatedAt && <time dateTime={view.updatedAt} className="tabular-nums text-clay">{when(view.updatedAt)}</time>}
+                </li>
+                {view.history.map((h) => (
+                  <li key={h.version} className="a-card flex flex-wrap items-center gap-3 p-3 text-sm">
+                    <span className="min-w-0 flex-1">
+                      {h.version === 0 ? w.builtIn : w.version(h.version)}
+                      <span className="text-clay"> · {w.differences(differences(h.settings, view.settings))}</span>
+                    </span>
+                    {h.version !== 0 && <time dateTime={h.at} className="tabular-nums text-clay">{when(h.at)}</time>}
+                    <button
+                      type="button"
+                      className="a-btn a-btn-ghost"
+                      aria-label={w.restoreLabel(h.version === 0 ? w.builtIn : w.version(h.version))}
+                      disabled={status === "saving"}
+                      onClick={() => void run(() => adminSettings.revert(h.version, view._rev))}
+                    >
+                      {w.restore}
+                    </button>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </section>
+        </form>
+      )}
+    </AdminShell>
+  );
+}

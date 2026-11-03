@@ -22,6 +22,8 @@ import { SEO_WORDS } from "../services/seo-words.js";
 import { rawImageUrlOrNull, type Collection, type Post } from "../schemas/content.js";
 import type { ContentBundle } from "../schemas/site-content.js";
 import { publishedBundleOrSeed } from "../services/site-content.js";
+import { sectionVisible, type SiteSettings } from "../schemas/site-settings.js";
+import { settingsOrDefault } from "../services/site-settings.js";
 
 const router = Router();
 
@@ -189,7 +191,7 @@ const href = (path: string, lang: Lang) => escapeHtml(pathIn(path, lang));
  *
  * The employer is never named: the copy says what the work is, never whose.
  */
-function homeHtml(c: ContentBundle, lang: Lang): string {
+function homeHtml(c: ContentBundle, lang: Lang, settings: SiteSettings): string {
   const w = SEO_WORDS[lang];
   const s = c.siteCopy;
   const para = (lines: Text[]) => `<p>${lines.map((l) => tx(l, lang)).join(" ")}</p>`;
@@ -199,13 +201,28 @@ function homeHtml(c: ContentBundle, lang: Lang): string {
   const profiles = s.profiles
     .map((p) => `<li><a href="${escapeHtml(p.url)}">${en(p.label, lang)}</a></li>`)
     .join("");
-  return `<main><h1>${en(s.hero.name, lang)}, ${escapeHtml(w.role)}</h1>${s.about.intro
-    .map((x) => para(x.lines))
-    .join("")}<h2>${tx(s.about.heading, lang)}</h2>${s.about.principles
-    .map((p) => `<h3>${tx(p.claim, lang)}</h3>${para(p.lines)}`)
-    .join("")}<h2>${escapeHtml(w.elsewhere)}</h2><ul><li><a href="${href("/projects", lang)}">${escapeHtml(w.homeProjects)}</a></li><li><a href="${href("/blog", lang)}">${escapeHtml(w.homeNotes)}</a></li>${work}${profiles}</ul><p>${escapeHtml(
-    w.basedIn(plain(s.contact.location, lang)),
-  )} ${tx(s.contact.availability, lang)}.</p></main>`;
+  /*
+   * The sections that carry crawler copy, in the owner's order, and only the
+   * ones shown (#254): a section hidden on the page is not served to a
+   * crawler either. The home page's other sections are the work, figures and
+   * notes the app draws from other documents; "Elsewhere" links the first
+   * and the last of those, and drops a link whose section is hidden.
+   */
+  const blocks: Partial<Record<SiteSettings["home"]["sections"][number]["id"], string>> = {
+    approach: `${s.about.intro.map((x) => para(x.lines)).join("")}<h2>${tx(s.about.heading, lang)}</h2>${s.about.principles
+      .map((p) => `<h3>${tx(p.claim, lang)}</h3>${para(p.lines)}`)
+      .join("")}`,
+    contact: `<p>${escapeHtml(w.basedIn(plain(s.contact.location, lang)))} ${tx(s.contact.availability, lang)}.</p>`,
+  };
+  const ordered = settings.home.sections
+    .filter((x) => x.visible && blocks[x.id] !== undefined)
+    .map((x) => blocks[x.id])
+    .join("");
+  const elsewhere = [
+    sectionVisible(settings, "work") ? `<li><a href="${href("/projects", lang)}">${escapeHtml(w.homeProjects)}</a></li>` : "",
+    sectionVisible(settings, "notes") ? `<li><a href="${href("/blog", lang)}">${escapeHtml(w.homeNotes)}</a></li>` : "",
+  ].join("");
+  return `<main><h1>${en(s.hero.name, lang)}, ${escapeHtml(w.role)}</h1>${ordered}<h2>${escapeHtml(w.elsewhere)}</h2><ul>${elsewhere}${work}${profiles}</ul></main>`;
 }
 
 /*
@@ -234,7 +251,10 @@ function personLd(lang: Lang) {
 }
 
 async function sendShell(res: Response, meta: PageMeta, status = 200): Promise<void> {
-  const shell = await fetchShell();
+  const [shell, settings] = await Promise.all([fetchShell(), meta.visuals ? null : settingsOrDefault()]);
+  /* Every render carries the visual settings (#254), so a reader's first
+     frame is in the owner's theme default and accent on any public route. */
+  if (settings) meta = { ...meta, visuals: settings.visuals };
   res
     .status(status)
     .type("html")
@@ -275,16 +295,17 @@ function notFound(res: Response, path: string, lang: Lang): Promise<void> {
 
 page("/home", async (_req, res, lang) => {
   const w = SEO_WORDS[lang];
-  const content = await publishedBundleOrSeed();
+  const [content, settings] = await Promise.all([publishedBundleOrSeed(), settingsOrDefault()]);
   await sendShell(res, {
     ...at("/", lang),
+    visuals: settings.visuals,
     title: w.siteTitle,
     description: w.siteDescription,
     socialDescription: w.siteSocial,
     image: absoluteUrl("/og.png"),
     imageAlt: `Yehuda Briskman, ${w.role}`,
     type: "website",
-    bodyHtml: homeHtml(content, lang),
+    bodyHtml: homeHtml(content, lang, settings),
     jsonLd: {
       "@context": "https://schema.org",
       "@graph": [

@@ -39,6 +39,13 @@
          Written at build time from `src/lib/themeDefault.ts`, the one place
          it is set; the site settings (#254) override this attribute. -->
     <meta name="site-theme-default" content="%SITE_THEME_DEFAULT%" />
+    <!-- The other two visual settings (#254), with the built values: motion
+         for a reader who has not chosen ("on" or "paused"; never more than
+         the reader's own switches allow) and the accent preset. The API's
+         renders rewrite all three per request from the settings document;
+         theme-boot.js applies the accent before first paint. -->
+    <meta name="site-motion-default" content="on" />
+    <meta name="site-accent" content="ink" />
     <!-- Classic, blocking and same-origin, so it runs before <body> is
          painted and `script-src 'self'` admits it with no hash. Not a
          module: a module is deferred and could run after the first frame.

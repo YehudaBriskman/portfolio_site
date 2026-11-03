@@ -8,6 +8,9 @@ import Stack from "@/components/Stack";
 import LatestNotes from "@/components/LatestNotes";
 import Contact from "@/components/Contact";
 import SiteFooter from "@/components/SiteFooter";
+import { Fragment, type ReactNode } from "react";
+import { DARK_SECTIONS, shownSections, type HomeSection } from "@/settings/schema";
+import { useSiteSettings } from "@/settings/store";
 
 /*
  * The home page, and nothing between it and its sections.
@@ -49,12 +52,126 @@ import SiteFooter from "@/components/SiteFooter";
  * in any hook selects it any more, so on this page it was an attribute with
  * no reader.
  */
+/*
+ * BUILT_ORDER_NOTES: why the default order is the order it is.
+ *
+ * The two dark acts, and the rule for them is in index.css next to the
+ * ground scale: the ground changes where the SUBJECT changes, not every
+ * other section. Work and the year are the only two sections on this
+ * page whose subject is the work itself — the objects, and the labour
+ * that made them — so they are the two that leave the paper. The four
+ * sections between and after them are the page talking about the work,
+ * and they talk on the page's own ground. `DarkAct` carries the whole
+ * argument and the ceiling of two.
+ *
+ *
+ * The wall text, and it is now doing two jobs with one screen.
+ *
+ * It was already the separation between the pile and the year, because
+ * both of those acts carry real depth and neither should read as the
+ * other's warm-up — the long version is in the comment below. With both
+ * of them now on the dark ground it is also the only thing keeping the
+ * two from reading as one dark act with a seam in it. Quietest screen
+ * on the page, and load-bearing twice.
+ *
+ *
+ * The year, and the two beats it had to sit between.
+ *
+ * It is the page's one `scrub` — a thing the reader operates by
+ * scrolling rather than a thing that happens to them once — so it has
+ * no adjacent family to collide with here: `flow` above it, `pan`
+ * below. Both of the other candidate slots are closed, and for
+ * reasons rather than by preference.
+ *
+ * Not next to the pile. The pile is the page's only engineered peak
+ * and the only other act on it with real depth in it; a 3D grid
+ * immediately before or after would make the peak read as this
+ * section's warm-up. The wall text between them is the separation, and
+ * it is the quietest screen on the page precisely so that the two
+ * acts either side of it do not meet.
+ *
+ * Not between the shelf and the spec plate. The comment below argues
+ * that pair must stay adjacent because the order is the device
+ * sequence; dropping a third beat between them would put a static
+ * screen between the two sections that answer each other.
+ *
+ * The principles above it are untouched. The issue this came from said
+ * the city replaced them, which stopped being true when each of the
+ * three got its own typographic arrival — so the city is a section of
+ * its own and where the principles finally live is the owner's call,
+ * raised in the pull request rather than decided here.
+ *
+ *
+ * The shelf, and then the plate — in that order, because the order is
+ * the device sequence and not a preference.
+ *
+ * The beat before this pins and holds the reader still for a screen and
+ * a half; lateral travel is the strongest contrast available after
+ * that, so the shelf takes the slot immediately after it and the plate
+ * follows with a third kind of motion. Swapped, the page would read
+ * pile, figures, shelf, which puts a static beat between the two that
+ * are supposed to answer each other.
+ *
+ * No `layer-section` around the shelf: it is full-bleed, and it rides
+ * the space the section above has already opened rather than growing
+ * another runway between two sections that read as one thought.
+ *
+ *
+ * A bare `.ground`, with no `layer-section` on it — the comment above
+ * is the reason, and it still holds: the shelf is full-bleed and rides
+ * the space the section before it has already opened rather than
+ * growing a second runway. What it needs from a plate is the ground,
+ * the corners and the shadow, and `.ground` is exactly those three and
+ * no padding. Safe because the shelf's own overflow is internal to its
+ * scroller and it uses no negative margins to escape this box.
+ *
+ */
+
+/*
+ * The sections after the hero, by the id the settings name them (#254). The
+ * comments that argued the built order are in BUILT_ORDER_NOTES above: they are why DEFAULT_SETTINGS is that order, and why the one rule
+ * the schema enforces is that the two dark acts never touch.
+ */
+const SECTIONS: Record<HomeSection, () => ReactNode> = {
+  work: () => (
+    <DarkAct>
+      <Work />
+    </DarkAct>
+  ),
+  approach: () => (
+    <div className="layer-section">
+      <Approach />
+    </div>
+  ),
+  city: () => (
+    <DarkAct>
+      <ContributionCity />
+    </DarkAct>
+  ),
+  notes: () => (
+    <div>
+      <LatestNotes />
+    </div>
+  ),
+  stack: () => (
+    <div className="layer-section">
+      <Stack />
+    </div>
+  ),
+  contact: () => (
+    <div className="layer-section">
+      <Contact />
+    </div>
+  ),
+};
+
 export default function Index() {
   /* The skip link and the bar are not rendered here any more; they are in
      `SiteChrome.tsx`, above the routes, so they survive navigating away from
      this page (#63). This tells that chrome the page — and the two dark acts
      on it — is now in the document. */
   usePageCommitted();
+  const shown = shownSections(useSiteSettings());
 
   return (
     <div className="relative min-h-screen">
@@ -62,103 +179,14 @@ export default function Index() {
           section that positions its own first line under the island. */}
       <main id="content">
         {/* The hero is the person and nothing else, and it owns its own
-            rhythm — it is the only full-height section on the page. */}
-        <Hero />
+            rhythm — it is the only full-height section on the page. It is
+            held until a dark act slides over it, so it holds only when the
+            first section after it is one (#254). */}
+        <Hero hold={DARK_SECTIONS.includes(shown[0])} />
 
-        {/*
-          The two dark acts, and the rule for them is in index.css next to the
-          ground scale: the ground changes where the SUBJECT changes, not every
-          other section. Work and the year are the only two sections on this
-          page whose subject is the work itself — the objects, and the labour
-          that made them — so they are the two that leave the paper. The four
-          sections between and after them are the page talking about the work,
-          and they talk on the page's own ground. `DarkAct` carries the whole
-          argument and the ceiling of two.
-        */}
-        <DarkAct>
-          <Work />
-        </DarkAct>
-
-        {/*
-          The wall text, and it is now doing two jobs with one screen.
-
-          It was already the separation between the pile and the year, because
-          both of those acts carry real depth and neither should read as the
-          other's warm-up — the long version is in the comment below. With both
-          of them now on the dark ground it is also the only thing keeping the
-          two from reading as one dark act with a seam in it. Quietest screen
-          on the page, and load-bearing twice.
-        */}
-        <div className="layer-section">
-          <Approach />
-        </div>
-
-        {/*
-          The year, and the two beats it had to sit between.
-
-          It is the page's one `scrub` — a thing the reader operates by
-          scrolling rather than a thing that happens to them once — so it has
-          no adjacent family to collide with here: `flow` above it, `pan`
-          below. Both of the other candidate slots are closed, and for
-          reasons rather than by preference.
-
-          Not next to the pile. The pile is the page's only engineered peak
-          and the only other act on it with real depth in it; a 3D grid
-          immediately before or after would make the peak read as this
-          section's warm-up. The wall text between them is the separation, and
-          it is the quietest screen on the page precisely so that the two
-          acts either side of it do not meet.
-
-          Not between the shelf and the spec plate. The comment below argues
-          that pair must stay adjacent because the order is the device
-          sequence; dropping a third beat between them would put a static
-          screen between the two sections that answer each other.
-
-          The principles above it are untouched. The issue this came from said
-          the city replaced them, which stopped being true when each of the
-          three got its own typographic arrival — so the city is a section of
-          its own and where the principles finally live is the owner's call,
-          raised in the pull request rather than decided here.
-        */}
-        <DarkAct>
-          <ContributionCity />
-        </DarkAct>
-
-        {/*
-          The shelf, and then the plate — in that order, because the order is
-          the device sequence and not a preference.
-
-          The beat before this pins and holds the reader still for a screen and
-          a half; lateral travel is the strongest contrast available after
-          that, so the shelf takes the slot immediately after it and the plate
-          follows with a third kind of motion. Swapped, the page would read
-          pile, figures, shelf, which puts a static beat between the two that
-          are supposed to answer each other.
-
-          No `layer-section` around the shelf: it is full-bleed, and it rides
-          the space the section above has already opened rather than growing
-          another runway between two sections that read as one thought.
-        */}
-        {/*
-          A bare `.ground`, with no `layer-section` on it — the comment above
-          is the reason, and it still holds: the shelf is full-bleed and rides
-          the space the section before it has already opened rather than
-          growing a second runway. What it needs from a plate is the ground,
-          the corners and the shadow, and `.ground` is exactly those three and
-          no padding. Safe because the shelf's own overflow is internal to its
-          scroller and it uses no negative margins to escape this box.
-        */}
-        <div>
-          <LatestNotes />
-        </div>
-
-        <div className="layer-section">
-          <Stack />
-        </div>
-
-        <div className="layer-section">
-          <Contact />
-        </div>
+        {shown.map((id) => (
+          <Fragment key={id}>{SECTIONS[id]()}</Fragment>
+        ))}
       </main>
 
       {/*
