@@ -22,8 +22,12 @@ const DARK_QUERY = "(prefers-color-scheme: dark)";
 /* The browser chrome's colour, per theme: the two grounds in index.css. */
 const THEME_COLOR: Record<ResolvedTheme, string> = { light: "#ECE8DC", dark: "#1C1A16" };
 
-/** The site's default, as the page carries it, falling back to the constant. */
+/* The owner's default as the settings API served it (#254), once it has. */
+let settingsDefault: ThemeChoice | null = null;
+
+/** The site's default: the settings', else the page's meta, else the constant. */
 export function siteDefault(): ThemeChoice {
+  if (settingsDefault) return settingsDefault;
   const meta = document.querySelector('meta[name="site-theme-default"]')?.getAttribute("content");
   return isThemeChoice(meta) ? meta : SITE_THEME_DEFAULT;
 }
@@ -115,6 +119,21 @@ export function setThemeChoice(next: ThemeChoice) {
     /* Not remembered, still applied. */
   }
   apply(next);
+  notify();
+}
+
+/**
+ * The settings' default arrived (#254). A reader who has chosen keeps their
+ * choice. One who has not follows the owner's default, which on a page the
+ * API rendered is already the one theme-boot.js applied, so nothing moves;
+ * only a shell the API did not render (the dev server) can change here.
+ */
+export function setSiteThemeDefault(next: ThemeChoice) {
+  if (settingsDefault === next) return;
+  settingsDefault = next;
+  if (typeof document === "undefined" || readStored() !== null) return;
+  choice = null;
+  apply(current());
   notify();
 }
 

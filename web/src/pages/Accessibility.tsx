@@ -2,6 +2,8 @@ import { Link } from "react-router-dom";
 import PageShell from "@/components/PageShell";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { useContent } from "@/content/store";
+import { sectionVisible } from "@/settings/schema";
+import { useSiteSettings } from "@/settings/store";
 
 /*
  * The accessibility statement (issue #99).
@@ -41,6 +43,8 @@ const REVIEWED = "2 November 2026";
 export default function Accessibility() {
   useDocumentTitle("Accessibility");
   const { contact } = useContent().site;
+  /* The form lives on the home page; hidden there (#254), it is not offered. */
+  const contactShown = sectionVisible(useSiteSettings(), "contact");
 
   return (
     <PageShell>

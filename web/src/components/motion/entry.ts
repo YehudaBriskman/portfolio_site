@@ -1,4 +1,5 @@
 import { MOTION_PAUSED_KEY } from "@/components/nav/useMotionPaused";
+import { siteMotionPaused } from "@/settings/store";
 
 /*
  * Where the visit's entry is: still behind the shutter, lifting, clearing,
@@ -79,7 +80,9 @@ export function motionIsOff(): boolean {
   if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false) return true;
   if (document.body.classList.contains("motion-paused")) return true;
   try {
-    return localStorage.getItem(MOTION_PAUSED_KEY) === "1";
+    const stored = localStorage.getItem(MOTION_PAUSED_KEY);
+    /* No choice stored: the owner's motion default (#254) decides. */
+    return stored === "1" || (stored === null && siteMotionPaused());
   } catch {
     /* Private browsing, or site data blocked. Not being able to read the
        stored choice is not a reason to refuse the loader; the class arrives

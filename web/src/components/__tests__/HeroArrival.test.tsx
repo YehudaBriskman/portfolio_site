@@ -496,14 +496,19 @@ describe("the first screen's off-switches", () => {
        pulled back by the same screen, so the document is the height it was
        and the act after it starts where it did. Content, not padding: a
        sticky box cannot move into its container's padding. */
-    expect(HERO_CSS).toMatch(/\.holder \{[^}]*margin-block-end: -100svh/);
-    expect(HERO_CSS).toMatch(/\.holder::after \{[^}]*height: 100svh/);
-    expect(HERO_CSS).toMatch(/\.holder > \.hero \{[^}]*position: sticky;[^}]*top: 0/);
-    expect(HERO_CSS).not.toMatch(/\.holder \{[^}]*padding/);
+    expect(HERO_CSS).toMatch(/\.held \{[^}]*margin-block-end: -100svh/);
+    expect(HERO_CSS).toMatch(/\.held::after \{[^}]*height: 100svh/);
+    expect(HERO_CSS).toMatch(/\.held > \.hero \{[^}]*position: sticky;[^}]*top: 0/);
+    expect(HERO_CSS).not.toMatch(/\.(holder|held) \{[^}]*padding/);
     const { container } = render(<Hero />);
     const holder = container.querySelector("#hero")!;
     expect(holder.tagName).toBe("SECTION");
     expect(holder.querySelector("h1")).not.toBeNull();
+    /* Held by default; not when the owner has put a paper section next
+       (#254), which has no ground of its own to cover it with. */
+    expect(holder.className).toMatch(/held/);
+    const free = render(<Hero hold={false} />).container.querySelector("#hero")!;
+    expect(free.className).not.toMatch(/held/);
   });
 
   it("never reaches for animation-play-state", () => {

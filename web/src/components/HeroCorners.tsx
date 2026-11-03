@@ -1,5 +1,7 @@
 import type { CSSProperties } from "react";
 import { useContent } from "@/content/store";
+import { sectionVisible } from "@/settings/schema";
+import { useSiteSettings } from "@/settings/store";
 import { scrollToAnchor } from "@/lib/scrollToAnchor";
 import styles from "@/components/HeroCorners.module.css";
 
