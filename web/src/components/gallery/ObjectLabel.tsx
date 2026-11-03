@@ -1,6 +1,8 @@
 import { Fragment, type CSSProperties, type ReactNode } from "react";
 import { orderFields, type ObjectLabelData } from "@/components/gallery/objectLabel";
 import styles from "@/components/gallery/ObjectLabel.module.css";
+import { useLang } from "@/components/dashboard/i18n";
+import { inEnglish } from "@/i18n/words";
 
 /**
  * How much room the label has, and nothing else.
@@ -129,6 +131,7 @@ export default function ObjectLabel({
 }: ObjectLabelProps) {
   const Name = nameAs;
   const ordered = orderFields(fields);
+  const lang = useLang();
 
   /* Size comes from the type scale, not from the stylesheet, so a label and a
      section head sharing a rung cannot drift apart. */
@@ -147,7 +150,9 @@ export default function ObjectLabel({
       >
         {splitName ? splitIntoLetters(name) : name}
       </Name>
-      <p className={`${styles.fact} ${scale === "inline" ? "" : "text-fact"}`}>
+      {/* The fact is the owner's copy; on a Hebrew page it is marked as the
+          English it is until it has a Hebrew of its own (#248). */}
+      <p className={`${styles.fact} ${scale === "inline" ? "" : "text-fact"}`} {...inEnglish(lang, fact)}>
         {fact}
       </p>
       {ordered.length > 0 && (

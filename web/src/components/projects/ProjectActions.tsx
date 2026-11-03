@@ -1,5 +1,6 @@
 import Action from "@/components/ui/Action";
 import type { ProjectEntry } from "@/hooks/useProjects";
+import { useProjectWords } from "@/i18n/pages";
 
 /*
  * Outbound actions, above the fold rather than buried under the notes feed
@@ -12,6 +13,7 @@ export default function ProjectActions({ entry, className = "" }: { entry: Proje
   const { collection: c, primaryLink, otherLinks } = entry;
   const release = c.stats?.latestRelease;
   const repoIsPrimary = !primaryLink && Boolean(c.repoUrl);
+  const w = useProjectWords();
 
   if (!primaryLink && !c.repoUrl && otherLinks.length === 0) return null;
 
@@ -24,7 +26,7 @@ export default function ProjectActions({ entry, className = "" }: { entry: Proje
       )}
       {c.repoUrl && (
         <Action tone={repoIsPrimary ? "solid" : "outline"} glyph="out" href={c.repoUrl}>
-          Source
+          {w.source}
         </Action>
       )}
       {release && (

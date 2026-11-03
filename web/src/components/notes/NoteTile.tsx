@@ -4,11 +4,14 @@ import dark from "@/components/notes/DarkCard.module.css";
 import styles from "@/components/notes/NoteTile.module.css";
 import type { Size } from "@/components/gallery/Wall";
 import type { PostSummary } from "@/services/blog";
+import { INTL, useLang } from "@/components/dashboard/i18n";
+import { useNotesWords } from "@/i18n/pages";
+import { dateIn, inEnglish, plural } from "@/i18n/words";
 
 /* "10 Jan 2026": a tile is a quarter of the wall, and the long month pushed
    the reading time onto a second line of its own. */
-const SHORT = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" });
-const shortDate = (iso: string) => SHORT.format(new Date(iso));
+const shortDate = (iso: string, lang: keyof typeof INTL) =>
+  dateIn(lang, iso, { day: "numeric", month: "short", year: "numeric" });
 
 /*
  * A note, as a piece on the gallery wall (#193): the same wall, sizes and
@@ -40,6 +43,8 @@ export default function NoteTile({
 }) {
   const summary = post.subtitle?.trim() || post.excerpt.trim();
   const media = size === "lead" || post.coverImage;
+  const lang = useLang();
+  const w = useNotesWords();
 
   return (
     <article className={`on-panel ${dark.dark} ${styles.tile}`} data-size={size} data-media={media ? "" : undefined}>
@@ -56,17 +61,17 @@ export default function NoteTile({
       )}
       <div className={styles.body}>
         <p className={styles.meta} dir="auto">
-          {post.publishedAt && <time dateTime={post.publishedAt}>{shortDate(post.publishedAt)}</time>}
+          {post.publishedAt && <time dateTime={post.publishedAt}>{shortDate(post.publishedAt, lang)}</time>}
           {post.publishedAt && <span aria-hidden="true" className={styles.dot} />}
-          <span>{post.readingMinutes} min read</span>
+          <span>{plural(lang, post.readingMinutes, w.minutesRead)}</span>
         </p>
-        <h2 className={styles.title} dir="auto">
+        <h2 className={styles.title} dir="auto" {...inEnglish(lang, post.title)}>
           <Link to={`/blog/${post.slug}`} className={styles.open}>
             {post.title}
           </Link>
         </h2>
         {summary && (
-          <p className={styles.desc} dir="auto">
+          <p className={styles.desc} dir="auto" {...inEnglish(lang, summary)}>
             {summary}
           </p>
         )}

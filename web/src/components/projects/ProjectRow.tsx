@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import type { ProjectEntry } from "@/hooks/useProjects";
+import Arrow from "@/i18n/Arrow";
 
 /*
  * The "elsewhere" row at the foot of a detail page.
@@ -37,9 +38,9 @@ export default function ProjectRow({ entry }: { entry: ProjectEntry }) {
       )}
       <span
         aria-hidden="true"
-        className="mono text-xs text-[rgb(var(--ink-soft))] transition-transform [transition-duration:var(--dur-fast)] group-hover:translate-x-1"
+        className="mono text-xs text-[rgb(var(--ink-soft))] transition-transform [transition-duration:var(--dur-fast)] group-hover:translate-x-1 rtl:group-hover:-translate-x-1"
       >
-        →
+        <Arrow />
       </span>
     </Link>
   );

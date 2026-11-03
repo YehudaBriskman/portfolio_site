@@ -22,6 +22,9 @@ import { useActiveHeading, useHeadings } from "@/components/notes/reader/Toc";
 import { useIsAdmin } from "@/components/notes/reader/adminSession";
 import { prefsVars, useReadingPrefs } from "@/components/notes/reader/readingPrefs";
 import { useReaderWords } from "@/components/notes/reader/words";
+import { useNotesWords } from "@/i18n/pages";
+import { hasHebrew, inEnglish } from "@/i18n/words";
+import Arrow from "@/i18n/Arrow";
 import reader from "@/components/notes/reader/Reader.module.css";
 
 /*
@@ -60,6 +63,7 @@ export default function BlogPost() {
    */
   const reading = useRef<HTMLDivElement>(null);
   const [w, lang] = useReaderWords();
+  const notesWords = useNotesWords();
   const [prefs, setPrefs] = useReadingPrefs();
   const isAdmin = useIsAdmin();
   const sheet = useRef<HTMLDialogElement>(null);
@@ -217,7 +221,11 @@ export default function BlogPost() {
           </div>
         )}
 
-        {post && state === "ok" && (
+        {post && state === "ok" && (() => {
+          /* A Hebrew page over a body with no Hebrew of its own: the body is
+             marked as the English it is, and says so above the title (#248). */
+          const bodyInEnglish = lang === "he" && !hasHebrew(post.body);
+          return (
           <>
             <div ref={reading}>
               <header className="isolate relative">
@@ -243,9 +251,14 @@ export default function BlogPost() {
                   ) : (
                     <p className="eyebrow">{w.note}</p>
                   )}
+                  {bodyInEnglish && (
+                    <p className="eyebrow mt-3" data-written-in="en">
+                      {notesWords.writtenInEnglish}
+                    </p>
+                  )}
                 </div>
 
-                <h1 className="display mt-3 text-[clamp(2.1rem,8.5vw,3.75rem)] leading-[0.96]">
+                <h1 className="display mt-3 text-[clamp(2.1rem,8.5vw,3.75rem)] leading-[0.96]" {...inEnglish(lang, post.title)}>
                   {post.title}
                 </h1>
 
@@ -255,7 +268,7 @@ export default function BlogPost() {
                     large, which is the register this page has deliberately
                     emptied out. */}
                 {post.subtitle && (
-                  <p className="editorial mt-6 max-w-[30rem] text-[1.375rem] text-bone sm:text-[1.75rem]">
+                  <p className="editorial mt-6 max-w-[30rem] text-[1.375rem] text-bone sm:text-[1.75rem]" {...inEnglish(lang, post.subtitle)}>
                     {post.subtitle}
                   </p>
                 )}
@@ -313,7 +326,13 @@ export default function BlogPost() {
                 />
               )}
 
-              <NoteMarkdown body={post.body} />
+              {bodyInEnglish ? (
+                <div lang="en" dir="ltr">
+                  <NoteMarkdown body={post.body} />
+                </div>
+              ) : (
+                <NoteMarkdown body={post.body} />
+              )}
             </div>
 
             {post.tags.length > 0 && (
@@ -331,7 +350,7 @@ export default function BlogPost() {
                 {post.links.map((l) => (
                   <li key={l.url}>
                     <a href={l.url} target="_blank" rel="noreferrer noopener" className="btn btn-quiet">
-                      {l.label} <span aria-hidden="true">&#8599;</span>
+                      {l.label} <span aria-hidden="true"><Arrow to="out" /></span>
                     </a>
                   </li>
                 ))}
@@ -349,7 +368,8 @@ export default function BlogPost() {
 
             <PostFooterNav newer={neighbours.newer} older={neighbours.older} />
           </>
-        )}
+          );
+        })()}
       </article>
 
       {post && state === "ok" && (

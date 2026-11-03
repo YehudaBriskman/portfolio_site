@@ -66,6 +66,27 @@ try {
             .waitForFunction(() => !document.querySelector("div[data-state][aria-hidden='true']"), null, { polling: 500, timeout: 15_000 })
             .catch(() => {});
           await page.evaluate(() => document.fonts.ready);
+          /* Every eager image decoded before the shot. Without this the run's
+             first shot (home, he, light, desktop) caught the hero portrait
+             still decoding on a cold cache and showed the hero without it:
+             the page was fine, the photograph of it was early. */
+          await page.evaluate(() =>
+            Promise.all(
+              [...document.images]
+                .filter((i) => i.loading !== "lazy")
+                .map((i) => (i.complete ? i.decode() : new Promise((r) => i.addEventListener("load", r, { once: true })).then(() => i.decode())).catch(() => {})),
+            ),
+          );
+          /* And the hero portrait fully arrived: complete, at opacity 1.
+             Polled by hand, since rAF-driven waits stall on this box. */
+          for (let t = 0; t < 40; t++) {
+            const arrived = await page.evaluate(() => {
+              const img = document.querySelector("[data-portrait] img");
+              return !img || (img.complete && img.naturalWidth > 0 && getComputedStyle(img).opacity === "1");
+            });
+            if (arrived) break;
+            await page.waitForTimeout(250);
+          }
           await page.waitForTimeout(1000);
           const doc = await page.evaluate(() => `${document.documentElement.lang}/${document.documentElement.dir}`);
           const want = lang === "he" ? "he/rtl" : "en/ltr";

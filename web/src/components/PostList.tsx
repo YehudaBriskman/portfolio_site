@@ -1,6 +1,7 @@
 import NoteCard from "@/components/notes/NoteCard";
 import NoteGlyph from "@/components/notes/NoteGlyph";
 import type { PostSummary } from "@/services/blog";
+import { useHomeWords } from "@/i18n/pages";
 
 /*
  * The shared list of notes, used by the blog index and by each project page.
@@ -11,6 +12,7 @@ import type { PostSummary } from "@/services/blog";
  * since a first visit to a young project is the state most likely to be seen.
  */
 export default function PostList({ posts }: { posts: PostSummary[] }) {
+  const w = useHomeWords();
   if (posts.length === 0) {
     return (
       <div className="note-card mt-3 flex flex-col items-center px-6 py-12 text-center">
@@ -19,9 +21,9 @@ export default function PostList({ posts }: { posts: PostSummary[] }) {
             <NoteGlyph seed="empty" />
           </div>
         </div>
-        <h2 className="display-tight mt-12 text-xl text-bone sm:text-2xl">Nothing here yet.</h2>
+        <h2 className="display-tight mt-12 text-xl text-bone sm:text-2xl">{w.emptyTitle}</h2>
         <p className="mt-6 max-w-sm text-[0.9375rem] leading-relaxed text-bone/70">
-          Notes go up as the work gets done. Anything filed here will appear on this page.
+          {w.emptyBody}
         </p>
       </div>
     );

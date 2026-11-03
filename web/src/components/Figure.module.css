@@ -96,7 +96,7 @@
  * of three things. It falls under the rest once the row wraps.
  */
 .note {
-  margin-left: auto;
+  margin-inline-start: auto;
   flex: none;
   font-variant-numeric: tabular-nums;
 }

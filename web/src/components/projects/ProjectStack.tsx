@@ -1,4 +1,5 @@
 import { Fragment } from "react";
+import { useProjectWords } from "@/i18n/pages";
 
 /*
  * What it is built with, as a line of type.
@@ -15,11 +16,12 @@ import { Fragment } from "react";
  * not a sentence — and the dot says so without pretending otherwise.
  */
 export default function ProjectStack({ tech, className = "" }: { tech: string[]; className?: string }) {
+  const w = useProjectWords();
   if (tech.length === 0) return null;
 
   return (
     <div className={className}>
-      <h2 className="mono text-xs uppercase tracking-[0.18em] text-clay">Built with</h2>
+      <h2 className="mono text-xs uppercase tracking-[0.18em] text-clay">{w.builtWith}</h2>
       <p className="mono mt-3 flex flex-wrap items-baseline gap-x-2.5 gap-y-1.5 text-sm leading-relaxed text-bone/85">
         {tech.map((t, i) => (
           <Fragment key={t}>

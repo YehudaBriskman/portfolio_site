@@ -5,6 +5,7 @@ import ApproachFigure from "@/components/ApproachFigures";
 import { lineAttr } from "@/components/motion/lineMoves";
 import { approachLine } from "@/data/site";
 import { useContent } from "@/content/store";
+import { useHomeWords } from "@/i18n/pages";
 import styles from "@/components/Approach.module.css";
 
 /*
@@ -67,6 +68,7 @@ import styles from "@/components/Approach.module.css";
 export default function Approach() {
   /* The words from the content store (#163); the line's moves stay code. */
   const { about } = useContent().site;
+  const w = useHomeWords();
   const last = about.intro.length;
   /* Memoised: the line re-measures when its start changes identity. */
   const from = useMemo(() => approachLine.from(last), [last]);
@@ -81,7 +83,7 @@ export default function Approach() {
           <h2 className={`display-tight text-sub ${styles.head}`}>{about.heading}</h2>
           {/* The role is "technical team lead", never anything that names
               where — see the employer rule in `data/site.ts`. */}
-          <p className="eyebrow mt-3">Full-stack &middot; Technical team lead</p>
+          <p className="eyebrow mt-3">{w.role}</p>
         </header>
 
         {about.intro.map((s, i) => (

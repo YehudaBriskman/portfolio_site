@@ -1,6 +1,7 @@
 import Action from "@/components/ui/Action";
 import ProjectRun from "@/components/projects/ProjectRun";
 import { useProjects } from "@/hooks/useProjects";
+import { useHomeWords } from "@/i18n/pages";
 
 /*
  * The peak of the page, and the first of its two dark acts.
@@ -81,6 +82,7 @@ const HOME_COUNT = 4;
 
 export default function Work() {
   const { items } = useProjects();
+  const w = useHomeWords();
   const shown = items.slice(0, HOME_COUNT);
 
   /* `z-[2]`: over anything the next section lifts (#191). The living line
@@ -103,20 +105,20 @@ export default function Work() {
         */}
         <div className="section-head">
           <span className="section-head-rule h-px bg-[rgb(var(--rule-firm))]" aria-hidden="true" />
-          <h2 className="display text-section leading-[0.9]">Work</h2>
+          <h2 className="display text-section leading-[0.9]">{w.work}</h2>
           <span className="section-head-rule h-px bg-[rgb(var(--rule-firm))]" aria-hidden="true" />
           {/* A count is the honest eyebrow and it is also the more useful one:
               it says there is more, which is what the link at the foot is
               for. */}
           <p className="eyebrow section-head-note tabular-nums">
-            {shown.length} of {items.length}
+            {w.shownOf(shown.length, items.length)}
           </p>
         </div>
 
         {/* Nothing eager. The run is two screens down on this page, so none
             of its screenshots is the LCP element. */}
         <div className="mt-12">
-          <ProjectRun entries={shown} label="Selected work" heading="h3" />
+          <ProjectRun entries={shown} label={w.selectedWork} heading="h3" />
         </div>
 
         {/*
@@ -129,7 +131,7 @@ export default function Work() {
         */}
         <div className="mt-section-sm">
           <Action tone="text" glyph="onward" to="/projects">
-            All projects
+            {w.allProjects}
           </Action>
         </div>
       </div>

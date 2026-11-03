@@ -357,7 +357,7 @@ export default function Blog() {
     <>
       <header className={styles.hello}>
         <h1 className={styles.greeting}>
-          <span className="sr-only">{`${lang === "he" ? "בלוגים" : "Blogs"}: `}</span>
+          <span className="sr-only">{`${lang === "he" ? "בלוג" : "Blogs"}: `}</span>
           {greeting(now, lang)}
         </h1>
         <HeadStrand />
@@ -492,7 +492,7 @@ export default function Blog() {
     <>
       <header className={styles.hello}>
         <h1 className={styles.greeting}>
-          <span className="sr-only">{`${lang === "he" ? "בלוגים" : "Blogs"}: `}</span>
+          <span className="sr-only">{`${lang === "he" ? "בלוג" : "Blogs"}: `}</span>
           {t.feed}
         </h1>
         <HeadStrand />

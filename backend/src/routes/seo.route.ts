@@ -168,9 +168,26 @@ function tx(t: Text, lang: Lang): string {
   return lang === "he" ? `<span lang="en" dir="ltr">${escapeHtml(t.en)}</span>` : escapeHtml(t.en);
 }
 
-/** A string that is English whatever the page's language: a post title, an area's name. */
+/**
+ * A string from the store that may be English on a Hebrew page: a post
+ * title, an area's name. Marked `lang="en"` there unless it carries Hebrew,
+ * which it does once `local()` has put the owner's translation in its place.
+ */
 function en(s: string, lang: Lang): string {
-  return lang === "he" ? `<span lang="en" dir="ltr">${escapeHtml(s)}</span>` : escapeHtml(s);
+  return lang === "he" && !HEBREW.test(s) ? `<span lang="en" dir="ltr">${escapeHtml(s)}</span>` : escapeHtml(s);
+}
+
+const HEBREW = /[\u0590-\u05FF]/;
+
+/**
+ * A post or an area in the page's language (#248): each field the owner has
+ * translated replaces the English one, and each one left empty stays English.
+ */
+function local<T extends { he?: Record<string, string | null | undefined> | null }>(doc: T, lang: Lang): T {
+  if (lang !== "he" || !doc.he) return doc;
+  const out: Record<string, unknown> = { ...doc };
+  for (const [k, v] of Object.entries(doc.he)) if (typeof v === "string" && v.trim() !== "") out[k] = v;
+  return out as T;
 }
 
 /** The plain-text form of a store text, for a head tag. */
@@ -323,7 +340,7 @@ page("/home", async (_req, res, lang) => {
 
 page("/blog", async (_req, res, lang) => {
   const w = SEO_WORDS[lang];
-  const posts = await publishedPosts();
+  const posts = (await publishedPosts()).map((p) => local(p, lang));
   await sendShell(res, {
     ...at("/blog", lang),
     route: "Blog",
@@ -348,7 +365,7 @@ page("/blog", async (_req, res, lang) => {
 page("/projects", async (_req, res, lang) => {
   const w = SEO_WORDS[lang];
   // A real collection wins over its seed; anything only seeded still appears.
-  const live = (await publishedCollections()).filter((c) => c.kind === "project");
+  const live = (await publishedCollections()).filter((c) => c.kind === "project").map((c) => local(c, lang));
   const merged = new Map<string, { title: string; tagline: string }>(
     [...(await storeProjects()).values()]
       .sort((a, b) => a.order - b.order)
@@ -492,7 +509,7 @@ const AREA_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 page("/blog/area/:slug", async (req, res, lang) => {
   const w = SEO_WORDS[lang];
   const slug = String(req.params.slug);
-  const area = AREA_SLUG.test(slug)
+  const found = AREA_SLUG.test(slug)
     ? (
         await couch.find<Collection>({
           selector: { type: "collection", status: "published", slug },
@@ -500,6 +517,7 @@ page("/blog/area/:slug", async (req, res, lang) => {
         })
       ).docs.find((c) => c.slug === slug && c.status === "published")
     : undefined;
+  const area = found && local(found, lang);
 
   if (!area) return notFound(res, `/blog/area/${encodeURIComponent(slug)}`, lang);
 
@@ -510,6 +528,7 @@ page("/blog/area/:slug", async (req, res, lang) => {
   // Filtered again, as the area's feed does: a draft never reaches the head
   // or the body even if the selector above is ever loosened.
   const posts = docs
+    .map((p) => local(p, lang))
     .filter((p) => p.status === "published" && p.collection === slug && !p.seo.noindex)
     .sort((a, b) => (b.publishedAt ?? "").localeCompare(a.publishedAt ?? ""));
   const channel = areaChannel(area);
@@ -541,7 +560,11 @@ page("/blog/:slug", async (req, res, lang) => {
     selector: { type: "post", status: "published", slug },
     limit: 1,
   });
-  const post = docs[0];
+  const english = docs[0];
+  const post = english && local(english, lang);
+  /* Whether the reader gets the English body on a Hebrew page: then it is
+     marked as English and said to be. */
+  const bodyInEnglish = lang === "he" && !HEBREW.test(post?.body ?? "");
 
   // A missing post has to answer 404, not 200 with a "not found" body —
   // otherwise every bad URL becomes an indexable soft-404 duplicate.
@@ -552,7 +575,7 @@ page("/blog/:slug", async (req, res, lang) => {
   const canonical =
     lang === "en" ? (post.seo.canonical ?? absoluteUrl(`/blog/${post.slug}`)) : absoluteUrl(pathIn(`/blog/${post.slug}`, lang));
   const image = rawImageUrlOrNull(post.coverImage) ?? absoluteUrl(`/api/seo/og/blog/${post.slug}.png`);
-  const marker = lang === "he" ? `<p>${escapeHtml(w.writtenInEnglish)}</p>` : "";
+  const marker = bodyInEnglish ? `<p>${escapeHtml(w.writtenInEnglish)}</p>` : "";
 
   await sendShell(res, {
     ...at(`/blog/${post.slug}`, lang),
@@ -567,16 +590,16 @@ page("/blog/:slug", async (req, res, lang) => {
     modifiedAt: post.updatedAt,
     tags: post.tags,
     noindex: post.seo.noindex,
-    bodyHtml: `<main>${marker}<article${lang === "he" ? ' lang="en" dir="ltr"' : ""}><h1>${escapeHtml(post.title)}</h1>${
-      post.subtitle ? `<p>${escapeHtml(post.subtitle)}</p>` : ""
-    }<p>${escapeHtml(post.excerpt)}</p>${markdownToFallbackHtml(post.body)}</article></main>`,
+    bodyHtml: `<main>${marker}<article${bodyInEnglish ? ' lang="en" dir="ltr"' : ""}><h1>${en(post.title, lang)}</h1>${
+      post.subtitle ? `<p>${en(post.subtitle, lang)}</p>` : ""
+    }<p>${en(post.excerpt, lang)}</p>${markdownToFallbackHtml(post.body)}</article></main>`,
     jsonLd: {
       "@context": "https://schema.org",
       "@type": "BlogPosting",
       headline: post.title,
       description: post.excerpt,
       image,
-      inLanguage: "en",
+      inLanguage: bodyInEnglish || lang === "en" ? "en" : "he",
       datePublished: post.publishedAt ?? post.createdAt,
       dateModified: post.updatedAt,
       author: { "@type": "Person", name: "Yehuda Briskman", url: SITE_URL },
@@ -595,7 +618,7 @@ page("/projects/:slug", async (req, res, lang) => {
     selector: { type: "collection", status: "published", slug },
     limit: 1,
   });
-  const collection = docs[0];
+  const collection = docs[0] && local(docs[0], lang);
 
   if (!collection) {
     const seed = (await storeProjects()).get(slug);

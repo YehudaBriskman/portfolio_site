@@ -66,6 +66,29 @@ export function plural(lang: Lang, n: number, forms: PluralForms): string {
   return form.replace("{n}", new Intl.NumberFormat(INTL[lang]).format(n));
 }
 
+/* ───────────────────────────────────────────────────────── arrows */
+
+/**
+ * The arrow that points onward, and the one that points back, in the reading
+ * direction. A "→" written into the markup points backwards on a Hebrew page.
+ */
+export const ARROWS: Record<Lang, { on: string; back: string; out: string }> = {
+  en: { on: "→", back: "←", out: "↗" },
+  he: { on: "←", back: "→", out: "↖" },
+};
+
+/** A date in the reader's language, from an ISO string; "" for no date. */
+export function dateIn(lang: Lang, iso: string | null | undefined, options: Intl.DateTimeFormatOptions): string {
+  if (!iso) return "";
+  const when = new Date(iso);
+  return Number.isNaN(when.getTime()) ? "" : when.toLocaleDateString(INTL[lang], options);
+}
+
+/** A count in the reader's language. */
+export function numberIn(lang: Lang, n: number): string {
+  return new Intl.NumberFormat(INTL[lang]).format(n);
+}
+
 /* ───────────────────────────────────────────────────────── fallback */
 
 const HEBREW = /[֐-׿]/;

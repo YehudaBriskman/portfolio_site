@@ -47,11 +47,13 @@
  *
  * Hebrew
  * ------
- * Each label carries its Hebrew alongside it, in the same order: בית, המסע,
- * עבודות, בלוגים. The definite article on המסע ("the journey") because a bare
- * מסע reads as "a trip"; עבודות rather than פרויקטים because it is the word
- * the English chose (work, not projects) and the native one; בלוגים as the
- * plain loanword every Hebrew reader already uses for this. The Hebrew locale
+ * Each label carries its Hebrew alongside it, in the same order: בית,
+ * מסלול מקצועי, פרויקטים, בלוג. The owner's review of #287 found the first
+ * choice (המסע, עבודות, בלוגים) too casual for a senior engineer's site:
+ * המסע reads as a travel diary, עבודות as school assignments, and בלוגים is a
+ * plural for what is one blog. מסלול מקצועי is the term a Hebrew CV uses for
+ * a career path; פרויקטים is what the work is; בלוג is the plain loanword.
+ * docs/hebrew/strings.md lists the alternatives. The Hebrew locale
  * is listed and disabled (see `locale.ts`), so these are on screen only once
  * it is switched on — they live here so that the switch is one line.
  */
@@ -61,7 +63,7 @@ export type NavRoute = { to: string; label: Record<LocaleCode, string> };
 
 export const NAV_ROUTES: readonly NavRoute[] = [
   { to: "/", label: { en: "Home", he: "בית" } },
-  { to: "/story", label: { en: "Journey", he: "המסע" } },
-  { to: "/projects", label: { en: "Work", he: "עבודות" } },
-  { to: "/blog", label: { en: "Blogs", he: "בלוגים" } },
+  { to: "/story", label: { en: "Journey", he: "מסלול מקצועי" } },
+  { to: "/projects", label: { en: "Work", he: "פרויקטים" } },
+  { to: "/blog", label: { en: "Blogs", he: "בלוג" } },
 ];

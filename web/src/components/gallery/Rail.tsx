@@ -1,6 +1,7 @@
 import { useId, useRef, useSyncExternalStore, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import styles from "@/components/gallery/Rail.module.css";
+import { useFilterWords } from "@/i18n/pages";
 
 /*
  * The side rail (#193), shared by /projects and /blog: a column at the
@@ -63,6 +64,7 @@ export default function RailLayout({
   const sheet = useRef<HTMLDialogElement>(null);
   const opener = useRef<HTMLButtonElement>(null);
   const titleId = useId();
+  const w = useFilterWords();
 
   if (wide) {
     return (
@@ -86,7 +88,7 @@ export default function RailLayout({
             type="button"
             className={styles.open}
             aria-haspopup="dialog"
-            aria-label={count > 0 ? `Filter, ${count} on` : undefined}
+            aria-label={count > 0 ? w.filterOn(count) : undefined}
             onClick={() => sheet.current?.showModal?.()}
           >
             <span className={styles.openIcon} aria-hidden="true">
@@ -94,7 +96,7 @@ export default function RailLayout({
               <span />
               <span />
             </span>
-            Filter
+            {w.filter}
             {count > 0 && (
               <span className={styles.badge} aria-hidden="true">
                 {count}
@@ -120,7 +122,7 @@ export default function RailLayout({
           <h2 id={titleId} className={styles.sheetTitle}>
             {label}
           </h2>
-          <button type="button" className={styles.x} onClick={close} aria-label="Close">
+          <button type="button" className={styles.x} onClick={close} aria-label={w.close}>
             <span aria-hidden="true" />
           </button>
         </div>

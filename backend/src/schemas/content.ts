@@ -89,6 +89,19 @@ export const PostContentSchema = z.object({
   he: PostHebrewSchema.nullable().default(null),
 });
 
+/** The Hebrew of an area (#248): its name, its line and its description. */
+export const CollectionHebrewSchema = z.object({
+  title: z.string().max(120).nullable().default(null),
+  tagline: z.string().max(160).nullable().default(null),
+  description: z.string().max(400).nullable().default(null),
+});
+
+/** A Hebrew block with nothing in it is no Hebrew at all. */
+function hebrewOrNull<T extends Record<string, string | null | undefined>>(he: T | null | undefined): T | null {
+  if (!he) return null;
+  return Object.values(he).some((v) => typeof v === "string" && v.trim() !== "") ? he : null;
+}
+
 export const PostSchema = z.object({
   _id: z.string().optional(),
   _rev: z.string().optional(),
@@ -155,7 +168,14 @@ export function toPublicSummary(p: Post) {
        mark. The admin save path stamps it on every write; a legacy document
        without one says null rather than nothing. */
     updatedAt: p.updatedAt ?? null,
+    /* The Hebrew, without the body: a listing never carries a body. */
+    he: summaryHebrew(p),
   };
+}
+
+function summaryHebrew(p: Post) {
+  const he = hebrewOrNull(p.he);
+  return he ? { title: he.title || null, subtitle: he.subtitle || null, excerpt: he.excerpt || null } : null;
 }
 
 export function toPublicPost(p: Post) {
@@ -220,6 +240,7 @@ export const CollectionSchema = z.object({
   status: z.enum(["published", "hidden"]).default("published"),
   kind: z.enum(["site", "project"]).default("project"),
   tagline: z.string().max(160).default(""),
+  he: CollectionHebrewSchema.nullable().optional(),
   repo: RepoSchema.nullable().default(null),
   stats: RepoStatsSchema.nullable().default(null),
   createdAt: z.string().datetime(),
@@ -227,6 +248,11 @@ export const CollectionSchema = z.object({
 });
 
 export type Collection = z.infer<typeof CollectionSchema>;
+
+function collectionHebrew(c: Collection) {
+  const he = hebrewOrNull(c.he);
+  return he ? { title: he.title ?? null, tagline: he.tagline ?? null, description: he.description ?? null } : null;
+}
 
 export function toPublicCollection(c: Collection) {
   return {
@@ -242,6 +268,7 @@ export function toPublicCollection(c: Collection) {
     kind: c.kind ?? (c.slug === "site" ? "site" : "project"),
     tagline: c.tagline,
     description: c.description,
+    he: collectionHebrew(c),
     coverImage: rawImageUrlOrNull(c.coverImage),
     // Documents from before #253 carry no icon; read raw, so no default applies.
     icon: c.icon ?? null,

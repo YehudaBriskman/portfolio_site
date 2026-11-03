@@ -169,11 +169,14 @@ describe("GET /api/seo/render/blog/area/:slug", () => {
       area("windom", { title: "WindoM", tagline: "Every new tab becomes a <dashboard>" }),
       area("site", { kind: "site", title: "The site" }),
       area("secret-area", { status: "hidden", title: "Secret area" }),
+      area("translated", { title: "Translated", he: { title: "מתורגם", tagline: null, description: null } }),
     ],
     posts: [
       post("windom-note", "windom"),
       post("windom-draft", "windom", { status: "draft", title: "Unfinished draft" }),
       post("site-note", "site"),
+      post("in-hebrew", "translated", { he: { title: "כותרת בעברית", subtitle: null, excerpt: null, body: null } }),
+      post("in-english", "translated"),
     ],
   };
 
@@ -229,6 +232,19 @@ describe("GET /api/seo/render/blog/area/:slug", () => {
     expect(body).not.toContain("windom-draft");
     expect(body).not.toContain("Unfinished draft");
     expect(body).not.toContain("site-note");
+  });
+
+  it("uses the owner's Hebrew field by field, and marks what stayed English (#248)", async () => {
+    const res = await request(createApp()).get("/api/seo/render/he/blog/area/translated");
+    const body = res.text.slice(res.text.indexOf("</head>"));
+    expect(res.text).toContain("<title>מתורגם");
+    expect(body).toContain("<h1>מתורגם</h1>");
+    expect(body).toContain('<a href="/he/blog/in-hebrew">כותרת בעברית</a>');
+    expect(body).toContain('<a href="/he/blog/in-english"><span lang="en" dir="ltr">Title in-english</span></a>');
+    // The English page is untouched by the Hebrew.
+    const en = await get("translated");
+    expect(en.text).toContain("<h1>Translated</h1>");
+    expect(en.text).not.toContain("מתורגם");
   });
 
   it("gives the site's own area the notes card rather than a project card", async () => {

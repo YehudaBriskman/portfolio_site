@@ -4,6 +4,9 @@ import NoteGlyph from "@/components/notes/NoteGlyph";
 import dark from "@/components/notes/DarkCard.module.css";
 import styles from "@/components/notes/NoteCard.module.css";
 import { formatDate, type PostSummary } from "@/services/blog";
+import { useLang } from "@/components/dashboard/i18n";
+import { useNotesWords } from "@/i18n/pages";
+import { inEnglish, plural } from "@/i18n/words";
 
 /*
  * The note, as a card.
@@ -98,6 +101,8 @@ export default function NoteCard({
   // An empty excerpt is the API's default (`backend/src/routes/admin.route.ts`),
   // so it is trimmed before it is trusted to be there.
   const summary = post.subtitle?.trim() || post.excerpt.trim();
+  const lang = useLang();
+  const w = useNotesWords();
 
   const meta = (
     <div className="mono flex flex-wrap items-center gap-x-2.5 gap-y-1 whitespace-nowrap text-[0.75rem] tracking-[0.08em] text-clay">
@@ -107,7 +112,7 @@ export default function NoteCard({
       {post.publishedAt && (
         <span aria-hidden="true" className="h-1 w-1 rounded-full bg-clay" />
       )}
-      <span>{post.readingMinutes} min</span>
+      <span>{plural(lang, post.readingMinutes, w.minutes)}</span>
     </div>
   );
 
@@ -121,7 +126,7 @@ export default function NoteCard({
       }`}
     >
       {/* The stretched overlay: one link, whole card. */}
-      <Link to={`/blog/${post.slug}`} className="after:absolute after:inset-0 after:content-['']">
+      <Link to={`/blog/${post.slug}`} className="after:absolute after:inset-0 after:content-['']" {...inEnglish(lang, post.title)}>
         {post.title}
       </Link>
     </h2>
@@ -208,7 +213,7 @@ export default function NoteCard({
             shown by the stylesheet — on hover and focus, or from the start
             where there is no hover to ask with. `--ink-soft` through the
             `text-clay` alias, a solid token on either ground. */}
-        {summary && <p className={`${styles.desc} text-clay`}>{summary}</p>}
+        {summary && <p className={`${styles.desc} text-clay`} {...inEnglish(lang, summary)}>{summary}</p>}
       </div>
     </article>
   );

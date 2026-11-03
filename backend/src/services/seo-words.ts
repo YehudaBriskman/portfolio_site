@@ -72,25 +72,25 @@ const EN = {
 type Words = { [K in keyof typeof EN]: (typeof EN)[K] extends (...a: infer A) => string ? (...a: A) => string : (typeof EN)[K] extends string[] ? string[] : string };
 
 const HE: Words = {
-  siteTitle: "Yehuda Briskman · מהנדס פול־סטאק וראש צוות",
+  siteTitle: "Yehuda Briskman · מהנדס פול־סטאק וראש צוות טכני",
   siteDescription:
-    "מהנדס פול־סטאק וראש צוות בתל אביב. אני בונה ומשיק מוצרים מקצה לקצה, ובונה את הבדיקות שמוכיחות שהם עדיין עובדים.",
+    "מהנדס פול־סטאק וראש צוות טכני בתל אביב. אני בונה ומשיק מוצרים מקצה לקצה, ובונה את הבדיקות שמוכיחות שהם עדיין עובדים.",
   siteSocial: "אני בונה ומשיק מוצרים מקצה לקצה, ואת הבדיקות שמוכיחות שהם עובדים. תל אביב.",
-  role: "מהנדס פול־סטאק וראש צוות",
-  jobTitle: "מהנדס פול־סטאק וראש צוות",
+  role: "מהנדס פול־סטאק וראש צוות טכני",
+  jobTitle: "מהנדס פול־סטאק וראש צוות טכני",
   elsewhere: "במקומות אחרים",
   homeProjects: "פרויקטים: מה שבניתי והפעלתי",
   homeNotes: "רשימות: כתיבה על הנדסת צד־שרת ותשתיות",
   basedIn: (place: string) => `מקום: ${place}.`,
-  blogs: "בלוגים",
+  blogs: "בלוג",
   blogsDescription: "כתיבה על הנדסת צד־שרת, תשתיות, והשקת מוצרים מקצה לקצה.",
   blogsBody: "כתיבה על הנדסת צד־שרת, תשתיות, והשקת מוצרים מקצה לקצה, ורשימות מכל אחד מהפרויקטים שלי.",
   notesAlt: "רשימות מאת Yehuda Briskman",
-  work: "עבודות",
+  work: "פרויקטים",
   workDescription: "דברים שבניתי והפעלתי מקצה לקצה, ולכל אחד הרשימות, התיעוד והקוד שלו.",
   projectsAlt: "פרויקטים מאת Yehuda Briskman",
-  journey: "המסע",
-  journeyTitle: "הדרך הארוכה",
+  journey: "מסלול מקצועי",
+  journeyTitle: "שלב אחר שלב",
   journeyDescription:
     "העבודה לאורך השנים, כציר זמן: מתי התחלתי להשיק, הפרויקטים שבניתי והפעלתי, והתפקידים שביניהם.",
   accessibility: "נגישות",

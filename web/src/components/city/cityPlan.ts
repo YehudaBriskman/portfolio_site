@@ -109,6 +109,8 @@ export type CityCell = {
 export type CityMonth = {
   /** `January 2026`. Built in UTC — see the note in `monthLabel`. */
   label: string;
+  /** `2026-01`: the month itself, for a label in another language. */
+  ym: string;
   total: number;
   /** How many of the month's days are in the window at all. The first and
       last months of a trailing year are both partial, and a reader of the
@@ -167,8 +169,8 @@ function utcWeekday(date: string): number {
   return new Date(`${date}T00:00:00Z`).getUTCDay();
 }
 
-function monthLabel(ym: string): string {
-  return new Date(`${ym}-01T00:00:00Z`).toLocaleDateString("en-GB", {
+export function monthLabel(ym: string, locale = "en-GB"): string {
+  return new Date(`${ym}-01T00:00:00Z`).toLocaleDateString(locale, {
     month: "long",
     year: "numeric",
     timeZone: "UTC",
@@ -218,7 +220,7 @@ function monthsOf(days: ContributionDay[]): CityMonth[] {
     row.days += 1;
     byMonth.set(ym, row);
   }
-  return [...byMonth].map(([ym, row]) => ({ label: monthLabel(ym), ...row }));
+  return [...byMonth].map(([ym, row]) => ({ label: monthLabel(ym), ym, ...row }));
 }
 
 /**

@@ -2,6 +2,7 @@ import { Router } from "express";
 import { couch, CouchError } from "../db/couch.js";
 import { asyncHandler } from "../middlewares/asyncHandler.js";
 import {
+  CollectionHebrewSchema,
   CollectionSchema,
   PostContentSchema,
   PostSchema,
@@ -73,6 +74,7 @@ export const CollectionWrite = z.object({
   links: z.array(LinkSchema).max(8).default([]),
   order: z.coerce.number().int().default(50),
   status: z.enum(["published", "hidden"]).default("published"),
+  he: CollectionHebrewSchema.nullable().optional(),
   _rev: z.string().optional(),
 });
 
@@ -425,6 +427,7 @@ router.put(
       status: i.status,
       kind: i.kind,
       tagline: i.tagline,
+      he: i.he === undefined ? existing?.he ?? null : i.he,
       repo: i.repo,
       // Stats belong to the sync job, not to this form — never clear them here.
       stats: existing?.stats ?? null,

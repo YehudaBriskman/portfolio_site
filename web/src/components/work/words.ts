@@ -74,9 +74,9 @@ const EN = {
 export type WorkWords = typeof EN;
 
 const HE: WorkWords = {
-  title: "עבודות",
+  title: "פרויקטים",
   lede: "כל מה שבניתי, המוצמדים קודם. פתחו פרויקט כדי לראות את ההחלטות שמאחוריו, את הרשימות, הגרסאות והתיעוד.",
-  browse: "עיון בעבודות",
+  browse: "עיון בפרויקטים",
   pinned: "מוצמדים",
   pinnedHint: "בשימוש עכשיו",
   projects: "פרויקטים",
@@ -90,7 +90,7 @@ const HE: WorkWords = {
   notesLink: "רשימות",
   notesLinkFor: (name: string) => `רשימות על ${name}`,
   stars: (n: string) => `${n} כוכבים`,
-  forks: (n: string) => `${n} מזלגות`,
+  forks: (n: string) => `${n} פיצולים`,
   release: "גרסה אחרונה",
   strip: "עדכוני קוד וגרסאות אחרונים",
   stripEmpty: "אין עדכוני קוד או גרסאות בשנה האחרונה",
@@ -103,7 +103,7 @@ const HE: WorkWords = {
   liveFailed: "האינדקס החי לא עונה, כך שכוכבים, עדכונים וגרסאות עשויים לחסור. כל הפרויקטים עדיין מופיעים.",
   noun: () => "פרויקטים",
   facet: { state: "מצב", year: "שנה", stack: "טכנולוגיה" },
-  backToWork: "עבודות",
+  backToWork: "פרויקטים",
   tabs: "חלקי הפרויקט",
   tab: { overview: "סקירה", notes: "רשימות", releases: "גרסאות", docs: "תיעוד" },
   areaHistory: "להיסטוריה המלאה של התחום",
@@ -117,7 +117,7 @@ const HE: WorkWords = {
   retry: "לנסות שוב",
   onGitHub: "ב־GitHub",
   latest: "אחרונה",
-  allWork: "כל העבודות",
+  allWork: "כל הפרויקטים",
   projectNav: "פרויקטים",
   about: "אודות",
   source: "קוד מקור",
@@ -126,9 +126,9 @@ const HE: WorkWords = {
   feed: "פיד RSS של התחום",
   releasesOnGitHub: "הגרסאות ב־GitHub",
   loadingProject: "הפרויקט נטען",
-  notHere: "אין כאן כלום",
+  notHere: "הפרויקט לא נמצא",
   notHereBody: "אין פרויקט בכתובת הזאת.",
-  seeEverything: "לכל העבודות",
+  seeEverything: "לכל הפרויקטים",
 };
 
 export const WORK_WORDS: Record<Lang, WorkWords> = { en: EN, he: HE };
@@ -142,7 +142,7 @@ export const WORK_WORDS: Record<Lang, WorkWords> = { en: EN, he: HE };
  */
 const STATE_WORDS: Record<Lang, Record<string, string>> = {
   en: { released: "Released" },
-  he: { live: "באוויר", "in use": "בשימוש", archive: "ארכיון", "open source": "קוד פתוח", released: "פורסם" },
+  he: { live: "פעיל", "in use": "בשימוש", archive: "ארכיון", "open source": "קוד פתוח", released: "פורסם" },
 };
 
 export function stateWord(state: string, lang: Lang): string {

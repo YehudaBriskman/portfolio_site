@@ -68,7 +68,7 @@ export default function Plate({
         <ul className="mono grid min-w-0 grid-cols-2 gap-x-4 gap-y-1.5 text-[0.75rem] leading-relaxed text-ink/85 sm:gap-x-6 sm:text-[0.8125rem]">
           {tech.map((t) => (
             <li key={t} className="truncate">
-              <span className="mr-2 text-[rgb(var(--ink-soft))]" aria-hidden="true">
+              <span className="me-2 text-[rgb(var(--ink-soft))]" aria-hidden="true">
                 ·
               </span>
               {t}

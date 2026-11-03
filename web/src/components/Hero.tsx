@@ -2,6 +2,7 @@ import { useState, useSyncExternalStore } from "react";
 import ObjectLabel from "@/components/gallery/ObjectLabel";
 import type { LabelField } from "@/components/gallery/objectLabel";
 import { useContent } from "@/content/store";
+import { useHomeWords } from "@/i18n/pages";
 import HeroCorners from "@/components/HeroCorners";
 import styles from "@/components/Hero.module.css";
 import arrival from "@/components/HeroArrival.module.css";
@@ -216,6 +217,7 @@ export default function Hero({ hold = true }: { hold?: boolean }) {
   const arrives = useArrival();
   /* The plate's words from the content store (#163). */
   const { plate, plateTitle } = useContent().site;
+  const w = useHomeWords();
   return (
     /*
       `overflow-x: clip` and not `hidden`: the two remaining lines enter from
@@ -299,7 +301,7 @@ export default function Hero({ hold = true }: { hold?: boolean }) {
                   src="/img/yehuda-cut.webp"
                   srcSet="/img/yehuda-cut-sm.webp 365w, /img/yehuda-cut.webp 551w"
                   sizes="(max-width: 699px) min(92vw, 22rem), min(86vw, 26rem)"
-                  alt="Yehuda Briskman: a cut-out photograph from the waist up, in round sunglasses and a pale T-shirt, a bag strap across one shoulder, looking off to the side."
+                  alt={w.portraitAlt}
                   width={551}
                   height={845}
                   {...PRIORITY}

@@ -190,4 +190,17 @@
   .action:hover .out {
     transform: translate(2px, -2px);
   }
+
+  /* Mirrored on a right-to-left page, where onward is leftwards (#248). */
+  .action:dir(rtl):hover .onward {
+    transform: translateX(-3px);
+  }
+
+  .action:dir(rtl):hover .back {
+    transform: translateX(3px);
+  }
+
+  .action:dir(rtl):hover .out {
+    transform: translate(-2px, -2px);
+  }
 }

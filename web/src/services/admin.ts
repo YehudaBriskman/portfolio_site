@@ -65,6 +65,7 @@ const AdminCollectionSchema = z.object({
   slug: z.string(),
   title: z.string(),
   tagline: z.string().default(""),
+  he: z.record(z.string(), z.string().nullable()).nullable().optional(),
   kind: z.enum(["site", "project"]).default("project"),
   repo: z
     .object({

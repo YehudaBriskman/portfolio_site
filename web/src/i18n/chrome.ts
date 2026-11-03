@@ -6,7 +6,7 @@ import { defineWords } from "./words";
  *
  * - Buttons and menu items are nouns of action (סגירה, החלפת שפה), the
  *   register Hebrew interfaces use, rather than imperatives.
- * - בלוגים, עבודות, המסע follow `nav/navRoutes.ts`, which explains each.
+ * - בית, מסלול מקצועי, פרויקטים, בלוג follow `nav/navRoutes.ts`, which explains each.
  * - The name stays in Latin letters everywhere it is a name — the hero sets
  *   it in display type, and a Hebrew spelling is the owner's to choose.
  */
@@ -90,9 +90,9 @@ export const useFooterWords = defineWords(
   {
     pages: "עמודים",
     home: "בית",
-    journey: "המסע",
-    work: "עבודות",
-    blogs: "בלוגים",
+    journey: "מסלול מקצועי",
+    work: "פרויקטים",
+    blogs: "בלוג",
     mcp: "שרת MCP",
     elsewhere: "במקומות אחרים",
     email: "אימייל",
@@ -115,7 +115,7 @@ export const useNotFoundWords = defineWords(
   },
   {
     eyebrow: "שגיאה 404",
-    title: "לא כאן",
+    title: "הדף לא נמצא",
     body: "מה שהיה בכתובת הזאת עבר למקום אחר, או שמעולם לא היה.",
     home: "בית",
     projects: "פרויקטים",
@@ -150,11 +150,11 @@ export const usePageNames = defineWords(
   },
   {
     home: "בית",
-    homeTitle: "Yehuda Briskman · מהנדס פול־סטאק וראש צוות",
-    work: "עבודות",
-    journey: "המסע",
+    homeTitle: "Yehuda Briskman · מהנדס פול־סטאק וראש צוות טכני",
+    work: "פרויקטים",
+    journey: "מסלול מקצועי",
     mcp: "שרת MCP",
-    blogs: "בלוגים",
+    blogs: "בלוג",
     log: "יומן הערוץ",
     accessibility: "נגישות",
     notFound: "לא נמצא",

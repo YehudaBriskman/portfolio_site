@@ -264,7 +264,7 @@ describe("Work: states", () => {
     document.documentElement.lang = "he";
     stub();
     renderAt("/projects");
-    expect(screen.getByRole("heading", { level: 1, name: "עבודות" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "פרויקטים" })).toBeInTheDocument();
     await screen.findAllByText("v1.9.0");
     expect(within(sectionOf("פרויקטים")).getByRole("link", { name: "שם" })).toBeInTheDocument();
     expect(screen.getAllByText(/^עודכן לפני/).length).toBeGreaterThan(0);

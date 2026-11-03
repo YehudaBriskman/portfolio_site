@@ -52,7 +52,7 @@ describe("AuroraStrand", () => {
     /* The owner's "remove the additional aurora": the line comes in by itself. */
     expect(read("src/components/Approach.tsx")).not.toMatch(/AuroraStrand/);
     expect(read("src/components/LatestNotes.tsx")).toMatch(
-      /<AuroraStrand from="left" timeline="--notes-shelf" range="entry 40% contain 6%" \/>/,
+      /<AuroraStrand from="left" mirrorInRtl timeline="--notes-shelf" range="entry 40% contain 6%" \/>/,
     );
     /* No second copy of the appearing anywhere. */
     for (const f of ["src/components/projects/ProjectRun.module.css", "src/components/LatestNotes.module.css", "src/components/Approach.module.css"]) {

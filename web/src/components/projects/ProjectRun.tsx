@@ -15,6 +15,8 @@ import type { ProjectEntry } from "@/hooks/useProjects";
 import styles from "@/components/projects/ProjectRun.module.css";
 import { objectAnchorId } from "@/lib/objectAnchor";
 import RunAurora from "@/components/projects/RunAurora";
+import { useProjectWords } from "@/i18n/pages";
+import Arrow from "@/i18n/Arrow";
 
 /*
  * The work, travelling along a curve (#57, reopened by the owner 2026-11-02).
@@ -121,6 +123,7 @@ function running(slot: Element): boolean {
 }
 
 export default function ProjectRun({ entries, label, heading }: ProjectRunProps) {
+  const w = useProjectWords();
   const onFocus = useCallback((e: FocusEvent<HTMLOListElement>) => {
     const slot = (e.target as HTMLElement).closest<HTMLElement>("[data-run-i]");
     if (!slot || !running(slot)) return;
@@ -209,7 +212,7 @@ export default function ProjectRun({ entries, label, heading }: ProjectRunProps)
         onClick={skip}
         className={`${styles.skip} sr-only focus:not-sr-only`}
       >
-        Skip past the work
+        {w.skipWork}
       </a>
 
       {/*
@@ -285,7 +288,7 @@ export default function ProjectRun({ entries, label, heading }: ProjectRunProps)
                           className={styles.label}
                         />
                         <span className={styles.onward} aria-hidden="true">
-                          &rarr;
+                          <Arrow />
                         </span>
                       </div>
                     </div>

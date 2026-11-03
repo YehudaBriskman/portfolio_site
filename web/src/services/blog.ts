@@ -1,6 +1,16 @@
 import { z } from "zod";
+import { INTL } from "@/components/dashboard/i18n";
+import { currentLang } from "@/i18n/routing";
 
 const LinkSchema = z.object({ label: z.string(), url: z.string() });
+
+/*
+ * The owner's Hebrew for a post or an area (#248), field by field. Absent or
+ * null where nothing is translated. `local()` puts each translated field in
+ * place of the English on a Hebrew page; a field left out stays English, and
+ * the components mark it so with `inEnglish()`.
+ */
+const HebrewSchema = z.record(z.string(), z.string().nullable()).nullable().optional();
 
 const SummarySchema = z.object({
   slug: z.string(),
@@ -16,6 +26,7 @@ const SummarySchema = z.object({
   featured: z.number().nullable().optional(),
   /* Last saved (#225); an "updated" mark when well after publishing. */
   updatedAt: z.string().nullable().optional(),
+  he: HebrewSchema,
 });
 
 const PostSchema = SummarySchema.extend({
@@ -49,6 +60,7 @@ const CollectionSchema = z.object({
   stats: StatsSchema.nullable().default(null),
   /* The repo paths the owner opted in to publishing, as GitHub links (#225). */
   docs: z.array(z.object({ path: z.string(), url: z.string() })).optional(),
+  he: HebrewSchema,
 });
 
 export type PostSummary = z.infer<typeof SummarySchema>;
@@ -73,6 +85,17 @@ export function topPosts<T extends Pick<PostSummary, "featured" | "publishedAt">
       return (b.publishedAt ?? "").localeCompare(a.publishedAt ?? "");
     })
     .slice(0, n);
+}
+
+/**
+ * A post or an area in the page's language: every field the owner translated
+ * replaces its English, and the rest stay as they are.
+ */
+export function local<T extends { he?: Record<string, string | null> | null }>(doc: T, lang = currentLang()): T {
+  if (lang !== "he" || !doc.he) return doc;
+  const out: Record<string, unknown> = { ...doc };
+  for (const [k, v] of Object.entries(doc.he)) if (typeof v === "string" && v.trim() !== "" && k in doc) out[k] = v;
+  return out as T;
 }
 
 /** The envelope every blog endpoint returns; the payload is validated by zod. */
@@ -101,17 +124,17 @@ export const blog = {
     if (opts.tag) q.set("tag", opts.tag);
     if (opts.collection) q.set("collection", opts.collection);
     const qs = q.toString();
-    return get(`/posts${qs ? `?${qs}` : ""}`, z.array(SummarySchema), (j) => j.items ?? []);
+    return get(`/posts${qs ? `?${qs}` : ""}`, z.array(SummarySchema), (j) => j.items ?? []).then((l) => l.map((p) => local(p)));
   },
-  post: (slug: string) => get(`/posts/${encodeURIComponent(slug)}`, PostSchema, (j) => j.post),
-  collections: () => get("/collections", z.array(CollectionSchema), (j) => j.items ?? []),
+  post: (slug: string) => get(`/posts/${encodeURIComponent(slug)}`, PostSchema, (j) => j.post).then((p) => local(p)),
+  collections: () => get("/collections", z.array(CollectionSchema), (j) => j.items ?? []).then((l) => l.map((c) => local(c))),
   collection: (slug: string) =>
-    get(`/collections/${encodeURIComponent(slug)}`, CollectionSchema, (j) => j.collection),
+    get(`/collections/${encodeURIComponent(slug)}`, CollectionSchema, (j) => j.collection).then((c) => local(c)),
 };
 
 export function formatDate(iso: string | null) {
   if (!iso) return "";
-  return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+  return new Date(iso).toLocaleDateString(INTL[currentLang()], { day: "numeric", month: "long", year: "numeric" });
 }
 
 /*
