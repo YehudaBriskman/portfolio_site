@@ -38,6 +38,8 @@ import { isPinned, panelId, readTab, tabId, type Tab } from "@/components/work/o
 import { stateWord, useWorkWords } from "@/components/work/words";
 import { fullDate, relative, shortDate } from "@/components/dashboard/i18n";
 import { useScrollProgress } from "@/hooks/useScrollProgress";
+import { useProjectWords } from "@/i18n/pages";
+import { inEnglish } from "@/i18n/words";
 
 /* Docs and notes are the same document type on the same shelf, split by one
    tag. `Post.source` already distinguishes authored from repo-ingested content
@@ -110,6 +112,7 @@ export default function Project() {
   const [attempt, setAttempt] = useState(0);
   const reduced = usePrefersReducedMotion();
   const [t, lang] = useWorkWords();
+  const w = useProjectWords();
   const idBase = useId();
   const [now] = useState(() => Date.now());
 
@@ -170,7 +173,7 @@ export default function Project() {
    * page — the same bug, caused by the attempt to be tidy about it. Nothing
    * needs restoring now that every route change writes a title of its own.
    */
-  useDocumentTitle(state === "missing" ? "Not found" : (entry?.collection.title ?? null));
+  useDocumentTitle(state === "missing" ? w.notFound : (entry?.collection.title ?? null));
 
   const { docs, notes } = useMemo(() => {
     const all = posts ?? [];
@@ -439,7 +442,11 @@ export default function Project() {
             {tab === "overview" && (
               <div {...panel("overview")}>
                 <section className={styles.card} aria-label={c.title}>
-                  {c.description && <Written className={styles.description}>{c.description}</Written>}
+                  {c.description && (
+                    <Written className={styles.description} {...inEnglish(lang, c.description)}>
+                      {c.description}
+                    </Written>
+                  )}
                   {/* The drift's own box: `--vh` is written here and read
                       here, so a scroll re-styles this figure and not the
                       document (#174). `sizes` is the figure's real width:
@@ -476,7 +483,7 @@ export default function Project() {
                   <Arrive as="section" className={styles.card} aria-labelledby="highlights-heading">
                       <h2 id="highlights-heading" className={`${styles.cardTitle} ${styles.marked}`}>
                         <Ring size={12} />
-                        Worth knowing
+                        {w.worthKnowing}
                       </h2>
                       {/* The landing page has always shown these and the
                           project page never did, which was the clearest
@@ -505,7 +512,7 @@ export default function Project() {
                 {others.length > 0 && (
                   <section className={styles.flushCard} aria-labelledby="elsewhere-heading">
                     <h2 id="elsewhere-heading" className={styles.flushTitle}>
-                      Elsewhere
+                      {w.elsewhere}
                     </h2>
                     <RowList>
                       {others.map((o) => (

@@ -89,7 +89,8 @@ const HE: ReaderWords = {
   updated: "עודכן",
   updatedTitle: (when) => `עודכן ${when}`,
   whatChanged: "מה השתנה",
-  readTime: (n) => `${n} דקות קריאה`,
+  /* Hebrew counts one, two and the rest differently (#248). */
+  readTime: (n) => (n === 1 ? "דקת קריאה אחת" : n === 2 ? "שתי דקות קריאה" : `${n} דקות קריאה`),
   tags: "תגיות",
   share: "שיתוף",
   linkCopied: "הקישור הועתק",

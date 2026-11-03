@@ -1047,7 +1047,7 @@
 .sheetGlyph {
   width: 17px;
   height: 17px;
-  margin-right: 12px;
+  margin-inline-end: 12px;
   flex: none;
   color: rgb(var(--ink-soft));
 }
@@ -1195,8 +1195,8 @@
    happily render a 28px row on a phone. */
 .menuItem.menuItem {
   min-height: 44px;
-  padding-left: 34px;
-  padding-right: 12px;
+  padding-inline-start: 34px;
+  padding-inline-end: 12px;
   /* Concentric with the menu: 22 - 6 = 16px. */
   border-radius: calc(var(--r-md) - var(--menu-inset, 6px));
   font-family: var(--font-text);

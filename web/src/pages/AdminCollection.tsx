@@ -22,6 +22,10 @@ type Draft = {
   links: LinkRow[];
   order: string;
   status: "published" | "hidden";
+  /* The Hebrew (#248). Empty is untranslated: the site shows the English. */
+  heTitle: string;
+  heTagline: string;
+  heDescription: string;
   _rev?: string;
 };
 
@@ -29,6 +33,7 @@ const EMPTY: Draft = {
   slug: "", title: "", tagline: "", kind: "project",
   repoOwner: "", repoName: "", repoBranch: "main", docPaths: [],
   description: "", coverImage: "", icon: "", links: [], order: "50", status: "published",
+  heTitle: "", heTagline: "", heDescription: "",
 };
 
 export default function AdminCollection() {
@@ -68,6 +73,9 @@ export default function AdminCollection() {
           links: toLinkRows(c.links),
           order: String(c.order),
           status: c.status,
+          heTitle: c.he?.title ?? "",
+          heTagline: c.he?.tagline ?? "",
+          heDescription: c.he?.description ?? "",
           _rev: c._rev,
         });
       })
@@ -86,6 +94,14 @@ export default function AdminCollection() {
       const saved = await admin.saveCollection(d.slug, {
         title: d.title,
         tagline: d.tagline,
+        he:
+          d.heTitle.trim() || d.heTagline.trim() || d.heDescription.trim()
+            ? {
+                title: d.heTitle.trim() || null,
+                tagline: d.heTagline.trim() || null,
+                description: d.heDescription.trim() || null,
+              }
+            : null,
         kind: d.kind,
         // Repo config is optional; an area with no repository is perfectly valid.
         // The branch and the allowlist are sent as configured — they used to be
@@ -176,6 +192,33 @@ export default function AdminCollection() {
             className="a-textarea min-h-[6rem]"
           />
         </label>
+
+        <details className="mt-10">
+          <summary className="a-summary">Hebrew</summary>
+          <p className="a-hint mt-2">
+            Optional, field by field. A field left empty shows the English on the Hebrew page, marked
+            as English.
+          </p>
+          <div className="mt-4 grid gap-5" lang="he" dir="rtl">
+            <label className="block">
+              <span className="a-label" lang="en" dir="ltr">Title</span>
+              <input value={d.heTitle} onChange={(e) => patch({ heTitle: e.target.value })} className="a-input" maxLength={120} />
+            </label>
+            <label className="block">
+              <span className="a-label" lang="en" dir="ltr">Tagline</span>
+              <input value={d.heTagline} onChange={(e) => patch({ heTagline: e.target.value })} className="a-input" maxLength={160} />
+            </label>
+            <label className="block">
+              <span className="a-label" lang="en" dir="ltr">Description</span>
+              <textarea
+                value={d.heDescription}
+                onChange={(e) => patch({ heDescription: e.target.value })}
+                className="a-textarea min-h-[6rem]"
+                maxLength={400}
+              />
+            </label>
+          </div>
+        </details>
 
         <details open className="mt-10">
           <summary className="a-summary">Details</summary>

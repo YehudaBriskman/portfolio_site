@@ -1,6 +1,7 @@
 import type { MouseEventHandler, ReactNode } from "react";
 import { Link } from "react-router-dom";
 import styles from "@/components/ui/Action.module.css";
+import Arrow from "@/i18n/Arrow";
 
 /*
  * One component for every action on the public site.
@@ -27,11 +28,12 @@ export type ActionTone = "solid" | "outline" | "text";
  */
 export type ActionGlyph = "onward" | "down" | "back" | "out";
 
-const GLYPH: Record<ActionGlyph, string> = {
-  onward: "→",
+/* In the reading direction: onward points left on a Hebrew page (#248). */
+const GLYPH: Record<ActionGlyph, ReactNode> = {
+  onward: <Arrow to="on" />,
   down: "↓",
-  back: "←",
-  out: "↗",
+  back: <Arrow to="back" />,
+  out: <Arrow to="out" />,
 };
 
 const TONE: Record<ActionTone, string> = {

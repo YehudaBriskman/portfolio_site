@@ -11,6 +11,10 @@ import Shot from "@/components/projects/Shot";
 import type { Project } from "@/data/projects";
 import { useContent } from "@/content/store";
 import { blog, type PostSummary } from "@/services/blog";
+import { useLang, type Lang } from "@/components/dashboard/i18n";
+import { useHomeWords, useNotesWords } from "@/i18n/pages";
+import { dateIn, plural } from "@/i18n/words";
+import Arrow from "@/i18n/Arrow";
 import dark from "@/components/notes/DarkCard.module.css";
 import styles from "@/components/LatestNotes.module.css";
 
@@ -106,11 +110,8 @@ const COVER_SIZES = "(min-width: 700px) 640px, 92vw";
 const titlesOf = (projects: readonly Project[]) => new Map(projects.map((p) => [p.slug, p.title]));
 
 /** The date, short enough to survive being cropped. */
-function monthAndYear(iso: string | null): string {
-  if (!iso) return "";
-  const when = new Date(iso);
-  if (Number.isNaN(when.getTime())) return "";
-  return when.toLocaleDateString("en-GB", { month: "short", year: "numeric" });
+function monthAndYear(iso: string | null, lang: Lang): string {
+  return dateIn(lang, iso, { month: "short", year: "numeric" });
 }
 
 /**
@@ -136,14 +137,14 @@ function factLine(post: PostSummary): string {
  * because on a travelling shelf the first field is the one still on screen
  * when the rest of the card is not. An empty field is omitted, not printed.
  */
-function noteFields(post: PostSummary, projectTitles: Map<string, string>): LabelField[] {
+function noteFields(post: PostSummary, projectTitles: Map<string, string>, lang: Lang): LabelField[] {
   const fields: LabelField[] = [
-    { kind: "where", value: projectTitles.get(post.collection) ?? "Notes" },
+    { kind: "where", value: projectTitles.get(post.collection) ?? useHomeWords.of(lang).notes },
   ];
   if (post.readingMinutes > 0) {
-    fields.push({ kind: "reading", value: `${post.readingMinutes} min` });
+    fields.push({ kind: "reading", value: plural(lang, post.readingMinutes, useNotesWords.of(lang).minutes) });
   }
-  const when = monthAndYear(post.publishedAt);
+  const when = monthAndYear(post.publishedAt, lang);
   if (when) fields.push({ kind: "when", value: when });
   return fields;
 }
@@ -157,8 +158,10 @@ function running(track: Element): boolean {
 const ONWARD = "notes-shelf-onward";
 
 export default function LatestNotes() {
+  const lang = useLang();
   const { data, isPending, isError } = useQuery({
-    queryKey: ["notes", "latest"],
+    /* Keyed on the language: a translated title is a different value. */
+    queryKey: ["notes", "latest", lang],
     queryFn: () => blog.posts(),
     staleTime: 5 * 60 * 1000,
     /* One retry, not three: this is a shelf on a page the reader is scrolling
@@ -169,6 +172,7 @@ export default function LatestNotes() {
   const posts = (data ?? []).slice(0, SHOWN);
   const { projects } = useContent();
   const projectTitles = useMemo(() => titlesOf(projects), [projects]);
+  const w = useHomeWords();
 
   /* The run's keyboard answer: scroll the document — the real scroll
      container — to the focused card's marker. `instant`, because focus has
@@ -197,9 +201,9 @@ export default function LatestNotes() {
     >
       <div className="wrap section-head">
         <InkRule className="section-head-rule" />
-        <h2 className="display text-section leading-[0.9]">Notes</h2>
+        <h2 className="display text-section leading-[0.9]">{w.notes}</h2>
         <InkRule className="section-head-rule" />
-        <p className="eyebrow section-head-note">Decisions and what they cost</p>
+        <p className="eyebrow section-head-note">{w.notesNote}</p>
       </div>
 
       {/*
@@ -251,7 +255,7 @@ export default function LatestNotes() {
               onClick={skip}
               className={`${styles.skip} sr-only focus:not-sr-only`}
             >
-              Skip past the notes
+              {w.skipNotes}
             </a>
           </div>
 
@@ -284,9 +288,9 @@ export default function LatestNotes() {
                     card's middle, in from the left on the shelf's own clock
                     and whole just after the frame pins. */}
                 <div className={styles.aurora} data-notes-aurora="">
-                  <AuroraStrand from="left" timeline="--notes-shelf" range="entry 40% contain 6%" />
+                  <AuroraStrand from="left" mirrorInRtl timeline="--notes-shelf" range="entry 40% contain 6%" />
                 </div>
-                <ul className={styles.track} aria-label="Latest notes" onFocus={onFocus}>
+                <ul className={styles.track} aria-label={w.latestNotes} onFocus={onFocus}>
                   {posts.map((post, i) => {
                     const fact = factLine(post);
                     return (
@@ -314,11 +318,11 @@ export default function LatestNotes() {
                             nameAs="h3"
                             name={post.title}
                             fact={fact}
-                            fields={noteFields(post, projectTitles)}
+                            fields={noteFields(post, projectTitles, lang)}
                             className={styles.label}
                           />
                           <span className={styles.onward} aria-hidden="true">
-                            &rarr;
+                            <Arrow />
                           </span>
                         </div>
                       </Link>
@@ -346,15 +350,15 @@ export default function LatestNotes() {
             className="mt-12 max-w-xl text-lg leading-relaxed text-clay"
           >
             {isError
-              ? "The notes aren't loading just now. They're still there — the index has all of them."
-              : "Nothing published yet. The index is where they'll appear."}
+              ? w.notesError
+              : w.notesNone}
           </p>
         </div>
       )}
 
       <div className="wrap">
         <Link to="/blog" className="btn btn-quiet mt-section-sm">
-          All notes <span aria-hidden="true">→</span>
+          {w.allNotes} <span aria-hidden="true"><Arrow /></span>
         </Link>
       </div>
     </section>

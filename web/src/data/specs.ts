@@ -61,7 +61,7 @@ export type SpecFigure = {
    * Written in sentence case and uppercased by CSS, the same way the label
    * schema's field line is — see the note on `LabelField.value`.
    */
-  caption: string;
+  caption: "Projects" | "Live" | "Tools" | "Shipping";
   /** A unit that belongs to the number rather than to the caption. `yrs`. */
   unit?: string;
 };
@@ -137,12 +137,13 @@ function yearSpan(projects: Table): number {
  * not a plate with a nought.
  */
 export function specFiguresOf(projects: Table): SpecFigure[] {
-  return [
+  return ([
+
     { value: objectCount(projects), caption: "Projects" },
     { value: liveCount(projects), caption: "Live" },
     { value: toolCount(projects), caption: "Tools" },
     { value: yearSpan(projects), caption: "Shipping", unit: "yrs" },
-  ].filter((figure) => figure.value > 0);
+  ] satisfies SpecFigure[]).filter((figure) => figure.value > 0);
 }
 
 /** The plate over the data files. The page counts the store's table (#163). */

@@ -2,7 +2,9 @@ import { useRef, type CSSProperties } from "react";
 import { useQuery } from "@tanstack/react-query";
 import InkRule from "@/components/motion/InkRule";
 import SkeletonLines from "@/components/gallery/SkeletonLines";
-import { cityPlan, EMPTY_PLAN, type CityPlan } from "@/components/city/cityPlan";
+import { cityPlan, EMPTY_PLAN, monthLabel, type CityPlan } from "@/components/city/cityPlan";
+import { INTL, useLang, type Lang } from "@/components/dashboard/i18n";
+import { useCityWords } from "@/i18n/pages";
 import { useCityHand } from "@/components/city/useCityHand";
 import { contributionYear } from "@/services/contributions";
 import styles from "@/components/city/ContributionCity.module.css";
@@ -117,8 +119,8 @@ const EMPTY_WEEKS = EMPTY_PLAN.weeks;
  * sends calendar dates with no time in them, and reporting one in the reader's
  * own zone prints the day before it for everyone west of Greenwich.
  */
-function longDate(date: string): string {
-  return new Date(`${date}T00:00:00Z`).toLocaleDateString("en-GB", {
+function longDate(date: string, lang: Lang): string {
+  return new Date(`${date}T00:00:00Z`).toLocaleDateString(INTL[lang], {
     day: "numeric",
     month: "long",
     year: "numeric",
@@ -126,8 +128,8 @@ function longDate(date: string): string {
   });
 }
 
-function count(n: number): string {
-  return n.toLocaleString("en-GB");
+function count(n: number, lang: Lang): string {
+  return n.toLocaleString(INTL[lang]);
 }
 
 /**
@@ -138,10 +140,10 @@ function count(n: number): string {
  * width below a desktop. The long form is in the caption, where there is a
  * measure to hold it.
  */
-function windowLabel(plan: CityPlan, from: string | null, to: string | null): string {
-  if (!from || !to || plan.cells.length === 0) return "Trailing twelve months";
+function windowLabel(plan: CityPlan, from: string | null, to: string | null, lang: Lang): string {
+  if (!from || !to || plan.cells.length === 0) return useCityWords.of(lang).trailing;
   const short = (d: string) =>
-    new Date(`${d}T00:00:00Z`).toLocaleDateString("en-GB", {
+    new Date(`${d}T00:00:00Z`).toLocaleDateString(INTL[lang], {
       month: "short",
       year: "numeric",
       timeZone: "UTC",
@@ -184,6 +186,8 @@ export default function ContributionCity() {
   });
 
   const year = data ?? null;
+  const lang = useLang();
+  const w = useCityWords();
   const plan = year ? cityPlan(year) : EMPTY_PLAN;
   const cells = cellsOf(plan);
   const empty = plan.cells.length === 0;
@@ -217,10 +221,10 @@ export default function ContributionCity() {
             is `.section-head` in index.css. */}
         <div className="section-head">
           <InkRule className="section-head-rule" />
-          <h2 className="display text-section leading-[0.9]">The year</h2>
+          <h2 className="display text-section leading-[0.9]">{w.title}</h2>
           <InkRule className="section-head-rule" />
           <p className="eyebrow section-head-note tabular-nums">
-            {windowLabel(plan, year?.from ?? null, year?.to ?? null)}
+            {windowLabel(plan, year?.from ?? null, year?.to ?? null, lang)}
           </p>
         </div>
 
@@ -263,8 +267,7 @@ export default function ContributionCity() {
                 ? {
                     tabIndex: 0,
                     role: "group",
-                    "aria-label":
-                      "The year, day by day. Arrow keys move between days, Home and End go to the first and last.",
+                    "aria-label": w.frame,
                   }
                 : {})}
             >
@@ -343,10 +346,10 @@ export default function ContributionCity() {
               {live && (
                 <div className={`eyebrow ${styles.readout}`} aria-hidden="true">
                   <span className={styles.hint} data-hint="pointer">
-                    Drag to turn the city · point at a day
+                    {w.drag}
                   </span>
                   <span className={styles.hint} data-hint="touch">
-                    Swipe sideways to turn · tap a day
+                    {w.swipe}
                   </span>
                 </div>
               )}
@@ -378,23 +381,14 @@ export default function ContributionCity() {
             deploy and its operator — so there is nothing here to translate.
           */}
           <figcaption className={styles.caption}>
-            {isPending && "Reading the year…"}
+            {isPending && w.reading}
             {!isPending && year?.error}
             {!isPending && !empty && plan.total !== null && (
               <>
-                {count(plan.total)} contributions over {count(plan.cells.length)} days,{" "}
-                {year?.from && year?.to && (
-                  <>
-                    {longDate(year.from)} to {longDate(year.to)}
-                  </>
-                )}
-                . {count(plan.active)} of those days have something in them
-                {plan.busiest && (
-                  <>
-                    ; the busiest is {longDate(plan.busiest.date)}, at{" "}
-                    {count(plan.busiest.count)}
-                  </>
-                )}
+                {w.contributionsOver(count(plan.total, lang), count(plan.cells.length, lang))}
+                {year?.from && year?.to && w.between(longDate(year.from, lang), longDate(year.to, lang))}
+                {w.active(count(plan.active, lang))}
+                {plan.busiest && w.busiest(longDate(plan.busiest.date, lang), count(plan.busiest.count, lang))}
                 .
               </>
             )}
@@ -454,34 +448,33 @@ export default function ContributionCity() {
         */}
         {!empty && plan.months.length > 0 && (
           <details className={styles.table}>
-            <summary className={`eyebrow ${styles.summary}`}>The year as a table</summary>
+            <summary className={`eyebrow ${styles.summary}`}>{w.table}</summary>
             <table className={styles.months}>
               <caption className="sr-only">
-                Contributions by month over the trailing year, with the number of
-                days of each month that fall inside the window.
+                {w.tableCaption}
               </caption>
               <thead>
                 <tr>
                   <th scope="col" className="eyebrow">
-                    Month
+                    {w.month}
                   </th>
                   <th scope="col" className="eyebrow">
-                    Days
+                    {w.days}
                   </th>
                   <th scope="col" className="eyebrow">
-                    Contributions
+                    {w.contributions}
                   </th>
                 </tr>
               </thead>
               <tbody>
                 {plan.months.map((m) => (
                   <tr key={m.label}>
-                    <th scope="row">{m.label}</th>
+                    <th scope="row">{monthLabel(m.ym, INTL[lang])}</th>
                     {/* The first and last month of a trailing window are both
                         partial, which a reader comparing twelve totals has to be
                         told before the comparison means anything. */}
                     <td>{m.days}</td>
-                    <td>{count(m.total)}</td>
+                    <td>{count(m.total, lang)}</td>
                   </tr>
                 ))}
               </tbody>

@@ -1,6 +1,7 @@
 import type { ProjectDecision } from "@/data/projects";
 import Written from "@/components/motion/Written";
 import Ring from "@/components/motion/Ring";
+import { useProjectWords } from "@/i18n/pages";
 
 /*
  * The decisions, with the reasoning kept in.
@@ -23,13 +24,14 @@ export default function ProjectDecisions({
   decisions: ProjectDecision[];
   className?: string;
 }) {
+  const w = useProjectWords();
   if (decisions.length === 0) return null;
 
   return (
     <section className={className} aria-labelledby="decisions-heading">
       <h2 id="decisions-heading" className="display-tight inline-flex items-center gap-2 text-2xl sm:text-3xl">
         <Ring size={12} />
-        Decisions worth defending
+        {w.decisions}
       </h2>
       <ol className="mt-6 divide-y divide-edge border-y border-edge">
         {decisions.map((d, i) => (

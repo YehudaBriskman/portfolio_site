@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type RefObject } from "react";
 import { Link } from "react-router-dom";
 import { Toaster, toast } from "@/components/ui/sonner";
 import { useReaderWords } from "@/components/notes/reader/words";
+import Arrow from "@/i18n/Arrow";
 
 /*
  * Where you are, and the two things you might want next.
@@ -188,7 +189,7 @@ export default function ReadingBar({
         <div
           ref={fillRef}
           aria-hidden="true"
-          className="absolute inset-x-0 top-0 h-[2px] origin-left bg-bone"
+          className="absolute inset-x-0 top-0 h-[2px] origin-left rtl:origin-right bg-bone"
           style={{ transform: "scaleX(0)" }}
         />
         <div className="flex items-center justify-between px-5">
@@ -206,7 +207,7 @@ export default function ReadingBar({
             </button>
           )}
           <button type="button" onClick={share} className="tap inline-flex min-h-[44px] items-center gap-2 py-3.5 text-[0.9375rem] text-clay">
-            {w.share} <span aria-hidden="true">&#8599;</span>
+            {w.share} <span aria-hidden="true"><Arrow to="out" /></span>
           </button>
         </div>
       </div>

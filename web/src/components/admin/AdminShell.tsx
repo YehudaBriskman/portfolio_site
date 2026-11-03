@@ -2,6 +2,8 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { admin } from "@/services/admin";
 import { markAdminSeen } from "@/components/notes/reader/adminSession";
+import { useAdminShellWords } from "@/i18n/pages";
+import Arrow from "@/i18n/Arrow";
 
 /*
  * The admin's own shell.
@@ -67,6 +69,7 @@ export default function AdminShell({
   children,
 }: AdminShellProps) {
   const { pathname } = useLocation();
+  const w = useAdminShellWords();
   const [who, setWho] = useState("");
 
   useEffect(() => {
@@ -119,7 +122,7 @@ export default function AdminShell({
         href="#admin-content"
         className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[70] focus:bg-sodium focus:px-4 focus:py-2 focus:text-bitumen"
       >
-        Skip to content
+        {w.skip}
       </a>
 
       {/* Desktop: a rail, not a top bar. The editor is a vertical document, so
@@ -129,10 +132,10 @@ export default function AdminShell({
       <aside className="a-bar hidden shrink-0 border-r lg:sticky lg:top-0 lg:flex lg:h-dvh lg:w-60 lg:flex-col lg:px-4 lg:py-5">
         <Link to="/admin/posts" className="mono px-3 text-xs uppercase tracking-[0.22em] text-bone">
           Y.B<span className="text-sodium">.</span>
-          <span className="ml-2 text-[0.625rem] tracking-[0.22em] text-clay">admin</span>
+          <span className="ms-2 text-[0.625rem] tracking-[0.22em] text-clay">{w.admin}</span>
         </Link>
 
-        <nav className="mt-8 space-y-1" aria-label="Admin sections">
+        <nav className="mt-8 space-y-1" aria-label={w.sections}>
           {SECTIONS.map((s) => (
             <Link key={s.id} to={s.to} aria-current={isCurrent(s.id)} className="a-rail-item">
               <span>{s.label}</span>
@@ -150,7 +153,7 @@ export default function AdminShell({
             rel="noreferrer noopener"
             className="mono block text-[0.6875rem] uppercase tracking-[0.16em] text-clay transition-colors hover:text-bone"
           >
-            View public site ↗
+            {w.publicSite} <Arrow to="out" />
           </a>
           <p className="mono text-[0.625rem] leading-relaxed tracking-[0.12em] text-clay">
             {who ? `Signed in as ${who}` : "Signed in"}
@@ -159,7 +162,7 @@ export default function AdminShell({
             href="/oauth2/sign_out"
             className="mono block text-[0.625rem] uppercase tracking-[0.16em] text-clay transition-colors hover:text-bone"
           >
-            Sign out
+            {w.signOut}
           </a>
         </div>
       </aside>
@@ -171,7 +174,7 @@ export default function AdminShell({
             <Link
               to={backTo}
               className="a-btn a-btn-ghost a-icon-btn shrink-0"
-              aria-label="Back"
+              aria-label={w.back}
             >
               <span aria-hidden="true">‹</span>
             </Link>
@@ -199,7 +202,7 @@ export default function AdminShell({
       */}
       <div ref={bar} className="a-bar fixed inset-x-0 bottom-0 z-30 border-t pb-[env(safe-area-inset-bottom)] lg:hidden">
         {bottomBar ?? (
-          <nav className="flex" aria-label="Admin sections">
+          <nav className="flex" aria-label={w.sections}>
             {SECTIONS.map((s) => (
               <Link
                 key={s.id}
@@ -218,7 +221,7 @@ export default function AdminShell({
               rel="noreferrer noopener"
               className="mono flex min-h-[56px] flex-1 items-center justify-center text-[0.625rem] uppercase tracking-[0.16em] text-clay"
             >
-              Site ↗
+              {w.site} <Arrow to="out" />
             </a>
           </nav>
         )}

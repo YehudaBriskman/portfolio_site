@@ -2,6 +2,7 @@ import type { CSSProperties } from "react";
 import InkRule from "@/components/motion/InkRule";
 import { specFiguresOf } from "@/data/specs";
 import { useContent } from "@/content/store";
+import { useHomeWords } from "@/i18n/pages";
 import styles from "@/components/Stack.module.css";
 
 /*
@@ -41,6 +42,7 @@ import styles from "@/components/Stack.module.css";
 export default function SpecPlate() {
   /* Counted from the content store's table (#163), the one the pile renders. */
   const specFigures = specFiguresOf(useContent().projects);
+  const w = useHomeWords();
   return (
     /*
      * `id="stack"` outlives the name on purpose.
@@ -56,9 +58,9 @@ export default function SpecPlate() {
           index.css. */}
       <div className="section-head">
         <InkRule className="section-head-rule" />
-        <h2 className="display text-section leading-[0.9]">Specs</h2>
+        <h2 className="display text-section leading-[0.9]">{w.specs}</h2>
         <InkRule className="section-head-rule" />
-        <p className="eyebrow section-head-note">Counted from the work, not claimed</p>
+        <p className="eyebrow section-head-note">{w.specsNote}</p>
       </div>
 
       {/*
@@ -73,7 +75,7 @@ export default function SpecPlate() {
       >
         {specFigures.map((figure) => (
           <div key={figure.caption} className={styles.cell}>
-            <dt className={`${styles.caption} text-field`}>{figure.caption}</dt>
+            <dt className={`${styles.caption} text-field`}>{w.spec[figure.caption]}</dt>
             <dd
               className={`${styles.figure} text-section`}
               style={
@@ -99,11 +101,11 @@ export default function SpecPlate() {
                   the space between them is a flex gap and a gap is not
                   whitespace in the accessibility tree. */}
               <span className="sr-only">
-                {figure.unit ? `${figure.value} ${figure.unit}` : figure.value}
+                {figure.unit ? `${figure.value} ${w.years}` : figure.value}
               </span>
               {figure.unit && (
                 <span className={styles.unit} aria-hidden="true">
-                  {figure.unit}
+                  {w.years}
                 </span>
               )}
             </dd>

@@ -1158,3 +1158,36 @@
 :global(body.motion-paused) .direct a {
   transition: none;
 }
+
+/*
+ * Right to left (#248). The pen writes the way the page reads: the name's ink
+ * and the seal cross from the right, and the closing rule draws leftwards to
+ * an end-mark on the left. The email's two inks meet in the middle either
+ * way, and the message's grows from the centre, so neither changes.
+ */
+:global(html[dir="rtl"]) .ink::after,
+:global(html[dir="rtl"]) .form[data-sent="true"] .field .ink::after {
+  background-position: right center;
+}
+
+:global(html[dir="rtl"]) .inkMessage::after {
+  background-position: center center;
+}
+
+:global(html[dir="rtl"]) .inkEmail::after {
+  background-position: right center, left center;
+}
+
+:global(html[dir="rtl"]) .closing {
+  animation-name: close-draw-rtl;
+}
+
+:global(html[dir="rtl"]) .closing::after {
+  right: auto;
+  left: 0;
+}
+
+@keyframes close-draw-rtl {
+  from { clip-path: inset(-8px 0 -8px 100%); }
+  to   { clip-path: inset(-8px 0 -8px -8px); }
+}

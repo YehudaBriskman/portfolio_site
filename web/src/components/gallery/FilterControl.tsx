@@ -15,6 +15,7 @@ import {
   type Selection,
 } from "@/components/gallery/facets";
 import styles from "@/components/gallery/Filter.module.css";
+import { useFilterWords } from "@/i18n/pages";
 
 /*
  * The filter control (#193), one for both galleries: a card holding a
@@ -94,6 +95,7 @@ function MultiSelect({
   const id = useId();
   const name = facet.labelOf ?? ((v: string) => v);
   const { options } = facet;
+  const w = useFilterWords();
   const at = Math.max(0, Math.min(active, options.length - 1));
 
   /* Focus follows the active option while the list is open. */
@@ -163,7 +165,7 @@ function MultiSelect({
   };
 
   const summary =
-    selected.length === 0 ? "Any" : selected.length === 1 ? name(selected[0]) : `${selected.length} chosen`;
+    selected.length === 0 ? w.any : selected.length === 1 ? name(selected[0]) : w.chosen(selected.length);
 
   return (
     <div
@@ -254,6 +256,7 @@ export function FilterTokens({
   path: string;
 }) {
   const location = useLocation();
+  const w = useFilterWords();
   const box = useRef<HTMLDivElement>(null);
   const pending = useRef<number | null>(null);
 
@@ -276,7 +279,7 @@ export function FilterTokens({
   );
   return (
     <div ref={box} className={styles.tokens} hidden={tokens.length === 0}>
-      <ul className={styles.tokenList} aria-label="Active filters">
+      <ul className={styles.tokenList} aria-label={w.active}>
         {tokens.map(({ facet, value }, i) => {
           const words = facet.labelOf?.(value) ?? value;
           return (
@@ -293,7 +296,7 @@ export function FilterTokens({
               >
                 <span className={styles.tokenFacet}>{facet.label}</span>
                 <span translate={facet.noTranslate ? "no" : undefined}>{words}</span>
-                <span className="sr-only">, remove this filter</span>
+                <span className="sr-only">{w.remove}</span>
                 <span className={styles.cross} aria-hidden="true" />
               </Link>
             </li>
@@ -309,7 +312,7 @@ export function FilterTokens({
           pending.current = 0;
         }}
       >
-        Clear all
+        {w.clearAll}
       </Link>
     </div>
   );
@@ -340,6 +343,7 @@ export default function FilterControl({
   search?: ReactNode;
 }) {
   const toggle = useToggle(path);
+  const w = useFilterWords();
   const headingId = useId();
   const offered = facets.filter((f) => f.options.length > 0);
 
@@ -352,17 +356,14 @@ export default function FilterControl({
         {/* Always in the tree, so the count is announced when a filter
             changes it: a live region inserted already holding its text
             says nothing. */}
-        {/* `dir="auto"`: the strings are English under a Hebrew page until
-            there is a translation layer, and an English phrase laid out
-            right to left puts its number at the wrong end. */}
-        <p className={styles.tally} aria-live="polite" dir="auto">
+        <p className={styles.tally} aria-live="polite">
           {shown === total ? (
             <>
               <b>{total}</b> {noun}
             </>
           ) : (
             <>
-              <b>{shown}</b> of {total} {noun}
+              <b>{shown}</b> {w.of} {total} {noun}
             </>
           )}
         </p>

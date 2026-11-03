@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 import styles from "@/components/Figure.module.css";
+import { useHomeWords } from "@/i18n/pages";
 
 /*
  * A picture, framed and captioned.
@@ -36,12 +37,13 @@ export type FigureProps = {
 };
 
 export default function Figure({ index, caption, note, children, className = "", style }: FigureProps) {
+  const w = useHomeWords();
   return (
     <figure className={`figure-frame ${styles.frame} ${className}`.trim()} style={style}>
       {children}
       <figcaption className={styles.caption}>
         {index !== undefined && (
-          <span className={styles.index}>Fig.&nbsp;{String(index).padStart(2, "0")}</span>
+          <span className={styles.index}>{w.figure}&nbsp;{String(index).padStart(2, "0")}</span>
         )}
         <span className={styles.what}>{caption}</span>
         {note && <span className={styles.note}>{note}</span>}

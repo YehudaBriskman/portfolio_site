@@ -2,6 +2,9 @@ import type { CSSProperties } from "react";
 import { useContent } from "@/content/store";
 import { sectionVisible } from "@/settings/schema";
 import { useSiteSettings } from "@/settings/store";
+import { useHomeWords } from "@/i18n/pages";
+import { useLang } from "@/components/dashboard/i18n";
+import { inEnglish } from "@/i18n/words";
 import { scrollToAnchor } from "@/lib/scrollToAnchor";
 import styles from "@/components/HeroCorners.module.css";
 
@@ -110,6 +113,8 @@ function Ask() {
   /* The ask points at the contact plate; with the plate hidden (#254) it
      would point at nothing, so it goes with it. */
   const contactShown = sectionVisible(useSiteSettings(), "contact");
+  const w = useHomeWords();
+  const lang = useLang();
   if (!contactShown) return null;
   return (
     <div className={styles.ask}>
@@ -120,11 +125,11 @@ function Ask() {
           if (scrollToAnchor("contact")) e.preventDefault();
         }}
       >
-        Get in touch
+        {w.getInTouch}
       </a>
       {/* The bound, in the field line's voice, so the ask reads as a fact
           about how long an answer takes rather than as an inducement. */}
-      <p className={styles.askBound}>{contact.replyWithin}</p>
+      <p className={styles.askBound} {...inEnglish(lang, contact.replyWithin)}>{contact.replyWithin}</p>
     </div>
   );
 }
@@ -156,8 +161,10 @@ function Ask() {
  */
 function Light() {
   const { heroPhrases } = useContent().site;
+  const lang = useLang();
+  /* The owner's copy, English until it has a Hebrew of its own (#248). */
   return (
-    <div className={styles.light} data-hero-light="">
+    <div className={styles.light} data-hero-light="" {...inEnglish(lang, heroPhrases.join(" "))}>
       <span className="sr-only">{heroPhrases.join(", ")}</span>
       <span className={styles.phrases} aria-hidden="true">
         {heroPhrases.map((phrase, i) => (

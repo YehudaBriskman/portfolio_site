@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useNotesWords } from "@/i18n/pages";
 
 /*
  * Who wrote this.
@@ -16,9 +17,6 @@ import type { ReactNode } from "react";
 
 export const AUTHOR = {
   name: "Yehuda Briskman",
-  /* Both halves of this are checkable, which is the standard the rest of the
-     copy on this site holds itself to. */
-  role: "Full-stack engineer & team lead",
 } as const;
 
 /** The subscribe affordance, on its own so the index and the post agree. */
@@ -59,6 +57,7 @@ export default function Byline({
   feed?: boolean;
   className?: string;
 }) {
+  const w = useNotesWords();
   return (
     <div className={`flex flex-wrap items-center gap-x-4 gap-y-3 ${className}`}>
       <div className="flex items-center gap-3">
@@ -84,14 +83,15 @@ export default function Byline({
         <div className="leading-tight">
           <p className="text-[0.9375rem] text-bone">{AUTHOR.name}</p>
           <p className="mono mt-1 text-xs tracking-[0.08em] text-clay">
-            {AUTHOR.role}
+            {/* Both halves checkable; the Hebrew is in the notes' table (#248). */}
+            {w.authorRole}
           </p>
         </div>
       </div>
 
       {meta}
 
-      {feed && <FeedLink className="ml-auto" />}
+      {feed && <FeedLink className="ms-auto" />}
     </div>
   );
 }

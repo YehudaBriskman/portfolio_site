@@ -7,6 +7,8 @@ import styles from "@/components/story/Story.module.css";
 import { lineAttr } from "@/components/motion/lineMoves";
 import { STORY_LINE, buildStory, type Beat, type Interlude, type Story as StoryData } from "@/data/story";
 import { useContent } from "@/content/store";
+import { useStoryWords } from "@/i18n/pages";
+import Arrow from "@/i18n/Arrow";
 import type { ContentView } from "@/content/convert";
 
 /*
@@ -117,13 +119,14 @@ function InterludeItem({ interlude }: { interlude: Interlude }) {
 export default function Story() {
   const content = useContent();
   const story = useMemo(() => storyFrom(content), [content]);
+  const w = useStoryWords();
 
   return (
     <PageShell>
       <div className={styles.story} data-page="story">
         <header className={`wrap ${styles.open}`}>
-          <p className="eyebrow">Journey</p>
-          <h1 className={`display ${styles.openTitle}`}>The long way round</h1>
+          <p className="eyebrow">{w.eyebrow}</p>
+          <h1 className={`display ${styles.openTitle}`}>{w.title}</h1>
           <p className={`text-field ${styles.sig}`}>
             <span>
               {story.firstYear}–{story.lastYear}
@@ -136,7 +139,7 @@ export default function Story() {
             {/* The seed (#191): a dot in the middle of the page, before the
                 first beat, that the line grows out of. Decoration only. */}
             <span className={styles.seed} data-line={lineAttr(STORY_LINE.origin)} aria-hidden="true" />
-            <ol className={styles.timeline} aria-label="Timeline">
+            <ol className={styles.timeline} aria-label={w.timeline}>
               {story.beats.map((b, i) => (
                 <Fragment key={b.id}>
                   <BeatItem beat={b} side={i % 2 === 0 ? "start" : "end"} />
@@ -153,19 +156,19 @@ export default function Story() {
 
         <section aria-labelledby="close-title" className={`wrap ${styles.close}`}>
           <h2 id="close-title" className={`display ${styles.closeTitle}`}>
-            So far
+            {w.soFar}
           </h2>
           <dl className={styles.figures}>
             {story.figures.map((f) => (
               <div key={f.caption} className={styles.figure}>
-                <dt className={`${styles.figureCaption} text-field`}>{f.caption}</dt>
+                <dt className={`${styles.figureCaption} text-field`}>{w.figures[f.caption] ?? f.caption}</dt>
                 <dd className={styles.figureValue}>{f.value}</dd>
               </div>
             ))}
           </dl>
           <p className={styles.onward}>
             <Link to="/projects" className={styles.onwardLink}>
-              All the work, without the years <span aria-hidden="true">→</span>
+              {w.allWork} <span aria-hidden="true"><Arrow /></span>
             </Link>
           </p>
         </section>

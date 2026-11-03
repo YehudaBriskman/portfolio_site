@@ -46,31 +46,6 @@ const SKIP_DIRS = ["components/ui/", "__tests__/", "test/"];
 const SKIP_FILES = /^(pages\/Admin(?!Shell)[A-Za-z]*\.tsx|components\/admin\/(?!AdminShell)[^/]+\.tsx|components\/admin\/content\/.*|components\/LinkEditor\.tsx)$/;
 
 const PENDING = new Set<string>([
-  "components/admin/AdminShell.tsx",
-  "components/Approach.tsx",
-  "components/city/ContributionCity.tsx",
-  "components/Contact.tsx",
-  "components/Figure.tsx",
-  "components/gallery/FilterControl.tsx",
-  "components/gallery/Rail.tsx",
-  "components/HeroCorners.tsx",
-  "components/Hero.tsx",
-  "components/LatestNotes.tsx",
-  "components/notes/NoteCard.tsx",
-  "components/notes/NoteTile.tsx",
-  "components/notes/PostFooterNav.tsx",
-  "components/PostList.tsx",
-  "components/projects/Gallery.tsx",
-  "components/projects/ProjectActions.tsx",
-  "components/projects/ProjectDecisions.tsx",
-  "components/projects/ProjectRun.tsx",
-  "components/projects/ProjectStack.tsx",
-  "components/Stack.tsx",
-  "components/Work.tsx",
-  "pages/Accessibility.tsx",
-  "pages/DevelopersMcp.tsx",
-  "pages/Project.tsx",
-  "pages/Story.tsx",
 ]);
 
 function files(dir: string, out: string[] = []): string[] {
@@ -88,7 +63,9 @@ function english(file: string): string[] {
   const hits: string[] = [];
   const check = (s: string) => {
     const t = s.replace(/&[a-z]+;|&#\d+;/g, " ").replace(/\s+/g, " ").trim();
-    if (/[A-Za-z]{2}/.test(t) && !LATIN.has(t)) hits.push(t.slice(0, 60));
+    /* A path (`/blog`) is an address, the same in both languages. */
+    const path = /^\/[\w./-]*$/.test(t);
+    if (/[A-Za-z]{2}/.test(t) && !LATIN.has(t) && !path) hits.push(t.slice(0, 60));
   };
   const visit = (n: ts.Node) => {
     if (ts.isJsxText(n)) check(n.getText());

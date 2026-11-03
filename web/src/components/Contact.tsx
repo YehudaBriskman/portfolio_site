@@ -7,6 +7,8 @@ import styles from "@/components/Contact.module.css";
 import type { SocialLink } from "@/data/links";
 import { useContent } from "@/content/store";
 import { ContactSchema, sendContactMessage } from "@/services/contact";
+import { useContactWords, useHomeWords } from "@/i18n/pages";
+import Arrow from "@/i18n/Arrow";
 
 /** The three things a message is made of. A closed union, so a field's error,
  *  its id and its name can never be a string the compiler has not seen. */
@@ -126,6 +128,8 @@ export default function Contact() {
   /* The copy and the profiles from the content store (#163). */
   const { contact, links } = useContent().site;
   const plateFields = plateFieldsOf(links, contact);
+  const w = useContactWords();
+  const home = useHomeWords();
   const [status, setStatus] = useState<Status>({ kind: "idle" });
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
 
@@ -285,14 +289,16 @@ export default function Contact() {
     const parsed = ContactSchema.safeParse(draft);
     if (!parsed.success) {
       const flat = parsed.error.flatten().fieldErrors;
+      /* The schema's own messages are English; the reader's language has
+         the same three, one per field. */
       setFieldErrors({
-        name: flat.name?.[0],
-        email: flat.email?.[0],
-        message: flat.message?.[0],
+        name: flat.name?.[0] && w.errors.name,
+        email: flat.email?.[0] && w.errors.email,
+        message: flat.message?.[0] && w.errors.message,
       });
       setStatus({
         kind: "failed",
-        message: "Nothing was sent. There's a note under each field that needs a change.",
+        message: w.invalid,
       });
       /*
        * Focus deliberately does not move to the first bad field.
@@ -340,10 +346,10 @@ export default function Contact() {
        * shuts itself, when the send fails has thrown away the only copy of the
        * message it was asked to deliver.
        */
-      const reason = err instanceof Error ? err.message : "something went wrong at my end";
+      const reason = err instanceof Error ? err.message : w.unknownFailure;
       setStatus({
         kind: "failed",
-        message: `Nothing was sent — ${reason}. Your message is still in the fields, and ${contact.email} works too.`,
+        message: w.failed(reason, contact.email),
       });
     }
   }
@@ -397,8 +403,8 @@ export default function Contact() {
         <ObjectLabel
           scale="object"
           nameAs="h2"
-          name="Get in touch"
-          fact="Mail reaches me faster than anything else"
+          name={home.getInTouch}
+          fact={w.fact}
           fields={plateFields}
           className={styles.label}
         />
@@ -421,10 +427,7 @@ export default function Contact() {
          */}
         <div className={styles.ask}>
           <Written as="p" className={`${styles.note} text-fact`}>
-            I&rsquo;m employed full-time and not looking for freelance work. I do read
-            everything &mdash; if you&rsquo;re hiring, building something you think
-            I&rsquo;d find interesting, or want to talk about anything on this page,
-            write to me.
+            {w.note}
           </Written>
 
           {/*
@@ -446,7 +449,7 @@ export default function Contact() {
            */}
           {answered && (
             <p className={`${styles.signoff} ${styles.surface}`}>
-              <strong>Sent. I&rsquo;ll reply to the address you gave.</strong>
+              <strong>{w.sent}</strong>
             </p>
           )}
 
@@ -474,14 +477,17 @@ export default function Contact() {
               setOpen(true);
             }}
           >
-            {answered ? "Write another message" : "Write a message"}
-            <span aria-hidden="true">&rarr;</span>
+            {answered ? w.writeAnother : w.write}
+            <span aria-hidden="true"><Arrow /></span>
           </button>
         </div>
 
         <p className={`${styles.direct} ${styles.surface}`}>
-          Or write to <a href={`mailto:${contact.email}`}>{contact.email}</a> from
-          wherever you keep your mail.
+          {w.directBefore}{" "}
+          <a href={`mailto:${contact.email}`} dir="ltr">
+            {contact.email}
+          </a>{" "}
+          {w.directAfter}
         </p>
       </div>
 
@@ -521,12 +527,12 @@ export default function Contact() {
             <div className={styles.panelHead}>
               <div>
                 <h2 id={TITLE_ID} className={styles.panelTitle}>
-                  Write a message
+                  {w.write}
                 </h2>
                 {/* Said once, here, so no field needs a "required" mark of
                     its own. */}
                 <p className={styles.panelLede}>
-                  All three fields are needed. {contact.replyWithin}.
+                  {w.allThree} {contact.replyWithin}.
                 </p>
               </div>
               {/* A visible way out for a pointer, next to the two the browser
@@ -538,7 +544,7 @@ export default function Contact() {
                 className={`btn btn-quiet ${styles.dismiss}`}
                 onClick={() => setOpen(false)}
               >
-                Close
+                {w.close}
               </button>
             </div>
 
@@ -581,7 +587,7 @@ export default function Contact() {
                 className={styles.form}
                 onSubmit={onSubmit}
                 noValidate
-                aria-label="Send a message"
+                aria-label={w.formLabel}
                 /*
                  * The resolution, as one attribute.
                  *
@@ -612,7 +618,7 @@ export default function Contact() {
                  */}
                 <div className={`${styles.field} ${styles.fieldName}`}>
                   <label className={styles.fieldLabel} htmlFor="contact-name">
-                    Name
+                    {w.name}
                   </label>
                   <input
                     ref={firstFieldRef}
@@ -678,7 +684,7 @@ export default function Contact() {
                  */}
                 <div className={`${styles.field} ${styles.fieldEmail}`}>
                   <label className={styles.fieldLabel} htmlFor="contact-email">
-                    Email
+                    {w.email}
                   </label>
                   <input
                     id="contact-email"
@@ -714,7 +720,7 @@ export default function Contact() {
                  */}
                 <div className={`${styles.field} ${styles.fieldMessage}`}>
                   <label className={styles.fieldLabel} htmlFor="contact-message">
-                    Message
+                    {w.message}
                   </label>
                   <textarea
                     id="contact-message"
@@ -744,8 +750,8 @@ export default function Contact() {
                     disabled={status.kind === "sending"}
                     className="btn btn-solid"
                   >
-                    {status.kind === "sending" ? "Sending" : "Send message"}
-                    <span aria-hidden="true">&rarr;</span>
+                    {status.kind === "sending" ? w.sending : w.send}
+                    <span aria-hidden="true"><Arrow /></span>
                   </button>
 
                 {/*
@@ -770,7 +776,7 @@ export default function Contact() {
                  * added later.
                  */}
                   <p role="status" aria-live="polite" aria-atomic="true" className={styles.status}>
-                    {status.kind === "sending" && "Sending"}
+                    {status.kind === "sending" && w.sending}
                     {status.kind === "sent" && (
                       /*
                        * The receipt, and the ordering rule is satisfied by
@@ -782,7 +788,7 @@ export default function Contact() {
                        * because the dialog does not close itself.
                        */
                       <span className={styles.receipt}>
-                        Sent. I&rsquo;ll reply to the address you gave.
+                        {w.sent}
                       </span>
                     )}
                   </p>

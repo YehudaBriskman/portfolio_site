@@ -4,6 +4,9 @@ import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { useContent } from "@/content/store";
 import { sectionVisible } from "@/settings/schema";
 import { useSiteSettings } from "@/settings/store";
+import { useLang } from "@/components/dashboard/i18n";
+import { useStatementWords } from "@/i18n/statement";
+import { dateIn } from "@/i18n/words";
 
 /*
  * The accessibility statement (issue #99).
@@ -38,132 +41,81 @@ import { useSiteSettings } from "@/settings/store";
  * having trouble will trust.
  */
 
-const REVIEWED = "2 November 2026";
+/* The audit's date, printed in the reader's language. */
+const REVIEWED = "2026-11-02";
 
 export default function Accessibility() {
-  useDocumentTitle("Accessibility");
+  const w = useStatementWords();
+  const lang = useLang();
+  useDocumentTitle(w.title);
   const { contact } = useContent().site;
   /* The form lives on the home page; hidden there (#254), it is not offered. */
   const contactShown = sectionVisible(useSiteSettings(), "contact");
+  const reviewed = dateIn(lang, `${REVIEWED}T12:00:00Z`, { day: "numeric", month: "long", year: "numeric" });
 
   return (
     <PageShell>
       <section className="wrap section-y">
-        <p className="eyebrow">Statement</p>
-        <h1 className="display mt-3 text-section">Accessibility</h1>
+        <p className="eyebrow">{w.eyebrow}</p>
+        <h1 className="display mt-3 text-section">{w.title}</h1>
 
         <div className="mt-8 max-w-[68ch] space-y-5 text-[1.0625rem] leading-relaxed text-ink">
-          <p>
-            This site aims to meet the Web Content Accessibility Guidelines (WCAG) 2.2 at level
-            AA, which includes the Israeli standard IS 5568 (WCAG 2.0 at level AA). It was last
-            audited on {REVIEWED}, by me, the site&rsquo;s author. That audit is not a
-            certification by an accessibility professional.
-          </p>
+          <p>{w.intro(reviewed)}</p>
 
-          <h2 className="display display-md pt-6 text-object">What is in place</h2>
+          <h2 className="display display-md pt-6 text-object">{w.inPlace}</h2>
           <ul className="list-disc space-y-2 ps-6">
-            <li>
-              Every page works with a keyboard alone. The first key press reaches a link that
-              skips straight to the content, and focus is always visible.
-            </li>
-            <li>
-              Pages are built from headings and landmarks a screen reader can move between, and
-              every image that carries meaning has a text description.
-            </li>
-            <li>
-              Text and controls are measured for contrast against the ground they sit on,
-              including the one dark section.
-            </li>
-            <li>
-              The layout holds at 320 pixels wide and at 400% zoom without scrolling sideways,
-              and survives a reader&rsquo;s own line, letter and word spacing.
-            </li>
-            <li>
-              The contact form names every field, says which one needs a change and what the
-              change is, and announces whether the message was sent.
-            </li>
+            {w.inPlaceItems.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
           </ul>
 
-          <h2 className="display display-md pt-6 text-object">Motion, and the Pause button</h2>
-          <p>
-            Parts of the site move, and they move with your scrolling: as a section comes up it
-            settles a few pixels into place and a small circle draws itself by its heading, and
-            both undo on the way back up. Nothing is ever drawn over the text as it arrives.
-            Apart from a short curtain over the window while a page first loads, and replies to
-            what you click, tap or point at, nothing moves on its own. There are two ways to stop
-            all of it.
-          </p>
+          <h2 className="display display-md pt-6 text-object">{w.motion}</h2>
+          <p>{w.motionBody}</p>
           <ul className="list-disc space-y-2 ps-6">
+            <li>{w.reduceMotion}</li>
             <li>
-              If your device is set to reduce motion, the site already honours it and nothing
-              animates.
-            </li>
-            <li>
-              Otherwise, the <strong>Pause motion</strong> button in the top bar (inside the menu
-              on a phone) stops every animation on every page, and the site remembers the choice
-              on this device. Press it again to let things move.
+              {w.pauseBefore} <strong>{w.pauseName}</strong> {w.pauseAfter}
             </li>
           </ul>
-          <p>Nothing on the site flashes, and no content is only available while it moves.</p>
+          <p>{w.noFlash}</p>
 
-          <h2 className="display display-md pt-6 text-object">Changing how the site looks</h2>
-          <p>
-            The theme button in the top bar (inside the menu on a phone) opens one menu with three
-            settings. The site remembers each one on this device, and each can be reached and
-            changed with the keyboard: Enter or Space opens the menu, the arrow keys move, and
-            Escape closes it.
-          </p>
+          <h2 className="display display-md pt-6 text-object">{w.looks}</h2>
+          <p>{w.looksBody}</p>
           <ul className="list-disc space-y-2 ps-6">
-            <li>
-              <strong>Theme:</strong> Light, Dark, or System to follow your device.
-            </li>
-            <li>
-              <strong>Text size:</strong> Default, Large (about 12% bigger) or Larger (25%
-              bigger). This is on top of your browser&rsquo;s own zoom, which works as well.
-            </li>
-            <li>
-              <strong>Contrast:</strong> Standard, More, or System to follow your device&rsquo;s
-              &ldquo;increase contrast&rdquo; setting. More darkens the secondary text, the
-              outlines and the dividers, and thickens the focus ring.
-            </li>
+            {w.looksItems.map(([name, text]) => (
+              <li key={name}>
+                <strong>{name}</strong> {text}
+              </li>
+            ))}
           </ul>
 
-          <h2 className="display display-md pt-6 text-object">Known limitations</h2>
+          <h2 className="display display-md pt-6 text-object">{w.limits}</h2>
           <ul className="list-disc space-y-2 ps-6">
-            <li>
-              The site is in English only. A Hebrew version is listed in the language menu but
-              is not available yet.
-            </li>
-            <li>
-              Wide tables inside notes scroll sideways on a narrow screen. They can be reached
-              and scrolled with the keyboard.
-            </li>
-            <li>
-              The audit was checked with automated tools, a keyboard and the browser&rsquo;s
-              accessibility tree. It has not yet been checked with a screen reader on every
-              platform.
-            </li>
+            {w.limitItems.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
           </ul>
 
-          <h2 className="display display-md pt-6 text-object">Reporting a problem</h2>
+          <h2 className="display display-md pt-6 text-object">{w.report}</h2>
           <p>
-            If something here does not work for you, or you need it in another form, write to{" "}
-            <a className="underline underline-offset-4" href={`mailto:${contact.email}`}>
+            {w.reportBefore}{" "}
+            <a className="underline underline-offset-4" href={`mailto:${contact.email}`} dir="ltr">
               {contact.email}
             </a>
             {contactShown ? (
               <>
-                {" "}or use the{" "}
+                {" "}
+                {w.reportOr}
+                {lang === "en" && " "}
                 <Link className="underline underline-offset-4" to="/#contact">
-                  contact form
+                  {w.reportForm}
                 </Link>
               </>
             ) : null}
-            . Say which page and what happened; I will answer, and fix what can be fixed, as
-            soon as I can.
+            {w.reportAfter}
           </p>
 
-          <p className="mono pt-6 text-xs text-clay">Statement last updated {REVIEWED}.</p>
+          <p className="mono pt-6 text-xs text-clay">{w.updated(reviewed)}</p>
         </div>
       </section>
     </PageShell>

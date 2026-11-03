@@ -5,6 +5,10 @@ import Shot from "@/components/projects/Shot";
 import type { ProjectEntry } from "@/hooks/useProjects";
 import { kindOf, stackOf, yearOf, type Size } from "@/components/projects/catalogue";
 import styles from "@/components/projects/Gallery.module.css";
+import { useLang } from "@/components/dashboard/i18n";
+import { stateWord } from "@/components/work/words";
+import { useProjectWords } from "@/i18n/pages";
+import { inEnglish } from "@/i18n/words";
 
 /*
  * The catalogue as a gallery wall (#175): every project, image first. The
@@ -34,6 +38,8 @@ const SIZES: Record<Size, string> = {
 };
 
 export default function Gallery({ entries, sizes, label }: GalleryProps) {
+  const w = useProjectWords();
+  const lang = useLang();
   return (
     <Wall
       label={label}
@@ -45,7 +51,7 @@ export default function Gallery({ entries, sizes, label }: GalleryProps) {
         const stack = stackOf(entry).slice(0, size === "tile" ? 3 : 5);
         const out = [
           ...(entry.primaryLink ? [{ label: entry.primaryLink.label, url: entry.primaryLink.url }] : []),
-          ...(c.repoUrl ? [{ label: "Source", url: c.repoUrl }] : []),
+          ...(c.repoUrl ? [{ label: w.source, url: c.repoUrl }] : []),
         ];
 
         const node = (
@@ -80,19 +86,19 @@ export default function Gallery({ entries, sizes, label }: GalleryProps) {
                     {year ?? (
                       <>
                         <span aria-hidden="true">&mdash;</span>
-                        <span className="sr-only">Year not recorded</span>
+                        <span className="sr-only">{w.noYear}</span>
                       </>
                     )}
                   </span>
                 </div>
-                {c.tagline && <p className={styles.fact}>{c.tagline}</p>}
+                {c.tagline && <p className={styles.fact} {...inEnglish(lang, c.tagline)}>{c.tagline}</p>}
                 <div className={styles.meta}>
                   <span className={styles.state} data-kind={kindOf(entry.state)}>
                     <span className={styles.dot} aria-hidden="true" />
-                    {entry.state}
+                    {stateWord(entry.state, lang)}
                   </span>
                   {stack.length > 0 && (
-                    <ul className={styles.stack} translate="no" aria-label="Stack">
+                    <ul className={styles.stack} translate="no" aria-label={w.stack}>
                       {stack.map((t) => (
                         <li key={t}>{t}</li>
                       ))}
@@ -104,7 +110,7 @@ export default function Gallery({ entries, sizes, label }: GalleryProps) {
                     {out.map((l) => (
                       <a key={l.url} href={l.url} target="_blank" rel="noreferrer" className={styles.out}>
                         {l.label}{" "}
-                        <span className="sr-only">for {c.title} (opens in a new tab)</span>
+                        <span className="sr-only">{w.opensFor(c.title)}</span>
                       </a>
                     ))}
                   </p>
