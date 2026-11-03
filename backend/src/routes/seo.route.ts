@@ -6,6 +6,7 @@ import {
   LOG_CHANNEL,
   SITE_URL,
   absoluteUrl,
+  areaChannel,
   buildFeed,
   buildRobots,
   buildSitemap,
@@ -333,6 +334,84 @@ router.get(
       bodyHtml: `<main><h1>Channel log</h1><p>Everything that happens on the site, newest first.</p><p><a href="/blog">Blogs</a> · <a href="${escapeHtml(LOG_CHANNEL.self)}">RSS</a></p></main>`,
     });
   })
+);
+
+/*
+ * An area's page, /blog/area/<slug> (#225, #238). Two path segments, so the
+ * one-segment `/blog/<slug>` location in nginx never matched it and a direct
+ * load fell through to the server's 404 shell: a refresh or a shared link
+ * answered 404 with the home page's head, while the app booted and looked
+ * fine. nginx now sends it here.
+ *
+ * An area is what the areas API and the area's feed both count as one: a
+ * published collection. A hidden one, or a slug that is no area at all,
+ * answers 404 with the same not-found shell as a missing post, so neither its
+ * title nor its existence reaches a crawler. The slug is checked against the
+ * schema's shape first, as the feed route does, so a junk path costs no query.
+ */
+const AREA_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+router.get(
+  "/render/blog/area/:slug",
+  asyncHandler(async (req, res) => {
+    const slug = req.params.slug;
+    const area = AREA_SLUG.test(slug)
+      ? (
+          await couch.find<Collection>({
+            selector: { type: "collection", status: "published", slug },
+            limit: 1,
+          })
+        ).docs.find((c) => c.slug === slug && c.status === "published")
+      : undefined;
+
+    if (!area) {
+      return sendShell(
+        res,
+        {
+          title: "Not found · Yehuda Briskman",
+          description: "That page does not exist.",
+          canonical: absoluteUrl(`/blog/area/${encodeURIComponent(slug)}`),
+          image: absoluteUrl("/og.png"),
+          imageAlt: "Yehuda Briskman",
+          type: "website",
+          noindex: true,
+        },
+        404,
+      );
+    }
+
+    const { docs } = await couch.find<Post>({
+      selector: { type: "post", status: "published", collection: slug },
+      limit: 500,
+    });
+    // Filtered again, as the area's feed does: a draft never reaches the head
+    // or the body even if the selector above is ever loosened.
+    const posts = docs
+      .filter((p) => p.status === "published" && p.collection === slug && !p.seo.noindex)
+      .sort((a, b) => (b.publishedAt ?? "").localeCompare(a.publishedAt ?? ""));
+    const channel = areaChannel(area);
+    const description = clampDescription(area.tagline || area.description || `Notes on ${area.title}.`);
+    const canonical = absoluteUrl(`/blog/area/${area.slug}`);
+    const image =
+      area.coverImage ??
+      (area.kind === "project" ? absoluteUrl(`/api/seo/og/projects/${area.slug}.png`) : absoluteUrl("/og-blog.png"));
+
+    await sendShell(res, {
+      title: `${area.title} · Notes · Yehuda Briskman`,
+      description,
+      canonical,
+      image,
+      imageAlt: area.title,
+      type: "website",
+      feeds: [{ title: channel.title, href: channel.self }],
+      bodyHtml: `<main><h1>${escapeHtml(area.title)}</h1><p>${escapeHtml(description)}</p><ul>${posts
+        .map(
+          (p) =>
+            `<li><a href="/blog/${escapeHtml(p.slug)}">${escapeHtml(p.title)}</a> — ${escapeHtml(p.excerpt)}</li>`,
+        )
+        .join("")}</ul><p><a href="/blog">Blogs</a> · <a href="${escapeHtml(channel.self)}">RSS</a></p></main>`,
+    });
+  }),
 );
 
 router.get(
