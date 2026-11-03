@@ -1,6 +1,6 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import styles from "../Nav.module.css";
-import { PROFILES } from "./social";
+import { useProfiles } from "./social";
 
 /**
  * Where to find me that is not this site, as marks.
@@ -30,9 +30,10 @@ import { PROFILES } from "./social";
  * and not a dependency.
  */
 export default function ElsewhereMarks() {
+  const profiles = useProfiles();
   return (
     <ul className={styles.markRow}>
-      {PROFILES.map(({ key, href, label, Icon }) => (
+      {profiles.map(({ key, href, label, Icon }) => (
         <li key={key}>
           <Tooltip>
             <TooltipTrigger asChild>

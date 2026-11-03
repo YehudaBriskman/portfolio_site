@@ -361,6 +361,9 @@ const EXEMPT: Record<string, string> = {
   "/admin/areas/:slug": "admin",
   "/admin/collections/:slug": "admin, and legacy: the app redirects it to /admin/areas/<slug>",
   "/admin/connections": "admin",
+  "/admin/projects": "admin: the content editors (#163)",
+  "/admin/story": "admin",
+  "/admin/site-copy": "admin",
 };
 
 /** A concrete URL for a route pattern: each `:param` becomes a slug-shaped value. */

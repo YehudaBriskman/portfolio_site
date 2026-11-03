@@ -134,7 +134,7 @@ export const RATIO = "3 / 2";
  * the table in both directions. Every clause is checkable against the
  * project's own link, README or listing.
  */
-const LINES: Record<string, string> = {
+export const LINES: Record<string, string> = {
   icaros: "A learning project: a React front end on a Node.js and MongoDB back end.",
   "programming-with-yehuda": "A learning project, written to practise React and Node.",
   windom: "Published in the Chrome Web Store: a review, a privacy policy, an update channel.",
@@ -142,7 +142,7 @@ const LINES: Record<string, string> = {
 };
 
 /** The beats written by hand. The start's year is `plate.shippingSince`. */
-const START = {
+export const START = {
   title: "Started shipping",
   lines: ["The first software shipped."],
 };
@@ -152,7 +152,7 @@ const START = {
  * a year until the owner gives the years; changing it to "2023" is the whole
  * edit.
  */
-const ROLES: Array<Pick<Beat, "id" | "when" | "title" | "lines">> = [
+export const ROLES: Array<Pick<Beat, "id" | "when" | "title" | "lines">> = [
   {
     id: "full-stack",
     when: "Then",
@@ -174,7 +174,7 @@ const ROLES: Array<Pick<Beat, "id" | "when" | "title" | "lines">> = [
  * Layouts, keyed by beat id; a beat not named here is `beside`. Changing a
  * beat's layout is this one line.
  */
-const LAYOUTS: Record<string, BeatLayout> = {
+export const LAYOUTS: Record<string, BeatLayout> = {
   "programming-with-yehuda": "overlap",
   icaros: "under",
   bothy: "overlap",
@@ -191,7 +191,7 @@ const LAYOUTS: Record<string, BeatLayout> = {
  * shows the Hebrew under <html lang="he"> and the English otherwise, and the
  * one not shown is `display: none`, so a screen reader hears one.
  */
-const INTERLUDES: Interlude[] = [
+export const INTERLUDES: Interlude[] = [
   {
     id: "loop-open",
     after: "programming-with-yehuda",
@@ -213,7 +213,14 @@ const INTERLUDES: Interlude[] = [
  * Pictures, keyed by beat id. Empty until the owner supplies them; each one
  * replaces that beat's empty card with no layout shift.
  */
-const IMAGES: Record<string, StoryImage> = {};
+export const IMAGES: Record<string, StoryImage> = {};
+
+/** The beats written by hand, and the year the story starts. */
+export type StoryHand = {
+  start: { title: string; lines: string[] };
+  roles: Array<Pick<Beat, "id" | "when" | "title" | "lines">>;
+  shippingSince: number;
+};
 
 /**
  * Builds the story from a project table.
@@ -228,7 +235,12 @@ export function buildStory(
   images: Record<string, StoryImage> = IMAGES,
   interludes: Interlude[] = INTERLUDES,
   layouts: Record<string, BeatLayout> = LAYOUTS,
+  /* The hand-written beats and the first year. Arguments since #163, so the
+     page can build the story from the content store; the defaults are the
+     seed, and the store checks the same rules on save. */
+  hand: StoryHand = { start: START, roles: ROLES, shippingSince: plate.shippingSince },
 ): Story {
+  const { start: START, roles: ROLES } = hand;
   for (const p of table) {
     if (!lines[p.slug]) throw new Error(`story: the project table has ${p.slug} and no line for it`);
   }
@@ -237,7 +249,7 @@ export function buildStory(
   }
 
   const ordered = [...table].sort((a, b) => Number(a.year) - Number(b.year) || a.order - b.order);
-  const firstYear = plate.shippingSince;
+  const firstYear = hand.shippingSince;
   const lastYear = Math.max(...table.map((p) => Number(p.year)));
 
   const beats: Omit<Beat, "ratio" | "image" | "layout">[] = [

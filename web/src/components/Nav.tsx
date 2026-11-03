@@ -10,7 +10,7 @@ import { NAV_ROUTES } from "./nav/navRoutes";
 import { useDarkChrome } from "./nav/useDarkChrome";
 import { useTuckedBar } from "./nav/useTuckedBar";
 import { useLocale } from "./nav/locale";
-import { ELSEWHERE } from "./nav/social";
+import { useElsewhere } from "./nav/social";
 import { useMotionPaused } from "./nav/useMotionPaused";
 import styles from "./Nav.module.css";
 
@@ -128,6 +128,7 @@ const WIDE = "(min-width: 768px)";
 const BAR_H = 56;
 
 export default function Nav() {
+  const elsewhere = useElsewhere();
   const { pathname } = useLocation();
   const [open, setOpen] = useState(false);
   const sheetRef = useRef<HTMLDivElement>(null);
@@ -456,7 +457,7 @@ export default function Nav() {
         <nav aria-label="Elsewhere">
           <p className={styles.sheetHead}>Elsewhere</p>
           <ul className={styles.sheetList}>
-            {ELSEWHERE.map(({ key, href, label, Icon, external }) => (
+            {elsewhere.map(({ key, href, label, Icon, external }) => (
               <li key={key}>
                 <a
                   href={href}

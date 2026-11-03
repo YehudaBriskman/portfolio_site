@@ -19,11 +19,16 @@ import { admin } from "@/services/admin";
  * stays on the public site.
  */
 
-type Section = "posts" | "areas" | "connections";
+export type AdminSection = "posts" | "areas" | "projects" | "story" | "site-copy" | "connections";
+type Section = AdminSection;
 
 const SECTIONS: Array<{ id: Section; to: string; label: string }> = [
   { id: "posts", to: "/admin/posts", label: "Posts" },
   { id: "areas", to: "/admin/areas", label: "Areas" },
+  /* The site's own content (#163). */
+  { id: "projects", to: "/admin/projects", label: "Projects" },
+  { id: "story", to: "/admin/story", label: "Story" },
+  { id: "site-copy", to: "/admin/site-copy", label: "Site copy" },
   { id: "connections", to: "/admin/connections", label: "Connected apps" },
 ];
 

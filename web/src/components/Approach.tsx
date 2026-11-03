@@ -2,7 +2,8 @@ import Written from "@/components/motion/Written";
 import LivingLine from "@/components/motion/LivingLine";
 import ApproachFigure from "@/components/ApproachFigures";
 import { lineAttr } from "@/components/motion/lineMoves";
-import { about, approachLine } from "@/data/site";
+import { approachLine } from "@/data/site";
+import { useContent } from "@/content/store";
 import styles from "@/components/Approach.module.css";
 
 /*
@@ -56,9 +57,10 @@ import styles from "@/components/Approach.module.css";
  * section's own `line`). The figures keep their own strokes and their own
  * clock; the line only connects them.
  */
-const last = about.intro.length;
-
 export default function Approach() {
+  /* The words from the content store (#163); the line's moves stay code. */
+  const { about } = useContent().site;
+  const last = about.intro.length;
   return (
     <section id="approach" className="wrap section-y">
       <LivingLine className={styles.wall} from={approachLine.from}>

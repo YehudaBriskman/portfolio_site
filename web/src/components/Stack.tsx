@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 import InkRule from "@/components/motion/InkRule";
-import { specFigures } from "@/data/specs";
+import { specFiguresOf } from "@/data/specs";
+import { useContent } from "@/content/store";
 import styles from "@/components/Stack.module.css";
 
 /*
@@ -39,6 +40,8 @@ import styles from "@/components/Stack.module.css";
  * and the count is the stronger of the two by a distance.
  */
 export default function SpecPlate() {
+  /* Counted from the content store's table (#163), the one the pile renders. */
+  const specFigures = specFiguresOf(useContent().projects);
   return (
     /*
      * `id="stack"` outlives the name on purpose.

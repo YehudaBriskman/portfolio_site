@@ -1,4 +1,4 @@
-import { projects } from "@/data/projects";
+import { contentView } from "@/content/store";
 
 /*
  * What a page is called, derived from nothing but its URL.
@@ -121,9 +121,9 @@ export function humaniseSlug(slug: string): string {
   return words.charAt(0).toUpperCase() + words.slice(1);
 }
 
-/** A project's real name, when the seed table happens to know the slug. */
+/** A project's real name, when the content store's table (#163) knows the slug. */
 function projectName(slug: string): string {
-  return projects.find((p) => p.slug === slug)?.title ?? humaniseSlug(slug);
+  return contentView().projects.find((p) => p.slug === slug)?.title ?? humaniseSlug(slug);
 }
 
 /*

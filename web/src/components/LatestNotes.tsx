@@ -1,4 +1,4 @@
-import { useCallback, type CSSProperties, type FocusEvent, type MouseEvent } from "react";
+import { useCallback, useMemo, type CSSProperties, type FocusEvent, type MouseEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import LabelSkeleton from "@/components/gallery/LabelSkeleton";
@@ -7,7 +7,8 @@ import SkeletonGate from "@/components/gallery/SkeletonGate";
 import type { LabelField } from "@/components/gallery/objectLabel";
 import InkRule from "@/components/motion/InkRule";
 import Shot from "@/components/projects/Shot";
-import { projects } from "@/data/projects";
+import type { Project } from "@/data/projects";
+import { useContent } from "@/content/store";
 import { blog, type PostSummary } from "@/services/blog";
 import dark from "@/components/notes/DarkCard.module.css";
 import styles from "@/components/LatestNotes.module.css";
@@ -96,11 +97,12 @@ const FACT_MAX = 84;
 const COVER_SIZES = "(min-width: 700px) 640px, 92vw";
 
 /**
- * Which project a note belongs to, by slug. Built from the seed table rather
- * than fetched: this is the home page, and a second request to label three
+ * Which project a note belongs to, by slug. Built from the project table the
+ * page already holds (the content store's, #163) rather than fetched: this is
+ * the home page, and a second request to label three
  * fields would be a second thing that can fail.
  */
-const projectTitles = new Map(projects.map((p) => [p.slug, p.title]));
+const titlesOf = (projects: readonly Project[]) => new Map(projects.map((p) => [p.slug, p.title]));
 
 /** The date, short enough to survive being cropped. */
 function monthAndYear(iso: string | null): string {
@@ -133,7 +135,7 @@ function factLine(post: PostSummary): string {
  * because on a travelling shelf the first field is the one still on screen
  * when the rest of the card is not. An empty field is omitted, not printed.
  */
-function noteFields(post: PostSummary): LabelField[] {
+function noteFields(post: PostSummary, projectTitles: Map<string, string>): LabelField[] {
   const fields: LabelField[] = [
     { kind: "where", value: projectTitles.get(post.collection) ?? "Notes" },
   ];
@@ -164,6 +166,8 @@ export default function LatestNotes() {
   });
 
   const posts = (data ?? []).slice(0, SHOWN);
+  const { projects } = useContent();
+  const projectTitles = useMemo(() => titlesOf(projects), [projects]);
 
   /* The run's keyboard answer: scroll the document — the real scroll
      container — to the focused card's marker. `instant`, because focus has
@@ -302,7 +306,7 @@ export default function LatestNotes() {
                             nameAs="h3"
                             name={post.title}
                             fact={fact}
-                            fields={noteFields(post)}
+                            fields={noteFields(post, projectTitles)}
                             className={styles.label}
                           />
                           <span className={styles.onward} aria-hidden="true">

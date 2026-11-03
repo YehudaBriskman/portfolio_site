@@ -17,6 +17,8 @@ import {
   type PageMeta,
 } from "../services/seo.js";
 import { rawImageUrlOrNull, type Collection, type Post } from "../schemas/content.js";
+import type { ContentBundle } from "../schemas/site-content.js";
+import { publishedBundleOrSeed } from "../services/site-content.js";
 
 const router = Router();
 
@@ -132,7 +134,7 @@ router.get(
       const collection = docs[0];
       // A seeded project is a real page, so it gets a real card. Without this
       // the two flagship projects in the sitemap had no image of their own.
-      const title = collection?.title ?? SEEDED_PROJECTS[slug]?.title;
+      const title = collection?.title ?? (await storeProjects()).get(slug)?.title;
       if (!title) return res.status(404).json({ ok: false, error: "Not Found" });
       return sendPng(
         res,
@@ -149,62 +151,48 @@ router.get(
 );
 
 /* --------------------------------------------------------- rendered shells */
-
 /**
- * Crawler-visible copy for the home page.
+ * Crawler-visible copy for the home page, from the content store (#163).
  *
- * The app renders all of this from src/data/site.ts, but only after JavaScript
- * runs — so to anything that reads raw HTML the page had no heading and almost
- * no words. This is a deliberate, hand-maintained echo of that copy: if the
- * wording on the home page changes materially, change it here too.
+ * The app renders the home page from the store only after JavaScript runs,
+ * so to anything that reads raw HTML the page would have no heading and
+ * almost no words. This was a hand-maintained echo of `web/src/data/site.ts`
+ * until #163; it now reads the same document the page does, so an edit in
+ * the admin reaches a crawler on the next request rather than whenever
+ * somebody remembered this file.
+ *
+ * The employer is never named: the copy says what the work is, never whose.
  */
-const HOME_FALLBACK_HTML = `
-<main>
-  <h1>Yehuda Briskman, full-stack engineer and team lead</h1>
-  <p>I am a full-stack engineer and a technical team lead in Tel Aviv. I lead a small team building and running internal software, and I still write and review code every day. I never wanted the version of the job where you stop.</p>
-  <p>Before that I was a full-stack engineer at Momentum Tailored Solutions.</p>
-  <p>Outside work I ship my own products end to end: WindoM, a Chrome extension published in the Chrome Web Store, and Bothy, a console that reports what is running by asking Docker rather than by reading a list someone has to remember to update. I build the backends, the release pipelines and the infrastructure under both, and I run them in production rather than handing them over at the demo.</p>
-  <h2>How I work</h2>
-  <h3>Install from empty, every time</h3>
-  <p>Every pull request on Bothy clones the repository into an empty directory, runs the three-line install and nothing else, then runs every test in the tree against whatever came up. A nightly job repeats it at a path with a space in it and at a six-level-deep path, because every portability bug that repository has had looked fine at exactly one path.</p>
-  <h3>A check that cannot fail is not a check</h3>
-  <p>One CI job exists only to plant a mutation and require another job to catch it. A green suite and a suite that is incapable of going red look identical from the outside, so I make the difference explicit.</p>
-  <h3>Generated, never committed</h3>
-  <p>Credentials are generated at install time rather than shipped as placeholders to fill in. The bootstrap prints which keys it wrote and never their values, so there is no default password to forget about.</p>
-  <h2>Elsewhere</h2>
-  <ul>
-    <li><a href="/projects">Projects: what I have built and run</a></li>
-    <li><a href="/blog">Notes: writing on backend engineering and infrastructure</a></li>
-    <li><a href="https://windom.app">WindoM, in the Chrome Web Store</a></li>
-    <li><a href="https://github.com/YehudaBriskman">GitHub</a></li>
-  </ul>
-  <p>Based in Tel Aviv, Israel. I am employed full-time and not looking for freelance work, but I read everything sent to me.</p>
-</main>`;
+function homeHtml(c: ContentBundle): string {
+  const s = c.siteCopy;
+  const para = (lines: { en: string }[]) => `<p>${escapeHtml(lines.map((l) => l.en).join(" "))}</p>`;
+  const work = s.footer.work
+    .map((w) => `<li><a href="${escapeHtml(w.url)}">${escapeHtml(`${w.label}, ${w.note.en}`)}</a></li>`)
+    .join("");
+  const profiles = s.profiles
+    .map((p) => `<li><a href="${escapeHtml(p.url)}">${escapeHtml(p.label)}</a></li>`)
+    .join("");
+  return `<main><h1>${escapeHtml(s.hero.name)}, full-stack engineer and team lead</h1>${s.about.intro
+    .map((x) => para(x.lines))
+    .join("")}<h2>${escapeHtml(s.about.heading.en)}</h2>${s.about.principles
+    .map((p) => `<h3>${escapeHtml(p.claim.en)}</h3>${para(p.lines)}`)
+    .join("")}<h2>Elsewhere</h2><ul><li><a href="/projects">Projects: what I have built and run</a></li><li><a href="/blog">Notes: writing on backend engineering and infrastructure</a></li>${work}${profiles}</ul><p>${escapeHtml(
+    `Based in ${s.contact.location.en}. ${s.contact.availability.en}.`,
+  )}</p></main>`;
+}
 
 /*
- * Projects the site can render without a database row.
+ * The projects the site renders, by slug, from the content store's table.
  *
- * The frontend ships a seed table so /projects is never empty, and merges any
- * published collection over it by slug. The server did not know that, so a hard
- * load of /projects/windom answered 404 while the same URL rendered fine once
- * the app had booted — the index linked to pages that did not exist as far as
- * any crawler, or any refresh, was concerned.
- *
- * This is a bridge, not a design. Create the areas in the admin and the
- * database wins automatically; this list can then go, along with the seeds.
+ * The frontend renders this table and merges any published area over it by
+ * slug, so the server has to know it too: before, a hard load of
+ * /projects/windom answered 404 while the same URL rendered fine once the app
+ * had booted. Until #163 this was a hand-copied list; it is now the store's.
  */
-const SEEDED_PROJECTS: Record<string, { title: string; tagline: string }> = {
-  windom: { title: "WindoM", tagline: "Every new tab becomes a dashboard" },
-  bothy: { title: "Bothy", tagline: "A console that discovers itself" },
-  /* Learning projects, and described as such (2026-11-03). Change11 and Text
-     Encrypting were removed; nginx answers their old URLs with a 308 to
-     /projects before a request reaches this renderer. */
-  "programming-with-yehuda": {
-    title: "Programming with Yehuda",
-    tagline: "Lesson pages built while learning React and Node",
-  },
-  icaros: { title: "Icaros", tagline: "A car-listing web app, built while learning React and Node" },
-};
+async function storeProjects(): Promise<Map<string, ContentBundle["projects"]["items"][number]>> {
+  const bundle = await publishedBundleOrSeed();
+  return new Map(bundle.projects.items.map((p) => [p.slug, p]));
+}
 
 
 const PERSON_LD = {
@@ -235,6 +223,7 @@ async function sendShell(res: Response, meta: PageMeta, status = 200): Promise<v
 router.get(
   "/render/home",
   asyncHandler(async (_req, res) => {
+    const content = await publishedBundleOrSeed();
     await sendShell(res, {
       title: SITE_TITLE,
       description: SITE_DESCRIPTION,
@@ -243,7 +232,7 @@ router.get(
       image: absoluteUrl("/og.png"),
       imageAlt: "Yehuda Briskman, full-stack engineer and team lead",
       type: "website",
-      bodyHtml: HOME_FALLBACK_HTML,
+      bodyHtml: homeHtml(content),
       jsonLd: {
         "@context": "https://schema.org",
         "@graph": [
@@ -296,7 +285,9 @@ router.get(
     // A real collection wins over its seed; anything only seeded still appears.
     const live = (await publishedCollections()).filter((c) => c.kind === "project");
     const merged = new Map<string, { title: string; tagline: string }>(
-      Object.entries(SEEDED_PROJECTS),
+      [...(await storeProjects()).values()]
+        .sort((a, b) => a.order - b.order)
+        .map((p) => [p.slug, { title: p.title, tagline: p.fact.en }]),
     );
     for (const c of live) merged.set(c.slug, { title: c.title, tagline: c.tagline || c.description });
     const entries = [...merged.entries()];
@@ -334,6 +325,19 @@ router.get(
   asyncHandler(async (_req, res) => {
     const description =
       "The work along the years, as a timeline: when I started shipping, the projects I built and ran, and the roles in between.";
+    /* The beats, from the store the page reads (#163), in the page's order:
+       the start, every project by year, then the roles. */
+    const c = await publishedBundleOrSeed();
+    const lines = (ls: { en: string }[]) => escapeHtml(ls.map((l) => l.en).join(" "));
+    const projects = [...c.projects.items].sort((a, b) => Number(a.year) - Number(b.year) || a.order - b.order);
+    const beats = [
+      `<li><h2>${c.siteCopy.hero.shippingSince}: ${escapeHtml(c.story.start.title.en)}</h2><p>${lines(c.story.start.lines)}</p></li>`,
+      ...projects.map(
+        (p) =>
+          `<li><h2>${escapeHtml(p.year)}: <a href="/projects/${escapeHtml(p.slug)}">${escapeHtml(p.title)}</a></h2><p>${escapeHtml(`${p.fact.en}. ${p.storyLine.en}`)}</p></li>`,
+      ),
+      ...c.story.roles.map((r) => `<li><h2>${escapeHtml(`${r.when.en}: ${r.title.en}`)}</h2><p>${lines(r.lines)}</p></li>`),
+    ].join("");
     await sendShell(res, {
       route: "Story",
       title: "Journey · Yehuda Briskman",
@@ -342,7 +346,7 @@ router.get(
       image: absoluteUrl("/og.png"),
       imageAlt: "Yehuda Briskman, full-stack engineer and team lead",
       type: "website",
-      bodyHtml: `<main><p>Journey</p><h1>The long way round</h1><p>${escapeHtml(description)}</p><p><a href="/projects">Work</a> · <a href="/blog">Blogs</a></p></main>`,
+      bodyHtml: `<main><p>Journey</p><h1>The long way round</h1><p>${escapeHtml(description)}</p><ol>${beats}</ol><p><a href="/projects">Work</a> · <a href="/blog">Blogs</a></p></main>`,
       jsonLd: {
         "@context": "https://schema.org",
         "@type": "ProfilePage",
@@ -580,18 +584,21 @@ router.get(
     const collection = docs[0];
 
     if (!collection) {
-      const seed = SEEDED_PROJECTS[slug];
+      const seed = (await storeProjects()).get(slug);
       if (seed) {
         return sendShell(res, {
           route: "Project",
           title: `${seed.title} · Yehuda Briskman`,
-          description: clampDescription(seed.tagline),
+          description: clampDescription(seed.fact.en),
           canonical: absoluteUrl(`/projects/${slug}`),
           image: absoluteUrl("/og-projects.png"),
           imageAlt: seed.title,
           type: "website",
-          bodyHtml: `<main><h1>${escapeHtml(seed.title)}</h1><p>${escapeHtml(seed.tagline)}</p>` +
-          `<p>Built and run end to end. Source, notes and links are on the page.</p>` +
+          bodyHtml: `<main><h1>${escapeHtml(seed.title)}</h1><p>${escapeHtml(seed.fact.en)}</p>` +
+          `<p>${escapeHtml(seed.description.en)}</p>` +
+          (seed.highlights.length > 0
+            ? `<ul>${seed.highlights.map((h) => `<li>${escapeHtml(h.en)}</li>`).join("")}</ul>`
+            : "") +
           `<p><a href="/projects">All projects</a> · <a href="/blog">Notes</a></p></main>`,
         });
       }

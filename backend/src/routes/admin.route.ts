@@ -24,6 +24,7 @@ import {
   tokenDocId,
   type StoredToken,
 } from "../services/apiTokenFormat.js";
+import adminContentRoutes from "./admin-content.route.js";
 
 const router = Router();
 
@@ -81,6 +82,9 @@ async function tryGet<T>(id: string): Promise<T | null> {
 }
 
 router.get("/me", (req, res) => res.json({ ok: true, ...req.admin }));
+
+/* The site's own content (#163): projects, the story, the site copy. */
+router.use("/content", adminContentRoutes);
 
 /* ---------------------------------------------------------------- posts -- */
 
