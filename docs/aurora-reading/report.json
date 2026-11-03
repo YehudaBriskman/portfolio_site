@@ -1,0 +1,2343 @@
+{
+  "failures": [],
+  "runs": [
+    {
+      "kind": "strand",
+      "key": "run",
+      "tag": "light-desk",
+      "at": 0.85,
+      "seen": {
+        "from": "right",
+        "windowLeft": 1440,
+        "windowRight": 3312,
+        "width": 1440
+      },
+      "name": "run-strand-light-desk-0.png"
+    },
+    {
+      "kind": "strand",
+      "key": "run",
+      "tag": "light-desk",
+      "at": 0.65,
+      "seen": {
+        "from": "right",
+        "windowLeft": 1440,
+        "windowRight": 3312,
+        "width": 1440
+      },
+      "name": "run-strand-light-desk-1.png"
+    },
+    {
+      "kind": "strand",
+      "key": "run",
+      "tag": "light-desk",
+      "at": 0.45,
+      "seen": {
+        "from": "right",
+        "windowLeft": 1058,
+        "windowRight": 2930,
+        "width": 1440
+      },
+      "name": "run-strand-light-desk-2.png"
+    },
+    {
+      "kind": "strand",
+      "key": "run",
+      "tag": "light-desk",
+      "at": 0.25,
+      "seen": {
+        "from": "right",
+        "windowLeft": 546,
+        "windowRight": 2418,
+        "width": 1440
+      },
+      "name": "run-strand-light-desk-3.png"
+    },
+    {
+      "kind": "strand",
+      "key": "run",
+      "tag": "light-desk",
+      "at": 0,
+      "seen": {
+        "from": "right",
+        "windowLeft": -93,
+        "windowRight": 1779,
+        "width": 1440
+      },
+      "name": "run-strand-light-desk-4.png"
+    },
+    {
+      "kind": "strand",
+      "key": "run",
+      "tag": "light-desk",
+      "at": -0.4,
+      "seen": {
+        "from": "right",
+        "windowLeft": -432,
+        "windowRight": 1440,
+        "width": 1440
+      },
+      "name": "run-strand-light-desk-5.png"
+    },
+    {
+      "kind": "strand",
+      "key": "approach",
+      "tag": "light-desk",
+      "at": 0.95,
+      "seen": {
+        "from": "left",
+        "windowLeft": -1872,
+        "windowRight": 0,
+        "width": 1440
+      },
+      "name": "approach-strand-light-desk-0.png"
+    },
+    {
+      "kind": "strand",
+      "key": "approach",
+      "tag": "light-desk",
+      "at": 0.85,
+      "seen": {
+        "from": "left",
+        "windowLeft": -1424,
+        "windowRight": 448,
+        "width": 1440
+      },
+      "name": "approach-strand-light-desk-1.png"
+    },
+    {
+      "kind": "strand",
+      "key": "approach",
+      "tag": "light-desk",
+      "at": 0.75,
+      "seen": {
+        "from": "left",
+        "windowLeft": -968,
+        "windowRight": 904,
+        "width": 1440
+      },
+      "name": "approach-strand-light-desk-2.png"
+    },
+    {
+      "kind": "strand",
+      "key": "approach",
+      "tag": "light-desk",
+      "at": 0.65,
+      "seen": {
+        "from": "left",
+        "windowLeft": -512,
+        "windowRight": 1360,
+        "width": 1440
+      },
+      "name": "approach-strand-light-desk-3.png"
+    },
+    {
+      "kind": "strand",
+      "key": "approach",
+      "tag": "light-desk",
+      "at": 0.55,
+      "seen": {
+        "from": "left",
+        "windowLeft": -56,
+        "windowRight": 1816,
+        "width": 1440
+      },
+      "name": "approach-strand-light-desk-4.png"
+    },
+    {
+      "kind": "strand",
+      "key": "approach",
+      "tag": "light-desk",
+      "at": 0.45,
+      "seen": {
+        "from": "left",
+        "windowLeft": 0,
+        "windowRight": 1872,
+        "width": 1440
+      },
+      "name": "approach-strand-light-desk-5.png"
+    },
+    {
+      "kind": "strand",
+      "key": "notes",
+      "tag": "light-desk",
+      "at": 0.85,
+      "seen": {
+        "from": "left",
+        "windowLeft": -1872,
+        "windowRight": 0,
+        "width": 1440
+      },
+      "name": "notes-strand-light-desk-0.png"
+    },
+    {
+      "kind": "strand",
+      "key": "notes",
+      "tag": "light-desk",
+      "at": 0.65,
+      "seen": {
+        "from": "left",
+        "windowLeft": -1872,
+        "windowRight": 0,
+        "width": 1440
+      },
+      "name": "notes-strand-light-desk-1.png"
+    },
+    {
+      "kind": "strand",
+      "key": "notes",
+      "tag": "light-desk",
+      "at": 0.45,
+      "seen": {
+        "from": "left",
+        "windowLeft": -1450,
+        "windowRight": 422,
+        "width": 1440
+      },
+      "name": "notes-strand-light-desk-2.png"
+    },
+    {
+      "kind": "strand",
+      "key": "notes",
+      "tag": "light-desk",
+      "at": 0.25,
+      "seen": {
+        "from": "left",
+        "windowLeft": -886,
+        "windowRight": 986,
+        "width": 1440
+      },
+      "name": "notes-strand-light-desk-3.png"
+    },
+    {
+      "kind": "strand",
+      "key": "notes",
+      "tag": "light-desk",
+      "at": 0.05,
+      "seen": {
+        "from": "left",
+        "windowLeft": -323,
+        "windowRight": 1549,
+        "width": 1440
+      },
+      "name": "notes-strand-light-desk-4.png"
+    },
+    {
+      "kind": "strand",
+      "key": "notes",
+      "tag": "light-desk",
+      "at": -0.3,
+      "seen": {
+        "from": "left",
+        "windowLeft": 0,
+        "windowRight": 1872,
+        "width": 1440
+      },
+      "name": "notes-strand-light-desk-5.png"
+    },
+    {
+      "kind": "pen-frame",
+      "key": "home",
+      "tag": "light-desk",
+      "y": 3947.953125,
+      "name": "pen-home-light-desk-0.png",
+      "mid": []
+    },
+    {
+      "kind": "pen-frame",
+      "key": "home",
+      "tag": "light-desk",
+      "y": 4246.953125,
+      "name": "pen-home-light-desk-1.png",
+      "mid": [
+        {
+          "text": "I'm a full-stack engineer and a technica",
+          "top": 0.668,
+          "lit": 2,
+          "of": 12
+        }
+      ]
+    },
+    {
+      "kind": "pen-frame",
+      "key": "home",
+      "tag": "light-desk",
+      "y": 4545.953125,
+      "name": "pen-home-light-desk-2.png",
+      "mid": [
+        {
+          "text": "Before that I was a full-stack engineer ",
+          "top": 0.603,
+          "lit": 5,
+          "of": 11
+        }
+      ]
+    },
+    {
+      "kind": "pen-frame",
+      "key": "home",
+      "tag": "light-desk",
+      "y": 4844.953125,
+      "name": "pen-home-light-desk-3.png",
+      "mid": [
+        {
+          "text": "Outside work I ship my own products end ",
+          "top": 0.439,
+          "lit": 27,
+          "of": 42
+        }
+      ]
+    },
+    {
+      "kind": "pen-frame",
+      "key": "home",
+      "tag": "light-desk",
+      "y": 5143.953125,
+      "name": "pen-home-light-desk-4.png",
+      "mid": [
+        {
+          "text": "A nightly job repeats it at a path with ",
+          "top": 0.619,
+          "lit": 5,
+          "of": 32
+        }
+      ]
+    },
+    {
+      "kind": "pen-frame",
+      "key": "home",
+      "tag": "light-desk",
+      "y": 5442.953125,
+      "name": "pen-home-light-desk-5.png",
+      "mid": [
+        {
+          "text": "One CI job exists only to plant a mutati",
+          "top": 0.62,
+          "lit": 9,
+          "of": 16
+        }
+      ]
+    },
+    {
+      "kind": "pen-frame",
+      "key": "home",
+      "tag": "light-desk",
+      "y": 5741.953125,
+      "name": "pen-home-light-desk-6.png",
+      "mid": [
+        {
+          "text": "A green suite and a suite that is incapa",
+          "top": 0.388,
+          "lit": 22,
+          "of": 23
+        }
+      ]
+    },
+    {
+      "kind": "pen-frame",
+      "key": "home",
+      "tag": "light-desk",
+      "y": 6040.953125,
+      "name": "pen-home-light-desk-7.png",
+      "mid": [
+        {
+          "text": "The bootstrap prints which keys it wrote",
+          "top": 0.449,
+          "lit": 12,
+          "of": 20
+        }
+      ]
+    },
+    {
+      "kind": "pen",
+      "key": "home",
+      "tag": "light-desk",
+      "worstMidInk": 1,
+      "starts": [
+        {
+          "text": "I'm a full-stack engineer and a technica",
+          "between": [
+            0.668,
+            0.693
+          ]
+        },
+        {
+          "text": "I lead a small team building and running",
+          "between": [
+            0.677,
+            0.703
+          ]
+        },
+        {
+          "text": "Before that I was a full-stack engineer ",
+          "between": [
+            0.655,
+            0.68
+          ]
+        },
+        {
+          "text": "Outside work I ship my own products end ",
+          "between": [
+            0.669,
+            0.695
+          ]
+        },
+        {
+          "text": "Every pull request on Bothy clones the r",
+          "between": [
+            0.659,
+            0.684
+          ]
+        },
+        {
+          "text": "A nightly job repeats it at a path with ",
+          "between": [
+            0.67,
+            0.696
+          ]
+        },
+        {
+          "text": "One CI job exists only to plant a mutati",
+          "between": [
+            0.671,
+            0.697
+          ]
+        },
+        {
+          "text": "A green suite and a suite that is incapa",
+          "between": [
+            0.669,
+            0.695
+          ]
+        },
+        {
+          "text": "Credentials are generated at install tim",
+          "between": [
+            0.656,
+            0.681
+          ]
+        },
+        {
+          "text": "The bootstrap prints which keys it wrote",
+          "between": [
+            0.679,
+            0.705
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "pen-frame",
+      "key": "project",
+      "tag": "light-desk",
+      "y": -523,
+      "name": "pen-project-light-desk-0.png",
+      "mid": [
+        {
+          "text": "A self-hosted console for a single machi",
+          "top": 0.419,
+          "lit": 26,
+          "of": 39
+        }
+      ]
+    },
+    {
+      "kind": "pen-frame",
+      "key": "project",
+      "tag": "light-desk",
+      "y": -201,
+      "name": "pen-project-light-desk-1.png",
+      "mid": [
+        {
+          "text": "A self-hosted console for a single machi",
+          "top": 0.419,
+          "lit": 26,
+          "of": 39
+        }
+      ]
+    },
+    {
+      "kind": "pen-frame",
+      "key": "project",
+      "tag": "light-desk",
+      "y": 121,
+      "name": "pen-project-light-desk-2.png",
+      "mid": []
+    },
+    {
+      "kind": "pen-frame",
+      "key": "project",
+      "tag": "light-desk",
+      "y": 443,
+      "name": "pen-project-light-desk-3.png",
+      "mid": [
+        {
+          "text": "A console for one machine is normally a ",
+          "top": 0.544,
+          "lit": 46,
+          "of": 50
+        }
+      ]
+    },
+    {
+      "kind": "pen-frame",
+      "key": "project",
+      "tag": "light-desk",
+      "y": 765,
+      "name": "pen-project-light-desk-4.png",
+      "mid": [
+        {
+          "text": "Start any container and it appears in th",
+          "top": 0.456,
+          "lit": 32,
+          "of": 66
+        }
+      ]
+    },
+    {
+      "kind": "pen-frame",
+      "key": "project",
+      "tag": "light-desk",
+      "y": 1087,
+      "name": "pen-project-light-desk-5.png",
+      "mid": [
+        {
+          "text": "docker-socket-proxy gates by endpoint fa",
+          "top": 0.636,
+          "lit": 11,
+          "of": 54
+        }
+      ]
+    },
+    {
+      "kind": "pen-frame",
+      "key": "project",
+      "tag": "light-desk",
+      "y": 1409,
+      "name": "pen-project-light-desk-6.png",
+      "mid": [
+        {
+          "text": "No shell in the browser, no kill, no cre",
+          "top": 0.484,
+          "lit": 61,
+          "of": 74
+        }
+      ]
+    },
+    {
+      "kind": "pen-frame",
+      "key": "project",
+      "tag": "light-desk",
+      "y": 1731,
+      "name": "pen-project-light-desk-7.png",
+      "mid": [
+        {
+          "text": "The file API's safepath.collect() is the",
+          "top": 0.363,
+          "lit": 55,
+          "of": 75
+        }
+      ]
+    },
+    {
+      "kind": "pen",
+      "key": "project",
+      "tag": "light-desk",
+      "worstMidInk": 1,
+      "starts": [
+        {
+          "text": "A console for one machine is normally a ",
+          "between": [
+            0.672,
+            0.698
+          ]
+        },
+        {
+          "text": "One person's reproducible development bo",
+          "between": [
+            0.666,
+            0.692
+          ]
+        },
+        {
+          "text": "Start any container and it appears in th",
+          "between": [
+            0.661,
+            0.686
+          ]
+        },
+        {
+          "text": "docker-socket-proxy gates by endpoint fa",
+          "between": [
+            0.661,
+            0.687
+          ]
+        },
+        {
+          "text": "No shell in the browser, no kill, no cre",
+          "between": [
+            0.663,
+            0.688
+          ]
+        },
+        {
+          "text": "The file API's safepath.collect() is the",
+          "between": [
+            0.67,
+            0.696
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "strand",
+      "key": "run",
+      "tag": "light-phone",
+      "at": 0.85,
+      "seen": {
+        "from": "right",
+        "windowLeft": 390,
+        "windowRight": 897,
+        "width": 390
+      },
+      "name": "run-strand-light-phone-0.png"
+    },
+    {
+      "kind": "strand",
+      "key": "run",
+      "tag": "light-phone",
+      "at": 0.65,
+      "seen": {
+        "from": "right",
+        "windowLeft": 390,
+        "windowRight": 897,
+        "width": 390
+      },
+      "name": "run-strand-light-phone-1.png"
+    },
+    {
+      "kind": "strand",
+      "key": "run",
+      "tag": "light-phone",
+      "at": 0.45,
+      "seen": {
+        "from": "right",
+        "windowLeft": 286,
+        "windowRight": 793,
+        "width": 390
+      },
+      "name": "run-strand-light-phone-2.png"
+    },
+    {
+      "kind": "strand",
+      "key": "run",
+      "tag": "light-phone",
+      "at": 0.25,
+      "seen": {
+        "from": "right",
+        "windowLeft": 148,
+        "windowRight": 655,
+        "width": 390
+      },
+      "name": "run-strand-light-phone-3.png"
+    },
+    {
+      "kind": "strand",
+      "key": "run",
+      "tag": "light-phone",
+      "at": 0,
+      "seen": {
+        "from": "right",
+        "windowLeft": -25,
+        "windowRight": 482,
+        "width": 390
+      },
+      "name": "run-strand-light-phone-4.png"
+    },
+    {
+      "kind": "strand",
+      "key": "run",
+      "tag": "light-phone",
+      "at": -0.4,
+      "seen": {
+        "from": "right",
+        "windowLeft": -117,
+        "windowRight": 390,
+        "width": 390
+      },
+      "name": "run-strand-light-phone-5.png"
+    },
+    {
+      "kind": "strand",
+      "key": "approach",
+      "tag": "light-phone",
+      "at": 0.95,
+      "seen": {
+        "from": "left",
+        "windowLeft": -506,
+        "windowRight": 1,
+        "width": 390
+      },
+      "name": "approach-strand-light-phone-0.png"
+    },
+    {
+      "kind": "strand",
+      "key": "approach",
+      "tag": "light-phone",
+      "at": 0.85,
+      "seen": {
+        "from": "left",
+        "windowLeft": -378,
+        "windowRight": 129,
+        "width": 390
+      },
+      "name": "approach-strand-light-phone-1.png"
+    },
+    {
+      "kind": "strand",
+      "key": "approach",
+      "tag": "light-phone",
+      "at": 0.75,
+      "seen": {
+        "from": "left",
+        "windowLeft": -248,
+        "windowRight": 259,
+        "width": 390
+      },
+      "name": "approach-strand-light-phone-2.png"
+    },
+    {
+      "kind": "strand",
+      "key": "approach",
+      "tag": "light-phone",
+      "at": 0.65,
+      "seen": {
+        "from": "left",
+        "windowLeft": -120,
+        "windowRight": 387,
+        "width": 390
+      },
+      "name": "approach-strand-light-phone-3.png"
+    },
+    {
+      "kind": "strand",
+      "key": "approach",
+      "tag": "light-phone",
+      "at": 0.55,
+      "seen": {
+        "from": "left",
+        "windowLeft": 0,
+        "windowRight": 507,
+        "width": 390
+      },
+      "name": "approach-strand-light-phone-4.png"
+    },
+    {
+      "kind": "strand",
+      "key": "approach",
+      "tag": "light-phone",
+      "at": 0.45,
+      "seen": {
+        "from": "left",
+        "windowLeft": 0,
+        "windowRight": 507,
+        "width": 390
+      },
+      "name": "approach-strand-light-phone-5.png"
+    },
+    {
+      "kind": "strand",
+      "key": "notes",
+      "tag": "light-phone",
+      "at": 0.85,
+      "seen": {
+        "from": "left",
+        "windowLeft": -507,
+        "windowRight": 0,
+        "width": 390
+      },
+      "name": "notes-strand-light-phone-0.png"
+    },
+    {
+      "kind": "strand",
+      "key": "notes",
+      "tag": "light-phone",
+      "at": 0.65,
+      "seen": {
+        "from": "left",
+        "windowLeft": -507,
+        "windowRight": 0,
+        "width": 390
+      },
+      "name": "notes-strand-light-phone-1.png"
+    },
+    {
+      "kind": "strand",
+      "key": "notes",
+      "tag": "light-phone",
+      "at": 0.45,
+      "seen": {
+        "from": "left",
+        "windowLeft": -392,
+        "windowRight": 115,
+        "width": 390
+      },
+      "name": "notes-strand-light-phone-2.png"
+    },
+    {
+      "kind": "strand",
+      "key": "notes",
+      "tag": "light-phone",
+      "at": 0.25,
+      "seen": {
+        "from": "left",
+        "windowLeft": -240,
+        "windowRight": 267,
+        "width": 390
+      },
+      "name": "notes-strand-light-phone-3.png"
+    },
+    {
+      "kind": "strand",
+      "key": "notes",
+      "tag": "light-phone",
+      "at": 0.05,
+      "seen": {
+        "from": "left",
+        "windowLeft": -88,
+        "windowRight": 419,
+        "width": 390
+      },
+      "name": "notes-strand-light-phone-4.png"
+    },
+    {
+      "kind": "strand",
+      "key": "notes",
+      "tag": "light-phone",
+      "at": -0.3,
+      "seen": {
+        "from": "left",
+        "windowLeft": 0,
+        "windowRight": 507,
+        "width": 390
+      },
+      "name": "notes-strand-light-phone-5.png"
+    },
+    {
+      "kind": "pen-frame",
+      "key": "home",
+      "tag": "light-phone",
+      "y": 3435.015625,
+      "name": "pen-home-light-phone-0.png",
+      "mid": []
+    },
+    {
+      "kind": "pen-frame",
+      "key": "home",
+      "tag": "light-phone",
+      "y": 3855.015625,
+      "name": "pen-home-light-phone-1.png",
+      "mid": [
+        {
+          "text": "I lead a small team building and running",
+          "top": 0.6,
+          "lit": 7,
+          "of": 30
+        }
+      ]
+    },
+    {
+      "kind": "pen-frame",
+      "key": "home",
+      "tag": "light-phone",
+      "y": 4275.015625,
+      "name": "pen-home-light-phone-2.png",
+      "mid": [
+        {
+          "text": "Outside work I ship my own products end ",
+          "top": 0.671,
+          "lit": 0,
+          "of": 42
+        }
+      ]
+    },
+    {
+      "kind": "pen-frame",
+      "key": "home",
+      "tag": "light-phone",
+      "y": 4695.015625,
+      "name": "pen-home-light-phone-3.png",
+      "mid": [
+        {
+          "text": "Outside work I ship my own products end ",
+          "top": 0.173,
+          "lit": 32,
+          "of": 42
+        }
+      ]
+    },
+    {
+      "kind": "pen-frame",
+      "key": "home",
+      "tag": "light-phone",
+      "y": 5115.015625,
+      "name": "pen-home-light-phone-4.png",
+      "mid": [
+        {
+          "text": "A nightly job repeats it at a path with ",
+          "top": 0.618,
+          "lit": 3,
+          "of": 32
+        }
+      ]
+    },
+    {
+      "kind": "pen-frame",
+      "key": "home",
+      "tag": "light-phone",
+      "y": 5535.015625,
+      "name": "pen-home-light-phone-5.png",
+      "mid": []
+    },
+    {
+      "kind": "pen-frame",
+      "key": "home",
+      "tag": "light-phone",
+      "y": 5955.015625,
+      "name": "pen-home-light-phone-6.png",
+      "mid": [
+        {
+          "text": "A green suite and a suite that is incapa",
+          "top": 0.333,
+          "lit": 17,
+          "of": 23
+        }
+      ]
+    },
+    {
+      "kind": "pen-frame",
+      "key": "home",
+      "tag": "light-phone",
+      "y": 6375.015625,
+      "name": "pen-home-light-phone-7.png",
+      "mid": [
+        {
+          "text": "The bootstrap prints which keys it wrote",
+          "top": 0.468,
+          "lit": 9,
+          "of": 20
+        }
+      ]
+    },
+    {
+      "kind": "pen",
+      "key": "home",
+      "tag": "light-phone",
+      "worstMidInk": 1,
+      "starts": [
+        {
+          "text": "I'm a full-stack engineer and a technica",
+          "between": [
+            0.677,
+            0.701
+          ]
+        },
+        {
+          "text": "I lead a small team building and running",
+          "between": [
+            0.675,
+            0.7
+          ]
+        },
+        {
+          "text": "Before that I was a full-stack engineer ",
+          "between": [
+            0.669,
+            0.694
+          ]
+        },
+        {
+          "text": "Outside work I ship my own products end ",
+          "between": [
+            0.671,
+            0.696
+          ]
+        },
+        {
+          "text": "Every pull request on Bothy clones the r",
+          "between": [
+            0.664,
+            0.689
+          ]
+        },
+        {
+          "text": "A nightly job repeats it at a path with ",
+          "between": [
+            0.668,
+            0.693
+          ]
+        },
+        {
+          "text": "One CI job exists only to plant a mutati",
+          "between": [
+            0.669,
+            0.694
+          ]
+        },
+        {
+          "text": "A green suite and a suite that is incapa",
+          "between": [
+            0.657,
+            0.682
+          ]
+        },
+        {
+          "text": "Credentials are generated at install tim",
+          "between": [
+            0.655,
+            0.68
+          ]
+        },
+        {
+          "text": "The bootstrap prints which keys it wrote",
+          "between": [
+            0.667,
+            0.692
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "pen-frame",
+      "key": "project",
+      "tag": "light-phone",
+      "y": -312.625,
+      "name": "pen-project-light-phone-0.png",
+      "mid": [
+        {
+          "text": "A self-hosted console for a single machi",
+          "top": 0.63,
+          "lit": 3,
+          "of": 39
+        }
+      ]
+    },
+    {
+      "kind": "pen-frame",
+      "key": "project",
+      "tag": "light-phone",
+      "y": 128.375,
+      "name": "pen-project-light-phone-1.png",
+      "mid": [
+        {
+          "text": "A self-hosted console for a single machi",
+          "top": 0.478,
+          "lit": 15,
+          "of": 39
+        }
+      ]
+    },
+    {
+      "kind": "pen-frame",
+      "key": "project",
+      "tag": "light-phone",
+      "y": 569.375,
+      "name": "pen-project-light-phone-2.png",
+      "mid": []
+    },
+    {
+      "kind": "pen-frame",
+      "key": "project",
+      "tag": "light-phone",
+      "y": 1010.375,
+      "name": "pen-project-light-phone-3.png",
+      "mid": [
+        {
+          "text": "One person's reproducible development bo",
+          "top": 0.457,
+          "lit": 38,
+          "of": 40
+        }
+      ]
+    },
+    {
+      "kind": "pen-frame",
+      "key": "project",
+      "tag": "light-phone",
+      "y": 1451.375,
+      "name": "pen-project-light-phone-4.png",
+      "mid": [
+        {
+          "text": "Start any container and it appears in th",
+          "top": 0.165,
+          "lit": 61,
+          "of": 66
+        }
+      ]
+    },
+    {
+      "kind": "pen-frame",
+      "key": "project",
+      "tag": "light-phone",
+      "y": 1892.375,
+      "name": "pen-project-light-phone-5.png",
+      "mid": [
+        {
+          "text": "docker-socket-proxy gates by endpoint fa",
+          "top": 0.48,
+          "lit": 24,
+          "of": 54
+        }
+      ]
+    },
+    {
+      "kind": "pen-frame",
+      "key": "project",
+      "tag": "light-phone",
+      "y": 2333.375,
+      "name": "pen-project-light-phone-6.png",
+      "mid": [
+        {
+          "text": "No shell in the browser, no kill, no cre",
+          "top": 0.401,
+          "lit": 43,
+          "of": 74
+        }
+      ]
+    },
+    {
+      "kind": "pen-frame",
+      "key": "project",
+      "tag": "light-phone",
+      "y": 2774.375,
+      "name": "pen-project-light-phone-7.png",
+      "mid": [
+        {
+          "text": "The file API's safepath.collect() is the",
+          "top": 0.349,
+          "lit": 40,
+          "of": 75
+        }
+      ]
+    },
+    {
+      "kind": "pen",
+      "key": "project",
+      "tag": "light-phone",
+      "worstMidInk": 1,
+      "starts": [
+        {
+          "text": "A console for one machine is normally a ",
+          "between": [
+            0.667,
+            0.692
+          ]
+        },
+        {
+          "text": "One person's reproducible development bo",
+          "between": [
+            0.656,
+            0.681
+          ]
+        },
+        {
+          "text": "Start any container and it appears in th",
+          "between": [
+            0.662,
+            0.687
+          ]
+        },
+        {
+          "text": "docker-socket-proxy gates by endpoint fa",
+          "between": [
+            0.679,
+            0.704
+          ]
+        },
+        {
+          "text": "No shell in the browser, no kill, no cre",
+          "between": [
+            0.674,
+            0.699
+          ]
+        },
+        {
+          "text": "The file API's safepath.collect() is the",
+          "between": [
+            0.673,
+            0.698
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "strand",
+      "key": "run",
+      "tag": "dark-desk",
+      "at": 0.85,
+      "seen": {
+        "from": "right",
+        "windowLeft": 1440,
+        "windowRight": 3312,
+        "width": 1440
+      },
+      "name": "run-strand-dark-desk-0.png"
+    },
+    {
+      "kind": "strand",
+      "key": "run",
+      "tag": "dark-desk",
+      "at": 0.65,
+      "seen": {
+        "from": "right",
+        "windowLeft": 1440,
+        "windowRight": 3312,
+        "width": 1440
+      },
+      "name": "run-strand-dark-desk-1.png"
+    },
+    {
+      "kind": "strand",
+      "key": "run",
+      "tag": "dark-desk",
+      "at": 0.45,
+      "seen": {
+        "from": "right",
+        "windowLeft": 1058,
+        "windowRight": 2930,
+        "width": 1440
+      },
+      "name": "run-strand-dark-desk-2.png"
+    },
+    {
+      "kind": "strand",
+      "key": "run",
+      "tag": "dark-desk",
+      "at": 0.25,
+      "seen": {
+        "from": "right",
+        "windowLeft": 546,
+        "windowRight": 2418,
+        "width": 1440
+      },
+      "name": "run-strand-dark-desk-3.png"
+    },
+    {
+      "kind": "strand",
+      "key": "run",
+      "tag": "dark-desk",
+      "at": 0,
+      "seen": {
+        "from": "right",
+        "windowLeft": -93,
+        "windowRight": 1779,
+        "width": 1440
+      },
+      "name": "run-strand-dark-desk-4.png"
+    },
+    {
+      "kind": "strand",
+      "key": "run",
+      "tag": "dark-desk",
+      "at": -0.4,
+      "seen": {
+        "from": "right",
+        "windowLeft": -432,
+        "windowRight": 1440,
+        "width": 1440
+      },
+      "name": "run-strand-dark-desk-5.png"
+    },
+    {
+      "kind": "strand",
+      "key": "approach",
+      "tag": "dark-desk",
+      "at": 0.95,
+      "seen": {
+        "from": "left",
+        "windowLeft": -1872,
+        "windowRight": 0,
+        "width": 1440
+      },
+      "name": "approach-strand-dark-desk-0.png"
+    },
+    {
+      "kind": "strand",
+      "key": "approach",
+      "tag": "dark-desk",
+      "at": 0.85,
+      "seen": {
+        "from": "left",
+        "windowLeft": -1424,
+        "windowRight": 448,
+        "width": 1440
+      },
+      "name": "approach-strand-dark-desk-1.png"
+    },
+    {
+      "kind": "strand",
+      "key": "approach",
+      "tag": "dark-desk",
+      "at": 0.75,
+      "seen": {
+        "from": "left",
+        "windowLeft": -968,
+        "windowRight": 904,
+        "width": 1440
+      },
+      "name": "approach-strand-dark-desk-2.png"
+    },
+    {
+      "kind": "strand",
+      "key": "approach",
+      "tag": "dark-desk",
+      "at": 0.65,
+      "seen": {
+        "from": "left",
+        "windowLeft": -512,
+        "windowRight": 1360,
+        "width": 1440
+      },
+      "name": "approach-strand-dark-desk-3.png"
+    },
+    {
+      "kind": "strand",
+      "key": "approach",
+      "tag": "dark-desk",
+      "at": 0.55,
+      "seen": {
+        "from": "left",
+        "windowLeft": -56,
+        "windowRight": 1816,
+        "width": 1440
+      },
+      "name": "approach-strand-dark-desk-4.png"
+    },
+    {
+      "kind": "strand",
+      "key": "approach",
+      "tag": "dark-desk",
+      "at": 0.45,
+      "seen": {
+        "from": "left",
+        "windowLeft": 0,
+        "windowRight": 1872,
+        "width": 1440
+      },
+      "name": "approach-strand-dark-desk-5.png"
+    },
+    {
+      "kind": "strand",
+      "key": "notes",
+      "tag": "dark-desk",
+      "at": 0.85,
+      "seen": {
+        "from": "left",
+        "windowLeft": -1872,
+        "windowRight": 0,
+        "width": 1440
+      },
+      "name": "notes-strand-dark-desk-0.png"
+    },
+    {
+      "kind": "strand",
+      "key": "notes",
+      "tag": "dark-desk",
+      "at": 0.65,
+      "seen": {
+        "from": "left",
+        "windowLeft": -1872,
+        "windowRight": 0,
+        "width": 1440
+      },
+      "name": "notes-strand-dark-desk-1.png"
+    },
+    {
+      "kind": "strand",
+      "key": "notes",
+      "tag": "dark-desk",
+      "at": 0.45,
+      "seen": {
+        "from": "left",
+        "windowLeft": -1450,
+        "windowRight": 422,
+        "width": 1440
+      },
+      "name": "notes-strand-dark-desk-2.png"
+    },
+    {
+      "kind": "strand",
+      "key": "notes",
+      "tag": "dark-desk",
+      "at": 0.25,
+      "seen": {
+        "from": "left",
+        "windowLeft": -886,
+        "windowRight": 986,
+        "width": 1440
+      },
+      "name": "notes-strand-dark-desk-3.png"
+    },
+    {
+      "kind": "strand",
+      "key": "notes",
+      "tag": "dark-desk",
+      "at": 0.05,
+      "seen": {
+        "from": "left",
+        "windowLeft": -323,
+        "windowRight": 1549,
+        "width": 1440
+      },
+      "name": "notes-strand-dark-desk-4.png"
+    },
+    {
+      "kind": "strand",
+      "key": "notes",
+      "tag": "dark-desk",
+      "at": -0.3,
+      "seen": {
+        "from": "left",
+        "windowLeft": 0,
+        "windowRight": 1872,
+        "width": 1440
+      },
+      "name": "notes-strand-dark-desk-5.png"
+    },
+    {
+      "kind": "pen-frame",
+      "key": "home",
+      "tag": "dark-desk",
+      "y": 3947.953125,
+      "name": "pen-home-dark-desk-0.png",
+      "mid": []
+    },
+    {
+      "kind": "pen-frame",
+      "key": "home",
+      "tag": "dark-desk",
+      "y": 4246.953125,
+      "name": "pen-home-dark-desk-1.png",
+      "mid": [
+        {
+          "text": "I'm a full-stack engineer and a technica",
+          "top": 0.668,
+          "lit": 2,
+          "of": 12
+        }
+      ]
+    },
+    {
+      "kind": "pen-frame",
+      "key": "home",
+      "tag": "dark-desk",
+      "y": 4545.953125,
+      "name": "pen-home-dark-desk-2.png",
+      "mid": [
+        {
+          "text": "Before that I was a full-stack engineer ",
+          "top": 0.603,
+          "lit": 5,
+          "of": 11
+        }
+      ]
+    },
+    {
+      "kind": "pen-frame",
+      "key": "home",
+      "tag": "dark-desk",
+      "y": 4844.953125,
+      "name": "pen-home-dark-desk-3.png",
+      "mid": [
+        {
+          "text": "Outside work I ship my own products end ",
+          "top": 0.439,
+          "lit": 27,
+          "of": 42
+        }
+      ]
+    },
+    {
+      "kind": "pen-frame",
+      "key": "home",
+      "tag": "dark-desk",
+      "y": 5143.953125,
+      "name": "pen-home-dark-desk-4.png",
+      "mid": [
+        {
+          "text": "A nightly job repeats it at a path with ",
+          "top": 0.619,
+          "lit": 5,
+          "of": 32
+        }
+      ]
+    },
+    {
+      "kind": "pen-frame",
+      "key": "home",
+      "tag": "dark-desk",
+      "y": 5442.953125,
+      "name": "pen-home-dark-desk-5.png",
+      "mid": [
+        {
+          "text": "One CI job exists only to plant a mutati",
+          "top": 0.62,
+          "lit": 9,
+          "of": 16
+        }
+      ]
+    },
+    {
+      "kind": "pen-frame",
+      "key": "home",
+      "tag": "dark-desk",
+      "y": 5741.953125,
+      "name": "pen-home-dark-desk-6.png",
+      "mid": [
+        {
+          "text": "A green suite and a suite that is incapa",
+          "top": 0.388,
+          "lit": 22,
+          "of": 23
+        }
+      ]
+    },
+    {
+      "kind": "pen-frame",
+      "key": "home",
+      "tag": "dark-desk",
+      "y": 6040.953125,
+      "name": "pen-home-dark-desk-7.png",
+      "mid": [
+        {
+          "text": "The bootstrap prints which keys it wrote",
+          "top": 0.449,
+          "lit": 12,
+          "of": 20
+        }
+      ]
+    },
+    {
+      "kind": "pen",
+      "key": "home",
+      "tag": "dark-desk",
+      "worstMidInk": 1,
+      "starts": [
+        {
+          "text": "I'm a full-stack engineer and a technica",
+          "between": [
+            0.668,
+            0.693
+          ]
+        },
+        {
+          "text": "I lead a small team building and running",
+          "between": [
+            0.677,
+            0.703
+          ]
+        },
+        {
+          "text": "Before that I was a full-stack engineer ",
+          "between": [
+            0.655,
+            0.68
+          ]
+        },
+        {
+          "text": "Outside work I ship my own products end ",
+          "between": [
+            0.669,
+            0.695
+          ]
+        },
+        {
+          "text": "Every pull request on Bothy clones the r",
+          "between": [
+            0.659,
+            0.684
+          ]
+        },
+        {
+          "text": "A nightly job repeats it at a path with ",
+          "between": [
+            0.67,
+            0.696
+          ]
+        },
+        {
+          "text": "One CI job exists only to plant a mutati",
+          "between": [
+            0.671,
+            0.697
+          ]
+        },
+        {
+          "text": "A green suite and a suite that is incapa",
+          "between": [
+            0.669,
+            0.695
+          ]
+        },
+        {
+          "text": "Credentials are generated at install tim",
+          "between": [
+            0.656,
+            0.681
+          ]
+        },
+        {
+          "text": "The bootstrap prints which keys it wrote",
+          "between": [
+            0.679,
+            0.705
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "pen-frame",
+      "key": "project",
+      "tag": "dark-desk",
+      "y": -523,
+      "name": "pen-project-dark-desk-0.png",
+      "mid": [
+        {
+          "text": "A self-hosted console for a single machi",
+          "top": 0.419,
+          "lit": 26,
+          "of": 39
+        }
+      ]
+    },
+    {
+      "kind": "pen-frame",
+      "key": "project",
+      "tag": "dark-desk",
+      "y": -201,
+      "name": "pen-project-dark-desk-1.png",
+      "mid": [
+        {
+          "text": "A self-hosted console for a single machi",
+          "top": 0.419,
+          "lit": 26,
+          "of": 39
+        }
+      ]
+    },
+    {
+      "kind": "pen-frame",
+      "key": "project",
+      "tag": "dark-desk",
+      "y": 121,
+      "name": "pen-project-dark-desk-2.png",
+      "mid": []
+    },
+    {
+      "kind": "pen-frame",
+      "key": "project",
+      "tag": "dark-desk",
+      "y": 443,
+      "name": "pen-project-dark-desk-3.png",
+      "mid": [
+        {
+          "text": "A console for one machine is normally a ",
+          "top": 0.544,
+          "lit": 46,
+          "of": 50
+        }
+      ]
+    },
+    {
+      "kind": "pen-frame",
+      "key": "project",
+      "tag": "dark-desk",
+      "y": 765,
+      "name": "pen-project-dark-desk-4.png",
+      "mid": [
+        {
+          "text": "Start any container and it appears in th",
+          "top": 0.456,
+          "lit": 32,
+          "of": 66
+        }
+      ]
+    },
+    {
+      "kind": "pen-frame",
+      "key": "project",
+      "tag": "dark-desk",
+      "y": 1087,
+      "name": "pen-project-dark-desk-5.png",
+      "mid": [
+        {
+          "text": "docker-socket-proxy gates by endpoint fa",
+          "top": 0.636,
+          "lit": 11,
+          "of": 54
+        }
+      ]
+    },
+    {
+      "kind": "pen-frame",
+      "key": "project",
+      "tag": "dark-desk",
+      "y": 1409,
+      "name": "pen-project-dark-desk-6.png",
+      "mid": [
+        {
+          "text": "No shell in the browser, no kill, no cre",
+          "top": 0.484,
+          "lit": 61,
+          "of": 74
+        }
+      ]
+    },
+    {
+      "kind": "pen-frame",
+      "key": "project",
+      "tag": "dark-desk",
+      "y": 1731,
+      "name": "pen-project-dark-desk-7.png",
+      "mid": [
+        {
+          "text": "The file API's safepath.collect() is the",
+          "top": 0.363,
+          "lit": 55,
+          "of": 75
+        }
+      ]
+    },
+    {
+      "kind": "pen",
+      "key": "project",
+      "tag": "dark-desk",
+      "worstMidInk": 1,
+      "starts": [
+        {
+          "text": "A console for one machine is normally a ",
+          "between": [
+            0.672,
+            0.698
+          ]
+        },
+        {
+          "text": "One person's reproducible development bo",
+          "between": [
+            0.666,
+            0.692
+          ]
+        },
+        {
+          "text": "Start any container and it appears in th",
+          "between": [
+            0.661,
+            0.686
+          ]
+        },
+        {
+          "text": "docker-socket-proxy gates by endpoint fa",
+          "between": [
+            0.661,
+            0.687
+          ]
+        },
+        {
+          "text": "No shell in the browser, no kill, no cre",
+          "between": [
+            0.663,
+            0.688
+          ]
+        },
+        {
+          "text": "The file API's safepath.collect() is the",
+          "between": [
+            0.67,
+            0.696
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "strand",
+      "key": "run",
+      "tag": "dark-phone",
+      "at": 0.85,
+      "seen": {
+        "from": "right",
+        "windowLeft": 390,
+        "windowRight": 897,
+        "width": 390
+      },
+      "name": "run-strand-dark-phone-0.png"
+    },
+    {
+      "kind": "strand",
+      "key": "run",
+      "tag": "dark-phone",
+      "at": 0.65,
+      "seen": {
+        "from": "right",
+        "windowLeft": 390,
+        "windowRight": 897,
+        "width": 390
+      },
+      "name": "run-strand-dark-phone-1.png"
+    },
+    {
+      "kind": "strand",
+      "key": "run",
+      "tag": "dark-phone",
+      "at": 0.45,
+      "seen": {
+        "from": "right",
+        "windowLeft": 286,
+        "windowRight": 793,
+        "width": 390
+      },
+      "name": "run-strand-dark-phone-2.png"
+    },
+    {
+      "kind": "strand",
+      "key": "run",
+      "tag": "dark-phone",
+      "at": 0.25,
+      "seen": {
+        "from": "right",
+        "windowLeft": 148,
+        "windowRight": 655,
+        "width": 390
+      },
+      "name": "run-strand-dark-phone-3.png"
+    },
+    {
+      "kind": "strand",
+      "key": "run",
+      "tag": "dark-phone",
+      "at": 0,
+      "seen": {
+        "from": "right",
+        "windowLeft": -25,
+        "windowRight": 482,
+        "width": 390
+      },
+      "name": "run-strand-dark-phone-4.png"
+    },
+    {
+      "kind": "strand",
+      "key": "run",
+      "tag": "dark-phone",
+      "at": -0.4,
+      "seen": {
+        "from": "right",
+        "windowLeft": -117,
+        "windowRight": 390,
+        "width": 390
+      },
+      "name": "run-strand-dark-phone-5.png"
+    },
+    {
+      "kind": "strand",
+      "key": "approach",
+      "tag": "dark-phone",
+      "at": 0.95,
+      "seen": {
+        "from": "left",
+        "windowLeft": -506,
+        "windowRight": 1,
+        "width": 390
+      },
+      "name": "approach-strand-dark-phone-0.png"
+    },
+    {
+      "kind": "strand",
+      "key": "approach",
+      "tag": "dark-phone",
+      "at": 0.85,
+      "seen": {
+        "from": "left",
+        "windowLeft": -378,
+        "windowRight": 129,
+        "width": 390
+      },
+      "name": "approach-strand-dark-phone-1.png"
+    },
+    {
+      "kind": "strand",
+      "key": "approach",
+      "tag": "dark-phone",
+      "at": 0.75,
+      "seen": {
+        "from": "left",
+        "windowLeft": -248,
+        "windowRight": 259,
+        "width": 390
+      },
+      "name": "approach-strand-dark-phone-2.png"
+    },
+    {
+      "kind": "strand",
+      "key": "approach",
+      "tag": "dark-phone",
+      "at": 0.65,
+      "seen": {
+        "from": "left",
+        "windowLeft": -120,
+        "windowRight": 387,
+        "width": 390
+      },
+      "name": "approach-strand-dark-phone-3.png"
+    },
+    {
+      "kind": "strand",
+      "key": "approach",
+      "tag": "dark-phone",
+      "at": 0.55,
+      "seen": {
+        "from": "left",
+        "windowLeft": 0,
+        "windowRight": 507,
+        "width": 390
+      },
+      "name": "approach-strand-dark-phone-4.png"
+    },
+    {
+      "kind": "strand",
+      "key": "approach",
+      "tag": "dark-phone",
+      "at": 0.45,
+      "seen": {
+        "from": "left",
+        "windowLeft": 0,
+        "windowRight": 507,
+        "width": 390
+      },
+      "name": "approach-strand-dark-phone-5.png"
+    },
+    {
+      "kind": "strand",
+      "key": "notes",
+      "tag": "dark-phone",
+      "at": 0.85,
+      "seen": {
+        "from": "left",
+        "windowLeft": -507,
+        "windowRight": 0,
+        "width": 390
+      },
+      "name": "notes-strand-dark-phone-0.png"
+    },
+    {
+      "kind": "strand",
+      "key": "notes",
+      "tag": "dark-phone",
+      "at": 0.65,
+      "seen": {
+        "from": "left",
+        "windowLeft": -507,
+        "windowRight": 0,
+        "width": 390
+      },
+      "name": "notes-strand-dark-phone-1.png"
+    },
+    {
+      "kind": "strand",
+      "key": "notes",
+      "tag": "dark-phone",
+      "at": 0.45,
+      "seen": {
+        "from": "left",
+        "windowLeft": -392,
+        "windowRight": 115,
+        "width": 390
+      },
+      "name": "notes-strand-dark-phone-2.png"
+    },
+    {
+      "kind": "strand",
+      "key": "notes",
+      "tag": "dark-phone",
+      "at": 0.25,
+      "seen": {
+        "from": "left",
+        "windowLeft": -240,
+        "windowRight": 267,
+        "width": 390
+      },
+      "name": "notes-strand-dark-phone-3.png"
+    },
+    {
+      "kind": "strand",
+      "key": "notes",
+      "tag": "dark-phone",
+      "at": 0.05,
+      "seen": {
+        "from": "left",
+        "windowLeft": -88,
+        "windowRight": 419,
+        "width": 390
+      },
+      "name": "notes-strand-dark-phone-4.png"
+    },
+    {
+      "kind": "strand",
+      "key": "notes",
+      "tag": "dark-phone",
+      "at": -0.3,
+      "seen": {
+        "from": "left",
+        "windowLeft": 0,
+        "windowRight": 507,
+        "width": 390
+      },
+      "name": "notes-strand-dark-phone-5.png"
+    },
+    {
+      "kind": "pen-frame",
+      "key": "home",
+      "tag": "dark-phone",
+      "y": 3435.015625,
+      "name": "pen-home-dark-phone-0.png",
+      "mid": []
+    },
+    {
+      "kind": "pen-frame",
+      "key": "home",
+      "tag": "dark-phone",
+      "y": 3855.015625,
+      "name": "pen-home-dark-phone-1.png",
+      "mid": [
+        {
+          "text": "I lead a small team building and running",
+          "top": 0.6,
+          "lit": 7,
+          "of": 30
+        }
+      ]
+    },
+    {
+      "kind": "pen-frame",
+      "key": "home",
+      "tag": "dark-phone",
+      "y": 4275.015625,
+      "name": "pen-home-dark-phone-2.png",
+      "mid": [
+        {
+          "text": "Outside work I ship my own products end ",
+          "top": 0.671,
+          "lit": 0,
+          "of": 42
+        }
+      ]
+    },
+    {
+      "kind": "pen-frame",
+      "key": "home",
+      "tag": "dark-phone",
+      "y": 4695.015625,
+      "name": "pen-home-dark-phone-3.png",
+      "mid": [
+        {
+          "text": "Outside work I ship my own products end ",
+          "top": 0.173,
+          "lit": 32,
+          "of": 42
+        }
+      ]
+    },
+    {
+      "kind": "pen-frame",
+      "key": "home",
+      "tag": "dark-phone",
+      "y": 5115.015625,
+      "name": "pen-home-dark-phone-4.png",
+      "mid": [
+        {
+          "text": "A nightly job repeats it at a path with ",
+          "top": 0.618,
+          "lit": 3,
+          "of": 32
+        }
+      ]
+    },
+    {
+      "kind": "pen-frame",
+      "key": "home",
+      "tag": "dark-phone",
+      "y": 5535.015625,
+      "name": "pen-home-dark-phone-5.png",
+      "mid": []
+    },
+    {
+      "kind": "pen-frame",
+      "key": "home",
+      "tag": "dark-phone",
+      "y": 5955.015625,
+      "name": "pen-home-dark-phone-6.png",
+      "mid": [
+        {
+          "text": "A green suite and a suite that is incapa",
+          "top": 0.333,
+          "lit": 17,
+          "of": 23
+        }
+      ]
+    },
+    {
+      "kind": "pen-frame",
+      "key": "home",
+      "tag": "dark-phone",
+      "y": 6375.015625,
+      "name": "pen-home-dark-phone-7.png",
+      "mid": [
+        {
+          "text": "The bootstrap prints which keys it wrote",
+          "top": 0.468,
+          "lit": 9,
+          "of": 20
+        }
+      ]
+    },
+    {
+      "kind": "pen",
+      "key": "home",
+      "tag": "dark-phone",
+      "worstMidInk": 1,
+      "starts": [
+        {
+          "text": "I'm a full-stack engineer and a technica",
+          "between": [
+            0.677,
+            0.701
+          ]
+        },
+        {
+          "text": "I lead a small team building and running",
+          "between": [
+            0.675,
+            0.7
+          ]
+        },
+        {
+          "text": "Before that I was a full-stack engineer ",
+          "between": [
+            0.669,
+            0.694
+          ]
+        },
+        {
+          "text": "Outside work I ship my own products end ",
+          "between": [
+            0.671,
+            0.696
+          ]
+        },
+        {
+          "text": "Every pull request on Bothy clones the r",
+          "between": [
+            0.664,
+            0.689
+          ]
+        },
+        {
+          "text": "A nightly job repeats it at a path with ",
+          "between": [
+            0.668,
+            0.693
+          ]
+        },
+        {
+          "text": "One CI job exists only to plant a mutati",
+          "between": [
+            0.669,
+            0.694
+          ]
+        },
+        {
+          "text": "A green suite and a suite that is incapa",
+          "between": [
+            0.657,
+            0.682
+          ]
+        },
+        {
+          "text": "Credentials are generated at install tim",
+          "between": [
+            0.655,
+            0.68
+          ]
+        },
+        {
+          "text": "The bootstrap prints which keys it wrote",
+          "between": [
+            0.667,
+            0.692
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "pen-frame",
+      "key": "project",
+      "tag": "dark-phone",
+      "y": -312.625,
+      "name": "pen-project-dark-phone-0.png",
+      "mid": [
+        {
+          "text": "A self-hosted console for a single machi",
+          "top": 0.63,
+          "lit": 3,
+          "of": 39
+        }
+      ]
+    },
+    {
+      "kind": "pen-frame",
+      "key": "project",
+      "tag": "dark-phone",
+      "y": 128.375,
+      "name": "pen-project-dark-phone-1.png",
+      "mid": [
+        {
+          "text": "A self-hosted console for a single machi",
+          "top": 0.478,
+          "lit": 15,
+          "of": 39
+        }
+      ]
+    },
+    {
+      "kind": "pen-frame",
+      "key": "project",
+      "tag": "dark-phone",
+      "y": 569.375,
+      "name": "pen-project-dark-phone-2.png",
+      "mid": []
+    },
+    {
+      "kind": "pen-frame",
+      "key": "project",
+      "tag": "dark-phone",
+      "y": 1010.375,
+      "name": "pen-project-dark-phone-3.png",
+      "mid": [
+        {
+          "text": "One person's reproducible development bo",
+          "top": 0.457,
+          "lit": 38,
+          "of": 40
+        }
+      ]
+    },
+    {
+      "kind": "pen-frame",
+      "key": "project",
+      "tag": "dark-phone",
+      "y": 1451.375,
+      "name": "pen-project-dark-phone-4.png",
+      "mid": [
+        {
+          "text": "Start any container and it appears in th",
+          "top": 0.165,
+          "lit": 61,
+          "of": 66
+        }
+      ]
+    },
+    {
+      "kind": "pen-frame",
+      "key": "project",
+      "tag": "dark-phone",
+      "y": 1892.375,
+      "name": "pen-project-dark-phone-5.png",
+      "mid": [
+        {
+          "text": "docker-socket-proxy gates by endpoint fa",
+          "top": 0.48,
+          "lit": 24,
+          "of": 54
+        }
+      ]
+    },
+    {
+      "kind": "pen-frame",
+      "key": "project",
+      "tag": "dark-phone",
+      "y": 2333.375,
+      "name": "pen-project-dark-phone-6.png",
+      "mid": [
+        {
+          "text": "No shell in the browser, no kill, no cre",
+          "top": 0.401,
+          "lit": 43,
+          "of": 74
+        }
+      ]
+    },
+    {
+      "kind": "pen-frame",
+      "key": "project",
+      "tag": "dark-phone",
+      "y": 2774.375,
+      "name": "pen-project-dark-phone-7.png",
+      "mid": [
+        {
+          "text": "The file API's safepath.collect() is the",
+          "top": 0.349,
+          "lit": 40,
+          "of": 75
+        }
+      ]
+    },
+    {
+      "kind": "pen",
+      "key": "project",
+      "tag": "dark-phone",
+      "worstMidInk": 1,
+      "starts": [
+        {
+          "text": "A console for one machine is normally a ",
+          "between": [
+            0.667,
+            0.692
+          ]
+        },
+        {
+          "text": "One person's reproducible development bo",
+          "between": [
+            0.656,
+            0.681
+          ]
+        },
+        {
+          "text": "Start any container and it appears in th",
+          "between": [
+            0.662,
+            0.687
+          ]
+        },
+        {
+          "text": "docker-socket-proxy gates by endpoint fa",
+          "between": [
+            0.679,
+            0.704
+          ]
+        },
+        {
+          "text": "No shell in the browser, no kill, no cre",
+          "between": [
+            0.674,
+            0.699
+          ]
+        },
+        {
+          "text": "The file API's safepath.collect() is the",
+          "between": [
+            0.673,
+            0.698
+          ]
+        }
+      ]
+    }
+  ]
+}

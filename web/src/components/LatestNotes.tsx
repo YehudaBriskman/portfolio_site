@@ -6,6 +6,7 @@ import ObjectLabel from "@/components/gallery/ObjectLabel";
 import SkeletonGate from "@/components/gallery/SkeletonGate";
 import type { LabelField } from "@/components/gallery/objectLabel";
 import InkRule from "@/components/motion/InkRule";
+import AuroraStrand from "@/components/motion/AuroraStrand";
 import Shot from "@/components/projects/Shot";
 import type { Project } from "@/data/projects";
 import { useContent } from "@/content/store";
@@ -278,6 +279,12 @@ export default function LatestNotes() {
               ))}
 
               <div className={styles.frame}>
+                {/* The aurora behind the cards, as the run has (owner,
+                    2026-11-03): the shared strand, in from the left, on the
+                    shelf's own clock, whole just after the frame pins. */}
+                <div className={styles.aurora} data-notes-aurora="">
+                  <AuroraStrand from="left" timeline="--notes-shelf" range="entry 40% contain 6%" />
+                </div>
                 <ul className={styles.track} aria-label="Latest notes" onFocus={onFocus}>
                   {posts.map((post, i) => {
                     const fact = factLine(post);

@@ -104,7 +104,8 @@ ledger is a page-level document and not a comment.
 | — | any waiting region | **sweep** | a region says what shape is coming, and that it is coming |
 | — | the dark ground | **drift** | the dark act is a gap between two sheets, with light behind it |
 | — | every section head | **shutter**, echoed | a section arrives the way the app did, at the scale of its name |
-| — | any running text | **pen** | prose is set as the reader's eye reaches it |
+| — | any running text | **pen** | prose is set as the reader's eye reaches it — one block at a time, in document order, as each enters the reading window (68% → 38% of the window, 2026-11-03) |
+| — | the run, "How I work", the notes shelf | **aurora strand** (2026-11-03) | one ribbon of light, uncovered in place by a soft window from one side: the run's from the right (the reading end), the other two from the left |
 | — | a card or a day on a dashboard, a card on a project page | **arrive** (#251) | a block settles the last 12px into place and the ring by its heading draws round once; nothing is ever drawn over the content |
 | 0 | title plate | **staged assembly** | the collection names itself, in four gated moves |
 | — | the plate's end corner | **breath** | one small light is on, and says one thing at a time |
@@ -324,10 +325,12 @@ no curve. There the aurora becomes one still ribbon down the list's middle,
 behind the cards, fully drawn with no surge, so each gap still shows the
 cards on one line. With no `animation-timeline` support, and in forced
 colours, it is hidden, because the list is the whole fallback.
-*And the living line.* Since #191 the living line wears this ribbon too, and
-starts here: at the run's centre, behind the cards, as the frame lets go,
-and flows down out of the act into "How I work". The aurora is light along
-the work; the line is that light drawn on by the reader's scroll.
+*And the living line.* Since #191 the living line wears this ribbon too.
+Until 2026-11-03 it started here, at the run's centre, and flowed down out
+of the act into "How I work"; it now starts on "How I work"'s own strand,
+which comes in from the left as this one comes in from the right (the
+aurora strand, §2). The aurora is light along the work; the line is that
+light drawn on by the reader's scroll.
 Shots: `docs/work-run/aurora-<w>x<h>[-he]-<t>.png`, `-sweep-<t>.png` (t < 0:
 before the pin) and `-sweep--0.12-back.png`, `-reduced`, `-paused`
 (`web/scripts/shoot-work-aurora.mjs`). Measured with
@@ -679,11 +682,44 @@ measures the connection rather than the device.
 read.** `motion/Written.tsx` wraps prose, not sections: the wall text's
 paragraphs, a post's paragraphs and list items, a project's description,
 brief and decisions. Every word starts muted, and as the paragraph rises
-from 95% of the window's height to 62% (#174; it was 85% to 45%) the pen
-inks it one word after another in reading order and leaves it at ink — so a
-sentence is written out just ahead of the eye, and un-written word by word if the reader scrolls
-back (#158: word `i` of `n` owns the slice `i/n`–`(i+1)/n` of the
-paragraph's clock, so at most one word is ever mid-stroke). It sat beside
+through the READING WINDOW — its top at 68% of the window's height to its
+bottom at 38% (2026-11-03; it was 95% → 62% after #174, 85% → 45% before)
+— the pen inks it one word after another in reading order and leaves it at
+ink, and un-writes it word by word if the reader scrolls back (#158: word
+`i` of `n` owns the slice `i/n`–`(i+1)/n` of the paragraph's clock, so at
+most one word is ever mid-stroke).
+
+**One block at a time (2026-11-03).** The owner: "several sections ink at
+the same time … it should feel like reading", and it "starts too early,
+when the text is at the bottom of the window". Both were true: a block's
+clock was `h + 33vh` of scroll from the window's foot, so neighbours a
+margin apart shared a third of the window and two or three were mid-ink at
+once. Now:
+
+- **One shared constant.** `READING = { from: 0.68, to: 0.38 }` in
+  `motion/penClock.ts`, and the same two numbers as `--read-from` /
+  `--read-to` on `:root` in `index.css` (a test holds them equal). The
+  pen's `view-timeline-inset`, the near-watch's zone (the window ± 4%) and
+  the approach figures' clock are all cut from them.
+- **A sequencer.** `Written.tsx` registers every block, measures their
+  places once per layout change (not per frame), and `sequence()` gives
+  each its turn: a block may not start before the previous one (document
+  order) has finished, and must finish by the time the next is due to
+  start. A block keeps its own start — top at 68% — whenever the previous
+  one is done by then; in dense prose it is written while it crosses the
+  68% line, and a block with room below keeps its whole clock. The turn is
+  handed to CSS as `--pen-lead` / `--pen-span` on the block, and each word's
+  range is scaled into it. Blocks inside a sticky or fixed box keep their
+  whole clock (a distance measured to them is not the scroll to them).
+- **Held by tests and in a browser.** `Written.test.tsx` checks the
+  arithmetic on dense, gapped, long and side-by-side layouts (never two
+  turns overlapping; each starting at 68%; done by 38%).
+  `web/scripts/shoot-aurora-reading.mjs` steps the home page's wall text
+  and a project page through 1/40 of the window at a time, in both themes,
+  desktop and phone, counts the blocks mid-ink at every step (asserted ≤ 1)
+  and records where each block's first word starts (asserted 65–70%);
+  frames in `docs/aurora-reading/pen-{home,project}-*.png`, numbers in
+  `report.json`. It sat beside
 `flow` on the wall text without colliding with it (until #157 retired
 `flow` there), because they answer
 different questions: `flow` is *when a block arrives*, once; `pen` is *which
@@ -703,7 +739,19 @@ page with all prose at full ink, which costs a reader nothing to choose. A peak 
 spends its budget on; this spends a frame cost, measured below, and nothing
 else.
 
-**Muted is texture: `--ink` at 22%, a deliberate contrast exception
+**Muted is readable again: `--ink` at 62% (2026-11-03).** The owner's rule
+now is that text must always remain readable, so the unwritten state may no
+longer be texture. It is `--ink` at 0.62: 4.84:1 on paper, 4.69:1 on the
+raised paper, 6.5:1 and over on the dark grounds — above the 4.5:1 floor on
+every ground prose sits on (computed from the tokens in `Written.test.tsx`)
+and still a clear step below the full ink the pen writes it to (15.17:1).
+The exception argued below is **retired**; it is kept as the record of why
+0.22 was chosen and what it cost. What the pen gives now is the step from
+a readable grey to full ink at the line the reader is about to read, one
+block at a time — no longer the difference between unreadable and
+readable.
+
+**Was: muted is texture: `--ink` at 22%, a deliberate contrast exception
 (#174).** Until #174 the muted state was `--ink-soft`, the page's second
 text colour, chosen so the pen could never make anything less legible than
 the page set it. The owner sent that back from preprod: "the text that are
@@ -1123,6 +1171,45 @@ than about motion:
 When a beat changes, this table changes with it. A ledger that describes the
 previous build is worse than no ledger.
 
+### The aurora strand: one appearing, three places (2026-11-03)
+
+The owner, on the live site: the aurora on "How I work" "should start from
+the left side of the page, appearing like in the Projects section", and the
+notes should have "the aurora like in Projects too, almost the same
+animation, but from the left". So the run's appearing became a primitive,
+`motion/AuroraStrand.tsx`, and all three use it — one component with a
+`from: "left" | "right"` option, not three copies:
+
+| where | `from` | clock | range |
+|---|---|---|---|
+| the work run (`projects/RunAurora.tsx`) | `right`, mirrored in Hebrew (`mirrorInRtl`) | `--run`, the stage's | `entry 40%` → `contain 6%` |
+| "How I work" (`Approach.tsx`), a band across the head, full-bleed | `left` | its own `--aurora-strand` | `cover 5%` → `cover 45%` |
+| the notes shelf (`LatestNotes.tsx`), behind the cards on the row's middle | `left` (the frame is mirrored in Hebrew, and the strand with it) | `--notes-shelf`, the stage's | `entry 40%` → `contain 6%`, as the run |
+
+**The appearing** is the run's (#192), unchanged: a window 130% of the box
+wide, its leading 30% a soft mask edge, slides in from `from` while the
+drawing inside it is carried back by exactly the same amount, so the light
+holds still and is uncovered rather than dragged. Two transforms on a scroll
+timeline; scroll back and it leaves the way it came. The window bleeds 48px
+above and below its box, because a mask paints nothing outside the masked
+box and the haze's blur needs the room (found in the first frames: a hard
+edge under the band).
+
+**"How I work" now starts from the strand, not from the run.** The living
+line's `from` is an empty marker on the band's centre line at the wall's
+start lane (`data-line-origin="approach-strand"`); the line leaves the
+strand there and turns into the head's lane. The run's centre marker
+(`data-line-origin="work-run"`) and its `.origin` rule are gone.
+
+**Off-switches.** On "How I work" the strand lands whole and still (no
+window, no carry). On the run and the shelf the layout itself becomes a
+plain list: the run keeps its still vertical ribbon (unchanged), the shelf
+hides its band. Forced colours hide every strand.
+
+Frames: `docs/aurora-reading/{run,approach,notes}-strand-<theme>-<desk|phone>-<k>.png`,
+k in scroll order (`web/scripts/shoot-aurora-reading.mjs`, which also checks
+each strand's window comes from its side and ends whole).
+
 ### /projects: the catalogue, and why it is not the run (#169, #175)
 
 The table above is the home page's. `/projects` is a different page with a
@@ -1414,10 +1501,13 @@ six were the rest of the trim.
 
 **Where it starts.** /story: a dot in the middle of the page before the first
 beat (`origin` with `dot`, on an empty seed box), and the line sweeps from
-it to the first beat's lane. Home: behind the work run's dark stage, at its
-centre. The run's stage carries an empty marker where the frame's centre is
-when it lets go (`data-line-origin="work-run"`); `LivingLine`'s `from`
-names it, so the line starts outside its own container. It runs straight
+it to the first beat's lane. Home (since 2026-11-03): on the aurora strand
+across the head of "How I work", which comes in from the left edge of the
+page. An empty marker sits on the strand's centre line at the wall's start
+lane (`data-line-origin="approach-strand"`); `LivingLine`'s `from` names it,
+so the line starts outside its own container. Until then it started behind
+the work run's dark stage, at its centre (`data-line-origin="work-run"`),
+and the paragraph that follows describes that. It runs straight
 down out of the work section (`until: "section"`, so it never turns across
 "All projects"), turns into the head's lane, and carries on. The drawing
 and its view timeline grow upward to reach the start — the timeline is on
@@ -1776,7 +1866,8 @@ direction, or set `fill-rule: evenodd` deliberately and know what it costs.
 | `projects/Gallery.module.css`, `notes/NoteTile.module.css` | what hangs in a cell: a project tile, a note card. No motion of their own | — |
 | `gallery/FilterControl.tsx` + `Rail.tsx` | the filter card, its popovers and the phone's sheet. No motion: they appear and go | — |
 | `projects/ProjectRun.module.css` | `pin` — the work travelling along a curve under a held frame; one lap per card, staggered by range | named `view-timeline` on the static stage, the frame held inside it |
-| `projects/RunAurora.tsx` + `runCurve.ts` | the run's aurora: a ribbon of seven strands on the cards' own curve, swept in from the reading end as the stage arrives, a window sweeping along it once a card; a still ribbon of strands down the plain list with motion off | the run's `--run` timeline: the sweep on `entry 40%`–`contain 6%`, the surge iterated once per card |
+| `motion/AuroraStrand.tsx` | the aurora strand's one appearing, shared by the run, "How I work" and the notes shelf: a soft window in from `from` ("left" \| "right"), the drawing carried back under it; a wave by default | the caller's named timeline and range as custom properties, or its own `--aurora-strand` view timeline |
+| `projects/RunAurora.tsx` + `runCurve.ts` | the run's aurora: a ribbon of seven strands on the cards' own curve, swept in from the reading end as the stage arrives (through `AuroraStrand`, `from="right"`), a window sweeping along it once a card; a still ribbon of strands down the plain list with motion off | the run's `--run` timeline: the sweep on `entry 40%`–`contain 6%`, the surge iterated once per card |
 | `LatestNotes.module.css` | `pan`, held — the notes walk past under a held frame, one card-width per step | named `view-timeline` on the static stage (inset 0), the frame held inside it |
 | `city/ContributionCity.module.css` | `scrub` — one animation turns and raises 365 columns, a second dollies the camera down the year | named `view-timeline` on a static wrapper, the frame held over it |
 | `city/useCityHand.ts` | the year's orbit and its one readout — a drag turns the city, a point reads a day | pointer events; a settle loop only between release and rest |
@@ -1788,7 +1879,7 @@ direction, or set `fill-rule: evenodd` deliberately and know what it costs.
 | `index.css` `.section-head::after` | the shutter, echoed — a lattice leaving each section head outward from its word | named `view-timeline` on the head, inset to the lower third |
 | `motion/LivingLine.tsx` + `lineMoves.ts` | `line` — one ribbon behind a page or section, composed from the moves each box declares in data (`origin`, `line-to`, `round`, `circle-around`, and a registry for more) and measured off the laid-out boxes, its tip held on the window's middle | named `view-timeline` on the drawing (inset 50%), grown upward when the line starts above its container; a 101-stop keyframe reads offsets the composer writes as custom properties |
 | `motion/Strands.tsx` + `ribbon.ts` | the aurora's ribbon, shared: fine strands braided about any path, and the one set of aurora colours, for the run's aurora and the living line | — (geometry; the callers own the clock) |
-| `motion/Written.tsx` | `pen` — running text written one word after another as it rises through the lower half of the window | named `view-timeline` on the paragraph; word `i` of `n` owns the slice `i/n`–`(i+1)/n` |
+| `motion/Written.tsx` + `penClock.ts` | `pen` — running text written one word after another as it rises through the reading window (68% → 38%), one block at a time in document order | named `view-timeline` on the paragraph, inset from `--read-from`/`--read-to`; word `i` of `n` owns the slice `i/n`–`(i+1)/n` of the block's turn (`--pen-lead`, `--pen-span`, from the sequencer) |
 
 ### Retired, and why
 
@@ -1895,7 +1986,8 @@ animation.
 | hero corners sinking under paper | / | — | **removed** (2026-11-03), with the plate's exit above |
 | section heads' lattice (`.section-head::after`) | /, /projects, /story | `--section-head` view timeline | scrubbed |
 | section-head and hairline rules (`InkRule`) | /, /projects/:slug | `view()` | scrubbed |
-| running text, word by word (`Written`) | /, /story, /projects/:slug, /blog/:slug | named view timeline per paragraph (+ a two-way near-watch observer for cost) | scrubbed |
+| running text, word by word (`Written`) | /, /story, /projects/:slug, /blog/:slug | named view timeline per paragraph, one block's turn at a time (+ a two-way near-watch observer for cost) | scrubbed; reading window 68% → 38% (2026-11-03) |
+| the aurora strand appearing (`AuroraStrand`): "How I work" and the notes shelf from the left | / | its own view timeline; `--notes-shelf` | scrubbed (2026-11-03) |
 | one line (`LivingLine`) | /, /story | named view timeline | scrubbed |
 | approach figures (`approach-draw`) | / | named view timeline per principle | scrubbed |
 | the run: cards, lean, arrive, surge, aurora and its sweep in (`ProjectRun`, `RunAurora`) | / | `--run` | scrubbed |

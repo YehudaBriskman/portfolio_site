@@ -1,5 +1,6 @@
 import Written from "@/components/motion/Written";
 import LivingLine from "@/components/motion/LivingLine";
+import AuroraStrand from "@/components/motion/AuroraStrand";
 import ApproachFigure from "@/components/ApproachFigures";
 import { lineAttr } from "@/components/motion/lineMoves";
 import { approachLine } from "@/data/site";
@@ -46,10 +47,14 @@ import styles from "@/components/Approach.module.css";
  * THE LINE (#178, #191)
  * ---------------------
  * The story's line (`motion/LivingLine`) runs behind the whole section,
- * drawn by the reader's scroll, in the aurora's strands. It starts behind
- * the work run's dark stage, at its centre, flows straight down out of the
- * projects, turns in a circle to the head's lane, and comes down beside the
- * head; then turns lane to lane through the short sections, and loops once
+ * drawn by the reader's scroll, in the aurora's strands. It starts on the
+ * aurora strand across the head of the section, which comes in from the
+ * LEFT edge of the page the way the work run's ribbon comes in from the
+ * right (`motion/AuroraStrand`, the one appearing all three share; owner,
+ * 2026-11-03 — until then the line started behind the run's centre and
+ * flowed down out of the projects). From the strand it turns in a circle to
+ * the head's lane and comes down beside the head; then turns lane to lane
+ * through the short sections, and loops once
  * round each principle's figure, entered from above and left from below
  * straight down the rail's outer edge (the principle is the loop's
  * `data-line-hold`), so it never crosses the claim or the lines beside it.
@@ -62,7 +67,18 @@ export default function Approach() {
   const { about } = useContent().site;
   const last = about.intro.length;
   return (
-    <section id="approach" className="wrap section-y">
+    <section id="approach" className={`section-y ${styles.section}`}>
+      {/* The strand: in from the left edge of the page, across the head. Its
+          empty marker is where the living line starts (`approachLine.from`). */}
+      <div className={styles.band}>
+        <AuroraStrand from="left" />
+        <div className="wrap">
+          <div className={`${styles.wall} ${styles.bandWall}`}>
+            <span className={styles.origin} data-line-origin="approach-strand" aria-hidden="true" />
+          </div>
+        </div>
+      </div>
+      <div className="wrap">
       <LivingLine className={styles.wall} from={approachLine.from}>
         <header className={styles.top} data-line={lineAttr(approachLine.section(0, last))}>
           <h2 className={`display-tight text-sub ${styles.head}`}>{about.heading}</h2>
@@ -111,6 +127,7 @@ export default function Approach() {
           </div>
         ))}
       </LivingLine>
+      </div>
     </section>
   );
 }

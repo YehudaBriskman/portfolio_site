@@ -915,6 +915,16 @@
     --dur-fast: .24s;
     --dur-settle: .8s;
     --dur-slow: 1.2s;
+
+    /* The reading window (owner, 2026-11-03): where the pen
+       (`motion/Written`) starts a block — its top at 68% of the window's
+       height from the top — and where it has finished by — its bottom at
+       38%. Fractions of the window, so each consumer writes its own
+       `view-timeline-inset` from them. Mirrored as `READING` in
+       `motion/penClock.ts`, which the sequencer reads; a test holds the two
+       to the same numbers. */
+    --read-from: 0.68;
+    --read-to: 0.38;
   }
 
   /*

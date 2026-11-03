@@ -42,10 +42,8 @@
      column keeps its width and the lanes are added outside it. */
   --line-lane: clamp(1.25rem, 3vw, 2.75rem);
 
-  /* The line starts in the dark act above (#191) and its drawing reaches up
-     into it, so the wall is lifted over the act's ground and its seams —
-     and under the work section itself (`z-index: 2` in `Work.tsx`), so the
-     line runs behind the run's cards and its aurora, out of the stage. */
+  /* The line starts on the strand across the head (`.band`) and its
+     drawing reaches up to it, so the wall is lifted over the band. */
   z-index: 1;
 
   font-size: var(--read);
@@ -163,15 +161,16 @@
  * THE CLOCK
  * The principle names it (`--approach-fig`), with the pen's own insets, so the
  * drawing and the writing beside it run on the same window: the clock starts
- * when the principle's top reaches 95% of the window's height and ends when
- * its bottom reaches 62% (#174; it was 85% and 45%). The figure takes the
+ * when the principle's top reaches 68% of the window's height and ends when
+ * its bottom reaches 38% (the reading window, owner 2026-11-03; it was 95%
+ * and 62% after #174, and 85% and 45% before). The figure takes the
  * first half of that, in five steps of 10%, and is finished while the lines
  * beside it are still being written — the picture is the summary, and it
  * should be complete by the time the reader is reading the detail.
  *
- * At 1440×900 the principle is about 330px tall, so the clock is about 630px
- * of scroll and the figure is drawn over the first 315 of them, between its
- * top at 95% and about 60% of the window.
+ * At 1440×900 the principle is about 330px tall, so the clock is about 600px
+ * of scroll and the figure is drawn over the first 300 of them, between its
+ * top at 68% and about 35% of the window.
  *
  * THE STROKE
  * `pathLength={1}` on every mark, so `stroke-dasharray: 1 1` is one dash as
@@ -186,8 +185,9 @@
  */
 .principle {
   view-timeline: --approach-fig block;
-  /* The pen's insets, moved with it in #174 (were 45vh 15vh). */
-  view-timeline-inset: 62vh 5vh;
+  /* The pen's reading window, from the one place it is set (`--read-from`
+     and `--read-to` in index.css, `READING` in motion/penClock.ts). */
+  view-timeline-inset: calc(var(--read-to, 0.38) * 100vh) calc((1 - var(--read-from, 0.68)) * 100vh);
 }
 
 /* The box the line loops round: exactly the figure, so the circle is
@@ -294,4 +294,48 @@
     stroke-dashoffset: 0;
     stroke-opacity: 1;
   }
+}
+
+/* ------------------------------------------------------- the strand -- */
+
+/*
+ * The aurora strand across the head (owner, 2026-11-03): full-bleed, so it
+ * comes in from the very left edge of the page, in the section's top
+ * padding, above the head. `motion/AuroraStrand` places itself in this box
+ * and owns the appearing; this box only says where and how tall.
+ *
+ * `.origin` is where the living line starts: on the strand's centre line at
+ * the wall's start lane, inside a box as wide as the wall below
+ * (`.bandWall`), so the line comes straight down off the strand into the
+ * head's lane.
+ */
+.section {
+  position: relative;
+}
+
+.band {
+  position: absolute;
+  inset-inline: 0;
+  top: calc(var(--band-top, 0.5) * clamp(4rem, 8vw, 8rem) - var(--band-h) / 2);
+  height: var(--band-h);
+  --band-h: clamp(4.5rem, 9vw, 7rem);
+  pointer-events: none;
+}
+
+.band > :global(.wrap) {
+  position: relative;
+  height: 100%;
+}
+
+.bandWall {
+  position: relative;
+  height: 100%;
+}
+
+.origin {
+  position: absolute;
+  top: 50%;
+  inset-inline-start: calc(var(--line-lane) / 2);
+  width: 0;
+  height: 0;
 }

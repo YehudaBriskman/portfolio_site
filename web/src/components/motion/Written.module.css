@@ -14,35 +14,30 @@
  * `view()` on each word: on an inline box `view()` resolves to the block the
  * box is laid out in, so every word would share one progress.
  *
- * The insets make `cover` run from the paragraph's top reaching 95% of the
- * window's height (5vh off the foot) to its bottom reaching 62% (62vh off
- * the top). A word `f` of the way through its paragraph is therefore inked
- * when it sits at `95% − 33% × f` of the window: the first word as it comes
- * into sight, the last at 62%. Everything above 62% of the window is always
- * written, so the eye — which reads in the upper half — never arrives at a
- * word the pen has not reached.
+ * The insets make `cover` run from the paragraph's top reaching 68% of the
+ * window's height (32vh off the foot) to its bottom reaching 38% (38vh off
+ * the top): the READING WINDOW (owner, 2026-11-03), written once as
+ * `--read-from` / `--read-to` in index.css and `READING` in `penClock.ts`.
+ * The text is written as it enters the comfortable reading zone, not as it
+ * appears at the window's foot (95% to 62% after #174; 85% to 45% before,
+ * which lagged the eye).
  *
- * WHY THESE AND NOT THE OLD 85% / 45% (#174). Measured on every page that
- * uses the pen (`scripts/measure-written.mjs`), the old clock inked a
- * paragraph's first word at 0.82 of the window and its last at 0.41 — above
- * the middle, where the reader already is. Some word in the top half of the
- * window was still unwritten for 16% of the scroll through /story and 34–36%
- * of the scroll through the wall text and a long post: the reader was
- * waiting for the pen. That was the "lag", not the frame rate — see the
- * contract for the frame numbers. With these insets it is 0%.
+ * That is each block's NATURAL clock. `Written.tsx` sequences the blocks on
+ * the page so only one is written at a time, and hands each its turn as a
+ * share of this clock: `--pen-lead` (where in it the block starts) and
+ * `--pen-span` (how much of it the block uses). The word ranges below are
+ * scaled into that turn. With neither set, the turn is the whole clock.
  *
- * A paragraph `h` tall gets `h + 33vh` of scroll to be written in, and
- * `Written.tsx` divides that by its word count. The numbers live here, once;
- * the near-watch's zone in `Written.tsx` (58% to the foot) is chosen to
- * contain them, and `Approach.module.css` repeats them so a principle's
- * figure is drawn on the same window its words are written in.
+ * The near-watch's zone in `Written.tsx` is cut from the same numbers, and
+ * `Approach.module.css` uses them so a principle's figure is drawn on the
+ * same window its words are written in.
  *
  * A viewport-relative clock is the case §1 warns about: nothing this wraps is
  * pinned and nothing should be, or its clock would stall mid-sentence.
  */
 .written {
   view-timeline: --written-clock block;
-  view-timeline-inset: 62vh 5vh;
+  view-timeline-inset: calc(var(--read-to, 0.38) * 100vh) calc((1 - var(--read-from, 0.68)) * 100vh);
 }
 
 /*
@@ -78,28 +73,28 @@
    * exactly the reverse order. The defaults are the whole clock, which
    * writes the paragraph as one fade rather than leaving it muted.
    *
+   * Scaled into the block's turn (`--pen-lead`, `--pen-span`, written by
+   * the sequencer), so the slices tile the turn instead of the clock.
+   *
    * No delay, no duration: §1, the range is the clock and both are ignored.
    */
-  animation-range: cover var(--pen-from, 0%) cover var(--pen-to, 100%);
+  animation-range:
+    cover calc(var(--pen-lead, 0%) + var(--pen-from, 0%) * var(--pen-span, 1))
+    cover calc(var(--pen-lead, 0%) + var(--pen-to, 100%) * var(--pen-span, 1));
 }
 
 /*
  * Muted, then ink.
  *
- * MUTED IS TEXTURE, NOT A SECOND TEXT COLOUR (#174). It was `--ink-soft`
- * (#55524A, 6.37:1 on paper): the page's secondary type, fully legible, so
- * a paragraph not yet written read as a paragraph in grey and the pen had
- * nothing to give the reader. Now it is `--ink` at 22% (#BCB9AF on paper,
- * 1.60:1): the paragraph's shape is there — where it sits, how far it runs —
- * and its words are not read until the pen reaches them.
- *
- * That is below every text contrast floor, on purpose, and it is allowed for
- * one reason: it is a decorative state of text whose real state is full ink
- * (15.17:1), and the reader can always have the real state — it is where
- * every word lands before the eye gets there (the clock above), and it is
- * all a reader sees under each of the three off-switches. The argument is in
- * `docs/motion-contract.md`, and `npm run a11y` checks that the off state
- * really is full ink on every route.
+ * MUTED IS STILL READABLE (owner, 2026-11-03: "text must always remain
+ * readable"). It was `--ink-soft` (6.37:1) until #174 made it texture —
+ * `--ink` at 22%, 1.60:1 — so the pen had something to give. That left
+ * every word the reader had not reached yet unreadable, which is now ruled
+ * out. It is `--ink` at 62%: 4.84:1 on paper, 4.69:1 on the raised paper,
+ * over 6.5:1 on every dark ground — legible body text, and still a clear
+ * step below the full ink (15.17:1) the pen writes it to. A test computes
+ * the contrast on each ground from the tokens (`Written.test.tsx`), and
+ * `npm run a11y` checks the off state is full ink on every route.
  *
  * An alpha on `--ink`, not a mix of two tokens: the same ink, fainter, on
  * any ground. `.on-panel` re-points `--ink`, so prose on a dark act needs no
@@ -107,7 +102,7 @@
  * is set in, and a weight change moves advance widths and so line breaks.
  */
 .written {
-  --pen-muted: 0.22;
+  --pen-muted: 0.62;
 }
 
 @keyframes written-pen {

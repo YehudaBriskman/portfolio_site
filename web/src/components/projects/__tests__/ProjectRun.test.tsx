@@ -135,9 +135,9 @@ describe("ProjectRun", () => {
 describe("ProjectRun.module.css", () => {
   it("drives the run by scroll alone, from the static stage's named timeline", () => {
     expect(CSS).toMatch(/\.stage\s*\{[^}]*view-timeline-name:\s*--run/);
-    /* slot, card, the aurora's surge with its counter-move (#181), and its
-       sweep in with its counter-move (#192) */
-    expect(CSS.match(/animation-timeline:\s*--run/g)).toHaveLength(4);
+    /* slot, card, and the aurora's surge with its counter-move (#181); the
+       sweep in is the shared strand's, handed `--run` (below) */
+    expect(CSS.match(/animation-timeline:\s*--run/g)).toHaveLength(3);
     expect(CSS).not.toMatch(/animation-timeline:\s*view\(\)\s*;/);
     expect(CSS).not.toMatch(/animation-(duration|delay)/);
     expect(CSS).not.toMatch(/scroll-snap/);
@@ -374,24 +374,20 @@ describe("ProjectRun aurora", () => {
     expect(new Set(ds).size).toBe(ds.length);
   });
 
-  it("sweeps in from the reading end on the run's own timeline, and back out (#192)", () => {
-    for (const name of ["run-sweep", "run-sweep-hold"]) {
-      const kf = CSS.match(new RegExp(`@keyframes ${name}\\s*\\{([\\s\\S]*?)\\n\\}`))?.[1] ?? "";
-      expect(kf).toMatch(/from\s*\{\s*transform:\s*translateX\(calc\(var\(--run-dir\) \* -?130cqw\)\)/);
-      expect(kf).toMatch(/to\s*\{\s*transform:\s*translateX\(0\)/);
-    }
-    const rule = CSS.match(/\.sweep,\s*\.sweepIn\s*\{([^}]*)\}/)?.[1] ?? "";
-    expect(rule).toMatch(/animation-timeline:\s*--run;/);
-    expect(rule).toMatch(/animation-fill-mode:\s*both/);
-    expect(rule).toMatch(/animation-range:\s*entry \d+% contain \d+%/);
+  it("sweeps in from the reading end on the run's own timeline, through the shared strand", () => {
+    const { container } = draw(three);
+    const strand = container.querySelector<HTMLElement>("[data-run-aurora] [data-aurora-strand]")!;
+    expect(strand).toHaveAttribute("data-from", "right");
+    expect(strand).toHaveAttribute("data-mirror", "");
+    expect(strand.style.getPropertyValue("--strand-timeline")).toBe("--run");
+    expect(strand.style.getPropertyValue("--strand-range")).toMatch(/^entry \d+% contain \d+%$/);
+    expect(strand.querySelector("[data-run-surge]")).not.toBeNull();
   });
 
-  it("marks where the living line starts, at the run's centre (#191)", () => {
+  it("no longer starts the living line: 'How I work' takes its own strand from the left", () => {
     const { container } = draw(three);
-    const origin = container.querySelector("[data-line-origin='work-run']")!;
-    expect(origin).toHaveAttribute("aria-hidden", "true");
-    expect(origin.closest("[data-run-stage]")).not.toBeNull();
-    expect(CSS).toMatch(/\n\.origin\s*\{[^}]*bottom:\s*calc\(\(100svh - var\(--bar-h, 56px\)\) \/ 2\)/);
+    expect(container.querySelector("[data-line-origin]")).toBeNull();
+    expect(CSS).not.toMatch(/\n\.origin\s*\{/);
   });
 
   it("is drawn behind the list, hidden from assistive technology", () => {

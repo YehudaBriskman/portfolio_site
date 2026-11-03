@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import Written from "@/components/motion/Written";
-import { inkAt, inkedAt, PEN_INSETS, PEN_MUTED, penRange } from "@/components/motion/penClock";
+import { inkAt, inkedAt, PEN_INSETS, PEN_MUTED, penRange, READING, sequence, slotWindow } from "@/components/motion/penClock";
 
 /*
  * What a split must not change, pinned against the unsplit paragraph.
@@ -162,31 +162,70 @@ describe("Written.module.css", () => {
     expect(word).toMatch(/color:\s*rgb\(var\(--ink\)\)/);
   });
 
-  it("mutes an unwritten word to texture: the same ink at 22%, never a second text colour (#174)", () => {
+  it("mutes an unwritten word, and the muted word is still readable (owner, 2026-11-03)", () => {
     const muted = Number(CSS.match(/--pen-muted:\s*([\d.]+)/)?.[1]);
     expect(muted).toBe(PEN_MUTED);
-    /* Texture, not text. 0.22 of --ink over paper is 1.60:1 (below); an
-       alpha above about a third would read as grey text again, which is what
-       the owner sent back. */
-    expect(muted).toBeGreaterThan(0.1);
-    expect(muted).toBeLessThanOrEqual(0.3);
+    /* Readable on every ground prose is set on, computed from the tokens
+       (index.css): the ink at this alpha over each ground clears 4.5:1. */
+    const tokens = readFileSync(resolve(process.cwd(), "src/index.css"), "utf8");
+    const tok = (block: string, name: string) =>
+      (block.match(new RegExp(`--${name}:\\s*(\\d+)\\s+(\\d+)\\s+(\\d+)`)) ?? []).slice(1).map(Number);
+    const light = tokens.slice(tokens.indexOf(":root {"));
+    const dark = tokens.slice(tokens.indexOf(":root[data-theme='dark']"));
+    const lum = (c: number[]) => {
+      const [r, g, b] = c.map((v) => {
+        const x = v / 255;
+        return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4;
+      });
+      return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    };
+    const ratio = (a: number[], b: number[]) => {
+      const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x);
+      return (hi + 0.05) / (lo + 0.05);
+    };
+    const grounds: Array<[string, number[], number[]]> = [
+      ["paper", tok(light, "ink"), tok(light, "paper")],
+      ["raised paper", tok(light, "ink"), tok(light, "paper-2")],
+      ["dark paper", tok(dark, "ink"), tok(dark, "paper")],
+      ["dark raised", tok(dark, "ink"), tok(dark, "paper-2")],
+      ["panel", tok(light, "panel-ink"), tok(light, "panel")],
+    ];
+    for (const [name, ink, ground] of grounds) {
+      expect(ink, name).toHaveLength(3);
+      expect(ground, name).toHaveLength(3);
+      const blend = ink.map((v, i) => muted * v + (1 - muted) * ground[i]);
+      expect(ratio(blend, ground), name).toBeGreaterThanOrEqual(4.5);
+      /* And still a visible step below the ink it is written to. */
+      expect(ratio(ink, ground) / ratio(blend, ground), name).toBeGreaterThan(1.3);
+    }
     /* An alpha on the one ink, so it follows `.on-panel` with no second rule;
        never the page's secondary text colour or the non-text one. */
     expect(CSS).not.toMatch(/--ink-soft|--ink-faint/);
     expect(CSS.match(/rgb\(var\(--ink\) \/ var\(--pen-muted\)\)/g)).toHaveLength(2);
   });
 
-  it("writes on a clock that finishes before the eye arrives (#174)", () => {
-    const [top, foot] = (CSS.match(/view-timeline-inset:\s*(\d+)vh (\d+)vh/) ?? []).slice(1).map(Number);
-    /* The stylesheet and the arithmetic agree on the clock. */
-    expect({ top: top / 100, foot: foot / 100 }).toEqual(PEN_INSETS);
-    /* Every word, first to last, is inked below the window's middle — where
-       the next lines are, not where the eye is reading. The old clock (45vh
-       15vh) inked the last word at 0.45, and failed this. */
-    for (let f = 0; f <= 1; f += 0.05) expect(inkedAt(f)).toBeGreaterThanOrEqual(0.6);
-    expect(inkedAt(0)).toBeCloseTo(0.95);
-    expect(inkedAt(1)).toBeCloseTo(0.62);
-    expect(inkedAt(1, { top: 0.45, foot: 0.15 })).toBeLessThan(0.5);
+  it("writes in the reading window, one pair of numbers for the whole site (owner, 2026-11-03)", () => {
+    /* The stylesheet reads the shared custom properties; index.css sets them
+       to exactly the TS constant the sequencer and the near-watch use. */
+    expect(CSS).toMatch(
+      /view-timeline-inset:\s*calc\(var\(--read-to, ([\d.]+)\) \* 100vh\) calc\(\(1 - var\(--read-from, ([\d.]+)\)\) \* 100vh\)/,
+    );
+    const tokens = readFileSync(resolve(process.cwd(), "src/index.css"), "utf8");
+    expect(Number(tokens.match(/--read-from:\s*([\d.]+)/)?.[1])).toBe(READING.from);
+    expect(Number(tokens.match(/--read-to:\s*([\d.]+)/)?.[1])).toBe(READING.to);
+    const [, to, from] = CSS.match(/--read-to, ([\d.]+)\) \* 100vh\) calc\(\(1 - var\(--read-from, ([\d.]+)/)!;
+    expect({ from: Number(from), to: Number(to) }).toEqual(READING);
+    expect(PEN_INSETS).toEqual({ top: READING.to, foot: 1 - READING.from });
+    /* Starts as the block enters the comfortable zone (65–70% down), not at
+       the window's foot; finished by 35–40%. */
+    expect(READING.from).toBeGreaterThanOrEqual(0.65);
+    expect(READING.from).toBeLessThanOrEqual(0.7);
+    expect(READING.to).toBeGreaterThanOrEqual(0.35);
+    expect(READING.to).toBeLessThanOrEqual(0.4);
+    expect(inkedAt(0)).toBeCloseTo(READING.from);
+    expect(inkedAt(1)).toBeCloseTo(READING.to);
+    /* The old clocks, for the record: they started at the foot. */
+    expect(inkedAt(0, { top: 0.62, foot: 0.05 })).toBeGreaterThan(0.9);
   });
 
   it("cancels the animation under each of the three off-switches", () => {
@@ -221,8 +260,10 @@ describe("Written.module.css", () => {
     expect(CSS).toMatch(/\.written\s*\{[^}]*view-timeline:\s*--written-clock block/);
   });
 
-  it("reads each word's slice and nothing geometric", () => {
-    expect(word).toMatch(/animation-range:\s*cover var\(--pen-from, 0%\) cover var\(--pen-to, 100%\)/);
+  it("reads each word's slice, scaled into the block's turn, and nothing geometric", () => {
+    expect(word).toMatch(
+      /animation-range:\s*cover calc\(var\(--pen-lead, 0%\) \+ var\(--pen-from, 0%\) \* var\(--pen-span, 1\)\)\s*cover calc\(var\(--pen-lead, 0%\) \+ var\(--pen-to, 100%\) \* var\(--pen-span, 1\)\)/,
+    );
     /* Line-height and band units are what tied the pace to the text's own
        movement (#158); neither may come back into the range. */
     expect(CSS).not.toMatch(/--line|\blh\b|--written-band/);
@@ -326,5 +367,63 @@ describe("Written, the per-word progression", () => {
     expect(penRange(0, 4)).toEqual(["0%", "25%"]);
     expect(penRange(3, 4)).toEqual(["75%", "100%"]);
     expect(penRange(1, 3)).toEqual(["33.3333%", "66.6667%"]);
+  });
+});
+
+/*
+ * ONE BLOCK AT A TIME, IN DOCUMENT ORDER (owner, 2026-11-03).
+ *
+ * The sequencer's arithmetic, on layouts like the site's: a column of
+ * paragraphs a margin apart (the wall text, a post), a heading-sized gap
+ * between sections, a short last block, and two blocks side by side. At
+ * every scroll position at most one block is mid-ink, and the blocks finish
+ * in document order. The browser half — the same thing measured on the home
+ * page and a project page — is `scripts/shoot-aurora-reading.mjs`.
+ */
+describe("Written, the sequencer", () => {
+  const V = 900;
+  const column = (tops: number[], h: number) => tops.map((t) => ({ top: t, bottom: t + h }));
+  const layouts: Record<string, Array<{ top: number; bottom: number }>> = {
+    "a dense column": column([0, 130, 260, 390, 520, 650], 110),
+    "sections with gaps": [...column([0, 120], 100), ...column([600, 720, 840], 100), { top: 1600, bottom: 1640 }],
+    "one long block": [{ top: 0, bottom: 1400 }],
+    "side by side": [...column([0, 0], 200), ...column([400], 80)],
+  };
+
+  function windows(blocks: Array<{ top: number; bottom: number }>) {
+    return sequence(blocks, V).map((slot, i) => slotWindow(blocks[i], slot, V));
+  }
+
+  it.each(Object.entries(layouts))("has at most one block mid-ink at any scroll position: %s", (_, blocks) => {
+    const w = windows(blocks);
+    const lo = Math.min(...w.map(([a]) => a)) - 50;
+    const hi = Math.max(...w.map(([, b]) => b)) + 50;
+    for (let y = lo; y <= hi; y += 2) {
+      const mid = w.filter(([a, b]) => y > a + 1e-6 && y < b - 1e-6).length;
+      expect(mid, `at ${y}`).toBeLessThanOrEqual(1);
+    }
+    /* In document order: each turn starts no earlier than the last ended. */
+    w.forEach(([a], i) => i && expect(a).toBeGreaterThanOrEqual(w[i - 1][1] - 1e-6));
+    w.forEach(([a, b]) => expect(b).toBeGreaterThan(a));
+  });
+
+  it("starts each block as its top reaches the reading line, and is done by its bottom at 38%", () => {
+    const blocks = layouts["a dense column"];
+    const slots = sequence(blocks, V);
+    slots.forEach((slot, i) => {
+      const [start, end] = slotWindow(blocks[i], slot, V);
+      /* Scroll offset y puts a document position p at p − y in the window. */
+      expect((blocks[i].top - start) / V).toBeCloseTo(READING.from, 5);
+      expect((blocks[i].bottom - end) / V).toBeGreaterThanOrEqual(READING.to - 1e-6);
+      expect(slot.lead).toBeGreaterThanOrEqual(0);
+      expect(slot.lead + slot.span).toBeLessThanOrEqual(1 + 1e-9);
+    });
+  });
+
+  it("keeps a block's whole clock when nothing follows close below it", () => {
+    const [last] = sequence([{ top: 0, bottom: 200 }], V);
+    expect(last).toEqual({ lead: 0, span: 1 });
+    const gaps = sequence(layouts["sections with gaps"], V);
+    expect(gaps.at(-1)).toEqual({ lead: 0, span: 1 });
   });
 });
