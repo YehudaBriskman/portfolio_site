@@ -26,8 +26,12 @@
   /* Opaque, and the wash when the card has been given one. The radial
      highlight is dropped rather than retuned: it was a light source for a
      glass card and there is no glass here. */
-  background-color: rgb(var(--card-wash, 246 245 239));
+  background-color: rgb(var(--card-wash, var(--note-ground)));
   background-image: none;
+  /* The unwashed card's own ground: a step off paper under Light, the raised
+     surface under Dark (#247). It was a literal, which put the theme's light
+     ink on near-white wherever a card had no wash. */
+  --note-ground: 246 245 239;
   box-shadow:
     0 1px 0 rgb(var(--sheen) / 0.7) inset,
     0 10px 24px -18px rgb(var(--shade) / 0.35);
@@ -371,4 +375,8 @@
   background: rgb(var(--canvas-3));
   border-bottom-color: rgb(var(--rule-firm));
   border-right-color: rgb(var(--rule-firm));
+}
+
+:global(:root[data-theme="dark"]) .card.card {
+  --note-ground: var(--paper-2);
 }
