@@ -350,6 +350,38 @@ describe("the project page: tabs", () => {
     expect(document.activeElement).toBe(tabs[0]);
   });
 
+  it("stands on the dashboard: a GitHub-style header, the pinned rail and an About aside with as-of facts", async () => {
+    stub({ posts: POSTS });
+    renderAt("/projects/bothy");
+    const h1 = await screen.findByRole("heading", { level: 1, name: "Bothy" });
+    const header = h1.closest("header")!;
+    expect(within(header).getByRole("link", { name: "Work" })).toHaveAttribute("href", "/projects");
+    expect(within(header).getByRole("link", { name: /Source/ })).toHaveAttribute("href", "https://github.com/example/bothy");
+    expect(within(header).getByRole("link", { name: /v1\.9\.0/ })).toHaveAttribute(
+      "href",
+      "https://github.com/example/bothy/releases/tag/v1.9.0"
+    );
+
+    const rail = screen.getByRole("complementary", { name: "Browse the work" });
+    expect(within(rail).getByRole("link", { name: /Bothy/ })).toHaveAttribute("aria-current", "page");
+    expect(within(rail).getByRole("link", { name: /WindoM/ })).not.toHaveAttribute("aria-current");
+
+    const about = screen.getByRole("complementary", { name: "About" });
+    expect(within(about).getByText("Go")).toBeInTheDocument();
+    expect(within(about).getByText("12")).toBeInTheDocument();
+    /* The release is the header's button and is not said again here. */
+    expect(within(about).queryByText("v1.9.0")).toBeNull();
+    expect(await within(about).findByRole("link", { name: /Notes in this area/ })).toHaveAttribute("href", "/blog/area/bothy");
+  });
+
+  it("a slug that is not a project says so, with the way back, under one h1", async () => {
+    stub();
+    renderAt("/projects/nothing-here");
+    expect(await screen.findByRole("heading", { level: 1, name: "Not here" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "See everything" })).toHaveAttribute("href", "/projects");
+    expect(screen.queryByRole("tablist")).toBeNull();
+  });
+
   it("an unknown tab in a link falls back to Overview", () => {
     expect(readTab(new URLSearchParams("tab=wiki"))).toBe("overview");
   });
