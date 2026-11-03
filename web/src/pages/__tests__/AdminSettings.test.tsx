@@ -81,7 +81,7 @@ describe("/admin/settings", () => {
   it("puts an earlier version back", async () => {
     const calls = stub();
     page();
-    fireEvent.click(await screen.findByRole("button", { name: "Put back version 0" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Put back Built-in defaults" }));
     await waitFor(() => expect(calls.some((c) => c.url.endsWith("/revert"))).toBe(true));
     expect(calls.find((c) => c.url.endsWith("/revert"))!.body).toEqual({ version: 0, _rev: "1-abc" });
     expect(await screen.findByText(/Version 2/)).toBeInTheDocument();

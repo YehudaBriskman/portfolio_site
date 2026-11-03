@@ -364,7 +364,7 @@ export default function AdminSettings() {
                     <button
                       type="button"
                       className="a-btn a-btn-ghost"
-                      aria-label={w.restoreLabel(h.version)}
+                      aria-label={w.restoreLabel(h.version === 0 ? w.builtIn : w.version(h.version))}
                       disabled={status === "saving"}
                       onClick={() => void run(() => adminSettings.revert(h.version, view._rev))}
                     >

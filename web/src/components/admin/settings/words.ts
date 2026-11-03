@@ -53,7 +53,7 @@ const EN = {
   historyHeading: "History",
   historyEmpty: "Nothing saved yet. The site is using its built-in defaults.",
   restore: "Put back",
-  restoreLabel: (n: number) => `Put back version ${n}`,
+  restoreLabel: (what: string) => `Put back ${what}`,
   differences: (n: number) => (n === 1 ? "1 difference from now" : `${n} differences from now`),
   issues: {
     "settings.ledger.darkAdjacent":
@@ -110,8 +110,8 @@ const HE: Words = {
   current: "נוכחית",
   historyHeading: "היסטוריה",
   historyEmpty: "עוד לא נשמר דבר. האתר משתמש בברירות המחדל המובנות.",
-  restore: "החזרה",
-  restoreLabel: (n) => `להחזיר את גרסה ${n}`,
+  restore: "להחזיר",
+  restoreLabel: (what) => `להחזיר ${what}`,
   differences: (n) => (n === 1 ? "הבדל אחד מהנוכחית" : `${n} הבדלים מהנוכחית`),
   issues: {
     "settings.ledger.darkAdjacent":
