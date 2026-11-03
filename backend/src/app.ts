@@ -45,13 +45,40 @@ export function createApp() {
     "https://www.yehudabriskman.com",
     "https://admin.yehudabriskman.com",
   ];
+  /*
+   * One public read is also shared with another site, and only that read.
+   *
+   * https://windom.app (the WindoM extension's own page, a separate repo)
+   * shows WindoM's release posts by fetching GET /api/blog/posts?collection=windom
+   * from the visitor's browser (YehudaBriskman/WindoM#374). Putting it in
+   * ALLOWED_ORIGINS above would hand it every route, /api/email included, so it
+   * is keyed on path and method instead: the published-post list, read-only,
+   * and nothing else. www.windom.app is not listed because it 301s to the apex,
+   * so no page ever runs from that origin.
+   *
+   * The request it makes is a simple GET (only an Accept header), so a browser
+   * sends no preflight; one that did is answered for GET and HEAD alone.
+   */
+  const FEED_ORIGINS = ["https://windom.app"];
+  const FEED_PATH = "/api/blog/posts";
+  const isFeedRead = (req: express.Request) => {
+    // Express matches paths case-insensitively and with or without a trailing
+    // slash, so the check normalises the same way the router does.
+    const path = req.path.toLowerCase().replace(/\/+$/, "");
+    if (path !== FEED_PATH) return false;
+    if (req.method === "GET" || req.method === "HEAD") return true;
+    const asked = req.header("access-control-request-method")?.toUpperCase();
+    return req.method === "OPTIONS" && (asked === "GET" || asked === "HEAD");
+  };
   app.use(
-    cors({
-      origin(origin, callback) {
-        // Same-origin and server-to-server requests send no Origin at all.
-        if (!origin || ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
-        return callback(null, false);
-      },
+    cors((req, callback) => {
+      const origin = req.headers.origin;
+      // Same-origin and server-to-server requests send no Origin at all.
+      if (!origin || ALLOWED_ORIGINS.includes(origin)) return callback(null, { origin: true });
+      if (FEED_ORIGINS.includes(origin) && isFeedRead(req as express.Request)) {
+        return callback(null, { origin: true, methods: ["GET", "HEAD"] });
+      }
+      return callback(null, { origin: false });
     }),
   );
   app.use(express.json({ limit: "1mb" }));

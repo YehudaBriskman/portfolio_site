@@ -59,6 +59,74 @@ describe("backend API", () => {
     expect(theirs.headers["access-control-allow-origin"]).toBeUndefined();
   });
 
+  describe("windom.app reads the release feed and nothing else (WindoM#374)", () => {
+    const WINDOM = "https://windom.app";
+    afterEach(() => vi.restoreAllMocks());
+
+    it("GET /api/blog/posts?collection=windom carries its origin back", async () => {
+      vi.spyOn(couch, "find").mockResolvedValue({ docs: [] });
+      const res = await request(createApp())
+        .get("/api/blog/posts?collection=windom")
+        .set("Origin", WINDOM)
+        .set("Accept", "application/json");
+      expect(res.status).toBe(200);
+      expect(res.headers["access-control-allow-origin"]).toBe(WINDOM);
+      expect(res.headers["vary"]).toMatch(/Origin/);
+    });
+
+    it("answers a preflight for that read with GET and HEAD only", async () => {
+      const res = await request(createApp())
+        .options("/api/blog/posts")
+        .set("Origin", WINDOM)
+        .set("Access-Control-Request-Method", "GET");
+      expect(res.status).toBe(204);
+      expect(res.headers["access-control-allow-origin"]).toBe(WINDOM);
+      expect(res.headers["access-control-allow-methods"]).toBe("GET,HEAD");
+    });
+
+    it("refuses a preflight for a write to the same path", async () => {
+      const res = await request(createApp())
+        .options("/api/blog/posts")
+        .set("Origin", WINDOM)
+        .set("Access-Control-Request-Method", "POST");
+      expect(res.headers["access-control-allow-origin"]).toBeUndefined();
+    });
+
+    it("gets nothing from /api/email, which relays real SMTP", async () => {
+      const app = createApp();
+      const post = await request(app).post("/api/email").set("Origin", WINDOM).send({});
+      expect(post.headers["access-control-allow-origin"]).toBeUndefined();
+
+      const preflight = await request(app)
+        .options("/api/email")
+        .set("Origin", WINDOM)
+        .set("Access-Control-Request-Method", "POST")
+        .set("Access-Control-Request-Headers", "content-type");
+      expect(preflight.headers["access-control-allow-origin"]).toBeUndefined();
+    });
+
+    it("gets nothing from the admin API or the other public reads", async () => {
+      vi.spyOn(couch, "find").mockResolvedValue({ docs: [] });
+      const app = createApp();
+      for (const [method, url] of [
+        ["get", "/api/admin/posts"],
+        ["post", "/api/admin/posts"],
+        ["get", "/api/blog/tags"],
+        ["get", "/api/blog/posts/some-slug"],
+        ["get", "/api/settings"],
+      ] as const) {
+        const res = await request(app)[method](url).set("Origin", WINDOM);
+        expect(res.headers["access-control-allow-origin"], `${method} ${url}`).toBeUndefined();
+      }
+    });
+
+    it("is the apex only: www.windom.app redirects there and is not let in", async () => {
+      vi.spyOn(couch, "find").mockResolvedValue({ docs: [] });
+      const res = await request(createApp()).get("/api/blog/posts").set("Origin", "https://www.windom.app");
+      expect(res.headers["access-control-allow-origin"]).toBeUndefined();
+    });
+  });
+
   it("does not advertise the server framework", async () => {
     const app = createApp();
     const res = await request(app).get("/health");
