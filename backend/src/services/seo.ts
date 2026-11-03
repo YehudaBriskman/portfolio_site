@@ -1,5 +1,6 @@
 import { env } from "../env.js";
 import type { Collection, Post } from "../schemas/content.js";
+import type { SiteSettings } from "../schemas/site-settings.js";
 
 /**
  * Server-side SEO: sitemap, feed, and per-URL metadata.
@@ -155,6 +156,13 @@ export type PageMeta = {
    * and covered for script-running visitors; see FALLBACK_STYLE.
    */
   bodyHtml?: string;
+  /**
+   * The site's visual settings (#254), written into the shell's three
+   * `site-*` metas so the theme default, the motion default and the accent
+   * are in the page before its first paint. Omitted, the shell keeps the
+   * values it was built with, which are the defaults.
+   */
+  visuals?: SiteSettings["visuals"];
   /**
    * The lazy page this URL renders (`Project`, `BlogPost`, …), so its chunk can
    * be preloaded from the head instead of being discovered after React mounts.
@@ -675,6 +683,25 @@ export function routePreloadLinks(shell: string, route: string): string[] {
  * of the document is untouched, so the app boots exactly as it does normally —
  * this changes what a crawler reads, not what a browser runs.
  */
+/*
+ * The three visual settings' metas (#254). Each value has already passed the
+ * settings schema's enum, and is escaped anyway; a meta the shell does not
+ * carry is left out rather than invented, so an older shell keeps working.
+ */
+const VISUAL_METAS = [
+  ["theme", /<meta\s+name=["']site-theme-default["'][^>]*>/i, "site-theme-default"],
+  ["motion", /<meta\s+name=["']site-motion-default["'][^>]*>/i, "site-motion-default"],
+  ["accent", /<meta\s+name=["']site-accent["'][^>]*>/i, "site-accent"],
+] as const;
+
+export function applyVisuals(html: string, visuals: SiteSettings["visuals"]): string {
+  let out = html;
+  for (const [key, tag, name] of VISUAL_METAS) {
+    out = out.replace(tag, () => `<meta name="${name}" content="${escapeAttr(visuals[key])}" />`);
+  }
+  return out;
+}
+
 export function renderShellWithMeta(shell: string, meta: PageMeta): string {
   const preloads = meta.route ? routePreloadLinks(shell, meta.route) : [];
   let html = shell.replace(ROUTE_PRELOAD_META, "");
@@ -683,6 +710,7 @@ export function renderShellWithMeta(shell: string, meta: PageMeta): string {
   if (meta.lang === "he") {
     html = html.replace(/<html\b[^>]*>/i, '<html lang="he" dir="rtl">');
   }
+  if (meta.visuals) html = applyVisuals(html, meta.visuals);
   for (const pattern of MANAGED_TAG_PATTERNS) html = html.replace(pattern, "");
 
   // Matches the empty root div the build emits. If the shell ever stops
