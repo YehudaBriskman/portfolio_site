@@ -352,7 +352,7 @@ a scroller is two clocks for one row.
   each card with its own arrival. The shelf is a flat row at one height that
   slides by one card-width per step, with no arrival, no lean and no curve.
 - **The hold is the shortest of the three.** 18svh a card, 108svh for six,
-  against the year's 120svh and the run's 220svh, so the peak keeps the most
+  against the year's ~150svh (120svh until #246) and the run's 220svh, so the peak keeps the most
   scroll room (§3). Measured at 1440×900 the section is 2376px, against 709px
   for the drifting shelf it replaced; that is the price, and "every pinned
   beat buys its time in scroll distance" (§3) is where it is counted.
@@ -957,11 +957,11 @@ lamp is removed, since a system colour would paint it in a hue nobody chose.
 rather than on taste.** Until #111 the test was easy: it did not pin, so it
 bought no scroll distance beyond its own section's height. #111 asked for more
 of it — bigger, and more time — and a scrub's only clock is scroll, so it now
-holds its frame (`position: sticky`) over a 120svh runway, on a static stage
+holds its frame (`position: sticky`) over a runway, on a static stage
 that owns the named timeline exactly as §1 prescribes. That makes it a held
 beat, and the test is now comparative and measured: the run holds for 220svh
-(55svh a card, four cards) and the year for 120svh; the work section is
-3397px against the year's 2360px at 1440×900, same page, same data. (The
+(55svh a card, four cards) and the year for about 150svh; the work section is
+3397px against the year's 2651px at 1440×900, same page, same data. (The
 pile it replaced held about 238svh, a 3919px section.) The run keeps the most
 scroll room,
 the only asset budget and `pin` as its *move*; what the year holds still for
@@ -970,6 +970,34 @@ a second family arriving. It has no asset budget, being 365 one-colour boxes
 and no image; and it runs backwards when the reader scrolls back up, which is
 what makes it a thing the reader operates rather than a thing that happens to
 them once.
+
+**Its pace (#246, 2026-11-03).** The owner found the scrub about 30% quick,
+so the same choreography now plays over 1.3× the scroll: `--city-pace: 1.3`
+in `ContributionCity.module.css`, with the runway solved so the act's clock —
+the stage's `contain` range, which is `frame + runway − 100svh + 88px` because
+the auto inset takes the document's `scroll-padding-top` — is exactly 1.3×
+#111's on every window. The keyframes are untouched, so every stage grows in
+proportion. Measured (`web/scripts/shoot-contrib-speed.mjs`, the scene's own
+progress read back at each boundary):
+
+| stage | 1440×900 before → after | 390×844 before → after |
+|---|---|---|
+| flat, held (0–10%) | 97 → 126px | 82 → 106px |
+| turn (10–30%) | 194 → 252px | 163 → 212px |
+| rise (30–48%) | 175 → 227px | 147 → 191px |
+| dolly in (48–60%) | 116 → 151px | 98 → 127px |
+| dolly along (60–100%) | 388 → 504px | 326 → 424px |
+| **the clock** | **970 → 1261px** | **816 → 1061px** |
+
+The start and the hand-off do not move. The act still begins 11px after the
+frame pins (the inset was left alone: zeroing it, as the run does, would put
+a still stretch in front of the act), and the next section's top still sits
+260px (338px on the phone) below the window on the act's last frame — the
+section's own padding, exactly as before, so no dead gap was added. It still
+runs backwards: the progress read scrolling up matches the progress read
+scrolling down at every offset tried. The three off-switches give the whole
+runway back (`height: auto`), so they are unaffected. Before/after frames at
+the same scroll offsets are in `docs/contrib-speed/`.
 
 Its three off-switches land on the **risen** city, still, at rest height and
 with the runway given back — not on the flat grid, which is where they landed
@@ -1450,7 +1478,7 @@ made it the peak; it is now one of two, with the year, on the subject rule in
 the ground was never what the peak rule was about: the run still pins, still
 takes the most scroll room, still carries the only asset budget, and the year
 — which since #111 does hold its frame — holds it for half the distance the
-run does (120svh against 220svh), measured in §2. What the pair costs it is
+run does (about 150svh against 220svh), measured in §2. What the pair costs it is
 the ground as a *signal* of the peak, and §2's ledger row for `drift` is where
 that trade is recorded.
 
@@ -1782,7 +1810,7 @@ animation.
 | approach figures (`approach-draw`) | / | named view timeline per principle | scrubbed |
 | the run: cards, lean, arrive, surge, aurora and its sweep in (`ProjectRun`, `RunAurora`) | / | `--run` | scrubbed |
 | dark-act seam lights (`DarkAct`) | / | `--seam` per seam | **scrubbed** (#162; were 71s / 97s loops behind an observer) |
-| the year: raise and dolly (`ContributionCity`) | / | `--city` | scrubbed |
+| the year: raise and dolly (`ContributionCity`) | / | `--city` | scrubbed; **slowed 1.3×** (#246): the same keyframes over 1.3× the scroll (`--city-pace`) |
 | the year's waiting band | / (while loading) | `--city` | **scrubbed** (#162; was a 1.5s loop) |
 | the year's drag-to-turn and settle (`useCityHand`) | / | pointer + a settle loop after release | **exempt**: direct manipulation |
 | notes shelf pan (`LatestNotes`) | / | named view timeline | scrubbed |
