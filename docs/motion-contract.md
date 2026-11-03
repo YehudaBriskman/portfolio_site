@@ -1929,7 +1929,8 @@ animation.
 | tucking nav bar (`useTuckedBar`) | every route | scroll direction → a short transition | **exempt**: the tucking bar |
 | bar material over the dark acts (`useDarkChrome`) | / | two-way observer → colour transition | **exempt**: part of the nav chrome; follows position both ways |
 | mobile menu sheet and scrim, menu bars | every route | transitions | **exempt**: menu open |
-| language / motion dropdown menus and tooltips (Radix, `animate-in`/`animate-out`) | every route | tailwindcss-animate | **exempt**: menu open, hover/focus |
+| language / theme / motion dropdown menus and tooltips (Radix, `animate-in`/`animate-out`) | every route | tailwindcss-animate | **exempt**: menu open, hover/focus |
+| theme wave: the new theme revealed by a `clip-path` circle from the toggle (`nav/themeWave.ts`, `nav/theme-wave.css`, `theme-wave`) | every route | a view transition, 600ms on `--ease-settle`; old snapshot held still, default cross-fade off | **exempt** (#266): a reply to choosing a theme. Instant, with no transition at all, under every off-switch (§4: no `startViewTransition`, reduced motion, Pause), when the choice does not change the ground, and when System follows the OS |
 | card tilt, note cards growing, pills, buttons, links, chips, glyph nudges, form controls | every route, admin login | `:hover` / `:focus` / `:active` transitions | **exempt**: hover/focus |
 | in-page anchor smooth scroll (`scrollToAnchor`) | every route | per click | **exempt**: a reply to a click |
 | admin login | /admin/posts | form-control focus transitions only | **exempt**: focus |
