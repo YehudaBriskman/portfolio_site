@@ -169,7 +169,9 @@ export const useMcpWords = defineWords(
     live: "פעיל",
     off: "מצב: עדיין לא הופעל. הפקודות שלמטה יעבדו ברגע שיופעל.",
     connect: "חיבור",
-    desktop: "ב־claude.ai וב־Claude Desktop: Settings ← Connectors ← Add custom connector",
+    /* Latin runs isolated (LRI…PDI) so the menu path keeps Claude's own
+       left-to-right order inside the Hebrew line. */
+    desktop: "ב־\u2066claude.ai\u2069 וב־\u2066Claude Desktop\u2069: \u2066Settings → Connectors → Add custom connector\u2069",
     signIn:
       "הקריאה הראשונה פותחת חלון דפדפן. כל אחד יכול להתחבר: הכלים הציבוריים עונים בלי חשבון. התחברות עם GitHub פותחת את הכלים של בעל האתר, ורק לבעל האתר; כל חשבון אחר מקבל הודעה על כך ולא מקבל דבר.",
     skipSignIn: "כדי לוותר על ההתחברות לגמרי, השתמשו בנקודת הקצה הציבורית, שמציעה רק את הכלים הציבוריים:",

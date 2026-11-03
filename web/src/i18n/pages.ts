@@ -8,7 +8,7 @@ import { defineWords, type PluralForms } from "./words";
  * Hebrew notes:
  * - The reader is addressed in the plural (כתבו, הקישו), which is how Hebrew
  *   addresses an unknown reader without picking a gender.
- * - "Notes" are רשימות and "Blogs" בלוגים, as in `chrome.ts`.
+ * - "Notes" are רשימות and "Blogs" בלוג, as in `chrome.ts`.
  * - Names of things that are names (Claude Code, GitHub, OAuth, PKCE, the
  *   tools' own identifiers) stay in Latin letters.
  */
@@ -44,16 +44,16 @@ export const useHomeWords = defineWords(
     portraitAlt:
       "Yehuda Briskman: תצלום גזור מהמותניים ומעלה, במשקפי שמש עגולים ובחולצת טי בהירה, רצועת תיק על כתף אחת, מביט הצידה.",
     role: "פול־סטאק · ראש צוות טכני",
-    work: "עבודות",
+    work: "פרויקטים",
     shownOf: (shown: number, total: number) => `${shown} מתוך ${total}`,
-    selectedWork: "עבודות נבחרות",
+    selectedWork: "פרויקטים נבחרים",
     allProjects: "כל הפרויקטים",
     specs: "במספרים",
-    specsNote: "נספר מתוך העבודה, לא נטען",
-    spec: { Projects: "פרויקטים", Live: "באוויר", Tools: "כלים", Shipping: "שנות עשייה" },
+    specsNote: "נגזר מהעבודה עצמה, לא מהצהרות",
+    spec: { Projects: "פרויקטים", Live: "פעילים", Tools: "כלים", Shipping: "שנות ניסיון" },
     years: "שנים",
     notes: "רשימות",
-    notesNote: "החלטות, ומה הן עלו",
+    notesNote: "החלטות, ומחירן",
     skipNotes: "דילוג אל אחרי הרשימות",
     latestNotes: "הרשימות האחרונות",
     notesError: "הרשימות לא נטענות כרגע. הן עדיין שם — באינדקס יש את כולן.",
@@ -194,7 +194,7 @@ export const useNotesWords = defineWords(
     more: "רשימות נוספות",
     newer: "חדשה יותר",
     older: "ישנה יותר",
-    blogs: "בלוגים",
+    blogs: "בלוג",
     share: "שיתוף",
     linkCopied: "הקישור הועתק",
     clearTag: (tag: string) => `ביטול הסינון לפי ${tag}`,
@@ -202,7 +202,7 @@ export const useNotesWords = defineWords(
     note: "רשימה",
     tableScrolls: "טבלה, נגללת הצידה",
     loading: "טוען את הרשימה",
-    notHere: "לא כאן",
+    notHere: "הרשימה לא נמצאה",
     missingBefore: "הרשימה הזאת לא קיימת, או שעדיין לא פורסמה. ייתכן שהכתובת השתנתה כשהרשימות עברו מהכתובת",
     missingMiddle: "לכתובת",
     unavailable: "הרשימה לא זמינה",
@@ -210,7 +210,7 @@ export const useNotesWords = defineWords(
     noAnswerBody:
       "העמוד נטען; הרשימה שמאחוריו לא. היא מוגשת ממחשב קטן שאני מפעיל בעצמי, כך שבדרך כלל מדובר באתחול ולא בשום דבר קבוע.",
     retry: "ניסיון חוזר",
-    work: "עבודות",
+    work: "פרויקטים",
     notFound: "לא נמצא",
     writtenInEnglish: "כתוב באנגלית",
     authorRole: "מהנדס פול־סטאק וראש צוות טכני",
@@ -234,7 +234,7 @@ export const useProjectWords = defineWords(
   {
     source: "קוד מקור",
     decisions: "החלטות שאני עומד מאחוריהן",
-    skipWork: "דילוג אל אחרי העבודות",
+    skipWork: "דילוג אל אחרי הפרויקטים",
     builtWith: "נבנה עם",
     noYear: "השנה לא נרשמה",
     stack: "טכנולוגיות",
@@ -282,11 +282,11 @@ export const useStoryWords = defineWords(
     figures: { "Anyone can open": "Anyone can open", "In a store": "In a store", Years: "Years" } as Record<string, string>,
   },
   {
-    eyebrow: "המסע",
-    title: "הדרך הארוכה",
+    eyebrow: "מסלול מקצועי",
+    title: "שלב אחר שלב",
     timeline: "ציר זמן",
     soFar: "עד כה",
-    allWork: "כל העבודות, בלי השנים",
+    allWork: "כל הפרויקטים, בלי ציר הזמן",
     figures: { "Anyone can open": "פתוחים לכל אחד", "In a store": "בחנות אפליקציות", Years: "שנים" },
   },
 );

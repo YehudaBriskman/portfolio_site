@@ -421,10 +421,9 @@
  *   Rubik Glitch -0.030em   5.35em        9.67em        5.69em     6.31em          12.13em
  *   Rubik Glitch -0.020em   5.43em        9.82em        5.78em     6.41em          12.33em
  *
- * Rubik Glitch is the Hebrew display face and is narrower than Audiowide at
- * every one of these strings, so English is the binding case and the rung is
- * derived against Audiowide. That is the opposite of an accident: it is
- * why one number can serve both languages.
+ * The Rubik Glitch rows are history: since #248 a Hebrew page sets these
+ * Latin strings in Audiowide too (Hebrew letters alone fall to Rubik), so
+ * the Audiowide rows bind in both languages and one number serves both.
  *
  * The budget. The hero sets inside `.wrap`, which is `max-width: 72rem` with a
  * gutter of `clamp(1.25rem, 3vw, 2.5rem)` — so 1072px of content at any

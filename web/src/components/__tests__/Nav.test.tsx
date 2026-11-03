@@ -74,7 +74,7 @@ describe("the chrome as the main links only", () => {
     /* The Hebrew locale is still disabled (see locale.ts), so this is checked
        on the table rather than on screen: when it is switched on, every room
        has to have its word already, and no two rooms may share one. */
-    expect(NAV_ROUTES.map((r) => r.label.he)).toEqual(["בית", "המסע", "עבודות", "בלוגים"]);
+    expect(NAV_ROUTES.map((r) => r.label.he)).toEqual(["בית", "מסלול מקצועי", "פרויקטים", "בלוג"]);
   });
 
   it("marks the room you are in as the page, and marks nothing as a location", () => {

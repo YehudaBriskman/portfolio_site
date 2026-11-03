@@ -147,65 +147,44 @@
 /* ── Hebrew ───────────────────────────────────────────────────────────── */
 
 /*
- * The ranges are Google's own `hebrew` and `latin` subset definitions, copied
- * from the css2 response rather than invented, so a glyph Google would have
- * served is a glyph we serve.
+ * Hebrew is set in the Latin brand faces first and a Hebrew face behind each
+ * (#248, reviewed). Both Hebrew faces below are cut to Google's `hebrew`
+ * range only, so a Latin letter on a Hebrew page can never resolve to them:
+ * "PORTFOLIO" and the name stay in Audiowide and Atkinson exactly as on the
+ * English page, and only the Hebrew letters fall through.
+ *
+ * Until then Hebrew had its own trio: Rubik Glitch for display, Playpen Sans
+ * Hebrew for text and Solitreo for the accent. All three shipped a Latin half
+ * as well, so on /he the Latin display word turned into a scan-lined glitch
+ * and every nav link into handwriting. The owner's review called both off
+ * brand.
+ *
+ * Display: Rubik at 700, a rounded geometric grotesque, the nearest Hebrew to
+ * Audiowide's rounded, heavy geometry: the owner asked for "round but modern,
+ * and not childish". docs/hebrew/font-compare.png sets it beside Heebo and
+ * Assistant at 800, which have square ends and read as another family. One
+ * static master, declared across the
+ * weight range so no request for it is ever synthesised.
+ * Text and data: Heebo 400..700, a plain Hebrew grotesque drawn for text. The
+ * #97 measure below ranks it the best mean of the grotesques.
+ * Both OFL 1.1, from google/fonts, cut by the same ranges and features as
+ * scripts/fontwork/build.sh.
  */
 @font-face {
-  font-family: 'Rubik Glitch';
+  font-family: 'Rubik Hebrew';
   font-style: normal;
-  font-weight: 400;
+  font-weight: 100 900;
   font-display: swap;
-  src: url('/fonts/rubik-glitch-400-hebrew.woff2') format('woff2');
-  unicode-range: U+0307-0308, U+0590-05FF, U+200C-2010, U+20AA, U+25CC, U+FB1D-FB4F;
+  src: url('/fonts/rubik-700-hebrew.woff2') format('woff2');
+  unicode-range: U+0307-0308, U+0590-05FF, U+20AA, U+25CC, U+FB1D-FB4F;
 }
 @font-face {
-  font-family: 'Rubik Glitch';
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  src: url('/fonts/rubik-glitch-400-latin.woff2') format('woff2');
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
-@font-face {
-  font-family: 'Solitreo';
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  src: url('/fonts/solitreo-400-hebrew.woff2') format('woff2');
-  unicode-range: U+0307-0308, U+0590-05FF, U+200C-2010, U+20AA, U+25CC, U+FB1D-FB4F;
-}
-@font-face {
-  font-family: 'Solitreo';
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  src: url('/fonts/solitreo-400-latin.woff2') format('woff2');
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
-/*
- * Variable on one axis, clipped to the two weights the data role asks for.
- * `calt` and the stylistic sets are dropped: they are Playpen Sans's
- * signature at poster size and they are 1023 glyphs / 106,036 bytes against
- * 360 glyphs / 31,380 without, for alternates nobody can see at the 11-12px
- * this role sets. Measured by scripts/fontwork/probe-features.sh, which
- * prints exactly those four figures.
- */
-@font-face {
-  font-family: 'Playpen Sans Hebrew';
+  font-family: 'Heebo Hebrew';
   font-style: normal;
   font-weight: 400 700;
   font-display: swap;
-  src: url('/fonts/playpen-sans-hebrew-400-700-hebrew.woff2') format('woff2');
-  unicode-range: U+0307-0308, U+0590-05FF, U+200C-2010, U+20AA, U+25CC, U+FB1D-FB4F;
-}
-@font-face {
-  font-family: 'Playpen Sans Hebrew';
-  font-style: normal;
-  font-weight: 400 700;
-  font-display: swap;
-  src: url('/fonts/playpen-sans-hebrew-400-700-latin.woff2') format('woff2');
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  src: url('/fonts/heebo-400-700-hebrew.woff2') format('woff2');
+  unicode-range: U+0307-0308, U+0590-05FF, U+20AA, U+25CC, U+FB1D-FB4F;
 }
 
 @tailwind base;
@@ -1105,7 +1084,12 @@
    * and a tie is decided by source order.
    */
   /*
-   * WHY HEBREW KEEPS PLAYPEN SANS HEBREW (#97).
+   * SUPERSEDED (#248): Hebrew text is Heebo now. The owner's review found
+   * Playpen's handwriting off brand on every nav link and button, which is the
+   * familiarity argument this note anticipated. The measure is kept because it
+   * is what picked Heebo.
+   *
+   * WHY HEBREW KEPT PLAYPEN SANS HEBREW (#97).
    *
    * Atkinson Hyperlegible has no Hebrew — not the 2020 release, not Next —
    * so English moving to it decides nothing here, and the question #97 asks
@@ -1146,18 +1130,18 @@
    */
   :root:lang(he),
   [lang='he'] {
-    --font-display: 'Rubik Glitch', ui-sans-serif, system-ui, sans-serif;
-    --font-text:    'Playpen Sans Hebrew', ui-sans-serif, system-ui, sans-serif;
-    --font-accent:  'Solitreo', ui-sans-serif, system-ui, sans-serif;
-    --font-data:    'Playpen Sans Hebrew', ui-sans-serif, system-ui, sans-serif;
+    --font-display: 'Audiowide', 'Rubik Hebrew', ui-sans-serif, system-ui, sans-serif;
+    --font-text:    'Atkinson Hyperlegible Next', 'Heebo Hebrew', ui-sans-serif, system-ui, sans-serif;
+    --font-accent:  'Jim Nightshade', 'Heebo Hebrew', ui-sans-serif, system-ui, sans-serif;
+    --font-data:    'Atkinson Hyperlegible Next', 'Heebo Hebrew', ui-sans-serif, system-ui, sans-serif;
 
-    /* Rubik Glitch and Solitreo ship one master each; Playpen Sans Hebrew is
-       the variable file, clipped to 400-700. */
+    /* The Latin faces lead, so Latin keeps the English weights; the Hebrew
+       faces behind them cover the same range (Rubik Hebrew 100-900, Heebo
+       400-700), so neither is ever synthesised. */
     --weight-display:     400;
     --weight-text:        400;
-    /* Playpen Sans Hebrew is variable 400-700, so Hebrew has a real bold in
-       the text role exactly as English does. Solitreo and Rubik Glitch have
-       one master each and are never asked for one. */
+    /* Heebo is variable 400-700, so Hebrew has a real bold in the text role
+       exactly as English does. */
     --weight-text-strong: 700;
     --weight-data:        400;
     --weight-data-strong: 700;

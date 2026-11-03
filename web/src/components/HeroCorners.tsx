@@ -129,7 +129,7 @@ function Ask() {
       </a>
       {/* The bound, in the field line's voice, so the ask reads as a fact
           about how long an answer takes rather than as an inducement. */}
-      <p className={styles.askBound} {...inEnglish(lang, contact.replyWithin)}>{contact.replyWithin}</p>
+      <p className={styles.askBound} lang={inEnglish(lang, contact.replyWithin).lang}>{contact.replyWithin}</p>
     </div>
   );
 }
@@ -162,9 +162,10 @@ function Ask() {
 function Light() {
   const { heroPhrases } = useContent().site;
   const lang = useLang();
-  /* The owner's copy, English until it has a Hebrew of its own (#248). */
+  /* The owner's copy, English until it has a Hebrew of its own (#248):
+     marked by language only, so the corner keeps the page's mirrored place. */
   return (
-    <div className={styles.light} data-hero-light="" {...inEnglish(lang, heroPhrases.join(" "))}>
+    <div className={styles.light} data-hero-light="" lang={inEnglish(lang, heroPhrases.join(" ")).lang}>
       <span className="sr-only">{heroPhrases.join(", ")}</span>
       <span className={styles.phrases} aria-hidden="true">
         {heroPhrases.map((phrase, i) => (

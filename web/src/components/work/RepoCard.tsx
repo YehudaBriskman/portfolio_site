@@ -149,7 +149,7 @@ export default function RepoCard({
           <span className={styles.fact} title={t.forks(count(s.forks, lang))}>
             <GitFork size={14} aria-hidden="true" />
             <span className={styles.num}>{count(s.forks, lang)}</span>
-            <span className="sr-only">{lang === "he" ? " מזלגות" : " forks"}</span>
+            <span className="sr-only">{lang === "he" ? " פיצולים" : " forks"}</span>
           </span>
         )}
         {updated && (
