@@ -176,7 +176,11 @@ describe("Content-Security-Policy (#124)", () => {
     // a data block the browser never executes. A real inline script added to
     // index.html would be refused in production; this says so at test time.
     const html = read("index.html");
-    const inline = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/g)].filter(
+    // Case-insensitive, and the closing tag may carry whitespace or junk
+    // (`</SCRIPT >`, `</script foo>`): browsers end the element on all of
+    // those, so a narrower pattern would let a real inline script slip past
+    // this guard unseen (CodeQL js/bad-tag-filter).
+    const inline = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\b[^>]*>/gi)].filter(
       ([, attrs]) => !/\bsrc=/.test(attrs),
     );
     expect(inline.length).toBeGreaterThan(0);
