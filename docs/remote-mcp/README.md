@@ -19,7 +19,7 @@ The public page is `/developers/mcp`, and the code is in `backend/src/mcp/`.
    Generate a client secret. Do **not** reuse the oauth2-proxy app: its callback and its users are different.
 2. **Put the secrets in the API's environment:**
    - `MCP_GITHUB_CLIENT_ID` and `MCP_GITHUB_CLIENT_SECRET`, from step 1.
-   - `ADMIN_GITHUB_ID` is optional: your numeric GitHub id, from `gh api user -q .id`. Without it, the id seen at the first sign-in is recorded and held from then on.
+   - **`ADMIN_GITHUB_ID=145012406`**, the owner's numeric GitHub id. It is **required for prod**: it pins the id, rather than trusting whichever account signs in first. (The code falls back to recording the first sign-in's id only when it is unset, which is for local development.)
 3. **Set `MCP_REMOTE=on`.** The API refuses to start with it on and the GitHub credentials missing.
 4. **Tag a release** to deploy it.
 5. **Check it.**

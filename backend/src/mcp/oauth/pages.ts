@@ -73,6 +73,10 @@ export function sendPage(res: Response, opts: PageOpts) {
 <main><p class="eyebrow">${escapeHtml(opts.eyebrow)}</p><h1>${escapeHtml(opts.title)}</h1>${opts.body}</main></body></html>`);
 }
 
+/*
+ * mcp:write is never pre-checked, even when the client asks for it: least
+ * privilege, so write access is always a deliberate tick by the owner.
+ */
 export function consentPage(
   res: Response,
   o: { clientName: string; redirectUri: string; login: string; txn: string; csrf: string; writeRequested: boolean },
@@ -89,7 +93,7 @@ export function consentPage(
 <input type="hidden" name="csrf" value="${escapeHtml(o.csrf)}">
 <fieldset><legend>Access</legend>
 <label><input type="checkbox" checked disabled><span><b>mcp:read</b>Read every post (drafts included), area and the admin audit log.</span></label>
-<label><input type="checkbox" name="write" value="on"${o.writeRequested ? " checked" : ""}><span><b>mcp:write</b>Create and edit posts and areas. Every write is a dry run unless the tool is told otherwise, and a delete needs <code>confirm: true</code>. Each one is in the audit log under this app's name.</span></label>
+<label><input type="checkbox" name="write" value="on"><span><b>mcp:write</b>${o.writeRequested ? '<i class="soft">Requested by this app. </i>' : ""}Create and edit posts and areas. Every write is a dry run unless the tool is told otherwise, and a delete needs <code>confirm: true</code>. Each one is in the audit log under this app's name.</span></label>
 </fieldset>
 <div class="actions"><button class="primary" type="submit" name="decision" value="approve">Allow</button><button class="ghost" type="submit" name="decision" value="deny">Deny</button></div>
 </form>

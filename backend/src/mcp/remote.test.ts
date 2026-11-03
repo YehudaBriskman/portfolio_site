@@ -487,10 +487,14 @@ describe("the sign-in", () => {
     const { challenge } = pkce();
     const auth = await request(app).get("/mcp/oauth/authorize").query({
       response_type: "code", client_id: c.client_id, redirect_uri: REDIRECT, code_challenge: challenge, code_challenge_method: "S256",
+      scope: "mcp:read mcp:write",
     });
     const cookie = cookieFrom(auth);
     const state = new URL(auth.headers.location).searchParams.get("state")!;
     const cb = await request(app).get("/mcp/oauth/github/callback").query({ code: "gh-code", state }).set("Cookie", cookie);
+    // mcp:write is never pre-checked, even though this client asked for it.
+    expect(cb.text).toMatch(/<input type="checkbox" name="write" value="on">/);
+    expect(cb.text).not.toMatch(/name="write"[^>]*checked/);
     expect(cb.headers["content-security-policy"]).toMatch(/default-src 'none'.*form-action 'self'.*frame-ancestors 'none'/);
     const txn = /name="txn" value="([^"]+)"/.exec(cb.text)![1];
     const csrf = /name="csrf" value="([^"]+)"/.exec(cb.text)![1];
