@@ -78,6 +78,10 @@ const ALLOWED: Record<string, { names: string[]; why: string }> = {
     names: ["ribbon-in", "ribbon-held"],
     why: "the aurora ribbon's part in the same arrival (#194) and its hold (#219): it comes in with the figure",
   },
+  "components/nav/theme-wave.css": {
+    names: ["theme-wave"],
+    why: "the theme change spreading from the toggle (#266): a reply to pressing it, not a scroll",
+  },
   "components/gallery/Skeleton.module.css": {
     names: ["sk-gate"],
     why: "not motion: a 1ms opacity step whose only job is a 180ms visibility threshold",
