@@ -1,40 +1,37 @@
 /*
- * The aurora ribbon round the figure. `HeroRibbon.tsx` has why it is two
- * layers; `heroRibbon.ts` has the line.
+ * The aurora ribbon across the figure. `HeroRibbon.tsx` has why it is one
+ * layer, over the photograph; `heroRibbon.ts` has the line.
  *
  * WHERE THE BOX IS
  * ----------------
- * Each layer fills the portrait box, and `.frame` inside it is the
+ * The layer fills the portrait box, and `.frame` inside it is the
  * photograph's *rendered* rect: the `<img>` is `object-fit: contain` and
  * stands on the floor of the box, so its picture is as wide as the box or
  * as wide as the box's height allows, whichever is less, and centred along
- * the bottom. Each layer is a size container the size of the portrait box,
+ * the bottom. The layer is a size container the size of the portrait box,
  * so that is one `min()` in container units and the ribbon's 551×845
  * drawing lands on the head and the chest at every window size, with no
  * script measuring anything.
  *
  * The container is the layer and not `.portrait`: size containment on the
  * portrait box took its 12px of intrinsic overflow away at 1440×900 and
- * shrank the photograph, which is the LCP element. The layers are
- * absolutely positioned, so containing them changes nothing, and neither
- * has a say in the figure's track: the screen cannot shift because of them.
+ * shrank the photograph, which is the LCP element. The layer is absolutely
+ * positioned, so containing it changes nothing, and it has no say in the
+ * figure's track: the screen cannot shift because of it.
  *
- * DEPTH
- * -----
- * Behind: a narrower ribbon (`heroRibbon.ts`) fading to a third of its
- * strength as it goes behind the head (`HeroRibbon.tsx`, the back gradient),
- * and hidden by the head and shoulder. In front: full width, full strength,
- * over the photograph. Under the dark theme
- * the haze is screened onto the ground, which is how a light reads on a
- * dark field; on paper it is laid on as a tint, which is how it reads there.
+ * Over the photograph only (`z-index: 1`): nothing of the ribbon is ever
+ * under the figure, so nothing can show through its soft edge (#272). Under
+ * the dark theme the haze is screened onto the ground, which is how a light
+ * reads on a dark field; on paper it is laid on as a tint.
  *
  * MOTION
  * ------
- * One drift, scrubbed on the hero's `--hero` timeline across the stretch the
- * hero is held for (`contain`): as the dark act comes up, the front half
- * rises and turns faster than the back half, which is parallax — the near
- * side of a ring moving more than the far side. Transforms only, on two
- * absolutely positioned boxes: no layout, no paint after the first.
+ * One small drift, scrubbed on the hero's `--hero` timeline across the
+ * stretch the hero is held for (`contain`): as the dark act comes up, the
+ * sweep lifts a little and eases right. Small on purpose — the owner wants
+ * the line to go down-right, not to turn — so it rotates by under a degree.
+ * Transforms only, on one absolutely positioned box: no layout, no paint
+ * after the first.
  *
  * It is declared only inside the gate (view timelines run, no reduced
  * motion, no Pause), so every off-switch shows the still ribbon at its
@@ -55,13 +52,6 @@
   pointer-events: none;
   transform-origin: 50% 55%;
   container-type: size;
-}
-
-.back {
-  z-index: -1;
-}
-
-.front {
   z-index: 1;
 }
 
@@ -91,10 +81,6 @@
   stroke-linejoin: round;
 }
 
-/* The two halves are dressed alike, so the seam at the side does not show:
-   the back half's dimming is in its gradient, which fades it from full
-   strength at the side to a third behind the skull, and its thinning is in
-   the geometry. */
 .haze {
   opacity: 0.3;
   filter: blur(9px);
@@ -104,10 +90,9 @@
   --strand-w: 1.5px;
 }
 
-/* On a phone the figure is nearly the width of the window and the sweep's
-   far side would be off the edge, so the ring is drawn narrower round the
-   same figure: still behind the head, still across the chest. And its tail
-   is the narrow one (`heroRibbon.ts`), which dips inside the window. */
+/* On a phone the figure is nearly the width of the window, so the sweep is
+   drawn narrower across the same figure: still across the chest, and its
+   own curve (`heroRibbon.ts`) leaves inside the window. */
 .narrow {
   display: none;
 }
@@ -125,22 +110,13 @@
 
 :global(:root[data-theme="dark"]) .haze {
   mix-blend-mode: screen;
-}
-
-:global(:root[data-theme="dark"]) .haze {
   opacity: 0.5;
 }
 
 @supports (animation-timeline: view()) {
   @media (prefers-reduced-motion: no-preference) {
-    :global(body:not(.motion-paused)) .back {
-      animation: ribbon-back linear both;
-      animation-timeline: --hero;
-      animation-range: contain 0% contain 100%;
-    }
-
-    :global(body:not(.motion-paused)) .front {
-      animation: ribbon-front linear both;
+    :global(body:not(.motion-paused)) .layer {
+      animation: ribbon-drift linear both;
       animation-timeline: --hero;
       animation-range: contain 0% contain 100%;
     }
@@ -159,14 +135,9 @@
 }
 
 /* Scroll 0 is `from`, the pose every off-switch shows. */
-@keyframes ribbon-back {
+@keyframes ribbon-drift {
   from { transform: none; }
-  to   { transform: translate3d(-2%, -3%, 0) rotate(1.5deg); }
-}
-
-@keyframes ribbon-front {
-  from { transform: none; }
-  to   { transform: translate3d(3%, -8%, 0) rotate(-2.5deg); }
+  to   { transform: translate3d(2%, -4%, 0) rotate(-0.8deg); }
 }
 
 @keyframes ribbon-held {

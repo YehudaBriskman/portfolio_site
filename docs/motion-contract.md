@@ -1764,7 +1764,7 @@ direction, or set `fill-rule: evenodd` deliberately and know what it costs.
 | `Hero.module.css` `.holder` | the hero held still (`sticky`) for one screen while the dark act slides up over it; owns `--hero` | named `view-timeline` `--hero` on the static holder (§1: the pinned hero's own would stall) |
 | `HeroArrival.module.css` | the plate's arrival, once a visit, when the cover lifts; it no longer comes apart on the way out (2026-11-03) | clock, exempt (§8) |
 | `HeroCorners.module.css` | `breath` — the phrases turn and the lamp breathes while the hero is held | `--hero`, `contain` ranges |
-| `HeroRibbon.module.css` | the aurora ribbon round the figure: back half under the photograph, front half over it; the front drifts further than the back (parallax) | `--hero`, `contain 0%–100%` |
+| `HeroRibbon.module.css` | the aurora ribbon across the figure: one layer over the photograph, one gentle sweep down-right; nothing under the figure (#272); a small lift and ease right | `--hero`, `contain 0%–100%` |
 | `Stack.module.css` | `count` — each figure counts from nought as the plate comes up, and back down as it goes | named `view-timeline` `--specs` on the plate |
 | `index.css` `.scrub-pulse` | every loading placeholder's pulse (`.scrub-rise` retired in #193) | `view()` |
 | `Approach.module.css` + `ApproachFigures.tsx` | `draw` — each principle's figure, stroke by stroke | named `view-timeline` per principle |
@@ -1888,7 +1888,7 @@ animation.
 |---|---|---|---|
 | entry shutter (`EntryShutter`) | every route, first load | clock, gated on readiness | **exempt**: the one page-load moment, not a scroll |
 | title plate: name letters, fact line, field line, figure coming apart on the way out (`HeroArrival.module.css`) | / | — | **removed** (2026-11-03): the owner's "the hero pictures … disappear … I want them to stay"; the figure was under a `--paper` mask at `scaleY(1)` from `exit 44%` (`docs/hero-aurora/before-*.png`). The hero is held still under the next act instead |
-| aurora ribbon drift and parallax round the figure (`HeroRibbon.module.css`) | / | `--hero`, `contain 0%–100%`, transforms only | **scrubbed** (2026-11-03); every off-switch shows the still ribbon at its scroll-0 pose |
+| aurora ribbon drift across the figure (`HeroRibbon.module.css`) | / | `--hero`, `contain 0%–100%`, transforms only | **scrubbed** (2026-11-03), back half and parallax **removed** (#272: it showed through the soft cut-out), drift cut to under a degree; every off-switch shows the still ribbon at its scroll-0 pose |
 | title plate and corners arriving, once a visit (`HeroArrival.module.css`, `HeroCorners.module.css`) | /, first load only | clock, started by the shutter's `clearing` signal (its last tile's `animationend`) (`motion/entry.ts`), filling `backwards` (the scrubbed exit it was layered on is gone, 2026-11-03; the ribbon fades in with the figure, `ribbon-in`); until that signal, a still `*-held` layer pins each moving part on the arrival's `from` frame under the cover (#219), so the lifting tiles show nothing already arrived and it is seen once | **exempt** (#194): part of the page load, as the shutter is; a hero mounted after the entry, or under any off-switch, never holds or plays it |
 | nav bar dropping in with the plate (`hero-chrome.css`) | / | — | **removed** (#162): the bar is simply there; its tuck is below |
 | lamp breath and ring, rotating phrases (`HeroCorners`) | / | `--hero` | **scrubbed** (#162; were 6.4s / 3.6s infinite loops) |

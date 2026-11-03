@@ -283,10 +283,6 @@ export default function Hero() {
               a paint candidate.
             */}
             <div className={styles.portrait} data-portrait="">
-              {/* The aurora ribbon round the figure, in two layers of one line:
-                  this half under the photograph, so the head hides it, and the
-                  other over it, across the chest (`HeroRibbon.tsx`). */}
-              <HeroRibbon layer="back" />
               <picture>
                 {/* The 365px file below the type rung's breakpoint, which is
                     also where the figure stops being a third of the screen's
@@ -313,7 +309,10 @@ export default function Hero() {
                 data-portrait-mask=""
                 aria-hidden="true"
               />
-              <HeroRibbon layer="front" />
+              {/* The aurora ribbon, over the photograph only: it crosses the
+                  chest and nothing of it is ever behind the figure
+                  (`HeroRibbon.tsx`). */}
+              <HeroRibbon />
             </div>
 
             {/*
