@@ -185,6 +185,13 @@ describe("the first screen's hooks", () => {
        catch. */
     expect(img.getAttribute("width")).toBe("551");
     expect(img.getAttribute("height")).toBe("845");
+
+    /* Density (#127): both widths offered with `w` descriptors, so a 2x or
+       3x screen can take the larger file. A `media` switch on <source> sent
+       every phone the 365px file regardless of its density. */
+    expect(img.getAttribute("srcset")).toBe("/img/yehuda-cut-sm.webp 365w, /img/yehuda-cut.webp 551w");
+    expect(img.getAttribute("sizes")).toMatch(/min\(92vw, 22rem\)/);
+    expect(img.closest("picture")?.querySelector("source")).toBeNull();
   });
 });
 
