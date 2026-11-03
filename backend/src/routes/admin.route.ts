@@ -30,6 +30,7 @@ import {
 } from "../services/apiTokenFormat.js";
 import adminContentRoutes from "./admin-content.route.js";
 import adminSettingsRoutes from "./admin-settings.route.js";
+import adminTranslationsRoutes from "./admin-translations.route.js";
 
 const router = Router();
 
@@ -100,6 +101,9 @@ router.use("/settings", adminSettingsRoutes);
 
 /* The media library (#253): its own file, behind this router's gate and audit. */
 router.use("/media", mediaRoutes);
+
+/* What is missing or stale in Hebrew (#301): a read over everything above. */
+router.use("/translations", adminTranslationsRoutes);
 
 /* ---------------------------------------------------------------- posts -- */
 
