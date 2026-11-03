@@ -27,7 +27,13 @@ fs.mkdirSync(DEST, { recursive: true });
 for (const f of FILES) {
   const want = banner(f) + fs.readFileSync(path.join(SRC, f), "utf8");
   const file = path.join(DEST, f);
-  const have = fs.existsSync(file) ? fs.readFileSync(file, "utf8") : null;
+  // Read and catch, not exists-then-read: one operation, no window between.
+  let have = null;
+  try {
+    have = fs.readFileSync(file, "utf8");
+  } catch (e) {
+    if (e.code !== "ENOENT") throw e;
+  }
   if (have === want) continue;
   stale++;
   if (check) console.error(`stale: backend/src/mcp/shared/${f}`);

@@ -133,39 +133,94 @@ export function createMcpRouter(app: Express) {
   });
 
   /*
-   * CORS only where a browser-based MCP client needs it: the metadata and
-   * the MCP endpoints themselves. Bearer tokens, not cookies, so `*` grants
-   * nothing a page could not already do. The SDK's token, register and
-   * revoke handlers carry their own. authorize, the callback and consent are
-   * navigations and get none.
+   * CORS, by what each endpoint is.
+   *
+   * Public and read-only (the /.well-known metadata and /mcp/public): any
+   * origin may read them, with `*` and never credentials. They hold nothing
+   * a page could not fetch through a server anyway, and a browser-based MCP
+   * client needs them to discover this server.
+   *
+   * Authenticated (/mcp, and the token, register and revoke endpoints): a
+   * fixed allowlist, never the request's Origin reflected and never `*`. The
+   * clients that use these are not browsers bound to an origin: Claude Code
+   * and Claude Desktop call them from a native process, where CORS does not
+   * apply. The only browser clients expected are claude.ai and claude.com,
+   * so only they get an Access-Control-Allow-Origin, and without
+   * credentials (the token is a Bearer header, not a cookie). The SDK's own
+   * handlers set `*`; restrictCors removes it for any other origin.
+   *
+   * authorize, the GitHub callback and consent are top-level navigations
+   * and get no CORS at all.
    */
-  const openCors = cors({
-    origin: "*",
-    methods: ["GET", "POST", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Authorization", "Content-Type", "Accept", "Mcp-Protocol-Version", "Mcp-Session-Id", "Last-Event-ID"],
-    exposedHeaders: ["WWW-Authenticate", "Mcp-Session-Id", "Mcp-Protocol-Version"],
-    maxAge: 600,
-  });
+  const BROWSER_CLIENTS = ["https://claude.ai", "https://claude.com"];
+  const CORS_ALLOW_HEADERS = "Authorization, Content-Type, Accept, Mcp-Protocol-Version, Mcp-Session-Id, Last-Event-ID";
+  const CORS_EXPOSE_HEADERS = "WWW-Authenticate, Mcp-Session-Id, Mcp-Protocol-Version";
+
+  const publicCors: RequestHandler = (req, res, next) => {
+    res.set({
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Expose-Headers": CORS_EXPOSE_HEADERS,
+    });
+    if (req.method !== "OPTIONS") return next();
+    res
+      .set({
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers": CORS_ALLOW_HEADERS,
+        "Access-Control-Max-Age": "600",
+      })
+      .status(204)
+      .end();
+  };
+
+  /* Pins Access-Control-Allow-Origin to the allowlist, whoever sets it. */
+  const restrictCors: RequestHandler = (req, res, next) => {
+    const origin = req.header("origin");
+    const allowed = origin !== undefined && BROWSER_CLIENTS.includes(origin) ? origin : null;
+    const setHeader = res.setHeader.bind(res);
+    res.setHeader = ((name: string, value: number | string | readonly string[]) => {
+      if (name.toLowerCase() === "access-control-allow-origin") {
+        if (!allowed) return res;
+        return setHeader(name, allowed);
+      }
+      if (name.toLowerCase() === "access-control-allow-credentials") return res;
+      return setHeader(name, value);
+    }) as typeof res.setHeader;
+    res.vary("Origin");
+    next();
+  };
+
+  const authCors: RequestHandler[] = [
+    restrictCors,
+    cors({
+      origin: BROWSER_CLIENTS,
+      credentials: false,
+      methods: ["GET", "POST", "DELETE", "OPTIONS"],
+      allowedHeaders: CORS_ALLOW_HEADERS.split(", "),
+      exposedHeaders: CORS_EXPOSE_HEADERS.split(", "),
+      maxAge: 600,
+    }),
+  ];
 
   /* ---------------------------------------------------------- metadata -- */
 
   const metaLimiter = limiter(60_000, 120);
   router.get(
     ["/.well-known/oauth-protected-resource", "/.well-known/oauth-protected-resource/mcp"],
-    openCors,
+    publicCors,
     metaLimiter,
     (_req, res) => res.set("Cache-Control", "public, max-age=300").json(protectedResourceMetadata()),
   );
-  router.options(["/.well-known/oauth-protected-resource", "/.well-known/oauth-protected-resource/mcp"], openCors);
-  router.get("/.well-known/oauth-authorization-server", openCors, metaLimiter, (_req, res) =>
+  router.options(["/.well-known/oauth-protected-resource", "/.well-known/oauth-protected-resource/mcp"], publicCors);
+  router.get("/.well-known/oauth-authorization-server", publicCors, metaLimiter, (_req, res) =>
     res.set("Cache-Control", "public, max-age=300").json(authorizationServerMetadata()),
   );
-  router.options("/.well-known/oauth-authorization-server", openCors);
+  router.options("/.well-known/oauth-authorization-server", publicCors);
 
   /* ------------------------------------------------------ authorization -- */
 
   router.use(
     "/mcp/oauth/register",
+    restrictCors,
     clientRegistrationHandler({
       clientsStore: provider.clientsStore,
       // Ten registrations an hour per address; a native client registers once.
@@ -211,8 +266,8 @@ export function createMcpRouter(app: Express) {
   });
   const formBody = express.urlencoded({ extended: false, limit: "16kb" });
 
-  router.use("/mcp/oauth/token", formBody, clientSecretGuard, tokenHandler({ provider, rateLimit: sdkLimit(15 * 60_000, 60) }));
-  router.use("/mcp/oauth/revoke", formBody, clientSecretGuard, revocationHandler({ provider, rateLimit: sdkLimit(15 * 60_000, 30) }));
+  router.use("/mcp/oauth/token", restrictCors, formBody, clientSecretGuard, tokenHandler({ provider, rateLimit: sdkLimit(15 * 60_000, 60) }));
+  router.use("/mcp/oauth/revoke", restrictCors, formBody, clientSecretGuard, revocationHandler({ provider, rateLimit: sdkLimit(15 * 60_000, 30) }));
 
   const signInLimiter = limiter(15 * 60_000, 30);
 
@@ -355,22 +410,23 @@ export function createMcpRouter(app: Express) {
     expectedResource: new URL(resourceUrl()),
   });
 
-  router.options(["/mcp", "/mcp/public"], openCors);
-  router.get("/mcp/public", openCors, toDocs, notAllowed);
-  router.delete("/mcp/public", openCors, notAllowed);
+  router.options("/mcp/public", publicCors);
+  router.options("/mcp", authCors);
+  router.get("/mcp/public", publicCors, toDocs, notAllowed);
+  router.delete("/mcp/public", publicCors, notAllowed);
   router.post(
     "/mcp/public",
-    openCors,
+    publicCors,
     mcpLimiter,
     json,
     asyncHandler((req, res) => serve(req, res, "public", null)),
   );
 
-  router.get("/mcp", openCors, toDocs, mcpLimiter, bearer, notAllowed);
-  router.delete("/mcp", openCors, mcpLimiter, bearer, notAllowed);
+  router.get("/mcp", authCors, toDocs, mcpLimiter, bearer, notAllowed);
+  router.delete("/mcp", authCors, mcpLimiter, bearer, notAllowed);
   router.post(
     "/mcp",
-    openCors,
+    authCors,
     mcpLimiter,
     bearer,
     json,

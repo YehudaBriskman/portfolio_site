@@ -345,6 +345,37 @@ describe("discovery", () => {
     expect(header).toContain('scope="mcp:read"');
   });
 
+  it("CORS on authenticated endpoints: an arbitrary Origin gets no ACAO, the allowlist gets itself", async () => {
+    const app = createApp();
+    const evil = "https://evil.example";
+    for (const res of [
+      await rpc(app, "/mcp", "tools/list", {}).set("Origin", evil),
+      await request(app).options("/mcp").set("Origin", evil).set("Access-Control-Request-Method", "POST"),
+      await request(app).post("/mcp/oauth/token").set("Origin", evil).type("form").send({ grant_type: "refresh_token" }),
+      await request(app).options("/mcp/oauth/token").set("Origin", evil).set("Access-Control-Request-Method", "POST"),
+      await request(app).post("/mcp/oauth/register").set("Origin", evil).send({ client_name: "x", redirect_uris: [REDIRECT] }),
+    ]) {
+      expect(res.headers["access-control-allow-origin"]).toBeUndefined();
+      expect(res.headers["access-control-allow-credentials"]).toBeUndefined();
+    }
+    const ok = await rpc(app, "/mcp", "tools/list", {}).set("Origin", "https://claude.ai");
+    expect(ok.status).toBe(401);
+    expect(ok.headers["access-control-allow-origin"]).toBe("https://claude.ai");
+    expect(ok.headers["access-control-allow-credentials"]).toBeUndefined();
+    const tok = await request(app).post("/mcp/oauth/token").set("Origin", "https://claude.com").type("form").send({ grant_type: "refresh_token" });
+    expect(tok.headers["access-control-allow-origin"]).toBe("https://claude.com");
+  });
+
+  it("CORS on the public, read-only endpoints is `*`, without credentials", async () => {
+    const app = createApp();
+    const res = await rpc(app, "/mcp/public", "tools/list", {}).set("Origin", "https://evil.example");
+    expect(res.headers["access-control-allow-origin"]).toBe("*");
+    expect(res.headers["access-control-allow-credentials"]).toBeUndefined();
+    const pre = await request(app).options("/.well-known/oauth-authorization-server").set("Origin", "https://x.example");
+    expect(pre.status).toBe(204);
+    expect(pre.headers["access-control-allow-origin"]).toBe("*");
+  });
+
   it("sends a browser on /mcp to the page that explains it", async () => {
     const res = await request(createApp()).get("/mcp").set("Accept", "text/html,application/xhtml+xml");
     expect(res.status).toBe(303);
