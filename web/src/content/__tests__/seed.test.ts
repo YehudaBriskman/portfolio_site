@@ -76,6 +76,7 @@ describe("the content seed", () => {
 
   it("falls back to English per field when a Hebrew one is absent", () => {
     const b = seedBundle();
+    b.siteCopy.hero.phrases[0] = { en: "Technology" };
     b.siteCopy.hero.phrases[1] = { en: "Product builder", he: "בונה מוצרים" };
     const he = localize(b, "he").site.heroPhrases;
     expect(he[0]).toBe("Technology");

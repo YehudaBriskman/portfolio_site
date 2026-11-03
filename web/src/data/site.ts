@@ -143,6 +143,30 @@ export const heroPhrases = [
 ] as const;
 
 /*
+ * The hero's Hebrew, from the owner's approved copy review (#248). It is the
+ * store's first state only: the seed writes a document once, so on a running
+ * site these are entered in Admin > Site copy, under each field's Hebrew.
+ *
+ * Left out on purpose, so they stay English and are marked as such:
+ * "Portfolio" (the display word is the brand, set in the Latin face on both
+ * languages), and the mottos "Build boldly" and "Keep improving", which have
+ * no Hebrew the owner has approved.
+ */
+export const heroHebrew: {
+  where: string;
+  fact: string;
+  phrases: Partial<Record<(typeof heroPhrases)[number], string>>;
+  replyWithin: string;
+  aboutHeading: string;
+} = {
+  where: "ישראל",
+  fact: `${plate.name} — פול־סטאק, עם דגש על פרונטאנד`,
+  phrases: { Technology: "טכנולוגיה", "Product builder": "בונה מוצרים", "Applied AI": "בינה מלאכותית יישומית" },
+  replyWithin: "בדרך כלל תוך יום",
+  aboutHeading: "איך אני עובד",
+};
+
+/*
  * "How I work", as short sections read the way /story is read (#157).
  *
  * Every `lines` entry is one paragraph, written by the pen on its own clock,

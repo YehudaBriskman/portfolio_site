@@ -200,12 +200,12 @@ export const INTERLUDES: Interlude[] = [
   {
     id: "loop-rely",
     after: "windom",
-    words: { en: "Then, things they relied on.", he: "ואז, דברים שסומכים עליהם." },
+    words: { en: "Then, things they relied on.", he: "ואז — מערכות שאחרים סומכים עליהן." },
   },
   {
     id: "loop-team",
     after: "full-stack",
-    words: { en: "Then, a team.", he: "ואז, צוות." },
+    words: { en: "Then, a team.", he: "ואז — צוות." },
   },
 ];
 
