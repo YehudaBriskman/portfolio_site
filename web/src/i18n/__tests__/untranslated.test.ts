@@ -11,7 +11,8 @@
  *
  * Two lists say what is allowed:
  *
- *   LATIN   text that is the same in both languages: names, marks, symbols.
+ *   ALLOW_LATIN  text that is the same in both languages: names, marks and
+ *                symbols, from the glossary's `allowLatin` (#300).
  *   PENDING files not yet moved onto the tables. It only ever shrinks: a file
  *           on it that has become clean fails too, so it is taken off.
  */
@@ -19,22 +20,21 @@ import fs from "node:fs";
 import path from "node:path";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
+import { ALLOW_LATIN } from "../glossary";
 
 const SRC = path.resolve(__dirname, "../..");
 
 const ATTRS = new Set(["aria-label", "title", "placeholder", "alt", "label", "aria-description"]);
 
-/* Same in both languages. */
-const LATIN = new Set([
-  "RSS",
-  "LinkedIn",
-  "GitHub",
-  "WindoM",
-  "Yehuda Briskman",
-  "MCP",
-  "claude.ai",
-  "Claude Code",
-]);
+/*
+ * Same in both languages: the glossary's keep-in-Latin list (#300). A string
+ * passes when every Latin run in it is on that list ("GitHub", "Claude Code"),
+ * so a name beside a mark or a number passes and a sentence does not.
+ */
+const latinOnly = (t: string) => {
+  const runs = t.match(/[A-Za-z][A-Za-z0-9.+:-]*(?: [A-Za-z0-9][A-Za-z0-9.+:-]*)*/g) ?? ([] as string[]);
+  return runs.every((r) => ALLOW_LATIN.has(r) || r.split(" ").every((w) => ALLOW_LATIN.has(w)));
+};
 
 /*
  * Not scanned at all: the shadcn primitives (no words of their own), and the
@@ -65,7 +65,7 @@ function english(file: string): string[] {
     const t = s.replace(/&[a-z]+;|&#\d+;/g, " ").replace(/\s+/g, " ").trim();
     /* A path (`/blog`) is an address, the same in both languages. */
     const path = /^\/[\w./-]*$/.test(t);
-    if (/[A-Za-z]{2}/.test(t) && !LATIN.has(t) && !path) hits.push(t.slice(0, 60));
+    if (/[A-Za-z]{2}/.test(t) && !latinOnly(t) && !path) hits.push(t.slice(0, 60));
   };
   const visit = (n: ts.Node) => {
     if (ts.isJsxText(n)) check(n.getText());
