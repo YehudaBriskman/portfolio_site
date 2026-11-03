@@ -384,7 +384,7 @@ describe("ProjectRun aurora", () => {
     expect(strand.querySelector("[data-run-surge]")).not.toBeNull();
   });
 
-  it("no longer starts the living line: 'How I work' takes its own strand from the left", () => {
+  it("no longer starts the living line: 'How I work' brings it in from the page's left edge", () => {
     const { container } = draw(three);
     expect(container.querySelector("[data-line-origin]")).toBeNull();
     expect(CSS).not.toMatch(/\n\.origin\s*\{/);

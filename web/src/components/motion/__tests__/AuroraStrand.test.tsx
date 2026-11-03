@@ -6,9 +6,9 @@ import AuroraStrand from "@/components/motion/AuroraStrand";
 
 /*
  * The one aurora strand and its one appearing (owner, 2026-11-03): the work
- * run, "How I work" and the notes shelf all use this, and differ only in
- * `from`, the clock and the range. What it looks like in a browser, frame by
- * frame, is in docs/aurora-reading/.
+ * run and the notes shelf use this, and differ only in `from`, the clock and
+ * the range. What it looks like in a browser, frame by frame, is in
+ * docs/aurora-v3/.
  */
 const SOURCE = readFileSync(resolve(process.cwd(), "src/components/motion/AuroraStrand.module.css"), "utf8");
 const CSS = SOURCE.replace(/\/\*[\s\S]*?\*\//g, "");
@@ -26,12 +26,9 @@ describe("AuroraStrand", () => {
     expect(Number(el.querySelector("[data-strands]")?.getAttribute("data-strands"))).toBeGreaterThanOrEqual(5);
   });
 
-  it("owns a view timeline of its own when the caller names none", () => {
-    const { container } = render(<AuroraStrand from="right" />);
-    const el = container.querySelector<HTMLElement>("[data-aurora-strand]")!;
-    expect(el.getAttribute("style") ?? "").toBe("");
-    expect(CSS).toMatch(/\.strand\s*\{[^}]*view-timeline:\s*--aurora-strand block/);
-    expect(CSS).toMatch(/animation-timeline:\s*var\(--strand-timeline, --aurora-strand\)/);
+  it("reads its caller's clock, and owns none of its own", () => {
+    expect(CSS).toMatch(/animation-timeline:\s*var\(--strand-timeline\);/);
+    expect(CSS).not.toMatch(/view-timeline/);
   });
 
   it("uncovers in place: a window in from `from`, its drawing carried back by the same amount", () => {
@@ -50,9 +47,10 @@ describe("AuroraStrand", () => {
     expect(CSS).toMatch(/:global\(body\.motion-paused\) \.window,\s*:global\(body\.motion-paused\) \.hold\s*\{\s*animation:\s*none;\s*transform:\s*none;/);
   });
 
-  it("is the one strand the run, 'How I work' and the notes use: right for the run, left for the other two", () => {
+  it("is the one strand the run and the notes use: right for the run, left for the notes; none on 'How I work'", () => {
     expect(read("src/components/projects/RunAurora.tsx")).toMatch(/<AuroraStrand\s+from="right"\s+mirrorInRtl\s+timeline="--run"/);
-    expect(read("src/components/Approach.tsx")).toMatch(/<AuroraStrand from="left" \/>/);
+    /* The owner's "remove the additional aurora": the line comes in by itself. */
+    expect(read("src/components/Approach.tsx")).not.toMatch(/AuroraStrand/);
     expect(read("src/components/LatestNotes.tsx")).toMatch(
       /<AuroraStrand from="left" timeline="--notes-shelf" range="entry 40% contain 6%" \/>/,
     );

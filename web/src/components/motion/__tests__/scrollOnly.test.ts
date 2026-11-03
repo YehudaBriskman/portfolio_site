@@ -74,10 +74,6 @@ const ALLOWED: Record<string, { names: string[]; why: string }> = {
     names: ["corner-in", "corner-mask-down", "corner-held", "corner-mask-held"],
     why: "the corners' part of the same arrival (#194) and of its hold (#219)",
   },
-  "components/HeroRibbon.module.css": {
-    names: ["ribbon-in", "ribbon-held"],
-    why: "the aurora ribbon's part in the same arrival (#194) and its hold (#219): it comes in with the figure",
-  },
   "components/nav/theme-wave.css": {
     names: ["theme-wave"],
     why: "the theme change spreading from the toggle (#266): a reply to pressing it, not a scroll",

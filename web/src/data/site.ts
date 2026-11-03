@@ -167,29 +167,31 @@ export type ApproachPrinciple = { claim: string; lines: string[]; line?: LineMov
 /**
  * The living line through "How I work" (#191), as data.
  *
- * It starts on the aurora strand that comes in from the left edge of the
- * page across the section's head (owner, 2026-11-03): the band carries an
- * empty marker on the strand's centre line, at the column's start edge
- * (`data-line-origin="approach-strand"`). From it the line turns in a
- * circle to the head's lane and comes down beside the head; then lane to
- * lane through the short sections; then once round each principle's
- * figure. (Until then it started behind the work run's centre and ran down
- * out of the projects.)
+ * It comes in from the left edge of the page (the start edge; owner,
+ * 2026-11-03): a full-bleed marker in the section's top padding
+ * (`data-line-origin="approach-enter"`) is where its `enter` move starts,
+ * off the edge; it runs in above the head, turns down into the head's
+ * lane and comes down beside the head, then back under it — round the
+ * heading and its role line; then lane to lane through the short
+ * sections; then once round each principle's figure. (It started behind
+ * the work run's centre until #276, and on a full-width strand of its own
+ * across the head in #276, which the owner had removed.)
  *
  * The lanes alternate counted back from the last short section, so that one
  * is always on the start side — the rail's side — and the line reaches the
  * first figure from outside the rail. From the end lane it would meet the
  * circle on its inner side and run down the gutter beside the claim.
  */
+const approachLane = (k: number, last: number) => ((last - k) % 2 === 0 ? "start" : "end");
+
 export const approachLine = {
-  from: {
-    selector: "[data-line-origin='approach-strand']",
-    moves: [{ move: "origin" }] as LineMove[],
-  },
+  /** In from the start edge, turning down into the head's own lane. */
+  from: (last: number) => ({
+    selector: "[data-line-origin='approach-enter']",
+    moves: [{ move: "enter", side: "start", lane: approachLane(0, last), overhang: 96, r: 28 }] as LineMove[],
+  }),
   /** The head is k = 0, the short sections 1…last. */
-  section: (k: number, last: number): LineMove[] => [
-    { move: "line-to", lane: (last - k) % 2 === 0 ? "start" : "end" },
-  ],
+  section: (k: number, last: number): LineMove[] => [{ move: "line-to", lane: approachLane(k, last) }],
   principle: [{ move: "circle-around", pad: 12 }] as LineMove[],
 };
 

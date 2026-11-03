@@ -57,8 +57,7 @@
  * covered, leaves with it.
  *
  * The holder, not the pinned box, owns `--hero`: a view timeline on a stuck
- * element stalls (`docs/motion-contract.md` §1), and the corners' light and
- * the ribbon's drift both read it.
+ * element stalls (`docs/motion-contract.md` §1), and the corners' light reads it.
  *
  * Sticky creates a stacking context, so the hero paints as one layer, and
  * the act after it — positioned, later in the document — paints over it.

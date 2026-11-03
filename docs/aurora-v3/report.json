@@ -1,0 +1,905 @@
+{
+  "failures": [],
+  "runs": [
+    {
+      "kind": "hero",
+      "tag": "light-desk",
+      "at": 0,
+      "strands": 0,
+      "name": "hero-light-desk-0.png"
+    },
+    {
+      "kind": "hero",
+      "tag": "light-desk",
+      "at": 0.35,
+      "strands": 0,
+      "name": "hero-light-desk-1.png"
+    },
+    {
+      "kind": "hero",
+      "tag": "light-desk",
+      "at": 0.7,
+      "strands": 0,
+      "name": "hero-light-desk-2.png"
+    },
+    {
+      "kind": "approach",
+      "tag": "light-desk",
+      "at": 0.98,
+      "seen": {
+        "enter": "left",
+        "maskPosition": "433.333% 0px",
+        "leftOnPage": -96
+      },
+      "name": "approach-light-desk-0.png"
+    },
+    {
+      "kind": "approach",
+      "tag": "light-desk",
+      "at": 0.9,
+      "seen": {
+        "enter": "left",
+        "maskPosition": "362.582% 0px",
+        "leftOnPage": -96
+      },
+      "name": "approach-light-desk-1.png"
+    },
+    {
+      "kind": "approach",
+      "tag": "light-desk",
+      "at": 0.8,
+      "seen": {
+        "enter": "left",
+        "maskPosition": "266.286% 0px",
+        "leftOnPage": -96
+      },
+      "name": "approach-light-desk-2.png"
+    },
+    {
+      "kind": "approach",
+      "tag": "light-desk",
+      "at": 0.7,
+      "seen": {
+        "enter": "left",
+        "maskPosition": "169.99% 0px",
+        "leftOnPage": -96
+      },
+      "name": "approach-light-desk-3.png"
+    },
+    {
+      "kind": "approach",
+      "tag": "light-desk",
+      "at": 0.6,
+      "seen": {
+        "enter": "left",
+        "maskPosition": "73.6934% 0px",
+        "leftOnPage": -96
+      },
+      "name": "approach-light-desk-4.png"
+    },
+    {
+      "kind": "approach",
+      "tag": "light-desk",
+      "at": 0.5,
+      "seen": {
+        "enter": "left",
+        "maskPosition": "0% 0px",
+        "leftOnPage": -96
+      },
+      "name": "approach-light-desk-5.png"
+    },
+    {
+      "kind": "approach",
+      "tag": "light-desk",
+      "at": 0.42,
+      "seen": {
+        "enter": "left",
+        "maskPosition": "0% 0px",
+        "leftOnPage": -96
+      },
+      "name": "approach-light-desk-6.png"
+    },
+    {
+      "kind": "approach",
+      "tag": "light-desk",
+      "at": 0.3,
+      "seen": {
+        "enter": "left",
+        "maskPosition": "0% 0px",
+        "leftOnPage": -96
+      },
+      "name": "approach-light-desk-7.png"
+    },
+    {
+      "kind": "approach",
+      "tag": "light-desk",
+      "at": 0.15,
+      "seen": {
+        "enter": "left",
+        "maskPosition": "0% 0px",
+        "leftOnPage": -96
+      },
+      "name": "approach-light-desk-8.png"
+    },
+    {
+      "kind": "notes",
+      "tag": "light-desk",
+      "at": 0.85,
+      "seen": {
+        "bandMid": 1206,
+        "cardMid": 1206,
+        "bandLeft": 0,
+        "bandWidth": 1440,
+        "frameWidth": 1440,
+        "cardLeft": 928,
+        "windowRight": 0
+      },
+      "name": "notes-light-desk-0.png"
+    },
+    {
+      "kind": "notes",
+      "tag": "light-desk",
+      "at": 0.65,
+      "seen": {
+        "bandMid": 1026,
+        "cardMid": 1026,
+        "bandLeft": 0,
+        "bandWidth": 1440,
+        "frameWidth": 1440,
+        "cardLeft": 928,
+        "windowRight": 0
+      },
+      "name": "notes-light-desk-1.png"
+    },
+    {
+      "kind": "notes",
+      "tag": "light-desk",
+      "at": 0.45,
+      "seen": {
+        "bandMid": 846,
+        "cardMid": 846,
+        "bandLeft": 0,
+        "bandWidth": 1440,
+        "frameWidth": 1440,
+        "cardLeft": 928,
+        "windowRight": 422
+      },
+      "name": "notes-light-desk-2.png"
+    },
+    {
+      "kind": "notes",
+      "tag": "light-desk",
+      "at": 0.25,
+      "seen": {
+        "bandMid": 666,
+        "cardMid": 666,
+        "bandLeft": 0,
+        "bandWidth": 1440,
+        "frameWidth": 1440,
+        "cardLeft": 928,
+        "windowRight": 986
+      },
+      "name": "notes-light-desk-3.png"
+    },
+    {
+      "kind": "notes",
+      "tag": "light-desk",
+      "at": 0.05,
+      "seen": {
+        "bandMid": 486,
+        "cardMid": 486,
+        "bandLeft": 0,
+        "bandWidth": 1440,
+        "frameWidth": 1440,
+        "cardLeft": 928,
+        "windowRight": 1549
+      },
+      "name": "notes-light-desk-4.png"
+    },
+    {
+      "kind": "notes",
+      "tag": "light-desk",
+      "at": -0.3,
+      "seen": {
+        "bandMid": 441,
+        "cardMid": 441,
+        "bandLeft": 0,
+        "bandWidth": 1440,
+        "frameWidth": 1440,
+        "cardLeft": 275,
+        "windowRight": 1872
+      },
+      "name": "notes-light-desk-5.png"
+    },
+    {
+      "kind": "notes",
+      "tag": "light-desk",
+      "at": -0.8,
+      "seen": {
+        "bandMid": 441,
+        "cardMid": 441,
+        "bandLeft": 0,
+        "bandWidth": 1440,
+        "frameWidth": 1440,
+        "cardLeft": -814,
+        "windowRight": 1872
+      },
+      "name": "notes-light-desk-6.png"
+    },
+    {
+      "kind": "hero",
+      "tag": "light-phone",
+      "at": 0,
+      "strands": 0,
+      "name": "hero-light-phone-0.png"
+    },
+    {
+      "kind": "hero",
+      "tag": "light-phone",
+      "at": 0.35,
+      "strands": 0,
+      "name": "hero-light-phone-1.png"
+    },
+    {
+      "kind": "hero",
+      "tag": "light-phone",
+      "at": 0.7,
+      "strands": 0,
+      "name": "hero-light-phone-2.png"
+    },
+    {
+      "kind": "approach",
+      "tag": "light-phone",
+      "at": 0.98,
+      "seen": {
+        "enter": "left",
+        "maskPosition": "433.333% 0px",
+        "leftOnPage": -96
+      },
+      "name": "approach-light-phone-0.png"
+    },
+    {
+      "kind": "approach",
+      "tag": "light-phone",
+      "at": 0.9,
+      "seen": {
+        "enter": "left",
+        "maskPosition": "363.951% 0px",
+        "leftOnPage": -96
+      },
+      "name": "approach-light-phone-1.png"
+    },
+    {
+      "kind": "approach",
+      "tag": "light-phone",
+      "at": 0.8,
+      "seen": {
+        "enter": "left",
+        "maskPosition": "266.974% 0px",
+        "leftOnPage": -96
+      },
+      "name": "approach-light-phone-2.png"
+    },
+    {
+      "kind": "approach",
+      "tag": "light-phone",
+      "at": 0.7,
+      "seen": {
+        "enter": "left",
+        "maskPosition": "171.137% 0px",
+        "leftOnPage": -96
+      },
+      "name": "approach-light-phone-3.png"
+    },
+    {
+      "kind": "approach",
+      "tag": "light-phone",
+      "at": 0.6,
+      "seen": {
+        "enter": "left",
+        "maskPosition": "74.1593% 0px",
+        "leftOnPage": -96
+      },
+      "name": "approach-light-phone-4.png"
+    },
+    {
+      "kind": "approach",
+      "tag": "light-phone",
+      "at": 0.5,
+      "seen": {
+        "enter": "left",
+        "maskPosition": "0% 0px",
+        "leftOnPage": -96
+      },
+      "name": "approach-light-phone-5.png"
+    },
+    {
+      "kind": "approach",
+      "tag": "light-phone",
+      "at": 0.42,
+      "seen": {
+        "enter": "left",
+        "maskPosition": "0% 0px",
+        "leftOnPage": -96
+      },
+      "name": "approach-light-phone-6.png"
+    },
+    {
+      "kind": "approach",
+      "tag": "light-phone",
+      "at": 0.3,
+      "seen": {
+        "enter": "left",
+        "maskPosition": "0% 0px",
+        "leftOnPage": -96
+      },
+      "name": "approach-light-phone-7.png"
+    },
+    {
+      "kind": "approach",
+      "tag": "light-phone",
+      "at": 0.15,
+      "seen": {
+        "enter": "left",
+        "maskPosition": "0% 0px",
+        "leftOnPage": -96
+      },
+      "name": "approach-light-phone-8.png"
+    },
+    {
+      "kind": "notes",
+      "tag": "light-phone",
+      "at": 0.85,
+      "seen": {
+        "bandMid": 1132,
+        "cardMid": 1132,
+        "bandLeft": 0,
+        "bandWidth": 390,
+        "frameWidth": 390,
+        "cardLeft": 358,
+        "windowRight": 0
+      },
+      "name": "notes-light-phone-0.png"
+    },
+    {
+      "kind": "notes",
+      "tag": "light-phone",
+      "at": 0.65,
+      "seen": {
+        "bandMid": 963,
+        "cardMid": 963,
+        "bandLeft": 0,
+        "bandWidth": 390,
+        "frameWidth": 390,
+        "cardLeft": 358,
+        "windowRight": 0
+      },
+      "name": "notes-light-phone-1.png"
+    },
+    {
+      "kind": "notes",
+      "tag": "light-phone",
+      "at": 0.45,
+      "seen": {
+        "bandMid": 794,
+        "cardMid": 794,
+        "bandLeft": 0,
+        "bandWidth": 390,
+        "frameWidth": 390,
+        "cardLeft": 358,
+        "windowRight": 115
+      },
+      "name": "notes-light-phone-2.png"
+    },
+    {
+      "kind": "notes",
+      "tag": "light-phone",
+      "at": 0.25,
+      "seen": {
+        "bandMid": 625,
+        "cardMid": 625,
+        "bandLeft": 0,
+        "bandWidth": 390,
+        "frameWidth": 390,
+        "cardLeft": 358,
+        "windowRight": 267
+      },
+      "name": "notes-light-phone-3.png"
+    },
+    {
+      "kind": "notes",
+      "tag": "light-phone",
+      "at": 0.05,
+      "seen": {
+        "bandMid": 457,
+        "cardMid": 457,
+        "bandLeft": 0,
+        "bandWidth": 390,
+        "frameWidth": 390,
+        "cardLeft": 358,
+        "windowRight": 419
+      },
+      "name": "notes-light-phone-4.png"
+    },
+    {
+      "kind": "notes",
+      "tag": "light-phone",
+      "at": -0.3,
+      "seen": {
+        "bandMid": 415,
+        "cardMid": 415,
+        "bandLeft": 0,
+        "bandWidth": 390,
+        "frameWidth": 390,
+        "cardLeft": -161,
+        "windowRight": 507
+      },
+      "name": "notes-light-phone-5.png"
+    },
+    {
+      "kind": "notes",
+      "tag": "light-phone",
+      "at": -0.8,
+      "seen": {
+        "bandMid": 415,
+        "cardMid": 415,
+        "bandLeft": 0,
+        "bandWidth": 390,
+        "frameWidth": 390,
+        "cardLeft": -1026,
+        "windowRight": 507
+      },
+      "name": "notes-light-phone-6.png"
+    },
+    {
+      "kind": "hero",
+      "tag": "dark-desk",
+      "at": 0,
+      "strands": 0,
+      "name": "hero-dark-desk-0.png"
+    },
+    {
+      "kind": "hero",
+      "tag": "dark-desk",
+      "at": 0.35,
+      "strands": 0,
+      "name": "hero-dark-desk-1.png"
+    },
+    {
+      "kind": "hero",
+      "tag": "dark-desk",
+      "at": 0.7,
+      "strands": 0,
+      "name": "hero-dark-desk-2.png"
+    },
+    {
+      "kind": "approach",
+      "tag": "dark-desk",
+      "at": 0.98,
+      "seen": {
+        "enter": "left",
+        "maskPosition": "433.333% 0px",
+        "leftOnPage": -96
+      },
+      "name": "approach-dark-desk-0.png"
+    },
+    {
+      "kind": "approach",
+      "tag": "dark-desk",
+      "at": 0.9,
+      "seen": {
+        "enter": "left",
+        "maskPosition": "362.582% 0px",
+        "leftOnPage": -96
+      },
+      "name": "approach-dark-desk-1.png"
+    },
+    {
+      "kind": "approach",
+      "tag": "dark-desk",
+      "at": 0.8,
+      "seen": {
+        "enter": "left",
+        "maskPosition": "266.286% 0px",
+        "leftOnPage": -96
+      },
+      "name": "approach-dark-desk-2.png"
+    },
+    {
+      "kind": "approach",
+      "tag": "dark-desk",
+      "at": 0.7,
+      "seen": {
+        "enter": "left",
+        "maskPosition": "169.99% 0px",
+        "leftOnPage": -96
+      },
+      "name": "approach-dark-desk-3.png"
+    },
+    {
+      "kind": "approach",
+      "tag": "dark-desk",
+      "at": 0.6,
+      "seen": {
+        "enter": "left",
+        "maskPosition": "73.6934% 0px",
+        "leftOnPage": -96
+      },
+      "name": "approach-dark-desk-4.png"
+    },
+    {
+      "kind": "approach",
+      "tag": "dark-desk",
+      "at": 0.5,
+      "seen": {
+        "enter": "left",
+        "maskPosition": "0% 0px",
+        "leftOnPage": -96
+      },
+      "name": "approach-dark-desk-5.png"
+    },
+    {
+      "kind": "approach",
+      "tag": "dark-desk",
+      "at": 0.42,
+      "seen": {
+        "enter": "left",
+        "maskPosition": "0% 0px",
+        "leftOnPage": -96
+      },
+      "name": "approach-dark-desk-6.png"
+    },
+    {
+      "kind": "approach",
+      "tag": "dark-desk",
+      "at": 0.3,
+      "seen": {
+        "enter": "left",
+        "maskPosition": "0% 0px",
+        "leftOnPage": -96
+      },
+      "name": "approach-dark-desk-7.png"
+    },
+    {
+      "kind": "approach",
+      "tag": "dark-desk",
+      "at": 0.15,
+      "seen": {
+        "enter": "left",
+        "maskPosition": "0% 0px",
+        "leftOnPage": -96
+      },
+      "name": "approach-dark-desk-8.png"
+    },
+    {
+      "kind": "notes",
+      "tag": "dark-desk",
+      "at": 0.85,
+      "seen": {
+        "bandMid": 1206,
+        "cardMid": 1206,
+        "bandLeft": 0,
+        "bandWidth": 1440,
+        "frameWidth": 1440,
+        "cardLeft": 928,
+        "windowRight": 0
+      },
+      "name": "notes-dark-desk-0.png"
+    },
+    {
+      "kind": "notes",
+      "tag": "dark-desk",
+      "at": 0.65,
+      "seen": {
+        "bandMid": 1026,
+        "cardMid": 1026,
+        "bandLeft": 0,
+        "bandWidth": 1440,
+        "frameWidth": 1440,
+        "cardLeft": 928,
+        "windowRight": 0
+      },
+      "name": "notes-dark-desk-1.png"
+    },
+    {
+      "kind": "notes",
+      "tag": "dark-desk",
+      "at": 0.45,
+      "seen": {
+        "bandMid": 846,
+        "cardMid": 846,
+        "bandLeft": 0,
+        "bandWidth": 1440,
+        "frameWidth": 1440,
+        "cardLeft": 928,
+        "windowRight": 422
+      },
+      "name": "notes-dark-desk-2.png"
+    },
+    {
+      "kind": "notes",
+      "tag": "dark-desk",
+      "at": 0.25,
+      "seen": {
+        "bandMid": 666,
+        "cardMid": 666,
+        "bandLeft": 0,
+        "bandWidth": 1440,
+        "frameWidth": 1440,
+        "cardLeft": 928,
+        "windowRight": 986
+      },
+      "name": "notes-dark-desk-3.png"
+    },
+    {
+      "kind": "notes",
+      "tag": "dark-desk",
+      "at": 0.05,
+      "seen": {
+        "bandMid": 486,
+        "cardMid": 486,
+        "bandLeft": 0,
+        "bandWidth": 1440,
+        "frameWidth": 1440,
+        "cardLeft": 928,
+        "windowRight": 1549
+      },
+      "name": "notes-dark-desk-4.png"
+    },
+    {
+      "kind": "notes",
+      "tag": "dark-desk",
+      "at": -0.3,
+      "seen": {
+        "bandMid": 441,
+        "cardMid": 441,
+        "bandLeft": 0,
+        "bandWidth": 1440,
+        "frameWidth": 1440,
+        "cardLeft": 275,
+        "windowRight": 1872
+      },
+      "name": "notes-dark-desk-5.png"
+    },
+    {
+      "kind": "notes",
+      "tag": "dark-desk",
+      "at": -0.8,
+      "seen": {
+        "bandMid": 441,
+        "cardMid": 441,
+        "bandLeft": 0,
+        "bandWidth": 1440,
+        "frameWidth": 1440,
+        "cardLeft": -814,
+        "windowRight": 1872
+      },
+      "name": "notes-dark-desk-6.png"
+    },
+    {
+      "kind": "hero",
+      "tag": "dark-phone",
+      "at": 0,
+      "strands": 0,
+      "name": "hero-dark-phone-0.png"
+    },
+    {
+      "kind": "hero",
+      "tag": "dark-phone",
+      "at": 0.35,
+      "strands": 0,
+      "name": "hero-dark-phone-1.png"
+    },
+    {
+      "kind": "hero",
+      "tag": "dark-phone",
+      "at": 0.7,
+      "strands": 0,
+      "name": "hero-dark-phone-2.png"
+    },
+    {
+      "kind": "approach",
+      "tag": "dark-phone",
+      "at": 0.98,
+      "seen": {
+        "enter": "left",
+        "maskPosition": "433.333% 0px",
+        "leftOnPage": -96
+      },
+      "name": "approach-dark-phone-0.png"
+    },
+    {
+      "kind": "approach",
+      "tag": "dark-phone",
+      "at": 0.9,
+      "seen": {
+        "enter": "left",
+        "maskPosition": "363.951% 0px",
+        "leftOnPage": -96
+      },
+      "name": "approach-dark-phone-1.png"
+    },
+    {
+      "kind": "approach",
+      "tag": "dark-phone",
+      "at": 0.8,
+      "seen": {
+        "enter": "left",
+        "maskPosition": "266.974% 0px",
+        "leftOnPage": -96
+      },
+      "name": "approach-dark-phone-2.png"
+    },
+    {
+      "kind": "approach",
+      "tag": "dark-phone",
+      "at": 0.7,
+      "seen": {
+        "enter": "left",
+        "maskPosition": "171.137% 0px",
+        "leftOnPage": -96
+      },
+      "name": "approach-dark-phone-3.png"
+    },
+    {
+      "kind": "approach",
+      "tag": "dark-phone",
+      "at": 0.6,
+      "seen": {
+        "enter": "left",
+        "maskPosition": "74.1593% 0px",
+        "leftOnPage": -96
+      },
+      "name": "approach-dark-phone-4.png"
+    },
+    {
+      "kind": "approach",
+      "tag": "dark-phone",
+      "at": 0.5,
+      "seen": {
+        "enter": "left",
+        "maskPosition": "0% 0px",
+        "leftOnPage": -96
+      },
+      "name": "approach-dark-phone-5.png"
+    },
+    {
+      "kind": "approach",
+      "tag": "dark-phone",
+      "at": 0.42,
+      "seen": {
+        "enter": "left",
+        "maskPosition": "0% 0px",
+        "leftOnPage": -96
+      },
+      "name": "approach-dark-phone-6.png"
+    },
+    {
+      "kind": "approach",
+      "tag": "dark-phone",
+      "at": 0.3,
+      "seen": {
+        "enter": "left",
+        "maskPosition": "0% 0px",
+        "leftOnPage": -96
+      },
+      "name": "approach-dark-phone-7.png"
+    },
+    {
+      "kind": "approach",
+      "tag": "dark-phone",
+      "at": 0.15,
+      "seen": {
+        "enter": "left",
+        "maskPosition": "0% 0px",
+        "leftOnPage": -96
+      },
+      "name": "approach-dark-phone-8.png"
+    },
+    {
+      "kind": "notes",
+      "tag": "dark-phone",
+      "at": 0.85,
+      "seen": {
+        "bandMid": 1132,
+        "cardMid": 1132,
+        "bandLeft": 0,
+        "bandWidth": 390,
+        "frameWidth": 390,
+        "cardLeft": 358,
+        "windowRight": 0
+      },
+      "name": "notes-dark-phone-0.png"
+    },
+    {
+      "kind": "notes",
+      "tag": "dark-phone",
+      "at": 0.65,
+      "seen": {
+        "bandMid": 963,
+        "cardMid": 963,
+        "bandLeft": 0,
+        "bandWidth": 390,
+        "frameWidth": 390,
+        "cardLeft": 358,
+        "windowRight": 0
+      },
+      "name": "notes-dark-phone-1.png"
+    },
+    {
+      "kind": "notes",
+      "tag": "dark-phone",
+      "at": 0.45,
+      "seen": {
+        "bandMid": 794,
+        "cardMid": 794,
+        "bandLeft": 0,
+        "bandWidth": 390,
+        "frameWidth": 390,
+        "cardLeft": 358,
+        "windowRight": 115
+      },
+      "name": "notes-dark-phone-2.png"
+    },
+    {
+      "kind": "notes",
+      "tag": "dark-phone",
+      "at": 0.25,
+      "seen": {
+        "bandMid": 625,
+        "cardMid": 625,
+        "bandLeft": 0,
+        "bandWidth": 390,
+        "frameWidth": 390,
+        "cardLeft": 358,
+        "windowRight": 267
+      },
+      "name": "notes-dark-phone-3.png"
+    },
+    {
+      "kind": "notes",
+      "tag": "dark-phone",
+      "at": 0.05,
+      "seen": {
+        "bandMid": 457,
+        "cardMid": 457,
+        "bandLeft": 0,
+        "bandWidth": 390,
+        "frameWidth": 390,
+        "cardLeft": 358,
+        "windowRight": 419
+      },
+      "name": "notes-dark-phone-4.png"
+    },
+    {
+      "kind": "notes",
+      "tag": "dark-phone",
+      "at": -0.3,
+      "seen": {
+        "bandMid": 415,
+        "cardMid": 415,
+        "bandLeft": 0,
+        "bandWidth": 390,
+        "frameWidth": 390,
+        "cardLeft": -161,
+        "windowRight": 507
+      },
+      "name": "notes-dark-phone-5.png"
+    },
+    {
+      "kind": "notes",
+      "tag": "dark-phone",
+      "at": -0.8,
+      "seen": {
+        "bandMid": 415,
+        "cardMid": 415,
+        "bandLeft": 0,
+        "bandWidth": 390,
+        "frameWidth": 390,
+        "cardLeft": -1026,
+        "windowRight": 507
+      },
+      "name": "notes-dark-phone-6.png"
+    }
+  ]
+}

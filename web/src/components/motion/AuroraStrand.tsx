@@ -6,19 +6,20 @@ import styles from "@/components/motion/AuroraStrand.module.css";
 /*
  * The aurora strand, and the one way it appears (#251 follow-up).
  *
- * The owner, on the live site: the aurora on "How I work" should "start
- * from the left side of the page, appearing like in the Projects section",
- * and the notes should have "the aurora like in Projects too, almost the
- * same animation, but from the left". So there is one strand and one
- * appearing, and the three sections differ only in where it comes from and
- * which clock it reads:
+ * The owner, on the live site: the notes should have "the aurora like in
+ * Projects too, almost the same animation, but from the left". So there is
+ * one strand and one appearing, and the sections differ only in where it
+ * comes from and which clock it reads:
  *
  *   the work run       from the reading end (`right`, mirrored in Hebrew),
  *                      on the run's stage timeline (`projects/RunAurora`)
- *   "How I work"       from the `left`, on its own view timeline, across
- *                      the head of the section; the living line leaves it
  *   the notes shelf    from the `left`, on the shelf's stage timeline,
- *                      behind the cards
+ *                      through the middle of the cards (`LatestNotes`)
+ *
+ * "How I work" had a third, a full-width band across its head (#276); the
+ * owner had it removed (2026-11-03). Its living line now comes in from the
+ * left edge itself, uncovered by the same soft window drawn as a mask
+ * (`motion/LivingLine.module.css`, the lead).
  *
  * THE APPEARING. Not a fade and not a draw: the ribbon is uncovered in
  * place. A soft-edged window 130% of the box wide slides in from `from`
@@ -34,10 +35,10 @@ import styles from "@/components/motion/AuroraStrand.module.css";
  * `html[dir=rtl]` the strand then comes from the other side.
  *
  * `timeline` names a view timeline an ANCESTOR owns (`--run`,
- * `--notes-shelf`); without one the strand's own static box owns
- * `--aurora-strand` and the window reads that. `range` is the window's
- * `animation-range` on whichever it is. Both are passed as custom
- * properties, so the stylesheet has one rule for every caller.
+ * `--notes-shelf`) and `range` is the window's `animation-range` on it.
+ * Both are passed as custom properties, so the stylesheet has one rule for
+ * every caller. (The strand owned a timeline of its own for the band on
+ * "How I work"; it went with the band.)
  *
  * `children` replaces the default drawing — a gentle wave across the box,
  * haze and strands — with the caller's (the run draws its own curve, and a
@@ -52,10 +53,10 @@ export type AuroraFrom = "left" | "right";
 
 type Props = {
   from: AuroraFrom;
-  /** A view timeline an ancestor declares; default: the strand's own. */
-  timeline?: string;
+  /** A view timeline an ancestor declares. */
+  timeline: string;
   /** The appearing's `animation-range` on that timeline. */
-  range?: string;
+  range: string;
   /** Under `html[dir=rtl]`, come from the other side (a reading-end strand). */
   mirrorInRtl?: boolean;
   className?: string;
@@ -105,10 +106,7 @@ export default function AuroraStrand({
 }: Props) {
   const own = `aurora-${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
   const gid = gradientId ?? own;
-  const vars = {
-    ...(timeline ? { "--strand-timeline": timeline } : {}),
-    ...(range ? { "--strand-range": range } : {}),
-  } as CSSProperties;
+  const vars = { "--strand-timeline": timeline, "--strand-range": range } as CSSProperties;
   return (
     <div
       {...dataAttrs}

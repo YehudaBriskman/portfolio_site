@@ -85,8 +85,8 @@ export default function Work() {
 
   /* `z-[2]`: over anything the next section lifts (#191). The living line
      used to start at the run's centre and reach up into this act; since
-     2026-11-03 it starts on its own strand across "How I work", which
-     comes in from the left as the run's comes in from the right. */
+     2026-11-03 it comes in from the left edge of the page above "How I work",
+     as the run's comes in from the right. */
   return (
     <section id="work" data-chrome="dark" className="on-panel relative isolate z-[2]">
       <div className="wrap section-y">

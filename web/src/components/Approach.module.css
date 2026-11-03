@@ -42,8 +42,8 @@
      column keeps its width and the lanes are added outside it. */
   --line-lane: clamp(1.25rem, 3vw, 2.75rem);
 
-  /* The line starts on the strand across the head (`.band`) and its
-     drawing reaches up to it, so the wall is lifted over the band. */
+  /* The line comes in above the head and its drawing reaches up and out
+     to the page's edge; the wall is lifted so it stays over the ground. */
   z-index: 1;
 
   font-size: var(--read);
@@ -296,46 +296,22 @@
   }
 }
 
-/* ------------------------------------------------------- the strand -- */
+/* ------------------------------------------------------ the way in -- */
 
 /*
- * The aurora strand across the head (owner, 2026-11-03): full-bleed, so it
- * comes in from the very left edge of the page, in the section's top
- * padding, above the head. `motion/AuroraStrand` places itself in this box
- * and owns the appearing; this box only says where and how tall.
- *
- * `.origin` is where the living line starts: on the strand's centre line at
- * the wall's start lane, inside a box as wide as the wall below
- * (`.bandWall`), so the line comes straight down off the strand into the
- * head's lane.
+ * Where the living line comes in (owner, 2026-11-03): a full-bleed marker
+ * in the section's top padding, on its middle line, so its sides are the
+ * page's edges. The line's `enter` move starts off the start edge on it and
+ * runs in above the head (`approachLine.from` in `data/site.ts`).
  */
 .section {
   position: relative;
 }
 
-.band {
+.enter {
   position: absolute;
   inset-inline: 0;
-  top: calc(var(--band-top, 0.5) * clamp(4rem, 8vw, 8rem) - var(--band-h) / 2);
-  height: var(--band-h);
-  --band-h: clamp(4.5rem, 9vw, 7rem);
-  pointer-events: none;
-}
-
-.band > :global(.wrap) {
-  position: relative;
-  height: 100%;
-}
-
-.bandWall {
-  position: relative;
-  height: 100%;
-}
-
-.origin {
-  position: absolute;
-  top: 50%;
-  inset-inline-start: calc(var(--line-lane) / 2);
-  width: 0;
+  top: calc(0.5 * clamp(4rem, 8vw, 8rem));
   height: 0;
+  pointer-events: none;
 }

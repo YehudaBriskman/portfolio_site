@@ -29,12 +29,17 @@ import { AuroraGradient, Strands } from "@/components/motion/Strands";
  * crossed.
  *
  * `from` names one more station OUTSIDE the container — a selector and its
- * moves — as the line's start: the home page's line starts at the centre of the work run's
- * dark stage and flows out of the projects into "How I work". A move there
- * may say `until` with a selector: the line runs straight down to the foot
- * of that ancestor before it turns (the work section, so it never turns
- * across the link at the act's foot). The drawing grows upward to reach it
- * and the clock grows with it.
+ * moves — as the line's start: on the home page, a full-bleed marker above
+ * "How I work", whose `enter` move brings the line in from the page's left
+ * edge and round the head (owner, 2026-11-03). A move there may say `until`
+ * with a selector: the line runs straight down to the foot of that ancestor
+ * before it turns. The drawing grows upward and outward to reach it, and
+ * the clock grows with it.
+ *
+ * A line that comes in from an edge carries `data-enter` on its drawing,
+ * and its lead — the run in from the edge — is not drawn by the tip but
+ * uncovered by a soft window from that edge, the work run's appearing
+ * (`motion/AuroraStrand`), before the tip takes over (the stylesheet).
  *
  * MEASURED, NOT DECLARED
  * ----------------------
@@ -126,15 +131,22 @@ export default function LivingLine({ className = "", children, from, ...rest }: 
     const measure = () => {
       const m = read(el, from);
       const c = compose(m.stations, { lanes: m.lanes, rtl: m.rtl, half: m.half });
-      /* The drawing reaches up to the start when the start is above the box. */
+      /* The drawing reaches up to the start when the start is above the box,
+         and out to the page's edge when the line comes in from it. */
       const top = Math.min(0, Math.floor(c.top - m.half - 12));
       const height = Math.max(1, m.height - top);
-      const key = `${m.width}x${m.height}:${top}:${m.half}:${c.d}`;
+      const left = Math.min(0, Math.floor(c.left - m.half - 12));
+      const width = Math.max(1, Math.max(Math.round(m.width), Math.ceil(c.right + m.half + 12)) - left);
+      const key = `${m.width}x${m.height}:${top}:${left}:${width}:${m.half}:${c.d}`;
       if (key === last) return;
       last = key;
-      s.setAttribute("viewBox", `0 ${top} ${Math.max(1, Math.round(m.width))} ${Math.round(height)}`);
+      s.setAttribute("viewBox", `${left} ${top} ${width} ${Math.round(height)}`);
       s.style.setProperty("top", `${top}px`);
       s.style.setProperty("height", `${height}px`);
+      s.style.setProperty("left", `${left}px`);
+      s.style.setProperty("width", `${width}px`);
+      if (c.enter) s.setAttribute("data-enter", c.enter);
+      else s.removeAttribute("data-enter");
       s.style.setProperty("--line-half", `${m.half}px`);
       const ds = strandPaths(sample(c.segs, 8), { count: strands.length, half: m.half, wave: 280, taper: 160 });
       strands.forEach((p, i) => p.setAttribute("d", ds[i] ?? ""));

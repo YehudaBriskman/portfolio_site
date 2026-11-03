@@ -176,10 +176,10 @@ const PAGES = {
     scope: "#approach",
     also: "#work",
     async walk(page, at) {
-      await centre(page, "[data-line-origin='approach-strand']", 0, 4);
+      await centre(page, "[data-line-origin='approach-enter']", 0, 4);
       await shoot(page, this.scope, at(0, "start"));
-      await centre(page, "[data-line-origin='approach-strand']", 0, 160);
-      await shoot(page, this.scope, at(1, "off-the-strand"));
+      await centre(page, "[data-line-origin='approach-enter']", 0, 160);
+      await shoot(page, this.scope, at(1, "in-from-the-edge"));
       await centre(page, "#approach header", 0.0, -40);
       await shoot(page, this.scope, at(2, "into-the-head"));
       await centre(page, `#approach ${END}`, 0.0, -50);

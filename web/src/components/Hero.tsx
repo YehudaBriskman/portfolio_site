@@ -3,7 +3,6 @@ import ObjectLabel from "@/components/gallery/ObjectLabel";
 import type { LabelField } from "@/components/gallery/objectLabel";
 import { useContent } from "@/content/store";
 import HeroCorners from "@/components/HeroCorners";
-import HeroRibbon from "@/components/HeroRibbon";
 import styles from "@/components/Hero.module.css";
 import arrival from "@/components/HeroArrival.module.css";
 import {
@@ -315,10 +314,6 @@ export default function Hero() {
                 data-portrait-mask=""
                 aria-hidden="true"
               />
-              {/* The aurora ribbon, over the photograph only: it crosses the
-                  chest and nothing of it is ever behind the figure
-                  (`HeroRibbon.tsx`). */}
-              <HeroRibbon />
             </div>
 
             {/*

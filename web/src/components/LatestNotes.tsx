@@ -280,8 +280,9 @@ export default function LatestNotes() {
 
               <div className={styles.frame}>
                 {/* The aurora behind the cards, as the run has (owner,
-                    2026-11-03): the shared strand, in from the left, on the
-                    shelf's own clock, whole just after the frame pins. */}
+                    2026-11-03): the line the row travels on, through every
+                    card's middle, in from the left on the shelf's own clock
+                    and whole just after the frame pins. */}
                 <div className={styles.aurora} data-notes-aurora="">
                   <AuroraStrand from="left" timeline="--notes-shelf" range="entry 40% contain 6%" />
                 </div>

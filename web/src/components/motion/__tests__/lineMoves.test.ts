@@ -170,6 +170,36 @@ describe("compose", () => {
     for (const p of sample(c.segs, 2)) if (p.y < -300) expect(p.x).toBeCloseTo(500, 6);
   });
 
+  it("comes in from the page's start edge, runs in above the head and turns down into its lane ('How I work')", () => {
+    /* A full-bleed marker: its sides are the page's edges, wider than the container. */
+    const stations: Station[] = [
+      { box: box(-60, -60, -240, 1240), moves: [{ move: "enter", side: "start", lane: "end", overhang: 96, r: 28 }] },
+      { box: box(0, 120, 300, 700), moves: lane("end") },
+      { box: box(200, 400), moves: lane("start") },
+    ];
+    for (const rtl of [false, true]) {
+      const c = compose(stations, { lanes, half: HALF, rtl });
+      assertContinuous(c);
+      assertSmooth(c);
+      expect(c.enter).toBe(rtl ? "right" : "left");
+      /* Off the edge, on the marker's line, heading across the page. */
+      const first = c.segs[0];
+      expect(first).toMatchObject({ kind: "L", y0: -60, y1: -60, x0: rtl ? 1240 + 96 : -240 - 96 });
+      /* The extent reaches off the edge it comes from. */
+      expect(rtl ? c.right : -c.left).toBeGreaterThan(rtl ? 1300 : 300);
+      /* Down into the head's lane (the end lane, mirrored), beside the head, then back under it. */
+      const endX = rtl ? lanes.left : lanes.right;
+      expect(sample(c.segs, 2).some((p) => Math.abs(p.x - endX) < 1e-6 && p.y > 0 && p.y < 120)).toBe(true);
+      expect(crossings(c, [stations[1].box, stations[2].box], HALF)).toEqual([]);
+      /* The run in is the lead: drawn before the clock starts, so stop 0 is not "undrawn". */
+      const stops = scrollStops(c, c.top - 20, 400);
+      const lead = Math.abs(first.kind === "L" ? first.x1 - first.x0 : 0);
+      expect(stops[0]).toBeLessThan(1);
+      expect((1 - stops[0]) * c.length).toBeGreaterThan(lead);
+      expect(stops.at(-1)).toBe(0);
+    }
+  });
+
   it("mirrors in a right-to-left page", () => {
     const ltr = compose(STORY, { lanes, half: HALF });
     const rtl = compose(STORY, { lanes, half: HALF, rtl: true });
