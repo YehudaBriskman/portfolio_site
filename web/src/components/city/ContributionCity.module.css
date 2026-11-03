@@ -22,13 +22,16 @@
  * for less, and cost less, than the peak does", and every term of that is a
  * number:
  *
- *   RUNWAY.   The year holds for `--city-runway`, 120svh. The pile holds four
- *             cards at 52svh each plus a 30svh tail — 238svh — and its section
- *             is 3919px against the year's 2360px at 1440x900 (3667px against
- *             2059px at 390x844), measured on the same page with the same
- *             data. The year buys half the held travel the pile buys and is
- *             still the shorter section by a third. §3's "the most scroll room" stays
- *             the pile's.
+ *   RUNWAY.   The year holds for `--city-runway`: 120svh until #246, and
+ *             since then about 150svh (1371px at 1440x900, 1258px at
+ *             390x844 — solved for a 1.3x clock, see `--city-pace`). The
+ *             pile held four cards at 52svh each plus a 30svh tail — 238svh
+ *             — and the run that replaced it holds 220svh; its section is
+ *             3397px against the year's 2651px at 1440x900 (2360px
+ *             before #246; 2303px against 2059px at 390x844). The year
+ *             still buys less held travel than the peak and is still the
+ *             shorter section, so §3's "the most scroll room" stays the
+ *             run's.
  *   ASSETS.   None: 365 one-colour boxes and no image, as before.
  *   DIRECTION. It runs forwards and backwards with the reader's scroll, which
  *             is what a scrub is and what a peak is not — a peak happens to
@@ -231,7 +234,35 @@
    * pile's 238svh.
    */
   --city-frame: min(78svh, 760px);
-  --city-runway: 120svh;
+  /*
+   * The pace (#246): the act's whole clock, in scroll, as a multiple of the
+   * one #111 shipped. The owner found that one about 30% quick, so the same
+   * choreography now plays over 1.3x the scroll — every stage, in the same
+   * proportions, because the keyframes are shares of the clock and the clock
+   * is what grows. Nothing else in the file knows the number.
+   *
+   * The clock is the stage's `contain` range, and its length is NOT the
+   * runway: it is `frame + runway - 100svh + pad`, where `pad` is the
+   * document's `scroll-padding-top` (Nav.module.css), which an `auto`
+   * `view-timeline-inset` takes as the top of the visibility range. #111's
+   * runway was 120svh, so its clock was `frame + 20svh + pad`; the runway
+   * below is solved for `pace` times that, on every window, so the ratio is
+   * exact rather than "about" whatever the frame's `min()` resolves to.
+   * Measured at 1440x900: 970px of clock before, 1261px after; 390x844, 816px
+   * and 1061px. (`scripts/shoot-contrib-speed.mjs`, numbers in the PR.)
+   *
+   * The inset itself is left as it was. It makes the act start 11px after the
+   * frame pins on a laptop rather than 99px after, which is the "beat" the
+   * range note on `.scene` describes, only shorter; zeroing it the way the
+   * run does would add a dead stretch to the front of the act, and #246 is a
+   * request for less hurry, not for a later start.
+   */
+  --city-pace: 1.3;
+  --city-pad: calc(var(--bar-h, 56px) + 2rem);
+  --city-runway: calc(
+    100svh - var(--city-frame) - var(--city-pad) + var(--city-pace) *
+      (var(--city-frame) + 20svh + var(--city-pad))
+  );
   /*
    * The frame's height when nothing is held: the three off-switches, which
    * land on the risen city at the span with no runway to travel. Cut to that
@@ -821,11 +852,14 @@
  *   48–100% the camera: in close over the oldest weeks, then along the year
  *           to this one (`city-dolly`, below).
  *
- * At 120svh of runway the three stages together take 58svh, which is about
- * what the whole act took before #111 (38% of a `cover` range of 100svh plus
- * the frame) — so the arrival is not slower, it is the same arrival with a
- * journey after it. That was deliberate: a flat-to-risen that took twice as
- * long would read as a loading bar.
+ * At #111's 120svh of runway the three stages together took 58svh, which
+ * was about what the whole act took before #111 (38% of a `cover` range of
+ * 100svh plus the frame) — the same arrival with a journey after it, because
+ * a flat-to-risen that took twice as long would read as a loading bar. #246
+ * then found the whole of it about 30% quick, so every stage now takes 1.3x
+ * its scroll (`--city-pace`): at 1440x900 the flat hold 97 -> 126px, the turn
+ * 194 -> 252px, the rise 175 -> 227px, the dolly 504 -> 655px. Still a third
+ * slower and not twice, so still an arrival rather than a loading bar.
  */
 @keyframes city-raise {
   0%,
@@ -853,8 +887,8 @@
  * `city-raise` above.
  *
  * The in-close move (48–60%) is short and the travel (60–100%) is long,
- * because the travel is the part with something to read in it: 40% of 120svh
- * is 48svh to cross 53 weeks, about a week per centimetre of thumb.
+ * because the travel is the part with something to read in it: 40% of the
+ * clock, 504px at 1440x900 since #246 (388px before), to cross 53 weeks.
  */
 @keyframes city-dolly {
   0%,
@@ -1108,7 +1142,7 @@
  * outright and writes the arrived transform itself:
  *
  *   `.stage` gives up the runway. Nothing moves, so there is nothing for the
- *   reader to spend scroll on; holding a still picture for 120svh would be a
+ *   reader to spend scroll on; holding a still picture for 150svh would be a
  *   blank stretch of page with a photograph pinned in it.
  *   `.frame` stops being held and takes the rest height, which is cut to the
  *   risen city at the span rather than to the camera's close-up.
@@ -1124,7 +1158,7 @@
  * camera snaps to the risen city, never to the flat grid or to a blank. The
  * page does get shorter by the runway under the reader at that moment, which
  * is the same trade the pile makes when Pause unstacks its cards; a still
- * picture held for 120svh is the worse of the two.
+ * picture held for 150svh is the worse of the two.
  */
 @supports not (animation-timeline: view()) {
   .stage {
