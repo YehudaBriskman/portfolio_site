@@ -1,7 +1,32 @@
 # portfolio-mcp
 
+> **Most people want the remote server instead:** nothing to download, sign in
+> with GitHub in the browser. See **https://yehudabriskman.com/developers/mcp**,
+> or just run
+>
+> ```sh
+> claude mcp add --transport http yehuda https://yehudabriskman.com/mcp
+> ```
+>
+> The remote server (#263) is the backend itself (`backend/src/mcp/`), live
+> once the owner sets `MCP_REMOTE=on`. This package is the stdio transport,
+> kept for local work against the Compose stack and for the token path below.
+
 An MCP server (stdio) over the site's HTTP API (#252), so Claude Code — or any
 MCP client — can read the site and, with a token, edit it.
+
+## One set of tools, two transports
+
+The tool definitions live in `src/tools.ts` and both transports use them. The
+backend's Docker build context is `backend/` alone, so it carries a generated
+copy in `backend/src/mcp/shared/`. After editing `src/api.ts`, `src/diff.ts` or
+`src/tools.ts`, run
+
+```sh
+node mcp/scripts/sync-shared.mjs
+```
+
+and commit the copy; a test on each side fails while the two differ.
 
 It holds no content and no database access of its own: every tool is one or
 two calls to `/api/...`, and every write goes through the same validation,
