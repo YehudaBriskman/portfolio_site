@@ -164,6 +164,13 @@ describe("Content-Security-Policy (#124)", () => {
     expect(csp.get("default-src")).toEqual(["'self'"]);
   });
 
+  it("lets library videos and captions play: media-src is this origin (#253)", () => {
+    // <MediaVideo> asks for /api/images/m/... on this origin, never the
+    // absolute public URL, so 'self' is all it needs. Unset falls back to
+    // default-src; an explicit media-src must still include 'self'.
+    expect(csp.get("media-src") ?? csp.get("default-src")).toContain("'self'");
+  });
+
   it("closes the directives default-src does not cover", () => {
     expect(csp.get("object-src")).toEqual(["'none'"]);
     expect(csp.get("base-uri")).toEqual(["'none'"]);
@@ -359,6 +366,7 @@ const EXEMPT: Record<string, string> = {
   "/admin/posts/:slug": "admin",
   "/admin/areas": "admin",
   "/admin/areas/:slug": "admin",
+  "/admin/media": "admin",
   "/admin/collections/:slug": "admin, and legacy: the app redirects it to /admin/areas/<slug>",
   "/admin/connections": "admin",
   "/admin/projects": "admin: the content editors (#163)",

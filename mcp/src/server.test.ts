@@ -1,9 +1,12 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
+import { mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import type { FetchLike } from "./api.js";
 import { loadConfig } from "./config.js";
 import { lineDiff } from "./diff.js";
-import { ADMIN_TOOLS, PUBLIC_TOOLS, createServer } from "./server.js";
+import { ADMIN_TOOLS, PUBLIC_TOOLS, STDIO_TOOLS, createServer } from "./server.js";
 
 /*
  * The server against a mocked HTTP API: which tools exist with and without a
@@ -62,7 +65,7 @@ function fakeApi(routes: Record<string, [number, unknown]>) {
       method,
       path: u.pathname + u.search,
       auth: headers.Authorization ?? null,
-      body: init?.body ? JSON.parse(String(init.body)) : undefined,
+      body: init?.body instanceof Uint8Array || init?.body instanceof FormData ? init.body : init?.body ? JSON.parse(String(init.body)) : undefined,
     });
     const hit = routes[`${method} ${u.pathname}`] ?? [404, { ok: false, error: "Not Found" }];
     return new Response(JSON.stringify(hit[1]), { status: hit[0], headers: { "Content-Type": "application/json" } });
@@ -129,7 +132,7 @@ describe("tool registration", () => {
   it("adds the admin tools with a token, and every write defaults to a dry run", async () => {
     const { client } = await connect(TOKEN);
     const { tools } = await client.listTools();
-    expect(tools.map((t) => t.name).sort()).toEqual([...PUBLIC_TOOLS, ...ADMIN_TOOLS].sort());
+    expect(tools.map((t) => t.name).sort()).toEqual([...PUBLIC_TOOLS, ...ADMIN_TOOLS, ...STDIO_TOOLS].sort());
     for (const name of ["save_post_draft", "publish_post", "unpublish_post", "delete_post", "save_area", "delete_area"]) {
       const schema = tools.find((t) => t.name === name)!.inputSchema as { properties: Record<string, { default?: unknown }> };
       expect(schema.properties.dryRun.default, name).toBe(true);
@@ -243,5 +246,108 @@ describe("lineDiff", () => {
     const a = ["a", "b", "c", "d", "e", "f"].join("\n");
     const b = ["a", "b", "c", "d", "e", "F"].join("\n");
     expect(lineDiff(a, b)).toEqual(["  ...", "  e", "- f", "+ F"]);
+  });
+});
+
+describe("media library tools", () => {
+  const ITEM = {
+    id: "windom-abc123",
+    name: "windom.jpg",
+    alt: "A clock over the aurora",
+    caption: "",
+    credit: "",
+    width: 1600,
+    height: 900,
+    url: "https://yehudabriskman.com/api/images/media/windom-abc123",
+    usedBy: [{ id: "collection:windom", type: "collection", slug: "windom", field: "coverImage" }],
+  };
+  const dir = mkdtempSync(join(tmpdir(), "mcp-media-"));
+  const file = join(dir, "photo.png");
+  writeFileSync(file, Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3]));
+
+  it("list_media is a read, and says what uses each picture", async () => {
+    const { call, api } = await connect(TOKEN, { "GET /api/admin/media": [200, { ok: true, items: [ITEM] }] });
+    const r = await call("list_media", { q: "windom" });
+    expect(r.json).toEqual([
+      expect.objectContaining({ id: "windom-abc123", url: ITEM.url, size: "1600x900", usedBy: ["collection:windom (coverImage)"] }),
+    ]);
+    expect(api.calls[0].path).toBe("/api/admin/media?q=windom");
+    expect(api.writes()).toHaveLength(0);
+  });
+
+  it("upload_media is a dry run by default, and sends nothing", async () => {
+    const { call, api } = await connect(TOKEN, { "GET /api/admin/media": [200, { ok: true, items: [] }] });
+    const r = await call("upload_media", { path: file, alt: "A test" });
+    expect(r.json).toMatchObject({ dryRun: true, file: "photo.png", type: "image/png", bytes: 11 });
+    expect(api.writes()).toHaveLength(0);
+  });
+
+  it("upload_media with dryRun false sends the bytes with the token and the alt text", async () => {
+    const { call, api } = await connect(TOKEN, {
+      "GET /api/admin/media": [200, { ok: true, items: [] }],
+      "POST /api/admin/media": [201, { ok: true, item: { ...ITEM, id: "photo-1a2b3c", name: "photo.png" } }],
+    });
+    const r = await call("upload_media", { path: file, alt: "A test", dryRun: false });
+    expect(r.isError).toBe(false);
+    expect(r.json.result).toMatchObject({ id: "photo-1a2b3c" });
+    const [w] = api.writes();
+    expect(w.auth).toBe(`Bearer ${TOKEN}`);
+    expect(w.path).toMatch(/^\/api\/admin\/media\?alt=A\+test&filename=photo\.png&kind=image$/);
+    expect(w.body).toBeInstanceOf(Uint8Array);
+  });
+
+  it("upload_media refuses what is not an image file, and needs alt text", async () => {
+    const { call, api } = await connect(TOKEN);
+    expect((await call("upload_media", { path: "/etc/passwd", alt: "x" })).text).toMatch(/must be \.jpg/);
+    expect((await call("upload_media", { path: "photo.png", alt: "x" })).text).toMatch(/absolute/);
+    expect((await call("upload_media", { path: file, alt: "" })).isError).toBe(true);
+    expect(api.writes()).toHaveLength(0);
+  });
+
+  const video = join(dir, "clip.mp4");
+  writeFileSync(video, Buffer.alloc(64));
+  const captions = join(dir, "clip.vtt");
+  writeFileSync(captions, "WEBVTT\n");
+
+  it("list_media filters by kind and shows it", async () => {
+    const { call, api } = await connect(TOKEN, {
+      "GET /api/admin/media": [200, { ok: true, items: [{ ...ITEM, kind: "video", durationMs: 12_400 }] }],
+    });
+    const r = await call("list_media", { kind: "video" });
+    expect(r.json[0]).toMatchObject({ kind: "video", seconds: 12 });
+    expect(api.calls[0].path).toBe("/api/admin/media?kind=video");
+  });
+
+  it("upload_media: a video needs a poster, and posters are for videos only", async () => {
+    const { call, api } = await connect(TOKEN, { "GET /api/admin/media": [200, { ok: true, items: [] }] });
+    expect((await call("upload_media", { path: video, alt: "x", kind: "video" })).text).toMatch(/needs posterPath/);
+    expect((await call("upload_media", { path: file, alt: "x", posterPath: file })).text).toMatch(/for a video/);
+    expect((await call("upload_media", { path: video, alt: "x", kind: "image" })).text).toMatch(/must be \.jpg/);
+    expect((await call("upload_media", { path: file, alt: "x", kind: "icon" })).isError).toBe(false);
+    expect(api.writes()).toHaveLength(0);
+  });
+
+  it("upload_media sends a video, its poster and captions as one multipart form", async () => {
+    const { call, api } = await connect(TOKEN, {
+      "GET /api/admin/media": [200, { ok: true, items: [] }],
+      "POST /api/admin/media": [201, { ok: true, item: { ...ITEM, id: "clip-1a2b3c", kind: "video" } }],
+    });
+    const r = await call("upload_media", {
+      path: video,
+      alt: "A clip",
+      kind: "video",
+      posterPath: file,
+      captionsPath: captions,
+      captionsLang: "he",
+      dryRun: false,
+    });
+    expect(r.isError).toBe(false);
+    expect(r.json.result).toMatchObject({ id: "clip-1a2b3c", kind: "video" });
+    const [w] = api.writes();
+    expect(w.path).toMatch(/kind=video/);
+    expect(w.path).toMatch(/captionsLang=he/);
+    expect(w.body).toBeInstanceOf(FormData);
+    const form = w.body as FormData;
+    expect([...form.keys()]).toEqual(["file", "poster", "captions"]);
   });
 });

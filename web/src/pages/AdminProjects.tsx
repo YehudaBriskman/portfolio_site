@@ -1,5 +1,6 @@
 import { useState } from "react";
 import EditorFrame from "@/components/admin/content/EditorFrame";
+import MediaPicker from "@/components/admin/MediaPicker";
 import { useContentEditor } from "@/components/admin/content/editor";
 import {
   ListField,
@@ -142,7 +143,11 @@ export default function AdminProjects() {
                     value={p.tech.join(", ")}
                     onChange={(v) => set((d) => void (d.tech = v.split(",").map((s) => s.trim()).filter(Boolean)))}
                   />
-                  <PlainField id="project-image" path={`${base}.image`} label="Image" mono dir="ltr" hint="/images/… or https://…; empty for none." value={p.image ?? ""} onChange={(v) => set((d) => void (d.image = orNull(v)))} />
+                  <div className="min-w-0">
+                    <PlainField id="project-image" path={`${base}.image`} label="Image" mono dir="ltr" hint="A picture from the library, /projects/… or https://…; empty for none." value={p.image ?? ""} onChange={(v) => set((d) => void (d.image = orNull(v)))} />
+                    {/* The media library (#253): fills the field with the picture's stable URL. */}
+                    <MediaPicker value={p.image ?? ""} onChange={(url) => set((d) => void (d.image = url))} />
+                  </div>
                   <fieldset>
                     <legend className="a-label">Tint (red, green, blue: 0 to 255)</legend>
                     <div className="grid grid-cols-3 gap-3">

@@ -15,6 +15,7 @@ import { fetchRepoStats } from "../services/github.js";
 import { requireProxySession } from "../middlewares/requireAdmin.js";
 import { readAudit } from "../services/audit.js";
 import { grantDocId, grantLive, revokeGrant, type McpGrantDoc } from "../mcp/oauth/provider.js";
+import mediaRoutes from "./media.admin.route.js";
 import {
   TOKEN_SCOPES,
   TOKEN_TTL_DAYS_DEFAULT,
@@ -63,6 +64,9 @@ export const CollectionWrite = z.object({
   repo: RepoWrite.nullable().default(null),
   description: z.string().max(400).default(""),
   coverImage: z.string().url().nullable().default(null).transform(rawImageUrlOrNull),
+  /* An icon from the media library (#253). Optional, not defaulted, like
+     `featured`: a client that does not send it leaves it as it was. */
+  icon: z.string().url().nullable().optional(),
   links: z.array(LinkSchema).max(8).default([]),
   order: z.coerce.number().int().default(50),
   status: z.enum(["published", "hidden"]).default("published"),
@@ -85,6 +89,9 @@ router.get("/me", (req, res) => res.json({ ok: true, ...req.admin }));
 
 /* The site's own content (#163): projects, the story, the site copy. */
 router.use("/content", adminContentRoutes);
+
+/* The media library (#253): its own file, behind this router's gate and audit. */
+router.use("/media", mediaRoutes);
 
 /* ---------------------------------------------------------------- posts -- */
 
@@ -249,6 +256,7 @@ router.put(
       title: i.title,
       description: i.description,
       coverImage: i.coverImage,
+      icon: i.icon !== undefined ? i.icon : (existing?.icon ?? null),
       links: i.links,
       order: i.order,
       status: i.status,

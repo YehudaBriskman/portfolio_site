@@ -1,4 +1,5 @@
 import EditorFrame from "@/components/admin/content/EditorFrame";
+import MediaPicker from "@/components/admin/MediaPicker";
 import { useContentEditor } from "@/components/admin/content/editor";
 import { LinesField, ListField, PlainField, SelectField, Section, TextField } from "@/components/admin/content/Fields";
 import { BEAT_LAYOUTS, beatIds, StoryContentSchema, type StoryContent, type Text } from "@/content/schema";
@@ -110,7 +111,10 @@ export default function AdminStory() {
                   <>
                     <div className="grid gap-4 sm:grid-cols-2">
                       <SelectField id={`story-images-${i}-beat`} path={`images.${r.beat}`} label="Beat" value={r.beat} options={options(r.beat)} onChange={(v) => editor.edit((d) => void (d.images = record(imageRows.map((x, j) => (j === i ? { ...x, beat: v } : x)))))} />
-                      <PlainField id={`story-images-${i}-src`} path={`images.${r.beat}.src`} label="Image" mono dir="ltr" hint="/images/… or https://…" value={r.value.src} onChange={(v) => editor.edit((d) => void (d.images[r.beat].src = v))} />
+                      <div className="min-w-0">
+                        <PlainField id={`story-images-${i}-src`} path={`images.${r.beat}.src`} label="Image" mono dir="ltr" hint="A picture from the library, /img/… or https://…" value={r.value.src} onChange={(v) => editor.edit((d) => void (d.images[r.beat].src = v))} />
+                        <MediaPicker value={r.value.src} onChange={(url) => editor.edit((d) => void (d.images[r.beat].src = url))} />
+                      </div>
                     </div>
                     <TextField id={`story-images-${i}-alt`} path={`images.${r.beat}.alt`} label="Alt text" value={r.value.alt} onChange={(t) => editor.edit((d) => void (d.images[r.beat].alt = req(t)))} />
                   </>

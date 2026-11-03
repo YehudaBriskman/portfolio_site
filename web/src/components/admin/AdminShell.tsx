@@ -19,7 +19,7 @@ import { admin } from "@/services/admin";
  * stays on the public site.
  */
 
-export type AdminSection = "posts" | "areas" | "projects" | "story" | "site-copy" | "connections";
+export type AdminSection = "posts" | "areas" | "projects" | "story" | "site-copy" | "media" | "connections";
 type Section = AdminSection;
 
 const SECTIONS: Array<{ id: Section; to: string; label: string }> = [
@@ -29,6 +29,8 @@ const SECTIONS: Array<{ id: Section; to: string; label: string }> = [
   { id: "projects", to: "/admin/projects", label: "Projects" },
   { id: "story", to: "/admin/story", label: "Story" },
   { id: "site-copy", to: "/admin/site-copy", label: "Site copy" },
+  /* The media library (#253). */
+  { id: "media", to: "/admin/media", label: "Media" },
   { id: "connections", to: "/admin/connections", label: "Connected apps" },
 ];
 

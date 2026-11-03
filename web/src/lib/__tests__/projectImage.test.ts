@@ -63,4 +63,18 @@ describe("shotImage", () => {
     const noCover = shotImage(null);
     expect(noCover).toBeNull();
   });
+
+  it("offers a library picture (#253) on the server's own AVIF and WebP rungs", () => {
+    const url = "https://yehudabriskman.com/api/images/media/windom-01a68d";
+    const image = shotImage(url);
+    expect(image?.sources.map((s) => s.type)).toEqual(["image/avif", "image/webp"]);
+    expect(image?.sources[0].srcSet).toBe(
+      `${url}?w=400&f=avif 400w, ${url}?w=800&f=avif 800w, ${url}?w=1200&f=avif 1200w, ${url}?w=1600&f=avif 1600w`,
+    );
+    expect(image?.srcSet).toBeUndefined();
+    expect(image?.src).toBe(`${url}?w=800&f=webp`);
+    // A hashed file, or one that only looks similar, is not the stable URL: handed back alone.
+    expect(shotImage("/api/images/m/windom-01a68d/w800-aaaaaaaaaaaaaaaa.webp")?.sources).toEqual([]);
+    expect(shotImage("https://yehudabriskman.com/api/images/media/windom-01a68d?w=400")?.sources).toEqual([]);
+  });
 });

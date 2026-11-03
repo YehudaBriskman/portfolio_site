@@ -95,6 +95,49 @@ describe("content editors", () => {
     expect(items.map((i) => i.order)).toEqual(items.map((_, i) => i));
   });
 
+  it("a project's image can be picked from the media library (#253)", async () => {
+    const url = "https://yehudabriskman.com/api/images/media/windom-01a68d";
+    const LIBRARY = {
+      ok: true,
+      items: [
+        {
+          id: "windom-01a68d",
+          name: "windom.jpg",
+          alt: "WindoM's new-tab page",
+          caption: "",
+          credit: "",
+          kind: "image",
+          format: "jpeg",
+          mime: "image/jpeg",
+          file: null,
+          width: 1600,
+          height: 758,
+          bytes: 136_000,
+          createdAt: "2026-11-01T00:00:00.000Z",
+          updatedAt: "2026-11-01T00:00:00.000Z",
+          url,
+          preview: "data:image/gif;base64,R0lGODlhAQABAAAAACw=",
+          srcset: { avif: "", webp: "" },
+          usedBy: [],
+        },
+      ],
+    };
+    const calls = stubApi("projects", seedBundle().projects);
+    const content = globalThis.fetch;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((u: string, init?: RequestInit) => (u.startsWith("/api/admin/media") ? Promise.resolve(json(LIBRARY)) : content(u, init))),
+    );
+    page(<AdminProjects />);
+    fireEvent.click(await screen.findByRole("button", { name: "Choose from library" }));
+    fireEvent.click(await screen.findByRole("button", { name: /WindoM's new-tab page/ }));
+    expect(screen.getByLabelText("Image")).toHaveValue(url);
+    fireEvent.click(screen.getAllByRole("button", { name: "Save draft" })[0]);
+    await waitFor(() => expect(calls.some((c) => c.method === "PUT")).toBe(true));
+    const items = (calls.find((c) => c.method === "PUT")!.body as { data: { items: Array<{ image: string | null }> } }).data.items;
+    expect(items[0].image).toBe(url);
+  });
+
   it("reports a conflict instead of overwriting", async () => {
     stubApi("story", seedBundle().story, () => json({ ok: false, error: "changed" }, 409));
     page(<AdminStory />);

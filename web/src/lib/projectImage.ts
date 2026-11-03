@@ -64,6 +64,29 @@ export type ShotImage = {
   src: string;
 };
 
+/*
+ * A picture from the media library (#253) has the same rungs, made by the
+ * server on upload, in AVIF and WebP only (there is no JPEG ladder). Its
+ * stable URL answers `?w=<width>&f=<format>` with a redirect to the nearest
+ * size at or above that width, so the ladder can be written without knowing
+ * the hashed file names. A picture narrower than a rung is offered at its own
+ * width under that rung's descriptor, which the browser treats as a slightly
+ * soft image, never a broken one.
+ */
+const LIBRARY = /^(?:https?:\/\/[^/]+)?\/api\/images\/media\/[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+function libraryShot(src: string): ShotImage | null {
+  if (!LIBRARY.test(src)) return null;
+  const rungs = (f: "avif" | "webp") => WIDTHS.map((w) => `${src}?w=${w}&f=${f} ${w}w`).join(", ");
+  return {
+    sources: [
+      { type: "image/avif", srcSet: rungs("avif") },
+      { type: "image/webp", srcSet: rungs("webp") },
+    ],
+    src: `${src}?w=${FALLBACK_WIDTH}&f=webp`,
+  };
+}
+
 function ladder(slug: string, extension: string): string {
   return WIDTHS.map((width) =>
     extension === "jpg" && width === MASTER_WIDTH
@@ -78,6 +101,8 @@ function ladder(slug: string, extension: string): string {
  */
 export function shotImage(src: string | null | undefined): ShotImage | null {
   if (!src) return null;
+  const library = libraryShot(src);
+  if (library) return library;
   const match = LOCAL_SCREENSHOT.exec(src);
   if (!match) return { sources: [], src };
 

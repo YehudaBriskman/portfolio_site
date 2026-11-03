@@ -154,6 +154,8 @@ export const CollectionSchema = z.object({
   title: z.string().min(1).max(120),
   description: z.string().max(400).default(""),
   coverImage: z.string().url().nullable().default(null),
+  /* An icon from the media library (#253). Absent on documents from before it. */
+  icon: z.string().url().nullable().optional(),
   links: z.array(z.object({ label: z.string().min(1).max(60), url: z.string().url() })).max(8).default([]),
   order: z.number().int().default(50),
   status: z.enum(["published", "hidden"]).default("published"),
@@ -182,6 +184,8 @@ export function toPublicCollection(c: Collection) {
     tagline: c.tagline,
     description: c.description,
     coverImage: rawImageUrlOrNull(c.coverImage),
+    // Documents from before #253 carry no icon; read raw, so no default applies.
+    icon: c.icon ?? null,
     links: c.links,
     order: c.order,
     // The repo config itself stays private — it names paths and branches. Only
