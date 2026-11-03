@@ -716,8 +716,9 @@ until the pen reaches them.
 | where | ground | muted, before (`--ink-soft`) | muted, after (`--ink` / 0.22) | written / off (`--ink`) |
 |---|---|---|---|---|
 | wall text, home | `--paper` #ECE8DC | #55524A, 6.37:1 | ≈ #BCB9AF, **1.60:1** | 15.17:1 |
-| a post's body, /story, a project page, the contact close | `--paper` #ECE8DC | #55524A, 6.37:1 | ≈ #BCB9AF, **1.60:1** | 15.17:1 |
+| a post's body, /story, the contact close | `--paper` #ECE8DC | #55524A, 6.37:1 | ≈ #BCB9AF, **1.60:1** | 15.17:1 |
 | any prose inside a dark act (via `.on-panel`) | `--panel` #0C0C0E | #A8A49A, 7.86:1 | ≈ #3F3E3E, **1.83:1** | 17.15:1 |
+| a project page (#242: the dashboard ground, `notes/DarkCard` stops) | `--panel` #1C1A16 | #A8A49A, 6.98:1 | ≈ #4B4945, **1.93:1** | 15.25:1 |
 
 Weight is not touched. The text face (Atkinson Hyperlegible Next) is
 variable from 400 to 700 and is set at 400, so there is no lighter weight
@@ -1145,6 +1146,23 @@ keeps the page's existing devices (`InkWipe`, `Written`, the figure's drift)
 unchanged; the other three panels have none. With no page on it any more,
 `gallery/Wall.tsx` and `projects/Gallery.tsx` are left in place, unused, for
 the owner to delete or keep, as #224 did with `NoteTile`.
+
+**#242: the project page joins the dashboard, and keeps its three devices.**
+`/projects/:slug` moved off paper onto the same dark shell: a GitHub-style
+header (Work / name, the status pill, the tagline, Source and Release as the
+shell's buttons), the pinned projects in the rail with this one current, and
+an About aside with the repository's as-of facts (`RepoFacts`, the area
+header's). None of that moves. The Overview is its old content re-laid in
+bordered cards, in the same order, and it is the one place on any dashboard
+page with a scroll device: the description, the brief and each decision are
+still `Written` (the ink alpha reads `--ink`, which `.on-panel` re-points, so
+the pen's off state is still full ink on the dark ground), the highlights and
+decisions still arrive through `InkWipe`, and the figure keeps its `--vh`
+drift written to its own box by `useScrollProgress`. The page is a
+repository's front page that is also read, so it keeps the reading devices
+and gains no new ones; the rows above and below (`Written`, `InkWipe`) keep their /projects/:slug routes. Its
+loading state left `.scrub-pulse` for the shell's skeleton rows, so that
+row loses the route and the sweep row gains it.
 
 **#193: one gallery for both pages.** The wall, its sizes, `assemble`, the
 re-hang and the three off-switches moved out of `projects/` into
@@ -1796,14 +1814,14 @@ animation.
 | notes hung on the gallery wall (`NoteTile` in `Wall`) | /blog | — | **removed** (#224): the index is a dashboard of rows and cards, and nothing on it arrives |
 | Blogs dashboard: tree open/close, Home/Feed switch, the phone's rail `<dialog>`, the timeline (`dashboard/`) | /blog, /blog/area/:slug | none: shown and hidden, no transition; hover/focus as the row below | — (#224) |
 | area history: day groups, copy-link tick, share fallback, `j`/`k` focus, topic filter (`dashboard/History.tsx`); a note's heading copy-link (`notes/headingAnchors.tsx`) | /blog/area/:slug, /blog/:slug | none: a two-second icon state, shown and hidden, focus without smooth scroll; hover/focus as the row below | — (#225) |
-| Work dashboard: sort switch, repository cards and their activity strips, the releases timeline, the phone's rail `<dialog>` (`work/`, `dashboard/`) | /projects | none: a re-sort is a navigation that keeps the scroll; the strip is drawn once; hover/focus change colour in `--dur-micro` | — (#227) |
+| Work dashboard: sort switch, repository cards and their activity strips, the releases timeline, the phone's rail `<dialog>` (`work/`, `dashboard/`); since #242 the project page's shell too: its header buttons, pinned rail, About aside, cards and release/doc rows (`pages/Project.module.css`) | /projects, /projects/:slug | none: a re-sort is a navigation that keeps the scroll; the strip is drawn once; hover/focus change colour in `--dur-micro` | — (#227, #242) |
 | project tabs: the selected underline, the panels (`work/Tabs.tsx`) | /projects/:slug | none: drawn on the selected tab, panels shown and hidden; colour in `--dur-micro` | — (#227) |
 | channel log: days of rows, the kind and area filters, "Load more", the phone's rail `<dialog>` (`pages/BlogLog`) | /blog/log | none: rows appended and filters applied without a transition; hover/focus as the row below; skeletons as the sweep row | — (#226) |
 | stats panel bars (`draw-bar`) | /projects | — | **removed** (#193): the panel was deleted |
 | ink wipe on the cover and band (`InkWipe`) | /projects/:slug | `view()` | scrubbed |
 | notes index cards rising (`.scrub-rise`) | /blog | — | **removed** (#193): the notes hang on the gallery wall and arrive by `assemble` (row above) |
-| loading placeholders' pulse (`.scrub-pulse`) | /projects/:slug, /blog/:slug, note covers, project shots, the admin "Saving" dot | `view()`, `cover` | **scrubbed** (#162; was Tailwind `animate-pulse-soft`, 2.4s infinite) |
-| skeleton sweep (`Skeleton`) | /, /projects, /blog | `--sk-line` per line | **scrubbed** (#162; was a 1.5s loop) |
+| loading placeholders' pulse (`.scrub-pulse`) | /blog/:slug, note covers, project shots, the admin "Saving" dot | `view()`, `cover` | **scrubbed** (#162; was Tailwind `animate-pulse-soft`, 2.4s infinite) |
+| skeleton sweep (`Skeleton`) | /, /projects, /projects/:slug, /blog | `--sk-line` per line | **scrubbed** (#162; was a 1.5s loop) |
 | skeleton gate (`sk-gate`) | wherever a skeleton shows | 1ms step after a 180ms delay | **exempt**: not motion — a visibility threshold (§4) |
 | reading bar (`ReadingBar`) | /blog/:slug | scroll position, rAF-throttled | scrubbed (a readout, not an animation) |
 | tucking nav bar (`useTuckedBar`) | every route | scroll direction → a short transition | **exempt**: the tucking bar |
