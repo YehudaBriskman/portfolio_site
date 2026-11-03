@@ -51,7 +51,7 @@ export const SITE_NAME = "Yehuda Briskman";
  * static shell was served". See the note there before changing it — this
  * string has to stay character-identical to the `<title>` in `index.html`.
  */
-export const HOME_TITLE = "Yehuda Briskman · Full-stack engineer & team lead";
+export const HOME_TITLE = "Yehuda Briskman · Full-stack engineer & technical team lead";
 
 export type PageIdentity = {
   /**
@@ -73,9 +73,13 @@ export type PageIdentity = {
   title: string;
 };
 
-/** `Name · Yehuda Briskman`. Exported for the pages that resolve their own. */
-export function documentTitleFor(name: string): string {
-  return `${name} · ${SITE_NAME}`;
+/**
+ * `Name · Yehuda Briskman`, or `Name · יהודה בריסקמן` on a Hebrew page (#308),
+ * as the server render titles it. Exported for the pages that resolve their
+ * own.
+ */
+export function documentTitleFor(name: string, lang: Lang = currentLang()): string {
+  return `${name} · ${usePageNames.of(lang).siteName}`;
 }
 
 /*
@@ -91,8 +95,8 @@ function adminIdentity(name: string, admin = "Admin"): PageIdentity {
   return { name, title: `${name} · ${admin} · ${SITE_NAME}` };
 }
 
-function identity(name: string): PageIdentity {
-  return { name, title: documentTitleFor(name) };
+function identity(name: string, lang: Lang): PageIdentity {
+  return { name, title: documentTitleFor(name, lang) };
 }
 
 /**
@@ -178,25 +182,25 @@ export function pageIdentityFor(pathname: string, lang: Lang = currentLang()): P
   if (segments.length === 0) return { name: n.home, title: lang === "en" ? HOME_TITLE : n.homeTitle };
 
   if (first === "projects") {
-    if (!second) return identity(n.work);
-    if (segments.length === 2) return identity(projectName(second));
+    if (!second) return identity(n.work, lang);
+    if (segments.length === 2) return identity(projectName(second), lang);
   }
 
-  if (first === "story" && segments.length === 1) return identity(n.journey);
+  if (first === "story" && segments.length === 1) return identity(n.journey, lang);
 
   /* The remote MCP server's page (#263), named as seo.route.ts names it. */
-  if (first === "developers" && second === "mcp" && segments.length === 2) return identity(n.mcp);
+  if (first === "developers" && second === "mcp" && segments.length === 2) return identity(n.mcp, lang);
 
   if (first === "blog") {
     /* "Blogs", the room's name since #222. The route stays `/blog` for the
        sake of the links already shared at that address; the bar, the page's
        own eyebrow and the footer all say Blogs, and the title is not the
        place to contradict them. */
-    if (!second) return identity(n.blogs);
+    if (!second) return identity(n.blogs, lang);
     /* The channel log (#226), named as seo.route.ts names it. */
-    if (second === "log" && segments.length === 2) return identity(n.log);
-    if (second === "area" && third && segments.length === 3) return identity(humaniseSlug(third));
-    if (segments.length === 2) return identity(humaniseSlug(second));
+    if (second === "log" && segments.length === 2) return identity(n.log, lang);
+    if (second === "area" && third && segments.length === 3) return identity(humaniseSlug(third), lang);
+    if (segments.length === 2) return identity(humaniseSlug(second), lang);
   }
 
   if (first === "admin") {
@@ -227,5 +231,5 @@ export function pageIdentityFor(pathname: string, lang: Lang = currentLang()): P
 
   /* Everything else is the catch-all route, and it says so. "Not found" is
      the string seo.route.ts puts in the head for the same addresses. */
-  return identity(n.notFound);
+  return identity(n.notFound, lang);
 }

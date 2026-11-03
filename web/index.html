@@ -6,7 +6,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>Yehuda Briskman &middot; Full-stack engineer &amp; team lead</title>
+    <title>Yehuda Briskman &middot; Full-stack engineer &amp; technical team lead</title>
 
     <!--
       These are the defaults for the shell. Content routes (/blog/*, /projects/*)
@@ -15,7 +15,7 @@
       URL of the site. See backend/src/services/seo.ts.
       Kept at or under ~155 characters, which is where Google truncates.
     -->
-    <meta name="description" content="Full-stack engineer and team lead in Tel Aviv. I ship products end to end and build the checks that prove they still work." />
+    <meta name="description" content="Full-stack engineer and technical team lead in Tel Aviv, mostly frontend. I ship products end to end and build the checks that prove they still work." />
     <link rel="canonical" href="https://yehudabriskman.com/" />
     <meta name="robots" content="index, follow, max-image-preview:large" />
     <meta name="author" content="Yehuda Briskman" />
@@ -73,23 +73,26 @@
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Yehuda Briskman" />
     <meta property="og:locale" content="en_US" />
-    <meta property="og:title" content="Yehuda Briskman &middot; Full-stack engineer &amp; team lead" />
+    <meta property="og:title" content="Yehuda Briskman &middot; Full-stack engineer &amp; technical team lead" />
     <meta property="og:description" content="I ship products end to end, and build the checks that prove they work. Tel Aviv." />
     <meta property="og:url" content="https://yehudabriskman.com/" />
     <meta property="og:image" content="https://yehudabriskman.com/og.png" />
     <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="Yehuda Briskman, full-stack engineer and team lead" />
+    <meta property="og:image:alt" content="Yehuda Briskman, full-stack engineer and technical team lead" />
 
     <!-- X does not read Open Graph by default, so the same facts are repeated
          under its own prefix rather than assumed to carry over. -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Yehuda Briskman &middot; Full-stack engineer &amp; team lead" />
+    <meta name="twitter:title" content="Yehuda Briskman &middot; Full-stack engineer &amp; technical team lead" />
     <meta name="twitter:description" content="I ship products end to end, and build the checks that prove they work. Tel Aviv." />
     <meta name="twitter:image" content="https://yehudabriskman.com/og.png" />
-    <meta name="twitter:image:alt" content="Yehuda Briskman, full-stack engineer and team lead" />
+    <meta name="twitter:image:alt" content="Yehuda Briskman, full-stack engineer and technical team lead" />
 
+    <!-- The Person, WebSite and ProfilePage the API's render writes for `/`
+         (backend/src/services/seo-entity.ts, #308), for the moments this
+         shell is served as built. seo.route.test.ts holds the two equal. -->
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -98,23 +101,95 @@
             "@type": "Person",
             "@id": "https://yehudabriskman.com/#person",
             "name": "Yehuda Briskman",
+            "alternateName": [
+              "יהודה בריסקמן",
+              "yehuda.br",
+              "Briskman"
+            ],
+            "givenName": "Yehuda",
+            "familyName": "Briskman",
             "url": "https://yehudabriskman.com/",
-            "image": "https://yehudabriskman.com/img/yehuda-cut.webp",
-            "jobTitle": "Full-stack engineer and team lead",
+            "image": {
+              "@type": "ImageObject",
+              "url": "https://yehudabriskman.com/img/yehuda-cut.webp",
+              "width": 551,
+              "height": 845
+            },
+            "jobTitle": [
+              "Technical team lead",
+              "Full-stack engineer",
+              "ראש צוות טכני",
+              "מהנדס פול־סטאק"
+            ],
+            "description": "Technical team lead and full-stack engineer, mostly frontend, in Tel Aviv.",
             "address": {
               "@type": "PostalAddress",
               "addressLocality": "Tel Aviv",
               "addressCountry": "IL"
             },
-            "sameAs": ["https://github.com/YehudaBriskman", "https://windom.app"]
+            "knowsAbout": [
+              "Frontend development",
+              "Full-stack development",
+              "Technical leadership",
+              "Web accessibility",
+              "React",
+              "TypeScript",
+              "Vite",
+              "Manifest V3",
+              "Fastify",
+              "Drizzle ORM",
+              "PostgreSQL",
+              "Fly.io",
+              "Docker Compose",
+              "Traefik",
+              "Keycloak",
+              "VictoriaMetrics",
+              "Grafana",
+              "Tailscale",
+              "Node.js",
+              "MongoDB"
+            ],
+            "knowsLanguage": [
+              "he",
+              "en"
+            ],
+            "sameAs": [
+              "https://github.com/YehudaBriskman",
+              "https://www.linkedin.com/in/yehuda-briskman-ab923b2b8"
+            ]
           },
           {
             "@type": "WebSite",
             "@id": "https://yehudabriskman.com/#website",
             "url": "https://yehudabriskman.com/",
             "name": "Yehuda Briskman",
+            "alternateName": [
+              "יהודה בריסקמן",
+              "yehudabriskman.com"
+            ],
             "inLanguage": "en",
-            "publisher": { "@id": "https://yehudabriskman.com/#person" }
+            "publisher": {
+              "@id": "https://yehudabriskman.com/#person"
+            },
+            "author": {
+              "@id": "https://yehudabriskman.com/#person"
+            }
+          },
+          {
+            "@type": "ProfilePage",
+            "@id": "https://yehudabriskman.com/#page",
+            "url": "https://yehudabriskman.com/",
+            "name": "Yehuda Briskman · Full-stack engineer & technical team lead",
+            "inLanguage": "en",
+            "isPartOf": {
+              "@id": "https://yehudabriskman.com/#website"
+            },
+            "mainEntity": {
+              "@id": "https://yehudabriskman.com/#person"
+            },
+            "about": {
+              "@id": "https://yehudabriskman.com/#person"
+            }
           }
         ]
       }
