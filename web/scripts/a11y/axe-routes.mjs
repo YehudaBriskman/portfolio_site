@@ -96,6 +96,8 @@ const ROUTES = [
   "/admin/media?id=fixture-video",
   /* The note editor (#250): toolbar, body, preview and the draft notice. */
   "/admin/posts/fixture-post",
+  /* Site settings (#254). */
+  "/admin/settings",
 ];
 
 const WINDOWS = [

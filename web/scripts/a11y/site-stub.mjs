@@ -182,6 +182,21 @@ const MEDIA = [
   }),
 ];
 
+/* The settings document as /api/admin/settings serves it (#254). */
+const DEFAULT_SETTINGS = {
+  home: { sections: ["work", "approach", "city", "notes", "stack", "contact"].map((id) => ({ id, visible: true })) },
+  visuals: { theme: "system", motion: "on", accent: "ink" },
+};
+const SETTINGS_VIEW = {
+  ok: true,
+  exists: true,
+  _rev: "1-fixture",
+  version: 1,
+  updatedAt: at(0),
+  settings: DEFAULT_SETTINGS,
+  history: [{ version: 0, at: at(1), settings: DEFAULT_SETTINGS }],
+};
+
 export function answer(url, failing) {
   if (failing) return { status: 503, body: { error: "unavailable" } };
   const p = new URL(url).pathname.replace(/^\/api/, "");
@@ -190,6 +205,8 @@ export function answer(url, failing) {
   if (p === "/admin/posts") return { status: 200, body: { ok: true, items: [ADMIN_POST] } };
   if (p === "/admin/posts/fixture-post") return { status: 200, body: { ok: true, post: ADMIN_POST } };
   if (p === "/admin/collections") return { status: 200, body: { ok: true, items: [] } };
+  /* Site settings (#254): one saved version over the built-in defaults. */
+  if (p === "/admin/settings") return { status: 200, body: SETTINGS_VIEW };
   if (p === "/blog/posts") return { status: 200, body: { items: [SUMMARY] } };
   if (p.startsWith("/blog/posts/")) {
     return p.endsWith("/fixture-post") ? { status: 200, body: { post: POST } } : { status: 404, body: {} };

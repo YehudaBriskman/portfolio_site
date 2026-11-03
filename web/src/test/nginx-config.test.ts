@@ -367,6 +367,7 @@ const EXEMPT: Record<string, string> = {
   "/admin/areas": "admin",
   "/admin/areas/:slug": "admin",
   "/admin/media": "admin",
+  "/admin/settings": "admin: site settings (#254)",
   "/admin/collections/:slug": "admin, and legacy: the app redirects it to /admin/areas/<slug>",
   "/admin/connections": "admin",
   "/admin/projects": "admin: the content editors (#163)",

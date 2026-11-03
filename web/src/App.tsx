@@ -36,6 +36,7 @@ const DevelopersMcp = lazy(() => import("./pages/DevelopersMcp"));
 const AdminProjects = lazy(() => import("./pages/AdminProjects"));
 const AdminStory = lazy(() => import("./pages/AdminStory"));
 const AdminSiteCopy = lazy(() => import("./pages/AdminSiteCopy"));
+const AdminSettings = lazy(() => import("./pages/AdminSettings"));
 // The media library (#253).
 const AdminMedia = lazy(() => import("./pages/AdminMedia"));
 
@@ -175,6 +176,7 @@ const App = () => {
           <Route path="/admin/projects" element={<Suspense fallback={null}><AdminProjects /></Suspense>} />
           <Route path="/admin/story" element={<Suspense fallback={null}><AdminStory /></Suspense>} />
           <Route path="/admin/site-copy" element={<Suspense fallback={null}><AdminSiteCopy /></Suspense>} />
+          <Route path="/admin/settings" element={<Suspense fallback={null}><AdminSettings /></Suspense>} />
         </Routes>
       </BrowserRouter>
     </TooltipProvider>
