@@ -3,9 +3,14 @@ import ObjectLabel from "@/components/gallery/ObjectLabel";
 import type { LabelField } from "@/components/gallery/objectLabel";
 import { useContent } from "@/content/store";
 import HeroCorners from "@/components/HeroCorners";
+import HeroRibbon from "@/components/HeroRibbon";
 import styles from "@/components/Hero.module.css";
 import arrival from "@/components/HeroArrival.module.css";
-import { getEntry, subscribeEntry, type Entry } from "@/components/motion/entry";
+import {
+  getEntry,
+  subscribeEntry,
+  type Entry,
+} from "@/components/motion/entry";
 
 /*
  * The first screen: one composed picture, assembled in four moves.
@@ -256,7 +261,10 @@ export default function Hero() {
             label. The section around it carries the `--hero` timeline every
             part of the picture reads.
           */}
-          <div className={`${styles.composition} ${arrival.stage}`} data-arrival={arrives}>
+          <div
+            className={`${styles.composition} ${arrival.stage}`}
+            data-arrival={arrives}
+          >
             {/*
               The figure, out of flow and underneath the type.
 
@@ -275,12 +283,19 @@ export default function Hero() {
               a paint candidate.
             */}
             <div className={styles.portrait} data-portrait="">
+              {/* The aurora ribbon round the figure, in two layers of one line:
+                  this half under the photograph, so the head hides it, and the
+                  other over it, across the chest (`HeroRibbon.tsx`). */}
+              <HeroRibbon layer="back" />
               <picture>
                 {/* The 365px file below the type rung's breakpoint, which is
                     also where the figure stops being a third of the screen's
                     width. Serving the 551px original there is 17kB spent on a
                     box that is never wider than 242 CSS pixels. */}
-                <source media="(max-width: 699px)" srcSet="/img/yehuda-cut-sm.webp" />
+                <source
+                  media="(max-width: 699px)"
+                  srcSet="/img/yehuda-cut-sm.webp"
+                />
                 <img
                   src="/img/yehuda-cut.webp"
                   alt="Yehuda Briskman: a cut-out photograph from the waist up, in round sunglasses and a pale T-shirt, a bag strap across one shoulder, looking off to the side."
@@ -293,7 +308,12 @@ export default function Hero() {
               {/* The paper the figure rises out from behind. Decorative in the
                   strictest sense — it is the absence of the picture — so it is
                   hidden from the accessibility tree and cannot be pointed at. */}
-              <span className={arrival.mask} data-portrait-mask="" aria-hidden="true" />
+              <span
+                className={arrival.mask}
+                data-portrait-mask=""
+                aria-hidden="true"
+              />
+              <HeroRibbon layer="front" />
             </div>
 
             {/*

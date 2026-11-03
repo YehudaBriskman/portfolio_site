@@ -108,6 +108,7 @@ ledger is a page-level document and not a comment.
 | — | a card or a day on a dashboard, a card on a project page | **arrive** (#251) | a block settles the last 12px into place and the ring by its heading draws round once; nothing is ever drawn over the content |
 | 0 | title plate | **staged assembly** | the collection names itself, in four gated moves |
 | — | the plate's end corner | **breath** | one small light is on, and says one thing at a time |
+| — | round the figure | **aurora ribbon** | one line of light goes round the person — behind the head, across the chest — and drifts as the next act covers them |
 | 1 | wall text | `draw` + `line` | the method, drawn beside the sentence that names it, by the reader's scroll; one line joins it all up |
 | — | /story, and beat 1 | **`line`** | one line drawn by scroll under the reading, which swings between the content and breaks out into a loop round a few words or a figure; on /story each picture is laid out of the line's lane just before the tip reaches it (#195), part of the same act |
 | 2 | **the run** | `pin` | the work arrives along one line, and the reader's scroll is what moves it |
@@ -931,8 +932,9 @@ prevent.
 **The breath row is not a beat either.** Until #162 it was the one thing on
 the page that looped while the reader did nothing; since #162 it does not
 loop at all — the lamp breathes three times and the phrases turn across the
-first 36% of the hero's exit, on the hero's `--hero` view timeline, and run
-back on the way up (§8). `HeroCorners.tsx` puts a 0.5rem lamp of `--signal`
+first 36% of the stretch the hero is held for (`contain` on the `--hero`
+view timeline, which since 2026-11-03 is the static holder's, not the
+pinned hero's), and run back on the way up (§8). `HeroCorners.tsx` puts a 0.5rem lamp of `--signal`
 in the title plate's end corner, with a ring leaving it once a breath, and
 beside it the owner's README asides — "Technology", "Build boldly" — one at a
 time. A soft light that rises and falls means *this is on*.
@@ -1547,6 +1549,16 @@ run does (about 150svh against 220svh), measured in §2. What the pair costs it 
 the ground as a *signal* of the peak, and §2's ledger row for `drift` is where
 that trade is recorded.
 
+**One amendment, on the owner's direction (2026-11-03).** The hero is now
+held still (`position: sticky`) for one screen while the dark act after it
+slides up over it — the owner wanted the figure to stay until it is covered,
+not dismantled on the way out. It is a hold, not a `pin` in the run's sense:
+it adds no scroll distance (the holder's spacer is pulled back by the same
+screen, so the document is the height it was), nothing is scrubbed *through*
+it except the corners' breath and the aurora ribbon's drift, and the act
+covering it is the one doing the moving. The run is still the only section
+that holds the reader for scroll it adds to the page.
+
 The practical consequence is that good ideas get cut for being in the wrong
 place rather than for being bad. The close was to have its form fold once and
 fly off the top of the window on send; the instinct was right — the close should
@@ -1623,12 +1635,13 @@ the trap underneath all three:
   `@media (prefers-reduced-motion: no-preference)`, then
   `body:not(.motion-paused)` — and nothing at all outside it. All three
   switches then render the finished state by construction, with no exit
-  block to keep in step. The hero, its corners, the spec count, the drift,
-  the skeleton sweep and the two `scrub-*` utilities are written that way.
-  The `@supports` half is not decoration: without it an engine that drops
-  `animation-timeline` reads `animation: x linear both` as a zero-length
-  clock animation and `fill: both` holds the *last* frame — which, for the
-  hero, is the dismantled screen.
+  block to keep in step. The hero's corners and its aurora ribbon, the
+  spec count, the drift, the skeleton sweep and the two `scrub-*` utilities
+  are written that way. The `@supports` half is not decoration: without it
+  an engine that drops `animation-timeline` reads `animation: x linear
+  both` as a zero-length clock animation and `fill: both` holds the *last*
+  frame — which, for the hero's old exit (removed 2026-11-03), was the
+  dismantled screen.
 - **Not every animation is motion, and the one exception is a timer.** The
   skeletons' gate (`gallery/Skeleton.module.css`) is a 1ms animation whose
   only job is its 180ms *delay*: it holds a placeholder's ink off the screen
@@ -1748,8 +1761,10 @@ direction, or set `fill-rule: evenodd` deliberately and know what it costs.
 | `nav/useTuckedBar.ts` + `Nav.module.css` (tuck) | the bar lifts and fades on the way down, returns on the way up or on focus; no travel with motion off | scroll direction, no per-frame write |
 | `Contact.module.css` `.surface` | `surface` — each part of the close rising out of its own baseline | `view()` per part |
 | `motion/EntryShutter.tsx` | `shutter` — the page arrives from behind a grid | clock, gated on real readiness |
-| `HeroArrival.module.css` | the staged assembly, reversed: the plate comes apart as the hero leaves and goes back together on the way up | named `view-timeline` `--hero` on the section, `exit` ranges |
-| `HeroCorners.module.css` | `breath` — the phrases turn and the lamp breathes across the hero's exit; the corners go last | `--hero` |
+| `Hero.module.css` `.holder` | the hero held still (`sticky`) for one screen while the dark act slides up over it; owns `--hero` | named `view-timeline` `--hero` on the static holder (§1: the pinned hero's own would stall) |
+| `HeroArrival.module.css` | the plate's arrival, once a visit, when the cover lifts; it no longer comes apart on the way out (2026-11-03) | clock, exempt (§8) |
+| `HeroCorners.module.css` | `breath` — the phrases turn and the lamp breathes while the hero is held | `--hero`, `contain` ranges |
+| `HeroRibbon.module.css` | the aurora ribbon round the figure: back half under the photograph, front half over it; the front drifts further than the back (parallax) | `--hero`, `contain 0%–100%` |
 | `Stack.module.css` | `count` — each figure counts from nought as the plate comes up, and back down as it goes | named `view-timeline` `--specs` on the plate |
 | `index.css` `.scrub-pulse` | every loading placeholder's pulse (`.scrub-rise` retired in #193) | `view()` |
 | `Approach.module.css` + `ApproachFigures.tsx` | `draw` — each principle's figure, stroke by stroke | named `view-timeline` per principle |
@@ -1872,11 +1887,12 @@ animation.
 | element | route | mechanism | status |
 |---|---|---|---|
 | entry shutter (`EntryShutter`) | every route, first load | clock, gated on readiness | **exempt**: the one page-load moment, not a scroll |
-| title plate: name letters, fact line, field line, figure (`HeroArrival.module.css`) | / | `--hero` view timeline, `exit` ranges | **scrubbed** (#162; was a staged clock sequence on load) |
-| title plate and corners arriving, once a visit (`HeroArrival.module.css`, `HeroCorners.module.css`) | /, first load only | clock, started by the shutter's `clearing` signal (its last tile's `animationend`) (`motion/entry.ts`), layered on the scrubbed exit and filling `backwards`; until that signal, a still `*-held` layer pins each moving part on the arrival's `from` frame under the cover (#219), so the lifting tiles show nothing already arrived and it is seen once | **exempt** (#194): part of the page load, as the shutter is; a hero mounted after the entry, or under any off-switch, never holds or plays it |
+| title plate: name letters, fact line, field line, figure coming apart on the way out (`HeroArrival.module.css`) | / | — | **removed** (2026-11-03): the owner's "the hero pictures … disappear … I want them to stay"; the figure was under a `--paper` mask at `scaleY(1)` from `exit 44%` (`docs/hero-aurora/before-*.png`). The hero is held still under the next act instead |
+| aurora ribbon drift and parallax round the figure (`HeroRibbon.module.css`) | / | `--hero`, `contain 0%–100%`, transforms only | **scrubbed** (2026-11-03); every off-switch shows the still ribbon at its scroll-0 pose |
+| title plate and corners arriving, once a visit (`HeroArrival.module.css`, `HeroCorners.module.css`) | /, first load only | clock, started by the shutter's `clearing` signal (its last tile's `animationend`) (`motion/entry.ts`), filling `backwards` (the scrubbed exit it was layered on is gone, 2026-11-03; the ribbon fades in with the figure, `ribbon-in`); until that signal, a still `*-held` layer pins each moving part on the arrival's `from` frame under the cover (#219), so the lifting tiles show nothing already arrived and it is seen once | **exempt** (#194): part of the page load, as the shutter is; a hero mounted after the entry, or under any off-switch, never holds or plays it |
 | nav bar dropping in with the plate (`hero-chrome.css`) | / | — | **removed** (#162): the bar is simply there; its tuck is below |
 | lamp breath and ring, rotating phrases (`HeroCorners`) | / | `--hero` | **scrubbed** (#162; were 6.4s / 3.6s infinite loops) |
-| hero corners sinking under paper | / | `--hero` | **scrubbed** (#162; were the last stage of the clock sequence) |
+| hero corners sinking under paper | / | — | **removed** (2026-11-03), with the plate's exit above |
 | section heads' lattice (`.section-head::after`) | /, /projects, /story | `--section-head` view timeline | scrubbed |
 | section-head and hairline rules (`InkRule`) | /, /projects/:slug | `view()` | scrubbed |
 | running text, word by word (`Written`) | /, /story, /projects/:slug, /blog/:slug | named view timeline per paragraph (+ a two-way near-watch observer for cost) | scrubbed |
@@ -1952,3 +1968,8 @@ their rings, which reach the dashboards for the first time: 21 scrubbed, 12
 exempt, 7 removed, 7 with nothing of their own. The dashboards' still brand
 marks (round area marks, the circled rail item, the topic ring, the header
 strand) are not motion and have no row.
+
+2026-11-03 (the hero held, and its aurora ribbon; counted after #251): the
+plate's exit and the corners' sinking moved from scrubbed to removed, and
+one scrubbed row was added, the ribbon. 48 rows; 20 scrubbed, 12 exempt, 9
+removed, 7 with nothing of their own.

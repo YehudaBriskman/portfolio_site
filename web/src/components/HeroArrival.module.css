@@ -57,6 +57,7 @@
  *
  *   NAME                  0ms, first letter first, 38ms apart, 260ms each
  *   the figure            120ms, 520ms, up from behind its paper
+ *   the ribbon            260ms, 700ms (`HeroRibbon.module.css`)
  *   one line of fact      300ms, 460ms, in from the start side
  *   WHERE · WHEN          390ms, 460ms, in from the end side
  *   the corners           480ms, 460ms (`HeroCorners.module.css`)
