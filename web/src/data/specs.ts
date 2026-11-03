@@ -78,7 +78,7 @@ const objectCount = projects.length;
  * Source: `isLive` over `data/projects.ts` — an entry carrying a `link`, the
  * live product and never the repository, that is not archived. The learning
  * projects keep their links but are archived, so they are not counted; Bothy
- * ships as source and says so. The hero plate reads the same function.
+ * ships as source and says so.
  */
 const liveCount = projects.filter(isLive).length;
 

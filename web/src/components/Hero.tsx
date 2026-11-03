@@ -1,7 +1,6 @@
 import { useState, useSyncExternalStore } from "react";
 import ObjectLabel from "@/components/gallery/ObjectLabel";
 import type { LabelField } from "@/components/gallery/objectLabel";
-import { isLive, projects } from "@/data/projects";
 import { plate, plateTitle } from "@/data/site";
 import HeroCorners from "@/components/HeroCorners";
 import styles from "@/components/Hero.module.css";
@@ -148,43 +147,23 @@ import { getEntry, subscribeEntry, type Entry } from "@/components/motion/entry"
  */
 
 /*
- * How much of the collection a stranger can open right now.
- *
- * Derived, never typed. The plate says a number out loud, and the one thing
- * worse than not saying it is saying one that stopped being true — so it is
- * counted from the table that would have to change for it to be wrong.
- *
- * "Live" means a product you can click into: a `link`, on an entry that is not
- * archived (`isLive`). It once counted every link and said "5 live", four of
- * them learning projects on Netlify; two of those were removed and the other
- * two are archived (2026-11-03). Bothy, self-hosted with only a repository to
- * point at, is honestly not live either. The phrasing matters as much as the count. "In use"
- * would have been a claim about other people's habits that exactly one project
- * in the table can support; "live" is a claim a reader can check by clicking.
- *
- * Counted off the seed table rather than through `useProjects`, which is the
- * deliberate tradeoff: the hook can only answer after a request, and a plate
- * that fades a number in a moment after the page has settled is worse than one
- * that reads from the floor under the hook. The seeds are that floor, and the
- * `Collection` shape the hook returns does not carry a project's state anyway.
- */
-const liveCount = projects.filter(isLive).length;
-
-/*
  * The field line, and why it is in this order.
  *
- * Written as `where`, `count`, `when`, and rendered in whatever order the
- * schema puts those kinds in — `ObjectLabel` sorts by kind, so this list is a
- * set of facts and not a layout. The place is first because it is the field
- * that still says something when the line is cropped, which is how a field line
- * spends most of its life.
+ * Written as `where`, `when`, and rendered in whatever order the schema puts
+ * those kinds in — `ObjectLabel` sorts by kind, so this list is a set of facts
+ * and not a layout. The place is first because it is the field that still
+ * says something when the line is cropped, which is how a field line spends
+ * most of its life.
  *
- * Three fields, which is the cap. A fourth makes a datasheet, and a datasheet
- * is what the project blocks were before they were cut back to this.
+ * There was a third field, a count of live projects ("5 live", later
+ * "1 live"). It was dropped on 2026-11-03: by the only honest rule (a link to
+ * a product, not archived) it undersold the work, since Bothy is released and
+ * open source without being "live". A number that is accurate and misleading
+ * is not worth the space. Two fields also fit one line at every phone width,
+ * so the forced break the three-field line needed (#112) went with it.
  */
 const PLATE_FIELDS: LabelField[] = [
   { kind: "where", value: plate.where },
-  { kind: "count", value: `${liveCount} live` },
   { kind: "when", value: `Shipping since ${plate.shippingSince}` },
 ];
 

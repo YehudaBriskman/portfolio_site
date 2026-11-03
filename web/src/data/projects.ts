@@ -352,8 +352,8 @@ export const seedProjects: Project[] = projects;
  * A `link` alone used to be the test, which made every learning project with
  * a Netlify page "live" and put "5 LIVE" on the hero. An archived entry keeps
  * its link (the page still loads, and hiding it would be its own small lie)
- * but is not counted. The hero plate and the specs plate both read this, so
- * they cannot disagree.
+ * but is not counted. The specs plate reads this; the hero no longer prints
+ * a live count at all (2026-11-03).
  */
 export function isLive(p: Project): boolean {
   return typeof p.link === "string" && p.link.length > 0 && p.state !== "Archive";

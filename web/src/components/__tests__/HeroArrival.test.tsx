@@ -85,9 +85,19 @@ describe("the first screen's hooks", () => {
        still on because the off-switches reach the fields through it. A plate
        that swapped a field for another kind would render a field no exit
        could restate, in a stylesheet that still compiles. */
-    for (const kind of ["where", "count", "when"]) {
+    for (const kind of ["where", "when"]) {
       expect(document.querySelector(`li[data-kind="${kind}"]`)).not.toBeNull();
     }
+  });
+
+  it("prints no live count on the field line (2026-11-03)", () => {
+    /* "5 live", then "1 live": accurate by its rule and still a misreading
+       of the work, since Bothy is released and open source without being
+       "live". The line is the place and the span, nothing counted. */
+    const { container } = render(<Hero />);
+    const items = [...container.querySelectorAll("#hero ul > li")].map((li) => li.textContent);
+    expect(items).toEqual([plate.where, `Shipping since ${plate.shippingSince}`]);
+    expect(container.querySelector('li[data-kind="count"]')).toBeNull();
   });
 
   it("renders the four parts the stylesheets reach for", () => {
@@ -621,7 +631,7 @@ describe("the field line, in both directions and at every width", () => {
     try {
       const { container } = render(<Hero />);
       const items = [...container.querySelectorAll("#hero ul > li")];
-      expect(items.length).toBe(3);
+      expect(items.length).toBe(2);
 
       /*
        * `5 live` inside an RTL paragraph is a European number, a neutral
@@ -638,7 +648,7 @@ describe("the field line, in both directions and at every width", () => {
         expect(bdi!.textContent).toBe(li.textContent);
         expect(bdi!.hasAttribute("dir")).toBe(false);
       }
-      expect(items.some((li) => /^\d+ live$/.test(li.textContent ?? ""))).toBe(true);
+      expect(items.some((li) => /\d{4}$/.test(li.textContent ?? ""))).toBe(true);
     } finally {
       document.documentElement.removeAttribute("dir");
     }
@@ -651,19 +661,6 @@ describe("the field line, in both directions and at every width", () => {
     expect(container.querySelector("li > bdi")?.textContent).toBe("2024");
   });
 
-  it("breaks before the span on a narrow plate, and drops its separator there", () => {
-    const hero = strip(readFileSync(resolve(HERE, "../Hero.module.css"), "utf8"));
-
-    /* The wrap used to land wherever the row ran out, carrying the next
-       field's leading `·` onto the start of a line. The break is now chosen:
-       the span alone on the second line, with no separator. */
-    expect(hero).toMatch(/\.plate \{\s*container-type: inline-size;/);
-    const at = hero.indexOf("@container (max-width: 23rem)");
-    expect(at).toBeGreaterThan(-1);
-    const block = hero.slice(at, hero.indexOf("\n}", at));
-    expect(block).toMatch(/\[data-kind="when"\] \{\s*flex-basis: 100%/);
-    expect(block).toMatch(/\[data-kind="when"\]::before \{\s*content: none/);
-  });
 });
 
 describe("the hero's lower corners", () => {

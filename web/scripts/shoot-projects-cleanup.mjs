@@ -4,7 +4,7 @@
  *
  *   projects-1440x900.png        /projects, the full page
  *   home-work-1440x900-<t>.png   the work run, held at point t of its range
- *   home-hero-1440x900.png       the hero plate, for its live count
+ *   home-hero-1440x900.png       the hero plate and its field line
  *
  * RUNNING IT
  * ----------
@@ -49,7 +49,7 @@ await page.waitForFunction(() => document.querySelector("[data-run-stage] a"), n
 /* The hero's arrival masks need frames to move off the plate. */
 await frames(page, 20);
 await page.screenshot({ path: `${OUT}/home-hero-1440x900.png` });
-console.log("hero plate:", await page.evaluate(() => (document.body.innerText.match(/\d+ live/i) ?? ["(none)"])[0]));
+console.log("hero plate:", await page.evaluate(() => [...document.querySelectorAll("#hero ul > li")].map((li) => li.textContent).join(" · ")));
 
 const range = await page.evaluate(() => {
   const stage = document.querySelector("[data-run-stage]");
