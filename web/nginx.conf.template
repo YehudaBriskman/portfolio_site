@@ -66,8 +66,8 @@ server {
   port_in_redirect off;
 
   # One name for the API, resolved per request. Declared here because the
-  # first location that uses it is the next one; all nine proxy_pass lines in
-  # this file — /api/, the four crawler files and the four rendered shells —
+  # first location that uses it is the next one; all ten proxy_pass lines in
+  # this file — /api/, the three crawler files and the six rendered pages —
   # read this one variable, so the host is stated once.
   #
   # The host is templated, and that is the whole repair for the preprod 502s.
@@ -202,6 +202,18 @@ server {
 
   location = /projects {
     proxy_pass http://$api_upstream/api/seo/render/projects;
+    include /etc/nginx/snippets/proxy-headers.conf;
+    proxy_intercept_errors on;
+    error_page 500 502 503 504 = @spa;
+  }
+
+  # An area's page (#225). Two segments, so the one-segment location below
+  # never matched it, and a direct load or a shared link fell through to
+  # `location /` and answered 404 with the home page's head while the app
+  # booted over it and looked fine (#238). The renderer answers 404 itself for
+  # an unknown or hidden area, so nothing here needs to know which exist.
+  location ~ "^/blog/area/([^/.]+)/?$" {
+    proxy_pass http://$api_upstream/api/seo/render/blog/area/$1;
     include /etc/nginx/snippets/proxy-headers.conf;
     proxy_intercept_errors on;
     error_page 500 502 503 504 = @spa;
