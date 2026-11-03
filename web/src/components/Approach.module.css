@@ -187,7 +187,7 @@
   view-timeline: --approach-fig block;
   /* The pen's reading window, from the one place it is set (`--read-from`
      and `--read-to` in index.css, `READING` in motion/penClock.ts). */
-  view-timeline-inset: calc(var(--read-to) * 100vh) calc((1 - var(--read-from)) * 100vh);
+  view-timeline-inset: calc(var(--read-to, 0.38) * 100vh) calc((1 - var(--read-from, 0.68)) * 100vh);
 }
 
 /* The box the line loops round: exactly the figure, so the circle is

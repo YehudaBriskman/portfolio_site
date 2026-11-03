@@ -11,7 +11,7 @@ import {
   type Ref,
 } from "react";
 import styles from "@/components/motion/Written.module.css";
-import { penRange } from "@/components/motion/penClock";
+import { penRange, READING, sequence } from "@/components/motion/penClock";
 
 /*
  * `pen` — prose that is written as it is read.
@@ -56,12 +56,24 @@ import { penRange } from "@/components/motion/penClock";
  *     pauses and never writes two words at once, across line breaks too.
  *
  * The clock (`Written.module.css`) runs from the paragraph's top reaching
- * 95% of the window's height to its bottom reaching 62%, so a paragraph of
- * `h` px gets `h + 33vh` of scroll — slow enough to watch, and finished
- * before the eye, which reads in the upper half of the window, gets there.
- * (Until #174 it ran from 85% to 45%, and the reader arrived at the unwritten
- * tail of every paragraph before the pen did: measured, that was the lag.)
+ * 68% of the window's height to its bottom reaching 38% — the READING
+ * WINDOW, `READING` in `penClock.ts` and `--read-from` / `--read-to` in
+ * index.css, one pair of numbers for every pen on the site (owner,
+ * 2026-11-03: it "starts too early, when the text is at the bottom of the
+ * window"). It ran from 95% to 62% after #174, and from 85% to 45% before.
  *
+ * ONE BLOCK AT A TIME (owner, 2026-11-03: "several sections ink at the same
+ * time"). That natural clock is `h + 30vh` of scroll, so two paragraphs a
+ * margin apart shared a third of the window and both were mid-ink. The
+ * sequencer below (`sequence` in `penClock.ts`) reads every live block's
+ * place on the page and cuts each one's clock down to its own turn: it may
+ * not start before the block before it is finished, and it is finished by
+ * the time the next one is due to start. It writes the cut as two numbers
+ * on the block, `--pen-lead` and `--pen-span`, and the stylesheet rescales
+ * every word's slice into that part of the block's own view timeline. So at
+ * any scroll position at most one block, and within it at most one word, is
+ * between muted and ink, in document order.
+
  * The words keep one animation each, on purpose (#174). The alternative —
  * one registered `--pen` number animated on the paragraph, each word working
  * its ink out from it — was built and measured: it re-styles every word of
@@ -223,10 +235,9 @@ function canRun(): boolean {
  *
  * Both are exactly the values the animation's own fill would hold there, so
  * crossing in or out of the zone changes nothing a reader can see. The zone
- * is the window from 58% of its height down to its foot, which contains the
- * whole clock (top at 95% to bottom at 62%) with a margin either side. It is
- * 42% of the window where it was 60% before #174, so fewer paragraphs are
- * live at once.
+ * is the reading window with 4% of margin either side — from 34% of the
+ * window's height to 72% — which contains every block's whole clock (top at
+ * 68% to bottom at 38%, or the sequencer's shorter cut of it).
  *
  * TWO OBSERVERS, because one cannot tell `above` from `below` reliably. An
  * observer reports crossings of its own zone, and a jump — a fragment link, a
@@ -263,17 +274,105 @@ function observer(key: "penNear" | "penPast", rootMargin: string): IntersectionO
   );
 }
 
+/* The near-watch's zone: the reading window and a margin, as `rootMargin` shares. */
+const MARGIN = 0.04;
+const ZONE_TOP = Math.round((READING.to - MARGIN) * 100);
+const ZONE_FOOT = Math.round((1 - READING.from - MARGIN) * 100);
+
 function watch(el: HTMLElement): () => void {
   if (!canRun()) return () => {};
-  near ??= observer("penNear", "-58% 0px 0px 0px");
-  /* From the zone's top edge (58% of the window) upwards, without end. */
-  past ??= observer("penPast", "1000000px 0px -42% 0px");
+  near ??= observer("penNear", `-${ZONE_TOP}% 0px -${ZONE_FOOT}% 0px`);
+  /* From the zone's top edge upwards, without end. */
+  past ??= observer("penPast", `1000000px 0px -${100 - ZONE_TOP}% 0px`);
   near.observe(el);
   past.observe(el);
+  blocks.add(el);
+  queue();
   return () => {
     near?.unobserve(el);
     past?.unobserve(el);
+    blocks.delete(el);
+    queue();
   };
+}
+
+/* ------------------------------------------------------- the sequencer -- */
+
+/*
+ * Every block on the page, and when each one's turn is (see the header and
+ * `sequence` in `penClock.ts`).
+ *
+ * Measured, so re-measured whenever the answer can change: a block arriving
+ * or leaving, the document's size changing (a picture, a late font, content
+ * from the network), the window's height changing (the reading window is a
+ * share of it), and fonts finishing. Coalesced to one pass per task, and it
+ * writes two custom properties per block — nothing per frame; the scroll
+ * itself is still entirely CSS.
+ *
+ * A block inside a pinned (sticky or fixed) box is left out and keeps its
+ * whole clock: its place on the page moves with the scroll, so a distance
+ * measured to it now is not the distance the scroll will travel to it.
+ */
+const blocks = new Set<HTMLElement>();
+let queued = 0;
+let sized: ResizeObserver | null = null;
+
+function pinned(el: HTMLElement, seen: Map<Element, boolean>): boolean {
+  const chain: Element[] = [];
+  let at: Element | null = el.parentElement;
+  let found = false;
+  while (at && at !== document.body) {
+    const known = seen.get(at);
+    if (known !== undefined) {
+      found = known;
+      break;
+    }
+    chain.push(at);
+    const pos = getComputedStyle(at).position;
+    if (pos === "sticky" || pos === "fixed") {
+      found = true;
+      break;
+    }
+    at = at.parentElement;
+  }
+  for (const c of chain) seen.set(c, found);
+  return found;
+}
+
+function measure() {
+  queued = 0;
+  const viewport = window.innerHeight;
+  if (!viewport) return;
+  const seen = new Map<Element, boolean>();
+  const live: HTMLElement[] = [];
+  for (const el of blocks) {
+    if (!el.isConnected || el.getClientRects().length === 0 || pinned(el, seen)) {
+      el.style.removeProperty("--pen-lead");
+      el.style.removeProperty("--pen-span");
+      continue;
+    }
+    live.push(el);
+  }
+  live.sort((a, b) => (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1));
+  const spans = live.map((el) => {
+    const r = el.getBoundingClientRect();
+    return { top: r.top, bottom: r.bottom };
+  });
+  sequence(spans, viewport).forEach(({ lead, span }, i) => {
+    live[i].style.setProperty("--pen-lead", `${Math.round(lead * 1e6) / 1e4}%`);
+    live[i].style.setProperty("--pen-span", String(Math.round(span * 1e6) / 1e6));
+  });
+}
+
+function queue() {
+  if (queued || typeof window === "undefined") return;
+  queued = window.setTimeout(measure, 0);
+  if (!sized && typeof ResizeObserver === "function") {
+    sized = new ResizeObserver(() => queue());
+    sized.observe(document.documentElement);
+    window.addEventListener("resize", () => queue(), { passive: true });
+    document.fonts?.addEventListener?.("loadingdone", () => queue());
+  }
 }
 
 /* ------------------------------------------------------------- component -- */
