@@ -292,7 +292,7 @@ const PROSE = [
   // points smaller than the paragraph it was lifted from.
   "prose-blockquote:my-10 prose-blockquote:not-italic prose-blockquote:font-normal",
   "prose-blockquote:rounded-[var(--r-lg)] prose-blockquote:border prose-blockquote:border-l prose-blockquote:border-ridge prose-blockquote:border-l-ridge",
-  "prose-blockquote:bg-white/60 prose-blockquote:px-6 prose-blockquote:py-5",
+  "prose-blockquote:bg-sheet/60 prose-blockquote:px-6 prose-blockquote:py-5",
   "prose-blockquote:text-bone",
   "[&_blockquote_p:first-of-type]:before:content-none [&_blockquote_p:last-of-type]:after:content-none",
   // `font-code` for the same reason the <pre> above takes it: an inline code
@@ -300,7 +300,7 @@ const PROSE = [
   // as one. Tailwind Typography's own default for `code` is the theme's
   // `mono`, which is the data role now, so this has to be stated.
   "prose-code:font-code",
-  "prose-code:rounded-[var(--r-sm)] prose-code:border prose-code:border-ridge prose-code:bg-white/60",
+  "prose-code:rounded-[var(--r-sm)] prose-code:border prose-code:border-ridge prose-code:bg-sheet/60",
   // Bone, matching the code blocks: see CodeHighlight, where the whole theme
   // was re-keyed to bone and weight so a fenced sample and an inline span now
   // read as the same material rather than as two different palettes.

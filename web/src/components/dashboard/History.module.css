@@ -105,7 +105,7 @@
   border-block-end: 1px solid var(--dash-line-soft);
   border-start-start-radius: var(--dash-r);
   border-start-end-radius: var(--dash-r);
-  background: rgb(var(--panel-ink) / 0.03);
+  background: rgb(var(--ink) / 0.03);
   font-family: var(--font-text);
   font-size: 0.8125rem;
   font-weight: 600;
@@ -293,7 +293,7 @@
   padding: 0.25rem;
   border: 1px solid var(--dash-line);
   border-radius: var(--dash-r-inner);
-  background: rgb(var(--panel));
+  background: rgb(var(--canvas));
 }
 
 .shareMenu ul {
@@ -539,7 +539,7 @@ a.legendItem:hover {
 }
 
 a.legendItem[aria-current="true"] {
-  background: rgb(var(--panel-ink) / 0.08);
+  background: rgb(var(--ink) / 0.08);
   font-weight: 600;
 }
 

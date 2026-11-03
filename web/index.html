@@ -30,7 +30,20 @@
          near-black canvas and dark form controls for the moment before the CSS
          landed, then flipped to cream. -->
     <meta name="theme-color" content="#ECE8DC" />
-    <meta name="color-scheme" content="light" />
+    <!-- Both, since #247: the page has a Light and a Dark theme, and
+         `color-scheme` on the root (index.css) says which one is showing.
+         The theme-color above is Light's paper; theme-boot.js rewrites it to
+         the Dark ground before first paint when that is the theme. -->
+    <meta name="color-scheme" content="light dark" />
+    <!-- The theme a reader who has never chosen gets: Light, Dark or System.
+         Written at build time from `src/lib/themeDefault.ts`, the one place
+         it is set; the site settings (#254) override this attribute. -->
+    <meta name="site-theme-default" content="%SITE_THEME_DEFAULT%" />
+    <!-- Classic, blocking and same-origin, so it runs before <body> is
+         painted and `script-src 'self'` admits it with no hash. Not a
+         module: a module is deferred and could run after the first frame.
+         See the note at the top of the file. -->
+    <script src="/theme-boot.js"></script>
 
     <!-- The SVG first, and it is not decoration: it is the only one of these
          that can answer `prefers-color-scheme`. A tab strip is the one

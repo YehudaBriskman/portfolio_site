@@ -367,8 +367,8 @@ jobs:
       - run: npm test
       - run: npm run build
       # The accessibility floor (#99): axe-core over every public route, in
-      # both reading directions, at 1440px and at 320px, against the build
-      # that just shipped. A floor and not the audit — the manual half lives
+      # both reading directions and both themes (#247), at 1440px and at
+      # 320px, against the build that just shipped. A floor and not the audit — the manual half lives
       # in docs/accessibility/audit.md — but it is the half that can regress
       # silently in a pull request, so it is the half CI holds.
       #

@@ -27,6 +27,9 @@ export default {
         /* The paper palette's own names. The legacy ones above still
            resolve through index.css while call sites migrate. */
         paper: rgb("--paper"),
+        /* A card' material and its lit edge, per theme (#247). */
+        sheet: rgb("--sheet"),
+        sheen: rgb("--sheen"),
         "paper-2": rgb("--paper-2"),
         "paper-3": rgb("--paper-3"),
         ink: rgb("--ink"),

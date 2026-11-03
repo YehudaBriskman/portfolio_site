@@ -779,8 +779,8 @@
        ground: there, a shadow is the only thing separating two near-black
        surfaces, so it has to be enormous. Here the border does that job and
        the shadow only has to lift the object a few millimetres. */
-    --shadow-lift: 0 1px 0 rgb(255 255 255 / .7) inset, 0 10px 24px -18px rgb(var(--ink) / .35);
-    --shadow-press: 0 4px 10px -8px rgb(var(--ink) / .4);
+    --shadow-lift: 0 1px 0 rgb(var(--sheen) / .7) inset, 0 10px 24px -18px rgb(var(--shade) / .35);
+    --shadow-press: 0 4px 10px -8px rgb(var(--shade) / .4);
 
     /*
      * One shadow family for the page's objects, declared as GEOMETRY ONLY.
@@ -839,6 +839,25 @@
     --shade: var(--ink);
 
     /*
+     * What a card is cut from, and the light along its top edge (#247).
+     *
+     * Every paper card on the site was `rgb(255 255 255 / .55)` with a
+     * `rgb(255 255 255 / .7) inset` sheen, typed into eleven rules. That is a
+     * ground hard-coded eleven times: under the dark theme it composited a
+     * light grey slab onto the dark ground with light type on it, at about
+     * 2:1. So the white is a token now and each rule keeps its own alpha —
+     * `rgb(var(--sheet) / .55)` — which is the same construction `--shade`
+     * uses for shadows. `--well` is the inset a control sits in (the
+     * dashboard's search and count wells), alpha included, because the two
+     * themes want different strengths rather than the same one inverted.
+     */
+    --sheet: 255 255 255;
+    --sheen: 255 255 255;
+    --well:  20 19 15 / 0.06;
+
+    color-scheme: light;
+
+    /*
      * Softer than it was, at every step.
      *
      * 10/16/24 is the radius ladder of a dense interface, and this is not
@@ -889,6 +908,92 @@
     --dur-fast: .24s;
     --dur-settle: .8s;
     --dur-slow: 1.2s;
+  }
+
+  /*
+   * ────────────────────────────────────────────────────────────────────
+   * The dark theme (#247): the dashboard ground, under every page.
+   * ────────────────────────────────────────────────────────────────────
+   * Two themes, and both were already on the site. Light is the block above:
+   * paper and ink. Dark is the ground /blog, /projects and a project page
+   * stood on before this change — the note cards' warm dark
+   * (`notes/DarkCard.module.css`, #185) — promoted from one subtree to the
+   * whole document. It is a set of VALUES for the same names, never a
+   * second set of names, so not one call site learns which theme it is in.
+   *
+   * WHICH ELEMENT CARRIES IT. `data-theme` on <html>, written before first
+   * paint by `public/theme-boot.js` (a classic, blocking, same-origin script:
+   * `script-src 'self'` admits it and no hash is needed) and afterwards by
+   * `lib/theme.ts`. The attribute always holds the RESOLVED theme, light or
+   * dark, so "System" is resolved in exactly one place and this file has
+   * exactly one dark block rather than a second copy under a media query.
+   *
+   * WHY IT IS ON :root AND NOWHERE ELSE, and this is the trap on `--panel`
+   * turned to an advantage. Every alias above — `--canvas`, `--bitumen`,
+   * `--bone`, `--shadow-lift`, the shadcn set — is declared on :root and
+   * resolves THERE. A theme declared on :root is the one place where
+   * re-pointing the primitives re-points every alias with them, because the
+   * aliases are resolved after this rule wins the cascade on the same
+   * element. Declared on <body> or a wrapper it would re-ink nothing.
+   *
+   * Measured on --paper #1C1A16 (L 0.0103), and on --paper-2 where a card
+   * stands on it:
+   *
+   *   token         value         on paper   on paper-2   floor
+   *   --ink         242 240 234   15.25      13.39        4.5 text
+   *   --ink-soft    168 164 154    6.98       6.14        4.5 text
+   *   --signal      122 162 232    6.75       5.93        4.5 text (links)
+   *   --rule-firm   118 113 104    3.58       3.15        3   control edge
+   *   --ink-faint   124 120 109    3.94       3.46        non-text only
+   *   --destructive-ink             6.15       5.40        4.5 text
+   *
+   * The focus ring is `--bone`, which is --ink: 15.25:1 on the ground.
+   *
+   * THE DARK ACT UNDER DARK, which #99 asked to be decided rather than
+   * defaulted. `.on-panel` keeps its own values: `--panel` #0C0C0E under a
+   * #1C1A16 page, so the act SINKS one step instead of inverting. A paper act
+   * on a dark page would be a flashbang in the middle of a reading; making
+   * the act identical to the page would erase the structure the home page is
+   * built on (Work and the Year are the two acts, Approach the separation);
+   * and there is no room to go darker than #0C0C0E (see `--panel-3`). So
+   * the act stays the deepest ground on the site in both themes, and its
+   * seam and crest (`DarkAct.module.css`) draw the boundary that the
+   * 1.12:1 step alone would not.
+   */
+  :root[data-theme='dark'] {
+    --paper:    28  26  22;   /* #1C1A16  the dashboard ground */
+    --paper-2:  40  37  32;   /* #282520  a raised surface on it */
+    /* The recess goes UP on a dark ground, for the reason `--panel-3`
+       gives: there is no room below. */
+    --paper-3:  52  48  42;   /* #34302A */
+    --ground-warm: 34 30 22;
+    --ground-cool: 26 28 32;
+
+    --ink:       242 240 234;
+    --ink-soft:  168 164 154;
+    --ink-faint: 124 120 109;
+    --rule:       62  58  51;  /* hairlines: decorative, no floor */
+    --rule-firm: 118 113 104;
+
+    /* The same five hues at rest, mixed into the dark ground at ~14%
+       instead of the light one, so a wash stays a tint and --ink on it
+       stays above 11:1. */
+    --wash-red:    56 32 32;
+    --wash-blue:   24 38 52;
+    --wash-green:  24 50 35;
+    --wash-yellow: 60 51 19;
+    --wash-purple: 47 35 50;
+
+    --signal:     122 162 232;  /* --accent-on-panel: the one hue, lighter */
+    --signal-ink:  20  19  15;  /* white on it was 2.57:1; this is 7.22:1 */
+    --accent-ink:  20  19  15;
+    --shade:        0   0   0;  /* a shadow in the ground's own ink is a halo */
+
+    --sheet: 52 48 42;          /* at .55 over the ground lands on --paper-2 */
+    --sheen: 74 69 60;          /* a lit edge, not a white line */
+    --well:  0 0 0 / 0.22;
+
+    color-scheme: dark;
   }
 
   /*
@@ -1219,6 +1324,12 @@
        It has to be RESTATED here and not inherited — see the geometry-only
        note on --lift-1 above, and the trap on --panel. */
     --shade:     0 0 0;
+    /* The card material and the type on the signal, as the dark theme sets
+       them (#247): a card cut from white inside the act was a grey slab. */
+    --sheet:      52 48 42;
+    --sheen:      74 69 60;
+    --well:       0 0 0 / 0.22;
+    --signal-ink: 20 19 15;
     background: rgb(var(--panel));
     color: rgb(var(--ink));
   }
@@ -1678,10 +1789,10 @@
     /* Paper, not the near-black ground this was written for: a 7% white veil
        and a 60px shadow at 78% black made a surface visible on bitumen and
        make a grey smear on cream. Same construction as `.card-paper`. */
-    background: rgb(255 255 255 / .55);
+    background: rgb(var(--sheet) / .55);
     border: 1px solid rgb(var(--rule));
-    box-shadow: 0 1px 0 rgb(255 255 255 / .7) inset,
-                0 10px 24px -18px rgb(var(--ink) / .35);
+    box-shadow: 0 1px 0 rgb(var(--sheen) / .7) inset,
+                0 10px 24px -18px rgb(var(--shade) / .35);
     transition: border-color var(--dur-fast) ease, background-color var(--dur-fast) ease,
                 transform var(--dur-settle) var(--ease-settle);
   }
@@ -1761,17 +1872,17 @@
    * gradient.
    */
   .card-paper {
-    background: rgb(255 255 255 / .55);
+    background: rgb(var(--sheet) / .55);
     border: 1px solid rgb(var(--rule));
     border-radius: var(--r-md);
-    box-shadow: 0 1px 0 rgb(255 255 255 / .7) inset,
-                0 10px 24px -18px rgb(var(--ink) / .35);
+    box-shadow: 0 1px 0 rgb(var(--sheen) / .7) inset,
+                0 10px 24px -18px rgb(var(--shade) / .35);
   }
   @media (hover: hover) and (pointer: fine) {
     a.card-paper:hover, .card-paper:has(a:hover) {
       border-color: rgb(var(--rule-firm));
-      box-shadow: 0 1px 0 rgb(255 255 255 / .8) inset,
-                  0 18px 36px -22px rgb(var(--ink) / .45);
+      box-shadow: 0 1px 0 rgb(var(--sheen) / .8) inset,
+                  0 18px 36px -22px rgb(var(--shade) / .45);
     }
   }
 
@@ -1787,10 +1898,10 @@
   .figure-frame {
     display: block;
     margin: 0;
-    background: rgb(255 255 255 / .6);
+    background: rgb(var(--sheet) / .6);
     border: 1px solid rgb(var(--rule-firm));
     padding: theme('spacing.3');
-    box-shadow: 0 14px 30px -22px rgb(var(--ink) / .5);
+    box-shadow: 0 14px 30px -22px rgb(var(--shade) / .5);
   }
   .figure-frame > img,
   .figure-frame > picture > img {
@@ -1913,9 +2024,9 @@
        cream it is a grey smear with a bruise under it. Same build as
        `.card-paper`, which is what every surface on the site now is. */
     border: 1px solid rgb(var(--rule));
-    background: rgb(255 255 255 / .55);
-    box-shadow: 0 1px 0 rgb(255 255 255 / .7) inset,
-                0 10px 24px -18px rgb(var(--ink) / .35);
+    background: rgb(var(--sheet) / .55);
+    box-shadow: 0 1px 0 rgb(var(--sheen) / .7) inset,
+                0 10px 24px -18px rgb(var(--shade) / .35);
     transition: border-color var(--dur-fast) ease, box-shadow var(--dur-fast) ease,
                 transform var(--dur-fast) var(--ease-settle);
   }
@@ -2143,7 +2254,7 @@
   .chip {
     display: inline-flex; align-items: center; gap: .4rem;
     border-radius: var(--r-pill);
-    border: 1px solid rgb(255 255 255 / .22);
+    border: 1px solid rgb(var(--ink) / .22);
     background: rgb(var(--bitumen) / .55);
     padding: .3rem .7rem;
     font-family: var(--font-data);
@@ -2155,7 +2266,7 @@
      and Playpen Sans Hebrew interpolates to it. 500 would have resolved back
      down to 400 and read as no emphasis at all. */
   .chip b { font-weight: var(--weight-data-strong); color: rgb(var(--bone)); font-variant-numeric: tabular-nums; }
-  .chip-hot { border-color: rgb(255 255 255 / .34); color: rgb(var(--bone)); }
+  .chip-hot { border-color: rgb(var(--ink) / .34); color: rgb(var(--bone)); }
 
   /* Chips scroll on a phone instead of wrapping into a ragged grey block. */
   .rail {
@@ -2382,9 +2493,9 @@
     /* Repapered. See .card-paper — the dark-ground construction is a grey
        smear on cream, and NoteCard.module.css had to restate all of it. */
     border: 1px solid rgb(var(--rule));
-    background: rgb(255 255 255 / .55);
-    box-shadow: 0 1px 0 rgb(255 255 255 / .7) inset,
-                0 10px 24px -18px rgb(var(--ink) / .35);
+    background: rgb(var(--sheet) / .55);
+    box-shadow: 0 1px 0 rgb(var(--sheen) / .7) inset,
+                0 10px 24px -18px rgb(var(--shade) / .35);
     transition: border-color var(--dur-fast) ease, background-color var(--dur-fast) ease,
                 transform var(--dur-micro) var(--ease-settle);
   }
@@ -2409,7 +2520,7 @@
 
   .meta-pill {
     display: inline-flex; align-items: center; gap: .5rem;
-    border-radius: var(--r-pill); border: 1px solid rgb(255 255 255 / .22);
+    border-radius: var(--r-pill); border: 1px solid rgb(var(--ink) / .22);
     background: rgb(var(--bitumen) / .5);
     padding: .5rem .875rem;
     font-family: var(--font-data);
@@ -2419,7 +2530,7 @@
 
   .tag-pill {
     display: inline-flex; align-items: center;
-    border-radius: var(--r-pill); border: 1px solid rgb(255 255 255 / .22);
+    border-radius: var(--r-pill); border: 1px solid rgb(var(--ink) / .22);
     background: rgb(var(--bitumen) / .5);
     padding: .375rem .75rem;
     font-family: var(--font-data);
@@ -2427,7 +2538,7 @@
     color: rgb(var(--clay));
     transition: color var(--dur-micro) ease, border-color var(--dur-micro) ease;
   }
-  .tag-pill:hover, .tag-pill:focus-visible { color: rgb(var(--bone)); border-color: rgb(255 255 255 / .4); }
+  .tag-pill:hover, .tag-pill:focus-visible { color: rgb(var(--bone)); border-color: rgb(var(--ink) / .4); }
   .tag-pill--active { background: rgb(var(--bone)); border-color: transparent; color: rgb(var(--bitumen)); }
 
   /*

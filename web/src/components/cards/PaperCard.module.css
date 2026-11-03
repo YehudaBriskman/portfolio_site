@@ -72,7 +72,9 @@
  */
 .card.card {
   border-radius: var(--card-radius, var(--r-lg));
-  background-color: rgb(var(--card-wash, 246 245 239));
+  background-color: rgb(var(--card-wash, var(--card-ground)));
+  /* The unwashed ground, re-pointed under Dark below (#247). */
+  --card-ground: 246 245 239;
   /*
    * --rule-firm, not --rule.
    *
@@ -99,8 +101,8 @@
   .card.card:has(a:hover) {
     border-color: rgb(var(--ink-soft));
     box-shadow:
-      0 1px 0 rgb(255 255 255 / 0.8) inset,
-      0 18px 36px -22px rgb(var(--ink) / 0.45);
+      0 1px 0 rgb(var(--sheen) / 0.8) inset,
+      0 18px 36px -22px rgb(var(--shade) / 0.45);
   }
 }
 
@@ -214,4 +216,8 @@
   text-transform: uppercase;
   color: rgb(var(--ink-soft));
   font-variant-numeric: tabular-nums;
+}
+
+:global(:root[data-theme="dark"]) .card.card {
+  --card-ground: var(--paper-2);
 }
