@@ -22,7 +22,7 @@ const CSS = readFileSync(resolve(__dirname, "../index.css"), "utf8").replace(/\/
 /** Every declaration in every block whose selector is exactly `selector`. */
 function decls(selector: string): Map<string, string> {
   const out = new Map<string, string>();
-  const re = new RegExp(`(^|[}\\s])${selector.replace(/[[\]()'.]/g, "\\$&")}\\s*\\{`, "g");
+  const re = new RegExp(`(^|[}\\s])${selector.replace(/[\\^$.*+?()[\]{}|']/g, "\\$&")}\\s*\\{`, "g");
   for (const m of CSS.matchAll(re)) {
     let i = m.index! + m[0].length;
     let depth = 1;
