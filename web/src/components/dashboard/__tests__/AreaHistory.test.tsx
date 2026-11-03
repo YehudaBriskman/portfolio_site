@@ -174,6 +174,10 @@ describe("an area's history", () => {
     stub();
     renderAt("/blog/area/bothy");
     await screen.findByText("Note a");
+    /* Wait for the whole list, not its first row: j/k walk the rendered
+       order, and pressing before every note is in made the target race. */
+    await screen.findByText("Note b");
+    await screen.findByText("Note c");
     const title = (name: string) => screen.getByRole("link", { name });
     fireEvent.keyDown(document.body, { key: "j" });
     expect(title("Note b")).toHaveFocus();
