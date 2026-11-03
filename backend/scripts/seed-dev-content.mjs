@@ -17,9 +17,18 @@
  *   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
  *   node backend/scripts/seed-dev-content.mjs
  *
+ * The areas, and the notes filed under them, are different: they are the
+ * reviewed drafts in backend/content/, read through content-files.mjs, so a
+ * local /blog shows the real text. They reach a real database only through
+ * import-content.mjs and the admin API, never through this script.
+ *
+ *   node backend/scripts/seed-dev-content.mjs --drafts-only   # no fixture posts
+ *
  * Idempotent: documents carry fixed ids and are overwritten in place, so
  * running it twice changes nothing.
  */
+import { loadContent, toCollectionWrite, toPostWrite } from "./content-files.mjs";
+
 const URL_BASE = process.env.COUCHDB_URL ?? "http://127.0.0.1:5984";
 const USER = process.env.COUCHDB_USER ?? "portfolio_api";
 const PASS = process.env.COUCHDB_PASSWORD ?? "devonly";
@@ -183,42 +192,40 @@ const posts = [
   },
 ];
 
-const collections = [
-  {
-    _id: "collection:site",
-    type: "collection",
-    slug: "site",
-    title: "Notes",
-    tagline: "Decisions and what they cost",
-    description: "Writing about this site and the craft behind it.",
-    coverImage: null,
-    links: [],
-    order: 10,
-    status: "published",
-    kind: "site",
-    repo: null,
-    stats: null,
-    createdAt: now,
-    updatedAt: now,
-  },
-  {
-    _id: "collection:windom",
-    type: "collection",
-    slug: "windom",
-    title: "WindoM",
-    tagline: "Every new tab becomes a dashboard",
-    description: "Fixture collection, so the notes index has a second shelf.",
-    coverImage: null,
-    links: [],
-    order: 20,
-    status: "published",
-    kind: "project",
-    repo: null,
-    stats: null,
-    createdAt: now,
-    updatedAt: now,
-  },
-];
+/*
+ * The areas are the reviewed drafts in backend/content/areas, not fixtures:
+ * an area page is mostly its header, and a header reading "Fixture" shows
+ * nothing about how the real one sits. Same for the notes below, which are
+ * the reviewed drafts in backend/content/posts and are written alongside the
+ * fixture posts. `--drafts-only` leaves the fixture posts out, for
+ * screenshots of what the real content looks like.
+ */
+const DRAFTS_ONLY = process.argv.includes("--drafts-only");
+const content = loadContent();
+
+const collections = content.areas.map(({ data }) => ({
+  _id: `collection:${data.slug}`,
+  type: "collection",
+  ...toCollectionWrite(data),
+  stats: null,
+  createdAt: now,
+  updatedAt: now,
+}));
+
+const draftDocs = content.posts.map((post) => {
+  const w = toPostWrite(post);
+  return {
+    _id: `post:${w.slug}`,
+    type: "post",
+    ...w,
+    bodyFormat: "markdown",
+    createdAt: w.publishedAt ?? now,
+    updatedAt: w.publishedAt ?? now,
+    source: "authored",
+    readingMinutes: minutes(w.body),
+    seo: { title: null, description: null, canonical: null, noindex: false },
+  };
+});
 
 async function main() {
   const created = await call(`/${DB}`, { method: "PUT" });
@@ -245,9 +252,11 @@ async function main() {
   });
   console.log(`index: ${index.body.result ?? index.status}`);
 
+  const fixtures = DRAFTS_ONLY ? [] : posts;
   const docs = [
     ...collections,
-    ...posts.map((p) => ({
+    ...draftDocs,
+    ...fixtures.map((p) => ({
       _id: p.id,
       type: "post",
       slug: p.slug,
@@ -281,7 +290,10 @@ async function main() {
     console.log(`${put.ok ? "ok  " : "FAIL"} ${doc._id}${put.ok ? "" : ` ${put.status} ${JSON.stringify(put.body)}`}`);
   }
 
-  console.log(`\nseeded ${posts.filter((p) => p.status !== "draft").length} published posts, 1 draft, ${collections.length} collections`);
+  console.log(
+    `\nseeded ${draftDocs.length} reviewed notes, ${fixtures.filter((p) => p.status !== "draft").length} fixture posts, ` +
+      `${fixtures.filter((p) => p.status === "draft").length} draft, ${collections.length} collections`
+  );
 }
 
 main().catch((err) => {
