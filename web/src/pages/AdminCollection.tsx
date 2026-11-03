@@ -230,8 +230,8 @@ export default function AdminCollection() {
               {fieldError("coverImage")}
               <span className="a-hint">
                 Must be a full https:// URL that returns an image. A GitHub{" "}
-                <span className="mono">/blob/</span> link is an HTML page, not an image &mdash; use the{" "}
-                <span className="mono">raw.githubusercontent.com</span> address instead.
+                <span className="mono">/blob/</span> link is an HTML page, not an image &mdash; it is saved as
+                its <span className="mono">raw.githubusercontent.com</span> address.
               </span>
             </label>
           </div>
