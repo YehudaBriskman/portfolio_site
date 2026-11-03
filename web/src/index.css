@@ -762,11 +762,18 @@
     --accent: var(--surface);
     --accent-foreground: var(--bone);
     --destructive: 190 60 45;
-    /* #BE3C2D is a fill colour; as text on --bitumen it lands near 3.6:1. This
-       is the same red raised to a legible weight for error text and danger
-       labels. Fills keep --destructive. */
-    --destructive-ink: 232 122 108;
-    --destructive-foreground: var(--bone);
+    /* #BE3C2D is a fill colour, not text: 4.43:1 on paper. Error text and
+       danger labels take --destructive-ink, the same red set for the ground
+       it is printed on, one value per theme:
+         Light #9E281E  6.18 on paper, 5.68 on paper-2, 5.11 on paper-3
+         Dark  #E87A6C  6.15 on paper, 5.40 on paper-2, 4.64 on paper-3
+       Until 2026-11-03 Light carried Dark's value, 2.31:1 on paper: the
+       admin's danger buttons failed on every screen (held now by
+       src/test/tokenContrast.test.ts). */
+    --destructive-ink: 158 40 30;
+    /* White on the red fill, in either theme: 5.42:1. It was --bone, which
+       is the dark ink under Light, 3.43:1 on the fill. */
+    --destructive-foreground: 255 255 255;
     --border: var(--edge);
     --input: var(--edge);
     --ring: var(--bone);
@@ -987,6 +994,7 @@
     --signal:     122 162 232;  /* --accent-on-panel: the one hue, lighter */
     --signal-ink:  20  19  15;  /* white on it was 2.57:1; this is 7.22:1 */
     --accent-ink:  20  19  15;
+    --destructive-ink: 232 122 108; /* #E87A6C, 6.15:1; see the light block */
     --shade:        0   0   0;  /* a shadow in the ground's own ink is a halo */
 
     --sheet: 52 48 42;          /* at .55 over the ground lands on --paper-2 */
@@ -1330,6 +1338,7 @@
     --sheen:      74 69 60;
     --well:       0 0 0 / 0.22;
     --signal-ink: 20 19 15;
+    --destructive-ink: 232 122 108; /* the dark red; Light's is 2.3:1 on --panel */
     background: rgb(var(--panel));
     color: rgb(var(--ink));
   }
@@ -2653,7 +2662,7 @@
   .a-btn-primary { border-color: rgb(var(--sodium)); color: rgb(var(--sodium)); }
   .a-btn-primary:hover { background: rgb(var(--sodium)); color: rgb(var(--bitumen)); border-color: rgb(var(--sodium)); }
   .a-btn-danger { border-color: rgb(var(--destructive-ink) / .5); color: rgb(var(--destructive-ink)); }
-  .a-btn-danger:hover { background: rgb(var(--destructive)); color: rgb(var(--bone)); border-color: rgb(var(--destructive)); }
+  .a-btn-danger:hover { background: rgb(var(--destructive)); color: rgb(var(--destructive-foreground)); border-color: rgb(var(--destructive)); }
   .a-btn-ghost { border-color: transparent; color: rgb(var(--clay)); }
   .a-btn-ghost:hover { border-color: transparent; background: rgb(var(--surface) / .6); color: rgb(var(--bone)); }
   .a-icon-btn { width: 44px; height: 44px; padding: 0; border-radius: var(--r-sm); }
