@@ -18,7 +18,7 @@ const rounds = Number(process.argv.slice(2).find((a) => /^\d+$/.test(a)) ?? 5);
 const W = Number(process.env.W ?? 1440);
 const H = Number(process.env.H ?? 900);
 
-const COVERS = ["windom", "icaros", "text_encrypting"];
+const COVERS = ["windom", "icaros", "programing_with_yehuda"];
 const POSTS = Array.from({ length: 6 }, (_, i) => ({
   slug: `fixture-${i}`,
   title: `A note about decision ${i + 1}`,

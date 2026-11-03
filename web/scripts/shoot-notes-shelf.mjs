@@ -43,7 +43,7 @@ const WINDOWS = [
 ];
 const POINTS = [0, 0.2, 0.4, 0.6, 0.8, 1];
 
-const COVERS = ["windom", "icaros", "text_encrypting"];
+const COVERS = ["windom", "icaros", "programing_with_yehuda"];
 const TITLES = [
   ["Why sticky breaks a scroll timeline", "What a pinned element does to a view timeline"],
   ["Paper, and what it costs", "A ground that is not a gradient"],

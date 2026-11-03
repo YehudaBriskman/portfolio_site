@@ -196,10 +196,14 @@ const HOME_FALLBACK_HTML = `
 const SEEDED_PROJECTS: Record<string, { title: string; tagline: string }> = {
   windom: { title: "WindoM", tagline: "Every new tab becomes a dashboard" },
   bothy: { title: "Bothy", tagline: "A console that discovers itself" },
-  "programming-with-yehuda": { title: "Programming with Yehuda", tagline: "Teaching platform" },
-  change11: { title: "Change11", tagline: "Cash tracking" },
-  icaros: { title: "Icaros", tagline: "Car marketplace" },
-  "text-encrypting": { title: "Text Encrypting", tagline: "Encrypt and decrypt in the browser" },
+  /* Learning projects, and described as such (2026-11-03). Change11 and Text
+     Encrypting were removed; nginx answers their old URLs with a 308 to
+     /projects before a request reaches this renderer. */
+  "programming-with-yehuda": {
+    title: "Programming with Yehuda",
+    tagline: "Lesson pages built while learning React and Node",
+  },
+  icaros: { title: "Icaros", tagline: "A car-listing web app, built while learning React and Node" },
 };
 
 

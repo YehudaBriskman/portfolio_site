@@ -89,7 +89,7 @@ function notes(n) {
     publishedAt: `${2026 - (i % 4)}-${String(1 + ((i * 5) % 12)).padStart(2, "0")}-1${i % 9}T09:00:00Z`,
     tags: [TAGS[i % TAGS.length], TAGS[(i * 3 + 1) % TAGS.length]],
     collection: i % 5 === 2 ? "windom" : "site",
-    coverImage: i % 7 === 3 ? "/projects/change11-800.jpg" : null,
+    coverImage: i % 7 === 3 ? "/projects/icaros-800.jpg" : null,
     readingMinutes: 3 + (i % 9),
   }));
 }

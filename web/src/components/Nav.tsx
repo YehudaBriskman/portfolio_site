@@ -54,7 +54,7 @@ import styles from "./Nav.module.css";
  *   hero, `h2` per section, and an `h3` per object inside the pile (see
  *   `projects/ProjectRun.tsx`). Read off the home page it is
  *   `h1` Yehuda Briskman, `h2` Work over an `h3` each for WindoM, Bothy,
- *   Programming with Yehuda and Change11, then `h2` How I work, Notes, Specs
+ *   Programming with Yehuda and Icaros, then `h2` How I work, Notes, Specs
  *   and Get in touch — which is every in-page destination the index had, in
  *   the order the page reads, in context, and jumpable. The index's eight
  *   items were those six plus two that were route changes to projects not on

@@ -44,8 +44,8 @@ const COLLECTIONS = [
     latestRelease: { tag: "v1.9.0", url: "https://github.com/example/bothy/releases/tag/v1.9.0", publishedAt: at("2026-10-28") },
   })),
   col("windom", "WindoM", 10, stats("2026-09-01")),
-  col("change11", "Change11", 51, stats("2026-08-01")),
-  col("icaros", "Icaros", 52, stats("2026-10-01")),
+  col("programming-with-yehuda", "Programming with Yehuda", 50, stats("2026-08-01")),
+  col("icaros", "Icaros", 51, stats("2026-10-01")),
 ];
 
 const area = (slug: string, title: string, noteCount: number) => ({
@@ -184,7 +184,7 @@ describe("Work: the dashboard", () => {
     stub();
     renderAt("/projects");
     await screen.findAllByText("v1.9.0");
-    const change = screen.getByRole("heading", { name: "Change11" }).closest("article")!;
+    const change = screen.getByRole("heading", { name: "Programming with Yehuda" }).closest("article")!;
     expect(within(change).queryByRole("link", { name: /^Notes on/ })).toBeNull();
   });
 
@@ -215,7 +215,7 @@ describe("Work: the sort is the URL", () => {
     await screen.findAllByText("v1.9.0");
     const list = sectionOf("Projects");
     expect(within(list).getByRole("link", { name: "Recently updated" })).toHaveAttribute("aria-current", "true");
-    expect(names(list).slice(0, 2)).toEqual(["Icaros", "Change11"]);
+    expect(names(list).slice(0, 2)).toEqual(["Icaros", "Programming with Yehuda"]);
   });
 
   it("choosing Name writes ?sort=name, keeps the filters, and re-sorts", async () => {
