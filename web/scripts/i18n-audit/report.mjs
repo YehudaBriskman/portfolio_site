@@ -122,7 +122,8 @@ const out = {
 };
 writeFileSync(OUTJSON, JSON.stringify(out, null, 1) + "\n");
 
-const esc = (s) => String(s ?? "").replace(/\|/g, "\\|").replace(/\n/g, " ").replace(/</g, "&lt;");
+/* Backslash first, so the escapes added after it are not themselves escaped. */
+const esc = (s) => String(s ?? "").replace(/\\/g, "\\\\").replace(/\|/g, "\\|").replace(/\n/g, " ").replace(/&/g, "&amp;").replace(/</g, "&lt;");
 const routes = (f) => (f.route_count > 3 ? `${f.route_count} routes (${f.routes.slice(0, 2).join(", ")}, …)` : f.routes.join(", "));
 const order = { "ui-table": 0, "hard-coded": 1, "api-error": 2, settings: 3, "content-store": 4, github: 5, format: 6, seo: 7, "admin-data": 8, unknown: 9 };
 const sorted = (rows) => [...rows].sort((a, b) => (a.audience === b.audience ? (order[a.source] ?? 9) - (order[b.source] ?? 9) || b.route_count - a.route_count : a.audience.localeCompare(b.audience) * -1));

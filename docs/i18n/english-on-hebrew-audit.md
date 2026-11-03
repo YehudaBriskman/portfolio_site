@@ -213,7 +213,7 @@ client, but the server's failure reason is shown verbatim in English (S033).
 # backend on :15099 with a seeded CouchDB, web/dist served on :15173 with /api proxied
 cd web
 OUT=/tmp/audit/desktop ONLY=desktop-light-motion xvfb-run -a node scripts/i18n-audit/crawl.mjs
-OUT=/tmp/audit/seo node scripts/i18n-audit/seo.mjs
+mkdir -p /tmp/audit/seo && node scripts/i18n-audit/seo.mjs > /tmp/audit/seo/seo.json
 GLOSSARY=../docs/i18n/glossary.json node scripts/i18n-audit/classify.mjs /tmp/audit /tmp/audit/findings.json
 node scripts/i18n-audit/report.mjs /tmp/audit/findings.json /tmp/audit/seo/seo.json static.json \
   scripts/i18n-audit/overrides.json ../docs/i18n/english-on-hebrew-audit.json /tmp/audit/tables.md
@@ -598,7 +598,7 @@ IDs: `D…` crawl, `DB…` a note body, `R…` server render. Admin rows follow 
 | D1022 | WINDOM 1.4: THE APPS HUB, MARKETS AND A FIRST-RUN GUIDE | text (open:HE — החלפת שפה, open:ערכת צבעים: בהירה; גודל טקסט: רגיל;) | content-store | /he/blog/windom-1-4-apps-hub | true | translate |  |
 | D1023 | Includes 1.3.5: settings restructured, and a sync conflict removed | text (open:HE — החלפת שפה, open:ערכת צבעים: בהירה; גודל טקסט: רגיל;) | content-store | /he/blog/windom-1-4-apps-hub | true | translate |  |
 | D1028 | A finance dashboard with separate Stocks and Crypto cards, each scrollable, with ticker search and autocomplete and a toggle to show or hide… | text (open:HE — החלפת שפה, open:ערכת צבעים: בהירה; גודל טקסט: רגיל;) | content-store | /he/blog/windom-1-4-apps-hub | true | needs-he-field |  |
-| D1032 | A Help & Guide panel in the app. The same guide is published at windom.app/guide, in English and Hebrew. | text (open:HE — החלפת שפה, open:ערכת צבעים: בהירה; גודל טקסט: רגיל;) | content-store | /he/blog/windom-1-4-apps-hub | true | needs-he-field |  |
+| D1032 | A Help &amp; Guide panel in the app. The same guide is published at windom.app/guide, in English and Hebrew. | text (open:HE — החלפת שפה, open:ערכת צבעים: בהירה; גודל טקסט: רגיל;) | content-store | /he/blog/windom-1-4-apps-hub | true | needs-he-field |  |
 | D1043 | The first release: a working new-tab page, with an account that stays optional | text (open:HE — החלפת שפה, open:ערכת צבעים: בהירה; גודל טקסט: רגיל;) | content-store | /he/blog/windom-1-0-first-release | true | translate |  |
 | D1235 | Decisions, and what they cost | text (open:תפריט, open:עיון) | content-store | /he/blog/area/site | false | translate |  |
 | D1236 | fixture: 3 רשימות, 60% | text (open:תפריט, open:עיון) | content-store | /he/blog/area/site | false | needs-he-field |  |
@@ -768,11 +768,11 @@ IDs: `D…` crawl, `DB…` a note body, `R…` server render. Admin rows follow 
 | R054 | Bothy · רשימות · Yehuda Briskman | server-render head:og:title | seo | /he/blog/area/bothy | n/a | needs-he-field |  |
 | R056 | Bothy · רשימות · Yehuda Briskman | server-render head:twitter:title | seo | /he/blog/area/bothy | n/a | needs-he-field |  |
 | R058 | An updater that cannot choose the version · Yehuda Briskman | server-render head:title | seo | /he/blog/bothy-updates-deploy-what-main-pins | n/a | needs-he-field |  |
-| R059 | Bothy&apos;s updater deploys only what the main branch already pins. It checks before, snapshots, verifies by response body, rolls back on f… | server-render head:description | seo | /he/blog/bothy-updates-deploy-what-main-pins | n/a | needs-he-field |  |
+| R059 | Bothy&amp;apos;s updater deploys only what the main branch already pins. It checks before, snapshots, verifies by response body, rolls back on f… | server-render head:description | seo | /he/blog/bothy-updates-deploy-what-main-pins | n/a | needs-he-field |  |
 | R060 | An updater that cannot choose the version · Yehuda Briskman | server-render head:og:title | seo | /he/blog/bothy-updates-deploy-what-main-pins | n/a | needs-he-field |  |
-| R061 | Bothy&apos;s updater deploys only what the main branch already pins. It checks before, snapshots, verifies by response body, rolls back on f… | server-render head:og:description | seo | /he/blog/bothy-updates-deploy-what-main-pins | n/a | needs-he-field |  |
+| R061 | Bothy&amp;apos;s updater deploys only what the main branch already pins. It checks before, snapshots, verifies by response body, rolls back on f… | server-render head:og:description | seo | /he/blog/bothy-updates-deploy-what-main-pins | n/a | needs-he-field |  |
 | R062 | An updater that cannot choose the version · Yehuda Briskman | server-render head:twitter:title | seo | /he/blog/bothy-updates-deploy-what-main-pins | n/a | needs-he-field |  |
-| R063 | Bothy&apos;s updater deploys only what the main branch already pins. It checks before, snapshots, verifies by response body, rolls back on f… | server-render head:twitter:description | seo | /he/blog/bothy-updates-deploy-what-main-pins | n/a | needs-he-field |  |
+| R063 | Bothy&amp;apos;s updater deploys only what the main branch already pins. It checks before, snapshots, verifies by response body, rolls back on f… | server-render head:twitter:description | seo | /he/blog/bothy-updates-deploy-what-main-pins | n/a | needs-he-field |  |
 | R064 | An updater that cannot choose the version | server-render jsonld:headline | seo | /he/blog/bothy-updates-deploy-what-main-pins | n/a | needs-he-field |  |
 | R065 | Bothy's updater deploys only what the main branch already pins. It checks before, snapshots, verifies by response body, rolls back on failur… | server-render jsonld:description | seo | /he/blog/bothy-updates-deploy-what-main-pins | n/a | needs-he-field |  |
 | R068 | bothy, updates, ci, self-hosting | server-render jsonld:keywords | seo | /he/blog/bothy-updates-deploy-what-main-pins | n/a | needs-he-field |  |
@@ -803,21 +803,21 @@ IDs: `D…` crawl, `DB…` a note body, `R…` server render. Admin rows follow 
 | R093 | Why the Gmail widget was withdrawn | server-render jsonld:headline | seo | /he/blog/windom-gmail-withdrawn-for-licensing | n/a | needs-he-field |  |
 | R094 | Reading mail needs a Google scope that requires a recurring third-party security assessment. WindoM switched the widget off behind a flag in… | server-render jsonld:description | seo | /he/blog/windom-gmail-withdrawn-for-licensing | n/a | needs-he-field |  |
 | R095 | windom, privacy, auth, chrome-extension | server-render jsonld:keywords | seo | /he/blog/windom-gmail-withdrawn-for-licensing | n/a | needs-he-field |  |
-| R096 | A provider&apos;s 401 is not a signed-out user · Yehuda Briskman | server-render head:title | seo | /he/blog/windom-provider-401-is-not-a-session | n/a | needs-he-field |  |
+| R096 | A provider&amp;apos;s 401 is not a signed-out user · Yehuda Briskman | server-render head:title | seo | /he/blog/windom-provider-401-is-not-a-session | n/a | needs-he-field |  |
 | R097 | Signing in to WindoM worked, then undid itself. A stale Calendar or Spotify grant was being read as an expired session, and the refresh stor… | server-render head:description | seo | /he/blog/windom-provider-401-is-not-a-session | n/a | needs-he-field |  |
-| R098 | A provider&apos;s 401 is not a signed-out user · Yehuda Briskman | server-render head:og:title | seo | /he/blog/windom-provider-401-is-not-a-session | n/a | needs-he-field |  |
+| R098 | A provider&amp;apos;s 401 is not a signed-out user · Yehuda Briskman | server-render head:og:title | seo | /he/blog/windom-provider-401-is-not-a-session | n/a | needs-he-field |  |
 | R099 | Signing in to WindoM worked, then undid itself. A stale Calendar or Spotify grant was being read as an expired session, and the refresh stor… | server-render head:og:description | seo | /he/blog/windom-provider-401-is-not-a-session | n/a | needs-he-field |  |
-| R100 | A provider&apos;s 401 is not a signed-out user · Yehuda Briskman | server-render head:twitter:title | seo | /he/blog/windom-provider-401-is-not-a-session | n/a | needs-he-field |  |
+| R100 | A provider&amp;apos;s 401 is not a signed-out user · Yehuda Briskman | server-render head:twitter:title | seo | /he/blog/windom-provider-401-is-not-a-session | n/a | needs-he-field |  |
 | R101 | Signing in to WindoM worked, then undid itself. A stale Calendar or Spotify grant was being read as an expired session, and the refresh stor… | server-render head:twitter:description | seo | /he/blog/windom-provider-401-is-not-a-session | n/a | needs-he-field |  |
 | R102 | A provider's 401 is not a signed-out user | server-render jsonld:headline | seo | /he/blog/windom-provider-401-is-not-a-session | n/a | needs-he-field |  |
 | R103 | Signing in to WindoM worked, then undid itself. A stale Calendar or Spotify grant was being read as an expired session, and the refresh stor… | server-render jsonld:description | seo | /he/blog/windom-provider-401-is-not-a-session | n/a | needs-he-field |  |
 | R104 | windom, auth, testing | server-render jsonld:keywords | seo | /he/blog/windom-provider-401-is-not-a-session | n/a | needs-he-field |  |
 | R105 | The glass is computed, not decorated · Yehuda Briskman | server-render head:title | seo | /he/blog/windom-glass-as-optics | n/a | needs-he-field |  |
-| R106 | WindoM&apos;s glass bends the wallpaper through Snell&apos;s law instead of faking it with blur and tint. Getting there meant finding the br… | server-render head:description | seo | /he/blog/windom-glass-as-optics | n/a | needs-he-field |  |
+| R106 | WindoM&amp;apos;s glass bends the wallpaper through Snell&amp;apos;s law instead of faking it with blur and tint. Getting there meant finding the br… | server-render head:description | seo | /he/blog/windom-glass-as-optics | n/a | needs-he-field |  |
 | R107 | The glass is computed, not decorated · Yehuda Briskman | server-render head:og:title | seo | /he/blog/windom-glass-as-optics | n/a | needs-he-field |  |
-| R108 | WindoM&apos;s glass bends the wallpaper through Snell&apos;s law instead of faking it with blur and tint. Getting there meant finding the br… | server-render head:og:description | seo | /he/blog/windom-glass-as-optics | n/a | needs-he-field |  |
+| R108 | WindoM&amp;apos;s glass bends the wallpaper through Snell&amp;apos;s law instead of faking it with blur and tint. Getting there meant finding the br… | server-render head:og:description | seo | /he/blog/windom-glass-as-optics | n/a | needs-he-field |  |
 | R109 | The glass is computed, not decorated · Yehuda Briskman | server-render head:twitter:title | seo | /he/blog/windom-glass-as-optics | n/a | needs-he-field |  |
-| R110 | WindoM&apos;s glass bends the wallpaper through Snell&apos;s law instead of faking it with blur and tint. Getting there meant finding the br… | server-render head:twitter:description | seo | /he/blog/windom-glass-as-optics | n/a | needs-he-field |  |
+| R110 | WindoM&amp;apos;s glass bends the wallpaper through Snell&amp;apos;s law instead of faking it with blur and tint. Getting there meant finding the br… | server-render head:twitter:description | seo | /he/blog/windom-glass-as-optics | n/a | needs-he-field |  |
 | R111 | The glass is computed, not decorated | server-render jsonld:headline | seo | /he/blog/windom-glass-as-optics | n/a | needs-he-field |  |
 | R112 | WindoM's glass bends the wallpaper through Snell's law instead of faking it with blur and tint. Getting there meant finding the browser faul… | server-render jsonld:description | seo | /he/blog/windom-glass-as-optics | n/a | needs-he-field |  |
 | R113 | windom, css, performance, chrome-extension | server-render jsonld:keywords | seo | /he/blog/windom-glass-as-optics | n/a | needs-he-field |  |
@@ -883,11 +883,11 @@ IDs: `D…` crawl, `DB…` a note body, `R…` server render. Admin rows follow 
 | R174 | WindoM 1.1: settings that follow you | server-render jsonld:headline | seo | /he/blog/windom-1-1-settings-sync | n/a | needs-he-field |  |
 | R175 | WindoM 1.1 syncs preferences to your account, fixes several ways a signed-in user could be disconnected, adds a command palette, and lays do… | server-render jsonld:description | seo | /he/blog/windom-1-1-settings-sync | n/a | needs-he-field |  |
 | R176 | WindoM 1.0: the new tab as a dashboard · Yehuda Briskman | server-render head:title | seo | /he/blog/windom-1-0-first-release | n/a | needs-he-field |  |
-| R177 | WindoM 1.0 replaces Chrome&apos;s empty new tab with a dashboard: clock, weather, tasks, calendar, music, quick links and a focus timer, wit… | server-render head:description | seo | /he/blog/windom-1-0-first-release | n/a | needs-he-field |  |
+| R177 | WindoM 1.0 replaces Chrome&amp;apos;s empty new tab with a dashboard: clock, weather, tasks, calendar, music, quick links and a focus timer, wit… | server-render head:description | seo | /he/blog/windom-1-0-first-release | n/a | needs-he-field |  |
 | R178 | WindoM 1.0: the new tab as a dashboard · Yehuda Briskman | server-render head:og:title | seo | /he/blog/windom-1-0-first-release | n/a | needs-he-field |  |
-| R179 | WindoM 1.0 replaces Chrome&apos;s empty new tab with a dashboard: clock, weather, tasks, calendar, music, quick links and a focus timer, wit… | server-render head:og:description | seo | /he/blog/windom-1-0-first-release | n/a | needs-he-field |  |
+| R179 | WindoM 1.0 replaces Chrome&amp;apos;s empty new tab with a dashboard: clock, weather, tasks, calendar, music, quick links and a focus timer, wit… | server-render head:og:description | seo | /he/blog/windom-1-0-first-release | n/a | needs-he-field |  |
 | R180 | WindoM 1.0: the new tab as a dashboard · Yehuda Briskman | server-render head:twitter:title | seo | /he/blog/windom-1-0-first-release | n/a | needs-he-field |  |
-| R181 | WindoM 1.0 replaces Chrome&apos;s empty new tab with a dashboard: clock, weather, tasks, calendar, music, quick links and a focus timer, wit… | server-render head:twitter:description | seo | /he/blog/windom-1-0-first-release | n/a | needs-he-field |  |
+| R181 | WindoM 1.0 replaces Chrome&amp;apos;s empty new tab with a dashboard: clock, weather, tasks, calendar, music, quick links and a focus timer, wit… | server-render head:twitter:description | seo | /he/blog/windom-1-0-first-release | n/a | needs-he-field |  |
 | R182 | WindoM 1.0: the new tab as a dashboard | server-render jsonld:headline | seo | /he/blog/windom-1-0-first-release | n/a | needs-he-field |  |
 | R183 | WindoM 1.0 replaces Chrome's empty new tab with a dashboard: clock, weather, tasks, calendar, music, quick links and a focus timer, with an … | server-render jsonld:description | seo | /he/blog/windom-1-0-first-release | n/a | needs-he-field |  |
 | R184 | WindoM · Yehuda Briskman | server-render head:title | seo | /he/projects/windom | n/a | needs-he-field |  |
@@ -1584,7 +1584,7 @@ IDs: `D…` crawl, `DB…` a note body, `R…` server render. Admin rows follow 
 | D1269 | published | text | content-store | /he/admin/posts | false | needs-he-field |  |
 | D0072 | Full-stack engineer and team lead in Tel Aviv. I ship products end to end and build the checks that prove they still work. | head:description | seo | 43 routes (/he, /he/a-page-that-does-not-exist, …) | n/a | translate |  |
 | D0073 | Yehuda Briskman | head:og:site_name | seo | 43 routes (/he, /he/a-page-that-does-not-exist, …) | n/a | keep-latin |  |
-| D0074 | Yehuda Briskman · Full-stack engineer & team lead | head:og:title | seo | 43 routes (/he, /he/a-page-that-does-not-exist, …) | n/a | translate |  |
+| D0074 | Yehuda Briskman · Full-stack engineer &amp; team lead | head:og:title | seo | 43 routes (/he, /he/a-page-that-does-not-exist, …) | n/a | translate |  |
 | D0075 | I ship products end to end, and build the checks that prove they work. Tel Aviv. | head:og:description | seo | 43 routes (/he, /he/a-page-that-does-not-exist, …) | n/a | translate |  |
 | D0076 | https://yehudabriskman.com/og.png | head:twitter:image | seo | 43 routes (/he, /he/a-page-that-does-not-exist, …) | n/a | keep-latin |  |
 | D0077 | Yehuda Briskman, full-stack engineer and team lead | head:twitter:image:alt | seo | 43 routes (/he, /he/a-page-that-does-not-exist, …) | n/a | translate |  |

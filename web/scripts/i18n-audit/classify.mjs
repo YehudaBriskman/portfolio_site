@@ -8,7 +8,7 @@
  *
  *   node scripts/i18n-audit/classify.mjs <runs-dir> <out.json>
  */
-import { readFileSync, readdirSync, existsSync, writeFileSync, statSync } from "node:fs";
+import { readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join, relative, resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -18,11 +18,22 @@ const REPO = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 /* ------------------------------------------------------------- the inputs */
 const records = [];
 const api = {};
-for (const d of readdirSync(RUNS)) {
-  const p = join(RUNS, d);
-  if (!statSync(p).isDirectory() || !existsSync(join(p, "records.json"))) continue;
-  records.push(...JSON.parse(readFileSync(join(p, "records.json"), "utf8")));
-  Object.assign(api, JSON.parse(readFileSync(join(p, "api.json"), "utf8")));
+/* A run directory is one holding records.json; read it and catch ENOENT
+   rather than checking first (no check-then-use race). */
+const readJson = (p) => {
+  try {
+    return JSON.parse(readFileSync(p, "utf8"));
+  } catch (e) {
+    if (e.code === "ENOENT") return null;
+    throw e;
+  }
+};
+for (const d of readdirSync(RUNS, { withFileTypes: true })) {
+  if (!d.isDirectory()) continue;
+  const run = readJson(join(RUNS, d.name, "records.json"));
+  if (!run) continue;
+  records.push(...run);
+  Object.assign(api, readJson(join(RUNS, d.name, "api.json")) ?? {});
 }
 
 /* Every string the API served, with the endpoint and JSON path it came from. */
@@ -38,11 +49,12 @@ for (const [ep, body] of Object.entries(api)) walk(body, ep, "");
 /* Every source file the web build reads, for string literals. */
 const srcFiles = [];
 const collect = (dir) => {
-  for (const n of readdirSync(dir)) {
+  for (const d of readdirSync(dir, { withFileTypes: true })) {
+    const n = d.name;
     const f = join(dir, n);
-    if (statSync(f).isDirectory()) {
-      if (!/__tests__|node_modules|\/test$/.test(f)) collect(f);
-    } else if (/\.(ts|tsx)$/.test(n) && !/\.test\./.test(n)) { const t = readFileSync(f, "utf8"); srcFiles.push({ f: relative(REPO, f), t, low: t.toLowerCase() }); };
+    if (d.isDirectory()) {
+      if (n !== "__tests__" && n !== "node_modules" && n !== "test") collect(f);
+    } else if (d.isFile() && /\.(ts|tsx)$/.test(n) && !/\.test\./.test(n)) { const t = readFileSync(f, "utf8"); srcFiles.push({ f: relative(REPO, f), t, low: t.toLowerCase() }); };
   }
 };
 collect(join(REPO, "web/src"));
@@ -103,7 +115,12 @@ function classifySource(src, rec) {
 /* Latin that is the same in both languages: names, marks, code. Seeded from
    the glossary's category A; anything else in a run makes it a candidate. */
 const GLOSSARY = process.env.GLOSSARY ?? join(REPO, "docs/i18n/glossary.json");
-const glossary = existsSync(GLOSSARY) ? JSON.parse(readFileSync(GLOSSARY, "utf8")) : null;
+let glossary = null;
+try {
+  glossary = JSON.parse(readFileSync(GLOSSARY, "utf8"));
+} catch (e) {
+  if (e.code !== "ENOENT") throw e;
+}
 const KEEP = new Set(
   [
     ...(glossary?.allowLatin ?? []),

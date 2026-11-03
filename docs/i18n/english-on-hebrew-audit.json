@@ -1,5 +1,5 @@
 {
- "generated": "2026-11-03T19:28:29.852Z",
+ "generated": "2026-11-03T19:32:54.813Z",
  "commit": "bcb4563 (main after #290 and #291)",
  "method": "Playwright crawl under xvfb of every /he route (public + admin), desktop light and phone dark (desktop dark and phone light added nothing unique in run 1), menus and dialogs opened, API 503 and never-answering API states; server render /api/seo/render/he/* and feeds; static source scan. Hand review applied from this file.",
  "counts": {

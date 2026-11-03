@@ -5,14 +5,9 @@
  * plus the Hebrew-relevant feeds. Every Latin run in the head, in JSON-LD and
  * in the pre-rendered body, with whether it sits inside lang="en".
  *
- *   BASE=http://127.0.0.1:15173 OUT=/tmp/audit node scripts/i18n-audit/seo.mjs
+ *   BASE=http://127.0.0.1:15173 node scripts/i18n-audit/seo.mjs > /tmp/audit/seo/seo.json
  */
-import { writeFileSync, mkdirSync } from "node:fs";
-import { resolve } from "node:path";
-
 const BASE = process.env.BASE ?? "http://127.0.0.1:15173";
-const OUT = process.env.OUT ?? "i18n-audit-out";
-mkdirSync(OUT, { recursive: true });
 const api = async (p) => (await fetch(BASE + p)).json();
 
 const projects = (await api("/api/content")).projects.items.map((p) => p.slug);
@@ -21,7 +16,9 @@ const notes = (await api("/api/blog/posts")).items.map((p) => p.slug).filter((s)
 const routes = ["", "/blog", "/projects", "/story", "/accessibility", "/developers/mcp", "/blog/log",
   ...areas.map((s) => `/blog/area/${s}`), ...notes.map((s) => `/blog/${s}`), ...projects.map((s) => `/projects/${s}`)];
 
-const decode = (s) => s.replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+/* One pass, so "&amp;lt;" decodes to "&lt;" and not to "<". */
+const ENTITIES = { amp: "&", lt: "<", gt: ">", quot: '"', "#39": "'" };
+const decode = (s) => s.replace(/&(amp|lt|gt|quot|#39);/g, (_, e) => ENTITIES[e]);
 const records = [];
 for (const r of routes) {
   const res = await fetch(`${BASE}/api/seo/render/he${r}`);
@@ -74,5 +71,6 @@ for (const f of ["/api/seo/feed.xml", "/api/seo/feed/log.xml", ...areas.map((a) 
   const t = /<channel>[\s\S]*?<title>([\s\S]*?)<\/title>/.exec(xml)?.[1];
   if (t) records.push({ route: f, kind: "feed:channel-title", text: decode(t) });
 }
-writeFileSync(resolve(OUT, "seo.json"), JSON.stringify(records, null, 1));
-console.log(`seo records ${records.length}`);
+/* The records go to stdout (redirect them to a file); the count to stderr. */
+process.stdout.write(JSON.stringify(records, null, 1) + "\n");
+console.error(`seo records ${records.length}`);
