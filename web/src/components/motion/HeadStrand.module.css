@@ -1,0 +1,27 @@
+/* The aurora strand under a dashboard title (#251). Still; see HeadStrand.tsx. */
+.strand {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  width: min(13.75rem, 60%);
+  height: 14px;
+  /* Pulled up under the title's descenders, never over them: the title's
+     line box ends above this, so nothing here can touch a glyph. */
+  margin-block: 0.125rem 0;
+}
+
+.svg {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 100%;
+  overflow: visible;
+}
+
+/* A touch heavier than the living line's 1px: it is short and alone. */
+.svg :global([data-strand]) {
+  --strand-w: 1.25px;
+}
+
+.tip {
+  flex: none;
+}

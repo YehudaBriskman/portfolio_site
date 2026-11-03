@@ -351,7 +351,7 @@
  * It starts from a strip, not from nothing: an eighth of the plate, on the
  * lane side, so the card's place is already marked as it comes up. The
  * edge is hard (`clip-path`, no soft mask): a picture is either laid on the
- * paper or not, the same 1-bit edge as the project pages' ink wipe. Nothing
+ * paper or not. Nothing
  * inside moves, so the photograph and the empty card — the same box — take
  * the identical arrival, and a reader stopped mid-way sees part of a true
  * picture, never a washed-out one.

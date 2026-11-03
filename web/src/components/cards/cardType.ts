@@ -30,14 +30,9 @@ export const cardType = {
 /*
  * The colour a group of cards rests in.
  *
- * Put `cardCycle` on the element whose position in the group decides its hue —
- * in practice the `InkWipe` wrapper, because the wipe is already the thing
- * `nth-child` is counting when it picks the colour the card arrives in. The
- * card inside inherits `--card-wash` from it, so the resting colour and the
- * arriving colour are the same decision read twice. See the long note in
- * PaperCard.module.css.
- *
- * A group with no wipe can carry it too: it is `nth-child` and nothing else,
- * and a list of cards is a list of cards whether or not it is animated.
+ * Put `cardCycle` on the element whose position in the group decides its hue.
+ * The card inside inherits `--card-wash` from it. It is `nth-child` and
+ * nothing else, so a list of cards carries it whether or not it is animated.
+ * See the note in PaperCard.module.css.
  */
 export const cardCycle = styles.cycle;

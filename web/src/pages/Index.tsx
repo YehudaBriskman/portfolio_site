@@ -30,19 +30,19 @@ import SiteFooter from "@/components/SiteFooter";
  * pixels of heading, copy and three cards as one opaque block, which is a
  * statement about the browser rather than about the content. The sections
  * already print themselves at the grain that means something, and each at a
- * different one: Approach wipes in each card, Work irises each image, the
+ * different one: Approach draws each principle's figure, the run carries the work, the
  * notes shelf travels sideways against the scroll, and the spec plate counts
  * its figures up once as they arrive. Wrapping all of that in a second, coarser arrival was two animations
  * saying the same thing at different speeds, and the outer one would have
  * clipped the sticky deck inside Approach while it was pinned.
  *
- * And it was the last scroll observer on the page. The wipes are
+ * And it was the last scroll observer on the page. Those devices are
  * `animation-timeline: view()` and cost nothing per frame; `Reveal` put an
  * IntersectionObserver and a state update back on every section.
  *
  * So nothing replaces it at this level. The replacement already lives inside
- * each section, which is where a page's motion belongs — see
- * `components/motion/InkWipe`.
+ * each section, which is where a page's motion belongs; a block that wants
+ * an arrival of its own takes `components/motion/Arrive` (#251).
  *
  * `data-crest` has gone with it. It was the hook the retired plate stack used
  * to decide which photograph a section stood on; nothing in the stylesheet or

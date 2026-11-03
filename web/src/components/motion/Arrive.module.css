@@ -1,0 +1,31 @@
+/*
+ * The appear primitive (#251): a block rising the last 12px into place,
+ * scrubbed. See Arrive.tsx for why it never touches opacity or clip.
+ *
+ * The gate shape of docs/motion-contract.md §4: the animation exists only
+ * inside all three positive gates, so the resting state outside them is the
+ * arrived block and there is no exit block to keep in step.
+ *
+ * `translate` rather than `transform`, so a caller's own transform on the
+ * same element (a hover lift, say) composes instead of being replaced. A
+ * view timeline measures the layout box and ignores both, so the rise
+ * cannot feed back into its own progress.
+ *
+ * At rest `.arrive` has no declarations at all; it exists for the gate below.
+ */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    :global(body:not(.motion-paused)) .arrive {
+      animation: arrive-rise linear both;
+      animation-timeline: view();
+      /* The first 240px of the entry, or the whole entry when the block is
+         shorter: a block that is fully on screen has always arrived. */
+      animation-range: entry 0% entry min(100%, 240px);
+    }
+  }
+}
+
+@keyframes arrive-rise {
+  from { translate: 0 12px; }
+  to   { translate: 0 0; }
+}

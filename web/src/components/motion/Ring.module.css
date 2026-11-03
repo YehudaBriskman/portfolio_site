@@ -1,0 +1,95 @@
+/*
+ * The circle-around at bullet size (#251). See Ring.tsx.
+ *
+ * The tone is a role token, so it follows the theme (#247) with no dark
+ * block of its own: `--signal` is the one blue in Light and the lighter blue
+ * in Dark. A ring is always decoration beside text that says the same
+ * thing, so a pale hue (yellow, green) is allowed to be pale.
+ *
+ * The stroke is sized in the SVG's own units, not with
+ * `vector-effect: non-scaling-stroke`: that moves the dash pattern into
+ * device space, where `pathLength` stops normalising it and the draw comes
+ * out with a hole in it (the same finding as InkRule.module.css). The ring
+ * is never stretched, so one unit is a fixed fraction of `--ring-n` and the
+ * width can be computed: 1.4px whatever the ring's size.
+ */
+.ring {
+  --ring-ink: var(--signal);
+  position: relative;
+  display: inline-grid;
+  flex: none;
+  width: calc(var(--ring-n, 14) * 1px);
+  height: calc(var(--ring-n, 14) * 1px);
+  place-items: center;
+  color: rgb(var(--ring-ink));
+  vertical-align: middle;
+}
+
+.ring[data-tone="ink"] { --ring-ink: var(--ink); }
+.ring[data-tone="soft"] { --ring-ink: var(--ink-soft); }
+.ring[data-tone="blue"] { --ring-ink: var(--hue-blue); }
+.ring[data-tone="green"] { --ring-ink: var(--hue-green); }
+.ring[data-tone="yellow"] { --ring-ink: var(--hue-yellow); }
+.ring[data-tone="purple"] { --ring-ink: var(--hue-purple); }
+.ring[data-tone="red"] { --ring-ink: var(--hue-red); }
+
+/* Doubled: a host's own `x svg` rule (the rail's icons) must not resize or
+   recolour the loop. */
+.ring.ring > .loop {
+  color: inherit;
+  position: absolute;
+  /* The loop runs a little past its box, as a pen's would: 116%. */
+  inset: -8%;
+  width: 116%;
+  height: 116%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.stroke {
+  fill: none;
+  stroke: currentColor;
+  /* 24 units across 1.16 x n px: 1.4px of ink. */
+  stroke-width: calc(1.4 * 24 / (var(--ring-n, 14) * 1.16));
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+}
+
+.dot {
+  width: 34%;
+  height: 34%;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/*
+ * The draw: the loop goes round as the ring comes up over the foot of the
+ * window, over its first 120px, and goes back on the way up. The gate shape
+ * of the motion contract (§4): outside the three gates the loop is whole.
+ */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    /* The timeline is the ring's own box, not the path's: the ring span is
+       a plain box a view timeline measures reliably. Named so the path
+       inside can read it. */
+    :global(body:not(.motion-paused)) .ring[data-draw] {
+      view-timeline: --ring block;
+    }
+    :global(body:not(.motion-paused)) .ring[data-draw] .stroke {
+      animation: ring-draw linear both;
+      animation-timeline: --ring;
+      animation-range: cover 0px cover 120px;
+    }
+  }
+}
+
+@keyframes ring-draw {
+  from { stroke-dashoffset: 1; }
+  to   { stroke-dashoffset: 0; }
+}
+
+@media (forced-colors: active) {
+  .ring { color: CanvasText; }
+}

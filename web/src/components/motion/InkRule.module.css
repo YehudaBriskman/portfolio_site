@@ -10,8 +10,9 @@
  * so the line is not machined — at a 3px rendered height the drift is well
  * under a pixel, which is the whole amount of hand this wants.
  *
- * What uncovers it is a hard-edged clip, the same mechanism InkWipe uses, and
- * that is the second thing this file is about.
+ * What uncovers it is a hard-edged clip on the hairline's own box (it never
+ * clips anything but the line), and that is the second thing this file is
+ * about.
  *
  * `stroke-dasharray` / `stroke-dashoffset` is the textbook way to draw an SVG
  * path on, and it was built that way first and measured broken. The path is
@@ -70,8 +71,8 @@
  * this element deliberately overflows its own box.
  *
  * `body.motion-paused` is cancelled explicitly rather than left to the global
- * `animation-duration: 0.01ms` rule, for the reason spelled out in InkWipe:
- * that rule works by running a time-driven animation instantly to its end,
+ * `animation-duration: 0.01ms` rule, for the reason in §4 of the motion
+ * contract: that rule works by running a time-driven animation instantly to its end,
  * and a progress-driven animation has no duration for it to crush. Without
  * this block, pausing motion would leave every rule on the page still tied to
  * the scroll position — which is not a pause, it is the same animation with
@@ -91,36 +92,13 @@
 }
 
 /*
- * Why the rule does not take colour, when the wipe now does.
+ * Why the rule does not take colour.
  *
- * InkWipe grew a coloured band at its leading edge, and the obvious next move
- * is a coloured head travelling along this line as it draws. It was measured
- * instead of assumed, and it fails on three counts.
- *
- * The first is contrast, and it is decisive. This line is one device pixel of
- * ink — `non-scaling-stroke` guarantees that at every width — and it is drawn
- * in --rule-firm, which is 2.15:1 against the paper. Of the five transition
- * hues, yellow is 1.24:1 on that same ground and green is 1.80:1. A coloured
- * head in either of those is not a brighter line, it is a *gap* in the line:
- * for the moment it passed, the rule would appear to be drawing itself with a
- * hole in the front. That is the exact defect the dasharray version of this
- * file shipped and was rebuilt to remove, arriving back through the door
- * marked decoration.
- *
- * The second is the measure. Most rules on this page are the 2.5rem ticks
- * inside a card — `w-10`, forty pixels. The wipe's band is 28-56px wide. A
- * band as long as the line it is travelling along is not a leading edge; the
- * tick would simply be yellow, then grey, which is a colour change rather
- * than a stroke of colour, and a colour change with no meaning behind it is
- * the one thing the palette note in index.css rules out.
- *
- * The third is quantity. There are seven of these on a single screen of the
- * Stack section and one under every card heading on the site. Five hues
- * rotating through seven hairlines in one viewport is the confetti the whole
- * approach was supposed to avoid, and it would spend on the smallest marks on
- * the page the attention that currently belongs to the largest.
- *
- * So the rules stay monochrome, and that is what keeps the wipes worth
- * looking at. Colour on this page means a block of content landing. If the
- * hairlines carried it too, it would stop meaning anything at all.
+ * This line is one device pixel of --rule-firm, 2.15:1 on the paper. Of the
+ * five brand hues, yellow is 1.24:1 on that ground and green 1.80:1, so a
+ * coloured head travelling along it would read as a hole in the front of the
+ * line, not a brighter one; most rules are 40px ticks, too short for a
+ * leading edge to be anything but a colour change; and seven of them share
+ * one screen of the Stack section. So the rules stay monochrome. (They used
+ * to be weighed against the ink wipe's coloured band, retired in #251.)
  */
