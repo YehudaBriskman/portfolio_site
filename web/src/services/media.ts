@@ -50,16 +50,20 @@ export type MediaItem = z.infer<typeof MediaSchema>;
  * blob: URL this page made from a file the owner picked. Anything else, such
  * as javascript:, data: or another path, is dropped before it reaches an
  * attribute.
+ *
+ * Neither pattern admits `%` or any character encodeURI would change, so the
+ * encodeURI() on the way out leaves an accepted URL exactly as it was; it is
+ * there so the value is visibly URL-encoded wherever it is used.
  */
-const LIBRARY_SRC = /^(?:https?:\/\/[^/?#\s]+)?\/api\/images\/\S*$/;
-const BLOB_SRC = /^blob:(?:https?:\/\/[^/?#\s]+|null)\/[\w-]+$/;
+const LIBRARY_SRC = /^(?:https?:\/\/[\w.:-]+)?\/api\/images\/[\w./?&=-]*$/;
+const BLOB_SRC = /^blob:(?:https?:\/\/[\w.:-]+|null)\/[\w-]+$/;
 
 export function librarySrc(url: string | null | undefined): string | undefined {
-  return typeof url === "string" && LIBRARY_SRC.test(url) ? url : undefined;
+  return typeof url === "string" && LIBRARY_SRC.test(url) ? encodeURI(url) : undefined;
 }
 
 export function blobSrc(url: string | null | undefined): string | undefined {
-  return typeof url === "string" && BLOB_SRC.test(url) ? url : undefined;
+  return typeof url === "string" && BLOB_SRC.test(url) ? encodeURI(url) : undefined;
 }
 export type MediaUsage = z.infer<typeof UsageSchema>;
 export type MediaKind = MediaItem["kind"];
