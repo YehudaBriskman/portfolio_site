@@ -184,7 +184,13 @@ export default {
          * measured source for the ramp is in index.css next to the tokens.
          */
         hero: ["min(11vw, 21vh, 9rem)", { lineHeight: "0.86", letterSpacing: "var(--track-display)" }],
-        section: ["clamp(2.2rem, 7vw, 7rem)", { lineHeight: "0.9", letterSpacing: "var(--track-display)" }],
+        /* The floor is `min(2.2rem, 10vw)` (#99): a section head is often one
+           long word ("ACCESSIBILITY") in a face about 0.63em per capital, so
+           a rem floor alone ran it off a 390px screen at Larger text, and
+           off a 320px one at the default. 10vw keeps the word inside the
+           gutters; from 375px up at the default size the rem floor still
+           wins and nothing changes. */
+        section: ["clamp(min(2.2rem, 10vw), 7vw, 7rem)", { lineHeight: "0.9", letterSpacing: "var(--track-display)" }],
         /* An object's own name. Below the section head, above the fact line. */
         object: ["clamp(1.5rem, 3.4vw, 2.2rem)", { lineHeight: "1.06", letterSpacing: "var(--track-head)" }],
         /* The quiet register, sized to sit under a section head. */

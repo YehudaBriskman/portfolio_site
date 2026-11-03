@@ -482,8 +482,12 @@
    * the counters. The widths above are quoted at both trackings so this
    * choice can be checked rather than taken on trust.
    */
+  /* The floor is capped at 13.8vw (#99): at Larger text the 2.6rem floor is
+     55px on a 320px screen and "PORTFOLIO" ran 65px past it. 13.8vw is the
+     widest the word fits at 320, and it equals the rem floor there at the
+     default size, so nothing moves unless the reader asked for bigger text. */
   .composition .plate h1 {
-    font-size: clamp(2.6rem, 12.5vw, 4.6rem);
+    font-size: clamp(min(2.6rem, 13.8vw), 12.5vw, 4.6rem);
     letter-spacing: var(--track-head);
     line-height: 0.92;
   }

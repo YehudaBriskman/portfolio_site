@@ -13,6 +13,14 @@
  * perhaps a third of what a person finds and a green run here must never be
  * quoted as conformance.
  *
+ * Since the viewer controls (#99) it also walks the keyboard on every route
+ * and fails on three things axe does not decide: a tab stop with no visible
+ * focus indicator (2.4.7), a tab stop entirely hidden under sticky chrome
+ * (2.4.11), and a focusable control smaller than 24x24 CSS px that is not an
+ * inline link in a run of text (2.5.8). And it re-runs a set of routes at
+ * Larger text and More contrast, in both themes, so the two controls cannot
+ * reintroduce an overflow or a contrast failure.
+ *
  * It exists so the floor stays where the audit left it. A pull request that
  * drops a name off a button or a heading level out of a page fails CI here,
  * rather than waiting for the next person who thinks to look.
@@ -100,6 +108,10 @@ const ROUTES = [
   "/admin/settings",
 ];
 
+/* The routes re-run at Larger text and More contrast (#99): one of each
+   kind of page, so every layout the controls can stretch is seen. */
+const PREF_ROUTES = ["/", "/projects", "/projects/bothy", "/blog", "/blog/fixture-post", "/blog/log", "/accessibility"];
+
 const WINDOWS = [
   ["desktop", 1440, 900],
   /* 1.4.10 Reflow: 320 CSS px is the width the criterion names. */
@@ -114,6 +126,9 @@ const WINDOWS = [
  * explicit choice is seen to win. THEMES=light (or dark) narrows a local run.
  */
 const THEMES = (process.env.THEMES ?? "light,dark").split(",").map((t) => t.trim()).filter(Boolean);
+/* ONLY=axe, ONLY=prefs or ONLY=keyboard narrows a local run to one block. */
+const ONLY = process.env.ONLY ?? "";
+const want = (block) => !ONLY || ONLY.split(",").includes(block);
 
 /* -------------------------------------------------------------------- run */
 
@@ -152,7 +167,128 @@ async function unwrittenWords(page) {
   });
 }
 
-async function audit(route, lang, [label, width, height], { failing = false, paused = false, theme = "light", stored = false } = {}) {
+/*
+ * The keyboard walk (#99): Tab through the page and judge each stop.
+ *
+ *   2.4.7  the focused element, or the box it draws its ring on, shows an
+ *          outline or a box-shadow that is not there unfocused.
+ *   2.4.11 at least one of nine points across the element is the element (or
+ *          inside it) by `elementFromPoint`, so sticky chrome does not hide
+ *          it entirely. The minimum criterion is "not entirely hidden".
+ *   2.5.8  24x24 CSS px, or the criterion's spacing exception: a 24px circle
+ *          centred on the undersized target meets no other target and no
+ *          other undersized target's circle. An inline link inside a run of
+ *          text is exempt outright.
+ *
+ * Capped at MAX_STOPS so a long index does not make the run quadratic; the
+ * stops past it are the same components repeated.
+ */
+const MAX_STOPS = 40;
+
+async function keyboardWalk(page) {
+  const bad = [];
+  await page.evaluate(() => {
+    document.activeElement?.blur?.();
+    window.scrollTo(0, 0);
+  });
+  const seen = new Set();
+  for (let i = 0; i < MAX_STOPS; i++) {
+    await page.keyboard.press("Tab");
+    /* Chrome that reveals itself on focus (the phone reading bar) does it
+       on a state change, so give it a moment rather than a frame. */
+    await page.waitForTimeout(150);
+    const r = await page.evaluate(() => {
+      const el = document.activeElement;
+      if (!el || el === document.body) return { end: true };
+      const name =
+        (el.getAttribute("aria-label") || el.textContent || el.getAttribute("href") || el.tagName).trim().replace(/\s+/g, " ").slice(0, 40);
+      const id = `${el.tagName.toLowerCase()} "${name}"`;
+      const box = el.getBoundingClientRect();
+
+      // 2.4.7: an indicator painted while focused.
+      const drawn = (node) => {
+        const cs = getComputedStyle(node);
+        const outline = cs.outlineStyle !== "none" && parseFloat(cs.outlineWidth) >= 1;
+        return outline || (cs.boxShadow && cs.boxShadow !== "none");
+      };
+      let visible = drawn(el);
+      for (const pseudo of ["::before", "::after"]) {
+        const cs = getComputedStyle(el, pseudo);
+        if (cs.content !== "none" && ((cs.outlineStyle !== "none" && parseFloat(cs.outlineWidth) >= 1) || cs.boxShadow !== "none")) visible = true;
+      }
+      // A ring drawn on the row inside (the tree's branch `li` draws on its
+      // first row, APG's structure) counts.
+      if (!visible && el.firstElementChild && drawn(el.firstElementChild)) visible = true;
+      // A ring drawn on a wrapper by :focus-within counts.
+      for (let p = el.parentElement, n = 0; !visible && p && n < 3; p = p.parentElement, n++) {
+        if (p.matches(":focus-within") && drawn(p)) visible = true;
+      }
+
+      // 2.4.11: not entirely hidden.
+      // Sampled across the part of the box that is inside the viewport, so a
+      // tab panel taller than the screen is judged by what is on it; a box
+      // with no part on screen is hidden by definition.
+      let shown = 0;
+      const vis = {
+        left: Math.max(box.left, 0),
+        top: Math.max(box.top, 0),
+        right: Math.min(box.right, innerWidth),
+        bottom: Math.min(box.bottom, innerHeight),
+      };
+      if (vis.right > vis.left && vis.bottom > vis.top) {
+        for (const fx of [0.15, 0.5, 0.85]) {
+          for (const fy of [0.15, 0.5, 0.85]) {
+            const x = vis.left + (vis.right - vis.left) * fx;
+            const y = vis.top + (vis.bottom - vis.top) * fy;
+            const hit = document.elementFromPoint(x, y);
+            if (hit && (hit === el || el.contains(hit) || hit.contains(el))) shown++;
+          }
+        }
+      }
+
+      // 2.5.8: the inline-link exemption is a link whose parent is running
+      // text (other text nodes beside it).
+      const inline =
+        el.tagName === "A" &&
+        getComputedStyle(el).display === "inline" &&
+        [...(el.parentElement?.childNodes ?? [])].some((c) => c !== el && c.nodeType === 3 && c.textContent.trim());
+      let small = !inline && (box.width < 24 - 0.5 || box.height < 24 - 0.5);
+      if (small) {
+        // The spacing exception, measured against every other visible target.
+        const cx = box.left + box.width / 2;
+        const cy = box.top + box.height / 2;
+        const targets = [...document.querySelectorAll("a[href], button, input, select, textarea, summary, [tabindex]:not([tabindex='-1']), [role='button'], [role='link']")]
+          .filter((t) => t !== el && !t.contains(el) && !el.contains(t))
+          .map((t) => t.getBoundingClientRect())
+          .filter((b) => b.width > 0 && b.height > 0);
+        const clash = targets.some((b) => {
+          const dx = Math.max(b.left - cx, 0, cx - b.right);
+          const dy = Math.max(b.top - cy, 0, cy - b.bottom);
+          if (Math.hypot(dx, dy) < 12) return true;
+          const under = b.width < 23.5 || b.height < 23.5;
+          return under && Math.hypot(b.left + b.width / 2 - cx, b.top + b.height / 2 - cy) < 24;
+        });
+        small = clash;
+      }
+
+      return { id, visible, shown, small, w: box.width, h: box.height };
+    });
+    if (r.end) break;
+    if (seen.has(r.id)) break;
+    seen.add(r.id);
+    if (!r.visible) bad.push(`2.4.7 no focus indicator: ${r.id}`);
+    if (r.shown === 0) bad.push(`2.4.11 focus entirely hidden: ${r.id}`);
+    if (r.small) bad.push(`2.5.8 target ${r.w.toFixed(0)}x${r.h.toFixed(0)}: ${r.id}`);
+  }
+  return bad;
+}
+
+async function audit(
+  route,
+  lang,
+  [label, width, height],
+  { failing = false, paused = false, theme = "light", stored = false, prefs = null, keyboard = false } = {},
+) {
   /* Reduced motion so the entry shutter and the arrivals settle at once:
      axe measures contrast against what is painted, and a heading caught
      mid-fade reads as a contrast failure that no reader ever sees. The
@@ -168,6 +304,13 @@ async function audit(route, lang, [label, width, height], { failing = false, pau
   });
   if (stored) await context.addInitScript((t) => localStorage.setItem("yb-theme", t), theme);
   if (paused) await context.addInitScript(() => localStorage.setItem("yb-motion-paused", "1"));
+  /* The viewer controls (#99), stored the way a returning reader has them. */
+  if (prefs) {
+    await context.addInitScript(([size, contrast]) => {
+      localStorage.setItem("yb-text-size", size);
+      localStorage.setItem("yb-contrast", contrast);
+    }, [prefs.textSize, prefs.contrast]);
+  }
   await context.route("**/api/**", (r) => {
     const { status, body } = answer(r.request().url(), failing);
     return r.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
@@ -234,6 +377,49 @@ async function audit(route, lang, [label, width, height], { failing = false, pau
   if (chrome?.under && chrome.material !== "dark") errors.push(`bar is ${chrome.material} over a dark ground`);
   if (chrome?.ratio != null && chrome.ratio < 4.5) errors.push(`current nav link at ${chrome.ratio.toFixed(2)}:1 on the ${chrome.material} bar`);
 
+  if (prefs) {
+    const on = await page.evaluate(() => [
+      document.documentElement.getAttribute("data-text-size"),
+      document.documentElement.getAttribute("data-contrast"),
+    ]);
+    if (on[0] !== prefs.textSize || on[1] !== prefs.contrast) errors.push(`viewer controls are ${on.join("/")}, expected ${prefs.textSize}/${prefs.contrast}`);
+    /* 1.4.4 at Larger: `body` clips sideways overflow, so the reflow number
+       below stays 0 even when a word runs off the screen. Read the text's
+       own boxes instead: no visible element in main that holds text and
+       nothing else may end past the viewport, unless it sits in a scroll
+       container, which 1.4.10 allows for content that needs it. */
+    const clipped = await page.evaluate(() => {
+      const out = [];
+      for (const el of document.querySelectorAll("main *")) {
+        if (el.children.length || !el.textContent.trim()) continue;
+        if (el.closest("[aria-hidden='true'], pre, table, [hidden]")) continue;
+        const r = el.getBoundingClientRect();
+        if (r.width <= 1 || r.height <= 1) continue;
+        if (r.right <= innerWidth + 1 && r.left >= -1) continue;
+        let scrolls = false;
+        for (let a = el.parentElement; a && a !== document.body; a = a.parentElement) {
+          const ox = getComputedStyle(a).overflowX;
+          if (ox === "auto" || ox === "scroll") scrolls = true;
+        }
+        if (!scrolls) out.push(`${el.tagName.toLowerCase()} "${el.textContent.trim().slice(0, 30)}"`);
+      }
+      return out;
+    });
+    for (const c of clipped.slice(0, 3)) errors.push(`1.4.4 text runs off the screen at ${prefs.textSize}: ${c}`);
+  }
+  if (keyboard) {
+    errors.push(...(await keyboardWalk(page)));
+    /* Back to the top, unfocused, so axe measures the page a reader lands
+       on: the walk leaves the bar over whichever section the last stop was
+       in, and its material swap is scroll-driven, which this box's headless
+       Chromium runs too rarely to have settled. */
+    await page.evaluate(() => {
+      document.activeElement?.blur?.();
+      window.scrollTo(0, 0);
+    });
+    await page.waitForTimeout(600);
+  }
+
   await page.addScriptTag({ content: AXE });
   const result = await page.evaluate(
     (tags) => window.axe.run(document, { runOnly: { type: "tag", values: tags }, resultTypes: ["violations"] }),
@@ -244,7 +430,13 @@ async function audit(route, lang, [label, width, height], { failing = false, pau
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   await context.close();
   return {
-    route: route + (failing ? " (API down)" : "") + (paused ? " (Pause)" : "") + (stored ? " (stored)" : ""),
+    route:
+      route +
+      (failing ? " (API down)" : "") +
+      (paused ? " (Pause)" : "") +
+      (stored ? " (stored)" : "") +
+      (prefs ? ` (text ${prefs.textSize}, contrast ${prefs.contrast})` : "") +
+      (keyboard ? " (keyboard)" : ""),
     lang: `${lang}, ${theme}`,
     window: label,
     overflow,
@@ -262,22 +454,43 @@ async function audit(route, lang, [label, width, height], { failing = false, pau
 const results = [];
 try {
   for (const theme of THEMES) {
-    for (const lang of ["en", "he"]) {
-      for (const win of WINDOWS) {
-        for (const route of ROUTES) results.push(await audit(route, lang, win, { theme }));
+    if (want("axe")) {
+      for (const lang of ["en", "he"]) {
+        for (const win of WINDOWS) {
+          for (const route of ROUTES) results.push(await audit(route, lang, win, { theme }));
+        }
+      }
+      results.push(await audit("/blog", "en", WINDOWS[0], { failing: true, theme }));
+      results.push(await audit("/blog/fixture-post", "en", WINDOWS[1], { failing: true, theme }));
+      results.push(await audit("/blog/log", "en", WINDOWS[1], { failing: true, theme }));
+      /* The pen's prose, under the site's own Pause rather than reduced motion. */
+      for (const route of ["/", "/story", "/projects/bothy", "/blog/fixture-post"]) {
+        results.push(await audit(route, "en", WINDOWS[0], { paused: true, theme }));
+        results.push(await audit(route, "he", WINDOWS[1], { paused: true, theme }));
+      }
+      /* A stored choice against the opposite OS setting: the choice wins. */
+      results.push(await audit("/", "en", WINDOWS[0], { theme, stored: true }));
+      results.push(await audit("/blog", "en", WINDOWS[1], { theme, stored: true }));
+    }
+    /* The viewer controls at their strongest (#99): Larger text and More
+       contrast, at both widths, so neither can bring back an overflow at
+       320px or a contrast failure. */
+    if (want("prefs")) {
+      for (const route of PREF_ROUTES) {
+        for (const win of WINDOWS) {
+          results.push(await audit(route, "en", win, { theme, prefs: { textSize: "larger", contrast: "more" } }));
+        }
       }
     }
-    results.push(await audit("/blog", "en", WINDOWS[0], { failing: true, theme }));
-    results.push(await audit("/blog/fixture-post", "en", WINDOWS[1], { failing: true, theme }));
-    results.push(await audit("/blog/log", "en", WINDOWS[1], { failing: true, theme }));
-    /* The pen's prose, under the site's own Pause rather than reduced motion. */
-    for (const route of ["/", "/story", "/projects/bothy", "/blog/fixture-post"]) {
-      results.push(await audit(route, "en", WINDOWS[0], { paused: true, theme }));
-      results.push(await audit(route, "he", WINDOWS[1], { paused: true, theme }));
+  }
+  /* The keyboard walk, once per page and width. Theme does not move a
+     ring's presence, its box or a target's size, so light is enough; and a
+     query-string variant is the same components re-sorted, so each page is
+     walked once, which keeps the CI step inside its budget. */
+  if (want("keyboard")) {
+    for (const route of ROUTES.filter((r) => !r.includes("?"))) {
+      for (const win of WINDOWS) results.push(await audit(route, "en", win, { keyboard: true }));
     }
-    /* A stored choice against the opposite OS setting: the choice wins. */
-    results.push(await audit("/", "en", WINDOWS[0], { theme, stored: true }));
-    results.push(await audit("/blog", "en", WINDOWS[1], { theme, stored: true }));
   }
 } finally {
   await browser.close();
@@ -299,5 +512,8 @@ for (const r of results) {
   }
 }
 if (jsonOut) writeFileSync(jsonOut, JSON.stringify(results, null, 2));
-console.log(`\n${results.length - failed}/${results.length} route runs clean (axe ${TAGS.join(" ")}; reflow at 320px)`);
+console.log(
+  `\n${results.length - failed}/${results.length} route runs clean (axe ${TAGS.join(" ")}; reflow at 320px; ` +
+    `keyboard walk for 2.4.7, 2.4.11, 2.5.8; Larger text and More contrast)`,
+);
 process.exit(failed ? 1 : 0);

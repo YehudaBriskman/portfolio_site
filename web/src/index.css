@@ -1034,6 +1034,60 @@
 
   /*
    * ────────────────────────────────────────────────────────────────────
+   * More contrast (#99): a viewer control, and `prefers-contrast: more`.
+   * ────────────────────────────────────────────────────────────────────
+   * `lib/viewerPrefs.ts` and `theme-boot.js` resolve the choice, System
+   * included, to `data-contrast="more"`, so this is the one block and there
+   * is no media-query copy of it to keep in step.
+   *
+   * It moves the four greys that carry the standard palette's lowest
+   * ratios, and nothing else: type and the signal already clear AAA. Each
+   * value is measured against its ground:
+   *
+   *   light, on #ECE8DC   ink-soft #34322C 10.46:1 (was 6.37)
+   *                       ink-faint #5E5A51 5.61:1 (was 3.6)
+   *                       rule #8A8474 3.04:1 (was 1.35), rule-firm 5.61:1
+   *   dark,  on #1C1A16   ink-soft #D6D3CB 11.62:1 (was 6.98)
+   *                       ink-faint #A8A49A 6.98:1, rule #77716A 3.6:1
+   *   the act, on #0C0C0E panel-soft #D6D3CB 13.07:1, panel-rule #8A8A96 5.73:1
+   *
+   * Declared on :root, the same element the aliases are, so `--clay`,
+   * `--edge` and friends resolve against these values here; `.on-panel`
+   * re-points to `--panel-*` and inherits the act's two. The doubled
+   * attribute selector is specificity, to beat `:root[data-theme='dark']`
+   * without depending on source order.
+   */
+  :root[data-contrast='more'][data-contrast='more'] {
+    --ink-soft:   52  50  44;
+    --ink-faint:  94  90  81;
+    --rule:      138 132 116;
+    --rule-firm:  94  90  81;
+    --panel-soft: 214 211 203;
+    --panel-rule: 138 138 150;
+  }
+  :root[data-theme='dark'][data-contrast='more'] {
+    --ink-soft:  214 211 203;
+    --ink-faint: 168 164 154;
+    --rule:      119 113 106;
+    --rule-firm: 168 164 154;
+  }
+
+  /*
+   * ────────────────────────────────────────────────────────────────────
+   * Text size (#99): a viewer control on top of the browser's own zoom.
+   * ────────────────────────────────────────────────────────────────────
+   * The root size times a scale, so every `rem` on the site moves and the
+   * `vw` terms in the display clamps do not, which is the same split the
+   * phone rung below makes and for the same reason. 125% at 320px is held
+   * by the reflow check in `scripts/a11y/axe-routes.mjs`.
+   */
+  :root { --text-scale: 1; }
+  :root[data-text-size='large'] { --text-scale: 1.125; }
+  :root[data-text-size='larger'] { --text-scale: 1.25; }
+  html { font-size: calc(100% * var(--text-scale)); }
+
+  /*
+   * ────────────────────────────────────────────────────────────────────
    * The same three roles, in Hebrew.
    * ────────────────────────────────────────────────────────────────────
    * `locale.ts` writes `lang` and `dir` onto <html>, so switching language
@@ -1179,7 +1233,7 @@
    * answer for type that is already measured against the screen.
    */
   @media (max-width: 700px) {
-    html { font-size: 106.25%; }
+    html { font-size: calc(106.25% * var(--text-scale)); }
   }
 
   body {
@@ -1227,6 +1281,11 @@
      * the top before anyone noticed sticky had never worked here at all.
      */
     overflow-x: clip;
+    /* A word longer than its line (the email address on /accessibility and
+       under the contact form, at Larger text on a phone) breaks rather than running
+       under the clip above, where it would be cut off unseen (#99). Only an
+       unbreakable run that cannot fit is affected. */
+    overflow-wrap: break-word;
     /* Focus states must never shift the layout. */
     scrollbar-gutter: stable;
   }
@@ -1235,6 +1294,9 @@
     outline: 2px solid rgb(var(--bone));
     outline-offset: 3px;
   }
+  /* Under More contrast the ring is 3px, so it clears 1.4.11 by size as well
+     as by colour where it crosses a busy ground (the hero photograph). */
+  :root[data-contrast='more'] :focus-visible { outline-width: 3px; }
 
   ::selection { background: rgb(var(--bone)); color: rgb(var(--bitumen)); }
 }
