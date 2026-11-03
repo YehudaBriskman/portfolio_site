@@ -135,10 +135,8 @@ export const RATIO = "3 / 2";
  * project's own link, README or listing.
  */
 const LINES: Record<string, string> = {
-  "text-encrypting": "A static page with nothing behind it. Open it, encrypt, close it.",
-  icaros: "Other people's photographs, on other people's phones.",
-  change11: "Arithmetic that has to be right every single time.",
-  "programming-with-yehuda": "Built so a reader can always find the next lesson.",
+  icaros: "A learning project: a React front end on a Node.js and MongoDB back end.",
+  "programming-with-yehuda": "A learning project, written to practise React and Node.",
   windom: "Published in the Chrome Web Store: a review, a privacy policy, an update channel.",
   bothy: "Open source. The install has to work on a machine its author has never seen.",
 };

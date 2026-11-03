@@ -10,7 +10,7 @@ import { HOME_TITLE, pageIdentityFor } from "@/lib/pageTitle";
  * -------------------------------------
  * `/` → `/projects` through a link in the bar left `document.activeElement` on
  * `<body>`, `scrollY` at 0, `document.title` unchanged, and nothing announced.
- * Through the index, "Icaros" left focus on `<body>` and "Text Encrypting" left
+ * Through the index, one project link left focus on `<body>` and another left
  * it on the link that had just been clicked and then unmounted. Four routes —
  * `/`, `/projects`, `/blog` and the 404 — carried one byte-identical title.
  *

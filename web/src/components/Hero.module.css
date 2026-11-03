@@ -144,55 +144,6 @@
 }
 
 /*
- * Where the field line breaks when it cannot be one line (issue #112).
- *
- * It is a wrapping flex row whose separator is drawn on the *start* of every
- * field but the first, so when it wrapped on its own the break landed
- * wherever the row ran out and the separator went with the field onto the
- * next line: `ISRAEL · 5 LIVE` over `· SHIPPING SINCE 2021`, a dot leading a
- * line and separating it from nothing.
- *
- * So the break is chosen instead. Place and count stay together on the first
- * line and the span takes the second, whole, with no separator — the span is
- * the one field that is a phrase rather than a word, and the one a cropped
- * line can best afford to lose. `data-kind`, which `exposeFieldKinds` writes
- * for the arrival, is what lets this name the field by what it is rather
- * than by where `orderFields` happens to sort it.
- *
- * WHEN
- * ----
- * A container query on the plate, because the question is how wide the
- * line's own box is, not the window. The line measures 348px set on one row
- * in English and 353px in Hebrew, where the field face is wider; the plate
- * is 359px at 390x844, so a threshold between the two would hold one line
- * there by 6px — a margin that one font-metrics change or one more live
- * project erases, and then the old orphan is back on the most common phone
- * width there is. 23rem (368px) puts the break below every phone, where
- * it is the same composition at 320, 360 and 390 rather than a different
- * one per device, and leaves every tablet and desktop on one line.
- *
- * `inline-size` containment is safe on this box: it is the composition's one
- * grid column at full width, so nothing sizes it from its content, and it is
- * already `position: relative` with a `z-index`, so the containing block and
- * stacking context that containment creates are ones it already had.
- */
-.plate {
-  container-type: inline-size;
-}
-
-@container (max-width: 23rem) {
-  .plate > ul > [data-kind="when"] {
-    flex-basis: 100%;
-  }
-
-  /* Out-specifies the shared `.field + .field::before` by one element, and
-     only here: every other label on the site keeps its separators. */
-  .plate > ul > [data-kind="when"]::before {
-    content: none;
-  }
-}
-
-/*
  * The figure: centred, standing on the floor, with its head in the type.
  *
  * It takes the whole of the second row, so its height is the screen less the

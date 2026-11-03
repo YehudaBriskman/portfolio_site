@@ -11,7 +11,7 @@
  * home before it starts.
  *
  * Both halves of that are facts already printed on the card. The label's field
- * line reads `In use · React 19 · Chrome Web Store` or `Live · React · 2025`,
+ * line reads `In use · React 19 · Chrome Web Store` or `Archive · React · 2025`,
  * so the motion and the type are saying the same thing in two channels, and a
  * reader who never decodes the first one has still been told by the second.
  * That is the whole licence for varying the arrival at all. A stagger keyed on
@@ -20,19 +20,18 @@
  *
  * ── what it deliberately does not distinguish ─────────────────────────────
  *
- * Programming with Yehuda, Change11 and Icaros come out identical, and that is
- * the finding rather than a gap in it. On every fact this table records they
- * *are* identical: all three are `Live`, all three are 2025, two of them are
- * built out of the same four things and the third swaps Mongo for Express.
- * Giving them three different arrivals would be inventing three different
- * projects, which is the failure the per-card rule exists to prevent — so the
- * pile says what the data says, which is that the reader is looking at a
- * matched set. The difference the reader does get is real: two recent things
- * each shaped like itself, a trio that arrives as a trio, and one older piece
- * that barely moves.
+ * Programming with Yehuda and Icaros come out identical, and that is the
+ * finding rather than a gap in it. On every fact this table records they *are*
+ * identical: both are `Archive` learning projects, both are 2025, and both are
+ * built out of the same four things. Giving them two different arrivals would
+ * be inventing two different projects, which is the failure the per-card rule
+ * exists to prevent — so the pile says what the data says, which is that the
+ * reader is looking at a matched pair. The difference the reader does get is
+ * real: two recent things each shaped like itself, then a pair that arrives as
+ * a pair.
  *
  * No field was added to `data/projects.ts` to break that tie. The only values
- * that would have separated those three are `order`, which is the index under
+ * that would have separated those two are `order`, which is the index under
  * another name, and `tint`, which is what the work looks like and not how it
  * stands — and a colour mapped onto a distance is decoration wearing a fact's
  * clothes.

@@ -303,7 +303,7 @@ function StaleThenReplaced() {
 
 /* One component serving two addresses, so React updates the text inside the
    heading it already has rather than mounting a new one. The real pair is
-   `/projects/icaros` → `/projects/text-encrypting`, where `<Project>` stays
+   `/projects/icaros` → `/projects/programming-with-yehuda`, where `<Project>` stays
    mounted; this is the same reconciliation with the page taken out of it. */
 function ReconciledHeading() {
   const { pathname } = useLocation();

@@ -1,4 +1,4 @@
-import { projects } from "@/data/projects";
+import { isLive, projects } from "@/data/projects";
 
 /*
  * The collection's spec plate.
@@ -15,7 +15,7 @@ import { projects } from "@/data/projects";
  * A counter is a truth claim with motion attached. Every figure below is
  * derived, on load, from `data/projects.ts` — the same table that renders the
  * objects on the page — and every one of them carries the derivation in a
- * comment, so a reader who disbelieves a number can check it against the six
+ * comment, so a reader who disbelieves a number can check it against the
  * entries. Nothing here is typed into markup and nothing is rounded up.
  *
  * What is NOT here, and that is the point
@@ -75,13 +75,12 @@ const objectCount = projects.length;
 /*
  * FIGURE 2 — how many of them you can open right now.
  *
- * Source: entries in `data/projects.ts` carrying a `link`, which is defined
- * as the live product and never the repository (`seedToCollection` drops it
- * when it is the same URL as `github`). Two signals agree on this count: the
- * five entries with a link are also the five whose `status` begins "Live".
- * Bothy, the sixth, ships as source and says so.
+ * Source: `isLive` over `data/projects.ts` — an entry carrying a `link`, the
+ * live product and never the repository, that is not archived. The learning
+ * projects keep their links but are archived, so they are not counted; Bothy
+ * ships as source and says so.
  */
-const liveCount = projects.filter((p) => typeof p.link === "string" && p.link.length > 0).length;
+const liveCount = projects.filter(isLive).length;
 
 /*
  * A trailing version number, so one tool is not counted twice.
@@ -103,8 +102,8 @@ const VERSION_TAIL = /\s+v?\d+(?:\.\d+)*$/i;
  * Source: the union of every entry's `tech` array in `data/projects.ts`,
  * lower-cased and with version tails folded. This is the one figure that is a
  * count *of* the inventory rather than a count of objects, and it earns its
- * place by being checkable: the six `tech` arrays hold thirty-two strings
- * between them, twenty-two of which are distinct as written and twenty once
+ * place by being checkable: the four `tech` arrays hold twenty-four strings
+ * between them, eighteen of which are distinct as written and sixteen once
  * the versions are folded.
  */
 const toolCount = new Set(
@@ -114,9 +113,9 @@ const toolCount = new Set(
 /*
  * FIGURE 4 — how long the collection has been shipping.
  *
- * Source: the `year` field on every entry, which runs 2024 to 2026. Inclusive
- * of both ends, because a thing shipped in 2024 and a thing shipped in 2026
- * is three calendar years of shipping and not two — the alternative reading
+ * Source: the `year` field on every entry, which runs 2025 to 2026. Inclusive
+ * of both ends, because a thing shipped in 2025 and a thing shipped in 2026
+ * is two calendar years of shipping and not one — the alternative reading
  * undercounts by one and is the sort of arithmetic nobody checks.
  *
  * Deliberately not "years of experience", which is a different and much

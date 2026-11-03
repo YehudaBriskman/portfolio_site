@@ -25,10 +25,10 @@ export const contact = {
  * single thing that breaks the grammar — every other label on the page states
  * what a thing is and refuses to argue for it, so this one does too.
  *
- * Only the parts that cannot be counted live here. The numbers on the field
- * line are derived in `Hero.tsx` from `data/projects.ts`, because a count typed
- * into content is a count that is wrong the first time the table changes and
- * nobody notices.
+ * Only the parts that cannot be counted live here. Any count the site prints
+ * is derived from `data/projects.ts` (see `data/specs.ts`), because a count
+ * typed into content is a count that is wrong the first time the table
+ * changes and nobody notices.
  */
 export const plate = {
   /**

@@ -4,7 +4,7 @@ import type { Collection } from "@/services/blog";
 /*
  * The seed table.
  *
- * These six entries are the fallback behind /projects, not its source of truth —
+ * These four entries are the fallback behind /projects, not its source of truth —
  * a published `kind: "project"` collection with the same slug wins outright (see
  * `useProjects`). They exist because the collections database can be empty and a
  * portfolio whose Projects page is blank is worse than one that is slightly
@@ -13,18 +13,24 @@ import type { Collection } from "@/services/blog";
  *
  * Every sentence below is taken from a document the author wrote: WindoM's
  * README and CHANGELOG, and Bothy's README. Nothing here is a flourish added to
- * fill a field. The four 2024–25 projects carry no brief and no decisions
+ * fill a field. The two 2025 projects carry no brief and no decisions
  * because no such document exists for them, and an invented one would be worth
  * less than the blank space it filled.
+ *
+ * Those two are learning projects, built while learning React and Node, and
+ * say so (2026-11-03): state "Archive", status "Learning project", ordered
+ * after the work and never pinned. Text Encrypting and Change11, two more of
+ * the same kind, were removed outright at the owner's request; their URLs
+ * answer 308 to /projects (nginx.conf.template, and App.tsx for a client-side
+ * navigation).
  *
  * What the gallery added
  * ----------------------
  * Three fields, all of them the label schema's (see
  * `components/gallery/objectLabel.ts`). `fact` is the old `tagline`, renamed
- * and in four of six cases rewritten, because the schema's first rule is fact
- * and not pitch and the old values were failing it in a specific way: four of
- * them were not sentences at all but category labels — `Teaching platform`,
- * `Cash tracking`, `Car marketplace` — which tell a reader what shelf the
+ * and rewritten where it failed the schema's first rule, fact and not pitch:
+ * several old values were not sentences at all but category labels —
+ * `Teaching platform`, `Car marketplace` — which tell a reader what shelf the
  * thing is on and nothing about the thing. The rewrite is noted on each entry
  * next to the line it replaced, so the judgement can be argued with rather
  * than only observed.
@@ -259,12 +265,13 @@ export const projects: Project[] = [
   {
     slug: "programming-with-yehuda",
     title: "Programming with Yehuda",
-    /* Was "Teaching platform", which is a category and not a fact — it says
-       what shelf the thing belongs on and nothing about the thing. The
-       description underneath already held the fact; this is it, in one line. */
-    fact: "Programming lessons, grouped by concept and by language",
+    /* A learning project, and labelled as one (2026-11-03, at the owner's
+       request). The line read "Programming lessons, grouped by concept and by
+       language" over a "Live" chip, which presented an exercise as a product.
+       "Archive" is the state the table already has for earlier work. */
+    fact: "Lesson pages built while learning React and Node",
     fields: [
-      { kind: "state", value: "Live" },
+      { kind: "state", value: "Archive" },
       { kind: "tech", value: "React" },
       { kind: "when", value: "2025" },
     ],
@@ -272,90 +279,42 @@ export const projects: Project[] = [
        WindoM's; this frame is almost entirely neutral greys, so the one
        chromatic colour in it is the identity by elimination. */
     tint: [140, 87, 52],
-    description: "A platform for learning programming concepts and languages.",
+    description:
+      "A learning project: a small site of programming lesson pages, built while learning React and Node.js.",
     tech: ["React", "Node.js", "MongoDB", "Vite"],
     image: "/projects/programing_with_yehuda.jpg",
     link: "https://programing-with-yehuda.netlify.app/",
     year: "2025",
-    status: "Live",
-    state: "Live",
+    status: "Learning project",
+    state: "Archive",
     highlights: [],
     order: 50,
   },
   {
-    slug: "change11",
-    title: "Change11",
-    /* Was "Cash tracking" — two words naming a category. Says what it keeps
-       instead. */
-    fact: "A ledger for cash in and cash out",
-    fields: [
-      { kind: "state", value: "Live" },
-      { kind: "tech", value: "React" },
-      { kind: "when", value: "2025" },
-    ],
-    /* #9D67F1 — and the only one of the six where the most common colour in
-       the frame is also the chromatic one. The app is violet. */
-    tint: [157, 103, 241],
-    description: "A platform for managing and tracking changes in cash.",
-    tech: ["React", "Node.js", "Express", "Vite"],
-    image: "/projects/change11.jpg",
-    link: "https://change11.netlify.app/",
-    year: "2025",
-    status: "Live",
-    state: "Live",
-    highlights: [],
-    order: 51,
-  },
-  {
     slug: "icaros",
     title: "Icaros",
-    /* Was "Car marketplace". The replacement is the label schema's own worked
-       example (#38) and it is checkable: the listing pages are server-light
-       and the images are sized for a phone, which is the whole reason the
-       line is worth printing instead of "fast". */
-    fact: "A car marketplace that loads on a phone signal",
+    /* A learning project, and labelled as one (2026-11-03, at the owner's
+       request). It read "A car marketplace that loads on a phone signal" over
+       a "Live" chip: a product claim for something built to learn the stack. */
+    fact: "A car-listing web app, built while learning React and Node",
     fields: [
-      { kind: "state", value: "Live" },
+      { kind: "state", value: "Archive" },
       { kind: "tech", value: "React" },
       { kind: "when", value: "2025" },
     ],
     /* #B04E2E — the rust of the hero car. A small share of the frame and the
        only saturated colour in it. */
     tint: [176, 78, 46],
-    description: "A web application for managing and selling cars.",
+    description:
+      "A learning project: a car-listing web app with a React front end and a Node.js and MongoDB back end, built while learning the stack.",
     tech: ["React", "Node.js", "MongoDB", "Vite"],
     image: "/projects/icaros.jpg",
     link: "https://icaros.netlify.app/",
     year: "2025",
-    status: "Live",
-    state: "Live",
+    status: "Learning project",
+    state: "Archive",
     highlights: [],
-    order: 52,
-  },
-  {
-    slug: "text-encrypting",
-    title: "Text Encrypting",
-    /* Was "Encrypt and decrypt in the browser" — already a fact, and the one
-       interesting thing about it is where the work happens. Changed from the
-       imperative to the indicative only: a label describes an object, it does
-       not instruct the reader. */
-    fact: "Encrypts and decrypts text in the browser",
-    fields: [
-      { kind: "state", value: "Live" },
-      { kind: "tech", value: "JavaScript" },
-      { kind: "when", value: "2024" },
-    ],
-    /* #6A7A91 — the slate of the panel the text sits in. */
-    tint: [106, 122, 145],
-    description: "A web application for encrypting and decrypting text.",
-    tech: ["JavaScript", "HTML", "CSS", "Vite"],
-    image: "/projects/text_encrypting.jpg",
-    link: "https://textencrypting.netlify.app/",
-    year: "2024",
-    status: "Live",
-    state: "Live",
-    highlights: [],
-    order: 53,
+    order: 51,
   },
 ];
 
@@ -386,3 +345,16 @@ export function seedToCollection(p: Project): Collection {
 }
 
 export const seedProjects: Project[] = projects;
+
+/**
+ * Whether a project counts as live: a product a stranger can open right now.
+ *
+ * A `link` alone used to be the test, which made every learning project with
+ * a Netlify page "live" and put "5 LIVE" on the hero. An archived entry keeps
+ * its link (the page still loads, and hiding it would be its own small lie)
+ * but is not counted. The specs plate reads this; the hero no longer prints
+ * a live count at all (2026-11-03).
+ */
+export function isLive(p: Project): boolean {
+  return typeof p.link === "string" && p.link.length > 0 && p.state !== "Archive";
+}

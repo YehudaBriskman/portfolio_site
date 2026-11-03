@@ -25,7 +25,7 @@ describe("shotImage", () => {
   it("offers only files that exist, in every format and at every width", () => {
     const missing: string[] = [];
 
-    for (const slug of ["windom", "programing_with_yehuda", "change11", "icaros", "text_encrypting"]) {
+    for (const slug of ["windom", "programing_with_yehuda", "icaros"]) {
       const image = shotImage(`/projects/${slug}.jpg`);
       expect(image).not.toBeNull();
       if (!image) continue;

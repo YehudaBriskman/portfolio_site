@@ -348,6 +348,8 @@ const EXEMPT: Record<string, string> = {
   "/notes": "legacy: the app redirects it to /blog",
   "/notes/:slug": "legacy: the app redirects it to /blog/<slug>",
   "/blog/c/:project": "legacy: the app redirects it to the project or area",
+  "/projects/change11": "removed project: nginx and the app redirect it to /projects",
+  "/projects/text-encrypting": "removed project: nginx and the app redirect it to /projects",
   "/admin": "admin: behind the proxy's login, never crawled or shared",
   "/admin/posts": "admin",
   "/admin/posts/:slug": "admin",
@@ -379,5 +381,34 @@ describe("every public route has a rendered location (#240)", () => {
     // An exemption outliving its route would quietly cover the next page that
     // happens to reuse the path.
     expect(Object.keys(EXEMPT).filter((r) => !ROUTES.includes(r))).toEqual([]);
+  });
+});
+
+/*
+ * Removed projects (2026-11-03). Change11 and Text Encrypting were taken off
+ * the site, but links to them exist outside it, so both URLs answer a
+ * permanent redirect to the index instead of a renderer 404. App.tsx carries
+ * the same pair for a link followed inside the app.
+ */
+describe("removed project URLs redirect to /projects", () => {
+  it.each([
+    "/projects/change11",
+    "/projects/change11/",
+    "/projects/text-encrypting",
+    "/projects/text-encrypting/",
+  ])("%s answers 308 /projects", (uri) => {
+    const loc = locationFor(uri)!;
+    expect(label(loc)).toBe(`location = ${uri}`);
+    expect(loc.block!.find((d) => d.name === "return")?.args).toEqual(["308", "/projects"]);
+  });
+
+  it("leaves every other project on its renderer", () => {
+    expect(isRendered(locationFor("/projects/icaros"))).toBe(true);
+    expect(isRendered(locationFor("/projects/windom/"))).toBe(true);
+  });
+
+  it.each(["/projects/change11", "/projects/text-encrypting"])("%s is redirected in the app too", (route) => {
+    const line = APP.split("\n").find((l) => l.includes(`path="${route}"`));
+    expect(line).toContain('<Navigate to="/projects" replace />');
   });
 });

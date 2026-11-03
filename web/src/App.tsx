@@ -121,6 +121,10 @@ const App = () => (
             <Route path="/blog" element={<Suspense fallback={null}><Blog /></Suspense>} />
             <Route path="/projects" element={<Suspense fallback={null}><Projects /></Suspense>} />
             <Route path="/projects/:project" element={<Suspense fallback={null}><Project /></Suspense>} />
+            {/* Removed projects (2026-11-03). nginx answers a direct load with a
+                308; these catch a link followed inside the app. */}
+            <Route path="/projects/change11" element={<Navigate to="/projects" replace />} />
+            <Route path="/projects/text-encrypting" element={<Navigate to="/projects" replace />} />
             <Route path="/story" element={<Suspense fallback={null}><Story /></Suspense>} />
             {/* the short-lived /blog/c/ shape, kept so nothing dangles */}
             <Route path="/blog/c/:project" element={<LegacyCollectionRedirect />} />

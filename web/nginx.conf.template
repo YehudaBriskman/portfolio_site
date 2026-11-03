@@ -403,6 +403,15 @@ server {
   location = /accessibility/ { return 308 /accessibility; }
 
   #
+  # Removed projects (2026-11-03). Their pages are gone but links to them are
+  # out in the world, so they land on the index rather than on a 404. Exact
+  # locations win over the `^/projects/...` regex above.
+  location = /projects/change11 { return 308 /projects; }
+  location = /projects/change11/ { return 308 /projects; }
+  location = /projects/text-encrypting { return 308 /projects; }
+  location = /projects/text-encrypting/ { return 308 /projects; }
+
+  #
   # Unknown paths render the app but answer 404.
   #
   # Every unrouted URL used to return 200 with the home page's shell, canonical
