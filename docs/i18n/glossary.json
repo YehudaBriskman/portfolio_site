@@ -1,0 +1,4218 @@
+{
+  "$schema": "./glossary.schema.json (to be written with enforcement, #294)",
+  "version": 1,
+  "status": "draft, pending owner review",
+  "updated": "2026-11-03",
+  "conventions": {
+    "maqaf": "A Hebrew prefix letter (ב ה ו כ ל מ ש) before a Latin word, digit or symbol joins it with the Hebrew maqaf U+05BE and no space: ב־GitHub, ה־API, ו־Claude Desktop, מ־3, כ־12%. Never ASCII hyphen-minus or en dash. The same maqaf joins the approved compound פול־סטאק. Transliterated compounds that the owner wrote as one word stay one word (פרונטאנד), so the parallel is בקאנד, not בק־אנד.",
+    "geresh": "Use U+05F3 ׳ (not an apostrophe) for transliterated ג׳ צ׳ ז׳ and for abbreviations (דק׳ קריאה); use gershayim U+05F4 ״ inside Hebrew acronyms (ת״י 5568, דוא״ל). Latin acronyms (PR, API, CI, MCP, RSS, URL, JSON) are never transliterated into Hebrew letters with geresh (no פי־אר, איי־פי־איי).",
+    "bidi": "Three tools, in order of preference: (1) a whole field that is English gets lang='en' dir='ltr' via inEnglish() (web/src/i18n/words.ts); (2) a multi-token Latin run with punctuation, arrows, colons or version numbers (Settings → Connectors → Add custom connector, OAuth 2.1, mcp:read, URLs, key chords) is wrapped in LRI U+2066 … PDI U+2069, as statement.ts mcp.desktop already does; (3) an RLM U+200F goes after a Latin run that is followed by neutral punctuation or a parenthesis (approved: 'Model Context Protocol‏ (MCP)') and at the start of a string that opens with a Latin token or a symbol ('‏claude.ai ו־…', '‏# בוחר נושא'). Do not put RLM inside code identifiers.",
+    "gender": "Indeclinable Latin terms take the gender of the Hebrew head noun they stand for, defaulting to masculine: API m (ממשק), MCP m (פרוטוקול/שרת), CI m, PR m (practitioner usage: 'PR ענקיים'), RSS m (פיד), JSON m, README m, webhook m, OAuth m. URL is avoided in favour of כתובת (f). Transliterations: קומיט m, באג m, פיד m, קונטיינר m, פריימוורק m, פרונטאנד/בקאנד m, פול־סטאק adjective (n/a).",
+    "plural_of_latin": "Latin tokens are never inflected with Hebrew suffixes (no PRים, APIים, URLים). Number is carried by a numeral, an agreeing adjective or verb ('3 PR פתוחים'), or a Hebrew head noun in construct ('ממשקי API', 'שרתי MCP', 'אסימוני גישה'). Transliterated nouns inflect normally (קומיטים, באגים, פידים, קונטיינרים)."
+  },
+  "categories": {
+    "A": "Keep Latin script: brand and product names (GitHub, Claude, Docker, React…), protocol/format acronyms and identifiers (API, MCP, CI, RSS, JSON, OAuth, PKCE, URL in code, mcp:read), key names (Enter, Escape, Ctrl+B), standards (WCAG), and tag/slug values. Never transliterate; attach prefixes with maqaf; isolate multi-token runs. A Hebrew word-table entry must still contain Hebrew (words.test KEPT_IN_LATIN is empty), so a Latin term never stands alone as a label.",
+    "B": "Transliterate in Hebrew letters only when (a) practitioners overwhelmingly use the loan in writing, (b) no Hebrew term is in actual use, and (c) a general reader recognises it: באג, פיד, קונטיינר, פריימוורק, and the owner-approved פול־סטאק / פרונטאנד (+ בקאנד by parallel). Spoken dev slang (קומיט, מרג׳, דיפלוי, ריפו, פוש, טסטים) is NOT promoted to written copy when a transparent Hebrew word exists.",
+    "C": "Translate to standard Hebrew where an established, widely understood word exists and is used by Israeli UIs (Google, Wix, Microsoft human-reviewed strings) or Hebrew Wikipedia: מאגר, ענף, מיזוג, גרסה, תיעוד, רישיון, קוד פתוח, תוסף, דפדפן, טיוטה, פרסום, תצוגה מקדימה, שרת, נקודת קצה, בדיקות. Reject machine-translation calques (התחייבות, סניף, בקשת משיכה, דחיפה) and Academy coinages the public rejected (מנשק, יישומון).",
+    "D": "Context-dependent. Public pages describe outcomes in plain Hebrew and avoid the term (push → עדכוני קוד, deploy → השקה, commit/PR omitted). Admin uses the plain Hebrew working term. The /developers/mcp page may use the practitioner term or Latin acronym (PR, קומיט, pipeline, פריסה with object), introduced once as 'Hebrew (English)' with the English isolated."
+  },
+  "allowLatin": [
+    "API",
+    "Bothy",
+    "Chrome",
+    "Chrome Web Store",
+    "CI",
+    "Claude",
+    "Claude Code",
+    "Claude Desktop",
+    "claude.ai",
+    "CSS",
+    "Ctrl+B",
+    "DevOps",
+    "Docker",
+    "Drizzle ORM",
+    "End",
+    "Enter",
+    "Escape",
+    "Fastify",
+    "Fly.io",
+    "git",
+    "Git",
+    "GitHub",
+    "Gmail",
+    "Grafana",
+    "Home",
+    "Icaros",
+    "IS 5568",
+    "Issues",
+    "JSON",
+    "Keycloak",
+    "LinkedIn",
+    "Manifest V3",
+    "Markdown",
+    "MCP",
+    "MCP server",
+    "Model Context Protocol",
+    "MongoDB",
+    "Node.js",
+    "OAuth",
+    "OAuth 2.1",
+    "pipeline",
+    "PKCE",
+    "PostgreSQL",
+    "PR",
+    "React",
+    "README",
+    "RSS",
+    "Tailscale",
+    "Traefik",
+    "TypeScript",
+    "VictoriaMetrics",
+    "Vite",
+    "WCAG",
+    "webhook",
+    "WindoM",
+    "Yehuda Briskman"
+  ],
+  "forbidden": [
+    {
+      "variant": "בקשת משיכה",
+      "use": "PR",
+      "term": "pull request"
+    },
+    {
+      "variant": "בקשות משיכה",
+      "use": "PR",
+      "term": "pull request"
+    },
+    {
+      "variant": "פול ריקווסט",
+      "use": "PR",
+      "term": "pull request"
+    },
+    {
+      "variant": "PRים",
+      "use": "PR",
+      "term": "pull request"
+    },
+    {
+      "variant": "PR-ים",
+      "use": "PR",
+      "term": "pull request"
+    },
+    {
+      "variant": "פי־אר",
+      "use": "PR",
+      "term": "pull request"
+    },
+    {
+      "variant": "מרג׳",
+      "use": "מיזוג",
+      "term": "merge"
+    },
+    {
+      "variant": "מרג'",
+      "use": "מיזוג",
+      "term": "merge"
+    },
+    {
+      "variant": "מרג'ים",
+      "use": "מיזוג",
+      "term": "merge"
+    },
+    {
+      "variant": "קונפליקט",
+      "use": "התנגשות מיזוג",
+      "term": "merge conflict"
+    },
+    {
+      "variant": "סכסוך",
+      "use": "התנגשות מיזוג",
+      "term": "merge conflict"
+    },
+    {
+      "variant": "התחייבות",
+      "use": "קומיט",
+      "term": "commit"
+    },
+    {
+      "variant": "התחייבויות",
+      "use": "קומיט",
+      "term": "commit"
+    },
+    {
+      "variant": "ביצוע",
+      "use": "קומיט",
+      "term": "commit"
+    },
+    {
+      "variant": "מחויבות",
+      "use": "קומיט",
+      "term": "commit"
+    },
+    {
+      "variant": "commitים",
+      "use": "קומיט",
+      "term": "commit"
+    },
+    {
+      "variant": "דחיפה",
+      "use": "עדכון קוד",
+      "term": "push"
+    },
+    {
+      "variant": "דחיפות",
+      "use": "עדכון קוד",
+      "term": "push"
+    },
+    {
+      "variant": "פוש",
+      "use": "עדכון קוד",
+      "term": "push"
+    },
+    {
+      "variant": "פושים",
+      "use": "עדכון קוד",
+      "term": "push"
+    },
+    {
+      "variant": "ריפו",
+      "use": "מאגר",
+      "term": "repository"
+    },
+    {
+      "variant": "רפוזיטורי",
+      "use": "מאגר",
+      "term": "repository"
+    },
+    {
+      "variant": "ריפוזיטורי",
+      "use": "מאגר",
+      "term": "repository"
+    },
+    {
+      "variant": "Repository in Hebrew prose",
+      "use": "מאגר",
+      "term": "repository"
+    },
+    {
+      "variant": "מזלג",
+      "use": "פיצול",
+      "term": "fork"
+    },
+    {
+      "variant": "מזלגות",
+      "use": "פיצול",
+      "term": "fork"
+    },
+    {
+      "variant": "פורק",
+      "use": "פיצול",
+      "term": "fork"
+    },
+    {
+      "variant": "פורקים",
+      "use": "פיצול",
+      "term": "fork"
+    },
+    {
+      "variant": "סטארים",
+      "use": "כוכב",
+      "term": "star"
+    },
+    {
+      "variant": "מועדפים",
+      "use": "כוכב",
+      "term": "star",
+      "note": "מועדפים (for GitHub stars)"
+    },
+    {
+      "variant": "רליז",
+      "use": "גרסה",
+      "term": "release"
+    },
+    {
+      "variant": "שחרור",
+      "use": "גרסה",
+      "term": "release"
+    },
+    {
+      "variant": "מהדורה",
+      "use": "גרסה",
+      "term": "release"
+    },
+    {
+      "variant": "הפצה",
+      "use": "גרסה",
+      "term": "release"
+    },
+    {
+      "variant": "טאג",
+      "use": "תג",
+      "term": "tag (git)"
+    },
+    {
+      "variant": "תגית",
+      "use": "תג",
+      "term": "tag (git)",
+      "note": "תגית (reserved for note tags)"
+    },
+    {
+      "variant": "תג",
+      "use": "תגית",
+      "term": "tag (note topic)"
+    },
+    {
+      "variant": "האשטאג",
+      "use": "תגית",
+      "term": "tag (note topic)"
+    },
+    {
+      "variant": "טאג",
+      "use": "תגית",
+      "term": "tag (note topic)"
+    },
+    {
+      "variant": "סניף",
+      "use": "ענף",
+      "term": "branch"
+    },
+    {
+      "variant": "סניפים",
+      "use": "ענף",
+      "term": "branch"
+    },
+    {
+      "variant": "הסתעפות",
+      "use": "ענף",
+      "term": "branch"
+    },
+    {
+      "variant": "ברנץ׳",
+      "use": "ענף",
+      "term": "branch"
+    },
+    {
+      "variant": "בראנץ'",
+      "use": "ענף",
+      "term": "branch"
+    },
+    {
+      "variant": "סוגיה",
+      "use": "Issues (GitHub feature) / בעיה",
+      "term": "issue"
+    },
+    {
+      "variant": "נושא",
+      "use": "Issues (GitHub feature) / בעיה",
+      "term": "issue",
+      "note": "נושא (for issue)"
+    },
+    {
+      "variant": "אישיו",
+      "use": "Issues (GitHub feature) / בעיה",
+      "term": "issue"
+    },
+    {
+      "variant": "תרומה",
+      "use": "קונטריביושן",
+      "term": "contribution",
+      "note": "תרומה (for a GitHub contribution)"
+    },
+    {
+      "variant": "תרומות קוד",
+      "use": "קונטריביושן",
+      "term": "contribution"
+    },
+    {
+      "variant": "קונטריביושנס",
+      "use": "קונטריביושן",
+      "term": "contribution"
+    },
+    {
+      "variant": "קלון",
+      "use": "שכפול",
+      "term": "clone"
+    },
+    {
+      "variant": "שיבוט",
+      "use": "שכפול",
+      "term": "clone"
+    },
+    {
+      "variant": "דיף",
+      "use": "הבדלים",
+      "term": "diff"
+    },
+    {
+      "variant": "אופן סורס",
+      "use": "קוד פתוח",
+      "term": "open source"
+    },
+    {
+      "variant": "מקור פתוח",
+      "use": "קוד פתוח",
+      "term": "open source"
+    },
+    {
+      "variant": "רשיון",
+      "use": "רישיון",
+      "term": "licence",
+      "note": "רשיון (defective spelling)"
+    },
+    {
+      "variant": "ליסנס",
+      "use": "רישיון",
+      "term": "licence"
+    },
+    {
+      "variant": "גיטהאב",
+      "use": "GitHub",
+      "term": "GitHub"
+    },
+    {
+      "variant": "גיטהב",
+      "use": "GitHub",
+      "term": "GitHub"
+    },
+    {
+      "variant": "גיט",
+      "use": "Git",
+      "term": "git",
+      "note": "גיט (in published copy)"
+    },
+    {
+      "variant": "דיפלוי",
+      "use": "פריסה",
+      "term": "deploy"
+    },
+    {
+      "variant": "דפלוי",
+      "use": "פריסה",
+      "term": "deploy"
+    },
+    {
+      "variant": "לדפלי",
+      "use": "פריסה",
+      "term": "deploy"
+    },
+    {
+      "variant": "הפצה",
+      "use": "פריסה",
+      "term": "deploy"
+    },
+    {
+      "variant": "העלאה לאוויר",
+      "use": "פריסה",
+      "term": "deploy"
+    },
+    {
+      "variant": "יעלה לאוויר",
+      "use": "פריסה",
+      "term": "deploy"
+    },
+    {
+      "variant": "שיפינג",
+      "use": "השקה / להשיק",
+      "term": "ship / shipping"
+    },
+    {
+      "variant": "משלוח",
+      "use": "השקה / להשיק",
+      "term": "ship / shipping"
+    },
+    {
+      "variant": "בילד",
+      "use": "בנייה",
+      "term": "build"
+    },
+    {
+      "variant": "בילדים",
+      "use": "בנייה",
+      "term": "build"
+    },
+    {
+      "variant": "קימפול",
+      "use": "בנייה",
+      "term": "build",
+      "note": "קימפול (unless it is compilation)"
+    },
+    {
+      "variant": "סי־איי",
+      "use": "CI",
+      "term": "CI"
+    },
+    {
+      "variant": "CIים",
+      "use": "CI",
+      "term": "CI"
+    },
+    {
+      "variant": "צינור",
+      "use": "pipeline",
+      "term": "pipeline"
+    },
+    {
+      "variant": "צנרת",
+      "use": "pipeline",
+      "term": "pipeline"
+    },
+    {
+      "variant": "פייפליין",
+      "use": "pipeline",
+      "term": "pipeline"
+    },
+    {
+      "variant": "טסט",
+      "use": "בדיקה",
+      "term": "test"
+    },
+    {
+      "variant": "טסטים",
+      "use": "בדיקה",
+      "term": "test"
+    },
+    {
+      "variant": "מבחן",
+      "use": "בדיקה",
+      "term": "test"
+    },
+    {
+      "variant": "מבחנים",
+      "use": "בדיקה",
+      "term": "test"
+    },
+    {
+      "variant": "פרודקשן",
+      "use": "סביבת הייצור",
+      "term": "production"
+    },
+    {
+      "variant": "פרוד",
+      "use": "סביבת הייצור",
+      "term": "production"
+    },
+    {
+      "variant": "באוויר",
+      "use": "סביבת הייצור",
+      "term": "production"
+    },
+    {
+      "variant": "רולבק",
+      "use": "שחזור",
+      "term": "rollback / restore"
+    },
+    {
+      "variant": "להחזיר",
+      "use": "שחזור",
+      "term": "rollback / restore",
+      "note": "להחזיר (as a button)"
+    },
+    {
+      "variant": "תקל",
+      "use": "באג",
+      "term": "bug"
+    },
+    {
+      "variant": "חרק",
+      "use": "באג",
+      "term": "bug"
+    },
+    {
+      "variant": "פשפש",
+      "use": "באג",
+      "term": "bug"
+    },
+    {
+      "variant": "דיבאג",
+      "use": "ניפוי באגים",
+      "term": "debug"
+    },
+    {
+      "variant": "להדביג",
+      "use": "ניפוי באגים",
+      "term": "debug"
+    },
+    {
+      "variant": "לדבג",
+      "use": "ניפוי באגים",
+      "term": "debug"
+    },
+    {
+      "variant": "קוד ריוויו",
+      "use": "סקירת קוד",
+      "term": "code review"
+    },
+    {
+      "variant": "סקר קוד",
+      "use": "סקירת קוד",
+      "term": "code review"
+    },
+    {
+      "variant": "ביקורת קוד",
+      "use": "סקירת קוד",
+      "term": "code review"
+    },
+    {
+      "variant": "דריי ראן",
+      "use": "הרצה יבשה",
+      "term": "dry run"
+    },
+    {
+      "variant": "כתיבות הן הרצות יבשות",
+      "use": "הרצה יבשה",
+      "term": "dry run"
+    },
+    {
+      "variant": "הוטפיקס",
+      "use": "תיקון דחוף",
+      "term": "hotfix"
+    },
+    {
+      "variant": "תיקון חם",
+      "use": "תיקון דחוף",
+      "term": "hotfix"
+    },
+    {
+      "variant": "פיצ׳ר",
+      "use": "יכולת",
+      "term": "feature"
+    },
+    {
+      "variant": "פיצ'ר",
+      "use": "יכולת",
+      "term": "feature"
+    },
+    {
+      "variant": "מכולה",
+      "use": "קונטיינר",
+      "term": "container"
+    },
+    {
+      "variant": "מיכל",
+      "use": "קונטיינר",
+      "term": "container"
+    },
+    {
+      "variant": "סלף הוסטינג",
+      "use": "אירוח עצמי",
+      "term": "self-hosting"
+    },
+    {
+      "variant": "אובזרבביליות",
+      "use": "ניטור",
+      "term": "observability / monitoring"
+    },
+    {
+      "variant": "תצפיתיות",
+      "use": "ניטור",
+      "term": "observability / monitoring"
+    },
+    {
+      "variant": "אותנטיקציה",
+      "use": "אימות",
+      "term": "auth / authentication"
+    },
+    {
+      "variant": "אוט׳",
+      "use": "אימות",
+      "term": "auth / authentication"
+    },
+    {
+      "variant": "פול סטאק",
+      "use": "פול־סטאק",
+      "term": "full-stack"
+    },
+    {
+      "variant": "פול-סטאק",
+      "use": "פול־סטאק",
+      "term": "full-stack",
+      "note": "פול-סטאק (ASCII hyphen)"
+    },
+    {
+      "variant": "פולסטאק",
+      "use": "פול־סטאק",
+      "term": "full-stack"
+    },
+    {
+      "variant": "Full Stack",
+      "use": "פול־סטאק",
+      "term": "full-stack",
+      "note": "Full Stack (in Hebrew copy)"
+    },
+    {
+      "variant": "פרונט אנד",
+      "use": "פרונטאנד",
+      "term": "frontend"
+    },
+    {
+      "variant": "פרונט-אנד",
+      "use": "פרונטאנד",
+      "term": "frontend"
+    },
+    {
+      "variant": "פרונטנד",
+      "use": "פרונטאנד",
+      "term": "frontend"
+    },
+    {
+      "variant": "קצה קדמי",
+      "use": "פרונטאנד",
+      "term": "frontend"
+    },
+    {
+      "variant": "צד לקוח",
+      "use": "פרונטאנד",
+      "term": "frontend",
+      "note": "צד לקוח (on this site)"
+    },
+    {
+      "variant": "בק אנד",
+      "use": "בקאנד",
+      "term": "backend"
+    },
+    {
+      "variant": "בק-אנד",
+      "use": "בקאנד",
+      "term": "backend"
+    },
+    {
+      "variant": "קצה אחורי",
+      "use": "בקאנד",
+      "term": "backend"
+    },
+    {
+      "variant": "בקנד",
+      "use": "בקאנד",
+      "term": "backend"
+    },
+    {
+      "variant": "צד־שרת",
+      "use": "בקאנד",
+      "term": "backend",
+      "note": "צד־שרת (with maqaf)"
+    },
+    {
+      "variant": "דבאופס",
+      "use": "DevOps",
+      "term": "DevOps"
+    },
+    {
+      "variant": "דב־אופס",
+      "use": "DevOps",
+      "term": "DevOps"
+    },
+    {
+      "variant": "דבלופרים",
+      "use": "מפתח",
+      "term": "developer / developers"
+    },
+    {
+      "variant": "טים ליד",
+      "use": "ראש צוות טכני",
+      "term": "technical team lead"
+    },
+    {
+      "variant": "ראש צוות",
+      "use": "ראש צוות טכני",
+      "term": "technical team lead",
+      "note": "ראש צוות (alone)"
+    },
+    {
+      "variant": "סטאק",
+      "use": "טכנולוגיות",
+      "term": "stack (tech stack)",
+      "note": "סטאק (standalone in UI)"
+    },
+    {
+      "variant": "ערימה",
+      "use": "טכנולוגיות",
+      "term": "stack (tech stack)"
+    },
+    {
+      "variant": "מחסנית",
+      "use": "טכנולוגיות",
+      "term": "stack (tech stack)"
+    },
+    {
+      "variant": "שלד תוכנה",
+      "use": "פריימוורק",
+      "term": "framework"
+    },
+    {
+      "variant": "מסגרת עבודה",
+      "use": "פריימוורק",
+      "term": "framework"
+    },
+    {
+      "variant": "לייבררי",
+      "use": "ספרייה",
+      "term": "library (code)"
+    },
+    {
+      "variant": "APIים",
+      "use": "API",
+      "term": "API"
+    },
+    {
+      "variant": "איי־פי־איי",
+      "use": "API",
+      "term": "API"
+    },
+    {
+      "variant": "מנשק",
+      "use": "API",
+      "term": "API"
+    },
+    {
+      "variant": "ממשק תכנות יישומים",
+      "use": "API",
+      "term": "API",
+      "note": "ממשק תכנות יישומים (in UI)"
+    },
+    {
+      "variant": "פרוטוקול הקשר מודל",
+      "use": "MCP",
+      "term": "MCP"
+    },
+    {
+      "variant": "מ־סי־פי",
+      "use": "MCP",
+      "term": "MCP"
+    },
+    {
+      "variant": "קליינט",
+      "use": "לקוח",
+      "term": "client (software)"
+    },
+    {
+      "variant": "אנדפוינט",
+      "use": "נקודת קצה",
+      "term": "endpoint"
+    },
+    {
+      "variant": "טוקן",
+      "use": "אסימון / אסימון גישה",
+      "term": "token / access token"
+    },
+    {
+      "variant": "טוקנים",
+      "use": "אסימון / אסימון גישה",
+      "term": "token / access token"
+    },
+    {
+      "variant": "סקופ",
+      "use": "גישת קריאה / גישת כתיבה",
+      "term": "scope (OAuth)"
+    },
+    {
+      "variant": "היקף",
+      "use": "גישת קריאה / גישת כתיבה",
+      "term": "scope (OAuth)"
+    },
+    {
+      "variant": "לוג אודיט",
+      "use": "יומן ביקורת",
+      "term": "audit log"
+    },
+    {
+      "variant": "לוג",
+      "use": "יומן ביקורת",
+      "term": "audit log"
+    },
+    {
+      "variant": "יומן הערוץ",
+      "use": "יומן פעילות",
+      "term": "channel log / activity log"
+    },
+    {
+      "variant": "לוג",
+      "use": "יומן פעילות",
+      "term": "channel log / activity log"
+    },
+    {
+      "variant": "לוגין",
+      "use": "התחברות",
+      "term": "sign in / sign-in"
+    },
+    {
+      "variant": "כניסה",
+      "use": "התחברות",
+      "term": "sign in / sign-in",
+      "note": "כניסה (as the button)"
+    },
+    {
+      "variant": "לוגאאוט",
+      "use": "התנתקות",
+      "term": "sign out"
+    },
+    {
+      "variant": "יציאה",
+      "use": "התנתקות",
+      "term": "sign out"
+    },
+    {
+      "variant": "שלילה",
+      "use": "ביטול",
+      "term": "revoke"
+    },
+    {
+      "variant": "קונקטור",
+      "use": "מחבר / מחבר מותאם אישית",
+      "term": "connector / custom connector"
+    },
+    {
+      "variant": "יישומון",
+      "use": "אפליקציה",
+      "term": "app"
+    },
+    {
+      "variant": "אפליקצייה",
+      "use": "אפליקציה",
+      "term": "app"
+    },
+    {
+      "variant": "URLים",
+      "use": "כתובת",
+      "term": "URL / address"
+    },
+    {
+      "variant": "יו־אר־אל",
+      "use": "כתובת",
+      "term": "URL / address"
+    },
+    {
+      "variant": "לינק",
+      "use": "כתובת",
+      "term": "URL / address",
+      "note": "לינק (for URL)"
+    },
+    {
+      "variant": "לינק",
+      "use": "קישור",
+      "term": "link"
+    },
+    {
+      "variant": "וובהוק",
+      "use": "webhook",
+      "term": "webhook"
+    },
+    {
+      "variant": "קרס רשת",
+      "use": "webhook",
+      "term": "webhook"
+    },
+    {
+      "variant": "הזנה",
+      "use": "פיד",
+      "term": "feed"
+    },
+    {
+      "variant": "ערוץ",
+      "use": "פיד",
+      "term": "feed"
+    },
+    {
+      "variant": "מרקדאון",
+      "use": "Markdown",
+      "term": "Markdown"
+    },
+    {
+      "variant": "רידמי",
+      "use": "README",
+      "term": "README"
+    },
+    {
+      "variant": "קרא אותי",
+      "use": "README",
+      "term": "README"
+    },
+    {
+      "variant": "מסמכים",
+      "use": "תיעוד",
+      "term": "docs",
+      "note": "מסמכים (for docs)"
+    },
+    {
+      "variant": "דוקס",
+      "use": "תיעוד",
+      "term": "docs"
+    },
+    {
+      "variant": "דוקומנטציה",
+      "use": "תיעוד",
+      "term": "docs"
+    },
+    {
+      "variant": "SEO",
+      "use": "חיפוש ושיתוף",
+      "term": "SEO",
+      "note": "SEO (as a heading)"
+    },
+    {
+      "variant": "קידום אתרים",
+      "use": "חיפוש ושיתוף",
+      "term": "SEO"
+    },
+    {
+      "variant": "קאש",
+      "use": "מטמון",
+      "term": "cache"
+    },
+    {
+      "variant": "דאטאבייס",
+      "use": "מסד נתונים",
+      "term": "database"
+    },
+    {
+      "variant": "בסיס נתונים",
+      "use": "מסד נתונים",
+      "term": "database"
+    },
+    {
+      "variant": "ריאקט",
+      "use": "Latin, as named",
+      "term": "Docker / React / Node.js / TypeScript / PostgreSQL / MongoDB / Vite / Fastify / Drizzle ORM / Traefik / Grafana / VictoriaMetrics / Keycloak / Tailscale / Fly.io / Manifest V3 / CSS"
+    },
+    {
+      "variant": "דוקר",
+      "use": "Latin, as named",
+      "term": "Docker / React / Node.js / TypeScript / PostgreSQL / MongoDB / Vite / Fastify / Drizzle ORM / Traefik / Grafana / VictoriaMetrics / Keycloak / Tailscale / Fly.io / Manifest V3 / CSS"
+    },
+    {
+      "variant": "נוד",
+      "use": "Latin, as named",
+      "term": "Docker / React / Node.js / TypeScript / PostgreSQL / MongoDB / Vite / Fastify / Drizzle ORM / Traefik / Grafana / VictoriaMetrics / Keycloak / Tailscale / Fly.io / Manifest V3 / CSS"
+    },
+    {
+      "variant": "טייפסקריפט",
+      "use": "Latin, as named",
+      "term": "Docker / React / Node.js / TypeScript / PostgreSQL / MongoDB / Vite / Fastify / Drizzle ORM / Traefik / Grafana / VictoriaMetrics / Keycloak / Tailscale / Fly.io / Manifest V3 / CSS"
+    },
+    {
+      "variant": "אקסטנשן",
+      "use": "תוסף ל־Chrome",
+      "term": "Chrome extension"
+    },
+    {
+      "variant": "הרחבה",
+      "use": "תוסף ל־Chrome",
+      "term": "Chrome extension"
+    },
+    {
+      "variant": "בראוזר",
+      "use": "דפדפן",
+      "term": "browser"
+    },
+    {
+      "variant": "טאב",
+      "use": "לשונית",
+      "term": "tab (browser)"
+    },
+    {
+      "variant": "רשומה",
+      "use": "רשימה",
+      "term": "note / post"
+    },
+    {
+      "variant": "רשומות",
+      "use": "רשימה",
+      "term": "note / post"
+    },
+    {
+      "variant": "פוסט",
+      "use": "רשימה",
+      "term": "note / post"
+    },
+    {
+      "variant": "מאמר",
+      "use": "רשימה",
+      "term": "note / post",
+      "note": "מאמר (for an item)"
+    },
+    {
+      "variant": "בלוגים",
+      "use": "בלוג",
+      "term": "blog"
+    },
+    {
+      "variant": "יומן רשת",
+      "use": "בלוג",
+      "term": "blog"
+    },
+    {
+      "variant": "עבודות",
+      "use": "פרויקטים",
+      "term": "work / projects"
+    },
+    {
+      "variant": "תיק עבודות",
+      "use": "פרויקטים",
+      "term": "work / projects"
+    },
+    {
+      "variant": "אזור",
+      "use": "תחום",
+      "term": "area",
+      "note": "אזור (for area)"
+    },
+    {
+      "variant": "קטגוריה",
+      "use": "תחום",
+      "term": "area"
+    },
+    {
+      "variant": "דראפט",
+      "use": "טיוטה",
+      "term": "draft"
+    },
+    {
+      "variant": "עלייה לאוויר",
+      "use": "פרסום",
+      "term": "publish"
+    },
+    {
+      "variant": "יעלה לאוויר",
+      "use": "פרסום",
+      "term": "publish"
+    },
+    {
+      "variant": "פאבליש",
+      "use": "פרסום",
+      "term": "publish"
+    },
+    {
+      "variant": "פריוויו",
+      "use": "תצוגה מקדימה",
+      "term": "preview"
+    },
+    {
+      "variant": "אפלוד",
+      "use": "העלאה",
+      "term": "upload"
+    },
+    {
+      "variant": "סלאג",
+      "use": "כתובת",
+      "term": "slug"
+    },
+    {
+      "variant": "קנוני",
+      "use": "הכתובת המקורית",
+      "term": "canonical URL"
+    },
+    {
+      "variant": "נבחרת",
+      "use": "מומלצות",
+      "term": "featured"
+    },
+    {
+      "variant": "נבחרות",
+      "use": "מומלצות",
+      "term": "featured",
+      "note": "נבחרות (for featured)"
+    },
+    {
+      "variant": "פיצ׳רד",
+      "use": "מומלצות",
+      "term": "featured"
+    },
+    {
+      "variant": "אדמין",
+      "use": "ניהול",
+      "term": "admin"
+    },
+    {
+      "variant": "מנהל",
+      "use": "ניהול",
+      "term": "admin",
+      "note": "מנהל (for the area)"
+    },
+    {
+      "variant": "סטינגס",
+      "use": "הגדרות",
+      "term": "settings"
+    },
+    {
+      "variant": "תמה",
+      "use": "ערכת צבעים",
+      "term": "theme"
+    },
+    {
+      "variant": "ת׳ים",
+      "use": "ערכת צבעים",
+      "term": "theme"
+    },
+    {
+      "variant": "דארק מוד",
+      "use": "ערכת צבעים",
+      "term": "theme"
+    },
+    {
+      "variant": "מצב לילה",
+      "use": "ערכת צבעים",
+      "term": "theme"
+    },
+    {
+      "variant": "דשבורד",
+      "use": "לוח בקרה",
+      "term": "dashboard"
+    },
+    {
+      "variant": "לוח מחוונים",
+      "use": "לוח בקרה",
+      "term": "dashboard"
+    },
+    {
+      "variant": "הירו",
+      "use": "פתיח",
+      "term": "hero"
+    },
+    {
+      "variant": "באנר",
+      "use": "פתיח",
+      "term": "hero"
+    },
+    {
+      "variant": "עצירת תנועה",
+      "use": "השהיית תנועה",
+      "term": "motion / pause motion"
+    },
+    {
+      "variant": "לנסות שוב",
+      "use": "ניסיון חוזר",
+      "term": "retry",
+      "note": "לנסות שוב (as a button)"
+    },
+    {
+      "variant": "באוויר",
+      "use": "פעיל",
+      "term": "live (status)"
+    },
+    {
+      "variant": "לייב",
+      "use": "פעיל",
+      "term": "live (status)"
+    },
+    {
+      "variant": "נתונים",
+      "use": "במספרים",
+      "term": "specs"
+    },
+    {
+      "variant": "ספקס",
+      "use": "במספרים",
+      "term": "specs"
+    },
+    {
+      "variant": "במקומות אחרים",
+      "use": "ברשת",
+      "term": "elsewhere (links)"
+    },
+    {
+      "variant": "דוא״ל",
+      "use": "אימייל",
+      "term": "email",
+      "note": "דוא״ל (inconsistent with chrome.email)"
+    },
+    {
+      "variant": "מייל",
+      "use": "אימייל",
+      "term": "email",
+      "note": "מייל (in labels; fine in prose)"
+    }
+  ],
+  "terms": [
+    {
+      "term": "pull request",
+      "aliases": [
+        "PR",
+        "merge request"
+      ],
+      "category": "D",
+      "he": "PR",
+      "he_plural": "PR (uninflected; plurality shown by number/adjective: 'שלושה PR פתוחים')",
+      "he_definite": "ה־PR",
+      "gender": "m",
+      "contexts": {
+        "public": "Avoid the term; say what happened: 'שינוי שמוזג', 'עדכוני קוד'. If unavoidable: PR.",
+        "admin": "PR",
+        "developers": "First mention 'pull request‏ (PR)' with the English isolated, then PR."
+      },
+      "forbidden": [
+        "בקשת משיכה",
+        "בקשות משיכה",
+        "פול ריקווסט",
+        "PRים",
+        "PR-ים",
+        "פי־אר"
+      ],
+      "where_used": [
+        "backend/src/content/seed.ts (project facts, English only so far)"
+      ],
+      "rationale": "Microsoft's machine-translated Hebrew docs and Hebrew Wikipedia use the calque בקשת משיכה; Hebrew-writing practitioners write PR in Latin ('PR ענקיים', 'שלחתי PR'). The calque is opaque to non-developers and unused by developers, so it fails both audiences. Practitioners also treat it as masculine (internet-israel: 'PR ענקיים').",
+      "sources": [
+        "https://learn.microsoft.com/he-il/training/modules/introduction-to-github/",
+        "https://learn.microsoft.com/he-il/training/modules/introduction-to-github/3-components-of-github-flow",
+        "https://he.wikipedia.org/wiki/GitHub",
+        "https://internet-israel.com/category/מדריכים/git/",
+        "https://hebrewglot.com/en/blog/hebrew-for-developers"
+      ]
+    },
+    {
+      "term": "merge",
+      "aliases": [],
+      "category": "C",
+      "he": "מיזוג",
+      "he_plural": "מיזוגים",
+      "he_definite": "המיזוג",
+      "gender": "m",
+      "contexts": {
+        "public": "מיזוג / למזג",
+        "admin": "מיזוג",
+        "developers": "מיזוג; git merge stays Latin in code"
+      },
+      "forbidden": [
+        "מרג׳",
+        "מרג'",
+        "מרג'ים"
+      ],
+      "where_used": [],
+      "rationale": "Hebrew Wikipedia (גיט), Microsoft, codebrain and internet-israel ('למזג לפי שכבות') all use מיזוג/למזג; the slang מרג׳ appears only in informal guides.",
+      "sources": [
+        "https://he.wikipedia.org/wiki/גיט",
+        "https://learn.microsoft.com/he-il/training/modules/introduction-to-github/3-components-of-github-flow",
+        "https://internet-israel.com/category/מדריכים/git/",
+        "https://www.codebrain.co.il/מדריך-ל-git-ניהול-גרסאות-קוד/",
+        "https://ohshitgit.com/he"
+      ]
+    },
+    {
+      "term": "merge conflict",
+      "aliases": [],
+      "category": "C",
+      "he": "התנגשות מיזוג",
+      "he_plural": "התנגשויות מיזוג",
+      "he_definite": "התנגשות המיזוג",
+      "gender": "f",
+      "contexts": {
+        "admin": "In the settings/editor conflict messages prefer plain prose ('ההגדרות שונו במקום אחר') over the technical term."
+      },
+      "forbidden": [
+        "קונפליקט",
+        "סכסוך"
+      ],
+      "where_used": [
+        "admin-settings.conflict",
+        "note-editor (loadTheirs/keepMine)"
+      ],
+      "rationale": "Admin copy already explains the conflict in prose; the term is only for developer docs.",
+      "sources": []
+    },
+    {
+      "term": "commit",
+      "aliases": [],
+      "category": "D",
+      "he": "קומיט",
+      "he_plural": "קומיטים",
+      "he_definite": "הקומיט",
+      "gender": "m",
+      "contexts": {
+        "public": "Avoid; fold into עדכוני קוד / שינויים.",
+        "admin": "קומיט",
+        "developers": "קומיט; git commit in code"
+      },
+      "forbidden": [
+        "התחייבות",
+        "התחייבויות",
+        "ביצוע",
+        "מחויבות",
+        "commitים"
+      ],
+      "where_used": [],
+      "rationale": "Microsoft's machine translation renders commit as התחייבות/ביצוע/מבצע (nonsense in context); Hebrew Wikipedia uses גרסה (revision). Practitioners write קומיט/קומיטים (ohshitgit/he, internet-israel 'מה זה קומיט'). The site's owner already chose to describe pushes as עדכוני קוד for public readers, so commit should stay out of public copy.",
+      "sources": [
+        "https://learn.microsoft.com/he-il/training/modules/introduction-to-github/3-components-of-github-flow",
+        "https://he.wikipedia.org/wiki/גיט",
+        "https://ohshitgit.com/he",
+        "https://internet-israel.com/category/מדריכים/git/",
+        "https://hebrewglot.com/en/blog/hebrew-for-developers"
+      ]
+    },
+    {
+      "term": "push",
+      "aliases": [
+        "pushed",
+        "pushes",
+        "last push"
+      ],
+      "category": "C",
+      "he": "עדכון קוד",
+      "he_plural": "עדכוני קוד",
+      "he_definite": "עדכון הקוד",
+      "gender": "m",
+      "contexts": {
+        "public": "עדכון קוד / עדכוני קוד",
+        "admin": "עדכוני קוד",
+        "developers": "עדכוני קוד; git push in code"
+      },
+      "forbidden": [
+        "דחיפה",
+        "דחיפות",
+        "פוש",
+        "פושים"
+      ],
+      "where_used": [
+        "work.pushed",
+        "work.strip",
+        "work.stripEmpty",
+        "work.liveFailed",
+        "history.pushed",
+        "dashboard.kind.push",
+        "log.kindPlural.push",
+        "log.lede",
+        "log.emptyBody",
+        "mcp.toolsDo.list_activity"
+      ],
+      "rationale": "Owner-approved (push → עדכוני קוד). דחיפה is Microsoft/Wikipedia literalism; it was in mcp.toolsDo.list_activity before #290 and is now fixed.",
+      "sources": [
+        "The owner-approved copy review (merged as #290)",
+        "https://learn.microsoft.com/he-il/training/modules/introduction-to-github/3-components-of-github-flow",
+        "https://he.wikipedia.org/wiki/גיט"
+      ]
+    },
+    {
+      "term": "repository",
+      "aliases": [
+        "repo"
+      ],
+      "category": "C",
+      "he": "מאגר",
+      "he_plural": "מאגרים",
+      "he_definite": "המאגר",
+      "gender": "m",
+      "contexts": {
+        "public": "מאגר",
+        "admin": "מאגר",
+        "developers": "מאגר; 'repository' only in identifiers"
+      },
+      "forbidden": [
+        "ריפו",
+        "רפוזיטורי",
+        "ריפוזיטורי",
+        "Repository in Hebrew prose"
+      ],
+      "where_used": [
+        "work.repository",
+        "work.noDocs",
+        "work.docsFrom",
+        "work.releasesFrom",
+        "history.repo",
+        "history.viewRepo",
+        "history.factsAsOf",
+        "history.factsNoTime",
+        "mcp.toolsDo.get_area"
+      ],
+      "rationale": "Evidence is split: Hebrew Wikipedia's GitHub article uses מאגר (repository), its version-control article title is רפוזיטורי, and practitioners say ריפו. מאגר is the only form a non-developer reads correctly and is already used site-wide.",
+      "sources": [
+        "https://he.wikipedia.org/wiki/GitHub",
+        "https://he.wikipedia.org/wiki/גיט",
+        "https://en.wikipedia.org/w/api.php?action=query&prop=langlinks&lllang=he",
+        "https://ohshitgit.com/he",
+        "https://www.codebrain.co.il/מדריך-ל-git-ניהול-גרסאות-קוד/"
+      ]
+    },
+    {
+      "term": "fork",
+      "aliases": [
+        "forks"
+      ],
+      "category": "C",
+      "he": "פיצול",
+      "he_plural": "פיצולים",
+      "he_definite": "הפיצול",
+      "gender": "m",
+      "contexts": {},
+      "forbidden": [
+        "מזלג",
+        "מזלגות",
+        "פורק",
+        "פורקים"
+      ],
+      "where_used": [
+        "work.forks",
+        "history.forks"
+      ],
+      "rationale": "Owner-approved (#287: מזלגות is cutlery). Hebrew Wikipedia's article is titled פיצול (פיתוח תוכנה) and its GitHub article writes 'יצירת פיצול (fork)'.",
+      "sources": [
+        "docs/hebrew/strings.md",
+        "https://he.wikipedia.org/wiki/GitHub",
+        "https://en.wikipedia.org/w/api.php?action=query&prop=langlinks&lllang=he"
+      ]
+    },
+    {
+      "term": "star",
+      "aliases": [
+        "stars",
+        "GitHub stars"
+      ],
+      "category": "C",
+      "he": "כוכב",
+      "he_plural": "כוכבים",
+      "he_definite": "הכוכבים",
+      "gender": "m",
+      "contexts": {},
+      "forbidden": [
+        "סטארים",
+        "מועדפים (for GitHub stars)"
+      ],
+      "where_used": [
+        "work.stars",
+        "history.stars",
+        "work.liveFailed"
+      ],
+      "rationale": "Literal matches GitHub's star icon; Hebrew Wikipedia paraphrases as 'סימון כמועדף', which loses the countable noun.",
+      "sources": [
+        "https://he.wikipedia.org/wiki/GitHub"
+      ]
+    },
+    {
+      "term": "release",
+      "aliases": [
+        "releases",
+        "latest release",
+        "released"
+      ],
+      "category": "C",
+      "he": "גרסה",
+      "he_plural": "גרסאות",
+      "he_definite": "הגרסה",
+      "gender": "f",
+      "contexts": {
+        "public": "גרסה; 'Released 3' → 'גרסה 3' or 'פורסמה גרסה 3'",
+        "admin": "גרסה",
+        "developers": "גרסה"
+      },
+      "forbidden": [
+        "רליז",
+        "שחרור",
+        "מהדורה",
+        "הפצה"
+      ],
+      "where_used": [
+        "work.releases",
+        "work.release",
+        "work.noReleases",
+        "work.released",
+        "work.tab.releases",
+        "work.releasesFrom",
+        "work.releasesOnGitHub",
+        "history.release",
+        "dashboard.kind.release",
+        "dashboard.kind.site",
+        "log.kindPlural.release",
+        "work STATE_WORDS.released"
+      ],
+      "rationale": "Already the site's word and what Israeli users see in app stores. Microsoft MT alternates שחרור/מהדורה/הפצה for the same English word — a sign none is settled. Note the collision with settings 'Version 3' (also גרסה); context disambiguates.",
+      "sources": [
+        "https://learn.microsoft.com/he-il/training/modules/introduction-to-github/3-components-of-github-flow",
+        "https://hebrewglot.com/en/blog/hebrew-for-developers"
+      ]
+    },
+    {
+      "term": "version",
+      "aliases": [],
+      "category": "C",
+      "he": "גרסה",
+      "he_plural": "גרסאות",
+      "he_definite": "הגרסה",
+      "gender": "f",
+      "contexts": {},
+      "forbidden": [],
+      "where_used": [
+        "admin-settings.version",
+        "admin-settings.differences",
+        "note-editor.loadTheirs/keepMine"
+      ],
+      "rationale": "Same word as release; fine.",
+      "sources": []
+    },
+    {
+      "term": "tag (git)",
+      "aliases": [],
+      "category": "D",
+      "he": "תג",
+      "he_plural": "תגים",
+      "he_definite": "התג",
+      "gender": "m",
+      "contexts": {
+        "developers": "Latin 'tag' or v1.2.3 in code; Hebrew תג only in prose"
+      },
+      "forbidden": [
+        "טאג",
+        "תגית (reserved for note tags)"
+      ],
+      "where_used": [],
+      "rationale": "Keeps note tags (תגית) and git tags apart.",
+      "sources": []
+    },
+    {
+      "term": "tag (note topic)",
+      "aliases": [
+        "tags",
+        "tagged"
+      ],
+      "category": "C",
+      "he": "תגית",
+      "he_plural": "תגיות",
+      "he_definite": "התגית",
+      "gender": "f",
+      "contexts": {
+        "admin": "Tag values themselves are Latin slugs (lowercase, digits, dashes) and stay Latin: ci, docker, chrome-extension."
+      },
+      "forbidden": [
+        "תג",
+        "האשטאג",
+        "טאג"
+      ],
+      "where_used": [
+        "reader.tags",
+        "note-editor.tags",
+        "note-editor.tagsHelp",
+        "notes.tagged",
+        "notes.clearTag",
+        "mcp.toolsDo.list_tags"
+      ],
+      "rationale": "Hebrew Wikipedia: Tag (metadata) → תגית. The editor enforces Latin slug values, so the value is category A while the word for it is C.",
+      "sources": [
+        "https://en.wikipedia.org/w/api.php?action=query&prop=langlinks&lllang=he"
+      ]
+    },
+    {
+      "term": "branch",
+      "aliases": [],
+      "category": "C",
+      "he": "ענף",
+      "he_plural": "ענפים",
+      "he_definite": "הענף",
+      "gender": "m",
+      "contexts": {},
+      "forbidden": [
+        "סניף",
+        "סניפים",
+        "הסתעפות",
+        "ברנץ׳",
+        "בראנץ'"
+      ],
+      "where_used": [],
+      "rationale": "Hebrew Wikipedia (גיט), codebrain and internet-israel ('עבודה עם ענפים (branches)') use ענף; Microsoft MT mixes ענף with סניף (bank branch), a known MT error; ברנץ׳ is speech.",
+      "sources": [
+        "https://he.wikipedia.org/wiki/גיט",
+        "https://internet-israel.com/category/מדריכים/git/",
+        "https://www.codebrain.co.il/מדריך-ל-git-ניהול-גרסאות-קוד/",
+        "https://learn.microsoft.com/he-il/training/modules/introduction-to-github/3-components-of-github-flow",
+        "https://ohshitgit.com/he"
+      ]
+    },
+    {
+      "term": "issue",
+      "aliases": [],
+      "category": "D",
+      "he": "Issues (GitHub feature) / בעיה",
+      "he_plural": "Issues / בעיות",
+      "he_definite": "ה־Issue",
+      "gender": "m",
+      "contexts": {
+        "public": "דיווח על בעיה",
+        "developers": "GitHub Issues as a proper name in Latin"
+      },
+      "forbidden": [
+        "סוגיה",
+        "נושא (for issue)",
+        "אישיו"
+      ],
+      "where_used": [],
+      "rationale": "Hebrew Wikipedia keeps 'Issues' in Latin as a GitHub feature name; Microsoft MT renders it בעיות/נושאים inconsistently.",
+      "sources": [
+        "https://he.wikipedia.org/wiki/GitHub",
+        "https://learn.microsoft.com/he-il/training/modules/introduction-to-github/"
+      ]
+    },
+    {
+      "term": "contribution",
+      "aliases": [
+        "contributions",
+        "contribution graph"
+      ],
+      "category": "B",
+      "he": "קונטריביושן",
+      "he_plural": "קונטריביושנים",
+      "he_definite": "הקונטריביושנים",
+      "gender": "m",
+      "contexts": {
+        "public": "קונטריביושנים ב־GitHub (the year graph); in running prose for a general reader, 'פעילות ב־GitHub' is an acceptable paraphrase",
+        "admin": "קונטריביושנים",
+        "developers": "קונטריביושן"
+      },
+      "forbidden": [
+        "תרומה (for a GitHub contribution)",
+        "תרומות קוד",
+        "קונטריביושנס"
+      ],
+      "where_used": [
+        "city.contributionsOver",
+        "city.tableCaption",
+        "city.contributions"
+      ],
+      "rationale": "The owner's own example. In general Hebrew תרומה reads first as a donation (charity), which is exactly the wrong frame next to a number; practitioners say and write קונטריביושן for GitHub's count. תרומה stays correct for 'contributing to a project' in the open-source sense (Android's Hebrew site: 'תרומה לה'), but the graph counts events, not donations. Changes city.contributions* (today תרומות). Owner to confirm.",
+      "sources": [
+        "https://source.android.com/source/?hl=he"
+      ],
+      "owner_hint": true
+    },
+    {
+      "term": "clone",
+      "aliases": [],
+      "category": "C",
+      "he": "שכפול",
+      "he_plural": "שכפולים",
+      "he_definite": "השכפול",
+      "gender": "m",
+      "contexts": {
+        "developers": "git clone in code; שכפול המאגר in prose"
+      },
+      "forbidden": [
+        "קלון",
+        "שיבוט"
+      ],
+      "where_used": [],
+      "rationale": "Not in the UI today; seed content mentions cloning in CI. codebrain writes 'פקודת Clone' — command stays Latin.",
+      "sources": [
+        "https://www.codebrain.co.il/מדריך-ל-git-ניהול-גרסאות-קוד/"
+      ]
+    },
+    {
+      "term": "diff",
+      "aliases": [
+        "differences"
+      ],
+      "category": "C",
+      "he": "הבדלים",
+      "he_plural": "הבדלים",
+      "he_definite": "ההבדלים",
+      "gender": "m",
+      "contexts": {
+        "developers": "diff (Latin) only for the tool/format"
+      },
+      "forbidden": [
+        "דיף"
+      ],
+      "where_used": [
+        "admin-settings.differences",
+        "note-editor.noChanges",
+        "note-editor.tooLong"
+      ],
+      "rationale": "Hebrew Wikipedia keeps the tool as Diff; the UI only needs the plain noun.",
+      "sources": [
+        "https://en.wikipedia.org/w/api.php?action=query&prop=langlinks&lllang=he"
+      ]
+    },
+    {
+      "term": "open source",
+      "aliases": [],
+      "category": "C",
+      "he": "קוד פתוח",
+      "he_plural": null,
+      "he_definite": null,
+      "gender": "m",
+      "contexts": {},
+      "forbidden": [
+        "אופן סורס",
+        "מקור פתוח"
+      ],
+      "where_used": [
+        "work STATE_WORDS['open source']"
+      ],
+      "rationale": "Hebrew Wikipedia: Open-source software → קוד פתוח.",
+      "sources": [
+        "https://en.wikipedia.org/w/api.php?action=query&prop=langlinks&lllang=he",
+        "https://he.wikipedia.org/wiki/GitHub"
+      ]
+    },
+    {
+      "term": "source code",
+      "aliases": [],
+      "category": "C",
+      "he": "קוד מקור",
+      "he_plural": null,
+      "he_definite": null,
+      "gender": "m",
+      "contexts": {},
+      "forbidden": [],
+      "where_used": [
+        "projects.source"
+      ],
+      "rationale": "Hebrew Wikipedia: Source code → קוד מקור.",
+      "sources": [
+        "https://en.wikipedia.org/w/api.php?action=query&prop=langlinks&lllang=he"
+      ]
+    },
+    {
+      "term": "licence",
+      "aliases": [
+        "license"
+      ],
+      "category": "C",
+      "he": "רישיון",
+      "he_plural": "רישיונות",
+      "he_definite": "הרישיון",
+      "gender": "m",
+      "contexts": {},
+      "forbidden": [
+        "רשיון (defective spelling)",
+        "ליסנס"
+      ],
+      "where_used": [
+        "history.licence"
+      ],
+      "rationale": "Hebrew Wikipedia: רישיון תוכנה; full spelling with yod per Academy plene rules.",
+      "sources": [
+        "https://en.wikipedia.org/w/api.php?action=query&prop=langlinks&lllang=he"
+      ]
+    },
+    {
+      "term": "GitHub",
+      "aliases": [],
+      "category": "A",
+      "he": "GitHub",
+      "he_plural": null,
+      "he_definite": "ב־GitHub / מ־GitHub",
+      "gender": "m",
+      "contexts": {},
+      "forbidden": [
+        "גיטהאב",
+        "גיטהב"
+      ],
+      "where_used": [
+        "work.onGitHub",
+        "work.liveFailed",
+        "work.releasesOnGitHub",
+        "log.leaves",
+        "mcp.signIn",
+        "mcp.howItems.0"
+      ],
+      "rationale": "Brand. Prefix letters attach with maqaf (U+05BE). GitHub has no Hebrew UI; its docs are not offered in Hebrew (could not verify the language picker by fetch — the fetched page did not include it).",
+      "sources": [
+        "https://he.wikipedia.org/wiki/GitHub"
+      ]
+    },
+    {
+      "term": "git",
+      "aliases": [],
+      "category": "A",
+      "he": "Git",
+      "he_plural": null,
+      "he_definite": "ב־Git",
+      "gender": "m",
+      "contexts": {},
+      "forbidden": [
+        "גיט (in published copy)"
+      ],
+      "where_used": [],
+      "rationale": "Hebrew Wikipedia's article is titled גיט and practitioners say גיט; in written UI keep the Latin name like every other tool name.",
+      "sources": [
+        "https://he.wikipedia.org/wiki/גיט"
+      ]
+    },
+    {
+      "term": "deploy",
+      "aliases": [
+        "deployment",
+        "deployed",
+        "ship"
+      ],
+      "category": "D",
+      "he": "פריסה",
+      "he_plural": "פריסות",
+      "he_definite": "הפריסה",
+      "gender": "f",
+      "contexts": {
+        "public": "Rephrase: 'השקה', 'גרסה חדשה עלתה', 'בתעשייה מאז' (owner's 'Shipping since'). Never bare פריסה — on this site it already means page layout.",
+        "admin": "פריסה with an object: 'פריסת האתר'",
+        "developers": "פריסה (with object); 'deploy' Latin in commands"
+      },
+      "forbidden": [
+        "דיפלוי",
+        "דפלוי",
+        "לדפלי",
+        "הפצה",
+        "העלאה לאוויר",
+        "יעלה לאוויר"
+      ],
+      "where_used": [
+        "accessibility-statement.inPlaceItems.3 (פריסה = layout!)",
+        "seed.ts project facts",
+        "approved: firstPublish יעלה לאוויר → יפורסם"
+      ],
+      "rationale": "Hebrew Wikipedia: Software deployment → פריסת תוכנה; practitioners say דיפלוי (hebrewglot: 'לדפלוי' as slang). The owner rejected broadcast slang (באוויר, יעלה לאוויר). Collision: the a11y statement uses הפריסה for layout, so deploy must always carry its object.",
+      "sources": [
+        "https://en.wikipedia.org/w/api.php?action=query&prop=langlinks&lllang=he",
+        "https://hebrewglot.com/en/blog/hebrew-for-developers",
+        "The owner-approved copy review (merged as #290)"
+      ]
+    },
+    {
+      "term": "ship / shipping",
+      "aliases": [],
+      "category": "C",
+      "he": "השקה / להשיק",
+      "he_plural": "השקות",
+      "he_definite": "ההשקה",
+      "gender": "f",
+      "contexts": {},
+      "forbidden": [
+        "שיפינג",
+        "משלוח"
+      ],
+      "where_used": [
+        "seo.siteSocial",
+        "seo.blogsDescription",
+        "approved: Shipping since 2021 → בתעשייה מאז 2021",
+        "specs: Shipping (years) → שנות ניסיון"
+      ],
+      "rationale": "Owner-approved phrasings; ship is rendered by meaning, never literally.",
+      "sources": [
+        "The owner-approved copy review (merged as #290)",
+        "docs/hebrew/strings.md"
+      ]
+    },
+    {
+      "term": "build",
+      "aliases": [
+        "build step",
+        "builds"
+      ],
+      "category": "D",
+      "he": "בנייה",
+      "he_plural": "בניות",
+      "he_definite": "הבנייה",
+      "gender": "f",
+      "contexts": {
+        "public": "Avoid; 'נבנה עם' for 'Built with'",
+        "developers": "תהליך הבנייה; 'build' Latin in commands/script names"
+      },
+      "forbidden": [
+        "בילד",
+        "בילדים",
+        "קימפול (unless it is compilation)"
+      ],
+      "where_used": [
+        "projects.builtWith"
+      ],
+      "rationale": "No standard Hebrew noun in practitioner writing (hebrewglot lists only לקמפל); בנייה is transparent.",
+      "sources": [
+        "https://hebrewglot.com/en/blog/hebrew-for-developers"
+      ]
+    },
+    {
+      "term": "CI",
+      "aliases": [
+        "continuous integration",
+        "CI/CD"
+      ],
+      "category": "A",
+      "he": "CI",
+      "he_plural": null,
+      "he_definite": "ה־CI",
+      "gender": "m",
+      "contexts": {
+        "public": "First mention 'אינטגרציה רציפה (CI)' or avoid",
+        "developers": "CI"
+      },
+      "forbidden": [
+        "סי־איי",
+        "CIים"
+      ],
+      "where_used": [
+        "post tags 'ci'",
+        "seed.ts project facts"
+      ],
+      "rationale": "Hebrew Wikipedia: אינטגרציה רציפה; practitioners write CI/CD in Latin.",
+      "sources": [
+        "https://en.wikipedia.org/w/api.php?action=query&prop=langlinks&lllang=he",
+        "https://hebrewglot.com/en/blog/hebrew-for-developers"
+      ]
+    },
+    {
+      "term": "pipeline",
+      "aliases": [],
+      "category": "D",
+      "he": "pipeline",
+      "he_plural": null,
+      "he_definite": "ה־pipeline",
+      "gender": "m",
+      "contexts": {
+        "public": "'תהליך הבדיקות והפריסה'",
+        "developers": "pipeline (Latin) or 'תהליך ה־CI'"
+      },
+      "forbidden": [
+        "צינור",
+        "צנרת",
+        "פייפליין"
+      ],
+      "where_used": [],
+      "rationale": "Practitioners use the English (hebrewglot transliterates פייפליין, but job posts and blogs keep Latin). Hebrew calques are not used.",
+      "sources": [
+        "https://hebrewglot.com/en/blog/hebrew-for-developers"
+      ]
+    },
+    {
+      "term": "test",
+      "aliases": [
+        "tests",
+        "testing",
+        "checks"
+      ],
+      "category": "C",
+      "he": "בדיקה",
+      "he_plural": "בדיקות",
+      "he_definite": "הבדיקות",
+      "gender": "f",
+      "contexts": {
+        "public": "בדיקות",
+        "developers": "בדיקות יחידה / בדיקות מקצה לקצה"
+      },
+      "forbidden": [
+        "טסט",
+        "טסטים",
+        "מבחן",
+        "מבחנים"
+      ],
+      "where_used": [
+        "seo.siteSocial",
+        "accessibility-statement.limitItems.2",
+        "post tag 'testing'"
+      ],
+      "rationale": "Hebrew Wikipedia: Software testing → בדיקות תוכנה; hebrewglot gives בדיקות as the noun (לטסט only as slang verb).",
+      "sources": [
+        "https://en.wikipedia.org/w/api.php?action=query&prop=langlinks&lllang=he",
+        "https://hebrewglot.com/en/blog/hebrew-for-developers"
+      ]
+    },
+    {
+      "term": "production",
+      "aliases": [],
+      "category": "D",
+      "he": "סביבת הייצור",
+      "he_plural": null,
+      "he_definite": "סביבת הייצור",
+      "gender": "f",
+      "contexts": {
+        "public": "Avoid; 'האתר החי' → 'האתר' / 'פעיל'",
+        "developers": "סביבת הייצור"
+      },
+      "forbidden": [
+        "פרודקשן",
+        "פרוד",
+        "באוויר"
+      ],
+      "where_used": [],
+      "rationale": "Practitioners say פרודקשן; Microsoft uses ייצור. Owner rejected באוויר.",
+      "sources": [
+        "https://hebrewglot.com/en/blog/hebrew-for-developers",
+        "https://learn.microsoft.com/he-il/training/modules/introduction-to-github/3-components-of-github-flow",
+        "The owner-approved copy review (merged as #290)"
+      ]
+    },
+    {
+      "term": "rollback / restore",
+      "aliases": [],
+      "category": "C",
+      "he": "שחזור",
+      "he_plural": "שחזורים",
+      "he_definite": "השחזור",
+      "gender": "m",
+      "contexts": {},
+      "forbidden": [
+        "רולבק",
+        "להחזיר (as a button)"
+      ],
+      "where_used": [
+        "admin-settings.restore",
+        "admin-settings.restoreLabel",
+        "admin-settings.intro"
+      ],
+      "rationale": "Owner-approved: restore → שחזור (buttons are nouns).",
+      "sources": [
+        "The owner-approved copy review (merged as #290)"
+      ]
+    },
+    {
+      "term": "bug",
+      "aliases": [],
+      "category": "B",
+      "he": "באג",
+      "he_plural": "באגים",
+      "he_definite": "הבאג",
+      "gender": "m",
+      "contexts": {},
+      "forbidden": [
+        "תקל",
+        "חרק",
+        "פשפש"
+      ],
+      "where_used": [],
+      "rationale": "Hebrew Wikipedia's article is titled באג; universal usage.",
+      "sources": [
+        "https://en.wikipedia.org/w/api.php?action=query&prop=langlinks&lllang=he",
+        "https://hebrewglot.com/en/blog/hebrew-for-developers"
+      ]
+    },
+    {
+      "term": "debug",
+      "aliases": [
+        "debugging"
+      ],
+      "category": "C",
+      "he": "ניפוי באגים",
+      "he_plural": null,
+      "he_definite": "ניפוי הבאגים",
+      "gender": "m",
+      "contexts": {},
+      "forbidden": [
+        "דיבאג",
+        "להדביג",
+        "לדבג"
+      ],
+      "where_used": [],
+      "rationale": "Hebrew Wikipedia: Debugging → ניפוי שגיאות; ניפוי באגים is the common practitioner form and pairs with באג.",
+      "sources": [
+        "https://en.wikipedia.org/w/api.php?action=query&prop=langlinks&lllang=he",
+        "https://hebrewglot.com/en/blog/hebrew-for-developers"
+      ]
+    },
+    {
+      "term": "code review",
+      "aliases": [],
+      "category": "C",
+      "he": "סקירת קוד",
+      "he_plural": "סקירות קוד",
+      "he_definite": "סקירת הקוד",
+      "gender": "f",
+      "contexts": {},
+      "forbidden": [
+        "קוד ריוויו",
+        "סקר קוד",
+        "ביקורת קוד"
+      ],
+      "where_used": [],
+      "rationale": "Hebrew Wikipedia titles it סקר קוד (rare); Microsoft and the site use סקירה ('סקירה ופרסום' in the editor). Practitioners say קוד ריוויו in speech.",
+      "sources": [
+        "https://en.wikipedia.org/w/api.php?action=query&prop=langlinks&lllang=he",
+        "https://hebrewglot.com/en/blog/hebrew-for-developers"
+      ]
+    },
+    {
+      "term": "review (editor step)",
+      "aliases": [],
+      "category": "C",
+      "he": "סקירה",
+      "he_plural": null,
+      "he_definite": null,
+      "gender": "f",
+      "contexts": {},
+      "forbidden": [],
+      "where_used": [
+        "note-editor.review",
+        "note-editor.reviewTitle"
+      ],
+      "rationale": "",
+      "sources": []
+    },
+    {
+      "term": "dry run",
+      "aliases": [],
+      "category": "C",
+      "he": "הרצה יבשה",
+      "he_plural": null,
+      "he_definite": "ההרצה היבשה",
+      "gender": "f",
+      "contexts": {},
+      "forbidden": [
+        "דריי ראן",
+        "כתיבות הן הרצות יבשות"
+      ],
+      "where_used": [
+        "mcp.howItems.1",
+        "mcp.toolsDo.*"
+      ],
+      "rationale": "Owner-approved phrasing 'פעולות כתיבה מתבצעות כהרצה יבשה'.",
+      "sources": [
+        "The owner-approved copy review (merged as #290)"
+      ]
+    },
+    {
+      "term": "hotfix",
+      "aliases": [],
+      "category": "C",
+      "he": "תיקון דחוף",
+      "he_plural": "תיקונים דחופים",
+      "he_definite": null,
+      "gender": "m",
+      "contexts": {},
+      "forbidden": [
+        "הוטפיקס",
+        "תיקון חם"
+      ],
+      "where_used": [],
+      "rationale": "Microsoft MT 'תיקון חם' is a calque.",
+      "sources": [
+        "https://learn.microsoft.com/he-il/training/modules/introduction-to-github/3-components-of-github-flow"
+      ]
+    },
+    {
+      "term": "feature",
+      "aliases": [],
+      "category": "C",
+      "he": "יכולת",
+      "he_plural": "יכולות",
+      "he_definite": "היכולת",
+      "gender": "f",
+      "contexts": {
+        "developers": "תכונה acceptable"
+      },
+      "forbidden": [
+        "פיצ׳ר",
+        "פיצ'ר"
+      ],
+      "where_used": [],
+      "rationale": "hebrewglot lists פיצ׳ר as speech; Microsoft uses תכונה.",
+      "sources": [
+        "https://hebrewglot.com/en/blog/hebrew-for-developers",
+        "https://learn.microsoft.com/he-il/training/modules/introduction-to-github/"
+      ]
+    },
+    {
+      "term": "container",
+      "aliases": [],
+      "category": "B",
+      "he": "קונטיינר",
+      "he_plural": "קונטיינרים",
+      "he_definite": "הקונטיינר",
+      "gender": "m",
+      "contexts": {},
+      "forbidden": [
+        "מכולה",
+        "מיכל"
+      ],
+      "where_used": [
+        "Bothy posts (Docker)"
+      ],
+      "rationale": "Only practitioners' word exists in use; product name Docker stays Latin.",
+      "sources": []
+    },
+    {
+      "term": "self-hosting",
+      "aliases": [],
+      "category": "C",
+      "he": "אירוח עצמי",
+      "he_plural": null,
+      "he_definite": null,
+      "gender": "m",
+      "contexts": {},
+      "forbidden": [
+        "סלף הוסטינג"
+      ],
+      "where_used": [
+        "post tag 'self-hosting' (value stays Latin)"
+      ],
+      "rationale": "",
+      "sources": []
+    },
+    {
+      "term": "observability / monitoring",
+      "aliases": [],
+      "category": "C",
+      "he": "ניטור",
+      "he_plural": null,
+      "he_definite": null,
+      "gender": "m",
+      "contexts": {},
+      "forbidden": [
+        "אובזרבביליות",
+        "תצפיתיות"
+      ],
+      "where_used": [
+        "post tag 'observability'"
+      ],
+      "rationale": "",
+      "sources": []
+    },
+    {
+      "term": "infrastructure",
+      "aliases": [],
+      "category": "C",
+      "he": "תשתיות",
+      "he_plural": null,
+      "he_definite": null,
+      "gender": "f",
+      "contexts": {},
+      "forbidden": [],
+      "where_used": [
+        "seo.homeNotes",
+        "seo.blogsDescription"
+      ],
+      "rationale": "",
+      "sources": []
+    },
+    {
+      "term": "performance",
+      "aliases": [],
+      "category": "C",
+      "he": "ביצועים",
+      "he_plural": null,
+      "he_definite": null,
+      "gender": "m",
+      "contexts": {},
+      "forbidden": [],
+      "where_used": [
+        "post tag 'performance'"
+      ],
+      "rationale": "",
+      "sources": []
+    },
+    {
+      "term": "security",
+      "aliases": [],
+      "category": "C",
+      "he": "אבטחה",
+      "he_plural": null,
+      "he_definite": null,
+      "gender": "f",
+      "contexts": {},
+      "forbidden": [],
+      "where_used": [
+        "post tag 'security'"
+      ],
+      "rationale": "",
+      "sources": []
+    },
+    {
+      "term": "privacy",
+      "aliases": [],
+      "category": "C",
+      "he": "פרטיות",
+      "he_plural": null,
+      "he_definite": null,
+      "gender": "f",
+      "contexts": {},
+      "forbidden": [],
+      "where_used": [
+        "post tag 'privacy'"
+      ],
+      "rationale": "",
+      "sources": []
+    },
+    {
+      "term": "auth / authentication",
+      "aliases": [],
+      "category": "C",
+      "he": "אימות",
+      "he_plural": null,
+      "he_definite": null,
+      "gender": "m",
+      "contexts": {},
+      "forbidden": [
+        "אותנטיקציה",
+        "אוט׳"
+      ],
+      "where_used": [
+        "post tag 'auth'"
+      ],
+      "rationale": "Hebrew Wikipedia: Authentication → אימות זהות.",
+      "sources": [
+        "https://en.wikipedia.org/w/api.php?action=query&prop=langlinks&lllang=he"
+      ]
+    },
+    {
+      "term": "full-stack",
+      "aliases": [
+        "Full-stack engineer",
+        "full stack"
+      ],
+      "category": "B",
+      "he": "פול־סטאק",
+      "he_plural": null,
+      "he_definite": "n/a (adjective/noun)",
+      "gender": "n/a",
+      "contexts": {
+        "public": "מהנדס פול־סטאק",
+        "admin": "פול־סטאק"
+      },
+      "forbidden": [
+        "פול סטאק",
+        "פול-סטאק (ASCII hyphen)",
+        "פולסטאק",
+        "Full Stack (in Hebrew copy)"
+      ],
+      "where_used": [
+        "home.role",
+        "page-names.homeTitle",
+        "notes.authorRole",
+        "seo.siteTitle",
+        "seo.role",
+        "seo.jobTitle",
+        "web/src/data/site.ts hero"
+      ],
+      "rationale": "Owner-approved. Israeli job posts write it every way (Drushim: 'פול סטאק', 'פול-סטאק', 'FULL STACK'); the maqaf form is the typographically correct choice.",
+      "sources": [
+        "The owner-approved copy review (merged as #290)",
+        "https://www.drushim.co.il/article/385/"
+      ]
+    },
+    {
+      "term": "frontend",
+      "aliases": [
+        "front end",
+        "front-end"
+      ],
+      "category": "B",
+      "he": "פרונטאנד",
+      "he_plural": null,
+      "he_definite": "הפרונטאנד",
+      "gender": "m",
+      "contexts": {},
+      "forbidden": [
+        "פרונט אנד",
+        "פרונט-אנד",
+        "פרונטנד",
+        "קצה קדמי",
+        "צד לקוח (on this site)"
+      ],
+      "where_used": [
+        "hero tagline",
+        "seo.homeNotes",
+        "seo.blogsDescription"
+      ],
+      "rationale": "Owner-approved. Job posts use both 'פרונט אנד' and 'פרונטאנד' (AllJobs, Jobify); Hebrew Wikipedia's קצה קדמי is unused in practice.",
+      "sources": [
+        "The owner-approved copy review (merged as #290)",
+        "https://www.alljobs.co.il/m/p/jobs/8851698",
+        "https://en.wikipedia.org/w/api.php?action=query&prop=langlinks&lllang=he"
+      ]
+    },
+    {
+      "term": "backend",
+      "aliases": [
+        "back end",
+        "back-end"
+      ],
+      "category": "B",
+      "he": "בקאנד",
+      "he_plural": null,
+      "he_definite": "הבקאנד",
+      "gender": "m",
+      "contexts": {
+        "public": "בקאנד, parallel to פרונטאנד; 'צד שרת' acceptable in prose about servers"
+      },
+      "forbidden": [
+        "בק אנד",
+        "בק-אנד",
+        "קצה אחורי",
+        "בקנד",
+        "צד־שרת (with maqaf)"
+      ],
+      "where_used": [
+        "seed.ts project facts ('back end')",
+        "previously seo.homeNotes (now frontend)"
+      ],
+      "rationale": "Contested: no owner ruling. One word mirrors the owner's פרונטאנד; hebrewglot writes בק-אנד, Drushim uses צד שרת, Wikipedia קצה אחורי. Ask the owner before first use.",
+      "sources": [
+        "https://hebrewglot.com/en/blog/hebrew-for-developers",
+        "https://www.drushim.co.il/article/385/",
+        "https://en.wikipedia.org/w/api.php?action=query&prop=langlinks&lllang=he"
+      ]
+    },
+    {
+      "term": "DevOps",
+      "aliases": [],
+      "category": "A",
+      "he": "DevOps",
+      "he_plural": null,
+      "he_definite": null,
+      "gender": "m",
+      "contexts": {},
+      "forbidden": [
+        "דבאופס",
+        "דב־אופס"
+      ],
+      "where_used": [],
+      "rationale": "Hebrew Wikipedia's article is titled DevOps in Latin.",
+      "sources": [
+        "https://en.wikipedia.org/w/api.php?action=query&prop=langlinks&lllang=he"
+      ]
+    },
+    {
+      "term": "engineer",
+      "aliases": [],
+      "category": "C",
+      "he": "מהנדס",
+      "he_plural": "מהנדסים",
+      "he_definite": null,
+      "gender": "m",
+      "contexts": {},
+      "forbidden": [],
+      "where_used": [
+        "seo.jobTitle",
+        "notes.authorRole"
+      ],
+      "rationale": "",
+      "sources": []
+    },
+    {
+      "term": "developer / developers",
+      "aliases": [],
+      "category": "C",
+      "he": "מפתח",
+      "he_plural": "מפתחים",
+      "he_definite": "המפתחים",
+      "gender": "m",
+      "contexts": {
+        "public": "nav/eyebrow: 'למפתחים'"
+      },
+      "forbidden": [
+        "דבלופרים"
+      ],
+      "where_used": [
+        "mcp.eyebrow",
+        "footer"
+      ],
+      "rationale": "Owner-approved: developers → למפתחים.",
+      "sources": [
+        "The owner-approved copy review (merged as #290)"
+      ]
+    },
+    {
+      "term": "technical team lead",
+      "aliases": [],
+      "category": "C",
+      "he": "ראש צוות טכני",
+      "he_plural": null,
+      "he_definite": null,
+      "gender": "m",
+      "contexts": {},
+      "forbidden": [
+        "טים ליד",
+        "ראש צוות (alone)"
+      ],
+      "where_used": [
+        "home.role",
+        "dashboard.role",
+        "seo.*"
+      ],
+      "rationale": "",
+      "sources": [
+        "The owner-approved copy review (merged as #290)"
+      ]
+    },
+    {
+      "term": "stack (tech stack)",
+      "aliases": [
+        "Stack",
+        "Built with",
+        "tech"
+      ],
+      "category": "D",
+      "he": "טכנולוגיות",
+      "he_plural": null,
+      "he_definite": null,
+      "gender": "f",
+      "contexts": {
+        "public": "טכנולוגיות (projects.stack) / טכנולוגיה (facet label)",
+        "developers": "סטאק only inside פול־סטאק"
+      },
+      "forbidden": [
+        "סטאק (standalone in UI)",
+        "ערימה",
+        "מחסנית"
+      ],
+      "where_used": [
+        "projects.stack",
+        "work.facet.stack",
+        "projects.builtWith"
+      ],
+      "rationale": "Hebrew Wikipedia has סטאק (תוכנה) but a lay reader parses טכנולוגיות. Minor inconsistency: projects.stack is plural, work.facet.stack singular — acceptable for a facet label, but pick one.",
+      "sources": [
+        "https://en.wikipedia.org/w/api.php?action=query&prop=langlinks&lllang=he"
+      ]
+    },
+    {
+      "term": "framework",
+      "aliases": [],
+      "category": "B",
+      "he": "פריימוורק",
+      "he_plural": "פריימוורקים",
+      "he_definite": "הפריימוורק",
+      "gender": "m",
+      "contexts": {
+        "public": "Prefer naming it (React, Fastify)"
+      },
+      "forbidden": [
+        "שלד תוכנה",
+        "מסגרת עבודה"
+      ],
+      "where_used": [],
+      "rationale": "Hebrew Wikipedia's שלד תוכנה is not used by practitioners; job posts write 'framework' or the product name. Not currently in UI.",
+      "sources": [
+        "https://en.wikipedia.org/w/api.php?action=query&prop=langlinks&lllang=he",
+        "https://www.alljobs.co.il/m/p/jobs/8851698"
+      ]
+    },
+    {
+      "term": "library (code)",
+      "aliases": [],
+      "category": "C",
+      "he": "ספרייה",
+      "he_plural": "ספריות",
+      "he_definite": "הספרייה",
+      "gender": "f",
+      "contexts": {},
+      "forbidden": [
+        "לייבררי"
+      ],
+      "where_used": [],
+      "rationale": "Hebrew Wikipedia: ספרייה (תכנות). Also used for the media library.",
+      "sources": [
+        "https://en.wikipedia.org/w/api.php?action=query&prop=langlinks&lllang=he"
+      ]
+    },
+    {
+      "term": "technology",
+      "aliases": [],
+      "category": "C",
+      "he": "טכנולוגיה",
+      "he_plural": "טכנולוגיות",
+      "he_definite": null,
+      "gender": "f",
+      "contexts": {},
+      "forbidden": [],
+      "where_used": [
+        "hero corner phrase 'Technology' (owner copy)"
+      ],
+      "rationale": "",
+      "sources": []
+    },
+    {
+      "term": "API",
+      "aliases": [],
+      "category": "A",
+      "he": "API",
+      "he_plural": "ממשקי API",
+      "he_definite": "ה־API",
+      "gender": "m",
+      "contexts": {
+        "public": "First mention 'ממשק (API)' if needed",
+        "developers": "API"
+      },
+      "forbidden": [
+        "APIים",
+        "איי־פי־איי",
+        "מנשק",
+        "ממשק תכנות יישומים (in UI)"
+      ],
+      "where_used": [
+        "seed.ts project facts ('file API')"
+      ],
+      "rationale": "Masculine because the head noun is ממשק. Hebrew Wikipedia: ממשק תכנות יישומים (encyclopedic only). The Academy's מנשק was publicly rejected (ynet).",
+      "sources": [
+        "https://en.wikipedia.org/w/api.php?action=query&prop=langlinks&lllang=he",
+        "https://www.ynet.co.il/articles/0,7340,L-2296494,00.html"
+      ]
+    },
+    {
+      "term": "MCP",
+      "aliases": [
+        "Model Context Protocol",
+        "MCP server"
+      ],
+      "category": "A",
+      "he": "MCP",
+      "he_plural": "שרתי MCP",
+      "he_definite": "ה־MCP",
+      "gender": "m",
+      "contexts": {
+        "public": "שרת MCP",
+        "developers": "'Model Context Protocol‏ (MCP)' on first mention, Latin name kept"
+      },
+      "forbidden": [
+        "פרוטוקול הקשר מודל",
+        "מ־סי־פי"
+      ],
+      "where_used": [
+        "footer.mcp",
+        "page-names.mcp",
+        "mcp.title",
+        "mcp.intro",
+        "seo.mcp"
+      ],
+      "rationale": "Owner-approved intro 'האתר תומך ב־Model Context Protocol‏ (MCP)'. Hebrew Wikipedia's title פרוטוקול הקשר מודל is a word-for-word calque nobody uses.",
+      "sources": [
+        "The owner-approved copy review (merged as #290)",
+        "https://en.wikipedia.org/w/api.php?action=query&prop=langlinks&lllang=he"
+      ]
+    },
+    {
+      "term": "server",
+      "aliases": [],
+      "category": "C",
+      "he": "שרת",
+      "he_plural": "שרתים",
+      "he_definite": "השרת",
+      "gender": "m",
+      "contexts": {},
+      "forbidden": [],
+      "where_used": [
+        "notes.noAnswer",
+        "reader.noAnswer",
+        "mcp.checking",
+        "approved noAnswerBody"
+      ],
+      "rationale": "",
+      "sources": [
+        "https://en.wikipedia.org/w/api.php?action=query&prop=langlinks&lllang=he"
+      ]
+    },
+    {
+      "term": "client (software)",
+      "aliases": [],
+      "category": "D",
+      "he": "לקוח",
+      "he_plural": "לקוחות",
+      "he_definite": "הלקוח",
+      "gender": "m",
+      "contexts": {
+        "public": "Prefer 'אפליקציה' — לקוח reads as customer",
+        "developers": "לקוח MCP"
+      },
+      "forbidden": [
+        "קליינט"
+      ],
+      "where_used": [
+        "mcp.intro",
+        "mcp.howBefore",
+        "mcp.toolsDo.read_audit_log"
+      ],
+      "rationale": "Hebrew Wikipedia: תוכנת לקוח. Fine on the developers page where context is clear.",
+      "sources": [
+        "https://en.wikipedia.org/w/api.php?action=query&prop=langlinks&lllang=he"
+      ]
+    },
+    {
+      "term": "tool (MCP tool)",
+      "aliases": [],
+      "category": "C",
+      "he": "כלי",
+      "he_plural": "כלים",
+      "he_definite": "הכלי",
+      "gender": "m",
+      "contexts": {},
+      "forbidden": [],
+      "where_used": [
+        "mcp.tools",
+        "mcp.tool",
+        "mcp.publicOnly",
+        "home.spec.Tools"
+      ],
+      "rationale": "",
+      "sources": []
+    },
+    {
+      "term": "endpoint",
+      "aliases": [],
+      "category": "C",
+      "he": "נקודת קצה",
+      "he_plural": "נקודות קצה",
+      "he_definite": "נקודת הקצה",
+      "gender": "f",
+      "contexts": {
+        "developers": "נקודת קצה; the URL itself stays Latin and isolated"
+      },
+      "forbidden": [
+        "אנדפוינט"
+      ],
+      "where_used": [
+        "mcp.skipSignIn"
+      ],
+      "rationale": "Already used; practitioners say אנדפוינט but the Hebrew is transparent. Evidence: none fetched beyond the site's own usage — weak.",
+      "sources": []
+    },
+    {
+      "term": "token / access token",
+      "aliases": [],
+      "category": "C",
+      "he": "אסימון / אסימון גישה",
+      "he_plural": "אסימונים / אסימוני גישה",
+      "he_definite": "האסימון",
+      "gender": "m",
+      "contexts": {
+        "developers": "אסימון גישה; optionally 'אסימון גישה (access token)' on first mention"
+      },
+      "forbidden": [
+        "טוקן",
+        "טוקנים"
+      ],
+      "where_used": [
+        "mcp.howItems.0",
+        "mcp.howItems.2"
+      ],
+      "rationale": "Contested: developers say טוקן. אסימון is the formal term (used in Israeli banking/2FA copy) and already on the page. Could not fetch a Microsoft terminology entry to confirm — evidence weak.",
+      "sources": []
+    },
+    {
+      "term": "OAuth",
+      "aliases": [
+        "OAuth 2.1",
+        "PKCE"
+      ],
+      "category": "A",
+      "he": "OAuth",
+      "he_plural": null,
+      "he_definite": "ה־OAuth",
+      "gender": "m",
+      "contexts": {},
+      "forbidden": [],
+      "where_used": [
+        "mcp.howBefore"
+      ],
+      "rationale": "Hebrew Wikipedia keeps OAuth in Latin. Isolate 'OAuth 2.1' and 'PKCE' with LRI/PDI.",
+      "sources": [
+        "https://en.wikipedia.org/w/api.php?action=query&prop=langlinks&lllang=he"
+      ]
+    },
+    {
+      "term": "scope (OAuth)",
+      "aliases": [
+        "mcp:read",
+        "mcp:write"
+      ],
+      "category": "D",
+      "he": "גישת קריאה / גישת כתיבה",
+      "he_plural": null,
+      "he_definite": null,
+      "gender": "f",
+      "contexts": {
+        "developers": "Hebrew label + scope id in Latin in parentheses: 'גישת קריאה (mcp:read)'"
+      },
+      "forbidden": [
+        "סקופ",
+        "היקף"
+      ],
+      "where_used": [
+        "mcp.readHead",
+        "mcp.writeHead"
+      ],
+      "rationale": "",
+      "sources": []
+    },
+    {
+      "term": "consent screen",
+      "aliases": [],
+      "category": "C",
+      "he": "מסך הסכמה",
+      "he_plural": null,
+      "he_definite": null,
+      "gender": "m",
+      "contexts": {},
+      "forbidden": [],
+      "where_used": [
+        "mcp.howItems.1"
+      ],
+      "rationale": "",
+      "sources": []
+    },
+    {
+      "term": "audit log",
+      "aliases": [],
+      "category": "C",
+      "he": "יומן ביקורת",
+      "he_plural": null,
+      "he_definite": "יומן הביקורת",
+      "gender": "m",
+      "contexts": {},
+      "forbidden": [
+        "לוג אודיט",
+        "לוג"
+      ],
+      "where_used": [
+        "mcp.howItems.1"
+      ],
+      "rationale": "",
+      "sources": []
+    },
+    {
+      "term": "channel log / activity log",
+      "aliases": [],
+      "category": "C",
+      "he": "יומן פעילות",
+      "he_plural": null,
+      "he_definite": "יומן הפעילות",
+      "gender": "m",
+      "contexts": {},
+      "forbidden": [
+        "יומן הערוץ",
+        "לוג"
+      ],
+      "where_used": [
+        "page-names.log",
+        "log.feedTitle",
+        "dashboard.channelLog",
+        "mcp.intro",
+        "mcp.toolsDo.list_activity"
+      ],
+      "rationale": "Owner-approved: יומן פעילות everywhere.",
+      "sources": [
+        "The owner-approved copy review (merged as #290)"
+      ]
+    },
+    {
+      "term": "sign in / sign-in",
+      "aliases": [
+        "log in",
+        "login"
+      ],
+      "category": "C",
+      "he": "התחברות",
+      "he_plural": null,
+      "he_definite": null,
+      "gender": "f",
+      "contexts": {},
+      "forbidden": [
+        "לוגין",
+        "כניסה (as the button)"
+      ],
+      "where_used": [
+        "mcp.signIn",
+        "mcp.skipSignIn",
+        "mcp.how",
+        "admin-settings.notAuthorised"
+      ],
+      "rationale": "Hebrew Wikipedia: כניסה למערכת; Israeli UIs use התחברות.",
+      "sources": [
+        "https://en.wikipedia.org/w/api.php?action=query&prop=langlinks&lllang=he"
+      ]
+    },
+    {
+      "term": "sign out",
+      "aliases": [],
+      "category": "C",
+      "he": "התנתקות",
+      "he_plural": null,
+      "he_definite": null,
+      "gender": "f",
+      "contexts": {},
+      "forbidden": [
+        "לוגאאוט",
+        "יציאה"
+      ],
+      "where_used": [
+        "admin-shell.signOut"
+      ],
+      "rationale": "",
+      "sources": []
+    },
+    {
+      "term": "revoke",
+      "aliases": [],
+      "category": "C",
+      "he": "ביטול",
+      "he_plural": null,
+      "he_definite": null,
+      "gender": "m",
+      "contexts": {},
+      "forbidden": [
+        "שלילה"
+      ],
+      "where_used": [
+        "mcp.howItems.2"
+      ],
+      "rationale": "",
+      "sources": []
+    },
+    {
+      "term": "connector / custom connector",
+      "aliases": [],
+      "category": "D",
+      "he": "מחבר / מחבר מותאם אישית",
+      "he_plural": null,
+      "he_definite": null,
+      "gender": "m",
+      "contexts": {
+        "developers": "Claude's own menu path stays Latin and isolated: Settings → Connectors → Add custom connector"
+      },
+      "forbidden": [
+        "קונקטור"
+      ],
+      "where_used": [
+        "mcp.desktop",
+        "seo.mcpConnector"
+      ],
+      "rationale": "",
+      "sources": []
+    },
+    {
+      "term": "connected apps",
+      "aliases": [],
+      "category": "C",
+      "he": "אפליקציות מחוברות",
+      "he_plural": null,
+      "he_definite": null,
+      "gender": "f",
+      "contexts": {},
+      "forbidden": [],
+      "where_used": [
+        "page-names.connections"
+      ],
+      "rationale": "",
+      "sources": []
+    },
+    {
+      "term": "app",
+      "aliases": [],
+      "category": "C",
+      "he": "אפליקציה",
+      "he_plural": "אפליקציות",
+      "he_definite": "האפליקציה",
+      "gender": "f",
+      "contexts": {},
+      "forbidden": [
+        "יישומון",
+        "אפליקצייה"
+      ],
+      "where_used": [
+        "story.figures.In a store → בחנויות האפליקציות"
+      ],
+      "rationale": "Hebrew Wikipedia titles Mobile app as יישומון (Academy term); Google's and Israeli consumer UIs use אפליקציה.",
+      "sources": [
+        "https://en.wikipedia.org/w/api.php?action=query&prop=langlinks&lllang=he",
+        "The owner-approved copy review (merged as #290)"
+      ]
+    },
+    {
+      "term": "JSON",
+      "aliases": [],
+      "category": "A",
+      "he": "JSON",
+      "he_plural": null,
+      "he_definite": "ה־JSON",
+      "gender": "m",
+      "contexts": {},
+      "forbidden": [],
+      "where_used": [],
+      "rationale": "",
+      "sources": []
+    },
+    {
+      "term": "URL / address",
+      "aliases": [],
+      "category": "D",
+      "he": "כתובת",
+      "he_plural": "כתובות",
+      "he_definite": "הכתובת",
+      "gender": "f",
+      "contexts": {
+        "public": "כתובת",
+        "admin": "כתובת (slug, canonical)",
+        "developers": "כתובת; the URL string itself Latin, isolated"
+      },
+      "forbidden": [
+        "URLים",
+        "יו־אר־אל",
+        "לינק (for URL)"
+      ],
+      "where_used": [
+        "note-editor.coverHelp",
+        "note-editor.slugHelp",
+        "work.notHereBody",
+        "seo.mcpConnector"
+      ],
+      "rationale": "",
+      "sources": []
+    },
+    {
+      "term": "link",
+      "aliases": [],
+      "category": "C",
+      "he": "קישור",
+      "he_plural": "קישורים",
+      "he_definite": "הקישור",
+      "gender": "m",
+      "contexts": {},
+      "forbidden": [
+        "לינק"
+      ],
+      "where_used": [
+        "notes.linkCopied",
+        "history.copyLink",
+        "note-editor.tools.link"
+      ],
+      "rationale": "",
+      "sources": []
+    },
+    {
+      "term": "webhook",
+      "aliases": [],
+      "category": "A",
+      "he": "webhook",
+      "he_plural": null,
+      "he_definite": "ה־webhook",
+      "gender": "m",
+      "contexts": {},
+      "forbidden": [
+        "וובהוק",
+        "קרס רשת"
+      ],
+      "where_used": [],
+      "rationale": "No Hebrew Wikipedia article; not in UI. Keep Latin if ever needed.",
+      "sources": [
+        "https://en.wikipedia.org/w/api.php?action=query&prop=langlinks&lllang=he"
+      ]
+    },
+    {
+      "term": "RSS",
+      "aliases": [],
+      "category": "A",
+      "he": "RSS",
+      "he_plural": null,
+      "he_definite": "ה־RSS",
+      "gender": "m",
+      "contexts": {},
+      "forbidden": [],
+      "where_used": [
+        "log.rss",
+        "history.rss",
+        "work.feed",
+        "log.subscribeBody",
+        "log.subscribeAll"
+      ],
+      "rationale": "Hebrew Wikipedia keeps RSS in Latin. Standalone 'RSS' fails words.test (KEPT_IN_LATIN is empty) — every Hebrew entry must carry a Hebrew word, e.g. 'RSS של התחום'.",
+      "sources": [
+        "https://en.wikipedia.org/w/api.php?action=query&prop=langlinks&lllang=he"
+      ]
+    },
+    {
+      "term": "feed",
+      "aliases": [],
+      "category": "B",
+      "he": "פיד",
+      "he_plural": "פידים",
+      "he_definite": "הפיד",
+      "gender": "m",
+      "contexts": {},
+      "forbidden": [
+        "הזנה",
+        "ערוץ"
+      ],
+      "where_used": [
+        "dashboard.feed",
+        "work.feed",
+        "history.emptyAreaBody"
+      ],
+      "rationale": "Common Israeli usage (social feeds). No Hebrew Wikipedia article for Web feed.",
+      "sources": [
+        "https://en.wikipedia.org/w/api.php?action=query&prop=langlinks&lllang=he"
+      ]
+    },
+    {
+      "term": "Markdown",
+      "aliases": [],
+      "category": "A",
+      "he": "Markdown",
+      "he_plural": null,
+      "he_definite": "ה־Markdown",
+      "gender": "m",
+      "contexts": {},
+      "forbidden": [
+        "מרקדאון"
+      ],
+      "where_used": [
+        "note-editor.bodyHelp"
+      ],
+      "rationale": "Hebrew Wikipedia keeps Markdown.",
+      "sources": [
+        "https://en.wikipedia.org/w/api.php?action=query&prop=langlinks&lllang=he"
+      ]
+    },
+    {
+      "term": "README",
+      "aliases": [],
+      "category": "A",
+      "he": "README",
+      "he_plural": null,
+      "he_definite": "ה־README",
+      "gender": "m",
+      "contexts": {},
+      "forbidden": [
+        "רידמי",
+        "קרא אותי"
+      ],
+      "where_used": [],
+      "rationale": "",
+      "sources": []
+    },
+    {
+      "term": "docs",
+      "aliases": [
+        "documentation",
+        "published docs"
+      ],
+      "category": "C",
+      "he": "תיעוד",
+      "he_plural": null,
+      "he_definite": "התיעוד",
+      "gender": "m",
+      "contexts": {},
+      "forbidden": [
+        "מסמכים (for docs)",
+        "דוקס",
+        "דוקומנטציה"
+      ],
+      "where_used": [
+        "work.tab.docs",
+        "work.noDocs",
+        "work.docsFrom",
+        "history.docs",
+        "work.lede"
+      ],
+      "rationale": "Owner-approved: docs → תיעוד.",
+      "sources": [
+        "The owner-approved copy review (merged as #290)"
+      ]
+    },
+    {
+      "term": "index (search engines)",
+      "aliases": [],
+      "category": "B",
+      "he": "לאנדקס",
+      "he_plural": null,
+      "he_definite": null,
+      "gender": "n/a",
+      "contexts": {
+        "admin": "לאנדקס is accepted admin vocabulary"
+      },
+      "forbidden": [],
+      "where_used": [
+        "note-editor.noindex"
+      ],
+      "rationale": "The 'live index' meaning (work.liveFailed) was replaced by 'הנתונים העדכניים מ־GitHub' in the approved review — don't use אינדקס for the site's own data.",
+      "sources": [
+        "The owner-approved copy review (merged as #290)"
+      ]
+    },
+    {
+      "term": "SEO",
+      "aliases": [],
+      "category": "C",
+      "he": "חיפוש ושיתוף",
+      "he_plural": null,
+      "he_definite": null,
+      "gender": "m",
+      "contexts": {},
+      "forbidden": [
+        "SEO (as a heading)",
+        "קידום אתרים"
+      ],
+      "where_used": [
+        "note-editor.seo",
+        "note-editor.seoTitle",
+        "note-editor.seoDescription"
+      ],
+      "rationale": "Describes what the fields do for a non-specialist.",
+      "sources": []
+    },
+    {
+      "term": "cache",
+      "aliases": [],
+      "category": "C",
+      "he": "מטמון",
+      "he_plural": null,
+      "he_definite": "המטמון",
+      "gender": "m",
+      "contexts": {},
+      "forbidden": [
+        "קאש"
+      ],
+      "where_used": [],
+      "rationale": "Hebrew Wikipedia: זיכרון מטמון. Not in UI today.",
+      "sources": [
+        "https://en.wikipedia.org/w/api.php?action=query&prop=langlinks&lllang=he"
+      ]
+    },
+    {
+      "term": "database",
+      "aliases": [],
+      "category": "C",
+      "he": "מסד נתונים",
+      "he_plural": "מסדי נתונים",
+      "he_definite": null,
+      "gender": "m",
+      "contexts": {},
+      "forbidden": [
+        "דאטאבייס",
+        "בסיס נתונים"
+      ],
+      "where_used": [],
+      "rationale": "Hebrew Wikipedia and hebrewglot both give מסד נתונים.",
+      "sources": [
+        "https://en.wikipedia.org/w/api.php?action=query&prop=langlinks&lllang=he",
+        "https://hebrewglot.com/en/blog/hebrew-for-developers"
+      ]
+    },
+    {
+      "term": "Docker / React / Node.js / TypeScript / PostgreSQL / MongoDB / Vite / Fastify / Drizzle ORM / Traefik / Grafana / VictoriaMetrics / Keycloak / Tailscale / Fly.io / Manifest V3 / CSS",
+      "aliases": [],
+      "category": "A",
+      "he": "Latin, as named",
+      "he_plural": null,
+      "he_definite": null,
+      "gender": "m",
+      "contexts": {},
+      "forbidden": [
+        "ריאקט",
+        "דוקר",
+        "נוד",
+        "טייפסקריפט"
+      ],
+      "where_used": [
+        "backend/src/content/seed.ts tech arrays",
+        "post tags"
+      ],
+      "rationale": "Product names. Hebrew Wikipedia keeps Docker in Latin. Rendered with lang='en' dir='ltr' via inEnglish() when a whole field is Latin.",
+      "sources": [
+        "https://en.wikipedia.org/w/api.php?action=query&prop=langlinks&lllang=he"
+      ]
+    },
+    {
+      "term": "Chrome extension",
+      "aliases": [
+        "extension",
+        "chrome-extension"
+      ],
+      "category": "C",
+      "he": "תוסף ל־Chrome",
+      "he_plural": "תוספים",
+      "he_definite": "התוסף",
+      "gender": "m",
+      "contexts": {},
+      "forbidden": [
+        "אקסטנשן",
+        "הרחבה"
+      ],
+      "where_used": [
+        "post tag 'chrome-extension' (value stays Latin)",
+        "seed.ts (windom)"
+      ],
+      "rationale": "Google's own Hebrew Chrome Web Store help uses תוסף/תוספים.",
+      "sources": [
+        "https://support.google.com/chrome_webstore/answer/2664769?hl=iw"
+      ]
+    },
+    {
+      "term": "browser",
+      "aliases": [],
+      "category": "C",
+      "he": "דפדפן",
+      "he_plural": "דפדפנים",
+      "he_definite": "הדפדפן",
+      "gender": "m",
+      "contexts": {},
+      "forbidden": [
+        "בראוזר"
+      ],
+      "where_used": [
+        "accessibility-statement.looksItems.1.1",
+        "accessibility-statement.limitItems.2",
+        "mcp.signIn"
+      ],
+      "rationale": "",
+      "sources": [
+        "https://support.google.com/chrome_webstore/answer/2664769?hl=iw",
+        "https://en.wikipedia.org/w/api.php?action=query&prop=langlinks&lllang=he"
+      ]
+    },
+    {
+      "term": "tab (browser)",
+      "aliases": [],
+      "category": "D",
+      "he": "לשונית",
+      "he_plural": "לשוניות",
+      "he_definite": "הלשונית",
+      "gender": "f",
+      "contexts": {
+        "public": "Contested: Google's Hebrew Chrome help uses כרטיסייה; the site uses לשונית. Pick one site-wide."
+      },
+      "forbidden": [
+        "טאב"
+      ],
+      "where_used": [
+        "projects.opensFor",
+        "work.tabs (page sections)"
+      ],
+      "rationale": "Both words are standard; Chrome's Hebrew UI says כרטיסייה. The site's in-page tab list (work.tabs = חלקי הפרויקט) sidesteps it.",
+      "sources": [
+        "https://support.google.com/chrome_webstore/answer/2664769?hl=iw"
+      ]
+    },
+    {
+      "term": "address bar",
+      "aliases": [],
+      "category": "C",
+      "he": "שורת הכתובת",
+      "he_plural": null,
+      "he_definite": null,
+      "gender": "f",
+      "contexts": {},
+      "forbidden": [],
+      "where_used": [
+        "history.copyFailed"
+      ],
+      "rationale": "Chrome's Hebrew help says סרגל הכתובות; שורת הכתובת is equally common. Keep.",
+      "sources": [
+        "https://support.google.com/chrome_webstore/answer/2664769?hl=iw"
+      ]
+    },
+    {
+      "term": "clipboard",
+      "aliases": [
+        "copied to the clipboard"
+      ],
+      "category": "C",
+      "he": "לוח",
+      "he_plural": null,
+      "he_definite": null,
+      "gender": "m",
+      "contexts": {},
+      "forbidden": [],
+      "where_used": [
+        "mcp.copiedSay"
+      ],
+      "rationale": "Hebrew Wikipedia: לוח העתקה; 'הועתק ללוח' is standard.",
+      "sources": [
+        "https://en.wikipedia.org/w/api.php?action=query&prop=langlinks&lllang=he"
+      ]
+    },
+    {
+      "term": "keyboard shortcuts / key names",
+      "aliases": [],
+      "category": "A",
+      "he": "Enter, Escape, Home, End, Ctrl+B …",
+      "he_plural": null,
+      "he_definite": null,
+      "gender": "n/a",
+      "contexts": {
+        "public": "Key names stay Latin as printed on keys; prefix with maqaf: 'ו־Home'; a key name opening a line gets an RLM before it."
+      },
+      "forbidden": [],
+      "where_used": [
+        "city.frame",
+        "dashboard.askHint",
+        "dashboard.treeHint",
+        "history.keysHint",
+        "note-editor.shortcuts",
+        "reader.viewerHint"
+      ],
+      "rationale": "Israeli keyboards print Latin key names. dashboard.askHint already starts with RLM ('‏# בוחר נושא').",
+      "sources": []
+    },
+    {
+      "term": "screen reader",
+      "aliases": [],
+      "category": "C",
+      "he": "קורא מסך",
+      "he_plural": "קוראי מסך",
+      "he_definite": null,
+      "gender": "m",
+      "contexts": {},
+      "forbidden": [],
+      "where_used": [
+        "accessibility-statement.*"
+      ],
+      "rationale": "",
+      "sources": [
+        "https://en.wikipedia.org/w/api.php?action=query&prop=langlinks&lllang=he"
+      ]
+    },
+    {
+      "term": "WCAG / IS 5568",
+      "aliases": [],
+      "category": "A",
+      "he": "WCAG / ת״י 5568",
+      "he_plural": null,
+      "he_definite": null,
+      "gender": "m",
+      "contexts": {},
+      "forbidden": [],
+      "where_used": [
+        "accessibility-statement.intro"
+      ],
+      "rationale": "IS 5568 is officially ת״י 5568 (gershayim U+05F4) in Hebrew; either form is understood — the statement currently keeps IS 5568.",
+      "sources": []
+    },
+    {
+      "term": "note / post",
+      "aliases": [
+        "notes",
+        "post",
+        "posts"
+      ],
+      "category": "C",
+      "he": "רשימה",
+      "he_plural": "רשימות",
+      "he_definite": "הרשימה",
+      "gender": "f",
+      "contexts": {},
+      "forbidden": [
+        "רשומה",
+        "רשומות",
+        "פוסט",
+        "מאמר (for an item)"
+      ],
+      "where_used": [
+        "everywhere: notes.*, reader.*, dashboard.*, history.*, note-editor.*, mcp.toolsDo.*"
+      ],
+      "rationale": "Owner-binding (#287/#290): note → רשימה, never רשומה. note-editor had רשומה before #290; verify none returns.",
+      "sources": [
+        "The owner-approved copy review (merged as #290)"
+      ]
+    },
+    {
+      "term": "blog",
+      "aliases": [],
+      "category": "C",
+      "he": "בלוג",
+      "he_plural": "n/a (one blog)",
+      "he_definite": "הבלוג",
+      "gender": "m",
+      "contexts": {},
+      "forbidden": [
+        "בלוגים",
+        "יומן רשת"
+      ],
+      "where_used": [
+        "footer.blogs",
+        "nav"
+      ],
+      "rationale": "Owner-approved; Hebrew Wikipedia: בלוג.",
+      "sources": [
+        "The owner-approved copy review (merged as #290)",
+        "https://en.wikipedia.org/w/api.php?action=query&prop=langlinks&lllang=he"
+      ]
+    },
+    {
+      "term": "work / projects",
+      "aliases": [],
+      "category": "C",
+      "he": "פרויקטים",
+      "he_plural": "פרויקטים",
+      "he_definite": null,
+      "gender": "m",
+      "contexts": {},
+      "forbidden": [
+        "עבודות",
+        "תיק עבודות"
+      ],
+      "where_used": [
+        "footer.work",
+        "work.title",
+        "nav/projects"
+      ],
+      "rationale": "",
+      "sources": [
+        "The owner-approved copy review (merged as #290)"
+      ]
+    },
+    {
+      "term": "area",
+      "aliases": [],
+      "category": "C",
+      "he": "תחום",
+      "he_plural": "תחומים",
+      "he_definite": "התחום",
+      "gender": "m",
+      "contexts": {},
+      "forbidden": [
+        "אזור (for area)",
+        "קטגוריה"
+      ],
+      "where_used": [
+        "reader.area",
+        "dashboard.*",
+        "work.areas",
+        "history.*",
+        "log.areas",
+        "page-names.areas"
+      ],
+      "rationale": "",
+      "sources": []
+    },
+    {
+      "term": "draft",
+      "aliases": [],
+      "category": "C",
+      "he": "טיוטה",
+      "he_plural": "טיוטות",
+      "he_definite": "הטיוטה",
+      "gender": "f",
+      "contexts": {},
+      "forbidden": [
+        "דראפט"
+      ],
+      "where_used": [
+        "note-editor.status.draft",
+        "note-editor.saveNow",
+        "note-editor.unpublish",
+        "mcp.toolsDo.*"
+      ],
+      "rationale": "",
+      "sources": [
+        "https://en.wikipedia.org/w/api.php?action=query&prop=langlinks&lllang=he"
+      ]
+    },
+    {
+      "term": "publish",
+      "aliases": [
+        "published",
+        "unpublish",
+        "first publish"
+      ],
+      "category": "C",
+      "he": "פרסום",
+      "he_plural": null,
+      "he_definite": null,
+      "gender": "m",
+      "contexts": {},
+      "forbidden": [
+        "עלייה לאוויר",
+        "יעלה לאוויר",
+        "פאבליש"
+      ],
+      "where_used": [
+        "note-editor.publish",
+        "note-editor.firstPublish",
+        "reader.published",
+        "mcp.toolsDo.publish_post"
+      ],
+      "rationale": "Wix's Hebrew help labels Publish as פרסום; owner rejected יעלה לאוויר.",
+      "sources": [
+        "https://support.wix.com/he/article/wix-editor-publishing-your-site",
+        "The owner-approved copy review (merged as #290)"
+      ]
+    },
+    {
+      "term": "preview",
+      "aliases": [],
+      "category": "C",
+      "he": "תצוגה מקדימה",
+      "he_plural": null,
+      "he_definite": null,
+      "gender": "f",
+      "contexts": {},
+      "forbidden": [
+        "פריוויו"
+      ],
+      "where_used": [
+        "note-editor.preview",
+        "note-editor.previewLabel"
+      ],
+      "rationale": "Wix Hebrew help: Preview (תצוגה מקדימה).",
+      "sources": [
+        "https://support.wix.com/he/article/wix-editor-publishing-your-site"
+      ]
+    },
+    {
+      "term": "archive",
+      "aliases": [],
+      "category": "C",
+      "he": "ארכיון",
+      "he_plural": null,
+      "he_definite": null,
+      "gender": "m",
+      "contexts": {},
+      "forbidden": [],
+      "where_used": [
+        "note-editor.status.archived",
+        "mcp.toolsDo.delete_post",
+        "work STATE_WORDS.archive"
+      ],
+      "rationale": "",
+      "sources": []
+    },
+    {
+      "term": "autosave",
+      "aliases": [],
+      "category": "C",
+      "he": "שמירה אוטומטית",
+      "he_plural": null,
+      "he_definite": null,
+      "gender": "f",
+      "contexts": {},
+      "forbidden": [],
+      "where_used": [
+        "note-editor.neverPublished",
+        "note-editor.newNoteHint"
+      ],
+      "rationale": "",
+      "sources": [
+        "The owner-approved copy review (merged as #290)"
+      ]
+    },
+    {
+      "term": "upload",
+      "aliases": [],
+      "category": "C",
+      "he": "העלאה",
+      "he_plural": null,
+      "he_definite": null,
+      "gender": "f",
+      "contexts": {},
+      "forbidden": [
+        "אפלוד"
+      ],
+      "where_used": [
+        "note-editor.uploading",
+        "note-editor.uploaded",
+        "note-editor.uploadFailed",
+        "note-editor.bodyHelp"
+      ],
+      "rationale": "",
+      "sources": []
+    },
+    {
+      "term": "media library",
+      "aliases": [],
+      "category": "C",
+      "he": "ספריית המדיה",
+      "he_plural": null,
+      "he_definite": null,
+      "gender": "f",
+      "contexts": {},
+      "forbidden": [],
+      "where_used": [
+        "mcp.toolsDo.list_media",
+        "note-editor.tools.image"
+      ],
+      "rationale": "",
+      "sources": []
+    },
+    {
+      "term": "code (inline / block)",
+      "aliases": [],
+      "category": "C",
+      "he": "קוד / בלוק קוד",
+      "he_plural": null,
+      "he_definite": null,
+      "gender": "m",
+      "contexts": {},
+      "forbidden": [],
+      "where_used": [
+        "note-editor.tools.code",
+        "note-editor.tools.codeblock",
+        "reader.copyCode"
+      ],
+      "rationale": "בלוק is accepted; the alternative קטע קוד is fine in prose.",
+      "sources": []
+    },
+    {
+      "term": "slug",
+      "aliases": [],
+      "category": "C",
+      "he": "כתובת",
+      "he_plural": null,
+      "he_definite": null,
+      "gender": "f",
+      "contexts": {},
+      "forbidden": [
+        "סלאג"
+      ],
+      "where_used": [
+        "note-editor.slugHelp"
+      ],
+      "rationale": "",
+      "sources": []
+    },
+    {
+      "term": "canonical URL",
+      "aliases": [],
+      "category": "C",
+      "he": "הכתובת המקורית",
+      "he_plural": null,
+      "he_definite": null,
+      "gender": "f",
+      "contexts": {},
+      "forbidden": [
+        "קנוני"
+      ],
+      "where_used": [
+        "note-editor.canonicalHelp"
+      ],
+      "rationale": "",
+      "sources": []
+    },
+    {
+      "term": "featured",
+      "aliases": [
+        "featured order",
+        "not featured"
+      ],
+      "category": "C",
+      "he": "מומלצות",
+      "he_plural": null,
+      "he_definite": null,
+      "gender": "f",
+      "contexts": {},
+      "forbidden": [
+        "נבחרת",
+        "נבחרות (for featured)",
+        "פיצ׳רד"
+      ],
+      "where_used": [
+        "dashboard.featured",
+        "note-editor.featured",
+        "note-editor.notFeatured"
+      ],
+      "rationale": "Owner-approved.",
+      "sources": [
+        "The owner-approved copy review (merged as #290)"
+      ]
+    },
+    {
+      "term": "pinned",
+      "aliases": [],
+      "category": "C",
+      "he": "מוצמדים",
+      "he_plural": null,
+      "he_definite": null,
+      "gender": "m",
+      "contexts": {},
+      "forbidden": [],
+      "where_used": [
+        "work.pinned",
+        "work.lede"
+      ],
+      "rationale": "",
+      "sources": []
+    },
+    {
+      "term": "admin",
+      "aliases": [],
+      "category": "C",
+      "he": "ניהול",
+      "he_plural": null,
+      "he_definite": null,
+      "gender": "m",
+      "contexts": {},
+      "forbidden": [
+        "אדמין",
+        "מנהל (for the area)"
+      ],
+      "where_used": [
+        "footer.admin",
+        "page-names.admin",
+        "admin-shell.*",
+        "mcp.howItems.2 (ממשק הניהול)"
+      ],
+      "rationale": "",
+      "sources": []
+    },
+    {
+      "term": "settings",
+      "aliases": [],
+      "category": "C",
+      "he": "הגדרות",
+      "he_plural": null,
+      "he_definite": null,
+      "gender": "f",
+      "contexts": {},
+      "forbidden": [
+        "סטינגס"
+      ],
+      "where_used": [
+        "admin-settings.title"
+      ],
+      "rationale": "Public 'Controls' became תצוגה (owner) so הגדרות is reserved for admin settings.",
+      "sources": [
+        "The owner-approved copy review (merged as #290)"
+      ]
+    },
+    {
+      "term": "theme",
+      "aliases": [
+        "dark",
+        "light",
+        "system",
+        "dark mode"
+      ],
+      "category": "C",
+      "he": "ערכת צבעים",
+      "he_plural": "ערכות צבעים",
+      "he_definite": null,
+      "gender": "f",
+      "contexts": {
+        "public": "בהירה / כהה / לפי המערכת"
+      },
+      "forbidden": [
+        "תמה",
+        "ת׳ים",
+        "דארק מוד",
+        "מצב לילה"
+      ],
+      "where_used": [
+        "chrome.theme",
+        "chrome.themeDark",
+        "admin-settings.themeLegend"
+      ],
+      "rationale": "",
+      "sources": []
+    },
+    {
+      "term": "dashboard",
+      "aliases": [],
+      "category": "D",
+      "he": "לוח בקרה",
+      "he_plural": null,
+      "he_definite": null,
+      "gender": "m",
+      "contexts": {
+        "public": "Not shown; the notes dashboard is just 'בלוג'",
+        "admin": "לוח בקרה if ever needed"
+      },
+      "forbidden": [
+        "דשבורד",
+        "לוח מחוונים"
+      ],
+      "where_used": [],
+      "rationale": "Not a visible word on the site. Could not verify Microsoft's Hebrew Power BI term (he-il page redirected to English); monday.com's Hebrew help was not reachable. Weak evidence; decision by readability.",
+      "sources": []
+    },
+    {
+      "term": "hero",
+      "aliases": [],
+      "category": "C",
+      "he": "פתיח",
+      "he_plural": null,
+      "he_definite": null,
+      "gender": "m",
+      "contexts": {},
+      "forbidden": [
+        "הירו",
+        "באנר"
+      ],
+      "where_used": [
+        "admin-settings.hero",
+        "admin-settings.homeHint"
+      ],
+      "rationale": "",
+      "sources": []
+    },
+    {
+      "term": "section",
+      "aliases": [],
+      "category": "C",
+      "he": "אזור",
+      "he_plural": "אזורים",
+      "he_definite": null,
+      "gender": "m",
+      "contexts": {},
+      "forbidden": [],
+      "where_used": [
+        "admin-settings.sections.*",
+        "admin-settings.issues.*"
+      ],
+      "rationale": "",
+      "sources": []
+    },
+    {
+      "term": "accent colour",
+      "aliases": [],
+      "category": "C",
+      "he": "צבע הדגשה",
+      "he_plural": null,
+      "he_definite": null,
+      "gender": "m",
+      "contexts": {},
+      "forbidden": [],
+      "where_used": [
+        "admin-settings.accentLegend"
+      ],
+      "rationale": "",
+      "sources": []
+    },
+    {
+      "term": "contrast",
+      "aliases": [],
+      "category": "C",
+      "he": "ניגודיות",
+      "he_plural": null,
+      "he_definite": null,
+      "gender": "f",
+      "contexts": {},
+      "forbidden": [],
+      "where_used": [
+        "chrome.contrast"
+      ],
+      "rationale": "",
+      "sources": []
+    },
+    {
+      "term": "motion / pause motion",
+      "aliases": [],
+      "category": "C",
+      "he": "השהיית תנועה",
+      "he_plural": null,
+      "he_definite": null,
+      "gender": "f",
+      "contexts": {},
+      "forbidden": [
+        "עצירת תנועה"
+      ],
+      "where_used": [
+        "chrome.pauseMotion",
+        "chrome.motionPaused"
+      ],
+      "rationale": "Owner-approved.",
+      "sources": [
+        "The owner-approved copy review (merged as #290)"
+      ]
+    },
+    {
+      "term": "retry",
+      "aliases": [],
+      "category": "C",
+      "he": "ניסיון חוזר",
+      "he_plural": null,
+      "he_definite": null,
+      "gender": "m",
+      "contexts": {},
+      "forbidden": [
+        "לנסות שוב (as a button)"
+      ],
+      "where_used": [
+        "dashboard.retry"
+      ],
+      "rationale": "",
+      "sources": [
+        "The owner-approved copy review (merged as #290)"
+      ]
+    },
+    {
+      "term": "loading",
+      "aliases": [],
+      "category": "C",
+      "he": "נטען / נטענת",
+      "he_plural": null,
+      "he_definite": null,
+      "gender": "n/a",
+      "contexts": {},
+      "forbidden": [],
+      "where_used": [
+        "admin-settings.loading",
+        "work.loadingProject"
+      ],
+      "rationale": "Owner: loading → 'הרשימה נטענת…' (state, not 'טוען…' with an implied 'I').",
+      "sources": [
+        "The owner-approved copy review (merged as #290)"
+      ]
+    },
+    {
+      "term": "live (status)",
+      "aliases": [],
+      "category": "C",
+      "he": "פעיל",
+      "he_plural": "פעילים",
+      "he_definite": null,
+      "gender": "m",
+      "contexts": {},
+      "forbidden": [
+        "באוויר",
+        "לייב"
+      ],
+      "where_used": [
+        "home.spec.Live",
+        "mcp.live",
+        "work STATE_WORDS.live"
+      ],
+      "rationale": "",
+      "sources": [
+        "docs/hebrew/strings.md"
+      ]
+    },
+    {
+      "term": "specs",
+      "aliases": [],
+      "category": "C",
+      "he": "במספרים",
+      "he_plural": null,
+      "he_definite": null,
+      "gender": "n/a",
+      "contexts": {},
+      "forbidden": [
+        "נתונים",
+        "ספקס"
+      ],
+      "where_used": [
+        "admin-settings.sections.stack",
+        "home specs"
+      ],
+      "rationale": "",
+      "sources": [
+        "The owner-approved copy review (merged as #290)"
+      ]
+    },
+    {
+      "term": "elsewhere (links)",
+      "aliases": [],
+      "category": "C",
+      "he": "ברשת",
+      "he_plural": null,
+      "he_definite": null,
+      "gender": "n/a",
+      "contexts": {},
+      "forbidden": [
+        "במקומות אחרים"
+      ],
+      "where_used": [
+        "chrome.elsewhere",
+        "footer.elsewhere",
+        "seo.elsewhere",
+        "projects.elsewhere"
+      ],
+      "rationale": "",
+      "sources": [
+        "The owner-approved copy review (merged as #290)"
+      ]
+    },
+    {
+      "term": "email",
+      "aliases": [
+        "mail"
+      ],
+      "category": "C",
+      "he": "אימייל",
+      "he_plural": null,
+      "he_definite": null,
+      "gender": "m",
+      "contexts": {},
+      "forbidden": [
+        "דוא״ל (inconsistent with chrome.email)",
+        "מייל (in labels; fine in prose)"
+      ],
+      "where_used": [
+        "chrome.email",
+        "contact.*"
+      ],
+      "rationale": "Approved contact.fact uses 'במייל' in prose; the label stays אימייל.",
+      "sources": []
+    },
+    {
+      "term": "open in a new tab",
+      "aliases": [],
+      "category": "C",
+      "he": "נפתח בלשונית חדשה",
+      "he_plural": null,
+      "he_definite": null,
+      "gender": "n/a",
+      "contexts": {},
+      "forbidden": [],
+      "where_used": [
+        "projects.opensFor"
+      ],
+      "rationale": "",
+      "sources": []
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://learn.microsoft.com/he-il/training/modules/introduction-to-github/",
+      "what": "Microsoft Learn he-il, machine-translated (ms.translationtype: MT). Uses בקשות משיכה, הסתעפויות, בקשות ביצוע, בעיות, מאגרים — evidence of literal MT, not of practitioner usage."
+    },
+    {
+      "url": "https://learn.microsoft.com/he-il/training/modules/introduction-to-github/3-components-of-github-flow",
+      "what": "Same module, unit 3 (MT). Inconsistent: סניפים and ענפים for branches; התחייבויות/ביצוע/מבצע for commits; דחיפת ביצוע for push; בקשת משיכה; מיזוג; ענפי שחרור/הפצה/מהדורה for release. Shows why calques must be rejected."
+    },
+    {
+      "url": "https://learn.microsoft.com/he-il/azure/devops/repos/git/pull-requests",
+      "what": "Requested the he-il Azure DevOps PR page; it served the English original (no Hebrew translation available). Could not confirm 'בקשת משיכה' in a human-reviewed Microsoft product string."
+    },
+    {
+      "url": "https://he.wikipedia.org/wiki/גיט",
+      "what": "Hebrew Wikipedia 'גיט': מאגר and רפוזיטורי, ענף (branch), גרסה (revision/commit), מיזוג (merge), דחיפות/משיכות; Latin in parentheses."
+    },
+    {
+      "url": "https://he.wikipedia.org/wiki/GitHub",
+      "what": "Hebrew Wikipedia 'GitHub': מאגר (repository), בקשת משיכה (pull request), פיצול (fork), קוד פתוח; 'Issues' kept in Latin; stars paraphrased as מועדפים."
+    },
+    {
+      "url": "https://en.wikipedia.org/w/api.php?action=query&prop=langlinks&lllang=he",
+      "what": "Wikipedia API en→he interlanguage titles (fetched): API→ממשק תכנות יישומים; Repository→רפוזיטורי (ניהול גרסאות); Fork→פיצול (פיתוח תוכנה); Software bug→באג; Debugging→ניפוי שגיאות; Continuous integration→אינטגרציה רציפה; Software deployment→פריסת תוכנה; Front end and back end→קצה קדמי וקצה אחורי; Solution stack→סטאק (תוכנה); Software framework→שלד תוכנה; Library→ספרייה (תכנות); Software license→רישיון תוכנה; Open-source software→קוד פתוח; Source code→קוד מקור; Cache→זיכרון מטמון; Client→תוכנת לקוח; Server→שרת (מחשבים); Code review→סקר קוד; Software testing→בדיקות תוכנה; Plug-in→תוסף; Web browser→דפדפן; Tag (metadata)→תגית; Mobile app→יישומון; Authentication→אימות זהות; Login→כניסה למערכת; Database→מסד נתונים; Clipboard→לוח העתקה; Screen reader→קורא מסך; Model Context Protocol→פרוטוקול הקשר מודל; Latin titles kept for DevOps, Docker, Markdown, OAuth, RSS, Diff. No Hebrew article for commit, branching, merge, pull request, webhook, web feed, access token, browser extension, dark mode, full-stack developer."
+    },
+    {
+      "url": "https://ohshitgit.com/he",
+      "what": "Hebrew translation of a popular git guide: קומיט/קומיטים, ברנץ׳/ברנצ׳ים, ריפו, מרג׳, דחפת — practitioner register."
+    },
+    {
+      "url": "https://internet-israel.com/category/מדריכים/git/",
+      "what": "Long-running Hebrew web-dev blog: 'יצירת pull request', 'PR ענקיים' (masc. plural), 'מה זה קומיט', ענפים (branches), 'דחיפה שלו לשרת', 'למזג'; mixes Latin and Hebrew."
+    },
+    {
+      "url": "https://www.codebrain.co.il/מדריך-ל-git-ניהול-גרסאות-קוד/",
+      "what": "Hebrew git tutorial: keeps Repository, Commit, Push, Clone in Latin; ענפים (branches), למזג (merge)."
+    },
+    {
+      "url": "https://hebrewglot.com/en/blog/hebrew-for-developers",
+      "what": "Hebrew-for-developers glossary: ריפו, ברנץ׳, קומיט, פוש, מרג׳, דפלוי, באג, קוד ריוויו, פרונט-אנד, בק-אנד, פול-סטאק, רליז, פיצ׳ר, פייפליין, מסד נתונים, בדיקות; labels לדפלוי/לדביג/לפושר as slang. Secondary source (a learner site), useful for spoken register only."
+    },
+    {
+      "url": "https://www.drushim.co.il/article/385/",
+      "what": "Drushim (Israeli job board) article: 'פול סטאק', 'פול-סטאק', 'FULL STACK', 'full stack' all on one page; צד לקוח / צד שרת; database in Latin."
+    },
+    {
+      "url": "https://www.alljobs.co.il/m/p/jobs/8851698",
+      "what": "AllJobs posting title 'מפתח/ת פרונט אנד'; search snippets from Jobify also show 'פרונטאנד' and Latin 'Frontend' — usage is split."
+    },
+    {
+      "url": "https://support.google.com/chrome_webstore/answer/2664769?hl=iw",
+      "what": "Google's Hebrew Chrome Web Store help: תוסף/תוספים (extension), דפדפן, סרגל הכתובות, כרטיסייה (tab), הרשאות; proxy/VPN kept Latin."
+    },
+    {
+      "url": "https://support.wix.com/he/article/wix-editor-publishing-your-site",
+      "what": "Wix Hebrew help (Israeli product): Publish (פרסום), Preview (תצוגה מקדימה), 'האתר שבאוויר' / 'האתר הפעיל'; keeps English button labels in Latin with Hebrew gloss."
+    },
+    {
+      "url": "https://www.ynet.co.il/articles/0,7340,L-2296494,00.html",
+      "what": "ynet article (dated on page 05.12.02): Academy computing terms the public rejected — מנשק (interface), סיבית (bit), בית (byte), הידודי (interactive)."
+    },
+    {
+      "url": "https://terms.hebrew-academy.org.il/",
+      "what": "Academy of the Hebrew Language term database: a query for 'repository' returned 0 entries via fetch; the search UI needs interaction. No Academy entries for git vocabulary could be confirmed."
+    },
+    {
+      "url": "https://docs.github.com/en",
+      "what": "GitHub Docs: fetched page did not expose the language picker, so the absence of Hebrew could not be verified by fetch. GitHub's product UI is not localized into Hebrew (general knowledge, unverified here)."
+    },
+    {
+      "url": "https://learn.microsoft.com/he-il/power-bi/create-reports/service-dashboards",
+      "what": "Requested he-il; served English. Microsoft's Hebrew term for 'dashboard' not confirmed."
+    },
+    {
+      "url": "https://source.android.com/source/?hl=he",
+      "what": "Android source site in Hebrew (search snippet): 'סטאק תוכנה בקוד פתוח', 'תרומה לה' — סטאק and תרומה in Google Hebrew copy."
+    },
+    {
+      "url": "The owner-approved copy review (merged as #290)",
+      "what": "Owner-approved copy review; merged as PR #290 (worktree HEAD 0b6714f). Binding choices: רשימה, תיעוד, עדכוני קוד, מומלצות, למפתחים, ניסיון חוזר, בלוג, פרויקטים, פול־סטאק, פרונטאנד, יומן פעילות, במספרים, ברשת, שחזור, השהיית תנועה."
+    },
+    {
+      "url": "docs/hebrew/strings.md",
+      "what": "Repo inventory of every Hebrew string (#287): פיצולים over מזלגות, פעילים over באוויר, and the list of items shown in English on /he."
+    }
+  ]
+}
