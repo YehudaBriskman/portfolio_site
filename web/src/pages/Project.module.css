@@ -19,7 +19,8 @@
  * physical thing is the arrow, flipped under `:dir(rtl)`.
  *
  * No motion of its own: hover changes colour in `--dur-micro`. The Overview's
- * scrubbed devices (`Written`, `InkWipe`, the figure's drift) are their own.
+ * scrubbed devices (`Written`, `Arrive` and its `Ring`, the figure's drift)
+ * are their own.
  */
 
 /* ─────────────────────────────────────────────────────────────── header */
@@ -121,6 +122,16 @@
 
 .pinItem[aria-current="page"] svg {
   color: rgb(var(--ink));
+}
+
+/* The icon's box, the same whether or not it is circled (#251). */
+.pinIcon {
+  display: inline-grid;
+  width: 24px;
+  height: 24px;
+  flex: none;
+  place-items: center;
+  margin-inline: -4px;
 }
 
 /* ─────────────────────────────────────────────────────────────── tabs */
@@ -227,15 +238,24 @@
   color: rgb(var(--ink));
 }
 
+/* A heading with the circle motif in front of it (#251). */
+.marked {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* The circle bullet (#251): a ring, not a filled dot, in the signal. */
 .highlights li::before {
   content: "";
   position: absolute;
   inset-inline-start: 0;
-  inset-block-start: 0.6em;
-  width: 6px;
-  height: 6px;
+  inset-block-start: 0.5em;
+  width: 8px;
+  height: 8px;
+  box-sizing: border-box;
+  border: 1.5px solid rgb(var(--signal));
   border-radius: 50%;
-  background: rgb(var(--ink-soft));
 }
 
 /*

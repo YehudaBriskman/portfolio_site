@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { FileText, Folder, Globe, Rocket, Upload } from "lucide-react";
 import styles from "@/components/dashboard/Dashboard.module.css";
 import SkeletonGate from "@/components/gallery/SkeletonGate";
+import Ring from "@/components/motion/Ring";
 import SkeletonLines from "@/components/gallery/SkeletonLines";
 import { fullDate, relative, useWords } from "@/components/dashboard/i18n";
 import type { ActivityEvent, ActivityKind } from "@/services/activity";
@@ -55,6 +56,7 @@ export default function Timeline({
   return (
     <section className={styles.timelineCard} aria-labelledby={id} aria-busy={events === null && !error}>
       <h2 id={id} className={styles.timelineTitle}>
+        <Ring size={10} />
         {title ?? t.timeline}
       </h2>
 
@@ -70,7 +72,9 @@ export default function Timeline({
           <ol className={styles.timeline}>
             {[0, 1, 2, 3].map((i) => (
               <li key={i} className={styles.event}>
-                <span className={styles.eventDot} />
+                <span className={styles.eventDot}>
+                  <Ring size={20} tone="soft" dot={false} draw={false} />
+                </span>
                 <span className={styles.eventWhen}>
                   <SkeletonLines lines={1} tail="5rem" />
                 </span>
@@ -97,7 +101,9 @@ export default function Timeline({
             return (
               <li key={e.id} className={styles.event} data-kind={e.kind}>
                 <span className={styles.eventDot} aria-hidden="true">
-                  <Icon size={12} strokeWidth={2.25} />
+                  <Ring size={20} tone="soft">
+                    <Icon size={12} strokeWidth={2.25} />
+                  </Ring>
                 </span>
                 <time className={styles.eventWhen} dateTime={e.at} title={fullDate(e.at, lang)}>
                   {relative(e.at, now, lang)}

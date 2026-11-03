@@ -19,6 +19,8 @@ import {
 import { useCopyStatus, useListKeys } from "@/components/dashboard/useHistory";
 import SkeletonGate from "@/components/gallery/SkeletonGate";
 import SkeletonLines from "@/components/gallery/SkeletonLines";
+import Arrive from "@/components/motion/Arrive";
+import Ring from "@/components/motion/Ring";
 import type { Collection, PostSummary } from "@/services/blog";
 
 /*
@@ -251,9 +253,13 @@ export function HistoryList({
       {groups.map((g) => {
         const heading = g.at ? w.notesOn(shortDate(g.at, lang)) : w.undated;
         return (
-          <section key={g.day || "undated"} className={styles.day} aria-label={heading}>
+          <Arrive as="section" key={g.day || "undated"} className={styles.day} aria-label={heading}>
             <h3 className={styles.dayHead}>
-              <FileText aria-hidden="true" />
+              {/* The day's circle bullet (#251), drawn round the kind as
+                  the day comes up. */}
+              <Ring size={20} tone="soft">
+                <FileText />
+              </Ring>
               {heading}
             </h3>
             <ul className={styles.rows}>
@@ -270,7 +276,7 @@ export function HistoryList({
                 />
               ))}
             </ul>
-          </section>
+          </Arrive>
         );
       })}
       <p className="sr-only" role="status">
@@ -393,10 +399,10 @@ export function RepoFacts({ stats, repoUrl }: { stats: Stats; repoUrl: string | 
 const SHARE_HUES = ["--hue-blue", "--hue-green", "--hue-yellow", "--hue-purple"];
 
 /**
- * The topic breakdown as GitHub's language bar: one strip, a share per topic
- * in the brand hues the area glyphs use, and a legend that is the real list
- * (each entry a filter link, with its count and share). The strip is
- * decoration over the legend, so it is hidden from assistive tech.
+ * The topic breakdown, GitHub's language bar made round (#251): one ring, an
+ * arc per topic in the brand hues the area marks use, and a legend that is
+ * the real list (each entry a filter link, with its count and share). The
+ * ring is decoration over the legend, so it is hidden from assistive tech.
  */
 export function TopicBar({
   posts,
@@ -415,20 +421,36 @@ export function TopicBar({
     ...shares.map((s, i) => ({ key: s.tag, label: s.tag, count: s.count, hue: SHARE_HUES[i % SHARE_HUES.length], tag: s.tag })),
     ...(other > 0 ? [{ key: "__other", label: w.other, count: other, hue: null, tag: null }] : []),
   ];
+  /* The shares as a ring (#251) rather than GitHub's strip: the circle is
+     the site's motif. r = 100/2π, so a share's dash length is its percent;
+     each arc gives up 1.5 of its length as the gap before the next. */
+  const GAP = parts.length > 1 ? 1.5 : 0;
+  let at = 0;
+  const arcs = parts.map((p) => {
+    const len = (p.count / total) * 100;
+    const arc = { ...p, from: at, len: Math.max(0.5, len - GAP) };
+    at += len;
+    return arc;
+  });
   return (
     <div className={styles.topics}>
-      <div className={styles.bar} aria-hidden="true">
-        {parts.map((p) => (
-          <span
-            key={p.key}
-            className={styles.barPart}
+      <svg className={styles.ring} viewBox="0 0 36 36" aria-hidden="true" focusable="false">
+        <circle className={styles.ringTrack} cx="18" cy="18" r="15.9155" />
+        {arcs.map((a) => (
+          <circle
+            key={a.key}
+            className={styles.ringArc}
+            cx="18"
+            cy="18"
+            r="15.9155"
             style={{
-              flexGrow: p.count,
-              background: p.hue ? `rgb(var(${p.hue}))` : "rgb(var(--ink-soft) / 0.5)",
+              stroke: a.hue ? `rgb(var(${a.hue}))` : "rgb(var(--ink-soft) / 0.5)",
+              strokeDasharray: `${a.len} ${100 - a.len}`,
+              strokeDashoffset: 25 - a.from,
             }}
           />
         ))}
-      </div>
+      </svg>
       <ul className={styles.legend}>
         {parts.map((p) => {
           const label = w.topicShare(p.label, p.count, pct.format(p.count / total));
@@ -492,6 +514,7 @@ export function AreaSideCard({
     <div className={styles.side}>
       <section className={styles.sideCard} aria-labelledby={headingId}>
         <h2 id={headingId} className={styles.sideTitle}>
+          <Ring size={10} />
           {w.aboutArea}
         </h2>
         <ul className={styles.sideLinks}>
@@ -526,6 +549,7 @@ export function AreaSideCard({
       {area?.docs && area.docs.length > 0 && (
         <section className={styles.sideCard} aria-labelledby={docsId}>
           <h2 id={docsId} className={styles.sideTitle}>
+            <Ring size={10} />
             {w.docs}
           </h2>
           <ul className={styles.sideLinks}>
@@ -545,6 +569,7 @@ export function AreaSideCard({
 
       <section className={styles.sideCard} aria-labelledby={topicsId}>
         <h2 id={topicsId} className={styles.sideTitle}>
+          <Ring size={10} />
           {w.topics}
         </h2>
         {children}

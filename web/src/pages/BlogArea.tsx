@@ -7,6 +7,7 @@ import { AreaGlyph, OwnerCard, TopList, ViewNav } from "@/components/dashboard/P
 import { ListSkeleton } from "@/components/dashboard/Skeletons";
 import { AreaSideCard, HistoryList, HistorySkeleton, RepoFacts, TopicBar } from "@/components/dashboard/History";
 import styles from "@/components/dashboard/Dashboard.module.css";
+import HeadStrand from "@/components/motion/HeadStrand";
 import history from "@/components/dashboard/History.module.css";
 import { useWords } from "@/components/dashboard/i18n";
 import { useHistoryWords } from "@/components/dashboard/historyWords";
@@ -119,6 +120,7 @@ export default function BlogArea() {
         <AreaGlyph seed={slug} size={28} />
         <span translate="no">{title}</span>
       </h1>
+      <HeadStrand />
       {area?.tagline && (
         <p className={styles.lede}>
           <bdi>{area.tagline}</bdi>

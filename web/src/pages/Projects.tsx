@@ -13,6 +13,8 @@ import { activeCount, readSelection } from "@/components/gallery/facets";
 import { FACETS, applyFilters, optionsFor } from "@/components/projects/catalogue";
 import RepoCard from "@/components/work/RepoCard";
 import styles from "@/components/work/Work.module.css";
+import HeadStrand from "@/components/motion/HeadStrand";
+import Arrive from "@/components/motion/Arrive";
 import { SORTS, eventsByArea, hrefSorted, isPinned, readSort, sortEntries } from "@/components/work/order";
 import { stateWord, useWorkWords } from "@/components/work/words";
 import { useProjects } from "@/hooks/useProjects";
@@ -130,7 +132,8 @@ export default function Projects() {
   const stripsBusy = events === null && !eventsFailed;
 
   const card = (e: (typeof items)[number]) => (
-    <li key={e.collection.slug}>
+    /* Each card arrives on its own (#251); see motion/Arrive.tsx. */
+    <Arrive as="li" key={e.collection.slug}>
       <RepoCard
         entry={e}
         events={eventsFailed ? [] : bySlug.get(e.collection.slug)}
@@ -138,7 +141,7 @@ export default function Projects() {
         hasArea={hasArea(e.collection.slug, e.live)}
         now={now}
       />
-    </li>
+    </Arrive>
   );
 
   /* ── the rail ───────────────────────────────────────────────────────── */
@@ -226,6 +229,7 @@ export default function Projects() {
       >
         <header className={styles.head}>
           <h1 className={styles.title}>{t.title}</h1>
+          <HeadStrand />
           <p className={styles.lede}>{t.lede}</p>
           {state === "error" && (
             <p className={styles.notice} role="status">

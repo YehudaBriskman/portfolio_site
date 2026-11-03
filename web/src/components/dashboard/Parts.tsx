@@ -4,6 +4,8 @@ import { Search } from "lucide-react";
 import styles from "@/components/dashboard/Dashboard.module.css";
 import { AUTHOR } from "@/components/notes/Byline";
 import { useWords } from "@/components/dashboard/i18n";
+import Arrive from "@/components/motion/Arrive";
+import Ring from "@/components/motion/Ring";
 
 /*
  * The dashboard's small parts (#224), shared by every page on the shell:
@@ -40,10 +42,16 @@ export function DashCard({
   busy?: boolean;
 }) {
   const id = useId();
-  return (
-    <section className={`${styles.section} ${className}`} aria-labelledby={id} aria-busy={busy || undefined}>
+  /* Every card on the shell arrives the one way the site has (#251): the
+     block rises into place, and the ring by its title draws. A bare section
+     does not rise itself — its children are cards that arrive one by one,
+     and two rises stacked would be a slide. */
+  const props = { className: `${styles.section} ${className}`, "aria-labelledby": id, "aria-busy": busy || undefined };
+  const inner = (
+    <>
       <div className={styles.sectionHead}>
         <h2 id={id} className={styles.sectionTitle}>
+          <Ring size={10} />
           {title}
         </h2>
         {action && (
@@ -60,7 +68,14 @@ export function DashCard({
           {children}
         </div>
       )}
-    </section>
+    </>
+  );
+  return bare ? (
+    <section {...props}>{inner}</section>
+  ) : (
+    <Arrive as="section" {...props}>
+      {inner}
+    </Arrive>
   );
 }
 
@@ -148,10 +163,12 @@ function hash(s: string): number {
 }
 
 /**
- * An area's glyph: GitHub's identicon in the site's own terms. A 3×3 field
- * of lit squares, mirrored, in one of the brand hues — the same squares the
- * entry shutter leaves in, at the size of a favicon. Seeded by the slug, so
- * an area is recognisable by its mark wherever it appears.
+ * An area's mark: GitHub's identicon in the site's own terms, and round
+ * (#251). The circle is the site's motif, so the mark is a ring in one of
+ * the brand hues holding a 3×3 field of dots, mirrored like an identicon.
+ * Seeded by the slug, so an area is recognisable by its mark wherever it
+ * appears; the pattern and the hue are the ones the square glyph had, so an
+ * area kept its mark through the change.
  */
 export function AreaGlyph({ seed, size = 16 }: { seed: string; size?: number }) {
   const h = hash(seed);
@@ -166,18 +183,20 @@ export function AreaGlyph({ seed, size = 16 }: { seed: string; size?: number }) 
     }
   }
   if (cells.length === 0) cells.push([1, 1]);
+  const ink = `rgb(var(${hue}))`;
   return (
     <svg
-      viewBox="0 0 3 3"
+      viewBox="0 0 24 24"
       width={size}
       height={size}
       className={styles.glyph}
       aria-hidden="true"
       focusable="false"
-      shapeRendering="crispEdges"
+      data-hue={hue.slice(6)}
     >
+      <circle cx="12" cy="12" r="11" style={{ fill: `rgb(var(${hue}) / 0.14)`, stroke: ink }} strokeWidth="1.5" />
       {cells.map(([x, y]) => (
-        <rect key={`${x}${y}`} x={x} y={y} width="1" height="1" style={{ fill: `rgb(var(${hue}))` }} />
+        <circle key={`${x}${y}`} cx={7 + x * 5} cy={7 + y * 5} r="2.1" style={{ fill: ink }} />
       ))}
     </svg>
   );
@@ -213,7 +232,18 @@ export function ViewNav({ label, views }: { label: string; views: ViewLink[] }) 
         {views.map((v) => (
           <li key={v.key}>
             <Link to={v.to} className={styles.view} aria-current={v.current ? "page" : undefined}>
-              <span aria-hidden="true">{v.icon}</span>
+              {/* The current view is circled, the living line's
+                  circle-around at rail size (#251). Same box either way,
+                  so moving between views shifts nothing. */}
+              <span aria-hidden="true" className={styles.viewIcon}>
+                {v.current ? (
+                  <Ring size={26} draw={false}>
+                    {v.icon}
+                  </Ring>
+                ) : (
+                  v.icon
+                )}
+              </span>
               {v.label}
             </Link>
           </li>
