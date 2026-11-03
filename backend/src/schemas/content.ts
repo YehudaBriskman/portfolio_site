@@ -6,6 +6,45 @@ export const SlugSchema = z
   .max(80)
   .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "lowercase words separated by single hyphens");
 
+/*
+ * A GitHub file link, as an address that returns the file's bytes.
+ *
+ * A cover image is pasted in by hand, and the link a person copies off GitHub
+ * is the `/blob/` page: an HTML document, not an image. Rewriting the host to
+ * raw.githubusercontent.com without dropping `/blob/` is the other common
+ * mistake, and it 404s — WindoM's og:image did exactly that. Both forms, and
+ * github.com's `/raw/` redirect, become `raw.githubusercontent.com/{owner}/
+ * {repo}/{ref}/{path}`. Anything else is returned untouched.
+ *
+ * Applied where a URL is written (admin saves) and where it is read (the
+ * public API and the rendered head), so a value stored before this existed is
+ * corrected on the way out without a migration.
+ */
+export function rawImageUrl(value: string): string {
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    return value;
+  }
+  const host = url.hostname.toLowerCase();
+  const parts = url.pathname.split("/").filter(Boolean);
+  let rest: string[] | null = null;
+  if ((host === "github.com" || host === "www.github.com") && (parts[2] === "blob" || parts[2] === "raw")) {
+    rest = [parts[0], parts[1], ...parts.slice(3)];
+  } else if (host === "raw.githubusercontent.com" && parts[2] === "blob") {
+    rest = [parts[0], parts[1], ...parts.slice(3)];
+  }
+  // owner, repo, ref and at least one path segment, or it is not a file link.
+  if (!rest || rest.length < 4) return value;
+  return `https://raw.githubusercontent.com/${rest.join("/")}`;
+}
+
+/** rawImageUrl over a nullable field. */
+export function rawImageUrlOrNull(value: string | null | undefined): string | null {
+  return value ? rawImageUrl(value) : null;
+}
+
 export const PostSchema = z.object({
   _id: z.string().optional(),
   _rev: z.string().optional(),
@@ -56,7 +95,7 @@ export function toPublicSummary(p: Post) {
     publishedAt: p.publishedAt,
     tags: p.tags,
     collection: p.collection,
-    coverImage: p.coverImage,
+    coverImage: rawImageUrlOrNull(p.coverImage),
     readingMinutes: p.readingMinutes,
     // Read straight from CouchDB, so a document written before the field
     // existed carries nothing; null is "not featured", never undefined.
@@ -142,7 +181,7 @@ export function toPublicCollection(c: Collection) {
     kind: c.kind ?? (c.slug === "site" ? "site" : "project"),
     tagline: c.tagline,
     description: c.description,
-    coverImage: c.coverImage,
+    coverImage: rawImageUrlOrNull(c.coverImage),
     links: c.links,
     order: c.order,
     // The repo config itself stays private — it names paths and branches. Only

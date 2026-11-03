@@ -16,7 +16,7 @@ import {
   renderShellWithMeta,
   type PageMeta,
 } from "../services/seo.js";
-import type { Collection, Post } from "../schemas/content.js";
+import { rawImageUrlOrNull, type Collection, type Post } from "../schemas/content.js";
 
 const router = Router();
 
@@ -265,6 +265,7 @@ router.get(
   asyncHandler(async (_req, res) => {
     const posts = await publishedPosts();
     await sendShell(res, {
+      route: "Blog",
       title: "Blogs · Yehuda Briskman",
       description:
         "Writing on backend engineering, infrastructure, and shipping products end to end.",
@@ -300,6 +301,7 @@ router.get(
     for (const c of live) merged.set(c.slug, { title: c.title, tagline: c.tagline || c.description });
     const entries = [...merged.entries()];
     await sendShell(res, {
+      route: "Projects",
       title: "Work · Yehuda Briskman",
       description:
         "Things I have built and run end to end, each with its own notes, documentation and source.",
@@ -333,6 +335,7 @@ router.get(
     const description =
       "The work along the years, as a timeline: when I started shipping, the projects I built and ran, and the roles in between.";
     await sendShell(res, {
+      route: "Story",
       title: "Journey · Yehuda Briskman",
       description,
       canonical: absoluteUrl("/story"),
@@ -354,6 +357,7 @@ router.get(
   "/render/accessibility",
   asyncHandler(async (_req, res) => {
     await sendShell(res, {
+      route: "Accessibility",
       title: "Accessibility · Yehuda Briskman",
       description:
         "Accessibility statement: this site aims to meet WCAG 2.2 at level AA, which includes the Israeli standard IS 5568, and how to report a barrier.",
@@ -380,6 +384,7 @@ router.get(
   "/render/blog/log",
   asyncHandler(async (_req, res) => {
     await sendShell(res, {
+      route: "BlogLog",
       title: "Channel log · Yehuda Briskman",
       description:
         "Everything that happens on the site, newest first: notes, releases, pushes, site releases and new areas.",
@@ -450,10 +455,11 @@ router.get(
     const description = clampDescription(area.tagline || area.description || `Notes on ${area.title}.`);
     const canonical = absoluteUrl(`/blog/area/${area.slug}`);
     const image =
-      area.coverImage ??
+      rawImageUrlOrNull(area.coverImage) ??
       (area.kind === "project" ? absoluteUrl(`/api/seo/og/projects/${area.slug}.png`) : absoluteUrl("/og-blog.png"));
 
     await sendShell(res, {
+      route: "BlogArea",
       title: `${area.title} · Notes · Yehuda Briskman`,
       description,
       canonical,
@@ -500,9 +506,10 @@ router.get(
     }
 
     const canonical = post.seo.canonical ?? absoluteUrl(`/blog/${post.slug}`);
-    const image = post.coverImage ?? absoluteUrl(`/api/seo/og/blog/${post.slug}.png`);
+    const image = rawImageUrlOrNull(post.coverImage) ?? absoluteUrl(`/api/seo/og/blog/${post.slug}.png`);
 
     await sendShell(res, {
+      route: "BlogPost",
       title: post.seo.title ?? `${post.title} · Yehuda Briskman`,
       description: clampDescription(post.seo.description ?? post.excerpt),
       canonical,
@@ -548,6 +555,7 @@ router.get(
       const seed = SEEDED_PROJECTS[slug];
       if (seed) {
         return sendShell(res, {
+          route: "Project",
           title: `${seed.title} · Yehuda Briskman`,
           description: clampDescription(seed.tagline),
           canonical: absoluteUrl(`/projects/${slug}`),
@@ -578,10 +586,11 @@ router.get(
     const description = collection.tagline || collection.description || SITE_DESCRIPTION;
 
     await sendShell(res, {
+      route: "Project",
       title: `${collection.title} · Yehuda Briskman`,
       description: clampDescription(description),
       canonical,
-      image: collection.coverImage ?? absoluteUrl(`/api/seo/og/projects/${collection.slug}.png`),
+      image: rawImageUrlOrNull(collection.coverImage) ?? absoluteUrl(`/api/seo/og/projects/${collection.slug}.png`),
       imageAlt: collection.title,
       type: "website",
       bodyHtml: `<main><h1>${escapeHtml(collection.title)}</h1>${

@@ -4,8 +4,11 @@ import {
   buildRobots,
   buildSitemap,
   clampDescription,
+  FALLBACK_ATTR,
+  FALLBACK_REVEAL_MS,
   markdownToFallbackHtml,
   renderShellWithMeta,
+  routePreloadLinks,
   robotsStance,
   type PageMeta,
 } from "./seo.js";
@@ -216,7 +219,92 @@ describe("renderShellWithMeta", () => {
 
   it("puts fallback content inside #root for clients without JavaScript", () => {
     const html = renderShellWithMeta(SHELL, meta({ bodyHtml: "<h1>Hello</h1>" }));
-    expect(html).toContain('<div id="root"><h1>Hello</h1></div>');
+    expect(html).toContain(`<div id="root"><div ${FALLBACK_ATTR}><h1>Hello</h1></div></div>`);
+  });
+
+  /*
+   * The owner's report: a refresh of /projects/windom painted the fallback as
+   * raw text, then the entry shutter, then the page. A script-running visitor
+   * must see the shutter's first frame — a fixed black sheet — and no text; a
+   * reader without scripting must see the text. The DOM is the same for both.
+   */
+  describe("the fallback for a visitor whose browser runs the app", () => {
+    const html = renderShellWithMeta(SHELL, meta({ bodyHtml: "<main><h1>WindoM</h1><p>Every new tab</p></main>" }));
+    const head = html.slice(0, html.indexOf("</head>"));
+    const style = /<style data-seo-fallback>([\s\S]*?)<\/style>/.exec(head)?.[1] ?? "";
+    const noscript = /<noscript><style>([\s\S]*?)<\/style><\/noscript>/.exec(head)?.[1] ?? "";
+
+    it("keeps the content in the DOM for crawlers and no-JS readers", () => {
+      expect(html).toContain("<h1>WindoM</h1><p>Every new tab</p>");
+    });
+
+    it("hides the text and paints the shutter's black sheet over the viewport", () => {
+      expect(style).toMatch(/\[data-seo-fallback\]\{visibility:hidden;/);
+      expect(style).toMatch(
+        /\[data-seo-fallback\]::before\{content:"";position:fixed;inset:0;z-index:200;background:#000;visibility:visible;/,
+      );
+      // No shutter under reduced motion, so no sheet either: just hidden.
+      expect(style).toContain("@media (prefers-reduced-motion:reduce){[data-seo-fallback]::before{display:none}}");
+    });
+
+    it("shows the text again if the app has not replaced it in time", () => {
+      expect(style).toContain(`animation:seo-fallback-show 0s ${FALLBACK_REVEAL_MS}ms forwards`);
+      expect(style).toContain("@keyframes seo-fallback-show{to{visibility:visible}}");
+      expect(style).toContain("@keyframes seo-fallback-hide{to{visibility:hidden}}");
+    });
+
+    it("shows the text, uncovered, when scripting is off", () => {
+      expect(noscript).toContain("[data-seo-fallback]{visibility:visible;animation:none}");
+      expect(noscript).toContain("[data-seo-fallback]::before{display:none}");
+    });
+
+    it("uses no inline script, so script-src 'self' still holds", () => {
+      expect(html).not.toMatch(/<script(?![^>]*application\/ld\+json)[^>]*>[^<]/i);
+    });
+  });
+
+  it("adds no fallback style to a page without fallback content", () => {
+    const html = renderShellWithMeta(SHELL, meta());
+    expect(html).not.toContain("data-seo-fallback");
+    expect(html).not.toContain("<noscript>");
+  });
+
+  it("writes fallback content literally, even when it looks like a replacement pattern", () => {
+    const html = renderShellWithMeta(SHELL, meta({ bodyHtml: "<p>costs $& and $1</p>" }));
+    expect(html).toContain("<p>costs $& and $1</p>");
+  });
+
+  describe("the route's chunk", () => {
+    const BUILT = SHELL.replace(
+      "</head>",
+      `<meta name="route-preload" data-route="Project" content="/assets/Project-a1.js /assets/Byline-b2.js /assets/Project-c3.css" />` +
+        `<meta name="route-preload" data-route="BlogPost" content="/assets/BlogPost-d4.js" />` +
+        `<meta name="route-preload" data-route="Story" content="https://evil.example/x.js /assets/../x.js /assets/Story-e5.js" /></head>`,
+    );
+
+    it("preloads this page's chunks and CSS from the head", () => {
+      const html = renderShellWithMeta(BUILT, meta({ route: "Project" }));
+      const head = html.slice(0, html.indexOf("</head>"));
+      expect(head).toContain('<link rel="modulepreload" crossorigin href="/assets/Project-a1.js" />');
+      expect(head).toContain('<link rel="modulepreload" crossorigin href="/assets/Byline-b2.js" />');
+      expect(head).toContain('<link rel="preload" as="style" crossorigin href="/assets/Project-c3.css" />');
+      expect(head).not.toContain("BlogPost-d4");
+    });
+
+    it("drops every route meta from the rendered page", () => {
+      expect(renderShellWithMeta(BUILT, meta({ route: "Project" }))).not.toContain("route-preload");
+      expect(renderShellWithMeta(BUILT, meta())).not.toContain("route-preload");
+    });
+
+    it("preloads only the build's own asset paths", () => {
+      expect(routePreloadLinks(BUILT, "Story")).toEqual([
+        '<link rel="modulepreload" crossorigin href="/assets/Story-e5.js" />',
+      ]);
+    });
+
+    it("preloads nothing for a shell the build did not annotate", () => {
+      expect(routePreloadLinks(SHELL, "Project")).toEqual([]);
+    });
   });
 
   it("escapes a closing script tag inside JSON-LD", () => {

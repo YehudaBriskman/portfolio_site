@@ -98,6 +98,62 @@ function buildShaPlugin(): Plugin {
   };
 }
 
+/*
+ * One `<meta name="route-preload">` per lazy page, naming what that page needs
+ * that the entry does not already preload: its chunk, the chunks it imports,
+ * and its CSS.
+ *
+ * Every public page but the home is behind `lazy()`, so on a cold load its
+ * chunk was discovered only after the bundle had run and React had rendered the
+ * route — a round trip spent behind the entry shutter. The API renders each
+ * content URL's head (backend/src/services/seo.ts, routePreloadLinks), turns
+ * the meta for that URL's page into preload links and drops the rest. A meta
+ * fetches nothing, so the plain shell pays only its bytes.
+ *
+ * Build only: the dev server has no bundle, writes no metas, and the API then
+ * adds no preloads.
+ */
+function routePreloadPlugin(): Plugin {
+  return {
+    name: "route-preload",
+    transformIndexHtml: {
+      order: "post",
+      handler(html, ctx) {
+        const bundle = ctx.bundle;
+        if (!bundle) return html;
+        const chunks = new Map<string, { imports: string[]; css: string[] }>();
+        let entry: string | null = null;
+        const pages: [string, string][] = [];
+        for (const out of Object.values(bundle)) {
+          if (out.type !== "chunk") continue;
+          const meta = (out as { viteMetadata?: { importedCss?: Set<string> } }).viteMetadata;
+          chunks.set(out.fileName, { imports: out.imports, css: [...(meta?.importedCss ?? [])] });
+          if (out.isEntry) entry = out.fileName;
+          const page = /[\\/]src[\\/]pages[\\/](\w+)\.tsx$/.exec(out.facadeModuleId ?? "")?.[1];
+          if (page && out.isDynamicEntry && !page.startsWith("Admin")) pages.push([page, out.fileName]);
+        }
+        const closure = (root: string, into = new Set<string>()) => {
+          if (into.has(root) || !chunks.has(root)) return into;
+          into.add(root);
+          for (const dep of chunks.get(root)!.imports) closure(dep, into);
+          return into;
+        };
+        const preloaded = entry ? closure(entry) : new Set<string>();
+        const tags = pages
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([page, file]) => {
+            const js = [...closure(file)].filter((f) => !preloaded.has(f));
+            const css = js.flatMap((f) => chunks.get(f)!.css);
+            const files = [...js, ...new Set(css)].map((f) => `/${f}`).join(" ");
+            return `    <meta name="route-preload" data-route="${page}" content="${files}" />`;
+          });
+        if (tags.length === 0) return html;
+        return html.replace(/\s*<\/head>/, () => `\n${tags.join("\n")}\n  </head>`);
+      },
+    },
+  };
+}
+
 export default defineConfig(() => {
   const API_TARGET = "http://localhost:5000";
 
@@ -109,7 +165,7 @@ export default defineConfig(() => {
         "/api": apiProxy(API_TARGET),
       },
     },
-    plugins: [react(), requestLoggerPlugin(API_TARGET), buildShaPlugin()],
+    plugins: [react(), requestLoggerPlugin(API_TARGET), buildShaPlugin(), routePreloadPlugin()],
     /*
      * Four vendor chunks, so a change to the site does not re-download React.
      *
