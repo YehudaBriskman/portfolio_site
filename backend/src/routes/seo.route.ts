@@ -314,6 +314,59 @@ router.get(
 );
 
 /*
+ * The Journey page and the accessibility statement (#240). Neither had a
+ * location in nginx, so a direct load answered 404 with the home page's head.
+ * Both are static pages, so like the home page they carry a short,
+ * hand-maintained echo of their own copy for clients that do not run
+ * JavaScript: web/src/pages/Story.tsx and web/src/pages/Accessibility.tsx.
+ * Titles match web/src/lib/pageTitle.ts, so a tab reads the same either way.
+ *
+ * The story names no employer, current or previous, and neither does this.
+ */
+router.get(
+  "/render/story",
+  asyncHandler(async (_req, res) => {
+    const description =
+      "The work along the years, as a timeline: when I started shipping, the projects I built and ran, and the roles in between.";
+    await sendShell(res, {
+      title: "Journey · Yehuda Briskman",
+      description,
+      canonical: absoluteUrl("/story"),
+      image: absoluteUrl("/og.png"),
+      imageAlt: "Yehuda Briskman, full-stack engineer and team lead",
+      type: "website",
+      bodyHtml: `<main><p>Journey</p><h1>The long way round</h1><p>${escapeHtml(description)}</p><p><a href="/projects">Work</a> · <a href="/blog">Blogs</a></p></main>`,
+      jsonLd: {
+        "@context": "https://schema.org",
+        "@type": "ProfilePage",
+        url: absoluteUrl("/story"),
+        mainEntity: PERSON_LD,
+      },
+    });
+  }),
+);
+
+router.get(
+  "/render/accessibility",
+  asyncHandler(async (_req, res) => {
+    await sendShell(res, {
+      title: "Accessibility · Yehuda Briskman",
+      description:
+        "Accessibility statement: this site aims to meet WCAG 2.2 at level AA, which includes the Israeli standard IS 5568, and how to report a barrier.",
+      canonical: absoluteUrl("/accessibility"),
+      image: absoluteUrl("/og.png"),
+      imageAlt: "Yehuda Briskman",
+      type: "website",
+      bodyHtml:
+        `<main><p>Statement</p><h1>Accessibility</h1>` +
+        `<p>This site aims to meet the Web Content Accessibility Guidelines (WCAG) 2.2 at level AA, which includes the Israeli standard IS 5568 (WCAG 2.0 at level AA). It was audited by the site's author, and that audit is not a certification by an accessibility professional.</p>` +
+        `<p>Every page works with a keyboard alone, is built from headings and landmarks a screen reader can move between, and is measured for contrast.</p>` +
+        `<p><a href="/">Home</a></p></main>`,
+    });
+  }),
+);
+
+/*
  * The channel log (#226). nginx sends every `/blog/<one segment>` here as a
  * post slug, and `log` is not a post, so without this route the page would be
  * served as a 404 shell. It is a page of its own: a 200, its own title, and
