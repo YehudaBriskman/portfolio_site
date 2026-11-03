@@ -293,25 +293,3 @@ export const useStoryWords = defineWords(
     figures: { "Anyone can open": "פתוחים לכל אחד", "In a store": "בחנויות האפליקציות", Years: "שנים" },
   },
 );
-
-export const useAdminShellWords = defineWords(
-  "admin-shell",
-  {
-    skip: "Skip to content",
-    admin: "admin",
-    sections: "Admin sections",
-    publicSite: "View public site",
-    signOut: "Sign out",
-    back: "Back",
-    site: "Site",
-  },
-  {
-    skip: "דילוג לתוכן",
-    admin: "ניהול",
-    sections: "אזורי הניהול",
-    publicSite: "לאתר הציבורי",
-    signOut: "התנתקות",
-    back: "חזרה",
-    site: "אתר",
-  },
-);

@@ -1,56 +1,105 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
+import {
+  BookOpen,
+  ChevronLeft,
+  ExternalLink,
+  FileText,
+  FolderKanban,
+  Image,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  Plug,
+  Settings,
+  Shapes,
+  Type,
+  X,
+} from "lucide-react";
 import { admin } from "@/services/admin";
 import { markAdminSeen } from "@/components/notes/reader/adminSession";
-import { useAdminShellWords } from "@/i18n/pages";
-import Arrow from "@/i18n/Arrow";
+import ThemeMenu from "@/components/nav/ThemeMenu";
+import Ring from "@/components/motion/Ring";
+import { useAdminWords } from "@/i18n/admin";
+import { Counter } from "./ui";
 
 /*
- * The admin's own shell.
+ * The admin's own shell, rebuilt as a tool (#288).
  *
- * It deliberately does not reuse PageShell, nor sit under `SiteChrome`, the
- * layout route that has mounted the public Nav since #63 (PageShell did before
- * that). The public Nav was, when this was written,
- * whose links are Work / Approach / Stack / Contact, anchors to sections that
- * exist on no admin page — so every link in the admin navbar quietly navigated
- * out of the admin, and on a phone it showed two links to the marketing site
- * and nothing else. It also mounts Atmosphere and the grain overlay: decorative
- * scenery on an authoring tool, paid for by the weakest device, and its scrim
- * lightens the right-hand side exactly where a form's second column sits.
+ * GitHub's frame and the site's material: a compact top bar (the site's mark,
+ * where you are, the way back to the site, the theme menu the public nav
+ * uses, and who is signed in) over a left nav with icons and sentence-case
+ * labels. The current item is circled with the living line's ring, as on the
+ * public dashboards (#251), so it is visibly the same product.
  *
- * Here the palette and the type carry the family resemblance. The landscape
- * stays on the public site.
+ * It still does not reuse PageShell or sit under `SiteChrome`: the public
+ * nav's rooms are anchors to sections no admin page has, and its scenery
+ * (Atmosphere, the grain) is decoration on an authoring tool, paid for by
+ * the weakest device. The palette, the type, the ring and the theme menu
+ * carry the family resemblance.
+ *
+ * Below `lg` the nav is a drawer behind the menu button, rather than the
+ * eight-tab bottom bar it was: eight sections do not fit a phone's width at
+ * a size anyone can read. The bottom of the screen belongs to an editor's
+ * Save, as before.
  */
 
-export type AdminSection = "posts" | "areas" | "projects" | "story" | "site-copy" | "media" | "settings" | "connections";
+export type AdminSection =
+  | "overview"
+  | "posts"
+  | "areas"
+  | "projects"
+  | "story"
+  | "site-copy"
+  | "media"
+  | "settings"
+  | "connections";
 type Section = AdminSection;
 
-const SECTIONS: Array<{ id: Section; to: string; label: string }> = [
-  { id: "posts", to: "/admin/posts", label: "Posts" },
-  { id: "areas", to: "/admin/areas", label: "Areas" },
-  /* The site's own content (#163). */
-  { id: "projects", to: "/admin/projects", label: "Projects" },
-  { id: "story", to: "/admin/story", label: "Story" },
-  { id: "site-copy", to: "/admin/site-copy", label: "Site copy" },
-  /* The media library (#253). */
-  { id: "media", to: "/admin/media", label: "Media" },
-  /* Section order, visibility and the visual defaults (#254). */
-  { id: "settings", to: "/admin/settings", label: "Settings" },
-  { id: "connections", to: "/admin/connections", label: "Connected apps" },
+const ICONS: Record<Section, typeof FileText> = {
+  overview: LayoutDashboard,
+  posts: FileText,
+  areas: Shapes,
+  projects: FolderKanban,
+  story: BookOpen,
+  "site-copy": Type,
+  media: Image,
+  settings: Settings,
+  connections: Plug,
+};
+
+const PATHS: Record<Section, string> = {
+  overview: "/admin",
+  posts: "/admin/posts",
+  areas: "/admin/areas",
+  projects: "/admin/projects",
+  story: "/admin/story",
+  "site-copy": "/admin/site-copy",
+  media: "/admin/media",
+  settings: "/admin/settings",
+  connections: "/admin/connections",
+};
+
+const GROUPS: Array<{ id: "top" | "content" | "site"; items: Section[] }> = [
+  { id: "top", items: ["overview"] },
+  /* What the public site shows. */
+  { id: "content", items: ["posts", "areas", "projects", "story", "site-copy", "media"] },
+  /* How it shows it, and who else may read or write it. */
+  { id: "site", items: ["settings", "connections"] },
 ];
 
 const PUBLIC_SITE = "https://yehudabriskman.com";
 
 export type AdminShellProps = {
-  /** Shown in the mobile bar, and as the page heading when `heading` is unset. */
+  /** The last breadcrumb, and the mobile bar's title. */
   title: string;
   section: Section;
-  /** Counts beside the rail items. Omitted entries simply show no count. */
+  /** Counts beside the nav items. Omitted entries simply show no count. */
   counts?: Partial<Record<Section, number>>;
   /**
-   * On an editor, the bottom slot belongs to Save — not to navigation one
-   * thumb-slip away from discarding unsaved work. Passing this swaps the tab
-   * bar for the given bar and turns the mobile title into a back link.
+   * On an editor, the bottom slot belongs to Save. Passing this pins the
+   * given bar to the bottom of the screen on a phone, and turns the mobile
+   * menu button into a back link.
    */
   bottomBar?: ReactNode;
   backTo?: string;
@@ -59,18 +108,14 @@ export type AdminShellProps = {
   children: ReactNode;
 };
 
-export default function AdminShell({
-  title,
-  section,
-  counts,
-  bottomBar,
-  backTo,
-  actions,
-  children,
-}: AdminShellProps) {
+export default function AdminShell({ title, section, counts, bottomBar, backTo, actions, children }: AdminShellProps) {
   const { pathname } = useLocation();
-  const w = useAdminShellWords();
+  const w = useAdminWords();
   const [who, setWho] = useState("");
+  const [open, setOpen] = useState(false);
+  const drawerId = useId();
+  const toggle = useRef<HTMLButtonElement>(null);
+  const drawer = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     admin
@@ -83,15 +128,36 @@ export default function AdminShell({
       .catch(() => setWho(""));
   }, []);
 
+  /* A route change closes the drawer: the link was the reason to open it.
+     Set while rendering, not in an effect, so the closed drawer is the
+     first frame of the new page rather than the second. */
+  const [seenPath, setSeenPath] = useState(pathname);
+  if (seenPath !== pathname) {
+    setSeenPath(pathname);
+    setOpen(false);
+  }
+
+  /* Open: focus moves in, Escape closes and hands focus back. */
+  useEffect(() => {
+    if (!open) return;
+    drawer.current?.querySelector<HTMLElement>("a, button")?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      setOpen(false);
+      toggle.current?.focus();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [open]);
+
   /*
    * Focus not obscured (2.4.11, #99). The bottom bar is fixed, and on an
    * editor at 320px its buttons wrap to about 220px: a third of the screen.
-   * A field or button tabbed to below that line scrolled in under the bar
-   * and was entirely hidden. The bar's measured height becomes the root's
-   * `scroll-padding-bottom`, so focus stops above it, and `--a-bar-h`, which
-   * pads `main` so the last control can scroll clear. Measured rather than
-   * guessed because the bar's height depends on the screen and the bar's
-   * contents; on a desktop it is `display: none` and measures 0.
+   * The bar's measured height becomes the root's `scroll-padding-bottom`, so
+   * focus stops above it, and `--a-bar-h`, which pads `main` so the last
+   * control can scroll clear. On a desktop it is `display: none` and
+   * measures 0. The top bar is sticky, so the root's scroll-padding-top
+   * clears it the same way (index.css).
    */
   const bar = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -113,119 +179,140 @@ export default function AdminShell({
     };
   }, []);
 
-  // Inference widens the literal to `string`, which aria-current does not accept.
-  const isCurrent = (id: Section): "page" | undefined => (id === section ? "page" : undefined);
+  const sectionLabel = w.nav[section];
+  const crumbs: Array<{ label: string; to?: string }> = [{ label: w.admin, to: "/admin" }];
+  if (section !== "overview") crumbs.push({ label: sectionLabel, to: PATHS[section] });
+  if (title !== sectionLabel && section !== "overview") crumbs.push({ label: title });
+  /* The last crumb is the page you are on. */
+  const last = crumbs.length - 1;
 
   return (
-    <div className="min-h-dvh bg-bitumen text-bone lg:flex">
-      <a
-        href="#admin-content"
-        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[70] focus:bg-sodium focus:px-4 focus:py-2 focus:text-bitumen"
-      >
+    <div className="a-app">
+      <a href="#admin-content" className="a-skip">
         {w.skip}
       </a>
 
-      {/* Desktop: a rail, not a top bar. The editor is a vertical document, so
-          vertical pixels are the scarce resource; horizontal space is what a
-          wide screen has spare. It also grows to more sections without
-          re-solving the layout, which a top bar does not. */}
-      <aside className="a-bar hidden shrink-0 border-r lg:sticky lg:top-0 lg:flex lg:h-dvh lg:w-60 lg:flex-col lg:px-4 lg:py-5">
-        <Link to="/admin/posts" className="mono px-3 text-xs uppercase tracking-[0.22em] text-bone">
-          Y.B<span className="text-sodium">.</span>
-          <span className="ms-2 text-[0.625rem] tracking-[0.22em] text-clay">{w.admin}</span>
+      <header className="a-top">
+        {backTo ? (
+          <Link to={backTo} className="a-btn a-btn-ghost a-icon-btn lg:hidden" aria-label={w.back}>
+            <ChevronLeft aria-hidden="true" />
+          </Link>
+        ) : (
+          <button
+            ref={toggle}
+            type="button"
+            className="a-btn a-btn-ghost a-icon-btn lg:hidden"
+            aria-expanded={open}
+            aria-controls={drawerId}
+            aria-label={open ? w.closeMenu : w.menu}
+            onClick={() => setOpen((v) => !v)}
+          >
+            {open ? <X aria-hidden="true" /> : <Menu aria-hidden="true" />}
+          </button>
+        )}
+
+        <Link to="/admin" className="a-brand">
+          <img src="/favicon.svg" alt="" width={28} height={28} className="a-brand-mark" />
+          <span className="a-brand-name">Yehuda Briskman</span>
         </Link>
 
-        <nav className="mt-8 space-y-1" aria-label={w.sections}>
-          {SECTIONS.map((s) => (
-            <Link key={s.id} to={s.to} aria-current={isCurrent(s.id)} className="a-rail-item">
-              <span>{s.label}</span>
-              {counts?.[s.id] !== undefined && (
-                <span className="tabular-nums text-clay">{counts[s.id]}</span>
-              )}
-            </Link>
-          ))}
+        <nav aria-label={w.breadcrumb} className="a-crumbs">
+          <ol>
+            {crumbs.map((c, i) => (
+              <li key={`${c.label}-${i}`} data-last={i === last ? "" : undefined}>
+                {c.to && i !== last ? (
+                  <Link to={c.to}>{c.label}</Link>
+                ) : (
+                  <span aria-current="page">{c.label}</span>
+                )}
+              </li>
+            ))}
+          </ol>
         </nav>
 
-        <div className="mt-auto space-y-3 px-3 pt-6">
+        <div className="a-top-end">
+          {actions && <div className="flex items-center gap-1 lg:hidden">{actions}</div>}
           <a
             href={PUBLIC_SITE}
             target="_blank"
             rel="noreferrer noopener"
-            className="mono block text-[0.6875rem] uppercase tracking-[0.16em] text-clay transition-colors hover:text-bone"
+            className="a-btn a-btn-ghost a-top-link"
+            aria-label={w.viewSiteNewTab}
           >
-            {w.publicSite} <Arrow to="out" />
+            <ExternalLink aria-hidden="true" />
+            <span className="hidden md:inline">{w.viewSite}</span>
           </a>
-          <p className="mono text-[0.625rem] leading-relaxed tracking-[0.12em] text-clay">
-            {who ? `Signed in as ${who}` : "Signed in"}
-          </p>
-          <a
-            href="/oauth2/sign_out"
-            className="mono block text-[0.625rem] uppercase tracking-[0.16em] text-clay transition-colors hover:text-bone"
-          >
-            {w.signOut}
-          </a>
-        </div>
-      </aside>
-
-      <div className="min-w-0 flex-1">
-        {/* Mobile top bar. */}
-        <header className="a-bar sticky top-0 z-30 flex h-14 items-center gap-1 border-b px-2 lg:hidden">
-          {backTo ? (
-            <Link
-              to={backTo}
-              className="a-btn a-btn-ghost a-icon-btn shrink-0"
-              aria-label={w.back}
-            >
-              <span aria-hidden="true">‹</span>
-            </Link>
-          ) : (
-            <span className="mono px-3 text-xs uppercase tracking-[0.22em] text-bone">
-              Y.B<span className="text-sodium">.</span>
+          <ThemeMenu />
+          {who && (
+            <span className="a-owner" title={w.signedInAs(who)}>
+              <span className="a-avatar" aria-hidden="true">
+                {who.slice(0, 1).toUpperCase()}
+              </span>
+              <span className="sr-only">{w.signedInAs(who)}</span>
+              <span className="hidden xl:inline" aria-hidden="true">
+                {who}
+              </span>
             </span>
           )}
-          <span className="mono min-w-0 flex-1 truncate px-1 text-[0.6875rem] uppercase tracking-[0.18em] text-clay">
-            {title}
-          </span>
-          {actions}
-        </header>
+        </div>
+      </header>
 
-        <main id="admin-content" className="px-4 pb-[max(8rem,calc(var(--a-bar-h,0px)+1rem))] pt-4 lg:px-10 lg:pb-16 lg:pt-8">
+      <div className="a-frame">
+        <div className="a-scrim" hidden={!open} onClick={() => setOpen(false)} aria-hidden="true" />
+        <div ref={drawer} id={drawerId} className="a-side" data-open={open ? "" : undefined}>
+          <nav aria-label={w.sections} className="a-side-nav">
+            {GROUPS.map((g) => (
+              <div key={g.id} className="a-side-group">
+                {g.id !== "top" && <p className="a-side-head">{w.groups[g.id]}</p>}
+                <ul>
+                  {g.items.map((id) => {
+                    const Icon = ICONS[id];
+                    const current = id === section;
+                    return (
+                      <li key={id}>
+                        <Link to={PATHS[id]} aria-current={current ? "page" : undefined} className="a-nav-item">
+                          <span className="a-nav-icon" aria-hidden="true">
+                            {current ? (
+                              <Ring size={26} draw={false}>
+                                <Icon />
+                              </Ring>
+                            ) : (
+                              <Icon />
+                            )}
+                          </span>
+                          <span className="min-w-0 flex-1">{w.nav[id]}</span>
+                          <Counter n={counts?.[id]} />
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            ))}
+          </nav>
+
+          <div className="a-side-foot">
+            <p className="a-side-who">{who ? w.signedInAs(who) : w.signedIn}</p>
+            <a href="/oauth2/sign_out" className="a-nav-item">
+              <span className="a-nav-icon" aria-hidden="true">
+                <LogOut />
+              </span>
+              {w.signOut}
+            </a>
+          </div>
+        </div>
+
+        <main id="admin-content" tabIndex={-1} className="a-main">
           {children}
         </main>
       </div>
 
-      {/*
-        One screen-bottom region, never two competing ones. On a list there is
-        nothing to save, so the space belongs to navigation — and a thumb
-        reaches the bottom of a phone, which a top bar never is. On an editor it
-        belongs to Save.
-      */}
-      <div ref={bar} className="a-bar fixed inset-x-0 bottom-0 z-30 border-t pb-[env(safe-area-inset-bottom)] lg:hidden">
-        {bottomBar ?? (
-          <nav className="flex" aria-label={w.sections}>
-            {SECTIONS.map((s) => (
-              <Link
-                key={s.id}
-                to={s.to}
-                aria-current={isCurrent(s.id)}
-                className={`mono flex min-h-[56px] flex-1 items-center justify-center text-[0.625rem] uppercase tracking-[0.16em] transition-colors ${
-                  pathname.startsWith(s.to) ? "text-sodium" : "text-clay"
-                }`}
-              >
-                {s.label}
-              </Link>
-            ))}
-            <a
-              href={PUBLIC_SITE}
-              target="_blank"
-              rel="noreferrer noopener"
-              className="mono flex min-h-[56px] flex-1 items-center justify-center text-[0.625rem] uppercase tracking-[0.16em] text-clay"
-            >
-              {w.site} <Arrow to="out" />
-            </a>
-          </nav>
-        )}
-      </div>
+      {/* The one screen-bottom region, an editor's Save, on a phone. */}
+      {bottomBar && (
+        <div ref={bar} className="a-bottom lg:hidden">
+          {bottomBar}
+        </div>
+      )}
     </div>
   );
 }

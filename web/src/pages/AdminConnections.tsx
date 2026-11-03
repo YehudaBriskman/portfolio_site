@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import AdminShell from "@/components/admin/AdminShell";
+import { Empty, EmptyState, ErrorState, LoadingRows, PageHeader, RelTime, StatePill } from "@/components/admin/ui";
 import { admin, type McpGrant } from "@/services/admin";
 
 /*
@@ -43,78 +44,129 @@ export default function AdminConnections() {
   const active = (grants ?? []).filter((g) => g.status === "active");
   const past = (grants ?? []).filter((g) => g.status !== "active");
 
-  return (
-    <AdminShell title="Connected apps" section="connections" counts={{ connections: grants ? active.length : undefined }}>
-      <h1 className="display-tight text-[1.75rem] lg:text-[2.25rem]">Connected apps</h1>
-      <p className="a-hint mt-3 max-w-prose">
-        MCP clients you signed in to this site&rsquo;s{" "}
-        <Link to="/developers/mcp" className="underline hover:text-sodium">
-          remote MCP server
-        </Link>{" "}
-        with GitHub. Access tokens last an hour; a connection renews itself for up to 30 days of use.
-      </p>
-
-      <p className="sr-only" role="status">
-        {grants === null ? "Loading connected apps" : status || `${active.length} connected`}
-      </p>
-
-      {error && <p className="a-card mt-8 p-4 text-sm text-bone/70">{error}</p>}
-      {!error && grants === null && <p className="mono mt-8 text-xs text-clay">Loading…</p>}
-
-      {grants !== null && active.length === 0 && (
-        <div className="a-card mt-8 p-8 text-center">
-          <p className="display-tight text-2xl">Nothing connected</p>
-          <p className="a-hint mx-auto mt-3 max-w-sm">
-            Run <code className="mono">claude mcp add --transport http yehuda https://yehudabriskman.com/mcp</code>{" "}
-            and sign in; the client appears here.
-          </p>
-        </div>
-      )}
-
-      {active.length > 0 && (
-        <ul className="mt-6">
-          {active.map((g) => (
-            <li key={g.id} className="a-row">
-              <span className="a-dot a-dot-published" aria-hidden="true" />
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-[0.9375rem] text-bone">{g.client}</span>
-                <span className="mono mt-1 block truncate text-[0.6875rem] tracking-[0.14em] text-clay">
-                  {g.scopes.includes("mcp:write") ? "read + write" : "read only"} · connected {fmt(g.createdAt)} · last used{" "}
-                  {fmt(g.lastUsedAt)}
-                </span>
-              </span>
-              <button
-                type="button"
-                className="a-btn a-btn-danger shrink-0"
-                disabled={busy === g.id}
-                onClick={() => void revoke(g)}
-                aria-label={`Revoke ${g.client}`}
-              >
-                {busy === g.id ? "Revoking…" : "Revoke"}
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {past.length > 0 && (
-        <>
-          <h2 className="mono mt-12 text-[0.6875rem] uppercase tracking-[0.18em] text-clay">Ended</h2>
-          <ul className="mt-3">
-            {past.map((g) => (
-              <li key={g.id} className="a-row">
-                <span className="a-dot a-dot-archived" aria-hidden="true" />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[0.9375rem] text-bone/70">{g.client}</span>
-                  <span className="mono mt-1 block truncate text-[0.6875rem] tracking-[0.14em] text-clay">
-                    {g.status === "revoked" ? `revoked ${fmt(g.revokedAt)}${g.revokedReason ? ` · ${g.revokedReason}` : ""}` : `expired ${fmt(g.expiresAt)}`}
+  const table = (rows: McpGrant[], ended: boolean) => (
+    <div className="a-box overflow-x-auto">
+      <table className="a-table">
+        <caption className="sr-only">{ended ? "Ended" : "Connected"}</caption>
+        <thead>
+          <tr>
+            <th scope="col">App</th>
+            <th scope="col" className="hidden md:table-cell">
+              Access
+            </th>
+            <th scope="col" className="hidden sm:table-cell">
+              {ended ? "Ended" : "Last used"}
+            </th>
+            <th scope="col" className="hidden lg:table-cell">
+              Connected
+            </th>
+            <th scope="col">
+              <span className="sr-only">{ended ? "Status" : "Actions"}</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((g) => (
+            <tr key={g.id}>
+              <td>
+                <span className="a-row-title">{g.client}</span>
+                <span className="a-row-meta md:hidden">
+                  <span>{access(g)}</span>
+                  <span className="sm:hidden">
+                    {ended ? endedAt(g) : <>last used {g.lastUsedAt ? <RelTime iso={g.lastUsedAt} /> : "never"}</>}
                   </span>
                 </span>
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
+              </td>
+              <td className="hidden md:table-cell">{access(g)}</td>
+              <td className="a-when hidden sm:table-cell">
+                {ended ? endedAt(g) : g.lastUsedAt ? <RelTime iso={g.lastUsedAt} /> : <Empty label="Never used" />}
+              </td>
+              <td className="a-when hidden lg:table-cell">
+                <span title={fmt(g.createdAt)}>
+                  <RelTime iso={g.createdAt} />
+                </span>
+              </td>
+              <td className="a-fit text-right">
+                {ended ? (
+                  <StatePill state={g.status} />
+                ) : (
+                  <button
+                    type="button"
+                    className="a-btn a-btn-danger"
+                    disabled={busy === g.id}
+                    onClick={() => void revoke(g)}
+                    aria-label={`Revoke ${g.client}`}
+                  >
+                    {busy === g.id ? "Revoking…" : "Revoke"}
+                  </button>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+
+  return (
+    <AdminShell title="Connected apps" section="connections" counts={{ connections: grants ? active.length : undefined }}>
+      <div className="a-wrap">
+        <PageHeader
+          title="Connected apps"
+          description={
+            <>
+              MCP clients you signed in to this site&rsquo;s{" "}
+              <Link to="/developers/mcp" className="a-link">
+                remote MCP server
+              </Link>{" "}
+              with GitHub. Access tokens last an hour; a connection renews itself for up to 30 days of use.
+            </>
+          }
+        />
+
+        <p className="sr-only" role="status">
+          {grants === null ? "Loading connected apps" : status || `${active.length} connected`}
+        </p>
+
+        {error ? (
+          <ErrorState message={error} />
+        ) : grants === null ? (
+          <LoadingRows rows={2} />
+        ) : active.length === 0 ? (
+          <EmptyState title="Nothing connected">
+            Run <code className="font-mono text-[0.8125rem]">claude mcp add --transport http yehuda https://yehudabriskman.com/mcp</code>{" "}
+            and sign in; the client appears here.
+          </EmptyState>
+        ) : (
+          table(active, false)
+        )}
+
+        {past.length > 0 && (
+          <section aria-labelledby="ended-apps" className="mt-8">
+            <h2 id="ended-apps" className="a-h2 mb-3">
+              Ended
+            </h2>
+            {table(past, true)}
+          </section>
+        )}
+      </div>
     </AdminShell>
+  );
+}
+
+function access(g: McpGrant): string {
+  return g.scopes.includes("mcp:write") ? "Read and write" : "Read only";
+}
+
+function endedAt(g: McpGrant) {
+  return g.status === "revoked" ? (
+    <>
+      Revoked <RelTime iso={g.revokedAt} />
+      {g.revokedReason ? ` · ${g.revokedReason}` : ""}
+    </>
+  ) : (
+    <>
+      Expired <RelTime iso={g.expiresAt} />
+    </>
   );
 }

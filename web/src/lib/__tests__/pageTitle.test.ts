@@ -101,7 +101,7 @@ describe("the name a route gives itself", () => {
       pageIdentityFor("/blog/some-note").name
     );
     expect(pageIdentityFor("/blog/c/icaros").name).toBe("Icaros");
-    expect(pageIdentityFor("/admin").name).toBe("Posts");
+    expect(pageIdentityFor("/admin").name).toBe("Overview");
     expect(pageIdentityFor("/admin/collections/site").name).toBe(
       pageIdentityFor("/admin/areas/site").name
     );
@@ -113,6 +113,9 @@ describe("the name a route gives itself", () => {
       title: "Posts · Admin · Yehuda Briskman",
     });
     expect(pageIdentityFor("/admin/areas").name).toBe("Areas");
+    /* Every page in the admin's nav has its own name (#288). */
+    expect(pageIdentityFor("/admin/media").name).toBe("Media");
+    expect(pageIdentityFor("/admin/site-copy").name).toBe("Site copy");
     expect(pageIdentityFor("/admin/posts/new").name).toBe("New post");
     expect(pageIdentityFor("/admin/areas/new").name).toBe("New area");
     expect(pageIdentityFor("/admin/posts/why-ci-must-fail").name).toBe(

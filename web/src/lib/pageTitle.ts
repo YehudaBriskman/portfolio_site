@@ -148,7 +148,6 @@ function canonicalSegments(segments: readonly string[]): readonly string[] {
     return ["projects", segments[2]];
   }
   if (segments[0] === "admin") {
-    if (segments.length === 1) return ["admin", "posts"];
     if (segments[1] === "collections") return ["admin", "areas", ...segments.slice(2)];
   }
   return segments;
@@ -201,6 +200,16 @@ export function pageIdentityFor(pathname: string, lang: Lang = currentLang()): P
   }
 
   if (first === "admin") {
+    /* The overview (#288): /admin was a redirect to Posts until then. */
+    if (!second) return admin(n.overview);
+    const plain: Record<string, string> = {
+      projects: n.adminProjects,
+      story: n.adminStory,
+      "site-copy": n.siteCopy,
+      media: n.media,
+      settings: n.settings,
+    };
+    if (plain[second] && !third) return admin(plain[second]);
     if (second === "posts") {
       if (!third) return admin(n.posts);
       if (segments.length === 3) {

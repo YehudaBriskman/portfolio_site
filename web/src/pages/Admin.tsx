@@ -1,28 +1,24 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { ExternalLink, Plus, Search } from "lucide-react";
 import AdminShell from "@/components/admin/AdminShell";
+import { Counter, EmptyState, ErrorState, LoadingRows, PageHeader, RelTime, StatePill } from "@/components/admin/ui";
+import { useAdminWords } from "@/i18n/admin";
+import { plural } from "@/i18n/words";
 import { admin, type AdminCollection, type AdminPost } from "@/services/admin";
 
-type StatusFilter = "all" | "draft" | "published" | "archived";
-const STATUSES: StatusFilter[] = ["all", "draft", "published", "archived"];
+/*
+ * The posts list (#288): GitHub's issue list. Status tabs with their counts,
+ * a search and an area filter in one toolbar, and a dense table whose title
+ * is the link; status is a word and a shape, the time is relative with the
+ * date and time in its title.
+ */
 
-/** Coarse and local — a list only needs "how stale", not a calendar. */
-function relativeTime(iso: string): string {
-  const seconds = (Date.now() - new Date(iso).getTime()) / 1000;
-  const steps: Array<[number, string]> = [
-    [60, "just now"],
-    [3600, "m"],
-    [86400, "h"],
-    [604800, "d"],
-  ];
-  if (seconds < steps[0][0]) return "just now";
-  if (seconds < steps[1][0]) return `${Math.floor(seconds / 60)}m ago`;
-  if (seconds < steps[2][0]) return `${Math.floor(seconds / 3600)}h ago`;
-  if (seconds < steps[3][0]) return `${Math.floor(seconds / 86400)}d ago`;
-  return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-}
+type StatusFilter = "all" | "draft" | "published" | "archived";
+const STATUSES: StatusFilter[] = ["all", "published", "draft", "archived"];
 
 export default function Admin() {
+  const w = useAdminWords();
   const [posts, setPosts] = useState<AdminPost[] | null>(null);
   const [cols, setCols] = useState<AdminCollection[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -41,7 +37,7 @@ export default function Admin() {
     setParams(next, { replace: true });
   };
 
-  useEffect(() => {
+  const load = useCallback(() => {
     Promise.all([admin.list(), admin.collections()])
       .then(([p, c]) => {
         setPosts(p);
@@ -49,6 +45,13 @@ export default function Admin() {
       })
       .catch((e) => setError(e instanceof Error ? e.message : "Failed to load"));
   }, []);
+  useEffect(() => {
+    load();
+  }, [load]);
+  const retry = () => {
+    setError(null);
+    load();
+  };
 
   const areaTitle = useMemo(() => {
     const map = new Map((cols ?? []).map((c) => [c.slug, c.title]));
@@ -57,136 +60,180 @@ export default function Admin() {
 
   /* The list endpoint already returns every post, so searching and filtering
      are local: instant on a phone, and no round-trip per keystroke. */
-  const shown = useMemo(() => {
+  const matching = useMemo(() => {
     const q = query.trim().toLowerCase();
     return (posts ?? [])
-      .filter((p) => (status === "all" ? true : p.status === status))
       .filter((p) => (area === "all" ? true : p.collection === area))
       .filter((p) =>
-        !q
-          ? true
-          : [p.title, p.slug, p.excerpt, ...p.tags].some((field) => field.toLowerCase().includes(q)),
+        !q ? true : [p.title, p.slug, p.excerpt, ...p.tags].some((field) => field.toLowerCase().includes(q)),
       )
       .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
-  }, [posts, query, status, area]);
-
-  const filtering = Boolean(query) || status !== "all" || area !== "all";
+  }, [posts, query, area]);
+  const shown = matching.filter((p) => (status === "all" ? true : p.status === status));
+  const countOf = (s: StatusFilter) => (s === "all" ? matching.length : matching.filter((p) => p.status === s).length);
+  const tabLabel: Record<StatusFilter, string> = {
+    all: w.all,
+    published: w.status.published,
+    draft: w.drafts,
+    archived: w.status.archived,
+  };
 
   return (
-    <AdminShell
-      title="Posts"
-      section="posts"
-      counts={{ posts: posts?.length, areas: cols?.length }}
-      actions={
-        <Link to="/admin/posts/new" className="a-btn a-btn-primary a-icon-btn shrink-0" aria-label="New post">
-          <span aria-hidden="true">+</span>
-        </Link>
-      }
-    >
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <h1 className="display-tight text-[1.75rem] lg:text-[2.25rem]">Posts</h1>
-        <div className="hidden gap-3 lg:flex">
-          <Link to="/admin/areas/new" className="a-btn">New area</Link>
-          <Link to="/admin/posts/new" className="a-btn a-btn-primary">New post</Link>
-        </div>
-      </div>
+    <AdminShell title={w.nav.posts} section="posts" counts={{ posts: posts?.length, areas: cols?.length }}>
+      <div className="a-wrap">
+        <PageHeader
+          title={w.nav.posts}
+          description={w.notesIntro}
+          actions={
+            <>
+              <Link to="/admin/areas/new" className="a-btn">
+                {w.newArea}
+              </Link>
+              <Link to="/admin/posts/new" className="a-btn a-btn-primary">
+                <Plus aria-hidden="true" />
+                {w.newNote}
+              </Link>
+            </>
+          }
+        />
 
-      <div className="mt-6 flex flex-col gap-3 lg:flex-row lg:items-center">
-        <label className="lg:max-w-xs lg:flex-1">
-          <span className="sr-only">Search posts</span>
-          <input
-            type="search"
-            className="a-input"
-            placeholder="Search title, slug, tag"
-            value={query}
-            onChange={(e) => setParam("q", e.target.value)}
+        <div className="a-toolbar">
+          <label className="a-search">
+            <span className="sr-only">{w.searchNotes}</span>
+            <Search aria-hidden="true" />
+            <input
+              type="search"
+              className="a-input"
+              placeholder={w.searchNotesHint}
+              value={query}
+              onChange={(e) => setParam("q", e.target.value)}
+            />
+          </label>
+          <label className="w-full sm:w-auto">
+            <span className="sr-only">{w.filterArea}</span>
+            <select className="a-select sm:w-48" value={area} onChange={(e) => setParam("area", e.target.value)}>
+              <option value="all">{w.allAreas}</option>
+              {(cols ?? []).map((c) => (
+                <option key={c.slug} value={c.slug}>
+                  {c.title}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        <p className="sr-only" role="status">
+          {posts === null ? w.loading : plural("en", shown.length, w.notesCount)}
+        </p>
+
+        {error ? (
+          <ErrorState message={error} onRetry={retry} />
+        ) : posts === null ? (
+          <LoadingRows rows={5} />
+        ) : posts.length === 0 ? (
+          <EmptyState
+            title={w.nothingWritten}
+            action={
+              <Link to="/admin/posts/new" className="a-btn a-btn-primary">
+                {w.writeFirst}
+              </Link>
+            }
           />
-        </label>
+        ) : (
+          <div className="a-box">
+            <div className="a-box-head !p-0 !min-h-0">
+              <div className="a-tabs w-full border-0 px-2" role="group" aria-label={w.filterStatus}>
+                {STATUSES.map((s) => (
+                  <button key={s} type="button" className="a-tab" aria-pressed={status === s} onClick={() => setParam("status", s)}>
+                    {tabLabel[s]}
+                    <Counter n={countOf(s)} />
+                  </button>
+                ))}
+              </div>
+            </div>
 
-        <div className="a-seg overflow-x-auto" role="group" aria-label="Filter by status">
-          {STATUSES.map((s) => (
-            <button
-              key={s}
-              type="button"
-              aria-pressed={status === s}
-              onClick={() => setParam("status", s)}
-            >
-              {s}
-            </button>
-          ))}
-        </div>
-
-        <label className="lg:max-w-[12rem]">
-          <span className="sr-only">Filter by area</span>
-          <select className="a-select" value={area} onChange={(e) => setParam("area", e.target.value)}>
-            <option value="all">All areas</option>
-            {(cols ?? []).map((c) => (
-              <option key={c.slug} value={c.slug}>{c.title}</option>
-            ))}
-          </select>
-        </label>
-      </div>
-
-      <p className="sr-only" role="status">
-        {posts === null ? "Loading posts" : `${shown.length} posts`}
-      </p>
-
-      {error && <p className="a-card mt-8 p-4 text-sm text-bone/70">{error}</p>}
-      {!error && posts === null && <p className="mono mt-8 text-xs text-clay">Loading…</p>}
-
-      {posts !== null && shown.length === 0 && (
-        <div className="a-card mt-8 p-8 text-center">
-          <p className="display-tight text-2xl">
-            {posts.length === 0 ? "Nothing written yet" : "No posts match those filters"}
-          </p>
-          <div className="mt-6 flex justify-center">
-            {posts.length === 0 ? (
-              <Link to="/admin/posts/new" className="a-btn a-btn-primary">Write the first post</Link>
+            {shown.length === 0 ? (
+              <div className="a-blank">
+                <p className="a-blank-title">{w.noMatch}</p>
+                <button type="button" className="a-btn mt-4" onClick={() => setParams({}, { replace: true })}>
+                  {w.clearFilters}
+                </button>
+              </div>
             ) : (
-              <button type="button" className="a-btn" onClick={() => setParams({}, { replace: true })}>
-                Clear filters
-              </button>
+              <table className="a-table">
+                <caption className="sr-only">{w.nav.posts}</caption>
+                <thead className="sr-only">
+                  <tr>
+                    <th scope="col">{w.colTitle}</th>
+                    <th scope="col">{w.colStatus}</th>
+                    <th scope="col">{w.colUpdated}</th>
+                    <th scope="col">{w.colActions}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {shown.map((p) => {
+                    const changes = p.status === "published" && Boolean(p.draft);
+                    return (
+                      <tr key={p.slug}>
+                        <td>
+                          <Link to={`/admin/posts/${p.slug}`} className="a-row-title">
+                            {p.title || p.slug}
+                          </Link>
+                          <span className="a-row-meta">
+                            <span>{areaTitle(p.collection)}</span>
+                            <span className="tabular-nums">{w.minutes(p.readingMinutes)}</span>
+                            {p.tags.length > 0 && (
+                              <span className="flex flex-wrap gap-1">
+                                {p.tags.map((t) => (
+                                  <span key={t} className="a-tag">
+                                    {t}
+                                  </span>
+                                ))}
+                              </span>
+                            )}
+                            <span className="md:hidden">
+                              <RelTime iso={p.updatedAt} />
+                            </span>
+                          </span>
+                          <span className="mt-2 flex flex-wrap gap-1.5 sm:hidden">
+                            <StatePill state={p.status} />
+                            {changes && <StatePill state="changes" />}
+                          </span>
+                        </td>
+                        <td className="a-fit hidden sm:table-cell">
+                          <span className="flex flex-wrap justify-end gap-1.5">
+                            {changes && <StatePill state="changes" />}
+                            <StatePill state={p.status} />
+                          </span>
+                        </td>
+                        <td className="a-when a-fit hidden md:table-cell">
+                          <RelTime iso={p.updatedAt} />
+                        </td>
+                        <td className="a-fit !pl-0">
+                          {p.status === "published" ? (
+                            <a
+                              href={`https://yehudabriskman.com/blog/${p.slug}`}
+                              target="_blank"
+                              rel="noreferrer noopener"
+                              className="a-btn a-btn-ghost a-icon-btn"
+                              aria-label={w.viewOnSite(p.title)}
+                              title={w.viewOnSite(p.title)}
+                            >
+                              <ExternalLink aria-hidden="true" />
+                            </a>
+                          ) : (
+                            <span className="inline-block w-8" aria-hidden="true" />
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             )}
           </div>
-        </div>
-      )}
-
-      {shown.length > 0 && (
-        <ul className="mt-6">
-          {shown.map((p) => (
-            <li key={p.slug} className="relative">
-              <Link to={`/admin/posts/${p.slug}`} className="a-row group pr-14">
-                {/* A dot in the gutter never wraps, and scans straight down the
-                    left edge — which the wrapping status word did not. */}
-                <span className={`a-dot a-dot-${p.status}`} aria-hidden="true" />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[0.9375rem] text-bone transition-colors group-hover:text-sodium">
-                    {p.title}
-                  </span>
-                  <span className="mono mt-1 block truncate text-[0.6875rem] tracking-[0.14em] text-clay">
-                    {areaTitle(p.collection)} · {p.status === "published" ? "published" : `edited ${relativeTime(p.updatedAt)}`} · {p.readingMinutes}m
-                    {p.tags.length > 0 ? ` · ${p.tags.join(" ")}` : ""}
-                  </span>
-                </span>
-                <span className="mono hidden shrink-0 text-[0.625rem] uppercase tracking-[0.2em] text-clay lg:block">
-                  {p.status}
-                </span>
-              </Link>
-              {p.status === "published" && (
-                <a
-                  href={`https://yehudabriskman.com/blog/${p.slug}`}
-                  target="_blank"
-                  rel="noreferrer noopener"
-                  className="a-btn a-btn-ghost a-icon-btn absolute right-1 top-1/2 -translate-y-1/2"
-                  aria-label={`View ${p.title} on the public site`}
-                >
-                  <span aria-hidden="true">↗</span>
-                </a>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
+        )}
+      </div>
     </AdminShell>
   );
 }

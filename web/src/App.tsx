@@ -27,6 +27,7 @@ const BlogLog = lazy(() => import("./pages/BlogLog"));
 const Accessibility = lazy(() => import("./pages/Accessibility"));
 // Admin is edge-gated, but lazy anyway so the editor never reaches a reader.
 const Admin = lazy(() => import("./pages/Admin"));
+const AdminOverview = lazy(() => import("./pages/AdminOverview"));
 const AdminEditor = lazy(() => import("./pages/AdminEditor"));
 const AdminCollection = lazy(() => import("./pages/AdminCollection"));
 const AdminAreas = lazy(() => import("./pages/AdminAreas"));
@@ -165,7 +166,7 @@ const App = () => {
           <Route path="/notes/:slug" element={<LegacyNoteRedirect />} />
           {/* URLs say what the tool says. /admin/collections/:slug is kept as a
               redirect because bookmarks to it exist. */}
-          <Route path="/admin" element={<Navigate to="/admin/posts" replace />} />
+          <Route path="/admin" element={<Suspense fallback={null}><AdminOverview /></Suspense>} />
           <Route path="/admin/posts" element={<Suspense fallback={null}><Admin /></Suspense>} />
           <Route path="/admin/posts/:slug" element={<Suspense fallback={null}><AdminEditor /></Suspense>} />
           <Route path="/admin/areas" element={<Suspense fallback={null}><AdminAreas /></Suspense>} />
