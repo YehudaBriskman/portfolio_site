@@ -2,6 +2,38 @@ import { z } from "zod";
 
 const LinkSchema = z.object({ label: z.string(), url: z.string() });
 
+const SeoSchema = z.object({
+  title: z.string().nullable().default(null),
+  description: z.string().nullable().default(null),
+  canonical: z.string().nullable().default(null),
+  noindex: z.boolean().default(false),
+});
+
+const HebrewSchema = z.object({
+  title: z.string().default(""),
+  subtitle: z.string().default(""),
+  excerpt: z.string().default(""),
+  body: z.string().default(""),
+});
+
+/* Everything an author edits about a note, as the draft and publish routes
+   take it (#250). The server validates it again; this only shapes it. */
+const PostContentSchema = z.object({
+  title: z.string(),
+  subtitle: z.string().nullable().default(null),
+  excerpt: z.string().default(""),
+  body: z.string().default(""),
+  tags: z.array(z.string()).default([]),
+  collection: z.string().default("site"),
+  coverImage: z.string().nullable().default(null),
+  links: z.array(LinkSchema).default([]),
+  featured: z.number().nullable().default(null),
+  publishedAt: z.string().nullable().default(null),
+  seo: SeoSchema.default({ title: null, description: null, canonical: null, noindex: false }),
+  he: HebrewSchema.nullable().default(null),
+});
+export type PostContent = z.infer<typeof PostContentSchema>;
+
 const AdminPostSchema = z.object({
   _id: z.string().optional(),
   _rev: z.string().optional(),
@@ -19,6 +51,12 @@ const AdminPostSchema = z.object({
   links: z.array(LinkSchema).default([]),
   readingMinutes: z.number(),
   featured: z.number().nullable().default(null),
+  seo: SeoSchema.default({ title: null, description: null, canonical: null, noindex: false }),
+  he: HebrewSchema.nullable().optional(),
+  changeNote: z.string().nullable().optional(),
+  /* Unpublished edits to a published note (#250); null when there are none. */
+  draft: z.lazy(() => PostContentSchema).nullable().optional(),
+  draftSavedAt: z.string().nullable().optional(),
 });
 
 const AdminCollectionSchema = z.object({
@@ -195,6 +233,31 @@ export const admin = {
       method: "PUT",
       body: JSON.stringify(body),
     });
+    return AdminPostSchema.parse(r.post);
+  },
+  /* Autosave (#250): on a published note this writes only its draft. */
+  saveDraft: async (slug: string, body: PostContent & { _rev?: string }) => {
+    const r = await call<{ post: unknown }>(`/posts/${encodeURIComponent(slug)}/draft`, {
+      method: "PUT",
+      body: JSON.stringify(body),
+    });
+    invalidateLists();
+    return AdminPostSchema.parse(r.post);
+  },
+  publish: async (slug: string, body: PostContent & { _rev?: string; changeNote?: string }) => {
+    const r = await call<{ post: unknown }>(`/posts/${encodeURIComponent(slug)}/publish`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
+    invalidateLists();
+    return AdminPostSchema.parse(r.post);
+  },
+  discardDraft: async (slug: string, rev: string) => {
+    const r = await call<{ post: unknown }>(
+      `/posts/${encodeURIComponent(slug)}/draft?rev=${encodeURIComponent(rev)}`,
+      { method: "DELETE" },
+    );
+    invalidateLists();
     return AdminPostSchema.parse(r.post);
   },
   archive: async (slug: string) => {

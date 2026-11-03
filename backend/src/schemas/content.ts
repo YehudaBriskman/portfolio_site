@@ -45,6 +45,50 @@ export function rawImageUrlOrNull(value: string | null | undefined): string | nu
   return value ? rawImageUrl(value) : null;
 }
 
+/* A URL an author may put in front of a reader: http(s) only. z.string().url()
+   alone accepts javascript: and data:, since both parse as URLs. */
+const httpUrl = z
+  .string()
+  .url()
+  .max(2048)
+  .refine((u) => /^https?:\/\//i.test(u), { message: "Must be an http(s) address." });
+
+const LinkItemSchema = z.object({ label: z.string().min(1).max(60), url: httpUrl });
+
+export const PostSeoSchema = z.object({
+  title: z.string().max(200).nullable().default(null),
+  description: z.string().max(320).nullable().default(null),
+  canonical: httpUrl.nullable().default(null),
+  noindex: z.boolean().default(false),
+});
+
+export const PostHebrewSchema = z.object({
+  title: z.string().max(200).default(""),
+  subtitle: z.string().max(300).default(""),
+  excerpt: z.string().max(320).default(""),
+  body: z.string().max(200_000).default(""),
+});
+
+/*
+ * Everything an author edits about a note, as one object (#250): what a
+ * draft holds and what Publish copies onto the note. Validated on the way in
+ * by the routes, so a draft in the store is always publishable as it is.
+ */
+export const PostContentSchema = z.object({
+  title: z.string().min(1).max(200),
+  subtitle: z.string().max(300).nullable().default(null),
+  excerpt: z.string().max(320).default(""),
+  body: z.string().max(200_000).default(""),
+  tags: z.array(z.string().regex(/^[a-z0-9-]+$/).max(40)).max(8).default([]),
+  collection: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).default("site"),
+  coverImage: httpUrl.nullable().default(null),
+  links: z.array(LinkItemSchema).max(8).default([]),
+  featured: z.number().int().min(1).max(99).nullable().default(null),
+  publishedAt: z.string().datetime().nullable().default(null),
+  seo: PostSeoSchema.default({ title: null, description: null, canonical: null, noindex: false }),
+  he: PostHebrewSchema.nullable().default(null),
+});
+
 export const PostSchema = z.object({
   _id: z.string().optional(),
   _rev: z.string().optional(),
@@ -73,17 +117,24 @@ export const PostSchema = z.object({
      no analytics, so "top" cannot mean views; it means the owner's pick, then
      the newest. Null is not featured. */
   featured: z.number().int().min(1).max(99).nullable().default(null),
-  seo: z
-    .object({
-      title: z.string().nullable().default(null),
-      description: z.string().nullable().default(null),
-      canonical: z.string().url().nullable().default(null),
-      noindex: z.boolean().default(false),
-    })
-    .default({ title: null, description: null, canonical: null, noindex: false }),
+  seo: PostSeoSchema.default({ title: null, description: null, canonical: null, noindex: false }),
+  /* The note in Hebrew (#250), when the owner has written it. Null is "not
+     translated", and the reader then shows the English. */
+  he: PostHebrewSchema.nullable().optional(),
+  /* What the last re-publish changed (#250), one line, shown beside the
+     "Updated" date. Null on a first publish. */
+  changeNote: z.string().max(200).nullable().optional(),
+  /*
+   * Unpublished edits to a published note (#250): the editor's autosave
+   * writes here and never to the fields above, so what the public reads
+   * moves only on Publish. Null when there is nothing unpublished.
+   */
+  draft: PostContentSchema.nullable().optional(),
+  draftSavedAt: z.string().datetime().nullable().optional(),
 });
 
 export type Post = z.infer<typeof PostSchema>;
+export type PostContent = z.infer<typeof PostContentSchema>;
 
 /** What the public sees. Never leaks status, _rev, or anything about drafts. */
 export function toPublicSummary(p: Post) {
@@ -108,7 +159,15 @@ export function toPublicSummary(p: Post) {
 }
 
 export function toPublicPost(p: Post) {
-  return { ...toPublicSummary(p), body: p.body, links: p.links, seo: p.seo };
+  /* Never `draft` or `draftSavedAt`: unpublished words stay in the admin. */
+  return {
+    ...toPublicSummary(p),
+    body: p.body,
+    links: p.links,
+    seo: p.seo,
+    changeNote: p.changeNote ?? null,
+    he: p.he && (p.he.title || p.he.body) ? p.he : null,
+  };
 }
 
 /** ~200 wpm, rounded up, floor of one. */

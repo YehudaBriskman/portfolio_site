@@ -44,7 +44,7 @@ export default function NotePanels({
   isAdmin,
   onPick,
 }: {
-  post: Post & { changeNote?: string | null };
+  post: Post;
   areaTitle: string | null;
   headings: Heading[];
   active: string;
