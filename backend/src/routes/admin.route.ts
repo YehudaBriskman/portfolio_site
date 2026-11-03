@@ -3,12 +3,14 @@ import { couch, CouchError } from "../db/couch.js";
 import { asyncHandler } from "../middlewares/asyncHandler.js";
 import {
   CollectionSchema,
+  PostContentSchema,
   PostSchema,
   SlugSchema,
   rawImageUrlOrNull,
   readingMinutes,
   type Collection,
   type Post,
+  type PostContent,
 } from "../schemas/content.js";
 import { z } from "zod";
 import { fetchRepoStats } from "../services/github.js";
@@ -171,6 +173,11 @@ router.put(
       readingMinutes: readingMinutes(i.body),
       featured: i.featured === undefined ? existing?.featured ?? null : i.featured,
       seo: existing?.seo ?? { title: null, description: null, canonical: null, noindex: false },
+      /* Fields this route does not write (#250) are carried, never dropped. */
+      he: existing?.he ?? null,
+      changeNote: existing?.changeNote ?? null,
+      draft: existing?.draft ?? null,
+      draftSavedAt: existing?.draftSavedAt ?? null,
     };
 
     const ok = PostSchema.safeParse(doc);
@@ -178,7 +185,9 @@ router.put(
       return res.status(400).json({ ok: false, error: "invalid document", details: ok.error.flatten() });
     }
     try {
-      await couch.put(doc._id!, doc);
+      const put = await couch.put<{ rev?: string }>(doc._id!, doc);
+      /* The revision the store now holds, so the editor's next write names it. */
+      if (put?.rev) doc._rev = put.rev;
     } catch (e) {
       if (e instanceof CouchError && e.status === 409) {
         return res.status(409).json({ ok: false, error: "This post changed elsewhere. Reload and reapply." });
@@ -187,6 +196,156 @@ router.put(
     }
     res.locals.audit = { target: doc._id, before: existing, after: doc };
     res.json({ ok: true, post: doc });
+  })
+);
+
+/*
+ * The editor's draft and publish (#250).
+ *
+ * The rule is that a published note changes for the public only when the
+ * author presses Publish. So:
+ *
+ *  - PUT  /posts/:slug/draft    autosave. On a published note it writes only
+ *                               `draft` and `draftSavedAt`; the fields the
+ *                               public reads, and `updatedAt` (the "Updated"
+ *                               badge), are untouched. On a note that is not
+ *                               published (or not yet stored) nothing is
+ *                               public, so the fields are written directly
+ *                               and the status stays what it was.
+ *  - POST /posts/:slug/publish  copies the content onto the note, marks it
+ *                               published, stamps `updatedAt`, records the
+ *                               author's "what changed" line on a re-publish,
+ *                               and clears the draft.
+ *  - DELETE /posts/:slug/draft  throws the draft away.
+ *
+ * Every write names the revision it edited (the optimistic lock, as above),
+ * and every body is the whole content, validated by zod, so a stored draft
+ * is always publishable as it stands.
+ */
+const DraftWrite = PostContentSchema.extend({ _rev: z.string().optional() });
+const PublishWrite = DraftWrite.extend({ changeNote: z.string().trim().max(200).optional() });
+
+function invalid(res: import("express").Response, error: z.ZodError) {
+  return res.status(400).json({ ok: false, error: "invalid", details: error.flatten() });
+}
+
+function conflict(res: import("express").Response) {
+  return res.status(409).json({ ok: false, error: "This post changed elsewhere. Reload and reapply." });
+}
+
+function fromContent(c: PostContent) {
+  return {
+    title: c.title,
+    subtitle: c.subtitle,
+    excerpt: c.excerpt || c.body.replace(/[#*`>_[\]-]/g, "").slice(0, 300),
+    body: c.body,
+    tags: c.tags,
+    collection: c.collection,
+    coverImage: rawImageUrlOrNull(c.coverImage),
+    links: c.links,
+    featured: c.featured,
+    seo: c.seo,
+    he: c.he && (c.he.title || c.he.subtitle || c.he.excerpt || c.he.body) ? c.he : null,
+    readingMinutes: readingMinutes(c.body),
+  };
+}
+
+async function store(res: import("express").Response, doc: Post, before: Post | null) {
+  const ok = PostSchema.safeParse(doc);
+  if (!ok.success) return res.status(400).json({ ok: false, error: "invalid document", details: ok.error.flatten() });
+  try {
+    const put = await couch.put<{ rev?: string }>(doc._id!, doc);
+    if (put?.rev) doc._rev = put.rev;
+  } catch (e) {
+    if (e instanceof CouchError && e.status === 409) return conflict(res);
+    throw e;
+  }
+  res.locals.audit = { target: doc._id, before, after: doc };
+  return res.json({ ok: true, post: doc });
+}
+
+router.put(
+  "/posts/:slug/draft",
+  asyncHandler(async (req, res) => {
+    const slug = SlugSchema.safeParse(req.params.slug);
+    if (!slug.success) return invalid(res, slug.error);
+    const parsed = DraftWrite.safeParse(req.body);
+    if (!parsed.success) return invalid(res, parsed.error);
+    const { _rev, ...content } = parsed.data;
+    const existing = await tryGet<Post>(postId(slug.data));
+    if (existing?._rev && _rev !== existing._rev) return conflict(res);
+    const now = new Date().toISOString();
+
+    if (existing && existing.status === "published") {
+      return store(res, { ...existing, _rev, draft: content, draftSavedAt: now }, existing);
+    }
+    const doc: Post = {
+      ...(existing ?? {}),
+      _id: postId(slug.data),
+      ...(existing?._rev ? { _rev } : {}),
+      type: "post",
+      slug: slug.data,
+      ...fromContent(content),
+      bodyFormat: "markdown",
+      status: existing?.status ?? "draft",
+      publishedAt: existing?.publishedAt ?? null,
+      createdAt: existing?.createdAt ?? now,
+      updatedAt: now,
+      source: existing?.source ?? "authored",
+      changeNote: existing?.changeNote ?? null,
+      draft: null,
+      draftSavedAt: now,
+    } as Post;
+    return store(res, doc, existing);
+  })
+);
+
+router.post(
+  "/posts/:slug/publish",
+  asyncHandler(async (req, res) => {
+    const slug = SlugSchema.safeParse(req.params.slug);
+    if (!slug.success) return invalid(res, slug.error);
+    const parsed = PublishWrite.safeParse(req.body);
+    if (!parsed.success) return invalid(res, parsed.error);
+    const { _rev, changeNote, ...content } = parsed.data;
+    const existing = await tryGet<Post>(postId(slug.data));
+    if (existing?._rev && _rev !== existing._rev) return conflict(res);
+    const now = new Date().toISOString();
+    const republish = existing?.status === "published";
+
+    const doc: Post = {
+      ...(existing ?? {}),
+      _id: postId(slug.data),
+      ...(existing?._rev ? { _rev } : {}),
+      type: "post",
+      slug: slug.data,
+      ...fromContent(content),
+      bodyFormat: "markdown",
+      status: "published",
+      /* The author's date when one is given; otherwise the first publish's,
+         kept; otherwise now. */
+      publishedAt: content.publishedAt ?? existing?.publishedAt ?? now,
+      createdAt: existing?.createdAt ?? now,
+      updatedAt: now,
+      source: existing?.source ?? "authored",
+      changeNote: republish ? changeNote || null : null,
+      draft: null,
+      draftSavedAt: null,
+    } as Post;
+    return store(res, doc, existing);
+  })
+);
+
+router.delete(
+  "/posts/:slug/draft",
+  asyncHandler(async (req, res) => {
+    const slug = SlugSchema.safeParse(req.params.slug);
+    if (!slug.success) return invalid(res, slug.error);
+    const existing = await tryGet<Post>(postId(slug.data));
+    if (!existing) return res.status(404).json({ ok: false, error: "Not Found" });
+    const rev = typeof req.query.rev === "string" ? req.query.rev : "";
+    if (rev !== existing._rev) return conflict(res);
+    return store(res, { ...existing, draft: null, draftSavedAt: null }, existing);
   })
 );
 

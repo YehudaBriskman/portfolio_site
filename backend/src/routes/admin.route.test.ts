@@ -272,3 +272,86 @@ describe("admin collections", () => {
     expect(res.body).toMatchObject({ ok: false, error: "Internal Server Error" });
   });
 });
+
+describe("admin posts: drafts and publish (#250)", () => {
+  const content = { title: "Edited", body: "New words.", tags: ["ci"], collection: "site" };
+
+  it("autosaves a published note into its draft and leaves the public fields alone", async () => {
+    vi.spyOn(couch, "get").mockResolvedValue(storedPost("live"));
+    const put = vi.spyOn(couch, "put").mockResolvedValue({ ok: true, rev: "4-new" });
+
+    const res = await asAdmin(request(createApp()).put("/api/admin/posts/live/draft").send({ ...content, _rev: "3-abc" }));
+
+    expect(res.status).toBe(200);
+    expect(res.body.post).toMatchObject({ title: "Stored", body: "b", updatedAt: NOW, status: "published", _rev: "4-new" });
+    expect(res.body.post.draft).toMatchObject({ title: "Edited", body: "New words." });
+    expect(put).toHaveBeenCalledTimes(1);
+  });
+
+  it("refuses a draft that names a stale revision, or none", async () => {
+    vi.spyOn(couch, "get").mockResolvedValue(storedPost("live"));
+    const put = vi.spyOn(couch, "put");
+    const app = createApp();
+    expect((await asAdmin(request(app).put("/api/admin/posts/live/draft").send({ ...content, _rev: "2-old" }))).status).toBe(409);
+    expect((await asAdmin(request(app).put("/api/admin/posts/live/draft").send(content))).status).toBe(409);
+    expect(put).not.toHaveBeenCalled();
+  });
+
+  it("creates an unpublished note from its first autosave, as a draft", async () => {
+    vi.spyOn(couch, "get").mockRejectedValue(notFound());
+    vi.spyOn(couch, "put").mockResolvedValue({ ok: true, rev: "1-a" });
+    const res = await asAdmin(request(createApp()).put("/api/admin/posts/fresh-note/draft").send(content));
+    expect(res.status).toBe(200);
+    expect(res.body.post).toMatchObject({ slug: "fresh-note", status: "draft", title: "Edited", publishedAt: null, draft: null });
+  });
+
+  it("validates a draft with zod and names the field", async () => {
+    const res = await asAdmin(
+      request(createApp()).put("/api/admin/posts/live/draft").send({ ...content, tags: ["Not A Tag"], coverImage: "javascript:alert(1)" }),
+    );
+    expect(res.status).toBe(400);
+    expect(res.body.details.fieldErrors).toHaveProperty("tags");
+    expect(res.body.details.fieldErrors).toHaveProperty("coverImage");
+  });
+
+  it("publishes: copies the content, stamps the update, records what changed, clears the draft", async () => {
+    vi.spyOn(couch, "get").mockResolvedValue({ ...storedPost("live"), draft: { ...content }, draftSavedAt: NOW });
+    vi.spyOn(couch, "put").mockResolvedValue({ ok: true, rev: "4-new" });
+
+    const res = await asAdmin(
+      request(createApp())
+        .post("/api/admin/posts/live/publish")
+        .send({ ...content, he: { title: "ערוך", body: "מילים." }, changeNote: "Rewrote the intro.", _rev: "3-abc" }),
+    );
+    expect(res.status).toBe(200);
+    expect(res.body.post).toMatchObject({
+      title: "Edited",
+      status: "published",
+      publishedAt: NOW,
+      changeNote: "Rewrote the intro.",
+      draft: null,
+      he: { title: "ערוך", body: "מילים." },
+    });
+    expect(res.body.post.updatedAt).not.toBe(NOW);
+  });
+
+  it("does not show a draft to the public", async () => {
+    vi.spyOn(couch, "find").mockResolvedValue({
+      docs: [{ ...storedPost("live"), draft: { ...content, body: "SECRET DRAFT" }, draftSavedAt: NOW }],
+    } as never);
+    const res = await request(createApp()).get("/api/blog/posts/live");
+    expect(res.status).toBe(200);
+    expect(JSON.stringify(res.body)).not.toContain("SECRET DRAFT");
+    expect(res.body.post).not.toHaveProperty("draft");
+  });
+
+  it("discards a draft only at the revision it names", async () => {
+    vi.spyOn(couch, "get").mockResolvedValue({ ...storedPost("live"), draft: { ...content }, draftSavedAt: NOW });
+    vi.spyOn(couch, "put").mockResolvedValue({ ok: true, rev: "4-new" });
+    const app = createApp();
+    expect((await asAdmin(request(app).delete("/api/admin/posts/live/draft?rev=2-old"))).status).toBe(409);
+    const ok = await asAdmin(request(app).delete("/api/admin/posts/live/draft?rev=3-abc"));
+    expect(ok.status).toBe(200);
+    expect(ok.body.post.draft).toBeNull();
+  });
+});

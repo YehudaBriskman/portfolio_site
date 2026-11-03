@@ -89,7 +89,7 @@ function answer(path) {
   if (p === "/blog/posts/reader-mode") return { post: POST };
   if (p === "/blog/collections") return { items: [AREA] };
   if (p === "/blog/collections/site") return { collection: AREA };
-  if (p === "/admin/posts") return { ok: true, items: [ADMIN_POST] };
+  if (p === "/admin/posts") return { ok: true, items: [ADMIN_POST, { ...ADMIN_POST, _id: "post:a-second-note", slug: "a-second-note", title: "A second note", draft: null }] };
   if (p === "/admin/posts/reader-mode") return { ok: true, post: ADMIN_POST };
   if (p === "/admin/collections") return { ok: true, items: [{ ...AREA, status: "published", repo: null, stats: null }] };
   if (p === "/admin/media") return { ok: true, items: [] };
@@ -241,6 +241,8 @@ for (const theme of ["light", "dark"]) {
         await page.keyboard.type("\n\nSee [[a-");
         await page.waitForTimeout(600);
         check(await page.getByRole("listbox").isVisible(), `${theme}: [[ suggests notes, areas and projects`);
+        await page.evaluate(() => document.querySelector('[role="listbox"]')?.scrollIntoView({ block: "center" }));
+        await page.waitForTimeout(300);
         await snap(page, `editor-desktop-${theme}-wikilink.png`);
       }
     }

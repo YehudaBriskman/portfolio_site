@@ -21,6 +21,8 @@ const SummarySchema = z.object({
 const PostSchema = SummarySchema.extend({
   body: z.string(),
   links: z.array(LinkSchema).default([]),
+  /* What the last re-publish changed (#250), beside the "Updated" date. */
+  changeNote: z.string().nullable().optional(),
 });
 
 const StatsSchema = z.object({

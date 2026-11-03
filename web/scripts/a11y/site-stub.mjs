@@ -98,6 +98,36 @@ Closing paragraph.`;
 
 const POST = { ...SUMMARY, body: BODY, links: [{ label: "Repository", url: "https://example.com/" }] };
 
+/* The note editor (#250) opens a published note that has unpublished changes,
+   so the audit sees the draft notice, the toolbar and the preview at once. */
+const SEO = { title: null, description: null, canonical: null, noindex: false };
+const ADMIN_POST = {
+  ...POST,
+  _id: "post:fixture-post",
+  _rev: "2-a",
+  status: "published",
+  updatedAt: SUMMARY.publishedAt,
+  featured: null,
+  seo: SEO,
+  he: null,
+  changeNote: null,
+  draft: {
+    title: SUMMARY.title,
+    subtitle: SUMMARY.subtitle,
+    excerpt: SUMMARY.excerpt,
+    body: `${BODY}\n\nOne more paragraph, not yet published.`,
+    tags: SUMMARY.tags,
+    collection: SUMMARY.collection ?? "site",
+    coverImage: null,
+    links: POST.links,
+    featured: null,
+    publishedAt: SUMMARY.publishedAt,
+    seo: SEO,
+    he: null,
+  },
+  draftSavedAt: SUMMARY.publishedAt,
+};
+
 function contributionDays() {
   const days = [];
   const end = Date.UTC(2026, 9, 1);
@@ -157,6 +187,9 @@ export function answer(url, failing) {
   const p = new URL(url).pathname.replace(/^\/api/, "");
   if (p === "/admin/me") return { status: 200, body: { ok: true, login: "owner", email: null } };
   if (p === "/admin/media") return { status: 200, body: { ok: true, items: MEDIA } };
+  if (p === "/admin/posts") return { status: 200, body: { ok: true, items: [ADMIN_POST] } };
+  if (p === "/admin/posts/fixture-post") return { status: 200, body: { ok: true, post: ADMIN_POST } };
+  if (p === "/admin/collections") return { status: 200, body: { ok: true, items: [] } };
   if (p === "/blog/posts") return { status: 200, body: { items: [SUMMARY] } };
   if (p.startsWith("/blog/posts/")) {
     return p.endsWith("/fixture-post") ? { status: 200, body: { post: POST } } : { status: 404, body: {} };

@@ -25,11 +25,18 @@ export default function MediaPicker({
   onChange,
   label = "Choose from library",
   kinds = ["image"],
+  onPickItem,
+  showCurrent = true,
 }: {
   value: string;
   onChange: (url: string) => void;
   label?: string;
   kinds?: readonly MediaKind[];
+  /* The whole item, for a caller that needs more than the URL: the note
+     editor (#250) writes the alt text into the markdown it inserts. */
+  onPickItem?: (item: MediaItem) => void;
+  /* Off where the picker inserts rather than fills a field. */
+  showCurrent?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<MediaItem[] | null>(null);
@@ -55,6 +62,7 @@ export default function MediaPicker({
 
   function pick(item: MediaItem) {
     onChange(item.url);
+    onPickItem?.(item);
     setOpen(false);
   }
 
@@ -68,7 +76,7 @@ export default function MediaPicker({
         <button type="button" className="a-btn" onClick={show} aria-haspopup="dialog">
           {label}
         </button>
-        {current && (
+        {showCurrent && current && (
           <span className="mono text-[0.6875rem] text-clay">
             From the library: <span className="text-bone">{picked?.alt ?? current}</span>
           </span>
