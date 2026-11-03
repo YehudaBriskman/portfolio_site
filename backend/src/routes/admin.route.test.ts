@@ -115,6 +115,19 @@ describe("admin posts", () => {
     expect((find.mock.calls[0][0] as { selector: object }).selector).toEqual({ type: "post" });
   });
 
+  it("sorts newest edit first without asking the store for an unindexed sort", async () => {
+    const find = vi.spyOn(couch, "find").mockResolvedValue({
+      docs: [
+        { ...storedPost("older"), updatedAt: "2026-09-01T00:00:00.000Z" },
+        { ...storedPost("newer"), updatedAt: "2026-10-01T00:00:00.000Z" },
+      ],
+    });
+    const res = await asAdmin(request(createApp()).get("/api/admin/posts"));
+
+    expect(res.body.items.map((p: { slug: string }) => p.slug)).toEqual(["newer", "older"]);
+    expect((find.mock.calls[0][0] as { sort?: unknown }).sort).toBeUndefined();
+  });
+
   it("is a 404 for an unknown slug, and passes any other store failure on as 502", async () => {
     const get = vi.spyOn(couch, "get").mockRejectedValueOnce(notFound());
     const app = createApp();

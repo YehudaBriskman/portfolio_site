@@ -1,0 +1,12 @@
+{
+  "slug": "site",
+  "title": "Notes",
+  "kind": "site",
+  "tagline": "Decisions, and what they cost",
+  "description": "Writing about how this site and the projects on it are built: the decisions, the reasoning behind them, and what each one cost.",
+  "coverImage": null,
+  "links": [],
+  "order": 10,
+  "status": "published",
+  "repo": null
+}
