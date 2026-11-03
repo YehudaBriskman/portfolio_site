@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import AdminShell from "@/components/admin/AdminShell";
+import { PageHeader } from "@/components/admin/ui";
 import { KindFilter, MediaGrid, Modal } from "@/components/admin/MediaGrid";
 import MediaUpload from "@/components/admin/MediaUpload";
 import MediaIcon from "@/components/media/MediaIcon";
@@ -68,15 +69,17 @@ export default function AdminMedia() {
 
   return (
     <AdminShell title="Media" section="media" counts={{ media: items?.length }}>
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <h1 className="display-tight text-[1.75rem] lg:text-[2.25rem]">Media</h1>
-      </div>
-      <p className="a-hint mt-3 max-w-prose">
-        Pictures, icons and short videos for posts, areas and projects. Each is stored once and cleaned of
-        camera, location and device data. Pictures are served in AVIF and WebP at the sizes a page asks for;
-        icons as drawn; videos muted, with a poster, and never playing by themselves with motion off.
-        Anything in use cannot be deleted.
-      </p>
+      <PageHeader
+        title="Media"
+        description={
+          <>
+            Pictures, icons and short videos for posts, areas and projects. Each is stored once and cleaned of
+            camera, location and device data. Pictures are served in AVIF and WebP at the sizes a page asks for;
+            icons as drawn; videos muted, with a poster, and never playing by themselves with motion off.
+            Anything in use cannot be deleted.
+          </>
+        }
+      />
 
       <div className="mt-6">
         <MediaUpload

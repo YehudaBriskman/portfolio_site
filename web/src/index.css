@@ -2825,6 +2825,22 @@
   .a-page-desc { max-width: 68ch; margin-top: .375rem; color: rgb(var(--ink-soft)); }
   .a-page-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
   .a-h2 { font-size: 1rem; font-weight: 700; color: rgb(var(--ink)); }
+  /* A settings section (#288): GitHub's settings page, a title over a rule,
+     its fields under it at one rhythm. */
+  .a-section { margin-top: 2.5rem; display: grid; gap: 1.25rem; }
+  .a-section-title {
+    padding-bottom: .5rem; border-bottom: 1px solid rgb(var(--rule-firm) / .5);
+    font-size: 1.25rem; font-weight: 700; line-height: 1.3; color: rgb(var(--ink));
+  }
+  /* An editor's actions on a desktop: sticky at the foot of the form, the
+     same bar a phone pins to the bottom of the screen. */
+  .a-action-bar {
+    position: sticky; bottom: 0; z-index: 5;
+    align-items: center; gap: .75rem;
+    margin-top: 2rem; padding: .75rem 1rem;
+    border: 1px solid rgb(var(--rule-firm) / .5); border-radius: 6px;
+    background: rgb(var(--paper-2));
+  }
 
   /* ---- boxes, rows and tables: GitHub's Box */
   .a-box, .a-card {

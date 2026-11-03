@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 import AdminShell, { type AdminSection } from "@/components/admin/AdminShell";
 import StatusPill from "@/components/admin/StatusPill";
+import { ErrorState, LoadingRows, PageHeader } from "@/components/admin/ui";
+import { ExternalLink } from "lucide-react";
 import { IssuesContext, type ContentEditor } from "./editor";
 
 /*
@@ -58,20 +60,14 @@ export default function EditorFrame<T>({ title, section, intro, preview, editor,
         </div>
       }
     >
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <h1 className="display-tight text-[1.75rem] lg:text-[2.25rem]">{title}</h1>
-        <div className="hidden items-center gap-3 lg:flex">
-          <StatusPill state={state} />
-          {actions}
-        </div>
-      </div>
-      <p className="a-hint mt-3 max-w-prose">{intro}</p>
+      <div className="a-wrap-narrow">
+      <PageHeader title={title} description={intro} />
 
-      {loadError && <p className="a-card mt-8 p-4 text-sm text-bone/70">{loadError}</p>}
-      {!loadError && view === null && <p className="mono mt-8 text-xs text-clay">Loading…</p>}
+      {loadError && <ErrorState message={loadError} />}
+      {!loadError && view === null && <LoadingRows rows={3} />}
 
       {view && (
-        <div className="a-card mt-6 flex flex-wrap items-center gap-x-6 gap-y-3 p-4 text-sm">
+        <div className="a-box flex flex-wrap items-center gap-x-6 gap-y-3 px-4 py-3 text-sm">
           <p className="min-w-0 flex-1">
             {!view.exists
               ? "The site is showing the built-in content. Publish, or seed the store, to start editing it here."
@@ -81,7 +77,8 @@ export default function EditorFrame<T>({ title, section, intro, preview, editor,
           </p>
           <span className="flex flex-wrap gap-2">
             <a href={preview} target="_blank" rel="noreferrer" className="a-btn a-btn-ghost">
-              Preview ↗
+              Preview
+              <ExternalLink aria-hidden="true" />
             </a>
             {view.draft && (
               <button type="button" className="a-btn a-btn-ghost" disabled={busy} onClick={() => void editor.discard()}>
@@ -103,7 +100,7 @@ export default function EditorFrame<T>({ title, section, intro, preview, editor,
       )}
 
       {general.length > 0 && (
-        <ul className="a-card mt-4 space-y-1 p-4" aria-label="Problems">
+        <ul className="a-box mt-4 space-y-1 p-4" aria-label="Problems">
           {general.map((i) => (
             <li key={i.message} className="a-error mt-0">
               {i.message}
@@ -114,11 +111,17 @@ export default function EditorFrame<T>({ title, section, intro, preview, editor,
 
       {value !== null && (
         <IssuesContext.Provider value={issueMap}>
-          <form noValidate onSubmit={(e) => e.preventDefault()} className="max-w-4xl">
+          <form noValidate onSubmit={(e) => e.preventDefault()}>
             {children(value)}
+            {/* The same bar the phone pins to the screen's bottom (#288). */}
+            <div className="a-action-bar hidden lg:flex">
+              <StatusPill state={state} />
+              <span className="ms-auto flex gap-2">{actions}</span>
+            </div>
           </form>
         </IssuesContext.Provider>
       )}
+      </div>
     </AdminShell>
   );
 }
