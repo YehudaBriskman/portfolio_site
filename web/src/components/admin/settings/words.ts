@@ -1,10 +1,10 @@
-import { useLang, type Lang } from "@/components/dashboard/i18n";
+import { defineWords, plural } from "@/i18n/words";
 import type { Accent, HomeSection } from "@/settings/schema";
 
 /*
- * /admin/settings' words (#254), in both languages, through the dashboard's
- * `useLang()` like the other tables beside it. The server's validation
- * answers are keys (`settings.*`), worded here.
+ * /admin/settings' words (#254), in both languages, through the site's
+ * `defineWords` (#248). The server's validation answers are keys
+ * (`settings.*`), worded here.
  */
 
 const EN = {
@@ -54,7 +54,7 @@ const EN = {
   historyEmpty: "Nothing saved yet. The site is using its built-in defaults.",
   restore: "Put back",
   restoreLabel: (what: string) => `Put back ${what}`,
-  differences: (n: number) => (n === 1 ? "1 difference from now" : `${n} differences from now`),
+  differences: (n: number) => plural("en", n, { one: "{n} difference from now", other: "{n} differences from now" }),
   issues: {
     "settings.ledger.darkAdjacent":
       "Work and The year are both on the dark ground; shown next to each other they read as one section. Put a section between them or hide one.",
@@ -66,7 +66,7 @@ const EN = {
 
 type Words = typeof EN;
 
-const HE: Words = {
+const HE = {
   title: "הגדרות",
   intro: "מה בא לפני מה בדף הבית, מה מוצג, וברירות המחדל שמבקר מקבל לפני שבחר בעצמו. כל שמירה נשמרת למטה ואפשר להחזיר אותה.",
   homeHeading: "דף הבית",
@@ -112,7 +112,7 @@ const HE: Words = {
   historyEmpty: "עוד לא נשמר דבר. האתר משתמש בברירות המחדל המובנות.",
   restore: "להחזיר",
   restoreLabel: (what) => `להחזיר ${what}`,
-  differences: (n) => (n === 1 ? "הבדל אחד מהנוכחית" : `${n} הבדלים מהנוכחית`),
+  differences: (n) => plural("he", n, { one: "הבדל אחד מהנוכחית", two: "שני הבדלים מהנוכחית", other: "{n} הבדלים מהנוכחית" }),
   issues: {
     "settings.ledger.darkAdjacent":
       "עבודות והשנה שתיהן על הרקע הכהה; כשהן מוצגות זו ליד זו הן נקראות כאזור אחד. יש לשים אזור ביניהן או להסתיר אחת.",
@@ -122,11 +122,7 @@ const HE: Words = {
   genericIssue: "הערך הזה אינו מותר.",
 };
 
-export const SETTINGS_WORDS: Record<Lang, Words> = { en: EN, he: HE };
-
-export function useSettingsWords(): Words {
-  return SETTINGS_WORDS[useLang()];
-}
+export const useSettingsWords = defineWords("admin-settings", EN, HE);
 
 export function issueText(w: Words, message: string): string {
   return w.issues[message] ?? w.genericIssue;

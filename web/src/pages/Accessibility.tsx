@@ -128,11 +128,15 @@ export default function Accessibility() {
             If something here does not work for you, or you need it in another form, write to{" "}
             <a className="underline underline-offset-4" href={`mailto:${contact.email}`}>
               {contact.email}
-            </a>{" "}
-            or use the{" "}
-            <Link className="underline underline-offset-4" to="/#contact">
-              contact form
-            </Link>
+            </a>
+            {contactShown ? (
+              <>
+                {" "}or use the{" "}
+                <Link className="underline underline-offset-4" to="/#contact">
+                  contact form
+                </Link>
+              </>
+            ) : null}
             . Say which page and what happened; I will answer, and fix what can be fixed, as
             soon as I can.
           </p>
