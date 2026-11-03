@@ -34,7 +34,8 @@ function fakeMatchMedia(query: string) {
   } as unknown as MediaQueryList;
 }
 
-type Doc = Document & { startViewTransition?: unknown };
+type Doc = { startViewTransition?: unknown };
+const doc = () => document as unknown as Doc;
 let resolveFinished: () => void;
 let seenInside: { theme: string | null; wave: boolean; r: string } | null;
 const start = vi.fn((update: () => void) => {
@@ -54,14 +55,14 @@ beforeEach(() => {
   seenInside = null;
   start.mockClear();
   vi.stubGlobal("matchMedia", fakeMatchMedia);
-  (document as Doc).startViewTransition = start;
+  doc().startViewTransition = start;
   document.body.classList.remove("motion-paused");
   localStorage.clear();
   localStorage.setItem(THEME_KEY, "light");
   syncTheme();
 });
 afterEach(() => {
-  delete (document as Doc).startViewTransition;
+  delete doc().startViewTransition;
   vi.unstubAllGlobals();
 });
 
@@ -88,7 +89,7 @@ describe("when it plays", () => {
     document.body.classList.add("motion-paused");
     expect(canWave()).toBe(false);
     document.body.classList.remove("motion-paused");
-    delete (document as Doc).startViewTransition;
+    delete doc().startViewTransition;
     expect(canWave()).toBe(false);
   });
 });
