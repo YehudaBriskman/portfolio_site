@@ -126,25 +126,54 @@
 
 /*
  * The aurora behind the cards (owner, 2026-11-03): "the aurora like in
- * Projects, almost the same animation, but from the left". It is the shared
- * strand (`motion/AuroraStrand`) — the run's appearing, `from="left"` — on
- * the shelf's own stage timeline and the run's range, `entry 40%` to
- * `contain 6%`: uncovered as the stage comes up, whole just after the frame
- * pins, ahead of the first card's travel. A band across the frame on the
- * row's middle line, so it shows in each gap and either side of the row; the
- * cards are opaque and are painted after it. Right to left, the frame is
- * mirrored (below) and the strand with it, so it comes from the start side.
+ * Projects, almost the same animation, but from the left" — and then, on
+ * preprod, "the aurora appearing from the side doesn't match the notes":
+ * it was centred on the frame, which put it on the middle of the cards'
+ * SLOTS (a slot is the card plus the room it grows into), half a growth
+ * below the cards' own middle, so it met the first card off its centre and
+ * seemed to stop at its edge.
+ *
+ * So it now relates to the row the way the run's aurora relates to the
+ * run's cards: it is the line the cards travel on. The band shares the
+ * track's grid cell, so it is laid out against the row itself, and its
+ * middle is the middle of a card — a card at rest where cards grow on
+ * hover, an open card where they stand open (touch). It runs the whole
+ * width of the frame, in at the left edge, behind every card and out past
+ * the last one on the right, so it is seen leading into the first card at
+ * its middle, in each gap, and leaving the far side: it is never cut off
+ * and never ends in the air. The cards are opaque and are painted after it.
+ *
+ * The appearing is the shared strand's (`motion/AuroraStrand`) — the run's,
+ * `from="left"` — on the shelf's own stage timeline and the run's range,
+ * `entry 40%` to `contain 6%`: uncovered as the stage comes up, whole just
+ * after the frame pins, ahead of the first card's travel. Right to left,
+ * the frame is mirrored (below) and the strand with it, so it comes from
+ * the start side.
  *
  * Under the three off-switches the row is a plain vertical list with no line
  * to lie along, and the band is hidden, as the run's is without support.
  */
 .aurora {
   --notes-band: clamp(4.5rem, 10vw, 7.5rem);
-  position: absolute;
-  inset-inline: 0;
-  top: calc(var(--bar-h, 56px) + (100% - var(--bar-h, 56px) - var(--notes-band)) / 2);
+  /* The card's height in the row: at rest, or open where it stands open. */
+  --notes-card: var(--note-rest);
+  grid-area: 1 / 1;
+  align-self: start;
+  /* The frame's width, not the column's: the column is as wide as the
+     whole row (`max-content`), and the band is the window onto it. */
+  justify-self: start;
+  width: 100cqw;
+  position: relative;
+  /* The track's top padding, then down to the card's middle. */
+  margin-top: calc(1rem + var(--notes-card) / 2 - var(--notes-band) / 2);
   height: var(--notes-band);
   pointer-events: none;
+}
+
+@media not ((hover: hover) and (pointer: fine)) {
+  .aurora {
+    --notes-card: calc(var(--note-rest) + var(--note-grow));
+  }
 }
 
 @supports not (animation-timeline: view()) {
@@ -164,6 +193,8 @@
 }
 
 .track {
+  /* The aurora's cell too (above), so the band is laid out against the row. */
+  grid-area: 1 / 1;
   display: flex;
   /* Every slot is one height (below), so the row is one height; the cards
      hang from its top edge and grow down into their own slots. */
