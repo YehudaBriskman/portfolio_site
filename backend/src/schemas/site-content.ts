@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { SlugSchema } from "./content.js";
 import { Fingerprint } from "./i18n.js";
+import { SlugSchema } from "./content.js";
 
 /*
  * The site's own content, as stored (#163).
