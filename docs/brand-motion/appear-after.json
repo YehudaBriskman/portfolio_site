@@ -1,0 +1,82 @@
+[
+  {
+    "tag": "after",
+    "theme": "light",
+    "progress": 0.02,
+    "sectionHeight": 167,
+    "covered": [],
+    "headingOpacity": 1,
+    "cardTranslate": "0px 10.9222px",
+    "file": "brand-motion/appear-after-light-002.png"
+  },
+  {
+    "tag": "after",
+    "theme": "light",
+    "progress": 0.3,
+    "sectionHeight": 166.99993896484375,
+    "covered": [],
+    "headingOpacity": 1,
+    "cardTranslate": "0px 7.61677px",
+    "file": "brand-motion/appear-after-light-030.png"
+  },
+  {
+    "tag": "after",
+    "theme": "light",
+    "progress": 0.6,
+    "sectionHeight": 166.99993896484375,
+    "covered": [],
+    "headingOpacity": 1,
+    "cardTranslate": "0px 4.23952px",
+    "file": "brand-motion/appear-after-light-060.png"
+  },
+  {
+    "tag": "after",
+    "theme": "light",
+    "progress": 1,
+    "sectionHeight": 167,
+    "covered": [],
+    "headingOpacity": 1,
+    "cardTranslate": "0px",
+    "file": "brand-motion/appear-after-light-100.png"
+  },
+  {
+    "tag": "after",
+    "theme": "dark",
+    "progress": 0.02,
+    "sectionHeight": 167,
+    "covered": [],
+    "headingOpacity": 1,
+    "cardTranslate": "0px 10.9222px",
+    "file": "brand-motion/appear-after-dark-002.png"
+  },
+  {
+    "tag": "after",
+    "theme": "dark",
+    "progress": 0.3,
+    "sectionHeight": 166.99993896484375,
+    "covered": [],
+    "headingOpacity": 1,
+    "cardTranslate": "0px 7.61677px",
+    "file": "brand-motion/appear-after-dark-030.png"
+  },
+  {
+    "tag": "after",
+    "theme": "dark",
+    "progress": 0.6,
+    "sectionHeight": 166.99993896484375,
+    "covered": [],
+    "headingOpacity": 1,
+    "cardTranslate": "0px 4.23952px",
+    "file": "brand-motion/appear-after-dark-060.png"
+  },
+  {
+    "tag": "after",
+    "theme": "dark",
+    "progress": 1,
+    "sectionHeight": 167,
+    "covered": [],
+    "headingOpacity": 1,
+    "cardTranslate": "0px",
+    "file": "brand-motion/appear-after-dark-100.png"
+  }
+]
