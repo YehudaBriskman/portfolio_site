@@ -475,9 +475,15 @@
   letter-spacing: var(--track-body);
   line-height: 1.2;
   white-space: nowrap;
-  transition:
-    color var(--dur-micro) ease,
-    background-color var(--dur-micro) ease;
+  /* Background only, never `color` (#242). The material swap re-points
+     `--ink` under these words, and a colour transition carried the swap
+     with it: paper's near-black ink easing towards the panel's near-white
+     over a bar that had already cut to dark. That is the midpoint the bar's
+     own note above rules out, and where frames are scarce (a background
+     tab, a headless browser) the easing stalled at its start, so the
+     current room read as a gap: "Home Journey [blank] Blogs". The type
+     cuts with its ground; only the hover wash eases. */
+  transition: background-color var(--dur-micro) ease;
 }
 
 @media (hover: hover) and (pointer: fine) {

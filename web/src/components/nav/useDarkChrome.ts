@@ -98,6 +98,29 @@ export function useDarkChrome(pathname: string, barBottom: number): boolean {
        * degenerate case of a window shorter than its own chrome.
        */
       const below = Math.max(0, Math.round(window.innerHeight - barBottom));
+
+      /*
+       * The answer now, not at the observer's first callback (#242).
+       *
+       * An observer reports at the next rendering opportunity, so until then
+       * the bar kept the paper material it mounted with. On the dashboard
+       * pages that is wrong from the first paint: their dark ground starts
+       * at the top of the window, under the bar, so the bar was paper over
+       * a dark page and the current room's link — full ink, `--ink` on
+       * paper — was drawn black on the dark ground beneath it, invisible.
+       * Where frames are scarce (a throttled or background tab, a headless
+       * browser) that state lasted, and a screenshot caught "Home Journey
+       * [blank] Blogs". One read of each panel's box per build settles it at
+       * once; the observer still answers every change after that, and there
+       * is still no scroll listener.
+       */
+      setDark(
+        Array.from(panels).some((p) => {
+          const r = p.getBoundingClientRect();
+          return r.height > 0 && r.top < barBottom && r.bottom > 0;
+        })
+      );
+
       /* Same guard as Rise and useEnteredOnce: an engine without the observer
          gets the finished state, never a half-built one. Unguarded, the
          constructor throws during commit and the page renders nothing — which
