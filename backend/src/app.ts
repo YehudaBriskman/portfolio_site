@@ -10,7 +10,8 @@ import adminRoutes from './routes/admin.route.js';
 import seoRoutes from './routes/seo.route.js';
 import feedRoutes from './routes/feeds.route.js';
 import { activityRouter, areasRouter } from './routes/activity.route.js';
-import { requireAdmin } from './middlewares/requireAdmin.js';
+import { createBearerFailureLimiter, requireAdmin } from './middlewares/requireAdmin.js';
+import { auditWrites } from './services/audit.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 import { couch } from './db/couch.js';
 import { env } from './env.js';
@@ -142,7 +143,8 @@ export function createApp() {
   app.use('/api/seo', seoLimiter, seoRoutes);
   // The gate holds, but an unmetered endpoint is an oracle for guessing the
   // proxy secret. Every other route is limited; this one was not.
-  app.use('/api/admin', adminLimiter, requireAdmin, adminRoutes);
+  // Every write past the gate is recorded, refusals included (#252).
+  app.use('/api/admin', adminLimiter, createBearerFailureLimiter(), requireAdmin, auditWrites, adminRoutes);
   app.use('/api/email', emailRoutes);
   app.use("/api/images", createImagesRouter());
   /*

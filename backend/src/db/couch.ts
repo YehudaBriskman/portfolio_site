@@ -60,6 +60,15 @@ export const couch = {
   get: <T>(id: string) => call<T>(`/${encodeURIComponent(id)}`),
   put: <T>(id: string, doc: unknown) =>
     call<T>(`/${encodeURIComponent(id)}`, { method: "PUT", body: JSON.stringify(doc) }),
+  /*
+   * Create-only: a document written without a `_rev` can only be created, and
+   * CouchDB answers 409 if the id exists. Separate from `put` so the audit log
+   * (services/audit.ts) cannot be pointed at an existing document by mistake.
+   */
+  append: <T>(id: string, doc: Record<string, unknown>) => {
+    const { _rev: _ignored, ...fresh } = doc;
+    return call<T>(`/${encodeURIComponent(id)}`, { method: "PUT", body: JSON.stringify(fresh) });
+  },
   find: <T>(selector: unknown) =>
     call<{ docs: T[] }>(`/_find`, { method: "POST", body: JSON.stringify(selector) }),
   /*

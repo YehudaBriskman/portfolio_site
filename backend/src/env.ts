@@ -32,6 +32,16 @@ const EnvSchema = z.object({
   ADMIN_PROXY_SECRET: z.string().default(""),
   ADMIN_GITHUB_LOGIN: z.string().default("YehudaBriskman"),
 
+  // Bearer API tokens on /api/admin (#252). OFF by default: until the owner
+  // opts in, a Bearer header is ignored and the admin API answers only to the
+  // oauth2-proxy session, exactly as before tokens existed.
+  //   off     tokens are not accepted at all
+  //   tunnel  accepted only on a loopback socket: `kubectl port-forward` to
+  //           the api pod. Requests through nginx arrive from the web pod's
+  //           address, so the public domain stays closed to tokens.
+  //   on      accepted from anywhere, the public domain included
+  ADMIN_API_TOKENS: z.enum(['off', 'tunnel', 'on']).default('off'),
+
   // GitHub. Optional, and the two consumers degrade differently: the REST calls
   // in services/github.ts work unauthenticated at 60 requests an hour, while
   // the GraphQL contribution calendar has no anonymous mode at all and reports

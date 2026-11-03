@@ -11,6 +11,17 @@ import {
 } from "../schemas/content.js";
 import { z } from "zod";
 import { fetchRepoStats } from "../services/github.js";
+import { requireProxySession } from "../middlewares/requireAdmin.js";
+import { readAudit } from "../services/audit.js";
+import {
+  TOKEN_SCOPES,
+  TOKEN_TTL_DAYS_DEFAULT,
+  TOKEN_TTL_DAYS_MAX,
+  newTokenDoc,
+  publicToken,
+  tokenDocId,
+  type StoredToken,
+} from "../services/apiTokenFormat.js";
 
 const router = Router();
 
@@ -161,6 +172,7 @@ router.put(
       }
       throw e;
     }
+    res.locals.audit = { target: doc._id, before: existing, after: doc };
     res.json({ ok: true, post: doc });
   })
 );
@@ -170,7 +182,9 @@ router.delete(
   asyncHandler(async (req, res) => {
     const doc = await tryGet<Post>(postId(req.params.slug));
     if (!doc) return res.status(404).json({ ok: false, error: "Not Found" });
-    await couch.put(doc._id!, { ...doc, status: "archived", updatedAt: new Date().toISOString() });
+    const next = { ...doc, status: "archived" as const, updatedAt: new Date().toISOString() };
+    await couch.put(doc._id!, next);
+    res.locals.audit = { target: doc._id, before: doc, after: next };
     res.json({ ok: true });
   })
 );
@@ -253,6 +267,7 @@ router.put(
       }
       throw e;
     }
+    res.locals.audit = { target: doc._id, before: existing, after: doc };
     res.json({ ok: true, collection: doc });
   })
 );
@@ -266,7 +281,9 @@ router.delete(
     const doc = await tryGet<Collection>(colId(req.params.slug));
     if (!doc) return res.status(404).json({ ok: false, error: "Not Found" });
     // Hidden, not deleted — posts still reference it by slug.
-    await couch.put(doc._id!, { ...doc, status: "hidden", updatedAt: new Date().toISOString() });
+    const next = { ...doc, status: "hidden" as const, updatedAt: new Date().toISOString() };
+    await couch.put(doc._id!, next);
+    res.locals.audit = { target: doc._id, before: doc, after: next };
     res.json({ ok: true });
   })
 );
@@ -282,7 +299,86 @@ router.post(
     const stats = await fetchRepoStats(doc.repo);
     const next = { ...doc, stats, updatedAt: new Date().toISOString() };
     await couch.put(doc._id!, next);
+    res.locals.audit = { target: doc._id, before: doc, after: next };
     res.json({ ok: true, stats });
+  })
+);
+
+/* ---------------------------------------------------------- api tokens -- */
+
+/*
+ * Scoped tokens for automation (#252). Managed only from a signed-in admin
+ * session: a token, whatever its scope, cannot list, mint or revoke tokens.
+ * The plaintext is returned once, at creation, and never stored.
+ */
+const TokenCreate = z.object({
+  name: z.string().regex(/^[a-z0-9][a-z0-9-]{0,39}$/, "lowercase letters, digits and dashes"),
+  // Least privilege unless asked: `write` has to be said out loud.
+  scope: z.enum(TOKEN_SCOPES).default("read"),
+  expiresInDays: z.number().int().min(1).max(TOKEN_TTL_DAYS_MAX).default(TOKEN_TTL_DAYS_DEFAULT),
+});
+
+router.get(
+  "/tokens",
+  requireProxySession,
+  asyncHandler(async (_req, res) => {
+    const { docs } = await couch.find<StoredToken>({ selector: { type: "apitoken" }, limit: 200 });
+    docs.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    res.json({ ok: true, items: docs.map(publicToken) });
+  })
+);
+
+router.post(
+  "/tokens",
+  requireProxySession,
+  asyncHandler(async (req, res) => {
+    const parsed = TokenCreate.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ ok: false, error: "invalid", details: parsed.error.flatten() });
+    }
+    const { token, doc } = newTokenDoc({
+      name: parsed.data.name,
+      scope: parsed.data.scope,
+      ttlDays: parsed.data.expiresInDays,
+      createdBy: req.admin!.login,
+    });
+    await couch.put(doc._id, doc);
+    res.locals.audit = { target: doc._id, before: null, after: doc };
+    res.status(201).json({ ok: true, token, item: publicToken(doc) });
+  })
+);
+
+router.delete(
+  "/tokens/:id",
+  requireProxySession,
+  asyncHandler(async (req, res) => {
+    const doc = await tryGet<StoredToken>(tokenDocId(req.params.id));
+    if (!doc || doc.type !== "apitoken") return res.status(404).json({ ok: false, error: "Not Found" });
+    if (doc.revokedAt) return res.json({ ok: true, item: publicToken(doc) });
+    const next = { ...doc, revokedAt: new Date().toISOString() };
+    await couch.put(doc._id, next);
+    res.locals.audit = { target: doc._id, before: doc, after: next };
+    res.json({ ok: true, item: publicToken(next) });
+  })
+);
+
+/* ---------------------------------------------------------------- audit -- */
+
+const AuditQuery = z.object({
+  limit: z.coerce.number().int().min(1).max(200).default(50),
+  before: z.string().regex(/^audit:[0-9TZ:.-]+:[0-9a-f]{8}$/).optional(),
+});
+
+router.get(
+  "/audit",
+  asyncHandler(async (req, res) => {
+    const parsed = AuditQuery.safeParse(req.query);
+    if (!parsed.success) {
+      return res.status(400).json({ ok: false, error: "invalid", details: parsed.error.flatten() });
+    }
+    const items = await readAudit(parsed.data);
+    const nextBefore = items.length === parsed.data.limit ? items[items.length - 1].id : null;
+    res.json({ ok: true, items, next: nextBefore });
   })
 );
 
