@@ -238,3 +238,62 @@ describe("GET /api/seo/render/blog/area/:slug", () => {
     expect(couch.find).not.toHaveBeenCalled();
   });
 });
+
+/*
+ * The Journey page and the accessibility statement (#240): static pages that
+ * nginx had no location for, so a direct load answered 404 with the home
+ * page's head. Each is now a 200 with its own, and touches no database.
+ */
+describe.each([
+  {
+    path: "/story",
+    title: "Journey · Yehuda Briskman",
+    h1: "The long way round",
+    description: /^The work along the years/,
+  },
+  {
+    path: "/accessibility",
+    title: "Accessibility · Yehuda Briskman",
+    h1: "Accessibility",
+    description: /WCAG 2\.2 at level AA.*IS 5568/,
+  },
+])("GET /api/seo/render$path", ({ path: page, title, h1, description }) => {
+  beforeEach(() => {
+    resetShellCache();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(INDEX_HTML, { status: 200, headers: { "content-type": "text/html" } })),
+    );
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+    resetShellCache();
+  });
+
+  it("is a 200 with the page's own head, not the home page's", async () => {
+    const find = vi.spyOn(couch, "find");
+    const res = await request(createApp()).get(`/api/seo/render${page}`);
+
+    expect(res.status).toBe(200);
+    expect(res.headers["cache-control"]).toBe("public, max-age=0, must-revalidate");
+    expect(res.text).toContain(`<title>${title}</title>`);
+    expect(res.text).not.toContain("<title>Yehuda Briskman · Full-stack engineer");
+    expect(res.text).toMatch(new RegExp(`<link rel="canonical" href="[^"]*${page}" />`));
+    expect(res.text).toContain('<meta name="robots" content="index, follow, max-image-preview:large" />');
+    const snippet = /<meta name="description" content="([^"]*)"/.exec(res.text)?.[1] ?? "";
+    expect(snippet).toMatch(description);
+
+    const tags = socialTags(res.text);
+    expect(tags.get("og:title")).toBe(title);
+    expect(tags.get("og:url")).toMatch(new RegExp(`${page}$`));
+    expect(tags.get("og:description")).toMatch(description);
+    expect(tags.get("og:image")).toMatch(/\/og\.png$/);
+    expect(tags.get("twitter:title")).toBe(title);
+    expect(tags.get("twitter:card")).toBe("summary_large_image");
+
+    expect(res.text.slice(res.text.indexOf("</head>"))).toContain(`<h1>${h1}</h1>`);
+    expect(find).not.toHaveBeenCalled();
+  });
+});

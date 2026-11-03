@@ -137,7 +137,7 @@ describe("nginx config", () => {
 
   it("forwards the client address from every proxied location (#121)", () => {
     const proxied = locations.filter((loc) => loc.block!.some((d) => d.name === "proxy_pass"));
-    expect(proxied.length).toBe(10);
+    expect(proxied.length).toBe(12);
     const wrong = proxied.flatMap((loc) => {
       const headers = upstreamHeaders(loc);
       // $proxy_add_x_forwarded_for appends nginx's peer (Traefik) to what
@@ -276,5 +276,108 @@ describe("/blog/area/<slug> on a direct load (#238)", () => {
     const headers = responseHeaders(area!);
     expect(SECURITY_HEADERS.filter((h) => !headers.has(h))).toEqual([]);
     expect(upstreamHeaders(area!).get("x-forwarded-for")).toBe("$proxy_add_x_forwarded_for");
+  });
+});
+
+/* ------------------------------------------- every page has a rendered head */
+
+/**
+ * The location nginx picks for a URI, by its own order: an exact `=` match
+ * wins outright; then the longest prefix, which stops there if it is `^~`;
+ * then the first regex in file order; then that longest prefix after all.
+ * A query string is not part of the URI matched, so callers pass the path.
+ */
+function locationFor(uri: string): Directive | undefined {
+  const exact = locations.find((loc) => loc.args[0] === "=" && loc.args[1] === uri);
+  if (exact) return exact;
+  const prefixes = locations
+    .filter((loc) => loc.args.length === 1 || loc.args[0] === "^~")
+    .filter((loc) => uri.startsWith(loc.args[loc.args.length - 1]))
+    .sort((a, b) => b.args[b.args.length - 1].length - a.args[a.args.length - 1].length);
+  const longest = prefixes[0];
+  if (longest?.args[0] === "^~") return longest;
+  const regex = locations.find(
+    (loc) => (loc.args[0] === "~" || loc.args[0] === "~*") &&
+      new RegExp(loc.args[1], loc.args[0] === "~*" ? "i" : "").test(uri),
+  );
+  return regex ?? longest;
+}
+
+/** Proxied to the API's renderer, with the plain shell as its 5xx fallback. */
+function isRendered(loc: Directive | undefined): boolean {
+  if (!loc) return false;
+  const proxy = loc.block!.find((d) => d.name === "proxy_pass")?.args[0] ?? "";
+  const errorPage = loc.block!.find((d) => d.name === "error_page")?.args ?? [];
+  return proxy.startsWith("http://$api_upstream/api/seo/render/") && errorPage.at(-1) === "@spa";
+}
+
+describe("/story and /accessibility on a direct load (#240)", () => {
+  it.each([
+    ["/story", "http://$api_upstream/api/seo/render/story"],
+    ["/accessibility", "http://$api_upstream/api/seo/render/accessibility"],
+  ])("%s has an exact location of its own, proxied to its renderer", (uri, target) => {
+    const loc = locationFor(uri)!;
+    expect(label(loc)).toBe(`location = ${uri}`);
+    expect(loc.block!.find((d) => d.name === "proxy_pass")?.args).toEqual([target]);
+    expect(loc.block!.find((d) => d.name === "proxy_intercept_errors")?.args).toEqual(["on"]);
+    expect(loc.block!.find((d) => d.name === "error_page")?.args).toEqual(["500", "502", "503", "504", "=", "@spa"]);
+  });
+
+  it.each(["/story/", "/accessibility/"])("%s redirects to the page without the slash", (uri) => {
+    const ret = locationFor(uri)!.block!.find((d) => d.name === "return")!;
+    expect(ret.args).toEqual(["308", uri.slice(0, -1)]);
+  });
+});
+
+/*
+ * Every public route in App.tsx answers a direct load from a rendered
+ * location (#238, #240).
+ *
+ * A route with no location falls through to `location /` and answers 404 with
+ * the home page's head, and nobody notices, because the app boots over it and
+ * shows the page. /blog/area/<slug>, /story and /accessibility all shipped
+ * that way. A new page now fails here until it has a location and a renderer,
+ * or is added below with the reason it needs neither.
+ */
+const APP = read("src/App.tsx");
+const ROUTES = [...APP.matchAll(/<Route\s+path="([^"]+)"/g)].map((m) => m[1]);
+
+/** Routes that answer a direct load without a rendered head, and why. */
+const EXEMPT: Record<string, string> = {
+  "*": "the catch-all: an unknown path is meant to answer 404",
+  "/notes": "legacy: the app redirects it to /blog",
+  "/notes/:slug": "legacy: the app redirects it to /blog/<slug>",
+  "/blog/c/:project": "legacy: the app redirects it to the project or area",
+  "/admin": "admin: behind the proxy's login, never crawled or shared",
+  "/admin/posts": "admin",
+  "/admin/posts/:slug": "admin",
+  "/admin/areas": "admin",
+  "/admin/areas/:slug": "admin",
+  "/admin/collections/:slug": "admin, and legacy: the app redirects it to /admin/areas/<slug>",
+};
+
+/** A concrete URL for a route pattern: each `:param` becomes a slug-shaped value. */
+const sample = (route: string) => route.replace(/:[A-Za-z]+/g, "sample-slug");
+
+describe("every public route has a rendered location (#240)", () => {
+  it("reads the routes out of App.tsx", () => {
+    // A regex that silently matched nothing would pass everything below.
+    expect(ROUTES.length).toBeGreaterThanOrEqual(15);
+    expect(ROUTES).toContain("/story");
+  });
+
+  it.each(ROUTES.filter((r) => !(r in EXEMPT)))("%s", (route) => {
+    const loc = locationFor(sample(route));
+    expect({ route, location: loc && label(loc), rendered: isRendered(loc) }).toEqual({
+      route,
+      location: loc && label(loc),
+      rendered: true,
+    });
+  });
+
+  it("names only exemptions that are still routes", () => {
+    // An exemption outliving its route would quietly cover the next page that
+    // happens to reuse the path.
+    expect(Object.keys(EXEMPT).filter((r) => !ROUTES.includes(r))).toEqual([]);
   });
 });
