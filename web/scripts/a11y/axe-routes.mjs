@@ -106,6 +106,11 @@ const ROUTES = [
   "/admin/posts/fixture-post",
   /* Site settings (#254). */
   "/admin/settings",
+  /* The admin as a tool (#288): the overview and the three lists. */
+  "/admin",
+  "/admin/posts",
+  "/admin/areas",
+  "/admin/connections",
 ];
 
 /* The routes re-run at Larger text and More contrast (#99): one of each

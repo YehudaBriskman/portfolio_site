@@ -147,6 +147,13 @@ export const usePageNames = defineWords(
     connections: "Connected apps",
     areas: "Areas",
     newArea: "New area",
+    /* The rest of the admin's pages (#288), named as its nav names them. */
+    overview: "Overview",
+    adminProjects: "Projects",
+    adminStory: "Story",
+    siteCopy: "Site copy",
+    media: "Media",
+    settings: "Settings",
   },
   {
     home: "בית",
@@ -165,5 +172,11 @@ export const usePageNames = defineWords(
     connections: "אפליקציות מחוברות",
     areas: "תחומים",
     newArea: "תחום חדש",
+    overview: "סקירה",
+    adminProjects: "פרויקטים",
+    adminStory: "הסיפור",
+    siteCopy: "טקסטים באתר",
+    media: "מדיה",
+    settings: "הגדרות",
   },
 );
