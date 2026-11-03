@@ -9,8 +9,11 @@
 #   deploy.sh rollout     mark the environment mutated, then set image (by
 #                         digest), annotate, wait
 #   deploy.sh readiness   through port-forward: api ready + DB up, web serves the
-#                         document, both report $DEPLOY_SHA, and every pod runs
-#                         the digest the release manifest names
+#                         document and a real /api/ route through nginx, both
+#                         report $DEPLOY_SHA, and every pod runs the digest
+#                         the release manifest names
+#   deploy.sh edge        the public URL: / and a real /api/ route, status and
+#                         body; preprod's answer is its gate's 302 (#155)
 #   deploy.sh recover     if anything was mutated, set both back to what was
 #                         recorded, wait, and check readiness again
 #
@@ -336,6 +339,17 @@ forward() {
   return 1
 }
 
+# The API route the checks ask for, through nginx and the edge. Public,
+# read-only, and served from the store, so a 200 with this body means nginx
+# reached the api and the api reached CouchDB.
+API_PROBE="${API_PROBE:-/api/blog/posts}"
+
+# api_body_ok <code>: $STATE/body is the posts list's JSON. The body as well
+# as the status, because what answers 200 on this host is not always the api.
+api_body_ok() {
+  [ "$1" = 200 ] && jq -e '.ok == true and (.items | type == "array")' "$STATE/body" >/dev/null 2>&1
+}
+
 # fetch <port> <path>: the status on stdout, the body in $STATE/body.
 fetch() {
   curl -sS -m 10 -o "$STATE/body" -w '%{http_code}' "http://127.0.0.1:$1$2" 2>/dev/null || echo 000
@@ -385,6 +399,16 @@ check_web() {
   if [ "$code" != 200 ] || ! grep -q '<div id="root">' "$STATE/body" || ! grep -qi '</html>' "$STATE/body"; then
     stop_forward
     echo "  web: / answered $code without the shell's <div id=\"root\">"
+    return 1
+  fi
+  # A real API route through nginx, which is what the edge forwards every
+  # request to (#155). The root above cannot see the api: when nginx cannot
+  # reach it, `/` falls back to the SPA shell with a 200, and that is how
+  # v1.0.0 went green while every /api/ request answered 502.
+  code=$(fetch "$WEB_LOCAL_PORT" "$API_PROBE")
+  if ! api_body_ok "$code"; then
+    stop_forward
+    echo "  web: $API_PROBE through nginx answered $code $(head -c 200 "$STATE/body" 2>/dev/null | tr -d '\n'), not the API's posts list. A 502 here is nginx unable to reach the api (NGINX_API_HOST)."
     return 1
   fi
   if [ -n "$want" ]; then
@@ -451,6 +475,84 @@ readiness() {
   return 1
 }
 
+# ----------------------------------------------------------------------- edge
+#
+# The public URL, from outside the cluster, after the in-cluster check (#155).
+# This is the path a visitor takes: DNS, Traefik, the Ingress, web's nginx,
+# and for /api/ the api behind it. Both the root and a real API route, each
+# by its status AND its body.
+#
+#   prod     (DEPLOY_EXPECT=200) the root is the site's document, and
+#            $API_PROBE is the posts list as JSON. A 502 from nginx, an
+#            error page or the SPA shell answering in the api's place all fail.
+#   preprod  (DEPLOY_EXPECT=302) the github-auth forwardAuth gate covers the
+#            whole host, so the healthy answer to CI's unauthenticated request
+#            is a redirect to the identity provider, on /api/ as well as on /.
+#            A 200 means the gate is open. What is behind the gate is asserted
+#            by `readiness`, through the same nginx the Ingress forwards to.
+#
+# Inputs: DEPLOY_URL (with a trailing slash), DEPLOY_EXPECT.
+EDGE_ATTEMPTS="${EDGE_ATTEMPTS:-10}"
+EDGE_SLEEP="${EDGE_SLEEP:-6}"
+
+# edge_fetch <url>: "<status> <redirect-url>" on stdout, the body in $STATE/body.
+edge_fetch() {
+  local r
+  r=$(curl -sS -m 10 -o "$STATE/body" -w '%{http_code} %{redirect_url}' "$1" 2>/dev/null) || true
+  [ -n "$r" ] || r=000
+  printf '%s\n' "$r"
+}
+
+# edge_check <path>: one request, judged by environment. Prints why on failure.
+edge_check() {
+  local path="$1" url code loc
+  url="${DEPLOY_URL%/}$path"
+  read -r code loc < <(edge_fetch "$url")
+  if [ "$DEPLOY_EXPECT" = 302 ]; then
+    if [ "$code" != 302 ] || [ -z "${loc:-}" ]; then
+      echo "  $path: $code${loc:+ to $loc}, not the gate's 302 to the identity provider"
+      return 1
+    fi
+    echo "  $path: 302, the gate answered"
+    return 0
+  fi
+  if [ "$code" != "$DEPLOY_EXPECT" ]; then
+    echo "  $path: $code, not $DEPLOY_EXPECT $(head -c 200 "$STATE/body" 2>/dev/null | tr -d '\n')"
+    return 1
+  fi
+  if [ "$path" = / ]; then
+    if ! grep -q '<div id="root">' "$STATE/body" || ! grep -qi '</html>' "$STATE/body"; then
+      echo "  /: $code, but not the site's document"
+      return 1
+    fi
+  elif ! api_body_ok "$code"; then
+    echo "  $path: $code, but not the API's posts list: $(head -c 200 "$STATE/body" 2>/dev/null | tr -d '\n')"
+    return 1
+  fi
+  echo "  $path: $code with the right body"
+}
+
+edge() {
+  need DEPLOY_URL
+  need DEPLOY_EXPECT
+  mkdir -p "$STATE"
+  local i root api
+  for i in $(seq 1 "$EDGE_ATTEMPTS"); do
+    echo "edge attempt $i/$EDGE_ATTEMPTS: $DEPLOY_URL"
+    root=0; api=0
+    edge_check / || root=1
+    edge_check "$API_PROBE" || api=1
+    [ "$root" = 0 ] && [ "$api" = 0 ] && return 0
+    [ "$i" -lt "$EDGE_ATTEMPTS" ] && sleep "$EDGE_SLEEP"
+  done
+  if [ "$DEPLOY_EXPECT" = 302 ]; then
+    echo "::error title=$DEPLOY_NS did not answer through its gate::$DEPLOY_URL did not answer 302 to the identity provider on both / and $API_PROBE. A 200 means the forwardAuth gate is open; a 403 means Traefik refused before the gate (the runner left the tailnet?); a 5xx is the edge itself."
+  else
+    echo "::error title=$DEPLOY_NS is not serving::$DEPLOY_URL did not answer $DEPLOY_EXPECT with the site's document on / and the API's posts list on $API_PROBE. A 502 on $API_PROBE is nginx unable to reach the api, the v1.0.0 outage (#155); a 403 means Traefik refused before reaching the app."
+  fi
+  return 1
+}
+
 # -------------------------------------------------------------------- recover
 #
 # `set image` to the recorded strings, not `rollout undo`: undo goes to the
@@ -492,10 +594,10 @@ recover() {
 }
 
 case "${1-}" in
-  guard | preflight | record | rollout | recover) "$1" ;;
+  guard | preflight | record | rollout | edge | recover) "$1" ;;
   readiness) shift; readiness "$@" ;;
   *)
-    echo "usage: $0 {guard|preflight|record|rollout|readiness [--recovery]|recover}" >&2
+    echo "usage: $0 {guard|preflight|record|rollout|readiness [--recovery]|edge|recover}" >&2
     exit 2
     ;;
 esac

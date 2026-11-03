@@ -1255,6 +1255,15 @@ jobs:
       # A rollout that reports success and a site that does not answer are
       # different things, and only one of them is what was wanted.
       #
+      # The public URL, on both `/` and a real API route, each by its status
+      # AND its body (#155). v1.0.0 went green here while every /api/ request
+      # answered 502, because this step asked only for `/`, and nginx serves
+      # `/` (the SPA shell, with a 200) whether or not it can reach the api.
+      # Prod must answer the document and the posts list as JSON. Preprod's
+      # gate covers the whole host, so there both must be its 302; what is
+      # behind the gate, /api/ through nginx included, is asserted by the
+      # in-cluster step above. A failure here puts both Deployments back.
+      #
       # The preprod host is tailnet-only — a Traefik ipAllowList on
       # 100.64.0.0/10, and its DNS record points at the node's tailnet
       # address. This check therefore only passes because the runner is still
@@ -1264,16 +1273,7 @@ jobs:
       # to make twice.
       - name: Check the site actually answers
         if: steps.guard.outputs.proceed == 'true'
-        run: |
-          set -euo pipefail
-          for i in $(seq 1 10); do
-            code=$(curl -s -o /dev/null -m 10 -w '%{http_code}' "$DEPLOY_URL" || true)
-            echo "attempt $i: $code (expecting $DEPLOY_EXPECT)"
-            [ "$code" = "$DEPLOY_EXPECT" ] && exit 0
-            sleep 6
-          done
-          echo "::error title=$DEPLOY_NS did not answer $DEPLOY_EXPECT::$DEPLOY_URL never returned $DEPLOY_EXPECT after the rollout. On preprod a 302 is healthy and means the forwardAuth gate answered; a 200 there means the gate is open, which is its own problem. A 403 on either means Traefik refused before reaching the app, and anything 5xx is the build."
-          exit 1
+        run: .github/scripts/deploy.sh edge
 
       # Only once something was recorded, and deploy.sh acts only if the
       # environment was actually changed. Unreachable cluster means there is

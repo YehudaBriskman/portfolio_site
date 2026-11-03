@@ -114,21 +114,40 @@ cat >"$ROOT/bin/curl" <<'FAKE'
 #   FAKE_LEGACY   regex on the image; an api build without /health/ready
 #   FAKE_HOLLOW   regex on the image; web answers 200 with a page that is
 #                 not the site (the nginx welcome page)
+#   FAKE_NOAPI    regex on the web image; nginx cannot reach the api, so
+#                 /api/ answers 502 and / falls back to the SPA shell (#155)
+# An https:// URL is the public edge, which forwards everything to web:
+#   FAKE_GATE     "closed": every edge request is a 302 to the identity
+#                 provider (preprod's forwardAuth); "open": the gate lets it
+#                 through; unset: no gate (prod)
 set -u
 F="$FAKE_DIR"
-out=/dev/null; url=""
+out=/dev/null; url=""; fmt=""
 while [ $# -gt 0 ]; do
   case "$1" in
     -o) out="$2"; shift 2 ;;
-    -w|-m) shift 2 ;;
+    -w) fmt="$2"; shift 2 ;;
+    -m) shift 2 ;;
     -*) shift ;;
     *) url="$1"; shift ;;
   esac
 done
 echo "curl $url" >>"$F/calls"
-hostport="${url#http://}"; hostport="${hostport%%/*}"; port="${hostport#*:}"
-path="/${url#http://*/}"
-d=$(cat "$F/pf.$port")
+redirect=""
+if [[ "$url" == https://* ]]; then
+  path="/${url#https://*/}"
+  d=web
+  if [ "${FAKE_GATE:-}" = closed ]; then
+    printf '%s' '' >"$out"
+    printf '%s' 302
+    [[ "$fmt" == *redirect_url* ]] && printf ' %s' "https://idp.example/login"
+    exit 0
+  fi
+else
+  hostport="${url#http://}"; hostport="${hostport%%/*}"; port="${hostport#*:}"
+  path="/${url#http://*/}"
+  d=$(cat "$F/pf.$port")
+fi
 img=$(cat "$F/img.$d")
 sha="dev"
 [[ "$img" =~ :([0-9a-f]{40})$ ]] && sha="${BASH_REMATCH[1]}"
@@ -137,7 +156,12 @@ sha="dev"
 broken=0; [ -n "${FAKE_BROKEN:-}" ] && [[ "$img" =~ $FAKE_BROKEN ]] && broken=1
 legacy=0; [ -n "${FAKE_LEGACY:-}" ] && [[ "$img" =~ $FAKE_LEGACY ]] && legacy=1
 hollow=0; [ -n "${FAKE_HOLLOW:-}" ] && [[ "$img" =~ $FAKE_HOLLOW ]] && hollow=1
-reply() { printf '%s' "$2" >"$out"; printf '%s' "$1"; }
+noapi=0; [ -n "${FAKE_NOAPI:-}" ] && [[ "$img" =~ $FAKE_NOAPI ]] && noapi=1
+reply() {
+  printf '%s' "$2" >"$out"; printf '%s' "$1"
+  [[ "$fmt" == *redirect_url* ]] && printf ' %s' "$redirect"
+  return 0
+}
 case "$d:$path" in
   api:/health/ready)
     if [ "$legacy" = 1 ]; then reply 404 '{"ok":false,"error":"Not Found"}'
@@ -148,6 +172,10 @@ case "$d:$path" in
     if [ "$broken" = 1 ]; then reply 502 '<html>Bad Gateway</html>'
     elif [ "$hollow" = 1 ]; then reply 200 '<!DOCTYPE html><html><body><h1>Welcome to nginx!</h1></body></html>'
     else reply 200 "<!DOCTYPE html><html><head><meta name=\"build-sha\" content=\"$sha\" /></head><body><div id=\"root\"></div></body></html>"; fi ;;
+  web:/api/blog/posts)
+    if [ "$broken" = 1 ] || [ "$noapi" = 1 ]; then reply 502 '<html><head><title>502 Bad Gateway</title></head></html>'
+    elif [ "$hollow" = 1 ]; then reply 200 '<!DOCTYPE html><html><body><div id="root"></div></body></html>'
+    else reply 200 '{"ok":true,"items":[{"slug":"hello"}]}'; fi ;;
   *) reply 404 '' ;;
 esac
 FAKE
@@ -183,9 +211,10 @@ scenario() {
   printf '%s' "$BASE/api:$OLD" >"$FAKE_DIR/img.api"
   printf '%s' "main-2222222" >"$FAKE_DIR/ann.web.version"
   printf '%s' "main-2222222" >"$FAKE_DIR/ann.api.version"
-  unset FAKE_FAIL FAKE_CANI FAKE_STUCK FAKE_BROKEN FAKE_NOVER FAKE_LEGACY FAKE_HOLLOW FAKE_PODS_web FAKE_PODS_api
+  unset FAKE_FAIL FAKE_CANI FAKE_STUCK FAKE_BROKEN FAKE_NOVER FAKE_LEGACY FAKE_HOLLOW FAKE_NOAPI FAKE_GATE FAKE_PODS_web FAKE_PODS_api
   export DEPLOY_STATE="$FAKE_DIR/state"
   NS=preprod; SHA="$NEW"; REF_NAME=main; WEB_IMG="$NEW_WEB"; API_IMG="$NEW_API"; ROLLBACK=""
+  URL=https://preprod.site.example/; EXPECT=302; export FAKE_GATE=closed
   RUN_DIR="$ROOT"
 }
 
@@ -195,7 +224,8 @@ run() {
   OUT=$(cd "$RUN_DIR" && PATH="$ROOT/bin:$PATH" DEPLOY_NS="$NS" IMAGE_BASE="$BASE" DEPLOY_SHA="$SHA" \
     DEPLOY_REF_NAME="$REF_NAME" DEPLOY_WEB_IMAGE="$WEB_IMG" DEPLOY_API_IMAGE="$API_IMG" \
     ROLLBACK="$ROLLBACK" GITHUB_OUTPUT="$FAKE_DIR/github_output" \
-    READY_ATTEMPTS=2 READY_SLEEP=0 \
+    READY_ATTEMPTS=2 READY_SLEEP=0 EDGE_ATTEMPTS=2 EDGE_SLEEP=0 \
+    DEPLOY_URL="$URL" DEPLOY_EXPECT="$EXPECT" \
     bash "$DEPLOY" "$@" 2>&1)
   RC=$?
   set -e
@@ -242,6 +272,7 @@ called "port-forward deploy/api 15000:5000"
 called "port-forward deploy/web 18080:8080"
 called "curl http://127.0.0.1:15000/health/ready"
 called "curl http://127.0.0.1:18080/index.html"
+called "curl http://127.0.0.1:18080/api/blog/posts"
 called "get pods -l app=api -o jsonpath=.*imageID"
 said "digests: both Deployments and all their pods run the manifest's digests"
 not_called "rollout undo"
@@ -280,6 +311,64 @@ run rollout; rc_is 0
 printf '%s' "$OLD_WEB" >"$FAKE_DIR/img.web"
 run readiness; rc_not0
 said "web: the Deployment names $OLD_WEB"
+
+scenario "readiness fails when nginx cannot reach the api, though / still answers 200 (#155)"
+run record; rc_is 0
+run rollout; rc_is 0
+export FAKE_NOAPI="$NEW"
+run readiness; rc_not0
+called "curl http://127.0.0.1:18080/api/blog/posts"
+said "/api/blog/posts through nginx answered 502"
+said "title=preprod is not ready"
+
+scenario "edge, preprod: / and the API route both answer the gate's 302"
+run edge; rc_is 0
+called "curl https://preprod.site.example/$"
+called "curl https://preprod.site.example/api/blog/posts"
+said "/api/blog/posts: 302, the gate answered"
+
+scenario "edge, preprod: an open gate fails, and recover puts both back"
+run record; rc_is 0
+run rollout; rc_is 0
+run readiness; rc_is 0
+export FAKE_GATE=open
+run edge; rc_not0
+said "/: 200, not the gate's 302"
+said "title=preprod did not answer through its gate"
+run recover; rc_is 0
+image_is web "$BASE/web:$OLD"
+image_is api "$BASE/api:$OLD"
+said "title=Rolled back"
+
+prod_edge() {
+  scenario "$1"
+  NS=prod; URL=https://site.example/; EXPECT=200; unset FAKE_GATE
+  printf '%s' "$NEW_WEB" >"$FAKE_DIR/img.web"
+  printf '%s' "$NEW_API" >"$FAKE_DIR/img.api"
+}
+
+prod_edge "edge, prod: the document on / and the posts list on the API route"
+run edge; rc_is 0
+called "curl https://site.example/api/blog/posts"
+said "/api/blog/posts: 200 with the right body"
+not_said "::error"
+
+prod_edge "edge, prod: every /api/ request 502 while / answers 200 fails (#155)"
+export FAKE_NOAPI="$NEW"
+run edge; rc_not0
+said "/: 200 with the right body"
+said "/api/blog/posts: 502"
+said "title=prod is not serving"
+
+prod_edge "edge, prod: a 200 that is not the API's JSON fails"
+export FAKE_HOLLOW="$NEW"
+run edge; rc_not0
+said "/api/blog/posts: 200, but not the API's posts list"
+
+prod_edge "edge, prod: a gate's redirect is not prod's 200"
+export FAKE_GATE=closed
+run edge; rc_not0
+said "/: 302, not 200"
 
 scenario "web patch succeeds, api patch fails: both go back to the recorded images"
 run record; rc_is 0
