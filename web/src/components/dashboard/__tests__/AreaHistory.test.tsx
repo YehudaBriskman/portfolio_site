@@ -156,7 +156,7 @@ describe("an area's history", () => {
   it("shares through the fallback when there is no Web Share", async () => {
     stub();
     renderAt("/blog/area/bothy");
-    const share = await screen.findByRole("button", { name: "Share “Note a”" });
+    const share = await screen.findByRole("button", { name: "Share \"Note a\"" });
     fireEvent.click(share);
     await waitFor(() => expect(share).toHaveAttribute("aria-expanded", "true"));
     const menu = document.getElementById(share.getAttribute("aria-controls")!)!;

@@ -120,14 +120,14 @@ describe("/api/admin/content", () => {
   it("saves a draft without publishing it", async () => {
     put(stored("site-copy", seed().siteCopy));
     const data = seed().siteCopy;
-    data.hero.phrases[0] = { en: "Technology", he: "טכנולוגיה" };
+    data.hero.phrases[2] = { en: "Build boldly", he: "בונים באומץ" };
     const res = await asAdmin(request(createApp()).put("/api/admin/content/site-copy/draft")).send({ data, _rev: "1-site-copy" });
     expect(res.status).toBe(200);
     const doc = store.get("content:site-copy")!;
-    expect((doc.draft as ContentBundle["siteCopy"]).hero.phrases[0]).toEqual({ en: "Technology", he: "טכנולוגיה" });
+    expect((doc.draft as ContentBundle["siteCopy"]).hero.phrases[2]).toEqual({ en: "Build boldly", he: "בונים באומץ" });
     expect(doc.published).toEqual(seed().siteCopy);
     const pub = await request(createApp()).get("/api/content");
-    expect(pub.body.siteCopy.hero.phrases[0]).toEqual({ en: "Technology" });
+    expect(pub.body.siteCopy.hero.phrases[2]).toEqual({ en: "Build boldly" });
   });
 
   it("answers a schema failure with each field's path and message", async () => {

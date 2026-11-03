@@ -391,7 +391,7 @@ export const CONTENT_SEED: unknown = {
         "after": "windom",
         "words": {
           "en": "Then, things they relied on.",
-          "he": "ואז, דברים שסומכים עליהם."
+          "he": "ואז — מערכות שאחרים סומכים עליהן."
         }
       },
       {
@@ -399,7 +399,7 @@ export const CONTENT_SEED: unknown = {
         "after": "full-stack",
         "words": {
           "en": "Then, a team.",
-          "he": "ואז, צוות."
+          "he": "ואז — צוות."
         }
       }
     ]
@@ -408,27 +408,32 @@ export const CONTENT_SEED: unknown = {
     "hero": {
       "name": "Yehuda Briskman",
       "where": {
-        "en": "Israel"
+        "en": "Israel",
+        "he": "ישראל"
       },
       "shippingSince": 2021,
       "title": {
         "en": "Portfolio"
       },
       "fact": {
-        "en": "Yehuda Briskman — full-stack, mostly frontend"
+        "en": "Yehuda Briskman — full-stack, mostly frontend",
+        "he": "Yehuda Briskman — פול־סטאק, עם דגש על פרונטאנד"
       },
       "phrases": [
         {
-          "en": "Technology"
+          "en": "Technology",
+          "he": "טכנולוגיה"
         },
         {
-          "en": "Product builder"
+          "en": "Product builder",
+          "he": "בונה מוצרים"
         },
         {
           "en": "Build boldly"
         },
         {
-          "en": "Applied AI"
+          "en": "Applied AI",
+          "he": "בינה מלאכותית יישומית"
         },
         {
           "en": "Keep improving"
@@ -437,7 +442,8 @@ export const CONTENT_SEED: unknown = {
     },
     "about": {
       "heading": {
-        "en": "How I work"
+        "en": "How I work",
+        "he": "איך אני עובד"
       },
       "intro": [
         {
@@ -525,7 +531,8 @@ export const CONTENT_SEED: unknown = {
         "en": "Open to interesting conversations"
       },
       "replyWithin": {
-        "en": "Usually within a day"
+        "en": "Usually within a day",
+        "he": "בדרך כלל תוך יום"
       }
     },
     "profiles": [

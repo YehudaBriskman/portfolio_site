@@ -288,7 +288,7 @@ export type FeedChannel = { title: string; link: string; description: string; se
 const SITE_CHANNEL: FeedChannel = {
   title: "Yehuda Briskman · Notes",
   link: "/blog",
-  description: "Writing on backend engineering, infrastructure, and shipping products end to end.",
+  description: "Writing on frontend engineering, infrastructure, and shipping products end to end.",
   self: "/feed.xml",
 };
 

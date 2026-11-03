@@ -257,7 +257,7 @@ describe("the channel log: states", () => {
     document.documentElement.lang = "he";
     stub();
     renderAt("/blog/log");
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("יומן הערוץ");
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("יומן פעילות");
     expect(await screen.findByRole("button", { name: "טעינת עוד" })).toBeInTheDocument();
   });
 });

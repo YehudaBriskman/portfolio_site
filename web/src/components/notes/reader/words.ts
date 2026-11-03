@@ -79,10 +79,10 @@ const EN = {
 export type ReaderWords = typeof EN;
 
 const HE: ReaderWords = {
-  contents: "תוכן",
+  contents: "תוכן העניינים",
   onThisPage: "בעמוד הזה",
   details: "על הרשימה",
-  contentsAndDetails: "תוכן ופרטים",
+  contentsAndDetails: "תוכן העניינים ופרטים",
   close: "סגירה",
   area: "תחום",
   published: "פורסם",
@@ -104,7 +104,7 @@ const HE: ReaderWords = {
   narrow: "צר",
   wide: "רחב",
   reset: "איפוס",
-  sizeNow: (pct) => `טקסט ב־${pct}`,
+  sizeNow: (pct) => `גודל טקסט: ${pct}`,
   picture: "תמונה",
   diagram: "תרשים",
   openPicture: (alt) => (alt ? `פתיחת התמונה: ${alt}` : "פתיחת התמונה"),
@@ -122,7 +122,7 @@ const HE: ReaderWords = {
   codeCopied: "הקוד הועתק",
   codeIn: (lang) => `קוד, ${lang}`,
   plain: "טקסט",
-  table: "טבלה, נגללת לצדדים",
+  table: "טבלה, נגללת הצידה",
   external: "(נפתח באתר אחר)",
   kindNote: "רשימה",
   kindArea: "תחום",
@@ -131,13 +131,13 @@ const HE: ReaderWords = {
   back: "בלוג",
   note: "רשימה",
   work: "פרויקטים",
-  loading: "הרשימה נטענת",
+  loading: "הרשימה נטענת…",
   notHere: "הרשימה לא נמצאה",
   notHereBody: "הרשימה הזאת לא קיימת, או שעדיין לא פורסמה. ייתכן שהכתובת השתנתה כשהרשימות עברו מ־/notes ל־/blog.",
   unavailable: "הרשימה לא זמינה",
   noAnswer: "השרת לא ענה.",
-  noAnswerBody: "העמוד נטען; הרשימה שמאחוריו לא. היא מוגשת ממכונה קטנה שאני מפעיל בעצמי, כך שבדרך כלל זו הפעלה מחדש ולא משהו קבוע.",
-  tryAgain: "לנסות שוב",
+  noAnswerBody: "העמוד נטען; הרשימה שמאחוריו לא. היא מוגשת משרת קטן שאני מפעיל בעצמי, ולרוב מדובר בהפעלה מחדש ולא בתקלה קבועה.",
+  tryAgain: "ניסיון חוזר",
 };
 
 export const READER_WORDS: Record<Lang, ReaderWords> = { en: EN, he: HE };

@@ -167,9 +167,12 @@ import {
  * is not worth the space. Two fields also fit one line at every phone width,
  * so the forced break the three-field line needed (#112) went with it.
  */
-const plateFields = (plate: { where: string; shippingSince: number }): LabelField[] => [
+const plateFields = (
+  plate: { where: string; shippingSince: number },
+  since: (year: number) => string,
+): LabelField[] => [
   { kind: "where", value: plate.where },
-  { kind: "when", value: `Shipping since ${plate.shippingSince}` },
+  { kind: "when", value: since(plate.shippingSince) },
 ];
 
 /*
@@ -336,7 +339,7 @@ export default function Hero({ hold = true }: { hold?: boolean }) {
               nameAs="h1"
               name={plateTitle.name}
               fact={plateTitle.fact}
-              fields={plateFields(plate)}
+              fields={plateFields(plate, w.shippingSince)}
               exposeFieldKinds
               splitName
               className={styles.plate}
