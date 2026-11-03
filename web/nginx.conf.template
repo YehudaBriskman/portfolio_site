@@ -322,6 +322,19 @@ server {
     error_page 500 502 503 504 = @spa;
   }
 
+  # The Hebrew site (#248): every page again under /he, in Hebrew and right
+  # to left. One location for all of them, because the renderer already knows
+  # every page's path: /he/blog/x goes to /api/seo/render/he/blog/x, /he to
+  # /api/seo/render/he/, and an address that is no page answers the
+  # renderer's 404. A dot anywhere is a file, as for the English pages, so
+  # nothing under /he/ is ever mistaken for an asset or vice versa.
+  location ~ "^/he(?:/([^.]*))?$" {
+    proxy_pass http://$api_upstream/api/seo/render/he/$1;
+    include /etc/nginx/snippets/proxy-headers.conf;
+    proxy_intercept_errors on;
+    error_page 500 502 503 504 = @spa;
+  }
+
   location @spa {
     #
     # The shell must never be cached, and `location = /index.html` was not

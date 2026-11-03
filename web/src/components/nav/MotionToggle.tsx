@@ -2,6 +2,7 @@ import { Pause, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import styles from "../Nav.module.css";
+import { useChromeWords } from "@/i18n/chrome";
 
 /**
  * Stop the page moving.
@@ -36,7 +37,8 @@ export default function MotionToggle({
   paused: boolean;
   onToggle: () => void;
 }) {
-  const tip = paused ? "Motion paused. Press to play" : "Pause motion";
+  const w = useChromeWords();
+  const tip = paused ? w.motionPaused : w.pauseMotion;
 
   return (
     <Tooltip>
@@ -51,7 +53,7 @@ export default function MotionToggle({
           className={`${styles.control} ${styles.controlIcon}`}
           onClick={onToggle}
           aria-pressed={paused}
-          aria-label="Pause motion"
+          aria-label={w.pauseMotion}
         >
           {paused ? <Play aria-hidden="true" /> : <Pause aria-hidden="true" />}
         </Button>

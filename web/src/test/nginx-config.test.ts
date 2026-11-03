@@ -137,7 +137,7 @@ describe("nginx config", () => {
 
   it("forwards the client address from every proxied location (#121)", () => {
     const proxied = locations.filter((loc) => loc.block!.some((d) => d.name === "proxy_pass"));
-    expect(proxied.length).toBe(16);
+    expect(proxied.length).toBe(17);
     const wrong = proxied.flatMap((loc) => {
       const headers = upstreamHeaders(loc);
       // $proxy_add_x_forwarded_for appends nginx's peer (Traefik) to what
@@ -391,6 +391,15 @@ describe("every public route has a rendered location (#240)", () => {
       location: loc && label(loc),
       rendered: true,
     });
+  });
+
+  it.each(ROUTES.filter((r) => !(r in EXEMPT)))("/he%s, its Hebrew twin (#248)", (route) => {
+    const uri = route === "/" ? "/he" : `/he${sample(route)}`;
+    const loc = locationFor(uri);
+    expect({ uri, rendered: isRendered(loc) }).toEqual({ uri, rendered: true });
+    expect(loc!.block!.find((d) => d.name === "proxy_pass")?.args).toEqual([
+      "http://$api_upstream/api/seo/render/he/$1",
+    ]);
   });
 
   it("names only exemptions that are still routes", () => {

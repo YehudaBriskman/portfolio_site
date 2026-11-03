@@ -15,6 +15,7 @@ import { isThemeChoice, type ThemeChoice } from "@/lib/themeDefault";
 import nav from "../Nav.module.css";
 import styles from "./ThemeMenu.module.css";
 import { centreOf, changeTheme } from "./themeWave";
+import { useChromeWords } from "@/i18n/chrome";
 
 /*
  * Light, Dark or System (#247), beside the language and the motion pause.
@@ -38,20 +39,21 @@ import { centreOf, changeTheme } from "./themeWave";
  * this control in the bar and the one in the phone's side panel cannot
  * disagree.
  */
-const OPTIONS: { value: ThemeChoice; label: string; Icon: typeof Sun }[] = [
-  { value: "light", label: "Light", Icon: Sun },
-  { value: "dark", label: "Dark", Icon: Moon },
-  { value: "system", label: "System", Icon: Monitor },
+const OPTIONS: { value: ThemeChoice; word: "themeLight" | "themeDark" | "themeSystem"; Icon: typeof Sun }[] = [
+  { value: "light", word: "themeLight", Icon: Sun },
+  { value: "dark", word: "themeDark", Icon: Moon },
+  { value: "system", word: "themeSystem", Icon: Monitor },
 ];
 
 export default function ThemeMenu() {
   const { choice, resolved } = useTheme();
+  const w = useChromeWords();
   const trigger = useRef<HTMLButtonElement>(null);
   const current = OPTIONS.find((o) => o.value === choice) ?? OPTIONS[2];
   const name =
     choice === "system"
-      ? `Theme: System, now ${resolved === "dark" ? "Dark" : "Light"} — change theme`
-      : `Theme: ${current.label} — change theme`;
+      ? w.themeSystemName(resolved === "dark" ? w.themeDark : w.themeLight)
+      : w.themeName(w[current.word]);
 
   return (
     <DropdownMenu modal={false}>
@@ -73,7 +75,7 @@ export default function ThemeMenu() {
         collisionPadding={12}
         className={`${nav.menu} ${styles.menu}`}
       >
-        <DropdownMenuLabel className={`${nav.menuHead} ${styles.head}`}>Theme</DropdownMenuLabel>
+        <DropdownMenuLabel className={`${nav.menuHead} ${styles.head}`}>{w.theme}</DropdownMenuLabel>
         <DropdownMenuSeparator className={`${nav.menuSplit} ${styles.split}`} />
         <DropdownMenuRadioGroup
           value={choice}
@@ -81,7 +83,7 @@ export default function ThemeMenu() {
             if (isThemeChoice(next)) changeTheme(next, centreOf(trigger.current));
           }}
         >
-          {OPTIONS.map(({ value, label, Icon }) => (
+          {OPTIONS.map(({ value, word, Icon }) => (
             <DropdownMenuPrimitive.RadioItem key={value} value={value} className={styles.row}>
               <span className={styles.mark} aria-hidden="true">
                 <DropdownMenuPrimitive.ItemIndicator>
@@ -91,7 +93,7 @@ export default function ThemeMenu() {
               <span className={styles.icon} aria-hidden="true">
                 <Icon />
               </span>
-              <span>{label}</span>
+              <span>{w[word]}</span>
             </DropdownMenuPrimitive.RadioItem>
           ))}
         </DropdownMenuRadioGroup>

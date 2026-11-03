@@ -3,6 +3,7 @@ import { Outlet } from "react-router-dom";
 import { scrollToAnchor } from "@/lib/scrollToAnchor";
 import Nav from "@/components/Nav";
 import { PageCommitContext } from "@/components/nav/pageCommit";
+import { useChromeWords } from "@/i18n/chrome";
 
 /*
  * The public chrome, mounted once for the visit rather than once per page.
@@ -74,6 +75,7 @@ export default function SiteChrome() {
      initialiser, not `useMemo`, because React is allowed to throw a memo away
      and a new target would silently drop the chrome's listener. */
   const [commits] = useState(() => new EventTarget());
+  const w = useChromeWords();
 
   return (
     <PageCommitContext.Provider value={commits}>
@@ -83,9 +85,9 @@ export default function SiteChrome() {
       <a
         href="#content"
         onClick={(e) => { if (scrollToAnchor("content")) e.preventDefault(); }}
-        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[70] focus:bg-bone focus:px-4 focus:py-2 focus:text-bitumen"
+        className="sr-only focus:not-sr-only focus:fixed focus:start-4 focus:top-4 focus:z-[70] focus:bg-bone focus:px-4 focus:py-2 focus:text-bitumen"
       >
-        Skip to content
+        {w.skip}
       </a>
       <Nav />
       <Outlet />

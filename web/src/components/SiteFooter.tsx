@@ -1,5 +1,8 @@
 import { Link } from "react-router-dom";
 import { useContent } from "@/content/store";
+import { useLang } from "@/components/dashboard/i18n";
+import { useFooterWords } from "@/i18n/chrome";
+import { inEnglish } from "@/i18n/words";
 
 /*
  * The site footer.
@@ -60,6 +63,8 @@ export default function SiteFooter() {
   /* The copy, the profiles and the address from the content store (#163).
      The "Pages" column is navigation and stays here. */
   const { links, contact, footer } = useContent().site;
+  const w = useFooterWords();
+  const lang = useLang();
   /* --ink at 15.17:1 on paper. Was --bone/85, which is the same colour
      diluted for no reason now that the ground is light. */
   const linkRow =
@@ -73,18 +78,18 @@ export default function SiteFooter() {
       <div className="wrap pb-section-sm pt-16 sm:pt-20">
         <div className="grid gap-12 sm:grid-cols-2 lg:grid-cols-4">
           <div>
-            <p className="eyebrow">Pages</p>
+            <p className="eyebrow">{w.pages}</p>
             {/* `space-y-1` and not the usual item gap: every row here already
                 carries a 44px tap target, so the touch rhythm is the rhythm and
                 anything on top of it only makes the footer taller. */}
             <ul className="mt-3 space-y-1">
               {[
-                { to: "/", label: "Home" },
-                { to: "/story", label: "Journey" },
-                { to: "/projects", label: "Work" },
-                { to: "/blog", label: "Blogs" },
+                { to: "/", label: w.home },
+                { to: "/story", label: w.journey },
+                { to: "/projects", label: w.work },
+                { to: "/blog", label: w.blogs },
                 // The remote MCP server (#263): connect Claude to the site.
-                { to: "/developers/mcp", label: "MCP server" },
+                { to: "/developers/mcp", label: w.mcp },
               ].map((l) => (
                 <li key={l.to}>
                   {/* Route change, not a page load: an anchor here re-downloaded
@@ -98,7 +103,7 @@ export default function SiteFooter() {
           </div>
 
           <div>
-            <p className="eyebrow">Work</p>
+            <p className="eyebrow">{w.work}</p>
             <ul className="mt-3 space-y-1">
               {footer.work.map((l) => (
                 <li key={l.url}>
@@ -110,7 +115,7 @@ export default function SiteFooter() {
                   >
                     {l.label}
                     {/* --ink-soft, 6.37:1 on paper. */}
-                    <span className="mono text-xs text-clay">{l.note}</span>
+                    <span className="mono text-xs text-clay" {...inEnglish(lang, l.note)}>{l.note}</span>
                   </a>
                 </li>
               ))}
@@ -118,7 +123,7 @@ export default function SiteFooter() {
           </div>
 
           <div>
-            <p className="eyebrow">Elsewhere</p>
+            <p className="eyebrow">{w.elsewhere}</p>
             <ul className="mt-3 space-y-1">
               {links.map((l) => (
                 <li key={l.name}>
@@ -128,30 +133,30 @@ export default function SiteFooter() {
                     rel="noreferrer noopener"
                     className={`${linkRow} capitalize`}
                   >
-                    {l.name} <span aria-hidden="true" className="ml-1 text-clay">&#8599;</span>
+                    {l.name} <span aria-hidden="true" className="ms-1 text-clay">&#8599;</span>
                   </a>
                 </li>
               ))}
               <li>
                 <a href={`mailto:${contact.email}`} className={linkRow}>
-                  Email
+                  {w.email}
                 </a>
               </li>
             </ul>
           </div>
 
           <div>
-            <p className="eyebrow">Colophon</p>
+            <p className="eyebrow">{w.colophon}</p>
             {/* Every claim here is checkable, which is the point of the page. */}
-            <p className="mt-3 text-sm leading-relaxed text-clay">{footer.colophon}</p>
-            <p className="mono mt-3 text-xs text-clay">{footer.colophonNote}</p>
+            <p className="mt-3 text-sm leading-relaxed text-clay" {...inEnglish(lang, footer.colophon)}>{footer.colophon}</p>
+            <p className="mono mt-3 text-xs text-clay" {...inEnglish(lang, footer.colophonNote)}>{footer.colophonNote}</p>
           </div>
         </div>
 
         <div className="mono mt-12 flex flex-wrap items-center justify-between gap-3 border-t border-edge pt-6 text-xs text-clay">
-          <span>&copy; {new Date().getFullYear()} Yehuda Briskman</span>
+          <span>&copy; {new Date().getFullYear()} <span lang="en" dir="ltr">Yehuda Briskman</span></span>
           <span className="flex items-center gap-6">
-            <span>{footer.place}</span>
+            <span {...inEnglish(lang, footer.place)}>{footer.place}</span>
             {/*
              * The accessibility statement, on every page because the footer is
              * (#99). Same treatment and the same 44px target as the admin link
@@ -161,7 +166,7 @@ export default function SiteFooter() {
               to="/accessibility"
               className="-my-3 inline-flex min-h-11 items-center py-3 text-clay transition-colors hover:text-ink focus-visible:text-ink"
             >
-              accessibility
+              {w.accessibility}
             </Link>
             {/*
              * Quiet, and now actually legible.
@@ -177,9 +182,9 @@ export default function SiteFooter() {
             <a
               href="https://admin.yehudabriskman.com/admin"
               className="-my-3 inline-flex min-h-11 items-center py-3 text-clay transition-colors hover:text-ink focus-visible:text-ink"
-              aria-label="Admin"
+              aria-label={w.adminName}
             >
-              admin
+              {w.admin}
             </a>
           </span>
         </div>

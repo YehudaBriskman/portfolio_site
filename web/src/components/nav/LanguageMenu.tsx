@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import styles from "../Nav.module.css";
 import { isLocaleCode, LOCALES, type LocaleCode } from "./locale";
+import { useChromeWords } from "@/i18n/chrome";
 
 /**
  * The language control.
@@ -33,6 +34,7 @@ export default function LanguageMenu({
   onSelect: (code: LocaleCode) => void;
 }) {
   const current = LOCALES.find((l) => l.code === value) ?? LOCALES[0];
+  const w = useChromeWords();
 
   return (
     /*
@@ -76,7 +78,7 @@ export default function LanguageMenu({
            * icon carry the rest keeps both audiences pointed at the same
            * word.
            */
-          aria-label={`${current.short} — change language`}
+          aria-label={w.changeLanguage(current.short)}
         >
           <Languages aria-hidden="true" />
           <span>{current.short}</span>
@@ -95,7 +97,7 @@ export default function LanguageMenu({
         collisionPadding={12}
         className={styles.menu}
       >
-        <DropdownMenuLabel className={styles.menuHead}>Language</DropdownMenuLabel>
+        <DropdownMenuLabel className={styles.menuHead}>{w.language}</DropdownMenuLabel>
         <DropdownMenuSeparator className={styles.menuSplit} />
         <DropdownMenuRadioGroup
           value={value}
@@ -112,12 +114,7 @@ export default function LanguageMenu({
               disabled={!l.available}
               className={styles.menuItem}
             >
-              <span dir={l.dir}>{l.label}</span>
-              {/* Says why it cannot be chosen at the moment someone tries. A
-                  disabled item with no explanation reads as a bug. */}
-              {!l.available && (
-                <DropdownMenuShortcut className={styles.menuNote}>soon</DropdownMenuShortcut>
-              )}
+              <span lang={l.code} dir={l.dir}>{l.label}</span>
             </DropdownMenuRadioItem>
           ))}
         </DropdownMenuRadioGroup>

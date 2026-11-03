@@ -87,6 +87,29 @@ describe("GET /api/seo/render/home", () => {
     expect(res.text).toContain('<meta property="og:image:type" content="image/png" />');
   });
 
+  it("names its Hebrew twin, and the Hebrew page names it back (#248)", async () => {
+    const en = await request(createApp()).get("/api/seo/render/home");
+    expect(en.text).toMatch(/<link rel="alternate" hreflang="he" href="[^"]*\/he" \/>/);
+    expect(en.text).toMatch(/<link rel="alternate" hreflang="x-default" href="[^"]*\/" \/>/);
+    expect(en.text).toMatch(/<html lang="en"/);
+
+    const he = await request(createApp()).get("/api/seo/render/he");
+    expect(he.status).toBe(200);
+    expect(he.text).toContain('<html lang="he" dir="rtl">');
+    expect(he.text).toMatch(/<link rel="canonical" href="[^"]*\/he" \/>/);
+    expect(he.text).toMatch(/<link rel="alternate" hreflang="en" href="[^"]*\/" \/>/);
+    expect(he.text).toContain('<meta property="og:locale" content="he_IL" />');
+    expect(he.text).toContain("מהנדס פול־סטאק וראש צוות");
+    // Links in the fallback stay in Hebrew.
+    expect(he.text).toContain('href="/he/projects"');
+  });
+
+  it("answers an unknown Hebrew address with a 404 (#248)", async () => {
+    const res = await request(createApp()).get("/api/seo/render/he/no-such-page");
+    expect(res.status).toBe(404);
+    expect(res.text).toContain('<html lang="he" dir="rtl">');
+  });
+
   it("keeps the search snippet in name=description, distinct from the share copy", async () => {
     const res = await request(createApp()).get("/api/seo/render/home");
     const snippet = /<meta name="description" content="([^"]*)"/.exec(INDEX_HTML)?.[1];

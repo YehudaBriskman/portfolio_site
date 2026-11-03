@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import type { LinkIcon, SocialLink } from "@/data/links";
 import { useContent } from "@/content/store";
 import { GithubMark, LinkedinMark, MailMark, type Mark } from "./marks";
+import { useChromeWords } from "@/i18n/chrome";
 
 /*
  * The mark for each profile, as a total map rather than a lookup that can
@@ -76,10 +77,10 @@ export function useProfiles(): Elsewhere[] {
  * The sheet still lists it, because on a phone a mailto is the one of the two
  * that opens an app the reader already has.
  */
-const emailOf = (address: string): Elsewhere => ({
+const emailOf = (address: string, label: string): Elsewhere => ({
   key: "email",
   href: `mailto:${address}`,
-  label: "Email",
+  label,
   Icon: MailMark,
   external: false,
 });
@@ -87,5 +88,6 @@ const emailOf = (address: string): Elsewhere => ({
 /** Everything off-site, for the sheet. The bar carries the profiles only. */
 export function useElsewhere(): Elsewhere[] {
   const { links, contact } = useContent().site;
-  return useMemo(() => [...profilesOf(links), emailOf(contact.email)], [links, contact.email]);
+  const { email } = useChromeWords();
+  return useMemo(() => [...profilesOf(links), emailOf(contact.email, email)], [links, contact.email, email]);
 }

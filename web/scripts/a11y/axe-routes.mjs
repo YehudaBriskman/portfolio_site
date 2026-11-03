@@ -37,13 +37,10 @@
  *
  * HEBREW
  *
- * The Hebrew locale is listed and disabled (see `nav/locale.ts`) because
- * there are no Hebrew strings yet. What does exist is the right-to-left half:
- * `:root:lang(he)` switches all three faces and the layout is in logical
- * properties. That half is audited the way `shoot-first-screen.mjs` shoots
- * it, by setting `lang` and `dir` on <html> after load. It answers "does the
- * RTL layout hold", not "is the Hebrew site accessible" — there is no Hebrew
- * site yet to ask.
+ * Since #248 the Hebrew site is real: every route is loaded again under
+ * `/he`, the address the language menu goes to, so the run audits the Hebrew
+ * strings, `lang="he" dir="rtl"` as the app sets them, and the English
+ * fallbacks marked `lang="en"` inside it.
  *
  * RUNNING IT
  *
@@ -174,13 +171,10 @@ async function audit(route, lang, [label, width, height], { failing = false, pau
   const page = await context.newPage();
   const errors = [];
   page.on("pageerror", (e) => errors.push(String(e)));
-  await page.goto(base + route, { waitUntil: "load" });
-  if (lang === "he") {
-    await page.evaluate(() => {
-      document.documentElement.lang = "he";
-      document.documentElement.dir = "rtl";
-    });
-  }
+  const at = lang === "he" ? (route.startsWith("/?") || route === "/" ? `/he${route.slice(1)}` : `/he${route}`) : route;
+  await page.goto(base + at, { waitUntil: "load" });
+  const docLang = await page.evaluate(() => `${document.documentElement.lang}/${document.documentElement.dir}`);
+  if (docLang !== (lang === "he" ? "he/rtl" : "en/ltr")) errors.push(`document is ${docLang}`);
   /* Headless Chromium on the dev box has almost no rAF clock, so the
      default rAF polling would wait on a frame that never comes. */
   await page
