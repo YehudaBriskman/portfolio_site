@@ -1,14 +1,9 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import ReactMarkdown, { type Components } from "react-markdown";
-import remarkGfm from "remark-gfm";
+import { ListTree, Pencil } from "lucide-react";
 import PageShell from "@/components/PageShell";
 import Ridge from "@/components/Ridge";
-import Written from "@/components/motion/Written";
 import Byline, { FeedLink } from "@/components/notes/Byline";
-import { useCodeHighlight } from "@/components/notes/CodeHighlight";
-import { H2, H3, H4 } from "@/components/notes/headingAnchors";
-import { rehypeHeadingIds } from "@/components/notes/headingIds";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import MetaPill from "@/components/notes/MetaPill";
 /* The two corrections that make `.note-card` and the small capsules read
@@ -19,295 +14,33 @@ import pill from "@/components/notes/Pill.module.css";
 import PostFooterNav from "@/components/notes/PostFooterNav";
 import ReadingBar from "@/components/notes/ReadingBar";
 import TagPill from "@/components/notes/TagPill";
-import { blog, formatDate, type Post, type PostSummary } from "@/services/blog";
+import { blog, type Post, type PostSummary } from "@/services/blog";
+import { shortDate } from "@/components/dashboard/i18n";
+import NoteMarkdown from "@/components/notes/reader/NoteMarkdown";
+import NotePanels from "@/components/notes/reader/NotePanels";
+import { useActiveHeading, useHeadings } from "@/components/notes/reader/Toc";
+import { useIsAdmin } from "@/components/notes/reader/adminSession";
+import { prefsVars, useReadingPrefs } from "@/components/notes/reader/readingPrefs";
+import { useReaderWords } from "@/components/notes/reader/words";
+import reader from "@/components/notes/reader/Reader.module.css";
 
 /*
- * Full-width blocks inside the reading column.
+ * A note, in reader mode (#249).
  *
- * The article's content box is 46rem wide; the prose inside it is held to
- * 38rem for the measure. That left every figure, code block and table inset by
- * 40px relative to the cover and the title directly above them, which does not
- * read as a narrower measure — it reads as a misalignment bug.
+ * The body is drawn by `notes/reader/NoteMarkdown`, the one renderer the
+ * editor's preview shares (it carries the reasons the element overrides had
+ * here: no rehype-raw, lazy pictures, the full-width blocks, the pen). This
+ * page adds what Bothy's reader has around a document: a sticky aside on a
+ * wide screen with the outline tracking the heading being read, the note's
+ * facts and the reading tools, collapsing to a sheet (a native modal
+ * <dialog>) on a phone; and "Edit" for the signed-in admin only.
  *
- * The number is not hard-coded, because it changes with the viewport: the
- * wrapper around the prose declares itself a query container, so `100cqw` is
- * literally the article's content width and the negative margin is exactly the
- * difference between that and the column. Where they are equal — anywhere the
- * viewport is too narrow for the full measure — it resolves to zero on its
- * own. Below `sm` the existing `.bleed` rule takes over and runs these blocks
- * to the screen edges instead.
+ * The pen (`motion/Written`) needs nothing from any of it. The aside is not
+ * prose, so nothing in it is written; a change of text size or line length
+ * changes the document's height, which the pen's own ResizeObserver on the
+ * root already re-measures; and the outline's jumps are ordinary fragment
+ * scrolls, after which the pen is wherever the scroll put it.
  */
-const FULL_WIDTH = "bleed bleed-column";
-
-/* A break inside a post is the same kind of break as one between the home
-   page's sections, so it gets the same silhouette rather than a grey line. */
-function MarkdownRule() {
-  return (
-    <div className={`not-prose ${FULL_WIDTH} my-12 h-6 opacity-70`} aria-hidden="true">
-      <svg viewBox="0 0 1440 64" preserveAspectRatio="none" className="h-full w-full" role="presentation">
-        <path
-          d="M0,40 C120,52 240,30 360,38 C500,47 604,26 728,32 C868,39 1010,24 1160,36 C1290,46 1380,34 1440,42 L1440,64 L0,64 Z"
-          fill="rgb(var(--edge) / 0.55)"
-        />
-      </svg>
-    </div>
-  );
-}
-
-/*
- * Element overrides for the article body.
- *
- * There is no rehype-raw here and there never will be — without it react-markdown
- * refuses to render raw HTML, which removes the entire stored-content XSS
- * surface. That makes this object the only injection point the renderer has, so
- * everything the plugin's defaults get wrong is corrected here:
- *
- *  - react-markdown emits a bare <img>, so every image in every post loaded
- *    eagerly and shifted the layout as it arrived.
- *  - a code block or a GFM table inside a 350px phone column shows nothing
- *    useful, so both break out to the full screen width and scroll themselves.
- *  - an outbound link had neither target nor rel and no visible sign it left
- *    the site.
- *  - every heading rendered in a bare `font-[Archivo]` with no fallback stack
- *    and none of the width-axis setting the rest of the site's display type
- *    carries, so an article's headings were the one place on the site where
- *    Archivo was set differently. They borrow `.display-tight` now, which is
- *    the same rule the cards and the section headings already use.
- *
- * Defined at module scope so the object identity is stable across renders.
- */
-const markdown: Components = {
-  h1: ({ children }) => <h1 className="display-tight">{children}</h1>,
-  /* h2–h4 carry an id and a button that copies a link to them (#225);
-     `rehypeHeadingIds` below is where the id comes from. */
-  h2: ({ children, id }) => <H2 id={id}>{children}</H2>,
-  h3: ({ children, id }) => <H3 id={id}>{children}</H3>,
-  h4: ({ children, id }) => <H4 id={id}>{children}</H4>,
-  h5: ({ children }) => <h5 className="display-tight">{children}</h5>,
-  h6: ({ children }) => <h6 className="display-tight">{children}</h6>,
-
-  a({ href, children }) {
-    const isAbsolute = typeof href === "string" && /^https?:\/\//i.test(href);
-    const external =
-      isAbsolute && !(typeof window !== "undefined" && href.startsWith(window.location.origin));
-    if (!external) return <a href={href}>{children}</a>;
-    return (
-      <a href={href} target="_blank" rel="noreferrer noopener">
-        {children}
-        <span aria-hidden="true" className="ml-0.5 no-underline">
-          &#8599;
-        </span>
-      </a>
-    );
-  },
-
-  img({ src, alt, title }) {
-    return (
-      <span className={`not-prose ${FULL_WIDTH} my-9 block`}>
-        <img
-          src={src}
-          alt={alt ?? ""}
-          loading="lazy"
-          decoding="async"
-          className="block w-full border-y border-edge sm:rounded-[var(--r-lg)] sm:border"
-        />
-        {title && (
-          <span className="mono mt-3 block text-center text-[0.75rem] tracking-[0.06em] text-clay">
-            {title}
-          </span>
-        )}
-      </span>
-    );
-  },
-
-  /*
-   * Darker than a panel, not lighter: a code block is a well the page is cut
-   * into, which is also what stops it competing with the cards elsewhere.
-   *
-   * `className` and `style` are taken from the node rather than dropped,
-   * because when the highlighter has loaded they are how Shiki hands over the
-   * theme's ground and default ink. Before it loads — and forever, if it never
-   * does — neither is present and the Tailwind classes below stand alone, so
-   * the block is always at least readable plain text.
-   */
-  pre({ children, className = "", style }) {
-    return (
-      <pre
-        style={style}
-        /* Focusable because it scrolls: a keyboard-only reader has no other
-           way to reach the right-hand end of a long line. */
-        tabIndex={0}
-        /* `font-code`, not `font-mono`. The data role used to be IBM Plex
-           Mono and a code block could reach a monospace by asking for the
-           role; it is a proportional casual face in both languages now, and
-           a fenced sample set in one is a column of characters that do not
-           line up. `font-code` is the generic monospace and names no
-           webfont — see the token block in index.css. */
-        className={`not-prose ${FULL_WIDTH} my-9 overflow-x-auto border-y border-edge bg-bitumen px-5 py-4 font-code text-[0.8125rem] leading-[1.65] text-bone/90 [scrollbar-width:thin] sm:rounded-[var(--r-lg)] sm:border sm:text-[0.875rem] ${className}`}
-      >
-        {children}
-      </pre>
-    );
-  },
-
-  table({ children }) {
-    return (
-      /*
-       * Focusable for the same reason the code block is (WCAG 2.1.1, found by
-       * the #99 audit): the table holds a 30rem minimum, so below ~560px this
-       * box scrolls sideways, and without a tab stop a keyboard reader cannot
-       * reach the columns past the edge. A focusable box with no role or name
-       * is announced as nothing at all, hence the region and its label.
-       */
-      <div
-        tabIndex={0}
-        role="region"
-        aria-label="Table, scrolls sideways"
-        className={`not-prose ${FULL_WIDTH} my-9 overflow-x-auto px-5 [scrollbar-width:thin] sm:px-0`}
-      >
-        <table className="w-full min-w-[30rem] border-collapse text-left">{children}</table>
-      </div>
-    );
-  },
-  th({ children }) {
-    return (
-      <th className="mono border-b border-edge pb-3 pr-6 text-xs uppercase tracking-[0.18em] text-clay">
-        {children}
-      </th>
-    );
-  },
-  /* No font-size of its own. A cell is body copy in a grid, and sizing it
-     separately was the fourth text size inside a single article. */
-  td({ children }) {
-    return (
-      <td className="border-b border-edge py-3 pr-6 align-top leading-[1.6] text-bone/85">
-        {children}
-      </td>
-    );
-  },
-
-  hr: MarkdownRule,
-
-  /*
-   * The running text is written as it is read — `motion/Written`.
-   *
-   * Paragraphs and list items, because those are where a post is prose. Not
-   * headings (read at a glance), not table cells (data, read across a row
-   * rather than along a line), and not code, which `Written` leaves alone by
-   * tag wherever it meets it. A blockquote is reached through the paragraphs
-   * inside it, and a loose list item's own paragraph is a nested `Written`
-   * that the item's skips rather than splitting twice.
-   *
-   * `node` is react-markdown's hast node and is dropped here so it does not
-   * land on the DOM as an attribute; `className` is kept because GFM's task
-   * lists put one on the item.
-   */
-  p: ({ children }) => <Written>{children}</Written>,
-  li: ({ children, className }) => (
-    <Written as="li" className={className}>
-      {children}
-    </Written>
-  ),
-};
-
-/*
- * The reading column.
- *
- * The measure was 768px at 17px — about 95 characters, half again the length a
- * line should run. The body is held to 38rem (~66 characters at the desktop
- * size) while the title, the cover and the footer keep the full 46rem: the
- * title being wider than the prose is what gives the page its hierarchy.
- *
- * Body copy is bone/85 (8.9:1) rather than the bone/75 it was, and links carry
- * an underline rather than colour alone. That rule was written when the accent
- * was still here and measured 1.30:1 against the surrounding text — far under
- * the 3:1 that lets colour mark a link on its own — and with the accent
- * retired the underline is not a reinforcement any more, it is the entire
- * signal. Which is why it is on at rest and thickens on hover rather than
- * appearing there.
- *
- * One body size, set here and inherited
- * -------------------------------------
- * This used to run four sizes at once: paragraphs at 19px, list items at 16px,
- * blockquotes at 17px — a pull quote smaller than the body it was pulled out
- * of — and table cells at 15px. Nothing about a list makes it less important
- * than the paragraph introducing it. The size now lives on the root and p, li,
- * blockquote and td all inherit it, so there is exactly one body size in an
- * article and the only deliberate steps away from it are upward (headings) or
- * into another voice entirely (mono captions and column labels).
- *
- * Every heading is also at least as large as the body, which `h4` at 17px and
- * `h5`/`h6` at nothing at all previously were not.
- */
-/*
- * Why there is no colour inside the article.
- *
- * The rule the rest of the site runs on is that a surface takes its wash from
- * its position in a group — five hues, cycling, keyed off `nth-child` (see
- * cards/PaperCard.module.css). A pull quote, a code block and a table are not
- * in a group. They are one of a kind, in an arbitrary order, decided by
- * whoever wrote the post; there is no position for the rule to read, and
- * picking a hue for them by hand is the lottery the rule exists to avoid.
- *
- * So the blocks in here take the shape of the change and not the colour: the
- * card's 32px corner, a fill of white rather than a grey mixed for a dark
- * ground, and a border in --rule-firm so the edge is visible at all. The
- * colour on this page is where the rule can reach it — the collection chip,
- * the tags, and the two neighbouring notes at the foot, which really are a
- * group of two.
- */
-const PROSE = [
-  "prose prose-invert mx-auto mt-section-sm max-w-[38rem]",
-  "text-[1.0625rem] leading-[1.7] text-bone/85 sm:text-[1.1875rem] sm:leading-[1.75]",
-
-  // Space above a heading is ~2.5x the space below it. The plugin's default is
-  // nearer 2:1, which is what made every section run into the one before it.
-  // Colour is set per level rather than through `prose-headings:` so that the
-  // two quiet levels do not have to out-specify a rule that covers all six.
-  "prose-h1:mt-14 prose-h1:mb-4 prose-h1:text-[1.9rem] prose-h1:leading-[1.05] prose-h1:text-bone sm:prose-h1:text-[2.35rem]",
-  "prose-h2:mt-14 prose-h2:mb-4 prose-h2:text-[1.6rem] prose-h2:leading-[1.1] prose-h2:text-bone sm:prose-h2:text-[2rem]",
-  "prose-h3:mt-10 prose-h3:mb-3 prose-h3:text-[1.3rem] prose-h3:leading-[1.2] prose-h3:text-bone sm:prose-h3:text-[1.5rem]",
-  "prose-h4:mt-8 prose-h4:mb-2 prose-h4:text-[1.1875rem] prose-h4:leading-[1.3] prose-h4:text-bone sm:prose-h4:text-[1.3125rem]",
-  /*
-   * The last two levels step down in voice, not in size — a heading set
-   * smaller than the paragraph under it is not a heading. That used to mean
-   * the accent for h5 and tracked clay capitals for h6, and with the accent
-   * gone h5 takes the serif italic instead: the site's own second voice,
-   * which is a larger step away from the sans than any colour was, and the
-   * same move the hero's tagline and a project's make one level up.
-   */
-  "prose-h5:mt-8 prose-h5:mb-2 prose-h5:font-sans italic prose-h5:italic prose-h5:font-normal",
-  "prose-h5:text-[1.1875rem] prose-h5:leading-[1.35] prose-h5:tracking-[0] prose-h5:text-bone sm:prose-h5:text-[1.375rem]",
-  "prose-h6:mt-8 prose-h6:mb-2 prose-h6:text-[1.0625rem] prose-h6:leading-[1.4] prose-h6:uppercase prose-h6:tracking-[0.1em] prose-h6:text-clay sm:prose-h6:text-[1.1875rem]",
-
-  "prose-li:marker:text-clay",
-  "prose-strong:text-bone prose-strong:font-medium",
-  // Bone, one step up from the bone/85 the paragraph is set in, and underlined
-  // at rest. The underline is what identifies a link here; the value step is
-  // only what keeps it from disappearing into the sentence around it.
-  "prose-a:text-bone prose-a:underline prose-a:decoration-bone/40 prose-a:decoration-1 prose-a:underline-offset-[0.22em]",
-  "hover:prose-a:decoration-bone hover:prose-a:decoration-2",
-  // A pull quote should read as more prominent than the body, not less; the
-  // plugin's italic-and-a-rule default reads as less, and so did setting it two
-  // points smaller than the paragraph it was lifted from.
-  "prose-blockquote:my-10 prose-blockquote:not-italic prose-blockquote:font-normal",
-  "prose-blockquote:rounded-[var(--r-lg)] prose-blockquote:border prose-blockquote:border-l prose-blockquote:border-ridge prose-blockquote:border-l-ridge",
-  "prose-blockquote:bg-sheet/60 prose-blockquote:px-6 prose-blockquote:py-5",
-  "prose-blockquote:text-bone",
-  "[&_blockquote_p:first-of-type]:before:content-none [&_blockquote_p:last-of-type]:after:content-none",
-  // `font-code` for the same reason the <pre> above takes it: an inline code
-  // span is a literal, and a literal set in a handwriting face stops reading
-  // as one. Tailwind Typography's own default for `code` is the theme's
-  // `mono`, which is the data role now, so this has to be stated.
-  "prose-code:font-code",
-  "prose-code:rounded-[var(--r-sm)] prose-code:border prose-code:border-ridge prose-code:bg-sheet/60",
-  // Bone, matching the code blocks: see CodeHighlight, where the whole theme
-  // was re-keyed to bone and weight so a fenced sample and an inline span now
-  // read as the same material rather than as two different palettes.
-  "prose-code:px-[0.35em] prose-code:py-[0.12em] prose-code:font-normal prose-code:text-bone",
-  "prose-code:before:content-none prose-code:after:content-none prose-code:[overflow-wrap:anywhere]",
-].join(" ");
-
 export default function BlogPost() {
   const { slug = "" } = useParams();
   const [post, setPost] = useState<Post | null>(null);
@@ -326,6 +59,16 @@ export default function BlogPost() {
    * the article. See ReadingBar.
    */
   const reading = useRef<HTMLDivElement>(null);
+  const [w, lang] = useReaderWords();
+  const [prefs, setPrefs] = useReadingPrefs();
+  const isAdmin = useIsAdmin();
+  const sheet = useRef<HTMLDialogElement>(null);
+  const sheetOpener = useRef<HTMLElement | null>(null);
+  const sheetTitle = useId();
+  const openSheet = (from: HTMLElement) => {
+    sheetOpener.current = from;
+    sheet.current?.showModal?.();
+  };
 
   const retry = useCallback(() => setAttempt((n) => n + 1), []);
 
@@ -404,15 +147,16 @@ export default function BlogPost() {
     };
   }, [post]);
 
-  // Nothing is highlighted on the first paint. The pipeline arrives a moment
-  // later and re-renders the body in colour; until then it is plain text.
-  const highlight = useCodeHighlight(post?.body ?? null);
-  /* Heading ids first, so the highlighter never sees a heading without one. */
-  const rehypePlugins = useMemo(() => [rehypeHeadingIds, ...(highlight ?? [])], [highlight]);
+  /* The outline is read from the rendered body; keyed on the post so a new
+     note starts a new read. */
+  const headings = useHeadings(reading, `${slug}:${state}`);
+  const active = useActiveHeading(headings);
 
   return (
     <PageShell>
-      {post && state === "ok" && <ReadingBar title={post.title} target={reading} />}
+      {post && state === "ok" && (
+        <ReadingBar title={post.title} target={reading} contentsLabel={w.contents} onContents={openSheet} />
+      )}
 
       {/*
         Not `.wrap`: 46rem is the reading measure, which is narrower than the
@@ -421,12 +165,13 @@ export default function BlogPost() {
         difference is the page's hierarchy. The gutter and the section rhythm
         are the system's, though.
       */}
-      <article data-crest data-hue="150 82 64" className="section-y mx-auto w-full max-w-[46rem] px-gutter">
+      <div className={`section-y px-gutter ${state === "ok" ? reader.layout : "mx-auto w-full max-w-[46rem]"}`}>
+      <article data-crest data-hue="150 82 64" className="min-w-0" style={prefsVars(prefs) as React.CSSProperties}>
         {state === "loading" && (
           /* Shaped like the real header rather than announced as a word, so the
              title and the cover do not jump into place over a line of text. */
           <div aria-busy="true" aria-live="polite">
-            <span className="sr-only">Loading the post</span>
+            <span className="sr-only">{w.loading}</span>
             <div aria-hidden="true" className="space-y-5">
               <div className="h-7 w-28 scrub-pulse rounded-full bg-surface" />
               <div className="h-12 w-full scrub-pulse rounded-full bg-surface sm:h-16" />
@@ -439,14 +184,10 @@ export default function BlogPost() {
 
         {state === "missing" && (
           <div>
-            <h1 className="display text-section">Not here</h1>
-            <p className="mt-6 max-w-[34rem] text-[1.0625rem] leading-[1.7] text-bone/85">
-              That post doesn&rsquo;t exist, or isn&rsquo;t published yet. The address may have
-              changed when the notes moved from <code className="mono text-bone">/notes</code> to{" "}
-              <code className="mono text-bone">/blog</code>.
-            </p>
+            <h1 className="display text-section">{w.notHere}</h1>
+            <p className="mt-6 max-w-[34rem] text-[1.0625rem] leading-[1.7] text-bone/85">{w.notHereBody}</p>
             <Link to="/blog" className="btn btn-quiet mt-12">
-              <span aria-hidden="true">&larr;</span> Blogs
+              <span aria-hidden="true" className={reader.flipRtl}>&larr;</span> {w.back}
             </Link>
           </div>
         )}
@@ -459,23 +200,18 @@ export default function BlogPost() {
            * that do not need the API at all.
            */
           <div className={`note-card ${card.card} px-6 py-12 sm:px-10 sm:py-16`}>
-            <p className="eyebrow">Post unavailable</p>
-            <h1 className="display-tight mt-3 text-[clamp(1.75rem,6vw,2.5rem)]">
-              The server didn&rsquo;t answer.
-            </h1>
-            <p className="mt-6 max-w-[34rem] text-[1.0625rem] leading-[1.7] text-bone/85">
-              The page loaded; the post behind it didn&rsquo;t. It is served by a small machine I
-              run myself, so this is usually a restart rather than anything permanent.
-            </p>
+            <p className="eyebrow">{w.unavailable}</p>
+            <h1 className="display-tight mt-3 text-[clamp(1.75rem,6vw,2.5rem)]">{w.noAnswer}</h1>
+            <p className="mt-6 max-w-[34rem] text-[1.0625rem] leading-[1.7] text-bone/85">{w.noAnswerBody}</p>
             <div className="mt-12 flex flex-wrap gap-3">
               <button type="button" onClick={retry} className="btn btn-solid">
-                Try again
+                {w.tryAgain}
               </button>
               <Link to="/blog" className="btn btn-quiet">
-                Blogs
+                {w.back}
               </Link>
               <Link to="/projects" className="btn btn-quiet">
-                Work
+                {w.work}
               </Link>
             </div>
           </div>
@@ -492,7 +228,7 @@ export default function BlogPost() {
                   to="/blog"
                   className={`mono ${pill.tag} hidden min-h-[44px] items-center gap-2 rounded-full border px-4 py-2 text-xs uppercase tracking-[0.16em] transition-colors duration-150 sm:inline-flex`}
                 >
-                  <span aria-hidden="true">&larr;</span> Blogs
+                  <span aria-hidden="true" className={reader.flipRtl}>&larr;</span> {w.back}
                 </Link>
 
                 <div className="mt-12">
@@ -505,7 +241,7 @@ export default function BlogPost() {
                       {collectionTitle}
                     </Link>
                   ) : (
-                    <p className="eyebrow">Note</p>
+                    <p className="eyebrow">{w.note}</p>
                   )}
                 </div>
 
@@ -532,16 +268,35 @@ export default function BlogPost() {
                     <div className="flex flex-wrap items-center gap-2.5">
                       {post.publishedAt && (
                         <MetaPill>
-                          <time dateTime={post.publishedAt}>{formatDate(post.publishedAt)}</time>
+                          <time dateTime={post.publishedAt}>{shortDate(post.publishedAt, lang)}</time>
                         </MetaPill>
                       )}
                       <MetaPill>
                         <span aria-hidden="true" className="h-1 w-1 rounded-full bg-clay" />
-                        {post.readingMinutes} min read
+                        {w.readTime(post.readingMinutes)}
                       </MetaPill>
                     </div>
                   }
                 />
+                {/* Below the wide layout the panels live in a sheet; this is
+                    its opener at the top of the note (the reading bar at the
+                    foot of a phone's screen carries another). Edit sits
+                    beside it, for the signed-in admin only. */}
+                <div className={`${reader.phoneBar} ${reader.phoneOnly} flex flex-wrap gap-2`}>
+                  <button
+                    type="button"
+                    className={reader.panelBtn}
+                    aria-haspopup="dialog"
+                    onClick={(e) => openSheet(e.currentTarget)}
+                  >
+                    <ListTree size={15} aria-hidden="true" /> {w.contentsAndDetails}
+                  </button>
+                  {isAdmin && (
+                    <Link to={`/admin/posts/${post.slug}`} className={reader.panelBtn} aria-label={w.editNote}>
+                      <Pencil size={15} aria-hidden="true" /> {w.edit}
+                    </Link>
+                  )}
+                </div>
               </header>
 
               {post.coverImage && (
@@ -558,19 +313,7 @@ export default function BlogPost() {
                 />
               )}
 
-              {/* The query container the full-width blocks measure themselves
-                  against; see FULL_WIDTH. It has no appearance of its own. */}
-              <div className="sm:[container-type:inline-size]">
-                <div className={PROSE}>
-                  <ReactMarkdown
-                    remarkPlugins={[remarkGfm]}
-                    rehypePlugins={rehypePlugins}
-                    components={markdown}
-                  >
-                    {post.body}
-                  </ReactMarkdown>
-                </div>
-              </div>
+              <NoteMarkdown body={post.body} />
             </div>
 
             {post.tags.length > 0 && (
@@ -608,6 +351,57 @@ export default function BlogPost() {
           </>
         )}
       </article>
+
+      {post && state === "ok" && (
+        <aside className={reader.aside} aria-label={w.contentsAndDetails}>
+          <div className={reader.asideInner}>
+            <NotePanels
+              post={post}
+              areaTitle={collectionTitle}
+              headings={headings}
+              active={active}
+              prefs={prefs}
+              setPrefs={setPrefs}
+              isAdmin={isAdmin}
+            />
+          </div>
+        </aside>
+      )}
+      </div>
+
+      {post && state === "ok" && (
+        <dialog
+          ref={sheet}
+          className={reader.sheet}
+          aria-labelledby={sheetTitle}
+          onClose={() => sheetOpener.current?.focus()}
+          onClick={(e) => {
+            /* A press on the backdrop is a press on the dialog itself. */
+            if (e.target === e.currentTarget) sheet.current?.close();
+          }}
+        >
+          <div className={reader.sheetHead}>
+            <h2 id={sheetTitle} className={reader.sheetTitle}>
+              {w.contentsAndDetails}
+            </h2>
+            <button type="button" className={reader.toolBtn} onClick={() => sheet.current?.close()} aria-label={w.close}>
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div className={reader.sheetBody}>
+            <NotePanels
+              post={post}
+              areaTitle={collectionTitle}
+              headings={headings}
+              active={active}
+              prefs={prefs}
+              setPrefs={setPrefs}
+              isAdmin={isAdmin}
+              onPick={() => sheet.current?.close()}
+            />
+          </div>
+        </dialog>
+      )}
     </PageShell>
   );
 }

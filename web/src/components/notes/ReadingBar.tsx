@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { Link } from "react-router-dom";
 import { Toaster, toast } from "@/components/ui/sonner";
+import { useReaderWords } from "@/components/notes/reader/words";
 
 /*
  * Where you are, and the two things you might want next.
@@ -34,11 +35,17 @@ import { Toaster, toast } from "@/components/ui/sonner";
 export default function ReadingBar({
   title,
   target,
+  contentsLabel,
+  onContents,
 }: {
   title: string;
+  /** The phone's sheet of contents and details (#249), opened from the bar. */
+  contentsLabel?: string;
+  onContents?: (opener: HTMLElement) => void;
   /** The reading matter: title through to the last paragraph, nothing after. */
   target: RefObject<HTMLElement | null>;
 }) {
+  const [w] = useReaderWords();
   const [shown, setShown] = useState(false);
   /*
    * Focus inside the bar shows it, whatever the scroll position (WCAG 2.4.11,
@@ -146,7 +153,7 @@ export default function ReadingBar({
         return;
       }
       await navigator.clipboard.writeText(url);
-      toast("Link copied");
+      toast(w.linkCopied);
     } catch {
       // A share sheet the reader dismissed rejects exactly like a failure, and
       // reporting a cancellation as an error is worse than saying nothing.
@@ -186,10 +193,20 @@ export default function ReadingBar({
         />
         <div className="flex items-center justify-between px-5">
           <Link to="/blog" className="tap inline-flex min-h-[44px] items-center gap-2 py-3.5 text-[0.9375rem] text-bone">
-            <span aria-hidden="true">&larr;</span> Blogs
+            <span aria-hidden="true" className="rtl:-scale-x-100 inline-block">&larr;</span> {w.back}
           </Link>
+          {onContents && (
+            <button
+              type="button"
+              aria-haspopup="dialog"
+              onClick={(e) => onContents(e.currentTarget)}
+              className="tap inline-flex min-h-[44px] items-center gap-2 py-3.5 text-[0.9375rem] text-bone"
+            >
+              {contentsLabel ?? w.contents}
+            </button>
+          )}
           <button type="button" onClick={share} className="tap inline-flex min-h-[44px] items-center gap-2 py-3.5 text-[0.9375rem] text-clay">
-            Share <span aria-hidden="true">&#8599;</span>
+            {w.share} <span aria-hidden="true">&#8599;</span>
           </button>
         </div>
       </div>
