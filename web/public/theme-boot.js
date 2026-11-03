@@ -49,4 +49,31 @@
   if (accent === "pine" || accent === "plum" || accent === "rust") root.setAttribute("data-accent", accent);
   var color = document.querySelector('meta[name="theme-color"]');
   if (color) color.setAttribute("content", choice === "dark" ? "#1C1A16" : "#ECE8DC");
+
+  /*
+   * The two viewer controls (#99), for the same reason: text size and
+   * contrast change the first frame as much as the theme does. Keys, values
+   * and the System rule match `src/lib/viewerPrefs.ts`; the theme test runs
+   * this file and holds the two to the same answers.
+   */
+  var size = null;
+  var contrast = null;
+  try {
+    size = window.localStorage.getItem("yb-text-size");
+    contrast = window.localStorage.getItem("yb-contrast");
+  } catch (e) {
+    /* Storage blocked: the defaults. */
+  }
+  if (size !== "large" && size !== "larger") size = "default";
+  if (contrast !== "standard" && contrast !== "more") {
+    var more = false;
+    try {
+      more = window.matchMedia("(prefers-contrast: more)").matches;
+    } catch (e) {
+      /* No matchMedia: standard. */
+    }
+    contrast = more ? "more" : "standard";
+  }
+  root.setAttribute("data-text-size", size);
+  root.setAttribute("data-contrast", contrast);
 })();

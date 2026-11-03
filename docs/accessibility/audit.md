@@ -8,8 +8,62 @@ stubbed by fixtures shaped like the real envelopes.
 hand. The automated pass (axe-core) is listed separately, because it catches
 perhaps a third of real failures and a green run is not conformance.
 
-The light/dark question in the issue is **not** answered here. It is a design
-decision the owner has not made yet, and nothing below depends on it.
+The light/dark question was answered after this audit: #247 built a true
+dark theme (option 1 in the issue), re-derived the palette and kept the dark
+act as the deepest ground in both themes. The axe run covers both themes.
+
+## Viewer controls (2026-11-03)
+
+The issue's other half. They live in the existing theme menu rather than in
+a separate accessibility widget, so no setting has two switches:
+
+| Control | Where | Persists | What it does |
+|---|---|---|---|
+| Theme | theme menu (#247) | `yb-theme` | Light, Dark, System |
+| Text size | theme menu | `yb-text-size` | Default, Large (112.5%), Larger (125%) of the root size, on top of browser zoom |
+| Contrast | theme menu | `yb-contrast` | Standard, More, System (`prefers-contrast: more`). More moves `--ink-soft`, `--ink-faint`, `--rule`, `--rule-firm` and the act's two greys (ratios in `index.css`) and makes the focus ring 3px |
+| Motion | Pause toggle | `yb-motion-paused` | unchanged; `prefers-reduced-motion` is still honoured on its own |
+
+All three menu settings are applied before first paint by
+`public/theme-boot.js`, so a returning reader never sees a frame at the
+wrong size or contrast. The menu is a Radix menu button: Enter or Space
+opens it, the arrow keys move, Escape closes and returns focus to the
+trigger. Each row is a `menuitemradio` with `aria-checked`, under a group
+label. The trigger's name states all three current values, for example
+"Theme: System, now Light; text size: Larger; contrast: More — change
+display". `/accessibility` describes the controls.
+
+### The gates these added
+
+`npm run a11y` now also:
+
+- **Walks the keyboard** on every route at both widths and fails on a tab
+  stop with no focus indicator (2.4.7), a tab stop entirely hidden by
+  sticky chrome (2.4.11, nine-point `elementFromPoint`), or a target under
+  24x24 that the spacing exception does not save (2.5.8).
+- **Re-runs seven routes at Larger text and More contrast**, in both themes
+  and at both widths, for axe and the 320px reflow check.
+
+`ONLY=axe|prefs|keyboard` narrows a local run.
+
+### What the new gates found, and the fixes
+
+| Finding | Where | Fix |
+|---|---|---|
+| A section head that is one long word ran off a phone at Larger text (and off 320px at the default) | `/accessibility` h1 | `text-section` floor is `min(2.2rem, 10vw)` (`tailwind.config.ts`) |
+| "PORTFOLIO" ran 65px past a 320px screen at Larger | hero | phone floor capped at `13.8vw`, the same as the rem floor at the default size (`Hero.module.css`) |
+| The sort options did not wrap | `/projects` | `.sort ul` wraps (`Work.module.css`) |
+| The email address could not break, so it was clipped | `/accessibility`, `/` contact | `overflow-wrap: break-word` on `body` |
+| On a phone, the editor's fixed Save bar (wrapped to about 220px at 320px) hid the fields and buttons tabbed to below it (2.4.11) | `/admin/posts/:slug` | the bar's measured height sets the root's `scroll-padding-bottom` and pads `main` (`AdminShell.tsx`) |
+| More contrast in both themes and the act | 7 routes x 2 widths x 2 themes | axe clean, no change needed |
+| Keyboard walk | every page, both widths | clean once the probe credits a ring drawn on a tree branch's first row (APG structure) and samples a tall tab panel only where it is on screen |
+
+**The probe's 2.5.8 check implements the spacing exception.** Without it,
+about thirty standalone text links 20–22px tall (rail pins, feed rows,
+channel-log links) were flagged. Each one is clear of every other target
+by the criterion's 24px circle, so each passes 2.5.8 as written, and axe's
+`target-size` agrees. Making them 24px tall anyway would be a design change
+across components that other work owns, so it is not made here.
 
 ## Scope
 

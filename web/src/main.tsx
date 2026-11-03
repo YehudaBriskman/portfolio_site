@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
 import { syncTheme } from './lib/theme'
+import { syncViewerPrefs } from './lib/viewerPrefs'
 import { loadContent } from './content/store'
 import { bootLang } from './i18n/routing'
 import { loadSettings } from './settings/store'
@@ -12,6 +13,7 @@ import { loadSettings } from './settings/store'
    it to the store that owns it from here (#247). Same answer, so no repaint,
    unless the boot script was blocked. */
 syncTheme()
+syncViewerPrefs()
 
 /* The site's content from the store (#163). The page paints from the data
    files first and this swaps in what the API serves, if it differs. */

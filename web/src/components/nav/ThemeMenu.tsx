@@ -1,6 +1,6 @@
-import { useRef } from "react";
+import { useRef, type ReactNode } from "react";
 import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
-import { Check, Monitor, Moon, Sun } from "lucide-react";
+import { Check, Circle, Contrast, Monitor, Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -12,6 +12,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useTheme } from "@/lib/theme";
 import { isThemeChoice, type ThemeChoice } from "@/lib/themeDefault";
+import {
+  isContrastChoice,
+  isTextSize,
+  setContrast,
+  setTextSize,
+  useViewerPrefs,
+  type ContrastChoice,
+  type TextSize,
+} from "@/lib/viewerPrefs";
 import nav from "../Nav.module.css";
 import styles from "./ThemeMenu.module.css";
 import { centreOf, changeTheme } from "./themeWave";
@@ -38,22 +47,73 @@ import { useChromeWords } from "@/i18n/chrome";
  * No state here: `lib/theme.ts` is one store for the document, so the copy of
  * this control in the bar and the one in the phone's side panel cannot
  * disagree.
+ *
+ * Text size and contrast (#99) are two more radio groups in this same menu,
+ * from `lib/viewerPrefs.ts`, rather than a second "accessibility" button.
+ * They are the same kind of choice as the theme (how the page looks to this
+ * reader), and a widget that re-offered the theme and the motion pause beside
+ * the real ones would be two switches for one setting. Motion stays the Pause
+ * toggle beside this menu: it is one press, and burying it a menu deep would
+ * make the commonest request the slowest. The trigger's name lists all three
+ * settings, so a screen-reader user hears what is behind it.
  */
+
 const OPTIONS: { value: ThemeChoice; word: "themeLight" | "themeDark" | "themeSystem"; Icon: typeof Sun }[] = [
   { value: "light", word: "themeLight", Icon: Sun },
   { value: "dark", word: "themeDark", Icon: Moon },
   { value: "system", word: "themeSystem", Icon: Monitor },
 ];
 
+/* The size rows' icon is an "A" set at the size the row gives, so the column
+   reads as a scale. */
+const SIZES: { value: TextSize; word: "textDefault" | "textLarge" | "textLarger"; px: number }[] = [
+  { value: "default", word: "textDefault", px: 11 },
+  { value: "large", word: "textLarge", px: 13 },
+  { value: "larger", word: "textLarger", px: 15 },
+];
+
+const CONTRAST_OPTIONS: {
+  value: ContrastChoice;
+  word: "contrastStandard" | "contrastMore" | "themeSystem";
+  Icon: typeof Sun;
+}[] = [
+  { value: "standard", word: "contrastStandard", Icon: Circle },
+  { value: "more", word: "contrastMore", Icon: Contrast },
+  { value: "system", word: "themeSystem", Icon: Monitor },
+];
+
+function Row({ value, label, icon }: { value: string; label: string; icon: ReactNode }) {
+  return (
+    <DropdownMenuPrimitive.RadioItem value={value} className={styles.row}>
+      <span className={styles.mark} aria-hidden="true">
+        <DropdownMenuPrimitive.ItemIndicator>
+          <Check strokeWidth={2.5} />
+        </DropdownMenuPrimitive.ItemIndicator>
+      </span>
+      <span className={styles.icon} aria-hidden="true">
+        {icon}
+      </span>
+      <span>{label}</span>
+    </DropdownMenuPrimitive.RadioItem>
+  );
+}
+
 export default function ThemeMenu() {
   const { choice, resolved } = useTheme();
+  const prefs = useViewerPrefs();
   const w = useChromeWords();
   const trigger = useRef<HTMLButtonElement>(null);
   const current = OPTIONS.find((o) => o.value === choice) ?? OPTIONS[2];
-  const name =
-    choice === "system"
-      ? w.themeSystemName(resolved === "dark" ? w.themeDark : w.themeLight)
-      : w.themeName(w[current.word]);
+  const theme =
+    choice === "system" ? w.systemNow(resolved === "dark" ? w.themeDark : w.themeLight) : w[current.word];
+  const size = w[SIZES.find((o) => o.value === prefs.textSize)?.word ?? "textDefault"];
+  const contrast =
+    prefs.contrast === "system"
+      ? w.systemNow(prefs.resolvedContrast === "more" ? w.contrastMore : w.contrastStandard)
+      : prefs.contrast === "more"
+        ? w.contrastMore
+        : w.contrastStandard;
+  const name = w.displayName(theme, size, contrast);
 
   return (
     <DropdownMenu modal={false}>
@@ -84,17 +144,42 @@ export default function ThemeMenu() {
           }}
         >
           {OPTIONS.map(({ value, word, Icon }) => (
-            <DropdownMenuPrimitive.RadioItem key={value} value={value} className={styles.row}>
-              <span className={styles.mark} aria-hidden="true">
-                <DropdownMenuPrimitive.ItemIndicator>
-                  <Check strokeWidth={2.5} />
-                </DropdownMenuPrimitive.ItemIndicator>
-              </span>
-              <span className={styles.icon} aria-hidden="true">
-                <Icon />
-              </span>
-              <span>{w[word]}</span>
-            </DropdownMenuPrimitive.RadioItem>
+            <Row key={value} value={value} label={w[word]} icon={<Icon />} />
+          ))}
+        </DropdownMenuRadioGroup>
+
+        <DropdownMenuSeparator className={`${nav.menuSplit} ${styles.split}`} />
+        <DropdownMenuLabel className={`${nav.menuHead} ${styles.head}`}>{w.textSize}</DropdownMenuLabel>
+        <DropdownMenuRadioGroup
+          value={prefs.textSize}
+          onValueChange={(next) => {
+            if (isTextSize(next)) setTextSize(next);
+          }}
+        >
+          {SIZES.map(({ value, word, px }) => (
+            <Row
+              key={value}
+              value={value}
+              label={w[word]}
+              icon={
+                <span className={styles.glyph} style={{ fontSize: `${px}px` }}>
+                  A
+                </span>
+              }
+            />
+          ))}
+        </DropdownMenuRadioGroup>
+
+        <DropdownMenuSeparator className={`${nav.menuSplit} ${styles.split}`} />
+        <DropdownMenuLabel className={`${nav.menuHead} ${styles.head}`}>{w.contrast}</DropdownMenuLabel>
+        <DropdownMenuRadioGroup
+          value={prefs.contrast}
+          onValueChange={(next) => {
+            if (isContrastChoice(next)) setContrast(next);
+          }}
+        >
+          {CONTRAST_OPTIONS.map(({ value, word, Icon }) => (
+            <Row key={value} value={value} label={w[word]} icon={<Icon />} />
           ))}
         </DropdownMenuRadioGroup>
       </DropdownMenuContent>

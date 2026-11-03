@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { admin } from "@/services/admin";
 import { markAdminSeen } from "@/components/notes/reader/adminSession";
@@ -80,6 +80,36 @@ export default function AdminShell({
       .catch(() => setWho(""));
   }, []);
 
+  /*
+   * Focus not obscured (2.4.11, #99). The bottom bar is fixed, and on an
+   * editor at 320px its buttons wrap to about 220px: a third of the screen.
+   * A field or button tabbed to below that line scrolled in under the bar
+   * and was entirely hidden. The bar's measured height becomes the root's
+   * `scroll-padding-bottom`, so focus stops above it, and `--a-bar-h`, which
+   * pads `main` so the last control can scroll clear. Measured rather than
+   * guessed because the bar's height depends on the screen and the bar's
+   * contents; on a desktop it is `display: none` and measures 0.
+   */
+  const bar = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = bar.current;
+    const root = document.documentElement;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const apply = () => {
+      const h = el.getBoundingClientRect().height;
+      root.style.scrollPaddingBottom = h ? `${Math.ceil(h) + 8}px` : "";
+      root.style.setProperty("--a-bar-h", `${Math.ceil(h)}px`);
+    };
+    const ro = new ResizeObserver(apply);
+    ro.observe(el);
+    apply();
+    return () => {
+      ro.disconnect();
+      root.style.scrollPaddingBottom = "";
+      root.style.removeProperty("--a-bar-h");
+    };
+  }, []);
+
   // Inference widens the literal to `string`, which aria-current does not accept.
   const isCurrent = (id: Section): "page" | undefined => (id === section ? "page" : undefined);
 
@@ -156,7 +186,7 @@ export default function AdminShell({
           {actions}
         </header>
 
-        <main id="admin-content" className="px-4 pb-32 pt-4 lg:px-10 lg:pb-16 lg:pt-8">
+        <main id="admin-content" className="px-4 pb-[max(8rem,calc(var(--a-bar-h,0px)+1rem))] pt-4 lg:px-10 lg:pb-16 lg:pt-8">
           {children}
         </main>
       </div>
@@ -167,7 +197,7 @@ export default function AdminShell({
         reaches the bottom of a phone, which a top bar never is. On an editor it
         belongs to Save.
       */}
-      <div className="a-bar fixed inset-x-0 bottom-0 z-30 border-t pb-[env(safe-area-inset-bottom)] lg:hidden">
+      <div ref={bar} className="a-bar fixed inset-x-0 bottom-0 z-30 border-t pb-[env(safe-area-inset-bottom)] lg:hidden">
         {bottomBar ?? (
           <nav className="flex" aria-label="Admin sections">
             {SECTIONS.map((s) => (

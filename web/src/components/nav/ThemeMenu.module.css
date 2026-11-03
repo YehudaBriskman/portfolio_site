@@ -22,6 +22,19 @@
 .menu.menu.menu {
   --row-pad: 12px;
   min-width: 12rem;
+  /* Three groups (#99) make nine 44px rows, which is taller than a landscape
+     phone and taller than any window at Larger text. Radix gives the room it
+     has; past that the panel scrolls, and it never runs off the screen. */
+  max-height: var(--radix-dropdown-menu-content-available-height, 80vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* The text-size rows' "A", in the face whose size it is showing. */
+.glyph {
+  font-family: var(--font-text);
+  font-weight: var(--weight-text-strong);
+  line-height: 1;
 }
 
 .split.split.split {

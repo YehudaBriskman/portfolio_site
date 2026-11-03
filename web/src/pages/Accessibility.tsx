@@ -106,6 +106,28 @@ export default function Accessibility() {
           </ul>
           <p>Nothing on the site flashes, and no content is only available while it moves.</p>
 
+          <h2 className="display display-md pt-6 text-object">Changing how the site looks</h2>
+          <p>
+            The theme button in the top bar (inside the menu on a phone) opens one menu with three
+            settings. The site remembers each one on this device, and each can be reached and
+            changed with the keyboard: Enter or Space opens the menu, the arrow keys move, and
+            Escape closes it.
+          </p>
+          <ul className="list-disc space-y-2 ps-6">
+            <li>
+              <strong>Theme:</strong> Light, Dark, or System to follow your device.
+            </li>
+            <li>
+              <strong>Text size:</strong> Default, Large (about 12% bigger) or Larger (25%
+              bigger). This is on top of your browser&rsquo;s own zoom, which works as well.
+            </li>
+            <li>
+              <strong>Contrast:</strong> Standard, More, or System to follow your device&rsquo;s
+              &ldquo;increase contrast&rdquo; setting. More darkens the secondary text, the
+              outlines and the dividers, and thickens the focus ring.
+            </li>
+          </ul>
+
           <h2 className="display display-md pt-6 text-object">Known limitations</h2>
           <ul className="list-disc space-y-2 ps-6">
             <li>
