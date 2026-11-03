@@ -137,7 +137,7 @@ describe("nginx config", () => {
 
   it("forwards the client address from every proxied location (#121)", () => {
     const proxied = locations.filter((loc) => loc.block!.some((d) => d.name === "proxy_pass"));
-    expect(proxied.length).toBe(9);
+    expect(proxied.length).toBe(10);
     const wrong = proxied.flatMap((loc) => {
       const headers = upstreamHeaders(loc);
       // $proxy_add_x_forwarded_for appends nginx's peer (Traefik) to what
@@ -228,5 +228,53 @@ describe("/feed.xml when the API fails (#125)", () => {
     // without an empty `types` block nginx sends this sentence as text/xml.
     expect(fallback.block!.find((d) => d.name === "types")?.block).toEqual([]);
     expect(responseHeaders(fallback).get("retry-after")).toMatch(/^\d+$/);
+  });
+});
+
+describe("/blog/area/<slug> on a direct load (#238)", () => {
+  const AREA = "location ~ ^/blog/area/([^/.]+)/?$";
+  const POST = "location ~ ^/blog/([^/.]+)/?$";
+  const area = locations.find((loc) => label(loc) === AREA);
+  const regexes = locations.filter((loc) => loc.args[0] === "~" || loc.args[0] === "~*");
+  /** nginx's choice among regex locations: the first in the file that matches. */
+  const firstRegex = (uri: string) => {
+    const hit = regexes.find((loc) => new RegExp(loc.args[1], loc.args[0] === "~*" ? "i" : "").test(uri));
+    return hit ? label(hit) : undefined;
+  };
+
+  it("has a location of its own, proxied to the area renderer", () => {
+    expect(area).toBeDefined();
+    expect(area!.block!.find((d) => d.name === "proxy_pass")?.args).toEqual([
+      "http://$api_upstream/api/seo/render/blog/area/$1",
+    ]);
+  });
+
+  it("is where an area URL lands, with or without a trailing slash", () => {
+    // A query string is not part of the URI a location matches, so
+    // `?topic=x` lands in the same place.
+    for (const uri of ["/blog/area/windom", "/blog/area/windom/", "/blog/area/site"]) {
+      expect(firstRegex(uri)).toBe(AREA);
+    }
+  });
+
+  it("leaves posts, the log, files and deeper paths where they were", () => {
+    expect(firstRegex("/blog/log")).toBe(POST);
+    expect(firstRegex("/blog/some-post")).toBe(POST);
+    expect(firstRegex("/blog/area/x/extra")).toBeUndefined();
+    // A post slugged "area", which there is none of: the renderer's 404.
+    expect(firstRegex("/blog/area/")).toBe(POST);
+    expect(firstRegex("/blog/area/card.png")).not.toBe(AREA);
+  });
+
+  it("falls back to the shell on a 5xx and lets the renderer's 404 through", () => {
+    const errorPage = area!.block!.find((d) => d.name === "error_page")!;
+    expect(errorPage.args).toEqual(["500", "502", "503", "504", "=", "@spa"]);
+    expect(area!.block!.find((d) => d.name === "proxy_intercept_errors")?.args).toEqual(["on"]);
+  });
+
+  it("sends the security headers and forwards the client like the other rendered pages", () => {
+    const headers = responseHeaders(area!);
+    expect(SECURITY_HEADERS.filter((h) => !headers.has(h))).toEqual([]);
+    expect(upstreamHeaders(area!).get("x-forwarded-for")).toBe("$proxy_add_x_forwarded_for");
   });
 });
