@@ -1,41 +1,23 @@
 /*
- * How the first screen comes apart as the reader leaves it, and goes back
- * together as they return (#162).
+ * The first screen's arrival, once a visit, when the entry's cover lifts.
  *
- * Until #162 this file was a staged arrival on a clock: the name fell a
- * letter at a time, then the figure rose, then the bar dropped, then the two
- * lines came in from their sides, each move waiting on the last one's
- * `animationend` through `useStagedArrival`. It ran once, on load, and the
- * owner's rule for the whole site retired it: "the titles and all the
- * animations need to be handled like the way that the github get handled —
- * reverse when scrolling up, all controllable with simple scrolling. no
- * more." The hook, `hero-chrome.css` and the clock went with it.
+ * WHAT THIS FILE NO LONGER DOES (2026-11-03)
+ * ------------------------------------------
+ * From #162 until 2026-11-03 this file also took the screen apart on the way
+ * out: on the section's own `--hero` view timeline the letters lifted under
+ * a paper mask (`exit 0%–24%`), the two lines slid back to their sides, and
+ * the figure sank behind its own paper (`exit 16%–44%`), with the corners
+ * last. Scrolling up put it back together. The owner's report on it: "the
+ * hero pictures and animations, on scrolling they disappear today. I want
+ * them to stay." Measured at 1440×900 with the dark act's edge halfway up
+ * the window, the photograph was on screen (its box at y -129 to 509) and
+ * invisible: its paper mask was at `scaleY(1)`, a sheet of `--paper` over
+ * it. With that one exit cancelled the figure was back, in the same frame.
+ * `docs/hero-aurora/before-light-*.png` is the bug.
  *
- * The first screen is the one place a scroll-driven *arrival* cannot work:
- * at scroll 0 it is already in view, so there is no "on the way in" for a
- * reader to scrub through, and starting it unassembled would leave the
- * largest text on the page unpainted until someone scrolled. So the gestures
- * the arrival used are kept and the clock is turned around: the screen is
- * whole at scroll 0, and as the section leaves through the top of the window
- * each part makes its own arrival gesture backwards — the letters lift under
- * a paper mask, the figure sinks behind one, the two lines slide back to
- * their own sides. Scrolling up runs every one of them forwards, which is the
- * arrival, at the reader's pace instead of the page's.
- *
- * WHICH PART GOES WHEN
- * --------------------
- * By geometry, not by the old order. A part that comes apart after it has
- * left the window is a part nobody saw come apart, and the type is at the
- * top of the screen — it is the first thing out. All ranges are on the
- * section's own `exit`, so a percentage is that fraction of the hero's
- * height scrolled past:
- *
- *   NAME                  exit  0% – 24%, last letter first
- *   one line of fact      exit  6% – 24%, back out to the left
- *   WHERE · COUNT · WHEN  exit 10% – 28%, back out to the right
- *   the figure            exit 16% – 44%, down behind its paper
- *   the corners           exit 36% – 48%, after the light has turned
- *                         (`HeroCorners.module.css`)
+ * So every exit is gone and the screen stays whole; it is held still until
+ * the next act has covered it (`Hero.module.css`, the holder). What is left
+ * here is the arrival.
  *
  * THE ONE RULE EVERYTHING HERE IS SHAPED BY
  * -----------------------------------------
@@ -43,313 +25,113 @@
  * element that is, is not a Largest Contentful Paint candidate, and this
  * page measured that bug once (LCP reported at the end of a reveal). Every
  * mask is a paper-coloured box moved over the ink, never a clip on it, and
- * at scroll 0 every animation is before its range — on its `from` frame,
- * which is the finished screen. LCP is decided before a single one moves.
- *
- * THE OFF-SWITCHES, BY CONSTRUCTION
- * ---------------------------------
- * Every animation here, and the masks they move, is declared only inside
- * one gate: the engine runs view timelines, the reader has not asked for
- * reduced motion, and Pause is not on. Outside it nothing is declared at
- * all, so the screen is exactly its finished state under each of the three
- * switches with no exit block to keep in step. This is the shape `Written`
- * uses for its live state, and it is the safer of the two shapes §4 allows
- * for a file whose resting state *is* the finished one: there is no frame
- * zero to land on by mistake, because without the gate there is no
- * animation to have a frame zero.
- *
- * Without the `@supports` half, an engine that drops `animation-timeline`
- * would read `animation: plate-letter-out linear both` as a zero-length
- * animation on the clock — and `fill: both` would hold the *last* frame,
- * which here is the dismantled screen. That half is not decoration.
+ * the name's and the figure's keyframes carry no opacity.
  *
  * THE ARRIVAL, ONCE, WHEN THE COVER LIFTS (#194)
  * ----------------------------------------------
- * The owner's next word on the same screen: the hero's appearing has to be
- * seen, and it was not — the old clock started at mount and the entry
- * shutter lifts when the page is *ready*, so the arrival played behind the
- * grid. So the gestures run forwards once a visit as well, on a clock, and
- * the clock starts when the shutter says the window is clear — its last
- * tile has finished leaving: `Hero.tsx` puts `data-arrival="play"` on the
- * stage in that commit
- * (`motion/entry.ts` is the signal). Until then the stage says `held`. A hero that is not
- * part of the entry — mounted after the shutter left, or under any
- * off-switch, where there is no shutter — never gets the attribute.
+ * The hero's appearing has to be seen, and the entry shutter lifts when the
+ * page is *ready*, so the gestures run on a clock that starts when the
+ * shutter says the window is clear — its last tile has finished leaving:
+ * `Hero.tsx` puts `data-arrival="play"` on the stage in that commit
+ * (`motion/entry.ts` is the signal). Until then the stage says `held`. A
+ * hero that is not part of the entry — mounted after the shutter left, or
+ * under any off-switch, where there is no shutter — never gets the
+ * attribute, and nothing here matches it.
  *
  * HELD ON THE FIRST FRAME, SO IT ARRIVES ONCE (#219)
  * --------------------------------------------------
- * `held` used to match nothing here, so under the cover the screen was the
- * finished one — and the cover leaves tile by tile, so the reader watched
- * the finished screen appear through the gaps, and then `play` threw every
- * part back to its `from` frame and it arrived again. The owner: "the
- * animation of the hero getting spawned is twice". Measured at 4x CPU, the
- * window matched the finished frame for ~200ms before the clear and was
- * 12.6% off it the frame after.
- *
- * So `held` now pins every part the arrival moves on that arrival's `from`
- * frame: the letters up under their paper, the figure down behind its own,
- * the two lines out at their sides, the corners sunk. The tiles lift off an
- * empty sheet of paper and the arrival plays once, from the frame the hold
- * left — each `*-held` keyframe is its arrival's `from` to the character,
- * which the test pins, so nothing jumps. It is a second animation layer and
- * not a plain `transform`, because the exit layer's `both` fill would win
- * over a declaration; and it has no duration, so it is a state and not a
- * clock (and not `animation-play-state`, which §4 bans).
+ * `held` pins every part the arrival moves on that arrival's `from` frame:
+ * the letters up under their paper, the figure down behind its own, the two
+ * lines out at their sides, the corners sunk. The tiles lift off an empty
+ * sheet of paper and the arrival plays once, from the frame the hold left —
+ * each `*-held` keyframe is its arrival's `from` to the character, which the
+ * test pins, so nothing jumps. It has no duration, so it is a state and not
+ * a clock (and not `animation-play-state`, which §4 bans).
  *
  * LCP is unmoved by it: the ink and the photograph are still painted at full
- * strength on frame one, under a paper box, which is the mask technique
- * above — occlusion does not take an element out of the running. Measured
- * before and after, the portrait stays the candidate at the same time
- * (`docs/hero-arrival-once/`).
+ * strength on frame one, under a paper box — occlusion does not take an
+ * element out of the running (`docs/hero-arrival-once/`).
  *
  * It is the one clock in this file and it is exempt for the shutter's own
  * reason (motion-contract §8): it is the page load, not a scroll.
  *
  *   NAME                  0ms, first letter first, 38ms apart, 260ms each
  *   the figure            120ms, 520ms, up from behind its paper
+ *   the ribbon            260ms, 700ms (`HeroRibbon.module.css`)
  *   one line of fact      300ms, 460ms, in from the start side
- *   WHERE · COUNT · WHEN  390ms, 460ms, in from the end side
+ *   WHERE · WHEN          390ms, 460ms, in from the end side
  *   the corners           480ms, 460ms (`HeroCorners.module.css`)
  *
- * About 940ms in all, from the last tile leaving. It started at the *first*
- * tile at first, and measured that way three quarters of it played under
- * the lifting grid; from the last one, nearly all of it plays after the
- * sheet has gone (`motion/entry.ts` has the arithmetic).
- *
- * Where the engine runs view timelines, each arrival is a second layer on
- * the element's scrubbed exit rather than a rule of its own — `animation` is
- * one property, and a rule that set only the arrival would delete the exit.
- * The arrival is listed *last*, so it wins while it runs, and fills
- * `backwards` rather than `both`, so the moment it ends it lets go and the
- * scroll has the element again. Where the engine does not, the arrival is
- * the only layer and needs the masks declared for it, which is the second
- * block. Both blocks sit behind the same two switches the exit does; the
- * third switch is what decides which of them applies.
+ * THE OFF-SWITCHES
+ * ----------------
+ * No scroll timeline is left in this file, so it has no `@supports` gate
+ * (§4: one here would be cargo cult). Reduced motion and Pause are the one
+ * block below; under either, and for a hero with no `data-arrival`, nothing
+ * is declared — not even the masks — and the screen is simply whole.
  */
 
-.timeline {
-  view-timeline: --hero block;
-}
-
-@supports (animation-timeline: view()) {
-  @media (prefers-reduced-motion: no-preference) {
-    /* The masks exist only where something can move them. */
-    :global(body:not(.motion-paused)) .stage [data-letter]::after,
-    :global(body:not(.motion-paused)) .stage .mask {
-      content: "";
-      position: absolute;
-      background: rgb(var(--paper));
-      transform-origin: 50% 100%;
-      transform: scaleY(0);
-      pointer-events: none;
-    }
-
-    :global(body:not(.motion-paused)) .stage [data-letter]::after {
-      inset: -0.1em -0.09em -0.16em 0;
-    }
-
-    :global(body:not(.motion-paused)) .stage .mask {
-      inset: 0 0 -16px;
-    }
-
-    /* The shorthands first, each followed by its timeline: `animation`
-       resets `animation-timeline` to `auto`. */
-    :global(body:not(.motion-paused)) .stage [data-letter] {
-      /* Last letter first: letter i of n starts (n - 1 - i) steps in. */
-      --out-at: calc((var(--letters, 9) - 1 - var(--letter)) * 2%);
-      animation: plate-letter-out linear both;
-      animation-timeline: --hero;
-      animation-range: exit var(--out-at) exit calc(var(--out-at) + 8%);
-    }
-
-    :global(body:not(.motion-paused)) .stage [data-letter]::after {
-      animation: plate-mask-up linear both;
-      animation-timeline: --hero;
-      animation-range: exit var(--out-at) exit calc(var(--out-at) + 8%);
-    }
-
-    :global(body:not(.motion-paused)) .stage h1 + p {
-      animation: plate-to-start linear both;
-      animation-timeline: --hero;
-      animation-range: exit 6% exit 24%;
-    }
-
-    :global(body:not(.motion-paused)) .stage ul {
-      animation: plate-to-end linear both;
-      animation-timeline: --hero;
-      animation-range: exit 10% exit 28%;
-    }
-
-    :global(body:not(.motion-paused)) .stage [data-portrait] img {
-      animation: plate-figure-out linear both;
-      animation-timeline: --hero;
-      animation-range: exit 16% exit 44%;
-    }
-
-    :global(body:not(.motion-paused)) .stage .mask {
-      animation: plate-mask-up linear both;
-      animation-timeline: --hero;
-      animation-range: exit 16% exit 44%;
-    }
-
-    /* The arrival, layered on the exit (#194). See the head of the file. */
-    :global(body:not(.motion-paused)) .stage[data-arrival="play"] [data-letter] {
-      animation:
-        plate-letter-out linear both,
-        plate-letter-in 260ms var(--ease-settle) calc(var(--letter) * 38ms) backwards;
-      animation-timeline: --hero, auto;
-      animation-range: exit var(--out-at) exit calc(var(--out-at) + 8%), normal;
-    }
-
-    :global(body:not(.motion-paused)) .stage[data-arrival="play"] [data-letter]::after {
-      animation:
-        plate-mask-up linear both,
-        plate-mask-down 260ms var(--ease-settle) calc(var(--letter) * 38ms) backwards;
-      animation-timeline: --hero, auto;
-      animation-range: exit var(--out-at) exit calc(var(--out-at) + 8%), normal;
-    }
-
-    :global(body:not(.motion-paused)) .stage[data-arrival="play"] h1 + p {
-      animation:
-        plate-to-start linear both,
-        plate-from-start 460ms var(--ease-settle) 300ms backwards;
-      animation-timeline: --hero, auto;
-      animation-range: exit 6% exit 24%, normal;
-    }
-
-    :global(body:not(.motion-paused)) .stage[data-arrival="play"] ul {
-      animation:
-        plate-to-end linear both,
-        plate-from-end 460ms var(--ease-settle) 390ms backwards;
-      animation-timeline: --hero, auto;
-      animation-range: exit 10% exit 28%, normal;
-    }
-
-    :global(body:not(.motion-paused)) .stage[data-arrival="play"] [data-portrait] img {
-      animation:
-        plate-figure-out linear both,
-        plate-figure-in 520ms var(--ease-settle) 120ms backwards;
-      animation-timeline: --hero, auto;
-      animation-range: exit 16% exit 44%, normal;
-    }
-
-    :global(body:not(.motion-paused)) .stage[data-arrival="play"] .mask {
-      animation:
-        plate-mask-up linear both,
-        plate-mask-down 520ms var(--ease-settle) 120ms backwards;
-      animation-timeline: --hero, auto;
-      animation-range: exit 16% exit 44%, normal;
-    }
-
-    /* Held under the cover, on the arrival's first frame (#219). The same
-       second layer, but a hold rather than a clock: each `*-held` keyframe
-       is its arrival's `from` and nothing else, with no duration, so it
-       neither moves nor ends — it is a state, not a timing. A rule that
-       set `transform` instead would lose to the exit layer's fill. */
-    :global(body:not(.motion-paused)) .stage[data-arrival="held"] [data-letter] {
-      animation: plate-letter-out linear both, plate-letter-held both;
-      animation-timeline: --hero, auto;
-      animation-range: exit var(--out-at) exit calc(var(--out-at) + 8%), normal;
-    }
-
-    :global(body:not(.motion-paused)) .stage[data-arrival="held"] [data-letter]::after {
-      animation: plate-mask-up linear both, plate-mask-held both;
-      animation-timeline: --hero, auto;
-      animation-range: exit var(--out-at) exit calc(var(--out-at) + 8%), normal;
-    }
-
-    :global(body:not(.motion-paused)) .stage[data-arrival="held"] h1 + p {
-      animation: plate-to-start linear both, plate-start-held both;
-      animation-timeline: --hero, auto;
-      animation-range: exit 6% exit 24%, normal;
-    }
-
-    :global(body:not(.motion-paused)) .stage[data-arrival="held"] ul {
-      animation: plate-to-end linear both, plate-end-held both;
-      animation-timeline: --hero, auto;
-      animation-range: exit 10% exit 28%, normal;
-    }
-
-    :global(body:not(.motion-paused)) .stage[data-arrival="held"] [data-portrait] img {
-      animation: plate-figure-out linear both, plate-figure-held both;
-      animation-timeline: --hero, auto;
-      animation-range: exit 16% exit 44%, normal;
-    }
-
-    :global(body:not(.motion-paused)) .stage[data-arrival="held"] .mask {
-      animation: plate-mask-up linear both, plate-mask-held both;
-      animation-timeline: --hero, auto;
-      animation-range: exit 16% exit 44%, normal;
-    }
+/* The masks exist only for a stage that is part of the entry. */
+@media (prefers-reduced-motion: no-preference) {
+  :global(body:not(.motion-paused)) .stage[data-arrival] [data-letter]::after,
+  :global(body:not(.motion-paused)) .stage[data-arrival] .mask {
+    content: "";
+    position: absolute;
+    background: rgb(var(--paper));
+    transform-origin: 50% 100%;
+    transform: scaleY(0);
+    pointer-events: none;
   }
-}
 
-/* The arrival alone, for an engine with no view timelines (#194). There is
-   no exit to layer on and no mask declared yet, so this block brings its
-   own, for the hold and the arrival only. */
-@supports not (animation-timeline: view()) {
-  @media (prefers-reduced-motion: no-preference) {
-    :global(body:not(.motion-paused)) .stage[data-arrival] [data-letter]::after,
-    :global(body:not(.motion-paused)) .stage[data-arrival] .mask {
-      content: "";
-      position: absolute;
-      background: rgb(var(--paper));
-      transform-origin: 50% 100%;
-      transform: scaleY(0);
-      pointer-events: none;
-    }
+  :global(body:not(.motion-paused)) .stage[data-arrival="play"] [data-letter]::after {
+    inset: -0.1em -0.09em -0.16em 0;
+    animation: plate-mask-down 260ms var(--ease-settle) calc(var(--letter) * 38ms) backwards;
+  }
 
-    :global(body:not(.motion-paused)) .stage[data-arrival="play"] [data-letter]::after {
-      inset: -0.1em -0.09em -0.16em 0;
-      animation: plate-mask-down 260ms var(--ease-settle) calc(var(--letter) * 38ms) backwards;
-    }
+  :global(body:not(.motion-paused)) .stage[data-arrival="play"] [data-letter] {
+    animation: plate-letter-in 260ms var(--ease-settle) calc(var(--letter) * 38ms) backwards;
+  }
 
-    :global(body:not(.motion-paused)) .stage[data-arrival="play"] [data-letter] {
-      animation: plate-letter-in 260ms var(--ease-settle) calc(var(--letter) * 38ms) backwards;
-    }
+  :global(body:not(.motion-paused)) .stage[data-arrival="play"] h1 + p {
+    animation: plate-from-start 460ms var(--ease-settle) 300ms backwards;
+  }
 
-    :global(body:not(.motion-paused)) .stage[data-arrival="play"] h1 + p {
-      animation: plate-from-start 460ms var(--ease-settle) 300ms backwards;
-    }
+  :global(body:not(.motion-paused)) .stage[data-arrival="play"] ul {
+    animation: plate-from-end 460ms var(--ease-settle) 390ms backwards;
+  }
 
-    :global(body:not(.motion-paused)) .stage[data-arrival="play"] ul {
-      animation: plate-from-end 460ms var(--ease-settle) 390ms backwards;
-    }
+  :global(body:not(.motion-paused)) .stage[data-arrival="play"] [data-portrait] img {
+    animation: plate-figure-in 520ms var(--ease-settle) 120ms backwards;
+  }
 
-    :global(body:not(.motion-paused)) .stage[data-arrival="play"] [data-portrait] img {
-      animation: plate-figure-in 520ms var(--ease-settle) 120ms backwards;
-    }
+  :global(body:not(.motion-paused)) .stage[data-arrival="play"] .mask {
+    inset: 0 0 -16px;
+    animation: plate-mask-down 520ms var(--ease-settle) 120ms backwards;
+  }
 
-    :global(body:not(.motion-paused)) .stage[data-arrival="play"] .mask {
-      inset: 0 0 -16px;
-      animation: plate-mask-down 520ms var(--ease-settle) 120ms backwards;
-    }
+  :global(body:not(.motion-paused)) .stage[data-arrival="held"] [data-letter]::after {
+    inset: -0.1em -0.09em -0.16em 0;
+    animation: plate-mask-held both;
+  }
 
-    :global(body:not(.motion-paused)) .stage[data-arrival="held"] [data-letter]::after {
-      inset: -0.1em -0.09em -0.16em 0;
-      animation: plate-mask-held both;
-    }
+  :global(body:not(.motion-paused)) .stage[data-arrival="held"] [data-letter] {
+    animation: plate-letter-held both;
+  }
 
-    :global(body:not(.motion-paused)) .stage[data-arrival="held"] [data-letter] {
-      animation: plate-letter-held both;
-    }
+  :global(body:not(.motion-paused)) .stage[data-arrival="held"] h1 + p {
+    animation: plate-start-held both;
+  }
 
-    :global(body:not(.motion-paused)) .stage[data-arrival="held"] h1 + p {
-      animation: plate-start-held both;
-    }
+  :global(body:not(.motion-paused)) .stage[data-arrival="held"] ul {
+    animation: plate-end-held both;
+  }
 
-    :global(body:not(.motion-paused)) .stage[data-arrival="held"] ul {
-      animation: plate-end-held both;
-    }
+  :global(body:not(.motion-paused)) .stage[data-arrival="held"] [data-portrait] img {
+    animation: plate-figure-held both;
+  }
 
-    :global(body:not(.motion-paused)) .stage[data-arrival="held"] [data-portrait] img {
-      animation: plate-figure-held both;
-    }
-
-    :global(body:not(.motion-paused)) .stage[data-arrival="held"] .mask {
-      inset: 0 0 -16px;
-      animation: plate-mask-held both;
-    }
+  :global(body:not(.motion-paused)) .stage[data-arrival="held"] .mask {
+    inset: 0 0 -16px;
+    animation: plate-mask-held both;
   }
 }
 
@@ -376,10 +158,11 @@
   from, to { opacity: 0; transform: translateX(18px); }
 }
 
-/* The arrival's keyframes run the other way: each `to` is the finished
-   screen, and `from` is the exit's last frame, so arrival and exit are one
-   gesture played in two directions. None of the name's or the figure's
-   carries opacity, for the reason at the head of the file. */
+/* The arrival: each `to` is the finished screen. None of the name's or the
+   figure's carries opacity, for the reason at the head of the file. The two
+   lines may fade, as they always could: 1rem and 0.72rem of secondary ink,
+   never the paint candidate. Sideways travel is licensed by `overflow-x:
+   clip` on the hero (`Hero.module.css`). */
 @keyframes plate-letter-in {
   from { transform: translateY(-16px); }
   to   { transform: none; }
@@ -403,34 +186,4 @@
 @keyframes plate-from-end {
   from { opacity: 0; transform: translateX(18px); }
   to   { opacity: 1; transform: none; }
-}
-
-/* Each keyframe's `from` is the finished screen, written out rather than left
-   implicit, so the frame a reader sees at scroll 0 is stated in this file. */
-@keyframes plate-letter-out {
-  from { transform: none; }
-  to   { transform: translateY(-16px); }
-}
-
-@keyframes plate-mask-up {
-  from { transform: scaleY(0); }
-  to   { transform: scaleY(1); }
-}
-
-@keyframes plate-figure-out {
-  from { transform: none; }
-  to   { transform: translateY(14px); }
-}
-
-/* The two lines are the exception that may fade, as they always were: 1rem
-   and 0.72rem of secondary ink, never the paint candidate. Sideways travel
-   is licensed by `overflow-x: clip` on the hero (`Hero.module.css`). */
-@keyframes plate-to-start {
-  from { opacity: 1; transform: none; }
-  to   { opacity: 0; transform: translateX(-18px); }
-}
-
-@keyframes plate-to-end {
-  from { opacity: 1; transform: none; }
-  to   { opacity: 0; transform: translateX(18px); }
 }

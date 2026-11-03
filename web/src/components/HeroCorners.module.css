@@ -138,14 +138,17 @@
  * reader did nothing. The owner's rule retired that: every animation is
  * controllable with simple scrolling, and reverses on the way up.
  *
- * So both hang on the hero's `--hero` view timeline (declared in
- * `HeroArrival.module.css`): across the first 36% of the section leaving
- * the window the phrases turn, each holding its own slice, and the lamp
- * breathes three times with a ring leaving it on each. At scroll 0 the lamp
- * is lit and still and the first phrase is the one on the screen — the same
- * frame every off-switch shows — and scrolling back up turns the phrases
- * back. Then, from 36% to 48%, the two corners sink under their paper, the
- * last part of the screen to come apart because it is the last to leave.
+ * So both hang on the hero's `--hero` view timeline (declared on the
+ * holder in `Hero.module.css`): across the first 36% of the stretch the hero
+ * is held still for (`contain`), the phrases turn, each holding its own
+ * slice, and the lamp breathes three times with a ring leaving it on each.
+ * At scroll 0 the lamp is lit and still and the first phrase is the one on
+ * the screen — the same frame every off-switch shows — and scrolling back
+ * up turns the phrases back.
+ *
+ * Until 2026-11-03 the two corners then sank under their paper, the last
+ * part of the screen to come apart. They no longer do: the owner wanted the
+ * screen to stay until the next act covers it, and it does.
  *
  * ON THE LEDGER
  * -------------
@@ -219,7 +222,7 @@
 
 /*
  * The phrases: phrase i of n owns the slice [i/n, (i+1)/n] of the first 36%
- * of the exit, and is on screen for the middle of it. The first phrase is
+ * of the hold, and is on screen for the middle of it. The first phrase is
  * already on screen when its slice starts and the last stays when its slice
  * ends, so scroll 0 shows the first phrase and every frame past the turn
  * shows the last — never a gap with no words in it.
@@ -234,7 +237,7 @@
       --slice: calc(36% / var(--n));
       animation: phrase-turn linear both;
       animation-timeline: --hero;
-      animation-range: exit calc(var(--i) * var(--slice)) exit calc((var(--i) + 1) * var(--slice));
+      animation-range: contain calc(var(--i) * var(--slice)) contain calc((var(--i) + 1) * var(--slice));
     }
 
     :global(body:not(.motion-paused)) .phrase:first-child {
@@ -248,112 +251,57 @@
     :global(body:not(.motion-paused)) .lamp {
       animation: lamp-breathe linear both;
       animation-timeline: --hero;
-      animation-range: exit 0% exit 36%;
+      animation-range: contain 0% contain 36%;
       animation-iteration-count: 3;
     }
 
     :global(body:not(.motion-paused)) .lamp::after {
       animation: lamp-ring linear both;
       animation-timeline: --hero;
-      animation-range: exit 0% exit 36%;
+      animation-range: contain 0% contain 36%;
       animation-iteration-count: 3;
-    }
-
-    /* The corners' own exit: each block sinks under a paper mask, the
-       reverse of the rise they used to arrive by. */
-    :global(body:not(.motion-paused)) .corners > * > * {
-      position: relative;
-      animation: corner-out linear both;
-      animation-timeline: --hero;
-      animation-range: exit 36% exit 48%;
-    }
-
-    :global(body:not(.motion-paused)) .corners > * > *::before {
-      content: "";
-      position: absolute;
-      inset: 0 -0.12em -0.2em;
-      z-index: 1;
-      background: rgb(var(--paper));
-      transform-origin: 50% 100%;
-      pointer-events: none;
-      animation: corner-mask-up linear both;
-      animation-timeline: --hero;
-      animation-range: exit 36% exit 48%;
-    }
-
-    /* The corners' part of the entry's arrival (#194): last, 480ms after the
-       shutter's last tile has left, layered on the exit so the scroll has them back
-       the moment it ends. `HeroArrival.module.css` has the whole sequence and
-       why it waits for the shutter. */
-    :global(body:not(.motion-paused)) :global([data-arrival="play"]) .corners > * > * {
-      animation:
-        corner-out linear both,
-        corner-in 460ms var(--ease-settle) 480ms backwards;
-      animation-timeline: --hero, auto;
-      animation-range: exit 36% exit 48%, normal;
-    }
-
-    :global(body:not(.motion-paused)) :global([data-arrival="play"]) .corners > * > *::before {
-      animation:
-        corner-mask-up linear both,
-        corner-mask-down 460ms var(--ease-settle) 480ms backwards;
-      animation-timeline: --hero, auto;
-      animation-range: exit 36% exit 48%, normal;
-    }
-
-    /* Held under the cover on the arrival's first frame (#219): sunk and
-       masked, so the lifting tiles show nothing that has already arrived.
-       `HeroArrival.module.css` has why it is a hold layer and not a rule. */
-    :global(body:not(.motion-paused)) :global([data-arrival="held"]) .corners > * > * {
-      animation: corner-out linear both, corner-held both;
-      animation-timeline: --hero, auto;
-      animation-range: exit 36% exit 48%, normal;
-    }
-
-    :global(body:not(.motion-paused)) :global([data-arrival="held"]) .corners > * > *::before {
-      animation: corner-mask-up linear both, corner-mask-held both;
-      animation-timeline: --hero, auto;
-      animation-range: exit 36% exit 48%, normal;
     }
   }
 }
 
-/* The same arrival alone, for an engine with no view timelines, with the
-   mask it needs for the length of the hold and the arrival. */
-@supports not (animation-timeline: view()) {
-  @media (prefers-reduced-motion: no-preference) {
-    :global(body:not(.motion-paused)) :global([data-arrival="play"]) .corners > * > * {
-      position: relative;
-      animation: corner-in 460ms var(--ease-settle) 480ms backwards;
-    }
+/* The corners' part of the entry's arrival (#194): last, 480ms after the
+   shutter's last tile has left, with the mask it needs for the length of the
+   hold and the arrival. Held under the cover on the arrival's first frame
+   (#219), sunk and masked, so the lifting tiles show nothing that has
+   already arrived. `HeroArrival.module.css` has the whole sequence. No
+   scroll timeline is involved, so no `@supports` either. */
+@media (prefers-reduced-motion: no-preference) {
+  :global(body:not(.motion-paused)) :global([data-arrival="play"]) .corners > * > * {
+    position: relative;
+    animation: corner-in 460ms var(--ease-settle) 480ms backwards;
+  }
 
-    :global(body:not(.motion-paused)) :global([data-arrival="play"]) .corners > * > *::before {
-      content: "";
-      position: absolute;
-      inset: 0 -0.12em -0.2em;
-      z-index: 1;
-      background: rgb(var(--paper));
-      transform-origin: 50% 100%;
-      transform: scaleY(0);
-      pointer-events: none;
-      animation: corner-mask-down 460ms var(--ease-settle) 480ms backwards;
-    }
+  :global(body:not(.motion-paused)) :global([data-arrival="play"]) .corners > * > *::before {
+    content: "";
+    position: absolute;
+    inset: 0 -0.12em -0.2em;
+    z-index: 1;
+    background: rgb(var(--paper));
+    transform-origin: 50% 100%;
+    transform: scaleY(0);
+    pointer-events: none;
+    animation: corner-mask-down 460ms var(--ease-settle) 480ms backwards;
+  }
 
-    :global(body:not(.motion-paused)) :global([data-arrival="held"]) .corners > * > * {
-      position: relative;
-      animation: corner-held both;
-    }
+  :global(body:not(.motion-paused)) :global([data-arrival="held"]) .corners > * > * {
+    position: relative;
+    animation: corner-held both;
+  }
 
-    :global(body:not(.motion-paused)) :global([data-arrival="held"]) .corners > * > *::before {
-      content: "";
-      position: absolute;
-      inset: 0 -0.12em -0.2em;
-      z-index: 1;
-      background: rgb(var(--paper));
-      transform-origin: 50% 100%;
-      pointer-events: none;
-      animation: corner-mask-held both;
-    }
+  :global(body:not(.motion-paused)) :global([data-arrival="held"]) .corners > * > *::before {
+    content: "";
+    position: absolute;
+    inset: 0 -0.12em -0.2em;
+    z-index: 1;
+    background: rgb(var(--paper));
+    transform-origin: 50% 100%;
+    pointer-events: none;
+    animation: corner-mask-held both;
   }
 }
 
@@ -418,16 +366,6 @@
   10%  { transform: scale(1.2); opacity: 0.55; }
   55%  { transform: scale(2.6); opacity: 0; }
   100% { transform: scale(2.6); opacity: 0; }
-}
-
-@keyframes corner-out {
-  from { transform: none; }
-  to   { transform: translateY(14px); }
-}
-
-@keyframes corner-mask-up {
-  from { transform: scaleY(0); }
-  to   { transform: scaleY(1); }
 }
 
 /* In a forced palette the disc and its halo would be painted in a system

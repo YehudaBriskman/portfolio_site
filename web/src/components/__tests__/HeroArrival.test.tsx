@@ -10,9 +10,10 @@ import HeroCorners from "@/components/HeroCorners";
 import { contact, heroPhrases, plate, plateTitle } from "@/data/site";
 
 /*
- * The first screen comes apart on the reader's scroll as it leaves, and goes
- * back together as they return (#162) — two stylesheets and a split name,
- * and vitest can see none of it run. jsdom lays out no CSS, so what is
+ * The first screen arrives once a visit as the entry's cover lifts (#194),
+ * and since 2026-11-03 it stays whole, held still until the act after it
+ * covers it — stylesheets and a split name, and vitest can see none of it
+ * run. jsdom lays out no CSS, so what is
  * pinned here is the contract around the motion: the hooks each stylesheet
  * selects on, the markup the split produces, and the off-switches, which
  * are the part of a motion component that is equally invisible when it
@@ -60,10 +61,21 @@ function atBlock(css: string, prelude: string): string {
 
 const GATE = "@supports (animation-timeline: view())";
 const NO_TIMELINES = "@supports not (animation-timeline: view())";
+const MOTION = "@media (prefers-reduced-motion: no-preference)";
+const HERO_CSS = strip(readFileSync(resolve(HERE, "../Hero.module.css"), "utf8"));
 
 /* Everything outside the gate: what every off-switch renders. */
 function outsideGate(css: string): string {
-  return css.replace(atBlock(css, GATE), "");
+  return css.includes(GATE) ? css.replace(atBlock(css, GATE), "") : css;
+}
+
+/*
+ * The entry's arrival (#194, #219): the one block, outside any view-timeline
+ * gate, behind reduced motion and Pause. Since 2026-11-03 it is the only
+ * motion `HeroArrival.module.css` has, and the corners' only clock.
+ */
+function arrivalBlock(css: string): string {
+  return atBlock(outsideGate(css), MOTION);
 }
 
 /*
@@ -117,14 +129,16 @@ describe("the first screen's hooks", () => {
     expect(hero.querySelector("[data-portrait-mask]")).not.toBeNull();
   });
 
-  it("hangs every part on the section's own timeline, and on no clock (#162)", () => {
+  it("hangs the hero's timeline on the static holder, and nothing on a sequence", () => {
     const { container } = render(<Hero />);
-    /* The section carries the timeline and nothing carries a sequence: no
-       `data-arrived`, no token list on the body. */
+    /* Nothing carries a sequence: no `data-arrived`, no token list on the
+       body. The `--hero` timeline is the holder's, the static box the pinned
+       hero sits in, because a view timeline on a stuck element stalls
+       (motion-contract §1). */
     expect(container.querySelector("[data-arrived]")).toBeNull();
     expect(document.body.dataset.heroArrived).toBeUndefined();
-    expect(ARRIVAL).toMatch(/view-timeline:\s*--hero/);
-    expect(ARRIVAL).toMatch(/animation-timeline:\s*--hero/);
+    expect(HERO_CSS).toMatch(/\.holder \{[^}]*view-timeline:\s*--hero/);
+    expect(ARRIVAL).not.toMatch(/(view|animation)-timeline/);
     /* The one clock left is the entry's arrival (#194), and it is reachable
        only through the attribute the shutter's signal puts on the stage. */
     const clocked = [...ARRIVAL.matchAll(/([^{}]+)\{[^{}]*\d+ms[^{}]*\}/g)].map((m) => m[1].trim());
@@ -358,7 +372,7 @@ describe("the arrival waits for the cover to lift (#194)", () => {
   });
 
   it("declares the arrival only for a stage that has been told to play", () => {
-    const gate = atBlock(ARRIVAL, GATE);
+    const gate = arrivalBlock(ARRIVAL);
     for (const name of ["plate-letter-in", "plate-mask-down", "plate-figure-in", "plate-from-start", "plate-from-end"]) {
       const rules = [...gate.matchAll(new RegExp(`([^{}]+)\\{[^{}]*\\b${name}\\b[^{}]*\\}`, "g"))];
       expect(rules.length, `${name} is not declared`).toBeGreaterThan(0);
@@ -369,9 +383,9 @@ describe("the arrival waits for the cover to lift (#194)", () => {
       expect(rules.length, `${name} is not declared`).toBeGreaterThan(0);
       for (const [, selector] of rules) expect(selector).toContain('[data-arrival="play"]');
     }
-    /* Layered after the exit and filling backwards only, so it wins while it
-       runs and lets go of the element the moment it ends. */
-    expect(gate).toMatch(/plate-letter-out linear both,\s*plate-letter-in [^;]*backwards;\s*animation-timeline: --hero, auto;/);
+    /* Filling backwards only, so it lets go of the element the moment it
+       ends and the finished screen is the element's own styles. */
+    expect(gate).toMatch(/animation: plate-letter-in [^;]*backwards;/);
     expect(ARRIVAL).not.toMatch(/plate-[a-z-]+-in [^;,]*\bboth\b/);
   });
 
@@ -417,15 +431,15 @@ describe("the arrival waits for the cover to lift (#194)", () => {
       expect(heldOf(css, held), `no @keyframes ${held}`).toBeTruthy();
       expect(heldOf(css, held), `${held} is not ${arrival}'s from`).toBe(fromOf(css, arrival));
 
-      for (const block of [atBlock(css, GATE), atBlock(css, NO_TIMELINES)]) {
+      for (const block of [arrivalBlock(css)]) {
         const rules = [...block.matchAll(/([^{}]+)\{([^{}]*)\}/g)].filter(
           ([, selector]) => selector.includes('[data-arrival="held"]') && selector.trim().endsWith(part),
         );
         expect(rules.length, `${part} has no held rule`).toBe(1);
         const [, , body] = rules[0];
         /* A hold, not a clock: no duration, no delay — it neither moves nor
-           ends. And last in the list, so it wins over the exit's fill. */
-        expect(body).toMatch(new RegExp(`\\b${held} both;`));
+           ends. */
+        expect(body).toMatch(new RegExp(`animation: ${held} both;`));
         expect(body).not.toMatch(/\d+m?s\b/);
       }
     }
@@ -433,45 +447,56 @@ describe("the arrival waits for the cover to lift (#194)", () => {
 });
 
 describe("the first screen's off-switches", () => {
-  it("declares every animation, and every mask, only inside the three-condition gate", () => {
-    /* View timelines run, no reduced motion, no Pause. Outside that gate
-       nothing is declared, so all three switches render the finished screen
-       by construction — there is no exit block to fall out of step. */
-    const gate = atBlock(ARRIVAL, GATE);
-    expect(gate).toContain("@media (prefers-reduced-motion: no-preference)");
-    expect(gate).toContain("body:not(.motion-paused)");
-    const rest = outsideGate(ARRIVAL);
-    /* The one other block is the entry's arrival for an engine with no view
-       timelines (#194): behind the other two switches, and only for a stage
-       that is part of the entry — held under the cover (#219) or told to
-       play. A hero with no `data-arrival` matches none of it. */
-    const fallback = atBlock(rest, NO_TIMELINES);
-    expect(fallback).toContain("@media (prefers-reduced-motion: no-preference)");
-    const selectors = fallback.match(/[^{}]+(?=\{)/g)!.slice(2);
+  it("declares every animation, and every mask, only behind the two standing switches", () => {
+    /* No scroll timeline is left in this file (2026-11-03), so there is no
+       `@supports` gate to keep (§4: one would be cargo cult). Reduced motion
+       and Pause are one block, and inside it every rule is for a stage that
+       is part of the entry — held under the cover (#219) or told to play. A
+       hero with no `data-arrival` matches none of it, and outside it nothing
+       is declared: every switch renders the finished screen. */
+    expect(ARRIVAL).not.toContain("@supports");
+    const block = arrivalBlock(ARRIVAL);
+    const selectors = block.match(/[^{}]+(?=\{)/g)!.slice(1);
     expect(selectors.length).toBeGreaterThan(0);
     for (const selector of selectors) {
       expect(selector).toContain("body:not(.motion-paused)");
       expect(selector).toMatch(/\[data-arrival(="(held|play)")?\]/);
     }
-    expect(rest.replace(fallback, "")).not.toMatch(/animation(-name)?:/);
-    expect(rest.replace(fallback, "")).not.toMatch(/content:/);
+    const rest = ARRIVAL.replace(block, "").replace(/@keyframes [\w-]+ \{[\s\S]*?\n\}/g, "");
+    expect(rest).not.toMatch(/animation(-name)?:/);
+    expect(rest).not.toMatch(/content:/);
     for (const part of ["[data-letter]", "[data-portrait] img", "h1 + p", "ul", ".mask"]) {
-      expect(gate).toContain(part);
+      expect(block).toContain(part);
     }
   });
 
-  it("starts every keyframe on the finished screen, so scroll 0 is arrived", () => {
-    for (const [name, from] of [
-      ["plate-letter-out", /from \{ transform: none; \}/],
-      ["plate-mask-up", /from \{ transform: scaleY\(0\); \}/],
-      ["plate-figure-out", /from \{ transform: none; \}/],
-      ["plate-to-start", /from \{ opacity: 1; transform: none; \}/],
-      ["plate-to-end", /from \{ opacity: 1; transform: none; \}/],
-    ] as const) {
-      const frames = ARRIVAL.match(new RegExp(`@keyframes ${name} \\{[\\s\\S]*?\\n\\}`))?.[0] ?? "";
-      expect(frames, `no @keyframes ${name}`).not.toBe("");
-      expect(frames).toMatch(from);
+  it("takes nothing apart on the way out, so the pictures stay (2026-11-03)", () => {
+    /* The bug the owner reported: "the hero pictures and animations, on
+       scrolling they disappear". #162 sank the figure under a paper mask on
+       `exit 16%–44%` and lifted the letters and the corners the same way.
+       No hero stylesheet may hang anything on the hero's exit again, and the
+       keyframes that did it are gone. */
+    for (const css of [ARRIVAL, CORNERS]) {
+      expect(css).not.toMatch(/animation-range:[^;]*\bexit\b/);
     }
+    for (const name of ["plate-letter-out", "plate-mask-up", "plate-figure-out", "plate-to-start", "plate-to-end", "corner-out", "corner-mask-up"]) {
+      expect(ARRIVAL + CORNERS).not.toContain(`@keyframes ${name} `);
+    }
+  });
+
+  it("holds the hero still until the act after it has covered it", () => {
+    /* Pinned for exactly one screen of scroll — the spacer — inside a holder
+       pulled back by the same screen, so the document is the height it was
+       and the act after it starts where it did. Content, not padding: a
+       sticky box cannot move into its container's padding. */
+    expect(HERO_CSS).toMatch(/\.holder \{[^}]*margin-block-end: -100svh/);
+    expect(HERO_CSS).toMatch(/\.holder::after \{[^}]*height: 100svh/);
+    expect(HERO_CSS).toMatch(/\.holder > \.hero \{[^}]*position: sticky;[^}]*top: 0/);
+    expect(HERO_CSS).not.toMatch(/\.holder \{[^}]*padding/);
+    const { container } = render(<Hero />);
+    const holder = container.querySelector("#hero")!;
+    expect(holder.tagName).toBe("SECTION");
+    expect(holder.querySelector("h1")).not.toBeNull();
   });
 
   it("never reaches for animation-play-state", () => {
@@ -494,12 +519,12 @@ describe("what the first screen may not spend", () => {
      * secondary ink and the paint candidate was settled a second and a half
      * before they move.
      */
-    for (const name of ["plate-letter-out", "plate-mask-up", "plate-figure-out"]) {
+    for (const name of ["plate-letter-held", "plate-mask-held", "plate-figure-held"]) {
       const frames = ARRIVAL.match(new RegExp(`@keyframes ${name} \\{[\\s\\S]*?\\n\\}`))?.[0] ?? "";
       expect(frames, `no @keyframes ${name}`).not.toBe("");
       expect(frames).not.toMatch(/opacity/);
     }
-    expect(ARRIVAL).toMatch(/@keyframes plate-to-start \{[\s\S]*?opacity: 0/);
+    expect(ARRIVAL).toMatch(/@keyframes plate-from-start \{[\s\S]*?opacity: 0/);
   });
 
   it("holds the masks in the ground's own colour, not in a clip", () => {
@@ -699,21 +724,21 @@ describe("the hero's lower corners", () => {
        a rise rather than an entry from each side. */
     expect(CORNERS).not.toMatch(/(^|[^-])\b(left|right)\s*:/m);
     expect(CORNERS).toMatch(/inset-inline/);
-    expect(CORNERS).toMatch(/@keyframes corner-out \{[\s\S]*?translateY/);
+    expect(CORNERS).toMatch(/@keyframes corner-in \{[\s\S]*?translateY/);
   });
 
-  it("comes apart last, under a paper mask rather than by fading", () => {
-    /* The corners are the last thing to leave the window, so they are the
-       last to come apart, and they take the same opaque-sheet technique the
-       name and the figure take. */
-    const gate = atBlock(CORNERS, GATE);
-    expect(gate).toMatch(/\.corners > \* > \* \{[^}]*animation: corner-out/);
-    expect(gate).toMatch(/\.corners > \* > \*::before \{[^}]*background: rgb\(var\(--paper\)\)/);
-    for (const name of ["corner-out", "corner-mask-up"]) {
+  it("arrives from under a paper mask rather than by fading, and never leaves", () => {
+    /* The corners take the same opaque-sheet technique the name and the
+       figure take, on the way in only: since 2026-11-03 nothing on the
+       first screen comes apart as it scrolls. */
+    const block = arrivalBlock(CORNERS);
+    expect(block).toMatch(/\.corners > \* > \*::before \{[^}]*background: rgb\(var\(--paper\)\)/);
+    for (const name of ["corner-in", "corner-mask-down"]) {
       const frames = CORNERS.match(new RegExp(`@keyframes ${name} \\{[\\s\\S]*?\\n\\}`))?.[0] ?? "";
       expect(frames, `no @keyframes ${name}`).not.toBe("");
       expect(frames).not.toMatch(/opacity/);
     }
+    expect(CORNERS).not.toMatch(/corner-out/);
   });
 
   it("never names the employer, in the corner that once did", () => {
@@ -744,7 +769,7 @@ describe("the hero's light", () => {
   });
 
   it("keeps the phrase list the length the slices were tuned for", () => {
-    /* Each phrase owns 36% / n of the exit; five is what the range was
+    /* Each phrase owns 36% / n of the hold; five is what the range was
        measured at. A sixth would still turn — `--n` follows the list — but
        each slice would be shorter than a glance. */
     expect(heroPhrases).toHaveLength(5);
@@ -763,12 +788,12 @@ describe("the hero's light", () => {
     /* Outside the gate is what every switch shows: no animation, the first
        phrase up and the rest down. */
     const outside = outsideGate(CORNERS);
-    /* Bar the entry's arrival for an engine with no view timelines (#194),
-       which sits behind the other two switches and a stage that is part of
-       the entry: held under the cover (#219) or told to play. */
-    const fallback = atBlock(outside, NO_TIMELINES);
-    expect(fallback).toContain("@media (prefers-reduced-motion: no-preference)");
-    for (const selector of fallback.match(/[^{}]+(?=\{)/g)!.slice(2)) {
+    /* Bar the entry's arrival (#194), which sits behind the other two
+       switches and a stage that is part of the entry: held under the cover
+       (#219) or told to play. */
+    const fallback = arrivalBlock(CORNERS);
+    expect(CORNERS).not.toContain(NO_TIMELINES);
+    for (const selector of fallback.match(/[^{}]+(?=\{)/g)!.slice(1)) {
       expect(selector).toContain("body:not(.motion-paused)");
       expect(selector).toMatch(/\[data-arrival="(held|play)"\]/);
     }

@@ -37,6 +37,61 @@
 }
 
 /*
+ * Held still until the dark act covers it (the owner, 2026-11-03: "the hero
+ * pictures and animations, on scrolling they disappear today. I want them to
+ * stay").
+ *
+ * They disappeared because #162 took the screen apart on the way out: the
+ * figure sank under a paper mask at `exit 16%–44%`, the name lifted under
+ * its own, the corners sank last. Those exits are gone (the arrival is
+ * kept), and the screen now stays where it is while the next act slides up
+ * over it — the act after this one is a dark ground with a curved top, and
+ * the hero is the paper it covers.
+ *
+ * `#hero` is the holder: static, one screen taller than the hero (an empty
+ * `::after`), and pulled back by exactly that much underneath (the negative
+ * margin), so the document is the same height it was and the act after it
+ * starts where it did. The hero inside is `sticky` for the length of that
+ * spacer, i.e. for exactly the scroll it takes the act's top edge to travel
+ * from the floor of the window to its top. Then the holder ends and the hero,
+ * covered, leaves with it.
+ *
+ * The holder, not the pinned box, owns `--hero`: a view timeline on a stuck
+ * element stalls (`docs/motion-contract.md` §1), and the corners' light and
+ * the ribbon's drift both read it.
+ *
+ * Sticky creates a stacking context, so the hero paints as one layer, and
+ * the act after it — positioned, later in the document — paints over it.
+ *
+ * On a window too short for the screen (a phone on its side) the hero is
+ * taller than the window and pinning it would hide its floor for good, so
+ * there it scrolls as it always did and the act simply follows it.
+ */
+.holder {
+  view-timeline: --hero block;
+}
+
+@media (min-height: 34rem) {
+  .holder {
+    margin-block-end: -100svh;
+  }
+
+  /* The screen's worth of room to stay pinned in. Content, not padding: a
+     sticky box is held inside its container's content box, so a padding
+     here would give it nowhere to go. */
+  .holder::after {
+    content: "";
+    display: block;
+    height: 100svh;
+  }
+
+  .holder > .hero {
+    position: sticky;
+    top: 0;
+  }
+}
+
+/*
  * The screen, and why the type is at the top of it rather than in the middle.
  *
  * This box used to centre one block in the viewport with the figure hung off
