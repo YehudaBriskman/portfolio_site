@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
 import { CURVE_H, CURVE_PATH, CURVE_W, curveY } from "@/components/projects/runCurve";
 import { strandPaths, type StrandPoint } from "@/components/motion/ribbon";
-import { AuroraGradient, Strands } from "@/components/motion/Strands";
+import { Strands } from "@/components/motion/Strands";
+import AuroraStrand from "@/components/motion/AuroraStrand";
 import styles from "@/components/projects/ProjectRun.module.css";
 
 /*
@@ -30,7 +31,8 @@ import styles from "@/components/projects/ProjectRun.module.css";
  * drawing inside it is carried the other way by the same amount, so the
  * ribbon holds still on the curve and is uncovered rather than dragged. Two
  * transforms on the run's own timeline; scroll back and it leaves the way
- * it came.
+ * it came. That appearing is now `motion/AuroraStrand`, shared with "How I
+ * work" and the notes shelf, which take it from the left.
  *
  * And one light moves along it: a brighter copy of the strands, seen through
  * a soft window that sweeps from the reading end towards the start once a
@@ -74,27 +76,29 @@ function Curve({ className, children }: { className: string; children?: ReactNod
 export default function RunAurora() {
   return (
     <div className={styles.aurora} aria-hidden="true" data-run-aurora="">
-      <svg className={styles.defs} focusable="false">
-        <defs>
-          <AuroraGradient id="run-aurora" />
-        </defs>
-      </svg>
-      <div className={styles.sweep} data-run-sweep="">
-        <div className={styles.sweepIn}>
-          <Curve className={styles.haze} />
-          <Curve className={styles.ribbon}>
-            <Strands stroke="url(#run-aurora)" ds={RUN_STRANDS} />
-          </Curve>
-          <div className={styles.surge} data-run-surge="">
-            <div className={styles.surgeIn}>
-              <Curve className={styles.glow} />
-              <Curve className={styles.core}>
-                <Strands stroke="rgb(236 244 255)" ds={RUN_STRANDS} />
-              </Curve>
-            </div>
+      {/* The appearing is the shared strand's (`motion/AuroraStrand`): in from
+          the reading end, on the run's own clock. */}
+      <AuroraStrand
+        from="right"
+        mirrorInRtl
+        timeline="--run"
+        range="entry 40% contain 6%"
+        gradientId="run-aurora"
+        dataAttrs={{ "data-run-sweep": "" }}
+      >
+        <Curve className={styles.haze} />
+        <Curve className={styles.ribbon}>
+          <Strands stroke="url(#run-aurora)" ds={RUN_STRANDS} />
+        </Curve>
+        <div className={styles.surge} data-run-surge="">
+          <div className={styles.surgeIn}>
+            <Curve className={styles.glow} />
+            <Curve className={styles.core}>
+              <Strands stroke="rgb(236 244 255)" ds={RUN_STRANDS} />
+            </Curve>
           </div>
         </div>
-      </div>
+      </AuroraStrand>
     </div>
   );
 }

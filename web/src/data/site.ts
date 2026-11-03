@@ -167,13 +167,14 @@ export type ApproachPrinciple = { claim: string; lines: string[]; line?: LineMov
 /**
  * The living line through "How I work" (#191), as data.
  *
- * It starts behind the work run's dark stage, at its centre, where the
- * aurora runs: the run's stage carries an empty marker there
- * (`data-line-origin="work-run"`). From it the line runs straight down out
- * of the work section (`until: "section"`, so it never turns across the
- * link at the act's foot), turns in a circle to the head's lane, and comes
- * down beside the head; then lane to lane through the short sections; then
- * once round each principle's figure.
+ * It starts on the aurora strand that comes in from the left edge of the
+ * page across the section's head (owner, 2026-11-03): the band carries an
+ * empty marker on the strand's centre line, at the column's start edge
+ * (`data-line-origin="approach-strand"`). From it the line turns in a
+ * circle to the head's lane and comes down beside the head; then lane to
+ * lane through the short sections; then once round each principle's
+ * figure. (Until then it started behind the work run's centre and ran down
+ * out of the projects.)
  *
  * The lanes alternate counted back from the last short section, so that one
  * is always on the start side — the rail's side — and the line reaches the
@@ -182,8 +183,8 @@ export type ApproachPrinciple = { claim: string; lines: string[]; line?: LineMov
  */
 export const approachLine = {
   from: {
-    selector: "[data-line-origin='work-run']",
-    moves: [{ move: "origin" }, { move: "line-to", lane: "here", until: "section" }] as LineMove[],
+    selector: "[data-line-origin='approach-strand']",
+    moves: [{ move: "origin" }] as LineMove[],
   },
   /** The head is k = 0, the short sections 1…last. */
   section: (k: number, last: number): LineMove[] => [

@@ -579,9 +579,11 @@
  * thicker than the one band it replaces and still made of hairlines.
  *
  * THE SWEEP IN (#192). The ribbon enters from the reading end as the stage
- * comes up into the window: `.sweep` is a soft-edged window 130cqw wide that
- * slides in from that side, and `.sweepIn` carries the drawing back by the
- * same amount, so the ribbon is uncovered in place rather than dragged.
+ * comes up into the window: a soft-edged window 130cqw wide slides in from
+ * that side, and the drawing inside it is carried back by the same amount,
+ * so the ribbon is uncovered in place rather than dragged. That pair is the
+ * shared strand's now (`motion/AuroraStrand`, `from="right"`, mirrored in
+ * Hebrew), the one appearing "How I work" and the notes take from the left.
  * The soft edge is the window's first 30cqw, which ends off the frame, so
  * the whole ribbon shows once it is in. It is whole just after the frame
  * pins (`contain 6%`), ahead of the first card. Two transforms on the run's
@@ -610,28 +612,6 @@
   pointer-events: none;
 }
 
-.defs {
-  position: absolute;
-  width: 0;
-  height: 0;
-}
-
-/*
- * Where the living line starts (#191): the centre of the run's box at the
- * moment the frame lets go, which is where the stage's last window is. The
- * line in "How I work" is drawn from here, behind the cards and the
- * aurora, as the run leaves. An empty marker, measured by `LivingLine`.
- * Under the off-switches it sits at the foot of the still ribbon instead.
- */
-.origin {
-  position: absolute;
-  inset-inline-start: 50%;
-  bottom: calc((100svh - var(--bar-h, 56px)) / 2);
-  width: 0;
-  height: 0;
-  pointer-events: none;
-}
-
 .curve {
   position: absolute;
   inset-inline-start: calc(-0.65 * var(--run-card));
@@ -645,52 +625,6 @@
 .curve path {
   fill: none;
   stroke: url(#run-aurora);
-}
-
-.sweep {
-  position: absolute;
-  inset-block: 0;
-  inset-inline-start: -30cqw;
-  width: 130cqw;
-  /* Transparent at the leading edge, whole from 30cqw in: towards the
-     reading end, which is the right in English and the left in Hebrew. */
-  mask-image: linear-gradient(calc(var(--run-dir) * 90deg), transparent, #000 23%);
-  mask-repeat: no-repeat;
-  animation-name: run-sweep;
-}
-
-.sweepIn {
-  position: absolute;
-  inset-block: 0;
-  inset-inline-start: 30cqw;
-  width: 100cqw;
-  animation-name: run-sweep-hold;
-}
-
-.sweep,
-.sweepIn {
-  animation-fill-mode: both;
-  animation-timing-function: linear;
-  animation-timeline: --run;
-  animation-range: entry 40% contain 6%;
-}
-
-@keyframes run-sweep {
-  from {
-    transform: translateX(calc(var(--run-dir) * 130cqw));
-  }
-  to {
-    transform: translateX(0);
-  }
-}
-
-@keyframes run-sweep-hold {
-  from {
-    transform: translateX(calc(var(--run-dir) * -130cqw));
-  }
-  to {
-    transform: translateX(0);
-  }
 }
 
 .haze {
@@ -810,9 +744,6 @@
   .aurora {
     display: none;
   }
-  .origin {
-    bottom: 3rem;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -868,9 +799,6 @@
     mask-image: var(--run-strands-still);
     opacity: 0.85;
   }
-  .origin {
-    bottom: 3rem;
-  }
 }
 
 :global(body.motion-paused) .stage {
@@ -913,7 +841,7 @@
  * behind the cards: fully drawn, no surge, no sweep, and each gap still
  * shows the cards strung on one line. It is still made of strands — seven
  * stripes of one gradient, cut by a mask of hairlines (`--run-strands-still`)
- * — and the living line below starts from its foot (`.origin`). With no scroll-driven animation at all it is
+ * — and with no scroll-driven animation at all it is
  * hidden: there the list is the whole fallback.
  */
 :global(body.motion-paused) .aurora {
@@ -939,10 +867,6 @@
   );
   mask-image: var(--run-strands-still);
   opacity: 0.85;
-}
-
-:global(body.motion-paused) .origin {
-  bottom: 3rem;
 }
 
 @media (forced-colors: active) {

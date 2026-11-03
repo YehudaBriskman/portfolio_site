@@ -1,0 +1,195 @@
+/*
+ * The aurora strand's appearing, and every way out of it. The reasons are
+ * in `AuroraStrand.tsx`; the page-level rules are `docs/motion-contract.md`
+ * §1 (the range is the clock) and §4 (three off-switches).
+ *
+ * THE BOX is the caller's: it places and sizes `.strand` (a band across a
+ * section, the run's frame, the shelf's frame). The strand is a size
+ * container so `cqw` is its own width, and it clips sideways only — the
+ * window spends most of the appearing off the box, and the haze's blur
+ * must not be cut at the top and foot.
+ *
+ * It is static (never transformed), so it can own the view timeline the
+ * window reads when the caller names none.
+ */
+.strand {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  container-type: size;
+  overflow-x: clip;
+  view-timeline: --aurora-strand block;
+  /* Which way the window travels: +1 in from the right, -1 from the left. */
+  --sweep-sign: 1;
+}
+
+.strand[data-from="left"],
+:global(html[dir="rtl"]) .strand[data-mirror][data-from="right"] {
+  --sweep-sign: -1;
+}
+
+:global(html[dir="rtl"]) .strand[data-mirror][data-from="left"] {
+  --sweep-sign: 1;
+}
+
+.defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+
+/*
+ * THE WINDOW. 130cqw wide: the box, and a soft leading edge 30cqw wide that
+ * sits off the box once the window is in. The gradient points away from the
+ * edge that leads: `+90deg` (transparent on the left) when it comes from
+ * the right, `-90deg` when it comes from the left.
+ */
+/*
+ * A mask paints nothing outside the masked box, so the window reaches
+ * `--strand-bleed` above and below the strand's box — room for the haze's
+ * blur — and the hold is set back in by the same, onto the box.
+ */
+.window {
+  position: absolute;
+  inset-block: calc(-1 * var(--strand-bleed, 48px));
+  left: -30cqw;
+  width: 130cqw;
+  mask-image: linear-gradient(calc(var(--sweep-sign) * 90deg), transparent, #000 23%);
+  mask-repeat: no-repeat;
+  animation-name: aurora-sweep;
+}
+
+.hold {
+  position: absolute;
+  inset-block: var(--strand-bleed, 48px);
+  left: 30cqw;
+  width: 100cqw;
+  animation-name: aurora-sweep-hold;
+}
+
+/* From the left the window overhangs on the right, so the box is its start. */
+.strand[data-from="left"] > .window,
+:global(html[dir="rtl"]) .strand[data-mirror][data-from="right"] > .window {
+  left: 0;
+}
+
+.strand[data-from="left"] > .window > .hold,
+:global(html[dir="rtl"]) .strand[data-mirror][data-from="right"] > .window > .hold {
+  left: 0;
+}
+
+:global(html[dir="rtl"]) .strand[data-mirror][data-from="left"] > .window {
+  left: -30cqw;
+}
+
+:global(html[dir="rtl"]) .strand[data-mirror][data-from="left"] > .window > .hold {
+  left: 30cqw;
+}
+
+/*
+ * THE CLOCK. The caller's timeline and range, or the strand's own: from the
+ * box's top 95% of the way down the window to 55%, so a band is whole a
+ * little before it reaches the middle — where a living line that leaves it
+ * starts drawing.
+ */
+.window,
+.hold {
+  animation-fill-mode: both;
+  animation-timing-function: linear;
+  animation-timeline: var(--strand-timeline, --aurora-strand);
+  animation-range: var(--strand-range, cover 5% cover 45%);
+}
+
+@keyframes aurora-sweep {
+  from {
+    transform: translateX(calc(var(--sweep-sign) * 130cqw));
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes aurora-sweep-hold {
+  from {
+    transform: translateX(calc(var(--sweep-sign) * -130cqw));
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+/* ── the default drawing: the wave ───────────────────────────────────────── */
+
+.curve {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.curve path {
+  fill: none;
+}
+
+.haze {
+  opacity: 0.3;
+  filter: blur(14px);
+}
+
+.haze path {
+  stroke-width: 46px;
+}
+
+.ribbon {
+  --strand-w: 1.25px;
+  opacity: 0.9;
+}
+
+/* ── the three off-switches: the strand whole and still ──────────────────── */
+
+@supports not (animation-timeline: view()) {
+  .window,
+  .hold {
+    animation: none;
+    transform: none;
+  }
+  .window {
+    mask-image: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .window,
+  .hold {
+    animation: none;
+    transform: none;
+  }
+  .window {
+    mask-image: none;
+  }
+}
+
+:global(body.motion-paused) .window,
+:global(body.motion-paused) .hold {
+  animation: none;
+  transform: none;
+}
+
+:global(body.motion-paused) .window {
+  mask-image: none;
+}
+
+@media print {
+  .window,
+  .hold {
+    animation: none;
+    transform: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .strand {
+    display: none;
+  }
+}

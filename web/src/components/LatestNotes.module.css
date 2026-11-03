@@ -124,6 +124,45 @@
   direction: ltr;
 }
 
+/*
+ * The aurora behind the cards (owner, 2026-11-03): "the aurora like in
+ * Projects, almost the same animation, but from the left". It is the shared
+ * strand (`motion/AuroraStrand`) — the run's appearing, `from="left"` — on
+ * the shelf's own stage timeline and the run's range, `entry 40%` to
+ * `contain 6%`: uncovered as the stage comes up, whole just after the frame
+ * pins, ahead of the first card's travel. A band across the frame on the
+ * row's middle line, so it shows in each gap and either side of the row; the
+ * cards are opaque and are painted after it. Right to left, the frame is
+ * mirrored (below) and the strand with it, so it comes from the start side.
+ *
+ * Under the three off-switches the row is a plain vertical list with no line
+ * to lie along, and the band is hidden, as the run's is without support.
+ */
+.aurora {
+  --notes-band: clamp(4.5rem, 10vw, 7.5rem);
+  position: absolute;
+  inset-inline: 0;
+  top: calc(var(--bar-h, 56px) + (100% - var(--bar-h, 56px) - var(--notes-band)) / 2);
+  height: var(--notes-band);
+  pointer-events: none;
+}
+
+@supports not (animation-timeline: view()) {
+  .aurora {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aurora {
+    display: none;
+  }
+}
+
+:global(body.motion-paused) .aurora {
+  display: none;
+}
+
 .track {
   display: flex;
   /* Every slot is one height (below), so the row is one height; the cards

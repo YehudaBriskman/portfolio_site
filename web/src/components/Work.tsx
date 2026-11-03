@@ -83,9 +83,10 @@ export default function Work() {
   const { items } = useProjects();
   const shown = items.slice(0, HOME_COUNT);
 
-  /* `z-[2]`: over the living line, which starts at the run's centre and
-     reaches up into this act from "How I work" (#191, Approach.module.css),
-     so the line is behind the cards and their aurora, not over them. */
+  /* `z-[2]`: over anything the next section lifts (#191). The living line
+     used to start at the run's centre and reach up into this act; since
+     2026-11-03 it starts on its own strand across "How I work", which
+     comes in from the left as the run's comes in from the right. */
   return (
     <section id="work" data-chrome="dark" className="on-panel relative isolate z-[2]">
       <div className="wrap section-y">
