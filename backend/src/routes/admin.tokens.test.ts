@@ -127,7 +127,9 @@ describe("bearer tokens at the admin gate", () => {
       "admin bearer token refused",
     );
     const logged = JSON.stringify(warn.mock.calls);
-    expect(logged).not.toContain(wrong.split("_")[2]);
+    // The secret is everything after `ptk_<16 hex>_`. It may itself contain
+    // `_` (base64url), so splitting on `_` sometimes yielded "" and failed.
+    expect(logged).not.toContain(wrong.slice("ptk_".length + 17));
     expect(logged).not.toContain(doc.id);
   });
 
