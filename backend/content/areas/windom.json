@@ -1,0 +1,21 @@
+{
+  "slug": "windom",
+  "title": "WindoM",
+  "kind": "project",
+  "tagline": "Every new tab becomes a dashboard",
+  "description": "A Chrome extension that replaces the new-tab page with a personal dashboard: clock, weather, tasks, calendar, music and markets in one view. Release notes and engineering notes from building it.",
+  "coverImage": "https://raw.githubusercontent.com/YehudaBriskman/WindoM/main/.github/assets/banner.webp",
+  "links": [
+    { "label": "Chrome Web Store", "url": "https://chromewebstore.google.com/detail/windom/comcnbccalbfcegbmaemancbhgpijkpb" },
+    { "label": "windom.app", "url": "https://windom.app" },
+    { "label": "Source on GitHub", "url": "https://github.com/YehudaBriskman/WindoM" }
+  ],
+  "order": 20,
+  "status": "published",
+  "repo": {
+    "owner": "YehudaBriskman",
+    "name": "WindoM",
+    "branch": "main",
+    "docPaths": ["README.md", "CHANGELOG.md"]
+  }
+}
