@@ -2018,6 +2018,7 @@ animation.
 | skeleton sweep (`Skeleton`) | /, /projects, /projects/:slug, /blog | `--sk-line` per line | **scrubbed** (#162; was a 1.5s loop) |
 | skeleton gate (`sk-gate`) | wherever a skeleton shows | 1ms step after a 180ms delay | **exempt**: not motion — a visibility threshold (§4) |
 | reading bar (`ReadingBar`) | /blog/:slug | scroll position, rAF-throttled | scrubbed (a readout, not an animation) |
+| reader mode: the outline's current heading, the sticky aside, the phone's contents sheet, the picture view's zoom and pan, link previews, the reading tools (`notes/reader/`) | /blog/:slug | the outline reads scroll position, rAF-throttled (a readout, like the bar above; no IntersectionObserver); the sheet and the picture view are native `<dialog>`s shown and hidden; zoom and pan move only under the reader's hand; previews and tools are shown and hidden, colour in `--dur-micro` | — (#249): nothing of its own. The pen is untouched: the aside holds no prose, and a change of text size or measure is a layout change the pen's own root ResizeObserver re-measures |
 | tucking nav bar (`useTuckedBar`) | every route | scroll direction → a short transition | **exempt**: the tucking bar |
 | bar material over the dark acts (`useDarkChrome`) | / | two-way observer → colour transition | **exempt**: part of the nav chrome; follows position both ways |
 | mobile menu sheet and scrim, menu bars | every route | transitions | **exempt**: menu open |
@@ -2066,3 +2067,6 @@ strand) are not motion and have no row.
 plate's exit and the corners' sinking moved from scrubbed to removed, and
 one scrubbed row was added, the ribbon. 48 rows; 20 scrubbed, 12 exempt, 9
 removed, 7 with nothing of their own.
+
+#249 (reader mode) added one row with nothing of its own: 49 rows; 20
+scrubbed, 12 exempt, 9 removed, 8 with nothing of their own.

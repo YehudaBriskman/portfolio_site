@@ -1,0 +1,618 @@
+/*
+ * The note reader (#249): the layout with its sticky aside, the panels, the
+ * phone's sheet, the picture view, code frames, diagrams and link previews.
+ *
+ * Motion: none of its own. Everything here is shown and hidden; hover and
+ * focus change colour in `--dur-micro`; the picture moves only under the
+ * reader's hand. `docs/motion-contract.md` §8 has the row. There are no
+ * keyframes in this file, so `scrollOnly.test.ts` has nothing to allow.
+ *
+ * Colour: tokens only, so both themes and the dark grounds follow.
+ */
+
+/* ------------------------------------------------------------------ layout */
+
+.layout {
+  margin-inline: auto;
+  width: 100%;
+  max-width: 46rem;
+}
+
+.aside {
+  display: none;
+}
+
+@media (min-width: 1100px) {
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(0, 46rem) 15.5rem;
+    column-gap: clamp(2.5rem, 5vw, 4.5rem);
+    max-width: calc(46rem + 15.5rem + clamp(2.5rem, 5vw, 4.5rem));
+  }
+
+  .aside {
+    display: block;
+  }
+
+  /* Sticky, under the nav island, and scrolling itself when the outline is
+     longer than the window. */
+  .asideInner {
+    position: sticky;
+    inset-block-start: 6.5rem;
+    max-height: calc(100dvh - 8rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    padding-block-end: 1rem;
+  }
+
+  .phoneOnly {
+    display: none !important;
+  }
+}
+
+/* The reader's size and measure, with the house values as defaults. */
+.prose {
+  max-width: var(--note-measure, 38rem);
+  margin-block-start: var(--section-sm, 4rem);
+  font-size: calc(1.0625rem * var(--note-scale, 1));
+  line-height: 1.7;
+}
+
+@media (min-width: 640px) {
+  .prose {
+    font-size: calc(1.1875rem * var(--note-scale, 1));
+    line-height: 1.75;
+  }
+}
+
+/* ------------------------------------------------------------------ panels */
+
+.panels {
+  display: grid;
+  gap: 1.75rem;
+}
+
+.panel {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.panelTitle {
+  font-family: var(--font-data);
+  font-size: 0.75rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgb(var(--clay));
+  margin: 0;
+}
+
+.toc {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.tocList {
+  display: grid;
+  gap: 0.15rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-inline-start: 1px solid rgb(var(--edge));
+}
+
+.tocLink {
+  display: block;
+  margin-inline-start: -1px;
+  padding: 0.4rem 0.75rem;
+  border-inline-start: 2px solid transparent;
+  font-size: 0.9rem;
+  line-height: 1.35;
+  color: rgb(var(--clay));
+  text-decoration: none;
+  transition: color var(--dur-micro, 120ms) linear;
+}
+
+.tocLink:hover {
+  color: rgb(var(--bone));
+}
+
+.tocLink[aria-current] {
+  color: rgb(var(--bone));
+  font-weight: 600;
+  border-inline-start-color: rgb(var(--bone));
+}
+
+.facts {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.facts > div {
+  display: grid;
+  grid-template-columns: 6.5rem minmax(0, 1fr);
+  gap: 0.75rem;
+}
+
+.facts dt {
+  color: rgb(var(--clay));
+}
+
+.facts dd {
+  margin: 0;
+  color: rgb(var(--bone));
+  font-variant-numeric: tabular-nums;
+  min-width: 0;
+}
+
+.facts > div:has(> dt:global(.sr-only)) {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.facts a {
+  color: rgb(var(--bone));
+  text-decoration: underline;
+  text-decoration-color: rgb(var(--bone) / 0.4);
+  text-underline-offset: 0.2em;
+}
+
+.changeNote {
+  display: block;
+  margin-block-start: 0.25rem;
+  color: rgb(var(--clay));
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+.panelTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.panelActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.panelBtn,
+.toolChoice,
+.toolReset {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 2.75rem;
+  padding: 0 0.95rem;
+  border: 1px solid rgb(var(--ridge));
+  border-radius: 999px;
+  background: transparent;
+  color: rgb(var(--bone));
+  font-size: 0.875rem;
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color var(--dur-micro, 120ms) linear, background-color var(--dur-micro, 120ms) linear;
+}
+
+.panelBtn:hover,
+.toolChoice:hover,
+.toolReset:hover {
+  border-color: rgb(var(--bone));
+}
+
+.toolRow {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.toolLabel {
+  flex: 1 1 100%;
+  font-size: 0.85rem;
+  color: rgb(var(--clay));
+}
+
+.toolBtn {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 1px solid rgb(var(--ridge));
+  border-radius: 999px;
+  background: transparent;
+  color: rgb(var(--bone));
+  cursor: pointer;
+}
+
+.toolBtn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.toolValue {
+  min-width: 3.5rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.9rem;
+  color: rgb(var(--bone));
+}
+
+.toolChoice[aria-pressed="true"] {
+  background: rgb(var(--bone));
+  border-color: rgb(var(--bone));
+  color: rgb(var(--bitumen));
+}
+
+.toolReset {
+  justify-self: start;
+  min-height: 2.25rem;
+  border-style: dashed;
+  color: rgb(var(--clay));
+}
+
+/* ------------------------------------------------------------------- phone */
+
+.phoneBar {
+  margin-block-start: 1.5rem;
+}
+
+.sheet {
+  width: min(100vw, 34rem);
+  max-width: 100vw;
+  max-height: 85dvh;
+  margin: auto auto 0;
+  padding: 0;
+  border: 1px solid rgb(var(--edge));
+  border-block-end: 0;
+  border-radius: var(--r-lg, 20px) var(--r-lg, 20px) 0 0;
+  background: rgb(var(--bitumen));
+  color: rgb(var(--bone));
+}
+
+.sheet::backdrop {
+  background: rgb(0 0 0 / 0.55);
+}
+
+.sheetHead {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem 0.75rem 1.25rem;
+  border-block-end: 1px solid rgb(var(--edge));
+  background: rgb(var(--bitumen));
+}
+
+.sheetTitle {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.sheetBody {
+  padding: 1.25rem 1.25rem calc(1.5rem + env(safe-area-inset-bottom));
+}
+
+/* ----------------------------------------------------------------- figures */
+
+.figureButton {
+  position: relative;
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: zoom-in;
+  border-radius: var(--r-lg, 20px);
+}
+
+.figureExpand {
+  position: absolute;
+  inset-block-start: 0.75rem;
+  inset-inline-end: 0.75rem;
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 999px;
+  background: rgb(var(--bitumen) / 0.85);
+  color: rgb(var(--bone));
+  border: 1px solid rgb(var(--edge));
+  opacity: 0;
+  transition: opacity var(--dur-micro, 120ms) linear;
+}
+
+.figureButton:hover .figureExpand,
+.figureButton:focus-visible .figureExpand {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .figureExpand {
+    opacity: 1;
+  }
+}
+
+/* A diagram is drawn on the raised paper in either theme, so a drawing made
+   with dark strokes stays legible on the dark ground. */
+.diagram {
+  background: rgb(255 255 255);
+  object-fit: contain;
+}
+
+.inlineDiagram {
+  max-height: 70vh;
+  padding: 1rem;
+  border: 1px solid rgb(var(--edge));
+  border-radius: var(--r-lg, 20px);
+}
+
+/* ---------------------------------------------------------------- the view */
+
+.viewer {
+  width: 100vw;
+  height: 100dvh;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: rgb(12 11 9 / 0.96);
+  color: rgb(242 240 234);
+  display: none;
+}
+
+.viewer[open] {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
+.viewer::backdrop {
+  background: rgb(0 0 0 / 0.7);
+}
+
+.viewerBar,
+.viewerFoot {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+}
+
+.viewerBar {
+  justify-content: space-between;
+}
+
+.viewerCount {
+  margin: 0;
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+  color: rgb(214 210 200);
+}
+
+.viewerTools {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.viewerZoom {
+  min-width: 3.25rem;
+  text-align: center;
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.viewerBtn {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 1px solid rgb(255 255 255 / 0.28);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.06);
+  color: rgb(242 240 234);
+  cursor: pointer;
+}
+
+.viewerBtn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.viewerBtn:focus-visible {
+  outline: 2px solid rgb(242 240 234);
+  outline-offset: 2px;
+}
+
+.viewerStage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  touch-action: none;
+  cursor: zoom-in;
+}
+
+.viewerStage[data-zoomed] {
+  cursor: grab;
+}
+
+.viewerImg {
+  max-width: min(100%, 1600px);
+  max-height: 100%;
+  object-fit: contain;
+  transform-origin: center;
+  user-select: none;
+}
+
+.viewerImg[data-kind="diagram"] {
+  width: min(92vw, 1400px);
+  height: auto;
+  background: rgb(255 255 255);
+  padding: 1rem;
+  border-radius: 12px;
+}
+
+.viewerText {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+}
+
+.viewerCaption {
+  margin: 0 0 0.25rem;
+  font-size: 0.95rem;
+  color: rgb(242 240 234);
+}
+
+.viewerHint {
+  margin: 0;
+  font-size: 0.8rem;
+  color: rgb(190 186 176);
+}
+
+@media (max-width: 639px) {
+  .viewerHint {
+    display: none;
+  }
+}
+
+:global([dir="rtl"]) .flipRtl {
+  transform: scaleX(-1);
+}
+
+/* ------------------------------------------------------------------- code */
+
+.codeFrame {
+  display: grid;
+}
+
+.codeFrame pre {
+  margin: 0;
+}
+
+.codeBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.35rem 0.5rem 0.35rem 1.25rem;
+  border: 1px solid rgb(var(--edge));
+  border-block-end: 0;
+  background: rgb(var(--surface));
+}
+
+@media (min-width: 640px) {
+  .codeBar {
+    border-radius: var(--r-lg, 20px) var(--r-lg, 20px) 0 0;
+  }
+}
+
+@media (max-width: 639px) {
+  .codeBar {
+    border-inline: 0;
+  }
+}
+
+.codeLang {
+  font-family: var(--font-data);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: lowercase;
+  color: rgb(var(--clay));
+}
+
+.codeCopy {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: rgb(var(--clay));
+  cursor: pointer;
+  transition: color var(--dur-micro, 120ms) linear;
+}
+
+.codeCopy:hover {
+  color: rgb(var(--bone));
+}
+
+/* ---------------------------------------------------------------- previews */
+
+:global(a[data-missing]) {
+  text-decoration-style: dashed !important;
+}
+
+.preview {
+  position: fixed;
+  z-index: 60;
+  width: min(20rem, calc(100vw - 2rem));
+  padding: 0.85rem 1rem;
+  border: 1px solid rgb(var(--ridge));
+  border-radius: var(--r-md, 14px);
+  background: rgb(var(--bitumen));
+  color: rgb(var(--bone));
+  box-shadow: 0 12px 32px rgb(0 0 0 / 0.25);
+  pointer-events: auto;
+}
+
+.preview:not([data-below]) {
+  transform: translateY(-100%);
+}
+
+.previewKind {
+  margin: 0;
+  font-family: var(--font-data);
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgb(var(--clay));
+}
+
+.previewTitle {
+  margin: 0.3rem 0 0;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.previewMeta {
+  margin: 0.2rem 0 0;
+  font-size: 0.85rem;
+  color: rgb(var(--clay));
+}
+
+.previewExcerpt {
+  margin: 0.45rem 0 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+@media (forced-colors: active) {
+  .tocLink[aria-current] {
+    border-inline-start-color: CanvasText;
+  }
+}
+
+@media print {
+  .aside,
+  .phoneBar,
+  .figureExpand,
+  .codeCopy {
+    display: none !important;
+  }
+}

@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { admin } from "@/services/admin";
+import { markAdminSeen } from "@/components/notes/reader/adminSession";
 
 /*
  * The admin's own shell.
@@ -69,7 +70,11 @@ export default function AdminShell({
   useEffect(() => {
     admin
       .me()
-      .then((m) => setWho(m.login))
+      .then((m) => {
+        setWho(m.login);
+        /* So a note read in this browser knows to offer "Edit" (#249). */
+        markAdminSeen();
+      })
       .catch(() => setWho(""));
   }, []);
 
