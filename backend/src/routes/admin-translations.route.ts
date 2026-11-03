@@ -2,7 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { asyncHandler } from "../middlewares/asyncHandler.js";
 import { TRANSLATION_STATUSES, TRANSLATION_TYPES } from "../schemas/i18n.js";
-import { allTranslationItems, report } from "../services/translations.js";
+import { ackTranslation, allTranslationItems, report } from "../services/translations.js";
 
 /*
  * The translations report (#301): what is missing, stale, in draft or done in
@@ -45,6 +45,35 @@ router.get(
       visibility: visibility === "all" ? undefined : visibility,
     });
     res.set("Cache-Control", "no-store").json({ ok: true, ...out });
+  }),
+);
+
+/*
+ *   POST /api/admin/translations/ack   { type, id, path, rev }
+ *
+ * "The Hebrew is still correct" (#303): restamps one unit's fingerprint to
+ * today's English without changing any text. `rev` is the revision of the
+ * document the unit lives in (the note, the area, or the content document), so
+ * an acknowledgement of a version the owner did not see is a 409.
+ */
+const AckBody = z.object({
+  type: z.enum(TRANSLATION_TYPES),
+  id: z.string().min(1).max(200),
+  path: z.string().min(1).max(200),
+  rev: z.string().min(1).max(100),
+});
+
+router.post(
+  "/ack",
+  asyncHandler(async (req, res) => {
+    const body = AckBody.safeParse(req.body);
+    if (!body.success) {
+      return res.status(400).json({ ok: false, error: "Bad request", issues: body.error.issues.map((i) => ({ path: i.path.join("."), message: i.message })) });
+    }
+    const r = await ackTranslation(body.data);
+    if (!r.ok) return res.status(r.status).json({ ok: false, error: r.error });
+    res.locals.audit = { target: r.target, before: r.before, after: r.after };
+    res.json({ ok: true, rev: r.rev });
   }),
 );
 

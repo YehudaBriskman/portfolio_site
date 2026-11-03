@@ -126,7 +126,8 @@ describe("a note", () => {
 
   it("reads the published Hebrew and its per-field fingerprints", () => {
     const p = post({
-      he: { title: "רשימה", subtitle: "", excerpt: "הפתיח.", body: "גוף.", src: { title: fp("A note"), excerpt: fp("An older lede.") } } as Post["he"],
+      he: { title: "רשימה", subtitle: "", excerpt: "הפתיח.", body: "גוף." },
+      heMeta: { src: { title: fp("A note"), excerpt: fp("An older lede.") } },
     });
     const byPath = Object.fromEntries(postTranslation(p).units.map((x) => [x.path, x.status]));
     expect(byPath).toEqual({ title: "translated", excerpt: "stale", body: "unverified" });

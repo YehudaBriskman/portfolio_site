@@ -161,6 +161,13 @@ export const PostHebrewSchema = z.object({
 // Areas: CollectionHebrewSchema gains `src` the same way (no bodyBase: fields are short).
 ```
 
+> **As built (#303):** `src` and `bodyBase` live in a sibling `heMeta: { src, bodyBase }`
+> beside `he` (on the note, on `draft`, and on the area), not inside the `he`
+> block. Every existing reader of `he` (the public API, the server render, the
+> MCP tools) iterates its fields as words; a sibling keeps them seeing only
+> words, and keeps a block with no Hebrew from looking non-empty because it
+> holds a `bodyBase`.
+
 Why each piece:
 - **`heSrc`/`src` (fingerprint), not a version number.** The English has no
   version counter today, and a counter goes stale on a whitespace-only save. A

@@ -1,7 +1,14 @@
-import { couch } from "../db/couch.js";
+import { couch, CouchError } from "../db/couch.js";
 import type { Collection, Post } from "../schemas/content.js";
 import {
+  COLLECTION_FIELDS,
+  POST_FIELDS,
+  atPath,
   collectionTranslation,
+  fp,
+  isText,
+  normaliseSource,
+  type HebrewMeta,
   countUnits,
   coverage,
   itemStatus,
@@ -150,6 +157,133 @@ export function areaItem(c: Collection): TranslationItem {
     status,
     units,
   };
+}
+
+/* -------------------------------------------- "the Hebrew is still correct" */
+
+/*
+ * The acknowledgement (#303): the owner has read stale Hebrew and it still
+ * says what the English says (an English typo fix, a reworded aside). The
+ * unit's fingerprint is restamped to today's English, with no change to any
+ * text, so it reads as translated again.
+ *
+ * The draft is restamped too where it holds the same Hebrew against the same
+ * English, so publishing that draft later does not bring the staleness back.
+ */
+
+export type AckInput = { type: TranslationType; id: string; path: string; rev: string };
+export type AckResult =
+  | { ok: true; rev: string; target: string; before: unknown; after: unknown }
+  | { ok: false; status: 400 | 404 | 409; error: string };
+
+const same = (a: unknown, b: unknown) =>
+  typeof a === "string" && typeof b === "string" && normaliseSource(a) === normaliseSource(b);
+
+const POST_HE = new Set<string>(POST_FIELDS.map((f) => f.field));
+const AREA_HE = new Set<string>(COLLECTION_FIELDS.map((f) => f.field));
+
+/** The `Text` at `path` inside one item of a content document, or undefined. */
+function locate(key: ContentKey, root: unknown, id: string, path: string): unknown {
+  if (!root || typeof root !== "object") return undefined;
+  const r = root as Raw;
+  if (key === "projects") {
+    const project = ((r.items as Raw[] | undefined) ?? []).find((p) => p.slug === id);
+    return project ? atPath(project, path) : undefined;
+  }
+  if (key === "story") {
+    if (id === "start") return atPath(r.start, path);
+    if (id.startsWith("role:")) {
+      const role = ((r.roles as Raw[] | undefined) ?? []).find((x) => x.id === id.slice(5));
+      return role ? atPath(role, path) : undefined;
+    }
+    /* Pictures and interludes carry their own prefix in the path. */
+    if ((id === "images" || id === "interludes") && path.startsWith(`${id}.`)) return atPath(r, path);
+    return undefined;
+  }
+  return id in SITE_COPY_SECTIONS ? atPath(r[id], path) : undefined;
+}
+
+/** A note or an area, read loosely: only its Hebrew and the fields beside it matter here. */
+type HeDoc = Raw & {
+  _id: string;
+  _rev?: string;
+  status?: string;
+  he?: Raw | null;
+  heMeta?: HebrewMeta | null;
+  draft?: (Raw & { he?: Raw | null; heMeta?: HebrewMeta | null }) | null;
+};
+
+const CONTENT_KEY_OF: Partial<Record<TranslationType, ContentKey>> = { project: "projects", story: "story", "site-copy": "site-copy" };
+
+async function tryGet<T>(id: string): Promise<(T & { _id: string; _rev?: string }) | null> {
+  try {
+    return await couch.get<T & { _id: string; _rev?: string }>(id);
+  } catch (e) {
+    if (e instanceof CouchError && e.status === 404) return null;
+    throw e;
+  }
+}
+
+async function save(doc: { _id: string; _rev?: string }): Promise<string | null> {
+  try {
+    const r = await couch.put<{ rev?: string }>(doc._id, doc);
+    return r?.rev ?? doc._rev ?? "";
+  } catch (e) {
+    if (e instanceof CouchError && e.status === 409) return null;
+    throw e;
+  }
+}
+
+const notFound = { ok: false as const, status: 404 as const, error: "No such item or field." };
+const conflictAck = { ok: false as const, status: 409 as const, error: "This changed elsewhere. Reload and try again." };
+const nothingLive = { ok: false as const, status: 400 as const, error: "There is no published Hebrew here to acknowledge." };
+
+export async function ackTranslation(input: AckInput): Promise<AckResult> {
+  if (input.type === "post" || input.type === "area") {
+    const fields = input.type === "post" ? POST_HE : AREA_HE;
+    if (!fields.has(input.path)) return notFound;
+    const id = `${input.type === "post" ? "post" : "collection"}:${input.id}`;
+    const doc = await tryGet<HeDoc>(id);
+    if (!doc) return notFound;
+    if (doc._rev !== input.rev) return conflictAck;
+    const field = input.path;
+    const he = doc.he;
+    const en = doc[field];
+    if (input.type === "post" && doc.status !== "published") return nothingLive;
+    if (!he || typeof he[field] !== "string" || !(he[field] as string).trim() || typeof en !== "string") return nothingLive;
+
+    const before = structuredClone(doc);
+    const meta: HebrewMeta = { ...(doc.heMeta ?? {}), src: { ...(doc.heMeta?.src ?? {}), [field]: fp(en) } };
+    if (field === "body") meta.bodyBase = en;
+    const next: HeDoc = { ...doc, heMeta: meta };
+    const draft = doc.draft;
+    if (input.type === "post" && draft?.he && same(draft.he[field], he[field]) && same(draft[field], en)) {
+      const dmeta: HebrewMeta = { ...(draft.heMeta ?? {}), src: { ...(draft.heMeta?.src ?? {}), [field]: fp(en) } };
+      if (field === "body") dmeta.bodyBase = en;
+      next.draft = { ...draft, heMeta: dmeta };
+    }
+    const rev = await save(next);
+    if (rev === null) return conflictAck;
+    return { ok: true, rev, target: id, before, after: next };
+  }
+
+  const key = CONTENT_KEY_OF[input.type];
+  if (!key) return notFound;
+  const doc = await getContentDoc(key);
+  if (!doc) return nothingLive;
+  if (doc._rev !== input.rev) return conflictAck;
+  const before = structuredClone(doc);
+  const next = structuredClone(doc);
+  const text = locate(key, next.published, input.id, input.path);
+  if (!isText(text)) return notFound;
+  if (!text.he || !text.he.trim()) return nothingLive;
+  text.heSrc = fp(text.en);
+  const draftText = locate(key, next.draft, input.id, input.path);
+  if (isText(draftText) && same(draftText.he, text.he) && same(draftText.en, text.en)) draftText.heSrc = text.heSrc;
+  next.updatedAt = new Date().toISOString();
+  const rev = await save(next);
+  if (rev === null) return conflictAck;
+  return { ok: true, rev, target: next._id, before, after: next };
 }
 
 /* -------------------------------------------------------------- the report */
