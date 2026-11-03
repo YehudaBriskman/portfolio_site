@@ -343,9 +343,30 @@ over four runners, which is what Static consolidates.
   were scanned. That is P3/P4's subject (#207), not P1's. **Fixed by P3:**
   one native arm64 build per image, and the scanned archive is what is pushed.
 - A `v*` tag on an already-built main commit runs the whole pipeline again,
-  publish builds included (mostly cache hits). **Still true after P3:** the
-  tag run builds, scans and pushes its own candidate under `:<sha>`;
-  promoting main's recorded digest instead is P4 (#205).
+  publish builds included (mostly cache hits). Still true after P3, where
+  the tag run built, scanned and pushed its own candidate under `:<sha>`.
+  **Fixed by P4:** a tag push builds nothing; it promotes the digests main's
+  release manifest recorded, re-scanned (only `rebuild: true` builds).
+
+---
+
+## Status of #207 (2026-11-03)
+
+Every item in the tracker's sub-issues is on `main`: #199, #200, #201,
+#202, #203, #204, #205 and #206. Three things are not code changes in this
+repository:
+
+- **Unchanged-component reuse (#205)** is still left out (see "After P4").
+  Reusing a digest needs a dependency-aware proof that the inputs are
+  identical. That proof is not specified closely enough to build safely,
+  and a wrong one would deploy an image that was never built from the
+  commit it is released as.
+- **CodeQL as a gate (#206).** The ruleset on `main` still requires only
+  `Static` and `CI gate`. Blocking on new high-severity alerts needs an
+  owner change: Settings › Rules › the `main` ruleset › "Require code
+  scanning results", with CodeQL at High or higher.
+- **GitHub secret scanning and push protection (#206)** are both on
+  (checked 2026-11-03).
 
 ---
 
