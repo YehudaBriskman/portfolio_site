@@ -116,14 +116,14 @@ import { getEntry, subscribeEntry, type Entry } from "@/components/motion/entry"
  *
  * The arrival, and the one thing it must not cost
  * -----------------------------------------------
- * Since #162 the screen is whole at scroll 0 and, as the section leaves
- * through the top of the window, each part makes its arrival gesture
- * backwards — the letters lift under a paper mask, the figure sinks behind
- * one, the two lines slide back to their sides — and scrolling up runs every
- * one of them forwards. All of it is `HeroArrival.module.css`, on the
- * section's own `--hero` view timeline.
+ * #162 had each part make its arrival gesture backwards as the section left
+ * the window — the letters lifting under a paper mask, the figure sinking
+ * behind one — and the owner's verdict on that was that the pictures
+ * "disappear" on scroll. Since 2026-11-03 nothing leaves: the screen is held
+ * still and whole until the dark act after it has slid up over it
+ * (`Hero.module.css`, the holder).
  *
- * Once a visit the same gestures also run forwards on their own, and #194 is
+ * Once a visit the gestures do run forwards on their own, and #194 is
  * about *when*. The arrival used to start at mount, and the entry shutter
  * lifts when the page is ready, which is always later — so the whole thing
  * played behind the cover and the reader was shown a screen that had already
@@ -225,103 +225,109 @@ export default function Hero() {
       `clip` leaves the block axis alone, so the section is still a normal
       scrolling box and nothing inside it becomes a scroll container.
     */
-    <section id="hero" className={`relative w-full ${styles.hero} ${arrival.timeline}`}>
-      {/*
-        `pt-28` is nav clearance, not rhythm: the island is fixed, 50px tall
-        and 18px down, so the first line has to start below 68px.
-
-        `safe center` rather than plain centring, which overflows in both
-        directions the moment the content is taller than the screen — and the
-        half above the top edge cannot be scrolled to. `safe` is the keyword for
-        exactly this: centre while there is room, fall back to the start edge
-        once there is not. A browser that does not know it drops the whole
-        declaration and lands on flex-start, which is the same fallback.
-
-        This box is the screen. The picture inside it is one flex item, and
-        the figure is positioned against *that* rather than against the
-        screen — which is the difference between a composition and two things
-        that happen to be on the same page. Anchored to the viewport, the
-        figure drifts away from the type on every window the layout was not
-        tuned on: at 768×1024 it ends up a photograph in the bottom corner
-        with a headline a third of a screen above it.
-      */}
-      <div className={`wrap flex min-h-[100svh] flex-col ${styles.screen}`}>
+    /*
+      The holder is static and owns `--hero`; the hero inside it is held
+      still until the next act has covered it (`Hero.module.css`).
+    */
+    <section id="hero" className={styles.holder}>
+      <div className={`relative w-full ${styles.hero}`}>
         {/*
-          The picture: the figure and the label, in one box the height of the
-          label. The section around it carries the `--hero` timeline every
-          part of the picture reads.
+          `pt-28` is nav clearance, not rhythm: the island is fixed, 50px tall
+          and 18px down, so the first line has to start below 68px.
+
+          `safe center` rather than plain centring, which overflows in both
+          directions the moment the content is taller than the screen — and the
+          half above the top edge cannot be scrolled to. `safe` is the keyword for
+          exactly this: centre while there is room, fall back to the start edge
+          once there is not. A browser that does not know it drops the whole
+          declaration and lands on flex-start, which is the same fallback.
+
+          This box is the screen. The picture inside it is one flex item, and
+          the figure is positioned against *that* rather than against the
+          screen — which is the difference between a composition and two things
+          that happen to be on the same page. Anchored to the viewport, the
+          figure drifts away from the type on every window the layout was not
+          tuned on: at 768×1024 it ends up a photograph in the bottom corner
+          with a headline a third of a screen above it.
         */}
-        <div className={`${styles.composition} ${arrival.stage}`} data-arrival={arrives}>
+        <div className={`wrap flex min-h-[100svh] flex-col ${styles.screen}`}>
           {/*
-            The figure, out of flow and underneath the type.
-
-            Out of flow is not a layout convenience: it is why this screen's
-            CLS is still 0.000 with a photograph on it. An absolutely
-            positioned box contributes no height to anything, so the figure
-            cannot move a line of type however it is sized, and the
-            `width`/`height` attributes below mean the box is the right shape
-            before the bytes arrive.
-
-            `fetchpriority="high"` because it is painted in the first frame —
-            see the mask note in `HeroArrival.module.css`. Left at the
-            default, the preload scanner finds it and the browser still ranks
-            it below the stylesheet and the two webfonts, which is the right
-            order for an image nobody sees for a second and the wrong one for
-            a paint candidate.
+            The picture: the figure and the label, in one box the height of the
+            label. The section around it carries the `--hero` timeline every
+            part of the picture reads.
           */}
-          <div className={styles.portrait} data-portrait="">
-            <picture>
-              {/* The 365px file below the type rung's breakpoint, which is
-                  also where the figure stops being a third of the screen's
-                  width. Serving the 551px original there is 17kB spent on a
-                  box that is never wider than 242 CSS pixels. */}
-              <source media="(max-width: 699px)" srcSet="/img/yehuda-cut-sm.webp" />
-              <img
-                src="/img/yehuda-cut.webp"
-                alt="Yehuda Briskman: a cut-out photograph from the waist up, in round sunglasses and a pale T-shirt, a bag strap across one shoulder, looking off to the side."
-                width={551}
-                height={845}
-                {...PRIORITY}
-                decoding="async"
-              />
-            </picture>
-            {/* The paper the figure rises out from behind. Decorative in the
-                strictest sense — it is the absence of the picture — so it is
-                hidden from the accessibility tree and cannot be pointed at. */}
-            <span className={arrival.mask} data-portrait-mask="" aria-hidden="true" />
+          <div className={`${styles.composition} ${arrival.stage}`} data-arrival={arrives}>
+            {/*
+              The figure, out of flow and underneath the type.
+
+              Out of flow is not a layout convenience: it is why this screen's
+              CLS is still 0.000 with a photograph on it. An absolutely
+              positioned box contributes no height to anything, so the figure
+              cannot move a line of type however it is sized, and the
+              `width`/`height` attributes below mean the box is the right shape
+              before the bytes arrive.
+
+              `fetchpriority="high"` because it is painted in the first frame —
+              see the mask note in `HeroArrival.module.css`. Left at the
+              default, the preload scanner finds it and the browser still ranks
+              it below the stylesheet and the two webfonts, which is the right
+              order for an image nobody sees for a second and the wrong one for
+              a paint candidate.
+            */}
+            <div className={styles.portrait} data-portrait="">
+              <picture>
+                {/* The 365px file below the type rung's breakpoint, which is
+                    also where the figure stops being a third of the screen's
+                    width. Serving the 551px original there is 17kB spent on a
+                    box that is never wider than 242 CSS pixels. */}
+                <source media="(max-width: 699px)" srcSet="/img/yehuda-cut-sm.webp" />
+                <img
+                  src="/img/yehuda-cut.webp"
+                  alt="Yehuda Briskman: a cut-out photograph from the waist up, in round sunglasses and a pale T-shirt, a bag strap across one shoulder, looking off to the side."
+                  width={551}
+                  height={845}
+                  {...PRIORITY}
+                  decoding="async"
+                />
+              </picture>
+              {/* The paper the figure rises out from behind. Decorative in the
+                  strictest sense — it is the absence of the picture — so it is
+                  hidden from the accessibility tree and cannot be pointed at. */}
+              <span className={arrival.mask} data-portrait-mask="" aria-hidden="true" />
+            </div>
+
+            {/*
+              Four parts of one picture, each taken apart by the reader's scroll
+              as the section leaves and put back as it returns.
+              `HeroArrival.module.css` carries the ranges and the reasoning.
+
+              `splitName` is the one new hook this needed from the shared label:
+              a `transform` does nothing to a non-replaced inline box, so the
+              letters have to be elements before anything can move them. It is
+              off for every other object on the site, as `exposeFieldKinds` is —
+              which writes each field's kind onto its `<li>` so the off-switches
+              can be written against the kind rather than against the position
+              `orderFields` happens to sort it into.
+            */}
+            <ObjectLabel
+              scale="plate"
+              nameAs="h1"
+              name={plateTitle.name}
+              fact={plateTitle.fact}
+              fields={plateFields(plate)}
+              exposeFieldKinds
+              splitName
+              className={styles.plate}
+            />
+
+            {/*
+              The lower corners — issue #101. Out of flow against this box, so
+              they are in neither of the two grid rows and cannot shrink the
+              figure's track or move a line of type. The argument for each
+              candidate is at the head of `HeroCorners.tsx`.
+            */}
+            <HeroCorners />
           </div>
-
-          {/*
-            Four parts of one picture, each taken apart by the reader's scroll
-            as the section leaves and put back as it returns.
-            `HeroArrival.module.css` carries the ranges and the reasoning.
-
-            `splitName` is the one new hook this needed from the shared label:
-            a `transform` does nothing to a non-replaced inline box, so the
-            letters have to be elements before anything can move them. It is
-            off for every other object on the site, as `exposeFieldKinds` is —
-            which writes each field's kind onto its `<li>` so the off-switches
-            can be written against the kind rather than against the position
-            `orderFields` happens to sort it into.
-          */}
-          <ObjectLabel
-            scale="plate"
-            nameAs="h1"
-            name={plateTitle.name}
-            fact={plateTitle.fact}
-            fields={plateFields(plate)}
-            exposeFieldKinds
-            splitName
-            className={styles.plate}
-          />
-
-          {/*
-            The lower corners — issue #101. Out of flow against this box, so
-            they are in neither of the two grid rows and cannot shrink the
-            figure's track or move a line of type. The argument for each
-            candidate is at the head of `HeroCorners.tsx`.
-          */}
-          <HeroCorners />
         </div>
       </div>
     </section>
