@@ -326,7 +326,14 @@ describe("the crawler renders read the store", () => {
   it("lists the story's beats in the page's order", async () => {
     const res = await request(createApp()).get("/api/seo/render/story");
     const body = res.text.slice(res.text.indexOf("<ol>"), res.text.indexOf("</ol>"));
-    const heads = [...body.matchAll(/<h2>(.*?)<\/h2>/g)].map((m) => m[1].replace(/<[^>]+>/g, ""));
+    /* No tag stripping: a heading is plain escaped text, or a year and one
+       link to its project, and anything else fails the match outright. */
+    const heads = [...body.matchAll(/<h2>(.*?)<\/h2>/g)].map(([, inner]) => {
+      const link = /^(\d{4}: )<a href="\/projects\/[a-z0-9-]+">([^<>]*)<\/a>$/.exec(inner);
+      if (link) return link[1] + link[2];
+      expect(inner).not.toMatch(/[<>]/);
+      return inner;
+    });
     expect(heads).toEqual([
       "2021: Started shipping",
       "2025: Programming with Yehuda",
