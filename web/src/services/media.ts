@@ -43,6 +43,24 @@ const MediaSchema = z.object({
 });
 
 export type MediaItem = z.infer<typeof MediaSchema>;
+
+/*
+ * What may go into a media element's src. Only two things ever should: the
+ * library's own /api/images/ path (relative, or absolute on http(s)), or a
+ * blob: URL this page made from a file the owner picked. Anything else, such
+ * as javascript:, data: or another path, is dropped before it reaches an
+ * attribute.
+ */
+const LIBRARY_SRC = /^(?:https?:\/\/[^/?#\s]+)?\/api\/images\/\S*$/;
+const BLOB_SRC = /^blob:(?:https?:\/\/[^/?#\s]+|null)\/[\w-]+$/;
+
+export function librarySrc(url: string | null | undefined): string | undefined {
+  return typeof url === "string" && LIBRARY_SRC.test(url) ? url : undefined;
+}
+
+export function blobSrc(url: string | null | undefined): string | undefined {
+  return typeof url === "string" && BLOB_SRC.test(url) ? url : undefined;
+}
 export type MediaUsage = z.infer<typeof UsageSchema>;
 export type MediaKind = MediaItem["kind"];
 export const MEDIA_KINDS: readonly MediaKind[] = ["image", "icon", "video"];

@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState, type DragEvent } from "react";
 import {
   KIND_LABEL,
   LIMITS,
+  blobSrc,
   checkFile,
   formatBytes,
   media,
@@ -157,9 +158,9 @@ export default function MediaUpload({
         }}
       >
         {pending.kind === "video" ? (
-          <video src={pending.url} className={styles.pendingThumb} muted playsInline preload="metadata" aria-hidden="true" />
+          <video src={blobSrc(pending.url)} className={styles.pendingThumb} muted playsInline preload="metadata" aria-hidden="true" />
         ) : (
-          <img src={pending.url} alt="" className={styles.pendingThumb} />
+          <img src={blobSrc(pending.url)} alt="" className={styles.pendingThumb} />
         )}
         <div className="space-y-4">
           <p className="mono text-[0.75rem] text-clay">

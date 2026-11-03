@@ -108,9 +108,22 @@ async function processBody(
 }
 const MetaBody = MediaMeta.extend({ _rev: z.string().min(1, "Missing _rev: reload and reapply.") });
 const RevQuery = z.object({ rev: z.string().min(1, "Missing rev: reload and reapply.") });
+/* Every query value is a single string: `?kind=a&kind=b` (an array) is a 400, not a guess. */
+const ListQuery = z.object({
+  q: z.string().max(200).optional(),
+  kind: z.enum(MEDIA_KINDS).optional(),
+});
+const ReplaceQuery = RevQuery.merge(CaptionsQuery).extend({ filename: z.string().max(200).optional() });
 
+/*
+ * express.raw() leaves a Buffer in req.body; anything else (an array or an
+ * object from a parser upstream, a string) is not an upload. Checked as an
+ * array first, so a tampered body can never be read as a different type.
+ */
 function bodyBytes(req: Request): Buffer {
-  return Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0);
+  const body: unknown = req.body;
+  if (Array.isArray(body) || typeof body !== "object" || body === null) return Buffer.alloc(0);
+  return Buffer.isBuffer(body) ? body : Buffer.alloc(0);
 }
 
 function rejected(res: Response, e: unknown) {
@@ -141,8 +154,10 @@ const conflict = (res: Response) =>
 router.get(
   "/",
   asyncHandler(async (req, res) => {
-    const q = typeof req.query.q === "string" ? req.query.q.trim().toLowerCase().slice(0, 100) : "";
-    const kind = (MEDIA_KINDS as readonly unknown[]).includes(req.query.kind) ? (req.query.kind as MediaKind) : null;
+    const query = ListQuery.safeParse(req.query);
+    if (!query.success) return res.status(400).json({ ok: false, error: "invalid", details: query.error.flatten() });
+    const q = (query.data.q ?? "").trim().toLowerCase().slice(0, 100);
+    const kind = query.data.kind ?? null;
     const [docs, refs] = await Promise.all([mediaStore.list(), mediaStore.referrers()]);
     const usage = usageIndex(docs.map((d) => d.id), refs);
     const items = docs
@@ -234,7 +249,7 @@ router.put(
   tooLarge,
   asyncHandler(async (req, res) => {
     const id = idParam(req);
-    const rev = RevQuery.merge(CaptionsQuery).safeParse(req.query);
+    const rev = ReplaceQuery.safeParse(req.query);
     if (!rev.success) return res.status(400).json({ ok: false, error: "invalid", details: rev.error.flatten() });
     const existing = id ? await mediaStore.get(id) : null;
     if (!existing) return res.status(404).json({ ok: false, error: "Not Found" });
@@ -250,7 +265,7 @@ router.put(
     } catch (e) {
       return rejected(res, e);
     }
-    const name = cleanName(typeof req.query.filename === "string" ? req.query.filename : existing.name);
+    const name = cleanName(rev.data.filename ?? existing.name);
     const doc = buildDoc({
       id: existing.id,
       name,

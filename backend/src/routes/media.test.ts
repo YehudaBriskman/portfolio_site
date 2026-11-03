@@ -4,7 +4,7 @@ import { createApp } from "../app";
 import { couch } from "../db/couch.js";
 import { env } from "../env.js";
 import { newTokenDoc } from "../services/apiTokenFormat.js";
-import { checkSvg, processUpload, sniff, widthsFor, MEDIA_MAX_BYTES } from "../services/mediaImage.js";
+import { processUpload, sanitizeSvg, sniff, widthsFor, MEDIA_MAX_BYTES } from "../services/mediaImage.js";
 import { mediaStore, usageIndex, type MediaDoc } from "../services/media.js";
 
 /*
@@ -176,7 +176,7 @@ describe("SVG", () => {
     ["an external url() paint", `<svg xmlns="http://www.w3.org/2000/svg"><rect fill="url(https://evil.example/p)"/></svg>`],
     ["a style attribute", `<svg xmlns="http://www.w3.org/2000/svg"><rect style="fill:red"/></svg>`],
   ])("with %s is refused", async (_label, svg) => {
-    expect(checkSvg(svg)).not.toBeNull();
+    expect(sanitizeSvg(svg).ok).toBe(false);
     const res = await asAdmin(request(createApp()).post("/api/admin/media?alt=x&filename=a.svg"))
       .set("Content-Type", "image/svg+xml")
       .send(Buffer.from(svg));
@@ -185,7 +185,7 @@ describe("SVG", () => {
   });
 
   it("a clean one passes the check", () => {
-    expect(checkSvg(CLEAN_SVG)).toBeNull();
+    expect(sanitizeSvg(CLEAN_SVG).ok).toBe(true);
   });
 });
 

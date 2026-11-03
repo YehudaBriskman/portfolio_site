@@ -15,6 +15,7 @@ import {
   filterMedia,
   formatBytes,
   formatDuration,
+  librarySrc,
   media,
   type MediaItem,
   type MediaKind,
@@ -166,27 +167,30 @@ const usageHref = (u: MediaUsage) => {
 };
 
 function Preview({ item }: { item: MediaItem }) {
-  if (item.kind === "video" && item.file) {
+  const file = librarySrc(item.file);
+  const preview = librarySrc(item.preview);
+  const captions = librarySrc(item.captions?.url);
+  if (item.kind === "video" && file) {
     return (
       <MediaVideo
-        src={item.file}
+        src={file}
         type={item.mime}
-        poster={item.largest?.webp ?? item.preview ?? ""}
+        poster={librarySrc(item.largest?.webp) ?? preview ?? ""}
         label={item.alt}
-        captions={item.captions ? { src: item.captions.url, lang: item.captions.lang, label: item.captions.label } : null}
+        captions={item.captions && captions ? { src: captions, lang: item.captions.lang, label: item.captions.label } : null}
         width={item.width}
         height={item.height}
         className={styles.detailImg}
       />
     );
   }
-  if (item.kind === "icon" && item.file) {
+  if (item.kind === "icon" && file) {
     return (
       <div className={styles.iconStage}>
-        <img src={item.file} alt={item.alt} width={96} height={96} className="object-contain" />
+        <img src={file} alt={item.alt} width={96} height={96} className="object-contain" />
         {item.monochrome && (
           <p className="a-hint m-0 flex items-center gap-2">
-            <MediaIcon src={item.file} monochrome size={24} className="text-sodium" />
+            <MediaIcon src={file} monochrome size={24} className="text-sodium" />
             One colour: drawn in the text colour around it.
           </p>
         )}
@@ -197,7 +201,7 @@ function Preview({ item }: { item: MediaItem }) {
     <picture>
       <source type="image/avif" srcSet={item.srcset.avif} sizes="(min-width: 52rem) 34rem, 100vw" />
       <source type="image/webp" srcSet={item.srcset.webp} sizes="(min-width: 52rem) 34rem, 100vw" />
-      <img src={item.preview ?? undefined} alt={item.alt} className={styles.detailImg} width={item.width} height={item.height} />
+      <img src={preview} alt={item.alt} className={styles.detailImg} width={item.width} height={item.height} />
     </picture>
   );
 }

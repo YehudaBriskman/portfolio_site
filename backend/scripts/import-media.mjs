@@ -156,8 +156,18 @@ async function main() {
     ? { Authorization: `Bearer ${BEARER}` }
     : { "X-Admin-Proxy-Secret": TOKEN, "X-Auth-Request-User": LOGIN, ...(COOKIE ? { Cookie: COOKIE } : {}) };
 
+  /*
+   * Every request goes to ORIGIN, which comes only from CONTENT_API_BASE and
+   * was checked above to be https (or loopback). Uploading the site's own
+   * pictures from web/public to that origin is this script's whole job, so the
+   * one place file bytes leave the machine is `upload()` below.
+   */
+  const ORIGIN = baseUrl.origin;
+  const PREFIX = `${baseUrl.pathname.replace(/\/+$/, "")}/api/admin`;
   async function api(method, path, body, type) {
-    const res = await fetch(`${BASE}/api/admin${path}`, {
+    const url = new URL(`${PREFIX}${path}`, ORIGIN);
+    if (url.origin !== ORIGIN) throw new Error(`refusing a request off ${ORIGIN}: ${url.origin}`);
+    const res = await fetch(url, {
       method,
       headers: { ...auth, Accept: "application/json", ...(type ? { "Content-Type": type } : {}) },
       body,
@@ -175,6 +185,13 @@ async function main() {
       throw new Error(`${method} ${path}: ${res.status} ${why}`);
     }
     return json;
+  }
+
+  /** A picture from web/public, sent to the validated ORIGIN: the intended file-to-network flow. */
+  function upload(path, file, type) {
+    const bytes = readFileSync(file);
+    // codeql[js/file-access-to-http] Intended: an owner-run migration uploading the site's own public pictures to the https/loopback origin validated from CONTENT_API_BASE.
+    return api("POST", path, bytes, type);
   }
 
   const found = discover();
@@ -208,7 +225,7 @@ async function main() {
     }
     const qs = new URLSearchParams({ alt: meta.alt, caption: meta.caption ?? "", credit: meta.credit ?? "", filename: name });
     const ext = name.split(".").pop().toLowerCase();
-    const r = await api("POST", `/media?${qs}`, readFileSync(join(PUBLIC, rel)), TYPES[ext]);
+    const r = await upload(`/media?${qs}`, join(PUBLIC, rel), TYPES[ext]);
     console.log(`      -> ${r.item.id}  ${r.item.url}`);
     urls.set(name, r.item.url);
     uploaded += 1;

@@ -6,7 +6,7 @@ import sharp from "sharp";
 import { createApp } from "../app";
 import { couch } from "../db/couch.js";
 import { env } from "../env.js";
-import { ICON_MAX_BYTES, isMonochrome, processIcon } from "../services/mediaImage.js";
+import { ICON_MAX_BYTES, isMonochrome, processIcon, sanitizeSvg } from "../services/mediaImage.js";
 import { mediaStore, type MediaDoc } from "../services/media.js";
 import { checkCaptions, inspectVideo, sniffVideo, VIDEO_MAX_BYTES } from "../services/mediaVideo.js";
 import { parseRange } from "../controllers/media.controller.js";
@@ -171,24 +171,30 @@ describe("uploading a video", () => {
 const ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"><path d="M2 2h20v20H2z" fill="#111"/><circle cx="12" cy="12" r="4" fill="#111"/></svg>`;
 
 describe("an icon", () => {
-  it("a plain SVG is kept as it is, and one ink makes it monochrome", async () => {
+  it("a plain SVG is stored as its checked tree, and one ink makes it monochrome", async () => {
     const p = await processIcon(Buffer.from(ICON));
     expect(p).toMatchObject({ kind: "icon", format: "svg", width: 24, height: 24, monochrome: true, variants: [] });
-    expect(p.original.data.toString()).toBe(ICON);
+    const checked = sanitizeSvg(ICON);
+    expect(checked.ok && p.original.data.toString()).toBe(checked.ok && checked.svg);
     expect(isMonochrome(ICON.replace('fill="#111"/><circle', 'fill="#e33"/><circle'))).toBe(false);
-    expect(isMonochrome('<svg><linearGradient id="g"/><path d="M0 0" fill="url(#g)"/></svg>')).toBe(false);
+    const NS = 'xmlns="http://www.w3.org/2000/svg"';
+    expect(isMonochrome(`<svg ${NS}><linearGradient id="g"/><path d="M0 0" fill="url(#g)"/></svg>`)).toBe(false);
     // No fill at all paints black: still one ink.
-    expect(isMonochrome('<svg><path d="M0 0"/><path d="M1 1" fill="#000"/></svg>')).toBe(true);
+    expect(isMonochrome(`<svg ${NS}><path d="M0 0"/><path d="M1 1" fill="#000"/></svg>`)).toBe(true);
   });
 
   it.each([
-    ["a script", '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>', /<script>/],
-    ["an event attribute", '<svg xmlns="http://www.w3.org/2000/svg" onload="alert(1)"><path d="M0 0"/></svg>', /onload/],
-    ["foreignObject", '<svg xmlns="http://www.w3.org/2000/svg"><foreignObject><div/></foreignObject></svg>', /foreignobject/],
-    ["an external reference", '<svg xmlns="http://www.w3.org/2000/svg"><use href="https://evil.example/x.svg#a"/></svg>', /#fragment/],
-    ["a style attribute", '<svg xmlns="http://www.w3.org/2000/svg"><path style="fill:url(https://x)" d="M0 0"/></svg>', /style/],
+    ["a script", '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>', "script"],
+    ["a SCRIPT in capitals", '<svg xmlns="http://www.w3.org/2000/svg"><SCRIPT>alert(1)</SCRIPT></svg>', "script"],
+    ["an event attribute", '<svg xmlns="http://www.w3.org/2000/svg" onload="alert(1)"><path d="M0 0"/></svg>', "onload"],
+    ["foreignObject", '<svg xmlns="http://www.w3.org/2000/svg"><foreignObject><div/></foreignObject></svg>', "foreignobject"],
+    ["an external reference", '<svg xmlns="http://www.w3.org/2000/svg"><use href="https://evil.example/x.svg#a"/></svg>', "#fragment"],
+    ["a style attribute", '<svg xmlns="http://www.w3.org/2000/svg"><path style="fill:url(https://x)" d="M0 0"/></svg>', "style"],
   ])("refuses %s", async (_what, svg, why) => {
-    await expect(processIcon(Buffer.from(svg))).rejects.toMatchObject({ status: 415, message: expect.stringMatching(why) });
+    // The refusal names what the parser found, whatever its case in the file.
+    const err = await processIcon(Buffer.from(svg)).then(() => null, (e: { status: number; message: string }) => e);
+    expect(err?.status).toBe(415);
+    expect(err?.message.toLowerCase()).toContain(why);
   });
 
   it("is small: 64 KB, and a PNG no more than 1024 px on a side", async () => {
@@ -314,5 +320,19 @@ describe("listing", () => {
     vi.spyOn(mediaStore, "list").mockResolvedValue(docs);
     const res = await asAdmin(request(createApp()).get("/api/admin/media?kind=icon"));
     expect(res.body.items.map((i: { id: string }) => i.id)).toEqual(["b-222222"]);
+  });
+
+  it.each([
+    ["a repeated kind", "get", "/api/admin/media?kind=icon&kind=image"],
+    ["a repeated q", "get", "/api/admin/media?q=a&q=b"],
+    ["an unknown kind", "get", "/api/admin/media?kind=pdf"],
+    ["a repeated upload kind", "post", "/api/admin/media?kind=icon&kind=video&alt=x"],
+    ["a repeated alt", "post", "/api/admin/media?alt=x&alt=y"],
+    ["a repeated rev", "put", "/api/admin/media/a-111111/file?rev=1&rev=2"],
+  ] as const)("answers %s (an array, not a string) with 400", async (_what, method, url) => {
+    vi.spyOn(mediaStore, "list").mockResolvedValue([]);
+    vi.spyOn(mediaStore, "get").mockResolvedValue({ ...BASE, id: "a-111111", _rev: "1", kind: "image", format: "jpeg", hash: H, original: "original.jpg", bytes: 1 } as MediaDoc);
+    const res = await asAdmin(request(createApp())[method](url)).set("Content-Type", "image/png").send(Buffer.from("x"));
+    expect(res.status).toBe(400);
   });
 });

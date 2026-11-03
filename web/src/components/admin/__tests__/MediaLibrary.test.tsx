@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import MediaPicker from "@/components/admin/MediaPicker";
 import AdminMedia from "@/pages/AdminMedia";
-import { checkFile, mediaIdOf, type MediaItem } from "@/services/media";
+import { blobSrc, checkFile, librarySrc, mediaIdOf, type MediaItem } from "@/services/media";
 
 /*
  * The media library's admin UI (#253): the picker hands back the stable URL,
@@ -163,7 +163,7 @@ describe("the library page", () => {
     await screen.findAllByRole("list", { name: /pictures/ });
     const file = new File([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], "new.png", { type: "image/png" });
     const input = document.querySelector<HTMLInputElement>('input[type="file"]')!;
-    vi.stubGlobal("URL", Object.assign(URL, { createObjectURL: () => "blob:x", revokeObjectURL: () => {} }));
+    vi.stubGlobal("URL", Object.assign(URL, { createObjectURL: () => "blob:http://localhost:3000/1b6f0c2e-5d1a-4c3e-9f1e-2a7b8c9d0e1f", revokeObjectURL: () => {} }));
     await userEvent.upload(input, file);
     await userEvent.click(await screen.findByRole("button", { name: "Upload" }));
     expect(screen.getByText("Say what the picture shows before uploading.")).toBeInTheDocument();
@@ -173,7 +173,7 @@ describe("the library page", () => {
   it("a video upload waits for its poster", async () => {
     page("/admin/media");
     await screen.findAllByRole("list", { name: /pictures/ });
-    vi.stubGlobal("URL", Object.assign(URL, { createObjectURL: () => "blob:v", revokeObjectURL: () => {} }));
+    vi.stubGlobal("URL", Object.assign(URL, { createObjectURL: () => "blob:http://localhost:3000/9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d", revokeObjectURL: () => {} }));
     const input = document.querySelector<HTMLInputElement>('input[type="file"]')!;
     await userEvent.upload(input, new File([new Uint8Array(16)], "clip.mp4", { type: "video/mp4" }));
     expect(await screen.findByText("Poster image (required)")).toBeInTheDocument();
@@ -201,6 +201,16 @@ describe("the library page", () => {
 });
 
 describe("helpers", () => {
+  it("a media src is the library's own path or this page's blob: URL, and nothing else", () => {
+    expect(librarySrc("/api/images/m/a-1/w800.webp")).toBe("/api/images/m/a-1/w800.webp");
+    expect(librarySrc("https://example.com/api/images/media/a-1?w=800&f=webp")).toBe("https://example.com/api/images/media/a-1?w=800&f=webp");
+    for (const bad of ["javascript:alert(1)", "data:image/svg+xml,<svg/>", "//evil.example/api/images/x", "/admin", "JAVASCRIPT:alert(1)//api/images/", null, undefined]) {
+      expect(librarySrc(bad)).toBeUndefined();
+    }
+    expect(blobSrc("blob:http://localhost:3000/1b6f0c2e-5d1a-4c3e-9f1e-2a7b8c9d0e1f")).toBeDefined();
+    for (const bad of ["javascript:alert(1)", "blob:javascript:alert(1)", "/api/images/x", ""]) expect(blobSrc(bad)).toBeUndefined();
+  });
+
   it("checkFile refuses a type off the list and an oversize file", () => {
     expect(checkFile(new File(["x"], "a.gif", { type: "image/gif" }))).toMatch(/not a JPEG/);
     const big = new File(["x"], "b.jpg", { type: "image/jpeg" });

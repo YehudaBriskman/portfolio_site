@@ -1,5 +1,8 @@
 import { createHash } from "node:crypto";
 import sharp from "sharp";
+import { isMonochrome, sanitizeSvg } from "./svgSanitize.js";
+
+export { isMonochrome, sanitizeSvg };
 
 /*
  * What an upload has to pass, and what is made of it (#253). Pure: bytes in,
@@ -95,66 +98,40 @@ export function sniff(buf: Buffer): ImageFormat | null {
     if (brands.some((b) => b === "avif" || b === "avis")) return "avif";
     return null; // HEIC and friends: not on the list
   }
-  const head = buf.subarray(0, 1024).toString("utf8").replace(/^﻿/, "").trimStart();
-  if (/^(<\?xml[^>]*>\s*)?(<!--[\s\S]*?-->\s*)*<svg[\s>]/i.test(head)) return "svg";
-  return null;
+  return looksLikeSvg(buf.subarray(0, 1024).toString("utf8")) ? "svg" : null;
+}
+
+/** An optional XML declaration, then comments, then `<svg`. No regular expression, so no backtracking. */
+function looksLikeSvg(head: string): boolean {
+  let s = head.toLowerCase();
+  if (s.charCodeAt(0) === 0xfeff) s = s.slice(1);
+  s = s.trimStart();
+  if (s.startsWith("<?xml")) {
+    const end = s.indexOf("?>");
+    if (end === -1) return false;
+    s = s.slice(end + 2).trimStart();
+  }
+  while (s.startsWith("<!--")) {
+    const end = s.indexOf("-->", 4);
+    if (end === -1) return false;
+    s = s.slice(end + 3).trimStart();
+  }
+  const next = s.charAt(4);
+  return s.startsWith("<svg") && (next === "" || next === ">" || next === "/" || next.trim() === "");
 }
 
 /* ------------------------------------------------------------------ SVG -- */
 
 /*
- * SVG is a document, not a picture: it can carry script, event handlers,
- * external references and entity expansion. It is accepted only when every
- * element and attribute is on a short allowlist of drawing primitives, and
- * refused otherwise — never rewritten, so what is stored is exactly what was
- * checked. And it is never served as SVG: the library rasterises it to the
- * same AVIF/WebP variants as a photo, so the original stays in the store as
- * the source and no visitor's browser ever parses it.
+ * The SVG check is a real XML parse and an allowlist walk: see svgSanitize.ts.
+ * An image SVG is never served as SVG: the library rasterises it to the same
+ * AVIF/WebP variants as a photo. An icon SVG is served as itself, under a
+ * `default-src 'none'` policy.
  */
-const SVG_ELEMENTS = new Set([
-  "svg", "g", "defs", "symbol", "use", "title", "desc", "path", "rect", "circle", "ellipse", "line",
-  "polyline", "polygon", "text", "tspan", "lineargradient", "radialgradient", "stop", "clippath", "mask",
-  "pattern",
-]);
-const SVG_ATTRIBUTES = new Set([
-  "xmlns", "xmlns:xlink", "version", "id", "class", "viewbox", "width", "height", "x", "y", "x1", "x2", "y1",
-  "y2", "cx", "cy", "r", "rx", "ry", "d", "points", "fill", "fill-opacity", "fill-rule", "stroke",
-  "stroke-width", "stroke-linecap", "stroke-linejoin", "stroke-miterlimit", "stroke-dasharray",
-  "stroke-dashoffset", "stroke-opacity", "opacity", "transform", "preserveaspectratio", "offset",
-  "stop-color", "stop-opacity", "gradientunits", "gradienttransform", "spreadmethod", "fx", "fy",
-  "clip-path", "clip-rule", "mask", "clippathunits", "maskunits", "maskcontentunits", "patternunits",
-  "patterncontentunits", "patterntransform", "font-family", "font-size", "font-weight", "font-style",
-  "text-anchor", "dominant-baseline", "letter-spacing", "dx", "dy", "href", "xlink:href", "role",
-  "aria-label", "aria-hidden", "focusable", "xml:space", "visibility", "display",
-]);
-
-export function checkSvg(text: string): string | null {
-  if (/<!DOCTYPE|<!ENTITY|<!\[CDATA\[/i.test(text)) return "doctype, entities and CDATA are not allowed";
-  // Processing instructions other than the XML declaration.
-  if (/<\?(?!xml\s)/i.test(text)) return "processing instructions are not allowed";
-  const body = text.replace(/<!--[\s\S]*?-->/g, "");
-  const tag = /<\/?\s*([a-zA-Z][\w:.-]*)((?:\s+[^\s=>/]+(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+))?)*)\s*\/?>/g;
-  const attr = /([^\s=>/]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+)))?/g;
-  let seen = 0;
-  for (const m of body.matchAll(tag)) {
-    seen += 1;
-    const name = m[1].toLowerCase();
-    if (!SVG_ELEMENTS.has(name)) return `<${name}> is not allowed`;
-    for (const a of (m[2] ?? "").matchAll(attr)) {
-      const an = a[1].toLowerCase();
-      const value = (a[2] ?? a[3] ?? a[4] ?? "").trim();
-      if (!SVG_ATTRIBUTES.has(an)) return `the ${an} attribute is not allowed`;
-      // References stay inside the document: `#id` and nothing else.
-      if ((an === "href" || an === "xlink:href") && !/^#[\w.-]+$/.test(value)) return "only #fragment references are allowed";
-      if (/url\(\s*(?!['"]?#)/i.test(value)) return "only url(#fragment) references are allowed";
-      if (/javascript:|data:/i.test(value)) return "script and data URLs are not allowed";
-    }
-  }
-  // Anything that looked like markup but did not parse as a tag is refused too.
-  const stray = body.replace(tag, "").replace(/<\?xml[^>]*\?>/i, "");
-  if (stray.includes("<")) return "markup that could not be checked";
-  if (seen === 0) return "no svg element";
-  return null;
+function svgOrRefuse(input: Buffer): { data: Buffer; monochrome: boolean } {
+  const r = sanitizeSvg(input);
+  if (!r.ok) throw new MediaRejected(415, `This SVG was refused: ${r.error}.`);
+  return { data: Buffer.from(r.svg, "utf8"), monochrome: r.monochrome };
 }
 
 /* ------------------------------------------------------------- process -- */
@@ -247,10 +224,8 @@ async function processRaster(input: Buffer, kind: Exclude<ImageFormat, "svg">): 
   };
 }
 
-async function processSvg(input: Buffer): Promise<Processed> {
-  const text = input.toString("utf8");
-  const problem = checkSvg(text);
-  if (problem) throw new MediaRejected(415, `This SVG was refused: ${problem}.`);
+async function processSvg(raw: Buffer): Promise<Processed> {
+  const input = svgOrRefuse(raw).data;
   const widest = VARIANT_WIDTHS[VARIANT_WIDTHS.length - 1];
   let meta: sharp.Metadata;
   try {
@@ -306,12 +281,10 @@ export function processIcon(input: Buffer): Promise<Processed> {
   }
   return serial(async (): Promise<Processed> => {
     if (format === "svg") {
-      const text = input.toString("utf8");
-      const problem = checkSvg(text);
-      if (problem) throw new MediaRejected(415, `This SVG was refused: ${problem}.`);
+      const { data, monochrome } = svgOrRefuse(input);
       let meta: sharp.Metadata;
       try {
-        meta = await sharp(input).metadata();
+        meta = await sharp(data).metadata();
       } catch {
         throw new MediaRejected(422, "The SVG could not be drawn.");
       }
@@ -321,9 +294,9 @@ export function processIcon(input: Buffer): Promise<Processed> {
         format: "svg",
         width: meta.width,
         height: meta.height,
-        original: { name: "icon.svg", contentType: MIME.svg, data: input, hash: hashOf(input) },
+        original: { name: "icon.svg", contentType: MIME.svg, data, hash: hashOf(data) },
         variants: [],
-        monochrome: isMonochrome(text),
+        monochrome,
       };
     }
     let meta: sharp.Metadata;
@@ -353,24 +326,4 @@ export function processIcon(input: Buffer): Promise<Processed> {
       monochrome: false,
     };
   });
-}
-
-/*
- * One ink and no gradient or pattern: a page can then draw the icon as a CSS
- * mask filled with currentColor, so it takes the colour of the text around it
- * (and the theme's) without the stored file being rewritten. A shape with no
- * fill of its own paints black, which counts as an ink.
- */
-export function isMonochrome(svg: string): boolean {
-  if (/<(lineargradient|radialgradient|pattern)\b/i.test(svg)) return false;
-  const inks = new Set<string>();
-  for (const m of svg.matchAll(/\b(?:fill|stroke|stop-color|color)\s*=\s*["']([^"']*)["']/gi)) {
-    const v = m[1].trim().toLowerCase().replace(/\s+/g, "");
-    if (["none", "transparent", "currentcolor", "inherit", ""].includes(v)) continue;
-    inks.add(v === "black" || v === "#000" ? "#000000" : v === "white" || v === "#fff" ? "#ffffff" : v);
-  }
-  const inherited = /<(?:svg|g)\b[^>]*\bfill\s*=/i.test(svg);
-  const shapes = svg.match(/<(?:path|rect|circle|ellipse|polygon|polyline|text)\b[^>]*>/gi) ?? [];
-  if (!inherited && shapes.some((t) => !/\bfill\s*=/i.test(t))) inks.add("#000000");
-  return inks.size <= 1;
 }
