@@ -34,8 +34,9 @@ export const VERSION = "0.1.0";
 
 export const PUBLIC_TOOLS = ["list_posts", "get_post", "list_tags", "list_areas", "get_area", "list_activity"] as const;
 /* Admin tools that only read: an `access: "read"` session gets these. */
-export const ADMIN_READ_TOOLS = ["admin_list_posts", "admin_get_post", "read_audit_log"] as const;
+export const ADMIN_READ_TOOLS = ["admin_list_posts", "admin_get_post", "read_audit_log", "list_media"] as const;
 export const ADMIN_TOOLS = [
+  "list_media",
   "admin_list_posts",
   "admin_get_post",
   "save_post_draft",
@@ -51,7 +52,7 @@ const slug = z
   .string()
   .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "lowercase words joined by dashes")
   .max(120);
-const dryRun = z
+export const dryRun = z
   .boolean()
   .default(true)
   .describe("Default true: return the diff and write nothing. Pass false to apply.");
@@ -114,16 +115,31 @@ const AREA_FIELDS = [
   "status",
 ] as const;
 
+export type MediaKind = "image" | "icon" | "video";
+export type MediaItem = {
+  id: string;
+  name: string;
+  kind: MediaKind;
+  alt: string;
+  caption: string;
+  credit: string;
+  width: number;
+  height: number;
+  durationMs?: number;
+  url: string;
+  usedBy?: { id: string; type: string; slug: string | null; field: string }[];
+};
+
 function pick<T extends object>(doc: T, fields: readonly string[]) {
   const out: Record<string, unknown> = {};
   for (const f of fields) if (f in doc) out[f] = (doc as Record<string, unknown>)[f];
   return out;
 }
 
-const json = (value: unknown): CallToolResult => ({
+export const json = (value: unknown): CallToolResult => ({
   content: [{ type: "text", text: JSON.stringify(value, null, 2) }],
 });
-const fail = (message: string): CallToolResult => ({ isError: true, content: [{ type: "text", text: message }] });
+export const fail = (message: string): CallToolResult => ({ isError: true, content: [{ type: "text", text: message }] });
 
 function explain(e: unknown): CallToolResult {
   if (e instanceof ApiError) {
@@ -136,7 +152,7 @@ function explain(e: unknown): CallToolResult {
 }
 
 /* Wraps a handler so a thrown ApiError becomes a readable tool error. */
-function safe<A>(fn: (args: A) => Promise<CallToolResult>) {
+export function safe<A>(fn: (args: A) => Promise<CallToolResult>) {
   return async (args: A) => {
     try {
       return await fn(args);
@@ -175,9 +191,9 @@ export type ToolAccess = "public" | "read" | "write";
 
 export function instructionsFor(access: ToolAccess) {
   if (access === "write") {
-    return "Reads and edits the portfolio site's posts and areas. Every write tool defaults to dryRun: true and returns a diff; show it to the user before applying with dryRun: false.";
+    return "Reads and edits the portfolio site's posts and areas, and reads its media library. Every write tool defaults to dryRun: true and returns a diff; show it to the user before applying with dryRun: false.";
   }
-  if (access === "read") return "Reads the portfolio site's posts (drafts included), areas, tags, activity feed and admin audit log.";
+  if (access === "read") return "Reads the portfolio site's posts (drafts included), areas, tags, activity feed, media library and admin audit log.";
   return "Read-only access to the portfolio site's posts, areas, tags and activity feed.";
 }
 
@@ -318,6 +334,39 @@ export function registerTools(server: McpServer, api: PortfolioApi, access: Tool
       annotations: ro,
     },
     safe(async ({ limit, before }) => json(await api.adminGet("/api/admin/audit", { limit, before }))),
+  );
+
+  server.registerTool(
+    "list_media",
+    {
+      title: "List the media library",
+      description:
+        "Pictures, icons and short videos in the media library (#253), newest first: id, kind, alt text, caption, size, " +
+        "the stable `url` to put in a coverImage or a project image (a picture) or an area's icon (an icon), and " +
+        "`usedBy` (what references it). Filter with `q` (name, alt, caption, credit) and `kind`.",
+      inputSchema: {
+        q: z.string().max(100).optional(),
+        kind: z.enum(["image", "icon", "video"]).optional(),
+      },
+      annotations: ro,
+    },
+    safe(async ({ q, kind }) => {
+      const { items } = await api.adminGet<{ items: MediaItem[] }>("/api/admin/media", { q, kind });
+      return json(
+        items.map((m) => ({
+          id: m.id,
+          kind: m.kind,
+          name: m.name,
+          alt: m.alt,
+          caption: m.caption,
+          credit: m.credit,
+          size: `${m.width}x${m.height}`,
+          ...(m.kind === "video" && m.durationMs ? { seconds: Math.round(m.durationMs / 1000) } : {}),
+          url: m.url,
+          usedBy: (m.usedBy ?? []).map((u) => `${u.type}:${u.slug ?? u.id} (${u.field})`),
+        })),
+      );
+    }),
   );
 
   if (access === "read") return;
