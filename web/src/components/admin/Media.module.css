@@ -204,6 +204,17 @@
   border-radius: var(--r-sm);
 }
 
+/*
+ * The Delete label. `--destructive-ink` is tuned for the dark ground only
+ * (#247 defines it once): on the light theme's paper it is 2.3:1. Mixing the
+ * fill red with --bone, which is the ink of whichever theme is on, darkens it
+ * on light (~7:1) and lightens it on dark (~5:1) from the existing tokens.
+ */
+.delete:not(:disabled):not(:hover) {
+  color: color-mix(in srgb, rgb(var(--destructive)) 70%, rgb(var(--bone)));
+  border-color: color-mix(in srgb, rgb(var(--destructive)) 60%, transparent);
+}
+
 .iconStage {
   display: grid;
   justify-items: center;

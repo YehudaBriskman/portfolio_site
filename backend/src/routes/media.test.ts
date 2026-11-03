@@ -163,7 +163,7 @@ describe("SVG", () => {
     expect(p).toMatchObject({ kind: "image", format: "svg" });
     expect(p.variants.every((v) => v.format === "avif" || v.format === "webp")).toBe(true);
     expect(p.width).toBe(1600);
-  });
+  }, 20_000); // eight AVIF/WebP encodes of a 1600px raster: ~2.5 s alone, more on a loaded runner
 
   it.each([
     ["script", `<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>`],
@@ -233,6 +233,17 @@ describe("delete only when unused", () => {
     const u = usageIndex(["hero-abc123"], refs).get("hero-abc123")!;
     expect(u.map((x) => x.id)).toEqual(["post:hello", "collection:x"]);
     expect(u[0]).toMatchObject({ type: "post", title: "Hello", field: "coverImage" });
+  });
+
+  it("a content document (#163) is named for its editor, with the path to the field", () => {
+    const projects = {
+      _id: "content:projects",
+      type: "content",
+      key: "projects",
+      json: JSON.stringify({ published: { items: [{ image: null }, { image: `${env.SITE_URL}/api/images/media/hero-abc123` }] } }),
+    };
+    const [u] = usageIndex(["hero-abc123"], [projects]).get("hero-abc123")!;
+    expect(u).toEqual({ id: "content:projects", type: "content", title: "Projects", slug: "projects", field: "published.items.1.image" });
   });
 
   it("refuses to delete a picture something uses, and says what", async () => {

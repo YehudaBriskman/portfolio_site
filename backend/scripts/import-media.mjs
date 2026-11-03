@@ -24,7 +24,10 @@
  * What it will and will not do:
  *   - Dry run unless `--apply` is given. The dry run reads, never writes.
  *   - Never deletes, never touches web/public. The static files stay where
- *     they are until the follow-up that switches references (after #163).
+ *     they are; a later change removes them once nothing names them.
+ *   - Then relinks the content (#163): each project image and story picture
+ *     that names a static file is pointed at its library URL, saved as a
+ *     DRAFT for the owner to review and publish. It never publishes.
  *   - Idempotent: a picture whose file name is already in the library is
  *     skipped, so a second `--apply` uploads nothing.
  *   - Every upload goes through POST /api/admin/media, so it passes the same
@@ -81,6 +84,51 @@ export function discover(root = PUBLIC) {
 
 const TYPES = { jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", webp: "image/webp", avif: "image/avif", svg: "image/svg+xml" };
 
+/*
+ * The site's content documents (#163) that may name a static picture. Each is
+ * relinked as a whole: every string in it that IS a static content picture —
+ * the master or one of its -400/-800/… variants, as a path or on the site's
+ * own origin — becomes that picture's library URL. A string that merely
+ * contains one (prose, a link to elsewhere) is left alone.
+ */
+export const CONTENT_KEYS = ["projects", "story", "site-copy"];
+
+/** "/projects/windom-1200.jpg" or "https://site/projects/windom.jpg" → "projects/windom.jpg", else null. */
+export function staticRef(value, origins = []) {
+  if (typeof value !== "string") return null;
+  let path = value.trim();
+  for (const o of origins) if (path.startsWith(o)) path = path.slice(o.length);
+  const m = /^\/((?:projects|img|story)\/[^/?#\s]+?)(-(?:\d{3,4}|sm|card))?\.(jpe?g|png|webp|avif|svg)$/i.exec(path);
+  return m ? `${m[1]}.${m[3]}` : null;
+}
+
+/**
+ * The document with each static picture swapped for its library URL, and what
+ * changed, by dotted path. `urlFor(rel)` gives the URL, or null when that
+ * picture is not in the library (it is then left as it is, and reported).
+ */
+export function relink(doc, urlFor, origins = []) {
+  const changes = [];
+  const unmatched = [];
+  const walk = (v, path) => {
+    if (typeof v === "string") {
+      const rel = staticRef(v, origins);
+      if (!rel) return v;
+      const to = urlFor(rel) ?? urlFor(rel.replace(/\.[a-z]+$/i, ".jpg")) ?? urlFor(rel.replace(/\.[a-z]+$/i, ".webp"));
+      if (!to) {
+        unmatched.push({ path, from: v });
+        return v;
+      }
+      changes.push({ path, from: v, to });
+      return to;
+    }
+    if (Array.isArray(v)) return v.map((x, i) => walk(x, path ? `${path}.${i}` : String(i)));
+    if (v && typeof v === "object") return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, walk(x, path ? `${path}.${k}` : k)]));
+    return v;
+  };
+  return { next: walk(doc, ""), changes, unmatched };
+}
+
 async function main() {
   const args = new Set(process.argv.slice(2));
   const APPLY = args.has("--apply");
@@ -132,6 +180,8 @@ async function main() {
   const found = discover();
   const { items } = await api("GET", "/media");
   const have = new Set(items.map((i) => i.name));
+  /* file name → library URL; a dry run's would-be uploads get a placeholder. */
+  const urls = new Map(items.filter((i) => i.kind === undefined || i.kind === "image").map((i) => [i.name, i.url]));
   console.log(`${APPLY ? "APPLY" : "dry run"} against ${BASE}: ${found.length} content pictures in web/public, ${items.length} in the library\n`);
 
   let uploaded = 0;
@@ -152,16 +202,55 @@ async function main() {
       continue;
     }
     console.log(`  + ${rel}  ${(size / 1024).toFixed(0)} KB  alt: "${meta.alt.slice(0, 70)}${meta.alt.length > 70 ? "..." : ""}"`);
-    if (!APPLY) continue;
+    if (!APPLY) {
+      urls.set(name, `<library URL of ${name}, after upload>`);
+      continue;
+    }
     const qs = new URLSearchParams({ alt: meta.alt, caption: meta.caption ?? "", credit: meta.credit ?? "", filename: name });
     const ext = name.split(".").pop().toLowerCase();
     const r = await api("POST", `/media?${qs}`, readFileSync(join(PUBLIC, rel)), TYPES[ext]);
     console.log(`      -> ${r.item.id}  ${r.item.url}`);
+    urls.set(name, r.item.url);
     uploaded += 1;
   }
   console.log(
-    `\n${APPLY ? `${uploaded} uploaded` : `${found.length - skipped - missing} would be uploaded`}, ${skipped} already there, ${missing} need alt text.` +
-      (APPLY ? "" : " Nothing was written; run with --apply to upload."),
+    `\n${APPLY ? `${uploaded} uploaded` : `${found.length - skipped - missing} would be uploaded`}, ${skipped} already there, ${missing} need alt text.`,
+  );
+
+  /*
+   * Phase two: point the content (#163) at the library. Saved as a DRAFT of
+   * each document, on top of any draft already there, so the owner sees the
+   * change in /admin/projects or /admin/story and publishes it — nothing on
+   * the live site changes until then, and Discard undoes it.
+   */
+  console.log(`\nRelinking content to the library:`);
+  const origins = [...new Set([BASE, process.env.SITE_URL ?? "", "https://yehudabriskman.com"].filter(Boolean).map((o) => o.replace(/\/+$/, "")))];
+  let drafted = 0;
+  for (const key of CONTENT_KEYS) {
+    let doc;
+    try {
+      doc = await api("GET", `/content/${key}`);
+    } catch (e) {
+      console.log(`  ? ${key}  cannot read it (${e instanceof Error ? e.message : e}); is #163 deployed?`);
+      continue;
+    }
+    const base = doc.draft ?? doc.published;
+    const { next, changes, unmatched } = relink(base, (rel) => urls.get(rel.split("/").pop()) ?? null, origins);
+    for (const u of unmatched) console.log(`  ! ${key}  ${u.path}: ${u.from} is not in the library; left as it is`);
+    if (changes.length === 0) {
+      console.log(`  = ${key}  nothing to relink`);
+      continue;
+    }
+    console.log(`  ~ ${key}  ${changes.length} reference(s), into ${doc.draft ? "its existing draft" : "a new draft"}:`);
+    for (const c of changes) console.log(`      ${c.path}: ${c.from} -> ${c.to}`);
+    if (!APPLY) continue;
+    await api("PUT", `/content/${key}/draft`, JSON.stringify({ data: next, ...(doc._rev ? { _rev: doc._rev } : {}) }), "application/json");
+    drafted += 1;
+  }
+  console.log(
+    APPLY
+      ? `\n${drafted} draft(s) saved. Review and publish them in the admin; the static files stay until nothing names them.`
+      : "\nNothing was written; run with --apply to upload and save the drafts.",
   );
   if (missing > 0) process.exitCode = 1;
 }

@@ -264,7 +264,7 @@ export const mediaStore = {
    * the day one is added. The store is small (hundreds of documents), and this
    * runs only on admin reads and on delete.
    */
-  async referrers(): Promise<Array<{ _id: string; type?: string; title?: string; slug?: string; json: string }>> {
+  async referrers(): Promise<Array<{ _id: string; type?: string; title?: string; slug?: string; key?: string; json: string }>> {
     const { docs } = await couch.find<Record<string, unknown>>({
       selector: { type: { $nin: ["media", "audit", "apitoken"] } },
       limit: 5000,
@@ -274,20 +274,37 @@ export const mediaStore = {
       type: typeof d.type === "string" ? d.type : undefined,
       title: typeof d.title === "string" ? d.title : undefined,
       slug: typeof d.slug === "string" ? d.slug : undefined,
+      key: typeof d.key === "string" ? d.key : undefined,
       json: JSON.stringify(d),
     }));
   },
 };
 
+/*
+ * Where in a document the reference sits, as a dotted path to the string that
+ * holds it: `coverImage` on a post, `published.items.2.image` on the projects
+ * (#163). Precise enough for the owner to find the field to change.
+ */
 function fieldOf(json: string, needle: string): string {
+  const walk = (v: unknown, path: string[]): string[] | null => {
+    if (typeof v === "string") return v.includes(needle) ? path : null;
+    if (v && typeof v === "object") {
+      for (const [k, child] of Object.entries(v as Record<string, unknown>)) {
+        const hit = walk(child, [...path, k]);
+        if (hit) return hit;
+      }
+    }
+    return null;
+  };
   try {
-    const doc = JSON.parse(json) as Record<string, unknown>;
-    for (const [k, v] of Object.entries(doc)) if (JSON.stringify(v).includes(needle)) return k;
+    return walk(JSON.parse(json) as unknown, [])?.join(".") ?? "";
   } catch {
-    /* fall through */
+    return "";
   }
-  return "";
 }
+
+/* The site's content documents (#163) are one per key, named for the editor that owns it. */
+const CONTENT_TITLE: Record<string, string> = { projects: "Projects", story: "Story", "site-copy": "Site copy" };
 
 /** id → the documents that reference it, from one scan. */
 export function usageIndex(
@@ -308,11 +325,12 @@ export function usageIndex(
         return false;
       });
       if (hit) {
+        const key = r.type === "content" ? r.key : undefined;
         out.get(id)!.push({
           id: r._id,
           type: r.type ?? r._id.split(":")[0],
-          title: r.title ?? r.slug ?? r._id,
-          slug: r.slug ?? null,
+          title: r.title ?? (key ? (CONTENT_TITLE[key] ?? key) : undefined) ?? r.slug ?? r._id,
+          slug: r.slug ?? key ?? null,
           field: fieldOf(r.json, hit),
         });
       }

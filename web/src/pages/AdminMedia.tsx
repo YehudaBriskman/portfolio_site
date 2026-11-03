@@ -374,7 +374,7 @@ function MediaDetail({
           </button>
           <button
             type="button"
-            className="a-btn a-btn-danger"
+            className={`a-btn a-btn-danger ${styles.delete}`}
             disabled={busy !== null || used.length > 0}
             aria-describedby="media-delete-hint"
             onClick={() => {
