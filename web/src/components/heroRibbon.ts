@@ -36,25 +36,55 @@ type Key = { x: number; y: number; z: number };
 /*
  * Read off the cut-out's alpha: the head spans x 208–421 at y 30–280, the
  * shoulders start at y 320, the torso is x 20–525 at y 450–600. The
- * photograph fades out over its top 40% (`Hero.module.css`), so the ribbon
- * is born behind the jaw, where the head is still opaque enough to hide it.
+ * photograph fades out over its top 40% (`Hero.module.css`: half strength
+ * at y 127), so a ribbon born behind the back of the skull, at hair height,
+ * is partly hidden by the head rather than wholly — which is the owner's
+ * "starts behind the head".
  */
-const KEYS: Key[] = [
-  { x: 330, y: 262, z: 0 }, // behind the jaw, where the photograph is opaque
-  { x: 228, y: 284, z: 0.08 }, // out past the neck
-  { x: 90, y: 318, z: 0.22 },
-  { x: -40, y: 370, z: 0.38 },
-  { x: -100, y: 440, z: 0.5 }, // the side: the far left of the sweep
+const HEAD: Key[] = [
+  { x: 385, y: 92, z: 0 }, // behind the back of the skull, in the hair
+  { x: 300, y: 98, z: 0.03 },
+  { x: 210, y: 116, z: 0.07 }, // leaving the head above the glasses
+  { x: 90, y: 196, z: 0.16 },
+  { x: -40, y: 320, z: 0.32 },
+  { x: -100, y: 430, z: 0.5 }, // the side: the far left of the sweep
   { x: -60, y: 505, z: 0.62 },
   { x: 60, y: 530, z: 0.78 }, // onto the front of the torso
   { x: 250, y: 518, z: 0.95 }, // across the chest
   { x: 450, y: 505, z: 1 },
-  { x: 600, y: 520, z: 0.95 }, // past the arm, toward the right
-  { x: 690, y: 590, z: 0.9 },
-  { x: 735, y: 720, z: 0.86 }, // dipping, inside the lamp's corner
-  { x: 750, y: 880, z: 0.84 },
-  { x: 752, y: 1000, z: 0.84 }, // below the screen's floor, under the act
 ];
+
+/*
+ * After the chest the line runs to the right of the page and only then
+ * dips, so the tail depends on how much page there is to the figure's right.
+ * Measured against the rendered photograph (1440×900: 0.755px a unit from
+ * x 512; 390×844 with the phone's 0.72 squeeze: 0.474px a unit about 201px):
+ *
+ *   wide    turns down at 1050–1098, about 90–93% of a 1440 window, outside
+ *           the end corner's phrase (which ends at 1256px, unit 985)
+ *   narrow  turns down at 600–650, 360–383px of a 390 window: inside the
+ *           window, right of the end corner's phrase (ends at 369px)
+ */
+const TAILS = {
+  wide: [
+    { x: 620, y: 500, z: 0.97 }, // past the arm, toward the right of the page
+    { x: 800, y: 505, z: 0.94 },
+    { x: 960, y: 535, z: 0.9 },
+    { x: 1050, y: 610, z: 0.87 }, // turning down near the page's right edge
+    { x: 1085, y: 720, z: 0.85 },
+    { x: 1095, y: 860, z: 0.84 },
+    { x: 1098, y: 1000, z: 0.84 }, // below the screen's floor, under the act
+  ],
+  narrow: [
+    { x: 560, y: 505, z: 0.96 },
+    { x: 620, y: 560, z: 0.92 },
+    { x: 645, y: 680, z: 0.88 },
+    { x: 650, y: 860, z: 0.85 },
+    { x: 650, y: 1000, z: 0.84 },
+  ],
+} satisfies Record<string, Key[]>;
+
+export type RibbonTail = keyof typeof TAILS;
 
 /** The key point the layers split at: the left extreme, clear of the figure. */
 const SIDE = 4;
@@ -138,8 +168,8 @@ export type RibbonPaths = {
   spineFront: string;
 };
 
-export function heroRibbon(count = 7): RibbonPaths {
-  const { points, split } = sample(KEYS);
+export function heroRibbon(count = 7, tail: RibbonTail = "wide"): RibbonPaths {
+  const { points, split } = sample([...HEAD, ...TAILS[tail]]);
   const length = points[points.length - 1].s;
   /* Gathered to a point behind the head, where the ribbon is born; it
      leaves the screen at full width, so the tail is not tapered. */

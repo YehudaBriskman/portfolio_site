@@ -29,6 +29,8 @@ import styles from "@/components/HeroRibbon.module.css";
  */
 
 const PATHS = heroRibbon();
+/* The phone's tail, which dips inside its narrower window. */
+const NARROW = heroRibbon(7, "narrow");
 const VIEW = `0 0 ${FIG_W} ${FIG_H}`;
 const FRONT_GRADIENT = "hero-aurora-front";
 const BACK_GRADIENT = "hero-aurora-back";
@@ -40,12 +42,20 @@ const X1 = 1040;
 const offsetOf = (x: number) => (x - X0) / (X1 - X0);
 
 /* The back half fades as it goes behind the head: full strength at the
-   side, where it meets the front half (so the seam does not show), down to
-   a third behind the jaw. That, and the ribbon narrowing with depth, is
-   "dimmer and thinner behind". */
-const BACK_FROM = offsetOf(-100);
-const BACK_TO = offsetOf(330);
-const BACK_DIM = 0.32;
+   side, where it meets the front half (so the seam does not show), and
+   nearly gone inside the head's span (x 208–421). The photograph is only
+   half opaque at hair height (its top 40% fades to paper), so the head
+   alone would let the line show through the face; this is the rest of the
+   occlusion. That, and the ribbon narrowing with depth, is "dimmer and
+   thinner behind". [x, opacity] along the drawing's x. */
+const BACK_FADE: [number, number][] = [
+  [-100, 1],
+  [60, 0.85],
+  [150, 0.55],
+  [208, 0.22],
+  [260, 0.08],
+  [421, 0.04],
+];
 
 const rgb = (c: string) => c.match(/\d+/g)!.map(Number);
 
@@ -62,9 +72,9 @@ function colourAt(t: number): string {
   return `rgb(${p.map((v, j) => Math.round(v + (q[j] - v) * k)).join(" ")})`;
 }
 
-const BACK_STOPS = Array.from({ length: 6 }, (_, i) => {
-  const t = BACK_FROM + ((BACK_TO - BACK_FROM) * i) / 5;
-  return { t, colour: colourAt(t), opacity: 1 - (1 - BACK_DIM) * (i / 5) };
+const BACK_STOPS = BACK_FADE.map(([x, opacity]) => {
+  const t = offsetOf(x);
+  return { t, colour: colourAt(t), opacity };
 });
 
 function Gradients() {
@@ -114,11 +124,45 @@ export default function HeroRibbon({ layer }: { layer: "back" | "front" }) {
               <Gradients />
             </defs>
           )}
-          <path d={back ? PATHS.spineBack : PATHS.spineFront} stroke={stroke} />
+          {back ? (
+            <path d={PATHS.spineBack} stroke={stroke} />
+          ) : (
+            <>
+              <path
+                className={styles.wide}
+                d={PATHS.spineFront}
+                stroke={stroke}
+              />
+              <path
+                className={styles.narrow}
+                d={NARROW.spineFront}
+                stroke={stroke}
+              />
+            </>
+          )}
         </svg>
-        <svg className={styles.strands} viewBox={VIEW} focusable="false">
-          <Strands stroke={stroke} ds={back ? PATHS.back : PATHS.front} />
-        </svg>
+        {back ? (
+          <svg className={styles.strands} viewBox={VIEW} focusable="false">
+            <Strands stroke={stroke} ds={PATHS.back} />
+          </svg>
+        ) : (
+          <>
+            <svg
+              className={`${styles.strands} ${styles.wide}`}
+              viewBox={VIEW}
+              focusable="false"
+            >
+              <Strands stroke={stroke} ds={PATHS.front} />
+            </svg>
+            <svg
+              className={`${styles.strands} ${styles.narrow}`}
+              viewBox={VIEW}
+              focusable="false"
+            >
+              <Strands stroke={stroke} ds={NARROW.front} />
+            </svg>
+          </>
+        )}
       </span>
     </span>
   );

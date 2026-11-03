@@ -36,7 +36,9 @@ const OUT = process.argv[2] ?? resolve(HERE, "../../docs/hero-aurora");
 const PREFIX = process.argv[3] ?? "after";
 const BASE = process.env.BASE ?? "http://localhost:4271";
 const BEFORE = process.env.BEFORE === "1";
-const DARK_CSS = process.env.DARK_CSS ? readFileSync(process.env.DARK_CSS, "utf8") : "";
+const DARK_CSS = process.env.DARK_CSS
+  ? readFileSync(process.env.DARK_CSS, "utf8")
+  : "";
 mkdirSync(OUT, { recursive: true });
 
 const WINDOWS = [
@@ -44,7 +46,9 @@ const WINDOWS = [
   [390, 844],
 ];
 /* Where the dark act's top edge sits, as a share of the window height. */
-const POINTS = BEFORE ? { half: 0.55 } : { top: null, mid: 0.8, half: 0.55, late: 0.25 };
+const POINTS = BEFORE
+  ? { half: 0.55 }
+  : { top: null, mid: 0.8, half: 0.55, late: 0.25 };
 const THEMES = BEFORE ? ["light"] : ["light", "dark"];
 
 const browser = await chromium.launch({
@@ -69,13 +73,25 @@ async function open(width, height, { theme = "light", reduced = false } = {}) {
   page.on("pageerror", (e) => console.log("pageerror", e.message));
   await page.goto(`${BASE}/`, { waitUntil: "load" });
   if (theme === "dark") {
-    await page.evaluate(() => document.documentElement.setAttribute("data-theme", "dark"));
+    await page.evaluate(() =>
+      document.documentElement.setAttribute("data-theme", "dark"),
+    );
     if (DARK_CSS) await page.addStyleTag({ content: DARK_CSS });
+  }
+  /* The route chunk is lazy: wait for the hero itself, polling on a timer. */
+  for (let i = 0; i < 60; i += 1) {
+    if (
+      await page.evaluate(() => !!document.querySelector("[data-portrait] img"))
+    )
+      break;
+    await frames(page, 1);
   }
   await page.evaluate(() => document.fonts.ready);
   for (let i = 0; i < 40; i += 1) {
     await frames(page, 1);
-    const gone = await page.evaluate(() => !document.querySelector('[class*="_shutter_"]'));
+    const gone = await page.evaluate(
+      () => !document.querySelector('[class*="_shutter_"]'),
+    );
     if (gone) break;
   }
   /* The arrival, once a visit, has ~1s of clock left after the cover. */
@@ -89,12 +105,17 @@ async function scrollTo(page, edge) {
     if (at === null) return 0;
     const hero = document.getElementById("hero");
     /* The act after the hero (or after its holder, once it has one). */
-    const holder = hero.parentElement?.matches("main") ? hero : hero.parentElement;
+    const holder = hero.parentElement?.matches("main")
+      ? hero
+      : hero.parentElement;
     const next = holder.nextElementSibling;
     const top = next.getBoundingClientRect().top + window.scrollY;
     return Math.round(top - window.innerHeight * at);
   }, edge);
-  await page.evaluate((top) => window.scrollTo({ top, behavior: "instant" }), y);
+  await page.evaluate(
+    (top) => window.scrollTo({ top, behavior: "instant" }),
+    y,
+  );
   await frames(page, 4);
   await page.waitForTimeout(400);
   await frames(page, 2);
@@ -107,9 +128,10 @@ function probe(page) {
     const img = document.querySelector("[data-portrait] img");
     const r = img.getBoundingClientRect();
     const mask = document.querySelector("[data-portrait-mask]");
-    const next = (document.getElementById("hero").parentElement?.matches("main")
-      ? document.getElementById("hero")
-      : document.getElementById("hero").parentElement
+    const next = (
+      document.getElementById("hero").parentElement?.matches("main")
+        ? document.getElementById("hero")
+        : document.getElementById("hero").parentElement
     ).nextElementSibling.getBoundingClientRect();
     const ribbon = document.querySelector("[data-hero-ribbon]");
     return {

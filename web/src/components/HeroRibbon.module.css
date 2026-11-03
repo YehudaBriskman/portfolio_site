@@ -93,7 +93,7 @@
 
 /* The two halves are dressed alike, so the seam at the side does not show:
    the back half's dimming is in its gradient, which fades it from full
-   strength at the side to a third behind the jaw, and its thinning is in
+   strength at the side to a third behind the skull, and its thinning is in
    the geometry. */
 .haze {
   opacity: 0.3;
@@ -106,10 +106,20 @@
 
 /* On a phone the figure is nearly the width of the window and the sweep's
    far side would be off the edge, so the ring is drawn narrower round the
-   same figure: still behind the jaw, still across the chest. */
+   same figure: still behind the head, still across the chest. And its tail
+   is the narrow one (`heroRibbon.ts`), which dips inside the window. */
+.narrow {
+  display: none;
+}
 @media (max-width: 699px) {
   .frame {
     scale: 0.72 1;
+  }
+  .wide {
+    display: none;
+  }
+  .narrow {
+    display: block;
   }
 }
 

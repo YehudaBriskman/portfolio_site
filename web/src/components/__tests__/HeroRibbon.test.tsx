@@ -62,6 +62,29 @@ describe("the hero's aurora ribbon", () => {
     expect(Number(last(spineFront).split(" ")[1])).toBeGreaterThan(845);
   });
 
+  it("is born behind the head and runs to the right of the page before it dips", () => {
+    const first = (d: string) =>
+      d
+        .match(/^M([-\d.]+) ([-\d.]+)/)!
+        .slice(1)
+        .map(Number);
+    const xs = (d: string) =>
+      [...d.matchAll(/[ML]([-\d.]+) /g)].map((m) => Number(m[1]));
+    const wide = heroRibbon();
+    const narrow = heroRibbon(7, "narrow");
+    /* Hair height, inside the head's span (x 208–421, y 30–280). */
+    const [x, y] = first(wide.spineBack);
+    expect(x).toBeGreaterThan(208);
+    expect(x).toBeLessThan(421);
+    expect(y).toBeLessThan(200);
+    /* ~90% of a 1440 window (unit 1040 = 1297px); and, on a phone, inside
+       390px with the 0.72 squeeze (unit 680 = 393px). */
+    expect(Math.max(...xs(wide.spineFront))).toBeGreaterThan(1040);
+    expect(Math.max(...xs(narrow.spineFront))).toBeLessThan(680);
+    /* The back half is the same on both; only the tail differs. */
+    expect(narrow.spineBack).toBe(wide.spineBack);
+  });
+
   it("drifts only on the hero's scroll, behind the three switches", () => {
     const gate = CSS.slice(
       CSS.indexOf("@supports (animation-timeline: view())"),
