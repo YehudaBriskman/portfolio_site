@@ -154,8 +154,16 @@ export default function AdminMedia() {
   );
 }
 
-const usageHref = (u: MediaUsage) =>
-  u.type === "post" && u.slug ? `/admin/posts/${u.slug}` : u.type === "collection" && u.slug ? `/admin/areas/${u.slug}` : null;
+/* The content documents (#163) are one per editor: /admin/projects, /admin/story, /admin/site-copy. */
+const CONTENT_EDITORS = new Set(["projects", "story", "site-copy"]);
+
+const usageHref = (u: MediaUsage) => {
+  if (!u.slug) return null;
+  if (u.type === "post") return `/admin/posts/${u.slug}`;
+  if (u.type === "collection") return `/admin/areas/${u.slug}`;
+  if (u.type === "content" && CONTENT_EDITORS.has(u.slug)) return `/admin/${u.slug}`;
+  return null;
+};
 
 function Preview({ item }: { item: MediaItem }) {
   if (item.kind === "video" && item.file) {

@@ -92,6 +92,14 @@ for (const [label, w, h] of [["desktop", 1440, 900], ["phone", 390, 844]]) {
     await snap(page, resolve(OUT, shots.at(-1)));
   }
 
+  // A project's image (#163): the same picker, beside the path field.
+  await page.goto(`${BASE}/admin/projects`, { waitUntil: "load" });
+  await page.getByRole("button", { name: "Choose from library" }).first().click();
+  await page.getByRole("list", { name: "Pictures" }).waitFor({ timeout: 15000 });
+  await settle(page);
+  shots.push(`project-picker-${label}.png`);
+  await snap(page, resolve(OUT, shots.at(-1)));
+
   // An area's icon field: the picker offers icons only.
   await page.goto(`${BASE}/admin/areas/new`, { waitUntil: "load" });
   await page.evaluate(() => document.querySelectorAll("details").forEach((d) => (d.open = true)));

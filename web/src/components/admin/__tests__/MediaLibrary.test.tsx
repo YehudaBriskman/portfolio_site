@@ -139,6 +139,19 @@ describe("the library page", () => {
     expect(screen.getByRole("link", { name: "WindoM" })).toHaveAttribute("href", "/admin/areas/windom");
   });
 
+  it("a picture a project uses links to the projects editor", async () => {
+    ITEMS[1].usedBy = [{ id: "content:projects", type: "content", title: "Projects", slug: "projects", field: "draft.items.3.image" }];
+    try {
+      page("/admin/media?id=icaros-def456");
+      const usedBy = await screen.findByRole("region", { name: "Used by" });
+      expect(within(usedBy).getByRole("link", { name: "Projects" })).toHaveAttribute("href", "/admin/projects");
+      expect(screen.getByText(/draft\.items\.3\.image/)).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Delete" })).toBeDisabled();
+    } finally {
+      ITEMS[1].usedBy = [];
+    }
+  });
+
   it("an unused one can be deleted", async () => {
     page("/admin/media?id=icaros-def456");
     expect(await screen.findByRole("button", { name: "Delete" })).toBeEnabled();

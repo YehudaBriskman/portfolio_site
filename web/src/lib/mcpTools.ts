@@ -19,6 +19,7 @@ export const OWNER_READ: Tool[] = [
   { name: "admin_list_posts", does: "Every post, drafts and archived included." },
   { name: "admin_get_post", does: "Any post, in full." },
   { name: "read_audit_log", does: "Who changed what, and through which client." },
+  { name: "list_media", does: "The media library: pictures, icons and videos, with what uses each." },
 ];
 
 export const OWNER_WRITE: Tool[] = [

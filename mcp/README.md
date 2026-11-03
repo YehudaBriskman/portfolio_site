@@ -57,7 +57,7 @@ optimistic lock and audit log as the admin UI.
 | `delete_area` | Hide an area. Needs `confirm: true` |
 | `read_audit_log` | The backend's record of admin writes |
 | `list_media` (`q?`, `kind?`) | The media library (#253): pictures, icons and videos, each with its kind, alt text, stable `url` and `usedBy` |
-| `upload_media` (`path`, `alt`, `kind?`, `posterPath?`, `captionsPath?`, `captionsLang?`, `caption?`, `credit?`) | Upload one local file as an image, icon (SVG/PNG, 64 KB) or video (MP4/WebM, 25 MB, 60 s; needs `posterPath`). Dry run checks the files and sends nothing |
+| `upload_media` (`path`, `alt`, `kind?`, `posterPath?`, `captionsPath?`, `captionsLang?`, `caption?`, `credit?`) | Upload one local file as an image, icon (SVG/PNG, 64 KB) or video (MP4/WebM, 25 MB, 60 s; needs `posterPath`). Dry run checks the files and sends nothing. **stdio only:** it reads a path on your machine, so the remote server does not offer it |
 
 Every write takes **`dryRun`, default `true`**: it reads the current document,
 works out the change and returns a field-by-field diff (a post body as a line
