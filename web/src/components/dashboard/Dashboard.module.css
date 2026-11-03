@@ -608,7 +608,11 @@
   display: flex;
   min-width: 0;
   flex-direction: column;
-  gap: 0.25rem;
+  /* 0.5rem, not 0.25: the title and the area link are both links under 24px
+     tall, and 2.5.8 wants their centres 24px apart. Until #247 that space
+     came by accident from `.on-panel`'s 1.68 prose leading, which outranked
+     `.ground :is(p, li, dd)` above; off `.on-panel`, 0.25rem left 23px. */
+  gap: 0.5rem;
 }
 
 .rowTitleLine {
