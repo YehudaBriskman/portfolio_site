@@ -8,13 +8,15 @@ import type { Lang } from "./seo.js";
  * web/src/lib/pageTitle.ts and web/src/i18n/chrome.ts), so a tab, a link
  * preview and a search result read the same whichever of them a client saw.
  *
- * The name stays in Latin letters in both, as the page itself sets it. The
- * employer is never named, in either language.
+ * The name is Latin in the English words and the owner's own Hebrew spelling
+ * in the Hebrew ones (#308), with the Latin beside it where the site's name
+ * is the subject (the home title); the page's display name stays Latin, as
+ * the owner chose. The employer is never named, in either language.
  */
 const EN = {
-  siteTitle: "Yehuda Briskman · Full-stack engineer & team lead",
+  siteTitle: "Yehuda Briskman · Full-stack engineer & technical team lead",
   siteDescription:
-    "Full-stack engineer and team lead in Tel Aviv. I ship products end to end and build the checks that prove they still work.",
+    "Full-stack engineer and technical team lead in Tel Aviv, mostly frontend. I ship products end to end and build the checks that prove they still work.",
   /*
    * The share-card wording, copied from og:description in web/index.html.
    * The home page is served both ways (as the built shell when the API is
@@ -23,8 +25,7 @@ const EN = {
    * real index.html against the English render.
    */
   siteSocial: "I ship products end to end, and build the checks that prove they work. Tel Aviv.",
-  role: "full-stack engineer and team lead",
-  jobTitle: "Full-stack engineer and team lead",
+  role: "full-stack engineer and technical team lead",
   elsewhere: "Elsewhere",
   homeProjects: "Projects: what I have built and run",
   homeNotes: "Notes: writing on frontend engineering and infrastructure",
@@ -72,12 +73,11 @@ const EN = {
 type Words = { [K in keyof typeof EN]: (typeof EN)[K] extends (...a: infer A) => string ? (...a: A) => string : (typeof EN)[K] extends string[] ? string[] : string };
 
 const HE: Words = {
-  siteTitle: "Yehuda Briskman · מהנדס פול־סטאק וראש צוות טכני",
+  siteTitle: "יהודה בריסקמן (Yehuda Briskman) · מהנדס פול־סטאק וראש צוות טכני",
   siteDescription:
-    "מהנדס פול־סטאק וראש צוות טכני בתל אביב. אני בונה ומשיק מוצרים מקצה לקצה, ובונה את הבדיקות שמוכיחות שהם עדיין עובדים.",
+    "יהודה בריסקמן, מהנדס פול־סטאק וראש צוות טכני בתל אביב, עם דגש על פרונטאנד. בונה ומשיק מוצרים מקצה לקצה, יחד עם הבדיקות שמוכיחות שהם עובדים.",
   siteSocial: "אני בונה ומשיק מוצרים מקצה לקצה, יחד עם הבדיקות שמוכיחות שהם עובדים. תל אביב.",
   role: "מהנדס פול־סטאק וראש צוות טכני",
-  jobTitle: "מהנדס פול־סטאק וראש צוות טכני",
   elsewhere: "ברשת",
   homeProjects: "פרויקטים: מערכות שבניתי ותפעלתי",
   homeNotes: "רשימות: כתיבה על הנדסת פרונטאנד ותשתיות",
@@ -85,10 +85,10 @@ const HE: Words = {
   blogs: "בלוג",
   blogsDescription: "כתיבה על הנדסת פרונטאנד, תשתיות, והשקת מוצרים מקצה לקצה.",
   blogsBody: "כתיבה על הנדסת פרונטאנד, תשתיות, והשקת מוצרים מקצה לקצה, ורשימות מכל אחד מהפרויקטים שלי.",
-  notesAlt: "רשימות מאת Yehuda Briskman",
+  notesAlt: "רשימות מאת יהודה בריסקמן",
   work: "פרויקטים",
   workDescription: "מערכות שבניתי ותפעלתי מקצה לקצה, ולכל אחד הרשימות, התיעוד והקוד שלו.",
-  projectsAlt: "פרויקטים מאת Yehuda Briskman",
+  projectsAlt: "פרויקטים מאת יהודה בריסקמן",
   journey: "מסלול מקצועי",
   journeyTitle: "שלב אחר שלב",
   journeyDescription:

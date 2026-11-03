@@ -125,14 +125,17 @@ export const useNotFoundWords = defineWords(
 
 /*
  * The names a route is announced and titled by (`lib/pageTitle.ts`). The
- * document title keeps the name in Latin letters after the separator, as the
- * server render does, so a tab and a search result read the same.
+ * document title ends with the name in the page's language, Latin in English
+ * and the owner's own Hebrew spelling in Hebrew (#308), as the server render
+ * does (backend/src/services/seo-words.ts), so a tab and a search result
+ * read the same.
  */
 export const usePageNames = defineWords(
   "page-names",
   {
     home: "Home",
-    homeTitle: "Yehuda Briskman · Full-stack engineer & team lead",
+    homeTitle: "Yehuda Briskman · Full-stack engineer & technical team lead",
+    siteName: "Yehuda Briskman",
     work: "Work",
     journey: "Journey",
     mcp: "MCP server",
@@ -157,7 +160,8 @@ export const usePageNames = defineWords(
   },
   {
     home: "בית",
-    homeTitle: "Yehuda Briskman · מהנדס פול־סטאק וראש צוות טכני",
+    homeTitle: "יהודה בריסקמן (Yehuda Briskman) · מהנדס פול־סטאק וראש צוות טכני",
+    siteName: "יהודה בריסקמן",
     work: "פרויקטים",
     journey: "מסלול מקצועי",
     mcp: "שרת MCP",
