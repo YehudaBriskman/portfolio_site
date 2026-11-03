@@ -69,6 +69,9 @@ export const couch = {
     const { _rev: _ignored, ...fresh } = doc;
     return call<T>(`/${encodeURIComponent(id)}`, { method: "PUT", body: JSON.stringify(fresh) });
   },
+  /* Deletes one revision; 409 if the document moved on, 404 if it is gone. */
+  del: (id: string, rev: string) =>
+    call<{ ok: boolean }>(`/${encodeURIComponent(id)}?rev=${encodeURIComponent(rev)}`, { method: "DELETE" }),
   find: <T>(selector: unknown) =>
     call<{ docs: T[] }>(`/_find`, { method: "POST", body: JSON.stringify(selector) }),
   /*

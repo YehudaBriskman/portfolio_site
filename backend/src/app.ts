@@ -14,6 +14,7 @@ import { createBearerFailureLimiter, requireAdmin } from './middlewares/requireA
 import { auditWrites } from './services/audit.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 import { couch } from './db/couch.js';
+import { createMcpRouter } from './mcp/router.js';
 import { env } from './env.js';
 
 export function createApp() {
@@ -21,6 +22,16 @@ export function createApp() {
 
   // Express advertises itself on every response; nothing needs to know.
   app.disable("x-powered-by");
+  app.use(requestLogger);
+
+  /*
+   * The remote MCP server and its OAuth endpoints (#263), ahead of the site's
+   * CORS policy: a browser-based MCP client calls /mcp and the metadata from
+   * any origin, with a Bearer token rather than a cookie, and the policy
+   * below would answer its preflight with nothing. The router sets the CORS
+   * it needs on its own paths, and 404s them all while MCP_REMOTE=off.
+   */
+  app.use(createMcpRouter(app));
 
   /*
    * The browser talks to this API from the site itself, so a wildcard buys
@@ -42,7 +53,6 @@ export function createApp() {
     }),
   );
   app.use(express.json({ limit: "1mb" }));
-  app.use(requestLogger);
 
   // The mail route relays over real SMTP credentials. Unthrottled and public,
   // it is an open relay for anyone who finds it.

@@ -7,7 +7,8 @@ import { resetShellCache } from "../services/seo.js";
 
 /*
  * The content database now also holds API tokens and the admin audit log
- * (#252). Nothing public may return them, or count them, whatever is asked.
+ * (#252), and the remote MCP server's OAuth clients and grants (#263).
+ * Nothing public may return them, or count them, whatever is asked.
  *
  * The store here is a small Mango interpreter over a fixed set of documents,
  * and the two sensitive ones are dressed as bait: `status: "published"`, a
@@ -97,6 +98,22 @@ const DOCS: Record<string, unknown>[] = [
     afterHash: `${CANARY}hash`,
     ...bait,
   },
+  {
+    _id: `mcpgrant:${"b".repeat(16)}`,
+    type: "mcpgrant",
+    id: "b".repeat(16),
+    clientName: `${CANARY}-actor`,
+    access: [{ hash: `${CANARY}hash`, expiresAt: "2099-01-01T00:00:00.000Z" }],
+    refresh: { hash: `${CANARY}hash`, expiresAt: "2099-01-01T00:00:00.000Z" },
+    ...bait,
+  },
+  {
+    _id: `mcpclient:${"c".repeat(8)}`,
+    type: "mcpclient",
+    secretHash: `${CANARY}hash`,
+    info: { client_name: `${CANARY}-actor`, redirect_uris: ["http://localhost/cb"] },
+    ...bait,
+  },
 ];
 
 /* Enough of Mango for the selectors the public routes send. */
@@ -170,6 +187,7 @@ const PATHS = [
   "/api/seo/feed/site.xml",
   "/api/seo/render/home",
   "/api/seo/render/blog",
+  "/api/seo/render/developers/mcp",
   "/api/seo/render/blog/log",
   "/api/seo/render/projects",
   `/api/seo/render/blog/${CANARY}`,
@@ -183,14 +201,14 @@ describe("public routes never expose tokens or the audit log", () => {
     expect(res.status).toBeLessThan(500);
     const text = res.text ?? "";
     // Not the bare slug: a render of an unknown page echoes the URL it was asked for.
-    for (const marker of [`${CANARY} title`, `${CANARY}hash`, `${CANARY}-actor`, "apitoken"]) {
+    for (const marker of [`${CANARY} title`, `${CANARY}hash`, `${CANARY}-actor`, "apitoken", "mcpgrant", "mcpclient"]) {
       expect(text).not.toContain(marker);
     }
     expect(text).not.toContain("audit:");
   });
 
   it("the bait is reachable to a selector that forgets `type` (the fake is honest)", () => {
-    expect(DOCS.filter((d) => matches(d, { status: "published", slug: CANARY }))).toHaveLength(2);
+    expect(DOCS.filter((d) => matches(d, { status: "published", slug: CANARY }))).toHaveLength(4);
   });
 
   it("every selector a public route sends pins type to post or collection", async () => {

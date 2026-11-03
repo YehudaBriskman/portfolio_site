@@ -42,6 +42,24 @@ const EnvSchema = z.object({
   //   on      accepted from anywhere, the public domain included
   ADMIN_API_TOKENS: z.enum(['off', 'tunnel', 'on']).default('off'),
 
+  // The remote MCP server (#263): /mcp over Streamable HTTP, with its own
+  // OAuth 2.1 authorization server that delegates sign-in to GitHub. OFF by
+  // default: /mcp, /.well-known/oauth-* and /mcp/oauth/* answer 404, and the
+  // ADMIN_API_TOKENS path above is untouched either way.
+  MCP_REMOTE: z.enum(['off', 'on']).default('off'),
+  // A GitHub OAuth app of its own (not oauth2-proxy's, whose callback is on
+  // the auth host). Callback: <SITE_URL>/mcp/oauth/github/callback.
+  MCP_GITHUB_CLIENT_ID: z.string().optional(),
+  MCP_GITHUB_CLIENT_SECRET: z.string().optional(),
+  // The owner's numeric GitHub id. Optional: without it the id is recorded
+  // the first time ADMIN_GITHUB_LOGIN signs in, and held to from then on, so
+  // a renamed account and a new account that takes the old login are told
+  // apart either way.
+  ADMIN_GITHUB_ID: z.string().regex(/^\d+$/).optional(),
+  // Where GitHub is. Overridable only outside production, for a local mock.
+  MCP_GITHUB_OAUTH_URL: z.string().url().default("https://github.com"),
+  MCP_GITHUB_API_URL: z.string().url().default("https://api.github.com"),
+
   // GitHub. Optional, and the two consumers degrade differently: the REST calls
   // in services/github.ts work unauthenticated at 60 requests an hour, while
   // the GraphQL contribution calendar has no anonymous mode at all and reports
@@ -76,6 +94,17 @@ const EnvSchema = z.object({
     .transform((v) => (/^[0-9a-f]{7,40}$/.test(v) ? v : "dev")),
 })
 .superRefine((env, ctx) => {
+  if (env.MCP_REMOTE === 'on') {
+    for (const k of ['MCP_GITHUB_CLIENT_ID', 'MCP_GITHUB_CLIENT_SECRET'] as const) {
+      if (!env[k]) ctx.addIssue({ code: z.ZodIssueCode.custom, message: `MCP_REMOTE=on needs ${k}` });
+    }
+  }
+  if (
+    env.NODE_ENV === 'production' &&
+    (env.MCP_GITHUB_OAUTH_URL !== "https://github.com" || env.MCP_GITHUB_API_URL !== "https://api.github.com")
+  ) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "MCP_GITHUB_*_URL may only be overridden outside production" });
+  }
   if (env.EMAIL_PROVIDER === 'smtp') {
     for (const k of ['SMTP_HOST','SMTP_USER','SMTP_PASS'] as const) {
       if (!env[k]) ctx.addIssue({ code: z.ZodIssueCode.custom, message: `Missing ${k} for SMTP` });
