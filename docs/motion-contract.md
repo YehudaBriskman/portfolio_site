@@ -105,13 +105,12 @@ ledger is a page-level document and not a comment.
 | — | the dark ground | **drift** | the dark act is a gap between two sheets, with light behind it |
 | — | every section head | **shutter**, echoed | a section arrives the way the app did, at the scale of its name |
 | — | any running text | **pen** | prose is set as the reader's eye reaches it — one block at a time, in document order, as each enters the reading window (68% → 38% of the window, 2026-11-03) |
-| — | the run, "How I work", the notes shelf | **aurora strand** (2026-11-03) | one ribbon of light, uncovered in place by a soft window from one side: the run's from the right (the reading end), the other two from the left |
+| — | the run, the notes shelf; the lead of the line on "How I work" | **aurora strand** (2026-11-03; v3 the same day) | one ribbon of light, uncovered in place by a soft window from one side: the run's from the right (the reading end), the notes' from the left, through the middle of the cards it carries; on "How I work" the same window uncovers the living line's run in from the page's left edge, and there is no second strand there |
 | — | a card or a day on a dashboard, a card on a project page | **arrive** (#251) | a block settles the last 12px into place and the ring by its heading draws round once; nothing is ever drawn over the content |
 | 0 | title plate | **staged assembly** | the collection names itself, in four gated moves |
 | — | the plate's end corner | **breath** | one small light is on, and says one thing at a time |
-| — | round the figure | **aurora ribbon** | one line of light goes round the person — behind the head, across the chest — and drifts as the next act covers them |
 | 1 | wall text | `draw` + `line` | the method, drawn beside the sentence that names it, by the reader's scroll; one line joins it all up |
-| — | /story, and beat 1 | **`line`** | one line drawn by scroll under the reading, which swings between the content and breaks out into a loop round a few words or a figure; on /story each picture is laid out of the line's lane just before the tip reaches it (#195), part of the same act |
+| — | /story, and beat 1 | **`line`** | one line drawn by scroll under the reading, which swings between the content and breaks out into a loop round a few words or a figure; on /story each picture is laid out of the line's lane just before the tip reaches it (#195), part of the same act; on home it comes in from the page's left edge and traces round the head of "How I work" (2026-11-03) |
 | 2 | **the run** | `pin` | the work arrives along one line, and the reader's scroll is what moves it |
 | 3 | the year | `scrub` | a year of work, raised off the page by the reader's own scroll |
 | 4 | notes shelf | `pan`, held | the notes walk past a held frame, one card-width per step of the reader's scroll |
@@ -327,9 +326,9 @@ cards on one line. With no `animation-timeline` support, and in forced
 colours, it is hidden, because the list is the whole fallback.
 *And the living line.* Since #191 the living line wears this ribbon too.
 Until 2026-11-03 it started here, at the run's centre, and flowed down out
-of the act into "How I work"; it now starts on "How I work"'s own strand,
-which comes in from the left as this one comes in from the right (the
-aurora strand, §2). The aurora is light along the work; the line is that
+of the act into "How I work"; it now comes in from the page's left edge
+above "How I work"'s head, uncovered by the same soft window as this one
+comes in from the right (the aurora strand, §2). The aurora is light along the work; the line is that
 light drawn on by the reader's scroll.
 Shots: `docs/work-run/aurora-<w>x<h>[-he]-<t>.png`, `-sweep-<t>.png` (t < 0:
 before the pin) and `-sweep--0.12-back.png`, `-reduced`, `-paused`
@@ -1171,20 +1170,53 @@ than about motion:
 When a beat changes, this table changes with it. A ledger that describes the
 previous build is worse than no ledger.
 
-### The aurora strand: one appearing, three places (2026-11-03)
+### The aurora strand: one appearing, two strands and a lead (2026-11-03)
 
 The owner, on the live site: the aurora on "How I work" "should start from
 the left side of the page, appearing like in the Projects section", and the
 notes should have "the aurora like in Projects too, almost the same
 animation, but from the left". So the run's appearing became a primitive,
-`motion/AuroraStrand.tsx`, and all three use it — one component with a
-`from: "left" | "right"` option, not three copies:
+`motion/AuroraStrand.tsx`, with a `from: "left" | "right"` option, not
+copies.
+
+**v3, after the owner's preprod review of #275 and #276 (same day).** Three
+notes, three changes (`docs/aurora-v3/`):
+
+- *"Remove the aurora from the hero."* The ribbon round the figure
+  (`HeroRibbon`, `heroRibbon.ts`) is deleted. The portrait, its hold under
+  the next act and the corners are unchanged.
+- *"How I work: remove the additional aurora."* #276 had laid a full-width
+  strand across the head for the living line to start from, so the section
+  showed two: that band, and the line's own loop round the heading. The
+  band is gone. The line itself now comes in from the page's left edge (the
+  start edge; the right in Hebrew): a full-bleed marker in the section's top
+  padding (`data-line-origin="approach-enter"`) carries an `enter` move
+  (`motion/lineMoves.ts`) that starts 96px off the edge, runs in above the
+  head, turns down beside it on a 28px quarter circle and comes back under
+  it — the loop round the heading and its role line, as before.
+  That run in is the line's **lead**: the scroll map gives it no height
+  (it is drawn from the start), and a soft-edged window uncovers it from
+  the edge instead — the strand's own numbers (130% wide, the leading 30%
+  soft), as a `mask-position` on the drawing (`LivingLine.module.css`), on
+  the drawing's own `view()` from its top at 95% of the window to the
+  middle, where the tip's clock starts. So it appears the way the run's
+  aurora does, and the tip takes over where it turns down.
+- *Notes: "the aurora appearing from the side doesn't match the notes."* The
+  band was centred on the frame, i.e. on the middle of the cards' slots
+  (card plus the room it grows into), half a growth below the cards' own
+  middle; it met the first card off centre and seemed to stop at its edge.
+  It now shares the track's grid cell and sits on the middle of a card (at
+  rest, or open where cards stand open), the frame's full width: in from
+  the left edge, into the first card at its middle, in every gap, out past
+  the last. It is the line the row travels on, as the run's is. Measured on
+  every frame: band middle = first card's middle, to the pixel, at 1440 and
+  390.
 
 | where | `from` | clock | range |
 |---|---|---|---|
 | the work run (`projects/RunAurora.tsx`) | `right`, mirrored in Hebrew (`mirrorInRtl`) | `--run`, the stage's | `entry 40%` → `contain 6%` |
-| "How I work" (`Approach.tsx`), a band across the head, full-bleed | `left` | its own `--aurora-strand` | `cover 5%` → `cover 45%` |
-| the notes shelf (`LatestNotes.tsx`), behind the cards on the row's middle | `left` (the frame is mirrored in Hebrew, and the strand with it) | `--notes-shelf`, the stage's | `entry 40%` → `contain 6%`, as the run |
+| the notes shelf (`LatestNotes.tsx`), on the cards' middle line, the frame's width | `left` (the frame is mirrored in Hebrew, and the strand with it) | `--notes-shelf`, the stage's | `entry 40%` → `contain 6%`, as the run |
+| "How I work" (`Approach.tsx`): not a strand, the living line's lead | the start edge (`enter`, `side: "start"`) | the line's drawing, `view()` | `cover 5vh` → `cover 50vh` |
 
 **The appearing** is the run's (#192), unchanged: a window 130% of the box
 wide, its leading 30% a soft mask edge, slides in from `from` while the
@@ -1192,23 +1224,21 @@ drawing inside it is carried back by exactly the same amount, so the light
 holds still and is uncovered rather than dragged. Two transforms on a scroll
 timeline; scroll back and it leaves the way it came. The window bleeds 48px
 above and below its box, because a mask paints nothing outside the masked
-box and the haze's blur needs the room (found in the first frames: a hard
-edge under the band).
+box and the haze's blur needs the room. The strand reads its caller's
+timeline; it owned one of its own only for the band on "How I work", and
+that went with the band.
 
-**"How I work" now starts from the strand, not from the run.** The living
-line's `from` is an empty marker on the band's centre line at the wall's
-start lane (`data-line-origin="approach-strand"`); the line leaves the
-strand there and turns into the head's lane. The run's centre marker
-(`data-line-origin="work-run"`) and its `.origin` rule are gone.
+**Off-switches.** The line's lead is declared only inside the positive gate
+(§4), so every off-switch shows it whole, with the rest of the line drawn.
+On the run and the shelf the layout itself becomes a plain list: the run
+keeps its still vertical ribbon (unchanged), the shelf hides its band.
+Forced colours hide every strand.
 
-**Off-switches.** On "How I work" the strand lands whole and still (no
-window, no carry). On the run and the shelf the layout itself becomes a
-plain list: the run keeps its still vertical ribbon (unchanged), the shelf
-hides its band. Forced colours hide every strand.
-
-Frames: `docs/aurora-reading/{run,approach,notes}-strand-<theme>-<desk|phone>-<k>.png`,
-k in scroll order (`web/scripts/shoot-aurora-reading.mjs`, which also checks
-each strand's window comes from its side and ends whole).
+Frames: `docs/aurora-v3/{hero,approach,notes}-<theme>-<desk|phone>-<k>.png`,
+k in scroll order, and `report.json` (`web/scripts/shoot-aurora-v3.mjs`,
+which also asserts: no strand in the hero; no band on "How I work", the
+line's tail off the page's left edge and its window home; the notes' band
+on the first card's middle and the frame's width).
 
 ### /projects: the catalogue, and why it is not the run (#169, #175)
 
@@ -1501,13 +1531,14 @@ six were the rest of the trim.
 
 **Where it starts.** /story: a dot in the middle of the page before the first
 beat (`origin` with `dot`, on an empty seed box), and the line sweeps from
-it to the first beat's lane. Home (since 2026-11-03): on the aurora strand
-across the head of "How I work", which comes in from the left edge of the
-page. An empty marker sits on the strand's centre line at the wall's start
-lane (`data-line-origin="approach-strand"`); `LivingLine`'s `from` names it,
-so the line starts outside its own container. Until then it started behind
-the work run's dark stage, at its centre (`data-line-origin="work-run"`),
-and the paragraph that follows describes that. It runs straight
+it to the first beat's lane. Home (since 2026-11-03, v3): off the page's
+left edge, above the head of "How I work". A full-bleed marker in the
+section's top padding (`data-line-origin="approach-enter"`) carries the
+`enter` move; `LivingLine`'s `from` names it, so the line starts outside
+its own container, and the drawing grows out to the edge as it grows up
+(the aurora strand, above). Before #276 it started behind the work run's
+dark stage, at its centre (`data-line-origin="work-run"`), and the
+paragraph that follows describes that. It runs straight
 down out of the work section (`until: "section"`, so it never turns across
 "All projects"), turns into the head's lane, and carries on. The drawing
 and its view timeline grow upward to reach the start — the timeline is on
@@ -1645,7 +1676,7 @@ slides up over it — the owner wanted the figure to stay until it is covered,
 not dismantled on the way out. It is a hold, not a `pin` in the run's sense:
 it adds no scroll distance (the holder's spacer is pulled back by the same
 screen, so the document is the height it was), nothing is scrubbed *through*
-it except the corners' breath and the aurora ribbon's drift, and the act
+it except the corners' breath, and the act
 covering it is the one doing the moving. The run is still the only section
 that holds the reader for scroll it adds to the page.
 
@@ -1725,7 +1756,7 @@ the trap underneath all three:
   `@media (prefers-reduced-motion: no-preference)`, then
   `body:not(.motion-paused)` — and nothing at all outside it. All three
   switches then render the finished state by construction, with no exit
-  block to keep in step. The hero's corners and its aurora ribbon, the
+  block to keep in step. The hero's corners, the living line's lead, the
   spec count, the drift, the skeleton sweep and the two `scrub-*` utilities
   are written that way. The `@supports` half is not decoration: without it
   an engine that drops `animation-timeline` reads `animation: x linear
@@ -1854,7 +1885,6 @@ direction, or set `fill-rule: evenodd` deliberately and know what it costs.
 | `Hero.module.css` `.holder` | the hero held still (`sticky`) for one screen while the dark act slides up over it; owns `--hero` | named `view-timeline` `--hero` on the static holder (§1: the pinned hero's own would stall) |
 | `HeroArrival.module.css` | the plate's arrival, once a visit, when the cover lifts; it no longer comes apart on the way out (2026-11-03) | clock, exempt (§8) |
 | `HeroCorners.module.css` | `breath` — the phrases turn and the lamp breathes while the hero is held | `--hero`, `contain` ranges |
-| `HeroRibbon.module.css` | the aurora ribbon across the figure: one layer over the photograph, one gentle sweep down-right; nothing under the figure (#272); a small lift and ease right | `--hero`, `contain 0%–100%` |
 | `Stack.module.css` | `count` — each figure counts from nought as the plate comes up, and back down as it goes | named `view-timeline` `--specs` on the plate |
 | `index.css` `.scrub-pulse` | every loading placeholder's pulse (`.scrub-rise` retired in #193) | `view()` |
 | `Approach.module.css` + `ApproachFigures.tsx` | `draw` — each principle's figure, stroke by stroke | named `view-timeline` per principle |
@@ -1866,7 +1896,7 @@ direction, or set `fill-rule: evenodd` deliberately and know what it costs.
 | `projects/Gallery.module.css`, `notes/NoteTile.module.css` | what hangs in a cell: a project tile, a note card. No motion of their own | — |
 | `gallery/FilterControl.tsx` + `Rail.tsx` | the filter card, its popovers and the phone's sheet. No motion: they appear and go | — |
 | `projects/ProjectRun.module.css` | `pin` — the work travelling along a curve under a held frame; one lap per card, staggered by range | named `view-timeline` on the static stage, the frame held inside it |
-| `motion/AuroraStrand.tsx` | the aurora strand's one appearing, shared by the run, "How I work" and the notes shelf: a soft window in from `from` ("left" \| "right"), the drawing carried back under it; a wave by default | the caller's named timeline and range as custom properties, or its own `--aurora-strand` view timeline |
+| `motion/AuroraStrand.tsx` | the aurora strand's one appearing, shared by the run and the notes shelf: a soft window in from `from` ("left" \| "right"), the drawing carried back under it; a wave by default | the caller's named timeline and range as custom properties |
 | `projects/RunAurora.tsx` + `runCurve.ts` | the run's aurora: a ribbon of seven strands on the cards' own curve, swept in from the reading end as the stage arrives (through `AuroraStrand`, `from="right"`), a window sweeping along it once a card; a still ribbon of strands down the plain list with motion off | the run's `--run` timeline: the sweep on `entry 40%`–`contain 6%`, the surge iterated once per card |
 | `LatestNotes.module.css` | `pan`, held — the notes walk past under a held frame, one card-width per step | named `view-timeline` on the static stage (inset 0), the frame held inside it |
 | `city/ContributionCity.module.css` | `scrub` — one animation turns and raises 365 columns, a second dollies the camera down the year | named `view-timeline` on a static wrapper, the frame held over it |
@@ -1877,11 +1907,17 @@ direction, or set `fill-rule: evenodd` deliberately and know what it costs.
 | `gallery/SkeletonGate.tsx` | the box that holds a region's height, and the 180ms before it is inked | clock |
 | `ground/DarkAct.module.css` | `drift` — two lights crossing at each seam of the dark ground | named `view-timeline` `--seam` per seam |
 | `index.css` `.section-head::after` | the shutter, echoed — a lattice leaving each section head outward from its word | named `view-timeline` on the head, inset to the lower third |
-| `motion/LivingLine.tsx` + `lineMoves.ts` | `line` — one ribbon behind a page or section, composed from the moves each box declares in data (`origin`, `line-to`, `round`, `circle-around`, and a registry for more) and measured off the laid-out boxes, its tip held on the window's middle | named `view-timeline` on the drawing (inset 50%), grown upward when the line starts above its container; a 101-stop keyframe reads offsets the composer writes as custom properties |
+| `motion/LivingLine.tsx` + `lineMoves.ts` | `line` — one ribbon behind a page or section, composed from the moves each box declares in data (`enter`, `origin`, `line-to`, `round`, `circle-around`, and a registry for more) and measured off the laid-out boxes, its tip held on the window's middle; an `enter` lead uncovered by a soft window from the page's edge | named `view-timeline` on the drawing (inset 50%), grown upward and outward when the line starts outside its container; a 101-stop keyframe reads offsets the composer writes as custom properties; the lead's window on the drawing's own `view()`, `cover 5vh`–`cover 50vh` |
 | `motion/Strands.tsx` + `ribbon.ts` | the aurora's ribbon, shared: fine strands braided about any path, and the one set of aurora colours, for the run's aurora and the living line | — (geometry; the callers own the clock) |
 | `motion/Written.tsx` + `penClock.ts` | `pen` — running text written one word after another as it rises through the reading window (68% → 38%), one block at a time in document order | named `view-timeline` on the paragraph, inset from `--read-from`/`--read-to`; word `i` of `n` owns the slice `i/n`–`(i+1)/n` of the block's turn (`--pen-lead`, `--pen-span`, from the sequencer) |
 
 ### Retired, and why
+
+`HeroRibbon` and `heroRibbon.ts` (the aurora ribbon round the hero's
+figure, #268, cut to one layer in front in #272/#275) were deleted on
+2026-11-03 on the owner's "remove the aurora from the hero". Its
+keyframes (`ribbon-in`, `ribbon-held`) went from the arrival's exempt list
+with it. Its frames stay in `docs/hero-aurora-v2/` as the record.
 
 `InkWipe` (a block printed behind a hard clip edge with a saturated band
 riding it) was deleted in #251 on the owner's call that it was not on par
@@ -1979,15 +2015,15 @@ animation.
 |---|---|---|---|
 | entry shutter (`EntryShutter`) | every route, first load | clock, gated on readiness | **exempt**: the one page-load moment, not a scroll |
 | title plate: name letters, fact line, field line, figure coming apart on the way out (`HeroArrival.module.css`) | / | — | **removed** (2026-11-03): the owner's "the hero pictures … disappear … I want them to stay"; the figure was under a `--paper` mask at `scaleY(1)` from `exit 44%` (`docs/hero-aurora/before-*.png`). The hero is held still under the next act instead |
-| aurora ribbon drift across the figure (`HeroRibbon.module.css`) | / | `--hero`, `contain 0%–100%`, transforms only | **scrubbed** (2026-11-03), back half and parallax **removed** (#272: it showed through the soft cut-out), drift cut to under a degree; every off-switch shows the still ribbon at its scroll-0 pose |
-| title plate and corners arriving, once a visit (`HeroArrival.module.css`, `HeroCorners.module.css`) | /, first load only | clock, started by the shutter's `clearing` signal (its last tile's `animationend`) (`motion/entry.ts`), filling `backwards` (the scrubbed exit it was layered on is gone, 2026-11-03; the ribbon fades in with the figure, `ribbon-in`); until that signal, a still `*-held` layer pins each moving part on the arrival's `from` frame under the cover (#219), so the lifting tiles show nothing already arrived and it is seen once | **exempt** (#194): part of the page load, as the shutter is; a hero mounted after the entry, or under any off-switch, never holds or plays it |
+| aurora ribbon drift across the figure (`HeroRibbon`) | — | — | **removed** (2026-11-03, aurora v3): the owner's "remove the aurora from the hero"; it was scrubbed on `--hero` from the day before |
+| title plate and corners arriving, once a visit (`HeroArrival.module.css`, `HeroCorners.module.css`) | /, first load only | clock, started by the shutter's `clearing` signal (its last tile's `animationend`) (`motion/entry.ts`), filling `backwards` (the scrubbed exit it was layered on is gone, 2026-11-03); until that signal, a still `*-held` layer pins each moving part on the arrival's `from` frame under the cover (#219), so the lifting tiles show nothing already arrived and it is seen once | **exempt** (#194): part of the page load, as the shutter is; a hero mounted after the entry, or under any off-switch, never holds or plays it |
 | nav bar dropping in with the plate (`hero-chrome.css`) | / | — | **removed** (#162): the bar is simply there; its tuck is below |
 | lamp breath and ring, rotating phrases (`HeroCorners`) | / | `--hero` | **scrubbed** (#162; were 6.4s / 3.6s infinite loops) |
 | hero corners sinking under paper | / | — | **removed** (2026-11-03), with the plate's exit above |
 | section heads' lattice (`.section-head::after`) | /, /projects, /story | `--section-head` view timeline | scrubbed |
 | section-head and hairline rules (`InkRule`) | /, /projects/:slug | `view()` | scrubbed |
 | running text, word by word (`Written`) | /, /story, /projects/:slug, /blog/:slug | named view timeline per paragraph, one block's turn at a time (+ a two-way near-watch observer for cost) | scrubbed; reading window 68% → 38% (2026-11-03) |
-| the aurora strand appearing (`AuroraStrand`): "How I work" and the notes shelf from the left | / | its own view timeline; `--notes-shelf` | scrubbed (2026-11-03) |
+| the aurora strand appearing (`AuroraStrand`): the notes shelf from the left, on the cards' middle line; the living line's lead on "How I work" from the left edge (`LivingLine`, `line-enter`) | / | `--notes-shelf`; the line drawing's `view()` | scrubbed (2026-11-03; v3: the band on "How I work" removed, the line's lead in its place) |
 | one line (`LivingLine`) | /, /story | named view timeline | scrubbed |
 | approach figures (`approach-draw`) | / | named view timeline per principle | scrubbed |
 | the run: cards, lean, arrive, surge, aurora and its sweep in (`ProjectRun`, `RunAurora`) | / | `--run` | scrubbed |
@@ -2070,3 +2106,8 @@ removed, 7 with nothing of their own.
 
 #249 (reader mode) added one row with nothing of its own: 49 rows; 20
 scrubbed, 12 exempt, 9 removed, 8 with nothing of their own.
+
+2026-11-03, aurora v3, counted row by row (#276's strand row and #266's
+theme wave had not been): the ribbon moved from scrubbed to removed, and
+the strand row stays scrubbed with the line's lead in place of the band.
+51 rows; 20 scrubbed, 13 exempt, 10 removed, 8 with nothing of their own.

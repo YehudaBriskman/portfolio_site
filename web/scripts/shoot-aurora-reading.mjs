@@ -1,10 +1,9 @@
 /*
- * The aurora strands and the reading pen, shot and measured (owner,
- * 2026-11-03), into docs/aurora-reading/.
+ * The reading pen, shot and measured (owner, 2026-11-03), into
+ * docs/aurora-reading/. (Its strand frames, A and B, moved to
+ * `shoot-aurora-v3.mjs` when the owner had the band on "How I work"
+ * removed and the notes' strand re-seated on the cards.)
  *
- *   A/B  the strand appearing from the left on "How I work" and the notes
- *        shelf, beside the run's from the right: frames at several scroll
- *        positions as each comes up.
  *   C    the pen: frames at several scroll positions through "How I work"
  *        and a project page, and at EVERY position stepped through, the
  *        number of blocks mid-ink (some words written, some not, or one word
@@ -116,9 +115,6 @@ async function shoot(cdp, name) {
   return name;
 }
 
-/* Where an element's top is in the document. */
-const docTop = (page, sel) => page.evaluate((s) => document.querySelector(s).getBoundingClientRect().top + scrollY, sel);
-
 /*
  * The pen's state in the window: every block on screen, how written it is
  * (0 muted … 1 ink), and where its top is as a share of the window.
@@ -169,50 +165,6 @@ try {
       const tag = `${theme}-${wname}`;
       const context = await launch(width, height, theme);
       console.log(tag);
-
-      /* ── A, B and the run: the strands appearing ───────────────────── */
-      {
-        const { page, cdp } = await open(context, base, "/", width, height, "#approach [data-aurora-strand]");
-        const strands = [
-          /* The run's, from the right: across the stage coming up. */
-          ["run", "#work [data-run-stage]", [0.85, 0.65, 0.45, 0.25, 0.0, -0.4]],
-          /* "How I work", from the left: the band coming up the window. */
-          ["approach", "#approach [data-aurora-strand]", [0.95, 0.85, 0.75, 0.65, 0.55, 0.45]],
-          /* The notes, from the left: the shelf's stage coming up to pin. */
-          ["notes", "#notes [data-shelf-stage]", [0.85, 0.65, 0.45, 0.25, 0.05, -0.3]],
-        ];
-        for (const [key, sel, ats] of strands) {
-          const top = await docTop(page, sel);
-          let k = 0;
-          for (const at of ats) {
-            await scrollTo(page, cdp, top - at * height);
-            /* How much of the strand's box the window has uncovered, and from which side. */
-            const seen = await page.evaluate((s) => {
-              const strand = document.querySelector(s.includes("aurora-strand") ? s : `${s} [data-aurora-strand]`);
-              const w = strand.querySelector("[data-aurora-window]");
-              const a = strand.getBoundingClientRect();
-              const b = w.getBoundingClientRect();
-              return { from: strand.dataset.from, windowLeft: Math.round(b.left - a.left), windowRight: Math.round(b.right - a.left), width: Math.round(a.width) };
-            }, sel);
-            const name = await shoot(cdp, `${key}-strand-${tag}-${k}.png`);
-            report.runs.push({ kind: "strand", key, tag, at, seen, name });
-            k += 1;
-          }
-          /* It enters from its side: early on, the window's leading edge is
-             on that side of the box and has not reached the other. */
-          const frames = report.runs.filter((r) => r.kind === "strand" && r.key === key && r.tag === tag);
-          const want = key === "run" ? "right" : "left";
-          if (frames[0].seen.from !== want) fail(`${key} ${tag}: strand comes from ${frames[0].seen.from}, expected ${want}`);
-          const partial = frames.find((f) => f.seen.windowRight > 0 && f.seen.windowLeft > -0.3 * f.seen.width && f.seen.windowLeft < f.seen.width);
-          if (want === "left") {
-            const mid = frames.find((f) => f.seen.windowRight > 0 && f.seen.windowRight < f.seen.width * 1.3 - 1);
-            if (!mid) fail(`${key} ${tag}: never caught mid-sweep from the left`);
-          } else if (!partial) fail(`${key} ${tag}: never caught mid-sweep from the right`);
-          const last = frames.at(-1).seen;
-          if (Math.abs(last.windowLeft - (want === "left" ? 0 : -0.3 * last.width)) > 2) fail(`${key} ${tag}: not whole at the end (${JSON.stringify(last)})`);
-        }
-        await page.close();
-      }
 
       /* ── C: the pen, one block at a time ───────────────────────────── */
       for (const [key, route, scope, ready] of [
