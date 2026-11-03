@@ -167,15 +167,13 @@ function Light() {
      place, and per phrase, since some have Hebrew and some do not. */
   return (
     <div className={styles.light} data-hero-light="">
-      {/* One visually hidden span per phrase, each its own 1px box: a span
-          nested inside one sr-only box is laid out at full width and reads as
-          text running off the screen to the Larger-text check. */}
-      {heroPhrases.map((phrase, i) => (
-        <span key={phrase} className="sr-only" lang={inEnglish(lang, phrase).lang}>
-          {i > 0 ? ", " : ""}
-          {phrase}
-        </span>
-      ))}
+      {/* One stable sentence for a screen reader, as one text node: spans
+          nested inside the sr-only box are laid out at full width and read as
+          text running off the screen to the Larger-text check. It is marked
+          English only when every phrase is. */}
+      <span className="sr-only" lang={inEnglish(lang, heroPhrases.join(" ")).lang}>
+        {heroPhrases.join(", ")}
+      </span>
       <span className={styles.phrases} aria-hidden="true">
         {heroPhrases.map((phrase, i) => (
           <span
