@@ -27,6 +27,18 @@
  *                  the box's height). `line-to` and `circle-around` call it
  *                  themselves; written alone it moves the line without
  *                  running anywhere.
+ *   enter          come in from the edge of the page (2026-11-03): the
+ *                  box is full-bleed, so its sides are the page's edges.
+ *                  The line starts `overhang` px off the `side` edge
+ *                  (`start`, mirrored in a right-to-left page) on the
+ *                  box's middle line, runs straight in across the page
+ *                  and turns down into `lane` on a quarter circle of
+ *                  radius `r`. It is the one move that does not start
+ *                  heading down, which is why it can only be the first.
+ *                  What it draws is the line's LEAD: drawn before the
+ *                  scroll map starts, and uncovered instead by a soft
+ *                  window from that edge (`LivingLine.module.css`), the
+ *                  way the work run's aurora appears.
  *   circle-around  go once round the box: in down the circle's vertical
  *                  tangent, once round, out down the same tangent. `pad`
  *                  is the clearance; `side` picks the tangent (`near`, the
@@ -104,9 +116,13 @@ export type Composition = {
   loops: { cx: number; cy: number; r: number }[];
   /** Dots to draw: an origin's mark. */
   dots: { x: number; y: number }[];
+  /** The page edge an `enter` lead comes in from, if the line has one. */
+  enter: "left" | "right" | null;
   /** The path's extent, for the drawing's box. */
   top: number;
   bottom: number;
+  left: number;
+  right: number;
   pieces: Piece[];
 };
 
@@ -173,8 +189,8 @@ export type MoveContext = {
   half: number;
   /** A lane name as a physical x: `start`, `end`, `centre` (of the box), `here`. */
   laneX(lane: unknown): number;
-  /** Put the pen down here (only if the line has not started). */
-  start(x: number, y: number, dot?: boolean): void;
+  /** Put the pen down here (only if the line has not started), heading down unless told otherwise. */
+  start(x: number, y: number, dot?: boolean, heading?: number): void;
   /** Straight down to y. */
   down(y: number): void;
   /** Turn to x, travelling down, finished by `by`. */
@@ -183,6 +199,13 @@ export type MoveContext = {
   loop(r: number, cx: number, cy: number): void;
   /** Group what is drawn next into one span of the scroll map. */
   span(from: number, to: number, draw: () => void): void;
+  /**
+   * Run straight on along a horizontal heading and turn down onto x with a
+   * quarter circle of radius r, drawn as the line's lead (before the scroll
+   * map starts) and coming in from `edge`. Only for a pen just started
+   * heading left or right.
+   */
+  enterTo(x: number, r: number, edge: "left" | "right"): void;
 };
 
 export type MoveImpl = (ctx: MoveContext, params: LineMove) => void;
@@ -206,6 +229,22 @@ defineMove("origin", (c, m) => {
   const y = m.at === "top" ? c.box.top : (c.box.top + c.box.bottom) / 2;
   if (!c.pen.started) c.start(x, y, m.dot === true);
   else c.turn(x, y);
+});
+
+defineMove("enter", (c, m) => {
+  const startIsLeft = c.laneX("start") <= c.laneX("end");
+  const fromLeft = m.side === "end" ? !startIsLeft : startIsLeft;
+  const over = typeof m.overhang === "number" ? m.overhang : 0;
+  const y = (c.box.top + c.box.bottom) / 2;
+  const x = c.laneX(m.lane ?? "start");
+  const r = typeof m.r === "number" ? m.r : 24;
+  if (c.pen.started) {
+    /* Not first: there is no edge to come from, so it is a plain lane change. */
+    c.turn(x, Math.max(c.pen.y, c.box.bottom));
+    return;
+  }
+  c.start(fromLeft ? c.box.left - over : c.box.right + over, y, false, fromLeft ? 0 : Math.PI);
+  c.enterTo(x, r, fromLeft ? "left" : "right");
 });
 
 defineMove("round", (c, m) => {
@@ -252,6 +291,7 @@ export function compose(stations: readonly Station[], opts: ComposeOptions): Com
   const loops: Composition["loops"] = [];
   const dots: Composition["dots"] = [];
   let parts: string[] = [];
+  let enter: Composition["enter"] = null;
   /* Where the last span ended: every span starts at or below it, so the map is monotone. */
   let spanEnd = -Infinity;
   /* While a move groups its drawing into one span, segments collect here. */
@@ -322,12 +362,12 @@ export function compose(stations: readonly Station[], opts: ComposeOptions): Com
       hold,
       half,
       laneX,
-      start(x, y, dot) {
+      start(x, y, dot, heading = DOWN) {
         if (pen.started) return;
         pen.started = true;
         pen.x = x;
         pen.y = y;
-        pen.heading = DOWN;
+        pen.heading = heading;
         parts = [`M${fix(x)} ${fix(y)}`];
         spanEnd = y;
         if (dot) dots.push({ x, y });
@@ -372,6 +412,25 @@ export function compose(stations: readonly Station[], opts: ComposeOptions): Com
         pen.heading = DOWN;
       },
       span,
+      enterTo(x, r, edge) {
+        if (!pen.started || segs.length) return;
+        const dir = Math.sign(Math.cos(pen.heading)) || 1;
+        const run = (x - pen.x) * dir;
+        const rr = Math.max(0, Math.min(r, run));
+        /* The lead: drawn before the clock starts, so it holds no span of
+           height; the scroll map takes over from where it turns down. */
+        const outer = group;
+        group = [];
+        straight(x - dir * rr, pen.y);
+        arc(rr, dir * (Math.PI / 2));
+        const mine = group;
+        group = outer;
+        if (mine.length) pieces.push({ segs: mine, from: -Infinity, to: -Infinity });
+        spanEnd = Math.max(spanEnd, pen.y);
+        enter = edge;
+        pen.x = x;
+        pen.heading = DOWN;
+      },
     };
   };
 
@@ -385,15 +444,20 @@ export function compose(stations: readonly Station[], opts: ComposeOptions): Com
 
   let top = Infinity;
   let bottom = -Infinity;
+  let left = Infinity;
+  let right = -Infinity;
   for (const s of segs) {
     for (let i = 0; i <= 8; i += 1) {
-      const [, y] = segPoint(s, i / 8);
+      const [x, y] = segPoint(s, i / 8);
       top = Math.min(top, y);
       bottom = Math.max(bottom, y);
+      left = Math.min(left, x);
+      right = Math.max(right, x);
     }
   }
   if (!segs.length && pen.started) {
     top = bottom = pen.y;
+    left = right = pen.x;
   }
   return {
     segs,
@@ -401,8 +465,11 @@ export function compose(stations: readonly Station[], opts: ComposeOptions): Com
     length: segs.reduce((n, s) => n + segLength(s), 0),
     loops,
     dots,
+    enter,
     top: Number.isFinite(top) ? top : 0,
     bottom: Number.isFinite(bottom) ? bottom : 0,
+    left: Number.isFinite(left) ? left : 0,
+    right: Number.isFinite(right) ? right : 0,
     pieces,
   };
 }

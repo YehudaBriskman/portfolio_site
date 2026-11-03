@@ -3,14 +3,11 @@
  * in `AuroraStrand.tsx`; the page-level rules are `docs/motion-contract.md`
  * §1 (the range is the clock) and §4 (three off-switches).
  *
- * THE BOX is the caller's: it places and sizes `.strand` (a band across a
- * section, the run's frame, the shelf's frame). The strand is a size
+ * THE BOX is the caller's: it places and sizes `.strand` (the run's frame,
+ * a band through the middle of the shelf's cards). The strand is a size
  * container so `cqw` is its own width, and it clips sideways only — the
  * window spends most of the appearing off the box, and the haze's blur
  * must not be cut at the top and foot.
- *
- * It is static (never transformed), so it can own the view timeline the
- * window reads when the caller names none.
  */
 .strand {
   position: absolute;
@@ -18,7 +15,6 @@
   pointer-events: none;
   container-type: size;
   overflow-x: clip;
-  view-timeline: --aurora-strand block;
   /* Which way the window travels: +1 in from the right, -1 from the left. */
   --sweep-sign: 1;
 }
@@ -86,18 +82,13 @@
   left: 30cqw;
 }
 
-/*
- * THE CLOCK. The caller's timeline and range, or the strand's own: from the
- * box's top 95% of the way down the window to 55%, so a band is whole a
- * little before it reaches the middle — where a living line that leaves it
- * starts drawing.
- */
+/* THE CLOCK. The caller's timeline and range (an ancestor's stage). */
 .window,
 .hold {
   animation-fill-mode: both;
   animation-timing-function: linear;
-  animation-timeline: var(--strand-timeline, --aurora-strand);
-  animation-range: var(--strand-range, cover 5% cover 45%);
+  animation-timeline: var(--strand-timeline);
+  animation-range: var(--strand-range);
 }
 
 @keyframes aurora-sweep {

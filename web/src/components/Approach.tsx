@@ -1,6 +1,6 @@
+import { useMemo } from "react";
 import Written from "@/components/motion/Written";
 import LivingLine from "@/components/motion/LivingLine";
-import AuroraStrand from "@/components/motion/AuroraStrand";
 import ApproachFigure from "@/components/ApproachFigures";
 import { lineAttr } from "@/components/motion/lineMoves";
 import { approachLine } from "@/data/site";
@@ -47,14 +47,16 @@ import styles from "@/components/Approach.module.css";
  * THE LINE (#178, #191)
  * ---------------------
  * The story's line (`motion/LivingLine`) runs behind the whole section,
- * drawn by the reader's scroll, in the aurora's strands. It starts on the
- * aurora strand across the head of the section, which comes in from the
- * LEFT edge of the page the way the work run's ribbon comes in from the
- * right (`motion/AuroraStrand`, the one appearing all three share; owner,
- * 2026-11-03 — until then the line started behind the run's centre and
- * flowed down out of the projects). From the strand it turns in a circle to
- * the head's lane and comes down beside the head; then turns lane to lane
- * through the short sections, and loops once
+ * drawn by the reader's scroll, in the aurora's strands. Its tail starts at
+ * the LEFT edge of the page (the start edge; the right in Hebrew), runs in
+ * above the head, turns down beside it and back under it, so it traces
+ * round the heading and its role line (owner, 2026-11-03: "remove the
+ * additional aurora" — #276 had laid a second, full-width strand across
+ * the head for the line to start from; the line itself now comes from the
+ * edge). The run in is uncovered by a soft window from that edge, the way
+ * the work run's aurora appears (`enter` in `motion/lineMoves.ts`, the
+ * lead in `LivingLine.module.css`). Then it turns lane to lane through the
+ * short sections, and loops once
  * round each principle's figure, entered from above and left from below
  * straight down the rail's outer edge (the principle is the loop's
  * `data-line-hold`), so it never crosses the claim or the lines beside it.
@@ -66,20 +68,15 @@ export default function Approach() {
   /* The words from the content store (#163); the line's moves stay code. */
   const { about } = useContent().site;
   const last = about.intro.length;
+  /* Memoised: the line re-measures when its start changes identity. */
+  const from = useMemo(() => approachLine.from(last), [last]);
   return (
     <section id="approach" className={`section-y ${styles.section}`}>
-      {/* The strand: in from the left edge of the page, across the head. Its
-          empty marker is where the living line starts (`approachLine.from`). */}
-      <div className={styles.band}>
-        <AuroraStrand from="left" />
-        <div className="wrap">
-          <div className={`${styles.wall} ${styles.bandWall}`}>
-            <span className={styles.origin} data-line-origin="approach-strand" aria-hidden="true" />
-          </div>
-        </div>
-      </div>
+      {/* Where the line comes in: a full-bleed marker in the section's top
+          padding, so its sides are the page's edges (`approachLine.from`). */}
+      <span className={styles.enter} data-line-origin="approach-enter" aria-hidden="true" />
       <div className="wrap">
-      <LivingLine className={styles.wall} from={approachLine.from}>
+      <LivingLine className={styles.wall} from={from}>
         <header className={styles.top} data-line={lineAttr(approachLine.section(0, last))}>
           <h2 className={`display-tight text-sub ${styles.head}`}>{about.heading}</h2>
           {/* The role is "technical team lead", never anything that names
