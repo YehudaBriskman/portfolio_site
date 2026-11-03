@@ -3,6 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { scrollToAnchor } from "@/lib/scrollToAnchor";
 import Controls, { type NavControls } from "./nav/Controls";
 import LanguageMenu from "./nav/LanguageMenu";
+import ThemeMenu from "./nav/ThemeMenu";
 import ElsewhereMarks from "./nav/ElsewhereMarks";
 import MotionToggle from "./nav/MotionToggle";
 import { NAV_ROUTES } from "./nav/navRoutes";
@@ -484,6 +485,7 @@ export default function Nav() {
               asked for. */}
           <div className={styles.sheetControls}>
             <LanguageMenu value={locale} onSelect={onSelectLocale} />
+            <ThemeMenu />
             <MotionToggle paused={motionPaused} onToggle={onToggleMotion} />
           </div>
         </div>

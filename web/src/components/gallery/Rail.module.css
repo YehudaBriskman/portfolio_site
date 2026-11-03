@@ -196,7 +196,7 @@
   background: rgb(var(--paper));
   color: rgb(var(--ink));
   overscroll-behavior: contain;
-  box-shadow: 0 -18px 40px -24px rgb(var(--ink) / 0.5);
+  box-shadow: 0 -18px 40px -24px rgb(var(--shade) / 0.5);
 }
 
 .sheet[open] {

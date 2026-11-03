@@ -3,6 +3,7 @@ import { defineConfig, type Plugin, type ProxyOptions } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import type { IncomingMessage, ServerResponse } from "http";
+import { SITE_THEME_DEFAULT } from "./src/lib/themeDefault";
 
 function color(code: number) {
   return (s: string) => `\x1b[${code}m${s}\x1b[0m`;
@@ -87,6 +88,21 @@ function requestLoggerPlugin(apiBase: string): Plugin {
  * `dev`. Anything that is not a hex sha is also `dev`, because the value is
  * written into HTML and a build-arg is not the place to discover that.
  */
+/*
+ * Writes the site default theme into <meta name="site-theme-default"> (#247),
+ * from the one constant in src/lib/themeDefault.ts. "pre" for the same
+ * reason as the sha below.
+ */
+function siteThemePlugin(): Plugin {
+  return {
+    name: "site-theme-default",
+    transformIndexHtml: {
+      order: "pre",
+      handler: (html) => html.replaceAll("%SITE_THEME_DEFAULT%", SITE_THEME_DEFAULT),
+    },
+  };
+}
+
 function buildShaPlugin(): Plugin {
   const raw = process.env.BUILD_SHA ?? "";
   const sha = /^[0-9a-f]{7,40}$/.test(raw) ? raw : "dev";
@@ -165,7 +181,7 @@ export default defineConfig(() => {
         "/api": apiProxy(API_TARGET),
       },
     },
-    plugins: [react(), requestLoggerPlugin(API_TARGET), buildShaPlugin(), routePreloadPlugin()],
+    plugins: [react(), requestLoggerPlugin(API_TARGET), buildShaPlugin(), routePreloadPlugin(), siteThemePlugin()],
     /*
      * Four vendor chunks, so a change to the site does not re-download React.
      *

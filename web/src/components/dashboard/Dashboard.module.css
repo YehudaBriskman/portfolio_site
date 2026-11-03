@@ -28,10 +28,10 @@
  */
 
 .ground {
-  --dash-line: rgb(var(--panel-rule) / 0.5);
-  --dash-line-soft: rgb(var(--panel-rule) / 0.3);
-  --dash-hover: rgb(var(--panel-ink) / 0.05);
-  --dash-inset: rgb(0 0 0 / 0.22);
+  --dash-line: rgb(var(--rule-firm) / 0.5);
+  --dash-line-soft: rgb(var(--rule-firm) / 0.3);
+  --dash-hover: rgb(var(--ink) / 0.05);
+  --dash-inset: rgb(var(--well));
   --dash-r: calc(var(--r-sm) - 4px);
   --dash-r-inner: calc(var(--r-sm) - 8px);
   --dash-pad: 12px;
@@ -46,6 +46,12 @@
   margin-block-start: -4rem;
   padding-block-start: 4rem;
   min-height: 100svh;
+  /* The page's own ground and ink (#247), no longer `.on-panel`: the
+     dashboards follow the theme like every other page, paper under Light
+     and the warm dark under Dark. `color` is restated for the trap noted
+     on `--panel` in index.css. */
+  background: rgb(var(--canvas));
+  color: rgb(var(--ink));
   font-family: var(--font-text);
   font-size: 0.875rem;
   line-height: 1.5;
@@ -179,7 +185,7 @@
 
 /* The current view: a raised fill and GitHub's bar at the inline start. */
 .view[aria-current="page"] {
-  background: rgb(var(--panel-ink) / 0.08);
+  background: rgb(var(--ink) / 0.08);
   font-weight: 600;
 }
 
@@ -312,7 +318,7 @@
 .glyph {
   flex: none;
   border-radius: 3px;
-  background: rgb(var(--panel-ink) / 0.06);
+  background: rgb(var(--ink) / 0.06);
   box-shadow: 0 0 0 1px var(--dash-line-soft);
 }
 
@@ -411,7 +417,7 @@
   padding-inline: 0.25rem;
   border-radius: 999px;
   background: rgb(var(--ink));
-  color: rgb(var(--panel));
+  color: rgb(var(--canvas));
   font-size: 0.75rem;
   font-variant-numeric: tabular-nums;
 }
@@ -432,6 +438,8 @@
   border: 0;
   border-inline-end: 1px solid var(--dash-line);
   overscroll-behavior: contain;
+  background: rgb(var(--canvas));
+  color: rgb(var(--ink));
   font-family: var(--font-text);
   font-size: 0.875rem;
   line-height: 1.5;
@@ -681,7 +689,7 @@
 }
 
 .chip[aria-current="true"] {
-  background: rgb(var(--panel-ink) / 0.08);
+  background: rgb(var(--ink) / 0.08);
 }
 
 .featured {
@@ -1134,7 +1142,7 @@
   place-items: center;
   border: 1px solid var(--dash-line);
   border-radius: 50%;
-  background: rgb(var(--panel));
+  background: rgb(var(--canvas));
   color: rgb(var(--ink-soft));
 }
 
@@ -1255,14 +1263,14 @@
 .button[data-primary] {
   border-color: rgb(var(--ink));
   background: rgb(var(--ink));
-  color: rgb(var(--panel));
+  color: rgb(var(--canvas));
 }
 
 .monthHead {
   margin: 0;
   padding: 0.5rem calc(var(--dash-pad) + 4px);
   border-block-end: 1px solid var(--dash-line-soft);
-  background: rgb(var(--panel-ink) / 0.03);
+  background: rgb(var(--ink) / 0.03);
   font-family: var(--font-text);
   font-size: 0.75rem;
   font-weight: 600;
@@ -1306,7 +1314,7 @@
   height: 1rem;
   margin-block-start: 0.15rem;
   border-radius: 4px;
-  background: rgb(var(--panel-ink) / 0.08);
+  background: rgb(var(--ink) / 0.08);
 }
 
 .skLines {

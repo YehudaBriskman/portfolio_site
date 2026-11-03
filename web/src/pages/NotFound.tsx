@@ -43,7 +43,7 @@ export default function NotFound() {
          * No wash. There is no group here and so no position for the hue
          * cycle to read; see the note in BlogPost.tsx.
          */}
-        <p className="mono mt-6 inline-block max-w-full break-all rounded-[var(--r-md)] border border-ridge bg-white/70 px-4 py-2.5 text-xs text-ink-soft">
+        <p className="mono mt-6 inline-block max-w-full break-all rounded-[var(--r-md)] border border-ridge bg-sheet/70 px-4 py-2.5 text-xs text-ink-soft">
           {pathname}
         </p>
 

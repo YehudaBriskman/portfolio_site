@@ -1,6 +1,7 @@
 import styles from "../Nav.module.css";
 import LanguageMenu from "./LanguageMenu";
 import MotionToggle from "./MotionToggle";
+import ThemeMenu from "./ThemeMenu";
 import type { LocaleCode } from "./locale";
 
 /**
@@ -42,6 +43,7 @@ export default function Controls({ controls }: { controls: NavControls }) {
   return (
     <div role="group" aria-label="Site controls" className={styles.controlGroup}>
       <LanguageMenu value={controls.locale} onSelect={controls.onSelectLocale} />
+      <ThemeMenu />
       <MotionToggle paused={controls.motionPaused} onToggle={controls.onToggleMotion} />
     </div>
   );

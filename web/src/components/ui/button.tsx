@@ -12,8 +12,8 @@ import { cn } from "@/lib/utils"
  * fails hardest here: it hovers to `bg-accent`, and this palette maps
  * `--accent` to `--surface` (#121214), so hovering a control on a translucent
  * island paints an opaque dark rectangle over the blur — the hover state
- * destroys the material it is drawn on. `glass` hovers to the same 10% white
- * wash the island's own "you are here" state uses, which is the only kind of
+ * destroys the material it is drawn on. `glass` hovers to a 10% wash of the
+ * ink (white until #247 gave the site two themes), as the island's own "you are here" state does, which is the only kind of
  * emphasis this palette has: light, not hue.
  *
  * The two island sizes encode the nav's 44px rule. Each control is a real
@@ -40,7 +40,7 @@ const buttonVariants = cva(
            The nav focuses with a flush ring instead, matching the outline the
            CSS-module links use. */
         glass:
-          "text-clay hover:bg-white/10 hover:text-bone data-[state=open]:bg-white/10 data-[state=open]:text-bone focus-visible:ring-offset-0",
+          "text-clay hover:bg-ink/10 hover:text-bone data-[state=open]:bg-ink/10 data-[state=open]:text-bone focus-visible:ring-offset-0",
       },
       size: {
         default: "h-10 px-4 py-2",

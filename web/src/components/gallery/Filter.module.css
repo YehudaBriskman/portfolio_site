@@ -27,8 +27,8 @@
   border-radius: var(--r-md);
   background: rgb(var(--canvas));
   box-shadow:
-    0 1px 0 rgb(255 255 255 / 0.7) inset,
-    0 10px 24px -20px rgb(var(--ink) / 0.4);
+    0 1px 0 rgb(var(--sheen) / 0.7) inset,
+    0 10px 24px -20px rgb(var(--shade) / 0.4);
 }
 
 .cardHead {
@@ -167,8 +167,8 @@
   border-radius: 12px;
   background: rgb(var(--canvas));
   box-shadow:
-    0 2px 4px -2px rgb(var(--ink) / 0.18),
-    0 22px 40px -18px rgb(var(--ink) / 0.45);
+    0 2px 4px -2px rgb(var(--shade) / 0.18),
+    0 22px 40px -18px rgb(var(--shade) / 0.45);
 }
 
 .options {

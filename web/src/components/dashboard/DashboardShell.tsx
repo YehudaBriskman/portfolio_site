@@ -1,5 +1,4 @@
 import { useId, useRef, useSyncExternalStore, type ReactNode } from "react";
-import dark from "@/components/notes/DarkCard.module.css";
 import styles from "@/components/dashboard/Dashboard.module.css";
 import { useWords } from "@/components/dashboard/i18n";
 
@@ -16,14 +15,15 @@ import { useWords } from "@/components/dashboard/i18n";
  *   │ filters  │                              │            │
  *   └──────────┴──────────────────────────────┴────────────┘
  *
- * THE GROUND. The note cards' dark (`notes/DarkCard.module.css`, #185),
- * edge to edge: `.on-panel` re-points every role the contents read, the
- * card's stops re-point the fill, and `data-chrome="dark"` tells the nav
- * island it is now lying on a dark ground, so it inverts the way it does over
- * the home page's acts. `ground/DarkAct.tsx` said that if the notes ever
- * went dark as a whole they would be a ground and would need exactly this;
- * they have, and this is it. It is not an act: no seams, no drift, no crest,
- * and it is on its own route rather than between two paper sections.
+ * THE GROUND is the theme's (#247). This shell was the note cards' dark
+ * (`notes/DarkCard.module.css`, #185) edge to edge, hard-coded with
+ * `.on-panel` and `data-chrome="dark"`, which is how the site came to have a
+ * light theme on some pages and a dark one on others. That dark is now the
+ * Dark theme's ground for every page, and the shell paints `--canvas` and
+ * `--ink` like any other page: paper under Light, the warm dark under Dark.
+ * No `data-chrome` either, because the bar already wears the theme's
+ * material; it only needs telling when it passes over an act. It is not an
+ * act: no seams, no drift, no crest.
  *
  * THREE WIDTHS, by what fits rather than by device:
  *
@@ -118,7 +118,7 @@ export default function DashboardShell({
   );
 
   return (
-    <div className={`on-panel ${dark.dark} ${styles.ground}`} data-chrome="dark" data-mode={mode}>
+    <div className={styles.ground} data-mode={mode}>
       <div className={styles.frame}>
         {mode !== "one" && (
           <aside className={styles.rail} aria-label={railLabel}>
@@ -168,7 +168,7 @@ export default function DashboardShell({
       {mode === "one" && (
         <dialog
           ref={sheet}
-          className={`on-panel ${dark.dark} ${styles.sheet}`}
+          className={styles.sheet}
           aria-labelledby={titleId}
           onClose={() => opener.current?.focus()}
           onClick={(e) => {

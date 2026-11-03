@@ -387,6 +387,17 @@ server {
     try_files $uri =404;
   }
 
+  # The theme before first paint (#247). A stable name with no content hash,
+  # loaded by every shell, so it revalidates like the shell does: a cached
+  # copy that disagreed with the stylesheet about the storage key or the
+  # attribute would paint every page in the wrong theme until it expired.
+  location = /theme-boot.js {
+    add_header Cache-Control "no-cache" always;
+    include /etc/nginx/snippets/security-headers.conf;
+    error_page 404 = @plain_404;
+    try_files $uri =404;
+  }
+
   # Also where every HTML 404 lands: `error_page 404 /index.html` at the foot
   # of this server is an internal redirect to this URI, so the not-found
   # document is served from here and not from @spa.

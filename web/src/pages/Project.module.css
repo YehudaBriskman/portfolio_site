@@ -197,13 +197,13 @@
 .figure figure {
   border-color: var(--dash-line);
   border-radius: var(--dash-r);
-  background: rgb(var(--panel-2));
+  background: rgb(var(--canvas-2));
   box-shadow: none;
 }
 
 .figure :global(.card-shot) {
   border-color: var(--dash-line-soft);
-  background-color: rgb(var(--panel));
+  background-color: rgb(var(--canvas));
 }
 
 .highlights {
