@@ -54,6 +54,7 @@ display". `/accessibility` describes the controls.
 | "PORTFOLIO" ran 65px past a 320px screen at Larger | hero | phone floor capped at `13.8vw`, the same as the rem floor at the default size (`Hero.module.css`) |
 | The sort options did not wrap | `/projects` | `.sort ul` wraps (`Work.module.css`) |
 | The email address could not break, so it was clipped | `/accessibility`, `/` contact | `overflow-wrap: break-word` on `body` |
+| On a phone, the editor's fixed Save bar (wrapped to about 220px at 320px) hid the fields and buttons tabbed to below it (2.4.11) | `/admin/posts/:slug` | the bar's measured height sets the root's `scroll-padding-bottom` and pads `main` (`AdminShell.tsx`) |
 | More contrast in both themes and the act | 7 routes x 2 widths x 2 themes | axe clean, no change needed |
 | Keyboard walk | every page, both widths | clean once the probe credits a ring drawn on a tree branch's first row (APG structure) and samples a tall tab panel only where it is on screen |
 
