@@ -8,6 +8,7 @@ import emailRoutes from './routes/email.route.js';
 import blogRoutes from './routes/blog.route.js';
 import adminRoutes from './routes/admin.route.js';
 import seoRoutes from './routes/seo.route.js';
+import contentRoutes from './routes/content.route.js';
 import feedRoutes from './routes/feeds.route.js';
 import { activityRouter, areasRouter } from './routes/activity.route.js';
 import { createBearerFailureLimiter, requireAdmin } from './middlewares/requireAdmin.js';
@@ -147,6 +148,7 @@ export function createApp() {
   // Routers
 
   app.use('/api/blog', readLimiter, blogRoutes);
+  app.use('/api/content', readLimiter, contentRoutes);
   app.use('/api/activity', readLimiter, activityRouter);
   app.use('/api/areas', readLimiter, areasRouter);
   app.use('/api/seo/feed', seoLimiter, feedRoutes);
