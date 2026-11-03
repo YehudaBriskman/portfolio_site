@@ -151,9 +151,9 @@ const EN = {
 export type LogWords = typeof EN;
 
 const HE: LogWords = {
-  title: "יומן הערוץ",
-  lede: "כל מה שקורה באתר, מהחדש לישן: רשימות, גרסאות, עדכוני קוד, גרסאות אתר ותחומים חדשים.",
-  log: "יומן הערוץ",
+  title: "יומן פעילות",
+  lede: "כל מה שקורה באתר, מהחדשה לישנה: רשימות, גרסאות, עדכוני קוד, גרסאות אתר ותחומים חדשים.",
+  log: "יומן פעילות",
   railLabel: "סינון היומן",
   kinds: "סוג",
   areas: "תחום",
@@ -171,7 +171,7 @@ const HE: LogWords = {
   subscribeBody: "היומן כ־RSS, עם הסינון הנוכחי.",
   subscribeAll: "כל הרשימות כ־RSS",
   rss: "RSS",
-  feedTitle: "Yehuda Briskman · Channel log",
+  feedTitle: "Yehuda Briskman · יומן פעילות",
   events: "אירועים",
   loadMore: "טעינת עוד",
   loading: "טוען…",
@@ -181,7 +181,7 @@ const HE: LogWords = {
   emptyBody: "רשימות, גרסאות ועדכוני קוד יופיעו כאן כשיקרו.",
   noMatch: "אין אירוע שמתאים לסינון.",
   failedTitle: "לא ניתן לטעון את היומן.",
-  failedBody: "היומן מוגש ממכונה קטנה שאני מפעיל בעצמי, והיא לא עונה כרגע. בדרך כלל זה אומר הפעלה מחדש.",
+  failedBody: "היומן מוגש משרת קטן שאני מפעיל בעצמי, והשרת לא עונה כרגע. לרוב מדובר בהפעלה מחדש ולא בתקלה קבועה.",
   moreFailed: "לא ניתן לטעון את האירועים הבאים.",
   leaves: "ב־GitHub",
   inArea: "תחום",

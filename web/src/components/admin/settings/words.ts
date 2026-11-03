@@ -68,23 +68,23 @@ type Words = typeof EN;
 
 const HE = {
   title: "הגדרות",
-  intro: "מה בא לפני מה בדף הבית, מה מוצג, וברירות המחדל שמבקר מקבל לפני שבחר בעצמו. כל שמירה נשמרת למטה ואפשר להחזיר אותה.",
+  intro: "מה בא לפני מה בדף הבית, מה מוצג, וברירות המחדל שמבקר מקבל לפני שבחר בעצמו. כל גרסה שמורה למטה וניתן לשחזר אותה.",
   homeHeading: "דף הבית",
   homeHint: "הפתיח תמיד ראשון. האזורים שאחריו, לפי הסדר:",
   hero: "פתיח, תמיד ראשון",
   sections: {
     work: "פרויקטים (כהה)",
     approach: "איך אני עובד",
-    city: "השנה (כהה)",
+    city: "השנה האחרונה (כהה)",
     notes: "רשימות",
-    stack: "נתונים",
+    stack: "במספרים",
     contact: "יצירת קשר",
   },
   shown: "מוצג",
   hidden: "מוסתר",
-  show: (name) => `להציג את ${name}`,
-  moveUp: (name) => `להזיז את ${name} למעלה`,
-  moveDown: (name) => `להזיז את ${name} למטה`,
+  show: (name) => `הצגת ${name}`,
+  moveUp: (name) => `הזזת ${name} למעלה`,
+  moveDown: (name) => `הזזת ${name} למטה`,
   visualsHeading: "מראה",
   themeLegend: "ערכת צבעים כברירת מחדל",
   themeHint: "למבקר שעוד לא בחר. הבחירה שלו תמיד קובעת.",
@@ -110,16 +110,16 @@ const HE = {
   current: "נוכחית",
   historyHeading: "היסטוריה",
   historyEmpty: "עוד לא נשמר דבר. האתר משתמש בברירות המחדל המובנות.",
-  restore: "להחזיר",
-  restoreLabel: (what) => `להחזיר ${what}`,
-  differences: (n) => plural("he", n, { one: "הבדל אחד מהנוכחית", two: "שני הבדלים מהנוכחית", other: "{n} הבדלים מהנוכחית" }),
+  restore: "שחזור",
+  restoreLabel: (what) => `שחזור ${what}`,
+  differences: (n) => plural("he", n, { one: "הבדל אחד מהגרסה הנוכחית", two: "שני הבדלים מהגרסה הנוכחית", other: "{n} הבדלים מהגרסה הנוכחית" }),
   issues: {
     "settings.ledger.darkAdjacent":
       "הפרויקטים והשנה שניהם על הרקע הכהה; כשהם מוצגים זה ליד זה הם נקראים כאזור אחד. יש לשים אזור ביניהם או להסתיר אחד מהם.",
     "settings.sections.duplicate": "אזור מופיע פעמיים.",
     "settings.sections.missing": "כל אזור צריך להופיע פעם אחת.",
   },
-  genericIssue: "הערך הזה אינו מותר.",
+  genericIssue: "הערך אינו תקין.",
 };
 
 export const useSettingsWords = defineWords("admin-settings", EN, HE);

@@ -2,7 +2,7 @@ import type { LabelField } from "@/components/gallery/objectLabel";
 import type { Lang } from "@/components/dashboard/i18n";
 import { links as seedLinks, type SocialLink } from "@/data/links";
 import { projects as seedProjects, type Project } from "@/data/projects";
-import { about, contact, footer, heroPhrases, plate, plateTitle, type ApproachPrinciple, type ApproachSection } from "@/data/site";
+import { about, contact, footer, heroHebrew, heroPhrases, plate, plateTitle, type ApproachPrinciple, type ApproachSection } from "@/data/site";
 import { IMAGES, INTERLUDES, LAYOUTS, LINES, ROLES, START, type BeatLayout, type Interlude, type StoryHand, type StoryImage } from "@/data/story";
 import type { ContentBundle, Project as StoreProject, Text } from "./schema";
 
@@ -21,6 +21,8 @@ import type { ContentBundle, Project as StoreProject, Text } from "./schema";
  */
 
 const t = (en: string): Text => ({ en });
+/** English with the Hebrew the owner approved, where there is one. */
+const tt = (en: string, he: string | undefined): Text => (he ? { en, he } : { en });
 
 function projectToStore(p: Project): StoreProject {
   return {
@@ -63,14 +65,14 @@ export function seedBundle(): ContentBundle {
     siteCopy: {
       hero: {
         name: plate.name,
-        where: t(plate.where),
+        where: tt(plate.where, heroHebrew.where),
         shippingSince: plate.shippingSince,
         title: t(plateTitle.name),
-        fact: t(plateTitle.fact),
-        phrases: heroPhrases.map(t),
+        fact: tt(plateTitle.fact, heroHebrew.fact),
+        phrases: heroPhrases.map((p) => tt(p, heroHebrew.phrases[p])),
       },
       about: {
-        heading: t(about.heading),
+        heading: tt(about.heading, heroHebrew.aboutHeading),
         intro: about.intro.map((s) => ({ label: t(s.label), lines: s.lines.map(t) })),
         principles: about.principles.map((p) => ({ claim: t(p.claim), lines: p.lines.map(t) })),
       },
@@ -78,7 +80,7 @@ export function seedBundle(): ContentBundle {
         email: contact.email,
         location: t(contact.location),
         availability: t(contact.availability),
-        replyWithin: t(contact.replyWithin),
+        replyWithin: tt(contact.replyWithin, heroHebrew.replyWithin),
       },
       profiles: seedLinks.map((l) => ({ name: l.name, url: l.url, icon: l.icon, label: l.label })),
       footer: {

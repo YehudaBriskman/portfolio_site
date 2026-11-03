@@ -162,16 +162,25 @@ function Ask() {
 function Light() {
   const { heroPhrases } = useContent().site;
   const lang = useLang();
-  /* The owner's copy, English until it has a Hebrew of its own (#248):
-     marked by language only, so the corner keeps the page's mirrored place. */
+  /* The owner's copy, each phrase English until it has a Hebrew of its own
+     (#248): marked by language only, so the corner keeps the page's mirrored
+     place, and per phrase, since some have Hebrew and some do not. */
   return (
-    <div className={styles.light} data-hero-light="" lang={inEnglish(lang, heroPhrases.join(" ")).lang}>
-      <span className="sr-only">{heroPhrases.join(", ")}</span>
+    <div className={styles.light} data-hero-light="">
+      <span className="sr-only">
+        {heroPhrases.map((phrase, i) => (
+          <span key={phrase} lang={inEnglish(lang, phrase).lang}>
+            {i > 0 ? ", " : ""}
+            {phrase}
+          </span>
+        ))}
+      </span>
       <span className={styles.phrases} aria-hidden="true">
         {heroPhrases.map((phrase, i) => (
           <span
             key={phrase}
             className={styles.phrase}
+            lang={inEnglish(lang, phrase).lang}
             style={{ "--i": i, "--n": heroPhrases.length } as CSSProperties}
           >
             {phrase}
