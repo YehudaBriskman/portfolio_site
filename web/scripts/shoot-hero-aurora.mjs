@@ -6,8 +6,7 @@
  *
  * Writes, per window (1440×900, 390×844) and theme (light, dark):
  *
- *   <prefix>-<theme>-<w>-top.png    scroll 0: the ribbon behind the head
- *                                   and in front of the chest
+ *   <prefix>-<theme>-<w>-top.png    scroll 0: the ribbon across the chest
  *   <prefix>-<theme>-<w>-mid.png    the dark act's edge at 80% of the window:
  *                                   the ribbon's tail dipping under it
  *   <prefix>-<theme>-<w>-half.png   the edge at 55%, partly over the hero
@@ -15,6 +14,11 @@
  *   <prefix>-<theme>-<w>-late.png   the edge at 25%: the figure still there,
  *                                   most of it covered
  *   <prefix>-light-1440-reduced.png prefers-reduced-motion, edge at 55%
+ *   <prefix>-<theme>-1440-zoom-head.png  the head and shoulders, where v1's
+ *                                   back half showed through (#272), and a
+ *                                   byte comparison with the ribbon hidden
+ *   <prefix>-<theme>-1440-zoom-edge.png  the figure's left edge, where the
+ *                                   sweep comes in over the chest
  *
  * and prints, for each shot, where the figure is and whether anything is
  * masking it, so the screenshots are not the only evidence.
@@ -63,10 +67,10 @@ async function frames(page, n = 3) {
   }
 }
 
-async function open(width, height, { theme = "light", reduced = false } = {}) {
+async function open(width, height, { theme = "light", reduced = false, dpr = 1 } = {}) {
   const page = await browser.newPage({
     viewport: { width, height },
-    deviceScaleFactor: 1,
+    deviceScaleFactor: dpr,
     reducedMotion: reduced ? "reduce" : "no-preference",
     colorScheme: theme,
   });
@@ -164,6 +168,91 @@ if (!BEFORE) {
   await page.screenshot({ path: resolve(OUT, file) });
   console.log(file, `scrollY=${y}`, JSON.stringify(await probe(page)));
   await page.close();
+
+  /* The silhouette, close up (#272): nothing of the ribbon may show through
+     the figure. For each theme, at 3x, the head and shoulders (where v1's
+     back half ran) are shot twice with the ribbon and once without it, and
+     the differing pixels counted: the ribbon's own count must be none. */
+  for (const theme of THEMES) {
+    const zoom = await open(1440, 900, { theme, dpr: 3 });
+    const box = await zoom.evaluate(() => {
+      const r = document.querySelector("[data-portrait] img").getBoundingClientRect();
+      return { x: r.x, y: r.y, width: r.width, height: r.height };
+    });
+    /* The head and shoulders down to just above the chest (y 450 of 845),
+       from below the fact line: hiding a composited layer re-rasterises the
+       type over the crown, which differs in its anti-aliasing and is not
+       the ribbon. */
+    const head = {
+      x: Math.round(box.x),
+      y: Math.round(box.y + box.height * (80 / 845)),
+      width: Math.round(box.width),
+      height: Math.round(box.height * (360 / 845)),
+    };
+    /* The left edge of the figure where the sweep comes in over the chest. */
+    const edge = {
+      x: Math.round(box.x - box.width * 0.15),
+      y: Math.round(box.y + box.height * (400 / 845)),
+      width: Math.round(box.width * 0.6),
+      height: Math.round(box.height * (220 / 845)),
+    };
+    const shot = (clip) => zoom.screenshot({ clip });
+    const diff = (a, b) =>
+      /* Decoded and compared in the page, which has a canvas. */
+      zoom.evaluate(
+        async ([a, b]) => {
+          const pixels = async (src) => {
+            const img = new Image();
+            img.src = `data:image/png;base64,${src}`;
+            await img.decode();
+            const c = document.createElement("canvas");
+            c.width = img.width;
+            c.height = img.height;
+            const g = c.getContext("2d");
+            g.drawImage(img, 0, 0);
+            return g.getImageData(0, 0, c.width, c.height);
+          };
+          const [p, q] = [await pixels(a), await pixels(b)];
+          const rows = new Set();
+          let changed = 0;
+          for (let i = 0; i < p.data.length; i += 4) {
+            if (
+              p.data[i] !== q.data[i] ||
+              p.data[i + 1] !== q.data[i + 1] ||
+              p.data[i + 2] !== q.data[i + 2]
+            ) {
+              changed += 1;
+              rows.add(Math.floor(i / 4 / p.width));
+            }
+          }
+          const r = [...rows];
+          return {
+            changed,
+            of: p.width * p.height,
+            rows: r.length ? [Math.min(...r), Math.max(...r)] : null,
+          };
+        },
+        [a.toString("base64"), b.toString("base64")],
+      );
+    const on = await shot(head);
+    await frames(zoom, 2);
+    const onAgain = await shot(head);
+    await zoom.screenshot({ path: resolve(OUT, `${PREFIX}-${theme}-1440-zoom-head.png`), clip: head });
+    await zoom.screenshot({ path: resolve(OUT, `${PREFIX}-${theme}-1440-zoom-edge.png`), clip: edge });
+    await zoom.addStyleTag({ content: "[data-hero-ribbon]{visibility:hidden!important}" });
+    await frames(zoom, 2);
+    const off = await shot(head);
+    /* The first number is the noise floor (two shots, ribbon on both); the
+       second is what the ribbon itself changes. */
+    console.log(
+      `${theme} head and shoulders (${head.width}x${head.height}):`,
+      "on vs on",
+      JSON.stringify(await diff(on, onAgain)),
+      "on vs off",
+      JSON.stringify(await diff(onAgain, off)),
+    );
+    await zoom.close();
+  }
 }
 
 await browser.close();
