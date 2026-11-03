@@ -6,6 +6,7 @@ import AdminShell from "@/components/admin/AdminShell";
 import StatusPill, { type SaveState } from "@/components/admin/StatusPill";
 import { admin, slugify, AdminValidationError, type AdminCollection } from "@/services/admin";
 import LinkEditor, { toLinkRows, type LinkRow } from "@/components/LinkEditor";
+import MediaPicker, { PickedPreview } from "@/components/admin/MediaPicker";
 
 type Draft = {
   slug: string;
@@ -273,11 +274,15 @@ export default function AdminEditor() {
                 <span className="a-label">Tags (comma separated)</span>
                 <input value={d.tags} onChange={(e) => set("tags", e.target.value)} className="a-input a-input-mono" placeholder="ci, testing" />
               </label>
-              <label className="block">
-                <span className="a-label">Cover image URL</span>
-                <input value={d.coverImage} onChange={(e) => set("coverImage", e.target.value)} className="a-input a-input-mono" placeholder="https://…" />
-                <span className="a-hint">Must be a full https:// URL, or the save is rejected.</span>
-              </label>
+              <div>
+                <label className="block">
+                  <span className="a-label">Cover image URL</span>
+                  <input value={d.coverImage} onChange={(e) => set("coverImage", e.target.value)} className="a-input a-input-mono" placeholder="https://…" />
+                  <span className="a-hint">Must be a full https:// URL, or the save is rejected.</span>
+                </label>
+                <MediaPicker value={d.coverImage} onChange={(url) => set("coverImage", url)} />
+                <PickedPreview url={d.coverImage} />
+              </div>
               <label className="block">
                 <span className="a-label">Featured order</span>
                 <input

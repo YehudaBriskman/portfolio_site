@@ -50,6 +50,8 @@ const AdminCollectionSchema = z.object({
     .default(null),
   description: z.string(),
   coverImage: z.string().nullable(),
+  /* A library icon (#253). Absent on areas saved before it existed. */
+  icon: z.string().nullable().optional(),
   links: z.array(LinkSchema),
   order: z.number(),
   status: z.enum(["published", "hidden"]),

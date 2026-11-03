@@ -143,6 +143,16 @@ server {
     proxy_connect_timeout 5s;
     proxy_send_timeout   60s;
 
+    # The media library's largest upload is a video with its poster and
+    # captions (#253): 25 + 5 MB + 200 KB, ~30.3 MB as a form. nginx's own
+    # default is 1 MB, which refused it here with a 413 before the API saw
+    # it. The admin host's /api goes straight to the API Service and never
+    # passes this file, so this is the Compose stack and the public domain
+    # (a token with ADMIN_API_TOKENS=on). Every other route keeps its own,
+    # smaller ceiling in the API (express.json is 1 MB), and each media kind
+    # its own (images 10 MB, icons 64 KB).
+    client_max_body_size 31m;
+
     # The upstream address is a pod IP. Useful in a log, not on a public
     # response; the request id is enough to correlate one.
     add_header X-Request-Id $request_id always;

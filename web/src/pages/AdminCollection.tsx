@@ -5,6 +5,7 @@ import StatusPill, { type SaveState } from "@/components/admin/StatusPill";
 import DocPathsEditor from "@/components/admin/DocPathsEditor";
 import LinkEditor, { toLinkRows, type LinkRow } from "@/components/LinkEditor";
 import { admin, slugify, AdminValidationError } from "@/services/admin";
+import MediaPicker from "@/components/admin/MediaPicker";
 
 type Draft = {
   slug: string;
@@ -17,6 +18,7 @@ type Draft = {
   docPaths: string[];
   description: string;
   coverImage: string;
+  icon: string;
   links: LinkRow[];
   order: string;
   status: "published" | "hidden";
@@ -26,7 +28,7 @@ type Draft = {
 const EMPTY: Draft = {
   slug: "", title: "", tagline: "", kind: "project",
   repoOwner: "", repoName: "", repoBranch: "main", docPaths: [],
-  description: "", coverImage: "", links: [], order: "50", status: "published",
+  description: "", coverImage: "", icon: "", links: [], order: "50", status: "published",
 };
 
 export default function AdminCollection() {
@@ -62,6 +64,7 @@ export default function AdminCollection() {
           docPaths: c.repo?.docPaths ?? [],
           description: c.description,
           coverImage: c.coverImage ?? "",
+          icon: c.icon ?? "",
           links: toLinkRows(c.links),
           order: String(c.order),
           status: c.status,
@@ -99,6 +102,7 @@ export default function AdminCollection() {
             : null,
         description: d.description,
         coverImage: d.coverImage.trim() || null,
+        icon: d.icon.trim() || null,
         links: d.links.filter((l) => l.label && l.url),
         order: Number(d.order) || 50,
         status: d.status,
@@ -234,6 +238,31 @@ export default function AdminCollection() {
                 its <span className="mono">raw.githubusercontent.com</span> address.
               </span>
             </label>
+            <div className="sm:col-span-2 -mt-3">
+              <MediaPicker value={d.coverImage} onChange={(url) => patch({ coverImage: url })} />
+            </div>
+            <div className="block sm:col-span-2">
+              <span className="a-label" id="area-icon-label">Icon</span>
+              <div className="flex flex-wrap items-center gap-3" aria-labelledby="area-icon-label" role="group">
+                {d.icon ? (
+                  <img src={d.icon} alt="" width={32} height={32} className="rounded-[--r-sm] border border-edge object-contain p-1" />
+                ) : (
+                  <span className="a-hint m-0">None.</span>
+                )}
+                <MediaPicker
+                  value={d.icon}
+                  onChange={(url) => patch({ icon: url })}
+                  kinds={["icon"]}
+                  label={d.icon ? "Change icon" : "Choose an icon"}
+                />
+                {d.icon && (
+                  <button type="button" className="a-btn a-btn-ghost mt-2" onClick={() => patch({ icon: "" })}>
+                    Remove icon
+                  </button>
+                )}
+              </div>
+              <span className="a-hint">A small mark for this area, from the library&rsquo;s icons. A one-colour icon takes the text colour around it.</span>
+            </div>
           </div>
 
           {d.coverImage && (

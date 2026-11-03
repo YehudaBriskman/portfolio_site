@@ -108,9 +108,55 @@ function contributionDays() {
   return days;
 }
 
+/* The media library (#253): a picture in use, one not, an icon and a video.
+   The thumbnails are inline, so the run asks nothing of an image server. */
+const SWATCH = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 3"><rect width="4" height="3" fill="#3a6f8f"/></svg>')}`;
+const mediaItem = (id, alt, usedBy, extra = {}) => ({
+  id,
+  _rev: "1-a",
+  name: `${id}.jpg`,
+  alt,
+  caption: "",
+  credit: "",
+  kind: "image",
+  format: "jpeg",
+  mime: "image/jpeg",
+  file: null,
+  width: 1600,
+  height: 1200,
+  bytes: 184_000,
+  createdAt: at(3),
+  updatedAt: at(3),
+  url: `https://yehudabriskman.com/api/images/media/${id}`,
+  preview: SWATCH,
+  srcset: { avif: "", webp: "" },
+  largest: { avif: null, webp: SWATCH },
+  usedBy,
+  ...extra,
+});
+const MEDIA = [
+  mediaItem("fixture-media", "A cabin under the aurora, with a clock and a greeting over it.", [
+    { id: "collection:site", type: "collection", title: "The site", slug: "site", field: "coverImage" },
+  ]),
+  mediaItem("unused-media", "An orange sports car on a coastal highway.", []),
+  mediaItem("fixture-icon", "A leaf.", [], { kind: "icon", format: "svg", mime: "image/svg+xml", file: SWATCH, monochrome: true, width: 24, height: 24, bytes: 412 }),
+  // No video file to fetch here: the detail draws its poster and controls, which is what axe judges.
+  mediaItem("fixture-video", "A walk through the dashboard, from the list to one item.", [], {
+    kind: "video",
+    format: "mp4",
+    mime: "video/mp4",
+    file: "/api/images/m/fixture-video/video-aaaaaaaaaaaaaaaa.mp4",
+    durationMs: 12_000,
+    hasAudio: false,
+    captions: { url: "/api/images/m/fixture-video/captions-bbbbbbbbbbbbbbbb.vtt", lang: "en", label: "English" },
+  }),
+];
+
 export function answer(url, failing) {
   if (failing) return { status: 503, body: { error: "unavailable" } };
   const p = new URL(url).pathname.replace(/^\/api/, "");
+  if (p === "/admin/me") return { status: 200, body: { ok: true, login: "owner", email: null } };
+  if (p === "/admin/media") return { status: 200, body: { ok: true, items: MEDIA } };
   if (p === "/blog/posts") return { status: 200, body: { items: [SUMMARY] } };
   if (p.startsWith("/blog/posts/")) {
     return p.endsWith("/fixture-post") ? { status: 200, body: { post: POST } } : { status: 404, body: {} };

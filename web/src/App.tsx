@@ -34,6 +34,8 @@ const DevelopersMcp = lazy(() => import("./pages/DevelopersMcp"));
 const AdminProjects = lazy(() => import("./pages/AdminProjects"));
 const AdminStory = lazy(() => import("./pages/AdminStory"));
 const AdminSiteCopy = lazy(() => import("./pages/AdminSiteCopy"));
+// The media library (#253).
+const AdminMedia = lazy(() => import("./pages/AdminMedia"));
 
 const queryClient = new QueryClient();
 
@@ -157,6 +159,7 @@ const App = () => (
           <Route path="/admin/areas" element={<Suspense fallback={null}><AdminAreas /></Suspense>} />
           <Route path="/admin/areas/:slug" element={<Suspense fallback={null}><AdminCollection /></Suspense>} />
           <Route path="/admin/connections" element={<Suspense fallback={null}><AdminConnections /></Suspense>} />
+          <Route path="/admin/media" element={<Suspense fallback={null}><AdminMedia /></Suspense>} />
           <Route path="/admin/collections/:slug" element={<LegacyAreaRedirect />} />
           <Route path="/admin/projects" element={<Suspense fallback={null}><AdminProjects /></Suspense>} />
           <Route path="/admin/story" element={<Suspense fallback={null}><AdminStory /></Suspense>} />

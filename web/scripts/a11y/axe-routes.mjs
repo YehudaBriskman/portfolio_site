@@ -91,6 +91,12 @@ const ROUTES = [
   "/blog/fixture-post",
   "/accessibility",
   "/a-page-that-does-not-exist",
+  /* The media library (#253): the admin is a page somebody works in daily,
+     so it is held to the same floor. The others open one item of each kind. */
+  "/admin/media",
+  "/admin/media?id=fixture-media",
+  "/admin/media?id=fixture-icon",
+  "/admin/media?id=fixture-video",
 ];
 
 const WINDOWS = [
