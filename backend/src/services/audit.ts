@@ -25,7 +25,8 @@ export type AuditEntry = {
   _id: string;
   type: "audit";
   at: string;
-  actor: { login: string; via: "proxy" | "token"; tokenId: string | null };
+  /* `client` is the OAuth client's name for a remote MCP call (#263). */
+  actor: { login: string; via: "proxy" | "token" | "mcp-oauth"; tokenId: string | null; client?: string | null };
   method: string;
   path: string;
   status: number;
@@ -85,7 +86,12 @@ export const auditWrites: RequestHandler = (req, res, next) => {
     const a = req.admin;
     const entry = auditEntry({
       at: new Date(),
-      actor: { login: a?.login ?? "unknown", via: a?.via ?? "proxy", tokenId: a?.tokenId ?? null },
+      actor: {
+        login: a?.login ?? "unknown",
+        via: a?.via ?? "proxy",
+        tokenId: a?.tokenId ?? null,
+        ...(a?.via === "mcp-oauth" ? { client: a.client } : {}),
+      },
       method: req.method,
       path,
       status: res.statusCode,

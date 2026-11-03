@@ -30,7 +30,9 @@ export function requestLogger(req: Request, res: Response, next: NextFunction) {
       method: req.method,
       // originalUrl, not url: inside a mounted router `url` has had the mount
       // path stripped, and this runs before routing but finishes after it.
-      url: req.originalUrl,
+      // The OAuth endpoints of the remote MCP server (#263) carry codes and
+      // states in their query strings; those never reach a log.
+      url: req.originalUrl.startsWith("/mcp") ? req.originalUrl.split("?")[0] : req.originalUrl,
       status,
       durationMs: Number((process.hrtime.bigint() - start) / 1_000_000n),
     };

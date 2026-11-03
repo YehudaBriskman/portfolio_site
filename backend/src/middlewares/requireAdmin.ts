@@ -4,6 +4,7 @@ import rateLimit from "express-rate-limit";
 import { couch, CouchError } from "../db/couch.js";
 import { env } from "../env.js";
 import { logger } from "../logger.js";
+import { redeemTicket } from "../mcp/internal.js";
 import {
   parseToken,
   tokenDocId,
@@ -13,12 +14,16 @@ import {
   type TokenScope,
 } from "../services/apiTokenFormat.js";
 
-type Admin = {
+export type Admin = {
   login: string;
   email: string | null;
-  /* How the request got in: the oauth2-proxy session, or an API token. */
-  via: "proxy" | "token";
+  /* How the request got in: the oauth2-proxy session, an API token, or a
+     tool call from the remote MCP server on behalf of an OAuth grant (#263). */
+  via: "proxy" | "token" | "mcp-oauth";
+  /* A token's id, or the OAuth grant's. */
   tokenId: string | null;
+  /* The OAuth client's registered name, for `mcp-oauth`. */
+  client: string | null;
   /* A proxy session is always `write`; a token carries its own scope. */
   scope: TokenScope;
 };
@@ -115,10 +120,33 @@ async function tokenAdmin(bearer: string): Promise<{ admin: Admin } | { refused:
   const now = new Date();
   if (!tokenIsLive(doc, now)) return { refused: doc.revokedAt ? "revoked" : "expired", idPrefix };
   touch(doc, now);
-  return { admin: { login: `token:${doc.name}`, email: null, via: "token", tokenId: doc.id, scope: doc.scope } };
+  return { admin: { login: `token:${doc.name}`, email: null, via: "token", tokenId: doc.id, client: null, scope: doc.scope } };
 }
 
 export const requireAdmin: RequestHandler = (req, res, next) => {
+  /*
+   * 3. The remote MCP server (#263), calling this API in-process for a tool.
+   *    It cannot hand over a credential the outside could replay, so it puts
+   *    the caller's identity in a map in this process under a single-use
+   *    random ticket (mcp/internal.ts) and sends the ticket over a loopback
+   *    socket. A ticket from anywhere else, reused, expired or unknown is a
+   *    401, and is judged before anything else so it can never fall through
+   *    to another path.
+   */
+  const ticket = req.header("x-mcp-ticket");
+  if (ticket !== undefined) {
+    const admin = LOOPBACK.has(req.socket.remoteAddress ?? "") ? redeemTicket(ticket) : null;
+    if (!admin) {
+      logger.warn({ ip: req.ip }, "mcp ticket refused");
+      return res.status(401).json({ ok: false, error: "unauthenticated" });
+    }
+    if (admin.scope === "read" && !SAFE.has(req.method)) {
+      return res.status(403).json({ ok: false, error: "This connection is read-only." });
+    }
+    req.admin = admin;
+    return next();
+  }
+
   const proof = req.header("x-admin-proxy-secret");
   const bearer = bearerOf(req);
 
@@ -147,7 +175,7 @@ export const requireAdmin: RequestHandler = (req, res, next) => {
   if (!login || login.toLowerCase() !== env.ADMIN_GITHUB_LOGIN.toLowerCase()) {
     return res.status(403).json({ ok: false, error: "forbidden" });
   }
-  req.admin = { login, email: req.header("x-auth-request-email") ?? null, via: "proxy", tokenId: null, scope: "write" };
+  req.admin = { login, email: req.header("x-auth-request-email") ?? null, via: "proxy", tokenId: null, client: null, scope: "write" };
   next();
 };
 

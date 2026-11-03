@@ -50,10 +50,25 @@ export function parseToken(token: string): { id: string } | null {
   return m ? { id: m[1] } : null;
 }
 
-export function generateToken(): { id: string; token: string; hash: string } {
-  const id = randomBytes(8).toString("hex");
-  const token = `ptk_${id}_${randomBytes(32).toString("base64url")}`;
+/*
+ * The same shape under another prefix, for the remote MCP server's OAuth
+ * tokens (#263): `mat_` access, `mrt_` refresh, `mac_` authorization codes.
+ * `id` names the stored document; pass one to mint a fresh secret for an
+ * existing document (a grant's next access token).
+ */
+export function mintToken(prefix: string, id = randomBytes(8).toString("hex")) {
+  const token = `${prefix}_${id}_${randomBytes(32).toString("base64url")}`;
   return { id, token, hash: hashToken(token) };
+}
+
+/** The id a well-formed `<prefix>_` token names, or null. */
+export function parsePrefixedToken(prefix: string, token: string): { id: string } | null {
+  if (!/^[a-z]{3}$/.test(prefix) || !token.startsWith(`${prefix}_`)) return null;
+  return parseToken(`ptk${token.slice(prefix.length)}`);
+}
+
+export function generateToken(): { id: string; token: string; hash: string } {
+  return mintToken("ptk");
 }
 
 /** Constant-time comparison of a presented token against a stored hash. */

@@ -81,6 +81,8 @@ export default function SiteFooter() {
                 { to: "/story", label: "Journey" },
                 { to: "/projects", label: "Work" },
                 { to: "/blog", label: "Blogs" },
+                // The remote MCP server (#263): connect Claude to the site.
+                { to: "/developers/mcp", label: "MCP server" },
               ].map((l) => (
                 <li key={l.to}>
                   {/* Route change, not a page load: an anchor here re-downloaded

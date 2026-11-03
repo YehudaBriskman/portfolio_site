@@ -177,6 +177,8 @@ const STATIC_ENTRIES: SitemapEntry[] = [
   { loc: "/projects", changefreq: "weekly", priority: 0.8 },
   { loc: "/projects/windom", changefreq: "monthly", priority: 0.7 },
   { loc: "/projects/bothy", changefreq: "monthly", priority: 0.7 },
+  // The remote MCP server's page (#263): the one place to learn how to connect.
+  { loc: "/developers/mcp", changefreq: "monthly", priority: 0.5 },
 ];
 
 export function buildSitemap(posts: Post[], collections: Collection[]): string {

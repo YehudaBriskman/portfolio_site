@@ -67,6 +67,21 @@ const ErrorBodySchema = z.object({
 });
 
 /** A 400 the author can act on: which field, and what is wrong with it. */
+/* A client connected to the remote MCP server (#263), as Connected apps lists it. */
+const McpGrantSchema = z.object({
+  id: z.string(),
+  client: z.string(),
+  scopes: z.array(z.string()),
+  login: z.string(),
+  createdAt: z.string(),
+  lastUsedAt: z.string().nullable(),
+  expiresAt: z.string(),
+  revokedAt: z.string().nullable(),
+  revokedReason: z.string().nullable(),
+  status: z.enum(["active", "expired", "revoked"]),
+});
+export type McpGrant = z.infer<typeof McpGrantSchema>;
+
 export class AdminValidationError extends Error {
   readonly fieldErrors: Record<string, string>;
   constructor(fieldErrors: Record<string, string>) {
@@ -206,6 +221,14 @@ export const admin = {
     const r = await call<{ ok: true; stats: unknown }>(`/collections/${encodeURIComponent(slug)}/sync`, { method: "POST" });
     invalidateLists();
     return r;
+  },
+  mcpGrants: async () => {
+    const r = await call<{ items: unknown[] }>("/mcp/grants");
+    return z.array(McpGrantSchema).parse(r.items);
+  },
+  revokeMcpGrant: async (id: string) => {
+    const r = await call<{ item: unknown }>(`/mcp/grants/${encodeURIComponent(id)}`, { method: "DELETE" });
+    return McpGrantSchema.parse(r.item);
   },
   hideCollection: async (slug: string) => {
     const r = await call<{ ok: true }>(`/collections/${encodeURIComponent(slug)}`, { method: "DELETE" });

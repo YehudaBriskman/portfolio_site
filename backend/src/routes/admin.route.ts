@@ -14,6 +14,7 @@ import { z } from "zod";
 import { fetchRepoStats } from "../services/github.js";
 import { requireProxySession } from "../middlewares/requireAdmin.js";
 import { readAudit } from "../services/audit.js";
+import { grantDocId, grantLive, revokeGrant, type McpGrantDoc } from "../mcp/oauth/provider.js";
 import {
   TOKEN_SCOPES,
   TOKEN_TTL_DAYS_DEFAULT,
@@ -360,6 +361,49 @@ router.delete(
     await couch.put(doc._id, next);
     res.locals.audit = { target: doc._id, before: doc, after: next };
     res.json({ ok: true, item: publicToken(next) });
+  })
+);
+
+/* ------------------------------------------------- connected MCP apps -- */
+
+/*
+ * The remote MCP server's OAuth grants (#263): one per client the owner
+ * allowed. Listed and revoked from the signed-in admin session only, like
+ * tokens. Nothing hashed leaves here.
+ */
+const publicGrant = (g: McpGrantDoc, now = Date.now()) => ({
+  id: g.id,
+  client: g.clientName,
+  scopes: g.scopes,
+  login: g.login,
+  createdAt: g.createdAt,
+  lastUsedAt: g.lastUsedAt,
+  expiresAt: g.refresh.expiresAt,
+  revokedAt: g.revokedAt,
+  revokedReason: g.revokedReason,
+  status: g.revokedAt ? "revoked" : grantLive(g, now) ? "active" : "expired",
+});
+
+router.get(
+  "/mcp/grants",
+  requireProxySession,
+  asyncHandler(async (_req, res) => {
+    const { docs } = await couch.find<McpGrantDoc>({ selector: { type: "mcpgrant" }, limit: 200 });
+    docs.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    res.json({ ok: true, items: docs.map((g) => publicGrant(g)) });
+  })
+);
+
+router.delete(
+  "/mcp/grants/:id",
+  requireProxySession,
+  asyncHandler(async (req, res) => {
+    if (!/^[0-9a-f]{16}$/.test(req.params.id)) return res.status(404).json({ ok: false, error: "Not Found" });
+    const before = await tryGet<McpGrantDoc>(grantDocId(req.params.id));
+    if (!before || before.type !== "mcpgrant") return res.status(404).json({ ok: false, error: "Not Found" });
+    const after = await revokeGrant(before.id, `revoked by ${req.admin!.login}`);
+    if (!before.revokedAt) res.locals.audit = { target: before._id, before, after };
+    res.json({ ok: true, item: publicGrant(after ?? before) });
   })
 );
 

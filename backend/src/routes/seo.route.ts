@@ -375,6 +375,34 @@ router.get(
 );
 
 /*
+ * The remote MCP server's page (#263), web/src/pages/DevelopersMcp.tsx: what
+ * the server is, its tools, and the one line that connects a client. A
+ * crawler and a link preview get the same facts without JavaScript.
+ */
+router.get(
+  "/render/developers/mcp",
+  asyncHandler(async (_req, res) => {
+    const description =
+      "Connect Claude, or any MCP client, to this site: read the posts and project areas with no sign-in, or sign in with GitHub to manage them.";
+    const url = absoluteUrl("/mcp");
+    await sendShell(res, {
+      title: "MCP server · Yehuda Briskman",
+      description,
+      canonical: absoluteUrl("/developers/mcp"),
+      image: absoluteUrl("/og.png"),
+      imageAlt: "Yehuda Briskman",
+      type: "website",
+      bodyHtml:
+        `<main><p>Developers</p><h1>MCP server</h1><p>${escapeHtml(description)}</p>` +
+        `<p>Claude Code: <code>claude mcp add --transport http yehuda ${escapeHtml(url)}</code></p>` +
+        `<p>claude.ai and Claude Desktop: add a custom connector with the URL <code>${escapeHtml(url)}</code>.</p>` +
+        `<p>Public tools only, no sign-in: <code>${escapeHtml(url)}/public</code></p>` +
+        `<p><a href="/">Home</a> · <a href="/blog">Blogs</a></p></main>`,
+    });
+  }),
+);
+
+/*
  * The channel log (#226). nginx sends every `/blog/<one segment>` here as a
  * post slug, and `log` is not a post, so without this route the page would be
  * served as a 404 shell. It is a page of its own: a 200, its own title, and
