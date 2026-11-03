@@ -66,8 +66,8 @@ server {
   port_in_redirect off;
 
   # One name for the API, resolved per request. Declared here because the
-  # first location that uses it is the next one; all ten proxy_pass lines in
-  # this file — /api/, the three crawler files and the six rendered pages —
+  # first location that uses it is the next one; all twelve proxy_pass lines in
+  # this file — /api/, the three crawler files and the eight rendered pages —
   # read this one variable, so the host is stated once.
   #
   # The host is templated, and that is the whole repair for the preprod 502s.
@@ -202,6 +202,26 @@ server {
 
   location = /projects {
     proxy_pass http://$api_upstream/api/seo/render/projects;
+    include /etc/nginx/snippets/proxy-headers.conf;
+    proxy_intercept_errors on;
+    error_page 500 502 503 504 = @spa;
+  }
+
+  # The Journey page and the accessibility statement (#240). Neither had a
+  # location, so both fell through to `location /` and answered 404 with the
+  # home page's head on a direct load, while the app booted over it and looked
+  # fine. The statement is the page IS 5568 requires a site to publish, so a
+  # 404 there is worse than a wrong preview. web/src/test/nginx-config.test.ts
+  # now fails for any public route in App.tsx that has no rendered location.
+  location = /story {
+    proxy_pass http://$api_upstream/api/seo/render/story;
+    include /etc/nginx/snippets/proxy-headers.conf;
+    proxy_intercept_errors on;
+    error_page 500 502 503 504 = @spa;
+  }
+
+  location = /accessibility {
+    proxy_pass http://$api_upstream/api/seo/render/accessibility;
     include /etc/nginx/snippets/proxy-headers.conf;
     proxy_intercept_errors on;
     error_page 500 502 503 504 = @spa;
@@ -379,6 +399,8 @@ server {
   # A trailing slash on a real section is a typo, not a different page.
   location = /blog/ { return 308 /blog; }
   location = /projects/ { return 308 /projects; }
+  location = /story/ { return 308 /story; }
+  location = /accessibility/ { return 308 /accessibility; }
 
   #
   # Unknown paths render the app but answer 404.
