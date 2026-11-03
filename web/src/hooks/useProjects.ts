@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { LabelField } from "@/components/gallery/objectLabel";
+import { useContent } from "@/content/store";
 import { blog, type Collection } from "@/services/blog";
 import {
-  projects as seeds,
+  projects as seedTable,
   seedToCollection,
   type Project,
   type ProjectDecision,
@@ -101,7 +102,9 @@ function labelFields(state: string, tech: string[], year: string | null): LabelF
   return out;
 }
 
-function merge(collections: Collection[]): ProjectEntry[] {
+/* `seeds` is the content store's project table (#163): the data files until
+   the API answers, then what the owner published. */
+export function merge(collections: Collection[], seeds: Project[] = seedTable): ProjectEntry[] {
   const seedMap = bySlug(seeds);
   const live = collections.filter((c) => c.kind === "project");
   const liveSlugs = new Set(live.map((c) => c.slug));
@@ -168,8 +171,10 @@ export function useProjects() {
    * reached. `state` still reports "loading" so the live repository facts can
    * arrive late without the page having been blank in the meantime.
    */
-  const [items, setItems] = useState<ProjectEntry[]>(() => merge([]));
+  const { projects: table } = useContent();
+  const [collections, setCollections] = useState<Collection[]>([]);
   const [state, setState] = useState<ProjectsState>("loading");
+  const items = useMemo(() => merge(collections, table), [collections, table]);
 
   useEffect(() => {
     let alive = true;
@@ -177,7 +182,7 @@ export function useProjects() {
       .collections()
       .then((cols) => {
         if (!alive) return;
-        setItems(merge(cols));
+        setCollections(cols);
         setState("ok");
       })
       .catch(() => {

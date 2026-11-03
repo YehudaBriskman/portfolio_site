@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { contact } from "@/data/site";
+import { contentView } from "@/content/store";
 
 /*
  * Exported so the form can ask the same question this function will ask.
@@ -25,7 +25,8 @@ export type ContactPayload = z.infer<typeof ContactSchema>;
 /* Was process.env, which is undefined in the browser and threw before the
    request was ever made. Vite inlines import.meta.env; the fallback is the
    address published on this page anyway. */
-const CONTACT_TO = import.meta.env.VITE_CONTACT_TO ?? contact.email;
+/* Read at send time, so the address the admin publishes (#163) is the one used. */
+const contactTo = () => import.meta.env.VITE_CONTACT_TO ?? contentView().site.contact.email;
 
 export async function sendContactMessage(data: ContactPayload) {
   const parsed = ContactSchema.safeParse(data);
@@ -39,7 +40,7 @@ export async function sendContactMessage(data: ContactPayload) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       provider: "smtp",
-      to: CONTACT_TO,
+      to: contactTo(),
       subject: `Portfolio contact from ${data.name}`,
       replyTo: data.email,
       template: {

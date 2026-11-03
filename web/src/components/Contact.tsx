@@ -4,8 +4,8 @@ import ObjectLabel from "@/components/gallery/ObjectLabel";
 import { MAX_FIELDS, type LabelField } from "@/components/gallery/objectLabel";
 import Written from "@/components/motion/Written";
 import styles from "@/components/Contact.module.css";
-import { links } from "@/data/links";
-import { contact } from "@/data/site";
+import type { SocialLink } from "@/data/links";
+import { useContent } from "@/content/store";
 import { ContactSchema, sendContactMessage } from "@/services/contact";
 
 /** The three things a message is made of. A closed union, so a field's error,
@@ -58,7 +58,7 @@ const TITLE_ID = "contact-dialog-title";
  */
 const PROFILE_SLOTS = MAX_FIELDS - 1;
 
-const plateFields: LabelField[] = [
+const plateFieldsOf = (links: SocialLink[], contact: { replyWithin: string }): LabelField[] => [
   ...links.slice(0, PROFILE_SLOTS).map((l): LabelField => ({ kind: "where", value: l.label })),
   { kind: "when", value: contact.replyWithin },
 ];
@@ -123,6 +123,9 @@ const plateFields: LabelField[] = [
  * in a printer's end-mark, which fills once a message has actually gone.
  */
 export default function Contact() {
+  /* The copy and the profiles from the content store (#163). */
+  const { contact, links } = useContent().site;
+  const plateFields = plateFieldsOf(links, contact);
   const [status, setStatus] = useState<Status>({ kind: "idle" });
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
 

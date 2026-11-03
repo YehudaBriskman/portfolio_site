@@ -1,4 +1,7 @@
-import { isLive, projects } from "@/data/projects";
+import { isLive, projects as seedTable, type Project } from "@/data/projects";
+
+/* The project table the figures are counted from: the content store's (#163). */
+type Table = readonly Project[];
 
 /*
  * The collection's spec plate.
@@ -70,7 +73,7 @@ export type SpecFigure = {
  * array the pile renders. It cannot disagree with the page above it, because
  * it is the page above it.
  */
-const objectCount = projects.length;
+const objectCount = (projects: Table) => projects.length;
 
 /*
  * FIGURE 2 — how many of them you can open right now.
@@ -80,7 +83,7 @@ const objectCount = projects.length;
  * projects keep their links but are archived, so they are not counted; Bothy
  * ships as source and says so.
  */
-const liveCount = projects.filter(isLive).length;
+const liveCount = (projects: Table) => projects.filter(isLive).length;
 
 /*
  * A trailing version number, so one tool is not counted twice.
@@ -106,9 +109,8 @@ const VERSION_TAIL = /\s+v?\d+(?:\.\d+)*$/i;
  * between them, eighteen of which are distinct as written and sixteen once
  * the versions are folded.
  */
-const toolCount = new Set(
-  projects.flatMap((p) => p.tech).map((tool) => tool.replace(VERSION_TAIL, "").trim().toLowerCase())
-).size;
+const toolCount = (projects: Table) =>
+  new Set(projects.flatMap((p) => p.tech).map((tool) => tool.replace(VERSION_TAIL, "").trim().toLowerCase())).size;
 
 /*
  * FIGURE 4 — how long the collection has been shipping.
@@ -121,10 +123,10 @@ const toolCount = new Set(
  * Deliberately not "years of experience", which is a different and much
  * softer claim, and not derived from anything in this repository.
  */
-const years = projects
-  .map((p) => Number.parseInt(p.year, 10))
-  .filter((year) => Number.isFinite(year));
-const yearSpan = years.length > 0 ? Math.max(...years) - Math.min(...years) + 1 : 0;
+function yearSpan(projects: Table): number {
+  const years = projects.map((p) => Number.parseInt(p.year, 10)).filter((year) => Number.isFinite(year));
+  return years.length > 0 ? Math.max(...years) - Math.min(...years) + 1 : 0;
+}
 
 /**
  * The plate, in reading order.
@@ -134,9 +136,14 @@ const yearSpan = years.length > 0 ? Math.max(...years) - Math.min(...years) + 1 
  * year — and the honest response to that is a plate with three figures on it,
  * not a plate with a nought.
  */
-export const specFigures: SpecFigure[] = [
-  { value: objectCount, caption: "Projects" },
-  { value: liveCount, caption: "Live" },
-  { value: toolCount, caption: "Tools" },
-  { value: yearSpan, caption: "Shipping", unit: "yrs" },
-].filter((figure) => figure.value > 0);
+export function specFiguresOf(projects: Table): SpecFigure[] {
+  return [
+    { value: objectCount(projects), caption: "Projects" },
+    { value: liveCount(projects), caption: "Live" },
+    { value: toolCount(projects), caption: "Tools" },
+    { value: yearSpan(projects), caption: "Shipping", unit: "yrs" },
+  ].filter((figure) => figure.value > 0);
+}
+
+/** The plate over the data files. The page counts the store's table (#163). */
+export const specFigures: SpecFigure[] = specFiguresOf(seedTable);

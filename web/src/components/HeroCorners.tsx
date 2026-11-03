@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import { contact, heroPhrases } from "@/data/site";
+import { useContent } from "@/content/store";
 import { scrollToAnchor } from "@/lib/scrollToAnchor";
 import styles from "@/components/HeroCorners.module.css";
 
@@ -104,6 +104,7 @@ import styles from "@/components/HeroCorners.module.css";
  * write from.
  */
 function Ask() {
+  const { contact } = useContent().site;
   return (
     <div className={styles.ask}>
       <a
@@ -148,6 +149,7 @@ function Ask() {
  * hidden from the accessibility tree and cannot be pointed at.
  */
 function Light() {
+  const { heroPhrases } = useContent().site;
   return (
     <div className={styles.light} data-hero-light="">
       <span className="sr-only">{heroPhrases.join(", ")}</span>

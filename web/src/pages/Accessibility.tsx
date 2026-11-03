@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import PageShell from "@/components/PageShell";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
-import { contact } from "@/data/site";
+import { useContent } from "@/content/store";
 
 /*
  * The accessibility statement (issue #99).
@@ -40,6 +40,7 @@ const REVIEWED = "2 November 2026";
 
 export default function Accessibility() {
   useDocumentTitle("Accessibility");
+  const { contact } = useContent().site;
 
   return (
     <PageShell>

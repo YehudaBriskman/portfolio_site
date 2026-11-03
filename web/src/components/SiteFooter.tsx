@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom";
-import { links } from "@/data/links";
-import { contact } from "@/data/site";
+import { useContent } from "@/content/store";
 
 /*
  * The site footer.
@@ -58,6 +57,9 @@ import { contact } from "@/data/site";
  * paper island on a dark ground.
  */
 export default function SiteFooter() {
+  /* The copy, the profiles and the address from the content store (#163).
+     The "Pages" column is navigation and stays here. */
+  const { links, contact, footer } = useContent().site;
   /* --ink at 15.17:1 on paper. Was --bone/85, which is the same colour
      diluted for no reason now that the ground is light. */
   const linkRow =
@@ -98,13 +100,10 @@ export default function SiteFooter() {
           <div>
             <p className="eyebrow">Work</p>
             <ul className="mt-3 space-y-1">
-              {[
-                { href: "https://windom.app", label: "WindoM", note: "Chrome Web Store" },
-                { href: "https://github.com/YehudaBriskman/Bothy", label: "Bothy", note: "Self-hosted" },
-              ].map((l) => (
-                <li key={l.href}>
+              {footer.work.map((l) => (
+                <li key={l.url}>
                   <a
-                    href={l.href}
+                    href={l.url}
                     target="_blank"
                     rel="noreferrer noopener"
                     className={`${linkRow} gap-2`}
@@ -144,20 +143,15 @@ export default function SiteFooter() {
           <div>
             <p className="eyebrow">Colophon</p>
             {/* Every claim here is checkable, which is the point of the page. */}
-            <p className="mt-3 text-sm leading-relaxed text-clay">
-              Built with React and TypeScript. Runs on a single Arm machine I administer
-              myself, behind Traefik and cert-manager, with the content in CouchDB.
-            </p>
-            <p className="mono mt-3 text-xs text-clay">
-              No trackers. No cookie banner, because there are no cookies.
-            </p>
+            <p className="mt-3 text-sm leading-relaxed text-clay">{footer.colophon}</p>
+            <p className="mono mt-3 text-xs text-clay">{footer.colophonNote}</p>
           </div>
         </div>
 
         <div className="mono mt-12 flex flex-wrap items-center justify-between gap-3 border-t border-edge pt-6 text-xs text-clay">
           <span>&copy; {new Date().getFullYear()} Yehuda Briskman</span>
           <span className="flex items-center gap-6">
-            <span>Tel Aviv, Israel</span>
+            <span>{footer.place}</span>
             {/*
              * The accessibility statement, on every page because the footer is
              * (#99). Same treatment and the same 44px target as the admin link

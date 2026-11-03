@@ -1,5 +1,6 @@
-import { links, type LinkIcon } from "@/data/links";
-import { contact } from "@/data/site";
+import { useMemo } from "react";
+import type { LinkIcon, SocialLink } from "@/data/links";
+import { useContent } from "@/content/store";
 import { GithubMark, LinkedinMark, MailMark, type Mark } from "./marks";
 
 /*
@@ -35,13 +36,21 @@ export type Elsewhere = {
  * `src/data/links.ts`, which the footer also renders — one list, so a profile
  * can never exist in the chrome and not in the footer.
  */
-export const PROFILES: Elsewhere[] = links.map((l) => ({
-  key: l.name,
-  href: l.url,
-  label: l.label,
-  Icon: MARKS[l.icon],
-  external: true,
-}));
+const profilesOf = (links: readonly SocialLink[]): Elsewhere[] =>
+  links.map((l) => ({
+    key: l.name,
+    href: l.url,
+    label: l.label,
+    Icon: MARKS[l.icon],
+    external: true,
+  }));
+
+/* Since #163 the list and the address are the content store's, so these are
+   hooks: an edit in the admin reaches the chrome without a deploy. */
+export function useProfiles(): Elsewhere[] {
+  const { links } = useContent().site;
+  return useMemo(() => profilesOf(links), [links]);
+}
 
 /*
  * The address, which the bar does not carry and the sheet does.
@@ -67,13 +76,16 @@ export const PROFILES: Elsewhere[] = links.map((l) => ({
  * The sheet still lists it, because on a phone a mailto is the one of the two
  * that opens an app the reader already has.
  */
-export const EMAIL: Elsewhere = {
+const emailOf = (address: string): Elsewhere => ({
   key: "email",
-  href: `mailto:${contact.email}`,
+  href: `mailto:${address}`,
   label: "Email",
   Icon: MailMark,
   external: false,
-};
+});
 
-/** Everything off-site, for the sheet. The bar carries `PROFILES` only. */
-export const ELSEWHERE: Elsewhere[] = [...PROFILES, EMAIL];
+/** Everything off-site, for the sheet. The bar carries the profiles only. */
+export function useElsewhere(): Elsewhere[] {
+  const { links, contact } = useContent().site;
+  return useMemo(() => [...profilesOf(links), emailOf(contact.email)], [links, contact.email]);
+}

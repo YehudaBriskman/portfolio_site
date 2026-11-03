@@ -243,3 +243,20 @@ export const about: {
     },
   ],
 };
+
+/*
+ * The footer's own copy (#163), moved out of `SiteFooter.tsx` so the admin
+ * can edit it. The "Pages" column is navigation, not copy, and stays in the
+ * component; the "Elsewhere" column is `data/links.ts`.
+ */
+export const footer = {
+  work: [
+    { label: "WindoM", url: "https://windom.app", note: "Chrome Web Store" },
+    { label: "Bothy", url: "https://github.com/YehudaBriskman/Bothy", note: "Self-hosted" },
+  ],
+  /* Every claim here is checkable, which is the point of the page. */
+  colophon:
+    "Built with React and TypeScript. Runs on a single Arm machine I administer myself, behind Traefik and cert-manager, with the content in CouchDB.",
+  colophonNote: "No trackers. No cookie banner, because there are no cookies.",
+  place: "Tel Aviv, Israel",
+};

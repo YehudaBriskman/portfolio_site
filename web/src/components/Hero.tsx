@@ -1,7 +1,7 @@
 import { useState, useSyncExternalStore } from "react";
 import ObjectLabel from "@/components/gallery/ObjectLabel";
 import type { LabelField } from "@/components/gallery/objectLabel";
-import { plate, plateTitle } from "@/data/site";
+import { useContent } from "@/content/store";
 import HeroCorners from "@/components/HeroCorners";
 import styles from "@/components/Hero.module.css";
 import arrival from "@/components/HeroArrival.module.css";
@@ -162,7 +162,7 @@ import { getEntry, subscribeEntry, type Entry } from "@/components/motion/entry"
  * is not worth the space. Two fields also fit one line at every phone width,
  * so the forced break the three-field line needed (#112) went with it.
  */
-const PLATE_FIELDS: LabelField[] = [
+const plateFields = (plate: { where: string; shippingSince: number }): LabelField[] => [
   { kind: "where", value: plate.where },
   { kind: "when", value: `Shipping since ${plate.shippingSince}` },
 ];
@@ -210,6 +210,8 @@ function useArrival(): Arrival {
 
 export default function Hero() {
   const arrives = useArrival();
+  /* The plate's words from the content store (#163). */
+  const { plate, plateTitle } = useContent().site;
   return (
     /*
       `overflow-x: clip` and not `hidden`: the two remaining lines enter from
@@ -307,7 +309,7 @@ export default function Hero() {
             nameAs="h1"
             name={plateTitle.name}
             fact={plateTitle.fact}
-            fields={PLATE_FIELDS}
+            fields={plateFields(plate)}
             exposeFieldKinds
             splitName
             className={styles.plate}

@@ -5,7 +5,23 @@ import Written from "@/components/motion/Written";
 import LivingLine from "@/components/motion/LivingLine";
 import styles from "@/components/story/Story.module.css";
 import { lineAttr } from "@/components/motion/lineMoves";
-import { STORY_LINE, buildStory, type Beat, type Interlude } from "@/data/story";
+import { STORY_LINE, buildStory, type Beat, type Interlude, type Story as StoryData } from "@/data/story";
+import { useContent } from "@/content/store";
+import type { ContentView } from "@/content/convert";
+
+/*
+ * The story from the content store (#163). The store refuses on save what
+ * `buildStory` refuses, so this should never throw; if the preview of an
+ * unfinished draft makes it, the page shows the data files' story rather
+ * than an error.
+ */
+function storyFrom({ projects, story: s }: ContentView): StoryData {
+  try {
+    return buildStory(projects, s.lines, s.images, s.interludes, s.layouts, s.hand);
+  } catch {
+    return buildStory();
+  }
+}
 
 /*
  * /story — the work along the year, as a timeline (#46, #158, #176).
@@ -99,7 +115,8 @@ function InterludeItem({ interlude }: { interlude: Interlude }) {
 }
 
 export default function Story() {
-  const story = useMemo(() => buildStory(), []);
+  const content = useContent();
+  const story = useMemo(() => storyFrom(content), [content]);
 
   return (
     <PageShell>
