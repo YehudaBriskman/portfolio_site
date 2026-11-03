@@ -16,7 +16,7 @@ const router = Router();
 
 const LinkSchema = z.object({ label: z.string().min(1).max(60), url: z.string().url() });
 
-const PostWrite = z.object({
+export const PostWrite = z.object({
   slug: SlugSchema,
   title: z.string().min(1).max(200),
   subtitle: z.string().max(300).nullable().default(null),
@@ -41,7 +41,7 @@ const RepoWrite = z.object({
   docPaths: z.array(z.string().max(200)).max(20).default([]),
 });
 
-const CollectionWrite = z.object({
+export const CollectionWrite = z.object({
   slug: SlugSchema,
   title: z.string().min(1).max(120),
   tagline: z.string().max(160).default(""),
@@ -74,11 +74,18 @@ router.get("/me", (req, res) => res.json({ ok: true, ...req.admin }));
 router.get(
   "/posts",
   asyncHandler(async (_req, res) => {
+    /*
+     * Sorted here rather than in the query, for the reason the collections
+     * list below gives and one more: Mango refuses a sort it has no index
+     * for, and the only index the API creates is [type, status, publishedAt].
+     * So on any store nobody had hand-indexed for [type, updatedAt], every
+     * request 400'd and the admin's Notes list answered "store unavailable".
+     */
     const { docs } = await couch.find<Post>({
       selector: { type: "post" },
-      sort: [{ type: "desc" }, { updatedAt: "desc" }],
       limit: 300,
     });
+    docs.sort((a, b) => (b.updatedAt ?? "").localeCompare(a.updatedAt ?? ""));
     res.json({ ok: true, items: docs });
   })
 );
