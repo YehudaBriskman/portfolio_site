@@ -415,6 +415,36 @@ jobs:
       - run: npm test
       - run: npm run build
 
+  # The MCP server (#252): a client of the API, not part of either image, so
+  # it ships nothing and scans nothing. Its own job rather than steps of
+  # Backend, so an mcp-only change does not build and scan the api image.
+  mcp:
+    name: MCP server
+    runs-on: ubuntu-latest
+    needs: [classify]
+    if: fromJSON(needs.classify.outputs.jobs).mcp
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: mcp
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ github.event_name != 'pull_request' && needs.classify.outputs.sha || '' }}
+      # Cache: same reasoning as Frontend's.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm # zizmor: ignore[cache-poisoning]
+          cache-dependency-path: mcp/package-lock.json
+      - run: npm ci
+      - name: Runtime dependencies carry no high advisory
+        run: npm audit --omit=dev --audit-level=high
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
   # A gate, and the one place an image is built (#204).
   #
   # One candidate per component: built natively for linux/arm64 - the
@@ -1293,7 +1323,7 @@ jobs:
   gate:
     name: CI gate
     runs-on: ubuntu-latest
-    needs: [classify, static, frontend, backend, scan, images, release, promote, deploy]
+    needs: [classify, static, frontend, backend, mcp, scan, images, release, promote, deploy]
     if: always()
     timeout-minutes: 5
     steps:

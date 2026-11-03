@@ -2,7 +2,7 @@
 #
 # POLICY - at most three open Dependabot pull requests, ever: one per ecosystem.
 #
-#   npm             /web and /backend together, every update type, one PR
+#   npm             /web, /backend and /mcp together, every update type, one PR
 #   docker          every Dockerfile directory, every update type, one PR
 #   github-actions  every workflow, every update type, one PR
 #
@@ -35,7 +35,7 @@
 version: 2
 updates:
   - package-ecosystem: npm # zizmor: ignore[dependabot-cooldown]
-    directories: ["/web", "/backend"]
+    directories: ["/web", "/backend", "/mcp"]
     schedule:
       interval: weekly
       day: monday

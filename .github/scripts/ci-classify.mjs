@@ -21,6 +21,7 @@
 // What a path selects:
 //   - web/**      -> web (Frontend, Scan image web)
 //   - backend/**  -> backend (Backend, Scan image api)
+//   - mcp/**      -> mcp (MCP server: tests, typecheck, build; no image, #252)
 //   - docs/**, root *.md -> docs, which selects nothing beyond Static
 //   - widening paths -> everything: workflows and CI scripts, lockfiles and
 //     package manifests, Dockerfiles and .dockerignore, nginx config, Compose,
@@ -75,11 +76,12 @@ const RULES = [
   // Components.
   { re: /^web\//, component: "web" },
   { re: /^backend\//, component: "backend" },
+  { re: /^mcp\//, component: "mcp" },
   { re: /^docs\//, component: "docs" },
   { re: /^[^/]+\.md$/, component: "docs" },
 ];
 
-export const JOBS = ["static", "frontend", "backend", "scan", "images", "release", "promote", "deploy"];
+export const JOBS = ["static", "frontend", "backend", "mcp", "scan", "images", "release", "promote", "deploy"];
 
 export function classifyPath(path) {
   for (const r of RULES) {
@@ -154,7 +156,7 @@ export function planDiff(ctx) {
 // `release: true` is shorthand for mode "main".
 export function classify({ paths, full, release, mode }) {
   mode ??= release ? "main" : "pr";
-  const changed = { web: false, backend: false, static: true, docs: false };
+  const changed = { web: false, backend: false, mcp: false, static: true, docs: false };
   const reasons = [];
   if (full) reasons.push(full);
   else if (!paths || paths.length === 0) reasons.push("diff lists no changed paths");
@@ -166,12 +168,14 @@ export function classify({ paths, full, release, mode }) {
     }
   }
   const all = reasons.length > 0;
-  if (all) changed.web = changed.backend = true;
+  if (all) changed.web = changed.backend = changed.mcp = true;
   // Narrowing on a pull request only; a tag builds nothing; see the header.
   const build = mode === "main" || mode === "rebuild";
   const promote = mode === "promote" || mode === "rebuild";
   const web = mode === "promote" ? false : changed.web || build;
   const backend = mode === "promote" ? false : changed.backend || build;
+  // Nothing ships from mcp/, but main runs every check, as it does for docs.
+  const mcp = mode === "promote" ? false : changed.mcp || build;
   if (build && !all) reasons.push("release ref: Deploy needs both images (#205)");
   if (mode === "promote") reasons.push("v* tag: promote the manifest main recorded for this commit; build nothing (#205)");
   const scan = [];
@@ -179,12 +183,13 @@ export function classify({ paths, full, release, mode }) {
   if (backend) scan.push({ image: "api", context: "backend" });
   return {
     mode,
-    components: { web, backend, static: true, docs: changed.docs },
+    components: { web, backend, mcp, static: true, docs: changed.docs },
     changed,
     jobs: {
       static: true,
       frontend: web,
       backend,
+      mcp,
       scan: scan.length > 0,
       images: build,
       release: build,
@@ -235,6 +240,7 @@ export function outputs(r) {
     sha: r.sha ?? "",
     web: String(r.components.web),
     backend: String(r.components.backend),
+    mcp: String(r.components.mcp),
     docs: String(r.components.docs),
     full: String(r.full),
     jobs: JSON.stringify(r.jobs),
