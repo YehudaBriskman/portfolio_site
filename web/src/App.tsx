@@ -30,6 +30,10 @@ const AdminCollection = lazy(() => import("./pages/AdminCollection"));
 const AdminAreas = lazy(() => import("./pages/AdminAreas"));
 const AdminConnections = lazy(() => import("./pages/AdminConnections"));
 const DevelopersMcp = lazy(() => import("./pages/DevelopersMcp"));
+// The site's own content (#163).
+const AdminProjects = lazy(() => import("./pages/AdminProjects"));
+const AdminStory = lazy(() => import("./pages/AdminStory"));
+const AdminSiteCopy = lazy(() => import("./pages/AdminSiteCopy"));
 
 const queryClient = new QueryClient();
 
@@ -154,6 +158,9 @@ const App = () => (
           <Route path="/admin/areas/:slug" element={<Suspense fallback={null}><AdminCollection /></Suspense>} />
           <Route path="/admin/connections" element={<Suspense fallback={null}><AdminConnections /></Suspense>} />
           <Route path="/admin/collections/:slug" element={<LegacyAreaRedirect />} />
+          <Route path="/admin/projects" element={<Suspense fallback={null}><AdminProjects /></Suspense>} />
+          <Route path="/admin/story" element={<Suspense fallback={null}><AdminStory /></Suspense>} />
+          <Route path="/admin/site-copy" element={<Suspense fallback={null}><AdminSiteCopy /></Suspense>} />
         </Routes>
       </BrowserRouter>
     </TooltipProvider>
