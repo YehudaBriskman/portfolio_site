@@ -56,6 +56,19 @@ const EN = {
   retry: "Try again",
   onGitHub: "View on GitHub",
   latest: "Latest",
+  /* The project page on the dashboard (#242). */
+  allWork: "All work",
+  projectNav: "Projects",
+  about: "About",
+  source: "Source",
+  areaNotes: "Notes in this area",
+  repository: "Repository",
+  feed: "The area’s RSS feed",
+  releasesOnGitHub: "Releases on GitHub",
+  loadingProject: "Loading project",
+  notHere: "Not here",
+  notHereBody: "No project at that address.",
+  seeEverything: "See everything",
 };
 
 export type WorkWords = typeof EN;
@@ -104,6 +117,18 @@ const HE: WorkWords = {
   retry: "לנסות שוב",
   onGitHub: "ב־GitHub",
   latest: "אחרונה",
+  allWork: "כל העבודות",
+  projectNav: "פרויקטים",
+  about: "אודות",
+  source: "קוד מקור",
+  areaNotes: "רשימות בתחום הזה",
+  repository: "מאגר",
+  feed: "פיד RSS של התחום",
+  releasesOnGitHub: "הגרסאות ב־GitHub",
+  loadingProject: "הפרויקט נטען",
+  notHere: "אין כאן כלום",
+  notHereBody: "אין פרויקט בכתובת הזאת.",
+  seeEverything: "לכל העבודות",
 };
 
 export const WORK_WORDS: Record<Lang, WorkWords> = { en: EN, he: HE };

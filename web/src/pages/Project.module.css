@@ -1,0 +1,433 @@
+/*
+ * The project page on the dashboard (#242).
+ *
+ * Everything here reads the shell's own values (`dashboard/Dashboard.module.css`):
+ * the hairline `--dash-line`, the radii `--dash-r` and `--dash-r-inner`, the
+ * 12px `--dash-pad`, the hover wash, and the roles `.on-panel` re-points to
+ * the dark side. Nothing new is introduced but the layout.
+ *
+ * HIERARCHY. One focal point, the name: the display face at the shell's
+ * greeting size, after "Work /" in the soft ink, as GitHub writes
+ * "owner / repo". Everything under it is the dashboard's 14px text, ranked
+ * by weight and ink. The Overview is the old page's content in the same
+ * order, each part in a card that is the ground with a hairline round it;
+ * the cards' headings are the shell's section titles (14px/600), so the
+ * paper page's 30px display headings, which the shared content components
+ * still carry, are brought down to it here rather than in those components.
+ *
+ * Logical properties throughout, so Hebrew mirrors the page; the one
+ * physical thing is the arrow, flipped under `:dir(rtl)`.
+ *
+ * No motion of its own: hover changes colour in `--dur-micro`. The Overview's
+ * scrubbed devices (`Written`, `InkWipe`, the figure's drift) are their own.
+ */
+
+/* ─────────────────────────────────────────────────────────────── header */
+
+.head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.nameLine {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.5rem;
+  min-width: 0;
+}
+
+.nameIcon {
+  flex: none;
+  color: rgb(var(--ink-soft));
+}
+
+.crumb {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  font-family: var(--font-display);
+  font-size: clamp(1.25rem, 3.4vw, 1.625rem);
+  color: rgb(var(--ink-soft));
+  text-decoration: none;
+}
+
+.crumb:hover {
+  color: rgb(var(--signal));
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.slash {
+  font-family: var(--font-display);
+  font-size: clamp(1.25rem, 3.4vw, 1.625rem);
+  color: rgb(var(--ink-soft));
+}
+
+.title {
+  margin: 0;
+  min-width: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 4vw, 2rem);
+  font-weight: var(--weight-display);
+  line-height: 1.15;
+  letter-spacing: var(--track-sub);
+  color: rgb(var(--ink));
+  overflow-wrap: anywhere;
+}
+
+/* Work's pill sits at the card's far end; here it follows the name. */
+.pill {
+  margin-inline-start: 0.25rem;
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+.tagline {
+  margin: 0;
+  max-width: 62ch;
+  color: rgb(var(--ink-soft));
+  font-size: 1rem;
+  text-wrap: pretty;
+}
+
+.button {
+  gap: 0.5rem;
+  min-height: 2.75rem;
+}
+
+.button svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+
+.arrow {
+  display: inline-block;
+}
+
+.arrow:dir(rtl) {
+  transform: scaleX(-1);
+}
+
+/* The rail's pinned list marks the project on screen. */
+.pinItem[aria-current="page"] {
+  background: var(--dash-hover);
+  font-weight: 600;
+}
+
+.pinItem[aria-current="page"] svg {
+  color: rgb(var(--ink));
+}
+
+/* ─────────────────────────────────────────────────────────────── tabs */
+
+/* The tabs and their panel are one block, so the main column's 2rem gap
+   does not open between them. */
+.tabbed {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.tabbed > .panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding-block-start: 1.5rem;
+}
+
+/* ─────────────────────────────────────────────────────────────── cards */
+
+.card,
+.flushCard {
+  min-width: 0;
+  border: 1px solid var(--dash-line);
+  border-radius: var(--dash-r);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.flushCard {
+  overflow: hidden;
+}
+
+.cardTitle,
+.flushTitle,
+.card :is(h2) {
+  margin: 0;
+  font-family: var(--font-text);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.5;
+  letter-spacing: 0;
+  text-transform: none;
+  color: rgb(var(--ink));
+}
+
+.flushTitle {
+  padding: 0.625rem 1rem;
+  border-block-end: 1px solid var(--dash-line);
+}
+
+.description {
+  margin: 0;
+  max-width: 62ch;
+  font-size: 1rem;
+  line-height: 1.65;
+}
+
+.figure {
+  min-width: 0;
+}
+
+/* The figure's mount is paper's (white at 60%, a lifted shadow); on this
+   ground that reads as a grey slab. Here it is a surface one step up from
+   the ground with the shell's hairline, and the coverless plate takes the
+   same raised fill instead of paper, whose type `.on-panel` has already
+   turned light. */
+.figure figure {
+  border-color: var(--dash-line);
+  border-radius: var(--dash-r);
+  background: rgb(var(--panel-2));
+  box-shadow: none;
+}
+
+.figure :global(.card-shot) {
+  border-color: var(--dash-line-soft);
+  background-color: rgb(var(--panel));
+}
+
+.highlights {
+  display: grid;
+  gap: 0.75rem 2rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 40rem) {
+  .highlights {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.highlights li {
+  position: relative;
+  max-width: 46ch;
+  padding-inline-start: 1rem;
+  color: rgb(var(--ink));
+}
+
+.highlights li::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: 0;
+  inset-block-start: 0.6em;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgb(var(--ink-soft));
+}
+
+/*
+ * The shared content components, brought to the dashboard's measure inside
+ * a card. Their own rules frame them with a rule above and below and 48px
+ * of air, which on paper separated sections; in a card the card is the
+ * frame, so the outer rules and the padding go and the dividers between
+ * items stay. The labels lose the paper page's tracked capitals: a label is
+ * one or two words in sentence case, in the soft ink.
+ */
+.card :is(dl, ol) {
+  margin-block: 0;
+  padding-block: 0;
+  border-block-width: 0;
+}
+
+.card dl {
+  gap: 1.25rem;
+}
+
+.card ol {
+  margin-block-start: 0.5rem;
+}
+
+.card ol > li {
+  padding-block: 1rem;
+}
+
+.card ol > li:last-child {
+  padding-block-end: 0;
+}
+
+.card :is(dt, h2 + p) {
+  font-family: var(--font-text);
+  font-size: 0.8125rem;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.card dt {
+  color: rgb(var(--ink-soft));
+}
+
+.card h2 + p {
+  margin-block-start: 0.5rem;
+}
+
+.card dd,
+.card h3 + * {
+  font-size: 0.9375rem;
+}
+
+.card h3 {
+  font-size: 1rem;
+}
+
+/*
+ * The content is written in English and stays English in Hebrew; only the
+ * chrome is translated. On a right-to-left page an English paragraph took
+ * the page's direction, so its full stop and its closing parenthesis were
+ * drawn at the wrong end. Each paragraph now takes its direction from its
+ * own first strong letter, which is what the text is.
+ */
+.tagline,
+.card :is(p, dd, li, h3),
+.listTitle,
+.listMeta {
+  unicode-bidi: plaintext;
+}
+
+/* ─────────────────────────────────────────────────────────────── rows */
+
+.lede {
+  margin: 0;
+  max-width: 60ch;
+  color: rgb(var(--ink-soft));
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--dash-line);
+  border-radius: var(--dash-r);
+  overflow: hidden;
+}
+
+.list > li + li {
+  border-block-start: 1px solid var(--dash-line-soft);
+}
+
+.listRow {
+  display: flex;
+  min-height: 3rem;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.75rem;
+  padding: 0.625rem 1rem;
+  color: rgb(var(--ink));
+  text-decoration: none;
+  transition: background-color var(--dur-micro) ease;
+}
+
+.listRow:hover {
+  background: var(--dash-hover);
+}
+
+.listIcon {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  color: rgb(var(--ink-soft));
+}
+
+.listTitle {
+  display: inline-flex;
+  min-width: 0;
+  flex: 1 1 12rem;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+}
+
+a.listRow:hover .listTitle {
+  color: rgb(var(--signal));
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.listMeta {
+  color: rgb(var(--ink-soft));
+  font-size: 0.75rem;
+}
+
+.tagName {
+  font-family: var(--font-code);
+  font-size: 0.875rem;
+}
+
+.latest {
+  display: inline-flex;
+  align-items: center;
+  padding-inline: 0.5rem;
+  border: 1px solid rgb(var(--hue-green));
+  border-radius: 999px;
+  color: rgb(var(--ink));
+  font-family: var(--font-text);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 1.5rem;
+  border: 1px dashed var(--dash-line);
+  border-radius: var(--dash-r);
+  color: rgb(var(--ink-soft));
+}
+
+.empty p {
+  margin: 0;
+}
+
+.onward {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  align-self: flex-start;
+  color: rgb(var(--signal));
+  text-decoration: none;
+}
+
+.onward:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ─────────────────────────────────────────────────────────────── loading */
+
+.loading {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.headSkeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 32rem;
+}

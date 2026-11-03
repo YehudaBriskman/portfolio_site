@@ -360,6 +360,40 @@ async function audit(route, lang, [label, width, height], { failing = false, pau
   }
   await page.waitForTimeout(600);
   for (const w of (await unwrittenWords(page)).slice(0, 3)) errors.push(`pen off state not at ink: ${w}`);
+  /* #242: a dark ground under the bar must have the bar in its dark
+     material. Paper over a dark page drew the current room's link in
+     paper's ink on the dark ground, which axe passes: it measures the link
+     against the bar's computed paper, not the dark it was painted over. */
+  const chrome = await page.evaluate(() => {
+    const bar = document.querySelector("header[data-material]");
+    if (!bar) return null;
+    const edge = bar.getBoundingClientRect().bottom;
+    const under = [...document.querySelectorAll('[data-chrome="dark"]')].some((p) => {
+      const r = p.getBoundingClientRect();
+      return r.height > 0 && r.top < edge && r.bottom > 0;
+    });
+    /* And the current room against the material's own ground, read from
+       the token rather than the composited pixel: a colour transition on
+       the link stalled at paper's ink measured 1.06:1 here. */
+    const lum = (rgb) => {
+      const [r, g, b] = rgb.map((v) => {
+        const c = v / 255;
+        return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+      });
+      return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    };
+    const current = bar.querySelector("a[aria-current]");
+    let ratio = null;
+    if (current) {
+      const fg = getComputedStyle(current).color.match(/\d+(\.\d+)?/g).slice(0, 3).map(Number);
+      const bg = getComputedStyle(bar).getPropertyValue("--paper").trim().split(/\s+/).map(Number);
+      const [hi, lo] = [lum(fg), lum(bg)].sort((a, b) => b - a);
+      ratio = (hi + 0.05) / (lo + 0.05);
+    }
+    return { under, material: bar.getAttribute("data-material"), ratio };
+  });
+  if (chrome?.under && chrome.material !== "dark") errors.push(`bar is ${chrome.material} over a dark ground`);
+  if (chrome?.ratio != null && chrome.ratio < 4.5) errors.push(`current nav link at ${chrome.ratio.toFixed(2)}:1 on the ${chrome.material} bar`);
 
   await page.addScriptTag({ content: AXE });
   const result = await page.evaluate(

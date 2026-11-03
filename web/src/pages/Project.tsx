@@ -1,7 +1,13 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
-import { BookOpen, FileText, NotebookPen, Tag } from "lucide-react";
+import { ArrowUpRight, BookMarked, BookOpen, FileText, FolderGit2, NotebookPen, Rss, Tag } from "lucide-react";
 import PageShell from "@/components/PageShell";
+import DashboardShell from "@/components/dashboard/DashboardShell";
+import { OwnerCard, Row, RowList, ViewNav } from "@/components/dashboard/Parts";
+import { ListSkeleton, RowsSkeleton } from "@/components/dashboard/Skeletons";
+import { RepoFacts } from "@/components/dashboard/History";
+import dash from "@/components/dashboard/Dashboard.module.css";
+import history from "@/components/dashboard/History.module.css";
 import Written from "@/components/motion/Written";
 /* InkWipe, not Reveal. Reveal was an IntersectionObserver that translated a
    section 26px before fading it in; the wipe is scroll-timeline driven and
@@ -13,25 +19,24 @@ import InkWipe from "@/components/motion/InkWipe";
 import PostList from "@/components/PostList";
 import SkeletonGate from "@/components/gallery/SkeletonGate";
 import SkeletonLines from "@/components/gallery/SkeletonLines";
-import ProjectMeta from "@/components/ProjectMeta";
 import Shot from "@/components/projects/Shot";
 import Figure from "@/components/Figure";
-import Action from "@/components/ui/Action";
 import Plate from "@/components/projects/Plate";
-import ProjectActions from "@/components/projects/ProjectActions";
 import ProjectBrief from "@/components/projects/ProjectBrief";
 import ProjectDecisions from "@/components/projects/ProjectDecisions";
 import ProjectStack from "@/components/projects/ProjectStack";
-import ProjectRow from "@/components/projects/ProjectRow";
+import { kindOf } from "@/components/projects/catalogue";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { relatedTo, useProjects } from "@/hooks/useProjects";
 import { blog, type PostSummary } from "@/services/blog";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
-import { activity, type ActivityEvent } from "@/services/activity";
+import { activity, areaFeedUrl, type ActivityEvent } from "@/services/activity";
 import Tabs from "@/components/work/Tabs";
 import tabStyles from "@/components/work/Tabs.module.css";
-import { panelId, readTab, tabId, type Tab } from "@/components/work/order";
-import { useWorkWords } from "@/components/work/words";
+import work from "@/components/work/Work.module.css";
+import styles from "@/pages/Project.module.css";
+import { isPinned, panelId, readTab, tabId, type Tab } from "@/components/work/order";
+import { stateWord, useWorkWords } from "@/components/work/words";
 import { fullDate, relative, shortDate } from "@/components/dashboard/i18n";
 import { useScrollProgress } from "@/hooks/useScrollProgress";
 
@@ -64,6 +69,31 @@ const DOC_TAG = "doc";
  * link still lands where it did. The tabs are the APG pattern
  * (`work/Tabs.tsx`). Notes links on to the area's own history page rather
  * than rebuilding it here: #225 is that page.
+ *
+ * THE DASHBOARD (#242). The page now stands on the same dark shell as
+ * /projects, /blog, an area and the log (`dashboard/DashboardShell.tsx`),
+ * as a GitHub repository page does under GitHub's own chrome:
+ *
+ *   rail    the owner; the way back to all of Work; the pinned projects,
+ *           this one marked as the current page.
+ *   middle  the header (Work / name, the status pill, the tagline, and the
+ *           outbound links as the dashboard's buttons: exactly one primary,
+ *           as before), the tabs, and the panel. Overview is the content it
+ *           always was, re-laid in bordered cards in the same order.
+ *   aside   About: the repository's facts from the stored stats, each
+ *           stamped "as of" the scheduled read (`RepoFacts`, the area
+ *           header's, reused rather than a second copy), and the ways on:
+ *           the area's notes, the repository, the area's feed.
+ *
+ * The facts used to be a fourth row of display type in the Overview
+ * (`ProjectMeta`); they are said once now, in the aside, and the latest
+ * release is left out of them there because the header's Release button
+ * already says it.
+ *
+ * MOTION. The Overview keeps the devices it had: the description and the
+ * brief and decisions are `Written`, the highlights and decisions arrive
+ * through `InkWipe`, and the figure keeps its drift. Everything else on the
+ * shell has none (`docs/motion-contract.md`).
  */
 export default function Project() {
   /* The only page with a --vh reader: the figure drift below, which is also
@@ -180,133 +210,269 @@ export default function Project() {
     id: panelId(idBase, key),
     "aria-labelledby": tabId(idBase, key),
     tabIndex: 0,
-    className: tabStyles.panel,
+    className: `${tabStyles.panel} ${styles.panel}`,
   });
+
+  /* ── the rail: who, the way back, and the pinned projects ──────────── */
+  const pinned = items.filter(isPinned);
+  const pinsId = `${idBase}-pins`;
+  const rail = (
+    <>
+      <OwnerCard />
+      <ViewNav
+        label={t.backToWork}
+        views={[{ key: "work", label: t.allWork, to: "/projects", icon: <FolderGit2 />, current: false }]}
+      />
+      {pinned.length > 0 && (
+        <nav className={work.pins} aria-labelledby={pinsId}>
+          <h2 id={pinsId} className={dash.railTitle}>
+            {t.pinned}
+          </h2>
+          <ul className={work.pinList}>
+            {pinned.map((e) => (
+              <li key={e.collection.slug}>
+                <Link
+                  to={`/projects/${e.collection.slug}`}
+                  className={`${work.pinItem} ${styles.pinItem}`}
+                  aria-current={e.collection.slug === project ? "page" : undefined}
+                >
+                  <BookMarked size={16} aria-hidden="true" />
+                  <span className={work.pinLabel} translate="no">
+                    {e.collection.title}
+                  </span>
+                  <span className={work.pinState}>{stateWord(e.state, lang)}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      )}
+    </>
+  );
+
+  /* ── the aside: About, GitHub's place for the facts ────────────────── */
+  const aboutId = `${idBase}-about`;
+  const aside = (
+    <div className={history.side}>
+      <section className={history.sideCard} aria-labelledby={aboutId}>
+        <h2 id={aboutId} className={history.sideTitle}>
+          {t.about}
+        </h2>
+        {!c ? (
+          <ListSkeleton lines={3} />
+        ) : (
+          <>
+            {c.stats && (
+              /* The release is the header's button; said once. */
+              <RepoFacts stats={{ ...c.stats, latestRelease: null }} repoUrl={c.repoUrl} />
+            )}
+            <ul className={history.sideLinks}>
+              {entry?.live && (
+                <li>
+                  <Link to={`/blog/area/${c.slug}`} className={history.sideLink} data-primary="">
+                    <NotebookPen aria-hidden="true" />
+                    {t.areaNotes}
+                    <span aria-hidden="true" className={styles.arrow}>
+                      →
+                    </span>
+                  </Link>
+                </li>
+              )}
+              {c.repoUrl && (
+                <li>
+                  <a href={c.repoUrl} className={history.sideLink} rel="noopener noreferrer">
+                    <ArrowUpRight aria-hidden="true" />
+                    {t.repository}
+                    <span className={history.sideUrl} dir="ltr" translate="no">
+                      {c.repoUrl.replace(/^https:\/\/github\.com\//, "")}
+                    </span>
+                  </a>
+                </li>
+              )}
+              {entry?.live && (
+                <li>
+                  <a href={areaFeedUrl(c.slug)} className={history.sideLink} type="application/rss+xml">
+                    <Rss aria-hidden="true" />
+                    {t.feed}
+                  </a>
+                </li>
+              )}
+            </ul>
+          </>
+        )}
+      </section>
+    </div>
+  );
+
+  /* ── the header: Work / name, pill, tagline, the outbound buttons ──── */
+  const release = c?.stats?.latestRelease ?? null;
+  const repoIsPrimary = Boolean(entry && !entry.primaryLink && c?.repoUrl);
+  const head =
+    entry && c ? (
+      <header className={styles.head}>
+        <div className={styles.nameLine}>
+          <BookMarked className={styles.nameIcon} size={20} aria-hidden="true" />
+          <Link to="/projects" className={styles.crumb}>
+            {t.backToWork}
+          </Link>
+          <span className={styles.slash} aria-hidden="true">
+            /
+          </span>
+          <h1 className={styles.title} translate="no">
+            {c.title}
+          </h1>
+          <span className={`${work.pill} ${styles.pill}`} data-kind={kindOf(entry.state)}>
+            {stateWord(entry.state, lang)}
+            {entry.year && <span className={styles.num}>{entry.year}</span>}
+          </span>
+        </div>
+        {/* The second voice, under the name: a phrase somebody wrote, so
+            not a heading. */}
+        {c.tagline && <p className={styles.tagline}>{c.tagline}</p>}
+        {(entry.primaryLink || c.repoUrl || release || entry.otherLinks.length > 0) && (
+          /* Exactly one primary: the live product if there is one,
+             otherwise the repository. Two competing primaries is none. */
+          <div className={dash.actions}>
+            {entry.primaryLink && (
+              <a
+                href={entry.primaryLink.url}
+                className={`${dash.button} ${styles.button}`}
+                data-primary=""
+                rel="noopener noreferrer"
+              >
+                {entry.primaryLink.label}
+                <ArrowUpRight aria-hidden="true" />
+              </a>
+            )}
+            {c.repoUrl && (
+              <a
+                href={c.repoUrl}
+                className={`${dash.button} ${styles.button}`}
+                data-primary={repoIsPrimary ? "" : undefined}
+                rel="noopener noreferrer"
+              >
+                <FolderGit2 aria-hidden="true" />
+                {t.source}
+              </a>
+            )}
+            {release && (
+              <a
+                href={release.url}
+                className={`${dash.button} ${styles.button}`}
+                rel="noopener noreferrer"
+                title={`${t.release}: ${release.tag}`}
+              >
+                <Tag aria-hidden="true" />
+                <span dir="ltr" translate="no">
+                  {release.tag}
+                </span>
+              </a>
+            )}
+            {entry.otherLinks.map((l) => (
+              <a href={l.url} className={`${dash.button} ${styles.button}`} key={l.url} rel="noopener noreferrer">
+                {l.label}
+                <ArrowUpRight aria-hidden="true" />
+              </a>
+            ))}
+          </div>
+        )}
+      </header>
+    ) : null;
 
   return (
     <PageShell>
-      <section data-crest data-hue="88 76 148" className="wrap section-y isolate relative">
-        <Action tone="text" glyph="back" to="/projects">
-          {t.backToWork}
-        </Action>
-
+      <DashboardShell railLabel={t.browse} rail={rail} asideLabel={t.about} aside={aside} head={head}>
         {/* One H1 in every state, including this one — the heading order must
             not depend on how far a fetch got. */}
         {state === "loading" && (
-          <>
-            <h1 className="sr-only">Loading project</h1>
-            <div className="mt-12 scrub-pulse" aria-hidden="true">
-              <div className="h-12 w-2/3 rounded-full bg-[rgb(var(--rule)_/_0.6)]" />
-              <div className="mt-6 h-6 w-1/2 rounded-full bg-[rgb(var(--rule)_/_0.4)]" />
-              <div className="mt-12 h-11 w-full border-b border-[rgb(var(--rule))]" />
-              <div className="card-shot mt-12 aspect-[3/2] bg-[rgb(var(--rule)_/_0.4)] sm:aspect-[2/1]" />
+          <div className={styles.loading} aria-busy="true">
+            <h1 className="sr-only">{t.loadingProject}</h1>
+            <SkeletonGate className={styles.headSkeleton}>
+              <SkeletonLines lines={1} tail="40%" />
+              <SkeletonLines lines={1} tail="70%" />
+            </SkeletonGate>
+            <div className={styles.flushCard}>
+              <RowsSkeleton rows={3} />
             </div>
-          </>
+          </div>
         )}
 
         {state === "missing" && (
-          <div className="mt-12">
-            <h1 className="display text-section">Not here</h1>
-            <p className="mt-6 max-w-[46ch] text-lg text-ink/85">No project at that address.</p>
-            <div className="mt-12">
-              <Action tone="solid" glyph="onward" to="/projects">
-                See everything
-              </Action>
+          <div className={dash.message}>
+            <h1 className={dash.messageTitle}>{t.notHere}</h1>
+            <p className={dash.messageBody}>{t.notHereBody}</p>
+            <div className={dash.actions}>
+              <Link to="/projects" className={dash.button} data-primary="">
+                {t.seeEverything}
+              </Link>
             </div>
           </div>
         )}
 
         {entry && c && (
-          <>
-            {/* The `.sun` wash behind this header went with the accent; the
-                plate stack supplies the light now. */}
-            <div className="relative mt-12">
-              <p className="mono flex items-center gap-3 text-xs uppercase tracking-[0.18em] text-[rgb(var(--ink-soft))]">
-                <span className="h-2 w-2 shrink-0 rounded-full bg-[rgb(var(--ink-soft))]" aria-hidden="true" />
-                {entry.status}
-                {entry.year && <span className="tabular-nums">{entry.year}</span>}
-              </p>
-              <h1 className="display mt-3 text-[clamp(2.4rem,7vw,4.5rem)] leading-[0.94]">{c.title}</h1>
-              {/* The second voice, under the name. A tagline is a phrase
-                  somebody wrote, not a heading, and in the display face at the
-                  accent's colour it was reading as a second, smaller title
-                  competing with the real one directly above it. */}
-              {c.tagline && (
-                <p className="editorial mt-6 max-w-[26ch] text-[clamp(1.5rem,4.6vw,2.4rem)] text-ink">
-                  {c.tagline}
-                </p>
-              )}
-            </div>
-
-            <div className="mt-12">
-              <Tabs
-                label={t.tabs}
-                idBase={idBase}
-                selected={tab}
-                onSelect={selectTab}
-                tabs={[
-                  { key: "overview", label: t.tab.overview, icon: <BookOpen /> },
-                  { key: "notes", label: t.tab.notes, count: posts ? notes.length : null, icon: <NotebookPen /> },
-                  { key: "releases", label: t.tab.releases, count: releaseRows.length || null, icon: <Tag /> },
-                  { key: "docs", label: t.tab.docs, count: posts ? docs.length : null, icon: <FileText /> },
-                ]}
-              />
-            </div>
+          <div className={styles.tabbed}>
+            <Tabs
+              label={t.tabs}
+              idBase={idBase}
+              selected={tab}
+              onSelect={selectTab}
+              tabs={[
+                { key: "overview", label: t.tab.overview, icon: <BookOpen /> },
+                { key: "notes", label: t.tab.notes, count: posts ? notes.length : null, icon: <NotebookPen /> },
+                { key: "releases", label: t.tab.releases, count: releaseRows.length || null, icon: <Tag /> },
+                { key: "docs", label: t.tab.docs, count: posts ? docs.length : null, icon: <FileText /> },
+              ]}
+            />
 
             {tab === "overview" && (
               <div {...panel("overview")}>
-                {c.description && (
-                  <Written className="max-w-[52ch] text-lg leading-[1.6] text-ink/85">{c.description}</Written>
+                <section className={styles.card} aria-label={c.title}>
+                  {c.description && <Written className={styles.description}>{c.description}</Written>}
+                  {/* The drift's own box: `--vh` is written here and read
+                      here, so a scroll re-styles this figure and not the
+                      document (#174). `sizes` is the figure's real width:
+                      the middle column is capped at 62rem, less the card's
+                      padding. It is the LCP element. */}
+                  <div
+                    ref={drift}
+                    className={styles.figure}
+                    style={reduced ? undefined : { transform: "translate3d(0, calc(var(--vh, 0) * -14px), 0)" }}
+                  >
+                    <Figure index={1} caption={c.tagline || c.title} note={entry.year ?? undefined}>
+                      {c.coverImage ? (
+                        <Shot
+                          src={c.coverImage}
+                          alt={`${c.title} screenshot`}
+                          className={shape}
+                          sizes="(min-width: 1280px) 960px, 100vw"
+                          eager
+                        />
+                      ) : (
+                        <Plate className={shape} title={c.title} tagline={c.tagline} tech={entry.tech} />
+                      )}
+                    </Figure>
+                  </div>
+                </section>
+
+                {(entry.problem || entry.role || entry.outcome) && (
+                  <div className={styles.card}>
+                    <ProjectBrief entry={entry} />
+                  </div>
                 )}
-
-                <ProjectActions entry={entry} className="mt-12" />
-
-                {/* `sizes` is the figure's real width — `.wrap` caps the section
-                    at 72rem and takes a 2.5rem gutter off each side, so this is
-                    1072px on a wide screen. It matters more here than anywhere: this is the LCP
-                    element, and it was being served the 800px variant and upscaled
-                    by half again. */}
-                {/* The drift's own box: `--vh` is written here and read here, so
-                    a scroll re-styles this figure and not the document (#174). */}
-                <div
-                  ref={drift}
-                  className="mt-12"
-                  style={reduced ? undefined : { transform: "translate3d(0, calc(var(--vh, 0) * -14px), 0)" }}
-                >
-                  <Figure index={1} caption={c.tagline || c.title} note={entry.year ?? undefined}>
-                    {c.coverImage ? (
-                      <Shot
-                        src={c.coverImage}
-                        alt={`${c.title} screenshot`}
-                        className={shape}
-                        sizes="(min-width: 1152px) 1072px, 100vw"
-                        eager
-                      />
-                    ) : (
-                      <Plate className={shape} title={c.title} tagline={c.tagline} tech={entry.tech} />
-                    )}
-                  </Figure>
-                </div>
-
-                <ProjectMeta c={c} />
-
-                <ProjectBrief entry={entry} className="mt-section-sm" />
 
                 {entry.highlights.length > 0 && (
                   <InkWipe as="div">
-                    <section className="mt-section-sm" aria-labelledby="highlights-heading">
-                      <h2 id="highlights-heading" className="display-tight text-2xl sm:text-3xl">
+                    <section className={styles.card} aria-labelledby="highlights-heading">
+                      <h2 id="highlights-heading" className={styles.cardTitle}>
                         Worth knowing
                       </h2>
-                      {/* The landing page has always shown these and the project
-                          page never did, which is the clearest single case of the
-                          detail page being thinner than its own card. */}
-                      <ul className="mt-6 grid gap-x-12 gap-y-6 sm:grid-cols-2">
+                      {/* The landing page has always shown these and the
+                          project page never did, which was the clearest
+                          single case of the detail page being thinner than
+                          its own card. */}
+                      <ul className={styles.highlights}>
                         {entry.highlights.map((h) => (
-                          <li key={h} className="flex max-w-[46ch] gap-3.5 text-base leading-[1.55] text-ink/85">
-                            <span className="mt-[0.5rem] h-1.5 w-1.5 shrink-0 rounded-full bg-[rgb(var(--ink-soft))]" aria-hidden="true" />
-                            {h}
-                          </li>
+                          <li key={h}>{h}</li>
                         ))}
                       </ul>
                     </section>
@@ -315,24 +481,34 @@ export default function Project() {
 
                 {entry.decisions.length > 0 && (
                   <InkWipe as="div">
-                    <ProjectDecisions decisions={entry.decisions} className="mt-section-sm" />
+                    <div className={styles.card}>
+                      <ProjectDecisions decisions={entry.decisions} />
+                    </div>
                   </InkWipe>
                 )}
 
-                <ProjectStack tech={entry.tech} className="mt-section-sm" />
+                {entry.tech.length > 0 && (
+                  <div className={styles.card}>
+                    <ProjectStack tech={entry.tech} />
+                  </div>
+                )}
 
                 {others.length > 0 && (
-                  <section className="relative mt-section-sm" aria-labelledby="elsewhere-heading">
-                    <h2 id="elsewhere-heading" className="display-tight text-2xl sm:text-3xl">
+                  <section className={styles.flushCard} aria-labelledby="elsewhere-heading">
+                    <h2 id="elsewhere-heading" className={styles.flushTitle}>
                       Elsewhere
                     </h2>
-                    <ul className="mt-6 grid gap-3 sm:grid-cols-2">
+                    <RowList>
                       {others.map((o) => (
-                        <li key={o.collection.slug}>
-                          <ProjectRow entry={o} />
-                        </li>
+                        <Row
+                          key={o.collection.slug}
+                          icon={<BookMarked />}
+                          title={o.collection.title}
+                          to={`/projects/${o.collection.slug}`}
+                          meta={[o.collection.tagline, o.year]}
+                        />
                       ))}
-                    </ul>
+                    </RowList>
                   </section>
                 )}
               </div>
@@ -365,12 +541,12 @@ export default function Project() {
                 ) : notes.length > 0 ? (
                   <PostList posts={notes} />
                 ) : (
-                  <p className={tabStyles.empty}>{entry.live ? t.noNotesLive : t.noNotes}</p>
+                  <p className={styles.empty}>{entry.live ? t.noNotesLive : t.noNotes}</p>
                 )}
                 {entry.live && (
-                  <Link to={`/blog/area/${c.slug}`} className={tabStyles.onward}>
+                  <Link to={`/blog/area/${c.slug}`} className={styles.onward}>
                     {t.areaHistory}
-                    <span aria-hidden="true" className={tabStyles.flip}>
+                    <span aria-hidden="true" className={styles.arrow}>
                       &nbsp;→
                     </span>
                   </Link>
@@ -381,37 +557,34 @@ export default function Project() {
             {tab === "releases" && (
               <div {...panel("releases")} aria-busy={releases === null && !releasesError}>
                 <h2 className="sr-only">{t.tab.releases}</h2>
-                <p className={tabStyles.panelLede}>{t.releasesFrom}</p>
+                <p className={styles.lede}>{t.releasesFrom}</p>
                 {releasesError && releaseRows.length === 0 ? (
-                  <p className={tabStyles.empty} role="alert">
-                    {t.releasesFailed}
-                    <button type="button" className={tabStyles.retry} onClick={retry}>
+                  <div className={styles.empty} role="alert">
+                    <p>{t.releasesFailed}</p>
+                    <button type="button" className={dash.button} onClick={retry}>
                       {t.retry}
                     </button>
-                  </p>
+                  </div>
                 ) : releases === null && releaseRows.length === 0 ? (
-                  <SkeletonGate className={tabStyles.rows}>
-                    {[0, 1, 2].map((i) => (
-                      <div key={i} className={tabStyles.row}>
-                        <SkeletonLines lines={1} tail="40%" />
-                      </div>
-                    ))}
-                  </SkeletonGate>
+                  <div className={styles.flushCard}>
+                    <RowsSkeleton rows={3} />
+                  </div>
                 ) : releaseRows.length === 0 ? (
-                  <p className={tabStyles.empty}>{t.noReleasesHere}</p>
+                  <p className={styles.empty}>{t.noReleasesHere}</p>
                 ) : (
-                  <ol className={tabStyles.rows}>
+                  <ol className={styles.list}>
                     {releaseRows.map((r, i) => (
                       <li key={r.id}>
-                        <a className={tabStyles.row} href={r.href} rel="noopener noreferrer">
-                          <span className={tabStyles.rowTitle}>
-                            <span className={tabStyles.tagName} dir="ltr" translate="no">
+                        <a className={styles.listRow} href={r.href} rel="noopener noreferrer">
+                          <Tag className={styles.listIcon} aria-hidden="true" />
+                          <span className={styles.listTitle}>
+                            <span className={styles.tagName} dir="ltr" translate="no">
                               {r.tag}
                             </span>
+                            {i === 0 && <span className={styles.latest}>{t.latest}</span>}
                           </span>
-                          {i === 0 && <span className={tabStyles.latest}>{t.latest}</span>}
                           {r.at && (
-                            <time className={tabStyles.rowMeta} dateTime={r.at} title={fullDate(r.at, lang)}>
+                            <time className={styles.listMeta} dateTime={r.at} title={fullDate(r.at, lang)}>
                               {`${shortDate(r.at, lang)} · ${relative(r.at, now, lang)}`}
                             </time>
                           )}
@@ -421,7 +594,7 @@ export default function Project() {
                   </ol>
                 )}
                 {c.repoUrl && (
-                  <a href={`${c.repoUrl}/releases`} className={tabStyles.onward} rel="noopener noreferrer">
+                  <a href={`${c.repoUrl}/releases`} className={styles.onward} rel="noopener noreferrer">
                     {t.onGitHub}
                   </a>
                 )}
@@ -431,24 +604,21 @@ export default function Project() {
             {tab === "docs" && (
               <div {...panel("docs")} aria-busy={posts === null}>
                 <h2 className="sr-only">{t.tab.docs}</h2>
-                <p className={tabStyles.panelLede}>{t.docsFrom}</p>
+                <p className={styles.lede}>{t.docsFrom}</p>
                 {posts === null ? (
-                  <SkeletonGate className={tabStyles.rows}>
-                    {[0, 1, 2].map((i) => (
-                      <div key={i} className={tabStyles.row}>
-                        <SkeletonLines lines={1} tail="55%" />
-                      </div>
-                    ))}
-                  </SkeletonGate>
+                  <div className={styles.flushCard}>
+                    <RowsSkeleton rows={3} />
+                  </div>
                 ) : docs.length === 0 ? (
-                  <p className={tabStyles.empty}>{t.noDocs}</p>
+                  <p className={styles.empty}>{t.noDocs}</p>
                 ) : (
-                  <ol className={tabStyles.rows}>
+                  <ol className={styles.list}>
                     {docs.map((p) => (
                       <li key={p.slug}>
-                        <Link to={`/blog/${p.slug}`} className={tabStyles.row}>
-                          <span className={tabStyles.rowTitle}>{p.title}</span>
-                          {p.subtitle && <span className={tabStyles.rowMeta}>{p.subtitle}</span>}
+                        <Link to={`/blog/${p.slug}`} className={styles.listRow}>
+                          <FileText className={styles.listIcon} aria-hidden="true" />
+                          <span className={styles.listTitle}>{p.title}</span>
+                          {p.subtitle && <span className={styles.listMeta}>{p.subtitle}</span>}
                         </Link>
                       </li>
                     ))}
@@ -456,15 +626,10 @@ export default function Project() {
                 )}
               </div>
             )}
-
-            <div className="mt-section-sm">
-              <Action tone="text" glyph="back" to="/projects">
-                {t.backToWork}
-              </Action>
-            </div>
-          </>
+          </div>
         )}
-      </section>
+      </DashboardShell>
     </PageShell>
   );
 }
+

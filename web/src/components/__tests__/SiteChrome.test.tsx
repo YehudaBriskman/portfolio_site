@@ -179,3 +179,57 @@ describe("the dark-chrome observer under a hoisted chrome", () => {
     expect(performance.now() - started).toBeLessThan(900);
   });
 });
+
+/*
+ * #242: a dark ground under the bar from the first paint (every dashboard
+ * page) inverts the bar at once, without waiting for the observer. Here the
+ * observer never calls back at all (the setup's stub), which is the state a
+ * frameless browser left the bar in: paper over a dark page, and the current
+ * room's link drawn in paper's ink on the dark ground, invisible.
+ */
+describe("the bar over a dark ground from the first paint", () => {
+  const realRect = Element.prototype.getBoundingClientRect;
+  const panelAt = (top: number, height: number) => {
+    Element.prototype.getBoundingClientRect = function (this: Element) {
+      if (this.matches(DARK_PANEL_SELECTOR)) return new DOMRect(0, top, 1440, height);
+      return realRect.call(this);
+    };
+  };
+  afterEach(() => {
+    Element.prototype.getBoundingClientRect = realRect;
+  });
+
+  function Dashboard() {
+    usePageCommitted();
+    return (
+      <main id="content">
+        <div data-chrome="dark">
+          <h1>Work</h1>
+        </div>
+      </main>
+    );
+  }
+
+  it("is dark at once, with its current room marked, before any observer callback", () => {
+    panelAt(-64, 2000);
+    render(
+      <MemoryRouter initialEntries={["/projects"]}>
+        <TooltipProvider>
+          <Routes>
+            <Route element={<SiteChrome />}>
+              <Route path="/projects" element={<Dashboard />} />
+            </Route>
+          </Routes>
+        </TooltipProvider>
+      </MemoryRouter>
+    );
+    expect(screen.getByRole("banner")).toHaveAttribute("data-material", "dark");
+    expect(routeLink("Work")).toHaveAttribute("aria-current");
+  });
+
+  it("stays paper when the dark panel is further down the page", () => {
+    panelAt(1200, 800);
+    site();
+    expect(screen.getByRole("banner")).toHaveAttribute("data-material", "paper");
+  });
+});
