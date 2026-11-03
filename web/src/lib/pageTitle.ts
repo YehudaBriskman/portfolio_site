@@ -180,6 +180,9 @@ export function pageIdentityFor(pathname: string): PageIdentity {
 
   if (first === "story" && segments.length === 1) return identity("Journey");
 
+  /* The remote MCP server's page (#263), named as seo.route.ts names it. */
+  if (first === "developers" && second === "mcp" && segments.length === 2) return identity("MCP server");
+
   if (first === "blog") {
     /* "Blogs", the room's name since #222. The route stays `/blog` for the
        sake of the links already shared at that address; the bar, the page's
@@ -199,6 +202,7 @@ export function pageIdentityFor(pathname: string): PageIdentity {
         return adminIdentity(third === "new" ? "New post" : `Editing ${humaniseSlug(third)}`);
       }
     }
+    if (second === "connections" && !third) return adminIdentity("Connected apps");
     if (second === "areas") {
       if (!third) return adminIdentity("Areas");
       if (segments.length === 3) {

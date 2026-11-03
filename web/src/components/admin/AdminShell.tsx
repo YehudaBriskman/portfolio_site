@@ -19,11 +19,12 @@ import { admin } from "@/services/admin";
  * stays on the public site.
  */
 
-type Section = "posts" | "areas";
+type Section = "posts" | "areas" | "connections";
 
 const SECTIONS: Array<{ id: Section; to: string; label: string }> = [
   { id: "posts", to: "/admin/posts", label: "Posts" },
   { id: "areas", to: "/admin/areas", label: "Areas" },
+  { id: "connections", to: "/admin/connections", label: "Connected apps" },
 ];
 
 const PUBLIC_SITE = "https://yehudabriskman.com";

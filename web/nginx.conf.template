@@ -6,6 +6,17 @@ log_format main_ext '$remote_addr - $remote_user [$time_local] '
                     'host=$host req_id=$request_id';
 
 access_log /dev/stdout main_ext;
+
+# The same line with the path and never the query string: the remote MCP
+# server's OAuth endpoints (#263) carry authorization codes and states in
+# theirs, and a credential has no business in a log. `$uri` is the
+# normalised path alone.
+log_format mcp_ext '$remote_addr - $remote_user [$time_local] '
+                   '"$request_method $uri $server_protocol" $status $body_bytes_sent '
+                   '"-" "$http_user_agent" '
+                   'rt=$request_time urt=$upstream_response_time '
+                   'uaddr=$upstream_addr ustatus=$upstream_status '
+                   'host=$host req_id=$request_id';
 error_log  /dev/stderr info;
 
 # No brotli, and not by oversight: `nginx -V` on nginx:alpine reports
@@ -66,8 +77,9 @@ server {
   port_in_redirect off;
 
   # One name for the API, resolved per request. Declared here because the
-  # first location that uses it is the next one; all twelve proxy_pass lines in
-  # this file — /api/, the three crawler files and the eight rendered pages —
+  # first location that uses it is the next one; all sixteen proxy_pass lines in
+  # this file — /api/, the three crawler files, the nine rendered pages and the
+  # three remote-MCP locations —
   # read this one variable, so the host is stated once.
   #
   # The host is templated, and that is the whole repair for the preprod 502s.
@@ -222,6 +234,53 @@ server {
 
   location = /accessibility {
     proxy_pass http://$api_upstream/api/seo/render/accessibility;
+    include /etc/nginx/snippets/proxy-headers.conf;
+    proxy_intercept_errors on;
+    error_page 500 502 503 504 = @spa;
+  }
+
+  # ------------------------------------------------------ remote MCP (#263) --
+  # The MCP endpoint, its public twin, the OAuth endpoints that sign a client
+  # in, and the discovery metadata, all answered by the API. The API itself
+  # answers 404 on every one of them while MCP_REMOTE=off, so nothing here
+  # changes with the switch.
+  #
+  # Logged without query strings (mcp_ext above): /mcp/oauth/authorize and the
+  # GitHub callback carry codes and states in theirs. No buffering, so a
+  # streamed MCP response is not held back. The API sets its own CSP on the
+  # consent pages; the site's one from the server block still applies on top,
+  # and a browser enforces both.
+  location = /mcp {
+    proxy_pass http://$api_upstream;
+    proxy_http_version 1.1;
+    include /etc/nginx/snippets/proxy-headers.conf;
+    proxy_buffering off;
+    proxy_read_timeout 120s;
+    access_log /dev/stdout mcp_ext;
+  }
+
+  location ^~ /mcp/ {
+    proxy_pass http://$api_upstream;
+    proxy_http_version 1.1;
+    include /etc/nginx/snippets/proxy-headers.conf;
+    proxy_buffering off;
+    proxy_read_timeout 120s;
+    access_log /dev/stdout mcp_ext;
+  }
+
+  # RFC 9728 and RFC 8414 metadata: /.well-known/oauth-protected-resource[/mcp]
+  # and /.well-known/oauth-authorization-server. Nothing else under
+  # /.well-known/ goes to the API.
+  location ^~ /.well-known/oauth- {
+    proxy_pass http://$api_upstream;
+    proxy_http_version 1.1;
+    include /etc/nginx/snippets/proxy-headers.conf;
+    access_log /dev/stdout mcp_ext;
+  }
+
+  # The page that explains it all, rendered like the other static pages.
+  location = /developers/mcp {
+    proxy_pass http://$api_upstream/api/seo/render/developers/mcp;
     include /etc/nginx/snippets/proxy-headers.conf;
     proxy_intercept_errors on;
     error_page 500 502 503 504 = @spa;
@@ -401,6 +460,7 @@ server {
   location = /projects/ { return 308 /projects; }
   location = /story/ { return 308 /story; }
   location = /accessibility/ { return 308 /accessibility; }
+  location = /developers/mcp/ { return 308 /developers/mcp; }
 
   #
   # Removed projects (2026-11-03). Their pages are gone but links to them are

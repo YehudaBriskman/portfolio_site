@@ -28,6 +28,8 @@ const Admin = lazy(() => import("./pages/Admin"));
 const AdminEditor = lazy(() => import("./pages/AdminEditor"));
 const AdminCollection = lazy(() => import("./pages/AdminCollection"));
 const AdminAreas = lazy(() => import("./pages/AdminAreas"));
+const AdminConnections = lazy(() => import("./pages/AdminConnections"));
+const DevelopersMcp = lazy(() => import("./pages/DevelopersMcp"));
 
 const queryClient = new QueryClient();
 
@@ -136,6 +138,7 @@ const App = () => (
             <Route path="/blog/log" element={<Suspense fallback={null}><BlogLog /></Suspense>} />
             <Route path="/blog/:slug" element={<Suspense fallback={null}><BlogPost /></Suspense>} />
             <Route path="/accessibility" element={<Suspense fallback={null}><Accessibility /></Suspense>} />
+            <Route path="/developers/mcp" element={<Suspense fallback={null}><DevelopersMcp /></Suspense>} />
             {/* The 404 is a reader's page too, and keeps the bar. */}
             <Route path="*" element={<NotFound />} />
           </Route>
@@ -149,6 +152,7 @@ const App = () => (
           <Route path="/admin/posts/:slug" element={<Suspense fallback={null}><AdminEditor /></Suspense>} />
           <Route path="/admin/areas" element={<Suspense fallback={null}><AdminAreas /></Suspense>} />
           <Route path="/admin/areas/:slug" element={<Suspense fallback={null}><AdminCollection /></Suspense>} />
+          <Route path="/admin/connections" element={<Suspense fallback={null}><AdminConnections /></Suspense>} />
           <Route path="/admin/collections/:slug" element={<LegacyAreaRedirect />} />
         </Routes>
       </BrowserRouter>
