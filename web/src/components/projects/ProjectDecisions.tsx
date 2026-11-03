@@ -1,5 +1,6 @@
 import type { ProjectDecision } from "@/data/projects";
 import Written from "@/components/motion/Written";
+import Ring from "@/components/motion/Ring";
 
 /*
  * The decisions, with the reasoning kept in.
@@ -26,15 +27,18 @@ export default function ProjectDecisions({
 
   return (
     <section className={className} aria-labelledby="decisions-heading">
-      <h2 id="decisions-heading" className="display-tight text-2xl sm:text-3xl">
+      <h2 id="decisions-heading" className="display-tight inline-flex items-center gap-2 text-2xl sm:text-3xl">
+        <Ring size={12} />
         Decisions worth defending
       </h2>
       <ol className="mt-6 divide-y divide-edge border-y border-edge">
         {decisions.map((d, i) => (
           <li key={d.title} className="py-6 sm:grid sm:grid-cols-[minmax(0,2.5rem)_minmax(0,1fr)] sm:gap-6">
-            <span className="mono text-xs tabular-nums text-clay" aria-hidden="true">
-              {String(i + 1).padStart(2, "0")}
-            </span>
+            {/* The ordinal in the circle motif (#251), drawn round it by
+                scroll; the figure itself is there from the first frame. */}
+            <Ring size={28} tone="soft">
+              <span className="mono text-xs tabular-nums text-clay">{String(i + 1).padStart(2, "0")}</span>
+            </Ring>
             <div className="mt-3 min-w-0 sm:mt-0">
               <h3 className="display-tight max-w-[46ch] text-lg leading-snug text-bone sm:text-xl">{d.title}</h3>
               <Written className="mt-3 max-w-[66ch] text-base leading-[1.65] text-bone/75">{d.body}</Written>

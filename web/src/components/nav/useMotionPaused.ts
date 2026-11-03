@@ -107,7 +107,7 @@ export function useMotionPaused(): [boolean, () => void] {
 
   /* `document.body` is outside the React tree on purpose: the stylesheet
      hangs the paused state off it so every view-timeline animation on the
-     page — the ink wipes, the iris panels, the rules that draw themselves —
+     page — the arrivals and their rings, the rules that draw themselves —
      stops as well, none of which the nav renders or can reach. */
   useEffect(() => {
     /*

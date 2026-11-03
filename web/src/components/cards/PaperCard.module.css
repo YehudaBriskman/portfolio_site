@@ -126,25 +126,22 @@
 /*
  * Where the page's colour comes from, and the one rule behind it.
  *
- * A card's resting wash is the wash of the hue its own ink wipe arrives in.
- * The wipe picks that hue from the element's position among its siblings —
- * blue, yellow, red, green, purple, cycling at five, documented at length in
- * motion/InkWipe.module.css — so this file reads the same position off the
- * same element and picks the matching `--wash-*` token. The colour the reader
- * watches arrive is the colour that stays.
+ * A card's resting wash is picked from the element's position among its
+ * siblings — blue, yellow, red, green, purple, cycling at five — so a group
+ * of cards reads as one set in the brand's five hues. (Until #251 this was
+ * also the hue of the ink wipe each card arrived through; the wipe is gone
+ * and the wash stays, because the cycle never depended on it.)
  *
- * It is deliberately the same selector shape as the hue rule rather than a
- * clever derivation from `--wipe-hue`. CSS cannot switch on the value of a
+ * It is deliberately a plain selector rather than a clever derivation. CSS cannot switch on the value of a
  * custom property without a style query, and `color-mix` would produce a
  * fifth, sixth and seventh colour near the five that were actually measured.
  * Two declarations keyed off one position is the honest version.
  *
- * This class goes on the *wipe*, not on the card, because the wipe is the
- * element whose position in the group decides the hue. The card inherits
- * `--card-wash` from it.
+ * This class goes on the element whose position in the group decides the
+ * hue. The card inherits `--card-wash` from it.
  *
  * A group can be offset as a whole — the stacking deck used to offset its
- * wipes by three, with the washes shifted to match, so the pile did not repeat
+ * cards by three, with the washes shifted to match, so the pile did not repeat
  * the run of the grid below it. That deck is retired, so nothing offsets the
  * cycle at the moment; the mechanism stays because the next group that sits
  * directly under another one will need it. What never varies is the order
@@ -157,14 +154,6 @@
 .cycle:nth-child(5n + 4) { --card-wash: var(--wash-green); }
 .cycle:nth-child(5n + 5) { --card-wash: var(--wash-purple); }
 
-/*
- * The wipe's coloured band is clipped to the card's corner, and the card's
- * corner just moved. InkWipe holds that figure in `--wipe-radius` precisely so
- * something wrapping a card can correct it; left at its 22px default, the band
- * would show two coloured nubs outside a 32px corner for the two frames it
- * takes to pass. Doubled because InkWipe sets the same property at (0,1,0).
- */
-.cycle.cycle { --wipe-radius: var(--r-lg); }
 
 /* ------------------------------------------------------------ type roles -- */
 

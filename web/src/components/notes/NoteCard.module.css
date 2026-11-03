@@ -92,9 +92,7 @@
  * group, cycling at five in the order blue, yellow, red, green, purple. See
  * the long note in cards/PaperCard.module.css.
  *
- * These cards carry no ink wipe — the index fades them up as a grid rather
- * than printing them one at a time — so there is no stroke for the wash to
- * agree with here. It is the same cycle read off the same position all the
+ * It is the same cycle read off the same position all the
  * same, which is what keeps /blog and / looking like one site: a reader who
  * has seen the three notes on the home page arrive blue, yellow and red
  * meets the index in the same order.

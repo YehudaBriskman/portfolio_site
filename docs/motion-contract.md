@@ -105,6 +105,7 @@ ledger is a page-level document and not a comment.
 | — | the dark ground | **drift** | the dark act is a gap between two sheets, with light behind it |
 | — | every section head | **shutter**, echoed | a section arrives the way the app did, at the scale of its name |
 | — | any running text | **pen** | prose is set as the reader's eye reaches it |
+| — | a card or a day on a dashboard, a card on a project page | **arrive** (#251) | a block settles the last 12px into place and the ring by its heading draws round once; nothing is ever drawn over the content |
 | 0 | title plate | **staged assembly** | the collection names itself, in four gated moves |
 | — | the plate's end corner | **breath** | one small light is on, and says one thing at a time |
 | 1 | wall text | `draw` + `line` | the method, drawn beside the sentence that names it, by the reader's scroll; one line joins it all up |
@@ -115,7 +116,7 @@ ledger is a page-level document and not a comment.
 | 5 | specs | `count` | real numbers landing |
 | 6 | inquiry plate | `surface` | the ask comes up out of the sheet, part by part, as the reader arrives |
 
-Ten families (`reveal` left the page with #160; `surface` took its place; `flow` left with #157 and `draw` took its place). No repeat in adjacent beats. The head row reuses the entry's family on purpose and is argued below. `pin` is spent once, on the peak,
+Eleven families (`arrive` joined with #251, on the dashboards and the project page; `reveal` left the page with #160; `surface` took its place; `flow` left with #157 and `draw` took its place). No repeat in adjacent beats. The head row reuses the entry's family on purpose and is argued below. `pin` is spent once, on the peak,
 and `scrub` is spent once on beat 3 — the grammar bans a *second* scrub and
 has always allowed the first, which is the whole licence beat 3 has.
 
@@ -1170,8 +1171,8 @@ in place with no transition. Each card's strip of pushes and releases is a
 still diagram, placed by date and drawn once. The project page gains GitHub's
 tabs (`work/Tabs.tsx`, `?tab=`): the underline is drawn on the selected tab,
 not slid to it, and a panel appears without a transition. The Overview panel
-keeps the page's existing devices (`InkWipe`, `Written`, the figure's drift)
-unchanged; the other three panels have none. With no page on it any more,
+keeps the page's existing devices (then `InkWipe`, `Written`, the figure's
+drift) unchanged; the other three panels have none. With no page on it any more,
 `gallery/Wall.tsx` and `projects/Gallery.tsx` are left in place, unused, for
 the owner to delete or keep, as #224 did with `NoteTile`.
 
@@ -1185,12 +1186,58 @@ bordered cards, in the same order, and it is the one place on any dashboard
 page with a scroll device: the description, the brief and each decision are
 still `Written` (the ink alpha reads `--ink`, which `.on-panel` re-points, so
 the pen's off state is still full ink on the dark ground), the highlights and
-decisions still arrive through `InkWipe`, and the figure keeps its `--vh`
+decisions still arrived through `InkWipe` (retired in #251, below), and the figure keeps its `--vh`
 drift written to its own box by `useScrollProgress`. The page is a
 repository's front page that is also read, so it keeps the reading devices
 and gains no new ones; the rows above and below (`Written`, `InkWipe`) keep their /projects/:slug routes. Its
 loading state left `.scrub-pulse` for the shell's skeleton rows, so that
 row loses the route and the sweep row gains it.
+
+**#251: the wipe retired; one arrival, and the circle as a system.** The
+owner, 2026-11-03, on the ink wipe crossing a project page: "there's still an
+appearing animation that is not on par with the app brand. Remove it and
+switch to something better." The wipe printed a block behind a hard,
+raked clip edge with a saturated band riding that edge, so for the whole of
+its range part of the text was hidden and part was painted over in red,
+yellow or blue. `InkWipe` and its stylesheet are deleted, with the dead
+`--wipe-radius` / `--wipe-hue` plumbing in `PaperCard.module.css`.
+
+Its replacement is one primitive, `motion/Arrive.tsx`, and it carries a
+rule this contract did not have before:
+
+> **An arrival never covers, clips or fades the content.** No clip-path, no
+> opacity, no pseudo-element over the box, not for a frame. The text is at
+> full ink from the first pixel of it that is on screen. What may move is
+> where the block sits, and marks *beside* the content.
+
+So an arrival is two things, both scrubbed by `view()` and both reversed on
+the way up: the block rises the last 12px into place over the first 240px of
+its entry (or its whole entry, if it is shorter — a block that is fully on
+screen has always arrived, so a short page cannot leave one hanging), and a
+`Ring` by its heading — the living line's circle-around at bullet size —
+draws once round a dot over its first 120px. The rise is §5's 14px bound,
+held a little under it. No opacity: §5's "a fade with no rise reads as a
+loading glitch" is the converse of this, and a rise with no fade is what the
+rule leaves. A bare dashboard section whose children are cards does not rise
+itself; its cards do, one each, so two rises never stack into a slide.
+
+The three off-switches (§4) are the gate shape: both stylesheets declare
+their animation only inside `@supports (animation-timeline: view())`,
+`prefers-reduced-motion: no-preference` and `body:not(.motion-paused)`, so
+every exit renders the arrived block and the whole ring by construction.
+Under `forced-colors` a ring is CanvasText. There is no observer, no state
+and no clock in either.
+
+The dashboards (/blog, /blog/area/:slug, /blog/log, /projects and
+/projects/:slug) take the circle as a system, all of it still except where
+it says it draws: round area marks (`AreaGlyph`, the same hue and pattern as
+the square glyph it replaced), a ring bullet before every card, aside and
+day title, the timeline's nodes as rings that draw round their icon, the
+current rail item circled (drawn whole: it is chrome, not an arrival), the
+topic shares as a ring rather than a strip, and a short still strand of the
+aurora (`motion/HeadStrand.tsx`, the ribbon's own strands and colours)
+under each page title, ending in a ring. The timeline's rail is a faded
+aurora thread. The page titles were already the display face.
 
 **#193: one gallery for both pages.** The wall, its sizes, `assemble`, the
 re-hang and the three off-switches moved out of `projects/` into
@@ -1556,8 +1603,8 @@ the trap underneath all three:
   **undefined for a progress-driven animation**: a view timeline ignores the
   duration, so the global override leaves the stroke still tied to the scroll
   position. Scroll-driven components must cancel the animation outright and
-  restate the arrived state themselves. `InkWipe.module.css` makes this argument
-  at length.
+  restate the arrived state themselves. `InkRule.module.css` makes this
+  argument.
 - `animation-play-state: paused` is the obvious-looking alternative and is
   wrong for the same reason in reverse: it freezes each animation at the time it
   has reached, which for anything that has not started yet is frame zero — and
@@ -1600,8 +1647,10 @@ per-stage deadline for an `animationend` that never fired. It went with the
 staged arrival in #162; a scroll-driven animation has no event to wait for.
 
 Two further exits exist for specific effects rather than for motion in general:
-`forced-colors: active` removes `InkWipe`'s coloured band, because in a forced
-palette it would be painted in a system colour it was never chosen for; and an
+`forced-colors: active` turns a `Ring` and the timeline's aurora thread to
+CanvasText, because in a forced palette a brand hue would be painted in a
+system colour it was never chosen for (until #251 it also removed `InkWipe`'s
+coloured band); and an
 `IntersectionObserver` that never fires has to land on the finished page too,
 which is why `Written` animates when no observer has told it where it is.
 
@@ -1704,7 +1753,9 @@ direction, or set `fill-rule: evenodd` deliberately and know what it costs.
 | `Stack.module.css` | `count` — each figure counts from nought as the plate comes up, and back down as it goes | named `view-timeline` `--specs` on the plate |
 | `index.css` `.scrub-pulse` | every loading placeholder's pulse (`.scrub-rise` retired in #193) | `view()` |
 | `Approach.module.css` + `ApproachFigures.tsx` | `draw` — each principle's figure, stroke by stroke | named `view-timeline` per principle |
-| `motion/InkWipe.tsx` | ink arriving as a hard clip edge, plus the coloured band | `view()` |
+| `motion/Arrive.tsx` | `arrive` — the one appear primitive (#251): a block rising the last 12px into place; never covers, clips or fades the content | `view()`, `entry 0%`–`entry min(100%, 240px)` |
+| `motion/Ring.tsx` | the circle-around at bullet size: a loop round a dot or an icon, drawn by scroll as it arrives, or whole as chrome | named `view-timeline` `--ring` on the ring's box, `cover 0px`–`cover 120px` |
+| `motion/HeadStrand.tsx` | a still strand of the aurora under a dashboard title, ending in a ring | — (still) |
 | `motion/InkRule.tsx` | a hairline drawing itself in | `view()` |
 | `gallery/Wall.module.css` + `Wall.tsx` | `assemble`, unused since #227 (was /projects, and /blog from #193 until #224): each piece slides in from its own side of the wall (or rises, in the middle third), and a filter re-hangs the wall with a short view transition | named `view-timeline` on each static `<li>`, read by the `.piece` inside it; side read from layout once into `data-from` |
 | `projects/Gallery.module.css`, `notes/NoteTile.module.css` | what hangs in a cell: a project tile, a note card. No motion of their own | — |
@@ -1725,6 +1776,11 @@ direction, or set `fill-rule: evenodd` deliberately and know what it costs.
 | `motion/Written.tsx` | `pen` — running text written one word after another as it rises through the lower half of the window | named `view-timeline` on the paragraph; word `i` of `n` owns the slice `i/n`–`(i+1)/n` |
 
 ### Retired, and why
+
+`InkWipe` (a block printed behind a hard clip edge with a saturated band
+riding it) was deleted in #251 on the owner's call that it was not on par
+with the brand; it hid and painted over the text it was arriving with, and
+`Arrive` replaced it under a rule that forbids exactly that (§2, #251).
 
 `IrisPanel` (a panel opening from its centre), `FillSweep` (a heading's fill
 sweeping across its glyphs), `WordStagger` (a line arriving word by word) and
@@ -1840,13 +1896,15 @@ animation.
 | gallery filter re-hang (view transition) | — | — | **removed** (#227) with the wall: a filter now narrows the cards at once |
 | filter popovers, the rail's phone sheet (`FilterControl`, `Rail`) | /projects, /blog | none: shown and hidden, no transition | — (#193) |
 | notes hung on the gallery wall (`NoteTile` in `Wall`) | /blog | — | **removed** (#224): the index is a dashboard of rows and cards, and nothing on it arrives |
-| Blogs dashboard: tree open/close, Home/Feed switch, the phone's rail `<dialog>`, the timeline (`dashboard/`) | /blog, /blog/area/:slug | none: shown and hidden, no transition; hover/focus as the row below | — (#224) |
+| Blogs dashboard: tree open/close, Home/Feed switch, the phone's rail `<dialog>`, the timeline (`dashboard/`) | /blog, /blog/area/:slug | none: shown and hidden, no transition; hover/focus as the row below; since #251 the cards and timeline nodes arrive (the two rows above) | — (#224) |
 | area history: day groups, copy-link tick, share fallback, `j`/`k` focus, topic filter (`dashboard/History.tsx`); a note's heading copy-link (`notes/headingAnchors.tsx`) | /blog/area/:slug, /blog/:slug | none: a two-second icon state, shown and hidden, focus without smooth scroll; hover/focus as the row below | — (#225) |
 | Work dashboard: sort switch, repository cards and their activity strips, the releases timeline, the phone's rail `<dialog>` (`work/`, `dashboard/`); since #242 the project page's shell too: its header buttons, pinned rail, About aside, cards and release/doc rows (`pages/Project.module.css`) | /projects, /projects/:slug | none: a re-sort is a navigation that keeps the scroll; the strip is drawn once; hover/focus change colour in `--dur-micro` | — (#227, #242) |
 | project tabs: the selected underline, the panels (`work/Tabs.tsx`) | /projects/:slug | none: drawn on the selected tab, panels shown and hidden; colour in `--dur-micro` | — (#227) |
 | channel log: days of rows, the kind and area filters, "Load more", the phone's rail `<dialog>` (`pages/BlogLog`) | /blog/log | none: rows appended and filters applied without a transition; hover/focus as the row below; skeletons as the sweep row | — (#226) |
 | stats panel bars (`draw-bar`) | /projects | — | **removed** (#193): the panel was deleted |
-| ink wipe on the cover and band (`InkWipe`) | /projects/:slug | `view()` | scrubbed |
+| ink wipe on the cover and band (`InkWipe`) | — | — | **removed** (#251): it hid and painted over the text it arrived with |
+| arrivals: a block rising 12px into place (`Arrive`) | /projects/:slug (the Overview's cards), /blog, /blog/area/:slug (cards, days), /projects (repository cards) | `view()` | **scrubbed** (#251) |
+| rings drawn round a dot or an icon (`Ring`) | the same routes: card, aside and day titles, timeline nodes, decision ordinals | named `view-timeline` per ring | **scrubbed** (#251) |
 | notes index cards rising (`.scrub-rise`) | /blog | — | **removed** (#193): the notes hang on the gallery wall and arrive by `assemble` (row above) |
 | loading placeholders' pulse (`.scrub-pulse`) | /blog/:slug, note covers, project shots, the admin "Saving" dot | `view()`, `cover` | **scrubbed** (#162; was Tailwind `animate-pulse-soft`, 2.4s infinite) |
 | skeleton sweep (`Skeleton`) | /, /projects, /projects/:slug, /blog | `--sk-line` per line | **scrubbed** (#162; was a 1.5s loop) |
@@ -1888,3 +1946,9 @@ it is on the dashboard's shell, its rows arrive with "Load more" rather than
 on scroll (no infinite scroll, so no arrival to animate), and its filters are
 links. Counted again after #225, #227 and #226 had all landed: 45 rows; 20
 scrubbed, 12 exempt, 6 removed, 7 with nothing of their own.
+
+#251 removed the ink wipe and added two scrubbed rows, the arrivals and
+their rings, which reach the dashboards for the first time: 21 scrubbed, 12
+exempt, 7 removed, 7 with nothing of their own. The dashboards' still brand
+marks (round area marks, the circled rail item, the topic ring, the header
+strand) are not motion and have no row.

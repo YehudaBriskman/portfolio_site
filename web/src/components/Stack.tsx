@@ -34,8 +34,7 @@ import styles from "@/components/Stack.module.css";
  * for every project until a collection is published. A number that cannot
  * re-derive itself is not a figure, however good it looks counting up.
  *
- * There is no ink wipe on this section, which every other section has
- * something of. The beat's device is `count`; wrapping the figures in an
+ * There is no arrival on this section. The beat's device is `count`; wrapping the figures in an
  * arrival as well would be two devices saying "here I am" at different speeds,
  * and the count is the stronger of the two by a distance.
  */

@@ -9,6 +9,8 @@ import SkeletonGate from "@/components/gallery/SkeletonGate";
 import SkeletonLines from "@/components/gallery/SkeletonLines";
 import { FilterTokens, type FacetSpec } from "@/components/gallery/FilterControl";
 import styles from "@/components/dashboard/Dashboard.module.css";
+import HeadStrand from "@/components/motion/HeadStrand";
+import Ring from "@/components/motion/Ring";
 import log from "./BlogLog.module.css";
 import { fullDate, relative, useWords } from "@/components/dashboard/i18n";
 import {
@@ -421,6 +423,7 @@ export default function BlogLog() {
       >
         <header className={styles.hello}>
           <h1 className={styles.greeting}>{w.title}</h1>
+          <HeadStrand />
           <p className={styles.lede}>{w.lede}</p>
         </header>
 
@@ -440,6 +443,7 @@ export default function BlogLog() {
               return (
                 <section key={d.key} className={log.day} aria-labelledby={id}>
                   <h2 id={id} className={styles.monthHead}>
+                    <Ring size={10} tone="soft" />
                     {d.label}
                   </h2>
                   <ol className={styles.rows}>

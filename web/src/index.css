@@ -391,20 +391,20 @@
     --rule:     207 201 186;   /* #CFC9BA  hairlines and image borders */
     --rule-firm:166 159 142;   /* #A69F8E  a border that is meant to be seen */
     /*
-     * The transition palette.
+     * The five brand hues.
      *
      * The page at rest is cream and ink and one blue, and that is the whole
      * static identity — a sixth saturated colour sitting permanently in the
      * chrome would undo the reason the accent was taken out in the first
-     * place. These five exist only in motion: they are the colour of
-     * something arriving, visible for the few hundred milliseconds a wipe
-     * takes to cross an element, and gone once it has.
+     * place. So these five are only ever small marks, never a ground or a
+     * band over content: the area marks, the topic shares, a ring, the
+     * card washes. (Until #251 they were also the colour of the ink wipe's
+     * band, which crossed the text it arrived with; that is retired.)
      *
      * Values in the register monday.com works in — saturated, high-key,
      * cheerful rather than corporate — but pulled toward this paper rather
-     * than lifted off their screens. Each one is checked as ink on cream,
-     * because a wipe's leading edge is briefly the only thing on the page
-     * and it must not read as a defect.
+     * than lifted off their screens. Yellow and green are under 2:1 on the
+     * paper, so neither may be the only thing that carries a meaning.
      */
     --hue-red:    226  68  92;   /* #E2445C */
     --hue-blue:     0 115 234;   /* #0073EA */

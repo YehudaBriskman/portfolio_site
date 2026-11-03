@@ -20,6 +20,8 @@ import {
 } from "@/components/dashboard/Parts";
 import { ListSkeleton, PostsSkeleton, RowsSkeleton } from "@/components/dashboard/Skeletons";
 import styles from "@/components/dashboard/Dashboard.module.css";
+import HeadStrand from "@/components/motion/HeadStrand";
+import Ring from "@/components/motion/Ring";
 import { greeting, monthLabel, shortDate, useWords, type Lang, type Words } from "@/components/dashboard/i18n";
 import FilterControl, { FilterTokens, SearchField, type FacetSpec } from "@/components/gallery/FilterControl";
 import { activeCount, hrefCleared, readSelection } from "@/components/gallery/facets";
@@ -358,6 +360,7 @@ export default function Blog() {
           <span className="sr-only">{`${lang === "he" ? "בלוגים" : "Blogs"}: `}</span>
           {greeting(now, lang)}
         </h1>
+        <HeadStrand />
         <p className={styles.lede}>
           {lang === "he"
             ? "רשימות עבודה: החלטות שקיבלתי ומה הן עלו, לפי תחום."
@@ -492,6 +495,7 @@ export default function Blog() {
           <span className="sr-only">{`${lang === "he" ? "בלוגים" : "Blogs"}: `}</span>
           {t.feed}
         </h1>
+        <HeadStrand />
         <p className={styles.lede} aria-live="polite">
           {ready ? (filtered ? t.ofNotes(matching.length, all.length) : t.notes(all.length)) : " "}
         </p>
@@ -511,7 +515,10 @@ export default function Blog() {
         <DashCard title={t.everything} flush>
           {months.map((m) => (
             <section key={m.key} className={styles.month} aria-label={m.label}>
-              <h3 className={styles.monthHead}>{m.label}</h3>
+              <h3 className={styles.monthHead}>
+                <Ring size={10} tone="soft" />
+                {m.label}
+              </h3>
               <RowList>{m.items.map(row)}</RowList>
             </section>
           ))}

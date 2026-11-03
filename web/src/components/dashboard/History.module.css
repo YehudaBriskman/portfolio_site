@@ -419,6 +419,10 @@
 }
 
 .sideTitle {
+  /* The section ring before the words (#251), as on every card title. */
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   margin: 0;
   font-family: var(--font-text);
   font-size: 0.875rem;
@@ -493,23 +497,41 @@
 
 /* ─────────────────────────────────────────────────────────────── topics */
 
+/* The ring beside its legend (#251): the shares as a circle, the site's
+   motif, where GitHub has a strip. Still: it is a readout, not an arrival. */
 .topics {
-  display: flex;
-  flex-direction: column;
-  gap: 0.625rem;
+  display: grid;
+  grid-template-columns: 4rem minmax(0, 1fr);
+  align-items: center;
+  gap: 1rem;
 }
 
-.bar {
-  display: flex;
-  height: 0.5rem;
-  gap: 2px;
-  overflow: hidden;
-  border-radius: 999px;
+.ring {
+  width: 4rem;
+  height: 4rem;
+  /* Twelve o'clock is the start in both directions; the order round it
+     follows the legend's. In Hebrew it runs the other way round. */
+  overflow: visible;
 }
 
-.barPart {
-  min-width: 2px;
-  flex-basis: 0;
+.ring:dir(rtl) {
+  transform: scaleX(-1);
+}
+
+.ringTrack,
+.ringArc {
+  fill: none;
+  stroke-width: 4;
+}
+
+.ringTrack {
+  stroke: var(--dash-line-soft);
+}
+
+@media (forced-colors: active) {
+  .ringArc {
+    stroke: CanvasText !important;
+  }
 }
 
 .legend {

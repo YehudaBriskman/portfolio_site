@@ -1457,8 +1457,7 @@
  * In a forced palette every band collapses to one system colour, so the five
  * steps stop encoding anything and the city becomes a relief map of a chart
  * nobody can read. The grid keeps its geometry — it is still a year laid out
- * in weeks — and the `details` below it is doing the work. The same argument
- * `InkWipe` makes for dropping its coloured band.
+ * in weeks — and the `details` below it is doing the work.
  */
 @media (forced-colors: active) {
   .stage {

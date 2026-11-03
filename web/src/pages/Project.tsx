@@ -9,13 +9,12 @@ import { RepoFacts } from "@/components/dashboard/History";
 import dash from "@/components/dashboard/Dashboard.module.css";
 import history from "@/components/dashboard/History.module.css";
 import Written from "@/components/motion/Written";
-/* InkWipe, not Reveal. Reveal was an IntersectionObserver that translated a
-   section 26px before fading it in; the wipe is scroll-timeline driven and
-   needs no observer. Its stagger props go with it: a scroll-driven animation
-   ignores animation-delay outright, so a per-item delay could only ever have
-   been theatre. Each item now prints when it arrives, which is the same
-   sequence the stagger was imitating. */
-import InkWipe from "@/components/motion/InkWipe";
+/* Arrive, not InkWipe (#251): the wipe covered the text with a clip and a
+   coloured band while it ran; an arrival only moves the block the last 12px
+   and draws a ring by its heading. See motion/Arrive.tsx. */
+import Arrive from "@/components/motion/Arrive";
+import Ring from "@/components/motion/Ring";
+import HeadStrand from "@/components/motion/HeadStrand";
 import PostList from "@/components/PostList";
 import SkeletonGate from "@/components/gallery/SkeletonGate";
 import SkeletonLines from "@/components/gallery/SkeletonLines";
@@ -91,8 +90,9 @@ const DOC_TAG = "doc";
  * already says it.
  *
  * MOTION. The Overview keeps the devices it had: the description and the
- * brief and decisions are `Written`, the highlights and decisions arrive
- * through `InkWipe`, and the figure keeps its drift. Everything else on the
+ * brief and decisions are `Written`, the cards under the figure arrive
+ * through `Arrive` with a `Ring` by their heading (#251), and the figure
+ * keeps its drift. Everything else on the
  * shell has none (`docs/motion-contract.md`).
  */
 export default function Project() {
@@ -236,7 +236,17 @@ export default function Project() {
                   className={`${work.pinItem} ${styles.pinItem}`}
                   aria-current={e.collection.slug === project ? "page" : undefined}
                 >
-                  <BookMarked size={16} aria-hidden="true" />
+                  {/* The project on screen is circled (#251), as the rail's
+                      current view is; same box either way. */}
+                  <span className={styles.pinIcon} aria-hidden="true">
+                    {e.collection.slug === project ? (
+                      <Ring size={24} draw={false}>
+                        <BookMarked size={16} />
+                      </Ring>
+                    ) : (
+                      <BookMarked size={16} />
+                    )}
+                  </span>
                   <span className={work.pinLabel} translate="no">
                     {e.collection.title}
                   </span>
@@ -256,6 +266,7 @@ export default function Project() {
     <div className={history.side}>
       <section className={history.sideCard} aria-labelledby={aboutId}>
         <h2 id={aboutId} className={history.sideTitle}>
+          <Ring size={10} />
           {t.about}
         </h2>
         {!c ? (
@@ -326,6 +337,7 @@ export default function Project() {
             {entry.year && <span className={styles.num}>{entry.year}</span>}
           </span>
         </div>
+        <HeadStrand />
         {/* The second voice, under the name: a phrase somebody wrote, so
             not a heading. */}
         {c.tagline && <p className={styles.tagline}>{c.tagline}</p>}
@@ -455,15 +467,15 @@ export default function Project() {
                 </section>
 
                 {(entry.problem || entry.role || entry.outcome) && (
-                  <div className={styles.card}>
+                  <Arrive className={styles.card}>
                     <ProjectBrief entry={entry} />
-                  </div>
+                  </Arrive>
                 )}
 
                 {entry.highlights.length > 0 && (
-                  <InkWipe as="div">
-                    <section className={styles.card} aria-labelledby="highlights-heading">
-                      <h2 id="highlights-heading" className={styles.cardTitle}>
+                  <Arrive as="section" className={styles.card} aria-labelledby="highlights-heading">
+                      <h2 id="highlights-heading" className={`${styles.cardTitle} ${styles.marked}`}>
+                        <Ring size={12} />
                         Worth knowing
                       </h2>
                       {/* The landing page has always shown these and the
@@ -475,22 +487,19 @@ export default function Project() {
                           <li key={h}>{h}</li>
                         ))}
                       </ul>
-                    </section>
-                  </InkWipe>
+                  </Arrive>
                 )}
 
                 {entry.decisions.length > 0 && (
-                  <InkWipe as="div">
-                    <div className={styles.card}>
-                      <ProjectDecisions decisions={entry.decisions} />
-                    </div>
-                  </InkWipe>
+                  <Arrive className={styles.card}>
+                    <ProjectDecisions decisions={entry.decisions} />
+                  </Arrive>
                 )}
 
                 {entry.tech.length > 0 && (
-                  <div className={styles.card}>
+                  <Arrive className={styles.card}>
                     <ProjectStack tech={entry.tech} />
-                  </div>
+                  </Arrive>
                 )}
 
                 {others.length > 0 && (

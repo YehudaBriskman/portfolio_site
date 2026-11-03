@@ -1,0 +1,129 @@
+[
+  {
+    "tag": "before",
+    "theme": "light",
+    "progress": 0,
+    "sectionHeight": 167,
+    "covered": [
+      "::after background rgb(226, 68, 92) on DIV",
+      "::before background rgb(85, 82, 74) on LI",
+      "::before background rgb(85, 82, 74) on LI",
+      "::before background rgb(85, 82, 74) on LI",
+      "::before background rgb(85, 82, 74) on LI"
+    ],
+    "headingOpacity": 1,
+    "file": "brand-motion/appear-before-light-000.png"
+  },
+  {
+    "tag": "before",
+    "theme": "light",
+    "progress": 0.3,
+    "sectionHeight": 167,
+    "covered": [
+      "clip-path polygon(-32px calc(70.313% + 13.0003px), on DIV",
+      "::after background rgb(226, 68, 92) on DIV",
+      "::before background rgb(85, 82, 74) on LI",
+      "::before background rgb(85, 82, 74) on LI",
+      "::before background rgb(85, 82, 74) on LI",
+      "::before background rgb(85, 82, 74) on LI"
+    ],
+    "headingOpacity": 1,
+    "file": "brand-motion/appear-before-light-030.png"
+  },
+  {
+    "tag": "before",
+    "theme": "light",
+    "progress": 0.6,
+    "sectionHeight": 167,
+    "covered": [
+      "clip-path polygon(-32px calc(39.6569% - 6.61958px) on DIV",
+      "::after background rgb(226, 68, 92) on DIV",
+      "::before background rgb(85, 82, 74) on LI",
+      "::before background rgb(85, 82, 74) on LI",
+      "::before background rgb(85, 82, 74) on LI",
+      "::before background rgb(85, 82, 74) on LI"
+    ],
+    "headingOpacity": 1,
+    "file": "brand-motion/appear-before-light-060.png"
+  },
+  {
+    "tag": "before",
+    "theme": "light",
+    "progress": 1,
+    "sectionHeight": 167,
+    "covered": [
+      "clip-path polygon(-32px calc(0% - 32px), calc(100% on DIV",
+      "::after background rgb(226, 68, 92) on DIV",
+      "::before background rgb(85, 82, 74) on LI",
+      "::before background rgb(85, 82, 74) on LI",
+      "::before background rgb(85, 82, 74) on LI",
+      "::before background rgb(85, 82, 74) on LI"
+    ],
+    "headingOpacity": 1,
+    "file": "brand-motion/appear-before-light-100.png"
+  },
+  {
+    "tag": "before",
+    "theme": "dark",
+    "progress": 0,
+    "sectionHeight": 167,
+    "covered": [
+      "clip-path polygon(-32px calc(100% + 32px), calc(10 on DIV",
+      "::after background rgb(226, 68, 92) on DIV",
+      "::before background rgb(168, 164, 154) on LI",
+      "::before background rgb(168, 164, 154) on LI",
+      "::before background rgb(168, 164, 154) on LI",
+      "::before background rgb(168, 164, 154) on LI"
+    ],
+    "headingOpacity": 1,
+    "file": "brand-motion/appear-before-dark-000.png"
+  },
+  {
+    "tag": "before",
+    "theme": "dark",
+    "progress": 0.3,
+    "sectionHeight": 167,
+    "covered": [
+      "clip-path polygon(-32px calc(70.313% + 13.0003px), on DIV",
+      "::after background rgb(226, 68, 92) on DIV",
+      "::before background rgb(168, 164, 154) on LI",
+      "::before background rgb(168, 164, 154) on LI",
+      "::before background rgb(168, 164, 154) on LI",
+      "::before background rgb(168, 164, 154) on LI"
+    ],
+    "headingOpacity": 1,
+    "file": "brand-motion/appear-before-dark-030.png"
+  },
+  {
+    "tag": "before",
+    "theme": "dark",
+    "progress": 0.6,
+    "sectionHeight": 167,
+    "covered": [
+      "clip-path polygon(-32px calc(39.6569% - 6.61958px) on DIV",
+      "::after background rgb(226, 68, 92) on DIV",
+      "::before background rgb(168, 164, 154) on LI",
+      "::before background rgb(168, 164, 154) on LI",
+      "::before background rgb(168, 164, 154) on LI",
+      "::before background rgb(168, 164, 154) on LI"
+    ],
+    "headingOpacity": 1,
+    "file": "brand-motion/appear-before-dark-060.png"
+  },
+  {
+    "tag": "before",
+    "theme": "dark",
+    "progress": 1,
+    "sectionHeight": 167,
+    "covered": [
+      "clip-path polygon(-32px calc(0% - 32px), calc(100% on DIV",
+      "::after background rgb(226, 68, 92) on DIV",
+      "::before background rgb(168, 164, 154) on LI",
+      "::before background rgb(168, 164, 154) on LI",
+      "::before background rgb(168, 164, 154) on LI",
+      "::before background rgb(168, 164, 154) on LI"
+    ],
+    "headingOpacity": 1,
+    "file": "brand-motion/appear-before-dark-100.png"
+  }
+]
