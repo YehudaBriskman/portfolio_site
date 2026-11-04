@@ -166,6 +166,37 @@ describe("an area's Hebrew is stamped on save (#303)", () => {
     expect(store.get("collection:bothy")!.heMeta).toEqual({ src: { title: fp("Bothy"), tagline: fp("A dev box") } });
     expect((await statusOf("area", "bothy")).status).toBe("stale");
   });
+
+  it("keeps each link label as Text, stamped, and gives the public a string label and the Hebrew beside it (#306)", async () => {
+    const links = [
+      { label: { en: "Source", he: "קוד מקור" }, url: "https://example.com/src" },
+      { label: "Docs", url: "https://example.com/docs" },
+    ];
+    expect((await saveArea({ links })).status).toBe(200);
+    const stored = store.get("collection:bothy")!.links as { label: { en: string; he?: string; heSrc?: string } }[];
+    expect(stored[0].label).toEqual({ en: "Source", he: "קוד מקור", heSrc: fp("Source") });
+    expect(stored[1].label).toEqual({ en: "Docs" });
+    let units = (await statusOf("area", "bothy")).units;
+    expect(units.find((u) => u.path === "links.0.label")?.status).toBe("translated");
+    expect(units.find((u) => u.path === "links.1.label")?.status).toBe("missing");
+
+    /* A client that knows only English (the MCP tools) sends strings: the Hebrew stays. */
+    await saveArea({ links: [{ label: "Source", url: "https://example.com/src" }, links[1]] });
+    expect((store.get("collection:bothy")!.links as typeof stored)[0].label.he).toBe("קוד מקור");
+
+    /* The English changes: stale, until "still correct". */
+    await saveArea({ links: [{ label: { en: "Source code", he: "קוד מקור" }, url: "https://example.com/src" }, links[1]] });
+    units = (await statusOf("area", "bothy")).units;
+    expect(units.find((u) => u.path === "links.0.label")?.status).toBe("stale");
+    const ack = await asAdmin(request(app()).post("/api/admin/translations/ack")).send({ type: "area", id: "bothy", path: "links.0.label", rev: store.get("collection:bothy")!._rev });
+    expect(ack.status).toBe(200);
+    expect((await statusOf("area", "bothy")).units.find((u) => u.path === "links.0.label")?.status).toBe("translated");
+
+    const pub = await request(app()).get("/api/blog/collections/bothy");
+    expect(pub.body.collection.links[0]).toEqual({ label: "Source code", url: "https://example.com/src" });
+    expect(pub.body.collection.he["links.0.label"]).toBe("קוד מקור");
+    expect(JSON.stringify(pub.body)).not.toContain("heSrc");
+  });
 });
 
 describe("structured copy is stamped on save (#303)", () => {

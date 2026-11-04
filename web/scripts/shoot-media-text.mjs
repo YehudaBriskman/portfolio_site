@@ -6,6 +6,7 @@
  *   306-media-he-*        a picture's alt and caption, the Hebrew beside each
  *   306-media-captions-*  a video's captions, one track per language
  *   306-note-links-*      a note's links, each label with its Hebrew
+ *   306-area-links-*      an area's links, each label `Text` with its Hebrew
  *
  *   npm run build && xvfb-run -a node scripts/shoot-media-text.mjs
  *
@@ -40,6 +41,27 @@ const LINKS = [
   { label: "Live demo", url: "https://example.com/demo" },
 ];
 
+/* An area whose link labels are `Text`, one from before #306 still a string. */
+const AREA = {
+  _rev: "1-area",
+  slug: "fixture-area",
+  title: "A fixture area",
+  tagline: "An area for the audit",
+  he: { title: "אזור לבדיקה", tagline: null, description: null },
+  kind: "project",
+  repo: null,
+  stats: null,
+  description: "",
+  coverImage: null,
+  icon: null,
+  links: [
+    { label: { en: "Source on GitHub", he: "הקוד ב-GitHub" }, url: "https://example.com/src" },
+    { label: "Changelog", url: "https://example.com/changes" },
+  ],
+  order: 50,
+  status: "published",
+};
+
 /* [name, path, what it waits for, what it does once loaded] */
 const SHOTS = [
   ["306-media-he", "/admin/media?id=fixture-media", "Alt text in Hebrew", async (page) => {
@@ -52,6 +74,10 @@ const SHOTS = [
   ["306-note-links", "/admin/posts/fixture-post", "Link label in Hebrew", async (page) => {
     /* The links sit under "Advanced", closed until opened. */
     await page.locator("details:has([data-path^='links.'])").evaluate((d) => (d.open = true));
+    await page.getByRole("textbox", { name: "Link label in Hebrew" }).first().evaluate((el) => el.scrollIntoView({ block: "center" }));
+  }],
+  ["306-area-links", "/admin/areas/fixture-area", "Link label in Hebrew", async (page) => {
+    await page.locator("details:has([data-path^='links.'])").evaluate((d) => (d.open = true)).catch(() => {});
     await page.getByRole("textbox", { name: "Link label in Hebrew" }).first().evaluate((el) => el.scrollIntoView({ block: "center" }));
   }],
 ];
@@ -85,6 +111,7 @@ try {
           if (url.pathname === "/api/admin/posts/fixture-post" && body?.post) return json({ ...body, post: withLinks(body.post) });
           if (url.pathname === "/api/admin/posts" && body?.items) return json({ ...body, items: body.items.map(withLinks) });
           if (url.pathname === "/api/admin/translations") return json(REPORT);
+          if (url.pathname === "/api/admin/collections") return json({ ok: true, items: [AREA] });
           return json(body, status);
         });
         const page = await ctx.newPage();

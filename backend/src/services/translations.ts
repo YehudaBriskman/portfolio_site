@@ -279,6 +279,25 @@ export async function ackTranslation(input: AckInput): Promise<AckResult> {
       throw e;
     }
   }
+  /* An area's link label is `Text` (#306): its fingerprint sits inside it. */
+  const areaLink = input.type === "area" ? /^links\.(\d)\.label$/.exec(input.path) : null;
+  if (areaLink) {
+    const id = `collection:${input.id}`;
+    const doc = await tryGet<HeDoc>(id);
+    if (!doc) return notFound;
+    if (doc._rev !== input.rev) return conflictAck;
+    const links = Array.isArray(doc.links) ? (doc.links as { label: unknown; url: string }[]) : [];
+    const label = links[Number(areaLink[1])]?.label as { en?: string; he?: string } | string | undefined;
+    if (!label || typeof label === "string" || typeof label.en !== "string" || !label.he?.trim()) return nothingLive;
+    const before = structuredClone(doc);
+    const next: HeDoc = {
+      ...doc,
+      links: links.map((l, i) => (i === Number(areaLink[1]) ? { ...l, label: { ...(l.label as object), heSrc: fp(label.en as string) } } : l)),
+    };
+    const rev = await save(next);
+    if (rev === null) return conflictAck;
+    return { ok: true, rev, target: id, before, after: next };
+  }
   if (input.type === "post" || input.type === "area") {
     const fields = input.type === "post" ? POST_HE : AREA_HE;
     if (!fields.has(input.path)) return notFound;

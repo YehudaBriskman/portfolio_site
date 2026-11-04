@@ -97,7 +97,13 @@ const AdminCollectionSchema = z.object({
   coverImage: z.string().nullable(),
   /* A library icon (#253). Absent on areas saved before it existed. */
   icon: z.string().nullable().optional(),
-  links: z.array(LinkSchema),
+  /* A label is `Text` since #306; an area saved before holds a string. */
+  links: z.array(
+    z.object({
+      label: z.union([z.string(), z.object({ en: z.string(), he: z.string().optional() }).passthrough()]),
+      url: z.string(),
+    }),
+  ),
   order: z.number(),
   status: z.enum(["published", "hidden"]),
 });

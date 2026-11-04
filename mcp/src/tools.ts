@@ -104,7 +104,9 @@ type AdminArea = {
   repo: { owner: string; name: string; branch: string; docPaths: string[] } | null;
   description: string;
   coverImage: string | null;
-  links: { label: string; url: string }[];
+  /* A label is `Text` since #306 (a string before). A string sent back keeps
+     the Hebrew of a link whose English is unchanged. */
+  links: { label: string | { en: string; he?: string }; url: string }[];
   order: number;
   status: "published" | "hidden";
 };

@@ -198,6 +198,13 @@ export function collectionTranslation(c: Collection): { units: TranslationUnit[]
     if (!filled(en)) continue;
     units.push(unit(field, primary, en, he?.[field] as string | undefined, src[field], null));
   }
+  /* Each link label is `Text` (#306), its fingerprint inside it; a string is English only. */
+  (c.links ?? []).forEach((l, i) => {
+    const label = l.label as unknown;
+    const t = typeof label === "string" ? { en: label } : (label as { en?: string; he?: string; heSrc?: string } | null);
+    if (!t || !filled(t.en)) return;
+    units.push(unit(`links.${i}.label`, false, t.en, t.he, t.heSrc, null));
+  });
   return { units, status: itemStatus(units) };
 }
 

@@ -2,6 +2,8 @@ import { Router } from "express";
 import { couch, CouchError } from "../db/couch.js";
 import { asyncHandler } from "../middlewares/asyncHandler.js";
 import {
+  AreaLinkLabel,
+  AreaLinkSchema,
   CollectionHebrewSchema,
   CollectionSchema,
   PostContentSchema,
@@ -31,7 +33,7 @@ import {
 import adminContentRoutes from "./admin-content.route.js";
 import adminSettingsRoutes from "./admin-settings.route.js";
 import adminTranslationsRoutes from "./admin-translations.route.js";
-import { COLLECTION_FIELDS, LINK_LABEL_PATHS, POST_FIELDS, postEnglish, stampHebrewMeta, type HebrewMeta } from "../schemas/i18n.js";
+import { COLLECTION_FIELDS, LINK_LABEL_PATHS, POST_FIELDS, postEnglish, stampHebrewMeta, stampTexts, type HebrewMeta } from "../schemas/i18n.js";
 
 const router = Router();
 
@@ -73,7 +75,8 @@ export const CollectionWrite = z.object({
   /* An icon from the media library (#253). Optional, not defaulted, like
      `featured`: a client that does not send it leaves it as it was. */
   icon: z.string().url().nullable().optional(),
-  links: z.array(LinkSchema).max(8).default([]),
+  /* A label is `Text` or, from a client that knows only English, a string (#306). */
+  links: z.array(AreaLinkSchema).max(8).default([]),
   order: z.coerce.number().int().default(50),
   status: z.enum(["published", "hidden"]).default("published"),
   he: CollectionHebrewSchema.nullable().optional(),
@@ -461,6 +464,23 @@ router.get(
   })
 );
 
+/*
+ * An area's links as saved (#306). A label sent as a plain string comes from a
+ * client that knows only English (the MCP tools, an older admin): where the
+ * same link already has that English, its Hebrew is kept rather than dropped.
+ * Then each Hebrew is stamped against its English by the `Text` rule.
+ */
+function areaLinks(next: Collection["links"], raw: unknown, before: Collection["links"] | undefined): Collection["links"] {
+  const sent = Array.isArray(raw) ? (raw as { label?: unknown }[]) : [];
+  const prior = (before ?? []).map((l) => ({ ...l, label: AreaLinkLabel.parse(l.label) }));
+  const kept = next.map((l, i) => {
+    const was = prior[i];
+    if (typeof sent[i]?.label === "string" && was && was.label.en === l.label.en && was.url === l.url) return { ...l, label: was.label };
+    return l;
+  });
+  return stampTexts({ links: kept }, [{ links: prior }]).links;
+}
+
 router.put(
   "/collections/:slug",
   asyncHandler(async (req, res) => {
@@ -495,7 +515,7 @@ router.put(
       description: i.description,
       coverImage: i.coverImage,
       icon: i.icon !== undefined ? i.icon : (existing?.icon ?? null),
-      links: i.links,
+      links: areaLinks(i.links, req.body?.links, existing?.links),
       order: i.order,
       status: i.status,
       kind: i.kind,

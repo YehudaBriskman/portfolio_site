@@ -229,9 +229,14 @@ never be Hebrew. These become `Text` (A), with a read-side shim (`typeof v ===
 > and `<MediaVideo>` marks the page language's track `default`. A note's link
 > labels sit in its `he` block under `links.<i>.label`, beside each English
 > label in the editor, and `local()` swaps them in on a Hebrew page. Notes have
-> no `sources` field, so there is nothing to translate there. **Not yet:** area
-> `links[].label` (the area editor has no Hebrew links column), and no public
-> page plays a video yet, so the `default` track is proved by unit test only.
+> no `sources` field, so there is nothing to translate there. An area's
+> `links[].label` is `Text` (`{ en, he?, heSrc? }`, a string from before read as
+> `{ en }`), stamped on save by `stampTexts`, with a Hebrew column in the area
+> editor. A label sent as a plain string (the MCP tools) keeps the Hebrew of a
+> link whose English and address are unchanged. The public API still gives
+> `{ label, url }` with the English, and puts the Hebrew in the area's `he`
+> under `links.<i>.label`, as a note's are. **Not yet:** no public page plays
+> a video, so the `default` track is proved by unit test only.
 
 `tech[]`, project `title`, area `title` when it is a product name (WindoM,
 Bothy), `tags` (URL keys) stay strings: names and keys, Latin by glossary

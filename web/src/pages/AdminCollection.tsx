@@ -4,7 +4,7 @@ import AdminShell from "@/components/admin/AdminShell";
 import { PageHeader } from "@/components/admin/ui";
 import StatusPill, { type SaveState } from "@/components/admin/StatusPill";
 import DocPathsEditor from "@/components/admin/DocPathsEditor";
-import LinkEditor, { toLinkRows, type LinkRow } from "@/components/LinkEditor";
+import LinkEditor, { type LinkRow } from "@/components/LinkEditor";
 import { admin, slugify, AdminValidationError } from "@/services/admin";
 import MediaPicker from "@/components/admin/MediaPicker";
 
@@ -71,7 +71,11 @@ export default function AdminCollection() {
           description: c.description,
           coverImage: c.coverImage ?? "",
           icon: c.icon ?? "",
-          links: toLinkRows(c.links),
+          links: c.links.map((l) =>
+            typeof l.label === "string"
+              ? { label: l.label, url: l.url, he: "" }
+              : { label: l.label.en, url: l.url, he: l.label.he ?? "" },
+          ),
           order: String(c.order),
           status: c.status,
           heTitle: c.he?.title ?? "",
@@ -120,7 +124,10 @@ export default function AdminCollection() {
         description: d.description,
         coverImage: d.coverImage.trim() || null,
         icon: d.icon.trim() || null,
-        links: d.links.filter((l) => l.label && l.url),
+        /* Each label as `Text` (#306): the English, and its Hebrew when there is one. */
+        links: d.links
+          .filter((l) => l.label && l.url)
+          .map((l) => ({ label: l.he?.trim() ? { en: l.label, he: l.he.trim() } : { en: l.label }, url: l.url })),
         order: Number(d.order) || 50,
         status: d.status,
         _rev: d._rev,
@@ -314,7 +321,7 @@ export default function AdminCollection() {
           )}
 
           <div className="mt-6">
-            <LinkEditor links={d.links} onChange={(links) => patch({ links })} />
+            <LinkEditor links={d.links} onChange={(links) => patch({ links })} hebrew />
           </div>
         </details>
 
