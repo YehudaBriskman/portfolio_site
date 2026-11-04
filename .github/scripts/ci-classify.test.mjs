@@ -65,6 +65,7 @@ const widening = [
   ["tsconfig (backend)", "backend/tsconfig.json"],
   ["eslint config", "web/eslint.config.js"],
   ["trivy ignores", ".trivyignore.yaml"],
+  ["gitleaks ignores", ".gitleaksignore"],
   ["unknown top-level file", "renovate.json"],
   ["unknown top-level dir", "infra/main.tf"],
   ["unknown dotfile", ".gitattributes"],

@@ -73,6 +73,7 @@ const RULES = [
   { re: /(^|\/)tsconfig[^/]*\.json$/, widen: true, why: "TypeScript configuration" },
   { re: /(^|\/)(eslint\.config\.[cm]?[jt]s|\.eslintrc[^/]*)$/, widen: true, why: "eslint configuration" },
   { re: /^\.trivyignore(\.ya?ml)?$/, widen: true, why: "image scan policy" },
+  { re: /^\.gitleaksignore$/, widen: true, why: "secret scan policy" },
   // Components.
   { re: /^web\//, component: "web" },
   { re: /^backend\//, component: "backend" },
