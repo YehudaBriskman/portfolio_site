@@ -149,6 +149,35 @@ describe("nginx config", () => {
   });
 });
 
+describe("the admin gate's identity headers (oci-free #22)", () => {
+  const top = parse(TEMPLATE, SNIPPETS);
+  const IDENTITY: Record<string, string> = {
+    "x-auth-request-user": "$fwd_auth_request_user",
+    "x-auth-request-email": "$fwd_auth_request_email",
+    "x-admin-proxy-secret": "$fwd_admin_proxy_secret",
+  };
+
+  it("go through the switch from every proxied location, never straight from the client", () => {
+    const proxied = locations.filter((loc) => loc.block!.some((d) => d.name === "proxy_pass"));
+    const wrong = proxied.flatMap((loc) => {
+      const headers = upstreamHeaders(loc);
+      return Object.entries(IDENTITY).filter(([h, v]) => headers.get(h) !== v).map(([h]) => `${label(loc)}: ${h}`);
+    });
+    expect(wrong).toEqual([]);
+  });
+
+  it("are dropped unless NGINX_FORWARD_IDENTITY is exactly `on`", () => {
+    for (const variable of Object.values(IDENTITY)) {
+      const map = top.find((d) => d.name === "map" && d.args[1] === variable);
+      expect(map, variable).toBeDefined();
+      expect(map!.args[0]).toBe("NGINX_FORWARD_IDENTITY");
+      const entries = new Map(map!.block!.map((d) => [d.name, d.args[0]]));
+      expect(entries.get("default")).toBe("");
+      expect([...entries.keys()].sort()).toEqual(["default", "on"]);
+    }
+  });
+});
+
 describe("Content-Security-Policy (#124)", () => {
   const csp = new Map(
     responseHeaders(locations[0])

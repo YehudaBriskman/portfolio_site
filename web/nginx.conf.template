@@ -53,6 +53,41 @@ resolver ${NGINX_LOCAL_RESOLVERS} valid=30s ipv6=off;
 
 server_tokens off;
 
+# The three identity headers the admin gate speaks in (backend/src/middlewares/
+# requireAdmin.ts): who oauth2-proxy says this is, and the proof that the
+# request crossed the gated router. nginx passes every client header upstream
+# unless told otherwise, so on the public domain whatever a visitor wrote in
+# them reached the API as written (oci-free #22).
+#
+# Whether to forward them is a property of the host in front of this image,
+# not of the image, so it is a variable, and every proxied location reads it
+# through proxy-headers.conf:
+#
+#   on   pass them through. The default, because preprod needs it: its one
+#        Ingress sends /api/ to THIS nginx after strip-identity, github-auth
+#        and inject-proxy-secret have run, so the headers arriving here are
+#        the gate's own, and dropping them answers every admin call 401.
+#        Compose has no gate and nothing to lose either way.
+#   off  drop them. Production's public web Deployment sets this. Its admin
+#        host never reaches nginx for /api (that Ingress path goes straight to
+#        the api Service), so nothing legitimate arrives here carrying them.
+#
+# A proxy_set_header whose value comes out empty is not sent at all, which is
+# what `default ""` relies on; `on` hands the client's value on unchanged, and
+# an absent header stays absent.
+map "${NGINX_FORWARD_IDENTITY}" $fwd_auth_request_user {
+  on      $http_x_auth_request_user;
+  default "";
+}
+map "${NGINX_FORWARD_IDENTITY}" $fwd_auth_request_email {
+  on      $http_x_auth_request_email;
+  default "";
+}
+map "${NGINX_FORWARD_IDENTITY}" $fwd_admin_proxy_secret {
+  on      $http_x_admin_proxy_secret;
+  default "";
+}
+
 server {
   listen 8080;
   server_name _;
