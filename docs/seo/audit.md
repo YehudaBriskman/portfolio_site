@@ -9,6 +9,14 @@ depth; plus lab Core Web Vitals. The **before** numbers are below; each
 follow-up PR in #308 moves one row, and the **after** column is filled in by
 the last of them.
 
+**After** was measured on 2026-11-04 the same way, on the head of the stack
+(#315 to #319), with the same seed; raw summary in
+[`audit-after.json`](audit-after.json). The two titles still over 60 are the
+Hebrew home page, which carries both spellings of the name, and one post
+title; the two short descriptions are Hebrew index pages. Lab vitals were
+not re-measured: the portrait preload (#315) is the change aimed at the
+home page's LCP load delay.
+
 ## How it was measured
 
 - **Stack:** `main` built into its two images and run with Docker Compose,
@@ -47,31 +55,31 @@ scripts/seo/lighthouse.sh /tmp/lh http://127.0.0.1:8080
 
 | Measure | Before | After |
 |---|---:|---:|
-| Public pages found (en + he) | 64 | |
-| Answer 200 | 64 / 64 | |
-| Indexable (no `noindex`) | 64 | |
-| `/he` pages indexable with an English title and description (duplicate of the English page) | **22** | |
-| Indexable pages missing from the sitemap | **16** | |
-| Sitemap URLs that are not 200 or are `noindex` | 0 | |
-| Pages with exactly one title / description / canonical | 64 / 64 / 64 | |
-| Distinct titles / descriptions across 64 pages | 42 / 37 | |
-| Titles over 60 characters | 8 | |
-| Descriptions under 70 characters | 10 | |
-| Pages with no JSON-LD | **20** | |
-| JSON-LD nodes invalid against schema.org | 0 | |
-| JSON-LD types used | Person, PostalAddress, WebSite, ProfilePage (story), BlogPosting, WebPage, SoftwareSourceCode | |
-| Pages with a `BreadcrumbList` | **0** | |
-| `Person` with `alternateName` / `image` / LinkedIn in `sameAs` (render) | no / no / no | |
-| Pages where the Hebrew name (יהודה בריסקמן) appears | **0** | |
-| `og:` and `twitter:` sets complete | 64 / 64 | |
-| `og:locale` agrees with `<html lang>` | 64 / 64 (but see finding 1) | |
-| Head correct after a client-side navigation | **no** (description, canonical, `og:*` keep the first page's) | |
-| Search-console verification tags | none | |
-| IndexNow | none | |
-| Feeds linked in `<head>` | every page (the shell's site feed), plus log and area feeds | |
-| Max click depth, raw HTML / rendered | 2 / 2, but **14** routes reachable only by JavaScript links | |
-| Images with no `alt` in server HTML | 0 | |
-| Pages with no H1 / more than one H1 / skipped heading levels | 0 / 0 / 0 | |
+| Public pages found (en + he) | 64 | 64 |
+| Answer 200 | 64 / 64 | 64 / 64 |
+| Indexable (no `noindex`) | 64 | 39 (the 25 others are deliberate, see #304 below) |
+| `/he` pages indexable with an English title and description (duplicate of the English page) | **22** | **0** |
+| Indexable pages missing from the sitemap | **16** | **0** |
+| Sitemap URLs that are not 200 or are `noindex` | 0 | 0 |
+| Pages with exactly one title / description / canonical | 64 / 64 / 64 | 64 / 64 / 64 |
+| Distinct titles / descriptions across 64 pages | 42 / 37 | 39 / 37 across the 39 indexable |
+| Titles over 60 characters | 8 | 2 |
+| Descriptions under 70 characters | 10 | 2 |
+| Pages with no JSON-LD | **20** | **0** |
+| JSON-LD nodes invalid against schema.org | 0 | 0 |
+| JSON-LD types used | Person, PostalAddress, WebSite, ProfilePage (story), BlogPosting, WebPage, SoftwareSourceCode | adds CollectionPage, ItemList, ListItem, BreadcrumbList, CreativeWork, ImageObject |
+| Pages with a `BreadcrumbList` | **0** | **62** (every page but the two home pages) |
+| `Person` with `alternateName` / `image` / LinkedIn in `sameAs` (render) | no / no / no | yes / yes / yes |
+| Pages where the Hebrew name (יהודה בריסקמן) appears | **0** | **7 of 7** indexable /he titles (28 of all 32 /he pages) |
+| `og:` and `twitter:` sets complete | 64 / 64 | 64 / 64 |
+| `og:locale` agrees with `<html lang>` | 64 / 64 (but see finding 1) | 64 / 64; a /he page in English says en_US |
+| Head correct after a client-side navigation | **no** (description, canonical, `og:*` keep the first page's) | yes (HeadSync, from `/api/seo/head`) |
+| Search-console verification tags | none | from env (`GOOGLE_`/`BING_SITE_VERIFICATION`), unset locally |
+| IndexNow | none | on publish, when `INDEXNOW_KEY` is set |
+| Feeds linked in `<head>` | every page (the shell's site feed), plus log and area feeds | unchanged |
+| Max click depth, raw HTML / rendered | 2 / 2, but **14** routes reachable only by JavaScript links | unchanged (2 / 2; 14) |
+| Images with no `alt` in server HTML | 0 | 0 |
+| Pages with no H1 / more than one H1 / skipped heading levels | 0 / 0 / 0 | 0 / 0 / 0 |
 
 ### Lab Core Web Vitals (mobile, simulated throttling)
 

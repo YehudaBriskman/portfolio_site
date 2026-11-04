@@ -123,7 +123,7 @@ export default function AdminProjects() {
                     <PlainField id="project-title" path={`${base}.title`} label="Title" value={p.title} onChange={(v) => set((d) => void (d.title = v))} />
                     <PlainField id="project-slug" path={`${base}.slug`} label="Slug" mono dir="ltr" hint="The address: /projects/<slug>" value={p.slug} onChange={(v) => set((d) => void (d.slug = v))} />
                     <PlainField id="project-year" path={`${base}.year`} label="Year" mono dir="ltr" value={p.year} onChange={(v) => set((d) => void (d.year = v))} />
-                    <PlainField id="project-state" path={`${base}.state`} label="State" hint="Live, Released, In progress, Archived…" value={p.state} onChange={(v) => set((d) => void (d.state = v))} />
+                    <PlainField id="project-state" path={`${base}.state`} label="State" hint="A key: live, in-use, open-source, in-progress, released or archive. Or a release tag (v1.2.0). The site shows a word for it in each language." value={p.state} onChange={(v) => set((d) => void (d.state = v))} />
                   </div>
                   <TextField id="project-fact" path={`${base}.fact`} label="One-line fact" value={p.fact} onChange={(t) => set((d) => void (d.fact = req(t)))} />
                   <TextField id="project-description" path={`${base}.description`} label="Description" multiline value={p.description} onChange={(t) => set((d) => void (d.description = req(t)))} />
@@ -184,17 +184,17 @@ export default function AdminProjects() {
                     path={`${base}.links`}
                     legend="More links"
                     items={p.links}
-                    name={(l) => l.label || "New link"}
-                    make={() => ({ label: "", url: "" })}
+                    name={(l) => l.label.en || "New link"}
+                    make={() => ({ label: { en: "" }, url: "" })}
                     max={8}
                     addLabel="Add a link"
                     onChange={(next) => set((d) => void (d.links = next))}
                   >
                     {(l, i) => (
-                      <div className="grid gap-4 sm:grid-cols-2">
-                        <PlainField id={`project-links-${i}-label`} path={`${base}.links.${i}.label`} label="Label" value={l.label} onChange={(v) => set((d) => void (d.links[i].label = v))} />
+                      <>
+                        <TextField id={`project-links-${i}-label`} path={`${base}.links.${i}.label`} label="Label" value={l.label} onChange={(t) => set((d) => void (d.links[i].label = t ?? { en: "" }))} />
                         <PlainField id={`project-links-${i}-url`} path={`${base}.links.${i}.url`} label="URL" type="url" mono dir="ltr" value={l.url} onChange={(v) => set((d) => void (d.links[i].url = v))} />
-                      </div>
+                      </>
                     )}
                   </ListField>
                 </Section>

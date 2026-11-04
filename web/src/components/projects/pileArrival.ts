@@ -1,3 +1,5 @@
+import { stateKey } from "@/content/schema";
+
 /*
  * How a card joins the pile, derived from the work it labels.
  *
@@ -159,9 +161,9 @@ const SETTLED: Gesture = { origin: "50% 0%", lift: -58, tip: -13, swing: 0, shri
  * the section on the strength of a string nobody has read.
  */
 function gestureFor(state: string): Gesture {
-  const s = state.toLowerCase();
-  if (s.includes("in use")) return PLACED;
-  if (s.includes("open source")) return OPENED;
+  const s = stateKey(state);
+  if (s === "in-use") return PLACED;
+  if (s === "open-source") return OPENED;
   return SETTLED;
 }
 

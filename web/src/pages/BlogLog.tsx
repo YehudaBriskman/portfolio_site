@@ -13,6 +13,7 @@ import HeadStrand from "@/components/motion/HeadStrand";
 import Ring from "@/components/motion/Ring";
 import log from "./BlogLog.module.css";
 import { fullDate, relative, useWords } from "@/components/dashboard/i18n";
+import { eventTitle } from "@/components/dashboard/eventTitle";
 import {
   LOG_PAGE,
   LOG_PATH,
@@ -117,7 +118,7 @@ function LogRow({ event, now }: { event: ActivityEvent; now: number }) {
   const leaves = external(event.href);
   const title = (
     <>
-      {event.title}
+      {eventTitle(event, t, lang)}
       {leaves && (
         <>
           <ArrowUpRight size={14} className={log.external} aria-hidden="true" />{" "}
