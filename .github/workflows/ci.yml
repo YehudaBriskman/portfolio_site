@@ -330,10 +330,11 @@ jobs:
     runs-on: ubuntu-latest
     needs: [classify]
     if: fromJSON(needs.classify.outputs.jobs).frontend
-    # Measured: 12–14 min on main, the a11y step ~10 min of it (2026-11-04,
-    # 5 runs). Was median ~2.5 min, slowest 4.2 (2026-11-02, 39 runs); the
-    # a11y matrix has grown since. 15 was hit during `npm run links` (#330).
-    timeout-minutes: 25
+    # The browser checks moved to their own job (Browser checks, below), so
+    # this is install, lint, typecheck, unit tests and build. Measured before
+    # the split: those steps ~1.6 min of a 13-14 min job (2026-11-04, 8 runs;
+    # the unit tests ~46 s of it). Ten is room for a cold npm cache.
+    timeout-minutes: 10
     defaults:
       run:
         working-directory: web
@@ -368,26 +369,92 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
-      # The accessibility floor (#99): axe-core over every public route, in
-      # both reading directions and both themes (#247), at 1440px and at
-      # 320px, against the build that just shipped. A floor and not the audit — the manual half lives
-      # in docs/accessibility/audit.md — but it is the half that can regress
-      # silently in a pull request, so it is the half CI holds.
-      #
+      - name: Report what shipped
+        run: du -sh dist
+
+  # The checks that drive a real Chromium against the built site, split off
+  # Frontend, which they used to make a 13-14 minute job: the a11y sweep was
+  # ~10 min of it (588-639 s, 8 runs on 2026-11-04) and the link landing
+  # ~1.5 min (88-91 s). Both are a long list of independent page loads, so
+  # they parallelise cleanly; the sweep is split round-robin over six legs
+  # (SHARD=k/n, web/scripts/a11y/axe-routes.mjs) and the links get a leg of
+  # their own. Together the legs run every route run the single step did, on
+  # every pull request that touches web as well as on main: nothing is
+  # sampled, so nothing regresses unseen between a PR and the next merge.
+  #
+  # Each leg builds the site itself rather than waiting for Frontend's dist:
+  # `npm run build` is ~4 s, and an artifact handoff would put the legs
+  # behind Frontend's lint, typecheck and tests (~1.6 min) for nothing. The
+  # images are built by their Dockerfiles either way; this dist never ships.
+  #
+  # The browser is not cached: `playwright-core install --with-deps` measured
+  # 12-14 s (once 37 s) across the same runs, most of it the apt half, which
+  # a cache of the browser would not skip.
+  #
+  # Publish image needs this job, so main records no release manifest, and
+  # a tag therefore promotes nothing, for a commit whose full sweep failed.
+  browser:
+    name: Browser checks
+    runs-on: ubuntu-latest
+    needs: [classify]
+    if: fromJSON(needs.classify.outputs.jobs).browser
+    # Projected: ~100 s of a11y per leg (a sixth of ~600 s) or ~90 s of
+    # links, plus ~45 s of setup. Ten leaves room for a slow runner without
+    # letting a hung page hold a leg for the old 25.
+    timeout-minutes: 10
+    strategy:
+      # Every leg reports, so one failing shard does not hide another's.
+      fail-fast: false
+      matrix:
+        # `of` is the same on every a11y leg and `shard` runs 1..of; the
+        # classifier's tests hold this list to that, so a leg cannot be
+        # dropped without the sweep visibly shrinking.
+        include:
+          - { check: a11y, shard: 1, of: 6 }
+          - { check: a11y, shard: 2, of: 6 }
+          - { check: a11y, shard: 3, of: 6 }
+          - { check: a11y, shard: 4, of: 6 }
+          - { check: a11y, shard: 5, of: 6 }
+          - { check: a11y, shard: 6, of: 6 }
+          - { check: links, shard: 1, of: 1 }
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ github.event_name != 'pull_request' && needs.classify.outputs.sha || '' }}
+      # Cache: same reasoning as Frontend's.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm # zizmor: ignore[cache-poisoning]
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: npm run build
       # `playwright-core` downloads no browser on install, so the build the
       # pin wants is fetched here. `--with-deps` because the runner image
       # does not carry Chromium's shared libraries.
-      - name: Install the browser the accessibility check drives
+      - name: Install the browser the checks drive
         run: npx playwright-core install --with-deps chromium-headless-shell
-      - name: Accessibility floor (axe, WCAG 2.2 AA)
+      # The accessibility floor (#99): axe-core over every public route, in
+      # both reading directions and both themes (#247), at 1440px and at
+      # 320px, against the build above. A floor and not the audit — the
+      # manual half lives in docs/accessibility/audit.md — but it is the half
+      # that can regress silently in a pull request, so it is the half CI
+      # holds.
+      - name: Accessibility floor (axe, WCAG 2.2 AA), shard ${{ matrix.shard }} of ${{ matrix.of }}
+        if: matrix.check == 'a11y'
+        env:
+          SHARD: ${{ matrix.shard }}/${{ matrix.of }}
         run: npm run a11y
       # Every link lands on its target (#196): the top of a new page, a hash's
       # element under the bar, the old place on Back and Forward, at a laptop
       # and a phone, against the same build.
       - name: Links land where they point
+        if: matrix.check == 'links'
         run: npm run links
-      - name: Report what shipped
-        run: du -sh dist
 
   backend:
     name: Backend
@@ -644,7 +711,7 @@ jobs:
   images:
     name: Publish image
     runs-on: ubuntu-24.04-arm
-    needs: [classify, static, frontend, backend, scan]
+    needs: [classify, static, frontend, browser, backend, scan]
     # A download, a load and a push of one image.
     timeout-minutes: 15
     # Main (and a rebuild from a tag), so every main commit is deployable the
@@ -1354,7 +1421,7 @@ jobs:
   gate:
     name: CI gate
     runs-on: ubuntu-latest
-    needs: [classify, static, frontend, backend, mcp, scan, images, release, promote, deploy]
+    needs: [classify, static, frontend, browser, backend, mcp, scan, images, release, promote, deploy]
     if: always()
     timeout-minutes: 5
     steps:

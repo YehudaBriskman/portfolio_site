@@ -19,13 +19,16 @@
 // A rename or a copy counts both paths, a deletion its old path.
 //
 // What a path selects:
-//   - web/**      -> web (Frontend, Scan image web)
+//   - web/**      -> web (Frontend, Browser checks, Scan image web)
 //   - backend/**  -> backend (Backend, Scan image api)
 //   - mcp/**      -> mcp (MCP server: tests, typecheck, build; no image, #252)
 //   - docs/**, root *.md -> docs, which selects nothing beyond Static
 //   - widening paths -> everything: workflows and CI scripts, lockfiles and
 //     package manifests, Dockerfiles and .dockerignore, nginx config, Compose,
 //     the Makefile, tsconfig and eslint config, the Trivy ignore file
+//   - .github/*.md and .github/ISSUE_TEMPLATE/** -> docs: the community
+//     files and the pull request and issue templates. GitHub renders them;
+//     no job, script or build reads them. The rest of .github/ widens.
 //   - any path no rule names -> everything. A new top-level file is a reason
 //     to add a rule, not a reason to skip a check.
 // Static runs on every change, docs-only included.
@@ -61,6 +64,8 @@ const ZERO_SHA = /^0+$/;
 
 // First match wins. `widen` means the path selects every component.
 const RULES = [
+  // Prose GitHub renders and nothing in CI reads (see the header).
+  { re: /^\.github\/([^/]+\.md|ISSUE_TEMPLATE\/.+)$/, component: "docs" },
   // CI itself: a change here can change what any job does.
   { re: /^\.github\//, widen: true, why: "CI configuration" },
   // Build and runtime inputs that are not source.
@@ -82,7 +87,7 @@ const RULES = [
   { re: /^[^/]+\.md$/, component: "docs" },
 ];
 
-export const JOBS = ["static", "frontend", "backend", "mcp", "scan", "images", "release", "promote", "deploy"];
+export const JOBS = ["static", "frontend", "browser", "backend", "mcp", "scan", "images", "release", "promote", "deploy"];
 
 export function classifyPath(path) {
   for (const r of RULES) {
@@ -189,6 +194,9 @@ export function classify({ paths, full, release, mode }) {
     jobs: {
       static: true,
       frontend: web,
+      // Browser checks (the a11y sweep in legs, and the link landing): the
+      // same selection as Frontend, of which it used to be the second half.
+      browser: web,
       backend,
       mcp,
       scan: scan.length > 0,

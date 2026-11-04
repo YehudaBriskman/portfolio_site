@@ -32,15 +32,15 @@ const cases = [
   ["7.1 docs only", [["M", "docs/story/README.md"], ["A", "docs/story/shot.png"]], ["static"], [], false],
   ["7.1 root README", [["M", "README.md"]], ["static"], [], false],
   ["7.1 docs build script is still docs", [["M", "docs/hero-portrait/build.sh"]], ["static"], [], false],
-  ["web only", [["M", "web/src/App.tsx"], ["A", "web/public/img/x.webp"]], ["static", "frontend", "scan"], ["web"], false],
-  ["web config that is not shared", [["M", "web/vite.config.ts"]], ["static", "frontend", "scan"], ["web"], false],
+  ["web only", [["M", "web/src/App.tsx"], ["A", "web/public/img/x.webp"]], ["static", "frontend", "browser", "scan"], ["web"], false],
+  ["web config that is not shared", [["M", "web/vite.config.ts"]], ["static", "frontend", "browser", "scan"], ["web"], false],
   ["backend only", [["M", "backend/src/server.ts"]], ["static", "backend", "scan"], ["api"], false],
-  ["web and backend", [["M", "web/src/a.ts"], ["M", "backend/src/b.ts"]], ["static", "frontend", "backend", "scan"], ["web", "api"], false],
-  ["web and docs", [["M", "web/src/a.ts"], ["M", "docs/a.md"]], ["static", "frontend", "scan"], ["web"], false],
+  ["web and backend", [["M", "web/src/a.ts"], ["M", "backend/src/b.ts"]], ["static", "frontend", "browser", "backend", "scan"], ["web", "api"], false],
+  ["web and docs", [["M", "web/src/a.ts"], ["M", "docs/a.md"]], ["static", "frontend", "browser", "scan"], ["web"], false],
   ["mcp only: its own job, no image", [["M", "mcp/src/server.ts"], ["A", "mcp/README.md"]], ["static", "mcp"], [], false],
   ["mcp and backend", [["M", "mcp/src/api.ts"], ["M", "backend/src/app.ts"]], ["static", "backend", "mcp", "scan"], ["api"], false],
 ];
-const ALL_PR = ["static", "frontend", "backend", "mcp", "scan"];
+const ALL_PR = ["static", "frontend", "browser", "backend", "mcp", "scan"];
 const widening = [
   ["Dockerfile (web)", "web/Dockerfile"],
   ["Dockerfile (backend)", "backend/Dockerfile"],
@@ -69,8 +69,18 @@ const widening = [
   ["unknown top-level file", "renovate.json"],
   ["unknown top-level dir", "infra/main.tf"],
   ["unknown dotfile", ".gitattributes"],
-  ["markdown outside docs and root", ".github/PULL_REQUEST_TEMPLATE.md"],
+  // Only .github's own top level and ISSUE_TEMPLATE are prose: markdown
+  // deeper in it, or any other file, is still CI configuration.
+  ["markdown under .github/scripts", ".github/scripts/NOTES.md"],
+  ["markdown under .github/workflows", ".github/workflows/README.md"],
+  ["a .github file that is not markdown", ".github/zizmor.yml"],
+  ["markdown outside docs, root and .github", "tools/NOTES.md"],
 ];
+// The community files and templates GitHub renders, which nothing in CI reads.
+cases.push(
+  ["docs: .github community files", [["M", ".github/CONTRIBUTING.md"], ["A", ".github/SECURITY.md"], ["M", ".github/pull_request_template.md"]], ["static"], [], false],
+  ["docs: issue templates", [["A", ".github/ISSUE_TEMPLATE/bug.yml"], ["A", ".github/ISSUE_TEMPLATE/config.yml"]], ["static"], [], false],
+);
 for (const [name, path] of widening) cases.push([`widens: ${name}`, [["M", path]], ALL_PR, ["web", "api"], true]);
 // A widening path widens even when it rides with a narrow change.
 cases.push(["web change plus a workflow edit", [["M", "web/src/a.ts"], ["M", ".github/workflows/ci.yml"]], ALL_PR, ["web", "api"], true]);
@@ -103,11 +113,11 @@ test("every path in the repository has a deliberate rule (unknown paths are the 
 
 test("7.3 a rename counts both paths: docs -> web selects web", () => {
   const r = pr(["R100", "docs/a.ts", "web/src/a.ts"]);
-  assert.deepEqual(selected(r), ["static", "frontend", "scan"]);
+  assert.deepEqual(selected(r), ["static", "frontend", "browser", "scan"]);
 });
 test("7.3 a rename counts both paths: web -> docs still selects web", () => {
   const r = pr(["R087", "web/src/old.md", "docs/old.md"]);
-  assert.deepEqual(selected(r), ["static", "frontend", "scan"]);
+  assert.deepEqual(selected(r), ["static", "frontend", "browser", "scan"]);
   assert.equal(r.components.docs, true);
 });
 test("7.3 a rename out of backend into web selects both", () => {
@@ -196,7 +206,7 @@ test("PR diffs from the merge-base, push from before", () => {
 // --- release refs ------------------------------------------------------------
 
 // Main builds both images and records them; it never promotes (#205).
-const MAIN_JOBS = ["static", "frontend", "backend", "mcp", "scan", "images", "release", "deploy"];
+const MAIN_JOBS = ["static", "frontend", "browser", "backend", "mcp", "scan", "images", "release", "deploy"];
 // A tag builds nothing: Static, the promotion, the deploy.
 const TAG_JOBS = ["static", "promote", "deploy"];
 const TAG_COMMIT = "c".repeat(40);
@@ -293,7 +303,7 @@ test("7.4 a Dependabot lockfile PR needs no token and selects every check", () =
 
 test("7.4 classify, gate and the PR jobs use no secrets", () => {
   const jobs = jobBlocks();
-  for (const j of ["classify", "static", "frontend", "backend", "mcp", "scan", "gate"]) {
+  for (const j of ["classify", "static", "frontend", "browser", "backend", "mcp", "scan", "gate"]) {
     assert.ok(jobs[j], `job ${j} not found in ci.yml`);
     assert.doesNotMatch(jobs[j], /secrets\./, `${j} must run without secrets (fork and Dependabot PRs)`);
   }
@@ -306,6 +316,34 @@ test("the CI gate needs exactly classify plus every job classification selects",
   assert.deepEqual(needs, ["classify", ...JOBS].sort());
 });
 
+// Browser checks runs the a11y sweep in legs (SHARD=k/n in axe-routes.mjs).
+// A leg missing from the matrix would shrink the sweep without failing
+// anything, so the legs must be exactly 1..of, with one `of`, plus the links.
+test("Browser checks: the a11y legs cover every shard exactly once, and links has a leg", () => {
+  const block = jobBlocks().browser ?? "";
+  assert.ok(block, "job browser not found in ci.yml");
+  const legs = [...block.matchAll(/^\s+- \{ check: (\w+), shard: (\d+), of: (\d+) \}\s*$/gm)].map((m) => ({
+    check: m[1],
+    shard: Number(m[2]),
+    of: Number(m[3]),
+  }));
+  const a11y = legs.filter((l) => l.check === "a11y");
+  assert.ok(a11y.length > 0, "no a11y legs");
+  const of = a11y[0].of;
+  assert.ok(a11y.every((l) => l.of === of), "every a11y leg names the same `of`");
+  assert.deepEqual(a11y.map((l) => l.shard).sort((a, b) => a - b), Array.from({ length: of }, (_, i) => i + 1));
+  assert.deepEqual(legs.filter((l) => l.check === "links"), [{ check: "links", shard: 1, of: 1 }]);
+  assert.equal(legs.length, of + 1, "a leg the test does not recognise");
+  assert.match(block, /SHARD: \$\{\{ matrix\.shard \}\}\/\$\{\{ matrix\.of \}\}/);
+  assert.match(block, /fail-fast: false/);
+});
+
+test("Publish image needs Browser checks, so no manifest is recorded for a commit whose sweep failed", () => {
+  const needs = /^ {4}needs:\s*\[([^\]]*)\]/m.exec(jobBlocks().images ?? "");
+  assert.ok(needs, "images job with an inline needs list");
+  assert.ok(needs[1].split(",").map((s) => s.trim()).includes("browser"));
+});
+
 // --- outputs -------------------------------------------------------------------
 
 test("outputs are strings the workflow can compare", () => {
@@ -314,7 +352,7 @@ test("outputs are strings the workflow can compare", () => {
   assert.equal(o.web, "true");
   assert.equal(o.backend, "false");
   assert.deepEqual(JSON.parse(o.scan_matrix), [{ image: "web", context: "web" }]);
-  assert.deepEqual(JSON.parse(o.jobs), { static: true, frontend: true, backend: false, mcp: false, scan: true, images: false, release: false, promote: false, deploy: false });
+  assert.deepEqual(JSON.parse(o.jobs), { static: true, frontend: true, browser: true, backend: false, mcp: false, scan: true, images: false, release: false, promote: false, deploy: false });
   assert.equal(o.mode, "pr");
   assert.equal(o.sha, PR.SHA);
   assert.equal(outputs(pr(["M", "docs/a.md"])).scan_matrix, "[]");
