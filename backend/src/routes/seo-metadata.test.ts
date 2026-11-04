@@ -50,6 +50,8 @@ const note = {
   coverImage: null,
   readingMinutes: 1,
   seo: { title: null, description: null, canonical: null, noindex: false },
+  /* Published Hebrew, so its Hebrew page is a Hebrew page (#304). */
+  he: { title: "רשימה", excerpt: "תקציר.", body: "גוף." },
 };
 
 const PROJECTS = (seedFor("projects") as ContentBundle["projects"]).items;
@@ -98,7 +100,11 @@ describe("every page's head (#308)", () => {
         expect(count(res.text, /<title>/g)).toBe(1);
         expect(count(res.text, /<meta name="description"/g)).toBe(1);
         expect(count(res.text, /<link rel="canonical"/g)).toBe(1);
-        expect(res.text).not.toMatch(/noindex/);
+        /* The seeded projects have no Hebrew yet, so their Hebrew pages are
+           the English under Hebrew chrome, and noindex (#304). */
+        const fallback = lang === "he" && p.startsWith("/projects/");
+        if (fallback) expect(res.text).toContain('<meta name="robots" content="noindex, follow" />');
+        else expect(res.text).not.toMatch(/noindex/);
         const title = /<title>([^<]*)<\/title>/.exec(res.text)![1];
         expect(title.length).toBeLessThanOrEqual(TITLE_MAX + 20);
         if (p === "/home") return;

@@ -21,6 +21,7 @@ import {
 } from "../services/seo.js";
 import { SEO_WORDS } from "../services/seo-words.js";
 import { PERSON_ID, WEBSITE_ID, personNode, personRef, siteNameIn, websiteNode, withHebrewName } from "../services/seo-entity.js";
+import { areaHasHebrew, postHasHebrew, projectHasHebrew } from "../services/seo-translation.js";
 import { breadcrumbs, fitTitle, graph, homeGraph, itemList, webPage } from "../services/seo-template.js";
 import { rawImageUrlOrNull, type Collection, type Post } from "../schemas/content.js";
 import type { ContentBundle } from "../schemas/site-content.js";
@@ -63,7 +64,14 @@ router.get(
   asyncHandler(async (_req, res) => {
     const [posts, collections, store] = await Promise.all([publishedPosts(), publishedCollections(), storeProjects()]);
     res.type("application/xml").set("Cache-Control", "public, max-age=600");
-    res.send(buildSitemap(posts, collections, { projects: [...store.keys()] }));
+    const live = new Map(collections.map((c) => [c.slug, c]));
+    res.send(
+      buildSitemap(posts, collections, {
+        projects: [...store.values()].map((p) => ({ slug: p.slug, hebrew: projectHasHebrew(p, live.get(p.slug)) })),
+        postHebrew: postHasHebrew,
+        areaHebrew: areaHasHebrew,
+      }),
+    );
   })
 );
 
@@ -650,6 +658,7 @@ page("/blog/area/:slug", async (req, res, lang) => {
 
   await sendShell(res, {
     ...at(`/blog/area/${area.slug}`, lang),
+    translated: areaHasHebrew(found),
     route: "BlogArea",
     title: title(name, lang),
     description,
@@ -686,6 +695,9 @@ page("/blog/:slug", async (req, res, lang) => {
   /* Whether the reader gets the English body on a Hebrew page: then it is
      marked as English and said to be. */
   const bodyInEnglish = lang === "he" && !HEBREW.test(post?.body ?? "");
+  /* Whether this note has published Hebrew at all (#304): without it, the
+     Hebrew page is noindex and neither page names the other. */
+  const translated = english ? postHasHebrew(english) : false;
 
   // A missing post has to answer 404, not 200 with a "not found" body —
   // otherwise every bad URL becomes an indexable soft-404 duplicate.
@@ -698,11 +710,12 @@ page("/blog/:slug", async (req, res, lang) => {
   const image = rawImageUrlOrNull(post.coverImage) ?? absoluteUrl(`/api/seo/og/blog/${post.slug}.png`);
   const marker = bodyInEnglish ? `<p>${escapeHtml(w.writtenInEnglish)}</p>` : "";
   const description = clampDescription(post.seo.description ?? post.excerpt);
-  const inLanguage = bodyInEnglish || lang === "en" ? "en" : "he";
+  const inLanguage = bodyInEnglish || lang === "en" || !translated ? "en" : "he";
 
   await sendShell(res, {
     ...at(`/blog/${post.slug}`, lang),
     canonical,
+    translated,
     route: "BlogPost",
     title: post.seo.title ?? title(post.title, lang),
     description,
@@ -792,6 +805,7 @@ page("/projects/:slug", async (req, res, lang) => {
 
   await sendShell(res, {
     ...at(`/projects/${v.slug}`, lang),
+    translated: projectHasHebrew(v.entry, v.collection),
     route: "Project",
     title: title(v.title, lang),
     description,
