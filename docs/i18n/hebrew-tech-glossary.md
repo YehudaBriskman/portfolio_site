@@ -1,7 +1,7 @@
 # Hebrew tech glossary and terminology policy
 
-Status: **draft for owner review** · Issue: #294 (part of #292) · Date: 2026-11-03
-Machine-readable twin: [`glossary.json`](glossary.json). Companions:
+Status: **approved** (owner, #292: the contested calls accepted as written) · Issue: #294 (part of #292) · Date: 2026-11-03
+Machine-readable twin: [`glossary.json`](../../web/src/i18n/glossary.json). Companions:
 [audit](english-on-hebrew-audit.md) (#293), [design](bilingual-content-design.md) (#295).
 
 This is the policy for how a technical term is written on the Hebrew site:
@@ -141,13 +141,16 @@ What could not be verified:
 Where a call rests on weak evidence, its rationale says so. Sources are listed
 in §7.
 
-## 5. Enforcement (design only, not implemented here)
+## 5. Enforcement (items 1–3 implemented in #300)
 
 `glossary.json` is the single source. It holds the categories, `allowLatin`
 (the Latin terms the site may show on `/he`), `forbidden` (variant → preferred
-form) and every term with its forms and contexts. When enforcement lands, it
-moves to `web/src/i18n/glossary.json` so the web build and its tests can import
-it. The backend reads it too, for the admin lint.
+form) and every term with its forms and contexts. It lives at
+`web/src/i18n/glossary.json` (moved there by #300) so the web build and its
+tests import it; `web/src/i18n/glossary.ts` is its one reader, and its
+`lintHebrew` is what the tests run over the source and the admin will run as
+advice. Variants the glossary forbids in one sense only (`כניסה`, `תג`,
+`נושא`, `נתונים`…) are not failed on sight; they stay with review.
 
 1. **`untranslated.test.ts` reads `allowLatin`.** Its hand-kept `LATIN` set (8
    entries today) is replaced by the glossary. A JSX string is allowed in Latin

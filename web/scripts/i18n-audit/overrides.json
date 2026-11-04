@@ -1,0 +1,29 @@
+{
+  "commit": "bcb4563 (main after #290 and #291)",
+  "method": "Playwright crawl under xvfb of every /he route (public + admin), desktop light and phone dark (desktop dark and phone light added nothing unique in run 1), menus and dialogs opened, API 503 and never-answering API states; server render /api/seo/render/he/* and feeds; static source scan. Hand review applied from this file.",
+  "rules": [
+    { "text": "127\\.0\\.0\\.1|localhost", "set": { "drop": true } },
+    { "text": "^Notifications alt\\+T$", "set": { "source": "hard-coded", "origin": "sonner <Toaster> default containerAriaLabel", "treatment": "translate", "note": "library default; pass containerAriaLabel" } },
+    { "text": "^HE — ", "set": { "source": "ui-table", "treatment": "keep-latin", "note": "the HE/EN code is fine; read aloud as 'H E' — consider lang=en on the code or 'עברית'" } },
+    { "text": "^#[a-z0-9-]+$", "set": { "source": "content-store", "treatment": "keep-latin", "note": "tag slug; mark lang=en dir=ltr" } },
+    { "text": "התגית [a-z0-9-]+$", "set": { "source": "content-store", "treatment": "keep-latin", "bidi": "latin-at-end-of-rtl-attr", "note": "tag slug inside a Hebrew aria-label: fine to keep, wrap in LRI/PDI" } },
+    { "text": "^מזהה רשימה [0-9a-f]+$", "set": { "source": "content-store", "treatment": "keep-latin", "note": "id; already in <code>, add dir=ltr" } },
+    { "text": "גרסה( אחרונה:)? v[0-9]", "set": { "source": "github", "treatment": "keep-latin", "note": "release tag from GitHub; keep, isolate" } },
+    { "text": "^Request failed \\(\\d+\\)$", "set": { "source": "api-error", "treatment": "translate", "note": "raw fetch error shown to visitors" } },
+    { "text": " screenshot$", "kind": "attr:alt", "set": { "source": "hard-coded", "treatment": "translate", "note": "`${title} screenshot` alt template (S012)" } },
+    { "text": "^(Move .* (up|down)|Remove .*|Edit .*)$", "kind": "attr:aria-label", "set": { "source": "hard-coded", "treatment": "translate", "note": "admin list controls; label built from English content" } },
+    { "text": ", (English|Hebrew \\(optional\\))$", "set": { "source": "hard-coded", "treatment": "translate" } },
+    { "text": "^(Y\\.B\\.|\\d+ (posts|areas|icons|connected)|\\d+ of \\d+ items|Search title, slug, tag)", "set": { "source": "hard-coded", "treatment": "translate" } },
+    { "text": "\\(Ctrl\\+[A-Z]\\)$", "set": { "treatment": "keep-latin", "note": "key name; isolate" } },
+    { "text": "^[A-Z]$", "set": { "drop": true } },
+    { "text": "^/a-page-that-does-not-exist$|^an-area-that-does-not-exist$", "set": { "source": "hard-coded", "treatment": "keep-latin", "bidi": "path-without-dir-ltr", "note": "echoed path/slug (S036, S071): needs dir=ltr; the area 404 shows humaniseSlug as a heading" } },
+    { "text": "WCAG|ת״י 5568", "set": { "source": "ui-table", "treatment": "keep-latin", "note": "standard names, glossary allowLatin" } },
+    { "text": "Model Context Protocol|^CLAUDE CODE$|SETTINGS → CONNECTORS|Claude Desktop", "set": { "source": "ui-table", "treatment": "keep-latin", "note": "product UI names; keep, mark lang=en (the uppercase run is CSS text-transform on Latin)" } },
+    { "text": "^RSS$|· RSS$", "set": { "treatment": "keep-latin" } },
+    { "text": "^(BOTHY|NOW|BEFORE|ARCHIVE|THEN|STACK|REACT|GITHUB|DOCKER COMPOSE|IN USE|OPEN SOURCE|OUTSIDE WORK|STARTED SHIPPING|FULL-STACK ENGINEER|TECHNICAL TEAM LEAD|ICAROS|PROGRAMMING WITH YEHUDA)$", "set": { "source": "content-store", "treatment": "translate", "note": "English content value set in capitals by CSS; label-like fields (state, era, role) need he or a key" } },
+    { "text": "^(BOTHY|ICAROS|PROGRAMMING WITH YEHUDA|REACT|GITHUB|DOCKER COMPOSE)$", "set": { "treatment": "keep-latin" } },
+    { "text": "^(A CONSOLE FOR ONE MACHINE|A CAR-LISTING WEB APP|LESSON PAGES BUILT|EVERY NEW TAB BECOMES)", "set": { "source": "content-store", "treatment": "needs-he-field", "note": "project tagline: no he in content:projects; unmarked (S001)" } },
+    { "origin": "post\\.body", "set": { "treatment": "translate" } },
+    { "text": "^קוד, ", "set": { "drop": true } }
+  ]
+}
