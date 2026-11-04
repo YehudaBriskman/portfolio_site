@@ -103,7 +103,8 @@ const EnvSchema = z.object({
     .string()
     .regex(/^[\w-]{10,100}$/, 'BING_SITE_VERIFICATION is the content of the msvalidate.01 meta tag')
     .optional()
-    .or(z.literal('').transform(() => undefined)),  // Where the built SPA shell is served from, for per-URL head injection.
+    .or(z.literal('').transform(() => undefined)),
+  // Where the built SPA shell is served from, for per-URL head injection.
   WEB_ORIGIN: z.string().default("http://web"),
 
   // The commit this image was built from, baked in by the Dockerfile's

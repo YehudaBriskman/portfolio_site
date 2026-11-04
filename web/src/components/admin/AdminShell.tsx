@@ -103,12 +103,18 @@ export type AdminShellProps = {
    */
   bottomBar?: ReactNode;
   backTo?: string;
+  /**
+   * Keep the bottom bar at every width, not only on a phone (#288). An
+   * editor's Save then has one home: fixed to the bottom of the screen,
+   * beside the nav, with the page padded so nothing scrolls out from under it.
+   */
+  barEverywhere?: boolean;
   /** Right-hand side of the mobile top bar. */
   actions?: ReactNode;
   children: ReactNode;
 };
 
-export default function AdminShell({ title, section, counts, bottomBar, backTo, actions, children }: AdminShellProps) {
+export default function AdminShell({ title, section, counts, bottomBar, backTo, barEverywhere, actions, children }: AdminShellProps) {
   const { pathname } = useLocation();
   const w = useAdminWords();
   const [who, setWho] = useState("");
@@ -307,9 +313,9 @@ export default function AdminShell({ title, section, counts, bottomBar, backTo, 
         </main>
       </div>
 
-      {/* The one screen-bottom region, an editor's Save, on a phone. */}
+      {/* The one screen-bottom region: an editor's Save. */}
       {bottomBar && (
-        <div ref={bar} className="a-bottom lg:hidden">
+        <div ref={bar} className={barEverywhere ? "a-bottom a-bottom-all" : "a-bottom lg:hidden"}>
           {bottomBar}
         </div>
       )}

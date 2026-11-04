@@ -223,9 +223,9 @@ export function ListField<T>({ id, path, legend, hint, items, name, make, max, a
         {items.map((item, i) => (
           // Index keys: a row is its position, and the inputs inside it are
           // controlled, so a move re-renders the values in their new places.
-          <li key={i} className="a-card p-3 sm:p-4">
+          <li key={i} className="a-box p-3 sm:p-4">
             <div className="mb-3 flex items-center justify-between gap-2">
-              <span className="mono min-w-0 flex-1 truncate text-[0.6875rem] uppercase tracking-[0.16em] text-clay">
+              <span className="a-box-title min-w-0 flex-1 truncate">
                 {i + 1}. {name(item, i)}
               </span>
               <span className="flex gap-1">
@@ -314,8 +314,8 @@ export function LinesField({
 /** A titled group of fields inside an editor. */
 export function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="mt-10 space-y-5">
-      <h2 className="display-tight text-xl">{title}</h2>
+    <section className="a-section">
+      <h2 className="a-section-title">{title}</h2>
       {children}
     </section>
   );

@@ -20,6 +20,8 @@ export const OWNER_READ: Tool[] = [
   { name: "admin_get_post", does: "Any post, in full." },
   { name: "read_audit_log", does: "Who changed what, and through which client." },
   { name: "list_media", does: "The media library: pictures, icons and videos, with what uses each." },
+  { name: "list_translations", does: "What is missing, stale or done in Hebrew, across the site." },
+  { name: "get_translation", does: "One item in English and Hebrew, side by side." },
 ];
 
 export const OWNER_WRITE: Tool[] = [
@@ -29,4 +31,5 @@ export const OWNER_WRITE: Tool[] = [
   { name: "delete_post", does: "Archive a post. Needs confirm: true." },
   { name: "save_area", does: "Create or edit an area. Dry run unless told otherwise." },
   { name: "delete_area", does: "Hide an area. Needs confirm: true." },
+  { name: "put_translation", does: "Write Hebrew into a draft, never live. Dry run unless told otherwise." },
 ];
