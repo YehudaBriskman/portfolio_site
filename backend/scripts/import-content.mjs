@@ -1,11 +1,14 @@
 #!/usr/bin/env node
 /*
- * Upserts the reviewed drafts in backend/content/ through the admin API.
+ * Upserts the reviewed drafts in backend/content/ through the admin API,
+ * English and Hebrew.
  *
  *   CONTENT_API_BASE=http://localhost:8080 \
  *   CONTENT_ADMIN_TOKEN=... \
- *   node backend/scripts/import-content.mjs            # dry run: prints the diff
- *   node backend/scripts/import-content.mjs --apply    # writes it
+ *   node backend/scripts/import-content.mjs                  # dry run: prints the diff
+ *   node backend/scripts/import-content.mjs --apply          # writes it
+ *   node backend/scripts/import-content.mjs --overwrite-he   # dry run, as if replacing differing Hebrew
+ *   node backend/scripts/import-content.mjs --apply --overwrite-he
  *
  * Environment:
  *   CONTENT_API_BASE     the site or API origin; `/api/admin/...` is appended.
@@ -25,22 +28,30 @@
  *     here is listed as "not managed here" and left alone.
  *   - Idempotent. A document whose fields already match is skipped, so a
  *     second `--apply` writes nothing.
- *   - Writes through the same PUT routes the admin UI uses, carrying the
- *     current `_rev`, so the API's own validation and optimistic lock apply.
+ *   - Writes through the same routes the admin UI uses, carrying the current
+ *     `_rev`, so the API's own validation and optimistic lock apply.
  *   - `publishedAt` is stamped once by the API and never moved; for a post
  *     that is already published, a different date in the draft is reported
  *     and not sent as a change.
+ *   - Hebrew (`<slug>.he.md`, an area's `he`) fills only what the store does
+ *     not already hold. Hebrew in the store that differs from the repo's is
+ *     kept and reported, unless `--overwrite-he` is given. A note with an
+ *     unpublished draft in the admin gets no Hebrew written. The rules, and
+ *     how the Hebrew is written, are in import-plan.mjs.
  */
-import { loadContent, toCollectionWrite, toPostWrite } from "./content-files.mjs";
+import { loadContent } from "./content-files.mjs";
+import { applyPlan, buildPlan, describePlan, needsWrite } from "./import-plan.mjs";
 
+const FLAGS = ["--apply", "--overwrite-he"];
 const args = new Set(process.argv.slice(2));
-const APPLY = args.has("--apply");
 for (const a of args) {
-  if (a !== "--apply") {
-    console.error(`unknown argument ${a}. Usage: import-content.mjs [--apply]`);
+  if (!FLAGS.includes(a)) {
+    console.error(`unknown argument ${a}. Usage: import-content.mjs [--apply] [--overwrite-he]`);
     process.exit(2);
   }
 }
+const APPLY = args.has("--apply");
+const OVERWRITE_HE = args.has("--overwrite-he");
 
 const BASE = (process.env.CONTENT_API_BASE ?? "").replace(/\/+$/, "");
 const TOKEN = process.env.CONTENT_ADMIN_TOKEN ?? "";
@@ -86,132 +97,32 @@ async function api(method, path, body) {
   return json;
 }
 
-/* ------------------------------------------------------------------ diff -- */
-
-const isEqual = (a, b) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
-
-function short(v) {
-  const s = typeof v === "string" ? v : JSON.stringify(v ?? null);
-  return s.length > 90 ? `${s.slice(0, 87)}...` : s;
-}
-
-/** Changed lines of a long text, removed then added. Enough to review; not a patch. */
-function lineDiff(before, after, limit = 12) {
-  const a = (before ?? "").split("\n");
-  const b = (after ?? "").split("\n");
-  const inA = new Set(a);
-  const inB = new Set(b);
-  const out = [
-    ...a.filter((l) => l.trim() && !inB.has(l)).map((l) => `      - ${l}`),
-    ...b.filter((l) => l.trim() && !inA.has(l)).map((l) => `      + ${l}`),
-  ];
-  return out.length > limit ? [...out.slice(0, limit), `      ... ${out.length - limit} more changed lines`] : out;
-}
-
-/** Field-by-field changes between what the server holds and the draft's write body. */
-function changes(existing, draft, { skip = [] } = {}) {
-  const out = [];
-  for (const [key, value] of Object.entries(draft)) {
-    if (key === "slug" || skip.includes(key)) continue;
-    if (!isEqual(existing?.[key], value)) out.push({ key, from: existing?.[key], to: value });
-  }
-  return out;
-}
-
-function printChanges(list) {
-  for (const c of list) {
-    if (c.key === "body" && (c.from === undefined || c.from === null)) {
-      console.log(`    body: new, ${c.to.trim().split(/\s+/).length} words`);
-    } else if (c.key === "body") {
-      console.log(`    body: changed`);
-      for (const l of lineDiff(c.from, c.to)) console.log(l);
-    } else {
-      console.log(`    ${c.key}: ${short(c.from)} -> ${short(c.to)}`);
-    }
-  }
-}
-
-/* ------------------------------------------------------------------ main -- */
-
 async function main() {
-  const { areas, posts } = loadContent();
-  console.log(`${APPLY ? "APPLY" : "dry run"} against ${BASE}: ${areas.length} areas, ${posts.length} notes in backend/content\n`);
+  const content = loadContent();
+  const withHe = content.posts.filter((p) => p.he).length;
+  console.log(
+    `${APPLY ? "APPLY" : "dry run"} against ${BASE}: ${content.areas.length} areas, ${content.posts.length} notes (${withHe} with Hebrew) in backend/content` +
+      `${OVERWRITE_HE ? ", replacing differing Hebrew" : ""}\n`
+  );
 
-  const [{ items: liveAreas }, { items: livePosts }] = await Promise.all([
-    api("GET", "/collections"),
-    api("GET", "/posts"),
-  ]);
-  const areaBySlug = new Map(liveAreas.map((a) => [a.slug, a]));
-  const postBySlug = new Map(livePosts.map((p) => [p.slug, p]));
+  const [{ items: liveAreas }, { items: livePosts }] = await Promise.all([api("GET", "/collections"), api("GET", "/posts")]);
+  const plan = buildPlan(content, { liveAreas, livePosts }, { overwriteHe: OVERWRITE_HE });
+  for (const line of describePlan(plan, { overwriteHe: OVERWRITE_HE })) console.log(line);
 
-  const plan = [];
-
-  for (const { data } of areas) {
-    const draft = toCollectionWrite(data);
-    const existing = areaBySlug.get(draft.slug);
-    const diff = changes(existing, draft);
-    plan.push({ kind: "collection", slug: draft.slug, existing, draft, diff });
-  }
-
-  for (const post of posts) {
-    const draft = toPostWrite(post);
-    const existing = postBySlug.get(draft.slug);
-    const notes = [];
-    // The API keeps the first publish date, so sending a different one changes nothing.
-    const skip = [];
-    if (existing?.publishedAt && existing.status === "published") {
-      skip.push("publishedAt");
-      if (!isEqual(existing.publishedAt, draft.publishedAt)) {
-        notes.push(`publishedAt stays ${existing.publishedAt} (the draft says ${draft.publishedAt}; the API never moves a publish date)`);
-      }
-    }
-    const diff = changes(existing, draft, { skip });
-    plan.push({ kind: "post", slug: draft.slug, existing, draft, diff, notes });
-  }
-
-  let toWrite = 0;
-  for (const item of plan) {
-    const label = `${item.kind} ${item.slug}`;
-    if (!item.existing) {
-      toWrite++;
-      console.log(`+ create ${label}`);
-      printChanges(item.diff);
-    } else if (item.diff.length) {
-      toWrite++;
-      console.log(`~ update ${label}`);
-      printChanges(item.diff);
-    } else {
-      console.log(`= unchanged ${label}`);
-    }
-    for (const n of item.notes ?? []) console.log(`    note: ${n}`);
-  }
-
-  const managed = new Set(posts.map((p) => p.meta.slug));
+  const managed = new Set(content.posts.map((p) => p.meta.slug));
   const unmanaged = livePosts.filter((p) => !managed.has(p.slug));
   if (unmanaged.length) {
     console.log(`\nnot managed here, left alone: ${unmanaged.map((p) => p.slug).join(", ")}`);
   }
 
+  const toWrite = plan.filter(needsWrite).length;
   console.log(`\n${toWrite} to write, ${plan.length - toWrite} unchanged. Nothing is ever deleted.`);
   if (!APPLY) {
     if (toWrite) console.log("Dry run: nothing was written. Re-run with --apply to write.");
     return;
   }
 
-  let failed = 0;
-  // Areas before notes, so a note never names an area that does not exist yet.
-  for (const item of plan) {
-    if (item.existing && !item.diff.length) continue;
-    const path = `/${item.kind === "collection" ? "collections" : "posts"}/${encodeURIComponent(item.slug)}`;
-    const body = item.existing?._rev ? { ...item.draft, _rev: item.existing._rev } : item.draft;
-    try {
-      await api("PUT", path, body);
-      console.log(`ok   ${item.kind} ${item.slug}`);
-    } catch (e) {
-      failed++;
-      console.error(`FAIL ${item.kind} ${item.slug}: ${e.message}`);
-    }
-  }
+  const failed = await applyPlan(plan, api, (line) => (line.startsWith("FAIL") ? console.error(line) : console.log(line)));
   if (failed) {
     console.error(`\n${failed} write(s) failed; the rest were applied. Re-running is safe.`);
     process.exit(1);

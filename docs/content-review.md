@@ -1,4 +1,4 @@
-# Content review: WindoM and Bothy notes
+# Content review: the WindoM, Bothy, site and oci-free notes
 
 Drafts for the owner to review before anything reaches the live site. Nothing in
 this change writes to a deployed database. The drafts live in `backend/content/`.
@@ -35,6 +35,43 @@ CONTENT_API_BASE=https://<admin origin> CONTENT_ADMIN_TOKEN=... \
   plain `http` to anything except a loopback host.
 - For local development, `make seed` (`seed-dev-content.mjs`) now writes these
   drafts as well. `--drafts-only` leaves out the fixture posts.
+
+### Hebrew (added with the site and oci-free notes)
+
+Every area and note now carries Hebrew in the repository:
+
+- a note's Hebrew is a sibling file, `posts/<area>/<slug>.he.md`: a JSON header
+  (`title`, `subtitle`, `excerpt`, `linkLabels`, one per English link, in
+  order) and the Hebrew body;
+- an area's Hebrew is a `he` object in its JSON (`title`, `tagline`,
+  `description`, `linkLabels`).
+
+How the import treats it:
+
+- **An area's Hebrew** goes in the same `PUT` as its English. Link labels are
+  sent as `{ en, he }`; Hebrew already in the store follows its link by URL.
+- **A note's Hebrew** is published with `POST /api/admin/posts/:slug/publish`
+  and `scope: "he"`, because the `PUT` route never writes `he`. That route
+  repeats the live English unchanged, keeps the note's change note, and lets
+  the server stamp the fingerprints.
+- **Hebrew already in the store is never overwritten by default.** A field
+  the store lacks is added; a field that matches is left alone; a field that
+  differs is kept and reported (`kept the store's title (differs from the
+  repo; --overwrite-he replaces it)`). Run with `--overwrite-he` to replace
+  those fields with the repository's.
+- **A note with an admin draft, or one that is not published, gets no
+  Hebrew.** The script says so; publish or discard the draft first.
+
+```sh
+# Replace Hebrew that differs from the repository's (only when intended):
+CONTENT_API_BASE=https://<admin origin> CONTENT_ADMIN_TOKEN=... \
+  node backend/scripts/import-content.mjs --apply --overwrite-he
+```
+
+`backend/scripts/import-content.test.ts` drives the plan through the real admin
+routes on an in-memory store: create, a second run that writes nothing, kept
+versus `--overwrite-he`, the draft guard, the change note, and link labels that
+follow their URL when links are reordered.
 
 Verified locally against the Compose stack, with a store put into today's live
 shape (placeholder WindoM area, one post): the dry run showed 17 writes, `--apply`
@@ -176,8 +213,16 @@ that:
 - each note is 150 to 700 words and cites at least one public source;
 - covers are raw file URLs, never `/blob/` pages;
 - at most three notes are featured;
-- no note contains an IPv4 address, a host:port, a bare port, a tailnet name,
-  a credential-shaped string or a bot signature.
+- no area or note, in either language, contains an IPv4 address, a host:port,
+  a bare port, a tailnet name, a credential-shaped string, a bot signature or
+  a name of the owner's current employer;
+- every note has a `.he.md` with a Hebrew title, excerpt (at most 320
+  characters) and body, no more link labels than links, each at most 60
+  characters; the block parses with `PostHebrewSchema`, and an area's with
+  `CollectionHebrewSchema`;
+- every Hebrew string passes `lintHebrew()` from the glossary (maqaf after a
+  prefix, no Hebrew plural on a Latin word, no forbidden transliteration);
+- no `.he.md` is left without its English note.
 
 ## Preview
 

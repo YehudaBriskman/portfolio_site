@@ -1,0 +1,25 @@
+{
+  "slug": "oci-free",
+  "title": "oci-free",
+  "kind": "project",
+  "tagline": "The free-tier ARM VM this site runs on, as code",
+  "description": "Infrastructure as code for one free-tier ARM VM running k3s: the VM and its network in Terraform, the cluster's manifests, and the rollout that puts this site on it. Notes on what was built and why.",
+  "coverImage": null,
+  "links": [
+    { "label": "Source on GitHub", "url": "https://github.com/YehudaBriskman/oci-free" }
+  ],
+  "order": 40,
+  "status": "published",
+  "repo": {
+    "owner": "YehudaBriskman",
+    "name": "oci-free",
+    "branch": "main",
+    "docPaths": []
+  },
+  "he": {
+    "title": "oci-free",
+    "tagline": "ה־VM החינמי על ARM שהאתר הזה רץ עליו, כקוד",
+    "description": "תשתית כקוד ל־VM אחד על ARM בתוכנית החינמית, שמריץ k3s: ה־VM והרשת שלו ב־Terraform, ה־manifests של ה־cluster, וה־rollout שמעלה עליו את האתר הזה. רשימות על מה נבנה ולמה.",
+    "linkLabels": ["קוד המקור ב־GitHub"]
+  }
+}

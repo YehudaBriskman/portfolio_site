@@ -1,12 +1,20 @@
 {
   "slug": "site",
-  "title": "Notes",
+  "title": "This site",
   "kind": "site",
-  "tagline": "Decisions, and what they cost",
-  "description": "Writing about how this site and the projects on it are built: the decisions, the reasoning behind them, and what each one cost.",
+  "tagline": "How yehudabriskman.com is built, shipped and run",
+  "description": "Release notes and engineering notes for this site: a React frontend and a Node API over CouchDB, built in GitHub Actions and promoted by tag from preprod to production, in English and Hebrew.",
   "coverImage": null,
-  "links": [],
+  "links": [
+    { "label": "Source on GitHub", "url": "https://github.com/YehudaBriskman/portfolio_site" }
+  ],
   "order": 10,
   "status": "published",
-  "repo": null
+  "repo": null,
+  "he": {
+    "title": "האתר הזה",
+    "tagline": "איך yehudabriskman.com בנוי, איך הוא מגיע ל־production ועל מה הוא רץ",
+    "description": "רשימות release ורשימות הנדסיות על האתר הזה: frontend ב־React ו־API ב־Node מעל CouchDB, שנבנים ב־GitHub Actions ועוברים לפי תג מ־preprod ל־production, באנגלית ובעברית.",
+    "linkLabels": ["קוד המקור ב־GitHub"]
+  }
 }

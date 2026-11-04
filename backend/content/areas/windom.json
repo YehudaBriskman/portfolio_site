@@ -17,5 +17,11 @@
     "name": "WindoM",
     "branch": "main",
     "docPaths": ["README.md", "CHANGELOG.md"]
+  },
+  "he": {
+    "title": "WindoM",
+    "tagline": "כל לשונית חדשה הופכת ללוח בקרה",
+    "description": "תוסף ל־Chrome שמחליף את דף הלשונית החדשה בלוח בקרה אישי: שעון, מזג אוויר, משימות, יומן, מוזיקה ושווקים במבט אחד. רשימות release ורשימות הנדסיות מהעבודה עליו.",
+    "linkLabels": ["ב־Chrome Web Store", "האתר windom.app", "קוד המקור ב־GitHub"]
   }
 }
