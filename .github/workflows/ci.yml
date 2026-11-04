@@ -387,9 +387,8 @@ jobs:
   # behind Frontend's lint, typecheck and tests (~1.6 min) for nothing. The
   # images are built by their Dockerfiles either way; this dist never ships.
   #
-  # The browser is not cached: `playwright-core install --with-deps` measured
-  # 12-14 s (once 37 s) across the same runs, most of it the apt half, which
-  # a cache of the browser would not skip.
+  # The browser comes from a cache, and apt runs only when a library is
+  # missing (the install step says why: one run's apt took 22 minutes).
   #
   # Publish image needs this job, so main records no release manifest, and
   # a tag therefore promotes nothing, for a commit whose full sweep failed.
@@ -434,10 +433,49 @@ jobs:
       - run: npm ci
       - run: npm run build
       # `playwright-core` downloads no browser on install, so the build the
-      # pin wants is fetched here. `--with-deps` because the runner image
-      # does not carry Chromium's shared libraries.
+      # pin wants is fetched here - from a cache keyed on that exact version
+      # when one exists.
+      #
+      # Why it is cached, and why apt is no longer run every time: the old
+      # `install --with-deps` was 12-37 s on most runs, but on #332 (run
+      # 41855490929, 2026-11-04) the same step took 22 min and the job hit
+      # its 25-minute limit. The download is a fixed ~110 MB; the variance is
+      # the apt half (`apt-get update` plus installs against the mirror). The
+      # runner image already carries Chromium's libraries for its own Chrome,
+      # so apt is now run only when `ldd` says the binary is missing one.
+      #
+      # The cached browser runs only against this job's test build; nothing
+      # from this job is published. A pull request's cache entry is scoped
+      # to its own ref, which main never reads.
+      - name: Which browser build the pin wants
+        id: pw
+        run: echo "version=$(node -p "require('playwright-core/package.json').version")" >> "$GITHUB_OUTPUT"
+      - name: Restore the browser
+        id: pw-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0 zizmor: ignore[cache-poisoning]
+        with:
+          path: ~/.cache/ms-playwright
+          key: pw-headless-shell-${{ runner.os }}-${{ runner.arch }}-${{ steps.pw.outputs.version }}
+      # Bounded on its own, so a stalled mirror fails this leg in minutes
+      # with the step named, rather than eating the job's budget.
       - name: Install the browser the checks drive
-        run: npx playwright-core install --with-deps chromium-headless-shell
+        timeout-minutes: 5
+        env:
+          HIT: ${{ steps.pw-cache.outputs.cache-hit }}
+        run: |
+          set -Eeuo pipefail
+          if [ "$HIT" != "true" ]; then
+            npx playwright-core install chromium-headless-shell
+          fi
+          shell=$(find ~/.cache/ms-playwright -type f -name headless_shell -perm -u+x | head -n 1)
+          [ -n "$shell" ] || { echo "::error::no headless_shell under ~/.cache/ms-playwright"; exit 1; }
+          missing=$(ldd "$shell" | awk '/not found/ { print $1 }')
+          if [ -n "$missing" ]; then
+            echo "::notice title=Browser libraries::the runner lacks $(echo "$missing" | tr '\n' ' ')- installing them with apt"
+            npx playwright-core install-deps chromium-headless-shell
+          fi
+          "$shell" --version 2>/dev/null || true
+          echo "browser: $shell (cache hit: ${HIT:-false})"
       # The accessibility floor (#99): axe-core over every public route, in
       # both reading directions and both themes (#247), at 1440px and at
       # 320px, against the build above. A floor and not the audit — the
