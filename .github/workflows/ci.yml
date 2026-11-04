@@ -467,8 +467,8 @@ jobs:
           if [ "$HIT" != "true" ]; then
             npx playwright-core install chromium-headless-shell
           fi
-          shell=$(find ~/.cache/ms-playwright -type f -name headless_shell -perm -u+x | head -n 1)
-          [ -n "$shell" ] || { echo "::error::no headless_shell under ~/.cache/ms-playwright"; exit 1; }
+          shell=$(find ~/.cache/ms-playwright -type f \( -name chrome-headless-shell -o -name headless_shell \) -perm -u+x | head -n 1)
+          [ -n "$shell" ] || { echo "::error::no chrome-headless-shell under ~/.cache/ms-playwright"; exit 1; }
           missing=$(ldd "$shell" | awk '/not found/ { print $1 }')
           if [ -n "$missing" ]; then
             echo "::notice title=Browser libraries::the runner lacks $(echo "$missing" | tr '\n' ' ')- installing them with apt"
