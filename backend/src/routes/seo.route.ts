@@ -4,7 +4,6 @@ import { asyncHandler } from "../middlewares/asyncHandler.js";
 import { renderCardPng } from "../services/og.js";
 import {
   LOG_CHANNEL,
-  SITE_URL,
   absoluteUrl,
   areaChannel,
   buildFeed,
@@ -19,6 +18,14 @@ import {
   type PageMeta,
 } from "../services/seo.js";
 import { SEO_WORDS } from "../services/seo-words.js";
+import {
+  personNode,
+  personRef,
+  profilePageNode,
+  siteNameIn,
+  websiteNode,
+  withHebrewName,
+} from "../services/seo-entity.js";
 import { rawImageUrlOrNull, type Collection, type Post } from "../schemas/content.js";
 import type { ContentBundle } from "../schemas/site-content.js";
 import { publishedBundleOrSeed } from "../services/site-content.js";
@@ -239,7 +246,11 @@ function homeHtml(c: ContentBundle, lang: Lang, settings: SiteSettings): string 
     sectionVisible(settings, "work") ? `<li><a href="${href("/projects", lang)}">${escapeHtml(w.homeProjects)}</a></li>` : "",
     sectionVisible(settings, "notes") ? `<li><a href="${href("/blog", lang)}">${escapeHtml(w.homeNotes)}</a></li>` : "",
   ].join("");
-  return `<main><h1>${en(s.hero.name, lang)}, ${escapeHtml(w.role)}</h1>${ordered}<h2>${escapeHtml(w.elsewhere)}</h2><ul>${elsewhere}${work}${profiles}</ul></main>`;
+  /* The plate as the app draws it (Hero.tsx): the title as the H1, then the
+     fact line that carries the name, with the Hebrew spelling beside the
+     Latin on a Hebrew page (#308). A crawler and a reader get one outline. */
+  const fact = withHebrewName(plain(s.hero.fact, lang), lang);
+  return `<main><h1>${en(plain(s.hero.title, lang), lang)}</h1><p>${en(fact, lang)}</p>${ordered}<h2>${escapeHtml(w.elsewhere)}</h2><ul>${elsewhere}${work}${profiles}</ul></main>`;
 }
 
 /*
@@ -253,18 +264,6 @@ function homeHtml(c: ContentBundle, lang: Lang, settings: SiteSettings): string 
 async function storeProjects(): Promise<Map<string, ContentBundle["projects"]["items"][number]>> {
   const bundle = await publishedBundleOrSeed();
   return new Map(bundle.projects.items.map((p) => [p.slug, p]));
-}
-
-function personLd(lang: Lang) {
-  return {
-    "@context": "https://schema.org",
-    "@type": "Person",
-    name: "Yehuda Briskman",
-    url: SITE_URL,
-    jobTitle: SEO_WORDS[lang].jobTitle,
-    address: { "@type": "PostalAddress", addressLocality: "Tel Aviv", addressCountry: "IL" },
-    sameAs: ["https://github.com/YehudaBriskman"],
-  };
 }
 
 async function sendShell(res: Response, meta: PageMeta, status = 200): Promise<void> {
@@ -290,19 +289,20 @@ function at(path: string, lang: Lang) {
   return { lang, path, canonical: absoluteUrl(pathIn(path, lang)) };
 }
 
-const title = (name: string) => `${name} · Yehuda Briskman`;
+/** `Name · Yehuda Briskman`, or `Name · יהודה בריסקמן` on a Hebrew page (#308). */
+const title = (name: string, lang: Lang) => `${name} · ${siteNameIn(lang)}`;
 
 function notFound(res: Response, path: string, lang: Lang): Promise<void> {
   const w = SEO_WORDS[lang];
   return sendShell(
     res,
     {
-      title: title(w.notFound),
+      title: title(w.notFound, lang),
       description: w.notFoundDescription,
       lang,
       canonical: absoluteUrl(pathIn(path, lang)),
       image: absoluteUrl("/og.png"),
-      imageAlt: "Yehuda Briskman",
+      imageAlt: siteNameIn(lang),
       type: "website",
       noindex: true,
     },
@@ -313,6 +313,7 @@ function notFound(res: Response, path: string, lang: Lang): Promise<void> {
 page("/home", async (_req, res, lang) => {
   const w = SEO_WORDS[lang];
   const [content, settings] = await Promise.all([publishedBundleOrSeed(), settingsOrDefault()]);
+  const canonical = absoluteUrl(pathIn("/", lang));
   await sendShell(res, {
     ...at("/", lang),
     visuals: settings.visuals,
@@ -320,20 +321,14 @@ page("/home", async (_req, res, lang) => {
     description: w.siteDescription,
     socialDescription: w.siteSocial,
     image: absoluteUrl("/og.png"),
-    imageAlt: `Yehuda Briskman, ${w.role}`,
+    imageAlt: `${siteNameIn(lang)}, ${w.role}`,
     type: "website",
     bodyHtml: homeHtml(content, lang, settings),
+    /* The person, the site, and the page as a profile of the one about the
+       other (#308): what a knowledge panel is assembled from. */
     jsonLd: {
       "@context": "https://schema.org",
-      "@graph": [
-        personLd(lang),
-        {
-          "@type": "WebSite",
-          name: "Yehuda Briskman",
-          url: SITE_URL,
-          inLanguage: lang,
-        },
-      ],
+      "@graph": [personNode(lang, content), websiteNode(lang), profilePageNode(lang, canonical, w.siteTitle)],
     },
   });
 });
@@ -344,7 +339,7 @@ page("/blog", async (_req, res, lang) => {
   await sendShell(res, {
     ...at("/blog", lang),
     route: "Blog",
-    title: title(w.blogs),
+    title: title(w.blogs, lang),
     description: w.blogsDescription,
     image: absoluteUrl("/og-blog.png"),
     imageAlt: w.notesAlt,
@@ -376,7 +371,7 @@ page("/projects", async (_req, res, lang) => {
   await sendShell(res, {
     ...at("/projects", lang),
     route: "Projects",
-    title: title(w.work),
+    title: title(w.work, lang),
     description: w.workDescription,
     image: absoluteUrl("/og-projects.png"),
     imageAlt: w.projectsAlt,
@@ -414,18 +409,19 @@ page("/story", async (_req, res, lang) => {
   await sendShell(res, {
     ...at("/story", lang),
     route: "Story",
-    title: title(w.journey),
+    title: title(w.journey, lang),
     description: w.journeyDescription,
     image: absoluteUrl("/og.png"),
-    imageAlt: `Yehuda Briskman, ${w.role}`,
+    imageAlt: `${siteNameIn(lang)}, ${w.role}`,
     type: "website",
     bodyHtml: `<main><p>${escapeHtml(w.journey)}</p><h1>${escapeHtml(w.journeyTitle)}</h1><p>${escapeHtml(w.journeyDescription)}</p><ol>${beats}</ol><p><a href="${href("/projects", lang)}">${escapeHtml(w.work)}</a> · <a href="${href("/blog", lang)}">${escapeHtml(w.blogs)}</a></p></main>`,
     jsonLd: {
       "@context": "https://schema.org",
-      "@type": "ProfilePage",
-      url: absoluteUrl(pathIn("/story", lang)),
-      inLanguage: lang,
-      mainEntity: personLd(lang),
+      "@graph": [
+        profilePageNode(lang, absoluteUrl(pathIn("/story", lang)), title(w.journey, lang)),
+        personNode(lang, c),
+        websiteNode(lang),
+      ],
     },
   });
 });
@@ -435,10 +431,10 @@ page("/accessibility", async (_req, res, lang) => {
   await sendShell(res, {
     ...at("/accessibility", lang),
     route: "Accessibility",
-    title: title(w.accessibility),
+    title: title(w.accessibility, lang),
     description: w.accessibilityDescription,
     image: absoluteUrl("/og.png"),
-    imageAlt: "Yehuda Briskman",
+    imageAlt: siteNameIn(lang),
     type: "website",
     bodyHtml:
       `<main><p>${escapeHtml(w.statement)}</p><h1>${escapeHtml(w.accessibility)}</h1>` +
@@ -458,10 +454,10 @@ page("/developers/mcp", async (_req, res, lang) => {
   const code = (s: string) => `<code dir="ltr">${escapeHtml(s)}</code>`;
   await sendShell(res, {
     ...at("/developers/mcp", lang),
-    title: title(w.mcp),
+    title: title(w.mcp, lang),
     description: w.mcpDescription,
     image: absoluteUrl("/og.png"),
-    imageAlt: "Yehuda Briskman",
+    imageAlt: siteNameIn(lang),
     type: "website",
     bodyHtml:
       `<main><p>${escapeHtml(w.developers)}</p><h1>${escapeHtml(w.mcp)}</h1><p>${escapeHtml(w.mcpDescription)}</p>` +
@@ -483,7 +479,7 @@ page("/blog/log", async (_req, res, lang) => {
   await sendShell(res, {
     ...at("/blog/log", lang),
     route: "BlogLog",
-    title: title(w.log),
+    title: title(w.log, lang),
     description: w.logDescription,
     image: absoluteUrl("/og-blog.png"),
     imageAlt: w.notesAlt,
@@ -541,7 +537,7 @@ page("/blog/area/:slug", async (req, res, lang) => {
   await sendShell(res, {
     ...at(`/blog/area/${area.slug}`, lang),
     route: "BlogArea",
-    title: `${area.title} · ${w.notes} · Yehuda Briskman`,
+    title: `${area.title} · ${w.notes} · ${siteNameIn(lang)}`,
     description,
     image,
     imageAlt: area.title,
@@ -581,7 +577,7 @@ page("/blog/:slug", async (req, res, lang) => {
     ...at(`/blog/${post.slug}`, lang),
     canonical,
     route: "BlogPost",
-    title: post.seo.title ?? `${post.title} · Yehuda Briskman`,
+    title: post.seo.title ?? title(post.title, lang),
     description: clampDescription(post.seo.description ?? post.excerpt),
     image,
     imageAlt: post.title,
@@ -602,8 +598,8 @@ page("/blog/:slug", async (req, res, lang) => {
       inLanguage: bodyInEnglish || lang === "en" ? "en" : "he",
       datePublished: post.publishedAt ?? post.createdAt,
       dateModified: post.updatedAt,
-      author: { "@type": "Person", name: "Yehuda Briskman", url: SITE_URL },
-      publisher: { "@type": "Person", name: "Yehuda Briskman", url: SITE_URL },
+      author: personRef,
+      publisher: personRef,
       mainEntityOfPage: { "@type": "WebPage", "@id": canonical },
       keywords: post.tags.join(", ") || undefined,
       wordCount: post.body.trim().split(/\s+/).length,
@@ -626,7 +622,7 @@ page("/projects/:slug", async (req, res, lang) => {
       return sendShell(res, {
         ...at(`/projects/${slug}`, lang),
         route: "Project",
-        title: title(seed.title),
+        title: title(seed.title, lang),
         description: clampDescription(plain(seed.fact, lang)),
         image: absoluteUrl("/og-projects.png"),
         imageAlt: seed.title,
@@ -647,7 +643,7 @@ page("/projects/:slug", async (req, res, lang) => {
   await sendShell(res, {
     ...at(`/projects/${collection.slug}`, lang),
     route: "Project",
-    title: title(collection.title),
+    title: title(collection.title, lang),
     description: clampDescription(description),
     image: rawImageUrlOrNull(collection.coverImage) ?? absoluteUrl(`/api/seo/og/projects/${collection.slug}.png`),
     imageAlt: collection.title,
@@ -663,7 +659,7 @@ page("/projects/:slug", async (req, res, lang) => {
       url: canonical,
       codeRepository: collection.repo ? `https://github.com/${collection.repo.owner}/${collection.repo.name}` : undefined,
       programmingLanguage: collection.stats?.language ?? undefined,
-      author: { "@type": "Person", name: "Yehuda Briskman", url: SITE_URL },
+      author: personRef,
     },
   });
 });

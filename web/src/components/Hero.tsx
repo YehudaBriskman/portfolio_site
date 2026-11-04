@@ -2,6 +2,8 @@ import { useState, useSyncExternalStore } from "react";
 import ObjectLabel from "@/components/gallery/ObjectLabel";
 import type { LabelField } from "@/components/gallery/objectLabel";
 import { useContent } from "@/content/store";
+import { useLang } from "@/components/dashboard/i18n";
+import { withHebrewName } from "@/data/identity";
 import { useHomeWords } from "@/i18n/pages";
 import HeroCorners from "@/components/HeroCorners";
 import styles from "@/components/Hero.module.css";
@@ -221,6 +223,9 @@ export default function Hero({ hold = true }: { hold?: boolean }) {
   /* The plate's words from the content store (#163). */
   const { plate, plateTitle } = useContent().site;
   const w = useHomeWords();
+  /* On the Hebrew page the fact line carries the owner's Hebrew spelling
+     beside the Latin name (#308), as the server render does. */
+  const fact = withHebrewName(plateTitle.fact, useLang());
   return (
     /*
       `overflow-x: clip` and not `hidden`: the two remaining lines enter from
@@ -338,7 +343,7 @@ export default function Hero({ hold = true }: { hold?: boolean }) {
               scale="plate"
               nameAs="h1"
               name={plateTitle.name}
-              fact={plateTitle.fact}
+              fact={fact}
               fields={plateFields(plate, w.shippingSince)}
               exposeFieldKinds
               splitName

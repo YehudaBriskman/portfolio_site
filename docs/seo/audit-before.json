@@ -1,0 +1,705 @@
+{
+  "robots": {
+    "status": 200,
+    "sitemapLine": true,
+    "disallow": [
+      "/admin"
+    ]
+  },
+  "sitemap": {
+    "status": 200,
+    "index": false,
+    "urls": 48,
+    "lastmod": 48,
+    "alternates": 144
+  },
+  "pages": 64,
+  "byStatus": {
+    "200": 64
+  },
+  "indexable": 64,
+  "noindex": [],
+  "notOneTitle": [],
+  "notOneDescription": [],
+  "notOneCanonical": [],
+  "canonicalElsewhere": [],
+  "titleLong": [
+    {
+      "path": "/blog/windom-1-5-computed-glass",
+      "len": 65
+    },
+    {
+      "path": "/blog/bothy-2026-9-five-services",
+      "len": 77
+    },
+    {
+      "path": "/blog/windom-1-4-apps-hub",
+      "len": 73
+    },
+    {
+      "path": "/blog/windom-1-3-weather-without-a-key",
+      "len": 81
+    },
+    {
+      "path": "/he/blog/windom-1-5-computed-glass",
+      "len": 65
+    },
+    {
+      "path": "/he/blog/bothy-2026-9-five-services",
+      "len": 77
+    },
+    {
+      "path": "/he/blog/windom-1-4-apps-hub",
+      "len": 73
+    },
+    {
+      "path": "/he/blog/windom-1-3-weather-without-a-key",
+      "len": 81
+    }
+  ],
+  "titleShort": [],
+  "descriptionLong": [],
+  "descriptionShort": [
+    {
+      "path": "/he/projects",
+      "len": 68
+    },
+    {
+      "path": "/he/blog",
+      "len": 56
+    },
+    {
+      "path": "/projects/windom",
+      "len": 33
+    },
+    {
+      "path": "/projects/bothy",
+      "len": 58
+    },
+    {
+      "path": "/projects/programming-with-yehuda",
+      "len": 48
+    },
+    {
+      "path": "/projects/icaros",
+      "len": 58
+    },
+    {
+      "path": "/he/projects/windom",
+      "len": 33
+    },
+    {
+      "path": "/he/projects/bothy",
+      "len": 58
+    },
+    {
+      "path": "/he/projects/programming-with-yehuda",
+      "len": 48
+    },
+    {
+      "path": "/he/projects/icaros",
+      "len": 58
+    },
+    {
+      "path": "/blog/area/site",
+      "len": 29
+    },
+    {
+      "path": "/he/blog/area/site",
+      "len": 29
+    },
+    {
+      "path": "/blog/area/windom",
+      "len": 33
+    },
+    {
+      "path": "/he/blog/area/windom",
+      "len": 33
+    },
+    {
+      "path": "/blog/area/bothy",
+      "len": 58
+    },
+    {
+      "path": "/he/blog/area/bothy",
+      "len": 58
+    }
+  ],
+  "duplicateTitles": [
+    {
+      "value": "WindoM · Yehuda Briskman",
+      "paths": [
+        "/projects/windom",
+        "/he/projects/windom"
+      ]
+    },
+    {
+      "value": "Bothy · Yehuda Briskman",
+      "paths": [
+        "/projects/bothy",
+        "/he/projects/bothy"
+      ]
+    },
+    {
+      "value": "Programming with Yehuda · Yehuda Briskman",
+      "paths": [
+        "/projects/programming-with-yehuda",
+        "/he/projects/programming-with-yehuda"
+      ]
+    },
+    {
+      "value": "Icaros · Yehuda Briskman",
+      "paths": [
+        "/projects/icaros",
+        "/he/projects/icaros"
+      ]
+    },
+    {
+      "value": "An updater that cannot choose the version · Yehuda Briskman",
+      "paths": [
+        "/blog/bothy-updates-deploy-what-main-pins",
+        "/he/blog/bothy-updates-deploy-what-main-pins"
+      ]
+    },
+    {
+      "value": "Why Bothy has no shell in the browser · Yehuda Briskman",
+      "paths": [
+        "/blog/bothy-no-shell-in-the-browser",
+        "/he/blog/bothy-no-shell-in-the-browser"
+      ]
+    },
+    {
+      "value": "Bothy asks Docker what is running · Yehuda Briskman",
+      "paths": [
+        "/blog/bothy-asks-docker",
+        "/he/blog/bothy-asks-docker"
+      ]
+    },
+    {
+      "value": "Why the Gmail widget was withdrawn · Yehuda Briskman",
+      "paths": [
+        "/blog/windom-gmail-withdrawn-for-licensing",
+        "/he/blog/windom-gmail-withdrawn-for-licensing"
+      ]
+    },
+    {
+      "value": "A provider's 401 is not a signed-out user · Yehuda Briskman",
+      "paths": [
+        "/blog/windom-provider-401-is-not-a-session",
+        "/he/blog/windom-provider-401-is-not-a-session"
+      ]
+    },
+    {
+      "value": "The glass is computed, not decorated · Yehuda Briskman",
+      "paths": [
+        "/blog/windom-glass-as-optics",
+        "/he/blog/windom-glass-as-optics"
+      ]
+    },
+    {
+      "value": "Fixture — code, tables and quotes · Yehuda Briskman",
+      "paths": [
+        "/blog/fixture-rendering",
+        "/he/blog/fixture-rendering"
+      ]
+    },
+    {
+      "value": "WindoM 1.5: computed glass, and Gmail withdrawn · Yehuda Briskman",
+      "paths": [
+        "/blog/windom-1-5-computed-glass",
+        "/he/blog/windom-1-5-computed-glass"
+      ]
+    },
+    {
+      "value": "Fixture — a long read · Yehuda Briskman",
+      "paths": [
+        "/blog/fixture-long-read",
+        "/he/blog/fixture-long-read"
+      ]
+    },
+    {
+      "value": "WindoM 1.4.1: a release about not breaking · Yehuda Briskman",
+      "paths": [
+        "/blog/windom-1-4-1-reliability",
+        "/he/blog/windom-1-4-1-reliability"
+      ]
+    },
+    {
+      "value": "Fixture — shorter than the viewport · Yehuda Briskman",
+      "paths": [
+        "/blog/fixture-short",
+        "/he/blog/fixture-short"
+      ]
+    },
+    {
+      "value": "Fixture — a note filed under a project · Yehuda Briskman",
+      "paths": [
+        "/blog/fixture-project-note",
+        "/he/blog/fixture-project-note"
+      ]
+    },
+    {
+      "value": "Bothy 2026.9: five services, a cluster console, and a guide · Yehuda Briskman",
+      "paths": [
+        "/blog/bothy-2026-9-five-services",
+        "/he/blog/bothy-2026-9-five-services"
+      ]
+    },
+    {
+      "value": "Bothy 2026.8: the first release · Yehuda Briskman",
+      "paths": [
+        "/blog/bothy-2026-8-first-release",
+        "/he/blog/bothy-2026-8-first-release"
+      ]
+    },
+    {
+      "value": "WindoM 1.4: the Apps Hub, markets and a first-run guide · Yehuda Briskman",
+      "paths": [
+        "/blog/windom-1-4-apps-hub",
+        "/he/blog/windom-1-4-apps-hub"
+      ]
+    },
+    {
+      "value": "WindoM 1.3: weather without a key, and accounts you can recover · Yehuda Briskman",
+      "paths": [
+        "/blog/windom-1-3-weather-without-a-key",
+        "/he/blog/windom-1-3-weather-without-a-key"
+      ]
+    },
+    {
+      "value": "WindoM 1.1: settings that follow you · Yehuda Briskman",
+      "paths": [
+        "/blog/windom-1-1-settings-sync",
+        "/he/blog/windom-1-1-settings-sync"
+      ]
+    },
+    {
+      "value": "WindoM 1.0: the new tab as a dashboard · Yehuda Briskman",
+      "paths": [
+        "/blog/windom-1-0-first-release",
+        "/he/blog/windom-1-0-first-release"
+      ]
+    }
+  ],
+  "duplicateDescriptions": [
+    {
+      "value": "Every new tab becomes a dashboard",
+      "paths": [
+        "/projects/windom",
+        "/he/projects/windom",
+        "/blog/area/windom",
+        "/he/blog/area/windom"
+      ]
+    },
+    {
+      "value": "A console for one machine that asks Docker what is running",
+      "paths": [
+        "/projects/bothy",
+        "/he/projects/bothy",
+        "/blog/area/bothy",
+        "/he/blog/area/bothy"
+      ]
+    },
+    {
+      "value": "Lesson pages built while learning React and Node",
+      "paths": [
+        "/projects/programming-with-yehuda",
+        "/he/projects/programming-with-yehuda"
+      ]
+    },
+    {
+      "value": "A car-listing web app, built while learning React and Node",
+      "paths": [
+        "/projects/icaros",
+        "/he/projects/icaros"
+      ]
+    },
+    {
+      "value": "Bothy's updater deploys only what the main branch already pins. It checks before, snapshots, verifies by response body, rolls back on failure, and never…",
+      "paths": [
+        "/blog/bothy-updates-deploy-what-main-pins",
+        "/he/blog/bothy-updates-deploy-what-main-pins"
+      ]
+    },
+    {
+      "value": "Bothy can restart, stop and start a container, and nothing else. The missing exec is a deliberate regression, and the limit is enforced in places a later…",
+      "paths": [
+        "/blog/bothy-no-shell-in-the-browser",
+        "/he/blog/bothy-no-shell-in-the-browser"
+      ]
+    },
+    {
+      "value": "A console for one machine is usually a hand-written list, wrong from the first container that moves. Bothy has no list: it joins two read-only APIs and…",
+      "paths": [
+        "/blog/bothy-asks-docker",
+        "/he/blog/bothy-asks-docker"
+      ]
+    },
+    {
+      "value": "Reading mail needs a Google scope that requires a recurring third-party security assessment. WindoM switched the widget off behind a flag instead of…",
+      "paths": [
+        "/blog/windom-gmail-withdrawn-for-licensing",
+        "/he/blog/windom-gmail-withdrawn-for-licensing"
+      ]
+    },
+    {
+      "value": "Signing in to WindoM worked, then undid itself. A stale Calendar or Spotify grant was being read as an expired session, and the refresh storm that…",
+      "paths": [
+        "/blog/windom-provider-401-is-not-a-session",
+        "/he/blog/windom-provider-401-is-not-a-session"
+      ]
+    },
+    {
+      "value": "WindoM's glass bends the wallpaper through Snell's law instead of faking it with blur and tint. Getting there meant finding the browser fault that had…",
+      "paths": [
+        "/blog/windom-glass-as-optics",
+        "/he/blog/windom-glass-as-optics"
+      ]
+    },
+    {
+      "value": "Fixture text. Everything below exists so the renderer has something to render. A fenced block, shell bash docker compose f docker compose.yml f docker…",
+      "paths": [
+        "/blog/fixture-rendering",
+        "/he/blog/fixture-rendering"
+      ]
+    },
+    {
+      "value": "The glass becomes real refraction, the Gmail widget is withdrawn for a licensing reason, windom.app is rebuilt, and 1.5.1 fixes a sign-in that undid…",
+      "paths": [
+        "/blog/windom-1-5-computed-glass",
+        "/he/blog/windom-1-5-computed-glass"
+      ]
+    },
+    {
+      "value": "Fixture text. This one is deliberately long, because the reading bar measures the article rather than the document and a short post cannot show whether…",
+      "paths": [
+        "/blog/fixture-long-read",
+        "/he/blog/fixture-long-read"
+      ]
+    },
+    {
+      "value": "Database migrations leave server startup, health checks start telling the truth, every release passes one shared gate, and users can see and revoke their…",
+      "paths": [
+        "/blog/windom-1-4-1-reliability",
+        "/he/blog/windom-1-4-1-reliability"
+      ]
+    },
+    {
+      "value": "Fixture text, short on purpose: an article shorter than the viewport has no scroll travel at all, which is the case that makes a progress bar divide by…",
+      "paths": [
+        "/blog/fixture-short",
+        "/he/blog/fixture-short"
+      ]
+    },
+    {
+      "value": "Fixture text. This one belongs to a project rather than to the site, which is the case the index used to hide entirely: it filtered to collection: \"site\"…",
+      "paths": [
+        "/blog/fixture-project-note",
+        "/he/blog/fixture-project-note"
+      ]
+    },
+    {
+      "value": "Bothy goes from eight containers to five, gains a Kubernetes console with 29 audited actions, moves to VictoriaMetrics and Alloy, and ships a guide for…",
+      "paths": [
+        "/blog/bothy-2026-9-five-services",
+        "/he/blog/bothy-2026-9-five-services"
+      ]
+    },
+    {
+      "value": "The first tagged release of Bothy: a console discovered from Docker, local single sign-on with four roles, the bothy CLI, and an install with nothing to…",
+      "paths": [
+        "/blog/bothy-2026-8-first-release",
+        "/he/blog/bothy-2026-8-first-release"
+      ]
+    },
+    {
+      "value": "Integrations move into one Apps Hub, a finance dashboard arrives for stocks and crypto, and new users get templates, onboarding and a guide in English…",
+      "paths": [
+        "/blog/windom-1-4-apps-hub",
+        "/he/blog/windom-1-4-apps-hub"
+      ]
+    },
+    {
+      "value": "Weather moves to Open-Meteo and needs no API key. Accounts gain email verification, password reset and deletion, and both OAuth flows move to PKCE.",
+      "paths": [
+        "/blog/windom-1-3-weather-without-a-key",
+        "/he/blog/windom-1-3-weather-without-a-key"
+      ]
+    },
+    {
+      "value": "WindoM 1.1 syncs preferences to your account, fixes several ways a signed-in user could be disconnected, adds a command palette, and lays down the…",
+      "paths": [
+        "/blog/windom-1-1-settings-sync",
+        "/he/blog/windom-1-1-settings-sync"
+      ]
+    },
+    {
+      "value": "WindoM 1.0 replaces Chrome's empty new tab with a dashboard: clock, weather, tasks, calendar, music, quick links and a focus timer, with an optional…",
+      "paths": [
+        "/blog/windom-1-0-first-release",
+        "/he/blog/windom-1-0-first-release"
+      ]
+    },
+    {
+      "value": "Decisions, and what they cost",
+      "paths": [
+        "/blog/area/site",
+        "/he/blog/area/site"
+      ]
+    }
+  ],
+  "titleLangMismatch": [
+    "/he/blog",
+    "/he/projects/windom",
+    "/he/projects/bothy",
+    "/he/projects/programming-with-yehuda",
+    "/he/projects/icaros",
+    "/he/blog/bothy-updates-deploy-what-main-pins",
+    "/he/blog/bothy-no-shell-in-the-browser",
+    "/he/blog/bothy-asks-docker",
+    "/he/blog/windom-gmail-withdrawn-for-licensing",
+    "/he/blog/windom-provider-401-is-not-a-session",
+    "/he/blog/windom-glass-as-optics",
+    "/he/blog/fixture-rendering",
+    "/he/blog/windom-1-5-computed-glass",
+    "/he/blog/fixture-long-read",
+    "/he/blog/windom-1-4-1-reliability",
+    "/he/blog/fixture-short",
+    "/he/blog/fixture-project-note",
+    "/he/blog/bothy-2026-9-five-services",
+    "/he/blog/bothy-2026-8-first-release",
+    "/he/blog/windom-1-4-apps-hub",
+    "/he/blog/windom-1-3-weather-without-a-key",
+    "/he/blog/windom-1-1-settings-sync",
+    "/he/blog/windom-1-0-first-release",
+    "/he/developers/mcp",
+    "/he/blog/area/site",
+    "/he/blog/area/windom",
+    "/he/blog/area/bothy"
+  ],
+  "descriptionLangMismatch": [
+    "/he/projects/windom",
+    "/he/projects/bothy",
+    "/he/projects/programming-with-yehuda",
+    "/he/projects/icaros",
+    "/he/blog/bothy-updates-deploy-what-main-pins",
+    "/he/blog/bothy-no-shell-in-the-browser",
+    "/he/blog/bothy-asks-docker",
+    "/he/blog/windom-gmail-withdrawn-for-licensing",
+    "/he/blog/windom-provider-401-is-not-a-session",
+    "/he/blog/windom-glass-as-optics",
+    "/he/blog/fixture-rendering",
+    "/he/blog/windom-1-5-computed-glass",
+    "/he/blog/fixture-long-read",
+    "/he/blog/windom-1-4-1-reliability",
+    "/he/blog/fixture-short",
+    "/he/blog/fixture-project-note",
+    "/he/blog/bothy-2026-9-five-services",
+    "/he/blog/bothy-2026-8-first-release",
+    "/he/blog/windom-1-4-apps-hub",
+    "/he/blog/windom-1-3-weather-without-a-key",
+    "/he/blog/windom-1-1-settings-sync",
+    "/he/blog/windom-1-0-first-release",
+    "/he/blog/area/site",
+    "/he/blog/area/windom",
+    "/he/blog/area/bothy"
+  ],
+  "heIndexableEnglish": [
+    "/he/projects/windom",
+    "/he/projects/bothy",
+    "/he/projects/programming-with-yehuda",
+    "/he/projects/icaros",
+    "/he/blog/bothy-updates-deploy-what-main-pins",
+    "/he/blog/bothy-no-shell-in-the-browser",
+    "/he/blog/bothy-asks-docker",
+    "/he/blog/windom-gmail-withdrawn-for-licensing",
+    "/he/blog/windom-provider-401-is-not-a-session",
+    "/he/blog/windom-glass-as-optics",
+    "/he/blog/fixture-rendering",
+    "/he/blog/windom-1-5-computed-glass",
+    "/he/blog/fixture-long-read",
+    "/he/blog/windom-1-4-1-reliability",
+    "/he/blog/fixture-short",
+    "/he/blog/fixture-project-note",
+    "/he/blog/bothy-2026-9-five-services",
+    "/he/blog/bothy-2026-8-first-release",
+    "/he/blog/windom-1-4-apps-hub",
+    "/he/blog/windom-1-3-weather-without-a-key",
+    "/he/blog/windom-1-1-settings-sync",
+    "/he/blog/windom-1-0-first-release",
+    "/he/blog/area/site",
+    "/he/blog/area/windom",
+    "/he/blog/area/bothy"
+  ],
+  "noHreflang": [],
+  "noJsonLd": [
+    "/projects",
+    "/blog",
+    "/he/projects",
+    "/he/blog",
+    "/projects/programming-with-yehuda",
+    "/projects/icaros",
+    "/he/projects/programming-with-yehuda",
+    "/he/projects/icaros",
+    "/developers/mcp",
+    "/he/developers/mcp",
+    "/blog/log",
+    "/he/blog/log",
+    "/accessibility",
+    "/he/accessibility",
+    "/blog/area/site",
+    "/he/blog/area/site",
+    "/blog/area/windom",
+    "/he/blog/area/windom",
+    "/blog/area/bothy",
+    "/he/blog/area/bothy"
+  ],
+  "jsonLdProblems": [],
+  "jsonLdTypes": [
+    "BlogPosting",
+    "Person",
+    "PostalAddress",
+    "ProfilePage",
+    "SoftwareSourceCode",
+    "WebPage",
+    "WebSite"
+  ],
+  "ogIncomplete": [],
+  "twitterIncomplete": [],
+  "ogLocaleVsLang": [],
+  "noH1": [],
+  "manyH1": [],
+  "headingSkips": [],
+  "imagesNoAlt": 0,
+  "thin": [
+    {
+      "path": "/projects/windom",
+      "words": 35
+    },
+    {
+      "path": "/projects/bothy",
+      "words": 43
+    },
+    {
+      "path": "/projects/programming-with-yehuda",
+      "words": 28
+    },
+    {
+      "path": "/projects/icaros",
+      "words": 36
+    },
+    {
+      "path": "/he/projects/windom",
+      "words": 35
+    },
+    {
+      "path": "/he/projects/bothy",
+      "words": 43
+    },
+    {
+      "path": "/he/projects/programming-with-yehuda",
+      "words": 28
+    },
+    {
+      "path": "/he/projects/icaros",
+      "words": 36
+    },
+    {
+      "path": "/he/developers/mcp",
+      "words": 45
+    },
+    {
+      "path": "/blog/log",
+      "words": 11
+    },
+    {
+      "path": "/he/blog/log",
+      "words": 9
+    },
+    {
+      "path": "/he/accessibility",
+      "words": 49
+    }
+  ],
+  "feedsInHead": 64,
+  "verification": [],
+  "maxDepth": 2,
+  "depthHistogram": {
+    "0": 2,
+    "1": 4,
+    "2": 44,
+    "unlinked": 14
+  },
+  "orphans": [
+    "/developers/mcp",
+    "/he/developers/mcp"
+  ],
+  "indexableNotInSitemap": [
+    "/projects/programming-with-yehuda",
+    "/projects/icaros",
+    "/he/projects/programming-with-yehuda",
+    "/he/projects/icaros",
+    "/blog/log",
+    "/he/blog/log",
+    "/story",
+    "/he/story",
+    "/accessibility",
+    "/he/accessibility",
+    "/blog/area/site",
+    "/he/blog/area/site",
+    "/blog/area/windom",
+    "/he/blog/area/windom",
+    "/blog/area/bothy",
+    "/he/blog/area/bothy"
+  ],
+  "appRoutesUnlinked": [
+    "/blog/log",
+    "/he/blog/log",
+    "/story",
+    "/he/story",
+    "/accessibility",
+    "/he/accessibility",
+    "/developers/mcp",
+    "/he/developers/mcp",
+    "/blog/area/site",
+    "/he/blog/area/site",
+    "/blog/area/windom",
+    "/he/blog/area/windom",
+    "/blog/area/bothy",
+    "/he/blog/area/bothy"
+  ],
+  "sitemapNot200": [],
+  "sitemapNoindex": [],
+  "probes": {
+    "/blog/no-such-note-xyz": {
+      "status": 404,
+      "robots": [
+        "noindex, follow"
+      ]
+    },
+    "/he/blog/no-such-note-xyz": {
+      "status": 404,
+      "robots": [
+        "noindex, follow"
+      ]
+    },
+    "/projects/no-such-project": {
+      "status": 404,
+      "robots": [
+        "noindex, follow"
+      ]
+    },
+    "/no-such-page": {
+      "status": 404,
+      "robots": [
+        "index, follow, max-image-preview:large"
+      ]
+    },
+    "/he/no-such-page": {
+      "status": 404,
+      "robots": [
+        "noindex, follow"
+      ]
+    }
+  }
+}
