@@ -1,7 +1,7 @@
 {
-  "$schema": "./glossary.schema.json (to be written with enforcement, #294)",
+  "$comment": "Read through web/src/i18n/glossary.ts; linted over the source by __tests__/glossary.test.ts (#300).",
   "version": 1,
-  "status": "draft, pending owner review",
+  "status": "approved by the owner (#292); contested calls accepted as written",
   "updated": "2026-11-03",
   "conventions": {
     "maqaf": "A Hebrew prefix letter (ב ה ו כ ל מ ש) before a Latin word, digit or symbol joins it with the Hebrew maqaf U+05BE and no space: ב־GitHub, ה־API, ו־Claude Desktop, מ־3, כ־12%. Never ASCII hyphen-minus or en dash. The same maqaf joins the approved compound פול־סטאק. Transliterated compounds that the owner wrote as one word stay one word (פרונטאנד), so the parallel is בקאנד, not בק־אנד.",

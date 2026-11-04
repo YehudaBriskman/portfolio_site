@@ -18,6 +18,8 @@
     "lib": ["ES2022"],
     "strict": true,
     "esModuleInterop": true,
+    // The Hebrew glossary (src/i18n/glossary.json, a copy of the web app's, #307).
+    "resolveJsonModule": true,
     "skipLibCheck": true,
     "types": ["node", "vitest/globals"],
     "forceConsistentCasingInFileNames": true
