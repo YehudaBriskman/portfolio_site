@@ -158,11 +158,13 @@ continuously released, and a rollback has a name — `v1.2.0` is something you
 can redeploy, where "the commit before last Tuesday's merge" is something you
 have to go and find.
 
-**`:latest` means the last release prod runs**, not the last merge. The k8s
-manifest carries `:latest` as the tag a fresh `kubectl apply` lands on, so
-while it moved on every merge an apply between releases would have quietly
-deployed unreleased code. It now moves only after a prod rollout passed.
-Preprod writes no tag at all.
+**`:latest` means the last release prod runs**, not the last merge. It is
+the image oci-free's `k8s/portfolio-apply.sh` creates a missing Deployment
+with, so while it moved on every merge a rebuild between releases would have
+quietly deployed unreleased code. It now moves only after a prod rollout
+passed. Preprod writes no tag at all. The oci-free manifests themselves carry
+no image for `web` and `api` (oci-free#25): CI owns that field, so a
+`kubectl apply` of them no longer reverts what CI deployed.
 
 **The rollout runs on the digest, not a tag.** A digest cannot move, and it is
 the exact image that was scanned. The version and the source commit are
