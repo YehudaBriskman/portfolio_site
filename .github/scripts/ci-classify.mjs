@@ -22,7 +22,7 @@
 //   - web/**      -> web (Frontend, Scan image web)
 //   - backend/**  -> backend (Backend, Scan image api)
 //   - mcp/**      -> mcp (MCP server: tests, typecheck, build; no image, #252)
-//   - docs/**, root *.md -> docs, which selects nothing beyond Static
+//   - docs/**, root *.md, LICENSE* -> docs, which selects nothing beyond Static
 //   - widening paths -> everything: workflows and CI scripts, lockfiles and
 //     package manifests, Dockerfiles and .dockerignore, nginx config, Compose,
 //     the Makefile, tsconfig and eslint config, the Trivy ignore file
@@ -80,6 +80,7 @@ const RULES = [
   { re: /^mcp\//, component: "mcp" },
   { re: /^docs\//, component: "docs" },
   { re: /^[^/]+\.md$/, component: "docs" },
+  { re: /^LICENSE(-[A-Z]+)?$/, component: "docs" },
 ];
 
 export const JOBS = ["static", "frontend", "backend", "mcp", "scan", "images", "release", "promote", "deploy"];
