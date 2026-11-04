@@ -138,6 +138,28 @@ const THEMES = (process.env.THEMES ?? "light,dark").split(",").map((t) => t.trim
 const ONLY = process.env.ONLY ?? "";
 const want = (block) => !ONLY || ONLY.split(",").includes(block);
 
+/*
+ * SHARD=k/n runs every n-th route run, starting at the k-th. CI's matrix
+ * lists k = 1..n, so its legs together run the whole list exactly once
+ * (a test in .github/scripts holds the matrix to that). Round-robin rather
+ * than contiguous blocks: the list is grouped by kind, and the kinds differ
+ * in cost (a keyboard walk is several axe runs long), so a contiguous split
+ * would hand one leg every keyboard walk. A malformed SHARD fails the run
+ * rather than quietly running nothing. Unset, it is the whole list.
+ */
+const shard = (() => {
+  const s = process.env.SHARD;
+  if (!s) return { k: 1, n: 1 };
+  const m = /^(\d+)\/(\d+)$/.exec(s);
+  const k = m ? Number(m[1]) : 0;
+  const n = m ? Number(m[2]) : 0;
+  if (!m || n < 1 || k < 1 || k > n) {
+    console.error(`SHARD=${s} is not k/n with 1 <= k <= n`);
+    process.exit(2);
+  }
+  return { k, n };
+})();
+
 /* -------------------------------------------------------------------- run */
 
 const { base, stop } = await startPreview();
@@ -530,50 +552,58 @@ async function fit(lang, width) {
   return { route: `/ hero fit${lang === "he" ? ", /he/blog fields" : ""}`, lang, window: `${width}px`, overflow: 0, errors, violations: [] };
 }
 
+/* Every run, listed first and then executed, so CI can split the list. */
+const tasks = [];
+if (want("fit")) {
+  for (const lang of ["en", "he"]) for (const width of FIT_WIDTHS) tasks.push(() => fit(lang, width));
+}
+for (const theme of THEMES) {
+  if (want("axe")) {
+    for (const lang of ["en", "he"]) {
+      for (const win of WINDOWS) {
+        for (const route of ROUTES) tasks.push(() => audit(route, lang, win, { theme }));
+      }
+    }
+    tasks.push(() => audit("/blog", "en", WINDOWS[0], { failing: true, theme }));
+    tasks.push(() => audit("/blog/fixture-post", "en", WINDOWS[1], { failing: true, theme }));
+    tasks.push(() => audit("/blog/log", "en", WINDOWS[1], { failing: true, theme }));
+    /* The pen's prose, under the site's own Pause rather than reduced motion. */
+    for (const route of ["/", "/story", "/projects/bothy", "/blog/fixture-post"]) {
+      tasks.push(() => audit(route, "en", WINDOWS[0], { paused: true, theme }));
+      tasks.push(() => audit(route, "he", WINDOWS[1], { paused: true, theme }));
+    }
+    /* A stored choice against the opposite OS setting: the choice wins. */
+    tasks.push(() => audit("/", "en", WINDOWS[0], { theme, stored: true }));
+    tasks.push(() => audit("/blog", "en", WINDOWS[1], { theme, stored: true }));
+  }
+  /* The viewer controls at their strongest (#99): Larger text and More
+     contrast, at both widths, so neither can bring back an overflow at
+     320px or a contrast failure. */
+  if (want("prefs")) {
+    for (const route of PREF_ROUTES) {
+      for (const win of WINDOWS) {
+        tasks.push(() => audit(route, "en", win, { theme, prefs: { textSize: "larger", contrast: "more" } }));
+      }
+    }
+  }
+}
+/* The keyboard walk, once per page and width. Theme does not move a
+   ring's presence, its box or a target's size, so light is enough; and a
+   query-string variant is the same components re-sorted, so each page is
+   walked once, which keeps the CI step inside its budget. */
+if (want("keyboard")) {
+  for (const route of ROUTES.filter((r) => !r.includes("?"))) {
+    for (const win of WINDOWS) tasks.push(() => audit(route, "en", win, { keyboard: true }));
+  }
+}
+
+/* This leg's share of the list (SHARD, above). */
+const mine = tasks.filter((_, i) => i % shard.n === shard.k - 1);
+if (shard.n > 1) console.log(`shard ${shard.k}/${shard.n}: ${mine.length} of ${tasks.length} route runs`);
+
 const results = [];
 try {
-  if (want("fit")) {
-    for (const lang of ["en", "he"]) for (const width of FIT_WIDTHS) results.push(await fit(lang, width));
-  }
-  for (const theme of THEMES) {
-    if (want("axe")) {
-      for (const lang of ["en", "he"]) {
-        for (const win of WINDOWS) {
-          for (const route of ROUTES) results.push(await audit(route, lang, win, { theme }));
-        }
-      }
-      results.push(await audit("/blog", "en", WINDOWS[0], { failing: true, theme }));
-      results.push(await audit("/blog/fixture-post", "en", WINDOWS[1], { failing: true, theme }));
-      results.push(await audit("/blog/log", "en", WINDOWS[1], { failing: true, theme }));
-      /* The pen's prose, under the site's own Pause rather than reduced motion. */
-      for (const route of ["/", "/story", "/projects/bothy", "/blog/fixture-post"]) {
-        results.push(await audit(route, "en", WINDOWS[0], { paused: true, theme }));
-        results.push(await audit(route, "he", WINDOWS[1], { paused: true, theme }));
-      }
-      /* A stored choice against the opposite OS setting: the choice wins. */
-      results.push(await audit("/", "en", WINDOWS[0], { theme, stored: true }));
-      results.push(await audit("/blog", "en", WINDOWS[1], { theme, stored: true }));
-    }
-    /* The viewer controls at their strongest (#99): Larger text and More
-       contrast, at both widths, so neither can bring back an overflow at
-       320px or a contrast failure. */
-    if (want("prefs")) {
-      for (const route of PREF_ROUTES) {
-        for (const win of WINDOWS) {
-          results.push(await audit(route, "en", win, { theme, prefs: { textSize: "larger", contrast: "more" } }));
-        }
-      }
-    }
-  }
-  /* The keyboard walk, once per page and width. Theme does not move a
-     ring's presence, its box or a target's size, so light is enough; and a
-     query-string variant is the same components re-sorted, so each page is
-     walked once, which keeps the CI step inside its budget. */
-  if (want("keyboard")) {
-    for (const route of ROUTES.filter((r) => !r.includes("?"))) {
-      for (const win of WINDOWS) results.push(await audit(route, "en", win, { keyboard: true }));
-    }
-  }
+  for (const t of mine) results.push(await t());
 } finally {
   await browser.close();
   stop();
@@ -595,7 +625,7 @@ for (const r of results) {
 }
 if (jsonOut) writeFileSync(jsonOut, JSON.stringify(results, null, 2));
 console.log(
-  `\n${results.length - failed}/${results.length} route runs clean (axe ${TAGS.join(" ")}; reflow at 320px; ` +
+  `\n${results.length - failed}/${results.length} route runs clean${shard.n > 1 ? ` in shard ${shard.k}/${shard.n}` : ""} (axe ${TAGS.join(" ")}; reflow at 320px; ` +
     `keyboard walk for 2.4.7, 2.4.11, 2.5.8; Larger text and More contrast; hero fit at 320/360/390)`,
 );
 process.exit(failed ? 1 : 0);

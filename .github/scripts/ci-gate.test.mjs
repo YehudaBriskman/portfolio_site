@@ -18,52 +18,57 @@ const needs = (env, path, results, cls = {}) => {
   for (const [job, result] of Object.entries(results)) n[job] = { result, outputs: {} };
   return n;
 };
-const ALL_OK = { static: "success", frontend: "success", backend: "success", mcp: "success", scan: "success", images: "skipped", release: "skipped", promote: "skipped", deploy: "skipped" };
+const ALL_OK = { static: "success", frontend: "success", browser: "success", backend: "success", mcp: "success", scan: "success", images: "skipped", release: "skipped", promote: "skipped", deploy: "skipped" };
 
 const cases = [
   // [name, env, changed path, results, passes, problem matched]
   ["7.1 docs-only PR: everything but Static skipped", PR, "docs/a.md",
-    { static: "success", frontend: "skipped", backend: "skipped", mcp: "skipped", scan: "skipped", images: "skipped", release: "skipped", promote: "skipped", deploy: "skipped" }, true],
+    { static: "success", frontend: "skipped", browser: "skipped", backend: "skipped", mcp: "skipped", scan: "skipped", images: "skipped", release: "skipped", promote: "skipped", deploy: "skipped" }, true],
   ["web-only PR", PR, "web/src/a.ts",
-    { static: "success", frontend: "success", backend: "skipped", mcp: "skipped", scan: "success", images: "skipped", release: "skipped", promote: "skipped", deploy: "skipped" }, true],
+    { static: "success", frontend: "success", browser: "success", backend: "skipped", mcp: "skipped", scan: "success", images: "skipped", release: "skipped", promote: "skipped", deploy: "skipped" }, true],
   ["backend-only PR", PR, "backend/src/a.ts",
-    { static: "success", frontend: "skipped", backend: "success", mcp: "skipped", scan: "success", images: "skipped", release: "skipped", promote: "skipped", deploy: "skipped" }, true],
+    { static: "success", frontend: "skipped", browser: "skipped", backend: "success", mcp: "skipped", scan: "success", images: "skipped", release: "skipped", promote: "skipped", deploy: "skipped" }, true],
   ["mcp-only PR", PR, "mcp/src/server.ts",
-    { static: "success", frontend: "skipped", backend: "skipped", mcp: "success", scan: "skipped", images: "skipped", release: "skipped", promote: "skipped", deploy: "skipped" }, true],
+    { static: "success", frontend: "skipped", browser: "skipped", backend: "skipped", mcp: "success", scan: "skipped", images: "skipped", release: "skipped", promote: "skipped", deploy: "skipped" }, true],
   ["mcp-only PR, mcp failed", PR, "mcp/src/server.ts",
-    { static: "success", frontend: "skipped", backend: "skipped", mcp: "failure", scan: "skipped", images: "skipped", release: "skipped", promote: "skipped", deploy: "skipped" }, false, /mcp: failure/],
+    { static: "success", frontend: "skipped", browser: "skipped", backend: "skipped", mcp: "failure", scan: "skipped", images: "skipped", release: "skipped", promote: "skipped", deploy: "skipped" }, false, /mcp: failure/],
   ["full PR", PR, ".github/workflows/ci.yml", ALL_OK, true],
   ["an unselected job that ran anyway and passed", PR, "docs/a.md", { ...ALL_OK }, true],
   ["main push, everything green", MAIN, "docs/a.md",
     { ...ALL_OK, images: "success", release: "success", deploy: "success" }, true],
 
   ["7.5 selected job failed", PR, "web/src/a.ts",
-    { static: "success", frontend: "failure", backend: "skipped", mcp: "skipped", scan: "success", images: "skipped", release: "skipped", promote: "skipped", deploy: "skipped" }, false, /frontend: failure/],
+    { static: "success", frontend: "failure", browser: "success", backend: "skipped", mcp: "skipped", scan: "success", images: "skipped", release: "skipped", promote: "skipped", deploy: "skipped" }, false, /frontend: failure/],
   ["7.5 selected job cancelled", PR, "web/src/a.ts",
-    { static: "success", frontend: "success", backend: "skipped", mcp: "skipped", scan: "cancelled", images: "skipped", release: "skipped", promote: "skipped", deploy: "skipped" }, false, /scan: cancelled/],
+    { static: "success", frontend: "success", browser: "success", backend: "skipped", mcp: "skipped", scan: "cancelled", images: "skipped", release: "skipped", promote: "skipped", deploy: "skipped" }, false, /scan: cancelled/],
   ["7.5 Static failed on a docs-only PR", PR, "docs/a.md",
-    { static: "failure", frontend: "skipped", backend: "skipped", mcp: "skipped", scan: "skipped", images: "skipped", release: "skipped", promote: "skipped", deploy: "skipped" }, false, /static: failure/],
+    { static: "failure", frontend: "skipped", browser: "skipped", backend: "skipped", mcp: "skipped", scan: "skipped", images: "skipped", release: "skipped", promote: "skipped", deploy: "skipped" }, false, /static: failure/],
   ["7.5 unexplained skip: selected but skipped", PR, "web/src/a.ts",
-    { static: "success", frontend: "skipped", backend: "skipped", mcp: "skipped", scan: "success", images: "skipped", release: "skipped", promote: "skipped", deploy: "skipped" }, false, /frontend: selected but skipped/],
+    { static: "success", frontend: "skipped", browser: "skipped", backend: "skipped", mcp: "skipped", scan: "success", images: "skipped", release: "skipped", promote: "skipped", deploy: "skipped" }, false, /frontend: selected but skipped/],
   ["7.5 an unselected job that ran and failed", PR, "docs/a.md",
-    { static: "success", frontend: "failure", backend: "skipped", mcp: "skipped", scan: "skipped", images: "skipped", release: "skipped", promote: "skipped", deploy: "skipped" }, false, /frontend: failure/],
+    { static: "success", frontend: "failure", browser: "success", backend: "skipped", mcp: "skipped", scan: "skipped", images: "skipped", release: "skipped", promote: "skipped", deploy: "skipped" }, false, /frontend: failure/],
   ["main push: Deploy skipped because Publish failed", MAIN, "docs/a.md",
     { ...ALL_OK, images: "failure", release: "skipped", deploy: "skipped" }, false, /images: failure[\s\S]*deploy: selected but skipped/],
   ["main push: Publish skipped", MAIN, "web/src/a.ts",
     { ...ALL_OK, images: "skipped", release: "skipped", promote: "skipped", deploy: "skipped" }, false, /images: selected but skipped/],
   // A v* tag builds nothing (#205): Static, Promote release, Deploy.
   ["tag: promote and deploy, nothing built", TAG, "docs/a.md",
-    { static: "success", frontend: "skipped", backend: "skipped", mcp: "skipped", scan: "skipped", images: "skipped", release: "skipped", promote: "success", deploy: "success" }, true],
+    { static: "success", frontend: "skipped", browser: "skipped", backend: "skipped", mcp: "skipped", scan: "skipped", images: "skipped", release: "skipped", promote: "success", deploy: "success" }, true],
   ["tag: promotion refused (no manifest), Deploy skipped", TAG, "docs/a.md",
-    { static: "success", frontend: "skipped", backend: "skipped", mcp: "skipped", scan: "skipped", images: "skipped", release: "skipped", promote: "failure", deploy: "skipped" }, false, /promote: failure[\s\S]*deploy: selected but skipped/],
+    { static: "success", frontend: "skipped", browser: "skipped", backend: "skipped", mcp: "skipped", scan: "skipped", images: "skipped", release: "skipped", promote: "failure", deploy: "skipped" }, false, /promote: failure[\s\S]*deploy: selected but skipped/],
   ["tag: a build job that ran on a tag anyway still has to pass", TAG, "docs/a.md",
-    { static: "success", frontend: "skipped", backend: "skipped", mcp: "skipped", scan: "skipped", images: "failure", release: "skipped", promote: "success", deploy: "success" }, false, /images: failure/],
+    { static: "success", frontend: "skipped", browser: "skipped", backend: "skipped", mcp: "skipped", scan: "skipped", images: "failure", release: "skipped", promote: "success", deploy: "success" }, false, /images: failure/],
   ["main: the manifest was not written, Deploy skipped", MAIN, "docs/a.md",
     { ...ALL_OK, images: "success", release: "failure", deploy: "skipped" }, false, /release: failure/],
+  // A matrix job's result is every leg's: one failed a11y shard is `failure`.
+  ["web PR: one Browser checks leg failed, Frontend passed", PR, "web/src/a.ts",
+    { ...ALL_OK, browser: "failure" }, false, /browser: failure/],
+  ["web PR: Browser checks skipped though selected", PR, "web/src/a.ts",
+    { ...ALL_OK, browser: "skipped" }, false, /browser: selected but skipped/],
   ["a job the gate needs that classification does not know", PR, "web/src/a.ts",
     { ...ALL_OK, e2e: "success" }, false, /e2e: the gate needs it/],
   ["a job classification selects that the gate does not need", PR, "web/src/a.ts",
-    { static: "success", frontend: "success", backend: "skipped", mcp: "skipped", scan: "success", images: "skipped" }, false, /deploy: classification selects it/],
+    { static: "success", frontend: "success", browser: "success", backend: "skipped", mcp: "skipped", scan: "success", images: "skipped" }, false, /deploy: classification selects it/],
 ];
 for (const [name, env, path, results, ok, why] of cases) {
   test(name, () => {
@@ -74,7 +79,7 @@ for (const [name, env, path, results, ok, why] of cases) {
 }
 
 // 7.5: a failed classification can never become a docs-only success.
-const SKIPPED = { static: "success", frontend: "skipped", backend: "skipped", mcp: "skipped", scan: "skipped", images: "skipped", release: "skipped", promote: "skipped", deploy: "skipped" };
+const SKIPPED = { static: "success", frontend: "skipped", browser: "skipped", backend: "skipped", mcp: "skipped", scan: "skipped", images: "skipped", release: "skipped", promote: "skipped", deploy: "skipped" };
 const broken = [
   ["classify failed", { result: "failure", outputs: {} }, /classify: failure/],
   ["classify cancelled", { result: "cancelled", outputs: {} }, /classify: cancelled/],

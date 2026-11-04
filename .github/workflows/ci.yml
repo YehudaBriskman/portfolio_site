@@ -330,10 +330,11 @@ jobs:
     runs-on: ubuntu-latest
     needs: [classify]
     if: fromJSON(needs.classify.outputs.jobs).frontend
-    # Measured: 12–14 min on main, the a11y step ~10 min of it (2026-11-04,
-    # 5 runs). Was median ~2.5 min, slowest 4.2 (2026-11-02, 39 runs); the
-    # a11y matrix has grown since. 15 was hit during `npm run links` (#330).
-    timeout-minutes: 25
+    # The browser checks moved to their own job (Browser checks, below), so
+    # this is install, lint, typecheck, unit tests and build. Measured before
+    # the split: those steps ~1.6 min of a 13-14 min job (2026-11-04, 8 runs;
+    # the unit tests ~46 s of it). Ten is room for a cold npm cache.
+    timeout-minutes: 10
     defaults:
       run:
         working-directory: web
@@ -368,26 +369,130 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+      - name: Report what shipped
+        run: du -sh dist
+
+  # The checks that drive a real Chromium against the built site, split off
+  # Frontend, which they used to make a 13-14 minute job: the a11y sweep was
+  # ~10 min of it (588-639 s, 8 runs on 2026-11-04) and the link landing
+  # ~1.5 min (88-91 s). Both are a long list of independent page loads, so
+  # they parallelise cleanly; the sweep is split round-robin over six legs
+  # (SHARD=k/n, web/scripts/a11y/axe-routes.mjs) and the links get a leg of
+  # their own. Together the legs run every route run the single step did, on
+  # every pull request that touches web as well as on main: nothing is
+  # sampled, so nothing regresses unseen between a PR and the next merge.
+  #
+  # Each leg builds the site itself rather than waiting for Frontend's dist:
+  # `npm run build` is ~4 s, and an artifact handoff would put the legs
+  # behind Frontend's lint, typecheck and tests (~1.6 min) for nothing. The
+  # images are built by their Dockerfiles either way; this dist never ships.
+  #
+  # The browser comes from a cache, and apt runs only when a library is
+  # missing (the install step says why: one run's apt took 22 minutes).
+  #
+  # Publish image needs this job, so main records no release manifest, and
+  # a tag therefore promotes nothing, for a commit whose full sweep failed.
+  browser:
+    name: Browser checks
+    runs-on: ubuntu-latest
+    needs: [classify]
+    if: fromJSON(needs.classify.outputs.jobs).browser
+    # Projected: ~100 s of a11y per leg (a sixth of ~600 s) or ~90 s of
+    # links, plus ~45 s of setup. Ten leaves room for a slow runner without
+    # letting a hung page hold a leg for the old 25.
+    timeout-minutes: 10
+    strategy:
+      # Every leg reports, so one failing shard does not hide another's.
+      fail-fast: false
+      matrix:
+        # `of` is the same on every a11y leg and `shard` runs 1..of; the
+        # classifier's tests hold this list to that, so a leg cannot be
+        # dropped without the sweep visibly shrinking.
+        include:
+          - { check: a11y, shard: 1, of: 6 }
+          - { check: a11y, shard: 2, of: 6 }
+          - { check: a11y, shard: 3, of: 6 }
+          - { check: a11y, shard: 4, of: 6 }
+          - { check: a11y, shard: 5, of: 6 }
+          - { check: a11y, shard: 6, of: 6 }
+          - { check: links, shard: 1, of: 1 }
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ github.event_name != 'pull_request' && needs.classify.outputs.sha || '' }}
+      # Cache: same reasoning as Frontend's.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm # zizmor: ignore[cache-poisoning]
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: npm run build
+      # `playwright-core` downloads no browser on install, so the build the
+      # pin wants is fetched here - from a cache keyed on that exact version
+      # when one exists.
+      #
+      # Why it is cached, and why apt is no longer run every time: the old
+      # `install --with-deps` was 12-37 s on most runs, but on #332 (run
+      # 41855490929, 2026-11-04) the same step took 22 min and the job hit
+      # its 25-minute limit. The download is a fixed ~110 MB; the variance is
+      # the apt half (`apt-get update` plus installs against the mirror). The
+      # runner image already carries Chromium's libraries for its own Chrome,
+      # so apt is now run only when `ldd` says the binary is missing one.
+      #
+      # The cached browser runs only against this job's test build; nothing
+      # from this job is published. A pull request's cache entry is scoped
+      # to its own ref, which main never reads.
+      - name: Which browser build the pin wants
+        id: pw
+        run: echo "version=$(node -p "require('playwright-core/package.json').version")" >> "$GITHUB_OUTPUT"
+      - name: Restore the browser
+        id: pw-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0 # zizmor: ignore[cache-poisoning]
+        with:
+          path: ~/.cache/ms-playwright
+          key: pw-headless-shell-${{ runner.os }}-${{ runner.arch }}-${{ steps.pw.outputs.version }}
+      # Bounded on its own, so a stalled mirror fails this leg in minutes
+      # with the step named, rather than eating the job's budget.
+      - name: Install the browser the checks drive
+        timeout-minutes: 5
+        env:
+          HIT: ${{ steps.pw-cache.outputs.cache-hit }}
+        run: |
+          set -Eeuo pipefail
+          if [ "$HIT" != "true" ]; then
+            npx playwright-core install chromium-headless-shell
+          fi
+          shell=$(find ~/.cache/ms-playwright -type f \( -name chrome-headless-shell -o -name headless_shell \) -perm -u+x | head -n 1)
+          [ -n "$shell" ] || { echo "::error::no chrome-headless-shell under ~/.cache/ms-playwright"; exit 1; }
+          missing=$(ldd "$shell" | awk '/not found/ { print $1 }')
+          if [ -n "$missing" ]; then
+            echo "::notice title=Browser libraries::the runner lacks $(echo "$missing" | tr '\n' ' ')- installing them with apt"
+            npx playwright-core install-deps chromium-headless-shell
+          fi
+          "$shell" --version 2>/dev/null || true
+          echo "browser: $shell (cache hit: ${HIT:-false})"
       # The accessibility floor (#99): axe-core over every public route, in
       # both reading directions and both themes (#247), at 1440px and at
-      # 320px, against the build that just shipped. A floor and not the audit — the manual half lives
-      # in docs/accessibility/audit.md — but it is the half that can regress
-      # silently in a pull request, so it is the half CI holds.
-      #
-      # `playwright-core` downloads no browser on install, so the build the
-      # pin wants is fetched here. `--with-deps` because the runner image
-      # does not carry Chromium's shared libraries.
-      - name: Install the browser the accessibility check drives
-        run: npx playwright-core install --with-deps chromium-headless-shell
-      - name: Accessibility floor (axe, WCAG 2.2 AA)
+      # 320px, against the build above. A floor and not the audit — the
+      # manual half lives in docs/accessibility/audit.md — but it is the half
+      # that can regress silently in a pull request, so it is the half CI
+      # holds.
+      - name: Accessibility floor (axe, WCAG 2.2 AA), shard ${{ matrix.shard }} of ${{ matrix.of }}
+        if: matrix.check == 'a11y'
+        env:
+          SHARD: ${{ matrix.shard }}/${{ matrix.of }}
         run: npm run a11y
       # Every link lands on its target (#196): the top of a new page, a hash's
       # element under the bar, the old place on Back and Forward, at a laptop
       # and a phone, against the same build.
       - name: Links land where they point
+        if: matrix.check == 'links'
         run: npm run links
-      - name: Report what shipped
-        run: du -sh dist
 
   backend:
     name: Backend
@@ -644,7 +749,7 @@ jobs:
   images:
     name: Publish image
     runs-on: ubuntu-24.04-arm
-    needs: [classify, static, frontend, backend, scan]
+    needs: [classify, static, frontend, browser, backend, scan]
     # A download, a load and a push of one image.
     timeout-minutes: 15
     # Main (and a rebuild from a tag), so every main commit is deployable the
@@ -1354,7 +1459,7 @@ jobs:
   gate:
     name: CI gate
     runs-on: ubuntu-latest
-    needs: [classify, static, frontend, backend, mcp, scan, images, release, promote, deploy]
+    needs: [classify, static, frontend, browser, backend, mcp, scan, images, release, promote, deploy]
     if: always()
     timeout-minutes: 5
     steps:
