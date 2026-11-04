@@ -736,6 +736,19 @@ export function applyVisuals(html: string, visuals: SiteSettings["visuals"]): st
   return out;
 }
 
+/**
+ * The search consoles' ownership tags (#308), from the environment. In the
+ * served head of every rendered page, since a console may check any URL of
+ * the property, and left out of the head the app swaps after a navigation:
+ * they never change, and a console reads only the HTML it fetched.
+ */
+export function verificationTags(e: { GOOGLE_SITE_VERIFICATION?: string; BING_SITE_VERIFICATION?: string } = env): string[] {
+  return [
+    ...(e.GOOGLE_SITE_VERIFICATION ? [`<meta name="google-site-verification" content="${escapeAttr(e.GOOGLE_SITE_VERIFICATION)}" />`] : []),
+    ...(e.BING_SITE_VERIFICATION ? [`<meta name="msvalidate.01" content="${escapeAttr(e.BING_SITE_VERIFICATION)}" />`] : []),
+  ];
+}
+
 export function renderShellWithMeta(shell: string, meta: PageMeta): string {
   const preloads = meta.route ? routePreloadLinks(shell, meta.route) : [];
   let html = shell.replace(ROUTE_PRELOAD_META, "");
@@ -752,7 +765,7 @@ export function renderShellWithMeta(shell: string, meta: PageMeta): string {
   const root = /<div id=["']root["']\s*>\s*<\/div>/i;
   const fallback = Boolean(meta.bodyHtml) && root.test(html);
 
-  const head = [metaBlock(meta)];
+  const head = [metaBlock(meta), ...verificationTags().map((t) => `    ${t}`)];
   if (fallback) head.push(`    ${FALLBACK_STYLE}`, `    ${FALLBACK_NOSCRIPT}`);
   for (const link of preloads) head.push(`    ${link}`);
   if (meta.preloadImage) {
