@@ -407,6 +407,19 @@ label-style pills, a detail page with a header bar and a right sidebar.
 Hebrew only". "Show what changed" opens the existing diff view on `bodyBase` →
 current English.
 
+> **As built (#305):** the note editor puts the Hebrew title, subtitle and
+> excerpt beside their English (RTL, each with its pill). The body toggle
+> gains "Side by side": two editors, no preview. A stale field gets a line
+> above the body; the body's line shows the diff from `heMeta.bodyBase` to the
+> English now, and every line offers "Hebrew still correct" (#303's ack,
+> disabled while edits are unsaved). Publish scope lives in the review dialog
+> as a radio group, shown once the note is live: `scope: "en"` publishes the
+> English and keeps the live Hebrew, `"he"` publishes the Hebrew over the live
+> English; what was not published stays in the draft. `#field=` from the
+> Translations page focuses the field's Hebrew input (`body` opens the Hebrew
+> body). **Deferred:** Hebrew-only notes (§7.6; they touch public listings and
+> the sitemap) and "Unpublish Hebrew".
+
 ### 7.2 The status pill
 
 One component (`TranslationPill`), the same everywhere: in every admin list row,

@@ -59,6 +59,18 @@ export function translationReport(): Promise<TranslationReport> {
   return value;
 }
 
+/** "The Hebrew is still correct" (#303): restamps one unit to today's English. */
+export async function ackTranslation(input: { type: TranslationType; id: string; path: string; rev: string }): Promise<void> {
+  const res = await fetch("/api/admin/translations/ack", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (res.status === 409) throw new Error("This note changed elsewhere. Reload and look again.");
+  if (!res.ok) throw new Error(`Request failed (${res.status})`);
+  invalidateTranslations();
+}
+
 /** After a save: the next read is fresh, and every open reader reloads. */
 export function invalidateTranslations(): void {
   cache = null;
@@ -124,7 +136,7 @@ export function editHref(item: TranslationItem, unit: TranslationUnit | undefine
   const field = unit ? `#field=${encodeURIComponent(unit.path)}` : "";
   switch (item.type) {
     case "post":
-      return `/admin/posts/${item.id}`;
+      return `/admin/posts/${item.id}${field}`;
     case "area":
       return `/admin/areas/${item.id}`;
     case "project":

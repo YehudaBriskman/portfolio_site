@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { X } from "lucide-react";
 import AdminShell from "@/components/admin/AdminShell";
@@ -6,7 +6,11 @@ import { PageHeader, StatePill } from "@/components/admin/ui";
 import MediaPicker, { PickedPreview } from "@/components/admin/MediaPicker";
 import LinkEditor, { toLinkRows, type LinkRow } from "@/components/LinkEditor";
 import BodyEditor, { type WikiTarget } from "@/components/admin/noteEditor/BodyEditor";
-import ReviewDialog from "@/components/admin/noteEditor/ReviewDialog";
+import ReviewDialog, { type PublishScope } from "@/components/admin/noteEditor/ReviewDialog";
+import StaleNotice from "@/components/admin/noteEditor/StaleNotice";
+import TranslationPill from "@/components/admin/TranslationPill";
+import { useFocusField } from "@/components/admin/content/focusField";
+import { useTranslationReport, type TranslationStatus } from "@/services/translations";
 import { useEditorWords } from "@/components/admin/noteEditor/words";
 import styles from "@/components/admin/noteEditor/NoteEditor.module.css";
 import NoteMarkdown, { PROSE } from "@/components/notes/reader/NoteMarkdown";
@@ -213,7 +217,8 @@ export default function AdminEditor() {
   const [savedVersion, setSavedVersion] = useState(0);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [slugTouched, setSlugTouched] = useState(false);
-  const [bodyLang, setBodyLang] = useState<"en" | "he">("en");
+  /* Which body is edited (#305): one language, or both side by side. */
+  const [bodyLang, setBodyLang] = useState<"en" | "he" | "both">("en");
   const [preview, setPreview] = useState(true);
   const [notice, setNotice] = useState<{ text: string; bad?: boolean } | null>(null);
   const [cols, setCols] = useState<AdminCollection[]>([]);
@@ -224,6 +229,15 @@ export default function AdminEditor() {
   const loadedSlug = useRef<string | null>(null);
 
   const dirty = version !== savedVersion;
+  /* Each field's Hebrew status as stored (#302), for the pills and the stale notices. */
+  const { report: heReport } = useTranslationReport();
+  const heItem = post ? heReport?.items.find((i) => i.type === "post" && i.id === post.slug) : undefined;
+  const heStatus = (path: string): TranslationStatus | null => heItem?.units.find((u) => u.path === path)?.status ?? null;
+  /* A Translations row's link (#302): `#field=body` opens the Hebrew body. */
+  useFocusField(post, (_p, field) => {
+    if (field === "body") setBodyLang("he");
+    return field;
+  });
   const stored = post !== null;
   const published = post?.status === "published" ? contentOf(post, false) : null;
   const content = useMemo(() => toContent(f), [f]);
@@ -373,12 +387,12 @@ export default function AdminEditor() {
     }
   }
 
-  async function publish(changeNote: string) {
+  async function publish(changeNote: string, scope: PublishScope = "both") {
     setPublishing(true);
     setPublishError(null);
     const at = versionRef.current;
     try {
-      const p = await admin.publish(f.slug, { ...content, _rev: post?._rev, ...(changeNote ? { changeNote } : {}) });
+      const p = await admin.publish(f.slug, { ...content, _rev: post?._rev, ...(changeNote ? { changeNote } : {}), ...(scope !== "both" ? { scope } : {}) });
       adopt(p);
       setSavedVersion(at);
       setSave({ kind: "saved", at: new Date() });
@@ -452,6 +466,7 @@ export default function AdminEditor() {
   );
 
   const bodyValue = bodyLang === "he" ? f.heBody : f.body;
+  const previewLang = bodyLang === "he" ? "he" : "en";
   const setBody = (v: string) => edit(bodyLang === "he" ? "heBody" : "body", v);
 
   return (
@@ -502,17 +517,36 @@ export default function AdminEditor() {
             <p className={styles.status} data-bad={notice.bad || undefined} role="status">{notice.text}</p>
           )}
 
-          <label className="mt-8 block" htmlFor={ids.title}>
-            <span className="a-label">{w.title}</span>
-            <input
-              id={ids.title}
-              value={f.title}
-              onChange={(e) => edit("title", e.target.value)}
-              className="a-input a-input-title"
-              placeholder={w.titlePlaceholder}
-              aria-invalid={errors.title ? true : undefined}
+          <div className="mt-8 grid gap-4 md:grid-cols-2" data-path="title">
+            <label className="block min-w-0" htmlFor={ids.title}>
+              <span className="a-label">{w.title}</span>
+              <input
+                id={ids.title}
+                value={f.title}
+                lang="en"
+                dir="ltr"
+                onChange={(e) => edit("title", e.target.value)}
+                className="a-input a-input-title"
+                placeholder={w.titlePlaceholder}
+                aria-invalid={errors.title ? true : undefined}
+              />
+            </label>
+            <HebrewField id={`${ids.title}-he`} label={w.titleHebrew} status={heStatus("title")} hint={w.hebrewOptional}>
+              <input id={`${ids.title}-he`} value={f.heTitle} maxLength={200} lang="he" dir="rtl" onChange={(e) => edit("heTitle", e.target.value)} className="a-input a-input-title" />
+            </HebrewField>
+          </div>
+          {stored && (
+            <StaleNotice
+              statuses={{ title: heStatus("title"), subtitle: heStatus("subtitle"), excerpt: heStatus("excerpt"), body: heStatus("body") }}
+              base={post?.heMeta?.bodyBase ?? null}
+              english={f.body}
+              words={w}
+              disabled={dirty}
+              slug={f.slug}
+              rev={post?._rev ?? ""}
+              onAcked={async () => adopt(await admin.get(f.slug))}
             />
-          </label>
+          )}
           {!stored && (
             <label className="mt-4 block" htmlFor={ids.slug}>
               <span className="a-label">{w.slug}</span>
@@ -534,12 +568,15 @@ export default function AdminEditor() {
             </label>
           )}
 
-          <div className={styles.box}>
+          <div className={styles.box} data-path="body">
           <div className={styles.boxHead}>
-            <label className="a-label mb-2 ms-1" htmlFor={ids.body}>{w.body}</label>
+            <span className="flex items-center gap-2">
+              <label className="a-label mb-2 ms-1" htmlFor={ids.body}>{w.body}</label>
+              {stored && <TranslationPill status={heStatus("body")} className="mb-2" />}
+            </span>
             <div className="flex flex-wrap gap-2">
               <div role="group" aria-label={w.editingIn} className={styles.toggleGroup}>
-                {(["en", "he"] as const).map((l) => (
+                {(["en", "he", "both"] as const).map((l) => (
                   <button
                     key={l}
                     type="button"
@@ -547,14 +584,15 @@ export default function AdminEditor() {
                     aria-pressed={bodyLang === l}
                     onClick={() => setBodyLang(l)}
                   >
-                    {l === "en" ? w.bodyEnglish : w.bodyHebrew}
+                    {l === "en" ? w.bodyEnglish : l === "he" ? w.bodyHebrew : w.bodyBoth}
                   </button>
                 ))}
               </div>
               <button
                 type="button"
                 className={`a-btn a-btn-ghost ${styles.toggle}`}
-                aria-pressed={preview}
+                aria-pressed={preview && bodyLang !== "both"}
+                disabled={bodyLang === "both"}
                 aria-keyshortcuts="Control+Shift+P"
                 onClick={() => setPreview((p) => !p)}
               >
@@ -562,12 +600,42 @@ export default function AdminEditor() {
               </button>
             </div>
           </div>
+          {bodyLang === "both" ? (
+            <div className={styles.split} data-side="true">
+              <BodyEditor
+                id={ids.body}
+                value={f.body}
+                onChange={(v) => edit("body", v)}
+                lang="en"
+                label={`${w.body}, ${w.bodyEnglish}`}
+                targets={targets}
+                words={w}
+                describedBy={ids.bodyHelp}
+                onStatus={(text, isBad) => setNotice({ text, bad: isBad })}
+                onSave={() => canSave && void saveDraft()}
+                onTogglePreview={() => setBodyLang("en")}
+              />
+              <BodyEditor
+                id={`${ids.body}-he`}
+                value={f.heBody}
+                onChange={(v) => edit("heBody", v)}
+                lang="he"
+                label={`${w.body}, ${w.bodyHebrew}`}
+                targets={targets}
+                words={w}
+                describedBy={ids.bodyHelp}
+                onStatus={(text, isBad) => setNotice({ text, bad: isBad })}
+                onSave={() => canSave && void saveDraft()}
+                onTogglePreview={() => setBodyLang("he")}
+              />
+            </div>
+          ) : (
           <div className={styles.split} data-side={preview}>
             <BodyEditor
               id={ids.body}
               value={bodyValue}
               onChange={setBody}
-              lang={bodyLang}
+              lang={previewLang}
               targets={targets}
               words={w}
               describedBy={ids.bodyHelp}
@@ -576,7 +644,7 @@ export default function AdminEditor() {
               onTogglePreview={() => setPreview((p) => !p)}
             />
             {preview && (
-              <section aria-label={w.previewLabel} className={styles.preview} lang={bodyLang} dir={bodyLang === "he" ? "rtl" : "ltr"}>
+              <section aria-label={w.previewLabel} className={styles.preview} lang={previewLang} dir={previewLang === "he" ? "rtl" : "ltr"}>
                 {bodyValue.trim() ? (
                   <NoteMarkdown body={bodyValue} pen={false} className={`${PROSE} !mt-0`} />
                 ) : (
@@ -585,6 +653,7 @@ export default function AdminEditor() {
               </section>
             )}
           </div>
+          )}
           <p id={ids.bodyHelp} className={styles.boxFoot}>{w.bodyHelp} {w.shortcuts}</p>
           </div>
 
@@ -638,15 +707,25 @@ export default function AdminEditor() {
                 <MediaPicker value={f.coverImage} onChange={(url) => edit("coverImage", url)} />
                 <PickedPreview url={f.coverImage} />
               </div>
-              <label className="block sm:col-span-2">
-                <span className="a-label">{w.subtitle}</span>
-                <input value={f.subtitle} onChange={(e) => edit("subtitle", e.target.value)} className="a-input" />
-              </label>
-              <label className="block sm:col-span-2">
-                <span className="a-label">{w.excerpt}</span>
-                <textarea value={f.excerpt} onChange={(e) => edit("excerpt", e.target.value)} maxLength={320} className="a-textarea min-h-[5rem]" />
-                <span className="a-hint">{w.excerptHelp(f.excerpt.length)}</span>
-              </label>
+              <div className="grid gap-4 sm:col-span-2 md:grid-cols-2" data-path="subtitle">
+                <label className="block min-w-0">
+                  <span className="a-label">{w.subtitle}</span>
+                  <input value={f.subtitle} lang="en" dir="ltr" onChange={(e) => edit("subtitle", e.target.value)} className="a-input" />
+                </label>
+                <HebrewField id={`${ids.title}-he-subtitle`} label={w.subtitleHebrew} status={stored ? heStatus("subtitle") : null}>
+                  <input id={`${ids.title}-he-subtitle`} value={f.heSubtitle} maxLength={300} lang="he" dir="rtl" onChange={(e) => edit("heSubtitle", e.target.value)} className="a-input" />
+                </HebrewField>
+              </div>
+              <div className="grid gap-4 sm:col-span-2 md:grid-cols-2" data-path="excerpt">
+                <label className="block min-w-0">
+                  <span className="a-label">{w.excerpt}</span>
+                  <textarea value={f.excerpt} lang="en" dir="ltr" onChange={(e) => edit("excerpt", e.target.value)} maxLength={320} className="a-textarea min-h-[5rem]" />
+                  <span className="a-hint">{w.excerptHelp(f.excerpt.length)}</span>
+                </label>
+                <HebrewField id={`${ids.title}-he-excerpt`} label={w.excerptHebrew} status={stored ? heStatus("excerpt") : null}>
+                  <textarea id={`${ids.title}-he-excerpt`} value={f.heExcerpt} maxLength={320} lang="he" dir="rtl" onChange={(e) => edit("heExcerpt", e.target.value)} className="a-textarea min-h-[5rem]" />
+                </HebrewField>
+              </div>
             </div>
           </details>
 
@@ -683,25 +762,6 @@ export default function AdminEditor() {
           </details>
 
           <details className="mt-6">
-            <summary className="a-summary">{w.hebrew}</summary>
-            <p className="a-hint mt-3">{w.hebrewHelp}</p>
-            <div className="mt-4 grid gap-5" lang="he" dir="rtl">
-              <label className="block">
-                <span className="a-label">{`${w.title} (${w.bodyHebrew})`}</span>
-                <input value={f.heTitle} maxLength={200} onChange={(e) => edit("heTitle", e.target.value)} className="a-input" />
-              </label>
-              <label className="block">
-                <span className="a-label">{`${w.subtitle} (${w.bodyHebrew})`}</span>
-                <input value={f.heSubtitle} maxLength={300} onChange={(e) => edit("heSubtitle", e.target.value)} className="a-input" />
-              </label>
-              <label className="block">
-                <span className="a-label">{`${w.excerpt} (${w.bodyHebrew})`}</span>
-                <textarea value={f.heExcerpt} maxLength={320} onChange={(e) => edit("heExcerpt", e.target.value)} className="a-textarea min-h-[4rem]" />
-              </label>
-            </div>
-          </details>
-
-          <details className="mt-6">
             <summary className="a-summary">{w.advanced}</summary>
             <div className="mt-4">
               {stored && (
@@ -728,8 +788,24 @@ export default function AdminEditor() {
         words={w}
         busy={publishing}
         error={publishError}
-        onPublish={(note) => void publish(note)}
+        onPublish={(note, scope) => void publish(note, scope)}
       />
     </AdminShell>
+  );
+}
+
+/* A field's Hebrew half (#305): RTL, labelled, with its status pill. */
+function HebrewField({ id, label, status, hint, children }: { id: string; label: string; status: TranslationStatus | null; hint?: string; children: ReactNode }) {
+  return (
+    <div className="min-w-0">
+      <span className="flex items-center justify-between gap-2">
+        <label className="a-label" htmlFor={id}>
+          {label}
+        </label>
+        <TranslationPill status={status} />
+      </span>
+      {children}
+      {hint && <span className="a-hint">{hint}</span>}
+    </div>
   );
 }

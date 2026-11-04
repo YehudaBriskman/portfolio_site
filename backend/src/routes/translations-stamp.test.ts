@@ -378,3 +378,44 @@ describe("PUT /api/admin/translations/draft (#307)", () => {
     expect((await request(app()).get("/api/admin/translations/glossary")).status).toBe(401);
   });
 });
+
+describe("publishing one language of a note (#305)", () => {
+  const HE2 = { ...HE, title: "רשימה, מתוקנת" };
+  type Stored = { title: string; he: { title: string }; heMeta: { src: Record<string, string> }; draft: { title: string; he: { title: string } } | null };
+  const stored = () => store.get("post:a-note") as unknown as Stored;
+
+  it("publishes the Hebrew alone: the English edit stays in the draft, the live English untouched", async () => {
+    await publish("a-note", content());
+    const res = await publish("a-note", { ...content({ title: "A note, renamed", he: HE2 }), scope: "he" });
+    expect(res.status).toBe(200);
+    expect(stored().title).toBe("A note");
+    expect(stored().he.title).toBe("רשימה, מתוקנת");
+    expect(stored().heMeta.src.title).toBe(fp("A note"));
+    expect(stored().draft?.title).toBe("A note, renamed");
+    expect(stored().draft?.he.title).toBe("רשימה, מתוקנת");
+  });
+
+  it("publishes the English alone: new Hebrew waits in the draft, the live Hebrew stays", async () => {
+    await publish("a-note", content({ he: HE }));
+    await publish("a-note", { ...content({ title: "A note, renamed", he: HE2 }), scope: "en" });
+    expect(stored().title).toBe("A note, renamed");
+    expect(stored().he.title).toBe("רשימה");
+    expect(stored().draft?.he.title).toBe("רשימה, מתוקנת");
+    /* The live Hebrew was written for the old English title: stale now. */
+    const item = await statusOf("post", "a-note");
+    expect(item.units.find((u) => u.path === "title")?.status).toBe("stale");
+  });
+
+  it("leaves no draft when the one language was the whole edit", async () => {
+    await publish("a-note", content());
+    await publish("a-note", { ...content({ he: HE }), scope: "he" });
+    expect(stored().he.title).toBe("רשימה");
+    expect(stored().draft).toBeNull();
+  });
+
+  it("refuses the Hebrew alone for a note that was never published", async () => {
+    const res = await publish("new-note", { ...content({ he: HE }), scope: "he" });
+    expect(res.status).toBe(400);
+    expect(store.has("post:new-note")).toBe(false);
+  });
+});

@@ -85,7 +85,7 @@ describe("the Translations page", () => {
   it("filters by tab, type and visibility", async () => {
     page("/admin/translations?visibility=all");
     fireEvent.click(await screen.findByRole("button", { name: /Draft/ }));
-    expect(screen.getByRole("link", { name: "A draft" })).toHaveAttribute("href", "/admin/posts/a-draft");
+    expect(screen.getByRole("link", { name: "A draft" })).toHaveAttribute("href", "/admin/posts/a-draft#field=title");
     fireEvent.change(screen.getByLabelText("Filter by type"), { target: { value: "area" } });
     expect(await screen.findByText("No Hebrew is waiting in a draft.")).toBeInTheDocument();
   });
