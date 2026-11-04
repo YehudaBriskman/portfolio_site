@@ -89,7 +89,22 @@ const EnvSchema = z.object({
     .string()
     .regex(/^[a-f0-9]{32}$/, 'INDEXNOW_KEY is 32 lowercase hex characters')
     .optional()
-    .or(z.literal('').transform(() => undefined)),  // Where the built SPA shell is served from, for per-URL head injection.
+    .or(z.literal('').transform(() => undefined)),
+  // Search console ownership tokens (#308): the `content` of the meta tag
+  // Google Search Console and Bing Webmaster Tools each hand out, written into
+  // every rendered page's head. Public by design, like the key above. Unset,
+  // no tag.
+  GOOGLE_SITE_VERIFICATION: z
+    .string()
+    .regex(/^[\w-]{10,100}$/, 'GOOGLE_SITE_VERIFICATION is the content of the meta tag, letters, digits, _ and -')
+    .optional()
+    .or(z.literal('').transform(() => undefined)),
+  BING_SITE_VERIFICATION: z
+    .string()
+    .regex(/^[\w-]{10,100}$/, 'BING_SITE_VERIFICATION is the content of the msvalidate.01 meta tag')
+    .optional()
+    .or(z.literal('').transform(() => undefined)),
+  // Where the built SPA shell is served from, for per-URL head injection.
   WEB_ORIGIN: z.string().default("http://web"),
 
   // The commit this image was built from, baked in by the Dockerfile's

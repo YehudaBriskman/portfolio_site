@@ -34,10 +34,12 @@ const Fingerprint = z.string().regex(/^[0-9a-f]{12}$/);
  * -----------------
  * Prose is `Text`: English, which is required, and Hebrew, which is optional
  * and falls back to the English when absent, which is what every Hebrew page
- * shows today. Names (a project's title, a tool, a link label), the state
- * chip and the field line stay one string: they are names or keys the site
- * reads (`state === "Archive"` decides what counts as live, a `where` field
- * naming a store is counted on /story), and a translated key is a broken one.
+ * shows today. Names (a project's title, a tool, a `where` store) stay one
+ * string. Link labels are prose and are `Text` (#306); a document saved before
+ * that holds a plain string, which `textOrString` reads as `{ en }`. The state
+ * chip is a KEY (`in-use`, `archive`, see STATE_KEYS), translated where it is
+ * shown; a label saved before #306 ("In use") is read as its key, and a
+ * release tag (`v1.2.0`) stays as it is.
  *
  * WHAT THE BUILD USED TO GUARANTEE
  * --------------------------------
@@ -74,6 +76,32 @@ export const text = (max: number) =>
 
 export type Text = z.infer<ReturnType<typeof text>>;
 
+/**
+ * A field that became `Text` in #306. A document saved before it holds a
+ * plain string, read as English: the read shim of design §4.2/§4.3. Every save
+ * writes the new shape.
+ */
+export const textOrString = (max: number) =>
+  z.preprocess((v) => (typeof v === "string" ? { en: v } : v), text(max));
+
+/*
+ * The state chip's keys (#306). The site shows a word per language for each
+ * (web/src/components/work/words.ts `stateWord`). `archive` is the one the
+ * site reads: a project in it is not counted as live. A release tag
+ * (`v1.2.0`) is a name and stays as written.
+ */
+export const STATE_KEYS = ["live", "in-use", "open-source", "in-progress", "released", "archive"] as const;
+export type StateKey = (typeof STATE_KEYS)[number];
+
+/** A stored state, as its key when it is one: "In use" and "in-use" are both `in-use`. */
+export function stateKey(value: string): string {
+  const k = value.trim().toLowerCase().replace(/[\s_]+/g, "-");
+  if (k === "archived") return "archive";
+  return (STATE_KEYS as readonly string[]).includes(k) ? k : value.trim();
+}
+
+const StateSchema = z.string().trim().min(1, "A state is required").max(30).transform(stateKey);
+
 /*
  * Images stay URL strings until the media library (#253): a path under the
  * site's own public folder, or an https URL.
@@ -97,7 +125,12 @@ export const ProjectSchema = z.object({
   fact: text(160),
   /** The label's field line: one to three, most identifying first. */
   fields: z
-    .array(z.object({ kind: z.enum(FIELD_KINDS), value: z.string().trim().min(1, "A value is required").max(40) }))
+    .array(
+      z
+        .object({ kind: z.enum(FIELD_KINDS), value: z.string().trim().min(1, "A value is required").max(40) })
+        /* A state field holds the same key as the chip. */
+        .transform((f) => (f.kind === "state" ? { ...f, value: stateKey(f.value) } : f)),
+    )
     .min(1, "At least one field")
     .max(3, "At most three fields"),
   description: text(600),
@@ -107,13 +140,13 @@ export const ProjectSchema = z.object({
   tint: z.tuple([Byte, Byte, Byte]),
   link: Url.nullable().default(null),
   linkLabel: z.string().trim().max(60).nullable().default(null),
-  links: z.array(z.object({ label: z.string().trim().min(1).max(60), url: Url })).max(8).default([]),
+  links: z.array(z.object({ label: textOrString(60), url: Url })).max(8).default([]),
   github: Url.nullable().default(null),
   year: z.string().regex(/^\d{4}$/, "A four-digit year"),
   /** The long form, for the detail page. */
   status: text(120),
-  /** The chip. "Archive" marks a project that is not counted as live. */
-  state: z.string().trim().min(1, "A state is required").max(30),
+  /** The chip, a key (STATE_KEYS) or a release tag. `archive` marks a project that is not counted as live. */
+  state: StateSchema,
   highlights: z.array(text(240)).max(8).default([]),
   problem: text(1500).nullable().default(null),
   role: text(1500).nullable().default(null),
@@ -220,7 +253,7 @@ export const SiteCopySchema = z.object({
   /** GitHub and LinkedIn: the nav, the contact plate and the footer. */
   profiles: z.array(Profile).max(4),
   footer: z.object({
-    work: z.array(z.object({ label: z.string().trim().min(1).max(40), url: Url, note: text(40) })).max(6),
+    work: z.array(z.object({ label: textOrString(40), url: Url, note: text(40) })).max(6),
     colophon: text(400),
     colophonNote: text(200),
     place: text(60),

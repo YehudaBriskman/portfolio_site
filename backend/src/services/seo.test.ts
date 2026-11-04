@@ -10,8 +10,10 @@ import {
   renderShellWithMeta,
   routePreloadLinks,
   robotsStance,
+  verificationTags,
   type PageMeta,
 } from "./seo.js";
+import { env } from "../env.js";
 import type { Collection, Post } from "../schemas/content.js";
 
 const post = (over: Partial<Post> = {}): Post =>
@@ -89,7 +91,7 @@ describe("buildSitemap", () => {
   });
 
   it("lists the content store's project pages, which exist with or without a database row", () => {
-    const xml = buildSitemap([], [], { projects: ["windom", "icaros"] });
+    const xml = buildSitemap([], [], { projects: [{ slug: "windom", hebrew: true }, { slug: "icaros", hebrew: true }] });
     expect(xml).toContain("<loc>https://yehudabriskman.com/projects/windom</loc>");
     expect(xml).toContain("<loc>https://yehudabriskman.com/projects/icaros</loc>");
   });
@@ -103,7 +105,7 @@ describe("buildSitemap", () => {
   });
 
   it("does not list a project twice once it has a real collection", () => {
-    const xml = buildSitemap([], [collection({ slug: "windom", title: "WindoM" })], { projects: ["windom"] });
+    const xml = buildSitemap([], [collection({ slug: "windom", title: "WindoM" })], { projects: [{ slug: "windom", hebrew: true }] });
     // Once per language (#248): the English address and its Hebrew twin.
     expect(xml.match(/<loc>[^<]*\/projects\/windom<\/loc>/g) ?? []).toHaveLength(2);
     expect(xml.match(/<loc>[^<]*\/he\/projects\/windom<\/loc>/g) ?? []).toHaveLength(1);
@@ -116,6 +118,18 @@ describe("buildSitemap", () => {
     expect(xml).toMatch(/<loc>[^<]*\/he<\/loc>/);
     expect(xml).toMatch(/<xhtml:link rel="alternate" hreflang="he" href="[^"]*\/he\/blog" \/>/);
     expect(xml).toMatch(/<xhtml:link rel="alternate" hreflang="x-default" href="[^"]*\/blog" \/>/);
+  });
+
+  it("lists a page with no published Hebrew in English only, with no alternates (#304)", () => {
+    const xml = buildSitemap([post()], [], { projects: [{ slug: "icaros", hebrew: false }], postHebrew: () => false });
+    expect(xml).toContain("<loc>https://yehudabriskman.com/projects/icaros</loc>");
+    expect(xml).not.toContain("/he/projects/icaros");
+    expect(xml).toContain("<loc>https://yehudabriskman.com/blog/a-post</loc>");
+    expect(xml).not.toContain("/he/blog/a-post");
+    const entry = xml.slice(xml.indexOf("<loc>https://yehudabriskman.com/blog/a-post</loc>"));
+    expect(entry.slice(0, entry.indexOf("</url>"))).not.toContain("hreflang");
+    // A hub page keeps its pair whatever its items are.
+    expect(xml).toContain("<loc>https://yehudabriskman.com/he/blog</loc>");
   });
 
   it("omits noindex posts, so the sitemap never contradicts the meta tag", () => {
@@ -192,6 +206,55 @@ describe("robotsStance", () => {
   it("lets ROBOTS_POLICY override the derivation in both directions", () => {
     expect(robotsStance("https://preprod.yehudabriskman.com", "open")).toBe("open");
     expect(robotsStance("https://yehudabriskman.com", "closed")).toBe("closed");
+  });
+});
+
+describe("a page with no published Hebrew (#304)", () => {
+  const head = (lang: "en" | "he", translated?: boolean) =>
+    renderShellWithMeta(SHELL, { ...meta(), lang, path: "/blog/a-post", translated });
+
+  it("is noindex in Hebrew, names no alternates and says en_US", () => {
+    const html = head("he", false);
+    expect(html).toContain('<meta name="robots" content="noindex, follow" />');
+    expect(html).not.toContain("hreflang");
+    expect(html).toContain('<meta property="og:locale" content="en_US" />');
+    expect(html).not.toContain("og:locale:alternate");
+  });
+
+  it("is indexed in English, naming no Hebrew alternate", () => {
+    const html = head("en", false);
+    expect(html).toContain('content="index, follow, max-image-preview:large"');
+    expect(html).not.toContain("hreflang");
+  });
+
+  it("flips to an indexed pair once Hebrew is published", () => {
+    const html = head("he", true);
+    expect(html).toContain('content="index, follow, max-image-preview:large"');
+    expect(html).toContain('hreflang="en"');
+    expect(html).toContain('<meta property="og:locale" content="he_IL" />');
+  });
+});
+
+describe("search console verification (#308)", () => {
+  it("writes a tag for each token that is set, and none otherwise", () => {
+    expect(verificationTags({})).toEqual([]);
+    expect(verificationTags({ GOOGLE_SITE_VERIFICATION: "abc_DEF-123456" })).toEqual([
+      '<meta name="google-site-verification" content="abc_DEF-123456" />',
+    ]);
+    expect(verificationTags({ BING_SITE_VERIFICATION: "0123456789ABCDEF" })).toEqual([
+      '<meta name="msvalidate.01" content="0123456789ABCDEF" />',
+    ]);
+  });
+
+  it("puts them in the served head", () => {
+    const e = env as { GOOGLE_SITE_VERIFICATION?: string };
+    const before = e.GOOGLE_SITE_VERIFICATION;
+    e.GOOGLE_SITE_VERIFICATION = "abc_DEF-123456";
+    try {
+      expect(renderShellWithMeta(SHELL, meta())).toContain('<meta name="google-site-verification" content="abc_DEF-123456" />');
+    } finally {
+      e.GOOGLE_SITE_VERIFICATION = before;
+    }
   });
 });
 

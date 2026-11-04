@@ -188,6 +188,11 @@ export type PageMeta = {
    * with the HTML rather than after React has mounted (#308).
    */
   preloadImage?: { href: string; srcset: string; sizes: string };
+  /**
+   * False for a note, project or area with no published Hebrew (#304): see
+   * metaLines. Hub pages leave it unset; they are always both languages.
+   */
+  translated?: boolean;
 };
 
 /* ------------------------------------------------------------------ sitemap */
@@ -197,6 +202,8 @@ export type SitemapEntry = {
   lastmod?: string | null;
   changefreq?: "daily" | "weekly" | "monthly" | "yearly";
   priority?: number;
+  /** False when the page has no published Hebrew (#304): English only, no alternates. */
+  hebrew?: boolean;
 };
 
 /**
@@ -220,7 +227,10 @@ const STATIC_ENTRIES: SitemapEntry[] = [
 /** What the sitemap lists beyond the posts and the published collections. */
 export type SitemapExtras = {
   /** The content store's projects, which render with or without a collection row. */
-  projects?: string[];
+  projects?: { slug: string; hebrew: boolean }[];
+  /** Whether a post, an area or a collection's project page has published Hebrew (#304). */
+  postHebrew?: (p: Post) => boolean;
+  areaHebrew?: (c: Collection) => boolean;
 };
 
 /**
@@ -247,14 +257,24 @@ function sitemapEntries(posts: Post[], collections: Collection[], extras: Sitema
     // A real collection replaces its store entry rather than duplicating it.
     const at = entries.findIndex((x) => x.loc === e.loc);
     if (at === -1) entries.push(e);
-    else if (e.lastmod) entries[at] = { ...entries[at], lastmod: e.lastmod };
+    else entries[at] = { ...entries[at], ...(e.lastmod ? { lastmod: e.lastmod } : {}), ...(e.hebrew === undefined ? {} : { hebrew: e.hebrew }) };
   };
 
-  for (const slug of extras.projects ?? []) add({ loc: `/projects/${slug}`, lastmod: newest, changefreq: "monthly", priority: 0.7 });
+  const areaHebrew = extras.areaHebrew ?? (() => true);
+  const postHebrew = extras.postHebrew ?? (() => true);
+  const storeHebrew = new Map((extras.projects ?? []).map((p) => [p.slug, p.hebrew]));
+  for (const p of extras.projects ?? []) {
+    add({ loc: `/projects/${p.slug}`, lastmod: newest, changefreq: "monthly", priority: 0.7, hebrew: p.hebrew });
+  }
 
   for (const c of collections) {
-    if (c.kind === "project") add({ loc: `/projects/${c.slug}`, lastmod: c.updatedAt, changefreq: "weekly", priority: 0.7 });
-    add({ loc: `/blog/area/${c.slug}`, lastmod: c.updatedAt, changefreq: "weekly", priority: 0.5 });
+    if (c.kind === "project") {
+      /* The project page reads the store's entry when there is one, so its
+         Hebrew is the entry's; otherwise the collection's own. */
+      const hebrew = storeHebrew.get(c.slug) ?? areaHebrew(c);
+      add({ loc: `/projects/${c.slug}`, lastmod: c.updatedAt, changefreq: "weekly", priority: 0.7, hebrew });
+    }
+    add({ loc: `/blog/area/${c.slug}`, lastmod: c.updatedAt, changefreq: "weekly", priority: 0.5, hebrew: areaHebrew(c) });
   }
 
   for (const p of posts) {
@@ -266,6 +286,7 @@ function sitemapEntries(posts: Post[], collections: Collection[], extras: Sitema
       lastmod: p.updatedAt ?? p.publishedAt,
       changefreq: "monthly",
       priority: 0.6,
+      hebrew: postHebrew(p),
     });
   }
 
@@ -286,9 +307,9 @@ function buildSitemapEntries(entries: SitemapEntry[]): string {
       `    <xhtml:link rel="alternate" hreflang="x-default" href="${escapeXml(absoluteUrl(loc))}" />`,
     ];
   const urls = entries
-    .flatMap((e) => LANGS.map((lang) => ({ ...e, lang })))
+    .flatMap((e) => (e.hebrew === false ? [{ ...e, lang: "en" as Lang }] : LANGS.map((lang) => ({ ...e, lang }))))
     .map((e) => {
-      const parts = [`    <loc>${escapeXml(absoluteUrl(pathIn(e.loc, e.lang)))}</loc>`, ...alternates(e.loc)];
+      const parts = [`    <loc>${escapeXml(absoluteUrl(pathIn(e.loc, e.lang)))}</loc>`, ...(e.hebrew === false ? [] : alternates(e.loc))];
       if (e.lastmod) parts.push(`    <lastmod>${escapeXml(new Date(e.lastmod).toISOString())}</lastmod>`);
       if (e.changefreq) parts.push(`    <changefreq>${e.changefreq}</changefreq>`);
       if (e.priority !== undefined) parts.push(`    <priority>${e.priority.toFixed(1)}</priority>`);
@@ -569,27 +590,32 @@ function metaLines(meta: PageMeta): string[] {
   const description = escapeAttr(clampDescription(meta.description));
   const socialDescription = escapeAttr(clampDescription(meta.socialDescription ?? meta.description));
   const imageType = imageTypeFor(meta.image);
+  /* An item with no published Hebrew (#304, design §5.4): its Hebrew page is
+     the English under Hebrew chrome, so it is noindex, names no alternates
+     and says en_US; its English page names no Hebrew alternate. */
+  const pair = meta.path !== undefined && meta.translated !== false;
+  const fallback = meta.lang === "he" && meta.translated === false;
   const lines: string[] = [
     `<title>${escapeXml(meta.title)}</title>`,
     `<meta name="description" content="${description}" />`,
     `<link rel="canonical" href="${escapeAttr(meta.canonical)}" />`,
   ];
 
-  if (meta.path !== undefined) {
+  if (pair && meta.path !== undefined) {
     for (const l of LANGS) {
       lines.push(`<link rel="alternate" hreflang="${l}" href="${escapeAttr(absoluteUrl(pathIn(meta.path, l)))}" />`);
     }
     lines.push(`<link rel="alternate" hreflang="x-default" href="${escapeAttr(absoluteUrl(meta.path))}" />`);
   }
 
-  if (meta.noindex) lines.push(`<meta name="robots" content="noindex, follow" />`);
+  if (meta.noindex || fallback) lines.push(`<meta name="robots" content="noindex, follow" />`);
   else lines.push(`<meta name="robots" content="index, follow, max-image-preview:large" />`);
 
   lines.push(
     `<meta property="og:type" content="${meta.type}" />`,
     `<meta property="og:site_name" content="Yehuda Briskman" />`,
-    `<meta property="og:locale" content="${meta.lang === "he" ? "he_IL" : "en_US"}" />`,
-    ...(meta.path !== undefined
+    `<meta property="og:locale" content="${meta.lang === "he" && !fallback ? "he_IL" : "en_US"}" />`,
+    ...(pair
       ? [`<meta property="og:locale:alternate" content="${meta.lang === "he" ? "en_US" : "he_IL"}" />`]
       : []),
     `<meta property="og:title" content="${title}" />`,
@@ -736,6 +762,19 @@ export function applyVisuals(html: string, visuals: SiteSettings["visuals"]): st
   return out;
 }
 
+/**
+ * The search consoles' ownership tags (#308), from the environment. In the
+ * served head of every rendered page, since a console may check any URL of
+ * the property, and left out of the head the app swaps after a navigation:
+ * they never change, and a console reads only the HTML it fetched.
+ */
+export function verificationTags(e: { GOOGLE_SITE_VERIFICATION?: string; BING_SITE_VERIFICATION?: string } = env): string[] {
+  return [
+    ...(e.GOOGLE_SITE_VERIFICATION ? [`<meta name="google-site-verification" content="${escapeAttr(e.GOOGLE_SITE_VERIFICATION)}" />`] : []),
+    ...(e.BING_SITE_VERIFICATION ? [`<meta name="msvalidate.01" content="${escapeAttr(e.BING_SITE_VERIFICATION)}" />`] : []),
+  ];
+}
+
 export function renderShellWithMeta(shell: string, meta: PageMeta): string {
   const preloads = meta.route ? routePreloadLinks(shell, meta.route) : [];
   let html = shell.replace(ROUTE_PRELOAD_META, "");
@@ -752,7 +791,7 @@ export function renderShellWithMeta(shell: string, meta: PageMeta): string {
   const root = /<div id=["']root["']\s*>\s*<\/div>/i;
   const fallback = Boolean(meta.bodyHtml) && root.test(html);
 
-  const head = [metaBlock(meta)];
+  const head = [metaBlock(meta), ...verificationTags().map((t) => `    ${t}`)];
   if (fallback) head.push(`    ${FALLBACK_STYLE}`, `    ${FALLBACK_NOSCRIPT}`);
   for (const link of preloads) head.push(`    ${link}`);
   if (meta.preloadImage) {
