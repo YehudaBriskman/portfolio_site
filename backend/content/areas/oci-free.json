@@ -4,7 +4,7 @@
   "kind": "project",
   "tagline": "The free-tier ARM VM this site runs on, as code",
   "description": "Infrastructure as code for one free-tier ARM VM running k3s: the VM and its network in Terraform, the cluster's manifests, and the rollout that puts this site on it. Notes on what was built and why.",
-  "coverImage": null,
+  "coverImage": "https://raw.githubusercontent.com/YehudaBriskman/oci-free/main/docs/readme/social-preview.png",
   "links": [
     { "label": "Source on GitHub", "url": "https://github.com/YehudaBriskman/oci-free" }
   ],
