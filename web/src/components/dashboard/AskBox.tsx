@@ -3,6 +3,7 @@ import { Hash, AtSign, Search } from "lucide-react";
 import styles from "@/components/dashboard/Dashboard.module.css";
 import { complete, parseAsk, pendingSigil, suggest, type Asked, type AskOption } from "@/components/dashboard/ask";
 import { useWords } from "@/components/dashboard/i18n";
+import { typedDir } from "@/lib/typedDir";
 
 /*
  * The search box, in the shape of GitHub's "Ask anything" box (#224): a tall
@@ -68,7 +69,7 @@ export default function AskBox({
           autoComplete="off"
           spellCheck={false}
           enterKeyHint="search"
-          dir="auto"
+          dir={typedDir(text)}
           className={styles.askInput}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => {

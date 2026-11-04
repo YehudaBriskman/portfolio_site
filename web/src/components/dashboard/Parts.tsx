@@ -6,6 +6,7 @@ import { AUTHOR } from "@/components/notes/Byline";
 import { useWords } from "@/components/dashboard/i18n";
 import Arrive from "@/components/motion/Arrive";
 import Ring from "@/components/motion/Ring";
+import { typedDir } from "@/lib/typedDir";
 
 /*
  * The dashboard's small parts (#224), shared by every page on the shell:
@@ -317,7 +318,7 @@ export function TopList({ title, items, limit = 7 }: { title: string; items: Top
           placeholder={`${t.findArea}…`}
           autoComplete="off"
           spellCheck={false}
-          dir="auto"
+          dir={typedDir(q)}
           className={styles.topInput}
         />
       </div>

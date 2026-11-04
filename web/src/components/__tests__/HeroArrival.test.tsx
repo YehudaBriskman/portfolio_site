@@ -190,7 +190,7 @@ describe("the first screen's hooks", () => {
        3x screen can take the larger file. A `media` switch on <source> sent
        every phone the 365px file regardless of its density. */
     expect(img.getAttribute("srcset")).toBe("/img/yehuda-cut-sm.webp 365w, /img/yehuda-cut.webp 551w");
-    expect(img.getAttribute("sizes")).toMatch(/min\(92vw, 22rem\)/);
+    expect(img.getAttribute("sizes")).toMatch(/min\(calc\(100vw - 2\.5rem\), 22rem\)/);
     expect(img.closest("picture")?.querySelector("source")).toBeNull();
   });
 });

@@ -134,7 +134,7 @@ const WINDOWS = [
  * explicit choice is seen to win. THEMES=light (or dark) narrows a local run.
  */
 const THEMES = (process.env.THEMES ?? "light,dark").split(",").map((t) => t.trim()).filter(Boolean);
-/* ONLY=axe, ONLY=prefs or ONLY=keyboard narrows a local run to one block. */
+/* ONLY=axe, ONLY=prefs, ONLY=keyboard or ONLY=fit narrows a local run to one block. */
 const ONLY = process.env.ONLY ?? "";
 const want = (block) => !ONLY || ONLY.split(",").includes(block);
 
@@ -459,8 +459,82 @@ async function audit(
   };
 }
 
+/*
+ * Phone widths that the reflow number cannot see (2026-11-04).
+ *
+ * The hero is `overflow-x: clip`, so a plate wider than its column moves
+ * nothing: the document stays exactly as wide as the viewport and the 1.4.10
+ * check above reads 0 while the Hebrew fact line loses its first words off
+ * the left edge. It shipped that way in v1.2.0 — the figure's `92vw` widened
+ * the composition's implicit grid track past the column, and at 320px the
+ * name's nowrap word did too. So the plate is measured by its own boxes:
+ * every child of the title plate, and every box inside the name (the word
+ * and its letters), must sit inside the window, at 320, 360 and 390, in both
+ * languages. Reduced motion, so no arrival is caught in flight.
+ *
+ * The same pass holds the search fields (also 2026-11-04): on /he every
+ * empty field with a placeholder must lay out right to left. `dir="auto"`
+ * reads the value, not the placeholder, and an empty value is LTR, which
+ * set "חיפוש רשימות…" flush left with its ellipsis at the wrong end.
+ */
+const FIT_WIDTHS = [320, 360, 390];
+
+async function fit(lang, width) {
+  const context = await browser.newContext({ viewport: { width, height: 844 }, reducedMotion: "reduce" });
+  await context.route("**/api/**", (r) => {
+    const { status, body } = answer(r.request().url(), false);
+    return r.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
+  });
+  const page = await context.newPage();
+  const errors = [];
+  page.on("pageerror", (e) => errors.push(String(e)));
+  await page.goto(base + (lang === "he" ? "/he" : "/"), { waitUntil: "load" });
+  await page.waitForFunction(() => document.querySelector("#hero h1"), null, { polling: 500, timeout: 20_000 });
+  await page.evaluate(() => document.fonts.ready);
+  errors.push(
+    ...(await page.evaluate(() => {
+      const out = [];
+      /* Against the window, which is what a reader loses, and against the
+         composition, which is what catches it here: headless Chromium has no
+         scrollbar, so at 390px the v1.2.0 plate spilled into the gutter
+         without yet reaching the window's edge. */
+      const cw = document.documentElement.clientWidth;
+      const h1 = document.querySelector("#hero h1");
+      const plate = h1.parentElement;
+      const comp = plate.parentElement.getBoundingClientRect();
+      const left = Math.max(0, comp.left);
+      const right = Math.min(cw, comp.right);
+      const boxes = [plate, ...plate.children, ...h1.querySelectorAll("*")];
+      for (const el of boxes) {
+        const r = el.getBoundingClientRect();
+        if (r.width <= 0) continue;
+        if (r.left >= left - 0.5 && r.right <= right + 0.5) continue;
+        const what = `${el.tagName.toLowerCase()} "${el.textContent.trim().slice(0, 24)}"`;
+        out.push(`hero plate: ${what} spans ${r.left.toFixed(1)}..${r.right.toFixed(1)}, column is ${left.toFixed(1)}..${right.toFixed(1)}`);
+      }
+      return out.slice(0, 4);
+    })),
+  );
+  if (lang === "he") {
+    await page.goto(`${base}/he/blog`, { waitUntil: "load" });
+    await page.waitForFunction(() => document.querySelector("main [placeholder]"), null, { polling: 500, timeout: 20_000 });
+    errors.push(
+      ...(await page.evaluate(() =>
+        [...document.querySelectorAll("main input[placeholder], main textarea[placeholder]")]
+          .filter((el) => !el.value && getComputedStyle(el).direction !== "rtl")
+          .map((el) => `empty field "${el.placeholder}" is ${getComputedStyle(el).direction} on a Hebrew page`),
+      )),
+    );
+  }
+  await context.close();
+  return { route: `/ hero fit${lang === "he" ? ", /he/blog fields" : ""}`, lang, window: `${width}px`, overflow: 0, errors, violations: [] };
+}
+
 const results = [];
 try {
+  if (want("fit")) {
+    for (const lang of ["en", "he"]) for (const width of FIT_WIDTHS) results.push(await fit(lang, width));
+  }
   for (const theme of THEMES) {
     if (want("axe")) {
       for (const lang of ["en", "he"]) {
@@ -522,6 +596,6 @@ for (const r of results) {
 if (jsonOut) writeFileSync(jsonOut, JSON.stringify(results, null, 2));
 console.log(
   `\n${results.length - failed}/${results.length} route runs clean (axe ${TAGS.join(" ")}; reflow at 320px; ` +
-    `keyboard walk for 2.4.7, 2.4.11, 2.5.8; Larger text and More contrast)`,
+    `keyboard walk for 2.4.7, 2.4.11, 2.5.8; Larger text and More contrast; hero fit at 320/360/390)`,
 );
 process.exit(failed ? 1 : 0);
