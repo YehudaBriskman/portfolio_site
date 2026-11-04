@@ -4,6 +4,8 @@ import { useContentEditor } from "@/components/admin/content/editor";
 import { LinesField, ListField, PlainField, SelectField, Section, TextField } from "@/components/admin/content/Fields";
 import { BEAT_LAYOUTS, beatIds, StoryContentSchema, type StoryContent, type Text } from "@/content/schema";
 import { useContentBundle } from "@/content/store";
+import TranslationPill from "@/components/admin/TranslationPill";
+import { useTranslationStatus } from "@/services/translations";
 
 /*
  * /admin/story (#163): the opening, the roles, and what is pinned to the
@@ -29,6 +31,7 @@ const record = <V,>(list: Pinned<V>[]): Record<string, V> =>
 export default function AdminStory() {
   const editor = useContentEditor<StoryContent>("story", StoryContentSchema);
   const bundle = useContentBundle();
+  const heStatus = useTranslationStatus();
 
   return (
     <EditorFrame
@@ -37,6 +40,10 @@ export default function AdminStory() {
       intro="The page at /story. English is required; Hebrew is optional and falls back to English, except in an interlude, which is written in both."
       preview="/story?preview=1"
       editor={editor}
+      focus={(v, field, q) => {
+        const i = v.roles.findIndex((r) => r.id === q.get("role"));
+        return i < 0 ? field : `roles.${i}.${field}`;
+      }}
     >
       {(story) => {
         const beats = beatIds({ ...bundle, story });
@@ -47,7 +54,7 @@ export default function AdminStory() {
 
         return (
           <>
-            <Section title="The opening">
+            <Section title="The opening" aside={<TranslationPill status={heStatus("story", "start")} />}>
               <TextField id="story-start-title" path="start.title" label="Title" value={story.start.title} onChange={(t) => editor.edit((d) => void (d.start.title = req(t)))} />
               <LinesField id="story-start-lines" path="start.lines" legend="Lines" lines={story.start.lines} onChange={(next) => editor.edit((d) => void (d.start.lines = next))} />
             </Section>
@@ -67,6 +74,7 @@ export default function AdminStory() {
                 {(r, i) => (
                   <>
                     <div className="grid gap-4 sm:grid-cols-2">
+                      <TranslationPill status={heStatus("story", `role:${r.id}`)} className="justify-self-start sm:col-span-2" />
                       <PlainField id={`story-roles-${i}-id`} path={`roles.${i}.id`} label="Id" mono dir="ltr" value={r.id} onChange={(v) => editor.edit((d) => void (d.roles[i].id = v))} />
                     </div>
                     <TextField id={`story-roles-${i}-when`} path={`roles.${i}.when`} label="When" value={r.when} onChange={(t) => editor.edit((d) => void (d.roles[i].when = req(t)))} />

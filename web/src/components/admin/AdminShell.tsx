@@ -7,6 +7,7 @@ import {
   FileText,
   FolderKanban,
   Image,
+  Languages,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -22,6 +23,7 @@ import ThemeMenu from "@/components/nav/ThemeMenu";
 import Ring from "@/components/motion/Ring";
 import { useAdminWords } from "@/i18n/admin";
 import { Counter } from "./ui";
+import { toDo, useTranslationReport } from "@/services/translations";
 
 /*
  * The admin's own shell, rebuilt as a tool (#288).
@@ -53,7 +55,8 @@ export type AdminSection =
   | "site-copy"
   | "media"
   | "settings"
-  | "connections";
+  | "connections"
+  | "translations";
 type Section = AdminSection;
 
 const ICONS: Record<Section, typeof FileText> = {
@@ -66,6 +69,7 @@ const ICONS: Record<Section, typeof FileText> = {
   media: Image,
   settings: Settings,
   connections: Plug,
+  translations: Languages,
 };
 
 const PATHS: Record<Section, string> = {
@@ -78,12 +82,13 @@ const PATHS: Record<Section, string> = {
   media: "/admin/media",
   settings: "/admin/settings",
   connections: "/admin/connections",
+  translations: "/admin/translations",
 };
 
 const GROUPS: Array<{ id: "top" | "content" | "site"; items: Section[] }> = [
   { id: "top", items: ["overview"] },
   /* What the public site shows. */
-  { id: "content", items: ["posts", "areas", "projects", "story", "site-copy", "media"] },
+  { id: "content", items: ["posts", "areas", "projects", "story", "site-copy", "media", "translations"] },
   /* How it shows it, and who else may read or write it. */
   { id: "site", items: ["settings", "connections"] },
 ];
@@ -117,6 +122,9 @@ export type AdminShellProps = {
 export default function AdminShell({ title, section, counts, bottomBar, backTo, barEverywhere, actions, children }: AdminShellProps) {
   const { pathname } = useLocation();
   const w = useAdminWords();
+  /* Public units a Hebrew reader gets in English or out of date (#302). */
+  const { report: heReport } = useTranslationReport();
+  const translationsDue = heReport ? toDo(heReport) : undefined;
   const [who, setWho] = useState("");
   const [open, setOpen] = useState(false);
   const drawerId = useId();
@@ -287,7 +295,16 @@ export default function AdminShell({ title, section, counts, bottomBar, backTo, 
                             )}
                           </span>
                           <span className="min-w-0 flex-1">{w.nav[id]}</span>
-                          <Counter n={counts?.[id]} />
+                          {id === "translations" ? (
+                            <span title={translationsDue === undefined ? undefined : w.toDo(translationsDue)}>
+                              <span aria-hidden="true">
+                                <Counter n={translationsDue} />
+                              </span>
+                              {translationsDue !== undefined && <span className="sr-only">{w.toDo(translationsDue)}</span>}
+                            </span>
+                          ) : (
+                            <Counter n={counts?.[id]} />
+                          )}
                         </Link>
                       </li>
                     );

@@ -4,6 +4,7 @@ import StatusPill from "@/components/admin/StatusPill";
 import { ErrorState, LoadingRows, PageHeader } from "@/components/admin/ui";
 import { ExternalLink } from "lucide-react";
 import { IssuesContext, type ContentEditor } from "./editor";
+import { useFocusField } from "./focusField";
 
 /*
  * The frame every content editor shares (#163): the title, where the
@@ -23,6 +24,8 @@ type Props<T> = {
   preview: string;
   editor: ContentEditor<T>;
   children: (value: T) => ReactNode;
+  /** A `#field=` link's path, made absolute for this document (#302). */
+  focus?: (value: T, field: string, query: URLSearchParams) => string;
 };
 
 function when(iso: string | null): string {
@@ -33,8 +36,9 @@ function when(iso: string | null): string {
     : d.toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 }
 
-export default function EditorFrame<T>({ title, section, intro, preview, editor, children }: Props<T>) {
+export default function EditorFrame<T>({ title, section, intro, preview, editor, children, focus }: Props<T>) {
   const { view, value, state, issues, issueMap, loadError } = editor;
+  useFocusField(value, focus);
   const busy = state.kind === "saving";
   const general = issues.filter((i) => i.path === "");
 

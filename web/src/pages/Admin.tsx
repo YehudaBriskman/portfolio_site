@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { ExternalLink, Plus, Search } from "lucide-react";
 import AdminShell from "@/components/admin/AdminShell";
+import TranslationPill from "@/components/admin/TranslationPill";
+import { useTranslationStatus } from "@/services/translations";
 import { Counter, EmptyState, ErrorState, LoadingRows, PageHeader, RelTime, StatePill } from "@/components/admin/ui";
 import { useAdminWords } from "@/i18n/admin";
 import { plural } from "@/i18n/words";
@@ -19,6 +21,7 @@ const STATUSES: StatusFilter[] = ["all", "published", "draft", "archived"];
 
 export default function Admin() {
   const w = useAdminWords();
+  const heStatus = useTranslationStatus();
   const [posts, setPosts] = useState<AdminPost[] | null>(null);
   const [cols, setCols] = useState<AdminCollection[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -198,12 +201,14 @@ export default function Admin() {
                           <span className="mt-2 flex flex-wrap gap-1.5 sm:hidden">
                             <StatePill state={p.status} />
                             {changes && <StatePill state="changes" />}
+                            <TranslationPill status={heStatus("post", p.slug)} />
                           </span>
                         </td>
                         <td className="a-fit hidden sm:table-cell">
                           <span className="flex flex-wrap justify-end gap-1.5">
                             {changes && <StatePill state="changes" />}
                             <StatePill state={p.status} />
+                            <TranslationPill status={heStatus("post", p.slug)} />
                           </span>
                         </td>
                         <td className="a-when a-fit hidden md:table-cell">

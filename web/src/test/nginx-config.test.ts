@@ -373,6 +373,7 @@ const EXEMPT: Record<string, string> = {
   "/admin/projects": "admin: the content editors (#163)",
   "/admin/story": "admin",
   "/admin/site-copy": "admin",
+  "/admin/translations": "admin: what is missing or stale in Hebrew (#302)",
 };
 
 /** A concrete URL for a route pattern: each `:param` becomes a slug-shaped value. */

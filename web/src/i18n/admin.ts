@@ -36,6 +36,7 @@ export const useAdminWords = defineWords(
       media: "Media",
       settings: "Settings",
       connections: "Connected apps",
+      translations: "Translations",
     },
     groups: { content: "Content", site: "Site" },
 
@@ -59,6 +60,17 @@ export const useAdminWords = defineWords(
       revoked: "Revoked",
       expired: "Expired",
     },
+
+    /* The Hebrew pill (#302): text and a shape, never colour alone. */
+    he: { missing: "HE —", draft: "HE draft", stale: "HE stale", translated: "HE ✓", unverified: "HE ✓" },
+    heLong: {
+      missing: "No Hebrew yet",
+      draft: "Hebrew in a draft, not published",
+      stale: "Hebrew written for an older English",
+      translated: "Hebrew up to date",
+      unverified: "Hebrew published, not yet checked against the English",
+    },
+    toDo: (n: number) => `${n} to translate or update`,
 
     /* The overview. */
     overview: "Overview",
@@ -153,6 +165,7 @@ export const useAdminWords = defineWords(
       media: "מדיה",
       settings: "הגדרות",
       connections: "אפליקציות מחוברות",
+      translations: "תרגומים",
     },
     groups: { content: "תוכן", site: "אתר" },
 
@@ -164,6 +177,16 @@ export const useAdminWords = defineWords(
     clearFilters: "ניקוי המסננים",
     search: "חיפוש",
     noMatch: "אין תוצאות למסננים האלה",
+
+    he: { missing: "עב׳ —", draft: "עב׳ טיוטה", stale: "עב׳ ישן", translated: "עב׳ ✓", unverified: "עב׳ ✓" },
+    heLong: {
+      missing: "אין עדיין עברית",
+      draft: "עברית בטיוטה, לא פורסמה",
+      stale: "העברית נכתבה לגרסה קודמת של האנגלית",
+      translated: "העברית מעודכנת",
+      unverified: "העברית פורסמה ועוד לא נבדקה מול האנגלית",
+    },
+    toDo: (n: number) => `${n} לתרגום או לעדכון`,
 
     status: {
       published: "פורסם",

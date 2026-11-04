@@ -1,4 +1,7 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import TranslationPill from "@/components/admin/TranslationPill";
+import { useTranslationStatus } from "@/services/translations";
 import EditorFrame from "@/components/admin/content/EditorFrame";
 import MediaPicker from "@/components/admin/MediaPicker";
 import { useContentEditor } from "@/components/admin/content/editor";
@@ -48,7 +51,11 @@ const req = (t: Text | null): Text => t ?? { en: "" };
 
 export default function AdminProjects() {
   const editor = useContentEditor<ProjectsContent>("projects", ProjectsContentSchema);
-  const [picked, setPicked] = useState(0);
+  /* Null until the owner picks one: then `?project=windom` (a Translations row, #302) decides. */
+  const [picked, setPicked] = useState<number | null>(null);
+  const heStatus = useTranslationStatus();
+  const [query] = useSearchParams();
+  const wanted = query.get("project");
 
   return (
     <EditorFrame
@@ -57,10 +64,15 @@ export default function AdminProjects() {
       intro="The projects on the home page, the work page and each project page. English is required; Hebrew is optional and falls back to English. Images are paths or https URLs."
       preview="/projects?preview=1"
       editor={editor}
+      focus={(v, field, q) => {
+        const i = v.items.findIndex((p) => p.slug === q.get("project"));
+        return i < 0 ? field : `items.${i}.${field}`;
+      }}
     >
       {(content) => {
         const items = content.items;
-        const at = Math.min(picked, items.length - 1);
+        const fromQuery = wanted ? items.findIndex((x) => x.slug === wanted) : -1;
+        const at = Math.min(picked ?? Math.max(fromQuery, 0), items.length - 1);
         const p = items[at];
         const base = `items.${at}`;
         const set = (change: (draft: Project) => void) => editor.edit((d) => change(d.items[at]));
@@ -88,6 +100,8 @@ export default function AdminProjects() {
                 }}
               >
                 {(item, i) => (
+                  <span className="flex items-center gap-2">
+                  <TranslationPill status={heStatus("project", item.slug)} />
                   <button
                     type="button"
                     className={`a-btn w-full justify-start ${i === at ? "a-btn-primary" : "a-btn-ghost"}`}
@@ -97,6 +111,7 @@ export default function AdminProjects() {
                   >
                     Edit
                   </button>
+                  </span>
                 )}
               </ListField>
             </div>

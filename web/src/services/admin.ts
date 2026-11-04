@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { invalidateTranslations } from "./translations";
 
 const LinkSchema = z.object({ label: z.string(), url: z.string() });
 
@@ -200,6 +201,7 @@ let collectionsCache: Cached<AdminCollection[]> | null = null;
 
 /** Called after every write, so the next read is authoritative. */
 function invalidateLists(): void {
+  invalidateTranslations();
   postsCache = null;
   collectionsCache = null;
 }

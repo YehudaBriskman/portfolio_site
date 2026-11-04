@@ -197,6 +197,26 @@ const SETTINGS_VIEW = {
   history: [{ version: 0, at: at(1), settings: DEFAULT_SETTINGS }],
 };
 
+/* The translations report (#302): one item in each state the page shows. */
+const u = (path, status, primary = true) => ({
+  path, status, primary, en: path,
+  he: status === "missing" || status === "draft" ? null : "עברית",
+  draftHe: status === "draft" ? "טיוטה" : null,
+});
+const TRANSLATIONS = {
+  ok: true,
+  counts: { missing: 6, draft: 1, stale: 1, unverified: 1, translated: 3 },
+  coverage: 42,
+  items: [
+    { type: "site-copy", id: "hero", title: "Home · hero", route: "/", rank: 0, visibility: "public", status: "missing", units: [u("title", "missing"), u("phrases.0", "missing"), u("phrases.1", "missing")] },
+    { type: "project", id: "windom", title: "WindoM", route: "/projects/windom", rank: 10, visibility: "public", status: "stale", units: [u("fact", "stale"), u("description", "translated"), u("decisions.0.body", "missing", false), u("decisions.1.body", "missing", false)] },
+    { type: "story", id: "start", title: "Story · start", route: "/story", rank: 30, visibility: "public", status: "unverified", units: [u("title", "unverified"), u("lines.0", "translated")] },
+    { type: "area", id: "bothy", title: "Bothy", route: "/blog/area/bothy", rank: 50, visibility: "public", status: "translated", units: [u("title", "translated")] },
+    { type: "post", id: "fixture-post", title: "A fixture note", route: "/blog/fixture-post", rank: 100, visibility: "public", status: "missing", units: [u("title", "missing")] },
+    { type: "post", id: "a-draft", title: "Draft: the site in Hebrew", route: "/blog/a-draft", rank: 101, visibility: "private", status: "draft", units: [u("title", "draft")] },
+  ],
+};
+
 export function answer(url, failing) {
   if (failing) return { status: 503, body: { error: "unavailable" } };
   const p = new URL(url).pathname.replace(/^\/api/, "");
@@ -205,6 +225,7 @@ export function answer(url, failing) {
   if (p === "/admin/posts") return { status: 200, body: { ok: true, items: [ADMIN_POST] } };
   if (p === "/admin/posts/fixture-post") return { status: 200, body: { ok: true, post: ADMIN_POST } };
   if (p === "/admin/collections") return { status: 200, body: { ok: true, items: [] } };
+  if (p === "/admin/translations") return { status: 200, body: TRANSLATIONS };
   /* Site settings (#254): one saved version over the built-in defaults. */
   if (p === "/admin/settings") return { status: 200, body: SETTINGS_VIEW };
   if (p === "/blog/posts") return { status: 200, body: { items: [SUMMARY] } };

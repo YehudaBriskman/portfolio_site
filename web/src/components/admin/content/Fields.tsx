@@ -53,7 +53,7 @@ export function TextField({ id, path, label, hint, multiline, value, nullable, o
   const cls = multiline ? "a-textarea" : "a-input";
 
   return (
-    <fieldset className="min-w-0">
+    <fieldset className="min-w-0" data-path={path}>
       <legend className="a-label">{label}</legend>
       <div className="grid gap-3 md:grid-cols-2">
         <div className="min-w-0">
@@ -113,7 +113,7 @@ type PlainFieldProps = {
 export function PlainField({ id, path, label, hint, value, mono, type = "text", inputMode, dir = "auto", onChange }: PlainFieldProps) {
   const error = useIssue(path);
   return (
-    <div className="min-w-0">
+    <div className="min-w-0" data-path={path}>
       <label htmlFor={id} className="a-label">
         {label}
       </label>
@@ -165,7 +165,7 @@ type SelectFieldProps<V extends string> = {
 export function SelectField<V extends string>({ id, path, label, value, options, onChange }: SelectFieldProps<V>) {
   const error = useIssue(path);
   return (
-    <div className="min-w-0">
+    <div className="min-w-0" data-path={path}>
       <label htmlFor={id} className="a-label">
         {label}
       </label>
@@ -216,7 +216,7 @@ export function ListField<T>({ id, path, legend, hint, items, name, make, max, a
     onChange(next);
   };
   return (
-    <fieldset id={id} className="min-w-0">
+    <fieldset id={id} className="min-w-0" data-path={path}>
       <legend className="a-label">{legend}</legend>
       {hint && <p className="a-hint -mt-1 mb-3">{hint}</p>}
       <ol className="space-y-3">
@@ -312,10 +312,13 @@ export function LinesField({
 }
 
 /** A titled group of fields inside an editor. */
-export function Section({ title, children }: { title: string; children: ReactNode }) {
+export function Section({ title, aside, children }: { title: string; aside?: ReactNode; children: ReactNode }) {
   return (
     <section className="a-section">
-      <h2 className="a-section-title">{title}</h2>
+      <h2 className="a-section-title flex flex-wrap items-center justify-between gap-2">
+        <span>{title}</span>
+        {aside}
+      </h2>
       {children}
     </section>
   );
