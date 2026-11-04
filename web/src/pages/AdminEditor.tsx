@@ -2,6 +2,7 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState, type Keyboard
 import { useNavigate, useParams } from "react-router-dom";
 import { X } from "lucide-react";
 import AdminShell from "@/components/admin/AdminShell";
+import { PageHeader, StatePill } from "@/components/admin/ui";
 import MediaPicker, { PickedPreview } from "@/components/admin/MediaPicker";
 import LinkEditor, { toLinkRows, type LinkRow } from "@/components/LinkEditor";
 import BodyEditor, { type WikiTarget } from "@/components/admin/noteEditor/BodyEditor";
@@ -454,7 +455,7 @@ export default function AdminEditor() {
   const setBody = (v: string) => edit(bodyLang === "he" ? "heBody" : "body", v);
 
   return (
-    <AdminShell title={heading} section="posts" backTo="/admin/posts" bottomBar={<div className="px-4 py-2">{actions}</div>}>
+    <AdminShell title={heading} section="posts" backTo="/admin/posts" barEverywhere bottomBar={<div className="px-4 py-2">{actions}</div>}>
       {loading ? (
         <p className="mono mt-4 text-xs text-clay">{w.loading}</p>
       ) : (
@@ -464,7 +465,20 @@ export default function AdminEditor() {
             if (canSave) void saveDraft();
           }}
         >
-          <h1 className="display-tight text-[1.75rem] lg:text-[2.25rem]">{heading}</h1>
+          <PageHeader
+            title={heading}
+            meta={
+              <>
+                {post && <StatePill state={post.status} />}
+                {hasDraft && <StatePill state="changes" />}
+                {f.slug && (
+                  <code dir="ltr" className="text-[0.8125rem]">
+                    /blog/{f.slug}
+                  </code>
+                )}
+              </>
+            }
+          />
 
           {save.kind === "conflict" && (
             <div className={styles.notice} role="alert">
@@ -520,10 +534,11 @@ export default function AdminEditor() {
             </label>
           )}
 
-          <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
-            <label className="a-label mb-0" htmlFor={ids.body}>{w.body}</label>
+          <div className={styles.box}>
+          <div className={styles.boxHead}>
+            <label className="a-label mb-2 ms-1" htmlFor={ids.body}>{w.body}</label>
             <div className="flex flex-wrap gap-2">
-              <div role="group" aria-label={w.editingIn} className="flex gap-1">
+              <div role="group" aria-label={w.editingIn} className={styles.toggleGroup}>
                 {(["en", "he"] as const).map((l) => (
                   <button
                     key={l}
@@ -547,8 +562,6 @@ export default function AdminEditor() {
               </button>
             </div>
           </div>
-          <p id={ids.bodyHelp} className="a-hint">{w.bodyHelp} {w.shortcuts}</p>
-
           <div className={styles.split} data-side={preview}>
             <BodyEditor
               id={ids.body}
@@ -571,6 +584,8 @@ export default function AdminEditor() {
                 )}
               </section>
             )}
+          </div>
+          <p id={ids.bodyHelp} className={styles.boxFoot}>{w.bodyHelp} {w.shortcuts}</p>
           </div>
 
           <details open className="mt-10">
@@ -702,7 +717,6 @@ export default function AdminEditor() {
             </div>
           </details>
 
-          <div className="mt-10 hidden lg:block">{actions}</div>
         </form>
       )}
 

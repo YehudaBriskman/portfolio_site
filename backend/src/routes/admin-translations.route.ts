@@ -2,7 +2,8 @@ import { Router } from "express";
 import { z } from "zod";
 import { asyncHandler } from "../middlewares/asyncHandler.js";
 import { TRANSLATION_STATUSES, TRANSLATION_TYPES } from "../schemas/i18n.js";
-import { allTranslationItems, report } from "../services/translations.js";
+import { GLOSSARY } from "../i18n/glossary.js";
+import { ackTranslation, allTranslationItems, putTranslationDraft, report } from "../services/translations.js";
 
 /*
  * The translations report (#301): what is missing, stale, in draft or done in
@@ -47,5 +48,80 @@ router.get(
     res.set("Cache-Control", "no-store").json({ ok: true, ...out });
   }),
 );
+
+/*
+ *   POST /api/admin/translations/ack   { type, id, path, rev }
+ *
+ * "The Hebrew is still correct" (#303): restamps one unit's fingerprint to
+ * today's English without changing any text. `rev` is the revision of the
+ * document the unit lives in (the note, the area, or the content document), so
+ * an acknowledgement of a version the owner did not see is a 409.
+ */
+const AckBody = z.object({
+  type: z.enum(TRANSLATION_TYPES),
+  id: z.string().min(1).max(200),
+  path: z.string().min(1).max(200),
+  rev: z.string().min(1).max(100),
+});
+
+router.post(
+  "/ack",
+  asyncHandler(async (req, res) => {
+    const body = AckBody.safeParse(req.body);
+    if (!body.success) {
+      return res.status(400).json({ ok: false, error: "Bad request", issues: body.error.issues.map((i) => ({ path: i.path.join("."), message: i.message })) });
+    }
+    const r = await ackTranslation(body.data);
+    if (!r.ok) return res.status(r.status).json({ ok: false, error: r.error });
+    res.locals.audit = { target: r.target, before: r.before, after: r.after };
+    res.json({ ok: true, rev: r.rev });
+  }),
+);
+
+/*
+ *   PUT /api/admin/translations/draft   { type, id, rev?, units: [{ path, he }], dryRun? }
+ *
+ * Hebrew for one or more units of one item, into its draft (#307: what the
+ * MCP's put_translation calls). `dryRun` defaults to true: it answers with the
+ * changes and the glossary warnings and writes nothing. Areas have no draft
+ * and are refused. See services/translations.ts `putTranslationDraft`.
+ */
+const DraftBody = z.object({
+  type: z.enum(TRANSLATION_TYPES),
+  id: z.string().min(1).max(200),
+  rev: z.string().max(100).optional(),
+  units: z
+    .array(z.object({ path: z.string().min(1).max(200), he: z.string().max(200_000) }))
+    .min(1)
+    .max(40)
+    .refine((u) => new Set(u.map((x) => x.path)).size === u.length, "Each path once"),
+  dryRun: z.boolean().default(true),
+});
+
+router.put(
+  "/draft",
+  asyncHandler(async (req, res) => {
+    const body = DraftBody.safeParse(req.body);
+    if (!body.success) {
+      return res.status(400).json({ ok: false, error: "Bad request", issues: body.error.issues.map((i) => ({ path: i.path.join("."), message: i.message })) });
+    }
+    const r = await putTranslationDraft(body.data);
+    if (!r.ok) return res.status(r.status).json({ ok: false, error: r.error });
+    const { audit, ...out } = r;
+    if (audit) res.locals.audit = audit;
+    res.set("Cache-Control", "no-store").json(out);
+  }),
+);
+
+/*
+ *   GET /api/admin/translations/glossary
+ *
+ * The Hebrew glossary (docs/i18n/hebrew-tech-glossary.md, as data): the
+ * category rules, the terms and the forbidden variants. The MCP serves it as
+ * the resource glossary://he (#307).
+ */
+router.get("/glossary", (_req, res) => {
+  res.set("Cache-Control", "no-store").json({ ok: true, glossary: GLOSSARY });
+});
 
 export default router;

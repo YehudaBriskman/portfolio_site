@@ -31,6 +31,7 @@ import {
 import adminContentRoutes from "./admin-content.route.js";
 import adminSettingsRoutes from "./admin-settings.route.js";
 import adminTranslationsRoutes from "./admin-translations.route.js";
+import { COLLECTION_FIELDS, POST_FIELDS, stampHebrewMeta, type HebrewMeta } from "../schemas/i18n.js";
 
 const router = Router();
 
@@ -185,6 +186,7 @@ router.put(
       seo: existing?.seo ?? { title: null, description: null, canonical: null, noindex: false },
       /* Fields this route does not write (#250) are carried, never dropped. */
       he: existing?.he ?? null,
+      heMeta: existing?.heMeta ?? null,
       changeNote: existing?.changeNote ?? null,
       draft: existing?.draft ?? null,
       draftSavedAt: existing?.draftSavedAt ?? null,
@@ -243,6 +245,29 @@ function conflict(res: import("express").Response) {
   return res.status(409).json({ ok: false, error: "This post changed elsewhere. Reload and reapply." });
 }
 
+const POST_HE_FIELDS = POST_FIELDS.map((f) => f.field);
+const COLLECTION_HE_FIELDS = COLLECTION_FIELDS.map((f) => f.field);
+
+type HeVersion = { he: Record<string, unknown> | null | undefined; meta: HebrewMeta | null | undefined };
+
+/** The earlier Hebrew of a note, most recent first: its draft, then what is published. */
+function postVersions(existing: Post | null): HeVersion[] {
+  if (!existing) return [];
+  return [
+    { he: existing.draft?.he, meta: existing.draft?.heMeta },
+    { he: existing.he, meta: existing.heMeta },
+  ];
+}
+
+/*
+ * The note's content with its Hebrew fingerprints stamped (#303): kept where
+ * the Hebrew is unchanged from an earlier version, new where it was written in
+ * this save. Whatever the client sent as `heMeta` is replaced.
+ */
+function stampPost(content: PostContent, prevs: HeVersion[]): PostContent {
+  return { ...content, heMeta: stampHebrewMeta(content.he, content, prevs, POST_HE_FIELDS) };
+}
+
 function fromContent(c: PostContent) {
   return {
     title: c.title,
@@ -256,6 +281,7 @@ function fromContent(c: PostContent) {
     featured: c.featured,
     seo: c.seo,
     he: c.he && (c.he.title || c.he.subtitle || c.he.excerpt || c.he.body) ? c.he : null,
+    heMeta: c.heMeta ?? null,
     readingMinutes: readingMinutes(c.body),
   };
 }
@@ -281,10 +307,11 @@ router.put(
     if (!slug.success) return invalid(res, slug.error);
     const parsed = DraftWrite.safeParse(req.body);
     if (!parsed.success) return invalid(res, parsed.error);
-    const { _rev, ...content } = parsed.data;
+    const { _rev, ...input } = parsed.data;
     const existing = await tryGet<Post>(postId(slug.data));
     if (existing?._rev && _rev !== existing._rev) return conflict(res);
     const now = new Date().toISOString();
+    const content = stampPost(input, postVersions(existing));
 
     if (existing && existing.status === "published") {
       return store(res, { ...existing, _rev, draft: content, draftSavedAt: now }, existing);
@@ -317,9 +344,10 @@ router.post(
     if (!slug.success) return invalid(res, slug.error);
     const parsed = PublishWrite.safeParse(req.body);
     if (!parsed.success) return invalid(res, parsed.error);
-    const { _rev, changeNote, ...content } = parsed.data;
+    const { _rev, changeNote, ...input } = parsed.data;
     const existing = await tryGet<Post>(postId(slug.data));
     if (existing?._rev && _rev !== existing._rev) return conflict(res);
+    const content = stampPost(input, postVersions(existing));
     const now = new Date().toISOString();
     const republish = existing?.status === "published";
 
@@ -432,6 +460,11 @@ router.put(
       kind: i.kind,
       tagline: i.tagline,
       he: i.he === undefined ? existing?.he ?? null : i.he,
+      /* Hebrew sent in this save is stamped against the English beside it (#303). */
+      heMeta:
+        i.he === undefined
+          ? existing?.heMeta ?? null
+          : stampHebrewMeta(i.he, i, [{ he: existing?.he, meta: existing?.heMeta }], COLLECTION_HE_FIELDS),
       repo: i.repo,
       // Stats belong to the sync job, not to this form — never clear them here.
       stats: existing?.stats ?? null,

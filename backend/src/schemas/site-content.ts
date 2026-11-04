@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { Fingerprint } from "./i18n.js";
 import { SlugSchema } from "./content.js";
 
 /*
@@ -48,6 +49,13 @@ export const text = (max: number) =>
       .max(max, `At most ${max} characters`)
       .transform((v) => (v ? v : undefined))
       .optional(),
+    /*
+     * The fingerprint of the English the Hebrew was written against (#303).
+     * Accepted so a round trip through the admin keeps it, but never trusted:
+     * the save routes restamp it (schemas/i18n.ts `stampTexts`), and the public
+     * reads drop it. Absent on Hebrew written before #303: "unverified".
+     */
+    heSrc: Fingerprint.optional(),
   });
 
 export type Text = z.infer<ReturnType<typeof text>>;

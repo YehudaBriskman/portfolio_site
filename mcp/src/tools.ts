@@ -2,7 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import { ApiError, type PortfolioApi } from "./api.js";
-import { diffFields } from "./diff.js";
+import { diffFields, lineDiff } from "./diff.js";
 
 /*
  * Shared by both transports: stdio (src/server.ts, a ptk_ token over HTTP)
@@ -15,6 +15,8 @@ import { diffFields } from "./diff.js";
  * The tools (#252). v1 covers posts, areas, tags and the activity feed; the
  * set grows as more content becomes editable in the backend (#163, #253,
  * #254) — each new admin endpoint gets its read tool and its dry-run write.
+ * The translation tools (#307) read the Translations report and write Hebrew
+ * into drafts only; the glossary is the resource glossary://he.
  *
  * Safety rules every write tool follows:
  *   - registered only for `access: "write"` (stdio: PORTFOLIO_ADMIN_TOKEN is
@@ -33,7 +35,14 @@ export const VERSION = "0.1.0";
 
 export const PUBLIC_TOOLS = ["list_posts", "get_post", "list_tags", "list_areas", "get_area", "list_activity"] as const;
 /* Admin tools that only read: an `access: "read"` session gets these. */
-export const ADMIN_READ_TOOLS = ["admin_list_posts", "admin_get_post", "read_audit_log", "list_media"] as const;
+export const ADMIN_READ_TOOLS = [
+  "admin_list_posts",
+  "admin_get_post",
+  "read_audit_log",
+  "list_media",
+  "list_translations",
+  "get_translation",
+] as const;
 export const ADMIN_TOOLS = [
   "list_media",
   "admin_list_posts",
@@ -45,7 +54,17 @@ export const ADMIN_TOOLS = [
   "save_area",
   "delete_area",
   "read_audit_log",
+  "list_translations",
+  "get_translation",
+  "put_translation",
 ] as const;
+
+/* The resource a drafting client reads before writing Hebrew (#307). */
+export const GLOSSARY_URI = "glossary://he";
+
+/* As backend/src/schemas/i18n.ts names them. */
+export const TRANSLATION_TYPES = ["post", "area", "project", "story", "site-copy"] as const;
+export const TRANSLATION_STATUSES = ["missing", "stale", "draft", "unverified", "translated"] as const;
 
 const slug = z
   .string()
@@ -56,6 +75,9 @@ export const dryRun = z
   .default(true)
   .describe("Default true: return the diff and write nothing. Pass false to apply.");
 const link = z.object({ label: z.string().min(1).max(60), url: z.string().url() });
+const lang = z.enum(["en", "he"]).optional().describe("Language to read in; default en");
+const translationType = z.enum(TRANSLATION_TYPES);
+const itemId = z.string().min(1).max(200).describe("The item's id, as list_translations gives it (a slug, `start`, `role:<id>`, `hero`…)");
 
 type AdminPost = {
   _rev?: string;
@@ -129,6 +151,50 @@ export type MediaItem = {
   usedBy?: { id: string; type: string; slug: string | null; field: string }[];
 };
 
+/* ------------------------------------------------------ translations -- */
+
+
+type TranslationUnit = {
+  path: string;
+  status: (typeof TRANSLATION_STATUSES)[number];
+  primary: boolean;
+  en: string;
+  he: string | null;
+  draftHe: string | null;
+};
+type TranslationItem = {
+  type: (typeof TRANSLATION_TYPES)[number];
+  id: string;
+  title: string;
+  route: string;
+  visibility: "public" | "private";
+  status: TranslationUnit["status"] | null;
+  units: TranslationUnit[];
+};
+type TranslationReport = { counts: Record<string, number>; coverage: number; items: TranslationItem[] };
+
+const POST_LANG_FIELDS = ["title", "subtitle", "excerpt", "body"] as const;
+
+/*
+ * A public post (or summary) in one language. `en` returns it as the API
+ * does. `he` puts the published Hebrew in the fields and keeps the English
+ * where there is none, as the Hebrew page does, and says which fell back.
+ */
+export function inLanguage<T extends Record<string, unknown>>(post: T, lang: "en" | "he" | undefined) {
+  if (lang !== "he") return post;
+  const he = (post.he ?? null) as Record<string, string | null> | null;
+  const out: Record<string, unknown> = { ...post };
+  delete out.he;
+  const english: string[] = [];
+  for (const f of POST_LANG_FIELDS) {
+    if (!(f in post) || post[f] == null || post[f] === "") continue;
+    const v = he?.[f];
+    if (typeof v === "string" && v.trim()) out[f] = v;
+    else english.push(f);
+  }
+  return { ...out, lang: "he", fallback: english.length > 0, englishFields: english };
+}
+
 function pick<T extends object>(doc: T, fields: readonly string[]) {
   const out: Record<string, unknown> = {};
   for (const f of fields) if (f in doc) out[f] = (doc as Record<string, unknown>)[f];
@@ -190,9 +256,9 @@ export type ToolAccess = "public" | "read" | "write";
 
 export function instructionsFor(access: ToolAccess) {
   if (access === "write") {
-    return "Reads and edits the portfolio site's posts and areas, and reads its media library. Every write tool defaults to dryRun: true and returns a diff; show it to the user before applying with dryRun: false.";
+    return "Reads and edits the portfolio site's posts and areas, reads its media library, and reads and drafts its Hebrew translations (read the glossary://he resource before writing Hebrew). Every write tool defaults to dryRun: true and returns a diff; show it to the user before applying with dryRun: false.";
   }
-  if (access === "read") return "Reads the portfolio site's posts (drafts included), areas, tags, activity feed, media library and admin audit log.";
+  if (access === "read") return "Reads the portfolio site's posts (drafts included), areas, tags, activity feed, media library, translation status and admin audit log.";
   return "Read-only access to the portfolio site's posts, areas, tags and activity feed.";
 }
 
@@ -205,22 +271,32 @@ export function registerTools(server: McpServer, api: PortfolioApi, access: Tool
     "list_posts",
     {
       title: "List published posts",
-      description: "Published posts, newest first (summaries, no body). Filter by tag or area slug.",
-      inputSchema: { tag: z.string().max(60).optional(), area: slug.optional() },
+      description:
+        "Published posts, newest first (summaries, no body). Filter by tag or area slug. " +
+        "lang: \"he\" gives each in Hebrew where it is published, English where not (fallback: true).",
+      inputSchema: { tag: z.string().max(60).optional(), area: slug.optional(), lang },
       annotations: ro,
     },
-    safe(async ({ tag, area }) => json(await api.get("/api/blog/posts", { tag, collection: area }))),
+    safe(async ({ tag, area, lang }) => {
+      const res = await api.get<{ items: Record<string, unknown>[] }>("/api/blog/posts", { tag, collection: area });
+      return json(lang ? { ...res, items: res.items.map((p) => inLanguage(p, lang)) } : res);
+    }),
   );
 
   server.registerTool(
     "get_post",
     {
       title: "Get a published post",
-      description: "One published post by slug, with its markdown body. Drafts are not visible here (use admin_get_post).",
-      inputSchema: { slug },
+      description:
+        "One published post by slug, with its markdown body. Drafts are not visible here (use admin_get_post). " +
+        "lang: \"he\" gives it in Hebrew where it is published, English where not (fallback: true).",
+      inputSchema: { slug, lang },
       annotations: ro,
     },
-    safe(async ({ slug }) => json(await api.get(`/api/blog/posts/${slug}`))),
+    safe(async ({ slug, lang }) => {
+      const res = await api.get<{ post: Record<string, unknown> }>(`/api/blog/posts/${slug}`);
+      return json(lang ? { ...res, post: inLanguage(res.post, lang) } : res);
+    }),
   );
 
   server.registerTool(
@@ -368,7 +444,133 @@ export function registerTools(server: McpServer, api: PortfolioApi, access: Tool
     }),
   );
 
+  const loadTranslation = async (type: TranslationItem["type"], id: string) => {
+    const r = await api.adminGet<TranslationReport>("/api/admin/translations", { type });
+    return r.items.find((i) => i.id === id) ?? null;
+  };
+
+  server.registerTool(
+    "list_translations",
+    {
+      title: "List translations",
+      description:
+        "The Translations report: every note, area, project, story beat and site-copy section, with its Hebrew status " +
+        "(missing, stale, draft, unverified, translated) and counts. Filter by status, type and visibility. " +
+        "Units list paths only; get_translation gives the words.",
+      inputSchema: {
+        status: z.array(z.enum(TRANSLATION_STATUSES)).max(5).optional(),
+        type: z.array(translationType).max(5).optional(),
+        visibility: z.enum(["public", "private", "all"]).optional(),
+      },
+      annotations: ro,
+    },
+    safe(async ({ status, type, visibility }) => {
+      const r = await api.adminGet<TranslationReport>("/api/admin/translations", {
+        status: status?.join(","),
+        type: type?.join(","),
+        visibility,
+      });
+      return json({
+        counts: r.counts,
+        coverage: r.coverage,
+        items: r.items.map((i) => ({
+          type: i.type,
+          id: i.id,
+          title: i.title,
+          route: i.route,
+          visibility: i.visibility,
+          status: i.status,
+          units: i.units.map((u) => `${u.path}: ${u.status}`),
+        })),
+      });
+    }),
+  );
+
+  server.registerTool(
+    "get_translation",
+    {
+      title: "Get one item's translation",
+      description:
+        "One item in both languages, unit by unit: the English, the published Hebrew, the draft Hebrew and the status. " +
+        "For a note whose Hebrew body is stale, `bodyDiff` is what changed in the English body since the Hebrew was written.",
+      inputSchema: { type: translationType, id: itemId },
+      annotations: ro,
+    },
+    safe(async ({ type, id }) => {
+      const item = await loadTranslation(type, id);
+      if (!item) return fail(`No ${type} "${id}" in the translations report.`);
+      let bodyDiff: string[] | undefined;
+      if (type === "post" && item.units.some((u) => u.path === "body" && u.status === "stale")) {
+        const post = await loadPost(id);
+        const meta = (post as { heMeta?: { bodyBase?: string | null } | null } | null)?.heMeta;
+        if (post && typeof meta?.bodyBase === "string") bodyDiff = lineDiff(meta.bodyBase, post.body);
+      }
+      return json({ ...item, ...(bodyDiff !== undefined ? { bodyDiff } : {}) });
+    }),
+  );
+
+  server.registerResource(
+    "glossary",
+    GLOSSARY_URI,
+    {
+      title: "Hebrew glossary",
+      description:
+        "How the site writes Hebrew: which names stay in Latin, the preferred Hebrew term for each concept, and the " +
+        "variants never to use. Read it before put_translation.",
+      mimeType: "application/json",
+    },
+    async (uri) => {
+      const { glossary } = await api.adminGet<{ glossary: unknown }>("/api/admin/translations/glossary");
+      return { contents: [{ uri: uri.href, mimeType: "application/json", text: JSON.stringify(glossary, null, 2) }] };
+    },
+  );
+
   if (access === "read") return;
+
+  server.registerTool(
+    "put_translation",
+    {
+      title: "Write Hebrew into a draft",
+      description:
+        "Sets the Hebrew of one or more units of one item (paths from get_translation) in its DRAFT. Nothing goes live: " +
+        "the owner reviews and publishes in the admin. Areas have no draft and are refused. Returns the changes and the " +
+        "glossary warnings (read glossary://he first). An empty string removes a unit's Hebrew. dryRun defaults to true.",
+      inputSchema: {
+        type: translationType,
+        id: itemId,
+        units: z.record(z.string().min(1).max(200), z.string().max(200_000)).describe("{ path: Hebrew }"),
+        dryRun,
+      },
+      annotations: { destructiveHint: false, idempotentHint: true, openWorldHint: false },
+    },
+    safe(async ({ type, id, units, dryRun }) => {
+      if (type === "area") return fail("Areas have no draft. Edit an area's Hebrew in the admin.");
+      const list = Object.entries(units).map(([path, he]) => ({ path, he }));
+      if (list.length === 0) return fail("Give at least one unit.");
+      let rev: string;
+      if (type === "post") {
+        const post = await loadPost(id);
+        if (!post) return fail(`No post "${id}".`);
+        rev = post._rev ?? "";
+      } else {
+        const key = type === "project" ? "projects" : type;
+        rev = (await api.adminGet<{ _rev: string | null }>(`/api/admin/content/${key}`))._rev ?? "";
+      }
+      const res = await api.adminSend<{ target: string; changes: { path: string; en: string; before: string | null; after: string | null }[]; warnings: unknown[] }>(
+        "PUT",
+        "/api/admin/translations/draft",
+        { type, id, rev, units: list, dryRun },
+      );
+      const note = dryRun
+        ? res.changes.length === 0
+          ? "Dry run: nothing would change."
+          : "Dry run: nothing was written. Call again with dryRun: false to write the draft."
+        : res.changes.length === 0
+          ? "No change; nothing written."
+          : "Written to the draft. The owner publishes it from the admin.";
+      return json({ dryRun, action: "put_translation", target: res.target, changes: res.changes, warnings: res.warnings, note });
+    }),
+  );
 
   server.registerTool(
     "save_post_draft",

@@ -22,6 +22,7 @@ import {
   seedContent,
   seedFor,
 } from "../services/site-content.js";
+import { stampTexts } from "../schemas/i18n.js";
 
 /*
  * Editing the site's content (#163), under /api/admin/content.
@@ -153,7 +154,13 @@ async function prepare(req: Request, res: Response) {
     res.status(409).json(conflict);
     return null;
   }
-  return { key, data: parsed.data as unknown, existing };
+  /*
+   * Fingerprints (#303): Hebrew unchanged since the draft or the published
+   * version keeps the fingerprint it had; Hebrew written in this save gets the
+   * English beside it. So a publish of a stamped draft keeps the draft's.
+   */
+  const data = stampTexts(parsed.data as unknown, [existing?.draft, existing ? existing.published : seedFor(key)]);
+  return { key, data, existing };
 }
 
 function fresh(key: ContentKey, now: string, existing: ContentDoc | null): ContentDoc {
