@@ -33,14 +33,17 @@ cat >"$ROOT/bin/kubectl" <<'FAKE'
 #!/usr/bin/env bash
 # Fake kubectl. Logs every call, then answers from $FAKE_DIR.
 #   FAKE_FAIL      regex; a call (after `-n NS`) matching it exits 1
-#   FAKE_CANI      the answer to `auth can-i` (default yes)
+#   FAKE_CANI      the answer to `auth can-i` in $DEPLOY_NS (default yes)
+#   FAKE_CANI_OTHER  the answer to `auth can-i` in any other namespace
+#                  (default no: a per-environment token, #16)
 #   FAKE_STUCK     regex; `rollout status deploy/X` fails while X's image matches
 #   FAKE_PODS_<d>  the imageID lines X's pods report; unset, they report the
 #                  Deployment's image when that is a digest
 set -u
 F="$FAKE_DIR"
 echo "kubectl $*" >>"$F/calls"
-[ "${1-}" = -n ] && shift 2
+ns="$DEPLOY_NS"
+[ "${1-}" = -n ] && { ns="$2"; shift 2; }
 line="$*"
 if [ -n "${FAKE_FAIL:-}" ] && [[ "$line" =~ $FAKE_FAIL ]]; then
   echo "fake kubectl: refused: $line" >&2
@@ -48,8 +51,9 @@ if [ -n "${FAKE_FAIL:-}" ] && [[ "$line" =~ $FAKE_FAIL ]]; then
 fi
 case "$1" in
   auth)
-    echo "${FAKE_CANI:-yes}"
-    [ "${FAKE_CANI:-yes}" = yes ]
+    if [ "$ns" = "$DEPLOY_NS" ]; then ans="${FAKE_CANI:-yes}"; else ans="${FAKE_CANI_OTHER:-no}"; fi
+    echo "$ans"
+    [ "$ans" = yes ]
     exit ;;
   get)
     if [ "$2" = deploy ]; then
@@ -95,10 +99,9 @@ case "$1" in
     echo "deployment \"$d\" successfully rolled out"
     exit 0 ;;
   describe) echo "Events: fake"; exit 0 ;;
-  port-forward)
-    d="${2#deploy/}"; ports="$3"
-    echo "$d" >"$F/pf.${ports%%:*}"
-    echo "Forwarding from 127.0.0.1:${ports%%:*} -> ${ports#*:}"
+  proxy)
+    # proxy --address 127.0.0.1 --port <p>
+    echo "Starting to serve on 127.0.0.1:$5"
     exec sleep 30 ;;
 esac
 echo "fake kubectl: unhandled: $line" >&2
@@ -107,8 +110,9 @@ FAKE
 
 cat >"$ROOT/bin/curl" <<'FAKE'
 #!/usr/bin/env bash
-# Fake curl: answers as the pod behind the forwarded port would, from the
-# image that Deployment was last set to.
+# Fake curl: answers as the pod behind the Service the API server's proxy
+# path names would, from the image that Deployment was last set to. Only the
+# two `<svc>:<port>` names the RBAC grants exist; anything else is a 403.
 #   FAKE_BROKEN   regex on the image; the api says db down (503), web says 502
 #   FAKE_NOVER    regex on the image; it reports no version ("dev")
 #   FAKE_LEGACY   regex on the image; an api build without /health/ready
@@ -144,9 +148,15 @@ if [[ "$url" == https://* ]]; then
     exit 0
   fi
 else
-  hostport="${url#http://}"; hostport="${hostport%%/*}"; port="${hostport#*:}"
-  path="/${url#http://*/}"
-  d=$(cat "$F/pf.$port")
+  # http://127.0.0.1:<p>/api/v1/namespaces/<ns>/services/<svc:port>/proxy<path>
+  rest="${url#http://*/api/v1/namespaces/}"
+  svc="${rest#*/services/}"; svc="${svc%%/*}"
+  path="${rest#*/proxy}"
+  case "$svc" in
+    api:5000) d=api ;;
+    web:80) d=web ;;
+    *) printf '%s' '{"kind":"Status","code":403}' >"$out"; printf '%s' 403; exit 0 ;;
+  esac
 fi
 img=$(cat "$F/img.$d")
 sha="dev"
@@ -211,7 +221,7 @@ scenario() {
   printf '%s' "$BASE/api:$OLD" >"$FAKE_DIR/img.api"
   printf '%s' "main-2222222" >"$FAKE_DIR/ann.web.version"
   printf '%s' "main-2222222" >"$FAKE_DIR/ann.api.version"
-  unset FAKE_FAIL FAKE_CANI FAKE_STUCK FAKE_BROKEN FAKE_NOVER FAKE_LEGACY FAKE_HOLLOW FAKE_NOAPI FAKE_GATE FAKE_PODS_web FAKE_PODS_api
+  unset FAKE_FAIL FAKE_CANI FAKE_CANI_OTHER FAKE_STUCK FAKE_BROKEN FAKE_NOVER FAKE_LEGACY FAKE_HOLLOW FAKE_NOAPI FAKE_GATE FAKE_PODS_web FAKE_PODS_api
   export DEPLOY_STATE="$FAKE_DIR/state"
   NS=preprod; SHA="$NEW"; REF_NAME=main; WEB_IMG="$NEW_WEB"; API_IMG="$NEW_API"; ROLLBACK=""
   URL=https://preprod.site.example/; EXPECT=302; export FAKE_GATE=closed
@@ -268,11 +278,11 @@ called "set image deploy/api api=$NEW_API"
 called "annotate deploy web --overwrite app.kubernetes.io/version=main-1111111"
 ann_is api source-sha "$NEW"
 run readiness; rc_is 0
-called "port-forward deploy/api 15000:5000"
-called "port-forward deploy/web 18080:8080"
-called "curl http://127.0.0.1:15000/health/ready"
-called "curl http://127.0.0.1:18080/index.html"
-called "curl http://127.0.0.1:18080/api/blog/posts"
+called "proxy --address 127.0.0.1 --port 18001"
+not_called "port-forward"
+called "curl http://127.0.0.1:18001/api/v1/namespaces/preprod/services/api:5000/proxy/health/ready"
+called "curl http://127.0.0.1:18001/api/v1/namespaces/preprod/services/web:80/proxy/index.html"
+called "curl http://127.0.0.1:18001/api/v1/namespaces/preprod/services/web:80/proxy/api/blog/posts"
 called "get pods -l app=api -o jsonpath=.*imageID"
 said "digests: both Deployments and all their pods run the manifest's digests"
 not_called "rollout undo"
@@ -317,7 +327,7 @@ run record; rc_is 0
 run rollout; rc_is 0
 export FAKE_NOAPI="$NEW"
 run readiness; rc_not0
-called "curl http://127.0.0.1:18080/api/blog/posts"
+called "curl http://127.0.0.1:18001/api/v1/namespaces/preprod/services/web:80/proxy/api/blog/posts"
 said "/api/blog/posts through nginx answered 502"
 said "title=preprod is not ready"
 
@@ -380,7 +390,7 @@ called "set image deploy/web web=$BASE/web:$OLD"
 called "set image deploy/api api=$BASE/api:$OLD"
 after "set image deploy/api api=$BASE/api:$OLD" "rollout status deploy/web --timeout=180s"
 after "set image deploy/api api=$BASE/api:$OLD" "rollout status deploy/api --timeout=180s"
-after "rollout status deploy/api" "curl http://127.0.0.1:15000/health/ready"
+after "rollout status deploy/api" "curl http://127.0.0.1:18001/api/v1/namespaces/preprod/services/api:5000/proxy/health/ready"
 image_is web "$BASE/web:$OLD"
 image_is api "$BASE/api:$OLD"
 called "annotate deploy web --overwrite app.kubernetes.io/version=main-2222222"
@@ -433,7 +443,7 @@ calls_since_mark
 run recover; rc_is 0
 called "set image deploy/web web=$BASE/web:$OLD"
 called "set image deploy/api api=$BASE/api:$OLD"
-called "curl http://127.0.0.1:15000/health/ready"
+called "curl http://127.0.0.1:18001/api/v1/namespaces/preprod/services/api:5000/proxy/health/ready"
 said "title=Rolled back"
 
 scenario "readiness fails on version: the pods are not running this commit"
@@ -479,7 +489,7 @@ run record; rc_is 0
 FAKE_FAIL="set image deploy/api api=.*$NEW" run rollout; rc_not0
 export FAKE_LEGACY=":$OLD\$"
 run recover; rc_is 0
-called "curl http://127.0.0.1:15000/health\$"
+called "curl http://127.0.0.1:18001/api/v1/namespaces/preprod/services/api:5000/proxy/health\$"
 said "older build without /health/ready"
 
 scenario "cluster never reached: nothing recorded, nothing mutated, no recovery"
@@ -498,11 +508,29 @@ if [ -e "$DEPLOY_STATE/mutated" ]; then bad "marked mutated without a record"; e
 run recover; rc_is 0
 not_called "set image"
 
-scenario "preflight: no port-forward grant stops the deploy before any change"
+scenario "preflight: no service-proxy grant stops the deploy before any change"
 FAKE_CANI=no run preflight; rc_not0
-called "auth can-i create pods --subresource=portforward"
-said "CI cannot port-forward in preprod"
+called "auth can-i get services/api:5000 --subresource=proxy"
+said "CI cannot reach api:5000 in preprod"
 not_called "set image"
+
+scenario "preflight: a credential for this namespace only passes (#16)"
+run preflight; rc_is 0
+called "auth can-i get services/web:80 --subresource=proxy"
+called "-n prod auth can-i patch deployments/web"
+said "cannot roll out prod"
+
+scenario "preflight: a token that can also roll out the other namespace is refused (#16)"
+FAKE_CANI_OTHER=yes run preflight; rc_not0
+said "This credential can also roll out prod"
+not_called "set image"
+
+scenario "preflight in prod asks about preprod"
+NS=prod
+run preflight; rc_is 0
+called "-n preprod auth can-i patch deployments/web"
+FAKE_CANI_OTHER=yes run preflight; rc_not0
+said "This credential can also roll out preprod"
 
 scenario "record: a digest pin is kept, :latest is pinned to the running digest"
 printf '%s' "$BASE/web@sha256:aaaa" >"$FAKE_DIR/img.web"
