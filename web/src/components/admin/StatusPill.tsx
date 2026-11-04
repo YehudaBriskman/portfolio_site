@@ -27,7 +27,7 @@ export default function StatusPill({ state }: { state: SaveState }) {
     <span
       // Failures interrupt; a routine "Saved" should not.
       aria-live={isProblem ? "assertive" : "polite"}
-      className="mono flex min-h-[1.25rem] items-center gap-2 text-[0.6875rem] uppercase tracking-[0.18em]"
+      className="flex min-h-[1.25rem] items-center gap-2 text-[0.8125rem] tabular-nums"
     >
       {state.kind === "dirty" && (
         <>

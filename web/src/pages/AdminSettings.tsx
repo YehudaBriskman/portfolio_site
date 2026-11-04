@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AdminShell from "@/components/admin/AdminShell";
+import { PageHeader } from "@/components/admin/ui";
 import { issueText, useSettingsWords } from "@/components/admin/settings/words";
 import { INTL, useLang } from "@/components/dashboard/i18n";
 import { ContentConflictError, ContentInvalidError, type Issue } from "@/services/adminContent";
@@ -193,14 +194,16 @@ export default function AdminSettings() {
         </div>
       }
     >
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <h1 className="display-tight text-[1.75rem] lg:text-[2.25rem]">{w.title}</h1>
-        <div className="hidden items-center gap-3 lg:flex">
-          {statusLine}
-          {actions}
-        </div>
-      </div>
-      <p className="a-hint mt-3 max-w-prose">{w.intro}</p>
+      <PageHeader
+        title={w.title}
+        description={w.intro}
+        actions={
+          <div className="hidden items-center gap-3 lg:flex">
+            {statusLine}
+            {actions}
+          </div>
+        }
+      />
 
       {status === "unauthorised" && <p className="a-card mt-8 p-4 text-sm">{w.notAuthorised}</p>}
       {loadError && <p className="a-card mt-8 p-4 text-sm">{w.loadFailed}</p>}
