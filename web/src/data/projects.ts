@@ -1,3 +1,4 @@
+import { stateKey } from "@/content/schema";
 import type { LabelField } from "@/components/gallery/objectLabel";
 import type { Collection } from "@/services/blog";
 
@@ -147,7 +148,7 @@ export const projects: Project[] = [
        who installs it can check. */
     fact: "Every new tab becomes a dashboard",
     fields: [
-      { kind: "state", value: "In use" },
+      { kind: "state", value: "in-use" },
       { kind: "tech", value: "React 19" },
       { kind: "where", value: "Chrome Web Store" },
     ],
@@ -172,7 +173,7 @@ export const projects: Project[] = [
     github: "https://github.com/YehudaBriskman/WindoM",
     year: "2026",
     status: "Live on the Chrome Web Store",
-    state: "In use",
+    state: "in-use",
     highlights: [
       "Published on the Chrome Web Store, v1.5.1",
       "Push a version tag and it builds, zips and ships to Google with no manual step",
@@ -215,7 +216,7 @@ export const projects: Project[] = [
      */
     fact: "A console for one machine that asks Docker what is running",
     fields: [
-      { kind: "state", value: "Open source" },
+      { kind: "state", value: "open-source" },
       { kind: "tech", value: "Docker Compose" },
       { kind: "when", value: "2026" },
     ],
@@ -230,7 +231,7 @@ export const projects: Project[] = [
     github: "https://github.com/YehudaBriskman/Bothy",
     year: "2026",
     status: "Open source, self-hosted",
-    state: "Open source",
+    state: "open-source",
     highlights: [
       "Every card is discovered, never configured",
       "Each PR bootstraps the whole stack from empty and runs every suite",
@@ -271,7 +272,7 @@ export const projects: Project[] = [
        "Archive" is the state the table already has for earlier work. */
     fact: "Lesson pages built while learning React and Node",
     fields: [
-      { kind: "state", value: "Archive" },
+      { kind: "state", value: "archive" },
       { kind: "tech", value: "React" },
       { kind: "when", value: "2025" },
     ],
@@ -286,7 +287,7 @@ export const projects: Project[] = [
     link: "https://programing-with-yehuda.netlify.app/",
     year: "2025",
     status: "Learning project",
-    state: "Archive",
+    state: "archive",
     highlights: [],
     order: 50,
   },
@@ -298,7 +299,7 @@ export const projects: Project[] = [
        a "Live" chip: a product claim for something built to learn the stack. */
     fact: "A car-listing web app, built while learning React and Node",
     fields: [
-      { kind: "state", value: "Archive" },
+      { kind: "state", value: "archive" },
       { kind: "tech", value: "React" },
       { kind: "when", value: "2025" },
     ],
@@ -312,7 +313,7 @@ export const projects: Project[] = [
     link: "https://icaros.netlify.app/",
     year: "2025",
     status: "Learning project",
-    state: "Archive",
+    state: "archive",
     highlights: [],
     order: 51,
   },
@@ -356,5 +357,5 @@ export const seedProjects: Project[] = projects;
  * a live count at all (2026-11-03).
  */
 export function isLive(p: Project): boolean {
-  return typeof p.link === "string" && p.link.length > 0 && p.state !== "Archive";
+  return typeof p.link === "string" && p.link.length > 0 && stateKey(p.state) !== "archive";
 }

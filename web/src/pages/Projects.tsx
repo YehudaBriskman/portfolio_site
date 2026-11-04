@@ -111,6 +111,7 @@ export default function Projects() {
     label: t.facet[f],
     options: optionsFor(items, f, filters),
     noTranslate: f === "stack",
+    ...(f === "state" ? { labelOf: (v: string) => stateWord(v, lang) } : {}),
   }));
   const sort = readSort(params);
 

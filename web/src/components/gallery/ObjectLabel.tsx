@@ -1,3 +1,4 @@
+import { stateWord } from "@/components/work/words";
 import { Fragment, type CSSProperties, type ReactNode } from "react";
 import { orderFields, type ObjectLabelData } from "@/components/gallery/objectLabel";
 import styles from "@/components/gallery/ObjectLabel.module.css";
@@ -191,7 +192,7 @@ export default function ObjectLabel({
                 isolation has to survive the stylesheet not loading, and a
                 screen reader's text is unchanged by it.
               */}
-              <bdi>{f.value}</bdi>
+              <bdi>{f.kind === "state" ? stateWord(f.value, lang) : f.value}</bdi>
             </li>
           ))}
         </ul>

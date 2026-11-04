@@ -64,6 +64,12 @@ function compare(a: ActivityEvent, b: ActivityEvent): number {
   return a.id < b.id ? 1 : a.id > b.id ? -1 : 0;
 }
 
+function postHebrew(p: Post): { title: string | null; excerpt: string | null } | null {
+  const title = p.he?.title?.trim() || null;
+  const excerpt = p.he?.excerpt?.trim() || null;
+  return title || excerpt ? { title, excerpt } : null;
+}
+
 export function buildEvents(snap: Snapshot): ActivityEvent[] {
   const publicAreas = snap.collections.filter(isPublicArea);
   const hidden = new Set(snap.collections.filter((c) => !isPublicArea(c)).map((c) => c.slug));
@@ -90,6 +96,8 @@ export function buildEvents(snap: Snapshot): ActivityEvent[] {
         tags: p.tags ?? [],
         readingMinutes: p.readingMinutes,
         featured: p.featured ?? null,
+        /* The published Hebrew title and lede, for a Hebrew page (#306). */
+        he: postHebrew(p),
       },
     });
   }
@@ -137,9 +145,10 @@ export function buildEvents(snap: Snapshot): ActivityEvent[] {
         kind: "push",
         at: pushed,
         area,
+        /* English for API readers; the site words it from meta.repo (#306). */
         title: `Pushed to ${c.repo?.name ?? c.title}`,
         href: repoUrl,
-        meta: { repoUrl },
+        meta: { repoUrl, repo: c.repo?.name ?? c.title },
       });
     }
   }
