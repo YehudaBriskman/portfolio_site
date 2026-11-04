@@ -10,8 +10,10 @@ import {
   renderShellWithMeta,
   routePreloadLinks,
   robotsStance,
+  verificationTags,
   type PageMeta,
 } from "./seo.js";
+import { env } from "../env.js";
 import type { Collection, Post } from "../schemas/content.js";
 
 const post = (over: Partial<Post> = {}): Post =>
@@ -192,6 +194,29 @@ describe("robotsStance", () => {
   it("lets ROBOTS_POLICY override the derivation in both directions", () => {
     expect(robotsStance("https://preprod.yehudabriskman.com", "open")).toBe("open");
     expect(robotsStance("https://yehudabriskman.com", "closed")).toBe("closed");
+  });
+});
+
+describe("search console verification (#308)", () => {
+  it("writes a tag for each token that is set, and none otherwise", () => {
+    expect(verificationTags({})).toEqual([]);
+    expect(verificationTags({ GOOGLE_SITE_VERIFICATION: "abc_DEF-123456" })).toEqual([
+      '<meta name="google-site-verification" content="abc_DEF-123456" />',
+    ]);
+    expect(verificationTags({ BING_SITE_VERIFICATION: "0123456789ABCDEF" })).toEqual([
+      '<meta name="msvalidate.01" content="0123456789ABCDEF" />',
+    ]);
+  });
+
+  it("puts them in the served head", () => {
+    const e = env as { GOOGLE_SITE_VERIFICATION?: string };
+    const before = e.GOOGLE_SITE_VERIFICATION;
+    e.GOOGLE_SITE_VERIFICATION = "abc_DEF-123456";
+    try {
+      expect(renderShellWithMeta(SHELL, meta())).toContain('<meta name="google-site-verification" content="abc_DEF-123456" />');
+    } finally {
+      e.GOOGLE_SITE_VERIFICATION = before;
+    }
   });
 });
 
