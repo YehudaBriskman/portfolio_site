@@ -129,18 +129,16 @@ export default function AdminSiteCopy() {
               path="footer.work"
               legend="Work links"
               items={c.footer.work}
-              name={(w) => w.label || "New link"}
-              make={() => ({ label: "", url: "", note: { en: "" } })}
+              name={(w) => w.label.en || "New link"}
+              make={() => ({ label: { en: "" }, url: "", note: { en: "" } })}
               max={6}
               addLabel="Add a link"
               onChange={(next) => e((d) => void (d.footer.work = next))}
             >
               {(w, i) => (
                 <>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <PlainField id={`site-footer-work-${i}-label`} path={`footer.work.${i}.label`} label="Label" value={w.label} onChange={(v) => e((d) => void (d.footer.work[i].label = v))} />
-                    <PlainField id={`site-footer-work-${i}-url`} path={`footer.work.${i}.url`} label="URL" type="url" mono dir="ltr" value={w.url} onChange={(v) => e((d) => void (d.footer.work[i].url = v))} />
-                  </div>
+                  <TextField id={`site-footer-work-${i}-label`} path={`footer.work.${i}.label`} label="Label" value={w.label} onChange={(t) => e((d) => void (d.footer.work[i].label = req(t)))} />
+                  <PlainField id={`site-footer-work-${i}-url`} path={`footer.work.${i}.url`} label="URL" type="url" mono dir="ltr" value={w.url} onChange={(v) => e((d) => void (d.footer.work[i].url = v))} />
                   <TextField id={`site-footer-work-${i}-note`} path={`footer.work.${i}.note`} label="Note" value={w.note} onChange={(t) => e((d) => void (d.footer.work[i].note = req(t)))} />
                 </>
               )}

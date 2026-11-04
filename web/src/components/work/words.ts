@@ -1,3 +1,4 @@
+import { stateKey } from "@/content/schema";
 import { useLang, type Lang } from "@/components/dashboard/i18n";
 
 /*
@@ -140,13 +141,32 @@ export const WORK_WORDS: Record<Lang, WorkWords> = { en: EN, he: HE };
  * already on the card's facts row and a datum is said once. Anything else is
  * printed as written.
  */
+/*
+ * The state chip's word, by key (#306: the store holds `in-use`, not "In
+ * use"). A label saved before #306 is read as its key; a release tag reads
+ * as "Released"; anything else is printed as written.
+ */
 const STATE_WORDS: Record<Lang, Record<string, string>> = {
-  en: { released: "Released" },
-  he: { live: "פעיל", "in use": "בשימוש", archive: "ארכיון", "open source": "קוד פתוח", released: "פורסם" },
+  en: {
+    live: "Live",
+    "in-use": "In use",
+    "open-source": "Open source",
+    "in-progress": "In progress",
+    released: "Released",
+    archive: "Archive",
+  },
+  he: {
+    live: "פעיל",
+    "in-use": "בשימוש",
+    "open-source": "קוד פתוח",
+    "in-progress": "בעבודה",
+    released: "פורסם",
+    archive: "ארכיון",
+  },
 };
 
 export function stateWord(state: string, lang: Lang): string {
-  const key = /^v\d/i.test(state) ? "released" : state.toLowerCase();
+  const key = /^v\d/i.test(state) ? "released" : stateKey(state);
   return STATE_WORDS[lang][key] ?? state;
 }
 

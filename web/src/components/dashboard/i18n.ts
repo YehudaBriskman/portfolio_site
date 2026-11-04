@@ -148,6 +148,8 @@ const EN = {
   timeline: "Latest on the site",
   channelLog: "View full channel log",
   noEvents: "Nothing has happened on the site yet.",
+  /** A push event's sentence, built here from the repository's name (#306). */
+  pushedTo: (repo: string) => `Pushed to ${repo}`,
   eventsFailed: "The activity couldn’t be loaded.",
   retry: "Try again",
   notesFailedTitle: "The notes couldn’t be loaded.",
@@ -208,6 +210,7 @@ const HE: Words = {
   timeline: "חדש באתר",
   channelLog: "יומן הפעילות המלא",
   noEvents: "עוד לא קרה כלום באתר.",
+  pushedTo: (repo: string) => `עדכוני קוד ב־${repo}`,
   eventsFailed: "לא ניתן לטעון את הפעילות.",
   retry: "ניסיון חוזר",
   notesFailedTitle: "לא ניתן לטעון את הרשימות.",

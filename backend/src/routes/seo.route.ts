@@ -220,7 +220,7 @@ function homeHtml(c: ContentBundle, lang: Lang, settings: SiteSettings): string 
   const s = c.siteCopy;
   const para = (lines: Text[]) => `<p>${lines.map((l) => tx(l, lang)).join(" ")}</p>`;
   const work = s.footer.work
-    .map((w) => `<li><a href="${escapeHtml(w.url)}">${en(w.label, lang)}, ${tx(w.note, lang)}</a></li>`)
+    .map((w) => `<li><a href="${escapeHtml(w.url)}">${tx(w.label, lang)}, ${tx(w.note, lang)}</a></li>`)
     .join("");
   const profiles = s.profiles
     .map((p) => `<li><a href="${escapeHtml(p.url)}">${en(p.label, lang)}</a></li>`)
