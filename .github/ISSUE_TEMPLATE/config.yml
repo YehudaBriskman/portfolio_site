@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: The live site
+    url: https://yehudabriskman.com
+    about: The site this repository builds, with its contact form.
+  - name: Notes on how the site is built
+    url: https://yehudabriskman.com/blog/area/site
+    about: Write-ups of the decisions behind this repository.
+  - name: Report a security vulnerability
+    url: https://github.com/YehudaBriskman/portfolio_site/security/advisories/new
+    about: Privately, through a GitHub security advisory. Never in a public issue.

@@ -1,0 +1,31 @@
+Content notice: all rights reserved
+
+The source code in this repository is licensed under the MIT License (see
+LICENSE). The MIT License does NOT cover the site's content.
+
+Copyright (c) 2025 Yehuda Briskman. All rights reserved.
+
+"Content" means the words and pictures that make up the site, as opposed to
+the code that renders them. It includes, wherever it appears in this
+repository:
+
+  - photographs and portraits of the author;
+  - notes, blog posts and areas, including the drafts in backend/content/;
+  - the story, the site copy and the project write-ups, including the text
+    in web/src/data/ (story.ts, projects.ts, site.ts, identity.ts) and the
+    fixture and seed text in backend/src/content/;
+  - images, screenshots and social cards in web/public/ (img/, projects/,
+    og*.png) and the app icons and favicons there;
+  - screenshots and images under docs/, including docs/readme/.
+
+You may link to the live site and quote short excerpts with attribution, as
+fair use allows. You may not republish, redistribute or reuse the content, or
+use the author's name or likeness, without written permission.
+
+Third-party material keeps its own licence. The font files in web/public/fonts/
+are open-source fonts distributed under their authors' licences (the SIL Open
+Font License for the families used here); they are neither MIT-licensed by this
+repository nor covered by the reservation above.
+
+If you fork this repository to build your own site, keep the code and replace
+the content with your own.
