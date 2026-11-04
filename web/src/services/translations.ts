@@ -106,10 +106,9 @@ export function useTranslationStatus(): (type: TranslationType, id: string) => T
 }
 
 /** What the nav badge counts: public units a Hebrew reader sees in English, or old Hebrew. */
+/** The nav badge: public items with any field whose Hebrew is missing or stale. */
 export function toDo(report: TranslationReport): number {
-  let n = 0;
-  for (const i of report.items) if (i.visibility === "public") for (const u of i.units) if (u.status === "missing" || u.status === "stale") n += 1;
-  return n;
+  return report.items.filter((i) => i.visibility === "public" && i.units.some((u) => u.status === "missing" || u.status === "stale")).length;
 }
 
 /** The tab a unit counts under: unverified Hebrew is published Hebrew, so it is done. */
