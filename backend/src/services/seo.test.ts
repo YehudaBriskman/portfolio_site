@@ -88,14 +88,22 @@ describe("buildSitemap", () => {
     expect(xml).toContain("<loc>https://yehudabriskman.com/projects/bothy</loc>");
   });
 
-  it("lists the seeded project pages, which exist with or without a database row", () => {
-    const xml = buildSitemap([], []);
+  it("lists the content store's project pages, which exist with or without a database row", () => {
+    const xml = buildSitemap([], [], { projects: ["windom", "icaros"] });
     expect(xml).toContain("<loc>https://yehudabriskman.com/projects/windom</loc>");
-    expect(xml).toContain("<loc>https://yehudabriskman.com/projects/bothy</loc>");
+    expect(xml).toContain("<loc>https://yehudabriskman.com/projects/icaros</loc>");
+  });
+
+  it("lists every static page, and every published collection as an area (#308)", () => {
+    const xml = buildSitemap([], [collection({ slug: "windom", title: "WindoM" })]);
+    for (const p of ["/story", "/accessibility", "/blog/log", "/developers/mcp", "/blog/area/windom"]) {
+      expect(xml).toContain(`<loc>https://yehudabriskman.com${p}</loc>`);
+      expect(xml).toContain(`<loc>https://yehudabriskman.com/he${p}</loc>`);
+    }
   });
 
   it("does not list a project twice once it has a real collection", () => {
-    const xml = buildSitemap([], [collection({ slug: "windom", title: "WindoM" })]);
+    const xml = buildSitemap([], [collection({ slug: "windom", title: "WindoM" })], { projects: ["windom"] });
     // Once per language (#248): the English address and its Hebrew twin.
     expect(xml.match(/<loc>[^<]*\/projects\/windom<\/loc>/g) ?? []).toHaveLength(2);
     expect(xml.match(/<loc>[^<]*\/he\/projects\/windom<\/loc>/g) ?? []).toHaveLength(1);

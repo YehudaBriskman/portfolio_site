@@ -1,0 +1,7 @@
+# Findings the secret scan may skip, one gitleaks fingerprint per line.
+# Only a proven false positive belongs here, with the reason above it.
+
+# An IndexNow test fixture, "0123456789abcdef" twice, in a commit of #316 that
+# cannot be rewritten (force-push is blocked). The literal is gone from the
+# next commit on, and this commit is squashed away when the PR merges.
+5125b0b4d4dd0293b826085c45056563edd96cf6:backend/src/services/indexnow.test.ts:generic-api-key:7
