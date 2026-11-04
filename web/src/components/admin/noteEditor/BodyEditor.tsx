@@ -280,15 +280,7 @@ export default function BodyEditor({ id, value, onChange, lang, targets, words, 
 
   return (
     <div>
-      <div className="-mt-2 mb-2 flex justify-end">
-        <MediaPicker
-          value=""
-          onChange={() => undefined}
-          onPickItem={insertPicked}
-          label={words.tools.image}
-          showCurrent={false}
-        />
-      </div>
+      {/* One strip, as GitHub's: the formatting tools, then the library (#288). */}
       <div className={styles.bar}>
         <div
           role="toolbar"
@@ -319,6 +311,15 @@ export default function BodyEditor({ id, value, onChange, lang, targets, words, 
               </button>
             );
           })}
+        </div>
+        <div className={styles.barEnd}>
+          <MediaPicker
+            value=""
+            onChange={() => undefined}
+            onPickItem={insertPicked}
+            label={words.tools.image}
+            showCurrent={false}
+          />
         </div>
       </div>
 

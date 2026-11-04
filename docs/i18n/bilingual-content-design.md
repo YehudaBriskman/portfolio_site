@@ -161,6 +161,13 @@ export const PostHebrewSchema = z.object({
 // Areas: CollectionHebrewSchema gains `src` the same way (no bodyBase: fields are short).
 ```
 
+> **As built (#303):** `src` and `bodyBase` live in a sibling `heMeta: { src, bodyBase }`
+> beside `he` (on the note, on `draft`, and on the area), not inside the `he`
+> block. Every existing reader of `he` (the public API, the server render, the
+> MCP tools) iterates its fields as words; a sibling keeps them seeing only
+> words, and keeps a block with no Hebrew from looking non-empty because it
+> holds a `bodyBase`.
+
 Why each piece:
 - **`heSrc`/`src` (fingerprint), not a version number.** The English has no
   version counter today, and a counter goes stale on a whitespace-only save. A
@@ -534,6 +541,15 @@ word table, the pattern `SETTINGS_ISSUES` already uses in `site-settings.ts`.
 
 The glossary (category rules + the term table) is exposed as an MCP resource
 (`glossary://he`) so a client drafting Hebrew can read it.
+
+> **As built (#307):** `put_translation` writes through a new
+> `PUT /api/admin/translations/draft` `{ type, id, rev?, units: [{ path, he }], dryRun }`
+> (dry run by default), which finds each unit server-side, stamps it like an
+> admin save and returns the glossary lint as `warnings`. Areas have no draft,
+> so it refuses them. `save_post_draft`/`save_area` did not gain `he`:
+> `put_translation` is the one way an MCP client writes Hebrew. The backend
+> carries a checked copy of the glossary (`backend/src/i18n/`) for the lint
+> and for `GET /api/admin/translations/glossary`, which backs the resource.
 
 ## 9. Operations
 

@@ -13,8 +13,9 @@ import type { Collection, Post } from "./content.js";
  * THE FINGERPRINT
  * ---------------
  * When Hebrew is saved, the server records a fingerprint of the English it was
- * written against (`heSrc` on a `Text` field, `he.src.<field>` on a note or an
- * area). When the English later changes, its fingerprint no longer matches and
+ * written against (`heSrc` on a `Text` field, `heMeta.src.<field>` beside a
+ * note's or an area's `he` block). When the English later changes, its
+ * fingerprint no longer matches and
  * the Hebrew reads as stale. The fingerprint is a hash of the normalised text,
  * not a version counter: the English has no counter, and a whitespace-only save
  * must not flag anything. Normalisation is NFC plus collapsed whitespace, no
@@ -118,6 +119,19 @@ function unit(path: string, primary: boolean, en: string, he: string | null | un
 
 type HebrewSrc = Partial<Record<string, string>>;
 
+/*
+ * What the server keeps beside a note's or an area's `he` block (#303), as a
+ * sibling `heMeta` rather than inside the block, so every reader of `he`
+ * (the public API, the server render, the MCP tools) keeps seeing only words:
+ *
+ *   src       per field, the fingerprint of the English the Hebrew was written against
+ *   bodyBase  a note's English body the Hebrew body was written against, for
+ *             the editor's "what changed in English since" view
+ *
+ * A note's draft carries its own `heMeta` beside `draft.he`.
+ */
+export type HebrewMeta = { src: HebrewSrc; bodyBase?: string | null };
+
 /** The note's Hebrew fields, which are its translation units. */
 export const POST_FIELDS = [
   { field: "title", primary: true },
@@ -135,7 +149,8 @@ export const POST_FIELDS = [
  */
 export function postTranslation(post: Post): { units: TranslationUnit[]; status: TranslationStatus | null } {
   const live = post.status === "published";
-  const he = (post.he ?? null) as (Record<string, unknown> & { src?: HebrewSrc }) | null;
+  const he = (post.he ?? null) as Record<string, unknown> | null;
+  const src = ((post as { heMeta?: HebrewMeta | null }).heMeta?.src ?? {}) as HebrewSrc;
   const draft = post.draft ?? null;
   const draftHe = (draft?.he ?? null) as Record<string, unknown> | null;
   const units: TranslationUnit[] = [];
@@ -144,7 +159,7 @@ export function postTranslation(post: Post): { units: TranslationUnit[]; status:
     if (!filled(en)) continue;
     const pub = live ? (he?.[field] as string | undefined) : null;
     const pending = live ? (draftHe?.[field] as string | undefined) : (he?.[field] as string | undefined) ?? (draftHe?.[field] as string | undefined);
-    units.push(unit(field, primary, en, pub, he?.src?.[field], pending));
+    units.push(unit(field, primary, en, pub, src[field], pending));
   }
   return { units, status: itemStatus(units) };
 }
@@ -158,12 +173,13 @@ export const COLLECTION_FIELDS = [
 ] as const;
 
 export function collectionTranslation(c: Collection): { units: TranslationUnit[]; status: TranslationStatus | null } {
-  const he = (c.he ?? null) as (Record<string, unknown> & { src?: HebrewSrc }) | null;
+  const he = (c.he ?? null) as Record<string, unknown> | null;
+  const src = ((c as { heMeta?: HebrewMeta | null }).heMeta?.src ?? {}) as HebrewSrc;
   const units: TranslationUnit[] = [];
   for (const { field, primary } of COLLECTION_FIELDS) {
     const en = (c as Record<string, unknown>)[field];
     if (!filled(en)) continue;
-    units.push(unit(field, primary, en, he?.[field] as string | undefined, he?.src?.[field], null));
+    units.push(unit(field, primary, en, he?.[field] as string | undefined, src[field], null));
   }
   return { units, status: itemStatus(units) };
 }
@@ -241,4 +257,121 @@ export function coverage(counts: TranslationCounts): number {
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
   if (!total) return 100;
   return Math.round(((counts.translated + counts.unverified + counts.stale) / total) * 100);
+}
+
+/* -------------------------------------------------------------- stamping */
+
+/*
+ * The server stamps fingerprints on save (#303); a fingerprint the client
+ * sends is never trusted. For each unit whose Hebrew is filled:
+ *
+ *   - if an earlier version (the draft, then the published) holds the same
+ *     Hebrew at the same place, its fingerprint is kept: the Hebrew did not
+ *     change, so it still translates whatever English it was written against,
+ *     and an English edit since then is exactly what makes it stale;
+ *   - otherwise the Hebrew is new in this save, written against the English
+ *     beside it, and gets that English's fingerprint.
+ *
+ * A unit with no Hebrew carries no fingerprint. Hebrew is compared trimmed,
+ * so a trailing space does not restamp. Hebrew that matches an earlier version
+ * with no fingerprint (written before #303) keeps none, and stays unverified
+ * until the backfill or an acknowledgement stamps it.
+ */
+
+const sameHebrew = (a: unknown, b: unknown) => filled(a) && filled(b) && a.trim() === b.trim();
+
+/** An array element's identity: its slug or id when it has one, else its index. */
+function elementKey(el: unknown, i: number): string {
+  if (el && typeof el === "object") {
+    const o = el as Record<string, unknown>;
+    if (typeof o.slug === "string") return `[${o.slug}]`;
+    if (typeof o.id === "string") return `[${o.id}]`;
+  }
+  return String(i);
+}
+
+type StoredText = { en: string; he?: string; heSrc?: string };
+
+/** Every `Text`, by a path that follows slugs and ids rather than array positions. */
+function keyedTexts(value: unknown, path = "", out = new Map<string, StoredText>()) {
+  if (isText(value)) out.set(path, value);
+  else if (Array.isArray(value)) value.forEach((v, i) => keyedTexts(v, `${path}.${elementKey(v, i)}`, out));
+  else if (value && typeof value === "object") for (const [k, v] of Object.entries(value)) keyedTexts(v, `${path}.${k}`, out);
+  return out;
+}
+
+/**
+ * `next` with every `Text`'s `heSrc` set by the rule above, against the
+ * earlier versions in `prevs` (most recent first). Returns a copy.
+ */
+export function stampTexts<T>(next: T, prevs: unknown[]): T {
+  const earlier = prevs.map((p) => keyedTexts(p));
+  const out = structuredClone(next);
+  const walk = (value: unknown, path: string) => {
+    if (isText(value)) {
+      const t = value as StoredText;
+      if (!filled(t.he)) {
+        delete t.heSrc;
+        return;
+      }
+      const match = earlier.map((m) => m.get(path)).find((p) => p && sameHebrew(p.he, t.he));
+      if (!match) t.heSrc = fp(t.en);
+      else if (match.heSrc) t.heSrc = match.heSrc;
+      else delete t.heSrc;
+      return;
+    }
+    if (Array.isArray(value)) value.forEach((v, i) => walk(v, `${path}.${elementKey(v, i)}`));
+    else if (value && typeof value === "object") for (const [k, v] of Object.entries(value)) walk(v, `${path}.${k}`);
+  };
+  walk(out, "");
+  return out;
+}
+
+/** A note's or area's Hebrew block, read loosely. */
+type HebrewWords = Record<string, unknown> | null | undefined;
+
+/**
+ * The `heMeta` for a note's or area's `he` block, stamped by the same rule
+ * field by field. `en` is the English beside the block in this save; `prevs`
+ * the earlier versions (block and meta), most recent first. Null when there is
+ * no Hebrew at all.
+ */
+export function stampHebrewMeta(
+  he: HebrewWords,
+  en: Record<string, unknown>,
+  prevs: { he: HebrewWords; meta: HebrewMeta | null | undefined }[],
+  fields: readonly string[],
+): HebrewMeta | null {
+  if (!he || !fields.some((f) => filled(he[f]))) return null;
+  const src: HebrewSrc = {};
+  let bodyBase: string | null = null;
+  for (const field of fields) {
+    const value = he[field];
+    if (!filled(value)) continue;
+    const match = prevs.find((p) => p.he && sameHebrew(p.he[field], value));
+    if (match) {
+      const kept = match.meta?.src?.[field];
+      if (kept) src[field] = kept;
+      if (field === "body" && typeof match.meta?.bodyBase === "string") bodyBase = match.meta.bodyBase;
+    } else if (filled(en[field])) {
+      src[field] = fp(en[field] as string);
+      if (field === "body") bodyBase = en.body as string;
+    }
+  }
+  return fields.includes("body") ? { src, bodyBase } : { src };
+}
+
+/* ------------------------------------------------------ public isolation */
+
+/** A value with every `heSrc` removed: fingerprints are the admin's, not the reader's. */
+export function withoutFingerprints<T>(value: T): T {
+  if (isText(value)) {
+    const { heSrc: _drop, ...rest } = value as StoredText;
+    return rest as T;
+  }
+  if (Array.isArray(value)) return value.map(withoutFingerprints) as T;
+  if (value && typeof value === "object") {
+    return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, withoutFingerprints(v)])) as T;
+  }
+  return value;
 }
