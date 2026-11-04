@@ -1,0 +1,47 @@
+name: Bug report
+description: Something on the site or in the code is broken or wrong.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. **Security problems go through private reporting, not here:** see the security policy.
+  - type: input
+    id: where
+    attributes:
+      label: Where
+      description: The page URL, or the file and line.
+      placeholder: https://yehudabriskman.com/blog/...
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what you expected
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open ...
+        2. Click ...
+  - type: dropdown
+    id: language
+    attributes:
+      label: Language
+      options:
+        - English (/)
+        - Hebrew (/he)
+        - Both
+        - Not relevant
+  - type: input
+    id: browser
+    attributes:
+      label: Browser, device and colour scheme
+      placeholder: Firefox 140 on Android, dark mode
+  - type: textarea
+    id: extra
+    attributes:
+      label: Screenshots or anything else
