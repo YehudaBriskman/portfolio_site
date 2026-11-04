@@ -351,3 +351,105 @@ describe("media library tools", () => {
     expect([...form.keys()]).toEqual(["file", "poster", "captions"]);
   });
 });
+
+describe("translation tools (#307)", () => {
+  const REPORT = {
+    ok: true,
+    counts: { missing: 1, stale: 1, draft: 0, unverified: 0, translated: 1 },
+    coverage: 0.33,
+    items: [
+      {
+        type: "post",
+        id: "hello",
+        title: "Hello",
+        route: "/notes/hello",
+        rank: 100,
+        visibility: "public",
+        status: "stale",
+        units: [
+          { path: "title", status: "translated", primary: true, en: "Hello", he: "שלום", draftHe: null },
+          { path: "body", status: "stale", primary: true, en: "line one\nline 2\nline three", he: "שורה", draftHe: null },
+          { path: "excerpt", status: "missing", primary: true, en: "e", he: null, draftHe: null },
+        ],
+      },
+    ],
+  };
+  const STALE_POST = { ...POST, status: "published", body: "line one\nline 2\nline three", heMeta: { src: {}, bodyBase: POST.body } };
+  const DRAFT_RESULT = {
+    ok: true,
+    dryRun: true,
+    target: "post:hello",
+    changes: [{ path: "excerpt", en: "e", before: null, after: "בGitHub" }],
+    warnings: [{ path: "excerpt", rule: "prefix-glued", match: "בGitHub", use: "ב־GitHub" }],
+  };
+  const routes = () =>
+    adminRoutes({
+      "GET /api/admin/translations": [200, REPORT],
+      "GET /api/admin/posts/hello": [200, { ok: true, post: STALE_POST }],
+      "PUT /api/admin/translations/draft": [200, DRAFT_RESULT],
+      "GET /api/admin/content/projects": [200, { ok: true, _rev: "7-p", published: {}, draft: null }],
+      "GET /api/admin/translations/glossary": [200, { ok: true, glossary: { version: 1, terms: [] } }],
+      "GET /api/blog/posts/hello": [
+        200,
+        { ok: true, post: { slug: "hello", title: "Hello", subtitle: null, excerpt: "e", body: "b", he: { title: "שלום", subtitle: "", excerpt: "", body: "" } } },
+      ],
+      "GET /api/blog/posts": [200, { ok: true, items: [{ slug: "hello", title: "Hello", excerpt: "e", he: null }] }],
+    });
+
+  it("list_translations passes the filters and lists units by path", async () => {
+    const { call, api } = await connect(TOKEN, routes());
+    const r = await call("list_translations", { status: ["missing", "stale"], type: ["post"] });
+    expect(api.calls[0].path).toBe("/api/admin/translations?status=missing%2Cstale&type=post");
+    expect(r.json.items[0]).toMatchObject({ id: "hello", status: "stale", units: ["title: translated", "body: stale", "excerpt: missing"] });
+  });
+
+  it("get_translation gives both languages, and the English body's diff since the Hebrew", async () => {
+    const { call } = await connect(TOKEN, routes());
+    const r = await call("get_translation", { type: "post", id: "hello" });
+    expect(r.json.units[0]).toMatchObject({ path: "title", en: "Hello", he: "שלום" });
+    expect(r.json.bodyDiff).toEqual(["  line one", "- line two", "+ line 2", "  line three"]);
+    expect((await call("get_translation", { type: "post", id: "nope" })).isError).toBe(true);
+  });
+
+  it("put_translation is a dry run by default, with the revision it read and the glossary warnings", async () => {
+    const { call, api } = await connect(TOKEN, routes());
+    const r = await call("put_translation", { type: "post", id: "hello", units: { excerpt: "בGitHub" } });
+    expect(r.json).toMatchObject({ dryRun: true, target: "post:hello", warnings: [{ rule: "prefix-glued" }] });
+    expect(r.json.note).toMatch(/nothing was written/);
+    expect(api.writes()[0]).toMatchObject({
+      method: "PUT",
+      path: "/api/admin/translations/draft",
+      body: { type: "post", id: "hello", rev: "3-abc", units: [{ path: "excerpt", he: "בGitHub" }], dryRun: true },
+    });
+  });
+
+  it("put_translation reads a content document's revision, and refuses an area", async () => {
+    const { call, api } = await connect(TOKEN, routes());
+    await call("put_translation", { type: "project", id: "windom", units: { fact: "עובדה" }, dryRun: false });
+    expect(api.writes()[0].body).toMatchObject({ type: "project", rev: "7-p", dryRun: false });
+    const area = await call("put_translation", { type: "area", id: "tools", units: { title: "כלים" } });
+    expect(area.isError).toBe(true);
+    expect(api.writes()).toHaveLength(1);
+  });
+
+  it("serves the glossary as glossary://he, to admin sessions only", async () => {
+    const { client } = await connect(TOKEN, routes());
+    const { resources } = await client.listResources();
+    expect(resources.map((r) => r.uri)).toEqual(["glossary://he"]);
+    const read = await client.readResource({ uri: "glossary://he" });
+    expect(JSON.parse((read.contents[0] as { text: string }).text)).toEqual({ version: 1, terms: [] });
+    const pub = await connect(null, routes());
+    await expect(pub.client.listResources()).rejects.toThrow();
+  });
+
+  it("get_post and list_posts read in Hebrew with lang: he, falling back to English per field", async () => {
+    const { call } = await connect(null, routes());
+    const one = await call("get_post", { slug: "hello", lang: "he" });
+    expect(one.json.post).toMatchObject({ title: "שלום", excerpt: "e", body: "b", lang: "he", fallback: true, englishFields: ["excerpt", "body"] });
+    expect(one.json.post.he).toBeUndefined();
+    const en = await call("get_post", { slug: "hello" });
+    expect(en.json.post.he.title).toBe("שלום");
+    const list = await call("list_posts", { lang: "he" });
+    expect(list.json.items[0]).toMatchObject({ title: "Hello", fallback: true });
+  });
+});

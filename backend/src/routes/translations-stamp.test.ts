@@ -323,3 +323,58 @@ describe("the backfill (#303)", () => {
     expect(backfillDoc({ _id: "settings", type: "settings" })).toBeNull();
   });
 });
+
+describe("PUT /api/admin/translations/draft (#307)", () => {
+  const draftPut = (body: Record<string, unknown>) => asAdmin(request(app()).put("/api/admin/translations/draft")).send(body);
+
+  it("is a dry run by default: the changes and the glossary warnings, nothing written", async () => {
+    await publish("a-note", content({ he: HE }));
+    const before = structuredClone(store.get("post:a-note"));
+    const res = await draftPut({ type: "post", id: "a-note", units: [{ path: "excerpt", he: "פתיח בGitHub" }] });
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({
+      dryRun: true,
+      target: "post:a-note",
+      changes: [{ path: "excerpt", en: "The lede.", before: "הפתיח.", after: "פתיח בGitHub" }],
+      warnings: [{ path: "excerpt", rule: "prefix-glued", match: "בGitHub", use: "ב־GitHub" }],
+    });
+    expect(store.get("post:a-note")).toEqual(before);
+  });
+
+  it("writes a published note's Hebrew into its draft, stamped, and leaves what is live alone", async () => {
+    await publish("a-note", content({ he: HE }));
+    const rev = store.get("post:a-note")!._rev;
+    const res = await draftPut({ type: "post", id: "a-note", rev, units: [{ path: "title", he: "רשימה חדשה" }], dryRun: false });
+    expect(res.status).toBe(200);
+    expect(res.body.rev).toBe(store.get("post:a-note")!._rev);
+    const doc = store.get("post:a-note")! as Record<string, any>;
+    expect(doc.he.title).toBe("רשימה");
+    expect(doc.draft.he).toMatchObject({ title: "רשימה חדשה", body: "הגוף." });
+    expect(doc.draft.heMeta.src).toMatchObject({ title: fp("A note"), body: fp("The body.") });
+    expect((await statusOf("post", "a-note")).units.find((u) => u.path === "title")).toMatchObject({ status: "translated", draftHe: "רשימה חדשה" });
+    /* A stale revision is refused. */
+    expect((await draftPut({ type: "post", id: "a-note", rev, units: [{ path: "title", he: "x" }], dryRun: false })).status).toBe(409);
+  });
+
+  it("writes a content document's draft by item and path, and refuses an area, an unknown path and a repeated one", async () => {
+    const p = seed().projects;
+    store.set("content:projects", { _id: "content:projects", _rev: "1-p", type: "content", key: "projects", published: p, draft: null });
+    const slug = p.items[0].slug;
+    const res = await draftPut({ type: "project", id: slug, rev: "1-p", units: [{ path: "fact", he: "עובדה." }], dryRun: false });
+    expect(res.status).toBe(200);
+    const doc = store.get("content:projects")! as Record<string, any>;
+    expect(doc.draft.items[0].fact).toEqual({ en: p.items[0].fact.en, he: "עובדה.", heSrc: fp(p.items[0].fact.en) });
+    expect(doc.published.items[0].fact.he).toBe(p.items[0].fact.he);
+
+    expect((await draftPut({ type: "area", id: "bothy", units: [{ path: "title", he: "x" }] })).status).toBe(400);
+    expect((await draftPut({ type: "project", id: slug, units: [{ path: "tech", he: "x" }] })).status).toBe(404);
+    expect((await draftPut({ type: "project", id: slug, units: [{ path: "fact", he: "a" }, { path: "fact", he: "b" }] })).status).toBe(400);
+  });
+
+  it("serves the glossary", async () => {
+    const res = await asAdmin(request(app()).get("/api/admin/translations/glossary"));
+    expect(res.status).toBe(200);
+    expect(res.body.glossary.allowLatin).toContain("GitHub");
+    expect((await request(app()).get("/api/admin/translations/glossary")).status).toBe(401);
+  });
+});
