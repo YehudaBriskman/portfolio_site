@@ -5,6 +5,14 @@ export interface LinkDraft {
   url: string;
 }
 
+/** An area's Hebrew, optional in its JSON. `linkLabels` follows `links`, by index. */
+export interface AreaHebrewDraft {
+  title?: string;
+  tagline?: string;
+  description?: string;
+  linkLabels?: (string | null)[];
+}
+
 export interface AreaDraft {
   slug: string;
   title: string;
@@ -16,6 +24,7 @@ export interface AreaDraft {
   order: number;
   status: "published" | "hidden";
   repo: { owner: string; name: string; branch: string; docPaths: string[] } | null;
+  he?: AreaHebrewDraft;
 }
 
 export interface NoteMeta {
@@ -34,19 +43,32 @@ export interface NoteMeta {
   sources: LinkDraft[];
 }
 
+/** The header of a `<slug>.he.md` file. */
+export interface NoteHebrewMeta {
+  title: string;
+  subtitle?: string | null;
+  excerpt: string;
+  linkLabels?: (string | null)[];
+}
+
 export interface NoteFile {
   file: string;
   folder: string;
   meta: NoteMeta;
   body: string;
+  he: { file: string; meta: NoteHebrewMeta; body: string } | null;
 }
 
+export const HEBREW_SUFFIX: string;
 export const CONTENT_DIR: string;
 export function readingMinutes(body: string): number;
 export function wordCount(body: string): number;
 export function parseNote(text: string, file?: string): { meta: NoteMeta; body: string };
-export function loadContent(root?: string): { areas: { file: string; data: AreaDraft }[]; posts: NoteFile[] };
+export function loadContent(root?: string): { areas: { file: string; data: AreaDraft }[]; posts: NoteFile[]; orphanHebrew: string[] };
 export function toCollectionWrite(area: AreaDraft): Record<string, unknown>;
 export function toPostWrite(post: NoteFile): Record<string, unknown>;
+export function toPostHebrew(post: NoteFile): Record<string, string> | null;
+export function toCollectionHebrew(area: AreaDraft): { he: Record<string, string> | null; linkLabels: (string | null)[] };
 export function noteSlugFromFile(file: string): string;
+export function hebrewSlugFromFile(file: string): string;
 export function areaSlugFromFile(file: string): string;

@@ -22,5 +22,11 @@
       "docs/guide/roles.md",
       "docs/guide/upgrading.md"
     ]
+  },
+  "he": {
+    "title": "Bothy",
+    "tagline": "קונסולה למכונה אחת, ששואלת את Docker מה רץ",
+    "description": "קונסולה באירוח עצמי למכונה אחת. היא מציגה containers, פורטים, ניתובים, מדדים וקבצים בכך שהיא שואלת את Docker ישירות, כך שמה שמוצג הוא מה שבאמת רץ. רשימות release ורשימות הנדסיות.",
+    "linkLabels": ["קוד המקור ב־GitHub", "כל ה־releases"]
   }
 }
