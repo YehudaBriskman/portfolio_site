@@ -4,7 +4,7 @@ import { links as seedLinks, type SocialLink } from "@/data/links";
 import { projects as seedProjects, type Project } from "@/data/projects";
 import { about, contact, footer, heroHebrew, heroPhrases, plate, plateTitle, type ApproachPrinciple, type ApproachSection } from "@/data/site";
 import { IMAGES, INTERLUDES, LAYOUTS, LINES, ROLES, START, type BeatLayout, type Interlude, type StoryHand, type StoryImage } from "@/data/story";
-import type { ContentBundle, Project as StoreProject, Text } from "./schema";
+import { stateKey, type ContentBundle, type Project as StoreProject, type Text } from "./schema";
 
 /*
  * The two directions between the content store and the site (#163).
@@ -29,18 +29,18 @@ function projectToStore(p: Project): StoreProject {
     slug: p.slug,
     title: p.title,
     fact: t(p.fact),
-    fields: p.fields.map((f) => ({ kind: f.kind as StoreProject["fields"][number]["kind"], value: f.value })),
+    fields: p.fields.map((f) => ({ kind: f.kind as StoreProject["fields"][number]["kind"], value: f.kind === "state" ? stateKey(f.value) : f.value })),
     description: t(p.description),
     tech: [...p.tech],
     image: p.image ?? null,
     tint: [p.tint[0], p.tint[1], p.tint[2]],
     link: p.link ?? null,
     linkLabel: p.linkLabel ?? null,
-    links: (p.links ?? []).map((l) => ({ label: l.label, url: l.url })),
+    links: (p.links ?? []).map((l) => ({ label: t(l.label), url: l.url })),
     github: p.github ?? null,
     year: p.year,
     status: t(p.status),
-    state: p.state,
+    state: stateKey(p.state),
     highlights: p.highlights.map(t),
     problem: p.problem ? t(p.problem) : null,
     role: p.role ? t(p.role) : null,
@@ -84,7 +84,7 @@ export function seedBundle(): ContentBundle {
       },
       profiles: seedLinks.map((l) => ({ name: l.name, url: l.url, icon: l.icon, label: l.label })),
       footer: {
-        work: footer.work.map((w) => ({ label: w.label, url: w.url, note: t(w.note) })),
+        work: footer.work.map((w) => ({ label: t(w.label), url: w.url, note: t(w.note) })),
         colophon: t(footer.colophon),
         colophonNote: t(footer.colophonNote),
         place: t(footer.place),
@@ -140,7 +140,7 @@ function projectFromStore(p: StoreProject, tx: (x: Text) => string): Project {
   if (p.image) out.image = p.image;
   if (p.link) out.link = p.link;
   if (p.linkLabel) out.linkLabel = p.linkLabel;
-  if (p.links.length > 0) out.links = p.links.map((l) => ({ label: l.label, url: l.url }));
+  if (p.links.length > 0) out.links = p.links.map((l) => ({ label: tx(l.label), url: l.url }));
   if (p.github) out.github = p.github;
   if (p.problem) out.problem = tx(p.problem);
   if (p.role) out.role = tx(p.role);
@@ -183,7 +183,7 @@ export function localize(bundle: ContentBundle, lang: Lang): ContentView {
       },
       links: s.profiles.map((p) => ({ name: p.name, url: p.url, icon: p.icon, label: p.label })),
       footer: {
-        work: s.footer.work.map((w) => ({ label: w.label, url: w.url, note: tx(w.note) })),
+        work: s.footer.work.map((w) => ({ label: tx(w.label), url: w.url, note: tx(w.note) })),
         colophon: tx(s.footer.colophon),
         colophonNote: tx(s.footer.colophonNote),
         place: tx(s.footer.place),

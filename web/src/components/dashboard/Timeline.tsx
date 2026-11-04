@@ -7,6 +7,7 @@ import Ring from "@/components/motion/Ring";
 import SkeletonLines from "@/components/gallery/SkeletonLines";
 import { fullDate, relative, useWords } from "@/components/dashboard/i18n";
 import type { ActivityEvent, ActivityKind } from "@/services/activity";
+import { eventTitle } from "@/components/dashboard/eventTitle";
 
 /*
  * "Latest on the site" (#224): the activity API as GitHub's changelog card,
@@ -95,7 +96,7 @@ export default function Timeline({
             const label = (
               <>
                 <span className="sr-only">{`${t.kind[e.kind]}: `}</span>
-                {e.title}
+                {eventTitle(e, t, lang)}
               </>
             );
             return (

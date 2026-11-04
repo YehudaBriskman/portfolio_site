@@ -121,7 +121,7 @@ export function merge(collections: Collection[], seeds: Project[] = seedTable): 
     .map((c) => {
       const seed = seedMap.get(c.slug) ?? null;
       const release = c.stats?.latestRelease?.tag ?? null;
-      const state = seed?.state ?? release ?? (c.order < FEATURED_BELOW ? "In use" : "Archive");
+      const state = seed?.state ?? release ?? (c.order < FEATURED_BELOW ? "in-use" : "archive");
       const year = seed?.year ?? null;
       const tech = seed?.tech ?? [];
       return {
