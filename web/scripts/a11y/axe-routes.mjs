@@ -111,6 +111,9 @@ const ROUTES = [
   "/admin/posts",
   "/admin/areas",
   "/admin/connections",
+  /* The Translations page (#302). */
+  "/admin/translations",
+  "/admin/translations?status=done&visibility=all",
 ];
 
 /* The routes re-run at Larger text and More contrast (#99): one of each

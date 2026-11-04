@@ -1,4 +1,5 @@
 import type { ContentKey } from "@/content/schema";
+import { invalidateTranslations } from "./translations";
 
 /*
  * The content editors' half of the admin API (#163): one document per key,
@@ -77,6 +78,8 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
     if (res.status === 400) throw new ContentInvalidError(message, issuesOf(b));
     throw new Error(message);
   }
+  /* A write changes what is translated: the Hebrew pills read again. */
+  if (init?.method && init.method !== "GET") invalidateTranslations();
   return body as T;
 }
 

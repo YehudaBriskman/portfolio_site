@@ -2924,6 +2924,14 @@
   .a-pill[data-state="changes"] { background: rgb(var(--wash-yellow)); border-color: rgb(var(--rule-firm)); }
   .a-pill[data-state="changes"] .a-pill-mark { border-radius: 1px; transform: rotate(45deg) scale(.85); background: rgb(var(--ink)); }
 
+  /* ---- the Hebrew pill (#302): a wash behind the words, which carry the state */
+  .a-he { gap: 0; font-weight: 700; }
+  .a-he[data-he="translated"] { background: rgb(var(--wash-green)); }
+  .a-he[data-he="unverified"] { border-style: dashed; }
+  .a-he[data-he="draft"] { background: rgb(var(--wash-blue)); }
+  .a-he[data-he="stale"] { background: rgb(var(--wash-yellow)); border-color: rgb(var(--rule-firm)); }
+  .a-he[data-he="missing"] { border-style: dashed; color: rgb(var(--ink-soft)); }
+
   .a-counter {
     display: inline-block; min-width: 1.25rem; padding-inline: .375rem;
     border-radius: 999px; background: rgb(var(--ink) / .08);

@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Plus } from "lucide-react";
 import AdminShell from "@/components/admin/AdminShell";
+import TranslationPill from "@/components/admin/TranslationPill";
+import { useTranslationStatus } from "@/services/translations";
 import { Empty, EmptyState, ErrorState, LoadingRows, PageHeader, StatePill } from "@/components/admin/ui";
 import { useAdminWords } from "@/i18n/admin";
 import { admin, type AdminCollection, type AdminPost } from "@/services/admin";
@@ -14,6 +16,7 @@ import { admin, type AdminCollection, type AdminPost } from "@/services/admin";
  */
 export default function AdminAreas() {
   const w = useAdminWords();
+  const heStatus = useTranslationStatus();
   const [cols, setCols] = useState<AdminCollection[] | null>(null);
   const [posts, setPosts] = useState<AdminPost[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -119,6 +122,11 @@ export default function AdminAreas() {
                             <StatePill state="hidden" />
                           </span>
                         )}
+                        {heStatus("area", c.slug) && (
+                          <span className="sm:hidden">
+                            <TranslationPill status={heStatus("area", c.slug)} />
+                          </span>
+                        )}
                       </span>
                     </td>
                     <td className="hidden md:table-cell">
@@ -132,7 +140,10 @@ export default function AdminAreas() {
                     </td>
                     <td className="a-num">{countFor(c.slug)}</td>
                     <td className="a-fit hidden sm:table-cell">
-                      <StatePill state={c.status} />
+                      <span className="flex flex-wrap justify-end gap-1.5">
+                        <StatePill state={c.status} />
+                        <TranslationPill status={heStatus("area", c.slug)} />
+                      </span>
                     </td>
                     <td className="a-num hidden sm:table-cell">{c.order}</td>
                   </tr>

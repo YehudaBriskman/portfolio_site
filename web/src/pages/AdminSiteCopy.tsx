@@ -2,6 +2,8 @@ import EditorFrame from "@/components/admin/content/EditorFrame";
 import { useContentEditor } from "@/components/admin/content/editor";
 import { LinesField, ListField, NumberField, PlainField, SelectField, Section, TextField } from "@/components/admin/content/Fields";
 import { SiteCopySchema, type SiteCopy, type Text } from "@/content/schema";
+import TranslationPill from "@/components/admin/TranslationPill";
+import { useTranslationStatus } from "@/services/translations";
 
 /*
  * /admin/site-copy (#163): the words around the work — the hero, How I work,
@@ -18,6 +20,7 @@ const ICONS = ["Github", "Linkedin"] as const;
 export default function AdminSiteCopy() {
   const editor = useContentEditor<SiteCopy>("site-copy", SiteCopySchema);
   const e = editor.edit;
+  const heStatus = useTranslationStatus();
 
   return (
     <EditorFrame
@@ -29,7 +32,7 @@ export default function AdminSiteCopy() {
     >
       {(c) => (
         <>
-          <Section title="Hero">
+          <Section title="Hero" aside={<TranslationPill status={heStatus("site-copy", "hero")} />}>
             <div className="grid gap-4 sm:grid-cols-2">
               <PlainField id="site-hero-name" path="hero.name" label="Name" value={c.hero.name} onChange={(v) => e((d) => void (d.hero.name = v))} />
               <NumberField id="site-hero-since" path="hero.shippingSince" label="Shipping since" value={c.hero.shippingSince} onChange={(n) => e((d) => void (d.hero.shippingSince = n))} />
@@ -52,7 +55,7 @@ export default function AdminSiteCopy() {
             </ListField>
           </Section>
 
-          <Section title="How I work">
+          <Section title="How I work" aside={<TranslationPill status={heStatus("site-copy", "about")} />}>
             <TextField id="site-about-heading" path="about.heading" label="Heading" value={c.about.heading} onChange={(t) => e((d) => void (d.about.heading = req(t)))} />
             <ListField
               id="site-about-intro"
@@ -93,7 +96,7 @@ export default function AdminSiteCopy() {
             </ListField>
           </Section>
 
-          <Section title="Contact">
+          <Section title="Contact" aside={<TranslationPill status={heStatus("site-copy", "contact")} />}>
             <PlainField id="site-contact-email" path="contact.email" label="Email" type="email" mono dir="ltr" value={c.contact.email} onChange={(v) => e((d) => void (d.contact.email = v))} />
             <TextField id="site-contact-location" path="contact.location" label="Location" value={c.contact.location} onChange={(t) => e((d) => void (d.contact.location = req(t)))} />
             <TextField id="site-contact-availability" path="contact.availability" label="Availability" value={c.contact.availability} onChange={(t) => e((d) => void (d.contact.availability = req(t)))} />
@@ -123,7 +126,7 @@ export default function AdminSiteCopy() {
             </ListField>
           </Section>
 
-          <Section title="Footer">
+          <Section title="Footer" aside={<TranslationPill status={heStatus("site-copy", "footer")} />}>
             <ListField
               id="site-footer-work"
               path="footer.work"
