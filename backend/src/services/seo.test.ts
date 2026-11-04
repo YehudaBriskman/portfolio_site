@@ -91,7 +91,7 @@ describe("buildSitemap", () => {
   });
 
   it("lists the content store's project pages, which exist with or without a database row", () => {
-    const xml = buildSitemap([], [], { projects: ["windom", "icaros"] });
+    const xml = buildSitemap([], [], { projects: [{ slug: "windom", hebrew: true }, { slug: "icaros", hebrew: true }] });
     expect(xml).toContain("<loc>https://yehudabriskman.com/projects/windom</loc>");
     expect(xml).toContain("<loc>https://yehudabriskman.com/projects/icaros</loc>");
   });
@@ -105,7 +105,7 @@ describe("buildSitemap", () => {
   });
 
   it("does not list a project twice once it has a real collection", () => {
-    const xml = buildSitemap([], [collection({ slug: "windom", title: "WindoM" })], { projects: ["windom"] });
+    const xml = buildSitemap([], [collection({ slug: "windom", title: "WindoM" })], { projects: [{ slug: "windom", hebrew: true }] });
     // Once per language (#248): the English address and its Hebrew twin.
     expect(xml.match(/<loc>[^<]*\/projects\/windom<\/loc>/g) ?? []).toHaveLength(2);
     expect(xml.match(/<loc>[^<]*\/he\/projects\/windom<\/loc>/g) ?? []).toHaveLength(1);
@@ -118,6 +118,18 @@ describe("buildSitemap", () => {
     expect(xml).toMatch(/<loc>[^<]*\/he<\/loc>/);
     expect(xml).toMatch(/<xhtml:link rel="alternate" hreflang="he" href="[^"]*\/he\/blog" \/>/);
     expect(xml).toMatch(/<xhtml:link rel="alternate" hreflang="x-default" href="[^"]*\/blog" \/>/);
+  });
+
+  it("lists a page with no published Hebrew in English only, with no alternates (#304)", () => {
+    const xml = buildSitemap([post()], [], { projects: [{ slug: "icaros", hebrew: false }], postHebrew: () => false });
+    expect(xml).toContain("<loc>https://yehudabriskman.com/projects/icaros</loc>");
+    expect(xml).not.toContain("/he/projects/icaros");
+    expect(xml).toContain("<loc>https://yehudabriskman.com/blog/a-post</loc>");
+    expect(xml).not.toContain("/he/blog/a-post");
+    const entry = xml.slice(xml.indexOf("<loc>https://yehudabriskman.com/blog/a-post</loc>"));
+    expect(entry.slice(0, entry.indexOf("</url>"))).not.toContain("hreflang");
+    // A hub page keeps its pair whatever its items are.
+    expect(xml).toContain("<loc>https://yehudabriskman.com/he/blog</loc>");
   });
 
   it("omits noindex posts, so the sitemap never contradicts the meta tag", () => {
@@ -194,6 +206,32 @@ describe("robotsStance", () => {
   it("lets ROBOTS_POLICY override the derivation in both directions", () => {
     expect(robotsStance("https://preprod.yehudabriskman.com", "open")).toBe("open");
     expect(robotsStance("https://yehudabriskman.com", "closed")).toBe("closed");
+  });
+});
+
+describe("a page with no published Hebrew (#304)", () => {
+  const head = (lang: "en" | "he", translated?: boolean) =>
+    renderShellWithMeta(SHELL, { ...meta(), lang, path: "/blog/a-post", translated });
+
+  it("is noindex in Hebrew, names no alternates and says en_US", () => {
+    const html = head("he", false);
+    expect(html).toContain('<meta name="robots" content="noindex, follow" />');
+    expect(html).not.toContain("hreflang");
+    expect(html).toContain('<meta property="og:locale" content="en_US" />');
+    expect(html).not.toContain("og:locale:alternate");
+  });
+
+  it("is indexed in English, naming no Hebrew alternate", () => {
+    const html = head("en", false);
+    expect(html).toContain('content="index, follow, max-image-preview:large"');
+    expect(html).not.toContain("hreflang");
+  });
+
+  it("flips to an indexed pair once Hebrew is published", () => {
+    const html = head("he", true);
+    expect(html).toContain('content="index, follow, max-image-preview:large"');
+    expect(html).toContain('hreflang="en"');
+    expect(html).toContain('<meta property="og:locale" content="he_IL" />');
   });
 });
 
