@@ -79,8 +79,24 @@ export type PageIdentity = {
  * own.
  */
 export function documentTitleFor(name: string, lang: Lang = currentLang()): string {
-  return `${name} · ${usePageNames.of(lang).siteName}`;
+  const full = `${name} · ${usePageNames.of(lang).siteName}`;
+  /* A long name keeps the whole result line rather than half of it and the
+     site's name cut off: seo-template.ts `fitTitle`, the same 60. */
+  return full.length <= TITLE_MAX ? full : name;
 }
+
+/**
+ * An area's name in its title: "WindoM · Notes", so it is not its project's
+ * title too, and just "Notes" for the area called that. The server's
+ * `areaTitleName` (seo.route.ts) says the same.
+ */
+export function areaTitleName(areaTitle: string, lang: Lang = currentLang()): string {
+  const notes = usePageNames.of(lang).notes;
+  return areaTitle.trim().toLowerCase() === notes.toLowerCase() ? areaTitle : `${areaTitle} · ${notes}`;
+}
+
+/** Where a result title is cut; the server's `TITLE_MAX` (seo-template.ts). */
+export const TITLE_MAX = 60;
 
 /*
  * The admin's titles say so.

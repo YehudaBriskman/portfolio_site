@@ -141,6 +141,8 @@ export const usePageNames = defineWords(
     mcp: "MCP server",
     blogs: "Blogs",
     log: "Channel log",
+    /* An area's title: "WindoM · Notes" (seo.route.ts areaTitleName). */
+    notes: "Notes",
     accessibility: "Accessibility",
     notFound: "Not found",
     admin: "Admin",
@@ -167,6 +169,7 @@ export const usePageNames = defineWords(
     mcp: "שרת MCP",
     blogs: "בלוג",
     log: "יומן פעילות",
+    notes: "רשימות",
     accessibility: "נגישות",
     notFound: "לא נמצא",
     admin: "ניהול",

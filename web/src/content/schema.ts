@@ -12,6 +12,8 @@ const SlugSchema = z
   .min(3)
   .max(80)
   .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "lowercase words separated by single hyphens");
+/* As backend/src/schemas/i18n.ts defines it (#303). */
+const Fingerprint = z.string().regex(/^[0-9a-f]{12}$/);
 // ---- copy below ----
 
 /*
@@ -63,6 +65,13 @@ export const text = (max: number) =>
       .max(max, `At most ${max} characters`)
       .transform((v) => (v ? v : undefined))
       .optional(),
+    /*
+     * The fingerprint of the English the Hebrew was written against (#303).
+     * Accepted so a round trip through the admin keeps it, but never trusted:
+     * the save routes restamp it (schemas/i18n.ts `stampTexts`), and the public
+     * reads drop it. Absent on Hebrew written before #303: "unverified".
+     */
+    heSrc: Fingerprint.optional(),
   });
 
 export type Text = z.infer<ReturnType<typeof text>>;

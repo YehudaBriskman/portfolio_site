@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { Fingerprint } from "./i18n.js";
 
 export const SlugSchema = z
   .string()
@@ -70,6 +71,21 @@ export const PostHebrewSchema = z.object({
 });
 
 /*
+ * What the server keeps beside a `he` block (#303, schemas/i18n.ts): per
+ * field, the fingerprint of the English the Hebrew was written against, and a
+ * note's English body as it was then. A sibling, not inside `he`, so every
+ * reader of `he` still sees only words. Accepted on the way in so a round trip
+ * keeps it, always restamped by the save routes, never sent to a reader.
+ */
+export const HebrewMetaSchema = z.object({
+  src: z
+    .object({ title: Fingerprint, subtitle: Fingerprint, excerpt: Fingerprint, body: Fingerprint, tagline: Fingerprint, description: Fingerprint })
+    .partial()
+    .default({}),
+  bodyBase: z.string().max(200_000).nullable().optional(),
+});
+
+/*
  * Everything an author edits about a note, as one object (#250): what a
  * draft holds and what Publish copies onto the note. Validated on the way in
  * by the routes, so a draft in the store is always publishable as it is.
@@ -87,6 +103,7 @@ export const PostContentSchema = z.object({
   publishedAt: z.string().datetime().nullable().default(null),
   seo: PostSeoSchema.default({ title: null, description: null, canonical: null, noindex: false }),
   he: PostHebrewSchema.nullable().default(null),
+  heMeta: HebrewMetaSchema.nullable().optional(),
 });
 
 /** The Hebrew of an area (#248): its name, its line and its description. */
@@ -134,6 +151,8 @@ export const PostSchema = z.object({
   /* The note in Hebrew (#250), when the owner has written it. Null is "not
      translated", and the reader then shows the English. */
   he: PostHebrewSchema.nullable().optional(),
+  /* The fingerprints behind `he` (#303). Absent before #303: "unverified". */
+  heMeta: HebrewMetaSchema.nullable().optional(),
   /* What the last re-publish changed (#250), one line, shown beside the
      "Updated" date. Null on a first publish. */
   changeNote: z.string().max(200).nullable().optional(),
@@ -241,6 +260,8 @@ export const CollectionSchema = z.object({
   kind: z.enum(["site", "project"]).default("project"),
   tagline: z.string().max(160).default(""),
   he: CollectionHebrewSchema.nullable().optional(),
+  /* The fingerprints behind `he` (#303). */
+  heMeta: HebrewMetaSchema.nullable().optional(),
   repo: RepoSchema.nullable().default(null),
   stats: RepoStatsSchema.nullable().default(null),
   createdAt: z.string().datetime(),
