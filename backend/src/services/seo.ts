@@ -182,6 +182,12 @@ export type PageMeta = {
    * then carries `hreflang` alternates for each, and `x-default` → English.
    */
   path?: string;
+  /**
+   * An image the page is known to paint as its largest element, preloaded
+   * from the head with its own srcset and sizes so the browser starts it
+   * with the HTML rather than after React has mounted (#308).
+   */
+  preloadImage?: { href: string; srcset: string; sizes: string };
 };
 
 /* ------------------------------------------------------------------ sitemap */
@@ -530,7 +536,22 @@ export function imageTypeFor(url: string): string | null {
   return (ext && IMAGE_TYPES[ext]) || null;
 }
 
+/**
+ * The managed head tags for a page, one per entry, as the server render
+ * writes them: what the app swaps in after a client-side navigation
+ * (web/src/components/HeadSync.tsx), so both ways of arriving get one head.
+ */
+export function headTags(meta: PageMeta): string[] {
+  return metaLines(meta);
+}
+
 function metaBlock(meta: PageMeta): string {
+  return metaLines(meta)
+    .map((l) => `    ${l}`)
+    .join("\n");
+}
+
+function metaLines(meta: PageMeta): string[] {
   const title = escapeAttr(meta.title);
   const description = escapeAttr(clampDescription(meta.description));
   const socialDescription = escapeAttr(clampDescription(meta.socialDescription ?? meta.description));
@@ -594,7 +615,7 @@ function metaBlock(meta: PageMeta): string {
     lines.push(`<script type="application/ld+json">${json}</script>`);
   }
 
-  return lines.map((l) => `    ${l}`).join("\n");
+  return lines;
 }
 
 /*
@@ -721,6 +742,12 @@ export function renderShellWithMeta(shell: string, meta: PageMeta): string {
   const head = [metaBlock(meta)];
   if (fallback) head.push(`    ${FALLBACK_STYLE}`, `    ${FALLBACK_NOSCRIPT}`);
   for (const link of preloads) head.push(`    ${link}`);
+  if (meta.preloadImage) {
+    const p = meta.preloadImage;
+    head.push(
+      `    <link rel="preload" as="image" href="${escapeAttr(p.href)}" imagesrcset="${escapeAttr(p.srcset)}" imagesizes="${escapeAttr(p.sizes)}" fetchpriority="high" />`,
+    );
+  }
   const block = head.join("\n");
 
   html = html.includes("</head>")

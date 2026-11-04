@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
 import RouteAnnouncer from "./components/RouteAnnouncer";
 import ScrollManager from "./components/ScrollManager";
+import HeadSync from "./components/HeadSync";
 import EntryShutter from "./components/motion/EntryShutter";
 import SiteChrome from "./components/SiteChrome";
 import Index from "./pages/Index";
@@ -94,6 +95,8 @@ const App = () => {
           why the announcer's focus move never scrolls.
         */}
         <ScrollManager />
+        {/* The head after a client-side navigation (#308): the render's, fetched. */}
+        <HeadSync />
         {/*
           The entry shutter: the window black behind a grid of lit squares,
           which leaves tile by tile from the centre once the page is actually

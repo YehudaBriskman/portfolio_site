@@ -11,6 +11,7 @@ import {
   buildSitemap,
   clampDescription,
   fetchShell,
+  headTags,
   markdownToFallbackHtml,
   pathIn,
   renderShellWithMeta,
@@ -18,14 +19,8 @@ import {
   type PageMeta,
 } from "../services/seo.js";
 import { SEO_WORDS } from "../services/seo-words.js";
-import {
-  personNode,
-  personRef,
-  profilePageNode,
-  siteNameIn,
-  websiteNode,
-  withHebrewName,
-} from "../services/seo-entity.js";
+import { PERSON_ID, WEBSITE_ID, personNode, personRef, siteNameIn, websiteNode, withHebrewName } from "../services/seo-entity.js";
+import { breadcrumbs, fitTitle, graph, homeGraph, itemList, webPage } from "../services/seo-template.js";
 import { rawImageUrlOrNull, type Collection, type Post } from "../schemas/content.js";
 import type { ContentBundle } from "../schemas/site-content.js";
 import { publishedBundleOrSeed } from "../services/site-content.js";
@@ -162,9 +157,17 @@ router.get(
 type Render = (req: Request, res: Response, lang: Lang) => Promise<void>;
 
 function page(path: string, render: Render): void {
-  router.get(`/render${path}`, asyncHandler((req, res) => render(req, res, "en")));
   const he = path === "/home" ? "" : path;
+  router.get(`/render${path}`, asyncHandler((req, res) => render(req, res, "en")));
   router.get(`/render/he${he}`, asyncHandler((req, res) => render(req, res, "he")));
+  /* The same page, head only, for the app after a client-side navigation
+     (#308): `sendShell` answers JSON when `headOnly` is set. */
+  const headOnly = (lang: Lang) => (req: Request, res: Response) => {
+    res.locals.headOnly = true;
+    return render(req, res, lang);
+  };
+  router.get(`/head${path}`, asyncHandler(headOnly("en")));
+  router.get(`/head/he${he}`, asyncHandler(headOnly("he")));
 }
 
 type Text = { en: string; he?: string };
@@ -267,6 +270,19 @@ async function storeProjects(): Promise<Map<string, ContentBundle["projects"]["i
 }
 
 async function sendShell(res: Response, meta: PageMeta, status = 200): Promise<void> {
+  /*
+   * The head alone, for the app (#308): after a client-side navigation the
+   * app asks /api/seo/head/<path> for the tags this function would have
+   * written, and swaps them in (web/src/components/HeadSync.tsx). One
+   * function decides a page's head, whichever way the reader arrived.
+   */
+  if (res.locals.headOnly) {
+    res
+      .status(status)
+      .set("Cache-Control", status >= 400 ? "no-store" : "public, max-age=60")
+      .json({ ok: status < 400, lang: meta.lang ?? "en", title: meta.title, head: headTags(meta) });
+    return;
+  }
   const [shell, settings] = await Promise.all([fetchShell(), meta.visuals ? null : settingsOrDefault()]);
   /* Every render carries the visual settings (#254), so a reader's first
      frame is in the owner's theme default and accent on any public route. */
@@ -290,7 +306,7 @@ function at(path: string, lang: Lang) {
 }
 
 /** `Name · Yehuda Briskman`, or `Name · יהודה בריסקמן` on a Hebrew page (#308). */
-const title = (name: string, lang: Lang) => `${name} · ${siteNameIn(lang)}`;
+const title = fitTitle;
 
 function notFound(res: Response, path: string, lang: Lang): Promise<void> {
   const w = SEO_WORDS[lang];
@@ -310,10 +326,21 @@ function notFound(res: Response, path: string, lang: Lang): Promise<void> {
   );
 }
 
+/*
+ * The portrait, which is the home page's LCP element on a phone. Only React
+ * puts it in the DOM, so the browser found it 2.4 s after the HTML (the
+ * audit, docs/seo/audit.md); preloaded from the head with the same srcset
+ * and sizes as Hero.tsx, it starts with the HTML.
+ */
+const PORTRAIT_PRELOAD = {
+  href: "/img/yehuda-cut.webp",
+  srcset: "/img/yehuda-cut-sm.webp 365w, /img/yehuda-cut.webp 551w",
+  sizes: "(max-width: 699px) min(92vw, 22rem), min(86vw, 26rem)",
+};
+
 page("/home", async (_req, res, lang) => {
   const w = SEO_WORDS[lang];
   const [content, settings] = await Promise.all([publishedBundleOrSeed(), settingsOrDefault()]);
-  const canonical = absoluteUrl(pathIn("/", lang));
   await sendShell(res, {
     ...at("/", lang),
     visuals: settings.visuals,
@@ -323,19 +350,18 @@ page("/home", async (_req, res, lang) => {
     image: absoluteUrl("/og.png"),
     imageAlt: `${siteNameIn(lang)}, ${w.role}`,
     type: "website",
+    preloadImage: PORTRAIT_PRELOAD,
     bodyHtml: homeHtml(content, lang, settings),
-    /* The person, the site, and the page as a profile of the one about the
-       other (#308): what a knowledge panel is assembled from. */
-    jsonLd: {
-      "@context": "https://schema.org",
-      "@graph": [personNode(lang, content), websiteNode(lang), profilePageNode(lang, canonical, w.siteTitle)],
-    },
+    jsonLd: homeGraph(lang, content),
   });
 });
 
 page("/blog", async (_req, res, lang) => {
   const w = SEO_WORDS[lang];
-  const posts = (await publishedPosts()).map((p) => local(p, lang));
+  const posts = (await publishedPosts())
+    .map((p) => local(p, lang))
+    .filter((p) => !p.seo.noindex)
+    .sort((a, b) => (b.publishedAt ?? "").localeCompare(a.publishedAt ?? ""));
   await sendShell(res, {
     ...at("/blog", lang),
     route: "Blog",
@@ -350,24 +376,58 @@ page("/blog", async (_req, res, lang) => {
      * so they now list what they actually contain.
      */
     bodyHtml: `<main><h1>${escapeHtml(w.blogs)}</h1><p>${escapeHtml(w.blogsBody)}</p><ul>${posts
-      .filter((p) => !p.seo.noindex)
-      .sort((a, b) => (b.publishedAt ?? "").localeCompare(a.publishedAt ?? ""))
       .map((p) => `<li><a href="${href(`/blog/${p.slug}`, lang)}">${en(p.title, lang)}</a> — ${en(p.excerpt, lang)}</li>`)
       .join("")}</ul></main>`,
+    jsonLd: graph(
+      webPage("CollectionPage", lang, "/blog", {
+        name: w.blogs,
+        description: w.blogsDescription,
+        about: true,
+        mainEntity: itemList(lang, posts.map((p) => ({ name: p.title, path: `/blog/${p.slug}` }))),
+      }),
+      breadcrumbs(lang, [{ name: w.blogs, path: "/blog" }]),
+    ),
   });
 });
 
+/** A project as the app shows it: the store's entry, with any published area over it. */
+type ProjectView = {
+  slug: string;
+  title: string;
+  /** The one line under the title: the area's tagline, or the entry's fact. */
+  line: string;
+  description: string;
+  entry: ContentBundle["projects"]["items"][number] | null;
+  collection: Collection | null;
+};
+
+async function projectViews(lang: Lang): Promise<ProjectView[]> {
+  const live = (await publishedCollections()).filter((c) => c.kind === "project").map((c) => local(c, lang));
+  const store = [...(await storeProjects()).values()].sort((a, b) => a.order - b.order);
+  const views = new Map<string, ProjectView>(
+    store.map((p) => [
+      p.slug,
+      { slug: p.slug, title: p.title, line: plain(p.fact, lang), description: plain(p.description, lang), entry: p, collection: null },
+    ]),
+  );
+  // A real collection wins over its seed; anything only seeded still appears.
+  for (const c of live) {
+    const prev = views.get(c.slug);
+    views.set(c.slug, {
+      slug: c.slug,
+      title: c.title,
+      line: c.tagline || prev?.line || c.description,
+      description: c.description || prev?.description || "",
+      entry: prev?.entry ?? null,
+      collection: c,
+    });
+  }
+  return [...views.values()];
+}
+
 page("/projects", async (_req, res, lang) => {
   const w = SEO_WORDS[lang];
-  // A real collection wins over its seed; anything only seeded still appears.
-  const live = (await publishedCollections()).filter((c) => c.kind === "project").map((c) => local(c, lang));
-  const merged = new Map<string, { title: string; tagline: string }>(
-    [...(await storeProjects()).values()]
-      .sort((a, b) => a.order - b.order)
-      .map((p) => [p.slug, { title: en(p.title, lang), tagline: tx(p.fact, lang) }]),
-  );
-  for (const c of live) merged.set(c.slug, { title: en(c.title, lang), tagline: en(c.tagline || c.description, lang) });
-  const entries = [...merged.entries()];
+  const views = await projectViews(lang);
   await sendShell(res, {
     ...at("/projects", lang),
     route: "Projects",
@@ -376,9 +436,18 @@ page("/projects", async (_req, res, lang) => {
     image: absoluteUrl("/og-projects.png"),
     imageAlt: w.projectsAlt,
     type: "website",
-    bodyHtml: `<main><h1>${escapeHtml(w.work)}</h1><p>${escapeHtml(w.workDescription)}</p><ul>${entries
-      .map(([slug, entry]) => `<li><a href="${href(`/projects/${slug}`, lang)}">${entry.title}</a> — ${entry.tagline}</li>`)
+    bodyHtml: `<main><h1>${escapeHtml(w.work)}</h1><p>${escapeHtml(w.workDescription)}</p><ul>${views
+      .map((v) => `<li><a href="${href(`/projects/${v.slug}`, lang)}">${en(v.title, lang)}</a> — ${en(v.line, lang)}</li>`)
       .join("")}</ul></main>`,
+    jsonLd: graph(
+      webPage("CollectionPage", lang, "/projects", {
+        name: w.work,
+        description: w.workDescription,
+        about: true,
+        mainEntity: itemList(lang, views.map((v) => ({ name: v.title, path: `/projects/${v.slug}` }))),
+      }),
+      breadcrumbs(lang, [{ name: w.work, path: "/projects" }]),
+    ),
   });
 });
 
@@ -415,14 +484,17 @@ page("/story", async (_req, res, lang) => {
     imageAlt: `${siteNameIn(lang)}, ${w.role}`,
     type: "website",
     bodyHtml: `<main><p>${escapeHtml(w.journey)}</p><h1>${escapeHtml(w.journeyTitle)}</h1><p>${escapeHtml(w.journeyDescription)}</p><ol>${beats}</ol><p><a href="${href("/projects", lang)}">${escapeHtml(w.work)}</a> · <a href="${href("/blog", lang)}">${escapeHtml(w.blogs)}</a></p></main>`,
-    jsonLd: {
-      "@context": "https://schema.org",
-      "@graph": [
-        profilePageNode(lang, absoluteUrl(pathIn("/story", lang)), title(w.journey, lang)),
-        personNode(lang, c),
-        websiteNode(lang),
-      ],
-    },
+    jsonLd: graph(
+      webPage("ProfilePage", lang, "/story", {
+        name: title(w.journey, lang),
+        description: w.journeyDescription,
+        about: true,
+        mainEntity: { "@id": PERSON_ID },
+      }),
+      personNode(lang, c),
+      websiteNode(lang),
+      breadcrumbs(lang, [{ name: w.journey, path: "/story" }]),
+    ),
   });
 });
 
@@ -440,6 +512,10 @@ page("/accessibility", async (_req, res, lang) => {
       `<main><p>${escapeHtml(w.statement)}</p><h1>${escapeHtml(w.accessibility)}</h1>` +
       w.accessibilityBody.map((p) => `<p>${escapeHtml(p)}</p>`).join("") +
       `<p><a href="${href("/", lang)}">${escapeHtml(w.home)}</a></p></main>`,
+    jsonLd: graph(
+      webPage("WebPage", lang, "/accessibility", { name: w.accessibility, description: w.accessibilityDescription }),
+      breadcrumbs(lang, [{ name: w.accessibility, path: "/accessibility" }]),
+    ),
   });
 });
 
@@ -465,6 +541,10 @@ page("/developers/mcp", async (_req, res, lang) => {
       `<p>${escapeHtml(w.mcpConnector)} ${code(url)}.</p>` +
       `<p>${escapeHtml(w.mcpPublic)} ${code(`${url}/public`)}</p>` +
       `<p><a href="${href("/", lang)}">${escapeHtml(w.home)}</a> · <a href="${href("/blog", lang)}">${escapeHtml(w.blogs)}</a></p></main>`,
+    jsonLd: graph(
+      webPage("WebPage", lang, "/developers/mcp", { name: w.mcp, description: w.mcpDescription }),
+      breadcrumbs(lang, [{ name: w.mcp, path: "/developers/mcp" }]),
+    ),
   });
 });
 
@@ -486,6 +566,13 @@ page("/blog/log", async (_req, res, lang) => {
     type: "website",
     feeds: [{ title: LOG_CHANNEL.title, href: LOG_CHANNEL.self }],
     bodyHtml: `<main><h1>${escapeHtml(w.log)}</h1><p>${escapeHtml(w.logBody)}</p><p><a href="${href("/blog", lang)}">${escapeHtml(w.blogs)}</a> · <a href="${escapeHtml(LOG_CHANNEL.self)}">RSS</a></p></main>`,
+    jsonLd: graph(
+      webPage("CollectionPage", lang, "/blog/log", { name: w.log, description: w.logDescription }),
+      breadcrumbs(lang, [
+        { name: w.blogs, path: "/blog" },
+        { name: w.log, path: "/blog/log" },
+      ]),
+    ),
   });
 });
 
@@ -501,6 +588,15 @@ page("/blog/log", async (_req, res, lang) => {
  * schema's shape first, as the feed route does, so a junk path costs no query.
  */
 const AREA_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+/**
+ * An area's name in a title: "WindoM · Notes", so it is not the project
+ * page's title too; and just "Notes" for the area that is called that,
+ * rather than "Notes · Notes". BlogArea.tsx titles the tab the same way.
+ */
+export function areaTitleName(areaTitle: string, notesWord: string): string {
+  return areaTitle.trim().toLowerCase() === notesWord.toLowerCase() ? areaTitle : `${areaTitle} · ${notesWord}`;
+}
 
 page("/blog/area/:slug", async (req, res, lang) => {
   const w = SEO_WORDS[lang];
@@ -529,15 +625,18 @@ page("/blog/area/:slug", async (req, res, lang) => {
     .sort((a, b) => (b.publishedAt ?? "").localeCompare(a.publishedAt ?? ""));
   const channel = areaChannel(area);
   const own = area.tagline || area.description;
-  const description = clampDescription(own || w.notesOn(area.title));
+  const description = clampDescription(
+    own && own.length < 70 && area.description && area.description !== own ? `${own}. ${area.description}` : own || w.notesOn(area.title),
+  );
   const image =
     rawImageUrlOrNull(area.coverImage) ??
     (area.kind === "project" ? absoluteUrl(`/api/seo/og/projects/${area.slug}.png`) : absoluteUrl("/og-blog.png"));
+  const name = areaTitleName(area.title, w.notes);
 
   await sendShell(res, {
     ...at(`/blog/area/${area.slug}`, lang),
     route: "BlogArea",
-    title: `${area.title} · ${w.notes} · ${siteNameIn(lang)}`,
+    title: title(name, lang),
     description,
     image,
     imageAlt: area.title,
@@ -546,6 +645,17 @@ page("/blog/area/:slug", async (req, res, lang) => {
     bodyHtml: `<main><h1>${en(area.title, lang)}</h1><p>${own ? en(description, lang) : escapeHtml(description)}</p><ul>${posts
       .map((p) => `<li><a href="${href(`/blog/${p.slug}`, lang)}">${en(p.title, lang)}</a> — ${en(p.excerpt, lang)}</li>`)
       .join("")}</ul><p><a href="${href("/blog", lang)}">${escapeHtml(w.blogs)}</a> · <a href="${escapeHtml(channel.self)}">RSS</a></p></main>`,
+    jsonLd: graph(
+      webPage("CollectionPage", lang, `/blog/area/${area.slug}`, {
+        name,
+        description,
+        mainEntity: itemList(lang, posts.map((p) => ({ name: p.title, path: `/blog/${p.slug}` }))),
+      }),
+      breadcrumbs(lang, [
+        { name: w.blogs, path: "/blog" },
+        { name: area.title, path: `/blog/area/${area.slug}` },
+      ]),
+    ),
   });
 });
 
@@ -572,13 +682,15 @@ page("/blog/:slug", async (req, res, lang) => {
     lang === "en" ? (post.seo.canonical ?? absoluteUrl(`/blog/${post.slug}`)) : absoluteUrl(pathIn(`/blog/${post.slug}`, lang));
   const image = rawImageUrlOrNull(post.coverImage) ?? absoluteUrl(`/api/seo/og/blog/${post.slug}.png`);
   const marker = bodyInEnglish ? `<p>${escapeHtml(w.writtenInEnglish)}</p>` : "";
+  const description = clampDescription(post.seo.description ?? post.excerpt);
+  const inLanguage = bodyInEnglish || lang === "en" ? "en" : "he";
 
   await sendShell(res, {
     ...at(`/blog/${post.slug}`, lang),
     canonical,
     route: "BlogPost",
     title: post.seo.title ?? title(post.title, lang),
-    description: clampDescription(post.seo.description ?? post.excerpt),
+    description,
     image,
     imageAlt: post.title,
     type: "article",
@@ -589,78 +701,118 @@ page("/blog/:slug", async (req, res, lang) => {
     bodyHtml: `<main>${marker}<article${bodyInEnglish ? ' lang="en" dir="ltr"' : ""}><h1>${en(post.title, lang)}</h1>${
       post.subtitle ? `<p>${en(post.subtitle, lang)}</p>` : ""
     }<p>${en(post.excerpt, lang)}</p>${markdownToFallbackHtml(post.body)}</article></main>`,
-    jsonLd: {
-      "@context": "https://schema.org",
-      "@type": "BlogPosting",
-      headline: post.title,
-      description: post.excerpt,
-      image,
-      inLanguage: bodyInEnglish || lang === "en" ? "en" : "he",
-      datePublished: post.publishedAt ?? post.createdAt,
-      dateModified: post.updatedAt,
-      author: personRef,
-      publisher: personRef,
-      mainEntityOfPage: { "@type": "WebPage", "@id": canonical },
-      keywords: post.tags.join(", ") || undefined,
-      wordCount: post.body.trim().split(/\s+/).length,
-    },
+    jsonLd: graph(
+      {
+        "@type": "BlogPosting",
+        "@id": `${canonical}#post`,
+        headline: post.title,
+        description,
+        image,
+        url: canonical,
+        inLanguage,
+        datePublished: post.publishedAt ?? post.createdAt,
+        dateModified: post.updatedAt,
+        author: personRef,
+        publisher: personRef,
+        isPartOf: { "@id": WEBSITE_ID },
+        mainEntityOfPage: { "@type": "WebPage", "@id": canonical, breadcrumb: { "@id": `${absoluteUrl(pathIn(`/blog/${post.slug}`, lang))}#breadcrumb` } },
+        keywords: post.tags.join(", ") || undefined,
+        wordCount: post.body.trim().split(/\s+/).length,
+        timeRequired: post.readingMinutes ? `PT${post.readingMinutes}M` : undefined,
+      },
+      breadcrumbs(lang, [
+        { name: w.blogs, path: "/blog" },
+        { name: post.title, path: `/blog/${post.slug}` },
+      ]),
+    ),
   });
 });
+
+/** A project's page body, as Project.tsx lays it out, from the same store. */
+function projectHtml(v: ProjectView, others: ProjectView[], lang: Lang): string {
+  const w = SEO_WORDS[lang];
+  const e = v.entry;
+  const parts: string[] = [`<h1>${en(v.title, lang)}</h1>`];
+  if (v.line) parts.push(`<p>${en(v.line, lang)}</p>`);
+  if (v.description) parts.push(`<p>${en(v.description, lang)}</p>`);
+  if (e) {
+    for (const t of [e.problem, e.role, e.outcome]) if (t) parts.push(`<p>${tx(t, lang)}</p>`);
+    if (e.highlights.length) parts.push(`<h2>${escapeHtml(w.worthKnowing)}</h2><ul>${e.highlights.map((h) => `<li>${tx(h, lang)}</li>`).join("")}</ul>`);
+    if (e.decisions.length)
+      parts.push(`<h2>${escapeHtml(w.decisions)}</h2>${e.decisions.map((d) => `<h3>${tx(d.title, lang)}</h3><p>${tx(d.body, lang)}</p>`).join("")}`);
+    if (e.tech.length) parts.push(`<h2>${escapeHtml(w.builtWith)}</h2><ul>${e.tech.map((t) => `<li>${en(t, lang)}</li>`).join("")}</ul>`);
+    const links = [
+      ...(e.link ? [{ label: e.linkLabel ?? e.link, url: e.link }] : []),
+      ...e.links,
+      ...(e.github ? [{ label: "GitHub", url: e.github }] : []),
+    ];
+    if (links.length) parts.push(`<ul>${links.map((l) => `<li><a href="${escapeHtml(l.url)}">${en(l.label, lang)}</a></li>`).join("")}</ul>`);
+  }
+  if (others.length) {
+    parts.push(
+      `<h2>${escapeHtml(w.elsewhere)}</h2><ul>${others
+        .map((o) => `<li><a href="${href(`/projects/${o.slug}`, lang)}">${en(o.title, lang)}</a> — ${en(o.line, lang)}</li>`)
+        .join("")}</ul>`,
+    );
+  }
+  parts.push(`<p><a href="${href("/projects", lang)}">${escapeHtml(w.allProjects)}</a> · <a href="${href("/blog", lang)}">${escapeHtml(w.notes)}</a></p>`);
+  return `<main>${parts.join("")}</main>`;
+}
 
 page("/projects/:slug", async (req, res, lang) => {
   const w = SEO_WORDS[lang];
   const slug = String(req.params.slug);
-  const { docs } = await couch.find<Collection>({
-    selector: { type: "collection", status: "published", slug },
-    limit: 1,
-  });
-  const collection = docs[0] && local(docs[0], lang);
+  const views = await projectViews(lang);
+  const v = views.find((x) => x.slug === slug);
+  if (!v) return notFound(res, `/projects/${slug}`, lang);
 
-  if (!collection) {
-    const seed = (await storeProjects()).get(slug);
-    if (seed) {
-      return sendShell(res, {
-        ...at(`/projects/${slug}`, lang),
-        route: "Project",
-        title: title(seed.title, lang),
-        description: clampDescription(plain(seed.fact, lang)),
-        image: absoluteUrl("/og-projects.png"),
-        imageAlt: seed.title,
-        type: "website",
-        bodyHtml:
-          `<main><h1>${en(seed.title, lang)}</h1><p>${tx(seed.fact, lang)}</p>` +
-          `<p>${tx(seed.description, lang)}</p>` +
-          (seed.highlights.length > 0 ? `<ul>${seed.highlights.map((h) => `<li>${tx(h, lang)}</li>`).join("")}</ul>` : "") +
-          `<p><a href="${href("/projects", lang)}">${escapeHtml(w.allProjects)}</a> · <a href="${href("/blog", lang)}">${escapeHtml(w.notes)}</a></p></main>`,
-      });
-    }
-    return notFound(res, `/projects/${slug}`, lang);
-  }
-
-  const canonical = absoluteUrl(pathIn(`/projects/${collection.slug}`, lang));
-  const description = collection.tagline || collection.description || w.siteDescription;
+  const canonical = absoluteUrl(pathIn(`/projects/${v.slug}`, lang));
+  /* The one line alone was 33 to 58 characters, too short to be a snippet;
+     the description after it says what the thing does. */
+  const description = clampDescription([v.line, v.description].filter(Boolean).join(". ").replace(/\.\./g, ".") || w.workDescription);
+  const repo = v.collection?.repo
+    ? `https://github.com/${v.collection.repo.owner}/${v.collection.repo.name}`
+    : (v.entry?.github ?? undefined);
+  const image = rawImageUrlOrNull(v.collection?.coverImage ?? null) ?? absoluteUrl(`/api/seo/og/projects/${v.slug}.png`);
 
   await sendShell(res, {
-    ...at(`/projects/${collection.slug}`, lang),
+    ...at(`/projects/${v.slug}`, lang),
     route: "Project",
-    title: title(collection.title, lang),
-    description: clampDescription(description),
-    image: rawImageUrlOrNull(collection.coverImage) ?? absoluteUrl(`/api/seo/og/projects/${collection.slug}.png`),
-    imageAlt: collection.title,
+    title: title(v.title, lang),
+    description,
+    image,
+    imageAlt: v.title,
     type: "website",
-    bodyHtml: `<main><h1>${en(collection.title, lang)}</h1>${
-      collection.tagline ? `<p>${en(collection.tagline, lang)}</p>` : ""
-    }${collection.description ? `<p>${en(collection.description, lang)}</p>` : ""}</main>`,
-    jsonLd: {
-      "@context": "https://schema.org",
-      "@type": "SoftwareSourceCode",
-      name: collection.title,
-      description,
-      url: canonical,
-      codeRepository: collection.repo ? `https://github.com/${collection.repo.owner}/${collection.repo.name}` : undefined,
-      programmingLanguage: collection.stats?.language ?? undefined,
-      author: personRef,
-    },
+    bodyHtml: projectHtml(
+      v,
+      views.filter((o) => o.slug !== v.slug),
+      lang,
+    ),
+    /* Source code when there is a repository to point at, a creative work
+       when there is not: schema.org's SoftwareSourceCode is defined by its
+       codeRepository. */
+    jsonLd: graph(
+      {
+        "@type": repo ? "SoftwareSourceCode" : "CreativeWork",
+        "@id": `${canonical}#project`,
+        name: v.title,
+        description,
+        url: canonical,
+        image,
+        inLanguage: "en",
+        ...(repo ? { codeRepository: repo, programmingLanguage: v.collection?.stats?.language ?? undefined } : {}),
+        ...(v.entry?.year ? { dateCreated: v.entry.year } : {}),
+        ...(v.entry?.tech.length ? { keywords: v.entry.tech.join(", ") } : {}),
+        author: personRef,
+        creator: personRef,
+        isPartOf: { "@id": WEBSITE_ID },
+        mainEntityOfPage: { "@type": "WebPage", "@id": canonical, breadcrumb: { "@id": `${canonical}#breadcrumb` } },
+      },
+      breadcrumbs(lang, [
+        { name: w.work, path: "/projects" },
+        { name: v.title, path: `/projects/${v.slug}` },
+      ]),
+    ),
   });
 });
 
@@ -669,6 +821,20 @@ page("/projects/:slug", async (req, res, lang) => {
 router.get(
   "/render/he/*",
   asyncHandler((req, res) => notFound(res, req.path.replace(/^\/render\/he/, "") || "/", "he")),
+);
+router.get(
+  "/head/he/*",
+  asyncHandler((req, res) => {
+    res.locals.headOnly = true;
+    return notFound(res, req.path.replace(/^\/head\/he/, "") || "/", "he");
+  }),
+);
+router.get(
+  "/head/*",
+  asyncHandler((req, res) => {
+    res.locals.headOnly = true;
+    return notFound(res, req.path.replace(/^\/head/, "") || "/", "en");
+  }),
 );
 
 export default router;
