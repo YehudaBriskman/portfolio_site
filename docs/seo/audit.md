@@ -46,7 +46,7 @@ Re-running it:
 cd web
 node scripts/seo/vocab.mjs schemaorg-current-https.jsonld > /tmp/vocab.json
 node scripts/seo/audit.mjs --base http://127.0.0.1:8080 --areas site,windom,bothy \
-  --vocab /tmp/vocab.json --out /tmp/audit.json
+  --vocab /tmp/vocab.json --full > /tmp/audit.json
 xvfb-run -a node scripts/seo/rendered-head.mjs --base http://127.0.0.1:8080 / /he /he/projects
 scripts/seo/lighthouse.sh /tmp/lh http://127.0.0.1:8080
 ```
