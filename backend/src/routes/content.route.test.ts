@@ -7,6 +7,7 @@ import { env } from "../env.js";
 import { CONTENT_SEED } from "../content/seed.js";
 import type { ContentBundle, ContentDoc, ContentKey } from "../schemas/site-content.js";
 import { resetShellCache } from "../services/seo.js";
+import { fp } from "../schemas/i18n.js";
 
 /*
  * The site's content in the store (#163): the public read, the editing API
@@ -124,7 +125,8 @@ describe("/api/admin/content", () => {
     const res = await asAdmin(request(createApp()).put("/api/admin/content/site-copy/draft")).send({ data, _rev: "1-site-copy" });
     expect(res.status).toBe(200);
     const doc = store.get("content:site-copy")!;
-    expect((doc.draft as ContentBundle["siteCopy"]).hero.phrases[2]).toEqual({ en: "Build boldly", he: "בונים באומץ" });
+    /* New Hebrew is stamped with the English it was written against (#303). */
+    expect((doc.draft as ContentBundle["siteCopy"]).hero.phrases[2]).toEqual({ en: "Build boldly", he: "בונים באומץ", heSrc: fp("Build boldly") });
     expect(doc.published).toEqual(seed().siteCopy);
     const pub = await request(createApp()).get("/api/content");
     expect(pub.body.siteCopy.hero.phrases[2]).toEqual({ en: "Build boldly" });

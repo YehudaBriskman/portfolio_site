@@ -68,6 +68,17 @@ const BODY = `The admin is a tool somebody works in every day, so it should read
 const dense = true;
 \`\`\`
 
+### Why a fixed bar
+
+Save has one home at every width, so the hand learns where it is. The page is
+padded by the bar's measured height, and nothing scrolls out from under it.
+
+> A tool you open every day should not need reading twice.
+
+The lists are tables, the editors are boxes, and the status is a word.
+
+The preview uses the reader's own type, so what you see is what a reader gets.
+
 Closing paragraph.`;
 
 function post(slug, title, status, h, extra = {}) {
@@ -224,6 +235,11 @@ function answer(path, method) {
 /* ------------------------------------------------------------- screens */
 
 /* [file name, path, optional step after load] */
+/* A fixed bar is drawn where the first viewport ends in a full-page capture,
+   over whatever is there, so the screens with an editor bar are shot as a
+   person sees them: one viewport. */
+const VIEWPORT_ONLY = new Set(["review", "editor", "editor-preview", "editor-scrolled", "new-post", "area", "projects", "story", "site-copy"]);
+
 const SCREENS = [
   ["overview", "/admin"],
   ["posts", "/admin/posts"],
@@ -233,6 +249,11 @@ const SCREENS = [
     await page.keyboard.press("Control+Shift+P").catch(() => {});
     const btn = page.getByRole("button", { name: /^Preview/ }).first();
     if ((await btn.getAttribute("aria-pressed").catch(() => null)) !== "true") await btn.click().catch(() => {});
+  }],
+  /* The viewport, scrolled into the body: where a bar that floats over the
+     content would show it (#288). */
+  ["editor-scrolled", "/admin/posts/admin-redesign", async (page) => {
+    await page.evaluate(() => window.scrollTo(0, 480));
   }],
   ["review", "/admin/posts/admin-redesign", async (page) => {
     await page.getByRole("button", { name: "Review and publish" }).last().click();
@@ -311,7 +332,7 @@ for (const theme of ["light", "dark"]) {
         await settle(page);
       }
       const file = `${OUT}/${name}-${theme}-${width}.png`;
-      await page.screenshot({ path: file, fullPage: width > 600 && name !== "review" });
+      await page.screenshot({ path: file, fullPage: width > 600 && !VIEWPORT_ONLY.has(name) });
       console.log("shot", name, theme, width);
       await page.close();
     }

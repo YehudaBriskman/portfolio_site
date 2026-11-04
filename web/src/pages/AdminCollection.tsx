@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import AdminShell from "@/components/admin/AdminShell";
+import { PageHeader } from "@/components/admin/ui";
 import StatusPill, { type SaveState } from "@/components/admin/StatusPill";
 import DocPathsEditor from "@/components/admin/DocPathsEditor";
 import LinkEditor, { toLinkRows, type LinkRow } from "@/components/LinkEditor";
@@ -157,10 +158,10 @@ export default function AdminCollection() {
   return (
     <AdminShell title={heading} section="areas" backTo="/admin/areas" bottomBar={bottomBar}>
       <form onSubmit={(e) => { e.preventDefault(); if (canSave) void commit(); }}>
-        <h1 className="display-tight text-[1.75rem] lg:text-[2.25rem]">{heading}</h1>
-        <p className="a-hint mt-3 max-w-prose">
-          An area is a shelf of posts: the site&rsquo;s own notes, or one project&rsquo;s.
-        </p>
+        <PageHeader
+          title={heading}
+          description={<>An area is a shelf of posts: the site&rsquo;s own notes, or one project&rsquo;s.</>}
+        />
 
         <label className="mt-8 block">
           <span className="a-label">Title</span>

@@ -55,6 +55,9 @@ const DOCS: Record<string, unknown>[] = [
     readingMinutes: 1,
     featured: null,
     seo: { title: null, description: null, canonical: null, noindex: false },
+    /* Hebrew, with the admin-only fingerprints beside it (#303) dressed as bait. */
+    he: { title: "שלום", subtitle: "", excerpt: "פתיח", body: "גוף" },
+    heMeta: { src: { title: "fcanary00000" }, bodyBase: "basecanary" },
   },
   {
     _id: "collection:site",
@@ -205,6 +208,8 @@ describe("public routes never expose tokens or the audit log", () => {
       expect(text).not.toContain(marker);
     }
     expect(text).not.toContain("audit:");
+    /* Nor the fingerprints behind the Hebrew (#303): they are the admin's. */
+    for (const marker of ["heMeta", "heSrc", "bodyBase", "fcanary00000", "basecanary"]) expect(text).not.toContain(marker);
   });
 
   it("the bait is reachable to a selector that forgets `type` (the fake is honest)", () => {
