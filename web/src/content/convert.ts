@@ -3,7 +3,9 @@ import type { Lang } from "@/components/dashboard/i18n";
 import { links as seedLinks, type SocialLink } from "@/data/links";
 import { projects as seedProjects, type Project } from "@/data/projects";
 import { about, contact, footer, heroHebrew, heroPhrases, plate, plateTitle, type ApproachPrinciple, type ApproachSection } from "@/data/site";
+import { PROJECTS_HE, SITE_HE, STORY_HE } from "@/data/hebrew";
 import { IMAGES, INTERLUDES, LAYOUTS, LINES, ROLES, START, type BeatLayout, type Interlude, type StoryHand, type StoryImage } from "@/data/story";
+import { ltrFallback } from "@/i18n/words";
 import { stateKey, type ContentBundle, type Project as StoreProject, type Text } from "./schema";
 
 /*
@@ -25,29 +27,34 @@ const t = (en: string): Text => ({ en });
 const tt = (en: string, he: string | undefined): Text => (he ? { en, he } : { en });
 
 function projectToStore(p: Project): StoreProject {
+  /* The Hebrew beside it (data/hebrew.ts), by slug; arrays by position. */
+  const he = PROJECTS_HE[p.slug];
   return {
     slug: p.slug,
     title: p.title,
-    fact: t(p.fact),
+    fact: tt(p.fact, he?.fact),
     fields: p.fields.map((f) => ({ kind: f.kind as StoreProject["fields"][number]["kind"], value: f.kind === "state" ? stateKey(f.value) : f.value })),
-    description: t(p.description),
+    description: tt(p.description, he?.description),
     tech: [...p.tech],
     image: p.image ?? null,
     tint: [p.tint[0], p.tint[1], p.tint[2]],
     link: p.link ?? null,
     linkLabel: p.linkLabel ?? null,
-    links: (p.links ?? []).map((l) => ({ label: t(l.label), url: l.url })),
+    links: (p.links ?? []).map((l, i) => ({ label: tt(l.label, he?.links?.[i]), url: l.url })),
     github: p.github ?? null,
     year: p.year,
-    status: t(p.status),
+    status: tt(p.status, he?.status),
     state: stateKey(p.state),
-    highlights: p.highlights.map(t),
-    problem: p.problem ? t(p.problem) : null,
-    role: p.role ? t(p.role) : null,
-    outcome: p.outcome ? t(p.outcome) : null,
-    decisions: (p.decisions ?? []).map((d) => ({ title: t(d.title), body: t(d.body) })),
+    highlights: p.highlights.map((h, i) => tt(h, he?.highlights[i])),
+    problem: p.problem ? tt(p.problem, he?.problem) : null,
+    role: p.role ? tt(p.role, he?.role) : null,
+    outcome: p.outcome ? tt(p.outcome, he?.outcome) : null,
+    decisions: (p.decisions ?? []).map((d, i) => ({
+      title: tt(d.title, he?.decisions?.[i]?.title),
+      body: tt(d.body, he?.decisions?.[i]?.body),
+    })),
     order: p.order,
-    storyLine: t(LINES[p.slug] ?? ""),
+    storyLine: tt(LINES[p.slug] ?? "", he?.storyLine),
   };
 }
 
@@ -56,8 +63,11 @@ export function seedBundle(): ContentBundle {
   return {
     projects: { items: seedProjects.map(projectToStore) },
     story: {
-      start: { title: t(START.title), lines: START.lines.map(t) },
-      roles: ROLES.map((r) => ({ id: r.id, when: t(r.when), title: t(r.title), lines: r.lines.map(t) })),
+      start: { title: tt(START.title, STORY_HE.start.title), lines: START.lines.map((l, i) => tt(l, STORY_HE.start.lines[i])) },
+      roles: ROLES.map((r) => {
+        const he = STORY_HE.roles[r.id];
+        return { id: r.id, when: tt(r.when, he?.when), title: tt(r.title, he?.title), lines: r.lines.map((l, i) => tt(l, he?.lines[i])) };
+      }),
       layouts: { ...LAYOUTS },
       images: Object.fromEntries(Object.entries(IMAGES).map(([id, img]) => [id, { src: img.src, alt: t(img.alt) }])),
       interludes: INTERLUDES.map((i) => ({ id: i.id, after: i.after, words: { en: i.words.en, he: i.words.he } })),
@@ -69,25 +79,31 @@ export function seedBundle(): ContentBundle {
         shippingSince: plate.shippingSince,
         title: t(plateTitle.name),
         fact: tt(plateTitle.fact, heroHebrew.fact),
-        phrases: heroPhrases.map((p) => tt(p, heroHebrew.phrases[p])),
+        phrases: heroPhrases.map((p) => tt(p, heroHebrew.phrases[p] ?? SITE_HE.phrases[p])),
       },
       about: {
         heading: tt(about.heading, heroHebrew.aboutHeading),
-        intro: about.intro.map((s) => ({ label: t(s.label), lines: s.lines.map(t) })),
-        principles: about.principles.map((p) => ({ claim: t(p.claim), lines: p.lines.map(t) })),
+        intro: about.intro.map((s, i) => ({
+          label: tt(s.label, SITE_HE.intro[i]?.label),
+          lines: s.lines.map((l, j) => tt(l, SITE_HE.intro[i]?.lines[j])),
+        })),
+        principles: about.principles.map((p, i) => ({
+          claim: tt(p.claim, SITE_HE.principles[i]?.claim),
+          lines: p.lines.map((l, j) => tt(l, SITE_HE.principles[i]?.lines[j])),
+        })),
       },
       contact: {
         email: contact.email,
-        location: t(contact.location),
-        availability: t(contact.availability),
+        location: tt(contact.location, SITE_HE.location),
+        availability: tt(contact.availability, SITE_HE.availability),
         replyWithin: tt(contact.replyWithin, heroHebrew.replyWithin),
       },
       profiles: seedLinks.map((l) => ({ name: l.name, url: l.url, icon: l.icon, label: l.label })),
       footer: {
-        work: footer.work.map((w) => ({ label: t(w.label), url: w.url, note: t(w.note) })),
-        colophon: t(footer.colophon),
-        colophonNote: t(footer.colophonNote),
-        place: t(footer.place),
+        work: footer.work.map((w, i) => ({ label: t(w.label), url: w.url, note: tt(w.note, SITE_HE.workNotes[i]) })),
+        colophon: tt(footer.colophon, SITE_HE.colophon),
+        colophonNote: tt(footer.colophonNote, SITE_HE.colophonNote),
+        place: tt(footer.place, SITE_HE.place),
       },
     },
   };
@@ -115,7 +131,13 @@ export type StoryView = {
 
 export type ContentView = { projects: Project[]; story: StoryView; site: SiteCopyView };
 
-const pick = (lang: Lang) => (x: Text) => (lang === "he" && x.he ? x.he : x.en);
+/*
+ * The one place a missing Hebrew becomes its English. That English is wrapped
+ * in a left-to-right isolate (`ltrFallback`), so it reads left to right on a
+ * Hebrew page on every surface it reaches, not only those that spread
+ * `inEnglish` on their element.
+ */
+const pick = (lang: Lang) => (x: Text) => (lang !== "he" ? x.en : x.he ? x.he : ltrFallback(x.en));
 
 /*
  * Absent and empty are written back as absent, the way the data files write

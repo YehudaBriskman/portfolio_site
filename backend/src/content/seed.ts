@@ -14,7 +14,8 @@ export const CONTENT_SEED: unknown = {
         "slug": "windom",
         "title": "WindoM",
         "fact": {
-          "en": "Every new tab becomes a dashboard"
+          "en": "Every new tab becomes a dashboard",
+          "he": "כל לשונית חדשה הופכת ללוח בקרה"
         },
         "fields": [
           {
@@ -31,7 +32,8 @@ export const CONTENT_SEED: unknown = {
           }
         ],
         "description": {
-          "en": "A Chrome extension that replaces the new-tab page with a personal dashboard: calendar, inbox, tasks, weather, music and markets in one view. Published on the Chrome Web Store and running for real users, with a Fastify and Postgres backend behind it."
+          "en": "A Chrome extension that replaces the new-tab page with a personal dashboard: calendar, inbox, tasks, weather, music and markets in one view. Published on the Chrome Web Store and running for real users, with a Fastify and Postgres backend behind it.",
+          "he": "תוסף ל־Chrome שמחליף את דף הלשונית החדשה בלוח בקרה אישי: יומן, דואר, משימות, מזג אוויר, מוזיקה ושווקים בתצוגה אחת. מפורסם ב־Chrome Web Store ומשמש משתמשים אמיתיים, עם בקאנד של Fastify ו־PostgreSQL מאחוריו."
         },
         "tech": [
           "React 19",
@@ -62,65 +64,80 @@ export const CONTENT_SEED: unknown = {
         "github": "https://github.com/YehudaBriskman/WindoM",
         "year": "2026",
         "status": {
-          "en": "Live on the Chrome Web Store"
+          "en": "Live on the Chrome Web Store",
+          "he": "פעיל ב־Chrome Web Store"
         },
         "state": "in-use",
         "highlights": [
           {
-            "en": "Published on the Chrome Web Store, v1.5.1"
+            "en": "Published on the Chrome Web Store, v1.5.1",
+            "he": "מפורסם ב־Chrome Web Store, גרסה 1.5.1"
           },
           {
-            "en": "Push a version tag and it builds, zips and ships to Google with no manual step"
+            "en": "Push a version tag and it builds, zips and ships to Google with no manual step",
+            "he": "תג גרסה חדש בונה, אורז ושולח ל־Google בלי שום צעד ידני"
           },
           {
-            "en": "Full stack solo: React front end, Fastify + Postgres back end, Google and Spotify OAuth"
+            "en": "Full stack solo: React front end, Fastify + Postgres back end, Google and Spotify OAuth",
+            "he": "פול־סטאק לבד: פרונטאנד ב־React, בקאנד ב־Fastify ו־PostgreSQL, ו־OAuth של Google ו־Spotify"
           }
         ],
         "problem": {
-          "en": "The things you check first thing — the time, the weather, today's tasks, what is playing, the pull requests waiting on you, the price of something you hold — each live behind their own tab, and most of the dashboards that gather them want an account or an API key before they show you anything. WindoM puts them on the page the browser already opens, and the whole first list works with no account and no keys at all."
+          "en": "The things you check first thing — the time, the weather, today's tasks, what is playing, the pull requests waiting on you, the price of something you hold — each live behind their own tab, and most of the dashboards that gather them want an account or an API key before they show you anything. WindoM puts them on the page the browser already opens, and the whole first list works with no account and no keys at all.",
+          "he": "הדברים שבודקים ראשונים בבוקר — השעה, מזג האוויר, המשימות של היום, מה מתנגן, ה־PR שמחכים לכם, המחיר של משהו שאתם מחזיקים — כל אחד מהם יושב בלשונית משלו, ורוב לוחות הבקרה שמרכזים אותם דורשים חשבון או מפתח API לפני שהם מראים משהו. WindoM שם אותם בדף שהדפדפן כבר פותח, וכל הרשימה הראשונה עובדת בלי חשבון ובלי מפתחות בכלל."
         },
         "role": {
-          "en": "Solo, across all four trees in the repository: the extension itself, the Fastify API behind it, windom.app, and the CI that releases them."
+          "en": "Solo, across all four trees in the repository: the extension itself, the Fastify API behind it, windom.app, and the CI that releases them.",
+          "he": "לבד, בכל ארבעת החלקים של המאגר: התוסף עצמו, ה־API ב־Fastify שמאחוריו, ⁦windom.app⁩, וה־CI שמוציא את הגרסאות."
         },
         "outcome": {
-          "en": "Published on the Chrome Web Store and shipping — v1.5.1 went out on 26 October 2026. A release now reads the store's answer back before it calls itself done, which is how 1.5.0 was caught sitting in the store as an unsubmitted draft while CI showed green."
+          "en": "Published on the Chrome Web Store and shipping — v1.5.1 went out on 26 October 2026. A release now reads the store's answer back before it calls itself done, which is how 1.5.0 was caught sitting in the store as an unsubmitted draft while CI showed green.",
+          "he": "מפורסם ב־Chrome Web Store וממשיך להתעדכן — גרסה 1.5.1 יצאה ב־26 באוקטובר 2026. כל release קורא עכשיו בחזרה את התשובה של החנות לפני שהוא מכריז שסיים, וכך התגלה ש־1.5.0 ישבה בחנות כטיוטה שלא הוגשה, בזמן שה־CI הראה ירוק."
         },
         "decisions": [
           {
             "title": {
-              "en": "The Gmail widget was removed for a licensing reason, not a product one."
+              "en": "The Gmail widget was removed for a licensing reason, not a product one.",
+              "he": "הווידג׳ט של Gmail הוסר מסיבה של רישוי, לא של מוצר."
             },
             "body": {
-              "en": "Reading mail needs the gmail.readonly scope, which Google classes as restricted: publishing with it requires a third-party CASA security assessment, priced per tier and recurring every year, because the mail passes through the server rather than staying in the browser. The consent screen now asks only for Calendar and sign-in, which verify for free. Nothing was deleted — the feature sits behind GMAIL_ENABLED, off by default — so it can come back if the reading is ever moved into the extension."
+              "en": "Reading mail needs the gmail.readonly scope, which Google classes as restricted: publishing with it requires a third-party CASA security assessment, priced per tier and recurring every year, because the mail passes through the server rather than staying in the browser. The consent screen now asks only for Calendar and sign-in, which verify for free. Nothing was deleted — the feature sits behind GMAIL_ENABLED, off by default — so it can come back if the reading is ever moved into the extension.",
+              "he": "קריאת דואר דורשת את ההרשאה ⁦gmail.readonly⁩, ש־Google מסווגת כמוגבלת: פרסום איתה מחייב הערכת אבטחה חיצונית מסוג CASA, שמתומחרת לפי דרגה ומתחדשת כל שנה, כי הדואר עובר דרך השרת במקום להישאר בדפדפן. מסך ההסכמה מבקש עכשיו רק את Calendar ואת ההתחברות, שמאומתים בחינם. שום דבר לא נמחק — היכולת יושבת מאחורי ⁦GMAIL_ENABLED⁩, כבויה כברירת מחדל — כך שהיא יכולה לחזור אם הקריאה תעבור פעם לתוך התוסף."
             }
           },
           {
             "title": {
-              "en": "The glass is computed optics rather than a stack of CSS tricks."
+              "en": "The glass is computed optics rather than a stack of CSS tricks.",
+              "he": "הזכוכית היא אופטיקה מחושבת, לא ערימה של טריקים ב־CSS."
             },
             "body": {
-              "en": "The rim of every pane bends the wallpaper behind it through Snell's law, across a quartic squircle profile, with the direction taken from a rounded-rectangle distance field and incidence capped at 65 degrees — past that, Fresnel reflectance means a real surface reflects rather than transmits. Each distinct pane geometry gets its own displacement field, generated once and cached."
+              "en": "The rim of every pane bends the wallpaper behind it through Snell's law, across a quartic squircle profile, with the direction taken from a rounded-rectangle distance field and incidence capped at 65 degrees — past that, Fresnel reflectance means a real surface reflects rather than transmits. Each distinct pane geometry gets its own displacement field, generated once and cached.",
+              "he": "השוליים של כל לוח מכופפים את הטפט שמאחוריהם לפי חוק סנל, לאורך פרופיל של סקווירקל ממעלה רביעית, כשהכיוון נלקח משדה מרחק של מלבן מעוגל וזווית הפגיעה מוגבלת ל־65 מעלות — מעבר לזה, לפי משוואות פרנל, משטח אמיתי מחזיר את האור במקום להעביר אותו. כל צורת לוח מקבלת שדה הסטה משלה, שנוצר פעם אחת ונשמר במטמון."
             }
           },
           {
             "title": {
-              "en": "Signing in logged you straight back out — one fault, several symptoms."
+              "en": "Signing in logged you straight back out — one fault, several symptoms.",
+              "he": "ההתחברות הוציאה אתכם מיד מהחשבון — תקלה אחת, כמה תסמינים."
             },
             "body": {
-              "en": "Calendar, Spotify and Gmail each return 401 when their own provider grant is stale. Every one of those was being read as an expired session and driving a token refresh, and five of them exhausted the refresh endpoint's budget of five per fifteen minutes within seconds. The resulting 429 was then read as a dead session and logged the user out, so the more integrations someone had connected, the faster it happened. A 401 from a provider route is now that provider's to report."
+              "en": "Calendar, Spotify and Gmail each return 401 when their own provider grant is stale. Every one of those was being read as an expired session and driving a token refresh, and five of them exhausted the refresh endpoint's budget of five per fifteen minutes within seconds. The resulting 429 was then read as a dead session and logged the user out, so the more integrations someone had connected, the faster it happened. A 401 from a provider route is now that provider's to report.",
+              "he": "‏Calendar,‏ Spotify ו־Gmail מחזירים כל אחד 401 כשההרשאה אצל הספק שלהם כבר לא בתוקף. כל תשובה כזאת נקראה כסשן שפג תוקפו והפעילה רענון של האסימון, וחמש כאלה כילו תוך שניות את המכסה של נקודת הקצה לרענון — חמש בכל רבע שעה. ה־429 שחזר נקרא אז כסשן מת והוציא את המשתמש מהחשבון, כך שככל שמישהו חיבר יותר שירותים, זה קרה מהר יותר. ‏401 מנתיב של ספק הוא עכשיו עניין של אותו ספק לדווח עליו."
             }
           }
         ],
         "order": 10,
         "storyLine": {
-          "en": "Published in the Chrome Web Store: a review, a privacy policy, an update channel."
+          "en": "Published in the Chrome Web Store: a review, a privacy policy, an update channel.",
+          "he": "מפורסם ב־Chrome Web Store: בדיקה של החנות, מדיניות פרטיות, ערוץ עדכונים."
         }
       },
       {
         "slug": "bothy",
         "title": "Bothy",
         "fact": {
-          "en": "A console for one machine that asks Docker what is running"
+          "en": "A console for one machine that asks Docker what is running",
+          "he": "קונסולה למכונה אחת ששואלת את Docker מה רץ"
         },
         "fields": [
           {
@@ -137,7 +154,8 @@ export const CONTENT_SEED: unknown = {
           }
         ],
         "description": {
-          "en": "A self-hosted console for a single machine. It reports containers, ports, routes, metrics and files by asking Docker directly rather than reading a list someone has to remember to update, so what it shows is what is actually running."
+          "en": "A self-hosted console for a single machine. It reports containers, ports, routes, metrics and files by asking Docker directly rather than reading a list someone has to remember to update, so what it shows is what is actually running.",
+          "he": "קונסולה באירוח עצמי למכונה אחת. היא מדווחת על קונטיינרים, פורטים, נתיבים, מדדים וקבצים בכך שהיא שואלת את Docker ישירות, במקום לקרוא רשימה שמישהו צריך לזכור לעדכן — כך שמה שהיא מראה הוא מה שבאמת רץ."
         },
         "tech": [
           "React 19",
@@ -161,68 +179,325 @@ export const CONTENT_SEED: unknown = {
         "github": "https://github.com/YehudaBriskman/Bothy",
         "year": "2026",
         "status": {
-          "en": "Open source, self-hosted"
+          "en": "Open source, self-hosted",
+          "he": "קוד פתוח, באירוח עצמי"
         },
         "state": "open-source",
         "highlights": [
           {
-            "en": "Every card is discovered, never configured"
+            "en": "Every card is discovered, never configured",
+            "he": "כל כרטיס מתגלה מעצמו, אף אחד לא מוגדר ביד"
           },
           {
-            "en": "Each PR bootstraps the whole stack from empty and runs every suite"
+            "en": "Each PR bootstraps the whole stack from empty and runs every suite",
+            "he": "כל PR מקים את כל המערכת מאפס ומריץ את כל חבילות הבדיקות"
           },
           {
-            "en": "Secrets generated at install; names logged, values never"
+            "en": "Secrets generated at install; names logged, values never",
+            "he": "סודות נוצרים בהתקנה; השמות נרשמים ללוג, הערכים אף פעם לא"
           },
           {
-            "en": "125 merged pull requests"
+            "en": "125 merged pull requests",
+            "he": "125 PR שמוזגו"
           }
         ],
         "problem": {
-          "en": "A console for one machine is normally a hand-written list, so it is wrong from the first container that moves and nobody notices until it matters. And every project on the same box ends up re-solving the pieces it does not ship: an edge, identity, observability, a shared database, backups."
+          "en": "A console for one machine is normally a hand-written list, so it is wrong from the first container that moves and nobody notices until it matters. And every project on the same box ends up re-solving the pieces it does not ship: an edge, identity, observability, a shared database, backups.",
+          "he": "קונסולה למכונה אחת היא בדרך כלל רשימה שנכתבה ביד, ולכן היא שגויה מהקונטיינר הראשון שזז, ואף אחד לא שם לב עד שזה משנה. וכל פרויקט על אותה מכונה פותר מחדש את החלקים שהוא לא מביא איתו: נקודת כניסה, זהות, ניטור, מסד נתונים משותף, גיבויים."
         },
         "role": {
-          "en": "One person's reproducible development box, in git: the console, the compose stacks beneath it, and the CI that clones the repository into an empty directory on every pull request and runs every suite in the tree against whatever came up."
+          "en": "One person's reproducible development box, in git: the console, the compose stacks beneath it, and the CI that clones the repository into an empty directory on every pull request and runs every suite in the tree against whatever came up.",
+          "he": "סביבת פיתוח של אדם אחד, שאפשר לשחזר, ב־git: הקונסולה, קובצי ה־Docker Compose שמתחתיה, וה־CI שמשכפל את המאגר לתיקייה ריקה בכל PR ומריץ כל חבילת בדיקות בעץ מול מה שעלה."
         },
         "outcome": {
-          "en": "Start any container and it appears in the console within ten seconds with no edit to Bothy; stop it and its dot goes red just as fast. Fifty routers require a role across five files, and the tables that say so are asserted against the YAML row by row rather than written by hand — the README once enumerated fourteen routers when the tree held forty-eight."
+          "en": "Start any container and it appears in the console within ten seconds with no edit to Bothy; stop it and its dot goes red just as fast. Fifty routers require a role across five files, and the tables that say so are asserted against the YAML row by row rather than written by hand — the README once enumerated fourteen routers when the tree held forty-eight.",
+          "he": "מפעילים קונטיינר כלשהו והוא מופיע בקונסולה תוך עשר שניות, בלי לגעת ב־Bothy; עוצרים אותו והנקודה שלו מאדימה באותה מהירות. חמישים נתבים דורשים תפקיד, בחמישה קבצים, והטבלאות שמתעדות את זה נבדקות מול ה־YAML שורה אחר שורה במקום להיכתב ביד — פעם ה־README מנה ארבעה־עשר נתבים כשבעץ היו ארבעים ושמונה."
         },
         "decisions": [
           {
             "title": {
-              "en": "The security boundary is the Traefik rule, not the socket proxy's configuration."
+              "en": "The security boundary is the Traefik rule, not the socket proxy's configuration.",
+              "he": "גבול האבטחה הוא הכלל ב־Traefik, לא ההגדרות של ה־⁦socket proxy⁩."
             },
             "body": {
-              "en": "docker-socket-proxy gates by endpoint family, so CONTAINERS=1 also permits /containers/{id}/json — whose body contains every container's environment, which is to say real passwords. What actually prevents that is the router, where every rule is an exact Path() and exactly two Docker endpoints are routed. Widening it to a prefix would open the rest silently."
+              "en": "docker-socket-proxy gates by endpoint family, so CONTAINERS=1 also permits /containers/{id}/json — whose body contains every container's environment, which is to say real passwords. What actually prevents that is the router, where every rule is an exact Path() and exactly two Docker endpoints are routed. Widening it to a prefix would open the rest silently.",
+              "he": "⁦docker-socket-proxy⁩ מסנן לפי משפחה של נקודות קצה, ולכן ⁦CONTAINERS=1⁩ מתיר גם את ⁦/containers/{id}/json⁩ — שהתשובה שלה מכילה את משתני הסביבה של כל קונטיינר, כלומר סיסמאות אמיתיות. מה שבאמת מונע את זה הוא הנתב, שבו כל כלל הוא ⁦Path()⁩ מדויק ורק שתי נקודות קצה של Docker מנותבות. הרחבה לקידומת הייתה פותחת את כל השאר בשקט."
             }
           },
           {
             "title": {
-              "en": "There is no exec, and that is a deliberate regression."
+              "en": "There is no exec, and that is a deliberate regression.",
+              "he": "אין ⁦exec⁩, וזו נסיגה מכוונת."
             },
             "body": {
-              "en": "No shell in the browser, no kill, no create, no image or volume management. docker exec is root on the box, so EXEC: 0 is written out explicitly on all three socket proxies rather than left to a default, the verb list is a literal three-element tuple that is never derived from the handlers, and a check asserts both. Portainer did offer it, and was deleted; the replacement is docker exec over Tailscale SSH."
+              "en": "No shell in the browser, no kill, no create, no image or volume management. docker exec is root on the box, so EXEC: 0 is written out explicitly on all three socket proxies rather than left to a default, the verb list is a literal three-element tuple that is never derived from the handlers, and a check asserts both. Portainer did offer it, and was deleted; the replacement is docker exec over Tailscale SSH.",
+              "he": "אין מעטפת בדפדפן, אין ⁦kill⁩, אין ⁦create⁩, אין ניהול של אימג׳ים או של אחסון. ⁦docker exec⁩ הוא ⁦root⁩ על המכונה, ולכן ⁦EXEC: 0⁩ כתוב במפורש בכל שלושת ה־⁦socket proxies⁩ במקום להישאר לברירת המחדל, רשימת הפעולות היא רשימה קבועה של שלושה איברים, שאף פעם לא נגזרת מהקוד שמטפל בבקשות, ובדיקה מוודאת את שניהם. Portainer כן הציע את זה, והוא נמחק; התחליף הוא ⁦docker exec⁩ מעל Tailscale SSH."
             }
           },
           {
             "title": {
-              "en": "One function owns the walk, so the security check is not something a caller has to remember."
+              "en": "One function owns the walk, so the security check is not something a caller has to remember.",
+              "he": "פונקציה אחת אחראית על המעבר על הקבצים, כך שבדיקת האבטחה היא לא משהו שהקורא צריך לזכור."
             },
             "body": {
-              "en": "The file API's safepath.collect() is the only way the application can learn a set of paths, so a new endpoint inherits the deny rules by calling it rather than by its author remembering them. That was learned twice: a listing doing its own walk paid for 30,093 refused files to serve 3,474, and when full-text search arrived the same shortcut would have returned a matching line out of .env with the deny-list still technically correct."
+              "en": "The file API's safepath.collect() is the only way the application can learn a set of paths, so a new endpoint inherits the deny rules by calling it rather than by its author remembering them. That was learned twice: a listing doing its own walk paid for 30,093 refused files to serve 3,474, and when full-text search arrived the same shortcut would have returned a matching line out of .env with the deny-list still technically correct.",
+              "he": "⁦safepath.collect()⁩ של ה־API לקבצים היא הדרך היחידה שבה האפליקציה יכולה לקבל קבוצה של נתיבים, כך שנקודת קצה חדשה יורשת את כללי החסימה בכך שהיא קוראת לה, ולא בזכות זה שמי שכתב אותה זכר אותם. זה נלמד פעמיים: רשימת קבצים שעברה על התיקיות בעצמה שילמה על 30,093 קבצים חסומים כדי להגיש 3,474, וכשהגיע חיפוש בטקסט מלא, אותו קיצור דרך היה מחזיר שורה תואמת מתוך ⁦.env⁩ בזמן שרשימת החסימה עדיין נכונה, טכנית."
             }
           }
         ],
         "order": 11,
         "storyLine": {
-          "en": "Open source. The install has to work on a machine its author has never seen."
+          "en": "Open source. The install has to work on a machine its author has never seen.",
+          "he": "קוד פתוח. ההתקנה צריכה לעבוד על מכונה שמי שכתב אותה מעולם לא ראה."
+        }
+      },
+      {
+        "slug": "portfolio-site",
+        "title": "Portfolio site",
+        "fact": {
+          "en": "This site: a portfolio and notes in English and Hebrew, with its own admin",
+          "he": "האתר הזה: פרויקטים ורשימות באנגלית ובעברית, עם ממשק ניהול משלו"
+        },
+        "fields": [
+          {
+            "kind": "state",
+            "value": "live"
+          },
+          {
+            "kind": "tech",
+            "value": "React 19"
+          },
+          {
+            "kind": "when",
+            "value": "2026"
+          }
+        ],
+        "description": {
+          "en": "The site you are reading: a React single-page app in front of an Express API, with the content in CouchDB and an admin for writing it. Every page is in English and Hebrew, and every release is a tag that promotes images CI already built, tested and scanned.",
+          "he": "האתר שאתם קוראים: אפליקציית עמוד יחיד ב־React מול API ב־Express, עם התוכן ב־CouchDB וממשק ניהול לכתיבה שלו. כל עמוד קיים באנגלית ובעברית, וכל release הוא תג שמקדם אימג׳ים שה־CI כבר בנה, בדק וסרק."
+        },
+        "tech": [
+          "React 19",
+          "TypeScript",
+          "Vite",
+          "Express",
+          "CouchDB",
+          "nginx",
+          "Docker",
+          "Kubernetes",
+          "GitHub Actions"
+        ],
+        "image": "/projects/portfolio_site.jpg",
+        "tint": [
+          35,
+          64,
+          107
+        ],
+        "link": "https://yehudabriskman.com",
+        "linkLabel": "yehudabriskman.com",
+        "links": [],
+        "github": "https://github.com/YehudaBriskman/portfolio_site",
+        "year": "2026",
+        "status": {
+          "en": "Live, released by tag",
+          "he": "פעיל, גרסה חדשה רק מתג"
+        },
+        "state": "live",
+        "highlights": [
+          {
+            "en": "Every page in English and Hebrew, the Hebrew right to left",
+            "he": "כל עמוד באנגלית ובעברית, והעברית מימין לשמאל"
+          },
+          {
+            "en": "A tag promotes the images main already built, tested and scanned; it builds nothing",
+            "he": "תג מקדם את האימג׳ים ש־main כבר בנה, בדק וסרק; הוא לא בונה כלום"
+          },
+          {
+            "en": "Content, pictures and notes are edited in its own admin, as drafts that are then published",
+            "he": "תוכן, תמונות ורשימות נערכים בממשק הניהול של האתר, כטיוטות שמתפרסמות אחר כך"
+          },
+          {
+            "en": "170 merged pull requests",
+            "he": "170 PR שמוזגו"
+          }
+        ],
+        "problem": {
+          "en": "Every word on the home page, the story and the projects used to be a constant in the code, so changing a sentence was a deploy. And a single-page app returns the same empty shell for every address, which is what a crawler or a link preview sees.",
+          "he": "כל מילה בעמוד הבית, בסיפור ובפרויקטים הייתה פעם קבוע בקוד, כך שכל שינוי של משפט היה deploy. ואפליקציית עמוד יחיד מחזירה את אותה מעטפת ריקה לכל כתובת, וזה מה שרואים סורק של מנוע חיפוש או תצוגה מקדימה של קישור."
+        },
+        "role": {
+          "en": "Solo: the React front end, the Express API and its content store, the admin and the MCP server used to write in it, and the CI that builds, tests and releases it.",
+          "he": "לבד: הפרונטאנד ב־React, ה־API ב־Express ומסד התוכן שלו, ממשק הניהול ושרת ה־MCP שכותבים דרכם, וה־CI שבונה, בודק ומוציא גרסאות."
+        },
+        "outcome": {
+          "en": "Live at yehudabriskman.com, with v1.0.0, v1.1.0 and v1.2.0 tagged between 2 and 4 November 2026. Every push to main runs on a preprod copy first, and nothing reaches this site until somebody tags it.",
+          "he": "פעיל ב־⁦yehudabriskman.com⁩, עם ⁦v1.0.0⁩, ⁦v1.1.0⁩ ו־⁦v1.2.0⁩ שתויגו בין 2 ל־4 בנובמבר 2026. כל push ל־main רץ קודם על עותק preprod, ושום דבר לא מגיע לאתר הזה עד שמישהו מתייג אותו."
+        },
+        "decisions": [
+          {
+            "title": {
+              "en": "Merging does not ship. A tag does.",
+              "he": "מיזוג לא עושה deploy. תג כן."
+            },
+            "body": {
+              "en": "A push to main is built, tested, scanned and published, and CI records a release manifest for that commit: the source commit, both images by digest, their build inputs and the scan result. It then rolls out to preprod. Nothing reaches the live site until somebody tags a commit, so a rollback has a name — v1.2.0 is something you can redeploy.",
+              "he": "‏push ל־main נבנה, נבדק, נסרק ומתפרסם, וה־CI רושם release manifest לאותו קומיט: קומיט המקור, שני האימג׳ים לפי digest, הקלטים של הבנייה ותוצאת הסריקה. אחר כך הוא עולה ל־preprod. שום דבר לא מגיע לאתר עד שמישהו מתייג קומיט, כך שלשחזור יש שם — ⁦v1.2.0⁩ הוא משהו שאפשר לעשות לו deploy מחדש."
+            }
+          },
+          {
+            "title": {
+              "en": "A tag builds nothing.",
+              "he": "תג לא בונה כלום."
+            },
+            "body": {
+              "en": "It promotes the digests main's CI already built, tested, scanned and recorded for that commit. A tag on a commit main never recorded fails, saying so, and a release older than the one in production is refused unless the run says it is a rollback. A digest cannot move, and it is the exact image that was scanned.",
+              "he": "הוא מקדם את ה־digests שה־CI של main כבר בנה, בדק, סרק ורשם לאותו קומיט. תג על קומיט ש־main אף פעם לא רשם נכשל, ואומר למה, ו־release ישן יותר מזה שבסביבת הייצור נדחה, אלא אם ההרצה מצהירה שזה שחזור. ‏digest לא יכול לזוז, והוא בדיוק האימג׳ שנסרק."
+            }
+          },
+          {
+            "title": {
+              "en": "The page never waits for the API to paint.",
+              "he": "העמוד אף פעם לא מחכה ל־API כדי להופיע."
+            },
+            "body": {
+              "en": "The site renders from the data files in the repository from the first frame, and swaps in what the content store serves once it answers. A dead API, a body that fails the schema, or a store that was never seeded all leave the files in place, so the page is never blank.",
+              "he": "האתר מצטייר מקובצי הנתונים שבמאגר כבר מהפריים הראשון, ומחליף אותם במה שמסד התוכן מגיש ברגע שהוא עונה. ‏API שלא עונה, תשובה שלא עוברת את הסכמה, או מסד שמעולם לא אוכלס — בכל המקרים האלה הקבצים נשארים, כך שהעמוד אף פעם לא ריק."
+            }
+          }
+        ],
+        "order": 20,
+        "storyLine": {
+          "en": "Released by tag: a push to main reaches preprod, and only a tag reaches this site.",
+          "he": "גרסאות לפי תג: push ל־main מגיע ל־preprod, ורק תג מגיע לאתר הזה."
+        }
+      },
+      {
+        "slug": "oci-free",
+        "title": "oci-free",
+        "fact": {
+          "en": "The one free-tier ARM node this site runs on, written as code",
+          "he": "שרת ה־ARM החינמי היחיד שהאתר הזה רץ עליו, כתוב כקוד"
+        },
+        "fields": [
+          {
+            "kind": "state",
+            "value": "open-source"
+          },
+          {
+            "kind": "tech",
+            "value": "Terraform"
+          },
+          {
+            "kind": "where",
+            "value": "Oracle Cloud"
+          }
+        ],
+        "description": {
+          "en": "The infrastructure behind this site: Terraform (run with OpenTofu) for an Oracle Cloud Always Free network and its one Ampere ARM instance, and the k3s manifests, pinned Helm releases and scripts that run the site, its preprod copy and their monitoring on it.",
+          "he": "התשתית שמאחורי האתר: Terraform (שמורץ עם OpenTofu) לרשת ב־Oracle Cloud Always Free ולמכונת ה־Ampere ARM היחידה שבה, וה־manifests של k3s, גרסאות Helm נעוצות והסקריפטים שמריצים עליה את האתר, את עותק ה־preprod ואת הניטור שלהם."
+        },
+        "tech": [
+          "Terraform",
+          "OpenTofu",
+          "Oracle Cloud",
+          "k3s",
+          "Kubernetes",
+          "Helm",
+          "Traefik",
+          "cert-manager",
+          "cloud-init",
+          "Prometheus"
+        ],
+        "image": "/projects/oci_free.jpg",
+        "tint": [
+          31,
+          138,
+          91
+        ],
+        "link": null,
+        "linkLabel": null,
+        "links": [],
+        "github": "https://github.com/YehudaBriskman/oci-free",
+        "year": "2026",
+        "status": {
+          "en": "Open source, running this site",
+          "he": "קוד פתוח, מריץ את האתר הזה"
+        },
+        "state": "open-source",
+        "highlights": [
+          {
+            "en": "Fits Oracle's Always Free limits: one ARM instance, 2 OCPU and 12 GB",
+            "he": "נכנס במגבלות Always Free של Oracle: מכונת ARM אחת, 2 OCPU ו־12 GB"
+          },
+          {
+            "en": "Every Helm release installed at a version written in the repository, and CI renders each values file against it",
+            "he": "כל התקנת Helm בגרסה שכתובה במאגר, וה־CI מרנדר מולה כל קובץ ⁦values⁩"
+          },
+          {
+            "en": "Each environment's deploy credential can roll out only its own namespace",
+            "he": "הרשאת ה־deploy של כל סביבה יכולה לעדכן רק את ה־namespace שלה"
+          },
+          {
+            "en": "Two replicas and a disruption budget for the site's web and API, for rollouts with zero downtime",
+            "he": "שני עותקים ותקציב שיבושים (⁦PodDisruptionBudget⁩) ל־⁦web⁩ ול־API של האתר, לעדכונים בלי השבתה"
+          }
+        ],
+        "problem": {
+          "en": "A server set up by hand cannot be built again the same way. Until the chart versions were written down, a rebuild would have installed whatever each chart was on the day, and the site's images used to be built on the node from a copy of a working directory rather than from what was committed.",
+          "he": "שרת שהוקם ביד אי אפשר לבנות שוב באותה צורה. עד שגרסאות ה־charts נכתבו, בנייה מחדש הייתה מתקינה את מה שכל chart היה באותו יום, והאימג׳ים של האתר נבנו על השרת עצמו מעותק של תיקיית עבודה, ולא ממה שנכנס ל־git."
+        },
+        "role": {
+          "en": "Solo: the Terraform for the network and the instance, the cluster's manifests and Helm values, the scripts around them, and the CI that checks every one of them.",
+          "he": "לבד: ה־Terraform לרשת ולמכונה, ה־manifests וקובצי ה־⁦values⁩ של Helm בקלאסטר, הסקריפטים סביבם, וה־CI שבודק כל אחד מהם."
+        },
+        "outcome": {
+          "en": "This site and its preprod copy run here as two namespaces, rolled out by the site's CI by digest and never built on the node. A rebuild is written down: apply the Terraform, apply the manifests, then each Helm release at its recorded version.",
+          "he": "האתר הזה ועותק ה־preprod שלו רצים כאן כשני namespaces, מתעדכנים מה־CI של האתר לפי digest ואף פעם לא נבנים על השרת. בנייה מחדש כתובה: להחיל את ה־Terraform, להחיל את ה־manifests, ואז כל התקנת Helm בגרסה שנרשמה לה."
+        },
+        "decisions": [
+          {
+            "title": {
+              "en": "Traefik on the node, not Oracle's load balancer.",
+              "he": "‏Traefik על השרת, לא מאזן העומסים של Oracle."
+            },
+            "body": {
+              "en": "k3s already ships Traefik, so the node takes its own traffic and the free tier's one 10 Mbps load balancer stays unused. Any allowlist by source address needs externalTrafficPolicy: Local on it, because the default rewrites every client's address into an internal one and the allowlist then refuses everybody.",
+              "he": "‏k3s כבר מגיע עם Traefik, אז השרת מקבל את התעבורה שלו בעצמו, ומאזן העומסים היחיד של השכבה החינמית, ‏10 Mbps, נשאר בלי שימוש. כל רשימת היתרים לפי כתובת מקור צריכה עליו ⁦externalTrafficPolicy: Local⁩, כי ברירת המחדל משכתבת את הכתובת של כל לקוח לכתובת פנימית, ואז הרשימה דוחה את כולם."
+            }
+          },
+          {
+            "title": {
+              "en": "The manifests name no image for the site.",
+              "he": "ה־manifests לא נוקבים באימג׳ של האתר."
+            },
+            "body": {
+              "en": "CI owns that field. The site's two Deployments carry no image, so applying the manifests updates everything else and leaves the running digest alone. A manifest that said :latest would put the last release back over whatever CI had rolled out to preprod.",
+              "he": "השדה הזה שייך ל־CI. בשני ה־⁦Deployments⁩ של האתר אין שדה ⁦image⁩, כך שהחלה של ה־manifests מעדכנת את כל השאר ולא נוגעת ב־digest שרץ. manifest שהיה כתוב בו ⁦:latest⁩ היה מחזיר את ה־release האחרון מעל מה שה־CI העלה ל־preprod."
+            }
+          },
+          {
+            "title": {
+              "en": "A deploy credential per environment.",
+              "he": "הרשאת deploy נפרדת לכל סביבה."
+            },
+            "body": {
+              "en": "RBAC grants verbs on objects, not on fields, so permission to patch a Deployment is permission to rewrite its whole pod template: a deploy token is worth everything in its namespace. So preprod and production each have their own account, able to roll out only its own namespace, and the production one can be read only by a release tag.",
+              "he": "‏RBAC נותן פעולות על אובייקטים, לא על שדות, כך שהרשאה לעשות ⁦patch⁩ ל־⁦Deployment⁩ היא הרשאה לשכתב את כל תבנית ה־pod שלו: אסימון deploy שווה את כל מה שיש ב־namespace שלו. לכן ל־preprod ולסביבת הייצור יש חשבון נפרד לכל אחת, שיכול לעדכן רק את ה־namespace שלו, ואת זה של סביבת הייצור אפשר לקרוא רק מתג של release."
+            }
+          }
+        ],
+        "order": 21,
+        "storyLine": {
+          "en": "The machine under this site, written down so it can be built again.",
+          "he": "המכונה שמתחת לאתר הזה, כתובה כך שאפשר לבנות אותה שוב."
         }
       },
       {
         "slug": "programming-with-yehuda",
         "title": "Programming with Yehuda",
         "fact": {
-          "en": "Lesson pages built while learning React and Node"
+          "en": "Lesson pages built while learning React and Node",
+          "he": "דפי שיעורים שנבנו תוך כדי לימוד React ו־Node.js"
         },
         "fields": [
           {
@@ -239,7 +514,8 @@ export const CONTENT_SEED: unknown = {
           }
         ],
         "description": {
-          "en": "A learning project: a small site of programming lesson pages, built while learning React and Node.js."
+          "en": "A learning project: a small site of programming lesson pages, built while learning React and Node.js.",
+          "he": "פרויקט לימודי: אתר קטן של דפי שיעורים בתכנות, שנבנה תוך כדי לימוד React ו־Node.js."
         },
         "tech": [
           "React",
@@ -259,7 +535,8 @@ export const CONTENT_SEED: unknown = {
         "github": null,
         "year": "2025",
         "status": {
-          "en": "Learning project"
+          "en": "Learning project",
+          "he": "פרויקט לימודי"
         },
         "state": "archive",
         "highlights": [],
@@ -269,14 +546,16 @@ export const CONTENT_SEED: unknown = {
         "decisions": [],
         "order": 50,
         "storyLine": {
-          "en": "A learning project, written to practise React and Node."
+          "en": "A learning project, written to practise React and Node.",
+          "he": "פרויקט לימודי, שנכתב כדי לתרגל React ו־Node.js."
         }
       },
       {
         "slug": "icaros",
         "title": "Icaros",
         "fact": {
-          "en": "A car-listing web app, built while learning React and Node"
+          "en": "A car-listing web app, built while learning React and Node",
+          "he": "אפליקציית ווב למודעות רכב, שנבנתה תוך כדי לימוד React ו־Node.js"
         },
         "fields": [
           {
@@ -293,7 +572,8 @@ export const CONTENT_SEED: unknown = {
           }
         ],
         "description": {
-          "en": "A learning project: a car-listing web app with a React front end and a Node.js and MongoDB back end, built while learning the stack."
+          "en": "A learning project: a car-listing web app with a React front end and a Node.js and MongoDB back end, built while learning the stack.",
+          "he": "פרויקט לימודי: אפליקציית ווב למודעות רכב, עם פרונטאנד ב־React ובקאנד ב־Node.js ו־MongoDB, שנבנתה תוך כדי לימוד הטכנולוגיות."
         },
         "tech": [
           "React",
@@ -313,7 +593,8 @@ export const CONTENT_SEED: unknown = {
         "github": null,
         "year": "2025",
         "status": {
-          "en": "Learning project"
+          "en": "Learning project",
+          "he": "פרויקט לימודי"
         },
         "state": "archive",
         "highlights": [],
@@ -323,7 +604,8 @@ export const CONTENT_SEED: unknown = {
         "decisions": [],
         "order": 51,
         "storyLine": {
-          "en": "A learning project: a React front end on a Node.js and MongoDB back end."
+          "en": "A learning project: a React front end on a Node.js and MongoDB back end.",
+          "he": "פרויקט לימודי: פרונטאנד ב־React על גבי בקאנד ב־Node.js ו־MongoDB."
         }
       }
     ]
@@ -331,11 +613,13 @@ export const CONTENT_SEED: unknown = {
   "story": {
     "start": {
       "title": {
-        "en": "Started shipping"
+        "en": "Started shipping",
+        "he": "ההתחלה"
       },
       "lines": [
         {
-          "en": "The first software shipped."
+          "en": "The first software shipped.",
+          "he": "התוכנה הראשונה יצאה לשימוש."
         }
       ]
     },
@@ -343,31 +627,38 @@ export const CONTENT_SEED: unknown = {
       {
         "id": "full-stack",
         "when": {
-          "en": "Then"
+          "en": "Then",
+          "he": "אחר כך"
         },
         "title": {
-          "en": "Full-stack engineer"
+          "en": "Full-stack engineer",
+          "he": "מהנדס פול־סטאק"
         },
         "lines": [
           {
-            "en": "Building software across the whole stack."
+            "en": "Building software across the whole stack.",
+            "he": "בונה תוכנה בכל השכבות."
           }
         ]
       },
       {
         "id": "now",
         "when": {
-          "en": "Now"
+          "en": "Now",
+          "he": "עכשיו"
         },
         "title": {
-          "en": "Technical team lead"
+          "en": "Technical team lead",
+          "he": "ראש צוות טכני"
         },
         "lines": [
           {
-            "en": "Leading a small team that builds and runs internal software."
+            "en": "Leading a small team that builds and runs internal software.",
+            "he": "מוביל צוות קטן שבונה ומתפעל תוכנה פנימית."
           },
           {
-            "en": "Still writing and reviewing code every day."
+            "en": "Still writing and reviewing code every day.",
+            "he": "ועדיין כותב קוד ועושה code review כל יום."
           }
         ]
       }
@@ -390,7 +681,7 @@ export const CONTENT_SEED: unknown = {
       },
       {
         "id": "loop-rely",
-        "after": "windom",
+        "after": "bothy",
         "words": {
           "en": "Then, things they relied on.",
           "he": "ואז — מערכות שאחרים סומכים עליהן."
@@ -431,14 +722,16 @@ export const CONTENT_SEED: unknown = {
           "he": "בונה מוצרים"
         },
         {
-          "en": "Build boldly"
+          "en": "Build boldly",
+          "he": "לבנות באומץ"
         },
         {
           "en": "Applied AI",
           "he": "בינה מלאכותית יישומית"
         },
         {
-          "en": "Keep improving"
+          "en": "Keep improving",
+          "he": "להשתפר כל הזמן"
         }
       ]
     },
@@ -450,34 +743,41 @@ export const CONTENT_SEED: unknown = {
       "intro": [
         {
           "label": {
-            "en": "Now"
+            "en": "Now",
+            "he": "עכשיו"
           },
           "lines": [
             {
-              "en": "I'm a full-stack engineer and a technical team lead in Tel Aviv."
+              "en": "I'm a full-stack engineer and a technical team lead in Tel Aviv.",
+              "he": "אני מהנדס פול־סטאק וראש צוות טכני בתל אביב."
             },
             {
-              "en": "I lead a small team building and running internal software, and I still write and review code every day. I never wanted the version of the job where you stop."
+              "en": "I lead a small team building and running internal software, and I still write and review code every day. I never wanted the version of the job where you stop.",
+              "he": "אני מוביל צוות קטן שבונה ומתפעל תוכנה פנימית, ועדיין כותב קוד ועושה code review כל יום. אף פעם לא רציתי את הגרסה של התפקיד שבה מפסיקים."
             }
           ]
         },
         {
           "label": {
-            "en": "Before"
+            "en": "Before",
+            "he": "לפני כן"
           },
           "lines": [
             {
-              "en": "Before that I was a full-stack engineer at Momentum Tailored Solutions."
+              "en": "Before that I was a full-stack engineer at Momentum Tailored Solutions.",
+              "he": "לפני כן הייתי מהנדס פול־סטאק ב־Momentum Tailored Solutions."
             }
           ]
         },
         {
           "label": {
-            "en": "Outside work"
+            "en": "Outside work",
+            "he": "מחוץ לעבודה"
           },
           "lines": [
             {
-              "en": "Outside work I ship my own products end to end: WindoM, a Chrome extension published in the Web Store, and Bothy, a console that reports what's running by asking Docker rather than by reading a list someone has to remember to update."
+              "en": "Outside work I ship my own products end to end: WindoM, a Chrome extension published in the Web Store, and Bothy, a console that reports what's running by asking Docker rather than by reading a list someone has to remember to update.",
+              "he": "מחוץ לעבודה אני בונה מוצרים משלי מקצה לקצה: WindoM, תוסף ל־Chrome שמפורסם ב־Chrome Web Store, ו־Bothy, קונסולה שמדווחת מה רץ בכך שהיא שואלת את Docker, במקום לקרוא רשימה שמישהו צריך לזכור לעדכן."
             }
           ]
         }
@@ -485,40 +785,49 @@ export const CONTENT_SEED: unknown = {
       "principles": [
         {
           "claim": {
-            "en": "Install from empty, every time"
+            "en": "Install from empty, every time",
+            "he": "התקנה מאפס, בכל פעם"
           },
           "lines": [
             {
-              "en": "Every pull request on Bothy clones the repository into an empty directory, runs the three-line install and nothing else, then runs every test in the tree against whatever came up."
+              "en": "Every pull request on Bothy clones the repository into an empty directory, runs the three-line install and nothing else, then runs every test in the tree against whatever came up.",
+              "he": "כל PR ב־Bothy משכפל את המאגר לתיקייה ריקה, מריץ את ההתקנה בת שלוש השורות ותו לא, ואז מריץ כל בדיקה בעץ מול מה שעלה."
             },
             {
-              "en": "A nightly job repeats it at a path with a space in it and at a six-level-deep path, because every portability bug that repo has had looked fine at exactly one path."
+              "en": "A nightly job repeats it at a path with a space in it and at a six-level-deep path, because every portability bug that repo has had looked fine at exactly one path.",
+              "he": "משימה לילית חוזרת על זה בנתיב שיש בו רווח ובנתיב בעומק שש רמות, כי כל באג ניידות שהיה במאגר הזה נראה תקין בדיוק בנתיב אחד."
             }
           ]
         },
         {
           "claim": {
-            "en": "A check that cannot fail is not a check"
+            "en": "A check that cannot fail is not a check",
+            "he": "בדיקה שלא יכולה להיכשל היא לא בדיקה"
           },
           "lines": [
             {
-              "en": "One CI job exists only to plant a mutation and require another job to catch it."
+              "en": "One CI job exists only to plant a mutation and require another job to catch it.",
+              "he": "משימת CI אחת קיימת רק כדי לשתול מוטציה ולדרוש ממשימה אחרת לתפוס אותה."
             },
             {
-              "en": "A green suite and a suite that is incapable of going red look identical from the outside, so I make the difference explicit."
+              "en": "A green suite and a suite that is incapable of going red look identical from the outside, so I make the difference explicit.",
+              "he": "חבילת בדיקות ירוקה וחבילה שלא מסוגלת להאדים נראות זהות מבחוץ, אז אני הופך את ההבדל למפורש."
             }
           ]
         },
         {
           "claim": {
-            "en": "Generated, never committed"
+            "en": "Generated, never committed",
+            "he": "נוצרים בהתקנה, לא נשמרים ב־git"
           },
           "lines": [
             {
-              "en": "Credentials are generated at install time rather than shipped as placeholders to fill in."
+              "en": "Credentials are generated at install time rather than shipped as placeholders to fill in.",
+              "he": "פרטי הגישה נוצרים בזמן ההתקנה, במקום להגיע כערכים זמניים שצריך למלא."
             },
             {
-              "en": "The bootstrap prints which keys it wrote and never their values, so there is no default password to forget about."
+              "en": "The bootstrap prints which keys it wrote and never their values, so there is no default password to forget about.",
+              "he": "סקריפט ההקמה מדפיס אילו מפתחות הוא כתב ואף פעם לא את הערכים שלהם, כך שאין סיסמת ברירת מחדל שאפשר לשכוח ממנה."
             }
           ]
         }
@@ -527,10 +836,12 @@ export const CONTENT_SEED: unknown = {
     "contact": {
       "email": "yehuda@yehudabriskman.com",
       "location": {
-        "en": "Tel Aviv, Israel"
+        "en": "Tel Aviv, Israel",
+        "he": "תל אביב, ישראל"
       },
       "availability": {
-        "en": "Open to interesting conversations"
+        "en": "Open to interesting conversations",
+        "he": "פתוח לשיחות מעניינות"
       },
       "replyWithin": {
         "en": "Usually within a day",
@@ -559,7 +870,8 @@ export const CONTENT_SEED: unknown = {
           },
           "url": "https://windom.app",
           "note": {
-            "en": "Chrome Web Store"
+            "en": "Chrome Web Store",
+            "he": "ב־Chrome Web Store"
           }
         },
         {
@@ -568,18 +880,22 @@ export const CONTENT_SEED: unknown = {
           },
           "url": "https://github.com/YehudaBriskman/Bothy",
           "note": {
-            "en": "Self-hosted"
+            "en": "Self-hosted",
+            "he": "באירוח עצמי"
           }
         }
       ],
       "colophon": {
-        "en": "Built with React and TypeScript. Runs on a single Arm machine I administer myself, behind Traefik and cert-manager, with the content in CouchDB."
+        "en": "Built with React and TypeScript. Runs on a single Arm machine I administer myself, behind Traefik and cert-manager, with the content in CouchDB.",
+        "he": "נבנה עם React ו־TypeScript. רץ על מכונת Arm אחת שאני מנהל בעצמי, מאחורי Traefik ו־cert-manager, עם התוכן ב־CouchDB."
       },
       "colophonNote": {
-        "en": "No trackers. No cookie banner, because there are no cookies."
+        "en": "No trackers. No cookie banner, because there are no cookies.",
+        "he": "בלי כלי מעקב. בלי הודעת עוגיות, כי אין עוגיות."
       },
       "place": {
-        "en": "Tel Aviv, Israel"
+        "en": "Tel Aviv, Israel",
+        "he": "תל אביב, ישראל"
       }
     }
   }

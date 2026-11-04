@@ -122,6 +122,8 @@ describe("GET /api/admin/translations", () => {
     const project = seed.projects.items[0];
     project.fact = { en: project.fact.en, he: "עובדה.", heSrc: fp(project.fact.en) } as typeof project.fact;
     project.description = { en: project.description.en, he: "תיאור.", heSrc: fp("What it said before.") } as typeof project.description;
+    /* Published without Hebrew, so the Hebrew the draft gives it is draft-only. */
+    project.storyLine = { en: project.storyLine.en };
     const draft = structuredClone(seed.projects);
     draft.items[0].storyLine = { en: project.storyLine.en, he: "שורה." };
     contentDocs.set("content:projects", { _id: "content:projects", type: "content", key: "projects", published: seed.projects, draft });

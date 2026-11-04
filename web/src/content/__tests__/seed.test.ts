@@ -79,7 +79,8 @@ describe("the content seed", () => {
     b.siteCopy.hero.phrases[0] = { en: "Technology" };
     b.siteCopy.hero.phrases[1] = { en: "Product builder", he: "בונה מוצרים" };
     const he = localize(b, "he").site.heroPhrases;
-    expect(he[0]).toBe("Technology");
+    /* The English, isolated left to right (i18n/words.ts `ltrFallback`). */
+    expect(he[0]).toBe("⁦Technology⁩");
     expect(he[1]).toBe("בונה מוצרים");
     expect(localize(b, "en").site.heroPhrases[1]).toBe("Product builder");
   });

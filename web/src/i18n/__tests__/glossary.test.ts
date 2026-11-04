@@ -45,6 +45,29 @@ const LATIN_SEEN = new Set<string>([
   "confirm: true",
   /* The conformance level, as the standard writes it. */
   "AA",
+  /*
+   * The project write-ups (data/hebrew.ts): what Israeli developers say in
+   * English and write in Latin in Hebrew prose, as the owner asked for them
+   * (2026-11-04). Each is a practitioner's term with no Hebrew in use, or a
+   * Kubernetes, git or release word that names the thing itself.
+   */
+  "chart",
+  "charts",
+  "code review",
+  "deploy",
+  "digest",
+  "digests",
+  "main",
+  "manifest",
+  "manifests",
+  "namespace",
+  "namespaces",
+  "pod",
+  "preprod",
+  "push",
+  "release",
+  "release manifest",
+  "Tailscale SSH",
 ]);
 
 function sourceFiles(dir: string, out: string[] = []): string[] {

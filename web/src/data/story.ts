@@ -1,6 +1,7 @@
 import { projects as seedProjects, type Project } from "@/data/projects";
 import { plate } from "@/data/site";
 import type { LineMove } from "@/components/motion/lineMoves";
+import { withStop } from "@/i18n/words";
 
 /*
  * The story: the work told along the other axis (#46), as a timeline (#158).
@@ -139,6 +140,8 @@ export const LINES: Record<string, string> = {
   "programming-with-yehuda": "A learning project, written to practise React and Node.",
   windom: "Published in the Chrome Web Store: a review, a privacy policy, an update channel.",
   bothy: "Open source. The install has to work on a machine its author has never seen.",
+  "portfolio-site": "Released by tag: a push to main reaches preprod, and only a tag reaches this site.",
+  "oci-free": "The machine under this site, written down so it can be built again.",
 };
 
 /** The beats written by hand. The start's year is `plate.shippingSince`. */
@@ -183,8 +186,8 @@ export const LAYOUTS: Record<string, BeatLayout> = {
 
 /*
  * The interludes: where the line breaks out of the timeline and draws a loop
- * round a few words. Closer together as the story goes on — after three
- * beats, three more, then two — so the scroll gathers pace towards now. Each
+ * round a few words. Never further apart as the story goes on — after two
+ * beats, then three, then three — so the scroll does not slow towards now. Each
  * names the beat it follows, and `buildStory` refuses one that names no beat.
  *
  * Both languages are in the DOM, each with its own `lang`; the stylesheet
@@ -199,7 +202,7 @@ export const INTERLUDES: Interlude[] = [
   },
   {
     id: "loop-rely",
-    after: "windom",
+    after: "bothy",
     words: { en: "Then, things they relied on.", he: "ואז — מערכות שאחרים סומכים עליהן." },
   },
   {
@@ -259,7 +262,7 @@ export function buildStory(
       kind: "project" as const,
       when: p.year,
       title: p.title,
-      lines: [`${p.fact}.`, lines[p.slug]],
+      lines: [withStop(p.fact), lines[p.slug]],
       href: `/projects/${p.slug}`,
     })),
     ...ROLES.map((r) => ({ ...r, kind: "role" as const })),

@@ -98,6 +98,44 @@ export function hasHebrew(text: string | null | undefined): boolean {
   return Boolean(text && HEBREW.test(text));
 }
 
+/** Left-to-right isolate and its closing pop (UAX #9): the run between them lays out LTR. */
+export const LRI = "\u2066";
+export const PDI = "\u2069";
+
+/**
+ * English standing in for missing Hebrew, as text that lays out left to right
+ * wherever it lands.
+ *
+ * `inEnglish` below fixes this per element, and only where a component
+ * remembered to spread it: /story's role lines did not, so on /he/story
+ * "Still writing and reviewing code every day." printed with its full stop at
+ * the left, the English run reordered by the RTL paragraph round it. This
+ * fixes it in the string, at the one place a missing `he` becomes its `en`
+ * (`content/convert.ts`, `pick`), so every surface the store's text reaches
+ * (a paragraph, a list item, a heading, an `alt`) gets an isolated LTR run
+ * whatever element it is put in. LRI…PDI is the plain-text form of
+ * `<bdi dir="ltr">` / `unicode-bidi: isolate; direction: ltr`; the words of
+ * `Written` are inline spans, which the bidi algorithm does not see, so the
+ * isolate holds across them.
+ *
+ * Only text that needs it is wrapped: something with a Latin letter and no
+ * Hebrew. A number is left alone, and so is text already isolated.
+ */
+export function ltrFallback(text: string): string {
+  if (!text || hasHebrew(text) || !/[A-Za-z]/.test(text) || text.startsWith(LRI)) return text;
+  return `${LRI}${text}${PDI}`;
+}
+
+/**
+ * A sentence with its full stop, inside the isolate when the sentence is one:
+ * "⁦Every new tab⁩" + "." would put the stop outside the LTR run, at the RTL
+ * paragraph's end, which is the left: the bug `ltrFallback` exists to fix.
+ */
+export function withStop(text: string): string {
+  if (text.endsWith(PDI)) return `${text.slice(0, -PDI.length)}.${PDI}`;
+  return `${text}.`;
+}
+
 /**
  * The attributes for a piece of content that may have fallen back to English.
  *

@@ -264,6 +264,125 @@ export const projects: Project[] = [
     order: 11,
   },
   {
+    /*
+     * This site (2026-11-04). Every sentence is from the repository's README,
+     * its release tags and its merged pull requests; the count is
+     * `gh pr list --state merged` on the day it was written.
+     */
+    slug: "portfolio-site",
+    title: "Portfolio site",
+    fact: "This site: a portfolio and notes in English and Hebrew, with its own admin",
+    fields: [
+      { kind: "state", value: "live" },
+      { kind: "tech", value: "React 19" },
+      { kind: "when", value: "2026" },
+    ],
+    /* #23406B — the site's one accent (`--signal` in index.css). Its cover
+       (`public/projects/portfolio_site.jpg`, the live home page) is paper,
+       ink and a warm-toned portrait; the only blue in it is the accent's dot
+       beside the hero's phrase, and that blue is what the site is. */
+    tint: [35, 64, 107],
+    description:
+      "The site you are reading: a React single-page app in front of an Express API, with the content in CouchDB and an admin for writing it. Every page is in English and Hebrew, and every release is a tag that promotes images CI already built, tested and scanned.",
+    tech: ["React 19", "TypeScript", "Vite", "Express", "CouchDB", "nginx", "Docker", "Kubernetes", "GitHub Actions"],
+    image: "/projects/portfolio_site.jpg",
+    link: "https://yehudabriskman.com",
+    linkLabel: "yehudabriskman.com",
+    github: "https://github.com/YehudaBriskman/portfolio_site",
+    year: "2026",
+    status: "Live, released by tag",
+    state: "live",
+    highlights: [
+      "Every page in English and Hebrew, the Hebrew right to left",
+      "A tag promotes the images main already built, tested and scanned; it builds nothing",
+      "Content, pictures and notes are edited in its own admin, as drafts that are then published",
+      "170 merged pull requests",
+    ],
+    problem:
+      "Every word on the home page, the story and the projects used to be a constant in the code, so changing a sentence was a deploy. And a single-page app returns the same empty shell for every address, which is what a crawler or a link preview sees.",
+    role:
+      "Solo: the React front end, the Express API and its content store, the admin and the MCP server used to write in it, and the CI that builds, tests and releases it.",
+    outcome:
+      "Live at yehudabriskman.com, with v1.0.0, v1.1.0 and v1.2.0 tagged between 2 and 4 November 2026. Every push to main runs on a preprod copy first, and nothing reaches this site until somebody tags it.",
+    decisions: [
+      {
+        title: "Merging does not ship. A tag does.",
+        body:
+          "A push to main is built, tested, scanned and published, and CI records a release manifest for that commit: the source commit, both images by digest, their build inputs and the scan result. It then rolls out to preprod. Nothing reaches the live site until somebody tags a commit, so a rollback has a name — v1.2.0 is something you can redeploy.",
+      },
+      {
+        title: "A tag builds nothing.",
+        body:
+          "It promotes the digests main's CI already built, tested, scanned and recorded for that commit. A tag on a commit main never recorded fails, saying so, and a release older than the one in production is refused unless the run says it is a rollback. A digest cannot move, and it is the exact image that was scanned.",
+      },
+      {
+        title: "The page never waits for the API to paint.",
+        body:
+          "The site renders from the data files in the repository from the first frame, and swaps in what the content store serves once it answers. A dead API, a body that fails the schema, or a store that was never seeded all leave the files in place, so the page is never blank.",
+      },
+    ],
+    /* 20 and up: listed, not pinned. Pinning is the owner's call. */
+    order: 20,
+  },
+  {
+    /*
+     * The infrastructure under this site (2026-11-04), from oci-free's README,
+     * its manifests and its merged pull requests. Public facts only: no
+     * address, host, node name, account or secret is named here, and the
+     * cover is a diagram drawn from the same facts with generic names.
+     */
+    slug: "oci-free",
+    title: "oci-free",
+    fact: "The one free-tier ARM node this site runs on, written as code",
+    fields: [
+      { kind: "state", value: "open-source" },
+      { kind: "tech", value: "Terraform" },
+      { kind: "where", value: "Oracle Cloud" },
+    ],
+    /* #1F8A5B — the k3s cluster's outline in its own cover
+       (`public/projects/oci_free.jpg`, scripts/covers/oci-free.svg), the one
+       chromatic colour in a diagram drawn in the site's paper and ink. */
+    tint: [31, 138, 91],
+    description:
+      "The infrastructure behind this site: Terraform (run with OpenTofu) for an Oracle Cloud Always Free network and its one Ampere ARM instance, and the k3s manifests, pinned Helm releases and scripts that run the site, its preprod copy and their monitoring on it.",
+    tech: ["Terraform", "OpenTofu", "Oracle Cloud", "k3s", "Kubernetes", "Helm", "Traefik", "cert-manager", "cloud-init", "Prometheus"],
+    image: "/projects/oci_free.jpg",
+    github: "https://github.com/YehudaBriskman/oci-free",
+    year: "2026",
+    status: "Open source, running this site",
+    state: "open-source",
+    highlights: [
+      "Fits Oracle's Always Free limits: one ARM instance, 2 OCPU and 12 GB",
+      "Every Helm release installed at a version written in the repository, and CI renders each values file against it",
+      "Each environment's deploy credential can roll out only its own namespace",
+      "Two replicas and a disruption budget for the site's web and API, for rollouts with zero downtime",
+    ],
+    problem:
+      "A server set up by hand cannot be built again the same way. Until the chart versions were written down, a rebuild would have installed whatever each chart was on the day, and the site's images used to be built on the node from a copy of a working directory rather than from what was committed.",
+    role:
+      "Solo: the Terraform for the network and the instance, the cluster's manifests and Helm values, the scripts around them, and the CI that checks every one of them.",
+    outcome:
+      "This site and its preprod copy run here as two namespaces, rolled out by the site's CI by digest and never built on the node. A rebuild is written down: apply the Terraform, apply the manifests, then each Helm release at its recorded version.",
+    decisions: [
+      {
+        title: "Traefik on the node, not Oracle's load balancer.",
+        body:
+          "k3s already ships Traefik, so the node takes its own traffic and the free tier's one 10 Mbps load balancer stays unused. Any allowlist by source address needs externalTrafficPolicy: Local on it, because the default rewrites every client's address into an internal one and the allowlist then refuses everybody.",
+      },
+      {
+        title: "The manifests name no image for the site.",
+        body:
+          "CI owns that field. The site's two Deployments carry no image, so applying the manifests updates everything else and leaves the running digest alone. A manifest that said :latest would put the last release back over whatever CI had rolled out to preprod.",
+      },
+      {
+        title: "A deploy credential per environment.",
+        body:
+          "RBAC grants verbs on objects, not on fields, so permission to patch a Deployment is permission to rewrite its whole pod template: a deploy token is worth everything in its namespace. So preprod and production each have their own account, able to roll out only its own namespace, and the production one can be read only by a release tag.",
+      },
+    ],
+    order: 21,
+  },
+  {
     slug: "programming-with-yehuda",
     title: "Programming with Yehuda",
     /* A learning project, and labelled as one (2026-11-03, at the owner's
