@@ -70,7 +70,7 @@ export const useAdminWords = defineWords(
       translated: "Hebrew up to date",
       unverified: "Hebrew published, not yet checked against the English",
     },
-    toDo: (n: number) => `${n} to translate or update`,
+    toDo: (n: number) => `${n} public ${n === 1 ? "item" : "items"} with Hebrew missing or stale`,
 
     /* The overview. */
     overview: "Overview",
@@ -186,7 +186,7 @@ export const useAdminWords = defineWords(
       translated: "העברית מעודכנת",
       unverified: "העברית פורסמה ועוד לא נבדקה מול האנגלית",
     },
-    toDo: (n: number) => `${n} לתרגום או לעדכון`,
+    toDo: (n: number) => `${n} ${n === 1 ? "פריט ציבורי" : "פריטים ציבוריים"} עם עברית חסרה או ישנה`,
 
     status: {
       published: "פורסם",

@@ -68,7 +68,8 @@ describe("the Translations page", () => {
     expect(rows.map((r) => within(r).getAllByRole("link")[0].textContent)).toEqual(["Home · hero", "WindoM"]);
     expect(within(rows[1]).getByText("decisions ×2")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Missing/ })).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByRole("button", { name: /Missing/ })).toHaveTextContent("4");
+    // A tab counts rows, not fields: WindoM's three fields are one row.
+    expect(screen.getByRole("button", { name: /Missing/ })).toHaveTextContent("2");
     expect(screen.getByRole("button", { name: /Done/ })).toHaveTextContent("1");
     // The private draft is not counted until private items are shown.
     expect(screen.getByRole("button", { name: /Draft/ })).toHaveTextContent("0");
@@ -80,6 +81,21 @@ describe("the Translations page", () => {
     const link = await screen.findByRole("link", { name: "WindoM" });
     expect(link).toHaveAttribute("href", "/admin/projects?project=windom#field=decisions.0.body");
     expect(screen.getByRole("link", { name: "Home · hero" })).toHaveAttribute("href", "/admin/site-copy#field=hero.title");
+  });
+
+  it("counts on each tab exactly the rows that tab shows, under every filter", async () => {
+    for (const at of ["/admin/translations", "/admin/translations?visibility=all", "/admin/translations?visibility=all&type=post"]) {
+      const { unmount } = page(at);
+      await screen.findByRole("button", { name: /Missing/ });
+      for (const name of ["Missing", "Stale", "Draft", "Done"]) {
+        const tab = screen.getByRole("button", { name: new RegExp(name) });
+        fireEvent.click(tab);
+        const table = screen.queryByRole("table");
+        const shown = table ? within(table).getAllByRole("row").length - 1 : 0;
+        expect(tab.textContent?.replace(/\D/g, ""), `${at} ${name}`).toBe(String(shown));
+      }
+      unmount();
+    }
   });
 
   it("filters by tab, type and visibility", async () => {
@@ -105,7 +121,8 @@ describe("the report helpers", () => {
   it("counts unverified Hebrew as done, and only public missing or stale units as to do", () => {
     expect(tabOf("unverified")).toBe("done");
     expect(tabOf("stale")).toBe("stale");
-    expect(toDo(report())).toBe(5);
+    // Items, not fields: the hero and WindoM; the private draft is not counted.
+    expect(toDo(report())).toBe(2);
   });
 
   it("opens a story role by its id", () => {

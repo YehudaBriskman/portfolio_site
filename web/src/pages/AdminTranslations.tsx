@@ -95,15 +95,23 @@ export default function AdminTranslations() {
       ),
     [report, type, visibility],
   );
+  /* A tab's count is the rows it shows: items with at least one field in it. */
   const counts = useMemo(() => {
     const c: Record<TranslationTab, number> = { missing: 0, stale: 0, draft: 0, done: 0 };
-    for (const i of scoped) for (const u of i.units) c[tabOf(u.status)] += 1;
+    for (const i of scoped) for (const t of new Set(i.units.map((u) => tabOf(u.status)))) c[t] += 1;
     return c;
   }, [scoped]);
+  /* Coverage is by field: the share of fields in scope with Hebrew live. */
   const coverage = useMemo(() => {
-    const total = counts.missing + counts.stale + counts.draft + counts.done;
-    return total ? Math.round(((counts.done + counts.stale) / total) * 100) : 100;
-  }, [counts]);
+    let total = 0;
+    let live = 0;
+    for (const i of scoped)
+      for (const u of i.units) {
+        total += 1;
+        if (tabOf(u.status) === "done" || u.status === "stale") live += 1;
+      }
+    return total ? Math.round((live / total) * 100) : 100;
+  }, [scoped]);
   const rows = useMemo(
     () =>
       scoped.flatMap((item) => {

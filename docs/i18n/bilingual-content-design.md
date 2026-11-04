@@ -477,7 +477,10 @@ HE —     An updater that cannot choose the version  note        /he/blog/…  
 > (`web/src/services/translations.ts`, cached for 30 s and dropped on any
 > admin write). It filters on the client: the tabs are Missing, Stale, Draft
 > and Done (unverified counts as done), and type and visibility are selects,
-> all held in the query string. The coverage figure covers the current scope.
+> all held in the query string. A tab's count is the rows it shows under
+> the current filters (items, not fields); coverage is by field, in the same
+> scope. The nav badge counts public *items* with any field missing or stale,
+> and says so in its accessible text.
 > A row links to `#field=<path>`. The content editors resolve the path
 > (`?project=` and `?role=` pick the item), find the field by `data-path`,
 > and focus its Hebrew input. Notes and areas open their editor at the top;
