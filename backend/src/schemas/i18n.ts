@@ -117,7 +117,8 @@ function unit(path: string, primary: boolean, en: string, he: string | null | un
 
 /* ------------------------------------------------------------------ notes */
 
-type HebrewSrc = Partial<Record<string, string>>;
+/* Partial in practice: a field has a fingerprint only once it has Hebrew. */
+type HebrewSrc = Record<string, string>;
 
 /*
  * What the server keeps beside a note's or an area's `he` block (#303), as a
@@ -131,6 +132,20 @@ type HebrewSrc = Partial<Record<string, string>>;
  * A note's draft carries its own `heMeta` beside `draft.he`.
  */
 export type HebrewMeta = { src: HebrewSrc; bodyBase?: string | null };
+
+/*
+ * A note's link labels (#306) are translated in its `he` block under their
+ * path, `links.<i>.label`, beside title and body: every reader of `he` still
+ * sees a flat map of words, and the fingerprints sit in `heMeta.src` under
+ * the same keys. A note holds at most 8 links.
+ */
+export const LINK_LABEL_PATHS = Array.from({ length: 8 }, (_, i) => `links.${i}.label`);
+
+/** A note's English by translation path: its fields, and each link label by `links.<i>.label`. */
+export function postEnglish(p: Record<string, unknown>): Record<string, unknown> {
+  const links = Array.isArray(p.links) ? (p.links as { label?: unknown }[]) : [];
+  return { ...p, ...Object.fromEntries(links.map((l, i) => [`links.${i}.label`, l?.label])) };
+}
 
 /** The note's Hebrew fields, which are its translation units. */
 export const POST_FIELDS = [
@@ -154,8 +169,10 @@ export function postTranslation(post: Post): { units: TranslationUnit[]; status:
   const draft = post.draft ?? null;
   const draftHe = (draft?.he ?? null) as Record<string, unknown> | null;
   const units: TranslationUnit[] = [];
-  for (const { field, primary } of POST_FIELDS) {
-    const en = (post as Record<string, unknown>)[field];
+  const english = postEnglish(post as Record<string, unknown>);
+  const fields = [...POST_FIELDS, ...LINK_LABEL_PATHS.map((field) => ({ field, primary: false }))];
+  for (const { field, primary } of fields) {
+    const en = english[field];
     if (!filled(en)) continue;
     const pub = live ? (he?.[field] as string | undefined) : null;
     const pending = live ? (draftHe?.[field] as string | undefined) : (he?.[field] as string | undefined) ?? (draftHe?.[field] as string | undefined);
@@ -181,6 +198,32 @@ export function collectionTranslation(c: Collection): { units: TranslationUnit[]
     if (!filled(en)) continue;
     units.push(unit(field, primary, en, he?.[field] as string | undefined, src[field], null));
   }
+  /* Each link label is `Text` (#306), its fingerprint inside it; a string is English only. */
+  (c.links ?? []).forEach((l, i) => {
+    const label = l.label as unknown;
+    const t = typeof label === "string" ? { en: label } : (label as { en?: string; he?: string; heSrc?: string } | null);
+    if (!t || !filled(t.en)) return;
+    units.push(unit(`links.${i}.label`, false, t.en, t.he, t.heSrc, null));
+  });
+  return { units, status: itemStatus(units) };
+}
+
+/* ------------------------------------------------------------------ media */
+
+/**
+ * A media item's alt text and caption (#306). Alt is what a screen reader
+ * hears, so it is the primary unit; a caption counts only when it has English.
+ */
+export function mediaTranslation(m: {
+  alt: string;
+  caption: string;
+  he?: { alt?: string; caption?: string } | null;
+  heMeta?: { src?: Record<string, string> } | null;
+}): { units: TranslationUnit[]; status: TranslationStatus | null } {
+  const src = m.heMeta?.src ?? {};
+  const units: TranslationUnit[] = [];
+  if (filled(m.alt)) units.push(unit("alt", true, m.alt, m.he?.alt, src.alt, null));
+  if (filled(m.caption)) units.push(unit("caption", false, m.caption, m.he?.caption, src.caption, null));
   return { units, status: itemStatus(units) };
 }
 
@@ -227,7 +270,7 @@ export function textUnits(published: unknown, draft: unknown, primary: (path: st
 
 /* ------------------------------------------------------------- the report */
 
-export const TRANSLATION_TYPES = ["post", "area", "project", "story", "site-copy"] as const;
+export const TRANSLATION_TYPES = ["post", "area", "project", "story", "site-copy", "media"] as const;
 export type TranslationType = (typeof TRANSLATION_TYPES)[number];
 
 export type TranslationItem = {

@@ -1,4 +1,5 @@
-export type LinkRow = { label: string; url: string };
+/** `he` is the label in Hebrew (#306), for an editor that offers it. */
+export type LinkRow = { label: string; url: string; he?: string };
 
 /**
  * Narrow schema-inferred links into rows the editor can hold.
@@ -7,17 +8,29 @@ export type LinkRow = { label: string; url: string };
  * detection so every inferred property arrives as optional. Filling the gaps
  * here keeps that quirk at one boundary instead of spread across both editors.
  */
-export function toLinkRows(links: ReadonlyArray<{ label?: string; url?: string }>): LinkRow[] {
-  return links.map((l) => ({ label: l.label ?? "", url: l.url ?? "" }));
+export function toLinkRows(links: ReadonlyArray<{ label?: string; url?: string }>, he?: Record<string, unknown> | null): LinkRow[] {
+  return links.map((l, i) => ({
+    label: l.label ?? "",
+    url: l.url ?? "",
+    ...(he ? { he: typeof he[`links.${i}.label`] === "string" ? (he[`links.${i}.label`] as string) : "" } : {}),
+  }));
+}
+
+/** A note's link labels in Hebrew, keyed by their path in its `he` block (#306). */
+export function linkLabelsHe(links: LinkRow[]): Record<string, string> {
+  return Object.fromEntries(links.flatMap((l, i) => (l.he?.trim() ? [[`links.${i}.label`, l.he.trim()]] : [])));
 }
 
 /* Shared by posts and collections — both carry the same shape of links. */
 export default function LinkEditor({
   links,
   onChange,
+  hebrew = false,
 }: {
   links: LinkRow[];
   onChange: (next: LinkRow[]) => void;
+  /** Offer each label in Hebrew too (#306): a note's links. */
+  hebrew?: boolean;
 }) {
   const set = (i: number, k: keyof LinkRow, v: string) =>
     onChange(links.map((l, n) => (n === i ? { ...l, [k]: v } : l)));
@@ -39,6 +52,19 @@ export default function LinkEditor({
                 placeholder="Source"
               />
             </label>
+            {hebrew && (
+              <label className="sm:max-w-[12rem] sm:flex-1" data-path={`links.${i}.label`}>
+                <span className="sr-only">Link label in Hebrew</span>
+                <input
+                  value={l.he ?? ""}
+                  onChange={(e) => set(i, "he", e.target.value)}
+                  className="a-input"
+                  lang="he"
+                  dir="rtl"
+                  maxLength={60}
+                />
+              </label>
+            )}
             <label className="min-w-0 sm:flex-1">
               <span className="sr-only">Link URL</span>
               <input
@@ -64,7 +90,7 @@ export default function LinkEditor({
       </ul>
       <button
         type="button"
-        onClick={() => onChange([...links, { label: "", url: "" }])}
+        onClick={() => onChange([...links, hebrew ? { label: "", url: "", he: "" } : { label: "", url: "" }])}
         className="a-btn mt-4"
       >
         Add link

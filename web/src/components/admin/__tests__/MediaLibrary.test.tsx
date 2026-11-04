@@ -198,6 +198,39 @@ describe("the library page", () => {
     expect(video.querySelector("source")).toHaveAttribute("src", `/api/images/m/tour-bbb222/video-${"c".repeat(16)}.mp4`);
     expect(screen.getByText("Nothing uses this video yet.")).toBeInTheDocument();
   });
+
+  it("saves the Hebrew alt and caption beside the English (#306)", async () => {
+    page("/admin/media?id=icaros-def456");
+    const heAlt = await screen.findByRole("textbox", { name: /Alt text in Hebrew/ });
+    expect(heAlt).toHaveAttribute("dir", "rtl");
+    expect(heAlt).toHaveAttribute("lang", "he");
+    await userEvent.type(heAlt, "מכונית ספורט כתומה");
+    await userEvent.click(screen.getByRole("button", { name: "Save details" }));
+    const put = requests.find((r) => r.method === "PUT");
+    expect(put?.url).toBe("/api/admin/media/icaros-def456");
+    expect(JSON.parse(String(put?.body))).toMatchObject({ alt: "An orange sports car", he: { alt: "מכונית ספורט כתומה", caption: "" } });
+  });
+
+  it("a video lists its captions per language, and adds one in Hebrew (#306)", async () => {
+    const tracks = [{ url: `/api/images/m/tour-bbb222/captions-${"d".repeat(16)}.vtt`, lang: "en", label: "English" }];
+    Object.assign(ITEMS[3], { captions: tracks[0], tracks });
+    try {
+      page("/admin/media?id=tour-bbb222");
+      const region = await screen.findByRole("region", { name: "Captions" });
+      expect(within(within(region).getByRole("list")).getByText("English")).toBeInTheDocument();
+      expect(within(region).getByRole("button", { name: "Remove the English captions" })).toBeEnabled();
+      /* The language not yet captioned is the one offered. */
+      expect(within(region).getByRole("combobox", { name: "Language" })).toHaveValue("he");
+      const picker = region.querySelector<HTMLInputElement>('input[type="file"]')!;
+      await userEvent.upload(picker, new File(["WEBVTT\n"], "he.vtt", { type: "text/vtt" }));
+      const put = requests.find((r) => r.method === "PUT");
+      expect(put?.url).toBe("/api/admin/media/tour-bbb222/captions/he?rev=1-a");
+      const video = screen.getByLabelText("A walk through the dashboard", { selector: "video" });
+      expect(video.querySelector("track")).toHaveAttribute("srclang", "en");
+    } finally {
+      Object.assign(ITEMS[3], { captions: null, tracks: undefined });
+    }
+  });
 });
 
 describe("helpers", () => {

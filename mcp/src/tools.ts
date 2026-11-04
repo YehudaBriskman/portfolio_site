@@ -63,7 +63,7 @@ export const ADMIN_TOOLS = [
 export const GLOSSARY_URI = "glossary://he";
 
 /* As backend/src/schemas/i18n.ts names them. */
-export const TRANSLATION_TYPES = ["post", "area", "project", "story", "site-copy"] as const;
+export const TRANSLATION_TYPES = ["post", "area", "project", "story", "site-copy", "media"] as const;
 export const TRANSLATION_STATUSES = ["missing", "stale", "draft", "unverified", "translated"] as const;
 
 const slug = z
@@ -104,7 +104,9 @@ type AdminArea = {
   repo: { owner: string; name: string; branch: string; docPaths: string[] } | null;
   description: string;
   coverImage: string | null;
-  links: { label: string; url: string }[];
+  /* A label is `Text` since #306 (a string before). A string sent back keeps
+     the Hebrew of a link whose English is unchanged. */
+  links: { label: string | { en: string; he?: string }; url: string }[];
   order: number;
   status: "published" | "hidden";
 };
@@ -533,7 +535,7 @@ export function registerTools(server: McpServer, api: PortfolioApi, access: Tool
       title: "Write Hebrew into a draft",
       description:
         "Sets the Hebrew of one or more units of one item (paths from get_translation) in its DRAFT. Nothing goes live: " +
-        "the owner reviews and publishes in the admin. Areas have no draft and are refused. Returns the changes and the " +
+        "the owner reviews and publishes in the admin. Areas and media have no draft and are refused. Returns the changes and the " +
         "glossary warnings (read glossary://he first). An empty string removes a unit's Hebrew. dryRun defaults to true.",
       inputSchema: {
         type: translationType,
@@ -544,7 +546,7 @@ export function registerTools(server: McpServer, api: PortfolioApi, access: Tool
       annotations: { destructiveHint: false, idempotentHint: true, openWorldHint: false },
     },
     safe(async ({ type, id, units, dryRun }) => {
-      if (type === "area") return fail("Areas have no draft. Edit an area's Hebrew in the admin.");
+      if (type === "area" || type === "media") return fail("Areas and media have no draft. Edit their Hebrew in the admin.");
       const list = Object.entries(units).map(([path, he]) => ({ path, he }));
       if (list.length === 0) return fail("Give at least one unit.");
       let rev: string;

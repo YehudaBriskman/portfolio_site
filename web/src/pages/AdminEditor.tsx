@@ -4,7 +4,7 @@ import { X } from "lucide-react";
 import AdminShell from "@/components/admin/AdminShell";
 import { PageHeader, StatePill } from "@/components/admin/ui";
 import MediaPicker, { PickedPreview } from "@/components/admin/MediaPicker";
-import LinkEditor, { toLinkRows, type LinkRow } from "@/components/LinkEditor";
+import LinkEditor, { linkLabelsHe, toLinkRows, type LinkRow } from "@/components/LinkEditor";
 import BodyEditor, { type WikiTarget } from "@/components/admin/noteEditor/BodyEditor";
 import ReviewDialog, { type PublishScope } from "@/components/admin/noteEditor/ReviewDialog";
 import StaleNotice from "@/components/admin/noteEditor/StaleNotice";
@@ -90,7 +90,7 @@ function toForm(slug: string, c: PostContent): Form {
     coverImage: c.coverImage ?? "",
     featured: c.featured == null ? "" : String(c.featured),
     publishedAt: c.publishedAt ?? "",
-    links: toLinkRows(c.links ?? []),
+    links: toLinkRows(c.links ?? [], c.he ?? {}),
     seoTitle: c.seo?.title ?? "",
     seoDescription: c.seo?.description ?? "",
     canonical: c.seo?.canonical ?? "",
@@ -104,7 +104,9 @@ function toForm(slug: string, c: PostContent): Form {
 
 function toContent(f: Form): PostContent {
   const featured = Number(f.featured);
-  const he = { title: f.heTitle, subtitle: f.heSubtitle, excerpt: f.heExcerpt, body: f.heBody };
+  /* A link without a label or an address is dropped, and its Hebrew label with it. */
+  const kept = f.links.filter((l) => l.label && l.url);
+  const he = { title: f.heTitle, subtitle: f.heSubtitle, excerpt: f.heExcerpt, body: f.heBody, ...linkLabelsHe(kept) };
   return {
     title: f.title.trim(),
     subtitle: f.subtitle.trim() || null,
@@ -113,7 +115,7 @@ function toContent(f: Form): PostContent {
     tags: f.tags,
     collection: f.collection,
     coverImage: f.coverImage.trim() || null,
-    links: f.links.filter((l) => l.label && l.url),
+    links: kept.map(({ label, url }) => ({ label, url })),
     featured: f.featured.trim() && Number.isInteger(featured) ? featured : null,
     publishedAt: f.publishedAt || null,
     seo: {
@@ -772,7 +774,7 @@ export default function AdminEditor() {
                 </p>
               )}
               <div className="mt-6">
-                <LinkEditor links={f.links} onChange={(links) => edit("links", links)} />
+                <LinkEditor links={f.links} onChange={(links) => edit("links", links)} hebrew />
               </div>
             </div>
           </details>

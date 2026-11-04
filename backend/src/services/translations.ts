@@ -3,7 +3,9 @@ import { lintHebrew, type LintIssue } from "../i18n/glossary.js";
 import { PostContentSchema, PostSchema, type Collection, type Post } from "../schemas/content.js";
 import {
   COLLECTION_FIELDS,
+  LINK_LABEL_PATHS,
   POST_FIELDS,
+  postEnglish,
   atPath,
   collectionTranslation,
   fp,
@@ -13,6 +15,7 @@ import {
   countUnits,
   coverage,
   itemStatus,
+  mediaTranslation,
   postTranslation,
   stampHebrewMeta,
   stampTexts,
@@ -24,6 +27,7 @@ import {
 } from "../schemas/i18n.js";
 import { CONTENT_KEYS, CONTENT_SCHEMAS, type ContentDoc, type ContentKey } from "../schemas/site-content.js";
 import { contentId, getContentDoc, seedFor } from "./site-content.js";
+import { mediaStore, type MediaDoc } from "./media.js";
 
 /*
  * Everything the owner has written, as translation items (#301).
@@ -162,6 +166,21 @@ export function areaItem(c: Collection): TranslationItem {
   };
 }
 
+/** A media item (#306): after the notes, since a reader meets it inside a page. */
+export function mediaItem(m: MediaDoc): TranslationItem {
+  const { units, status } = mediaTranslation(m);
+  return {
+    type: "media",
+    id: m.id,
+    title: m.name,
+    route: `/admin/media?id=${m.id}`,
+    rank: 200,
+    visibility: "public",
+    status,
+    units,
+  };
+}
+
 /* -------------------------------------------- "the Hebrew is still correct" */
 
 /*
@@ -182,7 +201,8 @@ export type AckResult =
 const same = (a: unknown, b: unknown) =>
   typeof a === "string" && typeof b === "string" && normaliseSource(a) === normaliseSource(b);
 
-const POST_HE = new Set<string>(POST_FIELDS.map((f) => f.field));
+const POST_HE_PATHS = [...POST_FIELDS.map((f) => f.field), ...LINK_LABEL_PATHS];
+const POST_HE = new Set<string>(POST_HE_PATHS);
 const AREA_HE = new Set<string>(COLLECTION_FIELDS.map((f) => f.field));
 
 /** The `Text` at `path` inside one item of a content document, or undefined. */
@@ -242,6 +262,42 @@ const conflictAck = { ok: false as const, status: 409 as const, error: "This cha
 const nothingLive = { ok: false as const, status: 400 as const, error: "There is no published Hebrew here to acknowledge." };
 
 export async function ackTranslation(input: AckInput): Promise<AckResult> {
+  if (input.type === "media") {
+    if (input.path !== "alt" && input.path !== "caption") return notFound;
+    const doc = await mediaStore.get(input.id);
+    if (!doc) return notFound;
+    if (doc._rev !== input.rev) return conflictAck;
+    const field = input.path;
+    if (!doc.he?.[field]?.trim()) return nothingLive;
+    const before = structuredClone(doc);
+    const next: MediaDoc = { ...doc, heMeta: { src: { ...(doc.heMeta?.src ?? {}), [field]: fp(doc[field]) } } };
+    try {
+      const saved = await mediaStore.saveMeta(next);
+      return { ok: true, rev: saved._rev ?? "", target: doc._id, before, after: saved };
+    } catch (e) {
+      if (e instanceof CouchError && e.status === 409) return conflictAck;
+      throw e;
+    }
+  }
+  /* An area's link label is `Text` (#306): its fingerprint sits inside it. */
+  const areaLink = input.type === "area" ? /^links\.(\d)\.label$/.exec(input.path) : null;
+  if (areaLink) {
+    const id = `collection:${input.id}`;
+    const doc = await tryGet<HeDoc>(id);
+    if (!doc) return notFound;
+    if (doc._rev !== input.rev) return conflictAck;
+    const links = Array.isArray(doc.links) ? (doc.links as { label: unknown; url: string }[]) : [];
+    const label = links[Number(areaLink[1])]?.label as { en?: string; he?: string } | string | undefined;
+    if (!label || typeof label === "string" || typeof label.en !== "string" || !label.he?.trim()) return nothingLive;
+    const before = structuredClone(doc);
+    const next: HeDoc = {
+      ...doc,
+      links: links.map((l, i) => (i === Number(areaLink[1]) ? { ...l, label: { ...(l.label as object), heSrc: fp(label.en as string) } } : l)),
+    };
+    const rev = await save(next);
+    if (rev === null) return conflictAck;
+    return { ok: true, rev, target: id, before, after: next };
+  }
   if (input.type === "post" || input.type === "area") {
     const fields = input.type === "post" ? POST_HE : AREA_HE;
     if (!fields.has(input.path)) return notFound;
@@ -251,7 +307,7 @@ export async function ackTranslation(input: AckInput): Promise<AckResult> {
     if (doc._rev !== input.rev) return conflictAck;
     const field = input.path;
     const he = doc.he;
-    const en = doc[field];
+    const en = input.type === "post" ? postEnglish(doc)[field] : doc[field];
     if (input.type === "post" && doc.status !== "published") return nothingLive;
     if (!he || typeof he[field] !== "string" || !(he[field] as string).trim() || typeof en !== "string") return nothingLive;
 
@@ -260,7 +316,7 @@ export async function ackTranslation(input: AckInput): Promise<AckResult> {
     if (field === "body") meta.bodyBase = en;
     const next: HeDoc = { ...doc, heMeta: meta };
     const draft = doc.draft;
-    if (input.type === "post" && draft?.he && same(draft.he[field], he[field]) && same(draft[field], en)) {
+    if (input.type === "post" && draft?.he && same(draft.he[field], he[field]) && same(postEnglish(draft)[field], en)) {
       const dmeta: HebrewMeta = { ...(draft.heMeta ?? {}), src: { ...(draft.heMeta?.src ?? {}), [field]: fp(en) } };
       if (field === "body") dmeta.bodyBase = en;
       next.draft = { ...draft, heMeta: dmeta };
@@ -320,7 +376,7 @@ export type DraftResult =
     }
   | { ok: false; status: 400 | 404 | 409; error: string };
 
-const noDraft = { ok: false as const, status: 400 as const, error: "Areas have no draft. Edit an area's Hebrew in the admin." };
+const noDraft = { ok: false as const, status: 400 as const, error: "Areas and media have no draft. Edit their Hebrew in the admin." };
 const tooLong = (path: string) => ({ ok: false as const, status: 400 as const, error: `The Hebrew for ${path} is too long.` });
 
 const clean = (v: string) => v.trim();
@@ -349,7 +405,7 @@ async function postDraft(input: DraftInput): Promise<DraftResult> {
   for (const u of input.units) {
     const after = clean(u.he);
     const before = orNull(he[u.path]);
-    if ((before ?? "") !== after) changes.push({ path: u.path, en: String((content as Record<string, unknown>)[u.path] ?? ""), before, after: after || null });
+    if ((before ?? "") !== after) changes.push({ path: u.path, en: String(postEnglish(content)[u.path] ?? ""), before, after: after || null });
     he[u.path] = after;
   }
   const warnings = lintUnits(input.units);
@@ -366,9 +422,9 @@ async function postDraft(input: DraftInput): Promise<DraftResult> {
   let next: Post;
   if (published) {
     const draft = { ...content, he: nextHe.data };
-    next = { ...doc, draft: { ...draft, heMeta: stampHebrewMeta(draft.he, draft, prevs, POST_FIELDS.map((f) => f.field)) }, draftSavedAt: now } as Post;
+    next = { ...doc, draft: { ...draft, heMeta: stampHebrewMeta(draft.he, postEnglish(draft), prevs, POST_HE_PATHS) }, draftSavedAt: now } as Post;
   } else {
-    next = { ...doc, he: nextHe.data, heMeta: stampHebrewMeta(nextHe.data, doc, prevs, POST_FIELDS.map((f) => f.field)), updatedAt: now, draftSavedAt: now } as Post;
+    next = { ...doc, he: nextHe.data, heMeta: stampHebrewMeta(nextHe.data, postEnglish(doc), prevs, POST_HE_PATHS), updatedAt: now, draftSavedAt: now } as Post;
   }
   const valid = PostSchema.safeParse(next);
   if (!valid.success) return { ok: false, status: 400, error: "The note would not be valid with this Hebrew." };
@@ -409,7 +465,7 @@ async function contentDraft(key: ContentKey, input: DraftInput): Promise<DraftRe
 }
 
 export async function putTranslationDraft(input: DraftInput): Promise<DraftResult> {
-  if (input.type === "area") return noDraft;
+  if (input.type === "area" || input.type === "media") return noDraft;
   if (input.type === "post") return postDraft(input);
   const key = CONTENT_KEY_OF[input.type];
   return key ? contentDraft(key, input) : notFound;
@@ -431,12 +487,19 @@ export type TranslationReport = {
 
 /** Every item, or the ones the filter keeps. */
 export async function allTranslationItems(): Promise<TranslationItem[]> {
-  const [posts, areas, content] = await Promise.all([
+  const [posts, areas, content, media] = await Promise.all([
     couch.find<Post>({ selector: { type: "post" }, limit: 1000 }),
     couch.find<Collection>({ selector: { type: "collection" }, limit: 300 }),
     contentItems(),
+    mediaStore.list(),
   ]);
-  const items = [...content, ...areas.docs.map(areaItem), ...posts.docs.filter((p) => p.status !== "archived").map(postItem)];
+  const items = [
+    ...content,
+    ...areas.docs.map(areaItem),
+    ...posts.docs.filter((p) => p.status !== "archived").map(postItem),
+    /* Icons are decoration with their own label where used; pictures and videos are read. */
+    ...media.filter((m) => m.kind !== "icon").map(mediaItem),
+  ];
   return items.sort((a, b) => a.rank - b.rank || a.title.localeCompare(b.title));
 }
 

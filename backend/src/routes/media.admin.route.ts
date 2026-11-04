@@ -7,15 +7,19 @@ import {
   MEDIA_KINDS,
   MEDIA_MAX_BYTES,
   MediaRejected,
+  hashOf,
   processIcon,
   processUpload,
   type MediaKind,
   type Processed,
 } from "../services/mediaImage.js";
-import { VIDEO_MAX_BYTES, VIDEO_UPLOAD_MAX_BYTES, processVideo, sniffVideo } from "../services/mediaVideo.js";
+import { CAPTIONS_MAX_BYTES, VIDEO_MAX_BYTES, VIDEO_UPLOAD_MAX_BYTES, checkCaptions, processVideo, sniffVideo } from "../services/mediaVideo.js";
+import { stampHebrewMeta } from "../schemas/i18n.js";
 import {
+  MEDIA_HE_FIELDS,
   MEDIA_ID,
   MediaMeta,
+  captionTracks,
   buildDoc,
   cleanName,
   filesOf,
@@ -44,7 +48,9 @@ import {
  *   GET    /:id                          one, with its usage
  *   POST   /                 ?kind=image|icon|video&alt=&caption=&credit=&filename=
  *                            [&captionsLang=&captionsLabel=]   upload
- *   PUT    /:id                          metadata: { alt, caption, credit, _rev }
+ *   PUT    /:id                          metadata: { alt, caption, credit, he?: { alt, caption }, _rev }
+ *   PUT    /:id/captions/:lang ?rev=&label=   a video's captions in one language (raw .vtt body)
+ *   DELETE /:id/captions/:lang ?rev=      remove that language's captions
  *   PUT    /:id/file         ?rev=       replace the file, keep the id and kind
  *   DELETE /:id              ?rev=       only when nothing uses it
  */
@@ -224,11 +230,17 @@ router.put(
     const existing = id ? await mediaStore.get(id) : null;
     if (!existing) return res.status(404).json({ ok: false, error: "Not Found" });
     if (existing._rev !== parsed.data._rev) return conflict(res);
+    /* The Hebrew is stamped as a note's is (#303/#306): kept where unchanged, new where written now. */
+    const he = parsed.data.he === undefined ? existing.he ?? null : parsed.data.he;
+    const heWords = he && (he.alt || he.caption) ? { alt: he.alt ?? "", caption: he.caption ?? "" } : null;
+    const meta = stampHebrewMeta(heWords, parsed.data, [{ he: existing.he, meta: existing.heMeta }], MEDIA_HE_FIELDS);
     const next: MediaDoc = {
       ...existing,
       alt: parsed.data.alt,
       caption: parsed.data.caption,
       credit: parsed.data.credit,
+      he: heWords,
+      heMeta: meta ? { src: meta.src } : null,
       updatedAt: new Date().toISOString(),
     };
     let saved: MediaDoc;
@@ -269,7 +281,7 @@ router.put(
     const doc = buildDoc({
       id: existing.id,
       name,
-      meta: { alt: existing.alt, caption: existing.caption, credit: existing.credit },
+      meta: { alt: existing.alt, caption: existing.caption, credit: existing.credit, he: existing.he ? { alt: existing.he.alt ?? "", caption: existing.he.caption ?? "" } : null },
       processed,
       by: req.admin!.login,
       now: new Date(),
@@ -277,7 +289,99 @@ router.put(
     });
     let saved: MediaDoc;
     try {
-      saved = await mediaStore.save(doc, filesOf(processed));
+      /* The whole attachment set is replaced: the tracks it keeps go with it. */
+      const kept = [];
+      for (const t of doc.moreCaptions ?? []) {
+        const f = await mediaStore.file(existing.id, t.name);
+        if (f) kept.push({ name: t.name, contentType: "text/vtt; charset=utf-8", data: f.data });
+      }
+      saved = await mediaStore.save(doc, [...filesOf(processed), ...kept]);
+    } catch (e) {
+      if (e instanceof CouchError && e.status === 409) return conflict(res);
+      throw e;
+    }
+    res.locals.audit = { target: saved._id, before: existing, after: saved };
+    res.json({ ok: true, item: publicMedia(saved) });
+  }),
+);
+
+/*
+ * A video's captions, one language at a time (#306). The first track a video
+ * has stays `captions` (the one an older reader knows); the others are
+ * `moreCaptions`, at most one per language. The page shows the track in its
+ * own language by default.
+ */
+const TrackQuery = RevQuery.extend({ label: z.string().trim().min(1).max(60).optional() });
+const LANG_LABEL: Record<string, string> = { en: "English", he: "עברית" };
+const vttBody = express.raw({ type: () => true, limit: CAPTIONS_MAX_BYTES + 1024 });
+
+router.put(
+  "/:id/captions/:lang",
+  vttBody,
+  tooLarge,
+  asyncHandler(async (req, res) => {
+    const id = idParam(req);
+    const lang = Lang.safeParse(req.params.lang);
+    const q = TrackQuery.safeParse(req.query);
+    if (!lang.success || !q.success) return res.status(400).json({ ok: false, error: "A language (en, he) and the item's rev are needed." });
+    const existing = id ? await mediaStore.get(id) : null;
+    if (!existing) return res.status(404).json({ ok: false, error: "Not Found" });
+    if (existing.kind !== "video") return res.status(400).json({ ok: false, error: "Only a video has captions." });
+    if (existing._rev !== q.data.rev) return conflict(res);
+    let data: Buffer;
+    try {
+      data = checkCaptions(bodyBytes(req));
+    } catch (e) {
+      return rejected(res, e);
+    }
+    const hash = hashOf(data);
+    const label = q.data.label ?? LANG_LABEL[lang.data] ?? lang.data;
+    const primary = !existing.captions || existing.captions.lang === lang.data;
+    const name = primary ? existing.captions?.name ?? "captions.vtt" : `captions-${lang.data}.vtt`;
+    const track = { name, hash, lang: lang.data, label, bytes: data.length };
+    let saved: MediaDoc;
+    try {
+      saved = await mediaStore.putTrack(existing, { name, contentType: "text/vtt; charset=utf-8", data }, (fresh) => ({
+        ...fresh,
+        ...(primary
+          ? { captions: track }
+          : { moreCaptions: [...(fresh.moreCaptions ?? []).filter((t) => t.lang !== lang.data), track] }),
+        updatedAt: new Date().toISOString(),
+      }));
+    } catch (e) {
+      if (e instanceof CouchError && e.status === 409) return conflict(res);
+      throw e;
+    }
+    res.locals.audit = { target: saved._id, before: existing, after: saved };
+    res.json({ ok: true, item: publicMedia(saved) });
+  }),
+);
+
+router.delete(
+  "/:id/captions/:lang",
+  asyncHandler(async (req, res) => {
+    const id = idParam(req);
+    const q = RevQuery.safeParse(req.query);
+    if (!q.success) return res.status(400).json({ ok: false, error: "invalid", details: q.error.flatten() });
+    const existing = id ? await mediaStore.get(id) : null;
+    if (!existing) return res.status(404).json({ ok: false, error: "Not Found" });
+    if (existing._rev !== q.data.rev) return conflict(res);
+    const tracks = captionTracks(existing);
+    const gone = tracks.find((t) => t.lang === req.params.lang);
+    if (!gone) return res.status(404).json({ ok: false, error: "This video has no captions in that language." });
+    const rest = tracks.filter((t) => t !== gone);
+    /* Dropping its stub deletes the file; the next track, if any, becomes the first. */
+    const { [gone.name]: _dropped, ...stubs } = (existing._attachments ?? {}) as Record<string, unknown>;
+    const next: MediaDoc = {
+      ...existing,
+      _attachments: stubs,
+      captions: rest[0] ?? null,
+      moreCaptions: rest.slice(1),
+      updatedAt: new Date().toISOString(),
+    };
+    let saved: MediaDoc;
+    try {
+      saved = await mediaStore.saveMeta(next);
     } catch (e) {
       if (e instanceof CouchError && e.status === 409) return conflict(res);
       throw e;

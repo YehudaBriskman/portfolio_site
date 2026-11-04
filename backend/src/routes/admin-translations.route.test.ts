@@ -155,7 +155,7 @@ describe("GET /api/admin/translations", () => {
     const res = await asAdmin(request(createApp()).get("/api/admin/translations?status=done"));
     expect(res.status).toBe(400);
     expect(res.body.ok).toBe(false);
-    const bad = await asAdmin(request(createApp()).get("/api/admin/translations?type=media"));
+    const bad = await asAdmin(request(createApp()).get("/api/admin/translations?type=video"));
     expect(bad.status).toBe(400);
   });
 });

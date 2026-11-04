@@ -13,7 +13,7 @@ import { useCallback, useEffect, useState } from "react";
 
 export const TRANSLATION_STATUSES = ["missing", "draft", "stale", "unverified", "translated"] as const;
 export type TranslationStatus = (typeof TRANSLATION_STATUSES)[number];
-export const TRANSLATION_TYPES = ["post", "area", "project", "story", "site-copy"] as const;
+export const TRANSLATION_TYPES = ["post", "area", "project", "story", "site-copy", "media"] as const;
 export type TranslationType = (typeof TRANSLATION_TYPES)[number];
 
 export type TranslationUnit = {
@@ -145,5 +145,7 @@ export function editHref(item: TranslationItem, unit: TranslationUnit | undefine
       return `/admin/story${unit ? `#field=${encodeURIComponent(item.id === "start" ? `start.${unit.path}` : unit.path)}` : ""}`;
     case "site-copy":
       return `/admin/site-copy${unit ? `#field=${encodeURIComponent(`${item.id}.${unit.path}`)}` : ""}`;
+    case "media":
+      return `/admin/media?id=${encodeURIComponent(item.id)}${field}`;
   }
 }

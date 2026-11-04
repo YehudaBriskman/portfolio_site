@@ -95,6 +95,14 @@ export function local<T extends { he?: Record<string, string | null> | null }>(d
   if (lang !== "he" || !doc.he) return doc;
   const out: Record<string, unknown> = { ...doc };
   for (const [k, v] of Object.entries(doc.he)) if (typeof v === "string" && v.trim() !== "" && k in doc) out[k] = v;
+  /* A link's label in Hebrew sits under `links.<i>.label` (#306); its address stays. */
+  const links = (doc as { links?: unknown }).links;
+  if (Array.isArray(links)) {
+    out.links = links.map((l: { label?: string }, i) => {
+      const he = doc.he?.[`links.${i}.label`];
+      return typeof he === "string" && he.trim() ? { ...l, label: he } : l;
+    });
+  }
   return out as T;
 }
 

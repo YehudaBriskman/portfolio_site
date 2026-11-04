@@ -43,6 +43,7 @@ const TYPE_LABEL: Record<TranslationType, string> = {
   project: "Project",
   story: "Story",
   "site-copy": "Site copy",
+  media: "Media",
 };
 const TYPE_PLURAL: Record<TranslationType, string> = {
   post: "Notes",
@@ -50,6 +51,7 @@ const TYPE_PLURAL: Record<TranslationType, string> = {
   project: "Projects",
   story: "Story",
   "site-copy": "Site copy",
+  media: "Media",
 };
 type Visibility = "public" | "all" | "private";
 const VISIBILITY_LABEL: Record<Visibility, string> = { public: "Public only", all: "Public and private", private: "Private only" };

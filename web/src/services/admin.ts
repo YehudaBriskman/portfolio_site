@@ -10,12 +10,15 @@ const SeoSchema = z.object({
   noindex: z.boolean().default(false),
 });
 
-const HebrewSchema = z.object({
-  title: z.string().default(""),
-  subtitle: z.string().default(""),
-  excerpt: z.string().default(""),
-  body: z.string().default(""),
-});
+const HebrewSchema = z
+  .object({
+    title: z.string().default(""),
+    subtitle: z.string().default(""),
+    excerpt: z.string().default(""),
+    body: z.string().default(""),
+  })
+  /* Each link's label in Hebrew, under `links.<i>.label` (#306). */
+  .catchall(z.string());
 
 /* Everything an author edits about a note, as the draft and publish routes
    take it (#250). The server validates it again; this only shapes it. */
@@ -94,7 +97,13 @@ const AdminCollectionSchema = z.object({
   coverImage: z.string().nullable(),
   /* A library icon (#253). Absent on areas saved before it existed. */
   icon: z.string().nullable().optional(),
-  links: z.array(LinkSchema),
+  /* A label is `Text` since #306; an area saved before holds a string. */
+  links: z.array(
+    z.object({
+      label: z.union([z.string(), z.object({ en: z.string(), he: z.string().optional() }).passthrough()]),
+      url: z.string(),
+    }),
+  ),
   order: z.number(),
   status: z.enum(["published", "hidden"]),
 });

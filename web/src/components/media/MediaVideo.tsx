@@ -31,6 +31,10 @@ export type MediaVideoProps = {
   /** What the video shows, for a screen reader. */
   label: string;
   captions?: { src: string; lang: string; label: string } | null;
+  /** Every track, one per language (#306); the page's language is the default. */
+  tracks?: { src: string; lang: string; label: string }[];
+  /** The page's language, which picks the default track. */
+  lang?: string;
   width?: number;
   height?: number;
   autoPlay?: boolean;
@@ -44,6 +48,8 @@ export default function MediaVideo({
   poster,
   label,
   captions,
+  tracks,
+  lang = "en",
   width,
   height,
   autoPlay = false,
@@ -87,7 +93,16 @@ export default function MediaVideo({
       data-motion={motionOn ? "on" : "off"}
     >
       <source src={src} type={type} />
-      {captions && <track kind="captions" src={captions.src} srcLang={captions.lang} label={captions.label} default />}
+      {(tracks?.length ? tracks : captions ? [captions] : []).map((t, i, all) => (
+        <track
+          key={t.lang}
+          kind="captions"
+          src={t.src}
+          srcLang={t.lang}
+          label={t.label}
+          default={all.some((x) => x.lang === lang) ? t.lang === lang : i === 0}
+        />
+      ))}
     </video>
   );
 }

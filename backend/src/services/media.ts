@@ -81,12 +81,33 @@ export type MediaDoc = {
   durationMs?: number;
   codecs?: string[];
   hasAudio?: boolean;
-  captions?: { name: string; hash: string; lang: string; label: string; bytes: number } | null;
+  captions?: CaptionsTrack | null;
+  /* Captions in other languages (#306), one track per language, beside `captions`. */
+  moreCaptions?: CaptionsTrack[];
+  /*
+   * The Hebrew alt text and caption (#306), the note's shape (#303): words in
+   * `he`, and in `heMeta.src` the fingerprint of the English each was written
+   * against, so a changed English alt reads as stale. `alt` and `caption`
+   * stay the English strings every existing reader expects.
+   */
+  he?: { alt?: string; caption?: string } | null;
+  heMeta?: { src: Record<string, string> } | null;
   createdAt: string;
   updatedAt: string;
   createdBy: string;
   _attachments?: Record<string, unknown>;
 };
+
+export type CaptionsTrack = { name: string; hash: string; lang: string; label: string; bytes: number };
+
+/** Every captions track of a video, its first one first. */
+export const captionTracks = (doc: Pick<MediaDoc, "captions" | "moreCaptions">): CaptionsTrack[] =>
+  [doc.captions, ...(doc.moreCaptions ?? [])].filter((t): t is CaptionsTrack => Boolean(t));
+
+export const trackUrl = (id: string, t: Pick<CaptionsTrack, "hash">) => `/api/images/m/${id}/captions-${t.hash}.vtt`;
+
+/** The Hebrew a media item's alt and caption can have (#306). */
+export const MEDIA_HE_FIELDS = ["alt", "caption"] as const;
 
 export type Usage = { id: string; type: string; title: string; slug: string | null; field: string };
 
@@ -94,6 +115,11 @@ export const MediaMeta = z.object({
   alt: z.string().trim().min(1, "Alt text is required.").max(300),
   caption: z.string().trim().max(500).default(""),
   credit: z.string().trim().max(200).default(""),
+  /* The Hebrew alt and caption (#306); empty means the English is read. */
+  he: z
+    .object({ alt: z.string().trim().max(300).default(""), caption: z.string().trim().max(500).default("") })
+    .nullable()
+    .optional(),
 });
 
 export const MEDIA_ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -158,6 +184,10 @@ export function publicMedia(doc: MediaDoc, usage?: Usage[]) {
     durationMs: doc.durationMs,
     hasAudio: doc.hasAudio,
     captions: doc.captions ? { url: captionsUrl(doc)!, lang: doc.captions.lang, label: doc.captions.label } : null,
+    /* Every captions track, one per language (#306). */
+    tracks: captionTracks(doc).map((t) => ({ url: trackUrl(doc.id, t), lang: t.lang, label: t.label })),
+    /* The Hebrew words only; the fingerprints are the server's. */
+    he: doc.he && (doc.he.alt || doc.he.caption) ? { alt: doc.he.alt ?? "", caption: doc.he.caption ?? "" } : null,
     srcset: Object.fromEntries(
       VARIANT_FORMATS.map((f) => [
         f,
@@ -210,8 +240,11 @@ export function buildDoc(input: {
           captions: p.captions
             ? { name: p.captions.name, hash: p.captions.hash, lang: p.captions.lang, label: p.captions.label, bytes: p.captions.data.length }
             : null,
+          /* A replaced video keeps its tracks in other languages; they are its own files. */
+          ...(existing?.moreCaptions?.length ? { moreCaptions: existing.moreCaptions.filter((t) => t.lang !== p.captions?.lang) } : {}),
         }
       : {}),
+    ...(existing?.he ? { he: existing.he, heMeta: existing.heMeta ?? null } : {}),
     createdAt: existing?.createdAt ?? now,
     updatedAt: now,
     createdBy: existing?.createdBy ?? input.by,
@@ -249,6 +282,16 @@ export const mediaStore = {
   async saveMeta(doc: MediaDoc): Promise<MediaDoc> {
     const r = await couch.put<{ rev: string }>(doc._id, doc);
     return { ...doc, _rev: r.rev };
+  },
+  /*
+   * One captions track added or replaced on a stored item (#306): the file
+   * first, then the metadata on the revision that write made, read back so
+   * the attachment stubs (the new one with them) go back as CouchDB has them.
+   */
+  async putTrack(doc: MediaDoc, file: { name: string; contentType: string; data: Buffer }, update: (fresh: MediaDoc) => MediaDoc): Promise<MediaDoc> {
+    await attachments.putOne(doc._id, doc._rev ?? "", file);
+    const fresh = await couch.get<MediaDoc>(doc._id);
+    return mediaStore.saveMeta(update(fresh));
   },
   remove: (doc: MediaDoc) => attachments.remove(doc._id, doc._rev ?? ""),
   file: (id: string, name: string) => attachments.get(mediaDocId(id), name),

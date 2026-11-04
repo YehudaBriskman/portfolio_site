@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { Fingerprint } from "./i18n.js";
+import { Fingerprint, LINK_LABEL_PATHS } from "./i18n.js";
 
 export const SlugSchema = z
   .string()
@@ -63,12 +63,15 @@ export const PostSeoSchema = z.object({
   noindex: z.boolean().default(false),
 });
 
-export const PostHebrewSchema = z.object({
-  title: z.string().max(200).default(""),
-  subtitle: z.string().max(300).default(""),
-  excerpt: z.string().max(320).default(""),
-  body: z.string().max(200_000).default(""),
-});
+export const PostHebrewSchema = z
+  .object({
+    title: z.string().max(200).default(""),
+    subtitle: z.string().max(300).default(""),
+    excerpt: z.string().max(320).default(""),
+    body: z.string().max(200_000).default(""),
+  })
+  /* Each link's label in Hebrew (#306), under its path; optional, so older blocks parse as they are. */
+  .extend(Object.fromEntries(LINK_LABEL_PATHS.map((p) => [p, z.string().max(60).optional()])) as Record<string, z.ZodOptional<z.ZodString>>);
 
 /*
  * What the server keeps beside a `he` block (#303, schemas/i18n.ts): per
@@ -81,6 +84,8 @@ export const HebrewMetaSchema = z.object({
   src: z
     .object({ title: Fingerprint, subtitle: Fingerprint, excerpt: Fingerprint, body: Fingerprint, tagline: Fingerprint, description: Fingerprint })
     .partial()
+    /* A link label's fingerprint, under `links.<i>.label` (#306). */
+    .catchall(Fingerprint)
     .default({}),
   bodyBase: z.string().max(200_000).nullable().optional(),
 });
@@ -107,6 +112,39 @@ export const PostContentSchema = z.object({
 });
 
 /** The Hebrew of an area (#248): its name, its line and its description. */
+/*
+ * An area's link label (#306) is `Text`: the English, its Hebrew, and the
+ * fingerprint the Hebrew was written against. A document saved before holds a
+ * plain string, read as `{ en }` (design §4.2). Defined here rather than taken
+ * from site-content.ts, which imports this module.
+ */
+export const AreaLinkLabel = z.preprocess(
+  (v) => (typeof v === "string" ? { en: v } : v),
+  z.object({
+    en: z.string().trim().min(1).max(60),
+    he: z
+      .string()
+      .trim()
+      .max(60)
+      .transform((v) => (v ? v : undefined))
+      .optional(),
+    heSrc: Fingerprint.optional(),
+  }),
+);
+export type AreaLinkLabel = z.infer<typeof AreaLinkLabel>;
+export const AreaLinkSchema = z.object({ label: AreaLinkLabel, url: z.string().url() });
+
+/** An area's link label in English, from either shape. */
+export function labelEn(label: unknown): string {
+  if (typeof label === "string") return label;
+  return label && typeof label === "object" && typeof (label as { en?: unknown }).en === "string" ? (label as { en: string }).en : "";
+}
+/** An area's link label in Hebrew, or null. */
+export function labelHe(label: unknown): string | null {
+  const he = label && typeof label === "object" ? (label as { he?: unknown }).he : null;
+  return typeof he === "string" && he.trim() ? he : null;
+}
+
 export const CollectionHebrewSchema = z.object({
   title: z.string().max(120).nullable().default(null),
   tagline: z.string().max(160).nullable().default(null),
@@ -254,7 +292,8 @@ export const CollectionSchema = z.object({
   coverImage: z.string().url().nullable().default(null),
   /* An icon from the media library (#253). Absent on documents from before it. */
   icon: z.string().url().nullable().optional(),
-  links: z.array(z.object({ label: z.string().min(1).max(60), url: z.string().url() })).max(8).default([]),
+  /* Each label is `Text` (#306); a string from before reads as English. */
+  links: z.array(AreaLinkSchema).max(8).default([]),
   order: z.number().int().default(50),
   status: z.enum(["published", "hidden"]).default("published"),
   kind: z.enum(["site", "project"]).default("project"),
@@ -270,9 +309,16 @@ export const CollectionSchema = z.object({
 
 export type Collection = z.infer<typeof CollectionSchema>;
 
+/*
+ * The public Hebrew of an area: its fields, and each link label under
+ * `links.<i>.label` (#306), the key a note's link labels use, so the site
+ * reads both the same way and the public link stays `{ label, url }`.
+ */
 function collectionHebrew(c: Collection) {
   const he = hebrewOrNull(c.he);
-  return he ? { title: he.title ?? null, tagline: he.tagline ?? null, description: he.description ?? null } : null;
+  const links = Object.fromEntries((c.links ?? []).flatMap((l, i) => (labelHe(l.label) ? [[`links.${i}.label`, labelHe(l.label)]] : [])));
+  if (!he && !Object.keys(links).length) return null;
+  return { title: he?.title ?? null, tagline: he?.tagline ?? null, description: he?.description ?? null, ...links };
 }
 
 export function toPublicCollection(c: Collection) {
@@ -293,7 +339,7 @@ export function toPublicCollection(c: Collection) {
     coverImage: rawImageUrlOrNull(c.coverImage),
     // Documents from before #253 carry no icon; read raw, so no default applies.
     icon: c.icon ?? null,
-    links: c.links,
+    links: (c.links ?? []).map((l) => ({ label: labelEn(l.label), url: l.url })),
     order: c.order,
     // The repo config itself stays private — it names paths and branches. Only
     // the numbers, a link to the repo and the paths the owner opted in to

@@ -6,12 +6,16 @@ import { KindFilter, MediaGrid, Modal } from "@/components/admin/MediaGrid";
 import MediaUpload from "@/components/admin/MediaUpload";
 import MediaIcon from "@/components/media/MediaIcon";
 import MediaVideo from "@/components/media/MediaVideo";
+import TranslationPill from "@/components/admin/TranslationPill";
+import { useFocusField } from "@/components/admin/content/focusField";
+import { useTranslationReport, type TranslationStatus } from "@/services/translations";
 import styles from "@/components/admin/Media.module.css";
 import {
   KIND_LABEL,
   LIMITS,
   MEDIA_KINDS,
   MediaInUseError,
+  TRACK_LANGS,
   checkFile,
   filterMedia,
   formatBytes,
@@ -173,6 +177,10 @@ function Preview({ item }: { item: MediaItem }) {
   const file = librarySrc(item.file);
   const preview = librarySrc(item.preview);
   const captions = librarySrc(item.captions?.url);
+  const tracks = (item.tracks ?? []).flatMap((t) => {
+    const src = librarySrc(t.url);
+    return src ? [{ src, lang: t.lang, label: t.label }] : [];
+  });
   if (item.kind === "video" && file) {
     return (
       <MediaVideo
@@ -181,6 +189,7 @@ function Preview({ item }: { item: MediaItem }) {
         poster={librarySrc(item.largest?.webp) ?? preview ?? ""}
         label={item.alt}
         captions={item.captions && captions ? { src: captions, lang: item.captions.lang, label: item.captions.label } : null}
+        tracks={tracks}
         width={item.width}
         height={item.height}
         className={styles.detailImg}
@@ -227,17 +236,26 @@ function MediaDetail({
   const [alt, setAlt] = useState(item.alt);
   const [caption, setCaption] = useState(item.caption);
   const [credit, setCredit] = useState(item.credit);
-  const [busy, setBusy] = useState<"save" | "replace" | "delete" | null>(null);
+  /* The Hebrew beside each (#306): what a Hebrew page's reader hears and reads. */
+  const [heAlt, setHeAlt] = useState(item.he?.alt ?? "");
+  const [heCaption, setHeCaption] = useState(item.he?.caption ?? "");
+  const { report } = useTranslationReport();
+  const heUnits = report?.items.find((i) => i.type === "media" && i.id === item.id)?.units;
+  const heStatus = (path: string): TranslationStatus | null => heUnits?.find((u) => u.path === path)?.status ?? null;
+  /* A Translations row's link lands on the field's Hebrew (#302). */
+  useFocusField(item);
+  const [busy, setBusy] = useState<"save" | "replace" | "delete" | "captions" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [blockers, setBlockers] = useState<MediaUsage[] | null>(null);
   const [copied, setCopied] = useState(false);
   const [replacingVideo, setReplacingVideo] = useState(false);
   const file = useRef<HTMLInputElement>(null);
   const used = item.usedBy ?? [];
-  const dirty = alt !== item.alt || caption !== item.caption || credit !== item.credit;
+  const dirty =
+    alt !== item.alt || caption !== item.caption || credit !== item.credit || heAlt !== (item.he?.alt ?? "") || heCaption !== (item.he?.caption ?? "");
   const noun = KIND_LABEL[item.kind].one.toLowerCase();
 
-  async function run(kind: "save" | "replace" | "delete", job: () => Promise<void>) {
+  async function run(kind: "save" | "replace" | "delete" | "captions", job: () => Promise<void>) {
     setBusy(kind);
     setError(null);
     try {
@@ -263,12 +281,7 @@ function MediaDetail({
           <dd>{new Date(item.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</dd>
           <dt>URL</dt>
           <dd className="mono text-[0.75rem]" dir="ltr" translate="no">{item.url}</dd>
-          {item.captions && (
-            <>
-              <dt>Captions</dt>
-              <dd>{item.captions.label} ({item.captions.lang})</dd>
-            </>
-          )}
+
         </dl>
         <button
           type="button"
@@ -292,27 +305,39 @@ function MediaDetail({
               return;
             }
             void run("save", async () => {
-              const next = await media.update(item, { alt: alt.trim(), caption: caption.trim(), credit: credit.trim() });
+              const he = heAlt.trim() || heCaption.trim() ? { alt: heAlt.trim(), caption: heCaption.trim() } : null;
+              const next = await media.update(item, { alt: alt.trim(), caption: caption.trim(), credit: credit.trim(), he });
               onSaved(next, "Saved.");
             });
           }}
         >
-          <label className="block">
-            <span className="a-label">Alt text (required)</span>
-            <textarea
-              value={alt}
-              onChange={(e) => setAlt(e.target.value)}
-              className="a-textarea"
-              rows={3}
-              maxLength={300}
-              required
-              aria-invalid={!alt.trim() ? true : undefined}
-            />
-          </label>
-          <label className="block">
-            <span className="a-label">Caption</span>
-            <input value={caption} onChange={(e) => setCaption(e.target.value)} className="a-input" maxLength={500} />
-          </label>
+          <div className="grid gap-4 sm:grid-cols-2" data-path="alt">
+            <label className="block min-w-0">
+              <span className="a-label">Alt text (required)</span>
+              <textarea
+                value={alt}
+                onChange={(e) => setAlt(e.target.value)}
+                className="a-textarea"
+                rows={3}
+                maxLength={300}
+                required
+                aria-invalid={!alt.trim() ? true : undefined}
+              />
+            </label>
+            <HebrewHalf label="Alt text in Hebrew" status={heStatus("alt")}>
+              <textarea value={heAlt} onChange={(e) => setHeAlt(e.target.value)} className="a-textarea" rows={3} maxLength={300} lang="he" dir="rtl" />
+            </HebrewHalf>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2" data-path="caption">
+            <label className="block min-w-0">
+              <span className="a-label">Caption</span>
+              <input value={caption} onChange={(e) => setCaption(e.target.value)} className="a-input" maxLength={500} />
+            </label>
+            <HebrewHalf label="Caption in Hebrew" status={caption.trim() ? heStatus("caption") : null}>
+              <input value={heCaption} onChange={(e) => setHeCaption(e.target.value)} className="a-input" maxLength={500} lang="he" dir="rtl" />
+            </HebrewHalf>
+          </div>
+          <p className="a-hint mt-0">A Hebrew page reads the Hebrew; until it is written, it reads the English.</p>
           <label className="block">
             <span className="a-label">Credit</span>
             <input value={credit} onChange={(e) => setCredit(e.target.value)} className="a-input" maxLength={200} />
@@ -340,6 +365,27 @@ function MediaDetail({
             </ul>
           )}
         </section>
+
+        {item.kind === "video" && (
+          <CaptionTracks
+            item={item}
+            busy={busy === "captions"}
+            disabled={busy !== null}
+            onPut={(lang, f) =>
+              void run("captions", async () => {
+                const next = await media.putCaptions(item, lang, f);
+                onSaved(next, `Captions in ${TRACK_LANGS.find((t) => t.lang === lang)?.label ?? lang} saved.`);
+              })
+            }
+            onRemove={(lang) =>
+              void run("captions", async () => {
+                const next = await media.removeCaptions(item, lang);
+                onSaved(next, "Captions removed.");
+              })
+            }
+            onProblem={setError}
+          />
+        )}
 
         {replacingVideo && (
           <ReplaceVideo
@@ -476,5 +522,95 @@ function ReplaceVideo({
         </button>
       </div>
     </form>
+  );
+}
+
+/* A field's Hebrew half (#306): labelled, right to left, with its status. */
+function HebrewHalf({ label, status, children }: { label: string; status: TranslationStatus | null; children: React.ReactElement }) {
+  return (
+    <label className="block min-w-0">
+      <span className="flex items-center justify-between gap-2">
+        <span className="a-label">{label}</span>
+        <TranslationPill status={status} />
+      </span>
+      {children}
+    </label>
+  );
+}
+
+/*
+ * A video's captions, one track per language (#306). The page shows the
+ * track in its own language by default, and the first one otherwise.
+ */
+function CaptionTracks({
+  item,
+  busy,
+  disabled,
+  onPut,
+  onRemove,
+  onProblem,
+}: {
+  item: MediaItem;
+  busy: boolean;
+  disabled: boolean;
+  onPut: (lang: string, file: File) => void;
+  onRemove: (lang: string) => void;
+  onProblem: (message: string) => void;
+}) {
+  const tracks = item.tracks ?? (item.captions ? [item.captions] : []);
+  const picker = useRef<HTMLInputElement>(null);
+  const [lang, setLang] = useState<string>(() => TRACK_LANGS.find((t) => !tracks.some((x) => x.lang === t.lang))?.lang ?? "he");
+  const has = tracks.some((t) => t.lang === lang);
+  return (
+    <section aria-labelledby="media-captions">
+      <h3 id="media-captions" className="a-label">Captions</h3>
+      {tracks.length === 0 ? (
+        <p className="a-hint mt-0">No captions yet.</p>
+      ) : (
+        <ul className="space-y-2 text-[0.875rem]">
+          {tracks.map((t) => (
+            <li key={t.lang} className="flex flex-wrap items-center justify-between gap-2">
+              <span lang={t.lang} dir={t.lang === "he" ? "rtl" : "ltr"}>
+                {t.label}
+              </span>
+              <button type="button" className="a-btn a-btn-ghost" disabled={disabled} onClick={() => onRemove(t.lang)}>
+                Remove{" "}<span className="sr-only">the {TRACK_LANGS.find((x) => x.lang === t.lang)?.label ?? t.lang} captions</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <div className="mt-3 flex flex-wrap items-center gap-3">
+        <label className="flex items-center gap-2">
+          <span className="a-label m-0">Language</span>
+          <select className="a-select" value={lang} onChange={(e) => setLang(e.target.value)}>
+            {TRACK_LANGS.map((t) => (
+              <option key={t.lang} value={t.lang}>
+                {t.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <input
+          ref={picker}
+          type="file"
+          accept={LIMITS.captions.accept}
+          className="sr-only"
+          tabIndex={-1}
+          aria-hidden="true"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            e.target.value = "";
+            if (!f) return;
+            const problem = checkFile(f, "captions");
+            if (problem) return onProblem(problem);
+            onPut(lang, f);
+          }}
+        />
+        <button type="button" className="a-btn" disabled={disabled} onClick={() => picker.current?.click()}>
+          {busy ? "Uploading" : has ? "Replace captions (.vtt)" : "Add captions (.vtt)"}
+        </button>
+      </div>
+    </section>
   );
 }

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { invalidateTranslations } from "@/services/translations";
 
 /*
  * The media library's admin API (#253). Same origin as the rest of the admin
@@ -36,6 +37,10 @@ const MediaSchema = z.object({
   durationMs: z.number().optional(),
   hasAudio: z.boolean().optional(),
   captions: z.object({ url: z.string(), lang: z.string(), label: z.string() }).nullable().optional(),
+  /* Every captions track, one per language (#306). */
+  tracks: z.array(z.object({ url: z.string(), lang: z.string(), label: z.string() })).optional(),
+  /* The Hebrew alt and caption (#306); null when there is none. */
+  he: z.object({ alt: z.string(), caption: z.string() }).nullable().optional(),
   srcset: z.object({ avif: z.string(), webp: z.string() }),
   /* An image's widest size; a video's widest poster. */
   largest: z.object({ avif: z.string().nullable(), webp: z.string().nullable() }).optional(),
@@ -150,6 +155,14 @@ const json = (method: string, body: unknown): RequestInit => ({
 });
 
 export type MediaMeta = { alt: string; caption: string; credit: string };
+/** What the details form saves: the English, and the Hebrew beside it (#306). */
+export type MediaDetails = MediaMeta & { he: { alt: string; caption: string } | null };
+
+/** A track's language, as the captions list names it. */
+export const TRACK_LANGS = [
+  { lang: "en", label: "English" },
+  { lang: "he", label: "עברית" },
+] as const;
 
 export const media = {
   list: async (q = "") => {
@@ -162,8 +175,24 @@ export const media = {
     const r = await call<{ item: unknown }>(`?${params}`, { method: "POST", ...init });
     return MediaSchema.parse(r.item);
   },
-  update: async (item: MediaItem, meta: MediaMeta) => {
+  update: async (item: MediaItem, meta: MediaMeta | MediaDetails) => {
     const r = await call<{ item: unknown }>(`/${item.id}`, json("PUT", { ...meta, _rev: item._rev }));
+    invalidateTranslations();
+    return MediaSchema.parse(r.item);
+  },
+  /** A video's captions in one language, added or replaced (#306). */
+  putCaptions: async (item: MediaItem, lang: string, file: File) => {
+    const params = new URLSearchParams({ rev: item._rev ?? "" });
+    const r = await call<{ item: unknown }>(`/${item.id}/captions/${encodeURIComponent(lang)}?${params}`, {
+      method: "PUT",
+      headers: { "Content-Type": "text/vtt" },
+      body: file,
+    });
+    return MediaSchema.parse(r.item);
+  },
+  removeCaptions: async (item: MediaItem, lang: string) => {
+    const params = new URLSearchParams({ rev: item._rev ?? "" });
+    const r = await call<{ item: unknown }>(`/${item.id}/captions/${encodeURIComponent(lang)}?${params}`, { method: "DELETE" });
     return MediaSchema.parse(r.item);
   },
   replace: async (item: MediaItem, file: File, video?: VideoParts) => {
