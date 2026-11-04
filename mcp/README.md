@@ -38,8 +38,8 @@ optimistic lock and audit log as the admin UI.
 
 | Tool | API |
 |---|---|
-| `list_posts` (`tag?`, `area?`) | `GET /api/blog/posts` |
-| `get_post` (`slug`) | `GET /api/blog/posts/:slug` |
+| `list_posts` (`tag?`, `area?`, `lang?`) | `GET /api/blog/posts` |
+| `get_post` (`slug`, `lang?`) | `GET /api/blog/posts/:slug` |
 | `list_tags` | `GET /api/blog/tags` |
 | `list_areas` | `GET /api/areas` |
 | `get_area` (`slug`) | `GET /api/blog/collections/:slug` |
@@ -57,12 +57,23 @@ optimistic lock and audit log as the admin UI.
 | `delete_area` | Hide an area. Needs `confirm: true` |
 | `read_audit_log` | The backend's record of admin writes |
 | `list_media` (`q?`, `kind?`) | The media library (#253): pictures, icons and videos, each with its kind, alt text, stable `url` and `usedBy` |
+| `list_translations` (`status?`, `type?`, `visibility?`) | The Translations report (#301): each note, area, project, story beat and site-copy section with its Hebrew status and counts |
+| `get_translation` (`type`, `id`) | One item in both languages, unit by unit, with its status; for a note with a stale Hebrew body, `bodyDiff` shows what changed in the English since |
+| `put_translation` (`type`, `id`, `units`) | Hebrew for one or more units, written into the item's **draft** (never live; the owner publishes in the admin). Returns the glossary warnings. Areas have no draft and are refused |
 | `upload_media` (`path`, `alt`, `kind?`, `posterPath?`, `captionsPath?`, `captionsLang?`, `caption?`, `credit?`) | Upload one local file as an image, icon (SVG/PNG, 64 KB) or video (MP4/WebM, 25 MB, 60 s; needs `posterPath`). Dry run checks the files and sends nothing. **stdio only:** it reads a path on your machine, so the remote server does not offer it |
 
 Every write takes **`dryRun`, default `true`**: it reads the current document,
 works out the change and returns a field-by-field diff (a post body as a line
 diff), and writes nothing. Call again with `dryRun: false` to apply. A delete
 also needs `confirm: true`; without it the call refuses and nothing changes.
+
+`lang: "he"` on `list_posts` and `get_post` returns each post with its
+published Hebrew in place, English where a field has none, and
+`fallback: true` with the English fields named. The glossary the site writes
+Hebrew by is the resource **`glossary://he`** for admin sessions: read it
+before `put_translation`. `put_translation`'s dry run is a request to the API
+with `dryRun: true`; the API writes nothing but, like every admin
+`PUT`, records the attempt in the audit log.
 
 **The tool set grows with the CMS.** As more content becomes editable in the
 backend (#163 moves `web/src/data` into the store; #253 and #254 follow), each

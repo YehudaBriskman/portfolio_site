@@ -1,0 +1,380 @@
+import request from "supertest";
+import { createApp } from "../app";
+import { couch, CouchError } from "../db/couch.js";
+import { env } from "../env.js";
+import { CONTENT_SEED } from "../content/seed.js";
+import { fp } from "../schemas/i18n.js";
+import type { ContentBundle } from "../schemas/site-content.js";
+import { backfillDoc } from "../services/he-backfill.js";
+
+/*
+ * Fingerprints stamped on save, the "still correct" acknowledgement and the
+ * backfill (#303). CouchDB is an in-memory map with its two behaviours that
+ * matter: a PUT naming a stale revision is 409, a missing id is 404.
+ */
+
+const NOW = "2026-11-03T08:00:00.000Z";
+type Doc = Record<string, unknown> & { _id: string; _rev?: string };
+
+let store: Map<string, Doc>;
+let revs = 0;
+
+beforeEach(() => {
+  store = new Map();
+  vi.spyOn(couch, "get").mockImplementation(async <T>(id: string) => {
+    const doc = store.get(id);
+    if (!doc) throw new CouchError(404, "couch 404");
+    return structuredClone(doc) as T;
+  });
+  vi.spyOn(couch, "put").mockImplementation(async <T>(id: string, body: unknown) => {
+    const doc = body as Doc;
+    const existing = store.get(id);
+    if (existing ? doc._rev !== existing._rev : doc._rev !== undefined) throw new CouchError(409, "couch 409");
+    const rev = `${++revs + 1}-x`;
+    store.set(id, { ...structuredClone(doc), _rev: rev });
+    return { ok: true, id, rev } as T;
+  });
+  vi.spyOn(couch, "find").mockImplementation(async (q: unknown) => ({
+    docs: [...store.values()].filter((d) => d.type === (q as { selector: { type: string } }).selector.type),
+  }));
+  vi.spyOn(couch, "append").mockResolvedValue(undefined as never);
+});
+
+afterEach(() => vi.restoreAllMocks());
+
+function asAdmin(req: request.Test) {
+  return req.set("X-Admin-Proxy-Secret", env.ADMIN_PROXY_SECRET).set("X-Auth-Request-User", env.ADMIN_GITHUB_LOGIN);
+}
+
+const app = () => createApp();
+const seed = () => structuredClone(CONTENT_SEED) as ContentBundle;
+
+function content(over: Record<string, unknown> = {}) {
+  return {
+    title: "A note",
+    subtitle: null,
+    excerpt: "The lede.",
+    body: "The body.",
+    tags: [],
+    collection: "site",
+    coverImage: null,
+    links: [],
+    featured: null,
+    publishedAt: null,
+    seo: { title: null, description: null, canonical: null, noindex: false },
+    he: null,
+    ...over,
+  };
+}
+
+const HE = { title: "רשימה", subtitle: "", excerpt: "הפתיח.", body: "הגוף." };
+
+async function publish(slug: string, body: Record<string, unknown>) {
+  const rev = store.get(`post:${slug}`)?._rev;
+  return asAdmin(request(app()).post(`/api/admin/posts/${slug}/publish`)).send({ ...body, _rev: rev });
+}
+
+async function saveDraft(slug: string, body: Record<string, unknown>) {
+  const rev = store.get(`post:${slug}`)?._rev;
+  return asAdmin(request(app()).put(`/api/admin/posts/${slug}/draft`)).send({ ...body, _rev: rev });
+}
+
+async function statusOf(type: string, id: string) {
+  const res = await asAdmin(request(app()).get(`/api/admin/translations?type=${type}`));
+  return res.body.items.find((i: { id: string }) => i.id === id) as { status: string; units: { path: string; status: string }[] };
+}
+
+describe("a note's Hebrew is stamped on save (#303)", () => {
+  it("stamps new Hebrew with the English beside it, and the body's English base", async () => {
+    const res = await publish("a-note", content({ he: HE }));
+    expect(res.status).toBe(200);
+    const doc = store.get("post:a-note")!;
+    expect(doc.heMeta).toEqual({
+      src: { title: fp("A note"), excerpt: fp("The lede."), body: fp("The body.") },
+      bodyBase: "The body.",
+    });
+    expect((await statusOf("post", "a-note")).status).toBe("translated");
+  });
+
+  it("ignores a fingerprint the client sends", async () => {
+    await publish("a-note", content({ he: HE, heMeta: { src: { title: "000000000000" }, bodyBase: "lies" } }));
+    expect((store.get("post:a-note")!.heMeta as { src: { title: string } }).src.title).toBe(fp("A note"));
+  });
+
+  it("keeps the fingerprint when only the English changes, so the Hebrew turns stale", async () => {
+    await publish("a-note", content({ he: HE }));
+    /* A draft that edits the English and leaves the Hebrew alone... */
+    await saveDraft("a-note", content({ title: "A note, renamed", he: HE }));
+    const draft = store.get("post:a-note")!.draft as { heMeta: { src: Record<string, string> } };
+    expect(draft.heMeta.src.title).toBe(fp("A note"));
+    /* ...and its publish: the Hebrew title now translates the old English. */
+    await publish("a-note", content({ title: "A note, renamed", he: HE }));
+    const s = await statusOf("post", "a-note");
+    expect(s.status).toBe("stale");
+    expect(s.units.find((u) => u.path === "title")!.status).toBe("stale");
+    expect(s.units.find((u) => u.path === "body")!.status).toBe("translated");
+  });
+
+  it("restamps when the Hebrew changes too", async () => {
+    await publish("a-note", content({ he: HE }));
+    await publish("a-note", content({ title: "A note, renamed", he: { ...HE, title: "רשימה, בשם חדש" } }));
+    expect((await statusOf("post", "a-note")).status).toBe("translated");
+  });
+
+  it("does not restamp for whitespace around the Hebrew", async () => {
+    await publish("a-note", content({ he: HE }));
+    await publish("a-note", content({ body: "A new body.", he: { ...HE, body: " הגוף. " } }));
+    const meta = store.get("post:a-note")!.heMeta as { src: Record<string, string>; bodyBase: string };
+    expect(meta.src.body).toBe(fp("The body."));
+    expect(meta.bodyBase).toBe("The body.");
+  });
+
+  it("carries the fingerprints through the whole-note write, which does not touch the Hebrew", async () => {
+    await publish("a-note", content({ he: HE }));
+    const before = store.get("post:a-note")!;
+    const res = await asAdmin(request(app()).put("/api/admin/posts/a-note")).send({
+      title: "A note",
+      excerpt: "The lede.",
+      body: "The body.",
+      status: "published",
+      _rev: before._rev,
+    });
+    expect(res.status).toBe(200);
+    expect(store.get("post:a-note")!.heMeta).toEqual(before.heMeta);
+  });
+
+  it("never sends the fingerprints to a reader", async () => {
+    await publish("a-note", content({ he: HE }));
+    const res = await request(app()).get("/api/blog/posts/a-note");
+    expect(res.status).toBe(200);
+    expect(res.body.post.he.title).toBe("רשימה");
+    expect(JSON.stringify(res.body)).not.toMatch(/heMeta|bodyBase|heSrc/);
+  });
+});
+
+describe("an area's Hebrew is stamped on save (#303)", () => {
+  async function saveArea(over: Record<string, unknown>) {
+    const rev = store.get("collection:bothy")?._rev;
+    return asAdmin(request(app()).put("/api/admin/collections/bothy")).send({ title: "Bothy", tagline: "A dev box", _rev: rev, ...over });
+  }
+
+  it("stamps the fields sent, and keeps them across a save that does not send Hebrew", async () => {
+    expect((await saveArea({ he: { title: "Bothy", tagline: "שרת פיתוח", description: null } })).status).toBe(200);
+    expect(store.get("collection:bothy")!.heMeta).toEqual({ src: { title: fp("Bothy"), tagline: fp("A dev box") } });
+    await saveArea({ tagline: "A dev box, at home" });
+    expect(store.get("collection:bothy")!.heMeta).toEqual({ src: { title: fp("Bothy"), tagline: fp("A dev box") } });
+    expect((await statusOf("area", "bothy")).status).toBe("stale");
+  });
+});
+
+describe("structured copy is stamped on save (#303)", () => {
+  function storeSiteCopy(published: unknown, draft: unknown = null) {
+    store.set("content:site-copy", {
+      _id: "content:site-copy",
+      _rev: "1-sc",
+      type: "content",
+      key: "site-copy",
+      published,
+      draft,
+      createdAt: NOW,
+      updatedAt: NOW,
+      publishedAt: NOW,
+      source: "seed",
+    });
+  }
+
+  it("stamps new Hebrew, keeps an unchanged one's, and never publishes the fingerprints", async () => {
+    const s = seed().siteCopy;
+    storeSiteCopy(s);
+    const data = structuredClone(s);
+    data.hero.title = { en: data.hero.title.en, he: "כותרת חדשה" };
+    data.hero.fact = { en: "A new fact.", he: data.hero.fact.he };
+    const res = await asAdmin(request(app()).post("/api/admin/content/site-copy/publish")).send({ data, _rev: "1-sc" });
+    expect(res.status).toBe(200);
+    const published = store.get("content:site-copy")!.published as ContentBundle["siteCopy"];
+    expect((published.hero.title as { heSrc?: string }).heSrc).toBe(fp(data.hero.title.en));
+    /* Unchanged Hebrew from before #303 keeps no fingerprint: still unverified, not falsely current. */
+    expect((published.hero.fact as { heSrc?: string }).heSrc).toBeUndefined();
+
+    const pub = await request(app()).get("/api/content");
+    expect(JSON.stringify(pub.body)).not.toContain("heSrc");
+    const one = await request(app()).get("/api/content/site-copy");
+    expect(JSON.stringify(one.body)).not.toContain("heSrc");
+  });
+
+  it("follows a project by its slug, not its position, when the list is reordered", async () => {
+    const p = seed().projects;
+    const first = p.items[0];
+    first.fact = { en: first.fact.en, he: "עובדה.", heSrc: fp(first.fact.en) } as typeof first.fact;
+    store.set("content:projects", { _id: "content:projects", _rev: "1-p", type: "content", key: "projects", published: p, draft: null });
+    const data = structuredClone(p);
+    data.items.reverse();
+    const moved = data.items.find((x) => x.slug === first.slug)!;
+    moved.fact = { en: "Edited English.", he: "עובדה." };
+    const res = await asAdmin(request(app()).put("/api/admin/content/projects/draft")).send({ data, _rev: "1-p" });
+    expect(res.status).toBe(200);
+    const draft = store.get("content:projects")!.draft as ContentBundle["projects"];
+    expect((draft.items.find((x) => x.slug === first.slug)!.fact as { heSrc?: string }).heSrc).toBe(fp(first.fact.en));
+  });
+});
+
+describe("POST /api/admin/translations/ack (#303)", () => {
+  it("restamps one stale unit of a note to today's English, and its draft when it matches", async () => {
+    await publish("a-note", content({ he: HE }));
+    await publish("a-note", content({ title: "A note, typo fixed", he: HE }));
+    await saveDraft("a-note", content({ title: "A note, typo fixed", he: HE, excerpt: "A newer lede." }));
+    expect((await statusOf("post", "a-note")).status).toBe("stale");
+
+    const rev = store.get("post:a-note")!._rev;
+    const res = await asAdmin(request(app()).post("/api/admin/translations/ack")).send({ type: "post", id: "a-note", path: "title", rev });
+    expect(res.status).toBe(200);
+    expect(res.body.rev).toBe(store.get("post:a-note")!._rev);
+    expect((await statusOf("post", "a-note")).status).toBe("translated");
+    const doc = store.get("post:a-note")!;
+    expect((doc.draft as { heMeta: { src: Record<string, string> } }).heMeta.src.title).toBe(fp("A note, typo fixed"));
+    /* No word changed. */
+    expect((doc.he as { title: string }).title).toBe("רשימה");
+  });
+
+  it("is 409 on a revision the owner did not see, 404 on an unknown unit, 400 with no Hebrew", async () => {
+    await publish("a-note", content({ he: { ...HE, excerpt: "" } }));
+    const rev = store.get("post:a-note")!._rev;
+    const ack = (body: Record<string, unknown>) => asAdmin(request(app()).post("/api/admin/translations/ack")).send(body);
+    expect((await ack({ type: "post", id: "a-note", path: "title", rev: "0-old" })).status).toBe(409);
+    expect((await ack({ type: "post", id: "a-note", path: "tags", rev })).status).toBe(404);
+    expect((await ack({ type: "post", id: "nope", path: "title", rev })).status).toBe(404);
+    expect((await ack({ type: "post", id: "a-note", path: "excerpt", rev })).status).toBe(400);
+    expect((await ack({ type: "post", id: "a-note" })).status).toBe(400);
+  });
+
+  it("restamps a Text inside a content document by item and path", async () => {
+    const p = seed().projects;
+    const target = p.items[1];
+    target.description = { en: target.description.en, he: "תיאור.", heSrc: fp("Older English.") } as typeof target.description;
+    store.set("content:projects", { _id: "content:projects", _rev: "1-p", type: "content", key: "projects", published: p, draft: structuredClone(p) });
+    expect((await statusOf("project", target.slug)).units.find((u) => u.path === "description")!.status).toBe("stale");
+
+    const res = await asAdmin(request(app()).post("/api/admin/translations/ack")).send({ type: "project", id: target.slug, path: "description", rev: "1-p" });
+    expect(res.status).toBe(200);
+    expect((await statusOf("project", target.slug)).units.find((u) => u.path === "description")!.status).toBe("translated");
+    const draft = store.get("content:projects")!.draft as ContentBundle["projects"];
+    expect((draft.items[1].description as { heSrc?: string }).heSrc).toBe(fp(target.description.en));
+  });
+
+  it("is written to the audit log", async () => {
+    await publish("a-note", content({ he: HE }));
+    const append = vi.mocked(couch.append);
+    append.mockClear();
+    const rev = store.get("post:a-note")!._rev;
+    await asAdmin(request(app()).post("/api/admin/translations/ack")).send({ type: "post", id: "a-note", path: "title", rev });
+    await new Promise((r) => setTimeout(r, 10));
+    const entry = append.mock.calls.map((c) => c[1] as { path: string; target: string }).find((e) => e.path === "/api/admin/translations/ack");
+    expect(entry?.target).toBe("post:a-note");
+  });
+});
+
+describe("the backfill (#303)", () => {
+  it("fills every absent fingerprint in a note, its draft, an area and a content document", () => {
+    const note = {
+      _id: "post:x",
+      type: "post",
+      title: "T",
+      excerpt: "E",
+      body: "B",
+      he: { title: "ת", subtitle: "", excerpt: "", body: "ג" },
+      draft: { title: "T2", excerpt: "", body: "B", he: { title: "ת2", subtitle: "", excerpt: "", body: "" } },
+    };
+    const c = backfillDoc(note)!;
+    expect(c.units).toEqual(["title", "body", "draft.title"]);
+    expect(c.next.heMeta).toEqual({ src: { title: fp("T"), body: fp("B") }, bodyBase: "B" });
+    expect((c.next.draft as { heMeta: unknown }).heMeta).toEqual({ src: { title: fp("T2") } });
+
+    const area = backfillDoc({ _id: "collection:y", type: "collection", title: "Y", tagline: "L", he: { title: "י", tagline: null, description: null } })!;
+    expect(area.next.heMeta).toEqual({ src: { title: fp("Y") } });
+
+    const doc = backfillDoc({
+      _id: "content:story",
+      type: "content",
+      published: { start: { title: { en: "Start", he: "התחלה" }, lines: [{ en: "One" }] } },
+      draft: null,
+    })!;
+    expect(doc.units).toEqual(["published.start.title"]);
+    expect(((doc.next.published as { start: { title: { heSrc: string } } }).start.title).heSrc).toBe(fp("Start"));
+  });
+
+  it("never replaces a fingerprint, never touches text, and is idempotent", () => {
+    const note = {
+      _id: "post:x",
+      type: "post",
+      title: "T",
+      body: "B",
+      he: { title: "ת", body: "ג" },
+      heMeta: { src: { title: "aaaaaaaaaaaa" }, bodyBase: "Old B" },
+    };
+    const c = backfillDoc(note)!;
+    expect(c.units).toEqual(["body"]);
+    expect(c.next.heMeta).toEqual({ src: { title: "aaaaaaaaaaaa", body: fp("B") }, bodyBase: "Old B" });
+    expect(c.next.he).toEqual(note.he);
+    expect(backfillDoc(c.next)).toBeNull();
+  });
+
+  it("leaves a document with no Hebrew, or not a content type, alone", () => {
+    expect(backfillDoc({ _id: "post:z", type: "post", title: "T", body: "B", he: null })).toBeNull();
+    expect(backfillDoc({ _id: "settings", type: "settings" })).toBeNull();
+  });
+});
+
+describe("PUT /api/admin/translations/draft (#307)", () => {
+  const draftPut = (body: Record<string, unknown>) => asAdmin(request(app()).put("/api/admin/translations/draft")).send(body);
+
+  it("is a dry run by default: the changes and the glossary warnings, nothing written", async () => {
+    await publish("a-note", content({ he: HE }));
+    const before = structuredClone(store.get("post:a-note"));
+    const res = await draftPut({ type: "post", id: "a-note", units: [{ path: "excerpt", he: "פתיח בGitHub" }] });
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({
+      dryRun: true,
+      target: "post:a-note",
+      changes: [{ path: "excerpt", en: "The lede.", before: "הפתיח.", after: "פתיח בGitHub" }],
+      warnings: [{ path: "excerpt", rule: "prefix-glued", match: "בGitHub", use: "ב־GitHub" }],
+    });
+    expect(store.get("post:a-note")).toEqual(before);
+  });
+
+  it("writes a published note's Hebrew into its draft, stamped, and leaves what is live alone", async () => {
+    await publish("a-note", content({ he: HE }));
+    const rev = store.get("post:a-note")!._rev;
+    const res = await draftPut({ type: "post", id: "a-note", rev, units: [{ path: "title", he: "רשימה חדשה" }], dryRun: false });
+    expect(res.status).toBe(200);
+    expect(res.body.rev).toBe(store.get("post:a-note")!._rev);
+    const doc = store.get("post:a-note")! as Record<string, any>;
+    expect(doc.he.title).toBe("רשימה");
+    expect(doc.draft.he).toMatchObject({ title: "רשימה חדשה", body: "הגוף." });
+    expect(doc.draft.heMeta.src).toMatchObject({ title: fp("A note"), body: fp("The body.") });
+    expect((await statusOf("post", "a-note")).units.find((u) => u.path === "title")).toMatchObject({ status: "translated", draftHe: "רשימה חדשה" });
+    /* A stale revision is refused. */
+    expect((await draftPut({ type: "post", id: "a-note", rev, units: [{ path: "title", he: "x" }], dryRun: false })).status).toBe(409);
+  });
+
+  it("writes a content document's draft by item and path, and refuses an area, an unknown path and a repeated one", async () => {
+    const p = seed().projects;
+    store.set("content:projects", { _id: "content:projects", _rev: "1-p", type: "content", key: "projects", published: p, draft: null });
+    const slug = p.items[0].slug;
+    const res = await draftPut({ type: "project", id: slug, rev: "1-p", units: [{ path: "fact", he: "עובדה." }], dryRun: false });
+    expect(res.status).toBe(200);
+    const doc = store.get("content:projects")! as Record<string, any>;
+    expect(doc.draft.items[0].fact).toEqual({ en: p.items[0].fact.en, he: "עובדה.", heSrc: fp(p.items[0].fact.en) });
+    expect(doc.published.items[0].fact.he).toBe(p.items[0].fact.he);
+
+    expect((await draftPut({ type: "area", id: "bothy", units: [{ path: "title", he: "x" }] })).status).toBe(400);
+    expect((await draftPut({ type: "project", id: slug, units: [{ path: "tech", he: "x" }] })).status).toBe(404);
+    expect((await draftPut({ type: "project", id: slug, units: [{ path: "fact", he: "a" }, { path: "fact", he: "b" }] })).status).toBe(400);
+  });
+
+  it("serves the glossary", async () => {
+    const res = await asAdmin(request(app()).get("/api/admin/translations/glossary"));
+    expect(res.status).toBe(200);
+    expect(res.body.glossary.allowLatin).toContain("GitHub");
+    expect((await request(app()).get("/api/admin/translations/glossary")).status).toBe(401);
+  });
+});
