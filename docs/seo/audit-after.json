@@ -1,0 +1,237 @@
+{
+  "base": "http://127.0.0.1:18308",
+  "robots": {
+    "status": 200,
+    "sitemapLine": true,
+    "disallow": [
+      "/admin"
+    ]
+  },
+  "sitemap": {
+    "status": 200,
+    "index": false,
+    "urls": 39,
+    "lastmod": 39,
+    "alternates": 42
+  },
+  "pages": 64,
+  "byStatus": {
+    "200": 64
+  },
+  "indexable": 39,
+  "noindex": [
+    "/he/projects/windom",
+    "/he/projects/bothy",
+    "/he/projects/programming-with-yehuda",
+    "/he/projects/icaros",
+    "/he/blog/bothy-updates-deploy-what-main-pins",
+    "/he/blog/bothy-no-shell-in-the-browser",
+    "/he/blog/bothy-asks-docker",
+    "/he/blog/windom-gmail-withdrawn-for-licensing",
+    "/he/blog/windom-provider-401-is-not-a-session",
+    "/he/blog/windom-glass-as-optics",
+    "/he/blog/fixture-rendering",
+    "/he/blog/windom-1-5-computed-glass",
+    "/he/blog/fixture-long-read",
+    "/he/blog/windom-1-4-1-reliability",
+    "/he/blog/fixture-short",
+    "/he/blog/fixture-project-note",
+    "/he/blog/bothy-2026-9-five-services",
+    "/he/blog/bothy-2026-8-first-release",
+    "/he/blog/windom-1-4-apps-hub",
+    "/he/blog/windom-1-3-weather-without-a-key",
+    "/he/blog/windom-1-1-settings-sync",
+    "/he/blog/windom-1-0-first-release",
+    "/he/blog/area/site",
+    "/he/blog/area/windom",
+    "/he/blog/area/bothy"
+  ],
+  "notOneTitle": [],
+  "notOneDescription": [],
+  "notOneCanonical": [],
+  "canonicalElsewhere": [],
+  "titleLong": [
+    {
+      "path": "/he",
+      "len": 63
+    },
+    {
+      "path": "/blog/windom-1-3-weather-without-a-key",
+      "len": 63
+    }
+  ],
+  "titleShort": [],
+  "descriptionLong": [],
+  "descriptionShort": [
+    {
+      "path": "/he/projects",
+      "len": 68
+    },
+    {
+      "path": "/he/blog",
+      "len": 56
+    }
+  ],
+  "duplicateTitles": [],
+  "duplicateDescriptions": [
+    {
+      "value": "Every new tab becomes a dashboard. A Chrome extension that replaces the new-tab page with a personal dashboard: clock, weather, tasks, calendar, music…",
+      "paths": [
+        "/projects/windom",
+        "/blog/area/windom"
+      ]
+    },
+    {
+      "value": "A console for one machine that asks Docker what is running. A self-hosted console for a single machine. It reports containers, ports, routes, metrics and…",
+      "paths": [
+        "/projects/bothy",
+        "/blog/area/bothy"
+      ]
+    }
+  ],
+  "titleLangMismatch": [],
+  "descriptionLangMismatch": [],
+  "heIndexableEnglish": [],
+  "noHreflang": [
+    "/projects/windom",
+    "/projects/bothy",
+    "/projects/programming-with-yehuda",
+    "/projects/icaros",
+    "/blog/bothy-updates-deploy-what-main-pins",
+    "/blog/bothy-no-shell-in-the-browser",
+    "/blog/bothy-asks-docker",
+    "/blog/windom-gmail-withdrawn-for-licensing",
+    "/blog/windom-provider-401-is-not-a-session",
+    "/blog/windom-glass-as-optics",
+    "/blog/fixture-rendering",
+    "/blog/windom-1-5-computed-glass",
+    "/blog/fixture-long-read",
+    "/blog/windom-1-4-1-reliability",
+    "/blog/fixture-short",
+    "/blog/fixture-project-note",
+    "/blog/bothy-2026-9-five-services",
+    "/blog/bothy-2026-8-first-release",
+    "/blog/windom-1-4-apps-hub",
+    "/blog/windom-1-3-weather-without-a-key",
+    "/blog/windom-1-1-settings-sync",
+    "/blog/windom-1-0-first-release",
+    "/blog/area/bothy",
+    "/blog/area/site",
+    "/blog/area/windom"
+  ],
+  "noJsonLd": [],
+  "jsonLdProblems": [],
+  "jsonLdTypes": [
+    "BlogPosting",
+    "BreadcrumbList",
+    "CollectionPage",
+    "CreativeWork",
+    "ImageObject",
+    "ItemList",
+    "ListItem",
+    "Person",
+    "PostalAddress",
+    "ProfilePage",
+    "SoftwareSourceCode",
+    "WebPage",
+    "WebSite"
+  ],
+  "ogIncomplete": [],
+  "twitterIncomplete": [],
+  "ogLocaleVsLang": [],
+  "noH1": [],
+  "manyH1": [],
+  "headingSkips": [],
+  "imagesNoAlt": 0,
+  "thin": [
+    {
+      "path": "/blog/log",
+      "words": 11
+    },
+    {
+      "path": "/he/blog/log",
+      "words": 9
+    },
+    {
+      "path": "/he/developers/mcp",
+      "words": 45
+    },
+    {
+      "path": "/he/accessibility",
+      "words": 49
+    }
+  ],
+  "feedsInHead": 39,
+  "verification": [],
+  "maxDepth": 2,
+  "depthHistogram": {
+    "0": 2,
+    "1": 4,
+    "2": 44,
+    "unlinked": 14
+  },
+  "orphans": [
+    "/story",
+    "/he/story",
+    "/blog/log",
+    "/he/blog/log",
+    "/developers/mcp",
+    "/he/developers/mcp",
+    "/accessibility",
+    "/he/accessibility",
+    "/blog/area/bothy",
+    "/blog/area/site",
+    "/blog/area/windom"
+  ],
+  "indexableNotInSitemap": [],
+  "appRoutesUnlinked": [
+    "/blog/log",
+    "/he/blog/log",
+    "/story",
+    "/he/story",
+    "/accessibility",
+    "/he/accessibility",
+    "/developers/mcp",
+    "/he/developers/mcp",
+    "/blog/area/site",
+    "/he/blog/area/site",
+    "/blog/area/windom",
+    "/he/blog/area/windom",
+    "/blog/area/bothy",
+    "/he/blog/area/bothy"
+  ],
+  "sitemapNot200": [],
+  "sitemapNoindex": [],
+  "probes": {
+    "/blog/no-such-note-xyz": {
+      "status": 404,
+      "robots": [
+        "noindex, follow"
+      ]
+    },
+    "/he/blog/no-such-note-xyz": {
+      "status": 404,
+      "robots": [
+        "noindex, follow"
+      ]
+    },
+    "/projects/no-such-project": {
+      "status": 404,
+      "robots": [
+        "noindex, follow"
+      ]
+    },
+    "/no-such-page": {
+      "status": 404,
+      "robots": [
+        "index, follow, max-image-preview:large"
+      ]
+    },
+    "/he/no-such-page": {
+      "status": 404,
+      "robots": [
+        "noindex, follow"
+      ]
+    }
+  }
+}
