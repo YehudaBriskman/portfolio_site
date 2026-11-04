@@ -5,39 +5,64 @@
 
 .split {
   display: grid;
-  gap: 1.5rem;
+  gap: 0;
   grid-template-columns: minmax(0, 1fr);
-  margin-top: .75rem;
+}
+/* The editor's frame (#288): GitHub's comment box. One border round the
+   tab strip, the toolbar and the surface, so they read as one control. */
+.box {
+  margin-top: .5rem;
+  border: 1px solid rgb(var(--rule-firm) / .5);
+  border-radius: 6px;
+  background: rgb(var(--paper-2));
+  overflow: clip;
+}
+.boxHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: .25rem .75rem;
+  padding: .375rem .5rem 0;
+  border-bottom: 1px solid rgb(var(--rule-firm) / .5);
+  background: rgb(var(--paper-3));
+}
+.boxFoot {
+  padding: .5rem .75rem;
+  border-top: 1px solid rgb(var(--rule-firm) / .5);
+  font-size: .8125rem;
+  color: rgb(var(--ink-soft));
 }
 @media (min-width: 80rem) {
   /* Side by side when there is room for both at a readable measure. */
   .split[data-side="true"] { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .split[data-side="true"] > .preview { border-inline-start: 1px solid rgb(var(--rule-firm) / .5); }
 }
 
 .bar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: .5rem;
+  gap: .25rem .5rem;
+  padding-inline-end: .375rem;
+  border-bottom: 1px solid rgb(var(--rule-firm) / .5);
+  background: rgb(var(--paper-2));
 }
+.barEnd { margin-inline-start: auto; padding-block: .25rem; }
 
 .toolbar {
   display: flex;
   flex-wrap: wrap;
   gap: .125rem;
-  padding: .25rem;
-  border: 1px solid rgb(var(--edge));
-  border-bottom: 0;
-  border-radius: var(--r-md) var(--r-md) 0 0;
-  background: rgb(var(--surface));
+  padding: .25rem .375rem;
 }
 .tool {
   display: inline-grid;
   place-items: center;
-  min-width: 2.5rem;
-  min-height: 2.5rem;
-  border-radius: var(--r-sm, 6px);
-  color: rgb(var(--clay));
+  min-width: 2rem;
+  min-height: 2rem;
+  border-radius: 6px;
+  color: rgb(var(--ink-soft));
   transition: background-color 120ms ease, color 120ms ease;
 }
 .tool:hover { background: rgb(var(--bone) / .08); color: rgb(var(--bone)); }
@@ -54,17 +79,17 @@
   width: 100%;
   min-height: 28rem;
   resize: vertical;
-  padding: 1rem;
-  border: 1px solid rgb(var(--edge));
-  border-radius: 0 0 var(--r-md) var(--r-md);
-  background: rgb(var(--bitumen, var(--paper)));
+  padding: .75rem 1rem;
+  border: 0;
+  border-radius: 0;
+  background: rgb(var(--paper));
   color: rgb(var(--bone));
   font-family: var(--font-code);
   font-size: .875rem;
   line-height: 1.7;
   tab-size: 2;
 }
-.textarea:focus-visible { outline: 2px solid rgb(var(--sodium)); outline-offset: -1px; }
+.textarea:focus-visible { outline: 2px solid rgb(var(--sodium)); outline-offset: -2px; }
 .textarea[data-drop="true"] { outline: 2px dashed rgb(var(--sodium)); outline-offset: -6px; }
 
 .suggest {
@@ -112,21 +137,24 @@
 
 .preview {
   min-height: 28rem;
-  padding: 1rem 1.25rem;
-  border: 1px solid rgb(var(--edge));
-  border-radius: var(--r-md);
-  background: rgb(var(--paper, var(--surface)));
+  padding: .75rem 1.25rem;
+  border-top: 1px solid rgb(var(--rule-firm) / .5);
+  background: rgb(var(--paper));
   color: rgb(var(--ink, var(--bone)));
   overflow-wrap: anywhere;
 }
 .preview > :first-child { margin-top: 0; }
+/* The reader's own type and code frame, at the admin's radius: the
+   reader's 32px corners on a half-width pane drew the code as a pill. */
+.preview { --r-lg: 6px; --r-xl: 6px; }
 
 .notice {
-  margin-top: 1.25rem;
-  padding: .875rem 1rem;
-  border: 1px solid rgb(var(--edge));
+  margin-top: 1rem;
+  padding: .75rem 1rem;
+  border: 1px solid rgb(var(--rule-firm) / .5);
   border-inline-start: 3px solid rgb(var(--sodium));
-  border-radius: var(--r-md);
+  border-radius: 6px;
+  background: rgb(var(--paper-2));
   font-size: .875rem;
   line-height: 1.55;
   color: rgb(var(--bone));
@@ -176,9 +204,8 @@
 .tagInput:focus { outline: none; }
 
 .status {
-  font-family: var(--font-data);
-  font-size: .75rem;
-  color: rgb(var(--clay));
+  font-size: .8125rem;
+  color: rgb(var(--ink-soft));
 }
 .status[data-bad="true"] { color: rgb(var(--destructive-ink, var(--bone))); }
 
@@ -198,8 +225,9 @@
   margin: 0;
   max-height: 50vh;
   overflow: auto;
-  border: 1px solid rgb(var(--edge));
-  border-radius: var(--r-md);
+  border: 1px solid rgb(var(--rule-firm) / .5);
+  border-radius: 6px;
+  background: rgb(var(--paper));
   font-family: var(--font-code);
   font-size: .8125rem;
   line-height: 1.6;
@@ -209,20 +237,27 @@
 }
 .line {
   display: grid;
-  grid-template-columns: 1.75rem minmax(0, 1fr);
+  grid-template-columns: 2rem minmax(0, 1fr);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   text-decoration: none;
   color: rgb(var(--bone));
 }
-.line > span:first-child { text-align: center; color: rgb(var(--clay)); user-select: none; }
-.line[data-kind="add"] { background: rgb(var(--sodium) / .14); }
-.line[data-kind="add"] > span:first-child { color: rgb(var(--bone)); }
-.line[data-kind="del"] { background: rgb(var(--bone) / .06); color: rgb(var(--clay)); }
+.line > span:first-child {
+  text-align: center;
+  color: rgb(var(--ink-soft));
+  border-inline-end: 1px solid rgb(var(--rule-firm) / .35);
+  user-select: none;
+}
+.line > span:last-child { padding-inline: .625rem; }
+.line[data-kind="add"] { background: rgb(var(--wash-green)); }
+.line[data-kind="add"] > span:first-child { color: rgb(var(--ink)); }
+.line[data-kind="del"] { background: rgb(var(--wash-red)); color: rgb(var(--ink)); }
 .line[data-kind="del"] > span:last-child { text-decoration: line-through; text-decoration-thickness: 1px; }
 .skip {
   padding: .25rem .75rem;
-  border-block: 1px dashed rgb(var(--edge));
+  border-block: 1px solid rgb(var(--rule-firm) / .35);
+  background: rgb(var(--wash-blue));
   color: rgb(var(--clay));
   font-size: .75rem;
 }
@@ -233,8 +268,19 @@
 }
 
 /* A pressed toggle (body language, preview) says so without colour alone. */
-.toggle[aria-pressed="true"] {
-  background: rgb(var(--bone) / .1);
-  color: rgb(var(--bone));
-  box-shadow: inset 0 -2px 0 rgb(var(--sodium));
+.toggle {
+  min-height: 2.25rem;
+  margin-bottom: -1px;
+  border: 1px solid transparent;
+  border-bottom: 0;
+  border-radius: 6px 6px 0 0;
+  background: transparent;
+  box-shadow: none;
 }
+.toggle[aria-pressed="true"] {
+  background: rgb(var(--paper-2));
+  border-color: rgb(var(--rule-firm) / .5);
+  color: rgb(var(--ink));
+  box-shadow: inset 0 2px 0 rgb(var(--sodium));
+}
+.toggleGroup { display: flex; gap: .125rem; }
