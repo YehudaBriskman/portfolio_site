@@ -4,14 +4,15 @@
 #
 #   deploy.sh guard       is this still the release to roll out? (#205) Writes
 #                         proceed=true|false; refuses an older prod release
-#   deploy.sh preflight   CI may port-forward here; refuse before touching anything
+#   deploy.sh preflight   this credential may reach the two Services and cannot
+#                         roll out the other namespace; refuse before touching anything
 #   deploy.sh record      write down both Deployments' images; nothing is changed
 #   deploy.sh rollout     mark the environment mutated, then set image (by
 #                         digest), annotate, wait
-#   deploy.sh readiness   through port-forward: api ready + DB up, web serves the
-#                         document and a real /api/ route through nginx, both
-#                         report $DEPLOY_SHA, and every pod runs the digest
-#                         the release manifest names
+#   deploy.sh readiness   through the API server's service proxy: api ready +
+#                         DB up, web serves the document and a real /api/
+#                         route through nginx, both report $DEPLOY_SHA, and
+#                         every pod runs the digest the release manifest names
 #   deploy.sh edge        the public URL: / and a real /api/ route, status and
 #                         body; preprod's answer is its gate's 302 (#155)
 #   deploy.sh recover     if anything was mutated, set both back to what was
@@ -41,10 +42,15 @@ ROLLOUT_TIMEOUT="${ROLLOUT_TIMEOUT:-300s}"
 RECOVERY_TIMEOUT="${RECOVERY_TIMEOUT:-180s}"
 READY_ATTEMPTS="${READY_ATTEMPTS:-10}"
 READY_SLEEP="${READY_SLEEP:-6}"
-# Local ends of the port-forwards. Fixed rather than `:0`, so nothing has to
-# parse a port back out of kubectl's output; a hosted runner has them free.
-API_LOCAL_PORT="${DEPLOY_PF_API_PORT:-15000}"
-WEB_LOCAL_PORT="${DEPLOY_PF_WEB_PORT:-18080}"
+# Local end of `kubectl proxy`. Fixed rather than `:0`, so nothing has to
+# parse a port back out of kubectl's output; a hosted runner has it free.
+KPROXY_PORT="${DEPLOY_KPROXY_PORT:-18001}"
+# The two Services the readiness check asks, as `<service>:<port>`. These
+# exact strings are the RBAC resourceNames on `services/proxy` in oci-free's
+# k8s/ci-rollout-rbac.yaml: the API server authorizes the proxy path's name
+# segment as written, so `api` or `http:api:5000` would be refused.
+API_SVC=api:5000
+WEB_SVC=web:80
 
 k() { kubectl -n "$DEPLOY_NS" "$@"; }
 
@@ -165,18 +171,32 @@ guard() {
 
 # ------------------------------------------------------------------ preflight
 #
-# The readiness check reaches the pods through `kubectl port-forward`, which
-# needs `create` on pods/portforward. The CI Role did not grant it when this
-# was written. Asked here, before the first patch, so a missing grant fails a
-# deploy that has changed nothing rather than one that then has to be undone.
+# Asked before the first patch, so a wrong credential fails a deploy that has
+# changed nothing rather than one that then has to be undone.
+#
+# 1. The readiness check reaches the pods through the API server's service
+#    proxy, which needs `get` on services/proxy for exactly $API_SVC and
+#    $WEB_SVC (#24; it was a port-forward to any pod before).
+# 2. This job's credential must not also be able to roll out the other
+#    namespace (#16). One shared token did until then: the preprod job held a
+#    prod credential, and the `production` environment gated nothing. A yes
+#    here means the wrong secret is in this environment.
 preflight() {
-  local ans
-  ans=$(k auth can-i create pods --subresource=portforward 2>/dev/null || true)
-  if [ "$ans" != "yes" ]; then
-    echo "::error title=CI cannot port-forward in $DEPLOY_NS::The readiness check reaches the pods through kubectl port-forward, and the ci-rollout Role in $DEPLOY_NS does not grant create on pods/portforward (answer: '${ans:-none}'). Nothing has been changed. Add that rule to k8s/ci-rollout-rbac.yaml in the oci-free repository and kubectl apply it."
+  local ans svc other
+  for svc in "$API_SVC" "$WEB_SVC"; do
+    ans=$(k auth can-i get "services/$svc" --subresource=proxy 2>/dev/null || true)
+    if [ "$ans" != "yes" ]; then
+      echo "::error title=CI cannot reach $svc in $DEPLOY_NS::The readiness check asks $svc through the API server's service proxy, and this credential may not (answer: '${ans:-none}'). Nothing has been changed. The ci-deploy Role in oci-free's k8s/ci-rollout-rbac.yaml grants get on services/proxy for $API_SVC and $WEB_SVC: kubectl apply it, and check this environment's secret came from ./k8s/ci-kubeconfig.sh $DEPLOY_NS."
+      return 1
+    fi
+  done
+  other=$([ "$DEPLOY_NS" = prod ] && echo preprod || echo prod)
+  ans=$(kubectl -n "$other" auth can-i patch deployments/web 2>/dev/null || true)
+  if [ "$ans" = "yes" ]; then
+    echo "::error title=This credential can also roll out $other::The kubeconfig this job was given for $DEPLOY_NS may patch deployments in $other too, so it is the pre-#16 shared token or a cluster-admin one. Nothing has been changed. Give this environment the $DEPLOY_NS-only token: ./k8s/ci-kubeconfig.sh $DEPLOY_NS in oci-free."
     return 1
   fi
-  echo "ci-rollout may port-forward in $DEPLOY_NS"
+  echo "this credential may reach $API_SVC and $WEB_SVC in $DEPLOY_NS, and cannot roll out $other"
 }
 
 # --------------------------------------------------------------------- record
@@ -305,37 +325,46 @@ rollout() {
 
 # ------------------------------------------------------------------ readiness
 #
-# Through port-forward to the Deployments rather than the Services: the CI
-# Role can read Deployments and pods but not Services, and the forwarded
-# request goes past Traefik and the forwardAuth gate, which is the point —
-# outside, preprod's healthy answer is a 302 that says nothing about the app.
+# Through the API server's service proxy rather than through Traefik: the
+# request goes past the forwardAuth gate, which is the point -- outside,
+# preprod's healthy answer is a 302 that says nothing about the app.
+# `kubectl proxy` holds the kubeconfig's credential on 127.0.0.1 so curl can
+# read status and body as before; every request is a GET to
+# /api/v1/namespaces/$DEPLOY_NS/services/<svc:port>/proxy/<path>, which RBAC
+# allows for $API_SVC and $WEB_SVC only (#24). It replaced `kubectl
+# port-forward`, whose grant reached every pod in the namespace on any port
+# and arrived on the api's loopback, which ADMIN_API_TOKENS=tunnel trusts.
+#
+# The proxy picks one ready endpoint per request, as a port-forward to a
+# Deployment picked one pod; check_digests covers every pod.
 
-PF_PID=""
-stop_forward() {
-  if [ -n "$PF_PID" ]; then
-    kill "$PF_PID" 2>/dev/null || true
-    wait "$PF_PID" 2>/dev/null || true
-    PF_PID=""
+KP_PID=""
+stop_proxy() {
+  if [ -n "$KP_PID" ]; then
+    kill "$KP_PID" 2>/dev/null || true
+    wait "$KP_PID" 2>/dev/null || true
+    KP_PID=""
   fi
 }
-trap stop_forward EXIT
+trap stop_proxy EXIT
 
-# forward <deploy> <local> <remote>: waits until kubectl says it is listening.
-forward() {
-  local log="$STATE/pf-$1.log" i
-  kubectl -n "$DEPLOY_NS" port-forward "deploy/$1" "$2:$3" --address 127.0.0.1 >"$log" 2>&1 &
-  PF_PID=$!
+# start_proxy: once per run; waits until kubectl says it is serving.
+start_proxy() {
+  if [ -n "$KP_PID" ] && kill -0 "$KP_PID" 2>/dev/null; then return 0; fi
+  local log="$STATE/kproxy.log" i
+  kubectl proxy --address 127.0.0.1 --port "$KPROXY_PORT" >"$log" 2>&1 &
+  KP_PID=$!
   for i in $(seq 1 30); do
-    grep -q '^Forwarding from' "$log" 2>/dev/null && return 0
-    if ! kill -0 "$PF_PID" 2>/dev/null; then
-      echo "  port-forward to $1 exited: $(tr '\n' ' ' <"$log")"
-      PF_PID=""
+    grep -q '^Starting to serve on' "$log" 2>/dev/null && return 0
+    if ! kill -0 "$KP_PID" 2>/dev/null; then
+      echo "  kubectl proxy exited: $(tr '\n' ' ' <"$log")"
+      KP_PID=""
       return 1
     fi
     [ "$i" -lt 30 ] && sleep 0.5
   done
-  echo "  port-forward to $1 never said it was listening"
-  stop_forward
+  echo "  kubectl proxy never said it was serving"
+  stop_proxy
   return 1
 }
 
@@ -350,21 +379,23 @@ api_body_ok() {
   [ "$1" = 200 ] && jq -e '.ok == true and (.items | type == "array")' "$STATE/body" >/dev/null 2>&1
 }
 
-# fetch <port> <path>: the status on stdout, the body in $STATE/body.
+# fetch <service:port> <path>: the status on stdout, the body in $STATE/body.
+# A 503 whose body is a Kubernetes Status object is the API server failing to
+# reach the Service, not the app answering 503.
 fetch() {
-  curl -sS -m 10 -o "$STATE/body" -w '%{http_code}' "http://127.0.0.1:$1$2" 2>/dev/null || echo 000
+  curl -sS -m 10 -o "$STATE/body" -w '%{http_code}' \
+    "http://127.0.0.1:$KPROXY_PORT/api/v1/namespaces/$DEPLOY_NS/services/$1/proxy$2" 2>/dev/null || echo 000
 }
 
 # check_api <want-sha|""> <legacy-ok>
 check_api() {
   local want="$1" legacy="$2" code
-  forward api "$API_LOCAL_PORT" 5000 || return 1
-  code=$(fetch "$API_LOCAL_PORT" /health/ready)
+  start_proxy || return 1
+  code=$(fetch "$API_SVC" /health/ready)
   if [ "$code" = 404 ] && [ "$legacy" = 1 ]; then
     # A build from before /health/ready existed, which is what a recovery
     # will usually be putting back. Liveness is all it can say.
-    code=$(fetch "$API_LOCAL_PORT" /health)
-    stop_forward
+    code=$(fetch "$API_SVC" /health)
     if [ "$code" = 200 ] && jq -e '.ok == true' "$STATE/body" >/dev/null 2>&1; then
       echo "  api: alive (an older build without /health/ready, so the DB is not checked)"
       return 0
@@ -372,7 +403,6 @@ check_api() {
     echo "  api: /health answered $code"
     return 1
   fi
-  stop_forward
   if [ "$code" != 200 ] || ! jq -e '.ok == true and .db == "up"' "$STATE/body" >/dev/null 2>&1; then
     echo "  api: /health/ready answered $code $(head -c 200 "$STATE/body" 2>/dev/null | tr -d '\n')"
     return 1
@@ -391,13 +421,12 @@ check_api() {
 # check_web <want-sha|"">
 check_web() {
   local want="$1" code
-  forward web "$WEB_LOCAL_PORT" 8080 || return 1
+  start_proxy || return 1
   # The root, which nginx hands to the api to render: the whole chain, and the
   # bytes rather than the status, because the SPA fallback answers 200 to
   # nearly anything.
-  code=$(fetch "$WEB_LOCAL_PORT" /)
+  code=$(fetch "$WEB_SVC" /)
   if [ "$code" != 200 ] || ! grep -q '<div id="root">' "$STATE/body" || ! grep -qi '</html>' "$STATE/body"; then
-    stop_forward
     echo "  web: / answered $code without the shell's <div id=\"root\">"
     return 1
   fi
@@ -405,22 +434,19 @@ check_web() {
   # request to (#155). The root above cannot see the api: when nginx cannot
   # reach it, `/` falls back to the SPA shell with a 200, and that is how
   # v1.0.0 went green while every /api/ request answered 502.
-  code=$(fetch "$WEB_LOCAL_PORT" "$API_PROBE")
+  code=$(fetch "$WEB_SVC" "$API_PROBE")
   if ! api_body_ok "$code"; then
-    stop_forward
     echo "  web: $API_PROBE through nginx answered $code $(head -c 200 "$STATE/body" 2>/dev/null | tr -d '\n'), not the API's posts list. A 502 here is nginx unable to reach the api (NGINX_API_HOST)."
     return 1
   fi
   if [ -n "$want" ]; then
     # Web's own file, not the api's rendering of it, which is cached.
-    code=$(fetch "$WEB_LOCAL_PORT" /index.html)
+    code=$(fetch "$WEB_SVC" /index.html)
     if [ "$code" != 200 ] || ! grep -q "<meta name=\"build-sha\" content=\"$want\"" "$STATE/body"; then
-      stop_forward
       echo "  web: /index.html ($code) does not carry build-sha $want; it says '$(grep -o '<meta name="build-sha" content="[^"]*"' "$STATE/body" 2>/dev/null | sed 's/.*content="//; s/"$//' || true)'"
       return 1
     fi
   fi
-  stop_forward
   echo "  web: serves the document${want:+, built from $want}"
 }
 
