@@ -1,7 +1,8 @@
 import { useId, useMemo, useState } from "react";
 import { Modal } from "@/components/admin/MediaGrid";
 import type { PostContent } from "@/services/admin";
-import { changedFields, counts, diffLines, hunks } from "./diff";
+import { changedFields, counts, diffLines } from "./diff";
+import DiffView from "./DiffView";
 import type { EditorWords } from "./words";
 import styles from "./NoteEditor.module.css";
 
@@ -25,6 +26,10 @@ function show(v: unknown, empty: string): string {
   return String(v);
 }
 
+/* One language or both (#305): the server keeps the other one as it is live. */
+export type PublishScope = "both" | "en" | "he";
+const SCOPES: readonly PublishScope[] = ["both", "en", "he"];
+
 export default function ReviewDialog({
   open,
   onClose,
@@ -43,9 +48,10 @@ export default function ReviewDialog({
   words: EditorWords;
   busy: boolean;
   error: string | null;
-  onPublish: (changeNote: string) => void;
+  onPublish: (changeNote: string, scope: PublishScope) => void;
 }) {
   const [note, setNote] = useState("");
+  const [scope, setScope] = useState<PublishScope>("both");
   const noteId = useId();
   const helpId = useId();
   const fields = useMemo(() => (published ? changedFields(published, next) : []), [published, next]);
@@ -91,28 +97,7 @@ export default function ReviewDialog({
               {tally ? words.bodyChanges(tally.added, tally.removed) : words.body}
             </h3>
             {lines ? (
-              <div className={styles.diff} role="group" aria-labelledby={`${noteId}-b`} tabIndex={0}>
-                {hunks(lines).map((h, i) =>
-                  h.kind === "skip" ? (
-                    <div key={i} className={styles.skip}>
-                      {words.skipped(h.count)}
-                    </div>
-                  ) : (
-                    h.lines.map((l, j) => {
-                      const Tag = l.kind === "add" ? "ins" : l.kind === "del" ? "del" : "div";
-                      return (
-                        <Tag key={`${i}-${j}`} className={styles.line} data-kind={l.kind}>
-                          <span aria-hidden="true">{l.kind === "add" ? "+" : l.kind === "del" ? "−" : " "}</span>
-                          <span>
-                            {l.kind !== "same" && <span className="sr-only">{`${l.kind === "add" ? words.added : words.removed}: `}</span>}
-                            {l.text || " "}
-                          </span>
-                        </Tag>
-                      );
-                    })
-                  ),
-                )}
-              </div>
+              <DiffView lines={lines} words={words} labelledBy={`${noteId}-b`} />
             ) : (
               <p className="text-sm text-clay">{words.tooLong}</p>
             )}
@@ -138,6 +123,21 @@ export default function ReviewDialog({
           </div>
         )}
 
+        {published && (
+          <fieldset>
+            <legend className="a-label">{words.publishWhat}</legend>
+            <div className="mt-2 flex flex-wrap gap-x-5 gap-y-2">
+              {SCOPES.map((v) => (
+                <label key={v} className="flex items-center gap-2 text-sm">
+                  <input type="radio" name={`${noteId}-scope`} value={v} checked={scope === v} onChange={() => setScope(v)} />
+                  {v === "both" ? words.scopeBoth : v === "en" ? words.scopeEn : words.scopeHe}
+                </label>
+              ))}
+            </div>
+            {scope !== "both" && <p className="a-hint">{scope === "en" ? words.scopeEnHelp : words.scopeHeHelp}</p>}
+          </fieldset>
+        )}
+
         {error && (
           <p role="alert" className="text-sm text-[rgb(var(--destructive-ink))]">
             {error}
@@ -152,7 +152,7 @@ export default function ReviewDialog({
             type="button"
             className="a-btn a-btn-primary"
             disabled={busy}
-            onClick={() => onPublish(note.trim())}
+            onClick={() => onPublish(note.trim(), published ? scope : "both")}
           >
             {busy ? words.publishing : words.publish}
           </button>

@@ -225,3 +225,77 @@ describe("the editor page", { timeout: 20000 }, () => {
     expect(preview.querySelector("strong")?.textContent).toBe("bold");
   });
 });
+
+/* ----------------------------------------------- both languages (#305) */
+
+describe("the note in both languages", { timeout: 20000 }, () => {
+  const HE_LIVE: AdminPost = {
+    ...LIVE,
+    he: { title: "רשימה חיה", subtitle: "", excerpt: "", body: "שורה אחת" },
+    heMeta: { src: { title: "aaaaaaaaaaaa", body: "bbbbbbbbbbbb" }, bodyBase: "Line one" },
+  };
+  const unit = (path: string, status: string) => ({ path, status, primary: true, en: path, he: "x", draftHe: null });
+  let calls: { url: string; method: string; body: unknown }[];
+
+  beforeEach(async () => {
+    const { invalidateTranslations } = await import("@/services/translations");
+    invalidateTranslations();
+    calls = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string, init?: RequestInit) => {
+        calls.push({ url, method: init?.method ?? "GET", body: init?.body ? JSON.parse(String(init.body)) : null });
+        const body = url.startsWith("/api/admin/translations?")
+          ? {
+              ok: true,
+              counts: { missing: 0, draft: 0, stale: 1, unverified: 0, translated: 1 },
+              coverage: 100,
+              items: [{ type: "post", id: "live-note", title: "Live note", route: "/blog/live-note", rank: 100, visibility: "public", status: "stale", units: [unit("title", "translated"), unit("body", "stale")] }],
+            }
+          : { ok: true, rev: "4-d" };
+        return new Response(JSON.stringify(body), { status: 200, headers: { "Content-Type": "application/json" } });
+      }),
+    );
+    api.get.mockResolvedValue(HE_LIVE);
+    api.list.mockResolvedValue([HE_LIVE]);
+    api.collections.mockResolvedValue([{ slug: "site", title: "The site", status: "published" }]);
+    api.publish.mockImplementation(async (_slug: string, body: PostContent) => ({ ...HE_LIVE, ...body, _rev: "5-c", draft: null }));
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.clearAllMocks();
+  });
+
+  it("puts each Hebrew field beside its English, with its status", async () => {
+    await open();
+    expect(screen.getByRole("textbox", { name: "Title in Hebrew" })).toHaveValue("רשימה חיה");
+    expect(screen.getByRole("textbox", { name: "Title in Hebrew" })).toHaveAttribute("dir", "rtl");
+    expect(await screen.findByText("Hebrew written for an older English")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Side by side" }));
+    expect(screen.getByRole("textbox", { name: "Body, English" })).toHaveValue("Line one\nLine two");
+    expect(screen.getByRole("textbox", { name: "Body, Hebrew" })).toHaveValue("שורה אחת");
+  });
+
+  it("says the English body moved on, shows how, and takes 'still correct'", async () => {
+    await open();
+    expect(await screen.findByText("The English body changed since this Hebrew was written.")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Show what changed" }));
+    expect(screen.getByText("Line two")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Hebrew still correct" }));
+    await waitFor(() => expect(calls.some((c) => c.url === "/api/admin/translations/ack")).toBe(true));
+    expect(calls.find((c) => c.url === "/api/admin/translations/ack")?.body).toEqual({ type: "post", id: "live-note", path: "body", rev: "3-a" });
+  });
+
+  it("publishes the Hebrew alone when asked", async () => {
+    await open();
+    fireEvent.change(screen.getByRole("textbox", { name: "Title in Hebrew" }), { target: { value: "רשימה, מתוקנת" } });
+    const review = screen.getAllByRole("button", { name: "Review and publish" })[0];
+    await waitFor(() => expect(review).toBeEnabled(), { timeout: 5000 });
+    fireEvent.click(review);
+    const dialog = await screen.findByRole("dialog", { name: "Review before publishing" }, { timeout: 5000 });
+    fireEvent.click(within(dialog).getByRole("radio", { name: "Hebrew only" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Publish" }));
+    await waitFor(() => expect(api.publish).toHaveBeenCalledTimes(1), { timeout: 5000 });
+    expect(api.publish.mock.calls[0][1]).toMatchObject({ scope: "he", he: { title: "רשימה, מתוקנת" } });
+  });
+});

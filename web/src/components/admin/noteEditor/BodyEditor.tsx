@@ -29,6 +29,8 @@ type Props = {
   targets: readonly WikiTarget[];
   words: EditorWords;
   describedBy?: string;
+  /** Its own name, where two bodies sit side by side (#305). */
+  label?: string;
   /** Something to tell the author: an upload done or failed. */
   onStatus: (message: string, bad?: boolean) => void;
   onSave: () => void;
@@ -83,7 +85,7 @@ function caretAt(ta: HTMLTextAreaElement, index: number) {
   return { top: Math.max(0, Math.min(top + line, ta.clientHeight)), left };
 }
 
-export default function BodyEditor({ id, value, onChange, lang, targets, words, describedBy, onStatus, onSave, onTogglePreview }: Props) {
+export default function BodyEditor({ id, value, onChange, lang, targets, words, describedBy, label, onStatus, onSave, onTogglePreview }: Props) {
   const ta = useRef<HTMLTextAreaElement>(null);
   const latest = useRef(value);
   const pendingSel = useRef<[number, number] | null>(null);
@@ -332,6 +334,7 @@ export default function BodyEditor({ id, value, onChange, lang, targets, words, 
           dir={rtl ? "rtl" : "ltr"}
           spellCheck
           className={styles.textarea}
+          aria-label={label}
           aria-describedby={describedBy}
           aria-autocomplete="list"
           aria-controls={open ? listId : undefined}

@@ -235,7 +235,38 @@ router.put(
  * is always publishable as it stands.
  */
 const DraftWrite = PostContentSchema.extend({ _rev: z.string().optional() });
-const PublishWrite = DraftWrite.extend({ changeNote: z.string().trim().max(200).optional() });
+/*
+ * `scope` (#305): publish both languages (the default), or one of them. With
+ * one, the other language stays as it is live, and the whole edit stays in
+ * the draft for later, so "Publish Hebrew" never puts unreviewed English on
+ * the site, and the reverse.
+ */
+const PublishScope = z.enum(["both", "en", "he"]);
+const PublishWrite = DraftWrite.extend({ changeNote: z.string().trim().max(200).optional(), scope: PublishScope.default("both") });
+
+/** A published note's live content, in the shape a save sends. */
+function liveContent(p: Post): PostContent {
+  return {
+    title: p.title,
+    subtitle: p.subtitle ?? null,
+    excerpt: p.excerpt ?? "",
+    body: p.body ?? "",
+    tags: p.tags ?? [],
+    collection: p.collection,
+    coverImage: p.coverImage ?? null,
+    links: p.links ?? [],
+    featured: p.featured ?? null,
+    publishedAt: p.publishedAt ?? null,
+    seo: p.seo ?? { title: null, description: null, canonical: null, noindex: false },
+    he: p.he ?? null,
+  } as PostContent;
+}
+
+/** Equal as content: the fingerprints are bookkeeping, not an edit. */
+function sameContent(a: PostContent, b: PostContent): boolean {
+  const strip = (c: PostContent) => fromContent({ ...c, heMeta: null });
+  return JSON.stringify(strip(a)) === JSON.stringify(strip(b));
+}
 
 function invalid(res: import("express").Response, error: z.ZodError) {
   return res.status(400).json({ ok: false, error: "invalid", details: error.flatten() });
@@ -344,12 +375,22 @@ router.post(
     if (!slug.success) return invalid(res, slug.error);
     const parsed = PublishWrite.safeParse(req.body);
     if (!parsed.success) return invalid(res, parsed.error);
-    const { _rev, changeNote, ...input } = parsed.data;
+    const { _rev, changeNote, scope, ...input } = parsed.data;
     const existing = await tryGet<Post>(postId(slug.data));
     if (existing?._rev && _rev !== existing._rev) return conflict(res);
-    const content = stampPost(input, postVersions(existing));
-    const now = new Date().toISOString();
     const republish = existing?.status === "published";
+    const live = republish && existing ? liveContent(existing) : null;
+    if (scope === "he" && !live) {
+      return res.status(400).json({ ok: false, error: "Publish the note first; then its Hebrew can be published on its own." });
+    }
+    /* What goes live: the edit, or one language of it over what is live. */
+    const going: PostContent =
+      scope === "both" ? input : scope === "he" ? { ...(live as PostContent), he: input.he } : { ...input, he: live?.he ?? null };
+    const content = stampPost(going, postVersions(existing));
+    /* What stays waiting: the whole edit, when it holds more than went live. */
+    const rest = scope === "both" ? null : stampPost(input, [{ he: content.he, meta: content.heMeta }, ...postVersions(existing)]);
+    const waiting = rest && !sameContent(rest, content) ? rest : null;
+    const now = new Date().toISOString();
 
     const doc: Post = {
       ...(existing ?? {}),
@@ -367,8 +408,8 @@ router.post(
       updatedAt: now,
       source: existing?.source ?? "authored",
       changeNote: republish ? changeNote || null : null,
-      draft: null,
-      draftSavedAt: null,
+      draft: waiting,
+      draftSavedAt: waiting ? now : null,
     } as Post;
     return store(res, doc, existing);
   })

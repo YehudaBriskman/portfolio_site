@@ -54,6 +54,8 @@ const AdminPostSchema = z.object({
   featured: z.number().nullable().default(null),
   seo: SeoSchema.default({ title: null, description: null, canonical: null, noindex: false }),
   he: HebrewSchema.nullable().optional(),
+  /* The English each Hebrew field was written against (#303); the body's as text. */
+  heMeta: z.object({ src: z.record(z.string(), z.string()).default({}), bodyBase: z.string().nullable().optional() }).nullable().optional(),
   changeNote: z.string().nullable().optional(),
   /* Unpublished edits to a published note (#250); null when there are none. */
   draft: z.lazy(() => PostContentSchema).nullable().optional(),
@@ -247,7 +249,7 @@ export const admin = {
     invalidateLists();
     return AdminPostSchema.parse(r.post);
   },
-  publish: async (slug: string, body: PostContent & { _rev?: string; changeNote?: string }) => {
+  publish: async (slug: string, body: PostContent & { _rev?: string; changeNote?: string; scope?: "both" | "en" | "he" }) => {
     const r = await call<{ post: unknown }>(`/posts/${encodeURIComponent(slug)}/publish`, {
       method: "POST",
       body: JSON.stringify(body),
