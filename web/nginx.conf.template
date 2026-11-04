@@ -215,6 +215,14 @@ server {
     error_page 500 502 503 504 = @static_robots;
   }
 
+  # The IndexNow key file (#308). The protocol scopes a key to the directory
+  # its file is in, so it has to be at the root; the API answers only for the
+  # key in INDEXNOW_KEY and 404s every other name.
+  location ~ "^/([a-f0-9]{32})\.txt$" {
+    proxy_pass http://$api_upstream/api/seo/indexnow/$1.txt;
+    include /etc/nginx/snippets/proxy-headers.conf;
+  }
+
   location = /blog {
     proxy_pass http://$api_upstream/api/seo/render/blog;
     include /etc/nginx/snippets/proxy-headers.conf;

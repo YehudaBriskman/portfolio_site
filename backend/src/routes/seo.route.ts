@@ -1,5 +1,6 @@
 import { Router, type Request, type Response } from "express";
 import { couch } from "../db/couch.js";
+import { env } from "../env.js";
 import { asyncHandler } from "../middlewares/asyncHandler.js";
 import { renderCardPng } from "../services/og.js";
 import {
@@ -60,9 +61,9 @@ async function publishedCollections(): Promise<Collection[]> {
 router.get(
   "/sitemap.xml",
   asyncHandler(async (_req, res) => {
-    const [posts, collections] = await Promise.all([publishedPosts(), publishedCollections()]);
+    const [posts, collections, store] = await Promise.all([publishedPosts(), publishedCollections(), storeProjects()]);
     res.type("application/xml").set("Cache-Control", "public, max-age=600");
-    res.send(buildSitemap(posts, collections.filter((c) => c.kind === "project")));
+    res.send(buildSitemap(posts, collections, { projects: [...store.keys()] }));
   })
 );
 
@@ -74,6 +75,20 @@ router.get(
     res.send(buildFeed(posts));
   })
 );
+
+/*
+ * The IndexNow key file (#308), served at `/<key>.txt` by nginx: the engines
+ * fetch it to check that a ping came from the site. Only the configured key
+ * answers; any other name is a 404, so this is no oracle for guessing it.
+ */
+router.get("/indexnow/:file", (req, res) => {
+  const key = env.INDEXNOW_KEY;
+  if (!key || req.params.file !== `${key}.txt`) {
+    res.status(404).type("text/plain").send("Not Found");
+    return;
+  }
+  res.type("text/plain").set("Cache-Control", "public, max-age=86400").send(key);
+});
 
 router.get("/robots.txt", (_req, res) => {
   res.type("text/plain").set("Cache-Control", "public, max-age=3600");

@@ -81,7 +81,15 @@ const EnvSchema = z.object({
   // it outright, for a host the derivation would get wrong: a second
   // production hostname, or a preprod that somebody wants crawled on purpose.
   ROBOTS_POLICY: z.enum(['auto', 'open', 'closed']).default('auto'),
-  // Where the built SPA shell is served from, for per-URL head injection.
+  // IndexNow (#308): when set, a publish tells Bing, Yandex and the other
+  // IndexNow engines which URLs changed, and `/<key>.txt` proves the key is
+  // the site's. Public by design: the protocol serves it to anyone who asks.
+  // 32 hex characters (`openssl rand -hex 16`). Unset, nothing is sent.
+  INDEXNOW_KEY: z
+    .string()
+    .regex(/^[a-f0-9]{32}$/, 'INDEXNOW_KEY is 32 lowercase hex characters')
+    .optional()
+    .or(z.literal('').transform(() => undefined)),  // Where the built SPA shell is served from, for per-URL head injection.
   WEB_ORIGIN: z.string().default("http://web"),
 
   // The commit this image was built from, baked in by the Dockerfile's

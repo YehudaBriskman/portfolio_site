@@ -200,27 +200,38 @@ export type SitemapEntry = {
 };
 
 /**
- * Static routes that always exist, independent of what is in the database.
- *
- * The project pages the frontend seeds are listed here too. They are real,
- * reachable URLs whether or not a collection row exists yet, and leaving them
- * out meant the sitemap disagreed with the site's own navigation.
+ * The pages that always exist, independent of what is in the database: every
+ * public route in web/src/App.tsx that is not a single post, project or area.
+ * Until #308 this left out the story, the accessibility statement and the
+ * channel log, and named two projects by hand; the projects now come from
+ * the content store, as the pages themselves do.
  */
 const STATIC_ENTRIES: SitemapEntry[] = [
   { loc: "/", changefreq: "monthly", priority: 1.0 },
   { loc: "/blog", changefreq: "weekly", priority: 0.8 },
   { loc: "/projects", changefreq: "weekly", priority: 0.8 },
-  { loc: "/projects/windom", changefreq: "monthly", priority: 0.7 },
-  { loc: "/projects/bothy", changefreq: "monthly", priority: 0.7 },
+  { loc: "/story", changefreq: "monthly", priority: 0.7 },
+  { loc: "/blog/log", changefreq: "daily", priority: 0.4 },
   // The remote MCP server's page (#263): the one place to learn how to connect.
   { loc: "/developers/mcp", changefreq: "monthly", priority: 0.5 },
+  { loc: "/accessibility", changefreq: "yearly", priority: 0.3 },
 ];
 
-export function buildSitemap(posts: Post[], collections: Collection[]): string {
-  return buildSitemapEntries(sitemapEntries(posts, collections));
+/** What the sitemap lists beyond the posts and the published collections. */
+export type SitemapExtras = {
+  /** The content store's projects, which render with or without a collection row. */
+  projects?: string[];
+};
+
+/**
+ * @param collections every published collection: each is an area page
+ *   (`/blog/area/<slug>`), and a project one is a project page as well.
+ */
+export function buildSitemap(posts: Post[], collections: Collection[], extras: SitemapExtras = {}): string {
+  return buildSitemapEntries(sitemapEntries(posts, collections, extras));
 }
 
-function sitemapEntries(posts: Post[], collections: Collection[]): SitemapEntry[] {
+function sitemapEntries(posts: Post[], collections: Collection[], extras: SitemapExtras): SitemapEntry[] {
   /*
    * The static routes carry the most recent content date rather than nothing.
    * A <url> with no <lastmod> gives a crawler no reason to come back, and these
@@ -232,23 +243,25 @@ function sitemapEntries(posts: Post[], collections: Collection[]): SitemapEntry[
     .sort()
     .pop();
   const entries: SitemapEntry[] = STATIC_ENTRIES.map((e) => ({ ...e, lastmod: e.lastmod ?? newest }));
+  const add = (e: SitemapEntry) => {
+    // A real collection replaces its store entry rather than duplicating it.
+    const at = entries.findIndex((x) => x.loc === e.loc);
+    if (at === -1) entries.push(e);
+    else if (e.lastmod) entries[at] = { ...entries[at], lastmod: e.lastmod };
+  };
+
+  for (const slug of extras.projects ?? []) add({ loc: `/projects/${slug}`, lastmod: newest, changefreq: "monthly", priority: 0.7 });
 
   for (const c of collections) {
-    // A real collection replaces its seeded entry rather than duplicating it.
-    if (entries.some((e) => e.loc === `/projects/${c.slug}`)) continue;
-    entries.push({
-      loc: `/projects/${c.slug}`,
-      lastmod: c.updatedAt,
-      changefreq: "weekly",
-      priority: 0.7,
-    });
+    if (c.kind === "project") add({ loc: `/projects/${c.slug}`, lastmod: c.updatedAt, changefreq: "weekly", priority: 0.7 });
+    add({ loc: `/blog/area/${c.slug}`, lastmod: c.updatedAt, changefreq: "weekly", priority: 0.5 });
   }
 
   for (const p of posts) {
     // A post marked noindex must not be advertised in the sitemap either —
     // otherwise the two signals contradict each other and Google trusts neither.
     if (p.seo.noindex) continue;
-    entries.push({
+    add({
       loc: `/blog/${p.slug}`,
       lastmod: p.updatedAt ?? p.publishedAt,
       changefreq: "monthly",
