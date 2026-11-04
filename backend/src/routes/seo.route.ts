@@ -238,7 +238,7 @@ function homeHtml(c: ContentBundle, lang: Lang, settings: SiteSettings): string 
   const s = c.siteCopy;
   const para = (lines: Text[]) => `<p>${lines.map((l) => tx(l, lang)).join(" ")}</p>`;
   const work = s.footer.work
-    .map((w) => `<li><a href="${escapeHtml(w.url)}">${en(w.label, lang)}, ${tx(w.note, lang)}</a></li>`)
+    .map((w) => `<li><a href="${escapeHtml(w.url)}">${tx(w.label, lang)}, ${tx(w.note, lang)}</a></li>`)
     .join("");
   const profiles = s.profiles
     .map((p) => `<li><a href="${escapeHtml(p.url)}">${en(p.label, lang)}</a></li>`)
@@ -756,12 +756,12 @@ function projectHtml(v: ProjectView, others: ProjectView[], lang: Lang): string 
     if (e.decisions.length)
       parts.push(`<h2>${escapeHtml(w.decisions)}</h2>${e.decisions.map((d) => `<h3>${tx(d.title, lang)}</h3><p>${tx(d.body, lang)}</p>`).join("")}`);
     if (e.tech.length) parts.push(`<h2>${escapeHtml(w.builtWith)}</h2><ul>${e.tech.map((t) => `<li>${en(t, lang)}</li>`).join("")}</ul>`);
-    const links = [
-      ...(e.link ? [{ label: e.linkLabel ?? e.link, url: e.link }] : []),
+    const links: { label: Text; url: string }[] = [
+      ...(e.link ? [{ label: { en: e.linkLabel ?? e.link }, url: e.link }] : []),
       ...e.links,
-      ...(e.github ? [{ label: "GitHub", url: e.github }] : []),
+      ...(e.github ? [{ label: { en: "GitHub" }, url: e.github }] : []),
     ];
-    if (links.length) parts.push(`<ul>${links.map((l) => `<li><a href="${escapeHtml(l.url)}">${en(l.label, lang)}</a></li>`).join("")}</ul>`);
+    if (links.length) parts.push(`<ul>${links.map((l) => `<li><a href="${escapeHtml(l.url)}">${tx(l.label, lang)}</a></li>`).join("")}</ul>`);
   }
   if (others.length) {
     parts.push(

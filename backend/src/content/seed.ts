@@ -19,7 +19,7 @@ export const CONTENT_SEED: unknown = {
         "fields": [
           {
             "kind": "state",
-            "value": "In use"
+            "value": "in-use"
           },
           {
             "kind": "tech",
@@ -53,7 +53,9 @@ export const CONTENT_SEED: unknown = {
         "linkLabel": "windom.app",
         "links": [
           {
-            "label": "Chrome Web Store",
+            "label": {
+              "en": "Chrome Web Store"
+            },
             "url": "https://chromewebstore.google.com/detail/windom/comcnbccalbfcegbmaemancbhgpijkpb"
           }
         ],
@@ -62,7 +64,7 @@ export const CONTENT_SEED: unknown = {
         "status": {
           "en": "Live on the Chrome Web Store"
         },
-        "state": "In use",
+        "state": "in-use",
         "highlights": [
           {
             "en": "Published on the Chrome Web Store, v1.5.1"
@@ -123,7 +125,7 @@ export const CONTENT_SEED: unknown = {
         "fields": [
           {
             "kind": "state",
-            "value": "Open source"
+            "value": "open-source"
           },
           {
             "kind": "tech",
@@ -161,7 +163,7 @@ export const CONTENT_SEED: unknown = {
         "status": {
           "en": "Open source, self-hosted"
         },
-        "state": "Open source",
+        "state": "open-source",
         "highlights": [
           {
             "en": "Every card is discovered, never configured"
@@ -225,7 +227,7 @@ export const CONTENT_SEED: unknown = {
         "fields": [
           {
             "kind": "state",
-            "value": "Archive"
+            "value": "archive"
           },
           {
             "kind": "tech",
@@ -259,7 +261,7 @@ export const CONTENT_SEED: unknown = {
         "status": {
           "en": "Learning project"
         },
-        "state": "Archive",
+        "state": "archive",
         "highlights": [],
         "problem": null,
         "role": null,
@@ -279,7 +281,7 @@ export const CONTENT_SEED: unknown = {
         "fields": [
           {
             "kind": "state",
-            "value": "Archive"
+            "value": "archive"
           },
           {
             "kind": "tech",
@@ -313,7 +315,7 @@ export const CONTENT_SEED: unknown = {
         "status": {
           "en": "Learning project"
         },
-        "state": "Archive",
+        "state": "archive",
         "highlights": [],
         "problem": null,
         "role": null,
@@ -552,14 +554,18 @@ export const CONTENT_SEED: unknown = {
     "footer": {
       "work": [
         {
-          "label": "WindoM",
+          "label": {
+            "en": "WindoM"
+          },
           "url": "https://windom.app",
           "note": {
             "en": "Chrome Web Store"
           }
         },
         {
-          "label": "Bothy",
+          "label": {
+            "en": "Bothy"
+          },
           "url": "https://github.com/YehudaBriskman/Bothy",
           "note": {
             "en": "Self-hosted"

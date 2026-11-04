@@ -20,7 +20,7 @@ describe("the spec plate's figures", () => {
   });
 
   it("counts only the projects with a public link as live", () => {
-    const live = projects.filter((p) => p.link && p.state !== "Archive").length;
+    const live = projects.filter((p) => p.link && p.state !== "archive").length;
     expect(byCaption.get("Live")?.value).toBe(live);
     /* The claim is "fewer than all of them", and it has to stay checkable:
        if every project ever has a link, the figure stops saying anything and

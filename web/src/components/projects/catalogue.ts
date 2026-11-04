@@ -1,3 +1,4 @@
+import { stateKey } from "@/content/schema";
 import type { ProjectEntry } from "@/hooks/useProjects";
 import { FEATURED_BELOW } from "@/hooks/useProjects";
 import {
@@ -89,7 +90,7 @@ export function optionsFor(entries: ProjectEntry[], facet: Facet, filters: Filte
  */
 export type Size = "lead" | "wide" | "tile";
 
-const ACTIVE = /live|in use|open source/i;
+const ACTIVE = new Set(["live", "in-use", "open-source"]);
 
 export function sizesOf(entries: ProjectEntry[]): Map<string, Size> {
   const newest = Math.max(0, ...entries.map((e) => Number(yearOf(e)) || 0));
@@ -97,7 +98,7 @@ export function sizesOf(entries: ProjectEntry[]): Map<string, Size> {
   for (const e of entries) {
     const recent = newest > 0 && (Number(yearOf(e)) || 0) >= newest - 1;
     const featured = e.collection.order < FEATURED_BELOW;
-    const active = ACTIVE.test(e.state);
+    const active = ACTIVE.has(stateKey(e.state));
     out.set(e.collection.slug, featured && recent ? "lead" : (active && recent) || featured ? "wide" : "tile");
   }
   return out;
@@ -111,10 +112,10 @@ export function sizesOf(entries: ProjectEntry[]): Map<string, Size> {
 export type StateKind = "live" | "use" | "open" | "release" | "rest";
 
 export function kindOf(state: string): StateKind {
-  const s = state.toLowerCase();
-  if (s.includes("live")) return "live";
-  if (s.includes("in use")) return "use";
-  if (s.includes("open")) return "open";
-  if (/^v\d/.test(s)) return "release";
+  const s = stateKey(state);
+  if (s === "live") return "live";
+  if (s === "in-use") return "use";
+  if (s === "open-source") return "open";
+  if (/^v\d/i.test(s)) return "release";
   return "rest";
 }
