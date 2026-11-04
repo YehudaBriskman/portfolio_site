@@ -4,7 +4,11 @@
  * reads it, which is the raw HTML with no JavaScript run.
  *
  *   node scripts/seo/audit.mjs --base http://127.0.0.1:8080 \
- *     --vocab vocab.json [--site https://yehudabriskman.com] [--out audit.json]
+ *     --vocab vocab.json [--site https://yehudabriskman.com] [--full] > audit.json
+ *
+ * It writes nothing itself: the summary (or, with `--full`, the summary and
+ * every page) goes to stdout, and the shell decides where it lands. A file
+ * path built from crawled data was CodeQL js/http-to-file-access (#37).
  *
  * `--base` is where requests go; `--site` is the canonical origin the pages
  * name in their canonicals, hreflang and sitemap, which is mapped back onto
@@ -21,13 +25,18 @@
  * alt text in the server-rendered body. It prints JSON; report.mjs or a
  * person turns that into prose.
  */
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { JSDOM } from "jsdom";
 
 const args = Object.fromEntries(
   process.argv
     .slice(2)
-    .reduce((acc, a, i, all) => (a.startsWith("--") ? [...acc, [a.slice(2), all[i + 1]]] : acc), []),
+    // A flag with no value after it (`--full`) is true, not undefined.
+    .reduce(
+      (acc, a, i, all) =>
+        a.startsWith("--") ? [...acc, [a.slice(2), all[i + 1] === undefined || all[i + 1].startsWith("--") ? true : all[i + 1]]] : acc,
+      [],
+    ),
 );
 const BASE = (args.base ?? "http://127.0.0.1:8080").replace(/\/+$/, "");
 const SITE = (args.site ?? "https://yehudabriskman.com").replace(/\/+$/, "");
@@ -274,6 +283,7 @@ const summary = {
   probes,
 };
 
-const out = { summary, pages: list.map(({ ld, links, ...rest }) => ({ ...rest, ld, links: links.length })) };
-if (args.out) writeFileSync(args.out, JSON.stringify(out, null, 2));
-process.stdout.write(`${JSON.stringify(summary, null, 2)}\n`);
+const report = args.full
+  ? { summary, pages: list.map(({ ld, links, ...rest }) => ({ ...rest, ld, links: links.length })) }
+  : summary;
+process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
