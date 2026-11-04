@@ -330,8 +330,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: [classify]
     if: fromJSON(needs.classify.outputs.jobs).frontend
-    # Measured: median ~2.5 min, slowest 4.2 (2026-11-02, 39 runs).
-    timeout-minutes: 15
+    # Measured: 12–14 min on main, the a11y step ~10 min of it (2026-11-04,
+    # 5 runs). Was median ~2.5 min, slowest 4.2 (2026-11-02, 39 runs); the
+    # a11y matrix has grown since. 15 was hit during `npm run links` (#330).
+    timeout-minutes: 25
     defaults:
       run:
         working-directory: web
