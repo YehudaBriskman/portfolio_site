@@ -515,9 +515,9 @@ jobs:
           # A docker-archive on disk: Trivy reads it, and Publish image loads
           # and pushes it. Named as Deploy will set it.
           outputs: type=docker,dest=${{ runner.temp }}/candidate.tar
-          # The sha only. `latest` used to move on every merge, and the k8s
-          # manifest carries `:latest` as the tag a fresh `kubectl apply`
-          # lands on - so an apply between releases would have deployed
+          # The sha only. `latest` used to move on every merge, and `:latest`
+          # is what oci-free's portfolio-apply.sh creates a missing Deployment
+          # with - so a rebuild between releases would have deployed
           # unreleased code without anybody choosing to. `latest` is written
           # by Publish image on a tag, and means the last release.
           tags: ${{ env.IMAGE_BASE }}/${{ matrix.image }}:${{ needs.classify.outputs.sha }}
@@ -1158,7 +1158,7 @@ jobs:
           # (k8s/ci-rollout-rbac.yaml in oci-free). `patch` there is the whole
           # pod template, which is why the token stays in its environment.
           if ! kubectl -n "$DEPLOY_NS" get deploy web api -o name; then
-            echo "::error title=Nothing to roll out in $DEPLOY_NS::Either the namespace has not been set up yet or this environment's token is not bound in it. For a first preprod rollout, from the oci-free repository: kubectl apply -f k8s/portfolio-preprod.yaml -f k8s/tailnet-only-middleware.yaml -f k8s/ci-rollout-rbac.yaml && ./k8s/preprod-secrets.sh"
+            echo "::error title=Nothing to roll out in $DEPLOY_NS::Either the namespace has not been set up yet or this environment's token is not bound in it. For a first preprod rollout, from the oci-free repository: ./k8s/portfolio-apply.sh preprod && kubectl apply -f k8s/tailnet-only-middleware.yaml -f k8s/ci-rollout-rbac.yaml && ./k8s/preprod-secrets.sh"
             exit 1
           fi
 
@@ -1244,10 +1244,11 @@ jobs:
 
       # Both environments roll out the manifest's digests. Preprod does NOT
       # roll out `:latest` and does not write it: `:latest` means the last
-      # release, and it means that because the k8s manifests carry it as the
-      # tag a fresh `kubectl apply` lands on. A preprod that moved `:latest`
-      # on every merge would put unreleased code behind a production apply,
-      # which is the exact failure the tag split was introduced to remove.
+      # release, and it means that because it is what oci-free's
+      # portfolio-apply.sh creates a missing Deployment with. A preprod that
+      # moved `:latest` on every merge would put unreleased code behind a
+      # production rebuild, which is the exact failure the tag split was
+      # introduced to remove.
       #
       # `set image` to the digests, the annotations (version, released-at,
       # source-sha), and `rollout status` with the reason a stuck rollout is
@@ -1316,10 +1317,10 @@ jobs:
         if: (failure() || cancelled()) && steps.record.outcome == 'success'
         run: .github/scripts/deploy.sh recover
 
-      # `:latest` is the last release prod actually runs, which is what a
-      # fresh `kubectl apply` of the oci-free manifests lands on. So it moves
-      # here, after the rollout and both checks passed, and never in Promote
-      # release: a release the guard refused must not become `:latest`.
+      # `:latest` is the last release prod actually runs, which is what
+      # oci-free's portfolio-apply.sh creates a missing Deployment with. So it
+      # moves here, after the rollout and both checks passed, and never in
+      # Promote release: a release the guard refused must not become `:latest`.
       - name: Name it the latest release
         if: steps.guard.outputs.proceed == 'true' && env.DEPLOY_NS == 'prod'
         env:
