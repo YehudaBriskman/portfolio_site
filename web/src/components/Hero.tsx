@@ -295,20 +295,21 @@ export default function Hero({ hold = true }: { hold?: boolean }) {
               <picture>
                 {/* Two widths of one file, chosen by the browser against the
                     screen's density (#127). `sizes` restates the box from
-                    `Hero.module.css`: min(92vw, 22rem) below 700px, else
+                    `Hero.module.css`: the column, capped at 22rem, below
+                    700px (`100vw` less the two 1.25rem gutters), else
                     min(86vw, 26rem). It used to be a `media` switch that sent
                     every phone the 365px file, on the reasoning that the box
-                    was never wider than 242 CSS px. It is 359 at 390 wide, so
+                    was never wider than 242 CSS px. It is 347 at 390 wide, so
                     a 3x phone was upscaling that file three times over.
 
                     551px is the largest master there is, and nothing here is
-                    upscaled past it: a 2x phone now gets 0.77 file pixels per
+                    upscaled past it: a 2x phone now gets 0.79 file pixels per
                     device pixel instead of 0.51, and a 2x desktop stays at
                     0.66. A true 2x needs a master at least 1248px wide. */}
                 <img
                   src="/img/yehuda-cut.webp"
                   srcSet="/img/yehuda-cut-sm.webp 365w, /img/yehuda-cut.webp 551w"
-                  sizes="(max-width: 699px) min(92vw, 22rem), min(86vw, 26rem)"
+                  sizes="(max-width: 699px) min(calc(100vw - 2.5rem), 22rem), min(86vw, 26rem)"
                   alt={w.portraitAlt}
                   width={551}
                   height={845}

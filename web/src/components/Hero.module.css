@@ -135,13 +135,32 @@
  * fatal: a grid item's automatic minimum size is its content, so without it
  * the row refuses to shrink below the photograph's intrinsic height and a
  * short window scrolls instead of cropping.
+ *
+ * The column is stated for the same reason, on the other axis (2026-11-04).
+ * Left implicit it was an `auto` track, and an `auto` track is as wide as the
+ * widest min-content of anything in it — so the composition's width was
+ * decided by its contents rather than by the gutter. Measured at 390x844 with
+ * a 15px scrollbar: the composition was 332.5px, the figure's `92vw` was
+ * 358.8px, the track grew to 358.8px, and the plate (stretched to the track)
+ * ran 26px past the column — off the right edge in English and off the left
+ * in Hebrew, where the long fact line filled it and lost its first words to
+ * `overflow-x: clip`. At 320px the name's own nowrap word (295px against a
+ * 262px column) did the same. `minmax(0, 1fr)` is the column the gutter
+ * leaves and nothing inside can widen it; the figure and the name are each
+ * sized against it below.
+ *
+ * `container-type: inline-size` is what lets the name be sized against it.
+ * The containment is free here: the box is a stretched flex item, so its
+ * inline size never came from its contents anyway.
  */
 .composition {
   position: relative;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto 1fr;
   flex: 1;
   min-height: 0;
+  container-type: inline-size;
 }
 
 /*
@@ -381,6 +400,14 @@
    * phone the figure stops being a thing at the end of the line and becomes
    * the ground the name is set on.
    *
+   * As wide as the column and no wider. This was `min(92vw, 22rem)`, and
+   * `92vw` is a share of the window, not of the column: with a 20px gutter
+   * each side the column is at most `100vw - 40px`, so below 500px `92vw` was
+   * always wider than the room it stood in, and it was what widened the
+   * composition's track until the plate spilled past the gutter (see
+   * `.composition`). `100%` is the column, which is everything `92vw` was
+   * reaching for.
+   *
    * It no longer needs to be lifted clear of the type, which is what the
    * `top: calc(7rem - var(--fig-h))` here used to do. That rule existed
    * because the figure was bottom-heavy under a left-aligned label and the
@@ -391,7 +418,7 @@
    * faded out. The field line never meets the photograph at all.
    */
   .portrait {
-    width: min(92vw, 22rem);
+    width: min(100%, 22rem);
   }
 }
 
@@ -457,7 +484,10 @@
  * 390px and the line measures 317px in the DOM, 91% of the column. The floor
  * is 2.6rem rather than something tidier because 320px is the narrowest
  * screen this has to survive: 278px of content there, measured, and
- * 2.6rem x 6.50em is 270px.
+ * 2.6rem x 6.50em is 270px. Those numbers were taken with a 16px root and no
+ * scrollbar, and they are wrong on both counts below 700px: the column there
+ * is 262.5px at 320 and 332.5px at 390, the word is 6.69em in Hebrew, and
+ * the phone rung is now bounded by the column itself (`14.9cqi`, below).
  *
  * EXPLORE MY PORTFOLIO, the other treatment, was built and rendered beside
  * this one and not picked; its rung (8.25rem, `10.8vw` on a phone) went with
@@ -481,12 +511,34 @@
    * the counters. The widths above are quoted at both trackings so this
    * choice can be checked rather than taken on trust.
    */
-  /* The floor is capped at 13.8vw (#99): at Larger text the 2.6rem floor is
-     55px on a 320px screen and "PORTFOLIO" ran 65px past it. 13.8vw is the
-     widest the word fits at 320, and it equals the rem floor there at the
-     default size, so nothing moves unless the reader asked for bigger text. */
+  /*
+   * Bounded by the column itself, not by the window (2026-11-04).
+   *
+   * The floor used to be capped at 13.8vw (#99: at Larger text the 2.6rem
+   * floor was 55px on a 320px screen and "PORTFOLIO" ran 65px past it), on
+   * the arithmetic above that a 320px screen has 278px of content. It has
+   * less: the root is 17px below 700px (`index.css`), so the gutter is
+   * 21.25px, and a desktop browser's scrollbar takes 15px more — 262.5px of
+   * column, measured, against a word that measured 287.6px in English and
+   * 295.5px in Hebrew. Any bound written in `vw` is a guess at the gutter.
+   *
+   * `cqi` is the composition's own inline size (it is the query container),
+   * so this is a bound on the thing that actually overflows. The word
+   * measures 6.694em in Hebrew, where `--track-head` is 0, and 6.51em in
+   * English at -0.020em; `100cqi / 6.694` is 14.94cqi, so 14.9cqi keeps the
+   * wider of the two inside the column at every width and every text size.
+   * It only binds where the word would not fit — at 390px with no scrollbar
+   * `12.5vw` still sets the size, as it did — so the title only gets smaller
+   * on the windows where it was clipped. Above 700px nothing binds: the
+   * desktop rule's arithmetic has 2px of air at the 10rem ceiling, in
+   * Hebrew, and `11vw` below it is a far smaller share of the column.
+   *
+   * The first declaration is the fallback for a browser without container
+   * units, which drops the second whole.
+   */
   .composition .plate h1 {
     font-size: clamp(min(2.6rem, 13.8vw), 12.5vw, 4.6rem);
+    font-size: min(clamp(2.6rem, 12.5vw, 4.6rem), 14.9cqi);
     letter-spacing: var(--track-head);
     line-height: 0.92;
   }

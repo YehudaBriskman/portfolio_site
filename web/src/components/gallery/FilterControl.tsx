@@ -16,6 +16,7 @@ import {
 } from "@/components/gallery/facets";
 import styles from "@/components/gallery/Filter.module.css";
 import { useFilterWords } from "@/i18n/pages";
+import { typedDir } from "@/lib/typedDir";
 
 /*
  * The filter control (#193), one for both galleries: a card holding a
@@ -424,7 +425,7 @@ export function SearchField({
         autoComplete="off"
         spellCheck={false}
         enterKeyHint="search"
-        dir="auto"
+        dir={typedDir(value)}
         className={styles.searchInput}
         onChange={(e) => {
           const params = new URLSearchParams(location.search);
