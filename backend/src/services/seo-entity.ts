@@ -129,20 +129,3 @@ export function websiteNode(lang: Lang) {
     author: { "@id": PERSON_ID },
   };
 }
-
-/**
- * A page about the person (home, the story): Google's ProfilePage, whose
- * `mainEntity` is the Person.
- */
-export function profilePageNode(lang: Lang, url: string, name: string) {
-  return {
-    "@type": "ProfilePage",
-    "@id": `${url}#page`,
-    url,
-    name,
-    inLanguage: lang,
-    isPartOf: { "@id": WEBSITE_ID },
-    mainEntity: { "@id": PERSON_ID },
-    about: { "@id": PERSON_ID },
-  };
-}

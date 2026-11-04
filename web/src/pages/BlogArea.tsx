@@ -12,6 +12,7 @@ import history from "@/components/dashboard/History.module.css";
 import { useWords } from "@/components/dashboard/i18n";
 import { useHistoryWords } from "@/components/dashboard/historyWords";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import { areaTitleName } from "@/lib/pageTitle";
 import { blog, type PostSummary } from "@/services/blog";
 import { activity, areaFeedUrl, type Area } from "@/services/activity";
 
@@ -70,7 +71,7 @@ export default function BlogArea() {
 
   const area = areas?.find((a) => a.slug === slug) ?? null;
   const title = area?.title ?? (slug === "site" ? (lang === "he" ? "האתר" : "The site") : slug);
-  useDocumentTitle(area?.title ?? null);
+  useDocumentTitle(area ? areaTitleName(area.title, lang) : null);
 
   const all = posts ?? [];
   const shown = topic ? all.filter((p) => p.tags.includes(topic)) : all;
