@@ -203,6 +203,18 @@ never be Hebrew. These become `Text` (A), with a read-side shim (`typeof v ===
 | media video captions | `captions` becomes a list keyed by `lang` (a second `.vtt`), the player picks by page language |
 | note `links[].label`, `sources[].label` | as above |
 
+> **As built (#306), first part:** project `links[].label` and footer
+> `work[].label` are `Text`, read through `textOrString` (a string is `{ en }`).
+> The state chip and a `state` field hold a key (`STATE_KEYS`: `live`,
+> `in-use`, `open-source`, `in-progress`, `released`, `archive`). An old label
+> is read as its key, and a release tag stays as written. `where` values stay
+> strings, because every one so far is a brand (category A). Activity: a push
+> carries `meta.repo` and a note carries `meta.he`, and the site words both in
+> the page language. **Not yet:** media `alt`/`caption` and per-language
+> captions wait for the media admin in #296, note `links`/`sources` labels
+> wait for the bilingual note editor (#305), and the final conversion script
+> plus shim removal come a release later (§4.3).
+
 `tech[]`, project `title`, area `title` when it is a product name (WindoM,
 Bothy), `tags` (URL keys) stay strings: names and keys, Latin by glossary
 category A.
