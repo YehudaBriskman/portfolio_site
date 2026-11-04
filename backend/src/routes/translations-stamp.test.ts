@@ -6,6 +6,7 @@ import { CONTENT_SEED } from "../content/seed.js";
 import { fp } from "../schemas/i18n.js";
 import type { ContentBundle } from "../schemas/site-content.js";
 import { backfillDoc } from "../services/he-backfill.js";
+import { attachments } from "../db/attachments.js";
 
 /*
  * Fingerprints stamped on save, the "still correct" acknowledgement and the
@@ -417,5 +418,134 @@ describe("publishing one language of a note (#305)", () => {
     const res = await publish("new-note", { ...content({ he: HE }), scope: "he" });
     expect(res.status).toBe(400);
     expect(store.has("post:new-note")).toBe(false);
+  });
+});
+
+/* ----------------------------------------------------------------- #306 */
+
+describe("a note's link labels in Hebrew (#306)", () => {
+  const LINKS = [{ label: "Source", url: "https://example.com/src" }, { label: "Demo", url: "https://example.com/demo" }];
+
+  it("stamps each Hebrew label against its English, and reads one as stale when the English changes", async () => {
+    await publish("a-note", content({ links: LINKS, he: { ...HE, "links.0.label": "קוד מקור" } }));
+    const doc = store.get("post:a-note")!;
+    expect((doc.heMeta as { src: Record<string, string> }).src["links.0.label"]).toBe(fp("Source"));
+    let item = await statusOf("post", "a-note");
+    expect(item.units.find((u) => u.path === "links.0.label")?.status).toBe("translated");
+    expect(item.units.find((u) => u.path === "links.1.label")?.status).toBe("missing");
+    /* A label is not the lede: a missing one does not make the note missing. */
+    expect(item.status).toBe("translated");
+
+    await publish("a-note", content({ links: [{ ...LINKS[0], label: "Source code" }, LINKS[1]], he: { ...HE, "links.0.label": "קוד מקור" } }));
+    item = await statusOf("post", "a-note");
+    expect(item.units.find((u) => u.path === "links.0.label")?.status).toBe("stale");
+  });
+
+  it("keeps a Hebrew block that holds only a label", async () => {
+    await publish("a-note", content({ links: LINKS, he: { title: "", subtitle: "", excerpt: "", body: "", "links.1.label": "הדגמה" } }));
+    expect((store.get("post:a-note")!.he as Record<string, string>)["links.1.label"]).toBe("הדגמה");
+  });
+
+  it("takes 'still correct' for a label", async () => {
+    await publish("a-note", content({ links: LINKS, he: { ...HE, "links.0.label": "קוד מקור" } }));
+    await publish("a-note", content({ links: [{ ...LINKS[0], label: "Source code" }, LINKS[1]], he: { ...HE, "links.0.label": "קוד מקור" } }));
+    const rev = store.get("post:a-note")!._rev;
+    const res = await asAdmin(request(app()).post("/api/admin/translations/ack")).send({ type: "post", id: "a-note", path: "links.0.label", rev });
+    expect(res.status).toBe(200);
+    expect((await statusOf("post", "a-note")).units.find((u) => u.path === "links.0.label")?.status).toBe("translated");
+  });
+});
+
+describe("a picture's alt and caption in Hebrew, and captions per language (#306)", () => {
+  const H = "a".repeat(16);
+  function putMedia(over: Record<string, unknown> = {}) {
+    store.set("media:clip-abc123", {
+      _id: "media:clip-abc123",
+      _rev: "1-a",
+      type: "media",
+      id: "clip-abc123",
+      name: "clip.mp4",
+      alt: "A tone over a grey card",
+      caption: "",
+      credit: "",
+      kind: "video",
+      format: "mp4",
+      width: 160,
+      height: 90,
+      bytes: 10,
+      hash: H,
+      original: "video.mp4",
+      variants: [],
+      captions: { name: "captions.vtt", hash: "b".repeat(16), lang: "en", label: "English", bytes: 30 },
+      _attachments: { "video.mp4": { stub: true }, "captions.vtt": { stub: true } },
+      createdAt: NOW,
+      updatedAt: NOW,
+      createdBy: "owner",
+      ...over,
+    });
+  }
+  const putMeta = (body: Record<string, unknown>) =>
+    asAdmin(request(app()).put("/api/admin/media/clip-abc123")).send({ alt: "A tone over a grey card", caption: "", credit: "", _rev: store.get("media:clip-abc123")!._rev, ...body });
+
+  it("stamps the Hebrew alt, lists it, and reads it as stale when the English alt changes", async () => {
+    putMedia();
+    expect((await statusOf("media", "clip-abc123")).status).toBe("missing");
+    const res = await putMeta({ he: { alt: "צליל מעל כרטיס אפור", caption: "" } });
+    expect(res.status).toBe(200);
+    expect(res.body.item.he).toEqual({ alt: "צליל מעל כרטיס אפור", caption: "" });
+    expect(res.body.item.heMeta).toBeUndefined();
+    expect((store.get("media:clip-abc123")!.heMeta as { src: Record<string, string> }).src.alt).toBe(fp("A tone over a grey card"));
+    expect((await statusOf("media", "clip-abc123")).status).toBe("translated");
+
+    /* The English changes and the Hebrew does not: stale, until acknowledged. */
+    await putMeta({ alt: "A tone over a dark grey card" });
+    expect((await statusOf("media", "clip-abc123")).status).toBe("stale");
+    const ack = await asAdmin(request(app()).post("/api/admin/translations/ack")).send({ type: "media", id: "clip-abc123", path: "alt", rev: store.get("media:clip-abc123")!._rev });
+    expect(ack.status).toBe(200);
+    expect((await statusOf("media", "clip-abc123")).status).toBe("translated");
+  });
+
+  it("adds Hebrew captions beside the English, and removes them", async () => {
+    putMedia();
+    const put = vi.spyOn(attachments, "putOne").mockImplementation(async (id) => {
+      const doc = store.get(id)!;
+      const rev = `${++revs + 1}-x`;
+      store.set(id, { ...doc, _rev: rev, _attachments: { ...(doc._attachments as object), "captions-he.vtt": { stub: true } } });
+      return { rev };
+    });
+    const res = await asAdmin(request(app()).put(`/api/admin/media/clip-abc123/captions/he?rev=1-a`))
+      .set("Content-Type", "text/vtt")
+      .send("WEBVTT\n\n00:00.000 --> 00:01.000\nצליל\n");
+    expect(res.status).toBe(200);
+    expect(put.mock.calls[0][2].name).toBe("captions-he.vtt");
+    expect(res.body.item.tracks.map((t: { lang: string; label: string }) => [t.lang, t.label])).toEqual([["en", "English"], ["he", "עברית"]]);
+    expect(res.body.item.captions.lang).toBe("en");
+
+    /* Not WebVTT: refused, nothing written. */
+    const bad = await asAdmin(request(app()).put(`/api/admin/media/clip-abc123/captions/he?rev=${store.get("media:clip-abc123")!._rev}`))
+      .set("Content-Type", "text/vtt")
+      .send("not captions");
+    expect(bad.status).toBe(415);
+
+    const gone = await asAdmin(request(app()).delete(`/api/admin/media/clip-abc123/captions/he?rev=${store.get("media:clip-abc123")!._rev}`));
+    expect(gone.status).toBe(200);
+    expect(gone.body.item.tracks).toHaveLength(1);
+    expect(store.get("media:clip-abc123")!._attachments).not.toHaveProperty("captions-he.vtt");
+  });
+
+  it("gives a reader the Hebrew words and every track, never the fingerprints", async () => {
+    putMedia({
+      he: { alt: "צליל", caption: "" },
+      heMeta: { src: { alt: fp("A tone over a grey card") } },
+      moreCaptions: [{ name: "captions-he.vtt", hash: "c".repeat(16), lang: "he", label: "עברית", bytes: 30 }],
+    });
+    const res = await request(app()).get("/api/images/media/clip-abc123/meta");
+    expect(res.status).toBe(200);
+    expect(res.body.item.he).toEqual({ alt: "צליל", caption: "" });
+    expect(res.body.item.tracks.map((t: { url: string }) => t.url)).toEqual([
+      `/api/images/m/clip-abc123/captions-${"b".repeat(16)}.vtt`,
+      `/api/images/m/clip-abc123/captions-${"c".repeat(16)}.vtt`,
+    ]);
+    expect(JSON.stringify(res.body)).not.toContain("heMeta");
   });
 });

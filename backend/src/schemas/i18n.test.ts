@@ -135,7 +135,7 @@ describe("a note", () => {
   });
 
   it("reads Hebrew in an unpublished draft as draft", () => {
-    const p = post({ draft: { he: { title: "רשימה", subtitle: "", excerpt: "", body: "" } } as Post["draft"] });
+    const p = post({ draft: { he: { title: "רשימה", subtitle: "", excerpt: "", body: "" } } as unknown as Post["draft"] });
     const title = postTranslation(p).units.find((x) => x.path === "title")!;
     expect(title).toMatchObject({ status: "draft", draftHe: "רשימה", he: null });
   });

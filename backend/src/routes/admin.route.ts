@@ -31,7 +31,7 @@ import {
 import adminContentRoutes from "./admin-content.route.js";
 import adminSettingsRoutes from "./admin-settings.route.js";
 import adminTranslationsRoutes from "./admin-translations.route.js";
-import { COLLECTION_FIELDS, POST_FIELDS, stampHebrewMeta, type HebrewMeta } from "../schemas/i18n.js";
+import { COLLECTION_FIELDS, LINK_LABEL_PATHS, POST_FIELDS, postEnglish, stampHebrewMeta, type HebrewMeta } from "../schemas/i18n.js";
 
 const router = Router();
 
@@ -276,7 +276,7 @@ function conflict(res: import("express").Response) {
   return res.status(409).json({ ok: false, error: "This post changed elsewhere. Reload and reapply." });
 }
 
-const POST_HE_FIELDS = POST_FIELDS.map((f) => f.field);
+const POST_HE_FIELDS = [...POST_FIELDS.map((f) => f.field), ...LINK_LABEL_PATHS];
 const COLLECTION_HE_FIELDS = COLLECTION_FIELDS.map((f) => f.field);
 
 type HeVersion = { he: Record<string, unknown> | null | undefined; meta: HebrewMeta | null | undefined };
@@ -296,7 +296,7 @@ function postVersions(existing: Post | null): HeVersion[] {
  * this save. Whatever the client sent as `heMeta` is replaced.
  */
 function stampPost(content: PostContent, prevs: HeVersion[]): PostContent {
-  return { ...content, heMeta: stampHebrewMeta(content.he, content, prevs, POST_HE_FIELDS) };
+  return { ...content, heMeta: stampHebrewMeta(content.he, postEnglish(content), prevs, POST_HE_FIELDS) };
 }
 
 function fromContent(c: PostContent) {
@@ -311,7 +311,7 @@ function fromContent(c: PostContent) {
     links: c.links,
     featured: c.featured,
     seo: c.seo,
-    he: c.he && (c.he.title || c.he.subtitle || c.he.excerpt || c.he.body) ? c.he : null,
+    he: c.he && Object.values(c.he).some((v) => typeof v === "string" && v.trim()) ? c.he : null,
     heMeta: c.heMeta ?? null,
     readingMinutes: readingMinutes(c.body),
   };

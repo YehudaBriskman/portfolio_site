@@ -82,6 +82,23 @@ export const attachments = {
     return { rev: out.rev };
   },
 
+  /** Adds or replaces one attachment on an existing document; returns the new revision. */
+  async putOne(id: string, rev: string, file: NewAttachment): Promise<{ rev: string }> {
+    const path = `/${encodeURIComponent(id)}/${encodeURIComponent(file.name)}?rev=${encodeURIComponent(rev)}`;
+    const res = await send(
+      path,
+      {
+        method: "PUT",
+        body: new Uint8Array(file.data.buffer, file.data.byteOffset, file.data.length),
+        headers: { "Content-Type": file.contentType, Accept: "application/json" },
+      },
+      10_000,
+    );
+    if (!res.ok) throw new CouchError(res.status, `couch ${res.status} on /${id}/${file.name}`);
+    const out = (await res.json()) as { rev: string };
+    return { rev: out.rev };
+  },
+
   /** One attachment's bytes, or null when the document or the name is absent. */
   async get(id: string, name: string): Promise<{ data: Buffer; contentType: string } | null> {
     const path = `/${encodeURIComponent(id)}/${encodeURIComponent(name)}`;

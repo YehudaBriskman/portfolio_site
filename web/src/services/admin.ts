@@ -10,12 +10,15 @@ const SeoSchema = z.object({
   noindex: z.boolean().default(false),
 });
 
-const HebrewSchema = z.object({
-  title: z.string().default(""),
-  subtitle: z.string().default(""),
-  excerpt: z.string().default(""),
-  body: z.string().default(""),
-});
+const HebrewSchema = z
+  .object({
+    title: z.string().default(""),
+    subtitle: z.string().default(""),
+    excerpt: z.string().default(""),
+    body: z.string().default(""),
+  })
+  /* Each link's label in Hebrew, under `links.<i>.label` (#306). */
+  .catchall(z.string());
 
 /* Everything an author edits about a note, as the draft and publish routes
    take it (#250). The server validates it again; this only shapes it. */

@@ -214,6 +214,24 @@ never be Hebrew. These become `Text` (A), with a read-side shim (`typeof v ===
 > captions wait for the media admin in #296, note `links`/`sources` labels
 > wait for the bilingual note editor (#305), and the final conversion script
 > plus shim removal come a release later (§4.3).
+>
+> **As built (#306), second part:** media and note links take the note and
+> area shape (§3, shape B), not `Text`: a sibling `he: { alt, caption }` and
+> `heMeta.src` fingerprints on the media doc, stamped on save. Every existing
+> reader (the MCP, the editors, `/meta`) keeps reading the English strings, so
+> nothing migrates, and no stored doc has a Hebrew alt yet to backfill. The Translations
+> report lists each picture and video (`type: "media"`, `alt` primary,
+> `caption` counted only when the English has one); "still correct" restamps
+> it, and `put_translation` refuses it, since media has no draft. Captions:
+> `captions` stays the first track, and `moreCaptions` holds one more per
+> language (`captions-<lang>.vtt`), added and removed in `/admin/media` through
+> `PUT`/`DELETE /api/admin/media/:id/captions/:lang`; `/meta` gives `tracks`,
+> and `<MediaVideo>` marks the page language's track `default`. A note's link
+> labels sit in its `he` block under `links.<i>.label`, beside each English
+> label in the editor, and `local()` swaps them in on a Hebrew page. Notes have
+> no `sources` field, so there is nothing to translate there. **Not yet:** area
+> `links[].label` (the area editor has no Hebrew links column), and no public
+> page plays a video yet, so the `default` track is proved by unit test only.
 
 `tech[]`, project `title`, area `title` when it is a product name (WindoM,
 Bothy), `tags` (URL keys) stay strings: names and keys, Latin by glossary

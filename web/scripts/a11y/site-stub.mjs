@@ -167,7 +167,7 @@ const mediaItem = (id, alt, usedBy, extra = {}) => ({
 const MEDIA = [
   mediaItem("fixture-media", "A cabin under the aurora, with a clock and a greeting over it.", [
     { id: "collection:site", type: "collection", title: "The site", slug: "site", field: "coverImage" },
-  ]),
+  ], { he: { alt: "בקתה תחת זוהר הצפון, ומעליה שעון וברכה.", caption: "" } }),
   mediaItem("unused-media", "An orange sports car on a coastal highway.", []),
   mediaItem("fixture-icon", "A leaf.", [], { kind: "icon", format: "svg", mime: "image/svg+xml", file: SWATCH, monochrome: true, width: 24, height: 24, bytes: 412 }),
   // No video file to fetch here: the detail draws its poster and controls, which is what axe judges.
@@ -179,6 +179,11 @@ const MEDIA = [
     durationMs: 12_000,
     hasAudio: false,
     captions: { url: "/api/images/m/fixture-video/captions-bbbbbbbbbbbbbbbb.vtt", lang: "en", label: "English" },
+    /* Captions per language (#306): the admin lists each, a page shows its own. */
+    tracks: [
+      { url: "/api/images/m/fixture-video/captions-bbbbbbbbbbbbbbbb.vtt", lang: "en", label: "English" },
+      { url: "/api/images/m/fixture-video/captions-cccccccccccccccc.vtt", lang: "he", label: "עברית" },
+    ],
   }),
 ];
 

@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import { pipeline } from "node:stream/promises";
-import { captionsUrl, fileUrl, mediaStore, publicMedia, variantUrl, MEDIA_ID, type MediaDoc } from "../services/media.js";
+import { captionTracks, captionsUrl, fileUrl, mediaStore, publicMedia, variantUrl, MEDIA_ID, type MediaDoc } from "../services/media.js";
 import { EXT, MIME, VARIANT_FORMATS, type Variant, type VariantFormat } from "../services/mediaImage.js";
 
 /*
@@ -174,6 +174,9 @@ export const mediaController = {
         monochrome: m.monochrome,
         durationMs: m.durationMs,
         captions: m.captions,
+        /* Every captions track, and the Hebrew alt and caption (#306). */
+        tracks: m.tracks,
+        he: m.he,
       },
     });
   },
@@ -199,7 +202,8 @@ export const mediaController = {
 
     const [, , , , part, hash, ext] = m;
     if (part === "captions") {
-      const cap = doc.captions;
+      /* Any of its tracks by hash (#306); an old hash goes to the first track. */
+      const cap = captionTracks(doc).find((t) => t.hash === hash) ?? doc.captions;
       if (!cap || ext !== "vtt") return notFound(res);
       if (cap.hash !== hash) {
         res.setHeader("Cache-Control", SHORT);

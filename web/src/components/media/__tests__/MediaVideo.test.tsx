@@ -110,3 +110,20 @@ describe("MediaIcon", () => {
     expect(container.querySelector('span[aria-hidden="true"]')).not.toBeNull();
   });
 });
+
+describe("captions per language (#306)", () => {
+  const tracks = [
+    { src: "/c-en.vtt", lang: "en", label: "English" },
+    { src: "/c-he.vtt", lang: "he", label: "עברית" },
+  ];
+  it("shows every track, the page's language by default", () => {
+    const { container } = render(<MediaVideo {...props} tracks={tracks} lang="he" />);
+    const els = [...container.querySelectorAll("track")];
+    expect(els.map((t) => t.getAttribute("srclang"))).toEqual(["en", "he"]);
+    expect(els.map((t) => t.hasAttribute("default"))).toEqual([false, true]);
+  });
+  it("falls back to the first track when none is in the page's language", () => {
+    const { container } = render(<MediaVideo {...props} tracks={[tracks[1]]} lang="en" />);
+    expect(container.querySelector("track")).toHaveAttribute("default");
+  });
+});
