@@ -226,8 +226,9 @@ export default function AdminTranslations() {
                             </code>
                           </td>
                           <td className="a-fit !pl-0">
-                            <Link to={href} className="a-btn a-btn-ghost" aria-label={w.edit(item.title)}>
-                              Edit
+                            {/* The visible word starts the accessible name (WCAG 2.5.3). */}
+                            <Link to={href} className="a-btn a-btn-ghost">
+                              Edit<span className="sr-only"> {item.title}</span>
                             </Link>
                           </td>
                         </tr>
