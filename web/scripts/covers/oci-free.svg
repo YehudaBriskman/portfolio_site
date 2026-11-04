@@ -1,0 +1,119 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 800" width="1280" height="800" role="img" aria-labelledby="t d">
+  <!--
+    oci-free, drawn from its public README (2026-11-04). Generic names only:
+    no address, host other than yehudabriskman.com, node name, account or
+    secret. Colours are the site's tokens (web/src/index.css): --paper,
+    --paper-2, --ink, --ink-soft, --rule, --rule-firm, --wash-green, and the
+    green of --hue-green taken down to a stroke that holds on the wash. One
+    ground for both themes, because a project cover is a single image.
+  -->
+  <title id="t">oci-free</title>
+  <desc id="d">The repository's Terraform and manifests, and the site's CI, feeding one Always Free ARM instance on Oracle Cloud that runs k3s with Traefik, a prod and a preprod namespace for the site, and monitoring.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#55524A"/>
+    </marker>
+    <style>
+      .display { font-family: "Audiowide", sans-serif; fill: #14130F; }
+      .text { font-family: "Atkinson Hyperlegible Next", sans-serif; fill: #14130F; }
+      .soft { fill: #55524A; }
+      .label { font-family: "Atkinson Hyperlegible Next", sans-serif; font-size: 12px; letter-spacing: 0.14em; fill: #55524A; }
+      .head { font-size: 17px; font-weight: 700; }
+      .item { font-size: 15px; }
+      .small { font-size: 12.5px; }
+      .flow { stroke: #55524A; stroke-width: 1.6; fill: none; marker-end: url(#arrow); }
+    </style>
+  </defs>
+
+  <rect width="1280" height="800" fill="#ECE8DC"/>
+
+  <!-- Title -->
+  <text x="48" y="82" class="display" font-size="38" letter-spacing="0.02em">OCI-FREE</text>
+  <text x="48" y="114" class="text soft item">One Always Free ARM node, written as code</text>
+
+  <!-- Left: the code that describes it -->
+  <g>
+    <rect x="48" y="170" width="300" height="236" rx="14" fill="#E4DFD1" stroke="#A69F8E"/>
+    <text x="72" y="204" class="label">REPOSITORY</text>
+    <text x="72" y="232" class="text head">oci-free</text>
+    <text x="72" y="266" class="text item">Terraform, run with OpenTofu</text>
+    <text x="72" y="290" class="text item soft">network · instance · cloud-init</text>
+    <text x="72" y="324" class="text item">k3s manifests · Helm values</text>
+    <text x="72" y="348" class="text item soft">chart versions pinned</text>
+    <text x="72" y="382" class="text item">CI checks every file</text>
+  </g>
+  <g>
+    <rect x="48" y="452" width="300" height="248" rx="14" fill="#E4DFD1" stroke="#A69F8E"/>
+    <text x="72" y="486" class="label">THE SITE'S CI</text>
+    <text x="72" y="514" class="text head">portfolio_site</text>
+    <text x="72" y="548" class="text item">build · test · scan</text>
+    <text x="72" y="572" class="text item soft">images recorded by digest</text>
+    <text x="72" y="610" class="text item">push to main → preprod</text>
+    <text x="72" y="638" class="text item">tag → prod</text>
+    <text x="72" y="674" class="text item soft">not ready? roll back</text>
+  </g>
+
+  <!-- Oracle Cloud, Always Free -->
+  <rect x="404" y="152" width="828" height="548" rx="18" fill="none" stroke="#A69F8E" stroke-dasharray="6 6"/>
+  <text x="428" y="182" class="label">ORACLE CLOUD · ALWAYS FREE</text>
+  <text x="1208" y="182" class="label" text-anchor="end">VCN · SUBNET · SECURITY LIST</text>
+
+  <!-- The instance -->
+  <rect x="428" y="200" width="780" height="476" rx="14" fill="#E4DFD1" stroke="#A69F8E"/>
+  <text x="452" y="232" class="label">ONE AMPERE A1 INSTANCE · ARM · 2 OCPU · 12 GB</text>
+
+  <!-- k3s -->
+  <rect x="452" y="252" width="732" height="400" rx="12" fill="#E1F5EC" stroke="#1F8A5B" stroke-width="1.5"/>
+  <text x="476" y="290" class="display" font-size="22">k3s</text>
+  <text x="1160" y="290" class="text small soft" text-anchor="end">Helm releases at their recorded versions</text>
+
+  <rect x="476" y="316" width="684" height="66" rx="10" fill="#ECE8DC" stroke="#A69F8E"/>
+  <text x="500" y="345" class="text head">Traefik</text>
+  <text x="572" y="345" class="text item soft">ingress, on the node</text>
+  <text x="500" y="368" class="text small soft">TLS certificates from cert-manager</text>
+
+  <!-- Namespaces -->
+  <g>
+    <rect x="476" y="406" width="214" height="222" rx="10" fill="#ECE8DC" stroke="#1F8A5B"/>
+    <text x="498" y="436" class="label">NAMESPACE</text>
+    <text x="498" y="462" class="text head">prod</text>
+    <text x="498" y="498" class="text item">web × 2</text>
+    <text x="498" y="524" class="text item">api × 2</text>
+    <text x="498" y="550" class="text item soft">disruption budget</text>
+    <text x="498" y="606" class="text small soft">from a release tag</text>
+  </g>
+  <g>
+    <rect x="711" y="406" width="214" height="222" rx="10" fill="#ECE8DC" stroke="#1F8A5B"/>
+    <text x="733" y="436" class="label">NAMESPACE</text>
+    <text x="733" y="462" class="text head">preprod</text>
+    <text x="733" y="498" class="text item">web · api</text>
+    <text x="733" y="524" class="text item">its own database</text>
+    <text x="733" y="550" class="text item soft">a mail sink</text>
+    <text x="733" y="606" class="text small soft">from every push to main</text>
+  </g>
+  <g>
+    <rect x="946" y="406" width="214" height="222" rx="10" fill="#ECE8DC" stroke="#1F8A5B"/>
+    <text x="968" y="436" class="label">NAMESPACE</text>
+    <text x="968" y="462" class="text head">monitoring</text>
+    <text x="968" y="498" class="text item">Prometheus</text>
+    <text x="968" y="524" class="text item">Grafana</text>
+    <text x="968" y="550" class="text item soft">alerts by email</text>
+  </g>
+
+  <!-- Flows, drawn last so nothing covers them -->
+  <path d="M348 222 L426 222" class="flow"/>
+  <text x="372" y="210" class="text small soft" text-anchor="middle">apply</text>
+  <path d="M348 336 L474 336" class="flow"/>
+  <text x="372" y="324" class="text small soft" text-anchor="middle">apply</text>
+  <path d="M348 560 L474 560" class="flow"/>
+  <text x="372" y="548" class="text small soft" text-anchor="middle">roll out</text>
+  <text x="372" y="580" class="text small soft" text-anchor="middle">by digest</text>
+  <!-- Visitors -->
+  <text x="840" y="132" class="text small soft" text-anchor="middle">HTTPS · yehudabriskman.com</text>
+  <path d="M840 142 L840 314" class="flow"/>
+
+
+  <!-- How it is built again -->
+  <text x="48" y="750" class="label">REBUILD</text>
+  <text x="132" y="750" class="text item">apply the Terraform  →  apply the manifests  →  each Helm release at its recorded version</text>
+</svg>

@@ -116,8 +116,11 @@ const FILL: Record<string, string[]> = {
   "/blog/:slug": NOTES.map((n) => `/blog/${n.slug}`),
 };
 
-/** The pages whose Hebrew twin is meant to be noindex (#304), and the ones always noindex. */
-const HEBREW_FALLBACK = new Set(["/projects/windom", "/projects/icaros", "/blog/area/site", "/blog/english-only"]);
+/**
+ * The pages whose Hebrew twin is meant to be noindex (#304), and the ones
+ * always noindex. The seeded projects are not among them: they have Hebrew.
+ */
+const HEBREW_FALLBACK = new Set(["/blog/area/site", "/blog/english-only"]);
 const ALWAYS_NOINDEX = new Set(["/blog/hidden"]);
 
 const renderUrl = (p: string, lang: "en" | "he") =>

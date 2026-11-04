@@ -129,7 +129,7 @@ describe("/api/admin/content", () => {
     expect((doc.draft as ContentBundle["siteCopy"]).hero.phrases[2]).toEqual({ en: "Build boldly", he: "בונים באומץ", heSrc: fp("Build boldly") });
     expect(doc.published).toEqual(seed().siteCopy);
     const pub = await request(createApp()).get("/api/content");
-    expect(pub.body.siteCopy.hero.phrases[2]).toEqual({ en: "Build boldly" });
+    expect(pub.body.siteCopy.hero.phrases[2]).toEqual({ en: "Build boldly", he: "לבנות באומץ" });
   });
 
   it("answers a schema failure with each field's path and message", async () => {
@@ -342,6 +342,8 @@ describe("the crawler renders read the store", () => {
       "2025: Icaros",
       "2026: WindoM",
       "2026: Bothy",
+      "2026: Portfolio site",
+      "2026: oci-free",
       "Then: Full-stack engineer",
       "Now: Technical team lead",
     ]);
