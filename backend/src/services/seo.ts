@@ -523,6 +523,12 @@ Allow: /
 # would only advertise it; it is disallowed for the crawlers that do look.
 Disallow: /admin
 
+# The remote MCP endpoint and its OAuth pages are an authenticated API for
+# agents, not documents: a crawler that reaches /mcp gets a 401 (earlier, a 404)
+# and reports it as an indexing problem. /developers/mcp is the page about it
+# and stays crawlable; it does not start with this prefix.
+Disallow: /mcp
+
 Sitemap: ${absoluteUrl("/sitemap.xml")}
 `;
 }
