@@ -14,9 +14,9 @@ import type { Lang } from "./seo.js";
  * the owner chose. The employer is never named, in either language.
  */
 const EN = {
-  siteTitle: "Yehuda Briskman · Full-stack engineer & technical team lead",
+  siteTitle: "Yehuda Briskman · Full-stack engineer & team lead",
   siteDescription:
-    "Full-stack engineer and technical team lead in Tel Aviv, mostly frontend. I ship products end to end and build the checks that prove they still work.",
+    "Full-stack engineer and team lead in Tel Aviv. I ship products end to end and build the checks that prove they still work.",
   /*
    * The share-card wording, copied from og:description in web/index.html.
    * The home page is served both ways (as the built shell when the API is
@@ -25,7 +25,7 @@ const EN = {
    * real index.html against the English render.
    */
   siteSocial: "I ship products end to end, and build the checks that prove they work. Tel Aviv.",
-  role: "full-stack engineer and technical team lead",
+  role: "full-stack engineer and team lead",
   elsewhere: "Elsewhere",
   homeProjects: "Projects: what I have built and run",
   homeNotes: "Notes: writing on frontend engineering and infrastructure",
