@@ -51,7 +51,7 @@ export const SITE_NAME = "Yehuda Briskman";
  * static shell was served". See the note there before changing it — this
  * string has to stay character-identical to the `<title>` in `index.html`.
  */
-export const HOME_TITLE = "Yehuda Briskman · Full-stack engineer & technical team lead";
+export const HOME_TITLE = "Yehuda Briskman · Full-stack engineer & team lead";
 
 export type PageIdentity = {
   /**

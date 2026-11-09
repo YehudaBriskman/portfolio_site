@@ -134,7 +134,7 @@ export const usePageNames = defineWords(
   "page-names",
   {
     home: "Home",
-    homeTitle: "Yehuda Briskman · Full-stack engineer & technical team lead",
+    homeTitle: "Yehuda Briskman · Full-stack engineer & team lead",
     siteName: "Yehuda Briskman",
     work: "Work",
     journey: "Journey",
