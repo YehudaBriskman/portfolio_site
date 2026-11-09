@@ -88,9 +88,21 @@ map "${NGINX_FORWARD_IDENTITY}" $fwd_admin_proxy_secret {
   default "";
 }
 
+# `www.<name>` to `<name>`. The ingress routes both hosts to this pod, and www
+# answered 200 with a full copy of every page: two sites to a crawler, with only
+# the canonical tag arguing which was real (Search Console, "Alternate page with
+# proper canonical"). The regex works for any host, so preprod is unaffected and
+# production needs no name written here.
+map $host $www_apex {
+  "~^www\.(?<apex>.+)$" $apex;
+  default "";
+}
+
 server {
   listen 8080;
   server_name _;
+
+  if ($www_apex) { return 301 https://$www_apex$request_uri; }
 
   root /usr/share/nginx/html;
   index index.html;
@@ -523,13 +535,25 @@ server {
     try_files $uri =404;
   }
 
-  # Also where every HTML 404 lands: `error_page 404 /index.html` at the foot
-  # of this server is an internal redirect to this URI, so the not-found
-  # document is served from here and not from @spa.
-  location = /index.html {
+  # Where every HTML 404 lands: the shell, with the original 404 status.
+  #
+  # It says `noindex` in a header as well. The shell's own meta robots is
+  # `index, follow` (it is the home page's head), so a 404 carried a directive
+  # contradicting its status code. Search Console read that as "Not found" for
+  # some URLs and as a page it could index for others. X-Robots-Tag is honoured
+  # by Google exactly as the meta tag is, and the meta cannot be changed per
+  # response here.
+  location @not_found {
     add_header Cache-Control "no-cache" always;
+    add_header X-Robots-Tag "noindex, follow" always;
     include /etc/nginx/snippets/security-headers.conf;
+    try_files /index.html =404;
   }
+
+  # The shell as a file is not a page. `/index.html` answered 200 with the home
+  # page's body, a second URL for `/` that the canonical had to argue away
+  # ("Alternate page with proper canonical" in Search Console).
+  location = /index.html { return 301 /; }
 
   #
   # A trailing slash on a real section is a typo, not a different page.
@@ -564,6 +588,6 @@ server {
     try_files $uri =404;
   }
 
-  error_page 404 /index.html;
+  error_page 404 @not_found;
 
 }

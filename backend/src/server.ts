@@ -67,7 +67,14 @@ ensureContentStore()
       list: async () =>
         (await couch.find<Collection>({ selector: { type: "collection" }, limit: 100 })).docs,
       save: async (c) => {
-        await couch.put(c._id!, { ...c, updatedAt: new Date().toISOString() });
+        /*
+         * `updatedAt` is left alone on purpose. It is what the sitemap publishes
+         * as <lastmod>, and a star count moving is not the page changing. This
+         * used to stamp "now" on every collection every cycle, so every project
+         * and area URL read as modified minutes ago, forever; Google learns that
+         * a site's lastmod is noise and then stops using it to schedule crawls.
+         */
+        await couch.put(c._id!, c);
       },
       // The site's own `v*` releases, for the activity feed's `site` events.
       siteReleases: {
