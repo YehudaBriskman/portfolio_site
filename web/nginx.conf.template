@@ -550,10 +550,19 @@ server {
     try_files /index.html =404;
   }
 
-  # The shell as a file is not a page. `/index.html` answered 200 with the home
-  # page's body, a second URL for `/` that the canonical had to argue away
-  # ("Alternate page with proper canonical" in Search Console).
-  location = /index.html { return 301 /; }
+  # The shell as a file, and it has to stay a 200.
+  #
+  # It looks like a duplicate of `/` and was once redirected there; that broke
+  # two things that read it by this exact address: the API fetches it as the
+  # page shell for every server-rendered page (backend/src/services/seo.ts,
+  # WEB_ORIGIN/index.html), where a redirect to `/` lands on a route the API
+  # itself renders, and the Deploy job reads build-sha off it to confirm a
+  # rollout (preprod rolled back on it, 2026-11-09). Its canonical already
+  # names `/`, which is what tells a crawler it is the same page.
+  location = /index.html {
+    add_header Cache-Control "no-cache" always;
+    include /etc/nginx/snippets/security-headers.conf;
+  }
 
   #
   # A trailing slash on a real section is a typo, not a different page.
