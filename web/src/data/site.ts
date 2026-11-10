@@ -32,9 +32,9 @@ export const contact = {
  */
 export const plate = {
   /**
-   * The owner's name, written once. It is not the plate's `h1` — that is
-   * `plateTitle` below — but the subject of its fact line, and the string
-   * every other place on the site that names him is checked against.
+   * The owner's name, written once. It is the plate's `h1` (`plateTitle`
+   * below takes it from here), and the string every other place on the site
+   * that names him is checked against.
    */
   name: "Yehuda Briskman",
   /**
@@ -60,42 +60,48 @@ export const plate = {
 };
 
 /*
- * What the plate's `h1` says: PORTFOLIO, set very large — the owner's pick
- * from issue #100, over EXPLORE MY PORTFOLIO and over the name `main` used
- * to set there.
+ * What the plate's `h1` says: the owner's name, set large (#347). It said
+ * PORTFOLIO from issue #100 until then.
  *
- * WHAT CHANGED BESIDES THE STRING
+ * WHAT CHANGED, AND WHAT IT COSTS
  * -------------------------------
- * The name left the `h1`, and the `h1` is the page's accessible name and its
- * strongest on-page signal. So the name is carried in the fact line instead —
- * the label schema's second slot, "what the thing is", which is exactly the
- * slot a category label leaves unanswered. Set in the accent face at 18px
- * rather than in display type at the 158px PORTFOLIO measures at 1440x900,
- * which is a real loss and is the cost of the trade rather than a thing to
- * hide.
+ * #100 traded the name for the category: PORTFOLIO at 158px in the `h1`, the
+ * name demoted to an 18px fact line, on the argument that a stranger learns
+ * what the site is before whose it is. #347 reverses that. The owner's
+ * decision: the name leads and "Portfolio" is secondary. The reasons are the
+ * ones #100 itself listed as its cost — the `h1` is the page's accessible
+ * name and its strongest on-page signal, and "Portfolio" names nothing a
+ * search or a screen reader can tell apart from any other portfolio.
  *
- * It is not the only place the name lives, and that is what makes the trade
- * survivable: `index.html` carries it in `<title>`, in `meta[name=author]`,
- * in `og:title`, in `og:site_name`, in `twitter:title` and twice in the
- * JSON-LD graph, as the Person's `name` and the WebSite's. None of those had
- * to move, because none of them ever said "portfolio" — they say who the
- * site is by.
+ * The cost, stated rather than hidden: the name cannot be as big as the word
+ * was. It is two words and fifteen characters — 10.90em in Audiowide at the
+ * display tracking, against PORTFOLIO's 6.41em — so at the one-line widths
+ * the display size drops from 158px to 92px at 1440x900. Below 700px it does
+ * the other thing: it breaks by word onto two lines (BRISKMAN, the longer
+ * word, is 5.91em), and each line is a little larger than PORTFOLIO was.
+ * The rungs and their arithmetic are in `Hero.module.css`; the `.composition`
+ * height at the five measured sizes is in the PR for #347.
  *
- * `name`: nine characters, one word, 6.41em in Audiowide at the display
- * tracking — measured in the DOM, see the rung in `Hero.module.css`. One word
- * cannot break, so it is one line at every width the site has, which is most
- * of what makes it read as very large. Cased here and uppercased by the plate
- * scale, so the accessible name a screen reader announces is a word rather
- * than a shout.
+ * "Portfolio" did not leave the page. It is the first word of the fact line,
+ * the slot the label schema reserves for "what the thing is", which is what
+ * the word always was. The wording after it is unchanged.
  *
- * `fact`: the name and the field it works in, with the name first. An em dash
- * and not a full stop, because this is one statement — who, then what —
- * rather than two sentences in a slot the schema describes as "a sentence".
- * Assembled from `plate.name`, so the name is written in this file once.
+ * `name`: `plate.name`, so the name is still written in this file once. Cased
+ * here and uppercased by the plate scale, so a screen reader announces a name
+ * rather than a shout. On /he it stays the Latin spelling in the Latin
+ * display face, as the brand word did; the Hebrew spelling (`NAME_HE`) still
+ * leads the Hebrew `<title>` and is in the JSON-LD, but no longer sits in the
+ * Hebrew fact line, which no longer names him — `withHebrewName` is a no-op
+ * on it and applies again if the copy is edited to name him.
+ *
+ * Content store: the hero's title and fact are seeded once (see
+ * `heroHebrew`), so a running site keeps its stored "Portfolio" title until
+ * it is changed in Admin > Site copy. This file is the seed, not the live
+ * value.
  */
 export const plateTitle = {
-  name: "Portfolio",
-  fact: `${plate.name} — full-stack, mostly frontend`,
+  name: plate.name,
+  fact: "Portfolio — full-stack, mostly frontend",
 } as const;
 
 /*
@@ -148,7 +154,7 @@ export const heroPhrases = [
  * site these are entered in Admin > Site copy, under each field's Hebrew.
  *
  * Left out on purpose, so they stay English and are marked as such:
- * "Portfolio" (the display word is the brand, set in the Latin face on both
+ * "Portfolio" (the brand word, now the first word of the fact line, kept Latin in both
  * languages), and the mottos "Build boldly" and "Keep improving", which have
  * no Hebrew the owner has approved.
  */
@@ -160,7 +166,7 @@ export const heroHebrew: {
   aboutHeading: string;
 } = {
   where: "ישראל",
-  fact: `${plate.name} — פול־סטאק, עם דגש על פרונטאנד`,
+  fact: "Portfolio — פול־סטאק, עם דגש על פרונטאנד",
   phrases: { Technology: "טכנולוגיה", "Product builder": "בונה מוצרים", "Applied AI": "בינה מלאכותית יישומית" },
   replyWithin: "בדרך כלל תוך יום",
   aboutHeading: "איך אני עובד",

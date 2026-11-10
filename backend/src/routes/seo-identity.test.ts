@@ -124,10 +124,10 @@ describe("the Hebrew name (#308)", () => {
     expect(titleOf(en.text)).toMatch(/ · Yehuda Briskman$/);
   });
 
-  it("is on the Hebrew home page beside the Latin name, as the app shows it", async () => {
+  it("leads the Hebrew home page as the Latin h1, with Portfolio in the fact line (#347)", async () => {
     const res = await request(createApp()).get("/api/seo/render/he");
-    expect(body(res.text)).toContain("Yehuda Briskman (יהודה בריסקמן) — ");
-    expect(body(res.text)).toMatch(/<h1[^>]*>(<span[^>]*>)?Portfolio/);
+    expect(body(res.text)).toMatch(/<h1[^>]*>(<span[^>]*>)?Yehuda Briskman/);
+    expect(body(res.text)).toContain("Portfolio — ");
     const en = await request(createApp()).get("/api/seo/render/home");
     expect(body(en.text)).not.toContain("יהודה בריסקמן");
   });

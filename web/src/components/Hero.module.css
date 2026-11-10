@@ -423,24 +423,22 @@
 }
 
 /*
- * The title's own rung — issue #100, PORTFOLIO.
+ * The title's own rung — issue #100 set it for PORTFOLIO, issue #347 re-derived
+ * it for the owner's name.
  *
  * WHY THESE ARE HERE AND NOT IN THE TYPE RAMP
  * -------------------------------------------
- * Same reason the rung below 700px is here, and the note above it still
- * stands: the step belongs in `text-hero` in `tailwind.config.ts`, and until
- * that ramp grows a step this file is where the plate's own size is stated.
- * There is a second reason now. `text-hero` is also what the ask plate's
- * heading is set at — `Contact.tsx` renders `scale="plate"` — so moving the
- * ceiling in the ramp would resize a section this change has no business
- * touching. A rule scoped to the hero's own composition cannot.
+ * Same reason the rung below 700px is here: the step belongs in `text-hero`
+ * in `tailwind.config.ts`, and until that ramp grows a step this file is
+ * where the plate's own size is stated. `text-hero` is also what the ask
+ * plate's heading is set at (`Contact.tsx` renders `scale="plate"`), so
+ * moving the ceiling in the ramp would resize a section this change has no
+ * business touching. A rule scoped to the hero's own composition cannot.
  *
- * HOW THE SIZE WAS DERIVED
- * ------------------------------
+ * THE MEASUREMENTS
+ * ----------------
  * Re-measured in the DOM of the built page, both display faces at their own
- * shipped tracking, by the method in `scripts/fontwork/strings.mjs`. The two
- * values the ramp was cut for reproduce exactly, which is what makes the new
- * ones comparable:
+ * shipped tracking, by the method in `scripts/fontwork/strings.mjs`:
  *
  *                          BRISKMAN  YEHUDA BRISKMAN  PORTFOLIO  EXPLORE MY  EXPLORE MY PORTFOLIO
  *   Audiowide -0.030em      5.91em       10.90em        6.41em     7.29em          13.98em
@@ -448,97 +446,86 @@
  *   Rubik Glitch -0.030em   5.35em        9.67em        5.69em     6.31em          12.13em
  *   Rubik Glitch -0.020em   5.43em        9.82em        5.78em     6.41em          12.33em
  *
- * The Rubik Glitch rows are history: since #248 a Hebrew page sets these
- * Latin strings in Audiowide too (Hebrew letters alone fall to Rubik), so
- * the Audiowide rows bind in both languages and one number serves both.
+ * Since #248 a Hebrew page sets these Latin strings in Audiowide too (Hebrew
+ * letters alone fall to Rubik), so the Audiowide rows bind in both languages
+ * and one number serves both. The title is the owner's name and stays Latin
+ * on /he.
  *
  * The budget. The hero sets inside `.wrap`, which is `max-width: 72rem` with a
- * gutter of `clamp(1.25rem, 3vw, 2.5rem)` — so 1072px of content at any
- * window from 1232px up, and `vw - 2 * gutter` below that. At 390px, which is
- * where the gutter is at its 20px floor, it is 350px.
+ * gutter of `clamp(1.25rem, 3vw, 2.5rem)` — 1072px of content at any window
+ * from 1232px up, and `vw - 2 * gutter` below that.
  *
- * PORTFOLIO — one word, so it cannot break
- * ----------------------------------------
- * `splitName` makes every word one inline-block, and this string is one word,
- * so it is one line at every width the site has. That is most of what makes
- * it read as very large: the name it replaces sets as two lines at 1440 and
- * at 390 both.
+ * FROM 700px UP: ONE LINE
+ * -----------------------
+ * The name is two words and 10.90em, where PORTFOLIO was one word at 6.41em,
+ * so the same column holds a much smaller size. The largest size that fits
+ * the 1072px column on one line is 98px (1072 / 10.90). The ceiling is
+ * 5.75rem = 92px, which is 1003px of ink: 93.5% of the column and 34px of air
+ * a side — the share PORTFOLIO's 10rem ceiling left (95%), a little looser
+ * because a two-word line has a word space in it that reads as air. Below the
+ * ceiling `8vw` binds and is a constant share of the window: the gutter is
+ * `3vw` a side, so the column is about 94vw and the line is 8vw x 10.90 =
+ * 87vw of it, 93% at every width from 700px to the ceiling.
  *
- * At 6.41em the overflow point in the 1072px column is 167px, or 10.45rem. So
- * the ceiling is 10rem, which is the largest round rung with air at both
- * sides: 1026px of ink and 23px of margin either way, from 1455px up where
- * the rem term is the one that binds. At 1440x900 itself `11vw` is still the
- * smallest of the three, the name sets at 158.4px, and the line measures
- * 1017px in the DOM against the 1072px column — 95% of it, which is a long
- * way past where the ramp's own note says a headline should sit and exactly
- * what "very large" was asked for. Dropping this back to 9rem returns the
- * line to 923px and 86% if the owner wants the air back; it is one number.
- * `21vh` still binds below a 755px-tall window, so the cap that keeps the
- * name from eating a short screen is untouched.
+ * `14vh` replaces `21vh`. That cap keeps the title from eating a short
+ * window; it was 21vh for a 6.41em word and is 14vh for a 10.90em line,
+ * which is the same share of the height (the line is 1.7x as long, so it
+ * has to be 1.5x smaller to cost the same). It binds below a 657px-tall
+ * window.
  *
- * At the phone rung the arithmetic is the other way round. `9.5vw` was derived
- * for a 15-character name that had to be allowed to break; 9 characters that
- * cannot break have room to spare — 237px of the 348px column measured at
- * 390px, which is a title with a quarter of the line empty. 348px / 6.50em
- * (the head tracking this rung takes) is 53.5px, so `12.5vw` sets 48.8px at
- * 390px and the line measures 317px in the DOM, 91% of the column. The floor
- * is 2.6rem rather than something tidier because 320px is the narrowest
- * screen this has to survive: 278px of content there, measured, and
- * 2.6rem x 6.50em is 270px. Those numbers were taken with a 16px root and no
- * scrollbar, and they are wrong on both counts below 700px: the column there
- * is 262.5px at 320 and 332.5px at 390, the word is 6.69em in Hebrew, and
- * the phone rung is now bounded by the column itself (`14.9cqi`, below).
- *
- * EXPLORE MY PORTFOLIO, the other treatment, was built and rendered beside
- * this one and not picked; its rung (8.25rem, `10.8vw` on a phone) went with
- * it. The measurements in the table above are kept because they are what the
- * choice was made from.
- *
- * `.composition .plate h1` and not `.plate h1`: the same specificity the
- * `[data-title]` hook these rules used to hang on had, so they still beat the
- * phone rung above without depending on source order.
+ * What it costs: the display size drops from 158px to 92px at 1440x900 —
+ * the name is the `h1` and the biggest thing on the screen, but it is no
+ * longer a 95%-wide slab, and the line is 57px shorter (the hero is
+ * shorter by that much, which the corners' height budget in
+ * `HeroCorners.module.css` takes for free). Wider-than-this was the
+ * alternative — two lines by word, BRISKMAN at 158px — and it was not
+ * taken: it adds a second 145px line to a screen whose first view already
+ * runs past the window at 1024x768.
  */
 
 .composition .plate h1 {
-  font-size: min(11vw, 21vh, 10rem);
+  font-size: min(8vw, 14vh, 5.75rem);
 }
 
 @media (max-width: 699px) {
   /*
-   * The head tracking rather than the display tracking, for the reason the
-   * rung above states: `--track-display` is a correction for type above
-   * roughly 56px, and applied to 49px it stops correcting and starts closing
-   * the counters. The widths above are quoted at both trackings so this
-   * choice can be checked rather than taken on trust.
-   */
-  /*
-   * Bounded by the column itself, not by the window (2026-11-04).
+   * BELOW 700px: TWO LINES, BROKEN BY WORD (#347)
+   * ---------------------------------------------
+   * At the one-line rung's 8vw a phone would set the name at 31px — the
+   * whole 10.90em line has to fit 348px — which is smaller than the body of
+   * most headings. So it breaks instead: `splitName` makes each word one
+   * inline-block, the break falls at the space between them, and a word
+   * never splits. YEHUDA is the shorter word (it is the first line, left
+   * ragged), BRISKMAN the longer, 5.99em at the head tracking.
    *
-   * The floor used to be capped at 13.8vw (#99: at Larger text the 2.6rem
-   * floor was 55px on a 320px screen and "PORTFOLIO" ran 65px past it), on
-   * the arithmetic above that a 320px screen has 278px of content. It has
-   * less: the root is 17px below 700px (`index.css`), so the gutter is
-   * 21.25px, and a desktop browser's scrollbar takes 15px more — 262.5px of
-   * column, measured, against a word that measured 287.6px in English and
-   * 295.5px in Hebrew. Any bound written in `vw` is a guess at the gutter.
+   * The head tracking rather than the display tracking: `--track-display` is
+   * a correction for type above roughly 56px, and applied to 55px it stops
+   * correcting and starts closing the counters.
    *
-   * `cqi` is the composition's own inline size (it is the query container),
-   * so this is a bound on the thing that actually overflows. The word
-   * measures 6.694em in Hebrew, where `--track-head` is 0, and 6.51em in
-   * English at -0.020em; `100cqi / 6.694` is 14.94cqi, so 14.9cqi keeps the
-   * wider of the two inside the column at every width and every text size.
-   * It only binds where the word would not fit — at 390px with no scrollbar
-   * `12.5vw` still sets the size, as it did — so the title only gets smaller
-   * on the windows where it was clipped. Above 700px nothing binds: the
-   * desktop rule's arithmetic has 2px of air at the 10rem ceiling, in
-   * Hebrew, and `11vw` below it is a far smaller share of the column.
+   * 14vw sets 54.6px at 390px, so BRISKMAN is 327px of a 347px column, 94%,
+   * and the two lines are 100px tall at `line-height: 0.92` against the 45px
+   * PORTFOLIO took: a 55px cost on the phone's first screen, paid for by the
+   * name being the largest thing on it. The cap is 4rem for the wide end
+   * of the range, so a 690px window does not jump to 98px.
+   *
+   * Bounded by the column itself, not by the window (2026-11-04, kept).
+   * The root is 17px below 700px (`index.css`), so the gutter is 21.25px, and
+   * a desktop browser's scrollbar takes 15px more: any bound written in `vw`
+   * is a guess at the gutter. `cqi` is the composition's own inline size (it
+   * is the query container), so this bounds the thing that actually
+   * overflows. BRISKMAN is 5.99em in English at -0.020em and is wider in
+   * Hebrew, where `--track-head` is 0 (+0.02em x 8 letters = about 6.15em);
+   * `100cqi / 6.2` is 16.1cqi, so 15.5cqi keeps the wider of the two inside
+   * the column at every width and every text size, with the same margin
+   * the 14vw rung leaves. It only binds where 14vw would not fit: the narrow
+   * windows, and Larger text.
    *
    * The first declaration is the fallback for a browser without container
    * units, which drops the second whole.
    */
   .composition .plate h1 {
-    font-size: clamp(min(2.6rem, 13.8vw), 12.5vw, 4.6rem);
-    font-size: min(clamp(2.6rem, 12.5vw, 4.6rem), 14.9cqi);
+    font-size: clamp(min(2.4rem, 12.5vw), 14vw, 4rem);
+    font-size: min(clamp(2.4rem, 14vw, 4rem), 15.5cqi);
     letter-spacing: var(--track-head);
     line-height: 0.92;
   }

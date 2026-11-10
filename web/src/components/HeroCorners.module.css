@@ -59,7 +59,10 @@
  * the box grows and the hero becomes taller than the window. Measured at
  * 1440x900 on the built page, `#hero` is 912px tall with the PORTFOLIO title,
  * 1003px with EXPLORE MY PORTFOLIO and 1024px with the name it ships today —
- * the figure's box is 638px at every one of them, which is exactly the height
+ * (#347: with the name as the title, 900px at 1440x900 — the one-line name is
+ * shorter than the three titles measured here, and on the phone the two-line
+ * name leaves the composition at 844px, the window — see data/site.ts.)
+ * The figure's box is 638px at every one of them, which is exactly the height
  * a 416px-wide copy of a 551x845 photograph wants.
  *
  * So `inset-block-end: 1.25rem` put these blocks 20px above the bottom of the

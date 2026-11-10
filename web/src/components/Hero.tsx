@@ -35,6 +35,11 @@ import {
  * exception granted to one section is the moment the page becomes a grid of
  * unrelated things again.
  *
+ * UPDATE, #347: THE NAME LEADS AGAIN. The `h1` is `plate.name` once more and
+ * "Portfolio" is the first word of the fact line; the section below records
+ * the #100 decision, and `data/site.ts` records its reversal and the cost.
+ * The "WHERE THE NAME WENT" section is history: the name went back.
+ *
  * WHAT ISSUE #100 CHANGES ABOUT THAT SENTENCE, AND WHAT IT DOES NOT
  * -----------------------------------------------------------------
  * The `h1` says PORTFOLIO, set very large. The owner was offered that and
