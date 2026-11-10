@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ListTree, Pencil } from "lucide-react";
+import { heldHeight, useRememberHeight } from "@/lib/heldHeight";
 import PageShell from "@/components/PageShell";
 import Ridge from "@/components/Ridge";
 import Byline, { FeedLink } from "@/components/notes/Byline";
@@ -73,6 +74,8 @@ export default function BlogPost() {
     sheetOpener.current = from;
     sheet.current?.showModal?.();
   };
+
+  useRememberHeight(`post:${slug}`, state === "ok");
 
   const retry = useCallback(() => setAttempt((n) => n + 1), []);
 
@@ -173,7 +176,7 @@ export default function BlogPost() {
           than a note, so the footer used to sit under it and be shoved down the
           moment the note arrived (CLS 0.78 at 390). A screen of reserved height
           keeps the footer out of view until there is a note above it. */}
-      <div className={`section-y px-gutter ${state === "ok" || state === "loading" ? reader.layout : "mx-auto w-full max-w-[46rem]"} ${state === "loading" ? "min-h-[100svh]" : ""}`}>
+      <div className={`section-y px-gutter ${state === "ok" || state === "loading" ? reader.layout : "mx-auto w-full max-w-[46rem]"} `} style={state === "loading" ? { minHeight: heldHeight(`post:${slug}`) } : undefined}>
       <article data-crest data-hue="150 82 64" className="min-w-0" style={prefsVars(prefs) as React.CSSProperties}>
         {state === "loading" && (
           /* Shaped like the real header rather than announced as a word, so the

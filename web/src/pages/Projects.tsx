@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useLocation, useSearchParams } from "react-router-dom";
 import { BookMarked } from "lucide-react";
+import { heldHeight, useRememberHeight } from "@/lib/heldHeight";
 import PageShell from "@/components/PageShell";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import Timeline from "@/components/dashboard/Timeline";
@@ -54,6 +55,7 @@ import { activity, type ActivityEvent, type Area } from "@/services/activity";
 export default function Projects() {
   const { items, state } = useProjects();
   const [params] = useSearchParams();
+  useRememberHeight("projects", state !== "loading");
   const location = useLocation();
   const [t, lang] = useWorkWords();
   const [now] = useState(() => Date.now());
@@ -246,7 +248,7 @@ export default function Projects() {
              below the head by a few hundred pixels (CLS 0.21 at 390). A block
              a screen tall holds the place instead, and keeps the footer out of
              view until the list has arrived. */
-          <div className={styles.listLoading} aria-busy="true">
+          <div className={styles.listLoading} aria-busy="true" style={{ minHeight: heldHeight("projects") }}>
             <ListSkeleton lines={6} />
           </div>
         ) : shown.length === 0 ? (
