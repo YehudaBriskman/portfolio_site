@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ArrowUpRight, BookMarked, BookOpen, FileText, FolderGit2, NotebookPen, Rss, Tag } from "lucide-react";
+import { heldHeight, useRememberHeight } from "@/lib/heldHeight";
 import PageShell from "@/components/PageShell";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import { OwnerCard, Row, RowList, ViewNav } from "@/components/dashboard/Parts";
@@ -116,12 +117,18 @@ export default function Project() {
   const idBase = useId();
   const [now] = useState(() => Date.now());
 
-  const entry = items.find((e) => e.collection.slug === project) ?? null;
+  /* A seed is only a fallback for a failed fetch. Its links, order and facts
+     differ from the published collection's, so painting it first and swapping
+     moved the head, the tabbed card and the side list on arrival (CLS 0.15).
+     Until the list has answered, a seed-backed slug is "loading", not "ok". */
+  const found = items.find((e) => e.collection.slug === project) ?? null;
+  const entry = found && (found.live || listState !== "loading") ? found : null;
   const others = relatedTo(items, project);
   const state = entry ? "ok" : listState === "loading" ? "loading" : "missing";
   const location = useLocation();
   const navigate = useNavigate();
   const requested = readTab(params, location.hash);
+  useRememberHeight(`project:${project}`, state === "ok");
 
   /* Another project's notes are cleared in the render that changes project,
      not an effect later; a retry clears the releases the same way. */
@@ -432,7 +439,7 @@ export default function Project() {
         {/* One H1 in every state, including this one — the heading order must
             not depend on how far a fetch got. */}
         {state === "loading" && (
-          <div className={styles.loading} aria-busy="true">
+          <div className={styles.loading} aria-busy="true" style={{ minHeight: heldHeight(`project:${project}`) }}>
             <h1 className="sr-only">{t.loadingProject}</h1>
             <SkeletonGate className={styles.headSkeleton}>
               <SkeletonLines lines={1} tail="40%" />

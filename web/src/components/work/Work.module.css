@@ -57,6 +57,12 @@
   list-style: none;
 }
 
+/* Holds the list's place while the collections load: a screen tall, so the
+   footer is below the fold until the real list replaces it. */
+.listLoading {
+  min-height: 100svh;
+}
+
 .gridWrap {
   container-type: inline-size;
 }

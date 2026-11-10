@@ -440,6 +440,8 @@ a.listRow:hover .listTitle {
 /* ─────────────────────────────────────────────────────────────── loading */
 
 .loading {
+  /* A screen tall, so the footer stays below the fold until the page arrives. */
+  min-height: 100svh;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
