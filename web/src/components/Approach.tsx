@@ -4,7 +4,7 @@ import LivingLine from "@/components/motion/LivingLine";
 import ApproachFigure from "@/components/ApproachFigures";
 import { lineAttr } from "@/components/motion/lineMoves";
 import { approachLine } from "@/data/site";
-import { useContent } from "@/content/store";
+import { contentView, useContent } from "@/content/store";
 import { useHomeWords } from "@/i18n/pages";
 import styles from "@/components/Approach.module.css";
 
@@ -68,6 +68,11 @@ import styles from "@/components/Approach.module.css";
 export default function Approach() {
   /* The words from the content store (#163); the line's moves stay code. */
   const { about } = useContent().site;
+  /* The drawings are keyed by the English claim (`ApproachFigures.tsx`), but
+     `about` is in the reader's language, so in Hebrew no claim matched and the
+     rail stood empty. The English view of the same stored copy is the key;
+     reading it after `useContent` keeps it current when the store changes. */
+  const englishClaims = contentView().site.about.principles.map((p) => p.claim);
   const w = useHomeWords();
   const last = about.intro.length;
   /* Memoised: the line re-measures when its start changes identity. */
@@ -110,10 +115,10 @@ export default function Approach() {
           The figure is keyed by the claim (`ApproachFigures.tsx`), and a
           claim nobody drew a figure for gets none rather than someone else's.
         */}
-        {about.principles.map((p) => (
+        {about.principles.map((p, i) => (
           <div key={p.claim} className={styles.principle} data-line-hold="">
             <div className={styles.ring} data-line={lineAttr(p.line ?? approachLine.principle)}>
-              <ApproachFigure claim={p.claim} />
+              <ApproachFigure claim={englishClaims[i] ?? p.claim} />
             </div>
             <div className={styles.text}>
               <h3 className={styles.claim}>{p.claim}</h3>

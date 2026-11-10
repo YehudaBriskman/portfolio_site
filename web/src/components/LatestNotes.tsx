@@ -8,6 +8,7 @@ import type { LabelField } from "@/components/gallery/objectLabel";
 import InkRule from "@/components/motion/InkRule";
 import AuroraStrand from "@/components/motion/AuroraStrand";
 import Shot from "@/components/projects/Shot";
+import NoteGlyph from "@/components/notes/NoteGlyph";
 import type { Project } from "@/data/projects";
 import { useContent } from "@/content/store";
 import { blog, type PostSummary } from "@/services/blog";
@@ -109,6 +110,24 @@ const COVER_SIZES = "(min-width: 700px) 640px, 92vw";
  */
 const titlesOf = (projects: readonly Project[]) => new Map(projects.map((p) => [p.slug, p.title]));
 
+/** The same table's pictures, for a note with no cover of its own. */
+const imagesOf = (projects: readonly Project[]) =>
+  new Map(projects.flatMap((p) => (p.image ? [[p.slug, p.image] as const] : [])));
+
+/*
+ * A note with no cover used to stand on the shelf as a bare dark card: the
+ * only ones with nothing in them, so a shelf of mixed notes read as unfinished.
+ * Now every card has a picture. Its own cover first, then its area's picture,
+ * then a generated skyline on a tint picked by the area, so the notes of one
+ * area share a colour and different areas read apart.
+ */
+const TINTS = 5;
+function tintOf(seed: string): number {
+  let h = 0;
+  for (const ch of seed) h = ((h << 5) - h + (ch.codePointAt(0) ?? 0)) | 0;
+  return Math.abs(h) % TINTS;
+}
+
 /** The date, short enough to survive being cropped. */
 function monthAndYear(iso: string | null, lang: Lang): string {
   return dateIn(lang, iso, { month: "short", year: "numeric" });
@@ -172,6 +191,7 @@ export default function LatestNotes() {
   const posts = (data ?? []).slice(0, SHOWN);
   const { projects } = useContent();
   const projectTitles = useMemo(() => titlesOf(projects), [projects]);
+  const projectImages = useMemo(() => imagesOf(projects), [projects]);
   const w = useHomeWords();
 
   /* The run's keyboard answer: scroll the document — the real scroll
@@ -293,22 +313,27 @@ export default function LatestNotes() {
                 <ul className={styles.track} aria-label={w.latestNotes} onFocus={onFocus}>
                   {posts.map((post, i) => {
                     const fact = factLine(post);
+                    const picture = post.coverImage ?? projectImages.get(post.collection) ?? null;
                     return (
                     <li key={post.slug} data-shelf-i={i} className={styles.slot}>
                       <Link
                         to={`/blog/${post.slug}`}
                         className={`on-panel ${dark.dark} ${styles.card}`}
-                        data-cover={post.coverImage ? "" : undefined}
+                        data-cover=""
                         /* Only a card with something to say grows to say it. */
                         data-desc={fact ? "" : undefined}
                       >
-                        {post.coverImage && (
-                          /* Decorative: the label beside it names the note,
-                             and an alt here would be read before the title. */
-                          <div className={styles.cover}>
-                            <Shot src={post.coverImage} alt="" sizes={COVER_SIZES} />
-                          </div>
-                        )}
+                        <div className={styles.cover}>
+                          {picture ? (
+                            /* Decorative: the label beside it names the note,
+                               and an alt here would be read before the title. */
+                            <Shot src={picture} alt="" sizes={COVER_SIZES} />
+                          ) : (
+                            <div className={styles.tint} data-tint={tintOf(post.collection)}>
+                              <NoteGlyph seed={post.slug} />
+                            </div>
+                          )}
+                        </div>
                         <div className={styles.plinth}>
                           {/* `inline`: a label on a travelling shelf is half
                               visible for longer than it is whole, and at this
