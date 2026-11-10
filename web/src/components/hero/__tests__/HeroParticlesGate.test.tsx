@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, render, screen } from "@testing-library/react";
-import Hero from "@/components/Hero";
+import Hero, { PARTICLE_WORD_ENABLED } from "@/components/Hero";
 import { plateTitle } from "@/data/site";
 
 /*
@@ -61,7 +61,7 @@ afterEach(() => {
 const word = (c: HTMLElement) => c.querySelector<HTMLElement>("canvas[data-particle-word]");
 
 describe("the hero's desktop-only particle word", () => {
-  it("mount on a desktop, and the h1 stays in the document with the same text", async () => {
+  it.skipIf(!PARTICLE_WORD_ENABLED)("mount on a desktop, and the h1 stays in the document with the same text", async () => {
     setEnv(DESKTOP);
     const { container } = render(<Hero />);
     await act(async () => {});
@@ -96,7 +96,7 @@ describe("the hero's desktop-only particle word", () => {
     expect(word(container)).toBeNull();
   });
 
-  it("render the static word under the site's Pause, and come back on Play", async () => {
+  it.skipIf(!PARTICLE_WORD_ENABLED)("render the static word under the site's Pause, and come back on Play", async () => {
     setEnv(DESKTOP);
     document.body.classList.add("motion-paused");
     const { container } = render(<Hero />);
@@ -109,3 +109,12 @@ describe("the hero's desktop-only particle word", () => {
   });
 });
 
+
+describe("while the particle word is parked", () => {
+  it.skipIf(PARTICLE_WORD_ENABLED)("the hero never mounts it, on any screen", () => {
+    Object.defineProperty(window, "innerWidth", { value: 1440, configurable: true });
+    const { container } = render(<Hero />);
+    expect(container.querySelector("[data-particle-word]")).toBeNull();
+    expect(container.querySelector("h1")?.textContent).toContain(plateTitle.name.split(" ")[0]);
+  });
+});

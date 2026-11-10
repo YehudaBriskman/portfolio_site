@@ -176,6 +176,15 @@ import {
  * is not worth the space. Two fields also fit one line at every phone width,
  * so the forced break the three-field line needed (#112) went with it.
  */
+/*
+ * The particle word is parked, not removed (the owner, 2026-11-10: "way more
+ * enhancement before deploying, we'll stop for now"). The components, the
+ * gate and their tests stay; the hero just does not use them, so it is the
+ * static hero (the h1, the photograph under the type) with the new colours,
+ * orbs and display panel around it. Turn this on to bring the word back.
+ */
+export const PARTICLE_WORD_ENABLED = false;
+
 const plateFields = (
   plate: { where: string; shippingSince: number },
   since: (year: number) => string,
@@ -240,7 +249,8 @@ export default function Hero({ hold = true }: { hold?: boolean }) {
     forced colours, print, or without a canvas - and then neither is mounted
     and this is the static hero. See `hero/ParticleWord.tsx`.
   */
-  const particles = useParticleGate(plateTitle.name);
+  const gate = useParticleGate(plateTitle.name);
+  const particles = PARTICLE_WORD_ENABLED && gate;
   /* `?particles=settled` is the verification path: no entrance, assembled. */
   const settledOnly = typeof window !== "undefined" && window.location.search.includes("particles=settled");
   const pw: PwArrival = settledOnly ? "now" : arrives === "held" ? "wait" : arrives === "play" ? "play" : "now";
