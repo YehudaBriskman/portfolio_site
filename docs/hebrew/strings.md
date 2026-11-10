@@ -278,16 +278,16 @@ site these are entered once in Admin > Site copy, under each field's Hebrew.
 | `accessibility-statement.updated(…)` | Statement last updated 3. | ההצהרה עודכנה לאחרונה ב־3. |  |  |
 | `mcp.eyebrow` | Developers | למפתחים |  |  |
 | `mcp.title` | MCP server | שרת MCP |  |  |
-| `mcp.intro` | This site speaks the Model Context Protocol. Point Claude, or any MCP client, at it and it can read the posts, the project areas and the channel log. There is nothing to download and no key to copy: the client signs in through the browser. | האתר תומך ב־Model Context Protocol (MCP). חברו אליו את Claude, או כל לקוח MCP אחר, והוא יוכל לקרוא את הרשימות, את תחומי הפרויקטים ואת יומן הפעילות. אין מה להוריד ואין מפתח להעתיק: הלקוח מתחבר דרך הדפדפן. |  |  |
+| `mcp.intro` | This site speaks the Model Context Protocol. Point Claude, or any MCP client, at it and it can read the posts, the project areas and the channel log. There is nothing to download and no key to copy, and reading needs no account. | האתר תומך ב־Model Context Protocol (MCP). חברו אליו את Claude, או כל לקוח MCP אחר, והוא יוכל לקרוא את הרשימות, את תחומי הפרויקטים ואת יומן הפעילות. אין מה להוריד ואין מפתח להעתיק, והקריאה לא דורשת חשבון. |  |  |
 | `mcp.checking` | Checking the server… | בודק את השרת… |  |  |
 | `mcp.status` | Status: | מצב: |  |  |
 | `mcp.live` | live | פעיל |  |  |
 | `mcp.off` | Status: not switched on yet. The commands below will work once it is. | מצב: עדיין לא הופעל. הפקודות שלמטה יעבדו ברגע שיופעל. |  |  |
-| `mcp.connect` | Connect | חיבור |  |  |
+| `mcp.connect` | Connect and read | חיבור וקריאה |  |  |
+| `mcp.connectIntro` | Anyone can connect. This address needs no account, no sign-in and no key, and it carries only what the public site already shows: published posts, areas, tags and the channel log. Nothing here can write. | כל אחד יכול להתחבר. הכתובת הזאת לא דורשת חשבון, התחברות או מפתח, והיא מציעה רק את מה שהאתר הציבורי כבר מציג: רשימות שפורסמו, תחומים, תגיות ויומן הפעילות. אי אפשר לכתוב דרכה דבר. |  |  |
 | `mcp.desktop` | claude.ai and Claude Desktop: Settings → Connectors → Add custom connector | ב־claude.ai וב־Claude Desktop: Settings → Connectors → Add custom connector |  | Claude's menu names kept in English, isolated so the path reads left to right. |
-| `mcp.signIn` | The first call opens a browser window. Anyone can connect: the public tools answer without an account. Signing in with GitHub unlocks the owner’s tools, and only for the site’s owner; any other account is told so and given nothing. | הקריאה הראשונה פותחת חלון דפדפן. כל אחד יכול להתחבר: הכלים הציבוריים עונים בלי חשבון. התחברות עם GitHub פותחת את הכלים של בעל האתר, ורק לבעל האתר; כל חשבון אחר מקבל הודעה על כך ולא מקבל דבר. |  |  |
-| `mcp.skipSignIn` | To skip sign-in entirely, use the public endpoint, which carries only the public tools: | כדי לוותר על ההתחברות לגמרי, השתמשו בנקודת הקצה הציבורית, שמציעה רק את הכלים הציבוריים: |  |  |
-| `mcp.publicOnly` | Public tools only | כלים ציבוריים בלבד |  |  |
+| `mcp.ownerHead` | Owner access | גישת בעל האתר |  |  |
+| `mcp.ownerIntro` | The site’s owner has a second address. It asks for a GitHub sign-in, which opens a browser window; only the owner’s account is accepted, and any other account is told so and given nothing. In return it unlocks drafts, the audit log, media and translations, and, if the owner allows it, writes. | לבעל האתר יש כתובת שנייה. היא מבקשת התחברות עם GitHub, שפותחת חלון דפדפן; רק החשבון של בעל האתר מתקבל, וכל חשבון אחר מקבל הודעה על כך ולא מקבל דבר. בתמורה היא פותחת טיוטות, יומן ביקורת, מדיה ותרגומים, ואם בעל האתר מאשר, גם כתיבה. |  |  |
 | `mcp.tools` | Tools | כלים |  |  |
 | `mcp.publicHead` | Public, no sign-in | ציבוריים, בלי התחברות |  |  |
 | `mcp.readHead` | Owner, read access (mcp:read) | בעל האתר, גישת קריאה (mcp:read) |  |  |
@@ -301,7 +301,7 @@ site these are entered once in Admin > Site copy, under each field's Hebrew.
 | `mcp.copied` | Copied | הועתק |  |  |
 | `mcp.copiedSay` | Copied to the clipboard | הועתק ללוח |  |  |
 | `mcp.copyLabel(…)` | Copy: 3 | העתקה: 3 |  |  |
-| `mcp.how` | How sign-in works | איך עובדת ההתחברות |  |  |
+| `mcp.how` | How the owner’s sign-in works | איך עובדת ההתחברות של בעל האתר |  |  |
 | `mcp.howBefore` | Standard OAuth 2.1 with PKCE. The client discovers everything from | OAuth 2.1 סטנדרטי עם PKCE. הלקוח מגלה את כל מה שהוא צריך מ־ |  |  |
 | `mcp.howAfter` | and registers itself. | ונרשם בעצמו. |  |  |
 | `mcp.howItems.0` | Identity comes from GitHub. The site never sees a password and keeps no GitHub token. | הזהות מגיעה מ־GitHub. האתר אף פעם לא רואה סיסמה ולא שומר אסימון של GitHub. |  |  |
@@ -771,7 +771,8 @@ site these are entered once in Admin > Site copy, under each field's Hebrew.
 | `seo.mcp` | MCP server | שרת MCP |  |  |
 | `seo.mcpCode` | Claude Code | Claude Code |  |  |
 | `seo.mcpConnector` | claude.ai and Claude Desktop: add a custom connector with the URL | claude.ai ו־Claude Desktop: הוספת מחבר מותאם אישית עם הכתובת |  |  |
-| `seo.mcpPublic` | Public tools only, no sign-in: | כלים ציבוריים בלבד, בלי התחברות: |  |  |
+| `seo.mcpPublic` | Anyone can connect and read, with no account and no sign-in: | כל אחד יכול להתחבר ולקרוא, בלי חשבון ובלי התחברות: |  |  |
+| `seo.mcpOwner` | Owner access, with a GitHub sign-in: | גישת בעל האתר, עם התחברות באמצעות GitHub: |  |  |
 | `seo.log` | Channel log | יומן פעילות |  |  |
 | `seo.logBody` | Everything that happens on the site, newest first. | כל מה שקורה באתר, מהחדשה לישנה. |  |  |
 | `seo.notes` | Notes | רשימות |  |  |

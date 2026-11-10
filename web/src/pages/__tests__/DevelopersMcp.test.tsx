@@ -35,6 +35,27 @@ describe("the MCP server page", () => {
     vi.unstubAllGlobals();
   });
 
+  // Visitors need no account: /mcp/public is the address for everyone, and the
+  // sign-in endpoint is presented as the owner's. The page once told visitors that
+  // anyone could connect at /mcp, which answers 401 without a token and gives a
+  // GitHub account that is not the owner's nothing.
+  it("leads with the address that needs no account and keeps the owner's apart", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => Response.json({ resource: "https://yehudabriskman.com/mcp" })));
+    render(
+      <MemoryRouter>
+        <DevelopersMcp />
+      </MemoryRouter>,
+    );
+    const everyone = screen.getByText(/claude mcp add --transport http yehuda-public .*\/mcp\/public$/);
+    const owner = screen.getByText(/claude mcp add --transport http yehuda .*\/mcp$/);
+    const ownerHead = screen.getByRole("heading", { name: "Owner access" });
+    expect(everyone.compareDocumentPosition(ownerHead) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(ownerHead.compareDocumentPosition(owner) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.queryByText(/Anyone can connect: the public tools answer without an account/)).toBeNull();
+    await waitFor(() => expect(screen.getByText("live")).toBeInTheDocument());
+    vi.unstubAllGlobals();
+  });
+
   it("says live when the metadata answers", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => Response.json({ resource: "https://yehudabriskman.com/mcp" })));
     render(
