@@ -105,11 +105,14 @@ export function Modal({
   onClose,
   title,
   children,
+  footer,
 }: {
   open: boolean;
   onClose: () => void;
   title: string;
   children: ReactNode;
+  /** The actions, when the dialog asks something: set off below the body. */
+  footer?: ReactNode;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
@@ -127,7 +130,7 @@ export function Modal({
   return (
     <dialog
       ref={ref}
-      className={styles.dialog}
+      className={`${styles.dialog} pop-dialog`}
       aria-label={title}
       onClose={onClose}
       onCancel={(e) => {
@@ -137,13 +140,14 @@ export function Modal({
     >
       {open && (
         <>
-          <div className={styles.dialogHead}>
-            <h2 className="display-tight min-w-0 flex-1 truncate text-xl">{title}</h2>
+          <div className={`${styles.dialogHead} pop-head`}>
+            <h2 className="pop-title min-w-0 flex-1 truncate">{title}</h2>
             <button type="button" className="a-btn a-btn-ghost a-icon-btn" onClick={onClose} aria-label="Close">
               <span aria-hidden="true">×</span>
             </button>
           </div>
           <div className={styles.dialogBody}>{children}</div>
+          {footer && <div className={`${styles.dialogFoot} pop-foot`}>{footer}</div>}
         </>
       )}
     </dialog>

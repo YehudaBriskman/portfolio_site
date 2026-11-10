@@ -168,7 +168,7 @@ export default function DashboardShell({
       {mode === "one" && (
         <dialog
           ref={sheet}
-          className={styles.sheet}
+          className={`${styles.sheet} pop-dialog pop-dialog--side`}
           aria-labelledby={titleId}
           onClose={() => opener.current?.focus()}
           onClick={(e) => {

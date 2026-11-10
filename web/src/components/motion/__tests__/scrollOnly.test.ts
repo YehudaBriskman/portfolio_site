@@ -78,6 +78,10 @@ const ALLOWED: Record<string, { names: string[]; why: string }> = {
     names: ["theme-wave"],
     why: "the theme change spreading from the toggle (#266): a reply to pressing it, not a scroll",
   },
+  "styles/popup.css": {
+    names: ["pop-in", "pop-out"],
+    why: "every popup's arrival and exit (Radix panels and tooltips): a reply to a press or a hover, 180ms / 140ms, off under reduced motion and Pause",
+  },
   "components/gallery/Skeleton.module.css": {
     names: ["sk-gate"],
     why: "not motion: a 1ms opacity step whose only job is a 180ms visibility threshold",
@@ -276,15 +280,12 @@ describe("every animation on the site is scrubbed by scroll (#162)", () => {
     expect(config).not.toMatch(/\bkeyframes:\s*\{/);
   });
 
-  it("uses Tailwind's animate-* classes only on the exempt menus and tooltips", () => {
-    /* `animate-in` / `animate-out` are tailwindcss-animate's open and close
-       for Radix's dropdown menu and tooltip — replies to a press or a hover. */
+  it("uses no Tailwind animate-* class: popups take the popup system's keyframes", () => {
+    /* Menus, panels and tooltips used tailwindcss-animate's `animate-in` /
+       `animate-out`; they now carry `pop` (styles/popup.css), whose two
+       keyframes are on the ALLOWED list above. */
     const users = TS_FILES.filter((f) => /\banimate-[a-z]/.test(readFileSync(f, "utf8"))).map(rel).sort();
-    expect(users).toEqual(["components/ui/dropdown-menu.tsx", "components/ui/tooltip.tsx"]);
-    for (const f of users) {
-      const classes = readFileSync(resolve(SRC, f), "utf8").match(/\banimate-[a-z-]+/g) ?? [];
-      expect(new Set(classes)).toEqual(new Set(["animate-in", "animate-out"]));
-    }
+    expect(users).toEqual([]);
   });
 
   it("starts no Web Animations API clock", () => {

@@ -2,10 +2,8 @@ import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { scrollToAnchor } from "@/lib/scrollToAnchor";
 import Controls, { type NavControls } from "./nav/Controls";
-import LanguageMenu from "./nav/LanguageMenu";
-import ThemeMenu from "./nav/ThemeMenu";
+import { DisplayPanel } from "./nav/DisplayMenu";
 import ElsewhereMarks from "./nav/ElsewhereMarks";
-import MotionToggle from "./nav/MotionToggle";
 import { NAV_ROUTES } from "./nav/navRoutes";
 import { useDarkChrome } from "./nav/useDarkChrome";
 import { useTuckedBar } from "./nav/useTuckedBar";
@@ -185,7 +183,7 @@ export default function Nav() {
    * for. It did not lock — a wheel over the page moved it from scrollY 391 to
    * 891 with the panel open — and it cost width: `#root` and the section under
    * it went from 375.17px to 360.17px the instant the panel opened, 15.01px of
-   * page gone sideways. That is the fifteen-pixel strip `nav/LanguageMenu.tsx`
+   * page gone sideways. That is the fifteen-pixel strip `nav/DisplayMenu.tsx`
    * documents, arriving by its own route rather than Radix's: `body` already
    * carries `scrollbar-gutter: stable` (index.css), so making it a scroll
    * container reserves a gutter the page did not have before. And `body` is
@@ -482,15 +480,12 @@ export default function Nav() {
 
         <div role="group" aria-label={w.siteControls}>
           <p className={styles.sheetHead}>{w.controls}</p>
-          {/* The same two components the bar renders, not copies of them: the
-              motion toggle owns a stored preference, and two implementations
-              of it would be two chances to disagree about what the reader
-              asked for. */}
-          <div className={styles.sheetControls}>
-            <LanguageMenu value={locale} onSelect={onSelectLocale} />
-            <ThemeMenu />
-            <MotionToggle paused={motionPaused} onToggle={onToggleMotion} />
-          </div>
+          {/* The same panel the bar's popover holds, laid out in place: a
+              popover on top of a sheet would be a popup on a popup. It is
+              stateless (theme, size and contrast live in their own stores;
+              language and motion come from the one `controls` object), so the
+              two copies cannot disagree. */}
+          <DisplayPanel controls={controls} inline />
         </div>
       </div>
     </header>

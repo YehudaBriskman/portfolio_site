@@ -1,3 +1,4 @@
+import Select from "@/components/ui/Select";
 import type { ReactNode } from "react";
 import type { Text } from "@/content/schema";
 import { useIssue } from "./editor";
@@ -169,9 +170,8 @@ export function SelectField<V extends string>({ id, path, label, value, options,
       <label htmlFor={id} className="a-label">
         {label}
       </label>
-      <select
+      <Select
         id={id}
-        className="a-select"
         value={value}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? `${id}-error` : undefined}
@@ -182,7 +182,7 @@ export function SelectField<V extends string>({ id, path, label, value, options,
             {o}
           </option>
         ))}
-      </select>
+      </Select>
       <ErrorLine id={`${id}-error`} message={error} />
     </div>
   );
