@@ -154,7 +154,7 @@ export type Sampled = { xy: Float32Array; count: number; radius: number };
  * Bisects the Poisson radius until the count is within `tolerance` of the
  * target (or the iterations run out, keeping the closest), then trims by a
  * seeded shuffle if it is still over. A word with less ink than the target
- * can hold at a 1.2px spacing returns what fits: the count never forces a
+ * can hold at a 1px spacing returns what fits: the count never forces a
  * dot closer than that.
  */
 export function sampleInk(m: Mask, target: number, seed = 1, tolerance = 0.04): Sampled {
@@ -165,7 +165,7 @@ export function sampleInk(m: Mask, target: number, seed = 1, tolerance = 0.04): 
   /* Poisson-disk packs about 0.7 / r^2 samples per px^2 at saturation; r0
      from the uniform-density estimate is the bracket's centre. */
   const est = Math.sqrt(area / wanted);
-  let lo = Math.max(1.2, est * 0.45);
+  let lo = Math.max(1.0, est * 0.45);
   let hi = est * 1.9;
   const buf: number[] = [];
   let best: number[] = [];
@@ -323,20 +323,20 @@ export type Device = {
 /**
  * How many particles to ask for.
  *
- * A baseline of 1400 on a normal desktop, 1800 for a very large word box
- * (the dot count follows the ink area so dots do not thin out on a 4K
+ * Dense and fine: about 9000 on a normal desktop, 14000 for a very large word
+ * box (the dot count follows the ink area so dots do not thin out on a 4K
  * window), and a lower ceiling where frames are expensive: a high pixel
  * ratio multiplies the fill cost, and few cores or little memory say the
  * machine is weak. Never below 600: under that the word stops reading as a
  * word and the static h1 is the better answer.
  */
 export function particleBudget(d: Device): number {
-  let n = 1400;
-  if (d.area > 800_000) n = 1800;
-  else if (d.area < 450_000) n = 1000;
-  if (d.cores > 0 && d.cores <= 4) n = Math.min(n, 1000);
-  if (d.memory > 0 && d.memory <= 4) n = Math.min(n, 900);
-  if (d.dpr > 2) n = Math.min(n, 1100);
+  let n = 9000;
+  if (d.area > 800_000) n = 14000;
+  else if (d.area < 450_000) n = 6000;
+  if (d.cores > 0 && d.cores <= 4) n = Math.min(n, 5000);
+  if (d.memory > 0 && d.memory <= 4) n = Math.min(n, 4000);
+  if (d.dpr > 2) n = Math.min(n, 6500);
   return Math.max(600, n);
 }
 

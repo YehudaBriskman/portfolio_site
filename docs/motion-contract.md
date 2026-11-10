@@ -2062,8 +2062,7 @@ animation.
 | every modal `<dialog>` except Contact's own: the phone sheets (`Rail`, `BlogPost`), the dashboards' rail sheet, the picture view, the admin `Modal` (media, picker, publish review) (`dialog.pop-dialog`) | /projects, /blog, /blog/:slug, admin | a transition, not a keyframe: `@starting-style` plus `transition-behavior: allow-discrete` on `display` and `overlay`; opacity + translate/scale (bottom sheet rises 40px, side sheet 32px from its own edge and mirrored in RTL, modal 14px / .97), the backdrop fades on its own | **exempt** (2026-11-10): dialog open/close. This supersedes the "shown and hidden, no transition" in the rows above for the dialogs; popovers inside the filter card are unchanged |
 | toasts (`ui/sonner`, `.pop-toast`) | /blog/:slug | sonner's own enter/exit, on the popup system's timing and surface | **exempt** (2026-11-10): a reply to a press |
 | theme wave: the new theme revealed by a `clip-path` circle from the toggle (`nav/themeWave.ts`, `nav/theme-wave.css`, `theme-wave`) | every route | a view transition, 600ms on `--ease-settle`; old snapshot held still, default cross-fade off | **exempt** (#266): a reply to choosing a theme. Instant, with no transition at all, under every off-switch (§4: no `startViewTransition`, reduced motion, Pause), when the choice does not change the ground, and when System follows the OS |
-| the hero's particle word (`hero/ParticleWord`) | /, desktop only | one `requestAnimationFrame` loop that runs only while the entrance, a pointer on the word or settling particles move, and stops at rest | **exempt** (2026-11-10): the page-load entrance and direct manipulation; see "The hero's particle word and orbit" below |
-| the hero's orbit constellation (`hero/HeroOrbit`) | /, desktop only | CSS transitions flipped once on the arrival signal; no keyframes, no loop | **exempt** (2026-11-10): part of the page load; then still |
+| the hero's particle word (`hero/ParticleWord`) | /, desktop only | one `requestAnimationFrame` loop that runs only while the entrance, a pointer on the word or settling particles move, and stops at rest | **exempt** (2026-11-10): the page-load entrance and direct manipulation; see "The hero's particle word and the page's colour orbs" below |
 | the page's colour orbs (`ground/AmbientOrbs`) | every route | one `opacity` transition, 0 to 1 in 1.2s, once; then static | **exempt** (2026-11-10): the page load; static under reduced motion and Pause |
 | card tilt, note cards growing, pills, buttons, links, chips, glyph nudges, form controls | every route, admin login | `:hover` / `:focus` / `:active` transitions | **exempt**: hover/focus |
 | in-page anchor smooth scroll (`scrollToAnchor`) | every route | per click | **exempt**: a reply to a click |
@@ -2158,12 +2157,13 @@ below: 54 rows; 20 scrubbed, 16 exempt, 10 removed, 8 with nothing of their own.
 
 ---
 
-## 10. The hero's particle word and orbit, and the page's colour orbs (2026-11-10)
+## 10. The hero's particle word and the page's colour orbs (2026-11-10)
 
 The owner asked for three things: colours fading in on the background "like
-WindoM's main bg"; the word beside the portrait made of about a thousand
-interactive particles that flee the cursor; and, on desktop only, objects
-flying in from the sides to circle the hero. Each is inside this contract on
+WindoM's main bg"; the word beside the portrait made of interactive
+particles that flee the cursor. (A third, objects flying in from the sides to
+circle the hero, was built and then deleted at the owner's word the same day:
+there is no orbit constellation any more.) Each is inside this contract on
 purpose, and this section is where the reasons are.
 
 **The one loop, and why it is not an ambient loop.** `hero/ParticleWord.tsx`
@@ -2189,14 +2189,14 @@ rest cannot allow. Central force plus damping always settles
 (`particlePhysics.test.ts` pins both facts).
 
 **Off-switches, and what each renders.** `hero/useParticleGate` is the one
-gate for the word and the orbit, and each input is watched live:
+gate for the word, and each input is watched live:
 
 | condition | renders |
 |---|---|
 | viewport under 1100px, `(pointer: coarse)` or no `(hover: hover)` | the static h1 exactly as before ("UN-mobile": desktop only) |
 | `prefers-reduced-motion: reduce` | the static h1 |
 | the Pause toggle (`body.motion-paused`) | the static h1; Play brings the word back |
-| `forced-colors: active`, print | the static h1 (the canvas and the orbit are `display: none` in CSS too) |
+| `forced-colors: active`, print | the static h1 (the canvas is `display: none` in CSS too) |
 | no 2D canvas, or no text | the static h1 |
 
 The static word is the real `h1`, always in the DOM: it is what screen readers,
@@ -2219,22 +2219,23 @@ under the entry shutter on a first visit. Mobile, reduced motion, Pause,
 print and forced colours never receive the `--pw-*` rules (they match only
 under `[data-particles]`).
 
-**The constellation** (`hero/HeroOrbit`) is CSS and SVG: no keyframes (so
-`scrollOnly.test.ts`'s `ALLOWED` list is untouched), no loop. Each object is
-two nested boxes whose `transform` transitions ease differently, so the path
-from the side is an arc; the transition is flipped once by the arrival signal
-and the objects then stay still. `transform` and `opacity` only. Sideways
-travel is inside the hero's `overflow-x: clip` (§5's licence). It is behind
-the composition, `pointer-events: none`, `aria-hidden`, and its labels are the
-tools the projects are built with, counted from the content store.
+**Density and colour.** The word is made of about 9000 dots (14000 on a very
+large box, fewer on weak or very dense screens; `particleBudget`), each under a
+pixel and a half across, in black ink grain plus five accents running blue to
+purple left to right. The palette is fixed in `ParticleWord.tsx`, with a
+brighter set on the dark theme. The canvas is `visibility: hidden` until the
+section says `data-particles="on"`, so the assembled word can never show before
+its entrance begins; a resize or a late title mid-entrance carries the flight
+plan over rather than restarting or flashing it, and the entrance plays once per
+mount.
 
 **The colour orbs** (`ground/AmbientOrbs`) are one fixed layer of four radial
-gradients (`--soft-*` tokens), not blurred elements, so there is nothing to
+gradients (`--glow-*` tokens: blue, indigo, violet, navy), not blurred elements, so there is nothing to
 re-raster. Its `opacity` is the only thing that changes: one 1.2s transition
 once on load, not a keyframe animation (no clock animation for the scroll-only
 test to list), compositor-only. Under reduced motion and Pause the orbs are
 simply shown. Print and forced colours show none. The alpha is a token per
-theme (`--orb-alpha`: 0.20 light, 0.13 dark; 55% of that under 700px), and
+theme (`--orb-alpha`: 0.16 light, 0.13 dark; 55% of that under 700px), and
 `test/orbContrast.test.ts` holds `--ink-soft` at 4.5:1 and `--ink` at 7:1
 under the strongest orb in both themes. A scroll-linked drift was left out.
 

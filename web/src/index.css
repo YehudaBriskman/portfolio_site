@@ -320,18 +320,18 @@
     --ground-cool: 229 237 246;   /* #E5EDF6  paper 85% -> --wash-blue   */
 
     /*
-     * The four soft hues of the ambient layer: the page's background orbs
-     * (`ground/AmbientOrbs`), the hero's particle word and its orbit
-     * constellation (`hero/`). Mid-tones on purpose: they are only ever used
-     * as a tint at low alpha or as dots beside the ink, never as type, so no
+     * The four glow hues of the ambient layer (`ground/AmbientOrbs`): blue,
+     * indigo, violet and a deep navy standing in for black, all cool, so the
+     * background and the hero's particle word share one blue / purple / black
+     * family. Only ever used as a tint at low alpha, never as type, so no
      * text ratio rests on them. What does rest on them — --ink-soft over the
      * strongest orb — is pinned by `test/orbContrast.test.ts`.
      */
-    --soft-sage:  120 152 128;   /* #789880 */
-    --soft-blue:  108 138 180;   /* #6C8AB4 */
-    --soft-sand:  184 156 108;   /* #B89C6C */
-    --soft-lilac: 158 128 188;   /* #9E80BC */
-    --orb-alpha: 0.2;            /* the strongest orb's opacity */
+    --glow-blue:   70 100 230;   /* #4664E6 */
+    --glow-indigo: 100 80 230;   /* #6450E6 */
+    --glow-violet: 150 80 220;   /* #9650DC */
+    --glow-navy:   34 44 120;    /* #222C78 */
+    --orb-alpha: 0.16;           /* the strongest orb's opacity */
 
     --ink:       20  19  15;   /* #14130F  primary type. 15.17:1 on paper. */
     --ink-soft:  85  82  74;   /* #55524A  secondary type. 6.37:1 on paper. */
@@ -978,10 +978,10 @@
     --paper-3:  52  48  42;   /* #34302A */
     --ground-warm: 34 30 22;
     --ground-cool: 26 28 32;
-    --soft-sage:  140 176 150;
-    --soft-blue:  130 160 208;
-    --soft-sand:  205 178 128;
-    --soft-lilac: 180 152 212;
+    --glow-blue:   90 140 255;
+    --glow-indigo: 130 110 255;
+    --glow-violet: 170 110 245;
+    --glow-navy:   60 80 190;
     --orb-alpha: 0.13;
 
     --ink:       242 240 234;
