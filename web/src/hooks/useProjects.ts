@@ -111,7 +111,18 @@ export function merge(collections: Collection[], seeds: Project[] = seedTable): 
 
   const fallbacks = seeds.filter((p) => !liveSlugs.has(p.slug)).map(seedToCollection);
 
-  return [...live, ...fallbacks]
+  /* A published cover that is a hotlink to a repository's README art (a 2:1
+     social preview, a PNG, from a host we do not control) loses to the seed's
+     own cover when there is one: that is a picture cut for the card, and it
+     goes through the AVIF ladder. A cover from the media library, or any other
+     address, is the owner's choice and is left alone. */
+  const hotlinked = (url: string | null | undefined) => /^https:\/\/raw\.githubusercontent\.com\//.test(url ?? "");
+  const withOwnCover = (c: Collection): Collection => {
+    const own = seedMap.get(c.slug)?.image;
+    return own && hotlinked(c.coverImage) ? { ...c, coverImage: own } : c;
+  };
+
+  return [...live.map(withOwnCover), ...fallbacks]
     .sort(
       (a, b) =>
         a.order - b.order ||

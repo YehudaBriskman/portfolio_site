@@ -4,6 +4,10 @@ import { shotImage } from "@/lib/projectImage";
 /*
  * A screenshot in a fixed aspect box.
  *
+ * An address we have no variants of (a pasted cover, a hotlinked README
+ * image) is `object-contain`: those are usually 2:1 social previews with the
+ * name set inside the picture, and a 4:3 centre crop slices the words (#346).
+ *
  * `object-top` is the whole point: an app screenshot puts its interface at the
  * top of the frame, so centring the crop — which is what the old `h-36
  * object-cover` did — showed the empty middle of the page and none of the
@@ -97,7 +101,7 @@ export default function Shot({
           fetchpriority={eager ? "high" : undefined}
           decoding="async"
           onLoad={() => setLoaded(true)}
-          className={`h-full w-full object-cover object-top ${loaded ? "opacity-100" : "opacity-0"}`}
+          className={`h-full w-full ${picture.sources.length ? "object-cover object-top" : "object-contain object-center"} ${loaded ? "opacity-100" : "opacity-0"}`}
         />
       </picture>
     </div>

@@ -9,6 +9,7 @@ import { STORY_LINE, buildStory, type Beat, type Interlude, type Story as StoryD
 import { useContent } from "@/content/store";
 import { useStoryWords } from "@/i18n/pages";
 import Arrow from "@/i18n/Arrow";
+import { shotImage } from "@/lib/projectImage";
 import type { ContentView } from "@/content/convert";
 
 /*
@@ -59,12 +60,30 @@ function storyFrom({ projects, story: s }: ContentView): StoryData {
  * drawn, every plate uncovered, every word at ink.
  */
 
+/* The slot is 88% of a phone's column (253-288 CSS px at 390) and 7 of 12
+   columns from 48rem (up to ~712). A library picture was served as its widest
+   file to both (1.03MB of 1500px AVIF on a phone); the ladder lets the phone
+   take a 400-1200px one. */
+const PLATE_SIZES = "(min-width: 48rem) 720px, 75vw";
+
+function PlateImage({ src, alt }: { src: string; alt: string }) {
+  const picture = shotImage(src) ?? { sources: [], src };
+  return (
+    <picture className={styles.platePicture}>
+      {picture.sources.map((source) => (
+        <source key={source.type} type={source.type} srcSet={source.srcSet} sizes={PLATE_SIZES} />
+      ))}
+      <img src={picture.src} srcSet={picture.srcSet} sizes={picture.srcSet ? PLATE_SIZES : undefined} alt={alt} className={styles.plateImg} loading="lazy" decoding="async" />
+    </picture>
+  );
+}
+
 function Plate({ beat }: { beat: Beat }) {
   const shape = { aspectRatio: beat.ratio } as CSSProperties;
   if (beat.image) {
     return (
       <figure className={styles.plate} style={shape}>
-        <img src={beat.image.src} alt={beat.image.alt} className={styles.plateImg} loading="lazy" decoding="async" />
+        <PlateImage src={beat.image.src} alt={beat.image.alt} />
       </figure>
     );
   }
