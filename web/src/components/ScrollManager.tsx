@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef } from "react";
 import { useLocation, useNavigationType } from "react-router-dom";
+import { takeLangScroll } from "@/i18n/routing";
 import { findAnchor, focusForNavigation, scrollToAnchor } from "@/lib/scrollToAnchor";
 
 /*
@@ -178,6 +179,11 @@ export default function ScrollManager() {
   /* The entry the window's scroll position currently belongs to. */
   const current = useRef<string | null>(null);
   const previous = useRef<Entry | null>(null);
+  /* The language switch's hand-over, taken once per mount and tied to the
+     entry it was for, so a repeated effect run (StrictMode) sees the same
+     answer and a later navigation in this mount never does. */
+  const langTaken = useRef(false);
+  const langKept = useRef<{ key: string; y: number | null } | null>(null);
 
   useEffect(() => {
     const prior = history.scrollRestoration;
@@ -220,6 +226,21 @@ export default function ScrollManager() {
     const first = before === null;
     current.current = name;
     previous.current = { key, pathname, search, before };
+
+    /* A language switch: stay where the reader was (see `takeLangScroll`),
+       unless the address names an anchor, which is handled below. */
+    if (!langTaken.current) {
+      langTaken.current = true;
+      langKept.current = { key, y: takeLangScroll() };
+    }
+    const kept = langKept.current?.key === key ? langKept.current.y : null;
+    if (kept !== null && hash.length <= 1) {
+      return watch(() => {
+        const max = document.documentElement.scrollHeight - window.innerHeight;
+        jump(Math.min(kept, Math.max(0, max)));
+        return max >= kept;
+      });
+    }
 
     const saved = navigationType === "POP" && (!first || returning()) ? map.get(name) : undefined;
     if (saved !== undefined) {

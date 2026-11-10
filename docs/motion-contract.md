@@ -2018,7 +2018,8 @@ animation.
 | aurora ribbon drift across the figure (`HeroRibbon`) | — | — | **removed** (2026-11-03, aurora v3): the owner's "remove the aurora from the hero"; it was scrubbed on `--hero` from the day before |
 | title plate and corners arriving, once a visit (`HeroArrival.module.css`, `HeroCorners.module.css`) | /, first load only | clock, started by the shutter's `clearing` signal (its last tile's `animationend`) (`motion/entry.ts`), filling `backwards` (the scrubbed exit it was layered on is gone, 2026-11-03); until that signal, a still `*-held` layer pins each moving part on the arrival's `from` frame under the cover (#219), so the lifting tiles show nothing already arrived and it is seen once | **exempt** (#194): part of the page load, as the shutter is; a hero mounted after the entry, or under any off-switch, never holds or plays it |
 | nav bar dropping in with the plate (`hero-chrome.css`) | / | — | **removed** (#162): the bar is simply there; its tuck is below |
-| lamp breath and ring, rotating phrases (`HeroCorners`) | / | `--hero` | **scrubbed** (#162; were 6.4s / 3.6s infinite loops) |
+| lamp breath and ring (`HeroCorners`) | / | `--hero` | **scrubbed** (#162; was a 6.4s infinite loop) |
+| rotating phrases (`HeroCorners`, `useCycle`) | / | a 3.2s `setInterval` and a 700ms opacity/transform transition | **exempt** (2026-11-10, the owner: "circle on their own"); see §11 |
 | hero corners sinking under paper | / | — | **removed** (2026-11-03), with the plate's exit above |
 | section heads' lattice (`.section-head::after`) | /, /projects, /story | `--section-head` view timeline | scrubbed |
 | section-head and hairline rules (`InkRule`) | /, /projects/:slug | `view()` | scrubbed |
@@ -2248,6 +2249,21 @@ pointer, read particle state). `?particles=settled` also skips the entrance.
 
 ---
 
+## 11. The corner phrases turn on a timer (2026-11-10)
+
+The owner asked for "Technology / Product builder / Applied AI" to "circle on
+their own", reversing #162 for those words only. `HeroCorners.tsx` runs one
+`setInterval` (3.2s) that moves `data-on` to the next phrase; a 700ms CSS
+transition fades and lifts it. No keyframes, so `scrollOnly.test.ts` is
+untouched. It is the one clock-driven loop on the first screen besides the
+entry's arrival, and it has all the off-switches: reduced motion and Pause
+never start it (the first phrase is shown, still), it skips ticks while the tab
+is hidden, and print and forced colours show the first phrase. A screen reader
+still gets one stable `sr-only` sentence of all the phrases; the rotating stack
+is `aria-hidden`.
+
+---
+
 ## 12. The particle word's energy lines (2026-11-10)
 
 The owner asked for a thin line from every dot to the centred tenth of the
@@ -2264,3 +2280,4 @@ forced colours) decides whether any of it exists; the loop draws every other
 frame when only the lines move, stops while the tab is hidden or the hero is
 off screen (an `IntersectionObserver`, both directions, a cost saving and not a
 reveal), and never runs in the test modes. No keyframes.
+||||||| a371804

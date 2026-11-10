@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { useContent } from "@/content/store";
 import { sectionVisible } from "@/settings/schema";
 import { useSiteSettings } from "@/settings/store";
@@ -159,9 +159,47 @@ function Ask() {
  * The light is a `span` and decorative in the strictest sense, so it is
  * hidden from the accessibility tree and cannot be pointed at.
  */
+/* How long each phrase stays, and whether anything asks the corner to be still. */
+const PHRASE_MS = 3200;
+
+function useCycle(count: number): number {
+  const [i, setI] = useState(0);
+  useEffect(() => {
+    if (count < 2) return;
+    const still = () =>
+      document.body.classList.contains("motion-paused") ||
+      (typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+    let timer = 0;
+    const sync = () => {
+      window.clearInterval(timer);
+      if (still()) {
+        setI(0);
+        return;
+      }
+      timer = window.setInterval(() => {
+        if (!document.hidden) setI((n) => (n + 1) % count);
+      }, PHRASE_MS);
+    };
+    sync();
+    const mo = new MutationObserver(sync);
+    mo.observe(document.body, { attributes: true, attributeFilter: ["class"] });
+    const mq = typeof window.matchMedia === "function" ? window.matchMedia("(prefers-reduced-motion: reduce)") : null;
+    mq?.addEventListener?.("change", sync);
+    return () => {
+      window.clearInterval(timer);
+      mo.disconnect();
+      mq?.removeEventListener?.("change", sync);
+    };
+  }, [count]);
+  return i;
+}
+
 function Light() {
   const { heroPhrases } = useContent().site;
   const lang = useLang();
+  /* The phrases turn on their own, one every few seconds (the owner's call,
+     2026-11-10: "circle on their own"), not with the scroll. */
+  const active = useCycle(heroPhrases.length);
   /* The owner's copy, each phrase English until it has a Hebrew of its own
      (#248): marked by language only, so the corner keeps the page's mirrored
      place, and per phrase, since some have Hebrew and some do not. */
@@ -180,6 +218,7 @@ function Light() {
             key={phrase}
             className={styles.phrase}
             lang={inEnglish(lang, phrase).lang}
+            data-on={i === active ? "" : undefined}
             style={{ "--i": i, "--n": heroPhrases.length } as CSSProperties}
           >
             {phrase}
