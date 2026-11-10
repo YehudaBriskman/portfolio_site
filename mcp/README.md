@@ -59,7 +59,7 @@ optimistic lock and audit log as the admin UI.
 | `list_media` (`q?`, `kind?`) | The media library (#253): pictures, icons and videos, each with its kind, alt text, stable `url` and `usedBy` |
 | `list_translations` (`status?`, `type?`, `visibility?`) | The Translations report (#301): each note, area, project, story beat and site-copy section with its Hebrew status and counts |
 | `get_translation` (`type`, `id`) | One item in both languages, unit by unit, with its status; for a note with a stale Hebrew body, `bodyDiff` shows what changed in the English since |
-| `put_translation` (`type`, `id`, `units`) | Hebrew for one or more units, written into the item's **draft** (never live; the owner publishes in the admin). Returns the glossary warnings. Areas have no draft and are refused |
+| `put_translation` (`type`, `id`, `units`) | Hebrew for one or more units, written into the item's **draft** for posts, projects, the story and site copy (the owner publishes in the admin). **Areas (`title`, `tagline`, `description`, `links.N.label`) and media (`alt`, `caption`) have no draft: a write there goes live at once.** Dry run by default; returns the glossary warnings |
 | `upload_media` (`path`, `alt`, `kind?`, `posterPath?`, `captionsPath?`, `captionsLang?`, `caption?`, `credit?`) | Upload one local file as an image, icon (SVG/PNG, 64 KB) or video (MP4/WebM, 25 MB, 60 s; needs `posterPath`). Dry run checks the files and sends nothing. **stdio only:** it reads a path on your machine, so the remote server does not offer it |
 
 Every write takes **`dryRun`, default `true`**: it reads the current document,

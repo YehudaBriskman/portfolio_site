@@ -388,7 +388,7 @@ describe("PUT /api/admin/translations/draft (#307)", () => {
     expect((await draftPut({ type: "post", id: "a-note", rev, units: [{ path: "title", he: "x" }], dryRun: false })).status).toBe(409);
   });
 
-  it("writes a content document's draft by item and path, and refuses an area, an unknown path and a repeated one", async () => {
+  it("writes a content document's draft by item and path, and refuses an unknown path and a repeated one", async () => {
     const p = seed().projects;
     store.set("content:projects", { _id: "content:projects", _rev: "1-p", type: "content", key: "projects", published: p, draft: null });
     const slug = p.items[0].slug;
@@ -398,9 +398,95 @@ describe("PUT /api/admin/translations/draft (#307)", () => {
     expect(doc.draft.items[0].fact).toEqual({ en: p.items[0].fact.en, he: "עובדה.", heSrc: fp(p.items[0].fact.en) });
     expect(doc.published.items[0].fact.he).toBe(p.items[0].fact.he);
 
-    expect((await draftPut({ type: "area", id: "bothy", units: [{ path: "title", he: "x" }] })).status).toBe(400);
     expect((await draftPut({ type: "project", id: slug, units: [{ path: "tech", he: "x" }] })).status).toBe(404);
     expect((await draftPut({ type: "project", id: slug, units: [{ path: "fact", he: "a" }, { path: "fact", he: "b" }] })).status).toBe(400);
+  });
+
+  describe("areas and media have no draft: a write is live, stamped as the admin stamps it", () => {
+    const putArea = () =>
+      store.set("collection:bothy", {
+        _id: "collection:bothy",
+        _rev: "1-b",
+        type: "collection",
+        slug: "bothy",
+        title: "Bothy",
+        tagline: "A dev box",
+        description: "",
+        links: [{ label: { en: "Source" }, url: "https://example.com/src" }],
+        status: "published",
+        order: 1,
+        createdAt: NOW,
+        updatedAt: NOW,
+      });
+    const putPicture = () =>
+      store.set("media:pic-abc123", {
+        _id: "media:pic-abc123",
+        _rev: "1-a",
+        type: "media",
+        id: "pic-abc123",
+        name: "pic.png",
+        alt: "A grey card",
+        caption: "",
+        credit: "",
+        kind: "image",
+        createdAt: NOW,
+        updatedAt: NOW,
+      });
+
+    it("area dry run (the default) answers with the changes and writes nothing", async () => {
+      putArea();
+      const before = structuredClone(store.get("collection:bothy"));
+      const res = await draftPut({ type: "area", id: "bothy", units: [{ path: "tagline", he: "שרת פיתוח" }] });
+      expect(res.status).toBe(200);
+      expect(res.body).toMatchObject({ dryRun: true, target: "collection:bothy", changes: [{ path: "tagline", en: "A dev box", before: null, after: "שרת פיתוח" }] });
+      expect(store.get("collection:bothy")).toEqual(before);
+    });
+
+    it("area write stores he and a correct heMeta, and a link label its heSrc", async () => {
+      putArea();
+      const res = await draftPut({
+        type: "area",
+        id: "bothy",
+        units: [{ path: "title", he: "בותי" }, { path: "tagline", he: "שרת פיתוח" }, { path: "links.0.label", he: "קוד מקור" }],
+        dryRun: false,
+      });
+      expect(res.status).toBe(200);
+      const doc = store.get("collection:bothy")! as Record<string, any>;
+      expect(doc.he).toEqual({ title: "בותי", tagline: "שרת פיתוח", description: null });
+      expect(doc.heMeta).toEqual({ src: { title: fp("Bothy"), tagline: fp("A dev box") } });
+      expect(doc.links[0].label).toEqual({ en: "Source", he: "קוד מקור", heSrc: fp("Source") });
+      expect((await statusOf("area", "bothy")).status).toBe("translated");
+      /* An empty string removes a unit's Hebrew. */
+      await draftPut({ type: "area", id: "bothy", units: [{ path: "title", he: "" }], dryRun: false });
+      expect((store.get("collection:bothy")! as Record<string, any>).he.title).toBeNull();
+    });
+
+    it("area: unknown area or path is 404, too long is 400, a stale rev is 409", async () => {
+      putArea();
+      expect((await draftPut({ type: "area", id: "nope", units: [{ path: "title", he: "x" }] })).status).toBe(404);
+      expect((await draftPut({ type: "area", id: "bothy", units: [{ path: "body", he: "x" }] })).status).toBe(404);
+      expect((await draftPut({ type: "area", id: "bothy", units: [{ path: "links.3.label", he: "x" }] })).status).toBe(404);
+      const long = await draftPut({ type: "area", id: "bothy", units: [{ path: "tagline", he: "א".repeat(161) }], dryRun: false });
+      expect(long.status).toBe(400);
+      expect((await draftPut({ type: "area", id: "bothy", rev: "9-z", units: [{ path: "title", he: "x" }], dryRun: false })).status).toBe(409);
+      expect((store.get("collection:bothy")! as Record<string, any>).he).toBeUndefined();
+    });
+
+    it("media: dry run writes nothing; a write stores he and heMeta; unknown and too long are refused", async () => {
+      putPicture();
+      const before = structuredClone(store.get("media:pic-abc123"));
+      const dry = await draftPut({ type: "media", id: "pic-abc123", units: [{ path: "alt", he: "כרטיס אפור" }] });
+      expect(dry.body).toMatchObject({ dryRun: true, changes: [{ path: "alt", en: "A grey card", before: null, after: "כרטיס אפור" }] });
+      expect(store.get("media:pic-abc123")).toEqual(before);
+      const res = await draftPut({ type: "media", id: "pic-abc123", units: [{ path: "alt", he: "כרטיס אפור" }], dryRun: false });
+      expect(res.status).toBe(200);
+      const doc = store.get("media:pic-abc123")! as Record<string, any>;
+      expect(doc.he).toEqual({ alt: "כרטיס אפור", caption: "" });
+      expect(doc.heMeta).toEqual({ src: { alt: fp("A grey card") } });
+      expect((await draftPut({ type: "media", id: "none", units: [{ path: "alt", he: "x" }] })).status).toBe(404);
+      expect((await draftPut({ type: "media", id: "pic-abc123", units: [{ path: "credit", he: "x" }] })).status).toBe(404);
+      expect((await draftPut({ type: "media", id: "pic-abc123", units: [{ path: "alt", he: "א".repeat(301) }], dryRun: false })).status).toBe(400);
+    });
   });
 
   it("serves the glossary", async () => {

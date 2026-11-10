@@ -533,11 +533,13 @@ export function registerTools(server: McpServer, api: PortfolioApi, access: Tool
   server.registerTool(
     "put_translation",
     {
-      title: "Write Hebrew into a draft",
+      title: "Write Hebrew (draft for posts and content; LIVE for areas and media)",
       description:
-        "Sets the Hebrew of one or more units of one item (paths from get_translation) in its DRAFT. Nothing goes live: " +
-        "the owner reviews and publishes in the admin. Areas and media have no draft and are refused. Returns the changes and the " +
-        "glossary warnings (read glossary://he first). An empty string removes a unit's Hebrew. dryRun defaults to true.",
+        "Sets the Hebrew of one or more units of one item (paths from get_translation). Posts, projects, the story and site " +
+        "copy are written into their DRAFT: nothing goes live until the owner publishes in the admin. Areas and media have no " +
+        "draft, so a write to an area (title, tagline, description, links.N.label) or to a media item (alt, caption) goes LIVE " +
+        "immediately, stamped as the admin's own save. Returns the changes and the glossary warnings, which never block " +
+        "(read glossary://he first). An empty string removes a unit's Hebrew. dryRun defaults to true.",
       inputSchema: {
         type: translationType,
         id: itemId,
@@ -547,11 +549,13 @@ export function registerTools(server: McpServer, api: PortfolioApi, access: Tool
       annotations: { destructiveHint: false, idempotentHint: true, openWorldHint: false },
     },
     safe(async ({ type, id, units, dryRun }) => {
-      if (type === "area" || type === "media") return fail("Areas and media have no draft. Edit their Hebrew in the admin.");
       const list = Object.entries(units).map(([path, he]) => ({ path, he }));
       if (list.length === 0) return fail("Give at least one unit.");
-      let rev: string;
-      if (type === "post") {
+      const live = type === "area" || type === "media";
+      let rev: string | undefined;
+      if (live) {
+        rev = undefined; /* The server reads and writes the document in one step. */
+      } else if (type === "post") {
         const post = await loadPost(id);
         if (!post) return fail(`No post "${id}".`);
         rev = post._rev ?? "";
@@ -567,10 +571,14 @@ export function registerTools(server: McpServer, api: PortfolioApi, access: Tool
       const note = dryRun
         ? res.changes.length === 0
           ? "Dry run: nothing would change."
-          : "Dry run: nothing was written. Call again with dryRun: false to write the draft."
+          : live
+            ? "Dry run: nothing was written. Call again with dryRun: false to write; it goes LIVE at once (no draft)."
+            : "Dry run: nothing was written. Call again with dryRun: false to write the draft."
         : res.changes.length === 0
           ? "No change; nothing written."
-          : "Written to the draft. The owner publishes it from the admin.";
+          : live
+            ? `Written LIVE: ${type === "area" ? "areas" : "media"} have no draft, so the Hebrew is on the site now.`
+            : "Written to the draft. The owner publishes it from the admin.";
       return json({ dryRun, action: "put_translation", target: res.target, changes: res.changes, warnings: res.warnings, note });
     }),
   );

@@ -423,13 +423,15 @@ describe("translation tools (#307)", () => {
     });
   });
 
-  it("put_translation reads a content document's revision, and refuses an area", async () => {
+  it("put_translation reads a content document's revision, and sends an area with no rev, noting it goes live", async () => {
     const { call, api } = await connect(TOKEN, routes());
     await call("put_translation", { type: "project", id: "windom", units: { fact: "עובדה" }, dryRun: false });
     expect(api.writes()[0].body).toMatchObject({ type: "project", rev: "7-p", dryRun: false });
     const area = await call("put_translation", { type: "area", id: "tools", units: { title: "כלים" } });
-    expect(area.isError).toBe(true);
-    expect(api.writes()).toHaveLength(1);
+    expect(area.isError).toBeFalsy();
+    expect(area.json.note).toMatch(/LIVE/);
+    expect(api.writes()).toHaveLength(2);
+    expect(api.writes()[1].body).toEqual({ type: "area", id: "tools", units: [{ path: "title", he: "כלים" }], dryRun: true });
   });
 
   it("serves the glossary as glossary://he, to admin sessions only", async () => {
