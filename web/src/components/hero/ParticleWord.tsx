@@ -50,8 +50,18 @@ import {
 
 export type Arrival = "wait" | "play" | "now";
 
-const SOFT = ["--soft-sage", "--soft-blue", "--soft-sand", "--soft-lilac"] as const;
-const INK_SHARE = 0.72;
+/*
+ * The word's colours: ink (black on paper, near-white on the dark theme) and
+ * five accents that run blue to purple, laid out left to right with noise, so
+ * the word reads as one cool gradient with black grain through it. The palette
+ * is fixed rather than read from the page's soft tokens on purpose: the owner
+ * asked for blue / purple / black and a futuristic feel, and the soft sage and
+ * sand do not belong to that.
+ */
+const ACCENTS_LIGHT = ["#2f5bff", "#4a49f0", "#6b3df0", "#8b3fe6", "#a43fd6"] as const;
+const ACCENTS_DARK = ["#5aa9ff", "#6f8cff", "#8a7bff", "#a67bff", "#c07dff"] as const;
+const INK_SHARE = 0.22;
+const GROUPS = 1 + ACCENTS_LIGHT.length;
 const MIN_FONT = 64;
 
 type Hook = {
@@ -89,6 +99,9 @@ export default function ParticleWord({ text, arrival }: { text: string; arrival:
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const arrivalRef = useRef(arrival);
   const startRef = useRef<(() => void) | null>(null);
+  /* Once per mount, not once per effect run: a late change of `text` (the
+     stored title arriving) rebuilds the word, and must not play it again. */
+  const playedRef = useRef(false);
 
   useEffect(() => {
     arrivalRef.current = arrival;
@@ -229,7 +242,9 @@ export default function ParticleWord({ text, arrival }: { text: string; arrival:
     };
 
     const readColours = () => {
-      colours = [rgbOf("--ink"), ...SOFT.map(rgbOf)];
+      const ink = rgbOf("--ink");
+      const lum = (ink.match(/\d+/g) ?? ["0"]).slice(0, 3).reduce((a, b) => a + Number(b), 0) / 3;
+      colours = [ink, ...(lum > 128 ? ACCENTS_DARK : ACCENTS_LIGHT)];
     };
 
     const draw = () => {
@@ -239,7 +254,7 @@ export default function ParticleWord({ text, arrival }: { text: string; arrival:
       for (let g = 0; g < groups.length; g += 1) {
         const list = groups[g];
         ctx.fillStyle = colours[g];
-        ctx.globalAlpha = g === 0 ? 1 : 0.9;
+        ctx.globalAlpha = g === 0 ? 0.92 : 0.95;
         ctx.beginPath();
         for (let k = 0; k < list.length; k += 1) {
           const i = list[k];
@@ -288,7 +303,8 @@ export default function ParticleWord({ text, arrival }: { text: string; arrival:
         next.tx[i] = L.s.xy[i * 2] + L.left;
         next.ty[i] = L.s.xy[i * 2 + 1] + L.top;
         const u = rng();
-        next.group[i] = u < INK_SHARE ? 0 : 1 + Math.min(3, Math.floor(((u - INK_SHARE) / (1 - INK_SHARE)) * 4));
+        const across = Math.min(1, Math.max(0, next.tx[i] / Math.max(1, L.W) + (rng() - 0.5) * 0.3));
+        next.group[i] = u < INK_SHARE ? 0 : 1 + Math.min(GROUPS - 2, Math.floor(across * (GROUPS - 1)));
         if (!first && old.count) {
           const j = Math.min(old.count - 1, Math.floor((i * old.count) / next.count));
           next.x[i] = old.x[j];
@@ -300,15 +316,25 @@ export default function ParticleWord({ text, arrival }: { text: string; arrival:
           next.y[i] = next.ty[i];
         }
       }
-      next.clock = !first && old.count ? old.clock : Infinity;
-      if (next.clock !== Infinity) {
-        /* resized mid-entrance: finish it as a spring instead */
-        next.clock = Infinity;
+      /* A rebuild mid-entrance (a resize, a late font) keeps the entrance
+         going: each new particle takes the flight plan of the old one it maps
+         to, so the stream carries on instead of snapping to a spring. */
+      if (!first && old.count && old.clock !== Infinity) {
+        for (let i = 0; i < next.count; i += 1) {
+          const j = Math.min(old.count - 1, Math.floor((i * old.count) / next.count));
+          next.sx[i] = old.sx[j];
+          next.sy[i] = old.sy[j];
+          next.cx[i] = old.cx[j];
+          next.cy[i] = old.cy[j];
+          next.delay[i] = old.delay[j];
+          next.dur[i] = old.dur[j];
+        }
+        next.clock = old.clock;
       }
-      const lists: number[][] = [[], [], [], [], []];
+      const lists: number[][] = Array.from({ length: GROUPS }, () => []);
       for (let i = 0; i < next.count; i += 1) lists[next.group[i]].push(i);
       groups = lists.map((l) => Uint16Array.from(l));
-      radius = Math.min(4.6, Math.max(1.1, L.s.radius * 0.46));
+      radius = Math.min(2, Math.max(0.8, L.s.radius * 0.36));
       p = next;
       sizeCanvas(L);
       readColours();
@@ -323,7 +349,8 @@ export default function ParticleWord({ text, arrival }: { text: string; arrival:
       if (!ready || entered || disposed) return;
       entered = true;
       const hostW = host.getBoundingClientRect().width;
-      if (arrivalRef.current === "play" && mode !== "settled") {
+      if (arrivalRef.current === "play" && mode !== "settled" && !playedRef.current) {
+        playedRef.current = true;
         planEntrance(p, -40, hostW + 40, hostW / 2, mulberry32(3), origin.h * 0.36);
         reveal();
         draw();
@@ -383,8 +410,12 @@ export default function ParticleWord({ text, arrival }: { text: string; arrival:
     const relayout = () => {
       if (!ready) return;
       if (!build(false)) return;
-      draw();
-      kick();
+      /* Before the entrance has started the word is not on screen: drawing
+         here would flash the assembled word and then take it away. */
+      if (section.dataset.particles === "on") {
+        draw();
+        kick();
+      }
     };
     const ro = new ResizeObserver(() => {
       window.clearTimeout(timer);

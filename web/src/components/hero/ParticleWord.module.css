@@ -15,6 +15,13 @@
   top: 0;
   z-index: 1;
   pointer-events: none;
+  /* Nothing is on the canvas until the section says the word is on: the
+     assembled word must never show before its entrance has begun. */
+  visibility: hidden;
+}
+
+:global(section[data-particles="on"]) .canvas {
+  visibility: visible;
 }
 
 /* Paper and forced palettes get the static word (see Hero.module.css). */

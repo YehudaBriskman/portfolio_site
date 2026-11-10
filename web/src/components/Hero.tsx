@@ -6,7 +6,6 @@ import { useLang } from "@/components/dashboard/i18n";
 import { withHebrewName } from "@/data/identity";
 import { useHomeWords } from "@/i18n/pages";
 import HeroCorners from "@/components/HeroCorners";
-import HeroOrbit from "@/components/hero/HeroOrbit";
 import ParticleWord, { type Arrival as PwArrival } from "@/components/hero/ParticleWord";
 import { useParticleGate } from "@/components/hero/useParticleGate";
 import styles from "@/components/Hero.module.css";
@@ -235,8 +234,8 @@ export default function Hero({ hold = true }: { hold?: boolean }) {
      beside the Latin name (#308), as the server render does. */
   const fact = withHebrewName(plateTitle.fact, useLang());
   /*
-    The desktop-only objects: the particle word (the h1's own text, drawn as
-    particles) and the orbit constellation. `useParticleGate` is false on the
+    The desktop-only object: the particle word (the h1's own text, drawn as
+    particles). `useParticleGate` is false on the
     server, on a phone or a coarse pointer, under reduced motion, Pause,
     forced colours, print, or without a canvas - and then neither is mounted
     and this is the static hero. See `hero/ParticleWord.tsx`.
@@ -264,7 +263,6 @@ export default function Hero({ hold = true }: { hold?: boolean }) {
     */
     <section id="hero" className={hold ? `${styles.holder} ${styles.held}` : styles.holder}>
       <div className={`relative w-full ${styles.hero}`}>
-        {particles && <HeroOrbit arrival={pw} />}
         {/*
           `pt-28` is nav clearance, not rhythm: the island is fixed, 50px tall
           and 18px down, so the first line has to start below 68px.

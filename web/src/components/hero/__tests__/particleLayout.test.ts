@@ -169,12 +169,12 @@ describe("textDirection", () => {
 describe("particleBudget", () => {
   const base = { dpr: 1, cores: 8, memory: 8, area: 600_000 };
   it("scales with the word box and is capped on weak or dense devices", () => {
-    expect(particleBudget(base)).toBe(1400);
-    expect(particleBudget({ ...base, area: 1_000_000 })).toBe(1800);
-    expect(particleBudget({ ...base, area: 300_000 })).toBe(1000);
-    expect(particleBudget({ ...base, cores: 4 })).toBe(1000);
-    expect(particleBudget({ ...base, memory: 2 })).toBe(900);
-    expect(particleBudget({ ...base, dpr: 3, area: 1_000_000 })).toBe(1100);
+    expect(particleBudget(base)).toBe(9000);
+    expect(particleBudget({ ...base, area: 1_000_000 })).toBe(14000);
+    expect(particleBudget({ ...base, area: 300_000 })).toBe(6000);
+    expect(particleBudget({ ...base, cores: 4 })).toBe(5000);
+    expect(particleBudget({ ...base, memory: 2 })).toBe(4000);
+    expect(particleBudget({ ...base, dpr: 3, area: 1_000_000 })).toBe(6500);
     expect(particleBudget({ dpr: 3, cores: 2, memory: 1, area: 1 })).toBeGreaterThanOrEqual(600);
   });
 });

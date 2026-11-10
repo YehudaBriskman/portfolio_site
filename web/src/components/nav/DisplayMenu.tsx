@@ -41,10 +41,14 @@ export type NavControls = {
  * want this page to look and move?" It is now a single trigger that opens a
  * single panel, grouped and labelled:
  *
- *   Language    segmented   English | עברית
- *   Theme       segmented   Light | Dark | System
- *   Text size   segmented   Default | Large | Larger
- *   Contrast    segmented   Standard | More | System
+ *   Language    two circles    EN  HE
+ *   Theme       three circles  sun  moon  monitor
+ *   Text size   three circles  A  A  A (each at the size it gives)
+ *   Contrast    three circles  ring  half  monitor
+ *
+ * Each row is a short label on one side and its circles on the other, so the
+ * whole panel is five lines tall. The circles carry icons and short glyphs
+ * only: the full word is the radio's accessible name and its tooltip.
  *   ----------
  *   Pause motion   switch
  *
@@ -134,7 +138,7 @@ export function DisplayPanel({
           <Segmented
             labelledBy={id("lang")}
             value={controls.locale}
-            options={LOCALES.map((l) => ({ value: l.code, label: l.label, lang: l.code, dir: l.dir }))}
+            options={LOCALES.map((l) => ({ value: l.code, label: l.label, lang: l.code, dir: l.dir, glyph: <span className={styles.code}>{l.short}</span> }))}
             onChange={(next) => {
               // Narrowed rather than asserted, so a locale removed from the
               // list cannot survive here.
@@ -146,7 +150,6 @@ export function DisplayPanel({
 
       <Section id={id("theme")} title={w.theme}>
         <Segmented
-          stacked
           labelledBy={id("theme")}
           value={choice}
           options={THEMES.map(({ value, word, Icon }) => ({ value, label: w[word], icon: <Icon /> }))}
@@ -158,7 +161,6 @@ export function DisplayPanel({
 
       <Section id={id("size")} title={w.textSize}>
         <Segmented
-          stacked
           labelledBy={id("size")}
           value={prefs.textSize}
           options={SIZES.map(({ value, word, px }) => ({
@@ -178,7 +180,6 @@ export function DisplayPanel({
 
       <Section id={id("contrast")} title={w.contrast}>
         <Segmented
-          stacked
           labelledBy={id("contrast")}
           value={prefs.contrast}
           options={CONTRASTS.map(({ value, word, Icon }) => ({ value, label: w[word], icon: <Icon /> }))}
@@ -244,7 +245,7 @@ export default function DisplayMenu({ controls }: { controls?: NavControls }) {
           title={name}
           data-language-trigger=""
         >
-          <SlidersHorizontal aria-hidden="true" />
+          <SlidersHorizontal aria-hidden="true" strokeWidth={1.25} />
         </Button>
       </PopoverTrigger>
       {/* `align="end"`: the trigger is the last control in the bar, so a
@@ -253,7 +254,7 @@ export default function DisplayMenu({ controls }: { controls?: NavControls }) {
         <div className="pop-head">
           <h2 className="pop-title">{w.displaySettings}</h2>
           <PopoverClose className={styles.close} aria-label={w.close}>
-            <X aria-hidden="true" />
+            <X aria-hidden="true" strokeWidth={1.25} />
           </PopoverClose>
         </div>
         <DisplayPanel controls={controls} originRef={trigger} />

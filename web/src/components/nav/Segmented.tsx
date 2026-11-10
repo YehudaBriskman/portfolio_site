@@ -9,6 +9,8 @@ export type SegmentOption<V extends string> = {
   /** The language the label is written in, when it is not the page's. */
   lang?: string;
   dir?: "ltr" | "rtl";
+  /** Short text drawn inside the circle (a language code, an "A"); the label still names it. */
+  glyph?: ReactNode;
 };
 
 /*
@@ -34,14 +36,18 @@ export default function Segmented<V extends string>({
   options,
   onChange,
   labelledBy,
-  stacked = false,
+  round = true,
 }: {
   value: V;
   options: readonly SegmentOption<V>[];
   onChange: (next: V) => void;
   labelledBy: string;
-  /** Icon over label (three or more options with an icon each). */
-  stacked?: boolean;
+  /**
+   * Circles, not a bar: each option is a round chip carrying an icon or a short
+   * glyph, and its label is the accessible name and the tooltip rather than
+   * visible text. The default; `false` is the old labelled bar.
+   */
+  round?: boolean;
 }) {
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
   const uid = useId();
@@ -73,8 +79,8 @@ export default function Segmented<V extends string>({
       role="radiogroup"
       aria-labelledby={labelledBy}
       className={styles.seg}
-      data-stacked={stacked || undefined}
-      style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}
+      data-round={round || undefined}
+      style={round ? undefined : { gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}
     >
       {options.map((o, i) => {
         const on = o.value === value;
@@ -90,17 +96,18 @@ export default function Segmented<V extends string>({
             aria-checked={on}
             tabIndex={i === checkedIndex ? 0 : -1}
             className={styles.segItem}
+            title={round ? o.label : undefined}
             lang={o.lang}
             dir={o.dir}
             onClick={() => onChange(o.value)}
             onKeyDown={(e) => onKey(e, i)}
           >
-            {o.icon && (
+            {(o.icon || (round && o.glyph)) && (
               <span className={styles.segIcon} aria-hidden="true">
-                {o.icon}
+                {o.icon ?? o.glyph}
               </span>
             )}
-            <span className={styles.segLabel}>{o.label}</span>
+            <span className={round ? "sr-only" : styles.segLabel}>{o.label}</span>
           </button>
         );
       })}

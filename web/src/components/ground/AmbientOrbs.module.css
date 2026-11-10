@@ -20,10 +20,10 @@
   opacity: 0;
   transition: opacity 1.2s ease;
   background:
-    radial-gradient(38vmax 38vmax at 8% 12%, rgb(var(--soft-sage) / var(--a)), transparent 70%),
-    radial-gradient(34vmax 34vmax at 92% 22%, rgb(var(--soft-blue) / calc(var(--a) * 0.9)), transparent 70%),
-    radial-gradient(40vmax 40vmax at 82% 92%, rgb(var(--soft-sand) / calc(var(--a) * 0.8)), transparent 70%),
-    radial-gradient(32vmax 32vmax at 14% 84%, rgb(var(--soft-lilac) / calc(var(--a) * 0.85)), transparent 70%);
+    radial-gradient(38vmax 38vmax at 8% 12%, rgb(var(--glow-blue) / var(--a)), transparent 70%),
+    radial-gradient(34vmax 34vmax at 92% 22%, rgb(var(--glow-indigo) / calc(var(--a) * 0.9)), transparent 70%),
+    radial-gradient(40vmax 40vmax at 82% 92%, rgb(var(--glow-violet) / calc(var(--a) * 0.8)), transparent 70%),
+    radial-gradient(32vmax 32vmax at 14% 84%, rgb(var(--glow-navy) / calc(var(--a) * 0.85)), transparent 70%);
 }
 
 .orbs[data-ready] {

@@ -50,7 +50,7 @@ describe.each([
 ])("orbs on the %s ground", (_name, t) => {
   const paper = rgb(t, "--paper");
   const a = Number(t.get("--orb-alpha"));
-  const hues = ["--soft-sage", "--soft-blue", "--soft-sand", "--soft-lilac"].map((k) => rgb(t, k));
+  const hues = ["--glow-blue", "--glow-indigo", "--glow-violet", "--glow-navy"].map((k) => rgb(t, k));
 
   it("declares an alpha that is a tint, not a fill", () => {
     expect(a).toBeGreaterThan(0.05);
