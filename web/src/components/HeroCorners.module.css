@@ -425,7 +425,7 @@
   margin: 0;
   font-family: var(--font-data);
   font-weight: var(--weight-data);
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   line-height: 1.5;
   text-transform: uppercase;
   letter-spacing: var(--track-field);

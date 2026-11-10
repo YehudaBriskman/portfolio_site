@@ -199,7 +199,7 @@ export default {
         fact: ["clamp(1rem, 1.4vw, 1.125rem)", { lineHeight: "1.5", letterSpacing: "var(--track-body)" }],
         /* The field line. The only place the data role is the whole voice
            of a block. */
-        field: ["0.72rem", { lineHeight: "1.5", letterSpacing: "var(--track-field)" }],
+        field: ["0.75rem", { lineHeight: "1.5", letterSpacing: "var(--track-field)" }],
       },
     },
   },

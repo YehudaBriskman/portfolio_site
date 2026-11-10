@@ -59,7 +59,7 @@ export default function Accessibility() {
         <p className="eyebrow">{w.eyebrow}</p>
         <h1 className="display mt-3 text-section">{w.title}</h1>
 
-        <div className="mt-8 max-w-[68ch] space-y-5 text-[1.0625rem] leading-relaxed text-ink">
+        <div className="mt-8 max-w-[36em] space-y-5 text-[1.0625rem] leading-relaxed text-ink">
           <p>{w.intro(reviewed)}</p>
 
           <h2 className="display display-md pt-6 text-object">{w.inPlace}</h2>

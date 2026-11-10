@@ -574,7 +574,7 @@
 .previewKind {
   margin: 0;
   font-family: var(--font-data);
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: rgb(var(--clay));
