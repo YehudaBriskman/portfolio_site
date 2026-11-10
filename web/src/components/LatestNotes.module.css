@@ -458,6 +458,26 @@
   object-fit: cover;
 }
 
+/*
+ * The cover of a note that has no picture: a generated skyline on a tint. The
+ * glyph draws in `--ink` and `--rule`, which `.on-panel` has pointed at the
+ * card's light ink, so they are restated here in the paper's dark: the picture
+ * is a light panel set into the dark card, as the cards on /blog are.
+ */
+.tint {
+  --ink: 28 26 22;
+  --rule: 118 113 104;
+  --tint-a: 190 214 244;
+  --tint-b: 120 160 218;
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(165deg, rgb(var(--tint-a)), rgb(var(--tint-b)));
+}
+.tint[data-tint="1"] { --tint-a: 190 230 208; --tint-b: 108 178 140; }
+.tint[data-tint="2"] { --tint-a: 252 226 160; --tint-b: 226 176 80; }
+.tint[data-tint="3"] { --tint-a: 246 200 192; --tint-b: 222 132 120; }
+.tint[data-tint="4"] { --tint-a: 218 200 244; --tint-b: 160 130 214; }
+
 /* The skeleton's plinth stays a box: it has one child, the ghost label, and
    it stands on the card's floor where the real label will. */
 .plinth.ghost {

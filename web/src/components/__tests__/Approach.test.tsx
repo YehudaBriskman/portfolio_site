@@ -69,6 +69,24 @@ describe("Approach", () => {
     expect(new Set(names).size).toBe(about.principles.length);
   });
 
+  it("draws the figures in Hebrew too, where the claim is a translation", () => {
+    /* The claim reaches the component already translated, and the drawings
+       were looked up by the English sentence alone: the rail was empty in
+       Hebrew and only there. */
+    document.documentElement.lang = "he";
+    try {
+      render(<Approach />);
+      const heClaims = screen.getAllByRole("heading", { level: 3 }).map((h) => h.textContent ?? "");
+      expect(heClaims).toHaveLength(about.principles.length);
+      heClaims.forEach((claim, i) => {
+        expect(claim).not.toBe(about.principles[i].claim);
+        expect(principleFor(claim).querySelector("svg[data-figure]"), claim).not.toBeNull();
+      });
+    } finally {
+      document.documentElement.lang = "en";
+    }
+  });
+
   it("draws no figure for a claim nobody drew one for", async () => {
     vi.resetModules();
     vi.doMock("@/data/site", async (actual) => ({
