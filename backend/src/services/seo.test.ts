@@ -160,6 +160,15 @@ describe("buildRobots", () => {
     expect(txt).toContain("Disallow: /admin");
   });
 
+  // /mcp answers 401 to a crawler. Search Console files that under "not
+  // indexed", so the crawler is told not to go. The page *about* it must stay
+  // reachable, which is why this is a prefix match on /mcp and not on /developers.
+  it("keeps the MCP endpoint out and the page about it in", () => {
+    const txt = buildRobots();
+    expect(txt).toContain("Disallow: /mcp");
+    expect(txt).not.toContain("Disallow: /developers");
+  });
+
   // No SITE_URL and no ROBOTS_POLICY in the test environment, which is the
   // same state a deploy that configures neither is in: it must come out open,
   // because the alternative is a production host that asks to be deindexed.

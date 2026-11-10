@@ -24,4 +24,7 @@ Allow: /
 # would only advertise it, but the crawlers that do look should skip it.
 Disallow: /admin
 
+# The remote MCP endpoint and its OAuth pages: an authenticated API for agents.
+Disallow: /mcp
+
 Sitemap: https://yehudabriskman.com/sitemap.xml
