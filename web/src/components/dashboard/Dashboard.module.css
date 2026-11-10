@@ -1368,3 +1368,40 @@
 .skMeta {
   font-size: 0.75rem;
 }
+
+/* ───────────────────────────────────────────── touch targets (#348)
+   44px on a phone: the composer's Topics / Area / Search, the quick chips and
+   the section links. The visual size is padding, so the cards do not grow by
+   more than the controls themselves. A post row is one link across the whole
+   row: the title's ::after is stretched over it, and the row's other links
+   (area, tags) sit above it. */
+@media (pointer: coarse), (max-width: 48rem) {
+  .askTool,
+  .quickChip,
+  .offer,
+  .timelineMore,
+  .sectionAction {
+    min-height: 2.75rem;
+  }
+  .askSubmit {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+  .eventLink {
+    display: inline-flex;
+    min-height: 2.75rem;
+    align-items: center;
+  }
+  .rows > .row {
+    position: relative;
+  }
+  .rowTitle::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+  }
+  .rowBody a:not(.rowTitle) {
+    position: relative;
+    z-index: 1;
+  }
+}

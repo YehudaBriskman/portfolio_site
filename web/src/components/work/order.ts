@@ -95,9 +95,18 @@ export function eventsByArea(events: ActivityEvent[]): Map<string, ActivityEvent
 export const TABS = ["overview", "notes", "releases", "docs"] as const;
 export type Tab = (typeof TABS)[number];
 
-export function readTab(params: URLSearchParams): Tab {
+const isTab = (t: string | null | undefined): t is Tab => (TABS as readonly string[]).includes(t ?? "");
+
+/**
+ * The tab a project URL names. `?tab=` is the canonical form; a bare `#docs`
+ * is accepted as well (the natural link to write by hand), and `?tab=` wins
+ * when both are present.
+ */
+export function readTab(params: URLSearchParams, hash = ""): Tab {
   const t = params.get("tab");
-  return (TABS as readonly string[]).includes(t ?? "") ? (t as Tab) : "overview";
+  if (isTab(t)) return t;
+  const h = hash.replace(/^#/, "");
+  return isTab(h) ? h : "overview";
 }
 
 export const tabId = (base: string, key: string) => `${base}-tab-${key}`;

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
-import { Link, useParams, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ArrowUpRight, BookMarked, BookOpen, FileText, FolderGit2, NotebookPen, Rss, Tag } from "lucide-react";
 import PageShell from "@/components/PageShell";
 import DashboardShell from "@/components/dashboard/DashboardShell";
@@ -104,7 +104,7 @@ export default function Project() {
   useScrollProgress(drift);
 
   const { project = "" } = useParams();
-  const [params, setParams] = useSearchParams();
+  const [params] = useSearchParams();
   const { items, state: listState } = useProjects();
   const [posts, setPosts] = useState<PostSummary[] | null>(null);
   const [releases, setReleases] = useState<ActivityEvent[] | null>(null);
@@ -119,7 +119,9 @@ export default function Project() {
   const entry = items.find((e) => e.collection.slug === project) ?? null;
   const others = relatedTo(items, project);
   const state = entry ? "ok" : listState === "loading" ? "loading" : "missing";
-  const tab = readTab(params);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const requested = readTab(params, location.hash);
 
   /* Another project's notes are cleared in the render that changes project,
      not an effect later; a retry clears the releases the same way. */
@@ -195,11 +197,41 @@ export default function Project() {
         ? [{ id: "stats", tag: fromStats.tag, at: fromStats.publishedAt, href: fromStats.url }]
         : [];
 
+  /* A tab with nothing in it is not offered. Docs is empty on every project
+     today and Releases on most, and an empty panel is a dead end the tab
+     strip should not lead to. Until the list is known the tab stays offered
+     only when the URL asked for it, so a deep link does not lose its tab
+     to a request still in flight. */
+  const docsKnown = posts !== null;
+  const releasesKnown = releases !== null || releasesError;
+  const showDocs = docsKnown ? docs.length > 0 : requested === "docs";
+  const showReleases = releasesKnown || releaseRows.length > 0 ? releaseRows.length > 0 : requested === "releases";
+  const offered: Tab[] = [
+    "overview",
+    "notes",
+    ...(showReleases ? (["releases"] as const) : []),
+    ...(showDocs ? (["docs"] as const) : []),
+  ];
+  const tab: Tab = offered.includes(requested) ? requested : "overview";
+
+  /* `#docs` is read as `?tab=docs` and then rewritten to it, so the hash
+     cannot come back and outvote the parameter after the reader changes tab. */
+  useEffect(() => {
+    if (!location.hash || params.has("tab") || readTab(params, location.hash) === "overview") return;
+    const p = new URLSearchParams(params);
+    p.set("tab", readTab(params, location.hash));
+    navigate({ pathname: location.pathname, search: `?${p}`, hash: "" }, { replace: true, preventScrollReset: true });
+  }, [location.hash, location.pathname, params, navigate]);
+
   const selectTab = (next: Tab) => {
     const p = new URLSearchParams(params);
     if (next === "overview") p.delete("tab");
     else p.set("tab", next);
-    setParams(p, { replace: true, preventScrollReset: true });
+    const search = p.toString();
+    navigate(
+      { pathname: location.pathname, search: search ? `?${search}` : "", hash: "" },
+      { replace: true, preventScrollReset: true },
+    );
   };
 
   /* Near the screenshots' own 2.1:1, so the hero shows the interface rather
@@ -434,8 +466,12 @@ export default function Project() {
               tabs={[
                 { key: "overview", label: t.tab.overview, icon: <BookOpen /> },
                 { key: "notes", label: t.tab.notes, count: posts ? notes.length : null, icon: <NotebookPen /> },
-                { key: "releases", label: t.tab.releases, count: releaseRows.length || null, icon: <Tag /> },
-                { key: "docs", label: t.tab.docs, count: posts ? docs.length : null, icon: <FileText /> },
+                ...(showReleases
+                  ? [{ key: "releases" as const, label: t.tab.releases, count: releaseRows.length || null, icon: <Tag /> }]
+                  : []),
+                ...(showDocs
+                  ? [{ key: "docs" as const, label: t.tab.docs, count: posts ? docs.length : null, icon: <FileText /> }]
+                  : []),
               ]}
             />
 

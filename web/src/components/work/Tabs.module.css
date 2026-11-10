@@ -18,6 +18,36 @@
   margin-block-end: -1px;
 }
 
+/* A row that scrolls says so: the edge with more tabs past it fades out. The
+   fade is physical (a mask is), so the RTL case swaps the two. */
+.list[data-more-end] {
+  mask-image: linear-gradient(to right, #000 calc(100% - 1.75rem), transparent);
+}
+.list[data-more-start] {
+  mask-image: linear-gradient(to left, #000 calc(100% - 1.75rem), transparent);
+}
+.list[data-more-start][data-more-end] {
+  mask-image: linear-gradient(to right, transparent, #000 1.75rem, #000 calc(100% - 1.75rem), transparent);
+}
+.list[data-more-end]:dir(rtl) {
+  mask-image: linear-gradient(to left, #000 calc(100% - 1.75rem), transparent);
+}
+.list[data-more-start]:dir(rtl) {
+  mask-image: linear-gradient(to right, #000 calc(100% - 1.75rem), transparent);
+}
+
+/* Four tabs with their counts are 365px wide; a 360px phone has 326. Tighter
+   padding at that width so they all fit and the fade is only the safety net. */
+@media (max-width: 26rem) {
+  .list {
+    gap: 0;
+  }
+  .tab {
+    gap: 0.375rem;
+    padding-inline: 0.5rem;
+  }
+}
+
 .tab {
   position: relative;
   display: inline-flex;
