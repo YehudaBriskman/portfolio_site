@@ -27,7 +27,13 @@ FROM nginx:alpine@sha256:785835ea65db4bba6f021acc0f3be91b0fef76a53fe41f8588c6698
 # package (curl, libexpat, pcre2, libuuid, brotli) fixed upstream before the
 # nginx image was republished with it. A rebuild should carry the fix the day
 # Alpine ships it, not the day the base image catches up.
-RUN apk upgrade --no-cache && apk add --no-cache curl
+#
+# The layer is cached by its text, and its text does not change when Alpine
+# ships a fix, so a cached build keeps the packages of the day it was first
+# built (2026-11-10: libxslt 1.1.43-r3 kept, r4 fixed two HIGHs, Scan image
+# failed on main). Bump this date to force a fresh `apk upgrade`.
+ARG APK_REFRESH=2026-11-10
+RUN echo "apk refresh ${APK_REFRESH}" && apk upgrade --no-cache && apk add --no-cache curl
 
 RUN rm -rf /usr/share/nginx/html/*
 COPY --from=builder /app/dist /usr/share/nginx/html
