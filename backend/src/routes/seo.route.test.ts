@@ -457,3 +457,36 @@ describe("the crawler fallback on every rendered page", () => {
     expect(socialTags(res.text).get(key)).toBe(RAW);
   });
 });
+
+describe("GET /api/seo/render/developers/mcp", () => {
+  beforeEach(() => {
+    resetShellCache();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        if (String(url).endsWith("/index.html")) {
+          return new Response(INDEX_HTML, { status: 200, headers: { "content-type": "text/html" } });
+        }
+        throw new Error(`unexpected fetch in test: ${url}`);
+      }),
+    );
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    resetShellCache();
+  });
+
+  // What a crawler or an AI tool reads before the page runs. /mcp answers 401
+  // without a token and refuses any account but the owner's, so the address for
+  // everyone is /mcp/public and it has to come first.
+  it("offers the no-account address first and the owner's sign-in address after", async () => {
+    const res = await request(createApp()).get("/api/seo/render/developers/mcp");
+    expect(res.status).toBe(200);
+    const everyone = res.text.indexOf("claude mcp add --transport http yehuda-public https://yehudabriskman.com/mcp/public");
+    const owner = res.text.indexOf("claude mcp add --transport http yehuda https://yehudabriskman.com/mcp<");
+    expect(everyone).toBeGreaterThan(-1);
+    expect(owner).toBeGreaterThan(everyone);
+    expect(res.text).toContain("Anyone can connect and read, with no account and no sign-in:");
+  });
+});

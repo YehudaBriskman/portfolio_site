@@ -108,17 +108,18 @@ export const useMcpWords = defineWords(
     eyebrow: "Developers",
     title: "MCP server",
     intro:
-      "This site speaks the Model Context Protocol. Point Claude, or any MCP client, at it and it can read the posts, the project areas and the channel log. There is nothing to download and no key to copy: the client signs in through the browser.",
+      "This site speaks the Model Context Protocol. Point Claude, or any MCP client, at it and it can read the posts, the project areas and the channel log. There is nothing to download and no key to copy, and reading needs no account.",
     checking: "Checking the server…",
     status: "Status:",
     live: "live",
     off: "Status: not switched on yet. The commands below will work once it is.",
-    connect: "Connect",
+    connect: "Connect and read",
+    connectIntro:
+      "Anyone can connect. This address needs no account, no sign-in and no key, and it carries only what the public site already shows: published posts, areas, tags and the channel log. Nothing here can write.",
     desktop: "claude.ai and Claude Desktop: Settings → Connectors → Add custom connector",
-    signIn:
-      "The first call opens a browser window. Anyone can connect: the public tools answer without an account. Signing in with GitHub unlocks the owner’s tools, and only for the site’s owner; any other account is told so and given nothing.",
-    skipSignIn: "To skip sign-in entirely, use the public endpoint, which carries only the public tools:",
-    publicOnly: "Public tools only",
+    ownerHead: "Owner access",
+    ownerIntro:
+      "The site’s owner has a second address. It asks for a GitHub sign-in, which opens a browser window; only the owner’s account is accepted, and any other account is told so and given nothing. In return it unlocks drafts, the audit log, media and translations, and, if the owner allows it, writes.",
     tools: "Tools",
     publicHead: "Public, no sign-in",
     readHead: "Owner, read access (mcp:read)",
@@ -132,7 +133,7 @@ export const useMcpWords = defineWords(
     copied: "Copied",
     copiedSay: "Copied to the clipboard",
     copyLabel: (label: string) => `Copy: ${label}`,
-    how: "How sign-in works",
+    how: "How the owner’s sign-in works",
     howBefore: "Standard OAuth 2.1 with PKCE. The client discovers everything from",
     howAfter: "and registers itself.",
     howItems: [
@@ -166,19 +167,20 @@ export const useMcpWords = defineWords(
     eyebrow: "למפתחים",
     title: "שרת MCP",
     intro:
-      "האתר תומך ב־Model Context Protocol‏ (MCP). חברו אליו את Claude, או כל לקוח MCP אחר, והוא יוכל לקרוא את הרשימות, את תחומי הפרויקטים ואת יומן הפעילות. אין מה להוריד ואין מפתח להעתיק: הלקוח מתחבר דרך הדפדפן.",
+      "האתר תומך ב־Model Context Protocol‏ (MCP). חברו אליו את Claude, או כל לקוח MCP אחר, והוא יוכל לקרוא את הרשימות, את תחומי הפרויקטים ואת יומן הפעילות. אין מה להוריד ואין מפתח להעתיק, והקריאה לא דורשת חשבון.",
     checking: "בודק את השרת…",
     status: "מצב:",
     live: "פעיל",
     off: "מצב: עדיין לא הופעל. הפקודות שלמטה יעבדו ברגע שיופעל.",
-    connect: "חיבור",
+    connect: "חיבור וקריאה",
+    connectIntro:
+      "כל אחד יכול להתחבר. הכתובת הזאת לא דורשת חשבון, התחברות או מפתח, והיא מציעה רק את מה שהאתר הציבורי כבר מציג: רשימות שפורסמו, תחומים, תגיות ויומן הפעילות. אי אפשר לכתוב דרכה דבר.",
     /* Latin runs isolated (LRI…PDI) so the menu path keeps Claude's own
        left-to-right order inside the Hebrew line. */
     desktop: "ב־\u2066claude.ai\u2069 וב־\u2066Claude Desktop\u2069: \u2066Settings → Connectors → Add custom connector\u2069",
-    signIn:
-      "הקריאה הראשונה פותחת חלון דפדפן. כל אחד יכול להתחבר: הכלים הציבוריים עונים בלי חשבון. התחברות עם GitHub פותחת את הכלים של בעל האתר, ורק לבעל האתר; כל חשבון אחר מקבל הודעה על כך ולא מקבל דבר.",
-    skipSignIn: "כדי לוותר על ההתחברות לגמרי, השתמשו בנקודת הקצה הציבורית, שמציעה רק את הכלים הציבוריים:",
-    publicOnly: "כלים ציבוריים בלבד",
+    ownerHead: "גישת בעל האתר",
+    ownerIntro:
+      "לבעל האתר יש כתובת שנייה. היא מבקשת התחברות עם GitHub, שפותחת חלון דפדפן; רק החשבון של בעל האתר מתקבל, וכל חשבון אחר מקבל הודעה על כך ולא מקבל דבר. בתמורה היא פותחת טיוטות, יומן ביקורת, מדיה ותרגומים, ואם בעל האתר מאשר, גם כתיבה.",
     tools: "כלים",
     publicHead: "ציבוריים, בלי התחברות",
     readHead: "בעל האתר, גישת קריאה (mcp:read)",
@@ -192,7 +194,7 @@ export const useMcpWords = defineWords(
     copied: "הועתק",
     copiedSay: "הועתק ללוח",
     copyLabel: (label: string) => `העתקה: ${label}`,
-    how: "איך עובדת ההתחברות",
+    how: "איך עובדת ההתחברות של בעל האתר",
     howBefore: "OAuth 2.1 סטנדרטי עם PKCE. הלקוח מגלה את כל מה שהוא צריך מ־",
     howAfter: "ונרשם בעצמו.",
     howItems: [

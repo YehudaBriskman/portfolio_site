@@ -560,9 +560,11 @@ page("/developers/mcp", async (_req, res, lang) => {
     type: "website",
     bodyHtml:
       `<main><p>${escapeHtml(w.developers)}</p><h1>${escapeHtml(w.mcp)}</h1><p>${escapeHtml(w.mcpDescription)}</p>` +
+      `<p>${escapeHtml(w.mcpPublic)}</p>` +
+      `<p>${escapeHtml(w.mcpCode)}: ${code(`claude mcp add --transport http yehuda-public ${url}/public`)}</p>` +
+      `<p>${escapeHtml(w.mcpConnector)} ${code(`${url}/public`)}.</p>` +
+      `<p>${escapeHtml(w.mcpOwner)}</p>` +
       `<p>${escapeHtml(w.mcpCode)}: ${code(`claude mcp add --transport http yehuda ${url}`)}</p>` +
-      `<p>${escapeHtml(w.mcpConnector)} ${code(url)}.</p>` +
-      `<p>${escapeHtml(w.mcpPublic)} ${code(`${url}/public`)}</p>` +
       `<p><a href="${href("/", lang)}">${escapeHtml(w.home)}</a> · <a href="${href("/blog", lang)}">${escapeHtml(w.blogs)}</a></p></main>`,
     jsonLd: graph(
       webPage("WebPage", lang, "/developers/mcp", { name: w.mcp, description: w.mcpDescription }),

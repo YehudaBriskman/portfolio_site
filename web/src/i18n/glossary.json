@@ -1823,7 +1823,7 @@
         "work.liveFailed",
         "work.releasesOnGitHub",
         "log.leaves",
-        "mcp.signIn",
+        "mcp.ownerIntro",
         "mcp.howItems.0"
       ],
       "rationale": "Brand. Prefix letters attach with maqaf (U+05BE). GitHub has no Hebrew UI; its docs are not offered in Hebrew (could not verify the language picker by fetch — the fetched page did not include it).",
@@ -2745,7 +2745,6 @@
       "where_used": [
         "mcp.tools",
         "mcp.tool",
-        "mcp.publicOnly",
         "home.spec.Tools"
       ],
       "rationale": "",
@@ -2765,9 +2764,7 @@
       "forbidden": [
         "אנדפוינט"
       ],
-      "where_used": [
-        "mcp.skipSignIn"
-      ],
+      "where_used": [],
       "rationale": "Already used; practitioners say אנדפוינט but the Hebrew is transparent. Evidence: none fetched beyond the site's own usage — weak.",
       "sources": []
     },
@@ -2916,8 +2913,8 @@
         "כניסה (as the button)"
       ],
       "where_used": [
-        "mcp.signIn",
-        "mcp.skipSignIn",
+        "mcp.ownerIntro",
+        "mcp.connectIntro",
         "mcp.how",
         "admin-settings.notAuthorised"
       ],
@@ -3356,7 +3353,7 @@
       "where_used": [
         "accessibility-statement.looksItems.1.1",
         "accessibility-statement.limitItems.2",
-        "mcp.signIn"
+        "mcp.ownerIntro"
       ],
       "rationale": "",
       "sources": [

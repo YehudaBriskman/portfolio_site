@@ -130,15 +130,14 @@ export default function DevelopersMcp() {
           </p>
 
           <h2 className="display display-md pt-6 text-object">{w.connect}</h2>
+          <p>{w.connectIntro}</p>
+          <CopyLine label="Claude Code" text={`claude mcp add --transport http yehuda-public ${url}/public`} />
+          <CopyLine label={w.desktop} text={`${url}/public`} />
+
+          <h2 className="display display-md pt-6 text-object">{w.ownerHead}</h2>
+          <p>{w.ownerIntro}</p>
           <CopyLine label="Claude Code" text={`claude mcp add --transport http yehuda ${url}`} />
           <CopyLine label={w.desktop} text={url} />
-          <p>
-            {w.signIn}
-          </p>
-          <p>
-            {w.skipSignIn}
-          </p>
-          <CopyLine label={w.publicOnly} text={`claude mcp add --transport http yehuda-public ${url}/public`} />
 
           <h2 className="display display-md pt-6 text-object">{w.tools}</h2>
           <h3 className="mono pt-2 text-xs uppercase tracking-[0.16em] text-clay">{w.publicHead}</h3>
