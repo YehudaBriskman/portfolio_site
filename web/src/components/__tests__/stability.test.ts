@@ -17,6 +17,9 @@ describe("the browse sheet", () => {
   it("contains its scroll, so it never chains into the page behind", () => {
     expect(css).toMatch(/\.sheetBody \{[^}]*overscroll-behavior: contain;/);
   });
+  it("paint-contains a selector's option list, so its full height cannot stretch the rail or sheet (the real cause)", () => {
+    expect(read("components/gallery/Filter.module.css")).toMatch(/\.options \{[^}]*contain: paint;/);
+  });
   it("marks the list the rule hangs on", () => {
     expect(read("components/gallery/FilterControl.tsx")).toContain('data-filter-popover=""');
   });
