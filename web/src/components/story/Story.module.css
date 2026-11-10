@@ -384,6 +384,12 @@
   --plate-from-r: 87.5%;
 }
 
+.platePicture {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
 .plateImg {
   display: block;
   width: 100%;
