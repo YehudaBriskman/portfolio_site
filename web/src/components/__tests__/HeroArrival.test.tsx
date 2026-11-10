@@ -789,9 +789,33 @@ describe("the hero's light", () => {
     expect(heroPhrases).toHaveLength(5);
   });
 
-  it("turns the phrases and breathes the lamp on the reader's scroll, on no clock", () => {
+  it("turns the phrases on a timer, and not at all under reduced motion or Pause", () => {
+    vi.useFakeTimers();
+    try {
+      const { container, unmount } = render(<HeroCorners />);
+      const on = () => [...container.querySelectorAll("[data-on]")].map((e) => e.textContent);
+      expect(on()).toEqual([heroPhrases[0]]);
+      act(() => {
+        vi.advanceTimersByTime(3200);
+      });
+      expect(on()).toEqual([heroPhrases[1]]);
+      unmount();
+
+      document.body.classList.add("motion-paused");
+      const paused = render(<HeroCorners />);
+      act(() => {
+        vi.advanceTimersByTime(10000);
+      });
+      expect([...paused.container.querySelectorAll("[data-on]")].map((e) => e.textContent)).toEqual([heroPhrases[0]]);
+    } finally {
+      document.body.classList.remove("motion-paused");
+      vi.useRealTimers();
+    }
+  });
+
+  it("breathes the lamp on the reader's scroll, on no clock; the phrases are on a timer", () => {
     const gate = atBlock(CORNERS, GATE);
-    for (const part of [".phrase", ".lamp", ".lamp::after"]) {
+    for (const part of [".lamp", ".lamp::after"]) {
       expect(gate, part).toMatch(new RegExp(`\\${part} \\{[^}]*animation-timeline: --hero`));
     }
     expect(CORNERS).not.toMatch(/infinite/);
@@ -814,7 +838,7 @@ describe("the hero's light", () => {
     const rest = outside.replace(fallback, "");
     expect(rest).not.toMatch(/animation(-name)?:/);
     expect(rest).toMatch(/\.phrase \{[^}]*opacity: 0/);
-    expect(rest).toMatch(/\.phrase:first-child \{\s*opacity: 1;/);
+    expect(rest).toMatch(/\.phrase\[data-on\] \{\s*opacity: 1;/);
     expect(atBlock(CORNERS, GATE)).toContain("@media (prefers-reduced-motion: no-preference)");
     expect(atBlock(CORNERS, GATE)).toContain("body:not(.motion-paused)");
   });

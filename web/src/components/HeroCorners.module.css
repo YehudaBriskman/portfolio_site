@@ -190,10 +190,25 @@
   /* At rest — before the arrival is done, and under every off-switch — the
      first phrase is the corner's whole statement and the rest are not there. */
   opacity: 0;
+  transform: translateY(0.3em);
+  transition: opacity 700ms ease, transform 700ms var(--ease-settle, ease);
 }
 
-.phrase:first-child {
+/* The one on show. The first is on at rest and under every off-switch (the
+   cycle never starts there), so the corner always says something. */
+.phrase[data-on] {
   opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .phrase {
+    transition: none;
+  }
+}
+
+:global(body.motion-paused) .phrase {
+  transition: none;
 }
 
 .lamp {
@@ -224,33 +239,14 @@
 }
 
 /*
- * The phrases: phrase i of n owns the slice [i/n, (i+1)/n] of the first 36%
- * of the hold, and is on screen for the middle of it. The first phrase is
- * already on screen when its slice starts and the last stays when its slice
- * ends, so scroll 0 shows the first phrase and every frame past the turn
- * shows the last — never a gap with no words in it.
- *
- * Declared only inside the same three-condition gate the plate uses (view
- * timelines run, no reduced motion, no Pause), so every off-switch is simply
- * the resting state above: a lit, still lamp and the first phrase.
+ * The phrases turn on a timer (`HeroCorners.tsx`, `useCycle`: one every 3200ms),
+ * not with the scroll. That is the owner's call of 2026-11-10 and it replaces
+ * the scrubbed version (#162) for the phrases only; the lamp below is still
+ * scroll-driven. The off-switches (reduced motion, Pause) never start the
+ * timer, so they show the first phrase, still. `docs/motion-contract.md` §11.
  */
 @supports (animation-timeline: view()) {
   @media (prefers-reduced-motion: no-preference) {
-    :global(body:not(.motion-paused)) .phrase {
-      --slice: calc(36% / var(--n));
-      animation: phrase-turn linear both;
-      animation-timeline: --hero;
-      animation-range: contain calc(var(--i) * var(--slice)) contain calc((var(--i) + 1) * var(--slice));
-    }
-
-    :global(body:not(.motion-paused)) .phrase:first-child {
-      animation-name: phrase-turn-first;
-    }
-
-    :global(body:not(.motion-paused)) .phrase:last-child {
-      animation-name: phrase-turn-last;
-    }
-
     :global(body:not(.motion-paused)) .lamp {
       animation: lamp-breathe linear both;
       animation-timeline: --hero;
@@ -326,25 +322,6 @@
 @keyframes corner-mask-down {
   from { transform: scaleY(1); }
   to   { transform: scaleY(0); }
-}
-
-@keyframes phrase-turn {
-  0%   { opacity: 0; transform: translateY(0.3em); }
-  25%  { opacity: 1; transform: none; }
-  75%  { opacity: 1; transform: none; }
-  100% { opacity: 0; transform: translateY(-0.3em); }
-}
-
-@keyframes phrase-turn-first {
-  0%   { opacity: 1; transform: none; }
-  75%  { opacity: 1; transform: none; }
-  100% { opacity: 0; transform: translateY(-0.3em); }
-}
-
-@keyframes phrase-turn-last {
-  0%   { opacity: 0; transform: translateY(0.3em); }
-  25%  { opacity: 1; transform: none; }
-  100% { opacity: 1; transform: none; }
 }
 
 /* Rest at both ends — lit, full size — so the lamp at scroll 0 is the lamp
