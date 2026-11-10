@@ -181,6 +181,14 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   list-style: none;
+  /* The real reason the browse rail and sheet scrolled into blank space
+     (measured 2026-11-10 on /he/blog: rail scrollHeight 4031px for 738px of
+     content). This list holds every tag (about 80 rows, 3400px) in a 288px box,
+     and its overflow still counts toward the scrollable area of the rail
+     around it, so the rail scrolled as far as the list's full height. Paint
+     containment clips it for good; the popover's own shadow is on the popover,
+     outside this box, so it is not clipped. */
+  contain: paint;
 }
 
 .option {
