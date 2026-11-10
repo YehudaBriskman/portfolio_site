@@ -1,0 +1,244 @@
+/*
+ * The display panel (DisplayMenu.tsx): one panel for language, theme, text
+ * size, contrast and the motion pause.
+ *
+ * Hierarchy, top to bottom: a title row (the popup system's `.pop-head`), then
+ * sections of a small label over one segmented choice, then a hairline and the
+ * switch. The label is the field voice (small caps-ish, tracked); the choice
+ * is the body voice. Everything is laid out with logical properties, so in
+ * Hebrew the whole panel mirrors with no rule of its own.
+ *
+ * The same panel is the popover's content and the phone sheet's group; the
+ * sheet gives it no box of its own (`.panel` carries only its inner spacing).
+ */
+
+.pop.pop {
+  width: 20rem;
+}
+
+.close {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  margin-block: -0.5rem;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: rgb(var(--ink-soft));
+  cursor: pointer;
+  transition: background-color var(--dur-micro) ease, color var(--dur-micro) ease;
+}
+
+.close svg {
+  width: 18px;
+  height: 18px;
+}
+
+.close:hover {
+  background: rgb(var(--ink) / 0.07);
+  color: rgb(var(--ink));
+}
+
+.close:focus-visible,
+.segItem:focus-visible,
+.switchRow:focus-visible {
+  outline: 2px solid rgb(var(--ink));
+  outline-offset: -2px;
+}
+
+.panel {
+  display: grid;
+  gap: 1.125rem;
+  padding: 1rem;
+}
+
+.panel[data-inline] {
+  padding: 0.5rem 0.8125rem 1rem;
+}
+
+.section {
+  display: grid;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.label {
+  margin: 0;
+  font-family: var(--font-data);
+  font-size: 0.75rem;
+  font-weight: var(--weight-data);
+  letter-spacing: var(--track-field);
+  text-transform: uppercase;
+  /* A label is text and has to clear 4.5:1; the faint token does not. */
+  color: rgb(var(--ink-soft));
+}
+
+/* Tracked capitals are a Latin habit; spaced-out Hebrew letters read as
+   separate words. */
+:lang(he) .label {
+  letter-spacing: 0;
+  text-transform: none;
+  font-size: 0.8125rem;
+}
+
+/* ------------------------------------------------------------- segmented -- */
+
+.seg {
+  display: grid;
+  gap: 2px;
+  padding: 3px;
+  /* Concentric: the items' radius is this one less the 3px of padding. */
+  border-radius: 14px;
+  border: 1px solid rgb(var(--rule));
+  background: rgb(var(--ink) / 0.05);
+}
+
+.segItem {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0.375rem 0.5rem;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  background: transparent;
+  color: rgb(var(--ink-soft));
+  font-family: var(--font-text);
+  font-size: 0.875rem;
+  letter-spacing: var(--track-body);
+  line-height: 1.2;
+  text-align: center;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color var(--dur-micro) ease, color var(--dur-micro) ease,
+    border-color var(--dur-micro) ease, box-shadow var(--dur-micro) ease;
+}
+
+.seg[data-stacked] .segItem {
+  flex-direction: column;
+  gap: 0.25rem;
+  min-height: 3.75rem;
+  font-size: 0.8125rem;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .segItem:hover {
+    color: rgb(var(--ink));
+    background: rgb(var(--ink) / 0.06);
+  }
+}
+
+/* The chosen one is lifted onto the panel's own surface: a raised chip in a
+   recessed track, which says "selected" with value and edge, not hue. */
+.segItem[aria-checked="true"] {
+  background: var(--pop-bg);
+  border-color: var(--pop-edge);
+  color: rgb(var(--ink));
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgb(var(--shade, var(--ink)) / 0.18);
+}
+
+.segIcon {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+}
+
+.segIcon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.segLabel {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* The text-size options' "A", in the size the option gives. */
+.glyph {
+  font-family: var(--font-text);
+  font-weight: var(--weight-text-strong);
+  line-height: 1;
+}
+
+/* ---------------------------------------------------------------- switch -- */
+
+.switchRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+  min-height: 44px;
+  margin: 0;
+  /* The hairline that splits "how it looks" from "how it moves". */
+  padding: 0.5rem 0 0;
+  border: 0;
+  border-block-start: 1px solid rgb(var(--rule));
+  border-radius: 0;
+  background: transparent;
+  color: rgb(var(--ink));
+  font-family: var(--font-text);
+  font-size: 0.9375rem;
+  text-align: start;
+  cursor: pointer;
+}
+
+.switchLabel {
+  min-width: 0;
+}
+
+.track {
+  position: relative;
+  flex: none;
+  width: 44px;
+  height: 26px;
+  border-radius: 999px;
+  border: 1px solid var(--pop-edge);
+  background: rgb(var(--ink) / 0.08);
+  transition: background-color var(--dur-fast) ease, border-color var(--dur-fast) ease;
+}
+
+.thumb {
+  position: absolute;
+  inset-block-start: 2px;
+  inset-inline-start: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgb(var(--ink));
+  transition: translate var(--dur-fast) var(--ease-settle), background-color var(--dur-fast) ease;
+}
+
+.switchRow[aria-checked="true"] .track {
+  background: rgb(var(--ink));
+  border-color: rgb(var(--ink));
+}
+
+.switchRow[aria-checked="true"] .thumb {
+  background: rgb(var(--paper));
+  translate: 18px 0;
+}
+
+.switchRow[aria-checked="true"] .thumb:dir(rtl),
+:dir(rtl) .switchRow[aria-checked="true"] .thumb {
+  translate: -18px 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .segItem,
+  .close,
+  .track,
+  .thumb {
+    transition: none;
+  }
+}
+
+:global(body.motion-paused) :is(.segItem, .close, .track, .thumb) {
+  transition: none;
+}

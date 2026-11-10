@@ -1,3 +1,4 @@
+import Select from "@/components/ui/Select";
 import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import AdminShell from "@/components/admin/AdminShell";
@@ -583,13 +584,13 @@ function CaptionTracks({
       <div className="mt-3 flex flex-wrap items-center gap-3">
         <label className="flex items-center gap-2">
           <span className="a-label m-0">Language</span>
-          <select className="a-select" value={lang} onChange={(e) => setLang(e.target.value)}>
+          <Select value={lang} onChange={(e) => setLang(e.target.value)}>
             {TRACK_LANGS.map((t) => (
               <option key={t.lang} value={t.lang}>
                 {t.label}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
         <input
           ref={picker}

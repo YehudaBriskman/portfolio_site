@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { admin } from "@/services/admin";
 import { markAdminSeen } from "@/components/notes/reader/adminSession";
-import ThemeMenu from "@/components/nav/ThemeMenu";
+import DisplayMenu from "@/components/nav/DisplayMenu";
 import Ring from "@/components/motion/Ring";
 import { useAdminWords } from "@/i18n/admin";
 import { Counter } from "./ui";
@@ -256,7 +256,7 @@ export default function AdminShell({ title, section, counts, bottomBar, backTo, 
             <ExternalLink aria-hidden="true" />
             <span className="hidden md:inline">{w.viewSite}</span>
           </a>
-          <ThemeMenu />
+          <DisplayMenu />
           {who && (
             <span className="a-owner" title={w.signedInAs(who)}>
               <span className="a-avatar" aria-hidden="true">

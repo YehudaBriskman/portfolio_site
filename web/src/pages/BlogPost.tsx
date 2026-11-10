@@ -409,7 +409,7 @@ export default function BlogPost() {
       {post && state === "ok" && (
         <dialog
           ref={sheet}
-          className={reader.sheet}
+          className={`${reader.sheet} pop-dialog pop-dialog--bottom`}
           aria-labelledby={sheetTitle}
           onClose={() => sheetOpener.current?.focus()}
           onClick={(e) => {

@@ -110,7 +110,7 @@ export default function RailLayout({
 
       <dialog
         ref={sheet}
-        className={styles.sheet}
+        className={`${styles.sheet} pop-dialog pop-dialog--bottom`}
         aria-labelledby={titleId}
         onClose={() => opener.current?.focus()}
         /* A press on the backdrop is a press on the dialog itself. */

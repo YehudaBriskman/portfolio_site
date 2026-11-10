@@ -1,3 +1,4 @@
+import Select from "@/components/ui/Select";
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { X } from "lucide-react";
@@ -664,11 +665,11 @@ export default function AdminEditor() {
             <div className="mt-4 grid gap-5 sm:grid-cols-2">
               <label className="block">
                 <span className="a-label">{w.area}</span>
-                <select value={f.collection} onChange={(e) => edit("collection", e.target.value)} className="a-select">
+                <Select value={f.collection} onChange={(e) => edit("collection", e.target.value)}>
                   {(cols.length ? cols : [{ slug: "site", title: "Notes" } as AdminCollection]).map((c) => (
                     <option key={c.slug} value={c.slug}>{c.title}</option>
                   ))}
-                </select>
+                </Select>
               </label>
               <TagsField id={ids.tags} tags={f.tags} known={knownTags} onChange={(t) => edit("tags", t)} words={w} />
               <label className="block">
