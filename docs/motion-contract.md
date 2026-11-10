@@ -2261,3 +2261,23 @@ never start it (the first phrase is shown, still), it skips ticks while the tab
 is hidden, and print and forced colours show the first phrase. A screen reader
 still gets one stable `sr-only` sentence of all the phrases; the rotating stack
 is `aria-hidden`.
+
+---
+
+## 12. The particle word's energy lines (2026-11-10)
+
+The owner asked for a thin line from every dot to the centred tenth of the
+page's top edge, carrying energy, moving with the dots. `ParticleWord.tsx` draws
+them on the word's own canvas (now sized from the hero's top edge down to the
+word, and *under* the composition, so the photograph stands in front of the dots
+and the lines): one quadratic curve per second dot (up to 4500), its control
+point a spring that follows the midpoint so lines swing and lag as dots move,
+and a bead running down every tenth line that flares at its dot.
+
+It is a clock-driven loop, like §11, and it is gated exactly as the word is:
+the particle gate (width, pointer, hover, canvas, reduced motion, Pause, print,
+forced colours) decides whether any of it exists; the loop draws every other
+frame when only the lines move, stops while the tab is hidden or the hero is
+off screen (an `IntersectionObserver`, both directions, a cost saving and not a
+reveal), and never runs in the test modes. No keyframes.
+||||||| a371804
