@@ -361,7 +361,10 @@
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   overflow: hidden;
-  padding: var(--pad) 0 0 var(--pad);
+  /* Logical, not left/right: right to left the name starts at the right edge
+     and its pad belongs there. `padding: pad 0 0 pad` left it flush. */
+  padding-block: var(--pad) 0;
+  padding-inline: var(--pad) 0;
 }
 
 .card:not([data-cover]) .label > h3 {
@@ -491,7 +494,8 @@
 .onward {
   grid-area: onward;
   align-self: end;
-  padding: 0 var(--pad) var(--pad) 0;
+  padding-block: 0 var(--pad);
+  padding-inline: 0 var(--pad);
   font-family: ui-sans-serif, system-ui, "Segoe UI Symbol", "Noto Sans Symbols 2", sans-serif;
   font-size: 1.125rem;
   line-height: 1;
