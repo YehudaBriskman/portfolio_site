@@ -530,3 +530,52 @@
     line-height: 0.92;
   }
 }
+
+/*
+ * THE PARTICLE WORD'S COMPOSITION (desktop only; the owner, 2026-11-10)
+ * ---------------------------------------------------------------------
+ * "Very, very big, almost in the middle of the screen, a little above the
+ * vertical centre." `hero/ParticleWord.tsx` sets `data-particles` on the
+ * section (`eligible`, then `on` once the canvas is drawn) and writes the
+ * sizes it computed as custom properties on it: `--pw-font` (the size at
+ * which the word fills ~84% of the section's width, or the height budget,
+ * whichever binds), `--pw-w` and `--pw-h` (the box of the laid-out word) and
+ * `--pw-lh`. When it is absent - the viewport is under 1100px, the pointer is
+ * coarse, motion is reduced or paused, or there is no canvas - NONE of these
+ * rules match and the hero is the composition above this block, unchanged.
+ *
+ * The h1 is still the layout. It is set at the particle size in the same
+ * font, and the particles are drawn onto the lines the browser wrapped it
+ * into, so the canvas and the box it reserves cannot disagree and nothing
+ * moves when the canvas appears; the h1 is then only made transparent
+ * (`opacity: 0`, not `display` or `visibility`, so it stays selectable and
+ * copyable and is still what a screen reader reads).
+ *
+ * The word's box is centred on 42% of the first screen's height: the h1's
+ * top margin is that line, less the screen's top padding, less half the box.
+ * `max(0px, ...)` keeps a short window from pulling it into the nav. Its
+ * width is `--pw-w`, centred with a margin that goes negative where the word
+ * is wider than the column - which is the point: the word spans the section,
+ * not the 72rem column.
+ */
+.holder[data-particles] .composition .plate h1 {
+  width: var(--pw-w);
+  margin-inline: calc((100% - var(--pw-w)) / 2);
+  margin-block-start: max(0px, calc(42svh - var(--screen-pad) - var(--pw-h) / 2));
+  font-size: var(--pw-font);
+  line-height: var(--pw-lh);
+}
+
+.holder[data-pw-lines="1"] .composition .plate h1 {
+  white-space: nowrap;
+}
+
+.holder[data-particles="on"] .composition .plate h1 {
+  opacity: 0;
+}
+
+@media print {
+  .holder[data-particles] .composition .plate h1 {
+    opacity: 1;
+  }
+}

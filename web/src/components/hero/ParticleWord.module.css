@@ -1,0 +1,31 @@
+/*
+ * The particle word's canvas. Its box (left, top, width, height) is written
+ * by `ParticleWord.tsx` from the h1's measured box: the h1's box plus a
+ * margin for the pointer's reach, spanning the section's full width so the
+ * entrance can start from its edges.
+ *
+ * Above the composition (z-index 1 against the composition's isolated 0), out
+ * of flow (so it can shift nothing), and deaf to the pointer: the page listens
+ * on the window instead, so the canvas can never eat a click, a drag or a
+ * text selection meant for what is beneath it.
+ */
+.canvas {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* Paper and forced palettes get the static word (see Hero.module.css). */
+@media print {
+  .canvas {
+    display: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .canvas {
+    display: none;
+  }
+}

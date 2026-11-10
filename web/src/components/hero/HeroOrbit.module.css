@@ -1,0 +1,135 @@
+/*
+ * The orbit constellation's look and its one entrance. See HeroOrbit.tsx.
+ *
+ * Painted behind the composition (it is first in the hero's DOM and the
+ * composition is positioned, so it paints after), all soft tints from the
+ * `--soft-*` tokens, nothing above 0.6 alpha, so no text ratio rests on it.
+ * There are no @keyframes here: the entrance is a transition from
+ * `data-phase="away"` to `"in"`, flipped once by the component.
+ */
+.orbit {
+  position: absolute;
+  inset: 0 0 auto 0;
+  /* The first screen, not the section: the section runs taller than the
+     window (the figure's row), and the constellation is composed for what
+     is in view. */
+  height: 100svh;
+  z-index: 0;
+  pointer-events: none;
+  contain: layout paint;
+}
+
+.ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  fill: none;
+  stroke: rgb(var(--ink) / 0.16);
+  stroke-width: 1;
+  transition: opacity 1.4s ease 0.3s, transform 1.6s cubic-bezier(0.2, 0.8, 0.2, 1) 0.2s;
+}
+
+.ring :global(ellipse) {
+  vector-effect: non-scaling-stroke;
+}
+
+.dashed {
+  stroke-dasharray: 2 7;
+  stroke: rgb(var(--soft-blue) / 0.45);
+}
+
+.orbit[data-phase="away"] .ring {
+  opacity: 0;
+  transform: scale(1.12);
+}
+
+.item {
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+
+/* Two nested boxes, two curves: the composite path is an arc. */
+.fly {
+  display: block;
+  transition: transform 1.6s cubic-bezier(0.16, 0.8, 0.3, 1) var(--d);
+}
+
+.rise {
+  display: block;
+  transition:
+    transform 1.6s cubic-bezier(0.5, 0, 0.2, 1) var(--d),
+    opacity 0.9s ease var(--d);
+}
+
+.orbit[data-phase="away"] .fly {
+  transform: translateX(var(--sx));
+}
+
+.orbit[data-phase="away"] .rise {
+  transform: translateY(var(--sy));
+  opacity: 0;
+}
+
+/* A hero that mounts after the entry (a navigation back) is simply whole. */
+.orbit[data-instant] .fly,
+.orbit[data-instant] .rise,
+.orbit[data-instant] .ring {
+  transition: none;
+}
+
+.dot {
+  display: block;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: rgb(var(--hue) / 0.6);
+}
+
+.shard {
+  display: block;
+  width: 30px;
+  height: 18px;
+  margin: -9px 0 0 -15px;
+  border-radius: 3px 9px 3px 9px;
+  background: linear-gradient(135deg, rgb(var(--hue) / 0.34), rgb(var(--hue) / 0.08));
+  border: 1px solid rgb(var(--hue) / 0.4);
+}
+
+.chip {
+  display: inline-block;
+  transform: translate(-50%, -50%);
+  padding: 0.32rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid rgb(var(--hue) / 0.5);
+  background: rgb(var(--paper) / 0.6);
+  color: rgb(var(--ink-soft));
+  font-family: var(--font-data);
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  box-shadow: inset 0 0 0 1px rgb(var(--paper) / 0.4);
+}
+
+.chip::before {
+  content: "";
+  display: inline-block;
+  width: 0.4rem;
+  height: 0.4rem;
+  margin-inline-end: 0.45rem;
+  border-radius: 50%;
+  background: rgb(var(--hue));
+}
+
+[data-hue="sage"] { --hue: var(--soft-sage); }
+[data-hue="blue"] { --hue: var(--soft-blue); }
+[data-hue="sand"] { --hue: var(--soft-sand); }
+[data-hue="lilac"] { --hue: var(--soft-lilac); }
+
+@media print, (forced-colors: active) {
+  .orbit {
+    display: none;
+  }
+}

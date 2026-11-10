@@ -1,0 +1,55 @@
+/*
+ * The page's colour orbs. See AmbientOrbs.tsx.
+ *
+ * `--orb-alpha` is the strongest orb (index.css, per theme); the others are
+ * fractions of it, so the contrast test has one number to hold. Sizes are in
+ * `vmax` so the circles stay circles and stay large on any window; the
+ * gradients fall to transparent by 70% of their radius, which is what makes
+ * them soft without a blur filter.
+ *
+ * Phones get the same orbs at 55%: the layer is fixed, so on a small screen
+ * the same circles would be a larger share of every view.
+ */
+.orbs {
+  --a: var(--orb-alpha);
+
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 1.2s ease;
+  background:
+    radial-gradient(38vmax 38vmax at 8% 12%, rgb(var(--soft-sage) / var(--a)), transparent 70%),
+    radial-gradient(34vmax 34vmax at 92% 22%, rgb(var(--soft-blue) / calc(var(--a) * 0.9)), transparent 70%),
+    radial-gradient(40vmax 40vmax at 82% 92%, rgb(var(--soft-sand) / calc(var(--a) * 0.8)), transparent 70%),
+    radial-gradient(32vmax 32vmax at 14% 84%, rgb(var(--soft-lilac) / calc(var(--a) * 0.85)), transparent 70%);
+}
+
+.orbs[data-ready] {
+  opacity: 1;
+}
+
+@media (max-width: 699px) {
+  .orbs {
+    --a: calc(var(--orb-alpha) * 0.55);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orbs {
+    opacity: 1;
+    transition: none;
+  }
+}
+
+:global(body.motion-paused) .orbs {
+  opacity: 1;
+  transition: none;
+}
+
+@media print, (forced-colors: active) {
+  .orbs {
+    display: none;
+  }
+}

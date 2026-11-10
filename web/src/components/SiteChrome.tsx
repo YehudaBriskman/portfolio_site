@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Outlet } from "react-router-dom";
 import { scrollToAnchor } from "@/lib/scrollToAnchor";
 import Nav from "@/components/Nav";
+import AmbientOrbs from "@/components/ground/AmbientOrbs";
 import { PageCommitContext } from "@/components/nav/pageCommit";
 import { useChromeWords } from "@/i18n/chrome";
 
@@ -89,6 +90,7 @@ export default function SiteChrome() {
       >
         {w.skip}
       </a>
+      <AmbientOrbs />
       <Nav />
       <Outlet />
     </PageCommitContext.Provider>

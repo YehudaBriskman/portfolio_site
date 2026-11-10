@@ -648,7 +648,10 @@ describe("the first screen's title", () => {
      */
     expect(plateTitle.name.split(" ")).toHaveLength(2);
     const hero = strip(readFileSync(resolve(HERE, "../Hero.module.css"), "utf8"));
-    expect(hero.match(/\.composition \.plate h1 \{/g)).toHaveLength(2);
+    /* The two static rungs only: a rule on the particle composition
+       (`.holder[data-particles] .composition .plate h1`, preceded by a `]`)
+       is a different thing and is pinned in hero/__tests__. */
+    expect(hero.match(/(?:^|[{}]\s*)\.composition \.plate h1 \{/g)).toHaveLength(2);
     expect(hero).not.toMatch(/data-title/);
   });
 });

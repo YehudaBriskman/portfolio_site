@@ -6,6 +6,9 @@ import { useLang } from "@/components/dashboard/i18n";
 import { withHebrewName } from "@/data/identity";
 import { useHomeWords } from "@/i18n/pages";
 import HeroCorners from "@/components/HeroCorners";
+import HeroOrbit from "@/components/hero/HeroOrbit";
+import ParticleWord, { type Arrival as PwArrival } from "@/components/hero/ParticleWord";
+import { useParticleGate } from "@/components/hero/useParticleGate";
 import styles from "@/components/Hero.module.css";
 import arrival from "@/components/HeroArrival.module.css";
 import {
@@ -231,6 +234,17 @@ export default function Hero({ hold = true }: { hold?: boolean }) {
   /* On the Hebrew page the fact line carries the owner's Hebrew spelling
      beside the Latin name (#308), as the server render does. */
   const fact = withHebrewName(plateTitle.fact, useLang());
+  /*
+    The desktop-only objects: the particle word (the h1's own text, drawn as
+    particles) and the orbit constellation. `useParticleGate` is false on the
+    server, on a phone or a coarse pointer, under reduced motion, Pause,
+    forced colours, print, or without a canvas - and then neither is mounted
+    and this is the static hero. See `hero/ParticleWord.tsx`.
+  */
+  const particles = useParticleGate(plateTitle.name);
+  /* `?particles=settled` is the verification path: no entrance, assembled. */
+  const settledOnly = typeof window !== "undefined" && window.location.search.includes("particles=settled");
+  const pw: PwArrival = settledOnly ? "now" : arrives === "held" ? "wait" : arrives === "play" ? "play" : "now";
   return (
     /*
       `overflow-x: clip` and not `hidden`: the two remaining lines enter from
@@ -250,6 +264,7 @@ export default function Hero({ hold = true }: { hold?: boolean }) {
     */
     <section id="hero" className={hold ? `${styles.holder} ${styles.held}` : styles.holder}>
       <div className={`relative w-full ${styles.hero}`}>
+        {particles && <HeroOrbit arrival={pw} />}
         {/*
           `pt-28` is nav clearance, not rhythm: the island is fixed, 50px tall
           and 18px down, so the first line has to start below 68px.
@@ -365,6 +380,7 @@ export default function Hero({ hold = true }: { hold?: boolean }) {
             <HeroCorners />
           </div>
         </div>
+        {particles && <ParticleWord text={plateTitle.name} arrival={pw} />}
       </div>
     </section>
   );
