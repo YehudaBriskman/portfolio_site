@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useImageLoad } from "@/components/media/useImageLoad";
 import { shotImage } from "@/lib/projectImage";
 
 /*
@@ -63,12 +63,13 @@ export default function Shot({
   sizes?: string;
   eager?: boolean;
 }) {
-  const [loaded, setLoaded] = useState(false);
 
   /* `shotImage` hands back anything it does not recognise as a single `src` —
      a cover pasted into the admin, say — and we have no variants of those, so
      there is nothing to offer the browser a choice between. */
   const picture = shotImage(src) ?? { sources: [], src };
+  const { attach, state, onLoad, onError } = useImageLoad(picture.src);
+  const loaded = state === "loaded";
 
   return (
     /* `rounded-none` and the border beat `.card-shot` on cascade order rather
@@ -77,8 +78,13 @@ export default function Shot({
        in. The border is the one `.figure-frame > img` would have drawn if
        this were a bare `<img>` rather than a box with a placeholder in it. */
     <div className={`card-shot relative rounded-none border border-[rgb(var(--rule))] ${className}`}>
+      {/* A placeholder while it loads; still, not pulsing, once it has failed. */}
       {!loaded && (
-        <div className="absolute inset-0 scrub-pulse bg-[rgb(var(--rule)_/_0.4)]" aria-hidden="true" />
+        <div
+          className={`absolute inset-0 bg-[rgb(var(--rule)_/_0.4)] ${state === "failed" ? "" : "scrub-pulse"}`}
+          data-image-state={state}
+          aria-hidden="true"
+        />
       )}
       {/* `sizes` is repeated on every `<source>` on purpose: a `<source>` does
           not inherit the `<img>`'s, and one that omits it falls back to 100vw
@@ -93,6 +99,7 @@ export default function Shot({
           <source key={source.type} type={source.type} srcSet={source.srcSet} sizes={sizes} />
         ))}
         <img
+          ref={attach}
           src={picture.src}
           srcSet={picture.srcSet}
           sizes={picture.srcSet ? sizes : undefined}
@@ -100,7 +107,8 @@ export default function Shot({
           loading={eager ? "eager" : "lazy"}
           fetchpriority={eager ? "high" : undefined}
           decoding="async"
-          onLoad={() => setLoaded(true)}
+          onLoad={onLoad}
+          onError={onError}
           className={`h-full w-full ${picture.sources.length ? "object-cover object-top" : "object-contain object-center"} ${loaded ? "opacity-100" : "opacity-0"}`}
         />
       </picture>

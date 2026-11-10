@@ -1,0 +1,27 @@
+.fallback {
+  min-height: 60svh;
+}
+
+.bars {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  max-width: 44rem;
+}
+
+.bar {
+  display: block;
+  height: 0.9rem;
+  border-radius: 0.45rem;
+  background: rgb(var(--rule) / 0.45);
+}
+
+.head {
+  width: 55%;
+  height: 2.4rem;
+  margin-block-end: 0.8rem;
+}
+
+.short {
+  width: 62%;
+}

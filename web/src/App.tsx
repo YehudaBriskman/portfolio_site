@@ -1,4 +1,5 @@
 import { Suspense, lazy } from "react";
+import RouteFallback from "@/components/RouteFallback";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
@@ -143,25 +144,25 @@ const App = () => {
           <Route element={<SiteChrome />}>
             <Route path="/" element={<Index />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="/blog" element={<Suspense fallback={null}><Blog /></Suspense>} />
-            <Route path="/projects" element={<Suspense fallback={null}><Projects /></Suspense>} />
-            <Route path="/projects/:project" element={<Suspense fallback={null}><Project /></Suspense>} />
+            <Route path="/blog" element={<Suspense fallback={<RouteFallback />}><Blog /></Suspense>} />
+            <Route path="/projects" element={<Suspense fallback={<RouteFallback />}><Projects /></Suspense>} />
+            <Route path="/projects/:project" element={<Suspense fallback={<RouteFallback />}><Project /></Suspense>} />
             {/* Removed projects (2026-11-03). nginx answers a direct load with a
                 308; these catch a link followed inside the app. */}
             <Route path="/projects/change11" element={<Navigate to="/projects" replace />} />
             <Route path="/projects/text-encrypting" element={<Navigate to="/projects" replace />} />
-            <Route path="/story" element={<Suspense fallback={null}><Story /></Suspense>} />
+            <Route path="/story" element={<Suspense fallback={<RouteFallback />}><Story /></Suspense>} />
             {/* the short-lived /blog/c/ shape, kept so nothing dangles */}
             <Route path="/blog/c/:project" element={<LegacyCollectionRedirect />} />
             {/* An area's notes. Above `/blog/:slug` only for reading order:
                 the router ranks a static segment over a dynamic one anyway. */}
-            <Route path="/blog/area/:slug" element={<Suspense fallback={null}><BlogArea /></Suspense>} />
+            <Route path="/blog/area/:slug" element={<Suspense fallback={<RouteFallback />}><BlogArea /></Suspense>} />
             {/* The full channel log (#226): every event, by day. A static
                 segment, so the router ranks it above `/blog/:slug`. */}
-            <Route path="/blog/log" element={<Suspense fallback={null}><BlogLog /></Suspense>} />
-            <Route path="/blog/:slug" element={<Suspense fallback={null}><BlogPost /></Suspense>} />
-            <Route path="/accessibility" element={<Suspense fallback={null}><Accessibility /></Suspense>} />
-            <Route path="/developers/mcp" element={<Suspense fallback={null}><DevelopersMcp /></Suspense>} />
+            <Route path="/blog/log" element={<Suspense fallback={<RouteFallback />}><BlogLog /></Suspense>} />
+            <Route path="/blog/:slug" element={<Suspense fallback={<RouteFallback />}><BlogPost /></Suspense>} />
+            <Route path="/accessibility" element={<Suspense fallback={<RouteFallback />}><Accessibility /></Suspense>} />
+            <Route path="/developers/mcp" element={<Suspense fallback={<RouteFallback />}><DevelopersMcp /></Suspense>} />
             {/* The 404 is a reader's page too, and keeps the bar. */}
             <Route path="*" element={<NotFound />} />
           </Route>
@@ -170,19 +171,19 @@ const App = () => {
           <Route path="/notes/:slug" element={<LegacyNoteRedirect />} />
           {/* URLs say what the tool says. /admin/collections/:slug is kept as a
               redirect because bookmarks to it exist. */}
-          <Route path="/admin" element={<Suspense fallback={null}><AdminOverview /></Suspense>} />
-          <Route path="/admin/posts" element={<Suspense fallback={null}><Admin /></Suspense>} />
-          <Route path="/admin/posts/:slug" element={<Suspense fallback={null}><AdminEditor /></Suspense>} />
-          <Route path="/admin/areas" element={<Suspense fallback={null}><AdminAreas /></Suspense>} />
-          <Route path="/admin/areas/:slug" element={<Suspense fallback={null}><AdminCollection /></Suspense>} />
-          <Route path="/admin/connections" element={<Suspense fallback={null}><AdminConnections /></Suspense>} />
-          <Route path="/admin/media" element={<Suspense fallback={null}><AdminMedia /></Suspense>} />
+          <Route path="/admin" element={<Suspense fallback={<RouteFallback />}><AdminOverview /></Suspense>} />
+          <Route path="/admin/posts" element={<Suspense fallback={<RouteFallback />}><Admin /></Suspense>} />
+          <Route path="/admin/posts/:slug" element={<Suspense fallback={<RouteFallback />}><AdminEditor /></Suspense>} />
+          <Route path="/admin/areas" element={<Suspense fallback={<RouteFallback />}><AdminAreas /></Suspense>} />
+          <Route path="/admin/areas/:slug" element={<Suspense fallback={<RouteFallback />}><AdminCollection /></Suspense>} />
+          <Route path="/admin/connections" element={<Suspense fallback={<RouteFallback />}><AdminConnections /></Suspense>} />
+          <Route path="/admin/media" element={<Suspense fallback={<RouteFallback />}><AdminMedia /></Suspense>} />
           <Route path="/admin/collections/:slug" element={<LegacyAreaRedirect />} />
-          <Route path="/admin/projects" element={<Suspense fallback={null}><AdminProjects /></Suspense>} />
-          <Route path="/admin/story" element={<Suspense fallback={null}><AdminStory /></Suspense>} />
-          <Route path="/admin/site-copy" element={<Suspense fallback={null}><AdminSiteCopy /></Suspense>} />
-          <Route path="/admin/settings" element={<Suspense fallback={null}><AdminSettings /></Suspense>} />
-          <Route path="/admin/translations" element={<Suspense fallback={null}><AdminTranslations /></Suspense>} />
+          <Route path="/admin/projects" element={<Suspense fallback={<RouteFallback />}><AdminProjects /></Suspense>} />
+          <Route path="/admin/story" element={<Suspense fallback={<RouteFallback />}><AdminStory /></Suspense>} />
+          <Route path="/admin/site-copy" element={<Suspense fallback={<RouteFallback />}><AdminSiteCopy /></Suspense>} />
+          <Route path="/admin/settings" element={<Suspense fallback={<RouteFallback />}><AdminSettings /></Suspense>} />
+          <Route path="/admin/translations" element={<Suspense fallback={<RouteFallback />}><AdminTranslations /></Suspense>} />
         </Routes>
       </BrowserRouter>
     </TooltipProvider>

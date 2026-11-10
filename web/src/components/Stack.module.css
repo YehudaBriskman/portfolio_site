@@ -269,7 +269,7 @@
 
 @supports (animation-timeline: view()) {
   @media (prefers-reduced-motion: no-preference) {
-    :global(body:not(.motion-paused)) .plate .figure {
+    :global(body:not(.motion-paused)) .plate:not([data-count="js"]) .figure {
       animation: spec-count linear both;
       animation-timeline: --specs;
       animation-range: entry 10% cover 45%;
