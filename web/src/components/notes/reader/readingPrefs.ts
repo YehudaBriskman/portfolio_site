@@ -48,7 +48,7 @@ function read(): ReadingPrefs {
 }
 
 export function prefsVars(p: ReadingPrefs): Record<string, string> {
-  return { "--note-scale": String(p.scale), "--note-measure": p.wide ? "46rem" : "38rem" };
+  return { "--note-scale": String(p.scale), "--note-measure": p.wide ? "50rem" : "42rem" };
 }
 
 export function useReadingPrefs(): [ReadingPrefs, (next: Partial<ReadingPrefs>) => void] {

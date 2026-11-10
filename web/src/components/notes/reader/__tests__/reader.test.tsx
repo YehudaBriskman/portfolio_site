@@ -83,7 +83,7 @@ describe("reading prefs", () => {
     expect(clampScale(0.1)).toBe(0.875);
     expect(parsePrefs("{nope")).toEqual({ scale: 1, wide: false });
     expect(parsePrefs('{"scale":1.12,"wide":true}')).toEqual({ scale: 1.125, wide: true });
-    expect(prefsVars({ scale: 1.25, wide: true })).toEqual({ "--note-scale": "1.25", "--note-measure": "46rem" });
+    expect(prefsVars({ scale: 1.25, wide: true })).toEqual({ "--note-scale": "1.25", "--note-measure": "50rem" });
   });
 });
 

@@ -130,49 +130,55 @@ export default function NotePanels({
         <p className={styles.panelTitle} aria-hidden="true">
           {w.reading}
         </p>
-        <div className={styles.toolRow} role="group" aria-label={w.textSize}>
-          <span className={styles.toolLabel} aria-hidden="true">
-            {w.textSize}
-          </span>
-          <button
-            type="button"
-            className={styles.toolBtn}
-            aria-label={w.smaller}
-            title={w.smaller}
-            disabled={i <= 0}
-            onClick={() => setPrefs({ scale: SCALES[Math.max(0, i - 1)] })}
-          >
-            <Minus size={14} aria-hidden="true" />
-          </button>
-          <output className={styles.toolValue} aria-live="polite" aria-label={w.sizeNow(pct)}>
-            {pct}
-          </output>
-          <button
-            type="button"
-            className={styles.toolBtn}
-            aria-label={w.larger}
-            title={w.larger}
-            disabled={i >= SCALES.length - 1}
-            onClick={() => setPrefs({ scale: SCALES[Math.min(SCALES.length - 1, i + 1)] })}
-          >
-            <Plus size={14} aria-hidden="true" />
-          </button>
-        </div>
-        <div className={styles.toolRow} role="group" aria-label={w.width}>
-          <span className={styles.toolLabel} aria-hidden="true">
-            {w.width}
-          </span>
-          {([false, true] as const).map((wide) => (
-            <button
-              key={String(wide)}
-              type="button"
-              aria-pressed={prefs.wide === wide}
-              className={styles.toolChoice}
-              onClick={() => setPrefs({ wide })}
-            >
-              {wide ? w.wide : w.narrow}
-            </button>
-          ))}
+        <div className={styles.tools}>
+          <div className={styles.toolRow} role="group" aria-label={w.textSize}>
+            <span className={styles.toolLabel} aria-hidden="true">
+              {w.textSize}
+            </span>
+            <span className={styles.stepper}>
+              <button
+                type="button"
+                className={styles.toolBtn}
+                aria-label={w.smaller}
+                title={w.smaller}
+                disabled={i <= 0}
+                onClick={() => setPrefs({ scale: SCALES[Math.max(0, i - 1)] })}
+              >
+                <Minus size={14} aria-hidden="true" />
+              </button>
+              <output className={styles.toolValue} aria-live="polite" aria-label={w.sizeNow(pct)}>
+                {pct}
+              </output>
+              <button
+                type="button"
+                className={styles.toolBtn}
+                aria-label={w.larger}
+                title={w.larger}
+                disabled={i >= SCALES.length - 1}
+                onClick={() => setPrefs({ scale: SCALES[Math.min(SCALES.length - 1, i + 1)] })}
+              >
+                <Plus size={14} aria-hidden="true" />
+              </button>
+            </span>
+          </div>
+          <div className={styles.toolRow} role="group" aria-label={w.width}>
+            <span className={styles.toolLabel} aria-hidden="true">
+              {w.width}
+            </span>
+            <span className={styles.segment}>
+              {([false, true] as const).map((wide) => (
+                <button
+                  key={String(wide)}
+                  type="button"
+                  aria-pressed={prefs.wide === wide}
+                  className={styles.toolChoice}
+                  onClick={() => setPrefs({ wide })}
+                >
+                  {wide ? w.wide : w.narrow}
+                </button>
+              ))}
+            </span>
+          </div>
         </div>
         {(prefs.scale !== 1 || prefs.wide) && (
           <button type="button" className={styles.toolReset} onClick={() => setPrefs({ scale: 1, wide: false })}>
