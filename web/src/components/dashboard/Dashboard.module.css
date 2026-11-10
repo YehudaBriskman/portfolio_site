@@ -377,6 +377,35 @@
   padding-inline: 0 clamp(1rem, 2vw, 2rem);
 }
 
+/* ───────────────────────────────────────────────────── sticky side panels
+   The left rail (filters, areas, pins) and the right aside stay in view while
+   the middle column scrolls. Each is held under the nav island and scrolls by
+   itself when it is taller than the window. A grid item stretches to the row,
+   so the rail's own box stays full height and its inner box is the sticky
+   one; the aside is shortened to its content and held directly. Logical
+   offsets only, so Hebrew mirrors it. `body` clips with `overflow-x: clip`,
+   not `hidden`, so nothing here resolves against a stray scroll container. */
+@media (min-width: 48.01rem) {
+  .ground:is([data-mode="two"], [data-mode="three"]) .railInner {
+    position: sticky;
+    inset-block-start: 4.5rem;
+    max-height: calc(100dvh - 4.5rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+
+  .ground[data-mode="three"] .aside {
+    position: sticky;
+    inset-block-start: 4.5rem;
+    align-self: start;
+    max-height: calc(100dvh - 4.5rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+}
+
 /* ─────────────────────────────────────────────────────────────── phone */
 
 .sheetBar {
