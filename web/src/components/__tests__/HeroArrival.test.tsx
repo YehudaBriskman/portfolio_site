@@ -593,32 +593,30 @@ describe("what the first screen may not spend", () => {
 
 /*
  * What issues #100 and #101 put on the first screen, now that the owner has
- * picked: PORTFOLIO in the h1, the ask in one corner and the light in the
- * other.
+ * picked: the ask in one corner and the light in the other. The h1 said
+ * PORTFOLIO until #347, which made it the owner's name.
  */
 describe("the first screen's title", () => {
-  it("sets PORTFOLIO, the title the owner picked", () => {
+  it("sets the owner's name, the title the owner picked in #347", () => {
     /* Not a tautology: the switch that offered three titles is gone, and
        this is what stops a fourth arriving by an edit to a data file. */
     render(<Hero />);
     const h1 = screen.getByRole("heading", { level: 1 });
-    expect(h1.getAttribute("aria-label")).toBe("Portfolio");
+    expect(h1.getAttribute("aria-label")).toBe("Yehuda Briskman");
   });
 
-  it("keeps the person's name on the first screen after it leaves the h1", () => {
+  it("keeps Portfolio on the first screen, in the fact line, after it leaves the h1", () => {
     render(<Hero />);
     const h1 = screen.getByRole("heading", { level: 1 });
 
     /*
-     * The one invariant #100 cannot be allowed to break. `Yehuda Briskman` is
-     * the page's accessible name and its strongest on-page signal; a title
-     * that says PORTFOLIO has to put it somewhere real rather than nowhere.
-     * It is in the fact line, assembled from `plate.name` so it is written
-     * once — which is why this asserts the rendered text and not the constant.
+     * The invariant of #347: the name is the h1 and "Portfolio" is not lost,
+     * it is the first word of the fact line, which is the slot for what the
+     * thing is.
      */
-    expect(screen.getByText(/Yehuda Briskman/)).toBeInTheDocument();
-    expect(h1.textContent).not.toMatch(/Yehuda/);
-    expect(plateTitle.fact).toContain(plate.name);
+    expect(screen.getByText(/^Portfolio — /)).toBeInTheDocument();
+    expect(h1.textContent).not.toMatch(/Portfolio/);
+    expect(plateTitle.name).toBe(plate.name);
   });
 
   it("agrees with the head of the document about who the site is by", () => {
@@ -639,15 +637,16 @@ describe("the first screen's title", () => {
     expect(INDEX_HTML).not.toMatch(/portfolio/i);
   });
 
-  it("is one word, which is what its rung was derived from", () => {
+  it("is two words, which is what its rungs were derived from", () => {
     /*
-     * The rung in `Hero.module.css` is derived from the measured advance
-     * width of the longest unbreakable line, and `splitName` makes every word
-     * one inline-block — so the word count is the thing the derivation rests
-     * on. A title that gained a word would silently invalidate a clamp no
-     * test could otherwise see.
+     * The rungs in `Hero.module.css` are derived from the measured advance
+     * width of the name (10.90em on one line from 700px, BRISKMAN at 5.91em
+     * on two below it), and `splitName` makes every word one inline-block, so
+     * the word count is the thing the derivation rests on. A title that
+     * gained a word would silently invalidate a clamp no test could
+     * otherwise see.
      */
-    expect(plateTitle.name.split(" ")).toHaveLength(1);
+    expect(plateTitle.name.split(" ")).toHaveLength(2);
     const hero = strip(readFileSync(resolve(HERE, "../Hero.module.css"), "utf8"));
     expect(hero.match(/\.composition \.plate h1 \{/g)).toHaveLength(2);
     expect(hero).not.toMatch(/data-title/);

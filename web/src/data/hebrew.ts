@@ -209,9 +209,9 @@ export const STORY_HE: {
 };
 
 /*
- * The site copy `heroHebrew` leaves out. "Portfolio", the hero's display
- * word, stays as it is: it is the brand, set in the Latin face in both
- * languages and measured as one word that cannot break (data/site.ts).
+ * The site copy `heroHebrew` leaves out. "Portfolio" stays Latin: it is the
+ * brand word, the first word of the hero's fact line in both languages
+ * (data/site.ts).
  * The footer's work labels are names (WindoM, Bothy) and stay names.
  */
 export const SITE_HE = {

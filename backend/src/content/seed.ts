@@ -706,11 +706,11 @@ export const CONTENT_SEED: unknown = {
       },
       "shippingSince": 2021,
       "title": {
-        "en": "Portfolio"
+        "en": "Yehuda Briskman"
       },
       "fact": {
-        "en": "Yehuda Briskman — full-stack, mostly frontend",
-        "he": "Yehuda Briskman — פול־סטאק, עם דגש על פרונטאנד"
+        "en": "Portfolio — full-stack, mostly frontend",
+        "he": "Portfolio — פול־סטאק, עם דגש על פרונטאנד"
       },
       "phrases": [
         {

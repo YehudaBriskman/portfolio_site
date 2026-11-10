@@ -45,6 +45,8 @@ const LATIN_SEEN = new Set<string>([
   "confirm: true",
   /* The conformance level, as the standard writes it. */
   "AA",
+  /* The brand word, first in the hero's fact line in both languages (#347, data/site.ts). */
+  "Portfolio",
   /*
    * The project write-ups (data/hebrew.ts): what Israeli developers say in
    * English and write in Latin in Hebrew prose, as the owner asked for them
