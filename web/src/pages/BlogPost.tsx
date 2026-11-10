@@ -365,9 +365,18 @@ export default function BlogPost() {
             {post.links.length > 0 && (
               <ul className="mt-6 flex flex-wrap gap-3">
                 {post.links.map((l) => (
-                  <li key={l.url}>
-                    <a href={l.url} target="_blank" rel="noreferrer noopener" className="btn btn-quiet">
-                      {l.label} <span aria-hidden="true"><Arrow to="out" /></span>
+                  /* `min-w-0 max-w-full`, and a label that may wrap: a long link
+                     label ("PR #329, ...") was a single unbreakable pill wider
+                     than a phone, so it ran out of the frame. */
+                  <li key={l.url} className="min-w-0 max-w-full">
+                    <a
+                      href={l.url}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                      className="btn btn-quiet h-auto max-w-full whitespace-normal py-3 text-start [overflow-wrap:anywhere]"
+                    >
+                      <span className="min-w-0">{l.label}</span>{" "}
+                      <span aria-hidden="true" className="shrink-0"><Arrow to="out" /></span>
                     </a>
                   </li>
                 ))}
