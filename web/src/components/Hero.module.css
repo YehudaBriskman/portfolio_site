@@ -155,6 +155,9 @@
  */
 .composition {
   position: relative;
+  /* Over the particle word's canvas (z-index 0), so the photograph and the
+     type stand in front of the dots and their lines. */
+  z-index: 1;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto 1fr;
@@ -561,9 +564,15 @@
 .holder[data-particles] .composition .plate h1 {
   width: var(--pw-w);
   margin-inline: calc((100% - var(--pw-w)) / 2);
-  margin-block-start: max(0px, calc(42svh - var(--screen-pad) - var(--pw-h) / 2));
+  margin-block-start: max(0px, calc(30svh - var(--screen-pad) - var(--pw-h) / 2));
   font-size: var(--pw-font);
   line-height: var(--pw-lh);
+}
+
+/* With the particle word the figure rises into it: the word sits higher and
+   the photograph is pulled up until it overlaps the dots, in front of them. */
+.holder[data-particles] .portrait {
+  --fig-overlap: clamp(4rem, 20vh, 12rem);
 }
 
 .holder[data-pw-lines="1"] .composition .plate h1 {

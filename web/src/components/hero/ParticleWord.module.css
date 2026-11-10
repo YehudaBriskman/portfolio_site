@@ -4,7 +4,7 @@
  * margin for the pointer's reach, spanning the section's full width so the
  * entrance can start from its edges.
  *
- * Above the composition (z-index 1 against the composition's isolated 0), out
+ * Under the composition (z-index 0 against the composition's 1), so the photograph stands in front of the dots, out
  * of flow (so it can shift nothing), and deaf to the pointer: the page listens
  * on the window instead, so the canvas can never eat a click, a drag or a
  * text selection meant for what is beneath it.
@@ -13,7 +13,7 @@
   position: absolute;
   left: 0;
   top: 0;
-  z-index: 1;
+  z-index: 0;
   pointer-events: none;
   /* Nothing is on the canvas until the section says the word is on: the
      assembled word must never show before its entrance has begun. */
