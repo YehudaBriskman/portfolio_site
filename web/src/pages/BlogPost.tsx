@@ -246,6 +246,9 @@ export default function BlogPost() {
                       className={`tap mono ${pill.tag} inline-flex min-h-[44px] items-center gap-2 rounded-full border px-3.5 py-2 text-xs uppercase tracking-[0.18em] transition-colors duration-150`}
                     >
                       <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-clay" />
+                      {/* This one goes to the project; the "Area" link beside
+                          the post goes to the notes filed under it. Said so. */}
+                      <span>{w.project}:</span>
                       {collectionTitle}
                     </Link>
                   ) : (
@@ -278,16 +281,13 @@ export default function BlogPost() {
                 <Byline
                   className="mt-12 border-t border-edge pt-6"
                   meta={
-                    <div className="flex flex-wrap items-center gap-2.5">
+                    <div className="flex flex-wrap items-center">
                       {post.publishedAt && (
                         <MetaPill>
                           <time dateTime={post.publishedAt}>{shortDate(post.publishedAt, lang)}</time>
                         </MetaPill>
                       )}
-                      <MetaPill>
-                        <span aria-hidden="true" className="h-1 w-1 rounded-full bg-clay" />
-                        {w.readTime(post.readingMinutes)}
-                      </MetaPill>
+                      <MetaPill>{w.readTime(post.readingMinutes)}</MetaPill>
                     </div>
                   }
                 />

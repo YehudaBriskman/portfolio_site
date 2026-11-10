@@ -392,6 +392,18 @@ describe("Contact", () => {
     );
   });
 
+  it("asks for an empty email rather than calling it malformed", async () => {
+    await openDialog();
+
+    await userEvent.click(screen.getByRole("button", { name: /send message/i }));
+
+    const email = screen.getByLabelText("Email");
+    expect(email).toHaveAttribute("aria-invalid", "true");
+    expect(document.getElementById(email.getAttribute("aria-describedby") ?? "")).toHaveTextContent(
+      "Add your email address",
+    );
+  });
+
   it("names the dialog with the heading the reader can see", async () => {
     await openDialog();
 

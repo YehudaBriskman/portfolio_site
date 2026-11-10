@@ -2,8 +2,9 @@ import type { ReactNode } from "react";
 import styles from "@/components/notes/Pill.module.css";
 
 /*
- * A fact in a capsule: a date, a reading time, the collection a filtered
- * index is showing.
+ * A fact, as plain text: a date, a reading time. Not a capsule any more: a
+ * bordered capsule is what a tag you can press looks like (#349), so a fact
+ * is text with a dot between it and the next one.
  *
  * It was `<span className="meta-pill">` written out at four call sites across
  * two pages, which is how three of them ended up with different heights in
@@ -13,5 +14,5 @@ import styles from "@/components/notes/Pill.module.css";
  * Pill.module.css.
  */
 export default function MetaPill({ children }: { children: ReactNode }) {
-  return <span className={`meta-pill ${styles.meta}`}>{children}</span>;
+  return <span className={styles.meta}>{children}</span>;
 }
