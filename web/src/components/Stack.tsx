@@ -1,4 +1,5 @@
-import type { CSSProperties } from "react";
+import { useEffect, useRef, type CSSProperties } from "react";
+import { countProgress, follow, printed, scriptCounts } from "@/components/specCount";
 import InkRule from "@/components/motion/InkRule";
 import { specFiguresOf } from "@/data/specs";
 import { useContent } from "@/content/store";
@@ -43,6 +44,73 @@ export default function SpecPlate() {
   /* Counted from the content store's table (#163), the one the pile renders. */
   const specFigures = specFiguresOf(useContent().projects);
   const w = useHomeWords();
+  const plate = useRef<HTMLDListElement>(null);
+
+  /* On a phone the count is eased from script; see `specCount.ts`. The
+     stylesheet's own count stays for everyone else (`data-count`). */
+  useEffect(() => {
+    const el = plate.current;
+    if (!el || typeof window.matchMedia !== "function") return;
+    const mq = (q: string) => window.matchMedia(q).matches;
+    const env = () => ({
+      coarse: mq("(pointer: coarse)"),
+      viewTimelines: typeof CSS !== "undefined" && typeof CSS.supports === "function" && CSS.supports("animation-timeline: view()"),
+      reducedMotion: mq("(prefers-reduced-motion: reduce)"),
+      paused: document.body.classList.contains("motion-paused"),
+    });
+    const figures = [...el.querySelectorAll<HTMLElement>("[data-spec-value]")];
+    let shown = 0;
+    let raf = 0;
+    let last = 0;
+    let on = false;
+
+    const write = (p: number) => {
+      for (const f of figures) f.style.setProperty("--spec-n", String(printed(Number(f.dataset.specValue), p)));
+    };
+    const target = () => countProgress(el.getBoundingClientRect().top, window.innerHeight);
+    const tick = (ts: number) => {
+      raf = 0;
+      const dt = last ? (ts - last) / 1000 : 1 / 60;
+      last = ts;
+      shown = follow(shown, target(), dt);
+      write(shown);
+      if (shown !== target()) raf = requestAnimationFrame(tick);
+      else last = 0;
+    };
+    const kick = () => {
+      if (on && !raf) raf = requestAnimationFrame(tick);
+    };
+    const sync = () => {
+      const want = scriptCounts(env());
+      if (want === on) return;
+      on = want;
+      if (on) {
+        el.dataset.count = "js";
+        shown = target();
+        write(shown);
+        kick();
+      } else {
+        delete el.dataset.count;
+        window.cancelAnimationFrame(raf);
+        raf = 0;
+        for (const f of figures) f.style.removeProperty("--spec-n");
+      }
+    };
+    sync();
+    window.addEventListener("scroll", kick, { passive: true });
+    window.addEventListener("resize", kick, { passive: true });
+    const mo = new MutationObserver(sync);
+    mo.observe(document.body, { attributes: true, attributeFilter: ["class"] });
+    return () => {
+      window.removeEventListener("scroll", kick);
+      window.removeEventListener("resize", kick);
+      mo.disconnect();
+      window.cancelAnimationFrame(raf);
+      for (const f of figures) f.style.removeProperty("--spec-n");
+      delete el.dataset.count;
+    };
+  }, [specFigures.length]);
+
   return (
     /*
      * `id="stack"` outlives the name on purpose.
@@ -70,6 +138,7 @@ export default function SpecPlate() {
        * a screen reader still reads "Projects, 6" rather than "6, Projects".
        */}
       <dl
+        ref={plate}
         className={styles.plate}
         style={{ "--spec-columns": specFigures.length } as CSSProperties}
       >
@@ -78,6 +147,7 @@ export default function SpecPlate() {
             <dt className={`${styles.caption} text-field`}>{w.spec[figure.caption]}</dt>
             <dd
               className={`${styles.figure} text-section`}
+              data-spec-value={figure.value}
               style={
                 {
                   "--spec-to": figure.value,

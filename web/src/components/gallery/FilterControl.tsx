@@ -198,7 +198,7 @@ function MultiSelect({
       </button>
 
       {open && (
-        <div className={styles.popover}>
+        <div className={styles.popover} data-filter-popover="">
           <ul
             ref={list}
             id={`${id}-list`}

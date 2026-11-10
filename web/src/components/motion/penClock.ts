@@ -23,7 +23,14 @@ export function penRange(i: number, n: number): [string, string] {
  * the raised paper, 6.5:1 and more on every dark ground. A test holds it
  * over 4.5:1 on each.
  */
-export const PEN_MUTED = 0.62;
+/*
+ * 2026-11-10, the owner: "harden the reading animation so the muted text is
+ * more transparent". 0.62 → 0.42, which reverses the readable-floor of
+ * 2026-11-03 for the words not yet reached: the pen has to read as a pen. The
+ * floor is now 2.5:1 (a test holds it), and every word still lands on full
+ * ink, so nothing stays faint; reduced motion and Pause show full ink at once.
+ */
+export const PEN_MUTED = 0.42;
 
 /**
  * THE READING WINDOW (owner, 2026-11-03), the one pair of numbers every

@@ -102,7 +102,7 @@
  * is set in, and a weight change moves advance widths and so line breaks.
  */
 .written {
-  --pen-muted: 0.62;
+  --pen-muted: 0.42; /* was 0.62; the owner asked for it fainter, 2026-11-10 */
 }
 
 @keyframes written-pen {

@@ -166,7 +166,8 @@ describe("Written.module.css", () => {
     const muted = Number(CSS.match(/--pen-muted:\s*([\d.]+)/)?.[1]);
     expect(muted).toBe(PEN_MUTED);
     /* Readable on every ground prose is set on, computed from the tokens
-       (index.css): the ink at this alpha over each ground clears 4.5:1. */
+       (index.css): the ink at this alpha over each ground clears 2.5:1 (the owner asked for it fainter, 2026-11-10;
+       it was 4.5:1). */
     const tokens = readFileSync(resolve(process.cwd(), "src/index.css"), "utf8");
     const tok = (block: string, name: string) =>
       (block.match(new RegExp(`--${name}:\\s*(\\d+)\\s+(\\d+)\\s+(\\d+)`)) ?? []).slice(1).map(Number);
@@ -194,9 +195,9 @@ describe("Written.module.css", () => {
       expect(ink, name).toHaveLength(3);
       expect(ground, name).toHaveLength(3);
       const blend = ink.map((v, i) => muted * v + (1 - muted) * ground[i]);
-      expect(ratio(blend, ground), name).toBeGreaterThanOrEqual(4.5);
+      expect(ratio(blend, ground), name).toBeGreaterThanOrEqual(2.5);
       /* And still a visible step below the ink it is written to. */
-      expect(ratio(ink, ground) / ratio(blend, ground), name).toBeGreaterThan(1.3);
+      expect(ratio(ink, ground) / ratio(blend, ground), name).toBeGreaterThan(2);
     }
     /* An alpha on the one ink, so it follows `.on-panel` with no second rule;
        never the page's secondary text colour or the non-text one. */

@@ -881,3 +881,41 @@
     background: CanvasText;
   }
 }
+
+/*
+ * A phone's cheaper run (stability, 2026-11-10: "the projects animation has a
+ * lot of times some lags on the phone").
+ *
+ * Every card is moved by the scroll, so every frame of a touch scroll repaints
+ * what is under the card's shadow and rasterises its blur. Three costs go on a
+ * coarse pointer or a narrow window, none of which a thumb can see:
+ *   - the card's six stacked shadows (two of them 36px and 72px blurs)
+ *     become two, which is the contact edge and one soft lift;
+ *   - the haze under the curve, a 14px gaussian over a full-width SVG that the
+ *     surge mask is also sliding across, becomes a plain wider, fainter stroke;
+ *   - each moving box is promoted to its own layer once, so a scroll frame
+ *     moves layers rather than repainting them.
+ * The desktop keeps every layer.
+ */
+@media (pointer: coarse), (max-width: 700px) {
+  .face {
+    box-shadow:
+      0 1px 0 rgb(var(--run-tint) / 0.45) inset,
+      0 2px 4px rgb(var(--run-shade) / 0.18),
+      0 14px 28px -10px rgb(var(--run-shade) / 0.3);
+  }
+
+  .haze {
+    filter: none;
+    opacity: 0.16;
+  }
+
+  .haze path {
+    stroke-width: 60px;
+  }
+
+  .slot,
+  .card {
+    will-change: transform;
+  }
+}

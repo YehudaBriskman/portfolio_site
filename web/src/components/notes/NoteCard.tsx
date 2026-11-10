@@ -1,4 +1,5 @@
-import { useState, type CSSProperties } from "react";
+import type { CSSProperties } from "react";
+import { useImageLoad } from "@/components/media/useImageLoad";
 import { Link } from "react-router-dom";
 import NoteGlyph from "@/components/notes/NoteGlyph";
 import dark from "@/components/notes/DarkCard.module.css";
@@ -54,18 +55,21 @@ import { inEnglish, plural } from "@/i18n/words";
 const SURFACE = `note-card ${styles.card} group relative`;
 
 function Cover({ src, alt }: { src: string; alt: string }) {
-  const [loaded, setLoaded] = useState(false);
+  const { attach, state, onLoad, onError } = useImageLoad(src);
+  const loaded = state === "loaded";
   return (
     <>
-      {!loaded && <div className="absolute inset-0 scrub-pulse bg-paper-3" />}
+      {!loaded && <div className={`absolute inset-0 bg-paper-3 ${state === "failed" ? "" : "scrub-pulse"}`} />}
       <img
+        ref={attach}
         src={src}
         alt={alt}
         loading="lazy"
         decoding="async"
         width={800}
         height={450}
-        onLoad={() => setLoaded(true)}
+        onLoad={onLoad}
+        onError={onError}
         className={`h-full w-full object-cover transition-[opacity,transform] duration-700 ease-out motion-safe:group-hover:scale-[1.04] ${
           loaded ? "opacity-100" : "opacity-0"
         }`}

@@ -545,6 +545,22 @@
   padding: 1.25rem 1rem;
   padding-block-end: max(1.25rem, env(safe-area-inset-bottom));
   overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/*
+ * A selector's list, inside the sheet, is part of the sheet and not a layer
+ * over it. Out of flow (the page's version) it hangs below its trigger and the
+ * scroll box grows by however far it hangs, so a list opened near the foot
+ * left the sheet scrollable into empty space, up to a screen of it. In flow,
+ * the sheet's scroll height is its real content, opening one makes room, and
+ * closing it takes the room back.
+ */
+.sheetBody [data-filter-popover] {
+  position: static;
+  width: auto;
+  max-width: none;
+  margin-block-start: 6px;
 }
 
 /* ─────────────────────────────────────────────────────────────── cards */
