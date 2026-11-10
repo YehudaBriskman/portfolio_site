@@ -1,0 +1,316 @@
+/*
+ * The popup system: one set of rules for everything that appears over the
+ * page.
+ *
+ * Three tiers, in order of how much they ask of the reader:
+ *
+ *   1. tooltip      `.pop-tip`     a word of help; stamped in ink, no controls,
+ *                                  never holds focus.
+ *   2. panel        `.pop-panel`   a popover or menu opened from a button;
+ *                                  holds controls, closes on Escape / outside.
+ *   3. dialog       `dialog.pop-dialog`   a modal: the page behind it is inert,
+ *                                  a scrim dims it, it has a title, a body
+ *                                  and, where it asks something, a footer.
+ *
+ * Toasts (`.pop-toast`) are tier 1 in weight and tier 2 in surface: they say
+ * something happened and ask for nothing.
+ *
+ * Each tier is one step heavier than the last in the same two ways, the
+ * surface's shadow (`--pop-shadow-1`, `--pop-shadow-2`) and how far it travels
+ * to arrive, so the order of the layers is readable from the layers alone.
+ *
+ * MOTION, and where it is allowed (docs/motion-contract.md §8, "popups").
+ * Every popup answers a press or a hover, which the contract exempts, and
+ * every one arrives and leaves the same way: opacity plus a short
+ * translate-and-scale from the side it came from, `--pop-in` (180ms) in on
+ * the contract's `--ease-settle`, `--pop-out` (140ms) out on an accelerating
+ * ease. Panels and tooltips are Radix, so they take keyframes keyed on
+ * `data-state` (Radix keeps the node mounted until the exit animation ends,
+ * and only an animation holds it; a transition would unmount it at once).
+ * Native dialogs take `@starting-style` and `transition-behavior:
+ * allow-discrete`, so `display` and the top-layer `overlay` wait for the
+ * fade, and the backdrop fades on its own.
+ *
+ * Origin-aware: panels grow from the point they hang from
+ * (`--radix-popper-transform-origin`), a bottom sheet rises from the bottom
+ * edge, a side sheet comes from its own side (mirrored in RTL), and a modal
+ * lifts from the middle.
+ *
+ * Off: reduced motion and the site's Pause (`body.motion-paused`) turn every
+ * one of these into an instant show and hide, at the bottom of this file.
+ */
+
+:root {
+  --pop-in: 180ms;
+  --pop-out: 140ms;
+  --pop-ease-in: var(--ease-settle, cubic-bezier(0.16, 1, 0.3, 1));
+  --pop-ease-out: cubic-bezier(0.4, 0, 1, 1);
+  --pop-shift: 6px;
+  --pop-scale: 0.96;
+
+  /* Elevation. `--shade` exists only inside some surfaces; the fallback keeps
+     the shadow from being dropped as an invalid declaration when a popup is
+     portaled to the body. */
+  --pop-bg: rgb(var(--paper));
+  --pop-ink: rgb(var(--ink));
+  --pop-edge: rgb(var(--ink-soft) / 0.45);
+  --pop-rule: rgb(var(--rule));
+  --pop-shadow-1: 0 18px 40px -22px rgb(var(--shade, var(--ink)) / 0.55), 0 2px 6px -2px rgb(var(--shade, var(--ink)) / 0.18);
+  --pop-shadow-2: 0 40px 90px -36px rgb(var(--shade, var(--ink)) / 0.7), 0 4px 14px -6px rgb(var(--shade, var(--ink)) / 0.25);
+}
+
+/* ------------------------------------------------ Radix: panel and tip --- */
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translate(var(--pop-x, 0), var(--pop-y, 0)) scale(var(--pop-scale));
+  }
+}
+
+@keyframes pop-out {
+  to {
+    opacity: 0;
+    transform: translate(var(--pop-x, 0), var(--pop-y, 0)) scale(var(--pop-scale));
+  }
+}
+
+.pop {
+  z-index: 60;
+  transform-origin: var(--radix-popper-transform-origin, center);
+  /* Travel away from the side it hangs on: a panel below its trigger starts a
+     little above its place. */
+  --pop-y: calc(var(--pop-shift) * -1);
+  --pop-x: 0px;
+}
+
+.pop[data-side="top"] {
+  --pop-y: var(--pop-shift);
+}
+
+.pop[data-side="left"] {
+  --pop-y: 0px;
+  --pop-x: var(--pop-shift);
+}
+
+.pop[data-side="right"] {
+  --pop-y: 0px;
+  --pop-x: calc(var(--pop-shift) * -1);
+}
+
+.pop[data-state="open"] {
+  animation: pop-in var(--pop-in) var(--pop-ease-in) both;
+}
+
+.pop[data-state="closed"] {
+  animation: pop-out var(--pop-out) var(--pop-ease-out) both;
+}
+
+/* Tier 2: the panel. */
+.pop-panel {
+  min-width: 16rem;
+  max-width: min(22rem, calc(100vw - 24px));
+  max-height: var(--radix-popper-available-height, 80vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-radius: var(--r-md);
+  border: 1px solid var(--pop-edge);
+  background: var(--pop-bg);
+  color: var(--pop-ink);
+  box-shadow: var(--pop-shadow-1);
+  outline: none;
+}
+
+/* Tier 1: the tooltip, stamped in ink (the chrome's `.tip` sets its own
+   capsule on top). */
+.pop-tip {
+  --pop-shift: 4px;
+  --pop-scale: 0.94;
+  pointer-events: none;
+  padding: 5px 10px;
+  border-radius: var(--r-pill, 999px);
+  border: 1px solid var(--pop-ink);
+  background: var(--pop-ink);
+  color: var(--pop-bg);
+  font-size: 0.75rem;
+  line-height: 1.3;
+  box-shadow: var(--pop-shadow-1);
+}
+
+/* --------------------------------------------- hierarchy inside a popup --- */
+
+/* Title row. A title is the one place in a popup that is set in the display
+   face: it is the thing the rest answers to. */
+.pop-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: 3rem;
+  padding-block: 0.5rem;
+  padding-inline: 1rem 0.5rem;
+  border-block-end: 1px solid var(--pop-rule);
+}
+
+.pop-title {
+  margin: 0;
+  min-width: 0;
+  font-family: var(--font-display);
+  font-weight: var(--weight-display);
+  font-size: 1.0625rem;
+  letter-spacing: var(--track-sub);
+  line-height: 1.25;
+  color: var(--pop-ink);
+}
+
+.pop-body {
+  padding: 1rem;
+}
+
+/* Footer: the actions, set off from the body by a rule and a faint wash so the
+   primary action has a floor to stand on. Primary last (the inline-end edge). */
+.pop-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-block-start: 1px solid var(--pop-rule);
+  background: rgb(var(--ink) / 0.04);
+}
+
+/* ---------------------------------------------------- native dialogs --- */
+
+/*
+ * Put on the `<dialog>` itself, beside the component's own class. Closed is
+ * the resting style and `[open]` is the arrival, which is what lets one rule
+ * set cover both directions: the browser transitions from whichever it was in.
+ * `display` and `overlay` are listed so the dialog stays rendered, in the top
+ * layer, until the exit has played.
+ *
+ * Contact's own dialog (`Contact.module.css`) predates this and carries a
+ * longer, staged version of the same recipe; it is left as it is.
+ */
+dialog.pop-dialog {
+  --pop-dy: 14px;
+  --pop-dx: 0px;
+  --pop-ds: 0.97;
+  opacity: 0;
+  translate: var(--pop-dx) var(--pop-dy);
+  scale: var(--pop-ds);
+  transform-origin: 50% 50%;
+  box-shadow: var(--pop-shadow-2);
+  transition:
+    opacity var(--pop-out) var(--pop-ease-out),
+    translate var(--pop-out) var(--pop-ease-out),
+    scale var(--pop-out) var(--pop-ease-out),
+    display var(--pop-out) allow-discrete,
+    overlay var(--pop-out) allow-discrete;
+}
+
+dialog.pop-dialog[open] {
+  opacity: 1;
+  translate: 0 0;
+  scale: 1;
+  transition:
+    opacity var(--pop-in) var(--pop-ease-in),
+    translate var(--pop-in) var(--pop-ease-in),
+    scale var(--pop-in) var(--pop-ease-in),
+    display var(--pop-in) allow-discrete,
+    overlay var(--pop-in) allow-discrete;
+}
+
+@starting-style {
+  dialog.pop-dialog[open] {
+    opacity: 0;
+    translate: var(--pop-dx) var(--pop-dy);
+    scale: var(--pop-ds);
+  }
+}
+
+dialog.pop-dialog::backdrop {
+  opacity: 0;
+  transition:
+    opacity var(--pop-out) var(--pop-ease-out),
+    display var(--pop-out) allow-discrete,
+    overlay var(--pop-out) allow-discrete;
+}
+
+dialog.pop-dialog[open]::backdrop {
+  opacity: 1;
+  transition:
+    opacity var(--pop-in) ease-out,
+    display var(--pop-in) allow-discrete,
+    overlay var(--pop-in) allow-discrete;
+}
+
+@starting-style {
+  dialog.pop-dialog[open]::backdrop {
+    opacity: 0;
+  }
+}
+
+/* A sheet that rises from the bottom edge (phone sheets). It travels further
+   and does not shrink: it is a surface coming from off-screen, not an object. */
+dialog.pop-dialog--bottom {
+  --pop-dy: 40px;
+  --pop-ds: 1;
+}
+
+/* A sheet from the inline-start edge (the dashboards' rail), mirrored in RTL. */
+dialog.pop-dialog--side {
+  --pop-dy: 0px;
+  --pop-dx: -32px;
+  --pop-ds: 1;
+}
+
+dialog.pop-dialog--side:dir(rtl) {
+  --pop-dx: 32px;
+}
+
+/* Full-window viewers (the picture view): a fade and the faintest settle. */
+dialog.pop-dialog--viewer {
+  --pop-dy: 0px;
+  --pop-ds: 0.985;
+  box-shadow: none;
+}
+
+/* ------------------------------------------------------------ toasts --- */
+
+/* Sonner brings its own enter and exit; this gives them the system's surface,
+   timing and hierarchy (a title, a quieter description) and nothing else. */
+.pop-toast {
+  border-radius: var(--r-md);
+  border: 1px solid var(--pop-edge);
+  background: var(--pop-bg);
+  color: var(--pop-ink);
+  box-shadow: var(--pop-shadow-1);
+  font-size: 0.875rem;
+  gap: 0.5rem;
+}
+
+[data-sonner-toast][data-styled="true"] {
+  transition-duration: var(--pop-in), var(--pop-in), var(--pop-in), 0.2s;
+  transition-timing-function: var(--pop-ease-in);
+}
+
+/* --------------------------------------------------------- switching off --- */
+
+@media (prefers-reduced-motion: reduce) {
+  .pop[data-state],
+  dialog.pop-dialog,
+  dialog.pop-dialog::backdrop,
+  [data-sonner-toast][data-styled="true"] {
+    animation: none;
+    transition: none;
+  }
+}
+
+body.motion-paused .pop[data-state],
+body.motion-paused dialog.pop-dialog,
+body.motion-paused dialog.pop-dialog::backdrop,
+body.motion-paused [data-sonner-toast][data-styled="true"] {
+  animation: none;
+  transition: none;
+}

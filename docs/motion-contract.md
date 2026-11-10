@@ -1894,7 +1894,7 @@ direction, or set `fill-rule: evenodd` deliberately and know what it costs.
 | `motion/InkRule.tsx` | a hairline drawing itself in | `view()` |
 | `gallery/Wall.module.css` + `Wall.tsx` | `assemble`, unused since #227 (was /projects, and /blog from #193 until #224): each piece slides in from its own side of the wall (or rises, in the middle third), and a filter re-hangs the wall with a short view transition | named `view-timeline` on each static `<li>`, read by the `.piece` inside it; side read from layout once into `data-from` |
 | `projects/Gallery.module.css`, `notes/NoteTile.module.css` | what hangs in a cell: a project tile, a note card. No motion of their own | — |
-| `gallery/FilterControl.tsx` + `Rail.tsx` | the filter card, its popovers and the phone's sheet. No motion: they appear and go | — |
+| `gallery/FilterControl.tsx` + `Rail.tsx` | the filter card, its popovers and the phone's sheet. The popovers appear and go; the sheet takes the popup system (§8, `styles/popup.css`) | — |
 | `projects/ProjectRun.module.css` | `pin` — the work travelling along a curve under a held frame; one lap per card, staggered by range | named `view-timeline` on the static stage, the frame held inside it |
 | `motion/AuroraStrand.tsx` | the aurora strand's one appearing, shared by the run and the notes shelf: a soft window in from `from` ("left" \| "right"), the drawing carried back under it; a wave by default | the caller's named timeline and range as custom properties |
 | `projects/RunAurora.tsx` + `runCurve.ts` | the run's aurora: a ribbon of seven strands on the cards' own curve, swept in from the reading end as the stage arrives (through `AuroraStrand`, `from="right"`), a window sweeping along it once a card; a still ribbon of strands down the plain list with motion off | the run's `--run` timeline: the sweep on `entry 40%`–`contain 6%`, the surge iterated once per card |
@@ -2058,7 +2058,9 @@ animation.
 | tucking nav bar (`useTuckedBar`) | every route | scroll direction → a short transition | **exempt**: the tucking bar |
 | bar material over the dark acts (`useDarkChrome`) | / | two-way observer → colour transition | **exempt**: part of the nav chrome; follows position both ways |
 | mobile menu sheet and scrim, menu bars | every route | transitions | **exempt**: menu open |
-| language / theme / motion dropdown menus and tooltips (Radix, `animate-in`/`animate-out`) | every route | tailwindcss-animate | **exempt**: menu open, hover/focus |
+| the display panel (language, theme, text size, contrast, motion switch: `nav/DisplayMenu`), tooltips (Radix, `.pop`) | every route | `pop-in` / `pop-out` keyframes keyed on `data-state` (`styles/popup.css`): opacity + 6px translate + scale .96 from the side it hangs on, 180ms in on `--ease-settle`, 140ms out | **exempt** (2026-11-10): menu open, hover/focus. Replaces the three separate menus and tailwindcss-animate |
+| every modal `<dialog>` except Contact's own: the phone sheets (`Rail`, `BlogPost`), the dashboards' rail sheet, the picture view, the admin `Modal` (media, picker, publish review) (`dialog.pop-dialog`) | /projects, /blog, /blog/:slug, admin | a transition, not a keyframe: `@starting-style` plus `transition-behavior: allow-discrete` on `display` and `overlay`; opacity + translate/scale (bottom sheet rises 40px, side sheet 32px from its own edge and mirrored in RTL, modal 14px / .97), the backdrop fades on its own | **exempt** (2026-11-10): dialog open/close. This supersedes the "shown and hidden, no transition" in the rows above for the dialogs; popovers inside the filter card are unchanged |
+| toasts (`ui/sonner`, `.pop-toast`) | /blog/:slug | sonner's own enter/exit, on the popup system's timing and surface | **exempt** (2026-11-10): a reply to a press |
 | theme wave: the new theme revealed by a `clip-path` circle from the toggle (`nav/themeWave.ts`, `nav/theme-wave.css`, `theme-wave`) | every route | a view transition, 600ms on `--ease-settle`; old snapshot held still, default cross-fade off | **exempt** (#266): a reply to choosing a theme. Instant, with no transition at all, under every off-switch (§4: no `startViewTransition`, reduced motion, Pause), when the choice does not change the ground, and when System follows the OS |
 | the hero's particle word (`hero/ParticleWord`) | /, desktop only | one `requestAnimationFrame` loop that runs only while the entrance, a pointer on the word or settling particles move, and stops at rest | **exempt** (2026-11-10): the page-load entrance and direct manipulation; see "The hero's particle word and orbit" below |
 | the hero's orbit constellation (`hero/HeroOrbit`) | /, desktop only | CSS transitions flipped once on the arrival signal; no keyframes, no loop | **exempt** (2026-11-10): part of the page load; then still |
@@ -2115,12 +2117,48 @@ theme wave had not been): the ribbon moved from scrubbed to removed, and
 the strand row stays scrubbed with the line's lead in place of the band.
 51 rows; 20 scrubbed, 13 exempt, 10 removed, 8 with nothing of their own.
 
+---
+
+## 9. The popup system (2026-11-10)
+
+One stylesheet, `web/src/styles/popup.css`, governs everything that appears over
+the page. Three tiers, each one step heavier than the last in shadow
+(`--pop-shadow-1`, `--pop-shadow-2`) and in how far it travels to arrive:
+
+| tier | class | what | holds focus |
+|---|---|---|---|
+| tooltip | `.pop` `.pop-tip` | a word of help, stamped in ink | no |
+| panel | `.pop` `.pop-panel` | a popover opened from a button (`ui/popover`, the display panel) | yes, returns to the trigger |
+| dialog | `dialog.pop-dialog` (+ `--bottom`, `--side`, `--viewer`) | a modal with a scrim | yes, native trap |
+
+Inside a panel or dialog: `.pop-head` (title row, the one place set in the
+display face), `.pop-body`, `.pop-foot` (the actions, primary on the
+inline-end edge, set off by a rule and a faint wash). Toasts (`.pop-toast`)
+take the panel's surface.
+
+Rules that cost a debugging session to learn:
+
+- **Radix panels and tooltips need a keyframe for the exit.** Radix keeps a node
+  mounted only while an `animation` runs on it; a `transition` unmounts it at
+  once, so the exit would be instant. Hence `pop-in` / `pop-out`, which are on
+  `scrollOnly.test.ts`'s `ALLOWED` list. Tailwind's `animate-*` classes are
+  now banned outright by that test.
+- **Native dialogs use transitions, never keyframes**: `@starting-style` for
+  the arrival, `allow-discrete` on `display` and `overlay` so the dialog
+  stays in the top layer until the exit has played, and a separate rule for
+  `::backdrop`.
+- **Origin-aware**: panels read `--radix-popper-transform-origin`; the side
+  sheet's offset is mirrored with `:dir(rtl)`.
+- **Off** under `prefers-reduced-motion` and `body.motion-paused`: animation
+  and transition are `none`, so a popup is shown and hidden instantly.
+- Contact's dialog predates the system and keeps its own staged recipe.
+
 2026-11-10 (the owner's colour and particle brief) added three exempt rows,
 below: 54 rows; 20 scrubbed, 16 exempt, 10 removed, 8 with nothing of their own.
 
 ---
 
-## The hero's particle word and orbit, and the page's colour orbs (2026-11-10)
+## 10. The hero's particle word and orbit, and the page's colour orbs (2026-11-10)
 
 The owner asked for three things: colours fading in on the background "like
 WindoM's main bg"; the word beside the portrait made of about a thousand
@@ -2205,3 +2243,4 @@ physics are checked by calling the same pure `step` functions, and in the
 browser through a test hook that exists only with `?particles=settled|test` in
 the address (`window.__heroParticles`: fast-forward N frames, move a virtual
 pointer, read particle state). `?particles=settled` also skips the entrance.
+||||||| 105e66e

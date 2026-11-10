@@ -1,3 +1,4 @@
+import Select from "@/components/ui/Select";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import AdminShell from "@/components/admin/AdminShell";
@@ -233,17 +234,17 @@ export default function AdminCollection() {
           <div className="mt-4 grid gap-5 sm:grid-cols-2">
             <label className="block">
               <span className="a-label">Kind</span>
-              <select value={d.kind} onChange={(e) => patch({ kind: e.target.value as Draft["kind"] })} className="a-select">
+              <Select value={d.kind} onChange={(e) => patch({ kind: e.target.value as Draft["kind"] })}>
                 <option value="project">Project</option>
                 <option value="site">My blog</option>
-              </select>
+              </Select>
             </label>
             <label className="block">
               <span className="a-label">Visibility</span>
-              <select value={d.status} onChange={(e) => patch({ status: e.target.value as Draft["status"] })} className="a-select">
+              <Select value={d.status} onChange={(e) => patch({ status: e.target.value as Draft["status"] })}>
                 <option value="published">Published</option>
                 <option value="hidden">Hidden</option>
-              </select>
+              </Select>
             </label>
             <label className="block">
               <span className="a-label">Order (lower comes first)</span>

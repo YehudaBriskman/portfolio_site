@@ -85,7 +85,8 @@ export default function HeroOrbit({ arrival }: { arrival: Arrival }) {
       {LAYOUT.map((it, i) => {
         const side = it.x < 50 ? -1 : 1;
         const style = {
-          left: `${it.x}%`,
+          /* chips are centred on their point: keep the whole pill inside the viewport */
+          left: it.kind === "chip" ? `clamp(5rem, ${it.x}%, calc(100% - 5rem))` : `${it.x}%`,
           top: `${it.y}%`,
           "--sx": `${side * 62}vw`,
           "--sy": `${((i * 37) % 9) * 6 - 24}vh`,

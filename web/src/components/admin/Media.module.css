@@ -187,6 +187,14 @@
   background: rgb(var(--bitumen));
 }
 .dialogBody { padding: 1rem; }
+/* The actions row (`pop-foot` in styles/popup.css): it sticks to the bottom of
+   a tall dialog so the primary action is never scrolled away. */
+.dialogFoot {
+  position: sticky;
+  bottom: 0;
+  background: rgb(var(--bitumen));
+  background-image: linear-gradient(rgb(var(--ink) / 0.04), rgb(var(--ink) / 0.04));
+}
 
 .detail {
   display: grid;

@@ -1,3 +1,4 @@
+import Select from "@/components/ui/Select";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { ExternalLink, Plus, Search } from "lucide-react";
@@ -114,14 +115,14 @@ export default function Admin() {
           </label>
           <label className="w-full sm:w-auto">
             <span className="sr-only">{w.filterArea}</span>
-            <select className="a-select sm:w-48" value={area} onChange={(e) => setParam("area", e.target.value)}>
+            <Select className="sm:w-48" value={area} onChange={(e) => setParam("area", e.target.value)}>
               <option value="all">{w.allAreas}</option>
               {(cols ?? []).map((c) => (
                 <option key={c.slug} value={c.slug}>
                   {c.title}
                 </option>
               ))}
-            </select>
+            </Select>
           </label>
         </div>
 

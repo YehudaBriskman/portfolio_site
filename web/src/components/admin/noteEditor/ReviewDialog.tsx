@@ -61,7 +61,26 @@ export default function ReviewDialog({
   const nothing = published !== null && !bodyChanged && fields.length === 0;
 
   return (
-    <Modal open={open} onClose={onClose} title={words.reviewTitle}>
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={words.reviewTitle}
+      footer={
+        <>
+          <button type="button" className="a-btn" onClick={onClose}>
+            {words.cancel}
+          </button>
+          <button
+            type="button"
+            className="a-btn a-btn-primary"
+            disabled={busy}
+            onClick={() => onPublish(note.trim(), published ? scope : "both")}
+          >
+            {busy ? words.publishing : words.publish}
+          </button>
+        </>
+      }
+    >
       <div className={styles.review}>
         {published === null ? (
           <p className="text-sm text-bone">{words.firstPublish}</p>
@@ -144,19 +163,6 @@ export default function ReviewDialog({
           </p>
         )}
 
-        <div className="flex flex-wrap justify-end gap-2">
-          <button type="button" className="a-btn" onClick={onClose}>
-            {words.cancel}
-          </button>
-          <button
-            type="button"
-            className="a-btn a-btn-primary"
-            disabled={busy}
-            onClick={() => onPublish(note.trim(), published ? scope : "both")}
-          >
-            {busy ? words.publishing : words.publish}
-          </button>
-        </div>
       </div>
     </Modal>
   );

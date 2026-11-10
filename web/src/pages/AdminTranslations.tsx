@@ -1,3 +1,4 @@
+import Select from "@/components/ui/Select";
 import { useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import AdminShell from "@/components/admin/AdminShell";
@@ -146,24 +147,24 @@ export default function AdminTranslations() {
         <div className="a-toolbar">
           <label className="w-full sm:w-auto">
             <span className="sr-only">Filter by type</span>
-            <select className="a-select sm:w-44" value={type} onChange={(e) => setParam("type", e.target.value, "all")}>
+            <Select className="sm:w-44" value={type} onChange={(e) => setParam("type", e.target.value, "all")}>
               <option value="all">All types</option>
               {TRANSLATION_TYPES.map((t) => (
                 <option key={t} value={t}>
                   {TYPE_PLURAL[t]}
                 </option>
               ))}
-            </select>
+            </Select>
           </label>
           <label className="w-full sm:w-auto">
             <span className="sr-only">Filter by visibility</span>
-            <select className="a-select sm:w-52" value={visibility} onChange={(e) => setParam("visibility", e.target.value, "public")}>
+            <Select className="sm:w-52" value={visibility} onChange={(e) => setParam("visibility", e.target.value, "public")}>
               {(["public", "all", "private"] as const).map((v) => (
                 <option key={v} value={v}>
                   {VISIBILITY_LABEL[v]}
                 </option>
               ))}
-            </select>
+            </Select>
           </label>
         </div>
 

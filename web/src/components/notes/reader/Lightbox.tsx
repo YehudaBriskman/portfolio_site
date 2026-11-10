@@ -118,7 +118,7 @@ export default function Lightbox({
   return (
     <dialog
       ref={dialog}
-      className={styles.viewer}
+      className={`${styles.viewer} pop-dialog pop-dialog--viewer`}
       aria-label={fig ? `${kind}: ${fig.alt || w.viewer}` : w.viewer}
       aria-describedby={fig?.caption ? "lightbox-caption" : undefined}
       onClose={() => {
