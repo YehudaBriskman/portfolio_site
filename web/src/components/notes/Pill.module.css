@@ -22,15 +22,18 @@
  * can see and not one that claims to be pressable — a non-interactive
  * container has no 3:1 floor to clear. The type is --ink-soft at 7.35:1.
  */
-.meta.meta {
-  border-color: rgb(var(--rule-firm));
-  background: rgb(var(--sheet) / 0.7);
+.meta {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-data);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
   color: rgb(var(--ink-soft));
-  /* 44px, because these sit in a row with links and a row of mixed heights is
-     the thing that made the byline's metadata look assembled rather than set.
-     The negative block margin keeps the row the height it was. */
-  min-height: 44px;
-  margin-block: -0.5rem;
+}
+
+.meta + .meta::before {
+  content: "\00b7";
+  padding-inline: 0.625rem;
 }
 
 /*

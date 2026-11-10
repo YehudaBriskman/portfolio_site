@@ -293,7 +293,7 @@ export default function Contact() {
          the same three, one per field. */
       setFieldErrors({
         name: flat.name?.[0] && w.errors.name,
-        email: flat.email?.[0] && w.errors.email,
+        email: flat.email?.[0] && (draft.email.trim() === "" ? w.errors.emailEmpty : w.errors.email),
         message: flat.message?.[0] && w.errors.message,
       });
       setStatus({

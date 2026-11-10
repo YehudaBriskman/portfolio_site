@@ -23,7 +23,7 @@ export default function TagPill({ tag, active = false }: { tag: string; active?:
       className={`tap tag-pill ${styles.tag} ${active ? `tag-pill--active ${styles.tagActive}` : ""}`}
       aria-label={active ? w.clearTag(tag) : w.tagged(tag)}
     >
-      <span aria-hidden="true">#{tag}</span>
+      <bdi dir="ltr" aria-hidden="true">#{tag}</bdi>
       {active && (
         <span aria-hidden="true" className="ms-1.5 text-[0.875rem] leading-none">
           &times;

@@ -69,6 +69,7 @@ export default function LanguageMenu({
           variant="glass"
           size="island"
           className={styles.control}
+          data-language-trigger=""
           /*
            * The accessible name has to contain the visible text.
            *

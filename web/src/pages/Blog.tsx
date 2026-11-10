@@ -257,6 +257,7 @@ export default function Blog() {
             facets={offered}
             selection={selection}
             path="/blog"
+            withQuery
             shown={matching.length}
             total={all.length}
             noun={lang === "he" ? "רשימות" : all.length === 1 ? "note" : "notes"}

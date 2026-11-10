@@ -251,13 +251,17 @@ export function FilterTokens({
   facets,
   selection,
   path,
+  withQuery = false,
 }: {
   facets: FacetSpec[];
   selection: Selection;
   path: string;
+  /** The page has a text search: `?q=` is shown as a token like any other filter. */
+  withQuery?: boolean;
 }) {
   const location = useLocation();
   const w = useFilterWords();
+  const query = withQuery ? (new URLSearchParams(location.search).get("q") ?? "").trim() : "";
   const box = useRef<HTMLDivElement>(null);
   const pending = useRef<number | null>(null);
 
@@ -278,9 +282,29 @@ export function FilterTokens({
   const tokens = facets.flatMap((f) =>
     (selection[f.key] ?? []).map((value) => ({ facet: f, value }))
   );
+  const count = tokens.length + (query ? 1 : 0);
   return (
-    <div ref={box} className={styles.tokens} hidden={tokens.length === 0}>
+    <div ref={box} className={styles.tokens} hidden={count === 0}>
       <ul className={styles.tokenList} aria-label={w.active}>
+        {query && (
+          <li key="q">
+            <Link
+              data-token=""
+              to={hrefCleared(path, location.search, ["q"])}
+              preventScrollReset
+              viewTransition
+              className={styles.token}
+              onClick={() => {
+                pending.current = 0;
+              }}
+            >
+              <span className={styles.tokenFacet}>{w.search}</span>
+              <span translate="no">{query}</span>
+              <span className="sr-only">{w.remove}</span>
+              <span className={styles.cross} aria-hidden="true" />
+            </Link>
+          </li>
+        )}
         {tokens.map(({ facet, value }, i) => {
           const words = facet.labelOf?.(value) ?? value;
           return (
@@ -292,7 +316,7 @@ export function FilterTokens({
                 viewTransition
                 className={styles.token}
                 onClick={() => {
-                  pending.current = i;
+                  pending.current = i + (query ? 1 : 0);
                 }}
               >
                 <span className={styles.tokenFacet}>{facet.label}</span>
@@ -305,7 +329,7 @@ export function FilterTokens({
         })}
       </ul>
       <Link
-        to={hrefCleared(path, location.search, facets.map((f) => f.key))}
+        to={hrefCleared(path, location.search, [...facets.map((f) => f.key), ...(withQuery ? ["q"] : [])])}
         preventScrollReset
         viewTransition
         className={styles.clear}
@@ -330,6 +354,7 @@ export default function FilterControl({
   total,
   noun,
   search,
+  withQuery = false,
 }: {
   /** The card's heading, e.g. "Filter projects". */
   title: string;
@@ -342,6 +367,8 @@ export default function FilterControl({
   noun: string;
   /** A search field, above the facets, when the page has enough items to need one. */
   search?: ReactNode;
+  /** The page filters on `?q=`: show it as a removable token. */
+  withQuery?: boolean;
 }) {
   const toggle = useToggle(path);
   const w = useFilterWords();
@@ -373,7 +400,7 @@ export default function FilterControl({
       {/* The choices already made come first, so an open popover never
           covers them. Mounted with or without tokens, so taking off the last
           one can still hand focus on. */}
-      <FilterTokens facets={facets} selection={selection} path={path} />
+      <FilterTokens facets={facets} selection={selection} path={path} withQuery={withQuery} />
 
       {search}
 

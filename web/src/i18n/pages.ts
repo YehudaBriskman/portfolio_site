@@ -92,6 +92,7 @@ export const useContactWords = defineWords(
     unknownFailure: "something went wrong at my end",
     errors: {
       name: "Add your name",
+      emailEmpty: "Add your email address, so I can reply",
       email: "That email address doesn't look right. It should look like name@example.com",
       message: "Tell me a little more, at least a sentence",
     },
@@ -118,6 +119,7 @@ export const useContactWords = defineWords(
     unknownFailure: "משהו השתבש אצלי",
     errors: {
       name: "יש להזין שם",
+      emailEmpty: "יש להזין כתובת אימייל, כדי שאוכל לענות",
       email: "כתובת האימייל לא נראית תקינה. לדוגמה: name@example.com",
       message: "כתבו קצת יותר, לפחות משפט אחד",
     },
@@ -256,6 +258,7 @@ export const useFilterWords = defineWords(
     active: "Active filters",
     remove: ", remove this filter",
     clearAll: "Clear all",
+    search: "Search",
     filter: "Filter",
     filterOn: (n: number) => `Filter, ${n} on`,
     close: "Close",
@@ -267,6 +270,7 @@ export const useFilterWords = defineWords(
     active: "מסננים פעילים",
     remove: ", הסרת המסנן",
     clearAll: "ניקוי הכול",
+    search: "חיפוש",
     filter: "סינון",
     filterOn: (n: number) => `סינון, ${n} פעילים`,
     close: "סגירה",

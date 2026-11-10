@@ -135,7 +135,8 @@ export default function AskBox({
           ))}
         </ul>
       )}
-      {children}
+      {/* The static topic chips repeat the suggestions while those are open. */}
+      {offers.length === 0 ? children : null}
     </div>
   );
 }
