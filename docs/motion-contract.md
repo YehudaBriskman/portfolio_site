@@ -2062,6 +2062,9 @@ animation.
 | every modal `<dialog>` except Contact's own: the phone sheets (`Rail`, `BlogPost`), the dashboards' rail sheet, the picture view, the admin `Modal` (media, picker, publish review) (`dialog.pop-dialog`) | /projects, /blog, /blog/:slug, admin | a transition, not a keyframe: `@starting-style` plus `transition-behavior: allow-discrete` on `display` and `overlay`; opacity + translate/scale (bottom sheet rises 40px, side sheet 32px from its own edge and mirrored in RTL, modal 14px / .97), the backdrop fades on its own | **exempt** (2026-11-10): dialog open/close. This supersedes the "shown and hidden, no transition" in the rows above for the dialogs; popovers inside the filter card are unchanged |
 | toasts (`ui/sonner`, `.pop-toast`) | /blog/:slug | sonner's own enter/exit, on the popup system's timing and surface | **exempt** (2026-11-10): a reply to a press |
 | theme wave: the new theme revealed by a `clip-path` circle from the toggle (`nav/themeWave.ts`, `nav/theme-wave.css`, `theme-wave`) | every route | a view transition, 600ms on `--ease-settle`; old snapshot held still, default cross-fade off | **exempt** (#266): a reply to choosing a theme. Instant, with no transition at all, under every off-switch (§4: no `startViewTransition`, reduced motion, Pause), when the choice does not change the ground, and when System follows the OS |
+| the hero's particle word (`hero/ParticleWord`) | /, desktop only | one `requestAnimationFrame` loop that runs only while the entrance, a pointer on the word or settling particles move, and stops at rest | **exempt** (2026-11-10): the page-load entrance and direct manipulation; see "The hero's particle word and orbit" below |
+| the hero's orbit constellation (`hero/HeroOrbit`) | /, desktop only | CSS transitions flipped once on the arrival signal; no keyframes, no loop | **exempt** (2026-11-10): part of the page load; then still |
+| the page's colour orbs (`ground/AmbientOrbs`) | every route | one `opacity` transition, 0 to 1 in 1.2s, once; then static | **exempt** (2026-11-10): the page load; static under reduced motion and Pause |
 | card tilt, note cards growing, pills, buttons, links, chips, glyph nudges, form controls | every route, admin login | `:hover` / `:focus` / `:active` transitions | **exempt**: hover/focus |
 | in-page anchor smooth scroll (`scrollToAnchor`) | every route | per click | **exempt**: a reply to a click |
 | admin login | /admin/posts | form-control focus transitions only | **exempt**: focus |
@@ -2149,3 +2152,95 @@ Rules that cost a debugging session to learn:
 - **Off** under `prefers-reduced-motion` and `body.motion-paused`: animation
   and transition are `none`, so a popup is shown and hidden instantly.
 - Contact's dialog predates the system and keeps its own staged recipe.
+
+2026-11-10 (the owner's colour and particle brief) added three exempt rows,
+below: 54 rows; 20 scrubbed, 16 exempt, 10 removed, 8 with nothing of their own.
+
+---
+
+## 10. The hero's particle word and orbit, and the page's colour orbs (2026-11-10)
+
+The owner asked for three things: colours fading in on the background "like
+WindoM's main bg"; the word beside the portrait made of about a thousand
+interactive particles that flee the cursor; and, on desktop only, objects
+flying in from the sides to circle the hero. Each is inside this contract on
+purpose, and this section is where the reasons are.
+
+**The one loop, and why it is not an ambient loop.** `hero/ParticleWord.tsx`
+owns a single `requestAnimationFrame` loop. It is armed by exactly three
+things: the entrance (about 1.8s, once per visit, started by the same entry
+signal as the plate's arrival), a pointer moving over the word (direct
+manipulation, like `useCityHand`), and particles still travelling back
+afterwards. `particlePhysics.step` reports rest and the loop does not re-arm;
+the next pointer event or resize starts it. A word nobody touches costs no
+frames. It is therefore not the "second ambient loop" §2 forbids beside the
+lamp: nothing in it runs while the reader does nothing. There is no
+`IntersectionObserver` (`scrollOnly.test.ts` lists the only two): the loop
+needs input to run, and the pointer's event target must be inside `#hero`, so
+a hero covered by the dark act, or scrolled away, cannot be pushed. A hidden
+tab pauses it (`visibilitychange`; rAF stops anyway).
+
+**Physics that can stop.** A damped spring to the rest point (K = 90, zeta =
+0.62) and a smooth radial push from the pointer, integrated at a fixed 1/120s
+step so it is the same at 60 and 144Hz. A tangential "swirl" was tried and
+removed: it is not the gradient of any potential, so it pumps energy and left
+particles circling a still pointer for ever, which a loop that must stop at
+rest cannot allow. Central force plus damping always settles
+(`particlePhysics.test.ts` pins both facts).
+
+**Off-switches, and what each renders.** `hero/useParticleGate` is the one
+gate for the word and the orbit, and each input is watched live:
+
+| condition | renders |
+|---|---|
+| viewport under 1100px, `(pointer: coarse)` or no `(hover: hover)` | the static h1 exactly as before ("UN-mobile": desktop only) |
+| `prefers-reduced-motion: reduce` | the static h1 |
+| the Pause toggle (`body.motion-paused`) | the static h1; Play brings the word back |
+| `forced-colors: active`, print | the static h1 (the canvas and the orbit are `display: none` in CSS too) |
+| no 2D canvas, or no text | the static h1 |
+
+The static word is the real `h1`, always in the DOM: it is what screen readers,
+crawlers and no-script readers get, it is selectable and copyable in every
+fallback, and with particles on it is only `opacity: 0` (never `display` or
+`visibility`), so selection still works there too. The canvas is `aria-hidden`
+and `pointer-events: none`; the page listens on the window with passive
+listeners. The particle word renders `plateTitle.name`: the h1's own text from
+the same content store, in the page's language (on the live site that is the
+stored title "Portfolio"), in the h1's own computed font, uppercased as the h1
+is, on the lines the browser wrapped it into.
+
+**No layout shift.** On desktop the h1 is laid out at the particle size (CSS
+custom properties `--pw-*` on the section, computed by `ParticleWord` from the
+font's measured advance widths so the word fills ~84% of the section width,
+two or three lines if that is bigger) and the canvas is drawn onto that box. So
+the box is the same before and after the canvas appears. What does change is
+the h1's size when the gate opens, a hydration-time step on desktop only,
+under the entry shutter on a first visit. Mobile, reduced motion, Pause,
+print and forced colours never receive the `--pw-*` rules (they match only
+under `[data-particles]`).
+
+**The constellation** (`hero/HeroOrbit`) is CSS and SVG: no keyframes (so
+`scrollOnly.test.ts`'s `ALLOWED` list is untouched), no loop. Each object is
+two nested boxes whose `transform` transitions ease differently, so the path
+from the side is an arc; the transition is flipped once by the arrival signal
+and the objects then stay still. `transform` and `opacity` only. Sideways
+travel is inside the hero's `overflow-x: clip` (§5's licence). It is behind
+the composition, `pointer-events: none`, `aria-hidden`, and its labels are the
+tools the projects are built with, counted from the content store.
+
+**The colour orbs** (`ground/AmbientOrbs`) are one fixed layer of four radial
+gradients (`--soft-*` tokens), not blurred elements, so there is nothing to
+re-raster. Its `opacity` is the only thing that changes: one 1.2s transition
+once on load, not a keyframe animation (no clock animation for the scroll-only
+test to list), compositor-only. Under reduced motion and Pause the orbs are
+simply shown. Print and forced colours show none. The alpha is a token per
+theme (`--orb-alpha`: 0.20 light, 0.13 dark; 55% of that under 700px), and
+`test/orbContrast.test.ts` holds `--ink-soft` at 4.5:1 and `--ink` at 7:1
+under the strongest orb in both themes. A scroll-linked drift was left out.
+
+**Verification note.** On this box's headless Chromium (about one rAF per 40s)
+physics are checked by calling the same pure `step` functions, and in the
+browser through a test hook that exists only with `?particles=settled|test` in
+the address (`window.__heroParticles`: fast-forward N frames, move a virtual
+pointer, read particle state). `?particles=settled` also skips the entrance.
+||||||| 105e66e
