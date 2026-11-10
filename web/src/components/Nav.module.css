@@ -1246,3 +1246,14 @@
   background: rgb(var(--ink));
   border: 1px solid rgb(var(--ink));
 }
+
+/* The menu's controls row: 44px targets with room between them (#348). */
+@media (max-width: 48rem) {
+  .sheetControls {
+    gap: 0.75rem;
+  }
+  .sheetControls :is(button, a) {
+    min-height: 2.75rem;
+    min-width: 2.75rem;
+  }
+}

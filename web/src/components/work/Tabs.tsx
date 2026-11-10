@@ -1,4 +1,4 @@
-import { useEffect, useRef, type KeyboardEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import styles from "@/components/work/Tabs.module.css";
 import { count as fmt, useLang } from "@/components/dashboard/i18n";
 import { panelId, tabId } from "@/components/work/order";
@@ -34,6 +34,12 @@ export default function Tabs<K extends string>({
 }) {
   const lang = useLang();
   const refs = useRef(new Map<string, HTMLButtonElement>());
+  const listRef = useRef<HTMLDivElement>(null);
+  /* Which edges of the row have more tabs past them: the cue that a tab is
+     not simply missing. Read from the scroll position, which is logical in
+     both directions (`scrollLeft` is negative in RTL), so it is compared by
+     magnitude. */
+  const [more, setMore] = useState({ start: false, end: false });
 
   /* On a phone the row scrolls sideways; the selected tab is kept in it, so
      a link to `?tab=docs` does not open on a tab the reader cannot see. Only
@@ -46,6 +52,25 @@ export default function Tabs<K extends string>({
     const b = row.getBoundingClientRect();
     if (a.left < b.left || a.right > b.right) row.scrollLeft += a.left + a.width / 2 - (b.left + b.width / 2);
   }, [selected]);
+
+  useEffect(() => {
+    const row = listRef.current;
+    if (!row) return;
+    const read = () => {
+      const max = row.scrollWidth - row.clientWidth;
+      const at = Math.abs(row.scrollLeft);
+      const next = { start: max > 1 && at > 1, end: max > 1 && at < max - 1 };
+      setMore((m) => (m.start === next.start && m.end === next.end ? m : next));
+    };
+    read();
+    row.addEventListener("scroll", read, { passive: true });
+    const ro = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(read);
+    ro?.observe(row);
+    return () => {
+      row.removeEventListener("scroll", read);
+      ro?.disconnect();
+    };
+  }, [tabs.length]);
 
   const go = (i: number) => {
     const next = tabs[(i + tabs.length) % tabs.length];
@@ -68,7 +93,15 @@ export default function Tabs<K extends string>({
 
   return (
     <div className={styles.bar}>
-      <div role="tablist" aria-label={label} className={styles.list} onKeyDown={onKeyDown}>
+      <div
+        ref={listRef}
+        role="tablist"
+        aria-label={label}
+        className={styles.list}
+        data-more-start={more.start || undefined}
+        data-more-end={more.end || undefined}
+        onKeyDown={onKeyDown}
+      >
         {tabs.map((tab) => {
           const on = tab.key === selected;
           return (

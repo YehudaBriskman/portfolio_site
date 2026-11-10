@@ -385,6 +385,12 @@ describe("the project page: tabs", () => {
   it("an unknown tab in a link falls back to Overview", () => {
     expect(readTab(new URLSearchParams("tab=wiki"))).toBe("overview");
   });
+
+  it("reads a tab from the hash, and ?tab= wins when both are present", () => {
+    expect(readTab(new URLSearchParams(""), "#docs")).toBe("docs");
+    expect(readTab(new URLSearchParams("tab=notes"), "#docs")).toBe("notes");
+    expect(readTab(new URLSearchParams(""), "#wiki")).toBe("overview");
+  });
 });
 
 describe("Work: the order", () => {
