@@ -972,7 +972,7 @@
   padding: 5px 10px;
   border-radius: var(--r-pill);
   font-family: var(--font-data);
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   line-height: 1.2;
   letter-spacing: var(--track-field);
   text-transform: uppercase;
