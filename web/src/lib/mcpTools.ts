@@ -31,5 +31,5 @@ export const OWNER_WRITE: Tool[] = [
   { name: "delete_post", does: "Archive a post. Needs confirm: true." },
   { name: "save_area", does: "Create or edit an area. Dry run unless told otherwise." },
   { name: "delete_area", does: "Hide an area. Needs confirm: true." },
-  { name: "put_translation", does: "Write Hebrew into a draft, never live. Dry run unless told otherwise." },
+  { name: "put_translation", does: "Write Hebrew: a draft for posts and content, LIVE at once for areas and media (no draft). Dry run unless told otherwise." },
 ];

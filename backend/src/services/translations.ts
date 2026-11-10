@@ -1,6 +1,6 @@
 import { couch, CouchError } from "../db/couch.js";
 import { lintHebrew, type LintIssue } from "../i18n/glossary.js";
-import { PostContentSchema, PostSchema, type Collection, type Post } from "../schemas/content.js";
+import { AreaLinkLabel, CollectionHebrewSchema, CollectionSchema, PostContentSchema, PostSchema, type Collection, type Post } from "../schemas/content.js";
 import {
   COLLECTION_FIELDS,
   LINK_LABEL_PATHS,
@@ -27,7 +27,7 @@ import {
 } from "../schemas/i18n.js";
 import { CONTENT_KEYS, CONTENT_SCHEMAS, type ContentDoc, type ContentKey } from "../schemas/site-content.js";
 import { contentId, getContentDoc, seedFor } from "./site-content.js";
-import { mediaStore, type MediaDoc } from "./media.js";
+import { MEDIA_HE_FIELDS, MediaMeta, mediaStore, type MediaDoc } from "./media.js";
 
 /*
  * Everything the owner has written, as translation items (#301).
@@ -353,7 +353,8 @@ export async function ackTranslation(input: AckInput): Promise<AckResult> {
  * its draft is updated), a content document's draft is written, and the owner
  * publishes from the admin as for any other edit. A note that is not published
  * has no live version, so its Hebrew is written where its draft lives, on the
- * note itself. Areas have no draft, so they are refused.
+ * note itself. Areas and media have no draft, so a write to either is LIVE at
+ * once, stamped as the admin's own save stamps it (areaDraft, mediaDraft).
  *
  * The fingerprints are stamped exactly as a save from the admin stamps them,
  * and every Hebrew string is linted against the glossary; the warnings come
@@ -376,7 +377,6 @@ export type DraftResult =
     }
   | { ok: false; status: 400 | 404 | 409; error: string };
 
-const noDraft = { ok: false as const, status: 400 as const, error: "Areas and media have no draft. Edit their Hebrew in the admin." };
 const tooLong = (path: string) => ({ ok: false as const, status: 400 as const, error: `The Hebrew for ${path} is too long.` });
 
 const clean = (v: string) => v.trim();
@@ -464,8 +464,108 @@ async function contentDraft(key: ContentKey, input: DraftInput): Promise<DraftRe
   return { ok: true, dryRun: false, target, changes, warnings, rev, audit: { target, before: existing, after: next } };
 }
 
+/*
+ * An area's Hebrew (title, tagline, description) sits in its `he` block with the
+ * fingerprints in `heMeta`; each link label is `Text`, its Hebrew and `heSrc`
+ * inside it. Stamped as PUT /api/admin/collections/:slug stamps them.
+ */
+const AREA_HE_FIELDS = COLLECTION_FIELDS.map((f) => f.field);
+const AREA_LINK = /^links\.(\d)\.label$/;
+
+async function areaDraft(input: DraftInput): Promise<DraftResult> {
+  const id = `collection:${input.id}`;
+  const doc = await tryGet<Collection>(id);
+  if (!doc) return notFound;
+  if (input.rev !== undefined && doc._rev !== input.rev) return conflictAck;
+  const links = (doc.links ?? []).map((l) => ({ ...l, label: AreaLinkLabel.parse(l.label) }));
+  const he: Record<string, string | null> = { title: null, tagline: null, description: null, ...(doc.he ?? {}) };
+  const newLabels = new Map<number, string>();
+  const changes: DraftChange[] = [];
+  for (const u of input.units) {
+    const after = clean(u.he);
+    const m = AREA_LINK.exec(u.path);
+    if (m) {
+      const link = links[Number(m[1])];
+      if (!link) return notFound;
+      const before = orNull(link.label.he);
+      if ((before ?? "") !== after) changes.push({ path: u.path, en: link.label.en, before, after: after || null });
+      if (after.length > 60) return tooLong(u.path);
+      newLabels.set(Number(m[1]), after);
+    } else if (AREA_HE_FIELDS.includes(u.path as never)) {
+      const before = orNull(he[u.path]);
+      if ((before ?? "") !== after) changes.push({ path: u.path, en: String((doc as Record<string, unknown>)[u.path] ?? ""), before, after: after || null });
+      he[u.path] = after || null;
+    } else return notFound;
+  }
+  const warnings = lintUnits(input.units);
+  if (input.dryRun || changes.length === 0) return { ok: true, dryRun: input.dryRun, target: id, changes, warnings };
+
+  const nextHe = CollectionHebrewSchema.safeParse(he);
+  if (!nextHe.success) return tooLong(String(nextHe.error.issues[0]?.path.join(".") ?? ""));
+  /* A label whose Hebrew is unchanged keeps its fingerprint; a new one is stamped against its English. */
+  const stampedLinks = stampTexts(
+    {
+      links: links.map((l, i) => {
+        const w = newLabels.get(i);
+        if (w === undefined) return l;
+        const { heSrc: _old, he: _oldHe, ...rest } = l.label;
+        return { ...l, label: { ...rest, ...(w ? { he: w } : {}) } };
+      }),
+    },
+    [{ links }],
+  ).links;
+  const hasHe = Object.values(nextHe.data).some((v) => v);
+  const next: Collection = {
+    ...doc,
+    links: stampedLinks,
+    he: hasHe ? nextHe.data : null,
+    heMeta: hasHe ? stampHebrewMeta(nextHe.data, doc as Record<string, unknown>, [{ he: doc.he, meta: doc.heMeta }], AREA_HE_FIELDS) : null,
+    updatedAt: new Date().toISOString(),
+  };
+  const valid = CollectionSchema.safeParse(next);
+  if (!valid.success) return { ok: false, status: 400, error: "The area would not be valid with this Hebrew." };
+  const before = structuredClone(doc);
+  const rev = await save({ ...next, _id: id });
+  if (rev === null) return conflictAck;
+  return { ok: true, dryRun: false, target: id, changes, warnings, rev, audit: { target: id, before, after: next } };
+}
+
+/* A media item's alt and caption, stamped as PUT /api/admin/media/:id stamps them. */
+async function mediaDraft(input: DraftInput): Promise<DraftResult> {
+  const doc = await mediaStore.get(input.id);
+  if (!doc) return notFound;
+  if (input.rev !== undefined && doc._rev !== input.rev) return conflictAck;
+  const he: { alt: string; caption: string } = { alt: doc.he?.alt ?? "", caption: doc.he?.caption ?? "" };
+  const changes: DraftChange[] = [];
+  for (const u of input.units) {
+    if (u.path !== "alt" && u.path !== "caption") return notFound;
+    const after = clean(u.he);
+    const before = orNull(he[u.path]);
+    if ((before ?? "") !== after) changes.push({ path: u.path, en: doc[u.path], before, after: after || null });
+    he[u.path] = after;
+  }
+  const warnings = lintUnits(input.units);
+  if (input.dryRun || changes.length === 0) return { ok: true, dryRun: input.dryRun, target: doc._id, changes, warnings };
+
+  const parsed = MediaMeta.shape.he.unwrap().unwrap().safeParse(he);
+  if (!parsed.success) return tooLong(String(parsed.error.issues[0]?.path.join(".") ?? ""));
+  const words = parsed.data.alt || parsed.data.caption ? parsed.data : null;
+  const meta = stampHebrewMeta(words, doc as unknown as Record<string, unknown>, [{ he: doc.he, meta: doc.heMeta }], MEDIA_HE_FIELDS);
+  const before = structuredClone(doc);
+  const next: MediaDoc = { ...doc, he: words, heMeta: meta ? { src: meta.src } : null, updatedAt: new Date().toISOString() };
+  let saved: MediaDoc;
+  try {
+    saved = await mediaStore.saveMeta(next);
+  } catch (e) {
+    if (e instanceof CouchError && e.status === 409) return conflictAck;
+    throw e;
+  }
+  return { ok: true, dryRun: false, target: doc._id, changes, warnings, rev: saved._rev, audit: { target: doc._id, before, after: saved } };
+}
+
 export async function putTranslationDraft(input: DraftInput): Promise<DraftResult> {
-  if (input.type === "area" || input.type === "media") return noDraft;
+  if (input.type === "area") return areaDraft(input);
+  if (input.type === "media") return mediaDraft(input);
   if (input.type === "post") return postDraft(input);
   const key = CONTENT_KEY_OF[input.type];
   return key ? contentDraft(key, input) : notFound;

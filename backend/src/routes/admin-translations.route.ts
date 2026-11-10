@@ -83,8 +83,8 @@ router.post(
  *
  * Hebrew for one or more units of one item, into its draft (#307: what the
  * MCP's put_translation calls). `dryRun` defaults to true: it answers with the
- * changes and the glossary warnings and writes nothing. Areas have no draft
- * and are refused. See services/translations.ts `putTranslationDraft`.
+ * changes and the glossary warnings and writes nothing. Areas and media have no
+ * draft: a real write to either is live at once. See services/translations.ts `putTranslationDraft`.
  */
 const DraftBody = z.object({
   type: z.enum(TRANSLATION_TYPES),

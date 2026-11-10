@@ -222,7 +222,8 @@ never be Hebrew. These become `Text` (A), with a read-side shim (`typeof v ===
 > nothing migrates, and no stored doc has a Hebrew alt yet to backfill. The Translations
 > report lists each picture and video (`type: "media"`, `alt` primary,
 > `caption` counted only when the English has one); "still correct" restamps
-> it, and `put_translation` refuses it, since media has no draft. Captions:
+> it, and `put_translation` writes its alt and caption live, since media has no
+> draft. Captions:
 > `captions` stays the first track, and `moreCaptions` holds one more per
 > language (`captions-<lang>.vtt`), added and removed in `/admin/media` through
 > `PUT`/`DELETE /api/admin/media/:id/captions/:lang`; `/meta` gives `tracks`,
@@ -608,8 +609,10 @@ The glossary (category rules + the term table) is exposed as an MCP resource
 > **As built (#307):** `put_translation` writes through a new
 > `PUT /api/admin/translations/draft` `{ type, id, rev?, units: [{ path, he }], dryRun }`
 > (dry run by default), which finds each unit server-side, stamps it like an
-> admin save and returns the glossary lint as `warnings`. Areas have no draft,
-> so it refuses them. `save_post_draft`/`save_area` did not gain `he`:
+> admin save and returns the glossary lint as `warnings`. Areas and media have
+> no draft, so a write to either goes LIVE at once (the same stamping as their
+> admin save; the result's `note` says so); it was a refusal until the MCP was
+> given them. `save_post_draft`/`save_area` did not gain `he`:
 > `put_translation` is the one way an MCP client writes Hebrew. The backend
 > carries a checked copy of the glossary (`backend/src/i18n/`) for the lint
 > and for `GET /api/admin/translations/glossary`, which backs the resource.
