@@ -119,10 +119,29 @@ export function bootLang(): Lang {
  * Pushed, not replaced, so Back returns to the language the reader came from.
  * The search and hash are kept, so a filter or an anchor survives the switch.
  */
+/*
+ * Where the reader was when they switched language. The switch remounts the
+ * router under the other basename, so `ScrollManager` sees a brand-new
+ * mount whose history entry is named `default:<path>`, and it would treat
+ * that as an arrival: restore whatever position an EARLIER visit to that same
+ * path left in sessionStorage (often far down the page), or jump to the top.
+ * A language switch is neither; the reader stays where they are. So the
+ * position is handed over here, once, and consumed by `takeLangScroll`.
+ */
+let langScroll: number | null = null;
+
+/** The scroll position a language switch left behind, once; then null. */
+export function takeLangScroll(): number | null {
+  const y = langScroll;
+  langScroll = null;
+  return y;
+}
+
 export function switchLang(next: Lang): void {
   writePref(next);
   const { pathname, search, hash } = window.location;
   if (langOfPath(pathname) === next) return;
+  langScroll = Math.round(window.scrollY);
   window.history.pushState(null, "", `${pathIn(pathname, next)}${search}${hash}`);
   applyLang(next);
 }
