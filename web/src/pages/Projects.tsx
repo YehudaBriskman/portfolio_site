@@ -239,7 +239,17 @@ export default function Projects() {
           )}
         </header>
 
-        {shown.length === 0 ? (
+        {state === "loading" ? (
+          /* The seeds are only a fallback for a failed fetch. Painted while the
+             fetch runs they are a different list from the published one (other
+             order, so a different pinned set), and the swap moved everything
+             below the head by a few hundred pixels (CLS 0.21 at 390). A block
+             a screen tall holds the place instead, and keeps the footer out of
+             view until the list has arrived. */
+          <div className={styles.listLoading} aria-busy="true">
+            <ListSkeleton lines={6} />
+          </div>
+        ) : shown.length === 0 ? (
           <div className={styles.empty}>
             <h2 className={dash.messageTitle}>{t.noMatch}</h2>
             <p>

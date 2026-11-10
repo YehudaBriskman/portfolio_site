@@ -116,7 +116,12 @@ export default function Project() {
   const idBase = useId();
   const [now] = useState(() => Date.now());
 
-  const entry = items.find((e) => e.collection.slug === project) ?? null;
+  /* A seed is only a fallback for a failed fetch. Its links, order and facts
+     differ from the published collection's, so painting it first and swapping
+     moved the head, the tabbed card and the side list on arrival (CLS 0.15).
+     Until the list has answered, a seed-backed slug is "loading", not "ok". */
+  const found = items.find((e) => e.collection.slug === project) ?? null;
+  const entry = found && (found.live || listState !== "loading") ? found : null;
   const others = relatedTo(items, project);
   const state = entry ? "ok" : listState === "loading" ? "loading" : "missing";
   const location = useLocation();

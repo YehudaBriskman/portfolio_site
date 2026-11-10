@@ -169,15 +169,22 @@ export default function BlogPost() {
         difference is the page's hierarchy. The gutter and the section rhythm
         are the system's, though.
       */}
-      <div className={`section-y px-gutter ${state === "ok" ? reader.layout : "mx-auto w-full max-w-[46rem]"}`}>
+      {/* While loading, the box is a screen tall: the placeholder is far shorter
+          than a note, so the footer used to sit under it and be shoved down the
+          moment the note arrived (CLS 0.78 at 390). A screen of reserved height
+          keeps the footer out of view until there is a note above it. */}
+      <div className={`section-y px-gutter ${state === "ok" || state === "loading" ? reader.layout : "mx-auto w-full max-w-[46rem]"} ${state === "loading" ? "min-h-[100svh]" : ""}`}>
       <article data-crest data-hue="150 82 64" className="min-w-0" style={prefsVars(prefs) as React.CSSProperties}>
         {state === "loading" && (
           /* Shaped like the real header rather than announced as a word, so the
              title and the cover do not jump into place over a line of text. */
           <div aria-busy="true" aria-live="polite">
             <span className="sr-only">{w.loading}</span>
-            <div aria-hidden="true" className="space-y-5">
-              <div className="h-7 w-28 scrub-pulse rounded-full bg-surface" />
+            {/* The real header sits under a `mt-12` and opens on a 44px pill;
+                the placeholder starts at the same line, in the same column
+                (the layout, aside and all), so nothing moves when it is replaced. */}
+            <div aria-hidden="true" className="mt-12 space-y-5">
+              <div className="h-11 w-28 scrub-pulse rounded-full bg-surface" />
               <div className="h-12 w-full scrub-pulse rounded-full bg-surface sm:h-16" />
               <div className="h-12 w-3/4 scrub-pulse rounded-full bg-surface sm:h-16" />
               <div className="h-5 w-1/2 scrub-pulse rounded-full bg-surface" />
@@ -248,6 +255,13 @@ export default function BlogPost() {
                       <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-clay" />
                       {collectionTitle}
                     </Link>
+                  ) : post.collection ? (
+                    /* The collection's title arrives from a second request. Until it
+                       does, hold the 44px the pill will take, or the title below
+                       drops by the difference. */
+                    <div className="flex min-h-[44px] items-center">
+                      <p className="eyebrow">{w.note}</p>
+                    </div>
                   ) : (
                     <p className="eyebrow">{w.note}</p>
                   )}
