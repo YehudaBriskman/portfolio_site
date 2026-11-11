@@ -43,6 +43,13 @@ const LATIN_SEEN = new Set<string>([
   "mcp:read",
   "mcp:write",
   "confirm: true",
+  /* Service names and the two link-tag parameters, as the statement's sharing section names them. */
+  "Instagram",
+  "WhatsApp",
+  "X",
+  "utm",
+  "source",
+  "medium",
   /* The conformance level, as the standard writes it. */
   "AA",
   /* The brand word, first in the hero's fact line in both languages (#347, data/site.ts). */
