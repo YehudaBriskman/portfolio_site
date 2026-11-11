@@ -34,6 +34,15 @@ import { diffFields, lineDiff } from "./diff.js";
 export const VERSION = "0.1.0";
 
 export const PUBLIC_TOOLS = ["list_posts", "get_post", "list_tags", "list_areas", "get_area", "list_activity"] as const;
+/* Admin tools that only read: an `access: "read"` session gets these. */
+export const ADMIN_READ_TOOLS = [
+  "admin_list_posts",
+  "admin_get_post",
+  "read_audit_log",
+  "list_media",
+  "list_translations",
+  "get_translation",
+] as const;
 export const ADMIN_TOOLS = [
   "list_media",
   "admin_list_posts",

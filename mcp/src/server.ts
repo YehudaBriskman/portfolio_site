@@ -4,7 +4,7 @@ import type { Config } from "./config.js";
 import { instructionsFor, registerTools, VERSION } from "./tools.js";
 import { registerUploadTools } from "./upload.js";
 
-export { ADMIN_TOOLS, PUBLIC_TOOLS, VERSION } from "./tools.js";
+export { ADMIN_READ_TOOLS, ADMIN_TOOLS, PUBLIC_TOOLS, VERSION } from "./tools.js";
 export { STDIO_TOOLS } from "./upload.js";
 
 /*
