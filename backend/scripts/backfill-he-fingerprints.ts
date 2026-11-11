@@ -26,6 +26,7 @@
  */
 import { createHash, randomBytes } from "node:crypto";
 import { backfillDoc } from "../src/services/he-backfill";
+import { findAll } from "./find-all";
 
 const args = process.argv.slice(2);
 const APPLY = args.includes("--apply");
@@ -86,10 +87,14 @@ async function call(method: string, path: string, body?: unknown): Promise<{ sta
   return { status: res.status, json };
 }
 
+const PAGE = 1000;
+
 async function find(type: string): Promise<Raw[]> {
-  const r = await call("POST", "/_find", { selector: { type }, limit: 5000 });
-  if (r.status !== 200) throw new Error(`_find ${type}: ${r.status} ${JSON.stringify(r.json)}`);
-  return (r.json.docs as Raw[]) ?? [];
+  return findAll<Raw>(async (bookmark) => {
+    const r = await call("POST", "/_find", { selector: { type }, limit: PAGE, ...(bookmark ? { bookmark } : {}) });
+    if (r.status !== 200) throw new Error(`_find ${type}: ${r.status} ${JSON.stringify(r.json)}`);
+    return { docs: (r.json.docs as Raw[]) ?? [], bookmark: r.json.bookmark as string | undefined };
+  }, PAGE);
 }
 
 async function main() {

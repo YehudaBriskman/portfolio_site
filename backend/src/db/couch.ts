@@ -10,6 +10,9 @@ const db = "portfolio_content";
 const auth =
   "Basic " + Buffer.from(`${env.COUCHDB_USER}:${env.COUCHDB_PASSWORD}`).toString("base64");
 
+/** The store address, database and credential, shared with the binary client in attachments.ts. */
+export const couchConfig = { base, db, auth };
+
 /*
  * Every failure of the store, answered or not.
  *

@@ -1,4 +1,3 @@
-// src/schemas/email.ts
 import { z } from 'zod';
 
 /*

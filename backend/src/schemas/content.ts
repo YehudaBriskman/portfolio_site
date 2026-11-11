@@ -111,7 +111,6 @@ export const PostContentSchema = z.object({
   heMeta: HebrewMetaSchema.nullable().optional(),
 });
 
-/** The Hebrew of an area (#248): its name, its line and its description. */
 /*
  * An area's link label (#306) is `Text`: the English, its Hebrew, and the
  * fingerprint the Hebrew was written against. A document saved before holds a
@@ -145,6 +144,7 @@ export function labelHe(label: unknown): string | null {
   return typeof he === "string" && he.trim() ? he : null;
 }
 
+/** The Hebrew of an area: its name, its line and its description. */
 export const CollectionHebrewSchema = z.object({
   title: z.string().max(120).nullable().default(null),
   tagline: z.string().max(160).nullable().default(null),
