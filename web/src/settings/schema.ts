@@ -65,6 +65,10 @@ export const SETTINGS_ISSUES = {
   duplicate: "settings.sections.duplicate",
   missing: "settings.sections.missing",
   darkAdjacent: "settings.ledger.darkAdjacent",
+  shareDuplicate: "settings.sharing.duplicate",
+  shareTemplateLong: "settings.sharing.templateLong",
+  shareTemplateTags: "settings.sharing.templateTags",
+  shareSource: "settings.sharing.source",
 } as const;
 
 const SectionSchema = z.object({ id: z.enum(HOME_SECTIONS), visible: z.boolean() }).strict();
@@ -97,10 +101,65 @@ export const VisualSettingsSchema = z
   })
   .strict();
 
+export const SHARE_SURFACES = ["post", "note", "project", "area", "story", "home"] as const;
+export type ShareSurface = (typeof SHARE_SURFACES)[number];
+export const SHARE_CHANNELS = ["native", "copy", "linkedin", "email", "gmail", "x", "whatsapp", "instagram"] as const;
+export type ShareChannel = (typeof SHARE_CHANNELS)[number];
+
+/** A template is plain text with {title} {summary} {url} {tags} {version} {site}; markup is refused, not stripped. */
+export const SHARE_TEMPLATE_MAX = 1000;
+const TAG_LIKE = /<\s*\/?\s*[a-z!]/i;
+
+const uniqueList = <T extends z.ZodType>(item: T, max: number) =>
+  z.array(item).max(max).superRefine((list, ctx) => {
+    const seen = new Set<unknown>();
+    list.forEach((v, i) => {
+      if (seen.has(v)) ctx.addIssue({ code: "custom", path: [i], message: SETTINGS_ISSUES.shareDuplicate });
+      seen.add(v);
+    });
+  });
+
+const TemplateSchema = z
+  .string()
+  .max(SHARE_TEMPLATE_MAX, { message: SETTINGS_ISSUES.shareTemplateLong })
+  .refine((t) => !TAG_LIKE.test(t), { message: SETTINGS_ISSUES.shareTemplateTags });
+
+const TemplatesByChannel = z.object(Object.fromEntries(SHARE_CHANNELS.map((c) => [c, TemplateSchema.optional()]))).strict();
+
+/*
+ * What a visitor may share and how (#475). Public: /api/settings serves the
+ * whole object, so nothing owner-only belongs here. `enabled: false` hides
+ * the visitor menu. Empty templates mean the defaults in web/src/lib/share.
+ */
+export const SharingSettingsSchema = z
+  .object({
+    enabled: z.boolean(),
+    surfaces: uniqueList(z.enum(SHARE_SURFACES), SHARE_SURFACES.length),
+    channels: uniqueList(z.enum(SHARE_CHANNELS), SHARE_CHANNELS.length),
+    utm: z
+      .object({
+        enabled: z.boolean(),
+        source: z.string().regex(/^[a-z0-9_-]{1,40}$/i, { message: SETTINGS_ISSUES.shareSource }),
+      })
+      .strict(),
+    templates: z.object({ en: TemplatesByChannel, he: TemplatesByChannel }).strict(),
+  })
+  .strict();
+
+export const DEFAULT_SHARING: z.infer<typeof SharingSettingsSchema> = {
+  enabled: true,
+  surfaces: [...SHARE_SURFACES],
+  channels: [...SHARE_CHANNELS],
+  utm: { enabled: true, source: "share" },
+  templates: { en: {}, he: {} },
+};
+
 export const SiteSettingsSchema = z
   .object({
     home: HomeSettingsSchema,
     visuals: VisualSettingsSchema,
+    /* A document saved before #475 has no group: the defaults fill in. */
+    sharing: SharingSettingsSchema.default(() => structuredClone(DEFAULT_SHARING)),
   })
   .strict();
 
@@ -109,6 +168,7 @@ export type SiteSettings = z.infer<typeof SiteSettingsSchema>;
 export const DEFAULT_SETTINGS: SiteSettings = {
   home: { sections: HOME_SECTIONS.map((id) => ({ id, visible: true })) },
   visuals: { theme: "system", motion: "on", accent: "ink" },
+  sharing: DEFAULT_SHARING,
 };
 
 /** Whether a section is shown, reading a missing entry as shown. */
