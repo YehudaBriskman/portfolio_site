@@ -105,6 +105,11 @@ router.put(
     if (!body.success) {
       return res.status(400).json({ ok: false, error: "Bad request", issues: body.error.issues.map((i) => ({ path: i.path.join("."), message: i.message })) });
     }
+    /* The lock must not be defeatable by omission: the service skips its
+       check when `rev` is absent, and an area or media write is live at once. */
+    if (!body.data.dryRun && body.data.rev === undefined) {
+      return res.status(409).json({ ok: false, error: "Send the rev you read (an empty string for an item with no document yet)." });
+    }
     const r = await putTranslationDraft(body.data);
     if (!r.ok) return res.status(r.status).json({ ok: false, error: r.error });
     const { audit, ...out } = r;

@@ -61,6 +61,7 @@ async function commit(res: Response, existing: SettingsDoc | null, rev: string |
   if (existing && rev !== existing._rev) return res.status(409).json(conflict);
   const doc = nextDoc(existing, next, new Date().toISOString());
   if ((await write(doc)) === "conflict") return res.status(409).json(conflict);
+  res.locals.audit = { target: doc._id, before: existing, after: doc };
   res.json(view(doc));
 }
 

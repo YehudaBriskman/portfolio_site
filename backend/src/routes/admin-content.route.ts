@@ -116,7 +116,9 @@ router.get(
 router.post(
   "/seed",
   asyncHandler(async (_req, res) => {
-    res.json({ ok: true, ...(await seedContent()) });
+    const seeded = await seedContent();
+    res.locals.audit = { target: "content:seed", before: null, after: seeded };
+    res.json({ ok: true, ...seeded });
   }),
 );
 
@@ -185,6 +187,7 @@ router.put(
     if (!p) return;
     const doc = { ...fresh(p.key, new Date().toISOString(), p.existing), draft: p.data };
     if ((await write(doc)) === "conflict") return res.status(409).json(conflict);
+    res.locals.audit = { target: doc._id, before: p.existing, after: doc };
     res.json(view(p.key, doc));
   }),
 );
@@ -208,6 +211,7 @@ router.post(
       source: "admin",
     };
     if ((await write(doc)) === "conflict") return res.status(409).json(conflict);
+    res.locals.audit = { target: doc._id, before: p.existing, after: doc };
     res.json(view(p.key, doc));
   }),
 );
@@ -223,6 +227,7 @@ router.delete(
     if (rev !== existing._rev) return res.status(409).json(conflict);
     const doc: ContentDoc = { ...existing, draft: null, updatedAt: new Date().toISOString() };
     if ((await write(doc)) === "conflict") return res.status(409).json(conflict);
+    res.locals.audit = { target: doc._id, before: existing, after: doc };
     res.json(view(key, doc));
   }),
 );
