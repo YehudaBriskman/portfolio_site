@@ -120,10 +120,10 @@ export function analyse(head: string[], lang: PreviewLang): Preview {
   const imageWidth = num(og("og:image:width"));
   const imageHeight = num(og("og:image:height"));
   const issues: PreviewIssue[] = [];
-  if (!title) issues.push({ code: "missing-title", field: "title", severity: "error" });
-  else if (title.length > TITLE_MAX) issues.push({ code: "title-too-long", field: "title", severity: "warn", limit: TITLE_MAX, length: title.length });
-  if (!description) issues.push({ code: "missing-description", field: "description", severity: "error" });
-  else if (description.length > DESCRIPTION_MAX) issues.push({ code: "description-too-long", field: "description", severity: "warn", limit: DESCRIPTION_MAX, length: description.length });
+  if (!title) issues.push({ code: "title-missing", field: "title", severity: "error" });
+  else if (title.length > TITLE_MAX) issues.push({ code: "title-long", field: "title", severity: "warn", limit: TITLE_MAX, length: title.length });
+  if (!description) issues.push({ code: "description-missing", field: "description", severity: "error" });
+  else if (description.length > DESCRIPTION_MAX) issues.push({ code: "description-long", field: "description", severity: "warn", limit: DESCRIPTION_MAX, length: description.length });
   if (!image) issues.push({ code: "image-missing", field: "image", severity: "error" });
   else if (imageWidth !== OG_SIZE.width || imageHeight !== OG_SIZE.height) issues.push({ code: "image-size", field: "image", severity: "warn" });
   return {
@@ -148,10 +148,10 @@ function analyseCustom(ev: AnnounceEvent, lang: PreviewLang): Preview {
   const description = ev.custom?.summary ?? ev.summary;
   const image = ev.custom?.imageUrl && ownUrl(ev.custom.imageUrl) ? ev.custom.imageUrl : "";
   const issues: PreviewIssue[] = [];
-  if (!title) issues.push({ code: "missing-title", field: "title", severity: "error" });
-  else if (title.length > TITLE_MAX) issues.push({ code: "title-too-long", field: "title", severity: "warn", limit: TITLE_MAX, length: title.length });
-  if (!description) issues.push({ code: "missing-description", field: "description", severity: "error" });
-  else if (description.length > DESCRIPTION_MAX) issues.push({ code: "description-too-long", field: "description", severity: "warn", limit: DESCRIPTION_MAX, length: description.length });
+  if (!title) issues.push({ code: "title-missing", field: "title", severity: "error" });
+  else if (title.length > TITLE_MAX) issues.push({ code: "title-long", field: "title", severity: "warn", limit: TITLE_MAX, length: title.length });
+  if (!description) issues.push({ code: "description-missing", field: "description", severity: "error" });
+  else if (description.length > DESCRIPTION_MAX) issues.push({ code: "description-long", field: "description", severity: "warn", limit: DESCRIPTION_MAX, length: description.length });
   if (!image) issues.push({ code: "image-missing", field: "image", severity: "error" });
   if (Object.keys(ev.drafts?.he ?? {}).length === 0) issues.push({ code: "no-hebrew-translation", field: "translation", severity: "warn" });
   return { title, description, image, imageWidth: null, imageHeight: null, siteName: new URL(SITE_URL).hostname, url: ev.url, lang, issues };

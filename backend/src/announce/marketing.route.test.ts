@@ -159,7 +159,7 @@ describe("GET /api/admin/announce/:id/preview for every kind", () => {
   it("custom: judged on its own fields, with the contract's codes", async () => {
     const r = await prev({ title: "t".repeat(100), summary: "" });
     expect(r.status).toBe(200);
-    expect(r.body.issues.map((i: { code: string }) => i.code)).toEqual(["title-too-long", "missing-description", "image-missing", "no-hebrew-translation"]);
+    expect(r.body.issues.map((i: { code: string }) => i.code)).toEqual(["title-long", "description-missing", "image-missing", "no-hebrew-translation"]);
     const ok = await prev({ title: "Fine", summary: "A summary", imageUrl: `${SITE}/og-blog.png` });
     expect(ok.body.issues.map((i: { code: string }) => i.code)).toEqual(["no-hebrew-translation"]);
     expect(ok.body.image).toBe(`${SITE}/og-blog.png`);

@@ -152,8 +152,8 @@ describe("preview paths and issues", () => {
 
   it("uses the contract's issue codes", () => {
     const head = [`<meta property="og:title" content="${"t".repeat(80)}">`, `<meta property="og:description" content="${"d".repeat(200)}">`, `<meta property="og:image" content="${SITE}/i.png">`];
-    expect(analyse(head, "en").issues.map((i) => i.code)).toEqual(["title-too-long", "description-too-long", "image-size"]);
-    expect(analyse([], "en").issues.map((i) => i.code)).toEqual(["missing-title", "missing-description", "image-missing"]);
+    expect(analyse(head, "en").issues.map((i) => i.code)).toEqual(["title-long", "description-long", "image-size"]);
+    expect(analyse([], "en").issues.map((i) => i.code)).toEqual(["title-missing", "description-missing", "image-missing"]);
   });
 });
 
