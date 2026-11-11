@@ -1,8 +1,6 @@
 import { SendSchema } from "./email.js";
 
 const form = {
-  provider: "smtp",
-  to: "owner@example.invalid",
   subject: "Portfolio contact from Ada",
   replyTo: "ada@example.invalid",
   template: { name: "basic", params: { title: "New message", body: "Hello" } },
@@ -28,5 +26,16 @@ describe("SendSchema (public contact endpoint)", () => {
     expect(SendSchema.safeParse({ ...form, template: { name: "basic", params: { body: "x".repeat(10_001) } } }).success).toBe(false);
     expect(SendSchema.safeParse({ ...form, template: { name: "basic", params: { body: "b", ctaHref: "javascript:alert(1)" } } }).success).toBe(false);
     expect(SendSchema.safeParse({ ...form, template: { name: "basic", params: { body: "b", ctaHref: "http://example.invalid" } } }).success).toBe(false);
+  });
+});
+
+describe("SendSchema keeps no field the service ignores", () => {
+  it("drops a caller-chosen recipient and idempotency key instead of accepting them", () => {
+    const r = SendSchema.safeParse({ ...form, to: "victim@example.invalid", idempotencyKey: "k" });
+    expect(r.success).toBe(true);
+    if (r.success) {
+      expect(r.data).not.toHaveProperty("to");
+      expect(r.data).not.toHaveProperty("idempotencyKey");
+    }
   });
 });

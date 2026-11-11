@@ -36,14 +36,19 @@ export class EmailService {
           : null,
     });
 
-    if ("templateId" in input === false && input.replyTo) {
-      void provider.send({
-        from: env.MAIL_FROM,
-        to: input.replyTo,
-        subject: "We got your message",
-        text: "Thanks, we’ll get back to you soon.",
-        html: "<p>Thanks, we’ll get back to you soon.</p>",
-      });
+    if (result.ok && input.replyTo && !("templateId" in input)) {
+      provider
+        .send({
+          from: env.MAIL_FROM,
+          to: input.replyTo,
+          subject: "We got your message",
+          text: "Thanks, we’ll get back to you soon.",
+          html: "<p>Thanks, we’ll get back to you soon.</p>",
+        })
+        .then((r) => {
+          if (!r.ok) logger.warn({ err: r.error }, "auto-reply failed");
+        })
+        .catch((err) => logger.warn({ err }, "auto-reply failed"));
     }
 
     return result;

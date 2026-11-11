@@ -2,24 +2,17 @@
 import { z } from 'zod';
 
 /*
- * What the PUBLIC contact endpoint accepts: the fields the contact form sends
- * and nothing more. It used to take any `headers` (a Bcc/Cc header reaches the
- * SMTP envelope in nodemailer), any `html`, any `attachments` and a free-form
- * `replyTo` that became the recipient of an auto-reply, from an endpoint with
- * no login. Zod strips unknown keys, so those fields are now dropped rather
- * than rejected, which keeps old clients working. `to` is still accepted and
- * still ignored: the recipient is CONTACT_TO, set in the service.
+ * The public contact endpoint takes only what the form sends. Zod strips any other key
+ * (`to`, `headers`, `html`, `attachments`, ...): the recipient is CONTACT_TO, set in the service.
  */
 const oneLine = (max: number) =>
   z.string().min(1).max(max).refine((v) => !/[\r\n]/.test(v), { message: 'Must be a single line' });
 
 const BaseSchema = z.object({
-  to: z.any().optional(),
   subject: oneLine(200),
   text: z.string().max(10_000).optional(),
   // One address, no list and no "Name <x>" form: it becomes an auto-reply recipient.
   replyTo: z.string().trim().email().max(254).optional(),
-  idempotencyKey: z.string().max(128).optional(),
   template: z.object({
     name: z.literal('basic'),
     params: z.object({
