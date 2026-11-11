@@ -48,7 +48,7 @@ export function rawImageUrlOrNull(value: string | null | undefined): string | nu
 
 /* A URL an author may put in front of a reader: http(s) only. z.string().url()
    alone accepts javascript: and data:, since both parse as URLs. */
-const httpUrl = z
+export const httpUrl = z
   .string()
   .url()
   .max(2048)
@@ -132,7 +132,7 @@ export const AreaLinkLabel = z.preprocess(
   }),
 );
 export type AreaLinkLabel = z.infer<typeof AreaLinkLabel>;
-export const AreaLinkSchema = z.object({ label: AreaLinkLabel, url: z.string().url() });
+export const AreaLinkSchema = z.object({ label: AreaLinkLabel, url: httpUrl });
 
 /** An area's link label in English, from either shape. */
 export function labelEn(label: unknown): string {
@@ -178,8 +178,8 @@ export const PostSchema = z.object({
   /* Where this post came from. Everything is authored today; leaving the field
      in place means a future repo ingest fills the same model with no migration. */
   source: z.enum(["authored", "git"]).default("authored"),
-  coverImage: z.string().url().nullable().default(null),
-  links: z.array(z.object({ label: z.string().min(1).max(60), url: z.string().url() })).max(8).default([]),
+  coverImage: httpUrl.nullable().default(null),
+  links: z.array(LinkItemSchema).max(8).default([]),
   readingMinutes: z.number().int().positive(),
   /* An optional hand-set order for "top posts": 1 comes first. The site keeps
      no analytics, so "top" cannot mean views; it means the owner's pick, then
@@ -289,9 +289,9 @@ export const CollectionSchema = z.object({
   slug: SlugSchema,
   title: z.string().min(1).max(120),
   description: z.string().max(400).default(""),
-  coverImage: z.string().url().nullable().default(null),
+  coverImage: httpUrl.nullable().default(null),
   /* An icon from the media library (#253). Absent on documents from before it. */
-  icon: z.string().url().nullable().optional(),
+  icon: httpUrl.nullable().optional(),
   /* Each label is `Text` (#306); a string from before reads as English. */
   links: z.array(AreaLinkSchema).max(8).default([]),
   order: z.number().int().default(50),

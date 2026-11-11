@@ -82,7 +82,12 @@ export function auditEntry(input: {
 export const auditWrites: RequestHandler = (req, res, next) => {
   if (SAFE.has(req.method)) return next();
   const path = req.originalUrl.split("?")[0];
-  res.on("finish", () => {
+  /*
+   * `close`, not `finish`: when the client drops the connection mid-request the
+   * handler still runs to its write, but Node then emits only `close`, so a
+   * `finish` listener would leave that write unrecorded. `close` fires for both.
+   */
+  res.on("close", () => {
     const a = req.admin;
     const entry = auditEntry({
       at: new Date(),
@@ -94,7 +99,8 @@ export const auditWrites: RequestHandler = (req, res, next) => {
       },
       method: req.method,
       path,
-      status: res.statusCode,
+      // 499: the client left before the response was sent.
+      status: res.writableFinished ? res.statusCode : 499,
       change: res.locals.audit as AuditChange | undefined,
     });
     couch.append(entry._id, entry).catch((err: unknown) => {

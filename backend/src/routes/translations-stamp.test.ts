@@ -447,6 +447,7 @@ describe("PUT /api/admin/translations/draft (#307)", () => {
       const res = await draftPut({
         type: "area",
         id: "bothy",
+        rev: store.get("collection:bothy")!._rev,
         units: [{ path: "title", he: "בותי" }, { path: "tagline", he: "שרת פיתוח" }, { path: "links.0.label", he: "קוד מקור" }],
         dryRun: false,
       });
@@ -457,7 +458,7 @@ describe("PUT /api/admin/translations/draft (#307)", () => {
       expect(doc.links[0].label).toEqual({ en: "Source", he: "קוד מקור", heSrc: fp("Source") });
       expect((await statusOf("area", "bothy")).status).toBe("translated");
       /* An empty string removes a unit's Hebrew. */
-      await draftPut({ type: "area", id: "bothy", units: [{ path: "title", he: "" }], dryRun: false });
+      await draftPut({ type: "area", id: "bothy", rev: store.get("collection:bothy")!._rev, units: [{ path: "title", he: "" }], dryRun: false });
       expect((store.get("collection:bothy")! as Record<string, any>).he.title).toBeNull();
     });
 
@@ -466,7 +467,7 @@ describe("PUT /api/admin/translations/draft (#307)", () => {
       expect((await draftPut({ type: "area", id: "nope", units: [{ path: "title", he: "x" }] })).status).toBe(404);
       expect((await draftPut({ type: "area", id: "bothy", units: [{ path: "body", he: "x" }] })).status).toBe(404);
       expect((await draftPut({ type: "area", id: "bothy", units: [{ path: "links.3.label", he: "x" }] })).status).toBe(404);
-      const long = await draftPut({ type: "area", id: "bothy", units: [{ path: "tagline", he: "א".repeat(161) }], dryRun: false });
+      const long = await draftPut({ type: "area", id: "bothy", rev: store.get("collection:bothy")!._rev, units: [{ path: "tagline", he: "א".repeat(161) }], dryRun: false });
       expect(long.status).toBe(400);
       expect((await draftPut({ type: "area", id: "bothy", rev: "9-z", units: [{ path: "title", he: "x" }], dryRun: false })).status).toBe(409);
       expect((store.get("collection:bothy")! as Record<string, any>).he).toBeUndefined();
@@ -478,14 +479,14 @@ describe("PUT /api/admin/translations/draft (#307)", () => {
       const dry = await draftPut({ type: "media", id: "pic-abc123", units: [{ path: "alt", he: "כרטיס אפור" }] });
       expect(dry.body).toMatchObject({ dryRun: true, changes: [{ path: "alt", en: "A grey card", before: null, after: "כרטיס אפור" }] });
       expect(store.get("media:pic-abc123")).toEqual(before);
-      const res = await draftPut({ type: "media", id: "pic-abc123", units: [{ path: "alt", he: "כרטיס אפור" }], dryRun: false });
+      const res = await draftPut({ type: "media", id: "pic-abc123", rev: store.get("media:pic-abc123")!._rev, units: [{ path: "alt", he: "כרטיס אפור" }], dryRun: false });
       expect(res.status).toBe(200);
       const doc = store.get("media:pic-abc123")! as Record<string, any>;
       expect(doc.he).toEqual({ alt: "כרטיס אפור", caption: "" });
       expect(doc.heMeta).toEqual({ src: { alt: fp("A grey card") } });
       expect((await draftPut({ type: "media", id: "none", units: [{ path: "alt", he: "x" }] })).status).toBe(404);
       expect((await draftPut({ type: "media", id: "pic-abc123", units: [{ path: "credit", he: "x" }] })).status).toBe(404);
-      expect((await draftPut({ type: "media", id: "pic-abc123", units: [{ path: "alt", he: "א".repeat(301) }], dryRun: false })).status).toBe(400);
+      expect((await draftPut({ type: "media", id: "pic-abc123", rev: store.get("media:pic-abc123")!._rev, units: [{ path: "alt", he: "א".repeat(301) }], dryRun: false })).status).toBe(400);
     });
   });
 

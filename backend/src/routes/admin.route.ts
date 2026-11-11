@@ -20,6 +20,7 @@ import { fetchRepoStats } from "../services/github.js";
 import { requireProxySession } from "../middlewares/requireAdmin.js";
 import { readAudit } from "../services/audit.js";
 import { grantDocId, grantLive, revokeGrant, type McpGrantDoc } from "../mcp/oauth/provider.js";
+import { httpUrl } from "../schemas/content.js";
 import mediaRoutes from "./media.admin.route.js";
 import {
   TOKEN_SCOPES,
@@ -37,7 +38,35 @@ import { COLLECTION_FIELDS, LINK_LABEL_PATHS, POST_FIELDS, postEnglish, stampHeb
 
 const router = Router();
 
-const LinkSchema = z.object({ label: z.string().min(1).max(60), url: z.string().url() });
+const LinkSchema = z.object({ label: z.string().min(1).max(60), url: httpUrl });
+
+/*
+ * Read-modify-write for a document that something else also writes (a token's
+ * lastUsedAt touch, the stats refresh). A 409 means that write landed between
+ * our read and our put, so the change is re-applied once to the fresh copy; a
+ * second 409 is a real conflict and is the caller's to report as 409, not 502.
+ */
+async function updateDoc<T extends { _id?: string }>(
+  id: string,
+  change: (doc: T) => T | null
+): Promise<{ before: T; after: T } | "missing" | "conflict" | "unchanged"> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const before = await tryGet<T>(id);
+    if (!before) return "missing";
+    const after = change(before);
+    if (!after) return "unchanged";
+    try {
+      await couch.put(id, after);
+      return { before, after };
+    } catch (e) {
+      if (!(e instanceof CouchError && e.status === 409)) throw e;
+    }
+  }
+  return "conflict";
+}
+
+const raced = (res: import("express").Response) =>
+  res.status(409).json({ ok: false, error: "This changed elsewhere. Try again." });
 
 export const PostWrite = z.object({
   slug: SlugSchema,
@@ -48,7 +77,7 @@ export const PostWrite = z.object({
   status: z.enum(["draft", "published", "archived"]).default("draft"),
   tags: z.array(z.string().regex(/^[a-z0-9-]+$/)).max(8).default([]),
   collection: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).default("site"),
-  coverImage: z.string().url().nullable().default(null).transform(rawImageUrlOrNull),
+  coverImage: httpUrl.nullable().default(null).transform(rawImageUrlOrNull),
   links: z.array(LinkSchema).max(8).default([]),
   publishedAt: z.string().datetime().nullable().default(null),
   /* Optional, not defaulted: a client that does not know the field leaves it
@@ -71,10 +100,10 @@ export const CollectionWrite = z.object({
   kind: z.enum(["site", "project"]).default("project"),
   repo: RepoWrite.nullable().default(null),
   description: z.string().max(400).default(""),
-  coverImage: z.string().url().nullable().default(null).transform(rawImageUrlOrNull),
+  coverImage: httpUrl.nullable().default(null).transform(rawImageUrlOrNull),
   /* An icon from the media library (#253). Optional, not defaulted, like
      `featured`: a client that does not send it leaves it as it was. */
-  icon: z.string().url().nullable().optional(),
+  icon: httpUrl.nullable().optional(),
   /* A label is `Text` or, from a client that knows only English, a string (#306). */
   links: z.array(AreaLinkSchema).max(8).default([]),
   order: z.coerce.number().int().default(50),
@@ -176,7 +205,9 @@ router.put(
       bodyFormat: "markdown",
       status: i.status,
       // Stamped once on first publish, never moved by later edits.
-      publishedAt: i.status === "published" ? existing?.publishedAt ?? i.publishedAt ?? now : null,
+      // A draft or archived note keeps its date, or a re-publish would restamp it.
+      publishedAt:
+        i.status === "published" ? existing?.publishedAt ?? i.publishedAt ?? now : existing?.publishedAt ?? null,
       createdAt: existing?.createdAt ?? now,
       updatedAt: now,
       tags: i.tags,
@@ -434,11 +465,14 @@ router.delete(
 router.delete(
   "/posts/:slug",
   asyncHandler(async (req, res) => {
-    const doc = await tryGet<Post>(postId(req.params.slug));
-    if (!doc) return res.status(404).json({ ok: false, error: "Not Found" });
-    const next = { ...doc, status: "archived" as const, updatedAt: new Date().toISOString() };
-    await couch.put(doc._id!, next);
-    res.locals.audit = { target: doc._id, before: doc, after: next };
+    const r = await updateDoc<Post>(postId(req.params.slug), (doc) => ({
+      ...doc,
+      status: "archived" as const,
+      updatedAt: new Date().toISOString(),
+    }));
+    if (r === "missing") return res.status(404).json({ ok: false, error: "Not Found" });
+    if (typeof r === "string") return raced(res);
+    res.locals.audit = { target: r.after._id, before: r.before, after: r.after };
     res.json({ ok: true });
   })
 );
@@ -556,12 +590,15 @@ router.delete(
     if (req.params.slug === "site") {
       return res.status(400).json({ ok: false, error: "The site collection cannot be removed." });
     }
-    const doc = await tryGet<Collection>(colId(req.params.slug));
-    if (!doc) return res.status(404).json({ ok: false, error: "Not Found" });
     // Hidden, not deleted — posts still reference it by slug.
-    const next = { ...doc, status: "hidden" as const, updatedAt: new Date().toISOString() };
-    await couch.put(doc._id!, next);
-    res.locals.audit = { target: doc._id, before: doc, after: next };
+    const r = await updateDoc<Collection>(colId(req.params.slug), (doc) => ({
+      ...doc,
+      status: "hidden" as const,
+      updatedAt: new Date().toISOString(),
+    }));
+    if (r === "missing") return res.status(404).json({ ok: false, error: "Not Found" });
+    if (typeof r === "string") return raced(res);
+    res.locals.audit = { target: r.after._id, before: r.before, after: r.after };
     res.json({ ok: true });
   })
 );
@@ -575,9 +612,11 @@ router.post(
     if (!doc) return res.status(404).json({ ok: false, error: "Not Found" });
     if (!doc.repo) return res.status(400).json({ ok: false, error: "No repository configured for this area." });
     const stats = await fetchRepoStats(doc.repo);
-    const next = { ...doc, stats, updatedAt: new Date().toISOString() };
-    await couch.put(doc._id!, next);
-    res.locals.audit = { target: doc._id, before: doc, after: next };
+    // Re-read on a race: the scheduled refresh writes this document too.
+    const r = await updateDoc<Collection>(doc._id!, (d) => ({ ...d, stats, updatedAt: new Date().toISOString() }));
+    if (r === "missing") return res.status(404).json({ ok: false, error: "Not Found" });
+    if (typeof r === "string") return raced(res);
+    res.locals.audit = { target: r.after._id, before: r.before, after: r.after };
     res.json({ ok: true, stats });
   })
 );
@@ -630,13 +669,20 @@ router.delete(
   "/tokens/:id",
   requireProxySession,
   asyncHandler(async (req, res) => {
-    const doc = await tryGet<StoredToken>(tokenDocId(req.params.id));
-    if (!doc || doc.type !== "apitoken") return res.status(404).json({ ok: false, error: "Not Found" });
-    if (doc.revokedAt) return res.json({ ok: true, item: publicToken(doc) });
-    const next = { ...doc, revokedAt: new Date().toISOString() };
-    await couch.put(doc._id, next);
-    res.locals.audit = { target: doc._id, before: doc, after: next };
-    res.json({ ok: true, item: publicToken(next) });
+    // The token's own lastUsedAt touch can land mid-revoke; updateDoc re-reads once.
+    let seen: StoredToken | undefined;
+    const r = await updateDoc<StoredToken>(tokenDocId(req.params.id), (doc) => {
+      seen = doc;
+      if (doc.type !== "apitoken" || doc.revokedAt) return null;
+      return { ...doc, revokedAt: new Date().toISOString() };
+    });
+    if (r === "missing" || (r === "unchanged" && seen?.type !== "apitoken")) {
+      return res.status(404).json({ ok: false, error: "Not Found" });
+    }
+    if (r === "unchanged") return res.json({ ok: true, item: publicToken(seen!) });
+    if (r === "conflict") return raced(res);
+    res.locals.audit = { target: r.after._id, before: r.before, after: r.after };
+    res.json({ ok: true, item: publicToken(r.after) });
   })
 );
 
