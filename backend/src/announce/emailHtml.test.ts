@@ -50,11 +50,20 @@ describe("owner email html", () => {
     expect(text).toContain("כותרת <i>עברית</i>");
   });
 
-  it("is email-safe: tables, no script, no external css, color-scheme", () => {
+  it("renders each caption line as its own dir=auto element", () => {
+    const e = ev({ title: "T", titleHe: "כותרת", summaryHe: "תקציר", tags: ["web"], langs: ["en", "he"] });
+    const { html } = buildOwnerEmail(e, renderKit(e, { ...DEFAULT_ANNOUNCE_SETTINGS, hashtags: ["#dev"] }), SITE);
+    expect(html).toContain('<div dir="auto" style="min-height:1.55em;">#dev #web</div>');
+    expect(html).toMatch(/<div dir="auto"[^>]*>חדש בבלוג: /);
+  });
+
+  it("is email-safe: tables, no script, no external css, dark styles inline in a style block", () => {
     const { html } = build(ev());
     expect(html).toContain("<table");
     expect(html).toContain('name="color-scheme"');
-    expect(html).not.toMatch(/<script|<link|@import|<style/i);
+    expect(html).not.toMatch(/<script|<link|@import/i);
+    expect(html).toContain("prefers-color-scheme: dark");
+    expect(html).toContain('bgcolor="#1d4ed8"');
   });
 
   it("has a text part with the same information", () => {
