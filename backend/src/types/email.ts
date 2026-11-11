@@ -14,7 +14,7 @@ export type Attachment = {
 };
 
 export type SendEmailBase = {
-  to: Address | Address[];
+  to?: Address | Address[];
   subject: string;
   text?: string;
   html?: string;

@@ -7,7 +7,7 @@ import { logger } from "../logger.js";
 
 export class EmailService {
   async send(input: SendEmailInput) {
-    let html = input.html;
+    let html: string | undefined;
     let text = input.text;
 
     if ("template" in input && input.template?.name === "basic") {
@@ -29,8 +29,6 @@ export class EmailService {
       subject: input.subject,
       text,
       html,
-      headers: input.headers,
-      attachments: input.attachments,
       replyTo,
       emailjsTemplate:
         "templateId" in input
