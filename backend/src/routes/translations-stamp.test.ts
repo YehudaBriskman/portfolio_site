@@ -6,7 +6,6 @@ import { CONTENT_SEED } from "../content/seed.js";
 import { fp } from "../schemas/i18n.js";
 import type { ContentBundle } from "../schemas/site-content.js";
 import { backfillDoc } from "../services/he-backfill.js";
-import { attachments } from "../db/attachments.js";
 
 /*
  * Fingerprints stamped on save, the "still correct" acknowledgement and the
