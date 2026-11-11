@@ -42,6 +42,7 @@
 
 .content {
   min-width: 12.5rem;
+  max-width: calc(100vw - 16px);
   z-index: 60;
 }
 

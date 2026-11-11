@@ -153,7 +153,8 @@ export default function ShareMenu({ kind, entity, variant = "icon", className, l
         </DropdownMenuTrigger>
         <DropdownMenuContent
           container={container}
-          align={variant === "text" ? "start" : "end"}
+          align="start"
+          collisionPadding={8}
           className={styles.content}
           data-share-menu=""
         >
