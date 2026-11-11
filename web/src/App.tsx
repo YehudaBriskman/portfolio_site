@@ -42,6 +42,7 @@ const AdminStory = lazy(() => import("./pages/AdminStory"));
 const AdminSiteCopy = lazy(() => import("./pages/AdminSiteCopy"));
 const AdminSettings = lazy(() => import("./pages/AdminSettings"));
 const AdminTranslations = lazy(() => import("./pages/AdminTranslations"));
+const AdminAnnounce = lazy(() => import("./pages/AdminAnnounce"));
 // The media library (#253).
 const AdminMedia = lazy(() => import("./pages/AdminMedia"));
 
@@ -201,6 +202,7 @@ const App = () => {
           <Route path="/admin/site-copy" element={<Suspense fallback={<RouteFallback />}><AdminSiteCopy /></Suspense>} />
           <Route path="/admin/settings" element={<Suspense fallback={<RouteFallback />}><AdminSettings /></Suspense>} />
           <Route path="/admin/translations" element={<Suspense fallback={<RouteFallback />}><AdminTranslations /></Suspense>} />
+          <Route path="/admin/announce" element={<Suspense fallback={<RouteFallback />}><AdminAnnounce /></Suspense>} />
         </Routes>
         </RoutesErrorBoundary>
       </BrowserRouter>
