@@ -160,12 +160,15 @@ describe("an area's history", () => {
     fireEvent.keyDown(share, { key: "Enter" });
     const menu = await screen.findByRole("menu", { name: "Share \"Note a\"" });
     expect(within(menu).getByRole("menuitem", { name: "Copy link" })).toBeInTheDocument();
-    expect(within(menu).getByRole("menuitem", { name: /LinkedIn/ }).getAttribute("href")).toContain(
-      encodeURIComponent(`${window.location.origin}/blog/a`),
-    );
-    expect(within(menu).getByRole("menuitem", { name: /^X/ }).getAttribute("href")).toMatch(/^https:\/\/x\.com\/intent\/post\?/);
-    fireEvent.keyDown(menu, { key: "Escape" });
-    await waitFor(() => expect(share).toHaveAttribute("aria-expanded", "false"));
+    // The channels that send open a preview first; the address is in its Send link.
+    fireEvent.click(within(menu).getByRole("menuitem", { name: /^X/ }));
+    const sheet = await screen.findByRole("dialog");
+    expect(within(sheet).getByRole("link", { name: /Send/ }).getAttribute("href")).toMatch(/^https:\/\/x\.com\/intent\/post\?/);
+    fireEvent.click(within(sheet).getByRole("button", { name: "Cancel" }));
+    await waitFor(() => expect(share).toHaveFocus());
+    fireEvent.keyDown(share, { key: "Enter" });
+    fireEvent.keyDown(await screen.findByRole("menu"), { key: "Escape" });
+        await waitFor(() => expect(share).toHaveAttribute("aria-expanded", "false"));
     expect(share).toHaveFocus();
   });
 

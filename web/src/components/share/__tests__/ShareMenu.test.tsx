@@ -39,18 +39,14 @@ afterEach(() => {
 });
 
 describe("ShareMenu menu", () => {
-  it("lists the channels, with links built by the share core", async () => {
+  it("lists the channels; the ones that send open a preview first", async () => {
     render(<ShareMenu kind="note" entity={entity} />);
     const menu = await openMenu();
     const names = within(menu).getAllByRole("menuitem").map((i) => i.textContent);
     expect(names.map((n) => n?.replace(/\s*\(.*\)/, "").trim())).toEqual(["Copy link", "LinkedIn", "Email", "Gmail", "X", "WhatsApp", "Save image"]);
-
-    const linkedin = within(menu).getByRole("menuitem", { name: /LinkedIn/ });
-    expect(linkedin.getAttribute("href")).toMatch(/^https:\/\/www\.linkedin\.com\/sharing\/share-offsite\/\?url=/);
-    expect(linkedin).toHaveAttribute("target", "_blank");
-    expect(linkedin).toHaveAttribute("rel", "noopener noreferrer");
-    expect(within(menu).getByRole("menuitem", { name: /Email/ }).getAttribute("href")).toMatch(/^mailto:\?subject=/);
-    expect(within(menu).getByRole("menuitem", { name: /Gmail/ }).getAttribute("href")).toMatch(/^https:\/\/mail\.google\.com\/mail\/\?view=cm/);
+    // None of them is a link: nothing can leave the page from the menu itself.
+    expect(within(menu).queryAllByRole("link")).toHaveLength(0);
+    expect(within(menu).getAllByRole("menuitem").some((i) => i.hasAttribute("href"))).toBe(false);
   });
 
   it("sends nothing and opens nothing before a click", async () => {
@@ -71,36 +67,6 @@ describe("ShareMenu menu", () => {
     expect(writeText.mock.calls[0][0]).toContain(`${window.location.origin}/blog/a-note`);
   });
 
-  it("copies the caption before LinkedIn's dialog opens, because the dialog cannot take text", async () => {
-    render(<ShareMenu kind="note" entity={entity} />);
-    const menu = await openMenu();
-    const link = within(menu).getByRole("menuitem", { name: /LinkedIn/ }) as HTMLAnchorElement;
-    // The same click that follows the link starts the copy, so a popup blocker sees one gesture.
-    const notPrevented = fireEvent.click(link);
-    expect(notPrevented).toBe(true);
-    expect(writeText).toHaveBeenCalledTimes(1);
-    expect(writeText.mock.calls[0][0]).toContain("Look what I found: A note");
-    expect(writeText.mock.calls[0][0]).toContain("/blog/a-note");
-    expect(link.getAttribute("href")).toContain("linkedin.com/sharing/share-offsite");
-  });
-
-  it("saves the card and copies the caption for Instagram, only where a card exists", async () => {
-    const createObjectURL = vi.fn(() => "blob:x");
-    vi.stubGlobal("URL", Object.assign(URL, { createObjectURL, revokeObjectURL: vi.fn() }));
-    const fetchSpy = vi.fn(async (_u: unknown) => new Response(new Blob(["png"]), { status: 200 }));
-    vi.stubGlobal("fetch", fetchSpy);
-    const { unmount } = render(<ShareMenu kind="note" entity={entity} />);
-    fireEvent.click(await within(await openMenu()).findByRole("menuitem", { name: /Save image/ }));
-    await waitFor(() => expect(createObjectURL).toHaveBeenCalled());
-    expect(String(fetchSpy.mock.calls[0][0])).toContain("/api/seo/og/blog/a-note.png?format=square");
-    expect(writeText).toHaveBeenCalledTimes(1);
-    unmount();
-
-    render(<ShareMenu kind="story" entity={{ title: "Story" }} />);
-    const menu = await openMenu();
-    expect(within(menu).queryByRole("menuitem", { name: /Save image/ })).toBeNull();
-  });
-
   it("is a keyboard menu: arrow keys move, Escape closes and returns focus", async () => {
     render(<ShareMenu kind="note" entity={entity} />);
     const trigger = screen.getByRole("button", { name: /Share/ });
@@ -117,7 +83,10 @@ describe("ShareMenu menu", () => {
     const menu = await openMenu(/שיתוף/);
     expect(menu).toHaveAttribute("dir", "rtl");
     expect(within(menu).getByRole("menuitem", { name: "העתקת קישור" })).toBeInTheDocument();
-    expect(within(menu).getByRole("menuitem", { name: /LinkedIn/ }).getAttribute("href")).toContain(encodeURIComponent("/he/blog/a-note"));
+    fireEvent.click(within(menu).getByRole("menuitem", { name: /LinkedIn/ }));
+    const sheet = await screen.findByRole("dialog", { name: /שיתוף/ });
+    expect(sheet).toHaveAttribute("dir", "rtl");
+    expect(within(sheet).getByRole("link", { name: /שליחה/ }).getAttribute("href")).toContain(encodeURIComponent("/he/blog/a-note"));
   });
 });
 

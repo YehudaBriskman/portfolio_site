@@ -1,5 +1,6 @@
 export { buildShare } from "./build";
-export { copyText, shareLink } from "./browser";
+export { copyText, downloadImage, shareLink } from "./browser";
+export { sendHref } from "./send";
 export { templateFor } from "./templates";
 export { CHANNEL_LIMITS, channelLimit, countChars, truncate } from "./text";
 export { cardUrl, entityPath, entityUrl, gmailComposeUrl, linkedInShareUrl, localePath, mailtoUrl, safeOrigin, whatsappShareUrl, xShareUrl } from "./urls";

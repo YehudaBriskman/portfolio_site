@@ -31,3 +31,23 @@ export async function copyText(text: string): Promise<boolean> {
     return false;
   }
 }
+
+/** Saves the card at `url` as a file; false when it cannot be fetched. */
+export async function downloadImage(url: string): Promise<boolean> {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return false;
+    const href = URL.createObjectURL(await res.blob());
+    const a = document.createElement("a");
+    a.href = href;
+    a.download = "share-card.png";
+    a.rel = "noopener noreferrer";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.setTimeout(() => URL.revokeObjectURL(href), 10_000);
+    return true;
+  } catch {
+    return false;
+  }
+}

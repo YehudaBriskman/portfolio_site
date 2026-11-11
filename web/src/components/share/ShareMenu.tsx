@@ -6,6 +6,8 @@ import { useShareWords } from "@/i18n/share";
 import { useSiteSettings } from "@/settings/store";
 import { buildShare, copyText, shareLink, type ShareChannel, type ShareEntity, type ShareKind, type ShareResult } from "@/lib/share";
 import ShareToaster, { armShareToaster } from "./ShareToaster";
+import { shareToast as toast } from "./toast";
+import SharePreview from "./SharePreview";
 import styles from "./ShareMenu.module.css";
 
 /*
@@ -14,14 +16,15 @@ import styles from "./ShareMenu.module.css";
  * On a touch device with the system share sheet, a press opens that sheet,
  * with the card image attached when the browser accepts files. Everywhere
  * else it is a menu. Nothing is requested from anyone until a click: the
- * card is fetched on the press that wants it, and the links are plain
- * anchors the browser follows itself.
+ * card is fetched on the press that wants it.
  *
  * What the settings decide: the whole menu (`enabled`), the surfaces it
  * mounts on and which channels it lists. A surface or channel that is off is
  * not rendered, so nothing hidden is left in the tab order.
  *
- * LinkedIn's dialog takes only an address and no text, so its item copies
+ * Every other channel opens a preview sheet first (SharePreview): the card,
+ * an editable caption and a count. Only its Send button leaves the page.
+ * LinkedIn's dialog takes only an address and no text, so its Send copies
  * the caption first; the person pastes it into the dialog.
  */
 
@@ -39,11 +42,6 @@ type Props = {
 };
 
 const ORDER: ShareChannel[] = ["copy", "linkedin", "email", "gmail", "x", "whatsapp", "instagram"];
-
-/** Sonner loads on first use, with the toaster, not with every page that has a menu. */
-async function toast(message: string): Promise<void> {
-  (await import("@/components/ui/sonner")).toast(message);
-}
 
 function coarsePointer(): boolean {
   return typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(pointer: coarse)").matches;
@@ -65,30 +63,12 @@ async function cardFile(image: string | undefined): Promise<File | null> {
   }
 }
 
-async function downloadImage(url: string): Promise<boolean> {
-  try {
-    const res = await fetch(url);
-    if (!res.ok) return false;
-    const href = URL.createObjectURL(await res.blob());
-    const a = document.createElement("a");
-    a.href = href;
-    a.download = "share-card.png";
-    a.rel = "noopener noreferrer";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    window.setTimeout(() => URL.revokeObjectURL(href), 10_000);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 export default function ShareMenu({ kind, entity, variant = "icon", className, label }: Props) {
   const w = useShareWords();
   const lang = useLang();
   const { sharing } = useSiteSettings();
   const [open, setOpen] = useState(false);
+  const [chosen, setChosen] = useState<ShareChannel | null>(null);
   const [container, setContainer] = useState<HTMLElement | null>(null);
   const trigger = useRef<HTMLButtonElement>(null);
 
@@ -127,14 +107,12 @@ export default function ShareMenu({ kind, entity, variant = "icon", className, l
   const rows = open ? channels.map(make) : [];
   const name = (c: ShareChannel) => ({ linkedin: "LinkedIn", gmail: "Gmail", x: "X", whatsapp: "WhatsApp", instagram: "Instagram", email: w.email, copy: w.copyLink, native: "" })[c];
 
-  function link(r: ShareResult, icon: ReactNode, external: boolean, onSelect?: () => void) {
+  /** A channel that needs the preview: choosing it opens the sheet, and nothing is sent yet. */
+  function choose(c: ShareChannel, icon: ReactNode, text?: ReactNode) {
     return (
-      <DropdownMenuItem key={r.channel} asChild className={styles.item} onSelect={onSelect}>
-        <a href={r.href} {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}>
-          {icon}
-          <span translate={r.channel === "email" ? undefined : "no"}>{name(r.channel)}</span>
-          {external && <span className="sr-only">{` (${w.newTab})`}</span>}
-        </a>
+      <DropdownMenuItem key={c} className={styles.item} onSelect={() => setChosen(c)}>
+        {icon}
+        {text ?? <span translate={c === "email" ? undefined : "no"}>{name(c)}</span>}
       </DropdownMenuItem>
     );
   }
@@ -168,45 +146,44 @@ export default function ShareMenu({ kind, entity, variant = "icon", className, l
                   </DropdownMenuItem>
                 );
               case "linkedin":
-                // Started inside the click, before the dialog opens: the dialog cannot take the text.
-                return link(r, <ArrowUpRight aria-hidden="true" />, true, () => void copyWith(r.text, w.captionCopied));
+                return choose("linkedin", <ArrowUpRight aria-hidden="true" />);
               case "email":
-                return link(r, <Mail aria-hidden="true" />, false);
+                return choose("email", <Mail aria-hidden="true" />);
               case "gmail":
-                return link(r, <ArrowUpRight aria-hidden="true" />, true);
+                return choose("gmail", <ArrowUpRight aria-hidden="true" />);
               case "x":
-                return link(r, <ArrowUpRight aria-hidden="true" />, true);
+                return choose("x", <ArrowUpRight aria-hidden="true" />);
               case "whatsapp":
-                return link(r, <MessageCircle aria-hidden="true" />, true);
-              case "instagram": {
+                return choose("whatsapp", <MessageCircle aria-hidden="true" />);
+              case "instagram":
                 // No card, no kit: kinds without one (area, story, home) have nothing to save.
-                if (!r.image) return null;
-                const image = r.image;
-                return (
-                  <DropdownMenuItem
-                    key="instagram"
-                    className={styles.item}
-                    onSelect={() => {
-                      void (async () => {
-                        const copied = copyText(r.text);
-                        const saved = await downloadImage(image);
-                        toast(saved && (await copied) ? w.imageSaved : saved ? w.copyFailed : w.saveFailed);
-                      })();
-                    }}
-                  >
-                    <ImageDown aria-hidden="true" />
-                    <span>
-                      {w.saveImage} <span className={styles.for}>({w.saveImageFor} <bdi translate="no">{name("instagram")}</bdi>)</span>
-                    </span>
-                  </DropdownMenuItem>
-                );
-              }
+                return r.image ? choose(
+                      "instagram",
+                      <ImageDown aria-hidden="true" />,
+                      <span>
+                        {w.saveImage} <span className={styles.for}>({w.saveImageFor} <bdi translate="no">{name("instagram")}</bdi>)</span>
+                      </span>,
+                    ) : null;
               default:
                 return null;
             }
           })}
         </DropdownMenuContent>
       </DropdownMenu>
+      {chosen && (
+        <SharePreview
+          key={chosen}
+          result={make(chosen)}
+          name={name(chosen)}
+          brand={chosen !== "email"}
+          title={entity.title}
+          lang={lang}
+          onClose={() => {
+            setChosen(null);
+            trigger.current?.focus();
+          }}
+        />
+      )}
       <ShareToaster />
     </>
   );
