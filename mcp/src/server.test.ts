@@ -327,6 +327,20 @@ describe("media library tools", () => {
     expect(api.writes()).toHaveLength(0);
   });
 
+  it("upload_media rejects captionsLang without captionsPath", async () => {
+    const { call, api } = await connect(TOKEN, { "GET /api/admin/media": [200, { ok: true, items: [] }] });
+    expect((await call("upload_media", { path: file, alt: "x", captionsLang: "he" })).text).toMatch(/captionsPath/);
+    expect(api.writes()).toHaveLength(0);
+  });
+
+  it("save_post_draft refuses a javascript: link or cover image", async () => {
+    const { call, api } = await connect(TOKEN, {});
+    const bad = await call("save_post_draft", { slug: "hello", links: [{ label: "x", url: "javascript:alert(1)" }] });
+    expect(bad.isError).toBe(true);
+    expect((await call("save_post_draft", { slug: "hello", coverImage: "data:text/html,x" })).isError).toBe(true);
+    expect(api.writes()).toHaveLength(0);
+  });
+
   it("upload_media sends a video, its poster and captions as one multipart form", async () => {
     const { call, api } = await connect(TOKEN, {
       "GET /api/admin/media": [200, { ok: true, items: [] }],

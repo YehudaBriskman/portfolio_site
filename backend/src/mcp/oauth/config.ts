@@ -13,8 +13,10 @@ export const ACCESS_TTL_S = 60 * 60;
 export const REFRESH_TTL_MS = 30 * 86_400_000;
 export const CODE_TTL_MS = 5 * 60_000;
 export const TXN_TTL_MS = 10 * 60_000;
-/* A registered client that never completed a sign-in, and one that stopped being used. */
-export const CLIENT_UNUSED_TTL_MS = 86_400_000;
+/* A registered client that never completed a sign-in, and one that stopped being used.
+   Short for the unused kind: with 10 registrations/hour/IP, an address can hold
+   at most about 10 of the MAX_CLIENTS slots at once. */
+export const CLIENT_UNUSED_TTL_MS = 3_600_000;
 export const CLIENT_IDLE_TTL_MS = 30 * 86_400_000;
 /* Live registrations at once; the rate limit is per address, this is for everybody. */
 export const MAX_CLIENTS = 200;

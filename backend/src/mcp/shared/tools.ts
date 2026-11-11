@@ -75,7 +75,14 @@ export const dryRun = z
   .boolean()
   .default(true)
   .describe("Default true: return the diff and write nothing. Pass false to apply.");
-const link = z.object({ label: z.string().min(1).max(60), url: z.string().url() });
+/* http(s) only: z.string().url() alone accepts javascript: and data:. Mirrors
+   httpUrl in backend/src/schemas/content.ts, which this package cannot import. */
+const httpUrl = z
+  .string()
+  .url()
+  .max(2048)
+  .refine((u) => /^https?:\/\//i.test(u), { message: "Must be an http(s) address." });
+const link = z.object({ label: z.string().min(1).max(60), url: httpUrl });
 const lang = z.enum(["en", "he"]).optional().describe("Language to read in; default en");
 const translationType = z.enum(TRANSLATION_TYPES);
 const itemId = z.string().min(1).max(200).describe("The item's id, as list_translations gives it (a slug, `start`, `role:<id>`, `hero`…)");
@@ -598,7 +605,7 @@ export function registerTools(server: McpServer, api: PortfolioApi, access: Tool
         body: z.string().optional().describe("Markdown"),
         tags: z.array(z.string().regex(/^[a-z0-9-]+$/)).max(8).optional(),
         area: slug.optional().describe("Area slug; default `site`"),
-        coverImage: z.string().url().nullable().optional(),
+        coverImage: httpUrl.nullable().optional(),
         links: z.array(link).max(8).optional(),
         featured: z.number().int().min(1).max(99).nullable().optional(),
         dryRun,
@@ -680,7 +687,7 @@ export function registerTools(server: McpServer, api: PortfolioApi, access: Tool
           .nullable()
           .optional(),
         description: z.string().max(400).optional(),
-        coverImage: z.string().url().nullable().optional(),
+        coverImage: httpUrl.nullable().optional(),
         links: z.array(link).max(8).optional(),
         order: z.number().int().optional(),
         status: z.enum(["published", "hidden"]).optional(),
