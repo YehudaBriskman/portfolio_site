@@ -23,10 +23,6 @@ export class PortfolioApi {
     private readonly fetchImpl: FetchLike = fetch,
   ) {}
 
-  get hasToken() {
-    return this.token !== null;
-  }
-
   private async request<T>(
     method: string,
     path: string,

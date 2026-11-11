@@ -67,6 +67,9 @@ import { instructionsFor, registerTools, VERSION, type ToolAccess } from "./shar
  * `via: "mcp-oauth"` and the client's name.
  */
 
+const AUDIT_VIA = "mcp-oauth";
+const REPLACED_BY_TICKET = "replaced-by-ticket";
+
 const PATHS = ["/mcp", "/.well-known/oauth-protected-resource", "/.well-known/oauth-authorization-server"];
 
 const limiter = (windowMs: number, limit: number): RequestHandler =>
@@ -84,9 +87,18 @@ const sdkLimit = (windowMs: number, max: number) => ({ windowMs, max, standardHe
 function readCookie(req: Request, name: string): string | null {
   for (const part of (req.header("cookie") ?? "").split(";")) {
     const i = part.indexOf("=");
-    if (i > 0 && part.slice(0, i).trim() === name) return decodeURIComponent(part.slice(i + 1).trim());
+    if (i > 0 && part.slice(0, i).trim() === name) return safeDecode(part.slice(i + 1).trim());
   }
   return null;
+}
+
+/* Malformed percent-encoding is the client's mistake: null, never a throw (a 500). */
+function safeDecode(v: string): string | null {
+  try {
+    return decodeURIComponent(v);
+  } catch {
+    return null;
+  }
 }
 
 const clearTxnCookie = (res: Response) =>
@@ -248,12 +260,13 @@ export function createMcpRouter(app: Express) {
     if (basic) {
       const decoded = Buffer.from(basic, "base64").toString("utf8");
       const i = decoded.indexOf(":");
-      const bid = decodeURIComponent(i < 0 ? decoded : decoded.slice(0, i));
-      if (id !== undefined && id !== bid) {
+      const bid = safeDecode(i < 0 ? decoded : decoded.slice(0, i));
+      const bsecret = i < 0 ? undefined : safeDecode(decoded.slice(i + 1));
+      if (bid === null || bsecret === null || (id !== undefined && id !== bid)) {
         return res.status(401).json({ error: "invalid_client", error_description: "Client authentication failed" });
       }
       id = bid;
-      secret = i < 0 ? undefined : decodeURIComponent(decoded.slice(i + 1));
+      secret = bsecret;
     }
     if (id === undefined) return next(); // the SDK answers invalid_request
     const verdict = await clientSecretOk(id, secret);
@@ -386,8 +399,10 @@ export function createMcpRouter(app: Express) {
 
   async function serve(req: Request, res: Response, access: ToolAccess, admin: Admin | null) {
     const server = new McpServer({ name: "yehudabriskman.com", version: VERSION }, { instructions: instructionsFor(access) });
-    // The tools' own Authorization header is replaced with a ticket by internalFetch.
-    registerTools(server, new PortfolioApi(INTERNAL_BASE, admin ? "mcp-oauth" : null, internalFetch(app, admin, req.ip ?? "")), access);
+    // PortfolioApi wants a bearer token to allow admin calls. There is none
+    // here: internalFetch replaces the header with a one-shot ticket, so the
+    // value is a placeholder and only its presence (admin session or not) counts.
+    registerTools(server, new PortfolioApi(INTERNAL_BASE, admin ? REPLACED_BY_TICKET : null, internalFetch(app, admin, req.ip ?? "")), access);
     const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
     res.on("close", () => {
       void transport.close();
@@ -437,7 +452,7 @@ export function createMcpRouter(app: Express) {
       const admin: Admin = {
         login: extra.login,
         email: null,
-        via: "mcp-oauth",
+        via: AUDIT_VIA,
         tokenId: extra.grantId,
         client: extra.clientName,
         scope: write ? "write" : "read",

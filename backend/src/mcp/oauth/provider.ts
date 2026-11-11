@@ -49,7 +49,7 @@ import {
  * public routes never select (routes/public-isolation.test.ts):
  *
  *   mcpclient:<uuid>  a dynamically registered client. Its secret, if it has
- *                     one, is stored as SHA-256 only. Expires 24 h after
+ *                     one, is stored as SHA-256 only. Expires an hour after
  *                     registration if never used, else 30 days after last use.
  *   mcptxn:<hex>      one sign-in in flight: the client's request, and the
  *                     state and PKCE verifier sent on to GitHub. 10 minutes.
@@ -116,6 +116,8 @@ type McpCodeDoc = {
   expiresAt: string;
   usedAt: string | null;
   grantId: string | null;
+  /* Set by a replay that found no grant yet (see markCodeReplayed). */
+  replayed?: boolean;
 };
 
 export type McpGrantDoc = {
@@ -325,6 +327,20 @@ export async function revokeGrant(grantId: string, reason: string) {
   throw new Error("could not revoke grant: kept conflicting");
 }
 
+async function markCodeReplayed(docId: string) {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const cur = await tryGet<McpCodeDoc>(docId);
+    if (!cur || cur.replayed) return;
+    try {
+      await couch.put(cur._id, { ...cur, replayed: true });
+      return;
+    } catch (e) {
+      if (e instanceof CouchError && e.status === 409) continue;
+      throw e;
+    }
+  }
+}
+
 function issue(grantId: string, scopes: Scope[], now: number) {
   const access = mintToken("mat", grantId);
   const refresh = mintToken("mrt", grantId);
@@ -404,7 +420,13 @@ export const provider: OAuthServerProvider = {
     if (doc.clientId !== client.client_id) throw new InvalidGrantError("Invalid authorization code");
     if (doc.usedAt) {
       // RFC 6749 §4.1.2: a code used twice revokes what it issued.
-      if (doc.grantId) await revokeGrant(doc.grantId, "authorization code reused");
+      if (doc.grantId) {
+        // Flag first, then look for the grant: a replay that beats the first
+        // exchange's grant write finds nothing to revoke, but the exchange
+        // checks the flag once its grant is written.
+        await markCodeReplayed(doc._id);
+        await revokeGrant(doc.grantId, "authorization code reused");
+      }
       throw new InvalidGrantError("Authorization code already used");
     }
     return doc.codeChallenge;
@@ -447,6 +469,11 @@ export const provider: OAuthServerProvider = {
       usedRefresh: [],
     };
     await couch.append(grant._id, grant);
+    const spent = await tryGet<McpCodeDoc>(doc._id);
+    if (spent?.replayed) {
+      await revokeGrant(grantId, "authorization code reused");
+      throw new InvalidGrantError("Authorization code already used");
+    }
     await touchClient(client.client_id);
     logger.info({ grantId, client: doc.clientName, scopes: doc.scopes }, "mcp grant issued");
     return tokens;

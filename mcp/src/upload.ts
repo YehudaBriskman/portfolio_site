@@ -86,6 +86,7 @@ export function registerUploadTools(server: McpServer, api: PortfolioApi) {
       const main = await localFile(path, kind);
       if (typeof main === "string") return fail(main);
       if (kind !== "video" && (posterPath || captionsPath)) return fail("posterPath and captionsPath are for a video.");
+      if (captionsLang && !captionsPath) return fail("captionsLang is the language of captionsPath; give captionsPath too.");
       if (kind === "video" && !posterPath) {
         return fail("A video needs posterPath: a still image to show before it plays (the server has no ffmpeg to make one).");
       }

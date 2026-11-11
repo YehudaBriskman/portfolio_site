@@ -444,7 +444,7 @@ describe("dynamic client registration (RFC 7591)", () => {
     const app = createApp();
     const c = await register(app);
     const doc = store.get(`mcpclient:${c.client_id}`)!;
-    store.set(doc._id as string, { ...doc, createdAt: new Date(Date.now() - 2 * 86_400_000).toISOString() });
+    store.set(doc._id as string, { ...doc, createdAt: new Date(Date.now() - 2 * 3_600_000).toISOString() });
     const res = await request(app).get("/mcp/oauth/authorize").query({
       response_type: "code", client_id: c.client_id, redirect_uri: REDIRECT, code_challenge: pkce().challenge, code_challenge_method: "S256",
     });
@@ -585,6 +585,43 @@ describe("PKCE", () => {
     const again = await exchange(app, s.code!, s.client.client_id, s.verifier);
     expect(again.status).toBe(400);
     expect((await rpc(app, "/mcp", "tools/list", {}, right.body.access_token)).status).toBe(401);
+  });
+});
+
+describe("a code replayed while the first exchange is still writing its grant", () => {
+  it("leaves no live grant", async () => {
+    const app = createApp();
+    const s = await signIn(app);
+    const append = vi.mocked(couch.append);
+    const real = append.getMockImplementation()!;
+    let replay: request.Response | undefined;
+    append.mockImplementation(async (id: string, doc: Record<string, unknown>) => {
+      if (id.startsWith("mcpgrant:") && !replay) {
+        // The code is spent but the grant is not written yet: a second exchange lands here.
+        replay = await exchange(app, s.code!, s.client.client_id, s.verifier);
+      }
+      return real(id, doc);
+    });
+    const first = await exchange(app, s.code!, s.client.client_id, s.verifier);
+    expect(replay?.status).toBe(400);
+    expect(first.status).toBe(400);
+    expect(byType("mcpgrant")[0]).toMatchObject({ revokedReason: "authorization code reused" });
+  });
+});
+
+describe("malformed percent-encoding", () => {
+  it("in a Basic client id or secret is a 401, not a 500", async () => {
+    const app = createApp();
+    const basic = Buffer.from("%zz:%zz").toString("base64");
+    const res = await request(app).post("/mcp/oauth/token").set("Authorization", `Basic ${basic}`).type("form").send({ grant_type: "refresh_token", refresh_token: "x" });
+    expect(res.status).toBe(401);
+    expect(res.body.error).toBe("invalid_client");
+  });
+
+  it("in the sign-in cookie is a client error, not a 500", async () => {
+    const app = createApp();
+    const res = await request(app).get("/mcp/oauth/github/callback").set("Cookie", "mcp_txn=%zz").query({ code: "gh-code", state: "s" });
+    expect(res.status).toBeLessThan(500);
   });
 });
 
