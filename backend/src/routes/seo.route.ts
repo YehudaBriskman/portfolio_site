@@ -3,7 +3,7 @@ import { couch } from "../db/couch.js";
 import { env } from "../env.js";
 import { asyncHandler } from "../middlewares/asyncHandler.js";
 import { escapeXml as escapeHtml } from "../services/escape.js";
-import { isOgFormat, renderCardPng, type OgFormat } from "../services/og.js";
+import { HEBREW_CARDS, isOgFormat, renderCardPng, type OgFormat } from "../services/og.js";
 import { loadSiteReleases } from "../services/activity.js";
 import {
   LOG_CHANNEL,
@@ -106,14 +106,19 @@ function sendPng(res: Response, png: Buffer): void {
     .send(png);
 }
 
+/** "4 דקות קריאה", with the Hebrew singular and dual. */
+function hebrewMinutes(n: number): string {
+  return n === 1 ? "דקת קריאה אחת" : n === 2 ? "שתי דקות קריאה" : `${n} דקות קריאה`;
+}
+
 /** Slugs and release tags only: no path separators, no leading dot. */
 const OG_FILE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$/;
 
 /**
  * Per-post, per-project and per-release cards, rendered on demand and cached in
  * process. `?format=og|square|story` picks the size (default og, the one the
- * link previews use). `?lang=he` is accepted, but the card stays English while
- * the bundled fonts have no Hebrew glyphs (see HEBREW_CARDS in services/og.ts).
+ * link previews use). `?lang=he` draws the card in Hebrew, right to left, using
+ * the title the owner translated and falling back to the English one.
  */
 router.get(
   "/og/:kind/:file",
@@ -127,7 +132,8 @@ router.get(
     if (rawLang !== undefined && rawLang !== "en" && rawLang !== "he") {
       return res.status(400).json({ ok: false, error: "lang must be en or he" });
     }
-    // A Hebrew request gets the English card while HEBREW_CARDS is false.
+    const he = rawLang === "he" && HEBREW_CARDS;
+    const lang = he ? ({ lang: "he" } as const) : {};
 
     const slug = req.params.file.replace(/\.png$/i, "");
     const kind = req.params.kind;
@@ -144,9 +150,10 @@ router.get(
         res,
         renderCardPng(
           {
-            eyebrow: post.collection === "site" ? "Note" : post.collection.replace(/-/g, " "),
-            title: post.title,
-            meta: `yehudabriskman.com · ${post.readingMinutes} min read`,
+            eyebrow: post.collection === "site" ? (he ? "הערה" : "Note") : post.collection.replace(/-/g, " "),
+            title: (he && post.he?.title?.trim()) || post.title,
+            meta: `yehudabriskman.com · ${he ? hebrewMinutes(post.readingMinutes) : `${post.readingMinutes} min read`}`,
+            ...lang,
           },
           format,
         ),
@@ -165,7 +172,15 @@ router.get(
       if (!title) return res.status(404).json({ ok: false, error: "Not Found" });
       return sendPng(
         res,
-        renderCardPng({ eyebrow: "Project", title, meta: `yehudabriskman.com/projects/${slug}` }, format),
+        renderCardPng(
+          {
+            eyebrow: he ? "פרויקט" : "Project",
+            title: (he && collection?.he?.title?.trim()) || title,
+            meta: `yehudabriskman.com/projects/${slug}`,
+            ...lang,
+          },
+          format,
+        ),
       );
     }
 
@@ -179,7 +194,7 @@ router.get(
       return sendPng(
         res,
         renderCardPng(
-          { eyebrow: "Release", title: `${releases.repo.name} ${release.tag}`, meta: `yehudabriskman.com${date}` },
+          { eyebrow: he ? "גרסה" : "Release", title: `${releases.repo.name} ${release.tag}`, meta: `yehudabriskman.com${date}`, ...lang },
           format,
         ),
       );

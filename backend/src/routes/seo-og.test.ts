@@ -67,12 +67,31 @@ describe("GET /api/seo/og/:kind/:file", () => {
     expect(couch.find).not.toHaveBeenCalled();
   });
 
-  it("answers an unknown lang with 400 and gives Hebrew the English card", async () => {
+  it("answers an unknown lang with 400 and keeps English the default", async () => {
     expect((await request(createApp()).get("/api/seo/og/blog/a-note.png?lang=fr")).status).toBe(400);
-    const he = await get("/api/seo/og/blog/a-note.png?lang=he");
     const en = await get("/api/seo/og/blog/a-note.png");
-    expect(he.status).toBe(200);
-    expect(he.body.equals(en.body)).toBe(true);
+    const explicit = await get("/api/seo/og/blog/a-note.png?lang=en");
+    expect(explicit.body.equals(en.body)).toBe(true);
+  });
+
+  it("draws ?lang=he as a Hebrew card in every format, from the Hebrew title", async () => {
+    vi.mocked(couch.find).mockImplementation((async () => ({
+      docs: [{ ...POST, he: { title: "הערה עם כותרת בעברית", subtitle: "", excerpt: "", body: "" } }],
+    })) as never);
+    const en = await get("/api/seo/og/blog/a-note.png");
+    for (const [format, w, h] of [["og", 1200, 630], ["square", 1080, 1080], ["story", 1080, 1920]] as const) {
+      const he = await get(`/api/seo/og/blog/a-note.png?lang=he&format=${format}`);
+      expect(he.status).toBe(200);
+      expect(he.headers["content-type"]).toBe("image/png");
+      expect(dims(he.body)).toEqual({ w, h });
+      expect(he.body.equals((await get(`/api/seo/og/blog/a-note.png?format=${format}`)).body)).toBe(false);
+    }
+    expect(en.body.equals((await get("/api/seo/og/blog/a-note.png?lang=he")).body)).toBe(false);
+  });
+
+  it("renders a Hebrew card for a note with no translation, and for a release", async () => {
+    expect((await get("/api/seo/og/blog/a-note.png?lang=he")).status).toBe(200);
+    expect((await get("/api/seo/og/release/v1.4.3.png?lang=he&format=story")).status).toBe(200);
   });
 
   it("404s an unknown kind, an unknown slug and a malformed file", async () => {

@@ -83,6 +83,129 @@ const C = {
 const FONT_DISPLAY = "OG Display";
 const FONT_SANS = "OG Sans";
 const FONT_MONO = "IBM Plex Mono";
+/** The one face with the Hebrew block; it draws the Latin and digits of a Hebrew card too. */
+const FONT_HEBREW = "Heebo";
+
+type Dir = "R" | "L" | "EN" | "N";
+const HEBREW_CHAR = /[\u0590-\u05FF\uFB1D-\uFB4F]/;
+const MIRRORED: Record<string, string> = { "(": ")", ")": "(", "[": "]", "]": "[", "{": "}", "}": "{", "<": ">", ">": "<", "«": "»", "»": "«" };
+
+function classify(c: string): Dir {
+  if (HEBREW_CHAR.test(c)) return "R";
+  if (/\d/.test(c)) return "EN";
+  if (/\p{L}/u.test(c)) return "L";
+  return "N";
+}
+
+/**
+ * Split a line into runs of one direction for a right-to-left paragraph, using
+ * the rules of the Unicode bidirectional algorithm that a card title needs
+ * (Hebrew runs, Latin words, numbers with their separators, neutral
+ * punctuation between them). Level 1 is right-to-left, 2 is left-to-right.
+ *
+ * resvg lays each text chunk out with one guess at its direction and mangles a
+ * Hebrew title that has English words or numbers in it, whatever `direction`
+ * or `unicode-bidi` say, so mixed lines are split here. A combining mark
+ * (niqqud) stays with its base letter.
+ */
+export function bidiRuns(line: string): Array<{ text: string; level: 1 | 2 }> {
+  const clusters: string[] = [];
+  for (const ch of line) {
+    if (clusters.length && /\p{M}/u.test(ch)) clusters[clusters.length - 1] += ch;
+    else clusters.push(ch);
+  }
+  const base = clusters.map((c) => c[0]);
+  const t: Dir[] = base.map(classify);
+  // Number separators and signs stay in a number: "2.5", "1,000", "12%", "-3".
+  for (let i = 0; i < t.length; i++) {
+    if (t[i] !== "N") continue;
+    const prev = t[i - 1] === "EN";
+    const next = t[i + 1] === "EN";
+    if ((prev && next && /[.,:/+-]/.test(base[i])) || (/[%$#°]/.test(base[i]) && prev) || (/[+$#-]/.test(base[i]) && next && !prev && t[i - 1] !== "L")) {
+      t[i] = "EN";
+    }
+  }
+  // A number that follows Latin letters belongs to them ("v2", "ES2024").
+  for (let i = 0, strong: Dir = "R"; i < t.length; i++) {
+    if (t[i] === "R" || t[i] === "L") strong = t[i];
+    else if (t[i] === "EN" && strong === "L") t[i] = "L";
+  }
+  // Neutrals between like directions take it (a number counts as R here);
+  // between unlike ones, or at an edge, they take the paragraph's, R.
+  const side = (d: Dir | undefined): "R" | "L" => (d === "L" ? "L" : "R");
+  const level: number[] = t.map(() => 1);
+  for (let i = 0; i < t.length; i++) {
+    if (t[i] === "R") level[i] = 1;
+    else if (t[i] === "L" || t[i] === "EN") level[i] = 2;
+    else {
+      let a = i - 1;
+      while (a >= 0 && t[a] === "N") a--;
+      let b = i + 1;
+      while (b < t.length && t[b] === "N") b++;
+      const left = a >= 0 ? side(t[a]) : "R";
+      const right = b < t.length ? side(t[b]) : "R";
+      level[i] = left === right && left === "L" ? 2 : 1;
+    }
+  }
+  // Group the clusters into runs of one level, in logical order.
+  const runs: Array<{ text: string; level: 1 | 2 }> = [];
+  clusters.forEach((c, i) => {
+    const lv = level[i] as 1 | 2;
+    const last = runs[runs.length - 1];
+    if (last && last.level === lv) last.text += c;
+    else runs.push({ text: c, level: lv });
+  });
+  // Punctuation at either end of a Hebrew run is split off: a chunk that
+  // opens or closes on a neutral gets it on the wrong side.
+  return runs.flatMap((r) => {
+    if (r.level !== 1 || !HEBREW_CHAR.test(r.text)) return [r];
+    const chars = [...r.text];
+    const first = chars.findIndex((c) => HEBREW_CHAR.test(c));
+    const last = chars.length - 1 - [...chars].reverse().findIndex((c) => HEBREW_CHAR.test(c));
+    return [
+      { text: chars.slice(0, first).join(""), level: 1 as const },
+      { text: chars.slice(first, last + 1).join(""), level: 1 as const },
+      { text: chars.slice(last + 1).join(""), level: 1 as const },
+    ].filter((x) => x.text);
+  });
+}
+
+/**
+ * One right-to-left line as separately placed `<text>` runs, right edge at
+ * `xRight`. Within a run the renderer's own ordering is right, because a run
+ * holds one direction only; between runs it is not, so the runs are laid out
+ * here, last logical run furthest left, from measured widths.
+ */
+function rtlLine(
+  line: string,
+  xRight: number,
+  y: number,
+  family: string,
+  size: number,
+  tracking: number,
+  attrs: string,
+): string {
+  let cursor = xRight;
+  const out: string[] = [];
+  for (const run of bidiRuns(line)) {
+    const lead = run.text.match(/^\s*/)![0];
+    const trail = run.text.slice(lead.length).match(/\s*$/)![0];
+    let text = run.text.trim();
+    // Neutral punctuation on its own has no strong letter to give it a
+    // direction, so it is set in visual order here.
+    if (run.level === 1 && !HEBREW_CHAR.test(text)) {
+      text = [...text].reverse().map((c) => MIRRORED[c] ?? c).join("");
+    }
+    // The run's right edge is its logical start when it reads right to left.
+    cursor -= measure(run.level === 1 ? lead : trail, family, size, tracking);
+    if (text) {
+      out.push(`<text x="${cursor.toFixed(1)}" y="${y.toFixed(1)}" text-anchor="end" font-family="${family}" font-size="${size}" letter-spacing="${tracking.toFixed(2)}"${attrs}>${esc(text)}</text>`);
+      cursor -= measure(text, family, size, tracking);
+    }
+    cursor -= measure(run.level === 1 ? trail : lead, family, size, tracking);
+  }
+  return out.join("");
+}
 
 const MetricsSchema = z.record(
   z.string(),
@@ -120,7 +243,7 @@ function fonts(): { files: string[]; metrics: Metrics } {
   const metrics = MetricsSchema.parse(
     JSON.parse(fs.readFileSync(path.join(dir, "metrics.json"), "utf8")),
   );
-  const files = ["OGDisplay.ttf", "OGSans.ttf", "OGMono.ttf"].map((f) => path.join(dir, f));
+  const files = ["OGDisplay.ttf", "OGSans.ttf", "OGMono.ttf", "Heebo-Bold.ttf"].map((f) => path.join(dir, f));
   cachedFonts = { files, metrics };
   return cachedFonts;
 }
@@ -163,11 +286,11 @@ function truncate(s: string, max: number): string {
 }
 
 /**
- * The bundled fonts have no Hebrew glyphs (they render as tofu), so a card can
- * only be drawn in English. Callers asking for a Hebrew card get the English
- * one until a font with the Hebrew block is bundled and this flips.
+ * Whether a card can be drawn in Hebrew. The English faces have no Hebrew
+ * glyphs (they render as tofu), so a Hebrew card is set in the bundled Heebo
+ * instead. Flip to false to make `lang: "he"` fall back to the English card.
  */
-export const HEBREW_CARDS = false;
+export const HEBREW_CARDS = true;
 
 export type OgCardInput = {
   /** Small tracked label above the title, e.g. "NOTE" or "PROJECT". */
@@ -175,20 +298,27 @@ export type OgCardInput = {
   title: string;
   /** Bottom-left line; the domain is appended when this is omitted. */
   meta?: string;
+  /** "he" sets the card right-to-left in Heebo, with the scene mirrored. */
+  lang?: "en" | "he";
 };
 
 /**
  * Fit the title by stepping down through display sizes until it lands in three
  * lines or fewer, then hard-truncate. Long titles shrink rather than overflow.
  */
-function fitTitle(title: string, L: Layout): { size: number; lines: string[] } {
+function fitTitle(
+  title: string,
+  L: Layout,
+  family = FONT_DISPLAY,
+  tracking = -0.03,
+): { size: number; lines: string[] } {
   const clean = truncate(title, 120);
   for (const size of L.sizes) {
-    const lines = wrap(clean, FONT_DISPLAY, size, -0.03 * size, L.textMaxW);
+    const lines = wrap(clean, family, size, tracking * size, L.textMaxW);
     if (lines.length <= L.maxLines) return { size, lines };
   }
   const size = L.sizes[L.sizes.length - 1];
-  const lines = wrap(clean, FONT_DISPLAY, size, -0.03 * size, L.textMaxW).slice(0, L.maxLines);
+  const lines = wrap(clean, family, size, tracking * size, L.textMaxW).slice(0, L.maxLines);
   if (lines.length === L.maxLines) lines[L.maxLines - 1] = `${lines[L.maxLines - 1].replace(/\s+\S*$/, "")}…`;
   return { size, lines };
 }
@@ -214,8 +344,16 @@ function glitter(cx: number, horizon: number): string {
 export function cardSvg(input: OgCardInput, format: OgFormat = "og"): string {
   const L = LAYOUTS[format];
   const { w: W, h: H, horizon: HORIZON, padX: PAD_X } = L;
-  const { size, lines } = fitTitle(input.title, L);
-  const leading = size * 1.04;
+  // A Hebrew card reads right to left: Heebo, no tracking (it would pull the
+  // letters of a word apart), text anchored at the right edge, scene mirrored.
+  const rtl = input.lang === "he" && HEBREW_CARDS;
+  const titleFont = rtl ? FONT_HEBREW : FONT_DISPLAY;
+  const titleTracking = rtl ? 0 : -0.03;
+  const { size, lines } = fitTitle(input.title, L, titleFont, titleTracking);
+  const leading = size * (rtl ? 1.14 : 1.04);
+  const textX = rtl ? W - PAD_X : PAD_X;
+  const mirrorOpen = rtl ? `<g transform="translate(${W} 0) scale(-1 1)">` : "";
+  const mirrorClose = rtl ? "</g>" : "";
 
   // Anchor the block on its optical centre so one-line and three-line cards
   // sit in the same place rather than drifting down the frame.
@@ -235,9 +373,22 @@ export function cardSvg(input: OgCardInput, format: OgFormat = "og"): string {
           close: "</g>",
         };
 
-  const titleTspans = lines
-    .map((l, i) => `<tspan x="${PAD_X}" y="${(titleTop + leading * (i + 1)).toFixed(1)}">${esc(l)}</tspan>`)
-    .join("");
+  const titleSvg = rtl
+    ? lines
+        .map((l, i) => rtlLine(l, textX, titleTop + leading * (i + 1), FONT_HEBREW, size, 0, ` fill="${C.bone}"`))
+        .join("")
+    : `<text font-family="${FONT_DISPLAY}" font-size="${size}" letter-spacing="${(-0.03 * size).toFixed(2)}" fill="${C.bone}">${lines
+        .map((l, i) => `<tspan x="${textX}" y="${(titleTop + leading * (i + 1)).toFixed(1)}">${esc(l)}</tspan>`)
+        .join("")}</text>`;
+  const eyebrowY = titleTop - L.eyebrowGap;
+  const eyebrowSvg = !eyebrow
+    ? ""
+    : rtl
+      ? rtlLine(eyebrow, textX, eyebrowY, FONT_HEBREW, L.eyebrowSize, 0, ` fill="${C.sodium}"`)
+      : `<text x="${textX}" y="${eyebrowY.toFixed(1)}" font-family="${FONT_MONO}" font-size="${L.eyebrowSize}" letter-spacing="5" fill="${C.sodium}">${esc(eyebrow)}</text>`;
+  const metaSvg = rtl
+    ? rtlLine(meta, textX, L.metaY, FONT_HEBREW, L.metaSize, 0, ` fill="${C.clay}"`)
+    : `<text x="${textX}" y="${L.metaY}" font-family="${FONT_MONO}" font-size="${L.metaSize}" letter-spacing="2.4" fill="${C.clay}">${esc(meta)}</text>`;
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
   <defs>
@@ -264,7 +415,7 @@ export function cardSvg(input: OgCardInput, format: OgFormat = "og"): string {
     <clipPath id="below"><rect x="0" y="${HORIZON}" width="${W}" height="${H - HORIZON}"/></clipPath>
   </defs>
 
-  <rect width="${W}" height="${H}" fill="url(#sky)"/>
+  ${mirrorOpen}<rect width="${W}" height="${H}" fill="url(#sky)"/>
 
   <g clip-path="url(#above)">
     <circle cx="${L.sunX}" cy="${L.sunY}" r="300" fill="url(#glow)"/>
@@ -278,14 +429,14 @@ export function cardSvg(input: OgCardInput, format: OgFormat = "og"): string {
     ${glitter(L.sunX, HORIZON)}
   </g>
 
-  <rect width="${W}" height="${H}" fill="url(#scrim)"/>
+  <rect width="${W}" height="${H}" fill="url(#scrim)"/>${mirrorClose}
 
-  ${eyebrow ? `<text x="${PAD_X}" y="${(titleTop - L.eyebrowGap).toFixed(1)}" font-family="${FONT_MONO}" font-size="${L.eyebrowSize}" letter-spacing="5" fill="${C.sodium}">${esc(eyebrow)}</text>` : ""}
+  ${eyebrowSvg}
 
-  <text font-family="${FONT_DISPLAY}" font-size="${size}" letter-spacing="${(-0.03 * size).toFixed(2)}" fill="${C.bone}">${titleTspans}</text>
+  ${titleSvg}
 
-  <line x1="${PAD_X}" y1="${L.ruleY}" x2="${PAD_X + 92}" y2="${L.ruleY}" stroke="${C.sodium}" stroke-width="3" stroke-linecap="round"/>
-  <text x="${PAD_X}" y="${L.metaY}" font-family="${FONT_MONO}" font-size="${L.metaSize}" letter-spacing="2.4" fill="${C.clay}">${esc(meta)}</text>
+  <line x1="${textX}" y1="${L.ruleY}" x2="${rtl ? textX - 92 : textX + 92}" y2="${L.ruleY}" stroke="${C.sodium}" stroke-width="3" stroke-linecap="round"/>
+  ${metaSvg}
 </svg>`;
 }
 
