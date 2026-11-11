@@ -59,7 +59,7 @@ export type AdminSection =
   | "settings"
   | "connections"
   | "translations"
-  | "announce";
+  | "marketing";
 type Section = AdminSection;
 
 const ICONS: Record<Section, typeof FileText> = {
@@ -73,7 +73,7 @@ const ICONS: Record<Section, typeof FileText> = {
   settings: Settings,
   connections: Plug,
   translations: Languages,
-  announce: Megaphone,
+  marketing: Megaphone,
 };
 
 const PATHS: Record<Section, string> = {
@@ -87,13 +87,13 @@ const PATHS: Record<Section, string> = {
   settings: "/admin/settings",
   connections: "/admin/connections",
   translations: "/admin/translations",
-  announce: "/admin/announce",
+  marketing: "/admin/marketing",
 };
 
 const GROUPS: Array<{ id: "top" | "content" | "site"; items: Section[] }> = [
   { id: "top", items: ["overview"] },
   /* What the public site shows. */
-  { id: "content", items: ["posts", "areas", "projects", "story", "site-copy", "media", "translations", "announce"] },
+  { id: "content", items: ["posts", "areas", "projects", "story", "site-copy", "media", "translations", "marketing"] },
   /* How it shows it, and who else may read or write it. */
   { id: "site", items: ["settings", "connections"] },
 ];
@@ -308,7 +308,7 @@ export default function AdminShell({ title, section, counts, bottomBar, backTo, 
                               </span>
                               {translationsDue !== undefined && <span className="sr-only">{w.toDo(translationsDue)}</span>}
                             </span>
-                          ) : id === "announce" ? (
+                          ) : id === "marketing" ? (
                             /* Only unread ones: nothing waiting shows no badge at all. */
                             announceUnread ? (
                               <span title={w.announceUnread(announceUnread)}>

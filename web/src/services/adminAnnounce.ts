@@ -10,7 +10,8 @@ import { ContentConflictError, ContentInvalidError, type Issue } from "./adminCo
 
 export const ANNOUNCE_CHANNELS = ["linkedin", "instagram", "email", "gmail", "x"] as const;
 export type AnnounceChannel = (typeof ANNOUNCE_CHANNELS)[number];
-export type AnnounceKind = "post" | "release";
+export const ANNOUNCE_KINDS = ["post", "release", "note", "project", "area", "story", "home", "custom"] as const;
+export type AnnounceKind = (typeof ANNOUNCE_KINDS)[number];
 export type AnnounceLang = "en" | "he";
 
 export type AnnounceSummary = {
@@ -28,18 +29,32 @@ export type AnnounceSummary = {
 
 export type AnnounceInbox = { ok: true; unread: number; items: AnnounceSummary[] };
 
-export type KitItem = { text: string; subject: string; limit: number | null; length: number; over: boolean };
+export type KitItem = { text: string; subject: string; limit: number | null; length: number; over: boolean; draft?: boolean };
 export type Kit = Record<AnnounceLang, Partial<Record<AnnounceChannel, KitItem>>>;
 
 export type AnnounceDetail = {
   ok: true;
-  event: AnnounceSummary & { summary: string; tags: string[]; version: string | null };
+  event: AnnounceSummary & {
+    _rev?: string | null;
+    summary: string;
+    tags: string[];
+    version: string | null;
+    drafts?: Partial<Record<AnnounceLang, Partial<Record<AnnounceChannel, string>>>>;
+    custom?: { title: string; summary: string; url?: string; imageUrl?: string } | null;
+  };
   kit: Kit;
 };
 
 export type PreviewIssue = {
-  code: "title-missing" | "title-long" | "description-missing" | "description-long" | "image-missing" | "image-size";
-  field: "title" | "description" | "image";
+  code:
+    | "title-missing"
+    | "title-long"
+    | "description-missing"
+    | "description-long"
+    | "image-missing"
+    | "image-size"
+    | "no-hebrew-translation";
+  field: "title" | "description" | "image" | "translation";
   severity: "error" | "warn";
   limit?: number;
   length?: number;
@@ -128,6 +143,12 @@ export const adminAnnounce = {
   read: (eventId: string) => post(`/${id(eventId)}/read`),
   done: (eventId: string, channel: AnnounceChannel) => post(`/${id(eventId)}/done`, { channel }),
   dismiss: (eventId: string) => post(`/${id(eventId)}/dismiss`),
+  /** A hand-made announcement. `story` and `home` take no link; `url` and `imageUrl` must be on the site. */
+  create: (b: { kind: "custom" | "story" | "home"; title: string; summary: string; url?: string; imageUrl?: string }) =>
+    call<{ ok: true; event: AnnounceSummary }>("", { method: "POST", body: JSON.stringify(b) }),
+  /** The owner's own caption for one language and channel; `null` clears it back to the template. */
+  saveDraft: (eventId: string, b: { lang: AnnounceLang; channel: AnnounceChannel; text: string | null }) =>
+    call<AnnounceDetail>(`/${id(eventId)}/draft`, { method: "PUT", body: JSON.stringify(b) }),
   settings: () => call<AnnounceSettingsView>("/settings"),
   saveSettings: (settings: AnnounceSettings, rev: string | null) =>
     call<AnnounceSettingsView>("/settings", { method: "PUT", body: JSON.stringify({ settings, ...(rev ? { _rev: rev } : {}) }) }),

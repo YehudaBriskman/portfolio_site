@@ -11,14 +11,14 @@ afterEach(() => {
   setUnread(null);
 });
 
-const shell = () => render(<MemoryRouter initialEntries={["/admin/announce"]}><AdminShell title="Announce" section="announce"><p>x</p></AdminShell></MemoryRouter>);
+const shell = () => render(<MemoryRouter initialEntries={["/admin/marketing"]}><AdminShell title="Marketing" section="marketing"><p>x</p></AdminShell></MemoryRouter>);
 
-describe("the Announce nav item", () => {
-  it("links to /admin/announce and shows the unread count", async () => {
+describe("the Marketing nav item", () => {
+  it("links to /admin/marketing and shows the unread count", async () => {
     vi.stubGlobal("fetch", vi.fn(async (url: string) => (url === "/api/admin/announce" ? json({ ok: true, unread: 3, items: [] }) : json({ ok: true, login: "o" }))));
     shell();
-    const link = screen.getByRole("link", { name: /Announce/ });
-    expect(link.getAttribute("href")).toBe("/admin/announce");
+    const link = screen.getByRole("link", { name: /Marketing/ });
+    expect(link.getAttribute("href")).toBe("/admin/marketing");
     await waitFor(() => expect(link.textContent).toContain("3"));
     expect(link.textContent).toContain("3 unread");
   });
@@ -26,7 +26,7 @@ describe("the Announce nav item", () => {
   it("follows the page when something is read, and shows nothing at zero", async () => {
     vi.stubGlobal("fetch", vi.fn(async (url: string) => (url === "/api/admin/announce" ? json({ ok: true, unread: 2, items: [] }) : json({ ok: true, login: "o" }))));
     shell();
-    const link = screen.getByRole("link", { name: /Announce/ });
+    const link = screen.getByRole("link", { name: /Marketing/ });
     await waitFor(() => expect(link.textContent).toContain("2"));
     act(() => setUnread(0));
     expect(link.textContent).not.toMatch(/\d/);
@@ -36,6 +36,6 @@ describe("the Announce nav item", () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response("no", { status: 500 })));
     shell();
     await new Promise((r) => setTimeout(r, 20));
-    expect(screen.getByRole("link", { name: /Announce/ }).textContent).not.toMatch(/\d/);
+    expect(screen.getByRole("link", { name: /Marketing/ }).textContent).not.toMatch(/\d/);
   });
 });
