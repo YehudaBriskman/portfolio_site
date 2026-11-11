@@ -170,15 +170,13 @@ export function usePauseSwitch(): [boolean, () => void] {
    * remembered.
    */
   const toggle = () => {
-    setPaused((was) => {
-      const next = !was;
-      try {
-        localStorage.setItem(MOTION_PAUSED_KEY, next ? "1" : "0");
-      } catch {
-        // See above: the preference still applies for this visit.
-      }
-      return next;
-    });
+    const next = !paused;
+    try {
+      localStorage.setItem(MOTION_PAUSED_KEY, next ? "1" : "0");
+    } catch {
+      // See above: the preference still applies for this visit.
+    }
+    setPaused(next);
   };
 
   return [paused, toggle];
