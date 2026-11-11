@@ -14,6 +14,13 @@ function fakeProvider(results: Array<{ ok: true; messageId: string } | { ok: fal
 afterEach(() => vi.restoreAllMocks());
 
 describe("EmailService.send", () => {
+  it("passes a server-built html part through with the text and sends no auto-reply", async () => {
+    const send = fakeProvider([{ ok: true, messageId: "1" }]);
+    await emailService.send({ subject: "S", text: "t", html: "<p>h</p>" });
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(send.mock.calls[0][0]).toMatchObject({ html: "<p>h</p>", text: "t", to: env.CONTACT_TO });
+  });
+
   it("always sends the owner's message to CONTACT_TO", async () => {
     const send = fakeProvider([{ ok: true, messageId: "1" }, { ok: true, messageId: "2" }]);
     await emailService.send(input);

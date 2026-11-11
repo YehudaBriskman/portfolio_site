@@ -9,6 +9,8 @@ export type BasicTemplateParams = {
 export type SendEmailBase = {
   subject: string;
   text?: string;
+  /** Server-built HTML for internal mail only; never taken from a request. */
+  html?: string;
   replyTo?: string;
 };
 

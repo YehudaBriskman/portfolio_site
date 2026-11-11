@@ -10,7 +10,7 @@ const isEmailJsPayload = (input: SendEmailInput): input is EmailJsPayload => "te
 
 function composeBody(input: SendEmailInput): { html?: string; text?: string } {
   if ("template" in input && input.template) return renderBasicTemplate(input.template.params);
-  return { text: input.text };
+  return { html: input.html, text: input.text };
 }
 
 function sendAutoReply(provider: ReturnType<typeof getProvider>, visitor: string) {
