@@ -21,6 +21,7 @@ import {
 } from './rate-limit.js';
 import { auditWrites } from './services/audit.js';
 import { indexNowOnWrite } from './services/indexnow.js';
+import { announceOnWrite } from './announce/hooks.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 import { couch } from './db/couch.js';
 import { createMcpRouter } from './mcp/router.js';
@@ -113,7 +114,7 @@ export function createApp() {
   // The gate holds, but an unmetered endpoint is an oracle for guessing the
   // proxy secret.
   // Every write past the gate is recorded, refusals included (#252).
-  app.use('/api/admin', adminLimiter, createBearerFailureLimiter(), requireAdmin, auditWrites, indexNowOnWrite, adminRoutes);
+  app.use('/api/admin', adminLimiter, createBearerFailureLimiter(), requireAdmin, auditWrites, indexNowOnWrite, announceOnWrite, adminRoutes);
   app.use('/api/email', emailRoutes);
   app.use("/api/images", createImagesRouter());
   // The contribution year: a cached array, one request per home-page load, so the

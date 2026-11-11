@@ -1,5 +1,6 @@
 import type { Collection, SiteRelease, SiteReleases } from "../schemas/content.js";
 import { env } from "../env.js";
+import { announceNewReleases } from "../announce/hooks.js";
 
 /*
  * Reads public repository facts from GitHub.
@@ -150,7 +151,9 @@ export function startStatsRefresh(opts: {
     if (opts.siteReleases) {
       try {
         const sr = opts.siteReleases;
-        await sr.save(await fetchSiteReleases(sr.repo, await sr.load()));
+        const doc = await fetchSiteReleases(sr.repo, await sr.load());
+        await sr.save(doc);
+        await announceNewReleases(doc);
       } catch {
         // Same reasoning as above.
       }

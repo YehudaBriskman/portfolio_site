@@ -33,6 +33,7 @@ import {
 } from "../services/apiTokenFormat.js";
 import adminContentRoutes from "./admin-content.route.js";
 import adminSettingsRoutes from "./admin-settings.route.js";
+import announceRoutes from "../announce/route.js";
 import adminTranslationsRoutes from "./admin-translations.route.js";
 import { COLLECTION_FIELDS, stampHebrewMeta, stampTexts, type HebrewMeta } from "../schemas/i18n.js";
 import { fromContent, planPublish, postVersions, stampPost } from "../services/publishPlan.js";
@@ -125,6 +126,9 @@ router.use("/content", adminContentRoutes);
 
 /* The site's settings (#254): section order and visibility, the visual defaults. */
 router.use("/settings", adminSettingsRoutes);
+
+/* The announce inbox and its own owner-only settings doc. */
+router.use("/announce", announceRoutes);
 
 /* The media library (#253): its own file, behind this router's gate and audit. */
 router.use("/media", mediaRoutes);
