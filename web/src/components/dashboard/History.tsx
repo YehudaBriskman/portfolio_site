@@ -6,16 +6,13 @@ import dash from "@/components/dashboard/Dashboard.module.css";
 import { count, fullDate, relative, shortDate, type Lang } from "@/components/dashboard/i18n";
 import { useHistoryWords, type HistoryWords } from "@/components/dashboard/historyWords";
 import {
-  copyText,
   groupByDay,
-  linkedInShareUrl,
   noteId,
   permalink,
-  shareLink,
   topicBreakdown,
   wasUpdated,
-  xShareUrl,
 } from "@/components/dashboard/history";
+import { copyText, linkedInShareUrl, shareLink, xShareUrl } from "@/lib/share";
 import { useCopyStatus, useListKeys } from "@/components/dashboard/useHistory";
 import SkeletonGate from "@/components/gallery/SkeletonGate";
 import SkeletonLines from "@/components/gallery/SkeletonLines";

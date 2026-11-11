@@ -1,15 +1,12 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
   dayKey,
   groupByDay,
   isForeignKey,
-  linkedInShareUrl,
   noteId,
-  shareLink,
   stepIndex,
   topicBreakdown,
   wasUpdated,
-  xShareUrl,
 } from "@/components/dashboard/history";
 import { headingSlug, rehypeHeadingIds } from "@/components/notes/headingIds";
 
@@ -110,35 +107,6 @@ describe("j / k", () => {
     expect(key(link, { ctrlKey: true })).toBe(true);
     expect(key(link)).toBe(false);
     document.body.replaceChildren();
-  });
-});
-
-describe("shareLink", () => {
-  const data = { url: "https://example.test/blog/a", title: "A" };
-
-  it("falls back where there is no Web Share", async () => {
-    expect(await shareLink(data, {} as Navigator)).toBe("fallback");
-    expect(await shareLink(data, undefined)).toBe("fallback");
-  });
-
-  it("falls back when the browser says it cannot share this", async () => {
-    const share = vi.fn();
-    expect(await shareLink(data, { share, canShare: () => false })).toBe("fallback");
-    expect(share).not.toHaveBeenCalled();
-  });
-
-  it("uses the system sheet, and treats closing it as done, not as a failure", async () => {
-    expect(await shareLink(data, { share: vi.fn(async () => {}), canShare: () => true })).toBe("shared");
-    const abort = Object.assign(new Error("closed"), { name: "AbortError" });
-    expect(await shareLink(data, { share: vi.fn(async () => Promise.reject(abort)), canShare: undefined as never })).toBe("cancelled");
-    expect(await shareLink(data, { share: vi.fn(async () => Promise.reject(new Error("denied"))), canShare: undefined as never })).toBe("fallback");
-  });
-
-  it("builds the fallback's LinkedIn and X links with the URL encoded", () => {
-    expect(linkedInShareUrl(data.url)).toBe(
-      "https://www.linkedin.com/sharing/share-offsite/?url=https%3A%2F%2Fexample.test%2Fblog%2Fa",
-    );
-    expect(xShareUrl(data.url, "A & B")).toBe("https://x.com/intent/post?url=https%3A%2F%2Fexample.test%2Fblog%2Fa&text=A%20%26%20B");
   });
 });
 

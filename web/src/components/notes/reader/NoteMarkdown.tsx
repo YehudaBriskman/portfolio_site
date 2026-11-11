@@ -3,7 +3,7 @@ import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Check, Copy, Expand } from "lucide-react";
 import Written from "@/components/motion/Written";
-import { copyText } from "@/components/dashboard/history";
+import { copyText } from "@/lib/share";
 import { useCodeHighlight } from "@/components/notes/CodeHighlight";
 import { H2, H3, H4 } from "@/components/notes/headingAnchors";
 import { rehypeHeadingIds } from "@/components/notes/headingIds";
