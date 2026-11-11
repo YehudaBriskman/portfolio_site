@@ -77,7 +77,14 @@ export function truncateSafe(text: string, max: number, channel?: ShareChannel):
 /** Plain text from untrusted text: no tags, no control characters, one space between words. */
 export function plain(input: string | undefined | null, keepNewlines = false): string {
   if (!input) return "";
-  let s = input.replace(/<\/?[a-zA-Z!][^>]*>/g, "");
+  // Stripping can join the halves of a split tag ("<scr<b>ipt>"), so go until stable.
+  let s = input;
+  for (let i = 0; i < 10; i++) {
+    const next = s.replace(/<\/?[a-zA-Z!][^>]*>/g, "");
+    if (next === s) break;
+    s = next;
+  }
+  s = s.replace(/<(?=[a-zA-Z!/])/g, "");
   // eslint-disable-next-line no-control-regex
   s = s.replace(keepNewlines ? /[\u0000-\u0009\u000b-\u001f\u007f]/g : /[\u0000-\u001f\u007f]+/g, " ");
   return s.replace(/[ \t]+/g, " ").trim();

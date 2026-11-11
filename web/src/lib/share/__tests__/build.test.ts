@@ -80,7 +80,7 @@ describe("buildShare: kinds, audiences, locales", () => {
         for (const audience of ["visitor", "owner"] as const) {
           for (const locale of ["en", "he"] as const) {
             const r = buildShare(base({ kind, channel, audience, locale }));
-            expect(r.url.startsWith(ORIGIN), `${kind}/${channel}`).toBe(true);
+            expect(new URL(r.url).origin, `${kind}/${channel}`).toBe(new URL(ORIGIN).origin);
             expect(r.text.length).toBeGreaterThan(0);
             expect(r.text).not.toMatch(/\{[a-z]+\}/);
           }
