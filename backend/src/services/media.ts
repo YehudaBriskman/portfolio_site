@@ -270,8 +270,18 @@ export const mediaStore = {
     }
   },
   async list(): Promise<MediaDoc[]> {
-    const { docs } = await couch.find<MediaDoc>({ selector: { type: "media" }, limit: 2000 });
-    return docs;
+    // Page by bookmark: a single capped _find silently dropped everything past the cap.
+    const all: MediaDoc[] = [];
+    let bookmark: string | undefined;
+    for (;;) {
+      const page = (await couch.find<MediaDoc>({ selector: { type: "media" }, limit: 500, bookmark })) as {
+        docs: MediaDoc[];
+        bookmark?: string;
+      };
+      all.push(...page.docs);
+      if (page.docs.length < 500 || !page.bookmark) return all;
+      bookmark = page.bookmark;
+    }
   },
   async save(doc: MediaDoc, files: ReturnType<typeof filesOf>): Promise<MediaDoc> {
     const { _attachments: _old, ...plain } = doc;
@@ -284,14 +294,18 @@ export const mediaStore = {
     return { ...doc, _rev: r.rev };
   },
   /*
-   * One captions track added or replaced on a stored item (#306): the file
-   * first, then the metadata on the revision that write made, read back so
-   * the attachment stubs (the new one with them) go back as CouchDB has them.
+   * One captions track added or replaced on a stored item (#306), as ONE
+   * write: the file goes inline (base64; a VTT is small) beside the existing
+   * attachment stubs and the new metadata, on the revision the caller read, so
+   * the bytes and the hash that names them can never be saved apart, and a
+   * concurrent edit is a 409 rather than a lost update.
    */
   async putTrack(doc: MediaDoc, file: { name: string; contentType: string; data: Buffer }, update: (fresh: MediaDoc) => MediaDoc): Promise<MediaDoc> {
-    await attachments.putOne(doc._id, doc._rev ?? "", file);
-    const fresh = await couch.get<MediaDoc>(doc._id);
-    return mediaStore.saveMeta(update(fresh));
+    const next = update(doc);
+    const stubs = { ...(doc._attachments ?? {}) };
+    const sent = { ...next, _attachments: { ...stubs, [file.name]: { content_type: file.contentType, data: file.data.toString("base64") } } };
+    const r = await couch.put<{ rev: string }>(doc._id, sent);
+    return { ...next, _attachments: { ...stubs, [file.name]: { content_type: file.contentType, length: file.data.length, stub: true } }, _rev: r.rev };
   },
   remove: (doc: MediaDoc) => attachments.remove(doc._id, doc._rev ?? ""),
   file: (id: string, name: string) => attachments.get(mediaDocId(id), name),

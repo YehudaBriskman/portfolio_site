@@ -63,6 +63,7 @@ const router = Router();
  */
 const rawUpload = express.raw({ type: () => true, limit: VIDEO_UPLOAD_MAX_BYTES });
 
+const MAX_TRACKS = 12;
 const Lang = z.string().regex(/^[a-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$/, "A language tag, like en or he.");
 const CaptionsQuery = z.object({
   captionsLang: Lang.optional(),
@@ -337,6 +338,9 @@ router.put(
     const hash = hashOf(data);
     const label = q.data.label ?? LANG_LABEL[lang.data] ?? lang.data;
     const primary = !existing.captions || existing.captions.lang === lang.data;
+    if (!primary && !captionTracks(existing).some((t) => t.lang === lang.data) && captionTracks(existing).length >= MAX_TRACKS) {
+      return res.status(400).json({ ok: false, error: `A video has at most ${MAX_TRACKS} captions languages.` });
+    }
     const name = primary ? existing.captions?.name ?? "captions.vtt" : `captions-${lang.data}.vtt`;
     const track = { name, hash, lang: lang.data, label, bytes: data.length };
     let saved: MediaDoc;

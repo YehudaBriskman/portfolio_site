@@ -6,7 +6,6 @@ import { CONTENT_SEED } from "../content/seed.js";
 import { fp } from "../schemas/i18n.js";
 import type { ContentBundle } from "../schemas/site-content.js";
 import { backfillDoc } from "../services/he-backfill.js";
-import { attachments } from "../db/attachments.js";
 
 /*
  * Fingerprints stamped on save, the "still correct" acknowledgement and the
@@ -625,17 +624,12 @@ describe("a picture's alt and caption in Hebrew, and captions per language (#306
 
   it("adds Hebrew captions beside the English, and removes them", async () => {
     putMedia();
-    const put = vi.spyOn(attachments, "putOne").mockImplementation(async (id) => {
-      const doc = store.get(id)!;
-      const rev = `${++revs + 1}-x`;
-      store.set(id, { ...doc, _rev: rev, _attachments: { ...(doc._attachments as object), "captions-he.vtt": { stub: true } } });
-      return { rev };
-    });
     const res = await asAdmin(request(app()).put(`/api/admin/media/clip-abc123/captions/he?rev=1-a`))
       .set("Content-Type", "text/vtt")
       .send("WEBVTT\n\n00:00.000 --> 00:01.000\nצליל\n");
     expect(res.status).toBe(200);
-    expect(put.mock.calls[0][2].name).toBe("captions-he.vtt");
+    // The file travels with the metadata, in the one write.
+    expect(store.get("media:clip-abc123")!._attachments).toHaveProperty("captions-he.vtt");
     expect(res.body.item.tracks.map((t: { lang: string; label: string }) => [t.lang, t.label])).toEqual([["en", "English"], ["he", "עברית"]]);
     expect(res.body.item.captions.lang).toBe("en");
 

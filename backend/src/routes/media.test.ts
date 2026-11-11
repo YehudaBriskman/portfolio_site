@@ -107,6 +107,8 @@ describe("what an upload must be", () => {
       .toBuffer();
     expect(huge.length).toBeLessThan(MEDIA_MAX_BYTES);
     await expect(processUpload(huge)).rejects.toMatchObject({ status: 413 });
+    const svg = (n: number) => Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${n}" height="${n}"><rect width="1" height="1"/></svg>`);
+    await expect(processUpload(svg(20000))).rejects.toMatchObject({ status: 413 });
   }, 30_000);
 });
 

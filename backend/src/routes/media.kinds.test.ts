@@ -81,6 +81,17 @@ describe("a video", () => {
     expect(buf.length).toBe(before);
   });
 
+  it("a truncated mvhd is a 422, not a RangeError", () => {
+    const buf = fixture("tiny.mp4");
+    const at = buf.indexOf("mvhd", 0, "latin1") - 4;
+    // Cut the file inside the mvhd box and shrink the box (and its moov) to match.
+    const cut = Buffer.from(buf.subarray(0, at + 8 + 6));
+    cut.writeUInt32BE(14, at);
+    const moov = cut.indexOf("moov", 0, "latin1") - 4;
+    cut.writeUInt32BE(cut.length - moov, moov);
+    expect(() => inspectVideo(cut)).toThrow(expect.objectContaining({ status: 422 }));
+  });
+
   it("refuses a codec off the list", () => {
     expect(() => inspectVideo(patched(fixture("tiny.mp4"), "avc1", "hvc1"))).toThrow(/must be H\.264/);
     expect(() => inspectVideo(patched(fixture("tiny.webm"), "V_VP9", "V_VP8"))).toThrow(/VP9 or AV1/);
@@ -258,6 +269,19 @@ describe("serving", () => {
     expect((await request(app).get(`/api/images/m/x-abc123/video-${H}.mp4`)).status).toBe(404);
   });
 
+  it("a missing file or a store fault never carries the one-year cache headers", async () => {
+    vi.spyOn(mediaStore, "get").mockResolvedValue({ ...BASE, kind: "icon", format: "svg", hash: H, original: "icon.svg", bytes: ICON.length, variants: [] });
+    vi.spyOn(mediaStore, "file").mockResolvedValue(null);
+    const miss = await request(app).get(`/api/images/m/x-abc123/icon-${H}.svg`);
+    expect(miss.status).toBe(404);
+    expect(miss.headers["cache-control"]).toBe("no-store");
+    expect(miss.headers["content-type"]).toMatch(/json/);
+    vi.spyOn(mediaStore, "file").mockRejectedValue(new Error("boom"));
+    const fault = await request(app).get(`/api/images/m/x-abc123/icon-${H}.svg`);
+    expect(fault.status).toBeGreaterThanOrEqual(500);
+    expect(fault.headers["cache-control"] ?? "").not.toMatch(/immutable/);
+  });
+
   describe("a video", () => {
     const bytes = fixture("tiny.mp4");
     beforeEach(() => {
@@ -290,6 +314,7 @@ describe("serving", () => {
       const past = await request(app).get(url).set("Range", `bytes=${bytes.length}-`);
       expect(past.status).toBe(416);
       expect(past.headers["content-range"]).toBe(`bytes */${bytes.length}`);
+      expect(past.headers["cache-control"]).not.toMatch(/immutable/);
     });
 
     it("the stable URL leads to the video, or with ?poster to its poster", async () => {
@@ -334,5 +359,21 @@ describe("listing", () => {
     vi.spyOn(mediaStore, "get").mockResolvedValue({ ...BASE, id: "a-111111", _rev: "1", kind: "image", format: "jpeg", hash: H, original: "original.jpg", bytes: 1 } as MediaDoc);
     const res = await asAdmin(request(createApp())[method](url)).set("Content-Type", "image/png").send(Buffer.from("x"));
     expect(res.status).toBe(400);
+  });
+});
+
+describe("putTrack", () => {
+  it("writes the file and the metadata in one request, on the revision read", async () => {
+    const put = vi.spyOn(couch, "put").mockResolvedValue({ rev: "3-b" });
+    const put1 = vi.spyOn(couch, "get");
+    const doc = { ...BASE, _id: "media:x-abc123", _rev: "2-a", _attachments: { "video.mp4": { stub: true, length: 5 } } } as unknown as MediaDoc;
+    const out = await mediaStore.putTrack(doc, { name: "captions.vtt", contentType: "text/vtt", data: Buffer.from("WEBVTT") }, (d) => ({ ...d, updatedAt: "now" }));
+    expect(put).toHaveBeenCalledTimes(1);
+    const sent = put.mock.calls[0][1] as { _rev: string; _attachments: Record<string, { data?: string; stub?: boolean }> };
+    expect(sent._rev).toBe("2-a");
+    expect(sent._attachments["video.mp4"].stub).toBe(true);
+    expect(Buffer.from(sent._attachments["captions.vtt"].data!, "base64").toString()).toBe("WEBVTT");
+    expect(put1).not.toHaveBeenCalled();
+    expect(out._rev).toBe("3-b");
   });
 });

@@ -31,15 +31,16 @@ export class ImagesService {
     }
 
     const abs = path.resolve(this.uploadsDir, name);
-    if (!abs.startsWith(this.uploadsDir)) {
+    const rel = path.relative(this.uploadsDir, abs);
+    if (rel === "" || rel === ".." || rel.startsWith(`..${path.sep}`) || path.isAbsolute(rel)) {
       throw Object.assign(new Error("Invalid path"), { statusCode: 400 });
     }
     return abs;
   }
 
-  /** Compute strong-ish ETag from stat */
+  /** Compute strong-ish ETag from stat, as a quoted entity-tag */
   private makeETag(stat: fs.Stats): string {
-    return `${stat.size}-${Number(stat.mtimeMs)}`;
+    return `"${stat.size}-${Number(stat.mtimeMs)}"`;
   }
 
   /** Main API: return stream + metadata (no framework bindings here) */
