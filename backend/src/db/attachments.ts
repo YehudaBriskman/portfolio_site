@@ -1,7 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { Readable } from "node:stream";
-import { env } from "../env.js";
-import { CouchError } from "./couch.js";
+import { CouchError, couchConfig } from "./couch.js";
 
 /*
  * Binary attachments on the content database, for the media library (#253).
@@ -20,9 +19,7 @@ import { CouchError } from "./couch.js";
  * a third and count towards CouchDB's max_document_size (8 MB by default),
  * which a 10 MB original would break.
  */
-const base = env.COUCHDB_URL.replace(/\/+$/, "");
-const db = "portfolio_content";
-const auth = "Basic " + Buffer.from(`${env.COUCHDB_USER}:${env.COUCHDB_PASSWORD}`).toString("base64");
+const { base, db, auth } = couchConfig;
 
 export type NewAttachment = { name: string; contentType: string; data: Buffer };
 

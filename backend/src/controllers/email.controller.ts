@@ -1,4 +1,3 @@
-// src/controllers/email.controller.ts
 import type { Request, Response } from 'express';
 import type { SendPayload } from '../schemas/email.js';
 import { logger } from '../logger.js';
