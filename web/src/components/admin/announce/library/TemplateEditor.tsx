@@ -25,6 +25,7 @@ export default function TemplateEditor({
   events,
   hashtags,
   builtin,
+  defaults,
 }: {
   value: EditorValue;
   onChange: (v: EditorValue) => void;
@@ -34,6 +35,8 @@ export default function TemplateEditor({
   hashtags: string[];
   /** For a built-in: its default text and whether the text now differs from it. */
   builtin?: { defaultText: string; onReset: () => void };
+  /** For a library template: whether it is the default for its channel and language, and who is. */
+  defaults?: { on: boolean; current?: string; onChange: (on: boolean) => void };
 }) {
   const w = useLibraryWords();
   const a = useAnnounceWords();
@@ -72,6 +75,17 @@ export default function TemplateEditor({
                 </div>
               </div>
             </>
+          )}
+          {defaults && (
+            <div>
+              <label className="flex min-h-[44px] items-center gap-3 text-sm">
+                <input type="checkbox" className="h-5 w-5" checked={defaults.on} aria-describedby={`${id}-dh`} onChange={(e) => defaults.onChange(e.target.checked)} />
+                <span>{w.useDefault(a.channels[value.channel], a.langs[value.lang])}</span>
+              </label>
+              <p id={`${id}-dh`} className="a-hint !mt-0 ps-8">
+                {w.defaultHint} {defaults.current ? w.currentDefault(defaults.current) : w.noDefault}
+              </p>
+            </div>
           )}
           <TemplateText label={w.text} value={value.text} onChange={(text) => onChange({ ...value, text })} lang={value.lang} vars={OWNER_VARS} snippets={snippets} max={TEXT_MAX} />
           {builtin && (
