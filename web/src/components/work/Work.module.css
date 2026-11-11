@@ -458,15 +458,3 @@
   font-size: 0.75rem;
   white-space: nowrap;
 }
-
-/* ─────────────────────────────────────────────────────────────── skeleton */
-
-.cardSkeleton {
-  display: flex;
-  width: 100%;
-  flex-direction: column;
-  gap: 0.75rem;
-  padding: var(--dash-pad) calc(var(--dash-pad) + 4px);
-  border: 1px solid var(--dash-line);
-  border-radius: var(--dash-r);
-}
