@@ -9,7 +9,7 @@ function getTransport() {
   if (cached) return cached;
   cached = nodemailer.createTransport({
     host: env.SMTP_HOST!,
-    port: env.SMTP_PORT ?? 587,
+    port: env.SMTP_PORT,
     secure: env.SMTP_SECURE ?? (env.SMTP_PORT === 465),
     auth: { user: env.SMTP_USER!, pass: env.SMTP_PASS! }
   });

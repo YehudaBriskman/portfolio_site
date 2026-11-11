@@ -192,6 +192,20 @@ describe("the cache", () => {
     await getContributionYear("someone");
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
+
+  it("does not serve a failed first fetch past the short retry window", async () => {
+    vi.useFakeTimers();
+    try {
+      vi.stubGlobal("fetch", graphqlOk({ errors: [{ message: "nope" }] }));
+      expect((await getContributionYear("someone")).error).toBeTruthy();
+      vi.stubGlobal("fetch", graphqlOk(CALENDAR));
+      expect((await getContributionYear("someone")).error).toBeTruthy(); // still inside the window
+      vi.advanceTimersByTime(31_000);
+      expect((await getContributionYear("someone")).error).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
 
 describe("GET /api/github/contributions", () => {

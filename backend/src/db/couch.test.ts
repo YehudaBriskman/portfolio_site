@@ -22,4 +22,18 @@ describe("couch client", () => {
     expect(err).toBeInstanceOf(CouchError);
     expect((err as CouchError).status).toBe(404);
   });
+
+  it("wraps a 200 non-JSON body as CouchError so it answers 502, not 500", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("<html>gateway</html>", { status: 200 })));
+    const err = await couch.get("x").catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(CouchError);
+    expect((err as CouchError).status).toBe(0);
+  });
+
+  it("ensureIndex propagates a refused index but accepts result: exists", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("{}", { status: 403 })));
+    await expect(couch.ensureIndex("i", ["a"])).rejects.toBeInstanceOf(CouchError);
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response('{"result":"exists"}', { status: 200 })));
+    await expect(couch.ensureIndex("i", ["a"])).resolves.toBeUndefined();
+  });
 });
