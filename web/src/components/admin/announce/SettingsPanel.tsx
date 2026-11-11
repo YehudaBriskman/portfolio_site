@@ -1,91 +1,74 @@
-import { useCallback, useEffect, useId, useState } from "react";
+import { useId, useState, type ReactNode } from "react";
 import { ErrorState } from "@/components/admin/ui";
-import { ContentConflictError, ContentInvalidError, type Issue } from "@/services/adminContent";
-import { ANNOUNCE_CHANNELS, adminAnnounce, type AnnounceKind, type AnnounceLang, type AnnounceSettings, type AnnounceSettingsView } from "@/services/adminAnnounce";
+import { ANNOUNCE_CHANNELS, type AnnounceKind, type AnnounceSettings } from "@/services/adminAnnounce";
 import { parseTags } from "./helpers";
+import { DEFAULT_UTM, same, useSettingsDoc } from "./useSettingsDoc";
+import { useSettingsPanelWords } from "./settingsWords";
 import { useAnnounceWords } from "./words";
 
 /*
  * The owner's announce settings: their own document, saved with the revision
  * that was read, so a stale save is a 409 and never a silent overwrite (the
  * same rule as the site settings). Nothing here is public.
+ *
+ * Two blocks. Everyday is what gets changed; Advanced is a native <details>,
+ * closed, with a filter that searches the settings' labels. A section has its
+ * own Reset to defaults and the page its own Discard, so either can be undone
+ * before Save. Caption templates and snippets moved to the Library tab.
  */
 
-type Status = "idle" | "saving" | "saved" | "conflict" | "failed";
+const UTM_TOKEN = /^[a-z0-9_.-]{1,40}$/;
 
-const TEMPLATE_MAX = 2000;
-const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+const everydayOf = (s: AnnounceSettings) => ({ mail: s.email.enabled, channels: s.channels, hashtags: s.hashtags, signature: s.signature });
+const advancedOf = (s: AnnounceSettings) => ({ enabled: s.enabled, events: s.email.events, utm: s.advanced.utm });
 
 export default function SettingsPanel() {
   const w = useAnnounceWords();
+  const sw = useSettingsPanelWords();
   const uid = useId();
-  const [view, setView] = useState<AnnounceSettingsView | null>(null);
-  const [draft, setDraft] = useState<AnnounceSettings | null>(null);
+  const doc = useSettingsDoc();
   /* Typed as the person types it; parsed on save, so a trailing comma is not eaten mid-word. */
-  const [tags, setTags] = useState("");
-  const [status, setStatus] = useState<Status>("idle");
-  const [issues, setIssues] = useState<Issue[]>([]);
-  const [loadError, setLoadError] = useState(false);
+  const [tags, setTags] = useState<string | null>(null);
+  const [filter, setFilter] = useState("");
+  const [open, setOpen] = useState(false);
+  const [note, setNote] = useState("");
 
-  const take = useCallback((v: AnnounceSettingsView) => {
-    setView(v);
-    setDraft(structuredClone(v.settings));
-    setTags(v.settings.hashtags.join(" "));
-  }, []);
-
-  const [attempt, setAttempt] = useState(0);
-  const load = () => {
-    setLoadError(false);
-    setStatus("idle");
-    setIssues([]);
-    setView(null);
-    setAttempt((n) => n + 1);
-  };
-
-  useEffect(() => {
-    let live = true;
-    adminAnnounce.settings().then(
-      (v) => live && take(v),
-      () => live && setLoadError(true),
-    );
-    return () => {
-      live = false;
-    };
-  }, [attempt, take]);
-
-  if (loadError) return <ErrorState message={w.settingsFailed} onRetry={load} />;
+  const { view, draft, status, issues, edit } = doc;
+  if (doc.loadError) return <ErrorState message={w.settingsFailed} onRetry={doc.reload} />;
   if (!draft || !view) return <p className="a-box a-box-row text-clay" role="status">{w.loading}</p>;
 
-  const working: AnnounceSettings = { ...draft, hashtags: parseTags(tags) };
+  const tagText = tags ?? draft.hashtags.join(" ");
+  const working: AnnounceSettings = { ...draft, hashtags: tags === null ? draft.hashtags : parseTags(tags) };
   const dirty = !same(working, view.settings);
-  const edit = (fn: (d: AnnounceSettings) => void) => {
-    setDraft((d) => {
-      const next = structuredClone(d!);
-      fn(next);
-      return next;
-    });
-    if (status === "saved") setStatus("idle");
-  };
+  const everydayDirty = !same(everydayOf(working), everydayOf(view.settings));
+  const everydayIsDefault = same(everydayOf(working), { mail: false, channels: ANNOUNCE_CHANNELS, hashtags: [], signature: "" });
+  const advancedDirty = !same(advancedOf(working), advancedOf(view.settings));
 
-  const save = async () => {
-    setStatus("saving");
-    setIssues([]);
-    try {
-      take(await adminAnnounce.saveSettings(working, view._rev));
-      setStatus("saved");
-    } catch (e) {
-      if (e instanceof ContentConflictError) setStatus("conflict");
-      else {
-        if (e instanceof ContentInvalidError) setIssues(e.issues);
-        setStatus("failed");
-      }
-    }
-  };
-
+  const touch = () => note && setNote("");
+  const change = (fn: (d: AnnounceSettings) => void) => (touch(), edit(fn));
   const toggle = <T,>(list: T[], v: T, on: boolean) => (on ? (list.includes(v) ? list : [...list, v]) : list.filter((x) => x !== v));
   const statusText =
-    status === "saving" ? w.saving : status === "saved" ? w.saved : status === "conflict" ? w.conflict : status === "failed" ? w.saveFailed : dirty ? w.unsaved : "";
+    status === "saving" ? w.saving : status === "saved" ? w.saved : status === "conflict" ? w.conflict : status === "failed" ? w.saveFailed : note || (dirty ? w.unsaved : "");
   const bad = status === "conflict" || status === "failed";
+
+  const resetEveryday = () => {
+    setTags(null);
+    change((d) => {
+      d.email.enabled = false;
+      d.channels = [...ANNOUNCE_CHANNELS];
+      d.hashtags = [];
+      d.signature = "";
+    });
+    setNote(sw.sectionReset);
+  };
+  const resetAdvanced = () => {
+    edit((d) => {
+      d.enabled = true;
+      d.email.events = ["post", "release"];
+      d.advanced.utm = structuredClone(DEFAULT_UTM);
+    });
+    setNote(sw.sectionReset);
+  };
 
   const check = (id: string, label: string, checked: boolean, onChange: (v: boolean) => void, hint?: string) => (
     <div>
@@ -97,80 +80,150 @@ export default function SettingsPanel() {
     </div>
   );
 
+  const utm = draft.advanced.utm;
+  const sample = (() => {
+    try {
+      const u = new URL("https://example.com/notes/hello");
+      u.searchParams.set("utm_source", utm.source || "announce");
+      u.searchParams.set("utm_medium", utm.mediumByChannel.linkedin || "linkedin");
+      return u.href;
+    } catch {
+      return "";
+    }
+  })();
+  const sourceBad = utm.source !== "" && !UTM_TOKEN.test(utm.source);
+
+  /* One entry per advanced setting: the label (and some extra words) is what the filter searches. */
+  const advanced: Array<{ key: string; label: string; words: string; node: ReactNode }> = [
+    {
+      key: "record",
+      label: sw.recordLabel,
+      words: `${sw.recordKeywords} record inbox`,
+      node: check(`${uid}-on`, sw.recordLabel, draft.enabled, (v) => change((d) => void (d.enabled = v)), w.enabledHint),
+    },
+    {
+      key: "events",
+      label: w.emailEvents,
+      words: `${sw.emailEventsKeywords} email notify`,
+      node: (
+        <fieldset disabled={!draft.email.enabled}>
+          <legend className="a-label">{w.emailEvents}</legend>
+          {(["post", "release"] as AnnounceKind[]).map((k) => (
+            <div key={k}>{check(`${uid}-ev-${k}`, w.kinds[k], draft.email.events.includes(k), (v) => change((d) => void (d.email.events = toggle(d.email.events, k, v))))}</div>
+          ))}
+        </fieldset>
+      ),
+    },
+    {
+      key: "utm",
+      label: sw.utmHeading,
+      words: `${sw.utmKeywords} utm source medium campaign tracking`,
+      node: (
+        <fieldset className="space-y-3">
+          <legend className="a-label">{sw.utmHeading}</legend>
+          {check(`${uid}-utm`, sw.utmEnabled, utm.enabled, (v) => change((d) => void (d.advanced.utm.enabled = v)), sw.utmEnabledHint)}
+          <fieldset disabled={!utm.enabled} className="space-y-3 ps-8">
+            <div>
+              <label className="a-label" htmlFor={`${uid}-src`}>{sw.utmSource}</label>
+              <input id={`${uid}-src`} className="a-input max-w-xs" dir="ltr" value={utm.source} maxLength={40} aria-invalid={sourceBad} aria-describedby={`${uid}-src-h`} autoComplete="off" onChange={(e) => change((d) => void (d.advanced.utm.source = e.target.value))} />
+              <p id={`${uid}-src-h`} className={sourceBad ? "a-error" : "a-hint"}>{sw.utmSourceHint}</p>
+            </div>
+            <div>
+              <p className="a-label">{sw.utmMediumHeading}</p>
+              <p className="a-hint !mt-0">{sw.utmMediumHint}</p>
+              <div className="mt-2 grid gap-3 sm:grid-cols-2">
+                {ANNOUNCE_CHANNELS.map((c) => (
+                  <div key={c}>
+                    <label className="a-label" htmlFor={`${uid}-m-${c}`}>{sw.utmMedium(w.channels[c])}</label>
+                    <input
+                      id={`${uid}-m-${c}`}
+                      className="a-input"
+                      dir="ltr"
+                      maxLength={40}
+                      placeholder={c}
+                      value={utm.mediumByChannel[c] ?? ""}
+                      autoComplete="off"
+                      onChange={(e) => change((d) => (e.target.value === "" ? void delete d.advanced.utm.mediumByChannel[c] : void (d.advanced.utm.mediumByChannel[c] = e.target.value)))}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+            <p className="a-hint">
+              {sw.utmExample}: <bdi dir="ltr" className="break-all">{sample}</bdi>
+            </p>
+          </fieldset>
+        </fieldset>
+      ),
+    },
+  ];
+  const q = filter.trim().toLowerCase();
+  const shown = advanced.filter((s) => !q || `${s.label} ${s.words}`.toLowerCase().includes(q));
+  const isOpen = open || q !== "";
+
   return (
-    <form noValidate onSubmit={(e) => (e.preventDefault(), void save())} className="max-w-3xl space-y-8" aria-labelledby={`${uid}-h`}>
+    <form noValidate onSubmit={(e) => (e.preventDefault(), void doc.save(working))} className="max-w-3xl space-y-8" aria-labelledby={`${uid}-h`}>
       <div>
         <h2 id={`${uid}-h`} className="display-tight text-xl">{w.settingsHeading}</h2>
         <p className="a-hint">{w.settingsIntro}</p>
       </div>
 
-      <fieldset className="space-y-1">
-        <legend className="sr-only">{w.enabled}</legend>
-        {check(`${uid}-on`, w.enabled, draft.enabled, (v) => edit((d) => void (d.enabled = v)), w.enabledHint)}
-        {check(`${uid}-mail`, w.emailEnabled, draft.email.enabled, (v) => edit((d) => void (d.email.enabled = v)), w.emailHint)}
-        <fieldset className="ps-8" disabled={!draft.email.enabled}>
-          <legend className="a-label">{w.emailEvents}</legend>
-          {(["post", "release"] as AnnounceKind[]).map((k) =>
-            <div key={k}>{check(`${uid}-ev-${k}`, w.kinds[k], draft.email.events.includes(k), (v) => edit((d) => void (d.email.events = toggle(d.email.events, k, v))))}</div>,
-          )}
+      <section aria-labelledby={`${uid}-ev`} className="space-y-4">
+        <div>
+          <h3 id={`${uid}-ev`} className="display-tight text-lg">{sw.everydayHeading}</h3>
+          <p className="a-hint !mt-0">{sw.everydayHint} {sw.templatesMoved}</p>
+        </div>
+
+        {check(`${uid}-mail`, w.emailEnabled, draft.email.enabled, (v) => change((d) => void (d.email.enabled = v)), w.emailHint)}
+
+        <fieldset>
+          <legend className="a-label">{w.channelsHeading}</legend>
+          {ANNOUNCE_CHANNELS.map((c) => (
+            <div key={c}>{check(`${uid}-ch-${c}`, w.channels[c], draft.channels.includes(c), (v) => change((d) => void (d.channels = ANNOUNCE_CHANNELS.filter((x) => (x === c ? v : d.channels.includes(x))))))}</div>
+          ))}
         </fieldset>
-      </fieldset>
 
-      <fieldset>
-        <legend className="a-label">{w.channelsHeading}</legend>
-        {ANNOUNCE_CHANNELS.map((c) => (
-          <div key={c}>{check(`${uid}-ch-${c}`, w.channels[c], draft.channels.includes(c), (v) => edit((d) => void (d.channels = ANNOUNCE_CHANNELS.filter((x) => (x === c ? v : d.channels.includes(x))))))}</div>
-        ))}
-      </fieldset>
+        <div>
+          <label className="a-label" htmlFor={`${uid}-tags`}>{w.hashtags}</label>
+          <input id={`${uid}-tags`} className="a-input" dir="auto" value={tagText} onChange={(e) => (touch(), setTags(e.target.value))} aria-describedby={`${uid}-tags-h`} autoComplete="off" />
+          <p id={`${uid}-tags-h`} className="a-hint">{w.hashtagsHint}</p>
+        </div>
 
-      <div>
-        <label className="a-label" htmlFor={`${uid}-tags`}>{w.hashtags}</label>
-        <input id={`${uid}-tags`} className="a-input" dir="auto" value={tags} onChange={(e) => (setTags(e.target.value), status === "saved" && setStatus("idle"))} aria-describedby={`${uid}-tags-h`} autoComplete="off" />
-        <p id={`${uid}-tags-h`} className="a-hint">{w.hashtagsHint}</p>
-      </div>
+        <div>
+          <label className="a-label" htmlFor={`${uid}-sig`}>{w.signature}</label>
+          <textarea id={`${uid}-sig`} className="a-textarea" rows={2} maxLength={300} dir="auto" value={draft.signature} onChange={(e) => change((d) => void (d.signature = e.target.value))} aria-describedby={`${uid}-sig-h`} />
+          <p id={`${uid}-sig-h`} className="a-hint">{w.signatureHint}</p>
+        </div>
 
-      <div>
-        <label className="a-label" htmlFor={`${uid}-sig`}>{w.signature}</label>
-        <textarea id={`${uid}-sig`} className="a-textarea" rows={2} maxLength={300} dir="auto" value={draft.signature} onChange={(e) => edit((d) => void (d.signature = e.target.value))} aria-describedby={`${uid}-sig-h`} />
-        <p id={`${uid}-sig-h`} className="a-hint">{w.signatureHint}</p>
-      </div>
-
-      <section aria-labelledby={`${uid}-tpl`} className="space-y-3">
-        <h3 id={`${uid}-tpl`} className="a-label !mb-0">{w.templatesHeading}</h3>
-        <p className="a-hint !mt-0">{w.templatesHint}</p>
-        {(["en", "he"] as AnnounceLang[]).map((l) => (
-          <details key={l} className="a-box">
-            <summary className="a-box-head min-h-[44px] cursor-pointer" lang={l}>{w.langs[l]}</summary>
-            <div className="space-y-4 p-4">
-              {ANNOUNCE_CHANNELS.map((c) => {
-                const id = `${uid}-t-${l}-${c}`;
-                const value = draft.templates[l][c] ?? "";
-                return (
-                  <div key={c}>
-                    <label className="a-label" htmlFor={id}>{w.templateFor(w.langs[l], w.channels[c])}</label>
-                    <textarea
-                      id={id}
-                      className="a-textarea"
-                      rows={3}
-                      maxLength={TEMPLATE_MAX}
-                      dir={l === "he" ? "rtl" : "ltr"}
-                      lang={l}
-                      value={value}
-                      onChange={(e) =>
-                        edit((d) => {
-                          if (e.target.value === "") delete d.templates[l][c];
-                          else d.templates[l][c] = e.target.value;
-                        })
-                      }
-                    />
-                    <p className="a-hint tabular-nums">{w.templateCount(value.length, TEMPLATE_MAX)}</p>
-                  </div>
-                );
-              })}
-            </div>
-          </details>
-        ))}
+        <button type="button" className="a-btn a-btn-ghost min-h-[44px]" disabled={everydayIsDefault} onClick={resetEveryday}>
+          {sw.resetSection}
+        </button>
       </section>
+
+      <details
+        className="a-box"
+        open={isOpen}
+        onToggle={(e) => {
+          /* A filter forces it open; only a person's own toggle is remembered. */
+          if (q === "") setOpen(e.currentTarget.open);
+        }}
+        data-testid="advanced"
+      >
+        <summary className="a-box-head min-h-[44px] cursor-pointer">
+          <span className="a-box-title">{sw.advancedHeading}</span>
+          {advancedDirty && <span className="ms-2 text-xs text-clay">{w.unsaved}</span>}
+        </summary>
+        <div className="space-y-6 p-4">
+          <p className="a-hint !mt-0">{sw.advancedHint}</p>
+          <div>
+            <label className="a-label" htmlFor={`${uid}-f`}>{sw.filterLabel}</label>
+            <input id={`${uid}-f`} type="search" className="a-input max-w-sm" dir="auto" value={filter} placeholder={sw.filterPlaceholder} onChange={(e) => setFilter(e.target.value)} autoComplete="off" />
+            <p className="a-hint" role="status">{q ? (shown.length ? sw.filterCount(shown.length) : sw.filterNone) : ""}</p>
+          </div>
+          {shown.map((s) => <div key={s.key}>{s.node}</div>)}
+          <button type="button" className="a-btn a-btn-ghost min-h-[44px]" onClick={resetAdvanced}>{sw.resetSection}</button>
+        </div>
+      </details>
 
       {issues.length > 0 && (
         <div role="alert">
@@ -184,9 +237,9 @@ export default function SettingsPanel() {
       )}
 
       <div className="flex flex-wrap items-center gap-3">
-        <button type="submit" className="a-btn a-btn-primary min-h-[44px]" disabled={!dirty || status === "saving"}>{w.save}</button>
-        <button type="button" className="a-btn a-btn-ghost min-h-[44px]" disabled={!dirty || status === "saving"} onClick={() => take(view)}>{w.reset}</button>
-        {status === "conflict" && <button type="button" className="a-btn min-h-[44px]" onClick={load}>{w.reload}</button>}
+        <button type="submit" className="a-btn a-btn-primary min-h-[44px]" disabled={!dirty || status === "saving" || sourceBad}>{w.save}</button>
+        <button type="button" className="a-btn a-btn-ghost min-h-[44px]" disabled={!dirty || status === "saving"} onClick={() => (setTags(null), doc.discard())}>{w.reset}</button>
+        {status === "conflict" && <button type="button" className="a-btn min-h-[44px]" onClick={() => (setTags(null), doc.reload())}>{w.reload}</button>}
         <span role="status" className={`text-sm ${bad ? "font-bold text-[rgb(var(--destructive-ink))]" : "text-clay"}`}>{statusText}</span>
       </div>
     </form>
