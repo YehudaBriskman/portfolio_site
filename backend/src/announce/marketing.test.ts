@@ -136,6 +136,41 @@ describe("kit", () => {
   });
 });
 
+describe("library default", () => {
+  const ev = { _id: "announce:post:x:1", type: "announce", kind: "post", ref: "x", title: "Title", titleHe: "כותרת", summary: "Sum", summaryHe: "תקציר", tags: [], url: `${SITE}/p`, path: "/p", langs: ["en", "he"], createdAt: T, done: {} } as AnnounceEvent;
+  const lib = (over: Record<string, unknown>) => ({ id: "l", name: "n", channel: "x", lang: "en", text: "LIB {title} | {summary} | {url}", default: true, ...over });
+  const withLib = (items: unknown[], extra = {}) => ({ ...DEFAULT_ANNOUNCE_SETTINGS, library: items as never, ...extra });
+
+  it("wins over the built-in and the override, with variables filled, in EN and HE", () => {
+    const s = withLib([lib({}), lib({ id: "h", lang: "he", text: "ספרייה {title} {summary}" })], { templates: { en: { x: "OVERRIDE" }, he: {} } });
+    const kit = renderKit(ev, s);
+    expect(kit.en.x!.text).toBe(`LIB Title | Sum | ${SITE}/p`);
+    expect(kit.he.x!.text).toBe("ספרייה כותרת תקציר");
+    expect(kit.en.x).toMatchObject({ draft: false, limit: 280, over: false });
+  });
+
+  it("a draft wins over the default; a non-default item or another channel changes nothing", () => {
+    const s = withLib([lib({})]);
+    expect(renderKit({ ...ev, drafts: { en: { x: "mine" } } }, s).en.x!.text).toBe("mine");
+    const base = renderKit(ev, DEFAULT_ANNOUNCE_SETTINGS);
+    expect(renderKit(ev, withLib([lib({ default: false }), lib({ channel: "email" })])).en.x).toEqual(base.en.x);
+    expect(renderKit(ev, withLib([lib({})])).en.linkedin).toEqual(base.en.linkedin);
+    expect(renderKit(ev, withLib([])).en.x).toEqual(base.en.x);
+  });
+
+  it("a value that looks like a variable is not expanded again, and the limit is reported", () => {
+    const kit = renderKit({ ...ev, title: "{url}" }, withLib([lib({ text: "{title} " + "a".repeat(300) })]));
+    expect(kit.en.x!.text.startsWith("{url} ")).toBe(true);
+    expect(kit.en.x!.over).toBe(true);
+  });
+
+  it("rejects two defaults for one channel and language on save, allows one per pair", () => {
+    expect(AnnounceSettingsSchema.safeParse(withLib([lib({}), lib({ id: "m" })])).success).toBe(false);
+    expect(AnnounceSettingsSchema.safeParse(withLib([lib({}), lib({ id: "m", lang: "he" }), lib({ id: "k", default: false })])).success).toBe(true);
+    expect(AnnounceSettingsSchema.safeParse(withLib([{ id: "a", name: "n", channel: "x", lang: "en", text: "t" }])).success).toBe(true);
+  });
+});
+
 describe("preview paths and issues", () => {
   const e = (kind: AnnounceEvent["kind"], ref: string, path?: string) => ({ kind, ref, path }) as AnnounceEvent;
   it("derives the page per kind from fixed shapes", () => {
