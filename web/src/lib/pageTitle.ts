@@ -3,6 +3,12 @@ import type { Lang } from "@/components/dashboard/i18n";
 import { usePageNames } from "@/i18n/chrome";
 import { currentLang } from "@/i18n/routing";
 
+/* Not a hook: a plain lookup by language, callable anywhere. */
+const pageNamesFor = (lang: Lang) => usePageNames.of(lang);
+
+/** Where a result title is cut; the server's `TITLE_MAX` (seo-template.ts). */
+export const TITLE_MAX = 60;
+
 /*
  * What a page is called, derived from nothing but its URL.
  *
@@ -79,7 +85,7 @@ export type PageIdentity = {
  * own.
  */
 export function documentTitleFor(name: string, lang: Lang = currentLang()): string {
-  const full = `${name} · ${usePageNames.of(lang).siteName}`;
+  const full = `${name} · ${pageNamesFor(lang).siteName}`;
   /* A long name keeps the whole result line rather than half of it and the
      site's name cut off: seo-template.ts `fitTitle`, the same 60. */
   return full.length <= TITLE_MAX ? full : name;
@@ -91,12 +97,9 @@ export function documentTitleFor(name: string, lang: Lang = currentLang()): stri
  * `areaTitleName` (seo.route.ts) says the same.
  */
 export function areaTitleName(areaTitle: string, lang: Lang = currentLang()): string {
-  const notes = usePageNames.of(lang).notes;
+  const notes = pageNamesFor(lang).notes;
   return areaTitle.trim().toLowerCase() === notes.toLowerCase() ? areaTitle : `${areaTitle} · ${notes}`;
 }
-
-/** Where a result title is cut; the server's `TITLE_MAX` (seo-template.ts). */
-export const TITLE_MAX = 60;
 
 /*
  * The admin's titles say so.
@@ -181,7 +184,7 @@ function canonicalSegments(segments: readonly string[]): readonly string[] {
  *   page like any other and the one the audit found titled as the home page.
  */
 export function pageIdentityFor(pathname: string, lang: Lang = currentLang()): PageIdentity {
-  const n = usePageNames.of(lang);
+  const n = pageNamesFor(lang);
   const admin = (name: string) => adminIdentity(name, n.admin);
   const segments = canonicalSegments(pathname.split("/").filter(Boolean));
   const [first, second, third] = segments;

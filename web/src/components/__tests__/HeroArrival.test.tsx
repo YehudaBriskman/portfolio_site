@@ -507,7 +507,7 @@ describe("the first screen's off-switches", () => {
     /* Held by default; not when the owner has put a paper section next
        (#254), which has no ground of its own to cover it with. */
     expect(holder.className).toMatch(/held/);
-    const free = render(<Hero hold={false} />).container.querySelector("#hero")!;
+    const free = render(<Hero pinnedBehindNextAct={false} />).container.querySelector("#hero")!;
     expect(free.className).not.toMatch(/held/);
   });
 

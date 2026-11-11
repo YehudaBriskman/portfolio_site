@@ -79,7 +79,7 @@ export default function Index() {
             rhythm — it is the only full-height section on the page. It is
             held until a dark act slides over it, so it holds only when the
             first section after it is one (#254). */}
-        <Hero hold={DARK_SECTIONS.includes(shown[0])} />
+        <Hero pinnedBehindNextAct={DARK_SECTIONS.includes(shown[0])} />
 
         {shown.map((id) => (
           <Fragment key={id}>{SECTIONS[id]()}</Fragment>
