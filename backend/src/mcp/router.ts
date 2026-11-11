@@ -279,8 +279,9 @@ export function createMcpRouter(app: Express) {
   });
   const formBody = express.urlencoded({ extended: false, limit: "16kb" });
 
-  router.use("/mcp/oauth/token", restrictCors, formBody, clientSecretGuard, tokenHandler({ provider, rateLimit: sdkLimit(15 * 60_000, 60) }));
-  router.use("/mcp/oauth/revoke", restrictCors, formBody, clientSecretGuard, revocationHandler({ provider, rateLimit: sdkLimit(15 * 60_000, 30) }));
+  // The guard checks client secrets before the SDK handler's own limiter runs, so it gets one too.
+  router.use("/mcp/oauth/token", restrictCors, limiter(15 * 60_000, 60), formBody, clientSecretGuard, tokenHandler({ provider, rateLimit: sdkLimit(15 * 60_000, 60) }));
+  router.use("/mcp/oauth/revoke", restrictCors, limiter(15 * 60_000, 30), formBody, clientSecretGuard, revocationHandler({ provider, rateLimit: sdkLimit(15 * 60_000, 30) }));
 
   const signInLimiter = limiter(15 * 60_000, 30);
 
