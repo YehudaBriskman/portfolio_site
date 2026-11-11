@@ -142,7 +142,10 @@ export const blog = {
 
 export function formatDate(iso: string | null) {
   if (!iso) return "";
-  return new Date(iso).toLocaleDateString(INTL[currentLang()], { day: "numeric", month: "long", year: "numeric" });
+  const when = new Date(iso);
+  // An unparsable timestamp would otherwise print the literal "Invalid Date".
+  if (Number.isNaN(when.getTime())) return "";
+  return when.toLocaleDateString(INTL[currentLang()], { day: "numeric", month: "long", year: "numeric" });
 }
 
 /*

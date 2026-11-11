@@ -1,4 +1,5 @@
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useEffect } from "react";
+import RoutesErrorBoundary from "./components/ErrorBoundaryRoutes";
 import RouteFallback from "@/components/RouteFallback";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -70,6 +71,21 @@ function LegacyNoteRedirect() {
  */
 const App = () => {
   const lang = useLang();
+  // After a deploy the old index points at chunks that no longer exist: reload
+  // once to pick up the new index (the flag stops a reload loop).
+  useEffect(() => {
+    const onError = () => {
+      try {
+        if (sessionStorage.getItem("preload-reloaded")) return;
+        sessionStorage.setItem("preload-reloaded", "1");
+      } catch {
+        return;
+      }
+      window.location.reload();
+    };
+    window.addEventListener("vite:preloadError", onError);
+    return () => window.removeEventListener("vite:preloadError", onError);
+  }, []);
   return (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -127,6 +143,7 @@ const App = () => {
           throttling — see the ledger row in `docs/motion-contract.md`.
         */}
         <EntryShutter />
+        <RoutesErrorBoundary>
         <Routes>
           {/*
             The public chrome, as a pathless layout route (#63). Every page a
@@ -185,6 +202,7 @@ const App = () => {
           <Route path="/admin/settings" element={<Suspense fallback={<RouteFallback />}><AdminSettings /></Suspense>} />
           <Route path="/admin/translations" element={<Suspense fallback={<RouteFallback />}><AdminTranslations /></Suspense>} />
         </Routes>
+        </RoutesErrorBoundary>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

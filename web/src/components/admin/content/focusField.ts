@@ -44,7 +44,13 @@ export function useFocusField<T>(value: T | null, resolve?: (value: T, field: st
     const m = /^#field=(.+)$/.exec(hash);
     const { value: v, resolve: r } = latest.current;
     if (!loaded || !m || v === null) return;
-    const field = decodeURIComponent(m[1]);
+    // A hand-typed hash can hold a malformed escape; decoding must not throw in an effect.
+    let field = m[1];
+    try {
+      field = decodeURIComponent(field);
+    } catch {
+      /* keep the raw text */
+    }
     const path = r ? r(v, field, new URLSearchParams(search)) : field;
     let tries = 0;
     let timer: ReturnType<typeof setTimeout> | undefined;
