@@ -17,8 +17,6 @@ import { logger } from "../logger.js";
  */
 
 const formPayload = {
-  provider: "smtp",
-  to: "owner@example.invalid",
   subject: "Portfolio contact from Ada",
   replyTo: "ada@example.invalid",
   template: { name: "basic", params: { title: "New message from Ada", body: "Name: Ada\n\nHello there." } },
