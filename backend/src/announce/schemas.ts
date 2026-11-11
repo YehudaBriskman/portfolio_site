@@ -23,7 +23,7 @@ const Lang = z.enum(["en", "he"]);
 
 export const SNIPPET_KINDS = ["hashtags", "signature", "cta", "links"] as const;
 const Snippet = z.object({ id: Id, name: Name, kind: z.enum(SNIPPET_KINDS), text: z.string().max(1000) }).strict();
-const LibraryItem = z.object({ id: Id, name: Name, channel: z.enum(CHANNELS), lang: Lang, text: z.string().max(2000) }).strict();
+const LibraryItem = z.object({ id: Id, name: Name, channel: z.enum(CHANNELS), lang: Lang, text: z.string().max(2000), default: z.boolean().optional() }).strict();
 
 /* A utm value is written into a link, so it is a short token, not free text. */
 const UtmToken = z.string().regex(/^[a-z0-9_.-]{1,40}$/);
@@ -47,7 +47,15 @@ export const AnnounceSettingsSchema = z
     templates: z.object({ en: Templates, he: Templates }).strict(),
     /* Added later: a document saved before them parses with these defaults. */
     snippets: z.array(Snippet).max(50).default([]),
-    library: z.array(LibraryItem).max(100).default([]),
+    library: z
+      .array(LibraryItem)
+      .max(100)
+      /* Rejected, not normalised: silently dropping a flag would change which text goes out. */
+      .refine((items) => {
+        const seen = new Set<string>();
+        return items.every((i) => !i.default || (!seen.has(`${i.channel}:${i.lang}`) && seen.add(`${i.channel}:${i.lang}`)));
+      }, "At most one default per channel and language")
+      .default([]),
     advanced: z.object({ utm: Utm.default(DEFAULT_UTM) }).strict().default({ utm: DEFAULT_UTM }),
   })
   .strict();

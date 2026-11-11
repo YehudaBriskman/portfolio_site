@@ -110,7 +110,9 @@ export function renderKit(ev: AnnounceEvent, settings: AnnounceSettings): Kit {
     for (const ch of settings.channels) {
       const own = ev.drafts?.[lang]?.[ch]?.trim();
       const chVars = { ...vars, url: tagged(vars.url, ch, settings) };
-      const tpl = settings.templates[lang][ch] ?? defaults[ch] ?? "";
+      /* The Library's default for this channel and language outranks the override and the built-in. */
+      const lib = settings.library.find((i) => i.default && i.channel === ch && i.lang === lang)?.text;
+      const tpl = lib ?? settings.templates[lang][ch] ?? defaults[ch] ?? "";
       let text = own || fill(tpl, chVars).replace(/\n{3,}/g, "\n\n").trim();
       if (!own && settings.signature && ch !== "x") text = `${text}\n\n${settings.signature}`;
       const limit = LIMITS[ch];
