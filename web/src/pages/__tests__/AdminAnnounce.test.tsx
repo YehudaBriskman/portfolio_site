@@ -74,6 +74,7 @@ function stub(opts: { items?: unknown[]; putStatus?: number; fail?: boolean } = 
       if (url.endsWith("/read")) return json({ ok: true, event: summary({ readAt: "2026-11-11T00:00:00Z" }) });
       if (url.endsWith("/done")) return json({ ok: true, event: summary({ readAt: "2026-11-11T00:00:00Z", done: { [String(calls.at(-1)!.body!.channel)]: "2026-11-11T00:00:00Z" } }) });
       if (url.endsWith("/dismiss")) return json({ ok: true, event: summary({ dismissed: "x" }) });
+      if (url.includes("/preview")) return json({ ok: true, title: "Hello", description: "A summary", image: "https://example.com/og.png", imageWidth: 1200, imageHeight: 630, siteName: "Site", url: "https://example.com/blog/hello", lang: url.endsWith("he") ? "he" : "en", issues: [] });
       if (url.startsWith("/api/admin/announce/")) return json(detailOf());
       return json({});
     }),
@@ -255,7 +256,7 @@ describe("the announce words", () => {
       else {
         expect(he, path).toBeDefined();
         const s = typeof he === "function" ? String((he as (...a: unknown[]) => unknown)(3, "X")) : String(he);
-        if (path !== "adminAnnounce.channels.x") expect(hasHebrew(s), path).toBe(true);
+        if (path !== "adminAnnounce.channels.x" && path !== "adminAnnounce.platforms.x") expect(hasHebrew(s), path).toBe(true);
       }
     };
     walk(t.en, t.he, t.name);

@@ -3,6 +3,7 @@ import { CouchError, couch } from "../db/couch.js";
 import { asyncHandler } from "../middlewares/asyncHandler.js";
 import { toIssues, type Issue } from "../schemas/site-content.js";
 import { renderKit } from "./kit.js";
+import { previewFor } from "./preview.js";
 import {
   AnnounceSettingsSchema,
   DoneBody,
@@ -21,6 +22,7 @@ import { getEvent, getSettingsDoc, listEvents, loadSettings, settingsOf, updateE
  *   GET  /settings         owner settings (own doc, never in /api/settings)
  *   PUT  /settings         save them; _rev must match (409 otherwise)
  *   GET  /:id              one event with its rendered kit
+ *   GET  /:id/preview      the head the platforms read for the event's page (?lang=en|he)
  *   POST /:id/done         {channel}: mark one channel done
  *   POST /:id/read | /dismiss
  */
@@ -89,6 +91,20 @@ router.get(
     const ev = await getEvent(req.params.id);
     if (!ev || ev.type !== "announce") return res.status(404).json({ ok: false, error: "No such event." });
     res.set("Cache-Control", "no-store").json({ ok: true, event: { ...summary(ev), title: ev.title, summary: ev.summary, tags: ev.tags, version: ev.version ?? null }, kit: renderKit(ev, await loadSettings()) });
+  }),
+);
+
+router.get(
+  "/:id/preview",
+  asyncHandler(async (req, res) => {
+    const ev = await getEvent(req.params.id);
+    if (!ev || ev.type !== "announce") return res.status(404).json({ ok: false, error: "No such event." });
+    const lang = req.query.lang === "he" ? "he" : "en";
+    if (lang === "he" && !ev.langs.includes("he")) return res.status(404).json({ ok: false, error: "This event has no Hebrew page." });
+    const p = await previewFor(ev, lang);
+    if (p === "no-page") return res.status(422).json({ ok: false, error: "This event has no page of its own to preview." });
+    if (p === "unpublished") return res.status(404).json({ ok: false, error: "The page is not published." });
+    res.set("Cache-Control", "no-store").json({ ok: true, ...p });
   }),
 );
 
