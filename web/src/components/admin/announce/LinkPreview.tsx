@@ -8,6 +8,7 @@ import {
 } from "@/services/adminAnnounce";
 import { domainOf } from "./helpers";
 import { useAnnounceWords } from "./words";
+import { useMarketingWords } from "./inbox/words";
 
 /*
  * How the link will look on LinkedIn, X and WhatsApp, drawn from the tags the
@@ -27,6 +28,7 @@ type State =
 
 function issueText(
   w: ReturnType<typeof useAnnounceWords>,
+  m: ReturnType<typeof useMarketingWords>,
   i: PreviewIssue,
 ): string {
   const n = i.length ?? 0;
@@ -44,6 +46,8 @@ function issueText(
       return w.issueImageMissing;
     case "image-size":
       return w.issueImageSize;
+    case "no-hebrew-translation":
+      return m.issueNoHebrew;
   }
 }
 
@@ -133,6 +137,7 @@ export default function LinkPreview({
   lang: AnnounceLang;
 }) {
   const w = useAnnounceWords();
+  const m = useMarketingWords();
   const uid = useId();
   const [attempt, setAttempt] = useState(0);
   const requestKey = `${eventId}:${lang}:${attempt}`;
@@ -235,7 +240,7 @@ export default function LinkPreview({
                       aria-hidden="true"
                       className="mt-0.5 size-4 shrink-0"
                     />
-                    <span>{issueText(w, i)}</span>
+                    <span>{issueText(w, m, i)}</span>
                   </li>
                 ))}
               </ul>

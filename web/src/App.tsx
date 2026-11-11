@@ -202,7 +202,9 @@ const App = () => {
           <Route path="/admin/site-copy" element={<Suspense fallback={<RouteFallback />}><AdminSiteCopy /></Suspense>} />
           <Route path="/admin/settings" element={<Suspense fallback={<RouteFallback />}><AdminSettings /></Suspense>} />
           <Route path="/admin/translations" element={<Suspense fallback={<RouteFallback />}><AdminTranslations /></Suspense>} />
-          <Route path="/admin/announce" element={<Suspense fallback={<RouteFallback />}><AdminAnnounce /></Suspense>} />
+          <Route path="/admin/marketing" element={<Suspense fallback={<RouteFallback />}><AdminAnnounce /></Suspense>} />
+          {/* The owner email and old bookmarks use the first name of this page. */}
+          <Route path="/admin/announce" element={<Navigate to="/admin/marketing" replace />} />
         </Routes>
         </RoutesErrorBoundary>
       </BrowserRouter>
