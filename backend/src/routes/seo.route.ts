@@ -3,7 +3,8 @@ import { couch } from "../db/couch.js";
 import { env } from "../env.js";
 import { asyncHandler } from "../middlewares/asyncHandler.js";
 import { escapeXml as escapeHtml } from "../services/escape.js";
-import { renderCardPng } from "../services/og.js";
+import { isOgFormat, renderCardPng, type OgFormat } from "../services/og.js";
+import { loadSiteReleases } from "../services/activity.js";
 import {
   LOG_CHANNEL,
   absoluteUrl,
@@ -105,12 +106,32 @@ function sendPng(res: Response, png: Buffer): void {
     .send(png);
 }
 
-/** Per-post and per-project cards, rendered on demand and cached in process. */
+/** Slugs and release tags only: no path separators, no leading dot. */
+const OG_FILE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$/;
+
+/**
+ * Per-post, per-project and per-release cards, rendered on demand and cached in
+ * process. `?format=og|square|story` picks the size (default og, the one the
+ * link previews use). `?lang=he` is accepted, but the card stays English while
+ * the bundled fonts have no Hebrew glyphs (see HEBREW_CARDS in services/og.ts).
+ */
 router.get(
   "/og/:kind/:file",
   asyncHandler(async (req, res) => {
+    const rawFormat = req.query.format;
+    if (rawFormat !== undefined && !isOgFormat(rawFormat)) {
+      return res.status(400).json({ ok: false, error: "format must be one of og, square, story" });
+    }
+    const format: OgFormat = rawFormat ?? "og";
+    const rawLang = req.query.lang;
+    if (rawLang !== undefined && rawLang !== "en" && rawLang !== "he") {
+      return res.status(400).json({ ok: false, error: "lang must be en or he" });
+    }
+    // A Hebrew request gets the English card while HEBREW_CARDS is false.
+
     const slug = req.params.file.replace(/\.png$/i, "");
     const kind = req.params.kind;
+    if (!OG_FILE.test(slug)) return res.status(404).json({ ok: false, error: "Not Found" });
 
     if (kind === "blog") {
       const { docs } = await couch.find<Post>({
@@ -121,11 +142,14 @@ router.get(
       if (!post) return res.status(404).json({ ok: false, error: "Not Found" });
       return sendPng(
         res,
-        renderCardPng({
-          eyebrow: post.collection === "site" ? "Note" : post.collection.replace(/-/g, " "),
-          title: post.title,
-          meta: `yehudabriskman.com · ${post.readingMinutes} min read`,
-        })
+        renderCardPng(
+          {
+            eyebrow: post.collection === "site" ? "Note" : post.collection.replace(/-/g, " "),
+            title: post.title,
+            meta: `yehudabriskman.com · ${post.readingMinutes} min read`,
+          },
+          format,
+        ),
       );
     }
 
@@ -141,16 +165,28 @@ router.get(
       if (!title) return res.status(404).json({ ok: false, error: "Not Found" });
       return sendPng(
         res,
-        renderCardPng({
-          eyebrow: "Project",
-          title,
-          meta: `yehudabriskman.com/projects/${slug}`,
-        })
+        renderCardPng({ eyebrow: "Project", title, meta: `yehudabriskman.com/projects/${slug}` }, format),
+      );
+    }
+
+    if (kind === "release") {
+      // Only a tag the releases feed already stored gets a card, so the
+      // endpoint cannot be used to render arbitrary text.
+      const releases = await loadSiteReleases();
+      const release = releases?.items.find((r) => r.tag === slug);
+      if (!releases || !release) return res.status(404).json({ ok: false, error: "Not Found" });
+      const date = Number.isNaN(Date.parse(release.publishedAt)) ? "" : ` · ${release.publishedAt.slice(0, 10)}`;
+      return sendPng(
+        res,
+        renderCardPng(
+          { eyebrow: "Release", title: `${releases.repo.name} ${release.tag}`, meta: `yehudabriskman.com${date}` },
+          format,
+        ),
       );
     }
 
     return res.status(404).json({ ok: false, error: "Not Found" });
-  })
+  }),
 );
 
 /* --------------------------------------------------------- rendered shells */

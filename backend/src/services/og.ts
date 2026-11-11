@@ -18,14 +18,58 @@ import { escapeXml as esc } from "./escape.js";
  * this site before the title is even parsed.
  */
 
-const W = 1200;
-const H = 630;
-const HORIZON = 430;
+export const OG_FORMATS = ["og", "square", "story"] as const;
+export type OgFormat = (typeof OG_FORMATS)[number];
 
-/** Safe-zone left edge for every piece of text on the card. */
-const PAD_X = 78;
-/** Text must not run under the sun, which sits on the right. */
-const TEXT_MAX_W = 620;
+export function isOgFormat(v: unknown): v is OgFormat {
+  return typeof v === "string" && (OG_FORMATS as readonly string[]).includes(v);
+}
+
+/**
+ * Geometry per format. `og` is the original card and must keep rendering
+ * byte for byte; `square` and `story` are the same scene recomposed for a
+ * feed post and for a story, where the sun sits low and the text stacks above
+ * it. The story keeps its text out of the top 250px and bottom 340px that the
+ * Instagram and WhatsApp chrome covers.
+ */
+type Layout = {
+  w: number;
+  h: number;
+  horizon: number;
+  padX: number;
+  textMaxW: number;
+  sunX: number;
+  sunY: number;
+  /** Optical centre of the title block. */
+  titleCentre: number;
+  sizes: number[];
+  maxLines: number;
+  eyebrowGap: number;
+  eyebrowSize: number;
+  ruleY: number;
+  metaY: number;
+  metaSize: number;
+};
+
+const LAYOUTS: Record<OgFormat, Layout> = {
+  og: {
+    w: 1200, h: 630, horizon: 430, padX: 78, textMaxW: 620, sunX: 946, sunY: 336,
+    titleCentre: 300, sizes: [78, 68, 60, 52, 46], maxLines: 3,
+    eyebrowGap: 34, eyebrowSize: 23, ruleY: 524, metaY: 566, metaSize: 22,
+  },
+  square: {
+    w: 1080, h: 1080, horizon: 800, padX: 84, textMaxW: 912, sunX: 760, sunY: 690,
+    titleCentre: 350, sizes: [104, 92, 80, 70, 60], maxLines: 4,
+    eyebrowGap: 52, eyebrowSize: 28, ruleY: 920, metaY: 986, metaSize: 26,
+  },
+  story: {
+    w: 1080, h: 1920, horizon: 1330, padX: 84, textMaxW: 912, sunX: 700, sunY: 1236,
+    titleCentre: 700, sizes: [112, 100, 88, 76, 64], maxLines: 5,
+    eyebrowGap: 60, eyebrowSize: 30, ruleY: 1560, metaY: 1630, metaSize: 28,
+  },
+};
+
+const W = LAYOUTS.og.w;
 
 const C = {
   bitumen: "#0F1515",
@@ -118,6 +162,13 @@ function truncate(s: string, max: number): string {
   return t.length <= max ? t : `${t.slice(0, max - 1).trimEnd()}…`;
 }
 
+/**
+ * The bundled fonts have no Hebrew glyphs (they render as tofu), so a card can
+ * only be drawn in English. Callers asking for a Hebrew card get the English
+ * one until a font with the Hebrew block is bundled and this flips.
+ */
+export const HEBREW_CARDS = false;
+
 export type OgCardInput = {
   /** Small tracked label above the title, e.g. "NOTE" or "PROJECT". */
   eyebrow?: string;
@@ -130,20 +181,20 @@ export type OgCardInput = {
  * Fit the title by stepping down through display sizes until it lands in three
  * lines or fewer, then hard-truncate. Long titles shrink rather than overflow.
  */
-function fitTitle(title: string): { size: number; lines: string[] } {
+function fitTitle(title: string, L: Layout): { size: number; lines: string[] } {
   const clean = truncate(title, 120);
-  for (const size of [78, 68, 60, 52, 46]) {
-    const lines = wrap(clean, FONT_DISPLAY, size, -0.03 * size, TEXT_MAX_W);
-    if (lines.length <= 3) return { size, lines };
+  for (const size of L.sizes) {
+    const lines = wrap(clean, FONT_DISPLAY, size, -0.03 * size, L.textMaxW);
+    if (lines.length <= L.maxLines) return { size, lines };
   }
-  const size = 46;
-  const lines = wrap(clean, FONT_DISPLAY, size, -0.03 * size, TEXT_MAX_W).slice(0, 3);
-  if (lines.length === 3) lines[2] = `${lines[2].replace(/\s+\S*$/, "")}…`;
+  const size = L.sizes[L.sizes.length - 1];
+  const lines = wrap(clean, FONT_DISPLAY, size, -0.03 * size, L.textMaxW).slice(0, L.maxLines);
+  if (lines.length === L.maxLines) lines[L.maxLines - 1] = `${lines[L.maxLines - 1].replace(/\s+\S*$/, "")}…`;
   return { size, lines };
 }
 
 /** The sun's reflection, broken into a glitter path the way moving water does. */
-function glitter(): string {
+function glitter(cx: number, horizon: number): string {
   const bars: Array<[number, number, number, number]> = [
     // [y offset below horizon, width, height, opacity]
     [6, 168, 9, 0.5],
@@ -155,22 +206,34 @@ function glitter(): string {
   ];
   return bars
     .map(([dy, w, h, o]) =>
-      `<rect x="${(946 - w / 2).toFixed(1)}" y="${HORIZON + dy}" width="${w}" height="${h}" rx="${(h / 2).toFixed(1)}" fill="${C.sodium}" opacity="${o}"/>`,
+      `<rect x="${(cx - w / 2).toFixed(1)}" y="${horizon + dy}" width="${w}" height="${h}" rx="${(h / 2).toFixed(1)}" fill="${C.sodium}" opacity="${o}"/>`,
     )
     .join("");
 }
 
-export function cardSvg(input: OgCardInput): string {
-  const { size, lines } = fitTitle(input.title);
+export function cardSvg(input: OgCardInput, format: OgFormat = "og"): string {
+  const L = LAYOUTS[format];
+  const { w: W, h: H, horizon: HORIZON, padX: PAD_X } = L;
+  const { size, lines } = fitTitle(input.title, L);
   const leading = size * 1.04;
 
   // Anchor the block on its optical centre so one-line and three-line cards
   // sit in the same place rather than drifting down the frame.
   const blockH = lines.length * leading;
-  const titleTop = 300 - blockH / 2;
+  const titleTop = L.titleCentre - blockH / 2;
 
   const eyebrow = input.eyebrow ? truncate(input.eyebrow.toUpperCase(), 32) : "";
   const meta = truncate(input.meta ?? "yehudabriskman.com", 64);
+
+  // The ridgelines are drawn once, in the original card's coordinates, and
+  // moved onto each format's horizon rather than redrawn per format.
+  const ridges =
+    format === "og"
+      ? { open: "", close: "" }
+      : {
+          open: `<g transform="translate(0 ${HORIZON - LAYOUTS.og.horizon}) scale(${(W / LAYOUTS.og.w).toFixed(4)} 1)">`,
+          close: "</g>",
+        };
 
   const titleTspans = lines
     .map((l, i) => `<tspan x="${PAD_X}" y="${(titleTop + leading * (i + 1)).toFixed(1)}">${esc(l)}</tspan>`)
@@ -192,7 +255,7 @@ export function cardSvg(input: OgCardInput): string {
       <stop offset="0%" stop-color="${C.sodium}" stop-opacity="0.55"/>
       <stop offset="100%" stop-color="${C.sodium}" stop-opacity="0"/>
     </radialGradient>
-    <linearGradient id="scrim" x1="0" y1="0" x2="1" y2="0">
+    <linearGradient id="scrim" ${format === "og" ? 'x1="0" y1="0" x2="1" y2="0"' : 'x1="0" y1="0" x2="0" y2="1"'}>
       <stop offset="0%" stop-color="${C.bitumen}" stop-opacity="0.94"/>
       <stop offset="52%" stop-color="${C.bitumen}" stop-opacity="0.72"/>
       <stop offset="100%" stop-color="${C.bitumen}" stop-opacity="0"/>
@@ -204,25 +267,25 @@ export function cardSvg(input: OgCardInput): string {
   <rect width="${W}" height="${H}" fill="url(#sky)"/>
 
   <g clip-path="url(#above)">
-    <circle cx="946" cy="336" r="300" fill="url(#glow)"/>
-    <circle cx="946" cy="336" r="126" fill="${C.sodium}"/>
-    <path d="M0,372 C160,344 300,368 430,362 C580,355 700,330 860,344 C980,354 1090,346 1200,352 L1200,${HORIZON} L0,${HORIZON} Z" fill="${C.edge}"/>
-    <path d="M0,402 C220,388 430,410 640,400 C820,391 1010,406 1200,396 L1200,${HORIZON} L0,${HORIZON} Z" fill="#1E2A2C"/>
+    <circle cx="${L.sunX}" cy="${L.sunY}" r="300" fill="url(#glow)"/>
+    <circle cx="${L.sunX}" cy="${L.sunY}" r="126" fill="${C.sodium}"/>
+    ${ridges.open}<path d="M0,372 C160,344 300,368 430,362 C580,355 700,330 860,344 C980,354 1090,346 1200,352 L1200,${LAYOUTS.og.horizon} L0,${LAYOUTS.og.horizon} Z" fill="${C.edge}"/>
+    <path d="M0,402 C220,388 430,410 640,400 C820,391 1010,406 1200,396 L1200,${LAYOUTS.og.horizon} L0,${LAYOUTS.og.horizon} Z" fill="#1E2A2C"/>${ridges.close}
   </g>
 
   <g clip-path="url(#below)">
     <rect x="0" y="${HORIZON}" width="${W}" height="${H - HORIZON}" fill="url(#water)"/>
-    ${glitter()}
+    ${glitter(L.sunX, HORIZON)}
   </g>
 
   <rect width="${W}" height="${H}" fill="url(#scrim)"/>
 
-  ${eyebrow ? `<text x="${PAD_X}" y="${(titleTop - 34).toFixed(1)}" font-family="${FONT_MONO}" font-size="23" letter-spacing="5" fill="${C.sodium}">${esc(eyebrow)}</text>` : ""}
+  ${eyebrow ? `<text x="${PAD_X}" y="${(titleTop - L.eyebrowGap).toFixed(1)}" font-family="${FONT_MONO}" font-size="${L.eyebrowSize}" letter-spacing="5" fill="${C.sodium}">${esc(eyebrow)}</text>` : ""}
 
   <text font-family="${FONT_DISPLAY}" font-size="${size}" letter-spacing="${(-0.03 * size).toFixed(2)}" fill="${C.bone}">${titleTspans}</text>
 
-  <line x1="${PAD_X}" y1="524" x2="${PAD_X + 92}" y2="524" stroke="${C.sodium}" stroke-width="3" stroke-linecap="round"/>
-  <text x="${PAD_X}" y="566" font-family="${FONT_MONO}" font-size="22" letter-spacing="2.4" fill="${C.clay}">${esc(meta)}</text>
+  <line x1="${PAD_X}" y1="${L.ruleY}" x2="${PAD_X + 92}" y2="${L.ruleY}" stroke="${C.sodium}" stroke-width="3" stroke-linecap="round"/>
+  <text x="${PAD_X}" y="${L.metaY}" font-family="${FONT_MONO}" font-size="${L.metaSize}" letter-spacing="2.4" fill="${C.clay}">${esc(meta)}</text>
 </svg>`;
 }
 
@@ -230,13 +293,14 @@ export function cardSvg(input: OgCardInput): string {
 const pngCache = new Map<string, Buffer>();
 const PNG_CACHE_MAX = 64;
 
-export function renderCardPng(input: OgCardInput): Buffer {
-  const key = JSON.stringify(input);
+export function renderCardPng(input: OgCardInput, format: OgFormat = "og"): Buffer {
+  // The `og` key stays the bare input so existing cache entries are unchanged.
+  const key = format === "og" ? JSON.stringify(input) : `${format}:${JSON.stringify(input)}`;
   const hit = pngCache.get(key);
   if (hit) return hit;
 
-  const resvg = new Resvg(cardSvg(input), {
-    fitTo: { mode: "width", value: W },
+  const resvg = new Resvg(cardSvg(input, format), {
+    fitTo: { mode: "width", value: LAYOUTS[format].w },
     // Bundled fonts only: the container has no system fonts, and relying on
     // them would make the card render differently in dev and in production.
     font: { fontFiles: fonts().files, loadSystemFonts: false, defaultFontFamily: FONT_SANS },
