@@ -165,6 +165,7 @@ router.get(
 router.put(
   "/posts/:slug",
   asyncHandler(async (req, res) => {
+    // The URL names the note: a slug in the body is overwritten, not an input.
     const parsed = PostWrite.safeParse({ ...req.body, slug: req.params.slug });
     if (!parsed.success) {
       return invalid(res, parsed.error);
@@ -385,6 +386,7 @@ router.delete(
   })
 );
 
+// Soft delete: the note is set to status "archived", not removed.
 router.delete(
   "/posts/:slug",
   asyncHandler(async (req, res) => {
@@ -441,6 +443,7 @@ function areaLinks(next: Collection["links"], raw: unknown, before: Collection["
 router.put(
   "/collections/:slug",
   asyncHandler(async (req, res) => {
+    // The URL names the area: a slug in the body is overwritten, not an input.
     const parsed = CollectionWrite.safeParse({ ...req.body, slug: req.params.slug });
     if (!parsed.success) {
       return invalid(res, parsed.error);
@@ -495,6 +498,7 @@ router.put(
   })
 );
 
+// Soft delete: the area is set to status "hidden", not removed.
 router.delete(
   "/collections/:slug",
   asyncHandler(async (req, res) => {
