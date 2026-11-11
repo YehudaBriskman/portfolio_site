@@ -1,10 +1,10 @@
 import { useRef, useState, type ReactNode } from "react";
-import { ArrowUpRight, ImageDown, Link2, Mail, MessageCircle, Share2 } from "lucide-react";
+import { ArrowUpRight, ClipboardCopy, ImageDown, Link2, Mail, MessageCircle, Share2 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useLang } from "@/components/dashboard/i18n";
 import { useShareWords } from "@/i18n/share";
 import { useSiteSettings } from "@/settings/store";
-import { buildShare, copyText, shareLink, type ShareChannel, type ShareEntity, type ShareKind, type ShareResult } from "@/lib/share";
+import { buildRichEmail, buildShare, copyRich, copyText, shareLink, type ShareChannel, type ShareEntity, type ShareKind, type ShareResult } from "@/lib/share";
 import ShareToaster, { armShareToaster } from "./ShareToaster";
 import { shareToast as toast } from "./toast";
 import SharePreview from "./SharePreview";
@@ -103,6 +103,20 @@ export default function ShareMenu({ kind, entity, variant = "icon", className, l
     toast((await copyText(text)) ? ok : w.copyFailed);
   }
 
+  async function copyAsEmail(r: ShareResult) {
+    const content = buildRichEmail({
+      title: entity.title,
+      summary: entity.summary,
+      url: r.url,
+      image: r.image,
+      origin: window.location.origin,
+      buttonLabel: w.emailButton,
+      dir: lang === "he" ? "rtl" : "ltr",
+    });
+    const done = await copyRich(content);
+    toast(done === "rich" ? w.richCopied : done === "plain" ? w.richPlain : w.copyFailed);
+  }
+
   // Menu rows are built only once it is open: a list can carry a menu per row.
   const rows = open ? channels.map(make) : [];
   const name = (c: ShareChannel) => ({ linkedin: "LinkedIn", gmail: "Gmail", x: "X", whatsapp: "WhatsApp", instagram: "Instagram", email: w.email, copy: w.copyLink, native: "" })[c];
@@ -148,7 +162,13 @@ export default function ShareMenu({ kind, entity, variant = "icon", className, l
               case "linkedin":
                 return choose("linkedin", <ArrowUpRight aria-hidden="true" />);
               case "email":
-                return choose("email", <Mail aria-hidden="true" />);
+                return [
+                  choose("email", <Mail aria-hidden="true" />),
+                  <DropdownMenuItem key="rich" className={styles.item} onSelect={() => void copyAsEmail(r)}>
+                    <ClipboardCopy aria-hidden="true" />
+                    <span>{w.copyEmail}</span>
+                  </DropdownMenuItem>,
+                ];
               case "gmail":
                 return choose("gmail", <ArrowUpRight aria-hidden="true" />);
               case "x":

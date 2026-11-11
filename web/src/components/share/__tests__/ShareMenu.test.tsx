@@ -43,10 +43,25 @@ describe("ShareMenu menu", () => {
     render(<ShareMenu kind="note" entity={entity} />);
     const menu = await openMenu();
     const names = within(menu).getAllByRole("menuitem").map((i) => i.textContent);
-    expect(names.map((n) => n?.replace(/\s*\(.*\)/, "").trim())).toEqual(["Copy link", "LinkedIn", "Email", "Gmail", "X", "WhatsApp", "Save image"]);
+    expect(names.map((n) => n?.replace(/\s*\(.*\)/, "").trim())).toEqual(["Copy link", "LinkedIn", "Email", "Copy as email", "Gmail", "X", "WhatsApp", "Save image"]);
     // None of them is a link: nothing can leave the page from the menu itself.
     expect(within(menu).queryAllByRole("link")).toHaveLength(0);
     expect(within(menu).getAllByRole("menuitem").some((i) => i.hasAttribute("href"))).toBe(false);
+  });
+
+  it("Copy as email puts an HTML block and its plain text on the clipboard in one click", async () => {
+    const write = vi.fn(async (_items: unknown) => {});
+    vi.stubGlobal("ClipboardItem", class { constructor(public data: Record<string, Blob>) {} });
+    vi.stubGlobal("navigator", { clipboard: { write, writeText } });
+    render(<ShareMenu kind="note" entity={{ ...entity, title: "A <b>note</b> & more" }} />);
+    const menu = await openMenu();
+    fireEvent.click(within(menu).getByRole("menuitem", { name: "Copy as email" }));
+    await waitFor(() => expect(write).toHaveBeenCalledTimes(1));
+    const item = (write.mock.calls[0][0] as { data: Record<string, Blob> }[])[0];
+    const html = await item.data["text/html"].text();
+    expect(html).toContain("A &lt;b&gt;note&lt;/b&gt; &amp; more");
+    expect(html).toContain(`${window.location.origin}/api/seo/og/blog/a-note.png`);
+    expect(screen.queryByRole("dialog")).toBeNull();
   });
 
   it("sends nothing and opens nothing before a click", async () => {

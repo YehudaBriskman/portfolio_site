@@ -51,3 +51,31 @@ export async function downloadImage(url: string): Promise<boolean> {
     return false;
   }
 }
+
+/**
+ * Copies a formatted block as text/html plus text/plain, so a mail composer
+ * keeps the layout; plain text where the browser has no ClipboardItem.
+ * Returns what landed on the clipboard, or false.
+ */
+export async function copyRich(content: { html: string; text: string }): Promise<"rich" | "plain" | false> {
+  try {
+    if (typeof navigator === "undefined" || !navigator.clipboard) return false;
+    if (typeof ClipboardItem !== "undefined" && typeof navigator.clipboard.write === "function") {
+      try {
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            "text/html": new Blob([content.html], { type: "text/html" }),
+            "text/plain": new Blob([content.text], { type: "text/plain" }),
+          }),
+        ]);
+        return "rich";
+      } catch {
+        /* refused: fall through to plain text */
+      }
+    }
+    await navigator.clipboard.writeText(content.text);
+    return "plain";
+  } catch {
+    return false;
+  }
+}
