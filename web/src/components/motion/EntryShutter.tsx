@@ -55,7 +55,7 @@ import styles from "@/components/motion/EntryShutter.module.css";
  *
  * The stored Pause preference is read **here** and not left to the class, and
  * this is the one place on the site where that distinction is worth the import.
- * `useMotionPaused` restores the stored choice in an effect, so for a
+ * `usePauseSwitch` restores the stored choice in an effect, so for a
  * returning reader who pressed Pause last visit `body.motion-paused` is not on
  * the body yet at first render. A scroll-driven animation can afford that
  * one frame — at scroll 0 nothing on the first screen is mid-move. One frame

@@ -228,7 +228,7 @@ function MultiSelect({
                   <span className={styles.value}>{name(o.value)}</span>
                   <span className={styles.count}>
                     {o.count}
-                    <span className="sr-only">{o.count === 1 ? " match" : " matches"}</span>
+                    <span className="sr-only">{w.matches(o.count)}</span>
                   </span>
                 </li>
               );

@@ -5,6 +5,7 @@ import { specFiguresOf } from "@/data/specs";
 import { useContent } from "@/content/store";
 import { useHomeWords } from "@/i18n/pages";
 import styles from "@/components/Stack.module.css";
+import { motionPaused, prefersReducedMotion } from "@/hooks/motionOff";
 
 /*
  * The spec plate, where the tool list used to be.
@@ -55,8 +56,8 @@ export default function SpecPlate() {
     const env = () => ({
       coarse: mq("(pointer: coarse)"),
       viewTimelines: typeof CSS !== "undefined" && typeof CSS.supports === "function" && CSS.supports("animation-timeline: view()"),
-      reducedMotion: mq("(prefers-reduced-motion: reduce)"),
-      paused: document.body.classList.contains("motion-paused"),
+      reducedMotion: prefersReducedMotion(),
+      paused: motionPaused(),
     });
     const figures = [...el.querySelectorAll<HTMLElement>("[data-spec-value]")];
     let shown = 0;

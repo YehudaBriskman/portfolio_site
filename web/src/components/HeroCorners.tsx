@@ -7,6 +7,7 @@ import { useLang } from "@/components/dashboard/i18n";
 import { inEnglish } from "@/i18n/words";
 import { scrollToAnchor } from "@/lib/scrollToAnchor";
 import styles from "@/components/HeroCorners.module.css";
+import { motionOff } from "@/hooks/motionOff";
 
 /*
  * The hero's two lower corners — issue #101, decided.
@@ -166,9 +167,7 @@ function useCycle(count: number): number {
   const [i, setI] = useState(0);
   useEffect(() => {
     if (count < 2) return;
-    const still = () =>
-      document.body.classList.contains("motion-paused") ||
-      (typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+    const still = motionOff;
     let timer = 0;
     const sync = () => {
       window.clearInterval(timer);

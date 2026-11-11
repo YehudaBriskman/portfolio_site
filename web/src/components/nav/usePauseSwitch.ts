@@ -79,7 +79,7 @@ function restore({ section, through }: ReadingPosition) {
  * The choice persists, because having to find the control again on every
  * visit would defeat the point of offering it.
  */
-export function useMotionPaused(): [boolean, () => void] {
+export function usePauseSwitch(): [boolean, () => void] {
   /*
    * Starts unpaused, with the stored preference read in the effect below
    * rather than in this initialiser.
@@ -170,15 +170,13 @@ export function useMotionPaused(): [boolean, () => void] {
    * remembered.
    */
   const toggle = () => {
-    setPaused((was) => {
-      const next = !was;
-      try {
-        localStorage.setItem(MOTION_PAUSED_KEY, next ? "1" : "0");
-      } catch {
-        // See above: the preference still applies for this visit.
-      }
-      return next;
-    });
+    const next = !paused;
+    try {
+      localStorage.setItem(MOTION_PAUSED_KEY, next ? "1" : "0");
+    } catch {
+      // See above: the preference still applies for this visit.
+    }
+    setPaused(next);
   };
 
   return [paused, toggle];

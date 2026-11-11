@@ -1,5 +1,6 @@
-import { MOTION_PAUSED_KEY } from "@/components/nav/useMotionPaused";
+import { MOTION_PAUSED_KEY } from "@/components/nav/usePauseSwitch";
 import { siteMotionPaused } from "@/settings/store";
+import { motionOff } from "@/hooks/motionOff";
 
 /*
  * Where the visit's entry is: still behind the shutter, lifting, clearing,
@@ -77,8 +78,7 @@ const ORDER: readonly Entry[] = ["covered", "lifting", "clearing", "lifted"];
  */
 export function motionIsOff(): boolean {
   if (typeof window === "undefined") return true;
-  if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false) return true;
-  if (document.body.classList.contains("motion-paused")) return true;
+  if (motionOff()) return true;
   try {
     const stored = localStorage.getItem(MOTION_PAUSED_KEY);
     /* No choice stored: the owner's motion default (#254) decides. */

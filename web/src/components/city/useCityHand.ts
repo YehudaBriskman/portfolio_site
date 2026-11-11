@@ -1,4 +1,5 @@
 import { useEffect, type RefObject } from "react";
+import { motionOff } from "@/hooks/motionOff";
 
 /*
  * The city, answering to a hand.
@@ -131,6 +132,12 @@ const FORMAT: Record<Lang, { day: Intl.DateTimeFormat; num: Intl.NumberFormat; p
   },
 };
 
+/* Per plural category: how a count of contributions is said. */
+const WORDS: Record<Lang, { none: string; one: string; two?: string; other: (n: string) => string }> = {
+  en: { none: "no contributions", one: "1 contribution", other: (n) => `${n} contributions` },
+  he: { none: "אין תרומות", one: "תרומה אחת", two: "שתי תרומות", other: (n) => `${n} תרומות` },
+};
+
 /**
  * What the tooltip says about one day: the date, then the count.
  *
@@ -143,15 +150,13 @@ const FORMAT: Record<Lang, { day: Intl.DateTimeFormat; num: Intl.NumberFormat; p
  */
 export function readoutText(date: string, count: number, lang: Lang = "en"): string {
   const f = FORMAT[lang];
+  const w = WORDS[lang];
   const day = f.day.format(new Date(`${date}T00:00:00Z`));
-  const n = f.num.format(count);
-  const one = f.plural.select(count) === "one";
-  if (lang === "he") {
-    if (count === 0) return `${day} · אין תרומות`;
-    return `${day} · ${count === 1 ? "תרומה אחת" : `${n} תרומות`}`;
-  }
-  if (count === 0) return `${day} · no contributions`;
-  return `${day} · ${n} contribution${one ? "" : "s"}`;
+  if (count === 0) return `${day} · ${w.none}`;
+  const category = f.plural.select(count);
+  const said =
+    category === "one" ? w.one : category === "two" && w.two ? w.two : w.other(f.num.format(count));
+  return `${day} · ${said}`;
 }
 
 /** The rubber band: linear to `SOFT`, then easing toward `HARD`. */
@@ -163,8 +168,7 @@ export function band(raw: number): number {
 }
 
 function stillness(): boolean {
-  if (document.body.classList.contains("motion-paused")) return true;
-  return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+  return motionOff();
 }
 
 type Gesture = {

@@ -1702,7 +1702,7 @@ They are **three independent conditions, not one**, and each needs its own exit:
 
 1. **`prefers-reduced-motion: reduce`** — a standing OS preference about every
    site.
-2. **The Pause toggle** — `web/src/components/nav/useMotionPaused.ts`, which
+2. **The Pause toggle** — `web/src/components/nav/usePauseSwitch.ts`, which
    hangs `body.motion-paused` outside the React tree precisely so that view
    timelines, ambient layers and plate cross-fades stop too, none of which the
    nav renders or can reach.
@@ -1910,7 +1910,7 @@ direction, or set `fill-rule: evenodd` deliberately and know what it costs.
 | `motion/LivingLine.tsx` + `lineMoves.ts` | `line` — one ribbon behind a page or section, composed from the moves each box declares in data (`enter`, `origin`, `line-to`, `round`, `circle-around`, and a registry for more) and measured off the laid-out boxes, its tip held on the window's middle; an `enter` lead uncovered by a soft window from the page's edge | named `view-timeline` on the drawing (inset 50%), grown upward and outward when the line starts outside its container; a 101-stop keyframe reads offsets the composer writes as custom properties; the lead's window on the drawing's own `view()`, `cover 5vh`–`cover 50vh` |
 | `motion/Strands.tsx` + `ribbon.ts` | the aurora's ribbon, shared: fine strands braided about any path, and the one set of aurora colours, for the run's aurora and the living line | — (geometry; the callers own the clock) |
 | `motion/Written.tsx` + `penClock.ts` | `pen` — running text written one word after another as it rises through the reading window (68% → 38%), one block at a time in document order | named `view-timeline` on the paragraph, inset from `--read-from`/`--read-to`; word `i` of `n` owns the slice `i/n`–`(i+1)/n` of the block's turn (`--pen-lead`, `--pen-span`, from the sequencer) |
-| `nav/useMotionPaused.ts` | the Pause control | — |
+| `nav/usePauseSwitch.ts` | the Pause control | — |
 | `nav/motion-paused.css` | what Pause does to the page | — |
 
 ### Retired, and why

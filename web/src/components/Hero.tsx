@@ -234,7 +234,7 @@ function useArrival(): Arrival {
   return entry === "covered" || entry === "lifting" ? "held" : "play";
 }
 
-export default function Hero({ hold = true }: { hold?: boolean }) {
+export default function Hero({ pinnedBehindNextAct = true }: { pinnedBehindNextAct?: boolean }) {
   const arrives = useArrival();
   /* The plate's words from the content store (#163). */
   const { plate, plateTitle } = useContent().site;
@@ -271,7 +271,7 @@ export default function Hero({ hold = true }: { hold?: boolean }) {
       The holder is static and owns `--hero`; the hero inside it is held
       still until the next act has covered it (`Hero.module.css`).
     */
-    <section id="hero" className={hold ? `${styles.holder} ${styles.held}` : styles.holder}>
+    <section id="hero" className={pinnedBehindNextAct ? `${styles.holder} ${styles.held}` : styles.holder}>
       <div className={`relative w-full ${styles.hero}`}>
         {/*
           `pt-28` is nav clearance, not rhythm: the island is fixed, 50px tall

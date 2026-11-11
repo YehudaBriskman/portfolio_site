@@ -1,3 +1,4 @@
+import { motionOff } from "@/hooks/motionOff";
 /*
  * Smooth scrolling decided per click, instead of `scroll-behavior: smooth` on
  * <html>.
@@ -85,28 +86,11 @@ export function findAnchor(fragment: string): HTMLElement | null {
 export function scrollToAnchor(id: string): boolean {
   const el = document.getElementById(id);
   if (!el) return false;
-  const reduced =
-    typeof window.matchMedia === "function" &&
-    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  /*
-   * The Pause toggle counts here too, and an audit caught that it did not.
-   *
-   * `body.motion-paused` sets `scroll-behavior: auto`, which looks like it
-   * covers this — but an explicit `behavior` in the options object overrides
-   * the computed property, so the stylesheet's rule had no effect on this
-   * call and pressing Pause still bought a 640ms animated page scroll.
-   *
-   * The counter-argument is in Nav.tsx: a smooth scroll the reader asked for
-   * by clicking a link is not the ambient motion either switch was written
-   * about. It is a reasonable position and it is not the one this function
-   * already took — it reads `prefers-reduced-motion` two lines up, and the
-   * nav's own index strip reads both. Two switches that are documented as
-   * equivalent have to compute the same thing, so this reads both as well.
-   */
-  const paused = document.body.classList.contains("motion-paused");
+  /* Pause counts as reduced motion. An explicit `behavior` overrides the CSS
+     `scroll-behavior: auto` that body.motion-paused sets, so it is checked here. */
   const far = Math.abs(el.getBoundingClientRect().top) > SMOOTH_LIMIT_PX;
   el.scrollIntoView({
-    behavior: reduced || paused || far ? "auto" : "smooth",
+    behavior: motionOff() || far ? "auto" : "smooth",
     block: "start",
   });
 

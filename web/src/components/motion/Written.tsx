@@ -202,10 +202,14 @@ function split(children: ReactNode, walk: Walk): ReactNode {
  * its slice of a clock whose length it now knows. Paragraph-sized work, once
  * per render.
  */
+function countWords(children: ReactNode): number {
+  const walk: Walk = { count: 0, total: 1 };
+  split(children, walk); // the nodes are discarded; only the tally matters
+  return walk.count;
+}
+
 function splitAll(children: ReactNode): ReactNode {
-  const count: Walk = { count: 0, total: 1 };
-  split(children, count);
-  return split(children, { count: 0, total: count.count });
+  return split(children, { count: 0, total: countWords(children) });
 }
 
 /* ------------------------------------------------------- the near-watch -- */

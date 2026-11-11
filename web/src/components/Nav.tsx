@@ -9,7 +9,7 @@ import { useDarkChrome } from "./nav/useDarkChrome";
 import { useTuckedBar } from "./nav/useTuckedBar";
 import { useLocale } from "./nav/locale";
 import { useElsewhere } from "./nav/social";
-import { useMotionPaused } from "./nav/useMotionPaused";
+import { usePauseSwitch } from "./nav/usePauseSwitch";
 import { useChromeWords } from "@/i18n/chrome";
 import styles from "./Nav.module.css";
 
@@ -152,7 +152,7 @@ export default function Nav() {
    */
   const [locale, onSelectLocale] = useLocale();
   const w = useChromeWords();
-  const [motionPaused, onToggleMotion] = useMotionPaused();
+  const [motionPaused, onToggleMotion] = usePauseSwitch();
   const controls: NavControls = { locale, onSelectLocale, motionPaused, onToggleMotion };
 
   /* A sheet that survives a route change as an invisible open panel is a

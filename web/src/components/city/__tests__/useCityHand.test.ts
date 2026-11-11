@@ -46,6 +46,8 @@ describe("the readout in Hebrew", () => {
 
   it("uses the singular and the empty-day phrase", () => {
     expect(readoutText("2026-08-18", 1, "he")).toMatch(/· תרומה אחת$/);
+    expect(readoutText("2026-08-19", 2, "he")).toMatch(/· שתי תרומות$/);
+    expect(readoutText("2026-08-19", 3, "he")).toMatch(/· 3 תרומות$/);
     expect(readoutText("2026-08-18", 0, "he")).toMatch(/· אין תרומות$/);
   });
 });

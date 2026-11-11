@@ -2,6 +2,7 @@ import { flushSync } from "react-dom";
 import { getResolvedTheme, resolveTheme, setThemeChoice } from "@/lib/theme";
 import type { ThemeChoice } from "@/lib/themeDefault";
 import "./theme-wave.css";
+import { motionOff } from "@/hooks/motionOff";
 
 /*
  * The theme changing as a wave (#266): the new theme spreads from the toggle
@@ -46,13 +47,7 @@ export function coverRadius({ x, y }: Origin, width: number, height: number): nu
 export function canWave(): boolean {
   const doc = document as ViewTransitionDocument;
   if (typeof doc.startViewTransition !== "function") return false;
-  if (document.body.classList.contains("motion-paused")) return false;
-  try {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return false;
-  } catch {
-    /* No matchMedia: nothing says the reader asked for less. */
-  }
-  return true;
+  return !motionOff();
 }
 
 function prefersDark(): boolean {

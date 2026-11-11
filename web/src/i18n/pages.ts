@@ -263,6 +263,7 @@ export const useFilterWords = defineWords(
     filterOn: (n: number) => `Filter, ${n} on`,
     close: "Close",
     of: "of",
+    matches: (n: number) => (n === 1 ? " match" : " matches"),
   },
   {
     any: "הכול",
@@ -275,6 +276,7 @@ export const useFilterWords = defineWords(
     filterOn: (n: number) => `סינון, ${n} פעילים`,
     close: "סגירה",
     of: "מתוך",
+    matches: (n: number) => (n === 1 ? " התאמה" : " התאמות"),
   },
 );
 
