@@ -1052,13 +1052,6 @@
   color: rgb(var(--ink-soft));
 }
 
-.sheetControls {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 14px 8px;
-}
-
 /* A hairline between the groups: they are different kinds of going somewhere —
    around the site, off the site, and nowhere at all — and the sheet should not
    pretend otherwise. Three of those now rather than four; the one that has
@@ -1147,79 +1140,6 @@
 }
 
 /*
- * The language menu: the same ground and the same rule as the bar that opened
- * it, so the panel reads as the bar extended rather than as a second material.
- * Opaque, unlike the bar — it covers content it is not part of — and one step
- * heavier on the shadow for the same reason.
- *
- * It does not invert with the bar, and cannot: Radix portals this to
- * `document.body`, so it is outside the dock and never inherits the dark
- * material's token re-pointings. That is the right outcome rather than a
- * limitation worked around — the panel hangs below the bar, over the page, so
- * it belongs to the page's ground and not to the chrome's. The `--shade`
- * fallback below is there for the same reason: outside the dock that token
- * does not exist, and `rgb(var(--shade) / .6)` with nothing to substitute is
- * an invalid declaration, which drops the shadow silently.
- */
-.menu.menu {
-  min-width: 11rem;
-  padding: 6px;
-  --menu-inset: 6px;
-  border-radius: var(--r-md);
-  background: rgb(var(--paper));
-  border: 1px solid rgb(var(--ink-soft));
-  box-shadow: 0 22px 44px -28px rgb(var(--shade, var(--ink)) / 0.6);
-  color: rgb(var(--ink));
-}
-
-.menuHead.menuHead {
-  padding: 6px 10px 4px;
-  font-family: var(--font-data);
-  font-size: 0.75rem;
-  font-weight: var(--weight-data);
-  letter-spacing: var(--track-field);
-  text-transform: uppercase;
-  /* A group heading is text and has to clear 4.5:1 on the surface it is
-     printed on; the faint token measures 3.60:1 on paper and is documented as
-     non-text only. */
-  color: rgb(var(--ink-soft));
-}
-
-/* The rule under the menu's own heading. shadcn draws it as `bg-white/[0.12]`,
-   which was a visible hairline on dark glass and is nothing on paper. */
-.menuSplit.menuSplit {
-  background: rgb(var(--rule));
-}
-
-/* 44px here too. A menu item is a tap target like any other, and Radix will
-   happily render a 28px row on a phone. */
-.menuItem.menuItem {
-  min-height: 44px;
-  padding-inline-start: 34px;
-  padding-inline-end: 12px;
-  /* Concentric with the menu: 22 - 6 = 16px. */
-  border-radius: calc(var(--r-md) - var(--menu-inset, 6px));
-  font-family: var(--font-text);
-  font-size: 0.9375rem;
-  text-transform: none;
-  letter-spacing: var(--track-body);
-  color: rgb(var(--ink-soft));
-}
-
-.menuItem.menuItem[data-state='checked'] {
-  color: rgb(var(--ink));
-}
-
-.menuNote.menuNote {
-  font-family: var(--font-data);
-  font-size: 0.75rem;
-  letter-spacing: var(--track-field);
-  text-transform: uppercase;
-  color: rgb(var(--ink-soft));
-  opacity: 1;
-}
-
-/*
  * The tooltip is the one thing in the chrome that is stamped rather than laid
  * on.
  *
@@ -1245,15 +1165,4 @@
   color: rgb(var(--paper));
   background: rgb(var(--ink));
   border: 1px solid rgb(var(--ink));
-}
-
-/* The menu's controls row: 44px targets with room between them (#348). */
-@media (max-width: 48rem) {
-  .sheetControls {
-    gap: 0.75rem;
-  }
-  .sheetControls :is(button, a) {
-    min-height: 2.75rem;
-    min-width: 2.75rem;
-  }
 }

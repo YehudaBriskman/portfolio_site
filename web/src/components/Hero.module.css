@@ -384,20 +384,6 @@
  * no second column on a phone for it to be an object in.
  */
 @media (max-width: 699px) {
-  .plate h1 {
-    font-size: clamp(2.4rem, 9.5vw, 4rem);
-    /*
-     * Tracking and leading step with the size, because a size without them is
-     * two thirds of a type decision. `--track-display` is correction for type
-     * above roughly 56px; applied to 37px it stops correcting and starts
-     * closing the counters, so the name takes the head step instead. Leading
-     * runs inverse to size for the same reason — 0.86 is a setting for a line
-     * that is 144px tall.
-     */
-    letter-spacing: var(--track-head);
-    line-height: 0.92;
-  }
-
   /*
    * Wider, because there is no second column for it to be an object in: on a
    * phone the figure stops being a thing at the end of the line and becomes
@@ -535,7 +521,7 @@
 }
 
 /*
- * THE PARTICLE WORD'S COMPOSITION (desktop only; the owner, 2026-11-10)
+ * THE PARTICLE WORD'S COMPOSITION (desktop only)
  * ---------------------------------------------------------------------
  * "Very, very big, almost in the middle of the screen, a little above the
  * vertical centre." `hero/ParticleWord.tsx` sets `data-particles` on the
@@ -554,7 +540,7 @@
  * (`opacity: 0`, not `display` or `visibility`, so it stays selectable and
  * copyable and is still what a screen reader reads).
  *
- * The word's box is centred on 42% of the first screen's height: the h1's
+ * The word's box is centred on 30svh of the first screen: the h1's
  * top margin is that line, less the screen's top padding, less half the box.
  * `max(0px, ...)` keeps a short window from pulling it into the nav. Its
  * width is `--pw-w`, centred with a margin that goes negative where the word

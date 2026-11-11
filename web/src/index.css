@@ -1103,49 +1103,10 @@
    * and a tie is decided by source order.
    */
   /*
-   * SUPERSEDED (#248): Hebrew text is Heebo now. The owner's review found
-   * Playpen's handwriting off brand on every nav link and button, which is the
-   * familiarity argument this note anticipated. The measure is kept because it
-   * is what picked Heebo.
-   *
-   * WHY HEBREW KEPT PLAYPEN SANS HEBREW (#97).
-   *
-   * Atkinson Hyperlegible has no Hebrew — not the 2020 release, not Next —
-   * so English moving to it decides nothing here, and the question #97 asks
-   * is whether a Hebrew face chosen on the same grounds, legibility before
-   * character, would beat the one Hebrew has. It was measured rather than
-   * argued. `scripts/fontwork/legibility.mjs` renders twelve pairs Hebrew
-   * readers confuse — ד/ר, ב/כ, ה/ח, ח/ת, ו/ז, ו/ן, ז/ן, ס/ם, ג/נ, י/ו,
-   * כ/נ, ע/צ — blurs them as a low-acuity eye does (σ 0.6px at 16px), and
-   * scores how different each pair still is, for Playpen Sans Hebrew and
-   * the seven Hebrew sans faces on Google Fonts drawn for text:
-   *
-   *   face                  worst pair   mean   (0 = identical, 1 = no ink shared)
-   *   Playpen Sans Hebrew   0.207        0.423
-   *   Heebo                 0.113        0.283
-   *   Varela Round          0.128        0.260
-   *   Noto Sans Hebrew      0.111        0.258
-   *   Assistant             0.106        0.250
-   *   Rubik                 0.054        0.238
-   *   Open Sans             0.065        0.225
-   *   Alef                  0.090        0.210
-   *
-   * Playpen is the most legible face in the set by this measure, by a wide
-   * margin, on the worst pair and on the mean. The reason is the same one
-   * that makes it look playful: a handwriting-derived face draws ה with its
-   * gap open and ח closed, ו and ז with different heads, ס round and ם
-   * square, where a grotesque harmonises those shapes toward each other —
-   * which is exactly what a low-acuity reader cannot afford. In English
-   * "childish" and "hard to tell apart" were the same complaint about the
-   * same face; in Hebrew they come apart, and legibility is the one #97 asks
-   * to put first. So Hebrew is unchanged, and the two languages read in
-   * different faces, which the display and accent roles already did.
-   *
-   * What this does not measure is familiarity — a reader's eye is trained
-   * on grotesques — and that is the argument for a switch if one comes. The
-   * strongest candidate if it does is Heebo: the best mean among the
-   * grotesques (Varela Round edges it on the worst pair), 7,984 bytes for its Hebrew half at 400..700 against
-   * Playpen's 11,924. Cut by `probe-reading-face.sh`; not shipped.
+   * Hebrew text is Heebo, not Playpen Sans Hebrew: Playpen scored best on
+   * letter distinctness, but its handwriting was off brand on every nav link
+   * and button. Atkinson Hyperlegible has no Hebrew, so Latin and Hebrew read
+   * in different faces; the display and accent roles already did.
    */
   :root:lang(he),
   [lang='he'] {
