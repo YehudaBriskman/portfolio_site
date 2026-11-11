@@ -1292,8 +1292,8 @@ tabs (`work/Tabs.tsx`, `?tab=`): the underline is drawn on the selected tab,
 not slid to it, and a panel appears without a transition. The Overview panel
 keeps the page's existing devices (then `InkWipe`, `Written`, the figure's
 drift) unchanged; the other three panels have none. With no page on it any more,
-`gallery/Wall.tsx` and `projects/Gallery.tsx` are left in place, unused, for
-the owner to delete or keep, as #224 did with `NoteTile`.
+`gallery/Wall.tsx` is left in place, unused, for the owner to delete or
+keep, as #224 did with `NoteTile`; `projects/Gallery.tsx` has since been deleted.
 
 **#242: the project page joins the dashboard, and keeps its three devices.**
 `/projects/:slug` moved off paper onto the same dark shell: a GitHub-style
@@ -1432,7 +1432,7 @@ in). Reduced motion and Pause also cut the re-hang to an instant swap. A piece
 that takes focus cancels its own arrival and asks for
 `scroll-margin-block-end: 30svh`. `gallery/__tests__/Gallery.test.tsx` holds
 all of it on the stylesheet text, and holds that the pieces' own stylesheets
-(`projects/Gallery.module.css`, `notes/NoteTile.module.css`) and the rail's
+(`notes/NoteTile.module.css`) and the rail's
 and filter's carry no keyframes at all.
 
 **No dark ground on either page (#193).** The panel was the one dark thing on
@@ -1893,7 +1893,7 @@ direction, or set `fill-rule: evenodd` deliberately and know what it costs.
 | `motion/HeadStrand.tsx` | a still strand of the aurora under a dashboard title, ending in a ring | — (still) |
 | `motion/InkRule.tsx` | a hairline drawing itself in | `view()` |
 | `gallery/Wall.module.css` + `Wall.tsx` | `assemble`, unused since #227 (was /projects, and /blog from #193 until #224): each piece slides in from its own side of the wall (or rises, in the middle third), and a filter re-hangs the wall with a short view transition | named `view-timeline` on each static `<li>`, read by the `.piece` inside it; side read from layout once into `data-from` |
-| `projects/Gallery.module.css`, `notes/NoteTile.module.css` | what hangs in a cell: a project tile, a note card. No motion of their own | — |
+| `notes/NoteTile.module.css` | what hangs in a cell: a note card. No motion of their own | — |
 | `gallery/FilterControl.tsx` + `Rail.tsx` | the filter card, its popovers and the phone's sheet. The popovers appear and go; the sheet takes the popup system (§8, `styles/popup.css`) | — |
 | `projects/ProjectRun.module.css` | `pin` — the work travelling along a curve under a held frame; one lap per card, staggered by range | named `view-timeline` on the static stage, the frame held inside it |
 | `motion/AuroraStrand.tsx` | the aurora strand's one appearing, shared by the run and the notes shelf: a soft window in from `from` ("left" \| "right"), the drawing carried back under it; a wave by default | the caller's named timeline and range as custom properties |
@@ -1910,6 +1910,8 @@ direction, or set `fill-rule: evenodd` deliberately and know what it costs.
 | `motion/LivingLine.tsx` + `lineMoves.ts` | `line` — one ribbon behind a page or section, composed from the moves each box declares in data (`enter`, `origin`, `line-to`, `round`, `circle-around`, and a registry for more) and measured off the laid-out boxes, its tip held on the window's middle; an `enter` lead uncovered by a soft window from the page's edge | named `view-timeline` on the drawing (inset 50%), grown upward and outward when the line starts outside its container; a 101-stop keyframe reads offsets the composer writes as custom properties; the lead's window on the drawing's own `view()`, `cover 5vh`–`cover 50vh` |
 | `motion/Strands.tsx` + `ribbon.ts` | the aurora's ribbon, shared: fine strands braided about any path, and the one set of aurora colours, for the run's aurora and the living line | — (geometry; the callers own the clock) |
 | `motion/Written.tsx` + `penClock.ts` | `pen` — running text written one word after another as it rises through the reading window (68% → 38%), one block at a time in document order | named `view-timeline` on the paragraph, inset from `--read-from`/`--read-to`; word `i` of `n` owns the slice `i/n`–`(i+1)/n` of the block's turn (`--pen-lead`, `--pen-span`, from the sequencer) |
+| `nav/useMotionPaused.ts` | the Pause control | — |
+| `nav/motion-paused.css` | what Pause does to the page | — |
 
 ### Retired, and why
 
@@ -1948,8 +1950,6 @@ An unused component with a hole in its off-switch is a trap for whoever uses it
 next, so they went rather than being fixed in place. They are in the history if
 a future beat wants one — but it should be rebuilt against §4 rather than
 restored, because what was wrong with them is exactly what §4 exists to say.
-| `nav/useMotionPaused.ts` | the Pause control | — |
-| `nav/motion-paused.css` | what Pause does to the page | — |
 
 Since #162 the site has two `IntersectionObserver`s and neither reveals
 anything: `Written`'s near-watch (which paragraphs are in the reading zone,
@@ -1973,8 +1973,8 @@ not already paying (29fps dragging against 22–23fps scrolling, 4× throttle).
 Otherwise no component does per-frame work. The one hook with a scroll listener is
 `useScrollProgress`, mounted on a single route; it is rAF-throttled, writes a
 custom property on `<html>` rather than React state, and returns early under
-`prefers-reduced-motion`. Everything in the table is either a class name a
-stylesheet acts on.
+`prefers-reduced-motion`. Everything in the table is a class name a
+stylesheet acts on, or a hook or component named in it.
 
 **No motion component holds state since #162.** `useStagedArrival`, which
 kept an integer for the hero's stage, went with the clock it sequenced.
@@ -2070,52 +2070,12 @@ animation.
 | admin login | /admin/posts | form-control focus transitions only | **exempt**: focus |
 | 404, /accessibility | — | nothing of their own beyond the shared chrome above | — |
 
-Counted: 41 rows (#224 added two and #225 one; see below). 9 were converted from a clock or a one-shot trigger to a
-scroll timeline in #162, and the bar's drop was removed outright; 14 were
-already scrubbed; 13 are exempt for the reasons given (the hero's
-entry arrival joined them in #194); 1 row is routes with
-nothing of their own. `Rise`, `Arrived` and
-`Flow` were on no route and were deleted.
+Counted from the table above, row by row: 56 rows; 20 scrubbed, 18 exempt,
+10 removed, 8 with nothing of their own. Re-count after adding a row.
 
-#193 moved the ledger by three rows: the stats bars and the notes' `.scrub-rise`
-were removed (the panel was deleted; the notes now arrive on the gallery wall,
-whose row widened to /blog), and the filter popovers and phone sheet were added
-as a row with no motion at all. So today: 21 scrubbed, 12 exempt, 3 removed,
-2 with nothing of their own.
-
-#224 took /blog off the wall: the assemble and re-hang rows now name
-/projects alone, a row records the notes leaving the wall (removed), and a row
-records the dashboard, which has nothing of its own. So: 21 scrubbed, 12
-exempt, 4 removed, 3 with nothing of their own.
-
-#225 added one row, the area history and the heading copy-link, with
-nothing of its own. So: 21 scrubbed, 12 exempt, 4 removed, 4 with nothing of
-their own.
-
-#226 added the channel log, `/blog/log`, as one row with nothing of its own:
-it is on the dashboard's shell, its rows arrive with "Load more" rather than
-on scroll (no infinite scroll, so no arrival to animate), and its filters are
-links. Counted again after #225, #227 and #226 had all landed: 45 rows; 20
-scrubbed, 12 exempt, 6 removed, 7 with nothing of their own.
-
-#251 removed the ink wipe and added two scrubbed rows, the arrivals and
-their rings, which reach the dashboards for the first time: 21 scrubbed, 12
-exempt, 7 removed, 7 with nothing of their own. The dashboards' still brand
-marks (round area marks, the circled rail item, the topic ring, the header
-strand) are not motion and have no row.
-
-2026-11-03 (the hero held, and its aurora ribbon; counted after #251): the
-plate's exit and the corners' sinking moved from scrubbed to removed, and
-one scrubbed row was added, the ribbon. 48 rows; 20 scrubbed, 12 exempt, 9
-removed, 7 with nothing of their own.
-
-#249 (reader mode) added one row with nothing of its own: 49 rows; 20
-scrubbed, 12 exempt, 9 removed, 8 with nothing of their own.
-
-2026-11-03, aurora v3, counted row by row (#276's strand row and #266's
-theme wave had not been): the ribbon moved from scrubbed to removed, and
-the strand row stays scrubbed with the line's lead in place of the band.
-51 rows; 20 scrubbed, 13 exempt, 10 removed, 8 with nothing of their own.
+The dashboards' still brand marks (round area marks, the circled rail item,
+the topic ring, the header strand) are not motion and have no row. `Rise`,
+`Arrived` and `Flow` were on no route and were deleted.
 
 ---
 
@@ -2153,10 +2113,6 @@ Rules that cost a debugging session to learn:
   and transition are `none`, so a popup is shown and hidden instantly.
 - Contact's dialog predates the system and keeps its own staged recipe.
 
-2026-11-10 (the owner's colour and particle brief) added three exempt rows,
-below: 54 rows; 20 scrubbed, 16 exempt, 10 removed, 8 with nothing of their own.
-
----
 
 ## 10. The hero's particle word and the page's colour orbs (2026-11-10)
 
