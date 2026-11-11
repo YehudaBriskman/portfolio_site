@@ -2,38 +2,13 @@ import { z } from "zod";
 import { env } from "../env.js";
 
 /*
- * The contribution year: one day, one count, three hundred and sixty-five times.
+ * The contribution year: one day, one count, 365 times.
  *
- * Why this is not in github.ts beside fetchRepoStats
- * --------------------------------------------------
- * It is the same token and the same scheduled-refresh shape, and it is a
- * different *protocol*. Repository facts are REST — one URL per fact, a JSON
- * object shaped by the endpoint. A contribution calendar does not exist in the
- * REST API at all; the only supported source is the GraphQL endpoint, which
- * means a POST, a query document, a schema that has to be parsed rather than
- * cast, and an error channel that arrives inside a 200 response. Putting a
- * POSTing GraphQL client inside a file whose shared helper is
- * `get<T>(url): T | null` would have meant one of those two helpers quietly
- * growing a second mode. So the refresh machinery is copied in shape and the
- * transport is this file's own.
- *
- * The other reason is the cache. `startStatsRefresh` has somewhere to put its
- * answer — a repository's stats belong on the collection document, so CouchDB
- * is the store and the refresh writes through it. A contribution year belongs
- * to nothing in the content store: it is one array about one person, it is
- * worthless the moment it is a day old, and writing it into the database would
- * invent a document type to hold a cache. So the cache is in this module, which
- * is sound for exactly the reason the comment in github.ts gives for its
- * in-process timer: one replica runs the API.
- *
- * What the browser never gets
- * ---------------------------
- * The token. The calendar is fetched here, on a schedule, and served as a flat
- * array with no credential anywhere near it. The alternative that keeps being
- * suggested — scraping the SVG off the profile page — is not done here and
- * should not be: it is an undocumented surface that has changed shape twice,
- * and it would put the site's only data visualisation on a contract nobody
- * publishes.
+ * Separate from github.ts because this is GraphQL (a POST, a query, errors
+ * inside a 200), not REST. Cached in-process, not in CouchDB: the year belongs to
+ * no content document and is stale after a day, and that is sound only because
+ * one replica runs the API. The token stays on the server; the browser gets a
+ * flat array. Not scraped from the profile SVG: that surface is undocumented.
  */
 
 /** One real day. Nothing derived, nothing filled in. */
@@ -64,15 +39,7 @@ export type ContributionYear = {
   error: string | null;
 };
 
-/*
- * The query, and it is the whole reason this file speaks GraphQL.
- *
- * `contributionsCollection` with no arguments is the trailing year ending now,
- * which is the window every reader recognises from a profile page. Asking for
- * an explicit `from`/`to` is possible and was not done: a fixed window would
- * need its own refresh rule to stay trailing, and a window the visitor has
- * never seen before is a chart that has to explain its own axis.
- */
+/* No `from`/`to`: the default is the trailing year ending now, as on a profile page. */
 const CONTRIBUTIONS_QUERY = `query ContributionYear($login: String!) {
   user(login: $login) {
     contributionsCollection {
@@ -90,18 +57,9 @@ const CONTRIBUTIONS_QUERY = `query ContributionYear($login: String!) {
 }`;
 
 /*
- * The response, parsed rather than cast.
- *
- * A cast would be a claim about a payload this process does not control, and
- * the failure it hides is the expensive one: `weeks` arriving as `null` for a
- * login with no public activity, or `contributionCount` arriving as a string,
- * would both sail through `as` and reach the browser as `NaN` columns. Parsed,
- * either one is an unavailable year with a reason — which is a state the page
- * already knows how to draw.
- *
- * `user` is nullable because GraphQL answers a missing login with
- * `data: { user: null }` and a 200, and `errors` is a sibling of `data` rather
- * than a status code for the same reason: in GraphQL a failure is a payload.
+ * The response is parsed, not cast: a null `weeks` or a string count would
+ * otherwise reach the browser as NaN. `user` is nullable and `errors` sits
+ * beside `data` because GraphQL reports failures inside a 200.
  */
 const DaySchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),

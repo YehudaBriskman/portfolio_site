@@ -670,38 +670,12 @@ function metaBlock(meta: PageMeta): string {
 }
 
 /*
- * The crawler fallback, as a visitor whose browser runs the app sees it: the
- * first frame of the app's own entry loader, and nothing else.
- *
- * The owner's report: refreshing /projects/windom showed "WindoM / Every new
- * tab becomes a dashboard" as raw text in the top-left corner, then the
- * loader, then the page. The browser paints #root's fallback before the bundle
- * has run; React then replaces it with the entry shutter, which starts as an
- * opaque black sheet (`motion/EntryShutter.module.css`, `.shutter::before`,
- * z-index 200). So the fallback now paints *as* that sheet: its text is
- * `visibility: hidden` and a fixed black layer covers the viewport, and the
- * frame React swaps in is the same frame. Under `prefers-reduced-motion` the
- * shutter does not render at all, so neither does the sheet — the fallback is
- * just hidden, on the paper the page then arrives on.
- *
- * Hidden by default and shown by `<noscript>`, rather than hidden under
- * `@media (scripting: enabled)`: a `<style>` inside `<noscript>` in the head
- * applies exactly when scripting is off, in every browser that ever shipped,
- * while the `scripting` media feature arrived in 2023 (Chrome 120, Safari 17)
- * and an older browser would treat it as false and keep the flash. One
- * mechanism, no fallback needed for the fallback.
- *
- * Not cloaking: every client gets the same DOM, and a crawler reads the text
- * whether or not it applies CSS. Only the paint differs, and only for a client
- * about to replace the content anyway.
- *
- * The eight-second reveal is the safety net. If the bundle never runs — a
- * blocked script, or the rolling-deploy race that once served a shell whose
- * <script src> no longer existed — the reader gets the text instead of a
- * black screen. A healthy load replaces #root long before then.
- *
- * Both are inline `<style>` blocks, which the CSP allows (`style-src 'self'
- * 'unsafe-inline'`); there is no inline script, so `script-src 'self'` holds.
+ * The crawler fallback paints as the entry shutter's first frame (a black sheet
+ * over hidden text) so a visitor never sees raw text before the app loads. Hidden
+ * by default, shown by <noscript>: the `scripting` media feature is missing before
+ * Chrome 120 / Safari 17. Not cloaking: every client gets the same DOM. After
+ * FALLBACK_REVEAL_MS the text shows anyway, in case the bundle never runs. Inline
+ * <style> only: the CSP allows it, not inline script.
  */
 export const FALLBACK_ATTR = "data-seo-fallback";
 export const FALLBACK_REVEAL_MS = 8000;

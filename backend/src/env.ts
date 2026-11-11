@@ -36,68 +36,38 @@ const EnvSchema = z.object({
   ADMIN_PROXY_SECRET: z.string().default(""),
   ADMIN_GITHUB_LOGIN: z.string().default("YehudaBriskman"),
 
-  // Bearer API tokens on /api/admin (#252). OFF by default: until the owner
-  // opts in, a Bearer header is ignored and the admin API answers only to the
-  // oauth2-proxy session, exactly as before tokens existed.
-  //   off     tokens are not accepted at all
-  //   tunnel  accepted only on a loopback socket: `kubectl port-forward` to
-  //           the api pod. Requests through nginx arrive from the web pod's
-  //           address, so the public domain stays closed to tokens.
-  //   on      accepted from anywhere, the public domain included
+  // Bearer API tokens on /api/admin: off, tunnel (loopback only) or on. The modes are defined in requireAdmin.ts.
   ADMIN_API_TOKENS: z.enum(['off', 'tunnel', 'on']).default('off'),
 
-  // The remote MCP server (#263): /mcp over Streamable HTTP, with its own
-  // OAuth 2.1 authorization server that delegates sign-in to GitHub. OFF by
-  // default: /mcp, /.well-known/oauth-* and /mcp/oauth/* answer 404, and the
-  // ADMIN_API_TOKENS path above is untouched either way.
+  // The remote MCP server (/mcp, with its own OAuth). Off: its paths answer 404.
   MCP_REMOTE: z.enum(['off', 'on']).default('off'),
-  // A GitHub OAuth app of its own (not oauth2-proxy's, whose callback is on
-  // the auth host). Callback: <SITE_URL>/mcp/oauth/github/callback.
+  // A GitHub OAuth app of its own; callback <SITE_URL>/mcp/oauth/github/callback.
   MCP_GITHUB_CLIENT_ID: z.string().optional(),
   MCP_GITHUB_CLIENT_SECRET: z.string().optional(),
-  // The owner's numeric GitHub id. Optional: without it the id is recorded
-  // the first time ADMIN_GITHUB_LOGIN signs in, and held to from then on, so
-  // a renamed account and a new account that takes the old login are told
-  // apart either way.
+  // The owner's numeric GitHub id. Without it the id is recorded at the first sign-in and held to.
   ADMIN_GITHUB_ID: z.string().regex(/^\d+$/).optional(),
   // Where GitHub is. Overridable only outside production, for a local mock.
   MCP_GITHUB_OAUTH_URL: z.string().url().default("https://github.com"),
   MCP_GITHUB_API_URL: z.string().url().default("https://api.github.com"),
 
-  // GitHub. Optional, and the two consumers degrade differently: the REST calls
-  // in services/github.ts work unauthenticated at 60 requests an hour, while
-  // the GraphQL contribution calendar has no anonymous mode at all and reports
-  // itself unavailable without a token. Neither is allowed to fail a boot.
+  // GitHub token. Optional and must never fail a boot: REST works without it (60/h), the contribution calendar reports itself unavailable.
   GITHUB_TOKEN: z.string().optional(),
-  // Whose year the contribution city draws. Separate from ADMIN_GITHUB_LOGIN,
-  // which answers a different question — who may edit the site.
+  // Whose contribution year is drawn (not who may edit: ADMIN_GITHUB_LOGIN).
   GITHUB_LOGIN: z.string().default("YehudaBriskman"),
-  // This site's own repository, `owner/name`. Its `v*` releases are the
-  // activity feed's `site` events, fetched on the stats schedule.
+  // This site's own repository, `owner/name`; its `v*` releases feed the activity log.
   SITE_REPO: z.string().regex(/^[\w.-]+\/[\w.-]+$/).default("YehudaBriskman/portfolio_site"),
 
-  // Canonical origin. Every absolute URL the crawlers see is built from this,
-  // so it must be the public name of the site and nothing else.
+  // Canonical origin, trailing slash stripped; every absolute URL is built from it.
   SITE_URL: z.string().default("https://yehudabriskman.com").transform((s) => s.replace(/\/+$/, "")),
-  // Whether this host asks to be crawled. `auto` reads it off SITE_URL — the
-  // canonical host is open, every other host is closed — which is what every
-  // deploy wants and what no deploy has to configure. `open` and `closed` say
-  // it outright, for a host the derivation would get wrong: a second
-  // production hostname, or a preprod that somebody wants crawled on purpose.
+  // Whether this host asks to be crawled. `auto`: open only on the SITE_URL host.
   ROBOTS_POLICY: z.enum(['auto', 'open', 'closed']).default('auto'),
-  // IndexNow (#308): when set, a publish tells Bing, Yandex and the other
-  // IndexNow engines which URLs changed, and `/<key>.txt` proves the key is
-  // the site's. Public by design: the protocol serves it to anyone who asks.
-  // 32 hex characters (`openssl rand -hex 16`). Unset, nothing is sent.
+  // IndexNow key (32 hex). Public by design: served at /<key>.txt. Unset, nothing is sent.
   INDEXNOW_KEY: z
     .string()
     .regex(/^[a-f0-9]{32}$/, 'INDEXNOW_KEY is 32 lowercase hex characters')
     .optional()
     .or(z.literal('').transform(() => undefined)),
-  // Search console ownership tokens (#308): the `content` of the meta tag
-  // Google Search Console and Bing Webmaster Tools each hand out, written into
-  // every rendered page's head. Public by design, like the key above. Unset,
-  // no tag.
+  // Search console ownership meta-tag content; public by design. Unset, no tag.
   GOOGLE_SITE_VERIFICATION: z
     .string()
     .regex(/^[\w-]{10,100}$/, 'GOOGLE_SITE_VERIFICATION is the content of the meta tag, letters, digits, _ and -')
