@@ -11,6 +11,8 @@ import SiteFooter from "@/components/SiteFooter";
 import { Fragment, type ReactNode } from "react";
 import { DARK_SECTIONS, shownSections, type HomeSection } from "@/settings/schema";
 import { useSiteSettings } from "@/settings/store";
+import ShareMenu from "@/components/share/ShareMenu";
+import { usePageNames } from "@/i18n/chrome";
 
 /*
  * The home page: the hero, then the sections the settings name, in order.
@@ -69,6 +71,7 @@ export default function Index() {
      tells that chrome the page, and its dark acts, are in the document. */
   usePageCommitted();
   const shown = shownSections(useSiteSettings());
+  const names = usePageNames();
 
   return (
     <div className="relative min-h-screen">
@@ -84,6 +87,9 @@ export default function Index() {
         {shown.map((id) => (
           <Fragment key={id}>{SECTIONS[id]()}</Fragment>
         ))}
+        <div className="wrap flex justify-end pb-6">
+          <ShareMenu kind="home" variant="text" entity={{ title: names.siteName }} />
+        </div>
       </main>
 
       {/*

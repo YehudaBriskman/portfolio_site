@@ -7,6 +7,7 @@ import { AreaGlyph, OwnerCard, TopList, ViewNav } from "@/components/dashboard/P
 import { ListSkeleton } from "@/components/dashboard/Skeletons";
 import { AreaSideCard, HistoryList, HistorySkeleton, RepoFacts, TopicBar } from "@/components/dashboard/History";
 import styles from "@/components/dashboard/Dashboard.module.css";
+import ShareMenu from "@/components/share/ShareMenu";
 import HeadStrand from "@/components/motion/HeadStrand";
 import history from "@/components/dashboard/History.module.css";
 import { useWords } from "@/components/dashboard/i18n";
@@ -127,6 +128,9 @@ export default function BlogArea() {
           <bdi>{area.tagline}</bdi>
         </p>
       )}
+      <div>
+        <ShareMenu kind="area" variant="text" entity={{ slug, title, summary: area?.tagline }} />
+      </div>
       {area?.stats && <RepoFacts stats={area.stats} repoUrl={area.repoUrl} />}
     </header>
   );

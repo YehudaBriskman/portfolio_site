@@ -162,7 +162,7 @@ export default function BlogPost() {
   return (
     <PageShell>
       {post && state === "ok" && (
-        <ReadingBar title={post.title} target={reading} contentsLabel={w.contents} onContents={openSheet} />
+        <ReadingBar entity={{ slug: post.slug, title: post.title, summary: post.excerpt, tags: post.tags }} target={reading} contentsLabel={w.contents} onContents={openSheet} />
       )}
 
       {/*

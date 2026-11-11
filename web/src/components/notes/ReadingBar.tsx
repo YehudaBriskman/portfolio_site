@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { Link } from "react-router-dom";
-import { Toaster, toast } from "@/components/ui/sonner";
+import ShareMenu from "@/components/share/ShareMenu";
+import type { ShareEntity } from "@/lib/share";
 import { useReaderWords } from "@/components/notes/reader/words";
-import Arrow from "@/i18n/Arrow";
 
 /*
  * Where you are, and the two things you might want next.
@@ -34,12 +34,13 @@ import Arrow from "@/i18n/Arrow";
  * reduced motion, because this is a readout rather than an animation.
  */
 export default function ReadingBar({
-  title,
+  entity,
   target,
   contentsLabel,
   onContents,
 }: {
-  title: string;
+  /** What the bar's share control shares. */
+  entity: ShareEntity;
   /** The phone's sheet of contents and details (#249), opened from the bar. */
   contentsLabel?: string;
   onContents?: (opener: HTMLElement) => void;
@@ -146,21 +147,6 @@ export default function ReadingBar({
     };
   }, [target]);
 
-  async function share() {
-    const url = window.location.href;
-    try {
-      if (typeof navigator.share === "function") {
-        await navigator.share({ title, url });
-        return;
-      }
-      await navigator.clipboard.writeText(url);
-      toast(w.linkCopied);
-    } catch {
-      // A share sheet the reader dismissed rejects exactly like a failure, and
-      // reporting a cancellation as an error is worse than saying nothing.
-    }
-  }
-
   return (
     <>
       {/* Desktop: a hairline under the nav travelling the width of the page as
@@ -206,15 +192,14 @@ export default function ReadingBar({
               {contentsLabel ?? w.contents}
             </button>
           )}
-          <button type="button" onClick={share} className="tap inline-flex min-h-[44px] items-center gap-2 py-3.5 text-[0.9375rem] text-clay">
-            {w.share} <span aria-hidden="true"><Arrow to="out" /></span>
-          </button>
+          <ShareMenu
+            kind="post"
+            entity={entity}
+            variant="text"
+            className="tap inline-flex min-h-[44px] items-center gap-2 py-3.5 text-[0.9375rem] text-clay"
+          />
         </div>
       </div>
-      {/* The toaster for "Link copied", here rather than in App: this is the
-          only thing on the site that raises a toast, so sonner loads with the
-          post and not with every page. */}
-      <Toaster />
     </>
   );
 }

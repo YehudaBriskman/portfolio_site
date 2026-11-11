@@ -8,7 +8,7 @@ type ShareNavigator = Pick<Navigator, "share" | "canShare"> | undefined;
  *   "fallback"  no Web Share, or it refused: show the menu
  */
 export async function shareLink(
-  data: { url: string; title: string; text?: string },
+  data: { url: string; title: string; text?: string; files?: File[] },
   nav: ShareNavigator = typeof navigator === "undefined" ? undefined : navigator,
 ): Promise<"shared" | "cancelled" | "fallback"> {
   if (!nav || typeof nav.share !== "function") return "fallback";

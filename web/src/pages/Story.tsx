@@ -4,6 +4,7 @@ import PageShell from "@/components/PageShell";
 import Written from "@/components/motion/Written";
 import LivingLine from "@/components/motion/LivingLine";
 import styles from "@/components/story/Story.module.css";
+import ShareMenu from "@/components/share/ShareMenu";
 import { lineAttr } from "@/components/motion/lineMoves";
 import { STORY_LINE, buildStory, type Beat, type Interlude, type Story as StoryData } from "@/data/story";
 import { useContent } from "@/content/store";
@@ -151,6 +152,9 @@ export default function Story() {
               {story.firstYear}–{story.lastYear}
             </span>
           </p>
+          <div className="mt-4">
+            <ShareMenu kind="story" variant="text" entity={{ title: w.title }} />
+          </div>
         </header>
 
         <div className="wrap">

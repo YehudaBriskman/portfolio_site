@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
-import { Minus, Pencil, Plus, Share2 } from "lucide-react";
-import { toast } from "@/components/ui/sonner";
+import { Minus, Pencil, Plus } from "lucide-react";
+import ShareMenu from "@/components/share/ShareMenu";
 import TagPill from "@/components/notes/TagPill";
 import { wasUpdated } from "@/components/dashboard/history";
 import { fullDate, shortDate } from "@/components/dashboard/i18n";
@@ -19,20 +19,6 @@ import styles from "./Reader.module.css";
  * The facts follow `data-display`: a label/value list (`<dl>`), each value
  * said once, dates through `Intl`, no colour beyond the tags' own.
  */
-
-export async function shareNote(title: string, copied: string) {
-  const url = window.location.href;
-  try {
-    if (typeof navigator.share === "function") {
-      await navigator.share({ title, url });
-      return;
-    }
-    await navigator.clipboard.writeText(url);
-    toast(copied);
-  } catch {
-    /* A dismissed share sheet rejects like a failure; say nothing. */
-  }
-}
 
 export default function NotePanels({
   post,
@@ -115,9 +101,12 @@ export default function NotePanels({
         )}
 
         <div className={styles.panelActions}>
-          <button type="button" className={styles.panelBtn} onClick={() => void shareNote(post.title, w.linkCopied)}>
-            <Share2 size={15} aria-hidden="true" /> {w.share}
-          </button>
+          <ShareMenu
+            kind="post"
+            variant="text"
+            className={styles.panelBtn}
+            entity={{ slug: post.slug, title: post.title, summary: post.excerpt, tags: post.tags }}
+          />
           {isAdmin && (
             <Link to={`/admin/posts/${post.slug}`} className={styles.panelBtn} aria-label={w.editNote}>
               <Pencil size={15} aria-hidden="true" /> {w.edit}
