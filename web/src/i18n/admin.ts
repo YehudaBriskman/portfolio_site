@@ -37,7 +37,9 @@ export const useAdminWords = defineWords(
       settings: "Settings",
       connections: "Connected apps",
       translations: "Translations",
+      announce: "Announce",
     },
+    announceUnread: (n: number) => `${n} unread`,
     groups: { content: "Content", site: "Site" },
 
     /* States every list shares. */
@@ -166,7 +168,9 @@ export const useAdminWords = defineWords(
       settings: "הגדרות",
       connections: "אפליקציות מחוברות",
       translations: "תרגומים",
+      announce: "הכרזות",
     },
+    announceUnread: (n: number) => `${n} שלא נקראו`,
     groups: { content: "תוכן", site: "אתר" },
 
     loading: "בטעינה…",

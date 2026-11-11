@@ -10,6 +10,7 @@ import {
   Languages,
   LayoutDashboard,
   LogOut,
+  Megaphone,
   Menu,
   Plug,
   Settings,
@@ -24,6 +25,7 @@ import Ring from "@/components/motion/Ring";
 import { useAdminWords } from "@/i18n/admin";
 import { Counter } from "./ui";
 import { toDo, useTranslationReport } from "@/services/translations";
+import { useAnnounceUnread } from "@/services/adminAnnounce";
 
 /*
  * The admin's own shell, rebuilt as a tool (#288).
@@ -56,7 +58,8 @@ export type AdminSection =
   | "media"
   | "settings"
   | "connections"
-  | "translations";
+  | "translations"
+  | "announce";
 type Section = AdminSection;
 
 const ICONS: Record<Section, typeof FileText> = {
@@ -70,6 +73,7 @@ const ICONS: Record<Section, typeof FileText> = {
   settings: Settings,
   connections: Plug,
   translations: Languages,
+  announce: Megaphone,
 };
 
 const PATHS: Record<Section, string> = {
@@ -83,12 +87,13 @@ const PATHS: Record<Section, string> = {
   settings: "/admin/settings",
   connections: "/admin/connections",
   translations: "/admin/translations",
+  announce: "/admin/announce",
 };
 
 const GROUPS: Array<{ id: "top" | "content" | "site"; items: Section[] }> = [
   { id: "top", items: ["overview"] },
   /* What the public site shows. */
-  { id: "content", items: ["posts", "areas", "projects", "story", "site-copy", "media", "translations"] },
+  { id: "content", items: ["posts", "areas", "projects", "story", "site-copy", "media", "translations", "announce"] },
   /* How it shows it, and who else may read or write it. */
   { id: "site", items: ["settings", "connections"] },
 ];
@@ -125,6 +130,7 @@ export default function AdminShell({ title, section, counts, bottomBar, backTo, 
   /* Public units a Hebrew reader gets in English or out of date (#302). */
   const { report: heReport } = useTranslationReport();
   const translationsDue = heReport ? toDo(heReport) : undefined;
+  const announceUnread = useAnnounceUnread();
   const [who, setWho] = useState("");
   const [open, setOpen] = useState(false);
   const drawerId = useId();
@@ -302,6 +308,16 @@ export default function AdminShell({ title, section, counts, bottomBar, backTo, 
                               </span>
                               {translationsDue !== undefined && <span className="sr-only">{w.toDo(translationsDue)}</span>}
                             </span>
+                          ) : id === "announce" ? (
+                            /* Only unread ones: nothing waiting shows no badge at all. */
+                            announceUnread ? (
+                              <span title={w.announceUnread(announceUnread)}>
+                                <span aria-hidden="true">
+                                  <Counter n={announceUnread} />
+                                </span>
+                                <span className="sr-only">{w.announceUnread(announceUnread)}</span>
+                              </span>
+                            ) : null
                           ) : (
                             <Counter n={counts?.[id]} />
                           )}
