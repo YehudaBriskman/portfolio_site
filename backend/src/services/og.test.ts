@@ -1,6 +1,8 @@
 import crypto from "crypto";
 import { describe, expect, it } from "vitest";
-import { OG_FORMATS, cardSvg, isOgFormat, renderCardPng } from "./og.js";
+import fs from "fs";
+import path from "path";
+import { HEBREW_CARDS, OG_FORMATS, bidiRuns, cardSvg, isOgFormat, renderCardPng } from "./og.js";
 
 /** Width and height from a PNG's IHDR chunk. */
 function size(png: Buffer): { w: number; h: number } {
@@ -58,5 +60,64 @@ describe("the default card is unchanged", () => {
     expect(sha(renderCardPng(SHORT))).toBe("db99bbb02f3d12b7909e910173a0889c2ce7bc9e8e5bc85e8ae52926edd3bbae");
     expect(sha(renderCardPng(LONG, "og"))).toBe("80d499f81a6414f6174437b51e8c66d69f1ab83d6bc53260ece533db7261eb38");
     expect(size(renderCardPng(SHORT))).toEqual({ w: 1200, h: 630 });
+  });
+});
+
+describe("Hebrew cards", () => {
+  const HE = { lang: "he", eyebrow: "הערה", title: "בניית מערכת RAG עם PostgreSQL בגרסה 2.5: מה למדתי?", meta: "yehudabriskman.com · 4 דקות קריאה" } as const;
+
+  it("are on, and leave the English card alone", () => {
+    expect(HEBREW_CARDS).toBe(true);
+    expect(cardSvg({ ...SHORT, lang: "en" })).toBe(cardSvg(SHORT));
+    expect(cardSvg(SHORT)).not.toContain("Heebo");
+  });
+
+  it("set the text in Heebo, right-aligned, on a mirrored scene", () => {
+    const svg = cardSvg(HE);
+    expect(svg).toContain('font-family="Heebo"');
+    expect(svg).toContain('text-anchor="end"');
+    expect(svg).toContain("scale(-1 1)");
+    expect(svg).not.toContain("IBM Plex Mono");
+  });
+
+  it.each(OG_FORMATS)("render at the %s size and differ from English", (format) => {
+    const he = renderCardPng(HE, format);
+    expect(size(he)).toEqual(size(renderCardPng(LONG, format)));
+    expect(sha(he)).not.toBe(sha(renderCardPng({ ...HE, lang: "en" }, format)));
+  });
+
+  it("truncate a very long title instead of overflowing", () => {
+    const svg = cardSvg({ lang: "he", title: "מילה ".repeat(80) }, "story");
+    expect(svg).toContain("…");
+    expect((svg.match(/<text /g) ?? []).length).toBeLessThan(40);
+  });
+
+  it("bundles every Hebrew letter in the font's metrics", () => {
+    const m = JSON.parse(
+      fs.readFileSync(path.join(__dirname, "..", "assets", "fonts", "metrics.json"), "utf8"),
+    ) as Record<string, { widths: Record<string, number> }>;
+    for (let cp = 0x5d0; cp <= 0x5ea; cp++) expect(m.Heebo.widths[String(cp)]).toBeGreaterThan(0);
+  });
+
+  describe("bidiRuns", () => {
+    const runs = (s: string) => bidiRuns(s).map((r) => `${r.level}:${r.text}`);
+
+    it("keeps Latin words and numbers as left-to-right runs inside Hebrew", () => {
+      const r = bidiRuns("עם RAG בגרסה 2.5");
+      expect(r.filter((x) => x.level === 2).map((x) => x.text)).toEqual(["RAG", "2.5"]);
+      expect(r.filter((x) => x.level === 1 && /[א-ת]/.test(x.text)).map((x) => x.text)).toEqual(["עם", "בגרסה"]);
+    });
+
+    it("splits punctuation off the ends of a Hebrew run", () => {
+      expect(runs("ל-TypeScript:")).toEqual(["1:ל", "1:-", "2:TypeScript", "1::"]);
+    });
+
+    it("keeps number separators and percent signs with their number", () => {
+      expect(bidiRuns("הנחה 12.5% בלבד").some((r) => r.level === 2 && r.text === "12.5%")).toBe(true);
+    });
+
+    it("leaves a pure Hebrew line as one run", () => {
+      expect(runs("כותרת קצרה")).toEqual(["1:כותרת קצרה"]);
+    });
   });
 });
