@@ -15,7 +15,7 @@ import type { AnnounceEvent } from "./schemas.js";
 
 export type PreviewLang = "en" | "he";
 
-export type PreviewIssue = { code: string; field: "title" | "description" | "image"; severity: "error" | "warn"; limit?: number; length?: number };
+export type PreviewIssue = { code: string; field: "title" | "description" | "image" | "translation"; severity: "error" | "warn"; limit?: number; length?: number };
 
 export type Preview = {
   title: string;
@@ -45,10 +45,32 @@ export const TITLE_MAX = 70;
 export const DESCRIPTION_MAX = 160;
 export const OG_SIZE = { width: 1200, height: 630 } as const;
 
-/* Only a blog post's own page: a fixed shape, so no user text reaches the dispatch. */
-const POST_PATH = /^\/blog\/[a-z0-9]+(?:-[a-z0-9]+)*$/;
+/* Only fixed shapes of the site's own pages, so no user text reaches the dispatch. */
+const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const POST_PATH = new RegExp(`^/blog/${SLUG.source.slice(1)}`);
 
-export const previewPathOf = (ev: AnnounceEvent): string | null => (ev.path && POST_PATH.test(ev.path) ? ev.path : null);
+/*
+ * The page a platform would read for an event, by kind (the seo routes):
+ * /blog/:slug, /projects/:slug, /blog/area/:slug, /story and /. A custom
+ * announcement has no page of its own, so it is judged on its own fields.
+ */
+export function previewPathOf(ev: AnnounceEvent): string | null {
+  switch (ev.kind) {
+    case "post":
+    case "note":
+      return ev.path && POST_PATH.test(ev.path) ? ev.path : null;
+    case "project":
+      return SLUG.test(ev.ref) ? `/projects/${ev.ref}` : null;
+    case "area":
+      return SLUG.test(ev.ref) ? `/blog/area/${ev.ref}` : null;
+    case "story":
+      return "/story";
+    case "home":
+      return "/";
+    default:
+      return null;
+  }
+}
 
 const unescape = (s: string) =>
   s.replace(/&(amp|lt|gt|quot|#39|apos);/g, (_m, e: string) => ({ amp: "&", lt: "<", gt: ">", quot: '"', "#39": "'", apos: "'" })[e] as string);
@@ -68,7 +90,8 @@ async function localHead(path: string, lang: PreviewLang): Promise<{ status: num
   app.use("/api/seo", seoRoutes);
   const req = new IncomingMessage(new Socket());
   req.method = "GET";
-  req.url = `/api/seo/head${lang === "he" ? "/he" : ""}${path}`;
+  /* The home page is registered as /home, and its Hebrew twin has no suffix. */
+  req.url = path === "/" ? `/api/seo/head${lang === "he" ? "/he" : "/home"}` : `/api/seo/head${lang === "he" ? "/he" : ""}${path}`;
   req.headers = { host: new URL(SITE_URL).host };
   const res = new ServerResponse(req);
   return new Promise((resolve, reject) => {
@@ -111,11 +134,38 @@ export function analyse(head: string[], lang: PreviewLang): Preview {
   };
 }
 
-/** null when the event has no page of its own, or the page is not published. */
+const ownUrl = (u: string) => {
+  try {
+    return new URL(u).origin === new URL(SITE_URL).origin;
+  } catch {
+    return false;
+  }
+};
+
+/** Readiness of a hand-made announcement, from its own fields: the image's size is not known. */
+function analyseCustom(ev: AnnounceEvent, lang: PreviewLang): Preview {
+  const title = ev.custom?.title ?? ev.title;
+  const description = ev.custom?.summary ?? ev.summary;
+  const image = ev.custom?.imageUrl && ownUrl(ev.custom.imageUrl) ? ev.custom.imageUrl : "";
+  const issues: PreviewIssue[] = [];
+  if (!title) issues.push({ code: "title-missing", field: "title", severity: "error" });
+  else if (title.length > TITLE_MAX) issues.push({ code: "title-long", field: "title", severity: "warn", limit: TITLE_MAX, length: title.length });
+  if (!description) issues.push({ code: "description-missing", field: "description", severity: "error" });
+  else if (description.length > DESCRIPTION_MAX) issues.push({ code: "description-long", field: "description", severity: "warn", limit: DESCRIPTION_MAX, length: description.length });
+  if (!image) issues.push({ code: "image-missing", field: "image", severity: "error" });
+  if (Object.keys(ev.drafts?.he ?? {}).length === 0) issues.push({ code: "no-hebrew-translation", field: "translation", severity: "warn" });
+  return { title, description, image, imageWidth: null, imageHeight: null, siteName: new URL(SITE_URL).hostname, url: ev.url, lang, issues };
+}
+
+/** "no-page" for a custom announcement's page, null-path kinds; "unpublished" when the page is not there. */
 export async function previewFor(ev: AnnounceEvent, lang: PreviewLang): Promise<Preview | "no-page" | "unpublished"> {
+  if (ev.kind === "custom") return analyseCustom(ev, lang);
   const path = previewPathOf(ev);
   if (!path) return "no-page";
   const r = await localHead(path, lang);
   if (r.status !== 200 || !Array.isArray(r.body.head)) return "unpublished";
-  return analyse(r.body.head, lang);
+  const p = analyse(r.body.head, lang);
+  /* story and home are always written in both languages; the rest carry their Hebrew or do not. */
+  if (!ev.langs.includes("he") && ev.kind !== "story" && ev.kind !== "home") p.issues.push({ code: "no-hebrew-translation", field: "translation", severity: "warn" });
+  return p;
 }
