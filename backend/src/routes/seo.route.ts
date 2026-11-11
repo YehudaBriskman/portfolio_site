@@ -13,7 +13,7 @@ import {
   buildSitemap,
   clampDescription,
   fetchShell,
-  headTags,
+  metaLines as headTags,
   markdownToFallbackHtml,
   pathIn,
   renderShellWithMeta,

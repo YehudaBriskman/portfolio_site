@@ -13,8 +13,12 @@ import type { SiteSettings } from "../schemas/site-settings.js";
  * rewritten per URL, which is what `renderShellWithMeta` does.
  */
 
+const SITE_AUTHOR = "Yehuda Briskman";
+const OG_WIDTH = 1200;
+const OG_HEIGHT = 630;
+
 /** Search engines and social crawlers both need absolute URLs, never paths. */
-export const SITE_URL = env.SITE_URL.replace(/\/+$/, "");
+export const SITE_URL = env.SITE_URL;
 
 export function absoluteUrl(pathname: string): string {
   return `${SITE_URL}${pathname.startsWith("/") ? pathname : `/${pathname}`}`;
@@ -574,72 +578,24 @@ export function imageTypeFor(url: string): string | null {
  * writes them: what the app swaps in after a client-side navigation
  * (web/src/components/HeadSync.tsx), so both ways of arriving get one head.
  */
-export function headTags(meta: PageMeta): string[] {
-  return metaLines(meta);
-}
-
-function metaBlock(meta: PageMeta): string {
-  return metaLines(meta)
-    .map((l) => `    ${l}`)
-    .join("\n");
-}
-
-function metaLines(meta: PageMeta): string[] {
-  const title = escapeAttr(meta.title);
-  const description = escapeAttr(clampDescription(meta.description));
-  const socialDescription = escapeAttr(clampDescription(meta.socialDescription ?? meta.description));
-  const imageType = imageTypeFor(meta.image);
-  /* An item with no published Hebrew (#304, design §5.4): its Hebrew page is
-     the English under Hebrew chrome, so it is noindex, names no alternates
-     and says en_US; its English page names no Hebrew alternate. */
-  const pair = meta.path !== undefined && meta.translated !== false;
-  const fallback = meta.lang === "he" && meta.translated === false;
+export function metaLines(meta: PageMeta): string[] {
+  /* An item with no published Hebrew: its Hebrew page is the English under
+     Hebrew chrome, so it is noindex, names no alternates and says en_US; its
+     English page names no Hebrew alternate. */
+  const path = meta.translated === false ? undefined : meta.path;
+  const isEnglishFallback = meta.lang === "he" && meta.translated === false;
   const lines: string[] = [
     `<title>${escapeXml(meta.title)}</title>`,
-    `<meta name="description" content="${description}" />`,
+    `<meta name="description" content="${escapeAttr(clampDescription(meta.description))}" />`,
     `<link rel="canonical" href="${escapeAttr(meta.canonical)}" />`,
+    ...hreflangLines(path),
+    meta.noindex || isEnglishFallback
+      ? `<meta name="robots" content="noindex, follow" />`
+      : `<meta name="robots" content="index, follow, max-image-preview:large" />`,
+    ...openGraphLines(meta, path !== undefined, isEnglishFallback),
+    ...twitterLines(meta),
+    ...articleLines(meta),
   ];
-
-  if (pair && meta.path !== undefined) {
-    for (const l of LANGS) {
-      lines.push(`<link rel="alternate" hreflang="${l}" href="${escapeAttr(absoluteUrl(pathIn(meta.path, l)))}" />`);
-    }
-    lines.push(`<link rel="alternate" hreflang="x-default" href="${escapeAttr(absoluteUrl(meta.path))}" />`);
-  }
-
-  if (meta.noindex || fallback) lines.push(`<meta name="robots" content="noindex, follow" />`);
-  else lines.push(`<meta name="robots" content="index, follow, max-image-preview:large" />`);
-
-  lines.push(
-    `<meta property="og:type" content="${meta.type}" />`,
-    `<meta property="og:site_name" content="Yehuda Briskman" />`,
-    `<meta property="og:locale" content="${meta.lang === "he" && !fallback ? "he_IL" : "en_US"}" />`,
-    ...(pair
-      ? [`<meta property="og:locale:alternate" content="${meta.lang === "he" ? "en_US" : "he_IL"}" />`]
-      : []),
-    `<meta property="og:title" content="${title}" />`,
-    `<meta property="og:description" content="${socialDescription}" />`,
-    `<meta property="og:url" content="${escapeAttr(meta.canonical)}" />`,
-    `<meta property="og:image" content="${escapeAttr(meta.image)}" />`,
-    ...(imageType ? [`<meta property="og:image:type" content="${imageType}" />`] : []),
-    `<meta property="og:image:width" content="1200" />`,
-    `<meta property="og:image:height" content="630" />`,
-    `<meta property="og:image:alt" content="${escapeAttr(meta.imageAlt)}" />`,
-    // X does not read Open Graph by default, so the same facts are repeated
-    // under its own prefix rather than assumed to carry over.
-    `<meta name="twitter:card" content="summary_large_image" />`,
-    `<meta name="twitter:title" content="${title}" />`,
-    `<meta name="twitter:description" content="${socialDescription}" />`,
-    `<meta name="twitter:image" content="${escapeAttr(meta.image)}" />`,
-    `<meta name="twitter:image:alt" content="${escapeAttr(meta.imageAlt)}" />`,
-  );
-
-  if (meta.type === "article") {
-    if (meta.publishedAt) lines.push(`<meta property="article:published_time" content="${escapeAttr(meta.publishedAt)}" />`);
-    if (meta.modifiedAt) lines.push(`<meta property="article:modified_time" content="${escapeAttr(meta.modifiedAt)}" />`);
-    lines.push(`<meta property="article:author" content="Yehuda Briskman" />`);
-    for (const tag of meta.tags ?? []) lines.push(`<meta property="article:tag" content="${escapeAttr(tag)}" />`);
-  }
 
   for (const f of meta.feeds ?? []) {
     lines.push(
@@ -654,6 +610,63 @@ function metaLines(meta: PageMeta): string[] {
   }
 
   return lines;
+}
+
+/** The English and Hebrew twins of a page; none when it has no Hebrew twin. */
+function hreflangLines(path: string | undefined): string[] {
+  if (path === undefined) return [];
+  return [
+    ...LANGS.map((l) => `<link rel="alternate" hreflang="${l}" href="${escapeAttr(absoluteUrl(pathIn(path, l)))}" />`),
+    `<link rel="alternate" hreflang="x-default" href="${escapeAttr(absoluteUrl(path))}" />`,
+  ];
+}
+
+function openGraphLines(meta: PageMeta, hasHebrewTwin: boolean, isEnglishFallback: boolean): string[] {
+  const imageType = imageTypeFor(meta.image);
+  return [
+    `<meta property="og:type" content="${meta.type}" />`,
+    `<meta property="og:site_name" content="${SITE_AUTHOR}" />`,
+    `<meta property="og:locale" content="${meta.lang === "he" && !isEnglishFallback ? "he_IL" : "en_US"}" />`,
+    ...(hasHebrewTwin
+      ? [`<meta property="og:locale:alternate" content="${meta.lang === "he" ? "en_US" : "he_IL"}" />`]
+      : []),
+    `<meta property="og:title" content="${escapeAttr(meta.title)}" />`,
+    `<meta property="og:description" content="${escapeAttr(clampDescription(meta.socialDescription ?? meta.description))}" />`,
+    `<meta property="og:url" content="${escapeAttr(meta.canonical)}" />`,
+    `<meta property="og:image" content="${escapeAttr(meta.image)}" />`,
+    ...(imageType ? [`<meta property="og:image:type" content="${imageType}" />`] : []),
+    `<meta property="og:image:width" content="${OG_WIDTH}" />`,
+    `<meta property="og:image:height" content="${OG_HEIGHT}" />`,
+    `<meta property="og:image:alt" content="${escapeAttr(meta.imageAlt)}" />`,
+  ];
+}
+
+// X does not read Open Graph by default, so the same facts are repeated
+// under its own prefix rather than assumed to carry over.
+function twitterLines(meta: PageMeta): string[] {
+  return [
+    `<meta name="twitter:card" content="summary_large_image" />`,
+    `<meta name="twitter:title" content="${escapeAttr(meta.title)}" />`,
+    `<meta name="twitter:description" content="${escapeAttr(clampDescription(meta.socialDescription ?? meta.description))}" />`,
+    `<meta name="twitter:image" content="${escapeAttr(meta.image)}" />`,
+    `<meta name="twitter:image:alt" content="${escapeAttr(meta.imageAlt)}" />`,
+  ];
+}
+
+function articleLines(meta: PageMeta): string[] {
+  if (meta.type !== "article") return [];
+  return [
+    ...(meta.publishedAt ? [`<meta property="article:published_time" content="${escapeAttr(meta.publishedAt)}" />`] : []),
+    ...(meta.modifiedAt ? [`<meta property="article:modified_time" content="${escapeAttr(meta.modifiedAt)}" />`] : []),
+    `<meta property="article:author" content="${SITE_AUTHOR}" />`,
+    ...(meta.tags ?? []).map((tag) => `<meta property="article:tag" content="${escapeAttr(tag)}" />`),
+  ];
+}
+
+function metaBlock(meta: PageMeta): string {
+  return metaLines(meta)
+    .map((l) => `    ${l}`)
+    .join("\n");
 }
 
 /*
