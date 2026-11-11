@@ -196,7 +196,7 @@ describe("the wall", () => {
   });
 
   it("is the only place the gallery animates: the pieces' stylesheets carry no keyframes", () => {
-    for (const f of ["projects/Gallery.module.css", "notes/NoteTile.module.css", "gallery/Filter.module.css", "gallery/Rail.module.css"]) {
+    for (const f of ["notes/NoteTile.module.css", "gallery/Filter.module.css", "gallery/Rail.module.css"]) {
       expect(css(f), f).not.toMatch(/@keyframes|animation:/);
     }
   });

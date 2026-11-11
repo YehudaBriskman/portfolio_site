@@ -18,6 +18,9 @@ const listed = (name: string) => {
 
 describe("the MCP server page", () => {
   it("lists exactly the server's tools", () => {
+    for (const name of ["PUBLIC_TOOLS", "ADMIN_READ_TOOLS", "ADMIN_TOOLS"]) {
+      expect(listed(name), `${name} not found in mcp/src/tools.ts`).not.toHaveLength(0);
+    }
     expect(PUBLIC.map((t) => t.name).sort()).toEqual(listed("PUBLIC_TOOLS"));
     expect(OWNER_READ.map((t) => t.name).sort()).toEqual(listed("ADMIN_READ_TOOLS"));
     expect([...OWNER_READ, ...OWNER_WRITE].map((t) => t.name).sort()).toEqual(listed("ADMIN_TOOLS"));
