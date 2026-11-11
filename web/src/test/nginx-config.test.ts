@@ -116,6 +116,8 @@ const SECURITY_HEADERS = [
   "referrer-policy",
   "content-security-policy",
   "permissions-policy",
+  "cross-origin-opener-policy",
+  "cross-origin-resource-policy",
 ];
 
 /* ------------------------------------------------------------------- tests */
@@ -466,5 +468,35 @@ describe("removed project URLs redirect to /projects", () => {
   it.each(["/projects/change11", "/projects/text-encrypting"])("%s is redirected in the app too", (route) => {
     const line = APP.split("\n").find((l) => l.includes(`path="${route}"`));
     expect(line).toContain('<Navigate to="/projects" replace />');
+  });
+});
+
+describe("edge config details", () => {
+  const top = parse(TEMPLATE, SNIPPETS);
+
+  it("logs errors at warn, because info-level lines carry the query string", () => {
+    const level = top.find((d) => d.name === "error_log")!.args[1];
+    expect(level).toBe("warn");
+  });
+
+  it("forwards the visitor's scheme, not nginx's own listener scheme", () => {
+    const proxied = locations.filter((loc) => loc.block!.some((d) => d.name === "proxy_pass"));
+    const wrong = proxied.filter((loc) => upstreamHeaders(loc).get("x-forwarded-proto") !== "$fwd_proto");
+    expect(wrong.map(label)).toEqual([]);
+    const map = top.find((d) => d.name === "map" && d.args[1] === "$fwd_proto");
+    expect(map).toBeDefined();
+    expect(map!.args[0]).toBe("$http_x_forwarded_proto");
+  });
+
+  it("answers a directory URL with 404 rather than 403", () => {
+    const dir = locations.find((l) => l.args.join(" ") === "~ /$");
+    expect(dir).toBeDefined();
+    expect(dir!.block!.some((d) => d.name === "return" && d.args[0] === "404")).toBe(true);
+  });
+
+  it("keeps decoded captures to the slug alphabet", () => {
+    const captures = locations.filter((l) => l.args[0] === "~" && /\(\?:?\/?\(|\(\[/.test(l.args[1] ?? ""));
+    expect(captures.length).toBeGreaterThan(0);
+    for (const l of captures) expect(l.args[1], label(l)).not.toMatch(/\[\^/);
   });
 });

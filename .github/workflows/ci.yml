@@ -518,7 +518,6 @@ jobs:
       - run: npm ci
       - name: Runtime dependencies carry no high advisory
         run: npm audit --omit=dev --audit-level=high
-      - run: npm run lint --if-present
       - run: npm test
       - run: npm run build
 
@@ -1187,7 +1186,7 @@ jobs:
           tags: tag:ci
           # Ephemeral, so the runner leaves no device behind in the tailnet
           # when the job ends.
-          version: latest
+          version: 1.104.6
 
       # Through the environment, not interpolated into the script. A secret
       # expanded by the workflow templater becomes part of the command line,

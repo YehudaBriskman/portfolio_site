@@ -17,7 +17,10 @@ log_format mcp_ext '$remote_addr - $remote_user [$time_local] '
                    'rt=$request_time urt=$upstream_response_time '
                    'uaddr=$upstream_addr ustatus=$upstream_status '
                    'host=$host req_id=$request_id';
-error_log  /dev/stderr info;
+# warn, not info: at info an upstream error logs `request: "GET /path?query"`,
+# and the MCP OAuth endpoints carry authorization codes in theirs. No
+# per-location error_log can strip a query string, so the level is the control.
+error_log  /dev/stderr warn;
 
 # No brotli, and not by oversight: `nginx -V` on nginx:alpine reports
 # --with-http_gzip_static_module but no brotli, and the only dynamic modules the
@@ -93,6 +96,15 @@ map "${NGINX_FORWARD_IDENTITY}" $fwd_admin_proxy_secret {
 # the canonical tag arguing which was real (Search Console, "Alternate page with
 # proper canonical"). The regex works for any host, so preprod is unaffected and
 # production needs no name written here.
+# The scheme the visitor used, as the edge proxy saw it. nginx's own $scheme is
+# always http (it listens on plain 8080), which would overwrite Traefik's https.
+# With no header (direct access, Compose) it falls back to nginx's own.
+map $http_x_forwarded_proto $fwd_proto {
+  default $scheme;
+  https   https;
+  http    http;
+}
+
 map $host $www_apex {
   "~^www\.(?<apex>.+)$" $apex;
   default "";
@@ -356,21 +368,21 @@ server {
   # `location /` and answered 404 with the home page's head while the app
   # booted over it and looked fine (#238). The renderer answers 404 itself for
   # an unknown or hidden area, so nothing here needs to know which exist.
-  location ~ "^/blog/area/([^/.]+)/?$" {
+  location ~ "^/blog/area/([A-Za-z0-9_-]+)/?$" {
     proxy_pass http://$api_upstream/api/seo/render/blog/area/$1;
     include /etc/nginx/snippets/proxy-headers.conf;
     proxy_intercept_errors on;
     error_page 500 502 503 504 = @spa;
   }
 
-  location ~ "^/blog/([^/.]+)/?$" {
+  location ~ "^/blog/([A-Za-z0-9_-]+)/?$" {
     proxy_pass http://$api_upstream/api/seo/render/blog/$1;
     include /etc/nginx/snippets/proxy-headers.conf;
     proxy_intercept_errors on;
     error_page 500 502 503 504 = @spa;
   }
 
-  location ~ "^/projects/([^/.]+)/?$" {
+  location ~ "^/projects/([A-Za-z0-9_-]+)/?$" {
     proxy_pass http://$api_upstream/api/seo/render/projects/$1;
     include /etc/nginx/snippets/proxy-headers.conf;
     proxy_intercept_errors on;
@@ -382,8 +394,11 @@ server {
   # every page's path: /he/blog/x goes to /api/seo/render/he/blog/x, /he to
   # /api/seo/render/he/, and an address that is no page answers the
   # renderer's 404. A dot anywhere is a file, as for the English pages, so
-  # nothing under /he/ is ever mistaken for an asset or vice versa.
-  location ~ "^/he(?:/([^.]*))?$" {
+  # nothing under /he/ is ever mistaken for an asset or vice versa. Captures
+  # are limited to the slug alphabet because $1 arrives decoded and goes
+  # straight into proxy_pass's URI: a decoded `?`, space or CR/LF would
+  # otherwise corrupt the upstream request line.
+  location ~ "^/he(?:/([A-Za-z0-9/_-]*))?$" {
     proxy_pass http://$api_upstream/api/seo/render/he/$1;
     include /etc/nginx/snippets/proxy-headers.conf;
     proxy_intercept_errors on;
@@ -412,6 +427,7 @@ server {
   # An empty urlset beats a 502: Search Console retries a valid empty sitemap,
   # but records an error against the site for a broken one.
   location @empty_sitemap {
+    include /etc/nginx/snippets/security-headers.conf;
     default_type application/xml;
     return 200 '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>';
   }
@@ -489,6 +505,7 @@ server {
   # useless to a <script> tag and only confuses whoever is reading the network
   # panel.
   location @plain_404 {
+    include /etc/nginx/snippets/security-headers.conf;
     default_type text/plain;
     return 404 "not found\n";
   }
@@ -593,6 +610,13 @@ server {
   # "try_files /index.html" here instead would serve the same body with a 200,
   # which is the soft-404 this is meant to remove.
   #
+  # A directory URL (/assets/, /fonts/) is not a file: without this nginx finds
+  # the directory and answers 403, which confirms it exists. Every real route
+  # ending in a slash is matched above; this sits after them.
+  location ~ /$ {
+    return 404;
+  }
+
   location / {
     try_files $uri =404;
   }
