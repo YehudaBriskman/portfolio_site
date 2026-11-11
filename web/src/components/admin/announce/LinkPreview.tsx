@@ -4,6 +4,7 @@ import {
   adminAnnounce,
   type AnnounceLang,
   type AnnouncePreview,
+  type PreviewIssue,
 } from "@/services/adminAnnounce";
 import { domainOf } from "./helpers";
 import { useAnnounceWords } from "./words";
