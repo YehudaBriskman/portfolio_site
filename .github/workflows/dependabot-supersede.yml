@@ -22,19 +22,10 @@
 # same or a higher version (#201): a newer group PR that lacks the fix must not
 # drop it.
 #
-# Why a schedule, not pull_request_target (#228). This ran on
-# pull_request_target until GitHub announced "pull_request_target blocked by
-# default December 2":
-#   https://github.blog/changelog/2026-11-02-pull_request_target-blocked-by-default-december-2
-#   https://github.blog/changelog/2026-09-17-workflow-execution-protections-in-github-actions-generally-available/
-# "For public repositories that do not already have an applicable event policy,
-# GitHub is introducing a default rule that disables pull_request_target."
-# "This default does not apply to private or internal repositories." Enforced
-# December 2nd, 2026 (moved from November 2 by an editor's note of October 21),
-# with brownouts on November 9 and 16, 16:00-18:00 UTC. The rule covers every
-# pull_request_target run, not only fork PRs, so Dependabot's same-repo
-# branches are blocked too, and this repository is public. Allowing it again
-# takes an Actions event policy; a schedule needs no setting at all.
+# Why a schedule, not pull_request_target: GitHub disables pull_request_target
+# by default on public repositories (every run, including Dependabot's
+# same-repo branches), and re-enabling it takes an Actions event policy. A
+# schedule needs no setting.
 #
 # A `pull_request` run is no substitute: raised by Dependabot, its GITHUB_TOKEN
 # is read-only whatever `permissions:` says, so the close would fail. A

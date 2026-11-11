@@ -6,7 +6,7 @@ import type { PortfolioApi } from "./api.js";
 import { dryRun, fail, json, safe, type MediaItem, type MediaKind } from "./tools.js";
 
 /*
- * upload_media (#253): stdio only, and deliberately NOT in tools.ts.
+ * upload_media: stdio only, and deliberately NOT in tools.ts.
  *
  * It reads a file from a local path. Over stdio that path is on the owner's
  * own machine, which is the point. In tools.ts it would also be registered by
@@ -17,8 +17,8 @@ import { dryRun, fail, json, safe, type MediaItem, type MediaKind } from "./tool
  */
 export const STDIO_TOOLS = ["upload_media"] as const;
 
-/* The server checks the bytes; this only keeps an obviously wrong file from being read. */
 const MB = 1024 * 1024;
+/* The server checks the bytes; TYPES and RULES only keep an obviously wrong file from being read. */
 const TYPES: Record<string, string> = {
   jpg: "image/jpeg",
   jpeg: "image/jpeg",

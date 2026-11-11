@@ -5,19 +5,14 @@ import type { Express } from "express";
 import type { Admin } from "../middlewares/requireAdmin.js";
 
 /*
- * How a remote MCP tool call reaches this API (#263).
+ * How a remote MCP tool call reaches this API.
  *
- * The tools (mcp/src/tools.ts, copied to ./shared) are written against the
- * HTTP API, so every write goes through the same validation, optimistic lock
- * and audit log as the admin UI. The remote server runs them against this
- * very process: a private listener on 127.0.0.1 and an ephemeral port, serving
- * the same Express app, that nothing outside the pod can reach.
+ * The tools run against this very process through a private loopback
+ * listener, so every write gets the admin UI's validation, lock and audit log.
  *
  * The caller's identity crosses that hop as a TICKET, never as a credential:
- * a 256-bit random string, single-use, valid for thirty seconds, that names
- * an entry in a map in this process. requireAdmin redeems it only on a
- * loopback socket. A ticket in a log or a header dump is useless a moment
- * later, and one sent from outside the pod is a 401.
+ * random, single-use, short-lived, redeemable only on a loopback socket. One
+ * leaked in a log is useless a moment later; one sent from outside is a 401.
  *
  * The client's own address rides along in X-Forwarded-For, written so the
  * app's `trust proxy` count (2) lands on it: the per-address limiters then
