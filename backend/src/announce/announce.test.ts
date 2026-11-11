@@ -3,6 +3,7 @@ import { createApp } from "../app";
 import { couch, CouchError } from "../db/couch.js";
 import { env } from "../env.js";
 import type { SiteReleases } from "../schemas/content.js";
+import { emailService } from "../services/email.service.js";
 import { announceNewReleases } from "./hooks.js";
 import { DEFAULT_ANNOUNCE_SETTINGS } from "./schemas.js";
 
@@ -169,5 +170,41 @@ describe("routes", () => {
     expect(pub.status).toBe(200);
     const text = JSON.stringify(pub.body);
     expect(text).not.toMatch(/announce|SECRET-SIG-XYZ|owneronly|signature/i);
+  });
+});
+
+describe("owner email", () => {
+  const rel = (tag: string) => ({ tag, name: null, url: `https://github.com/o/r/releases/tag/${tag}`, publishedAt: T });
+  const doc = (tags: string[]): SiteReleases => ({ _id: "site-releases", type: "site-releases", repo: { owner: "o", name: "r" }, items: tags.map(rel), fetchedAt: T, error: null });
+  const enable = (on: boolean) =>
+    store.set("settings:announce", { _id: "settings:announce", _rev: "1-z", type: "settings-announce", updatedAt: T, settings: { ...DEFAULT_ANNOUNCE_SETTINGS, email: { enabled: on, events: ["post", "release"] } } });
+
+  it("sends nothing by default", async () => {
+    const send = vi.spyOn(emailService, "send").mockResolvedValue({ ok: true } as never);
+    await announceNewReleases(doc(["v1.0.0"]));
+    await announceNewReleases(doc(["v1.1.0", "v1.0.0"]));
+    expect(events()).toHaveLength(1);
+    expect(send).not.toHaveBeenCalled();
+  });
+
+  it("sends one mail per event, with no replyTo, once", async () => {
+    enable(true);
+    const send = vi.spyOn(emailService, "send").mockResolvedValue({ ok: true } as never);
+    await announceNewReleases(doc(["v1.0.0"]));
+    await announceNewReleases(doc(["v1.1.0", "v1.0.0"]));
+    await announceNewReleases(doc(["v1.1.0", "v1.0.0"]));
+    expect(send).toHaveBeenCalledTimes(1);
+    const arg = send.mock.calls[0][0];
+    expect(arg).not.toHaveProperty("replyTo");
+    expect(arg.subject).toContain("v1.1.0");
+    expect(arg.text).toContain("/admin/announce");
+  });
+
+  it("logs a send failure instead of throwing, and keeps the event", async () => {
+    enable(true);
+    vi.spyOn(emailService, "send").mockRejectedValue(new Error("smtp down"));
+    await announceNewReleases(doc(["v1.0.0"]));
+    await expect(announceNewReleases(doc(["v1.1.0", "v1.0.0"]))).resolves.toBeUndefined();
+    expect(events()).toHaveLength(1);
   });
 });
