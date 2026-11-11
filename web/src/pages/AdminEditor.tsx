@@ -69,6 +69,12 @@ type Save =
   | { kind: "failed"; message: string }
   | { kind: "conflict" };
 
+/** The review dialog's flow: closed, open (with the last publish error), or publishing. */
+type Publish =
+  | { kind: "idle" }
+  | { kind: "reviewing"; error: string | null }
+  | { kind: "publishing" };
+
 /** The editable content of a stored note: its draft when it has one. */
 function contentOf(p: AdminPost, useDraft: boolean): PostContent {
   if (useDraft && p.draft) return p.draft;
@@ -226,9 +232,7 @@ export default function AdminEditor() {
   const [notice, setNotice] = useState<{ text: string; bad?: boolean } | null>(null);
   const [cols, setCols] = useState<AdminCollection[]>([]);
   const [all, setAll] = useState<AdminPost[]>([]);
-  const [reviewing, setReviewing] = useState(false);
-  const [publishing, setPublishing] = useState(false);
-  const [publishError, setPublishError] = useState<string | null>(null);
+  const [publishFlow, setPublishFlow] = useState<Publish>({ kind: "idle" });
   const loadedSlug = useRef<string | null>(null);
   const routeSlug = useRef(slug);
   routeSlug.current = slug;
@@ -404,8 +408,7 @@ export default function AdminEditor() {
   }
 
   async function publish(changeNote: string, scope: PublishScope = "both") {
-    setPublishing(true);
-    setPublishError(null);
+    setPublishFlow({ kind: "publishing" });
     const at = versionRef.current;
     try {
       const p = await admin.publish(f.slug, { ...content, _rev: post?._rev, ...(changeNote ? { changeNote } : {}), ...(scope !== "both" ? { scope } : {}) });
@@ -413,14 +416,12 @@ export default function AdminEditor() {
       setSavedVersion(at);
       setSave({ kind: "saved", at: new Date() });
       setNotice({ text: w.published });
-      setReviewing(false);
+      setPublishFlow({ kind: "idle" });
       if (isNew) nav(`/admin/posts/${p.slug}`, { replace: true });
     } catch (e) {
       const message = e instanceof AdminValidationError ? describe(e.fieldErrors) : e instanceof Error ? e.message : "?";
       if (e instanceof AdminValidationError) setErrors(e.fieldErrors);
-      setPublishError(message);
-    } finally {
-      setPublishing(false);
+      setPublishFlow({ kind: "reviewing", error: message });
     }
   }
 
@@ -471,8 +472,7 @@ export default function AdminEditor() {
           disabled={!canSave || !f.body.trim() || (published !== null && !hasDraft)}
           aria-haspopup="dialog"
           onClick={() => {
-            setPublishError(null);
-            setReviewing(true);
+            setPublishFlow({ kind: "reviewing", error: null });
           }}
         >
           {w.review}
@@ -797,13 +797,13 @@ export default function AdminEditor() {
       )}
 
       <ReviewDialog
-        open={reviewing}
-        onClose={() => setReviewing(false)}
+        open={publishFlow.kind !== "idle"}
+        onClose={() => setPublishFlow({ kind: "idle" })}
         published={published}
         next={content}
         words={w}
-        busy={publishing}
-        error={publishError}
+        busy={publishFlow.kind === "publishing"}
+        error={publishFlow.kind === "reviewing" ? publishFlow.error : null}
         onPublish={(note, scope) => void publish(note, scope)}
       />
     </AdminShell>
