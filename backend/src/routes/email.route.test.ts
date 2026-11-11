@@ -46,12 +46,13 @@ describe("POST /api/email/send", () => {
     expect(send).not.toHaveBeenCalled();
   });
 
-  it("reports a provider refusal as 502 with the provider's reason", async () => {
+  it("reports a provider refusal as 502 with a fixed message, not the provider's text", async () => {
     vi.spyOn(emailService, "send").mockResolvedValue({ ok: false, error: "mailbox unavailable" });
     const res = await request(createApp()).post("/api/email/send").send(formPayload);
 
     expect(res.status).toBe(502);
-    expect(res.body).toEqual({ ok: false, error: "mailbox unavailable" });
+    expect(res.body).toEqual({ ok: false, error: "Could not send the message right now" });
+    expect(JSON.stringify(res.body)).not.toContain("mailbox unavailable");
   });
 
   it("turns a thrown transport error into JSON 500 without its message", async () => {
