@@ -1,6 +1,7 @@
 /*
  * The pure half of an area's history (#225): the short id, the day groups,
- * the "updated" test, the topic breakdown, and sharing. No React here, so
+ * the "updated" test, the topic breakdown, and a note's address (sharing itself
+ * lives in `lib/share`). No React here, so
  * every rule is a unit test away.
  */
 
@@ -95,45 +96,6 @@ export function topicBreakdown(items: { tags: string[] }[], keep = 4): { shares:
 
 export function permalink(slug: string, origin: string): string {
   return `${origin}/blog/${encodeURIComponent(slug)}`;
-}
-
-export function linkedInShareUrl(url: string): string {
-  return `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`;
-}
-
-export function xShareUrl(url: string, text: string): string {
-  return `https://x.com/intent/post?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`;
-}
-
-type ShareNavigator = Pick<Navigator, "share" | "canShare"> | undefined;
-
-/**
- * Web Share where the browser has it, and a fallback otherwise.
- *
- *   "shared"    the system sheet took it
- *   "cancelled" the reader closed the sheet; nothing more to do
- *   "fallback"  no Web Share, or it refused: show copy + LinkedIn + X
- */
-export async function shareLink(data: { url: string; title: string }, nav: ShareNavigator = typeof navigator === "undefined" ? undefined : navigator): Promise<"shared" | "cancelled" | "fallback"> {
-  if (!nav || typeof nav.share !== "function") return "fallback";
-  if (typeof nav.canShare === "function" && !nav.canShare(data)) return "fallback";
-  try {
-    await nav.share(data);
-    return "shared";
-  } catch (e) {
-    return e instanceof Error && e.name === "AbortError" ? "cancelled" : "fallback";
-  }
-}
-
-/** Copies text; false when the clipboard is unavailable or refused. */
-export async function copyText(text: string): Promise<boolean> {
-  try {
-    if (typeof navigator === "undefined" || !navigator.clipboard) return false;
-    await navigator.clipboard.writeText(text);
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 /* ─────────────────────────────────────────────────────────────── keys */

@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Check, Link2 } from "lucide-react";
-import { copyText } from "@/components/dashboard/history";
+import { copyText } from "@/lib/share";
 import { useLang } from "@/components/dashboard/i18n";
 import styles from "@/components/notes/headingAnchors.module.css";
 

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, type RefObject } from "react";
-import { copyText, isForeignKey, stepIndex } from "@/components/dashboard/history";
+import { isForeignKey, stepIndex } from "@/components/dashboard/history";
+import { copyText } from "@/lib/share";
 
 /*
  * The area history's two hooks (#225): a copy status shared by every row,
