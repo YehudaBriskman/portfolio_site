@@ -2,7 +2,7 @@ import { randomBytes } from "node:crypto";
 import type { Response } from "express";
 
 /*
- * The three pages the authorization server shows a browser (#263): consent,
+ * The three pages the authorization server shows a browser: consent,
  * "not authorized", and an error; plus the hand-off back to the client.
  *
  * Server-rendered, no script at all, and each response carries its own CSP:
@@ -10,9 +10,8 @@ import type { Response } from "express";
  * form can post only here. nginx adds the site-wide policy on top, and a
  * browser enforces both, so neither can be the weaker one.
  *
- * The palette and type are the site's (web/src/index.css): paper #ECE8DC,
- * ink #14130F, ink-soft #55524A, rule #CFC9BA, signal #23406B; Audiowide for
- * the display line and Atkinson Hyperlegible Next for text, both self-hosted.
+ * The palette and type in STYLE copy the site's tokens (web/src/index.css);
+ * keep them in step by hand. Fonts are self-hosted.
  */
 
 export const escapeHtml = (s: string) =>

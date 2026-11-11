@@ -41,7 +41,7 @@ import {
 } from "./config.js";
 
 /*
- * The authorization server behind /mcp (#263), as the MCP TypeScript SDK's
+ * The authorization server behind /mcp, as the MCP TypeScript SDK's
  * OAuthServerProvider. The SDK's handlers do the protocol (parameter checks,
  * PKCE S256 verification against the challenge returned here, error shapes,
  * redirect_uri matching with RFC 8252's any-port loopback rule); this file
@@ -49,11 +49,11 @@ import {
  * public routes never select (routes/public-isolation.test.ts):
  *
  *   mcpclient:<uuid>  a dynamically registered client. Its secret, if it has
- *                     one, is stored as SHA-256 only. Expires an hour after
- *                     registration if never used, else 30 days after last use.
+ *                     one, is stored as SHA-256 only. Expires when idle
+ *                     (see config.ts).
  *   mcptxn:<hex>      one sign-in in flight: the client's request, and the
- *                     state and PKCE verifier sent on to GitHub. 10 minutes.
- *   mcpcode:<hex>     an authorization code, hashed. Single use, 5 minutes; a
+ *                     state and PKCE verifier sent on to GitHub. Short-lived.
+ *   mcpcode:<hex>     an authorization code, hashed. Single use and short-lived; a
  *                     second use revokes the grant the first one created.
  *   mcpgrant:<hex>    one connection (a row under /admin "Connected apps"):
  *                     the client, the scopes the owner chose, the current
@@ -61,8 +61,8 @@ import {
  *   mcpowner          the owner's numeric GitHub id, recorded on first sign-in
  *                     unless ADMIN_GITHUB_ID pins it.
  *
- * Tokens are opaque, `<prefix>_<16 hex id>_<43 random>`, the #252 format:
- * `mat_` access (1 hour), `mrt_` refresh (30 days, rotated on every use),
+ * Tokens are opaque, `<prefix>_<16 hex id>_<43 random>`:
+ * `mat_` access, `mrt_` refresh (rotated on every use),
  * `mac_` code. The id names the document, so a presented token is a key
  * lookup and one constant-time hash compare.
  *
@@ -165,10 +165,9 @@ export const grantLive = (g: McpGrantDoc, now = Date.now()) =>
 /* -------------------------------------------------------------- clients -- */
 
 /**
- * RFC 7591 registration, narrowed. Redirect URIs: https, or http on a
- * loopback host (any port, RFC 8252); nothing else, so no custom schemes and
- * no plain http to a real host. Logos and links a client claims are dropped:
- * the consent page shows only its name and where it sends the code.
+ * Redirect URIs must be https, or http on a loopback host (any port, RFC 8252):
+ * no custom schemes, no plain http to a real host. (registerClient drops the
+ * logos and links a client claims.)
  */
 function checkRedirectUris(uris: string[]) {
   if (!Array.isArray(uris) || uris.length < 1 || uris.length > 5) {

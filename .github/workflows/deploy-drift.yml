@@ -1,11 +1,8 @@
 # Is what is running what we think is running?
 #
-# Production fell fifty-five commits behind `main` and nothing said so (#102).
-# The cause was benign — the deploy job fires on `refs/tags/v*` and no `v*` tag
-# had ever been pushed, so the mechanism worked and was simply never triggered
-# — but the silence was not. Two weeks of merged work sat undeployed while
-# every signal anyone looks at stayed green: CI passed on every PR, `main` was
-# healthy, and the site answered 200.
+# Production once fell far behind `main` with every signal green, because no
+# `v*` tag was pushed to trigger the deploy job. This workflow makes that
+# visible.
 #
 # Nothing here deploys anything. It reads the image tag off each running
 # Deployment, resolves it back to a commit, and counts how far behind `main`

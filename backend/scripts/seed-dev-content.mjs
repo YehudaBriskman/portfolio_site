@@ -6,13 +6,9 @@
  * says what it is, and the seed refuses to run against anything but a
  * loopback CouchDB.
  *
- * Its job is to exercise the rendering paths the notes surface has, so they
- * can be looked at: fenced code in several languages, a figure, a table, a
- * blockquote, a long article that gives the reading bar something to measure,
- * a post with a cover and a post without one, two collections so the filter
- * has something to filter, and a draft that must never appear in public
- * output. Before this existed the only state anyone had ever seen /blog in
- * was its error card.
+ * Its job is to exercise the notes surface's rendering paths (code, figure,
+ * table, long article, covers, two collections, a draft that must never be
+ * public); the fixture titles say which is which.
  *
  *   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
  *   node backend/scripts/seed-dev-content.mjs

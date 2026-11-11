@@ -35,36 +35,18 @@ import { PortfolioApi } from "./shared/api.js";
 import { instructionsFor, registerTools, VERSION, type ToolAccess } from "./shared/tools.js";
 
 /*
- * The remote MCP server (#263): Streamable HTTP at /mcp, OAuth 2.1 in front
- * of it, sign-in through GitHub. What it serves:
- *
- *   POST /mcp                  the owner's server: a Bearer access token is
- *                              required (401 + WWW-Authenticate pointing at
- *                              the metadata below, which is what starts the
- *                              browser sign-in in a client). mcp:read gets
- *                              the public tools and the admin reads;
- *                              mcp:write adds the writes.
- *   POST /mcp/public           the public tools, no sign-in, nothing else.
- *   GET  /mcp, /mcp/public     a browser (Accept: text/html) is sent to the
- *                              page that explains all this; anything else
- *                              gets 405 (stateless: no SSE stream to open).
- *
- *   /.well-known/oauth-protected-resource[/mcp]   RFC 9728
- *   /.well-known/oauth-authorization-server       RFC 8414
- *   /mcp/oauth/register     RFC 7591 dynamic registration (SDK handler)
- *   /mcp/oauth/authorize    authorization code + PKCE S256 (SDK handler)
- *   /mcp/oauth/token        code and refresh grants (SDK handler)
- *   /mcp/oauth/revoke       RFC 7009 (SDK handler)
- *   /mcp/oauth/github/callback, /mcp/oauth/consent   ours: GitHub's answer,
- *                              then the owner's choice of scopes.
+ * The remote MCP server: Streamable HTTP at /mcp behind OAuth 2.1, sign-in
+ * through GitHub. POST /mcp needs a Bearer token (mcp:read: public tools and
+ * admin reads; mcp:write adds writes); POST /mcp/public needs none. GET on
+ * either sends a browser to the docs page and answers 405 otherwise (stateless:
+ * no SSE stream). OAuth routes under /mcp/oauth and /.well-known are the SDK's,
+ * except the GitHub callback and consent page, which are ours.
  *
  * MCP_REMOTE=off (the default) answers every one of those paths 404.
  *
- * Stateless: each POST builds a server, runs the request and drops it, so
- * nothing is held between calls and any replica can answer any request.
- * Tools reach this API in-process (internal.ts), so a write is validated,
- * locked and audited exactly as from the admin UI, and the audit entry says
- * `via: "mcp-oauth"` and the client's name.
+ * Stateless: each POST builds a server, runs the request and drops it, so any
+ * replica can answer. Tools reach this API in-process (internal.ts), so writes
+ * are validated and audited as from the admin UI, with `via: "mcp-oauth"`.
  */
 
 const AUDIT_VIA = "mcp-oauth";

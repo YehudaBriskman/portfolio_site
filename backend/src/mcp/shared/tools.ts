@@ -13,11 +13,8 @@ import { diffFields, lineDiff } from "./diff.js";
  * `node mcp/scripts/sync-shared.mjs`. A test in each package fails while the
  * copy differs.
  *
- * The tools (#252). v1 covers posts, areas, tags and the activity feed; the
- * set grows as more content becomes editable in the backend (#163, #253,
- * #254) — each new admin endpoint gets its read tool and its dry-run write.
- * The translation tools (#307) read the Translations report and write Hebrew
- * into drafts only; the glossary is the resource glossary://he.
+ * The translation tools write Hebrew into drafts only; the glossary is the
+ * resource glossary://he.
  *
  * Safety rules every write tool follows:
  *   - registered only for `access: "write"` (stdio: PORTFOLIO_ADMIN_TOKEN is
