@@ -230,6 +230,9 @@ export default function AdminEditor() {
   const [publishing, setPublishing] = useState(false);
   const [publishError, setPublishError] = useState<string | null>(null);
   const loadedSlug = useRef<string | null>(null);
+  const routeSlug = useRef(slug);
+  routeSlug.current = slug;
+  const flushOnLeave = useRef<(() => void) | null>(null);
 
   const dirty = version !== savedVersion;
   /* Each field's Hebrew status as stored (#302), for the pills and the stale notices. */
@@ -290,9 +293,13 @@ export default function AdminEditor() {
   const saveDraft = useCallback(async () => {
     if (!f.slug || !f.title.trim()) return;
     const at = versionRef.current;
+    const startedOn = loadedSlug.current;
     setSave({ kind: "saving" });
     try {
       const saved = await admin.saveDraft(f.slug, { ...content, _rev: post?._rev });
+      // The editor moved to another post while this was in flight: applying it
+      // would overwrite that post's form and navigate back to this one.
+      if (startedOn !== null && (loadedSlug.current !== startedOn || routeSlug.current !== startedOn)) return;
       setPost(saved);
       setErrors({});
       setSavedVersion(at);
@@ -320,6 +327,12 @@ export default function AdminEditor() {
     const t = window.setTimeout(() => void saveDraft(), 1500);
     return () => window.clearTimeout(t);
   }, [dirty, stored, save.kind, version, saveDraft]);
+
+  /* Back/Forward and in-app route changes unmount the editor inside the debounce
+     window, which would drop the edit; send it on the way out. */
+  flushOnLeave.current =
+    dirty && stored && (save.kind === "idle" || save.kind === "dirty" || save.kind === "saved") ? () => void saveDraft() : null;
+  useEffect(() => () => flushOnLeave.current?.(), []);
 
   /* Leaving with an edit that has not reached the server asks first: the tab
      closing, and a link inside the app (BrowserRouter has no blocker). */

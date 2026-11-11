@@ -320,9 +320,11 @@ export function slugify(title: string) {
   return title
     .toLowerCase()
     .normalize("NFKD")
-    .replace(/[^\w\s-]/g, "")
+    // a-z0-9 only: `\w` lets underscores through, which the server's slug rule rejects
+    .replace(/[^a-z0-9\s-]/g, "")
     .trim()
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
-    .slice(0, 80);
+    .replace(/[\s-]+/g, "-")
+    .replace(/^-+/, "")
+    .slice(0, 80)
+    .replace(/-+$/, "");
 }
