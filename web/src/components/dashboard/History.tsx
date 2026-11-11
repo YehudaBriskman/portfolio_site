@@ -12,7 +12,7 @@ import {
   topicBreakdown,
   wasUpdated,
 } from "@/components/dashboard/history";
-import { copyText, linkedInShareUrl, shareLink, xShareUrl } from "@/lib/share";
+import ShareMenu from "@/components/share/ShareMenu";
 import { useCopyStatus, useListKeys } from "@/components/dashboard/useHistory";
 import SkeletonGate from "@/components/gallery/SkeletonGate";
 import SkeletonLines from "@/components/gallery/SkeletonLines";
@@ -39,96 +39,6 @@ import type { Collection, PostSummary } from "@/services/blog";
  * and hidden; `j`/`k` move focus, which scrolls only as far as the browser's
  * own focus does.
  */
-
-/* ─────────────────────────────────────────────────────────────── share */
-
-function ShareButton({ title, url, w }: { title: string; url: string; w: HistoryWords }) {
-  const [open, setOpen] = useState(false);
-  const button = useRef<HTMLButtonElement>(null);
-  const menu = useRef<HTMLDivElement>(null);
-  const menuId = useId();
-  const [copied, setCopied] = useState(false);
-
-  useEffect(() => {
-    if (!open) return;
-    const onDown = (e: PointerEvent) => {
-      const t = e.target as Node;
-      if (!menu.current?.contains(t) && !button.current?.contains(t)) setOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setOpen(false);
-        button.current?.focus();
-      }
-    };
-    document.addEventListener("pointerdown", onDown);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("pointerdown", onDown);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [open]);
-
-  useEffect(() => {
-    if (!copied) return;
-    const t = window.setTimeout(() => setCopied(false), 2000);
-    return () => window.clearTimeout(t);
-  }, [copied]);
-
-  return (
-    <span className={styles.shareWrap}>
-      <button
-        ref={button}
-        type="button"
-        className={styles.action}
-        aria-label={w.shareNote(title)}
-        title={w.share}
-        aria-expanded={open}
-        aria-controls={open ? menuId : undefined}
-        onClick={async () => {
-          if (open) {
-            setOpen(false);
-            return;
-          }
-          const how = await shareLink({ url, title });
-          if (how === "fallback") setOpen(true);
-        }}
-      >
-        <Share2 aria-hidden="true" />
-      </button>
-      {open && (
-        <div ref={menu} id={menuId} className={styles.shareMenu} data-share-menu="">
-          <ul>
-            <li>
-              <button
-                type="button"
-                className={styles.shareItem}
-                onClick={async () => setCopied(await copyText(url))}
-              >
-                {copied ? <Check aria-hidden="true" /> : <Link2 aria-hidden="true" />}
-                {copied ? w.copied : w.copyLink}
-              </button>
-            </li>
-            <li>
-              <a className={styles.shareItem} href={linkedInShareUrl(url)} target="_blank" rel="noopener noreferrer">
-                <ArrowUpRight aria-hidden="true" />
-                <span translate="no">LinkedIn</span>
-                <span className="sr-only">{` (${w.shareOn("LinkedIn")})`}</span>
-              </a>
-            </li>
-            <li>
-              <a className={styles.shareItem} href={xShareUrl(url, title)} target="_blank" rel="noopener noreferrer">
-                <ArrowUpRight aria-hidden="true" />
-                <span translate="no">X</span>
-                <span className="sr-only">{` (${w.shareOn("X")})`}</span>
-              </a>
-            </li>
-          </ul>
-        </div>
-      )}
-    </span>
-  );
-}
 
 /* ─────────────────────────────────────────────────────────────── row */
 
@@ -213,7 +123,14 @@ function HistoryRow({
           >
             {copied ? <Check aria-hidden="true" /> : <Link2 aria-hidden="true" />}
           </button>
-          <ShareButton title={post.title} url={url} w={w} />
+          <span className={styles.shareWrap}>
+            <ShareMenu
+              kind="note"
+              entity={{ slug: post.slug, title: post.title, summary: firstLine(post.excerpt), tags: post.tags }}
+              className={styles.action}
+              label={w.shareNote(post.title)}
+            />
+          </span>
           <Link to={to} className={styles.action} aria-label={w.openNote(post.title)} title={w.openNote(post.title)} tabIndex={-1}>
             <ArrowUpRight aria-hidden="true" />
           </Link>

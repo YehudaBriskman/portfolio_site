@@ -40,6 +40,7 @@ import { stateWord, useWorkWords } from "@/components/work/words";
 import { fullDate, relative, shortDate } from "@/components/dashboard/i18n";
 import { useScrollProgress } from "@/hooks/useScrollProgress";
 import { useProjectWords } from "@/i18n/pages";
+import ShareMenu from "@/components/share/ShareMenu";
 import { inEnglish } from "@/i18n/words";
 
 /* Docs and notes are the same document type on the same shelf, split by one
@@ -377,6 +378,9 @@ export default function Project() {
           <span className={`${work.pill} ${styles.pill}`} data-kind={kindOf(entry.state)}>
             {stateWord(entry.state, lang)}
             {entry.year && <span className={styles.num}>{entry.year}</span>}
+          </span>
+          <span className="ms-auto">
+            <ShareMenu kind="project" entity={{ slug: c.slug, title: c.title, summary: c.tagline }} />
           </span>
         </div>
         <HeadStrand />

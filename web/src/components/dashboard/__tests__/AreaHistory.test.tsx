@@ -157,15 +157,14 @@ describe("an area's history", () => {
     stub();
     renderAt("/blog/area/bothy");
     const share = await screen.findByRole("button", { name: "Share \"Note a\"" });
-    fireEvent.click(share);
-    await waitFor(() => expect(share).toHaveAttribute("aria-expanded", "true"));
-    const menu = document.getElementById(share.getAttribute("aria-controls")!)!;
-    expect(within(menu).getByRole("button", { name: "Copy link" })).toBeInTheDocument();
-    expect(within(menu).getByRole("link", { name: /LinkedIn/ }).getAttribute("href")).toContain(
+    fireEvent.keyDown(share, { key: "Enter" });
+    const menu = await screen.findByRole("menu", { name: "Share \"Note a\"" });
+    expect(within(menu).getByRole("menuitem", { name: "Copy link" })).toBeInTheDocument();
+    expect(within(menu).getByRole("menuitem", { name: /LinkedIn/ }).getAttribute("href")).toContain(
       encodeURIComponent(`${window.location.origin}/blog/a`),
     );
-    expect(within(menu).getByRole("link", { name: /^X/ }).getAttribute("href")).toMatch(/^https:\/\/x\.com\/intent\/post\?/);
-    fireEvent.keyDown(document, { key: "Escape" });
+    expect(within(menu).getByRole("menuitem", { name: /^X/ }).getAttribute("href")).toMatch(/^https:\/\/x\.com\/intent\/post\?/);
+    fireEvent.keyDown(menu, { key: "Escape" });
     await waitFor(() => expect(share).toHaveAttribute("aria-expanded", "false"));
     expect(share).toHaveFocus();
   });
