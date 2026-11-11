@@ -37,6 +37,28 @@ export type AnnounceDetail = {
   kit: Kit;
 };
 
+export type PreviewIssue = {
+  code: "title-missing" | "title-long" | "description-missing" | "description-long" | "image-missing" | "image-size";
+  field: "title" | "description" | "image";
+  severity: "error" | "warn";
+  limit?: number;
+  length?: number;
+};
+
+/** The head a platform reads for the event's own page. */
+export type AnnouncePreview = {
+  ok: true;
+  title: string;
+  description: string;
+  image: string;
+  imageWidth: number | null;
+  imageHeight: number | null;
+  siteName: string;
+  url: string;
+  lang: AnnounceLang;
+  issues: PreviewIssue[];
+};
+
 export type AnnounceSettings = {
   enabled: boolean;
   email: { enabled: boolean; events: AnnounceKind[] };
@@ -93,6 +115,7 @@ export const adminAnnounce = {
     return r;
   },
   get: (eventId: string) => call<AnnounceDetail>(`/${id(eventId)}`),
+  preview: (eventId: string, lang: AnnounceLang) => call<AnnouncePreview>(`/${id(eventId)}/preview?lang=${lang}`),
   read: (eventId: string) => post(`/${id(eventId)}/read`),
   done: (eventId: string, channel: AnnounceChannel) => post(`/${id(eventId)}/done`, { channel }),
   dismiss: (eventId: string) => post(`/${id(eventId)}/dismiss`),

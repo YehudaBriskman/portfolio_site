@@ -1,5 +1,17 @@
-import { countChars, gmailComposeUrl, linkedInShareUrl, localePath, mailtoUrl, xShareUrl, channelLimit } from "@/lib/share";
-import type { AnnounceChannel, AnnounceLang, AnnounceSummary } from "@/services/adminAnnounce";
+import {
+  countChars,
+  gmailComposeUrl,
+  linkedInShareUrl,
+  localePath,
+  mailtoUrl,
+  xShareUrl,
+  channelLimit,
+} from "@/lib/share";
+import type {
+  AnnounceChannel,
+  AnnounceLang,
+  AnnounceSummary,
+} from "@/services/adminAnnounce";
 
 /** The tabs of a card. Email and Gmail share one: same caption, two ways to open it. */
 export const TABS = ["linkedin", "instagram", "email", "x"] as const;
@@ -8,7 +20,10 @@ export type Tab = (typeof TABS)[number];
 export type Format = "og" | "square" | "story";
 
 /** The card for an event, from its own ref only. Releases have their own kind. */
-export function cardSrc(ev: Pick<AnnounceSummary, "kind" | "ref">, format: Format): string {
+export function cardSrc(
+  ev: Pick<AnnounceSummary, "kind" | "ref">,
+  format: Format,
+): string {
   const dir = ev.kind === "release" ? "release" : "blog";
   const base = `/api/seo/og/${dir}/${encodeURIComponent(ev.ref)}.png`;
   return format === "og" ? base : `${base}?format=${format}`;
@@ -18,7 +33,10 @@ export function cardSrc(ev: Pick<AnnounceSummary, "kind" | "ref">, format: Forma
  * The address a share dialog is given. A note's Hebrew page lives under /he;
  * a release links to its GitHub page, which has no Hebrew form.
  */
-export function eventUrl(ev: Pick<AnnounceSummary, "kind" | "url">, lang: AnnounceLang): string {
+export function eventUrl(
+  ev: Pick<AnnounceSummary, "kind" | "url">,
+  lang: AnnounceLang,
+): string {
   if (lang === "en" || ev.kind !== "post") return ev.url;
   try {
     const u = new URL(ev.url);
@@ -30,13 +48,19 @@ export function eventUrl(ev: Pick<AnnounceSummary, "kind" | "url">, lang: Announ
 }
 
 /** The kit channel a tab edits: Email falls back to the Gmail text when Email is switched off. */
-export function kitChannel(tab: Tab, has: (c: AnnounceChannel) => boolean): AnnounceChannel | null {
-  if (tab === "email") return has("email") ? "email" : has("gmail") ? "gmail" : null;
+export function kitChannel(
+  tab: Tab,
+  has: (c: AnnounceChannel) => boolean,
+): AnnounceChannel | null {
+  if (tab === "email")
+    return has("email") ? "email" : has("gmail") ? "gmail" : null;
   return has(tab) ? tab : null;
 }
 
-export const count = (text: string, tab: Tab) => countChars(text, tab === "email" ? undefined : tab);
-export const limitOf = (tab: Tab) => (tab === "email" ? null : channelLimit(tab));
+export const count = (text: string, tab: Tab) =>
+  countChars(text, tab === "email" ? undefined : tab);
+export const limitOf = (tab: Tab) =>
+  tab === "email" ? null : channelLimit(tab);
 
 export const links = {
   linkedin: (url: string) => linkedInShareUrl(url),
@@ -52,3 +76,11 @@ export const links = {
 
 /** "#a, b  c" -> ["#a","b","c"]; the server checks the shape of each. */
 export const parseTags = (raw: string) => raw.split(/[\s,]+/).filter(Boolean);
+
+export const domainOf = (url: string): string => {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return "";
+  }
+};

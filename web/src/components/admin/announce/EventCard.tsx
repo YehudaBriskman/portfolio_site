@@ -10,6 +10,7 @@ import {
   type AnnounceSummary,
 } from "@/services/adminAnnounce";
 import { cardSrc, count, eventUrl, kitChannel, limitOf, links, TABS, type Format, type Tab } from "./helpers";
+import LinkPreview from "./LinkPreview";
 import { useAnnounceWords } from "./words";
 
 /*
@@ -343,6 +344,9 @@ export default function EventCard({ event, onChange, defaultOpen = false }: Prop
             )}
             <p role="status" className="a-hint min-h-[1.25rem]">{note}</p>
           </div>
+        </div>
+        <div className="lg:col-span-2">
+          <LinkPreview eventId={event.id} lang={lang} />
         </div>
       </div>
     );
