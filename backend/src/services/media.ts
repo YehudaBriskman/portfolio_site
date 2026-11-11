@@ -15,49 +15,23 @@ import {
 } from "./mediaImage.js";
 
 /*
- * The media library (#253): one CouchDB document per picture, holding its
- * metadata and, as attachments, the cleaned original and every variant.
- *
- * WHY COUCHDB ATTACHMENTS AND NOT A PVC
- *
- * The cluster is one k3s node, and both options end on the same local-path
- * disk, so neither is more durable than the other. What differs is what
- * else has to exist for them to be safe:
- *   - The nightly backup CronJob (oci-free k8s/backup-cronjob.yaml) already
- *     dumps every CouchDB database. Attachments ride along once that dump
- *     asks for them (`attachments=true`, listed in the PR as the owner's one
- *     manifest change). A PVC would need a second volume on the api pod and
- *     a second backup job to copy it.
- *   - The api Deployment is stateless today: any replica, any rollout, no
- *     volume. A ReadWriteOnce claim would pin it, and on a rolling update the
- *     new pod and the old one would both want the claim.
- *   - A metadata change and the bytes it describes land in one revision
- *     (db/attachments.ts writes them in a single multipart PUT), so there is
- *     no state in which the document names a variant the disk does not have.
- *     Two stores — documents in CouchDB, files on a volume — would need
- *     their own reconciliation.
- * The cost is CouchDB serving bytes it was not tuned for. At this site's
- * scale (tens of pictures, a few hundred KB of variants each) that is
- * nothing, the variant URLs are immutable so a browser asks once, and the
- * originals are never served at all.
+ * The media library: one CouchDB document per item, holding its metadata and,
+ * as attachments, the cleaned original and every variant. One revision holds
+ * metadata and bytes (db/attachments.ts writes them in one multipart PUT), so a
+ * document never names a variant that is missing.
  *
  * URLS
- *
- *   /api/images/media/<id>                         stable; 302 to the current file
+ *   /api/images/media/<id>                          stable; 302 to the current file
  *   /api/images/m/<id>/w<width>-<hash>.<avif|webp>  an image size, or a video's poster
  *   /api/images/m/<id>/icon-<hash>.<svg|png>        an icon, as uploaded
  *   /api/images/m/<id>/video-<hash>.<mp4|webm>      a video, with Range
  *   /api/images/m/<id>/captions-<hash>.vtt          a video's captions
- * Every hashed URL is immutable for a year.
+ * Hashed URLs are immutable for a year. Content stores the stable URL, so
+ * replacing an item never leaves a reference to bytes that are gone.
  *
- * Content stores the stable URL (an editor's cover image, say), so replacing
- * a picture never leaves a reference pointing at bytes that are gone. The
- * hashed URL is what a browser caches forever.
- *
- * KINDS. An item is an `image` (photos and drawings: served only as raster
- * variants), an `icon` (a sanitised SVG or a small PNG, served as the file
- * it is) or a `video` (MP4 or WebM up to a minute, with a poster the owner
- * uploads and optional captions). `format` says what the bytes are.
+ * KINDS: `image` (served only as raster variants), `icon` (sanitised SVG or
+ * small PNG, served as uploaded), `video` (MP4/WebM up to a minute, poster
+ * uploaded, optional captions). `format` says what the bytes are.
  */
 
 export type MediaDoc = {

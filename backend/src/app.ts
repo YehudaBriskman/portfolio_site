@@ -53,18 +53,10 @@ export function createApp() {
     "https://admin.yehudabriskman.com",
   ];
   /*
-   * One public read is also shared with another site, and only that read.
-   *
-   * https://windom.app (the WindoM extension's own page, a separate repo)
-   * shows WindoM's release posts by fetching GET /api/blog/posts?collection=windom
-   * from the visitor's browser (YehudaBriskman/WindoM#374). Putting it in
-   * ALLOWED_ORIGINS above would hand it every route, /api/email included, so it
-   * is keyed on path and method instead: the published-post list, read-only,
-   * and nothing else. www.windom.app is not listed because it 301s to the apex,
-   * so no page ever runs from that origin.
-   *
-   * The request it makes is a simple GET (only an Accept header), so a browser
-   * sends no preflight; one that did is answered for GET and HEAD alone.
+   * windom.app reads the published-post list from the visitor's browser. It is
+   * keyed on path and method rather than added to ALLOWED_ORIGINS, which would
+   * hand it every route, /api/email included. Its GET needs no preflight; one
+   * that did is answered for GET and HEAD alone.
    */
   const FEED_ORIGINS = ["https://windom.app"];
   const FEED_PATH = "/api/blog/posts";
@@ -97,47 +89,14 @@ export function createApp() {
   const readLimiter = createReadLimiter();
 
   /*
-   * Two hops, because there are two proxies, and the count is read off the
-   * deploy rather than guessed.
-   *
-   * The path a request takes in production and in preprod, from the manifests
-   * in the oci-free repository (k8s/portfolio.yaml, k8s/portfolio-preprod.yaml,
-   * k8s/traefik-config.yaml):
-   *
-   *     client ──▶ Traefik (k3s ingress) ──▶ nginx (web pod) ──▶ this process
-   *
-   * Nothing sits in front of Traefik. The apex and www resolve straight to the
-   * node's public address (no CDN proxy; checked with `dig` on 2026-11-02), and
-   * Traefik's Service runs `externalTrafficPolicy: Local`, which is what stops
-   * kube-proxy rewriting the source address — the preprod ipAllowList only
-   * works because Traefik sees the real client. So Traefik puts the client in
-   * X-Forwarded-For, nginx appends Traefik's pod address with
-   * `$proxy_add_x_forwarded_for`, and the socket this process reads is nginx's.
-   * Express walks that chain from the right, one entry per trusted hop:
-   *
-   *     socket = nginx    trusted (hop 1) → step to the last XFF entry
-   *     XFF[-1] = Traefik trusted (hop 2) → step to the one before it
-   *     XFF[-2] = client  ← req.ip
-   *
-   * This said 1 until #121, which stopped one step short: req.ip was Traefik's
-   * pod address for every visitor, so every limiter below was one bucket for
-   * the whole internet, and five messages from anybody silenced the contact
-   * form for everybody for fifteen minutes.
-   *
-   * A count, and never `true`. Trusting every hop makes req.ip the leftmost
-   * X-Forwarded-For entry, which is whatever the client typed; one header per
-   * request would then buy a fresh bucket per request. With a count, anything a
-   * client writes into the header lands to the left of the address Traefik
-   * appended and is never reached. If a hop is ever added or removed — a CDN in
-   * front, nginx taken out of the path — this number changes with it, and
-   * src/rate-limit.test.ts is where the topology is written down as a test.
-   *
-   * Under Docker Compose there is no Traefik, so the chain is one hop short:
-   * req.ip is the Docker network's gateway, and an X-Forwarded-For sent by the
-   * client itself would be believed. That is acceptable on a laptop and only
-   * there, which is why the count follows the cluster and not the Compose file.
+   * Hops in front of this process: Traefik, then nginx (client -> Traefik ->
+   * nginx -> here). A count, never `true`: trusting every hop makes req.ip the
+   * leftmost X-Forwarded-For entry, which the client controls, so each request
+   * would get a fresh rate-limit bucket. Change it with the topology
+   * (src/rate-limit.test.ts holds it). Compose has no Traefik, one hop short.
    */
-  app.set("trust proxy", 2);
+  const TRUSTED_HOPS = 2;
+  app.set("trust proxy", TRUSTED_HOPS);
 
   app.use("/api/email", mailBurstLimiter, mailSendLimiter);
   app.use("/api/images", readLimiter);
@@ -157,14 +116,8 @@ export function createApp() {
   app.use('/api/admin', adminLimiter, createBearerFailureLimiter(), requireAdmin, auditWrites, indexNowOnWrite, adminRoutes);
   app.use('/api/email', emailRoutes);
   app.use("/api/images", createImagesRouter());
-  /*
-   * The contribution year, on the read limiter the blog uses.
-   *
-   * One request per home-page load and the answer is a cached array, so the
-   * ceiling only has to be above a reader refreshing; it is deliberately not
-   * the seoLimiter's 600, because nothing here sits on a crawler's path — the
-   * rendered shell in seo.route.ts carries the year's total as prose instead.
-   */
+  // The contribution year: a cached array, one request per home-page load, so the
+  // read limiter is enough (nothing here is on a crawler's path).
   app.use("/api/github", readLimiter, createGithubRouter());
 
   /*

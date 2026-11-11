@@ -3,45 +3,23 @@ import { z } from "zod";
 import type { Collection, Post } from "./content.js";
 
 /*
- * Translation status (#301, design docs/i18n/bilingual-content-design.md §5).
+ * Translation status. English is the source; Hebrew is optional and falls back
+ * to it. When Hebrew is saved the server records a fingerprint of the English it
+ * was written against (`heSrc` on a `Text`, `heMeta.src.<field>` beside a `he`
+ * block); when the English changes the fingerprint no longer matches and the
+ * Hebrew reads as stale. The fingerprint is NFC plus collapsed whitespace, so a
+ * whitespace-only save flags nothing while a one-word edit always does.
  *
- * English is the source and is always required; Hebrew is optional and falls
- * back to the English when absent. What this module adds is the one thing the
- * store could not say before: whether a piece of Hebrew still translates the
- * English beside it.
- *
- * THE FINGERPRINT
- * ---------------
- * When Hebrew is saved, the server records a fingerprint of the English it was
- * written against (`heSrc` on a `Text` field, `heMeta.src.<field>` beside a
- * note's or an area's `he` block). When the English later changes, its
- * fingerprint no longer matches and
- * the Hebrew reads as stale. The fingerprint is a hash of the normalised text,
- * not a version counter: the English has no counter, and a whitespace-only save
- * must not flag anything. Normalisation is NFC plus collapsed whitespace, no
- * more, so a real edit (one word) is always seen.
- *
- * THE VOCABULARY
- * --------------
  *   missing     no Hebrew anywhere
  *   draft       Hebrew only in an unpublished draft
  *   translated  published Hebrew, written against today's English
  *   stale       published Hebrew, written against English that has since changed
- *   unverified  published Hebrew with no fingerprint: written before #303
- *               stamped one. Treated as translated by every consumer.
+ *   unverified  published Hebrew with no fingerprint (written before they existed);
+ *               treated as translated by every consumer
  *
- * Status is computed on read, never stored. Stale Hebrew stays live (owner
- * decision on #303): a slightly old Hebrew sentence serves a Hebrew reader
- * better than the English, so staleness is shown to the owner, not the reader.
- *
- * FOR THE SEO WORK (#304)
- * -----------------------
- * `hasPublishedHebrew(status)` is the switch §5.4 needs: true means the /he page
- * carries real Hebrew (index it, pair it with hreflang, list it in the
- * sitemap); false means it is the English fallback (noindex, follow). Get the
- * status of a note from `postTranslation(post).status` and of an area from
- * `collectionTranslation(area).status`; a project's from the units under
- * `items.<i>` via `textUnits`.
+ * Status is computed on read, never stored. Stale Hebrew stays live: a slightly
+ * old Hebrew sentence serves a Hebrew reader better than the English, so
+ * staleness is shown to the owner, not the reader.
  */
 
 /** sha256 of the normalised English, first 12 hex characters. */

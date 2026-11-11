@@ -4,34 +4,15 @@ import { env } from "../env.js";
 import { logger } from "../logger.js";
 
 /*
- * The one place a thrown error becomes a response.
+ * The one place a thrown error becomes a response: `{ ok: false, error }`
+ * JSON (plus `stack` outside production), cause to the log, never the response.
  *
- * Every `asyncHandler` route forwards a rejection to `next(err)`. Before this
- * existed, that `next` led straight to Express's built-in final handler, which
- * answers in HTML — a `<pre>` with the stack trace in it outside production —
- * while every client in web/src expects JSON. The reader saw "Request failed
- * (500)" at best and a JSON parser error at worst, and because Express's
- * handler writes to stderr with console.error, none of it reached pino or the
- * log pipeline that reads pino's output.
- *
- * The shape is the one the routes already use for the failures they handle
- * themselves — `{ ok: false, error: string }` — so a client never has to know
- * whether an error was anticipated by the route or caught here. `stack` is an
- * addition outside production only, and is never relied upon by a client.
- *
- * Status is chosen conservatively, because an error's own `status` field is
- * not a promise that the status is meaningful to the CLIENT:
- *
- * - A CouchError carries CouchDB's status, but that is the store's answer to
- *   OUR query. A Mango 400 for an unindexed sort is this API's bug, not the
- *   caller's bad request, and passing it through once made a broken index look
- *   like a client fault. So any store failure is 502: an upstream let us down.
- * - Errors in the http-errors convention (what body-parser throws for malformed
- *   JSON or a body over the 1mb limit) mark themselves `expose: true` when the
- *   status and message are safe to repeat. Those keep their 4xx and message.
- * - Everything else is 500 with a fixed message. A raw message from an
- *   arbitrary throw can carry a file path, a hostname or a credentialed URL, so
- *   it goes to the log and never to the response.
+ * - CouchError -> 502: the store's status answers OUR query, so a Mango 400 is
+ *   this API's bug, not the caller's.
+ * - http-errors with `expose: true` (body-parser: bad JSON, over 1mb) keep
+ *   their 4xx and message; only those are safe to repeat.
+ * - Anything else -> 500, fixed message: a raw message can leak a path, host
+ *   or credentialed URL.
  */
 
 type ErrorBody = { ok: false; error: string; stack?: string };
