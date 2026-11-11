@@ -17,172 +17,20 @@ import {
 } from "@/components/motion/entry";
 
 /*
- * The first screen: one composed picture, assembled in four moves.
- *
- * The idea the whole page hangs on
- * --------------------------------
- * Two rules were pulling against each other. The gallery grammar says the
- * collection starts at the top of the page — object one already in view,
- * already labelled, with no separate title treatment — and the hero world is
- * typographic, where type is the imagery and scale contrast does every job a
- * photograph would have done. The resolution was this:
- *
- *     the name is object zero, labelled in exactly the same schema as the work.
- *
- * A museum does not open with a slogan. It opens with a plate by the door, set
- * in the same type as every label inside. So this file renders no label of its
- * own: it hands three strings to the same `ObjectLabel` the projects and the
- * notes go through, at the one scale that is allowed to be bigger. There is no
- * variant prop to reach for and that absence is the point — the first
- * exception granted to one section is the moment the page becomes a grid of
- * unrelated things again.
- *
- * UPDATE, #347: THE NAME LEADS AGAIN. The `h1` is `plate.name` once more and
- * "Portfolio" is the first word of the fact line; the section below records
- * the #100 decision, and `data/site.ts` records its reversal and the cost.
- * The "WHERE THE NAME WENT" section is history: the name went back.
- *
- * WHAT ISSUE #100 CHANGES ABOUT THAT SENTENCE, AND WHAT IT DOES NOT
- * -----------------------------------------------------------------
- * The `h1` says PORTFOLIO, set very large. The owner was offered that and
- * EXPLORE MY PORTFOLIO, both built and rendered against the name `main` set
- * here before, and picked the first; the other two are gone rather than
- * switched off.
- *
- * The half of the sentence above that survives is the half that was doing the
- * work. The collection still names itself through the same `ObjectLabel`, in
- * the same three-part schema, at the same one scale allowed to be bigger, with
- * no variant prop — every word of that is still true and is still the reason
- * this file has no label of its own.
- *
- * The half that does not survive is "the name". PORTFOLIO is not a name, it is
- * a category: the plate by the door stops saying whose collection this is and
- * says that this is a collection. That is a weaker thing to say and it is also
- * a more useful one — a stranger who lands here learns what the site is before
- * they learn who it is by — and it is the owner's call to make. What this file
- * may not do is keep asserting the old sentence while rendering the new one.
- *
- * So object zero is still object zero and is still labelled in the work's own
- * schema. What it is the label *of* has changed: it labels the collection
- * rather than the person, and the person moved one line down. Which is the
- * next note.
- *
- * WHERE THE NAME WENT
- * -------------------
- * Into the fact line, as its subject: "Yehuda Briskman — full-stack, mostly
- * frontend". The `h1` is the page's accessible name and its strongest on-page
- * signal, so the name could not simply leave it; the label schema's second
- * slot is "what the thing is", which is exactly the slot a category label
- * leaves unanswered. The string is assembled in `data/site.ts` from
- * `plate.name`, so the name is still written in the repository exactly once.
- *
- * The cost, stated rather than hidden: the name goes from display type — the
- * h1 is 158px at 1440x900, measured in the DOM — to 18px of the accent face. What makes that survivable is that
- * the `h1` was never the only place it lived — `index.html` carries it in
- * `<title>`, in `meta[name=author]`, in `og:title`, in `og:site_name`, in
- * `twitter:title` and twice in the JSON-LD graph. Every one of those was read
- * against these strings and none had to change, because none of them ever said
- * "portfolio": they say who the site is by, which is the thing the `h1` has
- * stopped saying.
- *
- * What the screen used to carry, and why none of it is here
- * ---------------------------------------------------------
- * **"Built to be used."** A tagline, set in the second voice, at 2.6rem. The
- * label schema is fact and not pitch, and the fact line that replaces it —
- * "Full-stack, mostly frontend" — is checkable in a way the tagline never was.
- * The two paragraphs under it went with it: they were the same argument made
- * three times, and the work below makes it better than any sentence can.
- *
- * **The two action pills.** "See the work" was the one deliberate entry point
- * the first screen had, and it was a button telling a reader to do the thing
- * they are already doing. The chrome keeps the three destinations the site
- * actually has, /projects among them, and scrolling needs no affordance.
- *
- * That argument is still the test anything in the lower corners has to pass,
- * and issue #101 asked what belongs there. The answer, picked by the owner
- * from three that were built, is one quiet affordance pointing at the ask
- * plate — the one destination the bar deliberately does not carry and the one
- * thing a reader cannot reach by the gesture they are already making — and,
- * in the other corner, a small light with the README's voice beside it.
- * `HeroCorners` carries the argument for both at its head.
- *
- * The portrait, and the argument it had to answer
- * -----------------------------------------------
- * It was taken off this screen once, on a good argument: a plate is type, and
- * a headshot *beside* a plate does not read as object zero's label — it reads
- * as the thing the label is for, and then the plate is a caption and the
- * person is the exhibit. What settles it is that the photograph is not beside
- * the type here. It is behind it, dissolving into the paper exactly where the
- * name crosses it, so the two are one picture rather than a picture and its
- * caption. The relationship the old objection was about does not exist in
- * this composition.
- *
- * It is not a photograph any more. The owner's brief was that neither his face
- * nor the room behind him may be legible, and what is served is a halftone
- * figure: a hand-traced silhouette filled with a screened ink density, so the
- * room is gone with the background and the face is gone with the dot grid.
- * `docs/hero-portrait/build.sh` is the whole derivation and the reasoning for
- * each step; the short version is that the cell is coarse relative to an eye.
- *
- * It costs one request, 44kB of WebP that the notes byline already wanted in
- * the cache, and no layout at all: the figure is out of flow, so it cannot
- * move a single line of type whatever it does.
- *
- * The arrival, and the one thing it must not cost
- * -----------------------------------------------
- * #162 had each part make its arrival gesture backwards as the section left
- * the window — the letters lifting under a paper mask, the figure sinking
- * behind one — and the owner's verdict on that was that the pictures
- * "disappear" on scroll. Since 2026-11-03 nothing leaves: the screen is held
- * still and whole until the dark act after it has slid up over it
- * (`Hero.module.css`, the holder).
- *
- * Once a visit the gestures do run forwards on their own, and #194 is
- * about *when*. The arrival used to start at mount, and the entry shutter
- * lifts when the page is ready, which is always later — so the whole thing
- * played behind the cover and the reader was shown a screen that had already
- * arrived. Now it waits for the shutter to say the window is clear — its
- * last tile has finished leaving (`motion/entry.ts`, which has why that
- * moment and not the first tile) — and only a hero that mounted under the cover waits at
- * all: one that mounts after it (a client-side navigation back here) is not
- * part of the entry and is simply whole. See `useArrival` below.
- *
- * The constraint underneath all of it: **the ink is painted on frame one.**
- * The previous reveal started the `h1` at `opacity: 0`, which takes the
- * largest text on the first screen out of the running as a paint candidate
- * for the length of the animation, and fixing that put LCP at 112-160ms. A
- * letter that fades in reintroduces precisely that bug. So nothing on this
- * screen enters by its own opacity: the glyphs and the photograph are both
- * painted at full strength in the first frame and a paper-coloured mask is
- * moved off them. Measured either side of the change, LCP went 136ms →
- * 132ms at 1440×900 and 116ms → 120ms at 390×844, with CLS 0.000 at both —
- * see the notes in `HeroArrival.module.css`, which is where the masks are
- * and therefore where that argument has to be readable.
+ * The first screen is object zero: the name is rendered through the same
+ * `ObjectLabel` as the work, at the one scale allowed to be bigger. The ink is
+ * painted on frame one (a paper mask moves off it, no opacity entry), so LCP is
+ * unaffected; the masks and their measurements are in HeroArrival.module.css.
  */
 
 /*
- * The field line, and why it is in this order.
- *
- * Written as `where`, `when`, and rendered in whatever order the schema puts
- * those kinds in — `ObjectLabel` sorts by kind, so this list is a set of facts
- * and not a layout. The place is first because it is the field that still
- * says something when the line is cropped, which is how a field line spends
- * most of its life.
- *
- * There was a third field, a count of live projects ("5 live", later
- * "1 live"). It was dropped on 2026-11-03: by the only honest rule (a link to
- * a product, not archived) it undersold the work, since Bothy is released and
- * open source without being "live". A number that is accurate and misleading
- * is not worth the space. Two fields also fit one line at every phone width,
- * so the forced break the three-field line needed (#112) went with it.
+ * The fields are a set of facts, not a layout: `ObjectLabel` sorts by kind. The
+ * place comes first because it still says something when the line is cropped.
+ * Two fields fit one line at every phone width; a live-projects count undersold
+ * the work, so it is not shown.
  */
-/*
- * The particle word is parked, not removed (the owner, 2026-11-10: "way more
- * enhancement before deploying, we'll stop for now"). The components, the
- * gate and their tests stay; the hero just does not use them, so it is the
- * static hero (the h1, the photograph under the type) with the new colours,
- * orbs and display panel around it. Turn this on to bring the word back.
- */
+/* Parked, not removed: the particle word, its gate and their tests stay, the
+   hero just does not use them. Turn this on to bring the word back. */
 export const PARTICLE_WORD_ENABLED = false;
 
 const plateFields = (

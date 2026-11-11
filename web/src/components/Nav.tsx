@@ -14,93 +14,10 @@ import { useChromeWords } from "@/i18n/chrome";
 import styles from "./Nav.module.css";
 
 /*
- * The chrome carries the rooms, the marks and the two switches. Nothing else.
- *
- * What this was, and why the index is gone
- * ---------------------------------------
- * An index of objects. The bar generated an item per project out of
- * `data/projects.ts`, plus the notes shelf and the inquiry plate — eight
- * names across the centre of the bar, each jumping to its plate if that plate
- * was in the document and routing to the object's own room if it was not,
- * with the one the reader was standing on filled solid. The argument was that
- * in a gallery the chrome's job is to say what is in the room and take you to
- * it, and a bar of three route links is a site map for a site that is really a
- * collection.
- *
- * That argument was sound and it is not what settled this. The owner has seen
- * it running and wants a quieter chrome, which is a judgement about the thing
- * itself rather than about the reasoning for it. Two measurements are worth
- * keeping as the record of what "full" meant: at 1440 the eight names alone
- * set 819px, and the first window that held the whole bar without the strip
- * scrolling was 1336px — so on every laptop the site is actually read on, the
- * chrome was a scroll container.
- *
- * What went with it: `navIndex.ts` (now `navRoutes.ts`, routes only),
- * `useCollectionIndex.ts` and `IndexLinks.tsx`. The chrome no longer reads the
- * collection, observes the page's plates, or holds a pending cross-route jump.
- *
- * The wayfinding that goes with it, and the decision taken about it
- * ----------------------------------------------------------------
- * The index was also the only thing on the site telling a reader who is not
- * looking at the screen *which object they were currently on* —
- * `aria-current="location"` tracked through the pile by a point probe under
- * the bar. Deleting the index deletes that, and deleting it and replacing it
- * with nothing would be a regression for exactly one reader. Three options
- * were open; this is the first of them, and the other two are declined for
- * reasons rather than by omission.
- *
- *   Accept it, which is what this does. Two things carried the weight and both
- *   survive. The page's heading outline *is* the in-page index: `h1` on the
- *   hero, `h2` per section, and an `h3` per object inside the pile (see
- *   `projects/ProjectRun.tsx`). Read off the home page it is
- *   `h1` Yehuda Briskman, `h2` Work over an `h3` each for WindoM, Bothy,
- *   Programming with Yehuda and Icaros, then `h2` How I work, Notes, Specs
- *   and Get in touch — which is every in-page destination the index had, in
- *   the order the page reads, in context, and jumpable. The index's eight
- *   items were those six plus two that were route changes to projects not on
- *   this page at all (#45 measured them as the undifferentiated items five and
- *   six); those are now reached through "Work", which is what a link to a
- *   room is for. So the outline is not a reduced index — it is the same set
- *   with the two liars taken out of it.
- *
- *   And "where am I" is a different question for this reader than for
- *   a sighted one: their position is the virtual cursor, which is already in
- *   the content and already announces each heading as it passes. The strip's
- *   marked pill answered a question about *scroll offset*, which is the
- *   sighted reader's question — and that reader is the one the owner is making
- *   the bar quieter for. The skip link to `#content` and the per-route title,
- *   announcement and focus move in `RouteAnnouncer.tsx` are untouched.
- *
- *   A one-item current-section indicator in the bar is declined twice over. It
- *   fails the brief — a word in the chrome that rewrites itself as the reader
- *   scrolls is the loudest thing in a bar whose whole point is now to be quiet
- *   — and it would keep the entire observer apparatus (a point probe, eleven
- *   thresholds, a late re-read, a resize re-pick) alive to feed one span.
- *
- *   Moving the index into the page, at the head of the work section, is the
- *   better design and is not refused on its merits: in context, next to the
- *   objects it names, is where a table of contents belongs, and it is the one
- *   option that gives something back rather than relying on what is already
- *   there. It is not done here because it is a change to the work section,
- *   which is being rebuilt in another branch as this is written, and because
- *   an index of plates belongs to whoever owns the plates. If the owner wants
- *   it, that is where it goes, and the heading outline is the floor it would
- *   be improving on rather than a gap it would be filling.
- *
- * `aria-current` therefore has one meaning again, "page", which is the meaning
- * it had before #45 gave it two. The room you are in is marked in the bar and
- * in the sheet. On a phone the collapsed control used to name it as well, and
- * no longer does — the note on the toggle below says why (#161).
- *
- * What is kept, because it was right
- * ----------------------------------
- * The disclosure that keeps everything reachable on a phone, Escape closing it
- * and handing focus back to the control that opened it, the tab trap and the
- * scroll lock while it is open, closing on a route change and on a widening
- * viewport, 44px targets throughout, no wordmark, and the dark material over
- * the one act that inverts the ground. The grid that centres the middle track
- * and the material that inverts are in Nav.module.css, next to the rules they
- * govern.
+ * The chrome carries routes, marks and two switches. There is no in-page index:
+ * the heading outline is the index (a deliberate accessibility decision), so
+ * `aria-current` means "page" and nothing else. The grid that centres the middle
+ * track and the material that inverts over the dark act live in Nav.module.css.
  */
 
 /*
