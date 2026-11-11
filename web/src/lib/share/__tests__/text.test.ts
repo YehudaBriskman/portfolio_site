@@ -41,6 +41,10 @@ describe("plain", () => {
     expect(plain("<b>Hi</b>  <script>x()</script>\u0000there\n")).toBe("Hi x() there");
     expect(plain("a < b and c > d")).toBe("a < b and c > d");
     expect(plain(undefined)).toBe("");
+    for (const evil of ["<<script>alert(1)</script>", "<scr<b>ipt>alert(1)", "<img src=x onerror=1", "<<img src=x>img src=x onerror=1>"]) {
+      expect(plain(evil), evil).not.toMatch(/<\/?(script|img)/i);
+      expect(plain(evil), evil).not.toMatch(/<[a-z!/]/i);
+    }
   });
 });
 
