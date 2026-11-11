@@ -29,7 +29,7 @@ import {
 } from "./oauth/config.js";
 import { GithubError, githubIdentity, isOwner } from "./oauth/github.js";
 import { consentPage, errorPage, notAuthorizedPage, returnToClientPage } from "./oauth/pages.js";
-import { clientSecretOk, createCode, provider, txnDocId, type McpTxnDoc } from "./oauth/provider.js";
+import { clientAuthVerdict, createCode, provider, txnDocId, type McpTxnDoc } from "./oauth/provider.js";
 import { safeEqual, tryGet } from "./oauth/util.js";
 import { PortfolioApi } from "./shared/api.js";
 import { instructionsFor, registerTools, VERSION, type ToolAccess } from "./shared/tools.js";
@@ -269,7 +269,7 @@ export function createMcpRouter(app: Express) {
       secret = bsecret;
     }
     if (id === undefined) return next(); // the SDK answers invalid_request
-    const verdict = await clientSecretOk(id, secret);
+    const verdict = await clientAuthVerdict(id, secret);
     if (verdict === "bad") {
       return res.status(401).json({ error: "invalid_client", error_description: "Client authentication failed" });
     }
@@ -279,8 +279,9 @@ export function createMcpRouter(app: Express) {
   });
   const formBody = express.urlencoded({ extended: false, limit: "16kb" });
 
-  router.use("/mcp/oauth/token", restrictCors, formBody, clientSecretGuard, tokenHandler({ provider, rateLimit: sdkLimit(15 * 60_000, 60) }));
-  router.use("/mcp/oauth/revoke", restrictCors, formBody, clientSecretGuard, revocationHandler({ provider, rateLimit: sdkLimit(15 * 60_000, 30) }));
+  // The guard checks client secrets before the SDK handler's own limiter runs, so it gets one too.
+  router.use("/mcp/oauth/token", restrictCors, limiter(15 * 60_000, 60), formBody, clientSecretGuard, tokenHandler({ provider, rateLimit: sdkLimit(15 * 60_000, 60) }));
+  router.use("/mcp/oauth/revoke", restrictCors, limiter(15 * 60_000, 30), formBody, clientSecretGuard, revocationHandler({ provider, rateLimit: sdkLimit(15 * 60_000, 30) }));
 
   const signInLimiter = limiter(15 * 60_000, 30);
 
@@ -447,7 +448,7 @@ export function createMcpRouter(app: Express) {
     json,
     asyncHandler((req, res) => {
       const auth = (req as Request & { auth: AuthInfo }).auth;
-      const write = auth.scopes.includes("mcp:write");
+      const scope = auth.scopes.includes("mcp:write") ? "write" : "read";
       const extra = auth.extra as { grantId: string; clientName: string; login: string };
       const admin: Admin = {
         login: extra.login,
@@ -455,9 +456,9 @@ export function createMcpRouter(app: Express) {
         via: AUDIT_VIA,
         tokenId: extra.grantId,
         client: extra.clientName,
-        scope: write ? "write" : "read",
+        scope,
       };
-      return serve(req, res, write ? "write" : "read", admin);
+      return serve(req, res, scope, admin);
     }),
   );
 

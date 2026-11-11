@@ -101,6 +101,8 @@ type AdminPost = {
   links: { label: string; url: string }[];
   publishedAt: string | null;
   featured?: number | null;
+  updatedAt?: string;
+  heMeta?: { bodyBase?: string | null } | null;
 };
 
 type AdminArea = {
@@ -218,7 +220,7 @@ export const fail = (message: string): CallToolResult => ({ isError: true, conte
 
 function explain(e: unknown): CallToolResult {
   if (e instanceof ApiError) {
-    if (e.status === 401) return fail(`The API refused the admin token (401: ${e.message}). Check PORTFOLIO_ADMIN_TOKEN, or whether it was revoked.`);
+    if (e.status === 401) return fail(`The API refused the credentials (401: ${e.message}). The admin token or sign-in is missing, expired or revoked.`);
     if (e.status === 403) return fail(`The API refused this action (403: ${e.message}). A read-scoped token cannot write.`);
     if (e.status === 409) return fail(`Conflict (409: ${e.message}). The document changed since it was read; run the tool again.`);
     return fail(`API error ${e.status}: ${e.message}`);
@@ -375,7 +377,7 @@ export function registerTools(server: McpServer, api: PortfolioApi, access: Tool
     }
     const body = { ...pick(proposed, POST_FIELDS), ...(current?._rev ? { _rev: current._rev } : {}) };
     const res = await api.adminSend<{ post: AdminPost }>("PUT", `/api/admin/posts/${proposed.slug}`, body);
-    return writeResult({ dryRun: false, action, target, exists: !!current, changes, result: { slug: res.post.slug, status: res.post.status, updatedAt: (res.post as { updatedAt?: string }).updatedAt } });
+    return writeResult({ dryRun: false, action, target, exists: !!current, changes, result: { slug: res.post.slug, status: res.post.status, updatedAt: res.post.updatedAt } });
   }
 
   server.registerTool(
@@ -387,7 +389,7 @@ export function registerTools(server: McpServer, api: PortfolioApi, access: Tool
       annotations: ro,
     },
     safe(async ({ status }) => {
-      const { items } = await api.adminGet<{ items: (AdminPost & { updatedAt: string })[] }>("/api/admin/posts");
+      const { items } = await api.adminGet<{ items: AdminPost[] }>("/api/admin/posts");
       return json(
         items
           .filter((p) => !status || p.status === status)
@@ -512,7 +514,7 @@ export function registerTools(server: McpServer, api: PortfolioApi, access: Tool
       let bodyDiff: string[] | undefined;
       if (type === "post" && item.units.some((u) => u.path === "body" && u.status === "stale")) {
         const post = await loadPost(id);
-        const meta = (post as { heMeta?: { bodyBase?: string | null } | null } | null)?.heMeta;
+        const meta = post?.heMeta;
         if (post && typeof meta?.bodyBase === "string") bodyDiff = lineDiff(meta.bodyBase, post.body);
       }
       return json({ ...item, ...(bodyDiff !== undefined ? { bodyDiff } : {}) });
@@ -559,14 +561,13 @@ export function registerTools(server: McpServer, api: PortfolioApi, access: Tool
       const list = Object.entries(units).map(([path, he]) => ({ path, he }));
       if (list.length === 0) return fail("Give at least one unit.");
       const live = type === "area" || type === "media";
+      // Live documents (area, media): the server reads and writes in one step, so no rev.
       let rev: string | undefined;
-      if (live) {
-        rev = undefined; /* The server reads and writes the document in one step. */
-      } else if (type === "post") {
+      if (type === "post") {
         const post = await loadPost(id);
         if (!post) return fail(`No post "${id}".`);
         rev = post._rev ?? "";
-      } else {
+      } else if (!live) {
         const key = type === "project" ? "projects" : type;
         rev = (await api.adminGet<{ _rev: string | null }>(`/api/admin/content/${key}`))._rev ?? "";
       }

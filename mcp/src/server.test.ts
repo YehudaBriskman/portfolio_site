@@ -221,13 +221,13 @@ describe("deletes need confirm", () => {
 });
 
 describe("auth refusals", () => {
-  it("reports a 401 from the API as a token problem", async () => {
+  it("reports a 401 from the API as a credential problem", async () => {
     const { call } = await connect(TOKEN, {
       "GET /api/admin/posts/hello": [401, { ok: false, error: "unauthenticated" }],
     });
     const r = await call("publish_post", { slug: "hello" });
     expect(r.isError).toBe(true);
-    expect(r.text).toMatch(/refused the admin token \(401/);
+    expect(r.text).toMatch(/refused the credentials \(401/);
   });
 
   it("reports a 403 from a read-scoped token on a write", async () => {
