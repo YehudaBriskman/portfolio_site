@@ -3,6 +3,8 @@ import { Megaphone } from "lucide-react";
 import AdminShell from "@/components/admin/AdminShell";
 import { ErrorState, EmptyState, LoadingRows, PageHeader } from "@/components/admin/ui";
 import EventCard from "@/components/admin/announce/EventCard";
+import LibraryPanel from "@/components/admin/announce/library/LibraryPanel";
+import { useLibraryWords } from "@/components/admin/announce/library/words";
 import SettingsPanel from "@/components/admin/announce/SettingsPanel";
 import { useAnnounceWords } from "@/components/admin/announce/words";
 import { adminAnnounce, setUnread, type AnnounceSummary } from "@/services/adminAnnounce";
@@ -14,10 +16,11 @@ import { adminAnnounce, setUnread, type AnnounceSummary } from "@/services/admin
  * button the owner presses.
  */
 
-type View = "inbox" | "settings";
+type View = "inbox" | "library" | "settings";
 
 export default function AdminAnnounce() {
   const w = useAnnounceWords();
+  const lw = useLibraryWords();
   const [view, setView] = useState<View>("inbox");
   const [items, setItems] = useState<AnnounceSummary[] | null>(null);
   const [error, setError] = useState<"load" | "auth" | null>(null);
@@ -57,9 +60,9 @@ export default function AdminAnnounce() {
         <PageHeader title={w.title} description={w.intro} />
 
         <div role="group" aria-label={w.title} className="a-tabs mb-4">
-          {(["inbox", "settings"] as const).map((v) => (
+          {(["inbox", "library", "settings"] as const).map((v) => (
             <button key={v} type="button" aria-pressed={view === v} className="a-tab min-h-[44px]" onClick={() => setView(v)}>
-              {v === "inbox" ? w.tabInbox : w.tabSettings}
+              {v === "inbox" ? w.tabInbox : v === "library" ? lw.tab : w.tabSettings}
               {v === "inbox" && unread > 0 && (
                 <span className="a-counter">
                   <span aria-hidden="true">{unread}</span>
@@ -70,7 +73,9 @@ export default function AdminAnnounce() {
           ))}
         </div>
 
-        {view === "settings" ? (
+        {view === "library" ? (
+          <LibraryPanel />
+        ) : view === "settings" ? (
           <SettingsPanel />
         ) : error === "auth" ? (
           <p className="a-box a-box-row">{w.notAuthorised}</p>

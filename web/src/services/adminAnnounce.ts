@@ -59,6 +59,12 @@ export type AnnouncePreview = {
   issues: PreviewIssue[];
 };
 
+export type AnnounceSnippetKind = "hashtags" | "signature" | "cta" | "links";
+export const ANNOUNCE_SNIPPET_KINDS: readonly AnnounceSnippetKind[] = ["hashtags", "signature", "cta", "links"];
+export type AnnounceSnippet = { id: string; name: string; kind: AnnounceSnippetKind; text: string };
+export type AnnounceLibraryItem = { id: string; name: string; channel: AnnounceChannel; lang: AnnounceLang; text: string };
+export type AnnounceUtm = { enabled: boolean; source: string; mediumByChannel: Partial<Record<AnnounceChannel, string>> };
+
 export type AnnounceSettings = {
   enabled: boolean;
   email: { enabled: boolean; events: AnnounceKind[] };
@@ -66,6 +72,9 @@ export type AnnounceSettings = {
   signature: string;
   channels: AnnounceChannel[];
   templates: Record<AnnounceLang, Partial<Record<AnnounceChannel, string>>>;
+  snippets: AnnounceSnippet[];
+  library: AnnounceLibraryItem[];
+  advanced: { utm: AnnounceUtm };
 };
 
 export type AnnounceSettingsView = {
