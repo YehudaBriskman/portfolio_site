@@ -84,6 +84,19 @@ describe("GET /api/blog/posts", () => {
     expect(query.selector.tags).toEqual({ $elemMatch: { $eq: "craft" } });
   });
 
+  it("walks past the first 100 posts instead of dropping them", async () => {
+    const page = (from: number, n: number) => Array.from({ length: n }, (_, i) => post(`p-${from + i}`));
+    const find = vi
+      .spyOn(couch, "find")
+      .mockResolvedValueOnce({ docs: page(0, 100) })
+      .mockResolvedValueOnce({ docs: page(100, 30) });
+    const res = await request(createApp()).get("/api/blog/posts");
+
+    expect(res.body.items).toHaveLength(130);
+    expect(find).toHaveBeenCalledTimes(2);
+    expect((find.mock.calls[1][0] as { skip: number }).skip).toBe(100);
+  });
+
   it("answers a store failure with JSON 502, and logs it through pino", async () => {
     vi.spyOn(couch, "find").mockRejectedValue(new CouchError(400, "couch 400 on /_find"));
     const error = vi.spyOn(logger, "error");

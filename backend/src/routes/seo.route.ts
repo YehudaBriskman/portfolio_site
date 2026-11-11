@@ -2,6 +2,7 @@ import { Router, type Request, type Response } from "express";
 import { couch } from "../db/couch.js";
 import { env } from "../env.js";
 import { asyncHandler } from "../middlewares/asyncHandler.js";
+import { escapeXml as escapeHtml } from "../services/escape.js";
 import { renderCardPng } from "../services/og.js";
 import {
   LOG_CHANNEL,
@@ -30,16 +31,6 @@ import { sectionVisible, type SiteSettings } from "../schemas/site-settings.js";
 import { settingsOrDefault } from "../services/site-settings.js";
 
 const router = Router();
-
-/** Content from the database is escaped before it goes anywhere near the shell. */
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
-}
 
 async function publishedPosts(): Promise<Post[]> {
   const { docs } = await couch.find<Post>({
@@ -747,7 +738,7 @@ page("/blog/:slug", async (req, res, lang) => {
         isPartOf: { "@id": WEBSITE_ID },
         mainEntityOfPage: { "@type": "WebPage", "@id": canonical, breadcrumb: { "@id": `${absoluteUrl(pathIn(`/blog/${post.slug}`, lang))}#breadcrumb` } },
         keywords: post.tags.join(", ") || undefined,
-        wordCount: post.body.trim().split(/\s+/).length,
+        wordCount: post.body.trim() ? post.body.trim().split(/\s+/).length : 0,
         timeRequired: post.readingMinutes ? `PT${post.readingMinutes}M` : undefined,
       },
       breadcrumbs(lang, [

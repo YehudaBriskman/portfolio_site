@@ -1,3 +1,4 @@
+import { escapeXml, validDate } from "./escape.js";
 import { env } from "../env.js";
 import type { Collection, Post } from "../schemas/content.js";
 import type { SiteSettings } from "../schemas/site-settings.js";
@@ -31,15 +32,6 @@ export const LANGS: readonly Lang[] = ["en", "he"];
 export function pathIn(pathname: string, lang: Lang): string {
   if (lang === "en") return pathname;
   return pathname === "/" ? "/he" : `/he${pathname}`;
-}
-
-function escapeXml(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
 }
 
 function escapeAttr(s: string): string {
@@ -310,7 +302,8 @@ function buildSitemapEntries(entries: SitemapEntry[]): string {
     .flatMap((e) => (e.hebrew === false ? [{ ...e, lang: "en" as Lang }] : LANGS.map((lang) => ({ ...e, lang }))))
     .map((e) => {
       const parts = [`    <loc>${escapeXml(absoluteUrl(pathIn(e.loc, e.lang)))}</loc>`, ...(e.hebrew === false ? [] : alternates(e.loc))];
-      if (e.lastmod) parts.push(`    <lastmod>${escapeXml(new Date(e.lastmod).toISOString())}</lastmod>`);
+      const lastmod = validDate(e.lastmod);
+      if (lastmod) parts.push(`    <lastmod>${lastmod.toISOString()}</lastmod>`);
       if (e.changefreq) parts.push(`    <changefreq>${e.changefreq}</changefreq>`);
       if (e.priority !== undefined) parts.push(`    <priority>${e.priority.toFixed(1)}</priority>`);
       return `  <url>\n${parts.join("\n")}\n  </url>`;
@@ -351,7 +344,7 @@ export function buildFeed(posts: Post[], channel: FeedChannel = SITE_CHANNEL): s
   const items = published
     .map((p) => {
       const url = absoluteUrl(`/blog/${p.slug}`);
-      const date = p.publishedAt ? new Date(p.publishedAt).toUTCString() : new Date(p.createdAt).toUTCString();
+      const date = (validDate(p.publishedAt) ?? validDate(p.createdAt) ?? new Date(0)).toUTCString();
       return `    <item>
       <title>${escapeXml(p.title)}</title>
       <link>${escapeXml(url)}</link>
@@ -363,7 +356,7 @@ ${p.tags.map((t) => `      <category>${escapeXml(t)}</category>`).join("\n")}
     })
     .join("\n");
 
-  const updated = published[0]?.publishedAt ?? new Date().toISOString();
+  const updated = validDate(published[0]?.publishedAt) ?? new Date();
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
@@ -372,7 +365,7 @@ ${p.tags.map((t) => `      <category>${escapeXml(t)}</category>`).join("\n")}
     <link>${escapeXml(absoluteUrl(channel.link))}</link>
     <description>${escapeXml(channel.description)}</description>
     <language>en</language>
-    <lastBuildDate>${escapeXml(new Date(updated).toUTCString())}</lastBuildDate>
+    <lastBuildDate>${updated.toUTCString()}</lastBuildDate>
     <atom:link href="${escapeXml(absoluteUrl(channel.self))}" rel="self" type="application/rss+xml"/>
 ${items}
   </channel>
@@ -431,14 +424,14 @@ export function buildActivityFeed(events: FeedEvent[], channel: FeedChannel = LO
       <title>${escapeXml(`${kind}: ${e.title}`)}</title>
       <link>${escapeXml(url)}</link>
       <guid isPermaLink="false">${escapeXml(e.id)}</guid>
-      <pubDate>${escapeXml(new Date(e.at).toUTCString())}</pubDate>
+      <pubDate>${(validDate(e.at) ?? new Date(0)).toUTCString()}</pubDate>
       <description>${escapeXml(description)}</description>
 ${categories.map((c) => `      <category>${escapeXml(c)}</category>`).join("\n")}
     </item>`;
     })
     .join("\n");
 
-  const updated = latest[0]?.at ?? new Date().toISOString();
+  const updated = validDate(latest[0]?.at) ?? new Date();
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
@@ -447,7 +440,7 @@ ${categories.map((c) => `      <category>${escapeXml(c)}</category>`).join("\n")
     <link>${escapeXml(absoluteUrl(channel.link))}</link>
     <description>${escapeXml(channel.description)}</description>
     <language>en</language>
-    <lastBuildDate>${escapeXml(new Date(updated).toUTCString())}</lastBuildDate>
+    <lastBuildDate>${updated.toUTCString()}</lastBuildDate>
     <atom:link href="${escapeXml(absoluteUrl(channel.self))}" rel="self" type="application/rss+xml"/>
 ${items}
   </channel>

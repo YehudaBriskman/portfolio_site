@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import { Resvg } from "@resvg/resvg-js";
 import { z } from "zod";
+import { escapeXml as esc } from "./escape.js";
 
 /**
  * Open Graph card rendering.
@@ -110,15 +111,6 @@ function wrap(text: string, family: string, size: number, letterSpacing: number,
   }
   if (line) lines.push(line);
   return lines;
-}
-
-function esc(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
 }
 
 function truncate(s: string, max: number): string {

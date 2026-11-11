@@ -10,11 +10,26 @@ const router = Router();
  * fetch — a draft must not travel over the wire at all. A request for a draft
  * slug returns 404 rather than 403, because 403 confirms the slug exists.
  */
-const publishedSelector = (extra: Record<string, unknown> = {}) => ({
+const PAGE = 100;
+const MAX_PAGES = 100;
+
+const publishedSelector = (extra: Record<string, unknown> = {}, skip = 0) => ({
   selector: { type: "post", status: "published", ...extra },
   sort: [{ type: "desc" as const }, { status: "desc" as const }, { publishedAt: "desc" as const }],
-  limit: 100,
+  limit: PAGE,
+  skip,
 });
+
+/* A single _find silently stops at its limit, so walk the pages: a short page is the last. */
+async function findAllPublished(extra: Record<string, unknown> = {}): Promise<Post[]> {
+  const all: Post[] = [];
+  for (let page = 0; page < MAX_PAGES; page++) {
+    const { docs } = await couch.find<Post>(publishedSelector(extra, page * PAGE));
+    all.push(...docs);
+    if (docs.length < PAGE) break;
+  }
+  return all;
+}
 
 router.get(
   "/posts",
@@ -24,7 +39,7 @@ router.get(
     const extra: Record<string, unknown> = {};
     if (tag) extra.tags = { $elemMatch: { $eq: tag } };
     if (collection) extra.collection = collection;
-    const { docs } = await couch.find<Post>(publishedSelector(extra));
+    const docs = await findAllPublished(extra);
     res.json({ ok: true, items: docs.map(toPublicSummary) });
   })
 );
@@ -32,7 +47,7 @@ router.get(
 router.get(
   "/tags",
   asyncHandler(async (_req, res) => {
-    const { docs } = await couch.find<Post>(publishedSelector());
+    const docs = await findAllPublished();
     const counts = new Map<string, number>();
     docs.forEach((d) => d.tags.forEach((t) => counts.set(t, (counts.get(t) ?? 0) + 1)));
     res.json({
