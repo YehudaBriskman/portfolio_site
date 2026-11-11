@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { couch, CouchError } from "../db/couch.js";
+import { couch, CouchError, tryGet } from "../db/couch.js";
 import { asyncHandler } from "../middlewares/asyncHandler.js";
 import {
   AreaLinkLabel,
@@ -34,7 +34,10 @@ import {
 import adminContentRoutes from "./admin-content.route.js";
 import adminSettingsRoutes from "./admin-settings.route.js";
 import adminTranslationsRoutes from "./admin-translations.route.js";
-import { COLLECTION_FIELDS, LINK_LABEL_PATHS, POST_FIELDS, postEnglish, stampHebrewMeta, stampTexts, type HebrewMeta } from "../schemas/i18n.js";
+import { COLLECTION_FIELDS, stampHebrewMeta, stampTexts, type HebrewMeta } from "../schemas/i18n.js";
+import { fromContent, planPublish, postVersions, stampPost } from "../services/publishPlan.js";
+
+const COLLECTION_HE_FIELDS = COLLECTION_FIELDS.map((f) => f.field);
 
 const router = Router();
 
@@ -115,15 +118,6 @@ export const CollectionWrite = z.object({
 const postId = (slug: string) => `post:${slug}`;
 const colId = (slug: string) => `collection:${slug}`;
 
-async function tryGet<T>(id: string): Promise<T | null> {
-  try {
-    return await couch.get<T>(id);
-  } catch (e) {
-    if (e instanceof CouchError && e.status === 404) return null;
-    throw e;
-  }
-}
-
 router.get("/me", (req, res) => res.json({ ok: true, ...req.admin }));
 
 /* The site's own content (#163): projects, the story, the site copy. */
@@ -173,25 +167,13 @@ router.put(
   asyncHandler(async (req, res) => {
     const parsed = PostWrite.safeParse({ ...req.body, slug: req.params.slug });
     if (!parsed.success) {
-      return res.status(400).json({ ok: false, error: "invalid", details: parsed.error.flatten() });
+      return invalid(res, parsed.error);
     }
     const i = parsed.data;
     const now = new Date().toISOString();
     const existing = await tryGet<Post>(postId(i.slug));
 
-    /*
-     * The optimistic lock must not be defeatable by omission. Falling back to
-     * `existing._rev` meant a client that simply left `_rev` out overwrote
-     * whatever was there unconditionally — which is the one thing the lock
-     * exists to prevent. A write against an existing document has to name the
-     * revision it was editing.
-     */
-    if (existing?._rev && !i._rev) {
-      return res.status(409).json({
-        ok: false,
-        error: "This changed elsewhere. Reload and reapply your edit.",
-      });
-    }
+    if (!requireRevision(res, existing, i._rev)) return;
 
     const doc: Post & { _rev?: string } = {
       _id: postId(i.slug),
@@ -278,28 +260,15 @@ const DraftWrite = PostContentSchema.extend({ _rev: z.string().optional() });
 const PublishScope = z.enum(["both", "en", "he"]);
 const PublishWrite = DraftWrite.extend({ changeNote: z.string().trim().max(200).optional(), scope: PublishScope.default("both") });
 
-/** A published note's live content, in the shape a save sends. */
-function liveContent(p: Post): PostContent {
-  return {
-    title: p.title,
-    subtitle: p.subtitle ?? null,
-    excerpt: p.excerpt ?? "",
-    body: p.body ?? "",
-    tags: p.tags ?? [],
-    collection: p.collection,
-    coverImage: p.coverImage ?? null,
-    links: p.links ?? [],
-    featured: p.featured ?? null,
-    publishedAt: p.publishedAt ?? null,
-    seo: p.seo ?? { title: null, description: null, canonical: null, noindex: false },
-    he: p.he ?? null,
-  } as PostContent;
-}
-
-/** Equal as content: the fingerprints are bookkeeping, not an edit. */
-function sameContent(a: PostContent, b: PostContent): boolean {
-  const strip = (c: PostContent) => fromContent({ ...c, heMeta: null });
-  return JSON.stringify(strip(a)) === JSON.stringify(strip(b));
+/*
+ * The optimistic lock must not be defeatable by omission: a write against an
+ * existing document has to name the revision it was editing, or a client that
+ * leaves `_rev` out overwrites whatever is there.
+ */
+function requireRevision(res: import("express").Response, existing: { _rev?: string } | null, rev: string | undefined): boolean {
+  if (!existing?._rev || rev) return true;
+  res.status(409).json({ ok: false, error: "This changed elsewhere. Reload and reapply your edit." });
+  return false;
 }
 
 function invalid(res: import("express").Response, error: z.ZodError) {
@@ -310,46 +279,6 @@ function conflict(res: import("express").Response) {
   return res.status(409).json({ ok: false, error: "This post changed elsewhere. Reload and reapply." });
 }
 
-const POST_HE_FIELDS = [...POST_FIELDS.map((f) => f.field), ...LINK_LABEL_PATHS];
-const COLLECTION_HE_FIELDS = COLLECTION_FIELDS.map((f) => f.field);
-
-type HeVersion = { he: Record<string, unknown> | null | undefined; meta: HebrewMeta | null | undefined };
-
-/** The earlier Hebrew of a note, most recent first: its draft, then what is published. */
-function postVersions(existing: Post | null): HeVersion[] {
-  if (!existing) return [];
-  return [
-    { he: existing.draft?.he, meta: existing.draft?.heMeta },
-    { he: existing.he, meta: existing.heMeta },
-  ];
-}
-
-/*
- * The note's content with its Hebrew fingerprints stamped (#303): kept where
- * the Hebrew is unchanged from an earlier version, new where it was written in
- * this save. Whatever the client sent as `heMeta` is replaced.
- */
-function stampPost(content: PostContent, prevs: HeVersion[]): PostContent {
-  return { ...content, heMeta: stampHebrewMeta(content.he, postEnglish(content), prevs, POST_HE_FIELDS) };
-}
-
-function fromContent(c: PostContent) {
-  return {
-    title: c.title,
-    subtitle: c.subtitle,
-    excerpt: c.excerpt || c.body.replace(/[#*`>_[\]-]/g, "").slice(0, 300),
-    body: c.body,
-    tags: c.tags,
-    collection: c.collection,
-    coverImage: rawImageUrlOrNull(c.coverImage),
-    links: c.links,
-    featured: c.featured,
-    seo: c.seo,
-    he: c.he && Object.values(c.he).some((v) => typeof v === "string" && v.trim()) ? c.he : null,
-    heMeta: c.heMeta ?? null,
-    readingMinutes: readingMinutes(c.body),
-  };
-}
 
 async function store(res: import("express").Response, doc: Post, before: Post | null) {
   const ok = PostSchema.safeParse(doc);
@@ -413,17 +342,11 @@ router.post(
     const existing = await tryGet<Post>(postId(slug.data));
     if (existing?._rev && _rev !== existing._rev) return conflict(res);
     const republish = existing?.status === "published";
-    const live = republish && existing ? liveContent(existing) : null;
-    if (scope === "he" && !live) {
+    const plan = planPublish(existing, input, scope);
+    if (!plan) {
       return res.status(400).json({ ok: false, error: "Publish the note first; then its Hebrew can be published on its own." });
     }
-    /* What goes live: the edit, or one language of it over what is live. */
-    const going: PostContent =
-      scope === "both" ? input : scope === "he" ? { ...(live as PostContent), he: input.he } : { ...input, he: live?.he ?? null };
-    const content = stampPost(going, postVersions(existing));
-    /* What stays waiting: the whole edit, when it holds more than went live. */
-    const rest = scope === "both" ? null : stampPost(input, [{ he: content.he, meta: content.heMeta }, ...postVersions(existing)]);
-    const waiting = rest && !sameContent(rest, content) ? rest : null;
+    const { content, waiting } = plan;
     const now = new Date().toISOString();
 
     const doc: Post = {
@@ -520,25 +443,13 @@ router.put(
   asyncHandler(async (req, res) => {
     const parsed = CollectionWrite.safeParse({ ...req.body, slug: req.params.slug });
     if (!parsed.success) {
-      return res.status(400).json({ ok: false, error: "invalid", details: parsed.error.flatten() });
+      return invalid(res, parsed.error);
     }
     const i = parsed.data;
     const now = new Date().toISOString();
     const existing = await tryGet<Collection>(colId(i.slug));
 
-    /*
-     * The optimistic lock must not be defeatable by omission. Falling back to
-     * `existing._rev` meant a client that simply left `_rev` out overwrote
-     * whatever was there unconditionally — which is the one thing the lock
-     * exists to prevent. A write against an existing document has to name the
-     * revision it was editing.
-     */
-    if (existing?._rev && !i._rev) {
-      return res.status(409).json({
-        ok: false,
-        error: "This changed elsewhere. Reload and reapply your edit.",
-      });
-    }
+    if (!requireRevision(res, existing, i._rev)) return;
 
     const doc: Collection & { _rev?: string } = {
       _id: colId(i.slug),
@@ -651,7 +562,7 @@ router.post(
   asyncHandler(async (req, res) => {
     const parsed = TokenCreate.safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({ ok: false, error: "invalid", details: parsed.error.flatten() });
+      return invalid(res, parsed.error);
     }
     const { token, doc } = newTokenDoc({
       name: parsed.data.name,
@@ -741,7 +652,7 @@ router.get(
   asyncHandler(async (req, res) => {
     const parsed = AuditQuery.safeParse(req.query);
     if (!parsed.success) {
-      return res.status(400).json({ ok: false, error: "invalid", details: parsed.error.flatten() });
+      return invalid(res, parsed.error);
     }
     const items = await readAudit(parsed.data);
     const nextBefore = items.length === parsed.data.limit ? items[items.length - 1].id : null;

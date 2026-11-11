@@ -1,4 +1,4 @@
-import { couch, CouchError } from "../db/couch.js";
+import { couch, CouchError, tryGet } from "../db/couch.js";
 import { lintHebrew, type LintIssue } from "../i18n/glossary.js";
 import { AreaLinkLabel, CollectionHebrewSchema, CollectionSchema, PostContentSchema, PostSchema, type Collection, type Post } from "../schemas/content.js";
 import {
@@ -237,15 +237,6 @@ type HeDoc = Raw & {
 };
 
 const CONTENT_KEY_OF: Partial<Record<TranslationType, ContentKey>> = { project: "projects", story: "story", "site-copy": "site-copy" };
-
-async function tryGet<T>(id: string): Promise<(T & { _id: string; _rev?: string }) | null> {
-  try {
-    return await couch.get<T & { _id: string; _rev?: string }>(id);
-  } catch (e) {
-    if (e instanceof CouchError && e.status === 404) return null;
-    throw e;
-  }
-}
 
 async function save(doc: { _id: string; _rev?: string }): Promise<string | null> {
   try {

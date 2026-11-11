@@ -146,3 +146,13 @@ export const couch = {
     }
   },
 };
+
+/** The document, or null when it does not exist; any other failure still throws. */
+export async function tryGet<T>(id: string): Promise<T | null> {
+  try {
+    return await couch.get<T>(id);
+  } catch (e) {
+    if (e instanceof CouchError && e.status === 404) return null;
+    throw e;
+  }
+}
