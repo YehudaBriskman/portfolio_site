@@ -229,7 +229,7 @@ async function processSvg(raw: Buffer): Promise<Processed> {
   const widest = VARIANT_WIDTHS[VARIANT_WIDTHS.length - 1];
   let meta: sharp.Metadata;
   try {
-    meta = await sharp(input).metadata();
+    meta = await sharp(input, { limitInputPixels: false }).metadata();
   } catch {
     throw new MediaRejected(422, "The SVG could not be drawn.");
   }
