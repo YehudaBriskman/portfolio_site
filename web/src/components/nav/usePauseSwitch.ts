@@ -79,7 +79,7 @@ function restore({ section, through }: ReadingPosition) {
  * The choice persists, because having to find the control again on every
  * visit would defeat the point of offering it.
  */
-export function useMotionPaused(): [boolean, () => void] {
+export function usePauseSwitch(): [boolean, () => void] {
   /*
    * Starts unpaused, with the stored preference read in the effect below
    * rather than in this initialiser.

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { useMotionPaused } from "@/hooks/useMotionPaused";
+import { useIsMotionPaused } from "@/hooks/useIsMotionPaused";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 
 /*
@@ -58,7 +58,7 @@ export default function MediaVideo({
 }: MediaVideoProps) {
   const ref = useRef<HTMLVideoElement>(null);
   const reduced = usePrefersReducedMotion();
-  const paused = useMotionPaused();
+  const paused = useIsMotionPaused();
   const motionOn = !reduced && !paused;
 
   // React does not reliably reflect `muted` as a property; set it directly so a browser's autoplay rule sees it.

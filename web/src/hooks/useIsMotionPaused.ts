@@ -15,6 +15,6 @@ function subscribe(onChange: () => void) {
 const read = () => document.body.classList.contains("motion-paused");
 const readOnServer = () => false;
 
-export function useMotionPaused() {
+export function useIsMotionPaused() {
   return useSyncExternalStore(subscribe, read, readOnServer);
 }

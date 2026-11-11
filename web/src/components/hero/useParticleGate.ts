@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { DESKTOP_MIN_WIDTH, particlesAllowed, type Environment } from "@/components/hero/particleLayout";
+import { motionPaused, prefersReducedMotion } from "@/hooks/motionOff";
 
 /*
  * Whether the hero shows its desktop-only objects: the particle word and the
@@ -38,8 +39,8 @@ export function readEnvironment(hasText: boolean): Environment {
     width: window.innerWidth,
     coarsePointer: mq("(pointer: coarse)"),
     noHover: typeof window.matchMedia === "function" && !mq("(hover: hover)"),
-    reducedMotion: mq("(prefers-reduced-motion: reduce)"),
-    paused: document.body.classList.contains("motion-paused"),
+    reducedMotion: prefersReducedMotion(),
+    paused: motionPaused(),
     forcedColors: mq("(forced-colors: active)"),
     print: mq("print"),
     canvas: canvasSupported(),

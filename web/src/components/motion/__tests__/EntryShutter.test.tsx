@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, render } from "@testing-library/react";
 import EntryShutter from "@/components/motion/EntryShutter";
 import { getEntry, resetEntryForTests } from "@/components/motion/entry";
-import { MOTION_PAUSED_KEY } from "@/components/nav/useMotionPaused";
+import { MOTION_PAUSED_KEY } from "@/components/nav/usePauseSwitch";
 
 /*
  * The shutter is two things a test can see and one it cannot.
@@ -223,7 +223,7 @@ describe("whether the shutter is there at all", () => {
     /*
      * The case this component reads the key for.
      *
-     * `useMotionPaused` restores the stored preference in an *effect*, so the
+     * `usePauseSwitch` restores the stored preference in an *effect*, so the
      * class is not on the body during the first render. Every other motion
      * component accepts that and pays one frame of motion for it; one frame of
      * a letter moving is nothing, and one frame of the whole window going

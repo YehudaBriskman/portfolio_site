@@ -1702,7 +1702,7 @@ They are **three independent conditions, not one**, and each needs its own exit:
 
 1. **`prefers-reduced-motion: reduce`** — a standing OS preference about every
    site.
-2. **The Pause toggle** — `web/src/components/nav/useMotionPaused.ts`, which
+2. **The Pause toggle** — `web/src/components/nav/usePauseSwitch.ts`, which
    hangs `body.motion-paused` outside the React tree precisely so that view
    timelines, ambient layers and plate cross-fades stop too, none of which the
    nav renders or can reach.

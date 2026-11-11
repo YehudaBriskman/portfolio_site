@@ -1,4 +1,5 @@
 import { useEffect, type RefObject } from "react";
+import { prefersReducedMotion } from "@/hooks/motionOff";
 
 /*
  * Publishes on <html> and nothing else:
@@ -55,10 +56,7 @@ export function useScrollProgress(target?: RefObject<HTMLElement | null>) {
      * never appear, so the stylesheet's resting rules are the only thing
      * positioning the scene and do not have to fight inline specificity.
      */
-    const reduced =
-      typeof window.matchMedia === "function" &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reduced) return;
+    if (prefersReducedMotion()) return;
 
     /*
      * The section list is queried once, not on every frame. querySelectorAll
