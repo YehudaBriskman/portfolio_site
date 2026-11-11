@@ -237,7 +237,12 @@ async function processSvg(raw: Buffer): Promise<Processed> {
   // Vector: draw it at the widest rung, whatever its nominal size.
   const height = Math.round((meta.height / meta.width) * widest);
   const density = Math.min(2400, Math.max(72, (72 * widest) / meta.width));
-  const variants = await makeVariants(() => sharp(input, { density }), widest);
+  // librsvg rasterises at the nominal size scaled by density/72, so a 200-byte SVG can ask for gigabytes.
+  const scale = density / 72;
+  if (meta.width * scale * meta.height * scale > MAX_PIXELS) {
+    throw new MediaRejected(413, "The SVG would be drawn with too many pixels (40 megapixels at most).");
+  }
+  const variants = await makeVariants(() => sharp(input, { density, limitInputPixels: MAX_PIXELS }), widest);
   return {
     kind: "image",
     format: "svg",

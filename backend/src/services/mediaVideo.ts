@@ -75,7 +75,14 @@ export function inspectVideo(buf: Buffer): VideoInfo {
   }
   const format = sniffVideo(buf);
   if (!format) throw new MediaRejected(415, "Only MP4 (H.264/AAC) and WebM (VP9 or AV1) videos are accepted.");
-  const info = format === "mp4" ? mp4(buf) : webm(buf);
+  let info: VideoInfo;
+  try {
+    info = format === "mp4" ? mp4(buf) : webm(buf);
+  } catch (e) {
+    // A box shorter than the fixed offsets read inside it: a damaged file, not a server fault.
+    if (e instanceof RangeError) throw bad("it is truncated or damaged");
+    throw e;
+  }
   if (!(info.durationMs > 0)) throw bad("it does not say how long it is; re-export it from an editor");
   if (info.durationMs > VIDEO_MAX_MS) {
     throw new MediaRejected(413, `Videos are limited to ${VIDEO_MAX_MS / 1000} seconds.`);

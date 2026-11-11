@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { pipeline } from "node:stream/promises";
 import { ImagesService } from "../services/images.service";
 
 export class ImagesController {
@@ -14,12 +15,23 @@ export class ImagesController {
       const ifNoneMatch = req.headers["if-none-match"];
       const ifModifiedSince = req.headers["if-modified-since"];
 
-      if (ifNoneMatch === payload.etag) {
+      // RFC 9110: If-Modified-Since is ignored whenever If-None-Match is present.
+      const fresh = ifNoneMatch !== undefined
+        ? ifNoneMatch.split(",").some((t) => {
+            const tag = t.trim().replace(/^W\//, "");
+            return tag === "*" || tag === payload.etag;
+          })
+        : ifModifiedSince !== undefined && new Date(ifModifiedSince) >= payload.lastModified;
+      if (fresh) {
+        payload.stream.destroy();
         return res.status(304).end();
       }
-      if (ifModifiedSince && new Date(ifModifiedSince) >= payload.lastModified) {
-        return res.status(304).end();
-      }
+
+      // A read error before the first byte must still become a clean 500 below.
+      await new Promise<void>((ok, fail) => {
+        payload.stream.once("open", () => ok());
+        payload.stream.once("error", fail);
+      });
 
       // Headers
       res.setHeader("Content-Type", payload.contentType);
@@ -30,8 +42,9 @@ export class ImagesController {
       res.setHeader("Cache-Control", "public, max-age=86400");
 
       // Stream to client
-      payload.stream.on("error", () => res.status(500).end());
-      payload.stream.pipe(res);
+      // pipeline destroys the file when the visitor goes away, and the response when the file fails
+      // mid-body: headers are out by then, so there is no status left to send.
+      await pipeline(payload.stream, res).catch(() => undefined);
     } catch (err: unknown) {
       // Never hand a raw thrown value to the client: narrow it first, and only
       // repeat a message we chose ourselves.

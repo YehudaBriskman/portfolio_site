@@ -46,6 +46,11 @@ const CSP = {
 };
 
 function notFound(res: Response) {
+  // A hashed URL's headers promise a year; a miss must not carry them, nor a leftover file Content-Type.
+  res.removeHeader("Content-Type");
+  res.removeHeader("ETag");
+  res.removeHeader("Content-Security-Policy");
+  res.setHeader("Cache-Control", "no-store");
   return res.status(404).json({ ok: false, error: "Not Found" });
 }
 
@@ -99,18 +104,23 @@ export function parseRange(
 
 async function sendVideo(req: Request, res: Response, doc: MediaDoc) {
   const size = doc.bytes;
-  fileHeaders(res, MIME[doc.format], CSP.video, doc.hash);
   res.setHeader("Accept-Ranges", "bytes");
   const ifRange = req.header("if-range");
   const range = ifRange && ifRange !== `"${doc.hash}"` ? null : parseRange(req.header("range"), size);
   if (range === "unsatisfiable") {
     res.setHeader("Content-Range", `bytes */${size}`);
+    res.setHeader("Cache-Control", "no-store");
     return res.status(416).end();
   }
-  if (!range && req.header("if-none-match") === `"${doc.hash}"`) return res.status(304).end();
+  if (!range && req.header("if-none-match") === `"${doc.hash}"`) {
+    fileHeaders(res, MIME[doc.format], CSP.video, doc.hash);
+    return res.status(304).end();
+  }
   const { start, end } = range ?? { start: 0, end: size - 1 };
   const stream = await mediaStore.range(doc.id, doc.original, start, end);
   if (!stream) return notFound(res);
+  // Only now is there a file to promise: an error or a miss above goes out uncacheable.
+  fileHeaders(res, MIME[doc.format], CSP.video, doc.hash);
   if (range) {
     res.status(206);
     res.setHeader("Content-Range", `bytes ${start}-${end}/${size}`);
@@ -125,10 +135,13 @@ async function sendVideo(req: Request, res: Response, doc: MediaDoc) {
 }
 
 async function sendWhole(req: Request, res: Response, id: string, name: string, type: string, csp: string, hash: string) {
-  fileHeaders(res, type, csp, hash);
-  if (req.header("if-none-match") === `"${hash}"`) return res.status(304).end();
+  if (req.header("if-none-match") === `"${hash}"`) {
+    fileHeaders(res, type, csp, hash);
+    return res.status(304).end();
+  }
   const file = await mediaStore.file(id, name);
   if (!file) return notFound(res);
+  fileHeaders(res, type, csp, hash);
   res.setHeader("Content-Length", String(file.data.length));
   res.end(file.data);
 }
