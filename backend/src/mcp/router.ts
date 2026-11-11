@@ -447,7 +447,7 @@ export function createMcpRouter(app: Express) {
     json,
     asyncHandler((req, res) => {
       const auth = (req as Request & { auth: AuthInfo }).auth;
-      const write = auth.scopes.includes("mcp:write");
+      const scope = auth.scopes.includes("mcp:write") ? "write" : "read";
       const extra = auth.extra as { grantId: string; clientName: string; login: string };
       const admin: Admin = {
         login: extra.login,
@@ -455,9 +455,9 @@ export function createMcpRouter(app: Express) {
         via: AUDIT_VIA,
         tokenId: extra.grantId,
         client: extra.clientName,
-        scope: write ? "write" : "read",
+        scope,
       };
-      return serve(req, res, write ? "write" : "read", admin);
+      return serve(req, res, scope, admin);
     }),
   );
 

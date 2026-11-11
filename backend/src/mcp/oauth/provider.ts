@@ -24,6 +24,8 @@ import { githubAuthorizeUrl, pkceChallenge } from "./github.js";
 import { tryGet } from "./util.js";
 import {
   ACCESS_TTL_S,
+  GRANT_TOUCH_MS,
+  SWEEP_INTERVAL_MS,
   CLIENT_IDLE_TTL_MS,
   CLIENT_UNUSED_TTL_MS,
   CODE_TTL_MS,
@@ -283,20 +285,19 @@ async function touchClient(clientId: string) {
 /* Expired sign-ins, codes, clients and long-dead grants go, at most every ten minutes. */
 let lastSweep = 0;
 export async function sweep(now = Date.now()) {
-  if (now - lastSweep < 10 * 60_000) return;
+  if (now - lastSweep < SWEEP_INTERVAL_MS) return;
   lastSweep = now;
   try {
     const { docs } = await couch.find<Record<string, unknown> & { _id: string; _rev: string; type: string }>({
       selector: { type: { $in: ["mcptxn", "mcpcode", "mcpclient", "mcpgrant"] } },
       limit: 1000,
     });
-    const month = 30 * 86_400_000;
     const dead = docs.filter((d) => {
       if (d.type === "mcptxn" || d.type === "mcpcode") return Date.parse(String(d.expiresAt)) < now;
       if (d.type === "mcpclient") return clientExpired(d as unknown as McpClientDoc, now);
       const g = d as unknown as McpGrantDoc;
       const end = g.revokedAt ? Date.parse(g.revokedAt) : Date.parse(g.refresh.expiresAt);
-      return now - end > month;
+      return now - end > REFRESH_TTL_MS;
     });
     await Promise.all(dead.map((d) => couch.del(d._id, d._rev).catch(() => undefined)));
   } catch (e) {
@@ -565,7 +566,7 @@ export const provider: OAuthServerProvider = {
 const grantTouches = new Map<string, number>();
 function touchGrant(g: McpGrantDoc, now: number) {
   const last = grantTouches.get(g.id) ?? Date.parse(g.lastUsedAt ?? "");
-  if (Number.isFinite(last) && now - last < 60_000) return;
+  if (Number.isFinite(last) && now - last < GRANT_TOUCH_MS) return;
   grantTouches.set(g.id, now);
   couch.put(g._id, { ...g, lastUsedAt: iso(now) }).catch(() => undefined);
 }

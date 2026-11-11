@@ -160,6 +160,7 @@ export function fillHebrew(doc, index) {
 export function mergeKey(key, current, payload, library, livePublished = null) {
   const seedDoc = payload[FIELD[key]];
   const changes = [];
+  const notes = [];
   let next = structuredClone(current);
 
   if (key === "projects") {
@@ -181,7 +182,7 @@ export function mergeKey(key, current, payload, library, livePublished = null) {
       const src = library.get(file);
       if (!src || !/^(\/|https:\/\/)/.test(src)) continue;
       if (!slugs.has(slug)) {
-        changes.push(`! no picture for beat ${slug}: its project is not published yet`);
+        notes.push(`no picture for beat ${slug}: its project is not published yet`);
         continue;
       }
       const words = PICTURES[file];
@@ -194,7 +195,7 @@ export function mergeKey(key, current, payload, library, livePublished = null) {
   next = filledDoc;
   if (filled.length) changes.push(`~ Hebrew filled in at ${filled.length} place(s): ${filled.slice(0, 6).join(", ")}${filled.length > 6 ? ", …" : ""}`);
 
-  return { next, changes: changes.filter((c) => !c.startsWith("!")), notes: changes.filter((c) => c.startsWith("!")) };
+  return { next, changes, notes };
 }
 
 async function main() {

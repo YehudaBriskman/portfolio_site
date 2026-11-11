@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { describe, expect, it } from "vitest";
 
 /*
  * ./shared is generated from mcp/src (the tools both MCP transports use).
@@ -14,6 +15,7 @@ describe("src/mcp/shared is in sync with mcp/src", () => {
     const banner = `// GENERATED from mcp/src/${f} by mcp/scripts/sync-shared.mjs. Edit that file and rerun the script.\n`;
     const want = banner + fs.readFileSync(path.join(SRC, f), "utf8");
     const have = fs.readFileSync(path.join(DEST, f), "utf8");
-    expect(have === want, "stale copy: run node mcp/scripts/sync-shared.mjs").toBe(true);
+    // toBe prints the differing text; a boolean compare would only say "false".
+    expect(have, "stale copy: run node mcp/scripts/sync-shared.mjs").toBe(want);
   });
 });
