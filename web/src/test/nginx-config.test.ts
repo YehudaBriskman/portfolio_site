@@ -274,8 +274,8 @@ describe("/feed.xml when the API fails (#125)", () => {
 });
 
 describe("/blog/area/<slug> on a direct load (#238)", () => {
-  const AREA = "location ~ ^/blog/area/([^/.]+)/?$";
-  const POST = "location ~ ^/blog/([^/.]+)/?$";
+  const AREA = "location ~ ^/blog/area/([A-Za-z0-9_-]+)/?$";
+  const POST = "location ~ ^/blog/([A-Za-z0-9_-]+)/?$";
   const area = locations.find((loc) => label(loc) === AREA);
   const regexes = locations.filter((loc) => loc.args[0] === "~" || loc.args[0] === "~*");
   /** nginx's choice among regex locations: the first in the file that matches. */
