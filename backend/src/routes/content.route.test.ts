@@ -1,5 +1,3 @@
-import fs from "fs";
-import path from "path";
 import request from "supertest";
 import { createApp } from "../app";
 import { couch, CouchError } from "../db/couch.js";
@@ -8,6 +6,7 @@ import { CONTENT_SEED } from "../content/seed.js";
 import type { ContentBundle, ContentDoc, ContentKey } from "../schemas/site-content.js";
 import { resetShellCache } from "../services/seo.js";
 import { fp } from "../schemas/i18n.js";
+import { INDEX_HTML } from "../testShell.js";
 
 /*
  * The site's content in the store (#163): the public read, the editing API
@@ -284,7 +283,6 @@ describe("the seed", () => {
 });
 
 describe("the crawler renders read the store", () => {
-  const INDEX_HTML = fs.readFileSync(path.resolve(__dirname, "../../../web/index.html"), "utf8");
 
   beforeEach(() => {
     resetShellCache();

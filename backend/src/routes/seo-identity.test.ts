@@ -5,8 +5,6 @@
  * render and in the built shell, the Hebrew spelling in Hebrew titles and on
  * the Hebrew home page, and no employer anywhere.
  */
-import fs from "fs";
-import path from "path";
 import request from "supertest";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createApp } from "../app";
@@ -15,8 +13,7 @@ import { resetShellCache } from "../services/seo.js";
 import { ALTERNATE_NAMES, NAME_HE, PERSON_ID, knowsAbout, sameAs, withHebrewName } from "../services/seo-entity.js";
 import { seedFor } from "../services/site-content.js";
 import type { ContentBundle } from "../schemas/site-content.js";
-
-const INDEX_HTML = fs.readFileSync(path.resolve(__dirname, "../../../web/index.html"), "utf8");
+import { INDEX_HTML } from "../testShell.js";
 
 type Node = Record<string, unknown>;
 

@@ -6,13 +6,12 @@
  * ignores `status`, so a draft or a hidden area handed back by a loosened
  * selector still has to be held back by the builder.
  */
-import fs from "fs";
-import path from "path";
 import request from "supertest";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createApp } from "../app";
 import { couch, CouchError } from "../db/couch.js";
 import { resetShellCache } from "../services/seo.js";
+import { INDEX_HTML } from "../testShell.js";
 
 const T = "2026-10-01T00:00:00.000Z";
 
@@ -175,7 +174,6 @@ describe("GET /api/seo/feed/log.xml", () => {
 });
 
 describe("GET /api/seo/render/blog/log", () => {
-  const INDEX_HTML = fs.readFileSync(path.resolve(__dirname, "../../../web/index.html"), "utf8");
 
   afterEach(() => {
     vi.unstubAllGlobals();

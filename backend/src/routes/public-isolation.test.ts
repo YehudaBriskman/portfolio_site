@@ -1,9 +1,8 @@
-import fs from "fs";
-import path from "path";
 import request from "supertest";
 import { createApp } from "../app";
 import { couch, CouchError } from "../db/couch.js";
 import { resetShellCache } from "../services/seo.js";
+import { INDEX_HTML as shell } from "../testShell.js";
 
 /*
  * The content database now also holds API tokens and the admin audit log
@@ -154,7 +153,6 @@ beforeEach(() => {
     if (!doc || (doc.type !== "post" && doc.type !== "collection")) throw new CouchError(404, "couch 404");
     return doc as never;
   });
-  const shell = fs.readFileSync(path.resolve(__dirname, "../../../web/index.html"), "utf8");
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: string) => {

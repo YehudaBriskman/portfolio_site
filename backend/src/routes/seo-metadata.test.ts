@@ -6,8 +6,6 @@
  * right kind; the indexes list what they contain; the head the app fetches
  * after a client-side navigation is the head the render writes.
  */
-import fs from "fs";
-import path from "path";
 import request from "supertest";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createApp } from "../app";
@@ -18,8 +16,7 @@ import { TITLE_MAX, fitTitle } from "../services/seo-template.js";
 import { seedFor } from "../services/site-content.js";
 import { areaTitleName } from "./seo.route.js";
 import type { ContentBundle } from "../schemas/site-content.js";
-
-const INDEX_HTML = fs.readFileSync(path.resolve(__dirname, "../../../web/index.html"), "utf8");
+import { INDEX_HTML } from "../testShell.js";
 
 type Node = Record<string, unknown>;
 
