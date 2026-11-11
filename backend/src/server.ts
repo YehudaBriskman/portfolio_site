@@ -10,13 +10,36 @@ import { logger } from './logger.js';
 
 const app = createApp();
 
-const port = Number(process.env.PORT || 5000);
-const host = process.env.HOST || "0.0.0.0";
+const { PORT: port, HOST: host } = env;
 
-app.listen(port, host, () => {
-  console.log(`API listening on http://${host === "0.0.0.0" ? "localhost" : host}:${port}`);
-  logger.info(`Email service listening on :${env.PORT} (${env.EMAIL_PROVIDER})`)
-  console.log(`Images dir: ${process.env.UPLOADS_DIR ?? "src/uploads/"}`);
+const server = app.listen(port, host, () => {
+  logger.info(`API listening on ${host}:${port} (email: ${env.EMAIL_PROVIDER})`);
+});
+
+/*
+ * Node is PID 1 in the container and has no default SIGTERM action there, so
+ * without a handler a rollout waits out the grace period and SIGKILLs it
+ * mid-request. Stop accepting, let in-flight requests finish, and force the
+ * exit if a keep-alive connection holds the server open past the timeout.
+ */
+const SHUTDOWN_TIMEOUT_MS = 10_000;
+let shuttingDown = false;
+function shutdown(signal: string): void {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  logger.info({ signal }, "shutting down");
+  const force = setTimeout(() => {
+    logger.error("graceful shutdown timed out; exiting");
+    process.exit(1);
+  }, SHUTDOWN_TIMEOUT_MS);
+  force.unref();
+  server.close((err) => process.exit(err ? 1 : 0));
+  server.closeIdleConnections?.();
+}
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));
+process.on("unhandledRejection", (reason) => {
+  logger.error({ err: reason instanceof Error ? reason.message : String(reason) }, "unhandled rejection");
 });
 
 /*

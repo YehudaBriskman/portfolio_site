@@ -50,7 +50,13 @@ async function call<T>(path: string, init: RequestInit = {}, timeoutMs = 8000): 
       throw new CouchError(0, `couch unreachable on ${path}`, cause);
     }
     if (!res.ok) throw new CouchError(res.status, `couch ${res.status} on ${path}`);
-    return (await res.json()) as T;
+    try {
+      return (await res.json()) as T;
+    } catch (cause) {
+      // A 200 that is not JSON is a proxy or gateway answering for the store:
+      // upstream's fault, so the same 502 class as an unreachable store.
+      throw new CouchError(0, `couch returned a non-JSON body on ${path}`, cause);
+    }
   } finally {
     clearTimeout(t);
   }
@@ -120,10 +126,14 @@ export const couch = {
       throw err;
     }
   },
-  /** Creates an index if it does not already exist. Safe to call on every boot. */
-  ensureIndex: (name: string, fields: unknown[]) =>
-    call(`/_index`, { method: "POST", body: JSON.stringify({ index: { fields }, name, type: "json" }) })
-      .catch(() => undefined),
+  /**
+   * Creates an index if it does not already exist. Safe to call on every boot:
+   * CouchDB answers 200 `result: "exists"` for one already there. Every other
+   * failure (401, 403, 5xx) propagates so the caller cannot log success.
+   */
+  ensureIndex: async (name: string, fields: unknown[]): Promise<void> => {
+    await call(`/_index`, { method: "POST", body: JSON.stringify({ index: { fields }, name, type: "json" }) });
+  },
   reachable: async () => {
     try {
       await call("/", {}, 3000);

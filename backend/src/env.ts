@@ -3,13 +3,17 @@ import { z } from 'zod';
 
 const EnvSchema = z.object({
   NODE_ENV: z.enum(['development','production','test']).default('development'),
-  PORT: z.coerce.number().default(8080),
+  // 5000 is what the Dockerfile and both compose files set; the listener and
+  // its log line both read this, so there is one answer to "which port".
+  PORT: z.coerce.number().int().min(1).max(65535).default(5000),
+  HOST: z.string().default('0.0.0.0'),
 
   EMAIL_PROVIDER: z.enum(['smtp','emailjs']).default('smtp'),
 
   SMTP_HOST: z.string().optional(),
-  SMTP_PORT: z.coerce.number().optional(),
-  SMTP_SECURE: z.string().optional().transform(v => v ? v === 'true' : undefined),
+  SMTP_PORT: z.coerce.number().default(587),
+  // Unset means "decide from the port" (465 is implicit TLS); a typo is an error, not false.
+  SMTP_SECURE: z.enum(['true', 'false']).optional().transform(v => (v === undefined ? undefined : v === 'true')),
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
 
@@ -132,7 +136,6 @@ const EnvSchema = z.object({
     for (const k of ['SMTP_HOST','SMTP_USER','SMTP_PASS'] as const) {
       if (!env[k]) ctx.addIssue({ code: z.ZodIssueCode.custom, message: `Missing ${k} for SMTP` });
     }
-    if (!env.SMTP_PORT) (env).SMTP_PORT = 587;
   } else {
     for (const k of ['EMAILJS_PUBLIC_KEY','EMAILJS_PRIVATE_KEY','EMAILJS_SERVICE_ID'] as const) {
       if (!env[k]) ctx.addIssue({ code: z.ZodIssueCode.custom, message: `Missing ${k} for EmailJS` });

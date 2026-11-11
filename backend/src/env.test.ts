@@ -29,3 +29,30 @@ describe("env.BUILD_SHA", () => {
     expect(await load("")).toBe("dev");
   });
 });
+
+describe("env PORT and SMTP", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.resetModules();
+  });
+  async function load() {
+    vi.resetModules();
+    return (await import("./env")).env;
+  }
+
+  it("defaults PORT to 5000, the port the image and compose files use", async () => {
+    vi.stubEnv("PORT", "");
+    delete process.env.PORT;
+    expect((await load()).PORT).toBe(5000);
+  });
+
+  it("defaults SMTP_PORT to 587 in the schema", async () => {
+    delete process.env.SMTP_PORT;
+    expect((await load()).SMTP_PORT).toBe(587);
+  });
+
+  it("rejects an SMTP_SECURE that is not true or false", async () => {
+    vi.stubEnv("SMTP_SECURE", "TRUE");
+    await expect(load()).rejects.toThrow();
+  });
+});

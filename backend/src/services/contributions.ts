@@ -237,9 +237,12 @@ export async function fetchContributionYear(login: string): Promise<Contribution
  * not a degradation.
  */
 let cached: ContributionYear | null = null;
+let cachedAt = 0;
 let inFlight: Promise<ContributionYear> | null = null;
 
 const REFRESH_MS = 30 * 60 * 1000;
+// An errored year is retried by readers after this long, not held for a tick.
+const ERROR_RETRY_MS = 30 * 1000;
 
 async function refresh(login: string): Promise<ContributionYear> {
   const year = await fetchContributionYear(login);
@@ -252,6 +255,7 @@ async function refresh(login: string): Promise<ContributionYear> {
    */
   if (year.error && cached && !cached.error) return cached;
   cached = year;
+  cachedAt = Date.now();
   return year;
 }
 
@@ -259,7 +263,7 @@ async function refresh(login: string): Promise<ContributionYear> {
 export async function getContributionYear(
   login: string = env.GITHUB_LOGIN,
 ): Promise<ContributionYear> {
-  if (cached) return cached;
+  if (cached && (!cached.error || Date.now() - cachedAt < ERROR_RETRY_MS)) return cached;
   inFlight ??= refresh(login).finally(() => {
     inFlight = null;
   });
@@ -297,5 +301,6 @@ export function startContributionsRefresh(opts: { login?: string; everyMs?: numb
 /** Test seam. Resets the module cache so a case can start from cold. */
 export function __resetContributionCache() {
   cached = null;
+  cachedAt = 0;
   inFlight = null;
 }

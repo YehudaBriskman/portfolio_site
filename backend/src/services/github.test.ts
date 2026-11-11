@@ -1,4 +1,4 @@
-import { fetchSiteReleases, pickSiteReleases } from "./github.js";
+import { fetchSiteReleases, pickSiteReleases, startStatsRefresh } from "./github.js";
 import type { SiteReleases } from "../schemas/content.js";
 
 /*
@@ -55,5 +55,26 @@ describe("fetchSiteReleases", () => {
     const doc = await fetchSiteReleases({ owner: "o", name: "r" }, previous);
     expect(doc.items).toEqual(previous.items);
     expect(doc.error).toMatch(/GitHub/);
+  });
+});
+
+describe("startStatsRefresh", () => {
+  it("keeps saving later areas after one save fails", async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ stargazers_count: 1, pushed_at: "2026-01-01T00:00:00Z" }), { status: 200 })));
+    const cols = ["a", "b", "c"].map((n) => ({ _id: n, repo: { owner: "o", name: n } }));
+    const saved: string[] = [];
+    const stop = startStatsRefresh({
+      list: async () => cols as never,
+      save: async (c) => {
+        if (c._id === "a") throw new Error("409");
+        saved.push(c._id!);
+      },
+    });
+    await vi.advanceTimersByTimeAsync(21_000);
+    stop();
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+    expect(saved).toEqual(["b", "c"]);
   });
 });

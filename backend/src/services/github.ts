@@ -129,15 +129,22 @@ export function startStatsRefresh(opts: {
 }) {
   const every = opts.everyMs ?? 15 * 60 * 1000;
   const run = async () => {
+    let cols: Collection[] = [];
     try {
-      const cols = await opts.list();
-      for (const c of cols) {
-        if (!c.repo) continue;
-        const stats = await fetchRepoStats(c.repo);
-        await opts.save({ ...c, stats });
-      }
+      cols = await opts.list();
     } catch {
       // Deliberately swallowed: a failed refresh must never take the API down.
+    }
+    for (const c of cols) {
+      if (!c.repo) continue;
+      // Per area: one failed save (a 409 because an admin edited it meanwhile)
+      // must not skip every area after it for the rest of the cycle.
+      try {
+        const stats = await fetchRepoStats(c.repo);
+        await opts.save({ ...c, stats });
+      } catch {
+        // Same reasoning as above.
+      }
     }
     // Separately guarded, so a failure in one never starves the other.
     if (opts.siteReleases) {
