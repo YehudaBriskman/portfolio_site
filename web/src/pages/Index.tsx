@@ -13,124 +13,23 @@ import { DARK_SECTIONS, shownSections, type HomeSection } from "@/settings/schem
 import { useSiteSettings } from "@/settings/store";
 
 /*
- * The home page, and nothing between it and its sections.
- *
- * What was here and why it has gone
- * ---------------------------------
- * Every section was wrapped in `<Reveal>`, an IntersectionObserver that held
- * its child at `opacity: 0` and a translation of up to 30px until the box
- * crossed the viewport. Three things were wrong with that by the time the
- * ground became paper.
- *
- * It was measurably breaking the page. Two of the wrappers translated
- * *horizontally* — `from="right"` pushed a full-width section 26px past the
- * right edge of the document until it fired — so the page reported horizontal
- * overflow for as long as the reader had not yet scrolled to those sections.
- * `body` carries `overflow-x: clip`, which hid the scrollbar and not the
- * problem.
- *
- * It was the wrong grain. A reveal on a whole section animates five hundred
- * pixels of heading, copy and three cards as one opaque block, which is a
- * statement about the browser rather than about the content. The sections
- * already print themselves at the grain that means something, and each at a
- * different one: Approach draws each principle's figure, the run carries the work, the
- * notes shelf travels sideways against the scroll, and the spec plate counts
- * its figures up once as they arrive. Wrapping all of that in a second, coarser arrival was two animations
- * saying the same thing at different speeds, and the outer one would have
- * clipped the sticky deck inside Approach while it was pinned.
- *
- * And it was the last scroll observer on the page. Those devices are
- * `animation-timeline: view()` and cost nothing per frame; `Reveal` put an
- * IntersectionObserver and a state update back on every section.
- *
- * So nothing replaces it at this level. The replacement already lives inside
- * each section, which is where a page's motion belongs; a block that wants
- * an arrival of its own takes `components/motion/Arrive` (#251).
- *
- * `data-crest` has gone with it. It was the hook the retired plate stack used
- * to decide which photograph a section stood on; nothing in the stylesheet or
- * in any hook selects it any more, so on this page it was an attribute with
- * no reader.
- */
-/*
- * BUILT_ORDER_NOTES: why the default order is the order it is.
- *
- * The two dark acts, and the rule for them is in index.css next to the
- * ground scale: the ground changes where the SUBJECT changes, not every
- * other section. Work and the year are the only two sections on this
- * page whose subject is the work itself — the objects, and the labour
- * that made them — so they are the two that leave the paper. The four
- * sections between and after them are the page talking about the work,
- * and they talk on the page's own ground. `DarkAct` carries the whole
- * argument and the ceiling of two.
- *
- *
- * The wall text, and it is now doing two jobs with one screen.
- *
- * It was already the separation between the pile and the year, because
- * both of those acts carry real depth and neither should read as the
- * other's warm-up — the long version is in the comment below. With both
- * of them now on the dark ground it is also the only thing keeping the
- * two from reading as one dark act with a seam in it. Quietest screen
- * on the page, and load-bearing twice.
- *
- *
- * The year, and the two beats it had to sit between.
- *
- * It is the page's one `scrub` — a thing the reader operates by
- * scrolling rather than a thing that happens to them once — so it has
- * no adjacent family to collide with here: `flow` above it, `pan`
- * below. Both of the other candidate slots are closed, and for
- * reasons rather than by preference.
- *
- * Not next to the pile. The pile is the page's only engineered peak
- * and the only other act on it with real depth in it; a 3D grid
- * immediately before or after would make the peak read as this
- * section's warm-up. The wall text between them is the separation, and
- * it is the quietest screen on the page precisely so that the two
- * acts either side of it do not meet.
- *
- * Not between the shelf and the spec plate. The comment below argues
- * that pair must stay adjacent because the order is the device
- * sequence; dropping a third beat between them would put a static
- * screen between the two sections that answer each other.
- *
- * The principles above it are untouched. The issue this came from said
- * the city replaced them, which stopped being true when each of the
- * three got its own typographic arrival — so the city is a section of
- * its own and where the principles finally live is the owner's call,
- * raised in the pull request rather than decided here.
- *
- *
- * The shelf, and then the plate — in that order, because the order is
- * the device sequence and not a preference.
- *
- * The beat before this pins and holds the reader still for a screen and
- * a half; lateral travel is the strongest contrast available after
- * that, so the shelf takes the slot immediately after it and the plate
- * follows with a third kind of motion. Swapped, the page would read
- * pile, figures, shelf, which puts a static beat between the two that
- * are supposed to answer each other.
- *
- * No `layer-section` around the shelf: it is full-bleed, and it rides
- * the space the section above has already opened rather than growing
- * another runway between two sections that read as one thought.
- *
- *
- * A bare `.ground`, with no `layer-section` on it — the comment above
- * is the reason, and it still holds: the shelf is full-bleed and rides
- * the space the section before it has already opened rather than
- * growing a second runway. What it needs from a plate is the ground,
- * the corners and the shadow, and `.ground` is exactly those three and
- * no padding. Safe because the shelf's own overflow is internal to its
- * scroller and it uses no negative margins to escape this box.
- *
+ * The home page: the hero, then the sections the settings name, in order.
+ * Motion lives inside each section (`components/motion/Arrive`), not in a
+ * wrapper here: a wrapping reveal pushed full-width sections past the right
+ * edge until they fired (horizontal overflow) and would clip Approach's
+ * pinned deck.
  */
 
 /*
- * The sections after the hero, by the id the settings name them (#254). The
- * comments that argued the built order are in BUILT_ORDER_NOTES above: they are why DEFAULT_SETTINGS is that order, and why the one rule
- * the schema enforces is that the two dark acts never touch.
+ * The sections after the hero, by the id the settings name them. Why
+ * DEFAULT_SETTINGS has this order: the two dark acts (work, the year) are the
+ * only sections whose subject is the work itself, so they alone leave the
+ * paper, and the wall of text between them keeps them from reading as one act.
+ * The year must not sit next to the pile or between the shelf and the plate:
+ * the shelf follows the pinned beat (lateral travel after a held screen) and
+ * the plate answers it. The schema enforces that the two dark acts never touch.
+ * The shelf has no `layer-section`: it is full-bleed and rides the space the
+ * section above opened.
  */
 const SECTIONS: Record<HomeSection, () => ReactNode> = {
   work: () => (
@@ -166,10 +65,8 @@ const SECTIONS: Record<HomeSection, () => ReactNode> = {
 };
 
 export default function Index() {
-  /* The skip link and the bar are not rendered here any more; they are in
-     `SiteChrome.tsx`, above the routes, so they survive navigating away from
-     this page (#63). This tells that chrome the page — and the two dark acts
-     on it — is now in the document. */
+  /* The skip link and bar live in `SiteChrome.tsx`, above the routes; this
+     tells that chrome the page, and its dark acts, are in the document. */
   usePageCommitted();
   const shown = shownSections(useSiteSettings());
 
