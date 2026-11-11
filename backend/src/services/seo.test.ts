@@ -141,6 +141,20 @@ describe("buildSitemap", () => {
   });
 });
 
+describe("feeds and sitemap on bad stored text", () => {
+  it("drops control characters XML forbids and never throws on an unparsable date", () => {
+    const bad = post({ title: "a\u0001b\u000Bc", publishedAt: "not a date", createdAt: "also bad", updatedAt: "nope" });
+    const feed = buildFeed([bad]);
+    expect(feed).toContain("<title>abc</title>");
+    // eslint-disable-next-line no-control-regex
+    expect(feed).not.toMatch(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/);
+    expect(feed).not.toContain("Invalid Date");
+    const map = buildSitemap([bad], []);
+    expect(map).not.toContain("<lastmod>Invalid");
+    expect(map).toContain("/blog/");
+  });
+});
+
 describe("buildFeed", () => {
   it("emits an item per post with an absolute permalink", () => {
     const xml = buildFeed([post()]);
