@@ -1,18 +1,10 @@
-# Ported from .gitlab-ci.yml when the repository moved to GitHub.
+# CI for this repository.
 #
-# Two deliberate differences from the pipeline it replaces:
-#
-#   - Images are pushed on `main` only. GitLab pushed on every pipeline, which
-#     filled the registry with one image per branch push and gave a pull request
-#     write access to the tag production pulls.
-#   - No per-job path rules. GitLab's were half the old file's length, and a
-#     skipped job that should have run costs more than the minutes it saves.
-#     Pull requests are narrowed again since #203, but by one tested script
-#     (.github/scripts/ci-classify.mjs, the `classify` job) that selects
-#     everything whenever it is unsure, and one `CI gate` job that fails on
-#     any skip classification did not ask for. Main and tags run everything.
-#
-# `typecheck` is new: the script existed and nothing ever ran it.
+# Images are pushed on `main` only, so a pull request never gets write access to
+# the tag production pulls. Pull requests are narrowed by one tested script
+# (.github/scripts/ci-classify.mjs, the `classify` job) that selects everything
+# whenever it is unsure, and one `CI gate` job fails on any skip classification
+# did not ask for. Main and tags run everything.
 
 name: CI
 

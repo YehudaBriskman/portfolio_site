@@ -8,12 +8,9 @@ import { dryRun, fail, json, safe, type MediaItem, type MediaKind } from "./tool
 /*
  * upload_media: stdio only, and deliberately NOT in tools.ts.
  *
- * It reads a file from a local path. Over stdio that path is on the owner's
- * own machine, which is the point. In tools.ts it would also be registered by
- * the remote server the backend mounts at /mcp, where "a local path" means a
- * file on the API's own pod: an arbitrary-file read handed to any OAuth
- * client with mcp:write. So it lives here, and src/server.ts registers it for
- * a write token; the backend never imports this file.
+ * It reads a local path. Registered by the remote server that would be an
+ * arbitrary-file read on the API's pod for any mcp:write client, so the
+ * backend must never import this file.
  */
 export const STDIO_TOOLS = ["upload_media"] as const;
 

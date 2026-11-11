@@ -20,19 +20,12 @@
  *
  * So the owner's Hebrew, written in the admin, is never replaced by a re-run.
  *
- * How it is written. An area's `he` and its link labels go in the same
- * `PUT /collections/:slug`. A note's Hebrew cannot: `PUT /posts/:slug`
- * carries the stored `he` through untouched, by design. It goes through
- * `POST /posts/:slug/publish` with `scope: "he"` (#305), which publishes the
- * Hebrew alone over the live English. The body sent repeats the live English
- * exactly, so the route has nothing left over to keep as a draft. Two
- * consequences, both handled:
- *   - that publish clears the note's draft, so a note with an unpublished
- *     draft in the admin is skipped and reported, never written;
- *   - it rewrites the note's "what changed" line, so the stored one is sent
- *     back as it was.
- * The server stamps the Hebrew fingerprints (#303) on both routes; nothing
- * here computes one.
+ * An area's `he` and link labels go in the same `PUT /collections/:slug`. A
+ * note's Hebrew cannot: `PUT /posts/:slug` keeps the stored `he` untouched, so
+ * it goes through `POST /posts/:slug/publish` with `scope: "he"`, sending the
+ * live English back unchanged. That clears the note's draft (so a note with an
+ * unpublished draft is skipped and reported) and rewrites its "what changed"
+ * line (so the stored one is sent back as it was).
  */
 import { toCollectionHebrew, toCollectionWrite, toPostHebrew, toPostWrite } from "./content-files.mjs";
 

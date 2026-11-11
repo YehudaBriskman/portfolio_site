@@ -1,50 +1,18 @@
 #!/usr/bin/env node
 /*
- * Loads the two projects added on 2026-11-04 (this site and oci-free), their
- * pictures, and the Hebrew of projects, the story and the site copy into the
- * running content store, through the admin API.
+ * One-shot loader: adds this site's and oci-free's project entries, their
+ * pictures, and the Hebrew of projects, story and site copy, to a running
+ * content store through the admin API. Words come from backend/src/content/seed.ts
+ * (generated from web/src/data/*.ts), so nothing is typed twice.
  *
- *   CONTENT_API_BASE=https://yehudabriskman.com \
- *   CONTENT_ADMIN_TOKEN=... \
- *   node backend/scripts/load-projects-story.mjs            # dry run: says what it would do
+ *   CONTENT_API_BASE=https://yehudabriskman.com CONTENT_ADMIN_TOKEN=... \
+ *   node backend/scripts/load-projects-story.mjs            # dry run
  *   node backend/scripts/load-projects-story.mjs --apply    # does it
  *
- * Environment: the same as import-media.mjs (CONTENT_API_BASE,
- * CONTENT_ADMIN_TOKEN, CONTENT_ADMIN_LOGIN, CONTENT_ADMIN_COOKIE), or
- * CONTENT_ADMIN_BEARER for a write-scoped API token. https, or loopback.
- *
- * WHERE THE WORDS COME FROM
- * -------------------------
- * `backend/src/content/seed.ts`: the seed the web suite generates from
- * web/src/data/*.ts (projects.ts, story.ts, site.ts and hebrew.ts), so the
- * loader, the seed and the site's offline fallback are the same bytes, and a
- * suite holds them to each other. Nothing is typed twice.
- *
- * WHAT IT DOES, IN ORDER
- * ----------------------
- *   1. Pictures. Each new project's cover (web/public/projects/<name>.jpg) is
- *      uploaded to the media library unless a file of that name is already
- *      there, then its Hebrew alt and caption are set with PUT /media/:id.
- *   2. projects, story, site-copy, in that order: the story's pictures may
- *      only name beats that exist, and a project's beat exists once the
- *      project table that holds it is published. For each, onto the
- *      document's draft if it has one, else onto what is published:
- *        - a project the store does not have is added, whole, with its cover
- *          pointed at the library;
- *        - a missing Hebrew is filled in, but only where the store's English
- *          is still the English the Hebrew was written against. An English
- *          line the owner has since edited keeps no Hebrew rather than a
- *          stale one, and Hebrew already there is never touched;
- *        - the story gets a picture for a new project's beat, if that beat
- *          has none: the project's own cover;
- *        - everything else (story.images, layouts, interludes, order, any
- *          project the seed does not know) is carried over exactly.
- *   3. Publishes the result (POST /content/<key>/publish), unless the
- *      document has a pending draft: a publish would replace it, so the
- *      result is saved as that draft instead, and the run says so.
- *
- * Dry run unless `--apply`. Idempotent: a second run uploads nothing and
- * finds nothing to change.
+ * Environment as import-media.mjs. Hebrew is only filled where the store's
+ * English still matches the English it was written against, and existing
+ * Hebrew is never touched. A document with a pending draft gets the result as
+ * that draft (a publish would replace it). Idempotent.
  */
 import { readFileSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
