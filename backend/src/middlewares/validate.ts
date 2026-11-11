@@ -1,13 +1,14 @@
 import type { RequestHandler } from 'express';
-import type { ZodSchema } from 'zod';
+import type { z, ZodTypeAny } from 'zod';
 
-export function validate<T extends ZodSchema>(schema: T): RequestHandler {
+/** Parses req.body with `schema`; the handler after it sees the parsed value, typed. */
+export function validate<S extends ZodTypeAny>(schema: S): RequestHandler<unknown, unknown, z.infer<S>> {
   return (req, res, next) => {
     const parsed = schema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({ ok: false, error: parsed.error.flatten() });
     }
-    (req as unknown as { body: unknown }).body = parsed.data;
+    req.body = parsed.data;
     next();
   };
 }
