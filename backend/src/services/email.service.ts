@@ -1,58 +1,56 @@
-// src/services/email.service.ts
 import { getProvider } from "../providers/index.js";
 import { renderBasicTemplate } from "../templates/basic.js";
 import type { SendEmailInput } from "../types/index.js";
 import { env } from "../env.js";
 import { logger } from "../logger.js";
 
-export class EmailService {
-  async send(input: SendEmailInput) {
-    let html: string | undefined;
-    let text = input.text;
+type EmailJsPayload = Extract<SendEmailInput, { templateId: string }>;
 
-    if ("template" in input && input.template?.name === "basic") {
-      const t = renderBasicTemplate(input.template.params);
-      html = html ?? t.html;
-      text = text ?? t.text;
-    }
+const isEmailJsPayload = (input: SendEmailInput): input is EmailJsPayload => "templateId" in input;
 
-    const provider = getProvider();
-
-    const to = env.CONTACT_TO;
-    const replyTo = input.replyTo ?? env.MAIL_REPLY_TO;
-
-    logger.debug({ to, subject: input.subject }, "sending contact email");
-
-    const result = await provider.send({
-      from: env.MAIL_FROM,
-      to,
-      subject: input.subject,
-      text,
-      html,
-      replyTo,
-      emailjsTemplate:
-        "templateId" in input
-          ? { templateId: input.templateId, variables: input.variables }
-          : null,
-    });
-
-    if (result.ok && input.replyTo && !("templateId" in input)) {
-      provider
-        .send({
-          from: env.MAIL_FROM,
-          to: input.replyTo,
-          subject: "We got your message",
-          text: "Thanks, we’ll get back to you soon.",
-          html: "<p>Thanks, we’ll get back to you soon.</p>",
-        })
-        .then((r) => {
-          if (!r.ok) logger.warn({ err: r.error }, "auto-reply failed");
-        })
-        .catch((err) => logger.warn({ err }, "auto-reply failed"));
-    }
-
-    return result;
-  }
+function composeBody(input: SendEmailInput): { html?: string; text?: string } {
+  if ("template" in input && input.template) return renderBasicTemplate(input.template.params);
+  return { text: input.text };
 }
 
-export const emailService = new EmailService();
+function sendAutoReply(provider: ReturnType<typeof getProvider>, visitor: string) {
+  provider
+    .send({
+      from: env.MAIL_FROM,
+      to: visitor,
+      subject: "We got your message",
+      text: "Thanks, we’ll get back to you soon.",
+      html: "<p>Thanks, we’ll get back to you soon.</p>",
+    })
+    .then((r) => {
+      if (!r.ok) logger.warn({ err: r.error }, "auto-reply failed");
+    })
+    .catch((err) => logger.warn({ err }, "auto-reply failed"));
+}
+
+export async function sendContactEmail(input: SendEmailInput) {
+  const provider = getProvider();
+  const { html, text } = composeBody(input);
+  const to = env.CONTACT_TO;
+  const visitorReplyTo = input.replyTo;
+
+  logger.debug({ to, subject: input.subject }, "sending contact email");
+
+  const result = await provider.send({
+    from: env.MAIL_FROM,
+    to,
+    subject: input.subject,
+    text,
+    html,
+    replyTo: visitorReplyTo ?? env.MAIL_REPLY_TO,
+    emailjsTemplate: isEmailJsPayload(input) ? { templateId: input.templateId, variables: input.variables } : null,
+  });
+
+  // The auto-reply is plain mail, which the emailjs provider cannot send.
+  if (result.ok && visitorReplyTo && !isEmailJsPayload(input)) sendAutoReply(provider, visitorReplyTo);
+
+  return result;
+}
+
+/** Object form so tests can spy on `send`. */
+export const emailService = { send: sendContactEmail };

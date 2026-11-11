@@ -154,7 +154,7 @@ export const captionsUrl = (doc: Pick<MediaDoc, "id" | "captions">) =>
 
 /** What the admin UI and the MCP tools see: no attachment stubs, URLs resolved. */
 export function publicMedia(doc: MediaDoc, usage?: Usage[]) {
-  const site = env.SITE_URL.replace(/\/+$/, "");
+  const site = env.SITE_URL;
   const widest = (f: VariantFormat) =>
     doc.variants.filter((v) => v.format === f).sort((a, b) => b.width - a.width)[0];
   const preview = doc.variants.filter((v) => v.format === "webp").sort((a, b) => a.width - b.width)[0];

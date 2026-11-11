@@ -14,15 +14,12 @@
  * og:url is the one tag allowed to differ in principle (the render builds it
  * from SITE_URL), and on the default SITE_URL it does not differ either.
  */
-import fs from "fs";
-import path from "path";
 import request from "supertest";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createApp } from "../app";
 import { couch } from "../db/couch.js";
 import { resetShellCache } from "../services/seo.js";
-
-const INDEX_HTML = fs.readFileSync(path.resolve(__dirname, "../../../web/index.html"), "utf8");
+import { INDEX_HTML } from "../testShell.js";
 
 /** The handful of entities the two heads actually use, decoded so `&middot;` and `·` compare equal. */
 function decode(value: string): string {

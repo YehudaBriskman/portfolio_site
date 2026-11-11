@@ -1,5 +1,3 @@
-import fs from "fs";
-import path from "path";
 import request from "supertest";
 import { createApp } from "../app";
 import { couch, CouchError } from "../db/couch.js";
@@ -7,6 +5,7 @@ import { env } from "../env.js";
 import { DEFAULT_SETTINGS, HOME_SECTIONS, SiteSettingsSchema, type SiteSettings } from "../schemas/site-settings.js";
 import { resetShellCache } from "../services/seo.js";
 import type { SettingsDoc } from "../services/site-settings.js";
+import { INDEX_HTML } from "../testShell.js";
 
 /*
  * The site's settings (#254): safe defaults, the public read, the editing
@@ -154,7 +153,6 @@ describe("/api/admin/settings", () => {
 });
 
 describe("the crawler renders read the settings", () => {
-  const INDEX_HTML = fs.readFileSync(path.resolve(__dirname, "../../../web/index.html"), "utf8");
 
   beforeEach(() => {
     resetShellCache();

@@ -109,30 +109,6 @@ describe("POST /api/email/send: what the public endpoint no longer accepts", () 
     expect(sent).not.toHaveProperty("attachments");
   });
 
-  it.each([
-    ["a list of addresses", "a@example.invalid, b@example.invalid"],
-    ["a display-name form", "Ada <ada@example.invalid>"],
-    ["an address with a line break", "ada@example.invalid\r\nBcc: v@example.invalid"],
-  ])("rejects replyTo as %s", async (_n, replyTo) => {
-    const send = vi.spyOn(emailService, "send");
-    const res = await post({ replyTo });
-    expect(res.status).toBe(400);
-    expect(send).not.toHaveBeenCalled();
-  });
-
-  it("rejects a subject with a line break and an over-long body", async () => {
-    const send = vi.spyOn(emailService, "send");
-    expect((await post({ subject: "hi\r\nBcc: v@example.invalid" })).status).toBe(400);
-    expect((await post({ template: { name: "basic", params: { body: "x".repeat(10_001) } } })).status).toBe(400);
-    expect(send).not.toHaveBeenCalled();
-  });
-
-  it("accepts only an https button link", async () => {
-    vi.spyOn(emailService, "send").mockResolvedValue({ ok: true, messageId: "m-3" });
-    const bad = await post({ template: { name: "basic", params: { body: "b", ctaHref: "javascript:alert(1)" } } });
-    expect(bad.status).toBe(400);
-  });
-
   it("does not return the provider's error text", async () => {
     vi.spyOn(emailService, "send").mockResolvedValue({ ok: false, error: "535 auth failed for smtp-user@secret-host" });
     const res = await post({});

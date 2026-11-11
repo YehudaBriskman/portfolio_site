@@ -13,7 +13,7 @@ import {
   buildSitemap,
   clampDescription,
   fetchShell,
-  headTags,
+  metaLines as headTags,
   markdownToFallbackHtml,
   pathIn,
   renderShellWithMeta,
@@ -170,8 +170,11 @@ router.get(
  */
 type Render = (req: Request, res: Response, lang: Lang) => Promise<void>;
 
+/* The home page is the one whose Hebrew twin has no path suffix: /render/he. */
+const HOME_ROUTE = "/home";
+
 function page(path: string, render: Render): void {
-  const he = path === "/home" ? "" : path;
+  const he = path === HOME_ROUTE ? "" : path;
   router.get(`/render${path}`, asyncHandler((req, res) => render(req, res, "en")));
   router.get(`/render/he${he}`, asyncHandler((req, res) => render(req, res, "he")));
   /* The same page, head only, for the app after a client-side navigation
@@ -352,7 +355,7 @@ const PORTRAIT_PRELOAD = {
   sizes: "(max-width: 699px) min(92vw, 22rem), min(86vw, 26rem)",
 };
 
-page("/home", async (_req, res, lang) => {
+page(HOME_ROUTE, async (_req, res, lang) => {
   const w = SEO_WORDS[lang];
   const [content, settings] = await Promise.all([publishedBundleOrSeed(), settingsOrDefault()]);
   await sendShell(res, {

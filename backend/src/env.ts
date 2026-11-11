@@ -78,7 +78,7 @@ const EnvSchema = z.object({
 
   // Canonical origin. Every absolute URL the crawlers see is built from this,
   // so it must be the public name of the site and nothing else.
-  SITE_URL: z.string().default("https://yehudabriskman.com"),
+  SITE_URL: z.string().default("https://yehudabriskman.com").transform((s) => s.replace(/\/+$/, "")),
   // Whether this host asks to be crawled. `auto` reads it off SITE_URL — the
   // canonical host is open, every other host is closed — which is what every
   // deploy wants and what no deploy has to configure. `open` and `closed` say

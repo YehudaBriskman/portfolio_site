@@ -1,6 +1,5 @@
 import express from "express";
 import cors from "cors";
-import rateLimit from "express-rate-limit";
 import { createImagesRouter } from "./routes/images.route";
 import { createGithubRouter } from "./routes/github.route.js";
 import { requestLogger } from "./middlewares/logger";
@@ -13,6 +12,13 @@ import settingsRoutes from './routes/settings.route.js';
 import feedRoutes from './routes/feeds.route.js';
 import { activityRouter, areasRouter } from './routes/activity.route.js';
 import { createBearerFailureLimiter, requireAdmin } from './middlewares/requireAdmin.js';
+import {
+  createAdminLimiter,
+  createMailBurstLimiter,
+  createMailSendLimiter,
+  createReadLimiter,
+  createSeoLimiter,
+} from './rate-limit.js';
 import { auditWrites } from './services/audit.js';
 import { indexNowOnWrite } from './services/indexnow.js';
 import { errorHandler } from './middlewares/errorHandler.js';
@@ -84,49 +90,11 @@ export function createApp() {
   );
   app.use(express.json({ limit: "1mb" }));
 
-  // The mail route relays over real SMTP credentials. Unthrottled and public,
-  // it is an open relay for anyone who finds it.
-  // Two limits, because they defend against different things.
-  // Sends: what an abuser actually wants. Validation failures are skipped so a
-  // visitor mistyping their address five times is not locked out for 15 minutes.
-  const mailSendLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    limit: 5,
-    skipFailedRequests: true,
-    standardHeaders: "draft-7",
-    legacyHeaders: false,
-    message: { ok: false, error: "Too many messages sent. Try again shortly." },
-  });
-  // Requests: stops the endpoint being hammered with junk that never validates,
-  // which the send limiter deliberately ignores.
-  const mailBurstLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    limit: 40,
-    standardHeaders: "draft-7",
-    legacyHeaders: false,
-    message: { ok: false, error: "Too many requests. Try again shortly." },
-  });
-  // Crawler files and the per-URL rendered shells sit on the path every human
-  // visitor to /blog and /projects takes, so this ceiling is deliberately high:
-  // throttling it would break the page, not just an API call.
-  const seoLimiter = rateLimit({
-    windowMs: 60 * 1000,
-    limit: 600,
-    standardHeaders: "draft-7",
-    legacyHeaders: false,
-  });
-  const adminLimiter = rateLimit({
-    windowMs: 60 * 1000,
-    limit: 240,
-    standardHeaders: "draft-7",
-    legacyHeaders: false,
-  });
-  const readLimiter = rateLimit({
-    windowMs: 60 * 1000,
-    limit: 120,
-    standardHeaders: "draft-7",
-    legacyHeaders: false,
-  });
+  const mailSendLimiter = createMailSendLimiter();
+  const mailBurstLimiter = createMailBurstLimiter();
+  const seoLimiter = createSeoLimiter();
+  const adminLimiter = createAdminLimiter();
+  const readLimiter = createReadLimiter();
 
   /*
    * Two hops, because there are two proxies, and the count is read off the
@@ -184,7 +152,7 @@ export function createApp() {
   app.use('/api/seo/feed', seoLimiter, feedRoutes);
   app.use('/api/seo', seoLimiter, seoRoutes);
   // The gate holds, but an unmetered endpoint is an oracle for guessing the
-  // proxy secret. Every other route is limited; this one was not.
+  // proxy secret.
   // Every write past the gate is recorded, refusals included (#252).
   app.use('/api/admin', adminLimiter, createBearerFailureLimiter(), requireAdmin, auditWrites, indexNowOnWrite, adminRoutes);
   app.use('/api/email', emailRoutes);
