@@ -51,3 +51,24 @@ export function insertAt(value: string, piece: string, start: number, end: numbe
 export const newId = (prefix: string) => `${prefix}${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36)}`;
 
 export const PLAIN_CHANNELS: readonly AnnounceChannel[] = ["email", "gmail"];
+
+/**
+ * Turns one template on as the default for its channel and language and every
+ * other one in that pair off, so a save never sends two (the server refuses it).
+ */
+export function withDefault<T extends { id: string; channel: string; lang: string; default?: boolean }>(list: T[], id: string, on: boolean): T[] {
+  const hit = list.find((i) => i.id === id);
+  if (!hit) return list;
+  return list.map((i) => {
+    if (i.id === id) return { ...i, default: on || undefined };
+    return on && i.channel === hit.channel && i.lang === hit.lang && i.default ? { ...i, default: undefined } : i;
+  });
+}
+
+/** A default whose channel or language moved onto a pair that already has one gives way. */
+export function settleDefault<T extends { id: string; channel: string; lang: string; default?: boolean }>(list: T[], id: string): T[] {
+  const me = list.find((i) => i.id === id);
+  if (!me?.default) return list;
+  const clash = list.some((i) => i.id !== id && i.default && i.channel === me.channel && i.lang === me.lang);
+  return clash ? list.map((i) => (i.id === id ? { ...i, default: undefined } : i)) : list;
+}

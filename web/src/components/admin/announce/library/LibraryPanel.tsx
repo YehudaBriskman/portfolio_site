@@ -7,7 +7,7 @@ import { builtinTemplate } from "./defaults";
 import SnippetsEditor from "./SnippetsEditor";
 import TemplateEditor, { type EditorValue } from "./TemplateEditor";
 import { useRecentEvents } from "./useSample";
-import { newId } from "./variables";
+import { newId, settleDefault, withDefault } from "./variables";
 import VisitorTemplates from "./VisitorTemplates";
 import { useLibraryWords } from "./words";
 
@@ -53,12 +53,16 @@ export default function LibraryPanel() {
       lang: lang === "all" ? "en" : lang,
       text: "",
       ...base,
+      default: undefined,
     };
     edit((d) => void d.library.push(item));
     setTarget({ kind: "item", id: item.id });
   };
 
-  const patchItem = (id: string, p: Partial<AnnounceLibraryItem>) => edit((d) => void (d.library = d.library.map((i) => (i.id === id ? { ...i, ...p } : i))));
+  const patchItem = (id: string, p: Partial<AnnounceLibraryItem>) =>
+    edit((d) => void (d.library = settleDefault(d.library.map((i) => (i.id === id ? { ...i, ...p } : i)), id)));
+  const setDefault = (id: string, on: boolean) => edit((d) => void (d.library = withDefault(d.library, id, on)));
+  const defaultOf = (channel: AnnounceChannel, lang: AnnounceLang) => draft.library.find((i) => i.default && i.channel === channel && i.lang === lang);
 
   const current = target?.kind === "item" ? draft.library.find((i) => i.id === target.id) : undefined;
   const editorValue: EditorValue | null =
@@ -73,6 +77,7 @@ export default function LibraryPanel() {
     <TemplateEditor
       key={target.kind === "item" ? target.id : `${target.lang}-${target.channel}`}
       value={editorValue}
+      defaults={target.kind === "item" && current ? { on: Boolean(current.default), current: defaultOf(current.channel, current.lang)?.name, onChange: (on) => setDefault(current.id, on) } : undefined}
       snippets={draft.snippets}
       events={events}
       hashtags={hashtags}
@@ -128,8 +133,12 @@ export default function LibraryPanel() {
                 <li key={i.id} className="a-box flex flex-wrap items-center gap-2 p-2 ps-4" data-active={target?.kind === "item" && target.id === i.id}>
                   <div className="min-w-0 flex-1 basis-48">
                     <p className="truncate text-sm font-bold" dir="auto">{name}</p>
-                    <p className="text-xs text-clay">{a.channels[i.channel]} · {a.langs[i.lang]}</p>
+                    <p className="text-xs text-clay">{a.channels[i.channel]} · {a.langs[i.lang]}{i.default && <> · <strong>{w.defaultBadge}</strong></>}</p>
                   </div>
+                  <label className="flex min-h-[44px] items-center gap-2 text-sm">
+                    <input type="checkbox" className="h-5 w-5" checked={Boolean(i.default)} onChange={(e) => setDefault(i.id, e.target.checked)} />
+                    <span>{w.useDefault(a.channels[i.channel], a.langs[i.lang])}</span>
+                  </label>
                   <button type="button" className="a-btn min-h-[44px]" aria-label={w.open(name)} aria-expanded={target?.kind === "item" && target.id === i.id} onClick={() => setTarget({ kind: "item", id: i.id })}>{a.openShort}</button>
                   <button type="button" className="a-btn min-h-[44px]" aria-label={w.duplicate(name)} disabled={draft.library.length >= LIBRARY_MAX} onClick={() => add({ ...i, id: newId("t"), name: `${i.name} (${w.copySuffix})`.slice(0, 60) })}>
                     {w.duplicateShort}

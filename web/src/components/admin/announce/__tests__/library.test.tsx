@@ -113,6 +113,37 @@ describe("LibraryPanel", () => {
     expect(saved()[1].body.settings.templates.en.x).toBeUndefined();
   });
 
+  it("sets one default per channel and language; turning one on turns the other off", async () => {
+    render(<LibraryPanel />);
+    await screen.findByRole("button", { name: "Edit Launch" });
+    fireEvent.click(screen.getByRole("button", { name: "Duplicate Launch" }));
+    const boxes = screen.getAllByRole("checkbox", { name: "Use as default for LinkedIn, English" });
+    expect(boxes).toHaveLength(3); /* two rows and the open editor */
+    fireEvent.click(boxes[0]);
+    expect(screen.getByText("Default", { selector: "strong" })).toBeTruthy();
+    fireEvent.click(screen.getAllByRole("checkbox", { name: "Use as default for LinkedIn, English" })[1]);
+    expect(screen.getAllByText("Default", { selector: "strong" })).toHaveLength(1);
+    fireEvent.click(screen.getByRole("button", { name: "Save library" }));
+    await waitFor(() => expect(saved()).toHaveLength(1));
+    const lib = saved()[0].body.settings.library;
+    expect(lib.filter((i) => i.default)).toHaveLength(1);
+    expect(lib.find((i) => i.default)?.name).toBe("Launch (copy)");
+  });
+
+  it("a duplicate of the default is not itself a default, and the editor names the current one", async () => {
+    render(<LibraryPanel />);
+    fireEvent.click(await screen.findByRole("checkbox", { name: "Use as default for LinkedIn, English" }));
+    fireEvent.click(screen.getByRole("button", { name: "Duplicate Launch" }));
+    expect(screen.getAllByText("Default", { selector: "strong" })).toHaveLength(1);
+    fireEvent.click(screen.getByRole("button", { name: "Edit Launch (copy)" }));
+    expect(await screen.findByText(/Current default: Launch/)).toBeTruthy();
+  });
+
+  it("says a template applies only as the default", async () => {
+    render(<LibraryPanel />);
+    expect(await screen.findByText(/only used when you set it as the default/)).toBeTruthy();
+  });
+
   it("edits snippets", async () => {
     render(<LibraryPanel />);
     fireEvent.change(await screen.findByDisplayValue("#one #two"), { target: { value: "#changed" } });
