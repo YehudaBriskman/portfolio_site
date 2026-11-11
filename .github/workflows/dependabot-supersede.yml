@@ -17,7 +17,7 @@
 # and docker entries each cover every directory, so one ecosystem is one PR.
 #
 # Which PRs to close is decided by .github/scripts/supersede-select.mjs
-# (tested in CI's preflight job). A security update is closed only when the
+# (tested in CI's Static job). A security update is closed only when the
 # newest PR provably bumps the same dependency, in the same directory, to the
 # same or a higher version (#201): a newer group PR that lacks the fix must not
 # drop it.

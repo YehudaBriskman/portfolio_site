@@ -149,14 +149,6 @@ export function fillHebrew(doc, index) {
 }
 
 /**
- * Picture file name → library URL, as the preview would have it before an
- * upload: the static file this repository ships beside the seed.
- */
-export function libraryFromPayload() {
-  return new Map(Object.values(NEW_PROJECTS).map((name) => [name, `/projects/${name}`]));
-}
-
-/**
  * One document, merged: `current` is the store's (draft ?? published),
  * `payload` the seed bundle, `library` file name → URL. Returns the next
  * document and what changed, in words.

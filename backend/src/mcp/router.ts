@@ -29,7 +29,7 @@ import {
 } from "./oauth/config.js";
 import { GithubError, githubIdentity, isOwner } from "./oauth/github.js";
 import { consentPage, errorPage, notAuthorizedPage, returnToClientPage } from "./oauth/pages.js";
-import { clientSecretOk, createCode, provider, txnDocId, type McpTxnDoc } from "./oauth/provider.js";
+import { clientAuthVerdict, createCode, provider, txnDocId, type McpTxnDoc } from "./oauth/provider.js";
 import { safeEqual, tryGet } from "./oauth/util.js";
 import { PortfolioApi } from "./shared/api.js";
 import { instructionsFor, registerTools, VERSION, type ToolAccess } from "./shared/tools.js";
@@ -269,7 +269,7 @@ export function createMcpRouter(app: Express) {
       secret = bsecret;
     }
     if (id === undefined) return next(); // the SDK answers invalid_request
-    const verdict = await clientSecretOk(id, secret);
+    const verdict = await clientAuthVerdict(id, secret);
     if (verdict === "bad") {
       return res.status(401).json({ error: "invalid_client", error_description: "Client authentication failed" });
     }

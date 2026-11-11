@@ -21,9 +21,7 @@ import { couch, CouchError } from "../../db/couch.js";
 import { logger } from "../../logger.js";
 import { hashToken, mintToken, parsePrefixedToken, tokenMatches } from "../../services/apiTokenFormat.js";
 import { githubAuthorizeUrl, pkceChallenge } from "./github.js";
-import { safeEqual, tryGet } from "./util.js";
-
-export { safeEqual, tryGet };
+import { tryGet } from "./util.js";
 import {
   ACCESS_TTL_S,
   CLIENT_IDLE_TTL_MS,
@@ -262,8 +260,11 @@ export const clientsStore: OAuthRegisteredClientsStore = {
   },
 };
 
-/** Constant-time: does `secret` match the client's stored hash? */
-export async function clientSecretOk(clientId: string, secret: string | undefined): Promise<"public" | "ok" | "bad"> {
+/**
+ * Authenticate a token-endpoint client: "public" when it has no secret (nothing
+ * to check), "ok" when `secret` matches the stored hash (constant-time), else "bad".
+ */
+export async function clientAuthVerdict(clientId: string, secret: string | undefined): Promise<"public" | "ok" | "bad"> {
   if (!UUID.test(clientId)) return "bad";
   const doc = await tryGet<McpClientDoc>(clientDocId(clientId));
   if (!doc || doc.type !== "mcpclient" || clientExpired(doc)) return "bad";
