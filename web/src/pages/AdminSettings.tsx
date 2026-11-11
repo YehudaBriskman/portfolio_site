@@ -9,6 +9,9 @@ import { ACCENT_PRESETS, css } from "@/settings/accents";
 import {
   ACCENTS,
   MOTION_DEFAULTS,
+  SHARE_CHANNELS,
+  SHARE_SURFACES,
+  SHARE_TEMPLATE_MAX,
   SiteSettingsSchema,
   THEME_DEFAULTS,
   type SiteSettings,
@@ -38,6 +41,7 @@ function differences(a: SiteSettings, b: SiteSettings): number {
     if (!o || o.id !== s.id || o.visible !== s.visible) n += 1;
   });
   for (const k of ["theme", "motion", "accent"] as const) if (a.visuals[k] !== b.visuals[k]) n += 1;
+  if (JSON.stringify(a.sharing) !== JSON.stringify(b.sharing)) n += 1;
   return n;
 }
 
@@ -104,6 +108,10 @@ export default function AdminSettings() {
     setStatus("idle");
     setServerIssues([]);
   };
+
+  /* Keep the canonical order so two saves of the same choice are the same bytes. */
+  const toggle = <T extends string>(all: readonly T[], list: readonly T[], item: T, on: boolean): T[] =>
+    all.filter((x) => (x === item ? on : list.includes(x)));
 
   const move = (i: number, by: -1 | 1) => {
     if (!draft) return;
@@ -340,6 +348,124 @@ export default function AdminSettings() {
                   );
                 })}
               </div>
+            </fieldset>
+          </section>
+
+          <section className="mt-10 space-y-6" aria-labelledby="settings-sharing">
+            <h2 id="settings-sharing" className="display-tight text-xl">
+              {w.sharingHeading}
+            </h2>
+            <p className="a-hint">{w.sharingHint}</p>
+
+            <div>
+              <label className="flex min-h-[44px] items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  role="switch"
+                  id="settings-sharing-enabled"
+                  checked={draft.sharing.enabled}
+                  aria-describedby="settings-sharing-enabled-hint"
+                  onChange={(e) => edit((d) => void (d.sharing.enabled = e.target.checked))}
+                />
+                {w.sharingEnabled}
+              </label>
+              <p id="settings-sharing-enabled-hint" className="a-hint">{w.sharingEnabledHint}</p>
+            </div>
+
+            <fieldset disabled={!draft.sharing.enabled} className="space-y-6">
+              <fieldset>
+                <legend className="a-label">{w.surfacesLegend}</legend>
+                <div className="mt-2 flex flex-wrap gap-x-4">
+                  {SHARE_SURFACES.map((x) => (
+                    <label key={x} className="flex min-h-[44px] items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={draft.sharing.surfaces.includes(x)}
+                        onChange={(e) => edit((d) => void (d.sharing.surfaces = toggle(SHARE_SURFACES, d.sharing.surfaces, x, e.target.checked)))}
+                      />
+                      {w.surfaces[x]}
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+
+              <fieldset>
+                <legend className="a-label">{w.channelsLegend}</legend>
+                <div className="mt-2 flex flex-wrap gap-x-4">
+                  {SHARE_CHANNELS.map((c) => (
+                    <label key={c} className="flex min-h-[44px] items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={draft.sharing.channels.includes(c)}
+                        onChange={(e) => edit((d) => void (d.sharing.channels = toggle(SHARE_CHANNELS, d.sharing.channels, c, e.target.checked)))}
+                      />
+                      {w.channels[c]}
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+
+              <div>
+                <label className="flex min-h-[44px] items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    role="switch"
+                    checked={draft.sharing.utm.enabled}
+                    aria-describedby="settings-utm-hint"
+                    onChange={(e) => edit((d) => void (d.sharing.utm.enabled = e.target.checked))}
+                  />
+                  {w.utmEnabled}
+                </label>
+                <p id="settings-utm-hint" className="a-hint">{w.utmHint}</p>
+                <label className="a-label mt-2 block" htmlFor="settings-utm-source">{w.utmSource}</label>
+                <input
+                  id="settings-utm-source"
+                  className="a-input a-input-mono mt-1 max-w-xs"
+                  dir="ltr"
+                  maxLength={40}
+                  value={draft.sharing.utm.source}
+                  disabled={!draft.sharing.utm.enabled}
+                  onChange={(e) => edit((d) => void (d.sharing.utm.source = e.target.value))}
+                />
+              </div>
+
+              <fieldset>
+                <legend className="a-label">{w.templatesLegend}</legend>
+                <p className="a-hint">{w.templatesHint}</p>
+                <div className="mt-2 space-y-3">
+                  {(["en", "he"] as const).map((l) => (
+                    <details key={l} className="a-card p-3">
+                      <summary className="flex min-h-[44px] cursor-pointer items-center text-sm">{w.templatesFor[l]}</summary>
+                      <div className="mt-2 space-y-4">
+                        {SHARE_CHANNELS.map((c) => {
+                          const id = `settings-template-${l}-${c}`;
+                          const value = draft.sharing.templates[l][c] ?? "";
+                          return (
+                            <div key={c}>
+                              <label className="a-label" htmlFor={id}>{w.channels[c]}</label>
+                              <textarea
+                                id={id}
+                                className="a-textarea mt-1"
+                                rows={3}
+                                dir={l === "he" ? "rtl" : "ltr"}
+                                lang={l}
+                                value={value}
+                                onChange={(e) =>
+                                  edit((d) => {
+                                    if (e.target.value === "") delete d.sharing.templates[l][c];
+                                    else d.sharing.templates[l][c] = e.target.value;
+                                  })
+                                }
+                              />
+                              <p className="a-hint tabular-nums">{w.templateCount(value.length, SHARE_TEMPLATE_MAX)}</p>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </details>
+                  ))}
+                </div>
+              </fieldset>
             </fieldset>
           </section>
 

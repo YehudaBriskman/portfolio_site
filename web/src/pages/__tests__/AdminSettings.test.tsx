@@ -86,4 +86,34 @@ describe("/admin/settings", () => {
     expect(calls.find((c) => c.url.endsWith("/revert"))!.body).toEqual({ version: 0, _rev: "1-abc" });
     expect(await screen.findByText(/Version 2/)).toBeInTheDocument();
   });
+
+  it("edits sharing with a keyboard-reachable control set and saves it with the revision", async () => {
+    const calls = stub();
+    page();
+    const sw = await screen.findByRole("switch", { name: "Show the share menu to visitors" });
+    expect(sw).toBeChecked();
+    fireEvent.click(screen.getByRole("checkbox", { name: "Notes" }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "WhatsApp" }));
+    fireEvent.change(screen.getByLabelText("Source name"), { target: { value: "site" } });
+    fireEvent.change(screen.getByLabelText("LinkedIn", { selector: "#settings-template-en-linkedin" }), { target: { value: "Seen: {title} {url}" } });
+    fireEvent.click(screen.getAllByRole("button", { name: "Save" })[0]);
+    await waitFor(() => expect(calls.some((c) => c.method === "PUT")).toBe(true));
+    const put = calls.find((c) => c.method === "PUT")!;
+    expect(put.body!._rev).toBe("1-abc");
+    const sharing = put.body!.settings!.sharing;
+    expect(sharing.surfaces).toEqual(["post", "project", "area", "story", "home"]);
+    expect(sharing.channels).not.toContain("whatsapp");
+    expect(sharing.utm.source).toBe("site");
+    expect(sharing.templates.en.linkedin).toBe("Seen: {title} {url}");
+  });
+
+  it("refuses a template with markup before anything is sent", async () => {
+    const calls = stub();
+    page();
+    await screen.findByRole("switch", { name: "Show the share menu to visitors" });
+    fireEvent.change(screen.getByLabelText("Gmail", { selector: "#settings-template-en-gmail" }), { target: { value: "<b>hi</b>" } });
+    expect(await screen.findByText(/plain text: remove anything/)).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Save" })[0]).toBeDisabled();
+    expect(calls.some((c) => c.method !== "GET")).toBe(false);
+  });
 });

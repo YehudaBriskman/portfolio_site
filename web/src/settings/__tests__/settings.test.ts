@@ -28,6 +28,35 @@ describe("the settings schema", () => {
   });
 });
 
+describe("the sharing group", () => {
+  const { sharing: _omit, ...old } = DEFAULT_SETTINGS;
+  const withSharing = (patch: object) => SiteSettingsSchema.safeParse({ ...DEFAULT_SETTINGS, sharing: { ...DEFAULT_SETTINGS.sharing, ...patch } });
+
+  it("fills in the defaults for a document saved before it existed", () => {
+    const parsed = SiteSettingsSchema.safeParse(old);
+    expect(parsed.success).toBe(true);
+    expect(parsed.success && parsed.data.sharing).toEqual(DEFAULT_SETTINGS.sharing);
+    expect(DEFAULT_SETTINGS.sharing).toMatchObject({ enabled: true, utm: { enabled: true, source: "share" }, templates: { en: {}, he: {} } });
+  });
+
+  it("refuses duplicates, unknown entries and unknown keys", () => {
+    expect(withSharing({ channels: ["copy", "copy"] }).success).toBe(false);
+    expect(withSharing({ surfaces: ["post", "post"] }).success).toBe(false);
+    expect(withSharing({ channels: ["tiktok"] }).success).toBe(false);
+    expect(withSharing({ extra: 1 }).success).toBe(false);
+    expect(withSharing({ templates: { en: { tiktok: "x" }, he: {} } }).success).toBe(false);
+  });
+
+  it("limits templates to 1000 characters of plain text", () => {
+    const tpl = (t: string) => withSharing({ templates: { en: { linkedin: t }, he: {} } }).success;
+    expect(tpl("a".repeat(1000))).toBe(true);
+    expect(tpl("a".repeat(1001))).toBe(false);
+    expect(tpl("<script>alert(1)</script>")).toBe(false);
+    expect(tpl("<b>x</b>")).toBe(false);
+    expect(tpl("{title} < 5 and > 3 {url}")).toBe(true);
+  });
+});
+
 /* WCAG 2 relative luminance and contrast. */
 function lum([r, g, b]: Rgb): number {
   const f = (v: number) => {
