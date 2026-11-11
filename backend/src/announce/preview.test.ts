@@ -97,7 +97,7 @@ describe("analyse", () => {
     expect(p.title).toBe("T & U");
   });
   it("flags missing fields", () => {
-    expect(analyse([], "en").issues.map((i) => i.code)).toEqual(["title-missing", "description-missing", "image-missing"]);
+    expect(analyse([], "en").issues.map((i) => i.code)).toEqual(["missing-title", "missing-description", "image-missing"]);
   });
   it("flags long text and a wrong image size", () => {
     const head = [
@@ -107,6 +107,6 @@ describe("analyse", () => {
       `<meta property="og:image:width" content="800" />`,
       `<meta property="og:image:height" content="800" />`,
     ];
-    expect(analyse(head, "en").issues.map((i) => i.code)).toEqual(["title-long", "description-long", "image-size"]);
+    expect(analyse(head, "en").issues.map((i) => i.code)).toEqual(["title-too-long", "description-too-long", "image-size"]);
   });
 });
