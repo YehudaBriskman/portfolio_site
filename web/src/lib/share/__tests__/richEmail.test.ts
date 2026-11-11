@@ -25,7 +25,9 @@ describe("buildRichEmail", () => {
   it("is safe for mail clients: no script, style block, external font, event handler or remote CSS", () => {
     const { html } = buildRichEmail(base);
     expect(html).not.toMatch(/<script|<style|<link|@import|@font-face|url\(|\son\w+=|<div|<h1/i);
-    expect(html).not.toMatch(/https?:\/\/(?!example\.com)/);
+    // Every absolute address in the markup is on the site's own host.
+    const hosts = new Set((html.match(/https?:\/\/[^"'\s<>]+/g) ?? []).map((u) => new URL(u.replace(/&amp;/g, "&")).hostname));
+    expect([...hosts]).toEqual(["example.com"]);
   });
 
   it("escapes <, &, quotes and apostrophes in the title, summary, label and alt", () => {
