@@ -89,6 +89,14 @@ export default function Accessibility() {
             ))}
           </ul>
 
+          <h2 className="display display-md pt-6 text-object">{w.sharing}</h2>
+          <p>{w.sharingBody}</p>
+          <ul className="list-disc space-y-2 ps-6">
+            {w.sharingItems.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+
           <h2 className="display display-md pt-6 text-object">{w.limits}</h2>
           <ul className="list-disc space-y-2 ps-6">
             {w.limitItems.map((item) => (

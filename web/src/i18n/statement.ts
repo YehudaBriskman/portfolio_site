@@ -43,6 +43,15 @@ export const useStatementWords = defineWords(
       ["Text size:", "Default, Large (about 12% bigger) or Larger (25% bigger). This is on top of your browser’s own zoom, which works as well."],
       ["Contrast:", "Standard, More, or System to follow your device’s \"increase contrast\" setting. More darkens the secondary text, the outlines and the dividers, and thickens the focus ring."],
     ] as [string, string][],
+    sharing: "Sharing a page",
+    sharingBody:
+      "Posts, projects and a few other pages have a Share button. It is a menu you can open and move through with the keyboard (Enter or Space opens it, the arrow keys move, Escape closes it), and each item has a name a screen reader reads.",
+    sharingItems: [
+      "Nothing leaves this site until you choose an item. Choosing LinkedIn, Gmail, X or WhatsApp opens that service in a new tab, and the menu says so. Email opens your own mail app. Copy link and Save image stay on your device. On a phone the menu may instead open your device’s own share sheet.",
+      "The site adds no scripts, pixels or cookies of those services, and does not know whether you shared.",
+      "A link you share can end with two small tags, utm_source and utm_medium, which tell the page you open it from where the link came from. The site owner can turn them off.",
+      "LinkedIn cannot be given text in advance, so the caption is copied for you to paste. Instagram has no way to be opened from a web page, so the picture is saved and the caption copied, and you attach the picture in the app.",
+    ],
     limits: "Known limitations",
     limitItems: [
       "Some content, notes and project write-ups among it, is not yet translated into Hebrew. On a Hebrew page it is shown in English and marked as such.",
@@ -87,6 +96,15 @@ export const useStatementWords = defineWords(
       ["גודל טקסט:", "רגיל, גדול (גדול בכ־12%) או גדול יותר (גדול ב־25%). זה בנוסף להגדלת התצוגה בדפדפן, שעובדת גם היא."],
       ["ניגודיות:", "רגילה, מוגברת, או לפי המערכת כדי לעקוב אחרי הגדרת \"הגברת ניגודיות\" של המכשיר. מוגברת מכהה את הטקסט המשני, את קווי המתאר ואת קווי ההפרדה, ומעבה את טבעת המיקוד."],
     ] as [string, string][],
+    sharing: "שיתוף עמוד",
+    sharingBody:
+      "לרשימות, לפרויקטים ולכמה עמודים נוספים יש כפתור שיתוף. זה תפריט שאפשר לפתוח ולנוע בו במקלדת (Enter או רווח פותחים אותו, מקשי החיצים עוברים בין האפשרויות, ו־Escape סוגר אותו), ולכל פריט בו יש שם שקורא מסך מקריא.",
+    sharingItems: [
+      "שום דבר לא יוצא מהאתר עד שבוחרים פריט. בחירה ב־LinkedIn, ב־Gmail, ב־X או ב־WhatsApp פותחת את השירות בלשונית חדשה, והתפריט אומר זאת. אימייל פותח את אפליקציית הדואר שלכם. העתקת קישור ושמירת תמונה נשארות במכשיר שלכם. בטלפון התפריט עשוי לפתוח במקומו את חלון השיתוף של המכשיר.",
+      "האתר לא מוסיף סקריפטים, פיקסלים או עוגיות של השירותים האלה, ולא יודע אם שיתפתם.",
+      "קישור ששיתפתם יכול להסתיים בשתי תגיות קטנות, utm_source ו־utm_medium, שאומרות לעמוד שנפתח מהקישור מאיפה הוא הגיע. בעל האתר יכול לכבות אותן.",
+      "אי אפשר למסור ל־LinkedIn טקסט מראש, ולכן הטקסט מועתק כדי שתדביקו אותו. אי אפשר לפתוח את Instagram מעמוד אינטרנט, ולכן התמונה נשמרת והטקסט מועתק, ואת התמונה מצרפים באפליקציה.",
+    ],
     limits: "מגבלות ידועות",
     limitItems: [
       "חלק מהתוכן, ובכלל זה רשימות ותיאורי פרויקטים, עדיין לא תורגם לעברית. בעמוד בעברית הוא מוצג באנגלית ומסומן ככזה.",

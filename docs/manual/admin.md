@@ -25,6 +25,7 @@ both scoped: API tokens (below) and grants made through the remote MCP server
 | `/admin/media` | the media library ([Media](media.md)) |
 | `/admin/translations` | everything missing or stale in Hebrew ([Hebrew](i18n.md)) |
 | `/admin/settings` | site settings such as the accent and motion defaults |
+| `/admin/announce` | the inbox of new posts and versions, with a ready-to-copy caption per channel ([Sharing](../sharing.md)) |
 | `/admin/connections` | apps connected through the remote MCP server, with revoke |
 
 Saves use an optimistic lock, so two tabs editing the same record cannot
