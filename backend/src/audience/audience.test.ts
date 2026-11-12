@@ -443,7 +443,7 @@ describe("consent record", () => {
     await flush();
     expect(doc().consent).toMatchObject({ textId: "site-form-v1", textHash: v1.sha256, lang: "he", source: "site" });
     expect(doc().consent?.confirmedAt).toBeUndefined();
-    const r = await request(app()).get("/api/subscribe/confirm").query({ token: tokenFrom(sent[0]) });
+    const r = await request(app()).post("/api/subscribe/confirm").send({ token: tokenFrom(sent[0]) });
     expect(r.status).toBe(200);
     expect(doc().consent?.confirmedAt).toBeDefined();
     expect(doc().consentHistory).toHaveLength(1);
