@@ -341,12 +341,11 @@ describe("the composer", () => {
     await waitFor(() => expect(writeText).toHaveBeenCalledWith("Insta caption"));
   });
 
-  it("keeps the card formats, the link check and Dismiss in the Checks drawer", async () => {
+  it("keeps the card formats and the link check in the Checks row, and Dismiss apart", async () => {
     const calls = stub();
     page();
     await openFirst();
-    expect(screen.queryByRole("button", { name: "Dismiss" })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Checks" }));
+    fireEvent.click(screen.getByRole("button", { name: /Checks: link preview/ }));
     expect(await screen.findByText("Card images")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Dismiss" }));
     await waitFor(() => expect(calls.some((c) => c.url.endsWith("/dismiss"))).toBe(true));

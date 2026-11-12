@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
-import { ArrowLeft, Check, Copy, Download, ExternalLink, Mail, SlidersHorizontal, X as XIcon } from "lucide-react";
+import { ArrowLeft, Check, ChevronDown, CircleHelp, Copy, Download, ExternalLink, Mail, RotateCcw, X as XIcon } from "lucide-react";
+import { Link } from "react-router-dom";
 import { ErrorState, RelTime } from "@/components/admin/ui";
 import { copyText } from "@/lib/share";
 import { buildRichEmail } from "@/lib/share/richEmail";
@@ -12,9 +13,10 @@ import {
   type AnnouncePreview,
   type AnnounceSummary,
 } from "@/services/adminAnnounce";
-import { cardSrc, count, eventUrl, kitChannel, limitOf, links, TABS, type Tab } from "../helpers";
+import { cardSrc, count, eventUrl, kitChannel, limitOf, links, releaseTag, siteOrigin, TABS, type Tab } from "../helpers";
 import ChecksDrawer from "./ChecksDrawer";
 import { IssueChips } from "./Chips";
+import { sortIssues } from "./readiness";
 import { rememberReadiness } from "./readiness";
 import KeyHint from "./KeyHint";
 import { useHotkeys } from "./useHotkeys";
@@ -30,6 +32,14 @@ import { useMarketingWords } from "./words";
 
 type Save = "idle" | "saving" | "saved" | "error";
 const PAUSE = 700;
+
+const safeEventOrigin = (u: string) => {
+  try {
+    return new URL(u).origin;
+  } catch {
+    return "";
+  }
+};
 
 const openTab = (href: string) => void window.open(href, "_blank", "noopener,noreferrer");
 
@@ -54,6 +64,7 @@ export default function Composer({
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [checks, setChecks] = useState(false);
+  const [keys, setKeys] = useState(false);
   const [preview, setPreview] = useState<{ lang: AnnounceLang; data: AnnouncePreview | null } | null>(null);
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -260,7 +271,7 @@ export default function Composer({
     }
   };
 
-  useHotkeys({ c: () => void copy(), o: primary, d: () => void (!doneOf(tab) && !busy && mark()), Escape: () => void goBack() });
+  useHotkeys({ c: () => void copy(), o: primary, d: () => void (!doneOf(tab) && !busy && mark()), Escape: () => (keys ? setKeys(false) : void goBack()) });
 
   const onTabKey = (e: React.KeyboardEvent) => {
     const rtl = document.documentElement.dir === "rtl";
@@ -272,13 +283,8 @@ export default function Composer({
   };
 
   /* ---- preview */
-  const origin = (() => {
-    try {
-      return new URL(event.url).origin;
-    } catch {
-      return "";
-    }
-  })();
+  /* The site's own origin, never the event's address: a release's address is its GitHub page, where no card exists. */
+  const origin = siteOrigin();
   const card = (fmt: "og" | "square" | "story") => (event.kind === "post" || event.kind === "note" || event.kind === "release" ? `${origin}${cardSrc(event, fmt)}` : "");
   const image = meta?.image || card("og");
   const linkMeta = { url, title: meta?.title || event.title, description: meta?.description, image, locale: lang };
@@ -290,6 +296,8 @@ export default function Composer({
         title: meta?.title || event.title,
         summary: meta?.description || detail?.event.summary,
         url: event.url,
+        /* The link is the server's own address for the event (GitHub for a release); only the card must be on the site. */
+        linkOrigins: [safeEventOrigin(event.url)],
         image: image || undefined,
         origin,
         buttonLabel: lang === "he" ? "לקריאה באתר" : "Read it on the site",
@@ -322,18 +330,18 @@ export default function Composer({
   };
 
   /* ---- render */
+  const tag = releaseTag(event);
+  const title = tag ? w.releaseTitle(tag) : event.title;
+
   const head = (
     <div className="mk-comp-head">
       <button type="button" className="a-btn mk-btn" onClick={() => void goBack()}>
         <ArrowLeft aria-hidden="true" className="rtl:rotate-180" />
         {w.back}
       </button>
-      <div className="mk-comp-title">
-        <span className="a-tag">{w.kinds[event.kind]}</span>
-        <h2 className="a-row-title" dir="auto">
-          {event.title}
-        </h2>
-      </div>
+      <h2 className="a-row-title mk-comp-title" dir="auto">
+        {title}
+      </h2>
     </div>
   );
 
@@ -356,174 +364,251 @@ export default function Composer({
 
   const saveText =
     save === "saving" ? w.saving : save === "error" ? w.saveFailed : save === "saved" ? w.saved : isDraft ? w.savedOwn : w.templateText;
+  const sorted = sortIssues(issues);
+  /* A release has no page tags to read (its link is on GitHub): nothing to fix there, and not an error. */
+  const noPage = preview?.lang === lang && preview.data === null;
+  const stepHead = (n: number, id: string, label: string) => (
+    <h3 id={id} className="mk-step-h">
+      <span className="mk-step-n" aria-hidden="true">
+        {n}
+      </span>
+      {label}
+    </h3>
+  );
+  const whoText = tab === "email" ? w.who.email : w.who[tab];
+  const openLabel = tab === "linkedin" ? w.openLinkedIn : tab === "instagram" ? w.saveSquare : tab === "email" ? w.openGmail : w.openX;
+  const OpenIcon = tab === "linkedin" ? ExternalLink : tab === "instagram" ? Download : tab === "email" ? Mail : XIcon;
 
   return (
     <div className="mk-comp">
       {head}
 
-      <div className="mk-comp-bar">
-        <div className="mk-chips">
-          {issues.length > 0 && <IssueChips issues={issues} max={4} />}
-          {meta && issues.length === 0 && <IssueChips issues={[]} />}
+      <section className="mk-step" aria-labelledby={`${uid}-s1`}>
+        {stepHead(1, `${uid}-s1`, w.step1)}
+        <p className="mk-facts">
+          <span className="a-tag">{w.kinds[event.kind]}</span>
+          <span>
+            {w.added} <RelTime iso={event.createdAt} />
+          </span>
+          {(["linkedin", "instagram", "email", "x"] as const).map(
+            (c) =>
+              (c === "email" ? event.done.email ?? event.done.gmail : event.done[c]) && (
+                <span key={c} className="a-tag">
+                  <Check aria-hidden="true" className="h-3.5 w-3.5" />
+                  {w.channels[c]}: {w.doneAt}
+                </span>
+              ),
+          )}
+        </p>
+        <div className="mk-status" role="status">
+          {!meta ? (
+            noPage && event.kind === "release" ? (
+              <IssueChips issues={[]} />
+            ) : (
+              <span className="mk-chip" data-tone="muted">
+                {noPage ? w.checkFailed : w.statusChecking}
+              </span>
+            )
+          ) : sorted.length === 0 ? (
+            <IssueChips issues={[]} />
+          ) : (
+            <>
+              <span className="mk-chip" data-tone="warn">
+                {w.statusFix}
+              </span>
+              <span className="mk-fixline">
+                {w.toFix}: {sorted.map((i) => w.chips[i.code]).join(", ")}
+              </span>
+            </>
+          )}
+          {meta && sorted.length > 0 && (
+            <a className="a-link mk-link" href={event.url} target="_blank" rel="noopener noreferrer">
+              {event.kind === "release" ? w.openRelease : w.openPage}
+            </a>
+          )}
         </div>
-        {langs.length > 1 && (
-          <div role="group" aria-label={w.language} className="a-seg">
-            {langs.map((l) => (
-              <button key={l} type="button" aria-pressed={lang === l} onClick={() => void chooseLang(l)} lang={l} className="mk-seg-btn">
-                {l === "en" ? "EN" : "עב"}
-                <span className="sr-only"> {w.langs[l]}</span>
+        <button type="button" className="mk-summary" aria-expanded={checks} aria-controls={`${uid}-checks`} onClick={() => setChecks((v) => !v)}>
+          <ChevronDown aria-hidden="true" className="mk-chev" data-open={checks} />
+          <span>{w.checksRow}</span>
+          <span className="sr-only">{checks ? w.checksHide : w.checksShow}</span>
+        </button>
+        {checks && <ChecksDrawer id={`${uid}-checks`} event={event} lang={lang} origin={origin} target={event.url} />}
+      </section>
+
+      <section className="mk-step" aria-labelledby={`${uid}-s2`}>
+        {stepHead(2, `${uid}-s2`, w.step2)}
+        <div className="mk-pick">
+          <div role="tablist" aria-label={w.channelLabel} className="a-tabs" onKeyDown={onTabKey}>
+            {TABS.map((t) => (
+              <button
+                key={t}
+                ref={(el) => void (tabRefs.current[t] = el)}
+                id={`${uid}-tab-${t}`}
+                type="button"
+                role="tab"
+                aria-selected={t === tab}
+                aria-controls={`${uid}-panel`}
+                tabIndex={t === tab ? 0 : -1}
+                onClick={() => void choose(t)}
+                className="a-tab mk-tab"
+              >
+                {w.channels[t]}
+                {doneOf(t) && (
+                  <>
+                    <Check aria-hidden="true" />
+                    <span className="sr-only">{w.markedDone}</span>
+                  </>
+                )}
               </button>
             ))}
           </div>
-        )}
-        <button type="button" className="a-btn mk-btn" aria-expanded={checks} aria-controls={`${uid}-checks`} onClick={() => setChecks((v) => !v)}>
-          <SlidersHorizontal aria-hidden="true" />
-          {w.checksButton}
-        </button>
-      </div>
-
-      {checks && (
-        <ChecksDrawer
-          id={`${uid}-checks`}
-          event={event}
-          lang={lang}
-          origin={origin}
-          busy={busy}
-          onDismiss={() => void dismiss()}
-          onClose={() => setChecks(false)}
-        />
-      )}
-
-      <div role="tablist" aria-label={w.channelLabel} className="a-tabs" onKeyDown={onTabKey}>
-        {TABS.map((t) => (
-          <button
-            key={t}
-            ref={(el) => void (tabRefs.current[t] = el)}
-            id={`${uid}-tab-${t}`}
-            type="button"
-            role="tab"
-            aria-selected={t === tab}
-            aria-controls={`${uid}-panel`}
-            tabIndex={t === tab ? 0 : -1}
-            onClick={() => void choose(t)}
-            className="a-tab mk-tab"
-          >
-            {w.channels[t]}
-            {doneOf(t) && (
-              <>
-                <Check aria-hidden="true" />
-                <span className="sr-only">{w.markedDone}</span>
-              </>
-            )}
-          </button>
-        ))}
-      </div>
-
-      <div id={`${uid}-panel`} role="tabpanel" aria-labelledby={`${uid}-tab-${tab}`} className="mk-split">
-        <div className="mk-edit">
-          {!item ? (
-            <p className="a-hint">{w.noCaption}</p>
-          ) : (
-            <>
-              {tab === "email" && (
-                <p className="text-sm">
-                  <span className="text-clay">{w.subject}: </span>
-                  <span dir={dir} lang={lang}>
-                    {subject}
-                  </span>
-                </p>
-              )}
-              <label htmlFor={`${uid}-caption`} className="sr-only">
-                {w.caption(w.channels[tab], w.langs[lang])}
-              </label>
-              <textarea
-                id={`${uid}-caption`}
-                className="a-textarea mk-caption"
-                rows={10}
-                dir={dir}
-                lang={lang}
-                value={text}
-                aria-describedby={`${uid}-count ${uid}-save`}
-                onChange={(e) => edit(e.target.value)}
-              />
-              <p id={`${uid}-count`} className={`mk-meta tabular-nums ${over ? "mk-over" : ""}`}>
-                <span>{w.count(used, limit)}</span>
-                {over && limit !== null && <span>{w.over(used - limit)}</span>}
-              </p>
-              <p className="mk-meta">
-                <span id={`${uid}-save`} role="status" aria-live="polite" data-state={save}>
-                  {saveText}
-                </span>
-                {save === "error" && (
-                  <button type="button" className="a-link mk-link" onClick={() => void flush()}>
-                    {w.saveRetry}
-                  </button>
-                )}
-                {isDraft && (
-                  <button type="button" className="a-link mk-link" onClick={() => void reset()}>
-                    {w.resetToTemplate}
-                  </button>
-                )}
-              </p>
-
-              <div className="mk-actions">
-                {tab === "linkedin" && (
-                  <button type="button" className="a-btn a-btn-primary mk-btn" onClick={primary}>
-                    <ExternalLink aria-hidden="true" />
-                    {w.openLinkedIn}
-                  </button>
-                )}
-                {tab === "instagram" && (
-                  <button type="button" className="a-btn a-btn-primary mk-btn" onClick={primary}>
-                    <Download aria-hidden="true" />
-                    {w.saveSquare}
-                  </button>
-                )}
-                {tab === "email" && (
-                  <>
-                    <button type="button" className="a-btn a-btn-primary mk-btn" onClick={primary}>
-                      <Mail aria-hidden="true" />
-                      {w.openGmail}
-                    </button>
-                    <a className="a-btn mk-btn" href={links.mailto(subject, text)} onClick={() => setNote(w.opened)}>
-                      <Mail aria-hidden="true" />
-                      {w.openMail}
-                    </a>
-                  </>
-                )}
-                {tab === "x" && (
-                  <button type="button" className="a-btn a-btn-primary mk-btn" disabled={over} onClick={primary}>
-                    <XIcon aria-hidden="true" />
-                    {w.openX}
-                  </button>
-                )}
-                <button type="button" className="a-btn mk-btn" onClick={() => void copy()}>
-                  <Copy aria-hidden="true" />
-                  {w.copy}
+          {langs.length > 1 && (
+            <div role="group" aria-label={w.langHelp} className="a-seg">
+              {langs.map((l) => (
+                <button key={l} type="button" aria-pressed={lang === l} onClick={() => void chooseLang(l)} lang={l} className="mk-seg-btn">
+                  {l === "en" ? "EN" : "עב"}
+                  <span className="sr-only"> {w.langs[l]}</span>
                 </button>
-                {doneOf(tab) ? (
-                  <span className="a-tag">
-                    <Check aria-hidden="true" className="h-3.5 w-3.5" />
-                    {w.doneAt} <RelTime iso={doneOf(tab)} />
-                  </span>
-                ) : (
-                  <button type="button" className="a-btn mk-btn" disabled={busy} onClick={() => void mark()} title={w.undoneHint}>
-                    <Check aria-hidden="true" />
-                    {w.markDone}
-                  </button>
-                )}
-              </div>
+              ))}
+            </div>
+          )}
+        </div>
+        <p className="mk-who" id={`${uid}-who`}>
+          {whoText}
+          {tab === "email" && (
+            <>
+              {" "}
+              {w.whoSubscribers}{" "}
+              <Link className="a-link mk-link" to="?tab=campaigns">
+                {w.campaignsLink}
+              </Link>
             </>
           )}
-          <p role="status" className="a-hint min-h-[1.25rem]">
-            {note}
-          </p>
-          <KeyHint mode="composer" />
-        </div>
+        </p>
+      </section>
 
-        <div className="mk-side" aria-label={w.previewHeading}>
-          {previewPane()}
-          {preview?.data === null && <p className="pv-hint">{w.previewFailed}</p>}
+      <div id={`${uid}-panel`} role="tabpanel" aria-labelledby={`${uid}-tab-${tab}`}>
+        <section className="mk-step" aria-labelledby={`${uid}-s3`}>
+          {stepHead(3, `${uid}-s3`, w.step3)}
+          <div className="mk-split">
+            <div className="mk-edit">
+              {!item ? (
+                <p className="a-hint">{w.noCaption}</p>
+              ) : (
+                <>
+                  {tab === "email" && (
+                    <p className="text-sm">
+                      <span className="text-clay">{w.subject}: </span>
+                      <span dir={dir} lang={lang}>
+                        {subject}
+                      </span>
+                    </p>
+                  )}
+                  <label htmlFor={`${uid}-caption`} className="sr-only">
+                    {w.caption(w.channels[tab], w.langs[lang])}
+                  </label>
+                  <textarea
+                    id={`${uid}-caption`}
+                    className="a-textarea mk-caption"
+                    rows={10}
+                    dir={dir}
+                    lang={lang}
+                    value={text}
+                    aria-describedby={`${uid}-count ${uid}-save`}
+                    onChange={(e) => edit(e.target.value)}
+                  />
+                  <div className="mk-toolbar-row" role="group" aria-label={w.captionTools}>
+                    <p id={`${uid}-count`} className={`mk-meta tabular-nums ${over ? "mk-over" : ""}`}>
+                      <span>{w.count(used, limit)}</span>
+                      {over && limit !== null && <span>{w.over(used - limit)}</span>}
+                    </p>
+                    <p className="mk-meta">
+                      <span id={`${uid}-save`} role="status" aria-live="polite" data-state={save}>
+                        {saveText}
+                      </span>
+                    </p>
+                    {save === "error" && (
+                      <button type="button" className="a-btn a-btn-ghost mk-btn" onClick={() => void flush()}>
+                        {w.saveRetry}
+                      </button>
+                    )}
+                    {isDraft && (
+                      <button type="button" className="a-btn a-btn-ghost mk-btn" onClick={() => void reset()}>
+                        <RotateCcw aria-hidden="true" />
+                        {w.resetToTemplate}
+                      </button>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+
+            <section className="mk-side" aria-labelledby={`${uid}-pv`}>
+              <h4 id={`${uid}-pv`} className="a-row-title">
+                {w.previewHeading}
+              </h4>
+              {previewPane()}
+              {noPage && event.kind !== "release" && <p className="pv-hint">{w.previewFailed}</p>}
+            </section>
+          </div>
+        </section>
+
+        {item && (
+          <section className="mk-step" aria-labelledby={`${uid}-s4`}>
+            {stepHead(4, `${uid}-s4`, w.step4)}
+            <div className="mk-actions">
+              <button type="button" className="a-btn a-btn-primary mk-btn" disabled={tab === "x" && over} onClick={primary}>
+                <OpenIcon aria-hidden="true" />
+                {openLabel}
+              </button>
+              <button type="button" className="a-btn mk-btn" onClick={() => void copy()}>
+                <Copy aria-hidden="true" />
+                {w.copy}
+              </button>
+              {tab === "email" && (
+                <a className="a-btn mk-btn" href={links.mailto(subject, text)} onClick={() => setNote(w.opened)}>
+                  <Mail aria-hidden="true" />
+                  {w.openMail}
+                </a>
+              )}
+              {doneOf(tab) ? (
+                <span className="a-tag">
+                  <Check aria-hidden="true" className="h-3.5 w-3.5" />
+                  {w.doneAt} <RelTime iso={doneOf(tab)} />
+                </span>
+              ) : (
+                <button type="button" className="a-btn mk-btn" disabled={busy} onClick={() => void mark()} title={w.undoneHint}>
+                  <Check aria-hidden="true" />
+                  {w.markDone}
+                </button>
+              )}
+            </div>
+            <p className="a-hint !mt-0">{w.sendHint}</p>
+            <p role="status" className="a-hint min-h-[1.25rem] !mt-0">
+              {note}
+            </p>
+          </section>
+        )}
+      </div>
+
+      <div className="mk-foot">
+        <div className="mk-quiet">
+          <span className="a-hint !mt-0">{w.dismissSection}</span>
+          <button type="button" className="a-link mk-link" disabled={busy} onClick={() => void dismiss()}>
+            {w.dismiss}
+          </button>
+          <span className="a-hint !mt-0">{w.dismissHint}</span>
+        </div>
+        <div className="mk-keys-wrap">
+          <button type="button" className="a-btn a-btn-ghost mk-btn" aria-expanded={keys} aria-controls={`${uid}-keys`} onClick={() => setKeys((v) => !v)}>
+            <CircleHelp aria-hidden="true" />
+            {w.keysButton}
+          </button>
+          {keys && (
+            <div id={`${uid}-keys`} className="mk-keys-pop">
+              <KeyHint mode="composer" />
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -132,9 +132,12 @@ function Card({
 export default function LinkPreview({
   eventId,
   lang,
+  target,
 }: {
   eventId: string;
   lang: AnnounceLang;
+  /** For an event whose link leaves the site (a release): where it goes, shown instead of "no page". */
+  target?: string;
 }) {
   const w = useAnnounceWords();
   const m = useMarketingWords();
@@ -189,9 +192,9 @@ export default function LinkPreview({
       aria-labelledby={`${uid}-h`}
       aria-busy={state.kind === "loading"}
     >
-      <h3 id={`${uid}-h`} className="a-row-title">
+      <h4 id={`${uid}-h`} className="a-row-title">
         {w.linkPreview}
-      </h3>
+      </h4>
       <p className="a-hint">{w.linkPreviewHint}</p>
 
       {state.kind === "loading" && (
@@ -200,7 +203,17 @@ export default function LinkPreview({
         </p>
       )}
 
-      {state.kind === "error" && (
+      {state.kind === "error" && state.message === "no-page" && target && (
+        <p className="mt-2 text-sm">
+          <span className="text-clay">{m.linkGoesTo} </span>
+          <a href={target} className="a-link break-all" dir="ltr" target="_blank" rel="noopener noreferrer">
+            {target}
+          </a>
+          <span className="a-hint">{m.linkExternal(domainOf(target))}</span>
+        </p>
+      )}
+
+      {state.kind === "error" && !(state.message === "no-page" && target) && (
         <div role="alert" className="mt-2 flex flex-wrap items-center gap-3">
           <span className="text-sm">{errorText(state.message)}</span>
           {state.message === "failed" && (

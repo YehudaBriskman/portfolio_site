@@ -19,6 +19,19 @@ export type Tab = (typeof TABS)[number];
 
 export type Format = "og" | "square" | "story";
 
+/**
+ * The site's own origin, for card images and the email block. Never taken from
+ * an event's address: a release points at GitHub, and a card on github.com is a 404.
+ * The admin is served from the site, so the page's own origin is the site's.
+ */
+export const siteOrigin = (): string => (typeof window === "undefined" ? "" : window.location.origin);
+
+/** A release is stored as "<repo> <tag>"; the page reads "Release <tag>". Other titles are untouched. */
+export function releaseTag(ev: Pick<AnnounceSummary, "kind" | "title" | "ref">): string | null {
+  const m = ev.kind === "release" ? /^\S+ (\S+)$/.exec(ev.title.trim()) : null;
+  return m && m[1] === ev.ref ? ev.ref : null;
+}
+
 /** The card for an event, from its own ref only. Releases have their own kind. */
 export function cardSrc(
   ev: Pick<AnnounceSummary, "kind" | "ref">,

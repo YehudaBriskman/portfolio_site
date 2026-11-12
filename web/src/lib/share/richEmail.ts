@@ -24,6 +24,8 @@ export type RichEmailInput = {
   image?: string;
   /** The site origin, from the page. */
   origin: string;
+  /** Further origins the link (never the card) may point at, e.g. a release's GitHub page. */
+  linkOrigins?: string[];
   /** The button's words. */
   buttonLabel: string;
   /** The card's alternative text; defaults to the title. */
@@ -57,7 +59,7 @@ const WIDTH = 600;
 
 export function buildRichEmail(input: RichEmailInput): RichEmail {
   const origin = safeOrigin(input.origin);
-  const url = onOrigin(input.url, origin);
+  const url = [origin, ...(input.linkOrigins ?? []).map(safeOrigin)].map((o) => onOrigin(input.url, o)).find(Boolean) ?? null;
   if (!url) throw new RangeError("share: the link must be on the site origin");
   const image = onOrigin(input.image, origin);
   const dir = input.dir ?? "ltr";

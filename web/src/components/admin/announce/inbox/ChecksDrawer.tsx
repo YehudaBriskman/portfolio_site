@@ -3,40 +3,27 @@ import { CardPreview } from "../previews";
 import type { AnnounceLang, AnnounceSummary } from "@/services/adminAnnounce";
 import { useMarketingWords } from "./words";
 
-/* Rare things, out of the way: how the link reads, the card images, and removing the event. */
+/* The detail behind the one-line checks summary: how the link reads and the card images. */
 export default function ChecksDrawer({
   id,
   event,
   lang,
   origin,
-  busy,
-  onDismiss,
-  onClose,
+  target,
 }: {
   id: string;
   event: AnnounceSummary;
   lang: AnnounceLang;
+  /** The site's origin, never the event's own address: a release's address is on GitHub. */
   origin: string;
-  busy: boolean;
-  onDismiss: () => void;
-  onClose: () => void;
+  /** Where the link really goes, shown when the event has no page of its own. */
+  target: string;
 }) {
   const w = useMarketingWords();
   const hasCards = event.kind === "post" || event.kind === "note" || event.kind === "release";
   return (
-    <section id={id} className="a-box mk-drawer" aria-labelledby={`${id}-h`}>
-      <div className="a-box-row">
-        <span className="min-w-0 flex-1">
-          <h3 id={`${id}-h`} className="a-row-title">
-            {w.checksHeading}
-          </h3>
-          <span className="a-hint !mt-0">{w.checksHint}</span>
-        </span>
-        <button type="button" className="a-btn a-btn-ghost mk-btn" onClick={onClose}>
-          {w.close}
-        </button>
-      </div>
-      <LinkPreview eventId={event.id} lang={lang} />
+    <div id={id} className="a-box mk-drawer">
+      <LinkPreview eventId={event.id} lang={lang} target={event.kind === "release" ? target : undefined} />
       <div className="border-t border-[rgb(var(--rule-firm)/0.5)] p-4">
         <h4 className="a-row-title">{w.cardsHeading}</h4>
         {hasCards ? (
@@ -45,12 +32,6 @@ export default function ChecksDrawer({
           <p className="a-hint">{w.cardsOnlyNotes}</p>
         )}
       </div>
-      <div className="a-box-foot flex flex-wrap items-center gap-3">
-        <button type="button" className="a-btn a-btn-danger mk-btn" disabled={busy} onClick={onDismiss}>
-          {w.dismiss}
-        </button>
-        <span className="a-hint !mt-0">{w.dismissHint}</span>
-      </div>
-    </section>
+    </div>
   );
 }
