@@ -201,3 +201,11 @@ has `lastmod` and `xhtml:link` alternates; feeds are linked in `<head>`.
 | SEO by translation state (#304) | 1 |
 | CI gates | keeps all of the above |
 | Keywords and copy proposals (`docs/seo/keywords.md` (step 8)) | 4, 9 |
+
+## Blog facets and feeds: canonicalised and blocked
+
+The blog's filter parameters (`tag`, `year`, `collection`, `view`, `open`) are views of `/blog`, and every one of them already canonicalises to it. They are now also disallowed in robots.txt (both languages, built in `buildRobots` in `backend/src/services/seo.ts` and mirrored in the fallback `web/public/robots.txt`), and the in-page links to them carry `rel="nofollow"`. The links stay real anchors, so open-in-new-tab and sharing a filtered URL work for people. `?lang` and `utm_*` are deliberately not blocked.
+
+Feeds (`/feed.xml`, `/api/seo/feed/*`) answer with `X-Robots-Tag: noindex` and stay fetchable; their `<link rel="alternate">` tags are kept.
+
+What Search Console will show: facet URLs under "Blocked by robots.txt" is expected and is not a problem to fix. Feeds under "Excluded by noindex tag" is likewise expected. Because a blocked URL is never fetched, Google cannot see its canonical tag; that is fine, since the URL is simply not crawled. Existing facet URLs already in the index drop out over weeks.

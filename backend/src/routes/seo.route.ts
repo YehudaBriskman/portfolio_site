@@ -71,7 +71,7 @@ router.get(
   "/feed.xml",
   asyncHandler(async (_req, res) => {
     const posts = await publishedPosts();
-    res.type("application/rss+xml").set("Cache-Control", "public, max-age=600");
+    res.type("application/rss+xml").set("Cache-Control", "public, max-age=600").set("X-Robots-Tag", "noindex");
     res.send(buildFeed(posts));
   })
 );

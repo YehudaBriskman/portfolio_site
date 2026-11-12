@@ -27,4 +27,16 @@ Disallow: /admin
 # The remote MCP endpoint and its OAuth pages: an authenticated API for agents.
 Disallow: /mcp
 
+# Blog filter parameters: views of /blog, which they canonicalise to.
+Disallow: /*?tag=
+Disallow: /*&tag=
+Disallow: /*?year=
+Disallow: /*&year=
+Disallow: /*?collection=
+Disallow: /*&collection=
+Disallow: /*?view=
+Disallow: /*&view=
+Disallow: /*?open=
+Disallow: /*&open=
+
 Sitemap: https://yehudabriskman.com/sitemap.xml

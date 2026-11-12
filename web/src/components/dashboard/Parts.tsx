@@ -56,7 +56,7 @@ export function DashCard({
           {title}
         </h2>
         {action && (
-          <Link to={action.to} className={styles.sectionAction}>
+          <Link to={action.to} rel={facetRel(action.to)} className={styles.sectionAction}>
             {action.label}
             {action.describe && <span className="sr-only">{`: ${action.describe}`}</span>}
           </Link>
@@ -132,6 +132,15 @@ export function Row({
   );
 }
 
+/**
+ * A link whose target carries a query string is a facet of a page, not a page.
+ * `nofollow` keeps a crawler from queueing it; people still get a real anchor
+ * (ctrl-click, new tab, copy link) and the filtered URL still loads.
+ */
+function facetRel(to: string): "nofollow" | undefined {
+  return to.includes("?") ? "nofollow" : undefined;
+}
+
 export function Chips({ children, label }: { children: ReactNode; label: string }) {
   return (
     <ul className={styles.chips} aria-label={label}>
@@ -143,7 +152,7 @@ export function Chips({ children, label }: { children: ReactNode; label: string 
 export function Chip({ to, children, current }: { to: string; children: ReactNode; current?: boolean }) {
   return (
     <li>
-      <Link to={to} className={styles.chip} aria-current={current ? "true" : undefined} translate="no">
+      <Link to={to} rel="nofollow" className={styles.chip} aria-current={current ? "true" : undefined} translate="no">
         {children}
       </Link>
     </li>
@@ -232,7 +241,7 @@ export function ViewNav({ label, views }: { label: string; views: ViewLink[] }) 
       <ul>
         {views.map((v) => (
           <li key={v.key}>
-            <Link to={v.to} className={styles.view} aria-current={v.current ? "page" : undefined}>
+            <Link to={v.to} rel={facetRel(v.to)} className={styles.view} aria-current={v.current ? "page" : undefined}>
               {/* The current view is circled, the living line's
                   circle-around at rail size (#251). Same box either way,
                   so moving between views shifts nothing. */}
@@ -326,7 +335,7 @@ export function TopList({ title, items, limit = 7 }: { title: string; items: Top
         <ul className={styles.topList}>
           {shown.map((i) => (
             <li key={i.key}>
-              <Link to={i.to} className={styles.topItem}>
+              <Link to={i.to} rel={facetRel(i.to)} className={styles.topItem}>
                 {i.icon}
                 <span className={styles.topLabel}>{i.label}</span>
                 {i.count !== undefined && <span className={styles.topCount}>{nf.format(i.count)}</span>}

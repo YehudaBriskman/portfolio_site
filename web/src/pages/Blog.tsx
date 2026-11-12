@@ -387,7 +387,7 @@ export default function Blog() {
           <ul className={styles.quickChips} aria-label={t.quickTopics}>
             {topics.slice(0, 5).map(([tag]) => (
               <li key={tag}>
-                <Link to={`/blog?view=feed&tag=${encodeURIComponent(tag)}`} className={styles.quickChip} translate="no">
+                <Link rel="nofollow" to={`/blog?view=feed&tag=${encodeURIComponent(tag)}`} className={styles.quickChip} translate="no">
                   <Hash aria-hidden="true" />
                   {tag}
                 </Link>
@@ -412,7 +412,7 @@ export default function Blog() {
             <h2 id={`${hintId}-top`} className={styles.sectionTitle}>
               {t.topPosts}
             </h2>
-            <Link to={feedHref} className={styles.sectionAction}>
+            <Link rel="nofollow" to={feedHref} className={styles.sectionAction}>
               {t.viewAll}
               <span className="sr-only">{`: ${t.everything}`}</span>
             </Link>

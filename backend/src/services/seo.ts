@@ -493,6 +493,12 @@ export function robotsStance(siteUrl: string, policy: RobotsPolicy): RobotsStanc
   return INDEXABLE_HOSTS.has(hostname) ? "open" : "closed";
 }
 
+/** The blog's filter parameters: views of /blog, which canonicalise to it. */
+export const FACET_PARAMS = ["tag", "year", "collection", "view", "open"] as const;
+// Two rules per name, first-in-query and later-in-query, because a bare `*?*tag=`
+// would also match `?mytag=`. `*` matches any run of characters (RFC 9309).
+const FACET_DISALLOWS = FACET_PARAMS.flatMap((k) => [`Disallow: /*?${k}=`, `Disallow: /*&${k}=`]).join("\n");
+
 /**
  * nginx serves /robots.txt from here on every host, so this is what tells the
  * hosts apart. It used to say `Allow: /` on all of them and differ only in the
@@ -525,6 +531,12 @@ Disallow: /admin
 # and reports it as an indexing problem. /developers/mcp is the page about it
 # and stays crawlable; it does not start with this prefix.
 Disallow: /mcp
+
+# Blog filters (tag, year, collection, view, open) are views of /blog, which
+# every one of them canonicalises to. \`*\` matches any run of characters, so
+# the rule catches the parameter anywhere in the query string and under /he/.
+# Only these names: ?lang and utm_* tracking on shared links stay crawlable.
+${FACET_DISALLOWS}
 
 Sitemap: ${absoluteUrl("/sitemap.xml")}
 `;
