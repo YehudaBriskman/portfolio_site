@@ -93,3 +93,18 @@ function _partial() {
   };
 }
 export const ScheduleBody = z.object({ sendAt: z.string().datetime({ offset: true }).nullable() }).strict();
+
+/* Unsaved draft text, rendered exactly as it would be sent. Lenient on emptiness (a half-typed draft still previews), strict on shape. */
+export const PreviewBody = z
+  .object({
+    subject: z.string().max(200),
+    preheader: z.string().max(200).optional(),
+    bodyText: BodyText,
+    blocks: Blocks.nullable().optional(),
+    lang: z.enum(["en", "he"]).default("en"),
+  })
+  .strict();
+/* The audience selection of a draft that may not be saved yet. */
+export const AudienceBody = z
+  .object({ groups: Groups, lang: Fields.lang.default("all"), topic: Fields.topic.nullable().optional() })
+  .strict();

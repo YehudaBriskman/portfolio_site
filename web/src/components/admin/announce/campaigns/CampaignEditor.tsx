@@ -18,7 +18,7 @@ import {
 import Modal from "../audience/Modal";
 import EmailPreview from "../previews/EmailPreview";
 import BlocksEditor from "./BlocksEditor";
-import { blockProblem, blocksToText, previewMail, zonedToIso } from "./mailPreview";
+import { blockProblem, blocksToText, zonedToIso } from "./helpers";
 import Progress from "./Progress";
 import { pillState } from "./status";
 import { useCampaignWords } from "./words";
@@ -40,7 +40,7 @@ const cleanBlocks = (bs: Block[]): Block[] => bs.map((b) => (b.type === "ul" ? {
 const toInput = (f: Form): CampaignInput => {
   const blocks = f.useBlocks ? cleanBlocks(f.blocks) : null;
   return {
-    name: f.name.trim(), subject: f.subject.trim(), preheader: f.preheader.trim(), bodyText: blocks ? blocksToText(blocks) : f.bodyText,
+    name: f.name.trim() || f.subject.trim().slice(0, 120), subject: f.subject.trim(), preheader: f.preheader.trim(), bodyText: blocks ? blocksToText(blocks) : f.bodyText,
     blocks, groups: f.groups, lang: f.lang, topic: f.topic || null,
   };
 };
@@ -57,7 +57,24 @@ const localZone = () => {
 };
 
 type Dialog = "send" | "cancel" | "delete" | null;
+type Mode = "now" | "later";
+type PreviewState = { key: string; data: { subject: string; html: string; text: string } | "failed" };
+const DEBOUNCE_MS = 450;
 type Msg = { kind: "ok" | "bad"; text: string } | null;
+
+
+/* A numbered step: the number is part of the heading, so the order is read as well as seen. */
+function Step({ n, title, labelId, children }: { n: number; title: string; labelId: string; children: React.ReactNode }) {
+  return (
+    <section aria-labelledby={labelId} className="space-y-3 border-t border-[rgb(var(--rule-firm)/.5)] pt-5 lg:col-start-1">
+      <h3 id={labelId} className="display-tight flex items-center gap-3 text-lg">
+        <span aria-hidden="true" className="inline-flex h-7 w-7 flex-none items-center justify-center rounded-full bg-[rgb(var(--ink))] text-sm text-[rgb(var(--paper))]">{n}</span>
+        {title}
+      </h3>
+      {children}
+    </section>
+  );
+}
 
 export default function CampaignEditor({
   id, sender, groups, events, onClose, onChanged,
@@ -80,15 +97,16 @@ export default function CampaignEditor({
   const [msg, setMsg] = useState<Msg>(null);
   const [conflict, setConflict] = useState(false);
   const [dialog, setDialog] = useState<Dialog>(null);
-  const [audienceRes, setAudience] = useState<{ key: string; data: AudienceSample | "failed" } | null>(null);
-  const [confirmCount, setConfirmCount] = useState<number | null>(null);
+  const [audienceRes, setAudienceRes] = useState<{ key: string; data: AudienceSample | "failed" } | null>(null);
+  const [previewRes, setPreviewRes] = useState<PreviewState | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [mode, setMode] = useState<Mode>("now");
   const [when, setWhen] = useState("");
   const [zone, setZone] = useState(localZone);
   const [pvLang, setPvLang] = useState<"en" | "he">("en");
   const [tick, setTick] = useState(0);
   const [now, setNow] = useState(0);
 
-  /* Load an existing campaign. */
   useEffect(() => {
     if (id === "new") return;
     let live = true;
@@ -103,27 +121,70 @@ export default function CampaignEditor({
 
   const editable = id === "new" || campaign?.status === "draft";
   const dirty = id === "new" ? true : campaign ? !same(toInput(form), toInput(toForm(campaign))) : false;
-  const audienceStale = Boolean(campaign) && audienceKey(form) !== audienceKey(toForm(campaign!));
   const footerOk = Boolean(sender?.footerIdentity.trim());
   const blockBad = form.useBlocks && (form.blocks.length === 0 || form.blocks.some((b) => blockProblem(b)));
-  const formOk = Boolean(form.name.trim() && form.subject.trim() && form.groups.length > 0 && !blockBad);
 
-  /* The recipient count follows the SAVED draft; the server counts, never the page. */
-  const savedId = campaign?.id;
-  const savedAt = campaign?.updatedAt;
-  const audience = audienceRes && audienceRes.key === `${savedId}:${savedAt}` ? audienceRes.data : "loading";
+  /* The count follows what is ticked now, saved or not: the server counts, never the page. */
+  const akey = audienceKey(form);
   useEffect(() => {
-    if (!savedId) return;
+    if (form.groups.length === 0) return;
     let live = true;
-    const key = `${savedId}:${savedAt}`;
-    adminCampaigns.audience(savedId).then(
-      (a) => live && setAudience({ key, data: a }),
-      () => live && setAudience({ key, data: "failed" }),
-    );
+    const t = setTimeout(() => {
+      adminCampaigns.audienceOf({ groups: form.groups, lang: form.lang, topic: form.topic || null }).then(
+        (a) => live && setAudienceRes({ key: akey, data: a }),
+        () => live && setAudienceRes({ key: akey, data: "failed" }),
+      );
+    }, DEBOUNCE_MS);
     return () => {
       live = false;
+      clearTimeout(t);
     };
-  }, [savedId, savedAt]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [akey]);
+  const audience = form.groups.length === 0 ? "none" : audienceRes && audienceRes.key === akey ? audienceRes.data : "loading";
+  const recipients = typeof audience === "object" ? audience.count : null;
+
+  /* The preview is the server's own render of the draft, so it is what would be sent. Blocks it would refuse are left out until fixed. */
+  const pvBody = useMemo(
+    () => ({
+      subject: form.subject, preheader: form.preheader.trim(),
+      bodyText: form.useBlocks ? blocksToText(cleanBlocks(form.blocks)) : form.bodyText,
+      blocks: form.useBlocks ? cleanBlocks(form.blocks).filter((b) => !blockProblem(b)) : null,
+      lang: pvLang,
+    }),
+    [form.subject, form.preheader, form.bodyText, form.useBlocks, form.blocks, pvLang],
+  );
+  const pkey = JSON.stringify(pvBody);
+  useEffect(() => {
+    let live = true;
+    const t = setTimeout(() => {
+      adminCampaigns.preview(pvBody).then(
+        (d) => live && setPreviewRes({ key: pkey, data: d }),
+        () => live && setPreviewRes({ key: pkey, data: "failed" }),
+      );
+    }, DEBOUNCE_MS);
+    return () => {
+      live = false;
+      clearTimeout(t);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pkey]);
+  const pv = previewRes && previewRes.data !== "failed" ? previewRes.data : null;
+  const pvStale = !previewRes || previewRes.key !== pkey;
+
+  const scheduleIso = mode === "later" && when ? zonedToIso(when, zone) : null;
+  const past = scheduleIso !== null && Date.parse(scheduleIso) <= now;
+
+  /* What stands between the owner and Send, in words, in the order of the steps. */
+  const problems: string[] = [];
+  if (!form.subject.trim()) problems.push(w.readySubject);
+  if (form.groups.length === 0) problems.push(w.readyGroups);
+  if (blockBad) problems.push(w.readyBlocks);
+  if (recipients === 0) problems.push(w.readyAudience);
+  if (mode === "later" && (!scheduleIso || past)) problems.push(w.readyTime);
+  if (!footerOk && sender) problems.push(w.readyFooter);
+  const formOk = Boolean(form.subject.trim() && form.groups.length > 0 && !blockBad);
+  const canGo = editable && problems.length === 0 && busy === "";
 
   const onProgress = useCallback((c: Campaign) => (setCampaign(c), onChanged()), [onChanged]);
   const set = <K extends keyof Form>(k: K, v: Form[K]) => (setForm((f) => ({ ...f, [k]: v })), setMsg(null));
@@ -163,7 +224,7 @@ export default function CampaignEditor({
       const d = await adminAnnounce.get(eid);
       const lang = form.lang === "he" ? "he" : "en";
       const item = d.kit[lang].email ?? d.kit.en.email;
-      setForm((f) => ({ ...f, name: f.name || d.event.title.slice(0, 120), subject: (item?.subject || d.event.title).split("\n")[0].slice(0, 200), bodyText: item?.text ?? `${d.event.title}\n\n${d.event.url}`, useBlocks: false }));
+      setForm((f) => ({ ...f, subject: (item?.subject || d.event.title).split("\n")[0].slice(0, 200), bodyText: item?.text ?? `${d.event.title}\n\n${d.event.url}`, useBlocks: false }));
       setEventId(eid);
       setMsg({ kind: "ok", text: w.startFromFilled });
     } catch {
@@ -186,18 +247,11 @@ export default function CampaignEditor({
     }
   };
 
-  /* Send now: save, count afresh, then ask. The count in the dialog is the server's. */
-  const askSend = async () => {
+  /* Send or schedule: save, then ask. The count in the dialog is the server's count of what is ticked. */
+  const ask = async () => {
+    setNow(Date.now());
     const c = dirty ? await save() : campaign;
-    if (!c) return;
-    setConfirmCount(null);
-    setDialog("send");
-    try {
-      setConfirmCount((await adminCampaigns.audience(c.id)).count);
-    } catch {
-      setDialog(null);
-      setMsg({ kind: "bad", text: w.audienceFailed });
-    }
+    if (c) setDialog("send");
   };
 
   const run = async (op: () => Promise<Campaign>) => {
@@ -217,18 +271,6 @@ export default function CampaignEditor({
     }
   };
 
-  const scheduleIso = when ? zonedToIso(when, zone) : null;
-  const past = scheduleIso !== null && Date.parse(scheduleIso) <= now;
-  const doSchedule = async () => {
-    const c = dirty ? await save() : campaign;
-    if (!c || !scheduleIso || past) return;
-    await run(() => adminCampaigns.schedule(c.id, scheduleIso));
-  };
-
-  const preview = useMemo(
-    () => (sender ? previewMail({ subject: form.subject, preheader: form.preheader, bodyText: form.bodyText, blocks: form.useBlocks ? cleanBlocks(form.blocks) : null }, pvLang, sender, typeof location === "undefined" ? "example.com" : location.host) : null),
-    [form, pvLang, sender],
-  );
   const zones = useMemo(() => Array.from(new Set([zone, ...ZONES])), [zone]);
   const fmt = (iso: string) => new Intl.DateTimeFormat(document.documentElement.lang === "he" ? "he-IL" : "en-GB", { dateStyle: "medium", timeStyle: "short" }).format(new Date(iso));
 
@@ -236,12 +278,34 @@ export default function CampaignEditor({
   if (id !== "new" && !campaign) return <p className="a-box a-box-row text-clay" role="status">{w.loading}</p>;
 
   const heading = id === "new" ? w.newHeading : editable ? w.editHeading : w.viewHeading;
-  const canGo = editable && formOk && footerOk && busy === "";
   const status = campaign?.status;
   const fromLabel = sender ? [sender.fromName, sender.fromAddress].filter(Boolean).join(" ") || "—" : "—";
+  const later = mode === "later";
+
+  const previewBox = (
+    <aside aria-labelledby={`${uid}-ph`} className="space-y-2 lg:sticky lg:top-4 lg:col-start-2 lg:row-span-4 lg:row-start-1 lg:self-start" data-testid="preview">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 id={`${uid}-ph`} className="display-tight text-lg">{w.previewHeading}</h3>
+        <button type="button" className="a-btn min-h-[44px] lg:hidden" aria-expanded={previewOpen} aria-controls={`${uid}-pb`} onClick={() => setPreviewOpen((o) => !o)}>{previewOpen ? w.hidePreview : w.showPreview}</button>
+      </div>
+      <div id={`${uid}-pb`} className={`space-y-2 ${previewOpen ? "" : "hidden"} lg:block`}>
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="a-label !mt-0" htmlFor={`${uid}-pl`}>{w.previewLang}</label>
+          <select id={`${uid}-pl`} className="a-select min-h-[44px]" value={pvLang} onChange={(e) => setPvLang(e.target.value as "en" | "he")}>
+            <option value="en">{w.previewEn}</option>
+            <option value="he">{w.previewHe}</option>
+          </select>
+        </div>
+        {previewRes?.data === "failed" && <p className="a-error !mt-0" role="status">{w.previewFailed}</p>}
+        {pvStale && previewRes?.data !== "failed" && <p className="a-hint !mt-0" role="status">{w.previewLoading}</p>}
+        {pv && <EmailPreview html={pv.html} text={pv.text} subject={pv.subject} />}
+        <p className="a-hint !mt-0">{w.previewNote}</p>
+      </div>
+    </aside>
+  );
 
   return (
-    <div className="max-w-5xl space-y-6" data-testid="campaign-editor">
+    <div className="max-w-6xl space-y-5" data-testid="campaign-editor">
       <div className="flex flex-wrap items-center gap-3">
         <button type="button" className="a-btn a-btn-ghost min-h-[44px]" onClick={onClose}>← {w.back}</button>
         <h2 className="display-tight text-xl">{heading}</h2>
@@ -257,183 +321,194 @@ export default function CampaignEditor({
       )}
 
       {campaign && !editable && <Progress campaign={campaign} onUpdate={onProgress} />}
-
       {status === "scheduled" && campaign && (
         <div className="flex flex-wrap gap-2">
           <button type="button" className="a-btn min-h-[44px]" disabled={busy !== ""} onClick={() => void run(() => adminCampaigns.schedule(campaign.id, null))}>{w.unschedule}</button>
           <button type="button" className="a-btn a-btn-danger min-h-[44px]" onClick={() => setDialog("cancel")}>{w.cancelSend}</button>
         </div>
       )}
-      {status === "sending" && (
-        <button type="button" className="a-btn a-btn-danger min-h-[44px]" onClick={() => setDialog("cancel")}>{w.cancelSend}</button>
-      )}
+      {status === "sending" && <button type="button" className="a-btn a-btn-danger min-h-[44px]" onClick={() => setDialog("cancel")}>{w.cancelSend}</button>}
 
-      <form noValidate onSubmit={(e) => (e.preventDefault(), void save())} className="space-y-6">
-        <fieldset disabled={!editable} className="min-w-0 space-y-6">
-          {id === "new" && events.length > 0 && (
-            <div>
-              <label className="a-label" htmlFor={`${uid}-ev`}>{w.startFrom}</label>
-              <select id={`${uid}-ev`} className="a-select min-h-[44px] max-w-full" value="" onChange={(e) => void startFrom(e.target.value)}>
-                <option value="">{w.startFromNone}</option>
-                {events.map((e) => <option key={e.id} value={e.id}>{e.title}</option>)}
-              </select>
-              <p className="a-hint">{w.startFromHint}</p>
-            </div>
-          )}
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <div>
-              <label className="a-label" htmlFor={`${uid}-n`}>{w.name}</label>
-              <input id={`${uid}-n`} className="a-input min-h-[44px]" dir="auto" maxLength={120} value={form.name} onChange={(e) => set("name", e.target.value)} />
-              <p className="a-hint">{w.nameHint}</p>
-            </div>
-            <div>
-              <label className="a-label" htmlFor={`${uid}-s`}>{w.subject}</label>
-              <input id={`${uid}-s`} className="a-input min-h-[44px]" dir="auto" maxLength={200} value={form.subject} onChange={(e) => set("subject", e.target.value)} />
-            </div>
-            <div className="md:col-span-2">
-              <label className="a-label" htmlFor={`${uid}-p`}>{w.preheader}</label>
-              <input id={`${uid}-p`} className="a-input min-h-[44px]" dir="auto" maxLength={200} value={form.preheader} onChange={(e) => set("preheader", e.target.value)} />
-              <p className="a-hint">{w.preheaderHint}</p>
-            </div>
-          </div>
-
-          <section aria-labelledby={`${uid}-bh`} className="space-y-3">
-            <h3 id={`${uid}-bh`} className="display-tight text-lg">{w.bodyHeading}</h3>
-            {!form.useBlocks && (
-              <div>
-                <label className="a-label" htmlFor={`${uid}-b`}>{w.bodyText}</label>
-                <textarea id={`${uid}-b`} className="a-textarea" rows={9} dir="auto" value={form.bodyText} onChange={(e) => set("bodyText", e.target.value)} aria-describedby={`${uid}-bhint`} />
-                <p id={`${uid}-bhint`} className="a-hint">{w.bodyHint}</p>
-              </div>
-            )}
-            <details className="a-box p-3" open={form.useBlocks}>
-              <summary className="flex min-h-[44px] cursor-pointer items-center font-bold">{w.useBlocks}</summary>
-              <div className="space-y-3 pt-2">
-                <label className="flex min-h-[44px] items-center gap-3 text-sm">
-                  <input type="checkbox" className="h-5 w-5" checked={form.useBlocks} onChange={(e) => set("useBlocks", e.target.checked)} />
-                  <span>{w.useBlocks}</span>
-                </label>
-                <p className="a-hint !mt-0">{w.blocksHint}</p>
-                {form.useBlocks && <BlocksEditor blocks={form.blocks} onChange={(b) => set("blocks", b)} />}
-              </div>
-            </details>
-          </section>
-
-          <section aria-labelledby={`${uid}-ah`} className="space-y-3">
-            <h3 id={`${uid}-ah`} className="display-tight text-lg">{w.audienceHeading}</h3>
-            <fieldset>
-              <legend className="a-label">{w.groups}</legend>
-              {groups.length === 0 && <p className="a-hint !mt-0">{w.groupsNone}</p>}
-              <div className="flex flex-wrap gap-x-5">
-                {groups.map((g) => (
-                  <label key={g.slug} className="flex min-h-[44px] items-center gap-3 text-sm">
-                    <input type="checkbox" className="h-5 w-5" checked={form.groups.includes(g.slug)} onChange={(e) => set("groups", e.target.checked ? [...form.groups, g.slug] : form.groups.filter((x) => x !== g.slug))} />
-                    <span dir="auto">{g.name}</span>
-                    <span className="tabular-nums text-clay" dir="ltr">{g.active ?? g.count}</span>
-                  </label>
-                ))}
-              </div>
-              {form.groups.length === 0 && <p className="a-error">{w.groupsRequired}</p>}
-            </fieldset>
-            <div className="flex flex-wrap gap-4">
-              <div>
-                <label className="a-label" htmlFor={`${uid}-l`}>{w.language}</label>
-                <select id={`${uid}-l`} className="a-select min-h-[44px]" value={form.lang} onChange={(e) => set("lang", e.target.value as CampaignLang)}>
-                  {(["all", "en", "he"] as const).map((l) => <option key={l} value={l}>{w.langs[l]}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="a-label" htmlFor={`${uid}-t`}>{w.topic}</label>
-                <select id={`${uid}-t`} className="a-select min-h-[44px]" value={form.topic} onChange={(e) => set("topic", e.target.value as "" | CampaignTopic)}>
-                  <option value="">{w.topics.any}</option>
-                  <option value="blog">{w.topics.blog}</option>
-                  <option value="releases">{w.topics.releases}</option>
-                </select>
-              </div>
-            </div>
-            <div className="a-box p-3" role="status" aria-live="polite" data-testid="audience-count">
-              <p className="a-label !mt-0">{w.recipients}</p>
-              {!campaign ? (
-                <p className="a-hint !mt-0">{w.audienceSaveFirst}</p>
-              ) : audience === "loading" ? (
-                <p className="a-hint !mt-0">{w.audienceLoading}</p>
-              ) : audience === "failed" ? (
-                <p className="a-error !mt-0">{w.audienceFailed}</p>
-              ) : (
-                <>
-                  <p className="text-lg font-bold tabular-nums">{audience.count === 0 ? w.recipientNone : w.recipientCount(audience.count)}</p>
-                  {audience.samples.length > 0 && (
-                    <p className="a-hint">
-                      {w.samples}: {audience.samples.map((s, i) => <bdi key={i} dir="ltr" className="me-3">{s}</bdi>)}
-                    </p>
-                  )}
-                </>
+      <form noValidate onSubmit={(e) => (e.preventDefault(), void save())}>
+        <fieldset disabled={!editable} className="min-w-0">
+          <div className="grid gap-x-8 gap-y-6 lg:grid-cols-[minmax(0,1fr)_26rem]">
+            <Step n={1} title={w.step1} labelId={`${uid}-s1`}>
+              {id === "new" && events.length > 0 && (
+                <div>
+                  <label className="a-label" htmlFor={`${uid}-ev`}>{w.startFrom}</label>
+                  <select id={`${uid}-ev`} className="a-select min-h-[44px] max-w-full" value="" onChange={(e) => void startFrom(e.target.value)}>
+                    <option value="">{w.startFromNone}</option>
+                    {events.map((e) => <option key={e.id} value={e.id}>{e.title}</option>)}
+                  </select>
+                  <p className="a-hint">{w.startFromHint}</p>
+                </div>
               )}
-              {audienceStale && <p className="a-hint">{w.audienceStale}</p>}
-            </div>
-          </section>
+              <div>
+                <label className="a-label" htmlFor={`${uid}-s`}>{w.subject}</label>
+                <input id={`${uid}-s`} className="a-input min-h-[44px]" dir="auto" maxLength={200} value={form.subject} onChange={(e) => set("subject", e.target.value)} />
+              </div>
+              <div>
+                <label className="a-label" htmlFor={`${uid}-p`}>{w.preheader}</label>
+                <input id={`${uid}-p`} className="a-input min-h-[44px]" dir="auto" maxLength={200} value={form.preheader} onChange={(e) => set("preheader", e.target.value)} aria-describedby={`${uid}-phint`} />
+                <p id={`${uid}-phint`} className="a-hint">{w.preheaderHint}</p>
+              </div>
+              {!form.useBlocks && (
+                <div>
+                  <label className="a-label" htmlFor={`${uid}-b`}>{w.bodyText}</label>
+                  <textarea id={`${uid}-b`} className="a-textarea" rows={9} dir="auto" value={form.bodyText} onChange={(e) => set("bodyText", e.target.value)} aria-describedby={`${uid}-bhint`} />
+                  <p id={`${uid}-bhint`} className="a-hint">{w.bodyHint}</p>
+                </div>
+              )}
+              <details className="a-box p-3" open={form.useBlocks}>
+                <summary className="flex min-h-[44px] cursor-pointer items-center font-bold">{w.useBlocks}</summary>
+                <div className="space-y-3 pt-2">
+                  <label className="flex min-h-[44px] items-center gap-3 text-sm">
+                    <input type="checkbox" className="h-5 w-5" checked={form.useBlocks} onChange={(e) => set("useBlocks", e.target.checked)} />
+                    <span>{w.useBlocks}</span>
+                  </label>
+                  <p className="a-hint !mt-0">{w.blocksHint}</p>
+                  {form.useBlocks && <BlocksEditor blocks={form.blocks} onChange={(b) => set("blocks", b)} />}
+                </div>
+              </details>
+              <details className="a-box p-3">
+                <summary className="flex min-h-[44px] cursor-pointer items-center font-bold">{w.more}</summary>
+                <div className="pt-2">
+                  <label className="a-label" htmlFor={`${uid}-n`}>{w.internalName}</label>
+                  <input id={`${uid}-n`} className="a-input min-h-[44px]" dir="auto" maxLength={120} value={form.name} onChange={(e) => set("name", e.target.value)} aria-describedby={`${uid}-nh`} />
+                  <p id={`${uid}-nh`} className="a-hint">{w.internalNameHint}</p>
+                </div>
+              </details>
+            </Step>
+
+            {previewBox}
+
+            <Step n={2} title={w.step2} labelId={`${uid}-s2`}>
+              <fieldset>
+                <legend className="a-label">{w.groups}</legend>
+                {groups.length === 0 && <p className="a-hint !mt-0">{w.groupsNone}</p>}
+                <div className="flex flex-wrap gap-x-5">
+                  {groups.map((g) => (
+                    <label key={g.slug} className="flex min-h-[44px] items-center gap-3 text-sm">
+                      <input type="checkbox" className="h-5 w-5" checked={form.groups.includes(g.slug)} onChange={(e) => set("groups", e.target.checked ? [...form.groups, g.slug] : form.groups.filter((x) => x !== g.slug))} />
+                      <span dir="auto">{g.name}</span>
+                      <span className="tabular-nums text-clay" dir="ltr">{g.active ?? g.count}</span>
+                    </label>
+                  ))}
+                </div>
+                {form.groups.length === 0 && <p className="a-error">{w.groupsRequired}</p>}
+              </fieldset>
+              <div className="flex flex-wrap gap-4">
+                <div>
+                  <label className="a-label" htmlFor={`${uid}-l`}>{w.language}</label>
+                  <select id={`${uid}-l`} className="a-select min-h-[44px]" value={form.lang} onChange={(e) => set("lang", e.target.value as CampaignLang)}>
+                    {(["all", "en", "he"] as const).map((l) => <option key={l} value={l}>{w.langs[l]}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="a-label" htmlFor={`${uid}-t`}>{w.topic}</label>
+                  <select id={`${uid}-t`} className="a-select min-h-[44px]" value={form.topic} onChange={(e) => set("topic", e.target.value as "" | CampaignTopic)} aria-describedby={`${uid}-th`}>
+                    <option value="">{w.topics.any}</option>
+                    <option value="blog">{w.topics.blog}</option>
+                    <option value="releases">{w.topics.releases}</option>
+                  </select>
+                </div>
+              </div>
+              <p id={`${uid}-th`} className="a-hint !mt-0">{w.topicHint}</p>
+              <div className="a-box p-3" role="status" aria-live="polite" data-testid="audience-count">
+                <p className="a-label !mt-0">{w.recipients}</p>
+                {audience === "none" ? (
+                  <p className="a-hint !mt-0">{w.groupsRequired}</p>
+                ) : audience === "loading" ? (
+                  <p className="a-hint !mt-0">{w.audienceLoading}</p>
+                ) : audience === "failed" ? (
+                  <p className="a-error !mt-0">{w.audienceFailed}</p>
+                ) : (
+                  <>
+                    <p className="text-lg font-bold tabular-nums">{audience.count === 0 ? w.recipientNone : w.recipientCount(audience.count)}</p>
+                    {audience.samples.length > 0 && (
+                      <p className="a-hint">{w.samples}: {audience.samples.map((s, i) => <bdi key={i} dir="ltr" className="me-3">{s}</bdi>)}</p>
+                    )}
+                  </>
+                )}
+              </div>
+            </Step>
+
+            <Step n={3} title={w.step3} labelId={`${uid}-s3`}>
+              <div role="group" aria-label={w.whenMode} className="a-seg">
+                <button type="button" className="min-h-[44px]" aria-pressed={!later} onClick={() => (setMode("now"), setNow(Date.now()))}>{w.modeNow}</button>
+                <button type="button" className="min-h-[44px]" aria-pressed={later} onClick={() => (setMode("later"), setNow(Date.now()))}>{w.modeLater}</button>
+              </div>
+              {later && (
+                <div className="flex flex-wrap items-end gap-3">
+                  <div>
+                    <label className="a-label" htmlFor={`${uid}-w`}>{w.scheduleAt}</label>
+                    <input id={`${uid}-w`} type="datetime-local" className="a-input min-h-[44px]" dir="ltr" value={when} onChange={(e) => (setWhen(e.target.value), setNow(Date.now()))} />
+                  </div>
+                  <div>
+                    <label className="a-label" htmlFor={`${uid}-z`}>{w.scheduleZone}</label>
+                    <select id={`${uid}-z`} className="a-select min-h-[44px]" dir="ltr" value={zone} onChange={(e) => (setZone(e.target.value), setNow(Date.now()))}>
+                      {zones.map((z) => <option key={z} value={z}>{z}</option>)}
+                    </select>
+                  </div>
+                </div>
+              )}
+              {later && past && <p className="a-error !mt-0">{w.schedulePast}</p>}
+              {later && scheduleIso && !past && <p className="a-hint !mt-0">{w.scheduleShown(fmt(scheduleIso))}</p>}
+            </Step>
+
+            <Step n={4} title={w.step4} labelId={`${uid}-s4`}>
+              <dl className="a-box grid gap-x-4 gap-y-2 p-3 text-sm sm:grid-cols-[auto_1fr]">
+                <dt className="font-bold">{w.reviewSubject}</dt>
+                <dd dir="auto" className="min-w-0 break-words">{form.subject || "—"}</dd>
+                <dt className="font-bold">{w.reviewFrom}</dt>
+                <dd dir="auto" className="min-w-0 break-words">{fromLabel}</dd>
+                <dt className="font-bold">{w.reviewTo}</dt>
+                <dd className="tabular-nums">{recipients === null ? "—" : w.recipientCount(recipients)}</dd>
+                <dt className="font-bold">{w.reviewWhen}</dt>
+                <dd>{later ? (scheduleIso && !past ? fmt(scheduleIso) : "—") : w.reviewNow}</dd>
+              </dl>
+              {editable && (
+                <div role="status" data-testid="readiness">
+                  {problems.length > 0 ? (
+                    <>
+                      <p className="a-label !mt-0">{w.readyTitle}</p>
+                      <ul className="list-disc ps-5 text-sm">{problems.map((p) => <li key={p} className="a-error mt-0">{p}</li>)}</ul>
+                    </>
+                  ) : (
+                    <p className="a-hint !mt-0 font-bold">{w.readyOk}</p>
+                  )}
+                </div>
+              )}
+              {issues.length > 0 && (
+                <div role="alert">
+                  <p className="a-error">{w.invalid}</p>
+                  <ul className="list-disc ps-5">{issues.map((i) => <li key={i.path + i.message} className="a-error mt-0">{i.path ? `${i.path}: ` : ""}{i.message}</li>)}</ul>
+                </div>
+              )}
+            </Step>
+          </div>
         </fieldset>
 
-        {issues.length > 0 && (
-          <div role="alert">
-            <p className="a-error">{w.invalid}</p>
-            <ul className="list-disc ps-5">{issues.map((i) => <li key={i.path + i.message} className="a-error mt-0">{i.path ? `${i.path}: ` : ""}{i.message}</li>)}</ul>
-          </div>
-        )}
-
         {editable && (
-          <section aria-labelledby={`${uid}-sch`} className="a-box space-y-3 p-4">
-            <h3 id={`${uid}-sch`} className="display-tight text-lg">{w.scheduleHeading}</h3>
-            <div className="flex flex-wrap items-end gap-3">
-              <div>
-                <label className="a-label" htmlFor={`${uid}-w`}>{w.scheduleAt}</label>
-                <input id={`${uid}-w`} type="datetime-local" className="a-input min-h-[44px]" dir="ltr" value={when} onChange={(e) => (setWhen(e.target.value), setNow(Date.now()))} />
-              </div>
-              <div>
-                <label className="a-label" htmlFor={`${uid}-z`}>{w.scheduleZone}</label>
-                <select id={`${uid}-z`} className="a-select min-h-[44px]" dir="ltr" value={zone} onChange={(e) => (setZone(e.target.value), setNow(Date.now()))}>
-                  {zones.map((z) => <option key={z} value={z}>{z}</option>)}
-                </select>
-              </div>
-              <button type="button" className="a-btn min-h-[44px]" disabled={!canGo || !scheduleIso || past} onClick={() => void doSchedule()}>{w.scheduleDo}</button>
+          <div className="sticky bottom-0 z-10 -mx-1 mt-6 border-t border-[rgb(var(--rule-firm)/.7)] bg-[rgb(var(--paper))] px-1 py-3" data-testid="action-bar">
+            <div className="flex flex-wrap items-center gap-2">
+              <button type="submit" className="a-btn min-h-[44px]" disabled={!formOk || busy !== "" || (id !== "new" && !dirty)}>{busy === "save" ? w.saving : w.save}</button>
+              <button type="button" className="a-btn min-h-[44px]" disabled={!formOk || busy !== "" || !sender || sender.testRecipients.length === 0} onClick={() => void sendTest()}>{busy === "test" ? w.sendingTest : w.sendTest}</button>
+              <button type="button" className="a-btn a-btn-primary min-h-[44px] ms-auto" disabled={!canGo} onClick={() => void ask()}>{later ? w.actionSchedule : w.sendNow}</button>
             </div>
-            {past && <p className="a-error !mt-0">{w.schedulePast}</p>}
-            {scheduleIso && !past && <p className="a-hint !mt-0">{w.scheduleShown(fmt(scheduleIso))}</p>}
-          </section>
-        )}
-
-        {editable && (
-          <div className="flex flex-wrap items-center gap-3">
-            <button type="submit" className="a-btn min-h-[44px]" disabled={!formOk || busy !== "" || (id !== "new" && !dirty)}>{busy === "save" ? w.saving : w.save}</button>
-            <button type="button" className="a-btn min-h-[44px]" disabled={!formOk || busy !== "" || !sender || sender.testRecipients.length === 0} onClick={() => void sendTest()}>{busy === "test" ? w.sendingTest : w.sendTest}</button>
-            <button type="button" className="a-btn a-btn-primary min-h-[44px]" disabled={!canGo} onClick={() => void askSend()}>{w.sendNow}</button>
-            {dirty && id !== "new" && <span className="text-sm text-clay">{w.unsaved}</span>}
-            {sender && sender.testRecipients.length === 0 && <span className="a-hint !mt-0">{w.testNeedsRecipients}</span>}
+            <div className="mt-1 flex flex-wrap items-center gap-x-4" aria-live="polite">
+              {dirty && id !== "new" && <span className="text-sm text-clay">{w.unsaved}</span>}
+              {sender && sender.testRecipients.length === 0 && <span className="a-hint !mt-0">{w.testNeedsRecipients}</span>}
+              <span role="status" className={msg?.kind === "bad" ? "text-sm font-bold text-[rgb(var(--destructive-ink))]" : "text-sm text-clay"}>{msg?.text}</span>
+            </div>
+            {conflict && (
+              <p className="a-error" role="alert">
+                {w.conflict} <button type="button" className="a-btn min-h-[44px]" onClick={() => (setConflict(false), setTick((n) => n + 1))}>{w.reload}</button>
+              </p>
+            )}
           </div>
         )}
-        {conflict && (
-          <p className="a-error" role="alert">
-            {w.conflict} <button type="button" className="a-btn min-h-[44px]" onClick={() => (setConflict(false), setTick((n) => n + 1))}>{w.reload}</button>
-          </p>
-        )}
-        <p role="status" className={msg?.kind === "bad" ? "text-sm font-bold text-[rgb(var(--destructive-ink))]" : "text-sm text-clay"}>{msg?.text}</p>
       </form>
-
-      <section aria-labelledby={`${uid}-ph`} className="space-y-2">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h3 id={`${uid}-ph`} className="display-tight text-lg">{w.previewHeading}</h3>
-          <div className="flex items-center gap-2">
-            <label className="a-label !mt-0" htmlFor={`${uid}-pl`}>{w.previewLang}</label>
-            <select id={`${uid}-pl`} className="a-select min-h-[44px]" value={pvLang} onChange={(e) => setPvLang(e.target.value as "en" | "he")}>
-              <option value="en">{w.previewEn}</option>
-              <option value="he">{w.previewHe}</option>
-            </select>
-          </div>
-        </div>
-        <p className="a-hint !mt-0">{w.previewNote}</p>
-        {preview && <EmailPreview html={preview.html} text={preview.text} subject={preview.subject} />}
-      </section>
 
       {campaign?.status === "draft" && (
         <details className="a-box p-3">
@@ -444,18 +519,21 @@ export default function CampaignEditor({
         </details>
       )}
 
-      {dialog === "send" && (
-        <Modal title={w.confirmHeading} titleId={`${uid}-cd`} onClose={() => setDialog(null)}>
+      {dialog === "send" && campaign && (
+        <Modal title={later ? w.scheduleConfirmHeading : w.confirmHeading} titleId={`${uid}-cd`} onClose={() => setDialog(null)}>
           <div className="space-y-3" data-testid="confirm-send">
             <dl className="space-y-1 text-sm">
               <div><dt className="a-label !mt-0">{w.confirmSubject}</dt><dd dir="auto" className="font-bold">{form.subject}</dd></div>
               <div><dd dir="auto">{w.confirmFrom(fromLabel)}</dd></div>
             </dl>
-            <p className="text-lg font-bold tabular-nums" role="status">{confirmCount === null ? w.confirmChecking : w.confirmCount(confirmCount)}</p>
-            <p className="a-hint !mt-0 font-bold">{w.confirmFinal}</p>
+            <p className="text-lg font-bold tabular-nums" role="status">{recipients === null ? w.confirmChecking : w.confirmCount(recipients)}</p>
+            {later && scheduleIso ? <p className="a-hint !mt-0 font-bold">{w.scheduleConfirmBody(fmt(scheduleIso))}</p> : <p className="a-hint !mt-0 font-bold">{w.confirmFinal}</p>}
             <div className="flex flex-wrap gap-2 pt-2">
-              <button type="button" className="a-btn a-btn-primary min-h-[44px]" disabled={confirmCount === null || confirmCount === 0 || busy !== ""} onClick={() => void run(() => adminCampaigns.sendNow(campaign!.id))}>
-                {confirmCount === null ? w.confirmChecking : w.confirmDo(confirmCount)}
+              <button
+                type="button" className="a-btn a-btn-primary min-h-[44px]" disabled={recipients === null || recipients === 0 || busy !== ""}
+                onClick={() => void run(() => (later && scheduleIso ? adminCampaigns.schedule(campaign.id, scheduleIso) : adminCampaigns.sendNow(campaign.id)))}
+              >
+                {recipients === null ? w.confirmChecking : later ? w.scheduleConfirmDo(recipients) : w.confirmDo(recipients)}
               </button>
               <button type="button" className="a-btn min-h-[44px]" onClick={() => setDialog(null)}>{w.cancel}</button>
             </div>
