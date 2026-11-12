@@ -337,7 +337,7 @@ describe("the composer", () => {
     await openFirst();
     fireEvent.click(screen.getByRole("tab", { name: /^Instagram/ }));
     fireEvent.click(await screen.findByRole("button", { name: "Download square card and copy" }));
-    expect(clicked).toEqual(["/api/seo/og/blog/hello.png?format=square|hello-square.png"]);
+    expect(clicked).toEqual(["https://yehudabriskman.com/api/seo/og/blog/hello.png?format=square|hello-square.png"]);
     await waitFor(() => expect(writeText).toHaveBeenCalledWith("Insta caption"));
   });
 

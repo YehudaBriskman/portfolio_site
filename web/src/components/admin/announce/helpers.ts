@@ -19,12 +19,21 @@ export type Tab = (typeof TABS)[number];
 
 export type Format = "og" | "square" | "story";
 
+/** Used only until the server's answer arrives, or when it carries none. */
+export const DEFAULT_SITE_ORIGIN = "https://yehudabriskman.com";
+
 /**
- * The site's own origin, for card images and the email block. Never taken from
- * an event's address: a release points at GitHub, and a card on github.com is a 404.
- * The admin is served from the site, so the page's own origin is the site's.
+ * The public site's origin, for card images and the email block, as the server
+ * reports it. Never the page's own origin (the admin lives on another, SSO-gated
+ * host) and never an event's address (a release points at GitHub: no card there).
  */
-export const siteOrigin = (): string => (typeof window === "undefined" ? "" : window.location.origin);
+export const siteOrigin = (fromServer?: string | null): string => {
+  try {
+    return new URL(fromServer ?? "").origin;
+  } catch {
+    return DEFAULT_SITE_ORIGIN;
+  }
+};
 
 /** A release is stored as "<repo> <tag>"; the page reads "Release <tag>". Other titles are untouched. */
 export function releaseTag(ev: Pick<AnnounceSummary, "kind" | "title" | "ref">): string | null {
