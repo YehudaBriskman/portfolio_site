@@ -97,6 +97,14 @@ export default function Accessibility() {
             ))}
           </ul>
 
+          <h2 id="privacy" className="display display-md scroll-mt-24 pt-6 text-object">{w.privacy}</h2>
+          <p>{w.privacyIntro}</p>
+          <ul className="list-disc space-y-2 ps-6">
+            {w.privacyItems.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+
           <h2 className="display display-md pt-6 text-object">{w.limits}</h2>
           <ul className="list-disc space-y-2 ps-6">
             {w.limitItems.map((item) => (

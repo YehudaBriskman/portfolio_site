@@ -139,7 +139,7 @@ describe("nginx config", () => {
 
   it("forwards the client address from every proxied location (#121)", () => {
     const proxied = locations.filter((loc) => loc.block!.some((d) => d.name === "proxy_pass"));
-    expect(proxied.length).toBe(18);
+    expect(proxied.length).toBe(22);
     const wrong = proxied.flatMap((loc) => {
       const headers = upstreamHeaders(loc);
       // $proxy_add_x_forwarded_for appends nginx's peer (Traefik) to what

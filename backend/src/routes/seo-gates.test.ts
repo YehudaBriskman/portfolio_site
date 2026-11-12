@@ -121,7 +121,7 @@ const FILL: Record<string, string[]> = {
  * always noindex. The seeded projects are not among them: they have Hebrew.
  */
 const HEBREW_FALLBACK = new Set(["/blog/area/site", "/blog/english-only"]);
-const ALWAYS_NOINDEX = new Set(["/blog/hidden"]);
+const ALWAYS_NOINDEX = new Set(["/blog/hidden", "/follow", "/subscribe/confirm", "/unsubscribe", "/subscribe/manage"]);
 
 const renderUrl = (p: string, lang: "en" | "he") =>
   lang === "he" ? `/api/seo/render/he${p === "/" ? "" : p}` : `/api/seo/render${p === "/" ? "/home" : p}`;

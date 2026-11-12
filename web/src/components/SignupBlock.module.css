@@ -1,0 +1,158 @@
+/*
+ * The signup block. Colours come from the site's tokens only, so light, dark
+ * and the dark acts follow without a rule of their own. Logical properties
+ * throughout: the same file lays out right to left.
+ *
+ * Nothing here moves. The status line owns a fixed minimum height, so the
+ * page below the block does not shift when a message appears (CLS 0).
+ */
+.block {
+  max-inline-size: 36rem;
+}
+
+.heading {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  line-height: 1.2;
+  color: rgb(var(--ink));
+}
+
+.lede {
+  margin-block-start: 0.5rem;
+  color: rgb(var(--ink-soft));
+  line-height: 1.55;
+}
+
+.form {
+  margin-block-start: 1.25rem;
+  display: grid;
+  gap: 1rem;
+}
+
+.label {
+  display: block;
+  font-size: 0.875rem;
+  color: rgb(var(--ink-soft));
+}
+
+.control {
+  display: block;
+  inline-size: 100%;
+  margin-block-start: 0.375rem;
+  min-block-size: 48px;
+  padding: 0.5rem 0.875rem;
+  border: 1px solid rgb(var(--ink-soft) / 0.7);
+  border-radius: var(--well-r, 12px);
+  background: rgb(var(--sheet) / 0.55);
+  font: inherit;
+  font-size: 1.0625rem;
+  color: rgb(var(--ink));
+}
+
+.control:focus-visible,
+.check input:focus-visible,
+.submit:focus-visible {
+  outline: 2px solid rgb(var(--signal));
+  outline-offset: 2px;
+}
+
+.control[aria-invalid="true"] {
+  border-color: rgb(var(--error));
+  box-shadow: inset 0 0 0 1px rgb(var(--error));
+}
+
+.fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-inline-size: 0;
+}
+
+.legend {
+  padding: 0;
+  font-size: 0.875rem;
+  color: rgb(var(--ink-soft));
+}
+
+.checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.5rem;
+  margin-block-start: 0.25rem;
+}
+
+/* The whole row is the target: 44px high, the box and its words together. */
+.check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
+  min-block-size: 44px;
+  cursor: pointer;
+  color: rgb(var(--ink));
+}
+
+.check input {
+  inline-size: 1.25rem;
+  block-size: 1.25rem;
+  margin: 0;
+  accent-color: rgb(var(--ink));
+}
+
+.consent {
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: rgb(var(--ink-soft));
+}
+
+.consent a {
+  color: rgb(var(--ink));
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  /* A link inside a sentence still gets a 44px tall target. */
+  padding-block: 0.7rem;
+}
+
+.submit {
+  justify-self: start;
+}
+
+/* Out of sight and out of the tab order, but still a rendered input: a bot
+   that skips `display: none` fields fills this one. */
+.trap {
+  position: absolute;
+  inset-inline-start: -10000px;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+}
+
+/* Reserved height: two lines of the longest message at 390px wide. */
+.status {
+  min-block-size: 4.5rem;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: rgb(var(--ink));
+}
+
+.status[data-kind="error"]::before {
+  content: "";
+  display: inline-block;
+  inline-size: 0.5rem;
+  block-size: 0.5rem;
+  margin-inline-end: 0.5rem;
+  border-radius: 50%;
+  background: rgb(var(--error));
+}
+
+.fieldError {
+  margin-block-start: 0.375rem;
+  font-size: 0.875rem;
+  color: rgb(var(--ink));
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-block-start: 1.5rem;
+}

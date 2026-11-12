@@ -623,6 +623,35 @@ page("/accessibility", async (_req, res, lang) => {
 });
 
 /*
+ * The signup page and the three an email links to. All four are noindex and
+ * none is in the sitemap: /follow is a form, and the others are one-person
+ * pages reached by a token in the query. They are not disallowed in
+ * robots.txt, which would hide the noindex from the crawlers that do look.
+ */
+const SIGNUP_PAGES = [
+  { path: "/follow", name: "follow", description: "followDescription" },
+  { path: "/subscribe/confirm", name: "subscribeConfirm", description: "subscribeConfirmDescription" },
+  { path: "/unsubscribe", name: "unsubscribe", description: "unsubscribeDescription" },
+  { path: "/subscribe/manage", name: "subscribeManage", description: "subscribeManageDescription" },
+] as const;
+for (const p of SIGNUP_PAGES) {
+  page(p.path, async (_req, res, lang) => {
+    const w = SEO_WORDS[lang];
+    await sendShell(res, {
+      ...at(p.path, lang),
+      title: title(w[p.name], lang),
+      description: w[p.description],
+      image: absoluteUrl("/og.png"),
+      imageAlt: siteNameIn(lang),
+      type: "website",
+      noindex: true,
+      bodyHtml: `<main><h1>${escapeHtml(w[p.name])}</h1><p>${escapeHtml(w[p.description])}</p></main>`,
+      jsonLd: graph(webPage("WebPage", lang, p.path, { name: w[p.name], description: w[p.description] })),
+    });
+  });
+}
+
+/*
  * The remote MCP server's page (#263), web/src/pages/DevelopersMcp.tsx: what
  * the server is, its tools, and the one line that connects a client. A
  * crawler and a link preview get the same facts without JavaScript.
