@@ -296,6 +296,7 @@ describe("GET /api/seo/feed/:slug.xml", () => {
     expect(res.status).toBe(200);
     expect(res.headers["content-type"]).toMatch(/application\/rss\+xml/);
     expect(res.headers["cache-control"]).toBe("public, max-age=600");
+    expect(res.headers["x-robots-tag"]).toBe("noindex");
     expect(res.text).toContain("<title>Yehuda Briskman · Area windom</title>");
     expect(res.text).toContain("/blog/windom-note");
     expect(res.text).toContain("/api/seo/feed/windom.xml");
@@ -313,6 +314,7 @@ describe("GET /api/seo/feed/:slug.xml", () => {
     vi.spyOn(couch, "find").mockResolvedValue({ docs: [] });
     const res = await request(createApp()).get("/api/seo/feed.xml");
     expect(res.status).toBe(200);
+    expect(res.headers["x-robots-tag"]).toBe("noindex");
     expect(res.text).toContain("<title>Yehuda Briskman · Notes</title>");
   });
 });

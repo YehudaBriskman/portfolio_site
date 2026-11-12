@@ -198,6 +198,66 @@ describe("buildRobots", () => {
   });
 });
 
+/**
+ * A small robots.txt matcher with Google's semantics (RFC 9309): the longest
+ * matching rule wins, Allow wins a tie, `*` matches any run, `$` anchors the end.
+ */
+function robotsAllows(txt: string, target: string): boolean {
+  let best = { len: -1, allow: true };
+  for (const line of txt.split("\n")) {
+    const m = /^(allow|disallow):\s*(\S+)/i.exec(line);
+    if (!m) continue;
+    const pat = m[2];
+    const re = new RegExp(
+      "^" + pat.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*").replace(/\\\$$/, "$"),
+    );
+    if (!re.test(target)) continue;
+    const allow = m[1].toLowerCase() === "allow";
+    if (pat.length > best.len || (pat.length === best.len && allow)) best = { len: pat.length, allow };
+  }
+  return best.allow;
+}
+
+describe("buildRobots blog facets", () => {
+  const txt = buildRobots("open");
+
+  it.each([
+    "/blog?tag=react",
+    "/blog?view=feed&tag=react",
+    "/blog?view=feed",
+    "/blog?year=2025",
+    "/blog?collection=windom",
+    "/blog?open=2025-03",
+    "/he/blog?tag=react",
+    "/he/blog?view=feed&open=2025",
+    "/blog?utm_source=x&tag=react",
+    "/blog/area/windom?year=2024",
+  ])("blocks %s", (url) => {
+    expect(robotsAllows(txt, url)).toBe(false);
+  });
+
+  it.each([
+    "/blog",
+    "/he/blog",
+    "/blog/some-post",
+    "/he/blog/some-post",
+    "/blog/area/windom",
+    "/he/blog/area/windom",
+    "/blog?lang=he",
+    "/blog/some-post?utm_source=share&utm_medium=social",
+    "/blog?utm_campaign=tag=x",
+    "/blog?mytag=1",
+    "/projects",
+    "/",
+  ])("leaves %s crawlable", (url) => {
+    expect(robotsAllows(txt, url)).toBe(true);
+  });
+
+  it("does not add rules to a closed host", () => {
+    expect(buildRobots("closed")).not.toContain("tag=");
+  });
+});
+
 describe("robotsStance", () => {
   // Closed is correct for every host but one. The asymmetry is the point:
   // leaving preprod open costs duplicate URLs behind two other gates, while

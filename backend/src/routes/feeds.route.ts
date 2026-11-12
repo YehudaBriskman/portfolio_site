@@ -57,7 +57,7 @@ router.get(
           self: `${LOG_CHANNEL.self}?${filtered}`,
         }
       : LOG_CHANNEL;
-    res.type("application/rss+xml").set("Cache-Control", "public, max-age=600");
+    res.type("application/rss+xml").set("Cache-Control", "public, max-age=600").set("X-Robots-Tag", "noindex");
     res.send(buildActivityFeed(items, channel));
   }),
 );
@@ -83,7 +83,7 @@ router.get(
     // Filtered again here: a draft must not reach a feed reader even if the
     // selector above is ever loosened.
     const posts = docs.filter((p) => p.status === "published" && p.collection === slug);
-    res.type("application/rss+xml").set("Cache-Control", "public, max-age=600");
+    res.type("application/rss+xml").set("Cache-Control", "public, max-age=600").set("X-Robots-Tag", "noindex");
     res.send(buildFeed(posts, areaChannel(area)));
   }),
 );
