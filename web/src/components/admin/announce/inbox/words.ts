@@ -266,11 +266,11 @@ export const useMarketingWords = defineWords(
     statusChecking: "בודק את הדף",
     toFix: "לתיקון",
     openPage: "פתיחת הדף",
-    openRelease: "פתיחת הגרסה בגיטהאב",
+    openRelease: "פתיחת הגרסה ב־GitHub",
     checksRow: "בדיקות: תצוגת הקישור ותמונות הכרטיס",
     checksShow: "הצגת הבדיקות",
     checksHide: "הסתרת הבדיקות",
-    linkExternal: (host: string) => `הקישור מוביל אל ${host} ולא לדף באתר הזה, ולכן אין תגיות דף לתצוגה. הכרטיס שמתחת הוא מה שהפוסט מציג.`,
+    linkExternal: (host: string) => `הקישור מוביל אל ${host} ולא לדף באתר הזה, ולכן אין תגיות דף לתצוגה. הכרטיס שמתחת הוא מה שהרשימה מציגה.`,
     linkGoesTo: "הקישור מוביל אל",
     langHelp: "שפת הכיתוב",
     who: {

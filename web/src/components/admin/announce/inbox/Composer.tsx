@@ -33,6 +33,14 @@ import { useMarketingWords } from "./words";
 type Save = "idle" | "saving" | "saved" | "error";
 const PAUSE = 700;
 
+const safeEventOrigin = (u: string) => {
+  try {
+    return new URL(u).origin;
+  } catch {
+    return "";
+  }
+};
+
 const openTab = (href: string) => void window.open(href, "_blank", "noopener,noreferrer");
 
 export default function Composer({
@@ -288,7 +296,8 @@ export default function Composer({
         title: meta?.title || event.title,
         summary: meta?.description || detail?.event.summary,
         url: event.url,
-        linkOrigins: event.kind === "release" ? ["https://github.com"] : [],
+        /* The link is the server's own address for the event (GitHub for a release); only the card must be on the site. */
+        linkOrigins: [safeEventOrigin(event.url)],
         image: image || undefined,
         origin,
         buttonLabel: lang === "he" ? "לקריאה באתר" : "Read it on the site",
