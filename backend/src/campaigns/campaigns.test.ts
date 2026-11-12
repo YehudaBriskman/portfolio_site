@@ -357,6 +357,11 @@ describe("mail rendering", () => {
     expect(en.html).not.toContain(COMMERCIAL_LABEL_HE);
   });
 
+  it("sanitizeHtml survives nested tricks", () => {
+    expect(sanitizeHtml("<scr<script></script>ipt>alert(1)</script>")).not.toMatch(/<script/i);
+    expect(sanitizeHtml("<!<!-- -->-- x -->y")).not.toContain("<!--");
+  });
+
   it("sanitizeHtml escapes stray angle brackets and keeps only allowed tags", () => {
     expect(sanitizeHtml("1 < 2 <b>x</b><iframe src=x></iframe><marquee>m</marquee>")).toBe("1 &lt; 2 <b>x</b>m");
   });
