@@ -4,6 +4,7 @@ import { asyncHandler } from "../middlewares/asyncHandler.js";
 import { toIssues, type Issue } from "../schemas/site-content.js";
 import { randomUUID } from "node:crypto";
 import { SITE_URL } from "../services/seo.js";
+import { senderWarnings } from "../campaigns/config.js";
 import { renderKit } from "./kit.js";
 import { previewFor } from "./preview.js";
 import {
@@ -102,7 +103,7 @@ router.put(
       throw e;
     }
     res.locals.audit = { target: doc._id, before: existing, after: doc };
-    res.json(settingsView(doc));
+    res.json({ ...settingsView(doc), warnings: senderWarnings(doc.settings.sender) });
   }),
 );
 

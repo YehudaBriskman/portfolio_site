@@ -7,6 +7,7 @@ import { loadSiteReleases } from "./services/activity.js";
 import { createApp } from "./app";
 import { env } from './env.js';
 import { logger } from './logger.js';
+import { startSender } from './campaigns/sender.js';
 
 const app = createApp();
 
@@ -119,3 +120,6 @@ ensureContentStore()
  * so a failure here costs a slower first paint and nothing else.
  */
 startContributionsRefresh();
+
+/* The campaign sender: resumable, so a restart only costs the time until the next tick. */
+startSender();

@@ -53,9 +53,33 @@ export async function sendContactEmail(input: SendEmailInput) {
 }
 
 /* Mail to a subscriber (double opt-in): same provider and sender as the contact mail, but to the given address. */
-export async function sendToAddress(msg: { to: string; subject: string; text: string; html: string; headers?: Record<string, string> }) {
-  return getProvider().send({ from: env.MAIL_FROM, replyTo: env.MAIL_REPLY_TO, ...msg });
+export async function sendToAddress(msg: { to: string; subject: string; text: string; html: string; headers?: Record<string, string>; from?: string; replyTo?: string }) {
+  return getProvider().send({ ...msg, from: msg.from || env.MAIL_FROM, replyTo: msg.replyTo || env.MAIL_REPLY_TO });
+}
+
+export type BulkMessage = { to: string; subject: string; text: string; html: string; headers?: Record<string, string> };
+export type BulkResult = { ok: true } | { ok: false; error: string };
+
+/**
+ * One message per recipient, each with its own single To (a recipient never
+ * sees another's address) and its own headers (the personal one-click
+ * unsubscribe). Sequential on purpose: the caller already limits the batch, and
+ * a provider's own rate limit is kinder to a trickle. Never throws; a failure
+ * is that recipient's result.
+ */
+export async function sendBulk(msgs: BulkMessage[], opts: { from: string; replyTo?: string }): Promise<BulkResult[]> {
+  const provider = getProvider();
+  const out: BulkResult[] = [];
+  for (const m of msgs) {
+    try {
+      const r = await provider.send({ from: opts.from, replyTo: opts.replyTo, to: m.to, subject: m.subject, text: m.text, html: m.html, headers: m.headers });
+      out.push(r.ok ? { ok: true } : { ok: false, error: r.error });
+    } catch (err) {
+      out.push({ ok: false, error: err instanceof Error ? err.message : String(err) });
+    }
+  }
+  return out;
 }
 
 /** Object form so tests can spy on `send`. */
-export const emailService = { send: sendContactEmail, sendTo: sendToAddress };
+export const emailService = { send: sendContactEmail, sendTo: sendToAddress, sendBulk };

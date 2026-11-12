@@ -1,0 +1,412 @@
+import request from "supertest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { createApp } from "../app";
+import { couch, CouchError } from "../db/couch.js";
+import { env } from "../env.js";
+import { logger } from "../logger.js";
+import { DEFAULT_ANNOUNCE_SETTINGS, SETTINGS_DOC_ID, type AnnounceEvent, type AnnounceSettings } from "../announce/schemas.js";
+import { hashEmail } from "../audience/store.js";
+import { emailService } from "../services/email.service.js";
+import { autoDraftFor } from "./autodraft.js";
+import { resolveSender, senderWarnings } from "./config.js";
+import { COMMERCIAL_LABEL_HE, renderCampaignMail } from "./render.js";
+import { sanitizeHtml } from "./sanitize.js";
+import { inQuietHours, runSenderTick, type Deliver } from "./sender.js";
+
+/* In-memory couch. The MCP/image stubs only let app.ts load on a box without those optional deps; CI has them. */
+vi.mock("../mcp/router.js", () => ({ createMcpRouter: () => (_q: unknown, _r: unknown, next: () => void) => next() }));
+vi.mock("../mcp/oauth/provider.js", () => ({ grantDocId: (i: string) => `mcpgrant:${i}`, grantLive: () => false, revokeGrant: async () => {} }));
+vi.mock("../services/mediaImage.js", () => ({}));
+vi.mock("../services/svgSanitize.js", () => ({}));
+vi.mock("../routes/images.route", () => ({ createImagesRouter: () => (_q: unknown, _r: unknown, next: () => void) => next() }));
+vi.mock("../routes/media.admin.route.js", async () => ({ default: (await import("express")).Router() }));
+
+let store: Map<string, Record<string, unknown>>;
+let revs = 0;
+type Sent = { to: string; subject: string; text: string; html: string; headers?: Record<string, string> };
+let sent: Sent[];
+let putHook: ((id: string, body: { status?: string }) => void) | null;
+const deliver: Deliver = async (msgs) => {
+  sent.push(...msgs);
+  return msgs.map(() => ({ ok: true as const }));
+};
+
+beforeEach(() => {
+  store = new Map();
+  sent = [];
+  putHook = null;
+  vi.spyOn(couch, "get").mockImplementation(async <R>(id: string) => {
+    const d = store.get(id);
+    if (!d) throw new CouchError(404, "404");
+    return structuredClone(d) as R;
+  });
+  vi.spyOn(couch, "put").mockImplementation(async <R>(id: string, body: unknown) => {
+    const doc = body as { _rev?: string };
+    putHook?.(id, body as { status?: string });
+    const ex = store.get(id);
+    if (ex ? doc._rev !== ex._rev : doc._rev !== undefined) throw new CouchError(409, "409");
+    const rev = `${++revs + 1}-x`;
+    store.set(id, { ...structuredClone(doc), _rev: rev });
+    return { ok: true, id, rev } as R;
+  });
+  vi.spyOn(couch, "append").mockImplementation(async <R>(id: string, body: Record<string, unknown>) => {
+    if (store.has(id)) throw new CouchError(409, "409");
+    store.set(id, { ...structuredClone(body), _rev: `${++revs + 1}-x` });
+    return { ok: true, id } as R;
+  });
+  vi.spyOn(couch, "del").mockImplementation(async (id: string) => {
+    if (!store.delete(id)) throw new CouchError(404, "404");
+    return { ok: true };
+  });
+  vi.spyOn(couch, "find").mockImplementation(async (q: unknown) => {
+    const { selector: s, limit = 25 } = q as { selector: { _id: { $gt: string; $lt: string }; status?: { $in: string[] } }; limit?: number };
+    const docs = [...store.entries()]
+      .filter(([id, d]) => id > s._id.$gt && id < s._id.$lt && (!s.status || s.status.$in.includes(d.status as string)))
+      .sort(([a], [b]) => (a < b ? -1 : 1))
+      .slice(0, limit)
+      .map(([, d]) => structuredClone(d));
+    return { docs: docs as never[] };
+  });
+  vi.spyOn(emailService, "sendBulk").mockImplementation(async (m) => {
+    sent.push(...m);
+    return m.map(() => ({ ok: true as const }));
+  });
+});
+afterEach(() => vi.restoreAllMocks());
+
+const admin = (req: request.Test) => req.set("X-Admin-Proxy-Secret", env.ADMIN_PROXY_SECRET).set("X-Auth-Request-User", env.ADMIN_GITHUB_LOGIN);
+const C = "/api/admin/campaigns";
+
+const setSender = (over: Partial<AnnounceSettings["sender"]> = {}) =>
+  store.set(SETTINGS_DOC_ID, {
+    _id: SETTINGS_DOC_ID, _rev: "1-s", type: "settings-announce", updatedAt: "x",
+    settings: { ...DEFAULT_ANNOUNCE_SETTINGS, sender: { ...DEFAULT_ANNOUNCE_SETTINGS.sender, footerIdentity: "Yehuda, Tel Aviv", ...over } },
+  });
+const addr = (i: number) => `user${i}@example.com`;
+const seedContact = (i: number, over: Record<string, unknown> = {}) => {
+  const h = hashEmail(addr(i));
+  const now = new Date().toISOString();
+  store.set(`contact:${h}`, {
+    _id: `contact:${h}`, _rev: "1-a", type: "contact", email: addr(i), lang: "en", groups: ["subscribers"], status: "active", source: "site",
+    consentAt: now, consentNote: "site-form-v1", topics: { blog: true, releases: true }, createdAt: now, updatedAt: now, ...over,
+  });
+};
+const seedMany = (n: number) => { for (let i = 1; i <= n; i++) seedContact(i); };
+const T0 = Date.parse("2026-06-01T12:00:00Z");
+const draft = (over: Record<string, unknown> = {}) => ({ name: "n", subject: "Hello", bodyHtml: "<p>Hi</p>", bodyText: "Hi", groups: ["subscribers"], ...over });
+const mk = async (over: Record<string, unknown> = {}) => (await admin(request(createApp()).post(C).send(draft(over)))).body.campaign as { id: string; _rev: string };
+const get = (id: string) => store.get(`campaign:${id}`) as Record<string, any>;
+const queued = async (n = 3, over: Partial<AnnounceSettings["sender"]> = {}) => {
+  setSender(over);
+  seedMany(n);
+  const c = await mk();
+  const r = await admin(request(createApp()).post(`${C}/${c.id}/send-now`));
+  expect(r.status).toBe(200);
+  /* The tests run on a fake clock; "now" at send time is the real one. */
+  store.set(`campaign:${c.id}`, { ...get(c.id), sendAt: "2000-01-01T00:00:00.000Z" });
+  return c.id;
+};
+
+describe("admin gate", () => {
+  const routes: Array<[string, string]> = [
+    ["get", ""], ["post", ""], ["get", "/abc"], ["patch", "/abc"], ["delete", "/abc"], ["get", "/abc/audience"],
+    ["post", "/abc/test"], ["post", "/abc/schedule"], ["post", "/abc/send-now"], ["post", "/abc/cancel"],
+  ];
+  it.each(routes)("%s /api/admin/campaigns%s is refused without it", async (method, path) => {
+    seedMany(1);
+    const r = await (request(createApp()) as unknown as Record<string, (p: string) => request.Test>)[method](`${C}${path}`).send({});
+    expect([401, 403]).toContain(r.status);
+    expect(JSON.stringify(r.body)).not.toContain("user1@example.com");
+  });
+});
+
+describe("campaign routes and state machine", () => {
+  it("draft -> scheduled -> draft -> canceled, and a scheduled campaign is not editable", async () => {
+    setSender();
+    seedMany(2);
+    const c = await mk();
+    expect(get(c.id).status).toBe("draft");
+    const when = new Date(T0 + 3_600_000).toISOString();
+    expect((await admin(request(createApp()).post(`${C}/${c.id}/schedule`).send({ sendAt: when }))).body.campaign.status).toBe("scheduled");
+    expect((await admin(request(createApp()).patch(`${C}/${c.id}`).send({ name: "x" }))).status).toBe(409);
+    expect((await admin(request(createApp()).post(`${C}/${c.id}/schedule`).send({ sendAt: null }))).body.campaign.status).toBe("draft");
+    expect((await admin(request(createApp()).patch(`${C}/${c.id}`).send({ name: "renamed" }))).body.campaign.name).toBe("renamed");
+    await admin(request(createApp()).post(`${C}/${c.id}/send-now`));
+    expect((await admin(request(createApp()).post(`${C}/${c.id}/cancel`))).body.campaign.status).toBe("canceled");
+    expect((await admin(request(createApp()).post(`${C}/${c.id}/cancel`))).status).toBe(409);
+    expect((await admin(request(createApp()).delete(`${C}/${c.id}`))).status).toBe(200);
+  });
+
+  it("a stale _rev on edit is a 409", async () => {
+    const c = await mk();
+    await admin(request(createApp()).patch(`${C}/${c.id}`).send({ name: "a" }));
+    expect((await admin(request(createApp()).patch(`${C}/${c.id}`).send({ name: "b", _rev: c._rev }))).status).toBe(409);
+  });
+
+  it("refuses to queue without a footer identity, or an empty audience", async () => {
+    setSender({ footerIdentity: "" });
+    seedMany(1);
+    const c = await mk();
+    expect((await admin(request(createApp()).post(`${C}/${c.id}/send-now`))).status).toBe(422);
+    setSender();
+    const empty = await mk({ groups: ["nobody"] });
+    expect((await admin(request(createApp()).post(`${C}/${empty.id}/send-now`))).status).toBe(422);
+  });
+
+  it("validates strictly: unknown field, header injection, bad group slug", async () => {
+    const a = (b: Record<string, unknown>) => admin(request(createApp()).post(C).send(draft(b)));
+    expect((await a({ extra: 1 })).status).toBe(400);
+    expect((await a({ subject: "x\r\nBcc: evil@example.com" })).status).toBe(400);
+    expect((await a({ groups: ["Bad Slug"] })).status).toBe(400);
+    expect((await a({ groups: [] })).status).toBe(400);
+  });
+
+  it("audience: a count and three masked samples, never an address", async () => {
+    seedMany(8);
+    seedContact(9, { status: "unsubscribed" });
+    const c = await mk();
+    const r = await admin(request(createApp()).get(`${C}/${c.id}/audience`));
+    expect(r.body.count).toBe(8);
+    expect(r.body.samples).toHaveLength(3);
+    expect(JSON.stringify(r.body)).not.toContain("example.com");
+  });
+
+  it("test send goes to settings.sender.testRecipients only", async () => {
+    setSender({ testRecipients: ["me@example.org"] });
+    seedMany(3);
+    const c = await mk();
+    const r = await admin(request(createApp()).post(`${C}/${c.id}/test`));
+    expect(r.body).toEqual({ ok: true, sent: 1, failed: 0 });
+    expect(sent.map((m) => m.to)).toEqual(["me@example.org"]);
+    expect(sent[0].subject).toMatch(/^\[Test\] /);
+    setSender();
+    expect((await admin(request(createApp()).post(`${C}/${c.id}/test`))).status).toBe(422);
+  });
+});
+
+describe("sender tick", () => {
+  it("sends to every active contact once, with per-recipient To and one-click headers, then finishes", async () => {
+    const id = await queued(3);
+    await runSenderTick({ now: () => T0, deliver });
+    await runSenderTick({ now: () => T0, deliver });
+    expect(sent.map((m) => m.to).sort()).toEqual([addr(1), addr(2), addr(3)]);
+    for (const m of sent) {
+      expect(m.headers?.["List-Unsubscribe"]).toMatch(/^<https?:\/\/.+\/api\/subscribe\/unsubscribe\?token=.+>$/);
+      expect(m.headers?.["List-Unsubscribe-Post"]).toBe("List-Unsubscribe=One-Click");
+    }
+    expect(new Set(sent.map((m) => m.headers?.["List-Unsubscribe"])).size).toBe(3);
+    expect(get(id)).toMatchObject({ status: "sent", counters: { queued: 3, sent: 3, failed: 0, suppressed: 0 } });
+    expect([...store.keys()].filter((k) => k.startsWith(`send:${id}:`))).toHaveLength(3);
+    await runSenderTick({ now: () => T0 + 1000, deliver });
+    expect(sent).toHaveLength(3);
+  });
+
+  it("does not start before sendAt", async () => {
+    setSender();
+    seedMany(1);
+    const c = await mk();
+    await admin(request(createApp()).post(`${C}/${c.id}/schedule`).send({ sendAt: new Date(T0 + 60_000).toISOString() }));
+    await runSenderTick({ now: () => T0, deliver });
+    expect(sent).toHaveLength(0);
+    expect(get(c.id).status).toBe("scheduled");
+    await runSenderTick({ now: () => T0 + 61_000, deliver });
+    expect(sent).toHaveLength(1);
+  });
+
+  it("a lost claim (another worker moved the doc, 409) sends nothing", async () => {
+    const id = await queued(2);
+    let raced = false;
+    putHook = (docId, body) => {
+      if (!raced && docId === `campaign:${id}` && body.status === "sending") {
+        raced = true;
+        store.set(docId, { ...store.get(docId)!, _rev: "99-other" });
+      }
+    };
+    await runSenderTick({ now: () => T0, deliver });
+    expect(raced).toBe(true);
+    expect(sent).toHaveLength(0);
+    expect(get(id).status).toBe("scheduled");
+  });
+
+  it("honours throttlePerHour across ticks and resets with the clock", async () => {
+    const id = await queued(5, { throttlePerHour: 2 });
+    await runSenderTick({ now: () => T0, deliver });
+    await runSenderTick({ now: () => T0 + 60_000, deliver });
+    expect(sent).toHaveLength(2);
+    await runSenderTick({ now: () => T0 + 3_600_000, deliver });
+    expect(sent).toHaveLength(4);
+    await runSenderTick({ now: () => T0 + 7_200_000, deliver });
+    await runSenderTick({ now: () => T0 + 7_200_000 + 1, deliver });
+    expect(sent).toHaveLength(5);
+    expect(get(id).status).toBe("sent");
+  });
+
+  it("honours dailyCap across hours, and a new day lifts it", async () => {
+    await queued(5, { throttlePerHour: 100, dailyCap: 3 });
+    await runSenderTick({ now: () => T0, deliver });
+    await runSenderTick({ now: () => T0 + 3_600_000, deliver });
+    expect(sent).toHaveLength(3);
+    await runSenderTick({ now: () => T0 + 86_400_000, deliver });
+    expect(sent).toHaveLength(5);
+  });
+
+  it("sends nothing inside quiet hours (window wrapping midnight, in the owner's zone) and resumes after", async () => {
+    await queued(2, { quietHours: { from: "22:00", to: "07:00", tz: "Asia/Jerusalem" } });
+    const night = Date.parse("2026-06-01T20:00:00Z"); // 23:00 in Jerusalem (UTC+3)
+    await runSenderTick({ now: () => night, deliver });
+    expect(sent).toHaveLength(0);
+    await runSenderTick({ now: () => Date.parse("2026-06-02T05:00:00Z"), deliver }); // 08:00 local
+    expect(sent).toHaveLength(2);
+  });
+
+  it("inQuietHours: edges", () => {
+    const q = { from: "22:00", to: "07:00", tz: "UTC" };
+    const at = (t: string) => Date.parse(`2026-06-01T${t}:00Z`);
+    expect([inQuietHours(q, at("22:00")), inQuietHours(q, at("03:00")), inQuietHours(q, at("07:00")), inQuietHours(q, at("12:00"))]).toEqual([true, true, false, false]);
+    expect(inQuietHours({ from: "09:00", to: "17:00", tz: "UTC" }, at("12:00"))).toBe(true);
+    expect(inQuietHours(undefined, at("12:00"))).toBe(false);
+  });
+
+  it("resumes after a crash: finished recipients are not repeated, a stale attempt is retried, a fresh one is left", async () => {
+    const id = await queued(4);
+    const c = get(id);
+    store.set(`campaign:${id}`, { ...c, status: "sending" });
+    const res = (i: number, status: string, at: number) =>
+      store.set(`send:${id}:${hashEmail(addr(i))}`, { _id: `send:${id}:${hashEmail(addr(i))}`, _rev: "1-r", type: "send", campaignId: id, contact: hashEmail(addr(i)), status, at: new Date(at).toISOString() });
+    res(1, "sent", T0 - 3_600_000);
+    res(2, "attempting", T0 - 3_600_000);
+    res(3, "attempting", T0 - 1000);
+    await runSenderTick({ now: () => T0, deliver });
+    expect(sent.map((m) => m.to).sort()).toEqual([addr(2), addr(4)]);
+  });
+
+  it("never sends to pending, unsubscribed or suppressed contacts, nor to one who left between scan and send", async () => {
+    setSender();
+    seedContact(1);
+    seedContact(2, { status: "pending" });
+    seedContact(3, { status: "unsubscribed" });
+    seedContact(4, { status: "suppressed" });
+    seedContact(5, { groups: ["other"] });
+    seedContact(6);
+    const c = await mk();
+    await admin(request(createApp()).post(`${C}/${c.id}/send-now`));
+    store.set(`campaign:${c.id}`, { ...get(c.id), sendAt: "2000-01-01T00:00:00.000Z" });
+    // contact 6 unsubscribes after the recipient list is read but before its mail.
+    const orig = store.get(`contact:${hashEmail(addr(6))}`)!;
+    const spy = vi.fn<Deliver>(async (msgs) => {
+      if (msgs[0].to === addr(1)) store.set(orig._id as string, { ...orig, status: "unsubscribed" });
+      return deliver(msgs, { from: "" });
+    });
+    await runSenderTick({ now: () => T0, deliver: spy });
+    await runSenderTick({ now: () => T0, deliver: spy });
+    expect(sent.map((m) => m.to)).toEqual([addr(1)]);
+    expect(get(c.id).counters.suppressed).toBe(1);
+  });
+
+  it("cancel mid-send stops at the next recipient and stays canceled", async () => {
+    const id = await queued(5);
+    const spy: Deliver = async (msgs) => {
+      if (sent.length === 1) await admin(request(createApp()).post(`${C}/${id}/cancel`));
+      return deliver(msgs, { from: "" });
+    };
+    await runSenderTick({ now: () => T0, deliver: spy });
+    await runSenderTick({ now: () => T0 + 1, deliver: spy });
+    expect(sent).toHaveLength(2);
+    expect(get(id).status).toBe("canceled");
+  });
+
+  it("a failed recipient is counted and its error is scrubbed; no address reaches logs, results or audit-able docs", async () => {
+    const id = await queued(2);
+    const logs: string[] = [];
+    for (const l of ["info", "warn", "error", "debug"] as const) vi.spyOn(logger, l).mockImplementation(((...a: unknown[]) => void logs.push(JSON.stringify(a))) as never);
+    const failing: Deliver = async (msgs) => msgs.map((m) => ({ ok: false as const, error: `550 rejected <${m.to}> mailbox user1@example.com unknown` }));
+    await runSenderTick({ now: () => T0, deliver: failing });
+    await runSenderTick({ now: () => T0, deliver: failing });
+    expect(get(id)).toMatchObject({ status: "failed", counters: { sent: 0, failed: 2 } });
+    const nonContact = JSON.stringify([...store.entries()].filter(([k]) => !k.startsWith("contact:")));
+    expect(nonContact).not.toMatch(/user\d@example\.com/);
+    expect(logs.join("")).not.toMatch(/user\d@example\.com/);
+  });
+});
+
+describe("mail rendering", () => {
+  const sender = { ...DEFAULT_ANNOUNCE_SETTINGS.sender, footerIdentity: "A <b>& Co</b>\nStreet 1" };
+  it("escapes the footer identity, strips scripts/remote css/handlers, keeps the sanitised body", async () => {
+    const m = await renderCampaignMail(
+      { subject: "S\r\nBcc: x@y.z", preheader: "<i>pre</i>", bodyHtml: `<p onclick="x()">ok</p><script>alert(1)</script><link rel=stylesheet href="https://evil/x.css"><a href="javascript:alert(1)">bad</a><a href="https://ok.example/?a=1&b=2">good</a><img src="http://insecure/x.png"><div style="background:url(https://evil/x)">s</div>`, bodyText: "plain" },
+      { lang: "en" }, hashEmail(addr(1)), sender,
+    );
+    expect(m.html).not.toMatch(/<script|<link|onclick|javascript:|url\(|http:\/\/insecure/i);
+    expect(m.html).toContain("A &lt;b&gt;&amp; Co&lt;/b&gt;<br>Street 1");
+    expect(m.html).toContain("&lt;i&gt;pre&lt;/i&gt;");
+    expect(m.html).toContain('href="https://ok.example/?a=1&amp;b=2"');
+    expect(m.subject).not.toMatch(/[\r\n]/);
+    expect(m.text).toContain("A <b>& Co</b>");
+  });
+
+  it("Hebrew: label in subject and footer when on, absent when off, absent in English", async () => {
+    const c = { subject: "שלום", bodyHtml: "<p>x</p>", bodyText: "x" };
+    const on = await renderCampaignMail(c, { lang: "he" }, hashEmail(addr(1)), sender);
+    expect(on.subject.startsWith(`${COMMERCIAL_LABEL_HE}: `)).toBe(true);
+    expect(on.html).toContain('dir="rtl"');
+    expect(on.html).toContain(`<p style="margin:0 0 8px">${COMMERCIAL_LABEL_HE}</p>`);
+    const off = await renderCampaignMail(c, { lang: "he" }, hashEmail(addr(1)), { ...sender, commercialLabel: false });
+    expect(off.subject).toBe("שלום");
+    const en = await renderCampaignMail(c, { lang: "en" }, hashEmail(addr(1)), sender);
+    expect(en.subject).toBe("שלום");
+    expect(en.html).not.toContain(COMMERCIAL_LABEL_HE);
+  });
+
+  it("sanitizeHtml escapes stray angle brackets and keeps only allowed tags", () => {
+    expect(sanitizeHtml("1 < 2 <b>x</b><iframe src=x></iframe><marquee>m</marquee>")).toBe("1 &lt; 2 <b>x</b>m");
+  });
+});
+
+describe("sender settings", () => {
+  const put = (sender: object) =>
+    admin(request(createApp()).put("/api/admin/announce/settings").send({ settings: { ...DEFAULT_ANNOUNCE_SETTINGS, sender: { ...DEFAULT_ANNOUNCE_SETTINGS.sender, ...sender } } }));
+
+  it("accepts the new fields and rejects bad ones", async () => {
+    const ok = await put({ fromName: "Yehuda", fromAddress: "hi@example.com", replyTo: "r@example.com", throttlePerHour: 30, dailyCap: 100, quietHours: { from: "22:00", to: "07:00", tz: "Asia/Jerusalem" }, testRecipients: ["t@example.com"] });
+    expect(ok.status).toBe(200);
+    expect(ok.body.settings.sender.fromAddress).toBe("hi@example.com");
+    for (const bad of [{ fromAddress: "nope" }, { fromName: 'a"b' }, { fromName: "a\r\nBcc: x" }, { throttlePerHour: 0 }, { dailyCap: 1e9 }, { quietHours: { from: "25:00", to: "07:00", tz: "UTC" } }, { quietHours: { from: "22:00", to: "07:00", tz: "Mars/Base" } }, { testRecipients: ["x"] }, { smtpPass: "x" }]) {
+      expect((await put(bad)).status, JSON.stringify(bad)).toBe(400);
+    }
+  });
+
+  it("warns, without blocking, about a domain the mail account may not send for", async () => {
+    const r = await put({ fromAddress: "me@some-other-domain.invalid" });
+    expect(r.status).toBe(200);
+    expect(r.body.warnings).toEqual([expect.objectContaining({ field: "fromAddress", code: "domain-not-sendable" })]);
+    expect(JSON.stringify(r.body)).not.toMatch(/SMTP_PASS|password/i);
+  });
+
+  it("empty fields fall back to the environment; the in-app value wins", () => {
+    const s = DEFAULT_ANNOUNCE_SETTINGS.sender;
+    expect(resolveSender(s)).toEqual({ from: env.MAIL_FROM, replyTo: env.MAIL_REPLY_TO || undefined });
+    expect(resolveSender({ ...s, fromAddress: "a@b.co", fromName: "N", replyTo: "r@b.co" })).toEqual({ from: '"N" <a@b.co>', replyTo: "r@b.co" });
+    expect(senderWarnings({ fromAddress: "" })).toEqual([]);
+  });
+});
+
+describe("auto-draft", () => {
+  const ev = (kind: "post" | "release"): AnnounceEvent => ({
+    _id: `announce:${kind}:x:1`, type: "announce", kind, ref: "x", title: "A <b>title</b>", summary: "S", tags: [], url: "https://yehudabriskman.com/blog/x",
+    langs: ["en"], createdAt: "2026-06-01T00:00:00Z", done: {},
+  });
+  const on = { ...DEFAULT_ANNOUNCE_SETTINGS, sender: { ...DEFAULT_ANNOUNCE_SETTINGS.sender, autoDraftCampaign: true } };
+
+  it("is off by default, and when on makes one DRAFT per event for the subscribers group, never scheduled", async () => {
+    expect(await autoDraftFor(ev("post"), DEFAULT_ANNOUNCE_SETTINGS)).toBe(false);
+    expect([...store.keys()]).toEqual([]);
+    expect(await autoDraftFor(ev("post"), on)).toBe(true);
+    expect(await autoDraftFor(ev("post"), on)).toBe(false);
+    const [doc] = [...store.values()];
+    expect(doc).toMatchObject({ status: "draft", groups: ["subscribers"], topic: "blog", eventId: "announce:post:x:1" });
+    expect(doc.sendAt).toBeUndefined();
+    expect(String(doc.bodyHtml)).toContain("A &lt;b&gt;title&lt;/b&gt;");
+    expect(await autoDraftFor(ev("release"), on)).toBe(true);
+    expect(await autoDraftFor({ ...ev("post"), kind: "note" }, on)).toBe(false);
+  });
+});
