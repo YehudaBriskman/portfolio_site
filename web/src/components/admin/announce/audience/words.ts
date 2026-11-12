@@ -128,6 +128,7 @@ export const useAudienceWords = defineWords(
     suppressRemoveShort: "Remove",
     suppressRemoveHint: "Removing lets this address be added again. It does not make them a subscriber.",
     hashOnly: "Address not kept",
+    suppressedSince: (d: string) => `Since ${d}`,
   },
   {
     tab: "קהל",
@@ -253,5 +254,6 @@ export const useAudienceWords = defineWords(
     suppressRemoveShort: "הסרה",
     suppressRemoveHint: "הסרה מאפשרת להוסיף את הכתובת שוב. היא לא הופכת אותם למנויים.",
     hashOnly: "הכתובת לא נשמרת",
+    suppressedSince: (d: string) => `מאז ${d}`,
   },
 );
