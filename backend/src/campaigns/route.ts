@@ -29,7 +29,7 @@ const mask = (email: string) => {
 
 const view = (c: Campaign) => ({
   id: c._id.slice("campaign:".length), _rev: c._rev ?? null, name: c.name, subject: c.subject, preheader: c.preheader ?? "",
-  bodyHtml: c.bodyHtml, bodyText: c.bodyText, groups: c.groups, lang: c.lang ?? "all", topic: c.topic ?? null,
+  bodyText: c.bodyText, blocks: c.blocks ?? null, groups: c.groups, lang: c.lang ?? "all", topic: c.topic ?? null,
   status: c.status, sendAt: c.sendAt ?? null, counters: c.counters, eventId: c.eventId ?? null,
   startedAt: c.startedAt ?? null, finishedAt: c.finishedAt ?? null, createdAt: c.createdAt, updatedAt: c.updatedAt,
 });
@@ -82,7 +82,7 @@ router.patch(
     if (!id || !before) return notFound(res);
     if (b.data._rev !== undefined && b.data._rev !== before._rev) return conflict(res);
     if (before.status !== "draft") return bad(res, "Only a draft can be edited. Cancel the schedule first.", 409);
-    const { _rev, topic, ...rest } = b.data;
+    const { _rev, topic, blocks, ...rest } = b.data;
     void _rev;
     let after: Campaign | null;
     try {
@@ -92,6 +92,8 @@ router.patch(
         if (topic === null) delete c.topic;
         else if (topic) c.topic = topic;
         if (rest.preheader === "") delete c.preheader;
+        if (blocks === null) delete c.blocks;
+        else if (blocks) c.blocks = blocks;
       });
     } catch (e) {
       if (isStatus(e, 409)) return conflict(res);

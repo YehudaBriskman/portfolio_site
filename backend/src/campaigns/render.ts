@@ -2,7 +2,8 @@ import type { SenderSettings } from "../announce/schemas.js";
 import { env } from "../env.js";
 import { fillTemplate, unsubscribeUrls } from "../audience/mail.js";
 import type { Lang } from "../audience/schemas.js";
-import { escapeHtml as esc, sanitizeHtml } from "./sanitize.js";
+import { esc } from "../announce/emailHtml.js";
+import { renderBody } from "./body.js";
 import type { Campaign } from "./schemas.js";
 
 /* The Hebrew spam-law label that opens a commercial mail's subject and its footer. Owner to approve. */
@@ -18,7 +19,7 @@ export type RenderedMail = { subject: string; text: string; html: string; header
  * unsubscribe link is personal (a signed `unsub` token with a long expiry).
  */
 export async function renderCampaignMail(
-  c: Pick<Campaign, "subject" | "preheader" | "bodyHtml" | "bodyText">,
+  c: Pick<Campaign, "subject" | "preheader" | "bodyText" | "blocks">,
   contact: { lang: Lang },
   hash: string,
   sender: SenderSettings,
@@ -45,7 +46,7 @@ export async function renderCampaignMail(
   const html =
     `<div dir="${he ? "rtl" : "ltr"}" style="font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;line-height:1.55">` +
     (pre ? `<div style="display:none;max-height:0;overflow:hidden;opacity:0">${esc(pre)}</div>` : "") +
-    sanitizeHtml(c.bodyHtml) +
+    renderBody(c) +
     footerHtml +
     `</div>`;
   const text =
