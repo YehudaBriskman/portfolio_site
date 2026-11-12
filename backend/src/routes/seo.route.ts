@@ -22,6 +22,7 @@ import {
   type PageMeta,
 } from "../services/seo.js";
 import { SEO_WORDS } from "../services/seo-words.js";
+import { neighbours, newestFirst, relatedPosts } from "../services/seo-links.js";
 import { PERSON_ID, WEBSITE_ID, personNode, personRef, siteNameIn, websiteNode, withHebrewName } from "../services/seo-entity.js";
 import { areaHasHebrew, postHasHebrew, projectHasHebrew } from "../services/seo-translation.js";
 import { breadcrumbs, fitTitle, graph, homeGraph, itemList, webPage } from "../services/seo-template.js";
@@ -286,7 +287,12 @@ const href = (path: string, lang: Lang) => escapeHtml(pathIn(path, lang));
  *
  * The employer is never named: the copy says what the work is, never whose.
  */
-function homeHtml(c: ContentBundle, lang: Lang, settings: SiteSettings): string {
+function homeHtml(
+  c: ContentBundle,
+  lang: Lang,
+  settings: SiteSettings,
+  links: { notes: Post[]; projects: ProjectView[] } = { notes: [], projects: [] },
+): string {
   const w = SEO_WORDS[lang];
   const s = c.siteCopy;
   const para = (lines: Text[]) => `<p>${lines.map((l) => tx(l, lang)).join(" ")}</p>`;
@@ -317,11 +323,25 @@ function homeHtml(c: ContentBundle, lang: Lang, settings: SiteSettings): string 
     sectionVisible(settings, "work") ? `<li><a href="${href("/projects", lang)}">${escapeHtml(w.homeProjects)}</a></li>` : "",
     sectionVisible(settings, "notes") ? `<li><a href="${href("/blog", lang)}">${escapeHtml(w.homeNotes)}</a></li>` : "",
   ].join("");
-  /* The plate as the app draws it (Hero.tsx): the title as the H1, then the
-     fact line that carries the name, with the Hebrew spelling beside the
-     Latin on a Hebrew page (#308). A crawler and a reader get one outline. */
+  /* The plate as the app draws it (Hero.tsx): the owner's name as the H1 (the
+     stored `hero.title` is not the heading: an older store still says
+     "Portfolio"), then the fact line that says what he does, with the Hebrew
+     spelling beside the Latin on a Hebrew page (#308). A crawler and a reader
+     get one outline. */
   const fact = withHebrewName(plain(s.hero.fact, lang), lang);
-  return `<main><h1>${en(plain(s.hero.title, lang), lang)}</h1><p>${en(fact, lang)}</p>${ordered}<h2>${escapeHtml(w.elsewhere)}</h2><ul>${elsewhere}${work}${profiles}</ul></main>`;
+  /* Real links to the newest notes and to every project, so the home page's
+     HTML leads a crawler to them without running the app. */
+  const latest = links.notes.length
+    ? `<h2>${escapeHtml(w.latestNotes)}</h2><ul>${links.notes
+        .map((p) => `<li><a href="${href(`/blog/${p.slug}`, lang)}">${en(p.title, lang)}</a></li>`)
+        .join("")}</ul>`
+    : "";
+  const projectLinks = links.projects.length
+    ? `<h2>${escapeHtml(w.allProjects)}</h2><ul>${links.projects
+        .map((p) => `<li><a href="${href(`/projects/${p.slug}`, lang)}">${en(p.title, lang)}</a></li>`)
+        .join("")}</ul>`
+    : "";
+  return `<main><h1>${en(s.hero.name, lang)}</h1><p>${en(fact, lang)}</p>${ordered}${latest}${projectLinks}<h2>${escapeHtml(w.elsewhere)}</h2><ul>${elsewhere}${work}${profiles}</ul></main>`;
 }
 
 /*
@@ -408,7 +428,19 @@ const PORTRAIT_PRELOAD = {
 
 page(HOME_ROUTE, async (_req, res, lang) => {
   const w = SEO_WORDS[lang];
-  const [content, settings] = await Promise.all([publishedBundleOrSeed(), settingsOrDefault()]);
+  const [content, settings, posts, projects] = await Promise.all([
+    publishedBundleOrSeed(),
+    settingsOrDefault(),
+    // The links are an addition: a store hiccup costs the home page its link
+    // lists, not its page.
+    publishedPosts().catch((): Post[] => []),
+    projectViews(lang).catch((): ProjectView[] => []),
+  ]);
+  const notes = posts
+    .filter((p) => !p.seo.noindex)
+    .sort(newestFirst)
+    .slice(0, 6)
+    .map((p) => local(p, lang));
   await sendShell(res, {
     ...at("/", lang),
     visuals: settings.visuals,
@@ -419,7 +451,10 @@ page(HOME_ROUTE, async (_req, res, lang) => {
     imageAlt: `${siteNameIn(lang)}, ${w.role}`,
     type: "website",
     preloadImage: PORTRAIT_PRELOAD,
-    bodyHtml: homeHtml(content, lang, settings),
+    bodyHtml: homeHtml(content, lang, settings, {
+      notes: sectionVisible(settings, "notes") ? notes : [],
+      projects: sectionVisible(settings, "work") ? projects : [],
+    }),
     jsonLd: homeGraph(lang, content),
   });
 });
@@ -730,6 +765,39 @@ page("/blog/area/:slug", async (req, res, lang) => {
   });
 });
 
+/** Home > Blogs > this note, as visible links; the JSON-LD says the same trail. */
+function breadcrumbHtml(current: string, lang: Lang): string {
+  const w = SEO_WORDS[lang];
+  return `<nav aria-label="${escapeHtml(w.breadcrumb)}"><ol><li><a href="${href("/", lang)}">${escapeHtml(w.home)}</a></li><li><a href="${href("/blog", lang)}">${escapeHtml(w.blogs)}</a></li><li aria-current="page">${en(current, lang)}</li></ol></nav>`;
+}
+
+/**
+ * The links a note's page carries for a crawler: its area, neighbours in time,
+ * related notes and the other language. Tags are text, never links: a tag's
+ * page is a filtered view of /blog, which is not a page to index. Hebrew is
+ * linked from English only where the note has published Hebrew.
+ */
+function noteLinksHtml(post: Post, all: Post[], area: Collection | null, lang: Lang, translated: boolean): string {
+  const w = SEO_WORDS[lang];
+  const link = (p: Post) => `<a href="${href(`/blog/${p.slug}`, lang)}">${en(p.title, lang)}</a>`;
+  const { prev, next } = neighbours(post, all);
+  const related = relatedPosts(post, all, 5);
+  const other: Lang = lang === "en" ? "he" : "en";
+  const parts: string[] = [];
+  if (post.tags.length) parts.push(`<p>${escapeHtml(w.tagged)}: ${post.tags.map((t) => escapeHtml(t)).join(", ")}</p>`);
+  if (area) parts.push(`<p>${escapeHtml(w.areaLabel)}: <a href="${href(`/blog/area/${area.slug}`, lang)}">${en(area.title, lang)}</a></p>`);
+  if (prev || next) {
+    parts.push(
+      `<nav aria-label="${escapeHtml(w.notes)}"><ul>${prev ? `<li>${escapeHtml(w.previousNote)}: ${link(prev)}</li>` : ""}${next ? `<li>${escapeHtml(w.nextNote)}: ${link(next)}</li>` : ""}</ul></nav>`,
+    );
+  }
+  if (related.length) parts.push(`<h2>${escapeHtml(w.relatedNotes)}</h2><ul>${related.map((p) => `<li>${link(p)}</li>`).join("")}</ul>`);
+  if (lang === "he" || translated) {
+    parts.push(`<p><a href="${href(`/blog/${post.slug}`, other)}" hreflang="${other}" lang="${other}">${escapeHtml(w.otherLanguage)}</a></p>`);
+  }
+  return parts.join("");
+}
+
 page("/blog/:slug", async (req, res, lang) => {
   const w = SEO_WORDS[lang];
   const slug = String(req.params.slug);
@@ -757,6 +825,15 @@ page("/blog/:slug", async (req, res, lang) => {
   const image = rawImageUrlOrNull(post.coverImage) ?? absoluteUrl(`/api/seo/og/blog/${post.slug}.png`);
   const marker = bodyInEnglish ? `<p>${escapeHtml(w.writtenInEnglish)}</p>` : "";
   const description = clampDescription(post.seo.description ?? post.excerpt);
+  const [allPosts, areaDoc] = await Promise.all([
+    publishedPosts(),
+    AREA_SLUG.test(post.collection)
+      ? couch.find<Collection>({ selector: { type: "collection", status: "published", slug: post.collection }, limit: 1 })
+      : Promise.resolve({ docs: [] as Collection[] }),
+  ]);
+  const area = areaDoc.docs.find((c) => c.slug === post.collection && c.status === "published");
+  const linkable = allPosts.filter((p) => p.status === "published" && !p.seo.noindex).map((p) => local(p, lang));
+  const noteLinks = noteLinksHtml(post, linkable, area ? local(area, lang) : null, lang, translated);
   const inLanguage = bodyInEnglish || lang === "en" || !translated ? "en" : "he";
 
   await sendShell(res, {
@@ -773,9 +850,9 @@ page("/blog/:slug", async (req, res, lang) => {
     modifiedAt: post.updatedAt,
     tags: post.tags,
     noindex: post.seo.noindex,
-    bodyHtml: `<main>${marker}<article${bodyInEnglish ? ' lang="en" dir="ltr"' : ""}><h1>${en(post.title, lang)}</h1>${
+    bodyHtml: `<main>${marker}${breadcrumbHtml(post.title, lang)}<article${bodyInEnglish ? ' lang="en" dir="ltr"' : ""}><h1>${en(post.title, lang)}</h1>${
       post.subtitle ? `<p>${en(post.subtitle, lang)}</p>` : ""
-    }<p>${en(post.excerpt, lang)}</p>${markdownToFallbackHtml(post.body)}</article></main>`,
+    }<p>${en(post.excerpt, lang)}</p>${markdownToFallbackHtml(post.body)}</article>${noteLinks}</main>`,
     jsonLd: graph(
       {
         "@type": "BlogPosting",
