@@ -8,6 +8,8 @@ import Hero from "@/components/Hero";
 import ObjectLabel from "@/components/gallery/ObjectLabel";
 import HeroCorners from "@/components/HeroCorners";
 import { contact, heroPhrases, plate, plateTitle } from "@/data/site";
+import { loadContent, resetContent } from "@/content/store";
+import { seedBundle } from "@/content/convert";
 
 /*
  * The first screen arrives once a visit as the entry's cover lifts (#194),
@@ -603,6 +605,21 @@ describe("the first screen's title", () => {
     render(<Hero />);
     const h1 = screen.getByRole("heading", { level: 1 });
     expect(h1.getAttribute("aria-label")).toBe("Yehuda Briskman");
+  });
+
+  it("stays the owner's name when the stored title still says Portfolio", async () => {
+    /* A store written before #347 keeps `hero.title` = "Portfolio"; the h1 must
+       not follow it, or the live page's one heading names nothing. */
+    const next = seedBundle();
+    next.siteCopy.hero.title = { en: "Portfolio" };
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify(next), { status: 200, headers: { "content-type": "application/json" } })));
+    await loadContent();
+    render(<Hero />);
+    const h1 = screen.getByRole("heading", { level: 1 });
+    expect(h1.getAttribute("aria-label")).toBe("Yehuda Briskman");
+    expect(document.querySelectorAll("h1")).toHaveLength(1);
+    vi.unstubAllGlobals();
+    resetContent();
   });
 
   it("keeps Portfolio on the first screen, in the fact line, after it leaves the h1", () => {

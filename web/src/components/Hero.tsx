@@ -84,7 +84,9 @@ function useArrival(): Arrival {
 
 export default function Hero({ pinnedBehindNextAct = true }: { pinnedBehindNextAct?: boolean }) {
   const arrives = useArrival();
-  /* The plate's words from the content store (#163). */
+  /* The plate's words from the content store (#163). The h1 is the owner's name
+     (`plate.name`), not the stored `title`: a store written while the title
+     said "Portfolio" would otherwise keep that as the page's one heading. */
   const { plate, plateTitle } = useContent().site;
   const w = useHomeWords();
   /* On the Hebrew page the fact line carries the owner's Hebrew spelling
@@ -97,7 +99,7 @@ export default function Hero({ pinnedBehindNextAct = true }: { pinnedBehindNextA
     forced colours, print, or without a canvas - and then neither is mounted
     and this is the static hero. See `hero/ParticleWord.tsx`.
   */
-  const gate = useParticleGate(plateTitle.name);
+  const gate = useParticleGate(plate.name);
   const particles = PARTICLE_WORD_ENABLED && gate;
   /* `?particles=settled` is the verification path: no entrance, assembled. */
   const settledOnly = typeof window !== "undefined" && window.location.search.includes("particles=settled");
@@ -219,7 +221,7 @@ export default function Hero({ pinnedBehindNextAct = true }: { pinnedBehindNextA
             <ObjectLabel
               scale="plate"
               nameAs="h1"
-              name={plateTitle.name}
+              name={plate.name}
               fact={fact}
               fields={plateFields(plate, w.shippingSince)}
               exposeFieldKinds
@@ -236,7 +238,7 @@ export default function Hero({ pinnedBehindNextAct = true }: { pinnedBehindNextA
             <HeroCorners />
           </div>
         </div>
-        {particles && <ParticleWord text={plateTitle.name} arrival={pw} />}
+        {particles && <ParticleWord text={plate.name} arrival={pw} />}
       </div>
     </section>
   );
