@@ -1422,11 +1422,12 @@ a press; it is never driven by scroll.
 
 **It is not a peak, and it is not `spotlight`.** Every tile does the same
 thing at the same height, and by a third of the way up the window the wall is
-flat and still. Type is never faded: the travelling tile's shade is an
-overlay, not opacity on the words.
+flat and still. Type is never faded, and there is no shade either (it
+was a layer of `--paper` that read as a flat slab over the colour orbs, #537):
+the tile's own travel is the whole arrival.
 
 **The off-switches land on the plain wall.** Reduced motion, Pause and no
-`animation-timeline` each cancel the piece and its shade outright (no
+`animation-timeline` each cancel the piece outright (no
 `animation-play-state`, which would freeze every piece below the fold half-way
 in). Reduced motion and Pause also cut the re-hang to an instant swap. A piece
 that takes focus cancels its own arrival and asks for
@@ -1455,7 +1456,7 @@ the same harness:
 
 Medians, with the range over five passes. The wall is no slower than the register at either count, and faster at 26. Absolute numbers are SwiftShader under this harness and comparable only
 within the table. Per frame the wall writes `transform` on the tiles in the
-lower third and `opacity` on their shade layers. That is compositor work, not
+lower third (and, when this was measured, `opacity` on a shade layer that has since been removed). That is compositor work, not
 layout.
 
 ### `line`: /story and "How I work" (#176, #178, #191)
@@ -2014,9 +2015,10 @@ animation.
 | element | route | mechanism | status |
 |---|---|---|---|
 | entry shutter (`EntryShutter`) | every route, first load | clock, gated on readiness (route content + fonts + first-screen images; never tiles over an empty page: if the content has not arrived by 10 s the whole sheet fades in one 200ms opacity transition, no tiles) | **exempt**: the one page-load moment, not a scroll |
-| title plate: name letters, fact line, field line, figure coming apart on the way out (`HeroArrival.module.css`) | / | — | **removed** (2026-11-03): the owner's "the hero pictures … disappear … I want them to stay"; the figure was under a `--paper` mask at `scaleY(1)` from `exit 44%` (`docs/hero-aurora/before-*.png`). The hero is held still under the next act instead |
+| title plate: name letters, fact line, field line, figure coming apart on the way out (`HeroArrival.module.css`) | / | — | **removed** (2026-11-03): the owner's "the hero pictures … disappear … I want them to stay"; the figure was under a `--paper` mask at `scaleY(1)` from `exit 44%` (and since #537 the arrival has no paper masks at all: it is clipped, see below) (`docs/hero-aurora/before-*.png`). The hero is held still under the next act instead |
 | aurora ribbon drift across the figure (`HeroRibbon`) | — | — | **removed** (2026-11-03, aurora v3): the owner's "remove the aurora from the hero"; it was scrubbed on `--hero` from the day before |
 | title plate and corners arriving, once a visit (`HeroArrival.module.css`, `HeroCorners.module.css`) | /, first load only | clock, started by the shutter's `clearing` signal (its last tile's `animationend`) (`motion/entry.ts`), filling `backwards` (the scrubbed exit it was layered on is gone, 2026-11-03); until that signal, a still `*-held` layer pins each moving part on the arrival's `from` frame under the cover (#219), so the lifting tiles show nothing already arrived and it is seen once | **exempt** (#194): part of the page load, as the shutter is; a hero mounted after the entry, or under any off-switch, never holds or plays it |
+| the arrival's reveal (#537) | / | — | **clip, not box**: each part is opened by `clip-path` on itself (letters, the figure's wrapper, the corner blocks); the earlier `--paper` boxes (`::after`, `.mask`, `::before` at `scaleY`) were flat slabs over the colour orbs. LCP caveat, measured: Chrome reports an image once, sized by what is visible at first paint, so the figure is held on a strip (bottom 6%, transparent in the file) rather than clipped to nothing; interleaved cold loads at 4x CPU, median LCP 1440x900 1012 -> 1012ms, 390x844 1140 -> 1152ms. Clipped to a 2px sliver, to 4% or to 10% the LCP slid to 2.0-3.0s later, ie the end of the next line's fade |
 | nav bar dropping in with the plate (`hero-chrome.css`) | / | — | **removed** (#162): the bar is simply there; its tuck is below |
 | lamp breath and ring (`HeroCorners`) | / | `--hero` | **scrubbed** (#162; was a 6.4s infinite loop) |
 | rotating phrases (`HeroCorners`, `useCycle`) | / | a 3.2s `setInterval` and a 700ms opacity/transform transition | **exempt** (2026-11-10, the owner: "circle on their own"); see §11 |

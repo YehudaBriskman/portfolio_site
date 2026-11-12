@@ -264,64 +264,38 @@
 }
 
 /* The corners' part of the entry's arrival (#194): last, 480ms after the
-   shutter's last tile has left, with the mask it needs for the length of the
-   hold and the arrival. Held under the cover on the arrival's first frame
-   (#219), sunk and masked, so the lifting tiles show nothing that has
+   shutter's last tile has left, opened by a clip on the part itself, held under the
+   cover on the arrival's first frame (#219), sunk and clipped, so the lifting tiles show nothing that has
    already arrived. `HeroArrival.module.css` has the whole sequence. No
    scroll timeline is involved, so no `@supports` either. */
 @media (prefers-reduced-motion: no-preference) {
   :global(body:not(.motion-paused)) :global([data-arrival="play"]) .corners > * > * {
-    position: relative;
     animation: corner-in 460ms var(--ease-settle) 480ms backwards;
   }
 
-  :global(body:not(.motion-paused)) :global([data-arrival="play"]) .corners > * > *::before {
-    content: "";
-    position: absolute;
-    inset: 0 -0.12em -0.2em;
-    z-index: 1;
-    background: rgb(var(--paper));
-    transform-origin: 50% 100%;
-    transform: scaleY(0);
-    pointer-events: none;
-    animation: corner-mask-down 460ms var(--ease-settle) 480ms backwards;
-  }
-
   :global(body:not(.motion-paused)) :global([data-arrival="held"]) .corners > * > * {
-    position: relative;
     animation: corner-held both;
-  }
-
-  :global(body:not(.motion-paused)) :global([data-arrival="held"]) .corners > * > *::before {
-    content: "";
-    position: absolute;
-    inset: 0 -0.12em -0.2em;
-    z-index: 1;
-    background: rgb(var(--paper));
-    transform-origin: 50% 100%;
-    pointer-events: none;
-    animation: corner-mask-held both;
   }
 }
 
 /* The hold under the cover (#219): the `from` of the arrival, to the
    character, so the arrival starts where the hold left the corners. */
 @keyframes corner-held {
-  from, to { transform: translateY(14px); }
-}
-
-@keyframes corner-mask-held {
-  from, to { transform: scaleY(1); }
+  from, to {
+    transform: translateY(14px);
+    clip-path: inset(0 -0.12em 100% -0.12em);
+  }
 }
 
 @keyframes corner-in {
-  from { transform: translateY(14px); }
-  to   { transform: none; }
-}
-
-@keyframes corner-mask-down {
-  from { transform: scaleY(1); }
-  to   { transform: scaleY(0); }
+  from {
+    transform: translateY(14px);
+    clip-path: inset(0 -0.12em 100% -0.12em);
+  }
+  to {
+    transform: none;
+    clip-path: inset(0 -0.12em -0.2em -0.12em);
+  }
 }
 
 /* Rest at both ends — lit, full size — so the lamp at scroll 0 is the lamp

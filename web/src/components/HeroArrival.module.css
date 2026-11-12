@@ -21,11 +21,26 @@
  *
  * THE ONE RULE EVERYTHING HERE IS SHAPED BY
  * -----------------------------------------
- * Nothing on this screen is transparent or clipped at first paint: an
- * element that is, is not a Largest Contentful Paint candidate, and this
- * page measured that bug once (LCP reported at the end of a reveal). Every
- * mask is a paper-coloured box moved over the ink, never a clip on it, and
- * the name's and the figure's keyframes carry no opacity.
+ * Nothing on this screen is transparent at first paint, and nothing is
+ * covered by a box of the page's colour. An element that is transparent or
+ * clipped away entirely is not a Largest Contentful Paint candidate, and this
+ * page measured that bug once (LCP reported at the end of a reveal). A box of
+ * `--paper` over the ink was the answer until #537, and it is a flat slab
+ * over the colour orbs that sit behind the page (`ground/AmbientOrbs`). So
+ * each part is opened by a `clip-path` on the part itself, and the ground
+ * shows through at every frame.
+ *
+ * The clip has one measured catch. Chrome sizes an image candidate by what is
+ * visible of it at first paint, and reports it once; a figure clipped to
+ * nothing is not a candidate, and one clipped to a sliver is a small one that
+ * a later, larger line of text then beats (LCP moved from ~1.0s to the end of
+ * that line's fade, 2.1-3.0s). So the figure's held frame is not empty: it
+ * keeps the bottom 6% of its box, which is transparent in the file (the foot
+ * dissolves to nothing, alpha at most 10/255 from 94% down), so nothing shows
+ * under the lifting tiles and the strip is still larger than every later
+ * candidate. Measured at 4x CPU, interleaved cold loads: 1440x900 1012 -> 1012ms,
+ * 390x844 1140 -> 1152ms (`motion-contract.md`). The name's letters are
+ * clipped to nothing (text smaller than the strip, and never the candidate).
  *
  * THE ARRIVAL, ONCE, WHEN THE COVER LIFTS (#194)
  * ----------------------------------------------
@@ -41,22 +56,21 @@
  * HELD ON THE FIRST FRAME, SO IT ARRIVES ONCE (#219)
  * --------------------------------------------------
  * `held` pins every part the arrival moves on that arrival's `from` frame:
- * the letters up under their paper, the figure down behind its own, the two
+ * the letters up and clipped away, the figure down and clipped to its strip, the two
  * lines out at their sides, the corners sunk. The tiles lift off an empty
- * sheet of paper and the arrival plays once, from the frame the hold left —
+ * ground and the arrival plays once, from the frame the hold left —
  * each `*-held` keyframe is its arrival's `from` to the character, which the
  * test pins, so nothing jumps. It has no duration, so it is a state and not
  * a clock (and not `animation-play-state`, which §4 bans).
  *
- * LCP is unmoved by it: the ink and the photograph are still painted at full
- * strength on frame one, under a paper box — occlusion does not take an
- * element out of the running (`docs/hero-arrival-once/`).
+ * LCP is unmoved by it: the photograph is painted on frame one with the
+ * strip described above, and nothing of it shows (`docs/hero-arrival-once/`).
  *
  * It is the one clock in this file and it is exempt for the shutter's own
  * reason (motion-contract §8): it is the page load, not a scroll.
  *
  *   NAME                  0ms, first letter first, 38ms apart, 260ms each
- *   the figure            120ms, 520ms, up from behind its paper
+ *   the figure            120ms, 520ms, opened top edge first
  *   one line of fact      300ms, 460ms, in from the start side
  *   WHERE · WHEN          390ms, 460ms, in from the end side
  *   the corners           480ms, 460ms (`HeroCorners.module.css`)
@@ -66,26 +80,14 @@
  * No scroll timeline is left in this file, so it has no `@supports` gate
  * (§4: one here would be cargo cult). Reduced motion and Pause are the one
  * block below; under either, and for a hero with no `data-arrival`, nothing
- * is declared — not even the masks — and the screen is simply whole.
+ * is declared — not even the clips — and the screen is simply whole.
  */
 
-/* The masks exist only for a stage that is part of the entry. */
+/* Each part is revealed by a clip on the part itself, top edge first, so the
+   page's own ground (and the colour orbs on it) shows through at every frame.
+   An earlier version moved a paper-coloured box off the ink; over the orbs
+   that was a flat slab (#537). */
 @media (prefers-reduced-motion: no-preference) {
-  :global(body:not(.motion-paused)) .stage[data-arrival] [data-letter]::after,
-  :global(body:not(.motion-paused)) .stage[data-arrival] .mask {
-    content: "";
-    position: absolute;
-    background: rgb(var(--paper));
-    transform-origin: 50% 100%;
-    transform: scaleY(0);
-    pointer-events: none;
-  }
-
-  :global(body:not(.motion-paused)) .stage[data-arrival="play"] [data-letter]::after {
-    inset: -0.1em -0.09em -0.16em 0;
-    animation: plate-mask-down 260ms var(--ease-settle) calc(var(--letter) * 38ms) backwards;
-  }
-
   :global(body:not(.motion-paused)) .stage[data-arrival="play"] [data-letter] {
     animation: plate-letter-in 260ms var(--ease-settle) calc(var(--letter) * 38ms) backwards;
   }
@@ -102,14 +104,8 @@
     animation: plate-figure-in 520ms var(--ease-settle) 120ms backwards;
   }
 
-  :global(body:not(.motion-paused)) .stage[data-arrival="play"] .mask {
-    inset: 0 0 -16px;
-    animation: plate-mask-down 520ms var(--ease-settle) 120ms backwards;
-  }
-
-  :global(body:not(.motion-paused)) .stage[data-arrival="held"] [data-letter]::after {
-    inset: -0.1em -0.09em -0.16em 0;
-    animation: plate-mask-held both;
+  :global(body:not(.motion-paused)) .stage[data-arrival="play"] [data-portrait] {
+    animation: plate-portrait-reveal 520ms var(--ease-settle) 120ms backwards;
   }
 
   :global(body:not(.motion-paused)) .stage[data-arrival="held"] [data-letter] {
@@ -128,9 +124,8 @@
     animation: plate-figure-held both;
   }
 
-  :global(body:not(.motion-paused)) .stage[data-arrival="held"] .mask {
-    inset: 0 0 -16px;
-    animation: plate-mask-held both;
+  :global(body:not(.motion-paused)) .stage[data-arrival="held"] [data-portrait] {
+    animation: plate-portrait-held both;
   }
 }
 
@@ -138,11 +133,14 @@
    it, to the character, so the arrival starts where the hold left the
    screen and nothing jumps when the cover clears. The test pins the pairs. */
 @keyframes plate-letter-held {
-  from, to { transform: translateY(-16px); }
+  from, to {
+    transform: translateY(-16px);
+    clip-path: inset(-0.1em -0.09em 100% -0.09em);
+  }
 }
 
-@keyframes plate-mask-held {
-  from, to { transform: scaleY(1); }
+@keyframes plate-portrait-held {
+  from, to { clip-path: inset(94% -100vmax 0 -100vmax); }
 }
 
 @keyframes plate-figure-held {
@@ -157,19 +155,26 @@
   from, to { opacity: 0; transform: translateX(18px); }
 }
 
-/* The arrival: each `to` is the finished screen. None of the name's or the
-   figure's carries opacity, for the reason at the head of the file. The two
-   lines may fade, as they always could: 1rem and 0.72rem of secondary ink,
-   never the paint candidate. Sideways travel is licensed by `overflow-x:
-   clip` on the hero (`Hero.module.css`). */
+/* The arrival: each `to` is the finished screen. The name and the figure
+   are opened by a clip, never faded, for the reason at the head of the file.
+   The two lines may fade, as they always could: 1rem and 0.72rem of
+   secondary ink, never the paint candidate. Sideways travel is licensed by
+   `overflow-x: clip` on the hero (`Hero.module.css`). */
 @keyframes plate-letter-in {
-  from { transform: translateY(-16px); }
-  to   { transform: none; }
+  from {
+    transform: translateY(-16px);
+    clip-path: inset(-0.1em -0.09em 100% -0.09em);
+  }
+  to {
+    transform: none;
+    clip-path: inset(-0.1em -0.09em -0.16em -0.09em);
+  }
 }
 
-@keyframes plate-mask-down {
-  from { transform: scaleY(1); }
-  to   { transform: scaleY(0); }
+@keyframes plate-portrait-reveal {
+  from { clip-path: inset(94% -100vmax 0 -100vmax); }
+  1%   { clip-path: inset(0 -100vmax 100% -100vmax); }
+  to   { clip-path: inset(0 -100vmax -16px -100vmax); }
 }
 
 @keyframes plate-figure-in {
