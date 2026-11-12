@@ -9,7 +9,7 @@ import { hashEmail } from "../audience/store.js";
 import { emailService } from "../services/email.service.js";
 import { autoDraftFor } from "./autodraft.js";
 import { resolveSender, senderWarnings } from "./config.js";
-import { COMMERCIAL_LABEL_HE, renderCampaignMail } from "./render.js";
+import { COMMERCIAL_LABEL_HE, UNSUB_FALLBACK_EN, UNSUB_FALLBACK_HE, renderCampaignMail } from "./render.js";
 import { renderBody, safeHref, safeImage } from "./body.js";
 import { inQuietHours, runSenderTick, type Deliver } from "./sender.js";
 
@@ -206,6 +206,121 @@ describe("campaign routes and state machine", () => {
     expect(sent[0].subject).toMatch(/^\[Test\] /);
     setSender();
     expect((await admin(request(createApp()).post(`${C}/${c.id}/test`))).status).toBe(422);
+  });
+});
+
+describe("the unsubscribe link can never be missing", () => {
+  const sender = (over: Partial<AnnounceSettings["sender"]>) => ({ ...DEFAULT_ANNOUNCE_SETTINGS.sender, footerIdentity: "Yehuda, Tel Aviv", ...over });
+  const render = (note: string, lang: "en" | "he" = "en") =>
+    renderCampaignMail({ subject: "S", bodyText: "Body", preheader: undefined, blocks: undefined } as never, { lang }, hashEmail(addr(1)), sender(lang === "he" ? { unsubscribeNoteHe: note } : { unsubscribeNoteEn: note }));
+  const unsubAnchors = (html: string) => html.match(/<a href="[^"]*\/unsubscribe\?token=[^"]+"/g) ?? [];
+  const hasLinkEverywhere = (m: Awaited<ReturnType<typeof render>>) => {
+    expect(unsubAnchors(m.html)).toHaveLength(1);
+    expect(m.text).toMatch(/https?:\/\/\S+\/unsubscribe\?token=\S+/);
+    expect(m.headers["List-Unsubscribe"]).toMatch(/^<https?:\/\/.+\/api\/subscribe\/unsubscribe\?token=.+>$/);
+    expect(m.headers["List-Unsubscribe-Post"]).toBe("List-Unsubscribe=One-Click");
+  };
+
+  it("a note without {link} gets the fallback line in html and text (EN)", async () => {
+    const m = await render("Thanks for reading");
+    hasLinkEverywhere(m);
+    expect(m.html).toContain(UNSUB_FALLBACK_EN.split("{link}")[0]);
+    expect(m.text).toContain(UNSUB_FALLBACK_EN.split("{link}")[0]);
+    expect(m.html).toContain('lang="en" dir="ltr"');
+  });
+
+  it("the Hebrew mail carries the Hebrew fallback, lang=he and dir=rtl", async () => {
+    const m = await render("תודה", "he");
+    hasLinkEverywhere(m);
+    expect(m.html).toContain('lang="he" dir="rtl"');
+    expect(m.html).toContain(UNSUB_FALLBACK_HE.split("{link}")[0]);
+    expect(m.text).toContain(UNSUB_FALLBACK_HE.split("{link}")[0]);
+  });
+
+  it("a note that already has {link} is left alone, twice is fine", async () => {
+    const one = await render("Out: {link}");
+    expect(unsubAnchors(one.html)).toHaveLength(1);
+    expect(one.html).not.toContain(UNSUB_FALLBACK_EN.split("{link}")[0]);
+    expect(unsubAnchors((await render("{link} and {link}")).html)).toHaveLength(2);
+  });
+
+  it.each(["{Link}", "{ link }", "[link]", "{lnk}"])("%s is not a link, so the fallback is added", async (note) => {
+    hasLinkEverywhere(await render(`Bye ${note}`));
+  });
+
+  it("{{link}} still yields exactly one link", async () => {
+    expect(unsubAnchors((await render("x {{link}}")).html)).toHaveLength(1);
+  });
+
+  it("hostile html in the note stays escaped and the link is still there", async () => {
+    const m = await render('<a href="https://evil.example">x</a><script>1</script>');
+    expect(m.html).not.toContain("<script>");
+    expect(m.html).not.toContain("evil.example\">");
+    hasLinkEverywhere(m);
+  });
+
+  it("corpus: whatever was saved, the link and both headers are present", async () => {
+    for (const note of ["", "   ", "\n", "🙂", "שלום", "x".repeat(2000), "{name} {days}"]) for (const lang of ["en", "he"] as const) hasLinkEverywhere(await render(note, lang));
+  });
+
+  it("an old stored note without {link} refuses to queue (422) but a test send still carries the link", async () => {
+    setSender({ unsubscribeNoteEn: "Thanks for reading", testRecipients: ["me@example.org"] });
+    seedMany(2);
+    const c = await mk();
+    const r = await admin(request(createApp()).post(`${C}/${c.id}/send-now`));
+    expect(r.status).toBe(422);
+    expect(r.body.error).toMatch(/unsubscribe note/);
+    expect((await admin(request(createApp()).post(`${C}/${c.id}/schedule`).send({ sendAt: new Date(T0 + 3_600_000).toISOString() }))).status).toBe(422);
+    await admin(request(createApp()).post(`${C}/${c.id}/test`));
+    expect(sent[0].text).toMatch(/\/unsubscribe\?token=/);
+  });
+
+  it("the tick never emits a mail without the link, even if the note was edited after queueing", async () => {
+    const id = await queued(2);
+    setSender({ unsubscribeNoteEn: "Thanks for reading" });
+    await runSenderTick({ now: () => T0, deliver });
+    expect(sent).toHaveLength(2);
+    for (const m of sent) {
+      expect(m.html).toMatch(/\/unsubscribe\?token=/);
+      expect(m.text).toMatch(/\/unsubscribe\?token=/);
+      expect(m.headers?.["List-Unsubscribe"]).toBeTruthy();
+    }
+    expect(get(id).counters.sent).toBe(2);
+  });
+});
+
+describe("PUT /api/admin/announce/settings: sender texts are validated on save only", () => {
+  const put = (app: ReturnType<typeof createApp>, sender: Record<string, unknown>, _rev?: string) =>
+    admin(request(app).put("/api/admin/announce/settings").send({ settings: { ...DEFAULT_ANNOUNCE_SETTINGS, sender: { ...DEFAULT_ANNOUNCE_SETTINGS.sender, ...sender } }, ...(_rev ? { _rev } : {}) }));
+
+  it.each(["confirmBodyEn", "confirmBodyHe", "unsubscribeNoteEn", "unsubscribeNoteHe"])("%s without {link} is refused with the exact message", async (f) => {
+    const r = await put(createApp(), { [f]: "No link here" });
+    expect(r.status).toBe(400);
+    const what = f.startsWith("unsub") ? "unsubscribe note must contain {link}, otherwise nobody can unsubscribe" : "confirmation message must contain {link}, otherwise nobody can confirm";
+    expect(r.body.issues).toEqual([{ path: `sender.${f}`, message: `The ${what}. Use Reset to default to restore it.` }]);
+  });
+
+  it("unknown or mistyped placeholders, {name}/{days} in a note and a long note are refused; defaults pass", async () => {
+    const app = createApp();
+    for (const text of ["Out {Link}", "Out { link }", "Out {{link}}", "Out {link} {nope}"]) {
+      const r = await put(app, { unsubscribeNoteEn: text });
+      expect(r.status, text).toBe(400);
+      expect(r.body.issues[0].path).toBe("sender.unsubscribeNoteEn");
+    }
+    expect((await put(app, { unsubscribeNoteEn: "Hi {name} {link}" })).status).toBe(400);
+    expect((await put(app, { unsubscribeNoteEn: `${"x".repeat(500)} {link}` })).status).toBe(400);
+    const ok = await put(app, {});
+    expect(ok.status).toBe(200);
+    expect((await put(app, { unsubscribeNoteHe: "בטלו כאן: {link} באתר {site}" }, ok.body._rev)).status).toBe(200);
+  });
+
+  it("an older stored document without {link} still loads as saved, not reset to defaults", async () => {
+    store.set("settings:announce", {
+      _id: "settings:announce", _rev: "1-old", type: "settings-announce", updatedAt: "x",
+      settings: { ...DEFAULT_ANNOUNCE_SETTINGS, sender: { ...DEFAULT_ANNOUNCE_SETTINGS.sender, footerIdentity: "Keep me", testRecipients: ["me@example.org"], unsubscribeNoteEn: "Thanks" } },
+    });
+    const got = await admin(request(createApp()).get("/api/admin/announce/settings"));
+    expect(got.body.settings.sender).toMatchObject({ footerIdentity: "Keep me", testRecipients: ["me@example.org"], unsubscribeNoteEn: "Thanks" });
   });
 });
 

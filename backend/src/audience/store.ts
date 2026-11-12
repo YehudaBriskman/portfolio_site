@@ -2,7 +2,8 @@ import { createHash } from "node:crypto";
 import { couch, CouchError } from "../db/couch.js";
 import { logger } from "../logger.js";
 import { loadSettings } from "../announce/store.js";
-import { SYSTEM_GROUP, type Contact, type Group, type Lang } from "./schemas.js";
+import { getConsentText } from "./consent-texts.js";
+import { SYSTEM_GROUP, type Consent, type Contact, type Group, type Lang } from "./schemas.js";
 import { signToken, verifyToken } from "./tokens.js";
 
 export { signToken, verifyToken };
@@ -151,3 +152,76 @@ export async function listGroups(): Promise<Group[]> {
   return docs.sort((a, b) => a._id.localeCompare(b._id));
 }
 export const getGroup = (slug: string) => tryGet<Group>(groupId(slug));
+
+/* --- consent records --------------------------------------------------- */
+
+/**
+ * The current consent of a contact, whatever its age. Older documents carry
+ * only consentAt/consentNote (a form version for site signups, the owner's
+ * note otherwise); this reads them as a consent without rewriting anything.
+ */
+export function consentOf(c: Contact): Consent {
+  if (c.consent) return c.consent;
+  const text = c.source === "site" ? getConsentText(c.consentNote) : undefined;
+  return {
+    textId: text?.id ?? null,
+    textHash: text?.sha256 ?? null,
+    lang: c.lang,
+    at: c.consentAt,
+    ...(c.confirmedAt ? { confirmedAt: c.confirmedAt } : {}),
+    source: c.source,
+    ...(text ? {} : { note: c.consentNote }),
+  };
+}
+
+/** The full trail, oldest first; a legacy document has exactly one entry. */
+export const consentHistoryOf = (c: Contact): Consent[] => (c.consentHistory?.length ? c.consentHistory : [consentOf(c)]);
+
+/** Records a new consent: appended to the history, never replacing an earlier entry. consentAt/consentNote stay in step for readers of the old fields. */
+export function recordConsent(c: Contact, next: Consent): void {
+  const history = consentHistoryOf(c).map((e) => ({ ...e }));
+  history.push(next);
+  c.consentHistory = history;
+  c.consent = next;
+  c.consentAt = next.at;
+  c.consentNote = next.textId ?? next.note ?? c.consentNote;
+}
+
+/** Marks the current consent confirmed (the double opt-in click), in the history too. */
+export function confirmConsent(c: Contact, at: string): void {
+  const history = consentHistoryOf(c).map((e) => ({ ...e }));
+  const last = history[history.length - 1];
+  last.confirmedAt = at;
+  c.consentHistory = history;
+  c.consent = last;
+}
+
+let backfilled = false;
+/**
+ * Adds consent/consentHistory to contacts that only have the old fields.
+ * Purely additive and idempotent; runs once per process and never throws.
+ * It writes the document itself, not through updateContact, so updatedAt (the
+ * pending-expiry clock) does not move.
+ */
+export async function backfillConsent(): Promise<number> {
+  if (backfilled) return 0;
+  backfilled = true;
+  let n = 0;
+  try {
+    for await (const c of scanContacts()) {
+      if (c.consent) continue;
+      const one = consentOf(c);
+      try {
+        await couch.put(c._id, { ...c, consent: one, consentHistory: [one] });
+        n++;
+      } catch (e) {
+        if (!isStatus(e, 409)) throw e;
+      }
+    }
+  } catch (err) {
+    backfilled = false;
+    logger.warn({ err: err instanceof Error ? err.message : String(err) }, "consent backfill failed");
+  }
+  return n;
+}
+export const resetConsentBackfill = () => { backfilled = false; };
