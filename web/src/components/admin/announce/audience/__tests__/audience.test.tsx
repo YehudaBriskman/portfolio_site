@@ -65,8 +65,10 @@ describe("AudienceTab", () => {
   it("gives a name cell its own direction and lets an address break before @ and dots", async () => {
     pages["/api/admin/audience/contacts?limit=25"] = { ok: true, contacts: [contact({ name: "דנה", email: "person.long@example.com" })], nextCursor: null };
     const { container } = render(<AudienceTab />);
-    const cell = (await screen.findByText("דנה")).closest("td")!;
-    expect(cell.getAttribute("dir")).toBe("auto");
+    const name = await screen.findByText("דנה");
+    // The name orders itself; its cell stays on the table's direction so a column aligns evenly.
+    expect(name.getAttribute("dir")).toBe("auto");
+    expect(name.closest("td")!.hasAttribute("dir")).toBe(false);
     const addr = container.querySelector("tbody bdi[dir=ltr]")!;
     expect(addr.textContent).toBe("person.long@example.com");
     expect(addr.querySelectorAll("wbr").length).toBe(3);
