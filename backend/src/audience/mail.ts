@@ -28,7 +28,11 @@ export async function manageUrl(hash: string) {
 const esc = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 
+export const PLACEHOLDER_NAMES = ["name", "site", "days", "link"] as const;
 const PLACEHOLDER = /\{(name|site|days|link)\}/g;
+
+/** True when the template carries a `{link}` the filler will turn into the link (exact, case-sensitive). */
+export const hasLink = (tpl: string) => tpl.includes("{link}");
 
 /**
  * Fills a template in ONE pass, so a value is never itself scanned for
@@ -58,7 +62,7 @@ export function renderConfirmMail(contact: Pick<Contact, "name" | "lang">, link:
   const subject = lang === "he" ? sender.confirmSubjectHe : sender.confirmSubjectEn;
   let tpl = lang === "he" ? sender.confirmBodyHe : sender.confirmBodyEn;
   // An owner edit that drops {link} must not produce a mail nobody can confirm.
-  if (!tpl.includes("{link}")) tpl += "\n\n{link}";
+  if (!hasLink(tpl)) tpl += "\n\n{link}";
   const site = new URL(env.SITE_URL).host;
   const vars = { name: contact.name?.trim() || (lang === "he" ? "" : "there"), site, days: String(sender.pendingTtlDays), link };
   const text = tidy(fillTemplate(tpl, vars, false));

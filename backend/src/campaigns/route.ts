@@ -4,6 +4,7 @@ import { asyncHandler } from "../middlewares/asyncHandler.js";
 import { toIssues } from "../schemas/site-content.js";
 import { listRecipients, hashEmail } from "../audience/store.js";
 import { loadSettings } from "../announce/store.js";
+import { validateSenderTexts } from "../announce/schemas.js";
 import { emailService } from "../services/email.service.js";
 import { logger } from "../logger.js";
 import { resolveSender } from "./config.js";
@@ -207,6 +208,10 @@ async function queueable(c: Campaign, res: Response): Promise<boolean> {
   const s = (await loadSettings()).sender;
   if (!s.footerIdentity) {
     bad(res, "Fill in the footer identity (your name and how to reach you) in Sender & delivery before sending.", 422);
+    return false;
+  }
+  if (validateSenderTexts(s).length) {
+    bad(res, "Fix the subscriber texts (the unsubscribe note must contain {link}) in Sender & delivery before sending.", 422);
     return false;
   }
   for await (const _ of recipientsOf(c)) return true;

@@ -55,6 +55,10 @@ describe("pure helpers", () => {
   });
   it("names bad sender values before Save", () => {
     expect(senderProblems(sender())).toEqual({});
+    expect(senderProblems(sender({ unsubscribeNoteEn: "Thanks" })).unsubscribeNoteEn).toBe("noLink");
+    expect(senderProblems(sender({ unsubscribeNoteEn: "Out {Link}" })).unsubscribeNoteEn).toBe("noLink");
+    expect(senderProblems(sender({ unsubscribeNoteEn: "x {{link}}" })).unsubscribeNoteEn).toBe("unknown");
+    expect(senderProblems(sender({ unsubscribeNoteEn: "{name} {link}" })).unsubscribeNoteEn).toBe("unsubVars");
     expect(Object.keys(senderProblems(sender({ throttlePerHour: 0, replyTo: "nope" })))).toEqual(["replyTo", "throttlePerHour"]);
   });
 });
@@ -73,6 +77,13 @@ describe("Campaigns tab", () => {
     senderDoc = sender({ footerIdentity: "" });
     open();
     expect(await screen.findByTestId("footer-blocker")).toBeTruthy();
+  });
+
+  it("lists the unsubscribe-note problem among what stands between you and Send", async () => {
+    senderDoc = sender({ unsubscribeNoteEn: "Thanks for reading" });
+    open();
+    fireEvent.click(await screen.findByRole("button", { name: "Open Spring news" }));
+    expect(await screen.findByText(/Fix the unsubscribe note and confirmation texts in Sender & delivery/)).toBeTruthy();
   });
 
   it("confirms with the server's recipient count and the cannot-unsend warning before sending", async () => {
@@ -121,5 +132,30 @@ describe("Sender & delivery", () => {
     expect(screen.getByTestId("footer-required")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Reset From name to env default" }));
     expect((screen.getByLabelText("From name") as HTMLInputElement).value).toBe("");
+  });
+
+  it("names a note without {link}, offers Insert {link}, and blocks Save until it is fixed", async () => {
+    senderDoc = sender({ unsubscribeNoteEn: "Thanks for reading" });
+    render(<MemoryRouter><SettingsPanel /></MemoryRouter>);
+    fireEvent.change(await screen.findByLabelText("Filter advanced settings"), { target: { value: "sender" } });
+    expect(screen.getByText(/The unsubscribe note must contain \{link\}, otherwise nobody can unsubscribe/)).toBeTruthy();
+    expect((screen.getByRole("button", { name: "Save" }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "Insert {link}" }));
+    expect((screen.getByLabelText("Unsubscribe line (English)") as HTMLTextAreaElement).value).toBe("Thanks for reading {link}");
+    expect(screen.queryByText(/must contain \{link\}/)).toBeNull();
+    expect((screen.getByRole("button", { name: "Save" }) as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it("says it in Hebrew too", async () => {
+    senderDoc = sender({ unsubscribeNoteHe: "תודה" });
+    document.documentElement.lang = "he";
+    try {
+      render(<MemoryRouter><SettingsPanel /></MemoryRouter>);
+      fireEvent.change(await screen.findByRole("searchbox"), { target: { value: "שולח" } });
+      expect(await screen.findByText(/חייבת לכלול \{link\}/)).toBeTruthy();
+      expect(screen.getByRole("button", { name: "הוספת {link}" })).toBeTruthy();
+    } finally {
+      document.documentElement.lang = "en";
+    }
   });
 });
