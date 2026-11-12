@@ -36,7 +36,12 @@ function safeAttr(tag: string, name: string, value: string): boolean {
 }
 
 export function sanitizeHtml(html: string): string {
-  const src = html.replace(/<!--[\s\S]*?-->/g, "").replace(DROP_WITH_CONTENT, "");
+  /* Repeated until nothing changes: removing one block can join the text around it into another. */
+  let src = html;
+  for (let prev = ""; prev !== src; ) {
+    prev = src;
+    src = src.replace(/<!--[\s\S]*?-->/g, "").replace(DROP_WITH_CONTENT, "");
+  }
   let out = "";
   let last = 0;
   for (const m of src.matchAll(TAG)) {
