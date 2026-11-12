@@ -267,6 +267,17 @@ describe("robotsStance", () => {
     expect(robotsStance("https://preprod.yehudabriskman.com", "auto")).toBe("closed");
     expect(robotsStance("http://localhost:8080", "auto")).toBe("closed");
     expect(robotsStance("https://yehudabriskman.com.example.net", "auto")).toBe("closed");
+    for (const lookalike of [
+      "https://evil-yehudabriskman.com.example",
+      "https://yehudabriskman.com.evil.test",
+      "https://evil.test/yehudabriskman.com",
+      "https://evil.test/?u=yehudabriskman.com",
+      "https://evil.test/#www.yehudabriskman.com",
+      "https://yehudabriskman.com@evil.test",
+      "https://yehudabriskmanxcom.test",
+    ]) {
+      expect(robotsStance(lookalike, "auto"), lookalike).toBe("closed");
+    }
   });
 
   it("keeps the canonical host open however SITE_URL is spelled", () => {
