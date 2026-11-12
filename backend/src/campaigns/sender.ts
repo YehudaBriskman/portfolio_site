@@ -114,6 +114,15 @@ async function claimCampaign(c: Campaign, ms: number): Promise<Campaign | null> 
   }
 }
 
+/* The counters are a view of the result docs, which are written before and after each
+   mail and survive a crash; adding up per-batch tallies loses every mail of a batch
+   that was cut short, which the resumed run then skips. */
+function tally(results: Iterable<SendResult>) {
+  const n = { sent: 0, failed: 0, suppressed: 0 };
+  for (const r of results) if (r.status === "sent" || r.status === "failed" || r.status === "suppressed") n[r.status]++;
+  return n;
+}
+
 async function runCampaign(c: Campaign, settings: SenderSettings, deps: Required<SenderDeps>): Promise<void> {
   const id = c._id.slice("campaign:".length);
   const done = await resultsOf(id);
@@ -134,6 +143,7 @@ async function runCampaign(c: Campaign, settings: SenderSettings, deps: Required
     await mutateCampaign(id, (x) => {
       if (x.status !== "sending") return false;
       x.counters.queued = Math.max(x.counters.queued, queued);
+      Object.assign(x.counters, tally(done.values()));
       x.status = x.counters.sent === 0 && x.counters.failed > 0 ? "failed" : "sent";
       x.finishedAt = new Date(ms).toISOString();
     });
@@ -187,11 +197,10 @@ async function runCampaign(c: Campaign, settings: SenderSettings, deps: Required
   }
 
   await refund(settings, granted - used, ms);
+  const all = await resultsOf(id);
   await mutateCampaign(id, (x) => {
     x.counters.queued = Math.max(x.counters.queued, queued);
-    x.counters.sent += sent;
-    x.counters.failed += failed;
-    x.counters.suppressed += suppressed;
+    Object.assign(x.counters, tally(all.values()));
   });
   logger.info({ campaign: id, sent, failed, suppressed }, "campaign batch done");
 }
