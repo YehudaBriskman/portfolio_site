@@ -109,10 +109,13 @@ async function tokenContact(token: string, kind: TokenKind) {
   return c ? { hash: p.h, contact: c } : null;
 }
 
-router.get(
+/* POST, never GET: mail scanners and link previewers open every URL in a mail, so
+   a GET that confirmed would let a robot subscribe someone. The page the mail
+   links to asks for a click and only the click calls this. */
+router.post(
   "/confirm",
   asyncHandler(async (req, res) => {
-    const q = TokenQuery.safeParse(req.query);
+    const q = TokenBody.safeParse(req.body);
     if (!q.success) return badLink(res);
     const found = await tokenContact(q.data.token, "confirm");
     if (!found) return badLink(res);

@@ -1,7 +1,17 @@
 import type { Request, Response, NextFunction } from "express";
 import { logger } from "../logger.js";
 
-/* One JSON line per finished request; level by status (5xx error, 4xx warn). /mcp and /api/subscribe query strings (tokens) are dropped. */
+/*
+ * The URL as it may be logged. Query strings are dropped for routes where one can
+ * hold a credential or a person: MCP OAuth codes, subscribe/unsubscribe/manage
+ * tokens (the API and the pages that render for them), and every admin route (the
+ * audience search puts an address or a fragment of one in `q`; a path is enough
+ * to debug an admin call).
+ */
+const QUERYLESS = /^\/(mcp|api\/subscribe|api\/admin|api\/seo\/render\/(subscribe|unsubscribe))(?=[/?]|$)/;
+export const loggableUrl = (originalUrl: string): string => (QUERYLESS.test(originalUrl) ? originalUrl.split("?")[0] : originalUrl);
+
+/* One JSON line per finished request; level by status (5xx error, 4xx warn). Query strings of token and admin routes are dropped (loggableUrl). */
 export function requestLogger(req: Request, res: Response, next: NextFunction) {
   const start = process.hrtime.bigint();
 
@@ -10,8 +20,7 @@ export function requestLogger(req: Request, res: Response, next: NextFunction) {
     const fields = {
       method: req.method,
       // originalUrl, not url: a mounted router strips the mount path from `url`.
-      // The MCP OAuth endpoints carry codes and state in the query; never log them.
-      url: /^\/(mcp|api\/subscribe)/.test(req.originalUrl) ? req.originalUrl.split("?")[0] : req.originalUrl,
+      url: loggableUrl(req.originalUrl),
       status,
       durationMs: Number((process.hrtime.bigint() - start) / 1_000_000n),
     };

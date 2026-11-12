@@ -2,6 +2,7 @@ import type { ErrorRequestHandler } from "express";
 import { CouchError } from "../db/couch.js";
 import { env } from "../env.js";
 import { logger } from "../logger.js";
+import { loggableUrl } from "./logger.js";
 
 /*
  * The one place a thrown error becomes a response: `{ ok: false, error }`
@@ -33,7 +34,7 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
    * handler is the one that knows to destroy the socket, so hand it back.
    */
   if (res.headersSent) {
-    logger.error({ err, method: req.method, url: req.originalUrl }, "error after response started");
+    logger.error({ err, method: req.method, url: loggableUrl(req.originalUrl) }, "error after response started");
     return next(err);
   }
 
@@ -57,7 +58,7 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
    * rather than "[object Object]". A client mistake is a warning; anything the
    * server should have handled is an error, and is what an alert should key on.
    */
-  const fields = { err, status, method: req.method, url: req.originalUrl };
+  const fields = { err, status, method: req.method, url: loggableUrl(req.originalUrl) };
   if (status >= 500) logger.error(fields, "request failed");
   else logger.warn(fields, "request rejected");
 
