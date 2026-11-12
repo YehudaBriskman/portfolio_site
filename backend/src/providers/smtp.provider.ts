@@ -2,6 +2,7 @@ import nodemailer from 'nodemailer';
 import { env } from '../env.js';
 import type { EmailProvider, ProviderResult } from '../types/index.js';
 import { formatError } from '../logger.js';
+import { classifySmtpError } from './classifySmtpError.js';
 
 let cached: ReturnType<typeof nodemailer.createTransport> | null = null;
 
@@ -31,7 +32,7 @@ export const smtpProvider: EmailProvider = {
       });
       return { ok: true, messageId: info.messageId };
     } catch (err: unknown) {
-      return { ok: false, error: formatError(err) };
+      return { ok: false, error: formatError(err), ...classifySmtpError(err) };
     }
   }
 };

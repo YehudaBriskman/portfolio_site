@@ -56,7 +56,7 @@ const localZone = () => {
   }
 };
 
-type Dialog = "send" | "cancel" | "delete" | null;
+type Dialog = "send" | "cancel" | "delete" | "resume" | null;
 type Mode = "now" | "later";
 type PreviewState = { key: string; data: { subject: string; html: string; text: string } | "failed" };
 const DEBOUNCE_MS = 450;
@@ -327,6 +327,17 @@ export default function CampaignEditor({
           <button type="button" className="a-btn a-btn-danger min-h-[44px]" onClick={() => setDialog("cancel")}>{w.cancelSend}</button>
         </div>
       )}
+      {status === "paused" && campaign && (
+        <div className="a-box border-[rgb(var(--destructive-ink))] p-4" role="alert" data-testid="paused-banner">
+          <p className="font-bold">{w.pausedTitle}</p>
+          <p className="a-hint">{campaign.pausedReason ? w.pausedReasons[campaign.pausedReason] : ""}</p>
+          <p className="a-hint">{w.pausedKept}</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button type="button" className="a-btn a-btn-primary min-h-[44px]" onClick={() => setDialog("resume")}>{w.resume}</button>
+            <button type="button" className="a-btn a-btn-danger min-h-[44px]" onClick={() => setDialog("cancel")}>{w.cancelSend}</button>
+          </div>
+        </div>
+      )}
       {status === "sending" && <button type="button" className="a-btn a-btn-danger min-h-[44px]" onClick={() => setDialog("cancel")}>{w.cancelSend}</button>}
 
       <form noValidate onSubmit={(e) => (e.preventDefault(), void save())}>
@@ -537,6 +548,15 @@ export default function CampaignEditor({
               </button>
               <button type="button" className="a-btn min-h-[44px]" onClick={() => setDialog(null)}>{w.cancel}</button>
             </div>
+          </div>
+        </Modal>
+      )}
+      {dialog === "resume" && campaign && (
+        <Modal title={w.resumeHeading} titleId={`${uid}-rs`} onClose={() => setDialog(null)}>
+          <p className="a-hint !mt-0">{w.resumeBody}</p>
+          <div className="flex flex-wrap gap-2 pt-4">
+            <button type="button" className="a-btn a-btn-primary min-h-[44px]" disabled={busy !== ""} onClick={() => void run(() => adminCampaigns.resume(campaign.id))}>{w.resumeDo}</button>
+            <button type="button" className="a-btn min-h-[44px]" onClick={() => setDialog(null)}>{w.cancel}</button>
           </div>
         </Modal>
       )}

@@ -26,7 +26,7 @@ export default function Progress({ campaign, onUpdate }: { campaign: Campaign; o
   return (
     <section className="a-box space-y-3 p-4" aria-label={w.progressHeading} data-testid="progress">
       <h3 className="display-tight text-lg">{w.progressHeading}</h3>
-      <p className="a-hint !mt-0" role="status">{campaign.status === "sending" ? w.progressSending : campaign.status === "scheduled" ? w.progressWaiting : w.progressDone}</p>
+      <p className="a-hint !mt-0" role="status">{campaign.status === "sending" ? w.progressSending : campaign.status === "scheduled" ? w.progressWaiting : campaign.status === "paused" ? w.progressPaused : w.progressDone}</p>
       <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {cells.map(([label, n]) => (
           <div key={label}>

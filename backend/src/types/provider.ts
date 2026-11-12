@@ -1,9 +1,12 @@
+import type { SmtpErrorKind } from '../providers/classifySmtpError.js';
+
 export type ProviderName = 'smtp' | 'emailjs';
 
 export type ProviderResult = {
   ok: true; messageId: string; attempts?: number;
 } | {
-  ok: false; error: string;
+  /** `kind` and `code` come from providers that can classify a failure (SMTP); absent means unknown. `code` is the numeric reply only. */
+  ok: false; error: string; kind?: SmtpErrorKind; code?: number;
 };
 
 export interface EmailProvider {
