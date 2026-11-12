@@ -85,6 +85,19 @@ describe("AudienceTab", () => {
     await waitFor(() => expect(calls.some((c) => c.url.includes("status=pending"))).toBe(true));
   });
 
+  it("shows the consent entry: wording id and hash, confirm time, and earlier consents", async () => {
+    const e1 = { textId: "site-form-v1", textHash: "abcdef0123456789ff", lang: "en", at: "2026-01-02T00:00:00Z", confirmedAt: "2026-01-02T00:05:00Z", source: "site" };
+    const e2 = { textId: null, textHash: null, lang: "he", at: "2026-03-02T00:00:00Z", source: "import", note: "workshop list" };
+    pages["/api/admin/audience/contacts?limit=25"] = { ok: true, contacts: [contact({ consent: e2, consentHistory: [e1, e2] })], nextCursor: null };
+    render(<AudienceTab />);
+    fireEvent.click(await screen.findByRole("button", { name: "Edit ada@example.com" }));
+    const dlg = await screen.findByRole("dialog");
+    expect(within(dlg).getByText(/site-form-v1 · en · abcdef012345/)).toBeTruthy();
+    expect(within(dlg).getByText("Earlier consents")).toBeTruthy();
+    expect(within(dlg).getByText("Note: workshop list")).toBeTruthy();
+    expect(within(dlg).getByText("Not confirmed")).toBeTruthy();
+  });
+
   it("edits a contact and erases only after a confirm", async () => {
     render(<AudienceTab />);
     fireEvent.click(await screen.findByRole("button", { name: "Edit ada@example.com" }));

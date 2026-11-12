@@ -11,7 +11,7 @@ const json = (body: unknown, status = 200) => new Response(JSON.stringify(body),
 // Shape copied from `view` in backend/src/campaigns/route.ts.
 const camp = (o: object = {}) => ({
   id: "c1", _rev: "1-a", name: "Spring news", subject: "Hello <b>", preheader: "", bodyText: "Hi\n\nthere", blocks: null, groups: ["subscribers"], lang: "all", topic: null,
-  status: "draft", sendAt: null, counters: { queued: 0, sent: 0, failed: 0, suppressed: 0 }, eventId: null, startedAt: null, finishedAt: null, createdAt: "2026-11-01T10:00:00Z", updatedAt: "2026-11-01T10:00:00Z", ...o,
+  status: "draft", sendAt: null, counters: { queued: 0, sent: 0, failed: 0, suppressed: 0 }, eventId: null, pausedReason: null, startedAt: null, finishedAt: null, createdAt: "2026-11-01T10:00:00Z", updatedAt: "2026-11-01T10:00:00Z", ...o,
 });
 const sender = (o: object = {}) => ({ ...DEFAULT_SENDER, footerIdentity: "Yehuda, Tel Aviv", testRecipients: ["me@example.com"], ...o });
 const settings = (s = sender()) => ({
@@ -36,6 +36,7 @@ beforeEach(() => {
       if (url === "/api/admin/campaigns/c1" && method === "GET") return json({ ok: true, campaign: stored[0] });
       if (url === "/api/admin/campaigns/audience") return json({ ok: true, count: 12, samples: ["a***@e***.com"] });
       if (url === "/api/admin/campaigns/preview") return json({ ok: true, subject: "Hello", html: "<p>Hi</p>", text: "Hi" });
+      if (url === "/api/admin/campaigns/c1/resume") return json({ ok: true, campaign: camp({ status: "scheduled", sendAt: "2026-11-12T10:00:00Z" }) });
       if (url === "/api/admin/campaigns/c1/send-now") return json({ ok: true, campaign: camp({ status: "sending", counters: { queued: 12, sent: 3, failed: 0, suppressed: 0 } }) });
       if (url === "/api/admin/announce/settings" && method === "GET") return json({ ok: true, exists: true, _rev: "1-s", updatedAt: null, settings: settings(senderDoc) });
       if (url === "/api/admin/announce/settings" && method === "PUT") return json({ ok: true, exists: true, _rev: "2-s", updatedAt: null, settings: (JSON.parse(String(init?.body)) as { settings: unknown }).settings, warnings: [{ field: "fromAddress", code: "domain-not-sendable", message: "Check with your mail provider." }] });
@@ -55,6 +56,10 @@ describe("pure helpers", () => {
   });
   it("names bad sender values before Save", () => {
     expect(senderProblems(sender())).toEqual({});
+    expect(senderProblems(sender({ unsubscribeNoteEn: "Thanks" })).unsubscribeNoteEn).toBe("noLink");
+    expect(senderProblems(sender({ unsubscribeNoteEn: "Out {Link}" })).unsubscribeNoteEn).toBe("noLink");
+    expect(senderProblems(sender({ unsubscribeNoteEn: "x {{link}}" })).unsubscribeNoteEn).toBe("unknown");
+    expect(senderProblems(sender({ unsubscribeNoteEn: "{name} {link}" })).unsubscribeNoteEn).toBe("unsubVars");
     expect(Object.keys(senderProblems(sender({ throttlePerHour: 0, replyTo: "nope" })))).toEqual(["replyTo", "throttlePerHour"]);
   });
 });
@@ -69,10 +74,30 @@ describe("Campaigns tab", () => {
     expect(screen.queryByTestId("footer-blocker")).toBeNull();
   });
 
+  it("a paused campaign says why, in plain words, and resumes only after a confirm", async () => {
+    stored[0] = camp({ status: "paused", pausedReason: "auth", counters: { queued: 12, sent: 3, failed: 1, suppressed: 0 } });
+    open();
+    fireEvent.click(await screen.findByRole("button", { name: "Open Spring news" }));
+    const banner = await screen.findByTestId("paused-banner");
+    expect(banner.textContent).toMatch(/refused the login/);
+    expect(screen.getAllByText("Paused").length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole("button", { name: "Resume sending…" }));
+    expect(calls.some((c) => c.url.endsWith("/resume"))).toBe(false);
+    fireEvent.click(await screen.findByRole("button", { name: "Resume" }));
+    await waitFor(() => expect(calls.some((c) => c.url === "/api/admin/campaigns/c1/resume" && c.method === "POST")).toBe(true));
+  });
+
   it("blocks with a clear message when the footer identity is empty", async () => {
     senderDoc = sender({ footerIdentity: "" });
     open();
     expect(await screen.findByTestId("footer-blocker")).toBeTruthy();
+  });
+
+  it("lists the unsubscribe-note problem among what stands between you and Send", async () => {
+    senderDoc = sender({ unsubscribeNoteEn: "Thanks for reading" });
+    open();
+    fireEvent.click(await screen.findByRole("button", { name: "Open Spring news" }));
+    expect(await screen.findByText(/Fix the unsubscribe note and confirmation texts in Sender & delivery/)).toBeTruthy();
   });
 
   it("confirms with the server's recipient count and the cannot-unsend warning before sending", async () => {
@@ -121,5 +146,30 @@ describe("Sender & delivery", () => {
     expect(screen.getByTestId("footer-required")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Reset From name to env default" }));
     expect((screen.getByLabelText("From name") as HTMLInputElement).value).toBe("");
+  });
+
+  it("names a note without {link}, offers Insert {link}, and blocks Save until it is fixed", async () => {
+    senderDoc = sender({ unsubscribeNoteEn: "Thanks for reading" });
+    render(<MemoryRouter><SettingsPanel /></MemoryRouter>);
+    fireEvent.change(await screen.findByLabelText("Filter advanced settings"), { target: { value: "sender" } });
+    expect(screen.getByText(/The unsubscribe note must contain \{link\}, otherwise nobody can unsubscribe/)).toBeTruthy();
+    expect((screen.getByRole("button", { name: "Save" }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "Insert {link}" }));
+    expect((screen.getByLabelText("Unsubscribe line (English)") as HTMLTextAreaElement).value).toBe("Thanks for reading {link}");
+    expect(screen.queryByText(/must contain \{link\}/)).toBeNull();
+    expect((screen.getByRole("button", { name: "Save" }) as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it("says it in Hebrew too", async () => {
+    senderDoc = sender({ unsubscribeNoteHe: "תודה" });
+    document.documentElement.lang = "he";
+    try {
+      render(<MemoryRouter><SettingsPanel /></MemoryRouter>);
+      fireEvent.change(await screen.findByRole("searchbox"), { target: { value: "שולח" } });
+      expect(await screen.findByText(/חייבת לכלול \{link\}/)).toBeTruthy();
+      expect(screen.getByRole("button", { name: "הוספת {link}" })).toBeTruthy();
+    } finally {
+      document.documentElement.lang = "en";
+    }
   });
 });

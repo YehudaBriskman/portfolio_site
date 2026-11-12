@@ -3,6 +3,7 @@ import { renderBasicTemplate } from "../templates/basic.js";
 import type { SendEmailInput } from "../types/index.js";
 import { env } from "../env.js";
 import { logger } from "../logger.js";
+import type { SmtpErrorKind } from "../providers/classifySmtpError.js";
 
 type EmailJsPayload = Extract<SendEmailInput, { templateId: string }>;
 
@@ -58,7 +59,7 @@ export async function sendToAddress(msg: { to: string; subject: string; text: st
 }
 
 export type BulkMessage = { to: string; subject: string; text: string; html: string; headers?: Record<string, string> };
-export type BulkResult = { ok: true } | { ok: false; error: string };
+export type BulkResult = { ok: true } | { ok: false; error: string; kind?: SmtpErrorKind; code?: number };
 
 /**
  * One message per recipient, each with its own single To (a recipient never
@@ -73,7 +74,7 @@ export async function sendBulk(msgs: BulkMessage[], opts: { from: string; replyT
   for (const m of msgs) {
     try {
       const r = await provider.send({ from: opts.from, replyTo: opts.replyTo, to: m.to, subject: m.subject, text: m.text, html: m.html, headers: m.headers });
-      out.push(r.ok ? { ok: true } : { ok: false, error: r.error });
+      out.push(r.ok ? { ok: true } : { ok: false, error: r.error, ...(r.kind ? { kind: r.kind } : {}), ...(r.code !== undefined ? { code: r.code } : {}) });
     } catch (err) {
       out.push({ ok: false, error: err instanceof Error ? err.message : String(err) });
     }

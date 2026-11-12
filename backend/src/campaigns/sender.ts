@@ -1,12 +1,12 @@
 import type { SenderSettings } from "../announce/schemas.js";
 import { loadSettings } from "../announce/store.js";
 import { couch } from "../db/couch.js";
-import { listRecipients, getContact, isSuppressed } from "../audience/store.js";
+import { listRecipients, getContact, isSuppressed, updateContact } from "../audience/store.js";
 import { logger } from "../logger.js";
 import { emailService, type BulkMessage } from "../services/email.service.js";
 import { resolveSender } from "./config.js";
 import { renderCampaignMail } from "./render.js";
-import type { Campaign, SendResult } from "./schemas.js";
+import type { Campaign, Health, PauseReason, SendResult } from "./schemas.js";
 import {
   claimSend, finishSend, getCampaign, getRate, isStatus, mutateCampaign, putRate, resultsOf, sendId,
   RATE_ID, type RateState,
@@ -27,6 +27,26 @@ const BATCH_MAX = 25;
 const TICK_MS = 30_000;
 /* An "attempting" doc this old belongs to a crashed run: its mail is retried. */
 const STALE_ATTEMPT_MS = 5 * 60_000;
+/* A transient failure (relay busy, timeout) is tried again after this long, up to MAX_TRIES attempts in all. */
+const RETRY_MS = 15 * 60_000;
+const MAX_TRIES = 3;
+/* Consecutive soft failures, across campaigns, before an address is suppressed. */
+const SOFT_LIMIT = 3;
+/* Auto-pause: the owner fixes the cause, then resumes. Rates are only judged once there are enough attempts to mean something. */
+const PAUSE_STREAK = 5;
+const MIN_ATTEMPTS = 20;
+const PAUSE_FAIL_RATE = 0.1;
+const PAUSE_HARD_RATE = 0.05;
+
+/** Why the campaign should stop now, judged on what happened since it started or was last resumed. */
+export function pauseReason(h: Health): PauseReason | null {
+  if (h.streak >= PAUSE_STREAK) return "consecutive";
+  const attempts = h.sent + h.failed;
+  if (attempts < MIN_ATTEMPTS) return null;
+  if (h.hard / attempts >= PAUSE_HARD_RATE) return "hard-bounce-rate";
+  if (h.failed / attempts >= PAUSE_FAIL_RATE) return "failure-rate";
+  return null;
+}
 
 type Clock = () => number;
 export type Deliver = (msgs: BulkMessage[], opts: { from: string; replyTo?: string }) => ReturnType<typeof emailService.sendBulk>;
@@ -98,6 +118,46 @@ async function refund(s: SenderSettings, n: number, ms: number): Promise<void> {
 
 const scrub = (msg: string) => msg.replace(/[^\s<>"',;]+@[^\s<>"',;]+/g, "[address]").slice(0, 200);
 
+/** Takes an address off the mailing list for good reason. Only an active contact is touched; never deletes. Never logs the address. */
+async function suppressBounced(hash: string, reason: "hard-bounce" | "soft-bounces"): Promise<void> {
+  try {
+    await updateContact(hash, (c) => {
+      if (c.status !== "active") return false;
+      c.status = "suppressed";
+      c.suppressedReason = reason;
+      delete c.softBounces;
+    });
+  } catch (err) {
+    logger.warn({ reason, err: err instanceof Error ? err.message : String(err) }, "could not suppress a bounced contact");
+  }
+}
+
+/** Counts one more soft failure for the contact and suppresses it on the SOFT_LIMIT-th in a row. */
+async function noteSoftBounce(hash: string): Promise<void> {
+  let reached = false;
+  try {
+    await updateContact(hash, (c) => {
+      if (c.status !== "active") return false;
+      c.softBounces = (c.softBounces ?? 0) + 1;
+      reached = c.softBounces >= SOFT_LIMIT;
+    });
+  } catch {
+    return;
+  }
+  if (reached) await suppressBounced(hash, "soft-bounces");
+}
+
+async function clearSoftBounces(hash: string): Promise<void> {
+  try {
+    await updateContact(hash, (c) => {
+      if (!c.softBounces) return false;
+      delete c.softBounces;
+    });
+  } catch {
+    /* A stale counter only makes suppression a little earlier; a delivered mail is not worth failing the batch. */
+  }
+}
+
 async function claimCampaign(c: Campaign, ms: number): Promise<Campaign | null> {
   const fresh = await getCampaign(c._id.slice("campaign:".length));
   if (!fresh || fresh.status !== "scheduled") return null;
@@ -131,20 +191,33 @@ async function runCampaign(c: Campaign, settings: SenderSettings, deps: Required
   /* Everyone still to do, in id order. Stale attempts from a crashed run come back in. */
   const todo: Array<{ hash: string; lang: "en" | "he" }> = [];
   let queued = 0;
+  let waiting = 0;
   for await (const r of listRecipients({ groups: c.groups, ...(c.lang && c.lang !== "all" ? { lang: c.lang } : {}), ...(c.topic ? { topic: c.topic } : {}) })) {
     queued++;
     const hash = r._id.slice("contact:".length);
     const prev = done.get(hash);
-    if (prev && !(prev.status === "attempting" && ms - Date.parse(prev.at) > STALE_ATTEMPT_MS)) continue;
+    if (prev?.status === "deferred") {
+      /* Not final: due again at retryAt. Until then the campaign is not finished. */
+      if (Date.parse(prev.retryAt ?? prev.at) > ms) { waiting++; continue; }
+    } else if (prev && !(prev.status === "attempting" && ms - Date.parse(prev.at) > STALE_ATTEMPT_MS)) continue;
     todo.push({ hash, lang: r.lang });
   }
 
   if (todo.length === 0) {
+    if (waiting > 0) {
+      await mutateCampaign(id, (x) => {
+        if (x.status !== "sending") return false;
+        Object.assign(x.counters, tally(done.values()));
+      });
+      return;
+    }
     await mutateCampaign(id, (x) => {
       if (x.status !== "sending") return false;
       x.counters.queued = Math.max(x.counters.queued, queued);
       Object.assign(x.counters, tally(done.values()));
-      x.status = x.counters.sent === 0 && x.counters.failed > 0 ? "failed" : "sent";
+      /* "Sent" would hide a run where most mail failed. */
+      const attempts = x.counters.sent + x.counters.failed;
+      x.status = x.counters.failed > 0 && x.counters.failed * 2 >= attempts ? "failed" : "sent";
       x.finishedAt = new Date(ms).toISOString();
     });
     logger.info({ campaign: id }, "campaign finished");
@@ -156,6 +229,8 @@ async function runCampaign(c: Campaign, settings: SenderSettings, deps: Required
   const from = resolveSender(settings);
   let used = 0;
   let sent = 0, failed = 0, suppressed = 0;
+  const h: Health = { sent: 0, failed: 0, hard: 0, streak: 0, ...c.health };
+  let pause: PauseReason | null = null;
 
   for (const t of todo.slice(0, granted)) {
     /* Cancel (or any other change of state) stops the run at the next recipient. */
@@ -180,29 +255,58 @@ async function runCampaign(c: Campaign, settings: SenderSettings, deps: Required
       continue;
     }
     used++;
-    let result;
+    let result: Awaited<ReturnType<Deliver>>[number] | undefined;
     try {
       const mail = await renderCampaignMail(c, contact, t.hash, settings);
       [result] = await deps.deliver([{ to: contact.email, ...mail }], { from: from.from, replyTo: from.replyTo });
     } catch (err) {
       result = { ok: false as const, error: err instanceof Error ? err.message : String(err) };
     }
+    const at = new Date(deps.now()).toISOString();
     if (result?.ok) {
-      await finishSend({ ...base, status: "sent", at: new Date(deps.now()).toISOString() });
+      await finishSend({ ...base, status: "sent", at });
       sent++;
-    } else {
-      await finishSend({ ...base, status: "failed", at: new Date(deps.now()).toISOString(), error: scrub(result?.error ?? "unknown") });
-      failed++;
+      h.sent++;
+      h.streak = 0;
+      if (contact.softBounces) await clearSoftBounces(t.hash);
+      /* A rate is only judged once there are enough attempts, which a delivery can be the one to reach. */
+      pause = pauseReason(h);
+      if (pause) break;
+      continue;
     }
+    const kind = result?.kind ?? "unknown";
+    const code = result?.code;
+    const note = { error: scrub(result?.error ?? "unknown"), kind, ...(code !== undefined ? { code } : {}) };
+    const tries = (stale?.tries ?? 0) + 1;
+    h.streak++;
+    if (kind === "transient" && tries < MAX_TRIES) {
+      await finishSend({ ...base, status: "deferred", at, tries, retryAt: new Date(deps.now() + RETRY_MS).toISOString(), ...note });
+    } else {
+      await finishSend({ ...base, status: "failed", at, ...(kind === "transient" ? { tries } : {}), ...note });
+      failed++;
+      h.failed++;
+      if (kind === "hard") {
+        h.hard++;
+        await suppressBounced(t.hash, "hard-bounce");
+      } else if (kind === "soft") await noteSoftBounce(t.hash);
+    }
+    pause = kind === "auth" ? "auth" : pauseReason(h);
+    if (pause) break;
   }
 
   await refund(settings, granted - used, ms);
+  const stop = pause as PauseReason | null;
   const all = await resultsOf(id);
   await mutateCampaign(id, (x) => {
     x.counters.queued = Math.max(x.counters.queued, queued);
     Object.assign(x.counters, tally(all.values()));
+    x.health = { ...h };
+    if (stop && x.status === "sending") {
+      x.status = "paused";
+      x.pausedReason = stop;
+    }
   });
-  logger.info({ campaign: id, sent, failed, suppressed }, "campaign batch done");
+  logger.info({ campaign: id, sent, failed, suppressed, ...(stop ? { paused: stop } : {}) }, "campaign batch done");
 }
 
 /* --- the tick ------------------------------------------------------------------ */

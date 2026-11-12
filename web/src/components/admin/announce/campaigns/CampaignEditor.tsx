@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useId, useMemo, useState } from "react";
+import { hasTextProblem } from "../sender/defaults";
 import { Link } from "react-router-dom";
 import { ErrorState } from "@/components/admin/ui";
 import { ContentInvalidError, type Issue } from "@/services/adminContent";
@@ -56,7 +57,7 @@ const localZone = () => {
   }
 };
 
-type Dialog = "send" | "cancel" | "delete" | null;
+type Dialog = "send" | "cancel" | "delete" | "resume" | null;
 type Mode = "now" | "later";
 type PreviewState = { key: string; data: { subject: string; html: string; text: string } | "failed" };
 const DEBOUNCE_MS = 450;
@@ -183,6 +184,7 @@ export default function CampaignEditor({
   if (recipients === 0) problems.push(w.readyAudience);
   if (mode === "later" && (!scheduleIso || past)) problems.push(w.readyTime);
   if (!footerOk && sender) problems.push(w.readyFooter);
+  if (sender && hasTextProblem(sender)) problems.push(w.readyUnsubNote);
   const formOk = Boolean(form.subject.trim() && form.groups.length > 0 && !blockBad);
   const canGo = editable && problems.length === 0 && busy === "";
 
@@ -325,6 +327,17 @@ export default function CampaignEditor({
         <div className="flex flex-wrap gap-2">
           <button type="button" className="a-btn min-h-[44px]" disabled={busy !== ""} onClick={() => void run(() => adminCampaigns.schedule(campaign.id, null))}>{w.unschedule}</button>
           <button type="button" className="a-btn a-btn-danger min-h-[44px]" onClick={() => setDialog("cancel")}>{w.cancelSend}</button>
+        </div>
+      )}
+      {status === "paused" && campaign && (
+        <div className="a-box border-[rgb(var(--destructive-ink))] p-4" role="alert" data-testid="paused-banner">
+          <p className="font-bold">{w.pausedTitle}</p>
+          <p className="a-hint">{campaign.pausedReason ? w.pausedReasons[campaign.pausedReason] : ""}</p>
+          <p className="a-hint">{w.pausedKept}</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button type="button" className="a-btn a-btn-primary min-h-[44px]" onClick={() => setDialog("resume")}>{w.resume}</button>
+            <button type="button" className="a-btn a-btn-danger min-h-[44px]" onClick={() => setDialog("cancel")}>{w.cancelSend}</button>
+          </div>
         </div>
       )}
       {status === "sending" && <button type="button" className="a-btn a-btn-danger min-h-[44px]" onClick={() => setDialog("cancel")}>{w.cancelSend}</button>}
@@ -537,6 +550,15 @@ export default function CampaignEditor({
               </button>
               <button type="button" className="a-btn min-h-[44px]" onClick={() => setDialog(null)}>{w.cancel}</button>
             </div>
+          </div>
+        </Modal>
+      )}
+      {dialog === "resume" && campaign && (
+        <Modal title={w.resumeHeading} titleId={`${uid}-rs`} onClose={() => setDialog(null)}>
+          <p className="a-hint !mt-0">{w.resumeBody}</p>
+          <div className="flex flex-wrap gap-2 pt-4">
+            <button type="button" className="a-btn a-btn-primary min-h-[44px]" disabled={busy !== ""} onClick={() => void run(() => adminCampaigns.resume(campaign.id))}>{w.resumeDo}</button>
+            <button type="button" className="a-btn min-h-[44px]" onClick={() => setDialog(null)}>{w.cancel}</button>
           </div>
         </Modal>
       )}

@@ -8,9 +8,11 @@ import { ContentInvalidError, type Issue } from "./adminContent";
  * client never sends HTML.
  */
 
-export const CAMPAIGN_STATUSES = ["draft", "scheduled", "sending", "sent", "failed", "canceled"] as const;
+export const CAMPAIGN_STATUSES = ["draft", "scheduled", "sending", "sent", "failed", "canceled", "paused"] as const;
 export type CampaignStatus = (typeof CAMPAIGN_STATUSES)[number];
 export type CampaignLang = "en" | "he" | "all";
+/** Why the sender stopped the campaign by itself. */
+export type PauseReason = "auth" | "consecutive" | "failure-rate" | "hard-bounce-rate";
 export type CampaignTopic = "blog" | "releases";
 
 export type Block =
@@ -38,6 +40,7 @@ export type Campaign = {
   sendAt: string | null;
   counters: Counters;
   eventId: string | null;
+  pausedReason: PauseReason | null;
   startedAt: string | null;
   finishedAt: string | null;
   createdAt: string;
@@ -116,5 +119,7 @@ export const adminCampaigns = {
   /** `null` takes a scheduled campaign back to a draft. */
   schedule: async (id: string, sendAt: string | null) => (await call<{ campaign: Campaign }>(`/${enc(id)}/schedule`, json({ sendAt }))).campaign,
   sendNow: async (id: string) => (await call<{ campaign: Campaign }>(`/${enc(id)}/send-now`, { method: "POST" })).campaign,
+  /** A paused campaign carries on, once the cause is fixed. */
+  resume: async (id: string) => (await call<{ campaign: Campaign }>(`/${enc(id)}/resume`, { method: "POST" })).campaign,
   cancel: async (id: string) => (await call<{ campaign: Campaign }>(`/${enc(id)}/cancel`, { method: "POST" })).campaign,
 };

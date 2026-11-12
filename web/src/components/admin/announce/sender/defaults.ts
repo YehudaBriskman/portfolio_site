@@ -29,7 +29,20 @@ export const DEFAULT_SENDER: SenderSettings = {
 export type SenderField =
   | "fromName" | "fromAddress" | "replyTo" | "footerIdentity" | "testRecipients" | "throttlePerHour" | "dailyCap" | "quietHours"
   | "confirmSubjectEn" | "confirmSubjectHe" | "confirmBodyEn" | "confirmBodyHe" | "unsubscribeNoteEn" | "unsubscribeNoteHe";
-export type SenderProblem = "empty" | "address" | "number" | "list" | "zone";
+export type SenderProblem = "empty" | "address" | "number" | "list" | "zone" | "noLink" | "unknown" | "long" | "unsubVars";
+
+/* Mirrors validateSenderTexts in backend/src/announce/schemas.ts; the server decides, this only names it before Save. */
+export const UNSUB_NOTE_MAX = 500;
+const TOKEN = /\{+[^{}]*\}+|[{}]/g;
+const KNOWN = ["{name}", "{site}", "{days}", "{link}"];
+/** The first `{...}` that is not a known placeholder, or null. Case-sensitive, so {Link} and {{link}} are named. */
+export const unknownPlaceholder = (text: string) => (text.match(TOKEN) ?? []).find((t) => !KNOWN.includes(t)) ?? null;
+export const TEXT_FIELDS = ["confirmBodyEn", "confirmBodyHe", "unsubscribeNoteEn", "unsubscribeNoteHe"] as const;
+/** True when a text field has a problem that is about the unsubscribe or confirm link, for the campaign checklist. */
+export const hasTextProblem = (s: SenderSettings) => {
+  const p = senderProblems(s);
+  return TEXT_FIELDS.some((f) => p[f] && p[f] !== "empty");
+};
 
 const EMAIL = /^[^\s@<>"]+@[^\s@<>"]+\.[^\s@<>"]+$/;
 const zoneOk = (tz: string) => {
@@ -51,6 +64,15 @@ export function senderProblems(s: SenderSettings): Partial<Record<SenderField, S
   if (!whole(s.throttlePerHour, 3600)) p.throttlePerHour = "number";
   if (!whole(s.dailyCap, 10000)) p.dailyCap = "number";
   if (s.quietHours && !zoneOk(s.quietHours.tz)) p.quietHours = "zone";
-  for (const k of ["confirmSubjectEn", "confirmSubjectHe", "confirmBodyEn", "confirmBodyHe", "unsubscribeNoteEn", "unsubscribeNoteHe"] as const) if (!s[k].trim()) p[k] = "empty";
+  for (const k of ["confirmSubjectEn", "confirmSubjectHe", "confirmBodyEn", "confirmBodyHe", "unsubscribeNoteEn", "unsubscribeNoteHe"] as const) {
+    const v = s[k];
+    const note = k.startsWith("unsubscribeNote");
+    if (!v.trim()) p[k] = "empty";
+    else if (k.startsWith("confirmSubject")) continue;
+    else if (!v.includes("{link}")) p[k] = "noLink";
+    else if (unknownPlaceholder(v)) p[k] = "unknown";
+    else if (note && v.length > UNSUB_NOTE_MAX) p[k] = "long";
+    else if (note && /\{(name|days)\}/.test(v)) p[k] = "unsubVars";
+  }
   return p;
 }

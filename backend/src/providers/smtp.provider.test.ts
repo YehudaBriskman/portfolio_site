@@ -139,5 +139,7 @@ describe('smtp provider', () => {
 
     expect(res.ok).toBe(false);
     if (!res.ok) expect(res.error).toMatch(/550|no such user|rejected/i);
+    /* The real nodemailer error, classified: a permanent unknown-user is a hard bounce. */
+    expect(res).toMatchObject({ ok: false, kind: 'hard', code: 550 });
   });
 });

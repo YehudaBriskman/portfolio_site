@@ -2,6 +2,7 @@ import express, { Router, type Response } from "express";
 import { asyncHandler } from "../middlewares/asyncHandler.js";
 import { loadSettings } from "../announce/store.js";
 import { sendConfirmMail } from "./mail.js";
+import { CURRENT_CONSENT_TEXT_ID, getConsentText } from "./consent-texts.js";
 import {
   ManagePut,
   SITE_FORM_VERSION,
@@ -9,9 +10,10 @@ import {
   SYSTEM_GROUP,
   TokenBody,
   TokenQuery,
+  type Consent,
   type Contact,
 } from "./schemas.js";
-import { contactId, createContact, getContact, hashEmail, isPendingExpired, purgeExpiredPending, updateContact } from "./store.js";
+import { confirmConsent, contactId, createContact, getContact, hashEmail, isPendingExpired, purgeExpiredPending, recordConsent, updateContact } from "./store.js";
 import { verifyToken, type TokenKind } from "./tokens.js";
 
 /*
@@ -37,9 +39,15 @@ router.post(
     // A bot gets the same answer a person does, and nothing is stored.
     if (b.website) return res.status(202).json(ACCEPTED);
 
+    // The server decides which wording was shown: a form version the client names must be a registered one,
+    // and the hash always comes from the registry, never from the request.
+    const text = getConsentText(b.formVersion ?? CURRENT_CONSENT_TEXT_ID);
+    if (!text) return res.status(400).json({ ok: false, error: "Please check the form and try again." });
+
     const hash = hashEmail(b.email);
     void purgeExpiredPending();
     const now = new Date().toISOString();
+    const consent: Consent = { textId: text.id, textHash: text.sha256, lang: b.lang, at: now, source: "site" };
     const ttl = (await loadSettings()).sender.pendingTtlDays;
     let contact = await getContact(hash);
     let send = false;
@@ -47,7 +55,9 @@ router.post(
     if (contact && isPendingExpired(contact, ttl)) {
       // Expired and not yet swept: treat as new.
       await updateContact(hash, (c) => {
-        Object.assign(c, { status: "pending", name: b.name, lang: b.lang, topics: b.topics ?? c.topics, consentAt: now, consentNote: SITE_FORM_VERSION });
+        // Before the fields change: an old contact's earlier consent is read with its old language.
+        recordConsent(c, consent);
+        Object.assign(c, { status: "pending", name: b.name, lang: b.lang, topics: b.topics ?? c.topics });
       });
       contact = await getContact(hash);
       send = true;
@@ -62,7 +72,9 @@ router.post(
         status: "pending",
         source: "site",
         consentAt: now,
-        consentNote: SITE_FORM_VERSION,
+        consentNote: consent.textId ?? SITE_FORM_VERSION,
+        consent,
+        consentHistory: [consent],
         topics: b.topics ?? { blog: true, releases: true },
         createdAt: now,
         updatedAt: now,
@@ -72,7 +84,8 @@ router.post(
     } else if (contact.status === "unsubscribed") {
       // The person themselves is asking again: back to pending, and it still needs the confirm click.
       await updateContact(hash, (c) => {
-        Object.assign(c, { status: "pending", lang: b.lang, topics: b.topics ?? c.topics, consentAt: now, consentNote: SITE_FORM_VERSION });
+        recordConsent(c, consent);
+        Object.assign(c, { status: "pending", lang: b.lang, topics: b.topics ?? c.topics });
         if (!c.groups.includes(SYSTEM_GROUP)) c.groups.push(SYSTEM_GROUP);
         delete c.unsubscribedAt;
       });
@@ -96,10 +109,13 @@ async function tokenContact(token: string, kind: TokenKind) {
   return c ? { hash: p.h, contact: c } : null;
 }
 
-router.get(
+/* POST, never GET: mail scanners and link previewers open every URL in a mail, so
+   a GET that confirmed would let a robot subscribe someone. The page the mail
+   links to asks for a click and only the click calls this. */
+router.post(
   "/confirm",
   asyncHandler(async (req, res) => {
-    const q = TokenQuery.safeParse(req.query);
+    const q = TokenBody.safeParse(req.body);
     if (!q.success) return badLink(res);
     const found = await tokenContact(q.data.token, "confirm");
     if (!found) return badLink(res);
@@ -116,6 +132,7 @@ router.get(
       if (c.status !== "pending") return false;
       c.status = "active";
       c.confirmedAt = now;
+      confirmConsent(c, now);
     });
     return updated?.status === "active" ? res.json({ ok: true, lang: updated.lang }) : badLink(res);
   }),

@@ -9,7 +9,7 @@ import { hashEmail } from "../audience/store.js";
 import { emailService } from "../services/email.service.js";
 import { autoDraftFor } from "./autodraft.js";
 import { resolveSender, senderWarnings } from "./config.js";
-import { COMMERCIAL_LABEL_HE, renderCampaignMail } from "./render.js";
+import { COMMERCIAL_LABEL_HE, UNSUB_FALLBACK_EN, UNSUB_FALLBACK_HE, renderCampaignMail } from "./render.js";
 import { renderBody, safeHref, safeImage } from "./body.js";
 import { inQuietHours, runSenderTick, type Deliver } from "./sender.js";
 
@@ -110,7 +110,7 @@ const queued = async (n = 3, over: Partial<AnnounceSettings["sender"]> = {}) => 
 describe("admin gate", () => {
   const routes: Array<[string, string]> = [
     ["get", ""], ["post", ""], ["get", "/abc"], ["patch", "/abc"], ["delete", "/abc"], ["get", "/abc/audience"],
-    ["post", "/preview"], ["post", "/audience"], ["post", "/abc/test"], ["post", "/abc/schedule"], ["post", "/abc/send-now"], ["post", "/abc/cancel"],
+    ["post", "/preview"], ["post", "/audience"], ["post", "/abc/test"], ["post", "/abc/schedule"], ["post", "/abc/send-now"], ["post", "/abc/cancel"], ["post", "/abc/resume"],
   ];
   it.each(routes)("%s /api/admin/campaigns%s is refused without it", async (method, path) => {
     seedMany(1);
@@ -206,6 +206,121 @@ describe("campaign routes and state machine", () => {
     expect(sent[0].subject).toMatch(/^\[Test\] /);
     setSender();
     expect((await admin(request(createApp()).post(`${C}/${c.id}/test`))).status).toBe(422);
+  });
+});
+
+describe("the unsubscribe link can never be missing", () => {
+  const sender = (over: Partial<AnnounceSettings["sender"]>) => ({ ...DEFAULT_ANNOUNCE_SETTINGS.sender, footerIdentity: "Yehuda, Tel Aviv", ...over });
+  const render = (note: string, lang: "en" | "he" = "en") =>
+    renderCampaignMail({ subject: "S", bodyText: "Body", preheader: undefined, blocks: undefined } as never, { lang }, hashEmail(addr(1)), sender(lang === "he" ? { unsubscribeNoteHe: note } : { unsubscribeNoteEn: note }));
+  const unsubAnchors = (html: string) => html.match(/<a href="[^"]*\/unsubscribe\?token=[^"]+"/g) ?? [];
+  const hasLinkEverywhere = (m: Awaited<ReturnType<typeof render>>) => {
+    expect(unsubAnchors(m.html)).toHaveLength(1);
+    expect(m.text).toMatch(/https?:\/\/\S+\/unsubscribe\?token=\S+/);
+    expect(m.headers["List-Unsubscribe"]).toMatch(/^<https?:\/\/.+\/api\/subscribe\/unsubscribe\?token=.+>$/);
+    expect(m.headers["List-Unsubscribe-Post"]).toBe("List-Unsubscribe=One-Click");
+  };
+
+  it("a note without {link} gets the fallback line in html and text (EN)", async () => {
+    const m = await render("Thanks for reading");
+    hasLinkEverywhere(m);
+    expect(m.html).toContain(UNSUB_FALLBACK_EN.split("{link}")[0]);
+    expect(m.text).toContain(UNSUB_FALLBACK_EN.split("{link}")[0]);
+    expect(m.html).toContain('lang="en" dir="ltr"');
+  });
+
+  it("the Hebrew mail carries the Hebrew fallback, lang=he and dir=rtl", async () => {
+    const m = await render("תודה", "he");
+    hasLinkEverywhere(m);
+    expect(m.html).toContain('lang="he" dir="rtl"');
+    expect(m.html).toContain(UNSUB_FALLBACK_HE.split("{link}")[0]);
+    expect(m.text).toContain(UNSUB_FALLBACK_HE.split("{link}")[0]);
+  });
+
+  it("a note that already has {link} is left alone, twice is fine", async () => {
+    const one = await render("Out: {link}");
+    expect(unsubAnchors(one.html)).toHaveLength(1);
+    expect(one.html).not.toContain(UNSUB_FALLBACK_EN.split("{link}")[0]);
+    expect(unsubAnchors((await render("{link} and {link}")).html)).toHaveLength(2);
+  });
+
+  it.each(["{Link}", "{ link }", "[link]", "{lnk}"])("%s is not a link, so the fallback is added", async (note) => {
+    hasLinkEverywhere(await render(`Bye ${note}`));
+  });
+
+  it("{{link}} still yields exactly one link", async () => {
+    expect(unsubAnchors((await render("x {{link}}")).html)).toHaveLength(1);
+  });
+
+  it("hostile html in the note stays escaped and the link is still there", async () => {
+    const m = await render('<a href="https://evil.example">x</a><script>1</script>');
+    expect(m.html).not.toContain("<script>");
+    expect(m.html).not.toContain("evil.example\">");
+    hasLinkEverywhere(m);
+  });
+
+  it("corpus: whatever was saved, the link and both headers are present", async () => {
+    for (const note of ["", "   ", "\n", "🙂", "שלום", "x".repeat(2000), "{name} {days}"]) for (const lang of ["en", "he"] as const) hasLinkEverywhere(await render(note, lang));
+  });
+
+  it("an old stored note without {link} refuses to queue (422) but a test send still carries the link", async () => {
+    setSender({ unsubscribeNoteEn: "Thanks for reading", testRecipients: ["me@example.org"] });
+    seedMany(2);
+    const c = await mk();
+    const r = await admin(request(createApp()).post(`${C}/${c.id}/send-now`));
+    expect(r.status).toBe(422);
+    expect(r.body.error).toMatch(/unsubscribe note/);
+    expect((await admin(request(createApp()).post(`${C}/${c.id}/schedule`).send({ sendAt: new Date(T0 + 3_600_000).toISOString() }))).status).toBe(422);
+    await admin(request(createApp()).post(`${C}/${c.id}/test`));
+    expect(sent[0].text).toMatch(/\/unsubscribe\?token=/);
+  });
+
+  it("the tick never emits a mail without the link, even if the note was edited after queueing", async () => {
+    const id = await queued(2);
+    setSender({ unsubscribeNoteEn: "Thanks for reading" });
+    await runSenderTick({ now: () => T0, deliver });
+    expect(sent).toHaveLength(2);
+    for (const m of sent) {
+      expect(m.html).toMatch(/\/unsubscribe\?token=/);
+      expect(m.text).toMatch(/\/unsubscribe\?token=/);
+      expect(m.headers?.["List-Unsubscribe"]).toBeTruthy();
+    }
+    expect(get(id).counters.sent).toBe(2);
+  });
+});
+
+describe("PUT /api/admin/announce/settings: sender texts are validated on save only", () => {
+  const put = (app: ReturnType<typeof createApp>, sender: Record<string, unknown>, _rev?: string) =>
+    admin(request(app).put("/api/admin/announce/settings").send({ settings: { ...DEFAULT_ANNOUNCE_SETTINGS, sender: { ...DEFAULT_ANNOUNCE_SETTINGS.sender, ...sender } }, ...(_rev ? { _rev } : {}) }));
+
+  it.each(["confirmBodyEn", "confirmBodyHe", "unsubscribeNoteEn", "unsubscribeNoteHe"])("%s without {link} is refused with the exact message", async (f) => {
+    const r = await put(createApp(), { [f]: "No link here" });
+    expect(r.status).toBe(400);
+    const what = f.startsWith("unsub") ? "unsubscribe note must contain {link}, otherwise nobody can unsubscribe" : "confirmation message must contain {link}, otherwise nobody can confirm";
+    expect(r.body.issues).toEqual([{ path: `sender.${f}`, message: `The ${what}. Use Reset to default to restore it.` }]);
+  });
+
+  it("unknown or mistyped placeholders, {name}/{days} in a note and a long note are refused; defaults pass", async () => {
+    const app = createApp();
+    for (const text of ["Out {Link}", "Out { link }", "Out {{link}}", "Out {link} {nope}"]) {
+      const r = await put(app, { unsubscribeNoteEn: text });
+      expect(r.status, text).toBe(400);
+      expect(r.body.issues[0].path).toBe("sender.unsubscribeNoteEn");
+    }
+    expect((await put(app, { unsubscribeNoteEn: "Hi {name} {link}" })).status).toBe(400);
+    expect((await put(app, { unsubscribeNoteEn: `${"x".repeat(500)} {link}` })).status).toBe(400);
+    const ok = await put(app, {});
+    expect(ok.status).toBe(200);
+    expect((await put(app, { unsubscribeNoteHe: "בטלו כאן: {link} באתר {site}" }, ok.body._rev)).status).toBe(200);
+  });
+
+  it("an older stored document without {link} still loads as saved, not reset to defaults", async () => {
+    store.set("settings:announce", {
+      _id: "settings:announce", _rev: "1-old", type: "settings-announce", updatedAt: "x",
+      settings: { ...DEFAULT_ANNOUNCE_SETTINGS, sender: { ...DEFAULT_ANNOUNCE_SETTINGS.sender, footerIdentity: "Keep me", testRecipients: ["me@example.org"], unsubscribeNoteEn: "Thanks" } },
+    });
+    const got = await admin(request(createApp()).get("/api/admin/announce/settings"));
+    expect(got.body.settings.sender).toMatchObject({ footerIdentity: "Keep me", testRecipients: ["me@example.org"], unsubscribeNoteEn: "Thanks" });
   });
 });
 
@@ -329,7 +444,7 @@ describe("sender tick", () => {
     }
     await runSenderTick({ now: () => T0, deliver });
     expect(sent).toHaveLength(0);
-    expect(get(id)).toMatchObject({ status: "sent", counters: { sent: 1, failed: 1, suppressed: 0 } });
+    expect(get(id)).toMatchObject({ status: "failed", counters: { sent: 1, failed: 1, suppressed: 0 } });
   });
 
   it("never sends to pending, unsubscribed or suppressed contacts, nor to one who left between scan and send", async () => {
@@ -375,6 +490,182 @@ describe("sender tick", () => {
     await runSenderTick({ now: () => T0, deliver: failing });
     await runSenderTick({ now: () => T0, deliver: failing });
     expect(get(id)).toMatchObject({ status: "failed", counters: { sent: 0, failed: 2 } });
+    const nonContact = JSON.stringify([...store.entries()].filter(([k]) => !k.startsWith("contact:")));
+    expect(nonContact).not.toMatch(/user\d@example\.com/);
+    expect(logs.join("")).not.toMatch(/user\d@example\.com/);
+  });
+});
+
+/* ---- bounces: what a failed send does to the contact and to the campaign ---- */
+type Fail = { kind?: "hard" | "soft" | "transient" | "policy" | "auth"; code?: number };
+const HARD: Fail = { kind: "hard", code: 550 };
+const SOFT: Fail = { kind: "soft", code: 452 };
+const TRANSIENT: Fail = { kind: "transient", code: 421 };
+const POLICY: Fail = { kind: "policy", code: 554 };
+const AUTH: Fail = { kind: "auth", code: 535 };
+/* The error text carries an address on purpose: it must never reach a stored doc. */
+const failing = (f: Fail): Deliver => async (msgs) => msgs.map((m) => ({ ok: false as const, error: `${f.code ?? ""} rejected <${m.to}>`, ...f }));
+/* One verdict per call, in call order; anything past the list is delivered. */
+const script = (verdicts: Array<Fail | null>): Deliver => {
+  let n = 0;
+  return async (msgs) => msgs.map((m) => {
+    const v = verdicts[n++] ?? null;
+    return v ? { ok: false as const, error: `${v.code ?? ""} rejected <${m.to}>`, ...v } : { ok: true as const };
+  });
+};
+const contactOf = (i: number) => store.get(`contact:${hashEmail(addr(i))}`) as Record<string, any>;
+const sendDocs = (id: string) => [...store.entries()].filter(([k]) => k.startsWith(`send:${id}:`)).map(([, d]) => d as Record<string, any>);
+const tick = (deliver_: Deliver, at = T0) => runSenderTick({ now: () => at, deliver: deliver_ });
+
+describe("bounce handling", () => {
+  it("a hard bounce suppresses the contact with a reason, and the next campaign never mails it", async () => {
+    const id = await queued(1);
+    await tick(failing(HARD));
+    expect(contactOf(1)).toMatchObject({ status: "suppressed", suppressedReason: "hard-bounce" });
+    expect(sendDocs(id)[0]).toMatchObject({ status: "failed", kind: "hard", code: 550 });
+    const second = await mk();
+    store.set(`campaign:${second.id}`, { ...get(second.id), status: "scheduled", sendAt: "2000-01-01T00:00:00.000Z" });
+    await tick(deliver);
+    await tick(deliver);
+    expect(sent).toEqual([]);
+  });
+
+  it("a policy refusal, a login failure and an unclassified error never suppress the contact", async () => {
+    for (const f of [POLICY, {} as Fail]) {
+      store.clear();
+      await queued(1);
+      await tick(failing(f));
+      expect(contactOf(1).status).toBe("active");
+    }
+  });
+
+  it("three soft failures in a row, across campaigns, suppress; a delivered mail resets the count", async () => {
+    await queued(1);
+    await tick(failing(SOFT));
+    expect(contactOf(1)).toMatchObject({ status: "active", softBounces: 1 });
+    const again = async (d: Deliver) => {
+      const c = await mk();
+      store.set(`campaign:${c.id}`, { ...get(c.id), status: "scheduled", sendAt: "2000-01-01T00:00:00.000Z" });
+      await tick(d);
+      await tick(d);
+    };
+    await again(failing(SOFT));
+    expect(contactOf(1).softBounces).toBe(2);
+    await again(deliver);
+    expect(contactOf(1).softBounces).toBeUndefined();
+    await again(failing(SOFT));
+    await again(failing(SOFT));
+    expect(contactOf(1)).toMatchObject({ status: "active", softBounces: 2 });
+    await again(failing(SOFT));
+    expect(contactOf(1)).toMatchObject({ status: "suppressed", suppressedReason: "soft-bounces" });
+    expect(contactOf(1).softBounces).toBeUndefined();
+  });
+
+  it("a transient failure is deferred and retried 15 minutes later, up to 3 tries, and the campaign waits", async () => {
+    const id = await queued(1);
+    await tick(failing(TRANSIENT));
+    expect(sendDocs(id)[0]).toMatchObject({ status: "deferred", tries: 1, kind: "transient" });
+    expect(get(id)).toMatchObject({ status: "sending", counters: { failed: 0 } });
+    await tick(failing(TRANSIENT), T0 + 60_000);
+    expect(sendDocs(id)[0].tries).toBe(1);
+    await tick(failing(TRANSIENT), T0 + 16 * 60_000);
+    expect(sendDocs(id)[0]).toMatchObject({ status: "deferred", tries: 2 });
+    await tick(failing(TRANSIENT), T0 + 32 * 60_000);
+    expect(sendDocs(id)[0]).toMatchObject({ status: "failed", tries: 3 });
+    expect(contactOf(1)).toMatchObject({ status: "active" });
+    await tick(deliver, T0 + 33 * 60_000);
+    expect(get(id)).toMatchObject({ status: "failed", counters: { sent: 0, failed: 1 } });
+  });
+
+  it("a deferred mail that goes through on retry counts as sent and the campaign finishes", async () => {
+    const id = await queued(1);
+    await tick(failing(TRANSIENT));
+    await tick(deliver, T0 + 16 * 60_000);
+    await tick(deliver, T0 + 17 * 60_000);
+    expect(get(id)).toMatchObject({ status: "sent", counters: { sent: 1, failed: 0 } });
+    expect(sent).toHaveLength(1);
+  });
+
+  it("a login failure pauses the campaign at once, with the reason, and nobody else is tried", async () => {
+    const id = await queued(5);
+    const d = vi.fn(failing(AUTH));
+    await tick(d);
+    expect(d).toHaveBeenCalledTimes(1);
+    expect(get(id)).toMatchObject({ status: "paused", pausedReason: "auth" });
+    await tick(d);
+    expect(d).toHaveBeenCalledTimes(1);
+  });
+
+  it("five failures in a row pause it (reason consecutive); resume restarts the window and finishes the rest", async () => {
+    const id = await queued(9);
+    await tick(failing(POLICY));
+    expect(get(id)).toMatchObject({ status: "paused", pausedReason: "consecutive", counters: { failed: 5, sent: 0 } });
+    const r = await admin(request(createApp()).post(`${C}/${id}/resume`));
+    expect(r.status).toBe(200);
+    expect(r.body.campaign).toMatchObject({ status: "scheduled", pausedReason: null });
+    store.set(`campaign:${id}`, { ...get(id), sendAt: "2000-01-01T00:00:00.000Z" });
+    await tick(deliver);
+    await tick(deliver);
+    expect(sent).toHaveLength(4);
+    expect(get(id)).toMatchObject({ status: "failed", counters: { sent: 4, failed: 5 } });
+  });
+
+  it("a paused or bounced campaign's counters equal its send docs, deferred ones not counted, even after a lost counter update (#565)", async () => {
+    const id = await queued(9);
+    await tick(script([HARD, TRANSIENT, null, null]));
+    const tallyOf = () => {
+      const n = { sent: 0, failed: 0, suppressed: 0 };
+      for (const d of sendDocs(id)) if (d.status in n) n[d.status as keyof typeof n]++;
+      return n;
+    };
+    expect(get(id).counters).toMatchObject(tallyOf());
+    expect(sendDocs(id).some((d) => d.status === "deferred")).toBe(true);
+    // the counter write of a killed batch is lost: the next batch reconciles from the docs
+    store.set(`campaign:${id}`, { ...get(id), counters: { ...get(id).counters, sent: 0, failed: 0 } });
+    await tick(failing(POLICY), T0 + 60_000);
+    expect(get(id).counters).toMatchObject(tallyOf());
+    expect(tallyOf().sent).toBeGreaterThan(0);
+  });
+
+  it("10% failures after 20 attempts pause it; 9% would not", async () => {
+    const id = await queued(25);
+    await tick(script([null, null, null, null, POLICY, null, null, null, null, null, null, POLICY]));
+    expect(get(id)).toMatchObject({ status: "paused", pausedReason: "failure-rate", counters: { sent: 18, failed: 2 } });
+  });
+
+  it("5% hard bounces after 20 attempts pause it (reason hard-bounce-rate)", async () => {
+    const id = await queued(25);
+    await tick(script([null, null, null, null, HARD]));
+    expect(get(id)).toMatchObject({ status: "paused", pausedReason: "hard-bounce-rate", counters: { sent: 19, failed: 1 } });
+  });
+
+  it("a few failures among many do not pause it, and a mostly failed run does not end as sent", async () => {
+    const id = await queued(25);
+    await tick(script([null, null, null, null, POLICY, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null]));
+    expect(get(id)).toMatchObject({ status: "sending", counters: { sent: 24, failed: 1 } });
+    await tick(deliver);
+    expect(get(id).status).toBe("sent");
+    store.clear();
+    const two = await queued(2);
+    await tick(script([POLICY]));
+    await tick(deliver);
+    expect(get(two)).toMatchObject({ status: "failed", counters: { sent: 1, failed: 1 } });
+  });
+
+  it("a paused campaign can be canceled but not deleted or resumed twice; resume refuses other states", async () => {
+    const id = await queued(2);
+    await tick(failing(AUTH));
+    expect((await admin(request(createApp()).delete(`${C}/${id}`))).status).toBe(409);
+    expect((await admin(request(createApp()).post(`${C}/${id}/cancel`))).body.campaign.status).toBe("canceled");
+    expect((await admin(request(createApp()).post(`${C}/${id}/resume`))).status).toBe(409);
+  });
+
+  it("no address reaches a stored doc, the audit trail or the logs", async () => {
+    const id = await queued(6);
+    const logs: string[] = [];
+    for (const l of ["info", "warn", "error", "debug"] as const) vi.spyOn(logger, l).mockImplementation(((...a: unknown[]) => void logs.push(JSON.stringify(a))) as never);
+    await tick(failing(HARD));
+    expect(get(id).status).toBe("paused");
     const nonContact = JSON.stringify([...store.entries()].filter(([k]) => !k.startsWith("contact:")));
     expect(nonContact).not.toMatch(/user\d@example\.com/);
     expect(logs.join("")).not.toMatch(/user\d@example\.com/);

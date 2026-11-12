@@ -7,7 +7,9 @@ import { logger } from "../logger.js";
 import { emailService } from "../services/email.service.js";
 import { DEFAULT_ANNOUNCE_SETTINGS, SETTINGS_DOC_ID } from "../announce/schemas.js";
 import { fillTemplate, renderConfirmMail, unsubscribeUrls } from "./mail.js";
-import { hashEmail, getContact, purgeExpiredPending, resetPurgeClock } from "./store.js";
+import { backfillConsent, hashEmail, getContact, purgeExpiredPending, resetConsentBackfill, resetPurgeClock } from "./store.js";
+import { CURRENT_CONSENT_TEXT_ID, getConsentText } from "./consent-texts.js";
+import type { Contact } from "./schemas.js";
 import { expiresIn, resetSecretCache, signToken, verifyToken } from "./tokens.js";
 
 /*
@@ -158,11 +160,21 @@ describe("confirm", () => {
     await signup(app(), { lang: "he" });
     await flush();
     const token = tokenFrom(sent[0]);
-    const r = await request(app()).get("/api/subscribe/confirm").query({ token });
+    const r = await request(app()).post("/api/subscribe/confirm").send({ token });
     expect([r.status, r.body]).toEqual([200, { ok: true, lang: "he" }]);
     expect(store.get(`contact:${hash}`)).toMatchObject({ status: "active" });
     expect((store.get(`contact:${hash}`) as { confirmedAt?: string }).confirmedAt).toBeTruthy();
-    expect((await request(app()).get("/api/subscribe/confirm").query({ token })).status).toBe(200);
+    expect((await request(app()).post("/api/subscribe/confirm").send({ token })).status).toBe(200);
+  });
+
+  it("a GET never confirms, with or without a valid token (scanners open links)", async () => {
+    seed({ status: "pending" });
+    const token = await signToken({ t: "confirm", h: hash, exp: expiresIn(3600) });
+    const r = await request(app()).get("/api/subscribe/confirm").query({ token });
+    expect(r.status).toBeGreaterThanOrEqual(400);
+    expect((store.get(`contact:${hash}`) as { status: string }).status).toBe("pending");
+    expect((await request(app()).post("/api/subscribe/confirm").send({ token })).status).toBe(200);
+    expect((store.get(`contact:${hash}`) as { status: string }).status).toBe("active");
   });
 
   it("refuses tampered, wrong-kind, expired, unknown-contact and missing tokens with one identical answer", async () => {
@@ -181,12 +193,12 @@ describe("confirm", () => {
     ];
     const answers = [];
     for (const token of cases) {
-      const r = await request(app()).get("/api/subscribe/confirm").query({ token });
+      const r = await request(app()).post("/api/subscribe/confirm").send({ token });
       answers.push([r.status, r.body]);
     }
     for (const a of answers) expect(a).toEqual(answers[0]);
     expect(answers[0][0]).toBe(400);
-    expect((await request(app()).get("/api/subscribe/confirm")).status).toBe(400);
+    expect((await request(app()).post("/api/subscribe/confirm").send({})).status).toBe(400);
     expect((store.get(`contact:${hash}`) as { status: string }).status).toBe("pending");
   });
 
@@ -194,7 +206,7 @@ describe("confirm", () => {
     const old = new Date(Date.now() - 8 * 86_400_000).toISOString();
     seed({ status: "pending", createdAt: old, updatedAt: old });
     const token = await signToken({ t: "confirm", h: hash, exp: expiresIn(3600) });
-    expect((await request(app()).get("/api/subscribe/confirm").query({ token })).status).toBe(400);
+    expect((await request(app()).post("/api/subscribe/confirm").send({ token })).status).toBe(400);
     await vi.waitFor(() => expect(store.has(`contact:${hash}`)).toBe(false));
   });
 
@@ -225,7 +237,7 @@ describe("tokens", () => {
   it("no public route returns the secret", async () => {
     await signToken({ t: "confirm", h: hash, exp: expiresIn(60) });
     const secret = (store.get("secret:subscribe") as { secret: string }).secret;
-    for (const path of ["/api/subscribe/confirm?token=x", "/api/subscribe/manage?token=x", "/api/settings"]) {
+    for (const path of ["/api/subscribe/manage?token=x", "/api/settings"]) {
       expect(JSON.stringify((await request(app()).get(path)).body)).not.toContain(secret);
     }
   });
@@ -255,6 +267,15 @@ describe("unsubscribe", () => {
     expect((await request(app()).post("/api/subscribe/unsubscribe?token=bad").type("form").send("List-Unsubscribe=One-Click")).status).toBe(400);
     expect((await request(app()).post("/api/subscribe/unsubscribe").send({ token: await signToken({ t: "manage", h: hash, exp: expiresIn(60) }) })).status).toBe(400);
     expect(store.get(`contact:${hash}`)).toMatchObject({ status: "active" });
+  });
+  it("a GET never unsubscribes: the API has no GET for it, and the mailed link opens a page that asks for a click", async () => {
+    const token = await signToken({ t: "unsub", h: hash, exp: expiresIn(3600) });
+    for (const path of ["/api/subscribe/unsubscribe", "/api/subscribe/confirm"]) {
+      expect((await request(app()).get(path).query({ token })).status).toBeGreaterThanOrEqual(400);
+    }
+    expect(store.get(`contact:${hash}`)).toMatchObject({ status: "active" });
+    const { page } = await unsubscribeUrls(hash);
+    expect(page.startsWith(`${env.SITE_URL}/unsubscribe?token=`)).toBe(true);
   });
   it("never lifts a suppression", async () => {
     seed({ status: "suppressed" });
@@ -409,5 +430,83 @@ describe("the confirmation mail", () => {
     await flush();
     expect(sent[0].subject).toBe("Please confirm");
     expect(sent[0].text).toContain("3 days");
+  });
+});
+
+describe("consent record", () => {
+  const A = "/api/admin/audience";
+  const v1 = getConsentText("site-form-v1")!;
+  const doc = () => store.get(`contact:${hash}`) as unknown as Contact;
+
+  it("a site signup records the registered text id and the server's own hash, then the confirm time", async () => {
+    await signup(app(), { lang: "he", formVersion: "site-form-v1" });
+    await flush();
+    expect(doc().consent).toMatchObject({ textId: "site-form-v1", textHash: v1.sha256, lang: "he", source: "site" });
+    expect(doc().consent?.confirmedAt).toBeUndefined();
+    const r = await request(app()).post("/api/subscribe/confirm").send({ token: tokenFrom(sent[0]) });
+    expect(r.status).toBe(200);
+    expect(doc().consent?.confirmedAt).toBeDefined();
+    expect(doc().consentHistory).toHaveLength(1);
+    expect(doc().consentHistory![0].confirmedAt).toBe(doc().consent!.confirmedAt);
+  });
+
+  it("an unregistered form version is refused and stores nothing; an absent one means the current id", async () => {
+    const bad = await signup(app(), { formVersion: "site-form-v99" });
+    expect(bad.status).toBe(400);
+    expect(store.size).toBe(0);
+    // The client cannot supply a hash: the strict schema rejects the field.
+    const forged = await signup(app(), { textHash: "deadbeef" });
+    expect(forged.status).toBe(400);
+    await signup(app());
+    expect(doc().consent?.textId).toBe(CURRENT_CONSENT_TEXT_ID);
+  });
+
+  it("a re-subscribe appends to the history and never overwrites the earlier entry", async () => {
+    seed({ status: "unsubscribed", unsubscribedAt: "2026-01-01T00:00:00.000Z", consentAt: "2026-01-01T00:00:00.000Z", confirmedAt: "2026-01-02T00:00:00.000Z" });
+    await signup(app(), { lang: "he" });
+    await flush();
+    const h = doc().consentHistory!;
+    expect(h).toHaveLength(2);
+    expect(h[0]).toMatchObject({ textId: "site-form-v1", at: "2026-01-01T00:00:00.000Z", confirmedAt: "2026-01-02T00:00:00.000Z", lang: "en" });
+    expect(h[1]).toMatchObject({ textId: "site-form-v1", lang: "he" });
+    expect(h[1].confirmedAt).toBeUndefined();
+    expect(doc().consent).toEqual(h[1]);
+  });
+
+  it("a legacy contact (only consentAt/consentNote) reads as a full consent without being rewritten", async () => {
+    seed({ confirmedAt: "2026-01-02T00:00:00.000Z" });
+    const r = await admin(request(app()).get(`${A}/contacts`));
+    const item = r.body.contacts[0];
+    expect(item.consent).toMatchObject({ textId: "site-form-v1", textHash: v1.sha256, source: "site", confirmedAt: "2026-01-02T00:00:00.000Z" });
+    expect(item.consentHistory).toHaveLength(1);
+    expect(doc().consent).toBeUndefined();
+  });
+
+  it("backfill adds consent and history to legacy contacts, keeps the old fields, and leaves updatedAt alone", async () => {
+    resetConsentBackfill();
+    seed({ updatedAt: "2026-01-03T00:00:00.000Z", consentNote: "list from 2024", source: "import" });
+    expect(await backfillConsent()).toBe(1);
+    expect(doc()).toMatchObject({
+      consentNote: "list from 2024",
+      updatedAt: "2026-01-03T00:00:00.000Z",
+      consent: { textId: null, textHash: null, source: "import", note: "list from 2024" },
+    });
+    expect(doc().consentHistory).toHaveLength(1);
+    resetConsentBackfill();
+    expect(await backfillConsent()).toBe(0);
+  });
+
+  it("CSV import stores the per-batch note on every contact's consent", async () => {
+    await admin(request(app()).post(`${A}/contacts/import`).send({ csv: "email,lang\nann@example.com,he\n", consentNote: "workshop list 2025", consentConfirmed: true }));
+    expect(doc().consent).toMatchObject({ textId: null, source: "import", note: "workshop list 2025", lang: "he" });
+    expect(doc().consentHistory).toHaveLength(1);
+  });
+
+  it("the export carries the consent text id, hash, language, confirm time and history", async () => {
+    seed({ confirmedAt: "2026-01-02T00:00:00.000Z" });
+    const r = await admin(request(app()).get(`${A}/contacts/export.csv`));
+    expect(r.text).toContain("consentTextId,consentTextHash,consentLang,consentConfirmedAt,consentHistory");
+    expect(r.text).toContain(v1.sha256);
+    expect(r.text).toContain("site-form-v1");
   });
 });

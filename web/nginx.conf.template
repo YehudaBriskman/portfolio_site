@@ -17,6 +17,25 @@ log_format mcp_ext '$remote_addr - $remote_user [$time_local] '
                    'rt=$request_time urt=$upstream_response_time '
                    'uaddr=$upstream_addr ustatus=$upstream_status '
                    'host=$host req_id=$request_id';
+# The same again for the pages and API calls an email link opens: their query
+# carries a signed subscribe/unsubscribe/manage token, which is a credential
+# for as long as it lives (an unsubscribe token lasts three years).
+log_format token_ext '$remote_addr - $remote_user [$time_local] '
+                     '"$request_method $uri $server_protocol" $status $body_bytes_sent '
+                     '"-" "$http_user_agent" '
+                     'rt=$request_time urt=$upstream_response_time '
+                     'uaddr=$upstream_addr ustatus=$upstream_status '
+                     'host=$host req_id=$request_id';
+
+# Chosen on $request_uri, not $uri: the 5xx fallback re-enters as /index.html
+# and a $uri map would then send the default policy with the token still in the
+# address bar. `no-referrer` because a token in the URL must not leave in a
+# Referer header, whatever the page or an embedded resource links to.
+map $request_uri $referrer_policy {
+  default                                                          "strict-origin-when-cross-origin";
+  ~^/(subscribe/confirm|subscribe/manage|unsubscribe|api/subscribe)([/?]|$) "no-referrer";
+}
+
 # warn, not info: at info an upstream error logs `request: "GET /path?query"`,
 # and the MCP OAuth endpoints carry authorization codes in theirs. No
 # per-location error_log can strip a query string, so the level is the control.
@@ -176,6 +195,21 @@ server {
   # and it is the right one for the value every API call depends on.
   set $api_upstream "${NGINX_API_HOST}:5000";
 
+  # The public subscription API: tokens ride in the query (confirm link, RFC 8058
+  # one-click POST, manage), so no query string reaches the access log. Same
+  # proxying as /api/ below; a prefix match this long wins over it.
+  location ^~ /api/subscribe {
+    proxy_pass http://$api_upstream;
+    proxy_http_version 1.1;
+    include /etc/nginx/snippets/proxy-headers.conf;
+    proxy_read_timeout   60s;
+    proxy_connect_timeout 5s;
+    proxy_send_timeout   60s;
+    access_log /dev/stdout token_ext;
+    add_header X-Request-Id $request_id always;
+    include /etc/nginx/snippets/security-headers.conf;
+  }
+
   location ^~ /api/ {
     # Through the variable, not the literal name.
     #
@@ -328,6 +362,7 @@ server {
   location = /subscribe/confirm {
     proxy_pass http://$api_upstream/api/seo/render/subscribe/confirm;
     include /etc/nginx/snippets/proxy-headers.conf;
+    access_log /dev/stdout token_ext;
     proxy_intercept_errors on;
     error_page 500 502 503 504 = @spa;
   }
@@ -335,6 +370,7 @@ server {
   location = /unsubscribe {
     proxy_pass http://$api_upstream/api/seo/render/unsubscribe;
     include /etc/nginx/snippets/proxy-headers.conf;
+    access_log /dev/stdout token_ext;
     proxy_intercept_errors on;
     error_page 500 502 503 504 = @spa;
   }
@@ -342,6 +378,7 @@ server {
   location = /subscribe/manage {
     proxy_pass http://$api_upstream/api/seo/render/subscribe/manage;
     include /etc/nginx/snippets/proxy-headers.conf;
+    access_log /dev/stdout token_ext;
     proxy_intercept_errors on;
     error_page 500 502 503 504 = @spa;
   }

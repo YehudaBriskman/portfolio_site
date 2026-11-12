@@ -44,7 +44,7 @@ All documents are in the one CouchDB database.
 | Contact | `contact:<hash>` | `email`, `name?`, `lang` (`en`/`he`), `groups` (slugs), `status`, `source` (`site`/`manual`/`import`), `consentAt`, `consentNote`, `topics` (`blog`, `releases`), `createdAt`, `updatedAt`, `confirmedAt?`, `unsubscribedAt?` |
 | Group | `audience:<slug>` | `name`, `kind` (`system` or `manual`), `createdAt`. The system group `subscribers` receives site signups and cannot be deleted |
 | Campaign | `campaign:<id>` | `name`, `subject`, `preheader?`, `bodyText`, `blocks?`, `groups`, `lang` (`en`/`he`/`all`), `topic?`, `status`, `sendAt?`, `counters` (`queued`, `sent`, `failed`, `suppressed`), `eventId?`, `startedAt?`, `finishedAt?`. No addresses |
-| Send result | `send:<campaignId>:<hash>` | one per recipient per campaign: `status` (`attempting`, `sent`, `failed`, `suppressed`), `at`, a scrubbed `error?`. The contact is referenced by hash only |
+| Send result | `send:<campaignId>:<hash>` | one per recipient per campaign: `status` (`attempting`, `sent`, `failed`, `suppressed`, `deferred`), `at`, a scrubbed `error?`, `kind?` and `code?` (the classified failure and numeric SMTP reply), `tries?`, `retryAt?`. The contact is referenced by hash only |
 | Sender state | `sender:state` | this hour's and today's send counts, across all campaigns |
 | Signing secret | `secret:subscribe` | see "Signed links" |
 | Settings | `settings:announce` | the `sender` block: see "Sender settings" |
@@ -76,9 +76,15 @@ status that is ever mailed), `unsubscribed`, `suppressed`.
    than two minutes old (`RESEND_AFTER_MS`). An `unsubscribed` address asking
    again goes back to `pending` and must confirm again. `active` and
    `suppressed` addresses: nothing happens, nothing shows.
-4. The link in the mail opens `/subscribe/confirm?token=`, which calls
-   `GET /api/subscribe/confirm`. A valid, unexpired token on a `pending`
-   contact sets `active` and `confirmedAt`.
+4. The link in the mail opens `/subscribe/confirm?token=`, a page that only
+   shows a "Confirm my subscription" button; opening it changes nothing, so a
+   mail scanner cannot subscribe anyone. The click calls
+   `POST /api/subscribe/confirm` with the token in the body. A valid,
+   unexpired token on a `pending` contact sets `active` and `confirmedAt`.
+   Tokens are kept out of logs: nginx logs these pages and `/api/subscribe`
+   without the query string, the API's request and error logs drop the query
+   of token and `/api/admin` routes, and these pages send `Referrer-Policy:
+   no-referrer`.
 5. A pending contact is treated as expired once `updatedAt` is older than
    `pendingTtlDays` (default 7, allowed 1 to 30). Expired contacts are deleted
    lazily: a sweep runs, at most once a minute per process, when someone signs
@@ -125,8 +131,36 @@ Suppression is the owner's "never mail this address" list. Same document, status
   recipient immediately before sending, so a suppression made while a campaign
   runs is honoured by the next recipient.
 
-There is **no automatic bounce or complaint handling**. Nothing reads bounces
-or feedback-loop reports; the owner suppresses by hand (see the runbook).
+### Bounces: what the sender does by itself
+
+Only what the SMTP server says **while sending** is handled. Each failure is
+classified from nodemailer's error (`providers/classifySmtpError.ts`; the
+result doc keeps the `kind` and the numeric `code`, never the text or an address):
+
+| Kind | Examples | What happens |
+|---|---|---|
+| `hard` | 550 5.1.1 unknown user, 5.1.x, 5.2.1 account disabled, 551, 553 | the contact becomes `suppressed` (`suppressedReason: hard-bounce`); never deleted |
+| `soft` | 452 / 5.2.2 mailbox full, other 4xx | counted on the contact (`softBounces`); the **third in a row**, across campaigns, suppresses it (`soft-bounces`); a delivered mail resets the count |
+| `transient` | 421, 450, 451, timeouts, connection errors | the result is `deferred` and tried again 15 minutes later, **3 tries in all**, then `failed`; the contact is untouched |
+| `policy` | 5.7.x, 554, a spam block, a bare 550 that does not name the mailbox | `failed`; the contact is **never** suppressed (it is about us, not them) |
+| `auth` | EAUTH, 535 | pauses the campaign at once |
+
+A suppression made this way shows in the suppression list like any other and is
+lifted the same way (which also forgets the bounce).
+
+**Auto-pause.** The sender sets the campaign to `paused` (with a `pausedReason`
+the admin shows in words) when, counted since it started or was last resumed:
+a login is refused; **5 failures or deferrals in a row**; **10% or more failed
+after at least 20 attempts**; or **5% or more hard bounces after at least 20
+attempts**. A paused campaign sends nothing. The owner fixes the cause and
+presses Resume (`POST /api/admin/campaigns/:id/resume`): it goes back to
+`scheduled`, the counting window restarts, and people already handled are
+skipped. Cancel works on a paused campaign too.
+
+Not handled: **asynchronous bounces and complaints**. A relay that accepts the
+mail and bounces it later sends a report to the envelope sender (`MAIL_FROM`)
+mailbox, and nothing reads it. The owner suppresses those by hand (see the
+runbook).
 
 ### Who a campaign reaches
 
@@ -238,10 +272,13 @@ result are skipped. A result stuck at `attempting` for more than 5 minutes
 (`STALE_ATTEMPT_MS`) belongs to a crashed run and is **retried**. The known
 trade-off: if the process died after the SMTP server accepted a message and
 before the result was written, that one person gets the mail twice. A `failed`
-recipient is not retried inside the same campaign.
+recipient is not retried inside the same campaign. A `deferred` one (a transient
+SMTP error) is retried 15 minutes later, up to 3 tries; until it is done the
+campaign stays `sending`.
 
-When nobody is left to do the campaign becomes `sent`, or `failed` when nothing
-was sent and something failed.
+When nobody is left to do the campaign becomes `sent`, or `failed` when half or
+more of the attempts failed. A campaign stopped by the auto-pause (below) is
+`paused` and sends nothing until it is resumed.
 
 ### Cancel
 
@@ -326,7 +363,8 @@ Do these before the first real send.
    that the unsubscribe link works and that the contact becomes `unsubscribed`.
    Raise the cap in steps over a few weeks.
 5. Keep the list clean: only confirmed or consented addresses, and suppress
-   bounces and complaints promptly (nothing does it for you).
+   bounces and complaints promptly (synchronous hard bounces are suppressed for you;
+   asynchronous ones and complaints are not).
 6. `SITE_URL` must be the public origin: every link in a mail is built from it.
 
 ## Israeli commercial mail: what the owner must confirm
@@ -398,7 +436,9 @@ move by up to 25 per tick (30 s) while budget lasts. Then, in order:
 
 ### A mail bounced or someone complained
 
-Nothing reads bounces or complaints automatically.
+A bounce the SMTP server reports while sending is handled by the sender (see
+"Bounces"). Nothing reads asynchronous bounce reports (they go to the `MAIL_FROM`
+mailbox) or complaints, so check that mailbox after every campaign.
 
 1. In the Audience tab's suppression panel, add the address (`POST /api/admin/audience/suppression`).
    A suppressed address is never mailed again by a campaign, a signup or an import.
@@ -407,6 +447,10 @@ Nothing reads bounces or complaints automatically.
    then deleting.
 3. A spike of bounces or complaints: stop (cancel running campaigns), lower the cap,
    and check SPF, DKIM and DMARC and the list's origin before sending again.
+4. A campaign shows **Paused**: read the reason on its page. A login refusal means
+   the SMTP username or password (env) is wrong or revoked; five failures in a row
+   means the relay or the From address; a failure or bounce rate means look at the
+   failures before resuming. Resume only when the cause is fixed, or Cancel.
 
 ### Rotate the signing secret
 
