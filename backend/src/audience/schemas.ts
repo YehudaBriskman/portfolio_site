@@ -6,6 +6,20 @@ export const STATUSES = ["pending", "active", "unsubscribed", "suppressed"] as c
 export type Status = (typeof STATUSES)[number];
 export type Topics = { blog: boolean; releases: boolean };
 
+/*
+ * One consent event. `textId`/`textHash` name the exact wording the person saw
+ * (consent-texts.ts); null for manual and import, where the evidence is `note`.
+ */
+export type Consent = {
+  textId: string | null;
+  textHash: string | null;
+  lang: Lang;
+  at: string;
+  confirmedAt?: string;
+  source: "site" | "manual" | "import";
+  note?: string;
+};
+
 export type Contact = {
   _id: string;
   _rev?: string;
@@ -18,6 +32,10 @@ export type Contact = {
   source: "site" | "manual" | "import";
   consentAt: string;
   consentNote: string;
+  /* The current consent and every one before it, newest last; append-only.
+     Absent on contacts from before the registry: read them through consentOf(). */
+  consent?: Consent;
+  consentHistory?: Consent[];
   topics: Topics;
   createdAt: string;
   updatedAt: string;
@@ -50,6 +68,8 @@ export const SubscribeBody = z
     name: Name.optional(),
     lang: Lang,
     topics: TopicsSchema.optional(),
+    /* The form version the client believes it showed; the server checks it is a registered id. */
+    formVersion: z.string().max(60).optional(),
     /* Honeypot: invisible to people, filled by form-stuffing bots. */
     website: z.string().max(500).optional(),
   })

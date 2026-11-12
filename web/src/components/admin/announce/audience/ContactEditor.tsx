@@ -93,8 +93,25 @@ export default function ContactEditor({ contact, groups, onClose, onDone }: { co
 
         <section className="a-box space-y-1 p-3 text-sm" aria-label={w.consentHeading}>
           <h4 className="a-label !mb-0">{w.consentHeading}</h4>
-          <p>{w.consentOn(when(contact.consentAt), w.sources[contact.source] ?? contact.source)}</p>
-          <p className="text-clay" dir="auto">{contact.consentNote ? `${w.consentNoteLabel}: ${contact.consentNote}` : <Empty />}</p>
+          {(contact.consentHistory?.length ? [...contact.consentHistory].reverse() : [null]).map((e, i) => (
+            <div key={e?.at ?? "legacy"} className={i === 0 ? "space-y-1" : "space-y-1 border-t pt-1 opacity-80"}>
+              {i === 1 && <h5 className="a-label !mb-0">{w.consentEarlier}</h5>}
+              <p>{w.consentOn(when(e?.at ?? contact.consentAt), w.sources[e?.source ?? contact.source] ?? contact.source)}</p>
+              <p className="text-clay">
+                {e ? (e.confirmedAt ? w.consentConfirmedOn(when(e.confirmedAt)) : w.consentNotConfirmed) : null}
+              </p>
+              {e?.textId ? (
+                <p className="text-clay">
+                  {w.consentWording}: <span dir="ltr" className="tabular-nums">{e.textId} · {e.lang} · {e.textHash?.slice(0, 12)}</span>
+                </p>
+              ) : e ? (
+                <p className="text-clay">{w.consentNoWording}</p>
+              ) : null}
+              {(e?.note ?? (e ? "" : contact.consentNote)) ? (
+                <p className="text-clay" dir="auto">{`${w.consentNoteLabel}: ${e?.note ?? contact.consentNote}`}</p>
+              ) : !e ? <Empty /> : null}
+            </div>
+          ))}
         </section>
 
         {error && <p className="a-error" role="alert">{w.saveFailed}</p>}

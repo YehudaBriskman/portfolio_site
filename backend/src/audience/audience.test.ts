@@ -7,7 +7,9 @@ import { logger } from "../logger.js";
 import { emailService } from "../services/email.service.js";
 import { DEFAULT_ANNOUNCE_SETTINGS, SETTINGS_DOC_ID } from "../announce/schemas.js";
 import { fillTemplate, renderConfirmMail, unsubscribeUrls } from "./mail.js";
-import { hashEmail, getContact, purgeExpiredPending, resetPurgeClock } from "./store.js";
+import { backfillConsent, hashEmail, getContact, purgeExpiredPending, resetConsentBackfill, resetPurgeClock } from "./store.js";
+import { CURRENT_CONSENT_TEXT_ID, getConsentText } from "./consent-texts.js";
+import type { Contact } from "./schemas.js";
 import { expiresIn, resetSecretCache, signToken, verifyToken } from "./tokens.js";
 
 /*
@@ -409,5 +411,83 @@ describe("the confirmation mail", () => {
     await flush();
     expect(sent[0].subject).toBe("Please confirm");
     expect(sent[0].text).toContain("3 days");
+  });
+});
+
+describe("consent record", () => {
+  const A = "/api/admin/audience";
+  const v1 = getConsentText("site-form-v1")!;
+  const doc = () => store.get(`contact:${hash}`) as unknown as Contact;
+
+  it("a site signup records the registered text id and the server's own hash, then the confirm time", async () => {
+    await signup(app(), { lang: "he", formVersion: "site-form-v1" });
+    await flush();
+    expect(doc().consent).toMatchObject({ textId: "site-form-v1", textHash: v1.sha256, lang: "he", source: "site" });
+    expect(doc().consent?.confirmedAt).toBeUndefined();
+    const r = await request(app()).get("/api/subscribe/confirm").query({ token: tokenFrom(sent[0]) });
+    expect(r.status).toBe(200);
+    expect(doc().consent?.confirmedAt).toBeDefined();
+    expect(doc().consentHistory).toHaveLength(1);
+    expect(doc().consentHistory![0].confirmedAt).toBe(doc().consent!.confirmedAt);
+  });
+
+  it("an unregistered form version is refused and stores nothing; an absent one means the current id", async () => {
+    const bad = await signup(app(), { formVersion: "site-form-v99" });
+    expect(bad.status).toBe(400);
+    expect(store.size).toBe(0);
+    // The client cannot supply a hash: the strict schema rejects the field.
+    const forged = await signup(app(), { textHash: "deadbeef" });
+    expect(forged.status).toBe(400);
+    await signup(app());
+    expect(doc().consent?.textId).toBe(CURRENT_CONSENT_TEXT_ID);
+  });
+
+  it("a re-subscribe appends to the history and never overwrites the earlier entry", async () => {
+    seed({ status: "unsubscribed", unsubscribedAt: "2026-01-01T00:00:00.000Z", consentAt: "2026-01-01T00:00:00.000Z", confirmedAt: "2026-01-02T00:00:00.000Z" });
+    await signup(app(), { lang: "he" });
+    await flush();
+    const h = doc().consentHistory!;
+    expect(h).toHaveLength(2);
+    expect(h[0]).toMatchObject({ textId: "site-form-v1", at: "2026-01-01T00:00:00.000Z", confirmedAt: "2026-01-02T00:00:00.000Z", lang: "en" });
+    expect(h[1]).toMatchObject({ textId: "site-form-v1", lang: "he" });
+    expect(h[1].confirmedAt).toBeUndefined();
+    expect(doc().consent).toEqual(h[1]);
+  });
+
+  it("a legacy contact (only consentAt/consentNote) reads as a full consent without being rewritten", async () => {
+    seed({ confirmedAt: "2026-01-02T00:00:00.000Z" });
+    const r = await admin(request(app()).get(`${A}/contacts`));
+    const item = r.body.contacts[0];
+    expect(item.consent).toMatchObject({ textId: "site-form-v1", textHash: v1.sha256, source: "site", confirmedAt: "2026-01-02T00:00:00.000Z" });
+    expect(item.consentHistory).toHaveLength(1);
+    expect(doc().consent).toBeUndefined();
+  });
+
+  it("backfill adds consent and history to legacy contacts, keeps the old fields, and leaves updatedAt alone", async () => {
+    resetConsentBackfill();
+    seed({ updatedAt: "2026-01-03T00:00:00.000Z", consentNote: "list from 2024", source: "import" });
+    expect(await backfillConsent()).toBe(1);
+    expect(doc()).toMatchObject({
+      consentNote: "list from 2024",
+      updatedAt: "2026-01-03T00:00:00.000Z",
+      consent: { textId: null, textHash: null, source: "import", note: "list from 2024" },
+    });
+    expect(doc().consentHistory).toHaveLength(1);
+    resetConsentBackfill();
+    expect(await backfillConsent()).toBe(0);
+  });
+
+  it("CSV import stores the per-batch note on every contact's consent", async () => {
+    await admin(request(app()).post(`${A}/contacts/import`).send({ csv: "email,lang\nann@example.com,he\n", consentNote: "workshop list 2025", consentConfirmed: true }));
+    expect(doc().consent).toMatchObject({ textId: null, source: "import", note: "workshop list 2025", lang: "he" });
+    expect(doc().consentHistory).toHaveLength(1);
+  });
+
+  it("the export carries the consent text id, hash, language, confirm time and history", async () => {
+    seed({ confirmedAt: "2026-01-02T00:00:00.000Z" });
+    const r = await admin(request(app()).get(`${A}/contacts/export.csv`));
+    expect(r.text).toContain("consentTextId,consentTextHash,consentLang,consentConfirmedAt,consentHistory");
+    expect(r.text).toContain(v1.sha256);
+    expect(r.text).toContain("site-form-v1");
   });
 });

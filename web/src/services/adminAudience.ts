@@ -20,6 +20,16 @@ export type Topics = { blog: boolean; releases: boolean };
 /* `total` is every contact in the group, `active` those who can be mailed; the server sends no `count`. */
 export type Group = { slug: string; name: string; kind: "system" | "manual"; count: number; total?: number; active?: number };
 
+export type ConsentEntry = {
+  textId: string | null;
+  textHash: string | null;
+  lang: ContactLang;
+  at: string;
+  confirmedAt?: string;
+  source: ContactSource;
+  note?: string;
+};
+
 export type Contact = {
   hash: string;
   email: string;
@@ -30,6 +40,9 @@ export type Contact = {
   source: ContactSource;
   consentAt: string;
   consentNote: string;
+  /* Newest last; `consent` is the last entry. Older servers send neither. */
+  consent?: ConsentEntry;
+  consentHistory?: ConsentEntry[];
   topics: Topics;
   createdAt?: string;
   confirmedAt?: string | null;
