@@ -85,7 +85,8 @@ describe("Campaigns tab", () => {
     expect(await screen.findByText("It will be emailed to 12 people.")).toBeTruthy();
     expect(screen.getByText(/cannot be unsent/)).toBeTruthy();
     expect(calls.some((c) => c.url.endsWith("/send-now"))).toBe(false);
-    expect(calls.some((c) => c.url.endsWith("/campaigns/preview"))).toBe(true);
+    /* The preview is asked for after a 450 ms debounce, so on a slow runner it may not have gone out yet. */
+    await waitFor(() => expect(calls.some((c) => c.url.endsWith("/campaigns/preview"))).toBe(true), { timeout: 3000 });
     fireEvent.click(screen.getByRole("button", { name: "Send to 12 now" }));
     await waitFor(() => expect(calls.some((c) => c.url.endsWith("/send-now") && c.method === "POST")).toBe(true));
     expect(await screen.findByTestId("progress")).toBeTruthy();
