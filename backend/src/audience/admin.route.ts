@@ -14,6 +14,8 @@ import {
   ImportBody,
   Slug,
   SuppressBody,
+  SuppressBulkBody,
+  SUPPRESS_BULK_MAX,
   SYSTEM_GROUP,
   type Consent,
   type Contact,
@@ -356,32 +358,86 @@ router.get(
   }),
 );
 
+/** Suppresses one address: a known contact is flipped, an unknown one is created as suppressed so a later signup or import cannot add it. */
+async function suppressAddress(email: string): Promise<{ hash: string; before: Contact | null; after: Contact | null }> {
+  const hash = hashEmail(email);
+  const now = new Date().toISOString();
+  const prior = await getContact(hash);
+  const before = prior ? structuredClone(prior) : null;
+  let after: Contact | null;
+  if (prior) {
+    after = await updateContact(hash, (c) => {
+      c.status = "suppressed";
+      c.unsubscribedAt = now;
+    });
+  } else {
+    after = {
+      _id: contactId(hash), type: "contact", email, lang: "en", groups: [], status: "suppressed", source: "manual",
+      consentAt: now, consentNote: "Added to the suppression list", topics: { blog: false, releases: false },
+      createdAt: now, updatedAt: now, unsubscribedAt: now,
+    };
+    if (!(await createContact(after))) after = await updateContact(hash, (c) => { c.status = "suppressed"; });
+  }
+  return { hash, before, after };
+}
+
 router.post(
   "/suppression",
   asyncHandler(async (req, res) => {
     const b = SuppressBody.safeParse(req.body);
     if (!b.success) return invalid(res);
-    const hash = hashEmail(b.data.email);
-    const now = new Date().toISOString();
-    const prior = await getContact(hash);
-    const priorCopy = prior ? structuredClone(prior) : null;
-    let after: Contact | null;
-    if (prior) {
-      after = await updateContact(hash, (c) => {
-        c.status = "suppressed";
-        c.unsubscribedAt = now;
-      });
-    } else {
-      after = {
-        _id: contactId(hash), type: "contact", email: b.data.email, lang: "en", groups: [], status: "suppressed", source: "manual",
-        consentAt: now, consentNote: "Added to the suppression list", topics: { blog: false, releases: false },
-        createdAt: now, updatedAt: now, unsubscribedAt: now,
-      };
-      if (!(await createContact(after))) after = await updateContact(hash, (c) => { c.status = "suppressed"; });
-    }
+    const { hash, before, after } = await suppressAddress(b.data.email);
     if (!after) return bad(res, "Could not suppress this address.", 409);
-    res.locals.audit = { target: after._id, before: priorCopy, after };
+    res.locals.audit = { target: after._id, before, after };
     res.status(201).json({ ok: true, hash });
+  }),
+);
+
+/*
+ * Paste the addresses a bounce report or an inbox lists, one tool call: any
+ * mix of lines, commas and "Name <a@b.c>" forms. Each is validated like the
+ * single route; the rest come back (clipped) so the owner can fix them. The
+ * audit record carries counts only, never an address.
+ */
+router.post(
+  "/suppression/bulk",
+  asyncHandler(async (req, res) => {
+    const b = SuppressBulkBody.safeParse(req.body);
+    if (!b.success) return invalid(res);
+    const seen = new Set<string>();
+    const todo: string[] = [];
+    const invalidTokens: string[] = [];
+    const reject = (t: string) => { if (invalidTokens.length < 50) invalidTokens.push(t.slice(0, 80)); };
+    for (const line of b.data.text.split(/\r?\n/)) {
+      let found = false;
+      for (const raw of line.split(/[\s,;]+/)) {
+        const t = raw.replace(/^[<("']+|[>)"'.]+$/g, "").trim();
+        if (!t) continue;
+        const e = Email.safeParse(t);
+        if (e.success) {
+          found = true;
+          const h = hashEmail(e.data);
+          if (!seen.has(h)) { seen.add(h); todo.push(e.data); }
+        } else if (t.includes("@")) reject(t);
+      }
+      /* A line with no address at all (a display name, a pasted sentence) is reported whole; beside an address it is just a name. */
+      if (!found && !line.includes("@") && line.trim()) reject(line.trim());
+    }
+    if (todo.length > SUPPRESS_BULK_MAX) return bad(res, `Paste at most ${SUPPRESS_BULK_MAX} addresses at a time.`, 413);
+    let suppressed = 0, already = 0, failed = 0;
+    for (const email of todo) {
+      try {
+        const known = await getContact(hashEmail(email));
+        if (known?.status === "suppressed") { already++; continue; }
+        const r = await suppressAddress(email);
+        if (r.after) suppressed++; else failed++;
+      } catch (err) {
+        failed++;
+        logger.warn({ err: err instanceof Error ? err.message : String(err) }, "bulk suppression: one address failed");
+      }
+    }
+    res.locals.audit = { target: "audience:suppression-bulk", before: null, after: { suppressed, already, failed, invalid: invalidTokens.length } };
+    res.json({ ok: true, suppressed, already, failed, invalid: invalidTokens });
   }),
 );
 
@@ -394,7 +450,12 @@ router.delete(
     if (!before || before.status !== "suppressed") return bad(res, "Not on the suppression list.", 404);
     const prior = structuredClone(before);
     // Lifted, not forgotten: the person is not mailed until they sign up and confirm again.
-    const after = await updateContact(hash, (c) => { c.status = "unsubscribed"; });
+    const after = await updateContact(hash, (c) => {
+      c.status = "unsubscribed";
+      /* The bounce that put it here is history; a fresh signup starts clean. */
+      delete c.suppressedReason;
+      delete c.softBounces;
+    });
     logger.info({ contact: hash }, "suppression lifted");
     res.locals.audit = { target: before._id, before: prior, after };
     res.json({ ok: true });
