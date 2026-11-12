@@ -19,8 +19,8 @@ import {
 /*
  * The first screen is object zero: the name is rendered through the same
  * `ObjectLabel` as the work, at the one scale allowed to be bigger. The ink is
- * painted on frame one (a paper mask moves off it, no opacity entry), so LCP is
- * unaffected; the masks and their measurements are in HeroArrival.module.css.
+ * painted on frame one (a clip opens on it, no opacity entry), so LCP is
+ * unaffected; the clips and their measurements are in HeroArrival.module.css.
  */
 
 /*
@@ -163,7 +163,7 @@ export default function Hero({ pinnedBehindNextAct = true }: { pinnedBehindNextA
               before the bytes arrive.
 
               `fetchpriority="high"` because it is painted in the first frame —
-              see the mask note in `HeroArrival.module.css`. Left at the
+              see the one-rule note in `HeroArrival.module.css`. Left at the
               default, the preload scanner finds it and the browser still ranks
               it below the stylesheet and the two webfonts, which is the right
               order for an image nobody sees for a second and the wrong one for
@@ -195,14 +195,6 @@ export default function Hero({ pinnedBehindNextAct = true }: { pinnedBehindNextA
                   decoding="async"
                 />
               </picture>
-              {/* The paper the figure rises out from behind. Decorative in the
-                  strictest sense — it is the absence of the picture — so it is
-                  hidden from the accessibility tree and cannot be pointed at. */}
-              <span
-                className={arrival.mask}
-                data-portrait-mask=""
-                aria-hidden="true"
-              />
             </div>
 
             {/*

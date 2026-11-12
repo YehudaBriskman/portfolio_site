@@ -21,8 +21,10 @@
  * Each `<li>` names a view timeline and the `.piece` inside it reads it: the
  * cell is the clock, the piece is the hand, so the transform is never on the
  * box being measured. Range `entry 0%` to `cover 32%`, a fraction of the
- * window and not a count of tiles. Only `transform` changes per frame, plus
- * `opacity` on a shade layer over the piece, never on its type.
+ * window and not a count of tiles. Only `transform` changes per frame. There
+ * is no shade over the arriving piece: a layer of the page's flat colour reads
+ * as a solid slab over the colour orbs behind the page, and opacity on the
+ * piece would fade its type, which is never faded.
  */
 
 .frame {
@@ -90,25 +92,8 @@
   animation-range: entry 0% cover 32%;
 }
 
-/* The shade: the page's own ground over the arriving piece, thinning to
-   nothing. Paper on paper outside a rounded card's corners, so it never
-   draws a square there. */
-.piece::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  background: rgb(var(--paper));
-  opacity: 0;
-  pointer-events: none;
-  animation: assemble-shade linear both;
-  animation-timeline: --tile;
-  animation-range: entry 0% cover 32%;
-}
-
 /* A piece that takes focus is where the reader is: it stops arriving. */
-.cell:focus-within .piece,
-.cell:focus-within .piece::after {
+.cell:focus-within .piece {
   animation: none;
 }
 
@@ -145,11 +130,6 @@
   }
 }
 
-@keyframes assemble-shade {
-  from { opacity: 0.7; }
-  to { opacity: 0; }
-}
-
 /*
  * A filter re-hangs the wall. That is direct manipulation, so it is a short,
  * time-based view transition (every filter control asks for one) rather than
@@ -173,15 +153,13 @@
  * filter is cut to an instant swap.
  */
 @supports not (animation-timeline: view()) {
-  .piece,
-  .piece::after {
+  .piece {
     animation: none;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .piece,
-  .piece::after {
+  .piece {
     animation: none;
   }
 
@@ -192,8 +170,7 @@
   }
 }
 
-:global(body.motion-paused) .piece,
-:global(body.motion-paused) .piece::after {
+:global(body.motion-paused) .piece {
   animation: none;
 }
 

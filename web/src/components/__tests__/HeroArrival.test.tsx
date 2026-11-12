@@ -128,7 +128,8 @@ describe("the first screen's hooks", () => {
     expect(hero.querySelectorAll("ul").length).toBe(1);
     expect(hero.querySelectorAll("[data-letter]").length).toBe(LETTERS);
     expect(hero.querySelector("[data-portrait] img")).not.toBeNull();
-    expect(hero.querySelector("[data-portrait-mask]")).not.toBeNull();
+    /* No paper box over the figure any more (#537): it is clipped itself. */
+    expect(hero.querySelector("[data-portrait-mask]")).toBeNull();
   });
 
   it("hangs the hero's timeline on the static holder, and nothing on a sequence", () => {
@@ -382,12 +383,12 @@ describe("the arrival waits for the cover to lift (#194)", () => {
 
   it("declares the arrival only for a stage that has been told to play", () => {
     const gate = arrivalBlock(ARRIVAL);
-    for (const name of ["plate-letter-in", "plate-mask-down", "plate-figure-in", "plate-from-start", "plate-from-end"]) {
+    for (const name of ["plate-letter-in", "plate-portrait-reveal", "plate-figure-in", "plate-from-start", "plate-from-end"]) {
       const rules = [...gate.matchAll(new RegExp(`([^{}]+)\\{[^{}]*\\b${name}\\b[^{}]*\\}`, "g"))];
       expect(rules.length, `${name} is not declared`).toBeGreaterThan(0);
       for (const [, selector] of rules) expect(selector).toContain('[data-arrival="play"]');
     }
-    for (const name of ["corner-in", "corner-mask-down"]) {
+    for (const name of ["corner-in"]) {
       const rules = [...CORNERS.matchAll(new RegExp(`([^{}]+)\\{[^{}]*\\b${name}\\b[^{}]*\\}`, "g"))];
       expect(rules.length, `${name} is not declared`).toBeGreaterThan(0);
       for (const [, selector] of rules) expect(selector).toContain('[data-arrival="play"]');
@@ -399,11 +400,11 @@ describe("the arrival waits for the cover to lift (#194)", () => {
   });
 
   it("brings no opacity to the name or the figure on the way in", () => {
-    for (const name of ["plate-letter-in", "plate-mask-down", "plate-figure-in"]) {
+    for (const name of ["plate-letter-in", "plate-portrait-reveal", "plate-figure-in"]) {
       const frames = ARRIVAL.match(new RegExp(`@keyframes ${name} \\{[\\s\\S]*?\\n\\}`))?.[0] ?? "";
       expect(frames, `no @keyframes ${name}`).not.toBe("");
       expect(frames).not.toMatch(/opacity/);
-      expect(frames).toMatch(/to\s+\{ transform: (none|scaleY\(0\)); \}/);
+      expect(frames).toMatch(/to\s+\{\s*(transform: none;|clip-path: [^;]+;)/);
     }
   });
 
@@ -421,20 +422,19 @@ describe("the arrival waits for the cover to lift (#194)", () => {
      */
     const keyframe = (css: string, name: string) =>
       css.match(new RegExp(`@keyframes ${name} \\{[\\s\\S]*?\\n\\}`))?.[0] ?? "";
+    const flat = (v?: string) => v?.replace(/\s+/g, " ").trim();
     const fromOf = (css: string, name: string) =>
-      keyframe(css, name).match(/from\s+\{ ([^}]*) \}/)?.[1].trim();
+      flat(keyframe(css, name).match(/from\s+\{([^}]*)\}/)?.[1]);
     const heldOf = (css: string, name: string) =>
-      keyframe(css, name).match(/from, to \{ ([^}]*) \}/)?.[1].trim();
+      flat(keyframe(css, name).match(/from, to \{([^}]*)\}/)?.[1]);
 
     const pairs: [string, string, string, string][] = [
       [ARRIVAL, "[data-letter]", "plate-letter-held", "plate-letter-in"],
-      [ARRIVAL, "[data-letter]::after", "plate-mask-held", "plate-mask-down"],
       [ARRIVAL, "h1 + p", "plate-start-held", "plate-from-start"],
       [ARRIVAL, "ul", "plate-end-held", "plate-from-end"],
       [ARRIVAL, "[data-portrait] img", "plate-figure-held", "plate-figure-in"],
-      [ARRIVAL, ".mask", "plate-mask-held", "plate-mask-down"],
+      [ARRIVAL, "[data-portrait]", "plate-portrait-held", "plate-portrait-reveal"],
       [CORNERS, ".corners > * > *", "corner-held", "corner-in"],
-      [CORNERS, ".corners > * > *::before", "corner-mask-held", "corner-mask-down"],
     ];
     for (const [css, part, held, arrival] of pairs) {
       expect(heldOf(css, held), `no @keyframes ${held}`).toBeTruthy();
@@ -456,7 +456,7 @@ describe("the arrival waits for the cover to lift (#194)", () => {
 });
 
 describe("the first screen's off-switches", () => {
-  it("declares every animation, and every mask, only behind the two standing switches", () => {
+  it("declares every animation only behind the two standing switches", () => {
     /* No scroll timeline is left in this file (2026-11-03), so there is no
        `@supports` gate to keep (§4: one would be cargo cult). Reduced motion
        and Pause are one block, and inside it every rule is for a stage that
@@ -474,7 +474,7 @@ describe("the first screen's off-switches", () => {
     const rest = ARRIVAL.replace(block, "").replace(/@keyframes [\w-]+ \{[\s\S]*?\n\}/g, "");
     expect(rest).not.toMatch(/animation(-name)?:/);
     expect(rest).not.toMatch(/content:/);
-    for (const part of ["[data-letter]", "[data-portrait] img", "h1 + p", "ul", ".mask"]) {
+    for (const part of ["[data-letter]", "[data-portrait] img", "h1 + p", "ul", "[data-portrait]"]) {
       expect(block).toContain(part);
     }
   });
@@ -488,7 +488,7 @@ describe("the first screen's off-switches", () => {
     for (const css of [ARRIVAL, CORNERS]) {
       expect(css).not.toMatch(/animation-range:[^;]*\bexit\b/);
     }
-    for (const name of ["plate-letter-out", "plate-mask-up", "plate-figure-out", "plate-to-start", "plate-to-end", "corner-out", "corner-mask-up"]) {
+    for (const name of ["plate-letter-out", "plate-mask-up", "plate-mask-down", "corner-mask-down", "plate-figure-out", "plate-to-start", "plate-to-end", "corner-out", "corner-mask-up"]) {
       expect(ARRIVAL + CORNERS).not.toContain(`@keyframes ${name} `);
     }
   });
@@ -527,13 +527,14 @@ describe("what the first screen may not spend", () => {
      * the largest text on the first screen out of the running as a paint
      * candidate until the animation ends.
      *
-     * So the name and the figure arrive by having a paper-coloured mask
-     * moved off them, and their keyframes may contain no opacity at all.
+     * So the name and the figure are opened by a clip on themselves (never
+     * a paper-coloured box, which is a flat slab over the colour orbs, #537),
+     * and their keyframes may contain no opacity at all.
      * The two lines in the last stage may: they are 1rem and 0.72rem of
      * secondary ink and the paint candidate was settled a second and a half
      * before they move.
      */
-    for (const name of ["plate-letter-held", "plate-mask-held", "plate-figure-held"]) {
+    for (const name of ["plate-letter-held", "plate-portrait-held", "plate-figure-held"]) {
       const frames = ARRIVAL.match(new RegExp(`@keyframes ${name} \\{[\\s\\S]*?\\n\\}`))?.[0] ?? "";
       expect(frames, `no @keyframes ${name}`).not.toBe("");
       expect(frames).not.toMatch(/opacity/);
@@ -541,13 +542,18 @@ describe("what the first screen may not spend", () => {
     expect(ARRIVAL).toMatch(/@keyframes plate-from-start \{[\s\S]*?opacity: 0/);
   });
 
-  it("holds the masks in the ground's own colour, not in a clip", () => {
-    /* A clip and a fade are the same bug wearing two hats: an element that
-       is clipped away at first paint is not a paint candidate either. What
-       makes this work is that an element covered by an opaque sibling is
-       still a painted element. */
-    expect(ARRIVAL).toMatch(/\[data-letter\]::after,[\s\S]*?\.mask \{[^}]*background: rgb\(var\(--paper\)\)/);
-    expect(ARRIVAL).not.toMatch(/clip-path/);
+  it("opens by a clip on the part, never a paper-coloured box (#537)", () => {
+    /* A box of --paper over the ink is a flat slab over the colour orbs. A
+       clip shows the ground through. The catch is LCP: an element clipped
+       away entirely at first paint is not a paint candidate (measured), so
+       the figure's held frame keeps a strip of its own foot, the rows that
+       are transparent in the file, and the strip alone is larger than any
+       later candidate. */
+    for (const css of [ARRIVAL, CORNERS]) {
+      expect(css).not.toMatch(/background: rgb\(var\(--paper\)\)\s*;\s*\n\s*transform-origin/);
+      expect(css).not.toMatch(/\.mask\b|::before \{[^}]*content: ""/);
+    }
+    expect(ARRIVAL).toMatch(/@keyframes plate-portrait-held \{\s*from, to \{ clip-path: inset\(9\d% /);
   });
 
   it("travels sideways only where the section can clip it", () => {
@@ -758,16 +764,15 @@ describe("the hero's lower corners", () => {
     expect(CORNERS).toMatch(/@keyframes corner-in \{[\s\S]*?translateY/);
   });
 
-  it("arrives from under a paper mask rather than by fading, and never leaves", () => {
+  it("arrives by a clip rather than by fading, and never leaves", () => {
     /* The corners take the same opaque-sheet technique the name and the
        figure take, on the way in only: since 2026-11-03 nothing on the
        first screen comes apart as it scrolls. */
-    const block = arrivalBlock(CORNERS);
-    expect(block).toMatch(/\.corners > \* > \*::before \{[^}]*background: rgb\(var\(--paper\)\)/);
-    for (const name of ["corner-in", "corner-mask-down"]) {
+    for (const name of ["corner-in"]) {
       const frames = CORNERS.match(new RegExp(`@keyframes ${name} \\{[\\s\\S]*?\\n\\}`))?.[0] ?? "";
       expect(frames, `no @keyframes ${name}`).not.toBe("");
       expect(frames).not.toMatch(/opacity/);
+      expect(frames).toMatch(/clip-path/);
     }
     expect(CORNERS).not.toMatch(/corner-out/);
   });
