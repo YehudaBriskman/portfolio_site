@@ -110,7 +110,7 @@ const queued = async (n = 3, over: Partial<AnnounceSettings["sender"]> = {}) => 
 describe("admin gate", () => {
   const routes: Array<[string, string]> = [
     ["get", ""], ["post", ""], ["get", "/abc"], ["patch", "/abc"], ["delete", "/abc"], ["get", "/abc/audience"],
-    ["post", "/abc/test"], ["post", "/abc/schedule"], ["post", "/abc/send-now"], ["post", "/abc/cancel"],
+    ["post", "/preview"], ["post", "/audience"], ["post", "/abc/test"], ["post", "/abc/schedule"], ["post", "/abc/send-now"], ["post", "/abc/cancel"],
   ];
   it.each(routes)("%s /api/admin/campaigns%s is refused without it", async (method, path) => {
     seedMany(1);
@@ -169,6 +169,31 @@ describe("campaign routes and state machine", () => {
     expect(r.body.count).toBe(8);
     expect(r.body.samples).toHaveLength(3);
     expect(JSON.stringify(r.body)).not.toContain("example.com");
+  });
+
+  it("audience of an unsaved selection: counts by groups, language and topic", async () => {
+    seedMany(4);
+    seedContact(5, { lang: "he" });
+    seedContact(6, { topics: { blog: false, releases: true } });
+    const q = (b: Record<string, unknown>) => admin(request(createApp()).post(`${C}/audience`).send(b));
+    expect((await q({ groups: ["subscribers"] })).body.count).toBe(6);
+    expect((await q({ groups: ["subscribers"], lang: "he" })).body.count).toBe(1);
+    expect((await q({ groups: ["subscribers"], topic: "blog" })).body.count).toBe(5);
+    expect((await q({ groups: [] })).status).toBe(400);
+    expect(JSON.stringify((await q({ groups: ["subscribers"] })).body)).not.toContain("example.com");
+  });
+
+  it("preview renders the draft with the real renderer, escaped, with the footer", async () => {
+    setSender({ footerIdentity: "Yehuda, Tel Aviv" });
+    const p = (b: Record<string, unknown>) => admin(request(createApp()).post(`${C}/preview`).send(b));
+    const r = await p({ subject: "Hi", bodyText: "<script>x</script>\n\nSecond", lang: "he" });
+    expect(r.status).toBe(200);
+    expect(r.body.html).not.toContain("<script>");
+    expect(r.body.html).toContain("Yehuda, Tel Aviv");
+    expect(r.body.html).toContain('dir="rtl"');
+    expect(r.body.subject.startsWith(COMMERCIAL_LABEL_HE)).toBe(true);
+    expect((await p({ subject: "", bodyText: "", blocks: [{ type: "cta", url: "javascript:alert(1)", label: "x" }] })).status).toBe(400);
+    expect((await p({ subject: "x", bodyText: "y", extra: 1 })).status).toBe(400);
   });
 
   it("test send goes to settings.sender.testRecipients only", async () => {

@@ -1,4 +1,4 @@
-import { useId, useState } from "react";
+import { useId, useState, type ReactNode } from "react";
 import type { SenderSettings, SenderWarning } from "@/services/adminAnnounce";
 import { DEFAULT_SENDER, senderProblems, type SenderField, type SenderProblem } from "./defaults";
 import { useSenderWords } from "./words";
@@ -95,86 +95,140 @@ export default function SenderSection({ sender, onChange, warnings }: { sender: 
   };
 
   const q = sender.quietHours;
+  const footerSet = Boolean(sender.footerIdentity.trim());
+  const senderBad = Boolean(problems.fromAddress || problems.replyTo);
+  const limitsBad = Boolean(problems.throttlePerHour || problems.dailyCap || problems.quietHours);
+  const ready = footerSet && !senderBad && !limitsBad;
+  const mark = (ok: boolean) => (
+    <span className="inline-flex items-center gap-1">
+      <span aria-hidden="true" className={ok ? "" : "font-bold text-[rgb(var(--destructive-ink))]"}>{ok ? "✓" : "✗"}</span>
+      <span className="sr-only">{ok ? w.okWord : w.fixWord}</span>
+    </span>
+  );
+  const sec = (title: string, summary: ReactNode, body: ReactNode, o: { open?: boolean; bad?: boolean; testid?: string } = {}) => (
+    <details className="a-box" open={o.open} data-testid={o.testid}>
+      <summary className="flex min-h-[44px] cursor-pointer flex-wrap items-center gap-x-3 gap-y-0 px-3 py-2">
+        <span className="font-bold">{title}</span>
+        <span className={`min-w-0 break-words text-sm ${o.bad ? "font-bold text-[rgb(var(--destructive-ink))]" : "text-clay"}`}>{summary}</span>
+      </summary>
+      <div className="space-y-4 p-3 pt-1">{body}</div>
+    </details>
+  );
+  const quietText = q ? `${q.from}–${q.to}` : "";
+
   return (
-    <section aria-labelledby={`${uid}-h`} className="space-y-5" data-testid="sender-section">
+    <section aria-labelledby={`${uid}-h`} className="space-y-4" data-testid="sender-section">
       <div>
         <h4 id={`${uid}-h`} className="display-tight text-lg">{w.heading}</h4>
         <p className="a-hint !mt-0">{w.intro}</p>
       </div>
 
-      {!sender.footerIdentity.trim() && (
+      {!footerSet && (
         <div className="a-box border-[rgb(var(--destructive-ink))] p-4" role="alert" data-testid="footer-required">
           <p className="font-bold">{w.footerRequiredTitle}</p>
           <p className="a-hint !mt-0">{w.footerRequired}</p>
         </div>
       )}
 
-      <div className="grid gap-4 md:grid-cols-2">
-        {text("fromName", w.fromName, w.fromNameHint, { max: 80 })}
-        {text("fromAddress", w.fromAddress, w.fromAddressHint, { type: "email", max: 254, dir: "ltr" })}
-        <div className="md:col-span-2">{text("replyTo", w.replyTo, w.replyToHint, { type: "email", max: 254, dir: "ltr" })}</div>
+      <div className="a-box p-3" data-testid="ready">
+        <p className="font-bold" role="status">{ready ? "✓ " : "✗ "}{w.readyHeading} {ready ? w.readyYes : w.readyNo}</p>
+        <ul className="mt-1 text-sm">
+          <li>{mark(footerSet)} {w.ckFooter}</li>
+          <li>{mark(!senderBad)} {w.ckSender}</li>
+          <li>{mark(!limitsBad)} {w.ckLimits}</li>
+          <li>{mark(sender.testRecipients.length > 0)} {w.ckTests} <span className="text-clay">({w.ckTestsHint})</span></li>
+        </ul>
       </div>
 
-      <div>
-        <label className="a-label" htmlFor={`${uid}-footer`}>{w.footerHeading}: {w.footer}</label>
-        <textarea id={`${uid}-footer`} className="a-textarea" rows={3} maxLength={500} dir="auto" required aria-required="true" aria-invalid={!sender.footerIdentity.trim()} aria-describedby={`${uid}-footer-h`} value={sender.footerIdentity} onChange={(e) => onChange((s) => void (s.footerIdentity = e.target.value))} />
-        <p id={`${uid}-footer-h`} className="a-hint">{w.footerHint}</p>
-      </div>
+      {sec(
+        w.secSender,
+        <>{sender.fromName || sender.fromAddress ? <bdi>{w.sumSender(sender.fromName, sender.fromAddress)}</bdi> : w.sumSenderDefault} {mark(!senderBad)}</>,
+        <div className="grid gap-4 md:grid-cols-2">
+          {text("fromName", w.fromName, w.fromNameHint, { max: 80 })}
+          {text("fromAddress", w.fromAddress, w.fromAddressHint, { type: "email", max: 254, dir: "ltr" })}
+          <div className="md:col-span-2">{text("replyTo", w.replyTo, w.replyToHint, { type: "email", max: 254, dir: "ltr" })}</div>
+        </div>,
+        { open: true, bad: senderBad, testid: "sec-sender" },
+      )}
 
-      {check(`${uid}-cl`, w.commercial, w.commercialHint, sender.commercialLabel, (v) => onChange((s) => void (s.commercialLabel = v)), DEFAULT_SENDER.commercialLabel)}
-
-      <div>
-        <label className="a-label" htmlFor={`${uid}-tests`}>{w.testHeading}: {w.test}</label>
-        <textarea
-          id={`${uid}-tests`} className="a-textarea" rows={3} dir="ltr" autoComplete="off" spellCheck={false} value={testText} aria-invalid={Boolean(problems.testRecipients)} aria-describedby={`${uid}-tests-h`}
-          onChange={(e) => (setTests(e.target.value), onChange((s) => void (s.testRecipients = e.target.value.split(/\r?\n/).map((l) => l.trim().toLowerCase()).filter(Boolean))))}
-          onBlur={() => setTests(null)}
-        />
-        <p id={`${uid}-tests-h`} className={problems.testRecipients ? "a-error" : "a-hint"}>{err("testRecipients") || w.testHint}</p>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        {num("throttlePerHour", w.throttle, w.throttleHint, 3600)}
-        {num("dailyCap", w.cap, w.capHint, 10000)}
-      </div>
-
-      <fieldset className="space-y-2">
-        <legend className="a-label">{w.quiet}</legend>
-        {check(`${uid}-q`, w.quietOn, w.quietHint, Boolean(q), (v) => onChange((s) => (v ? void (s.quietHours = { from: "22:00", to: "07:00", tz: "Asia/Jerusalem" }) : void delete s.quietHours)))}
-        {q && (
-          <div className="flex flex-wrap items-end gap-3 ps-8">
-            <div>
-              <label className="a-label" htmlFor={`${uid}-qf`}>{w.quietFrom}</label>
-              <input id={`${uid}-qf`} type="time" className="a-input min-h-[44px]" dir="ltr" value={q.from} onChange={(e) => onChange((s) => void (s.quietHours!.from = e.target.value))} />
-            </div>
-            <div>
-              <label className="a-label" htmlFor={`${uid}-qt`}>{w.quietTo}</label>
-              <input id={`${uid}-qt`} type="time" className="a-input min-h-[44px]" dir="ltr" value={q.to} onChange={(e) => onChange((s) => void (s.quietHours!.to = e.target.value))} />
-            </div>
-            <div>
-              <label className="a-label" htmlFor={`${uid}-qz`}>{w.quietZone}</label>
-              <input id={`${uid}-qz`} className="a-input min-h-[44px]" dir="ltr" autoComplete="off" list={`${uid}-zones`} value={q.tz} aria-invalid={Boolean(problems.quietHours)} onChange={(e) => onChange((s) => void (s.quietHours!.tz = e.target.value))} />
-              <datalist id={`${uid}-zones`}>{["Asia/Jerusalem", "UTC", "Europe/London", "America/New_York"].map((z) => <option key={z} value={z} />)}</datalist>
-              <p className={problems.quietHours ? "a-error" : "a-hint"}>{err("quietHours") || w.quietZoneHint}</p>
-            </div>
+      {sec(
+        w.secFooter,
+        <>{footerSet ? w.sumFooterSet : w.sumFooterMissing} {mark(footerSet)}</>,
+        <>
+          <div>
+            <label className="a-label" htmlFor={`${uid}-footer`}>{w.footer}</label>
+            <textarea id={`${uid}-footer`} className="a-textarea" rows={3} maxLength={500} dir="auto" required aria-required="true" aria-invalid={!footerSet} aria-describedby={`${uid}-footer-h`} value={sender.footerIdentity} onChange={(e) => onChange((s) => void (s.footerIdentity = e.target.value))} />
+            <p id={`${uid}-footer-h`} className="a-hint">{w.footerHint}</p>
           </div>
-        )}
-      </fieldset>
+          {check(`${uid}-cl`, w.commercial, w.commercialHint, sender.commercialLabel, (v) => onChange((s) => void (s.commercialLabel = v)), DEFAULT_SENDER.commercialLabel)}
+        </>,
+        { open: true, bad: !footerSet, testid: "sec-footer" },
+      )}
 
-      {check(`${uid}-ad`, w.autoDraft, w.autoDraftHint, sender.autoDraftCampaign, (v) => onChange((s) => void (s.autoDraftCampaign = v)), DEFAULT_SENDER.autoDraftCampaign)}
-
-      <div className="space-y-4">
+      {sec(
+        w.secTests,
+        <>{w.sumTests(sender.testRecipients.length)}</>,
         <div>
-          <h5 className="font-bold">{w.textsHeading}</h5>
+          <label className="a-label" htmlFor={`${uid}-tests`}>{w.test}</label>
+          <textarea
+            id={`${uid}-tests`} className="a-textarea" rows={3} dir="ltr" autoComplete="off" spellCheck={false} value={testText} aria-invalid={Boolean(problems.testRecipients)} aria-describedby={`${uid}-tests-h`}
+            onChange={(e) => (setTests(e.target.value), onChange((s) => void (s.testRecipients = e.target.value.split(/\r?\n/).map((l) => l.trim().toLowerCase()).filter(Boolean))))}
+            onBlur={() => setTests(null)}
+          />
+          <p id={`${uid}-tests-h`} className={problems.testRecipients ? "a-error" : "a-hint"}>{err("testRecipients") || w.testHint}</p>
+        </div>,
+        { open: true, testid: "sec-tests" },
+      )}
+
+      {sec(
+        w.secLimits,
+        <>{w.sumLimits(sender.throttlePerHour, sender.dailyCap, quietText)}{sender.autoDraftCampaign ? `, ${w.sumAuto}` : ""} {mark(!limitsBad)}</>,
+        <>
+          <div className="grid gap-4 md:grid-cols-2">
+            {num("throttlePerHour", w.throttle, w.throttleHint, 3600)}
+            {num("dailyCap", w.cap, w.capHint, 10000)}
+          </div>
+          <fieldset className="space-y-2">
+            <legend className="a-label">{w.quiet}</legend>
+            {check(`${uid}-q`, w.quietOn, w.quietHint, Boolean(q), (v) => onChange((s) => (v ? void (s.quietHours = { from: "22:00", to: "07:00", tz: "Asia/Jerusalem" }) : void delete s.quietHours)))}
+            {q && (
+              <div className="flex flex-wrap items-end gap-3 ps-8">
+                <div>
+                  <label className="a-label" htmlFor={`${uid}-qf`}>{w.quietFrom}</label>
+                  <input id={`${uid}-qf`} type="time" className="a-input min-h-[44px]" dir="ltr" value={q.from} onChange={(e) => onChange((s) => void (s.quietHours!.from = e.target.value))} />
+                </div>
+                <div>
+                  <label className="a-label" htmlFor={`${uid}-qt`}>{w.quietTo}</label>
+                  <input id={`${uid}-qt`} type="time" className="a-input min-h-[44px]" dir="ltr" value={q.to} onChange={(e) => onChange((s) => void (s.quietHours!.to = e.target.value))} />
+                </div>
+                <div>
+                  <label className="a-label" htmlFor={`${uid}-qz`}>{w.quietZone}</label>
+                  <input id={`${uid}-qz`} className="a-input min-h-[44px]" dir="ltr" autoComplete="off" list={`${uid}-zones`} value={q.tz} aria-invalid={Boolean(problems.quietHours)} onChange={(e) => onChange((s) => void (s.quietHours!.tz = e.target.value))} />
+                  <datalist id={`${uid}-zones`}>{["Asia/Jerusalem", "UTC", "Europe/London", "America/New_York"].map((z) => <option key={z} value={z} />)}</datalist>
+                  <p className={problems.quietHours ? "a-error" : "a-hint"}>{err("quietHours") || w.quietZoneHint}</p>
+                </div>
+              </div>
+            )}
+          </fieldset>
+          {check(`${uid}-ad`, w.autoDraft, w.autoDraftHint, sender.autoDraftCampaign, (v) => onChange((s) => void (s.autoDraftCampaign = v)), DEFAULT_SENDER.autoDraftCampaign)}
+        </>,
+        { bad: limitsBad, testid: "sec-limits" },
+      )}
+
+      {sec(
+        w.secTexts,
+        <>{w.sumTexts}</>,
+        <>
           <p className="a-hint !mt-0">{w.textsHint}</p>
-        </div>
-        {tpl("confirmSubjectEn", w.confirmSubjectEn, 1)}
-        {tpl("confirmBodyEn", w.confirmBodyEn, 7)}
-        {tpl("unsubscribeNoteEn", w.unsubEn, 2)}
-        {tpl("confirmSubjectHe", w.confirmSubjectHe, 1)}
-        {tpl("confirmBodyHe", w.confirmBodyHe, 7)}
-        {tpl("unsubscribeNoteHe", w.unsubHe, 2)}
-      </div>
+          {tpl("confirmSubjectEn", w.confirmSubjectEn, 1)}
+          {tpl("confirmBodyEn", w.confirmBodyEn, 7)}
+          {tpl("unsubscribeNoteEn", w.unsubEn, 2)}
+          {tpl("confirmSubjectHe", w.confirmSubjectHe, 1)}
+          {tpl("confirmBodyHe", w.confirmBodyHe, 7)}
+          {tpl("unsubscribeNoteHe", w.unsubHe, 2)}
+        </>,
+        { testid: "sec-texts" },
+      )}
     </section>
   );
 }

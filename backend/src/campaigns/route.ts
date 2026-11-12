@@ -8,7 +8,7 @@ import { emailService } from "../services/email.service.js";
 import { logger } from "../logger.js";
 import { resolveSender } from "./config.js";
 import { renderCampaignMail } from "./render.js";
-import { CampaignCreate, CampaignId, CampaignPatch, ScheduleBody, type Campaign } from "./schemas.js";
+import { AudienceBody, CampaignCreate, CampaignId, CampaignPatch, PreviewBody, ScheduleBody, type Campaign } from "./schemas.js";
 import { campaignId, createCampaign, deleteCampaign, getCampaign, isStatus, listCampaigns, mutateCampaign } from "./store.js";
 
 /*
@@ -120,24 +120,60 @@ router.delete(
 const recipientsOf = (c: Campaign) =>
   listRecipients({ groups: c.groups, ...(c.lang && c.lang !== "all" ? { lang: c.lang } : {}), ...(c.topic ? { topic: c.topic } : {}) });
 
+/* Reservoir of 3: a random sample without holding the list. */
+async function sampleOf(recipients: ReturnType<typeof listRecipients>) {
+  const sample: string[] = [];
+  let n = 0;
+  for await (const r of recipients) {
+    n++;
+    if (sample.length < 3) sample.push(r.email);
+    else {
+      const j = Math.floor(Math.random() * n);
+      if (j < 3) sample[j] = r.email;
+    }
+  }
+  return { count: n, samples: sample.map(mask) };
+}
+
 router.get(
   "/:id/audience",
   asyncHandler(async (req, res) => {
     const id = idOf(req.params.id);
     const c = id && (await getCampaign(id));
     if (!c) return notFound(res);
-    /* Reservoir of 3: a random sample without holding the list. */
-    const sample: string[] = [];
-    let n = 0;
-    for await (const r of recipientsOf(c)) {
-      n++;
-      if (sample.length < 3) sample.push(r.email);
-      else {
-        const j = Math.floor(Math.random() * n);
-        if (j < 3) sample[j] = r.email;
-      }
-    }
-    res.set("Cache-Control", "no-store").json({ ok: true, count: n, samples: sample.map(mask) });
+    res.set("Cache-Control", "no-store").json({ ok: true, ...(await sampleOf(recipientsOf(c))) });
+  }),
+);
+
+/*
+ * The same count for a selection that is not saved yet, so the number on the
+ * page follows the boxes being ticked. A read, so it is not audited (it would
+ * log every tick); it answers with a count and masked samples only.
+ */
+router.post(
+  "/audience",
+  asyncHandler(async (req, res) => {
+    const b = AudienceBody.safeParse(req.body);
+    if (!b.success) return res.status(400).json({ ok: false, error: "Check the fields and try again.", issues: toIssues(b.error) });
+    res.locals.noAudit = true;
+    res.set("Cache-Control", "no-store").json({ ok: true, ...(await sampleOf(recipientsOf({ groups: b.data.groups, lang: b.data.lang, ...(b.data.topic ? { topic: b.data.topic } : {}) } as Campaign))) });
+  }),
+);
+
+/*
+ * The mail as it would be sent, from draft text that need not be saved: the
+ * one renderer, so the preview cannot drift from the send. The unsubscribe
+ * link is signed for a placeholder contact and goes nowhere real.
+ */
+router.post(
+  "/preview",
+  asyncHandler(async (req, res) => {
+    const b = PreviewBody.safeParse(req.body);
+    if (!b.success) return res.status(400).json({ ok: false, error: "Check the fields and try again.", issues: toIssues(b.error) });
+    res.locals.noAudit = true;
+    const { subject, preheader, bodyText, blocks, lang } = b.data;
+    const m = await renderCampaignMail({ subject, preheader, bodyText, ...(blocks ? { blocks } : {}) }, { lang }, hashEmail("preview@example.invalid"), (await loadSettings()).sender);
+    res.set("Cache-Control", "no-store").json({ ok: true, subject: m.subject, html: m.html, text: m.text });
   }),
 );
 

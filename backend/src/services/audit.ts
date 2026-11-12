@@ -88,6 +88,8 @@ export const auditWrites: RequestHandler = (req, res, next) => {
    * `finish` listener would leave that write unrecorded. `close` fires for both.
    */
   res.on("close", () => {
+    /* A route that only reads (a preview, a count) says so, so it leaves no entry. */
+    if (res.locals.noAudit) return;
     const a = req.admin;
     const entry = auditEntry({
       at: new Date(),

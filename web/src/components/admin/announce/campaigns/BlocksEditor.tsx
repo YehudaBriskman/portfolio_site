@@ -1,6 +1,6 @@
 import { useId } from "react";
 import type { Block, BlockType } from "@/services/adminCampaigns";
-import { blockProblem } from "./mailPreview";
+import { blockProblem } from "./helpers";
 import { useCampaignWords } from "./words";
 
 const TYPES: BlockType[] = ["p", "h2", "ul", "cta", "image"];

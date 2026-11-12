@@ -6,6 +6,7 @@ import InboxTab from "@/components/admin/announce/inbox/InboxTab";
 import { useMarketingWords } from "@/components/admin/announce/inbox/words";
 import CampaignsTab from "@/components/admin/announce/campaigns/CampaignsTab";
 import { useCampaignWords } from "@/components/admin/announce/campaigns/words";
+import { useHubIntro } from "@/components/admin/announce/hubIntro";
 import AudienceTab from "@/components/admin/announce/audience/AudienceTab";
 import { useAudienceWords } from "@/components/admin/announce/audience/words";
 import LibraryPanel from "@/components/admin/announce/library/LibraryPanel";
@@ -28,6 +29,7 @@ export default function AdminAnnounce() {
   const lw = useLibraryWords();
   const aw = useAudienceWords();
   const cw = useCampaignWords();
+  const hi = useHubIntro();
   const [params, setParams] = useSearchParams();
   const [items, setItems] = useState<AnnounceSummary[] | null>(null);
   const [error, setError] = useState<"load" | "auth" | null>(null);
@@ -80,7 +82,7 @@ export default function AdminAnnounce() {
   return (
     <AdminShell title={w.title} section="marketing">
       <div className="a-wrap">
-        <PageHeader title={w.title} description={w.intro} />
+        <PageHeader title={w.title} description={hi[current.id as keyof typeof hi] as string} />
 
         <div role="group" aria-label={w.tabsLabel} className="a-tabs mb-4">
           {tabs.map((t) => (

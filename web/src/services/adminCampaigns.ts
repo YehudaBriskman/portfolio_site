@@ -104,10 +104,14 @@ export const adminCampaigns = {
   update: async (id: string, b: Partial<CampaignInput>, rev: string | null) =>
     (await call<{ campaign: Campaign }>(`/${enc(id)}`, { method: "PATCH", body: JSON.stringify({ ...b, ...(rev ? { _rev: rev } : {}) }) })).campaign,
   remove: (id: string) => call<{ ok: true }>(`/${enc(id)}`, { method: "DELETE" }),
-  audience: async (id: string): Promise<AudienceSample> => {
-    const r = await call<{ count: number; samples: string[] }>(`/${enc(id)}/audience`);
+  /** The count and masked samples for a selection, saved or not: the page asks as the boxes are ticked. */
+  audienceOf: async (sel: { groups: string[]; lang: CampaignLang; topic: CampaignTopic | null }): Promise<AudienceSample> => {
+    const r = await call<{ count: number; samples: string[] }>("/audience", json(sel));
     return { count: r.count ?? 0, samples: Array.isArray(r.samples) ? r.samples : [] };
   },
+  /** The mail as the server would send it, from draft text that need not be saved. */
+  preview: (b: { subject: string; preheader: string; bodyText: string; blocks: Block[] | null; lang: "en" | "he" }) =>
+    call<{ subject: string; html: string; text: string }>("/preview", json(b)),
   test: (id: string) => call<{ sent: number; failed: number }>(`/${enc(id)}/test`, { method: "POST" }),
   /** `null` takes a scheduled campaign back to a draft. */
   schedule: async (id: string, sendAt: string | null) => (await call<{ campaign: Campaign }>(`/${enc(id)}/schedule`, json({ sendAt }))).campaign,
