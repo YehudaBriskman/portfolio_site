@@ -15,11 +15,15 @@ import {
   Slug,
   SuppressBody,
   SYSTEM_GROUP,
+  type Consent,
   type Contact,
   type Group,
   type Lang,
 } from "./schemas.js";
 import {
+  backfillConsent,
+  consentHistoryOf,
+  consentOf,
   contactId,
   createContact,
   deleteContact,
@@ -54,12 +58,17 @@ const view = (c: Contact) => ({
   source: c.source,
   consentAt: c.consentAt,
   consentNote: c.consentNote,
+  consent: consentOf(c),
+  consentHistory: consentHistoryOf(c),
   topics: c.topics,
   createdAt: c.createdAt,
   updatedAt: c.updatedAt,
   confirmedAt: c.confirmedAt ?? null,
   unsubscribedAt: c.unsubscribedAt ?? null,
 });
+
+/* One history entry in one export cell: when, which wording (or the batch note), where it came from, when confirmed. */
+const historyCell = (e: Consent) => [e.at, e.textId ?? e.note ?? "", e.source, e.confirmedAt ?? ""].join("|");
 
 const hashParam = (raw: unknown) => {
   const p = Hash.safeParse(raw);
@@ -73,6 +82,7 @@ router.get(
   "/groups",
   asyncHandler(async (_req, res) => {
     await ensureSystemGroup();
+    void backfillConsent();
     void purgeExpiredPending();
     const counts = new Map<string, { total: number; active: number }>();
     for await (const c of scanContacts()) {
@@ -191,6 +201,7 @@ router.post(
     const missing = await unknownGroups(b.data.groups);
     if (missing.length) return bad(res, "Unknown group.");
     const now = new Date().toISOString();
+    const manualConsent: Consent = { textId: null, textHash: null, lang: b.data.lang, at: now, confirmedAt: now, source: "manual", note: b.data.consentNote };
     const c: Contact = {
       _id: contactId(hash),
       type: "contact",
@@ -202,6 +213,8 @@ router.post(
       source: "manual",
       consentAt: now,
       consentNote: b.data.consentNote,
+      consent: manualConsent,
+      consentHistory: [manualConsent],
       topics: { blog: true, releases: true },
       createdAt: now,
       updatedAt: now,
@@ -277,6 +290,7 @@ router.post(
     let skipped = 0;
     const invalidRows: { row: number; reason: string }[] = [];
     const now = new Date().toISOString();
+    const importConsent: Consent = { textId: null, textHash: null, lang: "en", at: now, confirmedAt: now, source: "import", note: b.data.consentNote };
     const groups = [b.data.group ?? SYSTEM_GROUP].filter((g, i, a) => a.indexOf(g) === i);
     for (let i = 0; i < body.length; i++) {
       const rowNo = i + (hasHeader ? 2 : 1);
@@ -286,6 +300,7 @@ router.post(
       const name = (inm >= 0 ? cells[inm] : "")?.trim().slice(0, 80).replace(/[\u0000-\u001f\u007f]/g, "");
       const lang: Lang = (il >= 0 ? cells[il] : "")?.trim().toLowerCase() === "he" ? "he" : "en";
       const hash = hashEmail(email.data);
+      const rowConsent: Consent = { ...importConsent, lang };
       // Suppressed and already-known addresses are never touched by an import.
       const c: Contact = {
         _id: contactId(hash),
@@ -298,6 +313,8 @@ router.post(
         source: "import",
         consentAt: now,
         consentNote: b.data.consentNote,
+        consent: rowConsent,
+        consentHistory: [rowConsent],
         topics: { blog: true, releases: true },
         createdAt: now,
         updatedAt: now,
@@ -314,9 +331,10 @@ router.post(
 router.get(
   "/contacts/export.csv",
   asyncHandler(async (_req, res) => {
-    const rows: string[][] = [["email", "name", "lang", "groups", "status", "source", "consentAt", "consentNote", "createdAt"]];
+    const rows: string[][] = [["email", "name", "lang", "groups", "status", "source", "consentAt", "consentNote", "createdAt", "consentTextId", "consentTextHash", "consentLang", "consentConfirmedAt", "consentHistory"]];
     for await (const c of scanContacts()) {
-      rows.push([c.email, c.name ?? "", c.lang, c.groups.join(";"), c.status, c.source, c.consentAt, c.consentNote, c.createdAt]);
+      const k = consentOf(c);
+      rows.push([c.email, c.name ?? "", c.lang, c.groups.join(";"), c.status, c.source, c.consentAt, c.consentNote, c.createdAt, k.textId ?? "", k.textHash ?? "", k.lang, k.confirmedAt ?? "", consentHistoryOf(c).map(historyCell).join(";")]);
     }
     res.setHeader("Content-Type", "text/csv; charset=utf-8");
     res.setHeader("Content-Disposition", 'attachment; filename="audience.csv"');

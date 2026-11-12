@@ -67,6 +67,11 @@ export const useAudienceWords = defineWords(
     consentHeading: "Consent record",
     consentOn: (when: string, src: string) => `${src}, ${when}`,
     consentNoteLabel: "Note",
+    consentWording: "Wording shown",
+    consentNoWording: "No wording on record (added by an admin)",
+    consentConfirmedOn: (when: string) => `Confirmed ${when}`,
+    consentNotConfirmed: "Not confirmed",
+    consentEarlier: "Earlier consents",
     statusLabel: "Status",
     statusHint: "Set Suppressed or Unsubscribed to stop all mail to this person.",
 
@@ -193,6 +198,11 @@ export const useAudienceWords = defineWords(
     consentHeading: "רישום הסכמה",
     consentOn: (when: string, src: string) => `${src}, ${when}`,
     consentNoteLabel: "הערה",
+    consentWording: "הנוסח שהוצג",
+    consentNoWording: "אין נוסח רשום (נוסף על ידי מנהל)",
+    consentConfirmedOn: (when: string) => `אושר ${when}`,
+    consentNotConfirmed: "לא אושר",
+    consentEarlier: "הסכמות קודמות",
     statusLabel: "מצב",
     statusHint: "סימון חסום או הסיר את עצמו עוצר כל דואר לאדם הזה.",
 
