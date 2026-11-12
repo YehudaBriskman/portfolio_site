@@ -26,6 +26,7 @@ import {
   type TranslationType,
 } from "../schemas/i18n.js";
 import { CONTENT_KEYS, CONTENT_SCHEMAS, type ContentDoc, type ContentKey } from "../schemas/site-content.js";
+import { stampContentModified } from "./content-modified.js";
 import { contentId, getContentDoc, seedFor } from "./site-content.js";
 import { MEDIA_HE_FIELDS, MediaMeta, mediaStore, type MediaDoc } from "./media.js";
 
@@ -419,9 +420,10 @@ async function postDraft(input: DraftInput): Promise<DraftResult> {
   }
   const valid = PostSchema.safeParse(next);
   if (!valid.success) return { ok: false, status: 400, error: "The note would not be valid with this Hebrew." };
-  const rev = await save({ ...next, _id: id });
+  const stamped = stampContentModified(doc, next, now);
+  const rev = await save({ ...stamped, _id: id });
   if (rev === null) return conflictAck;
-  return { ok: true, dryRun: false, target: id, changes, warnings, rev, audit: { target: id, before, after: next } };
+  return { ok: true, dryRun: false, target: id, changes, warnings, rev, audit: { target: id, before, after: stamped } };
 }
 
 async function contentDraft(key: ContentKey, input: DraftInput): Promise<DraftResult> {
@@ -516,9 +518,10 @@ async function areaDraft(input: DraftInput): Promise<DraftResult> {
   const valid = CollectionSchema.safeParse(next);
   if (!valid.success) return { ok: false, status: 400, error: "The area would not be valid with this Hebrew." };
   const before = structuredClone(doc);
-  const rev = await save({ ...next, _id: id });
+  const stamped = stampContentModified(doc, next, next.updatedAt);
+  const rev = await save({ ...stamped, _id: id });
   if (rev === null) return conflictAck;
-  return { ok: true, dryRun: false, target: id, changes, warnings, rev, audit: { target: id, before, after: next } };
+  return { ok: true, dryRun: false, target: id, changes, warnings, rev, audit: { target: id, before, after: stamped } };
 }
 
 /* A media item's alt and caption, stamped as PUT /api/admin/media/:id stamps them. */
