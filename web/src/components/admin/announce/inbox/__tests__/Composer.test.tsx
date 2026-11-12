@@ -98,7 +98,7 @@ describe("Composer on a post", () => {
     });
     renderIt(post);
     fireEvent.click(await screen.findByRole("tab", { name: /Instagram/ }));
-    await waitFor(() => expect(Array.from(document.querySelectorAll("img")).some((i) => (i.getAttribute("src") ?? "").startsWith(SITE))).toBe(true));
+    await waitFor(() => expect(Array.from(document.querySelectorAll("img")).some((i) => new URL(i.getAttribute("src") ?? "", "http://x.invalid").origin === SITE)).toBe(true));
     for (const i of Array.from(document.querySelectorAll("img"))) expect(i.getAttribute("src") ?? "").not.toContain(window.location.origin);
     fireEvent.click(screen.getByRole("button", { name: /Download square card/ }));
     expect(clicked).toEqual([`${SITE}/api/seo/og/blog/hello.png?format=square`]);
