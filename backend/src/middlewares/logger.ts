@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import { logger } from "../logger.js";
 
-/* One JSON line per finished request; level by status (5xx error, 4xx warn). /mcp query strings are dropped. */
+/* One JSON line per finished request; level by status (5xx error, 4xx warn). /mcp and /api/subscribe query strings (tokens) are dropped. */
 export function requestLogger(req: Request, res: Response, next: NextFunction) {
   const start = process.hrtime.bigint();
 
@@ -11,7 +11,7 @@ export function requestLogger(req: Request, res: Response, next: NextFunction) {
       method: req.method,
       // originalUrl, not url: a mounted router strips the mount path from `url`.
       // The MCP OAuth endpoints carry codes and state in the query; never log them.
-      url: req.originalUrl.startsWith("/mcp") ? req.originalUrl.split("?")[0] : req.originalUrl,
+      url: /^\/(mcp|api\/subscribe)/.test(req.originalUrl) ? req.originalUrl.split("?")[0] : req.originalUrl,
       status,
       durationMs: Number((process.hrtime.bigint() - start) / 1_000_000n),
     };

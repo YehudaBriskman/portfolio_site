@@ -35,3 +35,13 @@ export const createAdminLimiter = () => makeLimiter(MINUTE, ADMIN_LIMIT);
 
 export const READ_LIMIT = 120;
 export const createReadLimiter = () => makeLimiter(MINUTE, READ_LIMIT);
+
+/* Public signup: it sends mail to an address the caller chose, so it is the tightest public limit. Failures count too. */
+export const SUBSCRIBE_LIMIT = 10;
+export const createSubscribeLimiter = () =>
+  makeLimiter(FIFTEEN_MINUTES, SUBSCRIBE_LIMIT, { message: { ok: false, error: "Too many requests. Try again shortly." } });
+
+/* Confirm, unsubscribe and manage links: tokens, not addresses, but still public. */
+export const SUBSCRIBE_LINK_LIMIT = 60;
+export const createSubscribeLinkLimiter = () =>
+  makeLimiter(FIFTEEN_MINUTES, SUBSCRIBE_LINK_LIMIT, { message: { ok: false, error: "Too many requests. Try again shortly." } });

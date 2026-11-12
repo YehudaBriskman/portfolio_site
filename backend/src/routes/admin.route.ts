@@ -34,6 +34,7 @@ import {
 import adminContentRoutes from "./admin-content.route.js";
 import adminSettingsRoutes from "./admin-settings.route.js";
 import announceRoutes from "../announce/route.js";
+import audienceAdminRoutes from "../audience/admin.route.js";
 import adminTranslationsRoutes from "./admin-translations.route.js";
 import { COLLECTION_FIELDS, stampHebrewMeta, stampTexts, type HebrewMeta } from "../schemas/i18n.js";
 import { stampContentModified } from "../services/content-modified.js";
@@ -130,6 +131,9 @@ router.use("/settings", adminSettingsRoutes);
 
 /* The announce inbox and its own owner-only settings doc. */
 router.use("/announce", announceRoutes);
+
+/* Subscribers, groups and suppression (hash-only audit). */
+router.use("/audience", audienceAdminRoutes);
 
 /* The media library (#253): its own file, behind this router's gate and audit. */
 router.use("/media", mediaRoutes);

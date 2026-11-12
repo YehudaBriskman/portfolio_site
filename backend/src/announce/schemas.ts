@@ -36,6 +36,41 @@ const Utm = z
   .strict();
 const DEFAULT_UTM = { enabled: false, source: "announce", mediumByChannel: {} };
 
+/*
+ * The subscriber mails' owner-editable wording and retention. Only what the
+ * audience module needs; the rest of "Sender & delivery" (from, footer
+ * identity, throttle...) is added next to these by the sender work.
+ * Placeholders: {name} {site} {days} {link}.
+ */
+const SenderText = z.string().trim().min(1).max(2000);
+export const SenderSchema = z
+  .object({
+    confirmSubjectEn: SenderText,
+    confirmSubjectHe: SenderText,
+    confirmBodyEn: SenderText,
+    confirmBodyHe: SenderText,
+    unsubscribeNoteEn: SenderText,
+    unsubscribeNoteHe: SenderText,
+    /* The Hebrew spam-law label on commercial mail. */
+    commercialLabel: z.boolean(),
+    pendingTtlDays: z.number().int().min(1).max(30),
+  })
+  .strict();
+export type SenderSettings = z.infer<typeof SenderSchema>;
+
+export const DEFAULT_SENDER: SenderSettings = {
+  confirmSubjectEn: "Confirm your subscription",
+  confirmSubjectHe: "אישור הרשמה",
+  confirmBodyEn:
+    "Hi {name},\n\nSomeone (hopefully you) asked to get updates from {site}. To confirm your subscription, open this link:\n\n{link}\n\nIf this was not you, ignore this message and nothing will happen. The link works for {days} days.",
+  confirmBodyHe:
+    "שלום {name},\n\nמישהו (כנראה אתם) ביקש לקבל עדכונים מהאתר {site}. כדי לאשר את ההרשמה, פתחו את הקישור:\n\n{link}\n\nאם זה לא אתם, התעלמו מהודעה זו ולא יקרה דבר. הקישור תקף {days} ימים.",
+  unsubscribeNoteEn: "You get this because you subscribed on {site}. To stop receiving these emails, unsubscribe here: {link}",
+  unsubscribeNoteHe: "קיבלתם הודעה זו כי נרשמתם לעדכונים באתר {site}. כדי להפסיק לקבל אותה, בטלו את ההרשמה כאן: {link}",
+  commercialLabel: true,
+  pendingTtlDays: 7,
+};
+
 export const AnnounceSettingsSchema = z
   .object({
     /* Off stops new events being recorded; the inbox stays readable. */
@@ -57,6 +92,7 @@ export const AnnounceSettingsSchema = z
       }, "At most one default per channel and language")
       .default([]),
     advanced: z.object({ utm: Utm.default(DEFAULT_UTM) }).strict().default({ utm: DEFAULT_UTM }),
+    sender: SenderSchema.default(DEFAULT_SENDER),
   })
   .strict();
 export type AnnounceSettings = z.infer<typeof AnnounceSettingsSchema>;
@@ -71,6 +107,7 @@ export const DEFAULT_ANNOUNCE_SETTINGS: AnnounceSettings = {
   snippets: [],
   library: [],
   advanced: { utm: DEFAULT_UTM },
+  sender: DEFAULT_SENDER,
 };
 
 export const SETTINGS_DOC_ID = "settings:announce";
