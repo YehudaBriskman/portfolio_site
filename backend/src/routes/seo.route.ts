@@ -780,7 +780,9 @@ function noteLinksHtml(post: Post, all: Post[], area: Collection | null, lang: L
   const w = SEO_WORDS[lang];
   const link = (p: Post) => `<a href="${href(`/blog/${p.slug}`, lang)}">${en(p.title, lang)}</a>`;
   const { prev, next } = neighbours(post, all);
-  const related = relatedPosts(post, all, 5);
+  /* A note already linked as previous or next is not listed again as related:
+     one anchor per target. */
+  const related = relatedPosts(post, all.filter((p) => p.slug !== prev?.slug && p.slug !== next?.slug), 5);
   const other: Lang = lang === "en" ? "he" : "en";
   const parts: string[] = [];
   if (post.tags.length) parts.push(`<p>${escapeHtml(w.tagged)}: ${post.tags.map((t) => escapeHtml(t)).join(", ")}</p>`);
@@ -832,7 +834,7 @@ page("/blog/:slug", async (req, res, lang) => {
   ]);
   const area = areaDoc.docs.find((c) => c.slug === post.collection && c.status === "published");
   const linkable = linkablePosts(allPosts, lang).map((p) => local(p, lang));
-  const noteLinks = noteLinksHtml(post, linkable, area && (lang === "en" || areaHasHebrew(area)) ? local(area, lang) : null, lang, translated);
+  const noteLinks = noteLinksHtml(post, linkable, area ? local(area, lang) : null, lang, translated);
   const inLanguage = bodyInEnglish || lang === "en" || !translated ? "en" : "he";
 
   await sendShell(res, {
