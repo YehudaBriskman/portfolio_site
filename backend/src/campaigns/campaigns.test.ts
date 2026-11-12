@@ -10,7 +10,7 @@ import { emailService } from "../services/email.service.js";
 import { autoDraftFor } from "./autodraft.js";
 import { resolveSender, senderWarnings } from "./config.js";
 import { COMMERCIAL_LABEL_HE, renderCampaignMail } from "./render.js";
-import { sanitizeHtml } from "./sanitize.js";
+import { renderBody, safeHref, safeImage } from "./body.js";
 import { inQuietHours, runSenderTick, type Deliver } from "./sender.js";
 
 /* In-memory couch. The MCP/image stubs only let app.ts load on a box without those optional deps; CI has them. */
@@ -93,7 +93,7 @@ const seedContact = (i: number, over: Record<string, unknown> = {}) => {
 };
 const seedMany = (n: number) => { for (let i = 1; i <= n; i++) seedContact(i); };
 const T0 = Date.parse("2026-06-01T12:00:00Z");
-const draft = (over: Record<string, unknown> = {}) => ({ name: "n", subject: "Hello", bodyHtml: "<p>Hi</p>", bodyText: "Hi", groups: ["subscribers"], ...over });
+const draft = (over: Record<string, unknown> = {}) => ({ name: "n", subject: "Hello", bodyText: "Hi", groups: ["subscribers"], ...over });
 const mk = async (over: Record<string, unknown> = {}) => (await admin(request(createApp()).post(C).send(draft(over)))).body.campaign as { id: string; _rev: string };
 const get = (id: string) => store.get(`campaign:${id}`) as Record<string, any>;
 const queued = async (n = 3, over: Partial<AnnounceSettings["sender"]> = {}) => {
@@ -331,21 +331,33 @@ describe("sender tick", () => {
 
 describe("mail rendering", () => {
   const sender = { ...DEFAULT_ANNOUNCE_SETTINGS.sender, footerIdentity: "A <b>& Co</b>\nStreet 1" };
-  it("escapes the footer identity, strips scripts/remote css/handlers, keeps the sanitised body", async () => {
+  it("renders from text/blocks only: every field escaped, bad links and foreign images dropped", async () => {
     const m = await renderCampaignMail(
-      { subject: "S\r\nBcc: x@y.z", preheader: "<i>pre</i>", bodyHtml: `<p onclick="x()">ok</p><script>alert(1)</script><link rel=stylesheet href="https://evil/x.css"><a href="javascript:alert(1)">bad</a><a href="https://ok.example/?a=1&b=2">good</a><img src="http://insecure/x.png"><div style="background:url(https://evil/x)">s</div>`, bodyText: "plain" },
+      {
+        subject: "S\r\nBcc: x@y.z", preheader: "<i>pre</i>", bodyText: "plain",
+        blocks: [
+          { type: "p", text: `<script>alert(1)</script> & "q"\nline2` },
+          { type: "ul", items: ["<b>x</b>"] },
+          { type: "cta", url: "javascript:alert(1)", label: "<bad>" },
+          { type: "cta", url: "https://ok.example/?a=1&b=2", label: "Go" },
+          { type: "image", url: "https://evil.example/x.png", text: "t" },
+          { type: "image", url: `${env.SITE_URL}/a.png`, text: 'a"b' },
+        ],
+      },
       { lang: "en" }, hashEmail(addr(1)), sender,
     );
-    expect(m.html).not.toMatch(/<script|<link|onclick|javascript:|url\(|http:\/\/insecure/i);
+    expect(m.html).not.toMatch(/<script|<b>|<i>|javascript:|evil\.example/i);
+    expect(m.html).toContain("&lt;script&gt;alert(1)&lt;/script&gt; &amp; &quot;q&quot;<br>line2");
+    expect(m.html).toContain('href="https://ok.example/?a=1&amp;b=2"');
+    expect(m.html).toContain(`src="${env.SITE_URL}/a.png" alt="a&quot;b"`);
     expect(m.html).toContain("A &lt;b&gt;&amp; Co&lt;/b&gt;<br>Street 1");
     expect(m.html).toContain("&lt;i&gt;pre&lt;/i&gt;");
-    expect(m.html).toContain('href="https://ok.example/?a=1&amp;b=2"');
     expect(m.subject).not.toMatch(/[\r\n]/);
     expect(m.text).toContain("A <b>& Co</b>");
   });
 
   it("Hebrew: label in subject and footer when on, absent when off, absent in English", async () => {
-    const c = { subject: "שלום", bodyHtml: "<p>x</p>", bodyText: "x" };
+    const c = { subject: "שלום", bodyText: "x" };
     const on = await renderCampaignMail(c, { lang: "he" }, hashEmail(addr(1)), sender);
     expect(on.subject.startsWith(`${COMMERCIAL_LABEL_HE}: `)).toBe(true);
     expect(on.html).toContain('dir="rtl"');
@@ -357,8 +369,18 @@ describe("mail rendering", () => {
     expect(en.html).not.toContain(COMMERCIAL_LABEL_HE);
   });
 
-  it("sanitizeHtml escapes stray angle brackets and keeps only allowed tags", () => {
-    expect(sanitizeHtml("1 < 2 <b>x</b><iframe src=x></iframe><marquee>m</marquee>")).toBe("1 &lt; 2 <b>x</b>m");
+  it("plain text becomes paragraphs; urls are validated with new URL", () => {
+    expect(renderBody({ bodyText: "a\n\n b <i>" })).toMatch(/<p[^>]*>a<\/p>.*<p[^>]*>b &lt;i&gt;<\/p>/s);
+    expect([safeHref("mailto:a@b.co"), safeHref("data:text/html,x"), safeHref("https://u:p@x.co"), safeHref("nope")]).toEqual(["mailto:a@b.co", null, null, null]);
+    expect([safeImage("http://x.co/a.png"), safeImage(`${env.SITE_URL}/a.png`)]).toEqual([null, `${env.SITE_URL}/a.png`]);
+  });
+
+  it("the API refuses client HTML (bodyHtml) and unsafe block urls", async () => {
+    const a = (b: Record<string, unknown>) => admin(request(createApp()).post(C).send(draft(b)));
+    expect((await a({ bodyHtml: "<p>x</p>" })).status).toBe(400);
+    expect((await a({ blocks: [{ type: "cta", url: "javascript:x", label: "l" }] })).status).toBe(400);
+    expect((await a({ blocks: [{ type: "image", url: "https://evil.example/a.png" }] })).status).toBe(400);
+    expect((await a({ blocks: [{ type: "p", text: "ok" }, { type: "cta", url: "https://x.co", label: "l" }] })).status).toBe(201);
   });
 });
 
@@ -405,7 +427,8 @@ describe("auto-draft", () => {
     const [doc] = [...store.values()];
     expect(doc).toMatchObject({ status: "draft", groups: ["subscribers"], topic: "blog", eventId: "announce:post:x:1" });
     expect(doc.sendAt).toBeUndefined();
-    expect(String(doc.bodyHtml)).toContain("A &lt;b&gt;title&lt;/b&gt;");
+    expect(doc.blocks).toContainEqual({ type: "h2", text: "A <b>title</b>" });
+    expect(doc.bodyHtml).toBeUndefined();
     expect(await autoDraftFor(ev("release"), on)).toBe(true);
     expect(await autoDraftFor({ ...ev("post"), kind: "note" }, on)).toBe(false);
   });
