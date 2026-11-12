@@ -7,6 +7,7 @@ import DarkAct from "@/components/ground/DarkAct";
 import Stack from "@/components/Stack";
 import LatestNotes from "@/components/LatestNotes";
 import Contact from "@/components/Contact";
+import SignupBlock from "@/components/SignupBlock";
 import SiteFooter from "@/components/SiteFooter";
 import { Fragment, type ReactNode } from "react";
 import { DARK_SECTIONS, shownSections, type HomeSection } from "@/settings/schema";
@@ -87,6 +88,9 @@ export default function Index() {
         {shown.map((id) => (
           <Fragment key={id}>{SECTIONS[id]()}</Fragment>
         ))}
+        <div className="wrap section-y">
+          <SignupBlock />
+        </div>
         <div className="wrap flex justify-end pb-6">
           <ShareMenu kind="home" variant="text" entity={{ title: names.siteName }} />
         </div>

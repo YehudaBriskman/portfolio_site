@@ -28,6 +28,11 @@ const BlogLog = lazy(() => import("./pages/BlogLog"));
 // The accessibility statement: plain text, read rarely, so not on the
 // home page's bill either.
 const Accessibility = lazy(() => import("./pages/Accessibility"));
+// The signup page and the three an email links to: small, read rarely, noindex.
+const Follow = lazy(() => import("./pages/Follow"));
+const SubscribeConfirm = lazy(() => import("./pages/SubscribeConfirm"));
+const Unsubscribe = lazy(() => import("./pages/Unsubscribe"));
+const SubscribeManage = lazy(() => import("./pages/SubscribeManage"));
 // Admin is edge-gated, but lazy anyway so the editor never reaches a reader.
 const Admin = lazy(() => import("./pages/Admin"));
 const AdminOverview = lazy(() => import("./pages/AdminOverview"));
@@ -180,6 +185,10 @@ const App = () => {
             <Route path="/blog/log" element={<Suspense fallback={<RouteFallback />}><BlogLog /></Suspense>} />
             <Route path="/blog/:slug" element={<Suspense fallback={<RouteFallback />}><BlogPost /></Suspense>} />
             <Route path="/accessibility" element={<Suspense fallback={<RouteFallback />}><Accessibility /></Suspense>} />
+            <Route path="/follow" element={<Suspense fallback={<RouteFallback />}><Follow /></Suspense>} />
+            <Route path="/subscribe/confirm" element={<Suspense fallback={<RouteFallback />}><SubscribeConfirm /></Suspense>} />
+            <Route path="/unsubscribe" element={<Suspense fallback={<RouteFallback />}><Unsubscribe /></Suspense>} />
+            <Route path="/subscribe/manage" element={<Suspense fallback={<RouteFallback />}><SubscribeManage /></Suspense>} />
             <Route path="/developers/mcp" element={<Suspense fallback={<RouteFallback />}><DevelopersMcp /></Suspense>} />
             {/* The 404 is a reader's page too, and keeps the bar. */}
             <Route path="*" element={<NotFound />} />

@@ -52,6 +52,17 @@ export const useStatementWords = defineWords(
       "A link you share can end with two small tags, utm_source and utm_medium, which tell the page you open it from where the link came from. The site owner can turn them off.",
       "LinkedIn cannot be given text in advance, so the caption is copied for you to paste. Instagram has no way to be opened from a web page, so the picture is saved and the caption copied, and you attach the picture in the app.",
     ],
+    /* DRAFT wording for the owner to approve: what the mailing list collects. */
+    privacy: "Privacy: the mailing list",
+    privacyIntro: "Apart from a message you send through the contact form, the only personal data this site collects on purpose is what you type into the sign-up form. It does not use cookies, analytics or tracking pixels, and no email carries one.",
+    privacyItems: [
+      "What is stored: your email address, your name if you gave one, the language and topics you chose, and the time and form version you agreed to.",
+      "Why: only to send you the new notes and releases you chose. Nothing is sold, shared or used for anything else.",
+      "Confirmation: you are added only after you open the link in the confirmation email. An unconfirmed address is deleted after a few days.",
+      "Leaving: every email has an unsubscribe link, and you can change topics or language from the preferences link. After you unsubscribe, the address is kept only as a blocked entry so it is never mailed again.",
+      "Deletion: write to the address below and your record is erased.",
+    ],
+
     limits: "Known limitations",
     limitItems: [
       "Some content, notes and project write-ups among it, is not yet translated into Hebrew. On a Hebrew page it is shown in English and marked as such.",
@@ -105,6 +116,16 @@ export const useStatementWords = defineWords(
       "קישור ששיתפתם יכול להסתיים בשתי תגיות קטנות, utm_source ו־utm_medium, שאומרות לעמוד שנפתח מהקישור מאיפה הוא הגיע. בעל האתר יכול לכבות אותן.",
       "אי אפשר למסור ל־LinkedIn טקסט מראש, ולכן הטקסט מועתק כדי שתדביקו אותו. אי אפשר לפתוח את Instagram מעמוד אינטרנט, ולכן התמונה נשמרת והטקסט מועתק, ואת התמונה מצרפים באפליקציה.",
     ],
+    privacy: "פרטיות: רשימת התפוצה",
+    privacyIntro: "מלבד הודעה שאתם שולחים בטופס יצירת הקשר, המידע האישי היחיד שהאתר אוסף במכוון הוא מה שאתם מקלידים בטופס ההרשמה. האתר לא משתמש בעוגיות, בניתוח נתונים או בפיקסלים למעקב, ובאף אימייל אין כאלה.",
+    privacyItems: [
+      "מה נשמר: כתובת האימייל, השם אם מסרתם, השפה והנושאים שבחרתם, והמועד וגרסת הטופס שאישרתם.",
+      "בשביל מה: רק כדי לשלוח לכם את הרשימות והגרסאות החדשות שבחרתם. שום דבר לא נמכר, לא מועבר ולא משמש למטרה אחרת.",
+      "אישור: אתם נוספים לרשימה רק אחרי שפתחתם את הקישור באימייל האישור. כתובת שלא אושרה נמחקת אחרי כמה ימים.",
+      "עזיבה: בכל אימייל יש קישור להסרה, ואפשר לשנות נושאים או שפה מקישור ההעדפות. אחרי ההסרה הכתובת נשמרת רק כחסימה, כדי שלא תקבלו יותר אימיילים.",
+      "מחיקה: כתבו לכתובת שלמטה והפרטים שלכם יימחקו.",
+    ],
+
     limits: "מגבלות ידועות",
     limitItems: [
       "חלק מהתוכן, ובכלל זה רשימות ותיאורי פרויקטים, עדיין לא תורגם לעברית. בעמוד בעברית הוא מוצג באנגלית ומסומן ככזה.",

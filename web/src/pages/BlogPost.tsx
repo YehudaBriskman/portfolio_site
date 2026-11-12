@@ -2,6 +2,7 @@ import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ListTree, Pencil } from "lucide-react";
 import { heldHeight, useRememberHeight } from "@/lib/heldHeight";
+import SignupBlock from "@/components/SignupBlock";
 import PageShell from "@/components/PageShell";
 import Ridge from "@/components/Ridge";
 import Byline, { FeedLink } from "@/components/notes/Byline";
@@ -393,6 +394,8 @@ export default function BlogPost() {
             </div>
 
             <PostFooterNav newer={neighbours.newer} older={neighbours.older} />
+
+            <SignupBlock className="mt-section-sm" />
           </>
           );
         })()}

@@ -316,6 +316,36 @@ server {
     error_page 500 502 503 504 = @spa;
   }
 
+  # The signup page and the pages an email links to: rendered (noindex) so a
+  # direct load answers 200 with its own head instead of the 404 shell.
+  location = /follow {
+    proxy_pass http://$api_upstream/api/seo/render/follow;
+    include /etc/nginx/snippets/proxy-headers.conf;
+    proxy_intercept_errors on;
+    error_page 500 502 503 504 = @spa;
+  }
+
+  location = /subscribe/confirm {
+    proxy_pass http://$api_upstream/api/seo/render/subscribe/confirm;
+    include /etc/nginx/snippets/proxy-headers.conf;
+    proxy_intercept_errors on;
+    error_page 500 502 503 504 = @spa;
+  }
+
+  location = /unsubscribe {
+    proxy_pass http://$api_upstream/api/seo/render/unsubscribe;
+    include /etc/nginx/snippets/proxy-headers.conf;
+    proxy_intercept_errors on;
+    error_page 500 502 503 504 = @spa;
+  }
+
+  location = /subscribe/manage {
+    proxy_pass http://$api_upstream/api/seo/render/subscribe/manage;
+    include /etc/nginx/snippets/proxy-headers.conf;
+    proxy_intercept_errors on;
+    error_page 500 502 503 504 = @spa;
+  }
+
   # ------------------------------------------------------ remote MCP (#263) --
   # The MCP endpoint, its public twin, the OAuth endpoints that sign a client
   # in, and the discovery metadata, all answered by the API. The API itself
@@ -588,6 +618,8 @@ server {
   location = /story/ { return 308 /story; }
   location = /accessibility/ { return 308 /accessibility; }
   location = /developers/mcp/ { return 308 /developers/mcp; }
+  location = /follow/ { return 308 /follow; }
+  location = /unsubscribe/ { return 308 /unsubscribe; }
 
   #
   # Removed projects (2026-11-03). Their pages are gone but links to them are
