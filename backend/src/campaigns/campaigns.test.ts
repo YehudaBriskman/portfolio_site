@@ -420,6 +420,33 @@ describe("sender tick", () => {
     expect(sent.map((m) => m.to).sort()).toEqual([addr(2), addr(4)]);
   });
 
+  it("counters follow the result docs after a crash mid-batch: mails sent before the kill are counted once resumed (#565)", async () => {
+    const id = await queued(5);
+    store.set(`campaign:${id}`, { ...get(id), status: "sending" });
+    // killed after 3 mails: their result docs say sent, the batch-end counter update never ran
+    for (const i of [1, 2, 3]) {
+      const h = hashEmail(addr(i));
+      store.set(`send:${id}:${h}`, { _id: `send:${id}:${h}`, _rev: "1-r", type: "send", campaignId: id, contact: h, status: "sent", at: new Date(T0 - 1000).toISOString() });
+    }
+    expect(get(id).counters.sent).toBe(0);
+    await runSenderTick({ now: () => T0, deliver });
+    await runSenderTick({ now: () => T0 + 1, deliver });
+    expect(sent).toHaveLength(2);
+    expect(get(id)).toMatchObject({ status: "sent", counters: { queued: 5, sent: 5, failed: 0, suppressed: 0 } });
+  });
+
+  it("a campaign whose every result doc is already written still gets the true counters when it finishes", async () => {
+    const id = await queued(2);
+    store.set(`campaign:${id}`, { ...get(id), status: "sending" });
+    for (const [i, status] of [[1, "sent"], [2, "failed"]] as const) {
+      const h = hashEmail(addr(i));
+      store.set(`send:${id}:${h}`, { _id: `send:${id}:${h}`, _rev: "1-r", type: "send", campaignId: id, contact: h, status, at: new Date(T0 - 1000).toISOString() });
+    }
+    await runSenderTick({ now: () => T0, deliver });
+    expect(sent).toHaveLength(0);
+    expect(get(id)).toMatchObject({ status: "failed", counters: { sent: 1, failed: 1, suppressed: 0 } });
+  });
+
   it("never sends to pending, unsubscribed or suppressed contacts, nor to one who left between scan and send", async () => {
     setSender();
     seedContact(1);
@@ -581,6 +608,23 @@ describe("bounce handling", () => {
     await tick(deliver);
     expect(sent).toHaveLength(4);
     expect(get(id)).toMatchObject({ status: "failed", counters: { sent: 4, failed: 5 } });
+  });
+
+  it("a paused or bounced campaign's counters equal its send docs, deferred ones not counted, even after a lost counter update (#565)", async () => {
+    const id = await queued(9);
+    await tick(script([HARD, TRANSIENT, null, null]));
+    const tallyOf = () => {
+      const n = { sent: 0, failed: 0, suppressed: 0 };
+      for (const d of sendDocs(id)) if (d.status in n) n[d.status as keyof typeof n]++;
+      return n;
+    };
+    expect(get(id).counters).toMatchObject(tallyOf());
+    expect(sendDocs(id).some((d) => d.status === "deferred")).toBe(true);
+    // the counter write of a killed batch is lost: the next batch reconciles from the docs
+    store.set(`campaign:${id}`, { ...get(id), counters: { ...get(id).counters, sent: 0, failed: 0 } });
+    await tick(failing(POLICY), T0 + 60_000);
+    expect(get(id).counters).toMatchObject(tallyOf());
+    expect(tallyOf().sent).toBeGreaterThan(0);
   });
 
   it("10% failures after 20 attempts pause it; 9% would not", async () => {
