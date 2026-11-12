@@ -84,6 +84,7 @@ The manual is in [docs/](docs/README.md):
 - [Media](docs/manual/media.md)
 - [English and Hebrew](docs/manual/i18n.md)
 - [MCP](docs/manual/mcp.md)
+- [Newsletter](docs/newsletter.md)
 - [Deploy and release](docs/manual/deploy.md)
 
 Design records (the motion contract, the accessibility and SEO audits, the
