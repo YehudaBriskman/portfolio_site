@@ -87,6 +87,46 @@ export const SenderSchema = z
   .strict();
 export type SenderSettings = z.infer<typeof SenderSchema>;
 
+const PLACEHOLDER_TOKEN = /\{+[^{}]*\}+|[{}]/g;
+const KNOWN = new Set(["{name}", "{site}", "{days}", "{link}"]);
+export const UNSUB_NOTE_MAX = 500;
+const LINK_REQUIRED: Record<string, string> = {
+  confirmBodyEn: "The confirmation message must contain {link}, otherwise nobody can confirm.",
+  confirmBodyHe: "The confirmation message must contain {link}, otherwise nobody can confirm.",
+  unsubscribeNoteEn: "The unsubscribe note must contain {link}, otherwise nobody can unsubscribe.",
+  unsubscribeNoteHe: "The unsubscribe note must contain {link}, otherwise nobody can unsubscribe.",
+};
+
+/**
+ * The rules for the owner-editable subscriber wording, applied when settings
+ * are SAVED. Deliberately not part of SenderSchema: settingsOf() re-parses the
+ * stored document with that schema and falls back to ALL defaults on failure,
+ * so a stricter schema would silently wipe an older saved document at runtime.
+ * Reads stay lenient; the mail renderer defends itself.
+ */
+export function validateSenderTexts(sender: Pick<SenderSettings, "confirmBodyEn" | "confirmBodyHe" | "confirmSubjectEn" | "confirmSubjectHe" | "unsubscribeNoteEn" | "unsubscribeNoteHe">): { path: string; message: string }[] {
+  const issues: { path: string; message: string }[] = [];
+  for (const f of ["confirmSubjectEn", "confirmSubjectHe", "confirmBodyEn", "confirmBodyHe", "unsubscribeNoteEn", "unsubscribeNoteHe"] as const) {
+    const text = sender[f];
+    const path = `sender.${f}`;
+    const noteF = f.startsWith("unsubscribeNote");
+    if (LINK_REQUIRED[f] && !text.includes("{link}")) {
+      issues.push({ path, message: `${LINK_REQUIRED[f]} Use Reset to default to restore it.` });
+      continue;
+    }
+    const bad = f.startsWith("confirmSubject") ? [] : (text.match(PLACEHOLDER_TOKEN) ?? []).filter((t) => !KNOWN.has(t));
+    if (bad.length) {
+      issues.push({ path, message: `Unknown placeholder ${bad[0]}; use {name} {site} {days} {link}.` });
+      continue;
+    }
+    if (noteF) {
+      if (text.length > UNSUB_NOTE_MAX) issues.push({ path, message: `The unsubscribe note is at most ${UNSUB_NOTE_MAX} characters.` });
+      else if (/\{(name|days)\}/.test(text)) issues.push({ path, message: "{name} and {days} are empty in the unsubscribe note; use {site} and {link}." });
+    }
+  }
+  return issues;
+}
+
 export const DEFAULT_SENDER: SenderSettings = {
   confirmSubjectEn: "Confirm your subscription",
   confirmSubjectHe: "אישור הרשמה",

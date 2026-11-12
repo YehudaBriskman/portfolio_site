@@ -1,6 +1,6 @@
 import { useId, useState, type ReactNode } from "react";
 import type { SenderSettings, SenderWarning } from "@/services/adminAnnounce";
-import { DEFAULT_SENDER, senderProblems, type SenderField, type SenderProblem } from "./defaults";
+import { DEFAULT_SENDER, UNSUB_NOTE_MAX, hasTextProblem, senderProblems, unknownPlaceholder, type SenderField, type SenderProblem } from "./defaults";
 import { useSenderWords } from "./words";
 
 /*
@@ -22,6 +22,10 @@ export default function SenderSection({ sender, onChange, warnings }: { sender: 
 
   const err = (f: SenderField) => {
     const p: SenderProblem | undefined = problems[f];
+    if (p === "noLink") return f.startsWith("unsub") ? w.noLinkNote : w.noLinkConfirm;
+    if (p === "unknown") return w.unknownPlaceholder(unknownPlaceholder(sender[f as keyof SenderSettings] as string) ?? "");
+    if (p === "long") return w.noteTooLong(UNSUB_NOTE_MAX);
+    if (p === "unsubVars") return w.noteVars;
     return p ? (p === "empty" ? w.fieldEmpty : p === "address" ? w.badAddress : p === "number" ? w.badNumber : p === "list" ? w.badList : w.invalidZone) : "";
   };
   const reset = (label: string, show: boolean, env: boolean, fn: () => void) =>
@@ -81,11 +85,18 @@ export default function SenderSection({ sender, onChange, warnings }: { sender: 
           {rows === 1 ? (
             <input id={id} className="a-input min-h-[44px] min-w-0 flex-1 basis-56" dir={he ? "rtl" : "ltr"} lang={he ? "he" : "en"} maxLength={2000} value={sender[f]} aria-invalid={Boolean(problems[f])} onChange={(e) => onChange((s) => void (s[f] = e.target.value))} />
           ) : (
-            <textarea id={id} className="a-textarea min-w-0 flex-1 basis-56" rows={rows} dir={he ? "rtl" : "ltr"} lang={he ? "he" : "en"} maxLength={2000} value={sender[f]} aria-invalid={Boolean(problems[f])} onChange={(e) => onChange((s) => void (s[f] = e.target.value))} />
+            <textarea id={id} className="a-textarea min-w-0 flex-1 basis-56" rows={rows} dir={he ? "rtl" : "ltr"} lang={he ? "he" : "en"} maxLength={2000} value={sender[f]} aria-invalid={Boolean(problems[f])} aria-describedby={problems[f] ? `${id}-e` : undefined} onChange={(e) => onChange((s) => void (s[f] = e.target.value))} />
           )}
           {reset(label, sender[f] !== DEFAULT_SENDER[f], false, () => onChange((s) => void (s[f] = DEFAULT_SENDER[f])))}
         </div>
-        {problems[f] && <p className="a-error">{err(f)}</p>}
+        {problems[f] && (
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="a-error" id={`${id}-e`} role="alert">{err(f)}</p>
+            {problems[f] === "noLink" && (
+              <button type="button" className="a-btn min-h-[44px]" onClick={() => onChange((s) => void (s[f] = `${s[f].trimEnd()} {link}`.trim()))}>{w.insertLink}</button>
+            )}
+          </div>
+        )}
         <div className="a-box mt-2 p-3" dir={he ? "rtl" : "ltr"} lang={he ? "he" : "en"}>
           <p className="a-label !mt-0" dir="auto">{w.livePreview}</p>
           <p className="whitespace-pre-wrap break-words text-sm" data-testid={`preview-${f}`}>{sample}</p>
@@ -98,7 +109,8 @@ export default function SenderSection({ sender, onChange, warnings }: { sender: 
   const footerSet = Boolean(sender.footerIdentity.trim());
   const senderBad = Boolean(problems.fromAddress || problems.replyTo);
   const limitsBad = Boolean(problems.throttlePerHour || problems.dailyCap || problems.quietHours);
-  const ready = footerSet && !senderBad && !limitsBad;
+  const textsBad = hasTextProblem(sender);
+  const ready = footerSet && !senderBad && !limitsBad && !textsBad;
   const mark = (ok: boolean) => (
     <span className="inline-flex items-center gap-1">
       <span aria-hidden="true" className={ok ? "" : "font-bold text-[rgb(var(--destructive-ink))]"}>{ok ? "✓" : "✗"}</span>
@@ -136,6 +148,7 @@ export default function SenderSection({ sender, onChange, warnings }: { sender: 
           <li>{mark(footerSet)} {w.ckFooter}</li>
           <li>{mark(!senderBad)} {w.ckSender}</li>
           <li>{mark(!limitsBad)} {w.ckLimits}</li>
+          <li>{mark(!textsBad)} {w.ckTexts}</li>
           <li>{mark(sender.testRecipients.length > 0)} {w.ckTests} <span className="text-clay">({w.ckTestsHint})</span></li>
         </ul>
       </div>
@@ -217,7 +230,7 @@ export default function SenderSection({ sender, onChange, warnings }: { sender: 
 
       {sec(
         w.secTexts,
-        <>{w.sumTexts}</>,
+        <>{textsBad ? w.sumTextsBad : w.sumTexts} {mark(!textsBad)}</>,
         <>
           <p className="a-hint !mt-0">{w.textsHint}</p>
           {tpl("confirmSubjectEn", w.confirmSubjectEn, 1)}
@@ -227,7 +240,7 @@ export default function SenderSection({ sender, onChange, warnings }: { sender: 
           {tpl("confirmBodyHe", w.confirmBodyHe, 7)}
           {tpl("unsubscribeNoteHe", w.unsubHe, 2)}
         </>,
-        { testid: "sec-texts" },
+        { open: textsBad, bad: textsBad, testid: "sec-texts" },
       )}
     </section>
   );

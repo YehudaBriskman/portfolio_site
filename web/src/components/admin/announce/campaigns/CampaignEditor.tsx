@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useId, useMemo, useState } from "react";
+import { hasTextProblem } from "../sender/defaults";
 import { Link } from "react-router-dom";
 import { ErrorState } from "@/components/admin/ui";
 import { ContentInvalidError, type Issue } from "@/services/adminContent";
@@ -183,6 +184,7 @@ export default function CampaignEditor({
   if (recipients === 0) problems.push(w.readyAudience);
   if (mode === "later" && (!scheduleIso || past)) problems.push(w.readyTime);
   if (!footerOk && sender) problems.push(w.readyFooter);
+  if (sender && hasTextProblem(sender)) problems.push(w.readyUnsubNote);
   const formOk = Boolean(form.subject.trim() && form.groups.length > 0 && !blockBad);
   const canGo = editable && problems.length === 0 && busy === "";
 
