@@ -4,6 +4,8 @@ import AdminShell from "@/components/admin/AdminShell";
 import { PageHeader } from "@/components/admin/ui";
 import InboxTab from "@/components/admin/announce/inbox/InboxTab";
 import { useMarketingWords } from "@/components/admin/announce/inbox/words";
+import AudienceTab from "@/components/admin/announce/audience/AudienceTab";
+import { useAudienceWords } from "@/components/admin/announce/audience/words";
 import LibraryPanel from "@/components/admin/announce/library/LibraryPanel";
 import { useLibraryWords } from "@/components/admin/announce/library/words";
 import SettingsPanel from "@/components/admin/announce/SettingsPanel";
@@ -22,6 +24,7 @@ type HubTab = { id: string; label: string; badge?: number; render: () => ReactNo
 export default function AdminAnnounce() {
   const w = useMarketingWords();
   const lw = useLibraryWords();
+  const aw = useAudienceWords();
   const [params, setParams] = useSearchParams();
   const [items, setItems] = useState<AnnounceSummary[] | null>(null);
   const [error, setError] = useState<"load" | "auth" | null>(null);
@@ -64,6 +67,7 @@ export default function AdminAnnounce() {
       badge: unread,
       render: () => <InboxTab items={items} error={error} onRetry={retry} onChange={change} onCreated={created} />,
     },
+    { id: "audience", label: aw.tab, render: () => <AudienceTab /> },
     { id: "library", label: lw.tab, render: () => <LibraryPanel /> },
     { id: "settings", label: w.tabSettings, render: () => <SettingsPanel /> },
   ];
