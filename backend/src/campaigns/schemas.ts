@@ -1,9 +1,14 @@
 import { z } from "zod";
 import { Slug } from "../audience/schemas.js";
 import { safeHref, safeImage } from "./body.js";
+import type { SmtpErrorKind } from "../providers/classifySmtpError.js";
 
-export const CAMPAIGN_STATUSES = ["draft", "scheduled", "sending", "sent", "failed", "canceled"] as const;
+export const CAMPAIGN_STATUSES = ["draft", "scheduled", "sending", "sent", "failed", "canceled", "paused"] as const;
 export type CampaignStatus = (typeof CAMPAIGN_STATUSES)[number];
+/** Why the sender stopped a campaign by itself. Only the owner resumes it. */
+export type PauseReason = "auth" | "consecutive" | "failure-rate" | "hard-bounce-rate";
+/** Results since the campaign started or was last resumed: what the auto-pause rules are judged on. */
+export type Health = { sent: number; failed: number; hard: number; streak: number };
 
 export type Block = { type: "p" | "h2" | "ul" | "cta" | "image"; text?: string; items?: string[]; url?: string; label?: string };
 
@@ -24,6 +29,8 @@ export type Campaign = {
   sendAt?: string;
   counters: { queued: number; sent: number; failed: number; suppressed: number };
   eventId?: string;
+  pausedReason?: PauseReason;
+  health?: Health;
   startedAt?: string;
   finishedAt?: string;
   createdAt: string;
@@ -36,9 +43,15 @@ export type SendResult = {
   type: "send";
   campaignId: string;
   contact: string;
-  status: "attempting" | "sent" | "failed" | "suppressed";
+  /** `deferred`: a transient failure, tried again at `retryAt` (not final, not counted as failed). */
+  status: "attempting" | "sent" | "failed" | "suppressed" | "deferred";
   at: string;
   error?: string;
+  /** From classifySmtpError: the kind of failure and the numeric SMTP reply. Never an address. */
+  kind?: SmtpErrorKind;
+  code?: number;
+  tries?: number;
+  retryAt?: string;
 };
 
 export const CampaignId = z.string().regex(/^[a-z0-9-]{1,40}$/);

@@ -11,7 +11,7 @@ const json = (body: unknown, status = 200) => new Response(JSON.stringify(body),
 // Shape copied from `view` in backend/src/campaigns/route.ts.
 const camp = (o: object = {}) => ({
   id: "c1", _rev: "1-a", name: "Spring news", subject: "Hello <b>", preheader: "", bodyText: "Hi\n\nthere", blocks: null, groups: ["subscribers"], lang: "all", topic: null,
-  status: "draft", sendAt: null, counters: { queued: 0, sent: 0, failed: 0, suppressed: 0 }, eventId: null, startedAt: null, finishedAt: null, createdAt: "2026-11-01T10:00:00Z", updatedAt: "2026-11-01T10:00:00Z", ...o,
+  status: "draft", sendAt: null, counters: { queued: 0, sent: 0, failed: 0, suppressed: 0 }, eventId: null, pausedReason: null, startedAt: null, finishedAt: null, createdAt: "2026-11-01T10:00:00Z", updatedAt: "2026-11-01T10:00:00Z", ...o,
 });
 const sender = (o: object = {}) => ({ ...DEFAULT_SENDER, footerIdentity: "Yehuda, Tel Aviv", testRecipients: ["me@example.com"], ...o });
 const settings = (s = sender()) => ({
@@ -36,6 +36,7 @@ beforeEach(() => {
       if (url === "/api/admin/campaigns/c1" && method === "GET") return json({ ok: true, campaign: stored[0] });
       if (url === "/api/admin/campaigns/audience") return json({ ok: true, count: 12, samples: ["a***@e***.com"] });
       if (url === "/api/admin/campaigns/preview") return json({ ok: true, subject: "Hello", html: "<p>Hi</p>", text: "Hi" });
+      if (url === "/api/admin/campaigns/c1/resume") return json({ ok: true, campaign: camp({ status: "scheduled", sendAt: "2026-11-12T10:00:00Z" }) });
       if (url === "/api/admin/campaigns/c1/send-now") return json({ ok: true, campaign: camp({ status: "sending", counters: { queued: 12, sent: 3, failed: 0, suppressed: 0 } }) });
       if (url === "/api/admin/announce/settings" && method === "GET") return json({ ok: true, exists: true, _rev: "1-s", updatedAt: null, settings: settings(senderDoc) });
       if (url === "/api/admin/announce/settings" && method === "PUT") return json({ ok: true, exists: true, _rev: "2-s", updatedAt: null, settings: (JSON.parse(String(init?.body)) as { settings: unknown }).settings, warnings: [{ field: "fromAddress", code: "domain-not-sendable", message: "Check with your mail provider." }] });
@@ -71,6 +72,19 @@ describe("Campaigns tab", () => {
     expect(await screen.findByText("Spring news")).toBeTruthy();
     expect(screen.getAllByText("Sent").length).toBeGreaterThan(0);
     expect(screen.queryByTestId("footer-blocker")).toBeNull();
+  });
+
+  it("a paused campaign says why, in plain words, and resumes only after a confirm", async () => {
+    stored[0] = camp({ status: "paused", pausedReason: "auth", counters: { queued: 12, sent: 3, failed: 1, suppressed: 0 } });
+    open();
+    fireEvent.click(await screen.findByRole("button", { name: "Open Spring news" }));
+    const banner = await screen.findByTestId("paused-banner");
+    expect(banner.textContent).toMatch(/refused the login/);
+    expect(screen.getAllByText("Paused").length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole("button", { name: "Resume sending…" }));
+    expect(calls.some((c) => c.url.endsWith("/resume"))).toBe(false);
+    fireEvent.click(await screen.findByRole("button", { name: "Resume" }));
+    await waitFor(() => expect(calls.some((c) => c.url === "/api/admin/campaigns/c1/resume" && c.method === "POST")).toBe(true));
   });
 
   it("blocks with a clear message when the footer identity is empty", async () => {

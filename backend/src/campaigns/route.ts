@@ -32,7 +32,7 @@ const view = (c: Campaign) => ({
   id: c._id.slice("campaign:".length), _rev: c._rev ?? null, name: c.name, subject: c.subject, preheader: c.preheader ?? "",
   bodyText: c.bodyText, blocks: c.blocks ?? null, groups: c.groups, lang: c.lang ?? "all", topic: c.topic ?? null,
   status: c.status, sendAt: c.sendAt ?? null, counters: c.counters, eventId: c.eventId ?? null,
-  startedAt: c.startedAt ?? null, finishedAt: c.finishedAt ?? null, createdAt: c.createdAt, updatedAt: c.updatedAt,
+  pausedReason: c.pausedReason ?? null, startedAt: c.startedAt ?? null, finishedAt: c.finishedAt ?? null, createdAt: c.createdAt, updatedAt: c.updatedAt,
 });
 
 const idOf = (raw: unknown) => {
@@ -111,7 +111,7 @@ router.delete(
     const id = idOf(req.params.id);
     const before = id ? await getCampaign(id) : null;
     if (!id || !before) return notFound(res);
-    if (before.status === "scheduled" || before.status === "sending") return bad(res, "Cancel it first.", 409);
+    if (before.status === "scheduled" || before.status === "sending" || before.status === "paused") return bad(res, "Cancel it first.", 409);
     await deleteCampaign(id);
     res.locals.audit = { target: before._id, before, after: null };
     res.json({ ok: true });
@@ -271,12 +271,13 @@ router.post(
     const id = idOf(req.params.id);
     const before = id ? await getCampaign(id) : null;
     if (!id || !before) return notFound(res);
-    if (before.status !== "scheduled" && before.status !== "sending") return bad(res, "Only a scheduled or sending campaign can be canceled.", 409);
+    if (before.status !== "scheduled" && before.status !== "sending" && before.status !== "paused") return bad(res, "Only a scheduled, sending or paused campaign can be canceled.", 409);
     let after: Campaign | null;
     try {
       after = await mutateCampaign(id, (c) => {
-        if (c.status !== "scheduled" && c.status !== "sending") return false;
+        if (c.status !== "scheduled" && c.status !== "sending" && c.status !== "paused") return false;
         c.status = "canceled";
+        delete c.pausedReason;
         c.finishedAt = new Date().toISOString();
       });
     } catch (e) {
@@ -285,6 +286,33 @@ router.post(
     }
     res.locals.audit = { target: before._id, before, after };
     res.json({ ok: true, campaign: view(after!) });
+  }),
+);
+
+/* The owner fixed the cause (credentials, a blocked domain, a stale list) and lets the campaign carry on. The health window restarts so the same old failures do not pause it again; people already done are skipped. */
+router.post(
+  "/:id/resume",
+  asyncHandler(async (req, res) => {
+    const id = idOf(req.params.id);
+    const before = id ? await getCampaign(id) : null;
+    if (!id || !before) return notFound(res);
+    if (before.status !== "paused") return bad(res, "Only a paused campaign can be resumed.", 409);
+    let after: Campaign | null;
+    try {
+      after = await mutateCampaign(id, (c) => {
+        if (c.status !== "paused") return false;
+        c.status = "scheduled";
+        c.sendAt = new Date().toISOString();
+        c.health = { sent: 0, failed: 0, hard: 0, streak: 0 };
+        delete c.pausedReason;
+      });
+    } catch (e) {
+      if (isStatus(e, 409)) return conflict(res);
+      throw e;
+    }
+    if (!after || after.status !== "scheduled") return bad(res, "This campaign changed state. Reload.", 409);
+    res.locals.audit = { target: before._id, before, after };
+    res.json({ ok: true, campaign: view(after) });
   }),
 );
 

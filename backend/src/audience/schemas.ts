@@ -41,6 +41,10 @@ export type Contact = {
   updatedAt: string;
   confirmedAt?: string;
   unsubscribedAt?: string;
+  /** Consecutive soft failures (mailbox full, temporary refusal) across campaigns; reset by a delivered mail. */
+  softBounces?: number;
+  /** Set when the sender, not the owner, suppressed the address. */
+  suppressedReason?: "hard-bounce" | "soft-bounces";
 };
 
 export type Group = { _id: string; _rev?: string; type: "audience"; name: string; kind: "system" | "manual"; createdAt: string };
