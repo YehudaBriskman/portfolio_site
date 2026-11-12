@@ -90,6 +90,10 @@ export const useLibraryWords = defineWords(
     save: "Save library",
     saveBar: "Library changes",
     unsaved: "Unsaved changes",
+    starterAdd: "Add starter templates",
+    starterHint: "A ready-made set of templates and snippets. Nothing you have is changed or replaced, and none becomes a default. Review them, then save the library.",
+    starterResult: (added: number, skipped: number) => `Added ${added}, skipped ${skipped}`,
+    starterNone: "The starter templates are already in your library.",
   },
   {
     tab: "ספרייה",
@@ -178,5 +182,9 @@ export const useLibraryWords = defineWords(
     save: "שמירת הספרייה",
     saveBar: "שינויים בספרייה",
     unsaved: "שינויים שלא נשמרו",
+    starterAdd: "הוספת תבניות פתיחה",
+    starterHint: "סט מוכן של תבניות וקטעים. שום דבר ממה שכבר יש לך לא משתנה ולא מוחלף, ושום תבנית לא הופכת לברירת מחדל. אפשר לעבור עליהן ואז לשמור את הספרייה.",
+    starterResult: (added: number, skipped: number) => `נוספו ${added}, דולגו ${skipped}`,
+    starterNone: "תבניות הפתיחה כבר נמצאות בספרייה שלך.",
   },
 );

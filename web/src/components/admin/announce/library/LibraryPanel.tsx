@@ -5,6 +5,7 @@ import { same, useSettingsDoc } from "../useSettingsDoc";
 import { useAnnounceWords } from "../words";
 import { builtinTemplate } from "./defaults";
 import SnippetsEditor from "./SnippetsEditor";
+import { planStarter } from "./starter";
 import TemplateEditor, { type EditorValue } from "./TemplateEditor";
 import { useRecentEvents } from "./useSample";
 import { newId, settleDefault, withDefault } from "./variables";
@@ -35,6 +36,7 @@ export default function LibraryPanel() {
   const [lang, setLang] = useState<AnnounceLang | "all">("all");
   const [channel, setChannel] = useState<AnnounceChannel | "all">("all");
   const [confirm, setConfirm] = useState<string | null>(null);
+  const [starterMsg, setStarterMsg] = useState("");
 
   const { view, draft, status, issues, edit } = doc;
   if (doc.loadError) return <ErrorState message={w.loadFailed} onRetry={doc.reload} />;
@@ -57,6 +59,16 @@ export default function LibraryPanel() {
     };
     edit((d) => void d.library.push(item));
     setTarget({ kind: "item", id: item.id });
+  };
+
+  const starter = planStarter(draft.library, draft.snippets, LIBRARY_MAX);
+  const addStarter = () => {
+    const plan = planStarter(draft.library, draft.snippets, LIBRARY_MAX);
+    edit((d) => {
+      d.library.push(...plan.templates);
+      d.snippets.push(...plan.snippets);
+    });
+    setStarterMsg(w.starterResult(plan.added, plan.skipped));
   };
 
   const patchItem = (id: string, p: Partial<AnnounceLibraryItem>) =>
@@ -123,6 +135,11 @@ export default function LibraryPanel() {
           <button type="button" className="a-btn a-btn-primary min-h-[44px]" disabled={draft.library.length >= LIBRARY_MAX} onClick={() => add()}>{w.newTemplate}</button>
         </div>
         {draft.library.length >= LIBRARY_MAX && <p className="a-hint">{w.limitReached(LIBRARY_MAX)}</p>}
+        <div className="flex flex-wrap items-center gap-3">
+          <button type="button" className="a-btn min-h-[44px]" aria-describedby={`${uid}-sh`} disabled={starter.added === 0} onClick={addStarter}>{w.starterAdd}</button>
+          <span role="status" className="text-sm font-bold">{starterMsg || (starter.added === 0 ? w.starterNone : "")}</span>
+          <p className="a-hint !mt-0 min-w-0 flex-1 basis-64" id={`${uid}-sh`}>{w.starterHint}</p>
+        </div>
         {items.length === 0 ? (
           <p className="a-hint">{w.noTemplates}</p>
         ) : (

@@ -35,6 +35,9 @@ const LATIN_SEEN = new Set<string>([
   "Ctrl+K",
   "Ctrl+S",
   "Ctrl+Shift+P",
+  /* Hashtags in the starter pack's Hebrew snippet (library/starter.ts). */
+  "typescript",
+  "webdev",
   /* Claude's own menu names, quoted as the reader will see them (statement.ts mcp). */
   "Settings",
   "Connectors",
