@@ -3,10 +3,12 @@ import { adminAudience, type Suppressed } from "@/services/adminAudience";
 import { Empty } from "@/components/admin/ui";
 import Email from "./Email";
 import { useAudienceWords } from "./words";
+import { useWhen } from "./useWhen";
 
 /* Rare: addresses that are never mailed. Loaded when its section is opened. */
 export default function SuppressionPanel() {
   const w = useAudienceWords();
+  const when = useWhen();
   const uid = useId();
   const [items, setItems] = useState<Suppressed[] | null>(null);
   const [failed, setFailed] = useState(false);
@@ -40,7 +42,9 @@ export default function SuppressionPanel() {
         <ul className="space-y-2" aria-label={w.suppressionHeading}>
           {items.map((s) => (
             <li key={s.hash} className="a-box flex flex-wrap items-center gap-2 p-2 ps-4">
-              <div className="min-w-0 flex-1 basis-48 text-sm">{s.email ? <Email value={s.email} /> : <Empty label={w.hashOnly} />}</div>
+              <div className="min-w-0 flex-1 basis-48 text-sm">{s.email ? <Email value={s.email} /> : <Empty label={w.hashOnly} />}
+                {s.since && !Number.isNaN(Date.parse(s.since)) && <p className="a-hint !mt-0.5 tabular-nums">{w.suppressedSince(when(s.since))}</p>}
+              </div>
               {confirm === s.hash ? (
                 <>
                   <p className="a-hint !mt-0 basis-full">{w.suppressRemoveHint}</p>

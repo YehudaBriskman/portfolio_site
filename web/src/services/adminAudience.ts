@@ -17,12 +17,13 @@ export type ContactSource = "site" | "manual" | "import";
 export type ContactLang = "en" | "he";
 export type Topics = { blog: boolean; releases: boolean };
 
-export type Group = { slug: string; name: string; kind: "system" | "manual"; count: number };
+/* `total` is every contact in the group, `active` those who can be mailed; the server sends no `count`. */
+export type Group = { slug: string; name: string; kind: "system" | "manual"; count: number; total?: number; active?: number };
 
 export type Contact = {
   hash: string;
   email: string;
-  name?: string;
+  name?: string | null;
   lang: ContactLang;
   groups: string[];
   status: ContactStatus;
@@ -31,8 +32,8 @@ export type Contact = {
   consentNote: string;
   topics: Topics;
   createdAt?: string;
-  confirmedAt?: string;
-  unsubscribedAt?: string;
+  confirmedAt?: string | null;
+  unsubscribedAt?: string | null;
 };
 
 export type ContactPage = { items: Contact[]; nextCursor: string | null };
@@ -41,7 +42,8 @@ export type ContactPatch = Partial<Pick<Contact, "name" | "lang" | "groups" | "t
 export type NewContact = { email: string; name?: string; lang: ContactLang; groups: string[]; consentNote: string };
 export type ImportInput = { csv: string; consentNote: string; consentConfirmed: true; group?: string };
 export type ImportResult = { added: number; skipped: number; invalid: Array<{ row?: number; value?: string; reason?: string } | string> };
-export type Suppressed = { hash: string; email?: string; at?: string };
+/* `since` is when the address was suppressed (the server's field). */
+export type Suppressed = { hash: string; email?: string; since?: string };
 
 export const EXPORT_URL = "/api/admin/audience/contacts/export.csv";
 
@@ -75,6 +77,14 @@ const list = <T>(b: unknown, ...keys: string[]): T[] => {
   for (const k of ["items", ...keys]) if (Array.isArray(o[k])) return o[k] as T[];
   return [];
 };
+const toGroup = (g: Json): Group => {
+  const n = g.total ?? g.count;
+  return { ...(g as unknown as Group), count: typeof n === "number" ? n : 0 };
+};
+const toSuppressed = (s: Json): Suppressed => {
+  const when = s.since ?? s.at;
+  return { hash: String(s.hash ?? s.id ?? ""), ...(typeof s.email === "string" ? { email: s.email } : {}), ...(typeof when === "string" ? { since: when } : {}) };
+};
 const toContact = (c: Json): Contact => ({
   ...(c as unknown as Contact),
   hash: String(c.hash ?? c.id ?? ""),
@@ -83,7 +93,7 @@ const toContact = (c: Json): Contact => ({
 });
 
 export const adminAudience = {
-  groups: async (): Promise<Group[]> => list<Group>(await call<unknown>("/groups"), "groups"),
+  groups: async (): Promise<Group[]> => list<Json>(await call<unknown>("/groups"), "groups").map(toGroup),
   createGroup: (name: string) => call<unknown>("/groups", { method: "POST", body: JSON.stringify({ name }) }),
   renameGroup: (slug: string, name: string) => call<unknown>(`/groups/${enc(slug)}`, { method: "PATCH", body: JSON.stringify({ name }) }),
   deleteGroup: (slug: string) => call<unknown>(`/groups/${enc(slug)}`, { method: "DELETE" }),
@@ -108,7 +118,7 @@ export const adminAudience = {
     return { added: b.added ?? 0, skipped: b.skipped ?? 0, invalid: Array.isArray(b.invalid) ? b.invalid : [] };
   },
 
-  suppression: async (): Promise<Suppressed[]> => list<Suppressed>(await call<unknown>("/suppression"), "suppression", "suppressed"),
+  suppression: async (): Promise<Suppressed[]> => list<Json>(await call<unknown>("/suppression"), "suppression", "suppressed").map(toSuppressed),
   suppress: (email: string) => call<unknown>("/suppression", { method: "POST", body: JSON.stringify({ email }) }),
   unsuppress: (hash: string) => call<unknown>(`/suppression/${enc(hash)}`, { method: "DELETE" }),
 };

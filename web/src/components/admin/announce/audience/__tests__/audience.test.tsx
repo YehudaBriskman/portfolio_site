@@ -9,9 +9,10 @@ const contact = (o: object = {}) => ({
   hash: "h1", email: "ada@example.com", name: "Ada", lang: "en", groups: ["subscribers"], status: "active", source: "site",
   consentAt: "2026-01-02T00:00:00Z", consentNote: "form v1", topics: { blog: true, releases: true }, ...o,
 });
+// Shapes copied from the backend's groupView (+ counts), view and GET /suppression in admin.route.ts.
 const groups = [
-  { slug: "subscribers", name: "Subscribers", kind: "system", count: 12 },
-  { slug: "friends", name: "Friends", kind: "manual", count: 3 },
+  { slug: "subscribers", name: "Subscribers", kind: "system", createdAt: "2026-01-01T00:00:00Z", total: 12, active: 10 },
+  { slug: "friends", name: "Friends", kind: "manual", createdAt: "2026-01-01T00:00:00Z", total: 3, active: 3 },
 ];
 
 type Call = { url: string; method: string; body?: Record<string, unknown> };
@@ -26,9 +27,9 @@ beforeEach(() => {
       const method = init?.method ?? "GET";
       calls.push({ url, method, body: init?.body ? JSON.parse(String(init.body)) : undefined });
       if (url === "/api/admin/audience/groups" && method === "GET") return json({ ok: true, groups });
-      if (url.startsWith("/api/admin/audience/contacts?")) return json(pages[url] ?? { ok: true, items: [contact(), contact({ hash: "h2", email: "dana@example.com", name: "", status: "pending" })], nextCursor: "c2" });
-      if (url === "/api/admin/audience/suppression") return json({ ok: true, items: [] });
-      if (url === "/api/admin/audience/contacts/import") return json({ ok: true, added: 2, skipped: 1, invalid: ["row 4"] });
+      if (url.startsWith("/api/admin/audience/contacts?")) return json(pages[url] ?? { ok: true, contacts: [contact(), contact({ hash: "h2", email: "dana@example.com", name: null, status: "pending" })], nextCursor: "contact:h2" });
+      if (url === "/api/admin/audience/suppression") return json({ ok: true, suppressed: [{ hash: "s1", email: "gone@example.com", since: "2026-03-05T10:00:00Z" }] });
+      if (url === "/api/admin/audience/contacts/import") return json({ ok: true, added: 2, skipped: 1, invalid: [{ row: 4, reason: "Not a valid email address" }] });
       return json({ ok: true });
     }),
   );
@@ -53,13 +54,31 @@ describe("pure helpers", () => {
 });
 
 describe("AudienceTab", () => {
+  it("reads the group size from total and shows the suppression date from since", async () => {
+    render(<AudienceTab />);
+    expect(await screen.findByRole("option", { name: "Subscribers (12)" })).toBeTruthy();
+    fireEvent.click(screen.getByText("Suppression list"));
+    expect(await screen.findByText("gone@example.com")).toBeTruthy();
+    expect(await screen.findByText(/Since 5 Mar 2026/)).toBeTruthy();
+  });
+
+  it("gives a name cell its own direction and lets an address break before @ and dots", async () => {
+    pages["/api/admin/audience/contacts?limit=25"] = { ok: true, contacts: [contact({ name: "דנה", email: "person.long@example.com" })], nextCursor: null };
+    const { container } = render(<AudienceTab />);
+    const cell = (await screen.findByText("דנה")).closest("td")!;
+    expect(cell.getAttribute("dir")).toBe("auto");
+    const addr = container.querySelector("tbody bdi[dir=ltr]")!;
+    expect(addr.textContent).toBe("person.long@example.com");
+    expect(addr.querySelectorAll("wbr").length).toBe(3);
+  });
+
   it("lists contacts with the why line, loads more by cursor and filters", async () => {
     render(<AudienceTab />);
     expect(await screen.findByText("ada@example.com")).toBeTruthy();
     expect(screen.getByText("Can be mailed.")).toBeTruthy();
     expect(screen.getByText(/Waiting for them to confirm/)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Load more" }));
-    await waitFor(() => expect(calls.some((c) => c.url.includes("cursor=c2"))).toBe(true));
+    await waitFor(() => expect(calls.some((c) => c.url.includes("cursor=contact%3Ah2"))).toBe(true));
     fireEvent.change(screen.getByLabelText("Status"), { target: { value: "pending" } });
     await waitFor(() => expect(calls.some((c) => c.url.includes("status=pending"))).toBe(true));
   });
