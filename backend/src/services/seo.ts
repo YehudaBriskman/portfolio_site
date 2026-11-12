@@ -467,8 +467,7 @@ export type RobotsPolicy = "auto" | RobotsStance;
  * Both spellings of the canonical name, because a redirect from www to the
  * apex does not stop a crawler reading www's robots.txt first.
  */
-const CANONICAL_HOST = "yehudabriskman.com";
-const INDEXABLE_HOSTS: ReadonlySet<string> = new Set([CANONICAL_HOST, `www.${CANONICAL_HOST}`]);
+const INDEXABLE_HOSTS: ReadonlySet<string> = new Set(["yehudabriskman.com", "www.yehudabriskman.com"]);
 
 /**
  * Closed is the right answer for every host but one, and getting it wrong on
@@ -513,7 +512,7 @@ const FACET_DISALLOWS = FACET_PARAMS.flatMap((k) => [`Disallow: /*?${k}=`, `Disa
 export function buildRobots(stance: RobotsStance = robotsStance(SITE_URL, env.ROBOTS_POLICY)): string {
   if (stance === "closed") {
     return `# Not the canonical host for this site. Its pages are a copy of
-# ${CANONICAL_HOST}'s and must not be indexed in their own right.
+# the canonical host's and must not be indexed in their own right.
 User-agent: *
 Disallow: /
 `;
