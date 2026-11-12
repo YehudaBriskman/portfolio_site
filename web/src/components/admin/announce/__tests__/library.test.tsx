@@ -221,3 +221,20 @@ describe("SettingsPanel", () => {
     expect(await screen.findByRole("button", { name: "Reload" })).toBeTruthy();
   });
 });
+
+describe("LibraryPanel starter templates", () => {
+  it("merges the pack, marks the library dirty, reports it, and does not save", async () => {
+    render(<LibraryPanel />);
+    fireEvent.click(await screen.findByRole("button", { name: "Add starter templates" }));
+    expect(screen.getByText(/^Added \d+, skipped 0$/)).toBeTruthy();
+    expect(screen.getByText("Unsaved changes")).toBeTruthy();
+    expect((screen.getByRole("button", { name: "Add starter templates" }) as HTMLButtonElement).disabled).toBe(true);
+    expect(saved()).toHaveLength(0);
+    fireEvent.click(screen.getByRole("button", { name: "Save library" }));
+    await waitFor(() => expect(saved()).toHaveLength(1));
+    const lib = saved()[0].body.settings.library;
+    expect(lib[0].id).toBe("t1");
+    expect(lib.length).toBe(15);
+    expect(lib.some((i) => i.default)).toBe(false);
+  });
+});
