@@ -110,6 +110,21 @@
 }
 
 /*
+ * The page never came (`HARD_CAP_MS` in `shutterReadiness.ts`).
+ *
+ * The one case where the tiles must not run: a wave over an empty page is the
+ * bug this state exists to avoid. The whole sheet, tiles included, goes in a
+ * single opacity transition (200ms, `FADE_MS`), which is all a compositor needs
+ * to do and, like the rest of this file, starts only once it is wanted, so it
+ * costs the first paint nothing. The route's skeleton is what is under it.
+ */
+.shutter[data-state="fading"] {
+  opacity: 0;
+  transition: opacity 200ms linear;
+  pointer-events: none;
+}
+
+/*
  * The seam insurance.
  *
  * The tracks are whole pixels and add up to the window exactly —

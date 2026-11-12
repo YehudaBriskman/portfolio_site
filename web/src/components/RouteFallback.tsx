@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
+import { routeFallbackMounted } from "@/components/motion/shutterReadiness";
 import { useWords } from "@/components/dashboard/i18n";
 import styles from "@/components/RouteFallback.module.css";
 
@@ -18,6 +19,9 @@ export const FALLBACK_DELAY_MS = 200;
 export default function RouteFallback() {
   const [t] = useWords();
   const [shown, setShown] = useState(false);
+  /* Tells the entry shutter this route has not arrived. A layout effect so the
+     count is right in the same commit the fallback is painted in. */
+  useLayoutEffect(() => routeFallbackMounted(), []);
   useEffect(() => {
     const t = window.setTimeout(() => setShown(true), FALLBACK_DELAY_MS);
     return () => window.clearTimeout(t);

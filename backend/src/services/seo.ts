@@ -687,9 +687,17 @@ function metaBlock(meta: PageMeta): string {
  * Chrome 120 / Safari 17. Not cloaking: every client gets the same DOM. After
  * FALLBACK_REVEAL_MS the text shows anyway, in case the bundle never runs. Inline
  * <style> only: the CSP allows it, not inline script.
+ *
+ * Why 15 s. The app replaces this element the moment it renders, so the timer
+ * only ever matters for a bundle that has not run yet. A human on a slow phone
+ * can wait 8-12 s for the script and must not see raw text meanwhile (it was 8 s,
+ * inside that window); and the entry shutter's own deadlines (6 s soft, 10 s hard,
+ * counted from the app's mount) start later still, so they cannot overlap this.
+ * It stays finite so a client where the bundle never runs shows the text rather
+ * than a black sheet forever.
  */
 export const FALLBACK_ATTR = "data-seo-fallback";
-export const FALLBACK_REVEAL_MS = 8000;
+export const FALLBACK_REVEAL_MS = 15000;
 const FALLBACK_STYLE =
   `<style ${FALLBACK_ATTR}>` +
   `[${FALLBACK_ATTR}]{visibility:hidden;animation:seo-fallback-show 0s ${FALLBACK_REVEAL_MS}ms forwards}` +

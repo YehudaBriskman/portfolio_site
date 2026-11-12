@@ -422,6 +422,11 @@ describe("renderShellWithMeta", () => {
       expect(style).toContain("@media (prefers-reduced-motion:reduce){[data-seo-fallback]::before{display:none}}");
     });
 
+    it("waits long enough for a slow phone's bundle, and is never forever", () => {
+      expect(FALLBACK_REVEAL_MS).toBeGreaterThanOrEqual(12000);
+      expect(FALLBACK_REVEAL_MS).toBeLessThanOrEqual(30000);
+    });
+
     it("shows the text again if the app has not replaced it in time", () => {
       expect(style).toContain(`animation:seo-fallback-show 0s ${FALLBACK_REVEAL_MS}ms forwards`);
       expect(style).toContain("@keyframes seo-fallback-show{to{visibility:visible}}");
