@@ -53,6 +53,8 @@ const LATIN_SEEN = new Set<string>([
   "utm",
   "source",
   "medium",
+  /* The file format the audience import and export name, as it is written on a file. */
+  "CSV",
   /* The conformance level, as the standard writes it. */
   "AA",
   /* The brand word, first in the hero's fact line in both languages (#347, data/site.ts). */

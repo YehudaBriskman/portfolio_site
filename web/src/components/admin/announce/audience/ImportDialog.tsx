@@ -1,0 +1,122 @@
+import { useId, useMemo, useState } from "react";
+import { adminAudience, type Group, type ImportResult } from "@/services/adminAudience";
+import Email from "./Email";
+import Modal from "./Modal";
+import { previewCsv } from "./csv";
+import { useAudienceWords } from "./words";
+
+const MAX_BYTES = 2_000_000;
+const SHOWN = 5;
+
+export default function ImportDialog({ groups, onClose, onDone }: { groups: Group[]; onClose: () => void; onDone: () => void }) {
+  const w = useAudienceWords();
+  const uid = useId();
+  const [csv, setCsv] = useState("");
+  const [consent, setConsent] = useState(false);
+  const [note, setNote] = useState("");
+  const [group, setGroup] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<ImportResult | null>(null);
+
+  const rows = useMemo(() => previewCsv(csv), [csv]);
+  const ok = rows.filter((r) => r.valid).length;
+  const ready = consent && note.trim() !== "" && ok > 0 && !busy;
+
+  const pick = async (f: File | undefined) => {
+    if (!f) return;
+    if (f.size > MAX_BYTES) return setError(w.importTooBig);
+    setError(null);
+    setCsv(await f.text());
+  };
+
+  const run = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      setResult(await adminAudience.importCsv({ csv, consentNote: note.trim(), consentConfirmed: true, ...(group ? { group } : {}) }));
+      onDone();
+    } catch {
+      setError(w.saveFailed);
+    }
+    setBusy(false);
+  };
+
+  return (
+    <Modal title={w.importHeading} titleId={`${uid}-h`} onClose={onClose}>
+      {result ? (
+        <div className="space-y-3">
+          <p className="text-sm font-bold" role="status">{w.importDone(result.added, result.skipped)}</p>
+          {result.invalid.length > 0 && (
+            <div>
+              <p className="a-hint !mt-0">{w.importInvalid(result.invalid.length)}</p>
+              <ul className="list-disc ps-5 text-sm">
+                {result.invalid.slice(0, 10).map((r, i) => <li key={i} dir="auto">{typeof r === "string" ? r : [r.row, r.value, r.reason].filter(Boolean).join(" · ")}</li>)}
+              </ul>
+            </div>
+          )}
+          <button type="button" className="a-btn a-btn-primary min-h-[44px]" onClick={onClose}>{w.close}</button>
+        </div>
+      ) : (
+        <form className="space-y-4" onSubmit={(e) => (e.preventDefault(), ready && void run())}>
+          <p className="a-hint !mt-0">{w.importHint}</p>
+          <div>
+            <label className="a-label" htmlFor={`${uid}-f`}>{w.chooseFile}</label>
+            <input id={`${uid}-f`} type="file" accept=".csv,text/csv,text/plain" className="a-input min-h-[44px]" onChange={(e) => void pick(e.target.files?.[0])} />
+          </div>
+          <div>
+            <label className="a-label" htmlFor={`${uid}-t`}>{w.orPaste}</label>
+            <textarea id={`${uid}-t`} className="a-textarea font-mono text-xs" dir="ltr" rows={4} aria-label={w.csvLabel} value={csv} onChange={(e) => setCsv(e.target.value)} />
+          </div>
+
+          <section aria-labelledby={`${uid}-p`} className="a-box p-3">
+            <h4 id={`${uid}-p`} className="a-label">{w.previewHeading}</h4>
+            {rows.length === 0 ? (
+              <p className="a-hint !mt-0">{w.previewEmpty}</p>
+            ) : (
+              <>
+                <p className="text-sm tabular-nums" role="status">{w.previewCount(ok, rows.length - ok)}</p>
+                <ul className="mt-2 space-y-1 text-sm">
+                  {rows.slice(0, SHOWN).map((r, i) => (
+                    <li key={i} className="flex flex-wrap gap-x-3">
+                      <span className="min-w-0"><Email value={r.email} /></span>
+                      <span className="text-clay" dir="auto">{r.name}</span>
+                      {!r.valid && <span className="a-error !mt-0">{w.rowInvalid}</span>}
+                    </li>
+                  ))}
+                </ul>
+                {rows.length > SHOWN && <p className="a-hint">{w.previewMore(rows.length - SHOWN)}</p>}
+              </>
+            )}
+          </section>
+
+          {groups.length > 0 && (
+            <div>
+              <label className="a-label" htmlFor={`${uid}-g`}>{w.importGroup}</label>
+              <select id={`${uid}-g`} className="a-select min-h-[44px]" value={group} onChange={(e) => setGroup(e.target.value)}>
+                <option value="">{w.importNoGroup}</option>
+                {groups.filter((g) => g.kind === "manual").map((g) => <option key={g.slug} value={g.slug}>{g.name}</option>)}
+              </select>
+            </div>
+          )}
+
+          <div>
+            <label className="a-label" htmlFor={`${uid}-n`}>{w.importConsentNote} <span className="text-clay">({w.required})</span></label>
+            <textarea id={`${uid}-n`} className="a-textarea" rows={2} dir="auto" maxLength={500} aria-describedby={`${uid}-nh`} value={note} onChange={(e) => setNote(e.target.value)} />
+            <p id={`${uid}-nh`} className="a-hint">{w.importConsentNoteHint}</p>
+          </div>
+          <label className="flex min-h-[44px] items-start gap-2 text-sm font-bold">
+            <input type="checkbox" className="mt-0.5 h-5 w-5 shrink-0" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
+            <span>{w.importConsent}</span>
+          </label>
+
+          {error && <p className="a-error" role="alert">{error}</p>}
+          <div className="flex flex-wrap gap-2">
+            <button type="submit" className="a-btn a-btn-primary min-h-[44px]" disabled={!ready}>{busy ? w.importing : w.importRun}</button>
+            <button type="button" className="a-btn a-btn-ghost min-h-[44px]" onClick={onClose}>{w.cancel}</button>
+          </div>
+        </form>
+      )}
+    </Modal>
+  );
+}
