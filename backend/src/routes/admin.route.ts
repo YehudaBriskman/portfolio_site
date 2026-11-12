@@ -36,6 +36,7 @@ import adminSettingsRoutes from "./admin-settings.route.js";
 import announceRoutes from "../announce/route.js";
 import adminTranslationsRoutes from "./admin-translations.route.js";
 import { COLLECTION_FIELDS, stampHebrewMeta, stampTexts, type HebrewMeta } from "../schemas/i18n.js";
+import { stampContentModified } from "../services/content-modified.js";
 import { fromContent, planPublish, postVersions, stampPost } from "../services/publishPlan.js";
 
 const COLLECTION_HE_FIELDS = COLLECTION_FIELDS.map((f) => f.field);
@@ -288,6 +289,7 @@ function conflict(res: import("express").Response) {
 async function store(res: import("express").Response, doc: Post, before: Post | null) {
   const ok = PostSchema.safeParse(doc);
   if (!ok.success) return res.status(400).json({ ok: false, error: "invalid document", details: ok.error.flatten() });
+  doc.contentMod = stampContentModified(before, doc, doc.updatedAt).contentMod;
   try {
     const put = await couch.put<{ rev?: string }>(doc._id!, doc);
     if (put?.rev) doc._rev = put.rev;
@@ -489,6 +491,7 @@ router.put(
     if (!ok.success) {
       return res.status(400).json({ ok: false, error: "invalid document", details: ok.error.flatten() });
     }
+    doc.contentMod = stampContentModified(existing, doc, now).contentMod;
     try {
       await couch.put(doc._id!, doc);
     } catch (e) {

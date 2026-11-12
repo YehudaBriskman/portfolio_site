@@ -26,6 +26,7 @@ import { linkablePosts, neighbours, newestFirst, relatedPosts } from "../service
 import { PERSON_ID, WEBSITE_ID, personNode, personRef, siteNameIn, websiteNode, withHebrewName } from "../services/seo-entity.js";
 import { areaHasHebrew, postHasHebrew, projectHasHebrew } from "../services/seo-translation.js";
 import { breadcrumbs, fitTitle, graph, homeGraph, itemList, webPage } from "../services/seo-template.js";
+import { contentModifiedAt } from "../services/content-modified.js";
 import { rawImageUrlOrNull, type Collection, type Post } from "../schemas/content.js";
 import type { ContentBundle } from "../schemas/site-content.js";
 import { publishedBundleOrSeed } from "../services/site-content.js";
@@ -835,6 +836,7 @@ page("/blog/:slug", async (req, res, lang) => {
   const area = areaDoc.docs.find((c) => c.slug === post.collection && c.status === "published");
   const linkable = linkablePosts(allPosts, lang).map((p) => local(p, lang));
   const noteLinks = noteLinksHtml(post, linkable, area ? local(area, lang) : null, lang, translated);
+  const modLang = !bodyInEnglish && lang === "he" && translated ? "he" : "en";
   const inLanguage = bodyInEnglish || lang === "en" || !translated ? "en" : "he";
 
   await sendShell(res, {
@@ -848,7 +850,7 @@ page("/blog/:slug", async (req, res, lang) => {
     imageAlt: post.title,
     type: "article",
     publishedAt: post.publishedAt,
-    modifiedAt: post.updatedAt,
+    modifiedAt: contentModifiedAt(post, modLang),
     tags: post.tags,
     noindex: post.seo.noindex,
     bodyHtml: `<main>${marker}${breadcrumbHtml(post.title, lang)}<article${bodyInEnglish ? ' lang="en" dir="ltr"' : ""}><h1>${en(post.title, lang)}</h1>${
@@ -864,7 +866,7 @@ page("/blog/:slug", async (req, res, lang) => {
         url: canonical,
         inLanguage,
         datePublished: post.publishedAt ?? post.createdAt,
-        dateModified: post.updatedAt,
+        dateModified: contentModifiedAt(post, modLang),
         author: personRef,
         publisher: personRef,
         isPartOf: { "@id": WEBSITE_ID },

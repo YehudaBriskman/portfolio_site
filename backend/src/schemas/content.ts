@@ -157,6 +157,9 @@ function hebrewOrNull<T extends Record<string, string | null | undefined>>(he: T
   return Object.values(he).some((v) => typeof v === "string" && v.trim() !== "") ? he : null;
 }
 
+const ContentStampSchema = z.object({ hash: z.string(), at: z.string().datetime() });
+export const ContentModSchema = z.object({ en: ContentStampSchema.optional(), he: ContentStampSchema.optional() });
+
 export const PostSchema = z.object({
   _id: z.string().optional(),
   _rev: z.string().optional(),
@@ -171,6 +174,9 @@ export const PostSchema = z.object({
   publishedAt: z.string().datetime().nullable().default(null),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
+  /* Per-language fingerprint and date of the last real content change; moves the
+     sitemap lastmod. Absent on older documents, which fall back to updatedAt. */
+  contentMod: ContentModSchema.nullable().optional(),
   tags: z.array(z.string().regex(/^[a-z0-9-]+$/)).max(8).default([]),
   /* Which shelf this sits on. "site" is writing about this site and the craft
      behind it; anything else is a project's own notes. */
@@ -305,6 +311,9 @@ export const CollectionSchema = z.object({
   stats: RepoStatsSchema.nullable().default(null),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
+  /* Per-language fingerprint and date of the last real content change; moves the
+     sitemap lastmod. Absent on older documents, which fall back to updatedAt. */
+  contentMod: ContentModSchema.nullable().optional(),
 });
 
 export type Collection = z.infer<typeof CollectionSchema>;

@@ -1,3 +1,4 @@
+import { contentModifiedAt, newestContentModified } from "./content-modified.js";
 import { escapeXml, validDate } from "./escape.js";
 import { env } from "../env.js";
 import type { Collection, Post } from "../schemas/content.js";
@@ -196,6 +197,8 @@ export type PageMeta = {
 export type SitemapEntry = {
   loc: string;
   lastmod?: string | null;
+  /** The Hebrew URL's own content date, when it differs from the English one. */
+  lastmodHe?: string | null;
   changefreq?: "daily" | "weekly" | "monthly" | "yearly";
   priority?: number;
   /** False when the page has no published Hebrew (#304): English only, no alternates. */
@@ -243,17 +246,13 @@ function sitemapEntries(posts: Post[], collections: Collection[], extras: Sitema
    * A <url> with no <lastmod> gives a crawler no reason to come back, and these
    * are the pages whose contents change whenever a post or project does.
    */
-  const newest = [...posts, ...collections]
-    .map((d) => d.updatedAt)
-    .filter(Boolean)
-    .sort()
-    .pop();
+  const newest = newestContentModified([...posts, ...collections]);
   const entries: SitemapEntry[] = STATIC_ENTRIES.map((e) => ({ ...e, lastmod: e.lastmod ?? newest }));
   const add = (e: SitemapEntry) => {
     // A real collection replaces its store entry rather than duplicating it.
     const at = entries.findIndex((x) => x.loc === e.loc);
     if (at === -1) entries.push(e);
-    else entries[at] = { ...entries[at], ...(e.lastmod ? { lastmod: e.lastmod } : {}), ...(e.hebrew === undefined ? {} : { hebrew: e.hebrew }) };
+    else entries[at] = { ...entries[at], ...(e.lastmod ? { lastmod: e.lastmod } : {}), ...(e.lastmodHe ? { lastmodHe: e.lastmodHe } : {}), ...(e.hebrew === undefined ? {} : { hebrew: e.hebrew }) };
   };
 
   const areaHebrew = extras.areaHebrew ?? (() => true);
@@ -268,9 +267,9 @@ function sitemapEntries(posts: Post[], collections: Collection[], extras: Sitema
       /* The project page reads the store's entry when there is one, so its
          Hebrew is the entry's; otherwise the collection's own. */
       const hebrew = storeHebrew.get(c.slug) ?? areaHebrew(c);
-      add({ loc: `/projects/${c.slug}`, lastmod: c.updatedAt, changefreq: "weekly", priority: 0.7, hebrew });
+      add({ loc: `/projects/${c.slug}`, lastmod: contentModifiedAt(c, "en"), lastmodHe: contentModifiedAt(c, "he"), changefreq: "weekly", priority: 0.7, hebrew });
     }
-    add({ loc: `/blog/area/${c.slug}`, lastmod: c.updatedAt, changefreq: "weekly", priority: 0.5, hebrew: areaHebrew(c) });
+    add({ loc: `/blog/area/${c.slug}`, lastmod: contentModifiedAt(c, "en"), lastmodHe: contentModifiedAt(c, "he"), changefreq: "weekly", priority: 0.5, hebrew: areaHebrew(c) });
   }
 
   for (const p of posts) {
@@ -279,7 +278,8 @@ function sitemapEntries(posts: Post[], collections: Collection[], extras: Sitema
     if (p.seo.noindex) continue;
     add({
       loc: `/blog/${p.slug}`,
-      lastmod: p.updatedAt ?? p.publishedAt,
+      lastmod: contentModifiedAt(p, "en") ?? p.publishedAt,
+      lastmodHe: contentModifiedAt(p, "he") ?? p.publishedAt,
       changefreq: "monthly",
       priority: 0.6,
       hebrew: postHebrew(p),
@@ -306,7 +306,7 @@ function buildSitemapEntries(entries: SitemapEntry[]): string {
     .flatMap((e) => (e.hebrew === false ? [{ ...e, lang: "en" as Lang }] : LANGS.map((lang) => ({ ...e, lang }))))
     .map((e) => {
       const parts = [`    <loc>${escapeXml(absoluteUrl(pathIn(e.loc, e.lang)))}</loc>`, ...(e.hebrew === false ? [] : alternates(e.loc))];
-      const lastmod = validDate(e.lastmod);
+      const lastmod = validDate(e.lang === "he" ? e.lastmodHe ?? e.lastmod : e.lastmod);
       if (lastmod) parts.push(`    <lastmod>${lastmod.toISOString()}</lastmod>`);
       if (e.changefreq) parts.push(`    <changefreq>${e.changefreq}</changefreq>`);
       if (e.priority !== undefined) parts.push(`    <priority>${e.priority.toFixed(1)}</priority>`);
