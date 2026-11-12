@@ -158,11 +158,21 @@ describe("confirm", () => {
     await signup(app(), { lang: "he" });
     await flush();
     const token = tokenFrom(sent[0]);
-    const r = await request(app()).get("/api/subscribe/confirm").query({ token });
+    const r = await request(app()).post("/api/subscribe/confirm").send({ token });
     expect([r.status, r.body]).toEqual([200, { ok: true, lang: "he" }]);
     expect(store.get(`contact:${hash}`)).toMatchObject({ status: "active" });
     expect((store.get(`contact:${hash}`) as { confirmedAt?: string }).confirmedAt).toBeTruthy();
-    expect((await request(app()).get("/api/subscribe/confirm").query({ token })).status).toBe(200);
+    expect((await request(app()).post("/api/subscribe/confirm").send({ token })).status).toBe(200);
+  });
+
+  it("a GET never confirms, with or without a valid token (scanners open links)", async () => {
+    seed({ status: "pending" });
+    const token = await signToken({ t: "confirm", h: hash, exp: expiresIn(3600) });
+    const r = await request(app()).get("/api/subscribe/confirm").query({ token });
+    expect(r.status).toBeGreaterThanOrEqual(400);
+    expect((store.get(`contact:${hash}`) as { status: string }).status).toBe("pending");
+    expect((await request(app()).post("/api/subscribe/confirm").send({ token })).status).toBe(200);
+    expect((store.get(`contact:${hash}`) as { status: string }).status).toBe("active");
   });
 
   it("refuses tampered, wrong-kind, expired, unknown-contact and missing tokens with one identical answer", async () => {
@@ -181,12 +191,12 @@ describe("confirm", () => {
     ];
     const answers = [];
     for (const token of cases) {
-      const r = await request(app()).get("/api/subscribe/confirm").query({ token });
+      const r = await request(app()).post("/api/subscribe/confirm").send({ token });
       answers.push([r.status, r.body]);
     }
     for (const a of answers) expect(a).toEqual(answers[0]);
     expect(answers[0][0]).toBe(400);
-    expect((await request(app()).get("/api/subscribe/confirm")).status).toBe(400);
+    expect((await request(app()).post("/api/subscribe/confirm").send({})).status).toBe(400);
     expect((store.get(`contact:${hash}`) as { status: string }).status).toBe("pending");
   });
 
@@ -194,7 +204,7 @@ describe("confirm", () => {
     const old = new Date(Date.now() - 8 * 86_400_000).toISOString();
     seed({ status: "pending", createdAt: old, updatedAt: old });
     const token = await signToken({ t: "confirm", h: hash, exp: expiresIn(3600) });
-    expect((await request(app()).get("/api/subscribe/confirm").query({ token })).status).toBe(400);
+    expect((await request(app()).post("/api/subscribe/confirm").send({ token })).status).toBe(400);
     await vi.waitFor(() => expect(store.has(`contact:${hash}`)).toBe(false));
   });
 
@@ -225,7 +235,7 @@ describe("tokens", () => {
   it("no public route returns the secret", async () => {
     await signToken({ t: "confirm", h: hash, exp: expiresIn(60) });
     const secret = (store.get("secret:subscribe") as { secret: string }).secret;
-    for (const path of ["/api/subscribe/confirm?token=x", "/api/subscribe/manage?token=x", "/api/settings"]) {
+    for (const path of ["/api/subscribe/manage?token=x", "/api/settings"]) {
       expect(JSON.stringify((await request(app()).get(path)).body)).not.toContain(secret);
     }
   });
@@ -255,6 +265,15 @@ describe("unsubscribe", () => {
     expect((await request(app()).post("/api/subscribe/unsubscribe?token=bad").type("form").send("List-Unsubscribe=One-Click")).status).toBe(400);
     expect((await request(app()).post("/api/subscribe/unsubscribe").send({ token: await signToken({ t: "manage", h: hash, exp: expiresIn(60) }) })).status).toBe(400);
     expect(store.get(`contact:${hash}`)).toMatchObject({ status: "active" });
+  });
+  it("a GET never unsubscribes: the API has no GET for it, and the mailed link opens a page that asks for a click", async () => {
+    const token = await signToken({ t: "unsub", h: hash, exp: expiresIn(3600) });
+    for (const path of ["/api/subscribe/unsubscribe", "/api/subscribe/confirm"]) {
+      expect((await request(app()).get(path).query({ token })).status).toBeGreaterThanOrEqual(400);
+    }
+    expect(store.get(`contact:${hash}`)).toMatchObject({ status: "active" });
+    const { page } = await unsubscribeUrls(hash);
+    expect(page.startsWith(`${env.SITE_URL}/unsubscribe?token=`)).toBe(true);
   });
   it("never lifts a suppression", async () => {
     seed({ status: "suppressed" });

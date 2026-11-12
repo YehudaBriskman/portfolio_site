@@ -139,7 +139,7 @@ describe("nginx config", () => {
 
   it("forwards the client address from every proxied location (#121)", () => {
     const proxied = locations.filter((loc) => loc.block!.some((d) => d.name === "proxy_pass"));
-    expect(proxied.length).toBe(22);
+    expect(proxied.length).toBe(23);
     const wrong = proxied.flatMap((loc) => {
       const headers = upstreamHeaders(loc);
       // $proxy_add_x_forwarded_for appends nginx's peer (Traefik) to what
@@ -479,6 +479,31 @@ describe("edge config details", () => {
   it("logs errors at warn, because info-level lines carry the query string", () => {
     const level = top.find((d) => d.name === "error_log")!.args[1];
     expect(level).toBe("warn");
+  });
+
+  it("keeps subscribe tokens out of the access log and out of Referer", () => {
+    const tokenFmt = top.find((d) => d.name === "log_format" && d.args[0] === "token_ext")!;
+    expect(tokenFmt.args.join(" ")).toContain("$uri");
+    expect(tokenFmt.args.join(" ")).not.toContain("$request ");
+    expect(tokenFmt.args.join(" ")).not.toContain("$args");
+    const logged = ["= /subscribe/confirm", "= /unsubscribe", "= /subscribe/manage", "^~ /api/subscribe"];
+    for (const args of logged) {
+      const loc = locations.find((l) => l.args.join(" ") === args);
+      expect(loc, args).toBeTruthy();
+      const logs = loc!.block!.filter((d) => d.name === "access_log").map((d) => d.args[1]);
+      expect(logs, args).toEqual(["token_ext"]);
+    }
+    // The policy is a map on the original request URI, so the 5xx fallback keeps it.
+    const map = top.find((d) => d.name === "map" && d.args[1] === "$referrer_policy")!;
+    expect(map.args[0]).toBe("$request_uri");
+    const rows = map.block!.map((d) => [d.name, d.args[0]]);
+    expect(rows[0]).toEqual(["default", "strict-origin-when-cross-origin"]);
+    const rx = new RegExp(rows[1][0].slice(1));
+    for (const u of ["/subscribe/confirm?token=a", "/unsubscribe?token=a", "/subscribe/manage", "/api/subscribe/confirm", "/api/subscribe?x=1"])
+      expect(rx.test(u), u).toBe(true);
+    for (const u of ["/", "/blog/unsubscribe-notes", "/api/subscribers", "/follow"]) expect(rx.test(u), u).toBe(false);
+    expect(rows[1][1]).toBe("no-referrer");
+    expect(responseHeaders(locations.find((l) => l.args.join(" ") === "= /unsubscribe")!).get("referrer-policy")).toBe("$referrer_policy");
   });
 
   it("forwards the visitor's scheme, not nginx's own listener scheme", () => {

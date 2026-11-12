@@ -76,9 +76,15 @@ status that is ever mailed), `unsubscribed`, `suppressed`.
    than two minutes old (`RESEND_AFTER_MS`). An `unsubscribed` address asking
    again goes back to `pending` and must confirm again. `active` and
    `suppressed` addresses: nothing happens, nothing shows.
-4. The link in the mail opens `/subscribe/confirm?token=`, which calls
-   `GET /api/subscribe/confirm`. A valid, unexpired token on a `pending`
-   contact sets `active` and `confirmedAt`.
+4. The link in the mail opens `/subscribe/confirm?token=`, a page that only
+   shows a "Confirm my subscription" button; opening it changes nothing, so a
+   mail scanner cannot subscribe anyone. The click calls
+   `POST /api/subscribe/confirm` with the token in the body. A valid,
+   unexpired token on a `pending` contact sets `active` and `confirmedAt`.
+   Tokens are kept out of logs: nginx logs these pages and `/api/subscribe`
+   without the query string, the API's request and error logs drop the query
+   of token and `/api/admin` routes, and these pages send `Referrer-Policy:
+   no-referrer`.
 5. A pending contact is treated as expired once `updatedAt` is older than
    `pendingTtlDays` (default 7, allowed 1 to 30). Expired contacts are deleted
    lazily: a sweep runs, at most once a minute per process, when someone signs

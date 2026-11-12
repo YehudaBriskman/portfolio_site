@@ -19,17 +19,24 @@ const respond = (status: number, body: unknown = { ok: true }) => {
 };
 
 describe("the pages an email links to", () => {
-  it("confirm calls the API once with the token and says it is done", async () => {
+  it("confirm waits for a click, so a mail scanner opening the link subscribes no one", async () => {
     respond(200, { ok: true, lang: "en" });
     at(<SubscribeConfirm />, "/subscribe/confirm?token=abc");
+    await new Promise((r) => setTimeout(r, 30));
+    expect(fetchMock).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole("button", { name: /confirm my subscription/i }));
     await waitFor(() => expect(screen.getByRole("status").textContent).toMatch(/subscribed/i));
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock.mock.calls[0][0]).toBe("/api/subscribe/confirm?token=abc");
+    // the token travels in a POST body, not in a URL that a log would keep
+    expect(fetchMock.mock.calls[0][0]).toBe("/api/subscribe/confirm");
+    expect(fetchMock.mock.calls[0][1].method).toBe("POST");
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ token: "abc" });
   });
 
   it("confirm with a bad token is an alert that says what to do, and prints no token", async () => {
     respond(400, { ok: false });
     at(<SubscribeConfirm />, "/subscribe/confirm?token=secret-token");
+    await userEvent.click(screen.getByRole("button", { name: /confirm my subscription/i }));
     await waitFor(() => expect(screen.getByRole("alert").textContent).toMatch(/invalid or has expired/i));
     expect(document.body.textContent).not.toContain("secret-token");
   });

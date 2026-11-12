@@ -1,6 +1,6 @@
 /*
- * The public subscription API (contract: POST /api/subscribe, GET
- * /api/subscribe/confirm, POST /api/subscribe/unsubscribe, GET and PUT
+ * The public subscription API (contract: POST /api/subscribe,
+ * POST /api/subscribe/confirm, POST /api/subscribe/unsubscribe, GET and PUT
  * /api/subscribe/manage).
  *
  * Two rules the callers rely on. The signup answers the same 202 whether or
@@ -65,7 +65,7 @@ export async function subscribe(input: SignupInput): Promise<void> {
 }
 
 export async function confirmSubscription(token: string): Promise<{ lang: SubscribeLang | null }> {
-  const r = (await call(`/api/subscribe/confirm?token=${encodeURIComponent(token)}`)) as { lang?: string };
+  const r = (await call("/api/subscribe/confirm", json("POST", { token }))) as { lang?: string };
   return { lang: r.lang === "he" || r.lang === "en" ? r.lang : null };
 }
 

@@ -32,7 +32,9 @@ describe("subscribe service", () => {
   it("encodes the token in the query and reads the language back", async () => {
     reply(200, { ok: true, lang: "he" });
     expect(await confirmSubscription("a+b/c")).toEqual({ lang: "he" });
-    expect(fetchMock.mock.calls[0][0]).toBe("/api/subscribe/confirm?token=a%2Bb%2Fc");
+    expect(fetchMock.mock.calls[0][0]).toBe("/api/subscribe/confirm");
+    expect(fetchMock.mock.calls[0][1].method).toBe("POST");
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ token: "a+b/c" });
   });
 
   it("reads and writes preferences, defaulting what the server leaves out", async () => {

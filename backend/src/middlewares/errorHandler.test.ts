@@ -92,6 +92,40 @@ describe("requestLogger", () => {
     expect(JSON.stringify(fields)).not.toMatch(/\x1b\[/);
   });
 
+  it("drops the query string of token and admin routes, from the request line and the error line (#566)", async () => {
+    const info = vi.spyOn(logger, "info");
+    const warn = vi.spyOn(logger, "warn");
+    const app = express();
+    app.use(requestLogger);
+    const ok = (_q: express.Request, res: express.Response) => res.json({ ok: true });
+    app.get("/api/admin/audience/contacts", ok);
+    app.get("/api/admin/campaigns", ok);
+    app.get("/api/seo/render/unsubscribe", ok);
+    app.get("/api/subscribe/manage", ok);
+    app.get("/api/blog", ok);
+    app.get("/api/admin/audience/boom", () => { throw Object.assign(new Error("nope"), { status: 400, expose: true }); });
+    app.use(errorHandler);
+
+    await request(app).get("/api/admin/audience/contacts?q=jane%40example.com&limit=5");
+    await request(app).get("/api/admin/campaigns?to=jane@example.com");
+    await request(app).get("/api/seo/render/unsubscribe?token=abc.def");
+    await request(app).get("/api/subscribe/manage?token=abc.def");
+    await request(app).get("/api/blog?lang=he");
+    await request(app).get("/api/admin/audience/boom?q=jane@example.com");
+
+    const urls = info.mock.calls.map((c) => (c[0] as { url: string }).url);
+    expect(urls).toEqual([
+      "/api/admin/audience/contacts",
+      "/api/admin/campaigns",
+      "/api/seo/render/unsubscribe",
+      "/api/subscribe/manage",
+      "/api/blog?lang=he",
+    ]);
+    // the 400 is logged twice (error handler + request line); neither holds the query
+    for (const c of warn.mock.calls) expect(JSON.stringify(c[0])).not.toContain("example.com");
+    expect(warn.mock.calls.length).toBeGreaterThan(0);
+  });
+
   it("logs a 5xx at error level", async () => {
     const error = vi.spyOn(logger, "error");
     await request(appThrowing(new Error("x"))).get("/boom");
