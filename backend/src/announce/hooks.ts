@@ -1,3 +1,4 @@
+import { autoDraftFor } from "../campaigns/autodraft.js";
 import type { RequestHandler } from "express";
 import { logger } from "../logger.js";
 import { SITE_URL } from "../services/seo.js";
@@ -28,6 +29,11 @@ async function record(ev: AnnounceEvent): Promise<boolean> {
   if (!settings.enabled) return false;
   if (!(await createEvent(ev))) return false;
   if (settings.email.enabled && settings.email.events.includes(ev.kind)) await notifyOwner(ev, settings);
+  try {
+    await autoDraftFor(ev, settings);
+  } catch (err) {
+    logger.warn({ err: err instanceof Error ? err.message : String(err), id: ev._id }, "announce: could not draft a campaign");
+  }
   return true;
 }
 

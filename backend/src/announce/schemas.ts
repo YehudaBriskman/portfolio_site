@@ -39,12 +39,41 @@ const DEFAULT_UTM = { enabled: false, source: "announce", mediumByChannel: {} };
 /*
  * The subscriber mails' owner-editable wording and retention. Only what the
  * audience module needs; the rest of "Sender & delivery" (from, footer
- * identity, throttle...) is added next to these by the sender work.
+ * identity, throttle, quiet hours) sits beside them and is read by campaigns/.
  * Placeholders: {name} {site} {days} {link}.
  */
 const SenderText = z.string().trim().min(1).max(2000);
+const NoControl = (s: string) => !/[\u0000-\u001f\u007f]/.test(s);
+/* "" means "use the environment default"; anything else must be a plain address. */
+const OptionalAddress = z.union([z.literal(""), z.string().trim().toLowerCase().max(254).email()]);
+const Hhmm = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
+const validZone = (tz: string) => {
+  try {
+    new Intl.DateTimeFormat("en", { timeZone: tz });
+    return true;
+  } catch {
+    return false;
+  }
+};
+export const QuietHoursSchema = z
+  .object({ from: Hhmm, to: Hhmm, tz: z.string().max(60).refine(validZone, "Unknown time zone") })
+  .strict();
+
 export const SenderSchema = z
   .object({
+    /* Display name and address of the From header; "" falls back to MAIL_FROM. No quotes, brackets or control characters: it is spliced into a header. */
+    fromName: z.string().trim().max(80).refine((s) => NoControl(s) && !/["<>\\]/.test(s), "No quotes, brackets or control characters").default(""),
+    fromAddress: OptionalAddress.default(""),
+    /* "" falls back to MAIL_REPLY_TO. */
+    replyTo: OptionalAddress.default(""),
+    /* Who sends this and where to reach them: the sender identity the law asks every commercial mail to carry. */
+    footerIdentity: z.string().trim().max(500).refine((t) => !/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(t), "No control characters").default(""),
+    testRecipients: z.array(z.string().trim().toLowerCase().max(254).email()).max(5).default([]),
+    throttlePerHour: z.number().int().min(1).max(3600).default(60),
+    dailyCap: z.number().int().min(1).max(10000).default(200),
+    quietHours: QuietHoursSchema.optional(),
+    /* A post or release event makes a DRAFT campaign for the subscribers group. Never sends by itself. */
+    autoDraftCampaign: z.boolean().default(false),
     confirmSubjectEn: SenderText,
     confirmSubjectHe: SenderText,
     confirmBodyEn: SenderText,
@@ -69,6 +98,14 @@ export const DEFAULT_SENDER: SenderSettings = {
   unsubscribeNoteHe: "קיבלתם הודעה זו כי נרשמתם לעדכונים באתר {site}. כדי להפסיק לקבל אותה, בטלו את ההרשמה כאן: {link}",
   commercialLabel: true,
   pendingTtlDays: 7,
+  fromName: "",
+  fromAddress: "",
+  replyTo: "",
+  footerIdentity: "",
+  testRecipients: [],
+  throttlePerHour: 60,
+  dailyCap: 200,
+  autoDraftCampaign: false,
 };
 
 export const AnnounceSettingsSchema = z

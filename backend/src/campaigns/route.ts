@@ -1,0 +1,248 @@
+import { randomBytes } from "node:crypto";
+import { Router, type Response } from "express";
+import { asyncHandler } from "../middlewares/asyncHandler.js";
+import { toIssues } from "../schemas/site-content.js";
+import { listRecipients, hashEmail } from "../audience/store.js";
+import { loadSettings } from "../announce/store.js";
+import { emailService } from "../services/email.service.js";
+import { logger } from "../logger.js";
+import { resolveSender } from "./config.js";
+import { renderCampaignMail } from "./render.js";
+import { CampaignCreate, CampaignId, CampaignPatch, ScheduleBody, type Campaign } from "./schemas.js";
+import { campaignId, createCampaign, deleteCampaign, getCampaign, isStatus, listCampaigns, mutateCampaign } from "./store.js";
+
+/*
+ * Under /api/admin/campaigns, behind requireAdmin and auditWrites. A campaign
+ * doc holds no addresses, so it can be audited whole; a test send and an
+ * audience sample answer with counts and masked addresses only.
+ */
+const router = Router();
+const bad = (res: Response, error: string, status = 400) => res.status(status).json({ ok: false, error });
+const conflict = (res: Response) => bad(res, "This changed elsewhere. Reload and reapply your edit.", 409);
+const notFound = (res: Response) => bad(res, "No such campaign.", 404);
+
+const mask = (email: string) => {
+  const [local = "", domain = ""] = email.split("@");
+  const dot = domain.lastIndexOf(".");
+  return `${local.slice(0, 1)}***@${domain.slice(0, 1)}***${dot > 0 ? domain.slice(dot) : ""}`;
+};
+
+const view = (c: Campaign) => ({
+  id: c._id.slice("campaign:".length), _rev: c._rev ?? null, name: c.name, subject: c.subject, preheader: c.preheader ?? "",
+  bodyHtml: c.bodyHtml, bodyText: c.bodyText, groups: c.groups, lang: c.lang ?? "all", topic: c.topic ?? null,
+  status: c.status, sendAt: c.sendAt ?? null, counters: c.counters, eventId: c.eventId ?? null,
+  startedAt: c.startedAt ?? null, finishedAt: c.finishedAt ?? null, createdAt: c.createdAt, updatedAt: c.updatedAt,
+});
+
+const idOf = (raw: unknown) => {
+  const p = CampaignId.safeParse(raw);
+  return p.success ? p.data : null;
+};
+
+router.get(
+  "/",
+  asyncHandler(async (_req, res) => {
+    res.set("Cache-Control", "no-store").json({ ok: true, campaigns: (await listCampaigns()).map(view) });
+  }),
+);
+
+router.post(
+  "/",
+  asyncHandler(async (req, res) => {
+    const b = CampaignCreate.safeParse(req.body);
+    if (!b.success) return res.status(400).json({ ok: false, error: "Check the fields and try again.", issues: toIssues(b.error) });
+    const now = new Date().toISOString();
+    const c: Campaign = {
+      _id: campaignId(randomBytes(8).toString("hex")), type: "campaign", ...b.data, status: "draft",
+      counters: { queued: 0, sent: 0, failed: 0, suppressed: 0 }, createdAt: now, updatedAt: now,
+    };
+    await createCampaign(c);
+    res.locals.audit = { target: c._id, before: null, after: c };
+    res.status(201).json({ ok: true, campaign: view((await getCampaign(c._id.slice(9)))!) });
+  }),
+);
+
+router.get(
+  "/:id",
+  asyncHandler(async (req, res) => {
+    const id = idOf(req.params.id);
+    const c = id && (await getCampaign(id));
+    if (!c) return notFound(res);
+    res.set("Cache-Control", "no-store").json({ ok: true, campaign: view(c) });
+  }),
+);
+
+router.patch(
+  "/:id",
+  asyncHandler(async (req, res) => {
+    const id = idOf(req.params.id);
+    const b = CampaignPatch.safeParse(req.body);
+    if (!b.success) return res.status(400).json({ ok: false, error: "Check the fields and try again.", issues: toIssues(b.error) });
+    const before = id ? await getCampaign(id) : null;
+    if (!id || !before) return notFound(res);
+    if (b.data._rev !== undefined && b.data._rev !== before._rev) return conflict(res);
+    if (before.status !== "draft") return bad(res, "Only a draft can be edited. Cancel the schedule first.", 409);
+    const { _rev, topic, ...rest } = b.data;
+    void _rev;
+    let after: Campaign | null;
+    try {
+      after = await mutateCampaign(id, (c) => {
+        if (c.status !== "draft") return false;
+        Object.assign(c, rest);
+        if (topic === null) delete c.topic;
+        else if (topic) c.topic = topic;
+        if (rest.preheader === "") delete c.preheader;
+      });
+    } catch (e) {
+      if (isStatus(e, 409)) return conflict(res);
+      throw e;
+    }
+    res.locals.audit = { target: before._id, before, after };
+    res.json({ ok: true, campaign: view(after!) });
+  }),
+);
+
+router.delete(
+  "/:id",
+  asyncHandler(async (req, res) => {
+    const id = idOf(req.params.id);
+    const before = id ? await getCampaign(id) : null;
+    if (!id || !before) return notFound(res);
+    if (before.status === "scheduled" || before.status === "sending") return bad(res, "Cancel it first.", 409);
+    await deleteCampaign(id);
+    res.locals.audit = { target: before._id, before, after: null };
+    res.json({ ok: true });
+  }),
+);
+
+const recipientsOf = (c: Campaign) =>
+  listRecipients({ groups: c.groups, ...(c.lang && c.lang !== "all" ? { lang: c.lang } : {}), ...(c.topic ? { topic: c.topic } : {}) });
+
+router.get(
+  "/:id/audience",
+  asyncHandler(async (req, res) => {
+    const id = idOf(req.params.id);
+    const c = id && (await getCampaign(id));
+    if (!c) return notFound(res);
+    /* Reservoir of 3: a random sample without holding the list. */
+    const sample: string[] = [];
+    let n = 0;
+    for await (const r of recipientsOf(c)) {
+      n++;
+      if (sample.length < 3) sample.push(r.email);
+      else {
+        const j = Math.floor(Math.random() * n);
+        if (j < 3) sample[j] = r.email;
+      }
+    }
+    res.set("Cache-Control", "no-store").json({ ok: true, count: n, samples: sample.map(mask) });
+  }),
+);
+
+router.post(
+  "/:id/test",
+  asyncHandler(async (req, res) => {
+    const id = idOf(req.params.id);
+    const c = id && (await getCampaign(id));
+    if (!c) return notFound(res);
+    const settings = (await loadSettings()).sender;
+    if (settings.testRecipients.length === 0) return bad(res, "Add a test recipient in Sender & delivery first.", 422);
+    const from = resolveSender(settings);
+    const lang = c.lang === "he" ? "he" : "en";
+    const msgs = await Promise.all(
+      settings.testRecipients.map(async (to) => ({ to, ...(await renderCampaignMail(c, { lang }, hashEmail(to), settings, { subjectPrefix: "[Test] " })) })),
+    );
+    const results = await emailService.sendBulk(msgs, { from: from.from, replyTo: from.replyTo });
+    const sent = results.filter((r) => r.ok).length;
+    if (sent < results.length) logger.warn({ campaign: id, failed: results.length - sent }, "test send had failures");
+    res.locals.audit = { target: `campaign:${id}`, before: null, after: { testSent: sent, testFailed: results.length - sent } };
+    res.json({ ok: true, sent, failed: results.length - sent });
+  }),
+);
+
+/** The checks every route that puts a campaign in the queue shares. */
+async function queueable(c: Campaign, res: Response): Promise<boolean> {
+  if (c.status !== "draft" && c.status !== "scheduled") {
+    bad(res, "Only a draft or scheduled campaign can be queued.", 409);
+    return false;
+  }
+  const s = (await loadSettings()).sender;
+  if (!s.footerIdentity) {
+    bad(res, "Fill in the footer identity (your name and how to reach you) in Sender & delivery before sending.", 422);
+    return false;
+  }
+  for await (const _ of recipientsOf(c)) return true;
+  bad(res, "This audience has no active recipients.", 422);
+  return false;
+}
+
+async function queue(res: Response, id: string, sendAt: string | null) {
+  const before = await getCampaign(id);
+  if (!before) return notFound(res);
+  if (sendAt !== null && !(await queueable(before, res))) return;
+  if (sendAt === null && before.status !== "scheduled") return bad(res, "It is not scheduled.", 409);
+  let after: Campaign | null;
+  try {
+    after = await mutateCampaign(id, (c) => {
+      if (c.status !== "draft" && c.status !== "scheduled") return false;
+      if (sendAt === null) {
+        c.status = "draft";
+        delete c.sendAt;
+      } else {
+        c.status = "scheduled";
+        c.sendAt = sendAt;
+      }
+    });
+  } catch (e) {
+    if (isStatus(e, 409)) return conflict(res);
+    throw e;
+  }
+  if (!after || (sendAt === null ? after.status !== "draft" : after.status !== "scheduled")) return bad(res, "This campaign changed state. Reload.", 409);
+  res.locals.audit = { target: before._id, before, after };
+  res.json({ ok: true, campaign: view(after) });
+}
+
+router.post(
+  "/:id/schedule",
+  asyncHandler(async (req, res) => {
+    const id = idOf(req.params.id);
+    const b = ScheduleBody.safeParse(req.body);
+    if (!id) return notFound(res);
+    if (!b.success) return res.status(400).json({ ok: false, error: "Check the fields and try again.", issues: toIssues(b.error) });
+    await queue(res, id, b.data.sendAt === null ? null : new Date(b.data.sendAt).toISOString());
+  }),
+);
+
+router.post(
+  "/:id/send-now",
+  asyncHandler(async (req, res) => {
+    const id = idOf(req.params.id);
+    if (!id) return notFound(res);
+    await queue(res, id, new Date().toISOString());
+  }),
+);
+
+router.post(
+  "/:id/cancel",
+  asyncHandler(async (req, res) => {
+    const id = idOf(req.params.id);
+    const before = id ? await getCampaign(id) : null;
+    if (!id || !before) return notFound(res);
+    if (before.status !== "scheduled" && before.status !== "sending") return bad(res, "Only a scheduled or sending campaign can be canceled.", 409);
+    let after: Campaign | null;
+    try {
+      after = await mutateCampaign(id, (c) => {
+        if (c.status !== "scheduled" && c.status !== "sending") return false;
+        c.status = "canceled";
+        c.finishedAt = new Date().toISOString();
+      });
+    } catch (e) {
+      if (isStatus(e, 409)) return conflict(res);
+      throw e;
+    }
+    res.locals.audit = { target: before._id, before, after };
+    res.json({ ok: true, campaign: view(after!) });
+  }),
+);
+
+export default router;
