@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, render } from "@testing-library/react";
 import EntryShutter from "@/components/motion/EntryShutter";
 import { getEntry, resetEntryForTests } from "@/components/motion/entry";
+import { CEILING_MS, HARD_CAP_MS, routeFallbackMounted } from "@/components/motion/shutterReadiness";
 import { MOTION_PAUSED_KEY } from "@/components/nav/usePauseSwitch";
 
 /*
@@ -192,7 +193,13 @@ beforeEach(() => {
   resetEntryForTests();
 });
 
+/** The page's own content: what the shutter waits for besides fonts and images. */
+function putContentOnPage() {
+  document.body.insertAdjacentHTML("beforeend", '<main data-test-content><h1>Hello</h1></main>');
+}
+
 afterEach(() => {
+  document.querySelectorAll("[data-test-content]").forEach((n) => n.remove());
   vi.useRealTimers();
   vi.restoreAllMocks();
   document.body.classList.remove("motion-paused");
@@ -384,6 +391,8 @@ describe("the grid", () => {
 });
 
 describe("the leaving", () => {
+  beforeEach(putContentOnPage);
+
   it("goes as soon as the page is ready, and takes itself out of the document", async () => {
     vi.useFakeTimers();
     const { container } = render(<EntryShutter />);
@@ -475,8 +484,9 @@ describe("the leaving", () => {
      * §4's fourth exit, the one no stylesheet can see. A font set that never
      * resolves, an image event that never arrives, a tab backgrounded at the
      * wrong moment — any of them is a black window with no way out unless
-     * something is counting. 1800ms is the deadline for the *page*, not for
-     * the animation.
+     * something is counting. With the content there, CEILING_MS is the
+     * deadline for the polish; it is the deadline for the *page*, not for the
+     * animation.
      */
     vi.useFakeTimers();
     Object.defineProperty(document, "fonts", {
@@ -495,12 +505,94 @@ describe("the leaving", () => {
     expect(container.firstElementChild).toHaveAttribute("data-state", "grid");
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(900);
+      await vi.advanceTimersByTimeAsync(CEILING_MS - 1000 + 100);
     });
     await frames(2);
     expect(container.firstElementChild).toHaveAttribute("data-state", "leaving");
 
     Reflect.deleteProperty(document, "fonts");
+  });
+
+  it("does not run the tiles over a route whose chunk has not arrived", async () => {
+    vi.useFakeTimers();
+    const release = routeFallbackMounted();
+    const { container } = render(<EntryShutter />);
+
+    await frames(1);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(CEILING_MS + 1000);
+    });
+    /* Past the soft ceiling and still covered: content is not given up on. */
+    expect(container.firstElementChild).toHaveAttribute("data-state", "grid");
+
+    release();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(100);
+    });
+    await frames(2);
+    expect(container.firstElementChild).toHaveAttribute("data-state", "leaving");
+  });
+
+  it("waits for the heading even when the chunk has resolved", async () => {
+    vi.useFakeTimers();
+    document.querySelectorAll("[data-test-content]").forEach((n) => n.remove());
+    const { container } = render(<EntryShutter />);
+
+    await frames(1);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2000);
+    });
+    expect(container.firstElementChild).toHaveAttribute("data-state", "grid");
+
+    putContentOnPage();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(100);
+    });
+    await frames(2);
+    expect(container.firstElementChild).toHaveAttribute("data-state", "leaving");
+  });
+
+  it("fades the sheet, with no tiles leaving, when the content never arrives", async () => {
+    vi.useFakeTimers();
+    const release = routeFallbackMounted();
+    const { container } = render(<EntryShutter />);
+
+    await frames(1);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(HARD_CAP_MS + 100);
+    });
+    expect(container.firstElementChild).toHaveAttribute("data-state", "fading");
+    expect(document.documentElement.dataset.entry).toBe("lifting");
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(400);
+    });
+    expect(container).toBeEmptyDOMElement();
+    expect(getEntry()).toBe("lifted");
+    release();
+  });
+
+  it("treats an image that errored as settled", async () => {
+    vi.useFakeTimers();
+    document.querySelector("[data-test-content]")!.insertAdjacentHTML("beforeend", '<img alt="" src="x.png">');
+    const img = document.querySelector<HTMLImageElement>("[data-test-content] img")!;
+    Object.defineProperty(img, "complete", { value: false, configurable: true });
+    img.getBoundingClientRect = () => ({ width: 10, height: 10, top: 0, bottom: 10 }) as DOMRect;
+
+    const { container } = render(<EntryShutter />);
+    await frames(1);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000);
+    });
+    expect(container.firstElementChild).toHaveAttribute("data-state", "grid");
+
+    /* A broken image is `complete` once it has errored. */
+    Object.defineProperty(img, "complete", { value: true, configurable: true });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(100);
+    });
+    await frames(2);
+    expect(container.firstElementChild).toHaveAttribute("data-state", "leaving");
   });
 
   it("announces nothing and holds nothing anyone can reach", async () => {
@@ -518,6 +610,13 @@ describe("the leaving", () => {
 });
 
 describe("the shutter's stylesheet", () => {
+  it("fades the whole sheet in one opacity transition and runs no animation for it", () => {
+    const fading = rules(CSS).find((r) => r.selector === '.shutter[data-state="fading"]');
+    expect(fading?.body).toMatch(/opacity:\s*0/);
+    expect(fading?.body).toMatch(/transition:\s*opacity 200ms/);
+    expect(fading?.body).not.toMatch(/animation/);
+  });
+
   it("resolves to no loader under each of the two conditions it can see", () => {
     const reduced = mediaBlock(CSS, REDUCED);
     expect(reduced).toMatch(/display:\s*none/);

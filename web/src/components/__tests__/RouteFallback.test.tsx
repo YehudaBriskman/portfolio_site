@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, render } from "@testing-library/react";
+import { routeResolved } from "@/components/motion/shutterReadiness";
 import RouteFallback, { FALLBACK_DELAY_MS } from "@/components/RouteFallback";
 
 afterEach(() => vi.useRealTimers());
@@ -32,5 +33,13 @@ describe("RouteFallback", () => {
     const { unmount } = render(<RouteFallback />);
     unmount();
     expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("counts as the route not being ready while it is mounted", () => {
+    expect(routeResolved()).toBe(true);
+    const { unmount } = render(<RouteFallback />);
+    expect(routeResolved()).toBe(false);
+    unmount();
+    expect(routeResolved()).toBe(true);
   });
 });

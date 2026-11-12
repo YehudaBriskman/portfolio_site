@@ -1,5 +1,12 @@
 import { useEffect, useLayoutEffect, useState, type CSSProperties } from "react";
 import { getEntry, setEntry } from "@/components/motion/entry";
+import {
+  FADE_MS,
+  decideShutter,
+  pageHasHeading,
+  routeResolved,
+  type ShutterDecision,
+} from "@/components/motion/shutterReadiness";
 import styles from "@/components/motion/EntryShutter.module.css";
 
 /*
@@ -20,7 +27,14 @@ import styles from "@/components/motion/EntryShutter.module.css";
  * nothing at all, and that is the device working rather than the device
  * failing to show itself off.
  *
- * "Worth looking at" is two conditions and no more:
+ * "Worth looking at" is the route's content plus two conditions:
+ *
+ *   - **the route's content** (`shutterReadiness.ts`): the Suspense boundary
+ *     has resolved — no `RouteFallback` is mounted — and the page's first
+ *     heading is in the document. Without it, on a slow link the tiles left
+ *     over a page whose lazy chunk had not rendered, and the reader watched
+ *     solid dark blocks dissolve over an empty background before the text
+ *     and images popped in. This one is never given up on by the ceiling.
  *
  *   - `document.fonts.ready` — the display face carries the name, which is
  *     the largest thing on the first screen. Uncovering it mid-swap means
@@ -36,11 +50,14 @@ import styles from "@/components/motion/EntryShutter.module.css";
  * `load` does, and a browser with no `document.fonts` at all resolves
  * immediately.
  *
- * And there **is** a ceiling, because a promise that never settles would
- * otherwise be a black window forever. 1800ms is past the point where any of
- * this is still polish: beyond it the honest thing is to show the reader the
- * page in whatever state it is in. It is deliberately not tuned to the
- * sequence's own length — it is the deadline for the *page*, not for the
+ * And there **are** deadlines, because a promise that never settles would
+ * otherwise be a black window forever. `CEILING_MS` (6 s) stops waiting for
+ * fonts and images once the content is there: show the page as it is. It does
+ * not stop waiting for the content, because the wave over an empty page is the
+ * bug. `HARD_CAP_MS` (10 s) is the last resort for a page that never comes:
+ * the whole sheet fades out in one opacity transition, with no tiles, and the
+ * route's skeleton is what is left. Both numbers are argued in
+ * `shutterReadiness.ts`; they are deadlines for the *page*, not for the
  * animation.
  *
  * THE OFF-SWITCHES, AND WHY THE FIRST ONE IS HERE
@@ -70,9 +87,6 @@ import styles from "@/components/motion/EntryShutter.module.css";
  * only JavaScript removes would be the version of this feature that can hide
  * the site completely, and it is not a version of it that exists.
  */
-
-/** The deadline on readiness. See the argument above. */
-const CEILING_MS = 1800;
 
 /**
  * How long a tile takes to go, and how long the wave takes to cross the
@@ -223,17 +237,13 @@ const settled = (img: HTMLImageElement) =>
     img.addEventListener("error", done, { once: true });
   });
 
-function readiness(): Promise<unknown> {
-  const fonts: Promise<unknown> = document.fonts?.ready ?? Promise.resolve();
-  return Promise.all([fonts, ...pendingFirstScreenImages().map(settled)]);
-}
-
 /**
  * The four states, and why there are four rather than two.
  *
  *   ground   one opaque black sheet, and nothing else in it
  *   grid     the same sheet with its tiles, waiting on the page
  *   leaving  the tiles going, centre outward
+ *   fading   the page never came: the whole sheet going, in one fade
  *   gone     not in the document
  *
  * `ground` exists for one measured reason. The version of this component
@@ -252,7 +262,7 @@ function readiness(): Promise<unknown> {
  * black either way — and the work moves off the critical path. The same A/B
  * after the change is in the pull request.
  */
-type Phase = "ground" | "grid" | "leaving" | "gone";
+type Phase = "ground" | "grid" | "leaving" | "fading" | "gone";
 
 /** Custom properties, typed. `Record` rather than a cast, so the names are checked. */
 type ShutterStyle = CSSProperties & Record<"--col-tracks" | "--row-tracks", string>;
@@ -283,38 +293,62 @@ export default function EntryShutter() {
     return () => cancelAnimationFrame(next);
   }, [phase]);
 
-  /* Readiness, and the deadline on it. */
+  /*
+   * Readiness, and the two deadlines on it: re-evaluated on a short poll,
+   * because the route's content arrives through React and not through any one
+   * event. The first look is immediate, so a warm cache pays no poll latency.
+   */
   useEffect(() => {
     if (phase !== "grid") return;
     let live = true;
+    let fontsReady = typeof document === "undefined" || !document.fonts;
+    const started = performance.now();
+    void document.fonts?.ready.then(() => {
+      fontsReady = true;
+      look();
+    });
 
     /*
      * Two frames between "ready" and the first tile moving.
      *
-     * The promise settling means the bytes are in. It does not mean the
-     * browser has laid the page out and painted it: one frame to let the
-     * style and layout the fonts invalidated be done, and one more so the
-     * paint has actually happened. Starting the dissolve a frame early
-     * uncovers a hero mid-reflow, which is the one state this device exists
-     * to not show anyone.
+     * Ready means the bytes are in, not that the browser has laid the page out
+     * and painted it: one frame to let the style and layout the fonts
+     * invalidated be done, and one more so the paint has happened. Starting
+     * early uncovers a hero mid-reflow.
      */
-    const begin = () => {
+    const begin = (to: "leaving" | "fading") => {
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          if (live) setPhase((p) => (p === "grid" ? "leaving" : p));
+          if (live) setPhase((p) => (p === "grid" ? to : p));
         });
       });
     };
 
-    /* The deadline runs from the frame the tiles appear on rather than from
-       the mount, which is one frame's difference and not worth a second timer
-       to recover. */
-    const ceiling = window.setTimeout(begin, CEILING_MS);
-    void readiness().then(begin);
+    let begun = false;
+    function look() {
+      if (!live || begun) return;
+      const answer: ShutterDecision = decideShutter({
+        elapsed: performance.now() - started,
+        fontsReady,
+        imagesSettled: pendingFirstScreenImages().length === 0,
+        routeResolved: routeResolved(),
+        hasHeading: pageHasHeading(),
+      });
+      if (answer === "tiles") {
+        begun = true;
+        begin("leaving");
+      } else if (answer === "fade") {
+        begun = true;
+        /* No frames to wait for: there is no page to lay out. */
+        setPhase((p) => (p === "grid" ? "fading" : p));
+      }
+    }
 
+    look();
+    const poll = window.setInterval(look, 50);
     return () => {
       live = false;
-      window.clearTimeout(ceiling);
+      window.clearInterval(poll);
     };
   }, [phase]);
 
@@ -340,8 +374,20 @@ export default function EntryShutter() {
   const clearing = () => setEntry("clearing");
 
   useLayoutEffect(() => {
-    if (phase === "leaving") setEntry("lifting");
+    if (phase === "leaving" || phase === "fading") setEntry("lifting");
     else if (phase === "gone") setEntry("lifted");
+  }, [phase]);
+
+  /* The fade has no tile whose `animationend` says the window is clear, so a
+     clock does: the transition's own length. */
+  useEffect(() => {
+    if (phase !== "fading") return;
+    const clear = window.setTimeout(clearing, FADE_MS);
+    const gone = window.setTimeout(() => setPhase("gone"), FADE_MS + 80);
+    return () => {
+      window.clearTimeout(clear);
+      window.clearTimeout(gone);
+    };
   }, [phase]);
 
   /* The sheet's own exit, on a clock. See `UNMOUNT_MS`. */

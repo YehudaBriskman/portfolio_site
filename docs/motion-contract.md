@@ -1881,7 +1881,7 @@ direction, or set `fill-rule: evenodd` deliberately and know what it costs.
 |---|---|---|
 | `nav/useTuckedBar.ts` + `Nav.module.css` (tuck) | the bar lifts and fades on the way down, returns on the way up or on focus; no travel with motion off | scroll direction, no per-frame write |
 | `Contact.module.css` `.surface` | `surface` — each part of the close rising out of its own baseline | `view()` per part |
-| `motion/EntryShutter.tsx` | `shutter` — the page arrives from behind a grid | clock, gated on real readiness |
+| `motion/EntryShutter.tsx` | `shutter` — the page arrives from behind a grid | clock, gated on real readiness: the route's content (Suspense resolved, first heading present), fonts and first-screen images; soft ceiling 6 s for fonts/images only; hard cap 10 s fades the bare sheet with no tiles (`motion/shutterReadiness.ts`) |
 | `Hero.module.css` `.holder` | the hero held still (`sticky`) for one screen while the dark act slides up over it; owns `--hero` | named `view-timeline` `--hero` on the static holder (§1: the pinned hero's own would stall) |
 | `HeroArrival.module.css` | the plate's arrival, once a visit, when the cover lifts; it no longer comes apart on the way out (2026-11-03) | clock, exempt (§8) |
 | `HeroCorners.module.css` | `breath` — the phrases turn and the lamp breathes while the hero is held | `--hero`, `contain` ranges |
@@ -2013,7 +2013,7 @@ animation.
 
 | element | route | mechanism | status |
 |---|---|---|---|
-| entry shutter (`EntryShutter`) | every route, first load | clock, gated on readiness | **exempt**: the one page-load moment, not a scroll |
+| entry shutter (`EntryShutter`) | every route, first load | clock, gated on readiness (route content + fonts + first-screen images; never tiles over an empty page: if the content has not arrived by 10 s the whole sheet fades in one 200ms opacity transition, no tiles) | **exempt**: the one page-load moment, not a scroll |
 | title plate: name letters, fact line, field line, figure coming apart on the way out (`HeroArrival.module.css`) | / | — | **removed** (2026-11-03): the owner's "the hero pictures … disappear … I want them to stay"; the figure was under a `--paper` mask at `scaleY(1)` from `exit 44%` (`docs/hero-aurora/before-*.png`). The hero is held still under the next act instead |
 | aurora ribbon drift across the figure (`HeroRibbon`) | — | — | **removed** (2026-11-03, aurora v3): the owner's "remove the aurora from the hero"; it was scrubbed on `--hero` from the day before |
 | title plate and corners arriving, once a visit (`HeroArrival.module.css`, `HeroCorners.module.css`) | /, first load only | clock, started by the shutter's `clearing` signal (its last tile's `animationend`) (`motion/entry.ts`), filling `backwards` (the scrubbed exit it was layered on is gone, 2026-11-03); until that signal, a still `*-held` layer pins each moving part on the arrival's `from` frame under the cover (#219), so the lifting tiles show nothing already arrived and it is seen once | **exempt** (#194): part of the page load, as the shutter is; a hero mounted after the entry, or under any off-switch, never holds or plays it |
