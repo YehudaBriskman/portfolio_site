@@ -17,10 +17,13 @@ import {
   createMailBurstLimiter,
   createMailSendLimiter,
   createReadLimiter,
+  createSubscribeLimiter,
+  createSubscribeLinkLimiter,
   createSeoLimiter,
 } from './rate-limit.js';
 import { auditWrites } from './services/audit.js';
 import { indexNowOnWrite } from './services/indexnow.js';
+import subscribeRoutes from './audience/public.route.js';
 import { announceOnWrite } from './announce/hooks.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 import { couch } from './db/couch.js';
@@ -101,6 +104,9 @@ export function createApp() {
 
   app.use("/api/email", mailBurstLimiter, mailSendLimiter);
   app.use("/api/images", readLimiter);
+  // Signup is the tight one; confirm/unsubscribe/manage share a looser bucket.
+  app.post("/api/subscribe", createSubscribeLimiter());
+  app.use("/api/subscribe", createSubscribeLinkLimiter(), subscribeRoutes);
 
   // Routers
 

@@ -52,5 +52,10 @@ export async function sendContactEmail(input: SendEmailInput) {
   return result;
 }
 
+/* Mail to a subscriber (double opt-in): same provider and sender as the contact mail, but to the given address. */
+export async function sendToAddress(msg: { to: string; subject: string; text: string; html: string; headers?: Record<string, string> }) {
+  return getProvider().send({ from: env.MAIL_FROM, replyTo: env.MAIL_REPLY_TO, ...msg });
+}
+
 /** Object form so tests can spy on `send`. */
-export const emailService = { send: sendContactEmail };
+export const emailService = { send: sendContactEmail, sendTo: sendToAddress };

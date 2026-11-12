@@ -1,0 +1,153 @@
+import { createHash } from "node:crypto";
+import { couch, CouchError } from "../db/couch.js";
+import { logger } from "../logger.js";
+import { loadSettings } from "../announce/store.js";
+import { SYSTEM_GROUP, type Contact, type Group, type Lang } from "./schemas.js";
+import { signToken, verifyToken } from "./tokens.js";
+
+export { signToken, verifyToken };
+
+const CONTACT = "contact:";
+const GROUP = "audience:";
+const isStatus = (e: unknown, s: number) => e instanceof CouchError && e.status === s;
+
+/** The identity of an address: SHA-256 of the lowercased, trimmed address, first 32 hex chars. */
+export const hashEmail = (email: string) => createHash("sha256").update(email.trim().toLowerCase()).digest("hex").slice(0, 32);
+export const contactId = (hash: string) => `${CONTACT}${hash}`;
+export const groupId = (slug: string) => `${GROUP}${slug}`;
+
+async function tryGet<T>(id: string): Promise<T | null> {
+  try {
+    return await couch.get<T>(id);
+  } catch (e) {
+    if (isStatus(e, 404)) return null;
+    throw e;
+  }
+}
+
+export const getContact = (hash: string) => tryGet<Contact>(contactId(hash));
+
+/** Creates the contact; false when it already exists. */
+export async function createContact(c: Contact): Promise<boolean> {
+  try {
+    await couch.append(c._id, c as unknown as Record<string, unknown>);
+    return true;
+  } catch (e) {
+    if (isStatus(e, 409)) return false;
+    throw e;
+  }
+}
+
+/** Read-modify-write, retried once on a revision clash. `change` returns false to leave the doc as it is. */
+export async function updateContact(hash: string, change: (c: Contact) => boolean | void): Promise<Contact | null> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const c = await getContact(hash);
+    if (!c) return null;
+    if (change(c) === false) return c;
+    c.updatedAt = new Date().toISOString();
+    try {
+      const r = await couch.put<{ rev?: string }>(c._id, c);
+      if (r && typeof r.rev === "string") c._rev = r.rev;
+      return c;
+    } catch (e) {
+      if (!isStatus(e, 409)) throw e;
+    }
+  }
+  throw new CouchError(409, "contact changed concurrently");
+}
+
+export async function deleteContact(hash: string): Promise<boolean> {
+  const c = await getContact(hash);
+  if (!c?._rev) return false;
+  try {
+    await couch.del(c._id, c._rev);
+    return true;
+  } catch (e) {
+    if (isStatus(e, 404)) return false;
+    throw e;
+  }
+}
+
+export async function isSuppressed(email: string): Promise<boolean> {
+  return (await getContact(hashEmail(email)))?.status === "suppressed";
+}
+
+/** Every contact, in id order, a page at a time. */
+export async function* scanContacts(after = ""): AsyncGenerator<Contact> {
+  const PAGE = 500;
+  let cursor = after || CONTACT;
+  for (;;) {
+    const { docs } = await couch.find<Contact>({
+      selector: { _id: { $gt: cursor, $lt: `${CONTACT}￿` } },
+      sort: [{ _id: "asc" }],
+      limit: PAGE,
+    });
+    for (const d of docs) yield d;
+    if (docs.length < PAGE) return;
+    cursor = docs[docs.length - 1]._id;
+  }
+}
+
+/** Active contacts only; an empty `groups` list matches nobody. */
+export async function* listRecipients(opts: {
+  groups: string[];
+  lang?: Lang;
+  topic?: "blog" | "releases";
+}): AsyncGenerator<Contact> {
+  if (opts.groups.length === 0) return;
+  for await (const c of scanContacts()) {
+    if (c.status !== "active") continue;
+    if (!c.groups.some((g) => opts.groups.includes(g))) continue;
+    if (opts.lang && c.lang !== opts.lang) continue;
+    if (opts.topic && !c.topics?.[opts.topic]) continue;
+    yield c;
+  }
+}
+
+/* --- pending expiry --------------------------------------------------- */
+
+export const isPendingExpired = (c: Contact, ttlDays: number, now = Date.now()) =>
+  c.status === "pending" && Date.parse(c.updatedAt) + ttlDays * 86_400_000 <= now;
+
+let lastPurge = 0;
+/** Lazy cleanup: deletes pending contacts past the TTL. Runs at most once a minute per process; never throws. */
+export async function purgeExpiredPending(now = Date.now(), force = false): Promise<number> {
+  if (!force && now - lastPurge < 60_000) return 0;
+  lastPurge = now;
+  try {
+    const ttl = (await loadSettings()).sender.pendingTtlDays;
+    let n = 0;
+    for await (const c of scanContacts()) {
+      if (isPendingExpired(c, ttl, now) && c._rev) {
+        try {
+          await couch.del(c._id, c._rev);
+          n++;
+        } catch (e) {
+          if (!isStatus(e, 409) && !isStatus(e, 404)) throw e;
+        }
+      }
+    }
+    return n;
+  } catch (err) {
+    logger.warn({ err: err instanceof Error ? err.message : String(err) }, "pending subscription cleanup failed");
+    return 0;
+  }
+}
+export const resetPurgeClock = () => { lastPurge = 0; };
+
+/* --- groups ------------------------------------------------------------ */
+
+export async function ensureSystemGroup(): Promise<void> {
+  const g: Group = { _id: groupId(SYSTEM_GROUP), type: "audience", name: "Subscribers", kind: "system", createdAt: new Date().toISOString() };
+  try {
+    await couch.append(g._id, g as unknown as Record<string, unknown>);
+  } catch (e) {
+    if (!isStatus(e, 409)) throw e;
+  }
+}
+
+export async function listGroups(): Promise<Group[]> {
+  const { docs } = await couch.find<Group>({ selector: { _id: { $gt: GROUP, $lt: `${GROUP}￿` } }, limit: 500 });
+  return docs.sort((a, b) => a._id.localeCompare(b._id));
+}
+export const getGroup = (slug: string) => tryGet<Group>(groupId(slug));

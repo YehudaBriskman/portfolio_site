@@ -1,0 +1,386 @@
+import { randomBytes } from "node:crypto";
+import { Router, type Response } from "express";
+import { couch, CouchError } from "../db/couch.js";
+import { asyncHandler } from "../middlewares/asyncHandler.js";
+import { logger } from "../logger.js";
+import { parseCsv, toCsv } from "./csv.js";
+import {
+  ContactCreate,
+  ContactPatch,
+  ContactsQuery,
+  Email,
+  GroupBody,
+  Hash,
+  ImportBody,
+  Slug,
+  SuppressBody,
+  SYSTEM_GROUP,
+  type Contact,
+  type Group,
+  type Lang,
+} from "./schemas.js";
+import {
+  contactId,
+  createContact,
+  deleteContact,
+  ensureSystemGroup,
+  getContact,
+  getGroup,
+  groupId,
+  hashEmail,
+  listGroups,
+  purgeExpiredPending,
+  scanContacts,
+  updateContact,
+} from "./store.js";
+
+/*
+ * Under /api/admin/audience: behind requireAdmin and auditWrites (admin.route.ts).
+ * res.locals.audit carries documents; the audit log stores only their hashes,
+ * and the targets here are ids made of hashes, never addresses.
+ */
+const router = Router();
+const bad = (res: Response, error: string, status = 400) => res.status(status).json({ ok: false, error });
+const invalid = (res: Response) => bad(res, "Check the fields and try again.");
+
+/* What an admin sees of a contact. `hash` is the id every other route takes. */
+const view = (c: Contact) => ({
+  hash: c._id.slice("contact:".length),
+  email: c.email,
+  name: c.name ?? null,
+  lang: c.lang,
+  groups: c.groups,
+  status: c.status,
+  source: c.source,
+  consentAt: c.consentAt,
+  consentNote: c.consentNote,
+  topics: c.topics,
+  createdAt: c.createdAt,
+  updatedAt: c.updatedAt,
+  confirmedAt: c.confirmedAt ?? null,
+  unsubscribedAt: c.unsubscribedAt ?? null,
+});
+
+const hashParam = (raw: unknown) => {
+  const p = Hash.safeParse(raw);
+  return p.success ? p.data : null;
+};
+const groupView = (g: Group) => ({ slug: g._id.slice("audience:".length), name: g.name, kind: g.kind, createdAt: g.createdAt });
+
+/* ---------------------------------------------------------------- groups -- */
+
+router.get(
+  "/groups",
+  asyncHandler(async (_req, res) => {
+    await ensureSystemGroup();
+    void purgeExpiredPending();
+    const counts = new Map<string, { total: number; active: number }>();
+    for await (const c of scanContacts()) {
+      for (const g of c.groups) {
+        const n = counts.get(g) ?? { total: 0, active: 0 };
+        n.total++;
+        if (c.status === "active") n.active++;
+        counts.set(g, n);
+      }
+    }
+    const groups = (await listGroups()).map((g) => {
+      const v = groupView(g);
+      return { ...v, ...(counts.get(v.slug) ?? { total: 0, active: 0 }) };
+    });
+    res.json({ ok: true, groups });
+  }),
+);
+
+function slugify(name: string): string {
+  const s = name.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 30);
+  return s || `g-${randomBytes(3).toString("hex")}`;
+}
+
+router.post(
+  "/groups",
+  asyncHandler(async (req, res) => {
+    const b = GroupBody.safeParse(req.body);
+    if (!b.success) return invalid(res);
+    const base = slugify(b.data.name);
+    for (let i = 0; i < 5; i++) {
+      const slug = i === 0 ? base : `${base}-${randomBytes(2).toString("hex")}`;
+      const g: Group = { _id: groupId(slug), type: "audience", name: b.data.name, kind: "manual", createdAt: new Date().toISOString() };
+      try {
+        await couch.append(g._id, g as unknown as Record<string, unknown>);
+        res.locals.audit = { target: g._id, before: null, after: g };
+        return res.status(201).json({ ok: true, group: groupView(g) });
+      } catch (e) {
+        if (!(e instanceof CouchError && e.status === 409)) throw e;
+      }
+    }
+    return bad(res, "Could not pick a free group id.", 409);
+  }),
+);
+
+router.patch(
+  "/groups/:slug",
+  asyncHandler(async (req, res) => {
+    const slug = Slug.safeParse(req.params.slug);
+    const b = GroupBody.safeParse(req.body);
+    if (!slug.success || !b.success) return invalid(res);
+    const before = await getGroup(slug.data);
+    if (!before) return bad(res, "No such group.", 404);
+    const after = { ...before, name: b.data.name };
+    const r = await couch.put<{ rev?: string }>(before._id, after);
+    res.locals.audit = { target: before._id, before, after };
+    res.json({ ok: true, group: groupView({ ...after, _rev: r.rev }) });
+  }),
+);
+
+router.delete(
+  "/groups/:slug",
+  asyncHandler(async (req, res) => {
+    const slug = Slug.safeParse(req.params.slug);
+    if (!slug.success) return invalid(res);
+    const g = await getGroup(slug.data);
+    if (!g) return bad(res, "No such group.", 404);
+    if (g.kind === "system" || slug.data === SYSTEM_GROUP) return bad(res, "A system group cannot be deleted.", 409);
+    // Contacts keep existing; they just stop being in the group.
+    for await (const c of scanContacts()) {
+      if (c.groups.includes(slug.data)) await updateContact(c._id.slice("contact:".length), (x) => { x.groups = x.groups.filter((s) => s !== slug.data); });
+    }
+    if (g._rev) await couch.del(g._id, g._rev);
+    res.locals.audit = { target: g._id, before: g, after: null };
+    res.json({ ok: true });
+  }),
+);
+
+async function unknownGroups(slugs: string[]): Promise<string[]> {
+  if (slugs.length === 0) return [];
+  const known = new Set((await listGroups()).map((g) => g._id.slice("audience:".length)));
+  known.add(SYSTEM_GROUP);
+  return slugs.filter((s) => !known.has(s));
+}
+
+/* -------------------------------------------------------------- contacts -- */
+
+router.get(
+  "/contacts",
+  asyncHandler(async (req, res) => {
+    const q = ContactsQuery.safeParse(req.query);
+    if (!q.success) return invalid(res);
+    void purgeExpiredPending();
+    const needle = q.data.q?.toLowerCase();
+    const out: ReturnType<typeof view>[] = [];
+    let next: string | null = null;
+    for await (const c of scanContacts(q.data.cursor)) {
+      if (out.length === q.data.limit) { next = out[out.length - 1] ? `contact:${out[out.length - 1].hash}` : null; break; }
+      if (q.data.group && !c.groups.includes(q.data.group)) continue;
+      if (q.data.status && c.status !== q.data.status) continue;
+      if (needle && !c.email.includes(needle) && !(c.name ?? "").toLowerCase().includes(needle)) continue;
+      out.push(view(c));
+    }
+    res.json({ ok: true, contacts: out, nextCursor: next });
+  }),
+);
+
+router.post(
+  "/contacts",
+  asyncHandler(async (req, res) => {
+    const b = ContactCreate.safeParse(req.body);
+    if (!b.success) return invalid(res);
+    const hash = hashEmail(b.data.email);
+    const existing = await getContact(hash);
+    if (existing?.status === "suppressed") return bad(res, "This address is on the suppression list.", 409);
+    if (existing) return bad(res, "This address is already in the audience.", 409);
+    const missing = await unknownGroups(b.data.groups);
+    if (missing.length) return bad(res, "Unknown group.");
+    const now = new Date().toISOString();
+    const c: Contact = {
+      _id: contactId(hash),
+      type: "contact",
+      email: b.data.email,
+      ...(b.data.name ? { name: b.data.name } : {}),
+      lang: b.data.lang,
+      groups: b.data.groups,
+      status: "active",
+      source: "manual",
+      consentAt: now,
+      consentNote: b.data.consentNote,
+      topics: { blog: true, releases: true },
+      createdAt: now,
+      updatedAt: now,
+      confirmedAt: now,
+    };
+    if (!(await createContact(c))) return bad(res, "This address is already in the audience.", 409);
+    res.locals.audit = { target: c._id, before: null, after: c };
+    res.status(201).json({ ok: true, contact: view(c) });
+  }),
+);
+
+router.patch(
+  "/contacts/:hash",
+  asyncHandler(async (req, res) => {
+    const hash = hashParam(req.params.hash);
+    const b = ContactPatch.safeParse(req.body);
+    if (!hash || !b.success) return invalid(res);
+    const before = await getContact(hash);
+    if (!before) return bad(res, "No such contact.", 404);
+    if (before.status === "suppressed") return bad(res, "This address is on the suppression list.", 409);
+    if (b.data.groups && (await unknownGroups(b.data.groups)).length) return bad(res, "Unknown group.");
+    const prior = structuredClone(before);
+    const after = await updateContact(hash, (c) => {
+      if (b.data.name !== undefined) { if (b.data.name) c.name = b.data.name; else delete c.name; }
+      if (b.data.lang) c.lang = b.data.lang;
+      if (b.data.groups) c.groups = b.data.groups;
+      if (b.data.topics) c.topics = b.data.topics;
+      if (b.data.status === "unsubscribed" && c.status !== "unsubscribed") {
+        c.status = "unsubscribed";
+        c.unsubscribedAt = new Date().toISOString();
+      }
+    });
+    if (!after) return bad(res, "No such contact.", 404);
+    res.locals.audit = { target: after._id, before: prior, after };
+    res.json({ ok: true, contact: view(after) });
+  }),
+);
+
+router.delete(
+  "/contacts/:hash",
+  asyncHandler(async (req, res) => {
+    const hash = hashParam(req.params.hash);
+    if (!hash) return invalid(res);
+    const before = await getContact(hash);
+    if (!before) return bad(res, "No such contact.", 404);
+    // Erasing a suppressed address would let it be added again: take it off the list first, on purpose.
+    if (before.status === "suppressed") return bad(res, "Remove it from the suppression list first.", 409);
+    await deleteContact(hash);
+    res.locals.audit = { target: before._id, before, after: null };
+    res.json({ ok: true });
+  }),
+);
+
+/* ---------------------------------------------------------------- import -- */
+
+const IMPORT_MAX_ROWS = 5000;
+
+router.post(
+  "/contacts/import",
+  asyncHandler(async (req, res) => {
+    const b = ImportBody.safeParse(req.body);
+    if (!b.success) return bad(res, "Confirm that these people agreed to be mailed, and add a note saying how.");
+    if (b.data.group && (await unknownGroups([b.data.group])).length) return bad(res, "Unknown group.");
+    const rows = parseCsv(b.data.csv);
+    const first = rows[0]?.map((c) => c.trim().toLowerCase()) ?? [];
+    const hasHeader = first.includes("email");
+    const col = (name: string, fallback: number) => (hasHeader ? first.indexOf(name) : fallback);
+    const [ie, inm, il] = [col("email", 0), col("name", 1), col("lang", 2)];
+    const body = hasHeader ? rows.slice(1) : rows;
+    if (body.length > IMPORT_MAX_ROWS) return bad(res, `At most ${IMPORT_MAX_ROWS} rows per import.`, 413);
+
+    let added = 0;
+    let skipped = 0;
+    const invalidRows: { row: number; reason: string }[] = [];
+    const now = new Date().toISOString();
+    const groups = [b.data.group ?? SYSTEM_GROUP].filter((g, i, a) => a.indexOf(g) === i);
+    for (let i = 0; i < body.length; i++) {
+      const rowNo = i + (hasHeader ? 2 : 1);
+      const cells = body[i];
+      const email = Email.safeParse(cells[ie] ?? "");
+      if (!email.success) { invalidRows.push({ row: rowNo, reason: "Not a valid email address" }); continue; }
+      const name = (inm >= 0 ? cells[inm] : "")?.trim().slice(0, 80).replace(/[\u0000-\u001f\u007f]/g, "");
+      const lang: Lang = (il >= 0 ? cells[il] : "")?.trim().toLowerCase() === "he" ? "he" : "en";
+      const hash = hashEmail(email.data);
+      // Suppressed and already-known addresses are never touched by an import.
+      const c: Contact = {
+        _id: contactId(hash),
+        type: "contact",
+        email: email.data,
+        ...(name ? { name } : {}),
+        lang,
+        groups,
+        status: "active",
+        source: "import",
+        consentAt: now,
+        consentNote: b.data.consentNote,
+        topics: { blog: true, releases: true },
+        createdAt: now,
+        updatedAt: now,
+        confirmedAt: now,
+      };
+      if (await createContact(c)) added++;
+      else skipped++;
+    }
+    res.locals.audit = { target: "contact:import", before: null, after: { added, skipped, invalid: invalidRows.length, group: groups[0], consentNote: b.data.consentNote } };
+    res.json({ ok: true, added, skipped, invalid: invalidRows });
+  }),
+);
+
+router.get(
+  "/contacts/export.csv",
+  asyncHandler(async (_req, res) => {
+    const rows: string[][] = [["email", "name", "lang", "groups", "status", "source", "consentAt", "consentNote", "createdAt"]];
+    for await (const c of scanContacts()) {
+      rows.push([c.email, c.name ?? "", c.lang, c.groups.join(";"), c.status, c.source, c.consentAt, c.consentNote, c.createdAt]);
+    }
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader("Content-Disposition", 'attachment; filename="audience.csv"');
+    res.setHeader("Cache-Control", "no-store");
+    res.send("﻿" + toCsv(rows));
+  }),
+);
+
+/* ----------------------------------------------------------- suppression -- */
+
+router.get(
+  "/suppression",
+  asyncHandler(async (_req, res) => {
+    const list: { hash: string; email: string; since: string }[] = [];
+    for await (const c of scanContacts()) {
+      if (c.status === "suppressed") list.push({ hash: c._id.slice("contact:".length), email: c.email, since: c.unsubscribedAt ?? c.updatedAt });
+    }
+    res.json({ ok: true, suppressed: list });
+  }),
+);
+
+router.post(
+  "/suppression",
+  asyncHandler(async (req, res) => {
+    const b = SuppressBody.safeParse(req.body);
+    if (!b.success) return invalid(res);
+    const hash = hashEmail(b.data.email);
+    const now = new Date().toISOString();
+    const prior = await getContact(hash);
+    const priorCopy = prior ? structuredClone(prior) : null;
+    let after: Contact | null;
+    if (prior) {
+      after = await updateContact(hash, (c) => {
+        c.status = "suppressed";
+        c.unsubscribedAt = now;
+      });
+    } else {
+      after = {
+        _id: contactId(hash), type: "contact", email: b.data.email, lang: "en", groups: [], status: "suppressed", source: "manual",
+        consentAt: now, consentNote: "Added to the suppression list", topics: { blog: false, releases: false },
+        createdAt: now, updatedAt: now, unsubscribedAt: now,
+      };
+      if (!(await createContact(after))) after = await updateContact(hash, (c) => { c.status = "suppressed"; });
+    }
+    if (!after) return bad(res, "Could not suppress this address.", 409);
+    res.locals.audit = { target: after._id, before: priorCopy, after };
+    res.status(201).json({ ok: true, hash });
+  }),
+);
+
+router.delete(
+  "/suppression/:hash",
+  asyncHandler(async (req, res) => {
+    const hash = hashParam(req.params.hash);
+    if (!hash) return invalid(res);
+    const before = await getContact(hash);
+    if (!before || before.status !== "suppressed") return bad(res, "Not on the suppression list.", 404);
+    const prior = structuredClone(before);
+    // Lifted, not forgotten: the person is not mailed until they sign up and confirm again.
+    const after = await updateContact(hash, (c) => { c.status = "unsubscribed"; });
+    logger.info({ contact: hash }, "suppression lifted");
+    res.locals.audit = { target: before._id, before: prior, after };
+    res.json({ ok: true });
+  }),
+);
+
+export default router;
