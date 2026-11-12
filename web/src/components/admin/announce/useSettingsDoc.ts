@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { ContentConflictError, ContentInvalidError, type Issue } from "@/services/adminContent";
-import { adminAnnounce, type AnnounceSettings, type AnnounceSettingsView } from "@/services/adminAnnounce";
+import { adminAnnounce, type AnnounceSettings, type AnnounceSettingsView, type SenderWarning } from "@/services/adminAnnounce";
+import { DEFAULT_SENDER } from "./sender/defaults";
 
 /*
  * The announce settings document, read and saved by the Settings and Library
@@ -23,6 +24,8 @@ export function normalise(s: AnnounceSettings): AnnounceSettings {
   c.advanced ??= { utm: structuredClone(DEFAULT_UTM) };
   c.advanced.utm ??= structuredClone(DEFAULT_UTM);
   c.advanced.utm.mediumByChannel ??= {};
+  /* The whole sender object travels back on save: the server resets a field it does not receive. */
+  c.sender = { ...structuredClone(DEFAULT_SENDER), ...c.sender };
   return c;
 }
 
@@ -33,6 +36,7 @@ export function useSettingsDoc() {
   const [issues, setIssues] = useState<Issue[]>([]);
   const [loadError, setLoadError] = useState(false);
   const [attempt, setAttempt] = useState(0);
+  const [warnings, setWarnings] = useState<SenderWarning[]>([]);
 
   const take = useCallback((v: AnnounceSettingsView) => {
     const settings = normalise(v.settings);
@@ -73,7 +77,9 @@ export function useSettingsDoc() {
     setStatus("saving");
     setIssues([]);
     try {
-      take(await adminAnnounce.saveSettings(working, view._rev));
+      const saved = await adminAnnounce.saveSettings(working, view._rev);
+      take(saved);
+      setWarnings(saved.warnings ?? []);
       setStatus("saved");
     } catch (e) {
       if (e instanceof ContentConflictError) setStatus("conflict");
@@ -86,5 +92,5 @@ export function useSettingsDoc() {
 
   const discard = () => view && (setDraft(structuredClone(view.settings)), setStatus("idle"), setIssues([]));
 
-  return { view, draft, status, setStatus, issues, loadError, reload, edit, save, discard };
+  return { view, draft, warnings, status, setStatus, issues, loadError, reload, edit, save, discard };
 }

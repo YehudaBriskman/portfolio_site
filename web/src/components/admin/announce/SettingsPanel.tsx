@@ -2,6 +2,9 @@ import { useId, useState, type ReactNode } from "react";
 import { ErrorState } from "@/components/admin/ui";
 import { ANNOUNCE_CHANNELS, type AnnounceKind, type AnnounceSettings } from "@/services/adminAnnounce";
 import { parseTags } from "./helpers";
+import { senderProblems } from "./sender/defaults";
+import SenderSection from "./sender/SenderSection";
+import { useSenderWords } from "./sender/words";
 import { DEFAULT_UTM, same, useSettingsDoc } from "./useSettingsDoc";
 import { useSettingsPanelWords } from "./settingsWords";
 import { useAnnounceWords } from "./words";
@@ -20,11 +23,12 @@ import { useAnnounceWords } from "./words";
 const UTM_TOKEN = /^[a-z0-9_.-]{1,40}$/;
 
 const everydayOf = (s: AnnounceSettings) => ({ mail: s.email.enabled, channels: s.channels, hashtags: s.hashtags, signature: s.signature });
-const advancedOf = (s: AnnounceSettings) => ({ enabled: s.enabled, events: s.email.events, utm: s.advanced.utm });
+const advancedOf = (s: AnnounceSettings) => ({ enabled: s.enabled, events: s.email.events, utm: s.advanced.utm, sender: s.sender });
 
 export default function SettingsPanel() {
   const w = useAnnounceWords();
   const sw = useSettingsPanelWords();
+  const snd = useSenderWords();
   const uid = useId();
   const doc = useSettingsDoc();
   /* Typed as the person types it; parsed on save, so a trailing comma is not eaten mid-word. */
@@ -33,7 +37,7 @@ export default function SettingsPanel() {
   const [open, setOpen] = useState(false);
   const [note, setNote] = useState("");
 
-  const { view, draft, status, issues, edit } = doc;
+  const { view, draft, status, issues, edit, warnings } = doc;
   if (doc.loadError) return <ErrorState message={w.settingsFailed} onRetry={doc.reload} />;
   if (!draft || !view) return <p className="a-box a-box-row text-clay" role="status">{w.loading}</p>;
 
@@ -92,6 +96,7 @@ export default function SettingsPanel() {
     }
   })();
   const sourceBad = utm.source !== "" && !UTM_TOKEN.test(utm.source);
+  const senderBad = Object.keys(senderProblems(draft.sender)).length > 0;
 
   /* One entry per advanced setting: the label (and some extra words) is what the filter searches. */
   const advanced: Array<{ key: string; label: string; words: string; node: ReactNode }> = [
@@ -156,10 +161,16 @@ export default function SettingsPanel() {
         </fieldset>
       ),
     },
+    {
+      key: "sender",
+      label: snd.heading,
+      words: snd.keywords,
+      node: <SenderSection sender={draft.sender} warnings={warnings} onChange={(fn) => change((d) => fn(d.sender))} />,
+    },
   ];
   const q = filter.trim().toLowerCase();
   const shown = advanced.filter((s) => !q || `${s.label} ${s.words}`.toLowerCase().includes(q));
-  const isOpen = open || q !== "";
+  const isOpen = open || q !== "" || new URLSearchParams(window.location.search).get("section") === "sender";
 
   return (
     <form noValidate onSubmit={(e) => (e.preventDefault(), void doc.save(working))} className="max-w-3xl space-y-8" aria-labelledby={`${uid}-h`}>
@@ -237,7 +248,7 @@ export default function SettingsPanel() {
       )}
 
       <div className="flex flex-wrap items-center gap-3">
-        <button type="submit" className="a-btn a-btn-primary min-h-[44px]" disabled={!dirty || status === "saving" || sourceBad}>{w.save}</button>
+        <button type="submit" className="a-btn a-btn-primary min-h-[44px]" disabled={!dirty || status === "saving" || sourceBad || senderBad}>{w.save}</button>
         <button type="button" className="a-btn a-btn-ghost min-h-[44px]" disabled={!dirty || status === "saving"} onClick={() => (setTags(null), doc.discard())}>{w.reset}</button>
         {status === "conflict" && <button type="button" className="a-btn min-h-[44px]" onClick={() => (setTags(null), doc.reload())}>{w.reload}</button>}
         <span role="status" className={`text-sm ${bad ? "font-bold text-[rgb(var(--destructive-ink))]" : "text-clay"}`}>{statusText}</span>

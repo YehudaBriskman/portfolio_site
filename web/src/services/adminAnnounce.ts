@@ -81,6 +81,34 @@ export type AnnounceSnippet = { id: string; name: string; kind: AnnounceSnippetK
 export type AnnounceLibraryItem = { id: string; name: string; channel: AnnounceChannel; lang: AnnounceLang; text: string; default?: boolean };
 export type AnnounceUtm = { enabled: boolean; source: string; mediumByChannel: Partial<Record<AnnounceChannel, string>> };
 
+export type SenderQuietHours = { from: string; to: string; tz: string };
+
+/*
+ * The whole sender object is sent back on every save: the server parses a
+ * missing field as its default, so a partial object would silently reset it.
+ */
+export type SenderSettings = {
+  fromName: string;
+  fromAddress: string;
+  replyTo: string;
+  footerIdentity: string;
+  testRecipients: string[];
+  throttlePerHour: number;
+  dailyCap: number;
+  quietHours?: SenderQuietHours;
+  autoDraftCampaign: boolean;
+  confirmSubjectEn: string;
+  confirmSubjectHe: string;
+  confirmBodyEn: string;
+  confirmBodyHe: string;
+  unsubscribeNoteEn: string;
+  unsubscribeNoteHe: string;
+  commercialLabel: boolean;
+  pendingTtlDays: number;
+};
+
+export type SenderWarning = { field: "fromAddress" | "replyTo"; code: string; message: string };
+
 export type AnnounceSettings = {
   enabled: boolean;
   email: { enabled: boolean; events: AnnounceKind[] };
@@ -91,6 +119,7 @@ export type AnnounceSettings = {
   snippets: AnnounceSnippet[];
   library: AnnounceLibraryItem[];
   advanced: { utm: AnnounceUtm };
+  sender: SenderSettings;
 };
 
 export type AnnounceSettingsView = {
@@ -99,6 +128,8 @@ export type AnnounceSettingsView = {
   _rev: string | null;
   updatedAt: string | null;
   settings: AnnounceSettings;
+  /** Only on a save: things the server noticed but did not block. */
+  warnings?: SenderWarning[];
 };
 
 function issuesOf(body: unknown): Issue[] {
