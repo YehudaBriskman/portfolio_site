@@ -245,7 +245,8 @@ export default function Composer({
 
   const download = (fmt: "square" | "story") => {
     const a = document.createElement("a");
-    a.href = cardSrc(event, fmt);
+    /* Absolute, on the public site: a relative path would resolve against the admin host. */
+    a.href = `${origin}${cardSrc(event, fmt)}`;
     a.download = `${event.ref}-${fmt}.png`;
     a.rel = "noopener";
     document.body.append(a);
@@ -284,7 +285,7 @@ export default function Composer({
 
   /* ---- preview */
   /* The site's own origin, never the event's address: a release's address is its GitHub page, where no card exists. */
-  const origin = siteOrigin();
+  const origin = siteOrigin(detail?.siteOrigin);
   const card = (fmt: "og" | "square" | "story") => (event.kind === "post" || event.kind === "note" || event.kind === "release" ? `${origin}${cardSrc(event, fmt)}` : "");
   const image = meta?.image || card("og");
   const linkMeta = { url, title: meta?.title || event.title, description: meta?.description, image, locale: lang };

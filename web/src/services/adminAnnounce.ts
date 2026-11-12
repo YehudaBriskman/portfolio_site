@@ -34,6 +34,8 @@ export type Kit = Record<AnnounceLang, Partial<Record<AnnounceChannel, KitItem>>
 
 export type AnnounceDetail = {
   ok: true;
+  /** The public site's origin (SITE_URL), for cards and the pasted email. */
+  siteOrigin?: string;
   event: AnnounceSummary & {
     _rev?: string | null;
     summary: string;

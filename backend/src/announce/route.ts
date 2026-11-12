@@ -145,6 +145,8 @@ router.post(
 
 const detail = async (ev: AnnounceEvent) => ({
   ok: true,
+  /* The public site, for card images and the pasted email: the admin is on its own SSO-gated host, which recipients cannot load. */
+  siteOrigin: new URL(SITE_URL).origin,
   event: { ...summary(ev), _rev: ev._rev ?? null, title: ev.title, summary: ev.summary, tags: ev.tags, version: ev.version ?? null, drafts: ev.drafts ?? {}, custom: ev.custom ?? null },
   kit: renderKit(ev, await loadSettings()),
 });

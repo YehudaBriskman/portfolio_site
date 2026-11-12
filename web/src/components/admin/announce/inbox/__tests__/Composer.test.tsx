@@ -10,6 +10,7 @@ import "../../words";
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 
+const SITE = "https://site.example.test";
 const release: AnnounceSummary = {
   id: "announce:release:v1.6.1:1",
   kind: "release",
@@ -22,7 +23,7 @@ const release: AnnounceSummary = {
   done: {},
   dismissed: null,
 };
-const post: AnnounceSummary = { ...release, id: "announce:post:hello:1", kind: "post", ref: "hello", title: "Hello", url: `${window.location.origin}/blog/hello` };
+const post: AnnounceSummary = { ...release, id: "announce:post:hello:1", kind: "post", ref: "hello", title: "Hello", url: `${SITE}/blog/hello` };
 
 const kitItem = (text: string, subject = "") => ({ text, subject, limit: null, length: text.length, over: false });
 
@@ -33,7 +34,7 @@ function stub(ev: AnnounceSummary) {
       if (url.endsWith("/preview?lang=en") || url.includes("/preview")) return ev.kind === "release" ? json({}, 422) : json({ ok: true, title: "Hello", description: "", image: "", imageWidth: null, imageHeight: null, siteName: "S", url: ev.url, lang: "en", issues: [{ code: "description-missing", field: "description", severity: "error" }] });
       if (url.includes("/api/admin/announce/")) {
         const k = { linkedin: kitItem("LI text"), instagram: kitItem("IG text"), email: kitItem("Mail text", "Subject line"), x: kitItem("X text") };
-        return json({ ok: true, event: { ...ev, summary: "s", tags: [], version: null }, kit: { en: k, he: {} } });
+        return json({ ok: true, siteOrigin: SITE, event: { ...ev, summary: "s", tags: [], version: null }, kit: { en: k, he: {} } });
       }
       return json({}, 404);
     }),
@@ -59,7 +60,8 @@ describe("Composer on a release whose address is on GitHub", () => {
       return found;
     });
     for (const src of imgs.filter((s) => s.includes("/api/seo/og/"))) {
-      expect(src.startsWith(`${window.location.origin}/api/seo/og/release/v1.6.1.png`)).toBe(true);
+      expect(src.startsWith(`${SITE}/api/seo/og/release/v1.6.1.png`)).toBe(true);
+      expect(src.startsWith(window.location.origin)).toBe(false);
       expect(src).not.toContain("github.com");
     }
   });
@@ -88,6 +90,20 @@ describe("Composer on a release whose address is on GitHub", () => {
 });
 
 describe("Composer on a post", () => {
+  it("uses the server's site origin for the card, the Instagram download and the email image, not the admin page's", async () => {
+    stub(post);
+    const clicked: string[] = [];
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (this: HTMLAnchorElement) {
+      clicked.push(this.href);
+    });
+    renderIt(post);
+    fireEvent.click(await screen.findByRole("tab", { name: /Instagram/ }));
+    await waitFor(() => expect(Array.from(document.querySelectorAll("img")).some((i) => (i.getAttribute("src") ?? "").startsWith(SITE))).toBe(true));
+    for (const i of Array.from(document.querySelectorAll("img"))) expect(i.getAttribute("src") ?? "").not.toContain(window.location.origin);
+    fireEvent.click(screen.getByRole("button", { name: /Download square card/ }));
+    expect(clicked).toEqual([`${SITE}/api/seo/og/blog/hello.png?format=square`]);
+  });
+
   it("lists what needs fixing in one line, and keeps Dismiss apart from the primary action", async () => {
     stub(post);
     renderIt(post);
