@@ -1,3 +1,6 @@
+import type { Post } from "../schemas/content.js";
+import { postHasHebrew } from "./seo-translation.js";
+
 /*
  * Which notes a note's server HTML links to, chosen only from what is stored
  * and in a fixed order, so the same data always yields the same links and a
@@ -37,4 +40,14 @@ export function relatedPosts<T extends LinkablePost>(post: LinkablePost, all: T[
     .sort((a, b) => b.score - a.score || newestFirst(a.p, b.p))
     .slice(0, limit)
     .map((x) => x.p);
+}
+
+/**
+ * The notes a page may link to: the sitemap's own rule. Published, not noindex,
+ * and on the Hebrew page only those with published Hebrew, since the rest are
+ * noindex there and a link to them is a link to a page that is not offered.
+ * Takes the English documents, before any Hebrew is laid over them.
+ */
+export function linkablePosts(posts: Post[], lang: "en" | "he"): Post[] {
+  return posts.filter((p) => p.status === "published" && !p.seo.noindex && (lang === "en" || postHasHebrew(p)));
 }

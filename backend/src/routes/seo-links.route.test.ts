@@ -48,11 +48,13 @@ const AREA = {
   createdAt: T(1),
   updatedAt: T(1),
 };
+const HE = (title: string) => ({ title, subtitle: null, excerpt: "קטע", body: "גוף הרשימה" });
 const POSTS = [
   post("one", 1, { tags: ["react", "css"] }),
   post("two", 2, { tags: ["react"], title: "Two <b>bold</b>" }),
-  post("three", 3, { tags: ["css"], he: { title: "שלוש", subtitle: null, excerpt: null, body: null } }),
+  post("three", 3, { tags: ["css"], he: HE("שלוש") }),
   post("four", 4, { collection: "other" }),
+  post("five", 7, { tags: ["css"], he: HE("חמש") }),
   post("draft", 5, { status: "draft" }),
   post("hidden", 6, { seo: { title: null, description: null, canonical: null, noindex: true } }),
 ];
@@ -123,6 +125,12 @@ describe("a note's server HTML links", () => {
     expect(body(res.text)).toContain("שלוש");
   });
 
+  it("on the Hebrew page links only notes with published Hebrew, never a draft or noindex note", async () => {
+    const res = await request(createApp()).get("/api/seo/render/he/blog/three");
+    const notes = hrefs(res.text).filter((h) => /^\/he\/blog\/[^/]+$/.test(h));
+    expect(notes.sort()).toEqual(["/he/blog/five"]);
+  });
+
   it("names no Hebrew twin from an English note without published Hebrew", async () => {
     const res = await request(createApp()).get("/api/seo/render/blog/two");
     expect(hrefs(res.text)).not.toContain("/he/blog/two");
@@ -142,9 +150,15 @@ describe("the home page's server HTML links", () => {
     expect(b.indexOf("/blog/four")).toBeLessThan(b.indexOf("/blog/one"));
   });
 
+  it("links at most the six newest", async () => {
+    const res = await request(createApp()).get("/api/seo/render/home");
+    expect(hrefs(res.text).filter((h) => /^\/blog\/[^/]+$/.test(h))).toHaveLength(5);
+  });
+
   it("does the same in Hebrew, with Hebrew links", async () => {
     const res = await request(createApp()).get("/api/seo/render/he");
     expect(body(res.text).match(/<h1>/g)).toHaveLength(1);
-    expect(hrefs(res.text)).toEqual(expect.arrayContaining(["/he/blog/three", "/he/projects"]));
+    expect(hrefs(res.text)).toEqual(expect.arrayContaining(["/he/blog/three", "/he/blog/five", "/he/projects"]));
+    for (const h of ["one", "two", "four", "draft", "hidden"]) expect(hrefs(res.text)).not.toContain(`/he/blog/${h}`);
   });
 });

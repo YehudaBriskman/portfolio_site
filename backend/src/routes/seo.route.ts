@@ -22,7 +22,7 @@ import {
   type PageMeta,
 } from "../services/seo.js";
 import { SEO_WORDS } from "../services/seo-words.js";
-import { neighbours, newestFirst, relatedPosts } from "../services/seo-links.js";
+import { linkablePosts, neighbours, newestFirst, relatedPosts } from "../services/seo-links.js";
 import { PERSON_ID, WEBSITE_ID, personNode, personRef, siteNameIn, websiteNode, withHebrewName } from "../services/seo-entity.js";
 import { areaHasHebrew, postHasHebrew, projectHasHebrew } from "../services/seo-translation.js";
 import { breadcrumbs, fitTitle, graph, homeGraph, itemList, webPage } from "../services/seo-template.js";
@@ -436,8 +436,7 @@ page(HOME_ROUTE, async (_req, res, lang) => {
     publishedPosts().catch((): Post[] => []),
     projectViews(lang).catch((): ProjectView[] => []),
   ]);
-  const notes = posts
-    .filter((p) => !p.seo.noindex)
+  const notes = linkablePosts(posts, lang)
     .sort(newestFirst)
     .slice(0, 6)
     .map((p) => local(p, lang));
@@ -453,7 +452,7 @@ page(HOME_ROUTE, async (_req, res, lang) => {
     preloadImage: PORTRAIT_PRELOAD,
     bodyHtml: homeHtml(content, lang, settings, {
       notes: sectionVisible(settings, "notes") ? notes : [],
-      projects: sectionVisible(settings, "work") ? projects : [],
+      projects: sectionVisible(settings, "work") ? projects.filter((v) => lang === "en" || projectHasHebrew(v.entry, v.collection)) : [],
     }),
     jsonLd: homeGraph(lang, content),
   });
@@ -832,8 +831,8 @@ page("/blog/:slug", async (req, res, lang) => {
       : Promise.resolve({ docs: [] as Collection[] }),
   ]);
   const area = areaDoc.docs.find((c) => c.slug === post.collection && c.status === "published");
-  const linkable = allPosts.filter((p) => p.status === "published" && !p.seo.noindex).map((p) => local(p, lang));
-  const noteLinks = noteLinksHtml(post, linkable, area ? local(area, lang) : null, lang, translated);
+  const linkable = linkablePosts(allPosts, lang).map((p) => local(p, lang));
+  const noteLinks = noteLinksHtml(post, linkable, area && (lang === "en" || areaHasHebrew(area)) ? local(area, lang) : null, lang, translated);
   const inLanguage = bodyInEnglish || lang === "en" || !translated ? "en" : "he";
 
   await sendShell(res, {
@@ -938,7 +937,7 @@ page("/projects/:slug", async (req, res, lang) => {
     type: "website",
     bodyHtml: projectHtml(
       v,
-      views.filter((o) => o.slug !== v.slug),
+      views.filter((o) => o.slug !== v.slug && (lang === "en" || projectHasHebrew(o.entry, o.collection))),
       lang,
     ),
     /* Source code when there is a repository to point at, a creative work
