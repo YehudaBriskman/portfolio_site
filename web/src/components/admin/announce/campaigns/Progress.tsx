@@ -1,0 +1,52 @@
+import { useEffect } from "react";
+import { adminCampaigns, type Campaign } from "@/services/adminCampaigns";
+import { useCampaignWords } from "./words";
+
+const POLL_MS = 5000;
+const nf = new Intl.NumberFormat("en-GB");
+
+/*
+ * Counters of a campaign that is waiting, sending or finished. While it is
+ * waiting or sending the page re-reads it every few seconds; the numbers are
+ * the server's, never extrapolated. Numerals are tabular and left-to-right.
+ */
+export default function Progress({ campaign, onUpdate }: { campaign: Campaign; onUpdate: (c: Campaign) => void }) {
+  const w = useCampaignWords();
+  const live = campaign.status === "sending" || campaign.status === "scheduled";
+  useEffect(() => {
+    if (!live) return;
+    const t = setInterval(() => void adminCampaigns.get(campaign.id).then(onUpdate, () => {}), POLL_MS);
+    return () => clearInterval(t);
+  }, [live, campaign.id, onUpdate]);
+
+  const c = campaign.counters;
+  const done = c.sent + c.failed + c.suppressed;
+  const when = (iso: string | null) => (iso ? new Intl.DateTimeFormat(document.documentElement.lang === "he" ? "he-IL" : "en-GB", { dateStyle: "medium", timeStyle: "short" }).format(new Date(iso)) : "");
+  const cells: Array<[string, number]> = [[w.queued, c.queued], [w.sent, c.sent], [w.failed, c.failed], [w.suppressed, c.suppressed]];
+  return (
+    <section className="a-box space-y-3 p-4" aria-label={w.progressHeading} data-testid="progress">
+      <h3 className="display-tight text-lg">{w.progressHeading}</h3>
+      <p className="a-hint !mt-0" role="status">{campaign.status === "sending" ? w.progressSending : campaign.status === "scheduled" ? w.progressWaiting : w.progressDone}</p>
+      <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {cells.map(([label, n]) => (
+          <div key={label}>
+            <dt className="a-label !mt-0">{label}</dt>
+            <dd className="text-xl font-bold tabular-nums" dir="ltr" style={{ textAlign: "left" }}>{nf.format(n)}</dd>
+          </div>
+        ))}
+      </dl>
+      {c.queued > 0 && (
+        <div>
+          <progress className="h-3 w-full" max={c.queued} value={Math.min(done, c.queued)} aria-label={w.of(done, c.queued)} />
+          <p className="a-hint tabular-nums">{w.of(done, c.queued)}</p>
+        </div>
+      )}
+      {(campaign.startedAt || campaign.finishedAt) && (
+        <p className="a-hint !mt-0">
+          {campaign.startedAt && <span className="me-4">{w.started}: <time dateTime={campaign.startedAt}>{when(campaign.startedAt)}</time></span>}
+          {campaign.finishedAt && <span>{w.finished}: <time dateTime={campaign.finishedAt}>{when(campaign.finishedAt)}</time></span>}
+        </p>
+      )}
+    </section>
+  );
+}

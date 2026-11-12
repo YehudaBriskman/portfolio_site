@@ -1,0 +1,180 @@
+import { useId, useState } from "react";
+import type { SenderSettings, SenderWarning } from "@/services/adminAnnounce";
+import { DEFAULT_SENDER, senderProblems, type SenderField, type SenderProblem } from "./defaults";
+import { useSenderWords } from "./words";
+
+/*
+ * Settings > Advanced > Sender & delivery. It edits the WHOLE sender object in
+ * the settings draft: the page saves the object as it stands, because the
+ * server fills a missing field with its default. Empty From and Reply-To mean
+ * "use the server's own"; every field has its own reset.
+ */
+
+const fillSample = (tpl: string, name: string, site: string) => tpl.replace(/\{(name|site|days|link)\}/g, (_, k: string) => (k === "name" ? name : k === "site" ? site : k === "days" ? "7" : `https://${site}/…`));
+
+export default function SenderSection({ sender, onChange, warnings }: { sender: SenderSettings; onChange: (fn: (s: SenderSettings) => void) => void; warnings: SenderWarning[] }) {
+  const w = useSenderWords();
+  const uid = useId();
+  const problems = senderProblems(sender);
+  const [tests, setTests] = useState<string | null>(null);
+  const testText = tests ?? sender.testRecipients.join("\n");
+  const site = typeof location === "undefined" ? "example.com" : location.host;
+
+  const err = (f: SenderField) => {
+    const p: SenderProblem | undefined = problems[f];
+    return p ? (p === "empty" ? w.fieldEmpty : p === "address" ? w.badAddress : p === "number" ? w.badNumber : p === "list" ? w.badList : w.invalidZone) : "";
+  };
+  const reset = (label: string, show: boolean, env: boolean, fn: () => void) =>
+    show ? (
+      <button type="button" className="a-btn a-btn-ghost min-h-[44px]" aria-label={env ? w.resetEnvFor(label) : w.resetDefaultFor(label)} onClick={fn}>
+        {env ? w.resetEnv : w.resetDefault}
+      </button>
+    ) : null;
+  const text = (f: "fromName" | "fromAddress" | "replyTo", label: string, hint: string, opts: { type?: string; max: number; dir?: "ltr" | "auto" }) => {
+    const id = `${uid}-${f}`;
+    const warn = warnings.filter((x) => x.field === f);
+    return (
+      <div>
+        <label className="a-label" htmlFor={id}>{label}</label>
+        <div className="flex flex-wrap items-start gap-2">
+          <input id={id} type={opts.type ?? "text"} className="a-input min-h-[44px] min-w-0 flex-1 basis-56" dir={opts.dir ?? "auto"} maxLength={opts.max} autoComplete="off" value={sender[f]} aria-invalid={Boolean(problems[f])} aria-describedby={`${id}-h`} onChange={(e) => onChange((s) => void (s[f] = e.target.value))} />
+          {reset(label, sender[f] !== "", true, () => onChange((s) => void (s[f] = "")))}
+        </div>
+        <p id={`${id}-h`} className={problems[f] ? "a-error" : "a-hint"}>{err(f) || `${hint} ${w.envHint}`}</p>
+        {warn.map((x) => <p key={x.code} className="a-hint font-bold" role="status">{w.warningLabel}: {x.message}</p>)}
+      </div>
+    );
+  };
+  const num = (f: "throttlePerHour" | "dailyCap", label: string, hint: string, max: number) => {
+    const id = `${uid}-${f}`;
+    return (
+      <div>
+        <label className="a-label" htmlFor={id}>{label}</label>
+        <div className="flex flex-wrap items-start gap-2">
+          <input id={id} type="number" inputMode="numeric" min={1} max={max} className="a-input min-h-[44px] w-32 tabular-nums" dir="ltr" value={Number.isNaN(sender[f]) ? "" : sender[f]} aria-invalid={Boolean(problems[f])} aria-describedby={`${id}-h`} onChange={(e) => onChange((s) => void (s[f] = e.target.value === "" ? NaN : Number(e.target.value)))} />
+          {reset(label, sender[f] !== DEFAULT_SENDER[f], false, () => onChange((s) => void (s[f] = DEFAULT_SENDER[f])))}
+        </div>
+        <p id={`${id}-h`} className={problems[f] ? "a-error" : "a-hint"}>{err(f) || hint}</p>
+      </div>
+    );
+  };
+  const check = (id: string, label: string, hint: string, v: boolean, fn: (v: boolean) => void, def?: boolean) => (
+    <div>
+      <div className="flex flex-wrap items-center gap-2">
+        <label className="flex min-h-[44px] items-center gap-3 text-sm">
+          <input type="checkbox" className="h-5 w-5" checked={v} aria-describedby={`${id}-h`} onChange={(e) => fn(e.target.checked)} />
+          <span>{label}</span>
+        </label>
+        {def !== undefined && reset(label, v !== def, false, () => fn(def))}
+      </div>
+      <p id={`${id}-h`} className="a-hint !mt-0 ps-8">{hint}</p>
+    </div>
+  );
+  const tpl = (f: "confirmSubjectEn" | "confirmSubjectHe" | "confirmBodyEn" | "confirmBodyHe" | "unsubscribeNoteEn" | "unsubscribeNoteHe", label: string, rows: number) => {
+    const id = `${uid}-${f}`;
+    const he = f.endsWith("He");
+    const sample = fillSample(sender[f], he ? w.sampleName : "Dana", site);
+    return (
+      <div>
+        <label className="a-label" htmlFor={id}>{label}</label>
+        <div className="flex flex-wrap items-start gap-2">
+          {rows === 1 ? (
+            <input id={id} className="a-input min-h-[44px] min-w-0 flex-1 basis-56" dir={he ? "rtl" : "ltr"} lang={he ? "he" : "en"} maxLength={2000} value={sender[f]} aria-invalid={Boolean(problems[f])} onChange={(e) => onChange((s) => void (s[f] = e.target.value))} />
+          ) : (
+            <textarea id={id} className="a-textarea min-w-0 flex-1 basis-56" rows={rows} dir={he ? "rtl" : "ltr"} lang={he ? "he" : "en"} maxLength={2000} value={sender[f]} aria-invalid={Boolean(problems[f])} onChange={(e) => onChange((s) => void (s[f] = e.target.value))} />
+          )}
+          {reset(label, sender[f] !== DEFAULT_SENDER[f], false, () => onChange((s) => void (s[f] = DEFAULT_SENDER[f])))}
+        </div>
+        {problems[f] && <p className="a-error">{err(f)}</p>}
+        <div className="a-box mt-2 p-3" dir={he ? "rtl" : "ltr"} lang={he ? "he" : "en"}>
+          <p className="a-label !mt-0" dir="auto">{w.livePreview}</p>
+          <p className="whitespace-pre-wrap break-words text-sm" data-testid={`preview-${f}`}>{sample}</p>
+        </div>
+      </div>
+    );
+  };
+
+  const q = sender.quietHours;
+  return (
+    <section aria-labelledby={`${uid}-h`} className="space-y-5" data-testid="sender-section">
+      <div>
+        <h4 id={`${uid}-h`} className="display-tight text-lg">{w.heading}</h4>
+        <p className="a-hint !mt-0">{w.intro}</p>
+      </div>
+
+      {!sender.footerIdentity.trim() && (
+        <div className="a-box border-[rgb(var(--destructive-ink))] p-4" role="alert" data-testid="footer-required">
+          <p className="font-bold">{w.footerRequiredTitle}</p>
+          <p className="a-hint !mt-0">{w.footerRequired}</p>
+        </div>
+      )}
+
+      <div className="grid gap-4 md:grid-cols-2">
+        {text("fromName", w.fromName, w.fromNameHint, { max: 80 })}
+        {text("fromAddress", w.fromAddress, w.fromAddressHint, { type: "email", max: 254, dir: "ltr" })}
+        <div className="md:col-span-2">{text("replyTo", w.replyTo, w.replyToHint, { type: "email", max: 254, dir: "ltr" })}</div>
+      </div>
+
+      <div>
+        <label className="a-label" htmlFor={`${uid}-footer`}>{w.footerHeading}: {w.footer}</label>
+        <textarea id={`${uid}-footer`} className="a-textarea" rows={3} maxLength={500} dir="auto" required aria-required="true" aria-invalid={!sender.footerIdentity.trim()} aria-describedby={`${uid}-footer-h`} value={sender.footerIdentity} onChange={(e) => onChange((s) => void (s.footerIdentity = e.target.value))} />
+        <p id={`${uid}-footer-h`} className="a-hint">{w.footerHint}</p>
+      </div>
+
+      {check(`${uid}-cl`, w.commercial, w.commercialHint, sender.commercialLabel, (v) => onChange((s) => void (s.commercialLabel = v)), DEFAULT_SENDER.commercialLabel)}
+
+      <div>
+        <label className="a-label" htmlFor={`${uid}-tests`}>{w.testHeading}: {w.test}</label>
+        <textarea
+          id={`${uid}-tests`} className="a-textarea" rows={3} dir="ltr" autoComplete="off" spellCheck={false} value={testText} aria-invalid={Boolean(problems.testRecipients)} aria-describedby={`${uid}-tests-h`}
+          onChange={(e) => (setTests(e.target.value), onChange((s) => void (s.testRecipients = e.target.value.split(/\r?\n/).map((l) => l.trim().toLowerCase()).filter(Boolean))))}
+          onBlur={() => setTests(null)}
+        />
+        <p id={`${uid}-tests-h`} className={problems.testRecipients ? "a-error" : "a-hint"}>{err("testRecipients") || w.testHint}</p>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        {num("throttlePerHour", w.throttle, w.throttleHint, 3600)}
+        {num("dailyCap", w.cap, w.capHint, 10000)}
+      </div>
+
+      <fieldset className="space-y-2">
+        <legend className="a-label">{w.quiet}</legend>
+        {check(`${uid}-q`, w.quietOn, w.quietHint, Boolean(q), (v) => onChange((s) => (v ? void (s.quietHours = { from: "22:00", to: "07:00", tz: "Asia/Jerusalem" }) : void delete s.quietHours)))}
+        {q && (
+          <div className="flex flex-wrap items-end gap-3 ps-8">
+            <div>
+              <label className="a-label" htmlFor={`${uid}-qf`}>{w.quietFrom}</label>
+              <input id={`${uid}-qf`} type="time" className="a-input min-h-[44px]" dir="ltr" value={q.from} onChange={(e) => onChange((s) => void (s.quietHours!.from = e.target.value))} />
+            </div>
+            <div>
+              <label className="a-label" htmlFor={`${uid}-qt`}>{w.quietTo}</label>
+              <input id={`${uid}-qt`} type="time" className="a-input min-h-[44px]" dir="ltr" value={q.to} onChange={(e) => onChange((s) => void (s.quietHours!.to = e.target.value))} />
+            </div>
+            <div>
+              <label className="a-label" htmlFor={`${uid}-qz`}>{w.quietZone}</label>
+              <input id={`${uid}-qz`} className="a-input min-h-[44px]" dir="ltr" autoComplete="off" list={`${uid}-zones`} value={q.tz} aria-invalid={Boolean(problems.quietHours)} onChange={(e) => onChange((s) => void (s.quietHours!.tz = e.target.value))} />
+              <datalist id={`${uid}-zones`}>{["Asia/Jerusalem", "UTC", "Europe/London", "America/New_York"].map((z) => <option key={z} value={z} />)}</datalist>
+              <p className={problems.quietHours ? "a-error" : "a-hint"}>{err("quietHours") || w.quietZoneHint}</p>
+            </div>
+          </div>
+        )}
+      </fieldset>
+
+      {check(`${uid}-ad`, w.autoDraft, w.autoDraftHint, sender.autoDraftCampaign, (v) => onChange((s) => void (s.autoDraftCampaign = v)), DEFAULT_SENDER.autoDraftCampaign)}
+
+      <div className="space-y-4">
+        <div>
+          <h5 className="font-bold">{w.textsHeading}</h5>
+          <p className="a-hint !mt-0">{w.textsHint}</p>
+        </div>
+        {tpl("confirmSubjectEn", w.confirmSubjectEn, 1)}
+        {tpl("confirmBodyEn", w.confirmBodyEn, 7)}
+        {tpl("unsubscribeNoteEn", w.unsubEn, 2)}
+        {tpl("confirmSubjectHe", w.confirmSubjectHe, 1)}
+        {tpl("confirmBodyHe", w.confirmBodyHe, 7)}
+        {tpl("unsubscribeNoteHe", w.unsubHe, 2)}
+      </div>
+    </section>
+  );
+}
