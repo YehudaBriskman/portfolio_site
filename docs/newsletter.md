@@ -495,7 +495,8 @@ message was sent, dropped by a limit or caught by the honeypot.
 | Per client | 5 messages / 15 min | message dropped |
 | Whole form | 30 messages / hour | message dropped |
 | Per address | 1 auto-reply / hour | owner notice still sent, auto-reply skipped |
-| Daily ceiling | `CONTACT_DAILY_MAIL_CEILING`, default 30 mails / UTC day | both mails count; over it, nothing is sent |
+| Daily mail ceiling | `CONTACT_DAILY_MAIL_CEILING`, default 30 mails / UTC day | both mails count; over it, auto-replies stop but owner notices are still sent |
+| Daily notice ceiling | `CONTACT_DAILY_NOTICE_CEILING`, default 40 notices / UTC day | over it, the message is dropped and a warning is logged (no address) |
 
 Counters live in memory (a restart resets them). The per-address window stores a
 SHA-256 of the address, never the address. A dropped message is logged as a
