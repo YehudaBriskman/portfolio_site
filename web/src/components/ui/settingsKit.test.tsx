@@ -136,7 +136,7 @@ describe("SettingsRow", () => {
     const { container } = render(
       <SettingsRow id="doi" kind="switch" label="Double opt-in" checked onChange={() => {}} info={LONG} />,
     );
-    const label = container.querySelector("[data-sr-label]") as HTMLElement;
+    const label = container.querySelector("[data-sw-label]") as HTMLElement;
     expect(label.getAttribute("title")).toBe("Double opt-in");
     const sw = screen.getByRole("switch");
     const info = screen.getByRole("button", { name: "About Double opt-in" });
@@ -257,14 +257,15 @@ function groups(set: (p: Partial<Doc>) => void): SettingsGroupDef<Doc>[] {
   ];
 }
 
-function Host({ initialOpen = null as string | null, wide = false }) {
+function stubWide() {
+  window.matchMedia = ((q: string) => ({
+    matches: q.includes("840"), media: q, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {}, onchange: null, dispatchEvent: () => false,
+  })) as unknown as typeof window.matchMedia;
+}
+
+function Host({ initialOpen = null as string | null }) {
   const [doc, setDoc] = useState(base);
   const [open, setOpen] = useState<string | null>(initialOpen);
-  if (wide) {
-    window.matchMedia = ((q: string) => ({
-      matches: q.includes("840"), media: q, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {}, onchange: null, dispatchEvent: () => false,
-    })) as unknown as typeof window.matchMedia;
-  }
   return <SettingsList groups={groups((p) => setDoc((d) => ({ ...d, ...p })))} value={doc} openId={open} onOpenChange={setOpen} />;
 }
 
@@ -300,7 +301,7 @@ describe("SettingsList", () => {
 
   it("opens a small group (<= 4 switches) as a half sheet", () => {
     const { container } = render(<Host />);
-    fireEvent.click(container.querySelector('[data-settings-group="everyday"]')!);
+    fireEvent.click(container.querySelector('[data-settings-group="everyday"] button')!);
     const dlg = container.querySelector("dialog") as HTMLDialogElement;
     expect(dlg.getAttribute("data-snap")).toBe("half");
     expect(dlg.querySelector("[data-surface]")?.getAttribute("data-surface")).toBe("sheet");
@@ -312,7 +313,7 @@ describe("SettingsList", () => {
     expect(groupSurface({ controls: 1, hasText: true })).toBe("page");
     expect(groupSurface({ controls: 4 })).toBe("sheet");
     const { container } = render(<Host />);
-    fireEvent.click(container.querySelector('[data-settings-group="channels"]')!);
+    fireEvent.click(container.querySelector('[data-settings-group="channels"] button')!);
     expect(container.querySelector("dialog")).toBeNull();
     const page = container.querySelector('[data-surface="page"]') as HTMLElement;
     expect(within(page).getByRole("heading", { name: "Channels" })).toBeTruthy();
@@ -327,7 +328,7 @@ describe("SettingsList", () => {
     const { container } = render(
       <SettingsList groups={groups(() => {})} value={base} openId={null} onOpenChange={onOpenChange} />,
     );
-    fireEvent.click(container.querySelector('[data-settings-group="limits"]')!);
+    fireEvent.click(container.querySelector('[data-settings-group="limits"] button')!);
     expect(onOpenChange).toHaveBeenCalledWith("limits");
   });
 
@@ -355,7 +356,8 @@ describe("SettingsList", () => {
   });
 
   it("at 840px and up shows the list and the open group side by side, no sheet", () => {
-    const { container } = render(<Host initialOpen="everyday" wide />);
+    stubWide();
+    const { container } = render(<Host initialOpen="everyday" />);
     expect(container.querySelector("[data-panes]")).toBeTruthy();
     expect(container.querySelector("dialog")).toBeNull();
     expect(container.querySelectorAll("[data-settings-group]").length).toBe(3);
