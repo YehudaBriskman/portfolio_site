@@ -3226,6 +3226,3 @@
     body.motion-paused .a-app dialog::backdrop { transition: none; animation: none; }
   }
 }
-
-/* THROWAWAY */
-main { min-width: 460px; }
