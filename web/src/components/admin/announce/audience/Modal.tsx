@@ -5,6 +5,7 @@ import { useAudienceWords } from "./words";
  * A native modal <dialog>: the browser traps focus, Escape closes it and
  * focus returns to the button that opened it. Where showModal is missing
  * (jsdom) it opens as a plain dialog so tests can still reach the content.
+ * A form footer marked FOOTER (modalFooter.ts) sticks to the bottom of the scrolling body.
  */
 export default function Modal({ title, titleId, onClose, children }: { title: string; titleId: string; onClose: () => void; children: ReactNode }) {
   const w = useAudienceWords();
@@ -21,15 +22,18 @@ export default function Modal({ title, titleId, onClose, children }: { title: st
     <dialog
       ref={ref}
       aria-labelledby={titleId}
-      className="a-box m-auto bg-[rgb(var(--paper))] w-[min(40rem,calc(100vw-2rem))] max-h-[calc(100dvh-2rem)] overflow-y-auto p-4 text-[rgb(var(--ink))] backdrop:bg-black/50 sm:p-6"
+      className="a-box m-auto w-[min(40rem,calc(100vw-2rem))] max-h-[calc(100dvh-2rem)] flex-col overflow-hidden !rounded-[20px] bg-[rgb(var(--paper))] p-0 text-[rgb(var(--ink))] shadow-2xl backdrop:bg-black/50 open:flex"
       onCancel={(e) => (e.preventDefault(), onClose())}
       onClick={(e) => e.target === ref.current && onClose()}
     >
-      <div className="mb-4 flex items-start justify-between gap-3">
+      <div className="flex items-start justify-between gap-3 px-4 pt-4 sm:px-6 sm:pt-6">
         <h3 id={titleId} className="display-tight text-lg">{title}</h3>
-        <button type="button" className="a-btn a-btn-ghost min-h-[44px] min-w-[44px]" onClick={onClose}>{w.close}</button>
+        <button type="button" className="a-btn a-btn-ghost min-h-[44px] min-w-[44px] !rounded-xl" onClick={onClose}>{w.close}</button>
       </div>
-      {children}
+      {/* The body scrolls; a form's `data-modal-footer` row sticks to its bottom edge so Save is never below the fold. */}
+      <div data-modal-body className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-4 pt-4 has-[[data-modal-footer]]:pb-0 sm:px-6">
+        {children}
+      </div>
     </dialog>
   );
 }

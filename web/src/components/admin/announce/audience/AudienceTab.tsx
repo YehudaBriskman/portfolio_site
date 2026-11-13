@@ -78,26 +78,26 @@ export default function AudienceTab() {
         <p className="a-hint">{w.intro}</p>
       </div>
 
-      <div className="flex flex-wrap items-end gap-2">
-        <div className="a-search !flex-[2_1_14rem]">
+      <div className="grid grid-cols-2 items-end gap-3 md:grid-cols-[minmax(14rem,2fr)_1fr_1fr_auto]" data-testid="audience-filters">
+        <div className="a-search col-span-2 md:col-span-1">
           <label className="a-label" htmlFor={`${uid}-q`}>{w.searchLabel}</label>
           <input id={`${uid}-q`} type="search" className="a-input min-h-[44px] !ps-3" dir="auto" placeholder={w.searchPlaceholder} value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
-        <div>
+        <div data-filter className="min-w-0">
           <label className="a-label" htmlFor={`${uid}-g`}>{w.filterGroup}</label>
-          <select id={`${uid}-g`} className="a-select min-h-[44px]" value={group} onChange={(e) => setGroup(e.target.value)}>
+          <select id={`${uid}-g`} className="a-select min-h-[44px] w-full" value={group} onChange={(e) => setGroup(e.target.value)}>
             <option value="">{w.all}</option>
             {groups.map((g) => <option key={g.slug} value={g.slug}>{`${g.name} (${nf.format(g.count)})`}</option>)}
           </select>
         </div>
-        <div>
+        <div data-filter className="min-w-0">
           <label className="a-label" htmlFor={`${uid}-s`}>{w.filterStatus}</label>
-          <select id={`${uid}-s`} className="a-select min-h-[44px]" value={status} onChange={(e) => setStatus(e.target.value as ContactStatus | "")}>
+          <select id={`${uid}-s`} className="a-select min-h-[44px] w-full" value={status} onChange={(e) => setStatus(e.target.value as ContactStatus | "")}>
             <option value="">{w.all}</option>
             {CONTACT_STATUSES.map((s) => <option key={s} value={s}>{w.statuses[s]}</option>)}
           </select>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="col-span-2 flex flex-wrap gap-2 md:col-span-1">
           <button type="button" className="a-btn a-btn-primary min-h-[44px]" onClick={() => setDialog({ kind: "add" })}>{w.addContact}</button>
           <button type="button" className="a-btn min-h-[44px]" onClick={() => setDialog({ kind: "import" })}>{w.importCsv}</button>
           <a className="a-btn min-h-[44px]" href={EXPORT_URL} download title={w.exportHint}>{w.exportCsv}</a>
@@ -117,26 +117,26 @@ export default function AudienceTab() {
             <table className="a-table" aria-label={w.tableLabel}>
               <thead>
                 <tr>
-                  <th scope="col" className="!text-start">{w.colEmail}</th>
+                  <th scope="col" className="!px-2 !text-start sm:!px-4">{w.colEmail}</th>
                   <th scope="col" className="!text-start hidden md:table-cell">{w.colName}</th>
-                  <th scope="col" className="!text-start">{w.colStatus}</th>
+                  <th scope="col" className="!px-2 !text-start sm:!px-4">{w.colStatus}</th>
                   <th scope="col" className="!text-start hidden lg:table-cell">{w.colLang}</th>
                   <th scope="col" className="!text-start hidden lg:table-cell">{w.colGroups}</th>
-                  <th scope="col" className="!text-end"><span className="sr-only">{w.colActions}</span></th>
+                  <th scope="col" className="!px-2 !text-end sm:!px-4"><span className="sr-only">{w.colActions}</span></th>
                 </tr>
               </thead>
               <tbody>
                 {items.map((c) => (
                   <tr key={c.hash}>
-                    <td className="min-w-0 max-w-[18rem]">
+                    <td className="min-w-0 max-w-[18rem] !px-2 sm:!px-4">
                       <span className="a-row-title block text-sm"><Email value={c.email} /></span>
                       <span className="a-row-meta !mt-0.5 text-sm"><Why c={c} /></span>
                     </td>
                     <td className="hidden text-start md:table-cell">{c.name ? <bdi dir="auto">{c.name}</bdi> : <Empty />}</td>
-                    <td className="a-fit text-sm">{w.statuses[c.status]}</td>
+                    <td className="a-fit !px-2 text-sm sm:!px-4">{w.statuses[c.status]}</td>
                     <td className="a-fit hidden lg:table-cell text-sm">{c.lang ? w.langs[c.lang] : ""}</td>
                     <td className="hidden text-sm lg:table-cell" dir="auto">{c.groups.length ? c.groups.map(groupName).join(", ") : <Empty />}</td>
-                    <td className="a-fit !text-end">
+                    <td className="a-fit !px-2 !text-end sm:!px-4">
                       <button type="button" className="a-btn min-h-[44px] min-w-[44px]" aria-label={w.editFor(c.email)} onClick={() => setDialog({ kind: "edit", contact: c })}>{w.edit}</button>
                     </td>
                   </tr>

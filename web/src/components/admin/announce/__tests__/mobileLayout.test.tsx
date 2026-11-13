@@ -28,6 +28,7 @@ beforeEach(() => {
     "fetch",
     vi.fn(async (url: string) => {
       if (url === "/api/admin/announce") return json({ ok: true, unread: 0, items: [] });
+      if (url === "/api/admin/announce/settings") return json({ ok: true, exists: false, _rev: null, updatedAt: null, settings: { enabled: true, email: { enabled: false, events: ["post", "release"] }, hashtags: [], signature: "", channels: ["linkedin", "instagram", "email", "gmail", "x"], templates: { en: {}, he: {} } } });
       if (url === "/api/admin/audience/groups") return json({ ok: true, groups: [] });
       if (url.startsWith("/api/admin/audience/contacts?")) return json({ ok: true, contacts: [], nextCursor: null });
       return json({ ok: true });
@@ -97,14 +98,12 @@ describe("inbox (M10, M13)", () => {
 describe("audience (M12)", () => {
   it("never breaks inside the local part of an address, only before the domain", () => {
     const { container } = render(<Email value="ada.lovelace@example.co.uk" />);
-    const local = container.querySelector("[data-email-local]");
-    expect(local?.textContent).toBe("ada.lovelace");
-    expect(local?.querySelector("wbr")).toBeNull();
-    expect(local?.className).not.toMatch(/overflow-wrap:anywhere/);
-    const domain = container.querySelector("[data-email-domain]");
-    expect(domain?.textContent).toBe("@example.co.uk");
-    expect(domain?.className).toMatch(/overflow-wrap:anywhere/);
-    expect(container.textContent).toBe("ada.lovelace@example.co.uk");
+    const addr = container.querySelector("bdi")!;
+    expect(addr.querySelectorAll("wbr")).toHaveLength(1);
+    expect(addr.childNodes[0].textContent).toBe("ada.lovelace");
+    expect(addr.childNodes[1].nodeName).toBe("WBR");
+    expect(addr.childNodes[2].textContent).toBe("@example.co.uk");
+    expect(addr.className).toMatch(/overflow-wrap:anywhere/);
   });
 
   it.each(["en", "he"])("lays the filters out as the same grid in %s", async (lang) => {
