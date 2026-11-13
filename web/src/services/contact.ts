@@ -21,7 +21,8 @@ export const ContactSchema = z.object({
 
 export type ContactPayload = z.infer<typeof ContactSchema>;
 
-export async function sendContactMessage(data: ContactPayload) {
+/** `website` is the honeypot field's value: empty for a person, the server drops the message otherwise. */
+export async function sendContactMessage(data: ContactPayload, website = "") {
   const parsed = ContactSchema.safeParse(data);
   if (!parsed.success) {
     const errs = parsed.error.flatten().fieldErrors;
@@ -34,6 +35,7 @@ export async function sendContactMessage(data: ContactPayload) {
     body: JSON.stringify({
       subject: `Portfolio contact from ${data.name}`,
       replyTo: data.email,
+      ...(website ? { website } : {}),
       template: {
         name: "basic",
         params: {
