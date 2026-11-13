@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useId, useMemo, useState } from "react";
-import { hasTextProblem } from "../sender/defaults";
+import { hasTextProblem, identityMissing } from "../sender/defaults";
 import { Link } from "react-router-dom";
 import { ErrorState } from "@/components/admin/ui";
 import { ContentInvalidError, type Issue } from "@/services/adminContent";
@@ -122,7 +122,8 @@ export default function CampaignEditor({
 
   const editable = id === "new" || campaign?.status === "draft";
   const dirty = id === "new" ? true : campaign ? !same(toInput(form), toInput(toForm(campaign))) : false;
-  const footerOk = Boolean(sender?.footerIdentity.trim());
+  const lacks = sender ? identityMissing(sender) : [];
+  const footerOk = lacks.length === 0;
   const blockBad = form.useBlocks && (form.blocks.length === 0 || form.blocks.some((b) => blockProblem(b)));
 
   /* The count follows what is ticked now, saved or not: the server counts, never the page. */
@@ -183,7 +184,7 @@ export default function CampaignEditor({
   if (blockBad) problems.push(w.readyBlocks);
   if (recipients === 0) problems.push(w.readyAudience);
   if (mode === "later" && (!scheduleIso || past)) problems.push(w.readyTime);
-  if (!footerOk && sender) problems.push(w.readyFooter);
+  if (!footerOk && sender) problems.push(w.readyFooter(lacks.map((k) => (k === "name" ? w.idName : w.idEmail)).join(w.idAnd)));
   if (sender && hasTextProblem(sender)) problems.push(w.readyUnsubNote);
   const formOk = Boolean(form.subject.trim() && form.groups.length > 0 && !blockBad);
   const canGo = editable && problems.length === 0 && busy === "";

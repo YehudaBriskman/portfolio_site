@@ -185,14 +185,16 @@ Stored in `settings:announce` under `sender` and edited in Settings, Advanced,
 |---|---|---|
 | `fromName`, `fromAddress` | empty | empty falls back to the env `MAIL_FROM`; "Reset to env default" in the screen |
 | `replyTo` | empty | empty falls back to env `MAIL_REPLY_TO` |
-| `footerIdentity` | empty | name and contact line printed in every campaign mail; **campaigns cannot be scheduled while it is empty** |
+| `footerIdentity` | empty | the sender **name** line printed in every campaign mail (an older single free text is kept here as it was); **campaigns cannot be scheduled while it, or `identityEmail`, is empty** |
+| `identityEmail` | empty | required contact email, printed in the footer; the send gate and the "ready to send" list name it when missing |
+| `identityPostal` | empty | optional postal or P.O. box line; never required |
 | `testRecipients` | none | up to 5; test sends go only to these, with `[Test] ` in the subject |
 | `throttlePerHour` | 60 | 1 to 3600 |
 | `dailyCap` | 200 | 1 to 10000 |
 | `quietHours` | none | `from`, `to`, `tz`; may wrap midnight |
 | `autoDraftCampaign` | off | a post or release event makes a **draft** for `subscribers`; never sends by itself (`campaigns/autodraft.ts`) |
 | `pendingTtlDays` | 7 | 1 to 30 |
-| `commercialLabel` | on | the Hebrew advertisement label, Hebrew recipients only |
+| `labelMode` | `hebrew` | `hebrew` (Hebrew recipients), `all` (English mail gets `פרסומת | Ad` in the subject and `פרסומת | Advertisement` as its first line, DRAFT wording) or `off`. An older `commercialLabel: false` reads as `off` |
 | `confirmSubject/Body`, `unsubscribeNote` (EN, HE) | see `DEFAULT_SENDER` | placeholders `{name}`, `{site}`, `{days}`, `{link}` |
 
 **In the app vs the environment.** Everything above is in the app. These are
@@ -377,9 +379,9 @@ say. The owner needs to confirm:
 | Point | What the code does | Owner to confirm |
 |---|---|---|
 | **Consent record** | Every contact stores `consentAt`, `consentNote` and `source`. Site signups store the form version `site-form-v1`; manual adds and imports require a consent note, and import requires a ticked statement that the people agreed | that double opt-in plus these fields is a sufficient record; that imported people really consented; whether the form version needs a copy of the text shown at the time |
-| **"פרסומת" label** | Hebrew recipients' subject starts with `פרסומת: ` and the footer opens with `פרסומת`, while `commercialLabel` is on (default). English recipients get no label | whether the law applies to this mail at all (it may be a plain notice, not an advertisement), whether the label is wanted, and whether English mail needs one |
+| **"פרסומת" label** | the subject starts with `פרסומת: ` and the first visible line of the body (HTML and text) is `פרסומת`, for Hebrew recipients (`labelMode` `hebrew`, the default); `all` also labels English mail with DRAFT wording; `off` labels nothing | whether the law applies to this mail at all (it may be a plain notice, not an advertisement), whether the label is wanted, and whether English mail needs one |
 | **Unsubscribe in every mail** | Every campaign carries the footer link and the one-click headers; one click, no login. The confirmation mail has none | that this meets the "simple and clear" opt-out; that the confirmation mail does not need one |
-| **Sender identity** | `footerIdentity` is printed in every mail and sending is blocked while it is empty | the exact text: the name and a way to reach the sender, and whether a postal address is required |
+| **Sender identity** | the name, an optional postal line and a contact email are printed in every mail; sending is blocked while the name or the email is missing | whether email-only identity is enough, or a postal address or P.O. box is required |
 | Frequency promise | the signup text promises "at most a few a month"; nothing enforces it | that the owner will keep the promise |
 
 ### Every user-facing legal string

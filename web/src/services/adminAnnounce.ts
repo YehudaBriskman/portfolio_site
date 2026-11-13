@@ -93,7 +93,10 @@ export type SenderSettings = {
   fromName: string;
   fromAddress: string;
   replyTo: string;
+  /* The name line; a document saved before the structured fields keeps its single text here. */
   footerIdentity: string;
+  identityEmail: string;
+  identityPostal: string;
   testRecipients: string[];
   throttlePerHour: number;
   dailyCap: number;
@@ -105,7 +108,7 @@ export type SenderSettings = {
   confirmBodyHe: string;
   unsubscribeNoteEn: string;
   unsubscribeNoteHe: string;
-  commercialLabel: boolean;
+  labelMode: "hebrew" | "all" | "off";
   pendingTtlDays: number;
 };
 

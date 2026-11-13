@@ -33,8 +33,8 @@ export const useCampaignWords = defineWords(
     updatedAt: (when: string) => `Edited ${when}`,
 
     /* Blocking notice */
-    footerMissingTitle: "Add your footer identity before sending",
-    footerMissing: "Every mail must say who sends it and how to reach you. Fill in the footer identity in Sender & delivery; until then nothing can be scheduled or sent.",
+    footerMissingTitle: "Add your sender identity before sending",
+    footerMissing: "Every mail must say who sends it and how to reach you. Fill in your name and a contact email in Sender & delivery; until then nothing can be scheduled or sent.",
     footerLink: "Open Sender & delivery",
 
     /* Composer */
@@ -183,7 +183,10 @@ export const useCampaignWords = defineWords(
     reviewWhen: "When",
     reviewNow: "As soon as you confirm",
     readyTitle: "Before you can send",
-    readyFooter: "Add your footer identity in Sender & delivery.",
+    readyFooter: (what: string) => `Add your ${what} in Sender & delivery.`,
+    idName: "name",
+    idEmail: "contact email",
+    idAnd: " and ",
     readyUnsubNote: "Fix the unsubscribe note and confirmation texts in Sender & delivery: each must contain {link}.",
     readySubject: "Write a subject.",
     readyGroups: "Choose at least one group.",
@@ -230,8 +233,8 @@ export const useCampaignWords = defineWords(
     finishedAt: (when: string) => `הסתיים ${when}`,
     updatedAt: (when: string) => `נערך ${when}`,
 
-    footerMissingTitle: "יש להוסיף זהות שולח בתחתית לפני שליחה",
-    footerMissing: "כל אימייל חייב לומר מי שולח אותו ואיך אפשר ליצור קשר. ממלאים את זהות השולח בתחתית בשולח והמסירה; עד אז אי אפשר לתזמן או לשלוח דבר.",
+    footerMissingTitle: "יש להוסיף זהות שולח לפני שליחה",
+    footerMissing: "כל אימייל חייב לומר מי שולח אותו ואיך אפשר ליצור קשר. ממלאים שם וכתובת אימייל ליצירת קשר בשולח והמסירה; עד אז אי אפשר לתזמן או לשלוח דבר.",
     footerLink: "פתיחת שולח ומסירה",
 
     editHeading: "עריכת קמפיין",
@@ -377,7 +380,10 @@ export const useCampaignWords = defineWords(
     reviewWhen: "מתי",
     reviewNow: "מיד כשתאשרו",
     readyTitle: "לפני שאפשר לשלוח",
-    readyFooter: "יש להוסיף זהות שולח בתחתית בשולח והמסירה.",
+    readyFooter: (what: string) => `יש להוסיף ${what} בשולח והמסירה.`,
+    idName: "שם",
+    idEmail: "כתובת אימייל ליצירת קשר",
+    idAnd: " ו",
     readyUnsubNote: "יש לתקן את שורת ביטול ההרשמה ואת הודעת האישור בשולח והמסירה: כל אחת חייבת לכלול {link}.",
     readySubject: "יש לכתוב נושא.",
     readyGroups: "יש לבחור לפחות קבוצה אחת.",

@@ -59,7 +59,18 @@ export const QuietHoursSchema = z
   .object({ from: Hhmm, to: Hhmm, tz: z.string().max(60).refine(validZone, "Unknown time zone") })
   .strict();
 
-export const SenderSchema = z
+export const LABEL_MODES = ["hebrew", "all", "off"] as const;
+export type LabelMode = (typeof LABEL_MODES)[number];
+
+/* A document saved with the old boolean reads as its equivalent mode; the boolean is dropped on the way in. */
+const migrateLabel = (v: unknown) => {
+  if (!v || typeof v !== "object" || Array.isArray(v)) return v;
+  const { commercialLabel, ...rest } = v as Record<string, unknown>;
+  if (rest.labelMode === undefined && commercialLabel === false) rest.labelMode = "off";
+  return rest;
+};
+
+export const SenderSchema = z.preprocess(migrateLabel, z
   .object({
     /* Display name and address of the From header; "" falls back to MAIL_FROM. No quotes, brackets or control characters: it is spliced into a header. */
     fromName: z.string().trim().max(80).refine((s) => NoControl(s) && !/["<>\\]/.test(s), "No quotes, brackets or control characters").default(""),
@@ -67,6 +78,10 @@ export const SenderSchema = z
     /* "" falls back to MAIL_REPLY_TO. */
     replyTo: OptionalAddress.default(""),
     /* Who sends this and where to reach them: the sender identity the law asks every commercial mail to carry. */
+    /* Structured identity beside footerIdentity (which stays the name line, so a document saved before these existed keeps its text). Required-ness is checked on save and at the send gate, never here: settingsOf() re-parses stored documents. */
+    identityEmail: z.string().trim().toLowerCase().max(254).default(""),
+    /* Optional postal or P.O. box line. Never required. */
+    identityPostal: z.string().trim().max(300).refine((t) => !/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(t), "No control characters").default(""),
     footerIdentity: z.string().trim().max(500).refine((t) => !/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(t), "No control characters").default(""),
     testRecipients: z.array(z.string().trim().toLowerCase().max(254).email()).max(5).default([]),
     throttlePerHour: z.number().int().min(1).max(3600).default(60),
@@ -80,11 +95,11 @@ export const SenderSchema = z
     confirmBodyHe: SenderText,
     unsubscribeNoteEn: SenderText,
     unsubscribeNoteHe: SenderText,
-    /* The Hebrew spam-law label on commercial mail. */
-    commercialLabel: z.boolean(),
+    /* The advertisement label (Israeli spam law): hebrew = Hebrew-language recipients only, all = every recipient, off = never. */
+    labelMode: z.enum(LABEL_MODES).default("hebrew"),
     pendingTtlDays: z.number().int().min(1).max(30),
   })
-  .strict();
+  .strict());
 export type SenderSettings = z.infer<typeof SenderSchema>;
 
 const PLACEHOLDER_TOKEN = /\{+[^{}]*\}+|[{}]/g;
@@ -127,6 +142,21 @@ export function validateSenderTexts(sender: Pick<SenderSettings, "confirmBodyEn"
   return issues;
 }
 
+const EMAIL_RE = /^[^\s@<>"]+@[^\s@<>"]+\.[^\s@<>"]+$/;
+/** What a mail's footer still lacks. Checked on PUT and at the send gate, never on read. */
+export function missingIdentity(s: Pick<SenderSettings, "footerIdentity" | "identityEmail">): ("name" | "email")[] {
+  const out: ("name" | "email")[] = [];
+  if (!s.footerIdentity.trim()) out.push("name");
+  if (!EMAIL_RE.test(s.identityEmail.trim())) out.push("email");
+  return out;
+}
+
+/** Applied on PUT only: a half-filled identity may be saved (the send gate names what is missing), a malformed address may not. */
+export function validateSenderIdentity(s: Pick<SenderSettings, "identityEmail">): { path: string; message: string }[] {
+  const e = s.identityEmail.trim();
+  return e && !EMAIL_RE.test(e) ? [{ path: "sender.identityEmail", message: "The contact email must be a plain address like name@example.org." }] : [];
+}
+
 export const DEFAULT_SENDER: SenderSettings = {
   confirmSubjectEn: "Confirm your subscription",
   confirmSubjectHe: "אישור הרשמה",
@@ -136,12 +166,14 @@ export const DEFAULT_SENDER: SenderSettings = {
     "שלום {name},\n\nמישהו (כנראה אתם) ביקש לקבל עדכונים מהאתר {site}. כדי לאשר את ההרשמה, פתחו את הקישור:\n\n{link}\n\nאם זה לא אתם, התעלמו מהודעה זו ולא יקרה דבר. הקישור תקף {days} ימים.",
   unsubscribeNoteEn: "You get this because you subscribed on {site}. To stop receiving these emails, unsubscribe here: {link}",
   unsubscribeNoteHe: "קיבלתם הודעה זו כי נרשמתם לעדכונים באתר {site}. כדי להפסיק לקבל אותה, בטלו את ההרשמה כאן: {link}",
-  commercialLabel: true,
+  labelMode: "hebrew",
   pendingTtlDays: 7,
   fromName: "",
   fromAddress: "",
   replyTo: "",
   footerIdentity: "",
+  identityEmail: "",
+  identityPostal: "",
   testRecipients: [],
   throttlePerHour: 60,
   dailyCap: 200,
