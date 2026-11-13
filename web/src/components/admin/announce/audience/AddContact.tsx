@@ -39,7 +39,7 @@ export default function AddContact({ groups, onClose, onDone }: { groups: Group[
           </div>
           <div>
             <label className="a-label" htmlFor={`${uid}-n`}>{w.name}</label>
-            <input id={`${uid}-n`} className="a-input min-h-[44px]" dir="auto" maxLength={120} value={name} onChange={(e) => setName(e.target.value)} />
+            <input id={`${uid}-n`} className="a-input min-h-[44px]" dir="auto" maxLength={80} value={name} onChange={(e) => setName(e.target.value)} />
           </div>
           <div>
             <label className="a-label" htmlFor={`${uid}-l`}>{w.language}</label>

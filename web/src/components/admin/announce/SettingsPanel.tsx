@@ -3,6 +3,7 @@ import { ErrorState } from "@/components/admin/ui";
 import { ANNOUNCE_CHANNELS, type AnnounceKind, type AnnounceSettings } from "@/services/adminAnnounce";
 import { parseTags } from "./helpers";
 import { senderProblems } from "./sender/defaults";
+import { HASHTAGS_MAX, hashtagOk } from "./sender/rules";
 import { DEFAULT_NOTIFY } from "./notify/defaults";
 import NotifySection from "./notify/NotifySection";
 import { useNotifyWords } from "./notify/words";
@@ -102,6 +103,8 @@ export default function SettingsPanel() {
     }
   })();
   const sourceBad = utm.source !== "" && !UTM_TOKEN.test(utm.source);
+  const badTags = working.hashtags.filter((t) => !hashtagOk(t));
+  const tagsBad = badTags.length > 0 || working.hashtags.length > HASHTAGS_MAX;
   const senderBad = Object.keys(senderProblems(draft.sender)).length > 0;
 
   /* One entry per advanced setting: the label (and some extra words) is what the filter searches. */
@@ -210,8 +213,8 @@ export default function SettingsPanel() {
 
         <div>
           <label className="a-label" htmlFor={`${uid}-tags`}>{w.hashtags}</label>
-          <input id={`${uid}-tags`} className="a-input" dir="auto" value={tagText} onChange={(e) => (touch(), setTags(e.target.value))} aria-describedby={`${uid}-tags-h`} autoComplete="off" />
-          <p id={`${uid}-tags-h`} className="a-hint">{w.hashtagsHint}</p>
+          <input id={`${uid}-tags`} className="a-input" dir="auto" value={tagText} onChange={(e) => (touch(), setTags(e.target.value))} aria-invalid={tagsBad} aria-describedby={`${uid}-tags-h`} autoComplete="off" />
+          <p id={`${uid}-tags-h`} className={tagsBad ? "a-error" : "a-hint"}>{tagsBad ? w.hashtagsBad(badTags.join(" ") || tagText) : w.hashtagsHint}</p>
         </div>
 
         <div>
@@ -262,7 +265,7 @@ export default function SettingsPanel() {
       )}
 
       <div className="flex flex-wrap items-center gap-3">
-        <button type="submit" className="a-btn a-btn-primary min-h-[44px]" disabled={!dirty || status === "saving" || sourceBad || senderBad}>{w.save}</button>
+        <button type="submit" className="a-btn a-btn-primary min-h-[44px]" disabled={!dirty || status === "saving" || sourceBad || senderBad || tagsBad}>{w.save}</button>
         <button type="button" className="a-btn a-btn-ghost min-h-[44px]" disabled={!dirty || status === "saving"} onClick={() => (setTags(null), doc.discard())}>{w.reset}</button>
         {status === "conflict" && <button type="button" className="a-btn min-h-[44px]" onClick={() => (setTags(null), doc.reload())}>{w.reload}</button>}
         <span role="status" className={`text-sm ${bad ? "font-bold text-[rgb(var(--destructive-ink))]" : "text-clay"}`}>{statusText}</span>

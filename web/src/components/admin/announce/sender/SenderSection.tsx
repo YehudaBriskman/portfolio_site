@@ -32,6 +32,8 @@ export default function SenderSection({ sender, onChange, warnings }: { sender: 
     if (p === "long") return w.noteTooLong(UNSUB_NOTE_MAX);
     if (p === "unsubVars") return w.noteVars;
     if (p === "monthBelowDay") return bw.badMonth;
+    if (p === "name") return w.badName;
+    if (p === "time") return w.badTime;
     return p ? (p === "empty" ? w.fieldEmpty : p === "address" ? w.badAddress : p === "number" ? w.badNumber : p === "list" ? w.badList : w.invalidZone) : "";
   };
   const reset = (label: string, show: boolean, env: boolean, fn: () => void) =>
@@ -131,7 +133,7 @@ export default function SenderSection({ sender, onChange, warnings }: { sender: 
   const nameSet = !lacks.includes("name");
   const emailSet = !lacks.includes("email");
   const footerSet = lacks.length === 0;
-  const senderBad = Boolean(problems.fromAddress || problems.replyTo);
+  const senderBad = Boolean(problems.fromName || problems.fromAddress || problems.replyTo);
   const limitsBad = Boolean(problems.throttlePerHour || problems.dailyCap || problems.maxPerContact30d || problems.pendingTtlDays || problems.quietHours || problems.dailyLimit || problems.monthlyLimit || problems.safety || problems.reserveShare);
   const textsBad = hasTextProblem(sender);
   const idBad = Boolean(problems.identityEmail || CONTACT_FIELDS.some((c) => problems[c.f]));
