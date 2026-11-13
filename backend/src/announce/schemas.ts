@@ -71,6 +71,8 @@ const migrateLabel = (v: unknown) => {
   if (!v || typeof v !== "object" || Array.isArray(v)) return v;
   const { commercialLabel, ...rest } = v as Record<string, unknown>;
   if (rest.labelMode === undefined && commercialLabel === false) rest.labelMode = "off";
+  /* An explicit old ON is the Hebrew-only label it always meant, not the new default. */
+  if (rest.labelMode === undefined && commercialLabel === true) rest.labelMode = "hebrew";
   return rest;
 };
 
@@ -111,8 +113,8 @@ export const SenderSchema = z.preprocess(migrateLabel, z
     unsubscribeNoteEn: SenderText,
     unsubscribeNoteHe: SenderText,
     /* The advertisement label (Israeli spam law): hebrew = Hebrew-language recipients only, all = every recipient, off = never. */
-    labelMode: z.enum(LABEL_MODES).default("hebrew"),
-    pendingTtlDays: z.number().int().min(1).max(30),
+    labelMode: z.enum(LABEL_MODES).default("off"),
+    pendingTtlDays: z.number().int().min(2).max(30),
   })
   .strict());
 export type SenderSettings = z.infer<typeof SenderSchema>;
@@ -225,12 +227,12 @@ export const DEFAULT_SENDER: SenderSettings = {
   confirmSubjectEn: "Confirm your subscription",
   confirmSubjectHe: "אישור הרשמה",
   confirmBodyEn:
-    "Hi {name},\n\nSomeone (hopefully you) asked to get updates from {site}. To confirm your subscription, open this link:\n\n{link}\n\nIf this was not you, ignore this message and nothing will happen. The link works for {days} days.",
+    "Hi {name},\n\nSomeone asked to get my newsletter (notes and releases) from {site} at this address, hopefully you. To confirm, open this link:\n\n{link}\n\nIf it was not you, ignore this message: nothing is added and the request is deleted. The link works for {days} days. How your data is handled: {site}/privacy",
   confirmBodyHe:
-    "שלום {name},\n\nמישהו (כנראה אתם) ביקש לקבל עדכונים מהאתר {site}. כדי לאשר את ההרשמה, פתחו את הקישור:\n\n{link}\n\nאם זה לא אתם, התעלמו מהודעה זו ולא יקרה דבר. הקישור תקף {days} ימים.",
-  unsubscribeNoteEn: "You get this because you subscribed on {site}. To stop receiving these emails, unsubscribe here: {link}",
-  unsubscribeNoteHe: "קיבלתם הודעה זו כי נרשמתם לעדכונים באתר {site}. כדי להפסיק לקבל אותה, בטלו את ההרשמה כאן: {link}",
-  labelMode: "hebrew",
+    "שלום {name},\n\nהתקבלה בקשה לקבל מהאתר {site} את העלון שלי (רשימות וגרסאות חדשות) באימייל לכתובת הזו. כדי לאשר, פתחו את הקישור:\n\n{link}\n\nאם לא ביקשתם, אפשר להתעלם מהודעה זו: לא תתווסף שום כתובת והבקשה תימחק. הקישור תקף {days} ימים. איך המידע מטופל: {site}/privacy",
+  unsubscribeNoteEn: "You get this because you subscribed on {site}. Unsubscribe in one click: {link}",
+  unsubscribeNoteHe: "קיבלתם הודעה זו כי נרשמתם באתר {site}. להסרה בלחיצה אחת: {link}",
+  labelMode: "off",
   pendingTtlDays: 7,
   fromName: "",
   fromAddress: "",

@@ -114,7 +114,7 @@ describe("POST /api/subscribe", () => {
   it("creates a pending contact with a consent record and mails a confirm link", async () => {
     await signup(app(), { name: "Ann" });
     await flush();
-    expect(store.get(`contact:${hash}`)).toMatchObject({ status: "pending", source: "site", consentNote: "site-form-v1", groups: ["subscribers"], email: "ann@example.com" });
+    expect(store.get(`contact:${hash}`)).toMatchObject({ status: "pending", source: "site", consentNote: "site-form-v2", groups: ["subscribers"], email: "ann@example.com" });
     expect(sent).toHaveLength(1);
     expect(sent[0].to).toBe("ann@example.com");
     expect(sent[0].text).toContain(`${env.SITE_URL}/subscribe/confirm?token=`);
@@ -509,7 +509,7 @@ describe("consent record", () => {
     const h = doc().consentHistory!;
     expect(h).toHaveLength(2);
     expect(h[0]).toMatchObject({ textId: "site-form-v1", at: "2026-01-01T00:00:00.000Z", confirmedAt: "2026-01-02T00:00:00.000Z", lang: "en" });
-    expect(h[1]).toMatchObject({ textId: "site-form-v1", lang: "he" });
+    expect(h[1]).toMatchObject({ textId: "site-form-v2", lang: "he" });
     expect(h[1].confirmedAt).toBeUndefined();
     expect(doc().consent).toEqual(h[1]);
   });

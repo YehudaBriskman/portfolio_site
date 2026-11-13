@@ -72,7 +72,7 @@ status that is ever mailed), `unsubscribed`, `suppressed`.
    the form cannot be used to find out who is on the list. A filled honeypot
    field `website` is answered the same way and nothing is stored.
 2. A new address is stored as `pending`, `source: "site"`, group `subscribers`,
-   `consentAt` now and `consentNote` `site-form-v1` (`SITE_FORM_VERSION`). The
+   `consentAt` now and `consentNote` `site-form-v2` (`SITE_FORM_VERSION`; contacts signed up before keep `site-form-v1`). The
    confirmation mail is sent in the background.
 3. A pending address asking again is mailed again only if its record is more
    than two minutes old (`RESEND_AFTER_MS`). An `unsubscribed` address asking
@@ -205,8 +205,8 @@ Stored in `settings:announce` under `sender` and edited in Settings, Advanced,
 | `safety`, `reserveShare` | 0.9, 0.2 | planning factor 0.5 to 1; share of the day kept for confirmations 0 to 0.5 (shown as percent in the screen); PUT only |
 | `quietHours` | none | `from`, `to`, `tz`; may wrap midnight |
 | `autoDraftCampaign` | off | a post or release event makes a **draft** for `subscribers`; never sends by itself (`campaigns/autodraft.ts`). **Patch releases (x.y.Z, Z above 0) are never drafted**; minor, major, non-semver tags and posts are |
-| `pendingTtlDays` | 7 | 1 to 30 |
-| `labelMode` | `hebrew` | `hebrew` (Hebrew recipients), `all` (English mail gets `פרסומת | Ad` in the subject and `פרסומת | Advertisement` as its first line, DRAFT wording) or `off`. An older `commercialLabel: false` reads as `off` |
+| `pendingTtlDays` | 7 | 2 to 30 (not 1, so "{days} ימים" never reads "1 ימים") |
+| `labelMode` | `off` | the owner decided on 2026-11-13 that no advertisement label is needed (their own checked call, not legal advice). Selectable in Marketing > Settings: `hebrew` (Hebrew recipients), `all` (English mail gets `פרסומת | Ad` in the subject and `פרסומת | Advertisement` as its first line, DRAFT wording) or `off`. An older `commercialLabel: false` reads as `off` |
 | `confirmSubject/Body`, `unsubscribeNote` (EN, HE) | see `DEFAULT_SENDER` | placeholders `{name}`, `{site}`, `{days}`, `{link}` |
 
 **In the app vs the environment.** Everything above is in the app. These are
@@ -544,8 +544,8 @@ say. The owner needs to confirm:
 
 | Point | What the code does | Owner to confirm |
 |---|---|---|
-| **Consent record** | Every contact stores `consentAt`, `consentNote` and `source`. Site signups store the form version `site-form-v1`; manual adds and imports require a consent note, and import requires a ticked statement that the people agreed | that double opt-in plus these fields is a sufficient record; that imported people really consented; whether the form version needs a copy of the text shown at the time |
-| **"פרסומת" label** | the subject starts with `פרסומת: ` and the first visible line of the body (HTML and text) is `פרסומת`, for Hebrew recipients (`labelMode` `hebrew`, the default); `all` also labels English mail with DRAFT wording; `off` labels nothing | whether the law applies to this mail at all (it may be a plain notice, not an advertisement), whether the label is wanted, and whether English mail needs one |
+| **Consent record** | Every contact stores `consentAt`, `consentNote` and `source`. Site signups store the form version `site-form-v2` (older records keep `site-form-v1`, whose text is frozen in `consent-texts.ts`); manual adds and imports require a consent note, and import requires a ticked statement that the people agreed | that double opt-in plus these fields is a sufficient record; that imported people really consented; whether the form version needs a copy of the text shown at the time |
+| **"פרסומת" label** | the subject starts with `פרסומת: ` and the first visible line of the body (HTML and text) is `פרסומת`, for Hebrew recipients when `labelMode` is `hebrew`; `all` also labels English mail with DRAFT wording; `off` (the default since 2026-11-13) labels nothing | whether the law applies to this mail at all (it may be a plain notice, not an advertisement), whether the label is wanted, and whether English mail needs one |
 | **Unsubscribe in every mail** | Every campaign carries the footer link and the one-click headers; one click, no login. The confirmation mail has none | that this meets the "simple and clear" opt-out; that the confirmation mail does not need one |
 | **Sender identity** | the name, an optional postal line and a contact email are printed in every mail; sending is blocked while the name or the email is missing | whether email-only identity is enough, or a postal address or P.O. box is required |
 | Frequency promise | the signup text says "only when there is something new" (no number); `maxPerContact30d` (default 4 per rolling 30 days) is enforced at schedule time and in the sender, with an explicit owner override; patch releases are not auto-drafted | that the wording is acceptable, and whether to put the number in the signup text now that it is enforced |
@@ -558,12 +558,36 @@ unless stated.
 | String | File |
 |---|---|
 | Privacy section on the accessibility statement, `privacy`, `privacyIntro`, `privacyItems` (marked DRAFT in the file) | `web/src/i18n/statement.ts` |
-| Consent sentence under the signup button, `consentBefore`, `consentLink`; the lede ("only when there is something new"); the signup, confirm, unsubscribe and manage pages' wording | `web/src/i18n/subscribe.ts` |
+| Consent sentence under the signup button, `consentBefore`, `consentLink` (text of record in "Consent texts by version" below); the lede ("my newsletter by email ... only when there is something new"); the signup, confirm, unsubscribe and manage pages' wording | `web/src/i18n/subscribe.ts` |
 | Confirmation mail subject and body, EN and HE (owner-editable in Settings; defaults in code) | `backend/src/announce/schemas.ts`, `DEFAULT_SENDER` |
 | Footer unsubscribe note, EN and HE (owner-editable; defaults in code) | `backend/src/announce/schemas.ts`, `DEFAULT_SENDER` |
 | The "פרסומת" label (`COMMERCIAL_LABEL_HE`) and where it is placed | `backend/src/campaigns/render.ts` |
 | Footer identity (entered by the owner) | Settings, "Sender & delivery" |
-| Form version recorded as consent, `site-form-v1` | `backend/src/audience/schemas.ts` (`SITE_FORM_VERSION`) |
+| Form version recorded as consent, `site-form-v2` | `backend/src/audience/schemas.ts` (`SITE_FORM_VERSION`) |
+
+### Consent texts by version
+
+What a person saw next to the signup button, verbatim. Append only: a new
+wording is a new version, old contacts keep the version they agreed to. The
+machine copy, with its hash, is `backend/src/audience/consent-texts.ts`; a test
+fails if the form and the newest entry drift apart. The sentence is the form's
+`consentBefore`, a space, then the link text `consentLink` (which points at
+`/privacy`).
+
+**`site-form-v2`** (owner-approved 2026-11-13, issue #587; current)
+
+- EN: By subscribing you agree to receive my newsletter by email: the notes and releases you chose. I’ll first send one email to confirm your address, and every email has an unsubscribe link. [How I handle your data]
+- HE: בהרשמה אתם מסכימים לקבל את העלון שלי באימייל: הרשימות והגרסאות שבחרתם. קודם אשלח אימייל אחד לאישור הכתובת, ובכל אימייל יש קישור להסרה. [איך אני מטפל במידע]
+
+Shown with it, same version: lede EN "My newsletter by email: new notes and
+releases, only when there is something new. You can stop with one click." HE
+"העלון שלי באימייל: רשימות וגרסאות חדשות, רק כשיש משהו חדש. אפשר להפסיק
+בלחיצה אחת."
+
+**`site-form-v1`** (superseded)
+
+- EN: I’ll use your address only to send what you chose above. We’ll first send one email to confirm it, and every email has an unsubscribe link. See [how your data is handled]
+- HE: אשתמש בכתובת שלכם רק כדי לשלוח את מה שבחרתם למעלה. קודם נשלח אימייל אחד לאישור הכתובת, ובכל אימייל יש קישור להסרה. ראו [איך המידע שלכם מטופל]
 
 ## Contact form: what it may cost
 

@@ -47,10 +47,10 @@ export const useSenderWords = defineWords(
 
     labelHeading: "Advertisement label",
     labelHint: "Israeli law asks for the word for advertisement at the start of the subject and as the first line of a mail that counts as an advertisement. Draft wording, not legal advice.",
-    labelHebrew: "Hebrew recipients only (recommended)",
+    labelHebrew: "Hebrew recipients only",
     labelAll: "All recipients (English mail gets an English line too)",
-    labelOff: "Off. Only if a lawyer has told you it does not apply",
-    labelOffWarn: "Off: no mail carries the label. You are responsible for that choice.",
+    labelOff: "Off. The default: you have decided the label is not needed",
+    labelOffWarn: "Off: no mail carries the label. That is your decision; switch it on here if that changes.",
 
     testHeading: "Test recipients",
     test: "Addresses for test sends",
@@ -167,10 +167,10 @@ export const useSenderWords = defineWords(
 
     labelHeading: "סימון פרסומת",
     labelHint: "החוק בישראל דורש את המילה פרסומת בתחילת הנושא וכשורה הראשונה באימייל שנחשב פרסומת. זה נוסח טיוטה ואינו ייעוץ משפטי.",
-    labelHebrew: "נמענים בעברית בלבד (מומלץ)",
+    labelHebrew: "נמענים בעברית בלבד",
     labelAll: "כל הנמענים (אימייל באנגלית מקבל גם שורה באנגלית)",
-    labelOff: "כבוי. רק אם עורך דין אמר לכם שזה לא חל",
-    labelOffWarn: "כבוי: אף אימייל לא יישא את הסימון. האחריות לבחירה הזו עליכם.",
+    labelOff: "כבוי. ברירת המחדל: החלטתם שהסימון אינו נדרש",
+    labelOffWarn: "כבוי: אף אימייל לא יישא את הסימון. זו החלטתכם; אפשר להפעיל אותו כאן אם זה ישתנה.",
 
     testHeading: "נמעני בדיקה",
     test: "כתובות לשליחות בדיקה",
