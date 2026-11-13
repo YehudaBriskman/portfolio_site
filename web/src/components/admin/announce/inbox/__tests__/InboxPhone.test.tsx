@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import InboxTab from "../InboxTab";
@@ -76,7 +76,7 @@ function phone(on: boolean) {
   })) as typeof window.matchMedia;
 }
 
-let onChange: ReturnType<typeof vi.fn>;
+let onChange: Mock<(id: string, next: AnnounceSummary) => void>;
 const renderInbox = () => {
   onChange = vi.fn();
   return render(

@@ -32,13 +32,13 @@
  */
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
-import { mkdirSync, writeFileSync, readFileSync, existsSync } from "node:fs";
+import { mkdirSync, mkdtempSync, writeFileSync, readFileSync, existsSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const WEB = resolve(HERE, "../..");
-const TMP = resolve(tmpdir(), "density-matrix");
+const TMP = mkdtempSync(resolve(tmpdir(), "density-matrix-")); // a private 0700 folder, never a predictable path
 const require = createRequire(resolve(WEB, "package.json"));
 const { chromium } = require("playwright-core");
 const { createServer } = require("vite");

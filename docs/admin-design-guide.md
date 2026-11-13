@@ -374,7 +374,7 @@ npm run a11y:admin-inbox-phone   # SHOTS=<dir> also writes screenshots (taken ov
 npm run a11y:density -- --top 25 --shots top   # ONLY=marketing-inbox  VPS=390x844,360x740  CHROME=<path to chrome>
 ```
 
-`a11y:density` writes its results, table and screenshots to a temp folder (`<tmp>/density-matrix`, printed at the end), never into the repo. Read the score as a comparison between two builds, not as a target: run it before and after a screen's migration and put both numbers in the PR. The matrix baseline lists known findings; a **new** one fails. When you fix one, shrink the baseline in the same PR. A list screen you migrate adds its own fixture (10 to 20 records) and its own check in this style (rows above the fold, one control per row, no overflow, in `/he` too).
+`a11y:density` writes its results, table and screenshots to a temp folder (a fresh `density-matrix-XXXX` folder under the OS temp dir, printed at the end), never into the repo. Read the score as a comparison between two builds, not as a target: run it before and after a screen's migration and put both numbers in the PR. The matrix baseline lists known findings; a **new** one fails. When you fix one, shrink the baseline in the same PR. A list screen you migrate adds its own fixture (10 to 20 records) and its own check in this style (rows above the fold, one control per row, no overflow, in `/he` too).
 
 ### 7.4 What CI enforces
 
