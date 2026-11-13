@@ -84,6 +84,30 @@ export async function loadSettings(): Promise<AnnounceSettings> {
   }
 }
 
+export type SendSettings = { ok: true; settings: AnnounceSettings } | { ok: false; reason: string };
+
+/**
+ * The settings a SEND may rely on. Unlike loadSettings(), an unreadable or
+ * unparsable document is a refusal, not the defaults: the defaults have no quiet
+ * hours, no footer identity and no commercial label, so mailing on them would
+ * ignore what the owner configured. A document that was never saved is a fresh
+ * install and does use the defaults. The reason never contains an address.
+ */
+export async function loadSendSettings(): Promise<SendSettings> {
+  let doc: AnnounceSettingsDoc | null;
+  try {
+    doc = await getSettingsDoc();
+  } catch (err) {
+    logger.warn({ err: err instanceof Error ? err.message : String(err) }, "announce settings unreadable; sending is held");
+    return { ok: false, reason: "The announce settings could not be read from the database, so nothing is sent until they can." };
+  }
+  if (!doc) return { ok: true, settings: DEFAULT_ANNOUNCE_SETTINGS };
+  const parsed = AnnounceSettingsSchema.safeParse(doc.settings);
+  if (parsed.success) return { ok: true, settings: parsed.data };
+  logger.warn({ id: SETTINGS_DOC_ID, fields: parsed.error.issues.map((i) => i.path.join(".")).slice(0, 5) }, "announce settings do not parse; sending is held");
+  return { ok: false, reason: "The saved announce settings are not valid, so nothing is sent until they are saved again in Sender & delivery." };
+}
+
 export type AnnounceState = { _id: typeof STATE_ID; _rev?: string; seenReleases: string[]; seededAt: string };
 
 export const getState = () => tryGet<AnnounceState>(STATE_ID);

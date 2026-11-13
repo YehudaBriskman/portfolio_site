@@ -1,5 +1,5 @@
 import type { SenderSettings } from "../announce/schemas.js";
-import { loadSettings } from "../announce/store.js";
+import { loadSendSettings } from "../announce/store.js";
 import { couch } from "../db/couch.js";
 import { listRecipients, getContact, isSuppressed, updateContact } from "../audience/store.js";
 import { cachedKind, ledgerPutQuietly } from "../audience/ledger.js";
@@ -365,7 +365,9 @@ export async function runSenderTick(deps: SenderDeps = {}): Promise<void> {
   try {
     /* The kill switch comes first: nothing is read, claimed or sent while it is on. */
     if (await campaignsBlocked()) return;
-    const settings = (await loadSettings()).sender;
+    const loaded = await loadSendSettings();
+    if (!loaded.ok) return; // held: the reason was logged, and the admin view reads it live
+    const settings = loaded.settings.sender;
     const ms = d.now();
     if (inQuietHours(settings.quietHours, ms)) return;
     const { docs } = await couch.find<Campaign>({ selector: { _id: { $gt: "campaign:", $lt: "campaign:\uffff" }, status: { $in: ["scheduled", "sending"] } }, limit: 200 });

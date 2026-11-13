@@ -3,7 +3,7 @@ import { Router, type Response } from "express";
 import { asyncHandler } from "../middlewares/asyncHandler.js";
 import { toIssues } from "../schemas/site-content.js";
 import { listRecipients, hashEmail } from "../audience/store.js";
-import { loadSettings } from "../announce/store.js";
+import { loadSendSettings, loadSettings } from "../announce/store.js";
 import { missingIdentity, validateSenderTexts } from "../announce/schemas.js";
 import { emailService } from "../services/email.service.js";
 import { logger } from "../logger.js";
@@ -61,10 +61,16 @@ router.get(
  * releases every campaign. Registered before /:id. The environment value cannot
  * be lifted from here, on purpose.
  */
+/** Why the sender is holding on its settings, or null. Read live, so it never lags the tick. */
+const settingsHold = async () => {
+  const s = await loadSendSettings();
+  return s.ok ? null : s.reason;
+};
+
 router.get(
   "/sending",
   asyncHandler(async (_req, res) => {
-    res.set("Cache-Control", "no-store").json({ ok: true, ...(await sendingState()) });
+    res.set("Cache-Control", "no-store").json({ ok: true, ...(await sendingState()), settingsHold: await settingsHold() });
   }),
 );
 
@@ -77,7 +83,7 @@ router.post(
     await setPaused(b.data.paused);
     const after = await sendingState();
     res.locals.audit = { target: "sender:switch", before: { paused: before.paused }, after: { paused: after.paused } };
-    res.json({ ok: true, ...after });
+    res.json({ ok: true, ...after, settingsHold: await settingsHold() });
   }),
 );
 
@@ -267,7 +273,9 @@ router.post(
     const c = id && (await getCampaign(id));
     if (!c) return notFound(res);
     if (await campaignsBlocked()) return heldBy(res);
-    const settings = (await loadSettings()).sender;
+    const loaded = await loadSendSettings();
+    if (!loaded.ok) return bad(res, loaded.reason, 503);
+    const settings = loaded.settings.sender;
     if (settings.testRecipients.length === 0) return bad(res, "Add a test recipient in Sender & delivery first.", 422);
     const from = resolveSender(settings);
     const lang = c.lang === "he" ? "he" : "en";
@@ -302,7 +310,12 @@ async function queueable(c: Campaign, res: Response, choice: CapChoice): Promise
     bad(res, "Only a draft or scheduled campaign can be queued.", 409);
     return false;
   }
-  const s = (await loadSettings()).sender;
+  const loaded = await loadSendSettings();
+  if (!loaded.ok) {
+    bad(res, loaded.reason, 503);
+    return false;
+  }
+  const s = loaded.settings.sender;
   const lacks = missingIdentity(s);
   if (lacks.length) {
     bad(res, `Fill in the sender identity (${lacks.map((k) => (k === "name" ? "your name" : "a contact email")).join(" and ")}) in Sender & delivery before sending.`, 422);

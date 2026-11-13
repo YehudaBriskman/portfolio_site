@@ -1192,7 +1192,7 @@ describe("the kill switch", () => {
   afterEach(() => { env.SEND_ENABLED = undefined; });
 
   it("reads as not held by default, and one click pauses and releases, audited with no address", async () => {
-    expect((await admin(request(createApp()).get(`${C}/sending`))).body).toEqual({ ok: true, paused: false, pausedAt: null, envDisabled: false, blocked: false });
+    expect((await admin(request(createApp()).get(`${C}/sending`))).body).toEqual({ ok: true, paused: false, pausedAt: null, envDisabled: false, blocked: false, settingsHold: null });
     const r = await pause(true);
     expect(r.body).toMatchObject({ ok: true, paused: true, envDisabled: false, blocked: true });
     expect(typeof r.body.pausedAt).toBe("string");
