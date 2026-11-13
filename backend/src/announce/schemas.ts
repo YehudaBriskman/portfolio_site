@@ -97,6 +97,11 @@ export const SenderSchema = z.preprocess(migrateLabel, z
     /* Most mails one person gets in any rolling 30 days; 0 = no limit. Lenient here (settingsOf() re-parses stored documents and falls back to ALL defaults on failure); the range is checked on PUT by validateSenderLimits. */
     maxPerContact30d: z.number().default(DEFAULT_MAX_PER_CONTACT_30D),
     quietHours: QuietHoursSchema.optional(),
+    /* Mail budget: the provider's own limits (never credentials), a safety factor, and the day's share kept for confirmations. Lenient here like maxPerContact30d; the ranges are checked on PUT by validateSenderBudget. */
+    dailyLimit: z.number().default(90),
+    monthlyLimit: z.number().default(2700),
+    safety: z.number().default(0.9),
+    reserveShare: z.number().default(0.2),
     /* A post or release event makes a DRAFT campaign for the subscribers group. Never sends by itself. */
     autoDraftCampaign: z.boolean().default(false),
     confirmSubjectEn: SenderText,
@@ -158,6 +163,18 @@ export function validateSenderLimits(s: Pick<SenderSettings, "maxPerContact30d">
   return Number.isInteger(n) && n >= 0 && n <= MAX_PER_CONTACT_30D_LIMIT
     ? []
     : [{ path: "sender.maxPerContact30d", message: `The monthly limit per person is a whole number from 0 (off) to ${MAX_PER_CONTACT_30D_LIMIT}.` }];
+}
+
+/** Applied on PUT only: the provider's limits, the safety factor and the transactional share. */
+export function validateSenderBudget(s: Pick<SenderSettings, "dailyLimit" | "monthlyLimit" | "safety" | "reserveShare">): { path: string; message: string }[] {
+  const out: { path: string; message: string }[] = [];
+  const whole = (n: number, max: number) => Number.isInteger(n) && n >= 1 && n <= max;
+  if (!whole(s.dailyLimit, 100000)) out.push({ path: "sender.dailyLimit", message: "The daily limit is a whole number from 1 to 100000." });
+  if (!whole(s.monthlyLimit, 1000000)) out.push({ path: "sender.monthlyLimit", message: "The monthly limit is a whole number from 1 to 1000000." });
+  else if (whole(s.dailyLimit, 100000) && s.monthlyLimit < s.dailyLimit) out.push({ path: "sender.monthlyLimit", message: "The monthly limit cannot be below the daily limit." });
+  if (!(Number.isFinite(s.safety) && s.safety >= 0.5 && s.safety <= 1)) out.push({ path: "sender.safety", message: "The safety factor is a number from 0.5 to 1." });
+  if (!(Number.isFinite(s.reserveShare) && s.reserveShare >= 0 && s.reserveShare <= 0.5)) out.push({ path: "sender.reserveShare", message: "The reserved share is a number from 0 to 0.5." });
+  return out;
 }
 
 const EMAIL_RE = /^[^\s@<>"]+@[^\s@<>"]+\.[^\s@<>"]+$/;
@@ -229,6 +246,10 @@ export const DEFAULT_SENDER: SenderSettings = {
   dailyCap: 200,
   maxPerContact30d: DEFAULT_MAX_PER_CONTACT_30D,
   autoDraftCampaign: false,
+  dailyLimit: 90,
+  monthlyLimit: 2700,
+  safety: 0.9,
+  reserveShare: 0.2,
 };
 
 export const AnnounceSettingsSchema = z

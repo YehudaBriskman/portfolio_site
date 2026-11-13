@@ -199,6 +199,8 @@ Stored in `settings:announce` under `sender` and edited in Settings, Advanced,
 | `throttlePerHour` | 60 | 1 to 3600 |
 | `dailyCap` | 200 | 1 to 10000 |
 | `maxPerContact30d` | 4 | most mails one person gets in any rolling 30 days; `0` = off; whole number 0 to 31, checked on PUT only (reads stay lenient, like the subscriber texts); see "The monthly limit per person" |
+| `dailyLimit`, `monthlyLimit` | 90, 2700 | the **provider's** mail limits (limits, never credentials); whole numbers, monthly not below daily; PUT only. See "The mail budget" |
+| `safety`, `reserveShare` | 0.9, 0.2 | planning factor 0.5 to 1; share of the day kept for confirmations 0 to 0.5 (shown as percent in the screen); PUT only |
 | `quietHours` | none | `from`, `to`, `tz`; may wrap midnight |
 | `autoDraftCampaign` | off | a post or release event makes a **draft** for `subscribers`; never sends by itself (`campaigns/autodraft.ts`). **Patch releases (x.y.Z, Z above 0) are never drafted**; minor, major, non-semver tags and posts are |
 | `pendingTtlDays` | 7 | 1 to 30 |
@@ -289,6 +291,51 @@ whose saved settings predate it (the schema default applies).
 - The limit is a promise the signup text does not yet state as a number: the lede
   says "only when there is something new". Change it to a number only together with
   owner approval, and keep the text and `DEFAULT_MAX_PER_CONTACT_30D` in step.
+
+### The mail budget
+
+Resend's free plan (100 a day, 3,000 a month, shared by everything the site sends;
+the owner confirms the figures on the pricing page at signup) is why the sender
+must know the quota instead of only a daily cap. The pure rules are in
+`campaigns/budget.ts`; the counts come from `campaigns/budgetStore.ts`.
+
+- **Usable** = limit x `safety` (defaults 90 and 2,700, so 81 a day and 2,430 a
+  month). **Used** is counted over a **rolling 24 hours** and the **calendar month
+  (UTC)**, never from the provider's reset time.
+- **Reserve** = the larger of 10 and `reserveShare` of the usable day (17 by
+  default). Newsletters never touch it: it is for confirmations, the contact notice
+  and the auto-reply. Transactional mail spends it first; only a transactional count
+  above it narrows the newsletter's room. The month holds back the same amount, so a
+  nearly spent month still leaves room for confirmations.
+- **Capacity** = usable - used - reserve, the smaller of the day's and the month's, never
+  below 0. A tick sends `min(capacity, 25 per batch, throttle left, dailyCap left)`.
+  At 0 the campaign **waits** (state stays `sending`, no mail, no failure) until the
+  window rolls; there is no overage. Failed, deferred, capped and suppressed results
+  are not counted, only mail that went out, exactly as the per-person limit counts.
+- **Newsletter sends** are counted from the `send:` docs (`status: sent`, `at`), via the
+  same index as the per-person limit. Nothing is kept in memory or beside them, so a
+  restart cannot double count. A failed read throws and sends nothing.
+- **Transactional sends** leave no send doc. They go through one place,
+  `services/email.service.ts` (`sendCounted`), which adds one to a per-day counter doc
+  `mailcount:<yyyy-mm-dd>` (`{count}` only, never an address) when the provider
+  accepted the mail. Counting is best effort and never throws; a lost count only makes
+  the budget a little more generous. Test sends are not counted.
+- **`canSendTransactional()`** (`budgetStore.ts`) answers from the reserved share: yes
+  inside it, beyond it only while the provider's own (not safety-reduced) limits have
+  room. It fails open if the counts cannot be read. It is exposed only: the contact
+  form and the confirmation mail do not call it yet, and their behaviour is unchanged.
+- **The admin** reads `GET /api/admin/campaigns/budget[?remaining=N]` (counts only):
+  the meter in Settings > Sender & delivery > Mail budget (last 24 hours and this
+  month, what campaigns may still send, when they carry on), and "Needs N days,
+  finishing about <date>" in the campaign's confirm step and progress panel. The
+  estimate sends what fits now, then a full day's share per day (within the hourly
+  pace and `dailyCap`), jumping to the 1st of the next month when this one runs out.
+- **Alerts:** `onBudgetThreshold(hook)` (`budgetStore.ts`) fires once per month at 70%
+  and 90% of the usable month (used = newsletters + transactional). The owner notifier
+  is not built yet; it subscribes there and keeps its own record if it must survive a
+  restart (the hook's own memory is per process).
+- Not covered: a provider that counts differently (bounces, retries) or other apps
+  sharing the account. Lower `safety` for that.
 
 ### The tick, the lock and single replica
 

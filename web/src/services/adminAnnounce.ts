@@ -106,6 +106,11 @@ export type SenderSettings = {
   /** Most mails one person gets in any rolling 30 days; 0 = no limit. */
   maxPerContact30d: number;
   quietHours?: SenderQuietHours;
+  /* Mail budget: the provider's limits (never credentials), a safety factor 0.5 to 1 and the share of the day kept for confirmations 0 to 0.5. */
+  dailyLimit: number;
+  monthlyLimit: number;
+  safety: number;
+  reserveShare: number;
   autoDraftCampaign: boolean;
   confirmSubjectEn: string;
   confirmSubjectHe: string;
