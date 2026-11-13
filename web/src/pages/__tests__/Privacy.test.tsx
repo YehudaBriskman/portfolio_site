@@ -48,6 +48,16 @@ describe("the privacy page (#586)", () => {
     }
   });
 
+  it("promises no log retention period the server does not enforce", () => {
+    for (const [lang, re] of [["en", /automatically rotating logs/], ["he", /שמתחלפים אוטומטית/]] as const) {
+      const { container, unmount } = show(lang);
+      const text = container.textContent ?? "";
+      expect(text).toMatch(re);
+      expect(text).not.toMatch(/logs for 14 days|יומנים טכניים רגילים למשך 14/);
+      unmount();
+    }
+  });
+
   it("links back to the sign-up form", () => {
     show("en");
     expect(screen.getByRole("link", { name: /sign-up form/i })).toHaveAttribute("href", "/follow");
