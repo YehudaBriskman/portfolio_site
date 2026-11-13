@@ -41,7 +41,7 @@ export default function Unsubscribe() {
     <SubscribeFrame title={w.unsubTitle}>
       {state !== "bad" && state !== "ok" && <p>{w.unsubIntro}</p>}
       <Result kind={state === "ok" ? "ok" : state === "bad" ? "error" : "idle"}>
-        {state === "ok" ? w.unsubDone : state === "bad" ? withEmail(w.unsubBad) : state === "working" ? w.working : ""}
+        {state === "ok" ? withEmail(w.unsubDone) : state === "bad" ? withEmail(w.unsubBad) : state === "working" ? w.working : ""}
       </Result>
       {(state === "idle" || state === "working") && (
         <button type="button" className="btn btn-solid" onClick={go} disabled={state === "working"}>
