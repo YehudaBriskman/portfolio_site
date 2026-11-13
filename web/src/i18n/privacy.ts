@@ -14,10 +14,7 @@ import { defineWords } from "./words";
  * `{3}` Cloudflare, `{4}` Google. They are brand names kept in Latin letters in
  * both languages, so Privacy.tsx fills them in and the Hebrew table holds no
  * Latin.
- *
- * `leaving` is the INTERIM text, true of today's code. Issue #589 replaces it
- * with: a fingerprint only is kept, the other details are deleted 30 days after
- * unsubscribing, and backups follow within 14 more days.
+
  */
 
 export type PrivacySection = { heading: string; body: string };
@@ -52,7 +49,7 @@ export const usePrivacyWords = defineWords(
       },
       {
         heading: "Leaving",
-        body: "Every email has an unsubscribe link, and you can change topics or language from the preferences link. After you unsubscribe I keep your address, marked as unsubscribed, so I never email you again. I delete it when you ask, backups included within 14 days.",
+        body: "Every email has an unsubscribe link, and you can change topics or language from the preferences link. After you unsubscribe I keep only a one-way fingerprint of your address, marked as unsubscribed, so I never email you again. Your address, name and language are deleted 30 days after you unsubscribe (sooner if you ask), and from backups within 14 more days.",
       },
       {
         heading: "Your rights",
@@ -93,7 +90,7 @@ export const usePrivacyWords = defineWords(
       },
       {
         heading: "הסרה",
-        body: "בכל אימייל יש קישור להסרה, ומקישור ההעדפות אפשר לשנות נושאים או שפה. אחרי ההסרה אני שומר את הכתובת, מסומנת כמוסרת, כדי שלא אשלח לכם אימייל שוב. אני מוחק אותה כשתבקשו, כולל מהגיבויים בתוך 14 ימים.",
+        body: "בכל אימייל יש קישור להסרה, ומקישור ההעדפות אפשר לשנות נושאים או שפה. אחרי ההסרה אני שומר רק טביעת אצבע חד־כיוונית של הכתובת, מסומנת כמוסרת, כדי שלא אשלח לכם אימייל שוב. הכתובת, השם והשפה נמחקים 30 ימים אחרי ההסרה (מוקדם יותר אם תבקשו), ומהגיבויים בתוך 14 ימים נוספים.",
       },
       {
         heading: "הזכויות שלכם",

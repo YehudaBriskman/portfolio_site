@@ -584,10 +584,22 @@ unless stated.
 | Privacy section on the accessibility statement, `privacy`, `privacyIntro`, `privacyItems` (marked DRAFT in the file) | `web/src/i18n/statement.ts` |
 | Consent sentence under the signup button, `consentBefore`, `consentLink` (text of record in "Consent texts by version" below); the lede ("my newsletter by email ... only when there is something new"); the signup, confirm, unsubscribe and manage pages' wording | `web/src/i18n/subscribe.ts` |
 | Confirmation mail subject and body, EN and HE (owner-editable in Settings; defaults in code) | `backend/src/announce/schemas.ts`, `DEFAULT_SENDER` |
+| Privacy page "Leaving" section (final, owner-approved 2026-11-13, #587/#589) | `web/src/i18n/privacy.ts` |
+| Unsubscribe "Done" text (final, same approval) | `web/src/i18n/subscribe.ts`, `unsubDone` |
 | Footer unsubscribe note, EN and HE (owner-editable; defaults in code) | `backend/src/announce/schemas.ts`, `DEFAULT_SENDER` |
 | The "פרסומת" label (`COMMERCIAL_LABEL_HE`) and where it is placed | `backend/src/campaigns/render.ts` |
 | Footer identity (entered by the owner) | Settings, "Sender & delivery" |
 | Form version recorded as consent, `site-form-v2` | `backend/src/audience/schemas.ts` (`SITE_FORM_VERSION`) |
+
+### Final texts after an unsubscribe
+
+True of `MINIMISE_AFTER_DAYS` (30) and the 14-day backup rotation; change a
+number in the code and these texts together.
+
+- Privacy "Leaving", EN: Every email has an unsubscribe link, and you can change topics or language from the preferences link. After you unsubscribe I keep only a one-way fingerprint of your address, marked as unsubscribed, so I never email you again. Your address, name and language are deleted 30 days after you unsubscribe (sooner if you ask), and from backups within 14 more days.
+- Privacy "Leaving", HE: בכל אימייל יש קישור להסרה, ומקישור ההעדפות אפשר לשנות נושאים או שפה. אחרי ההסרה אני שומר רק טביעת אצבע חד־כיוונית של הכתובת, מסומנת כמוסרת, כדי שלא אשלח לכם אימייל שוב. הכתובת, השם והשפה נמחקים 30 ימים אחרי ההסרה (מוקדם יותר אם תבקשו), ומהגיבויים בתוך 14 ימים נוספים.
+- Unsubscribe "Done", EN: Done. You won’t get any more email from this list. I keep only a one-way fingerprint of your address, marked as unsubscribed, so I do not email you again; the rest is deleted after 30 days. To erase it now, write to {email}.
+- Unsubscribe "Done", HE: בוצע. לא תקבלו עוד אימיילים מרשימת התפוצה. נשמרת אצלי רק טביעת אצבע חד־כיוונית של הכתובת, כמוסרת, כדי שלא אשלח אליכם שוב; שאר הפרטים נמחקים אחרי 30 ימים. למחיקה מיידית כתבו אל {email}.
 
 ### Consent texts by version
 

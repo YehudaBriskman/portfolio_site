@@ -38,6 +38,16 @@ describe("the privacy page (#586)", () => {
     expect(screen.getAllByText(/אין עוגיות/).length).toBeGreaterThan(0);
   });
 
+  it("the Leaving section says what is kept and for how long, in both languages", () => {
+    for (const [lang, a, b, c] of [["en", /one-way fingerprint/, /30 days after you unsubscribe/, /14 more days/], ["he", /טביעת אצבע/, /30 ימים אחרי ההסרה/, /14 ימים נוספים/]] as const) {
+      const { container, unmount } = show(lang);
+      const text = container.textContent ?? "";
+      for (const re of [a, b, c]) expect(text).toMatch(re);
+      expect(text).not.toMatch(/I keep your address|אני שומר את הכתובת/);
+      unmount();
+    }
+  });
+
   it("links back to the sign-up form", () => {
     show("en");
     expect(screen.getByRole("link", { name: /sign-up form/i })).toHaveAttribute("href", "/follow");

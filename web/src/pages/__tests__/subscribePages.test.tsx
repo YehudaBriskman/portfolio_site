@@ -54,7 +54,24 @@ describe("the pages an email links to", () => {
     expect(fetchMock).not.toHaveBeenCalled();
     await userEvent.click(screen.getByRole("button", { name: /unsubscribe me/i }));
     await waitFor(() => expect(screen.getByRole("status").textContent).toMatch(/won.t get any more email/i));
+    /* The done text says what is kept (a fingerprint, not the address) and gives the way to erase now. */
+    const done = screen.getByRole("status").textContent ?? "";
+    expect(done).toMatch(/one-way fingerprint/i);
+    expect(done).toMatch(/deleted after 30 days/);
+    expect(done).not.toMatch(/keep your address/i);
+    expect(done).not.toContain("{email}");
+    expect(screen.getByRole("link", { name: "yehuda@yehudabriskman.com" })).toHaveAttribute("dir", "ltr");
     expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ token: "abc" });
+  });
+
+  it("the Hebrew done page names the fingerprint and the 30 days", async () => {
+    document.documentElement.lang = "he";
+    respond(200);
+    at(<Unsubscribe />, "/unsubscribe?token=abc");
+    await userEvent.click(screen.getByRole("button", { name: /הסירו אותי/ }));
+    await waitFor(() => expect(screen.getByRole("status").textContent).toMatch(/טביעת אצבע/));
+    expect(screen.getByRole("status").textContent).toMatch(/30 ימים/);
+    document.documentElement.removeAttribute("lang");
   });
 
   it("unsubscribe with no token names the contact address as a mailto link, never a raw {email}", () => {
