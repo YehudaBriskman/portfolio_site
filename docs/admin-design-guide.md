@@ -185,6 +185,9 @@ Status: **exists** = on `main` today. **planned** = an open issue; do not copy a
 | `StatusGlyph` (#669) | `@/components/ui/StatusGlyph` | a status as shape + tone + hidden word (`withWord` in sheets); published / active / mailable / translated draw nothing unless `showDefault` | colour alone, two on a row |
 | `ChannelIcon`, `ChannelRow` (#669) | `@/components/ui/ChannelIcon` | LinkedIn / X / Instagram / email in fixed order, filled with a check = posted, outline = not yet; brand paths in `channelGlyphs.ts` (simple-icons, CC0) | any other order |
 | `ICON`, `CONCEPTS` (#669) | `@/components/ui/icons` | the vocabulary in section 4; words (he + en) in `useMobileWords().icons` (`i18n/mobile.ts`); `icons.test.ts` fails on a concept without a word | an icon with no concept row |
+| `Journey`, `LifecycleStepper` (#672) | `@/components/ui/Journey` | from > to with optional waypoints and a `via` pill (sender > audience); a vertical lifecycle (draft > scheduled > sending > sent) with the current step announced and paused/failed/canceled as a side branch | a graphic with no text: every fact is also in the list |
+| `MiniBar` (#672) | `@/components/ui/MiniBar` | counts as a segmented inline bar, `role="img"` with a text name; danger is hatched | the only place a decision number appears: keep the number visible |
+| `Gauge` (#672) | `@/components/ui/Gauge` | a budget against a limit as a ring, warn at 70 / danger at 90 percent; level in colour, badge glyph and words, value in a hidden `<meter>` | colour-only status |
 | `tooltip` | `@/components/ui/tooltip` | a hint for pointer users | the only label of anything: touch has no hover |
 
 Also on main, outside `ui/`: the admin shell and `.a-*` classes (`@/components/admin/AdminShell`), `StatusPill` and `TranslationPill` (`@/components/admin/StatusPill`, `.../TranslationPill`; being replaced by `StatusGlyph`), the native-`<dialog>` modals (`@/components/admin/MediaGrid` `Modal`, `announce/audience/Modal`, the popup system in `styles/popup.css`; see `docs/motion-contract.md` section 9).
@@ -194,8 +197,6 @@ Also on main, outside `ui/`: the admin shell and `.a-*` classes (`@/components/a
 | Component | Issue | Import (planned) | Use it for | Rule of thumb |
 |---|---|---|---|---|
 | `SelectionBar`, `useSelection`, `UndoToast` | #671 | `@/components/admin/mobile` | bulk actions: a visible "Select" button (long-press is a bonus), a sticky bar with count, Undo | irreversible server actions use a deferred commit |
-| `Journey` | #672 | `@/components/admin/mobile` | from > to (sender > audience) and the lifecycle stepper | `role="img"` with a composed label next to real text |
-| `MiniBar`, `Gauge` | #672 | `@/components/admin/mobile` | counts as a segmented bar; a budget as a ring with thresholds 70 / 90 | the number stays visible where it is the decision |
 | `Switch`, `InfoPopover`, `SettingsRow`, `SettingsList`, `SettingsSearch` | #673 | `@/components/admin/mobile` | grouped settings: one-line label + switch, help behind an info button, one-line live summary per group; more than 4 controls or any text field opens a sub-page, otherwise a half sheet | only warnings stay visible; no checkbox without `role="switch"` |
 | `FilterChips`, `FilterSheet`, `useSavedFilters` | #674 | `@/components/admin/mobile` | 3 to 5 common chips + one "Filters (n)" button; URL is the source of truth | "Show N results" applies; Esc discards |
 | `SidebarGroup` (+ nav tree) | #675 | `@/components/admin/mobile` | hierarchical drawer nav, depth <= 3, current item highlighted | label navigates, chevron expands |

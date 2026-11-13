@@ -115,6 +115,23 @@ describe("the reader's text, the same way", () => {
   }
 });
 
+describe("Gauge and MiniBar marks (graphical objects, WCAG 1.4.11)", () => {
+  /* The three tones the visuals draw with: ok = --signal, warn = --ink,
+     danger = --destructive-ink. Their shapes carry the meaning too; this holds
+     the colour itself to the 3:1 floor for non-text marks against every
+     ground a card sits on. */
+  const GRAPHIC = 3;
+  for (const [label, theme] of [["Light", light], ["Dark", dark]] as const) {
+    for (const fg of ["--signal", "--ink", "--destructive-ink", "--ink-soft"]) {
+      for (const ground of ["--paper", "--paper-2", "--paper-3"]) {
+        it(`${label}: ${fg} mark on ${ground} clears ${GRAPHIC}:1`, () => {
+          expect(ratio(fg, ground, theme)).toBeGreaterThanOrEqual(GRAPHIC);
+        });
+      }
+    }
+  }
+});
+
 describe("the measuring itself", () => {
   it("fails the value that shipped, so it would have caught it", () => {
     const shipped: Theme = [new Map([["--destructive-ink", "232 122 108"]]), LIGHT];

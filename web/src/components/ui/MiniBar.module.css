@@ -1,0 +1,59 @@
+/*
+ * Inline bar. Segments are inline-size percentages in a flex track, so the
+ * fill starts at the inline start in either direction. Danger is hatched:
+ * colour alone never says "failed".
+ */
+.wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-inline-size: 0;
+  inline-size: 100%;
+}
+
+.track {
+  display: flex;
+  flex: 1 1 auto;
+  gap: 1px;
+  min-inline-size: 3rem;
+  overflow: hidden;
+  border-radius: var(--a-r-pill, 999px);
+  background: rgb(var(--rule-firm) / 0.35);
+  box-shadow: inset 0 0 0 1px rgb(var(--rule-firm) / 0.5);
+}
+
+.segment {
+  flex: none;
+  block-size: 100%;
+  background: rgb(var(--signal));
+}
+
+.segment[data-tone="muted"] {
+  background: rgb(var(--ink-soft) / 0.55);
+}
+
+.segment[data-tone="attention"] {
+  background: rgb(var(--ink));
+}
+
+.segment[data-tone="danger"] {
+  background: repeating-linear-gradient(
+    135deg,
+    rgb(var(--destructive-ink)) 0 2px,
+    rgb(var(--destructive-ink) / 0.4) 2px 4px
+  );
+}
+
+.number {
+  flex: none;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: rgb(var(--ink-soft));
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .segment {
+    transition: inline-size var(--a-dur-base, 180ms) var(--a-ease-out, ease-out);
+  }
+}
