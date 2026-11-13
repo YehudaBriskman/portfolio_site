@@ -26,11 +26,13 @@ let stored: ReturnType<typeof camp>[];
 let senderDoc: ReturnType<typeof sender>;
 /* How many of the 12 recipients are already at the monthly limit (the server's count). */
 let atLimit = 0;
+let sending = { paused: false, pausedAt: null as string | null, envDisabled: false };
 beforeEach(() => {
   calls = [];
   stored = [camp(), camp({ id: "c2", name: "Sent one", status: "sent", counters: { queued: 10, sent: 9, failed: 1, suppressed: 0 }, finishedAt: "2026-11-02T10:00:00Z" })];
   senderDoc = sender();
   atLimit = 0;
+  sending = { paused: false, pausedAt: null, envDisabled: false };
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: string, init?: RequestInit) => {
@@ -38,6 +40,12 @@ beforeEach(() => {
       calls.push({ url, method, body: init?.body ? JSON.parse(String(init.body)) : undefined });
       if (url === "/api/admin/campaigns" && method === "GET") return json({ ok: true, campaigns: stored });
       if (url === "/api/admin/campaigns/c1" && method === "GET") return json({ ok: true, campaign: stored[0] });
+      if (url === "/api/admin/campaigns/sending" && method === "POST") {
+        const paused = (JSON.parse(String(init?.body)) as { paused: boolean }).paused;
+        sending = { ...sending, paused, pausedAt: paused ? "2026-11-13T10:00:00Z" : null };
+        return json({ ok: true, ...sending, blocked: sending.paused || sending.envDisabled });
+      }
+      if (url === "/api/admin/campaigns/sending") return json({ ok: true, ...sending, blocked: sending.paused || sending.envDisabled });
       if (url === "/api/admin/campaigns/audience") return json({ ok: true, count: 12, samples: ["a***@e***.com"], ...(atLimit ? { overCap: atLimit, cap: 4 } : {}) });
       if (url === "/api/admin/campaigns/preview") return json({ ok: true, subject: "Hello", html: "<p>Hi</p>", text: "Hi" });
       if (url === "/api/admin/campaigns/c1/resume") return json({ ok: true, campaign: camp({ status: "scheduled", sendAt: "2026-11-12T10:00:00Z" }) });
@@ -94,6 +102,31 @@ describe("Campaigns tab", () => {
     expect(calls.some((c) => c.url.endsWith("/resume"))).toBe(false);
     fireEvent.click(await screen.findByRole("button", { name: "Resume" }));
     await waitFor(() => expect(calls.some((c) => c.url === "/api/admin/campaigns/c1/resume" && c.method === "POST")).toBe(true));
+  });
+
+  it("one click pauses all sending, no confirm; resuming asks first", async () => {
+    open();
+    fireEvent.click(await screen.findByRole("button", { name: "Pause all sending" }));
+    expect(await screen.findByTestId("sending-paused")).toBeTruthy();
+    expect(calls.filter((c) => c.url.endsWith("/sending") && c.method === "POST").map((c) => c.body)).toEqual([{ paused: true }]);
+    fireEvent.click(screen.getByRole("button", { name: "Resume sending…" }));
+    expect(calls.filter((c) => c.method === "POST" && c.url.endsWith("/sending"))).toHaveLength(1);
+    fireEvent.click(await screen.findByRole("button", { name: "Resume" }));
+    await waitFor(() => expect(screen.queryByTestId("sending-paused")).toBeNull());
+    expect(calls.filter((c) => c.url.endsWith("/sending") && c.method === "POST").map((c) => c.body)).toEqual([{ paused: true }, { paused: false }]);
+  });
+
+  it("shows a pause that is already on, and says the server setting cannot be lifted here", async () => {
+    sending = { paused: true, pausedAt: "2026-11-13T10:00:00Z", envDisabled: true };
+    open();
+    expect(await screen.findByTestId("sending-paused")).toBeTruthy();
+    expect(screen.getByTestId("sending-env-off").textContent).toMatch(/SEND_ENABLED/);
+  });
+
+  it("an unreadable sending state is an alert with a retry, never silence", async () => {
+    sending = undefined as never;
+    open();
+    expect(await screen.findByTestId("sending-failed")).toBeTruthy();
   });
 
   it("blocks with a clear message when the footer identity is empty", async () => {

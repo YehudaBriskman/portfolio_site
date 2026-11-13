@@ -29,6 +29,9 @@ const EXTRA = [path.join(REPO, "backend/src/services/seo-words.ts")];
  * Hebrew reader may legitimately see in Latin letters.
  */
 const LATIN_SEEN = new Set<string>([
+  /* The server environment variable the owner must set or remove by name (campaigns/words.ts, the kill switch). */
+  "SEND",
+  "ENABLED",
   /* Key chords in the note editor's shortcut help (Ctrl+B is in the glossary). */
   "Ctrl+E",
   "Ctrl+I",

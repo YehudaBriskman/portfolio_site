@@ -66,6 +66,8 @@ const EnvSchema = z.object({
   // Canonical origin, trailing slash stripped; every absolute URL is built from it.
   // Signs confirm/unsubscribe links. Unset: a generated secret in the admin-only store.
   SUBSCRIBE_SECRET: z.string().min(16).optional(),
+  // Hard stop for all outgoing mail. Any of false/0/off/no/disabled holds every send; unset or anything else sends. Needs a restart, not a deploy.
+  SEND_ENABLED: z.string().optional(),
   // Resend webhook signing secret (`whsec_...`). Unset: the provider-event route answers 404.
   RESEND_WEBHOOK_SECRET: z
     .string()
