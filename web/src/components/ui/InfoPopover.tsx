@@ -1,3 +1,4 @@
+import { useRef, useState } from "react";
 import { Info } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useMobileWords } from "@/i18n/mobile";
@@ -21,14 +22,17 @@ export interface InfoPopoverProps {
 
 export function InfoPopover({ label, text, className }: InfoPopoverProps) {
   const w = useMobileWords().settings;
+  const btn = useRef<HTMLButtonElement>(null);
+  /* Inside a sheet (a modal <dialog>) the panel must live in the dialog, or the top layer hides it. */
+  const [host, setHost] = useState<HTMLElement | null>(null);
   return (
-    <Popover>
+    <Popover onOpenChange={(o) => o && setHost(btn.current?.closest("dialog") ?? null)}>
       <PopoverTrigger asChild>
-        <button type="button" className={[styles.button, className].filter(Boolean).join(" ")} aria-label={w.about(label)}>
+        <button ref={btn} type="button" className={[styles.button, className].filter(Boolean).join(" ")} aria-label={w.about(label)}>
           <Info size={20} strokeWidth={2} aria-hidden="true" focusable="false" />
         </button>
       </PopoverTrigger>
-      <PopoverContent className={styles.panel} align="end" collisionPadding={12} aria-label={w.about(label)}>
+      <PopoverContent container={host} className={styles.panel} align="end" collisionPadding={12} aria-label={w.about(label)}>
         <p className={styles.text} dir="auto">
           {text}
         </p>

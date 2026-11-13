@@ -113,6 +113,17 @@ describe("InfoPopover", () => {
     await waitFor(() => expect(document.activeElement).toBe(btn));
   });
 
+  it("lives inside a modal dialog when opened from one, so the top layer cannot hide it", async () => {
+    const { container } = render(
+      <dialog open>
+        <InfoPopover label="X" text={LONG} />
+      </dialog>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "About X" }));
+    const text = await screen.findByText(LONG);
+    expect(container.querySelector("dialog")?.contains(text)).toBe(true);
+  });
+
   it("opens from the keyboard", async () => {
     const user = userEvent.setup();
     render(<InfoPopover label="X" text={LONG} />);
