@@ -122,6 +122,12 @@ Suppression is the owner's "never mail this address" list. Same document, status
 
 - `POST /api/admin/audience/suppression {email}` suppresses a known contact, or
   creates a stub (`lang: "en"`, no groups, no topics) for an unknown address.
+- `POST /api/admin/audience/suppression/bulk {text}` suppresses many at once (the
+  Audience tab's "Suppress many at once" box): addresses separated by lines,
+  commas or `Name <address>`, at most 500 (413 above that), each validated and
+  deduplicated like the single route. It answers `{suppressed, already, failed,
+  invalid[]}`; the unreadable lines come back (clipped) for the owner to fix. The
+  audit record holds counts only, never an address.
 - A suppressed address is never re-added: signup does nothing, a manual add is
   refused (409), an import skips it, the admin cannot edit it, and its erasure is
   refused until it is lifted.
@@ -442,14 +448,18 @@ A bounce the SMTP server reports while sending is handled by the sender (see
 "Bounces"). Nothing reads asynchronous bounce reports (they go to the `MAIL_FROM`
 mailbox) or complaints, so check that mailbox after every campaign.
 
-1. In the Audience tab's suppression panel, add the address (`POST /api/admin/audience/suppression`).
+1. In the Audience tab's suppression panel, add the address (`POST /api/admin/audience/suppression`),
+   or paste several from a bounce report into "Suppress many at once".
    A suppressed address is never mailed again by a campaign, a signup or an import.
 2. Use suppression, not delete, so the address cannot be re-added. A person who
    complained and asks to be erased is the one case for lifting the suppression and
    then deleting.
 3. A spike of bounces or complaints: stop (cancel running campaigns), lower the cap,
    and check SPF, DKIM and DMARC and the list's origin before sending again.
-4. A campaign shows **Paused**: read the reason on its page. A login refusal means
+4. Weekly, while the list is small: read the `MAIL_FROM` (bounce) mailbox for
+   asynchronous bounces and complaints, suppress what it names, and look at
+   Postmaster Tools (Gmail) if the domain has data there.
+5. A campaign shows **Paused**: read the reason on its page. A login refusal means
    the SMTP username or password (env) is wrong or revoked; five failures in a row
    means the relay or the From address; a failure or bounce rate means look at the
    failures before resuming. Resume only when the cause is fixed, or Cancel.
