@@ -1,9 +1,10 @@
 import { contactLines, type LabelMode, type SenderSettings } from "../announce/schemas.js";
 import { env } from "../env.js";
-import { fillTemplate, hasLink, unsubscribeUrls } from "../audience/mail.js";
+import { hasLink, unsubscribeUrls } from "../audience/mail.js";
 import type { Lang } from "../audience/schemas.js";
-import { esc } from "../announce/emailHtml.js";
-import { renderBody } from "./body.js";
+import { oneLine } from "../mail/escape.js";
+import { renderMail, type Inline, type MailBlock } from "../mail/render.js";
+import { bodyBlocks } from "./body.js";
 import type { Campaign } from "./schemas.js";
 
 /*
@@ -30,7 +31,20 @@ export function labelFor(mode: LabelMode, lang: Lang): { subject: string; line: 
 export const UNSUB_FALLBACK_EN = "To stop receiving these emails, unsubscribe here: {link}";
 export const UNSUB_FALLBACK_HE = "כדי להפסיק לקבל הודעות אלה, בטלו את ההרשמה כאן: {link}";
 
-const oneLine = (s: string) => s.replace(/[\r\n\u2028\u2029]+/g, " ").trim();
+const PLACEHOLDER = /\{(name|site|days|link)\}/g;
+/** Fills a template in ONE pass (a value is never scanned for placeholders); {link} becomes a link part. */
+function fillParts(tpl: string, vars: Record<"name" | "site" | "days" | "link", string>): Inline[] {
+  const out: Inline[] = [];
+  let last = 0;
+  for (const m of tpl.matchAll(PLACEHOLDER)) {
+    out.push(tpl.slice(last, m.index));
+    const v = vars[m[1] as keyof typeof vars];
+    out.push(m[1] === "link" ? { href: v, text: v } : v);
+    last = (m.index ?? 0) + m[0].length;
+  }
+  out.push(tpl.slice(last));
+  return out;
+}
 
 export type RenderedMail = { subject: string; text: string; html: string; headers: Record<string, string> };
 
@@ -59,27 +73,12 @@ export async function renderCampaignMail(
 
   const subject = `${opts.subjectPrefix ?? ""}${label ? `${label.subject}: ` : ""}${oneLine(c.subject)}`;
 
-  const footerHtml =
-    `<hr style="border:0;border-top:1px solid #d9d9d9;margin:28px 0 14px">` +
-    `<div style="font-size:12px;line-height:1.5;color:#6b6b6b">` +
-    (identityLines.length ? `<p style="margin:0 0 8px">${identityLines.map((l) => esc(l).replace(/\r?\n/g, "<br>")).join("<br>")}</p>` : "") +
-    `<p style="margin:0">${fillTemplate(note, vars, true)}</p>` +
-    (missingLink ? `<p style="margin:8px 0 0">${fillTemplate(fallback, vars, true)}</p>` : "") +
-    `</div>`;
-  const pre = c.preheader?.trim();
-  const html =
-    `<div lang="${he ? "he" : "en"}" dir="${he ? "rtl" : "ltr"}" style="font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;line-height:1.55">` +
-    (pre ? `<div style="display:none;max-height:0;overflow:hidden;opacity:0">${esc(pre)}</div>` : "") +
-    (label ? `<p style="margin:0 0 16px;font-weight:700">${esc(label.line)}</p>` : "") +
-    renderBody(c) +
-    footerHtml +
-    `</div>`;
-  const text =
-    (label ? `${label.line}\n\n` : "") +
-    `${c.bodyText.trim()}\n\n--\n` +
-    identityLines.map((l) => `${l}\n`).join("") +
-    fillTemplate(note, vars, false) +
-    (missingLink ? `\n\n${fillTemplate(fallback, vars, false)}` : "");
+  const blocks: MailBlock[] = [
+    ...(label ? [{ type: "paragraph" as const, tone: "strong" as const, text: label.line }] : []),
+    ...bodyBlocks(c),
+    { type: "footer", lines: identityLines, note: fillParts(note, vars), ...(missingLink ? { extra: [fillParts(fallback, vars)] } : {}) },
+  ];
+  const { html, text } = renderMail(blocks, { lang, title: c.subject, ...(c.preheader?.trim() ? { preheader: c.preheader } : {}) });
 
   return {
     subject,
