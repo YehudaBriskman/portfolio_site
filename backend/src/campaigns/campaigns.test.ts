@@ -11,6 +11,8 @@ import { autoDraftFor } from "./autodraft.js";
 import { resolveSender, senderWarnings } from "./config.js";
 import { COMMERCIAL_LABEL_HE, UNSUB_FALLBACK_EN, UNSUB_FALLBACK_HE, renderCampaignMail } from "./render.js";
 import { renderBody, safeHref, safeImage } from "./body.js";
+import { memoryLedgerStore, resetLedgerCache, useLedgerStore } from "../audience/ledger.js";
+import { resetGuard } from "./guard.js";
 import { inQuietHours, runSenderTick, type Deliver } from "./sender.js";
 
 /* In-memory couch. The MCP/image stubs only let app.ts load on a box without those optional deps; CI has them. */
@@ -21,6 +23,7 @@ vi.mock("../services/svgSanitize.js", () => ({}));
 vi.mock("../routes/images.route", () => ({ createImagesRouter: () => (_q: unknown, _r: unknown, next: () => void) => next() }));
 vi.mock("../routes/media.admin.route.js", async () => ({ default: (await import("express")).Router() }));
 
+let ledger: ReturnType<typeof memoryLedgerStore>;
 let store: Map<string, Record<string, unknown>>;
 let revs = 0;
 type Sent = { to: string; subject: string; text: string; html: string; headers?: Record<string, string> };
@@ -67,12 +70,19 @@ beforeEach(() => {
       .map(([, d]) => structuredClone(d));
     return { docs: docs as never[] };
   });
+  vi.spyOn(couch, "docs").mockImplementation(async <R>(ids: string[]) => ids.flatMap((i) => (store.has(i) ? [structuredClone(store.get(i)) as R] : [])));
+  ledger = memoryLedgerStore();
+  useLedgerStore(ledger);
+  resetGuard();
   vi.spyOn(emailService, "sendBulk").mockImplementation(async (m) => {
     sent.push(...m);
     return m.map(() => ({ ok: true as const }));
   });
 });
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => {
+  vi.restoreAllMocks();
+  useLedgerStore();
+});
 
 const admin = (req: request.Test) => req.set("X-Admin-Proxy-Secret", env.ADMIN_PROXY_SECRET).set("X-Auth-Request-User", env.ADMIN_GITHUB_LOGIN);
 const C = "/api/admin/campaigns";
@@ -774,5 +784,86 @@ describe("auto-draft", () => {
     expect(doc.bodyHtml).toBeUndefined();
     expect(await autoDraftFor(ev("release"), on)).toBe(true);
     expect(await autoDraftFor({ ...ev("post"), kind: "note" }, on)).toBe(false);
+  });
+});
+
+describe("the suppression ledger guard", () => {
+  const lput = (i: number, kind: string, extra: Record<string, unknown> = {}) => {
+    const h = hashEmail(addr(i));
+    return ledger.put(h, { _id: h, type: "ledger", kind, at: "2026-01-01T00:00:00.000Z", ...extra });
+  };
+
+  it("a restored contact the ledger says unsubscribed is put back and not mailed, and a report is left", async () => {
+    await queued(3);
+    await lput(2, "unsubscribed");
+    await tick(deliver);
+    expect(sent.map((m) => m.to).sort()).toEqual([addr(1), addr(3)]);
+    expect(contactOf(2)).toMatchObject({ status: "unsubscribed" });
+    expect(ledger.docs.get("meta:report")).toMatchObject({ repaired: { unsubscribed: 1, suppressed: 0, erased: 0 } });
+    expect(JSON.stringify(ledger.docs.get("meta:report"))).not.toMatch(/@/);
+  });
+
+  it("a suppressed line wins the same way, and an erased contact comes back as nothing at all", async () => {
+    await queued(3);
+    await lput(1, "suppressed");
+    await lput(3, "erased");
+    store.set(`send:old:${hashEmail(addr(3))}`, { _id: `send:old:${hashEmail(addr(3))}`, _rev: "1-a", type: "send" });
+    await tick(deliver);
+    expect(sent.map((m) => m.to)).toEqual([addr(2)]);
+    expect(contactOf(1)).toMatchObject({ status: "suppressed" });
+    expect(contactOf(3)).toBeUndefined();
+    expect(store.has(`send:old:${hashEmail(addr(3))}`)).toBe(false);
+  });
+
+  it("an unreachable or unmarked ledger holds the sender: nothing is claimed or sent", async () => {
+    const id = await queued(2);
+    ledger.down = true;
+    await tick(deliver);
+    expect(sent).toHaveLength(0);
+    expect(get(id).status).toBe("scheduled");
+    ledger.down = false;
+    ledger.docs.delete("meta:ledger");
+    resetLedgerCache();
+    await tick(deliver);
+    expect(sent).toHaveLength(0);
+    expect(get(id).status).toBe("scheduled");
+    ledger.docs.set("meta:ledger", { _id: "meta:ledger", _rev: "0-x", type: "meta" });
+    resetLedgerCache();
+    await tick(deliver);
+    expect(sent).toHaveLength(2);
+  });
+
+  it("only an active contact is repaired: a pending one signing up again is left alone", async () => {
+    await queued(2);
+    seedContact(2, { status: "pending" });
+    await lput(2, "unsubscribed");
+    await tick(deliver);
+    expect(contactOf(2)).toMatchObject({ status: "pending" });
+    expect(ledger.docs.has("meta:report")).toBe(false);
+  });
+
+  it("contacts already unsubscribed or suppressed before the ledger existed are backfilled into it", async () => {
+    await queued(3);
+    seedContact(2, { status: "unsubscribed" });
+    seedContact(3, { status: "suppressed" });
+    await tick(deliver);
+    expect(ledger.docs.get(hashEmail(addr(2)))).toMatchObject({ kind: "unsubscribed" });
+    expect(ledger.docs.get(hashEmail(addr(3)))).toMatchObject({ kind: "suppressed" });
+  });
+
+  it("erased lines expire after their time; others never do", async () => {
+    await queued(1);
+    await lput(1, "erased", { expiresAt: "2026-05-01T00:00:00.000Z" });
+    await lput(2, "unsubscribed", { expiresAt: "2026-05-01T00:00:00.000Z" });
+    await tick(deliver);
+    expect(ledger.docs.has(hashEmail(addr(1)))).toBe(false);
+    expect(ledger.docs.has(hashEmail(addr(2)))).toBe(true);
+  });
+
+  it("a hard bounce writes the suppressed line before the contact changes", async () => {
+    await queued(1);
+    await tick(failing(HARD));
+    expect(ledger.docs.get(hashEmail(addr(1)))).toMatchObject({ kind: "suppressed" });
+    expect(contactOf(1)).toMatchObject({ status: "suppressed" });
   });
 });

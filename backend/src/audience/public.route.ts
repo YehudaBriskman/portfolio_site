@@ -13,6 +13,7 @@ import {
   type Consent,
   type Contact,
 } from "./schemas.js";
+import { ledgerClear, ledgerGet, ledgerPutQuietly } from "./ledger.js";
 import { confirmConsent, contactId, createContact, getContact, hashEmail, isPendingExpired, purgeExpiredPending, recordConsent, updateContact } from "./store.js";
 import { verifyToken, type TokenKind } from "./tokens.js";
 
@@ -49,6 +50,8 @@ router.post(
     const now = new Date().toISOString();
     const consent: Consent = { textId: text.id, textHash: text.sha256, lang: b.lang, at: now, source: "site" };
     const ttl = (await loadSettings()).sender.pendingTtlDays;
+    // A suppressed address stays suppressed even when its contact document is gone (a restore, a deletion): same silent answer.
+    if ((await ledgerGet(hash).catch(() => null))?.kind === "suppressed") return res.status(202).json(ACCEPTED);
     let contact = await getContact(hash);
     let send = false;
 
@@ -127,6 +130,10 @@ router.post(
       void purgeExpiredPending(Date.now(), true);
       return badLink(res);
     }
+    // The ledger is read, and cleared, BEFORE the contact turns active: a crash between leaves a pending contact, never a mailable one the ledger still blocks.
+    const held = await ledgerGet(hash);
+    if (held?.kind === "suppressed") return badLink(res);
+    if (held) await ledgerClear(hash);
     const now = new Date().toISOString();
     const updated = await updateContact(hash, (c) => {
       if (c.status !== "pending") return false;
@@ -156,6 +163,8 @@ router.post(
     if (!found) return badLink(res);
     const { hash, contact } = found;
     if (contact.status !== "unsubscribed" && contact.status !== "suppressed") {
+      // Ledger first. A mail client's one-click POST is not retried, so an outage here must not undo the person's choice: the guard backfills it.
+      await ledgerPutQuietly(hash, "unsubscribed");
       await updateContact(hash, (c) => {
         if (c.status === "suppressed" || c.status === "unsubscribed") return false;
         c.status = "unsubscribed";

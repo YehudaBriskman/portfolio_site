@@ -134,4 +134,19 @@ export const adminAudience = {
   suppression: async (): Promise<Suppressed[]> => list<Json>(await call<unknown>("/suppression"), "suppression", "suppressed").map(toSuppressed),
   suppress: (email: string) => call<unknown>("/suppression", { method: "POST", body: JSON.stringify({ email }) }),
   unsuppress: (hash: string) => call<unknown>(`/suppression/${enc(hash)}`, { method: "DELETE" }),
+
+  /** Whether the never-mail ledger is usable and what its guard last repaired. Counts only, never an address. */
+  ledger: async (): Promise<LedgerState> => {
+    const b = await call<Partial<LedgerState>>("/ledger");
+    const zero = { unsubscribed: 0, suppressed: 0, erased: 0 };
+    return {
+      ready: b.ready === true,
+      counts: { ...zero, ...(b.counts ?? {}) },
+      report: b.report ? { at: b.report.at, repaired: { ...zero, ...b.report.repaired }, acknowledgedAt: b.report.acknowledgedAt ?? null } : null,
+    };
+  },
+  acknowledgeLedger: () => call<unknown>("/ledger/ack", { method: "POST", body: "{}" }),
 };
+
+export type LedgerCounts = { unsubscribed: number; suppressed: number; erased: number };
+export type LedgerState = { ready: boolean; counts: LedgerCounts; report: { at: string; repaired: LedgerCounts; acknowledgedAt: string | null } | null };

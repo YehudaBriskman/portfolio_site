@@ -36,7 +36,10 @@ import {
   purgeExpiredPending,
   scanContacts,
   updateContact,
+  deleteSendDocs,
 } from "./store.js";
+import { ledgerGuard } from "../campaigns/guard.js";
+import { acknowledgeReport, ledgerClear, ledgerEntries, ledgerGet, ledgerPut, ledgerReport } from "./ledger.js";
 
 /*
  * Under /api/admin/audience: behind requireAdmin and auditWrites (admin.route.ts).
@@ -198,6 +201,9 @@ router.post(
     const existing = await getContact(hash);
     if (existing?.status === "suppressed") return bad(res, "This address is on the suppression list.", 409);
     if (existing) return bad(res, "This address is already in the audience.", 409);
+    // A person who unsubscribed or was suppressed is not added back by hand; an erased one may be, and the old line goes.
+    const held = await ledgerGet(hash);
+    if (held && held.kind !== "erased") return bad(res, "This address asked not to be mailed.", 409);
     const missing = await unknownGroups(b.data.groups);
     if (missing.length) return bad(res, "Unknown group.");
     const now = new Date().toISOString();
@@ -220,6 +226,7 @@ router.post(
       updatedAt: now,
       confirmedAt: now,
     };
+    if (held) await ledgerClear(hash);
     if (!(await createContact(c))) return bad(res, "This address is already in the audience.", 409);
     res.locals.audit = { target: c._id, before: null, after: c };
     res.status(201).json({ ok: true, contact: view(c) });
@@ -237,6 +244,7 @@ router.patch(
     if (before.status === "suppressed") return bad(res, "This address is on the suppression list.", 409);
     if (b.data.groups && (await unknownGroups(b.data.groups)).length) return bad(res, "Unknown group.");
     const prior = structuredClone(before);
+    if (b.data.status === "unsubscribed" && before.status !== "unsubscribed") await ledgerPut(hash, "unsubscribed");
     const after = await updateContact(hash, (c) => {
       if (b.data.name !== undefined) { if (b.data.name) c.name = b.data.name; else delete c.name; }
       if (b.data.lang) c.lang = b.data.lang;
@@ -262,7 +270,10 @@ router.delete(
     if (!before) return bad(res, "No such contact.", 404);
     // Erasing a suppressed address would let it be added again: take it off the list first, on purpose.
     if (before.status === "suppressed") return bad(res, "Remove it from the suppression list first.", 409);
+    // Ledger first, so a restore of the content database cannot bring this person back into a mailing.
+    await ledgerPut(hash, "erased");
     await deleteContact(hash);
+    await deleteSendDocs(hash);
     res.locals.audit = { target: before._id, before, after: null };
     res.json({ ok: true });
   }),
@@ -292,6 +303,8 @@ router.post(
     const now = new Date().toISOString();
     const importConsent: Consent = { textId: null, textHash: null, lang: "en", at: now, confirmedAt: now, source: "import", note: b.data.consentNote };
     const groups = [b.data.group ?? SYSTEM_GROUP].filter((g, i, a) => a.indexOf(g) === i);
+    // Anyone on the ledger is skipped, erased people included: a list is exactly how a restored or stale file would revive them.
+    const held = await ledgerEntries();
     for (let i = 0; i < body.length; i++) {
       const rowNo = i + (hasHeader ? 2 : 1);
       const cells = body[i];
@@ -300,6 +313,7 @@ router.post(
       const name = (inm >= 0 ? cells[inm] : "")?.trim().slice(0, 80).replace(/[\u0000-\u001f\u007f]/g, "");
       const lang: Lang = (il >= 0 ? cells[il] : "")?.trim().toLowerCase() === "he" ? "he" : "en";
       const hash = hashEmail(email.data);
+      if (held.has(hash)) { skipped++; continue; }
       const rowConsent: Consent = { ...importConsent, lang };
       // Suppressed and already-known addresses are never touched by an import.
       const c: Contact = {
@@ -365,6 +379,7 @@ router.post(
     const now = new Date().toISOString();
     const prior = await getContact(hash);
     const priorCopy = prior ? structuredClone(prior) : null;
+    await ledgerPut(hash, "suppressed");
     let after: Contact | null;
     if (prior) {
       after = await updateContact(hash, (c) => {
@@ -394,10 +409,45 @@ router.delete(
     if (!before || before.status !== "suppressed") return bad(res, "Not on the suppression list.", 404);
     const prior = structuredClone(before);
     // Lifted, not forgotten: the person is not mailed until they sign up and confirm again.
+    await ledgerPut(hash, "unsubscribed");
     const after = await updateContact(hash, (c) => { c.status = "unsubscribed"; });
     logger.info({ contact: hash }, "suppression lifted");
     res.locals.audit = { target: before._id, before: prior, after };
     res.json({ ok: true });
+  }),
+);
+
+/* ---------------------------------------------------------------- ledger -- */
+
+/* What the Marketing banner reads: is the ledger usable, how many lines of each kind, and what the guard last repaired. Counts only. */
+router.get(
+  "/ledger",
+  asyncHandler(async (_req, res) => {
+    const counts = { unsubscribed: 0, suppressed: 0, erased: 0 };
+    try {
+      for (const e of (await ledgerEntries()).values()) counts[e.kind]++;
+    } catch {
+      return res.json({ ok: true, ready: false, counts, report: null });
+    }
+    const r = await ledgerReport().catch(() => null);
+    res.json({ ok: true, ready: true, counts, report: r ? { at: r.at, repaired: r.repaired, acknowledgedAt: r.acknowledgedAt ?? null } : null });
+  }),
+);
+
+router.post(
+  "/ledger/ack",
+  asyncHandler(async (_req, res) => {
+    res.json({ ok: true, acknowledged: await acknowledgeReport() });
+  }),
+);
+
+/* Runs the same check the sender runs, now: after a restore the owner does not have to wait for a campaign to see the repair. */
+router.post(
+  "/ledger/check",
+  asyncHandler(async (_req, res) => {
+    const r = await ledgerGuard();
+    res.locals.noAudit = true;
+    res.json({ ok: r.ok, repaired: r.ok ? r.repaired : 0 });
   }),
 );
 

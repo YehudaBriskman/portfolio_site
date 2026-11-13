@@ -7,6 +7,7 @@ import { useMarketingWords } from "@/components/admin/announce/inbox/words";
 import CampaignsTab from "@/components/admin/announce/campaigns/CampaignsTab";
 import { useCampaignWords } from "@/components/admin/announce/campaigns/words";
 import { useHubIntro } from "@/components/admin/announce/hubIntro";
+import LedgerBanner from "@/components/admin/announce/audience/LedgerBanner";
 import AudienceTab from "@/components/admin/announce/audience/AudienceTab";
 import { useAudienceWords } from "@/components/admin/announce/audience/words";
 import LibraryPanel from "@/components/admin/announce/library/LibraryPanel";
@@ -104,6 +105,7 @@ export default function AdminAnnounce() {
           ))}
         </div>
 
+        {(current.id === "audience" || current.id === "campaigns") && <LedgerBanner />}
         {current.render()}
       </div>
     </AdminShell>
