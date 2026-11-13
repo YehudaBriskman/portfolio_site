@@ -35,10 +35,10 @@ export function renderContactNotice(n: NoticeInput, footerLines: string[] = []) 
   return renderMail(blocks, { lang: "en", title: n.subject, preheader: first.slice(0, 140) });
 }
 
-/* DRAFT wording, owner to approve. The English is the long-standing auto-reply text, unchanged. */
+/* Owner-approved wording. */
 export const AUTO_REPLY = {
-  en: { subject: "We got your message", heading: "We got your message", body: "Thanks, we’ll get back to you soon." },
-  he: { subject: "קיבלנו את ההודעה", heading: "קיבלנו את ההודעה", body: "תודה, נחזור אליכם בקרוב." },
+  en: { subject: "Got your message", heading: "Got your message", body: "Thanks for writing. I read every message myself and will get back to you soon." },
+  he: { subject: "קיבלתי את ההודעה שלכם", heading: "קיבלתי את ההודעה שלכם", body: "תודה שכתבתם. אני קורא כל הודעה בעצמי ואחזור אליכם בהקדם." },
 } as const;
 
 /** The form carries no language; a message written in Hebrew gets the Hebrew reply. */
