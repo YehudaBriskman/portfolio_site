@@ -408,6 +408,11 @@ jobs:
           - { check: a11y, shard: 5, of: 6 }
           - { check: a11y, shard: 6, of: 6 }
           - { check: links, shard: 1, of: 1 }
+          # The admin matrix (#660): overflow, targets and small text on every
+          # admin screen at phone and tablet widths. Two legs split its
+          # combinations (SHARD=k/n), the same way as the sweep above.
+          - { check: admin-matrix, shard: 1, of: 2 }
+          - { check: admin-matrix, shard: 2, of: 2 }
     defaults:
       run:
         working-directory: web
@@ -485,6 +490,16 @@ jobs:
       - name: Admin phone layout
         if: matrix.check == 'a11y' && matrix.shard == 1
         run: npm run a11y:admin-phones
+      # Admin at 320, 360, 390 and 768 wide, light and dark, English and
+      # Hebrew (#660): no sideways scroll, no target under 24px, no primary
+      # control under 44px on touch, no text under 14px outside the
+      # allowlist, and every screen actually loads. Known findings live in
+      # web/scripts/a11y/admin-matrix-baseline.json; a new one fails.
+      - name: Admin viewport matrix, shard ${{ matrix.shard }} of ${{ matrix.of }}
+        if: matrix.check == 'admin-matrix'
+        env:
+          SHARD: ${{ matrix.shard }}/${{ matrix.of }}
+        run: npm run a11y:admin-matrix
       # Every link lands on its target (#196): the top of a new page, a hash's
       # element under the bar, the old place on Back and Forward, at a laptop
       # and a phone, against the same build.

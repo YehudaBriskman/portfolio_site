@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AdminShell from "@/components/admin/AdminShell";
+import EditorBar, { type BarTone } from "@/components/admin/EditorBar";
 import { PageHeader } from "@/components/admin/ui";
 import { Disclosure } from "@/components/ui/Disclosure";
 import { issueText, useSettingsWords } from "@/components/admin/settings/words";
@@ -167,6 +168,10 @@ export default function AdminSettings() {
               ? w.unsaved
               : "";
 
+  const saveDisabled = !dirty || status === "saving" || localIssues.length > 0;
+  const tone: BarTone =
+    status === "conflict" || status === "failed" ? "bad" : status === "saving" ? "busy" : status === "saved" ? "ok" : "idle";
+
   const actions = (
     <span className="flex gap-2">
       <button type="button" className="a-btn a-btn-ghost" disabled={!dirty || status === "saving"} onClick={() => view && take(view)}>
@@ -175,7 +180,7 @@ export default function AdminSettings() {
       <button
         type="button"
         className="a-btn a-btn-primary"
-        disabled={!dirty || status === "saving" || localIssues.length > 0}
+        disabled={saveDisabled}
         onClick={save}
       >
         {w.save}
@@ -197,10 +202,16 @@ export default function AdminSettings() {
       title={w.title}
       section="settings"
       bottomBar={
-        <div className="flex items-center justify-between gap-2 px-3 py-2">
-          {statusLine}
-          {actions}
-        </div>
+        <EditorBar
+          tone={tone}
+          status={statusText}
+          primary={
+            <button type="button" className="a-btn a-btn-primary" disabled={saveDisabled} onClick={save}>
+              {w.save}
+            </button>
+          }
+          more={[{ key: "reset", label: w.reset, disabled: !dirty || status === "saving", onSelect: () => view && take(view) }]}
+        />
       }
     >
       <PageHeader
