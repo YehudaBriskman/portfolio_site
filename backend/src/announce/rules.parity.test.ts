@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { ContactCreate, Email } from "../audience/schemas.js";
 import { AnnounceSettingsSchema, DEFAULT_ANNOUNCE_SETTINGS, QuietHoursSchema, SenderSchema, DEFAULT_SENDER } from "./schemas.js";
@@ -10,7 +10,7 @@ import { AnnounceSettingsSchema, DEFAULT_ANNOUNCE_SETTINGS, QuietHoursSchema, Se
  * client rules in the web suite: if the two sides drift, one of them fails.
  */
 const cases = JSON.parse(
-  readFileSync(fileURLToPath(new URL("../../../web/src/components/admin/announce/sender/rules.cases.json", import.meta.url)), "utf8"),
+  readFileSync(resolve(process.cwd(), "../web/src/components/admin/announce/sender/rules.cases.json"), "utf8"),
 ) as Record<"email" | "hashtag" | "fromName" | "hhmm" | "contactName", Array<[string, boolean]>>;
 
 const run = (name: keyof typeof cases, accepts: (v: string) => boolean, extra: Array<[string, boolean]> = []) =>
