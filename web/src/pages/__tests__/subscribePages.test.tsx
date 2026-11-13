@@ -100,3 +100,97 @@ describe("the pages an email links to", () => {
     expect(JSON.parse(put[1].body)).toEqual({ token: "abc", lang: "en", topics: { blog: true, releases: true } });
   });
 });
+
+describe("a transient failure is not an expired link", () => {
+  const offline = () => {
+    fetchMock.mockImplementation(async () => {
+      throw new TypeError("Failed to fetch");
+    });
+    vi.stubGlobal("fetch", fetchMock);
+  };
+  const manageBody = { ok: true, email: "a***@e***.com", lang: "en", topics: { blog: true, releases: true }, status: "active" };
+
+  it("B16 unsubscribe: a network failure says the server could not be reached, keeps a retry, and prints no token", async () => {
+    offline();
+    at(<Unsubscribe />, "/unsubscribe?token=secret-token");
+    await userEvent.click(screen.getByRole("button", { name: /unsubscribe me/i }));
+    await waitFor(() => expect(screen.getByRole("alert")).toBeInTheDocument());
+    expect(screen.getByRole("alert").textContent).toMatch(/could not reach the server/i);
+    expect(screen.getByRole("alert").textContent).not.toMatch(/invalid or has expired/i);
+    const retry = screen.getByRole("button", { name: /try again/i });
+    expect(retry).toHaveFocus();
+    expect(document.body.textContent).not.toContain("secret-token");
+    respond(200);
+    await userEvent.click(retry);
+    await waitFor(() => expect(screen.getByRole("status").textContent).toMatch(/won.t get any more email/i));
+  });
+
+  it("B16 unsubscribe: a 4xx is still an invalid link, with no retry", async () => {
+    respond(400, { ok: false });
+    at(<Unsubscribe />, "/unsubscribe?token=abc");
+    await userEvent.click(screen.getByRole("button", { name: /unsubscribe me/i }));
+    await waitFor(() => expect(screen.getByRole("alert").textContent).toMatch(/invalid or has expired/i));
+    expect(screen.queryByRole("button", { name: /try again|unsubscribe me/i })).toBeNull();
+  });
+
+  it("B17 confirm: a 503 keeps a retry and does not claim the link expired", async () => {
+    respond(503, { ok: false });
+    at(<SubscribeConfirm />, "/subscribe/confirm?token=abc");
+    await userEvent.click(screen.getByRole("button", { name: /confirm my subscription/i }));
+    await waitFor(() => expect(screen.getByRole("alert")).toBeInTheDocument());
+    expect(screen.getByRole("alert").textContent).toMatch(/could not reach the server/i);
+    expect(screen.getByRole("alert").textContent).not.toMatch(/invalid or has expired/i);
+    expect(screen.getByRole("button", { name: /try again/i })).toHaveFocus();
+    respond(200, { ok: true, lang: "en" });
+    await userEvent.click(screen.getByRole("button", { name: /try again/i }));
+    await waitFor(() => expect(screen.getByRole("status").textContent).toMatch(/subscribed/i));
+  });
+
+  it("B17 confirm: the Hebrew failure is Hebrew", async () => {
+    document.documentElement.lang = "he";
+    offline();
+    at(<SubscribeConfirm />, "/subscribe/confirm?token=abc");
+    await userEvent.click(screen.getByRole("button", { name: /אישור ההרשמה/ }));
+    await waitFor(() => expect(screen.getByRole("alert").textContent).toMatch(/השרת/));
+    expect(screen.getByRole("button", { name: /ניסיון נוסף/ })).toBeInTheDocument();
+    document.documentElement.removeAttribute("lang");
+  });
+
+  it("B18 manage: a failed save keeps the form and the edits, and shows a save error", async () => {
+    let puts = 0;
+    fetchMock.mockImplementation(async (_u: string, init?: RequestInit) => {
+      if ((init?.method ?? "GET") === "GET") return new Response(JSON.stringify(manageBody), { status: 200 });
+      puts++;
+      return new Response(JSON.stringify({ ok: false }), { status: 503 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    at(<SubscribeManage />, "/subscribe/manage?token=abc");
+    await screen.findByText("a***@e***.com");
+    await userEvent.click(screen.getByLabelText(/releases/i));
+    await userEvent.click(screen.getByRole("button", { name: /save preferences/i }));
+    await waitFor(() => expect(puts).toBe(1));
+    await waitFor(() => expect(screen.getByRole("alert").textContent).toMatch(/could not save/i));
+    expect(screen.getByRole("alert").textContent).not.toMatch(/invalid or has expired/i);
+    expect(screen.getByLabelText(/releases/i)).not.toBeChecked();
+    expect(screen.getByRole("button", { name: /save preferences/i })).toBeEnabled();
+  });
+
+  it("B18 manage: a 4xx on save (the token went bad) is the invalid link", async () => {
+    fetchMock.mockImplementation(async (_u: string, init?: RequestInit) =>
+      (init?.method ?? "GET") === "GET" ? new Response(JSON.stringify(manageBody)) : new Response("{}", { status: 400 }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    at(<SubscribeManage />, "/subscribe/manage?token=abc");
+    await userEvent.click(await screen.findByRole("button", { name: /save preferences/i }));
+    await waitFor(() => expect(screen.getByRole("alert").textContent).toMatch(/invalid or has expired/i));
+  });
+
+  it("B18 manage: failing to load is retryable, not an expired link", async () => {
+    offline();
+    at(<SubscribeManage />, "/subscribe/manage?token=abc");
+    await waitFor(() => expect(screen.getByRole("alert").textContent).toMatch(/could not reach the server/i));
+    fetchMock.mockImplementation(async () => new Response(JSON.stringify(manageBody)));
+    await userEvent.click(screen.getByRole("button", { name: /try again/i }));
+    await screen.findByText("a***@e***.com");
+  });
+});
