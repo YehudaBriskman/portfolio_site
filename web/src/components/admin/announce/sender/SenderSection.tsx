@@ -49,13 +49,13 @@ export default function SenderSection({ sender, onChange, warnings }: { sender: 
       </div>
     );
   };
-  const num = (f: "throttlePerHour" | "dailyCap", label: string, hint: string, max: number) => {
+  const num = (f: "throttlePerHour" | "dailyCap" | "maxPerContact30d", label: string, hint: string, max: number, min = 1) => {
     const id = `${uid}-${f}`;
     return (
       <div>
         <label className="a-label" htmlFor={id}>{label}</label>
         <div className="flex flex-wrap items-start gap-2">
-          <input id={id} type="number" inputMode="numeric" min={1} max={max} className="a-input min-h-[44px] w-32 tabular-nums" dir="ltr" value={Number.isNaN(sender[f]) ? "" : sender[f]} aria-invalid={Boolean(problems[f])} aria-describedby={`${id}-h`} onChange={(e) => onChange((s) => void (s[f] = e.target.value === "" ? NaN : Number(e.target.value)))} />
+          <input id={id} type="number" inputMode="numeric" min={min} max={max} className="a-input min-h-[44px] w-32 tabular-nums" dir="ltr" value={Number.isNaN(sender[f]) ? "" : sender[f]} aria-invalid={Boolean(problems[f])} aria-describedby={`${id}-h`} onChange={(e) => onChange((s) => void (s[f] = e.target.value === "" ? NaN : Number(e.target.value)))} />
           {reset(label, sender[f] !== DEFAULT_SENDER[f], false, () => onChange((s) => void (s[f] = DEFAULT_SENDER[f])))}
         </div>
         <p id={`${id}-h`} className={problems[f] ? "a-error" : "a-hint"}>{err(f) || hint}</p>
@@ -111,7 +111,7 @@ export default function SenderSection({ sender, onChange, warnings }: { sender: 
   const emailSet = !lacks.includes("email");
   const footerSet = lacks.length === 0;
   const senderBad = Boolean(problems.fromAddress || problems.replyTo);
-  const limitsBad = Boolean(problems.throttlePerHour || problems.dailyCap || problems.quietHours);
+  const limitsBad = Boolean(problems.throttlePerHour || problems.dailyCap || problems.maxPerContact30d || problems.quietHours);
   const textsBad = hasTextProblem(sender);
   const ready = footerSet && !senderBad && !limitsBad && !textsBad;
   const mark = (ok: boolean) => (
@@ -219,11 +219,12 @@ export default function SenderSection({ sender, onChange, warnings }: { sender: 
 
       {sec(
         w.secLimits,
-        <>{w.sumLimits(sender.throttlePerHour, sender.dailyCap, quietText)}{sender.autoDraftCampaign ? `, ${w.sumAuto}` : ""} {mark(!limitsBad)}</>,
+        <>{w.sumLimits(sender.throttlePerHour, sender.dailyCap, quietText)}, {w.sumPerPerson(sender.maxPerContact30d)}{sender.autoDraftCampaign ? `, ${w.sumAuto}` : ""} {mark(!limitsBad)}</>,
         <>
           <div className="grid gap-4 md:grid-cols-2">
             {num("throttlePerHour", w.throttle, w.throttleHint, 3600)}
             {num("dailyCap", w.cap, w.capHint, 10000)}
+            {num("maxPerContact30d", w.perPerson, w.perPersonHint, 31, 0)}
           </div>
           <fieldset className="space-y-2">
             <legend className="a-label">{w.quiet}</legend>

@@ -8,6 +8,7 @@ import { createApp } from "./app";
 import { env } from './env.js';
 import { logger } from './logger.js';
 import { startSender } from './campaigns/sender.js';
+import { ensureSendIndex } from './campaigns/store.js';
 import { ensureLedger } from './audience/ledger.js';
 
 const app = createApp();
@@ -70,6 +71,8 @@ async function ensureContentStore(): Promise<void> {
    * ends up serving 404s to every read.
    */
   await couch.ensureIndex("type-status-publishedAt", ["type", "status", "publishedAt"]);
+  /* The monthly limit counts a person's sent mails by time; without this it would scan every result doc. */
+  await ensureSendIndex();
 }
 
 ensureContentStore()

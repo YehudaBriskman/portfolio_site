@@ -16,7 +16,7 @@ export const useSubscribeWords = defineWords(
   "subscribe",
   {
     heading: "Follow along",
-    lede: "New notes and releases by email: at most a few a month, and you can stop with one click.",
+    lede: "New notes and releases by email, only when there is something new. You can stop with one click.",
     email: "Email",
     name: "Name (optional)",
     topics: "What to send",
@@ -67,7 +67,7 @@ export const useSubscribeWords = defineWords(
   },
   {
     heading: "להישאר מעודכנים",
-    lede: "רשימות וגרסאות חדשות באימייל: לכל היותר כמה בחודש, ואפשר להפסיק בלחיצה אחת.",
+    lede: "רשימות וגרסאות חדשות באימייל, רק כשיש משהו חדש. אפשר להפסיק בלחיצה אחת.",
     email: "אימייל",
     name: "שם (לא חובה)",
     topics: "מה לשלוח",

@@ -9,6 +9,8 @@ import {
   adminCampaigns,
   CampaignConflictError,
   CampaignRefusedError,
+  type CapChoice,
+  type CapInfo,
   type AudienceSample,
   type Block,
   type Campaign,
@@ -57,7 +59,7 @@ const localZone = () => {
   }
 };
 
-type Dialog = "send" | "cancel" | "delete" | "resume" | null;
+type Dialog = "send" | "cap" | "cancel" | "delete" | "resume" | null;
 type Mode = "now" | "later";
 type PreviewState = { key: string; data: { subject: string; html: string; text: string } | "failed" };
 const DEBOUNCE_MS = 450;
@@ -98,6 +100,7 @@ export default function CampaignEditor({
   const [msg, setMsg] = useState<Msg>(null);
   const [conflict, setConflict] = useState(false);
   const [dialog, setDialog] = useState<Dialog>(null);
+  const [capInfo, setCapInfo] = useState<CapInfo | null>(null);
   const [audienceRes, setAudienceRes] = useState<{ key: string; data: AudienceSample | "failed" } | null>(null);
   const [previewRes, setPreviewRes] = useState<PreviewState | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -145,6 +148,7 @@ export default function CampaignEditor({
   }, [akey]);
   const audience = form.groups.length === 0 ? "none" : audienceRes && audienceRes.key === akey ? audienceRes.data : "loading";
   const recipients = typeof audience === "object" ? audience.count : null;
+  const overCap = typeof audience === "object" && audience.cap ? audience.overCap ?? 0 : 0;
 
   /* The preview is the server's own render of the draft, so it is what would be sent. Blocks it would refuse are left out until fixed. */
   const pvBody = useMemo(
@@ -267,12 +271,19 @@ export default function CampaignEditor({
       setDialog(null);
       onChanged();
     } catch (e) {
-      setDialog(null);
-      explain(e);
+      /* The limit is a question, not an error: the owner picks, and the same send is asked again with the choice. */
+      if (e instanceof CampaignRefusedError && e.cap) {
+        setCapInfo(e.cap);
+        setDialog("cap");
+      } else {
+        setDialog(null);
+        explain(e);
+      }
     } finally {
       setBusy("");
     }
   };
+  const dispatch = (c: Campaign, choice: CapChoice = {}) => () => (later && scheduleIso ? adminCampaigns.schedule(c.id, scheduleIso, choice) : adminCampaigns.sendNow(c.id, choice));
 
   const zones = useMemo(() => Array.from(new Set([zone, ...ZONES])), [zone]);
   const fmt = (iso: string) => new Intl.DateTimeFormat(document.documentElement.lang === "he" ? "he-IL" : "en-GB", { dateStyle: "medium", timeStyle: "short" }).format(new Date(iso));
@@ -491,6 +502,7 @@ export default function CampaignEditor({
                   ) : (
                     <p className="a-hint !mt-0 font-bold">{w.readyOk}</p>
                   )}
+                  {overCap > 0 && recipients !== null && typeof audience === "object" && <p className="a-hint font-bold" data-testid="ready-cap">{w.readyCap(overCap, recipients, audience.cap ?? 0)}</p>}
                 </div>
               )}
               {issues.length > 0 && (
@@ -545,10 +557,24 @@ export default function CampaignEditor({
             <div className="flex flex-wrap gap-2 pt-2">
               <button
                 type="button" className="a-btn a-btn-primary min-h-[44px]" disabled={recipients === null || recipients === 0 || busy !== ""}
-                onClick={() => void run(() => (later && scheduleIso ? adminCampaigns.schedule(campaign.id, scheduleIso) : adminCampaigns.sendNow(campaign.id)))}
+                onClick={() => void run(dispatch(campaign))}
               >
                 {recipients === null ? w.confirmChecking : later ? w.scheduleConfirmDo(recipients) : w.confirmDo(recipients)}
               </button>
+              <button type="button" className="a-btn min-h-[44px]" onClick={() => setDialog(null)}>{w.cancel}</button>
+            </div>
+          </div>
+        </Modal>
+      )}
+      {dialog === "cap" && campaign && capInfo && (
+        <Modal title={w.capHeading} titleId={`${uid}-cp`} onClose={() => setDialog(null)}>
+          <div className="space-y-3" data-testid="cap-block">
+            <p className="font-bold tabular-nums" role="status">{w.capBody(capInfo.capped, capInfo.total, capInfo.max)}</p>
+            <p className="a-hint !mt-0">{w.capSkipHint}</p>
+            <p className="a-hint !mt-0">{w.capOverrideHint}</p>
+            <div className="flex flex-wrap gap-2 pt-2">
+              <button type="button" className="a-btn a-btn-primary min-h-[44px]" disabled={busy !== "" || capInfo.total === capInfo.capped} onClick={() => void run(dispatch(campaign, { skipCapped: true }))}>{w.capSkip(capInfo.total - capInfo.capped)}</button>
+              <button type="button" className="a-btn a-btn-danger min-h-[44px]" disabled={busy !== ""} onClick={() => void run(dispatch(campaign, { overrideCap: true }))}>{w.capOverride}</button>
               <button type="button" className="a-btn min-h-[44px]" onClick={() => setDialog(null)}>{w.cancel}</button>
             </div>
           </div>

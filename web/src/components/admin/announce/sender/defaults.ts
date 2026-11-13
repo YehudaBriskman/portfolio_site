@@ -15,6 +15,7 @@ export const DEFAULT_SENDER: SenderSettings = {
   testRecipients: [],
   throttlePerHour: 60,
   dailyCap: 200,
+  maxPerContact30d: 4,
   autoDraftCampaign: false,
   labelMode: "hebrew",
   pendingTtlDays: 7,
@@ -29,7 +30,7 @@ export const DEFAULT_SENDER: SenderSettings = {
 };
 
 export type SenderField =
-  | "fromName" | "fromAddress" | "replyTo" | "footerIdentity" | "identityEmail" | "testRecipients" | "throttlePerHour" | "dailyCap" | "quietHours"
+  | "fromName" | "fromAddress" | "replyTo" | "footerIdentity" | "identityEmail" | "testRecipients" | "throttlePerHour" | "dailyCap" | "maxPerContact30d" | "quietHours"
   | "confirmSubjectEn" | "confirmSubjectHe" | "confirmBodyEn" | "confirmBodyHe" | "unsubscribeNoteEn" | "unsubscribeNoteHe";
 export type SenderProblem = "empty" | "address" | "number" | "list" | "zone" | "noLink" | "unknown" | "long" | "unsubVars";
 
@@ -61,7 +62,7 @@ const zoneOk = (tz: string) => {
     return false;
   }
 };
-const whole = (n: number, max: number) => Number.isInteger(n) && n >= 1 && n <= max;
+const whole = (n: number, max: number, min = 1) => Number.isInteger(n) && n >= min && n <= max;
 
 /** The same rules as the server's schema, so a bad value is named before Save rather than after. */
 export function senderProblems(s: SenderSettings): Partial<Record<SenderField, SenderProblem>> {
@@ -72,6 +73,7 @@ export function senderProblems(s: SenderSettings): Partial<Record<SenderField, S
   if (s.testRecipients.length > 5 || s.testRecipients.some((a) => !EMAIL.test(a))) p.testRecipients = "list";
   if (!whole(s.throttlePerHour, 3600)) p.throttlePerHour = "number";
   if (!whole(s.dailyCap, 10000)) p.dailyCap = "number";
+  if (!whole(s.maxPerContact30d, 31, 0)) p.maxPerContact30d = "number";
   if (s.quietHours && !zoneOk(s.quietHours.tz)) p.quietHours = "zone";
   for (const k of ["confirmSubjectEn", "confirmSubjectHe", "confirmBodyEn", "confirmBodyHe", "unsubscribeNoteEn", "unsubscribeNoteHe"] as const) {
     const v = s[k];

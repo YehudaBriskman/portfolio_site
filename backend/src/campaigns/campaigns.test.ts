@@ -62,9 +62,10 @@ beforeEach(() => {
     return { ok: true };
   });
   vi.spyOn(couch, "find").mockImplementation(async (q: unknown) => {
-    const { selector: s, limit = 25 } = q as { selector: { _id: { $gt: string; $lt: string }; status?: { $in: string[] } }; limit?: number };
+    const { selector: s, limit = 25 } = q as { selector: { _id?: { $gt: string; $lt: string }; type?: string; status?: string | { $in: string[] }; at?: { $gte: string } }; limit?: number };
+    const statusOk = (d: Record<string, unknown>) => !s.status || (typeof s.status === "string" ? d.status === s.status : s.status.$in.includes(d.status as string));
     const docs = [...store.entries()]
-      .filter(([id, d]) => id > s._id.$gt && id < s._id.$lt && (!s.status || s.status.$in.includes(d.status as string)))
+      .filter(([id, d]) => (s._id ? id > s._id.$gt && id < s._id.$lt : s.type === undefined || d.type === s.type) && statusOk(d) && (!s.at || String(d.at) >= s.at.$gte))
       .sort(([a], [b]) => (a < b ? -1 : 1))
       .slice(0, limit)
       .map(([, d]) => structuredClone(d));
@@ -828,9 +829,9 @@ describe("sender settings", () => {
 });
 
 describe("auto-draft", () => {
-  const ev = (kind: "post" | "release"): AnnounceEvent => ({
+  const ev = (kind: "post" | "release", version?: string): AnnounceEvent => ({
     _id: `announce:${kind}:x:1`, type: "announce", kind, ref: "x", title: "A <b>title</b>", summary: "S", tags: [], url: "https://yehudabriskman.com/blog/x",
-    langs: ["en"], createdAt: "2026-06-01T00:00:00Z", done: {},
+    ...(version ? { version } : {}), langs: ["en"], createdAt: "2026-06-01T00:00:00Z", done: {},
   });
   const on = { ...DEFAULT_ANNOUNCE_SETTINGS, sender: { ...DEFAULT_ANNOUNCE_SETTINGS.sender, autoDraftCampaign: true } };
 
@@ -846,6 +847,17 @@ describe("auto-draft", () => {
     expect(doc.bodyHtml).toBeUndefined();
     expect(await autoDraftFor(ev("release"), on)).toBe(true);
     expect(await autoDraftFor({ ...ev("post"), kind: "note" }, on)).toBe(false);
+  });
+
+  it("drafts minor and major releases and non-semver tags, never a patch release (x.y.Z with Z above 0)", async () => {
+    for (const v of ["v1.6.1", "1.4.12", "v2.0.3"]) expect(await autoDraftFor(ev("release", v), on), v).toBe(false);
+    expect([...store.keys()]).toEqual([]);
+    for (const v of ["v1.7.0", "v2.0.0", "nightly", "v1.7.0-rc.1"]) {
+      store.clear();
+      expect(await autoDraftFor(ev("release", v), on), v).toBe(true);
+    }
+    store.clear();
+    expect(await autoDraftFor(ev("release"), on)).toBe(true);
   });
 });
 
@@ -927,5 +939,155 @@ describe("the suppression ledger guard", () => {
     await tick(failing(HARD));
     expect(ledger.docs.get(hashEmail(addr(1)))).toMatchObject({ kind: "suppressed" });
     expect(contactOf(1)).toMatchObject({ status: "suppressed" });
+  });
+});
+
+describe("monthly limit per contact", () => {
+  const DAY = 86_400_000;
+  const putSettings = (sender: object) =>
+    admin(request(createApp()).put("/api/admin/announce/settings").send({ settings: { ...DEFAULT_ANNOUNCE_SETTINGS, sender: { ...DEFAULT_ANNOUNCE_SETTINGS.sender, ...sender } } }));
+  /* A mail someone got from another campaign. */
+  const gotMail = (i: number, at: number, over: Record<string, unknown> = {}, campaign = "old") => {
+    const h = hashEmail(addr(i));
+    store.set(`send:${campaign}:${h}`, { _id: `send:${campaign}:${h}`, type: "send", campaignId: campaign, contact: h, status: "sent", at: new Date(at).toISOString(), ...over });
+  };
+  const fill = (i: number, n: number, at: number) => { for (let k = 0; k < n; k++) gotMail(i, at - k, {}, `old${k}`); };
+  const go = (id: string, body: object = {}) => admin(request(createApp()).post(`${C}/${id}/send-now`).send(body));
+  const run = async (id: string, now = T0) => {
+    store.set(`campaign:${id}`, { ...get(id), sendAt: "2000-01-01T00:00:00.000Z" });
+    await runSenderTick({ now: () => now, deliver });
+    await runSenderTick({ now: () => now, deliver });
+  };
+
+  it("is 4 by default, 0 turns it off, and the range is checked on PUT only", async () => {
+    expect(DEFAULT_ANNOUNCE_SETTINGS.sender.maxPerContact30d).toBe(4);
+    /* Only the first save into an empty store needs no revision; later ones are checked on their own. */
+    expect((await putSettings({ maxPerContact30d: 0 })).status).toBe(200);
+    store.delete(SETTINGS_DOC_ID);
+    expect((await putSettings({ maxPerContact30d: 31 })).status).toBe(200);
+    store.delete(SETTINGS_DOC_ID);
+    for (const n of [-1, 32, 2.5]) {
+      const r = await putSettings({ maxPerContact30d: n });
+      expect(r.status, String(n)).toBe(400);
+      expect(r.body.issues).toEqual([{ path: "sender.maxPerContact30d", message: expect.stringContaining("0 (off) to 31") }]);
+    }
+    /* A document saved before the field existed reads with the default, not with all defaults. */
+    const { maxPerContact30d: _m, ...old } = DEFAULT_ANNOUNCE_SETTINGS.sender;
+    void _m;
+    store.set(SETTINGS_DOC_ID, { _id: SETTINGS_DOC_ID, _rev: "1-s", type: "settings-announce", updatedAt: "x", settings: { ...DEFAULT_ANNOUNCE_SETTINGS, sender: { ...old, footerIdentity: "Kept" } } });
+    const r = await admin(request(createApp()).get("/api/admin/announce/settings"));
+    expect(r.body.settings.sender).toMatchObject({ maxPerContact30d: 4, footerIdentity: "Kept" });
+  });
+
+  it("blocks send-now and schedule with a count, until the owner skips the capped or overrides (recorded on the campaign)", async () => {
+    setSender();
+    seedMany(3);
+    fill(1, 4, Date.now() - DAY);
+    const c = await mk();
+    const r = await go(c.id);
+    expect(r.status).toBe(409);
+    expect(r.body).toMatchObject({ ok: false, code: "cap", capped: 1, total: 3, max: 4 });
+    expect(r.body.error).toBe("1 of 3 recipients already got 4 emails in the last 30 days. Send to the others (they are skipped), or send to everyone anyway.");
+    expect(JSON.stringify(r.body)).not.toContain("user1@");
+    expect(get(c.id).status).toBe("draft");
+    const later = await admin(request(createApp()).post(`${C}/${c.id}/schedule`).send({ sendAt: new Date(Date.now() + 3_600_000).toISOString() }));
+    expect(later.status).toBe(409);
+    expect(later.body.code).toBe("cap");
+
+    const skip = await go(c.id, { skipCapped: true });
+    expect(skip.status).toBe(200);
+    expect(get(c.id).capOverride).toBeUndefined();
+
+    const d = await mk();
+    const over = await go(d.id, { overrideCap: true });
+    expect(over.status).toBe(200);
+    expect(over.body.campaign.capOverride).toEqual({ at: expect.any(String) });
+    expect(get(d.id).capOverride.at).toMatch(/^\d{4}-/);
+  });
+
+  it("is quiet when nobody is at the limit, when it is off, and for sends older than 30 days, failed, suppressed or capped", async () => {
+    setSender();
+    seedMany(2);
+    fill(1, 3, Date.now() - DAY);
+    gotMail(1, Date.now() - 40 * DAY, {}, "ancient");
+    gotMail(1, Date.now() - 2 * DAY, { status: "failed" }, "f");
+    gotMail(1, Date.now() - 2 * DAY, { status: "suppressed" }, "s");
+    gotMail(1, Date.now() - 2 * DAY, { status: "capped" }, "c");
+    const c = await mk();
+    expect((await go(c.id)).status).toBe(200);
+    setSender({ maxPerContact30d: 1 });
+    fill(2, 1, Date.now() - DAY);
+    const d = await mk();
+    expect((await go(d.id)).body).toMatchObject({ code: "cap", capped: 2 });
+    setSender({ maxPerContact30d: 0 });
+    expect((await go(d.id)).status).toBe(200);
+  });
+
+  it("the audience answer says how many are at the limit, which feeds the checklist", async () => {
+    setSender();
+    seedMany(3);
+    fill(2, 4, Date.now() - DAY);
+    const r = await admin(request(createApp()).post(`${C}/audience`).send({ groups: ["subscribers"], lang: "all" }));
+    expect(r.body).toMatchObject({ count: 3, overCap: 1, cap: 4 });
+    setSender({ maxPerContact30d: 0 });
+    const off = await admin(request(createApp()).post(`${C}/audience`).send({ groups: ["subscribers"], lang: "all" }));
+    expect(off.body.overCap).toBeUndefined();
+  });
+
+  it("the sender skips a capped recipient with a 'capped' result: no mail, not a failure, the campaign still finishes", async () => {
+    setSender();
+    seedMany(3);
+    const c = await mk();
+    expect((await go(c.id)).status).toBe(200);
+    /* Between the check and the send, contact 1 got a fourth mail elsewhere. */
+    fill(1, 4, T0 - DAY);
+    await run(c.id);
+    expect(sent.map((m) => m.to).sort()).toEqual([addr(2), addr(3)]);
+    expect(store.get(`send:${c.id}:${hashEmail(addr(1))}`)).toMatchObject({ status: "capped" });
+    expect(get(c.id)).toMatchObject({ status: "sent", counters: { queued: 3, sent: 2, failed: 0, suppressed: 0, capped: 1 } });
+    expect(get(c.id).pausedReason).toBeUndefined();
+    expect(get(c.id).health).toMatchObject({ failed: 0, streak: 0 });
+  });
+
+  it("a campaign the limit never touched keeps its old counters", async () => {
+    const id = await queued(2);
+    await run(id);
+    expect(get(id).counters).toEqual({ queued: 2, sent: 2, failed: 0, suppressed: 0 });
+  });
+
+  it("a whole audience at the limit is not a failure streak: no auto-pause, status sent", async () => {
+    setSender({ dailyCap: 1000, throttlePerHour: 1000 });
+    seedMany(30);
+    const c = await mk();
+    expect((await go(c.id)).status).toBe(200);
+    for (let i = 1; i <= 30; i++) fill(i, 4, T0 - DAY);
+    await run(c.id);
+    await run(c.id);
+    expect(sent).toHaveLength(0);
+    expect(get(c.id)).toMatchObject({ status: "sent", counters: { sent: 0, failed: 0, capped: 30 } });
+  });
+
+  it("the owner's override sends to everyone, and an unsubscribed contact is still left out", async () => {
+    setSender();
+    seedMany(3);
+    seedContact(4, { status: "unsubscribed" });
+    fill(1, 5, T0 - DAY);
+    fill(4, 5, T0 - DAY);
+    const c = await mk();
+    expect((await go(c.id, { overrideCap: true })).status).toBe(200);
+    await run(c.id);
+    expect(sent.map((m) => m.to).sort()).toEqual([addr(1), addr(2), addr(3)]);
+    expect(get(c.id).counters).not.toHaveProperty("capped");
+  });
+
+  it("a send older than 30 days no longer counts at send time, one inside the window does", async () => {
+    setSender();
+    seedMany(2);
+    const c = await mk();
+    expect((await go(c.id)).status).toBe(200);
+    fill(1, 4, T0 - 31 * DAY);
+    fill(2, 4, T0 - 29 * DAY);
+    await run(c.id);
+    expect(sent.map((m) => m.to)).toEqual([addr(1)]);
   });
 });

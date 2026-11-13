@@ -11,8 +11,12 @@ import type { Block, Campaign } from "./schemas.js";
  * the owner reads it, edits it and presses send. One draft per event (the id is
  * derived from the event id), so a re-recorded event cannot make a second.
  */
+/* x.y.Z with Z above 0: a fix release, which is not news to a reader. Minor, major and anything that is not plain semver still draft. */
+const PATCH_RELEASE = /^v?\d+\.\d+\.[1-9]\d*$/;
+
 export async function autoDraftFor(ev: AnnounceEvent, settings: AnnounceSettings, now = new Date()): Promise<boolean> {
   if (!settings.sender.autoDraftCampaign || (ev.kind !== "post" && ev.kind !== "release")) return false;
+  if (ev.kind === "release" && PATCH_RELEASE.test(ev.version ?? "")) return false;
   const he = ev.titleHe || ev.summaryHe;
   const blocks: Block[] = [
     { type: "h2", text: ev.title },

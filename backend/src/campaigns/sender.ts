@@ -10,7 +10,7 @@ import { resolveSender } from "./config.js";
 import { renderCampaignMail } from "./render.js";
 import type { Campaign, Health, PauseReason, SendResult } from "./schemas.js";
 import {
-  claimSend, finishSend, getCampaign, getRate, isStatus, mutateCampaign, putRate, resultsOf, sendId,
+  claimSend, finishSend, getCampaign, getRate, isStatus, mutateCampaign, putRate, resultsOf, sendId, sentCounts,
   RATE_ID, type RateState,
 } from "./store.js";
 
@@ -32,6 +32,8 @@ const STALE_ATTEMPT_MS = 5 * 60_000;
 /* A transient failure (relay busy, timeout) is tried again after this long, up to MAX_TRIES attempts in all. */
 const RETRY_MS = 15 * 60_000;
 const MAX_TRIES = 3;
+/** The window of the per-person monthly limit. */
+export const CAP_WINDOW_MS = 30 * 24 * 3_600_000;
 /* Consecutive soft failures, across campaigns, before an address is suppressed. */
 const SOFT_LIMIT = 3;
 /* Auto-pause: the owner fixes the cause, then resumes. Rates are only judged once there are enough attempts to mean something. */
@@ -182,8 +184,13 @@ async function claimCampaign(c: Campaign, ms: number): Promise<Campaign | null> 
    that was cut short, which the resumed run then skips. */
 function tally(results: Iterable<SendResult>) {
   const n = { sent: 0, failed: 0, suppressed: 0 };
-  for (const r of results) if (r.status === "sent" || r.status === "failed" || r.status === "suppressed") n[r.status]++;
-  return n;
+  let capped = 0;
+  for (const r of results) {
+    if (r.status === "capped") capped++;
+    else if (r.status === "sent" || r.status === "failed" || r.status === "suppressed") n[r.status]++;
+  }
+  /* Only present once there is one, so a campaign the limit never touched keeps the counters it always had. */
+  return capped > 0 ? { ...n, capped } : n;
 }
 
 async function runCampaign(c: Campaign, settings: SenderSettings, deps: Required<SenderDeps>): Promise<void> {
@@ -227,11 +234,14 @@ async function runCampaign(c: Campaign, settings: SenderSettings, deps: Required
     return;
   }
 
+  /* Read before the budget is reserved, so a failed read (nothing is sent) costs no budget. Checked again per recipient below, against this fresh count. */
+  const limit = Math.floor(settings.maxPerContact30d);
+  const counts = limit > 0 && !c.capOverride ? await sentCounts(ms - CAP_WINDOW_MS, id) : null;
   const granted = await reserve(settings, Math.min(BATCH_MAX, todo.length), ms);
   if (granted === 0) return;
   const from = resolveSender(settings);
   let used = 0;
-  let sent = 0, failed = 0, suppressed = 0;
+  let sent = 0, failed = 0, suppressed = 0, capped = 0;
   const h: Health = { sent: 0, failed: 0, hard: 0, streak: 0, ...c.health };
   let pause: PauseReason | null = null;
 
@@ -255,6 +265,12 @@ async function runCampaign(c: Campaign, settings: SenderSettings, deps: Required
     if (!contact || contact.status !== "active" || cachedKind(t.hash) || (await isSuppressed(contact.email))) {
       await finishSend({ ...base, status: "suppressed" });
       suppressed++;
+      continue;
+    }
+    /* Not a failure: no mail, a final result, and nothing the auto-pause rules see. */
+    if (counts && (counts.get(t.hash) ?? 0) >= limit) {
+      await finishSend({ ...base, status: "capped" });
+      capped++;
       continue;
     }
     used++;
@@ -309,7 +325,7 @@ async function runCampaign(c: Campaign, settings: SenderSettings, deps: Required
       x.pausedReason = stop;
     }
   });
-  logger.info({ campaign: id, sent, failed, suppressed, ...(stop ? { paused: stop } : {}) }, "campaign batch done");
+  logger.info({ campaign: id, sent, failed, suppressed, capped, ...(stop ? { paused: stop } : {}) }, "campaign batch done");
 }
 
 /* --- the tick ------------------------------------------------------------------ */

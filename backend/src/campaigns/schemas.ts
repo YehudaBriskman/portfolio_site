@@ -27,7 +27,9 @@ export type Campaign = {
   topic?: "blog" | "releases";
   status: CampaignStatus;
   sendAt?: string;
-  counters: { queued: number; sent: number; failed: number; suppressed: number };
+  counters: { queued: number; sent: number; failed: number; suppressed: number; /** Skipped by the per-person monthly limit; absent until one is. */ capped?: number };
+  /** The owner chose to send past the monthly limit; the sender then does not skip anyone for it. */
+  capOverride?: { at: string };
   eventId?: string;
   pausedReason?: PauseReason;
   health?: Health;
@@ -43,8 +45,8 @@ export type SendResult = {
   type: "send";
   campaignId: string;
   contact: string;
-  /** `deferred`: a transient failure, tried again at `retryAt` (not final, not counted as failed). */
-  status: "attempting" | "sent" | "failed" | "suppressed" | "deferred";
+  /** `deferred`: a transient failure, tried again at `retryAt` (not final, not counted as failed). `capped`: skipped because this person already got the monthly maximum; final, no mail, not a failure. */
+  status: "attempting" | "sent" | "failed" | "suppressed" | "deferred" | "capped";
   at: string;
   error?: string;
   /** From classifySmtpError: the kind of failure and the numeric SMTP reply. Never an address. */
@@ -105,7 +107,10 @@ function _partial() {
     topic: Fields.topic.nullable().optional(),
   };
 }
-export const ScheduleBody = z.object({ sendAt: z.string().datetime({ offset: true }).nullable() }).strict();
+/* overrideCap: send to everyone although some already got the monthly maximum (recorded on the campaign). skipCapped: go ahead and let the sender skip them. */
+const CapChoice = { overrideCap: z.boolean().optional(), skipCapped: z.boolean().optional() };
+export const ScheduleBody = z.object({ sendAt: z.string().datetime({ offset: true }).nullable(), ...CapChoice }).strict();
+export const SendNowBody = z.object(CapChoice).strict();
 
 /* Unsaved draft text, rendered exactly as it would be sent. Lenient on emptiness (a half-typed draft still previews), strict on shape. */
 export const PreviewBody = z
