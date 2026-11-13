@@ -5,7 +5,8 @@ import Modal from "./Modal";
 import { previewCsv } from "./csv";
 import { useAudienceWords } from "./words";
 
-const MAX_BYTES = 2_000_000;
+// The server refuses a csv longer than this many characters.
+const MAX_CHARS = 900_000;
 const SHOWN = 5;
 
 export default function ImportDialog({ groups, onClose, onDone }: { groups: Group[]; onClose: () => void; onDone: () => void }) {
@@ -21,11 +22,12 @@ export default function ImportDialog({ groups, onClose, onDone }: { groups: Grou
 
   const rows = useMemo(() => previewCsv(csv), [csv]);
   const ok = rows.filter((r) => r.valid).length;
-  const ready = consent && note.trim() !== "" && ok > 0 && !busy;
+  const tooBig = csv.length > MAX_CHARS;
+  const ready = consent && note.trim().length >= 3 && ok > 0 && !tooBig && !busy;
 
   const pick = async (f: File | undefined) => {
     if (!f) return;
-    if (f.size > MAX_BYTES) return setError(w.importTooBig);
+    if (f.size > MAX_CHARS) return setError(w.importTooBig);
     setError(null);
     setCsv(await f.text());
   };
@@ -110,7 +112,7 @@ export default function ImportDialog({ groups, onClose, onDone }: { groups: Grou
             <span>{w.importConsent}</span>
           </label>
 
-          {error && <p className="a-error" role="alert">{error}</p>}
+          {(tooBig || error) && <p className="a-error" role="alert">{tooBig ? w.importTooBig : error}</p>}
           <div className="flex flex-wrap gap-2">
             <button type="submit" className="a-btn a-btn-primary min-h-[44px]" disabled={!ready}>{busy ? w.importing : w.importRun}</button>
             <button type="button" className="a-btn a-btn-ghost min-h-[44px]" onClick={onClose}>{w.cancel}</button>

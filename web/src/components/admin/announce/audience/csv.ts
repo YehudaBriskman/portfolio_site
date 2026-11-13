@@ -1,4 +1,4 @@
-/* A small CSV reader for the import preview: quotes, doubled quotes, commas and newlines inside quotes. The server parses again; this only shows what it is likely to see. */
+/* A small CSV reader for the import preview. It mirrors the server's parser and column rules (backend/src/audience), so the preview shows what the import will do: commas only, and a quote opens a cell only at its start. */
 export type CsvRow = { email: string; name: string; lang: string; valid: boolean };
 
 export function parseRows(text: string): string[][] {
@@ -16,8 +16,8 @@ export function parseRows(text: string): string[][] {
       }
       else if (c === '"') quoted = false;
       else cell += c;
-    } else if (c === '"') quoted = true;
-    else if (c === "," || c === ";") {
+    } else if (c === '"' && cell === "") quoted = true;
+    else if (c === ",") {
       row.push(cell);
       cell = "";
     }
@@ -38,9 +38,13 @@ const EMAIL = /^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/;
 
 export function previewCsv(text: string): CsvRow[] {
   const rows = parseRows(text);
-  if (rows.length && /^\s*e-?mail/i.test(rows[0][0] ?? "")) rows.shift();
-  return rows.map((r) => {
-    const email = (r[0] ?? "").trim();
-    return { email, name: (r[1] ?? "").trim(), lang: (r[2] ?? "").trim().toLowerCase(), valid: EMAIL.test(email) };
+  // Same rule as the server: a header row exists only if a first-row cell is exactly "email"; columns are then found by name.
+  const first = rows[0]?.map((c) => c.trim().toLowerCase()) ?? [];
+  const header = first.includes("email");
+  const col = (name: string, fallback: number) => (header ? first.indexOf(name) : fallback);
+  const [ie, inm, il] = [col("email", 0), col("name", 1), col("lang", 2)];
+  return (header ? rows.slice(1) : rows).map((r) => {
+    const email = (r[ie] ?? "").trim();
+    return { email, name: inm >= 0 ? (r[inm] ?? "").trim() : "", lang: il >= 0 ? (r[il] ?? "").trim().toLowerCase() : "", valid: EMAIL.test(email) };
   });
 }

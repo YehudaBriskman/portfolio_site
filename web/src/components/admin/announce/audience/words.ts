@@ -108,7 +108,7 @@ export const useAudienceWords = defineWords(
     importing: "Importing…",
     importDone: (added: number, skipped: number) => `${added} added, ${skipped} skipped.`,
     importInvalid: (n: number) => `${n} rows were not valid and were left out:`,
-    importTooBig: "That file is large. Split it into parts under 2 MB.",
+    importTooBig: "That file is large. Split it into parts under 900,000 characters.",
 
     groupsHeading: "Groups",
     groupsHint: "Rename or remove your own groups. The system group is locked.",
@@ -247,7 +247,7 @@ export const useAudienceWords = defineWords(
     importing: "מייבא…",
     importDone: (added: number, skipped: number) => `${added} נוספו, ${skipped} דולגו.`,
     importInvalid: (n: number) => `${n} שורות לא היו תקינות ולא נכללו:`,
-    importTooBig: "הקובץ גדול. פצל אותו לחלקים מתחת ל־2 מ״ב.",
+    importTooBig: "הקובץ גדול. פצל אותו לחלקים של פחות מ־900,000 תווים.",
 
     groupsHeading: "קבוצות",
     groupsHint: "שינוי שם ומחיקה של הקבוצות שלך. קבוצת המערכת נעולה.",
