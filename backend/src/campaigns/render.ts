@@ -1,6 +1,6 @@
 import { contactLines, type LabelMode, type SenderSettings } from "../announce/schemas.js";
 import { env } from "../env.js";
-import { fillParts, hasLink, unsubscribeUrls } from "../audience/mail.js";
+import { fillParts, hasLink, manageUrl, unsubscribeUrls } from "../audience/mail.js";
 import type { Lang } from "../audience/schemas.js";
 import { oneLine } from "../mail/escape.js";
 import { renderMail, type Inline, type MailBlock } from "../mail/render.js";
@@ -31,6 +31,10 @@ export function labelFor(mode: LabelMode, lang: Lang): { subject: string; line: 
 export const UNSUB_FALLBACK_EN = "Unsubscribe in one click: {link}";
 export const UNSUB_FALLBACK_HE = "להסרה בלחיצה אחת: {link}";
 
+/* The link text of the preferences line the privacy page promises. DRAFT wording, owner to approve. */
+export const PREFS_LABEL_EN = "Preferences";
+export const PREFS_LABEL_HE = "העדפות";
+
 export type RenderedMail = { subject: string; text: string; html: string; headers: Record<string, string> };
 
 /**
@@ -49,6 +53,7 @@ export async function renderCampaignMail(
   const he = lang === "he";
   const label = labelFor(sender.labelMode, lang);
   const urls = await unsubscribeUrls(hash);
+  const prefsHref = await manageUrl(hash);
   const site = new URL(env.SITE_URL).host;
   const vars = { name: "", site, days: "", link: urls.page };
   const note = he ? sender.unsubscribeNoteHe : sender.unsubscribeNoteEn;
@@ -61,7 +66,7 @@ export async function renderCampaignMail(
   const blocks: MailBlock[] = [
     ...(label ? [{ type: "paragraph" as const, tone: "strong" as const, text: label.line }] : []),
     ...bodyBlocks(c),
-    { type: "footer", lines: identityLines, note: fillParts(note, vars), ...(missingLink ? { extra: [fillParts(fallback, vars)] } : {}) },
+    { type: "footer", lines: identityLines, note: fillParts(note, vars), extra: [...(missingLink ? [fillParts(fallback, vars)] : []), [{ href: prefsHref, text: he ? PREFS_LABEL_HE : PREFS_LABEL_EN }]] },
   ];
   const { html, text } = renderMail(blocks, { lang, title: c.subject, ...(c.preheader?.trim() ? { preheader: c.preheader } : {}) });
 
