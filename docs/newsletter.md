@@ -429,7 +429,7 @@ Enforced by the server when a campaign is scheduled or sent now (`campaigns/rout
 
 Nothing sends by itself: auto-drafts only create drafts, and the tick only picks up
 `scheduled` and `sending` campaigns. The end-to-end run over a real SMTP wire (a local sink) is
-`backend/src/campaigns/e2e.smtp.test.ts`.
+`backend/src/campaigns/e2e.smtp.test.ts`; the same journey against a real CouchDB (Mango index, `_all_docs` by keys, the separate ledger database) is `e2e.couch.test.ts`, skipped unless `REAL_COUCH=1` (the file header has the docker command).
 
 ### The first real send (owner runbook)
 
