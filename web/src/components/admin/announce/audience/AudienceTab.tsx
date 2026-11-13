@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useId, useState } from "react";
 import { EmptyState, ErrorState, LoadingRows, Empty } from "@/components/admin/ui";
 import { adminAudience, CONTACT_STATUSES, EXPORT_URL, type Contact, type ContactStatus, type Group } from "@/services/adminAudience";
+import { Disclosure } from "@/components/ui/Disclosure";
 import AddContact from "./AddContact";
 import ContactEditor, { Why } from "./ContactEditor";
 import Email from "./Email";
@@ -153,15 +154,13 @@ export default function AudienceTab() {
       )}
 
       <SweepNote />
-      <details className="a-box p-3">
-        <summary className="flex min-h-[44px] cursor-pointer items-center font-bold">{w.groupsHeading} <span className="ms-2 text-sm font-normal tabular-nums text-clay">{nf.format(groups.length)}</span></summary>
-        <div className="pt-2"><GroupsPanel groups={groups} onChange={loadGroups} /></div>
-      </details>
+      <Disclosure className="a-box" summary={w.groupsHeading} meta={<span className="tabular-nums">{nf.format(groups.length)}</span>}>
+        <GroupsPanel groups={groups} onChange={loadGroups} />
+      </Disclosure>
       <DataExport />
-      <details className="a-box p-3">
-        <summary className="flex min-h-[44px] cursor-pointer items-center font-bold">{w.suppressionHeading}</summary>
-        <div className="pt-2"><SuppressionPanel /></div>
-      </details>
+      <Disclosure className="a-box" summary={w.suppressionHeading}>
+        <SuppressionPanel />
+      </Disclosure>
 
       {dialog?.kind === "add" && <AddContact groups={groups} onClose={() => setDialog(null)} onDone={refreshed} />}
       {dialog?.kind === "import" && <ImportDialog groups={groups} onClose={() => (setDialog(null), reload(), loadGroups())} onDone={loadGroups} />}

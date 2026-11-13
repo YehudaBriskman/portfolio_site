@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useId, useState } from "react";
 import { ErrorState } from "@/components/admin/ui";
+import { Disclosure } from "@/components/ui/Disclosure";
 import { issueText, useSettingsWords } from "@/components/admin/settings/words";
 import { templateFor } from "@/lib/share";
 import { ContentConflictError, ContentInvalidError, type Issue } from "@/services/adminContent";
@@ -107,12 +108,8 @@ export default function VisitorTemplates() {
           const value = draft.sharing.templates[lang][c] ?? "";
           const def = templateFor("visitor", "post", lang, c);
           return (
-            <details key={`${lang}-${c}`} className="a-box" open={value !== "" || undefined}>
-              <summary className="a-box-head flex min-h-[44px] cursor-pointer items-center gap-2">
-                <span className="a-box-title">{w.visitorChannels[c]}</span>
-                <span className="text-xs text-clay">{value === "" ? w.builtinBadge : w.customised}</span>
-              </summary>
-              <div className="space-y-1 p-4">
+            <Disclosure key={`${lang}-${c}`} className="a-box" summary={w.visitorChannels[c]} meta={value === "" ? w.builtinBadge : w.customised} open={value !== "" || undefined}>
+              <div className="space-y-1">
               <TemplateText
                 label={w.visitorChannels[c]}
                 value={value}
@@ -131,7 +128,7 @@ export default function VisitorTemplates() {
                 {w.resetDefault}
               </button>
               </div>
-            </details>
+            </Disclosure>
           );
         })}
       </div>
