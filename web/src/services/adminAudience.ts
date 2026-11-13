@@ -151,8 +151,14 @@ export const adminAudience = {
       report: b.report ? { at: b.report.at, repaired: { ...zero, ...b.report.repaired }, acknowledgedAt: b.report.acknowledgedAt ?? null } : null,
     };
   },
+  /** What the scheduled sweep deleted (unconfirmed signups). Counts and times only. */
+  sweep: async (): Promise<SweepState> => {
+    const b = await call<Partial<SweepState>>("/sweep");
+    return { pendingTtlDays: b.pendingTtlDays ?? 7, report: b.report ?? null };
+  },
   acknowledgeLedger: () => call<unknown>("/ledger/ack", { method: "POST", body: "{}" }),
 };
 
+export type SweepState = { pendingTtlDays: number; report: { at: string; lastPurged: number; totalPurged: number; since: string } | null };
 export type LedgerCounts = { unsubscribed: number; suppressed: number; erased: number };
 export type LedgerState = { ready: boolean; counts: LedgerCounts; report: { at: string; repaired: LedgerCounts; acknowledgedAt: string | null } | null };

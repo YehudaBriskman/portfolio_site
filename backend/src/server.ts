@@ -8,6 +8,7 @@ import { createApp } from "./app";
 import { env } from './env.js';
 import { logger } from './logger.js';
 import { startSender } from './campaigns/sender.js';
+import { startAudienceSweep } from './audience/sweep.js';
 import { ensureSendIndex } from './campaigns/store.js';
 import { ensureLedger } from './audience/ledger.js';
 
@@ -140,3 +141,5 @@ ensureLedger()
 
 /* The campaign sender: resumable, so a restart only costs the time until the next tick. */
 startSender();
+/* List hygiene: unconfirmed signups expire on their own, not only when the admin is opened. */
+startAudienceSweep();

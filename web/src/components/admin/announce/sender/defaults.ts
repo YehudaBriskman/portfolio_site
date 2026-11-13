@@ -37,7 +37,7 @@ export const DEFAULT_SENDER: SenderSettings = {
 };
 
 export type SenderField =
-  | "fromName" | "fromAddress" | "replyTo" | "footerIdentity" | "identityEmail" | "identityWebsite" | "identityLinkedin" | "identityPhone" | "testRecipients" | "throttlePerHour" | "dailyCap" | "maxPerContact30d" | "quietHours" | "dailyLimit" | "monthlyLimit" | "safety" | "reserveShare"
+  | "fromName" | "fromAddress" | "replyTo" | "footerIdentity" | "identityEmail" | "identityWebsite" | "identityLinkedin" | "identityPhone" | "testRecipients" | "throttlePerHour" | "dailyCap" | "maxPerContact30d" | "pendingTtlDays" | "quietHours" | "dailyLimit" | "monthlyLimit" | "safety" | "reserveShare"
   | "confirmSubjectEn" | "confirmSubjectHe" | "confirmBodyEn" | "confirmBodyHe" | "unsubscribeNoteEn" | "unsubscribeNoteHe";
 /** The optional contact lines, in footer order, with the words each one uses. */
 export const CONTACT_FIELDS = [
@@ -109,6 +109,7 @@ export function senderProblems(s: SenderSettings): Partial<Record<SenderField, S
   if (!whole(s.throttlePerHour, 3600)) p.throttlePerHour = "number";
   if (!whole(s.dailyCap, 10000)) p.dailyCap = "number";
   if (!whole(s.maxPerContact30d, 31, 0)) p.maxPerContact30d = "number";
+  if (!whole(s.pendingTtlDays, 30, 2)) p.pendingTtlDays = "number";
   if (s.quietHours && !zoneOk(s.quietHours.tz)) p.quietHours = "zone";
   /* Mirrors validateSenderBudget on the server. */
   if (!whole(s.dailyLimit, 100000)) p.dailyLimit = "number";
