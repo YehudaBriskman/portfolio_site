@@ -180,6 +180,9 @@ Status: **exists** = on `main` today. **planned** = an open issue; do not copy a
 | `dropdown-menu` | `@/components/ui/dropdown-menu` | the "..." menu of secondary actions on desktop | the only path to an action on touch rows |
 | `Select` | `@/components/ui/Select` | a single choice from a short list | more than ~8 options (searchable multi in `FilterSheet`) |
 | `sonner` (`toast`, `Toaster`) | `@/components/ui/sonner` | feedback and **Undo** for reversible actions | an error the user must act on (keep it inline) |
+| `Journey`, `LifecycleStepper` (#672) | `@/components/ui/Journey` | from > to with optional waypoints and a `via` pill (sender > audience); a vertical lifecycle (draft > scheduled > sending > sent) with the current step announced and paused/failed/canceled as a side branch | a graphic with no text: every fact is also in the list |
+| `MiniBar` (#672) | `@/components/ui/MiniBar` | counts as a segmented inline bar, `role="img"` with a text name; danger is hatched | the only place a decision number appears: keep the number visible |
+| `Gauge` (#672) | `@/components/ui/Gauge` | a budget against a limit as a ring, warn at 70 / danger at 90 percent; level in colour, badge glyph and words, value in a hidden `<meter>` | colour-only status |
 | `tooltip` | `@/components/ui/tooltip` | a hint for pointer users | the only label of anything: touch has no hover |
 
 Also on main, outside `ui/`: the admin shell and `.a-*` classes (`@/components/admin/AdminShell`), `StatusPill` and `TranslationPill` (`@/components/admin/StatusPill`, `.../TranslationPill`; being replaced by `StatusGlyph`), the native-`<dialog>` modals (`@/components/admin/MediaGrid` `Modal`, `announce/audience/Modal`, the popup system in `styles/popup.css`; see `docs/motion-contract.md` section 9).
@@ -194,8 +197,6 @@ Also on main, outside `ui/`: the admin shell and `.a-*` classes (`@/components/a
 | `ChannelIcon` / `ChannelRow` | #669, #670 | `@/components/admin/mobile` | LinkedIn / X / Instagram / email glyphs (lucide has no brand icons), filled = posted | fixed order |
 | `icons` / `iconWords` | #669 | `@/components/admin/mobile/icons` | the vocabulary in section 4 | add a row to section 4 first |
 | `SelectionBar`, `useSelection`, `UndoToast` | #671 | `@/components/admin/mobile` | bulk actions: a visible "Select" button (long-press is a bonus), a sticky bar with count, Undo | irreversible server actions use a deferred commit |
-| `Journey` | #672 | `@/components/admin/mobile` | from > to (sender > audience) and the lifecycle stepper | `role="img"` with a composed label next to real text |
-| `MiniBar`, `Gauge` | #672 | `@/components/admin/mobile` | counts as a segmented bar; a budget as a ring with thresholds 70 / 90 | the number stays visible where it is the decision |
 | `Switch`, `InfoPopover`, `SettingsRow`, `SettingsList`, `SettingsSearch` | #673 | `@/components/admin/mobile` | grouped settings: one-line label + switch, help behind an info button, one-line live summary per group; more than 4 controls or any text field opens a sub-page, otherwise a half sheet | only warnings stay visible; no checkbox without `role="switch"` |
 | `FilterChips`, `FilterSheet`, `useSavedFilters` | #674 | `@/components/admin/mobile` | 3 to 5 common chips + one "Filters (n)" button; URL is the source of truth | "Show N results" applies; Esc discards |
 | `SidebarGroup` (+ nav tree) | #675 | `@/components/admin/mobile` | hierarchical drawer nav, depth <= 3, current item highlighted | label navigates, chevron expands |
