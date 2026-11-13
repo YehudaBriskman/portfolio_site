@@ -11,6 +11,7 @@ const fetchMock = vi.fn();
 afterEach(() => {
   fetchMock.mockReset();
   vi.unstubAllGlobals();
+  document.documentElement.removeAttribute("lang");
 });
 const at = (ui: ReactElement, url: string) => render(<MemoryRouter initialEntries={[url]}>{ui}</MemoryRouter>);
 const respond = (status: number, body: unknown = { ok: true }) => {
@@ -151,7 +152,7 @@ describe("a transient failure is not an expired link", () => {
     offline();
     at(<SubscribeConfirm />, "/subscribe/confirm?token=abc");
     await userEvent.click(screen.getByRole("button", { name: /אישור ההרשמה/ }));
-    await waitFor(() => expect(screen.getByRole("alert").textContent).toMatch(/השרת/));
+    await waitFor(() => expect(screen.getByRole("alert").textContent).toMatch(/לשרת/));
     expect(screen.getByRole("button", { name: /ניסיון נוסף/ })).toBeInTheDocument();
     document.documentElement.removeAttribute("lang");
   });
