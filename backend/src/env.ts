@@ -62,6 +62,12 @@ const EnvSchema = z.object({
   // Canonical origin, trailing slash stripped; every absolute URL is built from it.
   // Signs confirm/unsubscribe links. Unset: a generated secret in the admin-only store.
   SUBSCRIBE_SECRET: z.string().min(16).optional(),
+  // Resend webhook signing secret (`whsec_...`). Unset: the provider-event route answers 404.
+  RESEND_WEBHOOK_SECRET: z
+    .string()
+    .regex(/^whsec_[A-Za-z0-9+/=_-]{16,}$/, 'RESEND_WEBHOOK_SECRET is the whsec_... value from Resend')
+    .optional()
+    .or(z.literal('').transform(() => undefined)),
   SITE_URL: z.string().default("https://yehudabriskman.com").transform((s) => s.replace(/\/+$/, "")),
   // Whether this host asks to be crawled. `auto`: open only on the SITE_URL host.
   ROBOTS_POLICY: z.enum(['auto', 'open', 'closed']).default('auto'),
