@@ -178,7 +178,7 @@ try {
   for (const lang of ["en", "he"]) {
     for (const theme of ["light", "dark"]) {
       for (const w of [360, 390, 430]) {
-        if (theme === "dark" && w === 360) continue;
+        if (theme === "dark" && w === 360 && !SHOTS) continue;
         const h = w === 390 ? 844 : 800;
         const tag = `inbox ${w} ${lang} ${theme}`;
         const { page, close } = await open(w, h, lang, theme);
@@ -206,7 +206,7 @@ try {
           if (mir.dotAtRight === false) fail(`${tag}: the new dot is not at the right end of the row`);
         }
 
-        if (theme === "light" && w !== 430 && m.rows > 0) {
+        if ((SHOTS || (theme === "light" && w !== 430)) && m.rows > 0) {
           /* The sheet: tap, Mark done and Undo, Escape and focus back. */
           await page.evaluate(() => document.querySelector("[data-record-row]")?.focus());
           await tap(page, "[data-record-row]");
@@ -225,7 +225,7 @@ try {
                 if (!(await waitFor(page, () => !![...document.querySelectorAll("dialog[open] button")].find((b) => /^(Mark as done|סימון כבוצע)/.test((b.textContent ?? "").trim()))))) fail(`${tag}: Undo did not bring Mark done back`);
               }
             } else fail(`${tag}: no Mark done button in the sheet`);
-            if (SHOTS && w === 390) {
+            if (SHOTS) {
               await page.evaluate(() => document.querySelector("dialog[open] [data-sheet-header] button")?.click());
               await page.waitForTimeout(500);
               await shot(page, `${w}-${lang === "he" ? "rtl" : "ltr"}-${theme}-full`);
@@ -254,6 +254,13 @@ try {
   if (wm.legacyCopy !== INBOX.length) fail(`inbox 1440: ${wm.legacyCopy} quick-copy groups, expected ${INBOX.length}`);
   if (SHOTS) await shot(wide.page, `1440-ltr-light-list`);
   await wide.close();
+  if (SHOTS) {
+    for (const [lang, theme] of [["en", "dark"], ["he", "light"], ["he", "dark"]]) {
+      const d = await open(1440, 900, lang, theme);
+      await shot(d.page, `1440-${lang === "he" ? "rtl" : "ltr"}-${theme}-list`);
+      await d.close();
+    }
+  }
 } finally {
   await browser.close();
   stop();
