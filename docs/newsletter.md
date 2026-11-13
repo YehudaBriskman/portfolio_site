@@ -596,6 +596,12 @@ unless stated.
 True of `MINIMISE_AFTER_DAYS` (30) and the 14-day backup rotation; change a
 number in the code and these texts together.
 
+Web-server logs: the privacy page used to say ordinary technical logs are kept
+for 14 days. No code enforces that (nginx logs to stdout and the kubelet
+rotates by size, not time), so on 2026-11-13 the owner replaced the claim with
+"kept in the server's automatically rotating logs, used only to fix errors and
+keep the site secure". Do not reintroduce a number unless retention is enforced.
+
 - Privacy "Leaving", EN: Every email has an unsubscribe link, and you can change topics or language from the preferences link. After you unsubscribe I keep only a one-way fingerprint of your address, marked as unsubscribed, so I never email you again. Your address, name and language are deleted 30 days after you unsubscribe (sooner if you ask), and from backups within 14 more days.
 - Privacy "Leaving", HE: בכל אימייל יש קישור להסרה, ומקישור ההעדפות אפשר לשנות נושאים או שפה. אחרי ההסרה אני שומר רק טביעת אצבע חד־כיוונית של הכתובת, מסומנת כמוסרת, כדי שלא אשלח לכם אימייל שוב. הכתובת, השם והשפה נמחקים 30 ימים אחרי ההסרה (מוקדם יותר אם תבקשו), ומהגיבויים בתוך 14 ימים נוספים.
 - Unsubscribe "Done", EN: Done. You won’t get any more email from this list. I keep only a one-way fingerprint of your address, marked as unsubscribed, so I do not email you again; the rest is deleted after 30 days. To erase it now, write to {email}.

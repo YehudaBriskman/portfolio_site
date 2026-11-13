@@ -41,7 +41,7 @@ export const usePrivacyWords = defineWords(
       },
       {
         heading: "No tracking",
-        body: "No cookies, analytics or tracking pixels, and no open or click tracking in emails. Your theme and language choices stay in your browser and are never sent to me. Like any web server, mine keeps ordinary technical logs for 14 days, for security and fixing errors.",
+        body: "No cookies, analytics or tracking pixels, and no open or click tracking in emails. Your theme and language choices stay in your browser and are never sent to me. Like any web server, mine keeps ordinary technical logs, in the server's automatically rotating logs. I use them only to fix errors and keep the site secure.",
       },
       {
         heading: "Confirmation",
@@ -82,7 +82,7 @@ export const usePrivacyWords = defineWords(
       },
       {
         heading: "בלי מעקב",
-        body: "אין עוגיות, ניתוח נתונים או פיקסלים למעקב, ואין מעקב אחר פתיחות או לחיצות באימיילים. בחירת העיצוב והשפה נשארת בדפדפן שלכם ואינה נשלחת אליי. כמו כל שרת אינטרנט, גם השרת שלי שומר יומנים טכניים רגילים למשך 14 ימים, לצורכי אבטחה ותיקון תקלות.",
+        body: "אין עוגיות, ניתוח נתונים או פיקסלים למעקב, ואין מעקב אחר פתיחות או לחיצות באימיילים. בחירת העיצוב והשפה נשארת בדפדפן שלכם ואינה נשלחת אליי. כמו בכל שרת אינטרנט, אצלי נשמרים יומני שרת טכניים רגילים, שמתחלפים אוטומטית. אני משתמש בהם רק כדי לתקן תקלות ולשמור על אבטחת האתר.",
       },
       {
         heading: "אישור",
