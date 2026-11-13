@@ -214,6 +214,7 @@ environment only and are never shown or returned by any route:
 - `MAIL_FROM` (required) and `MAIL_REPLY_TO`: the fallback sender.
 - `SITE_URL`: the origin every link in a mail is built from.
 - `SUBSCRIBE_SECRET`: optional, at least 16 characters (`backend/src/env.ts`).
+- `RESEND_WEBHOOK_SECRET`: optional, the `whsec_...` value of the Resend webhook (see "Bounces and complaints"). Unset: the endpoint answers 404.
 
 The screen shows a warning (never a block) when the From domain differs from the
 domains of `MAIL_FROM` and `SMTP_USER` (`campaigns/config.ts`).
@@ -428,6 +429,38 @@ language, groups, topics, consent time and note, `unsubscribedAt`) with
 `status: "unsubscribed"`; it is excluded from every send. The person can sign up
 again, which returns them to `pending`. If they want the record gone, erase it.
 The public privacy text is aligned with this (see below).
+
+## Bounces and complaints (Resend webhook)
+
+Bounces return to Resend, not to the app, so Resend tells the app by webhook:
+`POST /api/webhooks/resend` (`audience/webhook.route.ts`). Mapping lives in
+`audience/providerEvents.ts`; the Svix-style signature check in `audience/svix.ts`.
+
+| Event | What happens |
+|---|---|
+| `email.complained` | suppressed, reason `complaint`; the complaint hook fires (`audience/complaintHook.ts`) |
+| `email.bounced`, type Permanent | suppressed, reason `hard-bounce` |
+| `email.bounced` (other) and `email.delivery_delayed` | one soft failure; the third suppresses (reason `soft-bounces`) |
+| delivered, opened, clicked, anything else | answered 200, ignored, never stored |
+
+Suppression goes ledger first, contact second (see "Backups, restore and
+erasure"). Only active or pending contacts are touched. A request is accepted
+only with a valid signature made with the secret, within 5 minutes of its
+timestamp; anything else gets the same bare 400. Each event id is applied once.
+Logs carry contact hashes only. No secret set means no endpoint (404).
+
+**Owner steps**
+
+1. Open <https://resend.com/webhooks> and choose **Add Webhook**.
+2. Endpoint URL: the public API origin plus `/api/webhooks/resend`.
+3. Events: `email.bounced`, `email.complained`, `email.delivery_delayed`.
+4. Open the webhook's page and copy the **Signing Secret** (starts `whsec_`).
+5. Put it in the backend environment as `RESEND_WEBHOOK_SECRET` and restart the API.
+6. Use the webhook page's test send in Resend and expect a 200.
+
+Resend's reference: <https://resend.com/docs/webhooks/introduction>. The free plan
+allows one endpoint. Rotating the secret in Resend means updating the variable at
+the same moment; until then events are rejected with 400 and Resend retries them.
 
 ## Deliverability checklist
 
