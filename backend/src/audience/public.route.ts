@@ -15,6 +15,7 @@ import {
 } from "./schemas.js";
 import { ledgerClear, ledgerGet, ledgerPutQuietly } from "./ledger.js";
 import { confirmConsent, contactId, createContact, getContact, hashEmail, isPendingExpired, purgeExpiredPending, recordConsent, updateContact } from "./store.js";
+import { emitOwnerEvent } from "../notify/hooks.js";
 import { verifyToken, type TokenKind } from "./tokens.js";
 
 /*
@@ -143,6 +144,7 @@ router.post(
       c.confirmedAt = now;
       confirmConsent(c, now);
     });
+    if (updated?.status === "active") emitOwnerEvent({ kind: "subscriber", ref: hash.slice(0, 6) });
     return updated?.status === "active" ? res.json({ ok: true, lang: updated.lang }) : badLink(res);
   }),
 );

@@ -7,6 +7,7 @@ import { DEFAULT_SENDER, senderProblems } from "../../sender/defaults";
 import { zonedToIso } from "../helpers";
 import type { AnnounceSettings } from "@/services/adminAnnounce";
 
+import { DEFAULT_NOTIFY } from "../../notify/defaults";
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 // Shape copied from `view` in backend/src/campaigns/route.ts.
 const camp = (o: object = {}) => ({
@@ -16,7 +17,7 @@ const camp = (o: object = {}) => ({
 const sender = (o: object = {}) => ({ ...DEFAULT_SENDER, footerIdentity: "Yehuda, Tel Aviv", identityEmail: "me@example.com", testRecipients: ["me@example.com"], ...o });
 const settings = (s = sender()) => ({
   enabled: true, email: { enabled: false, events: ["post"] }, hashtags: [], signature: "", channels: ["linkedin"], templates: { en: {}, he: {} }, snippets: [], library: [],
-  advanced: { utm: { enabled: false, source: "announce", mediumByChannel: {} } }, sender: s,
+  advanced: { utm: { enabled: false, source: "announce", mediumByChannel: {} } }, sender: s, notify: DEFAULT_NOTIFY,
 });
 
 type Call = { url: string; method: string; body?: Record<string, unknown> };

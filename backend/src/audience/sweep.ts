@@ -1,5 +1,6 @@
 import { couch, CouchError } from "../db/couch.js";
 import { logger } from "../logger.js";
+import { emitOwnerEvent } from "../notify/hooks.js";
 import { minimiseUnsubscribed, purgeExpiredPending } from "./store.js";
 
 /*
@@ -82,6 +83,7 @@ export async function runAudienceSweep(now = Date.now()): Promise<{ purged: numb
     return { purged, minimised };
   } catch (err) {
     logger.warn({ err: err instanceof Error ? err.message : String(err) }, "audience sweep failed");
+    emitOwnerEvent({ kind: "sweep" });
     return null;
   } finally {
     running = false;

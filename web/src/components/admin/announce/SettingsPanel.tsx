@@ -3,6 +3,9 @@ import { ErrorState } from "@/components/admin/ui";
 import { ANNOUNCE_CHANNELS, type AnnounceKind, type AnnounceSettings } from "@/services/adminAnnounce";
 import { parseTags } from "./helpers";
 import { senderProblems } from "./sender/defaults";
+import { DEFAULT_NOTIFY } from "./notify/defaults";
+import NotifySection from "./notify/NotifySection";
+import { useNotifyWords } from "./notify/words";
 import SenderSection from "./sender/SenderSection";
 import { useSenderWords } from "./sender/words";
 import { DEFAULT_UTM, same, useSettingsDoc } from "./useSettingsDoc";
@@ -22,13 +25,14 @@ import { useAnnounceWords } from "./words";
 
 const UTM_TOKEN = /^[a-z0-9_.-]{1,40}$/;
 
-const everydayOf = (s: AnnounceSettings) => ({ mail: s.email.enabled, channels: s.channels, hashtags: s.hashtags, signature: s.signature });
-const advancedOf = (s: AnnounceSettings) => ({ enabled: s.enabled, events: s.email.events, utm: s.advanced.utm, sender: s.sender });
+const everydayOf = (s: AnnounceSettings) => ({ mail: s.email.enabled, notify: s.notify.enabled, channels: s.channels, hashtags: s.hashtags, signature: s.signature });
+const advancedOf = (s: AnnounceSettings) => ({ enabled: s.enabled, events: s.email.events, utm: s.advanced.utm, sender: s.sender, notify: { ...s.notify, enabled: false } });
 
 export default function SettingsPanel() {
   const w = useAnnounceWords();
   const sw = useSettingsPanelWords();
   const snd = useSenderWords();
+  const nw = useNotifyWords();
   const uid = useId();
   const doc = useSettingsDoc();
   /* Typed as the person types it; parsed on save, so a trailing comma is not eaten mid-word. */
@@ -45,7 +49,7 @@ export default function SettingsPanel() {
   const working: AnnounceSettings = { ...draft, hashtags: tags === null ? draft.hashtags : parseTags(tags) };
   const dirty = !same(working, view.settings);
   const everydayDirty = !same(everydayOf(working), everydayOf(view.settings));
-  const everydayIsDefault = same(everydayOf(working), { mail: false, channels: ANNOUNCE_CHANNELS, hashtags: [], signature: "" });
+  const everydayIsDefault = same(everydayOf(working), { mail: false, notify: false, channels: ANNOUNCE_CHANNELS, hashtags: [], signature: "" });
   const advancedDirty = !same(advancedOf(working), advancedOf(view.settings));
 
   const touch = () => note && setNote("");
@@ -59,6 +63,7 @@ export default function SettingsPanel() {
     setTags(null);
     change((d) => {
       d.email.enabled = false;
+      d.notify.enabled = false;
       d.channels = [...ANNOUNCE_CHANNELS];
       d.hashtags = [];
       d.signature = "";
@@ -70,6 +75,7 @@ export default function SettingsPanel() {
       d.enabled = true;
       d.email.events = ["post", "release"];
       d.advanced.utm = structuredClone(DEFAULT_UTM);
+      d.notify = { ...structuredClone(DEFAULT_NOTIFY), enabled: d.notify.enabled };
     });
     setNote(sw.sectionReset);
   };
@@ -162,6 +168,12 @@ export default function SettingsPanel() {
       ),
     },
     {
+      key: "notify",
+      label: nw.heading,
+      words: nw.keywords,
+      node: <NotifySection notify={draft.notify} onChange={(fn) => change((d) => fn(d.notify))} />,
+    },
+    {
       key: "sender",
       label: snd.heading,
       words: snd.keywords,
@@ -186,6 +198,8 @@ export default function SettingsPanel() {
         </div>
 
         {check(`${uid}-mail`, w.emailEnabled, draft.email.enabled, (v) => change((d) => void (d.email.enabled = v)), w.emailHint)}
+
+        {check(`${uid}-notify`, nw.master, draft.notify.enabled, (v) => change((d) => void (d.notify.enabled = v)), nw.masterHint)}
 
         <fieldset>
           <legend className="a-label">{w.channelsHeading}</legend>

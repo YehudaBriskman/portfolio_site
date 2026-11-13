@@ -124,6 +124,16 @@ export type SenderSettings = {
 
 export type SenderWarning = { field: "fromAddress" | "replyTo"; code: string; message: string };
 
+export const NOTIFY_EVENTS = ["budget70", "budget90", "budgetOut", "bounce", "campaign", "subscriber", "sweep"] as const;
+export type NotifyEvent = (typeof NOTIFY_EVENTS)[number];
+/** Owner notifications by email. No address is stored: the recipient is the server's own owner address. */
+export type NotifySettings = {
+  enabled: boolean;
+  lang: "en" | "he";
+  events: Record<NotifyEvent, { on: boolean; hours: number }>;
+  digest: { enabled: boolean; hour: number };
+};
+
 export type AnnounceSettings = {
   enabled: boolean;
   email: { enabled: boolean; events: AnnounceKind[] };
@@ -135,6 +145,7 @@ export type AnnounceSettings = {
   library: AnnounceLibraryItem[];
   advanced: { utm: AnnounceUtm };
   sender: SenderSettings;
+  notify: NotifySettings;
 };
 
 export type AnnounceSettingsView = {

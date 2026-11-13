@@ -137,7 +137,19 @@ describe("POST /api/webhooks/resend", () => {
     expect(order).toEqual(["ledger:active"]);
     expect(ledger.docs.get(hash)).toMatchObject({ kind: "suppressed" });
     expect(contact()).toMatchObject({ status: "suppressed", suppressedReason: "complaint" });
-    expect(got).toEqual([{ hash, at: expect.any(String) }]);
+    expect(got).toEqual([{ hash, at: expect.any(String), reason: "complaint" }]);
+  });
+
+  it("a hard bounce fires the hook with its reason, and a failing listener cannot fail the webhook", async () => {
+    seed();
+    const got: unknown[] = [];
+    const offA = onComplaintReceived(() => { throw new Error("listener broke"); });
+    const offB = onComplaintReceived((e) => { got.push(e); });
+    const r = await post(ev("email.bounced", { bounce: { type: "Permanent" } }), { id: "hb" });
+    offA();
+    offB();
+    expect(r.status).toBe(200);
+    expect(got).toEqual([{ hash, at: expect.any(String), reason: "hard-bounce" }]);
   });
 
   it("a permanent bounce suppresses; a temporary one counts and the third suppresses", async () => {

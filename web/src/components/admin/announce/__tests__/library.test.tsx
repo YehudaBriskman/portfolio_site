@@ -4,6 +4,7 @@ import LibraryPanel from "../library/LibraryPanel";
 import { DEFAULT_SETTINGS, type SiteSettings } from "@/settings/schema";
 import SettingsPanel from "../SettingsPanel";
 import type { AnnounceSettings } from "@/services/adminAnnounce";
+import { DEFAULT_NOTIFY } from "../notify/defaults";
 import "../words";
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
@@ -18,6 +19,7 @@ const baseSettings = () => ({
   snippets: [{ id: "s1", name: "Tags", kind: "hashtags", text: "#one #two" }],
   library: [{ id: "t1", name: "Launch", channel: "linkedin", lang: "en", text: "{title} {url}" }],
   advanced: { utm: { enabled: false, source: "announce", mediumByChannel: {} } },
+  notify: DEFAULT_NOTIFY,
 });
 const view = (settings = baseSettings(), rev = "1-a") => ({ ok: true, exists: true, _rev: rev, updatedAt: null, settings });
 const site = () => ({ ok: true, exists: true, _rev: "9-z", version: 1, updatedAt: null, history: [], settings: { ...DEFAULT_SETTINGS, sharing: { ...DEFAULT_SETTINGS.sharing, templates: { en: { x: "Hi {title}" }, he: {} } } } });
@@ -189,6 +191,40 @@ describe("SettingsPanel", () => {
     const utm = saved()[0].body.settings.advanced.utm;
     expect(utm).toEqual({ enabled: true, source: "announce", mediumByChannel: { linkedin: "social" } });
     expect(saved()[0].body._rev).toBe("1-a");
+  });
+
+  it("turns notices on in Everyday and saves per-event, hours and digest choices; nothing in the payload is an address", async () => {
+    render(<SettingsPanel />);
+    const master = (await screen.findByLabelText("Email me when something needs attention")) as HTMLInputElement;
+    expect(master.checked).toBe(false);
+    fireEvent.click(master);
+    fireEvent.change(screen.getByLabelText("Filter advanced settings"), { target: { value: "notices" } });
+    const section = within(screen.getByTestId("notify-section"));
+    fireEvent.click(section.getByLabelText("A new confirmed subscriber"));
+    fireEvent.click(section.getByLabelText("A hard bounce or a spam complaint"));
+    fireEvent.click(section.getByLabelText("One daily summary for bounces, campaigns and new subscribers"));
+    fireEvent.change(section.getByLabelText("Send it from hour"), { target: { value: "99" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(saved()).toHaveLength(1));
+    const n = saved()[0].body.settings.notify;
+    expect(n.enabled).toBe(true);
+    expect(n.events.subscriber.on).toBe(true);
+    expect(n.events.bounce.on).toBe(false);
+    expect(n.digest).toEqual({ enabled: true, hour: 23 });
+    expect(JSON.stringify(n)).not.toContain("@");
+  });
+
+  it("disables the per-event choices while the master switch is off, and says it in Hebrew", async () => {
+    document.documentElement.lang = "he";
+    try {
+      render(<SettingsPanel />);
+      fireEvent.change(await screen.findByRole("searchbox"), { target: { value: "הודעות" } });
+      const section = screen.getByTestId("notify-section");
+      expect(within(section).getByLabelText("מנוי חדש אישר הרשמה").matches(":disabled")).toBe(true);
+      expect(screen.getByLabelText("שליחת אימייל כשמשהו דורש תשומת לב")).toBeTruthy();
+    } finally {
+      document.documentElement.lang = "en";
+    }
   });
 
   it("says so when no advanced setting matches", async () => {
