@@ -86,7 +86,6 @@ export function createApp() {
   );
   // Signed provider events need the raw bytes, so this sits before the JSON parser.
   app.use("/api/webhooks/resend", resendWebhookRoutes);
-  app.use(express.json({ limit: "1mb" }));
 
   const mailBurstLimiter = createMailBurstLimiter();
   const seoLimiter = createSeoLimiter();
@@ -103,11 +102,18 @@ export function createApp() {
   const TRUSTED_HOPS = 2;
   app.set("trust proxy", TRUSTED_HOPS);
 
-  app.use("/api/email", mailBurstLimiter);
-  app.use("/api/images", readLimiter);
+  /*
+   * The public write routes are metered BEFORE any body is parsed, and read
+   * with a small limit of their own: the 1 MB parser below would otherwise run
+   * on every request from a client the limiter has already refused. A body the
+   * small parser has read is skipped by the general one.
+   */
+  app.use("/api/email", mailBurstLimiter, express.json({ limit: "64kb" }));
   // Signup is the tight one; confirm/unsubscribe/manage share a looser bucket.
   app.post("/api/subscribe", createSubscribeLimiter());
-  app.use("/api/subscribe", createSubscribeLinkLimiter(), subscribeRoutes);
+  app.use("/api/subscribe", createSubscribeLinkLimiter(), express.json({ limit: "8kb" }), subscribeRoutes);
+  app.use(express.json({ limit: "1mb" }));
+  app.use("/api/images", readLimiter);
 
   // Routers
 

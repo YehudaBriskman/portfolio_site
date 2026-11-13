@@ -102,7 +102,8 @@ export async function sendConfirmMail(contact: Contact, hash: string): Promise<b
     const token = await signToken({ t: "confirm", h: hash, exp: expiresIn(sender.pendingTtlDays * DAY) });
     const mail = renderConfirmMail(contact, pageUrl("/subscribe/confirm", token), sender);
     const r = await emailService.sendTo({ to: contact.email, ...mail, from: from.from, replyTo: from.replyTo });
-    if (!r.ok) logger.warn({ contact: hash, err: r.error }, "confirmation mail failed");
+    // The provider's error text can quote the recipient, a stranger's address: log its class only.
+    if (!r.ok) logger.warn({ contact: hash, kind: r.kind }, "confirmation mail failed");
     return r.ok;
   } catch (err) {
     logger.warn({ contact: hash, err: err instanceof Error ? err.message : String(err) }, "confirmation mail failed");
