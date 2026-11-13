@@ -15,7 +15,6 @@ import { createBearerFailureLimiter, requireAdmin } from './middlewares/requireA
 import {
   createAdminLimiter,
   createMailBurstLimiter,
-  createMailSendLimiter,
   createReadLimiter,
   createSubscribeLimiter,
   createSubscribeLinkLimiter,
@@ -24,6 +23,7 @@ import {
 import { auditWrites } from './services/audit.js';
 import { indexNowOnWrite } from './services/indexnow.js';
 import subscribeRoutes from './audience/public.route.js';
+import resendWebhookRoutes from './audience/webhook.route.js';
 import { announceOnWrite } from './announce/hooks.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 import { couch } from './db/couch.js';
@@ -84,9 +84,10 @@ export function createApp() {
       return callback(null, { origin: false });
     }),
   );
+  // Signed provider events need the raw bytes, so this sits before the JSON parser.
+  app.use("/api/webhooks/resend", resendWebhookRoutes);
   app.use(express.json({ limit: "1mb" }));
 
-  const mailSendLimiter = createMailSendLimiter();
   const mailBurstLimiter = createMailBurstLimiter();
   const seoLimiter = createSeoLimiter();
   const adminLimiter = createAdminLimiter();
@@ -102,7 +103,7 @@ export function createApp() {
   const TRUSTED_HOPS = 2;
   app.set("trust proxy", TRUSTED_HOPS);
 
-  app.use("/api/email", mailBurstLimiter, mailSendLimiter);
+  app.use("/api/email", mailBurstLimiter);
   app.use("/api/images", readLimiter);
   // Signup is the tight one; confirm/unsubscribe/manage share a looser bucket.
   app.post("/api/subscribe", createSubscribeLimiter());

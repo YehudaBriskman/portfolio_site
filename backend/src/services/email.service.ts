@@ -4,6 +4,7 @@ import type { SendEmailInput } from "../types/index.js";
 import { env } from "../env.js";
 import { logger } from "../logger.js";
 import type { SmtpErrorKind } from "../providers/classifySmtpError.js";
+import { allowAutoReply, releaseAutoReply, releaseNotice, reserveAutoReply, reserveNotice } from "./contactGuard.js";
 
 type EmailJsPayload = Extract<SendEmailInput, { templateId: string }>;
 
@@ -24,18 +25,38 @@ function sendAutoReply(provider: ReturnType<typeof getProvider>, visitor: string
       html: "<p>Thanks, we’ll get back to you soon.</p>",
     })
     .then((r) => {
-      if (!r.ok) logger.warn({ err: r.error }, "auto-reply failed");
+      // A provider's error text can quote the recipient, which is a stranger's address: log the class only.
+      if (!r.ok) logger.warn({ kind: r.kind }, "auto-reply failed");
     })
-    .catch((err) => logger.warn({ err }, "auto-reply failed"));
+    .catch(() => logger.warn("auto-reply failed"));
 }
 
-export async function sendContactEmail(input: SendEmailInput) {
+/* The owner notice is already sent; only the auto-reply, which goes to whatever address was typed, is limited. */
+function autoReplyAllowed(address: string, opts: ContactSendOptions): boolean {
+  if (!opts.publicForm) return true;
+  if (!reserveAutoReply()) return false;
+  if (allowAutoReply(address)) return true;
+  releaseAutoReply();
+  return false;
+}
+
+/** Set by the public contact form only: its mail counts against the daily ceiling and the per-address window. */
+export type ContactSendOptions = { publicForm?: boolean };
+/** The public form was over its daily ceiling: nothing was sent, and the caller answers as for a send. */
+export type ContactSkipped = { ok: true; skipped: true };
+
+export async function sendContactEmail(input: SendEmailInput, opts: ContactSendOptions = {}) {
   const provider = getProvider();
   const { html, text } = composeBody(input);
   const to = env.CONTACT_TO;
   const visitorReplyTo = input.replyTo;
 
-  logger.debug({ to, subject: input.subject }, "sending contact email");
+  if (opts.publicForm && !reserveNotice()) {
+    logger.warn("contact form daily notice ceiling reached; message dropped");
+    return { ok: true, skipped: true } as ContactSkipped;
+  }
+
+  logger.debug({ subject: input.subject }, "sending contact email");
 
   const result = await provider.send({
     from: env.MAIL_FROM,
@@ -48,7 +69,10 @@ export async function sendContactEmail(input: SendEmailInput) {
   });
 
   // The auto-reply is plain mail, which the emailjs provider cannot send.
-  if (result.ok && visitorReplyTo && !isEmailJsPayload(input)) sendAutoReply(provider, visitorReplyTo);
+  if (opts.publicForm && !result.ok) releaseNotice();
+  if (result.ok && visitorReplyTo && !isEmailJsPayload(input) && autoReplyAllowed(visitorReplyTo, opts)) {
+    sendAutoReply(provider, visitorReplyTo);
+  }
 
   return result;
 }
