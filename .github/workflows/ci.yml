@@ -490,6 +490,12 @@ jobs:
       - name: Admin phone layout
         if: matrix.check == 'a11y' && matrix.shard == 1
         run: npm run a11y:admin-phones
+      # The Marketing Inbox on a phone (#670): one tappable row per event,
+      # at least 7 rows above the fold, no sideways scroll, the sheet opens
+      # and gives focus back, Hebrew mirrors.
+      - name: Admin Inbox on a phone
+        if: matrix.check == 'a11y' && matrix.shard == 1
+        run: npm run a11y:admin-inbox-phone
       # Admin at 320, 360, 390 and 768 wide, light and dark, English and
       # Hebrew (#660): no sideways scroll, no target under 24px, no primary
       # control under 44px on touch, no text under 14px outside the
