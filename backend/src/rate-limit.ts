@@ -9,18 +9,12 @@ function makeLimiter(windowMs: number, limit: number, extra: { skipFailedRequest
 
 /*
  * The mail route relays over real SMTP credentials; unthrottled and public it
- * is an open relay. Two limits defend against different things.
- * Sends are what an abuser wants; failed validation is skipped so a visitor
- * mistyping their address is not locked out for 15 minutes.
+ * is an open relay. The per-client, global, per-address and daily limits on
+ * what is actually sent live in services/contactGuard.ts and answer the
+ * visitor exactly as a send does, so they leave no hint for a bot.
  */
-export const MAIL_SEND_LIMIT = 5;
-export const createMailSendLimiter = () =>
-  makeLimiter(FIFTEEN_MINUTES, MAIL_SEND_LIMIT, {
-    skipFailedRequests: true,
-    message: { ok: false, error: "Too many messages sent. Try again shortly." },
-  });
 
-/* Junk that never validates, which the send limiter deliberately ignores. */
+/* Junk that never validates: the one limit here that is visible, because it counts requests, not mail. */
 export const MAIL_BURST_LIMIT = 40;
 export const createMailBurstLimiter = () =>
   makeLimiter(FIFTEEN_MINUTES, MAIL_BURST_LIMIT, { message: { ok: false, error: "Too many requests. Try again shortly." } });

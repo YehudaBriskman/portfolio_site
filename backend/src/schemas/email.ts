@@ -8,6 +8,8 @@ const oneLine = (max: number) =>
   z.string().min(1).max(max).refine((v) => !/[\r\n]/.test(v), { message: 'Must be a single line' });
 
 const BaseSchema = z.object({
+  // Honeypot: the form hides it, a person leaves it empty, a form-filling bot does not.
+  website: z.string().max(500).optional(),
   subject: oneLine(200),
   text: z.string().max(10_000).optional(),
   // One address, no list and no "Name <x>" form: it becomes an auto-reply recipient.

@@ -15,7 +15,6 @@ import { createBearerFailureLimiter, requireAdmin } from './middlewares/requireA
 import {
   createAdminLimiter,
   createMailBurstLimiter,
-  createMailSendLimiter,
   createReadLimiter,
   createSubscribeLimiter,
   createSubscribeLinkLimiter,
@@ -86,7 +85,6 @@ export function createApp() {
   );
   app.use(express.json({ limit: "1mb" }));
 
-  const mailSendLimiter = createMailSendLimiter();
   const mailBurstLimiter = createMailBurstLimiter();
   const seoLimiter = createSeoLimiter();
   const adminLimiter = createAdminLimiter();
@@ -102,7 +100,7 @@ export function createApp() {
   const TRUSTED_HOPS = 2;
   app.set("trust proxy", TRUSTED_HOPS);
 
-  app.use("/api/email", mailBurstLimiter, mailSendLimiter);
+  app.use("/api/email", mailBurstLimiter);
   app.use("/api/images", readLimiter);
   // Signup is the tight one; confirm/unsubscribe/manage share a looser bucket.
   app.post("/api/subscribe", createSubscribeLimiter());
