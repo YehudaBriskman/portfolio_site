@@ -32,6 +32,7 @@ export type LedgerReport = {
 
 const MARKER = "meta:ledger";
 const REPORT = "meta:report";
+const PROBE = "meta:probe";
 /* A line for an erased person outlives every backup that still holds them: the 14 dumps kept plus a fortnight of margin. */
 export const ERASED_KEEP_DAYS = 30;
 const CACHE_MS = 30_000;
@@ -190,6 +191,27 @@ export async function ensureLedger(): Promise<void> {
     }
   }
   cache = null;
+}
+
+/**
+ * True when the ledger can be read (marker present, fresh read) AND written. A
+ * campaign is not queued unless this holds: a ledger that cannot take a new
+ * unsubscribe is a ledger the sender must not run on. Writes one probe document,
+ * which is not a ledger line (its id is not a contact hash).
+ */
+export async function ledgerWritable(now = new Date()): Promise<boolean> {
+  try {
+    cache = null;
+    await ledgerEntries(now.getTime());
+    const cur = await tryGet<{ _rev?: string }>(PROBE);
+    await store.put(PROBE, { ...(cur?._rev ? { _rev: cur._rev } : {}), type: "meta", at: now.toISOString() });
+    return true;
+  } catch {
+    return false;
+  } finally {
+    /* A probe must leave nothing behind: the next reader loads its own copy. */
+    cache = null;
+  }
 }
 
 /* --- the report the admin banner shows ---------------------------------------- */

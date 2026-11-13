@@ -15,6 +15,7 @@ import { renderMail } from "../mail/render.js";
 import { memoryLedgerStore, resetLedgerCache, useLedgerStore } from "../audience/ledger.js";
 import { resetGuard } from "./guard.js";
 import { inQuietHours, runSenderTick, type Deliver } from "./sender.js";
+import { contentFingerprint } from "./readiness.js";
 import { campaignsBlocked, sendingState, SWITCH_ID } from "./killSwitch.js";
 
 /* In-memory couch. The MCP/image stubs only let app.ts load on a box without those optional deps; CI has them. */
@@ -109,11 +110,18 @@ const T0 = Date.parse("2026-06-01T12:00:00Z");
 const draft = (over: Record<string, unknown> = {}) => ({ name: "n", subject: "Hello", bodyText: "Hi", groups: ["subscribers"], ...over });
 const mk = async (over: Record<string, unknown> = {}) => (await admin(request(createApp()).post(C).send(draft(over)))).body.campaign as { id: string; _rev: string };
 const get = (id: string) => store.get(`campaign:${id}`) as Record<string, any>;
+/* The gate's preconditions: this exact content was tested, and the owner confirms the audience size the server sees. */
+const sure = async (id: string, extra: object = {}) => {
+  const c = get(id);
+  store.set(`campaign:${id}`, { ...c, tested: { at: new Date().toISOString(), fp: contentFingerprint(c as never) } });
+  const n = [...store.values()].filter((d) => d.type === "contact" && d.status === "active" && (d.groups as string[]).includes("subscribers")).length;
+  return { confirmCount: n, ...extra };
+};
 const queued = async (n = 3, over: Partial<AnnounceSettings["sender"]> = {}) => {
   setSender(over);
   seedMany(n);
   const c = await mk();
-  const r = await admin(request(createApp()).post(`${C}/${c.id}/send-now`));
+  const r = await admin(request(createApp()).post(`${C}/${c.id}/send-now`).send(await sure(c.id)));
   expect(r.status).toBe(200);
   /* The tests run on a fake clock; "now" at send time is the real one. */
   store.set(`campaign:${c.id}`, { ...get(c.id), sendAt: "2000-01-01T00:00:00.000Z" });
@@ -140,11 +148,11 @@ describe("campaign routes and state machine", () => {
     const c = await mk();
     expect(get(c.id).status).toBe("draft");
     const when = new Date(T0 + 3_600_000).toISOString();
-    expect((await admin(request(createApp()).post(`${C}/${c.id}/schedule`).send({ sendAt: when }))).body.campaign.status).toBe("scheduled");
+    expect((await admin(request(createApp()).post(`${C}/${c.id}/schedule`).send({ sendAt: when, ...(await sure(c.id)) }))).body.campaign.status).toBe("scheduled");
     expect((await admin(request(createApp()).patch(`${C}/${c.id}`).send({ name: "x" }))).status).toBe(409);
     expect((await admin(request(createApp()).post(`${C}/${c.id}/schedule`).send({ sendAt: null }))).body.campaign.status).toBe("draft");
     expect((await admin(request(createApp()).patch(`${C}/${c.id}`).send({ name: "renamed" }))).body.campaign.name).toBe("renamed");
-    await admin(request(createApp()).post(`${C}/${c.id}/send-now`));
+    await admin(request(createApp()).post(`${C}/${c.id}/send-now`).send(await sure(c.id)));
     expect((await admin(request(createApp()).post(`${C}/${c.id}/cancel`))).body.campaign.status).toBe("canceled");
     expect((await admin(request(createApp()).post(`${C}/${c.id}/cancel`))).status).toBe(409);
     expect((await admin(request(createApp()).delete(`${C}/${c.id}`))).status).toBe(200);
@@ -160,21 +168,21 @@ describe("campaign routes and state machine", () => {
     seedMany(1);
     const c = await mk();
     setSender({ identityEmail: "" });
-    expect((await admin(request(createApp()).post(`${C}/${c.id}/send-now`))).body.error).toMatch(/contact email/);
+    expect((await admin(request(createApp()).post(`${C}/${c.id}/send-now`).send(await sure(c.id)))).body.error).toMatch(/contact email/);
     setSender({ footerIdentity: "", identityEmail: "" });
-    expect((await admin(request(createApp()).post(`${C}/${c.id}/send-now`))).body.error).toMatch(/your name and a contact email/);
+    expect((await admin(request(createApp()).post(`${C}/${c.id}/send-now`).send(await sure(c.id)))).body.error).toMatch(/your name and a contact email/);
     setSender({ identityPostal: "" });
-    expect((await admin(request(createApp()).post(`${C}/${c.id}/send-now`))).status).toBe(200);
+    expect((await admin(request(createApp()).post(`${C}/${c.id}/send-now`).send(await sure(c.id)))).status).toBe(200);
   });
 
   it("refuses to queue without a footer identity, or an empty audience", async () => {
     setSender({ footerIdentity: "" });
     seedMany(1);
     const c = await mk();
-    expect((await admin(request(createApp()).post(`${C}/${c.id}/send-now`))).status).toBe(422);
+    expect((await admin(request(createApp()).post(`${C}/${c.id}/send-now`).send(await sure(c.id)))).status).toBe(422);
     setSender();
     const empty = await mk({ groups: ["nobody"] });
-    expect((await admin(request(createApp()).post(`${C}/${empty.id}/send-now`))).status).toBe(422);
+    expect((await admin(request(createApp()).post(`${C}/${empty.id}/send-now`).send(await sure(empty.id)))).status).toBe(422);
   });
 
   it("validates strictly: unknown field, header injection, bad group slug", async () => {
@@ -291,10 +299,10 @@ describe("the unsubscribe link can never be missing", () => {
     setSender({ unsubscribeNoteEn: "Thanks for reading", testRecipients: ["me@example.org"] });
     seedMany(2);
     const c = await mk();
-    const r = await admin(request(createApp()).post(`${C}/${c.id}/send-now`));
+    const r = await admin(request(createApp()).post(`${C}/${c.id}/send-now`).send(await sure(c.id)));
     expect(r.status).toBe(422);
     expect(r.body.error).toMatch(/unsubscribe note/);
-    expect((await admin(request(createApp()).post(`${C}/${c.id}/schedule`).send({ sendAt: new Date(T0 + 3_600_000).toISOString() }))).status).toBe(422);
+    expect((await admin(request(createApp()).post(`${C}/${c.id}/schedule`).send({ sendAt: new Date(T0 + 3_600_000).toISOString(), ...(await sure(c.id)) }))).status).toBe(422);
     await admin(request(createApp()).post(`${C}/${c.id}/test`));
     expect(sent[0].text).toMatch(/\/unsubscribe\?token=/);
   });
@@ -416,7 +424,7 @@ describe("sender tick", () => {
     setSender();
     seedMany(1);
     const c = await mk();
-    await admin(request(createApp()).post(`${C}/${c.id}/schedule`).send({ sendAt: new Date(T0 + 60_000).toISOString() }));
+    await admin(request(createApp()).post(`${C}/${c.id}/schedule`).send({ sendAt: new Date(T0 + 60_000).toISOString(), ...(await sure(c.id)) }));
     await runSenderTick({ now: () => T0, deliver });
     expect(sent).toHaveLength(0);
     expect(get(c.id).status).toBe("scheduled");
@@ -527,7 +535,7 @@ describe("sender tick", () => {
     seedContact(5, { groups: ["other"] });
     seedContact(6);
     const c = await mk();
-    await admin(request(createApp()).post(`${C}/${c.id}/send-now`));
+    await admin(request(createApp()).post(`${C}/${c.id}/send-now`).send(await sure(c.id)));
     store.set(`campaign:${c.id}`, { ...get(c.id), sendAt: "2000-01-01T00:00:00.000Z" });
     // contact 6 unsubscribes after the recipient list is read but before its mail.
     const orig = store.get(`contact:${hashEmail(addr(6))}`)!;
@@ -991,7 +999,7 @@ describe("monthly limit per contact", () => {
     store.set(`send:${campaign}:${h}`, { _id: `send:${campaign}:${h}`, type: "send", campaignId: campaign, contact: h, status: "sent", at: new Date(at).toISOString(), ...over });
   };
   const fill = (i: number, n: number, at: number) => { for (let k = 0; k < n; k++) gotMail(i, at - k, {}, `old${k}`); };
-  const go = (id: string, body: object = {}) => admin(request(createApp()).post(`${C}/${id}/send-now`).send(body));
+  const go = async (id: string, body: object = {}) => admin(request(createApp()).post(`${C}/${id}/send-now`).send(await sure(id, body)));
   const run = async (id: string, now = T0) => {
     store.set(`campaign:${id}`, { ...get(id), sendAt: "2000-01-01T00:00:00.000Z" });
     await runSenderTick({ now: () => now, deliver });
@@ -1029,7 +1037,7 @@ describe("monthly limit per contact", () => {
     expect(r.body.error).toBe("1 of 3 recipients already got 4 emails in the last 30 days. Send to the others (they are skipped), or send to everyone anyway.");
     expect(JSON.stringify(r.body)).not.toContain("user1@");
     expect(get(c.id).status).toBe("draft");
-    const later = await admin(request(createApp()).post(`${C}/${c.id}/schedule`).send({ sendAt: new Date(Date.now() + 3_600_000).toISOString() }));
+    const later = await admin(request(createApp()).post(`${C}/${c.id}/schedule`).send({ sendAt: new Date(Date.now() + 3_600_000).toISOString(), ...(await sure(c.id)) }));
     expect(later.status).toBe(409);
     expect(later.body.code).toBe("cap");
 
@@ -1186,7 +1194,7 @@ describe("the kill switch", () => {
     const t = await admin(request(createApp()).post(`${C}/${id}/test`));
     expect([t.status, t.body.code]).toEqual([423, "paused"]);
     const c2 = await mk();
-    const q = await admin(request(createApp()).post(`${C}/${c2.id}/send-now`));
+    const q = await admin(request(createApp()).post(`${C}/${c2.id}/send-now`).send(await sure(c2.id)));
     expect([q.status, q.body.code]).toEqual([423, "paused"]);
     expect(get(c2.id).status).toBe("draft");
     expect(sent).toHaveLength(0);
@@ -1225,5 +1233,75 @@ describe("the kill switch", () => {
     env.SEND_ENABLED = "false";
     const held = await (await import("../providers/index.js")).getProvider().send({ from: "a@example.invalid", to: "b@example.invalid", subject: "s", text: "t" } as never);
     expect(held).toMatchObject({ ok: false, kind: "policy" });
+  });
+});
+
+describe("what a campaign needs before it can start", () => {
+  const ask = (path: string, body: object = {}) => admin(request(createApp()).post(path).send(body));
+  const ready = async (n = 3) => {
+    setSender({ testRecipients: ["me@example.org"] });
+    seedMany(n);
+    return (await mk()).id;
+  };
+
+  it("is refused without a test send, with the reason, and queues nothing", async () => {
+    const id = await ready();
+    const r = await ask(`${C}/${id}/send-now`, { confirmCount: 3 });
+    expect([r.status, r.body.code]).toEqual([422, "test"]);
+    expect(get(id).status).toBe("draft");
+    const s = await ask(`${C}/${id}/schedule`, { sendAt: new Date(Date.now() + 3_600_000).toISOString(), confirmCount: 3 });
+    expect([s.status, s.body.code]).toEqual([422, "test"]);
+  });
+
+  it("a test send marks exactly that content; an edit makes it untested again", async () => {
+    const id = await ready();
+    expect((await ask(`${C}/${id}/test`)).body).toMatchObject({ ok: true, sent: 1 });
+    expect((await admin(request(createApp()).get(`${C}/${id}`))).body.campaign.testedAt).toEqual(expect.any(String));
+    await admin(request(createApp()).patch(`${C}/${id}`).send({ subject: "Changed after the test" }));
+    expect((await admin(request(createApp()).get(`${C}/${id}`))).body.campaign.testedAt).toBeNull();
+    const r = await ask(`${C}/${id}/send-now`, { confirmCount: 3 });
+    expect([r.status, r.body.code]).toEqual([422, "test"]);
+  });
+
+  it("a test that failed for any recipient does not count", async () => {
+    const id = await ready();
+    vi.mocked(emailService.sendBulk).mockImplementationOnce(async (m) => m.map(() => ({ ok: false as const, error: "x" })));
+    expect((await ask(`${C}/${id}/test`)).body).toMatchObject({ sent: 0, failed: 1 });
+    expect((await ask(`${C}/${id}/send-now`, { confirmCount: 3 })).body.code).toBe("test");
+  });
+
+  it("needs the audience size confirmed, and refuses a number that no longer matches", async () => {
+    const id = await ready();
+    await ask(`${C}/${id}/test`);
+    const none = await ask(`${C}/${id}/send-now`);
+    expect([none.status, none.body.code, none.body.total]).toEqual([422, "confirm", 3]);
+    const stale = await ask(`${C}/${id}/send-now`, { confirmCount: 2 });
+    expect([stale.status, stale.body.code, stale.body.total]).toEqual([409, "count", 3]);
+    expect(get(id).status).toBe("draft");
+    expect((await ask(`${C}/${id}/send-now`, { confirmCount: 3 })).status).toBe(200);
+  });
+
+  it("is refused while the never-mail list cannot be read or written, and goes through once it can", async () => {
+    const id = await ready();
+    await ask(`${C}/${id}/test`);
+    ledger.down = true;
+    const r = await ask(`${C}/${id}/send-now`, { confirmCount: 3 });
+    expect(r.status).toBe(503);
+    expect(get(id).status).toBe("draft");
+    ledger.down = false;
+    expect((await ask(`${C}/${id}/send-now`, { confirmCount: 3 })).status).toBe(200);
+    const again = await mk();
+    await ask(`${C}/${again.id}/test`);
+    ledger.docs.delete("meta:ledger");
+    resetLedgerCache();
+    expect((await ask(`${C}/${again.id}/send-now`, { confirmCount: 3 })).status).toBe(503);
+  });
+
+  it("nothing sends by itself: a draft is never picked up by the tick, however old", async () => {
+    const id = await ready();
+    store.set(`campaign:${id}`, { ...get(id), sendAt: "2000-01-01T00:00:00.000Z" });
+    await runSenderTick({ now: () => T0, deliver });
+    expect(sent).toHaveLength(0);
+    expect(get(id).status).toBe("draft");
   });
 });

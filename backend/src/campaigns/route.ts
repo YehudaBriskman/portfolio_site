@@ -10,6 +10,8 @@ import { logger } from "../logger.js";
 import { budgetLimits, budgetNow } from "./budgetStore.js";
 import { estimateFinish, nextWindowAt, thresholdsReached } from "./budget.js";
 import { resolveSender } from "./config.js";
+import { ledgerWritable } from "../audience/ledger.js";
+import { isTested, contentFingerprint } from "./readiness.js";
 import { campaignsBlocked, sendingState, setPaused } from "./killSwitch.js";
 import { renderCampaignMail } from "./render.js";
 import { AudienceBody, SendingBody, CampaignCreate, CampaignId, CampaignPatch, PreviewBody, ScheduleBody, SendNowBody, type Campaign } from "./schemas.js";
@@ -38,7 +40,7 @@ const view = (c: Campaign) => ({
   id: c._id.slice("campaign:".length), _rev: c._rev ?? null, name: c.name, subject: c.subject, preheader: c.preheader ?? "",
   bodyText: c.bodyText, blocks: c.blocks ?? null, groups: c.groups, lang: c.lang ?? "all", topic: c.topic ?? null,
   status: c.status, sendAt: c.sendAt ?? null, counters: c.counters, capOverride: c.capOverride ?? null, eventId: c.eventId ?? null,
-  pausedReason: c.pausedReason ?? null, startedAt: c.startedAt ?? null, finishedAt: c.finishedAt ?? null, createdAt: c.createdAt, updatedAt: c.updatedAt,
+  pausedReason: c.pausedReason ?? null, testedAt: isTested(c) ? c.tested!.at : null, startedAt: c.startedAt ?? null, finishedAt: c.finishedAt ?? null, createdAt: c.createdAt, updatedAt: c.updatedAt,
 });
 
 const idOf = (raw: unknown) => {
@@ -274,13 +276,21 @@ router.post(
     );
     const results = await emailService.sendBulk(msgs, { from: from.from, replyTo: from.replyTo });
     const sent = results.filter((r) => r.ok).length;
+    /* Every test recipient got it: only then is this exact content "tested". A later edit changes the fingerprint and the mark no longer counts. */
+    if (sent === results.length && sent > 0 && c.status === "draft") {
+      const fp = contentFingerprint(c);
+      await mutateCampaign(id, (x) => {
+        if (x.status !== "draft" || contentFingerprint(x) !== fp) return false;
+        x.tested = { at: new Date().toISOString(), fp };
+      }).catch(() => null);
+    }
     if (sent < results.length) logger.warn({ campaign: id, failed: results.length - sent }, "test send had failures");
     res.locals.audit = { target: `campaign:${id}`, before: null, after: { testSent: sent, testFailed: results.length - sent } };
     res.json({ ok: true, sent, failed: results.length - sent });
   }),
 );
 
-type CapChoice = { overrideCap?: boolean; skipCapped?: boolean };
+type CapChoice = { overrideCap?: boolean; skipCapped?: boolean; confirmCount?: number };
 
 /** The checks every route that puts a campaign in the queue shares. */
 async function queueable(c: Campaign, res: Response, choice: CapChoice): Promise<boolean> {
@@ -302,6 +312,11 @@ async function queueable(c: Campaign, res: Response, choice: CapChoice): Promise
     bad(res, "Fix the subscriber texts (the unsubscribe note must contain {link}) in Sender & delivery before sending.", 422);
     return false;
   }
+  /* A ledger that cannot be read and written cannot honour the next unsubscribe: nothing is queued on it. */
+  if (!(await ledgerWritable())) {
+    bad(res, "The never-mail list cannot be read or written right now, so nothing can be sent. Check the suppression ledger in Audience.", 503);
+    return false;
+  }
   const max = limitOf(s);
   const counts = max > 0 && !choice.overrideCap && !choice.skipCapped ? await capState(max, c._id.slice("campaign:".length)) : null;
   let total = 0;
@@ -309,10 +324,21 @@ async function queueable(c: Campaign, res: Response, choice: CapChoice): Promise
   for await (const r of recipientsOf(c)) {
     total++;
     if (counts && (counts.get(r._id.slice("contact:".length)) ?? 0) >= max) over++;
-    else if (!counts) break;
   }
   if (total === 0) {
     bad(res, "This audience has no active recipients.", 422);
+    return false;
+  }
+  if (!isTested(c)) {
+    res.status(422).json({ ok: false, code: "test", error: "Send a test to yourself first. A test counts only for the text it carried, so test again after any edit." });
+    return false;
+  }
+  if (choice.confirmCount === undefined) {
+    res.status(422).json({ ok: false, code: "confirm", total, error: "Confirm how many people this goes to before it can be sent." });
+    return false;
+  }
+  if (choice.confirmCount !== total) {
+    res.status(409).json({ ok: false, code: "count", total, error: `The audience is now ${total} ${total === 1 ? "person" : "people"}, not ${choice.confirmCount}. Check it and confirm again.` });
     return false;
   }
   if (over > 0) {
@@ -363,7 +389,7 @@ router.post(
     const b = ScheduleBody.safeParse(req.body);
     if (!id) return notFound(res);
     if (!b.success) return res.status(400).json({ ok: false, error: "Check the fields and try again.", issues: toIssues(b.error) });
-    await queue(res, id, b.data.sendAt === null ? null : new Date(b.data.sendAt).toISOString(), { overrideCap: b.data.overrideCap, skipCapped: b.data.skipCapped });
+    await queue(res, id, b.data.sendAt === null ? null : new Date(b.data.sendAt).toISOString(), { overrideCap: b.data.overrideCap, skipCapped: b.data.skipCapped, confirmCount: b.data.confirmCount });
   }),
 );
 

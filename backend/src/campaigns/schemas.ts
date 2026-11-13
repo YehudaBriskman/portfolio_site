@@ -28,6 +28,8 @@ export type Campaign = {
   status: CampaignStatus;
   sendAt?: string;
   counters: { queued: number; sent: number; failed: number; suppressed: number; /** Skipped by the per-person monthly limit; absent until one is. */ capped?: number };
+  /** The last successful test send and the fingerprint of the content it carried: a campaign edited since is not tested. */
+  tested?: { at: string; fp: string };
   /** The owner chose to send past the monthly limit; the sender then does not skip anyone for it. */
   capOverride?: { at: string };
   eventId?: string;
@@ -107,8 +109,8 @@ function _partial() {
     topic: Fields.topic.nullable().optional(),
   };
 }
-/* overrideCap: send to everyone although some already got the monthly maximum (recorded on the campaign). skipCapped: go ahead and let the sender skip them. */
-const CapChoice = { overrideCap: z.boolean().optional(), skipCapped: z.boolean().optional() };
+/* confirmCount: the audience size the owner saw and confirmed; queueing is refused without it or when the audience has changed. overrideCap: send to everyone although some already got the monthly maximum (recorded on the campaign). skipCapped: go ahead and let the sender skip them. */
+const CapChoice = { overrideCap: z.boolean().optional(), skipCapped: z.boolean().optional(), confirmCount: z.number().int().min(0).optional() };
 export const ScheduleBody = z.object({ sendAt: z.string().datetime({ offset: true }).nullable(), ...CapChoice }).strict();
 export const SendNowBody = z.object(CapChoice).strict();
 
