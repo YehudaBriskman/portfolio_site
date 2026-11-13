@@ -305,7 +305,7 @@ export default function AdminOverview() {
                         </span>
                       </span>
                       {e.state && e.kind === "post" && <StatePill state={e.state} className="hidden sm:inline-flex" />}
-                      <span className="a-when shrink-0 text-xs text-clay">
+                      <span className="a-when shrink-0 text-sm text-clay">
                         <RelTime iso={e.at} />
                       </span>
                     </li>
@@ -320,7 +320,7 @@ export default function AdminOverview() {
               <h2 id="overview-open" className="a-box-title">
                 {w.continue}
               </h2>
-              <Link to="/admin/posts?status=draft" className="a-link ms-auto text-[0.8125rem] font-normal">
+              <Link to="/admin/posts?status=draft" className="a-link ms-auto inline-flex min-h-11 items-center text-sm font-normal">
                 {w.viewAll}
               </Link>
             </div>

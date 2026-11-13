@@ -1,5 +1,6 @@
 import { useId, useState } from "react";
 import { ErrorState } from "@/components/admin/ui";
+import { DisclosureButton } from "@/components/ui/Disclosure";
 import { ANNOUNCE_CHANNELS, type AnnounceChannel, type AnnounceLang, type AnnounceLibraryItem } from "@/services/adminAnnounce";
 import { same, useSettingsDoc } from "../useSettingsDoc";
 import { useAnnounceWords } from "../words";
@@ -149,14 +150,14 @@ export default function LibraryPanel() {
               return (
                 <li key={i.id} className="a-box flex flex-wrap items-center gap-2 p-2 ps-4" data-active={target?.kind === "item" && target.id === i.id}>
                   <div className="min-w-0 flex-1 basis-48">
-                    <p className="truncate text-sm font-bold" dir="auto">{name}</p>
-                    <p className="text-xs text-clay">{a.channels[i.channel]} · {a.langs[i.lang]}{i.default && <> · <strong>{w.defaultBadge}</strong></>}</p>
+                    <p className="truncate text-sm font-bold" dir="auto" title={name}>{name}</p>
+                    <p className="text-sm text-clay">{a.channels[i.channel]} · {a.langs[i.lang]}{i.default && <> · <strong>{w.defaultBadge}</strong></>}</p>
                   </div>
                   <label className="flex min-h-[44px] items-center gap-2 text-sm">
                     <input type="checkbox" className="h-5 w-5" checked={Boolean(i.default)} onChange={(e) => setDefault(i.id, e.target.checked)} />
                     <span>{w.useDefault(a.channels[i.channel], a.langs[i.lang])}</span>
                   </label>
-                  <button type="button" className="a-btn min-h-[44px]" aria-label={w.open(name)} aria-expanded={target?.kind === "item" && target.id === i.id} onClick={() => setTarget({ kind: "item", id: i.id })}>{a.openShort}</button>
+                  <DisclosureButton className="!w-auto" aria-label={w.open(name)} expanded={target?.kind === "item" && target.id === i.id} controls={`${uid}-ed`} onToggle={() => setTarget(target?.kind === "item" && target.id === i.id ? null : { kind: "item", id: i.id })}>{a.openShort}</DisclosureButton>
                   <button type="button" className="a-btn min-h-[44px]" aria-label={w.duplicate(name)} disabled={draft.library.length >= LIBRARY_MAX} onClick={() => add({ ...i, id: newId("t"), name: `${i.name} (${w.copySuffix})`.slice(0, 60) })}>
                     {w.duplicateShort}
                   </button>
@@ -175,7 +176,7 @@ export default function LibraryPanel() {
             })}
           </ul>
         )}
-        {target?.kind === "item" && editor}
+        {target?.kind === "item" && <div id={`${uid}-ed`}>{editor}</div>}
       </section>
 
       <section aria-labelledby={`${uid}-b`} className="space-y-3">
@@ -191,16 +192,16 @@ export default function LibraryPanel() {
               return (
                 <li key={`${l}-${c}`} className="a-box flex items-center gap-2 p-2 ps-4">
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-bold">{a.channels[c]} · {a.langs[l]}</p>
-                    <p className="text-xs text-clay">{own ? w.customised : w.builtinBadge}</p>
+                    <p className="truncate text-sm font-bold" title={`${a.channels[c]} · ${a.langs[l]}`}>{a.channels[c]} · {a.langs[l]}</p>
+                    <p className="text-sm text-clay">{own ? w.customised : w.builtinBadge}</p>
                   </div>
-                  <button type="button" className="a-btn min-h-[44px]" aria-expanded={open} aria-label={w.open(`${a.channels[c]}, ${a.langs[l]}`)} onClick={() => setTarget({ kind: "builtin", lang: l, channel: c })}>{a.openShort}</button>
+                  <DisclosureButton className="!w-auto" aria-label={w.open(`${a.channels[c]}, ${a.langs[l]}`)} expanded={open} controls={`${uid}-ed`} onToggle={() => setTarget(open ? null : { kind: "builtin", lang: l, channel: c })}>{a.openShort}</DisclosureButton>
                 </li>
               );
             }),
           )}
         </ul>
-        {target?.kind === "builtin" && editor}
+        {target?.kind === "builtin" && <div id={`${uid}-ed`}>{editor}</div>}
       </section>
 
       <SnippetsEditor snippets={draft.snippets} onChange={(next) => edit((d) => void (d.snippets = next))} />

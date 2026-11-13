@@ -137,7 +137,6 @@ describe("LibraryPanel", () => {
     fireEvent.click(await screen.findByRole("checkbox", { name: "Use as default for LinkedIn, English" }));
     fireEvent.click(screen.getByRole("button", { name: "Duplicate Launch" }));
     expect(screen.getAllByText("Default", { selector: "strong" })).toHaveLength(1);
-    fireEvent.click(screen.getByRole("button", { name: "Edit Launch (copy)" }));
     expect(await screen.findByText(/Current default: Launch/)).toBeTruthy();
   });
 

@@ -8,6 +8,8 @@ import DocPathsEditor from "@/components/admin/DocPathsEditor";
 import LinkEditor, { type LinkRow } from "@/components/LinkEditor";
 import { admin, slugify, AdminValidationError } from "@/services/admin";
 import MediaPicker from "@/components/admin/MediaPicker";
+import { Disclosure } from "@/components/ui/Disclosure";
+import { useAdminWords } from "@/i18n/admin";
 
 type Draft = {
   slug: string;
@@ -39,6 +41,7 @@ const EMPTY: Draft = {
 };
 
 export default function AdminCollection() {
+  const w = useAdminWords();
   const { slug } = useParams();
   const isNew = !slug || slug === "new";
   const nav = useNavigate();
@@ -202,8 +205,7 @@ export default function AdminCollection() {
           />
         </label>
 
-        <details className="mt-10">
-          <summary className="a-summary">Hebrew</summary>
+        <Disclosure summary={w.areaHebrew} className="mt-10">
           <p className="a-hint mt-2">
             Optional, field by field. A field left empty shows the English on the Hebrew page, marked
             as English.
@@ -227,10 +229,9 @@ export default function AdminCollection() {
               />
             </label>
           </div>
-        </details>
+        </Disclosure>
 
-        <details open className="mt-10">
-          <summary className="a-summary">Details</summary>
+        <Disclosure open summary={w.areaDetails} className="mt-10">
           <div className="mt-4 grid gap-5 sm:grid-cols-2">
             <label className="block">
               <span className="a-label">Kind</span>
@@ -324,10 +325,9 @@ export default function AdminCollection() {
           <div className="mt-6">
             <LinkEditor links={d.links} onChange={(links) => patch({ links })} hebrew />
           </div>
-        </details>
+        </Disclosure>
 
-        <details open={Boolean(repoLabel)} className="mt-6">
-          <summary className="a-summary">Repository</summary>
+        <Disclosure open={Boolean(repoLabel)} summary={w.areaRepository} className="mt-6">
           <div className="mt-4 grid gap-5 sm:grid-cols-3">
             <label className="block">
               <span className="a-label">Owner</span>
@@ -376,11 +376,11 @@ export default function AdminCollection() {
 
           {stats && (
             <div className="a-card mt-5 p-4">
-              <p className="mono text-[0.6875rem] uppercase tracking-[0.22em] text-clay">From GitHub</p>
+              <p className="mono text-sm uppercase tracking-[0.22em] text-clay">From GitHub</p>
               {stats.error ? (
                 <p className="a-error">{String(stats.error)}</p>
               ) : (
-                <p className="mono mt-2 text-[0.75rem] text-bone/85">
+                <p className="mono mt-2 text-sm text-bone/85">
                   {`${stats.stars ?? "—"} stars · ${stats.language ?? "—"} · ${stats.license ?? "—"} · fetched ${
                     stats.fetchedAt ? new Date(String(stats.fetchedAt)).toLocaleString("en-GB") : "never"
                   }`}
@@ -389,7 +389,7 @@ export default function AdminCollection() {
               <p className="a-hint">Refreshed automatically every 15 minutes. Never read during a page load.</p>
             </div>
           )}
-        </details>
+        </Disclosure>
 
         <div className="mt-10 hidden items-center gap-3 lg:flex">
           <StatusPill state={save_} />

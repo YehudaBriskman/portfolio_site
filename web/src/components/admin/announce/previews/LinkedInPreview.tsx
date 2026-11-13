@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useId, useState } from "react";
+import { DisclosureButton } from "@/components/ui/Disclosure";
 import { previewLinkedIn, type LinkMeta } from "@/lib/share/preview";
 import { Approx, CardBox, Lines, Meter, Surface } from "./parts";
 import { usePreviewWords } from "./words";
@@ -7,6 +8,7 @@ import { usePreviewWords } from "./words";
 export default function LinkedInPreview({ text, name, ...meta }: { text: string; name?: string } & LinkMeta) {
   const w = usePreviewWords();
   const [open, setOpen] = useState(false);
+  const textId = useId();
   const p = previewLinkedIn(text, meta);
   return (
     <div className="pv">
@@ -23,16 +25,13 @@ export default function LinkedInPreview({ text, name, ...meta }: { text: string;
           <p className="pv-hint">{w.empty}</p>
         ) : (
           <div className="pv-body">
-            <Lines text={open || !p.folded ? text : p.visible} />
-            {p.folded && !open && (
-              <button type="button" className="pv-link-btn" aria-expanded={false} onClick={() => setOpen(true)}>
-                {w.seeMore}
-              </button>
-            )}
-            {p.folded && open && (
-              <button type="button" className="pv-link-btn" aria-expanded onClick={() => setOpen(false)}>
-                {w.seeLess}
-              </button>
+            <div id={textId}>
+              <Lines text={open || !p.folded ? text : p.visible} />
+            </div>
+            {p.folded && (
+              <DisclosureButton className="!w-auto" expanded={open} controls={textId} onToggle={() => setOpen((o) => !o)}>
+                {open ? w.seeLess : w.seeMore}
+              </DisclosureButton>
             )}
           </div>
         )}

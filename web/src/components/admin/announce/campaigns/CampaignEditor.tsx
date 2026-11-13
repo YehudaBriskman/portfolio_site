@@ -2,6 +2,7 @@ import { useCallback, useEffect, useId, useMemo, useState } from "react";
 import { hasTextProblem, identityMissing } from "../sender/defaults";
 import { Link } from "react-router-dom";
 import { ErrorState } from "@/components/admin/ui";
+import { DisclosureButton } from "@/components/ui/Disclosure";
 import { ContentInvalidError, type Issue } from "@/services/adminContent";
 import { adminAnnounce, type AnnounceSummary, type SenderSettings } from "@/services/adminAnnounce";
 import type { Group } from "@/services/adminAudience";
@@ -299,7 +300,7 @@ export default function CampaignEditor({
     <aside aria-labelledby={`${uid}-ph`} className="space-y-2 lg:sticky lg:top-4 lg:col-start-2 lg:row-span-4 lg:row-start-1 lg:self-start" data-testid="preview">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 id={`${uid}-ph`} className="display-tight text-lg">{w.previewHeading}</h3>
-        <button type="button" className="a-btn min-h-[44px] lg:hidden" aria-expanded={previewOpen} aria-controls={`${uid}-pb`} onClick={() => setPreviewOpen((o) => !o)}>{previewOpen ? w.hidePreview : w.showPreview}</button>
+        <DisclosureButton className="!w-auto lg:!hidden" expanded={previewOpen} controls={`${uid}-pb`} onToggle={() => setPreviewOpen((o) => !o)}>{previewOpen ? w.hidePreview : w.showPreview}</DisclosureButton>
       </div>
       <div id={`${uid}-pb`} className={`space-y-2 ${previewOpen ? "" : "hidden"} lg:block`}>
         <div className="flex flex-wrap items-center gap-2">

@@ -25,9 +25,6 @@ const SRC = join(__dirname, "..", "..", "..");
 
 /* Files another change is still migrating. One per line so merges are easy; each PR deletes its own. */
 const ALLOWLIST = [
-  "pages/AdminSettings.tsx",
-  "pages/AdminEditor.tsx",
-  "pages/AdminCollection.tsx",
   "components/city/ContributionCity.tsx",
 ];
 

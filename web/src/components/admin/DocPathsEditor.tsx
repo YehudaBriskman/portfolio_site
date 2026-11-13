@@ -54,7 +54,7 @@ export default function DocPathsEditor({ paths, repoLabel, onChange }: DocPathsE
 
   return (
     <div className={`a-card border-l-2 p-4 ${paths.length ? "border-l-sodium" : "border-l-edge"}`}>
-      <p className="mono text-[0.6875rem] uppercase tracking-[0.22em] text-clay">
+      <p className="mono text-sm uppercase tracking-[0.22em] text-clay">
         {paths.length ? `${paths.length} of ${MAX_PATHS} paths published` : "Allowlist empty"}
       </p>
 
@@ -68,8 +68,8 @@ export default function DocPathsEditor({ paths, repoLabel, onChange }: DocPathsE
         <ul className="mt-3 space-y-2">
           {paths.map((p) => (
             <li key={p} className="flex items-center gap-3">
-              <span className="mono min-w-0 flex-1 truncate text-sm text-bone">{p}</span>
-              <span className="mono shrink-0 text-[0.625rem] uppercase tracking-[0.16em] text-clay">
+              <span className="mono min-w-0 flex-1 truncate text-sm text-bone" title={p}>{p}</span>
+              <span className="mono shrink-0 text-sm uppercase tracking-[0.16em] text-clay">
                 {/* The trailing slash decides folder-vs-file, and that is not
                     something anyone should have to guess. */}
                 {p.endsWith("/") ? "everything under this folder" : "one file"}

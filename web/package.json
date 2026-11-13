@@ -16,6 +16,7 @@
     "test:ci": "vitest run --reporter=dot",
     "test:watch": "vitest",
     "a11y": "node scripts/a11y/axe-routes.mjs",
+    "a11y:admin-phones": "node scripts/a11y/admin-phones.mjs",
     "links": "node scripts/links/land.mjs"
   },
   "dependencies": {

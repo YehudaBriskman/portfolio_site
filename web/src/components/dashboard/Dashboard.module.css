@@ -143,7 +143,7 @@
 }
 
 .ownerRole {
-  font-size: 0.75rem;
+  font-size: .875rem;
   color: rgb(var(--ink-soft));
 }
 
@@ -292,17 +292,16 @@
 
 .topCount,
 .treeMeta {
-  font-size: 0.75rem;
+  font-size: .875rem;
   font-variant-numeric: tabular-nums;
   color: rgb(var(--ink-soft));
 }
 
 .topEmpty {
-  font-size: 0.8125rem;
+  font-size: .875rem;
   color: rgb(var(--ink-soft));
 }
 
-.more,
 .textButton {
   align-self: flex-start;
   min-height: 2rem;
@@ -311,15 +310,23 @@
   background: none;
   color: rgb(var(--ink-soft));
   font: inherit;
-  font-size: 0.8125rem;
+  font-size: .875rem;
   cursor: pointer;
 }
 
-.more:hover,
 .textButton:hover {
   color: rgb(var(--signal));
   text-decoration: underline;
   text-underline-offset: 3px;
+}
+
+/* The disclosure's own look, re-seated in the rail: the button is the shared
+   DisclosureButton, so this only sets where it sits and the touch floor. */
+.top .more {
+  align-self: flex-start;
+  inline-size: auto;
+  min-block-size: 2.75rem;
+  min-height: 2.75rem;
 }
 
 /* The area mark is round and carries its own ring (#251). */
@@ -453,7 +460,7 @@
   border-radius: 999px;
   background: rgb(var(--ink));
   color: rgb(var(--canvas));
-  font-size: 0.75rem;
+  font-size: .875rem;
   font-variant-numeric: tabular-nums;
 }
 
@@ -597,7 +604,7 @@
   display: inline-flex;
   min-height: 1.5rem;
   align-items: center;
-  font-size: 0.8125rem;
+  font-size: .875rem;
   color: rgb(var(--signal));
   text-decoration: none;
 }
@@ -697,7 +704,7 @@
 .postMeta {
   display: flex;
   flex-wrap: wrap;
-  font-size: 0.75rem;
+  font-size: .875rem;
   color: rgb(var(--ink-soft));
 }
 
@@ -721,7 +728,7 @@
   border: 1px solid var(--dash-line);
   border-radius: 999px;
   color: rgb(var(--ink-soft));
-  font-size: 0.75rem;
+  font-size: .875rem;
   text-decoration: none;
   transition:
     color var(--dur-micro) ease,
@@ -757,7 +764,7 @@
   padding-inline: 0.4375rem;
   border: 1px solid var(--dash-line);
   border-radius: 999px;
-  font-size: 0.75rem;
+  font-size: .875rem;
   font-weight: 600;
   color: rgb(var(--ink-soft));
 }
@@ -861,7 +868,7 @@
   background: transparent;
   color: rgb(var(--ink));
   font: inherit;
-  font-size: 0.8125rem;
+  font-size: .875rem;
   font-weight: 600;
   cursor: pointer;
   transition: background-color var(--dur-micro) ease;
@@ -874,7 +881,7 @@
 .askHint {
   min-width: 0;
   flex: 1;
-  font-size: 0.75rem;
+  font-size: .875rem;
   color: rgb(var(--ink-soft));
 }
 
@@ -911,7 +918,7 @@
   background: transparent;
   color: rgb(var(--ink));
   font: inherit;
-  font-size: 0.8125rem;
+  font-size: .875rem;
   cursor: pointer;
 }
 
@@ -935,7 +942,7 @@
   border: 1px solid var(--dash-line);
   border-radius: var(--dash-r-inner);
   color: rgb(var(--ink));
-  font-size: 0.8125rem;
+  font-size: .875rem;
   font-weight: 600;
   text-decoration: none;
   transition: background-color var(--dur-micro) ease;
@@ -992,7 +999,7 @@
   min-width: 0;
   align-items: center;
   gap: 0.5rem;
-  font-size: 0.75rem;
+  font-size: .875rem;
   color: rgb(var(--ink-soft));
 }
 
@@ -1023,7 +1030,7 @@
   margin: 0;
   overflow: hidden;
   color: rgb(var(--ink-soft));
-  font-size: 0.8125rem;
+  font-size: .875rem;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
   line-clamp: 3;
@@ -1146,7 +1153,7 @@
   margin: 0;
   padding: 0.5rem 1rem;
   border-block-start: 1px solid var(--dash-line-soft);
-  font-size: 0.75rem;
+  font-size: .875rem;
   color: rgb(var(--ink-soft));
 }
 
@@ -1228,7 +1235,7 @@
 }
 
 .eventWhen {
-  font-size: 0.75rem;
+  font-size: .875rem;
   color: rgb(var(--ink-soft));
 }
 
@@ -1249,7 +1256,7 @@
 }
 
 .eventArea {
-  font-size: 0.75rem;
+  font-size: .875rem;
   color: rgb(var(--ink-soft));
 }
 
@@ -1311,7 +1318,7 @@
 
 .messageCode {
   font-family: var(--font-code);
-  font-size: 0.75rem;
+  font-size: .875rem;
   color: rgb(var(--ink-soft));
 }
 
@@ -1357,7 +1364,7 @@
   border-block-end: 1px solid var(--dash-line-soft);
   background: rgb(var(--ink) / 0.03);
   font-family: var(--font-text);
-  font-size: 0.75rem;
+  font-size: .875rem;
   font-weight: 600;
   letter-spacing: 0;
   color: rgb(var(--ink-soft));
@@ -1378,7 +1385,7 @@
   padding: var(--dash-pad);
   border-block-start: 1px solid var(--dash-line-soft);
   color: rgb(var(--ink-soft));
-  font-size: 0.8125rem;
+  font-size: .875rem;
 }
 
 /* ─────────────────────────────────────────────────────────────── skeletons */
@@ -1411,7 +1418,7 @@
 }
 
 .skMeta {
-  font-size: 0.75rem;
+  font-size: .875rem;
 }
 
 /* ───────────────────────────────────────────── touch targets (#348)

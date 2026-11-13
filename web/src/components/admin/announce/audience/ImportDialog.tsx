@@ -68,7 +68,7 @@ export default function ImportDialog({ groups, onClose, onDone }: { groups: Grou
           </div>
           <div>
             <label className="a-label" htmlFor={`${uid}-t`}>{w.orPaste}</label>
-            <textarea id={`${uid}-t`} className="a-textarea font-mono text-xs" dir="ltr" rows={4} aria-label={w.csvLabel} value={csv} onChange={(e) => setCsv(e.target.value)} />
+            <textarea id={`${uid}-t`} className="a-textarea font-mono text-sm" dir="ltr" rows={4} aria-label={w.csvLabel} value={csv} onChange={(e) => setCsv(e.target.value)} />
           </div>
 
           <section aria-labelledby={`${uid}-p`} className="a-box p-3">

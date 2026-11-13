@@ -141,7 +141,7 @@ export function Modal({
       {open && (
         <>
           <div className={`${styles.dialogHead} pop-head`}>
-            <h2 className="pop-title min-w-0 flex-1 truncate">{title}</h2>
+            <h2 className="pop-title min-w-0 flex-1 truncate" title={title}>{title}</h2>
             <button type="button" className="a-btn a-btn-ghost a-icon-btn" onClick={onClose} aria-label="Close">
               <span aria-hidden="true">×</span>
             </button>

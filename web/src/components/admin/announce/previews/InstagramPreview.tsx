@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useId, useState } from "react";
+import { DisclosureButton } from "@/components/ui/Disclosure";
 import { previewInstagram } from "@/lib/share/preview";
 import { safeSrc } from "@/lib/share/preview";
 import { Approx, Lines, Meter, Segmented, Surface } from "./parts";
@@ -19,6 +20,7 @@ export default function InstagramPreview({
   name?: string;
 }) {
   const w = usePreviewWords();
+  const textId = useId();
   const [frame, setFrame] = useState<Frame>("square");
   const [open, setOpen] = useState(false);
   const [broken, setBroken] = useState<string>("");
@@ -49,11 +51,13 @@ export default function InstagramPreview({
             <p className="pv-hint">{w.empty}</p>
           ) : (
             <>
-              <Lines text={open || !p.folded ? text : p.visible} />
+              <div id={textId}>
+                <Lines text={open || !p.folded ? text : p.visible} />
+              </div>
               {p.folded && (
-                <button type="button" className="pv-link-btn" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+                <DisclosureButton className="!w-auto" expanded={open} controls={textId} onToggle={() => setOpen((o) => !o)}>
                   {open ? w.less : w.more}
-                </button>
+                </DisclosureButton>
               )}
             </>
           )}

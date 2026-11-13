@@ -1,5 +1,5 @@
 import "./inbox.css";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { Megaphone, Plus } from "lucide-react";
 import { EmptyState, ErrorState, LoadingRows } from "@/components/admin/ui";
 import { copyText } from "@/lib/share";
@@ -26,6 +26,7 @@ export default function InboxTab({ items, error, onRetry, onChange, onCreated }:
   const [openId, setOpenId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const newId = useId();
   const [note, setNote] = useState<{ id: string; text: string } | null>(null);
   const readiness = useReadiness(items, openId);
   const listRef = useRef<HTMLUListElement>(null);
@@ -93,14 +94,14 @@ export default function InboxTab({ items, error, onRetry, onChange, onCreated }:
     <div>
       <div className="mk-toolbar">
         <KeyHint id="mk-keys" mode="list" />
-        <button type="button" className="a-btn a-btn-primary mk-btn" aria-expanded={creating} onClick={() => setCreating((v) => !v)}>
+        <button type="button" className="a-btn a-btn-primary mk-btn" aria-expanded={creating} aria-controls={newId} onClick={() => setCreating((v) => !v)}>
           <Plus aria-hidden="true" />
           {w.newAnnouncement}
         </button>
       </div>
 
       {creating && (
-        <div className="mb-4">
+        <div id={newId} className="mb-4">
           <NewAnnouncement
             onCancel={() => setCreating(false)}
             onCreated={(ev) => {

@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
@@ -132,5 +134,22 @@ describe("releaseTag and the email block", () => {
     expect(() => buildRichEmail(base)).toThrow(RangeError);
     expect(buildRichEmail({ ...base, linkOrigins: ["https://github.com"] }).text).toContain(release.url);
     expect(() => buildRichEmail({ ...base, url: "https://evil.test/x", linkOrigins: ["https://github.com"] })).toThrow(RangeError);
+  });
+});
+
+describe("checks drawer chevron", () => {
+  it("animates only inside a prefers-reduced-motion: no-preference block", () => {
+    const css = readFileSync(resolve(process.cwd(), "src/components/admin/announce/inbox/inbox.css"), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+    const at = css.indexOf("@media (prefers-reduced-motion: no-preference)");
+    expect(at).toBeGreaterThan(-1);
+    const open = css.indexOf("{", at);
+    let depth = 0;
+    let end = open;
+    for (; end < css.length; end++) {
+      if (css[end] === "{") depth++;
+      if (css[end] === "}" && --depth === 0) break;
+    }
+    expect(css.slice(open, end)).toMatch(/\.mk-chev[^{]*\{[^}]*transition/);
+    expect(css.slice(0, open) + css.slice(end)).not.toMatch(/\.mk-chev[^{]*\{[^}]*transition/);
   });
 });
