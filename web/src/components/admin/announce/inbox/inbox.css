@@ -1,6 +1,8 @@
 /* The Marketing inbox and composer. Logical properties throughout, so Hebrew mirrors without a second sheet. */
   .mk-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 1rem; margin-bottom: .75rem; }
   .mk-keys { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem 1rem; margin: 0; }
+  /* Letter keys mean nothing on a touchscreen. */
+  @media (pointer: coarse) { .mk-keys { display: none; } }
   .mk-key-group { display: inline-flex; align-items: center; gap: .3125rem; }
   .mk-keys kbd {
     display: inline-block; min-width: 1.5rem; padding: .0625rem .375rem; text-align: center;
@@ -50,7 +52,7 @@
   .mk-chip[data-tone="error"] { border-color: rgb(var(--destructive-ink)); color: rgb(var(--destructive-ink)); }
   .mk-chip[data-tone="warn"] { border-style: dashed; border-color: rgb(var(--ink)); }
   .mk-chip[data-tone="ok"], .mk-chip[data-tone="muted"], .mk-chip[data-tone="more"] { color: rgb(var(--ink-soft)); }
-  .mk-quick { display: inline-flex; gap: .375rem; }
+  .mk-quick { display: inline-flex; gap: .5rem; }
   .mk-quick .a-btn { padding-inline: .625rem; }
   .mk-note { grid-column: 1 / -1; padding: 0 .25rem .5rem; font-size: .875rem; color: rgb(var(--ink-soft)); }
 

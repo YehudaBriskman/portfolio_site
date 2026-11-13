@@ -2,6 +2,7 @@ import { useId, useMemo, useState } from "react";
 import { adminAudience, type Group, type ImportResult } from "@/services/adminAudience";
 import Email from "./Email";
 import Modal from "./Modal";
+import { FOOTER } from "./modalFooter";
 import { previewCsv } from "./csv";
 import { useAudienceWords } from "./words";
 
@@ -113,7 +114,7 @@ export default function ImportDialog({ groups, onClose, onDone }: { groups: Grou
           </label>
 
           {(tooBig || error) && <p className="a-error" role="alert">{tooBig ? w.importTooBig : error}</p>}
-          <div className="flex flex-wrap gap-2">
+          <div data-modal-footer className={`${FOOTER} flex flex-wrap gap-2`}>
             <button type="submit" className="a-btn a-btn-primary min-h-[44px]" disabled={!ready}>{busy ? w.importing : w.importRun}</button>
             <button type="button" className="a-btn a-btn-ghost min-h-[44px]" onClick={onClose}>{w.cancel}</button>
           </div>
