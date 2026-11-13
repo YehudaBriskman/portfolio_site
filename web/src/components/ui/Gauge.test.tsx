@@ -38,7 +38,7 @@ describe("Gauge", () => {
 
   it("says the level in words in Hebrew too", () => {
     document.documentElement.lang = "he";
-    render(<Gauge value={460} max={500} label="היום" />);
+    render(<Gauge value={400} max={500} label="היום" />);
     expect(screen.getByRole("meter").getAttribute("aria-valuetext")).toContain("מתקרב");
   });
 
