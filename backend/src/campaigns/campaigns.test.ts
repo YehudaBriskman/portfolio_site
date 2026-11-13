@@ -9,9 +9,10 @@ import { hashEmail } from "../audience/store.js";
 import { emailService } from "../services/email.service.js";
 import { autoDraftFor } from "./autodraft.js";
 import { resolveSender, senderWarnings } from "./config.js";
-import { COMMERCIAL_LABEL_HE, LABEL_BODY_EN, LABEL_SUBJECT_EN, UNSUB_FALLBACK_EN, UNSUB_FALLBACK_HE, renderCampaignMail } from "./render.js";
+import { COMMERCIAL_LABEL_HE, LABEL_BODY_EN, LABEL_SUBJECT_EN, PREFS_LABEL_EN, PREFS_LABEL_HE, UNSUB_FALLBACK_EN, UNSUB_FALLBACK_HE, renderCampaignMail } from "./render.js";
 import { bodyBlocks, safeHref, safeImage } from "./body.js";
 import { renderMail } from "../mail/render.js";
+import { verifyToken } from "../audience/tokens.js";
 import { memoryLedgerStore, resetLedgerCache, useLedgerStore } from "../audience/ledger.js";
 import { resetGuard } from "./guard.js";
 import { inQuietHours, runSenderTick, type Deliver } from "./sender.js";
@@ -250,6 +251,19 @@ describe("the unsubscribe link can never be missing", () => {
     expect(m.html).toContain(UNSUB_FALLBACK_EN.split("{link}")[0]);
     expect(m.text).toContain(UNSUB_FALLBACK_EN.split("{link}")[0]);
     expect(m.html).toContain('lang="en" dir="ltr"');
+  });
+
+  it("every campaign mail links the preferences page with a signed manage token, in html and text", async () => {
+    for (const lang of ["en", "he"] as const) {
+      const m = await render("Bye {link}", lang);
+      const label = lang === "he" ? PREFS_LABEL_HE : PREFS_LABEL_EN;
+      const href = m.html.match(/<a href="([^"]*\/subscribe\/manage\?token=[^"]+)"[^>]*>([^<]*)</);
+      expect(href?.[2]).toBe(label);
+      expect(m.text).toMatch(new RegExp(`${label} \\(https?://\\S+/subscribe/manage\\?token=\\S+\\)`));
+      const token = decodeURIComponent(new URL(href![1].replace(/&amp;/g, "&")).searchParams.get("token")!);
+      expect((await verifyToken(token, "manage"))?.h).toBe(hashEmail(addr(1)));
+      expect(m.headers["List-Unsubscribe"]).not.toContain("manage");
+    }
   });
 
   it("the Hebrew mail carries the Hebrew fallback, lang=he and dir=rtl", async () => {

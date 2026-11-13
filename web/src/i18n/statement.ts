@@ -54,15 +54,7 @@ export const useStatementWords = defineWords(
     ],
     /* DRAFT wording for the owner to approve: what the mailing list collects. */
     privacy: "Privacy: the mailing list",
-    privacyIntro: "Apart from a message you send through the contact form, the only personal data this site collects on purpose is what you type into the sign-up form. It does not use cookies, analytics or tracking pixels, and no email carries one.",
-    privacyMore: "The full details, including who handles the data for me and how to ask for it to be shown, corrected or deleted, are on the privacy page.",
-    privacyItems: [
-      "What is stored: your email address, your name if you gave one, the language and topics you chose, the time and form version you agreed to, and the time you confirmed or unsubscribed.",
-      "Why: only to send you the new notes and releases you chose. Nothing is sold, shared or used for anything else.",
-      "Confirmation: you are added only after you open the link in the confirmation email. An unconfirmed address is deleted when its confirmation link expires, after 7 days unless the site owner sets a different number.",
-      "Leaving: every email has an unsubscribe link, and you can change topics or language from the preferences link. After you unsubscribe, your record is kept, marked as unsubscribed, so you are never mailed again; ask for deletion if you want it removed entirely.",
-      "Deletion: write to the address below and your record is erased.",
-    ],
+    privacyMore: "How the mailing list and the contact form handle personal data is described on the privacy page.",
 
     limits: "Known limitations",
     limitItems: [
@@ -118,15 +110,7 @@ export const useStatementWords = defineWords(
       "אי אפשר למסור ל־LinkedIn טקסט מראש, ולכן הטקסט מועתק כדי שתדביקו אותו. אי אפשר לפתוח את Instagram מעמוד אינטרנט, ולכן התמונה נשמרת והטקסט מועתק, ואת התמונה מצרפים באפליקציה.",
     ],
     privacy: "פרטיות: רשימת התפוצה",
-    privacyIntro: "מלבד הודעה שאתם שולחים בטופס יצירת הקשר, המידע האישי היחיד שהאתר אוסף במכוון הוא מה שאתם מקלידים בטופס ההרשמה. האתר לא משתמש בעוגיות, בניתוח נתונים או בפיקסלים למעקב, ובאף אימייל אין כאלה.",
-    privacyMore: "הפרטים המלאים, כולל מי מטפל במידע בשבילי ואיך מבקשים להראות אותו, לתקן אותו או למחוק אותו, בעמוד הפרטיות.",
-    privacyItems: [
-      "מה נשמר: כתובת האימייל, השם אם מסרתם, השפה והנושאים שבחרתם, המועד וגרסת הטופס שאישרתם, ומועד האישור או ההסרה.",
-      "בשביל מה: רק כדי לשלוח לכם את הרשימות והגרסאות החדשות שבחרתם. שום דבר לא נמכר, לא מועבר ולא משמש למטרה אחרת.",
-      "אישור: אתם נוספים לרשימה רק אחרי שפתחתם את הקישור באימייל האישור. כתובת שלא אושרה נמחקת כשקישור האישור פג, אחרי 7 ימים אלא אם בעל האתר קבע מספר אחר.",
-      "עזיבה: בכל אימייל יש קישור להסרה, ואפשר לשנות נושאים או שפה מקישור ההעדפות. אחרי ההסרה הפרטים שלכם נשמרים, מסומנים כמוסרים, כדי שלא תקבלו יותר אימיילים; בקשו מחיקה אם אתם רוצים שתימחק לגמרי.",
-      "מחיקה: כתבו לכתובת שלמטה והפרטים שלכם יימחקו.",
-    ],
+    privacyMore: "האופן שבו רשימת התפוצה וטופס יצירת הקשר מטפלים במידע אישי מתואר בעמוד הפרטיות.",
 
     limits: "מגבלות ידועות",
     limitItems: [
