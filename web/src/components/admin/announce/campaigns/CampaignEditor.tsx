@@ -22,7 +22,7 @@ import Modal from "../audience/Modal";
 import BudgetPlan from "./BudgetPlan";
 import EmailPreview from "../previews/EmailPreview";
 import BlocksEditor from "./BlocksEditor";
-import { blockProblem, blocksToText, zonedToIso } from "./helpers";
+import { blockProblem, blocksToText, cleanBlocks, createPayload, toInput, zonedToIso, type Form } from "./helpers";
 import Progress from "./Progress";
 import { pillState } from "./status";
 import { useCampaignWords } from "./words";
@@ -34,20 +34,11 @@ import { useCampaignWords } from "./words";
  * identity or without recipients, and its sentence is shown as it came).
  */
 
-type Form = { name: string; subject: string; preheader: string; bodyText: string; useBlocks: boolean; blocks: Block[]; groups: string[]; lang: CampaignLang; topic: "" | CampaignTopic };
 const BLANK: Form = { name: "", subject: "", preheader: "", bodyText: "", useBlocks: false, blocks: [], groups: ["subscribers"], lang: "all", topic: "" };
 const toForm = (c: Campaign): Form => ({
   name: c.name, subject: c.subject, preheader: c.preheader, bodyText: c.bodyText, useBlocks: Boolean(c.blocks?.length), blocks: c.blocks ?? [],
   groups: c.groups, lang: c.lang, topic: c.topic ?? "",
 });
-const cleanBlocks = (bs: Block[]): Block[] => bs.map((b) => (b.type === "ul" ? { ...b, items: b.items.map((i) => i.trim()).filter(Boolean) } : b));
-const toInput = (f: Form): CampaignInput => {
-  const blocks = f.useBlocks ? cleanBlocks(f.blocks) : null;
-  return {
-    name: f.name.trim() || f.subject.trim().slice(0, 120), subject: f.subject.trim(), preheader: f.preheader.trim(), bodyText: blocks ? blocksToText(blocks) : f.bodyText,
-    blocks, groups: f.groups, lang: f.lang, topic: f.topic || null,
-  };
-};
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 const audienceKey = (f: Form) => JSON.stringify([[...f.groups].sort(), f.lang, f.topic]);
 
@@ -210,7 +201,7 @@ export default function CampaignEditor({
     setMsg(null);
     try {
       const input = toInput(form);
-      const c = campaign ? await adminCampaigns.update(campaign.id, input, campaign._rev) : await adminCampaigns.create({ ...input, ...(eventId ? { eventId } : {}) });
+      const c = campaign ? await adminCampaigns.update(campaign.id, input, campaign._rev) : await adminCampaigns.create({ ...createPayload(input), ...(eventId ? { eventId } : {}) });
       setCampaign(c);
       setForm(toForm(c));
       setMsg({ kind: "ok", text: w.saved });

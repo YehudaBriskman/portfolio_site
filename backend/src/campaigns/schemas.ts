@@ -91,9 +91,17 @@ const Fields = {
   topic: z.enum(["blog", "releases"]),
 };
 
+/* The form sends null for "no blocks" and "no topic"; on create that means the field is absent, so null is never stored. */
 export const CampaignCreate = z
-  .object({ ...Fields, lang: Fields.lang.default("all"), topic: Fields.topic.optional(), eventId: z.string().max(200).optional(), blocks: Blocks.optional() })
-  .strict();
+  .object({
+    ...Fields,
+    lang: Fields.lang.default("all"),
+    topic: Fields.topic.nullable().optional(),
+    eventId: z.string().max(200).optional(),
+    blocks: Blocks.nullable().optional(),
+  })
+  .strict()
+  .transform(({ blocks, topic, ...rest }) => ({ ...rest, ...(blocks ? { blocks } : {}), ...(topic ? { topic } : {}) }));
 export const CampaignPatch = z
   .object({ ..._partial(), _rev: z.string().optional() })
   .strict();
