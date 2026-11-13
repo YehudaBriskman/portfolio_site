@@ -234,7 +234,7 @@ export default function SenderSection({ sender, onChange, warnings }: { sender: 
                 <span>{label}</span>
               </label>
             ))}
-            {sender.labelMode === "off" && <p className="a-error" role="status">{w.labelOffWarn}</p>}
+            {sender.labelMode === "off" && <p className="a-hint" role="status">{w.labelOffWarn}</p>}
           </fieldset>
         </>,
         { open: true, bad: !footerSet, testid: "sec-footer" },

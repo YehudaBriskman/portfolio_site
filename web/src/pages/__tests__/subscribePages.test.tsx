@@ -57,6 +57,21 @@ describe("the pages an email links to", () => {
     expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ token: "abc" });
   });
 
+  it("unsubscribe with no token names the contact address as a mailto link, never a raw {email}", () => {
+    respond(200);
+    at(<Unsubscribe />, "/unsubscribe");
+    const link = screen.getByRole("link", { name: "yehuda@yehudabriskman.com" });
+    expect(link).toHaveAttribute("href", "mailto:yehuda@yehudabriskman.com");
+    expect(link).toHaveAttribute("dir", "ltr");
+    expect(document.body.textContent).not.toContain("{email}");
+  });
+
+  it("the confirm page says it is the newsletter being confirmed", () => {
+    respond(200);
+    at(<SubscribeConfirm />, "/subscribe/confirm?token=abc");
+    expect(document.body.textContent).toMatch(/receive my newsletter/i);
+  });
+
   it("manage loads the masked address, saves changed topics", async () => {
     respond(200, { email: "a***@example.com", lang: "en", topics: { blog: true, releases: false }, status: "active" });
     at(<SubscribeManage />, "/subscribe/manage?token=abc");
