@@ -207,7 +207,7 @@ describe("campaign routes and state machine", () => {
   });
 
   it("preview renders the draft with the real renderer, escaped, with the footer", async () => {
-    setSender({ footerIdentity: "Yehuda, Tel Aviv", identityEmail: "me@example.org" });
+    setSender({ footerIdentity: "Yehuda, Tel Aviv", identityEmail: "me@example.org", labelMode: "hebrew" });
     const p = (b: Record<string, unknown>) => admin(request(createApp()).post(`${C}/preview`).send(b));
     const r = await p({ subject: "Hi", bodyText: "<script>x</script>\n\nSecond", lang: "he" });
     expect(r.status).toBe(200);
@@ -743,7 +743,7 @@ describe("bounce handling", () => {
 });
 
 describe("mail rendering", () => {
-  const sender = { ...DEFAULT_ANNOUNCE_SETTINGS.sender, footerIdentity: "A <b>& Co</b>\nStreet 1", identityEmail: "me@example.org" };
+  const sender = { ...DEFAULT_ANNOUNCE_SETTINGS.sender, footerIdentity: "A <b>& Co</b>\nStreet 1", identityEmail: "me@example.org", labelMode: "hebrew" as const };
   it("renders from text/blocks only: every field escaped, bad links and foreign images dropped", async () => {
     const m = await renderCampaignMail(
       {
@@ -782,6 +782,14 @@ describe("mail rendering", () => {
     expect(en.subject).toBe("שלום");
     expect(en.html).not.toContain(COMMERCIAL_LABEL_HE);
     expect(en.text).not.toContain(COMMERCIAL_LABEL_HE);
+  });
+
+  it("the label is off by default: no mail carries it until the owner picks a mode", async () => {
+    expect(DEFAULT_ANNOUNCE_SETTINGS.sender.labelMode).toBe("off");
+    const c = { subject: "שלום", bodyText: "x" };
+    const he = await renderCampaignMail(c, { lang: "he" }, hashEmail(addr(1)), { ...sender, labelMode: DEFAULT_ANNOUNCE_SETTINGS.sender.labelMode });
+    expect(he.subject).toBe("שלום");
+    expect(he.html + he.text).not.toContain(COMMERCIAL_LABEL_HE);
   });
 
   it("mode all labels English mail with the DRAFT wording, mode off labels nothing", async () => {

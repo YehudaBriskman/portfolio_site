@@ -114,7 +114,7 @@ describe("POST /api/subscribe", () => {
   it("creates a pending contact with a consent record and mails a confirm link", async () => {
     await signup(app(), { name: "Ann" });
     await flush();
-    expect(store.get(`contact:${hash}`)).toMatchObject({ status: "pending", source: "site", consentNote: "site-form-v1", groups: ["subscribers"], email: "ann@example.com" });
+    expect(store.get(`contact:${hash}`)).toMatchObject({ status: "pending", source: "site", consentNote: "site-form-v2", groups: ["subscribers"], email: "ann@example.com" });
     expect(sent).toHaveLength(1);
     expect(sent[0].to).toBe("ann@example.com");
     expect(sent[0].text).toContain(`${env.SITE_URL}/subscribe/confirm?token=`);
@@ -451,8 +451,9 @@ describe("the confirmation mail", () => {
     const m = renderConfirmMail({ name: '<img src=x onerror=alert(1)> {link} "q"', lang: "en" }, "https://x.test/c?token=a&b=1", DEFAULT_ANNOUNCE_SETTINGS.sender);
     expect(m.html).not.toContain("<img");
     expect(m.html).toContain("&lt;img src=x onerror=alert(1)&gt; {link} &quot;q&quot;");
-    expect(m.html).toContain('<a href="https://x.test/c?token=a&amp;b=1">');
-    expect(m.html.match(/<a /g)).toHaveLength(1);
+    expect(m.html).toContain('href="https://x.test/c?token=a&amp;b=1"');
+    /* The button and the plain-link fallback under it: the same one address twice, nothing else. */
+    expect(m.html.match(/<a /g)).toHaveLength(2);
     expect(m.subject).not.toMatch(/[\r\n]/);
   });
   it("is Hebrew and right-to-left for a Hebrew contact, with the link even if the owner's edit dropped it", () => {
@@ -462,7 +463,7 @@ describe("the confirmation mail", () => {
     expect(m.text).not.toContain(" ,");
   });
   it("fillTemplate substitutes in a single pass", () => {
-    expect(fillTemplate("{name} {site}", { name: "{site}", site: "S", days: "7", link: "L" }, false)).toBe("{site} S");
+    expect(fillTemplate("{name} {site}", { name: "{site}", site: "S", days: "7", link: "L" })).toBe("{site} S");
   });
   it("uses the owner's edited wording from settings:announce", async () => {
     store.set(SETTINGS_DOC_ID, { _id: SETTINGS_DOC_ID, _rev: "1-a", type: "settings-announce", updatedAt: "x", settings: { ...DEFAULT_ANNOUNCE_SETTINGS, sender: { ...DEFAULT_ANNOUNCE_SETTINGS.sender, confirmSubjectEn: "Please confirm", pendingTtlDays: 3 } } });
@@ -508,7 +509,7 @@ describe("consent record", () => {
     const h = doc().consentHistory!;
     expect(h).toHaveLength(2);
     expect(h[0]).toMatchObject({ textId: "site-form-v1", at: "2026-01-01T00:00:00.000Z", confirmedAt: "2026-01-02T00:00:00.000Z", lang: "en" });
-    expect(h[1]).toMatchObject({ textId: "site-form-v1", lang: "he" });
+    expect(h[1]).toMatchObject({ textId: "site-form-v2", lang: "he" });
     expect(h[1].confirmedAt).toBeUndefined();
     expect(doc().consent).toEqual(h[1]);
   });

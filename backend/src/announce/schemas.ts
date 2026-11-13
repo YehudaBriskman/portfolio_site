@@ -64,6 +64,7 @@ export const DEFAULT_MAX_PER_CONTACT_30D = 4;
 export const MAX_PER_CONTACT_30D_LIMIT = 31;
 
 export const DEFAULT_PENDING_TTL_DAYS = 7;
+export const PENDING_TTL_DAYS_MIN = 2;
 export const PENDING_TTL_DAYS_LIMIT = 30;
 
 export const LABEL_MODES = ["hebrew", "all", "off"] as const;
@@ -74,6 +75,8 @@ const migrateLabel = (v: unknown) => {
   if (!v || typeof v !== "object" || Array.isArray(v)) return v;
   const { commercialLabel, ...rest } = v as Record<string, unknown>;
   if (rest.labelMode === undefined && commercialLabel === false) rest.labelMode = "off";
+  /* An explicit old ON is the Hebrew-only label it always meant, not the new default. */
+  if (rest.labelMode === undefined && commercialLabel === true) rest.labelMode = "hebrew";
   return rest;
 };
 
@@ -114,7 +117,7 @@ export const SenderSchema = z.preprocess(migrateLabel, z
     unsubscribeNoteEn: SenderText,
     unsubscribeNoteHe: SenderText,
     /* The advertisement label (Israeli spam law): hebrew = Hebrew-language recipients only, all = every recipient, off = never. */
-    labelMode: z.enum(LABEL_MODES).default("hebrew"),
+    labelMode: z.enum(LABEL_MODES).default("off"),
     /* Days an unconfirmed signup is kept before the sweep deletes it. Lenient here like maxPerContact30d; the range is checked on PUT by validateSenderPending. */
     pendingTtlDays: z.number().default(DEFAULT_PENDING_TTL_DAYS),
   })
@@ -172,9 +175,9 @@ export function validateSenderLimits(s: Pick<SenderSettings, "maxPerContact30d">
 /** Applied on PUT only: the provider's limits, the safety factor and the transactional share. */
 export function validateSenderPending(s: Pick<SenderSettings, "pendingTtlDays">): { path: string; message: string }[] {
   const n = s.pendingTtlDays;
-  return Number.isInteger(n) && n >= 1 && n <= PENDING_TTL_DAYS_LIMIT
+  return Number.isInteger(n) && n >= PENDING_TTL_DAYS_MIN && n <= PENDING_TTL_DAYS_LIMIT
     ? []
-    : [{ path: "sender.pendingTtlDays", message: `Unconfirmed signups are kept a whole number of days, from 1 to ${PENDING_TTL_DAYS_LIMIT}.` }];
+    : [{ path: "sender.pendingTtlDays", message: `Unconfirmed signups are kept a whole number of days, from  to .` }];
 }
 
 export function validateSenderBudget(s: Pick<SenderSettings, "dailyLimit" | "monthlyLimit" | "safety" | "reserveShare">): { path: string; message: string }[] {
@@ -236,12 +239,12 @@ export const DEFAULT_SENDER: SenderSettings = {
   confirmSubjectEn: "Confirm your subscription",
   confirmSubjectHe: "אישור הרשמה",
   confirmBodyEn:
-    "Hi {name},\n\nSomeone (hopefully you) asked to get updates from {site}. To confirm your subscription, open this link:\n\n{link}\n\nIf this was not you, ignore this message and nothing will happen. The link works for {days} days.",
+    "Hi {name},\n\nSomeone asked to get my newsletter (notes and releases) from {site} at this address, hopefully you. To confirm, open this link:\n\n{link}\n\nIf it was not you, ignore this message: nothing is added and the request is deleted. The link works for {days} days. How your data is handled: {site}/privacy",
   confirmBodyHe:
-    "שלום {name},\n\nמישהו (כנראה אתם) ביקש לקבל עדכונים מהאתר {site}. כדי לאשר את ההרשמה, פתחו את הקישור:\n\n{link}\n\nאם זה לא אתם, התעלמו מהודעה זו ולא יקרה דבר. הקישור תקף {days} ימים.",
-  unsubscribeNoteEn: "You get this because you subscribed on {site}. To stop receiving these emails, unsubscribe here: {link}",
-  unsubscribeNoteHe: "קיבלתם הודעה זו כי נרשמתם לעדכונים באתר {site}. כדי להפסיק לקבל אותה, בטלו את ההרשמה כאן: {link}",
-  labelMode: "hebrew",
+    "שלום {name},\n\nהתקבלה בקשה לקבל מהאתר {site} את העלון שלי (רשימות וגרסאות חדשות) באימייל לכתובת הזו. כדי לאשר, פתחו את הקישור:\n\n{link}\n\nאם לא ביקשתם, אפשר להתעלם מהודעה זו: לא תתווסף שום כתובת והבקשה תימחק. הקישור תקף {days} ימים. איך המידע מטופל: {site}/privacy",
+  unsubscribeNoteEn: "You get this because you subscribed on {site}. Unsubscribe in one click: {link}",
+  unsubscribeNoteHe: "קיבלתם הודעה זו כי נרשמתם באתר {site}. להסרה בלחיצה אחת: {link}",
+  labelMode: "off",
   pendingTtlDays: DEFAULT_PENDING_TTL_DAYS,
   fromName: "",
   fromAddress: "",

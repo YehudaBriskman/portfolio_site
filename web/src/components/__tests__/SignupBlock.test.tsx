@@ -64,10 +64,16 @@ describe("SignupBlock", () => {
 
   it("links the consent sentence to the privacy section, and has a hidden honeypot named website", () => {
     setup(ok);
-    expect(screen.getByRole("link", { name: /how your data is handled/i })).toHaveAttribute("href", "/privacy");
+    expect(screen.getByRole("link", { name: /how I handle your data/i })).toHaveAttribute("href", "/privacy");
     const trap = document.querySelector('input[name="website"]') as HTMLInputElement;
     expect(trap.tabIndex).toBe(-1);
     expect(trap.closest("[aria-hidden='true']")).not.toBeNull();
+  });
+
+  it("says plainly that this is a newsletter, in the lede and in the consent sentence", () => {
+    setup(ok);
+    expect(document.body.textContent).toMatch(/my newsletter by email: new notes and releases/i);
+    expect(document.body.textContent).toMatch(/By subscribing you agree to receive my newsletter by email/);
   });
 
   it("renders its status region before anything has happened, so nothing moves later", () => {

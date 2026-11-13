@@ -109,14 +109,15 @@ describe("Campaigns tab", () => {
     expect(await screen.findByText(/Add your contact email in Sender & delivery/)).toBeTruthy();
   });
 
-  it("offers the label policy (default Hebrew only) and warns when it is off", async () => {
+  it("offers the label policy (default off) and says so", async () => {
     senderDoc = sender();
     render(<MemoryRouter><SettingsPanel /></MemoryRouter>);
     fireEvent.change(await screen.findByLabelText("Filter advanced settings"), { target: { value: "sender" } });
+    expect((screen.getByLabelText(/^Off\./) as HTMLInputElement).checked).toBe(true);
+    expect(screen.getByText(/no mail carries the label/)).toBeTruthy();
+    fireEvent.click(screen.getByLabelText(/Hebrew recipients only/));
     expect((screen.getByLabelText(/Hebrew recipients only/) as HTMLInputElement).checked).toBe(true);
     expect(screen.queryByText(/no mail carries the label/)).toBeNull();
-    fireEvent.click(screen.getByLabelText(/^Off\./));
-    expect(screen.getByText(/no mail carries the label/)).toBeTruthy();
     fireEvent.change(screen.getByLabelText("Contact email"), { target: { value: "nope" } });
     expect((screen.getByLabelText("Contact email") as HTMLInputElement).getAttribute("aria-invalid")).toBe("true");
   });

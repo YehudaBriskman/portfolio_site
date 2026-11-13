@@ -1,9 +1,11 @@
 import { loadSettings } from "../announce/store.js";
-import type { SenderSettings } from "../announce/schemas.js";
+import { contactLines, type SenderSettings } from "../announce/schemas.js";
 import { env } from "../env.js";
 import { logger } from "../logger.js";
 import { emailService } from "../services/email.service.js";
 import type { Contact, Lang } from "./schemas.js";
+import { oneLine } from "../mail/escape.js";
+import { renderMail, type Inline, type MailBlock } from "../mail/render.js";
 import { resolveSender } from "../campaigns/config.js";
 import { expiresIn, signToken } from "./tokens.js";
 
@@ -25,53 +27,71 @@ export async function manageUrl(hash: string) {
   return pageUrl("/subscribe/manage", await signToken({ t: "manage", h: hash, exp: expiresIn(MANAGE_TTL_SECONDS) }));
 }
 
-const esc = (s: string) =>
-  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
-
 export const PLACEHOLDER_NAMES = ["name", "site", "days", "link"] as const;
 const PLACEHOLDER = /\{(name|site|days|link)\}/g;
 
 /** True when the template carries a `{link}` the filler will turn into the link (exact, case-sensitive). */
 export const hasLink = (tpl: string) => tpl.includes("{link}");
 
+type Vars = Record<"name" | "site" | "days" | "link", string>;
+
 /**
  * Fills a template in ONE pass, so a value is never itself scanned for
- * placeholders. The html form escapes both the template's own text and every
- * value; only the link becomes markup, and it is built here from our own URL.
+ * placeholders. {link} becomes a link part; escaping is the renderer's job
+ * (../mail/escape.ts), never done here.
  */
-export function fillTemplate(tpl: string, vars: Record<"name" | "site" | "days" | "link", string>, html: boolean): string {
-  const out: string[] = [];
+export function fillParts(tpl: string, vars: Vars): Inline[] {
+  const out: Inline[] = [];
+  const push = (s: string) => {
+    if (typeof out[out.length - 1] === "string") out[out.length - 1] += s;
+    else if (s) out.push(s);
+  };
   let last = 0;
   for (const m of tpl.matchAll(PLACEHOLDER)) {
-    const lit = tpl.slice(last, m.index);
-    out.push(html ? esc(lit) : lit);
-    const v = vars[m[1] as keyof typeof vars];
-    out.push(html ? (m[1] === "link" ? `<a href="${esc(v)}">${esc(v)}</a>` : esc(v)) : v);
+    push(tpl.slice(last, m.index));
+    const v = vars[m[1] as keyof Vars];
+    if (m[1] === "link") out.push({ href: v, text: v });
+    else push(v);
     last = (m.index ?? 0) + m[0].length;
   }
-  const tail = tpl.slice(last);
-  out.push(html ? esc(tail) : tail);
-  return out.join("");
+  push(tpl.slice(last));
+  return out;
 }
 
+const partsText = (parts: Inline[]) => parts.map((p) => (typeof p === "string" ? p : p.text)).join("");
+
+/** Plain-text fill, same single pass. */
+export const fillTemplate = (tpl: string, vars: Vars): string => partsText(fillParts(tpl, vars));
+
 /* "Hi ," when a visitor gave no name reads badly: drop the gap before punctuation. */
-const tidy = (s: string) => s.replace(/[ \t]+([,،])/g, "$1");
+const tidy = (parts: Inline[]): Inline[] => parts.map((p) => (typeof p === "string" ? p.replace(/[ \t]+([,،])/g, "$1") : p));
+
+/* A paragraph that is only the link becomes the button, with the plain link under it as the fallback. */
+const ONLY_LINK = /^\{link\}$/;
 
 export function renderConfirmMail(contact: Pick<Contact, "name" | "lang">, link: string, sender: SenderSettings) {
   const lang: Lang = contact.lang ?? "en";
-  const subject = lang === "he" ? sender.confirmSubjectHe : sender.confirmSubjectEn;
+  const subject = oneLine(lang === "he" ? sender.confirmSubjectHe : sender.confirmSubjectEn);
   let tpl = lang === "he" ? sender.confirmBodyHe : sender.confirmBodyEn;
   // An owner edit that drops {link} must not produce a mail nobody can confirm.
   if (!hasLink(tpl)) tpl += "\n\n{link}";
   const site = new URL(env.SITE_URL).host;
-  const vars = { name: contact.name?.trim() || (lang === "he" ? "" : "there"), site, days: String(sender.pendingTtlDays), link };
-  const text = tidy(fillTemplate(tpl, vars, false));
-  const body = tidy(fillTemplate(tpl, vars, true))
-    .split(/\n{2,}/)
-    .map((p) => `<p style="margin:0 0 14px">${p.replace(/\n/g, "<br>")}</p>`)
-    .join("");
-  const html = `<div dir="${lang === "he" ? "rtl" : "ltr"}" style="font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;line-height:1.55">${body}</div>`;
-  return { subject: subject.replace(/[\r\n]+/g, " "), text, html };
+  const vars: Vars = { name: contact.name?.trim() || (lang === "he" ? "" : "there"), site, days: String(sender.pendingTtlDays), link };
+  const blocks: MailBlock[] = [{ type: "heading", text: subject }];
+  let preheader = "";
+  for (const para of tpl.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean)) {
+    if (ONLY_LINK.test(para)) {
+      blocks.push({ type: "button", label: subject, href: link }, { type: "paragraph", tone: "muted", htmlOnly: true, text: [{ href: link, text: link }] });
+      continue;
+    }
+    const parts = tidy(fillParts(para, vars));
+    if (!preheader && blocks.length > 1) preheader = partsText(parts).replace(/\s+/g, " ").slice(0, 140);
+    blocks.push({ type: "paragraph", text: parts });
+  }
+  const lines = contactLines(sender);
+  if (lines.length) blocks.push({ type: "footer", lines });
+  const { html, text } = renderMail(blocks, { lang, title: subject, preheader: preheader || subject });
+  return { subject, text, html };
 }
 
 /** Sends the double opt-in mail. Never throws and never logs the address. */

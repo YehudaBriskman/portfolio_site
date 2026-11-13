@@ -24,16 +24,16 @@ export const DEFAULT_SENDER: SenderSettings = {
   safety: 0.9,
   reserveShare: 0.2,
   autoDraftCampaign: false,
-  labelMode: "hebrew",
+  labelMode: "off",
   pendingTtlDays: 7,
   confirmSubjectEn: "Confirm your subscription",
   confirmSubjectHe: "אישור הרשמה",
   confirmBodyEn:
-    "Hi {name},\n\nSomeone (hopefully you) asked to get updates from {site}. To confirm your subscription, open this link:\n\n{link}\n\nIf this was not you, ignore this message and nothing will happen. The link works for {days} days.",
+    "Hi {name},\n\nSomeone asked to get my newsletter (notes and releases) from {site} at this address, hopefully you. To confirm, open this link:\n\n{link}\n\nIf it was not you, ignore this message: nothing is added and the request is deleted. The link works for {days} days. How your data is handled: {site}/privacy",
   confirmBodyHe:
-    "שלום {name},\n\nמישהו (כנראה אתם) ביקש לקבל עדכונים מהאתר {site}. כדי לאשר את ההרשמה, פתחו את הקישור:\n\n{link}\n\nאם זה לא אתם, התעלמו מהודעה זו ולא יקרה דבר. הקישור תקף {days} ימים.",
-  unsubscribeNoteEn: "You get this because you subscribed on {site}. To stop receiving these emails, unsubscribe here: {link}",
-  unsubscribeNoteHe: "קיבלתם הודעה זו כי נרשמתם לעדכונים באתר {site}. כדי להפסיק לקבל אותה, בטלו את ההרשמה כאן: {link}",
+    "שלום {name},\n\nהתקבלה בקשה לקבל מהאתר {site} את העלון שלי (רשימות וגרסאות חדשות) באימייל לכתובת הזו. כדי לאשר, פתחו את הקישור:\n\n{link}\n\nאם לא ביקשתם, אפשר להתעלם מהודעה זו: לא תתווסף שום כתובת והבקשה תימחק. הקישור תקף {days} ימים. איך המידע מטופל: {site}/privacy",
+  unsubscribeNoteEn: "You get this because you subscribed on {site}. Unsubscribe in one click: {link}",
+  unsubscribeNoteHe: "קיבלתם הודעה זו כי נרשמתם באתר {site}. להסרה בלחיצה אחת: {link}",
 };
 
 export type SenderField =
@@ -109,7 +109,7 @@ export function senderProblems(s: SenderSettings): Partial<Record<SenderField, S
   if (!whole(s.throttlePerHour, 3600)) p.throttlePerHour = "number";
   if (!whole(s.dailyCap, 10000)) p.dailyCap = "number";
   if (!whole(s.maxPerContact30d, 31, 0)) p.maxPerContact30d = "number";
-  if (!whole(s.pendingTtlDays, 30)) p.pendingTtlDays = "number";
+  if (!whole(s.pendingTtlDays, 30, 2)) p.pendingTtlDays = "number";
   if (s.quietHours && !zoneOk(s.quietHours.tz)) p.quietHours = "zone";
   /* Mirrors validateSenderBudget on the server. */
   if (!whole(s.dailyLimit, 100000)) p.dailyLimit = "number";

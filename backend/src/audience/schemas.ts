@@ -54,7 +54,7 @@ export type Contact = {
 
 export type Group = { _id: string; _rev?: string; type: "audience"; name: string; kind: "system" | "manual"; createdAt: string };
 
-export const SITE_FORM_VERSION = "site-form-v1";
+export const SITE_FORM_VERSION = "site-form-v2";
 export const SYSTEM_GROUP = "subscribers";
 
 /* Lowercased and trimmed once, here, so the hash and the stored address always agree. */
