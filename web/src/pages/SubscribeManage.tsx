@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import SubscribeFrame, { Result } from "@/components/SubscribeFrame";
+import { isDeadLink, retryKind, useFocusWhen } from "@/components/subscribeRetry";
 import { useSubscribeWords } from "@/i18n/subscribe";
 import { getPreferences, savePreferences, type Preferences } from "@/services/subscribe";
 
@@ -11,7 +12,11 @@ export default function SubscribeManage() {
   const [params] = useSearchParams();
   const token = params.get("token") ?? "";
   const [prefs, setPrefs] = useState<Preferences | null>(null);
-  const [state, setState] = useState<"loading" | "ready" | "saving" | "saved" | "bad">(token ? "loading" : "bad");
+  const [state, setState] = useState<"loading" | "ready" | "saving" | "saved" | "bad" | "loadFail" | "saveFail">(token ? "loading" : "bad");
+
+  const [why, setWhy] = useState<"rate" | "reach">("reach");
+  const [attempt, setAttempt] = useState(0);
+  const retryRef = useFocusWhen(state === "loadFail");
 
   useEffect(() => {
     if (!token) return;
@@ -22,12 +27,19 @@ export default function SubscribeManage() {
         setPrefs(p);
         setState("ready");
       },
-      () => live && setState("bad"),
+      (e) => {
+        if (!live) return;
+        if (isDeadLink(e)) setState("bad");
+        else {
+          setWhy(retryKind(e));
+          setState("loadFail");
+        }
+      },
     );
     return () => {
       live = false;
     };
-  }, [token]);
+  }, [token, attempt]);
 
   async function save() {
     if (!prefs) return;
@@ -35,8 +47,13 @@ export default function SubscribeManage() {
     try {
       await savePreferences(token, { lang: prefs.lang, topics: prefs.topics });
       setState("saved");
-    } catch {
-      setState("bad");
+    } catch (e) {
+      /* Only a dead token hides the form; a failed save keeps the reader's edits. */
+      if (isDeadLink(e)) setState("bad");
+      else {
+        setWhy(retryKind(e));
+        setState("saveFail");
+      }
     }
   }
 
@@ -47,7 +64,7 @@ export default function SubscribeManage() {
 
   return (
     <SubscribeFrame title={w.manageTitle}>
-      {prefs && state !== "bad" && (
+      {prefs && state !== "bad" && state !== "loadFail" && (
         <form
           className="space-y-5"
           onSubmit={(e) => {
@@ -83,10 +100,37 @@ export default function SubscribeManage() {
           </button>
         </form>
       )}
-      <Result kind={state === "saved" ? "ok" : state === "bad" ? "error" : "idle"}>
-        {state === "saved" ? w.saved : state === "bad" ? w.manageBad : state === "loading" ? w.working : ""}
+      <Result kind={state === "saved" ? "ok" : state === "bad" || state === "loadFail" || state === "saveFail" ? "error" : "idle"}>
+        {state === "saved"
+          ? w.saved
+          : state === "bad"
+            ? w.manageBad
+            : state === "loadFail"
+              ? why === "rate"
+                ? w.errRate
+                : w.errReach
+              : state === "saveFail"
+                ? why === "rate"
+                  ? w.errRate
+                  : w.manageSaveBad
+                : state === "loading"
+                  ? w.working
+                  : ""}
       </Result>
-      {prefs && state !== "bad" && (
+      {state === "loadFail" && (
+        <button
+          ref={retryRef}
+          type="button"
+          className="btn btn-solid"
+          onClick={() => {
+            setState("loading");
+            setAttempt((n) => n + 1);
+          }}
+        >
+          {w.retry}
+        </button>
+      )}
+      {prefs && state !== "bad" && state !== "loadFail" && (
         <p>
           {w.manageUnsub}{" "}
           <Link className="underline underline-offset-4" to={`/unsubscribe?token=${encodeURIComponent(token)}`}>
