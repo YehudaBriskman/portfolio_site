@@ -22,7 +22,7 @@ const FOOTER = ["Example Person", "contact@example.org", "+972 50-000 0000", "ht
 
 /* No markup of the nasty value survives in any mail, and the escaped form is there. */
 function expectSafe(html: string) {
-  expect(html).not.toMatch(/<script|<img src=x|onerror=alert\(2\)>/);
+  expect(html).not.toMatch(/<script|<img src=x|onerror=alert\(2\)>/i);
   expect(html).toContain(ESCAPED);
   expect(html).not.toMatch(/<form|<input|<link |@import|<iframe|<object|<embed|javascript:/i);
   expect(html).not.toMatch(/<img[^>]*src="(?!https:\/\/example\.test)/);
