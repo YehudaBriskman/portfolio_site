@@ -29,7 +29,7 @@
  * Waits poll on a timer, never rAF (headless Chromium here has ~1 rAF / 40 s).
  */
 import { createRequire } from "node:module";
-import { mkdirSync, writeFileSync, readFileSync, existsSync } from "node:fs";
+import { writeFileSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -333,7 +333,7 @@ if (unanswered.size) console.log("API paths the fixtures do not answer:", [...un
 
 /* ---------------------------------------------------------------- verdict */
 /* A finding is keyed by kind, screen and element, not by viewport: one known fault is one line. */
-const known = existsSync(BASELINE) ? new Set(JSON.parse(readFileSync(BASELINE, "utf8"))) : new Set();
+const known = (() => { try { return new Set(JSON.parse(readFileSync(BASELINE, "utf8"))); } catch (e) { if (e.code === "ENOENT") return new Set(); throw e; } })();
 /* The label, the generated id (useId) and hashed CSS-module classes are dropped: they change with the build, the element does not. */
 const bk = (kind, screen, el) => `${kind}|${screen}|${(el ?? "").replace(/ ".*$/, "").replace(/#[^.\s]+/, "").replace(/\._[^.\s]+/g, "")}`;
 const found = new Map();
