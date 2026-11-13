@@ -24,6 +24,7 @@ import DisplayMenu from "@/components/nav/DisplayMenu";
 import Ring from "@/components/motion/Ring";
 import { useAdminWords } from "@/i18n/admin";
 import { Counter } from "./ui";
+import { useKeyboardOpen } from "./keyboard";
 import { toDo, useTranslationReport } from "@/services/translations";
 import { useAnnounceUnread } from "@/services/adminAnnounce";
 
@@ -180,6 +181,7 @@ export default function AdminShell({ title, section, counts, bottomBar, backTo, 
    * clears it the same way (index.css).
    */
   const bar = useRef<HTMLDivElement>(null);
+  const keyboard = useKeyboardOpen();
   useEffect(() => {
     const el = bar.current;
     const root = document.documentElement;
@@ -348,7 +350,11 @@ export default function AdminShell({ title, section, counts, bottomBar, backTo, 
 
       {/* The one screen-bottom region: an editor's Save. */}
       {bottomBar && (
-        <div ref={bar} className={barEverywhere ? "a-bottom a-bottom-all" : "a-bottom lg:hidden"}>
+        <div
+          ref={bar}
+          data-keyboard={keyboard || undefined}
+          className={barEverywhere ? "a-bottom a-bottom-all" : "a-bottom lg:hidden"}
+        >
           {bottomBar}
         </div>
       )}

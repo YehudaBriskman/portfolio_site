@@ -2784,7 +2784,42 @@
     position: fixed; inset-inline: 0; bottom: 0; z-index: 30;
     background: rgb(var(--paper-2));
     border-top: 1px solid rgb(var(--rule-firm) / .5);
+    /* viewport-fit=cover: keep the controls out of the home indicator and,
+       in landscape, the notch. The measured height includes this padding. */
     padding-bottom: env(safe-area-inset-bottom);
+    padding-inline: env(safe-area-inset-left) env(safe-area-inset-right);
+  }
+  /* The keyboard is up: the bar is under it or over the field. See keyboard.ts. */
+  .a-bottom[data-keyboard] { display: none; }
+  /* Every control on the bar is a 44px target, whatever the pointer. */
+  .a-bottom .a-btn { min-height: 44px; }
+
+  /* One row: 44px of control and 8px above and below, 61px with the rule.
+     Pixels, not rem: the root is 106% on a phone and the bar must not grow
+     past the 64px a row is held to. */
+  .a-bar-row { display: flex; align-items: center; gap: .5rem; min-height: 60px; padding: 8px .75rem; }
+  /* A landscape phone has about 390px: the bar gives back what it can. */
+  @media (max-height: 480px) { .a-bar-row { min-height: 52px; padding-block: 4px; } }
+  .a-bar-row > .a-btn { flex: none; }
+  .a-bar-more { width: 44px; padding: 0; }
+  .a-bar-more svg { width: 20px; height: 20px; }
+  .a-bar-status {
+    display: flex; align-items: center; gap: .5rem; flex: 1 1 0; min-width: 0;
+    font-size: .875rem; color: rgb(var(--ink-soft));
+  }
+  .a-bar-status-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .a-bar-dot { box-shadow: inset 0 0 0 1.5px rgb(var(--ink-soft)); }
+  .a-bar-status[data-tone="busy"] .a-bar-dot { background: rgb(var(--signal)); box-shadow: none; }
+  .a-bar-status[data-tone="ok"] .a-bar-dot { background: rgb(var(--signal)); box-shadow: none; }
+  .a-bar-status[data-tone="warn"] .a-bar-dot,
+  .a-bar-status[data-tone="bad"] .a-bar-dot { background: rgb(var(--destructive-ink)); box-shadow: none; }
+  .a-bar-status[data-tone="bad"], .a-bar-status[data-tone="warn"] { color: rgb(var(--destructive-ink)); }
+  /* Under 480px the words give way to the dot and are read out instead; a
+     problem keeps its words, cut to what fits. */
+  @media (max-width: 479.98px) {
+    .a-bar-status-text:not([data-problem]) {
+      position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%);
+    }
   }
   /* Kept for the editors' bars until they move onto `.a-bottom`. */
   .a-bar { background: rgb(var(--paper-2)); border-color: rgb(var(--rule-firm) / .5); }
