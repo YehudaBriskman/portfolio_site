@@ -177,6 +177,8 @@ describe("Campaigns tab", () => {
     await waitFor(() => expect(calls.some((c) => c.url.endsWith("/campaigns/preview"))).toBe(true), { timeout: 3000 });
     fireEvent.click(screen.getByRole("button", { name: "Send to 12 now" }));
     await waitFor(() => expect(calls.some((c) => c.url.endsWith("/send-now") && c.method === "POST")).toBe(true));
+    /* The number on the button is the number the server is asked to hold the owner to. */
+    expect(calls.find((c) => c.url.endsWith("/send-now") && c.method === "POST")?.body).toMatchObject({ confirmCount: 12 });
     expect(await screen.findByTestId("progress")).toBeTruthy();
   });
 

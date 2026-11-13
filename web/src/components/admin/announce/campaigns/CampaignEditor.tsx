@@ -284,7 +284,11 @@ export default function CampaignEditor({
       setBusy("");
     }
   };
-  const dispatch = (c: Campaign, choice: CapChoice = {}) => () => (later && scheduleIso ? adminCampaigns.schedule(c.id, scheduleIso, choice) : adminCampaigns.sendNow(c.id, choice));
+  /* The count on the confirm button is the count sent along: the server refuses if the audience no longer matches it. */
+  const dispatch = (c: Campaign, choice: CapChoice = {}) => () => {
+    const withCount = { ...choice, ...(recipients !== null ? { confirmCount: recipients } : {}) };
+    return later && scheduleIso ? adminCampaigns.schedule(c.id, scheduleIso, withCount) : adminCampaigns.sendNow(c.id, withCount);
+  };
 
   const zones = useMemo(() => Array.from(new Set([zone, ...ZONES])), [zone]);
   const fmt = (iso: string) => new Intl.DateTimeFormat(document.documentElement.lang === "he" ? "he-IL" : "en-GB", { dateStyle: "medium", timeStyle: "short" }).format(new Date(iso));

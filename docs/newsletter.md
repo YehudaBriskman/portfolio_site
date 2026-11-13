@@ -413,6 +413,24 @@ Two switches, both fail safe (`campaigns/killSwitch.ts`).
   `docker compose up -d api` (a recreate with the new value, not an image deploy). Kubernetes:
   set the env var on the Deployment; the pod restarts.
 
+### What a campaign needs before it can start
+
+Enforced by the server when a campaign is scheduled or sent now (`campaigns/route.ts`,
+`queueable`), not only by the page. Each refusal names its reason and queues nothing.
+
+| Needed | Refusal |
+|---|---|
+| Sender identity filled (name and a contact email), subscriber texts valid | 422 |
+| Suppression ledger readable and writable (a fresh read plus one probe write, `ledgerWritable`) | 503 |
+| A test send to **all** test recipients that carried exactly this text (`campaigns/readiness.ts` fingerprint of subject, preview text, body, blocks, language; any edit makes it untested) | 422 `test` |
+| The audience size the owner confirmed (`confirmCount`, sent by the confirm button) equal to the server's count now | 422 `confirm`, 409 `count` |
+| Not paused and not `SEND_ENABLED=false` | 423 `paused` |
+| At least one active recipient; nobody over the monthly limit unless skipped or overridden | 422 / 409 `cap` |
+
+Nothing sends by itself: auto-drafts only create drafts, and the tick only picks up
+`scheduled` and `sending` campaigns. The end-to-end run over a real SMTP wire (a local sink) is
+`backend/src/campaigns/e2e.smtp.test.ts`; the same journey against a real CouchDB (Mango index, `_all_docs` by keys, the separate ledger database) is `e2e.couch.test.ts`, skipped unless `REAL_COUCH=1` (the file header has the docker command).
+
 ### The first real send (owner runbook)
 
 The release ships with signup, confirm and unsubscribe live and no campaign able to go out
@@ -422,8 +440,8 @@ until you press send; nothing sends by itself (auto-drafts only create drafts).
    budget (90 a day), and the owner notices (master switch on).
 2. Check the suppression ledger banner is green and the budget meter reads.
 3. Subscribe your own address, confirm it, check the mail.
-4. Make a campaign for one group that holds only you; **Send a test**, read it in a mail client.
-5. Check the recipient count in the confirm step is the number you expect, then send.
+4. Make a campaign for one group that holds only you; **Send a test**, read it in a mail client (the server will not send without it).
+5. Check the recipient count in the confirm step is the number you expect, then send (the server holds you to that number).
 6. Unsubscribe from the mail and check it stops.
 7. Anything wrong: **Pause all sending** (one click), or `SEND_ENABLED=false` and restart.
 

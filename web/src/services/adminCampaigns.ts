@@ -41,6 +41,8 @@ export type Campaign = {
   counters: Counters;
   eventId: string | null;
   pausedReason: PauseReason | null;
+  /** When the current text was last test-sent to the owner; null when it was never, or was edited since. */
+  testedAt: string | null;
   /** Set when the owner sent past the monthly limit. */
   capOverride: { at: string } | null;
   startedAt: string | null;
@@ -64,7 +66,7 @@ export type CampaignInput = {
 /** Present when the monthly limit is on: how many of `count` already got `cap` mails in 30 days. */
 export type AudienceSample = { count: number; samples: string[]; overCap?: number; cap?: number };
 /** What the owner chooses when the limit blocks a send: the capped are skipped, or everyone is sent to. */
-export type CapChoice = { skipCapped?: boolean; overrideCap?: boolean };
+export type CapChoice = { skipCapped?: boolean; overrideCap?: boolean; /** The audience size the owner confirmed; the server refuses when it no longer matches. */ confirmCount?: number };
 export type CapInfo = { code: "cap"; capped: number; total: number; max: number };
 
 /** The mail budget (GET /budget): counts only. `plan` is present when `remaining` was asked; null means the settings leave no room at all. */
