@@ -7,6 +7,8 @@
  * colours, and failure gets its own ink.
  */
 
+import { clock } from "./saveReadout";
+
 export type SaveState =
   | { kind: "idle" }
   | { kind: "dirty" }
@@ -15,10 +17,6 @@ export type SaveState =
   | { kind: "invalid"; message: string }
   | { kind: "failed"; message: string }
   | { kind: "conflict" };
-
-function clock(at: Date): string {
-  return at.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
-}
 
 export default function StatusPill({ state }: { state: SaveState }) {
   const isProblem = state.kind === "failed" || state.kind === "conflict" || state.kind === "invalid";
