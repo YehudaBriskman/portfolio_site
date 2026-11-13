@@ -311,12 +311,11 @@ read them: they contain every address.
 
 Two cautions that follow from the code:
 
-- **A restore can undo unsubscribes and erasures** made after the backup was
-  taken, because those are edits to documents that the older backup still has in
-  their earlier state. After any restore, before the next send, re-apply from the
-  owner's own record every erasure request received since the backup, and
-  re-check recent unsubscribes (the audit log lives in the same database and is
-  restored with it). Keep erasure requests somewhere outside the database.
+- **A restore alone would undo unsubscribes and erasures** made after the backup
+  was taken, because those are edits to documents that the older backup still has
+  in their earlier state. The suppression ledger (next section) exists so that it
+  does not: the ledger is a separate database that a content restore never touches.
+  Still keep erasure requests somewhere outside the databases as a second record.
 - A manual copy is the CSV export (`GET /api/admin/audience/contacts/export.csv`:
   email, name, lang, groups, status, source, consentAt, consentNote, createdAt).
   **Do not feed an export back through Import.** Import reads only email, name
@@ -324,20 +323,63 @@ Two cautions that follow from the code:
   with a new consent time, which would re-activate unsubscribed and unconfirmed
   people. The export has no `topics`, `confirmedAt` or `unsubscribedAt` either.
 
+### The suppression ledger
+
+A second CouchDB database, `portfolio_suppression` (env `LEDGER_DB`), on the same
+server. One document per person who must not be mailed, keyed by the contact hash,
+holding only `kind` (`unsubscribed`, `suppressed` or `erased`), the time, and for
+`erased` an expiry 30 days out (the 14 nightly dumps plus a fortnight). No address,
+no name, no reason text. It is still pseudonymous personal data (the hash can be
+recomputed from a known address), kept for one purpose: honouring a refusal.
+
+- **Written first.** Unsubscribe, one-click, admin unsubscribe, suppress, lift,
+  hard bounce and erase write the ledger line before the contact document, so a
+  crash between them leaves the person blocked, not mailed. A public unsubscribe
+  still succeeds if the ledger is down; the guard backfills the line later.
+- **Cleared by a fresh, confirmed signup.** Confirming removes an `unsubscribed` or
+  `erased` line (before the contact turns active). A `suppressed` line is never
+  cleared by signup; only the owner's "remove from suppression list" changes it
+  (to `unsubscribed`). Import skips every address on the ledger; adding an
+  `unsubscribed` or `suppressed` address by hand is refused.
+- **The sender guard** (`campaigns/guard.ts`) runs at the start of every sender tick
+  that has campaigns to work on. It reads the ledger, then fetches the matching
+  contacts in one keyed query. An *active* contact the ledger says is unsubscribed
+  or suppressed is set back; an active contact the ledger says is erased is deleted
+  with its `send:` documents. It adds a count-only audit entry (`ledger.repair`) and
+  a report that shows as a banner on the Audience and Campaigns tabs until the owner
+  presses "I have checked". It also adds ledger lines for contacts already
+  unsubscribed or suppressed that it does not know yet (this is how existing data
+  enters the ledger after the upgrade) and deletes expired `erased` lines.
+- **Fails closed.** If the ledger database cannot be read, or its `meta:ledger`
+  marker is missing, no campaign is claimed or continued and the banner says so.
+  The API creates the database and marker at boot if it may; if the CouchDB user
+  cannot create databases, create `portfolio_suppression` once by hand, give the API
+  user read and write on it, and restart. Never restore the ledger from an old
+  backup over a newer one.
+- **After a real restore:** restore the content database, start the API, let the
+  next tick (or `POST /api/admin/audience/ledger/check`) run the guard, read the
+  banner, check the audience, press "I have checked". Mail that went to people
+  before the restore is not detected: a restore also rewinds `send:` documents, so
+  a campaign sent shortly before the backup can be sent again to the same people.
+  Check campaigns in `sending` or `scheduled` by hand after a restore.
+- Losing the ledger's own disk loses it. Its nightly dump is tiny; keep it in the
+  offsite copy once there is one.
+
 ### Erasure on request
 
 An admin hard delete removes the contact document: `DELETE
 /api/admin/audience/contacts/:hash` (the audience list's `q` search finds a
 contact by address or name). A `suppressed` contact is
 refused until it is lifted from the suppression list (otherwise erasing it would
-let the address be added again); lift it, then delete.
+let the address be added again); lift it, then delete. Erasing writes an `erased`
+ledger line (30 days) first, then deletes the contact and that person's `send:`
+documents. If the ledger cannot be written the erase fails and nothing is deleted.
 
 What remains after an erasure:
 
-- `send:<campaignId>:<hash>` result documents, which hold the hash, a status and a
-  time and no address. A hash can be recomputed from a known address, so treat
-  them as pseudonymous. Neither deleting the contact nor deleting a campaign
-  removes them.
+- the ledger line (hash, kind, expiry; no address) until it expires.
+- `send:` documents of campaigns sent before an erasure are deleted with the
+  contact; deleting a campaign alone does not remove them.
 - audit entries naming `contact:<hash>`, which store hashes of the documents, not
   their content.
 - backups, until they are rotated out.
