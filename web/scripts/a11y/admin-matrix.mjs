@@ -9,6 +9,7 @@
  *   - a primary control (button, nav item, tab, icon button, field) under
  *     44x44 on a coarse pointer (the phone widths)
  *   - readable text under 14px, outside the allowlist below
+ *   - the fixed bottom bar taller than one 64px row
  * A finding listed in admin-matrix-baseline.json is known and does not fail;
  * a new one does. A screen that cannot load (error boundary, blank page) fails
  * too, so a broken fixture cannot pass as an empty report.
@@ -172,6 +173,8 @@ const SCREENS = [
   ["media-item", "/admin/media?id=fixture-media"],
   ["media-video", "/admin/media?id=fixture-video"],
   ["settings", "/admin/settings"],
+  /* The bar at its fullest: unsaved changes (a status sentence beside Undo and Save). */
+  ["settings-dirty", "/admin/settings", async (page) => { await page.evaluate(() => document.querySelector("#settings-sharing-enabled").click()); }],
   ["connections", "/admin/connections"],
   ["translations", "/admin/translations"],
   ["translations-filtered", "/admin/translations?status=done&visibility=all"],
@@ -217,21 +220,27 @@ function measure({ allowText, primary }) {
     if (cs.clipPath === "inset(50%)") return false;
     return true;
   };
-  const inScroller = (el) => { for (let a = el.parentElement; a && a !== document.body; a = a.parentElement) { const o = getComputedStyle(a).overflowX; if ((o === "auto" || o === "scroll" || o === "hidden") && a.scrollWidth > a.clientWidth) return a; } return null; };
+  /* A box that scrolls or clips on purpose: an `auto`/`scroll` container, or a `hidden` one narrower than the page (a card). The shell clips at exactly the page width and is not one, or it would hide the very overflow this looks for. */
+  const inScroller = (el) => { for (let a = el.parentElement; a && a !== document.body; a = a.parentElement) { const cs = getComputedStyle(a); const o = cs.overflowX; if (o === "auto" || o === "scroll") { if (a.scrollWidth > a.clientWidth) return a; } else if ((o === "hidden" || o === "clip") && a.getBoundingClientRect().width < vw - 1 && a.scrollWidth > a.clientWidth) return a; } return null; };
+  const underFixed = (el) => { for (let a = el; a && a !== document.body; a = a.parentElement) if (getComputedStyle(a).position === "fixed") return true; return false; };
 
-  /* 1. page-level horizontal overflow */
+  /* 1. horizontal overflow: the document scrolls sideways, or something sits past an edge the shell clips (a clipped control is as lost as a scrolled one) */
   const de = document.documentElement;
-  if (de.scrollWidth > vw + 1 || document.body.scrollWidth > vw + 1) {
+  {
     const offenders = [];
-    const rtl = getComputedStyle(de).direction === "rtl";
     for (const el of document.body.querySelectorAll("*")) {
       if (!visible(el)) continue;
       const r = el.getBoundingClientRect();
-      const past = rtl ? r.left < -1 : r.right > vw + 1;
-      if (past && !inScroller(el) && getComputedStyle(el).position !== "fixed") offenders.push({ el: sel(el), right: Math.round(r.right), left: Math.round(r.left), w: Math.round(r.width) });
+      if (!(r.right > vw + 1 || r.left < -1)) continue;
+      if (inScroller(el) || underFixed(el) || el.closest("[aria-hidden='true'], .sr-only")) continue;
+      offenders.push({ el: sel(el), right: Math.round(r.right), left: Math.round(r.left), w: Math.round(r.width) });
     }
-    out.overflow.push({ scrollWidth: de.scrollWidth, vw, offenders: offenders.slice(0, 6) });
+    if (offenders.length || de.scrollWidth > vw + 1 || document.body.scrollWidth > vw + 1) out.overflow.push({ scrollWidth: de.scrollWidth, vw, offenders: offenders.slice(0, 6) });
   }
+
+  /* 1b. the fixed bottom bar stays one row: at most 64px (a taller bar hides a quarter of a phone) */
+  const bar = document.querySelector(".a-bottom");
+  if (bar && visible(bar)) { const h = Math.round(bar.getBoundingClientRect().height); if (h > 64) out.bar = { h }; }
 
   /* 2. text under 14px (CSS px), one entry per element that directly holds text */
   const seen = new Set();
@@ -295,9 +304,14 @@ for (const c of combos) {
     const t0 = Date.now();
     const rec = { screen: name, viewport: c.v.id, theme: c.theme, lang: c.lang, path: (c.lang === "he" ? "/he" : "") + path };
     try {
-      await page.goto(`${base}${rec.path}`, { waitUntil: "load" });
-      for (let i = 0; i < 40; i++) { const ok = await page.evaluate(() => { const m = document.querySelector("main"); return !!m && !/Loading|טוען/.test(m.textContent ?? "") && [...document.images].every((im) => im.complete || !im.getAttribute("src")); }); if (ok) break; await page.waitForTimeout(250); }
-      if (step) { try { await step(page); await page.waitForTimeout(500); } catch (e) { rec.stepFailed = e.message.split("\n")[0]; } }
+      /* A step that fails is tried once more on a fresh load (the first page of a cold run can lose a race); failing twice fails the run. */
+      for (let attempt = 0; attempt < 2; attempt++) {
+        delete rec.stepFailed;
+        await page.goto(`${base}${rec.path}`, { waitUntil: "load" });
+        for (let i = 0; i < 40; i++) { const ok = await page.evaluate(() => { const m = document.querySelector("main"); return !!m && !/Loading|טוען/.test(m.textContent ?? "") && [...document.images].every((im) => im.complete || !im.getAttribute("src")); }); if (ok) break; await page.waitForTimeout(250); }
+        if (!step) break;
+        try { await step(page); await page.waitForTimeout(500); break; } catch (e) { rec.stepFailed = e.message.split("\n")[0]; }
+      }
       await page.evaluate(() => document.fonts.ready);
       Object.assign(rec, await page.evaluate(measure, { allowText: ALLOW_TEXT.join(","), primary: PRIMARY }));
       /* A fixture that does not load is a failure, not an empty report: the error boundary, or a blank main. */
@@ -326,14 +340,16 @@ const add = (key, msg) => { if (!found.has(key)) found.set(key, msg); };
 for (const r of results) {
   const tag = `${r.screen} ${r.viewport} ${r.theme} ${r.lang}`;
   if (r.error) { add(`error|${r.screen}`, `${tag}: ERROR ${r.error}`); continue; }
+  if (r.stepFailed) add(`step|${r.screen}`, `${tag}: the screen's step failed (${r.stepFailed})`);
   if (r.broken) add(`broken|${r.screen}`, `${tag}: screen did not load (${r.broken})`);
+  if (r.bar) add(`bar|${r.screen}`, `${tag}: bottom bar is ${r.bar.h}px tall, more than one 64px row`);
   for (const o of r.overflow) add(bk("overflow", r.screen, o.offenders[0]?.el), `${tag}: horizontal overflow (${o.scrollWidth} > ${o.vw}) ${o.offenders.map((x) => x.el).slice(0, 3).join(" | ")}`);
   for (const t of r.tinyTargets) add(bk("tiny", r.screen, t.el), `${tag}: target ${t.w}x${t.h} < 24 ${t.el}`);
   for (const t of r.smallTargets) add(bk("coarse", r.screen, t.el), `${tag}: primary control ${t.w}x${t.h} < 44 at a coarse pointer ${t.el}`);
   for (const t of r.smallText) add(bk("text", r.screen, t.el), `${tag}: text ${t.px}px < 14 ${t.el}`);
 }
 if (process.argv.includes("--write-baseline")) {
-  const keys = [...found.keys()].filter((k) => !/^(error|broken)\|/.test(k)).sort();
+  const keys = [...found.keys()].filter((k) => !/^(error|broken|bar|step)\|/.test(k)).sort();
   writeFileSync(BASELINE, JSON.stringify(keys, null, 1) + "\n");
   console.log(`baseline: ${keys.length} known findings`);
   process.exit(0);
