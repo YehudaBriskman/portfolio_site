@@ -1067,16 +1067,74 @@
 .table {
   margin-top: clamp(1.5rem, 3vw, 2.25rem);
   border-top: 1px solid rgb(var(--rule));
-  padding-top: 1rem;
+  /* The summary is a 44px target and carries its own air, so the rule above
+     it needs no padding. The skeleton shares this box, which is what keeps
+     the row from shifting when the table arrives. */
+  min-height: 2.75rem;
+  /* Content-box, so the 1px rule is added to the 44px on both arms rather
+     than counted inside it on the placeholder only. */
+  box-sizing: content-box;
+}
+
+/* The placeholder centres its capsule in the same 44px the summary centres
+   its label in. */
+.hold {
+  display: flex;
+  align-items: center;
+}
+
+.hold > * {
+  flex: 1 1 auto;
 }
 
 .summary {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.75rem;
   cursor: pointer;
   color: rgb(var(--ink-soft));
+  list-style: none;
+  touch-action: manipulation;
+}
+
+.summary::-webkit-details-marker {
+  display: none;
+}
+
+.summary::marker {
+  content: "";
 }
 
 .summary:hover {
   color: rgb(var(--ink));
+}
+
+/* ChevronRight points at the inline end, so closed is 0deg in English and
+   180deg in Hebrew (pointing left, where the text goes); open points down in
+   both. */
+.chevron {
+  flex: none;
+  width: 1rem;
+  height: 1rem;
+}
+
+.table[open] > .summary .chevron {
+  transform: rotate(90deg);
+}
+
+.table:dir(rtl) > .summary .chevron {
+  transform: rotate(180deg);
+}
+
+.table[open]:dir(rtl) > .summary .chevron {
+  transform: rotate(90deg);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .chevron {
+    transition: transform 180ms cubic-bezier(0.2, 0, 0, 1);
+  }
 }
 
 .months {

@@ -68,7 +68,7 @@ export default function TemplateText({
       <label className="a-label !mb-0" htmlFor={`${id}-t`}>{label}</label>
       <div className="flex flex-wrap items-center gap-2" role="group" aria-label={`${w.variablesLabel}: ${label}`}>
         {vars.map((v) => (
-          <button key={v} type="button" className="a-btn min-h-[44px] font-mono text-xs" aria-label={w.insertVar(`{${v}}`)} onClick={() => put(`{${v}}`)}>
+          <button key={v} type="button" className="a-btn min-h-[44px] font-mono text-sm" aria-label={w.insertVar(`{${v}}`)} onClick={() => put(`{${v}}`)}>
             <span dir="ltr">{`{${v}}`}</span>
           </button>
         ))}

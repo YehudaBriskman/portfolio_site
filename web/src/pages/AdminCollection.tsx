@@ -376,11 +376,11 @@ export default function AdminCollection() {
 
           {stats && (
             <div className="a-card mt-5 p-4">
-              <p className="mono text-[0.6875rem] uppercase tracking-[0.22em] text-clay">From GitHub</p>
+              <p className="mono text-sm uppercase tracking-[0.22em] text-clay">From GitHub</p>
               {stats.error ? (
                 <p className="a-error">{String(stats.error)}</p>
               ) : (
-                <p className="mono mt-2 text-[0.75rem] text-bone/85">
+                <p className="mono mt-2 text-sm text-bone/85">
                   {`${stats.stars ?? "—"} stars · ${stats.language ?? "—"} · ${stats.license ?? "—"} · fetched ${
                     stats.fetchedAt ? new Date(String(stats.fetchedAt)).toLocaleString("en-GB") : "never"
                   }`}

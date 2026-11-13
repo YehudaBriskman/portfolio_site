@@ -131,7 +131,7 @@ export default function AdminAreas() {
                     </td>
                     <td className="hidden md:table-cell">
                       {c.repo ? (
-                        <code dir="ltr" className="text-[0.8125rem]">
+                        <code dir="ltr" className="text-sm">
                           {c.repo.owner}/{c.repo.name}
                         </code>
                       ) : (

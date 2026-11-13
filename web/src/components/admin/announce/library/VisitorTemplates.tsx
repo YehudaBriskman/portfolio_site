@@ -110,7 +110,7 @@ export default function VisitorTemplates() {
             <details key={`${lang}-${c}`} className="a-box" open={value !== "" || undefined}>
               <summary className="a-box-head flex min-h-[44px] cursor-pointer items-center gap-2">
                 <span className="a-box-title">{w.visitorChannels[c]}</span>
-                <span className="text-xs text-clay">{value === "" ? w.builtinBadge : w.customised}</span>
+                <span className="text-sm text-clay">{value === "" ? w.builtinBadge : w.customised}</span>
               </summary>
               <div className="space-y-1 p-4">
               <TemplateText

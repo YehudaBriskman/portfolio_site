@@ -1,4 +1,5 @@
 import { useRef, type CSSProperties } from "react";
+import { ChevronRight } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import InkRule from "@/components/motion/InkRule";
 import SkeletonLines from "@/components/gallery/SkeletonLines";
@@ -420,7 +421,7 @@ export default function ContributionCity() {
           and is now paid only when the server could not answer.
         */}
         {isPending && (
-          <div className={styles.table} aria-hidden="true">
+          <div className={`${styles.table} ${styles.hold}`} aria-hidden="true">
             {/*
               A `div` and not a `p`, and on this ground that is worth 0.97px.
 
@@ -448,7 +449,10 @@ export default function ContributionCity() {
         */}
         {!empty && plan.months.length > 0 && (
           <details className={styles.table}>
-            <summary className={`eyebrow ${styles.summary}`}>{w.table}</summary>
+            <summary className={`eyebrow ${styles.summary}`}>
+              <ChevronRight className={styles.chevron} strokeWidth={2.25} aria-hidden="true" focusable="false" />
+              <span>{w.table}</span>
+            </summary>
             <table className={styles.months}>
               <caption className="sr-only">
                 {w.tableCaption}

@@ -225,7 +225,7 @@ export function ListField<T>({ id, path, legend, hint, items, name, make, max, a
           // controlled, so a move re-renders the values in their new places.
           <li key={i} className="a-box p-3 sm:p-4">
             <div className="mb-3 flex items-center justify-between gap-2">
-              <span className="a-box-title min-w-0 flex-1 truncate">
+              <span className="a-box-title min-w-0 flex-1 truncate" title={`${i + 1}. ${name(item, i)}`}>
                 {i + 1}. {name(item, i)}
               </span>
               <span className="flex gap-1">

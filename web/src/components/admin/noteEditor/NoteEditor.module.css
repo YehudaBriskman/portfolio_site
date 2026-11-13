@@ -30,7 +30,7 @@
 .boxFoot {
   padding: .5rem .75rem;
   border-top: 1px solid rgb(var(--rule-firm) / .5);
-  font-size: .8125rem;
+  font-size: .875rem;
   color: rgb(var(--ink-soft));
 }
 @media (min-width: 80rem) {
@@ -120,7 +120,7 @@
   grid-row: span 2;
   align-self: center;
   font-family: var(--font-data);
-  font-size: .6875rem;
+  font-size: .875rem;
   letter-spacing: .08em;
   text-transform: uppercase;
 }
@@ -130,7 +130,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   font-family: var(--font-data);
-  font-size: .75rem;
+  font-size: .875rem;
   opacity: .85;
 }
 .optionEmpty { padding: .5rem .625rem; color: rgb(var(--clay)); }
@@ -178,7 +178,7 @@
   border: 1px solid rgb(var(--edge));
   border-radius: 999px;
   font-family: var(--font-data);
-  font-size: .75rem;
+  font-size: .875rem;
   color: rgb(var(--bone));
 }
 .tagRemove {
@@ -199,12 +199,12 @@
   background: transparent;
   color: rgb(var(--bone));
   font-family: var(--font-data);
-  font-size: .8125rem;
+  font-size: .875rem;
 }
 .tagInput:focus { outline: none; }
 
 .status {
-  font-size: .8125rem;
+  font-size: .875rem;
   color: rgb(var(--ink-soft));
 }
 .status[data-bad="true"] { color: rgb(var(--destructive-ink, var(--bone))); }
@@ -229,7 +229,7 @@
   border-radius: 6px;
   background: rgb(var(--paper));
   font-family: var(--font-code);
-  font-size: .8125rem;
+  font-size: .875rem;
   line-height: 1.6;
   /* Code-like text reads left to right whatever the page's direction. */
   direction: ltr;
@@ -259,7 +259,7 @@
   border-block: 1px solid rgb(var(--rule-firm) / .35);
   background: rgb(var(--wash-blue));
   color: rgb(var(--clay));
-  font-size: .75rem;
+  font-size: .875rem;
 }
 
 @media (forced-colors: active) {
