@@ -10,7 +10,8 @@ import { emailService } from "../services/email.service.js";
 import { autoDraftFor } from "./autodraft.js";
 import { resolveSender, senderWarnings } from "./config.js";
 import { COMMERCIAL_LABEL_HE, LABEL_BODY_EN, LABEL_SUBJECT_EN, UNSUB_FALLBACK_EN, UNSUB_FALLBACK_HE, renderCampaignMail } from "./render.js";
-import { renderBody, safeHref, safeImage } from "./body.js";
+import { bodyBlocks, safeHref, safeImage } from "./body.js";
+import { renderMail } from "../mail/render.js";
 import { memoryLedgerStore, resetLedgerCache, useLedgerStore } from "../audience/ledger.js";
 import { resetGuard } from "./guard.js";
 import { inQuietHours, runSenderTick, type Deliver } from "./sender.js";
@@ -762,7 +763,7 @@ describe("mail rendering", () => {
     expect(m.html).toContain("&lt;script&gt;alert(1)&lt;/script&gt; &amp; &quot;q&quot;<br>line2");
     expect(m.html).toContain('href="https://ok.example/?a=1&amp;b=2"');
     expect(m.html).toContain(`src="${env.SITE_URL}/a.png" alt="a&quot;b"`);
-    expect(m.html).toContain("A &lt;b&gt;&amp; Co&lt;/b&gt;<br>Street 1");
+    expect(m.html).toContain("<bdi>A &lt;b&gt;&amp; Co&lt;/b&gt;<br>Street 1</bdi>");
     expect(m.html).toContain("&lt;i&gt;pre&lt;/i&gt;");
     expect(m.subject).not.toMatch(/[\r\n]/);
     expect(m.text).toContain("A <b>& Co</b>");
@@ -773,7 +774,7 @@ describe("mail rendering", () => {
     const on = await renderCampaignMail(c, { lang: "he" }, hashEmail(addr(1)), sender);
     expect(on.subject).toBe(`${COMMERCIAL_LABEL_HE}: שלום`);
     expect(on.html).toContain('dir="rtl"');
-    expect(on.html).toMatch(new RegExp(`dir="rtl"[^>]*><p style="[^"]*font-weight:700">${COMMERCIAL_LABEL_HE}</p><table`));
+    expect(on.html).toMatch(new RegExp(`<body[^>]*>\\s*<table[^>]*>.*?<p [^>]*font-weight:700">${COMMERCIAL_LABEL_HE}</p>`, "s"));
     expect(on.html.split(COMMERCIAL_LABEL_HE)).toHaveLength(2);
     expect(on.text.startsWith(`${COMMERCIAL_LABEL_HE}\n\nx`)).toBe(true);
     expect(on.text.split(COMMERCIAL_LABEL_HE)).toHaveLength(2);
@@ -787,7 +788,7 @@ describe("mail rendering", () => {
     const c = { subject: "Hello", bodyText: "x" };
     const all = await renderCampaignMail(c, { lang: "en" }, hashEmail(addr(1)), { ...sender, labelMode: "all" });
     expect(all.subject).toBe(`${LABEL_SUBJECT_EN}: Hello`);
-    expect(all.html).toMatch(new RegExp(`dir="ltr"[^>]*><p style="[^"]*">${LABEL_BODY_EN}</p>`));
+    expect(all.html).toMatch(new RegExp(`<body[^>]*>\\s*<table[^>]*>.*?<p [^>]*font-weight:700">${LABEL_BODY_EN}</p>`, "s"));
     expect(all.text.startsWith(`${LABEL_BODY_EN}\n\nx`)).toBe(true);
     const heAll = await renderCampaignMail(c, { lang: "he" }, hashEmail(addr(1)), { ...sender, labelMode: "all" });
     expect(heAll.subject).toBe(`${COMMERCIAL_LABEL_HE}: Hello`);
@@ -800,7 +801,7 @@ describe("mail rendering", () => {
 
   it("the footer prints name, postal line (only if set) and contact email, escaped", async () => {
     const full = await renderCampaignMail({ subject: "S", bodyText: "x" }, { lang: "en" }, hashEmail(addr(1)), { ...sender, footerIdentity: "Y <b>", identityPostal: "PO Box 1", identityEmail: "me@example.org" });
-    expect(full.html).toContain("Y &lt;b&gt;<br>PO Box 1<br>me@example.org");
+    expect(full.html).toContain("<bdi>Y &lt;b&gt;</bdi><br><bdi>PO Box 1</bdi><br><bdi>me@example.org</bdi>");
     expect(full.text).toContain("Y <b>\nPO Box 1\nme@example.org\n");
     const mailOnly = await renderCampaignMail({ subject: "S", bodyText: "x" }, { lang: "en" }, hashEmail(addr(1)), { ...sender, footerIdentity: "Y", identityEmail: "me@example.org" });
     expect(mailOnly.text).toContain("Y\nme@example.org\n");
@@ -815,7 +816,7 @@ describe("mail rendering", () => {
   });
 
   it("plain text becomes paragraphs; urls are validated with new URL", () => {
-    expect(renderBody({ bodyText: "a\n\n b <i>" })).toMatch(/<p[^>]*>a<\/p>.*<p[^>]*>b &lt;i&gt;<\/p>/s);
+    expect(renderMail(bodyBlocks({ bodyText: "a\n\n b <i>" }), { lang: "en" }).html).toMatch(/<p[^>]*>a<\/p>.*<p[^>]*>b &lt;i&gt;<\/p>/s);
     expect([safeHref("mailto:a@b.co"), safeHref("data:text/html,x"), safeHref("https://u:p@x.co"), safeHref("nope")]).toEqual(["mailto:a@b.co", null, null, null]);
     expect([safeImage("http://x.co/a.png"), safeImage(`${env.SITE_URL}/a.png`)]).toEqual([null, `${env.SITE_URL}/a.png`]);
   });
