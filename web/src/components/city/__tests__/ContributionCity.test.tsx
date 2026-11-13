@@ -516,4 +516,31 @@ describe("the stylesheet's three off-switches", () => {
       expect(block).toContain("background-image: none");
     }
   });
+
+  it("gives the table's summary a chevron and a 44px target, and the skeleton the same box", async () => {
+    /* The summary was bare text 19px tall with no glyph: nothing said it
+       opens, and it was a thin target on a phone. jsdom has no layout, so the
+       size is read from the stylesheet; the skeleton must reserve the same
+       box or the row lands as a shift. */
+    fetchYear.mockResolvedValue(YEAR);
+    const { container } = mount();
+    await waitFor(() => expect(container.querySelectorAll("[data-step]")).toHaveLength(7));
+    const summary = container.querySelector("summary");
+    expect(summary?.firstElementChild?.tagName.toLowerCase()).toBe("svg");
+    expect(summary?.firstElementChild).toHaveAttribute("aria-hidden", "true");
+
+    const rule = CSS.slice(CSS.indexOf(".summary {"));
+    expect(rule.slice(0, rule.indexOf("}"))).toMatch(/min-height:\s*2\.75rem/);
+    const holder = CSS.slice(CSS.indexOf(".table {"));
+    expect(holder.slice(0, holder.indexOf("}"))).toMatch(/min-height:\s*2\.75rem/);
+  });
+
+  it("mirrors the chevron in Hebrew and moves it only when motion is allowed", () => {
+    expect(CSS).toMatch(/:dir\(rtl\)/);
+    const guard = CSS.indexOf("@media (prefers-reduced-motion: no-preference)", CSS.indexOf(".chevron"));
+    expect(guard).toBeGreaterThan(-1);
+    expect(CSS.slice(guard, guard + 300)).toMatch(/\.chevron[\s\S]*transition/);
+    /* No transition on the chevron outside that block. */
+    expect(CSS.slice(0, guard)).not.toMatch(/\.chevron[^{]*\{[^}]*transition/);
+  });
 });
