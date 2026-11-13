@@ -71,7 +71,7 @@ export default function EditorFrame<T>({ title, section, intro, preview, editor,
       {!loadError && view === null && <LoadingRows rows={3} />}
 
       {view && (
-        <div className="a-box flex flex-wrap items-center gap-x-6 gap-y-3 rounded-[var(--r-md)] px-4 py-3 text-sm">
+        <div className="a-box flex flex-wrap items-center gap-x-6 gap-y-3 rounded-[var(--a-r-box)] px-4 py-3 text-sm">
           <p className="min-w-0 basis-full sm:flex-1 sm:basis-0">
             {!view.exists
               ? "The site is showing the built-in content. Publish, or seed the store, to start editing it here."
@@ -80,22 +80,22 @@ export default function EditorFrame<T>({ title, section, intro, preview, editor,
                 : `Live as published ${when(view.publishedAt)}.`}
           </p>
           <span className="flex w-full flex-wrap gap-2 sm:w-auto">
-            <a href={preview} target="_blank" rel="noreferrer" className="a-btn a-btn-ghost min-h-11 rounded-[var(--r-sm)] max-sm:flex-1 md:min-h-8">
+            <a href={preview} target="_blank" rel="noreferrer" className="a-btn a-btn-ghost min-h-11 rounded-[var(--a-r-ctl)] max-sm:flex-1 md:min-h-8">
               Preview
               <ExternalLink aria-hidden="true" />
             </a>
             {view.draft && (
-              <button type="button" className="a-btn a-btn-ghost min-h-11 rounded-[var(--r-sm)] max-sm:flex-1 md:min-h-8" disabled={busy} onClick={() => void editor.discard()}>
+              <button type="button" className="a-btn a-btn-ghost min-h-11 rounded-[var(--a-r-ctl)] max-sm:flex-1 md:min-h-8" disabled={busy} onClick={() => void editor.discard()}>
                 Discard draft
               </button>
             )}
             {!view.exists && (
-              <button type="button" className="a-btn a-btn-ghost min-h-11 rounded-[var(--r-sm)] max-sm:flex-1 md:min-h-8" disabled={busy} onClick={() => void editor.seed()}>
+              <button type="button" className="a-btn a-btn-ghost min-h-11 rounded-[var(--a-r-ctl)] max-sm:flex-1 md:min-h-8" disabled={busy} onClick={() => void editor.seed()}>
                 Seed the store
               </button>
             )}
             {state.kind === "conflict" && (
-              <button type="button" className="a-btn a-btn-ghost min-h-11 rounded-[var(--r-sm)] max-sm:flex-1 md:min-h-8" onClick={editor.reload}>
+              <button type="button" className="a-btn a-btn-ghost min-h-11 rounded-[var(--a-r-ctl)] max-sm:flex-1 md:min-h-8" onClick={editor.reload}>
                 Reload
               </button>
             )}

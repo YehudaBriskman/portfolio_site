@@ -223,7 +223,7 @@ export function ListField<T>({ id, path, legend, hint, items, name, make, max, a
         {items.map((item, i) => (
           // Index keys: a row is its position, and the inputs inside it are
           // controlled, so a move re-renders the values in their new places.
-          <li key={i} className="a-box rounded-[var(--r-md)] p-3 sm:p-4">
+          <li key={i} className="a-box rounded-[var(--a-r-box)] p-3 sm:p-4">
             <div className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1">
               <span className="a-box-title min-w-0 flex-1 basis-32 truncate" title={`${i + 1}. ${name(item, i)}`}>
                 {i + 1}. {name(item, i)}
@@ -231,7 +231,7 @@ export function ListField<T>({ id, path, legend, hint, items, name, make, max, a
               <span className="ms-auto flex gap-1">
                 <button
                   type="button"
-                  className="a-btn a-btn-ghost a-icon-btn h-11 min-h-11 w-11 rounded-[var(--r-sm)] md:h-8 md:min-h-8 md:w-8"
+                  className="a-btn a-btn-ghost a-icon-btn h-11 min-h-11 w-11 rounded-[var(--a-r-ctl)] md:h-8 md:min-h-8 md:w-8"
                   aria-label={`Move ${name(item, i)} up`}
                   disabled={i === 0}
                   onClick={() => move(i, i - 1)}
@@ -240,7 +240,7 @@ export function ListField<T>({ id, path, legend, hint, items, name, make, max, a
                 </button>
                 <button
                   type="button"
-                  className="a-btn a-btn-ghost a-icon-btn h-11 min-h-11 w-11 rounded-[var(--r-sm)] md:h-8 md:min-h-8 md:w-8"
+                  className="a-btn a-btn-ghost a-icon-btn h-11 min-h-11 w-11 rounded-[var(--a-r-ctl)] md:h-8 md:min-h-8 md:w-8"
                   aria-label={`Move ${name(item, i)} down`}
                   disabled={i === items.length - 1}
                   onClick={() => move(i, i + 1)}
@@ -249,7 +249,7 @@ export function ListField<T>({ id, path, legend, hint, items, name, make, max, a
                 </button>
                 <button
                   type="button"
-                  className="a-btn a-btn-ghost a-icon-btn h-11 min-h-11 w-11 rounded-[var(--r-sm)] md:h-8 md:min-h-8 md:w-8"
+                  className="a-btn a-btn-ghost a-icon-btn h-11 min-h-11 w-11 rounded-[var(--a-r-ctl)] md:h-8 md:min-h-8 md:w-8"
                   aria-label={`Remove ${name(item, i)}`}
                   onClick={() => onChange(items.filter((_, j) => j !== i))}
                 >
@@ -263,7 +263,7 @@ export function ListField<T>({ id, path, legend, hint, items, name, make, max, a
       </ol>
       {error && <p className="a-error">{error}</p>}
       {(max === undefined || items.length < max) && (
-        <button type="button" className="a-btn a-btn-ghost mt-3 min-h-11 rounded-[var(--r-sm)] md:min-h-8" onClick={() => onChange([...items, make()])}>
+        <button type="button" className="a-btn a-btn-ghost mt-3 min-h-11 rounded-[var(--a-r-ctl)] md:min-h-8" onClick={() => onChange([...items, make()])}>
           {addLabel}
         </button>
       )}

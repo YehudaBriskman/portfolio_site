@@ -2652,17 +2652,63 @@
    * TYPE     the text face at 14px; labels 14px/700 in sentence case, never
    *          spaced capitals; meta 12-13px in --ink-soft. Page titles take
    *          the display face, as the dashboards' "Good morning" does.
-   * DENSITY  32px controls and 6px corners on a pointer, 40px on a finger;
-   *          12px inside a row; a 10px box corner, the dashboards' `--dash-r`.
+   * DENSITY  32px controls on a pointer, 44px on a finger; 12px inside a row.
+   * SHAPE    one ladder, `--a-r-*`: 12px controls, 16px boxes (the dashboards'
+   *          `--dash-r` too), 24px sheets and dialogs, a pill for chips. A
+   *          nested corner is its parent's minus the padding between them.
    * COLOUR   --signal, so the owner's accent preset (#284) is the admin's
    *          accent too: the primary button, focus, the current tab. One
    *          wash marks the one exception, unpublished changes.
-   * MOTION   colour on hover and focus, in --dur-micro. Nothing slides.
+   * MOTION   tint on hover, a 2% press, a sheet that settles in, a skeleton
+   *          that shimmers: `--a-dur-*` and `--a-ease-*`, every one of them
+   *          inside `prefers-reduced-motion: no-preference`, so a visitor who
+   *          asked for none gets the colour change and nothing that travels.
    */
 
   :root:has(.a-app) { scroll-padding-top: 4.25rem; }
   /* Text that carries meaning (hints, meta, headers, pills) never drops below 14px; 12px is for ornament only. */
   :root { --a-fs-meta: .875rem; }
+
+  /* The admin's tokens. Surfaces, lines and shadows differ by theme; the
+     ladder, the spacing and the clock do not. */
+  .a-app {
+    /* shape: a nested corner is its parent's minus the padding between */
+    --a-r-tiny: 6px;
+    --a-r-sm: 10px;
+    --a-r-ctl: 12px;
+    --a-r-box: 16px;
+    --a-r-sheet: 24px;
+    --a-r-pill: 999px;
+    /* spacing, 4px steps in rem so text zoom scales them */
+    --a-s-1: .25rem; --a-s-2: .5rem; --a-s-3: .75rem; --a-s-4: 1rem;
+    --a-s-5: 1.25rem; --a-s-6: 1.5rem; --a-s-8: 2rem;
+    /* motion: enter decelerates, a move eases both ends */
+    --a-dur-fast: 120ms; --a-dur-base: 180ms; --a-dur-sheet: 280ms;
+    --a-ease-out: cubic-bezier(.2, 0, 0, 1);
+    --a-ease-inout: cubic-bezier(.4, 0, .2, 1);
+    /* lines: a hairline, a softer divider, a control's own edge (3:1) */
+    --a-line: rgb(var(--rule-firm) / .5);
+    --a-line-soft: rgb(var(--rule-firm) / .3);
+    --a-line-ctl: rgb(var(--rule-firm));
+    /* states */
+    --a-hover: rgb(var(--ink) / .05);
+    --a-press: rgb(var(--ink) / .09);
+    --a-ring: 0 0 0 3px rgb(var(--signal) / .25);
+    /* elevation: low and layered */
+    --a-shadow-1: 0 1px 2px rgb(var(--shade) / .06), 0 1px 1px rgb(var(--shade) / .04);
+    --a-shadow-2: 0 2px 8px rgb(var(--shade) / .08), 0 1px 2px rgb(var(--shade) / .05);
+    --a-shadow-3: 0 12px 32px -8px rgb(var(--shade) / .22), 0 2px 6px rgb(var(--shade) / .08);
+  }
+  /* A shadow barely reads on a dark ground: the line and the lift carry it. */
+  :root[data-theme='dark'] .a-app {
+    --a-line: rgb(var(--rule-firm) / .55);
+    --a-line-soft: rgb(var(--rule-firm) / .32);
+    --a-hover: rgb(var(--ink) / .07);
+    --a-press: rgb(var(--ink) / .12);
+    --a-shadow-1: 0 1px 2px rgb(0 0 0 / .35);
+    --a-shadow-2: 0 2px 8px rgb(0 0 0 / .4), 0 0 0 1px rgb(255 255 255 / .03);
+    --a-shadow-3: 0 16px 40px -8px rgb(0 0 0 / .6), 0 0 0 1px rgb(255 255 255 / .05);
+  }
 
   .a-app {
     min-height: 100dvh;
@@ -2678,7 +2724,7 @@
   .a-skip:not(:focus) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   .a-skip:focus {
     position: fixed; left: 1rem; top: .75rem; z-index: 70;
-    padding: .5rem 1rem; border-radius: 6px;
+    padding: .5rem 1rem; border-radius: var(--a-r-ctl);
     background: rgb(var(--signal)); color: rgb(var(--signal-ink));
   }
 
@@ -2688,12 +2734,12 @@
     display: flex; align-items: center; gap: .375rem;
     height: 3.5rem; padding-inline: .5rem .75rem;
     background: rgb(var(--paper-2));
-    border-bottom: 1px solid rgb(var(--rule-firm) / .5);
+    border-bottom: 1px solid var(--a-line);
   }
   @media (min-width: 1024px) { .a-top { padding-inline: 1rem; gap: .75rem; } }
   .a-brand {
     display: inline-flex; flex: none; align-items: center; gap: .625rem;
-    min-height: 2.25rem; padding-inline: .25rem; border-radius: 6px;
+    min-height: 2.25rem; padding-inline: .25rem; border-radius: var(--a-r-ctl);
     color: rgb(var(--ink));
   }
   .a-brand-mark { width: 28px; height: 28px; border-radius: 50%; box-shadow: 0 0 0 1px rgb(var(--rule-firm) / .6); }
@@ -2711,11 +2757,11 @@
     content: '/'; flex: none; margin-inline: .25rem; color: rgb(var(--ink-faint));
   }
   .a-crumbs a, .a-crumbs span {
-    display: flex; align-items: center; min-height: 2.75rem; min-width: 24px; padding: .25rem .5rem; border-radius: var(--r-sm);
+    display: flex; align-items: center; min-height: 2.75rem; min-width: 24px; padding: .25rem .5rem; border-radius: var(--a-r-ctl);
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
-  .a-crumbs a { color: rgb(var(--ink-soft)); transition: background-color var(--dur-micro) ease, color var(--dur-micro) ease; }
-  .a-crumbs a:hover { background: rgb(var(--ink) / .06); color: rgb(var(--ink)); }
+  .a-crumbs a { color: rgb(var(--ink-soft)); }
+  .a-crumbs a:hover { background: var(--a-hover); color: rgb(var(--ink)); }
   .a-crumbs [aria-current] { font-weight: 700; color: rgb(var(--ink)); }
   /* A phone keeps the page it is on; the trail is one tap away in the drawer. */
   @media (max-width: 767.98px) {
@@ -2743,37 +2789,38 @@
   @media (min-width: 1024px) {
     .a-side {
       position: sticky; top: 3.5rem; height: calc(100dvh - 3.5rem);
-      border-inline-end: 1px solid rgb(var(--rule-firm) / .5);
+      border-inline-end: 1px solid var(--a-line);
     }
     .a-scrim { display: none; }
   }
   @media (max-width: 1023.98px) {
     .a-side { display: none; }
     .a-side[data-open] {
-      display: flex; position: fixed; z-index: 45; top: 3.5rem; bottom: 0; left: 0;
+      display: flex; position: fixed; z-index: 45; top: 3.5rem; bottom: 0; inset-inline-start: 0;
       width: min(18rem, 85vw);
-      border-inline-end: 1px solid rgb(var(--rule-firm) / .5);
-      box-shadow: 0 16px 40px -12px rgb(var(--shade) / .35);
+      border-inline-end: 1px solid var(--a-line);
+      border-start-end-radius: var(--a-r-sheet); border-end-end-radius: var(--a-r-sheet);
+      box-shadow: var(--a-shadow-3);
     }
     .a-scrim:not([hidden]) { position: fixed; z-index: 44; inset: 3.5rem 0 0; background: rgb(var(--shade) / .3); }
   }
   .a-side-nav ul { display: flex; flex-direction: column; gap: 2px; }
-  .a-side-group + .a-side-group { margin-top: .75rem; padding-top: .75rem; border-top: 1px solid rgb(var(--rule-firm) / .3); }
+  .a-side-group + .a-side-group { margin-top: .75rem; padding-top: .75rem; border-top: 1px solid var(--a-line-soft); }
   .a-side-head { padding: 0 .625rem .375rem; font-size: var(--a-fs-meta); font-weight: 700; color: rgb(var(--ink-soft)); }
   .a-nav-item {
     display: flex; align-items: center; gap: .625rem;
-    min-height: 2.25rem; padding-inline: .625rem; border-radius: 6px;
+    min-height: 2.25rem; padding-inline: .625rem; border-radius: var(--a-r-ctl);
     color: rgb(var(--ink));
-    transition: background-color var(--dur-micro) ease;
   }
-  .a-nav-item:hover { background: rgb(var(--ink) / .05); }
-  .a-nav-item[aria-current="page"] { background: rgb(var(--ink) / .08); font-weight: 700; }
+  .a-nav-item:hover { background: var(--a-hover); }
+  .a-nav-item:active { background: var(--a-press); }
+  .a-nav-item[aria-current="page"] { background: var(--a-press); font-weight: 700; }
   /* One box for the icon whether or not it is circled, so the label does
      not move when the current page changes (the dashboards' `.viewIcon`). */
   .a-nav-icon { display: inline-grid; place-items: center; flex: none; width: 26px; height: 26px; margin-inline: -5px; }
   .a-nav-icon svg { width: 16px; height: 16px; color: rgb(var(--ink-soft)); }
   .a-nav-item[aria-current="page"] .a-nav-icon svg { color: rgb(var(--ink)); }
-  .a-side-foot { margin-top: auto; padding-top: .75rem; border-top: 1px solid rgb(var(--rule-firm) / .3); }
+  .a-side-foot { margin-top: auto; padding-top: .75rem; border-top: 1px solid var(--a-line-soft); }
   .a-side-who { padding: .25rem .625rem; font-size: var(--a-fs-meta); color: rgb(var(--ink-soft)); overflow-wrap: anywhere; }
 
   .a-main { flex: 1; min-width: 0; padding: 1.25rem 1rem calc(var(--a-bar-h, 0px) + 2rem); }
@@ -2785,7 +2832,7 @@
   .a-bottom {
     position: fixed; inset-inline: 0; bottom: 0; z-index: 30;
     background: rgb(var(--paper-2));
-    border-top: 1px solid rgb(var(--rule-firm) / .5);
+    border-top: 1px solid var(--a-line);
     /* viewport-fit=cover: keep the controls out of the home indicator and,
        in landscape, the notch. The measured height includes this padding. */
     padding-bottom: env(safe-area-inset-bottom);
@@ -2830,7 +2877,7 @@
   .a-page-head {
     display: flex; flex-wrap: wrap; align-items: flex-start; gap: .75rem 1rem;
     margin-bottom: 1.25rem; padding-bottom: 1rem;
-    border-bottom: 1px solid rgb(var(--rule-firm) / .5);
+    border-bottom: 1px solid var(--a-line);
   }
   .a-app .a-h1 {
     font-family: var(--font-display); font-weight: var(--weight-display);
@@ -2846,7 +2893,7 @@
      its fields under it at one rhythm. */
   .a-section { margin-top: 2.5rem; display: grid; gap: 1.25rem; }
   .a-section-title {
-    padding-bottom: .5rem; border-bottom: 1px solid rgb(var(--rule-firm) / .5);
+    padding-bottom: .5rem; border-bottom: 1px solid var(--a-line);
     font-size: 1.25rem; font-weight: 700; line-height: 1.3; color: rgb(var(--ink));
   }
   /* An editor's bar at every width (#288): fixed to the screen's bottom,
@@ -2860,41 +2907,43 @@
   /* ---- boxes, rows and tables: GitHub's Box */
   .a-box, .a-card {
     min-width: 0;
-    border: 1px solid rgb(var(--rule-firm) / .5); border-radius: 10px;
+    border: 1px solid var(--a-line); border-radius: var(--a-r-box);
     background: rgb(var(--sheet) / .55);
+    box-shadow: var(--a-shadow-1);
   }
   .a-box-head {
     display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1rem;
     min-height: 3rem; padding: .5rem 1rem;
     background: rgb(var(--paper-2));
-    border-bottom: 1px solid rgb(var(--rule-firm) / .5);
-    border-radius: 9px 9px 0 0;
+    border-bottom: 1px solid var(--a-line);
+    border-start-start-radius: calc(var(--a-r-box) - 1px); border-start-end-radius: calc(var(--a-r-box) - 1px);
   }
   .a-box-title { font-size: .875rem; font-weight: 700; color: rgb(var(--ink)); }
   .a-box-body { padding: 1rem; }
   .a-box-row {
     display: flex; align-items: center; gap: .75rem;
     padding: .625rem 1rem;
-    transition: background-color var(--dur-micro) ease;
   }
-  .a-box-row + .a-box-row, .a-box-head + .a-box-row { border-top: 1px solid rgb(var(--rule-firm) / .3); }
+  .a-box-row:last-child { border-end-start-radius: calc(var(--a-r-box) - 1px); border-end-end-radius: calc(var(--a-r-box) - 1px); }
+  .a-box-row + .a-box-row, .a-box-head + .a-box-row { border-top: 1px solid var(--a-line-soft); }
   .a-box-head + .a-box-row { border-top: 0; }
-  .a-box-row:hover { background: rgb(var(--ink) / .035); }
-  .a-box-foot { padding: .625rem 1rem; border-top: 1px solid rgb(var(--rule-firm) / .3); font-size: var(--a-fs-meta); color: rgb(var(--ink-soft)); }
+  .a-box-row:hover { background: var(--a-hover); }
+  .a-box-foot { padding: .625rem 1rem; border-end-start-radius: calc(var(--a-r-box) - 1px); border-end-end-radius: calc(var(--a-r-box) - 1px); border-top: 1px solid var(--a-line-soft); font-size: var(--a-fs-meta); color: rgb(var(--ink-soft)); }
 
   .a-table { width: 100%; border-collapse: separate; border-spacing: 0; }
   .a-table th {
-    padding: .5rem 1rem; text-align: left; white-space: nowrap;
+    padding: .5rem 1rem; text-align: start; white-space: nowrap;
     font-size: var(--a-fs-meta); font-weight: 700; color: rgb(var(--ink-soft));
     background: rgb(var(--paper-2));
-    border-bottom: 1px solid rgb(var(--rule-firm) / .5);
+    border-bottom: 1px solid var(--a-line);
   }
-  .a-table td { padding: .625rem 1rem; vertical-align: middle; border-top: 1px solid rgb(var(--rule-firm) / .3); }
+  .a-table td { padding: .625rem 1rem; vertical-align: middle; border-top: 1px solid var(--a-line-soft); }
   .a-table tbody tr:first-child td { border-top: 0; }
-  .a-table tbody tr { transition: background-color var(--dur-micro) ease; }
-  .a-table tbody tr:hover { background: rgb(var(--ink) / .035); }
-  .a-table thead tr:first-child th:first-child { border-top-left-radius: 9px; }
-  .a-table thead tr:first-child th:last-child { border-top-right-radius: 9px; }
+  .a-table tbody tr:hover { background: var(--a-hover); }
+  .a-table thead tr:first-child th:first-child { border-start-start-radius: calc(var(--a-r-box) - 1px); }
+  .a-table thead tr:first-child th:last-child { border-start-end-radius: calc(var(--a-r-box) - 1px); }
+  .a-table tbody tr:last-child td:first-child { border-end-start-radius: calc(var(--a-r-box) - 1px); }
+  .a-table tbody tr:last-child td:last-child { border-end-end-radius: calc(var(--a-r-box) - 1px); }
   /* Counts line up on their units digit: a physical right, and tabular. */
   .a-table .a-num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
   .a-table .a-when { white-space: nowrap; color: rgb(var(--ink-soft)); font-variant-numeric: tabular-nums; }
@@ -2907,17 +2956,16 @@
   .a-row-meta.a-plain > * + *::before { content: none; }
   .a-tag {
     display: inline-flex; align-items: center; height: 1.25rem; padding-inline: .5rem;
-    border-radius: 999px; border: 1px solid rgb(var(--rule-firm) / .5);
+    border-radius: 999px; border: 1px solid var(--a-line);
     font-size: var(--a-fs-meta); color: rgb(var(--ink-soft));
   }
 
   /* The old list row, still used by a few lists: denser than it was. */
   .a-row {
     display: flex; align-items: center; gap: .75rem;
-    min-height: 3rem; padding: .625rem .75rem; border-radius: 6px;
-    transition: background-color var(--dur-micro) ease;
+    min-height: 3rem; padding: .625rem .75rem; border-radius: var(--a-r-ctl);
   }
-  .a-row:hover { background: rgb(var(--ink) / .04); }
+  .a-row:hover { background: var(--a-hover); }
 
   /* ---- status: a word and a shape, never colour alone */
   .a-pill {
@@ -2962,10 +3010,10 @@
   .a-blank-title { font-size: 1rem; font-weight: 700; color: rgb(var(--ink)); }
   .a-blank-text { max-width: 44ch; margin: .375rem auto 0; color: rgb(var(--ink-soft)); }
   .a-skel-row { display: flex; flex-direction: column; gap: .5rem; padding: .875rem 1rem; }
-  .a-skel-row + .a-skel-row { border-top: 1px solid rgb(var(--rule-firm) / .3); }
-  /* Still, not pulsing: the motion contract's placeholders are on a view
-     timeline, and a list in a fixed frame never scrolls through one. */
-  .a-skel { display: block; height: .75rem; border-radius: 4px; background: rgb(var(--ink) / .08); }
+  .a-skel-row + .a-skel-row { border-top: 1px solid var(--a-line-soft); }
+  /* Still unless motion is allowed (see the motion block below): the
+     skeleton keeps its shape and loses only the shimmer. */
+  .a-skel { display: block; position: relative; overflow: hidden; height: .75rem; border-radius: var(--a-r-tiny); background: rgb(var(--ink) / .08); }
   .a-skel-sm { height: .5rem; background: rgb(var(--ink) / .05); }
 
   /* ---- stat cards */
@@ -2973,9 +3021,8 @@
   .a-stat {
     display: flex; flex-direction: column; gap: .25rem;
     padding: .875rem 1rem; color: rgb(var(--ink));
-    transition: border-color var(--dur-micro) ease, background-color var(--dur-micro) ease;
   }
-  a.a-stat:hover { border-color: rgb(var(--rule-firm)); background: rgb(var(--sheet) / .8); }
+  a.a-stat:hover { border-color: var(--a-line-ctl); background: rgb(var(--sheet) / .8); box-shadow: var(--a-shadow-2); }
   .a-stat-label { display: flex; align-items: center; gap: .5rem; font-size: var(--a-fs-meta); color: rgb(var(--ink-soft)); }
   .a-stat-label svg { width: 16px; height: 16px; flex: none; }
   .a-stat-value { font-size: 1.75rem; font-weight: 700; line-height: 1.15; font-variant-numeric: tabular-nums; }
@@ -2986,51 +3033,59 @@
   /* Wraps rather than scrolls: a hidden-scrollbar strip cut tabs off at 320 with nothing to say so. */
   .a-tabs {
     display: flex; flex-wrap: wrap; gap: .25rem;
-    border-bottom: 1px solid rgb(var(--rule-firm) / .5);
+    border-bottom: 1px solid var(--a-line);
   }
   .a-tab {
     display: inline-flex; flex: none; align-items: center; gap: .375rem;
-    min-height: 2.5rem; padding-inline: .75rem; margin-bottom: -1px; border-radius: 10px 10px 0 0;
-    border-bottom: 2px solid transparent;
+    position: relative; min-height: 2.5rem; padding-inline: .75rem; margin-bottom: -1px;
+    border-radius: var(--a-r-ctl) var(--a-r-ctl) 0 0;
     color: rgb(var(--ink-soft)); white-space: nowrap;
-    transition: color var(--dur-micro) ease, border-color var(--dur-micro) ease;
   }
   .a-tab svg { width: 16px; height: 16px; }
-  .a-tab:hover { color: rgb(var(--ink)); border-bottom-color: rgb(var(--rule-firm)); }
-  .a-tab:is([aria-pressed="true"], [aria-selected="true"], [aria-current="page"]) {
-    color: rgb(var(--ink)); font-weight: 700; border-bottom-color: rgb(var(--signal));
+  /* The indicator is a bar that grows from the middle, so the current tab
+     is marked by a shape, not only by the colour of a border. */
+  .a-tab::after {
+    content: ''; position: absolute; inset-inline: .5rem; bottom: 0; height: 2px;
+    border-radius: 2px 2px 0 0; background: rgb(var(--signal)); scale: 0 1;
   }
+  .a-tab:hover { color: rgb(var(--ink)); background: var(--a-hover); }
+  .a-tab:hover::after { background: var(--a-line-ctl); scale: 1 1; }
+  .a-tab:is([aria-pressed="true"], [aria-selected="true"], [aria-current="page"]) {
+    color: rgb(var(--ink)); font-weight: 700;
+  }
+  .a-tab:is([aria-pressed="true"], [aria-selected="true"], [aria-current="page"])::after { background: rgb(var(--signal)); scale: 1 1; }
 
   .a-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin-bottom: 1rem; }
   .a-search { position: relative; flex: 1 1 16rem; min-width: 0; }
   .a-search > svg {
-    position: absolute; left: .625rem; top: 50%; translate: 0 -50%;
+    position: absolute; inset-inline-start: .625rem; top: 50%; translate: 0 -50%;
     width: 16px; height: 16px; color: rgb(var(--ink-soft)); pointer-events: none;
   }
-  .a-search .a-input { padding-left: 2rem; }
+  .a-search .a-input { padding-inline-start: 2rem; }
 
   /* ---- buttons */
   .a-btn {
     display: inline-flex; align-items: center; justify-content: center; gap: .375rem;
     min-height: 2rem; padding: 0 .75rem;
-    border-radius: 6px; border: 1px solid rgb(var(--rule-firm) / .7);
+    border-radius: var(--a-r-ctl); border: 1px solid rgb(var(--rule-firm) / .7);
     background: rgb(var(--paper-2)); color: rgb(var(--ink));
+    box-shadow: var(--a-shadow-1);
     font-family: var(--font-text); font-size: .875rem; font-weight: 700;
     letter-spacing: 0; text-transform: none; line-height: 1.2; white-space: nowrap;
-    transition: background-color var(--dur-micro) ease, color var(--dur-micro) ease,
-                border-color var(--dur-micro) ease, box-shadow var(--dur-micro) ease;
   }
   .a-btn svg { width: 16px; height: 16px; flex: none; }
-  .a-btn:hover { background: rgb(var(--paper-3)); border-color: rgb(var(--rule-firm)); }
+  .a-btn:hover { background: rgb(var(--paper-3)); border-color: var(--a-line-ctl); }
+  .a-btn:active:not(:disabled, [aria-disabled="true"]) { background: var(--a-press); }
   .a-btn:disabled, .a-btn[aria-disabled="true"] { opacity: .5; cursor: not-allowed; pointer-events: none; }
   .a-btn-primary { background: rgb(var(--signal)); border-color: rgb(var(--signal)); color: rgb(var(--signal-ink)); }
   /* A ring, not a darker fill: darkening a light accent under dark text on
      the Dark theme would take the label below 4.5:1. */
   .a-btn-primary:hover { background: rgb(var(--signal)); border-color: rgb(var(--signal)); box-shadow: 0 0 0 3px rgb(var(--signal) / .22); }
+  .a-btn-primary:active:not(:disabled, [aria-disabled="true"]) { background: rgb(var(--signal)); box-shadow: 0 0 0 2px rgb(var(--signal) / .3); }
   .a-btn-danger { color: rgb(var(--destructive-ink)); }
   .a-btn-danger:hover { background: rgb(var(--destructive)); color: rgb(var(--destructive-foreground)); border-color: rgb(var(--destructive)); }
-  .a-btn-ghost { background: transparent; border-color: transparent; color: rgb(var(--ink-soft)); }
-  .a-btn-ghost:hover { background: rgb(var(--ink) / .06); border-color: transparent; color: rgb(var(--ink)); }
+  .a-btn-ghost { background: transparent; border-color: transparent; box-shadow: none; color: rgb(var(--ink-soft)); }
+  .a-btn-ghost:hover { background: var(--a-hover); border-color: transparent; color: rgb(var(--ink)); }
   .a-icon-btn { width: 2rem; height: 2rem; min-height: 2rem; padding: 0; }
   .a-icon-btn svg { width: 18px; height: 18px; }
   .a-link { color: rgb(var(--signal)); text-decoration: underline; text-underline-offset: 3px; }
@@ -3047,12 +3102,11 @@
   .a-input, .a-select, .a-textarea {
     width: 100%; min-height: 2.25rem;
     padding: .375rem .75rem;
-    border-radius: 6px; border: 1px solid rgb(var(--rule-firm));
+    border-radius: var(--a-r-ctl); border: 1px solid var(--a-line-ctl);
     background: rgb(var(--paper)); color: rgb(var(--ink));
     box-shadow: inset 0 1px 0 rgb(var(--shade) / .04);
     /* 16px on a phone: iOS Safari zooms the page on focus below it. */
     font-size: 1rem; line-height: 1.45;
-    transition: border-color var(--dur-micro) ease, box-shadow var(--dur-micro) ease;
   }
   @media (min-width: 1024px) { .a-input, .a-select, .a-textarea { font-size: .875rem; } }
   .a-textarea { min-height: 6rem; resize: vertical; }
@@ -3071,15 +3125,12 @@
   .a-select-chev {
     position: absolute; inset-block: 0; inset-inline-end: .75rem; margin: auto 0;
     width: 1rem; height: 1rem; pointer-events: none; color: rgb(var(--ink-soft));
-    transition: color var(--dur-micro) ease;
   }
   .a-select-wrap:focus-within .a-select-chev { color: rgb(var(--signal)); }
-  @media (prefers-reduced-motion: reduce) { .a-select-chev { transition: none; } }
-  body.motion-paused .a-select-chev { transition: none; }
   .a-input::placeholder, .a-textarea::placeholder { color: rgb(var(--ink-soft) / .8); }
   .a-input:focus, .a-select:focus, .a-textarea:focus {
     outline: 2px solid transparent; border-color: rgb(var(--signal));
-    box-shadow: 0 0 0 3px rgb(var(--signal) / .25);
+    box-shadow: var(--a-ring);
   }
   [aria-invalid="true"]:is(.a-input, .a-textarea, .a-select) { border-color: rgb(var(--destructive-ink)); }
   .a-input-mono { font-family: var(--font-code); letter-spacing: 0; }
@@ -3092,16 +3143,15 @@
 
   .a-seg {
     display: inline-flex; gap: 2px; padding: 2px;
-    border-radius: 8px; border: 1px solid rgb(var(--rule-firm) / .7);
+    border-radius: var(--a-r-ctl); border: 1px solid rgb(var(--rule-firm) / .7);
     background: rgb(var(--paper-2));
   }
   .a-seg > button {
-    min-height: 1.75rem; padding: 0 .75rem; border-radius: 6px;
+    min-height: 1.75rem; padding: 0 .75rem; border-radius: calc(var(--a-r-ctl) - 3px);
     font-size: .875rem; font-weight: 700; color: rgb(var(--ink-soft));
-    transition: background-color var(--dur-micro) ease, color var(--dur-micro) ease;
   }
   .a-seg > button:hover { color: rgb(var(--ink)); }
-  .a-seg > button[aria-pressed="true"] { background: rgb(var(--paper)); color: rgb(var(--ink)); box-shadow: 0 0 0 1px rgb(var(--rule-firm) / .7); }
+  .a-seg > button[aria-pressed="true"] { background: rgb(var(--paper)); color: rgb(var(--ink)); box-shadow: 0 0 0 1px rgb(var(--rule-firm) / .7), var(--a-shadow-1); }
 
   .a-chip {
     display: inline-flex; align-items: center; gap: .25rem;
@@ -3115,4 +3165,64 @@
   .a-dot-published { background: rgb(var(--signal)); }
   .a-dot-draft { box-shadow: inset 0 0 0 1.5px rgb(var(--ink-soft)); }
   .a-dot-archived, .a-dot-hidden { height: 2px; border-radius: 1px; background: rgb(var(--ink-soft)); }
+
+  /* ---- motion
+     Everything that moves or fades is here and nowhere else in the admin,
+     inside `no-preference`: a visitor who asked for less gets the state
+     (tint, ring, shape) without the travel. The page's own "pause motion"
+     switch (body.motion-paused) stops it too. A transition lists its
+     properties; none of them is a layout property. */
+  @media (prefers-reduced-motion: no-preference) {
+    .a-crumbs a, .a-nav-item, .a-box-row, .a-table tbody tr, .a-row, .a-seg > button, .a-tab {
+      transition: background-color var(--a-dur-fast) var(--a-ease-inout), color var(--a-dur-fast) var(--a-ease-inout);
+    }
+    .a-btn {
+      transition: background-color var(--a-dur-fast) var(--a-ease-inout), color var(--a-dur-fast) var(--a-ease-inout),
+                  border-color var(--a-dur-fast) var(--a-ease-inout), box-shadow var(--a-dur-fast) var(--a-ease-inout),
+                  transform var(--a-dur-fast) var(--a-ease-out);
+    }
+    .a-input, .a-select, .a-textarea {
+      transition: border-color var(--a-dur-fast) var(--a-ease-inout), box-shadow var(--a-dur-fast) var(--a-ease-inout),
+                  background-color var(--a-dur-fast) var(--a-ease-inout);
+    }
+    .a-stat { transition: border-color var(--a-dur-base) var(--a-ease-inout), background-color var(--a-dur-base) var(--a-ease-inout), box-shadow var(--a-dur-base) var(--a-ease-inout); }
+    .a-select-chev { transition: color var(--a-dur-fast) var(--a-ease-inout); }
+    /* The press: a pressed control sinks 2%, and comes back on release. */
+    .a-btn:active:not(:disabled, [aria-disabled="true"]), .a-nav-item:active, .a-tab:active, a.a-stat:active { transform: scale(.98); }
+    /* The tab's bar grows from the middle of the tab. */
+    .a-tab::after { transition: scale var(--a-dur-base) var(--a-ease-out), background-color var(--a-dur-fast) var(--a-ease-inout); }
+    /* A dialog, the drawer and their scrims settle in by a transition from
+       `@starting-style`; nothing leaves, so nothing needs an exit. The
+       site's own `dialog.pop-dialog` keeps its own enter and exit. */
+    .a-app dialog[open]:not(.pop-dialog) {
+      opacity: 1; scale: 1; translate: 0 0;
+      transition: opacity var(--a-dur-sheet) var(--a-ease-out), scale var(--a-dur-sheet) var(--a-ease-out),
+                  translate var(--a-dur-sheet) var(--a-ease-out);
+    }
+    .a-app dialog[open]:not(.pop-dialog)::backdrop { opacity: 1; transition: opacity var(--a-dur-sheet) var(--a-ease-out); }
+    .a-side[data-open] { opacity: 1; translate: 0 0; transition: opacity var(--a-dur-sheet) var(--a-ease-out), translate var(--a-dur-sheet) var(--a-ease-out); }
+    .a-scrim:not([hidden]) { opacity: 1; transition: opacity var(--a-dur-base) var(--a-ease-out); }
+    @starting-style {
+      .a-app dialog[open]:not(.pop-dialog) { opacity: 0; scale: .98; translate: 0 8px; }
+      .a-app dialog[open]:not(.pop-dialog)::backdrop { opacity: 0; }
+      .a-side[data-open] { opacity: 0; translate: -1.5rem 0; }
+      :root[dir='rtl'] .a-side[data-open] { translate: 1.5rem 0; }
+      .a-scrim:not([hidden]) { opacity: 0; }
+    }
+    /* Loading rows: a soft highlight crosses each bar as the row passes
+       through the window, on the row's own view timeline like every
+       placeholder on the site (docs/motion-contract.md). */
+    @supports (animation-timeline: view()) {
+      .a-skel::after {
+        content: ''; position: absolute; inset: 0;
+        background: linear-gradient(90deg, transparent, rgb(var(--ink) / .1), transparent);
+        animation: a-shimmer linear both;
+        animation-timeline: view();
+        animation-range: cover 0% cover 100%;
+      }
+    }
+    @keyframes a-shimmer { from { translate: -100% 0; } to { translate: 100% 0; } }
+    body.motion-paused .a-app *, body.motion-paused .a-app *::before, body.motion-paused .a-app *::after,
+    body.motion-paused .a-app dialog::backdrop { transition: none; animation: none; }
+  }
 }
