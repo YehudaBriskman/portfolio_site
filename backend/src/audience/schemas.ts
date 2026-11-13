@@ -13,7 +13,8 @@ export type Topics = { blog: boolean; releases: boolean };
 export type Consent = {
   textId: string | null;
   textHash: string | null;
-  lang: Lang;
+  /* Absent once the contact has been minimised. */
+  lang?: Lang;
   at: string;
   confirmedAt?: string;
   source: "site" | "manual" | "import";
@@ -24,9 +25,11 @@ export type Contact = {
   _id: string;
   _rev?: string;
   type: "contact";
+  /* "" once minimised: the address is gone and only the hash (the id) remains. */
   email: string;
   name?: string;
-  lang: Lang;
+  /* Absent once minimised. */
+  lang?: Lang;
   groups: string[];
   status: Status;
   source: "site" | "manual" | "import";
@@ -41,6 +44,8 @@ export type Contact = {
   updatedAt: string;
   confirmedAt?: string;
   unsubscribedAt?: string;
+  /** Set when the address, name and language were dropped some time after unsubscribing. */
+  minimisedAt?: string;
   /** Consecutive soft failures (mailbox full, temporary refusal) across campaigns; reset by a delivered mail. */
   softBounces?: number;
   /** Set when the sender, not the owner, suppressed the address. */

@@ -6,6 +6,7 @@ import { Fragment } from "react";
  * address's own seams; `anywhere` is only the last resort for one very long segment.
  */
 export default function Email({ value }: { value: string }) {
+  if (!value) return <span aria-hidden="true">—</span>;
   const parts = value.split(/(?=[@.])/);
   return (
     <bdi dir="ltr" className="[overflow-wrap:anywhere]">

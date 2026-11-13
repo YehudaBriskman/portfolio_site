@@ -58,7 +58,7 @@ export function fillTemplate(tpl: string, vars: Record<"name" | "site" | "days" 
 const tidy = (s: string) => s.replace(/[ \t]+([,،])/g, "$1");
 
 export function renderConfirmMail(contact: Pick<Contact, "name" | "lang">, link: string, sender: SenderSettings) {
-  const lang: Lang = contact.lang;
+  const lang: Lang = contact.lang ?? "en";
   const subject = lang === "he" ? sender.confirmSubjectHe : sender.confirmSubjectEn;
   let tpl = lang === "he" ? sender.confirmBodyHe : sender.confirmBodyEn;
   // An owner edit that drops {link} must not produce a mail nobody can confirm.

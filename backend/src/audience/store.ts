@@ -4,6 +4,7 @@ import { logger } from "../logger.js";
 import { loadSettings } from "../announce/store.js";
 import { getConsentText } from "./consent-texts.js";
 import { SYSTEM_GROUP, type Consent, type Contact, type Group, type Lang } from "./schemas.js";
+import { ledgerGet, ledgerPut } from "./ledger.js";
 import { signToken, verifyToken } from "./tokens.js";
 
 export { signToken, verifyToken };
@@ -135,6 +136,78 @@ export async function purgeExpiredPending(now = Date.now(), force = false): Prom
   }
 }
 export const resetPurgeClock = () => { lastPurge = 0; };
+
+/* --- minimisation ------------------------------------------------------ */
+
+/* Days after unsubscribing that the address, name and language are dropped. Backups follow their own rotation and are not touched. */
+export const MINIMISE_AFTER_DAYS = 30;
+
+export const isMinimisable = (c: Contact, now = Date.now()) =>
+  c.status === "unsubscribed" && !c.minimisedAt && Date.parse(c.unsubscribedAt ?? c.updatedAt) + MINIMISE_AFTER_DAYS * 86_400_000 <= now;
+
+/**
+ * Drops everything about an unsubscribed person except what proves the refusal
+ * and the consent: the id (the one-way fingerprint), status, the consent and
+ * unsubscribe times and the id/hash of the wording they saw. The ledger line
+ * (hash + kind + date) is the other half and is written by the caller FIRST.
+ * Free-text consent notes and the consent language go too: they can describe a person.
+ */
+export function minimise(c: Contact, at: string): void {
+  const keep = (k: Consent): Consent => ({
+    textId: k.textId, textHash: k.textHash, at: k.at, source: k.source, ...(k.confirmedAt ? { confirmedAt: k.confirmedAt } : {}),
+  });
+  const history = consentHistoryOf(c).map(keep);
+  c.email = "";
+  delete c.name;
+  delete c.lang;
+  delete c.softBounces;
+  delete c.suppressedReason;
+  c.groups = [];
+  c.topics = { blog: false, releases: false };
+  c.consentHistory = history;
+  c.consent = history[history.length - 1];
+  c.consentNote = c.consent.textId ?? "";
+  c.minimisedAt = at;
+}
+
+/** Minimises every unsubscribed contact past the grace period. Returns how many. A failed contact is skipped, not fatal. */
+export async function minimiseUnsubscribed(now = Date.now()): Promise<number> {
+  let n = 0;
+  for await (const c of scanContacts()) {
+    if (!isMinimisable(c, now)) continue;
+    const hash = c._id.slice(CONTACT.length);
+    // Ledger first: if it cannot be written the address stays, because the line is what keeps a returning address blocked after a restore.
+    if (!(await ledgerGet(hash).catch(() => null))) {
+      try {
+        await ledgerPut(hash, "unsubscribed");
+      } catch {
+        continue;
+      }
+    }
+    const done = await updateContact(hash, (x) => {
+      if (!isMinimisable(x, now)) return false;
+      minimise(x, new Date(now).toISOString());
+    }).catch(() => null);
+    if (done?.minimisedAt) n++;
+  }
+  return n;
+}
+
+/** Every per-recipient result document of one contact, read only; the counterpart of deleteSendDocs. */
+export async function listSendDocs(hash: string): Promise<Array<Record<string, unknown>>> {
+  const out: Array<Record<string, unknown>> = [];
+  let cursor = "send:";
+  for (;;) {
+    const { docs } = await couch.find<Record<string, unknown> & { _id: string }>({
+      selector: { _id: { $gt: cursor, $lt: "send:￿" } },
+      sort: [{ _id: "asc" }],
+      limit: 1000,
+    });
+    for (const d of docs) if (d._id.endsWith(`:${hash}`)) out.push(d);
+    if (docs.length < 1000) return out;
+    cursor = docs[docs.length - 1]._id;
+  }
+}
 
 /* --- groups ------------------------------------------------------------ */
 

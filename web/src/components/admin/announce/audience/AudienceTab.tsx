@@ -6,6 +6,7 @@ import ContactEditor, { Why } from "./ContactEditor";
 import Email from "./Email";
 import GroupsPanel from "./GroupsPanel";
 import ImportDialog from "./ImportDialog";
+import DataExport from "./DataExport";
 import SweepNote from "./SweepNote";
 import SuppressionPanel from "./SuppressionPanel";
 import { useAudienceWords } from "./words";
@@ -133,7 +134,7 @@ export default function AudienceTab() {
                     </td>
                     <td className="hidden text-start md:table-cell">{c.name ? <bdi dir="auto">{c.name}</bdi> : <Empty />}</td>
                     <td className="a-fit text-sm">{w.statuses[c.status]}</td>
-                    <td className="a-fit hidden lg:table-cell text-sm">{w.langs[c.lang]}</td>
+                    <td className="a-fit hidden lg:table-cell text-sm">{c.lang ? w.langs[c.lang] : ""}</td>
                     <td className="hidden text-sm lg:table-cell" dir="auto">{c.groups.length ? c.groups.map(groupName).join(", ") : <Empty />}</td>
                     <td className="a-fit !text-end">
                       <button type="button" className="a-btn min-h-[44px] min-w-[44px]" aria-label={w.editFor(c.email)} onClick={() => setDialog({ kind: "edit", contact: c })}>{w.edit}</button>
@@ -156,6 +157,7 @@ export default function AudienceTab() {
         <summary className="flex min-h-[44px] cursor-pointer items-center font-bold">{w.groupsHeading} <span className="ms-2 text-sm font-normal tabular-nums text-clay">{nf.format(groups.length)}</span></summary>
         <div className="pt-2"><GroupsPanel groups={groups} onChange={loadGroups} /></div>
       </details>
+      <DataExport />
       <details className="a-box p-3">
         <summary className="flex min-h-[44px] cursor-pointer items-center font-bold">{w.suppressionHeading}</summary>
         <div className="pt-2"><SuppressionPanel /></div>

@@ -481,10 +481,27 @@ What remains after an erasure:
 
 ### After an unsubscribe
 
-An unsubscribed contact is **not** erased. The whole record stays (address, name,
-language, groups, topics, consent time and note, `unsubscribedAt`) with
-`status: "unsubscribed"`; it is excluded from every send. The person can sign up
-again, which returns them to `pending`. If they want the record gone, erase it.
+An unsubscribed contact is **not** erased, but it is minimised. For
+`MINIMISE_AFTER_DAYS` (30, `audience/store.ts`) the whole record stays; the
+scheduled sweep then drops the address (`email` becomes `""`), name, language,
+groups, topics and bounce data, and keeps the id (the one-way fingerprint),
+`status: "unsubscribed"`, `unsubscribedAt`, the consent times and the consent
+wording id and hash (`minimisedAt` marks it). Free-text consent notes and the
+consent language go too. The never-mail ledger line is written first; if the
+ledger cannot be written the address is kept. Backups follow their own 14-day
+rotation and are not touched. The admin cannot edit a minimised contact. The
+person can sign up again, which restores an address and returns them to
+`pending`; the ledger guard still blocks a restored active copy. If they want
+the record gone, erase it (unchanged).
+
+### Data-access export
+
+`POST /api/admin/audience/contacts/data-export {email}` (Audience tab, "Export
+everything about an address") returns one JSON file: the contact record
+(consent history included, no `_rev`), the never-mail ledger line, and the
+campaign mails sent to that address (campaign, status, time). The address is in
+the request body only, so it is in no URL or access log; the audit entry names
+`contact:<hash>` and stores hashes of documents only. 404 when nothing is held.
 The public privacy text is aligned with this (see below).
 
 ## Bounces and complaints (Resend webhook)

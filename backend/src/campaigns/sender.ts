@@ -211,7 +211,7 @@ async function runCampaign(c: Campaign, settings: SenderSettings, deps: Required
       /* Not final: due again at retryAt. Until then the campaign is not finished. */
       if (Date.parse(prev.retryAt ?? prev.at) > ms) { waiting++; continue; }
     } else if (prev && !(prev.status === "attempting" && ms - Date.parse(prev.at) > STALE_ATTEMPT_MS)) continue;
-    todo.push({ hash, lang: r.lang });
+    todo.push({ hash, lang: r.lang ?? "en" });
   }
 
   if (todo.length === 0) {
@@ -284,7 +284,7 @@ async function runCampaign(c: Campaign, settings: SenderSettings, deps: Required
     used++;
     let result: Awaited<ReturnType<Deliver>>[number] | undefined;
     try {
-      const mail = await renderCampaignMail(c, contact, t.hash, settings);
+      const mail = await renderCampaignMail(c, { lang: contact.lang ?? "en" }, t.hash, settings);
       [result] = await deps.deliver([{ to: contact.email, ...mail }], { from: from.from, replyTo: from.replyTo });
     } catch (err) {
       result = { ok: false as const, error: err instanceof Error ? err.message : String(err) };
