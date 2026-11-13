@@ -130,7 +130,8 @@ router.post(
     if (contact.status !== "pending") return badLink(res);
     const ttl = (await loadSettings()).sender.pendingTtlDays;
     if (isPendingExpired(contact, ttl)) {
-      void purgeExpiredPending(Date.now(), true);
+      // Not forced: a link anyone holds must not be able to start a full scan each time it is opened.
+      void purgeExpiredPending();
       return badLink(res);
     }
     // The ledger is read, and cleared, BEFORE the contact turns active: a crash between leaves a pending contact, never a mailable one the ledger still blocks.
