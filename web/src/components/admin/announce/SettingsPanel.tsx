@@ -1,5 +1,6 @@
 import { useId, useState, type ReactNode } from "react";
 import { ErrorState } from "@/components/admin/ui";
+import { Disclosure } from "@/components/ui/Disclosure";
 import { ANNOUNCE_CHANNELS, type AnnounceKind, type AnnounceSettings } from "@/services/adminAnnounce";
 import { parseTags } from "./helpers";
 import { senderProblems } from "./sender/defaults";
@@ -228,20 +229,18 @@ export default function SettingsPanel() {
         </button>
       </section>
 
-      <details
+      <Disclosure
         className="a-box"
+        summary={sw.advancedHeading}
+        meta={advancedDirty ? w.unsaved : undefined}
         open={isOpen}
-        onToggle={(e) => {
+        onOpenChange={(next) => {
           /* A filter forces it open; only a person's own toggle is remembered. */
-          if (q === "") setOpen(e.currentTarget.open);
+          if (q === "") setOpen(next);
         }}
-        data-testid="advanced"
+        testid="advanced"
       >
-        <summary className="a-box-head min-h-[44px] cursor-pointer">
-          <span className="a-box-title">{sw.advancedHeading}</span>
-          {advancedDirty && <span className="ms-2 text-sm text-clay">{w.unsaved}</span>}
-        </summary>
-        <div className="space-y-6 p-4">
+        <div className="space-y-6 pb-3">
           <p className="a-hint !mt-0">{sw.advancedHint}</p>
           <div>
             <label className="a-label" htmlFor={`${uid}-f`}>{sw.filterLabel}</label>
@@ -251,7 +250,7 @@ export default function SettingsPanel() {
           {shown.map((s) => <div key={s.key}>{s.node}</div>)}
           <button type="button" className="a-btn a-btn-ghost min-h-[44px]" onClick={resetAdvanced}>{sw.resetSection}</button>
         </div>
-      </details>
+      </Disclosure>
 
       {issues.length > 0 && (
         <div role="alert">

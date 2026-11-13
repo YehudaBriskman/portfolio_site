@@ -2995,10 +2995,10 @@
   .a-stat-detail { font-size: var(--a-fs-meta); color: rgb(var(--ink-soft)); }
 
   /* ---- tabs and the list toolbar */
+  /* Wraps rather than scrolls: a hidden-scrollbar strip cut tabs off at 320 with nothing to say so. */
   .a-tabs {
-    display: flex; gap: .25rem; overflow-x: auto;
+    display: flex; flex-wrap: wrap; gap: .25rem;
     border-bottom: 1px solid var(--a-line);
-    scrollbar-width: none;
   }
   .a-tab {
     display: inline-flex; flex: none; align-items: center; gap: .375rem;

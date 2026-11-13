@@ -1,4 +1,5 @@
 import { useId, useState } from "react";
+import { Disclosure } from "@/components/ui/Disclosure";
 import { adminAudience } from "@/services/adminAudience";
 import { useExportWords } from "./exportWords";
 
@@ -27,9 +28,8 @@ export default function DataExport() {
   };
 
   return (
-    <details className="a-box p-3">
-      <summary className="flex min-h-[44px] cursor-pointer items-center font-bold">{w.heading}</summary>
-      <form className="space-y-2 pt-2" onSubmit={(e) => (e.preventDefault(), email.trim() && state !== "busy" && void run())}>
+    <Disclosure className="a-box" summary={w.heading}>
+      <form className="space-y-2" onSubmit={(e) => (e.preventDefault(), email.trim() && state !== "busy" && void run())}>
         <p className="a-hint !mt-0" id={`${uid}-h`}>{w.hint}</p>
         <div className="flex flex-wrap items-end gap-2">
           <div className="min-w-0 flex-1 basis-56">
@@ -43,6 +43,6 @@ export default function DataExport() {
           {state === "failed" && <p className="a-error">{w.failed}</p>}
         </div>
       </form>
-    </details>
+    </Disclosure>
   );
 }

@@ -80,7 +80,7 @@ describe("AudienceTab", () => {
     expect(screen.getByText("1 could not be read as an address:")).toBeTruthy();
   });
 
-  it("gives a name cell its own direction and lets an address break before @ and dots", async () => {
+  it("gives a name cell its own direction and lets an address break only before the @", async () => {
     pages["/api/admin/audience/contacts?limit=25"] = { ok: true, contacts: [contact({ name: "דנה", email: "person.long@example.com" })], nextCursor: null };
     const { container } = render(<AudienceTab />);
     const name = await screen.findByText("דנה");
@@ -89,7 +89,8 @@ describe("AudienceTab", () => {
     expect(name.closest("td")!.hasAttribute("dir")).toBe(false);
     const addr = container.querySelector("tbody bdi[dir=ltr]")!;
     expect(addr.textContent).toBe("person.long@example.com");
-    expect(addr.querySelectorAll("wbr").length).toBe(3);
+    expect(addr.querySelectorAll("wbr").length).toBe(1);
+    expect(addr.childNodes[0].textContent).toBe("person.long");
   });
 
   it("lists contacts with the why line, loads more by cursor and filters", async () => {
@@ -164,7 +165,7 @@ describe("AudienceTab", () => {
   it("locks system groups", async () => {
     render(<AudienceTab />);
     await screen.findByText("ada@example.com");
-    fireEvent.click(screen.getByText("Groups", { selector: "summary" }));
+    fireEvent.click(screen.getByText("Groups", { selector: "summary span" }));
     expect(await screen.findByText("System group, locked")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Delete Subscribers" })).toBeNull();
     expect(screen.getByRole("button", { name: "Delete Friends" })).toBeTruthy();

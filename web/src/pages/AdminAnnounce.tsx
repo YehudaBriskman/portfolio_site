@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
 import AdminShell from "@/components/admin/AdminShell";
 import { PageHeader } from "@/components/admin/ui";
@@ -35,6 +35,8 @@ export default function AdminAnnounce() {
   const [items, setItems] = useState<AnnounceSummary[] | null>(null);
   const [error, setError] = useState<"load" | "auth" | null>(null);
   const [attempt, setAttempt] = useState(0);
+  const uid = useId();
+  const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
   const retry = () => {
     setError(null);
@@ -80,19 +82,37 @@ export default function AdminAnnounce() {
   ];
   const current = tabs.find((t) => t.id === params.get("tab")) ?? tabs[0];
 
+  const pick = (id: string) => setParams(id === tabs[0].id ? {} : { tab: id }, { replace: true });
+  /* Arrows follow reading order, so they swap in Hebrew; the tab you land on takes focus as well as selection. */
+  const onTabKey = (e: KeyboardEvent) => {
+    const rtl = document.documentElement.dir === "rtl";
+    const step = e.key === "ArrowRight" ? (rtl ? -1 : 1) : e.key === "ArrowLeft" ? (rtl ? 1 : -1) : 0;
+    const at = tabs.indexOf(current);
+    const to = e.key === "Home" ? 0 : e.key === "End" ? tabs.length - 1 : step ? (at + step + tabs.length) % tabs.length : -1;
+    if (to < 0) return;
+    e.preventDefault();
+    pick(tabs[to].id);
+    tabRefs.current[tabs[to].id]?.focus();
+  };
+
   return (
     <AdminShell title={w.title} section="marketing">
       <div className="a-wrap">
         <PageHeader title={w.title} description={hi[current.id as keyof typeof hi] as string} />
 
-        <div role="group" aria-label={w.tabsLabel} className="a-tabs mb-4">
+        <div role="tablist" aria-label={w.tabsLabel} className="a-tabs mb-4" onKeyDown={onTabKey}>
           {tabs.map((t) => (
             <button
               key={t.id}
+              ref={(el) => void (tabRefs.current[t.id] = el)}
+              id={`${uid}-tab-${t.id}`}
               type="button"
-              aria-pressed={current.id === t.id}
+              role="tab"
+              aria-selected={current.id === t.id}
+              aria-controls={`${uid}-panel`}
+              tabIndex={current.id === t.id ? 0 : -1}
               className="a-tab min-h-[44px]"
-              onClick={() => setParams(t.id === tabs[0].id ? {} : { tab: t.id }, { replace: true })}
+              onClick={() => pick(t.id)}
             >
               {t.label}
               {t.badge ? (
@@ -105,8 +125,10 @@ export default function AdminAnnounce() {
           ))}
         </div>
 
-        {(current.id === "audience" || current.id === "campaigns") && <LedgerBanner />}
-        {current.render()}
+        <div role="tabpanel" id={`${uid}-panel`} aria-labelledby={`${uid}-tab-${current.id}`}>
+          {(current.id === "audience" || current.id === "campaigns") && <LedgerBanner />}
+          {current.render()}
+        </div>
       </div>
     </AdminShell>
   );

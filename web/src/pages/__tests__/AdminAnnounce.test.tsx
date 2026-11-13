@@ -374,7 +374,7 @@ describe("the composer", () => {
     stub();
     page();
     await openFirst();
-    const tabs = screen.getAllByRole("tab");
+    const tabs = within(screen.getByRole("tablist", { name: "Channel" })).getAllByRole("tab");
     tabs[0].focus();
     fireEvent.keyDown(tabs[0], { key: "ArrowRight" });
     await waitFor(() => expect(tabs[1].getAttribute("aria-selected")).toBe("true"));
@@ -385,7 +385,7 @@ describe("the hub shell", () => {
   it("keeps the Settings tab beside the Inbox", async () => {
     const calls = stub({ items: [] });
     page();
-    fireEvent.click(await screen.findByRole("button", { name: "Settings" }));
+    fireEvent.click(await screen.findByRole("tab", { name: "Settings" }));
     await screen.findByLabelText("Default hashtags");
     expect(calls.some((c) => c.url === "/api/admin/announce/settings")).toBe(true);
   });

@@ -3,6 +3,7 @@ import { adminAudience, CONTACT_STATUSES, type Contact, type ContactLang, type C
 import { Empty } from "@/components/admin/ui";
 import Email from "./Email";
 import Modal from "./Modal";
+import { FOOTER } from "./modalFooter";
 import { whyOf } from "./why";
 import { useAudienceWords } from "./words";
 import { useWhen } from "./useWhen";
@@ -115,12 +116,12 @@ export default function ContactEditor({ contact, groups, onClose, onDone }: { co
         </section>
 
         {error && <p className="a-error" role="alert">{w.saveFailed}</p>}
-        <div className="flex flex-wrap items-center gap-2">
+        <div data-modal-footer className={`${FOOTER} flex flex-wrap items-center gap-2`}>
           <button type="submit" className="a-btn a-btn-primary min-h-[44px]" disabled={busy}>{busy ? w.saving : w.save}</button>
           <button type="button" className="a-btn a-btn-ghost min-h-[44px]" onClick={onClose}>{w.cancel}</button>
         </div>
 
-        <div className="border-t border-[rgb(var(--rule-firm)/.4)] pt-3">
+        <div className="border-t border-[rgb(var(--rule-firm)/.4)] pb-4 pt-3">
           <p className="a-hint !mt-0">{w.eraseHint}</p>
           {confirm ? (
             <div className="mt-2 flex flex-wrap gap-2">

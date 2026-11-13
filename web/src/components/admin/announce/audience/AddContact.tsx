@@ -1,6 +1,7 @@
 import { useId, useState } from "react";
 import { adminAudience, type ContactLang, type Group } from "@/services/adminAudience";
 import Modal from "./Modal";
+import { FOOTER } from "./modalFooter";
 import { useAudienceWords } from "./words";
 
 export default function AddContact({ groups, onClose, onDone }: { groups: Group[]; onClose: () => void; onDone: () => void }) {
@@ -65,7 +66,7 @@ export default function AddContact({ groups, onClose, onDone }: { groups: Group[
           <p id={`${uid}-ch`} className={tried && !note.trim() ? "a-error" : "a-hint"}>{tried && !note.trim() ? w.consentNoteRequired : w.consentNoteHint}</p>
         </div>
         {error && <p className="a-error" role="alert">{w.saveFailed}</p>}
-        <div className="flex flex-wrap gap-2">
+        <div data-modal-footer className={`${FOOTER} flex flex-wrap gap-2`}>
           <button type="submit" className="a-btn a-btn-primary min-h-[44px]" disabled={busy}>{busy ? w.saving : w.add}</button>
           <button type="button" className="a-btn a-btn-ghost min-h-[44px]" onClick={onClose}>{w.cancel}</button>
         </div>
