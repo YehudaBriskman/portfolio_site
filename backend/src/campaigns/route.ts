@@ -10,8 +10,9 @@ import { logger } from "../logger.js";
 import { budgetLimits, budgetNow } from "./budgetStore.js";
 import { estimateFinish, nextWindowAt, thresholdsReached } from "./budget.js";
 import { resolveSender } from "./config.js";
+import { campaignsBlocked, sendingState, setPaused } from "./killSwitch.js";
 import { renderCampaignMail } from "./render.js";
-import { AudienceBody, CampaignCreate, CampaignId, CampaignPatch, PreviewBody, ScheduleBody, SendNowBody, type Campaign } from "./schemas.js";
+import { AudienceBody, SendingBody, CampaignCreate, CampaignId, CampaignPatch, PreviewBody, ScheduleBody, SendNowBody, type Campaign } from "./schemas.js";
 import { CAP_WINDOW_MS } from "./sender.js";
 import { campaignId, createCampaign, deleteCampaign, getCampaign, isStatus, listCampaigns, mutateCampaign, sentCounts } from "./store.js";
 
@@ -23,6 +24,8 @@ import { campaignId, createCampaign, deleteCampaign, getCampaign, isStatus, list
 const router = Router();
 const bad = (res: Response, error: string, status = 400) => res.status(status).json({ ok: false, error });
 const conflict = (res: Response) => bad(res, "This changed elsewhere. Reload and reapply your edit.", 409);
+/* 423 Locked: the owner's pause or SEND_ENABLED=false. Nothing is queued or sent until it is lifted. */
+const heldBy = (res: Response) => res.status(423).json({ ok: false, code: "paused", error: "Sending is paused. Resume sending in Campaigns first." });
 const notFound = (res: Response) => bad(res, "No such campaign.", 404);
 
 const mask = (email: string) => {
@@ -47,6 +50,32 @@ router.get(
   "/",
   asyncHandler(async (_req, res) => {
     res.set("Cache-Control", "no-store").json({ ok: true, campaigns: (await listCampaigns()).map(view) });
+  }),
+);
+
+/*
+ * The kill switch. GET says whether sending is held (by the owner's pause, by
+ * SEND_ENABLED=false, or both); POST {paused} is the one click that holds or
+ * releases every campaign. Registered before /:id. The environment value cannot
+ * be lifted from here, on purpose.
+ */
+router.get(
+  "/sending",
+  asyncHandler(async (_req, res) => {
+    res.set("Cache-Control", "no-store").json({ ok: true, ...(await sendingState()) });
+  }),
+);
+
+router.post(
+  "/sending",
+  asyncHandler(async (req, res) => {
+    const b = SendingBody.safeParse(req.body);
+    if (!b.success) return res.status(400).json({ ok: false, error: "Check the fields and try again.", issues: toIssues(b.error) });
+    const before = await sendingState();
+    await setPaused(b.data.paused);
+    const after = await sendingState();
+    res.locals.audit = { target: "sender:switch", before: { paused: before.paused }, after: { paused: after.paused } };
+    res.json({ ok: true, ...after });
   }),
 );
 
@@ -235,6 +264,7 @@ router.post(
     const id = idOf(req.params.id);
     const c = id && (await getCampaign(id));
     if (!c) return notFound(res);
+    if (await campaignsBlocked()) return heldBy(res);
     const settings = (await loadSettings()).sender;
     if (settings.testRecipients.length === 0) return bad(res, "Add a test recipient in Sender & delivery first.", 422);
     const from = resolveSender(settings);
@@ -254,6 +284,10 @@ type CapChoice = { overrideCap?: boolean; skipCapped?: boolean };
 
 /** The checks every route that puts a campaign in the queue shares. */
 async function queueable(c: Campaign, res: Response, choice: CapChoice): Promise<boolean> {
+  if (await campaignsBlocked()) {
+    heldBy(res);
+    return false;
+  }
   if (c.status !== "draft" && c.status !== "scheduled") {
     bad(res, "Only a draft or scheduled campaign can be queued.", 409);
     return false;

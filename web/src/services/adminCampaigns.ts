@@ -110,7 +110,7 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
     throw new ContentInvalidError("invalid", Array.isArray(raw) ? (raw as Issue[]) : []);
   }
   if (res.status === 409 && typeof msg === "string" && /changed elsewhere/i.test(msg)) throw new CampaignConflictError();
-  if (res.status === 409 || res.status === 422) {
+  if (res.status === 409 || res.status === 422 || res.status === 423) {
     const b = body as Partial<CapInfo> | null;
     const cap = b?.code === "cap" && typeof b.capped === "number" && typeof b.total === "number" && typeof b.max === "number" ? { code: "cap" as const, capped: b.capped, total: b.total, max: b.max } : undefined;
     throw new CampaignRefusedError(typeof msg === "string" ? msg : "refused", res.status, cap);
@@ -120,7 +120,14 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 const enc = encodeURIComponent;
+function parseSending(r: Partial<SendingState> | null): SendingState {
+  if (!r || typeof r.paused !== "boolean" || typeof r.envDisabled !== "boolean") throw new Error("bad-sending");
+  return { paused: r.paused, pausedAt: typeof r.pausedAt === "string" ? r.pausedAt : null, envDisabled: r.envDisabled, blocked: r.paused || r.envDisabled };
+}
 const json = (b: unknown): RequestInit => ({ method: "POST", body: JSON.stringify(b) });
+
+/** The kill switch (GET/POST /sending): `paused` is the owner's click, `envDisabled` is SEND_ENABLED=false, which this page cannot lift. */
+export type SendingState = { paused: boolean; pausedAt: string | null; envDisabled: boolean; blocked: boolean };
 
 export const adminCampaigns = {
   list: async () => (await call<{ campaigns: Campaign[] }>("")).campaigns,
@@ -134,6 +141,9 @@ export const adminCampaigns = {
     const r = await call<AudienceSample>("/audience", json(sel));
     return { count: r.count ?? 0, samples: Array.isArray(r.samples) ? r.samples : [], ...(typeof r.overCap === "number" && typeof r.cap === "number" ? { overCap: r.overCap, cap: r.cap } : {}) };
   },
+  sending: async (): Promise<SendingState> => parseSending(await call<Partial<SendingState> | null>("/sending")),
+  /** One click: `true` holds every campaign, `false` lets them carry on. */
+  setPaused: async (paused: boolean): Promise<SendingState> => parseSending(await call<Partial<SendingState> | null>("/sending", json({ paused }))),
   /** The mail budget now and, given how many are still to send, how many days that takes. */
   budget: async (remaining?: number): Promise<BudgetView> => {
     const r = await call<Partial<BudgetView> | null>(`/budget${remaining === undefined ? "" : `?remaining=${Math.max(0, Math.floor(remaining))}`}`);

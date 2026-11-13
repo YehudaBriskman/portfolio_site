@@ -6,6 +6,7 @@ import { adminAnnounce, type AnnounceSummary, type SenderSettings } from "@/serv
 import { adminAudience, type Group } from "@/services/adminAudience";
 import { adminCampaigns, type Campaign } from "@/services/adminCampaigns";
 import CampaignEditor from "./CampaignEditor";
+import SendingSwitch from "./SendingSwitch";
 import { pillState } from "./status";
 import { useCampaignWords } from "./words";
 
@@ -68,6 +69,8 @@ export default function CampaignsTab() {
         </div>
         <button type="button" className="a-btn a-btn-primary min-h-[44px]" onClick={() => setOpen("new")}>{w.newCampaign}</button>
       </div>
+
+      <SendingSwitch />
 
       {noFooter && (
         <div className="a-box border-[rgb(var(--destructive-ink))] p-4" role="alert" data-testid="footer-blocker">

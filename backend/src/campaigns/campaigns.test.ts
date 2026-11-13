@@ -15,6 +15,7 @@ import { renderMail } from "../mail/render.js";
 import { memoryLedgerStore, resetLedgerCache, useLedgerStore } from "../audience/ledger.js";
 import { resetGuard } from "./guard.js";
 import { inQuietHours, runSenderTick, type Deliver } from "./sender.js";
+import { campaignsBlocked, sendingState, SWITCH_ID } from "./killSwitch.js";
 
 /* In-memory couch. The MCP/image stubs only let app.ts load on a box without those optional deps; CI has them. */
 vi.mock("../mcp/router.js", () => ({ createMcpRouter: () => (_q: unknown, _r: unknown, next: () => void) => next() }));
@@ -122,7 +123,7 @@ const queued = async (n = 3, over: Partial<AnnounceSettings["sender"]> = {}) => 
 describe("admin gate", () => {
   const routes: Array<[string, string]> = [
     ["get", ""], ["post", ""], ["get", "/abc"], ["patch", "/abc"], ["delete", "/abc"], ["get", "/abc/audience"],
-    ["post", "/preview"], ["post", "/audience"], ["post", "/abc/test"], ["post", "/abc/schedule"], ["post", "/abc/send-now"], ["post", "/abc/cancel"], ["post", "/abc/resume"],
+    ["post", "/preview"], ["post", "/audience"], ["post", "/abc/test"], ["post", "/abc/schedule"], ["post", "/abc/send-now"], ["post", "/abc/cancel"], ["post", "/abc/resume"], ["get", "/sending"], ["post", "/sending"],
   ];
   it.each(routes)("%s /api/admin/campaigns%s is refused without it", async (method, path) => {
     seedMany(1);
@@ -1127,5 +1128,102 @@ describe("monthly limit per contact", () => {
     fill(2, 4, T0 - 29 * DAY);
     await run(c.id);
     expect(sent.map((m) => m.to)).toEqual([addr(1)]);
+  });
+});
+
+describe("the kill switch", () => {
+  const pause = (paused: boolean) => admin(request(createApp()).post(`${C}/sending`).send({ paused }));
+  afterEach(() => { env.SEND_ENABLED = undefined; });
+
+  it("reads as not held by default, and one click pauses and releases, audited with no address", async () => {
+    expect((await admin(request(createApp()).get(`${C}/sending`))).body).toEqual({ ok: true, paused: false, pausedAt: null, envDisabled: false, blocked: false });
+    const r = await pause(true);
+    expect(r.body).toMatchObject({ ok: true, paused: true, envDisabled: false, blocked: true });
+    expect(typeof r.body.pausedAt).toBe("string");
+    expect((await pause(false)).body).toMatchObject({ paused: false, blocked: false, pausedAt: null });
+    expect((await admin(request(createApp()).post(`${C}/sending`).send({ paused: "yes" }))).status).toBe(400);
+    expect((await admin(request(createApp()).post(`${C}/sending`).send({ paused: true, extra: 1 }))).status).toBe(400);
+  });
+
+  it("a paused sender claims and sends nothing, and resuming carries on without repeating anyone", async () => {
+    const id = await queued(3);
+    await pause(true);
+    await runSenderTick({ now: () => T0, deliver });
+    expect(sent).toHaveLength(0);
+    expect(get(id).status).toBe("scheduled");
+    await pause(false);
+    await runSenderTick({ now: () => T0, deliver });
+    await runSenderTick({ now: () => T0, deliver });
+    expect(sent.map((m) => m.to).sort()).toEqual([addr(1), addr(2), addr(3)]);
+    expect(get(id).status).toBe("sent");
+  });
+
+  it("a pause pressed mid-batch stops at the next recipient, and the campaign stays sending", async () => {
+    const id = await queued(5);
+    let n = 0;
+    const pausing: Deliver = async (msgs) => {
+      sent.push(...msgs);
+      if (++n === 2) await pause(true);
+      return msgs.map(() => ({ ok: true as const }));
+    };
+    await runSenderTick({ now: () => T0, deliver: pausing });
+    expect(sent).toHaveLength(2);
+    expect(get(id).status).toBe("sending");
+    await pause(false);
+    await runSenderTick({ now: () => T0, deliver });
+    await runSenderTick({ now: () => T0, deliver });
+    expect(sent.map((m) => m.to).sort()).toEqual([addr(1), addr(2), addr(3), addr(4), addr(5)]);
+  });
+
+  it("SEND_ENABLED=false holds the tick, test sends and queueing; the admin cannot lift it", async () => {
+    const id = await queued(2);
+    env.SEND_ENABLED = "false";
+    await runSenderTick({ now: () => T0, deliver });
+    expect(sent).toHaveLength(0);
+    expect((await admin(request(createApp()).get(`${C}/sending`))).body).toMatchObject({ envDisabled: true, paused: false, blocked: true });
+    expect((await pause(false)).body).toMatchObject({ envDisabled: true, blocked: true });
+    setSender({ testRecipients: ["me@example.org"] });
+    const t = await admin(request(createApp()).post(`${C}/${id}/test`));
+    expect([t.status, t.body.code]).toEqual([423, "paused"]);
+    const c2 = await mk();
+    const q = await admin(request(createApp()).post(`${C}/${c2.id}/send-now`));
+    expect([q.status, q.body.code]).toEqual([423, "paused"]);
+    expect(get(c2.id).status).toBe("draft");
+    expect(sent).toHaveLength(0);
+    env.SEND_ENABLED = undefined;
+    await runSenderTick({ now: () => T0, deliver });
+    expect(sent).toHaveLength(2);
+  });
+
+  it.each(["false", "FALSE", " 0 ", "off", "no", "disabled"])("%j counts as off, and a typo or true does not", async (v) => {
+    env.SEND_ENABLED = v;
+    expect((await sendingState()).envDisabled).toBe(true);
+    for (const ok of ["true", "1", "on", "fasle", ""]) {
+      env.SEND_ENABLED = ok;
+      expect((await sendingState()).envDisabled).toBe(false);
+    }
+  });
+
+  it("fails closed: an unreadable switch holds the campaigns instead of sending", async () => {
+    await queued(2);
+    const get0 = couch.get as unknown as ReturnType<typeof vi.spyOn>;
+    const real = get0.getMockImplementation()!;
+    get0.mockImplementation(async (id: string) => {
+      if (id === SWITCH_ID) throw new CouchError(500, "down");
+      return real(id);
+    });
+    await runSenderTick({ now: () => T0, deliver });
+    expect(sent).toHaveLength(0);
+    expect(await campaignsBlocked()).toBe(true);
+  });
+
+  it("transactional mail is not held by the owner's pause, but is by the environment", async () => {
+    await pause(true);
+    expect((await sendingState()).blocked).toBe(true);
+    const provider = (await import("../providers/index.js")).getProvider();
+    expect(provider).not.toHaveProperty("held");
+    env.SEND_ENABLED = "false";
+    const held = await (await import("../providers/index.js")).getProvider().send({ from: "a@example.invalid", to: "b@example.invalid", subject: "s", text: "t" } as never);
+    expect(held).toMatchObject({ ok: false, kind: "policy" });
   });
 });

@@ -126,3 +126,6 @@ export const PreviewBody = z
 export const AudienceBody = z
   .object({ groups: Groups, lang: Fields.lang.default("all"), topic: Fields.topic.nullable().optional() })
   .strict();
+
+/* The kill switch's one field. */
+export const SendingBody = z.object({ paused: z.boolean() }).strict();

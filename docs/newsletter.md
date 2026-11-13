@@ -393,6 +393,40 @@ campaign. Un-scheduling a `scheduled` campaign (`schedule` with `sendAt: null`)
 returns it to `draft`. Drafts and finished campaigns can be deleted; a
 `scheduled` or `sending` one must be canceled first.
 
+### The kill switch
+
+Two switches, both fail safe (`campaigns/killSwitch.ts`).
+
+| | What it holds | How | Lifted by |
+|---|---|---|---|
+| **Pause all sending** | every campaign: the tick, test sends, scheduling and send-now (423 `paused`) | one click in Marketing > Campaigns (`POST /api/admin/campaigns/sending {paused:true}`, stored in the doc `sender:switch`) | "Resume sending", with a confirm |
+| **`SEND_ENABLED=false`** | **every** outgoing mail: campaigns, tests, confirmations, the contact form, owner notices | environment of the API container; accepted off values: `false`, `0`, `off`, `no`, `disabled` (anything else, including a typo or unset, means on) | removing it and restarting the container. No deploy, no code change. The admin page shows it but cannot lift it |
+
+- A pause takes effect at the **next recipient**, not the next batch. Campaigns keep their
+  status (`scheduled` or `sending`); resuming continues with the people not yet handled and
+  nobody is mailed twice.
+- A pause does **not** stop confirmation mails for new signups (that would lose people who
+  signed up in good faith); only `SEND_ENABLED=false` does, at the provider
+  (`providers/index.ts`), so no send path can forget to check it.
+- If the switch document cannot be read, campaigns are held (fails closed).
+- Compose example: set `SEND_ENABLED: "false"` under the API service's `environment:` and
+  `docker compose up -d api` (a recreate with the new value, not an image deploy). Kubernetes:
+  set the env var on the Deployment; the pod restarts.
+
+### The first real send (owner runbook)
+
+The release ships with signup, confirm and unsubscribe live and no campaign able to go out
+until you press send; nothing sends by itself (auto-drafts only create drafts).
+
+1. Marketing > Settings > Sender & delivery: fill in your name, a contact email, the mail
+   budget (90 a day), and the owner notices (master switch on).
+2. Check the suppression ledger banner is green and the budget meter reads.
+3. Subscribe your own address, confirm it, check the mail.
+4. Make a campaign for one group that holds only you; **Send a test**, read it in a mail client.
+5. Check the recipient count in the confirm step is the number you expect, then send.
+6. Unsubscribe from the mail and check it stops.
+7. Anything wrong: **Pause all sending** (one click), or `SEND_ENABLED=false` and restart.
+
 ## Backups, restore and erasure
 
 ### Backups

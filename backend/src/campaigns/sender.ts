@@ -7,6 +7,7 @@ import { logger } from "../logger.js";
 import { emitOwnerEvent } from "../notify/hooks.js";
 import { budgetNow, checkBudgetThresholds } from "./budgetStore.js";
 import { ledgerGuard } from "./guard.js";
+import { campaignsBlocked } from "./killSwitch.js";
 import { emailService, type BulkMessage } from "../services/email.service.js";
 import { resolveSender } from "./config.js";
 import { renderCampaignMail } from "./render.js";
@@ -264,6 +265,8 @@ async function runCampaign(c: Campaign, settings: SenderSettings, deps: Required
     /* Cancel (or any other change of state) stops the run at the next recipient. */
     const live = await getCampaign(id);
     if (!live || live.status !== "sending") break;
+    /* The owner's pause (or SEND_ENABLED=false) takes effect at the next recipient, not the next batch. */
+    if (await campaignsBlocked()) break;
     const contact = await getContact(t.hash);
     const base: SendResult = { _id: sendId(id, t.hash), type: "send", campaignId: id, contact: t.hash, status: "attempting", at: new Date(deps.now()).toISOString() };
     const stale = done.get(t.hash);
@@ -360,6 +363,8 @@ export async function runSenderTick(deps: SenderDeps = {}): Promise<void> {
   running = true;
   const d: Required<SenderDeps> = { now: deps.now ?? Date.now, deliver: deps.deliver ?? ((m, o) => emailService.sendBulk(m, o)) };
   try {
+    /* The kill switch comes first: nothing is read, claimed or sent while it is on. */
+    if (await campaignsBlocked()) return;
     const settings = (await loadSettings()).sender;
     const ms = d.now();
     if (inQuietHours(settings.quietHours, ms)) return;
