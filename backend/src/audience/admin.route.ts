@@ -41,6 +41,8 @@ import {
   deleteSendDocs,
 } from "./store.js";
 import { ledgerGuard } from "../campaigns/guard.js";
+import { getSweepReport } from "./sweep.js";
+import { loadSettings } from "../announce/store.js";
 import { acknowledgeReport, ledgerClear, ledgerEntries, ledgerGet, ledgerPut, ledgerReport } from "./ledger.js";
 
 /*
@@ -475,6 +477,22 @@ router.delete(
     logger.info({ contact: hash }, "suppression lifted");
     res.locals.audit = { target: before._id, before: prior, after };
     res.json({ ok: true });
+  }),
+);
+
+/* ---------------------------------------------------------------- hygiene -- */
+
+/* What the scheduled sweep removed: counts and times only. */
+router.get(
+  "/sweep",
+  asyncHandler(async (_req, res) => {
+    const [r, settings] = await Promise.all([getSweepReport().catch(() => null), loadSettings()]);
+    res.locals.noAudit = true;
+    res.json({
+      ok: true,
+      pendingTtlDays: settings.sender.pendingTtlDays,
+      report: r ? { at: r.at, lastPurged: r.lastPurged, totalPurged: r.totalPurged, since: r.since } : null,
+    });
   }),
 );
 

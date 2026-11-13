@@ -63,6 +63,9 @@ export const QuietHoursSchema = z
 export const DEFAULT_MAX_PER_CONTACT_30D = 4;
 export const MAX_PER_CONTACT_30D_LIMIT = 31;
 
+export const DEFAULT_PENDING_TTL_DAYS = 7;
+export const PENDING_TTL_DAYS_LIMIT = 30;
+
 export const LABEL_MODES = ["hebrew", "all", "off"] as const;
 export type LabelMode = (typeof LABEL_MODES)[number];
 
@@ -112,7 +115,8 @@ export const SenderSchema = z.preprocess(migrateLabel, z
     unsubscribeNoteHe: SenderText,
     /* The advertisement label (Israeli spam law): hebrew = Hebrew-language recipients only, all = every recipient, off = never. */
     labelMode: z.enum(LABEL_MODES).default("hebrew"),
-    pendingTtlDays: z.number().int().min(1).max(30),
+    /* Days an unconfirmed signup is kept before the sweep deletes it. Lenient here like maxPerContact30d; the range is checked on PUT by validateSenderPending. */
+    pendingTtlDays: z.number().default(DEFAULT_PENDING_TTL_DAYS),
   })
   .strict());
 export type SenderSettings = z.infer<typeof SenderSchema>;
@@ -166,6 +170,13 @@ export function validateSenderLimits(s: Pick<SenderSettings, "maxPerContact30d">
 }
 
 /** Applied on PUT only: the provider's limits, the safety factor and the transactional share. */
+export function validateSenderPending(s: Pick<SenderSettings, "pendingTtlDays">): { path: string; message: string }[] {
+  const n = s.pendingTtlDays;
+  return Number.isInteger(n) && n >= 1 && n <= PENDING_TTL_DAYS_LIMIT
+    ? []
+    : [{ path: "sender.pendingTtlDays", message: `Unconfirmed signups are kept a whole number of days, from 1 to ${PENDING_TTL_DAYS_LIMIT}.` }];
+}
+
 export function validateSenderBudget(s: Pick<SenderSettings, "dailyLimit" | "monthlyLimit" | "safety" | "reserveShare">): { path: string; message: string }[] {
   const out: { path: string; message: string }[] = [];
   const whole = (n: number, max: number) => Number.isInteger(n) && n >= 1 && n <= max;
@@ -231,7 +242,7 @@ export const DEFAULT_SENDER: SenderSettings = {
   unsubscribeNoteEn: "You get this because you subscribed on {site}. To stop receiving these emails, unsubscribe here: {link}",
   unsubscribeNoteHe: "קיבלתם הודעה זו כי נרשמתם לעדכונים באתר {site}. כדי להפסיק לקבל אותה, בטלו את ההרשמה כאן: {link}",
   labelMode: "hebrew",
-  pendingTtlDays: 7,
+  pendingTtlDays: DEFAULT_PENDING_TTL_DAYS,
   fromName: "",
   fromAddress: "",
   replyTo: "",

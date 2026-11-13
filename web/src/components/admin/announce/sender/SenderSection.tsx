@@ -55,7 +55,7 @@ export default function SenderSection({ sender, onChange, warnings }: { sender: 
       </div>
     );
   };
-  const num = (f: "throttlePerHour" | "dailyCap" | "maxPerContact30d" | "dailyLimit" | "monthlyLimit", label: string, hint: string, max: number, min = 1) => {
+  const num = (f: "throttlePerHour" | "dailyCap" | "maxPerContact30d" | "pendingTtlDays" | "dailyLimit" | "monthlyLimit", label: string, hint: string, max: number, min = 1) => {
     const id = `${uid}-${f}`;
     return (
       <div>
@@ -132,7 +132,7 @@ export default function SenderSection({ sender, onChange, warnings }: { sender: 
   const emailSet = !lacks.includes("email");
   const footerSet = lacks.length === 0;
   const senderBad = Boolean(problems.fromAddress || problems.replyTo);
-  const limitsBad = Boolean(problems.throttlePerHour || problems.dailyCap || problems.maxPerContact30d || problems.quietHours || problems.dailyLimit || problems.monthlyLimit || problems.safety || problems.reserveShare);
+  const limitsBad = Boolean(problems.throttlePerHour || problems.dailyCap || problems.maxPerContact30d || problems.pendingTtlDays || problems.quietHours || problems.dailyLimit || problems.monthlyLimit || problems.safety || problems.reserveShare);
   const textsBad = hasTextProblem(sender);
   const idBad = Boolean(problems.identityEmail || CONTACT_FIELDS.some((c) => problems[c.f]));
   const ready = footerSet && !idBad && !senderBad && !limitsBad && !textsBad;
@@ -263,6 +263,7 @@ export default function SenderSection({ sender, onChange, warnings }: { sender: 
             {num("throttlePerHour", w.throttle, w.throttleHint, 3600)}
             {num("dailyCap", w.cap, w.capHint, 10000)}
             {num("maxPerContact30d", w.perPerson, w.perPersonHint, 31, 0)}
+            {num("pendingTtlDays", w.pendingTtl, w.pendingTtlHint, 30)}
           </div>
           <fieldset className="space-y-2">
             <legend className="a-label">{w.quiet}</legend>

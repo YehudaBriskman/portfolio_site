@@ -22,6 +22,7 @@ is a limit or a gap it says so.
 | Admin routes (`/api/admin/audience`) | `backend/src/audience/admin.route.ts` |
 | Contact and group types, validation | `backend/src/audience/schemas.ts` |
 | Store, recipients, pending cleanup | `backend/src/audience/store.ts` |
+| Scheduled list-hygiene sweep | `backend/src/audience/sweep.ts` |
 | Signed links | `backend/src/audience/tokens.ts` |
 | Confirmation mail, unsubscribe URLs | `backend/src/audience/mail.ts` |
 | Campaign routes (`/api/admin/campaigns`) | `backend/src/campaigns/route.ts` |
@@ -89,10 +90,16 @@ status that is ever mailed), `unsubscribed`, `suppressed`.
    no-referrer`.
 5. A pending contact is treated as expired once `updatedAt` is older than
    `pendingTtlDays` (default 7, allowed 1 to 30). Expired contacts are deleted
-   lazily: a sweep runs, at most once a minute per process, when someone signs
-   up, opens the admin audience list or group counts. Until then an expired
-   record can sit in the database, but its link already answers "invalid".
-   Signing up again over an expired record starts a fresh pending record.
+   by a timer (`backend/src/audience/sweep.ts`, hourly and once a minute after
+   boot, in-process lock, idempotent), so the privacy page's "deleted after about
+   a week" holds even when nobody opens the admin; the same purge also runs
+   lazily when someone signs up or opens the audience list. Until a pass runs an
+   expired record can sit in the database, but its link already answers
+   "invalid". The contact id is the hash of the address, so signing up again
+   after the purge starts a fresh pending record. Pending contacts are mailed
+   only the confirmation (no reminder exists). The sweep stores counts only
+   (`sweep:audience`: last run, last and total purged) and the Audience tab shows
+   them. `pendingTtlDays` is editable in Sender settings, range checked on PUT.
 
 Rate limits (`backend/src/rate-limit.ts`): signup 10 requests per 15 minutes
 per client address; confirm, unsubscribe and manage links 60 per 15 minutes.
