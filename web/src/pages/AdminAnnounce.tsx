@@ -13,6 +13,7 @@ import { useAudienceWords } from "@/components/admin/announce/audience/words";
 import LibraryPanel from "@/components/admin/announce/library/LibraryPanel";
 import { useLibraryWords } from "@/components/admin/announce/library/words";
 import SettingsPanel from "@/components/admin/announce/SettingsPanel";
+import { usePhone } from "@/hooks/usePhone";
 import { adminAnnounce, setUnread, type AnnounceSummary } from "@/services/adminAnnounce";
 
 /*
@@ -36,6 +37,8 @@ export default function AdminAnnounce() {
   const [error, setError] = useState<"load" | "auth" | null>(null);
   const [attempt, setAttempt] = useState(0);
   const uid = useId();
+  /* Below 600px the drawer lists these sections, so the strip would say everything twice. */
+  const phone = usePhone();
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
   const retry = () => {
@@ -98,8 +101,9 @@ export default function AdminAnnounce() {
   return (
     <AdminShell title={w.title} section="marketing">
       <div className="a-wrap">
-        <PageHeader title={w.title} description={hi[current.id as keyof typeof hi] as string} />
+        <PageHeader title={phone ? current.label : w.title} description={hi[current.id as keyof typeof hi] as string} />
 
+        {!phone && (
         <div role="tablist" aria-label={w.tabsLabel} className="a-tabs mb-4" onKeyDown={onTabKey}>
           {tabs.map((t) => (
             <button
@@ -124,8 +128,9 @@ export default function AdminAnnounce() {
             </button>
           ))}
         </div>
+        )}
 
-        <div role="tabpanel" id={`${uid}-panel`} aria-labelledby={`${uid}-tab-${current.id}`}>
+        <div role="tabpanel" id={`${uid}-panel`} {...(phone ? { "aria-label": current.label } : { "aria-labelledby": `${uid}-tab-${current.id}` })}>
           {(current.id === "audience" || current.id === "campaigns") && <LedgerBanner />}
           {current.render()}
         </div>

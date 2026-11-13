@@ -61,7 +61,7 @@ const shell = (at: string, section: "marketing" | "posts" | "overview" = "market
     </MemoryRouter>,
   );
 
-const nav = () => screen.getByRole("navigation", { name: "Sections" });
+const nav = () => screen.getByRole("navigation", { name: "Admin sections" });
 
 describe("the nav tree", () => {
   it("Marketing carries its five sections, each a deep link the pages already read", () => {

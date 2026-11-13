@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, useNavigate } from "react-router-dom";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { Home, Inbox, Send, Settings as Cog, Users } from "lucide-react";
@@ -136,13 +136,18 @@ describe("current item and auto-open", () => {
   });
 
   it("opens the group of the route when the route changes", () => {
-    const { rerender } = show("/admin");
-    expect(screen.queryByRole("link", { name: "Posts" })).toBeNull();
-    rerender(
-      <MemoryRouter initialEntries={["/admin/posts"]}>
+    function Go() {
+      const go = useNavigate();
+      return <button onClick={() => go("/admin/posts")}>go</button>;
+    }
+    render(
+      <MemoryRouter initialEntries={["/admin"]}>
+        <Go />
         <SidebarNav nodes={TREE} label="Sections" storageKey="other" />
       </MemoryRouter>,
     );
+    expect(screen.queryByRole("link", { name: "Posts" })).toBeNull();
+    fireEvent.click(screen.getByText("go"));
     expect(screen.getByRole("link", { name: "Posts" }).getAttribute("aria-current")).toBe("page");
   });
 });

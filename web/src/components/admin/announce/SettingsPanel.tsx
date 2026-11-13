@@ -1,4 +1,5 @@
 import { useId, useState, type ReactNode } from "react";
+import { useSearchParams } from "react-router-dom";
 import { ErrorState } from "@/components/admin/ui";
 import { Disclosure } from "@/components/ui/Disclosure";
 import { ANNOUNCE_CHANNELS, type AnnounceKind, type AnnounceSettings } from "@/services/adminAnnounce";
@@ -36,6 +37,7 @@ export default function SettingsPanel() {
   const snd = useSenderWords();
   const nw = useNotifyWords();
   const uid = useId();
+  const [params] = useSearchParams();
   const doc = useSettingsDoc();
   /* Typed as the person types it; parsed on save, so a trailing comma is not eaten mid-word. */
   const [tags, setTags] = useState<string | null>(null);
@@ -186,7 +188,7 @@ export default function SettingsPanel() {
   ];
   const q = filter.trim().toLowerCase();
   const shown = advanced.filter((s) => !q || `${s.label} ${s.words}`.toLowerCase().includes(q));
-  const isOpen = open || q !== "" || new URLSearchParams(window.location.search).get("section") === "sender";
+  const isOpen = open || q !== "" || params.get("section") === "sender";
 
   return (
     <form noValidate onSubmit={(e) => (e.preventDefault(), void doc.save(working))} className="max-w-3xl space-y-8" aria-labelledby={`${uid}-h`}>

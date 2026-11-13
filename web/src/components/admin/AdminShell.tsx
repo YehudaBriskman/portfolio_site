@@ -1,32 +1,21 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
-import {
-  BookOpen,
-  ChevronLeft,
-  ExternalLink,
-  FileText,
-  FolderKanban,
-  Image,
-  Languages,
-  LayoutDashboard,
-  LogOut,
-  Megaphone,
-  Menu,
-  Plug,
-  Settings,
-  Shapes,
-  Type,
-  X,
-} from "lucide-react";
+import { ChevronLeft, ExternalLink, LogOut, Menu, X } from "lucide-react";
 import { admin } from "@/services/admin";
 import { markAdminSeen } from "@/components/notes/reader/adminSession";
 import DisplayMenu from "@/components/nav/DisplayMenu";
-import Ring from "@/components/motion/Ring";
 import { useAdminWords } from "@/i18n/admin";
-import { Counter } from "./ui";
 import { useKeyboardOpen } from "./keyboard";
 import { toDo, useTranslationReport } from "@/services/translations";
 import { useAnnounceUnread } from "@/services/adminAnnounce";
+import { SidebarNav } from "@/components/ui/SidebarGroup";
+import { useMobileWords } from "@/i18n/mobile";
+import { useMarketingWords } from "@/components/admin/announce/inbox/words";
+import { useAudienceWords } from "@/components/admin/announce/audience/words";
+import { useCampaignWords } from "@/components/admin/announce/campaigns/words";
+import { useLibraryWords } from "@/components/admin/announce/library/words";
+import { useSenderWords } from "@/components/admin/announce/sender/words";
+import { buildNav, type AdminNavId } from "./adminNav";
 
 /*
  * The admin's own shell, rebuilt as a tool (#288).
@@ -63,20 +52,6 @@ export type AdminSection =
   | "marketing";
 type Section = AdminSection;
 
-const ICONS: Record<Section, typeof FileText> = {
-  overview: LayoutDashboard,
-  posts: FileText,
-  areas: Shapes,
-  projects: FolderKanban,
-  story: BookOpen,
-  "site-copy": Type,
-  media: Image,
-  settings: Settings,
-  connections: Plug,
-  translations: Languages,
-  marketing: Megaphone,
-};
-
 const PATHS: Record<Section, string> = {
   overview: "/admin",
   posts: "/admin/posts",
@@ -90,14 +65,6 @@ const PATHS: Record<Section, string> = {
   translations: "/admin/translations",
   marketing: "/admin/marketing",
 };
-
-const GROUPS: Array<{ id: "top" | "content" | "site"; items: Section[] }> = [
-  { id: "top", items: ["overview"] },
-  /* What the public site shows. */
-  { id: "content", items: ["posts", "areas", "projects", "story", "site-copy", "media", "translations", "marketing"] },
-  /* How it shows it, and who else may read or write it. */
-  { id: "site", items: ["settings", "connections"] },
-];
 
 const PUBLIC_SITE = "https://yehudabriskman.com";
 
@@ -126,8 +93,14 @@ export type AdminShellProps = {
 };
 
 export default function AdminShell({ title, section, counts, bottomBar, backTo, barEverywhere, actions, children }: AdminShellProps) {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const w = useAdminWords();
+  const nw = useMobileWords().nav;
+  const mk = useMarketingWords();
+  const aw = useAudienceWords();
+  const cw = useCampaignWords();
+  const lw = useLibraryWords();
+  const sw = useSenderWords();
   /* Public units a Hebrew reader gets in English or out of date (#302). */
   const { report: heReport } = useTranslationReport();
   const translationsDue = heReport ? toDo(heReport) : undefined;
@@ -152,9 +125,10 @@ export default function AdminShell({ title, section, counts, bottomBar, backTo, 
   /* A route change closes the drawer: the link was the reason to open it.
      Set while rendering, not in an effect, so the closed drawer is the
      first frame of the new page rather than the second. */
-  const [seenPath, setSeenPath] = useState(pathname);
-  if (seenPath !== pathname) {
-    setSeenPath(pathname);
+  const here = pathname + search;
+  const [seenPath, setSeenPath] = useState(here);
+  if (seenPath !== here) {
+    setSeenPath(here);
     setOpen(false);
   }
 
@@ -200,6 +174,31 @@ export default function AdminShell({ title, section, counts, bottomBar, backTo, 
       root.style.removeProperty("--a-bar-h");
     };
   }, []);
+
+  const tree = buildNav({
+    label: (id: AdminNavId) => {
+      switch (id) {
+        case "marketing-inbox": return mk.tabInbox;
+        case "marketing-audience": return aw.tab;
+        case "marketing-campaigns": return cw.tab;
+        case "marketing-library": return lw.tab;
+        case "marketing-settings": return mk.tabSettings;
+        case "marketing-sender": return sw.heading;
+        case "g-content": return w.groups.content;
+        case "g-media": return w.nav.media;
+        case "g-site": return w.groups.site;
+        case "g-system": return nw.system;
+        default: return w.nav[id as Section];
+      }
+    },
+    badge: (id: AdminNavId) => {
+      /* Only unread ones: nothing waiting shows no badge at all. */
+      if (id === "marketing" || id === "marketing-inbox") return announceUnread ? { n: announceUnread, label: w.announceUnread(announceUnread) } : undefined;
+      if (id === "translations" || id === "g-site") return translationsDue ? { n: translationsDue, label: w.toDo(translationsDue) } : undefined;
+      const n = counts?.[id as Section];
+      return n === undefined ? undefined : { n };
+    },
+  });
 
   const sectionLabel = w.nav[section];
   const crumbs: Array<{ label: string; to?: string }> = [{ label: w.admin, to: "/admin" }];
@@ -282,55 +281,7 @@ export default function AdminShell({ title, section, counts, bottomBar, backTo, 
       <div className="a-frame">
         <div className="a-scrim" hidden={!open} onClick={() => setOpen(false)} aria-hidden="true" />
         <div ref={drawer} id={drawerId} className="a-side" data-open={open ? "" : undefined}>
-          <nav aria-label={w.sections} className="a-side-nav">
-            {GROUPS.map((g) => (
-              <div key={g.id} className="a-side-group">
-                {g.id !== "top" && <p className="a-side-head">{w.groups[g.id]}</p>}
-                <ul>
-                  {g.items.map((id) => {
-                    const Icon = ICONS[id];
-                    const current = id === section;
-                    return (
-                      <li key={id}>
-                        <Link to={PATHS[id]} aria-current={current ? "page" : undefined} className="a-nav-item">
-                          <span className="a-nav-icon" aria-hidden="true">
-                            {current ? (
-                              <Ring size={26} draw={false}>
-                                <Icon />
-                              </Ring>
-                            ) : (
-                              <Icon />
-                            )}
-                          </span>
-                          <span className="min-w-0 flex-1">{w.nav[id]}</span>
-                          {id === "translations" ? (
-                            <span title={translationsDue === undefined ? undefined : w.toDo(translationsDue)}>
-                              <span aria-hidden="true">
-                                <Counter n={translationsDue} />
-                              </span>
-                              {translationsDue !== undefined && <span className="sr-only">{w.toDo(translationsDue)}</span>}
-                            </span>
-                          ) : id === "marketing" ? (
-                            /* Only unread ones: nothing waiting shows no badge at all. */
-                            announceUnread ? (
-                              <span title={w.announceUnread(announceUnread)}>
-                                <span aria-hidden="true">
-                                  <Counter n={announceUnread} />
-                                </span>
-                                <span className="sr-only">{w.announceUnread(announceUnread)}</span>
-                              </span>
-                            ) : null
-                          ) : (
-                            <Counter n={counts?.[id]} />
-                          )}
-                        </Link>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-            ))}
-          </nav>
+          <SidebarNav nodes={tree} label={w.sections} storageKey="admin-nav-open" fallbackId={section} className="a-side-nav" />
 
           <div className="a-side-foot">
             <p className="a-side-who">{who ? w.signedInAs(who) : w.signedIn}</p>
