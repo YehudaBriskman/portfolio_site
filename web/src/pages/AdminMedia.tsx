@@ -116,7 +116,7 @@ export default function AdminMedia() {
       </p>
 
       {error && <p className="a-card mt-8 p-4 text-sm text-bone/70">{error}</p>}
-      {!error && items === null && <p className="mono mt-8 text-xs text-clay">Loading…</p>}
+      {!error && items === null && <p className="mono mt-8 text-sm text-clay">Loading…</p>}
 
       {items !== null && items.length === 0 && (
         <div className="a-card mt-8 p-8 text-center">
@@ -281,7 +281,7 @@ function MediaDetail({
           <dt>Added</dt>
           <dd>{new Date(item.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</dd>
           <dt>URL</dt>
-          <dd className="mono text-[0.75rem]" dir="ltr" translate="no">{item.url}</dd>
+          <dd className="mono text-sm" dir="ltr" translate="no">{item.url}</dd>
 
         </dl>
         <button
@@ -359,7 +359,7 @@ function MediaDetail({
                 return (
                   <li key={`${u.id}:${u.field}`}>
                     {href ? <Link to={href} className="underline underline-offset-4 hover:text-sodium">{u.title}</Link> : u.title}
-                    <span className="mono text-[0.6875rem] text-clay"> · {u.type}{u.field ? ` · ${u.field}` : ""}</span>
+                    <span className="mono text-sm text-clay"> · {u.type}{u.field ? ` · ${u.field}` : ""}</span>
                   </li>
                 );
               })}

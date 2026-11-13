@@ -163,7 +163,7 @@ export default function MediaUpload({
           <img src={blobSrc(pending.url)} alt="" className={styles.pendingThumb} />
         )}
         <div className="space-y-4">
-          <p className="mono text-[0.75rem] text-clay">
+          <p className="mono text-sm text-clay">
             <span className="text-bone">{pending.file.name}</span> · {formatBytes(pending.file.size)}
           </p>
           {switchable && (
@@ -298,7 +298,7 @@ export default function MediaUpload({
       <button type="button" className="a-btn a-btn-primary" onClick={() => input.current?.click()}>
         {choose}
       </button>
-      <p className="text-[0.8125rem] leading-normal text-bone/80">
+      <p className="text-sm leading-normal text-bone/80">
         or drop one here.
         {kinds.includes("image") && " Pictures: JPEG, PNG, WebP, AVIF or plain SVG, up to 10 MB."}
         {kinds.includes("icon") && " Icons: SVG or PNG, up to 64 KB."}

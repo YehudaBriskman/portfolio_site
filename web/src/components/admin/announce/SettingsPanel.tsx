@@ -239,7 +239,7 @@ export default function SettingsPanel() {
       >
         <summary className="a-box-head min-h-[44px] cursor-pointer">
           <span className="a-box-title">{sw.advancedHeading}</span>
-          {advancedDirty && <span className="ms-2 text-xs text-clay">{w.unsaved}</span>}
+          {advancedDirty && <span className="ms-2 text-sm text-clay">{w.unsaved}</span>}
         </summary>
         <div className="space-y-6 p-4">
           <p className="a-hint !mt-0">{sw.advancedHint}</p>

@@ -103,24 +103,26 @@ function Card({
         dir={data.lang === "he" ? "rtl" : "ltr"}
       >
         {platform === "x" && (
-          <span className="block truncate text-xs text-clay">{domain}</span>
+          <span className="block truncate text-sm text-clay" title={domain}>{domain}</span>
         )}
         <span
           className="line-clamp-2 text-sm font-semibold leading-snug break-words"
           dir="auto"
+          title={data.title || undefined}
         >
           {data.title || w.previewNoTitle}
         </span>
         {showDescription && (
           <span
-            className="line-clamp-2 text-xs leading-snug text-clay break-words"
+            className="line-clamp-2 text-sm leading-snug text-clay break-words"
             dir="auto"
+            title={data.description || undefined}
           >
             {data.description || w.previewNoDescription}
           </span>
         )}
         {platform !== "x" && (
-          <span className="block truncate text-xs text-clay" dir="ltr">
+          <span className="block truncate text-sm text-clay" dir="ltr" title={domain}>
             {domain}
           </span>
         )}

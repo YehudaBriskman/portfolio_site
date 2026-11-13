@@ -130,7 +130,7 @@ export default function AudienceTab() {
                   <tr key={c.hash}>
                     <td className="min-w-0 max-w-[18rem]">
                       <span className="a-row-title block text-sm"><Email value={c.email} /></span>
-                      <span className="a-row-meta !mt-0.5 text-xs"><Why c={c} /></span>
+                      <span className="a-row-meta !mt-0.5 text-sm"><Why c={c} /></span>
                     </td>
                     <td className="hidden text-start md:table-cell">{c.name ? <bdi dir="auto">{c.name}</bdi> : <Empty />}</td>
                     <td className="a-fit text-sm">{w.statuses[c.status]}</td>

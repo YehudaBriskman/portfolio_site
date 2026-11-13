@@ -226,13 +226,13 @@ export default function AdminTranslations() {
                               <span>{TYPE_LABEL[item.type]}</span>
                               <span className="min-w-0 [overflow-wrap:anywhere]">{fieldsOf(units)}</span>
                               {item.visibility === "private" && <span>Private</span>}
-                              <code dir="ltr" className="md:hidden">
+                              <code dir="ltr" className="min-w-0 md:hidden [overflow-wrap:anywhere]">
                                 {heRoute(item.route)}
                               </code>
                             </span>
                           </td>
                           <td className="a-fit hidden md:table-cell">
-                            <code dir="ltr" className="text-[0.8125rem] text-[rgb(var(--ink-soft))]">
+                            <code dir="ltr" className="text-sm text-[rgb(var(--ink-soft))]">
                               {heRoute(item.route)}
                             </code>
                           </td>

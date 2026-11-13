@@ -41,7 +41,7 @@
   align-items: baseline;
   gap: 0.25rem 0.75rem;
   margin: 0;
-  font-size: 0.8125rem;
+  font-size: .875rem;
 }
 
 .filterName {
@@ -56,7 +56,7 @@
 .keysHint {
   margin: 0;
   margin-inline-start: auto;
-  font-size: 0.75rem;
+  font-size: .875rem;
   color: rgb(var(--ink-soft));
 }
 
@@ -69,7 +69,7 @@
   border: 1px solid var(--dash-line);
   border-radius: 4px;
   font-family: var(--font-code);
-  font-size: 0.75rem;
+  font-size: .875rem;
   line-height: 1;
   color: rgb(var(--ink));
 }
@@ -107,7 +107,7 @@
   border-start-end-radius: var(--dash-r);
   background: rgb(var(--ink) / 0.03);
   font-family: var(--font-text);
-  font-size: 0.8125rem;
+  font-size: .875rem;
   font-weight: 600;
   letter-spacing: 0;
   color: rgb(var(--ink-soft));
@@ -186,7 +186,7 @@
   margin: 0;
   overflow: hidden;
   color: rgb(var(--ink-soft));
-  font-size: 0.8125rem;
+  font-size: .875rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -196,7 +196,7 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 0.25rem 0;
-  font-size: 0.75rem;
+  font-size: .875rem;
   color: rgb(var(--ink-soft));
 }
 
@@ -207,7 +207,7 @@
   padding-inline: 0.4375rem;
   border: 1px solid var(--dash-line);
   border-radius: 999px;
-  font-size: 0.75rem;
+  font-size: .875rem;
   font-weight: 600;
   color: rgb(var(--ink));
 }
@@ -224,7 +224,7 @@
   padding: 0.125rem 0.375rem;
   border-radius: 4px;
   font-family: var(--font-code);
-  font-size: 0.75rem;
+  font-size: .875rem;
   font-variant-numeric: tabular-nums slashed-zero;
   color: rgb(var(--ink-soft));
   unicode-bidi: isolate;
@@ -303,7 +303,7 @@
 }
 
 .factLabel {
-  font-size: 0.75rem;
+  font-size: .875rem;
   color: rgb(var(--ink-soft));
 }
 
@@ -341,13 +341,13 @@
 
 .factWhen {
   font-weight: 400;
-  font-size: 0.75rem;
+  font-size: .875rem;
   color: rgb(var(--ink-soft));
 }
 
 .asOf {
   margin: 0;
-  font-size: 0.75rem;
+  font-size: .875rem;
   color: rgb(var(--ink-soft));
 }
 
@@ -430,7 +430,7 @@
 .docPath {
   min-width: 0;
   font-family: var(--font-code);
-  font-size: 0.75rem;
+  font-size: .875rem;
   color: rgb(var(--ink-soft));
   overflow-wrap: anywhere;
   unicode-bidi: isolate;
@@ -502,7 +502,7 @@
   padding-inline: 0.5rem;
   border-radius: var(--dash-r-inner);
   color: rgb(var(--ink));
-  font-size: 0.8125rem;
+  font-size: .875rem;
   text-decoration: none;
 }
 
@@ -532,7 +532,7 @@ a.legendItem[aria-current="true"] {
 .legendPct {
   min-width: 2.25rem;
   color: rgb(var(--ink-soft));
-  font-size: 0.75rem;
+  font-size: .875rem;
   font-variant-numeric: tabular-nums;
   text-align: right;
 }

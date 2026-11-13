@@ -102,8 +102,8 @@ describe("danger buttons and error text (the admin's .a-btn-danger, .a-error, St
 
 describe("the reader's text, the same way", () => {
   for (const [label, theme] of [["Light", light], ["Dark", dark]] as const) {
-    for (const fg of ["--ink", "--ink-soft"]) {
-      for (const ground of ["--paper", "--paper-2"]) {
+    for (const fg of ["--ink", "--ink-soft", "--clay"]) {
+      for (const ground of ["--paper", "--paper-2", "--paper-3"]) {
         it(`${label}: ${fg} on ${ground} clears ${TEXT}:1`, () => {
           expect(ratio(fg, ground, theme)).toBeGreaterThanOrEqual(TEXT);
         });

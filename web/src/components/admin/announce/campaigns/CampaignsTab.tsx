@@ -107,8 +107,8 @@ export default function CampaignsTab() {
                     <td className="min-w-0 max-w-[20rem]">
                       <button type="button" className="block min-h-[44px] w-full text-start" aria-label={w.open(c.name)} onClick={() => setOpen(c.id)}>
                         <span className="a-row-title block text-sm" dir="auto">{c.name}</span>
-                        <span className="a-row-meta !mt-0.5 block truncate text-xs" dir="auto">{c.subject}</span>
-                        <span className="a-row-meta !mt-0.5 block text-xs lg:hidden">{c.status === "scheduled" && c.sendAt ? w.scheduledFor(when(c.sendAt)) : c.finishedAt ? w.finishedAt(when(c.finishedAt)) : w.updatedAt(when(c.updatedAt))}</span>
+                        <span className="a-row-meta !mt-0.5 block truncate text-sm" dir="auto" title={c.subject}>{c.subject}</span>
+                        <span className="a-row-meta !mt-0.5 block text-sm lg:hidden">{c.status === "scheduled" && c.sendAt ? w.scheduledFor(when(c.sendAt)) : c.finishedAt ? w.finishedAt(when(c.finishedAt)) : w.updatedAt(when(c.updatedAt))}</span>
                       </button>
                     </td>
                     <td className="a-fit text-sm">

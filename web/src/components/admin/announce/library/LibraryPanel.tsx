@@ -149,8 +149,8 @@ export default function LibraryPanel() {
               return (
                 <li key={i.id} className="a-box flex flex-wrap items-center gap-2 p-2 ps-4" data-active={target?.kind === "item" && target.id === i.id}>
                   <div className="min-w-0 flex-1 basis-48">
-                    <p className="truncate text-sm font-bold" dir="auto">{name}</p>
-                    <p className="text-xs text-clay">{a.channels[i.channel]} · {a.langs[i.lang]}{i.default && <> · <strong>{w.defaultBadge}</strong></>}</p>
+                    <p className="truncate text-sm font-bold" dir="auto" title={name}>{name}</p>
+                    <p className="text-sm text-clay">{a.channels[i.channel]} · {a.langs[i.lang]}{i.default && <> · <strong>{w.defaultBadge}</strong></>}</p>
                   </div>
                   <label className="flex min-h-[44px] items-center gap-2 text-sm">
                     <input type="checkbox" className="h-5 w-5" checked={Boolean(i.default)} onChange={(e) => setDefault(i.id, e.target.checked)} />
@@ -191,8 +191,8 @@ export default function LibraryPanel() {
               return (
                 <li key={`${l}-${c}`} className="a-box flex items-center gap-2 p-2 ps-4">
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-bold">{a.channels[c]} · {a.langs[l]}</p>
-                    <p className="text-xs text-clay">{own ? w.customised : w.builtinBadge}</p>
+                    <p className="truncate text-sm font-bold" title={`${a.channels[c]} · ${a.langs[l]}`}>{a.channels[c]} · {a.langs[l]}</p>
+                    <p className="text-sm text-clay">{own ? w.customised : w.builtinBadge}</p>
                   </div>
                   <button type="button" className="a-btn min-h-[44px]" aria-expanded={open} aria-label={w.open(`${a.channels[c]}, ${a.langs[l]}`)} onClick={() => setTarget({ kind: "builtin", lang: l, channel: c })}>{a.openShort}</button>
                 </li>
