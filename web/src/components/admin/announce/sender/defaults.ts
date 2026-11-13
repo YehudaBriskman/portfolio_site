@@ -12,6 +12,9 @@ export const DEFAULT_SENDER: SenderSettings = {
   footerIdentity: "",
   identityEmail: "",
   identityPostal: "",
+  identityWebsite: "",
+  identityLinkedin: "",
+  identityPhone: "",
   testRecipients: [],
   throttlePerHour: 60,
   dailyCap: 200,
@@ -34,8 +37,14 @@ export const DEFAULT_SENDER: SenderSettings = {
 };
 
 export type SenderField =
-  | "fromName" | "fromAddress" | "replyTo" | "footerIdentity" | "identityEmail" | "testRecipients" | "throttlePerHour" | "dailyCap" | "maxPerContact30d" | "quietHours" | "dailyLimit" | "monthlyLimit" | "safety" | "reserveShare"
+  | "fromName" | "fromAddress" | "replyTo" | "footerIdentity" | "identityEmail" | "identityWebsite" | "identityLinkedin" | "identityPhone" | "testRecipients" | "throttlePerHour" | "dailyCap" | "maxPerContact30d" | "quietHours" | "dailyLimit" | "monthlyLimit" | "safety" | "reserveShare"
   | "confirmSubjectEn" | "confirmSubjectHe" | "confirmBodyEn" | "confirmBodyHe" | "unsubscribeNoteEn" | "unsubscribeNoteHe";
+/** The optional contact lines, in footer order, with the words each one uses. */
+export const CONTACT_FIELDS = [
+  { f: "identityWebsite", label: "idWebsite", hint: "idWebsiteHint", bad: "badWebsite", type: "url" },
+  { f: "identityLinkedin", label: "idLinkedin", hint: "idLinkedinHint", bad: "badLinkedin", type: "url" },
+  { f: "identityPhone", label: "idPhone", hint: "idPhoneHint", bad: "badPhone", type: "tel" },
+] as const;
 export type SenderProblem = "empty" | "address" | "number" | "list" | "zone" | "noLink" | "unknown" | "long" | "unsubVars" | "monthBelowDay";
 
 /* Mirrors validateSenderTexts in backend/src/announce/schemas.ts; the server decides, this only names it before Save. */
@@ -52,6 +61,25 @@ export const hasTextProblem = (s: SenderSettings) => {
 };
 
 const EMAIL = /^[^\s@<>"]+@[^\s@<>"]+\.[^\s@<>"]+$/;
+
+const PHONE = /^\+?[0-9][0-9 ().-]{4,30}[0-9]$/;
+/** Mirrors httpsUrl in backend/src/announce/schemas.ts. */
+const httpsHost = (raw: string): string | null => {
+  // eslint-disable-next-line no-control-regex -- same refusal list as the server
+  if (/[\s\u0000-\u001f\u007f<>"']/.test(raw)) return null;
+  try {
+    const u = new URL(raw);
+    return u.protocol === "https:" && !u.username && !u.password && !u.port && u.hostname.includes(".") ? u.hostname : null;
+  } catch {
+    return null;
+  }
+};
+export const websiteOk = (v: string) => !v.trim() || httpsHost(v.trim()) !== null;
+export const linkedinOk = (v: string) => !v.trim() || /(^|\.)linkedin\.com$/i.test(httpsHost(v.trim()) ?? "");
+export const phoneOk = (v: string) => !v.trim() || PHONE.test(v.trim());
+/** The footer's contact lines; mirrors contactLines on the server. */
+export const contactLines = (s: SenderSettings): string[] =>
+  [s.footerIdentity, s.identityPostal, s.identityEmail, s.identityPhone, s.identityWebsite, s.identityLinkedin].map((l) => l.trim()).filter(Boolean);
 
 /** What the footer still lacks; mirrors missingIdentity on the server, which is the real gate. The postal line is never required. */
 export const identityMissing = (s: Pick<SenderSettings, "footerIdentity" | "identityEmail">): ("name" | "email")[] => [
@@ -74,6 +102,9 @@ export function senderProblems(s: SenderSettings): Partial<Record<SenderField, S
   if (s.fromAddress && !EMAIL.test(s.fromAddress)) p.fromAddress = "address";
   if (s.replyTo && !EMAIL.test(s.replyTo)) p.replyTo = "address";
   if (s.identityEmail.trim() && !EMAIL.test(s.identityEmail.trim())) p.identityEmail = "address";
+  if (!websiteOk(s.identityWebsite)) p.identityWebsite = "address";
+  if (!linkedinOk(s.identityLinkedin)) p.identityLinkedin = "address";
+  if (!phoneOk(s.identityPhone)) p.identityPhone = "address";
   if (s.testRecipients.length > 5 || s.testRecipients.some((a) => !EMAIL.test(a))) p.testRecipients = "list";
   if (!whole(s.throttlePerHour, 3600)) p.throttlePerHour = "number";
   if (!whole(s.dailyCap, 10000)) p.dailyCap = "number";

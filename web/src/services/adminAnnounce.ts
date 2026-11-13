@@ -97,6 +97,9 @@ export type SenderSettings = {
   footerIdentity: string;
   identityEmail: string;
   identityPostal: string;
+  identityWebsite: string;
+  identityLinkedin: string;
+  identityPhone: string;
   testRecipients: string[];
   throttlePerHour: number;
   dailyCap: number;

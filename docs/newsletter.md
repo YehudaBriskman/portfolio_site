@@ -194,6 +194,7 @@ Stored in `settings:announce` under `sender` and edited in Settings, Advanced,
 | `footerIdentity` | empty | the sender **name** line printed in every campaign mail (an older single free text is kept here as it was); **campaigns cannot be scheduled while it, or `identityEmail`, is empty** |
 | `identityEmail` | empty | required contact email, printed in the footer; the send gate and the "ready to send" list name it when missing |
 | `identityPostal` | empty | optional postal or P.O. box line; never required |
+| `identityPhone`, `identityWebsite`, `identityLinkedin` | empty | optional contact lines printed after the email, only when filled in; checked on PUT only (https address without login or port, LinkedIn on linkedin.com, phone digits and `+ ( ) . -`); the order and filtering live in `contactLines()` (`announce/schemas.ts`), shared by the footer and the Settings preview |
 | `testRecipients` | none | up to 5; test sends go only to these, with `[Test] ` in the subject |
 | `throttlePerHour` | 60 | 1 to 3600 |
 | `dailyCap` | 200 | 1 to 10000 |

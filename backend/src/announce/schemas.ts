@@ -86,6 +86,10 @@ export const SenderSchema = z.preprocess(migrateLabel, z
     identityEmail: z.string().trim().toLowerCase().max(254).default(""),
     /* Optional postal or P.O. box line. Never required. */
     identityPostal: z.string().trim().max(300).refine((t) => !/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(t), "No control characters").default(""),
+    /* Optional public contact lines; empty by default so nothing personal appears unless the owner fills it in. Format is checked on PUT by validateSenderIdentity. */
+    identityWebsite: z.string().trim().max(200).default(""),
+    identityLinkedin: z.string().trim().max(200).default(""),
+    identityPhone: z.string().trim().max(40).default(""),
     footerIdentity: z.string().trim().max(500).refine((t) => !/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(t), "No control characters").default(""),
     testRecipients: z.array(z.string().trim().toLowerCase().max(254).email()).max(5).default([]),
     throttlePerHour: z.number().int().min(1).max(3600).default(60),
@@ -182,10 +186,39 @@ export function missingIdentity(s: Pick<SenderSettings, "footerIdentity" | "iden
   return out;
 }
 
-/** Applied on PUT only: a half-filled identity may be saved (the send gate names what is missing), a malformed address may not. */
-export function validateSenderIdentity(s: Pick<SenderSettings, "identityEmail">): { path: string; message: string }[] {
+const PHONE_RE = /^\+?[0-9][0-9 ().-]{4,30}[0-9]$/;
+
+/** A plain https address with no credentials, port or control characters, or null. */
+function httpsUrl(raw: string): URL | null {
+  if (/[\s\u0000-\u001f\u007f<>"']/.test(raw)) return null;
+  try {
+    const u = new URL(raw);
+    return u.protocol === "https:" && !u.username && !u.password && !u.port && u.hostname.includes(".") ? u : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Applied on PUT only: a half-filled identity may be saved (the send gate names what is missing), a malformed value may not. */
+export function validateSenderIdentity(s: Pick<SenderSettings, "identityEmail" | "identityWebsite" | "identityLinkedin" | "identityPhone">): { path: string; message: string }[] {
+  const out: { path: string; message: string }[] = [];
   const e = s.identityEmail.trim();
-  return e && !EMAIL_RE.test(e) ? [{ path: "sender.identityEmail", message: "The contact email must be a plain address like name@example.org." }] : [];
+  if (e && !EMAIL_RE.test(e)) out.push({ path: "sender.identityEmail", message: "The contact email must be a plain address like name@example.org." });
+  const web = s.identityWebsite.trim();
+  if (web && !httpsUrl(web)) out.push({ path: "sender.identityWebsite", message: "The website must be a full https:// address, without a login or port." });
+  const li = s.identityLinkedin.trim();
+  if (li) {
+    const u = httpsUrl(li);
+    if (!u || !/(^|\.)linkedin\.com$/i.test(u.hostname)) out.push({ path: "sender.identityLinkedin", message: "The LinkedIn address must be a full https:// address on linkedin.com." });
+  }
+  const ph = s.identityPhone.trim();
+  if (ph && !PHONE_RE.test(ph)) out.push({ path: "sender.identityPhone", message: "The phone number may contain only digits, spaces, + ( ) . and -." });
+  return out;
+}
+
+/** The footer's contact lines, in order, skipping what is empty. One source for every mail and the preview. */
+export function contactLines(s: Pick<SenderSettings, "footerIdentity" | "identityPostal" | "identityEmail" | "identityPhone" | "identityWebsite" | "identityLinkedin">): string[] {
+  return [s.footerIdentity, s.identityPostal, s.identityEmail, s.identityPhone, s.identityWebsite, s.identityLinkedin].map((l) => l.trim()).filter(Boolean);
 }
 
 export const DEFAULT_SENDER: SenderSettings = {
@@ -205,6 +238,9 @@ export const DEFAULT_SENDER: SenderSettings = {
   footerIdentity: "",
   identityEmail: "",
   identityPostal: "",
+  identityWebsite: "",
+  identityLinkedin: "",
+  identityPhone: "",
   testRecipients: [],
   throttlePerHour: 60,
   dailyCap: 200,
