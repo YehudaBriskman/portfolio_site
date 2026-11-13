@@ -5,6 +5,8 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import AdminShell from "@/components/admin/AdminShell";
 import AdminAnnounce from "@/pages/AdminAnnounce";
+import { DEFAULT_SENDER } from "@/components/admin/announce/sender/defaults";
+import { DEFAULT_NOTIFY } from "@/components/admin/announce/notify/defaults";
 import { ADMIN_NAV_TARGETS } from "@/components/admin/adminNav";
 
 /*
@@ -23,7 +25,7 @@ function stubFetch(unread = 0) {
       if (url === "/api/admin/me") return json({ ok: true, login: "owner", email: null });
       if (url === "/api/admin/announce") return json({ ok: true, unread, items: [] });
       if (url === "/api/admin/announce/settings")
-        return json({ ok: true, exists: false, _rev: null, updatedAt: null, settings: { enabled: true, email: { enabled: false, events: ["post", "release"] }, hashtags: [], signature: "", channels: ["linkedin", "instagram", "email", "gmail", "x"], templates: { en: {}, he: {} } } });
+        return json({ ok: true, exists: false, _rev: null, updatedAt: null, settings: { enabled: true, email: { enabled: false, events: ["post", "release"] }, hashtags: [], signature: "", channels: ["linkedin", "instagram", "email", "gmail", "x"], templates: { en: {}, he: {} }, sender: DEFAULT_SENDER, notify: DEFAULT_NOTIFY } });
       if (url === "/api/admin/audience/groups") return json({ ok: true, groups: [] });
       if (url.startsWith("/api/admin/audience/contacts?")) return json({ ok: true, contacts: [], nextCursor: null });
       return json({ ok: true });
