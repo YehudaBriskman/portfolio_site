@@ -1,3 +1,4 @@
+import { Email } from "./schemas.js";
 /* A small RFC 4180 reader/writer. Rows in, rows out; no dependency. */
 
 export function parseCsv(input: string): string[][] {
@@ -28,8 +29,12 @@ export function parseCsv(input: string): string[][] {
 
 /* A spreadsheet runs a cell that starts with these as a formula. */
 const FORMULA = /^[=+\-@\t\r]/;
+/* A legal address may start with "+" or "-" ("+news@example.com"); a quote prefix would
+   change it on re-import. "=" and "@" starters stay prefixed even if they validate. */
+const PLAIN_ADDRESS = /^[+-]/;
 export function csvCell(v: string): string {
-  const safe = FORMULA.test(v) ? `'${v}` : v;
+  const isAddress = PLAIN_ADDRESS.test(v) && v === v.trim() && Email.safeParse(v).success;
+  const safe = FORMULA.test(v) && !isAddress ? `'${v}` : v;
   return /[",\n\r]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
 }
 export const toCsv = (rows: string[][]) => rows.map((r) => r.map(csvCell).join(",")).join("\r\n") + "\r\n";

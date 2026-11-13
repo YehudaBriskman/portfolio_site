@@ -177,7 +177,7 @@ export function validateSenderPending(s: Pick<SenderSettings, "pendingTtlDays">)
   const n = s.pendingTtlDays;
   return Number.isInteger(n) && n >= PENDING_TTL_DAYS_MIN && n <= PENDING_TTL_DAYS_LIMIT
     ? []
-    : [{ path: "sender.pendingTtlDays", message: `Unconfirmed signups are kept a whole number of days, from  to .` }];
+    : [{ path: "sender.pendingTtlDays", message: `Unconfirmed signups are kept a whole number of days, from ${PENDING_TTL_DAYS_MIN} to ${PENDING_TTL_DAYS_LIMIT}.` }];
 }
 
 export function validateSenderBudget(s: Pick<SenderSettings, "dailyLimit" | "monthlyLimit" | "safety" | "reserveShare">): { path: string; message: string }[] {
