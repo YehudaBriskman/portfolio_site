@@ -1,0 +1,41 @@
+/* Four channel marks in a row; the check is the only colour. */
+.row {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--a-s-2, 0.5rem);
+}
+
+.icon {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  color: rgb(var(--ink-soft));
+}
+
+.icon[data-done="true"] {
+  color: rgb(var(--ink));
+}
+
+.mark {
+  display: block;
+}
+
+/* A check at the logical end-bottom corner; it never mirrors. */
+.check {
+  position: absolute;
+  inset-block-end: -0.2rem;
+  inset-inline-end: -0.25rem;
+  inline-size: 0.5rem;
+  block-size: 0.5rem;
+  box-sizing: content-box;
+  border-radius: 50%;
+  border: 1.5px solid rgb(var(--paper));
+}
+
+.check circle {
+  fill: rgb(var(--signal));
+}
+
+.check path {
+  stroke: rgb(var(--paper));
+}

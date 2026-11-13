@@ -45,6 +45,14 @@ afterEach(() => {
 const dialogOf = (c: HTMLElement) => c.querySelector("dialog") as HTMLDialogElement;
 const header = (c: HTMLElement) => c.querySelector("[data-sheet-header]") as HTMLElement;
 
+/** What Back does: the entry we pushed is gone, then popstate fires. */
+function pressBack() {
+  window.history.replaceState(null, "");
+  act(() => {
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  });
+}
+
 function drag(el: HTMLElement, from: number, to: number) {
   fireEvent.pointerDown(el, { clientY: from, pointerId: 1, button: 0 });
   fireEvent.pointerMove(el, { clientY: (from + to) / 2, pointerId: 1 });
@@ -168,9 +176,7 @@ describe("BottomSheet: ways to close", () => {
     render(<BottomSheet open onClose={onClose} title="T">x</BottomSheet>);
     expect(push).toHaveBeenCalledTimes(1);
     expect((window.history.state as { sheet?: string } | null)?.sheet).toBeTruthy();
-    act(() => {
-      window.dispatchEvent(new PopStateEvent("popstate"));
-    });
+    pressBack();
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
@@ -187,9 +193,7 @@ describe("BottomSheet: ways to close", () => {
       return <BottomSheet open onClose={() => {}} title="T">x</BottomSheet>;
     }
     const { unmount } = render(<Host />);
-    act(() => {
-      window.dispatchEvent(new PopStateEvent("popstate"));
-    });
+    pressBack();
     unmount();
     expect(back).not.toHaveBeenCalled();
   });

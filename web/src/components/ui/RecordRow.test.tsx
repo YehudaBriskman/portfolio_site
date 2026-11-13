@@ -79,7 +79,7 @@ describe("RecordRow", () => {
     expect(screen.getByRole("button").getAttribute("aria-describedby")).toBeTruthy();
   });
 
-  it("unread says Nuevo in Hebrew too", () => {
+  it("unread says New in Hebrew too", () => {
     document.documentElement.lang = "he";
     render(<RecordRow {...base} unread />);
     expect(screen.getByText("חדש")).toBeTruthy();
