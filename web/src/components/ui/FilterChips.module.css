@@ -1,0 +1,192 @@
+/*
+ * The filter row. The bar is a flex line: Filters button | chips (the only
+ * part that scrolls) | Clear all. Logical properties only, so it mirrors in a
+ * right-to-left page. The edge fade is one symmetric mask (a mask cannot be
+ * logical) and the row has padding as wide as the fade, so at rest nothing
+ * is faded. Every control is 44px tall; gaps are 8px. Nothing moves unless
+ * the visitor allows motion.
+ */
+.bar {
+  display: flex;
+  align-items: center;
+  gap: var(--a-s-2, 0.5rem);
+  min-inline-size: 0;
+  max-inline-size: 100%;
+}
+
+.row {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: var(--a-s-2, 0.5rem);
+  min-inline-size: 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  padding-inline: var(--a-s-4, 1rem);
+  margin-inline: calc(-1 * var(--a-s-2, 0.5rem));
+  mask-image: linear-gradient(to right, transparent, #000 1rem, #000 calc(100% - 1rem), transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 1rem, #000 calc(100% - 1rem), transparent);
+}
+
+.row::-webkit-scrollbar {
+  display: none;
+}
+
+.group {
+  display: contents;
+}
+
+.chip {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  gap: var(--a-s-1, 0.25rem);
+  min-block-size: 2.75rem;
+  min-inline-size: 2.75rem;
+  padding-inline: var(--a-s-3, 0.75rem);
+  border: 1px solid var(--a-line-ctl, rgb(var(--rule-firm)));
+  border-radius: var(--a-r-pill, 999px);
+  background: rgb(var(--paper));
+  color: rgb(var(--ink));
+  font: inherit;
+  font-size: 0.9375rem;
+  line-height: 1.2;
+  white-space: nowrap;
+  cursor: pointer;
+  scroll-snap-align: start;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.chip[aria-pressed="true"] {
+  border-color: rgb(var(--signal));
+  background: rgb(var(--signal) / 0.14);
+  font-weight: 600;
+}
+
+.chip:focus-visible {
+  outline: 2px solid rgb(var(--signal));
+  outline-offset: 2px;
+}
+
+.chip:active {
+  background: var(--a-press, rgb(var(--ink) / 0.09));
+}
+
+.filters {
+  font-weight: 600;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-inline-size: 1.25rem;
+  block-size: 1.25rem;
+  padding-inline: 0.3125rem;
+  border-radius: var(--a-r-pill, 999px);
+  background: rgb(var(--signal));
+  color: rgb(var(--paper));
+  font-size: 0.75rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.removable {
+  max-inline-size: 16rem;
+  border-color: rgb(var(--signal));
+  background: rgb(var(--signal) / 0.14);
+}
+
+.text {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.clear {
+  border-color: transparent;
+  background: transparent;
+  color: rgb(var(--signal));
+  font-weight: 600;
+}
+
+/* Under 480px the Filters and Clear all labels give way to their icons, so the chips keep the room. */
+.wide {
+  display: none;
+}
+
+@media (min-width: 30rem) {
+  .wide {
+    display: inline;
+  }
+}
+
+.sr {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--a-s-2, 0.5rem);
+  padding-inline: var(--a-s-1, 0.25rem);
+  font-size: 0.875rem;
+  color: rgb(var(--ink-soft));
+}
+
+.note:empty {
+  display: none;
+}
+
+.noteText {
+  margin-inline-end: var(--a-s-1, 0.25rem);
+}
+
+.noteBtn {
+  min-block-size: 2.75rem;
+  min-inline-size: 2.75rem;
+  padding-inline: var(--a-s-2, 0.5rem);
+  border: 0;
+  border-radius: var(--a-r-ctl, 12px);
+  background: transparent;
+  color: rgb(var(--signal));
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.noteBtn:focus-visible {
+  outline: 2px solid rgb(var(--signal));
+  outline-offset: -2px;
+}
+
+@media (hover: hover) {
+  .chip:hover {
+    background-color: var(--a-hover, rgb(var(--ink) / 0.05));
+  }
+  .chip[aria-pressed="true"]:hover,
+  .removable:hover {
+    background-color: rgb(var(--signal) / 0.2);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .chip {
+    transition:
+      background-color var(--a-dur-fast, 120ms) var(--a-ease-out, ease),
+      border-color var(--a-dur-fast, 120ms) var(--a-ease-out, ease);
+  }
+}
