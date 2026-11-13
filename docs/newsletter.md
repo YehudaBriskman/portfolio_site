@@ -1,5 +1,7 @@
 # Newsletter: audience and campaigns
 
+See also [deliverability.md](deliverability.md) for DMARC, Postmaster Tools and the monthly mail-health check.
+
 The owner's own mailing list: visitors sign up, confirm by email, and the owner
 sends them campaigns. Everything is stored in the site's CouchDB; the mail goes
 out through the same SMTP account as the contact form. No third-party list
