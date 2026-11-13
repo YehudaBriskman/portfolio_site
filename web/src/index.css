@@ -3156,24 +3156,37 @@
     .a-btn:active:not(:disabled, [aria-disabled="true"]), .a-nav-item:active, .a-tab:active, a.a-stat:active { transform: scale(.98); }
     /* The tab's bar grows from the middle of the tab. */
     .a-tab::after { transition: scale var(--a-dur-base) var(--a-ease-out), background-color var(--a-dur-fast) var(--a-ease-inout); }
-    /* A drawer, a dialog and its backdrop settle in; nothing leaves, so
-       nothing needs an exit. Direction follows the document's. */
-    @keyframes a-sheet-in { from { opacity: 0; transform: translateY(8px) scale(.98); } to { opacity: 1; transform: none; } }
-    @keyframes a-fade-in { from { opacity: 0; } to { opacity: 1; } }
-    @keyframes a-drawer-in { from { opacity: 0; translate: -1.5rem 0; } to { opacity: 1; translate: 0 0; } }
-    @keyframes a-shimmer { to { translate: 100% 0; } }
-    .a-app dialog[open] { animation: a-sheet-in var(--a-dur-sheet) var(--a-ease-out); }
-    .a-app dialog[open]::backdrop { animation: a-fade-in var(--a-dur-sheet) var(--a-ease-out); }
-    .a-side[data-open] { animation: a-drawer-in var(--a-dur-sheet) var(--a-ease-out); }
-    :root[dir='rtl'] .a-side[data-open] { animation-name: a-drawer-in-rtl; }
-    @keyframes a-drawer-in-rtl { from { opacity: 0; translate: 1.5rem 0; } to { opacity: 1; translate: 0 0; } }
-    .a-scrim:not([hidden]) { animation: a-fade-in var(--a-dur-base) var(--a-ease-out); }
-    /* Loading rows: a soft highlight sweeps each bar. */
-    .a-skel::after {
-      content: ''; position: absolute; inset: 0; translate: -100% 0;
-      background: linear-gradient(90deg, transparent, rgb(var(--ink) / .09), transparent);
-      animation: a-shimmer 1.4s var(--a-ease-inout) infinite;
+    /* A dialog, the drawer and their scrims settle in by a transition from
+       `@starting-style`; nothing leaves, so nothing needs an exit. The
+       site's own `dialog.pop-dialog` keeps its own enter and exit. */
+    .a-app dialog[open]:not(.pop-dialog) {
+      opacity: 1; scale: 1; translate: 0 0;
+      transition: opacity var(--a-dur-sheet) var(--a-ease-out), scale var(--a-dur-sheet) var(--a-ease-out),
+                  translate var(--a-dur-sheet) var(--a-ease-out);
     }
+    .a-app dialog[open]:not(.pop-dialog)::backdrop { opacity: 1; transition: opacity var(--a-dur-sheet) var(--a-ease-out); }
+    .a-side[data-open] { opacity: 1; translate: 0 0; transition: opacity var(--a-dur-sheet) var(--a-ease-out), translate var(--a-dur-sheet) var(--a-ease-out); }
+    .a-scrim:not([hidden]) { opacity: 1; transition: opacity var(--a-dur-base) var(--a-ease-out); }
+    @starting-style {
+      .a-app dialog[open]:not(.pop-dialog) { opacity: 0; scale: .98; translate: 0 8px; }
+      .a-app dialog[open]:not(.pop-dialog)::backdrop { opacity: 0; }
+      .a-side[data-open] { opacity: 0; translate: -1.5rem 0; }
+      :root[dir='rtl'] .a-side[data-open] { translate: 1.5rem 0; }
+      .a-scrim:not([hidden]) { opacity: 0; }
+    }
+    /* Loading rows: a soft highlight crosses each bar as the row passes
+       through the window, on the row's own view timeline like every
+       placeholder on the site (docs/motion-contract.md). */
+    @supports (animation-timeline: view()) {
+      .a-skel::after {
+        content: ''; position: absolute; inset: 0;
+        background: linear-gradient(90deg, transparent, rgb(var(--ink) / .1), transparent);
+        animation: a-shimmer linear both;
+        animation-timeline: view();
+        animation-range: cover 0% cover 100%;
+      }
+    }
+    @keyframes a-shimmer { from { translate: -100% 0; } to { translate: 100% 0; } }
     body.motion-paused .a-app *, body.motion-paused .a-app *::before, body.motion-paused .a-app *::after,
     body.motion-paused .a-app dialog::backdrop { transition: none; animation: none; }
   }
