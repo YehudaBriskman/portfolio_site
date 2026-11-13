@@ -603,6 +603,12 @@ fails if the form and the newest entry drift apart. The sentence is the form's
 - EN: By subscribing you agree to receive my newsletter by email: the notes and releases you chose. I’ll first send one email to confirm your address, and every email has an unsubscribe link. [How I handle your data]
 - HE: בהרשמה אתם מסכימים לקבל את העלון שלי באימייל: הרשימות והגרסאות שבחרתם. קודם אשלח אימייל אחד לאישור הכתובת, ובכל אימייל יש קישור להסרה. [איך אני מטפל במידע]
 
+The confirmation mail subject is part of the recorded text. It changed on
+2026-11-13 with the owner's approval: EN "Confirm your newsletter subscription"
+(was "Confirm your subscription"), HE "אישור הרשמה לעלון" (was "אישור הרשמה").
+The consent sentence itself did not change, so the version stays `site-form-v2`;
+the bodies of the confirmation mail did not change either.
+
 Shown with it, same version: lede EN "My newsletter by email: new notes and
 releases, only when there is something new. You can stop with one click." HE
 "העלון שלי באימייל: רשימות וגרסאות חדשות, רק כשיש משהו חדש. אפשר להפסיק

@@ -236,8 +236,8 @@ export function contactLines(s: Pick<SenderSettings, "footerIdentity" | "identit
 }
 
 export const DEFAULT_SENDER: SenderSettings = {
-  confirmSubjectEn: "Confirm your subscription",
-  confirmSubjectHe: "אישור הרשמה",
+  confirmSubjectEn: "Confirm your newsletter subscription",
+  confirmSubjectHe: "אישור הרשמה לעלון",
   confirmBodyEn:
     "Hi {name},\n\nSomeone asked to get my newsletter (notes and releases) from {site} at this address, hopefully you. To confirm, open this link:\n\n{link}\n\nIf it was not you, ignore this message: nothing is added and the request is deleted. The link works for {days} days. How your data is handled: {site}/privacy",
   confirmBodyHe:
