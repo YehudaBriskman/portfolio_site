@@ -51,6 +51,11 @@ export default function SendingSwitch({ onChange }: { onChange?: () => void }) {
           <p className="a-hint">{w.switchEnvBody}</p>
         </div>
       )}
+      {state.settingsHold && (
+        <div className="a-box border-[rgb(var(--destructive-ink))] p-4" role="alert" data-testid="sending-settings-hold">
+          <p className="font-bold">{state.settingsHold}</p>
+        </div>
+      )}
       {state.paused ? (
         <div className="a-box flex flex-wrap items-center justify-between gap-3 border-[rgb(var(--destructive-ink))] p-4" role="status" data-testid="sending-paused">
           <div className="min-w-0">

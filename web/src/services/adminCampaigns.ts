@@ -124,12 +124,12 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
 const enc = encodeURIComponent;
 function parseSending(r: Partial<SendingState> | null): SendingState {
   if (!r || typeof r.paused !== "boolean" || typeof r.envDisabled !== "boolean") throw new Error("bad-sending");
-  return { paused: r.paused, pausedAt: typeof r.pausedAt === "string" ? r.pausedAt : null, envDisabled: r.envDisabled, blocked: r.paused || r.envDisabled };
+  return { paused: r.paused, pausedAt: typeof r.pausedAt === "string" ? r.pausedAt : null, envDisabled: r.envDisabled, blocked: r.paused || r.envDisabled, settingsHold: typeof r.settingsHold === "string" ? r.settingsHold : null };
 }
 const json = (b: unknown): RequestInit => ({ method: "POST", body: JSON.stringify(b) });
 
 /** The kill switch (GET/POST /sending): `paused` is the owner's click, `envDisabled` is SEND_ENABLED=false, which this page cannot lift. */
-export type SendingState = { paused: boolean; pausedAt: string | null; envDisabled: boolean; blocked: boolean };
+export type SendingState = { paused: boolean; pausedAt: string | null; envDisabled: boolean; blocked: boolean; /** Why the sender is holding on its settings (server text), or null. */ settingsHold: string | null };
 
 export const adminCampaigns = {
   list: async () => (await call<{ campaigns: Campaign[] }>("")).campaigns,
