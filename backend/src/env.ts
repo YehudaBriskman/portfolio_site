@@ -24,6 +24,8 @@ const EnvSchema = z.object({
   MAIL_FROM: z.string().min(1),
   MAIL_REPLY_TO: z.string().optional(),
   CONTACT_TO: z.string().email(),
+  // Most mails the public contact form may send a day (owner notice and auto-reply each count one).
+  CONTACT_DAILY_MAIL_CEILING: z.coerce.number().int().min(0).default(30),
 
   // Content store. Defaults point at the in-cluster service; the API must start
   // even when CouchDB is unreachable, so nothing here is required at boot.
