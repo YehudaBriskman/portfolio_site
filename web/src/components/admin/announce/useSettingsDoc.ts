@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { ContentConflictError, ContentInvalidError, type Issue } from "@/services/adminContent";
 import { adminAnnounce, type AnnounceSettings, type AnnounceSettingsView, type SenderWarning } from "@/services/adminAnnounce";
+import { DEFAULT_NOTIFY } from "./notify/defaults";
 import { DEFAULT_SENDER } from "./sender/defaults";
 
 /*
@@ -26,6 +27,9 @@ export function normalise(s: AnnounceSettings): AnnounceSettings {
   c.advanced.utm.mediumByChannel ??= {};
   /* The whole sender object travels back on save: the server resets a field it does not receive. */
   c.sender = { ...structuredClone(DEFAULT_SENDER), ...c.sender };
+  /* Notices: a server that predates them sends none; fill what is missing. */
+  const n = structuredClone(DEFAULT_NOTIFY);
+  c.notify = { ...n, ...c.notify, events: { ...n.events, ...c.notify?.events }, digest: { ...n.digest, ...c.notify?.digest } };
   return c;
 }
 
