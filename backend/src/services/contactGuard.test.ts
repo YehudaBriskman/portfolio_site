@@ -5,7 +5,7 @@ import emailRoutes from "../routes/email.route.js";
 import * as providers from "../providers/index.js";
 import { logger } from "../logger.js";
 import { env } from "../env.js";
-import { resetContactGuard, CLIENT_LIMIT, GLOBAL_LIMIT, ADDRESS_WINDOW_MS, allowAutoReply } from "./contactGuard.js";
+import { resetContactGuard, CLIENT_LIMIT, GLOBAL_LIMIT, ADDRESS_WINDOW_MS, allowAutoReply, reserveNotice, reserveAutoReply } from "./contactGuard.js";
 
 const body = (replyTo: string, extra: Record<string, unknown> = {}) => ({
   subject: "Hi",
@@ -91,28 +91,54 @@ describe("contact form limits", () => {
     expect(allowAutoReply("x@example.invalid", t0 + ADDRESS_WINDOW_MS + 1)).toBe(true);
   });
 
-  it("stops at the daily ceiling, counting both mails, and says nothing different", async () => {
-    // Default 30 mails: 15 messages with an auto-reply each, spread over clients to stay under the other limits.
-    let last: request.Response | undefined;
+  it("at the mail ceiling stops auto-replies first and still sends every owner notice", async () => {
+    // Default 30 mails: 15 messages use it up with a reply each; the next 5 get a notice only.
     for (let i = 0; i < 20; i++) {
-      last = await post(body(`d${i}@example.invalid`), `192.0.2.${i + 1}`);
-      expect(last.status).toBe(200);
-      expect(last.body).toEqual({ ok: true });
+      const res = await post(body(`d${i}@example.invalid`), `192.0.2.${i + 1}`);
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ ok: true });
     }
     await settle();
     expect(env.CONTACT_DAILY_MAIL_CEILING).toBe(30);
-    expect(send).toHaveBeenCalledTimes(30);
+    expect(sentTo().filter((t) => t === env.CONTACT_TO)).toHaveLength(20);
+    expect(send).toHaveBeenCalledTimes(35);
   });
 
-  it("sends only the owner notice when one mail is left under the ceiling", async () => {
-    for (let i = 0; i < 14; i++) await post(body(`e${i}@example.invalid`), `192.0.2.${i + 1}`);
-    await settle();
-    expect(send).toHaveBeenCalledTimes(28);
-    // 2 left: a full pair fits. Then 0 left.
-    await post(body("last@example.invalid"), "192.0.2.100");
-    await post(body("later@example.invalid"), "192.0.2.101");
-    await settle();
-    expect(send).toHaveBeenCalledTimes(30);
+  it("past the notice ceiling sends nothing and answers the same", async () => {
+    const e = env as { CONTACT_DAILY_NOTICE_CEILING: number };
+    const was = e.CONTACT_DAILY_NOTICE_CEILING;
+    e.CONTACT_DAILY_NOTICE_CEILING = 3;
+    try {
+      let first: request.Response | undefined;
+      for (let i = 0; i < 5; i++) {
+        const res = await post({ subject: "Hi", text: "Hello there" }, `192.0.2.${i + 1}`);
+        first ??= res;
+        expect(res.status).toBe(200);
+        expect(res.body).toEqual(first.body);
+      }
+      await settle();
+      expect(send).toHaveBeenCalledTimes(3);
+    } finally {
+      e.CONTACT_DAILY_NOTICE_CEILING = was;
+    }
+  });
+
+  it("starts both counters again on the next UTC day", () => {
+    const e = env as { CONTACT_DAILY_NOTICE_CEILING: number };
+    const was = e.CONTACT_DAILY_NOTICE_CEILING;
+    e.CONTACT_DAILY_NOTICE_CEILING = 1;
+    try {
+      const d1 = Date.UTC(2026, 0, 1, 23, 59);
+      expect(reserveNotice(d1)).toBe(true);
+      expect(reserveNotice(d1)).toBe(false);
+      expect(reserveNotice(d1 + 2 * 60_000)).toBe(true);
+    } finally {
+      e.CONTACT_DAILY_NOTICE_CEILING = was;
+    }
+    resetContactGuard();
+    for (let i = 0; i < env.CONTACT_DAILY_MAIL_CEILING; i++) expect(reserveAutoReply(5)).toBe(true);
+    expect(reserveAutoReply(5)).toBe(false);
+    expect(reserveAutoReply(5 + 86_400_000)).toBe(true);
   });
 
   it("never puts an address in a log line", async () => {

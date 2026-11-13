@@ -61,7 +61,7 @@ class WindowCounter {
 let clients = new WindowCounter(CLIENT_LIMIT, CLIENT_WINDOW_MS);
 let overall = new WindowCounter(GLOBAL_LIMIT, GLOBAL_WINDOW_MS);
 let addresses = new WindowCounter(1, ADDRESS_WINDOW_MS);
-let day = { key: "", used: 0 };
+let day = { key: "", mails: 0, notices: 0 };
 
 const dayKey = (now: number) => new Date(now).toISOString().slice(0, 10);
 const addressKey = (address: string) => createHash("sha256").update(address.trim().toLowerCase()).digest("hex");
@@ -77,22 +77,44 @@ export function allowAutoReply(address: string, now = Date.now()): boolean {
   return addresses.take(addressKey(address), now);
 }
 
-/**
- * The hard daily ceiling, in mails (the owner notice and the auto-reply each count one).
- * Reserves `count` mails and answers whether they fit under today's (UTC) ceiling.
- * Nothing is reserved when they do not fit.
+/*
+ * Two daily ceilings, in mails, UTC day. Both the owner notice and the auto-reply count
+ * toward CONTACT_DAILY_MAIL_CEILING, but only the auto-reply is refused by it, so a real
+ * message outlives the auto-replies. The notice has its own higher hard ceiling.
  */
-export function reserveDailyMails(count: number, now = Date.now()): boolean {
+function today(now: number) {
   const key = dayKey(now);
-  if (day.key !== key) day = { key, used: 0 };
-  if (day.used + count > env.CONTACT_DAILY_MAIL_CEILING) return false;
-  day.used += count;
+  if (day.key !== key) day = { key, mails: 0, notices: 0 };
+  return day;
+}
+
+/** Reserves the owner notice. False only past the notice ceiling; it always counts as a mail. */
+export function reserveNotice(now = Date.now()): boolean {
+  const d = today(now);
+  if (d.notices + 1 > env.CONTACT_DAILY_NOTICE_CEILING) return false;
+  d.notices += 1;
+  d.mails += 1;
   return true;
 }
 
-/** Gives back a reservation for a mail that was not sent. */
-export function releaseDailyMails(count: number, now = Date.now()) {
-  if (day.key === dayKey(now)) day.used = Math.max(0, day.used - count);
+/** Gives back a notice that was not sent. */
+export function releaseNotice(now = Date.now()) {
+  const d = today(now);
+  d.notices = Math.max(0, d.notices - 1);
+  d.mails = Math.max(0, d.mails - 1);
+}
+
+/** Reserves an auto-reply under the (lower) daily mail ceiling. */
+export function reserveAutoReply(now = Date.now()): boolean {
+  const d = today(now);
+  if (d.mails + 1 > env.CONTACT_DAILY_MAIL_CEILING) return false;
+  d.mails += 1;
+  return true;
+}
+
+export function releaseAutoReply(now = Date.now()) {
+  const d = today(now);
+  d.mails = Math.max(0, d.mails - 1);
 }
 
 /** Test seam: forget every counter. */
@@ -100,5 +122,5 @@ export function resetContactGuard() {
   clients = new WindowCounter(CLIENT_LIMIT, CLIENT_WINDOW_MS);
   overall = new WindowCounter(GLOBAL_LIMIT, GLOBAL_WINDOW_MS);
   addresses = new WindowCounter(1, ADDRESS_WINDOW_MS);
-  day = { key: "", used: 0 };
+  day = { key: "", mails: 0, notices: 0 };
 }

@@ -4,7 +4,7 @@ import type { SendEmailInput } from "../types/index.js";
 import { env } from "../env.js";
 import { logger } from "../logger.js";
 import type { SmtpErrorKind } from "../providers/classifySmtpError.js";
-import { allowAutoReply, releaseDailyMails, reserveDailyMails } from "./contactGuard.js";
+import { allowAutoReply, releaseAutoReply, releaseNotice, reserveAutoReply, reserveNotice } from "./contactGuard.js";
 
 type EmailJsPayload = Extract<SendEmailInput, { templateId: string }>;
 
@@ -34,9 +34,9 @@ function sendAutoReply(provider: ReturnType<typeof getProvider>, visitor: string
 /* The owner notice is already sent; only the auto-reply, which goes to whatever address was typed, is limited. */
 function autoReplyAllowed(address: string, opts: ContactSendOptions): boolean {
   if (!opts.publicForm) return true;
-  if (!reserveDailyMails(1)) return false;
+  if (!reserveAutoReply()) return false;
   if (allowAutoReply(address)) return true;
-  releaseDailyMails(1);
+  releaseAutoReply();
   return false;
 }
 
@@ -51,8 +51,8 @@ export async function sendContactEmail(input: SendEmailInput, opts: ContactSendO
   const to = env.CONTACT_TO;
   const visitorReplyTo = input.replyTo;
 
-  if (opts.publicForm && !reserveDailyMails(1)) {
-    logger.warn("contact form daily mail ceiling reached; message dropped");
+  if (opts.publicForm && !reserveNotice()) {
+    logger.warn("contact form daily notice ceiling reached; message dropped");
     return { ok: true, skipped: true } as ContactSkipped;
   }
 
@@ -69,7 +69,7 @@ export async function sendContactEmail(input: SendEmailInput, opts: ContactSendO
   });
 
   // The auto-reply is plain mail, which the emailjs provider cannot send.
-  if (opts.publicForm && !result.ok) releaseDailyMails(1);
+  if (opts.publicForm && !result.ok) releaseNotice();
   if (result.ok && visitorReplyTo && !isEmailJsPayload(input) && autoReplyAllowed(visitorReplyTo, opts)) {
     sendAutoReply(provider, visitorReplyTo);
   }
