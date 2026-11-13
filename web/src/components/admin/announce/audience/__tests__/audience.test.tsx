@@ -164,7 +164,7 @@ describe("AudienceTab", () => {
   it("locks system groups", async () => {
     render(<AudienceTab />);
     await screen.findByText("ada@example.com");
-    fireEvent.click(screen.getByText("Groups", { selector: "summary" }));
+    fireEvent.click(screen.getByText("Groups", { selector: "summary span" }));
     expect(await screen.findByText("System group, locked")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Delete Subscribers" })).toBeNull();
     expect(screen.getByRole("button", { name: "Delete Friends" })).toBeTruthy();

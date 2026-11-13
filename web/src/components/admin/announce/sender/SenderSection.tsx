@@ -1,6 +1,7 @@
 import { useId, useState, type ReactNode } from "react";
 import type { SenderSettings, SenderWarning } from "@/services/adminAnnounce";
 import { CONTACT_FIELDS, DEFAULT_SENDER, UNSUB_NOTE_MAX, contactLines, hasTextProblem, identityMissing, senderProblems, unknownPlaceholder, type SenderField, type SenderProblem } from "./defaults";
+import { Disclosure } from "@/components/ui/Disclosure";
 import { useSenderWords } from "./words";
 import { useBudgetWords } from "./budgetWords";
 import BudgetMeter from "./BudgetMeter";
@@ -145,13 +146,15 @@ export default function SenderSection({ sender, onChange, warnings }: { sender: 
     </span>
   );
   const sec = (title: string, summary: ReactNode, body: ReactNode, o: { open?: boolean; bad?: boolean; testid?: string } = {}) => (
-    <details className="a-box" open={o.open} data-testid={o.testid}>
-      <summary className="flex min-h-[44px] cursor-pointer flex-wrap items-center gap-x-3 gap-y-0 px-3 py-2">
-        <span className="font-bold">{title}</span>
-        <span className={`min-w-0 break-words text-sm ${o.bad ? "font-bold text-[rgb(var(--destructive-ink))]" : "text-clay"}`}>{summary}</span>
-      </summary>
-      <div className="space-y-4 p-3 pt-1">{body}</div>
-    </details>
+    <Disclosure
+      className="a-box"
+      summary={title}
+      meta={<span className={o.bad ? "font-bold text-[rgb(var(--destructive-ink))]" : undefined}>{summary}</span>}
+      open={o.open}
+      testid={o.testid}
+    >
+      <div className="space-y-4 pb-2">{body}</div>
+    </Disclosure>
   );
   const quietText = q ? `${q.from}–${q.to}` : "";
 

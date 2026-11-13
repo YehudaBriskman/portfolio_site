@@ -26,6 +26,7 @@ import BlocksEditor from "./BlocksEditor";
 import { blockProblem, blocksToText, cleanBlocks, createPayload, toInput, zonedToIso, type Form } from "./helpers";
 import Progress from "./Progress";
 import { pillState } from "./status";
+import { Disclosure } from "@/components/ui/Disclosure";
 import { useCampaignWords } from "./words";
 
 /*
@@ -383,9 +384,8 @@ export default function CampaignEditor({
                   <p id={`${uid}-bhint`} className="a-hint">{w.bodyHint}</p>
                 </div>
               )}
-              <details className="a-box p-3" open={form.useBlocks}>
-                <summary className="flex min-h-[44px] cursor-pointer items-center font-bold">{w.useBlocks}</summary>
-                <div className="space-y-3 pt-2">
+              <Disclosure className="a-box" summary={w.blocksHeading} open={form.useBlocks}>
+                <div className="space-y-3">
                   <label className="flex min-h-[44px] items-center gap-3 text-sm">
                     <input type="checkbox" className="h-5 w-5" checked={form.useBlocks} onChange={(e) => set("useBlocks", e.target.checked)} />
                     <span>{w.useBlocks}</span>
@@ -393,15 +393,14 @@ export default function CampaignEditor({
                   <p className="a-hint !mt-0">{w.blocksHint}</p>
                   {form.useBlocks && <BlocksEditor blocks={form.blocks} onChange={(b) => set("blocks", b)} />}
                 </div>
-              </details>
-              <details className="a-box p-3">
-                <summary className="flex min-h-[44px] cursor-pointer items-center font-bold">{w.more}</summary>
-                <div className="pt-2">
+              </Disclosure>
+              <Disclosure className="a-box" summary={w.ownName}>
+                <div>
                   <label className="a-label" htmlFor={`${uid}-n`}>{w.internalName}</label>
                   <input id={`${uid}-n`} className="a-input min-h-[44px]" dir="auto" maxLength={120} value={form.name} onChange={(e) => set("name", e.target.value)} aria-describedby={`${uid}-nh`} />
                   <p id={`${uid}-nh`} className="a-hint">{w.internalNameHint}</p>
                 </div>
-              </details>
+              </Disclosure>
             </Step>
 
             {previewBox}
@@ -538,12 +537,9 @@ export default function CampaignEditor({
       </form>
 
       {campaign?.status === "draft" && (
-        <details className="a-box p-3">
-          <summary className="flex min-h-[44px] cursor-pointer items-center font-bold">{w.deleteHeading}</summary>
-          <div className="pt-2">
-            <button type="button" className="a-btn a-btn-danger min-h-[44px]" onClick={() => setDialog("delete")}>{w.deleteDraft}</button>
-          </div>
-        </details>
+        <Disclosure className="a-box" summary={w.deleteHeading}>
+          <button type="button" className="a-btn a-btn-danger min-h-[44px]" onClick={() => setDialog("delete")}>{w.deleteDraft}</button>
+        </Disclosure>
       )}
 
       {dialog === "send" && campaign && (
