@@ -83,8 +83,8 @@ export default function AdminProjects() {
           });
 
         return (
-          <div className="mt-8 grid gap-8 lg:grid-cols-[18rem_minmax(0,1fr)]">
-            <div>
+          <div className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[18rem_minmax(0,1fr)]">
+            <div className="min-w-0">
               <ListField
                 id="projects-list"
                 path="items"
@@ -100,11 +100,11 @@ export default function AdminProjects() {
                 }}
               >
                 {(item, i) => (
-                  <span className="flex items-center gap-2">
+                  <span className="flex min-w-0 items-center gap-2">
                   <TranslationPill status={heStatus("project", item.slug)} />
                   <button
                     type="button"
-                    className={`a-btn w-full justify-start ${i === at ? "a-btn-primary" : "a-btn-ghost"}`}
+                    className={`a-btn min-h-11 w-full min-w-0 justify-start rounded-[var(--r-sm)] md:min-h-8 ${i === at ? "a-btn-primary" : "a-btn-ghost"}`}
                     aria-pressed={i === at}
                     aria-label={`Edit ${item.title}`}
                     onClick={() => setPicked(i)}
@@ -237,7 +237,7 @@ export default function AdminProjects() {
                     )}
                   </ListField>
                   <p className="a-hint">
-                    <a className="underline" href={`/projects/${p.slug}?preview=1`} target="_blank" rel="noreferrer">
+                    <a className="inline-flex min-h-11 items-center underline" href={`/projects/${p.slug}?preview=1`} target="_blank" rel="noreferrer">
                       Preview this project ↗
                     </a>
                   </p>

@@ -2709,7 +2709,7 @@
     content: '/'; flex: none; margin-inline: .25rem; color: rgb(var(--ink-faint));
   }
   .a-crumbs a, .a-crumbs span {
-    display: block; padding: .25rem .375rem; border-radius: 6px;
+    display: flex; align-items: center; min-height: 2.75rem; min-width: 24px; padding: .25rem .5rem; border-radius: var(--r-sm);
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   .a-crumbs a { color: rgb(var(--ink-soft)); transition: background-color var(--dur-micro) ease, color var(--dur-micro) ease; }
