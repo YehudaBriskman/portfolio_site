@@ -226,7 +226,7 @@ export default function AdminTranslations() {
                               <span>{TYPE_LABEL[item.type]}</span>
                               <span className="min-w-0 [overflow-wrap:anywhere]">{fieldsOf(units)}</span>
                               {item.visibility === "private" && <span>Private</span>}
-                              <code dir="ltr" className="md:hidden">
+                              <code dir="ltr" className="min-w-0 md:hidden [overflow-wrap:anywhere]">
                                 {heRoute(item.route)}
                               </code>
                             </span>
