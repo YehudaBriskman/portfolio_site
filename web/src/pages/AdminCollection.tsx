@@ -298,7 +298,7 @@ export default function AdminCollection() {
               <span className="a-label" id="area-icon-label">Icon</span>
               <div className="flex flex-wrap items-center gap-3" aria-labelledby="area-icon-label" role="group">
                 {d.icon ? (
-                  <img src={d.icon} alt="" width={32} height={32} className="rounded-[--r-sm] border border-edge object-contain p-1" />
+                  <img src={d.icon} alt="" width={32} height={32} className="rounded-[var(--a-r-ctl)] border border-edge object-contain p-1" />
                 ) : (
                   <span className="a-hint m-0">None.</span>
                 )}
@@ -319,7 +319,7 @@ export default function AdminCollection() {
           </div>
 
           {d.coverImage && (
-            <img src={d.coverImage} alt="" className="mt-5 max-h-56 w-full rounded-[--r-md] border border-edge object-cover" />
+            <img src={d.coverImage} alt="" className="mt-5 max-h-56 w-full rounded-[var(--a-r-box)] border border-edge object-cover" />
           )}
 
           <div className="mt-6">

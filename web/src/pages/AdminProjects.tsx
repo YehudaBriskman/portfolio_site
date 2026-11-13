@@ -104,7 +104,7 @@ export default function AdminProjects() {
                   <TranslationPill status={heStatus("project", item.slug)} />
                   <button
                     type="button"
-                    className={`a-btn min-h-11 w-full min-w-0 justify-start rounded-[var(--r-sm)] md:min-h-8 ${i === at ? "a-btn-primary" : "a-btn-ghost"}`}
+                    className={`a-btn min-h-11 w-full min-w-0 justify-start rounded-[var(--a-r-ctl)] md:min-h-8 ${i === at ? "a-btn-primary" : "a-btn-ghost"}`}
                     aria-pressed={i === at}
                     aria-label={`Edit ${item.title}`}
                     onClick={() => setPicked(i)}

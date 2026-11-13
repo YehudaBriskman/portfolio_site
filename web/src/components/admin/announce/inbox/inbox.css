@@ -4,7 +4,7 @@
   .mk-key-group { display: inline-flex; align-items: center; gap: .3125rem; }
   .mk-keys kbd {
     display: inline-block; min-width: 1.5rem; padding: .0625rem .375rem; text-align: center;
-    border: 1px solid rgb(var(--rule-firm)); border-radius: 4px; background: rgb(var(--paper-2));
+    border: 1px solid rgb(var(--rule-firm)); border-radius: var(--a-r-tiny, 6px); background: rgb(var(--paper-2));
     font: 700 .75rem/1.4 ui-monospace, monospace; color: rgb(var(--ink));
   }
   .mk-toolbar > p { flex: 1 1 16rem; min-width: 0; }
@@ -13,7 +13,7 @@
   .mk-form { display: grid; gap: .875rem; padding: 1rem; max-width: 40rem; }
   .mk-form .a-error ul { margin: .25rem 0 0; padding-inline-start: 1.25rem; list-style: disc; }
 
-  .mk-list { margin: 0; padding: 0; list-style: none; border: 1px solid rgb(var(--rule-firm) / .5); border-radius: 8px; overflow: hidden; background: rgb(var(--paper-2)); }
+  .mk-list { margin: 0; padding: 0; list-style: none; border: 1px solid var(--a-line, rgb(var(--rule-firm) / .5)); border-radius: var(--a-r-box, 16px); overflow: hidden; background: rgb(var(--paper-2)); }
   .mk-row {
     display: grid; align-items: center; gap: .25rem .75rem;
     grid-template-columns: minmax(0, 1fr) auto auto auto;
@@ -24,7 +24,7 @@
   [dir="rtl"] .mk-row[data-selected] { box-shadow: inset -3px 0 0 rgb(var(--signal)); }
   .mk-row-main {
     display: flex; align-items: center; gap: .625rem; min-width: 0; min-height: 44px;
-    padding-inline: .25rem; text-align: start; border-radius: 6px; color: rgb(var(--ink));
+    padding-inline: .25rem; text-align: start; border-radius: var(--a-r-ctl, 12px); color: rgb(var(--ink));
   }
   .mk-row-main:hover .mk-title { text-decoration: underline; text-underline-offset: 3px; }
   .mk-kind { display: inline-flex; flex: none; color: rgb(var(--ink-soft)); }
@@ -94,7 +94,7 @@
   .mk-fixline { font-size: .875rem; min-width: 0; overflow-wrap: anywhere; }
   .mk-summary {
     display: inline-flex; align-items: center; gap: .5rem; min-height: 44px; padding-inline: .25rem; width: fit-content; max-width: 100%;
-    font-size: .875rem; font-weight: 700; color: rgb(var(--ink)); text-align: start; border-radius: 6px;
+    font-size: .875rem; font-weight: 700; color: rgb(var(--ink)); text-align: start; border-radius: var(--a-r-ctl, 12px);
   }
   .mk-summary:hover { text-decoration: underline; text-underline-offset: 3px; }
   .mk-chev { width: 16px; height: 16px; flex: none; }
@@ -110,7 +110,7 @@
   .mk-keys-wrap { position: relative; }
   .mk-keys-pop {
     position: absolute; inset-block-end: 100%; inset-inline-end: 0; z-index: 10; margin-block-end: .25rem; padding: .75rem;
-    width: max-content; max-width: min(22rem, calc(100vw - 2rem)); border: 1px solid rgb(var(--rule-firm)); border-radius: 8px;
+    width: max-content; max-width: min(22rem, calc(100vw - 2rem)); border: 1px solid rgb(var(--rule-firm)); border-radius: var(--a-r-box, 16px); box-shadow: var(--a-shadow-3);
     background: rgb(var(--paper-2)); box-shadow: 0 4px 16px rgb(0 0 0 / .15);
   }
   .mk-link { min-height: 44px; }

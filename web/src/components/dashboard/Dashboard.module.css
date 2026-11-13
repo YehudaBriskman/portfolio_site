@@ -32,8 +32,8 @@
   --dash-line-soft: rgb(var(--rule-firm) / 0.3);
   --dash-hover: rgb(var(--ink) / 0.05);
   --dash-inset: rgb(var(--well));
-  --dash-r: calc(var(--r-sm) - 4px);
-  --dash-r-inner: calc(var(--r-sm) - 8px);
+  --dash-r: var(--a-r-box, calc(var(--r-sm) - 4px));
+  --dash-r-inner: var(--a-r-sm, calc(var(--r-sm) - 8px));
   --dash-pad: 12px;
 
   /*

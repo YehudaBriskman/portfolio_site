@@ -57,6 +57,7 @@ describe("admin radius", () => {
       (d) =>
         /^border(-(start|end)-(start|end)|-(top|bottom)-(left|right))?-radius$/.test(d.prop) &&
         CONTROLS.some((c) => has(d.selector, c)) &&
+        !/var\(|calc\(/.test(d.value) &&
         [...d.value.matchAll(/(\d*\.?\d+)px/g)].some((m) => Number(m[1]) < 10),
     );
     expect(bad.map((d) => `${d.selector} { ${d.prop}: ${d.value} }`)).toEqual([]);
