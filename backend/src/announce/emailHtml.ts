@@ -45,7 +45,7 @@ function captions(kit: Kit): Caption[] {
   return out;
 }
 
-export function buildOwnerEmail(ev: AnnounceEvent, kit: Kit, siteUrl: string): { subject: string; html: string; text: string } {
+export function buildOwnerEmail(ev: AnnounceEvent, kit: Kit, siteUrl: string, footerLines: string[] = []): { subject: string; html: string; text: string } {
   const subject = ev.kind === "release" ? `${ev.title} is out` : `New on the blog: ${ev.title}`;
   const img = cardUrl(ev, siteUrl);
   const admin = adminUrl(siteUrl);
@@ -61,6 +61,7 @@ export function buildOwnerEmail(ev: AnnounceEvent, kit: Kit, siteUrl: string): {
     { type: "button", label: "Open the Announce inbox", href: admin },
     ...captions(kit).map((c): MailBlock => ({ type: "card", label: c.label, ...(c.item.limit === null ? {} : { meta: `${c.item.length}/${c.item.limit}${c.item.over ? " (over the limit)" : ""}` }), lines: c.item.text.split(/\r?\n/), lang: c.lang })),
     { type: "paragraph", tone: "muted", text: "Nothing is posted for you. Copy a caption, post it yourself, then mark it done in the inbox." },
+    ...(footerLines.length ? [{ type: "footer" as const, lines: footerLines }] : []),
   ];
   const { html, text } = renderMail(blocks, { lang: "en", title: subject, preheader: ev.summary || subject, origin: origin(siteUrl) });
   return { subject, html, text };

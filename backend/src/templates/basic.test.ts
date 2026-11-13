@@ -8,9 +8,10 @@ describe("renderBasicTemplate", () => {
       ctaText: "<i>go</i>",
       ctaHref: `https://example.invalid/?a="x"&b=<y>`,
     });
-    expect(html).not.toMatch(/<img|<b>|<i>|"x"/);
+    expect(html).not.toMatch(/<img|<b>|<i>|"x"|<y>/);
     expect(html).toContain("&lt;img");
     expect(html).toContain("&amp; more");
-    expect(html).toContain("&quot;x&quot;");
+    /* The address is normalised by the URL parser, so a quote or bracket in it is percent-encoded, never raw. */
+    expect(html).toContain("%22x%22");
   });
 });

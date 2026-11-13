@@ -1,0 +1,298 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`every transactional mail > autoreply-en: snapshot of the page and its plain text, under the size limit > html 1`] = `
+"<!doctype html>
+<html lang="en" dir="ltr" xmlns="http://www.w3.org/1999/xhtml"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="color-scheme" content="light dark"><meta name="supported-color-schemes" content="light dark">
+<title>We got your message</title>
+<style>:root{color-scheme:light dark;supported-color-schemes:light dark}body{margin:0;padding:0;-webkit-text-size-adjust:100%}table{border-collapse:collapse}img{-ms-interpolation-mode:bicubic}@media (prefers-color-scheme: dark){.page{background-color:#1C1A16 !important}.card{background-color:#282520 !important}.ink{color:#F2F0EA !important}.soft{color:#B5B1A6 !important}.lnk{color:#7AA2E8 !important}.box{background-color:#34302A !important;border-color:#4A453C !important;color:#F2F0EA !important}.rule{border-color:#4A453C !important}.btn{background-color:#F2F0EA !important}.btna{color:#14130F !important}}</style></head>
+<body class="page" bgcolor="#ECE8DC" style="margin:0;padding:0;background-color:#ECE8DC;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,'Noto Sans Hebrew','Arial Hebrew',sans-serif">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all;font-size:1px;line-height:1px;color:#ECE8DC">Thanks, we’ll get back to you soon.&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="page" bgcolor="#ECE8DC" style="background-color:#ECE8DC"><tr><td align="center" style="padding:16px 8px">
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" class="card" bgcolor="#FBFAF6" style="width:100%;max-width:600px;table-layout:fixed;background-color:#FBFAF6;border-radius:10px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,'Noto Sans Hebrew','Arial Hebrew',sans-serif">
+<tr><td class="card" bgcolor="#FBFAF6" height="24" style="height:24px;line-height:24px;font-size:1px;background-color:#FBFAF6;border-radius:10px 10px 0 0">&nbsp;</td></tr>
+<tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:0px 24px 16px 24px"><h1 class="ink" dir="auto" style="margin:0;font-size:24px;line-height:1.3;font-weight:700;color:#14130F">We got your message</h1></td></tr>
+<tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:0px 24px 16px 24px"><p class="ink" dir="auto" style="margin:0;font-size:16px;line-height:1.5;color:#14130F">Thanks, we’ll get back to you soon.</p></td></tr>
+<tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:12px 24px 24px 24px"><div class="rule" style="border-top:1px solid #CFC9B8;padding-top:14px"><p class="soft" style="margin:0 0 8px 0;font-size:13px;line-height:1.5;color:#55524A"><bdi>Example Person</bdi><br><bdi>contact@example.org</bdi><br><bdi>+972 50-000 0000</bdi><br><bdi>https://example.org</bdi></p></div></td></tr>
+</table></td></tr></table></body></html>"
+`;
+
+exports[`every transactional mail > autoreply-en: snapshot of the page and its plain text, under the size limit > text 1`] = `
+"We got your message
+
+Thanks, we’ll get back to you soon.
+
+--
+Example Person
+contact@example.org
++972 50-000 0000
+https://example.org"
+`;
+
+exports[`every transactional mail > autoreply-he: snapshot of the page and its plain text, under the size limit > html 1`] = `
+"<!doctype html>
+<html lang="he" dir="rtl" xmlns="http://www.w3.org/1999/xhtml"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="color-scheme" content="light dark"><meta name="supported-color-schemes" content="light dark">
+<title>קיבלנו את ההודעה</title>
+<style>:root{color-scheme:light dark;supported-color-schemes:light dark}body{margin:0;padding:0;-webkit-text-size-adjust:100%}table{border-collapse:collapse}img{-ms-interpolation-mode:bicubic}@media (prefers-color-scheme: dark){.page{background-color:#1C1A16 !important}.card{background-color:#282520 !important}.ink{color:#F2F0EA !important}.soft{color:#B5B1A6 !important}.lnk{color:#7AA2E8 !important}.box{background-color:#34302A !important;border-color:#4A453C !important;color:#F2F0EA !important}.rule{border-color:#4A453C !important}.btn{background-color:#F2F0EA !important}.btna{color:#14130F !important}}</style></head>
+<body class="page" bgcolor="#ECE8DC" style="margin:0;padding:0;background-color:#ECE8DC;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,'Noto Sans Hebrew','Arial Hebrew',sans-serif">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all;font-size:1px;line-height:1px;color:#ECE8DC">תודה, נחזור אליכם בקרוב.&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="page" bgcolor="#ECE8DC" style="background-color:#ECE8DC"><tr><td align="center" style="padding:16px 8px">
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" class="card" bgcolor="#FBFAF6" style="width:100%;max-width:600px;table-layout:fixed;background-color:#FBFAF6;border-radius:10px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,'Noto Sans Hebrew','Arial Hebrew',sans-serif">
+<tr><td class="card" bgcolor="#FBFAF6" height="24" style="height:24px;line-height:24px;font-size:1px;background-color:#FBFAF6;border-radius:10px 10px 0 0">&nbsp;</td></tr>
+<tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:0px 24px 16px 24px"><h1 class="ink" dir="auto" style="margin:0;font-size:24px;line-height:1.3;font-weight:700;color:#14130F">קיבלנו את ההודעה</h1></td></tr>
+<tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:0px 24px 16px 24px"><p class="ink" dir="auto" style="margin:0;font-size:16px;line-height:1.5;color:#14130F">תודה, נחזור אליכם בקרוב.</p></td></tr>
+<tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:12px 24px 24px 24px"><div class="rule" style="border-top:1px solid #CFC9B8;padding-top:14px"><p class="soft" style="margin:0 0 8px 0;font-size:13px;line-height:1.5;color:#55524A"><bdi>יהודה בריסקמן</bdi><br><bdi>contact@example.org</bdi></p></div></td></tr>
+</table></td></tr></table></body></html>"
+`;
+
+exports[`every transactional mail > autoreply-he: snapshot of the page and its plain text, under the size limit > text 1`] = `
+"קיבלנו את ההודעה
+
+תודה, נחזור אליכם בקרוב.
+
+--
+יהודה בריסקמן
+contact@example.org"
+`;
+
+exports[`every transactional mail > confirm-en: snapshot of the page and its plain text, under the size limit > html 1`] = `
+"<!doctype html>
+<html lang="en" dir="ltr" xmlns="http://www.w3.org/1999/xhtml"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="color-scheme" content="light dark"><meta name="supported-color-schemes" content="light dark">
+<title>Confirm your subscription</title>
+<style>:root{color-scheme:light dark;supported-color-schemes:light dark}body{margin:0;padding:0;-webkit-text-size-adjust:100%}table{border-collapse:collapse}img{-ms-interpolation-mode:bicubic}@media (prefers-color-scheme: dark){.page{background-color:#1C1A16 !important}.card{background-color:#282520 !important}.ink{color:#F2F0EA !important}.soft{color:#B5B1A6 !important}.lnk{color:#7AA2E8 !important}.box{background-color:#34302A !important;border-color:#4A453C !important;color:#F2F0EA !important}.rule{border-color:#4A453C !important}.btn{background-color:#F2F0EA !important}.btna{color:#14130F !important}}</style></head>
+<body class="page" bgcolor="#ECE8DC" style="margin:0;padding:0;background-color:#ECE8DC;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,'Noto Sans Hebrew','Arial Hebrew',sans-serif">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all;font-size:1px;line-height:1px;color:#ECE8DC">Someone (hopefully you) asked to get updates from yehudabriskman.com. To confirm your subscription, open this link:&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="page" bgcolor="#ECE8DC" style="background-color:#ECE8DC"><tr><td align="center" style="padding:16px 8px">
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" class="card" bgcolor="#FBFAF6" style="width:100%;max-width:600px;table-layout:fixed;background-color:#FBFAF6;border-radius:10px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,'Noto Sans Hebrew','Arial Hebrew',sans-serif">
+<tr><td class="card" bgcolor="#FBFAF6" height="24" style="height:24px;line-height:24px;font-size:1px;background-color:#FBFAF6;border-radius:10px 10px 0 0">&nbsp;</td></tr>
+<tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:0px 24px 16px 24px"><h1 class="ink" dir="auto" style="margin:0;font-size:24px;line-height:1.3;font-weight:700;color:#14130F">Confirm your subscription</h1></td></tr>
+<tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:0px 24px 16px 24px"><p class="ink" dir="auto" style="margin:0;font-size:16px;line-height:1.5;color:#14130F">Hi Ada,</p></td></tr>
+<tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:0px 24px 16px 24px"><p class="ink" dir="auto" style="margin:0;font-size:16px;line-height:1.5;color:#14130F">Someone (hopefully you) asked to get updates from yehudabriskman.com. To confirm your subscription, open this link:</p></td></tr>
+<tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:4px 24px 20px 24px"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td class="btn" bgcolor="#14130F" height="44" style="background-color:#14130F;border-radius:8px"><a class="btna" href="https://example.test/subscribe/confirm?token=abc.def" style="display:inline-block;min-height:20px;padding:12px 24px;font-size:16px;line-height:20px;font-weight:700;color:#FFFFFF;text-decoration:none">Confirm your subscription</a></td></tr></table></td></tr>
+<tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:0px 24px 16px 24px"><p class="soft" dir="auto" style="margin:0;font-size:14px;line-height:1.5;color:#55524A"><a href="https://example.test/subscribe/confirm?token=abc.def" class="lnk" style="color:#1D4ED8;text-decoration:underline">https://example.test/subscribe/confirm?token=abc.def</a></p></td></tr>
+<tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:0px 24px 16px 24px"><p class="ink" dir="auto" style="margin:0;font-size:16px;line-height:1.5;color:#14130F">If this was not you, ignore this message and nothing will happen. The link works for 7 days.</p></td></tr>
+<tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:12px 24px 24px 24px"><div class="rule" style="border-top:1px solid #CFC9B8;padding-top:14px"><p class="soft" style="margin:0 0 8px 0;font-size:13px;line-height:1.5;color:#55524A"><bdi>Example Person</bdi><br><bdi>contact@example.org</bdi><br><bdi>+972 50-000 0000</bdi><br><bdi>https://example.org</bdi></p></div></td></tr>
+</table></td></tr></table></body></html>"
+`;
+
+exports[`every transactional mail > confirm-en: snapshot of the page and its plain text, under the size limit > text 1`] = `
+"Confirm your subscription
+
+Hi Ada,
+
+Someone (hopefully you) asked to get updates from yehudabriskman.com. To confirm your subscription, open this link:
+
+Confirm your subscription: https://example.test/subscribe/confirm?token=abc.def
+
+If this was not you, ignore this message and nothing will happen. The link works for 7 days.
+
+--
+Example Person
+contact@example.org
++972 50-000 0000
+https://example.org"
+`;
+
+exports[`every transactional mail > confirm-he: snapshot of the page and its plain text, under the size limit > html 1`] = `
+"<!doctype html>
+<html lang="he" dir="rtl" xmlns="http://www.w3.org/1999/xhtml"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="color-scheme" content="light dark"><meta name="supported-color-schemes" content="light dark">
+<title>אישור הרשמה</title>
+<style>:root{color-scheme:light dark;supported-color-schemes:light dark}body{margin:0;padding:0;-webkit-text-size-adjust:100%}table{border-collapse:collapse}img{-ms-interpolation-mode:bicubic}@media (prefers-color-scheme: dark){.page{background-color:#1C1A16 !important}.card{background-color:#282520 !important}.ink{color:#F2F0EA !important}.soft{color:#B5B1A6 !important}.lnk{color:#7AA2E8 !important}.box{background-color:#34302A !important;border-color:#4A453C !important;color:#F2F0EA !important}.rule{border-color:#4A453C !important}.btn{background-color:#F2F0EA !important}.btna{color:#14130F !important}}</style></head>
+<body class="page" bgcolor="#ECE8DC" style="margin:0;padding:0;background-color:#ECE8DC;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,'Noto Sans Hebrew','Arial Hebrew',sans-serif">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all;font-size:1px;line-height:1px;color:#ECE8DC">מישהו (כנראה אתם) ביקש לקבל עדכונים מהאתר yehudabriskman.com. כדי לאשר את ההרשמה, פתחו את הקישור:&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="page" bgcolor="#ECE8DC" style="background-color:#ECE8DC"><tr><td align="center" style="padding:16px 8px">
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" class="card" bgcolor="#FBFAF6" style="width:100%;max-width:600px;table-layout:fixed;background-color:#FBFAF6;border-radius:10px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,'Noto Sans Hebrew','Arial Hebrew',sans-serif">
+<tr><td class="card" bgcolor="#FBFAF6" height="24" style="height:24px;line-height:24px;font-size:1px;background-color:#FBFAF6;border-radius:10px 10px 0 0">&nbsp;</td></tr>
+<tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:0px 24px 16px 24px"><h1 class="ink" dir="auto" style="margin:0;font-size:24px;line-height:1.3;font-weight:700;color:#14130F">אישור הרשמה</h1></td></tr>
+<tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:0px 24px 16px 24px"><p class="ink" dir="auto" style="margin:0;font-size:16px;line-height:1.5;color:#14130F">שלום עדה,</p></td></tr>
+<tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:0px 24px 16px 24px"><p class="ink" dir="auto" style="margin:0;font-size:16px;line-height:1.5;color:#14130F">מישהו (כנראה אתם) ביקש לקבל עדכונים מהאתר yehudabriskman.com. כדי לאשר את ההרשמה, פתחו את הקישור:</p></td></tr>
+<tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:4px 24px 20px 24px"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td class="btn" bgcolor="#14130F" height="44" style="background-color:#14130F;border-radius:8px"><a class="btna" href="https://example.test/subscribe/confirm?token=abc.def" style="display:inline-block;min-height:20px;padding:12px 24px;font-size:16px;line-height:20px;font-weight:700;color:#FFFFFF;text-decoration:none">אישור הרשמה</a></td></tr></table></td></tr>
+<tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:0px 24px 16px 24px"><p class="soft" dir="auto" style="margin:0;font-size:14px;line-height:1.5;color:#55524A"><a href="https://example.test/subscribe/confirm?token=abc.def" class="lnk" style="color:#1D4ED8;text-decoration:underline">https://example.test/subscribe/confirm?token=abc.def</a></p></td></tr>
+<tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:0px 24px 16px 24px"><p class="ink" dir="auto" style="margin:0;font-size:16px;line-height:1.5;color:#14130F">אם זה לא אתם, התעלמו מהודעה זו ולא יקרה דבר. הקישור תקף 7 ימים.</p></td></tr>
+<tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:12px 24px 24px 24px"><div class="rule" style="border-top:1px solid #CFC9B8;padding-top:14px"><p class="soft" style="margin:0 0 8px 0;font-size:13px;line-height:1.5;color:#55524A"><bdi>יהודה בריסקמן</bdi><br><bdi>contact@example.org</bdi><br><bdi>+972 50-000 0000</bdi><br><bdi>https://example.org</bdi></p></div></td></tr>
+</table></td></tr></table></body></html>"
+`;
+
+exports[`every transactional mail > confirm-he: snapshot of the page and its plain text, under the size limit > text 1`] = `
+"אישור הרשמה
+
+שלום עדה,
+
+מישהו (כנראה אתם) ביקש לקבל עדכונים מהאתר yehudabriskman.com. כדי לאשר את ההרשמה, פתחו את הקישור:
+
+אישור הרשמה: https://example.test/subscribe/confirm?token=abc.def
+
+אם זה לא אתם, התעלמו מהודעה זו ולא יקרה דבר. הקישור תקף 7 ימים.
+
+--
+יהודה בריסקמן
+contact@example.org
++972 50-000 0000
+https://example.org"
+`;
+
+exports[`every transactional mail > notice-en: snapshot of the page and its plain text, under the size limit > html 1`] = `
+"<!doctype html>
+<html lang="en" dir="ltr" xmlns="http://www.w3.org/1999/xhtml"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="color-scheme" content="light dark"><meta name="supported-color-schemes" content="light dark">
+<title>Portfolio contact from Ada</title>
+<style>:root{color-scheme:light dark;supported-color-schemes:light dark}body{margin:0;padding:0;-webkit-text-size-adjust:100%}table{border-collapse:collapse}img{-ms-interpolation-mode:bicubic}@media (prefers-color-scheme: dark){.page{background-color:#1C1A16 !important}.card{background-color:#282520 !important}.ink{color:#F2F0EA !important}.soft{color:#B5B1A6 !important}.lnk{color:#7AA2E8 !important}.box{background-color:#34302A !important;border-color:#4A453C !important;color:#F2F0EA !important}.rule{border-color:#4A453C !important}.btn{background-color:#F2F0EA !important}.btna{color:#14130F !important}}</style></head>
+<body class="page" bgcolor="#ECE8DC" style="margin:0;padding:0;background-color:#ECE8DC;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,'Noto Sans Hebrew','Arial Hebrew',sans-serif">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all;font-size:1px;line-height:1px;color:#ECE8DC">Name: Ada&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="page" bgcolor="#ECE8DC" style="background-color:#ECE8DC"><tr><td align="center" style="padding:16px 8px">
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" class="card" bgcolor="#FBFAF6" style="width:100%;max-width:600px;table-layout:fixed;background-color:#FBFAF6;border-radius:10px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,'Noto Sans Hebrew','Arial Hebrew',sans-serif">
+<tr><td class="card" bgcolor="#FBFAF6" height="24" style="height:24px;line-height:24px;font-size:1px;background-color:#FBFAF6;border-radius:10px 10px 0 0">&nbsp;</td></tr>
+<tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:0px 24px 16px 24px"><p class="soft" dir="auto" style="margin:0;font-size:13px;line-height:1.4;font-weight:700;color:#55524A;letter-spacing:.06em;text-transform:uppercase">Contact form</p></td></tr>
+<tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:0px 24px 16px 24px"><h1 class="ink" dir="auto" style="margin:0;font-size:24px;line-height:1.3;font-weight:700;color:#14130F">New message from Ada</h1></td></tr>
+<tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:0px 24px 16px 24px"><p class="ink" dir="auto" style="margin:0;font-size:16px;line-height:1.5;color:#14130F">Name: Ada<br>Email: ada@example.invalid</p></td></tr>
+<tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:0px 24px 16px 24px"><p class="ink" dir="auto" style="margin:0;font-size:16px;line-height:1.5;color:#14130F">Hello,<br>I liked the site.</p></td></tr>
+<tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:0px 24px 16px 24px"><p class="soft" dir="auto" style="margin:0;font-size:14px;line-height:1.5;color:#55524A">Reply to this email to answer the sender.</p></td></tr>
+<tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:12px 24px 24px 24px"><div class="rule" style="border-top:1px solid #CFC9B8;padding-top:14px"><p class="soft" style="margin:0 0 8px 0;font-size:13px;line-height:1.5;color:#55524A"><bdi>Example Person</bdi><br><bdi>contact@example.org</bdi><br><bdi>+972 50-000 0000</bdi><br><bdi>https://example.org</bdi></p></div></td></tr>
+</table></td></tr></table></body></html>"
+`;
+
+exports[`every transactional mail > notice-en: snapshot of the page and its plain text, under the size limit > text 1`] = `
+"Contact form
+
+New message from Ada
+
+Name: Ada
+Email: ada@example.invalid
+
+Hello,
+I liked the site.
+
+Reply to this email to answer the sender.
+
+--
+Example Person
+contact@example.org
++972 50-000 0000
+https://example.org"
+`;
+
+exports[`every transactional mail > notice-he: snapshot of the page and its plain text, under the size limit > html 1`] = `
+"<!doctype html>
+<html lang="en" dir="ltr" xmlns="http://www.w3.org/1999/xhtml"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="color-scheme" content="light dark"><meta name="supported-color-schemes" content="light dark">
+<title>Portfolio contact from עדה</title>
+<style>:root{color-scheme:light dark;supported-color-schemes:light dark}body{margin:0;padding:0;-webkit-text-size-adjust:100%}table{border-collapse:collapse}img{-ms-interpolation-mode:bicubic}@media (prefers-color-scheme: dark){.page{background-color:#1C1A16 !important}.card{background-color:#282520 !important}.ink{color:#F2F0EA !important}.soft{color:#B5B1A6 !important}.lnk{color:#7AA2E8 !important}.box{background-color:#34302A !important;border-color:#4A453C !important;color:#F2F0EA !important}.rule{border-color:#4A453C !important}.btn{background-color:#F2F0EA !important}.btna{color:#14130F !important}}</style></head>
+<body class="page" bgcolor="#ECE8DC" style="margin:0;padding:0;background-color:#ECE8DC;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,'Noto Sans Hebrew','Arial Hebrew',sans-serif">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all;font-size:1px;line-height:1px;color:#ECE8DC">Name: עדה&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="page" bgcolor="#ECE8DC" style="background-color:#ECE8DC"><tr><td align="center" style="padding:16px 8px">
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" class="card" bgcolor="#FBFAF6" style="width:100%;max-width:600px;table-layout:fixed;background-color:#FBFAF6;border-radius:10px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,'Noto Sans Hebrew','Arial Hebrew',sans-serif">
+<tr><td class="card" bgcolor="#FBFAF6" height="24" style="height:24px;line-height:24px;font-size:1px;background-color:#FBFAF6;border-radius:10px 10px 0 0">&nbsp;</td></tr>
+<tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:0px 24px 16px 24px"><p class="soft" dir="auto" style="margin:0;font-size:13px;line-height:1.4;font-weight:700;color:#55524A;letter-spacing:.06em;text-transform:uppercase">Contact form</p></td></tr>
+<tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:0px 24px 16px 24px"><h1 class="ink" dir="auto" style="margin:0;font-size:24px;line-height:1.3;font-weight:700;color:#14130F">הודעה חדשה מעדה</h1></td></tr>
+<tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:0px 24px 16px 24px"><p class="ink" dir="auto" style="margin:0;font-size:16px;line-height:1.5;color:#14130F">Name: עדה<br>Email: ada@example.invalid</p></td></tr>
+<tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:0px 24px 16px 24px"><p class="ink" dir="auto" style="margin:0;font-size:16px;line-height:1.5;color:#14130F">שלום, אהבתי את האתר.</p></td></tr>
+<tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:0px 24px 16px 24px"><p class="soft" dir="auto" style="margin:0;font-size:14px;line-height:1.5;color:#55524A">Reply to this email to answer the sender.</p></td></tr>
+<tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:12px 24px 24px 24px"><div class="rule" style="border-top:1px solid #CFC9B8;padding-top:14px"><p class="soft" style="margin:0 0 8px 0;font-size:13px;line-height:1.5;color:#55524A"><bdi>Example Person</bdi><br><bdi>contact@example.org</bdi><br><bdi>+972 50-000 0000</bdi><br><bdi>https://example.org</bdi></p></div></td></tr>
+</table></td></tr></table></body></html>"
+`;
+
+exports[`every transactional mail > notice-he: snapshot of the page and its plain text, under the size limit > text 1`] = `
+"Contact form
+
+הודעה חדשה מעדה
+
+Name: עדה
+Email: ada@example.invalid
+
+שלום, אהבתי את האתר.
+
+Reply to this email to answer the sender.
+
+--
+Example Person
+contact@example.org
++972 50-000 0000
+https://example.org"
+`;
+
+exports[`every transactional mail > owner-en: snapshot of the page and its plain text, under the size limit > html 1`] = `
+"<!doctype html>
+<html lang="en" dir="ltr" xmlns="http://www.w3.org/1999/xhtml"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="color-scheme" content="light dark"><meta name="supported-color-schemes" content="light dark">
+<title>New on the blog: A design system for mail</title>
+<style>:root{color-scheme:light dark;supported-color-schemes:light dark}body{margin:0;padding:0;-webkit-text-size-adjust:100%}table{border-collapse:collapse}img{-ms-interpolation-mode:bicubic}@media (prefers-color-scheme: dark){.page{background-color:#1C1A16 !important}.card{background-color:#282520 !important}.ink{color:#F2F0EA !important}.soft{color:#B5B1A6 !important}.lnk{color:#7AA2E8 !important}.box{background-color:#34302A !important;border-color:#4A453C !important;color:#F2F0EA !important}.rule{border-color:#4A453C !important}.btn{background-color:#F2F0EA !important}.btna{color:#14130F !important}}</style></head>
+<body class="page" bgcolor="#ECE8DC" style="margin:0;padding:0;background-color:#ECE8DC;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,'Noto Sans Hebrew','Arial Hebrew',sans-serif">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all;font-size:1px;line-height:1px;color:#ECE8DC">A short summary.&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="page" bgcolor="#ECE8DC" style="background-color:#ECE8DC"><tr><td align="center" style="padding:16px 8px">
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" class="card" bgcolor="#FBFAF6" style="width:100%;max-width:600px;table-layout:fixed;background-color:#FBFAF6;border-radius:10px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,'Noto Sans Hebrew','Arial Hebrew',sans-serif">
+<tr><td class="card" bgcolor="#FBFAF6" height="24" style="height:24px;line-height:24px;font-size:1px;background-color:#FBFAF6;border-radius:10px 10px 0 0">&nbsp;</td></tr>
+<tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:0px 24px 16px 24px"><p class="soft" dir="auto" style="margin:0;font-size:13px;line-height:1.4;font-weight:700;color:#55524A;letter-spacing:.06em;text-transform:uppercase">New post</p></td></tr>
+<tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:0px 24px 16px 24px"><img src="https://example.test/api/seo/og/blog/sample.png?format=og" alt="Share card: A design system for mail" width="552" height="290" style="display:block;width:100%;max-width:552px;height:auto;border:0;border-radius:6px"></td></tr>
+<tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:0px 24px 16px 24px"><h1 class="ink" dir="auto" style="margin:0;font-size:24px;line-height:1.3;font-weight:700;color:#14130F">A design system for mail</h1></td></tr>
+<tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:0px 24px 16px 24px"><h2 class="ink" dir="auto" dir="rtl" lang="he" style="margin:0;font-size:20px;line-height:1.3;font-weight:700;color:#14130F">מערכת עיצוב למייל</h2></td></tr>
+<tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:0px 24px 16px 24px"><p class="ink" dir="auto" style="margin:0;font-size:16px;line-height:1.5;color:#14130F">A short summary.</p></td></tr>
+<tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:4px 24px 20px 24px"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td class="btn" bgcolor="#14130F" height="44" style="background-color:#14130F;border-radius:8px"><a class="btna" href="https://example.test/admin/announce" style="display:inline-block;min-height:20px;padding:12px 24px;font-size:16px;line-height:20px;font-weight:700;color:#FFFFFF;text-decoration:none">Open the Announce inbox</a></td></tr></table></td></tr>
+<tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:0px 24px 16px 24px"><div class="soft" style="margin:0 0 6px 0;font-size:13px;line-height:1.4;font-weight:700;color:#55524A">LinkedIn &middot; 99/3000</div><div class="box ink" style="font-size:15px;line-height:1.55;color:#14130F;background-color:#F1EDE0;border:1px solid #CFC9B8;border-radius:8px;padding:12px 14px"><div dir="auto" style="min-height:1.55em;">New on the blog: A design system for mail</div><div dir="auto" style="min-height:1.55em;">&nbsp;</div><div dir="auto" style="min-height:1.55em;">A short summary.</div><div dir="auto" style="min-height:1.55em;">&nbsp;</div><div dir="auto" style="min-height:1.55em;">https://yehudabriskman.com/blog/sample</div></div></td></tr>
+<tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:0px 24px 16px 24px"><div class="soft" style="margin:0 0 6px 0;font-size:13px;line-height:1.4;font-weight:700;color:#55524A">X &middot; 80/280</div><div class="box ink" style="font-size:15px;line-height:1.55;color:#14130F;background-color:#F1EDE0;border:1px solid #CFC9B8;border-radius:8px;padding:12px 14px"><div dir="auto" style="min-height:1.55em;">New on the blog: A design system for mail https://yehudabriskman.com/blog/sample</div></div></td></tr>
+<tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:0px 24px 16px 24px"><div class="soft" style="margin:0 0 6px 0;font-size:13px;line-height:1.4;font-weight:700;color:#55524A">Email</div><div class="box ink" style="font-size:15px;line-height:1.55;color:#14130F;background-color:#F1EDE0;border:1px solid #CFC9B8;border-radius:8px;padding:12px 14px"><div dir="auto" style="min-height:1.55em;">New on the blog: A design system for mail</div><div dir="auto" style="min-height:1.55em;">&nbsp;</div><div dir="auto" style="min-height:1.55em;">A short summary.</div><div dir="auto" style="min-height:1.55em;">&nbsp;</div><div dir="auto" style="min-height:1.55em;">https://yehudabriskman.com/blog/sample</div></div></td></tr>
+<tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:0px 24px 16px 24px"><div class="soft" style="margin:0 0 6px 0;font-size:13px;line-height:1.4;font-weight:700;color:#55524A">LinkedIn (Hebrew) &middot; 89/3000</div><div class="box ink" dir="rtl" lang="he" style="font-size:15px;line-height:1.55;color:#14130F;background-color:#F1EDE0;border:1px solid #CFC9B8;border-radius:8px;padding:12px 14px"><div dir="auto" style="min-height:1.55em;">חדש בבלוג: מערכת עיצוב למייל</div><div dir="auto" style="min-height:1.55em;">&nbsp;</div><div dir="auto" style="min-height:1.55em;">A short summary.</div><div dir="auto" style="min-height:1.55em;">&nbsp;</div><div dir="auto" style="min-height:1.55em;">https://yehudabriskman.com/he/blog/sample</div></div></td></tr>
+<tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:0px 24px 16px 24px"><div class="soft" style="margin:0 0 6px 0;font-size:13px;line-height:1.4;font-weight:700;color:#55524A">X (Hebrew) &middot; 70/280</div><div class="box ink" dir="rtl" lang="he" style="font-size:15px;line-height:1.55;color:#14130F;background-color:#F1EDE0;border:1px solid #CFC9B8;border-radius:8px;padding:12px 14px"><div dir="auto" style="min-height:1.55em;">חדש בבלוג: מערכת עיצוב למייל https://yehudabriskman.com/he/blog/sample</div></div></td></tr>
+<tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:0px 24px 16px 24px"><div class="soft" style="margin:0 0 6px 0;font-size:13px;line-height:1.4;font-weight:700;color:#55524A">Email (Hebrew)</div><div class="box ink" dir="rtl" lang="he" style="font-size:15px;line-height:1.55;color:#14130F;background-color:#F1EDE0;border:1px solid #CFC9B8;border-radius:8px;padding:12px 14px"><div dir="auto" style="min-height:1.55em;">חדש בבלוג: מערכת עיצוב למייל</div><div dir="auto" style="min-height:1.55em;">&nbsp;</div><div dir="auto" style="min-height:1.55em;">A short summary.</div><div dir="auto" style="min-height:1.55em;">&nbsp;</div><div dir="auto" style="min-height:1.55em;">https://yehudabriskman.com/he/blog/sample</div></div></td></tr>
+<tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:0px 24px 16px 24px"><p class="soft" dir="auto" style="margin:0;font-size:14px;line-height:1.5;color:#55524A">Nothing is posted for you. Copy a caption, post it yourself, then mark it done in the inbox.</p></td></tr>
+<tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:12px 24px 24px 24px"><div class="rule" style="border-top:1px solid #CFC9B8;padding-top:14px"><p class="soft" style="margin:0 0 8px 0;font-size:13px;line-height:1.5;color:#55524A"><bdi>Example Person</bdi><br><bdi>contact@example.org</bdi><br><bdi>+972 50-000 0000</bdi><br><bdi>https://example.org</bdi></p></div></td></tr>
+</table></td></tr></table></body></html>"
+`;
+
+exports[`every transactional mail > owner-en: snapshot of the page and its plain text, under the size limit > text 1`] = `
+"New post
+
+Card image: https://example.test/api/seo/og/blog/sample.png?format=og
+
+A design system for mail
+
+מערכת עיצוב למייל
+
+A short summary.
+
+Open the Announce inbox: https://example.test/admin/announce
+
+LinkedIn:
+New on the blog: A design system for mail
+
+A short summary.
+
+https://yehudabriskman.com/blog/sample
+
+X:
+New on the blog: A design system for mail https://yehudabriskman.com/blog/sample
+
+Email:
+New on the blog: A design system for mail
+
+A short summary.
+
+https://yehudabriskman.com/blog/sample
+
+LinkedIn (Hebrew):
+חדש בבלוג: מערכת עיצוב למייל
+
+A short summary.
+
+https://yehudabriskman.com/he/blog/sample
+
+X (Hebrew):
+חדש בבלוג: מערכת עיצוב למייל https://yehudabriskman.com/he/blog/sample
+
+Email (Hebrew):
+חדש בבלוג: מערכת עיצוב למייל
+
+A short summary.
+
+https://yehudabriskman.com/he/blog/sample
+
+Nothing is posted for you. Copy a caption, post it yourself, then mark it done in the inbox.
+
+--
+Example Person
+contact@example.org
++972 50-000 0000
+https://example.org"
+`;
