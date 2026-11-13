@@ -17,6 +17,9 @@ import { cn } from "@/lib/utils"
  * Its surface, motion and hierarchy classes are the popup system's, in
  * `styles/popup.css`: `pop` for the surface and its enter/exit, `pop-head`,
  * `pop-body` and `pop-foot` for the rows inside it.
+ *
+ * `container` portals the panel somewhere other than <body>: inside a modal
+ * <dialog> (the top layer) a body-level panel would sit underneath it.
  */
 const Popover = PopoverPrimitive.Root
 const PopoverTrigger = PopoverPrimitive.Trigger
@@ -24,9 +27,9 @@ const PopoverClose = PopoverPrimitive.Close
 
 const PopoverContent = React.forwardRef<
   React.ElementRef<typeof PopoverPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Content>
->(({ className, sideOffset = 8, ...props }, ref) => (
-  <PopoverPrimitive.Portal>
+  React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Content> & { container?: HTMLElement | null }
+>(({ className, sideOffset = 8, container, ...props }, ref) => (
+  <PopoverPrimitive.Portal container={container}>
     <PopoverPrimitive.Content
       ref={ref}
       sideOffset={sideOffset}

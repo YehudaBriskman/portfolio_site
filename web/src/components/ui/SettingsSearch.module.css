@@ -1,0 +1,92 @@
+/* 16px type so a phone never zooms in on focus; 44px field and clear target. */
+.search {
+  display: flex;
+  flex-direction: column;
+  gap: var(--a-s-1, 0.25rem);
+}
+
+.field {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.glass {
+  position: absolute;
+  inset-inline-start: var(--a-s-3, 0.75rem);
+  color: rgb(var(--ink-soft));
+  pointer-events: none;
+}
+
+.input {
+  inline-size: 100%;
+  min-block-size: 2.75rem;
+  padding-block: var(--a-s-2, 0.5rem);
+  padding-inline: 2.5rem 2.75rem;
+  border: 1px solid rgb(var(--rule-firm) / 0.5);
+  border-radius: var(--a-r-ctl, 12px);
+  background: rgb(var(--paper-2));
+  color: rgb(var(--ink));
+  font: inherit;
+  font-size: 1rem;
+}
+
+.input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.input:focus-visible {
+  outline: 2px solid rgb(var(--signal));
+  outline-offset: 1px;
+}
+
+.clear {
+  position: absolute;
+  inset-inline-end: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 2.75rem;
+  block-size: 2.75rem;
+  padding: 0;
+  border: 0;
+  border-radius: var(--a-r-ctl, 12px);
+  background: transparent;
+  color: rgb(var(--ink-soft));
+  cursor: pointer;
+}
+
+.clear:focus-visible {
+  outline: 2px solid rgb(var(--signal));
+  outline-offset: -2px;
+}
+
+.status {
+  min-block-size: 1.25rem;
+  padding-inline: var(--a-s-1, 0.25rem);
+  font-size: var(--a-fs-meta, 0.875rem);
+  color: rgb(var(--ink-soft));
+}
+
+.status:empty {
+  display: none;
+}
+
+.again {
+  align-self: flex-start;
+  min-block-size: 2.75rem;
+  padding-inline: var(--a-s-3, 0.75rem);
+  border: 0;
+  border-radius: var(--a-r-ctl, 12px);
+  background: transparent;
+  color: rgb(var(--ink));
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.again:focus-visible {
+  outline: 2px solid rgb(var(--signal));
+  outline-offset: -2px;
+}

@@ -1,0 +1,44 @@
+/* A 44px info button; the panel is the popup system's, capped so long help scrolls. */
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  inline-size: 2.75rem;
+  block-size: 2.75rem;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: rgb(var(--ink-soft));
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.button:active {
+  background: var(--a-press, rgb(var(--ink) / 0.09));
+}
+
+.button:focus-visible {
+  outline: 2px solid rgb(var(--signal));
+  outline-offset: -2px;
+}
+
+@media (hover: hover) {
+  .button:hover {
+    background: var(--a-hover, rgb(var(--ink) / 0.05));
+  }
+}
+
+.panel {
+  max-block-size: min(60dvh, 20rem);
+  padding: var(--a-s-3, 0.75rem) var(--a-s-4, 1rem);
+}
+
+.text {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
