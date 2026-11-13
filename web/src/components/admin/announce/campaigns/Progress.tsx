@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { adminCampaigns, type Campaign } from "@/services/adminCampaigns";
 import { useCampaignWords } from "./words";
+import BudgetPlan from "./BudgetPlan";
 
 const POLL_MS = 5000;
 const nf = new Intl.NumberFormat("en-GB");
@@ -41,6 +42,7 @@ export default function Progress({ campaign, onUpdate }: { campaign: Campaign; o
           <p className="a-hint tabular-nums">{w.of(done, c.queued)}</p>
         </div>
       )}
+      {(campaign.status === "sending" || campaign.status === "paused") && c.queued > done && <BudgetPlan remaining={c.queued - done} />}
       {(campaign.startedAt || campaign.finishedAt) && (
         <p className="a-hint !mt-0">
           {campaign.startedAt && <span className="me-4">{w.started}: <time dateTime={campaign.startedAt}>{when(campaign.startedAt)}</time></span>}

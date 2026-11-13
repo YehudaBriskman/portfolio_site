@@ -4,6 +4,7 @@ import { couch } from "../db/couch.js";
 import { listRecipients, getContact, isSuppressed, updateContact } from "../audience/store.js";
 import { cachedKind, ledgerPutQuietly } from "../audience/ledger.js";
 import { logger } from "../logger.js";
+import { budgetNow, checkBudgetThresholds } from "./budgetStore.js";
 import { ledgerGuard } from "./guard.js";
 import { emailService, type BulkMessage } from "../services/email.service.js";
 import { resolveSender } from "./config.js";
@@ -237,7 +238,14 @@ async function runCampaign(c: Campaign, settings: SenderSettings, deps: Required
   /* Read before the budget is reserved, so a failed read (nothing is sent) costs no budget. Checked again per recipient below, against this fresh count. */
   const limit = Math.floor(settings.maxPerContact30d);
   const counts = limit > 0 && !c.capOverride ? await sentCounts(ms - CAP_WINDOW_MS, id) : null;
-  const granted = await reserve(settings, Math.min(BATCH_MAX, todo.length), ms);
+  /* The provider's quota: counted from the send docs, never remembered, so a restart cannot double count. A failed read throws and nothing is sent. */
+  const { budget } = await budgetNow(ms, settings);
+  await checkBudgetThresholds(ms, budget);
+  if (budget.capacity <= 0) {
+    logger.debug({ campaign: id, waiting: budget.waiting }, "campaign waits for the mail budget");
+    return;
+  }
+  const granted = await reserve(settings, Math.min(BATCH_MAX, todo.length, budget.capacity), ms);
   if (granted === 0) return;
   const from = resolveSender(settings);
   let used = 0;
@@ -326,6 +334,13 @@ async function runCampaign(c: Campaign, settings: SenderSettings, deps: Required
     }
   });
   logger.info({ campaign: id, sent, failed, suppressed, capped, ...(stop ? { paused: stop } : {}) }, "campaign batch done");
+  if (sent > 0) {
+    try {
+      await checkBudgetThresholds(ms, (await budgetNow(deps.now(), settings)).budget);
+    } catch {
+      /* An alert that cannot be computed is skipped; the next batch tries again. */
+    }
+  }
 }
 
 /* --- the tick ------------------------------------------------------------------ */

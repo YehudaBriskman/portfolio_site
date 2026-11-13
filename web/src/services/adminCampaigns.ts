@@ -67,6 +67,17 @@ export type AudienceSample = { count: number; samples: string[]; overCap?: numbe
 export type CapChoice = { skipCapped?: boolean; overrideCap?: boolean };
 export type CapInfo = { code: "cap"; capped: number; total: number; max: number };
 
+/** The mail budget (GET /budget): counts only. `plan` is present when `remaining` was asked; null means the settings leave no room at all. */
+export type BudgetView = {
+  today: { used: number; usable: number; reserve: number; room: number };
+  month: { used: number; usable: number; room: number };
+  capacity: number;
+  waiting: "day" | "month" | null;
+  resumeAt: string | null;
+  thresholds: Array<70 | 90>;
+  plan?: { days: number; finishAt: string } | null;
+};
+
 export class CampaignConflictError extends Error {
   constructor(message = "conflict") {
     super(message);
@@ -122,6 +133,12 @@ export const adminCampaigns = {
   audienceOf: async (sel: { groups: string[]; lang: CampaignLang; topic: CampaignTopic | null }): Promise<AudienceSample> => {
     const r = await call<AudienceSample>("/audience", json(sel));
     return { count: r.count ?? 0, samples: Array.isArray(r.samples) ? r.samples : [], ...(typeof r.overCap === "number" && typeof r.cap === "number" ? { overCap: r.overCap, cap: r.cap } : {}) };
+  },
+  /** The mail budget now and, given how many are still to send, how many days that takes. */
+  budget: async (remaining?: number): Promise<BudgetView> => {
+    const r = await call<Partial<BudgetView> | null>(`/budget${remaining === undefined ? "" : `?remaining=${Math.max(0, Math.floor(remaining))}`}`);
+    if (!r || typeof r.today?.used !== "number" || typeof r.month?.used !== "number" || typeof r.capacity !== "number") throw new Error("bad-budget");
+    return { ...(r as BudgetView), thresholds: Array.isArray(r.thresholds) ? r.thresholds : [] };
   },
   /** The mail as the server would send it, from draft text that need not be saved. */
   preview: (b: { subject: string; preheader: string; bodyText: string; blocks: Block[] | null; lang: "en" | "he" }) =>

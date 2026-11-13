@@ -7,6 +7,8 @@ import { loadSettings } from "../announce/store.js";
 import { missingIdentity, validateSenderTexts } from "../announce/schemas.js";
 import { emailService } from "../services/email.service.js";
 import { logger } from "../logger.js";
+import { budgetLimits, budgetNow } from "./budgetStore.js";
+import { estimateFinish, nextWindowAt, thresholdsReached } from "./budget.js";
 import { resolveSender } from "./config.js";
 import { renderCampaignMail } from "./render.js";
 import { AudienceBody, CampaignCreate, CampaignId, CampaignPatch, PreviewBody, ScheduleBody, SendNowBody, type Campaign } from "./schemas.js";
@@ -45,6 +47,34 @@ router.get(
   "/",
   asyncHandler(async (_req, res) => {
     res.set("Cache-Control", "no-store").json({ ok: true, campaigns: (await listCampaigns()).map(view) });
+  }),
+);
+
+/*
+ * The mail budget for the settings meter, the confirm step and the progress
+ * panel: today (rolling 24 h) and this month, what newsletters may still send,
+ * and, given `remaining` recipients, how many days a campaign needs. Counts
+ * only. Registered before /:id so "budget" is never read as a campaign id.
+ */
+router.get(
+  "/budget",
+  asyncHandler(async (req, res) => {
+    const ms = Date.now();
+    const { budget: b, newsTimes, sender: s } = await budgetNow(ms);
+    const remaining = Number.parseInt(String(req.query.remaining ?? ""), 10);
+    const plan = Number.isInteger(remaining) && remaining >= 0 ? estimateFinish(remaining, ms, b, s) : undefined;
+    const resume = nextWindowAt(b, newsTimes, ms);
+    res.set("Cache-Control", "no-store").json({
+      ok: true,
+      limits: budgetLimits(s),
+      today: { used: b.usedDay, usable: b.usableDay, reserve: b.reserve, room: b.roomDay },
+      month: { used: b.usedMonth, usable: b.usableMonth, room: b.roomMonth },
+      capacity: b.capacity,
+      waiting: b.waiting,
+      resumeAt: resume === null ? null : new Date(resume).toISOString(),
+      thresholds: thresholdsReached(b.usedMonth, b.usableMonth),
+      ...(plan !== undefined ? { plan } : {}),
+    });
   }),
 );
 
