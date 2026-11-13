@@ -482,6 +482,26 @@ unless stated.
 | Footer identity (entered by the owner) | Settings, "Sender & delivery" |
 | Form version recorded as consent, `site-form-v1` | `backend/src/audience/schemas.ts` (`SITE_FORM_VERSION`) |
 
+## Contact form: what it may cost
+
+The contact form shares the provider's daily quota (100 mails) with signup
+confirmations and campaigns, so `backend/src/services/contactGuard.ts` limits it.
+Every limit is silent: the visitor gets the same `200 {ok:true}` whether the
+message was sent, dropped by a limit or caught by the honeypot.
+
+| Limit | Value | When it trips |
+|---|---|---|
+| Honeypot (`website`) | must be empty | nothing is sent or counted |
+| Per client | 5 messages / 15 min | message dropped |
+| Whole form | 30 messages / hour | message dropped |
+| Per address | 1 auto-reply / hour | owner notice still sent, auto-reply skipped |
+| Daily ceiling | `CONTACT_DAILY_MAIL_CEILING`, default 30 mails / UTC day | both mails count; over it, nothing is sent |
+
+Counters live in memory (a restart resets them). The per-address window stores a
+SHA-256 of the address, never the address. A dropped message is logged as a
+warning without any address. The 40-requests / 15-minute junk limiter on
+`/api/email` still answers 429.
+
 ## Runbook
 
 ### A campaign is stuck in `sending`
