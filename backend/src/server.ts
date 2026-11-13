@@ -10,7 +10,7 @@ import { logger } from './logger.js';
 import { startSender } from './campaigns/sender.js';
 import { startAudienceSweep } from './audience/sweep.js';
 import { ensureSendIndex } from './campaigns/store.js';
-import { ensureLedger } from './audience/ledger.js';
+import { bootLedger } from './audience/ledger.js';
 import { startOwnerNotifier } from './notify/notifier.js';
 
 const app = createApp();
@@ -131,14 +131,7 @@ startContributionsRefresh();
  * The suppression ledger's own database. Not fatal, but the sender refuses to
  * run without it (campaigns/guard.ts), so a failure here is the loud kind.
  */
-ensureLedger()
-  .then(() => logger.info("suppression ledger ready"))
-  .catch((err: unknown) => {
-    logger.error(
-      { err: err instanceof Error ? err.message : String(err) },
-      "suppression ledger could not be prepared; campaigns will not send until it exists (see docs/newsletter.md)",
-    );
-  });
+void bootLedger();
 
 /* The campaign sender: resumable, so a restart only costs the time until the next tick. */
 startSender();

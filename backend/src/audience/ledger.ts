@@ -71,7 +71,7 @@ export type LedgerStore = {
   del: (id: string, rev: string) => Promise<unknown>;
   /** Every document with its body; the ledger is small. */
   all: () => Promise<Array<Record<string, unknown>>>;
-  /** Creates the database; a 412 (already there) is not an error. */
+  /** Makes sure the database exists: looks first (a plain member may not PUT), creates only on a 404; a 412 is not an error. */
   create: () => Promise<void>;
 };
 
@@ -81,10 +81,21 @@ const httpStore: LedgerStore = {
   del: (id, rev) => call(`/${encodeURIComponent(id)}?rev=${encodeURIComponent(rev)}`, { method: "DELETE" }),
   all: async () => (await call<{ rows: Array<{ doc?: Record<string, unknown> }> }>("/_all_docs?include_docs=true")).rows.flatMap((r) => (r.doc ? [r.doc] : [])),
   create: async () => {
+    /* CouchDB answers a non-admin's PUT /db with 401 even when the database exists, so look first. */
+    try {
+      await call("");
+      return;
+    } catch (e) {
+      if (!isStatus(e, 404)) throw e;
+    }
     try {
       await call("", { method: "PUT" });
     } catch (e) {
-      if (!(e instanceof CouchError && e.status === 412)) throw e;
+      if (isStatus(e, 412)) return;
+      if (e instanceof CouchError && (e.status === 401 || e.status === 403)) {
+        throw new CouchError(e.status, "the ledger database does not exist and this user may not create it: see docs/newsletter.md", e);
+      }
+      throw e;
     }
   },
 };
@@ -179,7 +190,7 @@ export async function ledgerPutQuietly(hash: string, kind: LedgerKind): Promise<
 
 /**
  * Creates the database and its marker if missing. Run at boot; never creates
- * lines. Needs a credential that may create databases (see docs/newsletter.md).
+ * lines. Creating the database needs a CouchDB admin; when it already exists a plain member is enough (see docs/newsletter.md).
  */
 export async function ensureLedger(): Promise<void> {
   await store.create();
@@ -191,6 +202,21 @@ export async function ensureLedger(): Promise<void> {
     }
   }
   cache = null;
+}
+
+/** Boot hook: prepares the ledger and says so. Never throws; the sender fails closed without it. */
+export async function bootLedger(): Promise<boolean> {
+  try {
+    await ensureLedger();
+    logger.info("suppression ledger ready");
+    return true;
+  } catch (err) {
+    logger.error(
+      { err: err instanceof Error ? err.message : String(err) },
+      "suppression ledger could not be prepared; campaigns will not send until it exists (see docs/newsletter.md)",
+    );
+    return false;
+  }
 }
 
 /**

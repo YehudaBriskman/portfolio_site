@@ -499,10 +499,10 @@ recomputed from a known address), kept for one purpose: honouring a refusal.
   enters the ledger after the upgrade) and deletes expired `erased` lines.
 - **Fails closed.** If the ledger database cannot be read, or its `meta:ledger`
   marker is missing, no campaign is claimed or continued and the banner says so.
-  The API creates the database and marker at boot if it may; if the CouchDB user
-  cannot create databases, create `portfolio_suppression` once by hand, give the API
-  user read and write on it, and restart. Never restore the ledger from an old
-  backup over a newer one.
+  At boot the API looks for the database, creates it only if it is missing and the
+  CouchDB user may create databases, and writes the marker itself. If it is missing
+  and the user may not, follow "First deploy" below. Never restore the ledger from an
+  old backup over a newer one.
 - **After a real restore:** restore the content database, start the API, let the
   next tick (or `POST /api/admin/audience/ledger/check`) run the guard, read the
   banner, check the audience, press "I have checked". Mail that went to people
@@ -511,6 +511,42 @@ recomputed from a known address), kept for one purpose: honouring a refusal.
   Check campaigns in `sending` or `scheduled` by hand after a restore.
 - Losing the ledger's own disk loses it. Its nightly dump is tiny; keep it in the
   offsite copy once there is one.
+
+### First deploy: the suppression database
+
+CouchDB lets only a server admin create a database, and it answers a plain user with
+401 even when the database already exists. So create it once by hand, then let the API
+do the rest. The API's own user needs no admin rights.
+
+1. Create the database and make the API user a member of it, as the CouchDB admin,
+   inside the couchdb pod using its own environment credentials (nothing is printed).
+   On the production node (`ubuntu@free-arm`, k3s):
+
+   ```sh
+   U=$(sudo k3s kubectl -n prod get secret portfolio-api-env -o jsonpath='{.data.COUCHDB_USER}' | base64 -d); U=${U:-portfolio_api}; POD=$(sudo k3s kubectl -n obsidian get pods -o name | grep -i couchdb | head -1); sudo k3s kubectl -n obsidian exec $POD -c couchdb -- sh -c "curl -s -u \"\$COUCHDB_USER:\$COUCHDB_PASSWORD\" -X PUT http://localhost:5984/portfolio_suppression; echo; curl -s -u \"\$COUCHDB_USER:\$COUCHDB_PASSWORD\" -X PUT http://localhost:5984/portfolio_suppression/_security -H 'content-type: application/json' -d '{\"admins\":{\"names\":[],\"roles\":[]},\"members\":{\"names\":[\"$U\"],\"roles\":[]}}'"
+   ```
+
+   Replies of `{"ok":true}` are good; `file_exists` on the first call just means the
+   database was already made.
+2. Restart the API so it prepares the ledger:
+
+   ```sh
+   sudo k3s kubectl -n prod rollout restart deploy/api && sudo k3s kubectl -n prod rollout status deploy/api
+   ```
+
+No manual marker is needed: with the database present and the API user a member, the
+API writes `meta:ledger` itself at boot.
+
+How to know it worked: the log line `suppression ledger ready` and no red banner
+("The never-mail list cannot be read") on the admin Audience tab. Log check:
+
+```sh
+for p in $(sudo k3s kubectl -n prod get pods -o name | grep -i api); do sudo k3s kubectl -n prod logs $p --tail=300 | grep -iE "suppression ledger"; done
+```
+
+If the log says the
+database does not exist and the user may not create it, step 1 did not run or the
+name differs from `LEDGER_DB`.
 
 ### Erasure on request
 
