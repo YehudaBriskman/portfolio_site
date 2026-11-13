@@ -51,8 +51,7 @@ function startSink(): Promise<number> {
           data = false;
           const split = acc.indexOf("\r\n\r\n");
           const head = acc.slice(0, split).replace(/\r\n[ \t]+/g, " ");
-          const headers: Record<string, string> = {};
-          for (const l of head.split("\r\n")) headers[l.slice(0, l.indexOf(":")).toLowerCase()] = l.slice(l.indexOf(":") + 1).trim();
+          const headers: Record<string, string> = Object.fromEntries(head.split("\r\n").map((l) => [l.slice(0, l.indexOf(":")).toLowerCase(), l.slice(l.indexOf(":") + 1).trim()]));
           mails.push({ to, raw: acc, headers, body: acc.slice(split + 4) });
           say("250 queued");
           continue;
