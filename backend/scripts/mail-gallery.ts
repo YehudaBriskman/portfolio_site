@@ -2,7 +2,7 @@
  * Renders every mail template to HTML files, and (with --shots) screenshots each
  * at 390 and 600 px, light and dark, so the design can be looked at.
  *
- *   npx tsx scripts/mail-gallery.ts [outDir] [--shots]
+ *   npx tsx scripts/mail-gallery.ts <outDir> [--shots]   (outDir defaults to ./mail-gallery-out; keep it out of git)
  *
  * Variants per template: English and Hebrew, a normal and a stress copy (a very
  * long name, markup in every field). Dark is the real prefers-color-scheme
@@ -12,7 +12,6 @@
  * and the card image requests are answered locally.
  */
 import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import { createRequire } from "node:module";
 import "../src/test-env.js";
@@ -29,7 +28,7 @@ Module._load = (request, ...rest) => (request === "@emailjs/nodejs" ? {} : load(
 
 const args = process.argv.slice(2);
 const shots = args.includes("--shots");
-const out = path.resolve(args.find((a) => !a.startsWith("--")) ?? path.join(os.tmpdir(), "mail-gallery"));
+const out = path.resolve(args.find((a) => !a.startsWith("--")) ?? "mail-gallery-out");
 
 const NASTY = `<script>alert(1)</script> <b>bold</b> & "quoted" 'single'`;
 const LONG_EN = "Alexandria-Wilhelmina Featherstonehaugh-Cholmondeley the Third of Nowhere-in-Particular";
