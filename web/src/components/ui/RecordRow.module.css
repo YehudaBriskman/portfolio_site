@@ -1,0 +1,178 @@
+/*
+ * One row, one button. Grid: icon | title over facts | status | chevron, the
+ * title column minmax(0, 1fr) so a long title wraps (two lines) instead of
+ * pushing the row wider. Logical properties only; the chevron turns around
+ * under :dir(rtl). Hover only where a pointer can hover; the press and any
+ * movement are inside no-preference.
+ */
+.item {
+  display: block;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  grid-template-areas:
+    "lead title status chevron"
+    "lead facts status chevron";
+  align-items: center;
+  column-gap: var(--a-s-3, 0.75rem);
+  inline-size: 100%;
+  min-block-size: 3.5rem;
+  padding-block: var(--a-s-2, 0.5rem);
+  padding-inline: var(--a-s-3, 0.75rem);
+  border: 0;
+  border-radius: var(--a-r-ctl, 12px);
+  background: transparent;
+  color: rgb(var(--ink));
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  user-select: none;
+}
+
+/* Inset, so a neighbouring row or the edge of the scroller never clips it. */
+.row:focus-visible {
+  outline: 2px solid rgb(var(--signal));
+  outline-offset: -2px;
+}
+
+.row:active {
+  background: var(--a-press, rgb(var(--ink) / 0.09));
+}
+
+.row[data-selected="true"] {
+  background: var(--a-hover, rgb(var(--ink) / 0.05));
+}
+
+@media (hover: hover) {
+  .row:hover {
+    background: var(--a-hover, rgb(var(--ink) / 0.05));
+  }
+}
+
+.lead {
+  grid-area: lead;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 2.5rem;
+  block-size: 2.5rem;
+  border-radius: 50%;
+  background: rgb(var(--paper-2));
+  color: rgb(var(--ink-soft));
+}
+
+.box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 1.375rem;
+  block-size: 1.375rem;
+  border: 2px solid rgb(var(--rule-firm));
+  border-radius: var(--a-r-tiny, 6px);
+  color: rgb(var(--paper));
+}
+
+.box[data-checked="true"] {
+  border-color: rgb(var(--signal));
+  background: rgb(var(--signal));
+}
+
+.title {
+  grid-area: title;
+  min-inline-size: 0;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+/* The description is a pass-through: its children sit in the row's own grid. */
+.desc {
+  display: contents;
+}
+
+.facts {
+  grid-area: facts;
+  min-inline-size: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--a-s-3, 0.75rem);
+  margin-block-start: 0.125rem;
+  font-size: var(--a-fs-meta, 0.875rem);
+  color: rgb(var(--ink-soft));
+}
+
+.fact {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-inline-size: 0;
+  max-inline-size: 100%;
+}
+
+.fact bdi {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.status {
+  grid-area: status;
+  display: inline-flex;
+  align-items: center;
+}
+
+.chevron {
+  grid-area: chevron;
+  display: inline-flex;
+  align-items: center;
+  color: rgb(var(--ink-soft));
+}
+
+.chevron:dir(rtl) {
+  transform: rotate(180deg);
+}
+
+/* 8px dot at the inline start, in the row's own padding. */
+.dot {
+  position: absolute;
+  inset-inline-start: 0.125rem;
+  inset-block-start: 50%;
+  inline-size: 0.5rem;
+  block-size: 0.5rem;
+  margin-block-start: -0.25rem;
+  border-radius: 50%;
+  background: rgb(var(--signal));
+}
+
+.srOnly {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .row {
+    transition: background-color var(--a-dur-fast, 120ms) var(--a-ease-inout, ease), scale var(--a-dur-fast, 120ms) var(--a-ease-out, ease);
+  }
+  .row:active {
+    scale: 0.98;
+  }
+}

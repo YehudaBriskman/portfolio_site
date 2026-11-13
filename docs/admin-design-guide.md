@@ -180,6 +180,11 @@ Status: **exists** = on `main` today. **planned** = an open issue; do not copy a
 | `dropdown-menu` | `@/components/ui/dropdown-menu` | the "..." menu of secondary actions on desktop | the only path to an action on touch rows |
 | `Select` | `@/components/ui/Select` | a single choice from a short list | more than ~8 options (searchable multi in `FilterSheet`) |
 | `sonner` (`toast`, `Toaster`) | `@/components/ui/sonner` | feedback and **Undo** for reversible actions | an error the user must act on (keep it inline) |
+| `BottomSheet` (#669) | `@/components/ui/BottomSheet` | detail, filters, bulk actions: short and transient. Native `<dialog>`, opens at half and pulls to full (optional peek), Back closes it, Esc and backdrop and drag-down close it, focus returns to the opener, one at a time; the handle is a 44px button (Enter/arrows resize) | a long flow gets a page; never a sheet opening a sheet |
+| `RecordRow` (#669) | `@/components/ui/RecordRow` | every phone list row: icon, title, <= 2 facts (`MAX_FACTS`), 1 status, chevron; the whole row is one button named by `openLabel` | buttons inside it |
+| `StatusGlyph` (#669) | `@/components/ui/StatusGlyph` | a status as shape + tone + hidden word (`withWord` in sheets); published / active / mailable / translated draw nothing unless `showDefault` | colour alone, two on a row |
+| `ChannelIcon`, `ChannelRow` (#669) | `@/components/ui/ChannelIcon` | LinkedIn / X / Instagram / email in fixed order, filled with a check = posted, outline = not yet; brand paths in `channelGlyphs.ts` (simple-icons, CC0) | any other order |
+| `ICON`, `CONCEPTS` (#669) | `@/components/ui/icons` | the vocabulary in section 4; words (he + en) in `useMobileWords().icons` (`i18n/mobile.ts`); `icons.test.ts` fails on a concept without a word | an icon with no concept row |
 | `Journey`, `LifecycleStepper` (#672) | `@/components/ui/Journey` | from > to with optional waypoints and a `via` pill (sender > audience); a vertical lifecycle (draft > scheduled > sending > sent) with the current step announced and paused/failed/canceled as a side branch | a graphic with no text: every fact is also in the list |
 | `MiniBar` (#672) | `@/components/ui/MiniBar` | counts as a segmented inline bar, `role="img"` with a text name; danger is hatched | the only place a decision number appears: keep the number visible |
 | `Gauge` (#672) | `@/components/ui/Gauge` | a budget against a limit as a ring, warn at 70 / danger at 90 percent; level in colour, badge glyph and words, value in a hidden `<meter>` | colour-only status |
@@ -191,11 +196,6 @@ Also on main, outside `ui/`: the admin shell and `.a-*` classes (`@/components/a
 
 | Component | Issue | Import (planned) | Use it for | Rule of thumb |
 |---|---|---|---|---|
-| `BottomSheet` | #669 | `@/components/admin/mobile` | detail, filters, bulk actions: short and transient. Native `<dialog>`, snaps peek / half / full, Back closes it, one at a time | a long flow gets a page; never a sheet opening a sheet |
-| `RecordRow` | #669 | `@/components/admin/mobile` | every phone list row: icon, title, <= 2 facts, 1 status, chevron; the whole row is one button | no buttons inside it |
-| `StatusGlyph` | #669 | `@/components/admin/mobile` | a status as shape + tone + hidden word; defaults draw nothing | never colour alone, never two on a row |
-| `ChannelIcon` / `ChannelRow` | #669, #670 | `@/components/admin/mobile` | LinkedIn / X / Instagram / email glyphs (lucide has no brand icons), filled = posted | fixed order |
-| `icons` / `iconWords` | #669 | `@/components/admin/mobile/icons` | the vocabulary in section 4 | add a row to section 4 first |
 | `SelectionBar`, `useSelection`, `UndoToast` | #671 | `@/components/admin/mobile` | bulk actions: a visible "Select" button (long-press is a bonus), a sticky bar with count, Undo | irreversible server actions use a deferred commit |
 | `Switch`, `InfoPopover`, `SettingsRow`, `SettingsList`, `SettingsSearch` | #673 | `@/components/admin/mobile` | grouped settings: one-line label + switch, help behind an info button, one-line live summary per group; more than 4 controls or any text field opens a sub-page, otherwise a half sheet | only warnings stay visible; no checkbox without `role="switch"` |
 | `FilterChips`, `FilterSheet`, `useSavedFilters` | #674 | `@/components/admin/mobile` | 3 to 5 common chips + one "Filters (n)" button; URL is the source of truth | "Show N results" applies; Esc discards |
@@ -224,7 +224,7 @@ Migrations that consume them: #670 Inbox, #676 Campaigns, #677 Audience, #678 Ma
 
 ## 4. Icon vocabulary
 
-**One concept, one icon, everywhere.** lucide-react, 16 / 20 / 24px, stroke 2 (1.75 at 16), `aria-hidden` unless the icon is the only content (then `role="img"` and a name). Directional icons (chevrons, arrows) mirror in RTL; clocks, checks, play, brand marks and charts do not. A new icon needs a row here first. Labels are the he + en names; the Hebrew labels are a draft to confirm against the translations glossary. lucide has no LinkedIn, Instagram, X or Facebook icons: `ChannelIcon` (#669) draws four inline SVGs.
+**One concept, one icon, everywhere.** lucide-react, 16 / 20 / 24px, stroke 2 (1.75 at 16), `aria-hidden` unless the icon is the only content (then `role="img"` and a name). Directional icons (chevrons, arrows) mirror in RTL; clocks, checks, play, brand marks and charts do not. A new icon needs a row here first. Labels are the he + en names; the Hebrew labels are a draft to confirm against the translations glossary. lucide has no LinkedIn, Instagram, X or Facebook icons: `ChannelIcon` (#669) draws inline SVGs for LinkedIn, X and Instagram (email is the lucide `Mail`).
 
 | Concept | Icon | en | he |
 |---|---|---|---|

@@ -1,0 +1,38 @@
+/* Four tones only; the shape of the glyph, not the colour, tells kinds apart. */
+.glyph {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--a-s-2, 0.5rem);
+  color: rgb(var(--ink-soft));
+}
+
+.svg {
+  flex: none;
+}
+
+.word {
+  font-size: var(--a-fs-meta, 0.875rem);
+  font-weight: 600;
+  color: rgb(var(--ink));
+}
+
+.glyph[data-tone="ok"] {
+  color: rgb(var(--signal));
+}
+
+.glyph[data-tone="danger"] {
+  color: rgb(var(--destructive-ink));
+}
+
+/* Attention is ink with a dashed ring: it reads without a hue. */
+.glyph[data-tone="attention"] {
+  color: rgb(var(--ink));
+}
+
+.glyph[data-tone="attention"] .svg {
+  padding: 1px;
+  border-radius: 50%;
+  outline: 1.5px dashed rgb(var(--ink-soft));
+  outline-offset: 1px;
+}
