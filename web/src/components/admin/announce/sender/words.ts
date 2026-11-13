@@ -59,7 +59,7 @@ export const useSenderWords = defineWords(
     quietZone: "Time zone",
     quietZoneHint: "A time zone name, for example Asia/Jerusalem.",
     autoDraft: "Make a draft campaign for each new note or release",
-    autoDraftHint: "Only a draft. It is never sent without you.",
+    autoDraftHint: "Only a draft. It is never sent without you. Patch releases (1.6.1) get no draft.",
 
     textsHeading: "Subscriber emails",
     textsHint: "The wording of the confirmation and the unsubscribe line. You can use {name}, {site}, {days} and {link}. Draft text: check it before you rely on it.",
@@ -167,7 +167,7 @@ export const useSenderWords = defineWords(
     quietZone: "אזור זמן",
     quietZoneHint: "שם של אזור זמן בכתיב הבינלאומי, כמו שמוצע ברשימה.",
     autoDraft: "ליצור טיוטת קמפיין לכל רשימה או גרסה חדשה",
-    autoDraftHint: "רק טיוטה. היא אף פעם לא נשלחת בלי אישור שלכם.",
+    autoDraftHint: "רק טיוטה. היא אף פעם לא נשלחת בלי אישור שלכם. גרסאות תיקון (כמו 1.6.1) לא מקבלות טיוטה.",
 
     textsHeading: "אימיילים למנויים",
     textsHint: "הניסוח של האישור ושל שורת ביטול ההרשמה. אפשר להשתמש ב־{name}, {site}, {days} ו־{link}. טקסט טיוטה: יש לבדוק אותו לפני שסומכים עליו.",
