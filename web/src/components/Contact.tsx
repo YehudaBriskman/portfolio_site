@@ -272,6 +272,7 @@ export default function Contact() {
       email: String(form.get("email") ?? ""),
       message: String(form.get("message") ?? ""),
     };
+    const website = String(form.get("website") ?? "");
 
     /*
      * Asked here with the service's own schema, so a bad field can be named.
@@ -319,7 +320,7 @@ export default function Contact() {
     setStatus({ kind: "sending" });
 
     try {
-      await sendContactMessage(parsed.data);
+      await sendContactMessage(parsed.data, website);
       /*
        * The confirmation first, the reset second, and all of it in one update.
        *
@@ -616,6 +617,10 @@ export default function Contact() {
                  * It is also the field focus lands on when the dialog opens,
                  * which is the only reason it carries a ref.
                  */}
+                {/* Honeypot: off screen and out of the tab order and the accessibility tree; a person never fills it. */}
+                <div aria-hidden="true" style={{ position: "absolute", insetInlineStart: -10000, inlineSize: 1, blockSize: 1, overflow: "hidden" }}>
+                  <input type="text" name="website" tabIndex={-1} autoComplete="off" defaultValue="" />
+                </div>
                 <div className={`${styles.field} ${styles.fieldName}`}>
                   <label className={styles.fieldLabel} htmlFor="contact-name">
                     {w.name}

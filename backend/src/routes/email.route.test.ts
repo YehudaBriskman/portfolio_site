@@ -2,6 +2,7 @@ import request from "supertest";
 import { createApp } from "../app";
 import { emailService } from "../services/email.service.js";
 import { logger } from "../logger.js";
+import { resetContactGuard } from "../services/contactGuard.js";
 
 /*
  * The contact relay, with the mail service stubbed at its one entry point.
@@ -11,9 +12,8 @@ import { logger } from "../logger.js";
  * past validation. The payload below is the one web/src/services/contact.ts
  * actually sends, so a schema change that breaks the real form breaks this.
  *
- * Each test builds its own app on purpose. The send limiter allows five
- * successful sends per fifteen minutes and lives inside createApp, so a shared
- * app would start answering 429 partway through the file.
+ * The contact guard (per-client limit, held in module memory) is reset before
+ * each test, or the file would start dropping messages partway through.
  */
 
 const formPayload = {
@@ -22,6 +22,7 @@ const formPayload = {
   template: { name: "basic", params: { title: "New message from Ada", body: "Name: Ada\n\nHello there." } },
 };
 
+beforeEach(() => resetContactGuard());
 afterEach(() => vi.restoreAllMocks());
 
 describe("POST /api/email/send", () => {
@@ -30,7 +31,8 @@ describe("POST /api/email/send", () => {
     const res = await request(createApp()).post("/api/email/send").send(formPayload);
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ ok: true, messageId: "m-1" });
+    // The same body as a dropped message gets: nothing from the provider reaches the visitor.
+    expect(res.body).toEqual({ ok: true });
     expect(send).toHaveBeenCalledOnce();
   });
 

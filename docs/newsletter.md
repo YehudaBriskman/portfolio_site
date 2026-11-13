@@ -215,6 +215,7 @@ environment only and are never shown or returned by any route:
 - `MAIL_FROM` (required) and `MAIL_REPLY_TO`: the fallback sender.
 - `SITE_URL`: the origin every link in a mail is built from.
 - `SUBSCRIBE_SECRET`: optional, at least 16 characters (`backend/src/env.ts`).
+- `RESEND_WEBHOOK_SECRET`: optional, the `whsec_...` value of the Resend webhook (see "Bounces and complaints"). Unset: the endpoint answers 404.
 
 The screen shows a warning (never a block) when the From domain differs from the
 domains of `MAIL_FROM` and `SMTP_USER` (`campaigns/config.ts`).
@@ -430,6 +431,38 @@ language, groups, topics, consent time and note, `unsubscribedAt`) with
 again, which returns them to `pending`. If they want the record gone, erase it.
 The public privacy text is aligned with this (see below).
 
+## Bounces and complaints (Resend webhook)
+
+Bounces return to Resend, not to the app, so Resend tells the app by webhook:
+`POST /api/webhooks/resend` (`audience/webhook.route.ts`). Mapping lives in
+`audience/providerEvents.ts`; the Svix-style signature check in `audience/svix.ts`.
+
+| Event | What happens |
+|---|---|
+| `email.complained` | suppressed, reason `complaint`; the complaint hook fires (`audience/complaintHook.ts`) |
+| `email.bounced`, type Permanent | suppressed, reason `hard-bounce` |
+| `email.bounced` (other) and `email.delivery_delayed` | one soft failure; the third suppresses (reason `soft-bounces`) |
+| delivered, opened, clicked, anything else | answered 200, ignored, never stored |
+
+Suppression goes ledger first, contact second (see "Backups, restore and
+erasure"). Only active or pending contacts are touched. A request is accepted
+only with a valid signature made with the secret, within 5 minutes of its
+timestamp; anything else gets the same bare 400. Each event id is applied once.
+Logs carry contact hashes only. No secret set means no endpoint (404).
+
+**Owner steps**
+
+1. Open <https://resend.com/webhooks> and choose **Add Webhook**.
+2. Endpoint URL: the public API origin plus `/api/webhooks/resend`.
+3. Events: `email.bounced`, `email.complained`, `email.delivery_delayed`.
+4. Open the webhook's page and copy the **Signing Secret** (starts `whsec_`).
+5. Put it in the backend environment as `RESEND_WEBHOOK_SECRET` and restart the API.
+6. Use the webhook page's test send in Resend and expect a 200.
+
+Resend's reference: <https://resend.com/docs/webhooks/introduction>. The free plan
+allows one endpoint. Rotating the secret in Resend means updating the variable at
+the same moment; until then events are rejected with 400 and Resend retries them.
+
 ## Deliverability checklist
 
 Do these before the first real send.
@@ -482,6 +515,27 @@ unless stated.
 | The "פרסומת" label (`COMMERCIAL_LABEL_HE`) and where it is placed | `backend/src/campaigns/render.ts` |
 | Footer identity (entered by the owner) | Settings, "Sender & delivery" |
 | Form version recorded as consent, `site-form-v1` | `backend/src/audience/schemas.ts` (`SITE_FORM_VERSION`) |
+
+## Contact form: what it may cost
+
+The contact form shares the provider's daily quota (100 mails) with signup
+confirmations and campaigns, so `backend/src/services/contactGuard.ts` limits it.
+Every limit is silent: the visitor gets the same `200 {ok:true}` whether the
+message was sent, dropped by a limit or caught by the honeypot.
+
+| Limit | Value | When it trips |
+|---|---|---|
+| Honeypot (`website`) | must be empty | nothing is sent or counted |
+| Per client | 5 messages / 15 min | message dropped |
+| Whole form | 30 messages / hour | message dropped |
+| Per address | 1 auto-reply / hour | owner notice still sent, auto-reply skipped |
+| Daily mail ceiling | `CONTACT_DAILY_MAIL_CEILING`, default 30 mails / UTC day | both mails count; over it, auto-replies stop but owner notices are still sent |
+| Daily notice ceiling | `CONTACT_DAILY_NOTICE_CEILING`, default 40 notices / UTC day | over it, the message is dropped and a warning is logged (no address) |
+
+Counters live in memory (a restart resets them). The per-address window stores a
+SHA-256 of the address, never the address. A dropped message is logged as a
+warning without any address. The 40-requests / 15-minute junk limiter on
+`/api/email` still answers 429.
 
 ## Runbook
 
