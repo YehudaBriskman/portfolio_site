@@ -43,8 +43,10 @@ describe("settings hashtags", () => {
     const settings = { enabled: true, email: { enabled: false, events: [] }, hashtags: [], signature: "", channels: ["linkedin"], templates: { en: {}, he: {} }, snippets: [], library: [], advanced: { utm: { enabled: false, source: "announce", mediumByChannel: {} } }, sender: sender(), notify: DEFAULT_NOTIFY };
     vi.stubGlobal("fetch", vi.fn(async () => json({ ok: true, exists: true, _rev: "1-s", updatedAt: null, settings })));
     render(<MemoryRouter><SettingsPanel /></MemoryRouter>);
-    fireEvent.change(await screen.findByLabelText("Default hashtags"), { target: { value: "#build-in-public" } });
+    const box = await screen.findByLabelText("Default hashtags");
+    fireEvent.change(box, { target: { value: "#build-in-public" } });
     expect((screen.getByRole("button", { name: "Save" }) as HTMLButtonElement).disabled).toBe(true);
-    expect(screen.getByText(/letters, digits/i)).toBeTruthy();
+    expect(box.getAttribute("aria-invalid")).toBe("true");
+    expect(document.getElementById(box.getAttribute("aria-describedby")!)!.textContent).toMatch(/#build-in-public.*letters, digits/);
   });
 });

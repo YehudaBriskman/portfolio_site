@@ -53,7 +53,7 @@ export default function ContactEditor({ contact, groups, onClose, onDone }: { co
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
             <label className="a-label" htmlFor={`${uid}-n`}>{w.name}</label>
-            <input id={`${uid}-n`} className="a-input min-h-[44px]" dir="auto" maxLength={120} value={name} onChange={(e) => setName(e.target.value)} />
+            <input id={`${uid}-n`} className="a-input min-h-[44px]" dir="auto" maxLength={80} value={name} onChange={(e) => setName(e.target.value)} />
           </div>
           <div>
             <label className="a-label" htmlFor={`${uid}-l`}>{w.language}</label>

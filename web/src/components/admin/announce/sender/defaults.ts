@@ -1,4 +1,5 @@
 import type { SenderSettings } from "@/services/adminAnnounce";
+import { emailOk, fromNameOk, hhmmOk } from "./rules";
 
 /*
  * What the server resets a field to (backend/src/announce/schemas.ts
@@ -45,7 +46,7 @@ export const CONTACT_FIELDS = [
   { f: "identityLinkedin", label: "idLinkedin", hint: "idLinkedinHint", bad: "badLinkedin", type: "url" },
   { f: "identityPhone", label: "idPhone", hint: "idPhoneHint", bad: "badPhone", type: "tel" },
 ] as const;
-export type SenderProblem = "empty" | "address" | "number" | "list" | "zone" | "noLink" | "unknown" | "long" | "unsubVars" | "monthBelowDay";
+export type SenderProblem = "empty" | "address" | "number" | "list" | "zone" | "noLink" | "unknown" | "long" | "unsubVars" | "monthBelowDay" | "name" | "time";
 
 /* Mirrors validateSenderTexts in backend/src/announce/schemas.ts; the server decides, this only names it before Save. */
 export const UNSUB_NOTE_MAX = 500;
@@ -59,8 +60,6 @@ export const hasTextProblem = (s: SenderSettings) => {
   const p = senderProblems(s);
   return TEXT_FIELDS.some((f) => p[f] && p[f] !== "empty");
 };
-
-const EMAIL = /^[^\s@<>"]+@[^\s@<>"]+\.[^\s@<>"]+$/;
 
 const PHONE = /^\+?[0-9][0-9 ().-]{4,30}[0-9]$/;
 /** Mirrors httpsUrl in backend/src/announce/schemas.ts. */
@@ -84,7 +83,7 @@ export const contactLines = (s: SenderSettings): string[] =>
 /** What the footer still lacks; mirrors missingIdentity on the server, which is the real gate. The postal line is never required. */
 export const identityMissing = (s: Pick<SenderSettings, "footerIdentity" | "identityEmail">): ("name" | "email")[] => [
   ...(s.footerIdentity.trim() ? [] : (["name"] as const)),
-  ...(EMAIL.test(s.identityEmail.trim()) ? [] : (["email"] as const)),
+  ...(emailOk(s.identityEmail) ? [] : (["email"] as const)),
 ];
 const zoneOk = (tz: string) => {
   try {
@@ -99,18 +98,20 @@ const whole = (n: number, max: number, min = 1) => Number.isInteger(n) && n >= m
 /** The same rules as the server's schema, so a bad value is named before Save rather than after. */
 export function senderProblems(s: SenderSettings): Partial<Record<SenderField, SenderProblem>> {
   const p: Partial<Record<SenderField, SenderProblem>> = {};
-  if (s.fromAddress && !EMAIL.test(s.fromAddress)) p.fromAddress = "address";
-  if (s.replyTo && !EMAIL.test(s.replyTo)) p.replyTo = "address";
-  if (s.identityEmail.trim() && !EMAIL.test(s.identityEmail.trim())) p.identityEmail = "address";
+  if (!fromNameOk(s.fromName)) p.fromName = "name";
+  if (s.fromAddress && !emailOk(s.fromAddress)) p.fromAddress = "address";
+  if (s.replyTo && !emailOk(s.replyTo)) p.replyTo = "address";
+  if (s.identityEmail.trim() && !emailOk(s.identityEmail)) p.identityEmail = "address";
   if (!websiteOk(s.identityWebsite)) p.identityWebsite = "address";
   if (!linkedinOk(s.identityLinkedin)) p.identityLinkedin = "address";
   if (!phoneOk(s.identityPhone)) p.identityPhone = "address";
-  if (s.testRecipients.length > 5 || s.testRecipients.some((a) => !EMAIL.test(a))) p.testRecipients = "list";
+  if (s.testRecipients.length > 5 || s.testRecipients.some((a) => !emailOk(a))) p.testRecipients = "list";
   if (!whole(s.throttlePerHour, 3600)) p.throttlePerHour = "number";
   if (!whole(s.dailyCap, 10000)) p.dailyCap = "number";
   if (!whole(s.maxPerContact30d, 31, 0)) p.maxPerContact30d = "number";
   if (!whole(s.pendingTtlDays, 30, 2)) p.pendingTtlDays = "number";
-  if (s.quietHours && !zoneOk(s.quietHours.tz)) p.quietHours = "zone";
+  if (s.quietHours && !(hhmmOk(s.quietHours.from) && hhmmOk(s.quietHours.to))) p.quietHours = "time";
+  else if (s.quietHours && !zoneOk(s.quietHours.tz)) p.quietHours = "zone";
   /* Mirrors validateSenderBudget on the server. */
   if (!whole(s.dailyLimit, 100000)) p.dailyLimit = "number";
   if (!whole(s.monthlyLimit, 1000000)) p.monthlyLimit = "number";
