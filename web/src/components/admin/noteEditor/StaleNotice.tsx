@@ -1,4 +1,5 @@
 import { useId, useMemo, useState } from "react";
+import { DisclosureButton } from "@/components/ui/Disclosure";
 import { ackTranslation, type TranslationStatus } from "@/services/translations";
 import { diffLines } from "./diff";
 import DiffView from "./DiffView";
@@ -74,9 +75,9 @@ export default function StaleNotice({
             {f === "body" ? words.staleBody : words.staleField(label[f].toLowerCase())}
           </p>
           {f === "body" && (
-            <button type="button" className="a-btn a-btn-ghost" aria-expanded={open} aria-controls={`${id}-diff`} onClick={() => setOpen((o) => !o)}>
+            <DisclosureButton className="!w-auto" expanded={open} controls={`${id}-diff`} onToggle={() => setOpen((o) => !o)}>
               {open ? words.hideChanges : words.showChanges}
-            </button>
+            </DisclosureButton>
           )}
           <button
             type="button"

@@ -154,7 +154,7 @@ describe("toggle buttons are DisclosureButtons", () => {
 
 describe("dashboard .more", () => {
   it("is at least 2.75rem tall", () => {
-    const css = readFileSync(resolve(__dirname, "../dashboard/Dashboard.module.css"), "utf8");
+    const css = readFileSync(resolve(__dirname, "../dashboard/Dashboard.module.css"), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
     const rules = [...css.matchAll(/([^{}]+)\{([^}]*)\}/g)].filter(([, sel]) => /\.more\b/.test(sel) && !/:/.test(sel));
     const heights = rules.map(([, , body]) => /min-height:\s*([\d.]+)rem/.exec(body)?.[1]).filter(Boolean).map(Number);
     expect(Math.max(0, ...heights)).toBeGreaterThanOrEqual(2.75);

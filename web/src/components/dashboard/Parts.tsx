@@ -1,6 +1,7 @@
 import { useId, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { Search } from "lucide-react";
+import { DisclosureButton } from "@/components/ui/Disclosure";
 import styles from "@/components/dashboard/Dashboard.module.css";
 import { AUTHOR } from "@/components/notes/Byline";
 import { useWords } from "@/components/dashboard/i18n";
@@ -277,6 +278,7 @@ export function TopList({ title, items, limit = 7 }: { title: string; items: Top
   const [all, setAll] = useState(false);
   const headingId = useId();
   const inputId = useId();
+  const listId = useId();
   const input = useRef<HTMLInputElement>(null);
 
   const needle = q.trim().toLocaleLowerCase();
@@ -332,7 +334,7 @@ export function TopList({ title, items, limit = 7 }: { title: string; items: Top
         />
       </div>
       {shown.length > 0 ? (
-        <ul className={styles.topList}>
+        <ul id={listId} className={styles.topList}>
           {shown.map((i) => (
             <li key={i.key}>
               <Link to={i.to} rel={facetRel(i.to)} className={styles.topItem}>
@@ -349,9 +351,9 @@ export function TopList({ title, items, limit = 7 }: { title: string; items: Top
         </div>
       )}
       {!needle && matched.length > limit && (
-        <button type="button" className={styles.more} aria-expanded={all} onClick={() => setAll(!all)}>
+        <DisclosureButton className={styles.more} expanded={all} controls={listId} onToggle={() => setAll(!all)}>
           {all ? t.showLess : t.showMore}
-        </button>
+        </DisclosureButton>
       )}
     </section>
   );

@@ -28,8 +28,6 @@
 .pv-btn:hover { background: rgb(var(--paper-3)); }
 .pv-btn[aria-pressed="true"] { background: rgb(var(--signal)); border-color: rgb(var(--signal)); color: rgb(var(--signal-ink)); }
 .pv-btn:focus-visible { outline: 2px solid rgb(var(--signal)); outline-offset: 2px; }
-.pv-link-btn { border: 0; background: none; color: rgb(var(--signal)); min-height: 44px; padding: 0 .25rem; font: inherit; font-weight: 700; cursor: pointer; }
-.pv-link-btn:focus-visible { outline: 2px solid rgb(var(--signal)); outline-offset: 2px; }
 .pv-seg { display: flex; flex-wrap: wrap; gap: .25rem; align-items: center; }
 .pv-seg-label { font-size: .75rem; color: rgb(var(--ink-soft)); margin-inline-end: .25rem; }
 .pv-meter { font-size: .8125rem; margin: 0; font-variant-numeric: tabular-nums; }

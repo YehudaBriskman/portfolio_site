@@ -302,7 +302,6 @@
   color: rgb(var(--ink-soft));
 }
 
-.more,
 .textButton {
   align-self: flex-start;
   min-height: 2rem;
@@ -315,11 +314,19 @@
   cursor: pointer;
 }
 
-.more:hover,
 .textButton:hover {
   color: rgb(var(--signal));
   text-decoration: underline;
   text-underline-offset: 3px;
+}
+
+/* The disclosure's own look, re-seated in the rail: the button is the shared
+   DisclosureButton, so this only sets where it sits and the touch floor. */
+.top .more {
+  align-self: flex-start;
+  inline-size: auto;
+  min-block-size: 2.75rem;
+  min-height: 2.75rem;
 }
 
 /* The area mark is round and carries its own ring (#251). */

@@ -23,7 +23,6 @@ describe("LinkedInPreview", () => {
     expect(screen.getByText("Approximate")).toBeTruthy();
     const more = screen.getByRole("button", { name: /see more/i });
     expect(more.getAttribute("aria-expanded")).toBe("false");
-    expect(more.className).toContain("pv-link-btn");
     fireEvent.click(more);
     expect(screen.getByRole("button", { name: /see less/i }).getAttribute("aria-expanded")).toBe("true");
   });
