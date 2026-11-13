@@ -153,16 +153,17 @@ function answer(path, method, search) {
 const tint = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300"><rect width="400" height="300" fill="#3a6f8f"/></svg>';
 
 /* ------------------------------------------------------------------ screens */
-const click = (sel, n = 0) => async (page) => { await page.locator(sel).nth(n).click({ timeout: 20000 }); };
+/* dispatchEvent, not click(): Playwright's click waits for a stable box, which needs animation frames, and this box's headless Chromium emits about one per 40 s. */
+const click = (sel, n = 0) => async (page) => { await page.locator(sel).nth(n).dispatchEvent("click", {}, { timeout: 20000 }); };
 const SCREENS = [
   ["overview", "/admin"],
-  ["nav-drawer", "/admin", async (page) => { const b = page.locator("button[aria-controls]").first(); if (await b.isVisible()) await b.click({ timeout: 5000 }); }],
-  ["display-menu", "/admin", async (page) => { await page.locator(".a-top-end button").first().click({ timeout: 5000 }); }],
+  ["nav-drawer", "/admin", async (page) => { const b = page.locator("button[aria-controls]").first(); if (await b.isVisible()) await b.dispatchEvent("click", {}, { timeout: 5000 }); }],
+  ["display-menu", "/admin", async (page) => { await page.locator(".a-top-end button").first().dispatchEvent("click", {}, { timeout: 5000 }); }],
   ["posts", "/admin/posts"],
   ["posts-filtered", "/admin/posts?status=draft"],
   ["post-editor", "/admin/posts/admin-redesign"],
   ["post-editor-preview", "/admin/posts/admin-redesign", async (page) => { await page.keyboard.press("Control+Shift+P").catch(() => {}); }],
-  ["post-review-dialog", "/admin/posts/admin-redesign", async (page) => { await page.locator(".a-bottom button.a-btn-primary, .a-bar button.a-btn-primary").last().click({ timeout: 8000 }); await page.getByRole("dialog").waitFor({ timeout: 8000 }); }],
+  ["post-review-dialog", "/admin/posts/admin-redesign", async (page) => { await page.locator(".a-bottom button.a-btn-primary, .a-bar button.a-btn-primary").last().dispatchEvent("click", {}, { timeout: 8000 }); await page.getByRole("dialog").waitFor({ timeout: 8000 }); }],
   ["post-new", "/admin/posts/new"],
   ["areas", "/admin/areas"],
   ["area-edit", "/admin/areas/bothy"],
@@ -183,7 +184,7 @@ const SCREENS = [
   ["marketing-new", "/admin/marketing", click("button.a-btn-primary.mk-btn")],
   ["marketing-campaigns", "/admin/marketing?tab=campaigns"],
   ["marketing-campaign-composer-new", "/admin/marketing?tab=campaigns", click("button.a-btn-primary")],
-  ["marketing-campaign-composer-open", "/admin/marketing?tab=campaigns", async (page) => { await page.getByRole("button", { name: /^(Open|פתיחת) / }).first().click({ timeout: 20000 }); }],
+  ["marketing-campaign-composer-open", "/admin/marketing?tab=campaigns", async (page) => { await page.getByRole("button", { name: /^(Open|פתיחת) / }).first().dispatchEvent("click", {}, { timeout: 20000 }); }],
   ["marketing-audience", "/admin/marketing?tab=audience"],
   ["marketing-contact-sheet", "/admin/marketing?tab=audience", click("table tbody tr button")],
   ["marketing-add-contact", "/admin/marketing?tab=audience", click("button.a-btn-primary")],
@@ -310,7 +311,7 @@ for (const c of combos) {
         await page.goto(`${base}${rec.path}`, { waitUntil: "load" });
         for (let i = 0; i < 40; i++) { const ok = await page.evaluate(() => { const m = document.querySelector("main"); return !!m && !/Loading|טוען/.test(m.textContent ?? "") && [...document.images].every((im) => im.complete || !im.getAttribute("src")); }); if (ok) break; await page.waitForTimeout(250); }
         if (!step) break;
-        try { await step(page); await page.waitForTimeout(500); break; } catch (e) { rec.stepFailed = e.message.split("\n")[0]; }
+        try { await step(page); await page.waitForTimeout(500); break; } catch (e) { rec.stepFailed = e.message.split("\n")[0]; if (process.env.DEBUG) console.log(e.message.slice(0, 900)); }
       }
       await page.evaluate(() => document.fonts.ready);
       Object.assign(rec, await page.evaluate(measure, { allowText: ALLOW_TEXT.join(","), primary: PRIMARY }));
