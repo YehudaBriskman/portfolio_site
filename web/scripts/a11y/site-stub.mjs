@@ -191,6 +191,15 @@ const MEDIA = [
 const DEFAULT_SETTINGS = {
   home: { sections: ["work", "approach", "city", "notes", "stack", "contact"].map((id) => ({ id, visible: true })) },
   visuals: { theme: "system", motion: "on", accent: "ink" },
+  /* Without this group the settings page throws and the error boundary answers
+     in its place (a sweep that measured the boundary, not the page). */
+  sharing: {
+    enabled: true,
+    surfaces: ["post", "note", "project", "area", "story", "home"],
+    channels: ["native", "copy", "linkedin", "email", "gmail", "x", "whatsapp", "instagram"],
+    utm: { enabled: true, source: "share" },
+    templates: { en: {}, he: {} },
+  },
 };
 const SETTINGS_VIEW = {
   ok: true,

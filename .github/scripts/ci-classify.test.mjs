@@ -322,7 +322,7 @@ test("the CI gate needs exactly classify plus every job classification selects",
 test("Browser checks: the a11y legs cover every shard exactly once, and links has a leg", () => {
   const block = jobBlocks().browser ?? "";
   assert.ok(block, "job browser not found in ci.yml");
-  const legs = [...block.matchAll(/^\s+- \{ check: (\w+), shard: (\d+), of: (\d+) \}\s*$/gm)].map((m) => ({
+  const legs = [...block.matchAll(/^\s+- \{ check: ([\w-]+), shard: (\d+), of: (\d+) \}\s*$/gm)].map((m) => ({
     check: m[1],
     shard: Number(m[2]),
     of: Number(m[3]),
@@ -333,9 +333,15 @@ test("Browser checks: the a11y legs cover every shard exactly once, and links ha
   assert.ok(a11y.every((l) => l.of === of), "every a11y leg names the same `of`");
   assert.deepEqual(a11y.map((l) => l.shard).sort((a, b) => a - b), Array.from({ length: of }, (_, i) => i + 1));
   assert.deepEqual(legs.filter((l) => l.check === "links"), [{ check: "links", shard: 1, of: 1 }]);
-  assert.equal(legs.length, of + 1, "a leg the test does not recognise");
+  // The admin matrix (#660) is sharded the same way: legs exactly 1..of.
+  const admin = legs.filter((l) => l.check === "admin-matrix");
+  assert.ok(admin.length > 0, "no admin-matrix legs");
+  assert.ok(admin.every((l) => l.of === admin[0].of), "every admin-matrix leg names the same `of`");
+  assert.deepEqual(admin.map((l) => l.shard).sort((a, b) => a - b), Array.from({ length: admin[0].of }, (_, i) => i + 1));
+  assert.equal(legs.length, of + 1 + admin[0].of, "a leg the test does not recognise");
   assert.match(block, /SHARD: \$\{\{ matrix\.shard \}\}\/\$\{\{ matrix\.of \}\}/);
   assert.match(block, /fail-fast: false/);
+  assert.match(block, /if: matrix\.check == 'admin-matrix'/);
 });
 
 test("Publish image needs Browser checks, so no manifest is recorded for a commit whose sweep failed", () => {
