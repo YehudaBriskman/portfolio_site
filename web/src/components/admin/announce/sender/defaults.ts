@@ -16,6 +16,10 @@ export const DEFAULT_SENDER: SenderSettings = {
   throttlePerHour: 60,
   dailyCap: 200,
   maxPerContact30d: 4,
+  dailyLimit: 90,
+  monthlyLimit: 2700,
+  safety: 0.9,
+  reserveShare: 0.2,
   autoDraftCampaign: false,
   labelMode: "hebrew",
   pendingTtlDays: 7,
@@ -30,9 +34,9 @@ export const DEFAULT_SENDER: SenderSettings = {
 };
 
 export type SenderField =
-  | "fromName" | "fromAddress" | "replyTo" | "footerIdentity" | "identityEmail" | "testRecipients" | "throttlePerHour" | "dailyCap" | "maxPerContact30d" | "quietHours"
+  | "fromName" | "fromAddress" | "replyTo" | "footerIdentity" | "identityEmail" | "testRecipients" | "throttlePerHour" | "dailyCap" | "maxPerContact30d" | "quietHours" | "dailyLimit" | "monthlyLimit" | "safety" | "reserveShare"
   | "confirmSubjectEn" | "confirmSubjectHe" | "confirmBodyEn" | "confirmBodyHe" | "unsubscribeNoteEn" | "unsubscribeNoteHe";
-export type SenderProblem = "empty" | "address" | "number" | "list" | "zone" | "noLink" | "unknown" | "long" | "unsubVars";
+export type SenderProblem = "empty" | "address" | "number" | "list" | "zone" | "noLink" | "unknown" | "long" | "unsubVars" | "monthBelowDay";
 
 /* Mirrors validateSenderTexts in backend/src/announce/schemas.ts; the server decides, this only names it before Save. */
 export const UNSUB_NOTE_MAX = 500;
@@ -75,6 +79,12 @@ export function senderProblems(s: SenderSettings): Partial<Record<SenderField, S
   if (!whole(s.dailyCap, 10000)) p.dailyCap = "number";
   if (!whole(s.maxPerContact30d, 31, 0)) p.maxPerContact30d = "number";
   if (s.quietHours && !zoneOk(s.quietHours.tz)) p.quietHours = "zone";
+  /* Mirrors validateSenderBudget on the server. */
+  if (!whole(s.dailyLimit, 100000)) p.dailyLimit = "number";
+  if (!whole(s.monthlyLimit, 1000000)) p.monthlyLimit = "number";
+  else if (whole(s.dailyLimit, 100000) && s.monthlyLimit < s.dailyLimit) p.monthlyLimit = "monthBelowDay";
+  if (!(Number.isFinite(s.safety) && s.safety >= 0.5 && s.safety <= 1)) p.safety = "number";
+  if (!(Number.isFinite(s.reserveShare) && s.reserveShare >= 0 && s.reserveShare <= 0.5)) p.reserveShare = "number";
   for (const k of ["confirmSubjectEn", "confirmSubjectHe", "confirmBodyEn", "confirmBodyHe", "unsubscribeNoteEn", "unsubscribeNoteHe"] as const) {
     const v = s[k];
     const note = k.startsWith("unsubscribeNote");

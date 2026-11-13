@@ -5,6 +5,7 @@ import { env } from "../env.js";
 import { logger } from "../logger.js";
 import type { SmtpErrorKind } from "../providers/classifySmtpError.js";
 import { allowAutoReply, releaseAutoReply, releaseNotice, reserveAutoReply, reserveNotice } from "./contactGuard.js";
+import { countTransactional } from "../campaigns/budgetStore.js";
 
 type EmailJsPayload = Extract<SendEmailInput, { templateId: string }>;
 
@@ -15,15 +16,21 @@ function composeBody(input: SendEmailInput): { html?: string; text?: string } {
   return { html: input.html, text: input.text };
 }
 
+/* The one place transactional mail (contact notice, auto-reply, confirmations) goes through the provider: a successful send is counted, as a number only, so the mail budget knows what the reserved share has spent. The count is not awaited: bookkeeping must never slow or fail a send. */
+async function sendCounted(provider: ReturnType<typeof getProvider>, data: Parameters<ReturnType<typeof getProvider>["send"]>[0]) {
+  const r = await provider.send(data);
+  if (r.ok) void countTransactional();
+  return r;
+}
+
 function sendAutoReply(provider: ReturnType<typeof getProvider>, visitor: string) {
-  provider
-    .send({
-      from: env.MAIL_FROM,
-      to: visitor,
-      subject: "We got your message",
-      text: "Thanks, we’ll get back to you soon.",
-      html: "<p>Thanks, we’ll get back to you soon.</p>",
-    })
+  sendCounted(provider, {
+    from: env.MAIL_FROM,
+    to: visitor,
+    subject: "We got your message",
+    text: "Thanks, we’ll get back to you soon.",
+    html: "<p>Thanks, we’ll get back to you soon.</p>",
+  })
     .then((r) => {
       // A provider's error text can quote the recipient, which is a stranger's address: log the class only.
       if (!r.ok) logger.warn({ kind: r.kind }, "auto-reply failed");
@@ -58,7 +65,7 @@ export async function sendContactEmail(input: SendEmailInput, opts: ContactSendO
 
   logger.debug({ subject: input.subject }, "sending contact email");
 
-  const result = await provider.send({
+  const result = await sendCounted(provider, {
     from: env.MAIL_FROM,
     to,
     subject: input.subject,
@@ -79,7 +86,7 @@ export async function sendContactEmail(input: SendEmailInput, opts: ContactSendO
 
 /* Mail to a subscriber (double opt-in): same provider and sender as the contact mail, but to the given address. */
 export async function sendToAddress(msg: { to: string; subject: string; text: string; html: string; headers?: Record<string, string>; from?: string; replyTo?: string }) {
-  return getProvider().send({ ...msg, from: msg.from || env.MAIL_FROM, replyTo: msg.replyTo || env.MAIL_REPLY_TO });
+  return sendCounted(getProvider(), { ...msg, from: msg.from || env.MAIL_FROM, replyTo: msg.replyTo || env.MAIL_REPLY_TO });
 }
 
 export type BulkMessage = { to: string; subject: string; text: string; html: string; headers?: Record<string, string> };

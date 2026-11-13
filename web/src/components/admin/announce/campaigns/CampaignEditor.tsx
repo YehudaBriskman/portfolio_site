@@ -19,6 +19,7 @@ import {
   type CampaignTopic,
 } from "@/services/adminCampaigns";
 import Modal from "../audience/Modal";
+import BudgetPlan from "./BudgetPlan";
 import EmailPreview from "../previews/EmailPreview";
 import BlocksEditor from "./BlocksEditor";
 import { blockProblem, blocksToText, zonedToIso } from "./helpers";
@@ -502,6 +503,7 @@ export default function CampaignEditor({
                   ) : (
                     <p className="a-hint !mt-0 font-bold">{w.readyOk}</p>
                   )}
+                  {recipients !== null && recipients > 0 && <BudgetPlan remaining={recipients} />}
                   {overCap > 0 && recipients !== null && typeof audience === "object" && <p className="a-hint font-bold" data-testid="ready-cap">{w.readyCap(overCap, recipients, audience.cap ?? 0)}</p>}
                 </div>
               )}

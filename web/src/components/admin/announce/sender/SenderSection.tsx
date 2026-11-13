@@ -2,6 +2,8 @@ import { useId, useState, type ReactNode } from "react";
 import type { SenderSettings, SenderWarning } from "@/services/adminAnnounce";
 import { DEFAULT_SENDER, UNSUB_NOTE_MAX, hasTextProblem, identityMissing, senderProblems, unknownPlaceholder, type SenderField, type SenderProblem } from "./defaults";
 import { useSenderWords } from "./words";
+import { useBudgetWords } from "./budgetWords";
+import BudgetMeter from "./BudgetMeter";
 
 /*
  * Settings > Advanced > Sender & delivery. It edits the WHOLE sender object in
@@ -14,6 +16,7 @@ const fillSample = (tpl: string, name: string, site: string) => tpl.replace(/\{(
 
 export default function SenderSection({ sender, onChange, warnings }: { sender: SenderSettings; onChange: (fn: (s: SenderSettings) => void) => void; warnings: SenderWarning[] }) {
   const w = useSenderWords();
+  const bw = useBudgetWords();
   const uid = useId();
   const problems = senderProblems(sender);
   const [tests, setTests] = useState<string | null>(null);
@@ -26,6 +29,7 @@ export default function SenderSection({ sender, onChange, warnings }: { sender: 
     if (p === "unknown") return w.unknownPlaceholder(unknownPlaceholder(sender[f as keyof SenderSettings] as string) ?? "");
     if (p === "long") return w.noteTooLong(UNSUB_NOTE_MAX);
     if (p === "unsubVars") return w.noteVars;
+    if (p === "monthBelowDay") return bw.badMonth;
     return p ? (p === "empty" ? w.fieldEmpty : p === "address" ? w.badAddress : p === "number" ? w.badNumber : p === "list" ? w.badList : w.invalidZone) : "";
   };
   const reset = (label: string, show: boolean, env: boolean, fn: () => void) =>
@@ -49,7 +53,7 @@ export default function SenderSection({ sender, onChange, warnings }: { sender: 
       </div>
     );
   };
-  const num = (f: "throttlePerHour" | "dailyCap" | "maxPerContact30d", label: string, hint: string, max: number, min = 1) => {
+  const num = (f: "throttlePerHour" | "dailyCap" | "maxPerContact30d" | "dailyLimit" | "monthlyLimit", label: string, hint: string, max: number, min = 1) => {
     const id = `${uid}-${f}`;
     return (
       <div>
@@ -59,6 +63,21 @@ export default function SenderSection({ sender, onChange, warnings }: { sender: 
           {reset(label, sender[f] !== DEFAULT_SENDER[f], false, () => onChange((s) => void (s[f] = DEFAULT_SENDER[f])))}
         </div>
         <p id={`${id}-h`} className={problems[f] ? "a-error" : "a-hint"}>{err(f) || hint}</p>
+      </div>
+    );
+  };
+  /* A ratio stored as 0 to 1, shown and typed as a whole percent. */
+  const pct = (f: "safety" | "reserveShare", label: string, hint: string, min: number, max: number) => {
+    const id = `${uid}-${f}`;
+    const v = sender[f];
+    return (
+      <div>
+        <label className="a-label" htmlFor={id}>{label}</label>
+        <div className="flex flex-wrap items-start gap-2">
+          <input id={id} type="number" inputMode="numeric" min={min} max={max} className="a-input min-h-[44px] w-32 tabular-nums" dir="ltr" value={Number.isNaN(v) ? "" : Math.round(v * 100)} aria-invalid={Boolean(problems[f])} aria-describedby={`${id}-h`} onChange={(e) => onChange((s) => void (s[f] = e.target.value === "" ? NaN : Number(e.target.value) / 100))} />
+          {reset(label, v !== DEFAULT_SENDER[f], false, () => onChange((s) => void (s[f] = DEFAULT_SENDER[f])))}
+        </div>
+        <p id={`${id}-h`} className={problems[f] ? "a-error" : "a-hint"}>{problems[f] ? bw.badNumber : hint}</p>
       </div>
     );
   };
@@ -111,7 +130,7 @@ export default function SenderSection({ sender, onChange, warnings }: { sender: 
   const emailSet = !lacks.includes("email");
   const footerSet = lacks.length === 0;
   const senderBad = Boolean(problems.fromAddress || problems.replyTo);
-  const limitsBad = Boolean(problems.throttlePerHour || problems.dailyCap || problems.maxPerContact30d || problems.quietHours);
+  const limitsBad = Boolean(problems.throttlePerHour || problems.dailyCap || problems.maxPerContact30d || problems.quietHours || problems.dailyLimit || problems.monthlyLimit || problems.safety || problems.reserveShare);
   const textsBad = hasTextProblem(sender);
   const ready = footerSet && !senderBad && !limitsBad && !textsBad;
   const mark = (ok: boolean) => (
@@ -251,6 +270,22 @@ export default function SenderSection({ sender, onChange, warnings }: { sender: 
           {check(`${uid}-ad`, w.autoDraft, w.autoDraftHint, sender.autoDraftCampaign, (v) => onChange((s) => void (s.autoDraftCampaign = v)), DEFAULT_SENDER.autoDraftCampaign)}
         </>,
         { bad: limitsBad, testid: "sec-limits" },
+      )}
+
+      {sec(
+        bw.secBudget,
+        <>{bw.sumBudget(sender.dailyLimit, sender.monthlyLimit)}</>,
+        <>
+          <p className="a-hint !mt-0">{bw.intro}</p>
+          <BudgetMeter />
+          <div className="grid gap-4 md:grid-cols-2">
+            {num("dailyLimit", bw.dailyLimit, bw.dailyLimitHint, 100000)}
+            {num("monthlyLimit", bw.monthlyLimit, bw.monthlyLimitHint, 1000000)}
+            {pct("safety", bw.safety, bw.safetyHint, 50, 100)}
+            {pct("reserveShare", bw.reserve, bw.reserveHint, 0, 50)}
+          </div>
+        </>,
+        { open: true, bad: Boolean(problems.dailyLimit || problems.monthlyLimit || problems.safety || problems.reserveShare), testid: "sec-budget" },
       )}
 
       {sec(
