@@ -100,6 +100,8 @@ export type SenderSettings = {
   testRecipients: string[];
   throttlePerHour: number;
   dailyCap: number;
+  /** Most mails one person gets in any rolling 30 days; 0 = no limit. */
+  maxPerContact30d: number;
   quietHours?: SenderQuietHours;
   autoDraftCampaign: boolean;
   confirmSubjectEn: string;

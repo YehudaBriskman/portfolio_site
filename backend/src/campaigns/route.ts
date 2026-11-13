@@ -9,8 +9,9 @@ import { emailService } from "../services/email.service.js";
 import { logger } from "../logger.js";
 import { resolveSender } from "./config.js";
 import { renderCampaignMail } from "./render.js";
-import { AudienceBody, CampaignCreate, CampaignId, CampaignPatch, PreviewBody, ScheduleBody, type Campaign } from "./schemas.js";
-import { campaignId, createCampaign, deleteCampaign, getCampaign, isStatus, listCampaigns, mutateCampaign } from "./store.js";
+import { AudienceBody, CampaignCreate, CampaignId, CampaignPatch, PreviewBody, ScheduleBody, SendNowBody, type Campaign } from "./schemas.js";
+import { CAP_WINDOW_MS } from "./sender.js";
+import { campaignId, createCampaign, deleteCampaign, getCampaign, isStatus, listCampaigns, mutateCampaign, sentCounts } from "./store.js";
 
 /*
  * Under /api/admin/campaigns, behind requireAdmin and auditWrites. A campaign
@@ -31,7 +32,7 @@ const mask = (email: string) => {
 const view = (c: Campaign) => ({
   id: c._id.slice("campaign:".length), _rev: c._rev ?? null, name: c.name, subject: c.subject, preheader: c.preheader ?? "",
   bodyText: c.bodyText, blocks: c.blocks ?? null, groups: c.groups, lang: c.lang ?? "all", topic: c.topic ?? null,
-  status: c.status, sendAt: c.sendAt ?? null, counters: c.counters, eventId: c.eventId ?? null,
+  status: c.status, sendAt: c.sendAt ?? null, counters: c.counters, capOverride: c.capOverride ?? null, eventId: c.eventId ?? null,
   pausedReason: c.pausedReason ?? null, startedAt: c.startedAt ?? null, finishedAt: c.finishedAt ?? null, createdAt: c.createdAt, updatedAt: c.updatedAt,
 });
 
@@ -121,19 +122,39 @@ router.delete(
 const recipientsOf = (c: Campaign) =>
   listRecipients({ groups: c.groups, ...(c.lang && c.lang !== "all" ? { lang: c.lang } : {}), ...(c.topic ? { topic: c.topic } : {}) });
 
-/* Reservoir of 3: a random sample without holding the list. */
-async function sampleOf(recipients: ReturnType<typeof listRecipients>) {
+/** How many mails each contact got in the monthly window (null when the limit is off). */
+async function capState(max: number, except?: string): Promise<Map<string, number> | null> {
+  return max > 0 ? sentCounts(Date.now() - CAP_WINDOW_MS, except) : null;
+}
+const limitOf = (s: { maxPerContact30d: number }) => Math.max(0, Math.floor(s.maxPerContact30d));
+
+/* Reservoir of 3: a random sample without holding the list. Also counts who is already at the monthly limit when `counts` is given. */
+async function sampleOf(recipients: ReturnType<typeof listRecipients>, counts: Map<string, number> | null = null, max = 0) {
   const sample: string[] = [];
   let n = 0;
+  let over = 0;
   for await (const r of recipients) {
     n++;
+    if (counts && (counts.get(r._id.slice("contact:".length)) ?? 0) >= max) over++;
     if (sample.length < 3) sample.push(r.email);
     else {
       const j = Math.floor(Math.random() * n);
       if (j < 3) sample[j] = r.email;
     }
   }
-  return { count: n, samples: sample.map(mask) };
+  return { count: n, samples: sample.map(mask), ...(counts ? { overCap: over, cap: max } : {}) };
+}
+
+/** The audience answer plus the limit's share of it. A failed count leaves the limit out; the audience itself still answers. */
+async function audienceOf(c: Campaign, except?: string) {
+  const max = limitOf((await loadSettings()).sender);
+  let counts: Map<string, number> | null = null;
+  try {
+    counts = await capState(max, except);
+  } catch (err) {
+    logger.warn({ err: err instanceof Error ? err.message : String(err) }, "monthly limit count failed");
+  }
+  return sampleOf(recipientsOf(c), counts, max);
 }
 
 router.get(
@@ -142,7 +163,7 @@ router.get(
     const id = idOf(req.params.id);
     const c = id && (await getCampaign(id));
     if (!c) return notFound(res);
-    res.set("Cache-Control", "no-store").json({ ok: true, ...(await sampleOf(recipientsOf(c))) });
+    res.set("Cache-Control", "no-store").json({ ok: true, ...(await audienceOf(c, c._id.slice("campaign:".length))) });
   }),
 );
 
@@ -157,7 +178,7 @@ router.post(
     const b = AudienceBody.safeParse(req.body);
     if (!b.success) return res.status(400).json({ ok: false, error: "Check the fields and try again.", issues: toIssues(b.error) });
     res.locals.noAudit = true;
-    res.set("Cache-Control", "no-store").json({ ok: true, ...(await sampleOf(recipientsOf({ groups: b.data.groups, lang: b.data.lang, ...(b.data.topic ? { topic: b.data.topic } : {}) } as Campaign))) });
+    res.set("Cache-Control", "no-store").json({ ok: true, ...(await audienceOf({ groups: b.data.groups, lang: b.data.lang, ...(b.data.topic ? { topic: b.data.topic } : {}) } as Campaign)) });
   }),
 );
 
@@ -199,8 +220,10 @@ router.post(
   }),
 );
 
+type CapChoice = { overrideCap?: boolean; skipCapped?: boolean };
+
 /** The checks every route that puts a campaign in the queue shares. */
-async function queueable(c: Campaign, res: Response): Promise<boolean> {
+async function queueable(c: Campaign, res: Response, choice: CapChoice): Promise<boolean> {
   if (c.status !== "draft" && c.status !== "scheduled") {
     bad(res, "Only a draft or scheduled campaign can be queued.", 409);
     return false;
@@ -215,15 +238,34 @@ async function queueable(c: Campaign, res: Response): Promise<boolean> {
     bad(res, "Fix the subscriber texts (the unsubscribe note must contain {link}) in Sender & delivery before sending.", 422);
     return false;
   }
-  for await (const _ of recipientsOf(c)) return true;
-  bad(res, "This audience has no active recipients.", 422);
-  return false;
+  const max = limitOf(s);
+  const counts = max > 0 && !choice.overrideCap && !choice.skipCapped ? await capState(max, c._id.slice("campaign:".length)) : null;
+  let total = 0;
+  let over = 0;
+  for await (const r of recipientsOf(c)) {
+    total++;
+    if (counts && (counts.get(r._id.slice("contact:".length)) ?? 0) >= max) over++;
+    else if (!counts) break;
+  }
+  if (total === 0) {
+    bad(res, "This audience has no active recipients.", 422);
+    return false;
+  }
+  if (over > 0) {
+    /* The owner decides: send to the others (skipCapped), or to everyone anyway (overrideCap, recorded). */
+    res.status(409).json({
+      ok: false, code: "cap", capped: over, total, max,
+      error: `${over} of ${total} recipient${total === 1 ? "" : "s"} already got ${max} email${max === 1 ? "" : "s"} in the last 30 days. Send to the others (they are skipped), or send to everyone anyway.`,
+    });
+    return false;
+  }
+  return true;
 }
 
-async function queue(res: Response, id: string, sendAt: string | null) {
+async function queue(res: Response, id: string, sendAt: string | null, choice: CapChoice = {}) {
   const before = await getCampaign(id);
   if (!before) return notFound(res);
-  if (sendAt !== null && !(await queueable(before, res))) return;
+  if (sendAt !== null && !(await queueable(before, res, choice))) return;
   if (sendAt === null && before.status !== "scheduled") return bad(res, "It is not scheduled.", 409);
   let after: Campaign | null;
   try {
@@ -232,9 +274,13 @@ async function queue(res: Response, id: string, sendAt: string | null) {
       if (sendAt === null) {
         c.status = "draft";
         delete c.sendAt;
+        delete c.capOverride;
       } else {
         c.status = "scheduled";
         c.sendAt = sendAt;
+        /* The override belongs to this decision: scheduling again without it asks again. */
+        if (choice.overrideCap) c.capOverride = { at: new Date().toISOString() };
+        else delete c.capOverride;
       }
     });
   } catch (e) {
@@ -253,7 +299,7 @@ router.post(
     const b = ScheduleBody.safeParse(req.body);
     if (!id) return notFound(res);
     if (!b.success) return res.status(400).json({ ok: false, error: "Check the fields and try again.", issues: toIssues(b.error) });
-    await queue(res, id, b.data.sendAt === null ? null : new Date(b.data.sendAt).toISOString());
+    await queue(res, id, b.data.sendAt === null ? null : new Date(b.data.sendAt).toISOString(), { overrideCap: b.data.overrideCap, skipCapped: b.data.skipCapped });
   }),
 );
 
@@ -261,8 +307,10 @@ router.post(
   "/:id/send-now",
   asyncHandler(async (req, res) => {
     const id = idOf(req.params.id);
+    const b = SendNowBody.safeParse(req.body ?? {});
     if (!id) return notFound(res);
-    await queue(res, id, new Date().toISOString());
+    if (!b.success) return res.status(400).json({ ok: false, error: "Check the fields and try again.", issues: toIssues(b.error) });
+    await queue(res, id, new Date().toISOString(), b.data);
   }),
 );
 

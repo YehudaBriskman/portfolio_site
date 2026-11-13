@@ -20,14 +20,14 @@ export default function Progress({ campaign, onUpdate }: { campaign: Campaign; o
   }, [live, campaign.id, onUpdate]);
 
   const c = campaign.counters;
-  const done = c.sent + c.failed + c.suppressed;
+  const done = c.sent + c.failed + c.suppressed + (c.capped ?? 0);
   const when = (iso: string | null) => (iso ? new Intl.DateTimeFormat(document.documentElement.lang === "he" ? "he-IL" : "en-GB", { dateStyle: "medium", timeStyle: "short" }).format(new Date(iso)) : "");
-  const cells: Array<[string, number]> = [[w.queued, c.queued], [w.sent, c.sent], [w.failed, c.failed], [w.suppressed, c.suppressed]];
+  const cells: Array<[string, number]> = [[w.queued, c.queued], [w.sent, c.sent], [w.failed, c.failed], [w.suppressed, c.suppressed], ...(c.capped ? ([[w.capped, c.capped]] as Array<[string, number]>) : [])];
   return (
     <section className="a-box space-y-3 p-4" aria-label={w.progressHeading} data-testid="progress">
       <h3 className="display-tight text-lg">{w.progressHeading}</h3>
       <p className="a-hint !mt-0" role="status">{campaign.status === "sending" ? w.progressSending : campaign.status === "scheduled" ? w.progressWaiting : campaign.status === "paused" ? w.progressPaused : w.progressDone}</p>
-      <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <dl className={`grid grid-cols-2 gap-3 ${cells.length > 4 ? "sm:grid-cols-5" : "sm:grid-cols-4"}`}>
         {cells.map(([label, n]) => (
           <div key={label}>
             <dt className="a-label !mt-0">{label}</dt>

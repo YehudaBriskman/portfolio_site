@@ -43,8 +43,8 @@ All documents are in the one CouchDB database.
 |---|---|---|
 | Contact | `contact:<hash>` | `email`, `name?`, `lang` (`en`/`he`), `groups` (slugs), `status`, `source` (`site`/`manual`/`import`), `consentAt`, `consentNote`, `topics` (`blog`, `releases`), `createdAt`, `updatedAt`, `confirmedAt?`, `unsubscribedAt?` |
 | Group | `audience:<slug>` | `name`, `kind` (`system` or `manual`), `createdAt`. The system group `subscribers` receives site signups and cannot be deleted |
-| Campaign | `campaign:<id>` | `name`, `subject`, `preheader?`, `bodyText`, `blocks?`, `groups`, `lang` (`en`/`he`/`all`), `topic?`, `status`, `sendAt?`, `counters` (`queued`, `sent`, `failed`, `suppressed`), `eventId?`, `startedAt?`, `finishedAt?`. No addresses |
-| Send result | `send:<campaignId>:<hash>` | one per recipient per campaign: `status` (`attempting`, `sent`, `failed`, `suppressed`, `deferred`), `at`, a scrubbed `error?`, `kind?` and `code?` (the classified failure and numeric SMTP reply), `tries?`, `retryAt?`. The contact is referenced by hash only |
+| Campaign | `campaign:<id>` | `name`, `subject`, `preheader?`, `bodyText`, `blocks?`, `groups`, `lang` (`en`/`he`/`all`), `topic?`, `status`, `sendAt?`, `counters` (`queued`, `sent`, `failed`, `suppressed`, `capped?`), `capOverride?` (`{at}`, set when the owner sent past the monthly limit), `eventId?`, `startedAt?`, `finishedAt?`. No addresses |
+| Send result | `send:<campaignId>:<hash>` | one per recipient per campaign: `status` (`attempting`, `sent`, `failed`, `suppressed`, `deferred`, `capped`), `at`, a scrubbed `error?`, `kind?` and `code?` (the classified failure and numeric SMTP reply), `tries?`, `retryAt?`. The contact is referenced by hash only |
 | Sender state | `sender:state` | this hour's and today's send counts, across all campaigns |
 | Signing secret | `secret:subscribe` | see "Signed links" |
 | Settings | `settings:announce` | the `sender` block: see "Sender settings" |
@@ -197,8 +197,9 @@ Stored in `settings:announce` under `sender` and edited in Settings, Advanced,
 | `testRecipients` | none | up to 5; test sends go only to these, with `[Test] ` in the subject |
 | `throttlePerHour` | 60 | 1 to 3600 |
 | `dailyCap` | 200 | 1 to 10000 |
+| `maxPerContact30d` | 4 | most mails one person gets in any rolling 30 days; `0` = off; whole number 0 to 31, checked on PUT only (reads stay lenient, like the subscriber texts); see "The monthly limit per person" |
 | `quietHours` | none | `from`, `to`, `tz`; may wrap midnight |
-| `autoDraftCampaign` | off | a post or release event makes a **draft** for `subscribers`; never sends by itself (`campaigns/autodraft.ts`) |
+| `autoDraftCampaign` | off | a post or release event makes a **draft** for `subscribers`; never sends by itself (`campaigns/autodraft.ts`). **Patch releases (x.y.Z, Z above 0) are never drafted**; minor, major, non-semver tags and posts are |
 | `pendingTtlDays` | 7 | 1 to 30 |
 | `labelMode` | `hebrew` | `hebrew` (Hebrew recipients), `all` (English mail gets `פרסומת | Ad` in the subject and `פרסומת | Advertisement` as its first line, DRAFT wording) or `off`. An older `commercialLabel: false` reads as `off` |
 | `confirmSubject/Body`, `unsubscribeNote` (EN, HE) | see `DEFAULT_SENDER` | placeholders `{name}`, `{site}`, `{days}`, `{link}` |
@@ -253,6 +254,40 @@ All in `campaigns/sender.ts`.
 - With the defaults (60 an hour, 200 a day) a 200-person list takes about
   three and a half hours, and the day's cap is then used up.
 
+### The monthly limit per person
+
+`maxPerContact30d` (default **4**, `0` = off) is the number behind the "only when
+there is something new" promise. It is **on after deploy** for an installation
+whose saved settings predate it (the schema default applies).
+
+- **What counts:** `send:` results with `status: sent` and `at` in the last 30 days
+  (rolling), from every campaign and every topic. Not counted: `failed`,
+  `suppressed`, `deferred`, `capped`, test sends and the confirmation mail.
+  Nothing is stored on the contact; the count is derived from the result docs,
+  with one Mango index `send-type-status-at` (`type`, `status`, `at`) created at
+  boot beside the blog index (`ensureSendIndex`, `server.ts`). One scan per check,
+  not per recipient (`sentCounts`, `campaigns/store.ts`).
+- **At schedule and send-now** (`campaigns/route.ts`, `queueable`): if some
+  recipients already have the maximum, the call answers **409**
+  `{code:"cap", capped, total, max}` and the campaign stays a draft. The owner
+  then sends again with `skipCapped: true` (go ahead; the sender skips them) or
+  `overrideCap: true` (send to everyone; recorded as `capOverride: {at}` on the
+  campaign and so in the audit log). Scheduling again without the override clears
+  it. The campaign page shows how many would be skipped in the "before you can send"
+  area (the audience route returns `overCap` and `cap`), and asks at the confirm step.
+- **In the sender** (`campaigns/sender.ts`): the count is read once per batch, before
+  the budget is reserved (a failed read sends nothing), and checked per recipient
+  right before the mail. A recipient at the maximum gets a `send:` result with
+  status `capped`: no mail, final, **not a failure**, not in the auto-pause health
+  window, and `counters.capped` shows it. A capped person is not mailed later; the
+  fix for release trains is a digest, not a retry. The campaign's own earlier
+  results are not counted against it. A campaign with `capOverride` skips the check.
+- **Unsubscribed and suppressed contacts** are decided before the limit and are
+  unaffected.
+- The limit is a promise the signup text does not yet state as a number: the lede
+  says "only when there is something new". Change it to a number only together with
+  owner approval, and keep the text and `DEFAULT_MAX_PER_CONTACT_30D` in step.
+
 ### The tick, the lock and single replica
 
 `startSender()` is called from `backend/src/server.ts` and starts a
@@ -275,7 +310,7 @@ is untested for the sender.
 ### Resume after a crash or restart
 
 State is in CouchDB, so a restart changes nothing: the campaign stays `sending`
-and the next tick continues. People with a `sent`, `failed` or `suppressed`
+and the next tick continues. People with a `sent`, `failed`, `suppressed` or `capped`
 result are skipped. A result stuck at `attempting` for more than 5 minutes
 (`STALE_ATTEMPT_MS`) belongs to a crashed run and is **retried**. The known
 trade-off: if the process died after the SMTP server accepted a message and
@@ -430,7 +465,7 @@ say. The owner needs to confirm:
 | **"פרסומת" label** | the subject starts with `פרסומת: ` and the first visible line of the body (HTML and text) is `פרסומת`, for Hebrew recipients (`labelMode` `hebrew`, the default); `all` also labels English mail with DRAFT wording; `off` labels nothing | whether the law applies to this mail at all (it may be a plain notice, not an advertisement), whether the label is wanted, and whether English mail needs one |
 | **Unsubscribe in every mail** | Every campaign carries the footer link and the one-click headers; one click, no login. The confirmation mail has none | that this meets the "simple and clear" opt-out; that the confirmation mail does not need one |
 | **Sender identity** | the name, an optional postal line and a contact email are printed in every mail; sending is blocked while the name or the email is missing | whether email-only identity is enough, or a postal address or P.O. box is required |
-| Frequency promise | the signup text promises "at most a few a month"; nothing enforces it | that the owner will keep the promise |
+| Frequency promise | the signup text says "only when there is something new" (no number); `maxPerContact30d` (default 4 per rolling 30 days) is enforced at schedule time and in the sender, with an explicit owner override; patch releases are not auto-drafted | that the wording is acceptable, and whether to put the number in the signup text now that it is enforced |
 
 ### Every user-facing legal string
 
@@ -440,7 +475,7 @@ unless stated.
 | String | File |
 |---|---|
 | Privacy section on the accessibility statement, `privacy`, `privacyIntro`, `privacyItems` (marked DRAFT in the file) | `web/src/i18n/statement.ts` |
-| Consent sentence under the signup button, `consentBefore`, `consentLink`; the lede that promises "at most a few a month"; the signup, confirm, unsubscribe and manage pages' wording | `web/src/i18n/subscribe.ts` |
+| Consent sentence under the signup button, `consentBefore`, `consentLink`; the lede ("only when there is something new"); the signup, confirm, unsubscribe and manage pages' wording | `web/src/i18n/subscribe.ts` |
 | Confirmation mail subject and body, EN and HE (owner-editable in Settings; defaults in code) | `backend/src/announce/schemas.ts`, `DEFAULT_SENDER` |
 | Footer unsubscribe note, EN and HE (owner-editable; defaults in code) | `backend/src/announce/schemas.ts`, `DEFAULT_SENDER` |
 | The "פרסומת" label (`COMMERCIAL_LABEL_HE`) and where it is placed | `backend/src/campaigns/render.ts` |

@@ -104,3 +104,27 @@ export const getRate = () => tryGet<RateState>(RATE_ID);
 export async function putRate(s: RateState): Promise<void> {
   await couch.put(RATE_ID, s);
 }
+
+/** The one index the monthly limit reads: sent results by time. Idempotent; called at boot. */
+export const SEND_INDEX = "send-type-status-at";
+export const ensureSendIndex = () => couch.ensureIndex(SEND_INDEX, ["type", "status", "at"]);
+
+/**
+ * How many mails each contact got since `sinceMs`, from the result docs
+ * themselves (nothing is stored on the contact, so there is no second copy to
+ * drift). Counts only `sent`; `except` leaves out one campaign, the one being
+ * checked. One scan per call, not per recipient.
+ */
+export async function sentCounts(sinceMs: number, except?: string): Promise<Map<string, number>> {
+  const out = new Map<string, number>();
+  const since = new Date(sinceMs).toISOString();
+  let bookmark: string | undefined;
+  for (;;) {
+    const r = (await couch.find<Pick<SendResult, "contact" | "campaignId">>({
+      selector: { type: "send", status: "sent", at: { $gte: since } }, fields: ["contact", "campaignId"], limit: 500, ...(bookmark ? { bookmark } : {}),
+    })) as { docs: Array<Pick<SendResult, "contact" | "campaignId">>; bookmark?: string };
+    for (const d of r.docs) if (d.campaignId !== except) out.set(d.contact, (out.get(d.contact) ?? 0) + 1);
+    if (r.docs.length < 500 || !r.bookmark) return out;
+    bookmark = r.bookmark;
+  }
+}

@@ -59,6 +59,10 @@ export const QuietHoursSchema = z
   .object({ from: Hhmm, to: Hhmm, tz: z.string().max(60).refine(validZone, "Unknown time zone") })
   .strict();
 
+/** The number the signup text may promise; see docs/newsletter.md before changing it. */
+export const DEFAULT_MAX_PER_CONTACT_30D = 4;
+export const MAX_PER_CONTACT_30D_LIMIT = 31;
+
 export const LABEL_MODES = ["hebrew", "all", "off"] as const;
 export type LabelMode = (typeof LABEL_MODES)[number];
 
@@ -86,6 +90,8 @@ export const SenderSchema = z.preprocess(migrateLabel, z
     testRecipients: z.array(z.string().trim().toLowerCase().max(254).email()).max(5).default([]),
     throttlePerHour: z.number().int().min(1).max(3600).default(60),
     dailyCap: z.number().int().min(1).max(10000).default(200),
+    /* Most mails one person gets in any rolling 30 days; 0 = no limit. Lenient here (settingsOf() re-parses stored documents and falls back to ALL defaults on failure); the range is checked on PUT by validateSenderLimits. */
+    maxPerContact30d: z.number().default(DEFAULT_MAX_PER_CONTACT_30D),
     quietHours: QuietHoursSchema.optional(),
     /* A post or release event makes a DRAFT campaign for the subscribers group. Never sends by itself. */
     autoDraftCampaign: z.boolean().default(false),
@@ -142,6 +148,14 @@ export function validateSenderTexts(sender: Pick<SenderSettings, "confirmBodyEn"
   return issues;
 }
 
+/** Applied on PUT only, like validateSenderTexts: a whole number from 0 (off) to 31. */
+export function validateSenderLimits(s: Pick<SenderSettings, "maxPerContact30d">): { path: string; message: string }[] {
+  const n = s.maxPerContact30d;
+  return Number.isInteger(n) && n >= 0 && n <= MAX_PER_CONTACT_30D_LIMIT
+    ? []
+    : [{ path: "sender.maxPerContact30d", message: `The monthly limit per person is a whole number from 0 (off) to ${MAX_PER_CONTACT_30D_LIMIT}.` }];
+}
+
 const EMAIL_RE = /^[^\s@<>"]+@[^\s@<>"]+\.[^\s@<>"]+$/;
 /** What a mail's footer still lacks. Checked on PUT and at the send gate, never on read. */
 export function missingIdentity(s: Pick<SenderSettings, "footerIdentity" | "identityEmail">): ("name" | "email")[] {
@@ -177,6 +191,7 @@ export const DEFAULT_SENDER: SenderSettings = {
   testRecipients: [],
   throttlePerHour: 60,
   dailyCap: 200,
+  maxPerContact30d: DEFAULT_MAX_PER_CONTACT_30D,
   autoDraftCampaign: false,
 };
 

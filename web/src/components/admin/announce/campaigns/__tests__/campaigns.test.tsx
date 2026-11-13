@@ -23,10 +23,13 @@ type Call = { url: string; method: string; body?: Record<string, unknown> };
 let calls: Call[];
 let stored: ReturnType<typeof camp>[];
 let senderDoc: ReturnType<typeof sender>;
+/* How many of the 12 recipients are already at the monthly limit (the server's count). */
+let atLimit = 0;
 beforeEach(() => {
   calls = [];
   stored = [camp(), camp({ id: "c2", name: "Sent one", status: "sent", counters: { queued: 10, sent: 9, failed: 1, suppressed: 0 }, finishedAt: "2026-11-02T10:00:00Z" })];
   senderDoc = sender();
+  atLimit = 0;
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: string, init?: RequestInit) => {
@@ -34,9 +37,11 @@ beforeEach(() => {
       calls.push({ url, method, body: init?.body ? JSON.parse(String(init.body)) : undefined });
       if (url === "/api/admin/campaigns" && method === "GET") return json({ ok: true, campaigns: stored });
       if (url === "/api/admin/campaigns/c1" && method === "GET") return json({ ok: true, campaign: stored[0] });
-      if (url === "/api/admin/campaigns/audience") return json({ ok: true, count: 12, samples: ["a***@e***.com"] });
+      if (url === "/api/admin/campaigns/audience") return json({ ok: true, count: 12, samples: ["a***@e***.com"], ...(atLimit ? { overCap: atLimit, cap: 4 } : {}) });
       if (url === "/api/admin/campaigns/preview") return json({ ok: true, subject: "Hello", html: "<p>Hi</p>", text: "Hi" });
       if (url === "/api/admin/campaigns/c1/resume") return json({ ok: true, campaign: camp({ status: "scheduled", sendAt: "2026-11-12T10:00:00Z" }) });
+      if (url === "/api/admin/campaigns/c1/send-now" && atLimit && !(JSON.parse(String(init?.body ?? "{}")) as { skipCapped?: boolean; overrideCap?: boolean }).skipCapped && !(JSON.parse(String(init?.body ?? "{}")) as { overrideCap?: boolean }).overrideCap)
+        return json({ ok: false, code: "cap", capped: atLimit, total: 12, max: 4, error: "x" }, 409);
       if (url === "/api/admin/campaigns/c1/send-now") return json({ ok: true, campaign: camp({ status: "sending", counters: { queued: 12, sent: 3, failed: 0, suppressed: 0 } }) });
       if (url === "/api/admin/announce/settings" && method === "GET") return json({ ok: true, exists: true, _rev: "1-s", updatedAt: null, settings: settings(senderDoc) });
       if (url === "/api/admin/announce/settings" && method === "PUT") return json({ ok: true, exists: true, _rev: "2-s", updatedAt: null, settings: (JSON.parse(String(init?.body)) as { settings: unknown }).settings, warnings: [{ field: "fromAddress", code: "domain-not-sendable", message: "Check with your mail provider." }] });
@@ -61,6 +66,9 @@ describe("pure helpers", () => {
     expect(senderProblems(sender({ unsubscribeNoteEn: "x {{link}}" })).unsubscribeNoteEn).toBe("unknown");
     expect(senderProblems(sender({ unsubscribeNoteEn: "{name} {link}" })).unsubscribeNoteEn).toBe("unsubVars");
     expect(Object.keys(senderProblems(sender({ throttlePerHour: 0, replyTo: "nope" })))).toEqual(["replyTo", "throttlePerHour"]);
+    expect(DEFAULT_SENDER.maxPerContact30d).toBe(4);
+    for (const n of [0, 4, 31]) expect(senderProblems(sender({ maxPerContact30d: n })).maxPerContact30d).toBeUndefined();
+    for (const n of [-1, 32, 2.5, NaN]) expect(senderProblems(sender({ maxPerContact30d: n })).maxPerContact30d).toBe("number");
   });
 });
 
@@ -135,6 +143,32 @@ describe("Campaigns tab", () => {
     fireEvent.click(screen.getByRole("button", { name: "Send to 12 now" }));
     await waitFor(() => expect(calls.some((c) => c.url.endsWith("/send-now") && c.method === "POST")).toBe(true));
     expect(await screen.findByTestId("progress")).toBeTruthy();
+  });
+
+  it("shows the monthly limit in the checklist, then asks skip or override when the server blocks the send", async () => {
+    atLimit = 2;
+    open();
+    fireEvent.click(await screen.findByRole("button", { name: "Open Spring news" }));
+    expect((await screen.findByTestId("ready-cap", {}, { timeout: 3000 })).textContent).toMatch(/2 of 12 recipients already got 4 emails in the last 30 days/);
+    fireEvent.click(screen.getByRole("button", { name: "Send now…" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Send to 12 now" }));
+    const block = await screen.findByTestId("cap-block");
+    expect(block.textContent).toMatch(/2 of 12 recipients already got 4 emails/);
+    expect(screen.getByRole("button", { name: "Send to the other 10" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Send to everyone anyway" }));
+    await waitFor(() => expect(calls.some((c) => c.url.endsWith("/send-now") && c.body?.overrideCap === true)).toBe(true));
+    expect(await screen.findByTestId("progress")).toBeTruthy();
+  });
+
+  it("skipping the capped sends with skipCapped and no override", async () => {
+    atLimit = 2;
+    open();
+    fireEvent.click(await screen.findByRole("button", { name: "Open Spring news" }));
+    await screen.findByTestId("ready-cap", {}, { timeout: 3000 });
+    fireEvent.click(screen.getByRole("button", { name: "Send now…" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Send to 12 now" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Send to the other 10" }));
+    await waitFor(() => expect(calls.some((c) => c.url.endsWith("/send-now") && c.body?.skipCapped === true && c.body?.overrideCap === undefined)).toBe(true));
   });
 
   it("recounts for the unsaved selection as a group is ticked", async () => {
