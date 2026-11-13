@@ -175,7 +175,7 @@ describe("Campaigns tab", () => {
     expect(calls.some((c) => c.url.endsWith("/send-now"))).toBe(false);
     /* The preview is asked for after a 450 ms debounce, so on a slow runner it may not have gone out yet. */
     await waitFor(() => expect(calls.some((c) => c.url.endsWith("/campaigns/preview"))).toBe(true), { timeout: 3000 });
-    fireEvent.click(screen.getByRole("button", { name: "Send to 12 now" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Send to 12 now" }));
     await waitFor(() => expect(calls.some((c) => c.url.endsWith("/send-now") && c.method === "POST")).toBe(true));
     /* The number on the button is the number the server is asked to hold the owner to. */
     expect(calls.find((c) => c.url.endsWith("/send-now") && c.method === "POST")?.body).toMatchObject({ confirmCount: 12 });
@@ -191,8 +191,9 @@ describe("Campaigns tab", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Send to 12 now" }));
     const block = await screen.findByTestId("cap-block");
     expect(block.textContent).toMatch(/2 of 12 recipients already got 4 emails/);
-    expect(screen.getByRole("button", { name: "Send to the other 10" })).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Send to everyone anyway" }));
+    // A modal <dialog> only becomes accessible once its effect opens it, after the testid is already in the DOM.
+    expect(await screen.findByRole("button", { name: "Send to the other 10" })).toBeTruthy();
+    fireEvent.click(await screen.findByRole("button", { name: "Send to everyone anyway" }));
     await waitFor(() => expect(calls.some((c) => c.url.endsWith("/send-now") && c.body?.overrideCap === true)).toBe(true));
     expect(await screen.findByTestId("progress")).toBeTruthy();
   });
