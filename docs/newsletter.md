@@ -520,28 +520,31 @@ do the rest. The API's own user needs no admin rights.
 
 1. Create the database and make the API user a member of it, as the CouchDB admin,
    inside the couchdb pod using its own environment credentials (nothing is printed).
-   The API user is `portfolio_api` unless the secret says otherwise:
+   On the production node (`ubuntu@free-arm`, k3s):
 
    ```sh
-   API_USER=$(kubectl -n prod get secret portfolio-api-env -o jsonpath='{.data.COUCHDB_USER}' | base64 -d)
-   kubectl -n obsidian exec "$(kubectl -n obsidian get pod -o name | rg couchdb | head -1)" -c couchdb -- \
-     env API_USER="$API_USER" sh -c '
-       U="$COUCHDB_USER:$COUCHDB_PASSWORD"; DB=http://127.0.0.1:5984/portfolio_suppression
-       curl -s -u "$U" -X PUT "$DB"; echo
-       curl -s -u "$U" -X PUT "$DB/_security" -H "Content-Type: application/json" \
-         -d "{\"admins\":{\"names\":[],\"roles\":[]},\"members\":{\"names\":[\"$API_USER\"],\"roles\":[]}}"; echo'
+   U=$(sudo k3s kubectl -n prod get secret portfolio-api-env -o jsonpath='{.data.COUCHDB_USER}' | base64 -d); U=${U:-portfolio_api}; POD=$(sudo k3s kubectl -n obsidian get pods -o name | grep -i couchdb | head -1); sudo k3s kubectl -n obsidian exec $POD -c couchdb -- sh -c "curl -s -u \"\$COUCHDB_USER:\$COUCHDB_PASSWORD\" -X PUT http://localhost:5984/portfolio_suppression; echo; curl -s -u \"\$COUCHDB_USER:\$COUCHDB_PASSWORD\" -X PUT http://localhost:5984/portfolio_suppression/_security -H 'content-type: application/json' -d '{\"admins\":{\"names\":[],\"roles\":[]},\"members\":{\"names\":[\"$U\"],\"roles\":[]}}'"
    ```
 
    Replies of `{"ok":true}` are good; `file_exists` on the first call just means the
    database was already made.
-2. Restart the API so it prepares the ledger: `kubectl -n prod rollout restart deploy/api`.
+2. Restart the API so it prepares the ledger:
+
+   ```sh
+   sudo k3s kubectl -n prod rollout restart deploy/api && sudo k3s kubectl -n prod rollout status deploy/api
+   ```
 
 No manual marker is needed: with the database present and the API user a member, the
 API writes `meta:ledger` itself at boot.
 
-How to know it worked: the log line `suppression ledger ready`
-(`kubectl -n prod logs deploy/api | rg "suppression ledger"`) and no red banner
-("The never-mail list cannot be read") on the admin Audience tab. If the log says the
+How to know it worked: the log line `suppression ledger ready` and no red banner
+("The never-mail list cannot be read") on the admin Audience tab. Log check:
+
+```sh
+for p in $(sudo k3s kubectl -n prod get pods -o name | grep -i api); do sudo k3s kubectl -n prod logs $p --tail=300 | grep -iE "suppression ledger"; done
+```
+
+If the log says the
 database does not exist and the user may not create it, step 1 did not run or the
 name differs from `LEDGER_DB`.
 
