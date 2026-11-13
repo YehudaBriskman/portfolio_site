@@ -11,6 +11,7 @@ import { startSender } from './campaigns/sender.js';
 import { startAudienceSweep } from './audience/sweep.js';
 import { ensureSendIndex } from './campaigns/store.js';
 import { ensureLedger } from './audience/ledger.js';
+import { startOwnerNotifier } from './notify/notifier.js';
 
 const app = createApp();
 
@@ -143,3 +144,6 @@ ensureLedger()
 startSender();
 /* List hygiene: unconfirmed signups expire on their own, not only when the admin is opened. */
 startAudienceSweep();
+
+/* Owner notifications: subscribes to the event seams; nothing it does can fail a send. */
+startOwnerNotifier();

@@ -2,7 +2,8 @@
  * The seam the owner notification will plug into: "a spam complaint was
  * received". Carries the contact hash and a time, never an address.
  */
-export type ComplaintEvent = { hash: string; at: string };
+/** `reason` is absent on older callers and means a complaint. */
+export type ComplaintEvent = { hash: string; at: string; reason?: "complaint" | "hard-bounce" };
 export type ComplaintListener = (e: ComplaintEvent) => void | Promise<void>;
 
 const listeners = new Set<ComplaintListener>();

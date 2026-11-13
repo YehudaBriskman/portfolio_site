@@ -357,3 +357,21 @@ describe("settings and the budget route", () => {
     expect(JSON.stringify(r.body)).not.toContain("@");
   });
 });
+
+describe("owner notification seam", () => {
+  it("a finished campaign announces its name and counters once, with no address, and a failing listener changes nothing", async () => {
+    const { onOwnerEvent } = await import("../notify/hooks.js");
+    setSender();
+    seedContacts(3);
+    seedCampaign();
+    const seen: unknown[] = [];
+    const offA = onOwnerEvent(() => { throw new Error("listener broke"); });
+    const offB = onOwnerEvent((e) => void seen.push(e));
+    await drain(T0);
+    offA();
+    offB();
+    expect(status()).toBe("sent");
+    expect(seen).toEqual([{ kind: "campaign", name: "n", status: "sent", sent: 3, failed: 0, suppressed: 0 }]);
+    expect(JSON.stringify(seen)).not.toContain("@");
+  });
+});

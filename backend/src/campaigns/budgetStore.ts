@@ -129,10 +129,35 @@ export function onBudgetThreshold(h: BudgetThresholdHook): () => void {
 export function resetBudgetThresholds(): void {
   hooks.clear();
   fired.clear();
+  exhaustedHooks.clear();
+  exhaustedSeen.clear();
+}
+
+export type BudgetExhaustedEvent = { scope: "day" | "month"; period: string };
+const exhaustedHooks = new Set<(e: BudgetExhaustedEvent) => void | Promise<void>>();
+const exhaustedSeen = new Set<string>();
+/** Fires once per day or month in which the newsletter room ran out, while the process runs. */
+export function onBudgetExhausted(h: (e: BudgetExhaustedEvent) => void | Promise<void>): () => void {
+  exhaustedHooks.add(h);
+  return () => void exhaustedHooks.delete(h);
 }
 
 /** Fires the hook for each threshold of the month reached and not yet announced. Never throws. */
-export async function checkBudgetThresholds(ms: number, b: Pick<Budget, "usedMonth" | "usableMonth">): Promise<void> {
+export async function checkBudgetThresholds(ms: number, b: Pick<Budget, "usedMonth" | "usableMonth"> & Partial<Pick<Budget, "waiting">>): Promise<void> {
+  if (b.waiting) {
+    const scope = b.waiting;
+    const period = scope === "month" ? monthKey(ms) : dayKey(ms);
+    if (!exhaustedSeen.has(`${scope}:${period}`)) {
+      exhaustedSeen.add(`${scope}:${period}`);
+      for (const h of exhaustedHooks) {
+        try {
+          await h({ scope, period });
+        } catch (err) {
+          logger.warn({ scope, err: err instanceof Error ? err.message : String(err) }, "budget exhausted hook failed");
+        }
+      }
+    }
+  }
   const month = monthKey(ms);
   const seen = fired.get(month) ?? new Set<BudgetThreshold>();
   fired.set(month, seen);

@@ -266,6 +266,37 @@ export const DEFAULT_SENDER: SenderSettings = {
   reserveShare: 0.2,
 };
 
+/* Owner notifications by email: which events, how often, a daily digest. No address is stored here; the recipient is CONTACT_TO. */
+export const NOTIFY_EVENTS = ["budget70", "budget90", "budgetOut", "bounce", "campaign", "subscriber", "sweep"] as const;
+export type NotifyEvent = (typeof NOTIFY_EVENTS)[number];
+const NotifyRule = z.object({ on: z.boolean(), hours: z.number().int().min(0).max(168) }).strict();
+export type NotifyRule = z.infer<typeof NotifyRule>;
+export const NotifySchema = z
+  .object({
+    /* Off by default: nothing is mailed until the owner turns it on. */
+    enabled: z.boolean().default(false),
+    lang: Lang.default("he"),
+    events: z.object(Object.fromEntries(NOTIFY_EVENTS.map((k) => [k, NotifyRule])) as Record<NotifyEvent, typeof NotifyRule>).strict(),
+    /* Bounces, finished campaigns and new subscribers wait for one summary a day, at this local hour. */
+    digest: z.object({ enabled: z.boolean(), hour: z.number().int().min(0).max(23) }).strict(),
+  })
+  .strict();
+export type NotifySettings = z.infer<typeof NotifySchema>;
+export const DEFAULT_NOTIFY: NotifySettings = {
+  enabled: false,
+  lang: "he",
+  events: {
+    budget70: { on: true, hours: 24 },
+    budget90: { on: true, hours: 24 },
+    budgetOut: { on: true, hours: 24 },
+    bounce: { on: true, hours: 6 },
+    campaign: { on: true, hours: 0 },
+    subscriber: { on: false, hours: 24 },
+    sweep: { on: true, hours: 24 },
+  },
+  digest: { enabled: false, hour: 8 },
+};
+
 export const AnnounceSettingsSchema = z
   .object({
     /* Off stops new events being recorded; the inbox stays readable. */
@@ -288,6 +319,7 @@ export const AnnounceSettingsSchema = z
       .default([]),
     advanced: z.object({ utm: Utm.default(DEFAULT_UTM) }).strict().default({ utm: DEFAULT_UTM }),
     sender: SenderSchema.default(DEFAULT_SENDER),
+    notify: NotifySchema.default(DEFAULT_NOTIFY),
   })
   .strict();
 export type AnnounceSettings = z.infer<typeof AnnounceSettingsSchema>;
@@ -303,6 +335,7 @@ export const DEFAULT_ANNOUNCE_SETTINGS: AnnounceSettings = {
   library: [],
   advanced: { utm: DEFAULT_UTM },
   sender: DEFAULT_SENDER,
+  notify: DEFAULT_NOTIFY,
 };
 
 export const SETTINGS_DOC_ID = "settings:announce";

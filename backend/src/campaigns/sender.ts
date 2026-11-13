@@ -4,6 +4,7 @@ import { couch } from "../db/couch.js";
 import { listRecipients, getContact, isSuppressed, updateContact } from "../audience/store.js";
 import { cachedKind, ledgerPutQuietly } from "../audience/ledger.js";
 import { logger } from "../logger.js";
+import { emitOwnerEvent } from "../notify/hooks.js";
 import { budgetNow, checkBudgetThresholds } from "./budgetStore.js";
 import { ledgerGuard } from "./guard.js";
 import { emailService, type BulkMessage } from "../services/email.service.js";
@@ -222,6 +223,7 @@ async function runCampaign(c: Campaign, settings: SenderSettings, deps: Required
       });
       return;
     }
+    let finished: Campaign | null = null;
     await mutateCampaign(id, (x) => {
       if (x.status !== "sending") return false;
       x.counters.queued = Math.max(x.counters.queued, queued);
@@ -230,7 +232,12 @@ async function runCampaign(c: Campaign, settings: SenderSettings, deps: Required
       const attempts = x.counters.sent + x.counters.failed;
       x.status = x.counters.failed > 0 && x.counters.failed * 2 >= attempts ? "failed" : "sent";
       x.finishedAt = new Date(ms).toISOString();
+      finished = x;
     });
+    if (finished) {
+      const f = finished as Campaign;
+      emitOwnerEvent({ kind: "campaign", name: f.name, status: f.status === "failed" ? "failed" : "sent", sent: f.counters.sent, failed: f.counters.failed, suppressed: f.counters.suppressed });
+    }
     logger.info({ campaign: id }, "campaign finished");
     return;
   }

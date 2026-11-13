@@ -619,6 +619,15 @@ releases, only when there is something new. You can stop with one click." HE
 - EN: I’ll use your address only to send what you chose above. We’ll first send one email to confirm it, and every email has an unsubscribe link. See [how your data is handled]
 - HE: אשתמש בכתובת שלכם רק כדי לשלוח את מה שבחרתם למעלה. קודם נשלח אימייל אחד לאישור הכתובת, ובכל אימייל יש קישור להסרה. ראו [איך המידע שלכם מטופל]
 
+## Notices to the owner by email
+
+Marketing > Settings: the master switch is in Everyday, the per-event choices, the "at most once every N hours" window, the daily digest and the language are in Advanced > Notices by email. Off by default. Events: the monthly budget at 70% and 90%, the budget used up (day or month), a hard bounce or complaint recorded by the webhook, a campaign finished or failed, a new confirmed subscriber, a failed list-cleanup sweep.
+
+- Recipient is `CONTACT_TO`, never stored in settings or the state document, never logged. A notice never carries a subscriber's address (counts, a campaign's own name with anything address-shaped removed, and a 6-character hash prefix).
+- Sent through the transactional renderer and `emailService.send`, so it counts toward the provider's daily total (the `mailcount:` counter) and never against a campaign's budget. It is skipped, not queued, once the reserved transactional share of the day is spent.
+- De-dup and digest state is one admin-only document, `notifystate:owner` (timestamps, counts, hash prefixes). Bounces, campaigns and new subscribers wait for the digest when it is on; budget and sweep notices always go at once.
+- Code: `backend/src/notify/`. Sources only emit (`emitOwnerEvent`, the budget hooks, `emitComplaint`); the notifier is the one listener, started in `server.ts`, and a failure in it is caught and logged without addresses.
+
 ## Contact form: what it may cost
 
 The contact form shares the provider's daily quota (100 mails) with signup

@@ -82,7 +82,7 @@ async function suppress(hash: string, reason: SuppressReason): Promise<void> {
     delete x.softBounces;
   });
   logger.info({ hash, reason }, "contact suppressed by provider event");
-  if (reason === "complaint") emitComplaint({ hash, at: new Date().toISOString() });
+  if (reason === "complaint" || reason === "hard-bounce") emitComplaint({ hash, at: new Date().toISOString(), reason });
 }
 
 async function noteSoft(hash: string): Promise<void> {
