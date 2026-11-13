@@ -293,6 +293,12 @@ describe.each([
     h1: "Accessibility",
     description: /WCAG 2\.2 at level AA.*IS 5568/,
   },
+  {
+    path: "/privacy",
+    title: "Privacy · Yehuda Briskman",
+    h1: "Privacy",
+    description: /^What happens to your email address/,
+  },
 ])("GET /api/seo/render$path", ({ path: page, title, h1, description }) => {
   beforeEach(() => {
     resetShellCache();
@@ -411,6 +417,7 @@ describe("the crawler fallback on every rendered page", () => {
     { url: "/", page: null, text: "<h1" },
     { url: "/story", page: "Story", text: "The long way round" },
     { url: "/accessibility", page: "Accessibility", text: "<h1>Accessibility</h1>" },
+    { url: "/privacy", page: "Privacy", text: "<h1>Privacy</h1>" },
     { url: "/blog", page: "Blog", text: "<h1>Blogs</h1>" },
     { url: "/blog/log", page: "BlogLog", text: "<h1>Channel log</h1>" },
     { url: "/blog/a-note", page: "BlogPost", text: "<h1>A note</h1>" },

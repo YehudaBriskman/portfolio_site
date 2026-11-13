@@ -64,7 +64,7 @@ describe("SignupBlock", () => {
 
   it("links the consent sentence to the privacy section, and has a hidden honeypot named website", () => {
     setup(ok);
-    expect(screen.getByRole("link", { name: /how your data is handled/i })).toHaveAttribute("href", "/accessibility#privacy");
+    expect(screen.getByRole("link", { name: /how your data is handled/i })).toHaveAttribute("href", "/privacy");
     const trap = document.querySelector('input[name="website"]') as HTMLInputElement;
     expect(trap.tabIndex).toBe(-1);
     expect(trap.closest("[aria-hidden='true']")).not.toBeNull();

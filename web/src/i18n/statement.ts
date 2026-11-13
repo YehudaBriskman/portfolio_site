@@ -55,6 +55,7 @@ export const useStatementWords = defineWords(
     /* DRAFT wording for the owner to approve: what the mailing list collects. */
     privacy: "Privacy: the mailing list",
     privacyIntro: "Apart from a message you send through the contact form, the only personal data this site collects on purpose is what you type into the sign-up form. It does not use cookies, analytics or tracking pixels, and no email carries one.",
+    privacyMore: "The full details, including who handles the data for me and how to ask for it to be shown, corrected or deleted, are on the privacy page.",
     privacyItems: [
       "What is stored: your email address, your name if you gave one, the language and topics you chose, the time and form version you agreed to, and the time you confirmed or unsubscribed.",
       "Why: only to send you the new notes and releases you chose. Nothing is sold, shared or used for anything else.",
@@ -118,6 +119,7 @@ export const useStatementWords = defineWords(
     ],
     privacy: "פרטיות: רשימת התפוצה",
     privacyIntro: "מלבד הודעה שאתם שולחים בטופס יצירת הקשר, המידע האישי היחיד שהאתר אוסף במכוון הוא מה שאתם מקלידים בטופס ההרשמה. האתר לא משתמש בעוגיות, בניתוח נתונים או בפיקסלים למעקב, ובאף אימייל אין כאלה.",
+    privacyMore: "הפרטים המלאים, כולל מי מטפל במידע בשבילי ואיך מבקשים להראות אותו, לתקן אותו או למחוק אותו, בעמוד הפרטיות.",
     privacyItems: [
       "מה נשמר: כתובת האימייל, השם אם מסרתם, השפה והנושאים שבחרתם, המועד וגרסת הטופס שאישרתם, ומועד האישור או ההסרה.",
       "בשביל מה: רק כדי לשלוח לכם את הרשימות והגרסאות החדשות שבחרתם. שום דבר לא נמכר, לא מועבר ולא משמש למטרה אחרת.",

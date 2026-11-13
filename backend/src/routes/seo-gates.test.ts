@@ -179,7 +179,7 @@ function typesIn(v: unknown, out: string[] = []): string[] {
 describe("SEO gates (#308)", () => {
   it("knows every public route in App.tsx", () => {
     const routes = publicRoutes();
-    expect(routes).toEqual(expect.arrayContaining(["/", "/blog", "/projects", "/story", "/blog/log", "/accessibility", "/developers/mcp"]));
+    expect(routes).toEqual(expect.arrayContaining(["/", "/blog", "/projects", "/story", "/blog/log", "/accessibility", "/privacy", "/developers/mcp"]));
     for (const r of routes) if (r.includes(":")) expect(FILL[r], `no fixture fills ${r}`).toBeDefined();
   });
 

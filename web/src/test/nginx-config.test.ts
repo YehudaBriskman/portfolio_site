@@ -139,7 +139,7 @@ describe("nginx config", () => {
 
   it("forwards the client address from every proxied location (#121)", () => {
     const proxied = locations.filter((loc) => loc.block!.some((d) => d.name === "proxy_pass"));
-    expect(proxied.length).toBe(23);
+    expect(proxied.length).toBe(24);
     const wrong = proxied.flatMap((loc) => {
       const headers = upstreamHeaders(loc);
       // $proxy_add_x_forwarded_for appends nginx's peer (Traefik) to what
@@ -357,6 +357,7 @@ describe("/story and /accessibility on a direct load (#240)", () => {
   it.each([
     ["/story", "http://$api_upstream/api/seo/render/story"],
     ["/accessibility", "http://$api_upstream/api/seo/render/accessibility"],
+    ["/privacy", "http://$api_upstream/api/seo/render/privacy"],
   ])("%s has an exact location of its own, proxied to its renderer", (uri, target) => {
     const loc = locationFor(uri)!;
     expect(label(loc)).toBe(`location = ${uri}`);
@@ -365,7 +366,7 @@ describe("/story and /accessibility on a direct load (#240)", () => {
     expect(loc.block!.find((d) => d.name === "error_page")?.args).toEqual(["500", "502", "503", "504", "=", "@spa"]);
   });
 
-  it.each(["/story/", "/accessibility/"])("%s redirects to the page without the slash", (uri) => {
+  it.each(["/story/", "/accessibility/", "/privacy/"])("%s redirects to the page without the slash", (uri) => {
     const ret = locationFor(uri)!.block!.find((d) => d.name === "return")!;
     expect(ret.args).toEqual(["308", uri.slice(0, -1)]);
   });

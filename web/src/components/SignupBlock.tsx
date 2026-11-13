@@ -162,7 +162,7 @@ export default function SignupBlock({ as: Heading = "h2", className = "" }: Prop
 
         <p className={styles.consent}>
           {w.consentBefore}{" "}
-          <Link to="/accessibility#privacy">{w.consentLink}</Link>
+          <Link to="/privacy">{w.consentLink}</Link>
           {"."}
         </p>
 

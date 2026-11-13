@@ -352,6 +352,13 @@ server {
 
   # The signup page and the pages an email links to: rendered (noindex) so a
   # direct load answers 200 with its own head instead of the 404 shell.
+  location = /privacy {
+    proxy_pass http://$api_upstream/api/seo/render/privacy;
+    include /etc/nginx/snippets/proxy-headers.conf;
+    proxy_intercept_errors on;
+    error_page 500 502 503 504 = @spa;
+  }
+
   location = /follow {
     proxy_pass http://$api_upstream/api/seo/render/follow;
     include /etc/nginx/snippets/proxy-headers.conf;
@@ -656,6 +663,7 @@ server {
   location = /accessibility/ { return 308 /accessibility; }
   location = /developers/mcp/ { return 308 /developers/mcp; }
   location = /follow/ { return 308 /follow; }
+  location = /privacy/ { return 308 /privacy; }
   location = /unsubscribe/ { return 308 /unsubscribe; }
 
   #

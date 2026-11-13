@@ -50,6 +50,13 @@ const EN = {
     "This site aims to meet the Web Content Accessibility Guidelines (WCAG) 2.2 at level AA, which includes the Israeli standard IS 5568 (WCAG 2.0 at level AA). It was audited by the site's author, and that audit is not a certification by an accessibility professional.",
     "Every page works with a keyboard alone, is built from headings and landmarks a screen reader can move between, and is measured for contrast.",
   ],
+  privacy: "Privacy",
+  privacyDescription:
+    "What happens to your email address if you subscribe or write to me: what is stored, why, for how long, who handles it, and how to ask to see it, correct it or delete it.",
+  privacyBody: [
+    "I run this site alone. This page says what the mailing list and the contact form keep, why, for how long, and which services handle it for me: Resend, which sends the email through Amazon SES in Ireland, Cloudflare Email Routing and Google.",
+    "There is no open tracking, no click tracking and no cookies. You can ask to see, correct or delete what I hold by writing to the contact address.",
+  ],
   home: "Home",
   developers: "Developers",
   mcp: "MCP server",
@@ -121,6 +128,13 @@ const HE: Words = {
   accessibilityBody: [
     "האתר שואף לעמוד בהנחיות הנגישות לתוכן אינטרנט (WCAG) 2.2 ברמה AA, הכוללת את התקן הישראלי ת״י 5568 (WCAG 2.0 ברמה AA). הבדיקה נעשתה בידי כותב האתר, והיא אינה אישור של מורשה נגישות.",
     "כל עמוד עובד עם מקלדת בלבד, בנוי מכותרות ומאזורי ניווט שקורא מסך יכול לנוע ביניהם, והניגודיות בו נמדדת.",
+  ],
+  privacy: "פרטיות",
+  privacyDescription:
+    "מה קורה לכתובת האימייל שלכם אם נרשמתם או כתבתם לי: מה נשמר, בשביל מה, לכמה זמן, מי מטפל בו, ואיך מבקשים לראות אותו, לתקן אותו או למחוק אותו.",
+  privacyBody: [
+    "את האתר הזה אני מפעיל לבד. בעמוד הזה כתוב מה רשימת התפוצה וטופס יצירת הקשר שומרים, בשביל מה, לכמה זמן, ואילו שירותים מטפלים בו בשבילי: שירות שליחת אימייל אמריקאי שפועל דרך שירות הדואר של אמזון באירלנד, שירות ניתוב אימייל וגוגל.",
+    "אין מעקב אחר פתיחות, אין מעקב אחר לחיצות ואין עוגיות. אפשר לבקש לראות, לתקן או למחוק את מה שיש לי, בכתיבה לכתובת הקשר.",
   ],
   home: "בית",
   developers: "למפתחים",
