@@ -386,7 +386,7 @@ describe("the crawler fallback on every rendered page", () => {
     readingMinutes: 1,
     seo: { title: null, description: null, canonical: null, noindex: false },
   };
-  const PAGES = ["Accessibility", "Blog", "BlogArea", "BlogLog", "BlogPost", "Project", "Projects", "Story"];
+  const PAGES = ["Accessibility", "Blog", "BlogArea", "BlogLog", "BlogPost", "Privacy", "Project", "Projects", "Story"];
   // The shell as the build writes it: one route-preload meta per lazy page.
   const BUILT = INDEX_HTML.replace(
     "</head>",

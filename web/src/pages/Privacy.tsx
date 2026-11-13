@@ -1,3 +1,4 @@
+import { Fragment, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import PageShell from "@/components/PageShell";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
@@ -15,7 +16,7 @@ import { dateIn } from "@/i18n/words";
  * code in the pull request that added them; edit a claim and the date below
  * with it.
  *
- * The three provider names are brand names and stay in Latin letters in both
+ * The provider names are brand names and stay in Latin letters in both
  * languages, so they live here and not in the Hebrew table; each is set apart
  * (`bdi`, `lang="en"`) so a right-to-left sentence cannot reorder it. The
  * contact address is the one the footer and the accessibility statement
@@ -25,8 +26,8 @@ import { dateIn } from "@/i18n/words";
 /* The day the wording was last changed. */
 const UPDATED = "2026-11-13";
 
-/* Index-aligned with `providers` in the words table. */
-const PROVIDER_NAMES = ["Resend", "Cloudflare", "Google"] as const;
+/* What `{1}`..`{4}` stand for in the words; `{0}` is the contact address. */
+const NAMES = ["", "Oracle Cloud", "Resend", "Cloudflare", "Google"] as const;
 
 export default function Privacy() {
   const w = usePrivacyWords();
@@ -35,14 +36,26 @@ export default function Privacy() {
   const { contact } = useContent().site;
   const updated = dateIn(lang, `${UPDATED}T12:00:00Z`, { day: "numeric", month: "long", year: "numeric" });
 
-  const list = (items: readonly string[]) => (
-    <ul className="list-disc space-y-2 ps-6">
-      {items.map((item) => (
-        <li key={item}>{item}</li>
-      ))}
-    </ul>
-  );
-  const h2 = "display display-md pt-6 text-object";
+  const fill = (text: string): ReactNode[] =>
+    text.split(/\{(\d)\}/).map((part, i) => {
+      if (i % 2 === 0) return part;
+      const n = Number(part);
+      return (
+        <Fragment key={i}>
+          {n === 0 ? (
+            <a className="underline underline-offset-4" href={`mailto:${contact.email}`} dir="ltr">
+              {contact.email}
+            </a>
+          ) : (
+            <strong>
+              <bdi lang="en" dir="ltr">
+                {NAMES[n]}
+              </bdi>
+            </strong>
+          )}
+        </Fragment>
+      );
+    });
 
   return (
     <PageShell>
@@ -52,53 +65,13 @@ export default function Privacy() {
         <p className="mono mt-3 text-xs text-clay">{w.updated(updated)}</p>
 
         <div className="mt-8 max-w-[36em] space-y-5 text-[1.0625rem] leading-relaxed text-ink">
-          <p>{w.intro}</p>
-
+          <p>{fill(w.intro)}</p>
           {w.sections.map((s) => (
-            <section key={s.heading} className="space-y-5">
-              <h2 className={h2}>{s.heading}</h2>
-              {s.intro ? <p>{s.intro}</p> : null}
-              {list(s.items)}
+            <section key={s.heading} className="space-y-3">
+              <h2 className="display display-md pt-6 text-object">{s.heading}</h2>
+              <p>{fill(s.body)}</p>
             </section>
           ))}
-
-          <h2 className={h2}>{w.howLongHeading}</h2>
-          {list(w.howLong)}
-
-          <h2 className={h2}>{w.whoHeading}</h2>
-          <p>{w.whoIntro}</p>
-          <ul className="list-disc space-y-2 ps-6">
-            {w.providers.map((text, i) => (
-              <li key={PROVIDER_NAMES[i]}>
-                <strong>
-                  <bdi lang="en" dir="ltr">
-                    {PROVIDER_NAMES[i]}
-                  </bdi>
-                </strong>{" "}
-                {text}
-              </li>
-            ))}
-          </ul>
-          <p>{w.whoOutro}</p>
-
-          <h2 className={h2}>{w.contactHeading}</h2>
-          {list(w.contact)}
-
-          <h2 className={h2}>{w.trackingHeading}</h2>
-          {list(w.tracking)}
-
-          <h2 className={h2}>{w.rightsHeading}</h2>
-          <p>{w.rightsIntro}</p>
-          {list(w.rights)}
-          <p>
-            {w.rightsBefore}{" "}
-            <a className="underline underline-offset-4" href={`mailto:${contact.email}`} dir="ltr">
-              {contact.email}
-            </a>{" "}
-            {w.rightsAfter}
-          </p>
-
-          <p>{w.changes}</p>
           <p>
             <Link className="underline underline-offset-4" to="/follow">
               {w.back}

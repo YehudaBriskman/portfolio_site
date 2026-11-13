@@ -18,7 +18,7 @@ describe("the privacy page (#586)", () => {
   it("names the three providers, in Latin letters, in both languages", () => {
     for (const lang of ["en", "he"] as const) {
       const { unmount } = show(lang);
-      for (const name of ["Resend", "Cloudflare", "Google"]) expect(screen.getByText(name)).toBeInTheDocument();
+      for (const name of ["Oracle Cloud", "Resend", "Cloudflare", "Google"]) expect(screen.getByText(name)).toBeInTheDocument();
       unmount();
     }
   });
@@ -35,7 +35,7 @@ describe("the privacy page (#586)", () => {
     show("he");
     expect(screen.getByRole("heading", { level: 1 }).textContent).toMatch(/[֐-׿]/);
     expect(screen.getByText(/^עודכן לאחרונה ב/)).toBeInTheDocument();
-    expect(screen.getByText(/בלי עוגיות/)).toBeInTheDocument();
+    expect(screen.getAllByText(/אין עוגיות/).length).toBeGreaterThan(0);
   });
 
   it("links back to the sign-up form", () => {
