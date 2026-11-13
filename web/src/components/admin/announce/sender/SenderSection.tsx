@@ -1,6 +1,6 @@
 import { useId, useState, type ReactNode } from "react";
 import type { SenderSettings, SenderWarning } from "@/services/adminAnnounce";
-import { DEFAULT_SENDER, UNSUB_NOTE_MAX, hasTextProblem, identityMissing, senderProblems, unknownPlaceholder, type SenderField, type SenderProblem } from "./defaults";
+import { DEFAULT_SENDER, UNSUB_NOTE_MAX, contactLines, hasTextProblem, identityMissing, senderProblems, unknownPlaceholder, type SenderField, type SenderProblem } from "./defaults";
 import { useSenderWords } from "./words";
 
 /*
@@ -24,6 +24,9 @@ export default function SenderSection({ sender, onChange, warnings }: { sender: 
     const p: SenderProblem | undefined = problems[f];
     if (p === "noLink") return f.startsWith("unsub") ? w.noLinkNote : w.noLinkConfirm;
     if (p === "unknown") return w.unknownPlaceholder(unknownPlaceholder(sender[f as keyof SenderSettings] as string) ?? "");
+    if (p === "address" && f === "identityWebsite") return w.badWebsite;
+    if (p === "address" && f === "identityLinkedin") return w.badLinkedin;
+    if (p === "address" && f === "identityPhone") return w.badPhone;
     if (p === "long") return w.noteTooLong(UNSUB_NOTE_MAX);
     if (p === "unsubVars") return w.noteVars;
     return p ? (p === "empty" ? w.fieldEmpty : p === "address" ? w.badAddress : p === "number" ? w.badNumber : p === "list" ? w.badList : w.invalidZone) : "";
@@ -113,7 +116,8 @@ export default function SenderSection({ sender, onChange, warnings }: { sender: 
   const senderBad = Boolean(problems.fromAddress || problems.replyTo);
   const limitsBad = Boolean(problems.throttlePerHour || problems.dailyCap || problems.maxPerContact30d || problems.quietHours);
   const textsBad = hasTextProblem(sender);
-  const ready = footerSet && !senderBad && !limitsBad && !textsBad;
+  const idBad = Boolean(problems.identityEmail || problems.identityWebsite || problems.identityLinkedin || problems.identityPhone);
+  const ready = footerSet && !idBad && !senderBad && !limitsBad && !textsBad;
   const mark = (ok: boolean) => (
     <span className="inline-flex items-center gap-1">
       <span aria-hidden="true" className={ok ? "" : "font-bold text-[rgb(var(--destructive-ink))]"}>{ok ? "✓" : "✗"}</span>
@@ -186,6 +190,22 @@ export default function SenderSection({ sender, onChange, warnings }: { sender: 
             <label className="a-label" htmlFor={`${uid}-idpostal`}>{w.idPostal}</label>
             <input id={`${uid}-idpostal`} className="a-input min-h-[44px] w-full" dir="auto" maxLength={300} autoComplete="off" aria-describedby={`${uid}-idpostal-h`} value={sender.identityPostal} onChange={(e) => onChange((s) => void (s.identityPostal = e.target.value))} />
             <p id={`${uid}-idpostal-h`} className="a-hint">{w.idPostalHint}</p>
+          </div>
+          {([["identityWebsite", "idWebsite", "idWebsiteHint", "url"], ["identityLinkedin", "idLinkedin", "idLinkedinHint", "url"], ["identityPhone", "idPhone", "idPhoneHint", "tel"]] as const).map(([f, l, h, type]) => (
+            <div key={f}>
+              <label className="a-label" htmlFor={`${uid}-${f}`}>{w[l]}</label>
+              <input id={`${uid}-${f}`} type={type} className="a-input min-h-[44px] w-full" dir="ltr" maxLength={f === "identityPhone" ? 40 : 200} autoComplete="off" aria-invalid={Boolean(problems[f])} aria-describedby={`${uid}-${f}-h`} value={sender[f]} onChange={(e) => onChange((s) => void (s[f] = e.target.value))} />
+              <p id={`${uid}-${f}-h`} className={problems[f] ? "a-error" : "a-hint"}>{err(f) || w[h]}</p>
+            </div>
+          ))}
+          <div className="a-box p-3" data-testid="footer-preview">
+            <p className="a-label !mt-0">{w.footerPreview}</p>
+            {contactLines(sender).length ? (
+              <p className="whitespace-pre-wrap break-words text-sm" dir="auto">{contactLines(sender).map((l, i) => <span key={i} className="block"><bdi>{l}</bdi></span>)}</p>
+            ) : (
+              <p className="a-hint !mt-0">{w.footerPreviewEmpty}</p>
+            )}
+            <p className="a-hint">{w.footerPreviewHint}</p>
           </div>
           <fieldset className="min-w-0" data-testid="label-mode">
             <legend className="a-label">{w.labelHeading}</legend>

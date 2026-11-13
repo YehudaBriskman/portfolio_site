@@ -361,6 +361,28 @@ describe("PUT /api/admin/announce/settings: sender texts are validated on save o
     expect((await put(app, { identityEmail: "", identityPostal: "" })).status).toBe(200);
   });
 
+  it("PUT validates website, LinkedIn and phone strictly; empty is fine; the footer prints them only when set", async () => {
+    const app = createApp();
+    const bad = [
+      ["identityWebsite", "http://example.org"],
+      ["identityWebsite", "javascript:alert(1)"],
+      ["identityWebsite", "https://u:p@example.org"],
+      ["identityWebsite", "https://example.org/<b>"],
+      ["identityLinkedin", "https://example.org/in/x"],
+      ["identityLinkedin", "https://evil-linkedin.com/in/x"],
+      ["identityPhone", "call me"],
+      ["identityPhone", "<b>1234567</b>"],
+    ] as const;
+    for (const [k, v] of bad) {
+      const r = await put(app, { [k]: v });
+      expect(r.status, `${k}=${v}`).toBe(400);
+      expect(r.body.issues[0].path).toBe(`sender.${k}`);
+    }
+    const ok = await put(app, { identityWebsite: "https://example.org", identityLinkedin: "https://www.linkedin.com/in/someone", identityPhone: "+972 50-123 4567" });
+    expect(ok.status).toBe(200);
+    expect(DEFAULT_ANNOUNCE_SETTINGS.sender).toMatchObject({ identityWebsite: "", identityLinkedin: "", identityPhone: "" });
+  });
+
   it("an older stored document without {link} still loads as saved, not reset to defaults", async () => {
     store.set("settings:announce", {
       _id: "settings:announce", _rev: "1-old", type: "settings-announce", updatedAt: "x",
@@ -783,6 +805,13 @@ describe("mail rendering", () => {
     const mailOnly = await renderCampaignMail({ subject: "S", bodyText: "x" }, { lang: "en" }, hashEmail(addr(1)), { ...sender, footerIdentity: "Y", identityEmail: "me@example.org" });
     expect(mailOnly.text).toContain("Y\nme@example.org\n");
     expect(mailOnly.text).not.toContain("PO Box");
+  });
+
+  it("website, LinkedIn and phone print only when set", async () => {
+    const r = await renderCampaignMail({ subject: "S", bodyText: "x" }, { lang: "en" }, hashEmail(addr(1)), { ...sender, identityPhone: "+972 50-123 4567", identityWebsite: "https://example.org" });
+    expect(r.text).toContain("me@example.org\n+972 50-123 4567\nhttps://example.org\n");
+    const none = await renderCampaignMail({ subject: "S", bodyText: "x" }, { lang: "en" }, hashEmail(addr(1)), sender);
+    expect(none.text).not.toMatch(/https:\/\/example\.org|\+972/);
   });
 
   it("plain text becomes paragraphs; urls are validated with new URL", () => {

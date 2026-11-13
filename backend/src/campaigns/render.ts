@@ -1,4 +1,4 @@
-import type { LabelMode, SenderSettings } from "../announce/schemas.js";
+import { contactLines, type LabelMode, type SenderSettings } from "../announce/schemas.js";
 import { env } from "../env.js";
 import { fillTemplate, hasLink, unsubscribeUrls } from "../audience/mail.js";
 import type { Lang } from "../audience/schemas.js";
@@ -55,7 +55,7 @@ export async function renderCampaignMail(
   const note = he ? sender.unsubscribeNoteHe : sender.unsubscribeNoteEn;
   const missingLink = !hasLink(note);
   const fallback = he ? UNSUB_FALLBACK_HE : UNSUB_FALLBACK_EN;
-  const identityLines = [sender.footerIdentity.trim(), sender.identityPostal.trim(), sender.identityEmail.trim()].filter(Boolean);
+  const identityLines = contactLines(sender);
 
   const subject = `${opts.subjectPrefix ?? ""}${label ? `${label.subject}: ` : ""}${oneLine(c.subject)}`;
 
