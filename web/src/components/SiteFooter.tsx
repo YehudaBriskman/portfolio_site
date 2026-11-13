@@ -155,7 +155,7 @@ export default function SiteFooter() {
 
         <div className="mono mt-12 flex flex-wrap items-center justify-between gap-3 border-t border-edge pt-6 text-xs text-clay">
           <span>&copy; {new Date().getFullYear()} <span lang="en" dir="ltr">Yehuda Briskman</span></span>
-          <span className="flex items-center gap-6">
+          <span className="flex flex-wrap items-center gap-x-6">
             <span {...inEnglish(lang, footer.place)}>{footer.place}</span>
             {/*
              * The accessibility statement, on every page because the footer is
@@ -167,6 +167,12 @@ export default function SiteFooter() {
               className="-my-3 inline-flex min-h-11 items-center py-3 text-clay transition-colors hover:text-ink focus-visible:text-ink"
             >
               {w.accessibility}
+            </Link>
+            <Link
+              to="/privacy"
+              className="-my-3 inline-flex min-h-11 items-center py-3 text-clay transition-colors hover:text-ink focus-visible:text-ink"
+            >
+              {w.privacy}
             </Link>
             {/*
              * Quiet, and now actually legible.

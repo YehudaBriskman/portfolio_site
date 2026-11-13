@@ -95,6 +95,7 @@ const ROUTES = [
   "/blog/log?kind=release&area=site",
   "/blog/fixture-post",
   "/accessibility",
+  "/privacy",
   "/a-page-that-does-not-exist",
   /* The media library (#253): the admin is a page somebody works in daily,
      so it is held to the same floor. The others open one item of each kind. */

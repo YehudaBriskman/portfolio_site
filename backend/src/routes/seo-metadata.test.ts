@@ -83,6 +83,7 @@ const PAGES = [
   `/projects/${PROJECTS[0].slug}`,
   "/story",
   "/accessibility",
+  "/privacy",
   "/developers/mcp",
 ];
 const renderPath = (p: string, lang: "en" | "he") => `/api/seo/render${lang === "he" ? "/he" : ""}${p}`;

@@ -622,6 +622,28 @@ page("/accessibility", async (_req, res, lang) => {
   });
 });
 
+/* The privacy page (#586), web/src/pages/Privacy.tsx; the echo is the page's own summary, not its full text. */
+page("/privacy", async (_req, res, lang) => {
+  const w = SEO_WORDS[lang];
+  await sendShell(res, {
+    ...at("/privacy", lang),
+    route: "Privacy",
+    title: title(w.privacy, lang),
+    description: w.privacyDescription,
+    image: absoluteUrl("/og.png"),
+    imageAlt: siteNameIn(lang),
+    type: "website",
+    bodyHtml:
+      `<main><h1>${escapeHtml(w.privacy)}</h1>` +
+      w.privacyBody.map((p) => `<p>${escapeHtml(p)}</p>`).join("") +
+      `<p><a href="${href("/", lang)}">${escapeHtml(w.home)}</a></p></main>`,
+    jsonLd: graph(
+      webPage("WebPage", lang, "/privacy", { name: w.privacy, description: w.privacyDescription }),
+      breadcrumbs(lang, [{ name: w.privacy, path: "/privacy" }]),
+    ),
+  });
+});
+
 /*
  * The signup page and the three an email links to. All four are noindex and
  * none is in the sitemap: /follow is a form, and the others are one-person

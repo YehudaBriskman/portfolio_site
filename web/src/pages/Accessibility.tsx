@@ -104,6 +104,11 @@ export default function Accessibility() {
               <li key={item}>{item}</li>
             ))}
           </ul>
+          <p>
+            <Link className="underline underline-offset-4" to="/privacy">
+              {w.privacyMore}
+            </Link>
+          </p>
 
           <h2 className="display display-md pt-6 text-object">{w.limits}</h2>
           <ul className="list-disc space-y-2 ps-6">

@@ -28,6 +28,7 @@ const BlogLog = lazy(() => import("./pages/BlogLog"));
 // The accessibility statement: plain text, read rarely, so not on the
 // home page's bill either.
 const Accessibility = lazy(() => import("./pages/Accessibility"));
+const Privacy = lazy(() => import("./pages/Privacy"));
 // The signup page and the three an email links to: small, read rarely, noindex.
 const Follow = lazy(() => import("./pages/Follow"));
 const SubscribeConfirm = lazy(() => import("./pages/SubscribeConfirm"));
@@ -185,6 +186,7 @@ const App = () => {
             <Route path="/blog/log" element={<Suspense fallback={<RouteFallback />}><BlogLog /></Suspense>} />
             <Route path="/blog/:slug" element={<Suspense fallback={<RouteFallback />}><BlogPost /></Suspense>} />
             <Route path="/accessibility" element={<Suspense fallback={<RouteFallback />}><Accessibility /></Suspense>} />
+            <Route path="/privacy" element={<Suspense fallback={<RouteFallback />}><Privacy /></Suspense>} />
             <Route path="/follow" element={<Suspense fallback={<RouteFallback />}><Follow /></Suspense>} />
             <Route path="/subscribe/confirm" element={<Suspense fallback={<RouteFallback />}><SubscribeConfirm /></Suspense>} />
             <Route path="/unsubscribe" element={<Suspense fallback={<RouteFallback />}><Unsubscribe /></Suspense>} />
