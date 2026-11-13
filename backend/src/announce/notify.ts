@@ -3,7 +3,7 @@ import { SITE_URL } from "../services/seo.js";
 import { emailService } from "../services/email.service.js";
 import { buildOwnerEmail } from "./emailHtml.js";
 import { renderKit } from "./kit.js";
-import type { AnnounceEvent, AnnounceSettings } from "./schemas.js";
+import { contactLines, type AnnounceEvent, type AnnounceSettings } from "./schemas.js";
 
 /*
  * One mail per event (HTML with a plain-text part), to CONTACT_TO (the service's only recipient). No
@@ -14,7 +14,7 @@ import type { AnnounceEvent, AnnounceSettings } from "./schemas.js";
 export async function notifyOwner(ev: AnnounceEvent, settings: AnnounceSettings): Promise<void> {
   try {
     const kit = renderKit(ev, settings);
-    const { subject, html, text } = buildOwnerEmail(ev, kit, SITE_URL);
+    const { subject, html, text } = buildOwnerEmail(ev, kit, SITE_URL, contactLines(settings.sender));
     await emailService.send({ subject, html, text });
   } catch (err) {
     logger.warn({ err: err instanceof Error ? err.message : String(err), id: ev._id }, "announce: owner email failed");

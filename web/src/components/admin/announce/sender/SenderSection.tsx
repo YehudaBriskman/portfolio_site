@@ -234,7 +234,7 @@ export default function SenderSection({ sender, onChange, warnings }: { sender: 
                 <span>{label}</span>
               </label>
             ))}
-            {sender.labelMode === "off" && <p className="a-error" role="status">{w.labelOffWarn}</p>}
+            {sender.labelMode === "off" && <p className="a-hint" role="status">{w.labelOffWarn}</p>}
           </fieldset>
         </>,
         { open: true, bad: !footerSet, testid: "sec-footer" },
@@ -263,7 +263,7 @@ export default function SenderSection({ sender, onChange, warnings }: { sender: 
             {num("throttlePerHour", w.throttle, w.throttleHint, 3600)}
             {num("dailyCap", w.cap, w.capHint, 10000)}
             {num("maxPerContact30d", w.perPerson, w.perPersonHint, 31, 0)}
-            {num("pendingTtlDays", w.pendingTtl, w.pendingTtlHint, 30)}
+            {num("pendingTtlDays", w.pendingTtl, w.pendingTtlHint, 30, 2)}
           </div>
           <fieldset className="space-y-2">
             <legend className="a-label">{w.quiet}</legend>

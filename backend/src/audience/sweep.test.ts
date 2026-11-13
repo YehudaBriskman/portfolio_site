@@ -147,8 +147,8 @@ describe("scheduled sweep: unconfirmed signups", () => {
 
 describe("pendingTtlDays on PUT", () => {
   it("accepts whole days 1 to 30 and names anything else", () => {
-    for (const n of [1, 7, 30]) expect(validateSenderPending({ pendingTtlDays: n })).toEqual([]);
-    for (const n of [0, 31, 2.5, NaN]) expect(validateSenderPending({ pendingTtlDays: n })).toHaveLength(1);
+    for (const n of [2, 7, 30]) expect(validateSenderPending({ pendingTtlDays: n })).toEqual([]);
+    for (const n of [0, 1, 31, 2.5, NaN]) expect(validateSenderPending({ pendingTtlDays: n })).toHaveLength(1);
   });
 });
 

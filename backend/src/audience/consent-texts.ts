@@ -30,6 +30,14 @@ export const CONSENT_TEXTS: readonly ConsentText[] = [
     sha256: "9071bf6e6c55960b3c335d0ad6406046463dde78b9c6dc34a5a32eb1863613c4",
     firstShippedIn: "09a4588",
   },
+  {
+    id: "site-form-v2",
+    he: "בהרשמה אתם מסכימים לקבל את העלון שלי באימייל: הרשימות והגרסאות שבחרתם. קודם אשלח אימייל אחד לאישור הכתובת, ובכל אימייל יש קישור להסרה. איך אני מטפל במידע",
+    en: "By subscribing you agree to receive my newsletter by email: the notes and releases you chose. I’ll first send one email to confirm your address, and every email has an unsubscribe link. How I handle your data",
+    sha256: "fb089b7aa9e45b421101f96d6b89642756c7fc635335a22eca2095080837ffb5",
+    /* The base commit of the change that introduced it; the merge commit is not known until it is merged. */
+    firstShippedIn: "be589bd",
+  },
 ];
 
 /** The wording the signup form shows today: always the last entry. */

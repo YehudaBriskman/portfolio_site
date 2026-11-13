@@ -21,7 +21,8 @@ export type Inline = string | { href: string; text: string };
 export type MailBlock =
   | { type: "heading"; text: string; level?: 1 | 2; lang?: MailLang }
   /* kicker = the small label above a title; strong = a bold line (the advertisement label); muted = secondary text. */
-  | { type: "paragraph"; text: string | Inline[]; tone?: "normal" | "strong" | "muted" | "kicker"; lang?: MailLang }
+  /* htmlOnly = shown in the page, left out of the plain-text twin (a link the text already carries). */
+  | { type: "paragraph"; text: string | Inline[]; tone?: "normal" | "strong" | "muted" | "kicker"; lang?: MailLang; htmlOnly?: boolean }
   | { type: "button"; label: string; href: string }
   | { type: "list"; items: string[] }
   /* A labelled box of lines the reader copies from (captions); each line is its own direction unit. */
@@ -106,7 +107,7 @@ function renderBlock(b: MailBlock, root: MailLang, origin: string, L: Pal): { ht
             : `margin:0;font-size:16px;line-height:1.5;color:${L.ink}${tone === "strong" ? ";font-weight:700" : ""}`;
       return {
         html: row(`<p class="${tone === "normal" || tone === "strong" ? "ink" : "soft"}" dir="auto"${langAttrs(b.lang, root)} style="${style}">${inlineHtml(b.text, L.link)}</p>`),
-        text: inlineText(b.text),
+        text: b.htmlOnly ? "" : inlineText(b.text),
       };
     }
     case "button": {
