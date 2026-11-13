@@ -1,0 +1,204 @@
+/*
+ * The inside of the filter sheet (the sheet itself is BottomSheet). Logical
+ * properties only. Pills, checkbox rows, links and fields are 44px tall;
+ * fields are 16px so a phone does not zoom in on focus. The native radio and
+ * checkbox stay in place, so keyboard and screen readers get the real
+ * control; the pill only paints its state. Nothing here moves.
+ */
+.sections {
+  display: grid;
+  gap: var(--a-s-5, 1.25rem);
+}
+
+.section {
+  min-inline-size: 0;
+}
+
+.fieldset {
+  min-inline-size: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.label {
+  margin: 0 0 var(--a-s-2, 0.5rem);
+  padding: 0;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: rgb(var(--ink-soft));
+}
+
+.pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--a-s-2, 0.5rem);
+}
+
+.pill {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--a-s-1, 0.25rem);
+  min-block-size: 2.75rem;
+  min-inline-size: 2.75rem;
+  padding-inline: var(--a-s-4, 1rem);
+  border: 1px solid var(--a-line-ctl, rgb(var(--rule-firm)));
+  border-radius: var(--a-r-pill, 999px);
+  background: rgb(var(--paper));
+  color: rgb(var(--ink));
+  font: inherit;
+  font-size: 0.9375rem;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.pill:has(input:checked) {
+  border-color: rgb(var(--signal));
+  background: rgb(var(--signal) / 0.14);
+  font-weight: 600;
+}
+
+.pill:has(input:focus-visible),
+.pill:focus-visible {
+  outline: 2px solid rgb(var(--signal));
+  outline-offset: 2px;
+}
+
+/* In place and invisible: a screen reader and the arrow keys still find it. */
+.input {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: var(--a-s-3, 0.75rem);
+  min-block-size: 2.75rem;
+  cursor: pointer;
+}
+
+.box {
+  flex: none;
+  inline-size: 1.25rem;
+  block-size: 1.25rem;
+  margin: 0;
+  accent-color: rgb(var(--signal));
+}
+
+.checkText {
+  flex: 1;
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+
+.count {
+  color: rgb(var(--ink-soft));
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.search,
+.field {
+  inline-size: 100%;
+  min-block-size: 2.75rem;
+  padding-inline: var(--a-s-3, 0.75rem);
+  border: 1px solid var(--a-line-ctl, rgb(var(--rule-firm)));
+  border-radius: var(--a-r-ctl, 12px);
+  background: rgb(var(--paper));
+  color: rgb(var(--ink));
+  font: inherit;
+  font-size: 1rem;
+}
+
+.search:focus-visible,
+.field:focus-visible {
+  outline: 2px solid rgb(var(--signal));
+  outline-offset: 1px;
+}
+
+.field[aria-invalid="true"] {
+  border-color: rgb(var(--danger, 180 35 24));
+}
+
+.bulk {
+  display: flex;
+  gap: var(--a-s-2, 0.5rem);
+}
+
+.link {
+  min-block-size: 2.75rem;
+  min-inline-size: 2.75rem;
+  padding-inline: var(--a-s-2, 0.5rem);
+  border: 0;
+  border-radius: var(--a-r-ctl, 12px);
+  background: transparent;
+  color: rgb(var(--signal));
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.link:focus-visible {
+  outline: 2px solid rgb(var(--signal));
+  outline-offset: -2px;
+}
+
+.empty {
+  margin: var(--a-s-2, 0.5rem) 0;
+  color: rgb(var(--ink-soft));
+}
+
+.dates {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--a-s-3, 0.75rem);
+  margin-block-start: var(--a-s-2, 0.5rem);
+}
+
+.date {
+  display: grid;
+  gap: var(--a-s-1, 0.25rem);
+  min-inline-size: 0;
+  font-size: 0.875rem;
+}
+
+.error {
+  margin: var(--a-s-2, 0.5rem) 0 0;
+  color: rgb(var(--danger, 180 35 24));
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.reset,
+.show {
+  min-block-size: 2.75rem;
+}
+
+.show {
+  flex: 1 1 auto;
+}
+
+.show:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.sr {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

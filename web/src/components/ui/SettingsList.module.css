@@ -1,0 +1,165 @@
+/*
+ * Inset grouped list: a rounded card on the page, rows divided by a hairline
+ * that starts at the text, not at the edge. From 840px the list and the open
+ * group are two panes. Logical properties only; the back chevron turns around
+ * under :dir(rtl).
+ */
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--a-s-4, 1rem);
+  min-inline-size: 0;
+}
+
+.root[data-panes] {
+  display: grid;
+  grid-template-columns: minmax(0, 22rem) minmax(0, 1fr);
+  align-items: start;
+  gap: var(--a-s-6, 1.5rem);
+}
+
+.listPane {
+  display: flex;
+  flex-direction: column;
+  gap: var(--a-s-3, 0.75rem);
+  min-inline-size: 0;
+}
+
+.card {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow: hidden;
+  border-radius: var(--a-r-box, 16px);
+  background: rgb(var(--paper-2));
+  box-shadow: var(--a-shadow-1, none);
+}
+
+.card > * + * {
+  border-block-start: 1px solid rgb(var(--rule-firm) / 0.3);
+}
+
+/* A group row's divider starts after the 28px icon tile. */
+.groups > * + * {
+  border-block-start: 0;
+  position: relative;
+}
+
+.groups > * + *::before {
+  content: "";
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline: 3.5rem 0;
+  border-block-start: 1px solid rgb(var(--rule-firm) / 0.3);
+}
+
+.hitItem {
+  display: block;
+}
+
+.hit {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  inline-size: 100%;
+  min-block-size: 3.5rem;
+  padding-block: var(--a-s-2, 0.5rem);
+  padding-inline: var(--a-s-4, 1rem);
+  border: 0;
+  background: transparent;
+  color: rgb(var(--ink));
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.hit:focus-visible {
+  outline: 2px solid rgb(var(--signal));
+  outline-offset: -2px;
+}
+
+.hit:active {
+  background: var(--a-press, rgb(var(--ink) / 0.09));
+}
+
+.hitLabel {
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.hitPath {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  max-inline-size: 100%;
+  font-size: var(--a-fs-meta, 0.875rem);
+  color: rgb(var(--ink-soft));
+}
+
+.sep:dir(rtl) {
+  transform: scaleX(-1);
+}
+
+.detail {
+  min-inline-size: 0;
+}
+
+.title {
+  margin: 0 0 var(--a-s-3, 0.75rem);
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--a-s-3, 0.75rem);
+}
+
+.pageHead .title {
+  margin: 0;
+}
+
+.pageHead {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--a-s-1, 0.25rem);
+}
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--a-s-1, 0.25rem);
+  min-block-size: 2.75rem;
+  padding-inline: var(--a-s-1, 0.25rem) var(--a-s-3, 0.75rem);
+  border: 0;
+  border-radius: var(--a-r-ctl, 12px);
+  background: transparent;
+  color: rgb(var(--ink));
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.back:focus-visible {
+  outline: 2px solid rgb(var(--signal));
+  outline-offset: -2px;
+}
+
+.backIcon:dir(rtl) {
+  transform: scaleX(-1);
+}
+
+.sheetBody {
+  padding: var(--a-s-3, 0.75rem) var(--a-s-4, 1rem) var(--a-s-4, 1rem);
+}
