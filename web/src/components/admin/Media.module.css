@@ -124,7 +124,7 @@
   display: block;
   margin-top: .25rem;
   font-family: var(--font-data);
-  font-size: .875rem;
+  font-size: var(--a-fs-meta);
   letter-spacing: .04em;
   color: rgb(var(--clay));
   font-variant-numeric: tabular-nums;

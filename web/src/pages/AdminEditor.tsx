@@ -175,7 +175,13 @@ function TagsField({
   return (
     <div>
       <label className="a-label" htmlFor={id}>{words.tags}</label>
-      <div className={styles.tags}>
+      {/* The box is the target, not only the 21px input inside it; a chip's own button keeps its click. */}
+      <div
+        className={styles.tags}
+        onClick={(e) => {
+          if (!(e.target as HTMLElement).closest("button, input")) e.currentTarget.querySelector("input")?.focus();
+        }}
+      >
         <ul className="contents" aria-label={words.tags}>
           {tags.map((t) => (
             <li key={t} className={styles.tag}>
@@ -770,7 +776,7 @@ export default function AdminEditor() {
                 <textarea value={f.seoDescription} maxLength={320} onChange={(e) => edit("seoDescription", e.target.value)} className="a-textarea min-h-[4rem]" />
                 <span className="a-hint">{w.seoDescriptionHelp}</span>
               </label>
-              <label className="flex items-center gap-3 sm:col-span-2">
+              <label className="flex min-h-[1.5rem] items-center gap-3 sm:col-span-2 [@media(pointer:coarse)]:min-h-[2.75rem]">
                 <input type="checkbox" checked={f.noindex} onChange={(e) => edit("noindex", e.target.checked)} />
                 <span className="text-sm text-bone">{w.noindex}</span>
               </label>
