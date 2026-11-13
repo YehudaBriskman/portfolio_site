@@ -242,6 +242,37 @@ describe("campaign routes and state machine", () => {
   });
 });
 
+describe("the composer's payload with blocks off", () => {
+  /* Exactly what web/.../campaigns/helpers.ts builds (toInput with useBlocks=false); nulls are what the form sends to update and preview. */
+  const formCreate = { name: "Hello", subject: "Hello", preheader: "", bodyText: "Hi", groups: ["subscribers"], lang: "all" };
+  const formNulls = { ...formCreate, blocks: null, topic: null };
+  const preview = { subject: "Hello", preheader: "", bodyText: "Hi", blocks: null, lang: "en" };
+
+  it.each([["without the null keys", formCreate], ["with null blocks and topic", formNulls]])("create accepts the payload %s and stores no null", async (_n, body) => {
+    const r = await admin(request(createApp()).post(C).send(body));
+    expect(r.status).toBe(201);
+    const doc = get(r.body.campaign.id);
+    expect("blocks" in doc).toBe(false);
+    expect("topic" in doc).toBe(false);
+    expect(r.body.campaign.blocks).toBeNull();
+  });
+  it("update, preview, test, schedule and send-now work on a blocks-off campaign", async () => {
+    setSender({ testRecipients: ["me@example.com"] });
+    seedMany(2);
+    const c = (await admin(request(createApp()).post(C).send(formCreate))).body.campaign as { id: string; _rev: string };
+    const u = await admin(request(createApp()).patch(`${C}/${c.id}`).send({ ...formNulls, _rev: c._rev }));
+    expect(u.status).toBe(200);
+    expect((await admin(request(createApp()).post(`${C}/preview`).send(preview))).status).toBe(200);
+    expect((await admin(request(createApp()).post(`${C}/${c.id}/test`))).status).toBe(200);
+    const s = await admin(request(createApp()).post(`${C}/${c.id}/schedule`).send({ sendAt: new Date(Date.now() + 3_600_000).toISOString(), ...(await sure(c.id)) }));
+    expect(s.status).toBe(200);
+    const c2 = (await admin(request(createApp()).post(C).send(formNulls))).body.campaign as { id: string };
+    await admin(request(createApp()).post(`${C}/${c2.id}/test`));
+    const n = await admin(request(createApp()).post(`${C}/${c2.id}/send-now`).send(await sure(c2.id)));
+    expect(n.status).toBe(200);
+  });
+});
+
 describe("the unsubscribe link can never be missing", () => {
   const sender = (over: Partial<AnnounceSettings["sender"]>) => ({ ...DEFAULT_ANNOUNCE_SETTINGS.sender, footerIdentity: "Yehuda, Tel Aviv", identityEmail: "me@example.org", ...over });
   const render = (note: string, lang: "en" | "he" = "en") =>

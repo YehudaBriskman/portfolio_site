@@ -1,4 +1,4 @@
-import type { Block } from "@/services/adminCampaigns";
+import type { Block, CampaignInput, CampaignLang, CampaignTopic } from "@/services/adminCampaigns";
 
 /*
  * Small client-side helpers. The mail itself is never drawn here: the preview
@@ -81,3 +81,19 @@ export function zonedToIso(local: string, tz: string): string | null {
   t = guess - offset(t);
   return Number.isFinite(t) ? new Date(t).toISOString() : null;
 }
+
+export type Form = { name: string; subject: string; preheader: string; bodyText: string; useBlocks: boolean; blocks: Block[]; groups: string[]; lang: CampaignLang; topic: "" | CampaignTopic };
+
+export const cleanBlocks = (bs: Block[]): Block[] => bs.map((b) => (b.type === "ul" ? { ...b, items: b.items.map((i) => i.trim()).filter(Boolean) } : b));
+
+/* The save payload. null is meaningful to an update (it clears blocks / topic). */
+export const toInput = (f: Form): CampaignInput => {
+  const blocks = f.useBlocks ? cleanBlocks(f.blocks) : null;
+  return {
+    name: f.name.trim() || f.subject.trim().slice(0, 120), subject: f.subject.trim(), preheader: f.preheader.trim(), bodyText: blocks ? blocksToText(blocks) : f.bodyText,
+    blocks, groups: f.groups, lang: f.lang, topic: f.topic || null,
+  };
+};
+
+/* A new campaign has nothing to clear, so absent fields are omitted rather than sent as null. */
+export const createPayload = ({ blocks, topic, ...rest }: CampaignInput): CampaignInput => ({ ...rest, ...(blocks ? { blocks } : {}), ...(topic ? { topic } : {}) });
