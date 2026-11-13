@@ -4,23 +4,23 @@ exports[`every transactional mail > autoreply-en: snapshot of the page and its p
 "<!doctype html>
 <html lang="en" dir="ltr" xmlns="http://www.w3.org/1999/xhtml"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <meta name="color-scheme" content="light dark"><meta name="supported-color-schemes" content="light dark">
-<title>We got your message</title>
+<title>Got your message</title>
 <style>:root{color-scheme:light dark;supported-color-schemes:light dark}body{margin:0;padding:0;-webkit-text-size-adjust:100%}table{border-collapse:collapse}img{-ms-interpolation-mode:bicubic}@media (prefers-color-scheme: dark){.page{background-color:#1C1A16 !important}.card{background-color:#282520 !important}.ink{color:#F2F0EA !important}.soft{color:#B5B1A6 !important}.lnk{color:#7AA2E8 !important}.box{background-color:#34302A !important;border-color:#4A453C !important;color:#F2F0EA !important}.rule{border-color:#4A453C !important}.btn{background-color:#F2F0EA !important}.btna{color:#14130F !important}}</style></head>
 <body class="page" bgcolor="#ECE8DC" style="margin:0;padding:0;background-color:#ECE8DC;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,'Noto Sans Hebrew','Arial Hebrew',sans-serif">
-<div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all;font-size:1px;line-height:1px;color:#ECE8DC">Thanks, we’ll get back to you soon.&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;</div>
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all;font-size:1px;line-height:1px;color:#ECE8DC">Thanks for writing. I read every message myself and will get back to you soon.&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="page" bgcolor="#ECE8DC" style="background-color:#ECE8DC"><tr><td align="center" style="padding:16px 8px">
 <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" class="card" bgcolor="#FBFAF6" style="width:100%;max-width:600px;table-layout:fixed;background-color:#FBFAF6;border-radius:10px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,'Noto Sans Hebrew','Arial Hebrew',sans-serif">
 <tr><td class="card" bgcolor="#FBFAF6" height="24" style="height:24px;line-height:24px;font-size:1px;background-color:#FBFAF6;border-radius:10px 10px 0 0">&nbsp;</td></tr>
-<tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:0px 24px 16px 24px"><h1 class="ink" dir="auto" style="margin:0;font-size:24px;line-height:1.3;font-weight:700;color:#14130F">We got your message</h1></td></tr>
-<tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:0px 24px 16px 24px"><p class="ink" dir="auto" style="margin:0;font-size:16px;line-height:1.5;color:#14130F">Thanks, we’ll get back to you soon.</p></td></tr>
+<tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:0px 24px 16px 24px"><h1 class="ink" dir="auto" style="margin:0;font-size:24px;line-height:1.3;font-weight:700;color:#14130F">Got your message</h1></td></tr>
+<tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:0px 24px 16px 24px"><p class="ink" dir="auto" style="margin:0;font-size:16px;line-height:1.5;color:#14130F">Thanks for writing. I read every message myself and will get back to you soon.</p></td></tr>
 <tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:12px 24px 24px 24px"><div class="rule" style="border-top:1px solid #CFC9B8;padding-top:14px"><p class="soft" style="margin:0 0 8px 0;font-size:13px;line-height:1.5;color:#55524A"><bdi>Example Person</bdi><br><bdi>contact@example.org</bdi><br><bdi>+972 50-000 0000</bdi><br><bdi>https://example.org</bdi></p></div></td></tr>
 </table></td></tr></table></body></html>"
 `;
 
 exports[`every transactional mail > autoreply-en: snapshot of the page and its plain text, under the size limit > text 1`] = `
-"We got your message
+"Got your message
 
-Thanks, we’ll get back to you soon.
+Thanks for writing. I read every message myself and will get back to you soon.
 
 --
 Example Person
@@ -33,23 +33,23 @@ exports[`every transactional mail > autoreply-he: snapshot of the page and its p
 "<!doctype html>
 <html lang="he" dir="rtl" xmlns="http://www.w3.org/1999/xhtml"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <meta name="color-scheme" content="light dark"><meta name="supported-color-schemes" content="light dark">
-<title>קיבלנו את ההודעה</title>
+<title>קיבלתי את ההודעה שלכם</title>
 <style>:root{color-scheme:light dark;supported-color-schemes:light dark}body{margin:0;padding:0;-webkit-text-size-adjust:100%}table{border-collapse:collapse}img{-ms-interpolation-mode:bicubic}@media (prefers-color-scheme: dark){.page{background-color:#1C1A16 !important}.card{background-color:#282520 !important}.ink{color:#F2F0EA !important}.soft{color:#B5B1A6 !important}.lnk{color:#7AA2E8 !important}.box{background-color:#34302A !important;border-color:#4A453C !important;color:#F2F0EA !important}.rule{border-color:#4A453C !important}.btn{background-color:#F2F0EA !important}.btna{color:#14130F !important}}</style></head>
 <body class="page" bgcolor="#ECE8DC" style="margin:0;padding:0;background-color:#ECE8DC;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,'Noto Sans Hebrew','Arial Hebrew',sans-serif">
-<div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all;font-size:1px;line-height:1px;color:#ECE8DC">תודה, נחזור אליכם בקרוב.&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;</div>
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all;font-size:1px;line-height:1px;color:#ECE8DC">תודה שכתבתם. אני קורא כל הודעה בעצמי ואחזור אליכם בהקדם.&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="page" bgcolor="#ECE8DC" style="background-color:#ECE8DC"><tr><td align="center" style="padding:16px 8px">
 <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" class="card" bgcolor="#FBFAF6" style="width:100%;max-width:600px;table-layout:fixed;background-color:#FBFAF6;border-radius:10px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,'Noto Sans Hebrew','Arial Hebrew',sans-serif">
 <tr><td class="card" bgcolor="#FBFAF6" height="24" style="height:24px;line-height:24px;font-size:1px;background-color:#FBFAF6;border-radius:10px 10px 0 0">&nbsp;</td></tr>
-<tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:0px 24px 16px 24px"><h1 class="ink" dir="auto" style="margin:0;font-size:24px;line-height:1.3;font-weight:700;color:#14130F">קיבלנו את ההודעה</h1></td></tr>
-<tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:0px 24px 16px 24px"><p class="ink" dir="auto" style="margin:0;font-size:16px;line-height:1.5;color:#14130F">תודה, נחזור אליכם בקרוב.</p></td></tr>
+<tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:0px 24px 16px 24px"><h1 class="ink" dir="auto" style="margin:0;font-size:24px;line-height:1.3;font-weight:700;color:#14130F">קיבלתי את ההודעה שלכם</h1></td></tr>
+<tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:0px 24px 16px 24px"><p class="ink" dir="auto" style="margin:0;font-size:16px;line-height:1.5;color:#14130F">תודה שכתבתם. אני קורא כל הודעה בעצמי ואחזור אליכם בהקדם.</p></td></tr>
 <tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:12px 24px 24px 24px"><div class="rule" style="border-top:1px solid #CFC9B8;padding-top:14px"><p class="soft" style="margin:0 0 8px 0;font-size:13px;line-height:1.5;color:#55524A"><bdi>יהודה בריסקמן</bdi><br><bdi>contact@example.org</bdi></p></div></td></tr>
 </table></td></tr></table></body></html>"
 `;
 
 exports[`every transactional mail > autoreply-he: snapshot of the page and its plain text, under the size limit > text 1`] = `
-"קיבלנו את ההודעה
+"קיבלתי את ההודעה שלכם
 
-תודה, נחזור אליכם בקרוב.
+תודה שכתבתם. אני קורא כל הודעה בעצמי ואחזור אליכם בהקדם.
 
 --
 יהודה בריסקמן
@@ -60,17 +60,17 @@ exports[`every transactional mail > confirm-en: snapshot of the page and its pla
 "<!doctype html>
 <html lang="en" dir="ltr" xmlns="http://www.w3.org/1999/xhtml"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <meta name="color-scheme" content="light dark"><meta name="supported-color-schemes" content="light dark">
-<title>Confirm your subscription</title>
+<title>Confirm your newsletter subscription</title>
 <style>:root{color-scheme:light dark;supported-color-schemes:light dark}body{margin:0;padding:0;-webkit-text-size-adjust:100%}table{border-collapse:collapse}img{-ms-interpolation-mode:bicubic}@media (prefers-color-scheme: dark){.page{background-color:#1C1A16 !important}.card{background-color:#282520 !important}.ink{color:#F2F0EA !important}.soft{color:#B5B1A6 !important}.lnk{color:#7AA2E8 !important}.box{background-color:#34302A !important;border-color:#4A453C !important;color:#F2F0EA !important}.rule{border-color:#4A453C !important}.btn{background-color:#F2F0EA !important}.btna{color:#14130F !important}}</style></head>
 <body class="page" bgcolor="#ECE8DC" style="margin:0;padding:0;background-color:#ECE8DC;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,'Noto Sans Hebrew','Arial Hebrew',sans-serif">
 <div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all;font-size:1px;line-height:1px;color:#ECE8DC">Someone asked to get my newsletter (notes and releases) from yehudabriskman.com at this address, hopefully you. To confirm, open this link:&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="page" bgcolor="#ECE8DC" style="background-color:#ECE8DC"><tr><td align="center" style="padding:16px 8px">
 <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" class="card" bgcolor="#FBFAF6" style="width:100%;max-width:600px;table-layout:fixed;background-color:#FBFAF6;border-radius:10px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,'Noto Sans Hebrew','Arial Hebrew',sans-serif">
 <tr><td class="card" bgcolor="#FBFAF6" height="24" style="height:24px;line-height:24px;font-size:1px;background-color:#FBFAF6;border-radius:10px 10px 0 0">&nbsp;</td></tr>
-<tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:0px 24px 16px 24px"><h1 class="ink" dir="auto" style="margin:0;font-size:24px;line-height:1.3;font-weight:700;color:#14130F">Confirm your subscription</h1></td></tr>
+<tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:0px 24px 16px 24px"><h1 class="ink" dir="auto" style="margin:0;font-size:24px;line-height:1.3;font-weight:700;color:#14130F">Confirm your newsletter subscription</h1></td></tr>
 <tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:0px 24px 16px 24px"><p class="ink" dir="auto" style="margin:0;font-size:16px;line-height:1.5;color:#14130F">Hi Ada,</p></td></tr>
 <tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:0px 24px 16px 24px"><p class="ink" dir="auto" style="margin:0;font-size:16px;line-height:1.5;color:#14130F">Someone asked to get my newsletter (notes and releases) from yehudabriskman.com at this address, hopefully you. To confirm, open this link:</p></td></tr>
-<tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:4px 24px 20px 24px"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td class="btn" bgcolor="#14130F" height="44" style="background-color:#14130F;border-radius:8px"><a class="btna" href="https://example.test/subscribe/confirm?token=abc.def" style="display:inline-block;min-height:20px;padding:12px 24px;font-size:16px;line-height:20px;font-weight:700;color:#FFFFFF;text-decoration:none">Confirm your subscription</a></td></tr></table></td></tr>
+<tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:4px 24px 20px 24px"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td class="btn" bgcolor="#14130F" height="44" style="background-color:#14130F;border-radius:8px"><a class="btna" href="https://example.test/subscribe/confirm?token=abc.def" style="display:inline-block;min-height:20px;padding:12px 24px;font-size:16px;line-height:20px;font-weight:700;color:#FFFFFF;text-decoration:none">Confirm your newsletter subscription</a></td></tr></table></td></tr>
 <tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:0px 24px 16px 24px"><p class="soft" dir="auto" style="margin:0;font-size:14px;line-height:1.5;color:#55524A"><a href="https://example.test/subscribe/confirm?token=abc.def" class="lnk" style="color:#1D4ED8;text-decoration:underline">https://example.test/subscribe/confirm?token=abc.def</a></p></td></tr>
 <tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:0px 24px 16px 24px"><p class="ink" dir="auto" style="margin:0;font-size:16px;line-height:1.5;color:#14130F">If it was not you, ignore this message: nothing is added and the request is deleted. The link works for 7 days. How your data is handled: yehudabriskman.com/privacy</p></td></tr>
 <tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:12px 24px 24px 24px"><div class="rule" style="border-top:1px solid #CFC9B8;padding-top:14px"><p class="soft" style="margin:0 0 8px 0;font-size:13px;line-height:1.5;color:#55524A"><bdi>Example Person</bdi><br><bdi>contact@example.org</bdi><br><bdi>+972 50-000 0000</bdi><br><bdi>https://example.org</bdi></p></div></td></tr>
@@ -78,13 +78,13 @@ exports[`every transactional mail > confirm-en: snapshot of the page and its pla
 `;
 
 exports[`every transactional mail > confirm-en: snapshot of the page and its plain text, under the size limit > text 1`] = `
-"Confirm your subscription
+"Confirm your newsletter subscription
 
 Hi Ada,
 
 Someone asked to get my newsletter (notes and releases) from yehudabriskman.com at this address, hopefully you. To confirm, open this link:
 
-Confirm your subscription: https://example.test/subscribe/confirm?token=abc.def
+Confirm your newsletter subscription: https://example.test/subscribe/confirm?token=abc.def
 
 If it was not you, ignore this message: nothing is added and the request is deleted. The link works for 7 days. How your data is handled: yehudabriskman.com/privacy
 
@@ -99,17 +99,17 @@ exports[`every transactional mail > confirm-he: snapshot of the page and its pla
 "<!doctype html>
 <html lang="he" dir="rtl" xmlns="http://www.w3.org/1999/xhtml"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <meta name="color-scheme" content="light dark"><meta name="supported-color-schemes" content="light dark">
-<title>אישור הרשמה</title>
+<title>אישור הרשמה לעלון</title>
 <style>:root{color-scheme:light dark;supported-color-schemes:light dark}body{margin:0;padding:0;-webkit-text-size-adjust:100%}table{border-collapse:collapse}img{-ms-interpolation-mode:bicubic}@media (prefers-color-scheme: dark){.page{background-color:#1C1A16 !important}.card{background-color:#282520 !important}.ink{color:#F2F0EA !important}.soft{color:#B5B1A6 !important}.lnk{color:#7AA2E8 !important}.box{background-color:#34302A !important;border-color:#4A453C !important;color:#F2F0EA !important}.rule{border-color:#4A453C !important}.btn{background-color:#F2F0EA !important}.btna{color:#14130F !important}}</style></head>
 <body class="page" bgcolor="#ECE8DC" style="margin:0;padding:0;background-color:#ECE8DC;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,'Noto Sans Hebrew','Arial Hebrew',sans-serif">
 <div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all;font-size:1px;line-height:1px;color:#ECE8DC">התקבלה בקשה לקבל מהאתר yehudabriskman.com את העלון שלי (רשימות וגרסאות חדשות) באימייל לכתובת הזו. כדי לאשר, פתחו את הקישור:&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="page" bgcolor="#ECE8DC" style="background-color:#ECE8DC"><tr><td align="center" style="padding:16px 8px">
 <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" class="card" bgcolor="#FBFAF6" style="width:100%;max-width:600px;table-layout:fixed;background-color:#FBFAF6;border-radius:10px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,'Noto Sans Hebrew','Arial Hebrew',sans-serif">
 <tr><td class="card" bgcolor="#FBFAF6" height="24" style="height:24px;line-height:24px;font-size:1px;background-color:#FBFAF6;border-radius:10px 10px 0 0">&nbsp;</td></tr>
-<tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:0px 24px 16px 24px"><h1 class="ink" dir="auto" style="margin:0;font-size:24px;line-height:1.3;font-weight:700;color:#14130F">אישור הרשמה</h1></td></tr>
+<tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:0px 24px 16px 24px"><h1 class="ink" dir="auto" style="margin:0;font-size:24px;line-height:1.3;font-weight:700;color:#14130F">אישור הרשמה לעלון</h1></td></tr>
 <tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:0px 24px 16px 24px"><p class="ink" dir="auto" style="margin:0;font-size:16px;line-height:1.5;color:#14130F">שלום עדה,</p></td></tr>
 <tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:0px 24px 16px 24px"><p class="ink" dir="auto" style="margin:0;font-size:16px;line-height:1.5;color:#14130F">התקבלה בקשה לקבל מהאתר yehudabriskman.com את העלון שלי (רשימות וגרסאות חדשות) באימייל לכתובת הזו. כדי לאשר, פתחו את הקישור:</p></td></tr>
-<tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:4px 24px 20px 24px"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td class="btn" bgcolor="#14130F" height="44" style="background-color:#14130F;border-radius:8px"><a class="btna" href="https://example.test/subscribe/confirm?token=abc.def" style="display:inline-block;min-height:20px;padding:12px 24px;font-size:16px;line-height:20px;font-weight:700;color:#FFFFFF;text-decoration:none">אישור הרשמה</a></td></tr></table></td></tr>
+<tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:4px 24px 20px 24px"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td class="btn" bgcolor="#14130F" height="44" style="background-color:#14130F;border-radius:8px"><a class="btna" href="https://example.test/subscribe/confirm?token=abc.def" style="display:inline-block;min-height:20px;padding:12px 24px;font-size:16px;line-height:20px;font-weight:700;color:#FFFFFF;text-decoration:none">אישור הרשמה לעלון</a></td></tr></table></td></tr>
 <tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:0px 24px 16px 24px"><p class="soft" dir="auto" style="margin:0;font-size:14px;line-height:1.5;color:#55524A"><a href="https://example.test/subscribe/confirm?token=abc.def" class="lnk" style="color:#1D4ED8;text-decoration:underline">https://example.test/subscribe/confirm?token=abc.def</a></p></td></tr>
 <tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:0px 24px 16px 24px"><p class="ink" dir="auto" style="margin:0;font-size:16px;line-height:1.5;color:#14130F">אם לא ביקשתם, אפשר להתעלם מהודעה זו: לא תתווסף שום כתובת והבקשה תימחק. הקישור תקף 7 ימים. איך המידע מטופל: yehudabriskman.com/privacy</p></td></tr>
 <tr><td class="card" bgcolor="#FBFAF6" style="background-color:#FBFAF6;overflow-wrap:break-word;word-break:break-word;padding:12px 24px 24px 24px"><div class="rule" style="border-top:1px solid #CFC9B8;padding-top:14px"><p class="soft" style="margin:0 0 8px 0;font-size:13px;line-height:1.5;color:#55524A"><bdi>יהודה בריסקמן</bdi><br><bdi>contact@example.org</bdi><br><bdi>+972 50-000 0000</bdi><br><bdi>https://example.org</bdi></p></div></td></tr>
@@ -117,13 +117,13 @@ exports[`every transactional mail > confirm-he: snapshot of the page and its pla
 `;
 
 exports[`every transactional mail > confirm-he: snapshot of the page and its plain text, under the size limit > text 1`] = `
-"אישור הרשמה
+"אישור הרשמה לעלון
 
 שלום עדה,
 
 התקבלה בקשה לקבל מהאתר yehudabriskman.com את העלון שלי (רשימות וגרסאות חדשות) באימייל לכתובת הזו. כדי לאשר, פתחו את הקישור:
 
-אישור הרשמה: https://example.test/subscribe/confirm?token=abc.def
+אישור הרשמה לעלון: https://example.test/subscribe/confirm?token=abc.def
 
 אם לא ביקשתם, אפשר להתעלם מהודעה זו: לא תתווסף שום כתובת והבקשה תימחק. הקישור תקף 7 ימים. איך המידע מטופל: yehudabriskman.com/privacy
 
