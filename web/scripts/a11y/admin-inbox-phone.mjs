@@ -26,7 +26,7 @@
  * CHROME overrides the browser binary.
  */
 import { createRequire } from "node:module";
-import { mkdirSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -67,7 +67,7 @@ function answer(path, method, search) {
   const p = path.replace(/^\/api/, "");
   if (method === "POST" && /\/announce\/[^/]+\/(done|read)$/.test(p)) {
     posted.push(p);
-    return { body: { ok: true, event: { ...INBOX[0], readAt: ago(1), done: { linkedin: ago(0) } } } };
+    return { body: { ok: true, event: { ...INBOX[0], readAt: ago(1), done: p.endsWith("/done") ? { linkedin: ago(0) } : {} } } };
   }
   if (method !== "GET") return { status: 503, body: { error: "This check does not save." } };
   if (p === "/admin/announce") return { body: { ok: true, unread: 2, items: INBOX } };
@@ -109,6 +109,8 @@ function measureList() {
     vw,
     scroll: document.documentElement.scrollWidth,
     rows: rows.length,
+    cutFacts: rows.flatMap((r) => [...r.querySelectorAll(".rr-fact bdi")]).filter((b) => b.scrollWidth > b.clientWidth + 1).map((b) => b.textContent),
+    firstTop: Math.round(rows[0]?.getBoundingClientRect().top ?? -1),
     inFold: rows.filter((r) => r.getBoundingClientRect().bottom <= vh + 0.5).length,
     perRow: rows.map((r) => ({
       title: (r.getAttribute("aria-label") || "").slice(0, 40),
@@ -155,6 +157,13 @@ async function open(w, h, lang, theme = "light", path = "/admin/marketing") {
   await page.waitForTimeout(500);
   return { page, close: () => ctx.close() };
 }
+/* page.screenshot waits for a frame this headless build rarely produces; the protocol's own capture does not. */
+async function shot(page, name) {
+  const cdp = await page.context().newCDPSession(page);
+  const { data } = await cdp.send("Page.captureScreenshot", { format: "png" });
+  writeFileSync(`${SHOTS}/${name}.png`, Buffer.from(data, "base64"));
+  await cdp.detach();
+}
 const waitFor = async (page, fn, arg, tries = 40) => {
   for (let i = 0; i < tries; i++) {
     if (await page.evaluate(fn, arg)) return true;
@@ -184,11 +193,12 @@ try {
           if (r.overflow > 1) fail(`${tag} row ${i}: row overflows by ${r.overflow}px`);
           if (r.h < 56) fail(`${tag} row ${i}: ${r.h}px high, needs at least 56`);
         });
+        if (m.cutFacts.length) fail(`${tag}: the time is cut off in ${m.cutFacts.length} rows (${m.cutFacts.slice(0, 2).join(", ")})`);
         if (m.copyButtons || m.legacyCopy) fail(`${tag}: Copy buttons are still in the list`);
         if (/\bReady\b|^מוכן/.test(m.listText)) fail(`${tag}: the list still prints "Ready"`);
         if (m.hint) fail(`${tag}: the keyboard hint is visible on a touch screen`);
-        if (w === 390 && m.inFold < 7) fail(`${tag}: ${m.inFold} rows above the fold of 844px, needs at least 7`);
-        if (SHOTS) await page.screenshot({ path: `${SHOTS}/${w}-${lang === "he" ? "rtl" : "ltr"}-${theme}-list.png` });
+        if (w === 390 && m.inFold < 7) fail(`${tag}: ${m.inFold} rows above the fold of 844px (first row starts at ${m.firstTop}px, rows ${m.perRow.map((r) => r.h).join("/")}px), needs at least 7`);
+        if (SHOTS) await shot(page, `${w}-${lang === "he" ? "rtl" : "ltr"}-${theme}-list`);
 
         if (lang === "he" && m.rows > 0) {
           const mir = await page.evaluate(measureMirror);
@@ -205,10 +215,9 @@ try {
             await waitFor(page, () => !!document.querySelector("dialog[open] textarea"));
             const sw = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
             if (sw > 1) fail(`${tag}: the open sheet makes the page scroll sideways`);
-            if (SHOTS) await page.screenshot({ path: `${SHOTS}/${w}-${lang === "he" ? "rtl" : "ltr"}-${theme}-half.png` });
-            const markSel = "dialog[open] button:is(:text-matches('^(Mark as done|סימון כבוצע)'))";
-            if (await page.locator(markSel).count()) {
-              await tap(page, markSel);
+            if (SHOTS) await shot(page, `${w}-${lang === "he" ? "rtl" : "ltr"}-${theme}-half`);
+            if (await waitFor(page, () => [...document.querySelectorAll("dialog[open] button")].some((b) => /^(Mark as done|סימון כבוצע)/.test((b.textContent ?? "").trim())))) {
+              await page.evaluate(() => [...document.querySelectorAll("dialog[open] button")].find((b) => /^(Mark as done|סימון כבוצע)/.test((b.textContent ?? "").trim()))?.click());
               const undo = await waitFor(page, () => [...document.querySelectorAll("dialog[open] button")].some((b) => /^(Undo|ביטול)$/.test((b.textContent ?? "").trim())));
               if (!undo) fail(`${tag}: Mark done offered no Undo`);
               else {
@@ -217,9 +226,9 @@ try {
               }
             } else fail(`${tag}: no Mark done button in the sheet`);
             if (SHOTS && w === 390) {
-              await page.evaluate(() => document.querySelector("dialog[open] [data-sheet-handle], dialog[open] button[aria-label]")?.click());
+              await page.evaluate(() => document.querySelector("dialog[open] [data-sheet-header] button")?.click());
               await page.waitForTimeout(500);
-              await page.screenshot({ path: `${SHOTS}/${w}-${lang === "he" ? "rtl" : "ltr"}-${theme}-full.png` });
+              await shot(page, `${w}-${lang === "he" ? "rtl" : "ltr"}-${theme}-full`);
             }
             await page.keyboard.press("Escape");
             if (!(await waitFor(page, () => !document.querySelector("dialog[open]")))) fail(`${tag}: Escape did not close the sheet`);
@@ -243,7 +252,7 @@ try {
   const wm = await wide.page.evaluate(measureList);
   if (wm.rows !== 0) fail("inbox 1440: phone rows on a desktop screen");
   if (wm.legacyCopy !== INBOX.length) fail(`inbox 1440: ${wm.legacyCopy} quick-copy groups, expected ${INBOX.length}`);
-  if (SHOTS) await wide.page.screenshot({ path: `${SHOTS}/1440-ltr-light-list.png` });
+  if (SHOTS) await shot(wide.page, `1440-ltr-light-list`);
   await wide.close();
 } finally {
   await browser.close();

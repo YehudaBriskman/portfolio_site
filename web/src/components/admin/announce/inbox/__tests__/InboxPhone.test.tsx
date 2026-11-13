@@ -142,9 +142,11 @@ describe("Inbox row on a phone", () => {
     const { container } = renderInbox();
     const r = rows(container)[0];
     expect(r.getAttribute("aria-label")).toMatch(/Rebuilding the admin as a tool/);
-    const desc = document.getElementById(r.getAttribute("aria-describedby")!)!.textContent ?? "";
-    expect(desc).toMatch(/New/);
-    expect(desc).toMatch(/LinkedIn: not posted yet/);
+    const descEl = document.getElementById(r.getAttribute("aria-describedby")!)!;
+    expect(descEl.textContent).toMatch(/New/);
+    expect(descEl.textContent).toMatch(/ago|weeks|days|hours/);
+    expect(descEl.querySelector("[role=group]")?.getAttribute("aria-label")).toBe("Where it is posted");
+    expect(descEl.querySelector("[data-channel=linkedin]")?.getAttribute("aria-label")).toBe("LinkedIn: not posted yet");
   });
 
   it("marks an unread event with a dot and says New to a screen reader only", () => {
@@ -155,12 +157,12 @@ describe("Inbox row on a phone", () => {
 
   it("never prints the word Ready, and shows one alert glyph only for an event with an issue", async () => {
     const { container } = renderInbox();
-    await waitFor(() => expect(container.querySelectorAll("[data-kind='failed'], [data-kind='changes'], [data-issue]").length).toBe(1));
+    await waitFor(() => expect(container.querySelectorAll("[data-kind='attention']").length).toBe(1));
     expect(screen.queryByText(/^Ready$/)).toBeNull();
-    const flagged = container.querySelector("[data-issue]") as HTMLElement;
+    const flagged = container.querySelector("[data-kind='attention']") as HTMLElement;
     expect(flagged.closest("[data-record-row]")?.getAttribute("aria-label")).toMatch(/Post number 3/);
     expect(flagged.getAttribute("aria-label") ?? flagged.textContent).toMatch(/Long description/);
-    expect(container.querySelectorAll("[data-issue]").length).toBe(1);
+    expect(container.querySelectorAll("[data-kind='attention']").length).toBe(1);
   });
 
   it("hides the keyboard hint, and the Copy buttons are gone from rows", () => {
@@ -225,8 +227,9 @@ describe("Mark done on a phone", () => {
     await act(async () => void vi.advanceTimersByTime(7900));
     expect(doneCalls()).toHaveLength(0);
     await act(async () => void vi.advanceTimersByTime(200));
-    expect(doneCalls()).toHaveLength(1);
-    expect(onChange).toHaveBeenCalled();
+    vi.useRealTimers();
+    await waitFor(() => expect(doneCalls()).toHaveLength(1));
+    await waitFor(() => expect(onChange).toHaveBeenCalled());
   });
 
   it("Undo cancels the save and restores the Mark button and the row", async () => {

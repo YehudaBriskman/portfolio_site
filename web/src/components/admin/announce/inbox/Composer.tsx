@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { ArrowLeft, Check, ChevronDown, CircleHelp, Copy, Download, ExternalLink, Mail, RotateCcw, X as XIcon } from "lucide-react";
 import { Link } from "react-router-dom";
 import { ErrorState, RelTime } from "@/components/admin/ui";
+import { CHANNELS, ChannelIcon } from "@/components/ui/ChannelIcon";
+import { Disclosure } from "@/components/ui/Disclosure";
+import { StatusGlyph } from "@/components/ui/StatusGlyph";
 import { copyText } from "@/lib/share";
 import { buildRichEmail } from "@/lib/share/richEmail";
 import { EmailPreview, InstagramPreview, LinkedInPreview, XPreview } from "@/components/admin/announce/previews";
@@ -47,10 +51,22 @@ export default function Composer({
   event,
   onBack,
   onChange,
+  embedded = false,
+  footerHost = null,
+  undo = null,
+  onMarkDone,
 }: {
   event: AnnounceSummary;
   onBack: () => void;
   onChange: (next: AnnounceSummary | null) => void;
+  /** Inside the phone's sheet: the sheet owns the title and Back, glyph tabs replace the numbered steps and the actions move to its footer. */
+  embedded?: boolean;
+  /** Where the embedded actions go (the sheet's sticky footer); inline when there is none. */
+  footerHost?: HTMLElement | null;
+  /** A "Mark done" still inside its Undo window: the channel it covers and how to take it back. */
+  undo?: { channel: AnnounceChannel; onUndo: () => void } | null;
+  /** The sheet's owner saves it after the Undo window; without it the Composer saves at once. */
+  onMarkDone?: (channel: AnnounceChannel) => void;
 }) {
   const w = useMarketingWords();
   const uid = useId();
@@ -220,6 +236,7 @@ export default function Composer({
 
   const mark = async () => {
     if (!channel) return;
+    if (onMarkDone) return onMarkDone(channel);
     setBusy(true);
     try {
       const r = await adminAnnounce.done(event.id, channel);
@@ -272,15 +289,17 @@ export default function Composer({
     }
   };
 
-  useHotkeys({ c: () => void copy(), o: primary, d: () => void (!doneOf(tab) && !busy && mark()), Escape: () => (keys ? setKeys(false) : void goBack()) });
+  /* Letter keys are for a keyboard; the sheet has its own Escape. */
+  useHotkeys({ c: () => void copy(), o: primary, d: () => void (!doneOf(tab) && !busy && mark()), Escape: () => (keys ? setKeys(false) : void goBack()) }, !embedded);
 
   const onTabKey = (e: React.KeyboardEvent) => {
     const rtl = document.documentElement.dir === "rtl";
     const step = e.key === "ArrowRight" ? (rtl ? -1 : 1) : e.key === "ArrowLeft" ? (rtl ? 1 : -1) : 0;
-    const to = e.key === "Home" ? 0 : e.key === "End" ? TABS.length - 1 : step ? (TABS.indexOf(tab) + step + TABS.length) % TABS.length : -1;
+    const order: readonly Tab[] = embedded ? CHANNELS : TABS;
+    const to = e.key === "Home" ? 0 : e.key === "End" ? order.length - 1 : step ? (order.indexOf(tab) + step + order.length) % order.length : -1;
     if (to < 0) return;
     e.preventDefault();
-    void choose(TABS[to]);
+    void choose(order[to]);
   };
 
   /* ---- preview */
@@ -334,7 +353,7 @@ export default function Composer({
   const tag = releaseTag(event);
   const title = tag ? w.releaseTitle(tag) : event.title;
 
-  const head = (
+  const head = embedded ? null : (
     <div className="mk-comp-head">
       <button type="button" className="a-btn mk-btn" onClick={() => void goBack()}>
         <ArrowLeft aria-hidden="true" className="rtl:rotate-180" />
@@ -379,6 +398,174 @@ export default function Composer({
   const whoText = tab === "email" ? w.who.email : w.who[tab];
   const openLabel = tab === "linkedin" ? w.openLinkedIn : tab === "instagram" ? w.saveSquare : tab === "email" ? w.openGmail : w.openX;
   const OpenIcon = tab === "linkedin" ? ExternalLink : tab === "instagram" ? Download : tab === "email" ? Mail : XIcon;
+
+  /* The caption box and what sits under it: shared by the desktop steps and the phone sheet. */
+  const editor = (
+    <>
+              {!item ? (
+                <p className="a-hint">{w.noCaption}</p>
+              ) : (
+                <>
+                  {tab === "email" && (
+                    <p className="text-sm">
+                      <span className="text-clay">{w.subject}: </span>
+                      <span dir={dir} lang={lang}>
+                        {subject}
+                      </span>
+                    </p>
+                  )}
+                  <label htmlFor={`${uid}-caption`} className="sr-only">
+                    {w.caption(w.channels[tab], w.langs[lang])}
+                  </label>
+                  <textarea
+                    id={`${uid}-caption`}
+                    className="a-textarea mk-caption"
+                    rows={10}
+                    dir={dir}
+                    lang={lang}
+                    value={text}
+                    aria-describedby={`${uid}-count ${uid}-save`}
+                    onChange={(e) => edit(e.target.value)}
+                  />
+                  <div className="mk-toolbar-row" role="group" aria-label={w.captionTools}>
+                    <p id={`${uid}-count`} className={`mk-meta tabular-nums ${over ? "mk-over" : ""}`}>
+                      <span>{w.count(used, limit)}</span>
+                      {over && limit !== null && <span>{w.over(used - limit)}</span>}
+                    </p>
+                    <p className="mk-meta">
+                      <span id={`${uid}-save`} role="status" aria-live="polite" data-state={save}>
+                        {saveText}
+                      </span>
+                    </p>
+                    {save === "error" && (
+                      <button type="button" className="a-btn a-btn-ghost mk-btn" onClick={() => void flush()}>
+                        {w.saveRetry}
+                      </button>
+                    )}
+                    {isDraft && (
+                      <button type="button" className="a-btn a-btn-ghost mk-btn" onClick={() => void reset()}>
+                        <RotateCcw aria-hidden="true" />
+                        {w.resetToTemplate}
+                      </button>
+                    )}
+                  </div>
+                </>
+              )}
+    </>
+  );
+
+  /* ---- the phone's sheet: glyph tabs, caption, a collapsed preview; the actions go to the sheet's footer */
+  const markUndo = undo && undo.channel === tab ? undo : null;
+  const actions = item ? (
+    <>
+      <p role="status" className="mk-emb-note">
+        {markUndo ? w.markedUndo(w.channels[tab]) : note}
+      </p>
+      <button type="button" className="a-btn a-btn-primary mk-btn mk-emb-main" disabled={tab === "x" && over} onClick={primary}>
+        <OpenIcon aria-hidden="true" />
+        {openLabel}
+      </button>
+      <button type="button" className="a-btn mk-btn mk-emb-half" onClick={() => void copy()}>
+        <Copy aria-hidden="true" />
+        {w.copy}
+      </button>
+      {markUndo ? (
+        <button type="button" className="a-btn mk-btn mk-emb-half" onClick={markUndo.onUndo}>
+          <RotateCcw aria-hidden="true" />
+          {w.undo}
+        </button>
+      ) : doneOf(tab) ? (
+        <span className="a-tag mk-emb-half mk-emb-done">
+          <Check aria-hidden="true" className="h-3.5 w-3.5" />
+          {w.doneAt} <RelTime iso={doneOf(tab)} />
+        </span>
+      ) : (
+        <button type="button" className="a-btn mk-btn mk-emb-half" disabled={busy} onClick={() => void mark()}>
+          <Check aria-hidden="true" />
+          {w.markDone}
+        </button>
+      )}
+    </>
+  ) : null;
+
+  if (embedded)
+    return (
+      <div className="mk-comp mk-emb">
+        <div className="mk-emb-bar">
+          <div role="tablist" aria-label={w.channelLabel} className="mk-emb-tabs" onKeyDown={onTabKey}>
+            {CHANNELS.map((t) => (
+              <button
+                key={t}
+                ref={(el) => void (tabRefs.current[t] = el)}
+                id={`${uid}-tab-${t}`}
+                type="button"
+                role="tab"
+                aria-selected={t === tab}
+                aria-controls={`${uid}-panel`}
+                tabIndex={t === tab ? 0 : -1}
+                onClick={() => void choose(t)}
+                className="mk-emb-tab"
+              >
+                <ChannelIcon channel={t} done={Boolean(doneOf(t))} size={24} />
+              </button>
+            ))}
+          </div>
+          {langs.length > 1 && (
+            <div role="group" aria-label={w.langHelp} className="a-seg">
+              {langs.map((l) => (
+                <button key={l} type="button" aria-pressed={lang === l} onClick={() => void chooseLang(l)} lang={l} className="mk-seg-btn">
+                  {l === "en" ? "EN" : "עב"}
+                  <span className="sr-only"> {w.langs[l]}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {meta && sorted.length > 0 && (
+          <p className="mk-emb-issue" role="status">
+            <StatusGlyph kind="attention" tone={sorted.some((i) => i.severity === "error") ? "danger" : "attention"} label={w.statusFix} size={16} />
+            <span className="mk-fixline">
+              {w.toFix}: {sorted.map((i) => w.chips[i.code]).join(", ")}
+            </span>
+            <a className="a-link mk-link" href={event.url} target="_blank" rel="noopener noreferrer">
+              {event.kind === "release" ? w.openRelease : w.openPage}
+            </a>
+          </p>
+        )}
+
+        <div id={`${uid}-panel`} role="tabpanel" aria-labelledby={`${uid}-tab-${tab}`} className="mk-emb-panel">
+          <p className="mk-who" id={`${uid}-who`}>
+            {w.channels[tab]}: {whoText}
+            {tab === "email" && (
+              <>
+                {" "}
+                <a className="a-link mk-link" href={links.mailto(subject, text)} onClick={() => setNote(w.opened)}>
+                  {w.openMail}
+                </a>
+              </>
+            )}
+          </p>
+          <div className="mk-edit">{editor}</div>
+          <Disclosure summary={w.previewHeading}>
+            {previewPane()}
+            {noPage && event.kind !== "release" && <p className="pv-hint">{w.previewFailed}</p>}
+          </Disclosure>
+          <Disclosure summary={w.checksRow} open={checks} onOpenChange={setChecks}>
+            {checks && <ChecksDrawer id={`${uid}-checks`} event={event} lang={lang} origin={origin} target={event.url} />}
+          </Disclosure>
+        </div>
+
+        <div className="mk-quiet">
+          <span className="a-hint !mt-0">{w.dismissSection}</span>
+          <button type="button" className="a-link mk-link" disabled={busy} onClick={() => void dismiss()}>
+            {w.dismiss}
+          </button>
+        </div>
+
+        {footerHost ? createPortal(actions, footerHost) : <div className="mk-emb-inline">{actions}</div>}
+      </div>
+    );
 
   return (
     <div className="mk-comp">
@@ -492,57 +679,7 @@ export default function Composer({
         <section className="mk-step" aria-labelledby={`${uid}-s3`}>
           {stepHead(3, `${uid}-s3`, w.step3)}
           <div className="mk-split">
-            <div className="mk-edit">
-              {!item ? (
-                <p className="a-hint">{w.noCaption}</p>
-              ) : (
-                <>
-                  {tab === "email" && (
-                    <p className="text-sm">
-                      <span className="text-clay">{w.subject}: </span>
-                      <span dir={dir} lang={lang}>
-                        {subject}
-                      </span>
-                    </p>
-                  )}
-                  <label htmlFor={`${uid}-caption`} className="sr-only">
-                    {w.caption(w.channels[tab], w.langs[lang])}
-                  </label>
-                  <textarea
-                    id={`${uid}-caption`}
-                    className="a-textarea mk-caption"
-                    rows={10}
-                    dir={dir}
-                    lang={lang}
-                    value={text}
-                    aria-describedby={`${uid}-count ${uid}-save`}
-                    onChange={(e) => edit(e.target.value)}
-                  />
-                  <div className="mk-toolbar-row" role="group" aria-label={w.captionTools}>
-                    <p id={`${uid}-count`} className={`mk-meta tabular-nums ${over ? "mk-over" : ""}`}>
-                      <span>{w.count(used, limit)}</span>
-                      {over && limit !== null && <span>{w.over(used - limit)}</span>}
-                    </p>
-                    <p className="mk-meta">
-                      <span id={`${uid}-save`} role="status" aria-live="polite" data-state={save}>
-                        {saveText}
-                      </span>
-                    </p>
-                    {save === "error" && (
-                      <button type="button" className="a-btn a-btn-ghost mk-btn" onClick={() => void flush()}>
-                        {w.saveRetry}
-                      </button>
-                    )}
-                    {isDraft && (
-                      <button type="button" className="a-btn a-btn-ghost mk-btn" onClick={() => void reset()}>
-                        <RotateCcw aria-hidden="true" />
-                        {w.resetToTemplate}
-                      </button>
-                    )}
-                  </div>
-                </>
-              )}
-            </div>
+            <div className="mk-edit">{editor}</div>
 
             <section className="mk-side" aria-labelledby={`${uid}-pv`}>
               <h4 id={`${uid}-pv`} className="a-row-title">
