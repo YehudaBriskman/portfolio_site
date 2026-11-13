@@ -1,6 +1,6 @@
 import { useId, useState, type ReactNode } from "react";
 import type { SenderSettings, SenderWarning } from "@/services/adminAnnounce";
-import { DEFAULT_SENDER, UNSUB_NOTE_MAX, hasTextProblem, senderProblems, unknownPlaceholder, type SenderField, type SenderProblem } from "./defaults";
+import { DEFAULT_SENDER, UNSUB_NOTE_MAX, hasTextProblem, identityMissing, senderProblems, unknownPlaceholder, type SenderField, type SenderProblem } from "./defaults";
 import { useSenderWords } from "./words";
 
 /*
@@ -106,7 +106,10 @@ export default function SenderSection({ sender, onChange, warnings }: { sender: 
   };
 
   const q = sender.quietHours;
-  const footerSet = Boolean(sender.footerIdentity.trim());
+  const lacks = identityMissing(sender);
+  const nameSet = !lacks.includes("name");
+  const emailSet = !lacks.includes("email");
+  const footerSet = lacks.length === 0;
   const senderBad = Boolean(problems.fromAddress || problems.replyTo);
   const limitsBad = Boolean(problems.throttlePerHour || problems.dailyCap || problems.quietHours);
   const textsBad = hasTextProblem(sender);
@@ -138,14 +141,15 @@ export default function SenderSection({ sender, onChange, warnings }: { sender: 
       {!footerSet && (
         <div className="a-box border-[rgb(var(--destructive-ink))] p-4" role="alert" data-testid="footer-required">
           <p className="font-bold">{w.footerRequiredTitle}</p>
-          <p className="a-hint !mt-0">{w.footerRequired}</p>
+          <p className="a-hint !mt-0">{w.footerRequired(lacks.map((k) => (k === "name" ? w.idName : w.idEmail)).join(w.idAndLabel))}</p>
         </div>
       )}
 
       <div className="a-box p-3" data-testid="ready">
         <p className="font-bold" role="status">{ready ? "✓ " : "✗ "}{w.readyHeading} {ready ? w.readyYes : w.readyNo}</p>
         <ul className="mt-1 text-sm">
-          <li>{mark(footerSet)} {w.ckFooter}</li>
+          <li>{mark(nameSet)} {w.ckFooter}</li>
+          <li>{mark(emailSet)} {w.ckEmail}</li>
           <li>{mark(!senderBad)} {w.ckSender}</li>
           <li>{mark(!limitsBad)} {w.ckLimits}</li>
           <li>{mark(!textsBad)} {w.ckTexts}</li>
@@ -170,10 +174,30 @@ export default function SenderSection({ sender, onChange, warnings }: { sender: 
         <>
           <div>
             <label className="a-label" htmlFor={`${uid}-footer`}>{w.footer}</label>
-            <textarea id={`${uid}-footer`} className="a-textarea" rows={3} maxLength={500} dir="auto" required aria-required="true" aria-invalid={!footerSet} aria-describedby={`${uid}-footer-h`} value={sender.footerIdentity} onChange={(e) => onChange((s) => void (s.footerIdentity = e.target.value))} />
+            <textarea id={`${uid}-footer`} className="a-textarea" rows={2} maxLength={500} dir="auto" required aria-required="true" aria-invalid={!nameSet} aria-describedby={`${uid}-footer-h`} value={sender.footerIdentity} onChange={(e) => onChange((s) => void (s.footerIdentity = e.target.value))} />
             <p id={`${uid}-footer-h`} className="a-hint">{w.footerHint}</p>
           </div>
-          {check(`${uid}-cl`, w.commercial, w.commercialHint, sender.commercialLabel, (v) => onChange((s) => void (s.commercialLabel = v)), DEFAULT_SENDER.commercialLabel)}
+          <div>
+            <label className="a-label" htmlFor={`${uid}-idmail`}>{w.idEmail}</label>
+            <input id={`${uid}-idmail`} type="email" className="a-input min-h-[44px] w-full" dir="ltr" maxLength={254} autoComplete="off" required aria-required="true" aria-invalid={!emailSet} aria-describedby={`${uid}-idmail-h`} value={sender.identityEmail} onChange={(e) => onChange((s) => void (s.identityEmail = e.target.value))} />
+            <p id={`${uid}-idmail-h`} className={problems.identityEmail ? "a-error" : "a-hint"}>{problems.identityEmail ? w.badAddress : w.idEmailHint}</p>
+          </div>
+          <div>
+            <label className="a-label" htmlFor={`${uid}-idpostal`}>{w.idPostal}</label>
+            <input id={`${uid}-idpostal`} className="a-input min-h-[44px] w-full" dir="auto" maxLength={300} autoComplete="off" aria-describedby={`${uid}-idpostal-h`} value={sender.identityPostal} onChange={(e) => onChange((s) => void (s.identityPostal = e.target.value))} />
+            <p id={`${uid}-idpostal-h`} className="a-hint">{w.idPostalHint}</p>
+          </div>
+          <fieldset className="min-w-0" data-testid="label-mode">
+            <legend className="a-label">{w.labelHeading}</legend>
+            <p className="a-hint !mt-0">{w.labelHint}</p>
+            {([["hebrew", w.labelHebrew], ["all", w.labelAll], ["off", w.labelOff]] as const).map(([m, label]) => (
+              <label key={m} className="flex min-h-[44px] items-center gap-3 text-sm">
+                <input type="radio" name={`${uid}-label`} className="h-5 w-5" value={m} checked={sender.labelMode === m} onChange={() => onChange((s) => void (s.labelMode = m))} />
+                <span>{label}</span>
+              </label>
+            ))}
+            {sender.labelMode === "off" && <p className="a-error" role="status">{w.labelOffWarn}</p>}
+          </fieldset>
         </>,
         { open: true, bad: !footerSet, testid: "sec-footer" },
       )}

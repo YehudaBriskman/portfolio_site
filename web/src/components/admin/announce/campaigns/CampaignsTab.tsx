@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Empty, EmptyState, ErrorState, LoadingRows } from "@/components/admin/ui";
+import { identityMissing } from "../sender/defaults";
 import { adminAnnounce, type AnnounceSummary, type SenderSettings } from "@/services/adminAnnounce";
 import { adminAudience, type Group } from "@/services/adminAudience";
 import { adminCampaigns, type Campaign } from "@/services/adminCampaigns";
@@ -57,7 +58,7 @@ export default function CampaignsTab() {
   if (open)
     return <CampaignEditor key={open} id={open} sender={sender} groups={groups} events={events} onClose={() => (setOpen(null), changed())} onChanged={changed} />;
 
-  const noFooter = sender !== null && !sender.footerIdentity.trim();
+  const noFooter = sender !== null && identityMissing(sender).length > 0;
   return (
     <div className="max-w-5xl space-y-6" data-testid="campaigns">
       <div className="flex flex-wrap items-start justify-between gap-3">

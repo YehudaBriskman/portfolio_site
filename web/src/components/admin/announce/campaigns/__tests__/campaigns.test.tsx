@@ -13,7 +13,7 @@ const camp = (o: object = {}) => ({
   id: "c1", _rev: "1-a", name: "Spring news", subject: "Hello <b>", preheader: "", bodyText: "Hi\n\nthere", blocks: null, groups: ["subscribers"], lang: "all", topic: null,
   status: "draft", sendAt: null, counters: { queued: 0, sent: 0, failed: 0, suppressed: 0 }, eventId: null, pausedReason: null, startedAt: null, finishedAt: null, createdAt: "2026-11-01T10:00:00Z", updatedAt: "2026-11-01T10:00:00Z", ...o,
 });
-const sender = (o: object = {}) => ({ ...DEFAULT_SENDER, footerIdentity: "Yehuda, Tel Aviv", testRecipients: ["me@example.com"], ...o });
+const sender = (o: object = {}) => ({ ...DEFAULT_SENDER, footerIdentity: "Yehuda, Tel Aviv", identityEmail: "me@example.com", testRecipients: ["me@example.com"], ...o });
 const settings = (s = sender()) => ({
   enabled: true, email: { enabled: false, events: ["post"] }, hashtags: [], signature: "", channels: ["linkedin"], templates: { en: {}, he: {} }, snippets: [], library: [],
   advanced: { utm: { enabled: false, source: "announce", mediumByChannel: {} } }, sender: s,
@@ -91,6 +91,26 @@ describe("Campaigns tab", () => {
     senderDoc = sender({ footerIdentity: "" });
     open();
     expect(await screen.findByTestId("footer-blocker")).toBeTruthy();
+  });
+
+  it("names the missing contact email in the checklist and the section, and a postal line is optional", async () => {
+    senderDoc = sender({ identityEmail: "" });
+    open();
+    expect(await screen.findByTestId("footer-blocker")).toBeTruthy();
+    fireEvent.click(await screen.findByRole("button", { name: "Open Spring news" }));
+    expect(await screen.findByText(/Add your contact email in Sender & delivery/)).toBeTruthy();
+  });
+
+  it("offers the label policy (default Hebrew only) and warns when it is off", async () => {
+    senderDoc = sender();
+    render(<MemoryRouter><SettingsPanel /></MemoryRouter>);
+    fireEvent.change(await screen.findByLabelText("Filter advanced settings"), { target: { value: "sender" } });
+    expect((screen.getByLabelText(/Hebrew recipients only/) as HTMLInputElement).checked).toBe(true);
+    expect(screen.queryByText(/no mail carries the label/)).toBeNull();
+    fireEvent.click(screen.getByLabelText(/^Off\./));
+    expect(screen.getByText(/no mail carries the label/)).toBeTruthy();
+    fireEvent.change(screen.getByLabelText("Contact email"), { target: { value: "nope" } });
+    expect((screen.getByLabelText("Contact email") as HTMLInputElement).getAttribute("aria-invalid")).toBe("true");
   });
 
   it("lists the unsubscribe-note problem among what stands between you and Send", async () => {

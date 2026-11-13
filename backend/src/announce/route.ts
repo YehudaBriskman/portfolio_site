@@ -15,6 +15,7 @@ import {
   SETTINGS_DOC_ID,
   SettingsSaveBody,
   validateSenderTexts,
+  validateSenderIdentity,
   type AnnounceEvent,
   type Channel,
   type Drafts,
@@ -87,7 +88,7 @@ router.put(
     if (!body.success) return invalid(res, toIssues(body.error));
     const parsed = AnnounceSettingsSchema.safeParse(body.data.settings);
     if (!parsed.success) return invalid(res, toIssues(parsed.error));
-    const textIssues = validateSenderTexts(parsed.data.sender);
+    const textIssues = [...validateSenderTexts(parsed.data.sender), ...validateSenderIdentity(parsed.data.sender)];
     if (textIssues.length) return invalid(res, textIssues);
     const existing = await getSettingsDoc();
     if (existing && body.data._rev !== existing._rev) return res.status(409).json(conflict);

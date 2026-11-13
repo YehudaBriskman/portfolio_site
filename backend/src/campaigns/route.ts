@@ -4,7 +4,7 @@ import { asyncHandler } from "../middlewares/asyncHandler.js";
 import { toIssues } from "../schemas/site-content.js";
 import { listRecipients, hashEmail } from "../audience/store.js";
 import { loadSettings } from "../announce/store.js";
-import { validateSenderTexts } from "../announce/schemas.js";
+import { missingIdentity, validateSenderTexts } from "../announce/schemas.js";
 import { emailService } from "../services/email.service.js";
 import { logger } from "../logger.js";
 import { resolveSender } from "./config.js";
@@ -206,8 +206,9 @@ async function queueable(c: Campaign, res: Response): Promise<boolean> {
     return false;
   }
   const s = (await loadSettings()).sender;
-  if (!s.footerIdentity) {
-    bad(res, "Fill in the footer identity (your name and how to reach you) in Sender & delivery before sending.", 422);
+  const lacks = missingIdentity(s);
+  if (lacks.length) {
+    bad(res, `Fill in the sender identity (${lacks.map((k) => (k === "name" ? "your name" : "a contact email")).join(" and ")}) in Sender & delivery before sending.`, 422);
     return false;
   }
   if (validateSenderTexts(s).length) {

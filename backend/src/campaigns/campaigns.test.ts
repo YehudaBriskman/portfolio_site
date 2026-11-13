@@ -9,7 +9,7 @@ import { hashEmail } from "../audience/store.js";
 import { emailService } from "../services/email.service.js";
 import { autoDraftFor } from "./autodraft.js";
 import { resolveSender, senderWarnings } from "./config.js";
-import { COMMERCIAL_LABEL_HE, UNSUB_FALLBACK_EN, UNSUB_FALLBACK_HE, renderCampaignMail } from "./render.js";
+import { COMMERCIAL_LABEL_HE, LABEL_BODY_EN, LABEL_SUBJECT_EN, UNSUB_FALLBACK_EN, UNSUB_FALLBACK_HE, renderCampaignMail } from "./render.js";
 import { renderBody, safeHref, safeImage } from "./body.js";
 import { inQuietHours, runSenderTick, type Deliver } from "./sender.js";
 
@@ -80,7 +80,7 @@ const C = "/api/admin/campaigns";
 const setSender = (over: Partial<AnnounceSettings["sender"]> = {}) =>
   store.set(SETTINGS_DOC_ID, {
     _id: SETTINGS_DOC_ID, _rev: "1-s", type: "settings-announce", updatedAt: "x",
-    settings: { ...DEFAULT_ANNOUNCE_SETTINGS, sender: { ...DEFAULT_ANNOUNCE_SETTINGS.sender, footerIdentity: "Yehuda, Tel Aviv", ...over } },
+    settings: { ...DEFAULT_ANNOUNCE_SETTINGS, sender: { ...DEFAULT_ANNOUNCE_SETTINGS.sender, footerIdentity: "Yehuda, Tel Aviv", identityEmail: "me@example.org", ...over } },
   });
 const addr = (i: number) => `user${i}@example.com`;
 const seedContact = (i: number, over: Record<string, unknown> = {}) => {
@@ -143,6 +143,17 @@ describe("campaign routes and state machine", () => {
     expect((await admin(request(createApp()).patch(`${C}/${c.id}`).send({ name: "b", _rev: c._rev }))).status).toBe(409);
   });
 
+  it("the gate names what the identity lacks: name, email; a postal line is never required", async () => {
+    seedMany(1);
+    const c = await mk();
+    setSender({ identityEmail: "" });
+    expect((await admin(request(createApp()).post(`${C}/${c.id}/send-now`))).body.error).toMatch(/contact email/);
+    setSender({ footerIdentity: "", identityEmail: "" });
+    expect((await admin(request(createApp()).post(`${C}/${c.id}/send-now`))).body.error).toMatch(/your name and a contact email/);
+    setSender({ identityPostal: "" });
+    expect((await admin(request(createApp()).post(`${C}/${c.id}/send-now`))).status).toBe(200);
+  });
+
   it("refuses to queue without a footer identity, or an empty audience", async () => {
     setSender({ footerIdentity: "" });
     seedMany(1);
@@ -184,7 +195,7 @@ describe("campaign routes and state machine", () => {
   });
 
   it("preview renders the draft with the real renderer, escaped, with the footer", async () => {
-    setSender({ footerIdentity: "Yehuda, Tel Aviv" });
+    setSender({ footerIdentity: "Yehuda, Tel Aviv", identityEmail: "me@example.org" });
     const p = (b: Record<string, unknown>) => admin(request(createApp()).post(`${C}/preview`).send(b));
     const r = await p({ subject: "Hi", bodyText: "<script>x</script>\n\nSecond", lang: "he" });
     expect(r.status).toBe(200);
@@ -210,7 +221,7 @@ describe("campaign routes and state machine", () => {
 });
 
 describe("the unsubscribe link can never be missing", () => {
-  const sender = (over: Partial<AnnounceSettings["sender"]>) => ({ ...DEFAULT_ANNOUNCE_SETTINGS.sender, footerIdentity: "Yehuda, Tel Aviv", ...over });
+  const sender = (over: Partial<AnnounceSettings["sender"]>) => ({ ...DEFAULT_ANNOUNCE_SETTINGS.sender, footerIdentity: "Yehuda, Tel Aviv", identityEmail: "me@example.org", ...over });
   const render = (note: string, lang: "en" | "he" = "en") =>
     renderCampaignMail({ subject: "S", bodyText: "Body", preheader: undefined, blocks: undefined } as never, { lang }, hashEmail(addr(1)), sender(lang === "he" ? { unsubscribeNoteHe: note } : { unsubscribeNoteEn: note }));
   const unsubAnchors = (html: string) => html.match(/<a href="[^"]*\/unsubscribe\?token=[^"]+"/g) ?? [];
@@ -314,13 +325,38 @@ describe("PUT /api/admin/announce/settings: sender texts are validated on save o
     expect((await put(app, { unsubscribeNoteHe: "בטלו כאן: {link} באתר {site}" }, ok.body._rev)).status).toBe(200);
   });
 
+  it("an older stored document (one footer text, boolean label) reads as name line + mode, losing nothing", async () => {
+    const { identityEmail: _e, identityPostal: _p, labelMode: _l, ...legacy } = DEFAULT_ANNOUNCE_SETTINGS.sender;
+    store.set("settings:announce", {
+      _id: "settings:announce", _rev: "1-old", type: "settings-announce", updatedAt: "x",
+      settings: { ...DEFAULT_ANNOUNCE_SETTINGS, sender: { ...legacy, footerIdentity: "Yehuda\nTel Aviv", commercialLabel: false } },
+    });
+    const got = await admin(request(createApp()).get("/api/admin/announce/settings"));
+    expect(got.body.settings.sender).toMatchObject({ footerIdentity: "Yehuda\nTel Aviv", identityEmail: "", identityPostal: "", labelMode: "off" });
+    expect(got.body.settings.sender).not.toHaveProperty("commercialLabel");
+    store.set("settings:announce", {
+      _id: "settings:announce", _rev: "2-old", type: "settings-announce", updatedAt: "x",
+      settings: { ...DEFAULT_ANNOUNCE_SETTINGS, sender: { ...legacy, commercialLabel: true } },
+    });
+    expect((await admin(request(createApp()).get("/api/admin/announce/settings"))).body.settings.sender.labelMode).toBe("hebrew");
+  });
+
+  it("PUT refuses a malformed contact email or unknown mode, accepts an empty identity (the send gate names it)", async () => {
+    const app = createApp();
+    const bad = await put(app, { identityEmail: "not-an-email" });
+    expect(bad.status).toBe(400);
+    expect(bad.body.issues[0].path).toBe("sender.identityEmail");
+    expect((await put(app, { labelMode: "sometimes" })).status).toBe(400);
+    expect((await put(app, { identityEmail: "", identityPostal: "" })).status).toBe(200);
+  });
+
   it("an older stored document without {link} still loads as saved, not reset to defaults", async () => {
     store.set("settings:announce", {
       _id: "settings:announce", _rev: "1-old", type: "settings-announce", updatedAt: "x",
-      settings: { ...DEFAULT_ANNOUNCE_SETTINGS, sender: { ...DEFAULT_ANNOUNCE_SETTINGS.sender, footerIdentity: "Keep me", testRecipients: ["me@example.org"], unsubscribeNoteEn: "Thanks" } },
+      settings: { ...DEFAULT_ANNOUNCE_SETTINGS, sender: { ...DEFAULT_ANNOUNCE_SETTINGS.sender, footerIdentity: "Keep me", identityEmail: "me@example.org", testRecipients: ["me@example.org"], unsubscribeNoteEn: "Thanks" } },
     });
     const got = await admin(request(createApp()).get("/api/admin/announce/settings"));
-    expect(got.body.settings.sender).toMatchObject({ footerIdentity: "Keep me", testRecipients: ["me@example.org"], unsubscribeNoteEn: "Thanks" });
+    expect(got.body.settings.sender).toMatchObject({ footerIdentity: "Keep me", identityEmail: "me@example.org", testRecipients: ["me@example.org"], unsubscribeNoteEn: "Thanks" });
   });
 });
 
@@ -673,7 +709,7 @@ describe("bounce handling", () => {
 });
 
 describe("mail rendering", () => {
-  const sender = { ...DEFAULT_ANNOUNCE_SETTINGS.sender, footerIdentity: "A <b>& Co</b>\nStreet 1" };
+  const sender = { ...DEFAULT_ANNOUNCE_SETTINGS.sender, footerIdentity: "A <b>& Co</b>\nStreet 1", identityEmail: "me@example.org" };
   it("renders from text/blocks only: every field escaped, bad links and foreign images dropped", async () => {
     const m = await renderCampaignMail(
       {
@@ -699,17 +735,43 @@ describe("mail rendering", () => {
     expect(m.text).toContain("A <b>& Co</b>");
   });
 
-  it("Hebrew: label in subject and footer when on, absent when off, absent in English", async () => {
+  it("Hebrew, mode hebrew: label opens the subject and is the first visible line of body (html and text), not repeated in the footer", async () => {
     const c = { subject: "שלום", bodyText: "x" };
     const on = await renderCampaignMail(c, { lang: "he" }, hashEmail(addr(1)), sender);
-    expect(on.subject.startsWith(`${COMMERCIAL_LABEL_HE}: `)).toBe(true);
+    expect(on.subject).toBe(`${COMMERCIAL_LABEL_HE}: שלום`);
     expect(on.html).toContain('dir="rtl"');
-    expect(on.html).toContain(`<p style="margin:0 0 8px">${COMMERCIAL_LABEL_HE}</p>`);
-    const off = await renderCampaignMail(c, { lang: "he" }, hashEmail(addr(1)), { ...sender, commercialLabel: false });
-    expect(off.subject).toBe("שלום");
+    expect(on.html).toMatch(new RegExp(`dir="rtl"[^>]*><p style="[^"]*font-weight:700">${COMMERCIAL_LABEL_HE}</p><table`));
+    expect(on.html.split(COMMERCIAL_LABEL_HE)).toHaveLength(2);
+    expect(on.text.startsWith(`${COMMERCIAL_LABEL_HE}\n\nx`)).toBe(true);
+    expect(on.text.split(COMMERCIAL_LABEL_HE)).toHaveLength(2);
     const en = await renderCampaignMail(c, { lang: "en" }, hashEmail(addr(1)), sender);
     expect(en.subject).toBe("שלום");
     expect(en.html).not.toContain(COMMERCIAL_LABEL_HE);
+    expect(en.text).not.toContain(COMMERCIAL_LABEL_HE);
+  });
+
+  it("mode all labels English mail with the DRAFT wording, mode off labels nothing", async () => {
+    const c = { subject: "Hello", bodyText: "x" };
+    const all = await renderCampaignMail(c, { lang: "en" }, hashEmail(addr(1)), { ...sender, labelMode: "all" });
+    expect(all.subject).toBe(`${LABEL_SUBJECT_EN}: Hello`);
+    expect(all.html).toMatch(new RegExp(`dir="ltr"[^>]*><p style="[^"]*">${LABEL_BODY_EN}</p>`));
+    expect(all.text.startsWith(`${LABEL_BODY_EN}\n\nx`)).toBe(true);
+    const heAll = await renderCampaignMail(c, { lang: "he" }, hashEmail(addr(1)), { ...sender, labelMode: "all" });
+    expect(heAll.subject).toBe(`${COMMERCIAL_LABEL_HE}: Hello`);
+    for (const lang of ["he", "en"] as const) {
+      const off = await renderCampaignMail(c, { lang }, hashEmail(addr(1)), { ...sender, labelMode: "off" });
+      expect(off.subject).toBe("Hello");
+      expect(off.html + off.text).not.toMatch(/פרסומת|Advertisement/);
+    }
+  });
+
+  it("the footer prints name, postal line (only if set) and contact email, escaped", async () => {
+    const full = await renderCampaignMail({ subject: "S", bodyText: "x" }, { lang: "en" }, hashEmail(addr(1)), { ...sender, footerIdentity: "Y <b>", identityPostal: "PO Box 1", identityEmail: "me@example.org" });
+    expect(full.html).toContain("Y &lt;b&gt;<br>PO Box 1<br>me@example.org");
+    expect(full.text).toContain("Y <b>\nPO Box 1\nme@example.org\n");
+    const mailOnly = await renderCampaignMail({ subject: "S", bodyText: "x" }, { lang: "en" }, hashEmail(addr(1)), { ...sender, footerIdentity: "Y", identityEmail: "me@example.org" });
+    expect(mailOnly.text).toContain("Y\nme@example.org\n");
+    expect(mailOnly.text).not.toContain("PO Box");
   });
 
   it("plain text becomes paragraphs; urls are validated with new URL", () => {

@@ -10,11 +10,13 @@ export const DEFAULT_SENDER: SenderSettings = {
   fromAddress: "",
   replyTo: "",
   footerIdentity: "",
+  identityEmail: "",
+  identityPostal: "",
   testRecipients: [],
   throttlePerHour: 60,
   dailyCap: 200,
   autoDraftCampaign: false,
-  commercialLabel: true,
+  labelMode: "hebrew",
   pendingTtlDays: 7,
   confirmSubjectEn: "Confirm your subscription",
   confirmSubjectHe: "אישור הרשמה",
@@ -27,7 +29,7 @@ export const DEFAULT_SENDER: SenderSettings = {
 };
 
 export type SenderField =
-  | "fromName" | "fromAddress" | "replyTo" | "footerIdentity" | "testRecipients" | "throttlePerHour" | "dailyCap" | "quietHours"
+  | "fromName" | "fromAddress" | "replyTo" | "footerIdentity" | "identityEmail" | "testRecipients" | "throttlePerHour" | "dailyCap" | "quietHours"
   | "confirmSubjectEn" | "confirmSubjectHe" | "confirmBodyEn" | "confirmBodyHe" | "unsubscribeNoteEn" | "unsubscribeNoteHe";
 export type SenderProblem = "empty" | "address" | "number" | "list" | "zone" | "noLink" | "unknown" | "long" | "unsubVars";
 
@@ -45,6 +47,12 @@ export const hasTextProblem = (s: SenderSettings) => {
 };
 
 const EMAIL = /^[^\s@<>"]+@[^\s@<>"]+\.[^\s@<>"]+$/;
+
+/** What the footer still lacks; mirrors missingIdentity on the server, which is the real gate. The postal line is never required. */
+export const identityMissing = (s: Pick<SenderSettings, "footerIdentity" | "identityEmail">): ("name" | "email")[] => [
+  ...(s.footerIdentity.trim() ? [] : (["name"] as const)),
+  ...(EMAIL.test(s.identityEmail.trim()) ? [] : (["email"] as const)),
+];
 const zoneOk = (tz: string) => {
   try {
     new Intl.DateTimeFormat("en", { timeZone: tz });
@@ -60,6 +68,7 @@ export function senderProblems(s: SenderSettings): Partial<Record<SenderField, S
   const p: Partial<Record<SenderField, SenderProblem>> = {};
   if (s.fromAddress && !EMAIL.test(s.fromAddress)) p.fromAddress = "address";
   if (s.replyTo && !EMAIL.test(s.replyTo)) p.replyTo = "address";
+  if (s.identityEmail.trim() && !EMAIL.test(s.identityEmail.trim())) p.identityEmail = "address";
   if (s.testRecipients.length > 5 || s.testRecipients.some((a) => !EMAIL.test(a))) p.testRecipients = "list";
   if (!whole(s.throttlePerHour, 3600)) p.throttlePerHour = "number";
   if (!whole(s.dailyCap, 10000)) p.dailyCap = "number";
