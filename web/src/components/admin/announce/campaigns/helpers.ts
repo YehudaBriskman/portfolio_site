@@ -63,23 +63,31 @@ export function blockProblem(b: Block): "empty" | "link" | "image" | null {
 
 /* ------------------------------------------------------------ time zones */
 
-/** The UTC instant of a wall-clock time ("YYYY-MM-DDTHH:mm") in an IANA zone, as an ISO string; null if it does not parse. */
+/**
+ * The UTC instant of a wall-clock time ("YYYY-MM-DDTHH:mm") in an IANA zone, as an ISO string.
+ * null if it does not parse or does not exist in that zone (the hour skipped when clocks go forward).
+ * A time that happens twice (clocks go back) is the first occurrence.
+ */
 export function zonedToIso(local: string, tz: string): string | null {
   const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(local);
   if (!m) return null;
   const [y, mo, d, h, mi] = m.slice(1).map(Number);
   const guess = Date.UTC(y, mo - 1, d, h, mi);
+  if (!Number.isFinite(guess)) return null;
+  const fmt = new Intl.DateTimeFormat("en-US", { timeZone: tz, hourCycle: "h23", year: "numeric", month: "numeric", day: "numeric", hour: "numeric", minute: "numeric", second: "numeric" });
   const offset = (t: number) => {
-    const p = Object.fromEntries(
-      new Intl.DateTimeFormat("en-US", { timeZone: tz, hourCycle: "h23", year: "numeric", month: "numeric", day: "numeric", hour: "numeric", minute: "numeric", second: "numeric" })
-        .formatToParts(new Date(t))
-        .map((x) => [x.type, Number(x.value)]),
-    );
+    const p = Object.fromEntries(fmt.formatToParts(new Date(t)).map((x) => [x.type, Number(x.value)]));
     return Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, p.second) - Math.floor(t / 1000) * 1000;
   };
-  let t = guess - offset(guess);
-  t = guess - offset(t);
-  return Number.isFinite(t) ? new Date(t).toISOString() : null;
+  /* Every offset the zone uses near this day is a candidate; only one that reads back as the same wall time is real. */
+  const DAY = 86_400_000;
+  const hits = new Set<number>();
+  for (const o of [offset(guess - DAY), offset(guess), offset(guess + DAY)]) {
+    const t = guess - o;
+    if (offset(t) === o) hits.add(t);
+  }
+  if (hits.size === 0) return null;
+  return new Date(Math.min(...hits)).toISOString();
 }
 
 export type Form = { name: string; subject: string; preheader: string; bodyText: string; useBlocks: boolean; blocks: Block[]; groups: string[]; lang: CampaignLang; topic: "" | CampaignTopic };

@@ -115,8 +115,9 @@ export default function CampaignEditor({
     };
   }, [id, tick]);
 
-  const editable = id === "new" || campaign?.status === "draft";
-  const dirty = id === "new" ? true : campaign ? !same(toInput(form), toInput(toForm(campaign))) : false;
+  /* Once a campaign has been saved its status decides, whatever id the editor was opened with. */
+  const editable = campaign ? campaign.status === "draft" : id === "new";
+  const dirty = campaign ? !same(toInput(form), toInput(toForm(campaign))) : id === "new";
   const lacks = sender ? identityMissing(sender) : [];
   const footerOk = lacks.length === 0;
   const blockBad = form.useBlocks && (form.blocks.length === 0 || form.blocks.some((b) => blockProblem(b)));
@@ -171,6 +172,7 @@ export default function CampaignEditor({
   const pvStale = !previewRes || previewRes.key !== pkey;
 
   const scheduleIso = mode === "later" && when ? zonedToIso(when, zone) : null;
+  const missing = mode === "later" && Boolean(when) && scheduleIso === null && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(when);
   const past = scheduleIso !== null && Date.parse(scheduleIso) <= now;
 
   /* What stands between the owner and Send, in words, in the order of the steps. */
@@ -287,7 +289,7 @@ export default function CampaignEditor({
   if (loadError) return <ErrorState message={w.loadFailed} onRetry={() => (setLoadError(false), setTick((n) => n + 1))} />;
   if (id !== "new" && !campaign) return <p className="a-box a-box-row text-clay" role="status">{w.loading}</p>;
 
-  const heading = id === "new" ? w.newHeading : editable ? w.editHeading : w.viewHeading;
+  const heading = !campaign ? w.newHeading : editable ? w.editHeading : w.viewHeading;
   const status = campaign?.status;
   const fromLabel = sender ? [sender.fromName, sender.fromAddress].filter(Boolean).join(" ") || "—" : "—";
   const later = mode === "later";
@@ -354,7 +356,7 @@ export default function CampaignEditor({
         <fieldset disabled={!editable} className="min-w-0">
           <div className="grid gap-x-8 gap-y-6 lg:grid-cols-[minmax(0,1fr)_26rem]">
             <Step n={1} title={w.step1} labelId={`${uid}-s1`}>
-              {id === "new" && events.length > 0 && (
+              {!campaign && id === "new" && events.length > 0 && (
                 <div>
                   <label className="a-label" htmlFor={`${uid}-ev`}>{w.startFrom}</label>
                   <select id={`${uid}-ev`} className="a-select min-h-[44px] max-w-full" value="" onChange={(e) => void startFrom(e.target.value)}>
@@ -474,6 +476,7 @@ export default function CampaignEditor({
                 </div>
               )}
               {later && past && <p className="a-error !mt-0">{w.schedulePast}</p>}
+              {later && missing && <p className="a-error !mt-0">{w.scheduleMissing}</p>}
               {later && scheduleIso && !past && <p className="a-hint !mt-0">{w.scheduleShown(fmt(scheduleIso))}</p>}
             </Step>
 
@@ -515,12 +518,12 @@ export default function CampaignEditor({
         {editable && (
           <div className="sticky bottom-0 z-10 -mx-1 mt-6 border-t border-[rgb(var(--rule-firm)/.7)] bg-[rgb(var(--paper))] px-1 py-3" data-testid="action-bar">
             <div className="flex flex-wrap items-center gap-2">
-              <button type="submit" className="a-btn min-h-[44px]" disabled={!formOk || busy !== "" || (id !== "new" && !dirty)}>{busy === "save" ? w.saving : w.save}</button>
+              <button type="submit" className="a-btn min-h-[44px]" disabled={!formOk || busy !== "" || (campaign !== null && !dirty)}>{busy === "save" ? w.saving : w.save}</button>
               <button type="button" className="a-btn min-h-[44px]" disabled={!formOk || busy !== "" || !sender || sender.testRecipients.length === 0} onClick={() => void sendTest()}>{busy === "test" ? w.sendingTest : w.sendTest}</button>
               <button type="button" className="a-btn a-btn-primary min-h-[44px] ms-auto" disabled={!canGo} onClick={() => void ask()}>{later ? w.actionSchedule : w.sendNow}</button>
             </div>
             <div className="mt-1 flex flex-wrap items-center gap-x-4" aria-live="polite">
-              {dirty && id !== "new" && <span className="text-sm text-clay">{w.unsaved}</span>}
+              {dirty && campaign && <span className="text-sm text-clay">{w.unsaved}</span>}
               {sender && sender.testRecipients.length === 0 && <span className="a-hint !mt-0">{w.testNeedsRecipients}</span>}
               <span role="status" className={msg?.kind === "bad" ? "text-sm font-bold text-[rgb(var(--destructive-ink))]" : "text-sm text-clay"}>{msg?.text}</span>
             </div>
