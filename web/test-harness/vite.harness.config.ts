@@ -8,7 +8,7 @@ export default defineConfig((env) =>
     build: {
       outDir: "../dist-harness",
       emptyOutDir: true,
-      rollupOptions: { input: "test-harness/disclosure.html" },
+      rollupOptions: { input: ["test-harness/disclosure.html", "test-harness/visuals.html"] },
     },
   }),
 );

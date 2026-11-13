@@ -1,0 +1,114 @@
+/*
+ * Ring gauge. The arc starts at twelve o'clock and runs clockwise; under
+ * :dir(rtl) the ring mirrors so it fills the way the page reads. The level
+ * also shows as a badge glyph and as words, never as colour alone.
+ */
+.gauge {
+  --tone: var(--signal);
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  color: rgb(var(--ink));
+}
+
+.gauge[data-tone="warn"] {
+  --tone: var(--ink);
+}
+
+.gauge[data-tone="danger"] {
+  --tone: var(--destructive-ink);
+}
+
+.ring {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  transform: rotate(-90deg);
+}
+
+.ring:dir(rtl) {
+  transform: rotate(-90deg) scaleY(-1);
+}
+
+.track {
+  fill: none;
+  stroke: rgb(var(--rule-firm) / 0.4);
+  stroke-width: 3.2;
+}
+
+.arc {
+  fill: none;
+  stroke: rgb(var(--tone));
+  stroke-width: 3.2;
+  stroke-linecap: butt;
+}
+
+/* The danger arc is dashed on top of its colour. */
+.gauge[data-tone="danger"] .arc {
+  stroke-width: 4;
+}
+
+.tick {
+  stroke: rgb(var(--ink-soft));
+  stroke-width: 0.6;
+  opacity: 0.8;
+}
+
+.center {
+  position: relative;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.badge {
+  position: absolute;
+  inset-block-end: -2px;
+  inset-inline-end: -2px;
+  display: grid;
+  place-items: center;
+  inline-size: 1.25rem;
+  block-size: 1.25rem;
+  border-radius: 50%;
+  background: rgb(var(--paper));
+  box-shadow: inset 0 0 0 1.5px rgb(var(--tone));
+  color: rgb(var(--tone));
+}
+
+.badgeGlyph {
+  inline-size: 0.75rem;
+  block-size: 0.75rem;
+  stroke-width: 3;
+}
+
+.level {
+  position: absolute;
+  inset-block-start: 100%;
+  inset-inline: -1rem;
+  margin-block-start: 0.25rem;
+  text-align: center;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: rgb(var(--tone));
+}
+
+/* The real value for assistive tech, out of sight. */
+.meter {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .arc {
+    transition: stroke-dasharray var(--a-dur-sheet, 280ms) var(--a-ease-out, ease-out), stroke var(--a-dur-base, 180ms) var(--a-ease-out, ease-out);
+  }
+}
