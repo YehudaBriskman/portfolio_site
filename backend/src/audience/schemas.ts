@@ -116,6 +116,8 @@ export const ImportBody = z
   })
   .strict();
 export const SuppressBody = z.object({ email: Email }).strict();
+export const SUPPRESS_BULK_MAX = 500;
+export const SuppressBulkBody = z.object({ text: z.string().min(1).max(100_000) }).strict();
 export const ContactsQuery = z.object({
   group: Slug.optional(),
   status: z.enum(STATUSES).optional(),

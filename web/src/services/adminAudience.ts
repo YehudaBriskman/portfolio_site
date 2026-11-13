@@ -55,6 +55,7 @@ export type ContactPatch = Partial<Pick<Contact, "name" | "lang" | "groups" | "t
 export type NewContact = { email: string; name?: string; lang: ContactLang; groups: string[]; consentNote: string };
 export type ImportInput = { csv: string; consentNote: string; consentConfirmed: true; group?: string };
 export type ImportResult = { added: number; skipped: number; invalid: Array<{ row?: number; value?: string; reason?: string } | string> };
+export type SuppressManyResult = { suppressed: number; already: number; failed: number; invalid: string[] };
 /* `since` is when the address was suppressed (the server's field). */
 export type Suppressed = { hash: string; email?: string; since?: string };
 
@@ -133,6 +134,11 @@ export const adminAudience = {
 
   suppression: async (): Promise<Suppressed[]> => list<Json>(await call<unknown>("/suppression"), "suppression", "suppressed").map(toSuppressed),
   suppress: (email: string) => call<unknown>("/suppression", { method: "POST", body: JSON.stringify({ email }) }),
+  /** Many addresses pasted as text (lines, commas, "Name <a@b.c>"); the server validates and reports what it could not read. */
+  suppressMany: async (text: string): Promise<SuppressManyResult> => {
+    const b = await call<Partial<SuppressManyResult>>("/suppression/bulk", { method: "POST", body: JSON.stringify({ text }) });
+    return { suppressed: b.suppressed ?? 0, already: b.already ?? 0, failed: b.failed ?? 0, invalid: Array.isArray(b.invalid) ? b.invalid.filter((x): x is string => typeof x === "string") : [] };
+  },
   unsuppress: (hash: string) => call<unknown>(`/suppression/${enc(hash)}`, { method: "DELETE" }),
 
   /** Whether the never-mail ledger is usable and what its guard last repaired. Counts only, never an address. */

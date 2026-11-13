@@ -313,7 +313,7 @@ describe("admin routes need the admin gate", () => {
     ["get", "/groups"], ["post", "/groups"], ["patch", `/groups/x`], ["delete", `/groups/x`],
     ["get", "/contacts"], ["post", "/contacts"], ["patch", `/contacts/${hash}`], ["delete", `/contacts/${hash}`],
     ["post", "/contacts/import"], ["get", "/contacts/export.csv"],
-    ["get", "/suppression"], ["post", "/suppression"], ["delete", `/suppression/${hash}`],
+    ["get", "/suppression"], ["post", "/suppression"], ["post", "/suppression/bulk"], ["delete", `/suppression/${hash}`],
   ];
   it.each(routes)("%s /api/admin/audience%s is refused without it", async (method, path) => {
     seed();
@@ -381,6 +381,36 @@ describe("admin audience", () => {
     expect((store.get(`contact:${hash}`) as { status: string }).status).toBe("suppressed");
     expect((await admin(request(app()).delete(`${A}/suppression/${hash}`))).status).toBe(200);
     expect((store.get(`contact:${hash}`) as { status: string }).status).toBe("unsubscribed");
+  });
+
+  it("bulk suppression: pasted lines, commas and Name <addr> forms; dedupes, counts known ones, returns the unreadable; stores no address in the audit", async () => {
+    seed();
+    await admin(request(app()).post(`${A}/suppression`).send({ email: "old@example.com" }));
+    const text = "ann@example.com\nBob <bob@example.com>, BOB@example.com; old@example.com\nCarol Q <carol@example.com> typo@\nnot an address";
+    const r = await admin(request(app()).post(`${A}/suppression/bulk`).send({ text }));
+    expect(r.status).toBe(200);
+    expect(r.body).toEqual({ ok: true, suppressed: 3, already: 1, failed: 0, invalid: ["typo@", "not an address"] });
+    expect(store.get(`contact:${hash}`)).toMatchObject({ status: "suppressed" });
+    expect(store.get(`contact:${hashEmail("bob@example.com")}`)).toMatchObject({ status: "suppressed", source: "manual" });
+    expect(store.get(`contact:${hashEmail("carol@example.com")}`)).toMatchObject({ status: "suppressed" });
+    expect((await admin(request(app()).get(`${A}/suppression`))).body.suppressed).toHaveLength(4);
+  });
+
+  it("bulk suppression: empty, unknown fields and more than 500 addresses are refused", async () => {
+    expect((await admin(request(app()).post(`${A}/suppression/bulk`).send({}))).status).toBe(400);
+    expect((await admin(request(app()).post(`${A}/suppression/bulk`).send({ text: "a@example.com", extra: 1 }))).status).toBe(400);
+    const many = Array.from({ length: 501 }, (_, i) => `u${i}@example.com`).join("\n");
+    expect((await admin(request(app()).post(`${A}/suppression/bulk`).send({ text: many }))).status).toBe(413);
+    expect([...store.keys()].filter((k) => k.startsWith("contact:"))).toHaveLength(0);
+  });
+
+  it("lifting a suppression forgets the bounce that caused it", async () => {
+    seed({ status: "suppressed", suppressedReason: "hard-bounce", softBounces: 2 });
+    await admin(request(app()).delete(`${A}/suppression/${hash}`));
+    const c = store.get(`contact:${hash}`) as Record<string, unknown>;
+    expect(c.status).toBe("unsubscribed");
+    expect(c.suppressedReason).toBeUndefined();
+    expect(c.softBounces).toBeUndefined();
   });
 
   it("export is a CSV attachment, neutralises formulas, and lists the consent record", async () => {

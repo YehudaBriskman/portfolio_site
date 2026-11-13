@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useId, useState } from "react";
-import { adminAudience, type Suppressed } from "@/services/adminAudience";
+import { adminAudience, type Suppressed, type SuppressManyResult } from "@/services/adminAudience";
 import { Empty } from "@/components/admin/ui";
 import Email from "./Email";
 import { useAudienceWords } from "./words";
@@ -14,6 +14,9 @@ export default function SuppressionPanel() {
   const [failed, setFailed] = useState(false);
   const [email, setEmail] = useState("");
   const [confirm, setConfirm] = useState<string | null>(null);
+  const [bulk, setBulk] = useState("");
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkRes, setBulkRes] = useState<SuppressManyResult | "too-many" | null>(null);
 
   const load = useCallback(() => {
     adminAudience.suppression().then(
@@ -30,6 +33,22 @@ export default function SuppressionPanel() {
       load();
     } catch {
       setFailed(true);
+    }
+  };
+
+  const runBulk = async () => {
+    setBulkBusy(true);
+    setBulkRes(null);
+    try {
+      const r = await adminAudience.suppressMany(bulk);
+      setBulkRes(r);
+      setBulk(r.invalid.join("\n"));
+      load();
+    } catch (e) {
+      if (e instanceof Error && e.message === "status-413") setBulkRes("too-many");
+      else setFailed(true);
+    } finally {
+      setBulkBusy(false);
     }
   };
 
@@ -64,6 +83,23 @@ export default function SuppressionPanel() {
           <input id={`${uid}-e`} type="email" dir="ltr" autoComplete="off" className="a-input min-h-[44px] text-start" value={email} onChange={(e) => setEmail(e.target.value)} />
         </div>
         <button type="submit" className="a-btn min-h-[44px]" disabled={!email.trim()}>{w.suppressRun}</button>
+      </form>
+      <form className="space-y-2" onSubmit={(e) => (e.preventDefault(), bulk.trim() && !bulkBusy && void runBulk())} aria-label={w.bulkHeading}>
+        <h3 className="a-label !mt-4">{w.bulkHeading}</h3>
+        <p className="a-hint !mt-0" id={`${uid}-bh`}>{w.bulkHint}</p>
+        <label className="a-label sr-only" htmlFor={`${uid}-b`}>{w.bulkLabel}</label>
+        <textarea id={`${uid}-b`} dir="ltr" rows={5} autoComplete="off" spellCheck={false} aria-describedby={`${uid}-bh`} className="a-input min-h-[8rem] w-full text-start font-mono text-sm" value={bulk} onChange={(e) => setBulk(e.target.value)} />
+        <button type="submit" className="a-btn min-h-[44px]" disabled={!bulk.trim() || bulkBusy}>{w.bulkRun}</button>
+        <div role="status" aria-live="polite">
+          {bulkRes === "too-many" && <p className="a-error">{w.bulkTooMany}</p>}
+          {bulkRes && bulkRes !== "too-many" && (
+            <div className="space-y-1" data-testid="bulk-result">
+              <p className="a-hint !mt-0 tabular-nums">{w.bulkResult(bulkRes.suppressed, bulkRes.already)}</p>
+              {bulkRes.failed > 0 && <p className="a-error">{w.bulkFailed(bulkRes.failed)}</p>}
+              {bulkRes.invalid.length > 0 && <p className="a-hint !mt-0">{w.bulkInvalid(bulkRes.invalid.length)}</p>}
+            </div>
+          )}
+        </div>
       </form>
     </div>
   );

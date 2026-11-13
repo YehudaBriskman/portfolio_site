@@ -29,6 +29,7 @@ beforeEach(() => {
       if (url === "/api/admin/audience/groups" && method === "GET") return json({ ok: true, groups });
       if (url.startsWith("/api/admin/audience/contacts?")) return json(pages[url] ?? { ok: true, contacts: [contact(), contact({ hash: "h2", email: "dana@example.com", name: null, status: "pending" })], nextCursor: "contact:h2" });
       if (url === "/api/admin/audience/suppression") return json({ ok: true, suppressed: [{ hash: "s1", email: "gone@example.com", since: "2026-03-05T10:00:00Z" }] });
+      if (url === "/api/admin/audience/suppression/bulk") return json({ ok: true, suppressed: 2, already: 1, failed: 0, invalid: ["typo@"] });
       if (url === "/api/admin/audience/contacts/import") return json({ ok: true, added: 2, skipped: 1, invalid: [{ row: 4, reason: "Not a valid email address" }] });
       return json({ ok: true });
     }),
@@ -60,6 +61,23 @@ describe("AudienceTab", () => {
     fireEvent.click(screen.getByText("Suppression list"));
     expect(await screen.findByText("gone@example.com")).toBeTruthy();
     expect(await screen.findByText(/Since 5 Mar 2026/)).toBeTruthy();
+  });
+
+  it("suppresses pasted addresses in one call, reports the counts and leaves the unreadable ones to fix", async () => {
+    render(<AudienceTab />);
+    fireEvent.click(screen.getByText("Suppression list"));
+    const box = await screen.findByLabelText("Addresses");
+    expect(box.getAttribute("dir")).toBe("ltr");
+    const run = screen.getByRole("button", { name: "Suppress these" }) as HTMLButtonElement;
+    expect(run.disabled).toBe(true);
+    fireEvent.change(box, { target: { value: "a@example.com\nBob <b@example.com>, typo@" } });
+    fireEvent.click(run);
+    expect(await screen.findByText("2 suppressed, 1 already on the list.")).toBeTruthy();
+    const call = calls.find((c) => c.url.endsWith("/suppression/bulk"))!;
+    expect(call.method).toBe("POST");
+    expect(call.body).toEqual({ text: "a@example.com\nBob <b@example.com>, typo@" });
+    expect((box as HTMLTextAreaElement).value).toBe("typo@");
+    expect(screen.getByText("1 could not be read as an address:")).toBeTruthy();
   });
 
   it("gives a name cell its own direction and lets an address break before @ and dots", async () => {
