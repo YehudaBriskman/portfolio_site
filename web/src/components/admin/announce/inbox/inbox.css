@@ -97,7 +97,8 @@
     font-size: .875rem; font-weight: 700; color: rgb(var(--ink)); text-align: start; border-radius: 6px;
   }
   .mk-summary:hover { text-decoration: underline; text-underline-offset: 3px; }
-  .mk-chev { width: 16px; height: 16px; flex: none; transition: transform .15s; }
+  .mk-chev { width: 16px; height: 16px; flex: none; }
+  @media (prefers-reduced-motion: no-preference) { .mk-chev { transition: transform .15s; } }
   .mk-chev[data-open="true"] { transform: rotate(180deg); }
   .mk-pick { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 1rem; }
   .mk-who { margin: 0; max-width: 46rem; font-size: .9375rem; line-height: 1.5; }
