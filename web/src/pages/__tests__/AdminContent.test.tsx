@@ -6,6 +6,12 @@ import AdminProjects from "@/pages/AdminProjects";
 import AdminStory from "@/pages/AdminStory";
 import { seedBundle } from "@/content/convert";
 
+/* Save draft lives in the bar's menu now: open it, then choose the item. */
+async function saveDraft() {
+  fireEvent.keyDown(screen.getAllByRole("button", { name: "More actions" })[0], { key: "Enter" });
+  fireEvent.click(await screen.findByRole("menuitem", { name: "Save draft" }));
+}
+
 /*
  * The content editors (#163): they load the document, check it with the
  * shared schema before sending anything, show each message beside its field,
@@ -79,7 +85,7 @@ describe("content editors", () => {
     );
     page(<AdminProjects />);
     await screen.findByLabelText("One-line fact, English");
-    fireEvent.click(screen.getAllByRole("button", { name: "Save draft" })[0]);
+    await saveDraft();
     expect(await screen.findByText("Too close to another")).toBeInTheDocument();
   });
 
@@ -88,7 +94,7 @@ describe("content editors", () => {
     page(<AdminProjects />);
     const first = seedBundle().projects.items[0];
     fireEvent.click(await screen.findByRole("button", { name: `Move ${first.title} down` }));
-    fireEvent.click(screen.getAllByRole("button", { name: "Save draft" })[0]);
+    await saveDraft();
     await waitFor(() => expect(calls.some((c) => c.method === "PUT")).toBe(true));
     const items = (calls.find((c) => c.method === "PUT")!.body as { data: { items: Array<{ slug: string; order: number }> } }).data.items;
     expect(items[1].slug).toBe(first.slug);
@@ -132,7 +138,7 @@ describe("content editors", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Choose from library" }));
     fireEvent.click(await screen.findByRole("button", { name: /WindoM's new-tab page/ }));
     expect(screen.getByLabelText("Image")).toHaveValue(url);
-    fireEvent.click(screen.getAllByRole("button", { name: "Save draft" })[0]);
+    await saveDraft();
     await waitFor(() => expect(calls.some((c) => c.method === "PUT")).toBe(true));
     const items = (calls.find((c) => c.method === "PUT")!.body as { data: { items: Array<{ image: string | null }> } }).data.items;
     expect(items[0].image).toBe(url);
@@ -142,7 +148,7 @@ describe("content editors", () => {
     stubApi("story", seedBundle().story, () => json({ ok: false, error: "changed" }, 409));
     page(<AdminStory />);
     await screen.findAllByLabelText("Title, English");
-    fireEvent.click(screen.getAllByRole("button", { name: "Save draft" })[0]);
+    await saveDraft();
     expect((await screen.findAllByText("Changed elsewhere")).length).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: "Reload" })).toBeInTheDocument();
   });

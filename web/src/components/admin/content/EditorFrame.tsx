@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import AdminShell, { type AdminSection } from "@/components/admin/AdminShell";
-import StatusPill from "@/components/admin/StatusPill";
+import EditorBar from "@/components/admin/EditorBar";
+import { barStatus } from "@/components/admin/saveReadout";
 import { ErrorState, LoadingRows, PageHeader } from "@/components/admin/ui";
 import { ExternalLink } from "lucide-react";
 import { IssuesContext, type ContentEditor } from "./editor";
@@ -42,15 +43,18 @@ export default function EditorFrame<T>({ title, section, intro, preview, editor,
   const busy = state.kind === "saving";
   const general = issues.filter((i) => i.path === "");
 
-  const actions = (
-    <>
-      <button type="button" className="a-btn a-btn-ghost" disabled={busy || value === null} onClick={() => void editor.saveDraft()}>
-        Save draft
-      </button>
-      <button type="button" className="a-btn a-btn-primary" disabled={busy || value === null} onClick={() => void editor.publish()}>
-        Publish
-      </button>
-    </>
+  const { tone, text } = barStatus(state);
+  const bar = (
+    <EditorBar
+      tone={tone}
+      status={text}
+      more={[{ key: "draft", label: "Save draft", disabled: busy || value === null, onSelect: () => void editor.saveDraft() }]}
+      primary={
+        <button type="button" className="a-btn a-btn-primary" disabled={busy || value === null} onClick={() => void editor.publish()}>
+          Publish
+        </button>
+      }
+    />
   );
 
   return (
@@ -58,12 +62,7 @@ export default function EditorFrame<T>({ title, section, intro, preview, editor,
       title={title}
       section={section}
       barEverywhere
-      bottomBar={
-        <div className="flex items-center justify-between gap-2 px-3 py-2">
-          <StatusPill state={state} />
-          <span className="flex gap-2">{actions}</span>
-        </div>
-      }
+      bottomBar={bar}
     >
       <div className="a-wrap-narrow">
       <PageHeader title={title} description={intro} />

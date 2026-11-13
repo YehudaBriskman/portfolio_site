@@ -3,6 +3,7 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState, type Keyboard
 import { useNavigate, useParams } from "react-router-dom";
 import { X } from "lucide-react";
 import AdminShell from "@/components/admin/AdminShell";
+import EditorBar, { type BarAction, type BarTone } from "@/components/admin/EditorBar";
 import { PageHeader, StatePill } from "@/components/admin/ui";
 import MediaPicker, { PickedPreview } from "@/components/admin/MediaPicker";
 import LinkEditor, { linkLabelsHe, toLinkRows, type LinkRow } from "@/components/LinkEditor";
@@ -460,19 +461,18 @@ export default function AdminEditor() {
   const heading = isNew && !stored ? w.newNote : f.title || f.slug;
   const hasDraft = Boolean(published && (post?.draft || dirty));
 
-  const actions = (
-    <div className="flex flex-wrap items-center gap-2">
-      <span className={styles.status} data-bad={bad || undefined} role="status" aria-live={bad ? "assertive" : "polite"}>
-        {post && <span className="me-2 text-bone">{w.status[post.status]}</span>}
-        {statusText}
-      </span>
-      <div className="ms-auto flex flex-wrap gap-2">
-        {published && post?.draft && !dirty && (
-          <button type="button" className="a-btn a-btn-ghost" onClick={() => void discard()}>{w.discard}</button>
-        )}
-        <button type="button" className="a-btn" disabled={!canSave} onClick={() => void saveDraft()} aria-keyshortcuts="Control+S">
-          {w.saveNow}
-        </button>
+  /* One row: the status, a menu for Save draft and Discard, and Review. */
+  const tone: BarTone = bad ? "bad" : save.kind === "saving" ? "busy" : save.kind === "saved" ? "ok" : "idle";
+  const more: BarAction[] = [
+    { key: "save", label: w.saveNow, onSelect: () => void saveDraft(), disabled: !canSave, shortcut: "Control+S" },
+    ...(published && post?.draft && !dirty ? [{ key: "discard", label: w.discard, onSelect: () => void discard() }] : []),
+  ];
+  const bar = (
+    <EditorBar
+      tone={tone}
+      status={[post ? w.status[post.status] : "", statusText].filter(Boolean).join(" · ")}
+      more={more}
+      primary={
         <button
           type="button"
           className="a-btn a-btn-primary"
@@ -484,8 +484,8 @@ export default function AdminEditor() {
         >
           {w.review}
         </button>
-      </div>
-    </div>
+      }
+    />
   );
 
   const bodyValue = bodyLang === "he" ? f.heBody : f.body;
@@ -493,7 +493,7 @@ export default function AdminEditor() {
   const setBody = (v: string) => edit(bodyLang === "he" ? "heBody" : "body", v);
 
   return (
-    <AdminShell title={heading} section="posts" backTo="/admin/posts" barEverywhere bottomBar={<div className="px-4 py-2">{actions}</div>}>
+    <AdminShell title={heading} section="posts" backTo="/admin/posts" barEverywhere bottomBar={bar}>
       {loading ? (
         <p className="mono mt-4 text-sm text-clay">{w.loading}</p>
       ) : (
@@ -536,6 +536,8 @@ export default function AdminEditor() {
               <button type="button" className="a-btn a-btn-ghost ms-3" onClick={() => void unpublish()}>{w.unpublish}</button>
             )}
           </p>
+          {/* The bar shows this too, but only a few words of it on a phone. */}
+          {save.kind === "failed" && <p className={styles.status} data-bad="true">{w.saveFailed(save.message)}</p>}
           {notice && (
             <p className={styles.status} data-bad={notice.bad || undefined} role="status">{notice.text}</p>
           )}

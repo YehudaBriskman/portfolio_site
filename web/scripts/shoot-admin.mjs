@@ -13,6 +13,12 @@
  * on rAF: headless Chromium on this box has almost no frame clock.
  *
  * ONLY=posts,media narrows a run to some screens; WIDTHS=1440 to one width.
+ * SIZES=320x568,844x390 sets width and height together, LANGS=en,he the
+ * languages, OUT=dir where the shots go.
+ *
+ * CHECK_BAR=1 also measures the editor's fixed bottom bar on every screen
+ * that has one and exits non-zero when it is over one row, covers a focused
+ * field, or leaves the end of the page under it (#657).
  */
 import { chromium } from "playwright-core";
 import { mkdirSync } from "node:fs";
@@ -24,7 +30,7 @@ import { startPreview } from "./a11y/site-stub.mjs";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const WEB = resolve(HERE, "..");
 const STAGE = process.argv[2] ?? "after";
-const OUT = resolve(WEB, "../docs/admin-redesign", STAGE);
+const OUT = process.env.OUT ? resolve(process.env.OUT) : resolve(WEB, "../docs/admin-redesign", STAGE);
 mkdirSync(OUT, { recursive: true });
 
 const NOW = Date.UTC(2026, 10, 3, 12, 0, 0);
@@ -32,7 +38,7 @@ const ago = (h) => new Date(NOW - h * 3_600_000).toISOString();
 
 /* ------------------------------------------------------------- the seed */
 
-const vite = await createServer({ root: WEB, logLevel: "error", server: { middlewareMode: true }, appType: "custom" });
+const vite = await createServer({ root: WEB, logLevel: "error", resolve: { preserveSymlinks: true }, server: { middlewareMode: true }, appType: "custom" });
 const { seedBundle } = await vite.ssrLoadModule("/src/content/convert.ts");
 const SEED = seedBundle();
 await vite.close();
@@ -271,7 +277,65 @@ const SCREENS = [
   ["connections", "/admin/connections"],
 ];
 const ONLY = (process.env.ONLY ?? "").split(",").filter(Boolean);
-const WIDTHS = (process.env.WIDTHS ?? "1440,390").split(",").map(Number);
+const SIZES = process.env.SIZES
+  ? process.env.SIZES.split(",").map((s) => s.split("x").map(Number))
+  : (process.env.WIDTHS ?? "1440,390").split(",").map((w) => [Number(w), Number(w) > 600 ? 900 : 844]);
+const LANGS = (process.env.LANGS ?? "en").split(",");
+const CHECK_BAR = process.env.CHECK_BAR === "1";
+const failures = [];
+
+/* One row is 44px of control and its padding; 64 leaves room for the border. */
+const BAR_MAX = 64;
+async function checkBar(page, label) {
+  const bar = await page.evaluate(() => {
+    const el = document.querySelector(".a-bottom");
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
+    return { top: r.top, height: r.height, display: getComputedStyle(el).display };
+  });
+  if (!bar || bar.display === "none") return;
+  if (bar.height > BAR_MAX) failures.push(`${label}: bar is ${bar.height}px tall, over ${BAR_MAX}`);
+  /* Every control of the form, focused in turn: its box must clear the bar. */
+  const covered = await page.evaluate(async () => {
+    const bar = document.querySelector(".a-bottom").getBoundingClientRect().top;
+    const fields = [...document.querySelectorAll("main :is(input,textarea,select,button,a[href])")].filter(
+      (e) => !e.disabled && e.checkVisibility(),
+    );
+    const bad = [];
+    for (const el of fields.slice(-6)) {
+      el.focus({ preventScroll: true });
+      /* What a focus does, done by hand: this box's headless Chromium has no
+         frame clock to run the real one. Same scroll-padding, same result. */
+      el.scrollIntoView({ block: "nearest", behavior: "instant" });
+      await new Promise((r) => setTimeout(r, 60));
+      const b = el.getBoundingClientRect();
+      let anc = "";
+      for (let p = el.parentElement; p; p = p.parentElement) {
+        const cs = getComputedStyle(p);
+        if (cs.overflowY !== "visible" || cs.position === "sticky" || cs.contentVisibility !== "visible") anc += ` ${p.tagName}.${String(p.className).slice(0, 20)}[${cs.overflowY},${cs.position},${cs.contentVisibility}]`;
+      }
+      if (b.bottom > bar + 0.5) bad.push(`${anc} ${el.tagName.toLowerCase()}${(el.getAttribute("aria-label") || el.textContent || el.name || "").trim().slice(0, 24)} bottom ${Math.round(b.bottom)} > bar ${Math.round(bar)}`);
+    }
+    return bad;
+  });
+  for (const c of covered) failures.push(`${label}: focused control under the bar: ${c}`);
+  const end = await page.evaluate(async () => {
+    window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "instant" });
+    await new Promise((r) => setTimeout(r, 150));
+    const bar = document.querySelector(".a-bottom").getBoundingClientRect().top;
+    const kids = [...document.querySelector("main").querySelectorAll("*")].filter((e) => e.checkVisibility());
+    const low = Math.max(...kids.map((e) => e.getBoundingClientRect().bottom));
+    const info = { sy: scrollY, sh: document.documentElement.scrollHeight, ih: innerHeight };
+    window.scrollTo({ top: 0, behavior: "instant" });
+    return { bar, low, info };
+  });
+  if (process.env.END_SHOTS) {
+    await page.evaluate(() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "instant" }));
+    await page.waitForTimeout(300);
+    await page.screenshot({ path: `${OUT}/end-${label}.png`, timeout: 20000 }).catch(() => {});
+  }
+  if (end.low > end.bar + 0.5) failures.push(`${label}: page end ${Math.round(end.low)} is under the bar at ${Math.round(end.bar)} ${JSON.stringify(end.info)}`);
+}
 
 const { base, stop } = await startPreview();
 const browser = await chromium.launch({ executablePath: process.env.CHROME || undefined, args: ["--no-sandbox", "--font-render-hinting=none"] });
@@ -294,21 +358,23 @@ async function settle(page) {
   }
 }
 
+for (const lang of LANGS)
 for (const theme of ["light", "dark"]) {
-  for (const width of WIDTHS) {
+  for (const [width, height] of SIZES) {
     const ctx = await browser.newContext({
-      viewport: { width, height: width > 600 ? 900 : 844 },
+      viewport: { width, height },
       deviceScaleFactor: 1,
       reducedMotion: "reduce",
       colorScheme: theme,
     });
-    await ctx.addInitScript((t) => {
+    await ctx.addInitScript(([t, l]) => {
       try {
+        localStorage.setItem("yb-lang", l);
         localStorage.setItem("yb-theme", t);
       } catch {
         /* colorScheme carries it */
       }
-    }, theme);
+    }, [theme, lang]);
     await ctx.route("**/api/**", (route) => {
       const u = new URL(route.request().url());
       const a = answer(u.pathname, route.request().method());
@@ -320,7 +386,7 @@ for (const theme of ["light", "dark"]) {
       const page = await ctx.newPage();
       await page.clock.setFixedTime(new Date(NOW));
       page.on("pageerror", (e) => console.log("pageerror", name, e.message));
-      await page.goto(`${base}${path}`, { waitUntil: "load" });
+      await page.goto(`${base}${lang === "he" ? "/he" : ""}${path}`, { waitUntil: "load" });
       await page.waitForFunction(() => document.querySelector("main"), null, { polling: 500, timeout: 20000 });
       await settle(page);
       if (step) {
@@ -331,9 +397,18 @@ for (const theme of ["light", "dark"]) {
         }
         await settle(page);
       }
-      const file = `${OUT}/${name}-${theme}-${width}.png`;
-      await page.screenshot({ path: file, fullPage: width > 600 && !VIEWPORT_ONLY.has(name) });
-      console.log("shot", name, theme, width);
+      const tag = `${name}-${lang}-${theme}-${width}x${height}`;
+      const file = `${OUT}/${name}-${lang === "en" ? "" : `${lang}-`}${theme}-${width}${process.env.SIZES ? `x${height}` : ""}.png`;
+      for (let attempt = 0; ; attempt += 1) {
+        try {
+          await page.screenshot({ path: file, fullPage: width > 600 && !VIEWPORT_ONLY.has(name), timeout: 20000 });
+          break;
+        } catch (e) {
+          if (attempt >= 3) throw e;
+        }
+      }
+      console.log("shot", name, lang, theme, width);
+      if (CHECK_BAR && step === undefined) await checkBar(page, tag);
       await page.close();
     }
     await ctx.close();
@@ -341,3 +416,7 @@ for (const theme of ["light", "dark"]) {
 }
 await browser.close();
 stop();
+if (failures.length) {
+  console.log(`\n${failures.length} bar failure(s):\n${failures.join("\n")}`);
+  process.exit(1);
+}

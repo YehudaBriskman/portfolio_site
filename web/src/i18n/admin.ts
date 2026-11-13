@@ -26,6 +26,7 @@ export const useAdminWords = defineWords(
     signedInAs: (who: string) => `Signed in as ${who}`,
     signedIn: "Signed in",
     back: "Back",
+    moreActions: "More actions",
     nav: {
       overview: "Overview",
       posts: "Posts",
@@ -161,6 +162,7 @@ export const useAdminWords = defineWords(
     signedInAs: (who: string) => `מחובר בתור ${who}`,
     signedIn: "מחובר",
     back: "חזרה",
+    moreActions: "פעולות נוספות",
     nav: {
       overview: "סקירה",
       posts: "רשימות",
