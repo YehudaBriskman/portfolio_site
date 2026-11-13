@@ -63,7 +63,7 @@ describe("owner email html", () => {
     expect(html).toContain('name="color-scheme"');
     expect(html).not.toMatch(/<script|<link|@import/i);
     expect(html).toContain("prefers-color-scheme: dark");
-    expect(html).toContain('bgcolor="#1d4ed8"');
+    expect(html).toMatch(/<td class="btn" bgcolor="#[0-9A-F]{6}" height="44"/);
   });
 
   it("has a text part with the same information", () => {

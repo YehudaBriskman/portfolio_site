@@ -663,3 +663,11 @@ and every delivered mail's unsubscribe link and one-click header answer "invalid
    a throwaway address and confirm, to prove the new secret works.
 4. Expect a few "link invalid" replies from people with old mail, and say in the
    next campaign how to unsubscribe.
+
+## Mail design system
+
+`backend/src/mail/render.ts` holds `renderMail(blocks, { lang, theme })`: heading, paragraph, button, list, card, image, divider and footer blocks in, one page and its plain-text twin out. Table layout at 600 px, inline styles, system fonts, 16 px body, AA colours from the site palette, 44 px buttons, no script, form, remote CSS or font, no tracking pixel and no redirecting links. `lang` and `dir` are on `<html>`; `theme: "auto"` (what is sent) adds the `prefers-color-scheme: dark` block. Images only from the site origin with alt, width and height. `mail/escape.ts` holds the one `esc`; nothing else in the mail path escapes. `renderMail` reports `bytes` and `oversize` (Gmail clips near 100 KB).
+
+The campaign renderer (`campaigns/render.ts`) and the owner announce email (`announce/emailHtml.ts`) are built on it; their wording and the label, unsubscribe and identity behaviour are unchanged. The footer prints `contactLines()` (name, postal, email, phone, website, LinkedIn). Transactional mails (confirm, welcome, contact auto-reply) are not on it yet.
+
+Look at every template: `cd backend && CHROMIUM_PATH=<chrome-headless-shell> npx tsx scripts/mail-gallery.ts <outDir> --shots` writes HTML and 390/600 px, light/dark screenshots (EN and HE, normal and markup/long-name stress copies).
