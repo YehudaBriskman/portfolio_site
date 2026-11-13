@@ -28,8 +28,8 @@ export function labelFor(mode: LabelMode, lang: Lang): { subject: string; line: 
  * unsubscribe link must never go out, whatever was saved. DRAFT wording,
  * owner to approve.
  */
-export const UNSUB_FALLBACK_EN = "To stop receiving these emails, unsubscribe here: {link}";
-export const UNSUB_FALLBACK_HE = "כדי להפסיק לקבל הודעות אלה, בטלו את ההרשמה כאן: {link}";
+export const UNSUB_FALLBACK_EN = "Unsubscribe in one click: {link}";
+export const UNSUB_FALLBACK_HE = "להסרה בלחיצה אחת: {link}";
 
 export type RenderedMail = { subject: string; text: string; html: string; headers: Record<string, string> };
 
