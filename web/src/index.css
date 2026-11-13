@@ -3074,15 +3074,4 @@
   .a-dot-published { background: rgb(var(--signal)); }
   .a-dot-draft { box-shadow: inset 0 0 0 1.5px rgb(var(--ink-soft)); }
   .a-dot-archived, .a-dot-hidden { height: 2px; border-radius: 1px; background: rgb(var(--ink-soft)); }
-
-  .a-summary {
-    display: flex; align-items: center; gap: .5rem; min-height: 2.5rem; cursor: pointer;
-    font-size: .875rem; font-weight: 700; color: rgb(var(--ink)); list-style: none;
-  }
-  .a-summary::-webkit-details-marker { display: none; }
-  .a-summary::before {
-    content: '\25B8'; display: inline-block; width: 1rem; color: rgb(var(--ink-soft));
-    transition: transform var(--dur-fast) var(--ease-settle);
-  }
-  details[open] > .a-summary::before { transform: rotate(90deg); }
 }
