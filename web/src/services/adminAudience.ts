@@ -140,4 +140,19 @@ export const adminAudience = {
     return { suppressed: b.suppressed ?? 0, already: b.already ?? 0, failed: b.failed ?? 0, invalid: Array.isArray(b.invalid) ? b.invalid.filter((x): x is string => typeof x === "string") : [] };
   },
   unsuppress: (hash: string) => call<unknown>(`/suppression/${enc(hash)}`, { method: "DELETE" }),
+
+  /** Whether the never-mail ledger is usable and what its guard last repaired. Counts only, never an address. */
+  ledger: async (): Promise<LedgerState> => {
+    const b = await call<Partial<LedgerState>>("/ledger");
+    const zero = { unsubscribed: 0, suppressed: 0, erased: 0 };
+    return {
+      ready: b.ready === true,
+      counts: { ...zero, ...(b.counts ?? {}) },
+      report: b.report ? { at: b.report.at, repaired: { ...zero, ...b.report.repaired }, acknowledgedAt: b.report.acknowledgedAt ?? null } : null,
+    };
+  },
+  acknowledgeLedger: () => call<unknown>("/ledger/ack", { method: "POST", body: "{}" }),
 };
+
+export type LedgerCounts = { unsubscribed: number; suppressed: number; erased: number };
+export type LedgerState = { ready: boolean; counts: LedgerCounts; report: { at: string; repaired: LedgerCounts; acknowledgedAt: string | null } | null };

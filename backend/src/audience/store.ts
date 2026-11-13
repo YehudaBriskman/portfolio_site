@@ -225,3 +225,33 @@ export async function backfillConsent(): Promise<number> {
   return n;
 }
 export const resetConsentBackfill = () => { backfilled = false; };
+
+/* --- erasure --------------------------------------------------------------- */
+
+/**
+ * Deletes every per-recipient result document of one contact (`send:<campaign>:<hash>`).
+ * The id has the hash LAST, so there is no prefix to seek on: this walks the
+ * send documents. Erasure is rare and the set is small. Returns how many went.
+ */
+export async function deleteSendDocs(hash: string): Promise<number> {
+  let n = 0;
+  let cursor = "send:";
+  for (;;) {
+    const { docs } = await couch.find<{ _id: string; _rev?: string }>({
+      selector: { _id: { $gt: cursor, $lt: "send:￿" } },
+      sort: [{ _id: "asc" }],
+      limit: 1000,
+    });
+    for (const d of docs) {
+      if (!d._id.endsWith(`:${hash}`) || !d._rev) continue;
+      try {
+        await couch.del(d._id, d._rev);
+        n++;
+      } catch (e) {
+        if (!isStatus(e, 404) && !isStatus(e, 409)) throw e;
+      }
+    }
+    if (docs.length < 1000) return n;
+    cursor = docs[docs.length - 1]._id;
+  }
+}

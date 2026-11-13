@@ -83,6 +83,12 @@ export const couch = {
     call<{ ok: boolean }>(`/${encodeURIComponent(id)}?rev=${encodeURIComponent(rev)}`, { method: "DELETE" }),
   find: <T>(selector: unknown) =>
     call<{ docs: T[] }>(`/_find`, { method: "POST", body: JSON.stringify(selector) }),
+  /* Several documents by id in one round trip; an id that does not exist (or is deleted) is simply absent from the result. */
+  docs: async <T>(ids: string[]): Promise<T[]> => {
+    if (ids.length === 0) return [];
+    const r = await call<{ rows: Array<{ doc?: T | null }> }>(`/_all_docs?include_docs=true`, { method: "POST", body: JSON.stringify({ keys: ids }) });
+    return r.rows.flatMap((row) => (row.doc ? [row.doc] : []));
+  },
   /*
    * Creates the content database if it is missing.
    *

@@ -6,6 +6,8 @@ import { env } from "../env.js";
 import { logger } from "../logger.js";
 import { emailService } from "../services/email.service.js";
 import { DEFAULT_ANNOUNCE_SETTINGS, SETTINGS_DOC_ID } from "../announce/schemas.js";
+import { memoryLedgerStore, resetLedgerCache, useLedgerStore } from "./ledger.js";
+import { resetGuard } from "../campaigns/guard.js";
 import { fillTemplate, renderConfirmMail, unsubscribeUrls } from "./mail.js";
 import { backfillConsent, hashEmail, getContact, purgeExpiredPending, resetConsentBackfill, resetPurgeClock } from "./store.js";
 import { CURRENT_CONSENT_TEXT_ID, getConsentText } from "./consent-texts.js";
@@ -24,6 +26,7 @@ vi.mock("../services/svgSanitize.js", () => ({}));
 vi.mock("../routes/images.route", () => ({ createImagesRouter: () => (_q: unknown, _r: unknown, next: () => void) => next() }));
 vi.mock("../routes/media.admin.route.js", async () => ({ default: (await import("express")).Router() }));
 
+let ledger: ReturnType<typeof memoryLedgerStore>;
 let store: Map<string, Record<string, unknown>>;
 let revs = 0;
 let sent: Array<{ to: string; subject: string; text: string; html: string }>;
@@ -64,12 +67,19 @@ beforeEach(() => {
       .map(([, d]) => structuredClone(d));
     return { docs: docs as never[] };
   });
+  vi.spyOn(couch, "docs").mockImplementation(async <R>(ids: string[]) => ids.flatMap((i) => (store.has(i) ? [structuredClone(store.get(i)) as R] : [])));
+  ledger = memoryLedgerStore();
+  useLedgerStore(ledger);
+  resetGuard();
   vi.spyOn(emailService, "sendTo").mockImplementation(async (m) => {
     sent.push(m);
     return { ok: true, messageId: "m" };
   });
 });
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => {
+  vi.restoreAllMocks();
+  useLedgerStore();
+});
 
 const admin = (req: request.Test) => req.set("X-Admin-Proxy-Secret", env.ADMIN_PROXY_SECRET).set("X-Auth-Request-User", env.ADMIN_GITHUB_LOGIN);
 const app = () => createApp();
@@ -538,5 +548,111 @@ describe("consent record", () => {
     expect(r.text).toContain("consentTextId,consentTextHash,consentLang,consentConfirmedAt,consentHistory");
     expect(r.text).toContain(v1.sha256);
     expect(r.text).toContain("site-form-v1");
+  });
+});
+
+describe("suppression ledger writes", () => {
+  const A = "/api/admin/audience";
+  const line = (h = hash) => ledger.docs.get(h) as { kind?: string; at?: string; expiresAt?: string } | undefined;
+  const lput = (kind: string, h = hash) => ledger.put(h, { _id: h, type: "ledger", kind, at: "2026-01-01T00:00:00.000Z" });
+
+  it("unsubscribe writes a hash-only line, ledger first", async () => {
+    seed();
+    const order: string[] = [];
+    const lp = ledger.put;
+    ledger.put = async (id, doc) => { order.push("ledger"); return lp(id, doc); };
+    const cp = vi.mocked(couch.put);
+    const real = cp.getMockImplementation()!;
+    cp.mockImplementation(async (id: string, body: unknown) => { if (id.startsWith("contact:")) order.push("content"); return real(id, body); });
+    const token = await signToken({ t: "unsub", h: hash, exp: expiresIn(3600) });
+    expect((await request(app()).post("/api/subscribe/unsubscribe").send({ token })).status).toBe(200);
+    expect(order).toEqual(["ledger", "content"]);
+    expect(line()).toMatchObject({ _id: hash, type: "ledger", kind: "unsubscribed" });
+    // Nothing but the hash, a kind and a date.
+    expect(Object.keys(line()!).sort()).toEqual(["_id", "_rev", "at", "kind", "type"]);
+    expect(JSON.stringify(line())).not.toMatch(/example\.com|ann/i);
+  });
+
+  it("a ledger outage does not undo a one-click unsubscribe", async () => {
+    seed();
+    ledger.down = true;
+    const token = await signToken({ t: "unsub", h: hash, exp: expiresIn(3600) });
+    expect((await request(app()).post("/api/subscribe/unsubscribe").send({ token })).status).toBe(200);
+    expect(store.get(`contact:${hash}`)).toMatchObject({ status: "unsubscribed" });
+  });
+
+  it("a fresh confirmed signup clears an unsubscribed line; a suppressed one cannot confirm", async () => {
+    seed({ status: "unsubscribed" });
+    await lput("unsubscribed");
+    await signup(app());
+    await flush();
+    const token = tokenFrom(sent[0]);
+    expect(line()?.kind).toBe("unsubscribed");
+    expect((await request(app()).post("/api/subscribe/confirm").send({ token })).status).toBe(200);
+    expect(line()).toBeUndefined();
+    expect(store.get(`contact:${hash}`)).toMatchObject({ status: "active" });
+
+    seed({ status: "pending" });
+    await lput("suppressed");
+    const t2 = await signToken({ t: "confirm", h: hash, exp: expiresIn(3600) });
+    expect((await request(app()).post("/api/subscribe/confirm").send({ token: t2 })).status).toBe(400);
+    expect(store.get(`contact:${hash}`)).toMatchObject({ status: "pending" });
+  });
+
+  it("signup for a suppressed hash whose contact is gone stays silent and creates nothing", async () => {
+    await lput("suppressed");
+    const r = await signup(app());
+    expect([r.status, r.body]).toEqual([202, { ok: true }]);
+    expect(store.has(`contact:${hash}`)).toBe(false);
+    expect(sent).toHaveLength(0);
+  });
+
+  it("admin: set unsubscribed, suppress, lift and erase each write their line", async () => {
+    seed();
+    expect((await admin(request(app()).patch(`${A}/contacts/${hash}`).send({ status: "unsubscribed" }))).status).toBe(200);
+    expect(line()?.kind).toBe("unsubscribed");
+    expect((await admin(request(app()).post(`${A}/suppression`).send({ email: "ann@example.com" }))).status).toBe(201);
+    expect(line()?.kind).toBe("suppressed");
+    expect((await admin(request(app()).delete(`${A}/suppression/${hash}`))).status).toBe(200);
+    expect(line()?.kind).toBe("unsubscribed");
+    expect((await admin(request(app()).delete(`${A}/contacts/${hash}`))).status).toBe(200);
+    expect(line()?.kind).toBe("erased");
+    expect(Date.parse(line()!.expiresAt!)).toBeGreaterThan(Date.now() + 25 * 86_400_000);
+    expect(store.has(`contact:${hash}`)).toBe(false);
+  });
+
+  it("erase removes that person's send documents only, and touches nothing when the ledger is down", async () => {
+    seed();
+    const other = "f".repeat(32);
+    store.set(`send:c1:${hash}`, { _id: `send:c1:${hash}`, _rev: "1-a", type: "send" });
+    store.set(`send:c1:${other}`, { _id: `send:c1:${other}`, _rev: "1-a", type: "send" });
+    ledger.down = true;
+    expect((await admin(request(app()).delete(`${A}/contacts/${hash}`))).status).toBeGreaterThanOrEqual(500);
+    expect(store.has(`contact:${hash}`)).toBe(true);
+    ledger.down = false;
+    expect((await admin(request(app()).delete(`${A}/contacts/${hash}`))).status).toBe(200);
+    expect(store.has(`send:c1:${hash}`)).toBe(false);
+    expect(store.has(`send:c1:${other}`)).toBe(true);
+  });
+
+  it("import skips every address on the ledger, erased included; a manual add is refused unless erased", async () => {
+    const bob = hashEmail("bob@example.com");
+    await lput("erased", bob);
+    await lput("unsubscribed");
+    const r = await admin(request(app()).post(`${A}/contacts/import`).send({ csv: "ann@example.com\nbob@example.com\ncy@example.com", consentNote: "list", consentConfirmed: true }));
+    expect([r.body.added, r.body.skipped]).toEqual([1, 2]);
+    expect((await admin(request(app()).post(`${A}/contacts`).send({ email: "ann@example.com", lang: "en", consentNote: "asked" }))).status).toBe(409);
+    expect((await admin(request(app()).post(`${A}/contacts`).send({ email: "bob@example.com", lang: "en", consentNote: "asked again" }))).status).toBe(201);
+    expect(line(bob)).toBeUndefined();
+  });
+
+  it("the ledger endpoint reports counts and readiness, never an address", async () => {
+    await lput("suppressed");
+    let r = await admin(request(app()).get(`${A}/ledger`));
+    expect(r.body).toMatchObject({ ok: true, ready: true, counts: { suppressed: 1, unsubscribed: 0, erased: 0 }, report: null });
+    ledger.down = true;
+    resetLedgerCache();
+    r = await admin(request(app()).get(`${A}/ledger`));
+    expect(r.body.ready).toBe(false);
   });
 });

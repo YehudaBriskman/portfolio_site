@@ -2,7 +2,9 @@ import type { SenderSettings } from "../announce/schemas.js";
 import { loadSettings } from "../announce/store.js";
 import { couch } from "../db/couch.js";
 import { listRecipients, getContact, isSuppressed, updateContact } from "../audience/store.js";
+import { cachedKind, ledgerPutQuietly } from "../audience/ledger.js";
 import { logger } from "../logger.js";
+import { ledgerGuard } from "./guard.js";
 import { emailService, type BulkMessage } from "../services/email.service.js";
 import { resolveSender } from "./config.js";
 import { renderCampaignMail } from "./render.js";
@@ -120,6 +122,7 @@ const scrub = (msg: string) => msg.replace(/[^\s<>"',;]+@[^\s<>"',;]+/g, "[addre
 
 /** Takes an address off the mailing list for good reason. Only an active contact is touched; never deletes. Never logs the address. */
 async function suppressBounced(hash: string, reason: "hard-bounce" | "soft-bounces"): Promise<void> {
+  await ledgerPutQuietly(hash, "suppressed");
   try {
     await updateContact(hash, (c) => {
       if (c.status !== "active") return false;
@@ -249,7 +252,7 @@ async function runCampaign(c: Campaign, settings: SenderSettings, deps: Required
       }
     } else if (!(await claimSend(base))) continue;
     /* Never to anyone no longer active or on the suppression list: checked on the fresh record, not the scan. */
-    if (!contact || contact.status !== "active" || (await isSuppressed(contact.email))) {
+    if (!contact || contact.status !== "active" || cachedKind(t.hash) || (await isSuppressed(contact.email))) {
       await finishSend({ ...base, status: "suppressed" });
       suppressed++;
       continue;
@@ -323,6 +326,8 @@ export async function runSenderTick(deps: SenderDeps = {}): Promise<void> {
     const ms = d.now();
     if (inQuietHours(settings.quietHours, ms)) return;
     const { docs } = await couch.find<Campaign>({ selector: { _id: { $gt: "campaign:", $lt: "campaign:\uffff" }, status: { $in: ["scheduled", "sending"] } }, limit: 200 });
+    /* No readable ledger, or contacts it protects that cannot be put right: nothing is claimed or continued. */
+    if (docs.length > 0 && !(await ledgerGuard(ms)).ok) return;
     for (const c of docs.sort((a, b) => (a.sendAt ?? a.createdAt).localeCompare(b.sendAt ?? b.createdAt))) {
       try {
         let cur: Campaign | null = c;

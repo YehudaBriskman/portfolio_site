@@ -8,6 +8,7 @@ import { createApp } from "./app";
 import { env } from './env.js';
 import { logger } from './logger.js';
 import { startSender } from './campaigns/sender.js';
+import { ensureLedger } from './audience/ledger.js';
 
 const app = createApp();
 
@@ -120,6 +121,19 @@ ensureContentStore()
  * so a failure here costs a slower first paint and nothing else.
  */
 startContributionsRefresh();
+
+/*
+ * The suppression ledger's own database. Not fatal, but the sender refuses to
+ * run without it (campaigns/guard.ts), so a failure here is the loud kind.
+ */
+ensureLedger()
+  .then(() => logger.info("suppression ledger ready"))
+  .catch((err: unknown) => {
+    logger.error(
+      { err: err instanceof Error ? err.message : String(err) },
+      "suppression ledger could not be prepared; campaigns will not send until it exists (see docs/newsletter.md)",
+    );
+  });
 
 /* The campaign sender: resumable, so a restart only costs the time until the next tick. */
 startSender();
