@@ -1,4 +1,4 @@
-import { defineWords } from "./words";
+import { defineWords, plural } from "./words";
 
 /*
  * The words of the shared phone parts (`components/ui/`: BottomSheet,
@@ -16,14 +16,25 @@ export const useMobileWords = defineWords(
     row: { isNew: "New" },
     settings: {
       about: (label: string) => `About ${label}`,
-      closeHelp: "Close help",
       search: "Search settings",
       clearSearch: "Clear search",
       noMatch: "No settings match",
       found: (n: number) => (n === 1 ? "1 setting found" : `${n} settings found`),
       back: "Back to settings",
-      needsAttention: "Needs attention",
     },
+    selection: {
+      select: "Select",
+      done: "Done",
+      all: "Select all",
+      none: "Select none",
+      count: (n: number) => plural("en", n, { one: "{n} selected", other: "{n} selected" }),
+      items: (n: number) => plural("en", n, { one: "{n} item", other: "{n} items" }),
+      more: "More",
+      moreTitle: "Actions",
+      barLabel: "Bulk actions",
+      keep: "Keep",
+    },
+    undo: { action: "Undo" },
     status: {
       draft: "Draft",
       scheduled: "Scheduled",
@@ -148,14 +159,25 @@ export const useMobileWords = defineWords(
     row: { isNew: "חדש" },
     settings: {
       about: (label: string) => `על ${label}`,
-      closeHelp: "סגירת ההסבר",
       search: "חיפוש בהגדרות",
       clearSearch: "ניקוי החיפוש",
       noMatch: "אין הגדרות מתאימות",
       found: (n: number) => (n === 1 ? "נמצאה הגדרה אחת" : `נמצאו ${n} הגדרות`),
       back: "חזרה להגדרות",
-      needsAttention: "דורש תשומת לב",
     },
+    selection: {
+      select: "בחירה",
+      done: "סיום",
+      all: "בחירת הכול",
+      none: "ניקוי הבחירה",
+      count: (n: number) => plural("he", n, { one: "נבחר פריט אחד", other: "נבחרו {n}" }),
+      items: (n: number) => plural("he", n, { one: "פריט אחד", two: "שני פריטים", other: "{n} פריטים" }),
+      more: "עוד",
+      moreTitle: "פעולות",
+      barLabel: "פעולות על כמה פריטים",
+      keep: "להשאיר",
+    },
+    undo: { action: "ביטול" },
     status: {
       draft: "טיוטה",
       scheduled: "מתוזמן",
