@@ -2661,6 +2661,8 @@
    */
 
   :root:has(.a-app) { scroll-padding-top: 4.25rem; }
+  /* Text that carries meaning (hints, meta, headers, pills) never drops below 14px; 12px is for ornament only. */
+  :root { --a-fs-meta: .875rem; }
 
   .a-app {
     min-height: 100dvh;
@@ -2757,7 +2759,7 @@
   }
   .a-side-nav ul { display: flex; flex-direction: column; gap: 2px; }
   .a-side-group + .a-side-group { margin-top: .75rem; padding-top: .75rem; border-top: 1px solid rgb(var(--rule-firm) / .3); }
-  .a-side-head { padding: 0 .625rem .375rem; font-size: .875rem; font-weight: 700; color: rgb(var(--ink-soft)); }
+  .a-side-head { padding: 0 .625rem .375rem; font-size: var(--a-fs-meta); font-weight: 700; color: rgb(var(--ink-soft)); }
   .a-nav-item {
     display: flex; align-items: center; gap: .625rem;
     min-height: 2.25rem; padding-inline: .625rem; border-radius: 6px;
@@ -2772,7 +2774,7 @@
   .a-nav-icon svg { width: 16px; height: 16px; color: rgb(var(--ink-soft)); }
   .a-nav-item[aria-current="page"] .a-nav-icon svg { color: rgb(var(--ink)); }
   .a-side-foot { margin-top: auto; padding-top: .75rem; border-top: 1px solid rgb(var(--rule-firm) / .3); }
-  .a-side-who { padding: .25rem .625rem; font-size: .875rem; color: rgb(var(--ink-soft)); overflow-wrap: anywhere; }
+  .a-side-who { padding: .25rem .625rem; font-size: var(--a-fs-meta); color: rgb(var(--ink-soft)); overflow-wrap: anywhere; }
 
   .a-main { flex: 1; min-width: 0; padding: 1.25rem 1rem calc(var(--a-bar-h, 0px) + 2rem); }
   .a-main:focus { outline: none; }
@@ -2801,7 +2803,7 @@
     color: rgb(var(--ink)); overflow-wrap: anywhere;
   }
   @media (min-width: 1024px) { .a-app .a-h1 { font-size: 1.75rem; } }
-  .a-page-meta { display: flex; flex-wrap: wrap; align-items: center; gap: .375rem .75rem; margin-top: .5rem; font-size: .875rem; color: rgb(var(--ink-soft)); }
+  .a-page-meta { display: flex; flex-wrap: wrap; align-items: center; gap: .375rem .75rem; margin-top: .5rem; font-size: var(--a-fs-meta); color: rgb(var(--ink-soft)); }
   .a-page-desc { max-width: 68ch; margin-top: .375rem; color: rgb(var(--ink-soft)); }
   .a-page-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
   .a-h2 { font-size: 1rem; font-weight: 700; color: rgb(var(--ink)); }
@@ -2843,12 +2845,12 @@
   .a-box-row + .a-box-row, .a-box-head + .a-box-row { border-top: 1px solid rgb(var(--rule-firm) / .3); }
   .a-box-head + .a-box-row { border-top: 0; }
   .a-box-row:hover { background: rgb(var(--ink) / .035); }
-  .a-box-foot { padding: .625rem 1rem; border-top: 1px solid rgb(var(--rule-firm) / .3); font-size: .875rem; color: rgb(var(--ink-soft)); }
+  .a-box-foot { padding: .625rem 1rem; border-top: 1px solid rgb(var(--rule-firm) / .3); font-size: var(--a-fs-meta); color: rgb(var(--ink-soft)); }
 
   .a-table { width: 100%; border-collapse: separate; border-spacing: 0; }
   .a-table th {
     padding: .5rem 1rem; text-align: left; white-space: nowrap;
-    font-size: .875rem; font-weight: 700; color: rgb(var(--ink-soft));
+    font-size: var(--a-fs-meta); font-weight: 700; color: rgb(var(--ink-soft));
     background: rgb(var(--paper-2));
     border-bottom: 1px solid rgb(var(--rule-firm) / .5);
   }
@@ -2865,13 +2867,13 @@
 
   .a-row-title { font-weight: 700; color: rgb(var(--ink)); overflow-wrap: anywhere; }
   a.a-row-title:hover { color: rgb(var(--signal)); text-decoration: underline; text-underline-offset: 3px; }
-  .a-row-meta { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem .5rem; margin-top: .25rem; font-size: .875rem; color: rgb(var(--ink-soft)); }
+  .a-row-meta { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem .5rem; margin-top: .25rem; font-size: var(--a-fs-meta); color: rgb(var(--ink-soft)); }
   .a-row-meta > * + *::before { content: '·'; margin-inline-end: .5rem; color: rgb(var(--ink-faint)); }
   .a-row-meta.a-plain > * + *::before { content: none; }
   .a-tag {
     display: inline-flex; align-items: center; height: 1.25rem; padding-inline: .5rem;
     border-radius: 999px; border: 1px solid rgb(var(--rule-firm) / .5);
-    font-size: .875rem; color: rgb(var(--ink-soft));
+    font-size: var(--a-fs-meta); color: rgb(var(--ink-soft));
   }
 
   /* The old list row, still used by a few lists: denser than it was. */
@@ -2888,7 +2890,7 @@
     height: 1.375rem; padding-inline: .5rem;
     border-radius: 999px; border: 1px solid rgb(var(--rule-firm) / .8);
     background: rgb(var(--paper));
-    font-size: .875rem; font-weight: 700; line-height: 1; white-space: nowrap;
+    font-size: var(--a-fs-meta); font-weight: 700; line-height: 1; white-space: nowrap;
     color: rgb(var(--ink));
   }
   .a-pill-mark { width: .5rem; height: .5rem; flex: none; border-radius: 50%; }
@@ -2915,7 +2917,7 @@
   .a-counter {
     display: inline-block; min-width: 1.25rem; padding-inline: .375rem;
     border-radius: 999px; background: rgb(var(--ink) / .08);
-    font-size: .875rem; font-weight: 700; line-height: 1.25rem; text-align: center;
+    font-size: var(--a-fs-meta); font-weight: 700; line-height: 1.25rem; text-align: center;
     font-variant-numeric: tabular-nums; color: rgb(var(--ink));
   }
   .a-empty-value { color: rgb(var(--ink-soft)); }
@@ -2939,11 +2941,11 @@
     transition: border-color var(--dur-micro) ease, background-color var(--dur-micro) ease;
   }
   a.a-stat:hover { border-color: rgb(var(--rule-firm)); background: rgb(var(--sheet) / .8); }
-  .a-stat-label { display: flex; align-items: center; gap: .5rem; font-size: .875rem; color: rgb(var(--ink-soft)); }
+  .a-stat-label { display: flex; align-items: center; gap: .5rem; font-size: var(--a-fs-meta); color: rgb(var(--ink-soft)); }
   .a-stat-label svg { width: 16px; height: 16px; flex: none; }
   .a-stat-value { font-size: 1.75rem; font-weight: 700; line-height: 1.15; font-variant-numeric: tabular-nums; }
   .a-stat-value.a-stat-text { font-size: 1.125rem; line-height: 1.4; }
-  .a-stat-detail { font-size: .875rem; color: rgb(var(--ink-soft)); }
+  .a-stat-detail { font-size: var(--a-fs-meta); color: rgb(var(--ink-soft)); }
 
   /* ---- tabs and the list toolbar */
   .a-tabs {
@@ -2998,13 +3000,13 @@
   .a-icon-btn svg { width: 18px; height: 18px; }
   .a-link { color: rgb(var(--signal)); text-decoration: underline; text-underline-offset: 3px; }
   @media (pointer: coarse) {
-    .a-btn { min-height: 2.5rem; }
-    .a-icon-btn { width: 2.5rem; height: 2.5rem; min-height: 2.5rem; }
+    .a-btn, .a-nav-item, .a-tab, .a-brand { min-height: 2.75rem; }
+    .a-icon-btn { width: 2.75rem; height: 2.75rem; min-height: 2.75rem; }
   }
 
   /* ---- fields: GitHub's settings form */
   .a-label { display: block; margin-bottom: .375rem; font-size: .875rem; font-weight: 700; color: rgb(var(--ink)); }
-  .a-hint { display: block; margin-top: .375rem; font-size: .875rem; line-height: 1.45; color: rgb(var(--ink-soft)); }
+  .a-hint { display: block; margin-top: .375rem; font-size: var(--a-fs-meta); line-height: 1.45; color: rgb(var(--ink-soft)); }
   .a-error { display: block; margin-top: .375rem; font-size: .875rem; font-weight: 700; color: rgb(var(--destructive-ink)); }
 
   .a-input, .a-select, .a-textarea {
@@ -3048,6 +3050,10 @@
   .a-input-mono { font-family: var(--font-code); letter-spacing: 0; }
   @media (min-width: 1024px) { .a-input-mono { font-size: .875rem; } }
   .a-input-title { font-weight: 700; font-size: 1.125rem; min-height: 2.75rem; }
+  /* After the field rules above: same specificity, so source order decides. */
+  @media (pointer: coarse) {
+    .a-input, .a-select { min-height: 2.75rem; }
+  }
 
   .a-seg {
     display: inline-flex; gap: 2px; padding: 2px;

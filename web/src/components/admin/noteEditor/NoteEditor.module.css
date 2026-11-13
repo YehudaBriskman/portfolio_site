@@ -202,6 +202,10 @@
   font-size: .875rem;
 }
 .tagInput:focus { outline: none; }
+@media (pointer: coarse) {
+  .tagInput { min-height: 2.75rem; }
+  .tool { min-width: 2.75rem; min-height: 2.75rem; }
+}
 
 .status {
   font-size: .875rem;
@@ -284,3 +288,6 @@
   box-shadow: inset 0 2px 0 rgb(var(--sodium));
 }
 .toggleGroup { display: flex; gap: .125rem; }
+@media (pointer: coarse) {
+  .toggle { min-height: 2.75rem; }
+}
