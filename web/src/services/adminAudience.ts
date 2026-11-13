@@ -23,7 +23,7 @@ export type Group = { slug: string; name: string; kind: "system" | "manual"; cou
 export type ConsentEntry = {
   textId: string | null;
   textHash: string | null;
-  lang: ContactLang;
+  lang?: ContactLang;
   at: string;
   confirmedAt?: string;
   source: ContactSource;
@@ -34,7 +34,8 @@ export type Contact = {
   hash: string;
   email: string;
   name?: string | null;
-  lang: ContactLang;
+  /* Absent once the person unsubscribed and their details were dropped. */
+  lang?: ContactLang;
   groups: string[];
   status: ContactStatus;
   source: ContactSource;
@@ -156,9 +157,11 @@ export const adminAudience = {
     const b = await call<Partial<SweepState>>("/sweep");
     return { pendingTtlDays: b.pendingTtlDays ?? 7, report: b.report ?? null };
   },
+  /** Everything held about one address, as the parsed JSON file. The address travels in the body only. */
+  exportData: (email: string) => call<unknown>("/contacts/data-export", { method: "POST", body: JSON.stringify({ email }) }),
   acknowledgeLedger: () => call<unknown>("/ledger/ack", { method: "POST", body: "{}" }),
 };
 
-export type SweepState = { pendingTtlDays: number; report: { at: string; lastPurged: number; totalPurged: number; since: string } | null };
+export type SweepState = { pendingTtlDays: number; report: { at: string; lastPurged: number; totalPurged: number; since: string; lastMinimised?: number; totalMinimised?: number } | null };
 export type LedgerCounts = { unsubscribed: number; suppressed: number; erased: number };
 export type LedgerState = { ready: boolean; counts: LedgerCounts; report: { at: string; repaired: LedgerCounts; acknowledgedAt: string | null } | null };

@@ -1,5 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { Router, type Response } from "express";
+import { z } from "zod";
 import { couch, CouchError } from "../db/couch.js";
 import { asyncHandler } from "../middlewares/asyncHandler.js";
 import { logger } from "../logger.js";
@@ -39,6 +40,8 @@ import {
   scanContacts,
   updateContact,
   deleteSendDocs,
+  listSendDocs,
+  MINIMISE_AFTER_DAYS,
 } from "./store.js";
 import { ledgerGuard } from "../campaigns/guard.js";
 import { getSweepReport } from "./sweep.js";
@@ -246,6 +249,7 @@ router.patch(
     const before = await getContact(hash);
     if (!before) return bad(res, "No such contact.", 404);
     if (before.status === "suppressed") return bad(res, "This address is on the suppression list.", 409);
+    if (before.minimisedAt) return bad(res, "This person unsubscribed and their details were removed; there is nothing left to edit.", 409);
     if (b.data.groups && (await unknownGroups(b.data.groups)).length) return bad(res, "Unknown group.");
     const prior = structuredClone(before);
     if (b.data.status === "unsubscribed" && before.status !== "unsubscribed") await ledgerPut(hash, "unsubscribed");
@@ -262,6 +266,40 @@ router.patch(
     if (!after) return bad(res, "No such contact.", 404);
     res.locals.audit = { target: after._id, before: prior, after };
     res.json({ ok: true, contact: view(after) });
+  }),
+);
+
+/*
+ * Everything held about one address, as one JSON file (a data-access request).
+ * POST with the address in the body, never in the URL, so it reaches no access
+ * log; the audit entry carries the contact id (a hash) only. The file contains
+ * the address, because the person it is about asked for their own data.
+ */
+router.post(
+  "/contacts/data-export",
+  asyncHandler(async (req, res) => {
+    const b = z.object({ email: Email }).strict().safeParse(req.body);
+    if (!b.success) return invalid(res);
+    const hash = hashEmail(b.data.email);
+    const [contact, ledgerLine, sends] = await Promise.all([getContact(hash), ledgerGet(hash).catch(() => null), listSendDocs(hash)]);
+    res.locals.audit = { target: contactId(hash), before: null, after: { exported: true } };
+    if (!contact && !ledgerLine && sends.length === 0) return bad(res, "Nothing is held about this address.", 404);
+    const strip = ({ _id: _i, _rev: _r, ...rest }: Record<string, unknown>) => rest;
+    const file = {
+      exportedAt: new Date().toISOString(),
+      fingerprint: hash,
+      note: `Unsubscribed contacts lose their address, name and language ${MINIMISE_AFTER_DAYS} days after unsubscribing; only the fingerprint, status, times and consent wording id remain.`,
+      contact: contact ? { ...strip(contact as unknown as Record<string, unknown>), consentHistory: consentHistoryOf(contact) } : null,
+      neverMailLine: ledgerLine ? { kind: ledgerLine.kind, at: ledgerLine.at, ...(ledgerLine.expiresAt ? { expiresAt: ledgerLine.expiresAt } : {}) } : null,
+      campaignMails: sends.map((s) => {
+        const { campaignId, status, at, kind, code, retryAt } = s as Record<string, unknown>;
+        return { campaign: campaignId, status, at, kind, code, retryAt };
+      }),
+    };
+    res.setHeader("Content-Type", "application/json; charset=utf-8");
+    res.setHeader("Content-Disposition", `attachment; filename="data-${hash.slice(0, 8)}.json"`);
+    res.setHeader("Cache-Control", "no-store");
+    res.send(JSON.stringify(file, null, 2));
   }),
 );
 
@@ -352,7 +390,7 @@ router.get(
     const rows: string[][] = [["email", "name", "lang", "groups", "status", "source", "consentAt", "consentNote", "createdAt", "consentTextId", "consentTextHash", "consentLang", "consentConfirmedAt", "consentHistory"]];
     for await (const c of scanContacts()) {
       const k = consentOf(c);
-      rows.push([c.email, c.name ?? "", c.lang, c.groups.join(";"), c.status, c.source, c.consentAt, c.consentNote, c.createdAt, k.textId ?? "", k.textHash ?? "", k.lang, k.confirmedAt ?? "", consentHistoryOf(c).map(historyCell).join(";")]);
+      rows.push([c.email, c.name ?? "", c.lang ?? "", c.groups.join(";"), c.status, c.source, c.consentAt, c.consentNote, c.createdAt, k.textId ?? "", k.textHash ?? "", k.lang ?? "", k.confirmedAt ?? "", consentHistoryOf(c).map(historyCell).join(";")]);
     }
     res.setHeader("Content-Type", "text/csv; charset=utf-8");
     res.setHeader("Content-Disposition", 'attachment; filename="audience.csv"');
@@ -491,7 +529,7 @@ router.get(
     res.json({
       ok: true,
       pendingTtlDays: settings.sender.pendingTtlDays,
-      report: r ? { at: r.at, lastPurged: r.lastPurged, totalPurged: r.totalPurged, since: r.since } : null,
+      report: r ? { at: r.at, lastPurged: r.lastPurged, totalPurged: r.totalPurged, since: r.since, lastMinimised: r.lastMinimised ?? 0, totalMinimised: r.totalMinimised ?? 0 } : null,
     });
   }),
 );

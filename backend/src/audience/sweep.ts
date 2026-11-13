@@ -1,6 +1,6 @@
 import { couch, CouchError } from "../db/couch.js";
 import { logger } from "../logger.js";
-import { purgeExpiredPending } from "./store.js";
+import { minimiseUnsubscribed, purgeExpiredPending } from "./store.js";
 
 /*
  * The scheduled list-hygiene sweep. The lazy purge in store.ts only runs when
@@ -27,6 +27,9 @@ export type SweepReport = {
   lastPurged: number;
   totalPurged: number;
   since: string;
+  /** Unsubscribed contacts whose address, name and language were dropped, same shape as the purge counts. */
+  lastMinimised?: number;
+  totalMinimised?: number;
 };
 
 export const getSweepReport = async (): Promise<SweepReport | null> => {
@@ -38,7 +41,7 @@ export const getSweepReport = async (): Promise<SweepReport | null> => {
   }
 };
 
-async function record(purged: number, now: number): Promise<void> {
+async function record(purged: number, minimised: number, now: number): Promise<void> {
   for (let attempt = 0; attempt < 2; attempt++) {
     const prev = await getSweepReport();
     const doc: SweepReport = {
@@ -49,6 +52,8 @@ async function record(purged: number, now: number): Promise<void> {
       lastPurged: purged,
       totalPurged: (prev?.totalPurged ?? 0) + purged,
       since: prev?.since ?? new Date(now).toISOString(),
+      lastMinimised: minimised,
+      totalMinimised: (prev?.totalMinimised ?? 0) + minimised,
     };
     try {
       await couch.put(SWEEP_ID, doc);
@@ -62,14 +67,19 @@ async function record(purged: number, now: number): Promise<void> {
 let running = false;
 
 /** One pass. Never throws; returns what it did, or null when a pass was already running or failed. */
-export async function runAudienceSweep(now = Date.now()): Promise<{ purged: number } | null> {
+export async function runAudienceSweep(now = Date.now()): Promise<{ purged: number; minimised: number } | null> {
   if (running) return null;
   running = true;
   try {
     const purged = await purgeExpiredPending(now, true);
-    await record(purged, now);
-    if (purged > 0) logger.info({ purged }, "audience sweep removed expired unconfirmed signups");
-    return { purged };
+    // Its own try: a failure here must not lose the purge count, and the next hourly pass picks up what is left.
+    const minimised = await minimiseUnsubscribed(now).catch((err) => {
+      logger.warn({ err: err instanceof Error ? err.message : String(err) }, "audience sweep could not minimise unsubscribed contacts");
+      return 0;
+    });
+    await record(purged, minimised, now);
+    if (purged > 0 || minimised > 0) logger.info({ purged, minimised }, "audience sweep removed expired signups and old unsubscribed details");
+    return { purged, minimised };
   } catch (err) {
     logger.warn({ err: err instanceof Error ? err.message : String(err) }, "audience sweep failed");
     return null;

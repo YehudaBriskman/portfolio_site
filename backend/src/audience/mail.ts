@@ -70,7 +70,7 @@ const tidy = (parts: Inline[]): Inline[] => parts.map((p) => (typeof p === "stri
 const ONLY_LINK = /^\{link\}$/;
 
 export function renderConfirmMail(contact: Pick<Contact, "name" | "lang">, link: string, sender: SenderSettings) {
-  const lang: Lang = contact.lang;
+  const lang: Lang = contact.lang ?? "en";
   const subject = oneLine(lang === "he" ? sender.confirmSubjectHe : sender.confirmSubjectEn);
   let tpl = lang === "he" ? sender.confirmBodyHe : sender.confirmBodyEn;
   // An owner edit that drops {link} must not produce a mail nobody can confirm.

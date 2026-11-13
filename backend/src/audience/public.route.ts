@@ -88,9 +88,11 @@ router.post(
       // The person themselves is asking again: back to pending, and it still needs the confirm click.
       await updateContact(hash, (c) => {
         recordConsent(c, consent);
-        Object.assign(c, { status: "pending", lang: b.lang, topics: b.topics ?? c.topics });
+        // A minimised contact has no address or name left: the person is giving them again.
+        Object.assign(c, { status: "pending", email: b.email, lang: b.lang, topics: b.topics ?? c.topics, ...(b.name ? { name: b.name } : {}) });
         if (!c.groups.includes(SYSTEM_GROUP)) c.groups.push(SYSTEM_GROUP);
         delete c.unsubscribedAt;
+        delete c.minimisedAt;
       });
       contact = await getContact(hash);
       send = true;

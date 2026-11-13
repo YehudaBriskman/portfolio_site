@@ -21,7 +21,7 @@ export default function ContactEditor({ contact, groups, onClose, onDone }: { co
   const uid = useId();
   const when = useWhen();
   const [name, setName] = useState(contact.name ?? "");
-  const [lang, setLang] = useState<ContactLang>(contact.lang);
+  const [lang, setLang] = useState<ContactLang>(contact.lang ?? "en");
   const [status, setStatus] = useState<ContactStatus>(contact.status);
   const [sel, setSel] = useState<string[]>(contact.groups);
   const [topics, setTopics] = useState(contact.topics);
