@@ -1,4 +1,4 @@
-import { defineWords } from "./words";
+import { defineWords, plural } from "./words";
 
 /*
  * The words of the shared phone parts (`components/ui/`: BottomSheet,
@@ -19,6 +19,19 @@ export const useMobileWords = defineWords(
       collapse: (label: string) => `Collapse ${label}`,
     },
     row: { isNew: "New" },
+    selection: {
+      select: "Select",
+      done: "Done",
+      all: "Select all",
+      none: "Select none",
+      count: (n: number) => plural("en", n, { one: "{n} selected", other: "{n} selected" }),
+      items: (n: number) => plural("en", n, { one: "{n} item", other: "{n} items" }),
+      more: "More",
+      moreTitle: "Actions",
+      barLabel: "Bulk actions",
+      keep: "Keep",
+    },
+    undo: { action: "Undo" },
     status: {
       draft: "Draft",
       scheduled: "Scheduled",
@@ -146,6 +159,19 @@ export const useMobileWords = defineWords(
       collapse: (label: string) => `כווץ ${label}`,
     },
     row: { isNew: "חדש" },
+    selection: {
+      select: "בחירה",
+      done: "סיום",
+      all: "בחירת הכול",
+      none: "ניקוי הבחירה",
+      count: (n: number) => plural("he", n, { one: "נבחר פריט אחד", other: "נבחרו {n}" }),
+      items: (n: number) => plural("he", n, { one: "פריט אחד", two: "שני פריטים", other: "{n} פריטים" }),
+      more: "עוד",
+      moreTitle: "פעולות",
+      barLabel: "פעולות על כמה פריטים",
+      keep: "להשאיר",
+    },
+    undo: { action: "ביטול" },
     status: {
       draft: "טיוטה",
       scheduled: "מתוזמן",
