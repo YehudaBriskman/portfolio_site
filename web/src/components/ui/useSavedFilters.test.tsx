@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter, useLocation } from "react-router-dom";
@@ -9,17 +10,22 @@ import type { Filters } from "@/components/ui/filters";
 const KEY = "admin.filters.audience";
 
 function Probe() {
-  return <output data-testid="search">{useLocation().search}</output>;
+  return <span data-testid="search">{useLocation().search}</span>;
 }
 
-let last: { set: (f: Filters) => void; clear: () => void } = { set: () => {}, clear: () => {} };
+type Api = { set: (f: Filters) => void; clear: () => void };
+const last: Api = { set: () => {}, clear: () => {} };
 
 function Screen({ id = "audience" }: { id?: string }) {
   const [filters, set, state] = useSavedFilters(id, defs);
-  last = { set, clear: state.clear };
+  const { clear } = state;
+  useEffect(() => {
+    last.set = set;
+    last.clear = clear;
+  }, [set, clear]);
   return (
     <>
-      <output data-testid="filters">{JSON.stringify(filters)}</output>
+      <span data-testid="filters">{JSON.stringify(filters)}</span>
       <FiltersRestoredNote restored={state.restored} onUndo={state.undoRestore} onDismiss={state.dismissRestored} />
       <Probe />
     </>
