@@ -33,6 +33,7 @@ let revs = 0;
 type Sent = { to: string; subject: string; text: string; html: string; headers?: Record<string, string> };
 let sent: Sent[];
 let putHook: ((id: string, body: { status?: string }) => void) | null;
+let settingsReadFails = false;
 const deliver: Deliver = async (msgs) => {
   sent.push(...msgs);
   return msgs.map(() => ({ ok: true as const }));
@@ -42,7 +43,9 @@ beforeEach(() => {
   store = new Map();
   sent = [];
   putHook = null;
+  settingsReadFails = false;
   vi.spyOn(couch, "get").mockImplementation(async <R>(id: string) => {
+    if (settingsReadFails && id === SETTINGS_DOC_ID) throw new CouchError(503, "503");
     const d = store.get(id);
     if (!d) throw new CouchError(404, "404");
     return structuredClone(d) as R;
@@ -1348,5 +1351,46 @@ describe("what a campaign needs before it can start", () => {
     await runSenderTick({ now: () => T0, deliver });
     expect(sent).toHaveLength(0);
     expect(get(id).status).toBe("draft");
+  });
+});
+
+describe("sender holds when the settings cannot be trusted", () => {
+  const quiet = { quietHours: { from: "10:00", to: "14:00", tz: "UTC" }, labelMode: "all" } as Partial<AnnounceSettings["sender"]>;
+
+  it("B1: a transient settings read failure holds the tick instead of sending with default quiet hours, identity and label", async () => {
+    await queued(2, quiet);
+    settingsReadFails = true;
+    await runSenderTick({ now: () => T0, deliver });
+    expect(sent).toHaveLength(0); // T0 is inside the owner's 10:00-14:00 UTC quiet window
+    const s = await admin(request(createApp()).get(`${C}/sending`));
+    expect(s.body.settingsHold).toMatch(/settings/i);
+    expect(JSON.stringify(s.body)).not.toContain("@example");
+  });
+
+  it("B2: a settings document that no longer parses holds the tick and the view says why", async () => {
+    await queued(2, quiet);
+    (store.get(SETTINGS_DOC_ID) as { settings: { sender: Record<string, unknown> } }).settings.sender.someFieldFromAnotherBuild = 1;
+    await runSenderTick({ now: () => T0, deliver });
+    expect(sent).toHaveLength(0);
+    const s = await admin(request(createApp()).get(`${C}/sending`));
+    expect(s.body.settingsHold).toMatch(/settings/i);
+  });
+
+  it("a normal send still works, and the hold clears once the settings read again", async () => {
+    const id = await queued(2, quiet);
+    settingsReadFails = true;
+    await runSenderTick({ now: () => T0, deliver });
+    settingsReadFails = false;
+    const later = () => Date.parse("2026-06-01T15:00:00Z");
+    await runSenderTick({ now: later, deliver });
+    await runSenderTick({ now: later, deliver });
+    expect(sent).toHaveLength(2);
+    expect(get(id).status).toBe("sent");
+    expect((await admin(request(createApp()).get(`${C}/sending`))).body.settingsHold).toBeNull();
+  });
+
+  it("a settings document that was never saved is a fresh install, not a hold", async () => {
+    await runSenderTick({ now: () => T0, deliver });
+    expect((await admin(request(createApp()).get(`${C}/sending`))).body.settingsHold).toBeNull();
   });
 });
