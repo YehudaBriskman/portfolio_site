@@ -41,6 +41,9 @@ async function main() {
   const { renderMail } = await import("../src/mail/render.js");
   const { DEFAULT_ANNOUNCE_SETTINGS } = await import("../src/announce/schemas.js");
   const { hashEmail } = await import("../src/audience/store.js");
+  const { renderConfirmMail } = await import("../src/audience/mail.js");
+  const { renderContactNotice, renderAutoReply } = await import("../src/mail/transactional.js");
+  const { contactLines } = await import("../src/announce/schemas.js");
 
   const ident = (name: string) => ({
     ...DEFAULT_ANNOUNCE_SETTINGS.sender,
@@ -88,6 +91,17 @@ async function main() {
         url: "https://gallery.example/blog/sample", path: "/blog/sample", langs: ["en", "he"] as ("en" | "he")[], createdAt: "2026-01-01T00:00:00Z", done: {},
       };
       add(`owner-${tag}`, buildOwnerEmail(ev as never, renderKit(ev as never, DEFAULT_ANNOUNCE_SETTINGS), "https://gallery.example").html);
+
+      const footer = contactLines(ident(name));
+      add(`confirm-${tag}`, renderConfirmMail({ name: stress ? NASTY : he ? "עדה" : "Ada", lang }, "https://gallery.example/subscribe/confirm?token=abc.def", ident(name)).html);
+      add(
+        `notice-${tag}`,
+        renderContactNotice(
+          { subject: t("Portfolio contact"), title: t(he ? "הודעה חדשה מעדה" : "New message from Ada"), body: `Name: ${t("Ada")}\nEmail: ada@example.invalid\n\n${t(he ? "שלום, אהבתי את האתר ורציתי לשאול על שיתוף פעולה.\nתודה!" : "Hello, I liked the site and wanted to ask about working together.\nThanks!")}`, replyTo: "ada@example.invalid" },
+          footer,
+        ).html,
+      );
+      add(`autoreply-${tag}`, renderAutoReply(lang, footer).html);
 
       add(
         `sampler-${tag}`,

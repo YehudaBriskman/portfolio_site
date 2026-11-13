@@ -1,5 +1,8 @@
 import { getProvider } from "../providers/index.js";
 import { renderBasicTemplate } from "../templates/basic.js";
+import { guessLang, renderAutoReply, renderContactNotice } from "../mail/transactional.js";
+import { loadSettings } from "../announce/store.js";
+import { contactLines } from "../announce/schemas.js";
 import type { SendEmailInput } from "../types/index.js";
 import { env } from "../env.js";
 import { logger } from "../logger.js";
@@ -9,10 +12,24 @@ import { countTransactional } from "../campaigns/budgetStore.js";
 
 type EmailJsPayload = Extract<SendEmailInput, { templateId: string }>;
 
+const visibleText = (input: SendEmailInput): string => [input.subject, input.text, "template" in input ? input.template?.params.body : ""].filter(Boolean).join(" ");
+
 const isEmailJsPayload = (input: SendEmailInput): input is EmailJsPayload => "templateId" in input;
 
-function composeBody(input: SendEmailInput): { html?: string; text?: string } {
-  if ("template" in input && input.template) return renderBasicTemplate(input.template.params);
+/* The contact block (name, address, links) the owner keeps in Marketing settings: the footer of every mail. A failure reads as "none", never as a failed send. */
+async function contactFooter(): Promise<string[]> {
+  try {
+    return contactLines((await loadSettings()).sender);
+  } catch {
+    return [];
+  }
+}
+
+async function composeBody(input: SendEmailInput): Promise<{ html?: string; text?: string }> {
+  if (input.html || isEmailJsPayload(input)) return { html: input.html, text: input.text };
+  const footerLines = await contactFooter();
+  if ("template" in input && input.template) return renderBasicTemplate(input.template.params, { subject: input.subject, footerLines, replyTo: input.replyTo });
+  if (input.text) return renderContactNotice({ subject: input.subject, body: input.text, replyTo: input.replyTo }, footerLines);
   return { html: input.html, text: input.text };
 }
 
@@ -23,14 +40,10 @@ async function sendCounted(provider: ReturnType<typeof getProvider>, data: Param
   return r;
 }
 
-function sendAutoReply(provider: ReturnType<typeof getProvider>, visitor: string) {
-  sendCounted(provider, {
-    from: env.MAIL_FROM,
-    to: visitor,
-    subject: "We got your message",
-    text: "Thanks, we’ll get back to you soon.",
-    html: "<p>Thanks, we’ll get back to you soon.</p>",
-  })
+function sendAutoReply(provider: ReturnType<typeof getProvider>, visitor: string, sample: string) {
+  /* Thanks and what happens next, in the language the visitor wrote; never a copy of their message. */
+  contactFooter()
+    .then((footer) => sendCounted(provider, { from: env.MAIL_FROM, to: visitor, ...renderAutoReply(guessLang(sample), footer) }))
     .then((r) => {
       // A provider's error text can quote the recipient, which is a stranger's address: log the class only.
       if (!r.ok) logger.warn({ kind: r.kind }, "auto-reply failed");
@@ -54,7 +67,7 @@ export type ContactSkipped = { ok: true; skipped: true };
 
 export async function sendContactEmail(input: SendEmailInput, opts: ContactSendOptions = {}) {
   const provider = getProvider();
-  const { html, text } = composeBody(input);
+  const { html, text } = await composeBody(input);
   const to = env.CONTACT_TO;
   const visitorReplyTo = input.replyTo;
 
@@ -78,7 +91,7 @@ export async function sendContactEmail(input: SendEmailInput, opts: ContactSendO
   // The auto-reply is plain mail, which the emailjs provider cannot send.
   if (opts.publicForm && !result.ok) releaseNotice();
   if (result.ok && visitorReplyTo && !isEmailJsPayload(input) && autoReplyAllowed(visitorReplyTo, opts)) {
-    sendAutoReply(provider, visitorReplyTo);
+    sendAutoReply(provider, visitorReplyTo, visibleText(input));
   }
 
   return result;

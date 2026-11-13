@@ -1,6 +1,6 @@
 import { contactLines, type LabelMode, type SenderSettings } from "../announce/schemas.js";
 import { env } from "../env.js";
-import { hasLink, unsubscribeUrls } from "../audience/mail.js";
+import { fillParts, hasLink, unsubscribeUrls } from "../audience/mail.js";
 import type { Lang } from "../audience/schemas.js";
 import { oneLine } from "../mail/escape.js";
 import { renderMail, type Inline, type MailBlock } from "../mail/render.js";
@@ -30,21 +30,6 @@ export function labelFor(mode: LabelMode, lang: Lang): { subject: string; line: 
  */
 export const UNSUB_FALLBACK_EN = "To stop receiving these emails, unsubscribe here: {link}";
 export const UNSUB_FALLBACK_HE = "כדי להפסיק לקבל הודעות אלה, בטלו את ההרשמה כאן: {link}";
-
-const PLACEHOLDER = /\{(name|site|days|link)\}/g;
-/** Fills a template in ONE pass (a value is never scanned for placeholders); {link} becomes a link part. */
-function fillParts(tpl: string, vars: Record<"name" | "site" | "days" | "link", string>): Inline[] {
-  const out: Inline[] = [];
-  let last = 0;
-  for (const m of tpl.matchAll(PLACEHOLDER)) {
-    out.push(tpl.slice(last, m.index));
-    const v = vars[m[1] as keyof typeof vars];
-    out.push(m[1] === "link" ? { href: v, text: v } : v);
-    last = (m.index ?? 0) + m[0].length;
-  }
-  out.push(tpl.slice(last));
-  return out;
-}
 
 export type RenderedMail = { subject: string; text: string; html: string; headers: Record<string, string> };
 
