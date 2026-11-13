@@ -232,7 +232,7 @@ export default function AdminTranslations() {
                             </span>
                           </td>
                           <td className="a-fit hidden md:table-cell">
-                            <code dir="ltr" className="text-[0.8125rem] text-[rgb(var(--ink-soft))]">
+                            <code dir="ltr" className="text-sm text-[rgb(var(--ink-soft))]">
                               {heRoute(item.route)}
                             </code>
                           </td>

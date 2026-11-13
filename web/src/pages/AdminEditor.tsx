@@ -488,7 +488,7 @@ export default function AdminEditor() {
   return (
     <AdminShell title={heading} section="posts" backTo="/admin/posts" barEverywhere bottomBar={<div className="px-4 py-2">{actions}</div>}>
       {loading ? (
-        <p className="mono mt-4 text-xs text-clay">{w.loading}</p>
+        <p className="mono mt-4 text-sm text-clay">{w.loading}</p>
       ) : (
         <form
           onSubmit={(e) => {
@@ -503,7 +503,7 @@ export default function AdminEditor() {
                 {post && <StatePill state={post.status} />}
                 {hasDraft && <StatePill state="changes" />}
                 {f.slug && (
-                  <code dir="ltr" className="text-[0.8125rem]">
+                  <code dir="ltr" className="text-sm">
                     /blog/{f.slug}
                   </code>
                 )}

@@ -185,7 +185,7 @@ export default function AdminSettings() {
   const statusLine = (
     <span
       role="status"
-      className={`mono min-h-[1.25rem] text-[0.6875rem] uppercase tracking-[0.18em] ${status === "conflict" || status === "failed" ? "text-[rgb(var(--destructive-ink))]" : "text-clay"}`}
+      className={`mono min-h-[1.25rem] text-sm uppercase tracking-[0.18em] ${status === "conflict" || status === "failed" ? "text-[rgb(var(--destructive-ink))]" : "text-clay"}`}
     >
       {statusText}
     </span>
@@ -215,7 +215,7 @@ export default function AdminSettings() {
 
       {status === "unauthorised" && <p className="a-card mt-8 p-4 text-sm">{w.notAuthorised}</p>}
       {loadError && <p className="a-card mt-8 p-4 text-sm">{w.loadFailed}</p>}
-      {!loadError && status !== "unauthorised" && !draft && <p className="mono mt-8 text-xs text-clay">{w.loading}</p>}
+      {!loadError && status !== "unauthorised" && !draft && <p className="mono mt-8 text-sm text-clay">{w.loading}</p>}
       {status === "conflict" && (
         <p className="mt-4">
           <button type="button" className="a-btn a-btn-ghost" onClick={load}>

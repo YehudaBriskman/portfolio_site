@@ -77,7 +77,7 @@ export default function MediaPicker({
           {label}
         </button>
         {showCurrent && current && (
-          <span className="mono text-[0.6875rem] text-clay">
+          <span className="mono text-sm text-clay">
             From the library: <span className="text-bone">{picked?.alt ?? current}</span>
           </span>
         )}
@@ -104,7 +104,7 @@ export default function MediaPicker({
           {items === null ? `Loading ${lower}` : `${shown.length} ${lower}`}
         </p>
         {error && <p className="a-error mt-4" role="alert">{error}</p>}
-        {!error && items === null && <p className="mono mt-6 text-xs text-clay">Loading…</p>}
+        {!error && items === null && <p className="mono mt-6 text-sm text-clay">Loading…</p>}
         {items !== null && shown.length === 0 && (
           <p className="a-hint mt-6">
             {filterMedia(items, "", allowed).length === 0

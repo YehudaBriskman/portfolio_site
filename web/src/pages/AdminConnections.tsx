@@ -134,7 +134,7 @@ export default function AdminConnections() {
           <LoadingRows rows={2} />
         ) : active.length === 0 ? (
           <EmptyState title="Nothing connected">
-            Run <code className="font-mono text-[0.8125rem]">claude mcp add --transport http yehuda https://yehudabriskman.com/mcp</code>{" "}
+            Run <code className="font-mono text-sm">claude mcp add --transport http yehuda https://yehudabriskman.com/mcp</code>{" "}
             and sign in; the client appears here.
           </EmptyState>
         ) : (

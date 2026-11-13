@@ -44,8 +44,8 @@ export default function GroupsPanel({ groups, onChange }: { groups: Group[]; onC
                   </form>
                 ) : (
                   <>
-                    <p className="truncate text-sm font-bold" dir="auto">{g.name}</p>
-                    {locked && <p className="text-xs text-clay">{w.locked}</p>}
+                    <p className="truncate text-sm font-bold" dir="auto" title={g.name}>{g.name}</p>
+                    {locked && <p className="text-sm text-clay">{w.locked}</p>}
                   </>
                 )}
               </div>
