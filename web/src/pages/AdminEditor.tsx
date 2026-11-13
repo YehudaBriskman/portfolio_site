@@ -16,6 +16,7 @@ import { useEditorWords } from "@/components/admin/noteEditor/words";
 import styles from "@/components/admin/noteEditor/NoteEditor.module.css";
 import NoteMarkdown, { PROSE } from "@/components/notes/reader/NoteMarkdown";
 import { useContent } from "@/content/store";
+import { Disclosure } from "@/components/ui/Disclosure";
 import { admin, slugify, AdminValidationError, type AdminCollection, type AdminPost, type PostContent } from "@/services/admin";
 
 /*
@@ -673,8 +674,7 @@ export default function AdminEditor() {
           <p id={ids.bodyHelp} className={styles.boxFoot}>{w.bodyHelp} {w.shortcuts}</p>
           </div>
 
-          <details open className="mt-10">
-            <summary className="a-summary">{w.details}</summary>
+          <Disclosure open summary={w.details} className="mt-10">
             <div className="mt-4 grid gap-5 sm:grid-cols-2">
               <label className="block">
                 <span className="a-label">{w.area}</span>
@@ -743,10 +743,9 @@ export default function AdminEditor() {
                 </HebrewField>
               </div>
             </div>
-          </details>
+          </Disclosure>
 
-          <details className="mt-6">
-            <summary className="a-summary">{w.seo}</summary>
+          <Disclosure summary={w.seo} className="mt-6">
             <div className="mt-4 grid gap-5 sm:grid-cols-2">
               <label className="block">
                 <span className="a-label">{w.seoTitle}</span>
@@ -775,10 +774,9 @@ export default function AdminEditor() {
                 <span className="text-sm text-bone">{w.noindex}</span>
               </label>
             </div>
-          </details>
+          </Disclosure>
 
-          <details className="mt-6">
-            <summary className="a-summary">{w.advanced}</summary>
+          <Disclosure summary={w.advanced} className="mt-6">
             <div className="mt-4">
               {stored && (
                 <p className="text-sm text-bone">
@@ -791,7 +789,7 @@ export default function AdminEditor() {
                 <LinkEditor links={f.links} onChange={(links) => edit("links", links)} hebrew />
               </div>
             </div>
-          </details>
+          </Disclosure>
 
         </form>
       )}

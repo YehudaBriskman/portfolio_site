@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AdminShell from "@/components/admin/AdminShell";
 import { PageHeader } from "@/components/admin/ui";
+import { Disclosure } from "@/components/ui/Disclosure";
 import { issueText, useSettingsWords } from "@/components/admin/settings/words";
 import { INTL, useLang } from "@/components/dashboard/i18n";
 import { ContentConflictError, ContentInvalidError, type Issue } from "@/services/adminContent";
@@ -434,8 +435,7 @@ export default function AdminSettings() {
                 <p className="a-hint">{w.templatesHint}</p>
                 <div className="mt-2 space-y-3">
                   {(["en", "he"] as const).map((l) => (
-                    <details key={l} className="a-card p-3">
-                      <summary className="flex min-h-[44px] cursor-pointer items-center text-sm">{w.templatesFor[l]}</summary>
+                    <Disclosure key={l} summary={w.templatesFor[l]} className="a-card p-3">
                       <div className="mt-2 space-y-4">
                         {SHARE_CHANNELS.map((c) => {
                           const id = `settings-template-${l}-${c}`;
@@ -462,7 +462,7 @@ export default function AdminSettings() {
                           );
                         })}
                       </div>
-                    </details>
+                    </Disclosure>
                   ))}
                 </div>
               </fieldset>
