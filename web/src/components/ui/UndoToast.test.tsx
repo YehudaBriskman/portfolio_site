@@ -16,6 +16,8 @@ afterEach(() => {
 type Handle = ReturnType<typeof useUndoable>;
 let handle: Handle;
 function Harness() {
+  // The test reaches the hook's handle from outside the tree to call schedule() in act().
+  // eslint-disable-next-line react-hooks/globals
   handle = useUndoable();
   return <UndoToast undoable={handle} />;
 }
@@ -130,10 +132,8 @@ describe("UndoToast", () => {
     expect(css).toMatch(/\.undo\s*\{[^}]*min-block-size:\s*2\.75rem/);
   });
 
-  it("moves only where motion is allowed, with tokens, and sits clear of the editor bar and safe area", () => {
-    const outside = css.replace(/@media[^{]*\{(?:[^{}]*\{[^{}]*\})*[^{}]*\}/g, "");
-    expect(outside).not.toMatch(/transition|animation/);
-    expect(css).toMatch(/@media \(prefers-reduced-motion: no-preference\)/);
+  it("has no motion of its own, uses tokens only, and sits clear of the editor bar and safe area", () => {
+    expect(css).not.toMatch(/transition|animation|@keyframes/);
     expect(css).not.toMatch(/\b\d+ms\b|cubic-bezier\(/);
     expect(css).toMatch(/--a-bar-h/);
     expect(css).toMatch(/safe-area-inset-bottom/);
