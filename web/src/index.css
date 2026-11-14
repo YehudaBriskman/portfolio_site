@@ -3320,3 +3320,19 @@
     body.motion-paused .a-app dialog::backdrop { transition: none; animation: none; }
   }
 }
+
+/*
+ * Focus ring only for keyboard focus (#776).
+ *
+ * Browsers also match :focus-visible on script focus when nothing was focused
+ * before, so the route-change focus on the page heading painted a ring after a
+ * tap. <html data-input> (src/lib/inputModality.ts) says what the last input
+ * was; while it is "pointer" no ring is painted on anything but a text field.
+ * Focus itself is not touched. Keyboard focus, text fields and forced-colors
+ * mode keep their outlines (WCAG 2.4.7, 2.4.11, 2.4.13).
+ */
+@media not (forced-colors: active) {
+  :root[data-input='pointer'] :focus-visible:not(input, textarea, select, [contenteditable]) {
+    outline: none;
+  }
+}

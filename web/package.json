@@ -31,6 +31,7 @@
     "a11y:admin-typing": "node scripts/a11y/admin-typing.mjs",
     "a11y:public-landing": "node scripts/a11y/public-landing.mjs",
     "a11y:public-blog-filter": "node scripts/a11y/public-blog-filter.mjs",
+    "a11y:public-focus": "node scripts/a11y/public-focus.mjs",
     "a11y:bottom-sheet-phone": "node scripts/a11y/bottom-sheet-phone.mjs",
     "links": "node scripts/links/land.mjs"
   },

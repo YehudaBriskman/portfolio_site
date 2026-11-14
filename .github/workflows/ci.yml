@@ -507,6 +507,11 @@ jobs:
       - name: Blog search box on a phone
         if: matrix.check == 'a11y' && matrix.shard == 6
         run: npm run a11y:public-blog-filter
+      # Focus after navigation (#776): the heading holds focus for screen
+      # readers, no ring after a tap, a 2px+ ring after a key (about 20 s).
+      - name: Route-change focus ring
+        if: matrix.check == 'a11y' && matrix.shard == 6
+        run: npm run a11y:public-focus
       # Admin on a phone (#655): the projects list stays on screen, the draft
       # banner keeps its sentence, the small links are 44px. Layout, which axe
       # cannot see; leg 1 of 2.
