@@ -300,7 +300,9 @@ dialog.pop-dialog--viewer {
 @media (prefers-reduced-motion: reduce) {
   .pop[data-state],
   dialog.pop-dialog,
+  dialog.pop-dialog[open],
   dialog.pop-dialog::backdrop,
+  dialog.pop-dialog[open]::backdrop,
   [data-sonner-toast][data-styled="true"] {
     animation: none;
     transition: none;

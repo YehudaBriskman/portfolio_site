@@ -26,6 +26,7 @@
     "a11y:admin-media-phone": "node scripts/a11y/admin-media-phone.mjs",
     "a11y:admin-reflow": "node scripts/a11y/admin-reflow.mjs",
     "a11y:admin-density-phone": "node scripts/a11y/admin-density-phone.mjs",
+    "a11y:admin-motion": "node scripts/a11y/admin-motion.mjs",
     "a11y:bottom-sheet-phone": "node scripts/a11y/bottom-sheet-phone.mjs",
     "links": "node scripts/links/land.mjs"
   },

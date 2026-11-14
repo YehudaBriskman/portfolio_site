@@ -2668,6 +2668,16 @@
   :root:has(.a-app) { scroll-padding-top: 4.25rem; }
   /* Text that carries meaning (hints, meta, headers, pills) never drops below 14px; 12px is for ornament only. */
   :root { --a-fs-meta: .875rem; }
+  /* State-change motion on a phone (docs/motion-contract.md section 13): three
+     durations (a tap answer, a surface, a page) and three curves. The spring is
+     critically damped with a 3% settle: for things that arrive, never for
+     things that are destroyed (those use --a-ease-in, no bounce). */
+  :root {
+    --a-dur-1: 120ms; --a-dur-2: 200ms; --a-dur-3: 300ms;
+    --a-ease-out: cubic-bezier(.2, 0, 0, 1);
+    --a-ease-in: cubic-bezier(.4, 0, 1, 1);
+    --a-ease-spring: linear(0, .22 6%, .6 14%, .88 24%, 1.02 36%, 1.025 46%, 1.01 60%, 1);
+  }
 
   /* The admin's tokens. Surfaces, lines and shadows differ by theme; the
      ladder, the spacing and the clock do not. */
@@ -3240,6 +3250,37 @@
       }
     }
     @keyframes a-shimmer { from { translate: -100% 0; } to { translate: 100% 0; } }
+    /* Phones: the drawer and its scrim leave as well as arrive (docs/motion-contract.md
+       section 13). The closed drawer is `display: none` as before, and carries the
+       fixed placement so it is not laid out in the frame while it is still on its way
+       out; if its transition never runs it is simply not shown. Enter springs in from
+       the inline-start edge, exit eases back out, shorter and without a settle. */
+    @media (prefers-reduced-motion: no-preference) and (max-width: 599px) {
+      .a-side:not([data-open]) {
+        position: fixed; z-index: 45; top: 3.5rem; bottom: 0; inset-inline-start: 0;
+        width: min(18rem, 85vw);
+        opacity: 0; translate: -100% 0; pointer-events: none;
+        transition: opacity var(--a-dur-2) var(--a-ease-in), translate var(--a-dur-2) var(--a-ease-in), display var(--a-dur-2) allow-discrete;
+      }
+      :root[dir='rtl'] .a-side:not([data-open]) { translate: 100% 0; }
+      .a-side[data-open] {
+        transition: opacity var(--a-dur-2) var(--a-ease-out), translate var(--a-dur-3) var(--a-ease-spring), display var(--a-dur-3) allow-discrete;
+      }
+      @starting-style {
+        .a-side[data-open] { opacity: 1; translate: -100% 0; }
+        :root[dir='rtl'] .a-side[data-open] { translate: 100% 0; }
+      }
+      .a-scrim { position: fixed; z-index: 44; inset: 3.5rem 0 0; background: rgb(var(--shade) / .3); pointer-events: none; opacity: 0; transition: opacity var(--a-dur-2) var(--a-ease-in), display var(--a-dur-2) allow-discrete; }
+      .a-scrim:not([hidden]) { opacity: 1; pointer-events: auto; transition: opacity var(--a-dur-2) var(--a-ease-out), display var(--a-dur-2) allow-discrete; }
+      @starting-style { .a-scrim:not([hidden]) { opacity: 0; } }
+      /* Route change and first content (#709): one soft fade of a screen's top-level blocks, opacity only, the state is already there.
+         The skeleton and the content it becomes are both top-level blocks, so the swap is a cross-fade, not a pop. */
+      .a-main > * { transition: opacity var(--a-dur-2) var(--a-ease-out); }
+      @starting-style { .a-main > * { opacity: 0; } }
+      /* A tab's content swaps in place: one short rise and fade, the tab itself is already selected. */
+      .a-main [role="tabpanel"] { transition: opacity var(--a-dur-2) var(--a-ease-out), translate var(--a-dur-2) var(--a-ease-out); }
+      @starting-style { .a-main [role="tabpanel"] { opacity: 0; translate: 0 6px; } }
+    }
     body.motion-paused .a-app *, body.motion-paused .a-app *::before, body.motion-paused .a-app *::after,
     body.motion-paused .a-app dialog::backdrop { transition: none; animation: none; }
   }

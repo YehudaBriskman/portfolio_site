@@ -328,9 +328,12 @@ describe("SettingsList", () => {
     expect(container.querySelector("dialog")).toBeNull();
     const page = container.querySelector('[data-surface="page"]') as HTMLElement;
     expect(within(page).getByRole("heading", { name: "Channels" })).toBeTruthy();
-    expect(container.querySelector("[data-settings-group]")).toBeNull();
+    /* The list stays mounted under the page, covered and inert, so the page can push over it and pop back. */
+    expect(container.querySelector("[data-covered]")!.hasAttribute("inert")).toBe(true);
+    expect(page.getAttribute("data-open")).toBe("true");
     fireEvent.click(within(page).getByRole("button", { name: "Back to settings" }));
     expect(container.querySelector('[data-surface="page"]')).toBeNull();
+    expect(container.querySelector("[data-covered]")).toBeNull();
     expect(container.querySelectorAll("[data-settings-group]").length).toBe(3);
   });
 

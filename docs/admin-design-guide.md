@@ -201,6 +201,8 @@ Status: **exists** = on `main` today. **planned** = an open issue; do not copy a
 | `SelectionHeader`, `SelectionBar` (#671) | `@/components/ui/SelectionBar` | select mode on a list. The header button is always visible ("Select", then "Done", plus select all / none); long-press on a row (`RecordRow onLongPress`) is a bonus. The bar is sticky at the bottom (above `--a-bar-h` and the safe area, static under 480px height): count in a polite live region, the first action as the primary button, "More" opening a `BottomSheet` of every action with its item count. A `destructive` action never runs on one tap: a confirm sheet names object and count ("Delete 3 posts") beside "Keep"; destructive rows sort last | a bar with no Select button; a destructive action without `confirm` |
 | `useSelection` (#671) | `@/components/ui/useSelection` | the mode and the chosen ids: `on`, `enter(id?)`, `exit`, `toggle`, `has`, `all`, `none`, `count`, `ids`. Escape and Back leave the mode (an open sheet takes Escape first); a filter change drops chosen rows that are no longer listed | holding ids the user cannot see |
 | `UndoToast`, `useUndoable` (#671) | `@/components/ui/UndoToast` | an Undo window over a deferred action: `schedule({ message, commit, onUndo })` shows the toast and holds `commit` back; Undo cancels it. Never under 8 s, pauses on hover and focus, `role="status"` mounted ahead so it is announced, commits on `pagehide` and unmount, one at a time. This is how an irreversible server action gets an Undo | new code (use `toast.undoable`, same semantic; the four phone screens move over in #724 slice b); an error the user must act on |
+| `Presence` (#709) | `@/components/ui/Presence` | a surface that appears and leaves by `show`: keeps the last children while it leaves (`data-state="closed"`, `inert`, `aria-hidden`), rises and falls on phones only; `UndoToast` and `SelectionBar` use it | a dialog (use `BottomSheet`), anything that must unmount at once |
+| `SheetPresence` (#709) | `@/components/ui/SheetPresence` | wraps a `BottomSheet` its parent draws as `{x && <Sheet open>}`: `<SheetPresence show={x}>` keeps it mounted for the exit on a phone (the sheet is told it is closed) | a sheet already drawn with `open={x}` (it leaves by itself) |
 | `tooltip` | `@/components/ui/tooltip` | a hint for pointer users | the only label of anything: touch has no hover |
 
 Also on main, outside `ui/`: `usePhone()` (`@/hooks/usePhone`; true under 600px, the one breakpoint a phone screen switches its layout on, so a phone never mounts the desktop list), the Posts and Areas phone screens (`components/admin/posts/`: a row opens the editor; bulk is Move to drafts and Archive, both behind `UndoToast`, and never Publish, which is decided in the review one note at a time; `ReviewDialog` is a sheet below 600px: what changes, the diff, then closed Disclosures), the Inbox's phone screen as the worked example of a migrated list (`announce/inbox/InboxPhoneRow.tsx` rows, `InboxSheet.tsx` for the Composer in a `BottomSheet`; an **Undo** inside a modal sheet is drawn in the sheet, because a toast outside a top-layer `<dialog>` is inert while it is open), the Media library's phone screen as the worked example of a **grid** (`MediaPhone.tsx`: square tiles, one button each, named by alt text and state; `AdminMedia.tsx` `MediaDetail` draws the item sheet with the alt text first, where it is used second and the facts in a closed `Disclosure`; bulk delete lists unused items only and goes through `UndoToast`), the admin shell and `.a-*` classes (`@/components/admin/AdminShell`), `StatusPill` and `TranslationPill` (`@/components/admin/StatusPill`, `.../TranslationPill`; being replaced by `StatusGlyph`), the native-`<dialog>` modals (`@/components/admin/MediaGrid` `Modal`, `announce/audience/Modal`, the popup system in `styles/popup.css`; see `docs/motion-contract.md` section 9).
@@ -335,6 +337,26 @@ The site-wide contract is [`docs/motion-contract.md`](motion-contract.md); read 
 8. **MUST NOT** add scroll-driven animation to the admin. If you do anywhere: no `animation-delay` or `-duration` on a scroll timeline, and never a `view()` timeline on a `position: sticky` element (motion-contract section 1).
 9. **MUST** new motion is added to the inventory in motion-contract section 8 in the same PR.
 10. Animated dash and shimmer only for states that are really active (`sending`, loading); static under reduced motion.
+
+### 6.1 Phone motion catalogue (#709, phones only)
+
+Below 600px a state change is a transition (motion-contract section 13); from 600px up nothing here applies. `open` / `data-open` / `inert` flip on the tap, the transition follows, and a timer only drops leftovers.
+
+| Surface | Enter | Exit | Notes |
+|---|---|---|---|
+| `BottomSheet` | rises from the bottom, spring, 300 ms; backdrop fades; body content fades a beat later | falls, ease-in, 200 ms; backdrop fades | drag is 1:1 (no transition while `data-dragging`); snap settles on `block-size` |
+| Settings sub-page (`SettingsList`) | pushes from the inline-end edge, the list shoves 25% back; items cascade in 30 ms steps | pops back, ease-in | mirrored in RTL via `--dir`; the list stays mounted, covered and inert |
+| Settings group sheet | as `BottomSheet`, items cascade | as `BottomSheet` | stays mounted after first use |
+| `Disclosure` | height and fade, 300 ms | height and fade, 200 ms | `::details-content`, chevron turns |
+| `UndoToast` (`Presence`) | rises, spring | falls, ease-in | no bounce on the exit |
+| `SelectionBar` (`Presence`) | rises | falls | |
+| Route change (`.a-main > *`) | one opacity fade, 200 ms; skeleton and the content it becomes cross-fade | none: the state is already the new screen | opacity only |
+| Tab content (`.a-main [role="tabpanel"]`) | short rise (6 px) and fade | none | the tab is already selected |
+| Settings search results | each hit fades in | none | |
+| Sheets drawn as `{x && <Sheet/>}` (`SheetPresence`) | as `BottomSheet` | as `BottomSheet` | Audience: add, import, edit |
+| Admin drawer and scrim | slides from the inline-start edge, spring; scrim fades | slides out, ease-in | `.a-side:not([data-open])` |
+
+No entrance animation is kept on nav elements: the nav audit found none that also had a scroll-driven one (guarded by `motionStateChange.guard.test.ts`). Check by hand with `npm run a11y:admin-motion` (samples mid-transition through the Web Animations API; this box has about one frame per 40 s).
 
 ---
 
