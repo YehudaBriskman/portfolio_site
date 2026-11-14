@@ -209,7 +209,7 @@ Also on main, outside `ui/`: `usePhone()` (`@/hooks/usePhone`; true under 600px,
 | Component | Issue | Import (planned) | Use it for | Rule of thumb |
 |---|---|---|---|---|
 
-Migrations that consume them: #670 Inbox, #676 Campaigns, #677 Audience, #678 Marketing Settings, #679 Library, #680 Posts and Areas, #681 Media, #682 Overview and Connections and Translations, #683 Projects and the save bar. The first phone screen is the Inbox.
+Migrations that consume them: #670 Inbox, #676 Campaigns, #677 Audience, #678 Marketing Settings, #679 Library, #680 Posts and Areas, #681 Media, #682 Overview and Connections and Translations, #683 Projects and the save bar. The first phone screen is the Inbox. The content editors (`/admin/projects`, `/story`, `/site-copy`, #683) are the worked example of a long form on a phone: `Section` becomes a closed-by-default group (`aria-expanded` toggle, opens itself on an error), `TextField` shows one language chosen by `LangSwitch`, `ListField` hides move and remove behind a Reorder button (`content/Reorder.tsx`), and `EditorFrame` holds the leave guard.
 
 ### 3.3 When to use which
 

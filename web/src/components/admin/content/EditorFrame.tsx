@@ -6,6 +6,10 @@ import { ErrorState, LoadingRows, PageHeader } from "@/components/admin/ui";
 import { ExternalLink } from "lucide-react";
 import { IssuesContext, type ContentEditor } from "./editor";
 import { useFocusField } from "./focusField";
+import { EditLangProvider } from "./editLang";
+import { useContentWords } from "./words";
+import { useLeaveGuard } from "@/hooks/useLeaveGuard";
+import { usePhone } from "@/hooks/usePhone";
 
 /*
  * The frame every content editor shares (#163): the title, where the
@@ -42,6 +46,13 @@ export default function EditorFrame<T>({ title, section, intro, preview, editor,
   useFocusField(value, focus);
   const busy = state.kind === "saving";
   const general = issues.filter((i) => i.path === "");
+  const words = useContentWords();
+  const phone = usePhone();
+  /* An edit that has not reached the server: dirty, refused, or still going. */
+  useLeaveGuard(
+    state.kind === "dirty" || state.kind === "saving" || state.kind === "invalid" || state.kind === "failed" || state.kind === "conflict",
+    words.leaveConfirm,
+  );
 
   const { tone, text } = barStatus(state);
   const bar = (
@@ -65,7 +76,9 @@ export default function EditorFrame<T>({ title, section, intro, preview, editor,
       bottomBar={bar}
     >
       <div className="a-wrap-narrow">
-      <PageHeader title={title} description={intro} />
+      {/* A phone's first screen is for the work: the top bar already says where you are, so the
+          title stays for assistive tech and the intro sentence is for the desktop. */}
+      {phone ? <h1 className="sr-only">{title}</h1> : <PageHeader title={title} description={intro} />}
 
       {loadError && <ErrorState message={loadError} />}
       {!loadError && view === null && <LoadingRows rows={3} />}
@@ -115,9 +128,11 @@ export default function EditorFrame<T>({ title, section, intro, preview, editor,
 
       {value !== null && (
         <IssuesContext.Provider value={issueMap}>
-          <form noValidate onSubmit={(e) => e.preventDefault()}>
-            {children(value)}
-          </form>
+          <EditLangProvider>
+            <form noValidate onSubmit={(e) => e.preventDefault()}>
+              {children(value)}
+            </form>
+          </EditLangProvider>
         </IssuesContext.Provider>
       )}
       </div>
