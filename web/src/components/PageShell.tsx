@@ -54,7 +54,7 @@ export default function PageShell({ children }: { children: ReactNode }) {
           with four different values for it. The island is fixed, 50px tall
           and 18px down; 4rem here plus the section's own top rhythm clears
           68px at every width. */}
-      <main id="content" className="pt-16">
+      <main id="content" className="pt-16 max-sm:pt-0">
         {children}
       </main>
       {/* Content pages had no footer at all; these are the pages people land on

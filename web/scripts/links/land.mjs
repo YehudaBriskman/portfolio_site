@@ -408,13 +408,24 @@ for (const w of WINDOWS) {
     const tokenTop = await page.evaluate(
       () => document.querySelector("main a[data-token]").getBoundingClientRect().top + window.scrollY,
     );
-    const before = await scrollTo(page, Math.max(0, Math.round(tokenTop - 140)));
-    await click(page, "main a[data-token]");
+    /* On a phone the tokens are the first thing on the page (no Browse row
+       above them, #780), so there is no scrolling to put them under the bar.
+       The page is scrolled down instead and the token is pressed in place
+       (a script click: focusing it would scroll it back into view). */
+    const high = tokenTop < 200;
+    const before = await scrollTo(page, high ? 300 : Math.max(0, Math.round(tokenTop - 140)));
+    if (high) await page.evaluate(() => document.querySelector("main a[data-token]").click());
+    else await click(page, "main a[data-token]");
     await page.waitForFunction(() => location.search === "", null, { polling: 250, timeout: 5000 });
     const after = await settle(page);
     /* Within a token row: the row folds away with its last token, and scroll
        anchoring takes up that much. Reset to the top is the failure. */
-    record("filter keeps the place", win, before > 0 && Math.abs(after - before) <= 48, `scrollY ${after}, was ${before}`);
+    /* Scrolled down past the tokens (phone): the unfiltered page is taller
+       above the reader than the filtered one, and scroll anchoring follows
+       what they were looking at, so the place may move down; going back up
+       to the top is the failure. */
+    const kept = high ? after >= before - 48 : Math.abs(after - before) <= 48;
+    record("filter keeps the place", win, before > 0 && kept, `scrollY ${after}, was ${before}`);
   }
 
   /* sort (#227): same path, new query — the list re-sorts under the reader
