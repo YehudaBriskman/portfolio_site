@@ -475,7 +475,7 @@ a.listRow:hover .listTitle {
     gap: 12px;
     overflow: hidden;
     padding: var(--ph-gutter);
-    padding-block-start: 20px;
+    padding-block-start: 16px;
     border-radius: var(--r-md);
     background: var(--ph-card);
   }
