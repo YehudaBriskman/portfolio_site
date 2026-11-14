@@ -356,6 +356,9 @@ describe("the composer", () => {
     const calls = stub();
     page();
     const box = await openFirst();
+    /* The shortcut acts on what the composer has settled to: wait for the open to finish (read recorded, preview drawn) before pressing. */
+    await waitFor(() => expect(calls.some((c) => c.url.endsWith("/read") && c.method === "POST")).toBe(true));
+    await screen.findByLabelText("LinkedIn post preview");
     fireEvent.keyDown(box, { key: "d" });
     expect(calls.some((c) => c.url.endsWith("/done"))).toBe(false);
     fireEvent.keyDown(document.body, { key: "d" });
