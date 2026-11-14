@@ -24,6 +24,7 @@ Also: [mcp/README.md](../mcp/README.md) for the stdio server in full, and
 
 | | |
 |---|---|
+| [Public mobile guide](public-mobile-guide.md) | how the public site behaves on a phone: rules R1-R20, component catalogue, real-device checklist |
 | [Motion contract](motion-contract.md) | how and when things move, and what each animation costs |
 | [Accessibility audit](accessibility/audit.md) | WCAG 2.2 AA conformance |
 | [SEO audit](seo/audit.md) and [search terms](seo/keywords.md) | the site as a search engine reads it |
