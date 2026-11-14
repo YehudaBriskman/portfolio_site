@@ -26,6 +26,10 @@ import { useAnnounceWords } from "./words";
  * saved document are the ones the desktop form uses.
  */
 
+/* A summary is a plain string, so a name or address inside a Hebrew line is isolated with Unicode controls: left-to-right for tags and addresses, first-strong for names. */
+const ltr = (t: string) => `\u2066${t}\u2069`;
+const isolate = (t: string) => `\u2068${t}\u2069`;
+
 export const UTM_TOKEN = /^[a-z0-9_.-]{1,40}$/;
 const GROUP_IDS = ["mail", "channels", "wording", "sender", "limits", "texts", "notices", "advanced"] as const;
 export const isGroupId = (v: string | null): v is (typeof GROUP_IDS)[number] => GROUP_IDS.includes(v as never);
@@ -107,8 +111,8 @@ export default function PhoneSettings({ working, tagText, onTagText, change, res
   /* ----- groups ----- */
   const mail = (
     <>
-      {sw8("mail", w.emailEnabled, working.email.enabled, (v) => change((d) => void (d.email.enabled = v)), w.emailHint)}
-      {sw8("notify", nw.master, working.notify.enabled, (v) => change((d) => void (d.notify.enabled = v)), nw.masterHint)}
+      {sw8("mail", sw.swEvents, working.email.enabled, (v) => change((d) => void (d.email.enabled = v)), `${w.emailEnabled}. ${w.emailHint}`)}
+      {sw8("notify", sw.swAlerts, working.notify.enabled, (v) => change((d) => void (d.notify.enabled = v)), `${nw.master}. ${nw.masterHint}`)}
       <Reset
         disabled={!working.email.enabled && !working.notify.enabled}
         onClick={() =>
@@ -243,7 +247,7 @@ export default function PhoneSettings({ working, tagText, onTagText, change, res
       icon: ICON.email,
       title: sw.gMail,
       controls: 2,
-      items: [item("mail", w.emailEnabled, w.emailHint), item("notify", nw.master, nw.masterHint)],
+      items: [item("mail", sw.swEvents, `${w.emailEnabled}. ${w.emailHint}`), item("notify", sw.swAlerts, `${nw.master}. ${nw.masterHint}`)],
       summary: (d) => sw.sumMail(d.email.enabled, d.notify.enabled),
       render: () => mail,
     },
@@ -268,7 +272,7 @@ export default function PhoneSettings({ working, tagText, onTagText, change, res
       items: [item("hashtags", w.hashtags, w.hashtagsHint), item("signature", w.signature, w.signatureHint)],
       summary: (d) => {
         const shown = d.hashtags.slice(0, 3).map((t) => `#${t.replace(/^#/, "")}`).join(" ");
-        return `${d.hashtags.length ? sw.sumTags(shown, d.hashtags.length - 3) : sw.sumNoTags} · ${d.signature.trim() ? sw.sumSignature : sw.sumNoSignature}`;
+        return `${d.hashtags.length ? sw.sumTags(ltr(shown), d.hashtags.length - 3) : sw.sumNoTags} · ${d.signature.trim() ? sw.sumSignature : sw.sumNoSignature}`;
       },
       warning: () => (tagsBad ? sw.warnTags : null),
       render: () => wording,
@@ -280,7 +284,7 @@ export default function PhoneSettings({ working, tagText, onTagText, change, res
       controls: 12,
       hasText: true,
       items: senderItems,
-      summary: (d) => (d.sender.fromName || d.sender.fromAddress ? snd.sumSender(d.sender.fromName, d.sender.fromAddress) : sw.sumSenderNone),
+      summary: (d) => (d.sender.fromName || d.sender.fromAddress ? [d.sender.fromName && isolate(d.sender.fromName), d.sender.fromAddress && ltr(d.sender.fromAddress)].filter(Boolean).join(" ") : sw.sumSenderNone),
       warning: (d) => (hasSenderProblem(d.sender) ? sw.warnSender : null),
       render: () => senderNode("identity"),
     },
@@ -313,8 +317,8 @@ export default function PhoneSettings({ working, tagText, onTagText, change, res
       controls: NOTIFY_EVENTS.length + 2,
       hasText: true,
       items: [
-        ...NOTIFY_EVENTS.map((k) => item(`notice-${k}`, nw.ev[k], nw.events)),
-        item("notice-digest", nw.digestOn, nw.digestHint),
+        ...NOTIFY_EVENTS.map((k) => item(`notice-${k}`, sw.evShort[k], `${nw.ev[k]} ${nw.events}`)),
+        item("notice-digest", sw.swDigest, `${nw.digestOn}. ${nw.digestHint}`),
         ...(working.notify.digest.enabled ? [item("notice-hour", nw.digestHour, nw.digestHourHint)] : []),
         item("notice-lang", nw.lang),
       ],

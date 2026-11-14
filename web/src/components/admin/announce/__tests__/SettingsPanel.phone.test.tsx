@@ -135,7 +135,7 @@ describe("summaries are live", () => {
     await landing();
     expect(summaryOf("mail")).toMatch(/off/i);
     fireEvent.click(rowButton("mail"));
-    fireEvent.click(await screen.findByRole("switch", { name: "Email me about new events" }));
+    fireEvent.click(await screen.findByRole("switch", { name: "Event emails" }));
     fireEvent.click(screen.getByRole("button", { name: "Close" }));
     await waitFor(() => expect(summaryOf("mail")).toMatch(/on/i));
   });
@@ -152,13 +152,13 @@ describe("help stays behind the info button", () => {
     stub();
     await landing();
     fireEvent.click(rowButton("mail"));
-    const sw = await screen.findByRole("switch", { name: "Email me about new events" });
+    const sw = await screen.findByRole("switch", { name: "Event emails" });
     const row = sw.closest("[data-setting-id]") as HTMLElement;
     expect(row.querySelectorAll(".a-hint").length).toBe(0);
     /* The popover's text is not in the DOM until it opens; the other row's first sentence is only a screen-reader description. */
     const count = () => document.querySelectorAll("p").length;
     const closed = count();
-    fireEvent.click(within(row).getByRole("button", { name: "About Email me about new events" }));
+    fireEvent.click(within(row).getByRole("button", { name: "About Event emails" }));
     await waitFor(() => expect(count()).toBe(closed + 1));
     expect(screen.getByText(/One email per event, to the contact address/, { selector: "p" })).toBeTruthy();
   });
@@ -185,7 +185,7 @@ describe("opening and closing a group", () => {
     opener.focus();
     fireEvent.click(opener);
     const dialog = await screen.findByRole("dialog", { hidden: true });
-    expect(within(dialog).getByRole("switch", { name: "Email me about new events" })).toBeTruthy();
+    expect(within(dialog).getByRole("switch", { name: "Event emails" })).toBeTruthy();
     fireEvent.click(within(dialog).getByRole("button", { name: "Close" }));
     await waitFor(() => expect(document.activeElement).toBe(rowButton("mail")));
   });
@@ -241,7 +241,7 @@ describe("save semantics are unchanged", () => {
     await landing();
     expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
     fireEvent.click(rowButton("mail"));
-    fireEvent.click(await screen.findByRole("switch", { name: "Email me about new events" }));
+    fireEvent.click(await screen.findByRole("switch", { name: "Event emails" }));
     fireEvent.click(screen.getByRole("button", { name: "Close" }));
     const save = (await screen.findByRole("button", { name: "Save" })) as HTMLButtonElement;
     expect(save.disabled).toBe(false);
@@ -268,7 +268,7 @@ describe("save semantics are unchanged", () => {
     stub();
     await landing();
     fireEvent.click(rowButton("mail"));
-    fireEvent.click(await screen.findByRole("switch", { name: "Email me about new events" }));
+    fireEvent.click(await screen.findByRole("switch", { name: "Event emails" }));
     fireEvent.click(screen.getByRole("button", { name: "Close" }));
     fireEvent.click(rowButton("wording"));
     fireEvent.change(await screen.findByLabelText("Signature"), { target: { value: "Yehuda" } });

@@ -175,7 +175,11 @@ export default function SenderSection({ sender, onChange, warnings, phone = fals
       <span className="sr-only">{ok ? w.okWord : w.fixWord}</span>
     </span>
   );
-  const sec = (title: string, summary: ReactNode, body: ReactNode, o: { open?: boolean; bad?: boolean; testid?: string } = {}) => (
+  const sec = (title: string, summary: ReactNode, body: ReactNode, o: { open?: boolean; bad?: boolean; testid?: string } = {}) =>
+    /* A group page that holds one section needs no expander of its own: its title is the section. */
+    phone && part === "texts" ? (
+      <div className="space-y-4" data-testid={o.testid}>{body}</div>
+    ) : (
     <Disclosure
       className="a-box"
       summary={title}
@@ -185,7 +189,7 @@ export default function SenderSection({ sender, onChange, warnings, phone = fals
     >
       <div className="space-y-4 pb-2">{body}</div>
     </Disclosure>
-  );
+    );
   const quietText = q ? `${q.from}–${q.to}` : "";
   const showId = part === "all" || part === "identity";
   const showLimits = part === "all" || part === "limits";

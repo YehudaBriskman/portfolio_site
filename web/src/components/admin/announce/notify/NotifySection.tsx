@@ -2,6 +2,7 @@ import { useId } from "react";
 import { NOTIFY_EVENTS, type NotifySettings } from "@/services/adminAnnounce";
 import { SettingsRow } from "@/components/ui/SettingsRow";
 import { InfoPopover } from "@/components/ui/InfoPopover";
+import { useSettingsPanelWords } from "../settingsWords";
 import { useNotifyWords } from "./words";
 
 const clamp = (v: string, max: number) => {
@@ -12,6 +13,7 @@ const clamp = (v: string, max: number) => {
 /* Settings > Advanced > Notices by email. The master switch is in Everyday; this holds which events, how often and the digest. */
 export default function NotifySection({ notify, onChange, phone = false }: { notify: NotifySettings; onChange: (fn: (n: NotifySettings) => void) => void; phone?: boolean }) {
   const w = useNotifyWords();
+  const sw = useSettingsPanelWords();
   const uid = useId();
   const off = !notify.enabled;
   if (phone) {
@@ -24,7 +26,7 @@ export default function NotifySection({ notify, onChange, phone = false }: { not
             const r = notify.events[k];
             return (
               <div key={k}>
-                <SettingsRow kind="switch" id={`notice-${k}`} label={w.ev[k]} checked={r.on} onChange={(v) => onChange((n) => void (n.events[k].on = v))} />
+                <SettingsRow kind="switch" id={`notice-${k}`} label={sw.evShort[k]} info={w.ev[k]} checked={r.on} onChange={(v) => onChange((n) => void (n.events[k].on = v))} />
                 {r.on && (
                   <label className="flex items-center gap-2 px-4 pb-2 text-sm text-clay">
                     <span>{w.every}</span>
@@ -37,7 +39,7 @@ export default function NotifySection({ notify, onChange, phone = false }: { not
           })}
         </fieldset>
         <fieldset className="min-w-0" disabled={off}>
-          <SettingsRow kind="switch" id="notice-digest" label={w.digestOn} info={w.digestHint} checked={notify.digest.enabled} onChange={(v) => onChange((n) => void (n.digest.enabled = v))} />
+          <SettingsRow kind="switch" id="notice-digest" label={sw.swDigest} info={`${w.digestOn}. ${w.digestHint}`} checked={notify.digest.enabled} onChange={(v) => onChange((n) => void (n.digest.enabled = v))} />
           {notify.digest.enabled && (
             <div className="px-4 pb-3" data-setting-id="notice-hour">
               <div className="flex items-center justify-between gap-2">

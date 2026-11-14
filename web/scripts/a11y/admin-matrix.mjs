@@ -23,6 +23,7 @@
  *   npm run a11y:admin-matrix
  *   SHARD=1/2            run every 2nd combination (CI runs two legs)
  *   ONLY=media,settings  WIDTHS=320,390  THEMES=light  LANGS=en
+ *   SHOTS=dir            also save a screenshot of every screen (FULLPAGE=1 for the whole page)
  *   --write-baseline     record today's findings as known
  *   --json file          the raw measurements
  *
@@ -192,7 +193,10 @@ const SCREENS = [
   ["marketing-audience-expanded", "/admin/marketing?tab=audience", async (page) => { await page.evaluate(() => document.querySelectorAll("details").forEach((d) => (d.open = true))); }],
   ["marketing-library", "/admin/marketing?tab=library"],
   ["marketing-settings", "/admin/marketing?tab=settings"],
-  ["marketing-settings-expanded", "/admin/marketing?tab=settings", async (page) => { await page.evaluate(() => document.querySelectorAll("details").forEach((d) => (d.open = true))); }],
+  /* On a phone Settings is a list of groups: a sheet (two switches), and the heaviest pages with every section open. */
+  ["marketing-settings-sheet", "/admin/marketing?tab=settings", click('[data-settings-group="mail"] button')],
+  ["marketing-settings-expanded", "/admin/marketing?tab=settings&section=sender", async (page) => { await page.evaluate(() => document.querySelectorAll("details").forEach((d) => (d.open = true))); }],
+  ["marketing-settings-limits", "/admin/marketing?tab=settings&section=limits", async (page) => { await page.evaluate(() => document.querySelectorAll("details").forEach((d) => (d.open = true))); }],
   ["not-found-admin", "/admin/does-not-exist"],
 ];
 const ONLY = env("ONLY");
@@ -320,6 +324,7 @@ for (const c of combos) {
       if (rec.broken) console.log("  body:", (await page.evaluate(() => document.body.innerText)).replace(/\s+/g, " ").slice(0, 300));
       if (process.env.DEBUG) console.log("  main:", (await page.evaluate(() => document.querySelector("main")?.innerText ?? "")).replace(/\s+/g, " ").slice(0, 250));
       rec.dir = await page.evaluate(() => `${document.documentElement.lang}/${document.documentElement.dir}`);
+      if (process.env.SHOTS) await page.screenshot({ path: resolve(process.env.SHOTS, `${name}-${c.v.w}-${c.theme}-${c.lang}.png`), fullPage: !!process.env.FULLPAGE });
     } catch (e) { rec.error = e.message.split("\n")[0]; }
     rec.ms = Date.now() - t0; results.push(rec);
     console.log(`${rec.ms}ms ${name} ${c.v.id} ${c.theme} ${c.lang}: overflow ${rec.overflow?.length ?? "?"} tiny ${rec.tinyTargets?.length ?? "?"} small ${rec.smallTargets?.length ?? "?"} text ${rec.smallText?.length ?? "?"}${rec.broken ? " BROKEN " + rec.broken : ""}${rec.stepFailed ? " STEPFAIL " + rec.stepFailed : ""}${rec.error ? " ERR " + rec.error : ""}`);
