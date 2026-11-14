@@ -9,13 +9,14 @@ import { hashEmail } from "../audience/store.js";
 import { emailService } from "../services/email.service.js";
 import { autoDraftFor } from "./autodraft.js";
 import { resolveSender, senderWarnings } from "./config.js";
+import { clearDnsCache, dnsOverride } from "./sendReadiness.js";
 import { COMMERCIAL_LABEL_HE, LABEL_BODY_EN, LABEL_SUBJECT_EN, PREFS_LABEL_EN, PREFS_LABEL_HE, UNSUB_FALLBACK_EN, UNSUB_FALLBACK_HE, renderCampaignMail } from "./render.js";
 import { bodyBlocks, safeHref, safeImage } from "./body.js";
 import { renderMail } from "../mail/render.js";
 import { verifyToken } from "../audience/tokens.js";
 import { memoryLedgerStore, resetLedgerCache, useLedgerStore } from "../audience/ledger.js";
 import { resetGuard } from "./guard.js";
-import { inQuietHours, runSenderTick, type Deliver } from "./sender.js";
+import { inQuietHours, resetHold, runSenderTick, type Deliver } from "./sender.js";
 import { contentFingerprint } from "./readiness.js";
 import { campaignsBlocked, sendingState, SWITCH_ID } from "./killSwitch.js";
 
@@ -40,6 +41,7 @@ const deliver: Deliver = async (msgs) => {
 };
 
 beforeEach(() => {
+  resetHold();
   store = new Map();
   sent = [];
   putHook = null;
@@ -98,7 +100,7 @@ const C = "/api/admin/campaigns";
 const setSender = (over: Partial<AnnounceSettings["sender"]> = {}) =>
   store.set(SETTINGS_DOC_ID, {
     _id: SETTINGS_DOC_ID, _rev: "1-s", type: "settings-announce", updatedAt: "x",
-    settings: { ...DEFAULT_ANNOUNCE_SETTINGS, sender: { ...DEFAULT_ANNOUNCE_SETTINGS.sender, footerIdentity: "Yehuda, Tel Aviv", identityEmail: "me@example.org", ...over } },
+    settings: { ...DEFAULT_ANNOUNCE_SETTINGS, sender: { ...DEFAULT_ANNOUNCE_SETTINGS.sender, warmup: false, quietHours: undefined, throttlePerHour: 3600, dailyCap: 10000, footerIdentity: "Yehuda, Tel Aviv", identityEmail: "me@example.org", ...over } },
   });
 const addr = (i: number) => `user${i}@example.com`;
 const seedContact = (i: number, over: Record<string, unknown> = {}) => {
@@ -277,7 +279,7 @@ describe("the composer's payload with blocks off", () => {
 });
 
 describe("the unsubscribe link can never be missing", () => {
-  const sender = (over: Partial<AnnounceSettings["sender"]>) => ({ ...DEFAULT_ANNOUNCE_SETTINGS.sender, footerIdentity: "Yehuda, Tel Aviv", identityEmail: "me@example.org", ...over });
+  const sender = (over: Partial<AnnounceSettings["sender"]>) => ({ ...DEFAULT_ANNOUNCE_SETTINGS.sender, warmup: false, quietHours: undefined, throttlePerHour: 3600, dailyCap: 10000, footerIdentity: "Yehuda, Tel Aviv", identityEmail: "me@example.org", ...over });
   const render = (note: string, lang: "en" | "he" = "en") =>
     renderCampaignMail({ subject: "S", bodyText: "Body", preheader: undefined, blocks: undefined } as never, { lang }, hashEmail(addr(1)), sender(lang === "he" ? { unsubscribeNoteHe: note } : { unsubscribeNoteEn: note }));
   const unsubAnchors = (html: string) => html.match(/<a href="[^"]*\/unsubscribe\?token=[^"]+"/g) ?? [];
@@ -371,7 +373,7 @@ describe("the unsubscribe link can never be missing", () => {
 
 describe("PUT /api/admin/announce/settings: sender texts are validated on save only", () => {
   const put = (app: ReturnType<typeof createApp>, sender: Record<string, unknown>, _rev?: string) =>
-    admin(request(app).put("/api/admin/announce/settings").send({ settings: { ...DEFAULT_ANNOUNCE_SETTINGS, sender: { ...DEFAULT_ANNOUNCE_SETTINGS.sender, ...sender } }, ...(_rev ? { _rev } : {}) }));
+    admin(request(app).put("/api/admin/announce/settings").send({ settings: { ...DEFAULT_ANNOUNCE_SETTINGS, sender: { ...DEFAULT_ANNOUNCE_SETTINGS.sender, warmup: false, quietHours: undefined, throttlePerHour: 3600, dailyCap: 10000, ...sender } }, ...(_rev ? { _rev } : {}) }));
 
   it.each(["confirmBodyEn", "confirmBodyHe", "unsubscribeNoteEn", "unsubscribeNoteHe"])("%s without {link} is refused with the exact message", async (f) => {
     const r = await put(createApp(), { [f]: "No link here" });
@@ -395,7 +397,7 @@ describe("PUT /api/admin/announce/settings: sender texts are validated on save o
   });
 
   it("an older stored document (one footer text, boolean label) reads as name line + mode, losing nothing", async () => {
-    const { identityEmail: _e, identityPostal: _p, labelMode: _l, ...legacy } = DEFAULT_ANNOUNCE_SETTINGS.sender;
+    const { identityEmail: _e, identityPostal: _p, labelMode: _l, quietHours: _q, ...legacy } = DEFAULT_ANNOUNCE_SETTINGS.sender;
     store.set("settings:announce", {
       _id: "settings:announce", _rev: "1-old", type: "settings-announce", updatedAt: "x",
       settings: { ...DEFAULT_ANNOUNCE_SETTINGS, sender: { ...legacy, footerIdentity: "Yehuda\nTel Aviv", commercialLabel: false } },
@@ -444,7 +446,7 @@ describe("PUT /api/admin/announce/settings: sender texts are validated on save o
   it("an older stored document without {link} still loads as saved, not reset to defaults", async () => {
     store.set("settings:announce", {
       _id: "settings:announce", _rev: "1-old", type: "settings-announce", updatedAt: "x",
-      settings: { ...DEFAULT_ANNOUNCE_SETTINGS, sender: { ...DEFAULT_ANNOUNCE_SETTINGS.sender, footerIdentity: "Keep me", identityEmail: "me@example.org", testRecipients: ["me@example.org"], unsubscribeNoteEn: "Thanks" } },
+      settings: { ...DEFAULT_ANNOUNCE_SETTINGS, sender: { ...DEFAULT_ANNOUNCE_SETTINGS.sender, warmup: false, quietHours: undefined, throttlePerHour: 3600, dailyCap: 10000, footerIdentity: "Keep me", identityEmail: "me@example.org", testRecipients: ["me@example.org"], unsubscribeNoteEn: "Thanks" } },
     });
     const got = await admin(request(createApp()).get("/api/admin/announce/settings"));
     expect(got.body.settings.sender).toMatchObject({ footerIdentity: "Keep me", identityEmail: "me@example.org", testRecipients: ["me@example.org"], unsubscribeNoteEn: "Thanks" });
@@ -501,15 +503,50 @@ describe("sender tick", () => {
     await runSenderTick({ now: () => T0 + 60_000, deliver });
     expect(sent).toHaveLength(2);
     await runSenderTick({ now: () => T0 + 3_600_000, deliver });
+    await runSenderTick({ now: () => T0 + 3_600_000 + 30_000, deliver });
     expect(sent).toHaveLength(4);
     await runSenderTick({ now: () => T0 + 7_200_000, deliver });
     await runSenderTick({ now: () => T0 + 7_200_000 + 1, deliver });
+    await runSenderTick({ now: () => T0 + 7_200_000 + 30_000, deliver });
     expect(sent).toHaveLength(5);
     expect(get(id).status).toBe("sent");
   });
 
+  it("warm-up lowers the caps on day 1 and grows, without touching the saved settings", async () => {
+    const id = await queued(40, { warmup: true, throttlePerHour: 3600, dailyCap: 10000 });
+    const saved = JSON.stringify(store.get(SETTINGS_DOC_ID));
+    for (let i = 0; i < 6; i++) await runSenderTick({ now: () => T0 + i * 30_000, deliver });
+    expect(sent).toHaveLength(10); // day 1: 10 an hour
+    await runSenderTick({ now: () => T0 + 3_600_000, deliver });
+    await runSenderTick({ now: () => T0 + 3_600_000 + 30_000, deliver });
+    for (let i = 0; i < 6; i++) await runSenderTick({ now: () => T0 + 7_200_000 + i * 30_000, deliver });
+    expect(sent).toHaveLength(20); // day 1: 20 in all
+    expect((store.get("sender:state") as { firstSendAt?: string }).firstSendAt).toBe(new Date(T0).toISOString());
+    expect(JSON.stringify(store.get(SETTINGS_DOC_ID))).toBe(saved);
+    for (let i = 0; i < 6; i++) await runSenderTick({ now: () => T0 + 86_400_000 + i * 30_000, deliver });
+    expect(sent.length).toBeGreaterThan(20); // day 2 allows more
+    expect(get(id).status).toBe("sending");
+  });
+
+  it("warm-up never raises a lower configured cap, and off means off", async () => {
+    await queued(10, { warmup: true, throttlePerHour: 3600, dailyCap: 2 });
+    for (let i = 0; i < 4; i++) await runSenderTick({ now: () => T0 + i * 30_000, deliver });
+    expect(sent).toHaveLength(2);
+  });
+
+  it("a relay that asks to slow down holds every campaign for 10 minutes", async () => {
+    await queued(3);
+    await tick(failing(TRANSIENT), T0);
+    const after = sendDocs(Object.keys(Object.fromEntries(store)).find((k) => k.startsWith("campaign:"))!.slice(9));
+    expect(after.some((d) => d.status === "deferred")).toBe(true);
+    await tick(deliver, T0 + 5 * 60_000);
+    expect(sent).toHaveLength(0);
+    await tick(deliver, T0 + 16 * 60_000);
+    expect(sent.length).toBeGreaterThan(0);
+  });
+
   it("honours dailyCap across hours, and a new day lifts it", async () => {
-    await queued(5, { throttlePerHour: 100, dailyCap: 3 });
+    await queued(5, { throttlePerHour: 3600, dailyCap: 3 });
     await runSenderTick({ now: () => T0, deliver });
     await runSenderTick({ now: () => T0 + 3_600_000, deliver });
     expect(sent).toHaveLength(3);
@@ -628,6 +665,8 @@ type Fail = { kind?: "hard" | "soft" | "transient" | "policy" | "auth"; code?: n
 const HARD: Fail = { kind: "hard", code: 550 };
 const SOFT: Fail = { kind: "soft", code: 452 };
 const TRANSIENT: Fail = { kind: "transient", code: 421 };
+/* 451 is a local error, not a request to slow down (421 is, and holds every campaign for 10 minutes). */
+const TRANSIENT_LOCAL: Fail = { kind: "transient", code: 451 };
 const POLICY: Fail = { kind: "policy", code: 554 };
 const AUTH: Fail = { kind: "auth", code: 535 };
 /* The error text carries an address on purpose: it must never reach a stored doc. */
@@ -688,7 +727,7 @@ describe("bounce handling", () => {
     expect(contactOf(1).softBounces).toBeUndefined();
   });
 
-  it("a transient failure is deferred and retried 15 minutes later, up to 3 tries, and the campaign waits", async () => {
+  it("a transient failure is deferred and retried after 15 min, 1 h and 4 h, up to 4 tries, and the campaign waits", async () => {
     const id = await queued(1);
     await tick(failing(TRANSIENT));
     expect(sendDocs(id)[0]).toMatchObject({ status: "deferred", tries: 1, kind: "transient" });
@@ -697,10 +736,16 @@ describe("bounce handling", () => {
     expect(sendDocs(id)[0].tries).toBe(1);
     await tick(failing(TRANSIENT), T0 + 16 * 60_000);
     expect(sendDocs(id)[0]).toMatchObject({ status: "deferred", tries: 2 });
-    await tick(failing(TRANSIENT), T0 + 32 * 60_000);
-    expect(sendDocs(id)[0]).toMatchObject({ status: "failed", tries: 3 });
+    await tick(failing(TRANSIENT), T0 + 40 * 60_000);
+    expect(sendDocs(id)[0]).toMatchObject({ status: "deferred", tries: 2 }); // the second wait is an hour
+    await tick(failing(TRANSIENT), T0 + 80 * 60_000);
+    expect(sendDocs(id)[0]).toMatchObject({ status: "deferred", tries: 3 }); // the third wait is four hours
+    await tick(failing(TRANSIENT), T0 + 80 * 60_000 + 3 * 3_600_000);
+    expect(sendDocs(id)[0]).toMatchObject({ status: "deferred", tries: 3 });
+    await tick(failing(TRANSIENT), T0 + 80 * 60_000 + 4 * 3_600_000 + 1000);
+    expect(sendDocs(id)[0]).toMatchObject({ status: "failed", tries: 4 });
     expect(contactOf(1)).toMatchObject({ status: "active" });
-    await tick(deliver, T0 + 33 * 60_000);
+    await tick(deliver, T0 + 80 * 60_000 + 4 * 3_600_000 + 11 * 60_000);
     expect(get(id)).toMatchObject({ status: "failed", counters: { sent: 0, failed: 1 } });
   });
 
@@ -739,7 +784,7 @@ describe("bounce handling", () => {
 
   it("a paused or bounced campaign's counters equal its send docs, deferred ones not counted, even after a lost counter update (#565)", async () => {
     const id = await queued(9);
-    await tick(script([HARD, TRANSIENT, null, null]));
+    await tick(script([HARD, TRANSIENT_LOCAL, null, null]));
     const tallyOf = () => {
       const n = { sent: 0, failed: 0, suppressed: 0 };
       for (const d of sendDocs(id)) if (d.status in n) n[d.status as keyof typeof n]++;
@@ -800,7 +845,7 @@ describe("bounce handling", () => {
 });
 
 describe("mail rendering", () => {
-  const sender = { ...DEFAULT_ANNOUNCE_SETTINGS.sender, footerIdentity: "A <b>& Co</b>\nStreet 1", identityEmail: "me@example.org", labelMode: "hebrew" as const };
+  const sender = { ...DEFAULT_ANNOUNCE_SETTINGS.sender, warmup: false, quietHours: undefined, throttlePerHour: 3600, dailyCap: 10000, footerIdentity: "A <b>& Co</b>\nStreet 1", identityEmail: "me@example.org", labelMode: "hebrew" as const };
   it("renders from text/blocks only: every field escaped, bad links and foreign images dropped", async () => {
     const m = await renderCampaignMail(
       {
@@ -831,7 +876,7 @@ describe("mail rendering", () => {
     const on = await renderCampaignMail(c, { lang: "he" }, hashEmail(addr(1)), sender);
     expect(on.subject).toBe(`${COMMERCIAL_LABEL_HE}: שלום`);
     expect(on.html).toContain('dir="rtl"');
-    expect(on.html).toMatch(new RegExp(`<body[^>]*>\\s*<table[^>]*>.*?<p [^>]*font-weight:700">${COMMERCIAL_LABEL_HE}</p>`, "s"));
+    expect(on.html).toMatch(new RegExp(`<body[^>]*>\\s*(?:<div style="display:none[^>]*>[^<]*</div>\\s*)?<table[^>]*>.*?<p [^>]*font-weight:700">${COMMERCIAL_LABEL_HE}</p>`, "s"));
     expect(on.html.split(COMMERCIAL_LABEL_HE)).toHaveLength(2);
     expect(on.text.startsWith(`${COMMERCIAL_LABEL_HE}\n\nx`)).toBe(true);
     expect(on.text.split(COMMERCIAL_LABEL_HE)).toHaveLength(2);
@@ -897,7 +942,7 @@ describe("mail rendering", () => {
 
 describe("sender settings", () => {
   const put = (sender: object) =>
-    admin(request(createApp()).put("/api/admin/announce/settings").send({ settings: { ...DEFAULT_ANNOUNCE_SETTINGS, sender: { ...DEFAULT_ANNOUNCE_SETTINGS.sender, ...sender } } }));
+    admin(request(createApp()).put("/api/admin/announce/settings").send({ settings: { ...DEFAULT_ANNOUNCE_SETTINGS, sender: { ...DEFAULT_ANNOUNCE_SETTINGS.sender, warmup: false, quietHours: undefined, throttlePerHour: 3600, dailyCap: 10000, ...sender } } }));
 
   it("accepts the new fields and rejects bad ones", async () => {
     const ok = await put({ fromName: "Yehuda", fromAddress: "hi@example.com", replyTo: "r@example.com", throttlePerHour: 30, dailyCap: 100, quietHours: { from: "22:00", to: "07:00", tz: "Asia/Jerusalem" }, testRecipients: ["t@example.com"] });
@@ -928,7 +973,7 @@ describe("auto-draft", () => {
     _id: `announce:${kind}:x:1`, type: "announce", kind, ref: "x", title: "A <b>title</b>", summary: "S", tags: [], url: "https://yehudabriskman.com/blog/x",
     ...(version ? { version } : {}), langs: ["en"], createdAt: "2026-06-01T00:00:00Z", done: {},
   });
-  const on = { ...DEFAULT_ANNOUNCE_SETTINGS, sender: { ...DEFAULT_ANNOUNCE_SETTINGS.sender, autoDraftCampaign: true } };
+  const on = { ...DEFAULT_ANNOUNCE_SETTINGS, sender: { ...DEFAULT_ANNOUNCE_SETTINGS.sender, warmup: false, quietHours: undefined, throttlePerHour: 3600, dailyCap: 10000, autoDraftCampaign: true } };
 
   it("is off by default, and when on makes one DRAFT per event for the subscribers group, never scheduled", async () => {
     expect(await autoDraftFor(ev("post"), DEFAULT_ANNOUNCE_SETTINGS)).toBe(false);
@@ -1040,7 +1085,7 @@ describe("the suppression ledger guard", () => {
 describe("monthly limit per contact", () => {
   const DAY = 86_400_000;
   const putSettings = (sender: object) =>
-    admin(request(createApp()).put("/api/admin/announce/settings").send({ settings: { ...DEFAULT_ANNOUNCE_SETTINGS, sender: { ...DEFAULT_ANNOUNCE_SETTINGS.sender, ...sender } } }));
+    admin(request(createApp()).put("/api/admin/announce/settings").send({ settings: { ...DEFAULT_ANNOUNCE_SETTINGS, sender: { ...DEFAULT_ANNOUNCE_SETTINGS.sender, warmup: false, quietHours: undefined, throttlePerHour: 3600, dailyCap: 10000, ...sender } } }));
   /* A mail someone got from another campaign. */
   const gotMail = (i: number, at: number, over: Record<string, unknown> = {}, campaign = "old") => {
     const h = hashEmail(addr(i));
@@ -1156,8 +1201,7 @@ describe("monthly limit per contact", () => {
     const c = await mk();
     expect((await go(c.id)).status).toBe(200);
     for (let i = 1; i <= 30; i++) fill(i, 4, T0 - DAY);
-    await run(c.id);
-    await run(c.id);
+    for (let i = 0; i < 5; i++) await run(c.id); // a batch is a share of the hour (9 at 1000 an hour), not 25
     expect(sent).toHaveLength(0);
     expect(get(c.id)).toMatchObject({ status: "sent", counters: { sent: 0, failed: 0, capped: 30 } });
   });
@@ -1392,5 +1436,55 @@ describe("sender holds when the settings cannot be trusted", () => {
   it("a settings document that was never saved is a fresh install, not a hold", async () => {
     await runSenderTick({ now: () => T0, deliver });
     expect((await admin(request(createApp()).get(`${C}/sending`))).body.settingsHold).toBeNull();
+  });
+});
+
+
+describe("send readiness (GET /readiness)", () => {
+  afterEach(() => { dnsOverride.look = undefined; clearDnsCache(); });
+  const answer = (m: Record<string, string[][]>, seen: string[] = []) => {
+    dnsOverride.look = async (n) => {
+      seen.push(n);
+      if (n in m) return m[n]!;
+      throw Object.assign(new Error("nx"), { code: "ENOTFOUND" });
+    };
+  };
+  const get = () => admin(request(createApp()).get(`${C}/readiness`));
+  const byId = (b: { items: Array<{ id: string; status: string }> }) => Object.fromEntries(b.items.map((i) => [i.id, i.status]));
+
+  it("is admin-only", async () => {
+    answer({});
+    const r = await request(createApp()).get(`${C}/readiness`);
+    expect([401, 403]).toContain(r.status);
+  });
+
+  it("says what is missing, with statuses only", async () => {
+    clearDnsCache();
+    setSender({ fromAddress: "hi@example.org", fromName: "Y", replyTo: "", testRecipients: [] });
+    answer({ "example.org": [["v=spf1 include:x ~all"]] });
+    const r = await get();
+    expect(r.status).toBe(200);
+    expect(r.body.domain).toBe("example.org");
+    expect(byId(r.body)).toMatchObject({ spf: "ok", dkim: "fix", dmarc: "fix", testRecipient: "fix", identity: "ok" });
+    expect(JSON.stringify(r.body)).not.toContain("v=spf1");
+  });
+
+  it("asks DNS only about the saved From domain, never about anything in the request", async () => {
+    clearDnsCache();
+    setSender({ fromAddress: "hi@example.org", replyTo: "me@example.org", testRecipients: ["t@example.org"] });
+    const seen: string[] = [];
+    answer({ "example.org": [["v=spf1 ~all"]], "_dmarc.example.org": [["v=DMARC1; p=none"]], "resend._domainkey.example.org": [["p=abc"]] }, seen);
+    const r = await admin(request(createApp()).get(`${C}/readiness?domain=evil.test&name=attacker.test`));
+    expect(byId(r.body)).toMatchObject({ spf: "ok", dkim: "ok", dmarc: "ok", replyTo: "ok", testRecipient: "ok" });
+    expect(seen.length).toBeGreaterThan(0);
+    expect(seen.every((n) => n === "example.org" || n.endsWith(".example.org"))).toBe(true);
+  });
+
+  it("an unreadable DNS answer is unknown, and a no-reply Reply-To needs fixing", async () => {
+    clearDnsCache();
+    setSender({ fromAddress: "hi@example.org", replyTo: "no-reply@example.org" });
+    dnsOverride.look = async () => { throw Object.assign(new Error("x"), { code: "ESERVFAIL" }); };
+    const r = await get();
+    expect(byId(r.body)).toMatchObject({ spf: "unknown", dkim: "unknown", dmarc: "unknown", replyTo: "fix" });
   });
 });
