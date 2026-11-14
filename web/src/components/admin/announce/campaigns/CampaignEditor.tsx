@@ -27,6 +27,12 @@ import { blockProblem, blocksToText, cleanBlocks, createPayload, toInput, zonedT
 import Progress from "./Progress";
 import { pillState } from "./status";
 import { Disclosure } from "@/components/ui/Disclosure";
+import { InfoPopover } from "@/components/ui/InfoPopover";
+import { ICON } from "@/components/ui/icons";
+import { Journey } from "@/components/ui/Journey";
+import { StatusGlyph } from "@/components/ui/StatusGlyph";
+import { usePhone } from "@/hooks/usePhone";
+import { usePhoneCampaignWords } from "./phoneWords";
 import { useCampaignWords } from "./words";
 
 /*
@@ -84,6 +90,8 @@ export default function CampaignEditor({
   onChanged: () => void;
 }) {
   const w = useCampaignWords();
+  const pw = usePhoneCampaignWords();
+  const phone = usePhone();
   const uid = useId();
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [form, setForm] = useState<Form>(BLANK);
@@ -323,7 +331,9 @@ export default function CampaignEditor({
       <div className="flex flex-wrap items-center gap-3">
         <button type="button" className="a-btn a-btn-ghost min-h-[44px]" onClick={onClose}>← {w.back}</button>
         <h2 className="display-tight text-xl">{heading}</h2>
-        {campaign && <span className="a-pill" data-state={pillState(campaign.status)}><span className="a-pill-mark" aria-hidden="true" />{w.statuses[campaign.status]}</span>}
+        {campaign && (phone
+          ? <StatusGlyph kind={campaign.status} withWord />
+          : <span className="a-pill" data-state={pillState(campaign.status)}><span className="a-pill-mark" aria-hidden="true" />{w.statuses[campaign.status]}</span>)}
       </div>
 
       {editable && !footerOk && sender && (
@@ -360,28 +370,30 @@ export default function CampaignEditor({
             <Step n={1} title={w.step1} labelId={`${uid}-s1`}>
               {!campaign && id === "new" && events.length > 0 && (
                 <div>
-                  <label className="a-label" htmlFor={`${uid}-ev`}>{w.startFrom}</label>
+                  <span className="flex items-center justify-between gap-2"><label className="a-label" htmlFor={`${uid}-ev`}>{w.startFrom}</label>{phone && <InfoPopover label={w.startFrom} text={w.startFromHint} />}</span>
                   <select id={`${uid}-ev`} className="a-select min-h-[44px] max-w-full" value="" onChange={(e) => void startFrom(e.target.value)}>
                     <option value="">{w.startFromNone}</option>
                     {events.map((e) => <option key={e.id} value={e.id}>{e.title}</option>)}
                   </select>
-                  <p className="a-hint">{w.startFromHint}</p>
+                  {!phone && <p className="a-hint">{w.startFromHint}</p>}
                 </div>
               )}
               <div>
                 <label className="a-label" htmlFor={`${uid}-s`}>{w.subject}</label>
                 <input id={`${uid}-s`} className="a-input min-h-[44px]" dir="auto" maxLength={200} value={form.subject} onChange={(e) => set("subject", e.target.value)} />
               </div>
-              <div>
-                <label className="a-label" htmlFor={`${uid}-p`}>{w.preheader}</label>
-                <input id={`${uid}-p`} className="a-input min-h-[44px]" dir="auto" maxLength={200} value={form.preheader} onChange={(e) => set("preheader", e.target.value)} aria-describedby={`${uid}-phint`} />
-                <p id={`${uid}-phint`} className="a-hint">{w.preheaderHint}</p>
-              </div>
+              {!phone && (
+                <div>
+                  <label className="a-label" htmlFor={`${uid}-p`}>{w.preheader}</label>
+                  <input id={`${uid}-p`} className="a-input min-h-[44px]" dir="auto" maxLength={200} value={form.preheader} onChange={(e) => set("preheader", e.target.value)} aria-describedby={`${uid}-phint`} />
+                  <p id={`${uid}-phint`} className="a-hint">{w.preheaderHint}</p>
+                </div>
+              )}
               {!form.useBlocks && (
                 <div>
-                  <label className="a-label" htmlFor={`${uid}-b`}>{w.bodyText}</label>
-                  <textarea id={`${uid}-b`} className="a-textarea" rows={9} dir="auto" value={form.bodyText} onChange={(e) => set("bodyText", e.target.value)} aria-describedby={`${uid}-bhint`} />
-                  <p id={`${uid}-bhint`} className="a-hint">{w.bodyHint}</p>
+                  <span className="flex items-center justify-between gap-2"><label className="a-label" htmlFor={`${uid}-b`}>{w.bodyText}</label>{phone && <InfoPopover label={w.bodyText} text={w.bodyHint} />}</span>
+                  <textarea id={`${uid}-b`} className="a-textarea" rows={9} dir="auto" value={form.bodyText} onChange={(e) => set("bodyText", e.target.value)} aria-describedby={phone ? undefined : `${uid}-bhint`} />
+                  {!phone && <p id={`${uid}-bhint`} className="a-hint">{w.bodyHint}</p>}
                 </div>
               )}
               <Disclosure className="a-box" summary={w.blocksHeading} open={form.useBlocks}>
@@ -394,7 +406,13 @@ export default function CampaignEditor({
                   {form.useBlocks && <BlocksEditor blocks={form.blocks} onChange={(b) => set("blocks", b)} />}
                 </div>
               </Disclosure>
-              <Disclosure className="a-box" summary={w.ownName}>
+              <Disclosure className="a-box" summary={phone ? pw.moreOptions : w.ownName}>
+                {phone && (
+                  <div>
+                    <label className="a-label" htmlFor={`${uid}-p`}>{w.preheader}</label>
+                    <input id={`${uid}-p`} className="a-input min-h-[44px]" dir="auto" maxLength={200} value={form.preheader} onChange={(e) => set("preheader", e.target.value)} />
+                  </div>
+                )}
                 <div>
                   <label className="a-label" htmlFor={`${uid}-n`}>{w.internalName}</label>
                   <input id={`${uid}-n`} className="a-input min-h-[44px]" dir="auto" maxLength={120} value={form.name} onChange={(e) => set("name", e.target.value)} aria-describedby={`${uid}-nh`} />
@@ -428,15 +446,15 @@ export default function CampaignEditor({
                   </select>
                 </div>
                 <div>
-                  <label className="a-label" htmlFor={`${uid}-t`}>{w.topic}</label>
-                  <select id={`${uid}-t`} className="a-select min-h-[44px]" value={form.topic} onChange={(e) => set("topic", e.target.value as "" | CampaignTopic)} aria-describedby={`${uid}-th`}>
+                  <span className="flex items-center justify-between gap-2"><label className="a-label" htmlFor={`${uid}-t`}>{w.topic}</label>{phone && <InfoPopover label={w.topic} text={w.topicHint} />}</span>
+                  <select id={`${uid}-t`} className="a-select min-h-[44px]" value={form.topic} onChange={(e) => set("topic", e.target.value as "" | CampaignTopic)} aria-describedby={phone ? undefined : `${uid}-th`}>
                     <option value="">{w.topics.any}</option>
                     <option value="blog">{w.topics.blog}</option>
                     <option value="releases">{w.topics.releases}</option>
                   </select>
                 </div>
               </div>
-              <p id={`${uid}-th`} className="a-hint !mt-0">{w.topicHint}</p>
+              {!phone && <p id={`${uid}-th`} className="a-hint !mt-0">{w.topicHint}</p>}
               <div className="a-box p-3" role="status" aria-live="polite" data-testid="audience-count">
                 <p className="a-label !mt-0">{w.recipients}</p>
                 {audience === "none" ? (
@@ -481,6 +499,16 @@ export default function CampaignEditor({
             </Step>
 
             <Step n={4} title={w.step4} labelId={`${uid}-s4`}>
+              {phone ? (
+                <div className="space-y-3" data-testid="review">
+                  <p dir="auto" className="min-w-0 break-words text-sm"><span className="font-bold">{w.reviewSubject}: </span>{form.subject || "—"}</p>
+                  <Journey
+                    from={{ icon: ICON.from, label: fromLabel }}
+                    to={{ icon: ICON.to, label: recipients === null ? "—" : w.recipientCount(recipients) }}
+                    via={<><ICON.when size={16} strokeWidth={1.75} aria-hidden="true" focusable="false" /> {later ? (scheduleIso && !past ? fmt(scheduleIso) : "—") : w.reviewNow}</>}
+                  />
+                </div>
+              ) : (
               <dl className="a-box grid gap-x-4 gap-y-2 p-3 text-sm sm:grid-cols-[auto_1fr]">
                 <dt className="font-bold">{w.reviewSubject}</dt>
                 <dd dir="auto" className="min-w-0 break-words">{form.subject || "—"}</dd>
@@ -491,6 +519,7 @@ export default function CampaignEditor({
                 <dt className="font-bold">{w.reviewWhen}</dt>
                 <dd>{later ? (scheduleIso && !past ? fmt(scheduleIso) : "—") : w.reviewNow}</dd>
               </dl>
+              )}
               {editable && (
                 <div role="status" data-testid="readiness">
                   {problems.length > 0 ? (

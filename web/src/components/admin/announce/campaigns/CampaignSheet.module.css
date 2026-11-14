@@ -1,0 +1,96 @@
+/*
+ * The campaign sheet body. One column, logical properties only, spacing from
+ * the admin scale. Nothing here transitions: the sheet itself moves.
+ */
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--a-s-4, 1rem);
+  min-inline-size: 0;
+  padding-block-end: var(--a-s-3, 0.75rem);
+  overflow-wrap: anywhere;
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: var(--a-s-4, 1rem);
+  row-gap: var(--a-s-2, 0.5rem);
+  margin: 0;
+  font-size: var(--a-fs-meta, 0.875rem);
+}
+
+.facts dt {
+  color: rgb(var(--ink-soft));
+}
+
+.facts dd {
+  margin: 0;
+  min-inline-size: 0;
+  color: rgb(var(--ink));
+}
+
+/* Counts line up on their digits; an id or a number is read left to right. */
+.num {
+  font-variant-numeric: tabular-nums;
+  text-align: start;
+}
+
+.counts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--a-s-2, 0.5rem);
+}
+
+.alert {
+  display: flex;
+  flex-direction: column;
+  gap: var(--a-s-1, 0.25rem);
+  padding: var(--a-s-3, 0.75rem);
+  border: 1px solid rgb(var(--destructive-ink));
+  border-radius: var(--a-r-sm, 10px);
+  font-size: var(--a-fs-meta, 0.875rem);
+}
+
+.alert p {
+  margin: 0;
+}
+
+.alertTitle {
+  margin: 0;
+  font-weight: 700;
+}
+
+.list {
+  margin: 0;
+  padding-inline-start: var(--a-s-5, 1.25rem);
+  color: rgb(var(--destructive-ink));
+  font-size: var(--a-fs-meta, 0.875rem);
+}
+
+.ok,
+.bad {
+  margin: 0;
+  min-block-size: 0;
+  font-size: var(--a-fs-meta, 0.875rem);
+}
+
+.ok {
+  color: rgb(var(--ink-soft));
+}
+
+.bad {
+  color: rgb(var(--destructive-ink));
+  font-weight: 700;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--a-s-2, 0.5rem);
+}
+
+.action {
+  inline-size: 100%;
+  justify-content: center;
+}

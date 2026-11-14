@@ -6,6 +6,8 @@ import { adminAnnounce, type AnnounceSummary, type SenderSettings } from "@/serv
 import { adminAudience, type Group } from "@/services/adminAudience";
 import { adminCampaigns, type Campaign } from "@/services/adminCampaigns";
 import CampaignEditor from "./CampaignEditor";
+import CampaignsPhone from "./CampaignsPhone";
+import { usePhone } from "@/hooks/usePhone";
 import SendingSwitch from "./SendingSwitch";
 import { pillState } from "./status";
 import { useCampaignWords } from "./words";
@@ -20,6 +22,7 @@ const LIST_POLL_MS = 10000;
  */
 export default function CampaignsTab() {
   const w = useCampaignWords();
+  const phone = usePhone();
   const [items, setItems] = useState<Campaign[] | null>(null);
   const [error, setError] = useState<"load" | "auth" | null>(null);
   const [open, setOpen] = useState<string | null>(null);
@@ -61,16 +64,27 @@ export default function CampaignsTab() {
 
   const noFooter = sender !== null && identityMissing(sender).length > 0;
   return (
-    <div className="max-w-5xl space-y-6" data-testid="campaigns">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 className="display-tight text-xl">{w.heading}</h2>
-          <p className="a-hint">{w.intro}</p>
+    <div className={`max-w-5xl ${phone ? "space-y-3" : "space-y-6"}`} data-testid="campaigns">
+      {phone ? (
+        /* The tab already says Campaigns, so the heading is for screen readers; the two things always at hand share one line. */
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="sr-only">{w.heading}</h2>
+          <button type="button" className="a-btn a-btn-primary min-h-[44px] flex-1" onClick={() => setOpen("new")}>{w.newCampaign}</button>
+          <SendingSwitch compact />
         </div>
-        <button type="button" className="a-btn a-btn-primary min-h-[44px]" onClick={() => setOpen("new")}>{w.newCampaign}</button>
-      </div>
+      ) : (
+        <>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="display-tight text-xl">{w.heading}</h2>
+              <p className="a-hint">{w.intro}</p>
+            </div>
+            <button type="button" className="a-btn a-btn-primary min-h-[44px]" onClick={() => setOpen("new")}>{w.newCampaign}</button>
+          </div>
 
-      <SendingSwitch />
+          <SendingSwitch />
+        </>
+      )}
 
       {noFooter && (
         <div className="a-box border-[rgb(var(--destructive-ink))] p-4" role="alert" data-testid="footer-blocker">
@@ -86,6 +100,8 @@ export default function CampaignsTab() {
         <LoadingRows label={w.loading} />
       ) : items.length === 0 ? (
         <EmptyState title={w.empty} />
+      ) : phone ? (
+        <CampaignsPhone items={items} sender={sender} groups={groups} onOpen={setOpen} onChanged={changed} />
       ) : (
         <div>
           <p className="a-hint !mt-0 mb-2 tabular-nums" role="status">{w.count(items.length)}</p>

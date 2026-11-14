@@ -1,0 +1,61 @@
+/*
+ * Campaigns below 600px. The page never scrolls sideways: every cell is
+ * minmax(0, 1fr) or wraps, nothing has a fixed width but the progress bar
+ * (in rem, so text zoom scales it). Logical properties only.
+ */
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--a-s-2, 0.5rem);
+  min-inline-size: 0;
+}
+
+/* Filters and Select share a line; in select mode, when Select grows into three buttons, the chips wrap under it. */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--a-s-2, 0.5rem);
+  min-inline-size: 0;
+}
+
+.chips {
+  flex: 1 1 12rem;
+  min-inline-size: 0;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-inline-size: 0;
+}
+
+/* The row's status cell: a short bar while mail is going out, then the one glyph. */
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--a-s-2, 0.5rem);
+}
+
+.bar {
+  inline-size: 3.5rem;
+  min-inline-size: 0;
+}
+
+.bar > span:first-child {
+  min-inline-size: 0;
+}
+
+.notice {
+  margin: 0;
+  font-size: var(--a-fs-meta, 0.875rem);
+  color: rgb(var(--ink-soft));
+}
+
+.notice:empty {
+  display: none;
+}
