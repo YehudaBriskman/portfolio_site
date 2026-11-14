@@ -29,6 +29,16 @@ const EXTRA = [path.join(REPO, "backend/src/services/seo-words.ts")];
  * Hebrew reader may legitimately see in Latin letters.
  */
 const LATIN_SEEN = new Set<string>([
+  /* Mail DNS records the owner must publish, named as the provider and the registrar show them (sender/readinessWords.ts); Re and Fwd are the subject prefixes the advice names (campaigns/words.ts). */
+  "SPF",
+  "DKIM",
+  "DMARC",
+  "dmarc",
+  "TXT",
+  "DNS",
+  "Domains",
+  "Re",
+  "Fwd",
   /* The server environment variable the owner must set or remove by name (campaigns/words.ts, the kill switch). */
   "SEND",
   "ENABLED",

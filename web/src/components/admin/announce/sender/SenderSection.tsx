@@ -7,6 +7,7 @@ import { InfoPopover } from "@/components/ui/InfoPopover";
 import { useSenderWords } from "./words";
 import { useBudgetWords } from "./budgetWords";
 import BudgetMeter from "./BudgetMeter";
+import ReadinessCard from "./ReadinessCard";
 
 /*
  * Settings > Advanced > Sender & delivery. It edits the WHOLE sender object in
@@ -352,6 +353,8 @@ export default function SenderSection({ sender, onChange, warnings, phone = fals
         </>,
         { bad: limitsBad, testid: "sec-limits" },
       )}
+
+      {showLimits && <ReadinessCard />}
 
       {showLimits && sec(
         bw.secBudget,

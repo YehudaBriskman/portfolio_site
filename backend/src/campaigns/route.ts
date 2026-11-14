@@ -16,6 +16,7 @@ import { campaignsBlocked, sendingState, setPaused } from "./killSwitch.js";
 import { renderCampaignMail } from "./render.js";
 import { AudienceBody, SendingBody, CampaignCreate, CampaignId, CampaignPatch, PreviewBody, ScheduleBody, SendNowBody, type Campaign } from "./schemas.js";
 import { CAP_WINDOW_MS } from "./sender.js";
+import { dnsOverride, sendReadiness } from "./sendReadiness.js";
 import { campaignId, createCampaign, deleteCampaign, getCampaign, isStatus, listCampaigns, mutateCampaign, sentCounts } from "./store.js";
 
 /*
@@ -93,6 +94,17 @@ router.post(
  * and, given `remaining` recipients, how many days a campaign needs. Counts
  * only. Registered before /:id so "budget" is never read as a campaign id.
  */
+/* Send readiness: DNS for the saved From domain and the sender settings, statuses only. Admin-only like the rest of this router. */
+router.get(
+  "/readiness",
+  asyncHandler(async (_req, res) => {
+    const loaded = await loadSendSettings();
+    if (!loaded.ok) return bad(res, loaded.reason, 503);
+    const r = await sendReadiness(loaded.settings.sender, dnsOverride.look);
+    res.set("Cache-Control", "no-store").json({ ok: true, ...r });
+  }),
+);
+
 router.get(
   "/budget",
   asyncHandler(async (req, res) => {

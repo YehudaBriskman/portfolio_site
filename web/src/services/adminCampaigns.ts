@@ -70,6 +70,7 @@ export type CapChoice = { skipCapped?: boolean; overrideCap?: boolean; /** The a
 export type CapInfo = { code: "cap"; capped: number; total: number; max: number };
 
 /** The mail budget (GET /budget): counts only. `plan` is present when `remaining` was asked; null means the settings leave no room at all. */
+export type ReadinessView = { domain: string | null; replyTo: boolean; items: Array<{ id: "spf" | "dkim" | "dmarc" | "domainMatch" | "replyTo" | "identity" | "testRecipient" | "webhook"; status: "ok" | "fix" | "unknown" | "info" }> };
 export type BudgetView = {
   today: { used: number; usable: number; reserve: number; room: number };
   month: { used: number; usable: number; room: number };
@@ -147,6 +148,7 @@ export const adminCampaigns = {
   /** One click: `true` holds every campaign, `false` lets them carry on. */
   setPaused: async (paused: boolean): Promise<SendingState> => parseSending(await call<Partial<SendingState> | null>("/sending", json({ paused }))),
   /** The mail budget now and, given how many are still to send, how many days that takes. */
+  readiness: async (): Promise<ReadinessView> => await call<ReadinessView>("/readiness"),
   budget: async (remaining?: number): Promise<BudgetView> => {
     const r = await call<Partial<BudgetView> | null>(`/budget${remaining === undefined ? "" : `?remaining=${Math.max(0, Math.floor(remaining))}`}`);
     if (!r || typeof r.today?.used !== "number" || typeof r.month?.used !== "number" || typeof r.capacity !== "number") throw new Error("bad-budget");
