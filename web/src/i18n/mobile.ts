@@ -58,6 +58,7 @@ export const useMobileWords = defineWords(
       pending: "Waiting to confirm",
       unsubscribed: "Unsubscribed",
       suppressed: "Blocked from mail",
+      attention: "Needs attention",
     },
     channel: {
       group: "Where it is posted",
@@ -201,6 +202,7 @@ export const useMobileWords = defineWords(
       pending: "ממתין לאישור",
       unsubscribed: "ביטל הרשמה",
       suppressed: "חסום לדיוור",
+      attention: "דורש תשומת לב",
     },
     channel: {
       group: "איפה פורסם",
