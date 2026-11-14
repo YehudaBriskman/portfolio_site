@@ -41,6 +41,7 @@ export const STATUS = {
   pending: e(ICON.pendingConfirm, "attention"),
   unsubscribed: e(ICON.unsubscribed, "neutral"),
   suppressed: e(ICON.suppressed, "danger"),
+  attention: e(ICON.attention, "attention"),
 } satisfies Record<string, Entry>;
 
 export type StatusKind = keyof typeof STATUS;
@@ -56,11 +57,16 @@ export interface StatusGlyphProps {
   withWord?: boolean;
   /** Draw a normal state (published, active, mailable, translated) instead of nothing. */
   showDefault?: boolean;
+  /** The words for this one glyph when the kind's own word is too general ("Long description"). */
+  label?: string;
+  /** Escalate a kind to a stronger tone (an error among warnings). */
+  tone?: StatusTone;
   className?: string;
 }
 
-export function StatusGlyph({ kind, size = 20, withWord = false, showDefault = false, className }: StatusGlyphProps) {
-  const word = useMobileWords().status[kind];
+export function StatusGlyph({ kind, size = 20, withWord = false, showDefault = false, label, tone, className }: StatusGlyphProps) {
+  const kindWord = useMobileWords().status[kind];
+  const word = label ?? kindWord;
   const entry: Entry = STATUS[kind];
   if (entry.quiet && !showDefault) return null;
   const Icon = entry.icon as LucideIcon;
@@ -73,7 +79,7 @@ export function StatusGlyph({ kind, size = 20, withWord = false, showDefault = f
       className={styles.svg}
     />
   );
-  const common = { "data-kind": kind, "data-tone": entry.tone, className: cx(styles.glyph, className) };
+  const common = { "data-kind": kind, "data-tone": tone ?? entry.tone, className: cx(styles.glyph, className) };
   if (withWord) {
     return (
       <span {...common}>
