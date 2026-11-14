@@ -35,6 +35,7 @@
     "a11y:public-targets": "node scripts/a11y/public-targets.mjs",
     "a11y:public-landing": "node scripts/a11y/public-landing.mjs",
     "a11y:public-projects": "node scripts/a11y/public-projects.mjs",
+    "a11y:public-project-polish": "node scripts/a11y/public-project-polish.mjs",
     "shoot:projects": "node scripts/a11y/shoot-projects.mjs",
     "a11y:public-phone": "node scripts/a11y/phone-pages.mjs",
     "shoot:public": "node scripts/a11y/shoot-public.mjs",
