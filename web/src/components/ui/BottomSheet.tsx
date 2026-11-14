@@ -250,6 +250,7 @@ export function BottomSheet({
 
   const onPointerDown = (e: PointerEvent<HTMLElement>) => {
     if (short || (e.button ?? 0) !== 0) return;
+    suppressClick.current = false;
     drag.current = {
       y: e.clientY,
       h: heightPx(shown, window.innerHeight),
@@ -281,7 +282,13 @@ export function BottomSheet({
     const s = drag.current;
     drag.current = null;
     if (!s?.moved) return;
+    /* A mouse drag is followed by a click on the header that must not count; a
+       touch drag is followed by none, so the flag cannot wait for one: it
+       lapses once this event's click has had its turn. */
     suppressClick.current = true;
+    setTimeout(() => {
+      suppressClick.current = false;
+    }, 0);
     e.currentTarget.releasePointerCapture?.(e.pointerId);
     const vh = window.innerHeight;
     const eff = s.h - (e.clientY - s.y);
