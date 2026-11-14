@@ -289,7 +289,8 @@ export default function AdminShell({ title, section, counts, bottomBar, backTo, 
             <ExternalLink aria-hidden="true" />
             <span className="hidden md:inline">{w.viewSite}</span>
           </a>
-          <NotificationsMenu />
+          {/* On a phone the bell lives in the drawer: the top bar is on a control budget. */}
+          <NotificationsMenu className="max-lg:hidden" />
           <DisplayMenu />
           {who && (
             <span className="a-owner" title={w.signedInAs(who)}>
@@ -318,6 +319,9 @@ export default function AdminShell({ title, section, counts, bottomBar, backTo, 
           />
 
           <div className="a-side-foot">
+            <div className="lg:hidden">
+              <NotificationsMenu />
+            </div>
             <p className="a-side-who">{who ? w.signedInAs(who) : w.signedIn}</p>
             <a href="/oauth2/sign_out" className="a-nav-item" onClick={() => toast.clearHistory()}>
               <span className="a-nav-icon" aria-hidden="true">

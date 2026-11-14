@@ -56,6 +56,26 @@ describe("ToastHost", () => {
     expect(toast.live()[0].duration).toBe(Infinity);
   });
 
+  it("Learn more is a same-tab link to the help topic, inside the Details when there are some", async () => {
+    render(<ToastHost />);
+    act(() => void toast.error("Not sent", { details: "Long text.", help: { topic: "contact-form" } }));
+    await flush();
+    expect(screen.queryByRole("link", { name: "Learn more" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Details" }));
+    await flush();
+    const a = screen.getByRole("link", { name: "Learn more" });
+    expect(a.getAttribute("href")).toBe("/help#contact-form");
+    expect(a.getAttribute("target")).toBeNull();
+  });
+
+  it("Learn more with no Details shows at once, in Hebrew under /he", async () => {
+    document.documentElement.lang = "he";
+    render(<ToastHost />);
+    act(() => void toast.info("הועתק", { help: { topic: "sharing" } }));
+    await flush();
+    expect(screen.getByRole("link", { name: "למידע נוסף" }).getAttribute("href")).toBe("/he/help#sharing");
+  });
+
   it("an action runs its handler; Undo drops the commit", async () => {
     render(<ToastHost />);
     let committed = 0;

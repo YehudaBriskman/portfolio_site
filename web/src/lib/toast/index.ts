@@ -1,5 +1,8 @@
 import { useSyncExternalStore } from "react";
 import { useToastWords } from "@/i18n/toast";
+import type { HelpTopic } from "./helpTopics";
+
+export { HELP_TOPICS, helpHref, type HelpTopic } from "./helpTopics";
 
 /*
  * The toast service: one place that decides what is shown, for how long, and
@@ -28,6 +31,8 @@ export interface ToastOptions {
   description?: string;
   /** Longer text behind a Details button. Never kept in the history. */
   details?: string;
+  /** A "Learn more" link to a help topic (typed ids: `helpTopics.ts`). Shown with the Details, or alone. */
+  help?: { topic: HelpTopic };
   action?: ToastAction;
   secondary?: ToastAction;
   /** Ms. Overrides the default for the kind. */
@@ -43,6 +48,7 @@ export interface ToastRecord {
   title: string;
   description?: string;
   details?: string;
+  help?: { topic: HelpTopic };
   action?: ToastAction;
   secondary?: ToastAction;
   /** Ms; Infinity never expires. */
@@ -92,7 +98,7 @@ const emit = () => {
 function lifetime(kind: ToastKind, o: ToastOptions, open: boolean): number {
   if (open || o.persistent || kind === "loading") return Infinity;
   if (o.duration !== undefined) return o.duration;
-  if (kind === "error") return o.action || o.secondary || o.details ? toastDurations.errorWithAction : toastDurations.error;
+  if (kind === "error") return o.action || o.secondary || o.details || o.help ? toastDurations.errorWithAction : toastDurations.error;
   return toastDurations[kind];
 }
 
@@ -105,6 +111,7 @@ function raise(kind: ToastKind, title: string, o: ToastOptions = {}, open = fals
     title,
     description: o.description,
     details: o.details,
+    help: o.help,
     action: o.action,
     secondary: o.secondary,
     duration: lifetime(kind, o, open),
