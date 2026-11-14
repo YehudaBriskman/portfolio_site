@@ -146,10 +146,12 @@ describe("the phone header", () => {
     renderAt("/projects/bothy");
     const h = await header();
     const tiles = [...h.querySelectorAll<HTMLElement>('[data-phone="stat-tile"]')];
-    expect(tiles).toHaveLength(4);
+    // three chips at most (two rows on a 360 phone): language, stars, version. Forks live in Details.
+    expect(tiles).toHaveLength(3);
     for (const t of tiles) expect(t.querySelector("svg")).toBeTruthy();
     const texts = tiles.map((t) => t.textContent ?? "");
-    for (const want of ["TypeScript", "12", "3", "v1.9.0"]) expect(texts.some((x) => x.includes(want))).toBe(true);
+    for (const want of ["TypeScript", "12", "v1.9.0"]) expect(texts.some((x) => x.includes(want))).toBe(true);
+    expect(texts.some((x) => x.includes("Forks"))).toBe(false);
     const stars = tiles.find((t) => (t.textContent ?? "").includes("12"))!;
     expect(within(stars).getByText("Stars").className).toMatch(/sr/);
   });
@@ -203,5 +205,96 @@ describe("above the phone breakpoint", () => {
     expect(h.querySelector('[data-phone="head-cover"]')).toBeNull();
     expect(h.querySelector("details")).toBeNull();
     expect(document.body.textContent).toMatch(/fig\.?\s*0?1/i);
+  });
+});
+
+describe("second polish pass", () => {
+  const withCover = () => {
+    collections = [col("bothy", "Bothy", { coverImage: "/img/bothy-cover.jpg" }), col("windom", "WindoM")];
+  };
+  const aboutOf = () =>
+    waitFor(() => {
+      const el = document.querySelector<HTMLElement>('aside [data-phone="about"]');
+      expect(el).toBeTruthy();
+      return el!;
+    });
+
+  it("puts the title and the tile after the cover in the flow, never on it", async () => {
+    media(true);
+    withCover();
+    renderAt("/projects/bothy");
+    const h = await header();
+    const cover = h.querySelector('[data-phone="head-cover"]')!;
+    const top = h.querySelector('[class*="phoneTop"]')!;
+    expect(cover.compareDocumentPosition(top) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(cover.contains(top)).toBe(false);
+  });
+
+  it("shows the cover once: the Overview has no second picture of it", async () => {
+    media(true);
+    withCover();
+    renderAt("/projects/bothy");
+    await header();
+    expect(document.querySelectorAll('img[src*="bothy-cover"]')).toHaveLength(1);
+    expect(document.querySelector('img[alt$="screenshot"]')).toBeNull();
+  });
+
+  it("writes the Overview description in plain ink, direction from its own text", async () => {
+    media(true);
+    renderAt("/projects/windom");
+    const p = await screen.findByText("WindoM, described.");
+    expect(p.closest("p")?.getAttribute("dir")).toBe("auto");
+    expect(p.closest("p")?.querySelector("[data-word]")).toBeNull();
+  });
+
+  it("ends no Elsewhere row on a separator: the parts stack, they are not joined", async () => {
+    media(true);
+    renderAt("/projects/windom");
+    await header();
+    const sect = await waitFor(() => {
+      const el = document.querySelector<HTMLElement>("#elsewhere-heading")?.closest("section");
+      expect(el).toBeTruthy();
+      return el!;
+    });
+    const metas = sect.querySelectorAll("[data-stack]");
+    expect(metas.length).toBeGreaterThan(0);
+    for (const m of metas) for (const part of m.children) expect((part.textContent ?? "").trim()).not.toBe("");
+  });
+
+  it("About: label/value rows, header and Details data not repeated, links as rows", async () => {
+    media(true);
+    collections = [
+      col("bothy", "Bothy"),
+      col("windom", "WindoM", { stats: { stars: 12, forks: 3, language: "TypeScript", license: "MIT", fetchedAt: "2026-11-15T00:33:00.000Z", pushedAt: "2026-10-30T10:00:00.000Z", latestRelease: null } }),
+    ];
+    renderAt("/projects/windom");
+    await header();
+    const about = await aboutOf();
+    expect([...about.querySelectorAll("dt")].map((d) => d.textContent)).toEqual(["Last push", "Licence"]);
+    for (const dd of about.querySelectorAll("dd")) expect(dd.parentElement?.tagName).toBe("DIV");
+    expect(within(about).queryByText(/Language|Stars|Forks/)).toBeNull();
+    expect(about.querySelector('dd [dir="ltr"]')?.textContent).toBe("MIT");
+    const stamp = about.querySelector("[data-phone='about-stamp']");
+    expect(stamp?.textContent).toMatch(/^as of /i);
+    expect(stamp?.textContent).not.toMatch(/ at /);
+    expect(about.querySelector(`a[href="${REPO}"][data-phone-row]`)).toBeTruthy();
+  });
+
+  it("About says the repository once: not when Details already holds it", async () => {
+    media(true);
+    collections = [col("bothy", "Bothy", { links: [{ label: "Chrome Web Store", url: STORE }] })];
+    renderAt("/projects/bothy");
+    await header();
+    const about = await aboutOf();
+    expect(about.querySelector(`a[href="${REPO}"]`)).toBeNull();
+    expect(document.querySelectorAll(`a[href="${REPO}"]`).length).toBe(1);
+  });
+
+  it("puts Forks in Details, once", async () => {
+    media(true);
+    renderAt("/projects/bothy");
+    const h = await header();
+    expect(within(h.querySelector("details") as HTMLElement).getByText("Forks")).toBeTruthy();
+    expect(screen.getAllByText("Forks")).toHaveLength(1);
   });
 });

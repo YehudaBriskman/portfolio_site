@@ -1828,3 +1828,15 @@
     padding-inline-end: 58px;
   }
 }
+
+/* A row whose meta parts stack (the project page's Elsewhere on a phone): no
+   joining dot, so a part that wraps can never leave one dangling at a line's
+   end. Wide rows keep the dot; `data-stack` is only set on a phone. */
+@media (max-width: 639px) {
+  .rowMeta[data-stack] {
+    flex-direction: column;
+  }
+  .rowMeta[data-stack] .metaPart + .metaPart::before {
+    content: none;
+  }
+}

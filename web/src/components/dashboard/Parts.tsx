@@ -102,7 +102,10 @@ export function Row({
   chips,
   badge,
   area,
+  stack,
 }: {
+  /** Phone: the meta parts stack on their own lines instead of being joined by a dot, so a wrapped part never leaves a dangling separator. */
+  stack?: boolean;
   /** The area the note is filed in: on a phone it tints the circle and adds the chevron (direction A). */
   area?: string;
   icon: ReactNode;
@@ -132,7 +135,7 @@ export function Row({
           </Link>
           {badge}
         </div>
-        <div className={styles.rowMeta}>
+        <div className={styles.rowMeta} data-stack={stack ? "" : undefined}>
           {parts.map((m, i) => (
             <span key={i} className={styles.metaPart}>
               {m}

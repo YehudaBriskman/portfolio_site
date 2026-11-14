@@ -479,19 +479,19 @@ a.listRow:hover .listTitle {
     border-radius: var(--r-md);
     background: var(--ph-card);
   }
-  /* room for the picture to be seen above the name */
-  .phoneHead[data-cover] {
-    padding-block-start: 104px;
-  }
+  /* The cover is the card's top, a block of its own: it bleeds to the card's
+     edges and fades into the surface over its last quarter, and the tile and
+     the name start BELOW it, on the solid surface. Nothing sits on the
+     picture, so the name's contrast is the ink on the card, whatever the
+     picture is. */
   .cover {
-    position: absolute;
-    z-index: -1;
-    inset-block-start: 0;
-    inset-inline: 0;
-    block-size: 200px;
+    position: relative;
+    margin-block-start: -16px;
+    margin-inline: calc(-1 * var(--ph-gutter));
+    block-size: 176px;
     pointer-events: none;
-    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 24%, transparent 82%);
-    mask-image: linear-gradient(to bottom, #000 0%, #000 24%, transparent 82%);
+    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 72%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 0%, #000 72%, transparent 100%);
   }
   .cover picture {
     display: block;
@@ -506,6 +506,11 @@ a.listRow:hover .listTitle {
   }
   /* no cover: a wash of the state's own hue, fading the same way */
   .cover[data-fallback] {
+    position: absolute;
+    z-index: -1;
+    inset-block-start: 0;
+    inset-inline: 0;
+    margin: 0;
     block-size: 132px;
     background: linear-gradient(to bottom, rgb(var(--ph-t) / 0.3), rgb(var(--ph-t) / 0));
     -webkit-mask-image: none;
@@ -577,5 +582,20 @@ a.listRow:hover .listTitle {
   }
   .figure figure {
     border-radius: var(--r-sm);
+  }
+  /* a row's title over its meta line, never both in the first grid row: the
+     shared privacy rule centres every group row's text across both rows, which
+     is right for a title alone and stacks a meta line on top of its title */
+  [data-phone-group] > ul > li > .listRow[data-phone-row]:has(> .listMeta) > .listTitle {
+    grid-row: 1;
+  }
+  [data-phone-group] > ul > li > .listRow[data-phone-row] > .listMeta {
+    grid-row: 2;
+  }
+  /* the pen's muted words are for a reader who has scrolled; on a phone the
+     text is plain ink from the first paint */
+  .card :global([data-word]) {
+    animation: none !important;
+    color: rgb(var(--ink)) !important;
   }
 }
