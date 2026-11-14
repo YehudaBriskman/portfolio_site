@@ -195,3 +195,69 @@ describe("a transient failure is not an expired link", () => {
     await screen.findByText("a***@e***.com");
   });
 });
+
+describe("manage: topics", () => {
+  const prefs = { ok: true, email: "d***@example.com", lang: "en", topics: { blog: true, releases: false }, status: "active" };
+  const load = () => {
+    fetchMock.mockImplementation(async (_u: string, init?: RequestInit) => new Response(JSON.stringify(init?.method === "PUT" ? { ok: true } : prefs), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+  };
+
+  it("refuses to save with both topics off, says why in an alert, and points at Unsubscribe", async () => {
+    load();
+    at(<SubscribeManage />, "/subscribe/manage?token=abcdefghijk");
+    await userEvent.click(await screen.findByRole("checkbox", { name: /new notes/i }));
+    await userEvent.click(screen.getByRole("button", { name: /save/i }));
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toMatch(/choose at least one/i);
+    expect(fetchMock.mock.calls.filter((c) => c[1]?.method === "PUT")).toHaveLength(0);
+    expect(alert).toHaveFocus();
+    expect(screen.getByRole("link", { name: /unsubscribe/i })).toBeInTheDocument();
+  });
+
+  it("saves once a topic is ticked again, and moves focus to the 'Saved.' status", async () => {
+    load();
+    at(<SubscribeManage />, "/subscribe/manage?token=abcdefghijk");
+    await userEvent.click(await screen.findByRole("checkbox", { name: /new notes/i }));
+    await userEvent.click(screen.getByRole("button", { name: /save/i }));
+    await userEvent.click(screen.getByRole("checkbox", { name: /releases/i }));
+    await userEvent.click(screen.getByRole("button", { name: /save/i }));
+    const status = await screen.findByRole("status");
+    await waitFor(() => expect(status.textContent).toMatch(/saved/i));
+    expect(status).toHaveFocus();
+    expect(fetchMock.mock.calls.filter((c) => c[1]?.method === "PUT")).toHaveLength(1);
+  });
+});
+
+describe("focus after the action", () => {
+  it("confirm: focus lands on the result when the button goes away", async () => {
+    respond(200, { ok: true, lang: "en" });
+    at(<SubscribeConfirm />, "/subscribe/confirm?token=abc");
+    await userEvent.click(screen.getByRole("button", { name: /confirm my subscription/i }));
+    const status = await screen.findByRole("status");
+    await waitFor(() => expect(status.textContent).toMatch(/subscribed/i));
+    expect(status).toHaveFocus();
+  });
+
+  it("unsubscribe: focus lands on the result when the button goes away", async () => {
+    respond(200);
+    at(<Unsubscribe />, "/unsubscribe?token=abc");
+    await userEvent.click(screen.getByRole("button", { name: /unsubscribe me/i }));
+    const status = await screen.findByRole("status");
+    await waitFor(() => expect(status.textContent).toMatch(/won.t get any more email/i));
+    expect(status).toHaveFocus();
+  });
+
+  it("a dead link after the click puts focus on the alert, not on body", async () => {
+    respond(400, { ok: false });
+    at(<Unsubscribe />, "/unsubscribe?token=abc");
+    await userEvent.click(screen.getByRole("button", { name: /unsubscribe me/i }));
+    expect(await screen.findByRole("alert")).toHaveFocus();
+  });
+
+  it("opening a page with no token does not steal focus", () => {
+    respond(200);
+    at(<Unsubscribe />, "/unsubscribe");
+    expect(document.body).toHaveFocus();
+  });
+});

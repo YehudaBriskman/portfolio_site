@@ -87,9 +87,31 @@ export const useContactWords = defineWords(
     sending: "Sending",
     send: "Send message",
     invalid: "Nothing was sent. There's a note under each field that needs a change.",
-    failed: (reason: string, email: string) =>
-      `Nothing was sent — ${reason}. Your message is still in the fields, and ${email} works too.`,
-    unknownFailure: "something went wrong at my end",
+    /* One full sentence per cause the reader can act on; never a status code
+       or the browser's own text. */
+    failed: {
+      /* `details` carries `{email}`, which the form turns into a left-to-right mailto link. */
+      rate: {
+        title: "Message not sent, too many tries",
+        short: "Please wait a few minutes, then try again.",
+        details: "Too many messages came from this connection in a short time, so the site paused them for a while. Wait a few minutes and press Send again. Your message is still in the fields. You can also write to {email}.",
+      },
+      large: {
+        title: "Message not sent, too long",
+        short: "Shorten the message a little and try again.",
+        details: "The message is larger than the site accepts. Cut it down, or send the rest in a second message, then press Send again. Your message is still in the fields. You can also write to {email}.",
+      },
+      server: {
+        title: "Message not sent, something went wrong",
+        short: "The problem is on my side. Try again shortly.",
+        details: "The site could not pass your message on. Try again in a few minutes. Your message is still in the fields. If it keeps failing, write to me directly at {email}.",
+      },
+      offline: {
+        title: "Message not sent, check your connection",
+        short: "You seem to be offline. Try again once you are back.",
+        details: "Your browser could not reach the server, so nothing left your device. Check your connection and press Send again. Your message is still in the fields. You can also write to {email}.",
+      },
+    },
     errors: {
       name: "Add your name",
       emailEmpty: "Add your email address, so I can reply",
@@ -114,9 +136,28 @@ export const useContactWords = defineWords(
     sending: "בשליחה",
     send: "שליחת ההודעה",
     invalid: "ההודעה לא נשלחה. ליד כל שדה שדורש תיקון מופיעה הערה.",
-    failed: (reason: string, email: string) =>
-      `שום דבר לא נשלח — ${reason}. ההודעה שלכם עדיין בשדות, ואפשר גם לכתוב אל ${email}.`,
-    unknownFailure: "משהו השתבש אצלי",
+    failed: {
+      rate: {
+        title: "ההודעה לא נשלחה, יותר מדי ניסיונות",
+        short: "המתינו כמה דקות ונסו שוב.",
+        details: "מהחיבור הזה נשלחו יותר מדי הודעות בזמן קצר, ולכן האתר עצר אותן לזמן מה. המתינו כמה דקות ולחצו שוב על השליחה. ההודעה עדיין בשדות. אפשר גם לכתוב אל {email}.",
+      },
+      large: {
+        title: "ההודעה לא נשלחה, היא ארוכה מדי",
+        short: "קצרו מעט את ההודעה ונסו שוב.",
+        details: "ההודעה גדולה ממה שהאתר מקבל. קצרו אותה, או שלחו את המשך הדברים בהודעה נוספת, ולחצו שוב על השליחה. ההודעה עדיין בשדות. אפשר גם לכתוב אל {email}.",
+      },
+      server: {
+        title: "ההודעה לא נשלחה, משהו השתבש",
+        short: "התקלה אצלי. נסו שוב בעוד רגע.",
+        details: "האתר לא הצליח להעביר את ההודעה. נסו שוב בעוד כמה דקות. ההודעה עדיין בשדות. אם זה ממשיך להיכשל, כתבו לי ישירות אל {email}.",
+      },
+      offline: {
+        title: "ההודעה לא נשלחה, בדקו את החיבור",
+        short: "נראה שאין חיבור לאינטרנט. נסו שוב כשיחזור.",
+        details: "הדפדפן לא הצליח להגיע לשרת, ולכן שום דבר לא יצא מהמכשיר. בדקו את החיבור ולחצו שוב על השליחה. ההודעה עדיין בשדות. אפשר גם לכתוב אל {email}.",
+      },
+    },
     errors: {
       name: "יש להזין שם",
       emailEmpty: "יש להזין כתובת אימייל, כדי שאוכל לענות",

@@ -48,7 +48,7 @@ export default function Unsubscribe() {
   return (
     <SubscribeFrame title={w.unsubTitle}>
       {state !== "bad" && state !== "ok" && <p>{w.unsubIntro}</p>}
-      <Result kind={state === "ok" ? "ok" : state === "bad" || state === "retry" ? "error" : "idle"}>
+      <Result focus={state === "ok" || state === "bad"} kind={state === "ok" ? "ok" : state === "bad" || state === "retry" ? "error" : "idle"}>
         {state === "ok" ? withEmail(w.unsubDone) : state === "bad" ? withEmail(w.unsubBad) : state === "retry" ? (why === "rate" ? w.errRate : w.errReach) : state === "working" ? w.working : ""}
       </Result>
       {(state === "idle" || state === "working" || state === "retry") && (
