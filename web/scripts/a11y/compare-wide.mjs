@@ -18,14 +18,14 @@ import { handler as blogHandler } from "./blog-fixture.mjs";
 /* PAGES=blog compares the blog routes instead (the default is Projects). */
 const BLOG = process.env.PAGES === "blog";
 const handler = BLOG ? blogHandler : projectsHandler;
-const ROUTES = BLOG
+const DEFAULT_ROUTES = BLOG
   ? ["/blog", "/blog?view=feed&tag=process", "/blog/area/bothy", "/blog/the-long-note"]
   : ["/projects", "/projects/bothy", "/projects/bothy?tab=releases", "/projects/windom"];
 
 const A = process.env.BASE_A;
 const B = process.env.BASE_B;
 const OUT = process.env.OUT ?? "wide";
-const ROUTES = (process.env.ROUTES ?? "/projects,/projects/bothy,/projects/bothy?tab=releases,/projects/windom").split(",");
+const ROUTES = process.env.ROUTES ? process.env.ROUTES.split(",") : DEFAULT_ROUTES;
 mkdirSync(OUT, { recursive: true });
 const browser = await chromium.launch({ executablePath: process.env.CHROME || undefined, args: ["--no-sandbox"] });
 let diff = 0;
