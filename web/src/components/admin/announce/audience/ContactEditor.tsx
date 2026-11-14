@@ -1,6 +1,8 @@
 import { useId, useState } from "react";
 import { adminAudience, CONTACT_STATUSES, type Contact, type ContactLang, type ContactStatus, type Group } from "@/services/adminAudience";
+import ActionError from "./ActionError";
 import ConsentHistory from "./ConsentHistory";
+import { actionError, type ActionKind } from "./errors";
 import Email from "./Email";
 import Modal from "./Modal";
 import { FOOTER } from "./modalFooter";
@@ -26,21 +28,22 @@ export default function ContactEditor({ contact, groups, onClose, onDone }: { co
   const [sel, setSel] = useState<string[]>(contact.groups);
   const [topics, setTopics] = useState(contact.topics);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<{ text: string; again: () => void } | null>(null);
   const [confirm, setConfirm] = useState(false);
 
-  const run = async (op: () => Promise<unknown>) => {
+  /* A failure names the action that failed and offers to run that same action again. */
+  const run = async (op: () => Promise<unknown>, kind: ActionKind): Promise<void> => {
     setBusy(true);
-    setError(false);
+    setError(null);
     try {
       await op();
       onDone();
-    } catch {
-      setError(true);
+    } catch (err) {
+      setError({ text: actionError(err, kind, w), again: () => void run(op, kind) });
       setBusy(false);
     }
   };
-  const save = () => run(() => adminAudience.patchContact(contact.hash, { name: name.trim(), lang, groups: sel, topics, status }));
+  const save = () => run(() => adminAudience.patchContact(contact.hash, { name: name.trim(), lang, groups: sel, topics, status }), "save");
   const toggle = (slug: string) => setSel((s) => (s.includes(slug) ? s.filter((x) => x !== slug) : [...s, slug]));
   const live = { ...contact, status, topics };
 
@@ -93,7 +96,7 @@ export default function ContactEditor({ contact, groups, onClose, onDone }: { co
 
         <ConsentHistory contact={contact} />
 
-        {error && <p className="a-error" role="alert">{w.saveFailed}</p>}
+        {error && <ActionError text={error.text} onRetry={error.again} busy={busy} />}
         <div data-modal-footer className={`${FOOTER} flex flex-wrap items-center gap-2`}>
           <button type="submit" className="a-btn a-btn-primary min-h-[44px]" disabled={busy}>{busy ? w.saving : w.save}</button>
           <button type="button" className="a-btn a-btn-ghost min-h-[44px]" onClick={onClose}>{w.cancel}</button>
@@ -103,7 +106,7 @@ export default function ContactEditor({ contact, groups, onClose, onDone }: { co
           <p className="a-hint !mt-0">{w.eraseHint}</p>
           {confirm ? (
             <div className="mt-2 flex flex-wrap gap-2">
-              <button type="button" className="a-btn min-h-[44px] !border-[rgb(var(--destructive-ink))] text-[rgb(var(--destructive-ink))]" disabled={busy} onClick={() => void run(() => adminAudience.eraseContact(contact.hash))}>{w.eraseConfirm(contact.email)}</button>
+              <button type="button" className="a-btn min-h-[44px] !border-[rgb(var(--destructive-ink))] text-[rgb(var(--destructive-ink))]" disabled={busy} onClick={() => void run(() => adminAudience.eraseContact(contact.hash), "erase")}>{w.eraseConfirm(contact.email)}</button>
               <button type="button" className="a-btn a-btn-ghost min-h-[44px]" onClick={() => setConfirm(false)}>{w.cancel}</button>
             </div>
           ) : (

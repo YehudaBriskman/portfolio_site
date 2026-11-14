@@ -50,7 +50,7 @@ describe.skipIf(!REAL)("G1 against a real CouchDB", () => {
     vi.spyOn(emailService, "sendBulk").mockImplementation(async (m) => (campaignMails.push(...m), m.map(() => ({ ok: true as const }))));
     await couch.put(SETTINGS_DOC_ID, {
       _id: SETTINGS_DOC_ID, type: "settings-announce", updatedAt: new Date().toISOString(),
-      settings: { ...DEFAULT_ANNOUNCE_SETTINGS, sender: { ...DEFAULT_ANNOUNCE_SETTINGS.sender, footerIdentity: "Yehuda, Tel Aviv", identityEmail: "me@example.invalid", testRecipients: ["me@example.invalid"], throttlePerHour: 100, dailyCap: 1000 } },
+      settings: { ...DEFAULT_ANNOUNCE_SETTINGS, sender: { ...DEFAULT_ANNOUNCE_SETTINGS.sender, warmup: false, quietHours: undefined, footerIdentity: "Yehuda, Tel Aviv", identityEmail: "me@example.invalid", testRecipients: ["me@example.invalid"], throttlePerHour: 100, dailyCap: 1000 } },
     });
   }, 30000);
   afterAll(() => vi.restoreAllMocks());

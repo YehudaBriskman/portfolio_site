@@ -17,7 +17,8 @@ import { renderCampaignMail } from "./render.js";
 import { AudienceBody, SendingBody, CampaignCreate, CampaignId, CampaignPatch, PreviewBody, ScheduleBody, SendNowBody, type Campaign } from "./schemas.js";
 import { CAP_WINDOW_MS } from "./sender.js";
 import { dnsOverride, sendReadiness } from "./sendReadiness.js";
-import { campaignId, createCampaign, deleteCampaign, getCampaign, isStatus, listCampaigns, mutateCampaign, sentCounts } from "./store.js";
+import { campaignId, createCampaign, deleteCampaign, getCampaign, getRate, isStatus, listCampaigns, mutateCampaign, sentCounts } from "./store.js";
+import { warmupLimits } from "./warmup.js";
 
 /*
  * Under /api/admin/campaigns, behind requireAdmin and auditWrites. A campaign
@@ -110,6 +111,7 @@ router.get(
   asyncHandler(async (req, res) => {
     const ms = Date.now();
     const { budget: b, newsTimes, sender: s } = await budgetNow(ms);
+    const warm = warmupLimits(s.warmup, (await getRate().catch(() => null))?.firstSendAt, ms);
     const remaining = Number.parseInt(String(req.query.remaining ?? ""), 10);
     const plan = Number.isInteger(remaining) && remaining >= 0 ? estimateFinish(remaining, ms, b, s) : undefined;
     const resume = nextWindowAt(b, newsTimes, ms);
@@ -122,6 +124,8 @@ router.get(
       waiting: b.waiting,
       resumeAt: resume === null ? null : new Date(resume).toISOString(),
       thresholds: thresholdsReached(b.usedMonth, b.usableMonth),
+      /* The new-sender ramp, or null when it is off or over. Counts only. */
+      warmup: warm,
       ...(plan !== undefined ? { plan } : {}),
     });
   }),

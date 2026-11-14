@@ -1,0 +1,24 @@
+פרסומת | Advertisement
+
+Three new posts
+
+I wrote about mail systems, accessibility and dark mode.
+This is the second line.
+
+- A design system for mail
+- Why there is no open tracking
+- Dark mode, tested
+
+Share card: https://gallery.example/api/seo/og/blog/sample.png?format=og
+
+Read on the site: https://gallery.example/blog/sample
+
+--
+Yehuda Briskman
+contact@example.org
++972 50-123 4567
+https://example.org
+https://www.linkedin.com/in/example
+You get this because you subscribed on gallery.example. Unsubscribe in one click: https://gallery.example/unsubscribe?token=<redacted-sample-token>
+
+Preferences (https://gallery.example/subscribe/manage?token=<redacted-sample-token>)

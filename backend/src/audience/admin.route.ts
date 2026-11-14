@@ -46,7 +46,7 @@ import {
 import { ledgerGuard } from "../campaigns/guard.js";
 import { getSweepReport } from "./sweep.js";
 import { loadSettings } from "../announce/store.js";
-import { acknowledgeReport, ledgerClear, ledgerEntries, ledgerGet, ledgerPut, ledgerReport } from "./ledger.js";
+import { acknowledgeReport, ledgerClear, ledgerEntries, ledgerGet, ledgerPut, ledgerReport, type LedgerKind } from "./ledger.js";
 
 /*
  * Under /api/admin/audience: behind requireAdmin and auditWrites (admin.route.ts).
@@ -309,11 +309,22 @@ router.delete(
     const hash = hashParam(req.params.hash);
     if (!hash) return invalid(res);
     const before = await getContact(hash);
-    if (!before) return bad(res, "No such contact.", 404);
-    // Erasing a suppressed address would let it be added again: take it off the list first, on purpose.
-    if (before.status === "suppressed") return bad(res, "Remove it from the suppression list first.", 409);
-    // Ledger first, so a restore of the content database cannot bring this person back into a mailing.
-    await ledgerPut(hash, "erased");
+    // Idempotent: a second erase (a retry after a dropped reply) finds nothing left and says so, still ok.
+    if (!before) {
+      await deleteSendDocs(hash);
+      res.locals.audit = { target: contactId(hash), before: null, after: null };
+      return void res.json({ ok: true, already: true });
+    }
+    /*
+     * Ledger first, so a restore of the content database cannot bring this person back into a mailing. The line
+     * never gets weaker: someone suppressed (a bounce, a complaint) or who unsubscribed stays blocked by their hash
+     * alone, while the contact, its consent record and its send documents go. Only a person who never asked
+     * not to be mailed gets the expiring `erased` line.
+     */
+    const held = await ledgerGet(hash);
+    const keep: LedgerKind | null = before.status === "suppressed" ? "suppressed" : before.status === "unsubscribed" ? "unsubscribed" : null;
+    const kind: LedgerKind = held && held.kind !== "erased" ? (keep === "suppressed" ? "suppressed" : held.kind) : (keep ?? "erased");
+    if (!held || held.kind !== kind) await ledgerPut(hash, kind);
     await deleteContact(hash);
     await deleteSendDocs(hash);
     res.locals.audit = { target: before._id, before, after: null };

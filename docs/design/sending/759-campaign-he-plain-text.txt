@@ -1,0 +1,24 @@
+פרסומת
+
+שלושה פוסטים חדשים
+
+כתבתי על מערכות מייל, על נגישות ועל עיצוב כהה.
+השורה השנייה כאן.
+
+- מערכת עיצוב למייל
+- למה לא עוקבים אחרי פתיחות
+- Dark mode, tested
+
+Share card: https://gallery.example/api/seo/og/blog/sample.png?format=og
+
+לקריאה באתר: https://gallery.example/blog/sample
+
+--
+יהודה בריסקמן
+contact@example.org
++972 50-123 4567
+https://example.org
+https://www.linkedin.com/in/example
+קיבלתם הודעה זו כי נרשמתם באתר gallery.example. להסרה בלחיצה אחת: https://gallery.example/unsubscribe?token=<redacted-sample-token>
+
+העדפות (https://gallery.example/subscribe/manage?token=<redacted-sample-token>)

@@ -10,7 +10,7 @@ import { memoryLedgerStore, resetLedgerCache, useLedgerStore } from "../audience
 import { hashEmail } from "../audience/store.js";
 import { resetSecretCache } from "../audience/tokens.js";
 import { resetGuard } from "./guard.js";
-import { runSenderTick } from "./sender.js";
+import { resetHold, runSenderTick } from "./sender.js";
 
 /*
  * The release gate's end-to-end run (#583 G1, G6), over the REAL mail path: the
@@ -87,6 +87,7 @@ afterAll(() => new Promise<void>((res) => sink.close(() => res())));
 let store: Map<string, Record<string, unknown>>;
 let revs = 0;
 beforeEach(() => {
+  resetHold();
   store = new Map();
   mails = [];
   resetSecretCache();
@@ -141,7 +142,7 @@ const HE = "dana@example.invalid";
 const setSender = (over: Partial<AnnounceSettings["sender"]> = {}) =>
   store.set(SETTINGS_DOC_ID, {
     _id: SETTINGS_DOC_ID, _rev: "1-s", type: "settings-announce", updatedAt: "x",
-    settings: { ...DEFAULT_ANNOUNCE_SETTINGS, sender: { ...DEFAULT_ANNOUNCE_SETTINGS.sender, footerIdentity: "Yehuda, Tel Aviv", identityEmail: "me@example.invalid", testRecipients: ["me@example.invalid"], ...over } },
+    settings: { ...DEFAULT_ANNOUNCE_SETTINGS, sender: { ...DEFAULT_ANNOUNCE_SETTINGS.sender, warmup: false, quietHours: undefined, throttlePerHour: 3600, dailyCap: 10000, footerIdentity: "Yehuda, Tel Aviv", identityEmail: "me@example.invalid", testRecipients: ["me@example.invalid"], ...over } },
   });
 const waitMails = (n: number) => vi.waitFor(() => expect(mails.length).toBeGreaterThanOrEqual(n), { timeout: 5000 });
 const signup = (email: string, lang: "en" | "he") => request(createApp()).post("/api/subscribe").send({ email, lang });
@@ -228,7 +229,7 @@ describe("G1: signup to unsubscribe over a real SMTP wire", () => {
     await waitMails(1);
     await request(createApp()).post("/api/subscribe/confirm").send({ token: tokenFrom(mails[0]) });
     mails = [];
-    setSender({ throttlePerHour: 100, dailyCap: 1000 });
+    setSender({ throttlePerHour: 3600, dailyCap: 1000 });
     for (let i = 1; i <= 4; i++) {
       const { id, r } = await sendNow(`N${i}`);
       expect(r.status).toBe(200);
@@ -250,7 +251,7 @@ describe("G1: signup to unsubscribe over a real SMTP wire", () => {
       });
     }
     /* Usable 24 a day, 10 kept back for confirmations: 14 newsletters to 20 people, then it waits. */
-    setSender({ dailyLimit: 30, monthlyLimit: 300, safety: 0.8, reserveShare: 0.2, throttlePerHour: 100, dailyCap: 1000 });
+    setSender({ dailyLimit: 30, monthlyLimit: 300, safety: 0.8, reserveShare: 0.2, throttlePerHour: 3600, dailyCap: 1000 });
     const { id, r } = await sendNow("Budget");
     expect(r.status).toBe(200);
     store.set(`campaign:${id}`, { ...store.get(`campaign:${id}`)!, sendAt: "2000-01-01T00:00:00.000Z" });

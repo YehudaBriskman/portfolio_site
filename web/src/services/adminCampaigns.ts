@@ -12,7 +12,7 @@ export const CAMPAIGN_STATUSES = ["draft", "scheduled", "sending", "sent", "fail
 export type CampaignStatus = (typeof CAMPAIGN_STATUSES)[number];
 export type CampaignLang = "en" | "he" | "all";
 /** Why the sender stopped the campaign by itself. */
-export type PauseReason = "auth" | "consecutive" | "failure-rate" | "hard-bounce-rate";
+export type PauseReason = "auth" | "consecutive" | "failure-rate" | "hard-bounce-rate" | "complaint";
 export type CampaignTopic = "blog" | "releases";
 
 export type Block =
@@ -78,6 +78,8 @@ export type BudgetView = {
   waiting: "day" | "month" | null;
   resumeAt: string | null;
   thresholds: Array<70 | 90>;
+  /** The new-sender ramp today, or null when it is off or over. */
+  warmup?: { day: number; daily: number; hourly: number } | null;
   plan?: { days: number; finishAt: string } | null;
 };
 

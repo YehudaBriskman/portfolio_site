@@ -327,6 +327,7 @@ export default function SenderSection({ sender, onChange, warnings, phone = fals
             {num("maxPerContact30d", w.perPerson, w.perPersonHint, 31, 0)}
             {num("pendingTtlDays", w.pendingTtl, w.pendingTtlHint, 30, 2)}
           </div>
+          {check("warmup", w.warmup, w.warmupHint, sender.warmup !== false, (v) => onChange((s) => void (s.warmup = v)))}
           <fieldset className="space-y-2" data-setting-id="quietHours">
             <legend className="a-label">{w.quiet}</legend>
             {check("quiet", w.quietOn, w.quietHint, Boolean(q), (v) => onChange((s) => (v ? void (s.quietHours = { from: "22:00", to: "07:00", tz: "Asia/Jerusalem" }) : void delete s.quietHours)))}

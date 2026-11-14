@@ -387,11 +387,16 @@ describe("admin audience", () => {
     await signup(app());
     await admin(request(app()).post(`${A}/contacts/import`).send({ csv: "ann@example.com", consentNote: "from a list", consentConfirmed: true }));
     expect((await admin(request(app()).post(`${A}/contacts`).send({ email: "ann@example.com", lang: "en", consentNote: "asked me" }))).status).toBe(409);
-    expect((await admin(request(app()).delete(`${A}/contacts/${hash}`))).status).toBe(409);
     expect(sent).toHaveLength(0);
     expect((store.get(`contact:${hash}`) as { status: string }).status).toBe("suppressed");
     expect((await admin(request(app()).delete(`${A}/suppression/${hash}`))).status).toBe(200);
     expect((store.get(`contact:${hash}`) as { status: string }).status).toBe("unsubscribed");
+    // Erasing a suppressed person is allowed; the hash-only line keeps blocking them.
+    await admin(request(app()).post(`${A}/suppression`).send({ email: "ann@example.com" }));
+    expect((await admin(request(app()).delete(`${A}/contacts/${hash}`))).status).toBe(200);
+    expect(store.has(`contact:${hash}`)).toBe(false);
+    expect((ledger.docs.get(hash) as { kind?: string }).kind).toBe("suppressed");
+    expect((await admin(request(app()).post(`${A}/contacts`).send({ email: "ann@example.com", lang: "en", consentNote: "asked me" }))).status).toBe(409);
   });
 
   it("bulk suppression: pasted lines, commas and Name <addr> forms; dedupes, counts known ones, returns the unreadable; stores no address in the audit", async () => {
@@ -628,9 +633,39 @@ describe("suppression ledger writes", () => {
     expect((await admin(request(app()).delete(`${A}/suppression/${hash}`))).status).toBe(200);
     expect(line()?.kind).toBe("unsubscribed");
     expect((await admin(request(app()).delete(`${A}/contacts/${hash}`))).status).toBe(200);
+    expect(line()?.kind).toBe("unsubscribed");
+    expect(store.has(`contact:${hash}`)).toBe(false);
+    // An active person who is erased gets the expiring erased line.
+    seed();
+    ledger.docs.delete(hash);
+    expect((await admin(request(app()).delete(`${A}/contacts/${hash}`))).status).toBe(200);
     expect(line()?.kind).toBe("erased");
     expect(Date.parse(line()!.expiresAt!)).toBeGreaterThan(Date.now() + 25 * 86_400_000);
-    expect(store.has(`contact:${hash}`)).toBe(false);
+  });
+
+  it("erase works for every status; a suppressed or unsubscribed person keeps a hash-only line that still blocks them", async () => {
+    for (const status of ["pending", "active", "unsubscribed", "suppressed"] as const) {
+      store.clear();
+      ledger.docs.delete(hash);
+      seed({ status, ...(status === "suppressed" ? { suppressedReason: "bounce" } : {}) });
+      if (status === "suppressed") ledger.docs.set(hash, { _id: hash, _rev: "1-a", type: "ledger", kind: "suppressed", at: new Date().toISOString() });
+      const r = await admin(request(app()).delete(`${A}/contacts/${hash}`));
+      expect(r.status, status).toBe(200);
+      expect(store.has(`contact:${hash}`), status).toBe(false);
+      const want = status === "suppressed" || status === "unsubscribed" ? status : "erased";
+      expect(line()?.kind, status).toBe(want);
+      expect(JSON.stringify([...ledger.docs.values()])).not.toContain("ann@example.com");
+      // Erasing twice is fine and does not weaken the line.
+      const again = await admin(request(app()).delete(`${A}/contacts/${hash}`));
+      expect(again.status, status).toBe(200);
+      expect(line()?.kind, status).toBe(want);
+    }
+  });
+
+  it("erase of a suppressed contact whose ledger line is missing still writes a suppressed line", async () => {
+    seed({ status: "suppressed" });
+    expect((await admin(request(app()).delete(`${A}/contacts/${hash}`))).status).toBe(200);
+    expect(line()?.kind).toBe("suppressed");
   });
 
   it("erase removes that person's send documents only, and touches nothing when the ledger is down", async () => {
