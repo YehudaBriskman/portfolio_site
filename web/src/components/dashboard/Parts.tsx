@@ -8,6 +8,8 @@ import { useWords } from "@/components/dashboard/i18n";
 import Arrive from "@/components/motion/Arrive";
 import Ring from "@/components/motion/Ring";
 import { typedDir } from "@/lib/typedDir";
+import Chevron from "@/components/phone/Chevron";
+import { toneOfArea } from "@/components/phone/tone";
 
 /*
  * The dashboard's small parts (#224), shared by every page on the shell:
@@ -98,7 +100,10 @@ export function Row({
   meta,
   chips,
   badge,
+  area,
 }: {
+  /** The area the note is filed in: on a phone it tints the circle and adds the chevron (direction A). */
+  area?: string;
   icon: ReactNode;
   title: string;
   to: string;
@@ -109,8 +114,13 @@ export function Row({
 }) {
   const parts = meta.filter((m) => m !== null && m !== undefined && m !== "");
   return (
-    <li className={styles.row}>
-      <span className={styles.rowIcon} aria-hidden="true">
+    <li className={styles.row} data-phone-note={area ? "" : undefined}>
+      <span
+        className={styles.rowIcon}
+        aria-hidden="true"
+        data-phone-circle={area ? "40" : undefined}
+        data-tone={area ? toneOfArea(area) : undefined}
+      >
         {icon}
       </span>
       <div className={styles.rowBody}>
@@ -129,6 +139,7 @@ export function Row({
         </div>
         {chips}
       </div>
+      {area && <Chevron />}
     </li>
   );
 }

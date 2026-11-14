@@ -526,6 +526,12 @@ jobs:
       - name: Other public pages on a phone (direction A)
         if: matrix.check == 'a11y' && matrix.shard == 6
         run: npm run a11y:public-phone
+      # Direction A on the blog and the reader, on phones: grouped note rows,
+      # circles, 44px targets, the floating reader bar (tucks, returns, never
+      # covers the last line), desktop untouched.
+      - name: Blog and reader on a phone (direction A)
+        if: matrix.check == 'a11y' && matrix.shard == 6
+        run: npm run a11y:public-blog
       # Focus after navigation (#776): the heading holds focus for screen
       # readers, no ring after a tap, a 2px+ ring after a key (about 20 s).
       - name: Route-change focus ring

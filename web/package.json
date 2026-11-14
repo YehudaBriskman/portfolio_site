@@ -38,6 +38,8 @@
     "shoot:projects": "node scripts/a11y/shoot-projects.mjs",
     "a11y:public-phone": "node scripts/a11y/phone-pages.mjs",
     "shoot:public": "node scripts/a11y/shoot-public.mjs",
+    "shoot:blog": "node scripts/a11y/shoot-blog.mjs",
+    "a11y:public-blog": "node scripts/a11y/public-blog.mjs",
     "a11y:public-nav": "node scripts/a11y/public-nav.mjs",
     "a11y:public-blog-filter": "node scripts/a11y/public-blog-filter.mjs",
     "a11y:public-focus": "node scripts/a11y/public-focus.mjs",
