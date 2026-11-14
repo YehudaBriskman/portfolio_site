@@ -6,7 +6,7 @@
  *   BASE_A=http://127.0.0.1:4999 BASE_B=http://127.0.0.1:4998 node scripts/a11y/compare-wide.mjs
  *
  * Prints the pages whose bytes differ (and writes both images under OUT).
- * Used once, by hand, for the direction-A PR; the build of `main` is any
+ * ROUTES (comma list) picks the pages. Used by hand, once per direction-A PR; the build of `main` is any
  * `vite preview` of a checkout of it.
  */
 import { chromium } from "playwright-core";
@@ -17,12 +17,13 @@ import { handler } from "./projects-fixture.mjs";
 const A = process.env.BASE_A;
 const B = process.env.BASE_B;
 const OUT = process.env.OUT ?? "wide";
+const ROUTES = (process.env.ROUTES ?? "/projects,/projects/bothy,/projects/bothy?tab=releases,/projects/windom").split(",");
 mkdirSync(OUT, { recursive: true });
 const browser = await chromium.launch({ executablePath: process.env.CHROME || undefined, args: ["--no-sandbox"] });
 let diff = 0;
 for (const width of [1280, 768]) {
   for (const lang of ["en", "he"]) {
-    for (const route of ["/projects", "/projects/bothy", "/projects/bothy?tab=releases", "/projects/windom"]) {
+    for (const route of ROUTES) {
       const sums = [];
       for (const [i, base] of [A, B].entries()) {
         const ctx = await browser.newContext({ viewport: { width, height: 900 }, reducedMotion: "reduce", colorScheme: "light" });

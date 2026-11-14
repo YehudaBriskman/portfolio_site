@@ -520,6 +520,12 @@ jobs:
       - name: Projects pages on a phone (direction A)
         if: matrix.check == 'a11y' && matrix.shard == 6
         run: npm run a11y:public-projects
+      # Direction A on the other public pages, on phones (#785, #786, #787):
+      # no overflow, true circles, 44px rows, buttons and fields, forms usable
+      # with the on-screen keyboard's short viewport, desktop untouched.
+      - name: Other public pages on a phone (direction A)
+        if: matrix.check == 'a11y' && matrix.shard == 6
+        run: npm run a11y:public-phone
       # Focus after navigation (#776): the heading holds focus for screen
       # readers, no ring after a tap, a 2px+ ring after a key (about 20 s).
       - name: Route-change focus ring
