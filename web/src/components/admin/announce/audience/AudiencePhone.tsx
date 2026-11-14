@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { SheetPresence } from "@/components/ui/SheetPresence";
 import { Download, FileUp, UserPlus } from "lucide-react";
 import { EmptyState, ErrorState, LoadingRows } from "@/components/admin/ui";
 import { BottomSheet } from "@/components/ui/BottomSheet";
@@ -302,9 +303,9 @@ export default function AudiencePhone() {
         )}
       </BottomSheet>
 
-      {dialog?.kind === "add" && <AddContact sheet groups={groups} onClose={closeAdd} onDone={refreshed} />}
-      {dialog?.kind === "import" && <ImportDialog sheet groups={groups} onClose={() => (closeAdd(), reload(), loadGroups())} onDone={loadGroups} />}
-      {dialog?.kind === "edit" && <ContactSheet contact={dialog.contact} groups={groups} onClose={closeEdit} onDone={refreshed} />}
+      <SheetPresence show={dialog?.kind === "add"}><AddContact sheet groups={groups} onClose={closeAdd} onDone={refreshed} /></SheetPresence>
+      <SheetPresence show={dialog?.kind === "import"}><ImportDialog sheet groups={groups} onClose={() => (closeAdd(), reload(), loadGroups())} onDone={loadGroups} /></SheetPresence>
+      <SheetPresence show={dialog?.kind === "edit"}>{dialog?.kind === "edit" && <ContactSheet contact={dialog.contact} groups={groups} onClose={closeEdit} onDone={refreshed} />}</SheetPresence>
 
       <UndoToast undoable={undoable} />
     </div>

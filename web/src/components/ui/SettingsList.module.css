@@ -279,4 +279,15 @@
   .sheetBody .card > :nth-child(5) { transition-delay: 120ms; }
   .page[data-open] .card > :nth-child(n + 6),
   .sheetBody .card > :nth-child(n + 6) { transition-delay: 150ms; }
+
+  /* Search results: each hit fades in as it appears, soft and short. */
+  .hitItem {
+    transition: opacity var(--a-dur-2) var(--a-ease-out);
+  }
+
+  @starting-style {
+    .hitItem {
+      opacity: 0;
+    }
+  }
 }

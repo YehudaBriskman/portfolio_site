@@ -502,6 +502,54 @@ ok(seen.page > 0, "no settings group opened as a page on any screen");
 await checkRows("en", true);
 await checkDisclosure("en", true);
 
+
+/* ---- a cold admin load on a phone: no entrance over the app, nothing time-driven at mount (#709). */
+async function checkColdLoad() {
+  const { page, ctx } = await open("en", false, "/admin/posts");
+  try {
+    await page.waitForTimeout(800);
+    const r = await page.evaluate(() => ({
+      shutter: Boolean(document.querySelector('[class*="shutter"]')),
+      timed: document.getAnimations().filter((a) => a instanceof CSSAnimation && a.timeline instanceof DocumentTimeline).map((a) => a.animationName),
+    }));
+    ok(!r.shutter, "cold admin load at 390px: the entry shutter is covering the app");
+    ok(r.timed.length === 0, `cold admin load at 390px: time-driven animations at mount (${JSON.stringify(r.timed)})`);
+  } finally {
+    await ctx.close();
+  }
+}
+await checkColdLoad();
+
+/* ---- frame strips at t = 0, 80, 160, 240 ms (STRIPS=dir): the transition paused and seeked, then photographed. */
+async function strip(page, name, durMs = 300) {
+  const dir = process.env.STRIPS;
+  if (!dir) return;
+  mkdirSync(dir, { recursive: true });
+  const cdp = await page.context().newCDPSession(page);
+  for (const t of [0, 80, 160, 240]) {
+    await page.evaluate(([t]) => { for (const a of window.__m.transitions()) { const d = a.effect.getComputedTiming().duration || 1; a.pause(); a.currentTime = Math.min(d, t * (d / 300)); } }, [t]);
+    const { data } = await cdp.send("Page.captureScreenshot", { format: "png" });
+    writeFileSync(`${dir}/${name}-t${String(t).padStart(3, "0")}.png`, Buffer.from(data, "base64"));
+  }
+  await cdp.detach();
+}
+if (process.env.STRIPS) {
+  for (const [path, group, kind] of [["/admin/marketing?tab=settings", "mail", "sheet"], ["/admin/settings", null, "page"]]) {
+    const { page, ctx } = await open("en", false, path);
+    await arm(page);
+    await page.evaluate(() => window.__m.soon(() => document.querySelector("[data-settings-group] button"), 3000));
+    const id = group ?? (await page.evaluate(() => document.querySelector("[data-settings-group]").getAttribute("data-settings-group")));
+    await page.evaluate((i) => document.querySelector(`[data-settings-group="${i}"] button`)?.click(), id);
+    await page.waitForTimeout(120);
+    await strip(page, `${kind}-enter`);
+    await page.evaluate(() => window.__m.settle());
+    await page.evaluate(() => (document.querySelector("dialog button[class*=close]") ?? document.querySelector('[data-surface="page"] button'))?.click());
+    await page.waitForTimeout(120);
+    await strip(page, `${kind}-exit`, 200);
+    await ctx.close();
+  }
+}
+
 /* Desktop (>= 600px) keeps the contract as is: none of the phone motion exists. */
 {
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 }, reducedMotion: "no-preference", locale: "en-US" });

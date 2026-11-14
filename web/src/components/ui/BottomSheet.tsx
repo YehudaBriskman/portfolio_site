@@ -1,6 +1,7 @@
-import { useEffect, useId, useRef, useState, useSyncExternalStore, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
+import { useContext, useEffect, useId, useRef, useState, useSyncExternalStore, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
 import { X } from "lucide-react";
 import { EXIT_KEEP_MS, usePhoneMotion } from "@/hooks/usePhoneMotion";
+import { SheetClosing } from "@/components/ui/SheetPresence";
 import { useMobileWords } from "@/i18n/mobile";
 import styles from "@/components/ui/BottomSheet.module.css";
 
@@ -95,9 +96,12 @@ function fallbackFocus(near: Array<Element | null>) {
 }
 
 export function BottomSheet({
-  open, onClose, title, snap: initial = "half", snaps: snapsProp, onSnap, dismissible = true, footer, children,
+  open: openProp, onClose, title, snap: initial = "half", snaps: snapsProp, onSnap, dismissible = true, footer, children,
 }: BottomSheetProps) {
   const w = useMobileWords().sheet;
+  /* Inside a leaving `SheetPresence` the parent still says open: the sheet is closing. */
+  const closing = useContext(SheetClosing);
+  const open = openProp && !closing;
   const id = useId();
   const titleId = `${id}-title`;
   const dialogRef = useRef<HTMLDialogElement>(null);

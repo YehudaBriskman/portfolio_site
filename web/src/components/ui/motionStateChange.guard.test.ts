@@ -201,4 +201,21 @@ describe("navigation: one entrance per element", () => {
     const index = css("index.css");
     expect(index).toMatch(/\.a-side:not\(\[data-open\]\)/);
   });
+
+  it("the route fade and tab panels are in index.css's phone gate, not outside it", () => {
+    const index = css("index.css");
+    const outside = outsideNoPreference(index);
+    expect(index).toMatch(/\.a-main > \*\s*\{\s*transition: opacity/);
+    expect(index).toMatch(/\.a-main \[role="tabpanel"\]/);
+    expect(outside).not.toMatch(/\.a-main > \*\s*\{[^}]*transition/);
+  });
+  it("the entry shutter does not cover an /admin cold load on a phone", () => {
+    const app = src("App.tsx");
+    expect(app).toMatch(/!adminOnPhone\(\) && <EntryShutter \/>/);
+    expect(app).toContain("PHONE_QUERY");
+  });
+  it("a sheet its parent unmounts on close goes through SheetPresence so it can leave", () => {
+    expect(src("components/admin/announce/audience/AudiencePhone.tsx")).toMatch(/<SheetPresence show=\{dialog\?\.kind === "add"\}>/);
+    expect(src("components/ui/BottomSheet.tsx")).toContain("SheetClosing");
+  });
 });
