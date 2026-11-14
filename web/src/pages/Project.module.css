@@ -48,7 +48,7 @@
   display: inline-flex;
   min-height: 2.75rem;
   align-items: center;
-  font-family: var(--font-display);
+  font-family: var(--font-ui); font-weight: var(--weight-ui);
   font-size: clamp(1.25rem, 3.4vw, 1.625rem);
   color: rgb(var(--ink-soft));
   text-decoration: none;
@@ -61,7 +61,7 @@
 }
 
 .slash {
-  font-family: var(--font-display);
+  font-family: var(--font-ui); font-weight: var(--weight-ui);
   font-size: clamp(1.25rem, 3.4vw, 1.625rem);
   color: rgb(var(--ink-soft));
 }
@@ -69,11 +69,11 @@
 .title {
   margin: 0;
   min-width: 0;
-  font-family: var(--font-display);
+  font-family: var(--font-ui);
   font-size: clamp(1.5rem, 4vw, 2rem);
-  font-weight: var(--weight-display);
+  font-weight: var(--weight-ui);
   line-height: 1.15;
-  letter-spacing: var(--track-sub);
+  letter-spacing: var(--track-ui);
   color: rgb(var(--ink));
   overflow-wrap: anywhere;
 }

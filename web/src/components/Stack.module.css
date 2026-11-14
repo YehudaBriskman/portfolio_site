@@ -162,10 +162,14 @@
   display: flex;
   align-items: baseline;
   gap: 0.2em;
-  font-family: var(--font-display);
-  font-weight: var(--weight-display);
+  font-family: var(--font-ui);
+  font-weight: var(--weight-ui);
   color: rgb(var(--ink));
   /*
+   * #795: the figure is Rubik now, which ships `tnum`, so the declaration
+   * below works again in both languages. The measurement that follows is the
+   * history of the Audiowide face it replaced.
+   *
    * THIS DECLARATION NO LONGER WORKS IN ENGLISH, AND THE COUNT JITTERS.
    *
    * `tabular-nums` asks for the OpenType `tnum` feature. A face that does

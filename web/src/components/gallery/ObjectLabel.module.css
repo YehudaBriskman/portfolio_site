@@ -160,6 +160,16 @@
   text-transform: uppercase;
 }
 .plate { gap: 1rem; }
+/* A phone: every plate but the hero's (Hero.module.css keeps its own) is set
+   in the UI family, not the techno display face (#795). */
+@media (max-width: 639px) {
+  .plate .name {
+    font-family: var(--font-ui);
+    font-weight: var(--weight-ui);
+    letter-spacing: var(--track-ui);
+    text-transform: none;
+  }
+}
 
 /* Object: a project in the pile, a note on the shelf. The working size. The
    scale used to be a width-axis step as well as a size step; the display
