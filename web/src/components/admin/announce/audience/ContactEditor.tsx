@@ -1,6 +1,6 @@
 import { useId, useState } from "react";
 import { adminAudience, CONTACT_STATUSES, type Contact, type ContactLang, type ContactStatus, type Group } from "@/services/adminAudience";
-import { Empty } from "@/components/admin/ui";
+import ConsentHistory from "./ConsentHistory";
 import Email from "./Email";
 import Modal from "./Modal";
 import { FOOTER } from "./modalFooter";
@@ -20,7 +20,6 @@ export function Why({ c }: { c: Pick<Contact, "status" | "topics" | "unsubscribe
 export default function ContactEditor({ contact, groups, onClose, onDone }: { contact: Contact; groups: Group[]; onClose: () => void; onDone: () => void }) {
   const w = useAudienceWords();
   const uid = useId();
-  const when = useWhen();
   const [name, setName] = useState(contact.name ?? "");
   const [lang, setLang] = useState<ContactLang>(contact.lang ?? "en");
   const [status, setStatus] = useState<ContactStatus>(contact.status);
@@ -92,28 +91,7 @@ export default function ContactEditor({ contact, groups, onClose, onDone }: { co
           ))}
         </fieldset>
 
-        <section className="a-box space-y-1 p-3 text-sm" aria-label={w.consentHeading}>
-          <h4 className="a-label !mb-0">{w.consentHeading}</h4>
-          {(contact.consentHistory?.length ? [...contact.consentHistory].reverse() : [null]).map((e, i) => (
-            <div key={e?.at ?? "legacy"} className={i === 0 ? "space-y-1" : "space-y-1 border-t pt-1 opacity-80"}>
-              {i === 1 && <h5 className="a-label !mb-0">{w.consentEarlier}</h5>}
-              <p>{w.consentOn(when(e?.at ?? contact.consentAt), w.sources[e?.source ?? contact.source] ?? contact.source)}</p>
-              <p className="text-clay">
-                {e ? (e.confirmedAt ? w.consentConfirmedOn(when(e.confirmedAt)) : w.consentNotConfirmed) : null}
-              </p>
-              {e?.textId ? (
-                <p className="text-clay">
-                  {w.consentWording}: <span dir="ltr" className="tabular-nums">{e.textId} · {e.lang} · {e.textHash?.slice(0, 12)}</span>
-                </p>
-              ) : e ? (
-                <p className="text-clay">{w.consentNoWording}</p>
-              ) : null}
-              {(e?.note ?? (e ? "" : contact.consentNote)) ? (
-                <p className="text-clay" dir="auto">{`${w.consentNoteLabel}: ${e?.note ?? contact.consentNote}`}</p>
-              ) : !e ? <Empty /> : null}
-            </div>
-          ))}
-        </section>
+        <ConsentHistory contact={contact} />
 
         {error && <p className="a-error" role="alert">{w.saveFailed}</p>}
         <div data-modal-footer className={`${FOOTER} flex flex-wrap items-center gap-2`}>

@@ -1,4 +1,4 @@
-import { defineWords } from "@/i18n/words";
+import { defineWords, plural } from "@/i18n/words";
 
 /* The Audience tab's words. Hebrew follows the glossary: email is אימייל, a group is קבוצה. */
 export const useAudienceWords = defineWords(
@@ -142,6 +142,31 @@ export const useAudienceWords = defineWords(
     suppressRemoveHint: "Removing lets this address be added again. It does not make them a subscriber.",
     hashOnly: "Address not kept",
     suppressedSince: (d: string) => `Since ${d}`,
+
+    /* The phone layout (below 600px). */
+    openContact: (who: string) => `Open ${who}`,
+    colSource: "Source",
+    phoneAdd: "Add people",
+    exportAll: "Export all contacts",
+    joined: "Joined",
+    addToGroup: "Add to group",
+    pickGroup: (n: number) => plural("en", n, { one: "Add {n} contact to a group", other: "Add {n} contacts to a group" }),
+    noManualGroups: "You have no groups of your own yet. Create one under Groups, below the list.",
+    exportSelected: "Export selected",
+    unsubscribeAct: "Unsubscribe",
+    suppressAct: "Suppress",
+    deleteAct: "Delete",
+    unsubscribeConfirm: (n: number) => `Unsubscribe ${plural("en", n, { one: "{n} contact", other: "{n} contacts" })}`,
+    suppressConfirm: (n: number) => `Suppress ${plural("en", n, { one: "{n} contact", other: "{n} contacts" })}`,
+    deleteConfirm: (n: number) => `Delete ${plural("en", n, { one: "{n} contact", other: "{n} contacts" })}`,
+    bulkGroupDone: (n: number, group: string) => `Added ${plural("en", n, { one: "{n} contact", other: "{n} contacts" })} to ${group}.`,
+    bulkStatusDone: (n: number) => `${plural("en", n, { one: "{n} contact", other: "{n} contacts" })} updated.`,
+    bulkFailedSome: (n: number) => `${plural("en", n, { one: "{n} contact", other: "{n} contacts" })} could not be saved. Try again.`,
+    erasing: (n: number) => `${plural("en", n, { one: "{n} contact", other: "{n} contacts" })} will be erased for good.`,
+    detailsHeading: "Details",
+    topicsAndGroups: "Topics and groups",
+    consentHistory: "Consent history",
+    summaryConsent: (when: string, src: string, confirmed: string) => [`${src}, ${when}`, confirmed].filter(Boolean).join(". "),
   },
   {
     tab: "קהל",
@@ -281,5 +306,29 @@ export const useAudienceWords = defineWords(
     suppressRemoveHint: "הסרה מאפשרת להוסיף את הכתובת שוב. היא לא הופכת אותם למנויים.",
     hashOnly: "הכתובת לא נשמרת",
     suppressedSince: (d: string) => `מאז ${d}`,
+
+    openContact: (who: string) => `פתיחת ${who}`,
+    colSource: "מקור",
+    phoneAdd: "הוספת אנשים",
+    exportAll: "ייצוא כל אנשי הקשר",
+    joined: "הצטרפות",
+    addToGroup: "הוספה לקבוצה",
+    pickGroup: (n: number) => plural("he", n, { one: "הוספת איש קשר אחד לקבוצה", two: "הוספת שני אנשי קשר לקבוצה", other: "הוספת {n} אנשי קשר לקבוצה" }),
+    noManualGroups: "עדיין אין לך קבוצות משלך. אפשר ליצור אחת תחת קבוצות, מתחת לרשימה.",
+    exportSelected: "ייצוא הנבחרים",
+    unsubscribeAct: "ביטול הרשמה",
+    suppressAct: "חסימה",
+    deleteAct: "מחיקה",
+    unsubscribeConfirm: (n: number) => `ביטול הרשמה של ${plural("he", n, { one: "איש קשר אחד", two: "שני אנשי קשר", other: "{n} אנשי קשר" })}`,
+    suppressConfirm: (n: number) => `חסימת ${plural("he", n, { one: "איש קשר אחד", two: "שני אנשי קשר", other: "{n} אנשי קשר" })}`,
+    deleteConfirm: (n: number) => `מחיקת ${plural("he", n, { one: "איש קשר אחד", two: "שני אנשי קשר", other: "{n} אנשי קשר" })}`,
+    bulkGroupDone: (n: number, group: string) => `${plural("he", n, { one: "איש קשר אחד נוסף", two: "שני אנשי קשר נוספו", other: "{n} אנשי קשר נוספו" })} ל${group}.`,
+    bulkStatusDone: (n: number) => `${plural("he", n, { one: "איש קשר אחד עודכן", two: "שני אנשי קשר עודכנו", other: "{n} אנשי קשר עודכנו" })}.`,
+    bulkFailedSome: (n: number) => `${plural("he", n, { one: "איש קשר אחד לא נשמר", two: "שני אנשי קשר לא נשמרו", other: "{n} אנשי קשר לא נשמרו" })}. נסו שוב.`,
+    erasing: (n: number) => `${plural("he", n, { one: "איש קשר אחד יימחק", two: "שני אנשי קשר יימחקו", other: "{n} אנשי קשר יימחקו" })} לצמיתות.`,
+    detailsHeading: "פרטים",
+    topicsAndGroups: "נושאים וקבוצות",
+    consentHistory: "היסטוריית הסכמה",
+    summaryConsent: (when: string, src: string, confirmed: string) => [`${src}, ${when}`, confirmed].filter(Boolean).join(". "),
   },
 );
