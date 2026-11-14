@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import type { ZodType } from "zod";
 import { toIssues, type ContentKey } from "@/content/schema";
 import {
@@ -48,6 +48,8 @@ export function useContentEditor<T>(key: ContentKey, schema: ZodType<T>) {
   const [issues, setIssues] = useState<Issue[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [generation, setGeneration] = useState(0);
+  /* Counts edits, so a save that ends can tell whether typing went on while it was on the wire. */
+  const edits = useRef(0);
 
   useEffect(() => {
     let live = true;
@@ -75,6 +77,7 @@ export function useContentEditor<T>(key: ContentKey, schema: ZodType<T>) {
   }, []);
 
   const edit = useCallback((change: (draft: T) => void) => {
+    edits.current += 1;
     setValue((prev) => {
       if (prev === null) return prev;
       const next = structuredClone(prev);
@@ -98,12 +101,18 @@ export function useContentEditor<T>(key: ContentKey, schema: ZodType<T>) {
     const data = check();
     if (data === null) return;
     setState({ kind: "saving" });
+    const at = edits.current;
     try {
       const next = await send(data, view?._rev ?? null);
       setView(next);
-      setValue(next.draft ?? next.published);
       setIssues([]);
-      setState({ kind: "saved", at: new Date() });
+      if (edits.current === at) {
+        setValue(next.draft ?? next.published);
+        setState({ kind: "saved", at: new Date() });
+      } else {
+        /* Typing went on while this was sent: the server holds the older text, the screen the newer. Keep the screen's. */
+        setState({ kind: "dirty" });
+      }
     } catch (e) {
       if (e instanceof ContentInvalidError) {
         setIssues(e.issues);

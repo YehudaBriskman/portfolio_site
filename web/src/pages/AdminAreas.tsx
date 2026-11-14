@@ -4,11 +4,12 @@ import { Plus } from "lucide-react";
 import AdminShell from "@/components/admin/AdminShell";
 import TranslationPill from "@/components/admin/TranslationPill";
 import { useTranslationStatus } from "@/services/translations";
-import { Empty, EmptyState, ErrorState, LoadingRows, PageHeader, StatePill } from "@/components/admin/ui";
+import { Empty, EmptyState, ErrorState, LoadingRows, PageHeader, StatePill, UnreadableNote } from "@/components/admin/ui";
 import { useAdminWords } from "@/i18n/admin";
 import { admin, type AdminCollection, type AdminPost } from "@/services/admin";
 import AreasPhone from "@/components/admin/posts/AreasPhone";
 import { usePhone } from "@/hooks/usePhone";
+import { unreadableCount } from "@/services/tolerant";
 
 /*
  * The areas index. There was no such page before: areas were reachable only as
@@ -26,12 +27,14 @@ function AreasDesktop() {
   const [cols, setCols] = useState<AdminCollection[] | null>(null);
   const [posts, setPosts] = useState<AdminPost[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [skipped, setSkipped] = useState(0);
 
   const load = useCallback(() => {
     Promise.all([admin.collections(), admin.list()])
       .then(([c, p]) => {
         setCols(c);
         setPosts(p);
+        setSkipped(unreadableCount(c) + unreadableCount(p));
       })
       .catch((e) => setError(e instanceof Error ? e.message : "Failed to load"));
   }, []);
@@ -76,6 +79,8 @@ function AreasDesktop() {
         <p className="sr-only" role="status">
           {cols === null ? "Loading areas" : `${ordered.length} areas`}
         </p>
+
+        <UnreadableNote count={skipped} />
 
         {error ? (
           <ErrorState message={error} onRetry={retry} />

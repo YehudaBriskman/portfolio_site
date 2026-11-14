@@ -133,10 +133,10 @@ export default function AudienceDesktop() {
                       <span className="a-row-title block text-sm"><Email value={c.email} /></span>
                       <span className="a-row-meta !mt-0.5 text-sm"><Why c={c} /></span>
                     </td>
-                    <td className="hidden text-start md:table-cell">{c.name ? <bdi dir="auto">{c.name}</bdi> : <Empty />}</td>
+                    <td className="hidden min-w-0 max-w-[14rem] text-start [overflow-wrap:anywhere] md:table-cell">{c.name ? <bdi dir="auto">{c.name}</bdi> : <Empty />}</td>
                     <td className="a-fit !px-2 text-sm sm:!px-4">{w.statuses[c.status]}</td>
                     <td className="a-fit hidden lg:table-cell text-sm">{c.lang ? w.langs[c.lang] : ""}</td>
-                    <td className="hidden text-sm lg:table-cell" dir="auto">{c.groups.length ? c.groups.map(groupName).join(", ") : <Empty />}</td>
+                    <td className="hidden min-w-0 max-w-[14rem] text-sm [overflow-wrap:anywhere] lg:table-cell" dir="auto">{c.groups.length ? c.groups.map(groupName).join(", ") : <Empty />}</td>
                     <td className="a-fit !px-2 !text-end sm:!px-4">
                       <button type="button" className="a-btn min-h-[44px] min-w-[44px]" aria-label={w.editFor(c.email)} onClick={() => setDialog({ kind: "edit", contact: c })}>{w.edit}</button>
                     </td>

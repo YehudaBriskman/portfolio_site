@@ -343,7 +343,7 @@ describe("SettingsList", () => {
       <SettingsList groups={groups(() => {})} value={base} openId={null} onOpenChange={onOpenChange} />,
     );
     fireEvent.click(container.querySelector('[data-settings-group="limits"] button')!);
-    expect(onOpenChange).toHaveBeenCalledWith("limits");
+    expect(onOpenChange).toHaveBeenCalledWith("limits", expect.stringMatching(/^(sheet|page)$/));
   });
 
   it("filters rows by label or help, shows Group > Label, and opens the group focused on the row", async () => {

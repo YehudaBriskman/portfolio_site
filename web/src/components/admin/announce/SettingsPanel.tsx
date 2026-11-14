@@ -1,5 +1,7 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { useLeaveGuard } from "@/hooks/useLeaveGuard";
+import { useContentWords } from "@/components/admin/content/words";
 import { ErrorState } from "@/components/admin/ui";
 import { Disclosure } from "@/components/ui/Disclosure";
 import { ANNOUNCE_CHANNELS, type AnnounceKind, type AnnounceSettings } from "@/services/adminAnnounce";
@@ -52,7 +54,16 @@ export default function SettingsPanel() {
   /* Which group is open lives in the address (`?section=`), so the old `section=sender` link still lands on it. */
   const section = params.get("section");
   const openId = phone && isGroupId(section) ? section : null;
-  const openGroup = (id: string | null) =>
+  const navigate = useNavigate();
+  const location = useLocation();
+  /*
+   * A page (a group with a text field) is a screen, so opening it is a PUSH and Back closes it;
+   * a replace would send Back out of /admin/marketing and drop the unsaved edits. A sheet pushes
+   * its own entry (BottomSheet), so it only rewrites the address. Closing a page we pushed goes
+   * back, so no dead entry is left to step through.
+   */
+  const openGroup = (id: string | null, surface?: "page" | "sheet") => {
+    if (!id && (location.state as { settingsPage?: boolean } | null)?.settingsPage) return navigate(-1);
     setParams(
       (p) => {
         const next = new URLSearchParams(p);
@@ -60,8 +71,10 @@ export default function SettingsPanel() {
         else next.delete("section");
         return next;
       },
-      { replace: true },
+      id && surface === "page" ? { state: { settingsPage: true } } : { replace: true },
     );
+  };
+  const leaveText = useContentWords().leaveConfirm;
   /* A page closes without a sheet to hand focus back, so return it to the row that opened it. */
   const lastOpen = useRef<string | null>(null);
   useEffect(() => {
@@ -76,6 +89,10 @@ export default function SettingsPanel() {
   const [justSaved, setJustSaved] = useState(false);
 
   const { view, draft, status, issues, edit, warnings } = doc;
+  useLeaveGuard(
+    status === "saving" || (!!draft && !!view && !same({ ...draft, hashtags: tags === null ? draft.hashtags : parseTags(tags) }, view.settings)),
+    leaveText,
+  );
   if (doc.loadError) return <ErrorState message={w.settingsFailed} onRetry={doc.reload} />;
   if (!draft || !view) return <p className="a-box a-box-row text-clay" role="status">{w.loading}</p>;
 

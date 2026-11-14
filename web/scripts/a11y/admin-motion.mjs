@@ -181,7 +181,7 @@ async function checkSheet(lang, reduced, path) {
     const kind = await page.evaluate(() => (document.querySelector("dialog[open]") ? "sheet" : document.querySelector('[data-surface="page"][data-open="true"], section[data-surface="page"]') ? "page" : "none"));
     if (kind === "sheet") {
       sheetId ??= id;
-      await page.evaluate(() => document.querySelector("dialog[open] button[aria-label]:last-of-type, dialog[open] [class*=close]")?.click());
+      await page.evaluate(() => document.querySelector("dialog[open] button[class*=close]")?.click());
     } else if (kind === "page") {
       pageId ??= id;
       await page.evaluate(() => document.querySelector('[data-surface="page"] button')?.click());
@@ -210,7 +210,7 @@ async function checkSheet(lang, reduced, path) {
     const flying = await page.evaluate(() => window.__m.transitions().map((a) => window.__m.desc(a)));
     if (reduced) ok(flying.length === 0, `${t}: reduced motion still starts ${flying.length} transitions on open (${JSON.stringify(flying.slice(0, 3))})`);
     else {
-      ok(flying.some((x) => x.prop === "translate" || x.prop === "transform"), `${t}: opening the sheet starts no slide (${JSON.stringify(flying)})`);
+      ok(flying.some((x) => x.prop === "translate" || x.prop === "transform"), `${t}: opening the sheet starts no slide (${sheetId}: ${JSON.stringify(flying)})`);
       const mid = await page.evaluate(() => window.__m.seek(0.15, (el, pe) => el.tagName === "DIALOG" && !pe));
       const slide = mid.find((x) => x.prop === "translate");
       const y = slide ? axis(slide.value, 1, 844) : NaN;
@@ -252,6 +252,8 @@ async function checkSheet(lang, reduced, path) {
         want = i % 2 === 0;
         if (want) document.querySelector(r)?.click();
         else document.querySelector("dialog button[class*=close]")?.click();
+        /* A user cannot tap a button that is not drawn yet: let the command land (a router update is async), then tear the animation. */
+        await window.__m.soon(() => Boolean(document.querySelector("dialog")?.open) === want, 100);
         await wait(Math.floor(rnd() * 30));
         const k = rnd();
         if (k < 0.3) window.__m.cancelAll();
@@ -329,8 +331,10 @@ async function checkSheet(lang, reduced, path) {
       let seed = 11;
       const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
       for (let i = 0; i < 20; i++) {
-        if (i % 2 === 0) document.querySelector(r)?.click();
+        const want = i % 2 === 0;
+        if (want) document.querySelector(r)?.click();
         else document.querySelector('[data-surface="page"] button')?.click();
+        await window.__m.soon(() => (document.querySelector('[data-surface="page"]')?.getAttribute("data-open") === "true") === want, 100);
         await wait(Math.floor(rnd() * 25));
         const k = rnd();
         if (k < 0.3) window.__m.cancelAll();
