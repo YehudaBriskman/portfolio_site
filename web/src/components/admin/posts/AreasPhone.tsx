@@ -141,8 +141,8 @@ export default function AreasPhone() {
         {selection.on ? (
           <SelectionHeader selection={selection} total={visible.length} />
         ) : (
-          <div className="flex items-center gap-2">
-            <input type="search" className="a-input min-h-[44px] min-w-0 flex-1 !ps-3 text-base" dir="auto" aria-label={p.searchAreas} placeholder={p.searchAreasHint} value={q} onChange={(e) => setQ(e.target.value)} />
+          <div className="flex flex-wrap items-center gap-2">
+            <input type="search" className="a-input min-h-[44px] min-w-0 flex-[1_1_7rem] !ps-3 text-base" dir="auto" aria-label={p.searchAreas} placeholder={p.searchAreasHint} value={q} onChange={(e) => setQ(e.target.value)} />
             {visible.length > 0 && <SelectionHeader selection={selection} total={visible.length} />}
             <Link to="/admin/areas/new" className="a-btn a-btn-primary inline-flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center" aria-label={p.newArea} title={p.newArea}>
               <ICON.add size={20} strokeWidth={2} aria-hidden="true" focusable="false" />

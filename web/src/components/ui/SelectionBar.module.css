@@ -84,11 +84,16 @@
   inset-block-end: var(--a-bar-h, 0px);
   z-index: 20;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--a-s-2, 0.5rem);
   padding-block: var(--a-s-2, 0.5rem);
   padding-block-end: calc(var(--a-s-2, 0.5rem) + env(safe-area-inset-bottom, 0px));
-  padding-inline: var(--a-s-3, 0.75rem);
+  padding-inline-start: max(var(--a-s-3, 0.75rem), env(safe-area-inset-left, 0px));
+  padding-inline-end: max(var(--a-s-3, 0.75rem), env(safe-area-inset-right, 0px));
+  /* a cap, so large text or a very narrow screen cannot cover the list */
+  max-block-size: 40dvh;
+  overflow-y: auto;
   border-block-start: 1px solid var(--a-line, rgb(var(--ink) / 0.2));
   background: rgb(var(--paper-2));
   color: rgb(var(--ink));
@@ -101,8 +106,9 @@
 }
 
 .count {
-  flex: 1;
-  min-inline-size: 0;
+  /* never collapse: when the count and the buttons do not fit, the buttons wrap to a second row */
+  flex: 1 0 auto;
+  min-inline-size: 8ch;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;

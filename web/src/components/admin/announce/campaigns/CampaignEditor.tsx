@@ -1,6 +1,7 @@
 import { useLeaveGuard } from "@/hooks/useLeaveGuard";
 import { useContentWords } from "@/components/admin/content/words";
 import { useCallback, useEffect, useId, useMemo, useState } from "react";
+import { ArrowLeft } from "lucide-react";
 import { hasTextProblem, identityMissing } from "../sender/defaults";
 import { Link } from "react-router-dom";
 import { ErrorState } from "@/components/admin/ui";
@@ -334,7 +335,7 @@ export default function CampaignEditor({
   return (
     <div className="max-w-6xl space-y-5" data-testid="campaign-editor">
       <div className="flex flex-wrap items-center gap-3">
-        <button type="button" className="a-btn a-btn-ghost min-h-[44px]" onClick={onClose}>← {w.back}</button>
+        <button type="button" className="a-btn a-btn-ghost min-h-[44px]" onClick={onClose}><ArrowLeft aria-hidden="true" className="a-mirror" />{w.back}</button>
         <h2 className="display-tight text-xl">{heading}</h2>
         {campaign && (phone
           ? <StatusGlyph kind={campaign.status} withWord />
@@ -371,7 +372,7 @@ export default function CampaignEditor({
 
       <form noValidate onSubmit={(e) => (e.preventDefault(), void save())}>
         <fieldset disabled={!editable} className="min-w-0">
-          <div className="grid gap-x-8 gap-y-6 lg:grid-cols-[minmax(0,1fr)_26rem]">
+          <div className="grid grid-cols-1 gap-x-8 gap-y-6 lg:grid-cols-[minmax(0,1fr)_26rem]">
             <Step n={1} title={w.step1} labelId={`${uid}-s1`}>
               {!campaign && id === "new" && events.length > 0 && (
                 <div>
@@ -514,7 +515,7 @@ export default function CampaignEditor({
                   />
                 </div>
               ) : (
-              <dl className="a-box grid gap-x-4 gap-y-2 p-3 text-sm sm:grid-cols-[auto_1fr]">
+              <dl className="a-box grid grid-cols-1 gap-x-4 gap-y-2 p-3 text-sm sm:grid-cols-[auto_1fr]">
                 <dt className="font-bold">{w.reviewSubject}</dt>
                 <dd dir="auto" className="min-w-0 break-words">{form.subject || "—"}</dd>
                 <dt className="font-bold">{w.reviewFrom}</dt>

@@ -216,7 +216,7 @@ export default function AdminShell({ title, section, counts, bottomBar, backTo, 
       <header className="a-top">
         {backTo ? (
           <Link to={backTo} className="a-btn a-btn-ghost a-icon-btn lg:hidden" aria-label={w.back}>
-            <ChevronLeft aria-hidden="true" />
+            <ChevronLeft aria-hidden="true" className="a-mirror" />
           </Link>
         ) : (
           <button
@@ -242,9 +242,9 @@ export default function AdminShell({ title, section, counts, bottomBar, backTo, 
             {crumbs.map((c, i) => (
               <li key={`${c.label}-${i}`} data-last={i === last ? "" : undefined}>
                 {c.to && i !== last ? (
-                  <Link to={c.to}>{c.label}</Link>
+                  <Link to={c.to}><bdi>{c.label}</bdi></Link>
                 ) : (
-                  <span aria-current="page">{c.label}</span>
+                  <span aria-current="page"><bdi>{c.label}</bdi></span>
                 )}
               </li>
             ))}

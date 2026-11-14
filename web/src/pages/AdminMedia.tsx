@@ -414,7 +414,7 @@ function MediaDetail({
   );
 
   const altFields = (
-    <div className="grid gap-4 sm:grid-cols-2" data-path="alt">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2" data-path="alt">
       <label className="block min-w-0">
         <span className="a-label">{t.altLabel}</span>
         <textarea
@@ -434,7 +434,7 @@ function MediaDetail({
   );
   const captionFields = (
     <>
-      <div className="grid gap-4 sm:grid-cols-2" data-path="caption">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2" data-path="caption">
         <label className="block min-w-0">
           <span className="a-label">{t.caption}</span>
           <input value={caption} onChange={(e) => setCaption(e.target.value)} className="a-input" maxLength={500} />

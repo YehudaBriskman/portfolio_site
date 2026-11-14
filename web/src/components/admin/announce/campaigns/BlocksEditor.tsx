@@ -52,7 +52,7 @@ export default function BlocksEditor({ blocks, onChange }: { blocks: Block[]; on
                 </div>
               )}
               {b.type === "cta" && (
-                <div className="grid gap-2 sm:grid-cols-2">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   <div>
                     <label className="a-label" htmlFor={id}>{w.blockLabel}</label>
                     <input id={id} className="a-input min-h-[44px]" dir="auto" maxLength={100} value={b.label} onChange={(e) => set(i, { ...b, label: e.target.value })} />
@@ -64,7 +64,7 @@ export default function BlocksEditor({ blocks, onChange }: { blocks: Block[]; on
                 </div>
               )}
               {b.type === "image" && (
-                <div className="grid gap-2 sm:grid-cols-2">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   <div>
                     <label className="a-label" htmlFor={id}>{w.blockImageUrl}</label>
                     <input id={id} type="url" inputMode="url" className="a-input min-h-[44px]" dir="ltr" autoComplete="off" value={b.url} onChange={(e) => set(i, { ...b, url: e.target.value })} />

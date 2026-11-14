@@ -285,7 +285,7 @@ export default function AdminOverview() {
           </div>
         </section>
 
-        <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
+        <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
           <section aria-labelledby="overview-activity" className="a-box min-w-0">
             <div className="a-box-head">
               <h2 id="overview-activity" className="a-box-title">
