@@ -144,7 +144,7 @@ export default function EventCard({ event, onChange, defaultOpen = false }: Prop
     if (!detail) return <p className="a-box-row text-clay" role="status">{w.loading}</p>;
     const shown = detail.event;
     return (
-      <div className="grid gap-4 p-4 lg:grid-cols-[minmax(0,18rem)_minmax(0,1fr)]">
+      <div className="grid grid-cols-1 gap-4 p-4 lg:grid-cols-[minmax(0,18rem)_minmax(0,1fr)]">
         <div className="min-w-0 space-y-2">
           {imgFailed ? (
             <p className="a-hint">{w.previewMissing}</p>

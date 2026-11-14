@@ -395,7 +395,7 @@ export default function AdminSettings() {
             <fieldset>
               <legend className="a-label">{w.accentLegend}</legend>
               <p className="a-hint">{w.accentHint}</p>
-              <div className="mt-2 grid gap-3 sm:grid-cols-2">
+              <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {ACCENTS.map((a) => {
                   const p = ACCENT_PRESETS[a];
                   return (

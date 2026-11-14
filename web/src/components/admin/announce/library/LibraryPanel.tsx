@@ -222,7 +222,7 @@ export default function LibraryPanel() {
           <h3 id={`${uid}-b`} className="display-tight text-lg">{w.builtinHeading}</h3>
           <p className="a-hint !mt-0">{w.builtinHint}</p>
         </div>
-        <ul className="grid gap-2 sm:grid-cols-2">
+        <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {(["en", "he"] as const).flatMap((l) =>
             ANNOUNCE_CHANNELS.map((c) => {
               const own = draft.templates[l][c] !== undefined;

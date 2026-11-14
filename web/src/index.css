@@ -2733,7 +2733,7 @@
   /* Clipped, not pushed off-screen: -9999px to the left is 9999px of scroll in a right-to-left document. */
   .a-skip:not(:focus) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   .a-skip:focus {
-    position: fixed; left: 1rem; top: .75rem; z-index: 70;
+    position: fixed; inset-inline-start: max(1rem, env(safe-area-inset-left, 0px)); top: .75rem; z-index: 70;
     padding: .5rem 1rem; border-radius: var(--a-r-ctl);
     background: rgb(var(--signal)); color: rgb(var(--signal-ink));
   }
@@ -2742,11 +2742,18 @@
   .a-top {
     position: sticky; top: 0; z-index: 40;
     display: flex; align-items: center; gap: .375rem;
-    height: 3.5rem; padding-inline: .5rem .75rem;
+    /* A row of 3.5rem that grows: large text wraps the end group to a second row
+       rather than squeezing the page title to a letter or pushing a button off screen. */
+    flex-wrap: wrap; min-height: 3.5rem;
+    /* Landscape with a cutout: the bar is edge to edge, its controls clear the inset. */
+    padding-inline-start: max(.5rem, env(safe-area-inset-left, 0px));
+    padding-inline-end: max(.75rem, env(safe-area-inset-right, 0px));
     background: rgb(var(--paper-2));
     border-bottom: 1px solid var(--a-line);
   }
-  @media (min-width: 1024px) { .a-top { padding-inline: 1rem; gap: .75rem; } }
+  @media (min-width: 1024px) {
+    .a-top { gap: .75rem; padding-inline-start: max(1rem, env(safe-area-inset-left, 0px)); padding-inline-end: max(1rem, env(safe-area-inset-right, 0px)); }
+  }
   .a-brand {
     display: inline-flex; flex: none; align-items: center; gap: .625rem;
     min-height: 2.25rem; padding-inline: .25rem; border-radius: var(--a-r-ctl);
@@ -2760,7 +2767,7 @@
   }
   @media (min-width: 768px) { .a-brand-name { position: static; width: auto; height: auto; overflow: visible; clip-path: none; } }
 
-  .a-crumbs { min-width: 0; flex: 1; }
+  .a-crumbs { min-width: 0; flex: 1 1 4rem; }
   .a-crumbs ol { display: flex; align-items: center; min-width: 0; }
   .a-crumbs li { display: flex; align-items: center; min-width: 0; }
   .a-crumbs li + li::before {
@@ -2768,8 +2775,11 @@
   }
   .a-crumbs a, .a-crumbs span {
     display: flex; align-items: center; min-height: 2.75rem; min-width: 24px; padding: .25rem .5rem; border-radius: var(--a-r-ctl);
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    overflow: hidden;
   }
+  /* The label is an isolate (<bdi>) so an English title in a Hebrew bar starts at its own start
+     and is cut at its end; text-overflow needs a block, not the flex item around it. */
+  .a-crumbs bdi { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .a-crumbs a { color: rgb(var(--ink-soft)); }
   .a-crumbs a:hover { background: var(--a-hover); color: rgb(var(--ink)); }
   .a-crumbs [aria-current] { font-weight: 700; color: rgb(var(--ink)); }
@@ -2833,9 +2843,12 @@
   .a-side-foot { margin-top: auto; padding-top: .75rem; border-top: 1px solid var(--a-line-soft); }
   .a-side-who { padding: .25rem .625rem; font-size: var(--a-fs-meta); color: rgb(var(--ink-soft)); overflow-wrap: anywhere; }
 
-  .a-main { flex: 1; min-width: 0; padding: 1.25rem 1rem calc(var(--a-bar-h, 0px) + 2rem); }
+  .a-main {
+    flex: 1; min-width: 0; padding: 1.25rem 1rem calc(var(--a-bar-h, 0px) + 2rem);
+    padding-inline: max(1rem, env(safe-area-inset-left, 0px)) max(1rem, env(safe-area-inset-right, 0px));
+  }
   .a-main:focus { outline: none; }
-  @media (min-width: 1024px) { .a-main { padding: 1.75rem 2rem 4rem; } }
+  @media (min-width: 1024px) { .a-main { padding-block: 1.75rem 4rem; padding-inline: max(2rem, env(safe-area-inset-left, 0px)) max(2rem, env(safe-area-inset-right, 0px)); } }
   .a-wrap { max-width: 76rem; }
   .a-wrap-narrow { max-width: 60rem; }
 
@@ -2859,8 +2872,9 @@
   .a-bar-row { display: flex; align-items: center; gap: .5rem; min-height: 60px; padding: 8px .75rem; }
   /* A landscape phone has about 390px: the bar gives back what it can. */
   @media (max-height: 480px) { .a-bar-row { min-height: 52px; padding-block: 4px; } }
-  .a-bar-row > .a-btn { flex: none; }
-  .a-bar-more { width: 44px; padding: 0; }
+  /* The primary may wrap its label at large text rather than run past the edge. */
+  .a-bar-row > .a-btn { flex: 0 1 auto; min-width: 0; }
+  .a-bar-more { flex: none; width: 44px; padding: 0; }
   .a-bar-more svg { width: 20px; height: 20px; }
   .a-bar-status {
     display: flex; align-items: center; gap: .5rem; flex: 1 1 0; min-width: 0;
@@ -3076,12 +3090,14 @@
   /* ---- buttons */
   .a-btn {
     display: inline-flex; align-items: center; justify-content: center; gap: .375rem;
-    min-height: 2rem; padding: 0 .75rem;
+    min-height: 2rem; padding: .25rem .75rem; max-inline-size: 100%;
     border-radius: var(--a-r-ctl); border: 1px solid rgb(var(--rule-firm) / .7);
     background: rgb(var(--paper-2)); color: rgb(var(--ink));
     box-shadow: var(--a-shadow-1);
     font-family: var(--font-text); font-size: .875rem; font-weight: 700;
-    letter-spacing: 0; text-transform: none; line-height: 1.2; white-space: nowrap;
+    letter-spacing: 0; text-transform: none; line-height: 1.2;
+    /* wraps (never wider than its row) so large text cannot push a label off screen */
+    white-space: normal; overflow-wrap: anywhere; text-align: center;
   }
   .a-btn svg { width: 16px; height: 16px; flex: none; }
   .a-btn:hover { background: rgb(var(--paper-3)); border-color: var(--a-line-ctl); }
@@ -3098,6 +3114,8 @@
   .a-btn-ghost:hover { background: var(--a-hover); border-color: transparent; color: rgb(var(--ink)); }
   .a-icon-btn { width: 2rem; height: 2rem; min-height: 2rem; padding: 0; }
   .a-icon-btn svg { width: 18px; height: 18px; }
+  /* A directional icon (back, onward arrow) points the way the page reads: add to the <svg>. Not for clocks, checks, play, brand marks. */
+  .a-mirror:dir(rtl) { transform: scaleX(-1); }
   .a-link { color: rgb(var(--signal)); text-decoration: underline; text-underline-offset: 3px; }
   @media (pointer: coarse) {
     .a-btn, .a-nav-item, .a-tab, .a-brand { min-height: 2.75rem; }

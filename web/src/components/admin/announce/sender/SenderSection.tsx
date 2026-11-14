@@ -200,10 +200,10 @@ export default function SenderSection({ sender, onChange, warnings, phone = fals
   return (
     <section aria-labelledby={`${uid}-h`} className="space-y-4" data-testid="sender-section">
       {phone ? (
-        <h4 id={`${uid}-h`} className="sr-only">{w.heading}</h4>
+        <h3 id={`${uid}-h`} className="sr-only">{w.heading}</h3>
       ) : (
         <div>
-          <h4 id={`${uid}-h`} className="display-tight text-lg">{w.heading}</h4>
+          <h3 id={`${uid}-h`} className="display-tight text-lg">{w.heading}</h3>
           <p className="a-hint !mt-0">{w.intro}</p>
         </div>
       )}
@@ -243,7 +243,7 @@ export default function SenderSection({ sender, onChange, warnings, phone = fals
       {showId && sec(
         w.secSender,
         <>{sender.fromName || sender.fromAddress ? <bdi>{w.sumSender(sender.fromName, sender.fromAddress)}</bdi> : w.sumSenderDefault} {mark(!senderBad)}</>,
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {text("fromName", w.fromName, w.fromNameHint, { max: 80 })}
           {text("fromAddress", w.fromAddress, w.fromAddressHint, { type: "email", max: 254, dir: "ltr" })}
           <div className="md:col-span-2">{text("replyTo", w.replyTo, w.replyToHint, { type: "email", max: 254, dir: "ltr" })}</div>
@@ -320,7 +320,7 @@ export default function SenderSection({ sender, onChange, warnings, phone = fals
         w.secLimits,
         <>{w.sumLimits(sender.throttlePerHour, sender.dailyCap, quietText)}, {w.sumPerPerson(sender.maxPerContact30d)}{sender.autoDraftCampaign ? `, ${w.sumAuto}` : ""} {mark(!limitsBad)}</>,
         <>
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {num("throttlePerHour", w.throttle, w.throttleHint, 3600)}
             {num("dailyCap", w.cap, w.capHint, 10000)}
             {num("maxPerContact30d", w.perPerson, w.perPersonHint, 31, 0)}
@@ -359,7 +359,7 @@ export default function SenderSection({ sender, onChange, warnings, phone = fals
         <>
           {phone ? <InfoPopover label={bw.secBudget} text={bw.intro} /> : <p className="a-hint !mt-0">{bw.intro}</p>}
           <BudgetMeter phone={phone} />
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {num("dailyLimit", bw.dailyLimit, bw.dailyLimitHint, 100000)}
             {num("monthlyLimit", bw.monthlyLimit, bw.monthlyLimitHint, 1000000)}
             {pct("safety", bw.safety, bw.safetyHint, 50, 100)}
