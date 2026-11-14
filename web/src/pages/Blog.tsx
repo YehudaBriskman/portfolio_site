@@ -20,6 +20,7 @@ import {
 } from "@/components/dashboard/Parts";
 import { ListSkeleton, PostsSkeleton, RowsSkeleton } from "@/components/dashboard/Skeletons";
 import styles from "@/components/dashboard/Dashboard.module.css";
+import { useKeyboardCopy } from "@/hooks/useKeyboardCopy";
 import HeadStrand from "@/components/motion/HeadStrand";
 import Ring from "@/components/motion/Ring";
 import { greeting, monthLabel, shortDate, useWords, type Lang, type Words } from "@/components/dashboard/i18n";
@@ -140,6 +141,8 @@ export default function Blog() {
   const [shown, setShown] = useState(PAGE);
   const [now] = useState(() => new Date());
   const hintId = useId();
+  /* The tree's arrow-key sentence is for a keyboard; a phone has none (#766). */
+  const keyboard = useKeyboardCopy();
 
   /* A retry clears the old answer in the render that asks for the new one. */
   const [seenAttempt, setSeenAttempt] = useState(attempt);
@@ -454,10 +457,12 @@ export default function Blog() {
       )}
       {ready && tree.length > 0 && (
         <DashCard title={t.tree} flush>
-          <Tree nodes={tree} expanded={open} onExpandedChange={setOpen} label={t.tree} describedBy={hintId} />
-          <p id={hintId} className={styles.treeHint}>
-            {t.treeHint}
-          </p>
+          <Tree nodes={tree} expanded={open} onExpandedChange={setOpen} label={t.tree} describedBy={keyboard ? hintId : undefined} />
+          {keyboard && (
+            <p id={hintId} className={styles.treeHint}>
+              {t.treeHint}
+            </p>
+          )}
         </DashCard>
       )}
 
