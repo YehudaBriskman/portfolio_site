@@ -123,7 +123,6 @@ const PHONE_FILES = [
   "components/ui/Presence.module.css",
   "components/ui/ListPresence.module.css",
   "components/ui/SkeletonSwap.module.css",
-  "components/ui/UndoToast.module.css",
   "components/ui/SelectionBar.module.css",
 ];
 
@@ -164,8 +163,8 @@ describe("state-change motion: phones only", () => {
     }
   });
 
-  it("the toast and the selection bar are drawn through Presence, so they leave softly", () => {
-    for (const f of ["components/ui/UndoToast.tsx", "components/ui/SelectionBar.tsx"]) {
+  it("the selection bar is drawn through Presence, so it leaves softly (toasts leave through sonner, themed in popup.css)", () => {
+    for (const f of ["components/ui/SelectionBar.tsx"]) {
       expect(src(f), f).toMatch(/<Presence\b/);
     }
   });

@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { toast, useToastVersion } from "@/lib/toast";
 
@@ -16,6 +16,11 @@ export default function ToastMount() {
   useToastVersion();
   const { pathname } = useLocation();
   const admin = /^(\/he)?\/admin(\/|$)/.test(pathname);
+  /* An Undo raised before the lazy host has loaded waits for it instead of committing at once. */
+  useEffect(() => {
+    toast.expectHost(admin);
+    return () => toast.expectHost(false);
+  }, [admin]);
   if (!admin && !toast.raised()) return null;
   return (
     <Suspense fallback={null}>

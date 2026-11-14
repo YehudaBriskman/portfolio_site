@@ -101,14 +101,14 @@ export const useHelpWords = defineWords(
       },
       "contact-too-many": {
         title: "Too many tries",
-        see: "A notice, “Message not sent, too many tries”, with the line “Please wait a few minutes, then try again.”",
+        see: "A notice, “Message not sent, too many tries”, with the line “Too many messages were sent just now. Please wait a few minutes, then try again.”",
         why: "The site pauses the contact form for a while when too many messages arrive in a short time, either from your connection or from the form as a whole. Attempts that failed count too. Your message is not lost: it is still in the fields.",
         todo: "Wait a few minutes and press Send again, or write to the address shown in the notice’s details.",
       },
       "contact-too-long": {
         title: "The message is too long",
         see: "A notice, “Message not sent, too long”, with the line “Shorten the message a little and try again.”",
-        why: "The message is larger than the site accepts, so the site refused it. Your message is still in the fields.",
+        why: "The form accepts a message of up to 9,000 characters. A longer one is stopped before sending, with a note under the message field that says how many characters to remove. If the site itself refuses a message as too large, you get this notice instead. Your message is still in the fields.",
         todo: "Cut the message down, or send the rest in a second message, then press Send again.",
       },
       "contact-offline": {
@@ -303,14 +303,14 @@ export const useHelpWords = defineWords(
       },
       "contact-too-many": {
         title: "יותר מדי ניסיונות",
-        see: "הודעה קופצת, ״ההודעה לא נשלחה, יותר מדי ניסיונות״, עם השורה ״המתינו כמה דקות ונסו שוב.״",
+        see: "הודעה קופצת, ״ההודעה לא נשלחה, יותר מדי ניסיונות״, עם השורה ״נשלחו יותר מדי הודעות ברגע זה. המתינו כמה דקות ונסו שוב.״",
         why: "האתר עוצר את טופס יצירת הקשר לזמן מה כשמגיעות יותר מדי הודעות בזמן קצר, מהחיבור שלכם או מהטופס כולו. גם ניסיונות שנכשלו נספרים. ההודעה לא אבדה: היא עדיין בשדות.",
         todo: "חכו כמה דקות ולחצו שוב על השליחה, או כתבו לכתובת שמופיעה בפרטי ההודעה הקופצת.",
       },
       "contact-too-long": {
         title: "ההודעה ארוכה מדי",
         see: "הודעה קופצת, ״ההודעה לא נשלחה, היא ארוכה מדי״, עם השורה ״קצרו מעט את ההודעה ונסו שוב.״",
-        why: "ההודעה גדולה ממה שהאתר מקבל, ולכן האתר דחה אותה. ההודעה שלכם עדיין בשדות.",
+        why: "הטופס מקבל הודעה של עד 9,000 תווים. הודעה ארוכה מזה נעצרת לפני השליחה, עם הערה מתחת לשדה ההודעה שאומרת כמה תווים להסיר. אם האתר עצמו דוחה הודעה כגדולה מדי, תקבלו את ההודעה הקופצת הזאת. ההודעה שלכם עדיין בשדות.",
         todo: "קצרו את ההודעה, או שלחו את ההמשך בהודעה נוספת, ולחצו שוב על השליחה.",
       },
       "contact-offline": {

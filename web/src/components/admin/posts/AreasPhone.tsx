@@ -9,7 +9,8 @@ import { ICON } from "@/components/ui/icons";
 import { RecordRow } from "@/components/ui/RecordRow";
 import { SelectionBar, SelectionHeader, type SelectionAction } from "@/components/ui/SelectionBar";
 import { StatusGlyph, type StatusKind } from "@/components/ui/StatusGlyph";
-import { UndoToast, useUndoable } from "@/components/ui/UndoToast";
+import { toast } from "@/lib/toast";
+import { useUndoable } from "@/lib/toast/useUndoable";
 import { useSavedFilters } from "@/components/ui/useSavedFilters";
 import { useSelection } from "@/components/ui/useSelection";
 import { useAdminWords } from "@/i18n/admin";
@@ -36,7 +37,6 @@ export default function AreasPhone() {
   const [q, setQ] = useState("");
   const [sheet, setSheet] = useState(false);
   const [hidden, setHidden] = useState<ReadonlySet<string>>(() => new Set());
-  const [note, setNote] = useState("");
   const undoable = useUndoable();
 
   const load = useCallback(() => {
@@ -102,7 +102,7 @@ export default function AreasPhone() {
       onUndo: show,
       commit: async () => {
         const failed = (await Promise.allSettled(ids.map((slug) => admin.hideCollection(slug)))).filter((r) => r.status === "rejected").length;
-        setNote(failed ? p.failedSome(failed) : "");
+        if (failed) toast.error(p.failedSome(failed));
         show();
         load();
       },
@@ -154,7 +154,6 @@ export default function AreasPhone() {
         <FiltersRestoredNote restored={saved.restored} onUndo={saved.undoRestore} onDismiss={saved.dismissRestored} />
 
         <p className="sr-only" role="status">{cols ? p.countAreas(visible.length) : ""}</p>
-        {note && <p role="status" className="a-hint !mt-0">{note}</p>}
 
         <UnreadableNote count={skipped} />
 
@@ -176,7 +175,6 @@ export default function AreasPhone() {
       </div>
 
       <FilterSheet open={sheet} onClose={() => setSheet(false)} defs={defs} value={filters} onApply={(next) => (setFilters(next), setSheet(false))} />
-      <UndoToast undoable={undoable} />
     </AdminShell>
   );
 }

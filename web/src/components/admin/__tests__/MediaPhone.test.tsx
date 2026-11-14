@@ -3,6 +3,8 @@ import { resolve } from "node:path";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
+import ToastHost from "@/components/ui/ToastHost";
+import { __resetToasts } from "@/lib/toast";
 import AdminMedia from "@/pages/AdminMedia";
 import type { MediaItem } from "@/services/media";
 
@@ -84,6 +86,7 @@ beforeEach(() => {
   );
 });
 afterEach(() => {
+  __resetToasts();
   cleanup();
   undoPhone();
   vi.useRealTimers();
@@ -100,6 +103,7 @@ const page = (path = "/admin/media") =>
       <Routes>
         <Route path="/admin/media" element={<AdminMedia />} />
       </Routes>
+      <ToastHost />
     </MemoryRouter>,
   );
 const grid = () =>

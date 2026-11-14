@@ -7,7 +7,8 @@ import { RecordRow } from "@/components/ui/RecordRow";
 import { StatusGlyph } from "@/components/ui/StatusGlyph";
 import { SelectionBar, SelectionHeader, type SelectionAction } from "@/components/ui/SelectionBar";
 import { useSelection } from "@/components/ui/useSelection";
-import { UndoToast, useUndoable } from "@/components/ui/UndoToast";
+import ToastHost from "@/components/ui/ToastHost";
+import { useUndoable } from "@/lib/toast/useUndoable";
 
 const params = new URLSearchParams(location.search);
 const rtl = params.get("dir") === "rtl";
@@ -72,7 +73,7 @@ function Demo() {
       </div>
       <div style={{ flex: 1 }} />
       <SelectionBar selection={sel} actions={actions} />
-      <UndoToast undoable={undo} />
+      <ToastHost />
       <Auto state={q} sel={sel} undoer={undo} actions={actions} />
     </div>
   );
@@ -80,10 +81,9 @@ function Demo() {
 
 import { useEffect } from "react";
 import type { Selection } from "@/components/ui/useSelection";
-import type { Undoable } from "@/components/ui/UndoToast";
 
 /** Puts the demo into a state for a screenshot: ?state=select | undo. */
-function Auto({ state, sel, undoer, actions }: { state: string | null; sel: Selection<number>; undoer: Undoable; actions: SelectionAction<number>[] }) {
+function Auto({ state, sel, undoer, actions }: { state: string | null; sel: Selection<number>; undoer: ReturnType<typeof useUndoable>; actions: SelectionAction<number>[] }) {
   useEffect(() => {
     if (state === "select") {
       sel.enter(0);

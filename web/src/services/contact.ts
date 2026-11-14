@@ -10,13 +10,19 @@ import { z } from "zod";
  * other in front of the reader. `sendContactMessage` still parses what it is
  * handed; the form's parse is for the message, not for the trust.
  */
+/* The server accepts a body of 10,000 characters, and the body is the message plus
+   "Name: ...", "Email: ..." lines. The message is held to 9,000 and the name to 100
+   (the address is at most 254), so the longest allowed form always fits with room to spare. */
+export const MESSAGE_MAX = 9000;
+export const NAME_MAX = 100;
+
 export const ContactSchema = z.object({
-  name: z.string().min(2, "Add your name"),
+  name: z.string().min(2, "Add your name").max(NAME_MAX),
   /* The shape is spelled out, not only rejected (WCAG 3.3.3, #99 audit): when
      the fix is known the message has to say what it is, and "doesn't look
      right" alone left the reader guessing which part was wrong. */
   email: z.string().email("That email address doesn't look right. It should look like name@example.com"),
-  message: z.string().min(10, "Tell me a little more, at least a sentence"),
+  message: z.string().min(10, "Tell me a little more, at least a sentence").max(MESSAGE_MAX, "That message is too long"),
 });
 
 export type ContactPayload = z.infer<typeof ContactSchema>;

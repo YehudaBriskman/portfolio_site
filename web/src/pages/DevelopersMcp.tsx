@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { toast } from "@/lib/toast";
+import { copyText } from "@/lib/share";
 import PageShell from "@/components/PageShell";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { OWNER_READ, OWNER_WRITE, PUBLIC, type Tool } from "@/lib/mcpTools";
@@ -57,16 +59,17 @@ function CopyLine({ label, text }: { label: string; text: string }) {
           type="button"
           className="mono min-h-11 shrink-0 border-s border-rule-firm px-4 text-xs uppercase tracking-[0.16em] text-ink transition-colors hover:bg-ink hover:text-paper focus-visible:bg-ink focus-visible:text-paper"
           onClick={() => {
-            void navigator.clipboard?.writeText(text).then(() => setCopied(true));
+            void copyText(text).then((ok) => {
+              setCopied(ok);
+              if (ok) toast.success(w.copiedSay);
+              else toast.error(w.copyFailed, { help: { topic: "sharing" } });
+            });
           }}
           aria-label={w.copyLabel(label)}
         >
           {copied ? w.copied : w.copy}
         </button>
       </div>
-      <span className="sr-only" role="status">
-        {copied ? w.copiedSay : ""}
-      </span>
     </div>
   );
 }
