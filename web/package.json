@@ -29,6 +29,7 @@
     "a11y:admin-density-phone": "node scripts/a11y/admin-density-phone.mjs",
     "a11y:admin-motion": "node scripts/a11y/admin-motion.mjs",
     "a11y:admin-typing": "node scripts/a11y/admin-typing.mjs",
+    "a11y:public-landing": "node scripts/a11y/public-landing.mjs",
     "a11y:bottom-sheet-phone": "node scripts/a11y/bottom-sheet-phone.mjs",
     "links": "node scripts/links/land.mjs"
   },
