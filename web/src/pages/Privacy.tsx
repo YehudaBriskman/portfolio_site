@@ -78,7 +78,7 @@ export default function Privacy() {
             </section>
           ))}
           <GroupedSection>
-            <ul>
+            <ul className="mt-5">
               <li>
                 <ListRow to="/follow" icon={<Mail data-ph-only="" aria-hidden="true" />} tone="blue" className="underline underline-offset-4">
                   <span>{w.back}</span>
