@@ -1,4 +1,4 @@
-import { defineWords, plural } from "./words";
+import { LRI, PDI, defineWords, plural } from "./words";
 
 /*
  * What only the phone layouts of Overview, Connected apps, Translations and
@@ -208,7 +208,7 @@ export const usePhoneAdminWords = defineWords(
       sumLook: (theme: string, motion: string, accent: string) => `ערכת נושא: ${theme}, ${motion}, ${accent}`,
       sumSharing: (surfaces: number, channels: number) => `פעיל, ${surfaces} מקומות, ${channels} ערוצים`,
       off: "כבוי",
-      sumLinks: (source: string) => `פעיל, מקור ${source}`,
+      sumLinks: (source: string) => `פעיל, מקור ${LRI}${source}${PDI}`,
       sumTexts: (written: number, total: number) => `${written} מתוך ${total} נכתבו`,
       hero: "פתיח, תמיד ראשון",
       historyMeta: (n: number) => plural("he", n, { one: "גרסה שמורה אחת", two: "שתי גרסאות שמורות", other: "{n} גרסאות שמורות" }),

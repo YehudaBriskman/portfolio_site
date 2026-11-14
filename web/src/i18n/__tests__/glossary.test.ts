@@ -32,6 +32,25 @@ const LATIN_SEEN = new Set<string>([
   /* The server environment variable the owner must set or remove by name (campaigns/words.ts, the kill switch). */
   "SEND",
   "ENABLED",
+  /* File formats and sizes the upload box names as they are written on the file (mediaUploadWords.ts). */
+  "JPEG",
+  "PNG",
+  "SVG",
+  "MP4",
+  "WebM",
+  "WebVTT",
+  "KB",
+  "MB",
+  /* The project state keys and the address placeholder the owner types as written (content/formWords.ts). */
+  "live",
+  "in-use",
+  "open-source",
+  "in-progress",
+  "released",
+  "archive",
+  "v1.2.0",
+  "https",
+  "slug",
   /* Key chords in the note editor's shortcut help (Ctrl+B is in the glossary). */
   "Ctrl+E",
   "Ctrl+I",

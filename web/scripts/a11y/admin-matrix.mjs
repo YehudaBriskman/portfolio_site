@@ -298,6 +298,14 @@ function measure({ allowText, primary }) {
     else if (coarse && (w < 44 || h < 44) && el.matches(primary)) out.smallTargets.push({ el: sel(el), w, h });
   }
 
+  /* 4. words with no Hebrew in them, for the he runs: the text a reader sees (and aria-label/title/placeholder/alt) that is Latin only */
+  out.latin = [];
+  if (document.documentElement.lang === "he") {
+    const add = (t) => { t = t.replace(/\s+/g, " ").trim(); if (/[A-Za-z]{2}/.test(t) && !/[\u0590-\u05FF]/.test(t)) out.latin.push(t.slice(0, 80)); };
+    for (const el of leaves) add(el.textContent ?? "");
+    for (const el of document.body.querySelectorAll("[aria-label],[title],[placeholder],[alt]")) if (visible(el) || el.matches("input,textarea")) for (const a of ["aria-label", "title", "placeholder", "alt"]) add(el.getAttribute(a) ?? "");
+  }
+
   return out;
 }
 

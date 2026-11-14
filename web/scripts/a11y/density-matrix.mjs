@@ -11,8 +11,11 @@
  *   npm run a11y:density -- [--out dir] [--json file] [--table file] [--top 25] [--shots top|none]
  *   Output goes to a temp folder (printed at the end), never into the repo; it is a measuring tool, not a CI gate.
  *   ONLY=media,marketing-inbox   VPS=390x844,360x740   CHROME=/path/to/chrome
+ *   LANGS=he     Hebrew, right to left (default en); the steps match both languages' button names
+ *   THEMES=dark  the dark theme (default light)
+ *   A run measures one language and one theme, so a before/after is two runs with the same flags.
  *
- * Metrics (all light/en; "fold" = what intersects the first viewport at scroll 0;
+ * Metrics (en/light unless LANGS / THEMES say otherwise; "fold" = what intersects the first viewport at scroll 0;
  * with a dialog open, the dialog is the screen):
  *   chars/nodes        visible text characters / visible text nodes (page, fold)
  *   runs               longest unbroken run of >=3 consecutive sibling rows/cards (same tag+class,
@@ -56,11 +59,33 @@ mkdirSync(OUT, { recursive: true });
 const env = (n) => (process.env[n] ?? "").split(",").filter(Boolean);
 const VPS = (env("VPS").length ? env("VPS") : ["390x844", "360x740"]).map((s) => { const [w, h] = s.split("x").map(Number); return { id: s, w, h }; });
 const ONLY = env("ONLY");
+const LANG = env("LANGS")[0] ?? "en";
+const THEME = env("THEMES")[0] ?? "light";
+if (!["en", "he"].includes(LANG) || !["light", "dark"].includes(THEME)) throw new Error(`LANGS is en or he and THEMES is light or dark (got ${LANG}, ${THEME})`);
 
 /* ------------------------------------------------------------------ screens */
 /* [name, group, route, step?]  A step returns "skip" when the state does not exist on this screen. */
+/* A phone's audience list is RecordRow rows (no table), and Add / Import sit behind the + sheet; wide, they are toolbar buttons. dispatchEvent, not click(): Playwright's click waits for a stable box, which needs animation frames. */
+const addPeople = (item, wide) => async (page) => {
+  const plus = page.getByRole("button", { name: /^(Add people|הוספת אנשים)$/ });
+  if (await plus.count()) {
+    await plus.dispatchEvent("click", {}, { timeout: 20000 });
+    await page.getByRole("button", { name: item }).dispatchEvent("click", {}, { timeout: 8000 });
+  } else await page.locator(wide).first().dispatchEvent("click", {}, { timeout: 20000 });
+};
 const click = (sel, n = 0) => async (page) => { await page.locator(sel).nth(n).click({ force: true, timeout: 20000 }); };
-const openAll = async (page) => { const n = await page.evaluate(() => { const c = [...document.querySelectorAll("details:not([open])")]; c.forEach((d) => (d.open = true)); return c.length; }); return n ? undefined : "skip"; };
+/* Every collapsed section: <details>, and the Disclosure / DisclosureButton pattern (an aria-expanded button over a region). The top bar's menus are not sections. */
+const openAll = async (page) => {
+  const n = await page.evaluate(() => {
+    const c = [...document.querySelectorAll("details:not([open])")];
+    c.forEach((d) => (d.open = true));
+    const b = [...document.querySelectorAll('[aria-expanded="false"][aria-controls]')].filter((el) => !el.closest("header, nav") && !el.hasAttribute("aria-haspopup"));
+    b.forEach((el) => el.click());
+    return c.length + b.length;
+  });
+  if (n) await page.waitForTimeout(400);
+  return n ? undefined : "skip";
+};
 const byName = (re) => async (page) => { await page.getByRole("button", { name: re }).first().click({ force: true, timeout: 20000 }); };
 const tabN = (n) => click('[role="tablist"] [role="tab"]', n);
 const mkTab = (t) => async (page) => { await page.getByRole("tab", { name: t }).first().click({ force: true, timeout: 20000 }); };
@@ -71,7 +96,7 @@ const editingLang = (value, toggles) => async (page) => {
 };
 const SCREENS = [
   ["overview", "Overview", "/admin"],
-  ["nav-drawer", "Shell", "/admin", async (page) => { await page.getByRole("button", { name: "Menu", exact: true }).first().click({ force: true, timeout: 20000 }); }],
+  ["nav-drawer", "Shell", "/admin", async (page) => { await page.getByRole("button", { name: /^(Menu|תפריט)$/ }).first().click({ force: true, timeout: 20000 }); }],
   ["display-menu", "Shell", "/admin", async (page) => { await page.locator('button[aria-haspopup="dialog"]').first().click({ force: true, timeout: 20000 }); }],
   ["posts", "Posts", "/admin/posts"],
   ["posts-draft", "Posts", "/admin/posts?status=draft"],
@@ -121,11 +146,12 @@ const SCREENS = [
   ["marketing-campaign-draft", "Marketing", "/admin/marketing?tab=campaigns", async (page) => { await page.getByRole("button", { name: /^(Open|פתיחת) Spring/ }).first().click({ force: true, timeout: 20000 }); }],
   ["marketing-campaign-progress", "Marketing", "/admin/marketing?tab=campaigns", async (page) => { await page.getByRole("button", { name: /^(Open|פתיחת) Release/ }).first().click({ force: true, timeout: 20000 }); }],
   ["marketing-campaign-sent", "Marketing", "/admin/marketing?tab=campaigns", async (page) => { await page.getByRole("button", { name: /^(Open|פתיחת) Sent one/ }).first().click({ force: true, timeout: 20000 }); }],
-  ["marketing-campaign-expanded", "Marketing", "/admin/marketing?tab=campaigns", async (page) => { await page.getByRole("button", { name: /^(Open|פתיחת) Spring/ }).first().click({ force: true, timeout: 20000 }); await page.waitForTimeout(600); return openAll(page); }],
+  /* The open campaign is a sheet over the list; its primary action opens the composer, where the collapsed sections are. */
+  ["marketing-campaign-expanded", "Marketing", "/admin/marketing?tab=campaigns", async (page) => { await page.getByRole("button", { name: /^(Open|פתיחת) Spring/ }).first().dispatchEvent("click", {}, { timeout: 20000 }); await page.waitForTimeout(600); await page.locator('[aria-modal="true"] .a-btn-primary').first().dispatchEvent("click", {}, { timeout: 20000 }); await page.waitForTimeout(800); return openAll(page); }],
   ["marketing-audience", "Marketing", "/admin/marketing?tab=audience"],
-  ["marketing-contact-sheet", "Marketing", "/admin/marketing?tab=audience", click("table tbody tr button")],
-  ["marketing-add-contact", "Marketing", "/admin/marketing?tab=audience", click("button.a-btn-primary")],
-  ["marketing-import", "Marketing", "/admin/marketing?tab=audience", click("div.flex.flex-wrap.gap-2 > button:not(.a-btn-primary)")],
+  ["marketing-contact-sheet", "Marketing", "/admin/marketing?tab=audience", click("[data-record-row]")],
+  ["marketing-add-contact", "Marketing", "/admin/marketing?tab=audience", addPeople(/^(Add contact|הוספת איש קשר)$/, "button.a-btn-primary")],
+  ["marketing-import", "Marketing", "/admin/marketing?tab=audience", addPeople(/^(Import CSV|ייבוא CSV)$/, "div.flex.flex-wrap.gap-2 > button:not(.a-btn-primary)")],
   ["marketing-audience-expanded", "Marketing", "/admin/marketing?tab=audience", openAll],
   ["marketing-library", "Marketing", "/admin/marketing?tab=library"],
   ["marketing-library-expanded", "Marketing", "/admin/marketing?tab=library", openAll],
@@ -143,9 +169,9 @@ function measureDensity() {
     const cs = getComputedStyle(el);
     return !(cs.visibility === "hidden" || cs.display === "none" || +cs.opacity === 0 || cs.clipPath === "inset(50%)");
   };
-  /* A sheet that is open counts even while it is still fading in (opacity 0 fails vis). */
-  const openSheets = [...document.querySelectorAll("dialog[open]")];
-  const dialogs = openSheets.length ? openSheets : [...document.querySelectorAll('[role="dialog"], [aria-modal="true"]')].filter(vis);
+  /* A sheet that just opened can still be at opacity 0: this box's headless Chromium has no frame clock, so its enter transition has not run. It is on screen for a reader, so it is the screen here; only its box and display are checked. */
+  const shown = (el) => { const r = el.getBoundingClientRect(); const cs = getComputedStyle(el); return r.width > 1 && r.height > 1 && cs.display !== "none" && cs.visibility !== "hidden"; };
+  const dialogs = [...document.querySelectorAll('[role="dialog"], [aria-modal="true"]')].filter(shown);
   const area = (e) => { const r = e.getBoundingClientRect(); return r.width * r.height; };
   const root = dialogs.length ? dialogs.sort((a, b) => area(b) - area(a))[0] : document.body;
   const inDialog = !!dialogs.length;
@@ -263,8 +289,8 @@ function score(m) {
 const { base, stop } = await startPreview();
 const browser = await chromium.launch({ executablePath: process.env.CHROME || undefined, args: ["--no-sandbox", "--font-render-hinting=none", "--disable-gpu"] });
 async function newPage(v) {
-  const ctx = await browser.newContext({ viewport: { width: v.w, height: v.h }, deviceScaleFactor: 1, isMobile: true, hasTouch: true, reducedMotion: "reduce", colorScheme: "light", locale: "en-US" });
-  await ctx.addInitScript(() => { try { localStorage.setItem("yb-theme", "light"); } catch { /* colorScheme carries it */ } });
+  const ctx = await browser.newContext({ viewport: { width: v.w, height: v.h }, deviceScaleFactor: 1, isMobile: true, hasTouch: true, reducedMotion: "reduce", colorScheme: THEME, locale: LANG === "he" ? "he-IL" : "en-US" });
+  await ctx.addInitScript((t) => { try { localStorage.setItem("yb-theme", t); } catch { /* colorScheme carries it */ } }, THEME);
   await ctx.route((u) => !["127.0.0.1", "localhost"].includes(u.hostname), (route) => route.abort());
   await ctx.route("**/api/**", (route) => {
     const u = new URL(route.request().url());
@@ -278,7 +304,7 @@ async function newPage(v) {
   return { ctx, page };
 }
 async function open(page, [name, , path, step], rec) {
-  await page.goto(`${base}${path}`, { waitUntil: "load" });
+  await page.goto(`${base}${LANG === "he" ? "/he" : ""}${path}`, { waitUntil: "load" });
   for (let i = 0; i < 40; i++) { const ok = await page.evaluate(() => { const m = document.querySelector("main"); return !!m && !/Loading|טוען/.test(m.textContent ?? "") && [...document.images].every((im) => im.complete || !im.getAttribute("src")); }); if (ok) break; await page.waitForTimeout(250); }
   if (step) { try { const r = await step(page); if (r === "skip") rec.skip = true; await page.waitForTimeout(600); } catch (e) { rec.stepFailed = e.message.split("\n")[0]; } }
   await page.evaluate(() => document.fonts.ready);
@@ -288,7 +314,7 @@ const todo = SCREENS.filter((s) => !ONLY.length || ONLY.includes(s[0]));
 for (const v of VPS) {
   const { ctx, page } = await newPage(v);
   for (const s of todo) {
-    const rec = { screen: s[0], group: s[1], route: s[2], viewport: v.id };
+    const rec = { screen: s[0], group: s[1], route: s[2], viewport: v.id, lang: LANG, theme: THEME };
     try {
       await open(page, s, rec);
       Object.assign(rec, await page.evaluate(measureDensity));

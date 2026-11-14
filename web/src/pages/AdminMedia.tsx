@@ -17,6 +17,7 @@ import MediaVideo from "@/components/media/MediaVideo";
 import TranslationPill from "@/components/admin/TranslationPill";
 import { useFocusField } from "@/components/admin/content/focusField";
 import { useTranslationReport, type TranslationStatus } from "@/services/translations";
+import { ltrValue } from "@/i18n/words";
 import styles from "@/components/admin/Media.module.css";
 import phoneStyles from "@/components/admin/Media.phone.module.css";
 import {
@@ -264,6 +265,8 @@ const usageHref = (u: MediaUsage) => {
 type Words = ReturnType<typeof useMediaPhoneWords>;
 
 function Preview({ item, t }: { item: MediaItem; t: Words }) {
+  /* A picture that will not load is a note, not a broken-image glyph in a box sized for the real one: that box left a blank gap above the alt field. */
+  const [failed, setFailed] = useState<string | null>(null);
   const file = librarySrc(item.file);
   const preview = librarySrc(item.preview);
   const captions = librarySrc(item.captions?.url);
@@ -299,17 +302,24 @@ function Preview({ item, t }: { item: MediaItem; t: Words }) {
       </div>
     );
   }
+  if (failed !== null && failed === preview) {
+    return (
+      <p className="a-hint m-0" role="status">
+        {t.previewMissing}
+      </p>
+    );
+  }
   return (
     <picture>
       <source type="image/avif" srcSet={item.srcset.avif} sizes="(min-width: 52rem) 34rem, 100vw" />
       <source type="image/webp" srcSet={item.srcset.webp} sizes="(min-width: 52rem) 34rem, 100vw" />
-      <img src={preview} alt={item.alt} className={styles.detailImg} width={item.width} height={item.height} />
+      <img src={preview} alt={item.alt} className={styles.detailImg} width={item.width} height={item.height} onError={() => setFailed(preview ?? "")} />
     </picture>
   );
 }
 
 function sizeLine(item: MediaItem, t: Words) {
-  const base = `${item.width} × ${item.height} · ${formatBytes(item.bytes)} · ${item.format.toUpperCase()}`;
+  const base = `${ltrValue(`${item.width} × ${item.height}`)} · ${formatBytes(item.bytes)} · ${item.format.toUpperCase()}`;
   if (item.kind === "video") return `${base} · ${formatDuration(item.durationMs ?? 0)}${item.hasAudio ? ` · ${t.sound}` : ""}`;
   return base;
 }
