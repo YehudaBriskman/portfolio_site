@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ArrowUpRight, BookMarked, BookOpen, Code2, FileText, FolderGit2, GitFork, NotebookPen, Rss, Star, Tag } from "lucide-react";
 import { heldHeight, useRememberHeight } from "@/lib/heldHeight";
@@ -40,12 +40,16 @@ import { stateWord, useWorkWords } from "@/components/work/words";
 import { fullDate, relative, shortDate } from "@/components/dashboard/i18n";
 import { useScrollProgress } from "@/hooks/useScrollProgress";
 import { useProjectWords } from "@/i18n/pages";
-import AvatarCircle from "@/components/phone/AvatarCircle";
+import AvatarCircle, { type Tone } from "@/components/phone/AvatarCircle";
 import PillBadge from "@/components/phone/PillBadge";
 import ListRow from "@/components/phone/ListRow";
 import GroupedSection from "@/components/phone/GroupedSection";
 import PinnedAction from "@/components/phone/PinnedAction";
 import { StatGrid, StatTile } from "@/components/phone/StatTile";
+import { Disclosure } from "@/components/ui/Disclosure";
+import { usePublicPhone } from "@/components/nav/localBrowse";
+import { useToastWords } from "@/i18n/toast";
+import { shotImage } from "@/lib/projectImage";
 import { toneOfKind } from "@/components/phone/tone";
 import { useHistoryWords } from "@/components/dashboard/historyWords";
 import { count as countFmt } from "@/components/dashboard/i18n";
@@ -125,6 +129,11 @@ export default function Project() {
   const [t, lang] = useWorkWords();
   const w = useProjectWords();
   const [hw] = useHistoryWords();
+  const tw = useToastWords();
+  /* Phone only: the header, the pinned pill and the overview are laid out for
+     a phone in JS rather than hidden by CSS, so above 640px the page's DOM and
+     pixels are what they were (scripts/a11y/compare-wide.mjs). */
+  const phone = usePublicPhone();
   const idBase = useId();
   const [now] = useState(() => Date.now());
 
@@ -371,7 +380,92 @@ export default function Project() {
   /* ── the header: Work / name, pill, tagline, the outbound buttons ──── */
   const release = c?.stats?.latestRelease ?? null;
   const repoIsPrimary = Boolean(entry && !entry.primaryLink && c?.repoUrl);
-  const head =
+  const tone = entry ? toneOfKind(kindOf(entry.state)) : "neutral";
+  /* Behind "Details": every outbound link that is not the pinned primary. */
+  const secondary: { url: string; label: string; icon: ReactNode; tone: Tone; ltr?: boolean }[] = [];
+  if (entry && c) {
+    if (c.repoUrl && !repoIsPrimary) secondary.push({ url: c.repoUrl, label: t.source, icon: <FolderGit2 aria-hidden="true" />, tone: "blue" });
+    if (release) secondary.push({ url: release.url, label: release.tag, icon: <Tag aria-hidden="true" />, tone: "green", ltr: true });
+    for (const l of entry.otherLinks) secondary.push({ url: l.url, label: l.label, icon: <ArrowUpRight aria-hidden="true" />, tone: "neutral" });
+  }
+
+  /* The phone's header (plan W4): the cover is the card's top, faded into the
+     surface; a tile, the name, one line; four glyph+number facts; and
+     everything else behind one "Details". Its primary action is the pinned
+     pill below, so it has no buttons of its own. */
+  const coverPicture = c?.coverImage ? (shotImage(c.coverImage) ?? { sources: [], src: c.coverImage }) : null;
+  const phoneHead =
+    entry && c ? (
+      <header className={styles.phoneHead} data-phone-card="header" data-cover={coverPicture ? "" : undefined}>
+        <div className={styles.cover} data-phone="head-cover" data-tone={tone} data-fallback={coverPicture ? undefined : ""} aria-hidden="true">
+          {coverPicture && (
+            <picture>
+              {coverPicture.sources.map((s) => (
+                <source key={s.type} type={s.type} srcSet={s.srcSet} sizes="100vw" />
+              ))}
+              <img
+                src={coverPicture.src}
+                srcSet={coverPicture.srcSet}
+                sizes={coverPicture.srcSet ? "100vw" : undefined}
+                alt=""
+                loading="eager"
+                decoding="async"
+              />
+            </picture>
+          )}
+        </div>
+        <div className={styles.phoneTop}>
+          <AvatarCircle size={56} tone={tone}>
+            <BookMarked aria-hidden="true" />
+          </AvatarCircle>
+          <div className={styles.phoneName}>
+            <h1 className={styles.phoneTitle} dir="auto" translate="no">
+              {c.title}
+            </h1>
+            <PillBadge className={work.pill} dataKind={kindOf(entry.state)} tone={tone}>
+              {stateWord(entry.state, lang)}
+              {entry.year && <span className={styles.num}>{entry.year}</span>}
+            </PillBadge>
+          </div>
+          <ShareMenu kind="project" entity={{ slug: c.slug, title: c.title, summary: c.tagline }} />
+        </div>
+        {c.tagline && (
+          <p className={styles.phoneTagline} dir="auto">
+            {c.tagline}
+          </p>
+        )}
+        <StatGrid label={t.about}>
+          {[
+            c.stats?.language ? <StatTile key="lang" icon={Code2} value={c.stats.language} label={hw.language} /> : null,
+            c.stats?.stars != null ? <StatTile key="stars" icon={Star} value={countFmt(c.stats.stars, lang)} label={hw.stars} /> : null,
+            c.stats?.forks != null ? <StatTile key="forks" icon={GitFork} value={countFmt(c.stats.forks, lang)} label={hw.forks} /> : null,
+            release ? <StatTile key="rel" icon={Tag} value={release.tag} label={hw.release} /> : null,
+          ]}
+        </StatGrid>
+        {(secondary.length > 0 || entry.tech.length > 0) && (
+          <Disclosure summary={tw.details} className={styles.phoneDetails}>
+            {secondary.length > 0 && (
+              <GroupedSection>
+                <ul className={styles.list}>
+                  {secondary.map((l) => (
+                    <li key={l.url}>
+                      <ListRow href={l.url} className={styles.listRow} tone={l.tone} icon={l.icon}>
+                        <span className={styles.listTitle} dir={l.ltr ? "ltr" : "auto"} translate={l.ltr ? "no" : undefined}>
+                          {l.label}
+                        </span>
+                      </ListRow>
+                    </li>
+                  ))}
+                </ul>
+              </GroupedSection>
+            )}
+            <ProjectStack tech={entry.tech} flat />
+          </Disclosure>
+        )}
+      </header>
+    ) : null;
+
+  const wideHead =
     entry && c ? (
       <header className={styles.head} data-phone-card="header">
         <div className={styles.nameLine}>
@@ -403,22 +497,6 @@ export default function Project() {
         {/* The second voice, under the name: a phrase somebody wrote, so
             not a heading. */}
         {c.tagline && <p className={styles.tagline}>{c.tagline}</p>}
-        {/* Phone only. One tile per datum the repository has; a datum it
-            does not have gets no tile (never a dash). */}
-        <StatGrid label={t.about}>
-          {[
-            c.stats?.language ? (
-              <StatTile key="lang" icon={<Code2 />} value={c.stats.language} label={hw.language} tone="blue" />
-            ) : null,
-            c.stats?.stars != null ? (
-              <StatTile key="stars" icon={<Star />} value={countFmt(c.stats.stars, lang)} label={hw.stars} tone="yellow" />
-            ) : null,
-            c.stats?.forks != null ? (
-              <StatTile key="forks" icon={<GitFork />} value={countFmt(c.stats.forks, lang)} label={hw.forks} tone="purple" />
-            ) : null,
-            release ? <StatTile key="rel" icon={<Tag />} value={release.tag} label={hw.release} tone="green" /> : null,
-          ]}
-        </StatGrid>
         {(entry.primaryLink || c.repoUrl || release || entry.otherLinks.length > 0) && (
           /* Exactly one primary: the live product if there is one,
              otherwise the repository. Two competing primaries is none. */
@@ -485,13 +563,13 @@ export default function Project() {
 
   return (
     <PageShell>
-      {pin && (
-        <PinnedAction href={pin.url}>
+      {phone && pin && c && (
+        <PinnedAction href={pin.url} label={c.title}>
           {pin.label}
           <ArrowUpRight size={18} aria-hidden="true" />
         </PinnedAction>
       )}
-      <DashboardShell railLabel={t.browse} rail={rail} asideLabel={t.about} aside={aside} head={head} back={{ to: "/projects", label: t.backToWork, gap: "calc(2px - 2rem)" }}>
+      <DashboardShell railLabel={t.browse} rail={rail} asideLabel={t.about} aside={aside} head={phone ? phoneHead : wideHead} back={{ to: "/projects", label: t.backToWork, gap: "calc(2px - 2rem)" }}>
         {/* One H1 in every state, including this one — the heading order must
             not depend on how far a fetch got. */}
         {state === "loading" && (
@@ -551,25 +629,37 @@ export default function Project() {
                       document (#174). `sizes` is the figure's real width:
                       the middle column is capped at 62rem, less the card's
                       padding. It is the LCP element. */}
-                  <div
-                    ref={drift}
-                    className={styles.figure}
-                    style={reduced ? undefined : { transform: "translate3d(0, calc(var(--vh, 0) * -14px), 0)" }}
-                  >
-                    <Figure index={1} caption={c.tagline || c.title} note={entry.year ?? undefined}>
-                      {c.coverImage ? (
-                        <Shot
-                          src={c.coverImage}
-                          alt={`${c.title} screenshot`}
-                          className={shape}
-                          sizes="(min-width: 1280px) 960px, 100vw"
-                          eager
-                        />
-                      ) : (
-                        <Plate className={shape} title={c.title} tagline={c.tagline} tech={entry.tech} />
-                      )}
-                    </Figure>
-                  </div>
+                  {/* A phone says the tagline, the stack and the year once, in
+                      the header and its Details, so the picture is bare
+                      (no "Fig. 01" caption) and a coverless project has no
+                      stand-in plate: the header's tint is its image. */}
+                  {phone ? (
+                    c.coverImage && (
+                      <div ref={drift} className={styles.figure}>
+                        <Shot src={c.coverImage} alt={`${c.title} screenshot`} className={shape} sizes="100vw" eager />
+                      </div>
+                    )
+                  ) : (
+                    <div
+                      ref={drift}
+                      className={styles.figure}
+                      style={reduced ? undefined : { transform: "translate3d(0, calc(var(--vh, 0) * -14px), 0)" }}
+                    >
+                      <Figure index={1} caption={c.tagline || c.title} note={entry.year ?? undefined}>
+                        {c.coverImage ? (
+                          <Shot
+                            src={c.coverImage}
+                            alt={`${c.title} screenshot`}
+                            className={shape}
+                            sizes="(min-width: 1280px) 960px, 100vw"
+                            eager
+                          />
+                        ) : (
+                          <Plate className={shape} title={c.title} tagline={c.tagline} tech={entry.tech} />
+                        )}
+                      </Figure>
+                    </div>
+                  )}
                 </section>
 
                 {(entry.problem || entry.role || entry.outcome) && (
@@ -602,7 +692,7 @@ export default function Project() {
                   </Arrive>
                 )}
 
-                {entry.tech.length > 0 && (
+                {!phone && entry.tech.length > 0 && (
                   <Arrive className={styles.card}>
                     <ProjectStack tech={entry.tech} />
                   </Arrive>
