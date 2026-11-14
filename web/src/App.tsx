@@ -9,6 +9,7 @@ import ScrollManager from "./components/ScrollManager";
 import HeadSync from "./components/HeadSync";
 import EntryShutter from "./components/motion/EntryShutter";
 import SiteChrome from "./components/SiteChrome";
+import ToastMount from "@/components/ui/ToastMount";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import { useLang } from "./components/dashboard/i18n";
@@ -150,6 +151,7 @@ const App = () => {
           throttling — see the ledger row in `docs/motion-contract.md`.
         */}
         <EntryShutter />
+        <ToastMount />
         <RoutesErrorBoundary>
         <Routes>
           {/*
