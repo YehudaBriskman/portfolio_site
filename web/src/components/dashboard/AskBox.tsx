@@ -1,8 +1,10 @@
 import { useId, useRef, useState, type ReactNode } from "react";
-import { Hash, AtSign, Search } from "lucide-react";
+import { Hash, AtSign, Search, X } from "lucide-react";
 import styles from "@/components/dashboard/Dashboard.module.css";
 import { complete, parseAsk, pendingSigil, suggest, type Asked, type AskOption } from "@/components/dashboard/ask";
 import { useWords } from "@/components/dashboard/i18n";
+import { WIDE_QUERY, useKeyboardCopy, useMedia } from "@/hooks/useKeyboardCopy";
+import { useFilterWords } from "@/i18n/pages";
 import { typedDir } from "@/lib/typedDir";
 
 /*
@@ -15,6 +17,13 @@ import { typedDir } from "@/lib/typedDir";
  * buttons in the tab order rather than a combobox popup: a list of six
  * that a reader can Tab into is the smaller promise, and it is one this box
  * keeps on a phone keyboard too.
+ *
+ * ON A PHONE (#766) the field is one full-width row with the search icon
+ * inside it at the inline start and a clear button at the end; "#" and "@"
+ * sit on their own row below, 44px. The sentence that teaches the keyboard
+ * ("Enter searches") is rendered only for a mouse and keyboard
+ * (`useKeyboardCopy`): a touch reader has no such key, and the sentence only
+ * squeezed the buttons it shared a row with.
  *
  * Enter searches. What the search means is the caller's (on Blogs it is the
  * Feed view with `q`, `tag` and `collection` in the URL), so the box knows
@@ -36,6 +45,10 @@ export default function AskBox({
   children?: ReactNode;
 }) {
   const [t] = useWords();
+  const w = useFilterWords();
+  const keyboard = useKeyboardCopy();
+  /* The long placeholder (it teaches # and @) needs a wide field and a keyboard. */
+  const roomy = useMedia(WIDE_QUERY) && keyboard;
   const [text, setText] = useState(initial);
   const input = useRef<HTMLTextAreaElement>(null);
   const id = useId();
@@ -58,29 +71,48 @@ export default function AskBox({
         <label htmlFor={id} className="sr-only">
           {t.askLabel}
         </label>
-        <textarea
-          ref={input}
-          id={id}
-          name="q"
-          rows={2}
-          value={text}
-          placeholder={t.askPlaceholder}
-          aria-describedby={hintId}
-          autoComplete="off"
-          spellCheck={false}
-          enterKeyHint="search"
-          dir={typedDir(text)}
-          className={styles.askInput}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => {
-            /* One line of query, so Enter is search; Shift+Enter is not
-               offered, there is nothing to break a line for. */
-            if (e.key === "Enter" && !e.nativeEvent.isComposing) {
-              e.preventDefault();
-              submit();
-            }
-          }}
-        />
+        <div className={styles.askField} data-ask-field="">
+          <textarea
+            ref={input}
+            id={id}
+            name="q"
+            rows={2}
+            value={text}
+            placeholder={roomy ? t.askPlaceholder : t.searchPlaceholder}
+            aria-describedby={keyboard ? hintId : undefined}
+            autoComplete="off"
+            autoCapitalize="off"
+            autoCorrect="off"
+            spellCheck={false}
+            inputMode="search"
+            enterKeyHint="search"
+            dir={typedDir(text)}
+            className={styles.askInput}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={(e) => {
+              /* One line of query, so Enter is search; Shift+Enter is not
+                 offered, there is nothing to break a line for. */
+              if (e.key === "Enter" && !e.nativeEvent.isComposing) {
+                e.preventDefault();
+                submit();
+              }
+            }}
+          />
+          {text && (
+            <button
+              type="button"
+              className={styles.askClear}
+              data-ask-clear=""
+              aria-label={w.clearAll}
+              onClick={() => {
+                setText("");
+                input.current?.focus();
+              }}
+            >
+              <X size={16} aria-hidden="true" />
+            </button>
+          )}
+        </div>
         <div className={styles.askTools}>
           <button
             type="button"
@@ -104,9 +136,11 @@ export default function AskBox({
             <AtSign size={14} aria-hidden="true" />
             {t.areaPage}
           </button>
-          <span id={hintId} className={styles.askHint}>
-            {t.askHint}
-          </span>
+          {keyboard && (
+            <span id={hintId} className={styles.askHint}>
+              {t.askHint}
+            </span>
+          )}
           <button type="submit" className={styles.askSubmit} aria-label={t.askSubmit}>
             <Search size={16} aria-hidden="true" />
           </button>
