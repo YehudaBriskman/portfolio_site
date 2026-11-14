@@ -93,6 +93,8 @@ type Props = {
    * phone reader wants before a long history.
    */
   asideFirst?: boolean;
+  /** Marks the page as one that wears direction A on a phone (`data-phone-page`); the look is in the page's CSS, phone only. */
+  phonePage?: "blog";
   /**
    * A detail page's parent, for the phone's back chip (#780): on a phone the
    * chip is the first thing in the title row, ahead of `head`.
@@ -110,6 +112,7 @@ export default function DashboardShell({
   count = 0,
   head,
   asideFirst = false,
+  phonePage,
   back,
   children,
 }: Props) {
@@ -131,7 +134,13 @@ export default function DashboardShell({
   );
 
   return (
-    <div className={styles.ground} data-mode={mode} data-phone={phone ? "" : undefined} data-back={phone && back ? "" : undefined}>
+    <div
+      className={styles.ground}
+      data-mode={mode}
+      data-phone-page={phonePage}
+      data-phone={phone ? "" : undefined}
+      data-back={phone && back ? "" : undefined}
+    >
       <div className={styles.frame}>
         {mode !== "one" && (
           <aside className={styles.rail} aria-label={railLabel}>

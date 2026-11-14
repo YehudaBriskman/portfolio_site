@@ -536,3 +536,89 @@ a.legendItem[aria-current="true"] {
   font-variant-numeric: tabular-nums;
   text-align: right;
 }
+
+/* ───────────────────────────────────────────────────── direction A, phone only
+   An area's days are groups: one soft surface per day, a tinted circle on each
+   note, the note's own actions kept under its title. Tablet and desktop keep
+   the commit history above; the circle does not exist there. */
+
+.rowIcon {
+  display: none;
+}
+
+@media (max-width: 639px) {
+  :global([data-phone-page="blog"]) .history {
+    gap: var(--ph-gap);
+  }
+  :global([data-phone-page="blog"]) .day {
+    overflow: hidden;
+    border: 0;
+    border-radius: var(--r-md);
+    background: var(--ph-card);
+  }
+  :global([data-phone-page="blog"]) .dayHead {
+    border: 0;
+    background: none;
+    padding: 12px var(--ph-gutter) 4px;
+    font-size: 0.875rem;
+  }
+  :global([data-phone-page="blog"]) .row {
+    position: relative;
+    grid-template-columns: var(--ph-circle-m) minmax(0, 1fr);
+    column-gap: 12px;
+    padding: 12px var(--ph-gutter);
+    border-radius: 0;
+  }
+  :global([data-phone-page="blog"]) .row + .row {
+    border-block-start: 0;
+  }
+  :global([data-phone-page="blog"]) .row + .row::before {
+    content: "";
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline: 68px 0;
+    height: 1px;
+    background: var(--ph-line);
+  }
+  :global([data-phone-page="blog"]) .rowIcon {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    display: grid;
+    place-items: center;
+    width: var(--ph-circle-m);
+    height: var(--ph-circle-m);
+    border-radius: 50%;
+    background: rgb(var(--ph-t) / 0.17);
+    color: color-mix(in srgb, rgb(var(--ph-t)), var(--ph-toward) var(--ph-glyph-pct));
+  }
+  :global([data-phone-page="blog"]) .rowIcon svg {
+    width: 20px;
+    height: 20px;
+  }
+  :global([data-phone-page="blog"]) .rowBody,
+  :global([data-phone-page="blog"]) .actions {
+    grid-column: 2;
+  }
+  :global([data-phone-page="blog"]) .excerpt {
+    display: -webkit-box;
+    white-space: normal;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+  }
+  /* the note's three actions stay, in one soft pill instead of a bordered box */
+  :global([data-phone-page="blog"]) .buttons {
+    border: 0;
+    border-radius: var(--r-pill);
+    background: var(--ph-recess);
+  }
+  :global([data-phone-page="blog"]) .buttons > * + * {
+    border-inline-start: 0;
+  }
+  :global([data-phone-page="blog"]) .updated {
+    min-height: 24px;
+    border: 0;
+    background: rgb(var(--wash-yellow) / 0.9);
+    color: color-mix(in srgb, rgb(var(--hue-yellow)), var(--ph-toward) var(--ph-text-pct));
+  }
+}

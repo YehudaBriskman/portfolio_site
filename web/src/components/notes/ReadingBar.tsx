@@ -1,8 +1,12 @@
-import { useEffect, useRef, useState, type RefObject } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useId, useRef, useState, type RefObject } from "react";
+import { ListTree, Minus, Plus, Type } from "lucide-react";
 import ShareMenu from "@/components/share/ShareMenu";
 import type { ShareEntity } from "@/lib/share";
 import { useReaderWords } from "@/components/notes/reader/words";
+import { SCALES, type ReadingPrefs } from "@/components/notes/reader/readingPrefs";
+import { nextTucked } from "@/components/notes/readerBar";
+import "@/components/phone/tokens.css";
+import styles from "@/components/notes/reader/Reader.module.css";
 
 /*
  * Where you are, and the two things you might want next.
@@ -38,7 +42,12 @@ export default function ReadingBar({
   target,
   contentsLabel,
   onContents,
+  prefs,
+  setPrefs,
 }: {
+  /** The reading preferences the bar's text-size control changes (the same store the sheet uses). */
+  prefs?: ReadingPrefs;
+  setPrefs?: (p: Partial<ReadingPrefs>) => void;
   /** What the bar's share control shares. */
   entity: ShareEntity;
   /** The phone's sheet of contents and details (#249), opened from the bar. */
@@ -48,7 +57,11 @@ export default function ReadingBar({
   target: RefObject<HTMLElement | null>;
 }) {
   const [w] = useReaderWords();
-  const [shown, setShown] = useState(false);
+  /* Down tucks the bar away, up brings it back; the top of the note and any
+     focus inside it show it (phones; the bar is not drawn from 640px up). */
+  const [tucked, setTucked] = useState(false);
+  const [sizeOpen, setSizeOpen] = useState(false);
+  const sizeId = useId();
   /*
    * Focus inside the bar shows it, whatever the scroll position (WCAG 2.4.11,
    * found by the #99 audit). It hides itself in the first 240px of a post by
@@ -66,6 +79,7 @@ export default function ReadingBar({
   useEffect(() => {
     let raf = 0;
     let last = -1;
+    let lastY = window.scrollY;
 
     const measure = () => {
       raf = 0;
@@ -99,7 +113,11 @@ export default function ReadingBar({
     };
 
     const onScroll = () => {
-      setShown(window.scrollY > 240);
+      const y = window.scrollY;
+      const from = lastY;
+      lastY = y;
+      /* `from` is captured: the updater runs later, when `lastY` has moved on. */
+      setTucked((t) => nextTucked(t, y, from));
       if (!raf) raf = requestAnimationFrame(measure);
     };
 
@@ -136,10 +154,13 @@ export default function ReadingBar({
      * few lines of slack.
      */
     const root = document.documentElement;
-    root.style.scrollPaddingBottom = "calc(4.5rem + env(safe-area-inset-bottom))";
+    root.style.scrollPaddingBottom = "calc(6rem + env(safe-area-inset-bottom))";
+    /* The footer takes the bar's room on a phone (CSS reads this flag). */
+    root.setAttribute("data-has-reader-bar", "");
 
     return () => {
       root.style.scrollPaddingBottom = "";
+      root.removeAttribute("data-has-reader-bar");
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onResize);
       observer?.disconnect();
@@ -161,43 +182,91 @@ export default function ReadingBar({
         aria-hidden="true"
       />
 
+      {/* Phones: one floating bar with the three reading controls, opaque
+          (no blur), above the home indicator. Contents opens the sheet, Text
+          size opens a small stepper above the bar (the sheet's own control),
+          Share is the page's share menu. It tucks on the way down and returns
+          on the way up; focus inside it, or the stepper open, keeps it shown. */}
       <div
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-edge bg-bitumen/95 pb-[env(safe-area-inset-bottom)] sm:hidden"
-        onFocus={() => setFocused(true)}
+        className={styles.bar}
+        data-phone="reader-bar"
+        data-tucked={tucked && !focused && !sizeOpen ? "" : undefined}
+        onFocus={(e) => {
+          /* A keyboard focus holds the bar open (WCAG 2.4.11); a tap does not
+             (`data-input` is the site's modality tracker, R21). */
+          if (document.documentElement.getAttribute("data-input") === "keyboard") setFocused(true);
+        }}
         onBlur={(e) => {
           if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setFocused(false);
         }}
-        style={{
-          transform: shown || focused ? "none" : "translateY(100%)",
-          transition: "transform var(--dur-fast) var(--ease-settle)",
-        }}
       >
-        <div
-          ref={fillRef}
-          aria-hidden="true"
-          className="absolute inset-x-0 top-0 h-[2px] origin-left rtl:origin-right bg-bone"
-          style={{ transform: "scaleX(0)" }}
-        />
-        <div className="flex items-center justify-between px-5">
-          <Link to="/blog" className="tap inline-flex min-h-[44px] items-center gap-2 py-3.5 text-[0.9375rem] text-bone">
-            <span aria-hidden="true" className="rtl:-scale-x-100 inline-block">&larr;</span> {w.back}
-          </Link>
+        {sizeOpen && prefs && setPrefs && (
+          <div id={sizeId} className={styles.sizePanel} role="group" aria-label={w.textSize}>
+            <span className={styles.toolLabel} aria-hidden="true">
+              {w.textSize}
+            </span>
+            <span className={styles.stepper}>
+              <button
+                type="button"
+                className={styles.toolBtn}
+                aria-label={w.smaller}
+                title={w.smaller}
+                disabled={SCALES.indexOf(prefs.scale as (typeof SCALES)[number]) <= 0}
+                onClick={() => setPrefs({ scale: SCALES[Math.max(0, SCALES.indexOf(prefs.scale as (typeof SCALES)[number]) - 1)] })}
+              >
+                <Minus size={14} aria-hidden="true" />
+              </button>
+              <output className={styles.toolValue} aria-live="polite" aria-label={w.sizeNow(`${Math.round(prefs.scale * 100)}%`)}>
+                {`${Math.round(prefs.scale * 100)}%`}
+              </output>
+              <button
+                type="button"
+                className={styles.toolBtn}
+                aria-label={w.larger}
+                title={w.larger}
+                disabled={SCALES.indexOf(prefs.scale as (typeof SCALES)[number]) >= SCALES.length - 1}
+                onClick={() =>
+                  setPrefs({ scale: SCALES[Math.min(SCALES.length - 1, SCALES.indexOf(prefs.scale as (typeof SCALES)[number]) + 1)] })
+                }
+              >
+                <Plus size={14} aria-hidden="true" />
+              </button>
+            </span>
+          </div>
+        )}
+        <div className={styles.barPill}>
+          <div
+            ref={fillRef}
+            aria-hidden="true"
+            className={styles.barFill}
+            style={{ transform: "scaleX(0)" }}
+          />
           {onContents && (
             <button
               type="button"
               aria-haspopup="dialog"
               onClick={(e) => onContents(e.currentTarget)}
-              className="tap inline-flex min-h-[44px] items-center gap-2 py-3.5 text-[0.9375rem] text-bone"
+              className={styles.barBtn}
+              data-phone="reader-contents"
             >
-              {contentsLabel ?? w.contents}
+              <ListTree aria-hidden="true" />
+              <span>{contentsLabel ?? w.contents}</span>
             </button>
           )}
-          <ShareMenu
-            kind="post"
-            entity={entity}
-            variant="text"
-            className="tap inline-flex min-h-[44px] items-center gap-2 py-3.5 text-[0.9375rem] text-clay"
-          />
+          {prefs && setPrefs && (
+            <button
+              type="button"
+              className={styles.barBtn}
+              data-phone="reader-size"
+              aria-expanded={sizeOpen}
+              aria-controls={sizeOpen ? sizeId : undefined}
+              onClick={() => setSizeOpen((o) => !o)}
+            >
+              <Type aria-hidden="true" />
+              <span>{w.textSize}</span>
+            </button>
+          )}
+          <ShareMenu kind="post" entity={entity} variant="text" className={styles.barBtn} />
         </div>
       </div>
     </>

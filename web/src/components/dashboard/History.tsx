@@ -1,3 +1,4 @@
+import { toneOfArea } from "@/components/phone/tone";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { ArrowUpRight, BookOpen, Check, FileText, FolderGit2, Link2, Rss, Share2 } from "lucide-react";
@@ -71,6 +72,10 @@ function HistoryRow({
   const line = firstLine(post.excerpt);
   return (
     <li className={styles.row} data-note-row="">
+      {/* Phone only (direction A): the note's circle, tinted by its area. */}
+      <span className={styles.rowIcon} aria-hidden="true" data-phone-circle="40" data-tone={toneOfArea(post.collection)}>
+        <FileText />
+      </span>
       <div className={styles.rowBody}>
         {/* Text a person wrote: isolated, so an English title in the Hebrew
             page keeps its punctuation, and the row keeps the page's side. */}

@@ -9,7 +9,15 @@ import PillBadge from "@/components/phone/PillBadge";
 import PinnedAction from "@/components/phone/PinnedAction";
 import SegmentedTabs from "@/components/phone/SegmentedTabs";
 import { StatGrid, StatTile } from "@/components/phone/StatTile";
-import { toneOfKind } from "@/components/phone/tone";
+import { toneOfArea, toneOfKind } from "@/components/phone/tone";
+
+describe("toneOfArea", () => {
+  it("is blue for the site and stable, from the palette, for any other area", () => {
+    expect(toneOfArea("site")).toBe("blue");
+    expect(toneOfArea("bothy")).toBe(toneOfArea("bothy"));
+    expect(["green", "purple", "yellow", "red", "blue"]).toContain(toneOfArea("windom"));
+  });
+});
 
 describe("AvatarCircle", () => {
   it("is decorative by default and carries its size and tone", () => {

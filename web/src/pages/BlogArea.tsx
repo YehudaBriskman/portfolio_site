@@ -138,12 +138,13 @@ export default function BlogArea() {
   return (
     <PageShell>
       <DashboardShell
+        phonePage="blog"
         railLabel={lang === "he" ? "עיון ברשימות" : "Browse the notes"}
         rail={rail}
         asideLabel={w.aboutArea}
         aside={aside}
         asideFirst
-        back={{ to: "/blog", label: lang === "he" ? "בלוג" : "Blogs" }}
+        back={{ to: "/blog", label: lang === "he" ? "בלוג" : "Blogs", gap: "calc(8px - var(--ph-gap, 2rem))" }}
         head={head}
       >
 

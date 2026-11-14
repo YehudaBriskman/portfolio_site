@@ -12,7 +12,15 @@
 import { chromium } from "playwright-core";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
-import { handler } from "./projects-fixture.mjs";
+import { handler as projectsHandler } from "./projects-fixture.mjs";
+import { handler as blogHandler } from "./blog-fixture.mjs";
+
+/* PAGES=blog compares the blog routes instead (the default is Projects). */
+const BLOG = process.env.PAGES === "blog";
+const handler = BLOG ? blogHandler : projectsHandler;
+const ROUTES = BLOG
+  ? ["/blog", "/blog?view=feed&tag=process", "/blog/area/bothy", "/blog/the-long-note"]
+  : ["/projects", "/projects/bothy", "/projects/bothy?tab=releases", "/projects/windom"];
 
 const A = process.env.BASE_A;
 const B = process.env.BASE_B;
@@ -22,7 +30,7 @@ const browser = await chromium.launch({ executablePath: process.env.CHROME || un
 let diff = 0;
 for (const width of [1280, 768]) {
   for (const lang of ["en", "he"]) {
-    for (const route of ["/projects", "/projects/bothy", "/projects/bothy?tab=releases", "/projects/windom"]) {
+    for (const route of ROUTES) {
       const sums = [];
       for (const [i, base] of [A, B].entries()) {
         const ctx = await browser.newContext({ viewport: { width, height: 900 }, reducedMotion: "reduce", colorScheme: "light" });
