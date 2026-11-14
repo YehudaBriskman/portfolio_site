@@ -227,7 +227,7 @@ export default function AudiencePhone() {
       {selection.on ? (
         <SelectionHeader selection={selection} total={visible.length} />
       ) : (
-        <div className="flex items-center gap-2">
+        <div className="flex items-stretch gap-2">
           <input type="search" className="a-input min-h-[44px] min-w-0 flex-1 !ps-3 text-base" dir="auto" aria-label={w.searchLabel} placeholder={w.searchPlaceholder} value={q} onChange={(e) => setQ(e.target.value)} />
           {visible.length > 0 && <SelectionHeader selection={selection} total={visible.length} />}
           <button ref={plus} type="button" className="a-btn a-btn-primary min-h-[44px] min-w-[44px] shrink-0" aria-label={w.phoneAdd} onClick={() => setMenu(true)}>

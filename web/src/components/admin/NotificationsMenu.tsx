@@ -12,7 +12,7 @@ import styles from "./NotificationsMenu.module.css";
  * never their details), cleared on sign-out. A dot, not a number, for "new":
  * nothing here is urgent enough to count.
  */
-export default function NotificationsMenu({ className = "" }: { className?: string }) {
+export default function NotificationsMenu({ className = "", withLabel = false }: { className?: string; withLabel?: boolean }) {
   const w = useToastWords();
   const lang = useLang();
   const { entries, unread } = useToastHistory();
@@ -30,11 +30,12 @@ export default function NotificationsMenu({ className = "" }: { className?: stri
       <PopoverTrigger asChild>
         <button
           type="button"
-          className={`a-btn a-btn-ghost a-icon-btn ${styles.trigger} ${className}`}
+          className={`a-btn a-btn-ghost ${withLabel ? "a-top-word w-full justify-start" : "a-icon-btn"} ${styles.trigger} ${className}`}
           aria-label={unread ? w.notificationsUnread(unread) : w.notifications}
           data-unread={unread ? "" : undefined}
         >
           <Bell aria-hidden="true" />
+          {withLabel && <span aria-hidden="true">{w.notifications}</span>}
           {unread > 0 && <span className={styles.dot} aria-hidden="true" />}
         </button>
       </PopoverTrigger>

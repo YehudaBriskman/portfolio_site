@@ -2807,6 +2807,8 @@
 
   .a-top-end { display: flex; flex: none; align-items: center; gap: .25rem; margin-inline-start: auto; }
   .a-top-link { color: rgb(var(--ink-soft)); }
+  /* The phone bar's buttons carry their word beside the glyph. */
+  .a-top-word { gap: .375rem; padding-inline: .5rem .75rem; }
   .a-owner { display: inline-flex; align-items: center; gap: .5rem; padding-inline: .25rem .125rem; color: rgb(var(--ink-soft)); }
   .a-avatar {
     display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%;
