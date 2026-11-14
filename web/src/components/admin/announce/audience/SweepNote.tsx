@@ -3,8 +3,8 @@ import { adminAudience, type SweepState } from "@/services/adminAudience";
 import { useSweepWords } from "./sweepWords";
 import { useWhen } from "./useWhen";
 
-/* How many unconfirmed signups the scheduled sweep has deleted. Counts only; renders nothing until known. */
-export default function SweepNote() {
+/* How many unconfirmed signups the scheduled sweep has deleted. Counts only; renders nothing until known. `bare` leaves out the box and the title, for a place that already has a heading. */
+export default function SweepNote({ bare = false }: { bare?: boolean }) {
   const w = useSweepWords();
   const when = useWhen();
   const [s, setS] = useState<SweepState | null>(null);
@@ -12,8 +12,8 @@ export default function SweepNote() {
   if (!s) return null;
   const r = s.report;
   return (
-    <div className="a-box p-3" data-testid="sweep-note">
-      <p className="font-bold">{w.title}</p>
+    <div className={bare ? undefined : "a-box p-3"} data-testid="sweep-note">
+      {!bare && <p className="font-bold">{w.title}</p>}
       <p className="a-hint tabular-nums">{r ? w.body(s.pendingTtlDays, r.lastPurged, r.totalPurged, when(r.since)) : w.none(s.pendingTtlDays)}</p>
       {r && <p className="a-hint tabular-nums">{w.lastRun(when(r.at))}</p>}
     </div>

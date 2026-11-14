@@ -171,7 +171,8 @@ describe("Audience on a phone: bulk actions", () => {
     await screen.findByRole("button", { name: "Open Ada" });
     expect(screen.queryByRole("toolbar", { name: "Bulk actions" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Select" }));
-    for (const n of names) fireEvent.click(screen.getByRole("checkbox", { name: n }));
+    // In select mode a row is a checkbox named by the person, not "Open".
+    for (const n of names) fireEvent.click(screen.getByRole("checkbox", { name: n.replace(/^Open /, "") }));
   };
 
   it("shows the bar once something is chosen and adds the chosen people to a group", async () => {
@@ -309,5 +310,12 @@ describe("Audience on a phone: Hebrew", () => {
     expect(within(dlg).getByText("dana@example.com").closest("[dir=ltr]")).toBeTruthy();
     expect(dlg.textContent).toContain("נוסף ידנית");
     expect(dlg.textContent).not.toMatch(/Site signup|Added by hand|Topics/);
+  });
+});
+
+describe("export of the chosen people", () => {
+  it("quotes what needs it and defuses a cell a spreadsheet would run as a formula", async () => {
+    const { toCsv } = await import("../csv");
+    expect(toCsv([["a@b.co", '=HYPERLINK("x")', "Smith, J"]])).toBe(`a@b.co,"'=HYPERLINK(""x"")","Smith, J"\r\n`);
   });
 });

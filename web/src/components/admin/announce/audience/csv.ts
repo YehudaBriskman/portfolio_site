@@ -48,3 +48,12 @@ export function previewCsv(text: string): CsvRow[] {
     return { email, name: inm >= 0 ? (r[inm] ?? "").trim() : "", lang: il >= 0 ? (r[il] ?? "").trim().toLowerCase() : "", valid: EMAIL.test(email) };
   });
 }
+
+/* A cell that opens with = + - @ (or a tab or return) would be run as a formula by a spreadsheet; a leading quote makes it text. */
+const cell = (v: string) => {
+  const safe = /^[=+\-@\t\r]/.test(v) ? `'${v}` : v;
+  return /[",\n\r]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
+};
+
+/** Rows to CSV text, for a download of the people the owner chose. */
+export const toCsv = (rows: string[][]): string => rows.map((r) => r.map(cell).join(",")).join("\r\n") + "\r\n";
