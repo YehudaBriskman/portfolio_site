@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en" dir="ltr" data-theme="dark">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Direction A · projects · en · dark</title>
+<style>
+@font-face{font-family:'Audiowide';font-weight:400;font-display:swap;src:url('../../../../web/public/fonts/audiowide-400.woff2') format('woff2')}
+@font-face{font-family:'Atkinson Hyperlegible Next';font-weight:400 700;font-display:swap;size-adjust:108.9%;src:url('../../../../web/public/fonts/atkinson-hyperlegible-next-400-700.woff2') format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+20AC,U+2122}
+@font-face{font-family:'Rubik Hebrew';font-weight:100 900;font-display:swap;src:url('../../../../web/public/fonts/rubik-700-hebrew.woff2') format('woff2');unicode-range:U+0307-0308,U+0590-05FF,U+20AA,U+25CC,U+FB1D-FB4F}
+@font-face{font-family:'Heebo Hebrew';font-weight:400 700;font-display:swap;src:url('../../../../web/public/fonts/heebo-400-700-hebrew.woff2') format('woff2');unicode-range:U+0307-0308,U+0590-05FF,U+20AA,U+25CC,U+FB1D-FB4F}
+
+:root{
+  --paper:236 232 220;--paper-2:228 223 209;--paper-3:216 210 194;
+  --ink:20 19 15;--soft:85 82 74;--faint:124 120 109;--rule:207 201 186;--firm:166 159 142;
+  --signal:35 64 107;--signal-ink:255 255 255;--white:255 255 255;--shade:20 19 15;
+  --tmix:rgb(var(--ink));--tmixp:35%;
+  --wash-blue:228 238 250;--wash-green:225 245 236;--wash-purple:241 233 250;--wash-yellow:252 244 219;--wash-red:250 233 235;
+  --r-sm:14px;--r-md:22px;--r-lg:32px;--r-pill:999px;
+  --s1:4px;--s2:8px;--s3:12px;--s4:16px;--s6:24px;
+  --d:'Audiowide','Rubik Hebrew',ui-sans-serif,system-ui,sans-serif;
+  --t:'Atkinson Hyperlegible Next','Heebo Hebrew',ui-sans-serif,system-ui,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  color-scheme:light;
+}
+:root[data-theme=dark]{
+  --paper:28 26 22;--paper-2:40 37 32;--paper-3:52 48 42;
+  --ink:242 240 234;--soft:168 164 154;--faint:124 120 109;--rule:62 58 51;--firm:118 113 104;
+  --signal:122 162 232;--signal-ink:20 19 15;--white:255 255 255;--shade:0 0 0;
+  --tmix:rgb(var(--white));--tmixp:38%;
+  --wash-blue:24 38 52;--wash-green:24 50 35;--wash-purple:47 35 50;--wash-yellow:60 51 19;--wash-red:56 32 32;
+  color-scheme:dark;
+}
+*{box-sizing:border-box;margin:0}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{width:390px;min-height:844px;background:var(--ground);color:rgb(var(--ink));font:400 16px/1.45 var(--t);display:flex;flex-direction:column;-webkit-font-smoothing:antialiased}
+:lang(he) body{line-height:1.55}
+a{color:inherit;text-decoration:none}
+.i{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;flex:none}
+[dir=rtl] .mir{transform:scaleX(-1)}
+.num{font-variant-numeric:tabular-nums}
+.ltr{direction:ltr;unicode-bidi:isolate}
+/* soft circle, tinted by the work it labels */
+.ic{--sz:40px;width:var(--sz);height:var(--sz);border-radius:50%;display:grid;place-items:center;flex:none;
+  background:rgb(var(--t) / .17);color:color-mix(in srgb,rgb(var(--t)),var(--tmix) var(--tmixp))}
+.ic .i{width:calc(var(--sz)*.5);height:calc(var(--sz)*.5)}
+.ic.s32{--sz:32px}.ic.s56{--sz:56px}.ic.s72{--sz:72px}
+.av{--sz:40px;width:var(--sz);height:var(--sz);border-radius:50%;background:rgb(var(--paper-3));color:rgb(var(--soft));display:grid;place-items:center;font:700 15px var(--t);flex:none;border:1px solid rgb(var(--rule))}
+/* chips and pills: 32px tall, 44px hit area via ::after */
+.chip{position:relative;display:inline-flex;align-items:center;gap:6px;height:32px;padding-inline:14px;border-radius:var(--r-pill);font-size:14px;font-weight:600;background:rgb(var(--paper-3) / .55);color:rgb(var(--soft));white-space:nowrap}
+.chip::after{content:"";position:absolute;inset:-6px -2px}
+.chip[aria-current]{background:rgb(var(--ink));color:rgb(var(--paper))}
+.pill{display:inline-flex;align-items:center;gap:6px;height:24px;padding-inline:10px;border-radius:var(--r-pill);font-size:12.5px;font-weight:700;white-space:nowrap;background:rgb(var(--paper-3) / .6);color:rgb(var(--soft))}
+.pill::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;opacity:.9}
+.pill.blue{background:rgb(var(--wash-blue));color:#0a58b0}.pill.purple{background:rgb(var(--wash-purple));color:#7a3fb5}.pill.green{background:rgb(var(--wash-green));color:#0a7a47}
+:root[data-theme=dark] .pill.blue{color:#8bb8ff}:root[data-theme=dark] .pill.purple{color:#cfa3f5}:root[data-theme=dark] .pill.green{color:#6fd9a4}
+.pill.plain::before{display:none}
+.cnt{display:inline-grid;place-items:center;min-width:24px;height:24px;padding-inline:8px;border-radius:var(--r-pill);background:rgb(var(--paper-3) / .7);color:rgb(var(--soft));font-size:12.5px;font-weight:700;font-variant-numeric:tabular-nums}
+/* rows */
+.row{position:relative;display:flex;align-items:center;gap:var(--s3);min-height:64px;padding:12px var(--s4)}
+.row+.row::before{content:"";position:absolute;inset-inline:68px 0;top:0;height:1px;background:rgb(var(--rule) / .8)}
+.row .tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.row b{font-weight:700;font-size:16px;line-height:1.3}
+.row small{font-size:13.5px;color:rgb(var(--soft));line-height:1.35}
+.row .tr{display:flex;align-items:center;gap:8px;color:rgb(var(--faint))}
+.row .chev{width:18px;height:18px;color:rgb(var(--faint))}
+.clamp2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+/* grouped section */
+.grp{padding-inline:var(--s4);margin-top:var(--s6)}
+.gh{display:flex;align-items:center;justify-content:space-between;padding:0 var(--s2) var(--s2);font:700 14px var(--t);color:rgb(var(--soft))}
+.gh a{font-weight:600;color:rgb(var(--signal));font-size:14px}
+.card{background:var(--card);border-radius:var(--r-md);overflow:hidden}
+/* bar */
+.bar{position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-content:space-between;height:56px;padding-inline:var(--s3);background:var(--ground)}
+.bar .t{font:700 16px var(--t);opacity:0;transition:none}
+.bar.scrolled{box-shadow:0 1px 0 rgb(var(--rule))}.bar.scrolled .t{opacity:1}
+.btn{width:44px;height:44px;display:grid;place-items:center;border-radius:50%;color:rgb(var(--ink))}
+.btn span{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:rgb(var(--paper-3) / .6)}
+.menu{display:inline-flex;align-items:center;gap:8px;height:36px;padding-inline:16px;border-radius:var(--r-pill);border:1px solid rgb(var(--firm));font:600 15px var(--t)}
+.menu .i{width:18px;height:18px}
+.hscroll{display:flex;gap:var(--s2);overflow:hidden;padding-inline:var(--s4);padding-block:6px}
+.seg{display:flex;padding:4px;border-radius:var(--r-pill);background:rgb(var(--paper-3) / .6);margin-inline:var(--s4)}
+.seg a{flex:1;display:grid;place-items:center;height:40px;border-radius:var(--r-pill);font-size:14.5px;font-weight:600;color:rgb(var(--soft))}
+.seg a[aria-current]{background:var(--card-hi);color:rgb(var(--ink));box-shadow:0 1px 2px rgb(var(--shade) / .12),0 4px 10px -6px rgb(var(--shade) / .25);font-weight:700}
+.field{display:flex;align-items:center;gap:10px;height:48px;padding-inline:16px;border-radius:var(--r-pill);background:var(--card);color:rgb(var(--soft));font-size:16px;border:1px solid rgb(var(--rule))}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:var(--s2);padding-inline:var(--s4)}
+.stat{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:var(--r-md);background:var(--card)}
+.stat .v{font:700 20px/1.1 var(--t);font-variant-numeric:tabular-nums;direction:ltr;unicode-bidi:isolate;text-align:start;display:block}
+.stat .l{font-size:12.5px;color:rgb(var(--soft));display:block;margin-top:2px}
+.dock{position:sticky;bottom:0;z-index:5;margin-top:auto;padding:12px var(--s4) calc(12px + env(safe-area-inset-bottom))}
+.foot{margin-top:var(--s6);padding:var(--s6) var(--s4) 40px;color:rgb(var(--faint));font-size:13px;text-align:center}
+.cta{display:flex;align-items:center;justify-content:center;gap:10px;height:52px;border-radius:var(--r-pill);background:rgb(var(--signal));color:rgb(var(--signal-ink));font:700 16px var(--t)}
+.pad{padding-inline:var(--s4)}
+.ttl{font:400 34px/1.1 var(--d);letter-spacing:-.03em;padding-inline:var(--s4)}
+:lang(he) .ttl{font-weight:700;letter-spacing:0}
+.sub{padding-inline:var(--s4);margin-top:8px;color:rgb(var(--soft));font-size:16px}
+.rd{padding-inline:22px;font-size:18px;line-height:1.72}
+:lang(he) .rd{line-height:1.85}
+.rd p{margin-top:1.05em}
+.rd h2{font:700 21px/1.3 var(--t);margin-top:1.7em;letter-spacing:-.005em}
+.rd .q{margin-top:1.4em;padding:16px 18px;border-radius:var(--r-md);background:rgb(var(--paper-3) / .45);font-size:19px;line-height:1.5;font-weight:600}
+.rd pre{margin-top:1.3em;padding:14px 16px;border-radius:var(--r-md);background:rgb(var(--panel,12 12 14));color:#F2F0EA;font:14px/1.5 var(--mono);direction:ltr;text-align:left;overflow:hidden;white-space:pre-wrap}
+
+body{--ground:rgb(var(--paper-2));--card:#F4F1E8;--card-hi:#FBF9F3}
+:root[data-theme=dark] body{--ground:rgb(var(--paper));--card:rgb(var(--paper-2));--card-hi:rgb(var(--paper-3))}
+.card{box-shadow:none}
+.gh{text-transform:none}
+.bar .t{font-size:17px}
+.rd-card{margin:var(--s3) var(--s4) 0;padding:6px 20px 28px;background:var(--card);border-radius:var(--r-md);font-size:17.5px;line-height:1.7}
+.rd-card p{margin-top:1em}.rd-card h2{font:700 20px/1.3 var(--t);margin-top:1.6em}
+.rd-card .q{margin-top:1.2em;padding:14px 16px;border-radius:var(--r-sm);background:rgb(var(--paper-3) / .5);font-weight:600}
+.rd-card pre{margin-top:1.2em;padding:12px 14px;border-radius:var(--r-sm);background:#0C0C0E;color:#F2F0EA;font:13.5px/1.5 var(--mono);direction:ltr;text-align:left;white-space:pre-wrap}
+:lang(he) .rd-card{line-height:1.8}
+.hdr{margin:0 var(--s4);padding:18px;background:var(--card);border-radius:var(--r-md)}
+.tabbar{display:flex;gap:4px;padding:6px;border-radius:var(--r-pill);background:var(--card-hi);border:1px solid rgb(var(--rule));box-shadow:0 8px 20px -10px rgb(var(--shade) / .35)}
+.tabbar a{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;height:44px;border-radius:var(--r-pill);font-size:14.5px;font-weight:700;color:rgb(var(--soft))}
+</style></head>
+<body class="A">
+
+<header class="bar">
+  <a class="btn" href="#" aria-label="Back"><span><svg class="i " viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14M5 16h14"/></svg></span></a>
+  <span class="t">Work</span>
+  <span class="btn"></span>
+</header>
+<h1 class="ttl">Work</h1>
+<p class="sub">Everything I have built, with the decisions behind it.</p>
+<div style="margin-top:16px"><nav class="seg" aria-label="Recently updated"><a href="#" aria-current="true">Updated</a><a href="#">Newest</a><a href="#">Name</a></nav></div>
+
+<section class="grp"><h2 class="gh"><span>Pinned <span class="cnt">2</span></span></h2><div class="card">
+<a class="row" href="#"><span class="ic " style="--t:24 142 167"><svg class="i " viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="14" rx="3"/><path d="M4 10h16M8 14.5h3"/></svg></span><span class="tx"><b>WindoM</b><small class="clamp2">Every new tab becomes a dashboard</small><small style="display:flex;align-items:center;gap:8px;margin-top:4px;color:rgb(var(--faint))"><span class="pill blue">In use</span><span class="ltr">React 19 · 2026</span></small></span><span class="tr"><svg class="i chev mir" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></span></a>
+<a class="row" href="#"><span class="ic " style="--t:58 132 104"><svg class="i " viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/></svg></span><span class="tx"><b>Bothy</b><small class="clamp2">A console for one machine that asks Docker what is running</small><small style="display:flex;align-items:center;gap:8px;margin-top:4px;color:rgb(var(--faint))"><span class="pill purple">Open source</span><span class="ltr">Docker Compose · 2026</span></small></span><span class="tr"><svg class="i chev mir" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></span></a></div></section>
+
+<section class="grp"><h2 class="gh"><span>All projects <span class="cnt">4</span></span></h2><div class="card">
+<a class="row" href="#"><span class="ic " style="--t:35 64 107"><svg class="i " viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4l9 5-9 5-9-5z"/><path d="M3 14l9 5 9-5"/></svg></span><span class="tx"><b>Portfolio site</b><small class="clamp2">This site: a portfolio and notes in English and Hebrew</small><small style="display:flex;align-items:center;gap:8px;margin-top:4px;color:rgb(var(--faint))"><span class="pill green">Live</span><span class="ltr">React 19 · 2026</span></small></span><span class="tr"><svg class="i chev mir" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></span></a>
+<a class="row" href="#"><span class="ic " style="--t:31 138 91"><svg class="i " viewBox="0 0 24 24" aria-hidden="true"><path d="M9 7l-5 5 5 5M15 7l5 5-5 5"/></svg></span><span class="tx"><b>oci-free</b><small class="clamp2">The one free-tier ARM node this site runs on, written as code</small><small style="display:flex;align-items:center;gap:8px;margin-top:4px;color:rgb(var(--faint))"><span class="pill purple">Open source</span><span class="ltr">Kubernetes · 2026</span></small></span><span class="tr"><svg class="i chev mir" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></span></a>
+<a class="row" href="#"><span class="ic " style="--t:140 87 52"><svg class="i " viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19l1-4L16 5l3 3L9 18z"/></svg></span><span class="tx"><b>Programming with Yehuda</b><small class="clamp2">Lesson pages built while learning React and Node</small><small style="display:flex;align-items:center;gap:8px;margin-top:4px;color:rgb(var(--faint))"><span class="pill ">Archive</span><span class="ltr">React · 2025</span></small></span><span class="tr"><svg class="i chev mir" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></span></a>
+<a class="row" href="#"><span class="ic " style="--t:176 78 46"><svg class="i " viewBox="0 0 24 24" aria-hidden="true"><path d="M4 15v-3l2-5h12l2 5v3zM4 15v3h3v-3M17 15v3h3v-3M7 12h10"/></svg></span><span class="tx"><b>Icaros</b><small class="clamp2">A car-listing web app, built while learning React and Node</small><small style="display:flex;align-items:center;gap:8px;margin-top:4px;color:rgb(var(--faint))"><span class="pill ">Archive</span><span class="ltr">React · 2025</span></small></span><span class="tr"><svg class="i chev mir" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></span></a></div></section>
+
+<section class="grp"><h2 class="gh"><span>Latest on the site</span><a href="#">Full channel log</a></h2><div class="card">
+<a class="row" href="#"><span class="ic " style="--t:35 64 107"><svg class="i " viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4h12v16H6z"/><path d="M9 9h6M9 13h6M9 17h3"/></svg></span><span class="tx"><b>Merging does not ship. A tag does.</b><small class="">The site · 1 day ago</small></span><span class="tr"><svg class="i chev mir" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></span></a>
+<a class="row" href="#"><span class="ic " style="--t:58 132 104"><svg class="i " viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12V5h7l9 9-7 7z"/><circle cx="8" cy="9" r="1"/></svg></span><span class="tx"><b>Bothy v1.9.0</b><small class="">Bothy · 4 days ago</small></span><span class="tr"><svg class="i chev mir" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></span></a>
+<a class="row" href="#"><span class="ic " style="--t:58 132 104"><svg class="i " viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V6M7 11l5-5 5 5"/></svg></span><span class="tx"><b>Pushed to Bothy</b><small class="">Bothy · 2d ago</small></span><span class="tr"><svg class="i chev mir" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></span></a></div></section>
+<footer class="foot">© 2026 Yehuda Briskman</footer></body></html>
