@@ -143,18 +143,18 @@ export default function AudiencePhone() {
   /* ---------------------------------------------------------------- bulk */
   const chosen = (ids: string[]) => (items ?? []).filter((c) => ids.includes(c.hash));
   const settle = async (jobs: Array<Promise<unknown>>) => (await Promise.allSettled(jobs)).filter((r) => r.status === "rejected").length;
-  const report = (done: number, failed: number, text: (n: number) => string) => (failed ? toast.error(w.bulkFailedSome(failed)) : toast.success(text(done)));
+  const report = (done: number, failed: number, text: (n: number) => string, failedText: (n: number) => string) => (failed ? toast.error(failedText(failed)) : toast.success(text(done)));
 
   const setStatus = async (ids: string[], to: ContactStatus) => {
     const list = chosen(ids);
     const failed = await settle(list.map((c) => adminAudience.patchContact(c.hash, { status: to })));
-    report(list.length - failed, failed, w.bulkStatusDone);
+    report(list.length - failed, failed, w.bulkStatusDone, w.bulkStatusFailed);
     reload();
   };
   const addToGroup = async (ids: string[], g: Group) => {
     const list = chosen(ids).filter((c) => !c.groups.includes(g.slug));
     const failed = await settle(list.map((c) => adminAudience.patchContact(c.hash, { groups: [...c.groups, g.slug] } satisfies ContactPatch)));
-    report(ids.length - failed, failed, (n) => w.bulkGroupDone(n, g.name));
+    report(ids.length - failed, failed, (n) => w.bulkGroupDone(n, g.name), w.bulkGroupFailed);
     setPick(null);
     loadGroups();
     reload();
@@ -178,7 +178,7 @@ export default function AudiencePhone() {
       onUndo: show,
       commit: async () => {
         const failed = await settle(ids.map((hash) => adminAudience.eraseContact(hash)));
-        if (failed) toast.error(w.bulkFailedSome(failed));
+        if (failed) toast.error(w.bulkEraseFailed(failed));
         show();
         loadGroups();
         reload();

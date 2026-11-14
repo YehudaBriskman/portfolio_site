@@ -552,11 +552,13 @@ name differs from `LEDGER_DB`.
 
 An admin hard delete removes the contact document: `DELETE
 /api/admin/audience/contacts/:hash` (the audience list's `q` search finds a
-contact by address or name). A `suppressed` contact is
-refused until it is lifted from the suppression list (otherwise erasing it would
-let the address be added again); lift it, then delete. Erasing writes an `erased`
-ledger line (30 days) first, then deletes the contact and that person's `send:`
-documents. If the ledger cannot be written the erase fails and nothing is deleted.
+contact by address or name). Every status can be erased, and erasing twice is
+fine (the second answers `ok` with `already: true`). The ledger line is written
+first and never gets weaker: a `suppressed` or `unsubscribed` person keeps that
+hash-only line (so the address cannot be added again and an unsubscribe is still
+honoured), anyone else gets an `erased` line (30 days). Then the contact and that
+person's `send:` documents are deleted. If the ledger cannot be written the erase
+fails (503) and nothing is deleted.
 
 What remains after an erasure:
 
