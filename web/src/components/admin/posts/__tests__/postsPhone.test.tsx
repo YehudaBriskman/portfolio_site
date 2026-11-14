@@ -33,9 +33,9 @@ const posts = [
   post("nine", { title: "Nine" }),
 ];
 const areas = [
-  { slug: "site", title: "Notes", tagline: "", kind: "site", repo: null, stats: null, description: "d", links: [], order: 0, status: "published", _rev: "1-a" },
-  { slug: "windom", title: "WindoM", tagline: "", kind: "project", repo: { owner: "o", name: "WindoM", branch: "main", docPaths: [] }, stats: null, description: "d", links: [], order: 10, status: "published", _rev: "1-b" },
-  { slug: "old", title: "Old project", tagline: "", kind: "project", repo: null, stats: null, description: "d", links: [], order: 20, status: "hidden", _rev: "1-c" },
+  { slug: "site", title: "Notes", tagline: "", kind: "site", repo: null, stats: null, description: "d", coverImage: null, links: [], order: 0, status: "published", _rev: "1-a" },
+  { slug: "windom", title: "WindoM", tagline: "", kind: "project", repo: { owner: "o", name: "WindoM", branch: "main", docPaths: [] }, stats: null, description: "d", coverImage: null, links: [], order: 10, status: "published", _rev: "1-b" },
+  { slug: "old", title: "Old project", tagline: "", kind: "project", repo: null, stats: null, description: "d", coverImage: null, links: [], order: 20, status: "hidden", _rev: "1-c" },
 ];
 const unit = (path: string, status: string) => ({ path, status, primary: true, en: path, he: null, draftHe: null });
 const report = {
@@ -183,7 +183,7 @@ describe("Posts on a phone: bulk actions", () => {
   const select = async (...titles: string[]) => {
     await screen.findByRole("button", { name: FIRST });
     fireEvent.click(screen.getByRole("button", { name: "Select" }));
-    for (const t of titles) fireEvent.click(screen.getByRole("button", { name: t }));
+    for (const t of titles) fireEvent.click(screen.getByRole("checkbox", { name: t }));
   };
   const bar = () => screen.findByRole("toolbar", { name: "Bulk actions" });
 
@@ -198,9 +198,9 @@ describe("Posts on a phone: bulk actions", () => {
     mount();
     await select("Windom notes");
     fireEvent.click(within(await bar()).getByRole("button", { name: "More" }));
-    expect(await screen.findByRole("button", { name: /^Move to drafts/ })).toBeTruthy();
-    expect(screen.getByRole("button", { name: /^Archive/ })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: /^Publish/ })).toBeNull();
+    expect(await screen.findByRole("button", { name: /^Move to drafts\s*\d+ items?$/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^Archive\s*\d+ items?$/ })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /^Publish(?!ed)/ })).toBeNull();
     expect(screen.queryByRole("button", { name: /^Delete/ })).toBeNull();
   });
 
@@ -208,8 +208,8 @@ describe("Posts on a phone: bulk actions", () => {
     mount();
     await select("A draft nobody has read", "Windom notes");
     fireEvent.click(within(await bar()).getByRole("button", { name: "More" }));
-    fireEvent.click(await screen.findByRole("button", { name: /^Archive/ }));
-    expect(await screen.findByText("Archive 2 posts")).toBeTruthy();
+    fireEvent.click(await screen.findByRole("button", { name: /^Archive\s*\d+ items?$/ }));
+    expect((await screen.findAllByText("Archive 2 posts")).length).toBeGreaterThan(0);
     fireEvent.click(screen.getByRole("button", { name: "Keep" }));
     expect(deletes()).toEqual([]);
   });
@@ -218,7 +218,7 @@ describe("Posts on a phone: bulk actions", () => {
     mount();
     await select("Windom notes");
     fireEvent.click(within(await bar()).getByRole("button", { name: "More" }));
-    fireEvent.click(await screen.findByRole("button", { name: /^Archive/ }));
+    fireEvent.click(await screen.findByRole("button", { name: /^Archive\s*\d+ items?$/ }));
     const confirm = await screen.findAllByRole("button", { name: "Archive 1 post" });
     fireEvent.click(confirm[confirm.length - 1]);
     const undo = await screen.findByRole("button", { name: "Undo" });
@@ -274,7 +274,7 @@ describe("Areas on a phone", () => {
     mount("/admin/areas", <AdminAreas />);
     await screen.findByRole("button", { name: "Open WindoM" });
     fireEvent.click(screen.getByRole("button", { name: "Select" }));
-    fireEvent.click(screen.getByRole("button", { name: "WindoM" }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "WindoM" }));
     fireEvent.click(within(await screen.findByRole("toolbar", { name: "Bulk actions" })).getByRole("button", { name: "Hide" }));
     expect(await screen.findByRole("button", { name: "Undo" })).toBeTruthy();
     expect(deletes()).toEqual([]);

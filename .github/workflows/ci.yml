@@ -496,6 +496,13 @@ jobs:
       - name: Admin Inbox on a phone
         if: matrix.check == 'a11y' && matrix.shard == 1
         run: npm run a11y:admin-inbox-phone
+      # Posts and Areas on a phone (#680): one tappable row per record, at
+      # least 7 post rows above the fold, no sideways scroll, Select shows
+      # the bulk bar, the publish review is a sheet that leads with what
+      # changes, Hebrew mirrors, and the desktop table is unchanged.
+      - name: Admin Posts and Areas on a phone
+        if: matrix.check == 'a11y' && matrix.shard == 1
+        run: npm run a11y:admin-posts-phone
       # Admin at 320, 360, 390 and 768 wide, light and dark, English and
       # Hebrew (#660): no sideways scroll, no target under 24px, no primary
       # control under 44px on touch, no text under 14px outside the

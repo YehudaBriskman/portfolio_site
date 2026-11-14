@@ -10,6 +10,8 @@ import { admin, slugify, AdminValidationError } from "@/services/admin";
 import MediaPicker from "@/components/admin/MediaPicker";
 import { Disclosure } from "@/components/ui/Disclosure";
 import { useAdminWords } from "@/i18n/admin";
+import { usePhone } from "@/hooks/usePhone";
+import { usePostsPhoneWords } from "@/components/admin/posts/words";
 
 type Draft = {
   slug: string;
@@ -45,6 +47,8 @@ export default function AdminCollection() {
   const { slug } = useParams();
   const isNew = !slug || slug === "new";
   const nav = useNavigate();
+  const phone = usePhone();
+  const pw = usePostsPhoneWords();
   const [d, setD] = useState<Draft>(EMPTY);
   const [save_, setSave] = useState<SaveState>({ kind: "idle" });
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -231,7 +235,7 @@ export default function AdminCollection() {
           </div>
         </Disclosure>
 
-        <Disclosure open summary={w.areaDetails} className="mt-10">
+        <Disclosure open={!phone || isNew} summary={w.areaDetails} meta={phone && !isNew ? `${pw.kinds[d.kind]} · ${w.status[d.status]}` : undefined} className="mt-10">
           <div className="mt-4 grid gap-5 sm:grid-cols-2">
             <label className="block">
               <span className="a-label">Kind</span>

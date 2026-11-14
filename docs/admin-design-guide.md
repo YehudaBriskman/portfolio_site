@@ -202,7 +202,7 @@ Status: **exists** = on `main` today. **planned** = an open issue; do not copy a
 | `UndoToast`, `useUndoable` (#671) | `@/components/ui/UndoToast` | an Undo window over a deferred action: `schedule({ message, commit, onUndo })` shows the toast and holds `commit` back; Undo cancels it. Never under 8 s, pauses on hover and focus, `role="status"` mounted ahead so it is announced, commits on `pagehide` and unmount, one at a time. This is how an irreversible server action gets an Undo | an error the user must act on; `sonner` for plain feedback |
 | `tooltip` | `@/components/ui/tooltip` | a hint for pointer users | the only label of anything: touch has no hover |
 
-Also on main, outside `ui/`: `usePhone()` (`@/hooks/usePhone`; true under 600px, the one breakpoint a phone screen switches its layout on, so a phone never mounts the desktop list), the Inbox's phone screen as the worked example of a migrated list (`announce/inbox/InboxPhoneRow.tsx` rows, `InboxSheet.tsx` for the Composer in a `BottomSheet`; an **Undo** inside a modal sheet is drawn in the sheet, because a toast outside a top-layer `<dialog>` is inert while it is open), the admin shell and `.a-*` classes (`@/components/admin/AdminShell`), `StatusPill` and `TranslationPill` (`@/components/admin/StatusPill`, `.../TranslationPill`; being replaced by `StatusGlyph`), the native-`<dialog>` modals (`@/components/admin/MediaGrid` `Modal`, `announce/audience/Modal`, the popup system in `styles/popup.css`; see `docs/motion-contract.md` section 9).
+Also on main, outside `ui/`: `usePhone()` (`@/hooks/usePhone`; true under 600px, the one breakpoint a phone screen switches its layout on, so a phone never mounts the desktop list), the Posts and Areas phone screens (`components/admin/posts/`: a row opens the editor; bulk is Move to drafts and Archive, both behind `UndoToast`, and never Publish, which is decided in the review one note at a time; `ReviewDialog` is a sheet below 600px: what changes, the diff, then closed Disclosures), the Inbox's phone screen as the worked example of a migrated list (`announce/inbox/InboxPhoneRow.tsx` rows, `InboxSheet.tsx` for the Composer in a `BottomSheet`; an **Undo** inside a modal sheet is drawn in the sheet, because a toast outside a top-layer `<dialog>` is inert while it is open), the admin shell and `.a-*` classes (`@/components/admin/AdminShell`), `StatusPill` and `TranslationPill` (`@/components/admin/StatusPill`, `.../TranslationPill`; being replaced by `StatusGlyph`), the native-`<dialog>` modals (`@/components/admin/MediaGrid` `Modal`, `announce/audience/Modal`, the popup system in `styles/popup.css`; see `docs/motion-contract.md` section 9).
 
 ### 3.2 Planned (phone series)
 
@@ -363,7 +363,7 @@ Never run vitest from the repo root.
 
 ### 7.3 The admin matrix and density scripts
 
-Three Playwright scripts in `web/scripts/a11y/` measure a built admin through the repo's own harness (`site-stub.mjs`: `vite preview` plus API fixtures, no login, no network; every request that is not localhost is aborted, so they run offline). `admin-matrix` and `admin-inbox-phone` run in CI; `density-matrix` is a measuring tool you run by hand.
+Three Playwright scripts in `web/scripts/a11y/` measure a built admin through the repo's own harness (`site-stub.mjs`: `vite preview` plus API fixtures, no login, no network; every request that is not localhost is aborted, so they run offline). `admin-matrix`, `admin-inbox-phone` and `admin-posts-phone` run in CI; `density-matrix` is a measuring tool you run by hand.
 
 ```sh
 cd web && npm run build
@@ -371,6 +371,8 @@ cd web && npm run build
 npm run a11y:admin-matrix        # ONLY=media,marketing-inbox  WIDTHS=320,390  THEMES=light  LANGS=en  SHARD=1/2
 # Inbox on a phone (CI): one tappable row per event, >= 7 rows above the fold of 390x844, no sideways scroll, the sheet opens and gives focus back, Mark done offers Undo, Hebrew mirrors.
 npm run a11y:admin-inbox-phone   # SHOTS=<dir> also writes screenshots (taken over the protocol: page.screenshot waits for a frame this headless build rarely makes)
+# Posts and Areas on a phone (CI): one tappable row per record, >= 7 post rows above the fold of 390x844, no sideways scroll, Select shows the bulk bar, the publish review is a sheet (summary, diff, then closed Disclosures), Hebrew mirrors, desktop table unchanged.
+npm run a11y:admin-posts-phone   # SHOTS=<dir>; CHROME=<path> when Playwright's browser is not the one installed
 # Density (by hand): every admin screen at 390x844 and 360x740, scored 0-100 from fold characters, nodes, controls, pills, small text, scroll height, the longest run of rows and empty text; the fixtures are bigger (10 to 20 records) because a list of 2 measures nothing.
 npm run a11y:density -- --top 25 --shots top   # ONLY=marketing-inbox  VPS=390x844,360x740  CHROME=<path to chrome>
 ```
@@ -386,6 +388,7 @@ npm run a11y:density -- --top 25 --shots top   # ONLY=marketing-inbox  VPS=390x8
 | Accessibility floor (axe, WCAG 2.2 AA), sharded | `ci.yml` Browser checks | contrast, labels, names, target size |
 | Admin phone layout | Browser checks | `/admin/projects` row never overflows, draft banner keeps its sentence, links are 44 x 24 |
 | Admin Inbox on a phone | Browser checks | `a11y:admin-inbox-phone`: 7 rows above the fold at 390x844, one button per row, 4 named glyphs, no "Ready" and no Copy in the list, sheet opens and returns focus, Undo, Hebrew mirrors |
+| Admin Posts and Areas on a phone | Browser checks | `a11y:admin-posts-phone`: 7 post rows above the fold at 390x844, one button per row, at most one glyph, Select shows the bulk bar, the review leads with what changes, Hebrew mirrors, desktop table intact |
 | Links land where they point | Browser checks | no dead internal links |
 | Static | `ci.yml` | secrets scan, workflow and Dockerfile lint |
 | CodeQL | `codeql.yml` | security analysis; **wait for it too** |

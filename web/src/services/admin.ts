@@ -247,6 +247,7 @@ export const admin = {
       method: "PUT",
       body: JSON.stringify(body),
     });
+    invalidateLists();
     return AdminPostSchema.parse(r.post);
   },
   /* Autosave (#250): on a published note this writes only its draft. */
