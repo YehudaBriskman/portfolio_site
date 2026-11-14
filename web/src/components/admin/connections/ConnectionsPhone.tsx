@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "@/lib/toast";
 import { fullDate, relative, useLang } from "@/components/dashboard/i18n";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { ICON } from "@/components/ui/icons";
@@ -32,7 +33,6 @@ export default function ConnectionsPhone({
   const [openId, setOpenId] = useState<string | null>(null);
   const [confirm, setConfirm] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [notice, setNotice] = useState("");
   const [failed, setFailed] = useState("");
 
   const active = grants.filter((g) => g.status === "active");
@@ -74,7 +74,7 @@ export default function ConnectionsPhone({
     setFailed("");
     try {
       await onRevoke(target);
-      setNotice(p.revoked(target.client));
+      toast.success(p.revoked(target.client));
       setConfirm(false);
     } catch {
       setFailed(p.revokeFailed);
@@ -100,7 +100,7 @@ export default function ConnectionsPhone({
 
   return (
     <div className={styles.page} data-testid="connections-phone">
-      <p className="sr-only" role="status">{notice || p.count(active.length)}</p>
+      <p className="sr-only" role="status">{p.count(active.length)}</p>
       {active.length > 0 && <ul className={styles.list} aria-label={p.connected}>{active.map(row)}</ul>}
       {ended.length > 0 && (
         <section className={styles.section} aria-labelledby="conn-ended">

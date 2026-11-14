@@ -1,4 +1,5 @@
 import Select from "@/components/ui/Select";
+import { toast } from "@/lib/toast";
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { X } from "lucide-react";
@@ -235,7 +236,6 @@ export default function AdminEditor() {
   /* Which body is edited (#305): one language, or both side by side. */
   const [bodyLang, setBodyLang] = useState<"en" | "he" | "both">("en");
   const [preview, setPreview] = useState(true);
-  const [notice, setNotice] = useState<{ text: string; bad?: boolean } | null>(null);
   const [cols, setCols] = useState<AdminCollection[]>([]);
   const [all, setAll] = useState<AdminPost[]>([]);
   const [publishFlow, setPublishFlow] = useState<Publish>({ kind: "idle" });
@@ -470,7 +470,7 @@ export default function AdminEditor() {
       adopt(p);
       setSavedVersion(at);
       setSave({ kind: "saved", at: new Date() });
-      setNotice({ text: w.published });
+      toast.success(w.published);
       setPublishFlow({ kind: "idle" });
       if (isNew) nav(`/admin/posts/${p.slug}`, { replace: true });
     } catch (e) {
@@ -598,9 +598,6 @@ export default function AdminEditor() {
           {reveal && save.kind === "failed" && Object.keys(errors).length > 0 && (
             <p role="alert" className="sr-only">{w.saveFailed(save.message)}</p>
           )}
-          {notice && (
-            <p className={styles.status} data-bad={notice.bad || undefined} role="status">{notice.text}</p>
-          )}
 
           <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-2" data-path="title">
             <label className="block min-w-0" htmlFor={ids.title}>
@@ -711,7 +708,7 @@ export default function AdminEditor() {
                 targets={targets}
                 words={w}
                 describedBy={ids.bodyHelp}
-                onStatus={(text, isBad) => setNotice({ text, bad: isBad })}
+                onStatus={(text, isBad) => (isBad ? toast.error(text) : toast.success(text))}
                 onSave={() => canSave && void saveDraft()}
                 onTogglePreview={() => setBodyLang("en")}
               />
@@ -725,7 +722,7 @@ export default function AdminEditor() {
                 targets={targets}
                 words={w}
                 describedBy={ids.bodyHelp}
-                onStatus={(text, isBad) => setNotice({ text, bad: isBad })}
+                onStatus={(text, isBad) => (isBad ? toast.error(text) : toast.success(text))}
                 onSave={() => canSave && void saveDraft()}
                 onTogglePreview={() => setBodyLang("he")}
               />
@@ -741,7 +738,7 @@ export default function AdminEditor() {
               targets={targets}
               words={w}
               describedBy={ids.bodyHelp}
-              onStatus={(text, isBad) => setNotice({ text, bad: isBad })}
+              onStatus={(text, isBad) => (isBad ? toast.error(text) : toast.success(text))}
               onSave={() => canSave && void saveDraft()}
               onTogglePreview={() => setPreview((p) => !p)}
             />

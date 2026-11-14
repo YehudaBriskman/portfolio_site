@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, useLocation } from "react-router-dom";
+import ToastHost from "@/components/ui/ToastHost";
+import { __resetToasts } from "@/lib/toast";
 import Admin from "@/pages/Admin";
 import AdminAreas from "@/pages/AdminAreas";
 import ReviewDialog from "@/components/admin/noteEditor/ReviewDialog";
@@ -65,7 +67,7 @@ function phone(on: boolean) {
   }));
 }
 const mount = (path = "/admin/posts", el = <Admin />) =>
-  render(<MemoryRouter initialEntries={[path]}>{el}<Where /></MemoryRouter>);
+  render(<MemoryRouter initialEntries={[path]}>{el}<Where /><ToastHost /></MemoryRouter>);
 
 beforeEach(() => {
   calls = [];
@@ -90,6 +92,7 @@ beforeEach(() => {
   );
 });
 afterEach(() => {
+  __resetToasts();
   cleanup();
   vi.unstubAllGlobals();
   document.documentElement.lang = "en";

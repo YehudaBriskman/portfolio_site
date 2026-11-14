@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import AdminConnections from "@/pages/AdminConnections";
+import ToastHost from "@/components/ui/ToastHost";
+import { __resetToasts } from "@/lib/toast";
 import { controlsIn, factsOf, json, lang, phone, rows, stubFetch } from "@/components/admin/phone/__tests__/helpers";
 
 /*
@@ -34,6 +36,7 @@ beforeEach(() => {
   });
 });
 afterEach(() => {
+  __resetToasts();
   cleanup();
   undoPhone();
   vi.unstubAllGlobals();
@@ -44,6 +47,7 @@ const page = () =>
   render(
     <MemoryRouter initialEntries={["/admin/connections"]}>
       <AdminConnections />
+      <ToastHost />
     </MemoryRouter>,
   );
 const starts = (verb: string, name: string) => new RegExp(`^${verb} ${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}( |$)`);

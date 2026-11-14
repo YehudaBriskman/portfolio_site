@@ -22,7 +22,7 @@ import styles from "@/components/ui/SelectionBar.module.css";
  * sheet whose title and button name the object and the count ("Delete 3
  * posts"), with Keep beside it. Destructive rows sort last in the list.
  * After an action runs the mode is left. A reversible or deferred action
- * pairs with UndoToast in the caller's `run`.
+ * pairs with `useUndoable` (an Undo toast) in the caller's `run`.
  */
 export interface SelectionAction<T extends SelectionId = string> {
   id: string;
