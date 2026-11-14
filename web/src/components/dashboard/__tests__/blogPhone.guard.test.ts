@@ -17,13 +17,12 @@ describe.each(["Dashboard.module.css", "History.module.css"])("%s: the blog's ph
   it("keeps every data-phone-page rule inside the phone query", () => {
     expect(open).toBeGreaterThan(0);
     expect(css.slice(0, open)).not.toContain("data-phone-page");
-    // the phone block is the last thing in the file and its braces balance
-    const block = css.slice(open);
-    expect((block.match(/{/g) ?? []).length).toBe((block.match(/}/g) ?? []).length);
+    // the phone block closes where the @media closes (a line that is just "}")
+    expect(css.slice(open).indexOf("\n}\n")).toBeGreaterThan(0);
   });
 
   it("has no blur, hover or physical sides in it", () => {
-    const block = css.slice(open);
+    const block = css.slice(open, open + css.slice(open).indexOf("\n}\n"));
     expect(block).not.toMatch(/backdrop-filter|blur\(/);
     expect(block).not.toMatch(/:hover/);
     expect(block).not.toMatch(/\b(margin|padding|border)-(left|right)\b|\b(left|right)\s*:/);

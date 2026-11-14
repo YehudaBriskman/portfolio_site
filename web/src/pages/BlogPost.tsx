@@ -28,6 +28,8 @@ import { useReaderWords } from "@/components/notes/reader/words";
 import { useNotesWords } from "@/i18n/pages";
 import { hasHebrew, inEnglish } from "@/i18n/words";
 import Arrow from "@/i18n/Arrow";
+import BackChip from "@/components/BackChip";
+import { usePublicPhone } from "@/components/nav/localBrowse";
 import reader from "@/components/notes/reader/Reader.module.css";
 
 /*
@@ -66,6 +68,7 @@ export default function BlogPost() {
    */
   const reading = useRef<HTMLDivElement>(null);
   const [w, lang] = useReaderWords();
+  const phone = usePublicPhone();
   const notesWords = useNotesWords();
   const [prefs, setPrefs] = useReadingPrefs();
   const isAdmin = useIsAdmin();
@@ -185,7 +188,7 @@ export default function BlogPost() {
           than a note, so the footer used to sit under it and be shoved down the
           moment the note arrived (CLS 0.78 at 390). A screen of reserved height
           keeps the footer out of view until there is a note above it. */}
-      <div className={`section-y px-gutter ${state === "ok" || state === "loading" ? reader.layout : "mx-auto w-full max-w-[46rem]"} `} style={state === "loading" ? { minHeight: heldHeight(`post:${slug}`) } : undefined}>
+      <div className={`section-y px-gutter ${state === "ok" || state === "loading" ? "page-first-back" : "page-first"} ${state === "ok" || state === "loading" ? reader.layout : "mx-auto w-full max-w-[46rem]"} `} style={state === "loading" ? { minHeight: heldHeight(`post:${slug}`) } : undefined}>
       <article data-crest data-hue="150 82 64" className="min-w-0" style={prefsVars(prefs) as React.CSSProperties}>
         {state === "loading" && (
           /* Shaped like the real header rather than announced as a word, so the
@@ -195,7 +198,7 @@ export default function BlogPost() {
             {/* The real header sits under a `mt-12` and opens on a 44px pill;
                 the placeholder starts at the same line, in the same column
                 (the layout, aside and all), so nothing moves when it is replaced. */}
-            <div aria-hidden="true" className="mt-12 space-y-5">
+            <div aria-hidden="true" className="mt-12 max-sm:mt-0 space-y-5">
               <div className="h-11 w-28 scrub-pulse rounded-full bg-surface" />
               <div className="h-12 w-full scrub-pulse rounded-full bg-surface sm:h-16" />
               <div className="h-12 w-3/4 scrub-pulse rounded-full bg-surface sm:h-16" />
@@ -258,11 +261,20 @@ export default function BlogPost() {
                   <span aria-hidden="true" className={reader.flipRtl}>&larr;</span> {w.back}
                 </Link>
 
-                <div className="mt-12">
+                {/* Phones (#780): the pill row below is the back chip. */}
+                {phone && (
+                  <BackChip
+                    to={collectionTitle ? `/projects/${post.collection}` : "/blog"}
+                    label={collectionTitle ?? w.back}
+                    gap="0px"
+                  />
+                )}
+
+                <div className="mt-12 max-sm:mt-0">
                   {collectionTitle ? (
                     <Link
                       to={`/projects/${post.collection}`}
-                      className={`tap mono ${pill.tag} inline-flex min-h-[44px] items-center gap-2 rounded-full border px-3.5 py-2 text-xs uppercase tracking-[0.18em] transition-colors duration-150`}
+                      className={`tap mono ${pill.tag} inline-flex max-sm:hidden min-h-[44px] items-center gap-2 rounded-full border px-3.5 py-2 text-xs uppercase tracking-[0.18em] transition-colors duration-150`}
                     >
                       <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-clay" />
                       {/* This one goes to the project; the "Area" link beside
@@ -274,13 +286,13 @@ export default function BlogPost() {
                     /* The collection's title arrives from a second request. Until it
                        does, hold the 44px the pill will take, or the title below
                        drops by the difference. */
-                    <div className="flex min-h-[44px] items-center">
-                      <p className="eyebrow">{w.note}</p>
+                    <div className="flex min-h-[44px] items-center max-sm:hidden">
+                      <p className="eyebrow max-sm:hidden">{w.note}</p>
                     </div>
                   ) : (
-                    <p className="eyebrow">{w.note}</p>
+                    <p className="eyebrow max-sm:hidden">{w.note}</p>
                   )}
-                  {bodyInEnglish && (
+                  {bodyInEnglish && !phone && (
                     <p className="eyebrow mt-3" data-written-in="en">
                       {notesWords.writtenInEnglish}
                     </p>
@@ -290,7 +302,13 @@ export default function BlogPost() {
                 <h1 className="display mt-3 text-[clamp(2.1rem,8.5vw,3.75rem)] leading-[0.96]" {...inEnglish(lang, post.title)}>
                   {post.title}
                 </h1>
-
+                {/* Phones (#780): the notice follows the title, so the title is
+                    what the page opens on, right under the back chip. */}
+                {bodyInEnglish && phone && (
+                  <p className="eyebrow mt-3" data-written-in="en">
+                    {notesWords.writtenInEnglish}
+                  </p>
+                )}
                 {/* The second voice, under the display line — the one thing
                     on a post between a 12px label and the title. In the sans
                     at 18-20px it was simply the first paragraph set slightly

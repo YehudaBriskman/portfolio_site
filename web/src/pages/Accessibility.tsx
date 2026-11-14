@@ -55,9 +55,11 @@ export default function Accessibility() {
 
   return (
     <PageShell>
-      <section className="wrap section-y">
-        <p className="eyebrow">{w.eyebrow}</p>
-        <h1 className="display mt-3 text-section">{w.title}</h1>
+      <section className="wrap section-y page-first">
+        <div className="title-pair">
+          <p className="eyebrow">{w.eyebrow}</p>
+          <h1 className="display mt-3 text-section">{w.title}</h1>
+        </div>
 
         <div className="mt-8 max-w-[36em] space-y-5 text-[1.0625rem] leading-relaxed text-ink">
           <p>{w.intro(reviewed)}</p>

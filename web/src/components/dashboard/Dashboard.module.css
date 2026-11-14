@@ -1695,3 +1695,70 @@
     min-width: 0;
   }
 }
+
+/* ───────────────────────────────────────── phone: the menu holds Browse (#780)
+   Below 640px there is no Browse row and no drawer. The rail's content is the
+   first section of the floating circle's menu (`nav/localBrowse.tsx`), drawn
+   by the same components. The title takes the circle's row: the ground starts
+   16px under the safe area, the main column adds no top padding of its own,
+   and a title leaves room at the inline-end for the circle (46px + 12px edge
+   gap). A detail page (`data-back`) opens on the back chip row instead, 46px
+   tall, so the title lands at about 64px. Tablet and desktop are untouched. */
+.localBody {
+  --dash-line: rgb(var(--rule-firm) / 0.5);
+  --dash-line-soft: rgb(var(--rule-firm) / 0.3);
+  --dash-hover: rgb(var(--ink) / 0.05);
+  --dash-inset: rgb(var(--well));
+  --dash-r: var(--a-r-box, calc(var(--r-sm) - 4px));
+  --dash-r-inner: var(--a-r-sm, calc(var(--r-sm) - 8px));
+  --dash-pad: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 0.5rem 8px 0.75rem;
+  color: rgb(var(--ink));
+  font-family: var(--font-text);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.localBody :is(p, li, dd) {
+  line-height: inherit;
+  letter-spacing: inherit;
+}
+
+.localBody > * + * {
+  padding-block-start: 1.25rem;
+  border-block-start: 1px solid var(--dash-line-soft);
+}
+
+.localBody [data-filter-popover] {
+  position: static;
+  width: auto;
+  max-width: none;
+  margin-block-start: 6px;
+}
+
+.sheetBar:empty,
+.sheetBar:has(> [hidden]:only-child) {
+  display: none;
+}
+
+@media (max-width: 639px) {
+  .ground {
+    margin-block-start: 0;
+    padding-block-start: calc(env(safe-area-inset-top, 0px) + 16px);
+  }
+
+  .ground[data-back] {
+    padding-block-start: calc(env(safe-area-inset-top, 0px) + 6px);
+  }
+
+  .ground .main {
+    padding-block-start: 0;
+  }
+
+  .ground:not([data-back]) .main h1 {
+    padding-inline-end: 58px;
+  }
+}

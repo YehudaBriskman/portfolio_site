@@ -1911,6 +1911,23 @@
   .section-y-sm { padding-block: theme('spacing.section-sm'); }
 
   /*
+   * The first block of a text page on a phone (#780): the title shares the
+   * floating menu circle's row, 16px under the safe area, and leaves the
+   * circle's 58px at the inline-end. `PageShell` gives its clearance back
+   * below 640 (`max-sm:pt-0`). An eyebrow that sits above the title in the
+   * markup (`.title-pair`) is drawn after it here, so the title is what the
+   * page opens on; tablet and desktop keep the order and every pixel.
+   */
+  @media (max-width: 639px) {
+    .page-first { padding-block-start: calc(env(safe-area-inset-top, 0px) + 16px); }
+    .page-first h1 { padding-inline-end: 58px; margin-top: 0; }
+    .page-first-back { padding-block-start: calc(env(safe-area-inset-top, 0px) + 6px); }
+    .title-pair { display: flex; flex-direction: column; }
+    .title-pair > h1 { order: -1; margin-top: 0; }
+    .title-pair > .eyebrow { margin-top: 0.75rem; }
+  }
+
+  /*
    * Full-bleed without the scrollbar bug.
    *
    * `left-1/2 w-screen -translate-x-1/2` is the usual recipe and it is wrong

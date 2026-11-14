@@ -144,6 +144,7 @@ export default function BlogArea() {
         asideLabel={w.aboutArea}
         aside={aside}
         asideFirst
+        back={{ to: "/blog", label: lang === "he" ? "בלוג" : "Blogs" }}
         head={head}
       >
 
