@@ -338,7 +338,13 @@ test("Browser checks: the a11y legs cover every shard exactly once, and links ha
   assert.ok(admin.length > 0, "no admin-matrix legs");
   assert.ok(admin.every((l) => l.of === admin[0].of), "every admin-matrix leg names the same `of`");
   assert.deepEqual(admin.map((l) => l.shard).sort((a, b) => a - b), Array.from({ length: admin[0].of }, (_, i) => i + 1));
-  assert.equal(legs.length, of + 1 + admin[0].of, "a leg the test does not recognise");
+  const phone = legs.filter((l) => l.check === "admin-phone");
+  assert.ok(phone.length > 0, "no admin-phone legs");
+  assert.ok(phone.every((l) => l.of === phone[0].of), "every admin-phone leg names the same `of`");
+  assert.deepEqual(phone.map((l) => l.shard).sort((a, b) => a - b), Array.from({ length: phone[0].of }, (_, i) => i + 1));
+  // Every phone step runs on exactly one phone leg, and none on an a11y leg.
+  assert.ok(!/matrix\.check == 'a11y' && matrix\.shard == 1/.test(block), "phone steps must not ride on a11y leg 1");
+  assert.equal(legs.length, of + 1 + admin[0].of + phone[0].of, "a leg the test does not recognise");
   assert.match(block, /SHARD: \$\{\{ matrix\.shard \}\}\/\$\{\{ matrix\.of \}\}/);
   assert.match(block, /fail-fast: false/);
   assert.match(block, /if: matrix\.check == 'admin-matrix'/);
