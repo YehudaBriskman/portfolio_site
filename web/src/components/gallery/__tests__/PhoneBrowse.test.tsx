@@ -41,8 +41,12 @@ function Where() {
 
 function Harness({ url, props }: { url: string; props: Partial<Parameters<typeof PhoneBrowse>[0]> }) {
   const l = useLocation();
-  const selection: Record<string, string[]> = {};
-  for (const [k, v] of new URLSearchParams(l.search)) if (k !== "sort") (selection[k] ??= []).push(v);
+  const params = new URLSearchParams(l.search);
+  const selection: Record<string, string[]> = {
+    state: params.getAll("state"),
+    year: params.getAll("year"),
+    stack: params.getAll("stack"),
+  };
   void url;
   return (
     <PhoneBrowse
