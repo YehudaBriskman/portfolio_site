@@ -3,7 +3,9 @@ import { useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import AdminShell from "@/components/admin/AdminShell";
 import TranslationPill from "@/components/admin/TranslationPill";
+import TranslationsPhone from "@/components/admin/translations/TranslationsPhone";
 import { Counter, ErrorState, LoadingRows, PageHeader } from "@/components/admin/ui";
+import { usePhone } from "@/hooks/usePhone";
 import { useAdminWords } from "@/i18n/admin";
 import {
   TABS,
@@ -73,6 +75,7 @@ function fieldsOf(units: TranslationUnit[]): string {
 
 export default function AdminTranslations() {
   const w = useAdminWords();
+  const phone = usePhone();
   const { report, error, reload } = useTranslationReport();
   const [params, setParams] = useSearchParams();
   const tab: TranslationTab = isTab(params.get("status")) ? (params.get("status") as TranslationTab) : "missing";
@@ -130,20 +133,23 @@ export default function AdminTranslations() {
         <PageHeader
           title={w.nav.translations}
           meta={
-            report && (
+            !phone && report && (
               <span className="tabular-nums">
                 Hebrew coverage <strong>{coverage}%</strong>
               </span>
             )
           }
           description={
-            <>
-              Every field a reader sees in Hebrew, in the order they meet it. Stale Hebrew stays on the site until you
-              update it or mark it still correct.
-            </>
+            phone ? undefined : (
+              <>
+                Every field a reader sees in Hebrew, in the order they meet it. Stale Hebrew stays on the site until you
+                update it or mark it still correct.
+              </>
+            )
           }
         />
 
+        {!phone && (
         <div className="a-toolbar">
           <label className="w-full sm:w-auto">
             <span className="sr-only">Filter by type</span>
@@ -167,15 +173,18 @@ export default function AdminTranslations() {
             </Select>
           </label>
         </div>
+        )}
 
         <p className="sr-only" role="status">
-          {report === null ? w.loading : `${rows.length} ${rows.length === 1 ? "item" : "items"}, ${TAB_LABEL[tab].toLowerCase()}`}
+          {report === null ? w.loading : phone ? "" : `${rows.length} ${rows.length === 1 ? "item" : "items"}, ${TAB_LABEL[tab].toLowerCase()}`}
         </p>
 
         {error ? (
           <ErrorState message={error} onRetry={reload} />
         ) : report === null ? (
           <LoadingRows rows={6} />
+        ) : phone ? (
+          <TranslationsPhone items={report.items} />
         ) : (
           <div className="a-box">
             <div className="a-box-head !p-0 !min-h-0">

@@ -120,8 +120,9 @@ try {
       target(`${tag}: preview link`, m.preview);
       await close();
     }
-    const o = await open(390, 844, lang, "/admin");
-    target(`overview 390 ${lang}: View all`, await o.page.evaluate(sizeOf, ["main a.a-link", "View all|הכול"]));
+    /* Overview's "View all" link is a desktop-only control: below 600px the page is "needs you" rows and tiles (#682), so it is measured at 768, where the desktop layout is back. */
+    const o = await open(768, 900, lang, "/admin");
+    target(`overview 768 ${lang}: View all`, await o.page.evaluate(sizeOf, ["main a.a-link", "View all|הכול"]));
     await o.close();
     /* The trail only shows its earlier crumbs from 768 up. */
     for (const w of [768, 1024]) {

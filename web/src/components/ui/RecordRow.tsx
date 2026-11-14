@@ -135,6 +135,7 @@ export function RecordRow({
           <span className={styles.facts}>
             {shown.map((f, i) => (
               <span key={i} className={cx("rr-fact", styles.fact)}>
+                {i > 0 && " "}
                 {f.icon && <f.icon size={16} strokeWidth={1.75} aria-hidden="true" focusable="false" />}
                 {f.label && <span className={styles.srOnly}>{f.label}: </span>}
                 <bdi dir={f.dir ?? "auto"}>{f.text}</bdi>

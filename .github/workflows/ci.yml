@@ -496,6 +496,12 @@ jobs:
       - name: Admin Inbox on a phone
         if: matrix.check == 'a11y' && matrix.shard == 1
         run: npm run a11y:admin-inbox-phone
+      # Overview, Connected apps, Translations and Settings on a phone
+      # (#682): rows with one button and at most two facts, five setting
+      # groups, the save history as compact rows, no sideways scroll.
+      - name: Admin screens on a phone
+        if: matrix.check == 'a11y' && matrix.shard == 1
+        run: npm run a11y:admin-phone-screens
       # Posts and Areas on a phone (#680): one tappable row per record, at
       # least 7 post rows above the fold, no sideways scroll, Select shows
       # the bulk bar, the publish review is a sheet that leads with what
