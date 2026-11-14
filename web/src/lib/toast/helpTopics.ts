@@ -9,6 +9,10 @@
 export const HELP_TOPICS = {
   sharing: "public",
   "contact-form": "public",
+  "contact-send-failed": "public",
+  "contact-too-many": "public",
+  "contact-too-long": "public",
+  "contact-offline": "public",
 } as const satisfies Record<string, "public" | "admin">;
 
 export type HelpTopic = keyof typeof HELP_TOPICS;

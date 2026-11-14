@@ -9,7 +9,14 @@ import { useContent } from "@/content/store";
 import { ContactError, ContactSchema, sendContactMessage } from "@/services/contact";
 import { useContactWords, useHomeWords } from "@/i18n/pages";
 import Arrow from "@/i18n/Arrow";
-import { toast } from "@/lib/toast";
+import { toast, type HelpTopic } from "@/lib/toast";
+
+const HELP_BY_KIND: Record<"rate" | "large" | "server" | "offline", HelpTopic> = {
+  rate: "contact-too-many",
+  large: "contact-too-long",
+  server: "contact-send-failed",
+  offline: "contact-offline",
+};
 
 /** The three things a message is made of. A closed union, so a field's error,
  *  its id and its name can never be a string the compiler has not seen. */
@@ -364,7 +371,7 @@ export default function Contact() {
       setStatus({ kind: "idle" });
       /* The address is isolated left-to-right so it stays one piece inside a Hebrew line. */
       /* No fixed id: the public site mounts the toast host only once an id-less toast has been raised. */
-      failureToast.current = toast.error(f.title, { description: f.short, details: f.details.replace("{email}", `\u2066${contact.email}\u2069`) });
+      failureToast.current = toast.error(f.title, { help: { topic: HELP_BY_KIND[kind] }, description: f.short, details: f.details.replace("{email}", `\u2066${contact.email}\u2069`) });
     }
   }
 
