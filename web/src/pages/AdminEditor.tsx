@@ -10,6 +10,7 @@ import LinkEditor, { linkLabelsHe, toLinkRows, type LinkRow } from "@/components
 import BodyEditor, { type WikiTarget } from "@/components/admin/noteEditor/BodyEditor";
 import ReviewDialog, { type PublishScope } from "@/components/admin/noteEditor/ReviewDialog";
 import StaleNotice from "@/components/admin/noteEditor/StaleNotice";
+import { contentOf } from "@/components/admin/noteEditor/content";
 import TranslationPill from "@/components/admin/TranslationPill";
 import { useFocusField } from "@/components/admin/content/focusField";
 import { useTranslationReport, type TranslationStatus } from "@/services/translations";
@@ -18,6 +19,7 @@ import styles from "@/components/admin/noteEditor/NoteEditor.module.css";
 import NoteMarkdown, { PROSE } from "@/components/notes/reader/NoteMarkdown";
 import { useContent } from "@/content/store";
 import { Disclosure } from "@/components/ui/Disclosure";
+import { usePhone } from "@/hooks/usePhone";
 import { admin, slugify, AdminValidationError, type AdminCollection, type AdminPost, type PostContent } from "@/services/admin";
 
 /*
@@ -76,16 +78,6 @@ type Publish =
   | { kind: "idle" }
   | { kind: "reviewing"; error: string | null }
   | { kind: "publishing" };
-
-/** The editable content of a stored note: its draft when it has one. */
-function contentOf(p: AdminPost, useDraft: boolean): PostContent {
-  if (useDraft && p.draft) return p.draft;
-  return {
-    title: p.title, subtitle: p.subtitle, excerpt: p.excerpt, body: p.body, tags: p.tags, collection: p.collection,
-    coverImage: p.coverImage, links: p.links, featured: p.featured, publishedAt: p.publishedAt, seo: p.seo,
-    he: p.he ?? null,
-  };
-}
 
 function toForm(slug: string, c: PostContent): Form {
   return {
@@ -256,6 +248,7 @@ export default function AdminEditor() {
     if (field === "body") setBodyLang("he");
     return field;
   });
+  const phone = usePhone();
   const stored = post !== null;
   const published = post?.status === "published" ? contentOf(post, false) : null;
   const content = useMemo(() => toContent(f), [f]);
@@ -682,7 +675,7 @@ export default function AdminEditor() {
           <p id={ids.bodyHelp} className={styles.boxFoot}>{w.bodyHelp} {w.shortcuts}</p>
           </div>
 
-          <Disclosure open summary={w.details} className="mt-10">
+          <Disclosure open={!phone || !stored} summary={w.details} meta={phone ? (cols.find((c) => c.slug === f.collection)?.title ?? f.collection) : undefined} className="mt-10">
             <div className="mt-4 grid gap-5 sm:grid-cols-2">
               <label className="block">
                 <span className="a-label">{w.area}</span>

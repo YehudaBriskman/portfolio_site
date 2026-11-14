@@ -7,6 +7,8 @@ import { useTranslationStatus } from "@/services/translations";
 import { Empty, EmptyState, ErrorState, LoadingRows, PageHeader, StatePill } from "@/components/admin/ui";
 import { useAdminWords } from "@/i18n/admin";
 import { admin, type AdminCollection, type AdminPost } from "@/services/admin";
+import AreasPhone from "@/components/admin/posts/AreasPhone";
+import { usePhone } from "@/hooks/usePhone";
 
 /*
  * The areas index. There was no such page before: areas were reachable only as
@@ -15,6 +17,10 @@ import { admin, type AdminCollection, type AdminPost } from "@/services/admin";
  * in the order the site shows them, the order itself in the last column.
  */
 export default function AdminAreas() {
+  return usePhone() ? <AreasPhone /> : <AreasDesktop />;
+}
+
+function AreasDesktop() {
   const w = useAdminWords();
   const heStatus = useTranslationStatus();
   const [cols, setCols] = useState<AdminCollection[] | null>(null);
