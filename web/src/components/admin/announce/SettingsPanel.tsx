@@ -14,7 +14,7 @@ import { useSenderWords } from "./sender/words";
 import { DEFAULT_UTM, same, useSettingsDoc } from "./useSettingsDoc";
 import { useSettingsPanelWords } from "./settingsWords";
 import PhoneSettings, { UTM_TOKEN, isGroupId } from "./SettingsPhone";
-import { usePhone } from "./usePhone";
+import { usePhone } from "../../../hooks/usePhone";
 import { useAnnounceWords } from "./words";
 
 /*
