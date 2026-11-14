@@ -203,6 +203,7 @@ Status: **exists** = on `main` today. **planned** = an open issue; do not copy a
 | `UndoToast`, `useUndoable` (#671) | `@/components/ui/UndoToast` | an Undo window over a deferred action: `schedule({ message, commit, onUndo })` shows the toast and holds `commit` back; Undo cancels it. Never under 8 s, pauses on hover and focus, `role="status"` mounted ahead so it is announced, commits on `pagehide` and unmount, one at a time. This is how an irreversible server action gets an Undo | new code (use `toast.undoable`, same semantic; the four phone screens move over in #724 slice b); an error the user must act on |
 | `Presence` (#709) | `@/components/ui/Presence` | a surface that appears and leaves by `show`: keeps the last children while it leaves (`data-state="closed"`, `inert`, `aria-hidden`), rises and falls on phones only; `UndoToast` and `SelectionBar` use it | a dialog (use `BottomSheet`), anything that must unmount at once |
 | `ListPresence` (#731) | `@/components/ui/ListPresence` | a list drawn from `items` whose rows arrive and leave softly on phones: a removed row stays as a closed, `inert` ghost in its place and collapses (height and opacity) while the neighbours slide, an inserted row grows in, Undo grows it back; a timer drops the ghost, no `animationend`; `variant="tiles"` for a grid. Inbox, posts, audience, media and campaigns use it | a list that never gains or loses rows, or one where a row must vanish at once |
+| `SkeletonSwap` (#735) | `@/components/ui/SkeletonSwap` | a loading skeleton that cross-fades into the content that replaces it on phones: both layers share one grid cell, the skeleton fades out as the content fades in, a timer (`EXIT_KEEP_MS`) drops the closed `inert` ghost; no layout jump while both are drawn. Posts, audience, campaigns and inbox lists use it | content drawn without a skeleton first |
 | `SheetPresence` (#709) | `@/components/ui/SheetPresence` | wraps a `BottomSheet` its parent draws as `{x && <Sheet open>}`: `<SheetPresence show={x}>` keeps it mounted for the exit on a phone (the sheet is told it is closed) | a sheet already drawn with `open={x}` (it leaves by itself) |
 | `tooltip` | `@/components/ui/tooltip` | a hint for pointer users | the only label of anything: touch has no hover |
 
@@ -355,11 +356,12 @@ Below 600px a state change is a transition (motion-contract section 13); from 60
 | Tab content (`.a-main [role="tabpanel"]`) | short rise (6 px) and fade | none | the tab is already selected |
 | Settings search results | each hit fades in | none | |
 | Sheets drawn as `{x && <Sheet/>}` (`SheetPresence`) | as `BottomSheet` | as `BottomSheet` | Audience: add, import, edit |
-| Inbox, posts, audience, campaigns rows (`ListPresence`, #731) | the row grows in (height and opacity, 200 ms); neighbours slide; Undo grows it back | collapses (height, 200 ms; opacity 120 ms, ease-in); a timer drops it | not on first draw or on a load; reorder is instant |
+| Inbox, posts, audience, campaigns rows (`ListPresence`, #731) | the row grows in (height and opacity, 200 ms); neighbours slide; Undo grows it back | collapses (height, 200 ms; opacity 120 ms, ease-in); a timer drops it | not on first draw or on a load; reorder glides (below) |
 | Media tiles (`ListPresence variant="tiles"`) | fade and scale from 0.92 | fade and shrink in place | a grid cannot give back its height |
 | Popover, `DropdownMenu`, `InfoPopover` | soft scale and fade from the trigger | same, shorter | popup system; Escape is closed at once, out of the DOM within the hard timeout |
 | Row press (`RecordRow`, `SettingsRow`, chips, `.a-btn`) | tint on the first frame, no tween | eases away on release | `:active` has no transition |
-| Skeleton to content (`.a-settle`) | list fades in over the placeholder's place | none | opacity only |
+| Skeleton to content (`SkeletonSwap`, #735) | the skeleton fades out as the list fades in (200 ms, one grid cell, same box) | the closed ghost is dropped by a timer | opacity only; media tiles keep `.a-settle` |
+| Reorder (`useReorderGlide`, #735) | the order flips at once; each moved row glides from its old slot (WAAPI transform, 220 ms), the moved row with a 1.02 lift | cancelled by a hard timer | phones, motion allowed; instant otherwise |
 | `MiniBar`, `Gauge`, `Journey` | a changed value tweens from the old one | | not on first render (no `@starting-style`) |
 | Admin drawer and scrim | slides from the inline-start edge, spring; scrim fades | slides out, ease-in | `.a-side:not([data-open])` |
 

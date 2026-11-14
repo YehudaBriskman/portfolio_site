@@ -165,7 +165,7 @@ export default function CampaignsPhone({
       {rows.length === 0 ? (
         <p className="a-hint" data-testid="no-match">{filtered || selection.on ? p.noMatch : w.empty}</p>
       ) : (
-        <ListPresence as="ul" items={rows} itemKey={(c) => c.id} className={`${styles.list} a-settle`} aria-label={w.tableLabel}>
+        <ListPresence as="ul" items={rows} itemKey={(c) => c.id} className={styles.list} aria-label={w.tableLabel}>
           {(c) => (
             <RecordRow
               as="div"
