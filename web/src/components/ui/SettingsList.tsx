@@ -76,8 +76,10 @@ export function SettingsList<T>({ groups, value, openId, onOpenChange, className
   useEffect(() => {
     if (!target || openId !== target.group) return;
     const row = root.current?.querySelector<HTMLElement>(`[data-setting-id="${CSS.escape(target.item)}"]`);
-    const control = row?.querySelector<HTMLElement>("input, button");
+    const control = row?.querySelector<HTMLElement>("input, textarea, select") ?? row?.querySelector<HTMLElement>("button");
     if (control) {
+      /* A setting inside a closed section would be skipped by focus(): open the section first. */
+      for (let d = row?.closest("details"); d; d = d.parentElement?.closest("details") ?? null) d.open = true;
       row?.scrollIntoView?.({ block: "center" });
       control.focus();
       setTarget(null);

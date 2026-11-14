@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import LibraryPanel from "../library/LibraryPanel";
 import { DEFAULT_SETTINGS, type SiteSettings } from "@/settings/schema";
 import SettingsPanel from "../SettingsPanel";
@@ -175,7 +176,7 @@ describe("LibraryPanel", () => {
 
 describe("SettingsPanel", () => {
   it("keeps Advanced closed, opens it by filtering, and saves the UTM scheme", async () => {
-    render(<SettingsPanel />);
+    render(<MemoryRouter><SettingsPanel /></MemoryRouter>);
     const adv = (await screen.findByTestId("advanced")) as HTMLDetailsElement;
     expect(adv.open).toBe(false);
     expect((screen.getByRole("button", { name: "Save" }) as HTMLButtonElement).disabled).toBe(true);
@@ -193,7 +194,7 @@ describe("SettingsPanel", () => {
   });
 
   it("turns notices on in Everyday and saves per-event, hours and digest choices; nothing in the payload is an address", async () => {
-    render(<SettingsPanel />);
+    render(<MemoryRouter><SettingsPanel /></MemoryRouter>);
     const master = (await screen.findByLabelText("Email me when something needs attention")) as HTMLInputElement;
     expect(master.checked).toBe(false);
     fireEvent.click(master);
@@ -216,7 +217,7 @@ describe("SettingsPanel", () => {
   it("disables the per-event choices while the master switch is off, and says it in Hebrew", async () => {
     document.documentElement.lang = "he";
     try {
-      render(<SettingsPanel />);
+      render(<MemoryRouter><SettingsPanel /></MemoryRouter>);
       fireEvent.change(await screen.findByRole("searchbox"), { target: { value: "הודעות" } });
       const section = screen.getByTestId("notify-section");
       expect(within(section).getByLabelText("מנוי חדש אישר הרשמה").matches(":disabled")).toBe(true);
@@ -227,13 +228,13 @@ describe("SettingsPanel", () => {
   });
 
   it("says so when no advanced setting matches", async () => {
-    render(<SettingsPanel />);
+    render(<MemoryRouter><SettingsPanel /></MemoryRouter>);
     fireEvent.change(await screen.findByLabelText("Filter advanced settings"), { target: { value: "zzzz" } });
     expect(screen.getByText("No advanced setting matches that.")).toBeTruthy();
   });
 
   it("resets a section to its defaults without touching the other", async () => {
-    render(<SettingsPanel />);
+    render(<MemoryRouter><SettingsPanel /></MemoryRouter>);
     fireEvent.change(await screen.findByLabelText("Signature"), { target: { value: "-- me" } });
     fireEvent.click(screen.getAllByRole("button", { name: "Reset section to defaults" })[0]);
     expect((screen.getByLabelText("Signature") as HTMLTextAreaElement).value).toBe("");
@@ -241,7 +242,7 @@ describe("SettingsPanel", () => {
   });
 
   it("refuses a malformed UTM source before Save", async () => {
-    render(<SettingsPanel />);
+    render(<MemoryRouter><SettingsPanel /></MemoryRouter>);
     fireEvent.change(await screen.findByLabelText("Filter advanced settings"), { target: { value: "utm" } });
     fireEvent.click(screen.getByLabelText("Tag links to this site"));
     fireEvent.change(screen.getByLabelText("Source"), { target: { value: "Bad Source" } });
@@ -250,7 +251,7 @@ describe("SettingsPanel", () => {
 
   it("surfaces a 409", async () => {
     putStatus = 409;
-    render(<SettingsPanel />);
+    render(<MemoryRouter><SettingsPanel /></MemoryRouter>);
     fireEvent.change(await screen.findByLabelText("Signature"), { target: { value: "x" } });
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
     expect(await screen.findByRole("button", { name: "Reload" })).toBeTruthy();

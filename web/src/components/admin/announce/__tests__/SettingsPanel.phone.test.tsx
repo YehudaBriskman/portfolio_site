@@ -155,15 +155,18 @@ describe("help stays behind the info button", () => {
     const sw = await screen.findByRole("switch", { name: "Email me about new events" });
     const row = sw.closest("[data-setting-id]") as HTMLElement;
     expect(row.querySelectorAll(".a-hint").length).toBe(0);
-    expect(screen.queryByText(/One email per event, to the contact address/)).toBeNull();
+    /* The popover's text is not in the DOM until it opens; the other row's first sentence is only a screen-reader description. */
+    const count = () => document.querySelectorAll("p").length;
+    const closed = count();
     fireEvent.click(within(row).getByRole("button", { name: "About Email me about new events" }));
-    expect(await screen.findByText(/One email per event, to the contact address/)).toBeTruthy();
+    await waitFor(() => expect(count()).toBe(closed + 1));
+    expect(screen.getByText(/One email per event, to the contact address/, { selector: "p" })).toBeTruthy();
   });
 
   it("an open page shows no help paragraph, only warnings and errors", async () => {
     stub();
     await landing();
-    for (const id of ["sender", "limits", "texts", "alerts", "advanced", "wording", "channels"]) {
+    for (const id of ["sender", "limits", "texts", "notices", "advanced", "wording", "channels"]) {
       fireEvent.click(rowButton(id));
       await screen.findByRole("heading", { level: 2 });
       expect(document.querySelectorAll(".a-hint:not([role])").length, id).toBe(0);
@@ -209,8 +212,7 @@ describe("search finds hidden fields and opens them", () => {
     stub();
     await landing();
     fireEvent.change(screen.getByRole("searchbox", { name: "Search settings" }), { target: { value: "utm" } });
-    const hit = await screen.findAllByText(/Link tags/);
-    fireEvent.click(hit[0].closest("button")!);
+    fireEvent.click((await screen.findAllByRole("button", { name: /Tag links to this site/ }))[0]);
     const sw = await screen.findByRole("switch", { name: "Tag links to this site" });
     await waitFor(() => expect(document.activeElement).toBe(sw));
   });
@@ -220,7 +222,7 @@ describe("search finds hidden fields and opens them", () => {
     await landing();
     fireEvent.change(screen.getByRole("searchbox", { name: "Search settings" }), { target: { value: "postal" } });
     fireEvent.click((await screen.findAllByRole("button", { name: /Postal address/ }))[0]);
-    const field = await screen.findByLabelText(/Postal address or P\.O\. box/);
+    const field = await screen.findByRole("textbox", { name: /Postal address or P\.O\. box/ });
     await waitFor(() => expect(document.activeElement).toBe(field));
     expect(field.closest("details")!.open).toBe(true);
   });
@@ -228,7 +230,7 @@ describe("search finds hidden fields and opens them", () => {
   it("matches words that are only in the help text", async () => {
     stub();
     await landing();
-    fireEvent.change(screen.getByRole("searchbox", { name: "Search settings" }), { target: { value: "confirmation link" } });
+    fireEvent.change(screen.getByRole("searchbox", { name: "Search settings" }), { target: { value: "{link}" } });
     expect((await screen.findAllByRole("button", { name: /Confirmation message/ })).length).toBeGreaterThan(0);
   });
 });
@@ -237,15 +239,15 @@ describe("save semantics are unchanged", () => {
   it("shows the dirty bar after an edit, and Discard puts it back", async () => {
     stub();
     await landing();
-    const save = screen.getByRole("button", { name: "Save" }) as HTMLButtonElement;
-    expect(save.disabled).toBe(true);
+    expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
     fireEvent.click(rowButton("mail"));
     fireEvent.click(await screen.findByRole("switch", { name: "Email me about new events" }));
     fireEvent.click(screen.getByRole("button", { name: "Close" }));
-    await waitFor(() => expect(save.disabled).toBe(false));
+    const save = (await screen.findByRole("button", { name: "Save" })) as HTMLButtonElement;
+    expect(save.disabled).toBe(false);
     expect(screen.getAllByText("Unsaved changes").length).toBeGreaterThan(0);
     fireEvent.click(screen.getByRole("button", { name: "Discard changes" }));
-    await waitFor(() => expect(save.disabled).toBe(true));
+    await waitFor(() => expect(screen.queryByRole("button", { name: "Save" })).toBeNull());
   });
 
   it("sends the same settings:announce payload as the desktop form for the same edits", async () => {
@@ -275,7 +277,7 @@ describe("save semantics are unchanged", () => {
     fireEvent.click(rowButton("channels"));
     fireEvent.click(await screen.findByRole("switch", { name: "Instagram" }));
     fireEvent.click(screen.getByRole("button", { name: "Back to settings" }));
-    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Save" }));
     await waitFor(() => expect(puts.length).toBe(1));
     expect(puts[0].body).toBe(desktop);
   });
@@ -288,7 +290,7 @@ describe("save semantics are unchanged", () => {
     fireEvent.change(box, { target: { value: "#build-in-public" } });
     expect(box.getAttribute("aria-invalid")).toBe("true");
     expect(screen.getByText(/#build-in-public.*letters, digits/)).toBeTruthy();
-    expect((screen.getByRole("button", { name: "Save" }) as HTMLButtonElement).disabled).toBe(true);
+    expect(((await screen.findByRole("button", { name: "Save" })) as HTMLButtonElement).disabled).toBe(true);
     fireEvent.click(screen.getByRole("button", { name: "Back to settings" }));
     expect(summaryOf("wording")).toBeTruthy();
     expect(groupRow("wording").querySelector("[role=alert]")).not.toBeNull();
@@ -305,7 +307,7 @@ describe("save semantics are unchanged", () => {
   it("never offers a mail account credential", async () => {
     stub();
     await landing();
-    for (const id of ["sender", "limits", "texts", "alerts", "advanced", "mail", "channels", "wording"]) {
+    for (const id of ["sender", "limits", "texts", "notices", "advanced", "mail", "channels", "wording"]) {
       fireEvent.click(rowButton(id));
       await waitFor(() => expect(document.querySelector("[data-surface]")).not.toBeNull());
       expect(document.querySelector("input[type=password]")).toBeNull();
