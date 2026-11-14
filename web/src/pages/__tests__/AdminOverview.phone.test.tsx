@@ -59,13 +59,17 @@ const page = () =>
   );
 
 let undoPhone: () => void;
+/* One clock for the file, only ever forward: the post and area lists are cached for 30 s, so each test starts after that. */
+let clock = Date.now();
 beforeEach(() => {
   undoPhone = phone(true);
+  vi.spyOn(Date, "now").mockImplementation(() => (clock += 31_000));
 });
 afterEach(() => {
   cleanup();
   undoPhone();
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
   lang("en");
 });
 
@@ -130,7 +134,8 @@ describe("/admin on a phone", () => {
     api();
     page();
     expect(await screen.findByRole("region", { name: "מחכה לך" })).toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: /^פתיחת/ }).length).toBe(3);
+    const needs = screen.getByRole("region", { name: "מחכה לך" });
+    expect(await within(needs).findAllByRole("button", { name: /^פתיחת/ })).toHaveLength(3);
     expect(screen.queryByText("Needs you")).toBeNull();
   });
 });

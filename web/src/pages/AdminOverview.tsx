@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { BookOpen, Clock, FileText, FolderKanban, Image, Pencil, Plug, Plus, Settings, Shapes, Type, Upload } from "lucide-react";
 import AdminShell from "@/components/admin/AdminShell";
+import OverviewPhone from "@/components/admin/overview/OverviewPhone";
+import { usePhone } from "@/hooks/usePhone";
 import { Empty, PageHeader, RelTime, StatePill, type PillState } from "@/components/admin/ui";
 import { bytes } from "@/components/admin/format";
 import { useAdminWords, type AdminWords } from "@/i18n/admin";
@@ -144,6 +146,7 @@ const n = (v: number) => new Intl.NumberFormat("en-GB").format(v);
 export default function AdminOverview() {
   const w = useAdminWords();
   const lang = useLang();
+  const phone = usePhone();
   const [now] = useState(() => Date.now());
   const [d, setD] = useState<Data | null>(null);
 
@@ -199,13 +202,15 @@ export default function AdminOverview() {
       <div className="a-wrap">
         <PageHeader
           title={w.overview}
-          description={w.overviewIntro}
+          description={phone ? undefined : w.overviewIntro}
           actions={
             <>
-              <Link to="/admin/media" className="a-btn">
-                <Upload aria-hidden="true" />
-                {w.upload}
-              </Link>
+              {!phone && (
+                <Link to="/admin/media" className="a-btn">
+                  <Upload aria-hidden="true" />
+                  {w.upload}
+                </Link>
+              )}
               <Link to="/admin/posts/new" className="a-btn a-btn-primary">
                 <Plus aria-hidden="true" />
                 {w.newNote}
@@ -214,6 +219,10 @@ export default function AdminOverview() {
           }
         />
 
+        {phone ? (
+          <OverviewPhone posts={posts} areas={areas} media={lib} grants={grants} feed={feed} loading={d === null} />
+        ) : (
+          <>
         <section aria-labelledby="overview-stats">
           <h2 id="overview-stats" className="sr-only">
             {w.stats}
@@ -347,6 +356,8 @@ export default function AdminOverview() {
             )}
           </section>
         </div>
+          </>
+        )}
       </div>
     </AdminShell>
   );
