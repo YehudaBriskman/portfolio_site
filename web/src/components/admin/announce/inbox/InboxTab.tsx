@@ -1,11 +1,14 @@
 import "./inbox.css";
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { Megaphone, Plus } from "lucide-react";
 import { EmptyState, ErrorState, LoadingRows } from "@/components/admin/ui";
+import { usePhone } from "@/hooks/usePhone";
 import { copyText } from "@/lib/share";
-import { adminAnnounce, type AnnounceSummary } from "@/services/adminAnnounce";
+import { adminAnnounce, type AnnounceChannel, type AnnounceSummary } from "@/services/adminAnnounce";
 import Composer from "./Composer";
+import InboxPhoneRow from "./InboxPhoneRow";
 import InboxRow from "./InboxRow";
+import InboxSheet from "./InboxSheet";
 import KeyHint from "./KeyHint";
 import NewAnnouncement from "./NewAnnouncement";
 import { useReadiness } from "./readiness";
@@ -21,8 +24,14 @@ type Props = {
   onCreated: (ev: AnnounceSummary) => void;
 };
 
+/** How long "Mark done" can be taken back; nothing is saved until it has passed. */
+export const UNDO_MS = 8000;
+
+type Pending = { id: string; channel: AnnounceChannel; at: string };
+
 export default function InboxTab({ items, error, onRetry, onChange, onCreated }: Props) {
   const w = useMarketingWords();
+  const phone = usePhone();
   const [openId, setOpenId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
@@ -31,7 +40,54 @@ export default function InboxTab({ items, error, onRetry, onChange, onCreated }:
   const readiness = useReadiness(items, openId);
   const listRef = useRef<HTMLUListElement>(null);
 
-  const list = items ?? [];
+  /* "Mark done" waits UNDO_MS before it is saved, so Undo needs no endpoint: the row shows it done meanwhile. */
+  const [pending, setPending] = useState<Pending | null>(null);
+  const pendingRef = useRef<Pending | null>(null);
+  const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const changeRef = useRef(onChange);
+  useEffect(() => {
+    changeRef.current = onChange;
+  });
+
+  const commit = useCallback(
+    (p: Pending) => {
+      if (undoTimer.current) clearTimeout(undoTimer.current);
+      undoTimer.current = null;
+      pendingRef.current = null;
+      setPending(null);
+      adminAnnounce.done(p.id, p.channel).then(
+        (r) => r.event && changeRef.current(p.id, r.event),
+        () => setNote({ id: p.id, text: w.actionFailed }),
+      );
+    },
+    [w],
+  );
+  const markDone = (id: string, channel: AnnounceChannel) => {
+    if (pendingRef.current) commit(pendingRef.current);
+    const p = { id, channel, at: new Date().toISOString() };
+    pendingRef.current = p;
+    setPending(p);
+    undoTimer.current = setTimeout(() => commit(p), UNDO_MS);
+  };
+  const undoDone = () => {
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+    undoTimer.current = null;
+    pendingRef.current = null;
+    setPending(null);
+  };
+  /* Leaving the tab inside the window keeps what was asked for. */
+  useEffect(
+    () => () => {
+      if (pendingRef.current) void adminAnnounce.done(pendingRef.current.id, pendingRef.current.channel).catch(() => undefined);
+      if (undoTimer.current) clearTimeout(undoTimer.current);
+    },
+    [],
+  );
+
+  const list = useMemo(
+    () => (items ?? []).map((e) => (pending && pending.id === e.id ? { ...e, done: { ...e.done, [pending.channel]: pending.at } } : e)),
+    [items, pending],
+  );
   const selected = list.find((e) => e.id === selectedId) ?? list[0] ?? null;
   const open = list.find((e) => e.id === openId) ?? null;
 
@@ -77,7 +133,7 @@ export default function InboxTab({ items, error, onRetry, onChange, onCreated }:
     }
   }, [note]);
 
-  if (open)
+  if (open && !phone)
     return (
       <Composer
         key={open.id}
@@ -93,7 +149,7 @@ export default function InboxTab({ items, error, onRetry, onChange, onCreated }:
   return (
     <div>
       <div className="mk-toolbar">
-        <KeyHint id="mk-keys" mode="list" />
+        {!phone && <KeyHint id="mk-keys" mode="list" />}
         <button type="button" className="a-btn a-btn-primary mk-btn" aria-expanded={creating} aria-controls={newId} onClick={() => setCreating((v) => !v)}>
           <Plus aria-hidden="true" />
           {w.newAnnouncement}
@@ -126,8 +182,19 @@ export default function InboxTab({ items, error, onRetry, onChange, onCreated }:
           {w.emptyText}
         </EmptyState>
       ) : (
-        <ul ref={listRef} className="mk-list" aria-label={w.list(items.length)} aria-describedby="mk-keys">
-          {items.map((e) => (
+        <ul ref={listRef} className={phone ? "mk-list mk-plist" : "mk-list"} aria-label={w.list(items.length)} aria-describedby={phone ? undefined : "mk-keys"}>
+          {list.map((e) =>
+            phone ? (
+              <InboxPhoneRow
+                key={e.id}
+                event={e}
+                readiness={readiness[e.id]}
+                onOpen={() => {
+                  setSelectedId(e.id);
+                  setOpenId(e.id);
+                }}
+              />
+            ) : (
             <InboxRow
               key={e.id}
               event={e}
@@ -143,8 +210,29 @@ export default function InboxTab({ items, error, onRetry, onChange, onCreated }:
                 void quickCopy(e, c);
               }}
             />
-          ))}
+            ),
+          )}
         </ul>
+      )}
+
+      {phone && (
+        <InboxSheet
+          event={open}
+          onClose={() => setOpenId(null)}
+          onChange={(next) => {
+            if (open) onChange(open.id, next);
+          }}
+          undo={pending && open && pending.id === open.id ? { channel: pending.channel, onUndo: undoDone } : null}
+          onMarkDone={(channel) => open && markDone(open.id, channel)}
+        />
+      )}
+      {phone && pending && !open && (
+        <div className="mk-undobar" role="status">
+          <span>{w.markedUndo(w.channels[pending.channel])}</span>
+          <button type="button" className="a-btn mk-btn" onClick={undoDone}>
+            {w.undo}
+          </button>
+        </div>
       )}
     </div>
   );
