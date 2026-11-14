@@ -1,8 +1,8 @@
-import { useId, useRef, useSyncExternalStore, type ReactNode } from "react";
-import { createPortal } from "react-dom";
+import { useEffect, useId, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import styles from "@/components/dashboard/Dashboard.module.css";
 import { useWords } from "@/components/dashboard/i18n";
 import BackChip from "@/components/BackChip";
+import { BottomSheet } from "@/components/ui/BottomSheet";
 import { useLocalBrowse, usePublicPhone } from "@/components/nav/localBrowse";
 
 /*
@@ -100,6 +100,12 @@ type Props = {
    * chip is the first thing in the title row, ahead of `head`.
    */
   back?: { to: string; label: string; gap?: string };
+  /**
+   * The phone's Browse sheet (#808), drawn instead of the rail's own content
+   * and opened from the menu's Browse row. It gets the sheet's open state and
+   * its close. Omitted, the rail's content fills a plain sheet.
+   */
+  phoneRail?: (sheet: { open: boolean; onClose: () => void }) => ReactNode;
   children: ReactNode;
 };
 
@@ -114,14 +120,22 @@ export default function DashboardShell({
   asideFirst = false,
   phonePage,
   back,
+  phoneRail,
   children,
 }: Props) {
   const mode = useDashboardMode();
   const [t] = useWords();
-  /* Below 640 there is no Browse button and no drawer: the rail's content is
-     the first section of the floating circle's menu (#780). */
+  /* Below 640 there is no Browse button and no drawer: the menu has one Browse
+     row (with the filter count) that opens the page's own sheet (#808). */
   const phone = usePublicPhone();
-  const slot = useLocalBrowse(phone ? t.browse : null);
+  const { tick } = useLocalBrowse(phone ? t.browse : null, count);
+  const [browseOpen, setBrowseOpen] = useState(false);
+  const seen = useRef(tick);
+  useEffect(() => {
+    if (tick === seen.current) return;
+    seen.current = tick;
+    setBrowseOpen(true);
+  }, [tick]);
   const sheet = useRef<HTMLDialogElement>(null);
   const opener = useRef<HTMLButtonElement>(null);
   const titleId = useId();
@@ -152,7 +166,7 @@ export default function DashboardShell({
           {phone && back && <BackChip to={back.to} label={back.label} gap={back.gap ?? "calc(8px - 2rem)"} />}
           {phone && bar && (
             /* The active filters stay on the page, as removable tokens; the
-               controls that change them are in the menu. Empty: no row. */
+               controls that change them are in the Browse sheet. Empty: no row. */
             <div className={styles.sheetBar} data-filter-scope="">
               {bar}
             </div>
@@ -195,7 +209,22 @@ export default function DashboardShell({
         {mode === "three" && asideNode}
       </div>
 
-      {phone && slot && createPortal(<div className={styles.localBody}>{rail}</div>, slot)}
+      {phone &&
+        (phoneRail ? (
+          phoneRail({ open: browseOpen, onClose: () => setBrowseOpen(false) })
+        ) : (
+          <BottomSheet open={browseOpen} onClose={() => setBrowseOpen(false)} title={t.browse}>
+            <div
+              className={styles.localBody}
+              onClick={(e) => {
+                const a = (e.target as HTMLElement).closest("a[href]");
+                if (a && !a.closest("[data-filter-scope]")) setBrowseOpen(false);
+              }}
+            >
+              {rail}
+            </div>
+          </BottomSheet>
+        ))}
 
       {mode === "one" && !phone && (
         <dialog

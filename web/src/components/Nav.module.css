@@ -995,6 +995,57 @@
   color: rgb(var(--ink-soft));
 }
 
+/* The page's one row in the phone menu (#808): Browse, how many filters are on. */
+.browseRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  inline-size: 100%;
+  min-height: 48px;
+  padding-inline: 14px;
+  border: 1px solid rgb(var(--rule-firm));
+  border-radius: calc(var(--r-lg) - var(--sheet-inset, 6px));
+  background: transparent;
+  color: rgb(var(--ink));
+  font-family: var(--font-text);
+  font-size: 1rem;
+  font-weight: 600;
+  text-align: start;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.browseRow:focus-visible {
+  outline: 2px solid rgb(var(--ink));
+  outline-offset: 2px;
+}
+
+.browseBadge {
+  display: inline-grid;
+  place-items: center;
+  min-inline-size: 22px;
+  block-size: 22px;
+  padding-inline: 6px;
+  border-radius: 11px;
+  background: rgb(var(--ink));
+  color: rgb(var(--paper));
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.browseChevron {
+  margin-inline-start: auto;
+  inline-size: 8px;
+  block-size: 8px;
+  border-inline-end: 2px solid currentColor;
+  border-block-end: 2px solid currentColor;
+  transform: rotate(-45deg);
+}
+
+:global(html[dir='rtl']) .browseChevron {
+  transform: rotate(45deg);
+}
+
 .sheetList {
   margin: 0;
   padding: 0;
@@ -1241,10 +1292,32 @@
     pointer-events: none;
   }
 
-  /* The page's own Browse, in the sheet's first section: the page's content
-     is laid out by the page (`Dashboard.module.css .localBody`). */
-  .sheetLocal {
-    padding-inline: 6px;
+  /*
+   * The menu holds the whole of the global part on its first screen (#808):
+   * the pages, the display and accessibility switches, and the links elsewhere
+   * (a row of three, not a column), under the page's one Browse row when it
+   * has one. 44px rows (the coarse-pointer floor), tighter group heads.
+   */
+  .sheetHead {
+    padding-block: 8px 2px;
+  }
+
+  .sheetLink {
+    min-height: 44px;
+  }
+
+  .sheetSplit {
+    margin-block: 4px;
+  }
+
+  .sheetElsewhere {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 2px;
+  }
+
+  .sheetElsewhere .sheetLink {
+    padding-inline: 12px;
   }
 
   .toggle {

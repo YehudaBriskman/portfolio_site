@@ -168,7 +168,11 @@ for (const lang of ["he", "en"]) {
   const { context, page } = await open({ width: 390, touch: true, lang, theme: "light" });
   await page.goto(`${base}${lang === "he" ? "/he" : ""}/blog?view=feed&q=zzz`, { waitUntil: "load" });
   await page.waitForFunction(() => document.querySelector("[data-filter-scope]"), null, { polling: 500, timeout: 30_000 });
-  const live = await page.evaluate(() => document.querySelector("[data-filter-scope] p[aria-live]")?.getAttribute("aria-live"));
+  /* On a phone the count is the Browse sheet's "Show N" button (#808): open the menu, then the sheet. */
+  await page.locator('button[aria-controls="nav-menu"]').click({ force: true });
+  await page.locator("#nav-menu [data-local-browse] button").click({ force: true });
+  await page.waitForSelector("dialog[open] [data-browse-foot] button[aria-live]", { timeout: 30_000, state: "attached" });
+  const live = await page.evaluate(() => document.querySelector("dialog[open] [data-browse-foot] button[aria-live]")?.getAttribute("aria-live"));
   if (live !== "polite") fail(`${lang} feed`, `results count live region is ${live}`);
   await context.close();
 }
