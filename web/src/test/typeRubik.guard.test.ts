@@ -26,7 +26,7 @@ const index = read("src/index.css");
 
 /** The selectors that moved off the display face, by file. */
 const MOVED: Record<string, string[]> = {
-  "src/index.css": [".a-app .a-h1", ".a-brand-name"],
+  "src/index.css": [".a-app .a-h1"],
   "src/pages/Project.module.css": [".title", ".crumb", ".slash"],
   "src/components/work/Work.module.css": [".title"],
   "src/components/dashboard/Dashboard.module.css": [".greeting"],

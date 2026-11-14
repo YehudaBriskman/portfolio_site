@@ -33,6 +33,8 @@ const ROUTES = env("ONLY", [
 const WIDTHS = env("WIDTHS", ["390", "1280"]).map(Number);
 const LANGS = env("LANGS", ["en", "he"]);
 const PROBE = !!process.env.PROBE;
+/* The sidebar's icon rail (#809) gives <main> 176px more: a few screens are measured in it too. */
+const RAIL_ROUTES = new Set(["/admin", "/admin/posts", "/admin/marketing?tab=audience"]);
 
 /* Shrink-only: "route|selector-of-the-container" of rows still unequal. */
 const KNOWN = [];
@@ -74,7 +76,7 @@ function measure() {
 const { base, stop } = await startPreview();
 const browser = await chromium.launch({ executablePath: process.env.CHROME || undefined, args: ["--no-sandbox", "--disable-gpu"] });
 const found = new Map();
-for (const lang of LANGS) for (const w of WIDTHS) {
+for (const lang of LANGS) for (const w of WIDTHS) for (const rail of w >= 1024 ? [false, true] : [false]) {
   const ctx = await browser.newContext({ viewport: { width: w, height: 900 }, isMobile: w < 600, hasTouch: w < 600, reducedMotion: "reduce", locale: lang === "he" ? "he-IL" : "en-US" });
   await ctx.route((u) => !["127.0.0.1", "localhost"].includes(u.hostname), (r) => r.abort());
   await ctx.route("**/api/**", (route) => {
@@ -82,9 +84,11 @@ for (const lang of LANGS) for (const w of WIDTHS) {
     const a = answer(u.pathname, route.request().method(), u.search);
     return route.fulfill({ status: a.status ?? 200, contentType: "application/json", body: JSON.stringify(a.body ?? {}) });
   });
+  if (rail) await ctx.addInitScript(() => { try { localStorage.setItem("admin-nav-collapsed", "1"); } catch { /* full sidebar instead */ } });
   const page = await ctx.newPage();
   await page.clock.setFixedTime(new Date(NOW));
   for (const route of ROUTES) {
+    if (rail && !RAIL_ROUTES.has(route)) continue;
     await page.goto(`${base}${lang === "he" ? "/he" : ""}${route}`, { waitUntil: "load" });
     for (let i = 0; i < 24; i++) {
       if (await page.evaluate(() => !!document.querySelector("main") && !/Loading|טוען/.test(document.querySelector("main").textContent))) break;
@@ -94,7 +98,7 @@ for (const lang of LANGS) for (const w of WIDTHS) {
     for (const f of await page.evaluate(measure)) {
       const key = `${route.split("?")[0]}${route.includes("?") ? "?" + route.split("?")[1] : ""}|${f.at}`;
       if (!found.has(key)) found.set(key, { ...f, where: [] });
-      found.get(key).where.push(`${w}${lang}`);
+      found.get(key).where.push(`${w}${lang}${rail ? " rail" : ""}`);
     }
   }
   await ctx.close();

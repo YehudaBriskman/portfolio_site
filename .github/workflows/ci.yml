@@ -625,6 +625,11 @@ jobs:
       - name: Admin desktop widths
         if: matrix.check == 'admin-matrix' && matrix.shard == 2
         run: npm run a11y:admin-desktop
+      # The desktop sidebar (#809): one edge, one weight, identity once, the
+      # icon rail, its tooltips, flyouts and Ctrl+B, in both languages and themes.
+      - name: Admin sidebar
+        if: matrix.check == 'admin-matrix' && matrix.shard == 2
+        run: npm run a11y:admin-sidebar
       # Every link lands on its target (#196): the top of a new page, a hash's
       # element under the bar, the old place on Back and Forward, at a laptop
       # and a phone, against the same build.

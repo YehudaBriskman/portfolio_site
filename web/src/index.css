@@ -2838,12 +2838,6 @@
     color: rgb(var(--ink));
   }
   .a-brand-mark { width: 28px; height: 28px; border-radius: 50%; box-shadow: 0 0 0 1px rgb(var(--rule-firm) / .6); }
-  .a-brand-name {
-    position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%);
-    font-family: var(--font-ui); font-weight: var(--weight-ui);
-    font-size: .9375rem; letter-spacing: var(--track-ui); white-space: nowrap;
-  }
-  @media (min-width: 768px) { .a-brand-name { position: static; width: auto; height: auto; overflow: visible; clip-path: none; } }
 
   .a-crumbs { min-width: 0; flex: 1 1 4rem; }
   .a-crumbs ol { display: flex; align-items: center; min-width: 0; }
@@ -2868,21 +2862,23 @@
   }
 
   .a-top-end { display: flex; flex: none; align-items: center; gap: .25rem; margin-inline-start: auto; }
-  .a-top-link { color: rgb(var(--ink-soft)); }
   /* The phone bar's buttons carry their word beside the glyph. */
   .a-top-word { gap: .375rem; padding-inline: .5rem .75rem; }
-  .a-owner { display: inline-flex; align-items: center; gap: .5rem; padding-inline: .25rem .125rem; color: rgb(var(--ink-soft)); }
+  /* The one place the owner is named: an initial in a circle, the button of the account menu. */
   .a-avatar {
-    display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%;
+    display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 50%;
     background: rgb(var(--signal)); color: rgb(var(--signal-ink));
-    font-size: .875rem; font-weight: 700;
+    font: inherit; font-size: .875rem; font-weight: 500; cursor: pointer;
   }
+  .a-avatar:focus-visible { outline: 2px solid rgb(var(--ink)); outline-offset: 2px; }
+  .a-account .a-nav-item { font-size: .875rem; font-weight: 500; }
+  .a-account-who { margin: 0; padding: .25rem .625rem .5rem; color: rgb(var(--ink-soft)); font-size: var(--a-fs-meta); overflow-wrap: anywhere; }
 
   /* ---- the frame and the left nav */
   .a-frame { display: flex; align-items: flex-start; }
   .a-side {
     display: flex; flex-direction: column; flex: none;
-    width: 15rem; padding: 1rem .75rem;
+    width: var(--a-side-w, 15rem); padding: 1rem .75rem;
     background: rgb(var(--paper));
     overflow-y: auto; overscroll-behavior: contain;
   }
@@ -2904,6 +2900,11 @@
     }
     .a-scrim:not([hidden]) { position: fixed; z-index: 44; inset: 3.5rem 0 0; background: rgb(var(--shade) / .3); }
   }
+  /* The icon rail (#809): the same sidebar, 4rem wide, one variable. Desktop only: the drawer is always full. */
+  .a-app[data-side="rail"] { --a-side-w: 4rem; }
+  .a-app[data-side="rail"] .a-side { padding-inline: .5rem; }
+  .a-side-collapse { display: flex; justify-content: flex-end; margin-top: auto; padding-top: .75rem; }
+  .a-app[data-side="rail"] .a-side-collapse { justify-content: center; }
   .a-side-nav ul { display: flex; flex-direction: column; gap: 2px; }
   .a-side-group + .a-side-group { margin-top: .75rem; padding-top: .75rem; border-top: 1px solid var(--a-line-soft); }
   .a-side-head { padding: 0 .625rem .375rem; font-size: var(--a-fs-meta); font-weight: 700; color: rgb(var(--ink-soft)); }
