@@ -18,6 +18,7 @@ The numbers come from the plan and measurement study of 2026-11-14 (84 page, wid
 | D7 | `Save-Data` (and 2g) turns off particles, orbs and scroll acts only. Nothing else. |
 | D8 | A nightly, non-gating full matrix. |
 | D9 | No pull-to-refresh, no swipe-to-navigate between posts. They fight the browser's back swipe and scroll restoration. |
+| D10 | **Direction A ("grouped", GitHub-Mobile-like)** is the look of the public phone: soft rounded groups on a calm ground, icon circles, pills, pill segmented tabs, stat tiles. Phones only (under 640); tablet and desktop are unchanged. Section 6. |
 
 Owner approves all new public wording, English and Hebrew, before it ships. A PR that adds visitor-facing text lists it in a table headed `STRINGS FOR OWNER APPROVAL`.
 
@@ -83,6 +84,14 @@ For each component: the phone rule that applies, the he/en note, and what guards
 | **Sign-up block** (`components/SignupBlock.tsx`) | Email field 44 tall, consent checkbox with a 44 label hit area. | Consent text wraps in both languages. | Matrix |
 | **Share menu** (`components/share/ShareMenu.tsx`) | `navigator.share` first; fallback to the in-page menu and copy link. Each outcome has a Help topic (R19). | Per-channel URLs keep `/he`. | Existing share and `helpTopics` tests |
 | **Footer** (`components/SiteFooter.tsx`) | Links 44 tall and at least 44 wide. Admin link hidden on phones (D5, later PR). | Hebrew words are shorter: check their width. | Matrix |
+| **GroupedSection** (`components/phone/GroupedSection.tsx`) | The group is the rounded thing: one inset surface (22px radius, no outline) around a page's own `<ul>`/`<ol>`; rows divided by a hairline that starts after the circle. Adds no element to the accessibility tree; `display: contents` above 640. | Dividers start at the inline-start edge. | `phone.guard.test.ts`, matrix |
+| **ListRow** (`components/phone/ListRow.tsx`) | One link per row, 64px tall, icon circle 40, title over a muted meta line, chevron. Whole row is the target (R5). Above 640 the circle is `display: contents` and the chevron hidden, so the page's own row is unchanged. | Chevron mirrors (R9); titles may take two lines, so Hebrew keeps its width. | `public-projects.mjs`, vitest |
+| **AvatarCircle** (`components/phone/AvatarCircle.tsx`) | A circle (not a squircle) of 32, 40 or 56, tinted by what it labels. Decorative unless given a `label`. A circle never carries a number or a sentence. | Glyph direction follows R9. | `public-projects.mjs`, vitest |
+| **Chevron** (`components/phone/Chevron.tsx`) | The row's trailing 18px chevron, phone only. | Mirrored under `:dir(rtl)`. | `public-projects.mjs` |
+| **PillBadge** (`components/phone/PillBadge.tsx`) | A state or count, 24px tall, a dot and a word: colour never alone. The page's own pill class is the desktop look. Tone from `phone/tone.ts`. | Words come from the page's existing strings. | `tokens.contrast.test.ts` |
+| **StatTile / StatGrid** (`components/phone/StatTile.tsx`) | Phone only. A 32 circle, a figure and a label, two per row. Render a tile only for a datum that exists; with none, the grid renders nothing (no empty box, no layout shift). Values are LTR isolates. | Labels reuse the repository facts' words. | `public-projects.mjs`, vitest |
+| **SegmentedTabs** (`components/phone/SegmentedTabs.tsx`) | Three or four 44px segments in a pill track. The one tablist of the public site: APG tabs, automatic activation, roving tabindex; the page keeps the selection in the URL (`?tab=`). The Projects sort is the same look over links (`aria-current`). | Arrow keys follow the reading direction. | `public-projects.mjs`, vitest |
+| **PinnedAction** (`components/phone/PinnedAction.tsx`) | The page's one primary action, fixed at the bottom above `env(safe-area-inset-bottom)`, opaque, no blur. Same link and words as the header's, which is hidden on a phone (`data-phone-dup`). The footer takes the room, so nothing is covered at the end of the page. | Label is today's string. | `public-projects.mjs` |
 
 ## 4. Real-device checklist
 
@@ -115,3 +124,26 @@ Note any failure as an issue with the device, OS and browser version, and a scre
 - [ ] Hebrew checked in a screenshot, not only in the string file.
 - [ ] No army-related text anywhere (copy, fixtures, alt text, screenshots).
 - [ ] Catalogue row added or updated for a new or changed component.
+
+## 6. Direction A ("grouped") on a phone
+
+Owner decision of 2026-11-14 (D10). The research is in [design/public-mobile-direction](design/public-mobile-direction/README.md); the first pages built on it are Projects and a Project ([design/public-projects-a](design/public-projects-a/)).
+
+**The kit** lives in `web/src/components/phone/` (catalogue rows above). Tokens are in `phone/tokens.css` and exist only inside `@media (max-width: 639px)`.
+
+| Token | Value |
+|---|---|
+| Radii | `--r-sm` 14 (inner panels), `--r-md` 22 (a group, a card), `--r-pill` 999. Circles, not squircles. |
+| Circles | `--ph-circle-s` 32 (stat tile), `--ph-circle-m` 40 (list row), `--ph-circle-l` 56 (header card). Glyph is half the circle. |
+| Layers | ground `--canvas`; group `--ph-card` (canvas lightened 38%; dark: toward `--canvas-2` 62%); raised segment `--ph-card-hi`; recess `--ph-recess` (track, tile). |
+| Spacing | 4 / 8 / 12 / 16 / 24: gutter 16, group gap 24, row 12x16. |
+| Tones | `blue green purple yellow red neutral`, from the existing `--hue-*` and `--wash-*`. Disc = tone at 17%; glyph and pill word = tone mixed toward ink (dark: white). Held at 3:1 (glyph) and 4.5:1 (pill word) in light and dark by `phone/__tests__/tokens.contrast.test.ts`. |
+
+**Rules for adopting it**
+
+1. **Phone only, neutral above.** Wrapper components are `display: contents` and phone-only parts `display: none` above 640px, so the page keeps its own classes and its tablet and desktop pixels. `phone.guard.test.ts` fails if a look appears outside the phone query.
+2. **Restyle the page's own markup before adding new DOM.** The DOM order, the single `h1` and the content a crawler reads stay as they were; the only additions are the circle wrapper, the chevron, the stat tiles, the stack toggle and the pinned action.
+3. **Say it once.** Where the phone shows a fact in a tile or a pinned action, the same fact in the page's old place is hidden on a phone (`data-phone-dup`), not shown twice.
+4. **Show only data that exists.** No tile, pill or row for an absent datum, and no placeholder.
+5. **No blur, no new font, no third-party code, no layout shift** (sizes are reserved; skeletons per R16).
+6. **Test it** with `npm run a11y:public-projects` (360/390/430, he and en, light and dark): overflow, circle sizes, 44px targets, tab semantics, the pinned action's clearance, desktop untouched.
