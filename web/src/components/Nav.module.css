@@ -1175,3 +1175,73 @@
   background: rgb(var(--ink));
   border: 1px solid rgb(var(--ink));
 }
+
+/* ------------------------------------------------- the phone: one circle -- */
+
+/*
+ * Below 640px (the one public phone breakpoint, #775) there is no bar. The
+ * owner's words: "why we need the circle in the menu? why the word is there?
+ * Change the mobile from line at the top to just floating soft circle."
+ *
+ * So the bar's ground, its bottom line and its blur go, the word goes, and the
+ * toggle becomes a 46px circle of paper standing alone in the inline-end top
+ * corner. No blur (a backdrop filter would also make the bar the containing
+ * block of anything fixed inside it); a hairline and a very soft shadow lift
+ * it. The dock and the bar are zero-height and click-through, so the page
+ * under them is never blocked; only the circle takes a press.
+ *
+ * `--bar-h` is left as it is: page clearance, the sheet's top padding and the
+ * dark-chrome band all read it, and 56px + inset is still the right amount of
+ * room above the first line of content, which clears the circle's 6px + 46px.
+ * The sheet and scrim are untouched, and the circle stays above both (the bar
+ * is z-index 2 inside the dock) so it is the way out while the menu is open.
+ * Insets are physical because the env() variables are; Hebrew swaps the side.
+ */
+@media (max-width: 639px) {
+  .dock {
+    height: 0;
+    pointer-events: none;
+  }
+
+  .bar {
+    height: 0;
+    display: block;
+    padding: 0;
+    background: none;
+    border-bottom: 0;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
+  /* Never tucked: a floating circle that leaves is a menu that cannot be found. */
+  .dock[data-tucked]:not(:has(:focus-visible)) .bar {
+    translate: none;
+    opacity: 1;
+  }
+
+  .toggle {
+    position: fixed;
+    inset-block-start: calc(var(--bar-inset) + 6px);
+    inset-inline-end: max(12px, env(safe-area-inset-right, 0px));
+    width: 46px;
+    height: 46px;
+    min-height: 0;
+    padding: 0;
+    justify-content: center;
+    gap: 0;
+    pointer-events: auto;
+    background: rgb(var(--paper));
+    border: 1px solid rgb(var(--rule-firm));
+    box-shadow: 0 2px 10px rgb(var(--shade) / 0.1);
+  }
+
+  .word {
+    display: none;
+  }
+}
+
+@media (max-width: 639px) {
+  :global(html[dir='rtl']) .toggle {
+    inset-inline-end: max(12px, env(safe-area-inset-left, 0px));
+  }
+}
