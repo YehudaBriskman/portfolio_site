@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Empty, EmptyState, ErrorState, LoadingRows } from "@/components/admin/ui";
+import { SkeletonSwap } from "@/components/ui/SkeletonSwap";
 import { identityMissing } from "../sender/defaults";
 import { adminAnnounce, type AnnounceSummary, type SenderSettings } from "@/services/adminAnnounce";
 import { adminAudience, type Group } from "@/services/adminAudience";
@@ -95,55 +96,57 @@ export default function CampaignsTab() {
         </div>
       )}
 
-      {error ? (
-        <ErrorState message={error === "auth" ? w.notAuthorised : w.loadFailed} onRetry={() => (setItems(null), setError(null), changed())} />
-      ) : !items ? (
-        <LoadingRows label={w.loading} />
-      ) : items.length === 0 ? (
-        <EmptyState title={w.empty} />
-      ) : phone ? (
-        <CampaignsPhone items={items} sender={sender} groups={groups} onOpen={setOpen} onChanged={changed} />
-      ) : (
-        <div>
-          <p className="a-hint !mt-0 mb-2 tabular-nums" role="status">{w.count(items.length)}</p>
-          <div className="a-box overflow-x-auto">
-            <table className="a-table" aria-label={w.tableLabel}>
-              <thead>
-                <tr>
-                  <th scope="col" className="!text-start">{w.colName}</th>
-                  <th scope="col" className="!text-start">{w.colStatus}</th>
-                  <th scope="col" className="hidden sm:table-cell" style={{ textAlign: "right" }}>{w.colSent}</th>
-                  <th scope="col" className="hidden md:table-cell" style={{ textAlign: "right" }}>{w.colFailed}</th>
-                  <th scope="col" className="hidden md:table-cell" style={{ textAlign: "right" }}>{w.colSkipped}</th>
-                  <th scope="col" className="!text-start hidden lg:table-cell">{w.colWhen}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((c) => (
-                  <tr key={c.id}>
-                    <td className="min-w-0 max-w-[20rem]">
-                      <button type="button" className="block min-h-[44px] w-full text-start" aria-label={w.open(c.name)} onClick={() => setOpen(c.id)}>
-                        <span className="a-row-title block text-sm" dir="auto">{c.name}</span>
-                        <span className="a-row-meta !mt-0.5 block truncate text-sm" dir="auto" title={c.subject}>{c.subject}</span>
-                        <span className="a-row-meta !mt-0.5 block text-sm lg:hidden">{c.status === "scheduled" && c.sendAt ? w.scheduledFor(when(c.sendAt)) : c.finishedAt ? w.finishedAt(when(c.finishedAt)) : w.updatedAt(when(c.updatedAt))}</span>
-                      </button>
-                    </td>
-                    <td className="a-fit text-sm">
-                      <span className="a-pill" data-state={pillState(c.status)}><span className="a-pill-mark" aria-hidden="true" />{w.statuses[c.status]}</span>
-                    </td>
-                    <td className="hidden tabular-nums sm:table-cell" style={{ textAlign: "right" }} dir="ltr">{c.status === "draft" ? <Empty /> : nf.format(c.counters.sent)}</td>
-                    <td className="hidden tabular-nums md:table-cell" style={{ textAlign: "right" }} dir="ltr">{c.status === "draft" ? <Empty /> : nf.format(c.counters.failed)}</td>
-                    <td className="hidden tabular-nums md:table-cell" style={{ textAlign: "right" }} dir="ltr">{c.status === "draft" ? <Empty /> : nf.format(c.counters.suppressed)}</td>
-                    <td className="hidden text-sm lg:table-cell">
-                      {c.status === "scheduled" && c.sendAt ? w.scheduledFor(when(c.sendAt)) : c.finishedAt ? w.finishedAt(when(c.finishedAt)) : w.updatedAt(when(c.updatedAt))}
-                    </td>
+      <SkeletonSwap loading={!error && !items} skeleton={<LoadingRows label={w.loading} />}>
+        {error ? (
+          <ErrorState message={error === "auth" ? w.notAuthorised : w.loadFailed} onRetry={() => (setItems(null), setError(null), changed())} />
+        ) : !items ? (
+          null
+        ) : items.length === 0 ? (
+          <EmptyState title={w.empty} />
+        ) : phone ? (
+          <CampaignsPhone items={items} sender={sender} groups={groups} onOpen={setOpen} onChanged={changed} />
+        ) : (
+          <div>
+            <p className="a-hint !mt-0 mb-2 tabular-nums" role="status">{w.count(items.length)}</p>
+            <div className="a-box overflow-x-auto">
+              <table className="a-table" aria-label={w.tableLabel}>
+                <thead>
+                  <tr>
+                    <th scope="col" className="!text-start">{w.colName}</th>
+                    <th scope="col" className="!text-start">{w.colStatus}</th>
+                    <th scope="col" className="hidden sm:table-cell" style={{ textAlign: "right" }}>{w.colSent}</th>
+                    <th scope="col" className="hidden md:table-cell" style={{ textAlign: "right" }}>{w.colFailed}</th>
+                    <th scope="col" className="hidden md:table-cell" style={{ textAlign: "right" }}>{w.colSkipped}</th>
+                    <th scope="col" className="!text-start hidden lg:table-cell">{w.colWhen}</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {items.map((c) => (
+                    <tr key={c.id}>
+                      <td className="min-w-0 max-w-[20rem]">
+                        <button type="button" className="block min-h-[44px] w-full text-start" aria-label={w.open(c.name)} onClick={() => setOpen(c.id)}>
+                          <span className="a-row-title block text-sm" dir="auto">{c.name}</span>
+                          <span className="a-row-meta !mt-0.5 block truncate text-sm" dir="auto" title={c.subject}>{c.subject}</span>
+                          <span className="a-row-meta !mt-0.5 block text-sm lg:hidden">{c.status === "scheduled" && c.sendAt ? w.scheduledFor(when(c.sendAt)) : c.finishedAt ? w.finishedAt(when(c.finishedAt)) : w.updatedAt(when(c.updatedAt))}</span>
+                        </button>
+                      </td>
+                      <td className="a-fit text-sm">
+                        <span className="a-pill" data-state={pillState(c.status)}><span className="a-pill-mark" aria-hidden="true" />{w.statuses[c.status]}</span>
+                      </td>
+                      <td className="hidden tabular-nums sm:table-cell" style={{ textAlign: "right" }} dir="ltr">{c.status === "draft" ? <Empty /> : nf.format(c.counters.sent)}</td>
+                      <td className="hidden tabular-nums md:table-cell" style={{ textAlign: "right" }} dir="ltr">{c.status === "draft" ? <Empty /> : nf.format(c.counters.failed)}</td>
+                      <td className="hidden tabular-nums md:table-cell" style={{ textAlign: "right" }} dir="ltr">{c.status === "draft" ? <Empty /> : nf.format(c.counters.suppressed)}</td>
+                      <td className="hidden text-sm lg:table-cell">
+                        {c.status === "scheduled" && c.sendAt ? w.scheduledFor(when(c.sendAt)) : c.finishedAt ? w.finishedAt(when(c.finishedAt)) : w.updatedAt(when(c.updatedAt))}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </SkeletonSwap>
     </div>
   );
 }

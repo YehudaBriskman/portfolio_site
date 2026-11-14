@@ -7,6 +7,7 @@ import { FilterChips, FiltersRestoredNote } from "@/components/ui/FilterChips";
 import { FilterSheet } from "@/components/ui/FilterSheet";
 import type { FilterDef } from "@/components/ui/filters";
 import { ICON } from "@/components/ui/icons";
+import { SkeletonSwap } from "@/components/ui/SkeletonSwap";
 import { ListPresence } from "@/components/ui/ListPresence";
 import { RecordRow, type Fact } from "@/components/ui/RecordRow";
 import { SelectionBar, SelectionHeader, type SelectionAction } from "@/components/ui/SelectionBar";
@@ -199,19 +200,21 @@ export default function PostsPhone() {
 
         <UnreadableNote count={skipped} />
 
-        {error ? (
-          <ErrorState message={error} onRetry={() => (setError(null), load())} />
-        ) : posts === null ? (
-          <LoadingRows label={w.loading} />
-        ) : posts.length === 0 ? (
-          <EmptyState title={w.nothingWritten} action={<Link to="/admin/posts/new" className="a-btn a-btn-primary">{w.writeFirst}</Link>} />
-        ) : visible.length === 0 ? (
-          <EmptyState title={w.noMatch} action={filtered ? <button type="button" className="a-btn min-h-[44px]" onClick={() => (setQ(""), saved.clear())}>{w.clearFilters}</button> : undefined} />
-        ) : (
-          <ListPresence as="ul" items={visible} itemKey={(x) => x.slug} aria-label={w.nav.posts} className="a-box a-settle m-0 list-none overflow-hidden p-0">
-            {rowFor}
-          </ListPresence>
-        )}
+        <SkeletonSwap loading={!error && posts === null} skeleton={<LoadingRows label={w.loading} />}>
+          {error ? (
+            <ErrorState message={error} onRetry={() => (setError(null), load())} />
+          ) : posts === null ? (
+            null
+          ) : posts.length === 0 ? (
+            <EmptyState title={w.nothingWritten} action={<Link to="/admin/posts/new" className="a-btn a-btn-primary">{w.writeFirst}</Link>} />
+          ) : visible.length === 0 ? (
+            <EmptyState title={w.noMatch} action={filtered ? <button type="button" className="a-btn min-h-[44px]" onClick={() => (setQ(""), saved.clear())}>{w.clearFilters}</button> : undefined} />
+          ) : (
+            <ListPresence as="ul" items={visible} itemKey={(x) => x.slug} aria-label={w.nav.posts} className="a-box m-0 list-none overflow-hidden p-0">
+              {rowFor}
+            </ListPresence>
+          )}
+        </SkeletonSwap>
 
         <SelectionBar selection={selection} actions={actions} />
       </div>
