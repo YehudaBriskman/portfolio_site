@@ -1,0 +1,32 @@
+/*
+ * Direction A ("grouped") on the home page below the hero, PHONE ONLY. The
+ * hero, the dark acts' own cards (Work, Notes) and the drawn lines are not
+ * touched. Everything is inside the one public phone query (639px); above it
+ * the only rule is the phone-only parts' `display: none`. Hooks:
+ *
+ *   data-ph="specs"   the Specs plate: each count is a recessed tile, two to a row
+ *   data-ph-only      a phone-only glyph
+ *
+ * Tokens are the kit's (tokens.css). No blur, no hover, no font, no motion;
+ * a tile's size is the cell's own, so the count-up moves nothing.
+ */
+
+[data-ph-only] {
+  display: none;
+}
+
+@media (max-width: 639px) {
+  [data-ph-only] {
+    display: block;
+  }
+
+  dl[data-ph="specs"] {
+    gap: 8px;
+  }
+  dl[data-ph="specs"] > div {
+    min-width: 0;
+    padding: 18px 12px 16px;
+    border-radius: var(--r-md);
+    background: var(--ph-card);
+  }
+}
