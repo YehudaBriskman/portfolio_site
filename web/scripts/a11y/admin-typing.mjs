@@ -37,8 +37,13 @@ const ONLY = process.env.ONLY || "";
 const SCREENS = [
   { id: "marketing-settings", path: "/admin/marketing?tab=settings", ready: "[data-testid=sender-section], [data-settings-group]" },
   { id: "site-settings", path: "/admin/settings", ready: "[data-settings-group], main form, main input" },
+  /* Pages with expanders but no groups: auto-open is fine, auto-close under the cursor is not. */
+  { id: "area-editor", path: "/admin/areas/bothy", ready: "main input", plain: true },
+  { id: "post-editor", path: "/admin/posts/admin-redesign", ready: "main input", plain: true },
 ].filter((s) => s.id.includes(ONLY));
 
+/* Fields that turn what is typed into something else on purpose: a tag chip is made at the comma, an order takes digits only. */
+const TRANSFORMS = /^(Tags|Featured order)/;
 const fails = [];
 const fail = (m) => fails.push(m);
 const { base, stop } = await startPreview();
@@ -138,7 +143,8 @@ async function sweepField(page, tag, f, rootSel) {
         active: a ? `${a.tagName.toLowerCase()}${a.id ? "#" + a.id : ""}` : "none",
       };
     });
-    const why = !s.connected ? "the field was removed from the page (remounted)" : !s.focused ? `focus left the field (now ${s.active})` : s.closed ? `${s.closed} expander(s) around it closed` : s.surfaceGone ? "the group sheet closed" : trimmed !== null && s.value !== trimmed && s.value !== expected ? `value is ${JSON.stringify(s.value)}, expected ${JSON.stringify(trimmed)}` : "";
+    const skipValue = TRANSFORMS.test(f.key);
+    const why = !s.connected ? "the field was removed from the page (remounted)" : !s.focused ? `focus left the field (now ${s.active})` : s.closed ? `${s.closed} expander(s) around it closed` : s.surfaceGone ? "the group sheet closed" : !skipValue && trimmed !== null && s.value !== trimmed && s.value !== expected ? `value is ${JSON.stringify(s.value)}, expected ${JSON.stringify(trimmed)}` : "";
     if (why) {
       fail(`${tag} "${f.key}": after typing ${JSON.stringify(ch)} (${JSON.stringify(typed)}): ${why}`);
       return "failed";
@@ -166,6 +172,13 @@ for (const screen of SCREENS) {
   /* ------------------------------------------------------------ phone */
   {
     const tag = `${screen.id} 390`;
+    if (screen.plain) {
+      const { page, close } = await open(390, screen);
+      await openAll(page, "main");
+      for (const f of await fieldsIn(page, "main")) if ((await sweepField(page, tag, f, "main")) !== "skipped") swept++;
+      await close();
+      continue;
+    }
     const probe = await open(390, screen);
     const groups = await probe.page.evaluate(() => [...document.querySelectorAll("[data-settings-group]")].map((g) => g.getAttribute("data-settings-group")));
     await probe.close();
