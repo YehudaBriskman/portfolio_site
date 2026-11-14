@@ -16,8 +16,10 @@
  * 40 s. CHROME overrides the browser binary.
  */
 import { createRequire } from "node:module";
-import { dirname, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
 
 const WEB = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const require = createRequire(resolve(WEB, "package.json"));
@@ -28,7 +30,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const { build, preview } = require("vite");
 const servers = [];
 async function serve(name) {
-  const out = resolve(WEB, `dist-harness-${name}`);
+  const out = mkdtempSync(join(tmpdir(), `sheet-${name}-`));
   await build({ configFile: resolve(WEB, `test-harness/vite.${name}.config.ts`), root: resolve(WEB, "test-harness"), logLevel: "silent", build: { outDir: out, emptyOutDir: true } });
   const s = await preview({ configFile: false, root: WEB, logLevel: "silent", build: { outDir: out }, preview: { host: "127.0.0.1", port: 0 } });
   servers.push(s);
