@@ -148,6 +148,19 @@ describe("PUT /api/admin/signature/:lang", () => {
   });
 });
 
+describe("GET /api/admin/signature/:lang/file/:name", () => {
+  it("lets the owner see a saved slot while every public use is off", async () => {
+    await draw();
+    const r = await admin(request(createApp()).get(`${A}/en/file/web`));
+    expect(r.status).toBe(200);
+    expect(r.headers["content-type"]).toMatch(/svg/);
+    expect(r.headers["content-security-policy"]).toMatch(/default-src 'none'/);
+    expect((await admin(request(createApp()).get(`${A}/en/file/email-light`))).headers["content-type"]).toBe("image/png");
+    expect((await admin(request(createApp()).get(`${A}/en/file/strokes`))).status).toBe(404);
+    expect((await request(createApp()).get(`${A}/en/file/web`)).status).toBeGreaterThanOrEqual(401);
+  });
+});
+
 describe("PUT /api/admin/signature/show and DELETE", () => {
   it("saves the three switches, strictly", async () => {
     expect((await showAll({ email: true, posts: false, cards: false })).body.show).toEqual({ email: true, posts: false, cards: false });

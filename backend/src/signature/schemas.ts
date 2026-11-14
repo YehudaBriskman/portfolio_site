@@ -69,6 +69,12 @@ export const slotView = (d: SigSlotDoc) => ({
   updatedAt: d.updatedAt,
   ...(d.strokes ? { strokes: d.strokes } : {}),
   urls: urlsOf(d),
+  /* The owner's own copies, behind the admin gate: they work while every public use is still off. */
+  preview: {
+    web: `/api/admin/signature/${d.lang}/file/web?v=${d.hash}`,
+    email: `/api/admin/signature/${d.lang}/file/email?v=${d.hash}`,
+    emailLight: d.light ? `/api/admin/signature/${d.lang}/file/email-light?v=${d.hash}` : null,
+  },
 });
 export const slotAudit = (d: SigSlotDoc | null) => (d ? { lang: d.lang, mode: d.mode, format: d.format, hash: d.hash, light: d.light } : null);
 

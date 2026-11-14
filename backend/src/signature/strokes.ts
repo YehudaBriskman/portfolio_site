@@ -32,7 +32,7 @@ export type Point = z.infer<typeof Point>;
 
 const r1 = (n: number) => String(Math.round(n * 10) / 10);
 /* Pressure 0.5 is "no information" (a mouse), so it draws the pen's own width. */
-const widthAt = (pen: number, p: Point) => Math.round(pen * (0.4 + 1.2 * (p[2] ?? 0.5)) * 2) / 2;
+const widthAt = (pen: number, p: Point) => Math.round(pen * (0.4 + 1.2 * (((p as readonly number[])[2]) ?? 0.5)) * 2) / 2;
 
 function d(pts: Point[]): string {
   const [a] = pts;

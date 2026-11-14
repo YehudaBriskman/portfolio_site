@@ -160,6 +160,22 @@ adminRouter.put(
   }),
 );
 
+/* The owner's own preview of a saved slot: the public route stays 404 until a use is switched on. */
+adminRouter.get(
+  "/:lang/file/:name",
+  asyncHandler(async (req, res) => {
+    const lang = SigLangParam.safeParse(req.params.lang);
+    const slot = lang.success ? await getSlot(lang.data) : null;
+    const name = ({ web: slot ? `web.${slot.format}` : "", email: "email.png", "email-light": "email-light.png" } as Record<string, string>)[req.params.name];
+    if (!slot || !name) return gone(res);
+    const file = await attachments.get(slot._id, name);
+    if (!file) return gone(res);
+    res
+      .set({ "Content-Type": name.endsWith(".svg") ? "image/svg+xml" : "image/png", "X-Content-Type-Options": "nosniff", "Content-Security-Policy": CSP, "Cache-Control": "private, no-cache" })
+      .send(file.data);
+  }),
+);
+
 adminRouter.delete(
   "/:lang",
   asyncHandler(async (req, res) => {
