@@ -170,6 +170,12 @@
   [data-ph-checks] > label + label {
     border-block-start: 1px solid var(--ph-line);
   }
+  /* the reserved error line is one line high on a phone, so the gap under a field
+     matches the gap under the others (the message is one short line at 360) */
+  form[data-ph-form] p[id$="-err"] {
+    min-block-size: 1.375rem;
+    margin-block-start: 4px;
+  }
   [data-ph-form] [data-ph-primary] {
     inline-size: 100%;
     justify-self: stretch;
