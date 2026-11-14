@@ -23,7 +23,7 @@ import { useLibraryWords } from "./words";
 type Status = "idle" | "saving" | "saved" | "conflict" | "failed";
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 
-export default function VisitorTemplates() {
+export default function VisitorTemplates({ bare }: { bare?: boolean } = {}) {
   const w = useLibraryWords();
   const a = useAnnounceWords();
   const sw = useSettingsWords();
@@ -93,9 +93,9 @@ export default function VisitorTemplates() {
   const statusText = status === "saving" ? a.saving : status === "saved" ? w.visitorSaved : status === "conflict" ? w.visitorConflict : status === "failed" ? w.visitorFailed : dirty ? w.unsaved : "";
 
   return (
-    <section aria-labelledby={`${uid}-h`} className="space-y-4">
+    <section aria-labelledby={bare ? undefined : `${uid}-h`} aria-label={bare ? w.visitorHeading : undefined} className="space-y-4">
       <div>
-        <h3 id={`${uid}-h`} className="display-tight text-lg">{w.visitorHeading}</h3>
+        {!bare && <h3 id={`${uid}-h`} className="display-tight text-lg">{w.visitorHeading}</h3>}
         <p className="a-hint !mt-0">{w.visitorHint}</p>
       </div>
       <div className="flex flex-wrap items-center gap-2" role="group" aria-label={w.language}>
