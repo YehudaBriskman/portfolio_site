@@ -209,20 +209,26 @@ export default function AudiencePhone() {
   const manual = groups.filter((g) => g.kind === "manual");
 
   return (
-    <div className="min-w-0 space-y-4" data-testid="audience">
-      <h2 className="display-tight text-xl">{w.heading}</h2>
+    <div className="min-w-0 space-y-2" data-testid="audience">
+      <h2 className="sr-only">{w.heading}</h2>
 
-      <div className="flex items-center gap-2">
-        <input type="search" className="a-input min-h-[44px] min-w-0 flex-1 !ps-3 text-base" dir="auto" aria-label={w.searchLabel} placeholder={w.searchPlaceholder} value={q} onChange={(e) => setQ(e.target.value)} />
-        <button ref={plus} type="button" className="a-btn a-btn-primary min-h-[44px] min-w-[44px] shrink-0" aria-label={w.phoneAdd} onClick={() => setMenu(true)}>
-          <ICON.add size={20} strokeWidth={2} aria-hidden="true" focusable="false" />
-        </button>
-      </div>
+      {selection.on ? (
+        <SelectionHeader selection={selection} total={visible.length} />
+      ) : (
+        <div className="flex items-center gap-2">
+          <input type="search" className="a-input min-h-[44px] min-w-0 flex-1 !ps-3 text-base" dir="auto" aria-label={w.searchLabel} placeholder={w.searchPlaceholder} value={q} onChange={(e) => setQ(e.target.value)} />
+          {visible.length > 0 && <SelectionHeader selection={selection} total={visible.length} />}
+          <button ref={plus} type="button" className="a-btn a-btn-primary min-h-[44px] min-w-[44px] shrink-0" aria-label={w.phoneAdd} onClick={() => setMenu(true)}>
+            <ICON.add size={20} strokeWidth={2} aria-hidden="true" focusable="false" />
+          </button>
+        </div>
+      )}
 
       <FilterChips defs={defs} value={filters} onChange={setFilters} common={["status", "lang"]} onOpenSheet={() => setSheet(true)} resultCount={visible.length} />
       <FiltersRestoredNote restored={saved.restored} onUndo={saved.undoRestore} onDismiss={saved.dismissRestored} />
 
-      <div role="status" className="a-hint !mt-0 min-h-[1.25rem]">{note}</div>
+      <p className="sr-only" role="status">{items ? w.count(visible.length) : ""}</p>
+      {note && <p role="status" className="a-hint !mt-0">{note}</p>}
 
       {error ? (
         <ErrorState message={error === "auth" ? w.notAuthorised : w.loadFailed} onRetry={reload} />
@@ -232,10 +238,6 @@ export default function AudiencePhone() {
         <EmptyState title={filtered ? w.empty : w.emptyFirst} />
       ) : (
         <div>
-          <div className="mb-1 flex items-center justify-between gap-2">
-            <p className="a-hint !mt-0 tabular-nums" role="status">{w.count(visible.length)}</p>
-            <SelectionHeader selection={selection} total={visible.length} />
-          </div>
           <ul
             data-audience-list=""
             aria-label={w.tableLabel}
@@ -254,16 +256,18 @@ export default function AudiencePhone() {
 
       <SelectionBar selection={selection} actions={actions} />
 
-      <Disclosure className="a-box" summary={w.groupsHeading} meta={<span className="tabular-nums">{nf.format(groups.length)}</span>}>
-        <GroupsPanel groups={groups} onChange={loadGroups} />
-      </Disclosure>
-      <Disclosure className="a-box" summary={w.suppressionHeading}>
-        <SuppressionPanel />
-      </Disclosure>
-      <DataExport />
-      <Disclosure className="a-box" summary={sweep.title}>
-        <SweepNote bare />
-      </Disclosure>
+      <div className="space-y-2 pt-2">
+        <Disclosure className="a-box" summary={w.groupsHeading} meta={<span className="tabular-nums">{nf.format(groups.length)}</span>}>
+          <GroupsPanel groups={groups} onChange={loadGroups} />
+        </Disclosure>
+        <Disclosure className="a-box" summary={w.suppressionHeading}>
+          <SuppressionPanel />
+        </Disclosure>
+        <DataExport />
+        <Disclosure className="a-box" summary={sweep.title}>
+          <SweepNote bare />
+        </Disclosure>
+      </div>
 
       <BottomSheet open={menu} onClose={() => setMenu(false)} title={w.phoneAdd} snap="half" snaps={["half"]}>
         <div className="space-y-1">

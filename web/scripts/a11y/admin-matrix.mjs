@@ -114,7 +114,9 @@ const CAMPS = [
 ];
 const GROUPS = [{ slug: "subscribers", name: "Subscribers", kind: "system", count: 42, total: 42, active: 38 }, { slug: "friends", name: "Friends", kind: "manual", count: 5, total: 5, active: 5 }];
 const CONSENT = { textId: "t1", textHash: "h", lang: "en", at: ago(500), confirmedAt: ago(499), source: "site" };
-const CONTACTS = ["ada.lovelace@example.com", "a-very-long-address-for-wrapping-checks@subdomain.example-company.co.il", "בדיקה@example.com", "grace@example.org"].map((email, i) => ({ hash: `h${i}`, email, name: i === 0 ? "Ada Lovelace" : i === 2 ? "שרה כהן" : null, lang: i === 2 ? "he" : "en", groups: i === 3 ? [] : ["subscribers"], status: ["active", "pending", "active", "unsubscribed"][i], source: "site", consentAt: ago(500), consentNote: "Signed up on the site", consent: CONSENT, consentHistory: [CONSENT], topics: { blog: true, releases: i % 2 === 0 }, createdAt: ago(500), confirmedAt: ago(499), unsubscribedAt: null }));
+/* A dozen people: a list of four measures nothing. The first four are the awkward ones (long, Hebrew, no name, not mailable). */
+const PEOPLE = ["ada.lovelace@example.com", "a-very-long-address-for-wrapping-checks@subdomain.example-company.co.il", "בדיקה@example.com", "grace@example.org", ...Array.from({ length: 8 }, (_, k) => `reader${k + 1}@example.net`)];
+const CONTACTS = PEOPLE.map((email, i) => ({ hash: `h${i}`, email, name: i === 0 ? "Ada Lovelace" : i === 2 ? "שרה כהן" : i > 3 && i % 3 === 0 ? `Reader ${i - 3}` : null, lang: i === 2 || i % 4 === 3 ? "he" : "en", groups: i === 3 ? [] : ["subscribers"], status: i < 4 ? ["active", "pending", "active", "unsubscribed"][i] : i === 6 ? "suppressed" : "active", source: ["site", "manual", "import"][i % 3], consentAt: ago(500), consentNote: "Signed up on the site", consent: CONSENT, consentHistory: [CONSENT], topics: { blog: true, releases: i % 2 === 0 }, createdAt: ago(500), confirmedAt: ago(499), unsubscribedAt: null }));
 const SENDER = { ...DEFAULT_SENDER, fromName: "Yehuda", fromAddress: "news@example.com", footerIdentity: "Yehuda, Tel Aviv", identityEmail: "me@example.com", testRecipients: ["me@example.com"] };
 const ANNOUNCE_SETTINGS = { enabled: true, email: { enabled: true, events: ["post", "release"] }, hashtags: ["web", "design"], signature: "-- Y", channels: ["linkedin", "x", "email"], templates: { en: { x: "Hi {title}" }, he: {} }, snippets: [{ id: "s1", name: "Tags", kind: "hashtags", text: "#one #two" }], library: [{ id: "t1", name: "Launch", channel: "linkedin", lang: "en", text: "{title} {url}" }], advanced: { utm: { enabled: false, source: "announce", mediumByChannel: {} } }, sender: SENDER, notify: DEFAULT_NOTIFY };
 const BUDGET = { today: { used: 12, usable: 72, reserve: 18, room: 60 }, month: { used: 300, usable: 2430, room: 2130 }, capacity: 72, waiting: null, resumeAt: null, thresholds: [70, 90] };
@@ -154,6 +156,14 @@ const tint = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300"><rec
 
 /* ------------------------------------------------------------------ screens */
 /* dispatchEvent, not click(): Playwright's click waits for a stable box, which needs animation frames, and this box's headless Chromium emits about one per 40 s. */
+/* Audience: on a phone Add and Import sit behind the + sheet; wide, they are buttons in the toolbar. */
+const addPeople = (item, wide) => async (page) => {
+  const plus = page.getByRole("button", { name: /^(Add people|הוספת אנשים)$/ });
+  if (await plus.count()) {
+    await plus.dispatchEvent("click", {}, { timeout: 20000 });
+    await page.getByRole("button", { name: item }).dispatchEvent("click", {}, { timeout: 8000 });
+  } else await page.locator(wide).first().dispatchEvent("click", {}, { timeout: 20000 });
+};
 const click = (sel, n = 0) => async (page) => { await page.locator(sel).nth(n).dispatchEvent("click", {}, { timeout: 20000 }); };
 const SCREENS = [
   ["overview", "/admin"],
@@ -186,9 +196,10 @@ const SCREENS = [
   ["marketing-campaign-composer-new", "/admin/marketing?tab=campaigns", click("button.a-btn-primary")],
   ["marketing-campaign-composer-open", "/admin/marketing?tab=campaigns", async (page) => { await page.getByRole("button", { name: /^(Open|פתיחת) / }).first().dispatchEvent("click", {}, { timeout: 20000 }); }],
   ["marketing-audience", "/admin/marketing?tab=audience"],
-  ["marketing-contact-sheet", "/admin/marketing?tab=audience", click("table tbody tr button")],
-  ["marketing-add-contact", "/admin/marketing?tab=audience", click("button.a-btn-primary")],
-  ["marketing-import", "/admin/marketing?tab=audience", click("div.flex.flex-wrap.gap-2 > button:not(.a-btn-primary)")],
+  ["marketing-contact-sheet", "/admin/marketing?tab=audience", click("table tbody tr button, [data-record-row]")],
+  ["marketing-add-contact", "/admin/marketing?tab=audience", addPeople(/^(Add contact|הוספת איש קשר)$/, "button.a-btn-primary")],
+  ["marketing-import", "/admin/marketing?tab=audience", addPeople(/^(Import CSV|ייבוא CSV)$/, "div.flex.flex-wrap.gap-2 > button:not(.a-btn-primary)")],
+  ["marketing-audience-select", "/admin/marketing?tab=audience", async (page) => { const b = page.getByRole("button", { name: /^(Select|בחירה)$/ }); if (await b.count()) { await b.dispatchEvent("click", {}, { timeout: 8000 }); await page.locator("[data-record-row]").nth(0).dispatchEvent("click", {}, { timeout: 8000 }); } }],
   ["marketing-audience-expanded", "/admin/marketing?tab=audience", async (page) => { await page.evaluate(() => document.querySelectorAll("details").forEach((d) => (d.open = true))); }],
   ["marketing-library", "/admin/marketing?tab=library"],
   ["marketing-settings", "/admin/marketing?tab=settings"],

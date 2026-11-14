@@ -267,6 +267,7 @@ Migrations that consume them: #670 Inbox, #676 Campaigns, #677 Audience, #678 Ma
 | Blocked from mail | `ShieldBan` | Blocked from mail | חסום לדיוור |
 | Group | `Users` | Group | קבוצה |
 | Language | `Languages` | Language | שפה |
+| Contact source: site signup / added by hand / CSV import (lead icon of a contact row; the word is in the sheet's consent record) | `Globe` / `UserPen` / `FileUp` (`announce/audience/sourceIcon.ts`) | Site signup / Added by hand / CSV import | הרשמה באתר / נוסף ידנית / ייבוא CSV |
 | Hebrew missing / out of date / draft / unverified / done | `CircleDashed` / `RefreshCw` / `PenLine` / `CircleHelp` / `Check` on an "עב" badge | Hebrew missing / out of date / draft / unverified / done | עברית חסרה / לא עדכנית / טיוטה / לא מאומתת / הושלמה |
 | Email | `Mail` | Email | אימייל |
 | LinkedIn / X / Instagram | `ChannelIcon` (inline SVG) | LinkedIn / X / Instagram | לינקדאין / X / אינסטגרם |
