@@ -294,6 +294,12 @@ describe.each([
     description: /WCAG 2\.2 at level AA.*IS 5568/,
   },
   {
+    path: "/help",
+    title: "Help · Yehuda Briskman",
+    h1: "Help",
+    description: /^How to use this site/,
+  },
+  {
     path: "/privacy",
     title: "Privacy · Yehuda Briskman",
     h1: "Privacy",
@@ -386,7 +392,7 @@ describe("the crawler fallback on every rendered page", () => {
     readingMinutes: 1,
     seo: { title: null, description: null, canonical: null, noindex: false },
   };
-  const PAGES = ["Accessibility", "Blog", "BlogArea", "BlogLog", "BlogPost", "Privacy", "Project", "Projects", "Story"];
+  const PAGES = ["Accessibility", "Blog", "BlogArea", "BlogLog", "BlogPost", "Help", "Privacy", "Project", "Projects", "Story"];
   // The shell as the build writes it: one route-preload meta per lazy page.
   const BUILT = INDEX_HTML.replace(
     "</head>",
@@ -418,6 +424,7 @@ describe("the crawler fallback on every rendered page", () => {
     { url: "/story", page: "Story", text: "The long way round" },
     { url: "/accessibility", page: "Accessibility", text: "<h1>Accessibility</h1>" },
     { url: "/privacy", page: "Privacy", text: "<h1>Privacy</h1>" },
+    { url: "/help", page: "Help", text: "<h1>Help</h1>" },
     { url: "/blog", page: "Blog", text: "<h1>Blogs</h1>" },
     { url: "/blog/log", page: "BlogLog", text: "<h1>Channel log</h1>" },
     { url: "/blog/a-note", page: "BlogPost", text: "<h1>A note</h1>" },

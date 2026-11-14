@@ -50,7 +50,7 @@ export default function SnippetsEditor({ snippets, onChange }: { snippets: Annou
       <ul className="space-y-3">
         {snippets.map((s) => (
           <li key={s.id} className="a-box">
-            <div className="grid gap-3 p-4 sm:grid-cols-[1fr_12rem]">
+            <div className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-[1fr_12rem]">
               <SnippetFields snippet={s} onPatch={(p) => patch(s.id, p)} uid={uid} />
               <div className="sm:col-span-2">
                 <button type="button" className="a-btn a-btn-ghost min-h-[44px]" aria-label={w.remove(s.name || w.untitled)} onClick={() => onChange(snippets.filter((x) => x.id !== s.id))}>

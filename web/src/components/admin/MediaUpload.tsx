@@ -204,7 +204,7 @@ export default function MediaUpload({
             </span>
           </label>
           {pending.kind === "video" && (
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <label className="block">
                 <span className="a-label">{w.poster}</span>
                 <input
@@ -239,7 +239,7 @@ export default function MediaUpload({
               )}
             </div>
           )}
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <label className="block">
               <span className="a-label">{w.caption}</span>
               <input value={caption} onChange={(e) => setCaption(e.target.value)} className="a-input" maxLength={500} />

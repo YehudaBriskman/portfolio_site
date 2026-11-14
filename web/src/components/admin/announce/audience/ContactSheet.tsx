@@ -83,7 +83,7 @@ export default function ContactSheet({ contact, groups, onClose, onDone }: { con
         </div>
 
         <Disclosure className="a-box" summary={w.detailsHeading}>
-          <div className="grid gap-3">
+          <div className="grid grid-cols-1 gap-3">
             <div>
               <label className="a-label" htmlFor={`${uid}-n`}>{w.name}</label>
               <input id={`${uid}-n`} className="a-input min-h-[44px]" dir="auto" maxLength={80} value={name} onChange={(e) => setName(e.target.value)} />

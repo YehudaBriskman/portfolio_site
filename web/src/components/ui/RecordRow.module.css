@@ -10,6 +10,7 @@
   margin: 0;
   padding: 0;
   list-style: none;
+  container-type: inline-size;
 }
 
 .row {
@@ -166,6 +167,31 @@
   overflow: hidden;
   clip-path: inset(50%);
   white-space: nowrap;
+}
+
+/*
+ * Large text on a narrow screen: the container's rem is the root font size, so
+ * this fires when the text is scaled up, not only when the screen is small. The
+ * status drops under the title instead of taking a column, and the lead shrinks,
+ * so the title keeps a readable width (one letter per line otherwise).
+ */
+@container (max-width: 17rem) {
+  .row {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      "lead title chevron"
+      "lead facts chevron"
+      "status status status";
+    column-gap: var(--a-s-2, 0.5rem);
+  }
+  .lead {
+    inline-size: 1.75rem;
+    block-size: 1.75rem;
+  }
+  .status {
+    justify-self: start;
+    margin-block-start: 0.25rem;
+  }
 }
 
 @media (prefers-reduced-motion: no-preference) {

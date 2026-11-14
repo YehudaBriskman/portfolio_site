@@ -129,7 +129,7 @@ export default function AdminProjects() {
               onChange={(next) => set((d) => void (d.fields = next))}
             >
               {(x, i) => (
-                <div className="grid gap-4 sm:grid-cols-[10rem_minmax(0,1fr)]">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-[10rem_minmax(0,1fr)]">
                   <SelectField<(typeof FIELD_KINDS)[number]> id={`project-fields-${i}-kind`} path={`${base}.fields.${i}.kind`} label="Kind" value={x.kind} options={FIELD_KINDS} onChange={(v) => set((d) => void (d.fields[i].kind = v))} />
                   <PlainField id={`project-fields-${i}-value`} path={`${base}.fields.${i}.value`} label="Value" value={x.value} onChange={(v) => set((d) => void (d.fields[i].value = v))} />
                 </div>
@@ -260,7 +260,7 @@ export default function AdminProjects() {
                   </h2>
                   <LangSwitch />
                   <Section title={w.group.basics} defaultOpen>
-                    <div className="grid gap-4">
+                    <div className="grid grid-cols-1 gap-4">
                       {f.title}
                       {f.slug}
                       {f.year}
@@ -331,7 +331,7 @@ export default function AdminProjects() {
             {p && f && (
               <div className="min-w-0">
                 <Section title={p.title || "Untitled"}>
-                  <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     {f.title}
                     {f.slug}
                     {f.year}
@@ -351,7 +351,7 @@ export default function AdminProjects() {
                 </Section>
 
                 <Section title="Links">
-                  <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     {f.link}
                     {f.linkLabel}
                     {f.github}

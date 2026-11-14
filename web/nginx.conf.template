@@ -359,6 +359,13 @@ server {
     error_page 500 502 503 504 = @spa;
   }
 
+  location = /help {
+    proxy_pass http://$api_upstream/api/seo/render/help;
+    include /etc/nginx/snippets/proxy-headers.conf;
+    proxy_intercept_errors on;
+    error_page 500 502 503 504 = @spa;
+  }
+
   location = /follow {
     proxy_pass http://$api_upstream/api/seo/render/follow;
     include /etc/nginx/snippets/proxy-headers.conf;
@@ -664,6 +671,7 @@ server {
   location = /developers/mcp/ { return 308 /developers/mcp; }
   location = /follow/ { return 308 /follow; }
   location = /privacy/ { return 308 /privacy; }
+  location = /help/ { return 308 /help; }
   location = /unsubscribe/ { return 308 /unsubscribe; }
 
   #

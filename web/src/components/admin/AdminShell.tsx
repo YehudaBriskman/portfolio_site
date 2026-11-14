@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { ChevronLeft, ExternalLink, LogOut, Menu, X } from "lucide-react";
 import { admin } from "@/services/admin";
@@ -94,6 +94,23 @@ export type AdminShellProps = {
   children: ReactNode;
 };
 
+/* The width at which the drawer becomes the permanent sidebar (index.css `.a-side`). */
+const DRAWER_QUERY = "(min-width: 1024px)";
+
+/** True once the sidebar is always on screen, so the drawer and its toggle no longer exist. */
+function useSidebarDocked(): boolean {
+  return useSyncExternalStore(
+    (cb) => {
+      if (typeof window === "undefined" || typeof window.matchMedia !== "function") return () => {};
+      const mq = window.matchMedia(DRAWER_QUERY);
+      mq.addEventListener?.("change", cb);
+      return () => mq.removeEventListener?.("change", cb);
+    },
+    () => typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia(DRAWER_QUERY).matches,
+    () => false,
+  );
+}
+
 export default function AdminShell({ title, section, counts, bottomBar, backTo, barEverywhere, actions, children }: AdminShellProps) {
   const { pathname, search } = useLocation();
   const w = useAdminWords();
@@ -109,6 +126,13 @@ export default function AdminShell({ title, section, counts, bottomBar, backTo, 
   const announceUnread = useAnnounceUnread();
   const [who, setWho] = useState("");
   const [open, setOpen] = useState(false);
+  /* Widening past the drawer breakpoint (rotate, resize, snap) hides the toggle
+     that could close it, so a drawer left open would leave <main> inert with no
+     control to undo it. Close it at that moment, while rendering like the route
+     change below, and read "open" through the width so it can never be stale. */
+  const docked = useSidebarDocked();
+  if (docked && open) setOpen(false);
+  const drawerOpen = open && !docked;
   const drawerId = useId();
   const toggle = useRef<HTMLButtonElement>(null);
   const drawer = useRef<HTMLDivElement>(null);
@@ -218,7 +242,7 @@ export default function AdminShell({ title, section, counts, bottomBar, backTo, 
       <header className="a-top">
         {backTo ? (
           <Link to={backTo} className="a-btn a-btn-ghost a-icon-btn lg:hidden" aria-label={w.back}>
-            <ChevronLeft aria-hidden="true" />
+            <ChevronLeft aria-hidden="true" className="a-mirror" />
           </Link>
         ) : (
           <button
@@ -244,9 +268,9 @@ export default function AdminShell({ title, section, counts, bottomBar, backTo, 
             {crumbs.map((c, i) => (
               <li key={`${c.label}-${i}`} data-last={i === last ? "" : undefined}>
                 {c.to && i !== last ? (
-                  <Link to={c.to}>{c.label}</Link>
+                  <Link to={c.to}><bdi>{c.label}</bdi></Link>
                 ) : (
-                  <span aria-current="page">{c.label}</span>
+                  <span aria-current="page"><bdi>{c.label}</bdi></span>
                 )}
               </li>
             ))}
@@ -284,7 +308,14 @@ export default function AdminShell({ title, section, counts, bottomBar, backTo, 
       <div className="a-frame">
         <div className="a-scrim" hidden={!open} onClick={() => setOpen(false)} aria-hidden="true" />
         <div ref={drawer} id={drawerId} className="a-side" data-open={open ? "" : undefined}>
-          <SidebarNav nodes={tree} label={w.sections} storageKey="admin-nav-open" fallbackId={section} className="a-side-nav" />
+          <SidebarNav
+            nodes={tree}
+            label={w.sections}
+            storageKey="admin-nav-open"
+            fallbackId={section}
+            className="a-side-nav"
+            onNavigate={() => setOpen(false)}
+          />
 
           <div className="a-side-foot">
             <p className="a-side-who">{who ? w.signedInAs(who) : w.signedIn}</p>
@@ -297,7 +328,7 @@ export default function AdminShell({ title, section, counts, bottomBar, backTo, 
           </div>
         </div>
 
-        <main id="admin-content" tabIndex={-1} className="a-main" inert={open || undefined}>
+        <main id="admin-content" tabIndex={-1} className="a-main" inert={drawerOpen || undefined}>
           {children}
         </main>
       </div>

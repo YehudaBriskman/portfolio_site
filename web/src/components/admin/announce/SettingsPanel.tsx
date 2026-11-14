@@ -203,7 +203,7 @@ export default function SettingsPanel() {
             <div>
               <p className="a-label">{sw.utmMediumHeading}</p>
               <p className="a-hint !mt-0">{sw.utmMediumHint}</p>
-              <div className="mt-2 grid gap-3 sm:grid-cols-2">
+              <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {ANNOUNCE_CHANNELS.map((c) => (
                   <div key={c}>
                     <label className="a-label" htmlFor={`${uid}-m-${c}`}>{sw.utmMedium(w.channels[c])}</label>

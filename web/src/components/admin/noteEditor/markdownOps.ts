@@ -45,7 +45,7 @@ function inline(s: Sel, op: InlineOp, placeholder: string): Edit {
 
 /** The whole lines the selection touches. */
 function lineSpan(s: Sel) {
-  const from = s.value.lastIndexOf("\n", s.start - 1) + 1;
+  const from = s.start === 0 ? 0 : s.value.lastIndexOf("\n", s.start - 1) + 1; // fromIndex -1 would clamp to 0
   const nl = s.value.indexOf("\n", s.end > s.start && s.value[s.end - 1] === "\n" ? s.end - 1 : s.end);
   return { from, to: nl === -1 ? s.value.length : nl };
 }
@@ -55,12 +55,19 @@ function lines(s: Sel, op: LineOp): Edit {
   const { from, to } = lineSpan(s);
   const rows = s.value.slice(from, to).split("\n");
   const want = PREFIX[op];
-  const allOn = rows.every((r) => r.startsWith(want) || (op === "ol" && /^\d+\. /.test(r)) || r === "");
-  const out = rows.map((r, i) => {
-    if (r === "" && rows.length > 1) return r;
+  /* Blank rows are separators inside a multi-line selection and are left alone,
+     and they never decide whether the prefix is "already on". A selection with
+     nothing but blank rows (the caret on an empty line) has no separators to
+     protect, so there the blank rows take the prefix. */
+  const filled = rows.filter((r) => r !== "");
+  const allOn = filled.length > 0 && filled.every((r) => r.startsWith(want) || (op === "ol" && /^\d+\. /.test(r)));
+  let n = 0;
+  const out = rows.map((r) => {
+    if (r === "" && filled.length > 0) return r;
     const bare = r.replace(ANY_PREFIX, "");
     if (allOn) return bare;
-    return (op === "ol" ? `${i + 1}. ` : want) + bare;
+    n += 1;
+    return (op === "ol" ? `${n}. ` : want) + bare;
   });
   const text = out.join("\n");
   return { from, to, text, selStart: from === to ? from + text.length : from, selEnd: from + text.length };
