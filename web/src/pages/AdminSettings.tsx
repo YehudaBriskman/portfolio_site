@@ -1,8 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import AdminShell from "@/components/admin/AdminShell";
 import EditorBar, { type BarTone } from "@/components/admin/EditorBar";
 import { PageHeader } from "@/components/admin/ui";
 import { Disclosure } from "@/components/ui/Disclosure";
+import SettingsPhone, { isGroupId } from "@/components/admin/settings/SettingsPhone";
+import { changesBetween } from "@/components/admin/settings/diff";
+import { usePhone } from "@/hooks/usePhone";
 import { issueText, useSettingsWords } from "@/components/admin/settings/words";
 import { INTL, useLang } from "@/components/dashboard/i18n";
 import { ContentConflictError, ContentInvalidError, type Issue } from "@/services/adminContent";
@@ -36,20 +40,37 @@ import { setSettings } from "@/settings/store";
 
 type Status = "idle" | "saving" | "saved" | "conflict" | "failed" | "unauthorised";
 
-function differences(a: SiteSettings, b: SiteSettings): number {
-  let n = 0;
-  a.home.sections.forEach((s, i) => {
-    const o = b.home.sections[i];
-    if (!o || o.id !== s.id || o.visible !== s.visible) n += 1;
-  });
-  for (const k of ["theme", "motion", "accent"] as const) if (a.visuals[k] !== b.visuals[k]) n += 1;
-  if (JSON.stringify(a.sharing) !== JSON.stringify(b.sharing)) n += 1;
-  return n;
-}
+const differences = (a: SiteSettings, b: SiteSettings): number => changesBetween(a, b).length;
 
 export default function AdminSettings() {
   const w = useSettingsWords();
   const lang = useLang();
+  const phone = usePhone();
+  /* On a phone the open group lives in the address, so a link can land on it. */
+  const [params, setParams] = useSearchParams();
+  const group = params.get("group");
+  const openId = phone && isGroupId(group) ? group : null;
+  const openGroup = (id: string | null) =>
+    setParams(
+      (cur) => {
+        const next = new URLSearchParams(cur);
+        if (id) next.set("group", id);
+        else next.delete("group");
+        return next;
+      },
+      { replace: true },
+    );
+  /* A page has no sheet to hand focus back, so return it to the row that opened it. */
+  const lastOpen = useRef<string | null>(null);
+  useEffect(() => {
+    if (openId) {
+      lastOpen.current = openId;
+      return;
+    }
+    const id = lastOpen.current;
+    lastOpen.current = null;
+    if (id) document.querySelector<HTMLElement>(`[data-settings-group="${id}"] button`)?.focus();
+  }, [openId]);
   const [view, setView] = useState<SettingsView | null>(null);
   const [draft, setDraft] = useState<SiteSettings | null>(null);
   const [status, setStatus] = useState<Status>("idle");
@@ -216,7 +237,7 @@ export default function AdminSettings() {
     >
       <PageHeader
         title={w.title}
-        description={w.intro}
+        description={phone ? undefined : w.intro}
         actions={
           <div className="hidden items-center gap-3 lg:flex">
             {statusLine}
@@ -246,7 +267,22 @@ export default function AdminSettings() {
         </ul>
       )}
 
-      {draft && view && (
+      {draft && view && phone && (
+        <SettingsPhone
+          draft={draft}
+          view={view}
+          edit={edit}
+          toggle={toggle}
+          move={move}
+          issues={issues}
+          saving={status === "saving"}
+          onRestore={(version) => run(() => adminSettings.revert(version, view._rev))}
+          openId={openId}
+          onOpenChange={openGroup}
+        />
+      )}
+
+      {draft && view && !phone && (
         <form noValidate onSubmit={(e) => (e.preventDefault(), save())} className="max-w-3xl">
           <section className="mt-10 space-y-4" aria-labelledby="settings-home">
             <h2 id="settings-home" className="display-tight text-xl">

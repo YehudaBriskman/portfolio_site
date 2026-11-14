@@ -93,7 +93,7 @@ describe("Settings on a phone: groups", () => {
     row.focus();
     fireEvent.click(row);
     expect(screen.getByTestId("where").textContent).toBe("/admin/settings?group=look");
-    fireEvent.click(await screen.findByRole("button", { name: "Back" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Back to settings" }));
     await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("button", { name: /Look and feel/ })));
   });
 
@@ -105,10 +105,10 @@ describe("Settings on a phone: groups", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Move Specs up" }));
     await waitFor(() => expect(document.activeElement?.id).toBe("settings-stack-up"));
     fireEvent.click(screen.getByRole("switch", { name: "Contact" }));
-    fireEvent.click(screen.getByRole("button", { name: "Back" }));
+    fireEvent.click(screen.getByRole("button", { name: "Back to settings" }));
     fireEvent.click(await group(/Look and feel/));
     fireEvent.click(await screen.findByRole("radio", { name: "Pine" }));
-    fireEvent.click(screen.getByRole("button", { name: "Back" }));
+    fireEvent.click(screen.getByRole("button", { name: "Back to settings" }));
     fireEvent.click(await group(/Sharing menu/));
     fireEvent.click(await screen.findByRole("switch", { name: "WhatsApp" }));
     expect(save()).toBeEnabled();
@@ -116,8 +116,8 @@ describe("Settings on a phone: groups", () => {
     await waitFor(() => expect(calls.some((c) => c.method === "PUT")).toBe(true));
     const put = calls.find((c) => c.method === "PUT")!;
     const expected = structuredClone(DEFAULT_SETTINGS);
-    const [stack] = expected.home.sections.splice(3, 1);
-    expected.home.sections.splice(2, 0, stack);
+    const [stack] = expected.home.sections.splice(4, 1);
+    expected.home.sections.splice(3, 0, stack);
     expected.home.sections.find((s) => s.id === "contact")!.visible = false;
     expected.visuals.accent = "pine";
     expected.sharing.channels = expected.sharing.channels.filter((c) => c !== "whatsapp");
@@ -138,9 +138,9 @@ describe("Settings on a phone: groups", () => {
     const calls = stub();
     page();
     fireEvent.click(await group(/Share texts/));
-    fireEvent.click(await screen.findByText("English"));
+    fireEvent.click(await screen.findByText("English templates"));
     fireEvent.change(screen.getByLabelText("LinkedIn", { selector: "#settings-template-en-linkedin" }), { target: { value: "Seen: {title} {url}" } });
-    fireEvent.click(screen.getByRole("button", { name: "Back" }));
+    fireEvent.click(screen.getByRole("button", { name: "Back to settings" }));
     fireEvent.click(save());
     await waitFor(() => expect(calls.some((c) => c.method === "PUT")).toBe(true));
     expect(calls.find((c) => c.method === "PUT")!.body!.settings!.sharing.templates.en.linkedin).toBe("Seen: {title} {url}");
