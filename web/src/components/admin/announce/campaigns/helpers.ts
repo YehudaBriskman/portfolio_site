@@ -72,7 +72,13 @@ export function zonedToIso(local: string, tz: string): string | null {
   const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(local);
   if (!m) return null;
   const [y, mo, d, h, mi] = m.slice(1).map(Number);
-  const guess = Date.UTC(y, mo - 1, d, h, mi);
+  /* Date.UTC would carry 30 February into March and read year 0001 as 1901: a date that does not exist is not moved. */
+  if (y < 1970 || mo < 1 || mo > 12 || d < 1 || h > 23 || mi > 59) return null;
+  const at = new Date(Date.UTC(2000, mo - 1, 1));
+  at.setUTCFullYear(y, mo - 1, d);
+  at.setUTCHours(h, mi, 0, 0);
+  if (at.getUTCMonth() !== mo - 1 || at.getUTCDate() !== d) return null;
+  const guess = at.getTime();
   if (!Number.isFinite(guess)) return null;
   const fmt = new Intl.DateTimeFormat("en-US", { timeZone: tz, hourCycle: "h23", year: "numeric", month: "numeric", day: "numeric", hour: "numeric", minute: "numeric", second: "numeric" });
   const offset = (t: number) => {
