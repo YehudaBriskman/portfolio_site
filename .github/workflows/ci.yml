@@ -531,6 +531,12 @@ jobs:
       - name: Admin enter/exit motion
         if: matrix.check == 'a11y' && matrix.shard == 1
         run: npm run a11y:admin-motion
+      # Bottom sheets with real touch events (#715): a drag-dismissed sheet
+      # reopens in the same place, a native close reaches the component, a
+      # flick dismisses, one Back is never dead, focus never falls to body.
+      - name: Bottom sheets on a phone
+        if: matrix.check == 'a11y' && matrix.shard == 1
+        run: npm run a11y:bottom-sheet-phone
       # Admin at 320, 360, 390 and 768 wide, light and dark, English and
       # Hebrew (#660): no sideways scroll, no target under 24px, no primary
       # control under 44px on touch, no text under 14px outside the
