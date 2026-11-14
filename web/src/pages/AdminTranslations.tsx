@@ -227,7 +227,7 @@ export default function AdminTranslations() {
                           <td className="a-fit !pr-0 align-top">
                             <TranslationPill status={units.reduce((worst, u) => (RANK[u.status] < RANK[worst] ? u.status : worst), units[0].status)} />
                           </td>
-                          <td>
+                          <td className="a-main">
                             <Link to={href} className="a-row-title">
                               {item.title}
                             </Link>
@@ -241,7 +241,7 @@ export default function AdminTranslations() {
                             </span>
                           </td>
                           <td className="a-fit hidden md:table-cell">
-                            <code dir="ltr" className="text-sm text-[rgb(var(--ink-soft))]">
+                            <code dir="ltr" className="a-path text-sm text-[rgb(var(--ink-soft))]" title={heRoute(item.route)}>
                               {heRoute(item.route)}
                             </code>
                           </td>

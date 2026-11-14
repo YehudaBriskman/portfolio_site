@@ -100,14 +100,16 @@ function measure() {
     const fs = parseFloat(cs.fontSize);
     const px = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight) + parseFloat(cs.borderLeftWidth) + parseFloat(cs.borderRightWidth);
     /* Lines are counted from the text itself (a min-height is not a wrapped label). */
-    const tops = new Set();
-    const walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, { acceptNode: (t) => (t.parentElement.closest(".sr-only") ? NodeFilter.FILTER_REJECT : t.nodeValue.trim() ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT) });
+    /* A card (a tile, a stat) holds blocks of prose and may wrap: only a label is held to the rule. */
+    if ([...el.querySelectorAll("*")].some((d) => /^(block|flex|grid|list-item|table)/.test(getComputedStyle(d).display) && !d.closest(".sr-only") && d.getBoundingClientRect().width > 0)) continue;
+    /* Lines are counted per run of text, from the text itself (a min-height is not a wrapped label, and a badge beside it is not another line). */
+    let lines = 0;
+    const walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, { acceptNode: (t) => (t.parentElement.closest(".sr-only") || !t.nodeValue.trim() ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT) });
     for (let t = walk.nextNode(); t; t = walk.nextNode()) {
       const range = document.createRange();
       range.selectNodeContents(t);
-      for (const q of range.getClientRects()) if (q.width > 0 && q.height > 0) tops.add(Math.round(q.top / (fs * 0.6)));
+      lines = Math.max(lines, new Set([...range.getClientRects()].filter((q) => q.width > 0 && q.height > 0).map((q) => Math.round(q.top / 4))).size);
     }
-    const lines = tops.size;
     const oneWord = !/\s/.test(text);
     const why = r.width - px < 2 * fs * 0.5 ? "narrower than 2ch" : lines > 2 ? `${lines} lines` : oneWord && lines > 1 ? "a word broken across lines" : "";
     if (why) out.squeezed.push({ el: sel(el), text: text.slice(0, 24), w: Math.round(r.width), h: Math.round(r.height), why });

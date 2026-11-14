@@ -400,6 +400,8 @@ Three Playwright scripts in `web/scripts/a11y/` measure a built admin through th
 cd web && npm run build
 # Matrix (CI): every admin route and state at 320/360/390/768, light/dark, en/he. Fails on page overflow, targets under 24x24, primary controls under 44 on touch, text under 14px outside the allowlist; a finding in admin-matrix-baseline.json is known.
 npm run a11y:admin-matrix        # ONLY=media,marketing-inbox  WIDTHS=320,390  THEMES=light  LANGS=en  SHARD=1/2
+# Desktop (CI): 1024/1280/1440, en/he, long and Hebrew fixtures. Fails on sideways scroll and on any button or link whose label wraps past two lines, breaks a one-word label, or is narrower than 2ch. In a table, an action sits in a cell with `.a-fit` (never wraps) and a long machine string gets `.a-path`.
+npm run a11y:admin-desktop       # ONLY=translations  WIDTHS=1024  LANGS=he  SHOTS=dir
 # Inbox on a phone (CI): one tappable row per event, >= 7 rows above the fold of 390x844, no sideways scroll, the sheet opens and gives focus back, Mark done offers Undo, Hebrew mirrors.
 npm run a11y:admin-media-phone   # Media on a phone (CI): 3 columns of square tiles, >= 6 tiles above the fold of 390x844, one button per tile, no sideways scroll, the sheet has the alt text before where it is used, focus returns, desktop unchanged. BEFORE=1 measures and shoots without asserting (to record an old build)
 npm run a11y:admin-reflow   # reflow and device edge cases (CI), ~2 min: 320 and 280 wide, 200% text (the `--text-scale` token), forced-colors, safe-area insets, he. ONLY=B-h5-3 runs one case; SHOTS=<dir> writes screenshots. The admin matrix stays at 320/360/390/768: these cases need their own browser contexts and a frame per font change, so they live here, not in the matrix
