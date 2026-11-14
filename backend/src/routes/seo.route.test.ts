@@ -300,6 +300,18 @@ describe.each([
     description: /^How to use this site/,
   },
   {
+    path: "/help/rss",
+    title: "RSS · Yehuda Briskman",
+    h1: "RSS",
+    description: /^The notes have an RSS feed/,
+  },
+  {
+    path: "/help/contact-sent",
+    title: "Message sent · Yehuda Briskman",
+    h1: "Message sent",
+    description: /^Message sent: “Sent\. I’ll reply/,
+  },
+  {
     path: "/privacy",
     title: "Privacy · Yehuda Briskman",
     h1: "Privacy",
@@ -392,7 +404,7 @@ describe("the crawler fallback on every rendered page", () => {
     readingMinutes: 1,
     seo: { title: null, description: null, canonical: null, noindex: false },
   };
-  const PAGES = ["Accessibility", "Blog", "BlogArea", "BlogLog", "BlogPost", "Help", "Privacy", "Project", "Projects", "Story"];
+  const PAGES = ["Accessibility", "Blog", "BlogArea", "BlogLog", "BlogPost", "Help", "HelpTopic", "Privacy", "Project", "Projects", "Story"];
   // The shell as the build writes it: one route-preload meta per lazy page.
   const BUILT = INDEX_HTML.replace(
     "</head>",
@@ -425,6 +437,7 @@ describe("the crawler fallback on every rendered page", () => {
     { url: "/accessibility", page: "Accessibility", text: "<h1>Accessibility</h1>" },
     { url: "/privacy", page: "Privacy", text: "<h1>Privacy</h1>" },
     { url: "/help", page: "Help", text: "<h1>Help</h1>" },
+    { url: "/help/rss", page: "HelpTopic", text: "<h1>RSS</h1>" },
     { url: "/blog", page: "Blog", text: "<h1>Blogs</h1>" },
     { url: "/blog/log", page: "BlogLog", text: "<h1>Channel log</h1>" },
     { url: "/blog/a-note", page: "BlogPost", text: "<h1>A note</h1>" },

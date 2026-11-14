@@ -41,6 +41,7 @@ const ROUTES = [
   ["/blog", "/blog/area/bothy"],
   ["/", "/story"],
   ["/", "/help"],
+  ["/help", "/help/rss"],
   ["/", "/follow"],
   ["/", "/accessibility"],
   ["/", "/subscribe/confirm"],

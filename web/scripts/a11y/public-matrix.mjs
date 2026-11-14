@@ -79,6 +79,8 @@ const PAGES = [
   /* The contact form is a dialog on the home page, not a route: press the button that opens it and measure the dialog. */
   { id: "contact", path: "/", scope: "dialog[open]", open: "#contact button[type=button]" },
   { id: "help", path: "/help" },
+  { id: "help-guide", path: "/help/rss" },
+  { id: "help-outcome", path: "/help/contact-send-failed" },
 ];
 
 /* ---------------------------------------------------- in-page measurement */

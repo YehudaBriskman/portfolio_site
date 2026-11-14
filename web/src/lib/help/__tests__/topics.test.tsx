@@ -2,13 +2,13 @@ import { afterEach, describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { render } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
-import Help from "@/pages/Help";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
+import HelpTopicPage from "@/pages/HelpTopic";
 import { useHelpWords } from "@/i18n/help";
 import { useContactWords } from "@/i18n/pages";
 import { useSubscribeWords } from "@/i18n/subscribe";
 import { useShareWords } from "@/i18n/share";
-import { HELP_GROUPS, HELP_TOPICS, helpHref, helpTopics, isHelpTopic, type HelpTopic } from "../topics";
+import { HELP_GROUPS, helpHref, helpTopics, isHelpTopic, type HelpTopic } from "../topics";
 
 afterEach(() => document.documentElement.removeAttribute("lang"));
 
@@ -16,8 +16,8 @@ const SECTION_IDS = ["language", "look", "keyboard", "sharing", "rss", "contact-
 
 describe("the help topic registry", () => {
   it("builds the address of a topic in each language", () => {
-    expect(helpHref("contact-send-failed", "en")).toBe("/help#contact-send-failed");
-    expect(helpHref("contact-send-failed", "he")).toBe("/he/help#contact-send-failed");
+    expect(helpHref("contact-send-failed", "en")).toBe("/help/contact-send-failed");
+    expect(helpHref("contact-send-failed", "he")).toBe("/he/help/contact-send-failed");
   });
 
   it("recognises its own ids and nothing else", () => {
@@ -43,22 +43,18 @@ describe("the help topic registry", () => {
     }
   });
 
-  it.each(["en", "he"] as const)("the page renders one anchored entry per topic, in %s", (lang) => {
+  it.each(["en", "he"] as const)("every topic has a page that renders its title as the h1, in %s", (lang) => {
     document.documentElement.lang = lang;
-    const { container } = render(
-      <MemoryRouter initialEntries={["/help"]}>
-        <Help />
-      </MemoryRouter>,
-    );
     for (const t of helpTopics) {
-      const el = container.querySelector(`h4[id="${t}"]`);
-      expect(el, t).not.toBeNull();
-      expect(el!.textContent).toBe(useHelpWords.of(lang).topics[t].title);
-    }
-    /* Only a problem says where to write. */
-    for (const t of helpTopics) {
-      const entry = container.querySelector(`article[aria-labelledby="${t}"]`)!;
-      expect(entry.querySelector('a[href^="mailto:"]') !== null, t).toBe(HELP_TOPICS[t].kind === "problem");
+      const { container, unmount } = render(
+        <MemoryRouter initialEntries={[`/help/${t}`]}>
+          <Routes>
+            <Route path="/help/:topic" element={<HelpTopicPage />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+      expect(container.querySelector("h1")!.textContent, t).toBe(useHelpWords.of(lang).topics[t].title);
+      unmount();
     }
   });
 });

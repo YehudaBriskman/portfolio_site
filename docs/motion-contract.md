@@ -2071,9 +2071,10 @@ animation.
 | card tilt, note cards growing, pills, buttons, links, chips, glyph nudges, form controls | every route, admin login | `:hover` / `:focus` / `:active` transitions | **exempt**: hover/focus |
 | in-page anchor smooth scroll (`scrollToAnchor`) | every route | per click | **exempt**: a reply to a click |
 | admin login | /admin/posts | form-control focus transitions only | **exempt**: focus |
+| the help index and its topic pages on a phone (`components/help/helpMotion.css`, `useHelpMotion`) | /help, /help/:topic | a push or a pop between the index and a topic: `help-in-*` / `help-out-*` keyframes, `translate` 24px and `opacity`, 240ms in and 160ms out on `--ease-settle`, mirrored in RTL | **exempt** (#803): a reply to a tap. Phones only (under 640px), instant under reduced motion and Pause, none on a direct load or the browser's own back; see §15 |
 | 404, /accessibility | — | nothing of their own beyond the shared chrome above | — |
 
-Counted from the table above, row by row: 56 rows; 20 scrubbed, 18 exempt,
+Counted from the table above, row by row: 57 rows; 20 scrubbed, 19 exempt,
 10 removed, 8 with nothing of their own. Re-count after adding a row.
 
 The dashboards' still brand marks (round area marks, the circled rail item,
@@ -2278,3 +2279,19 @@ Same rule as section 13 (phones only, `prefers-reduced-motion: no-preference`, s
 
 **Check.** `npm run a11y:admin-motion` (with `STRIPS3=docs/design/motion-pass3` it also saves frame strips at 0, 80, 160 and 240 ms). For each new case: the state is right at once, leftovers leave within a 700 ms hard timeout (animations cancelled), nothing animates under reduced motion, nothing animates at 1280px. Strips: `docs/design/motion-pass3/` (remove, insert, popover, in English and Hebrew).
 
+## 15. Help push and pop on phones (2026-11-14, #803)
+
+**Why.** Owner request of 2026-11-14: the help area is an index and one page per topic, and moving between them should feel like a push (index to topic) and a pop (back). Phones only.
+
+**What the site had.** No route transition: a page replaces the one before. So nothing was reused from a route system; what is reused is the site's own curve and time (`--ease-settle`, `--dur-fast`, index.css), the `prefers-reduced-motion` and Pause (`body.motion-paused`) off-switches of §4, the phone breakpoint (`lib/phoneBreakpoint.ts`, 640) and the `data-input` rule that keeps a script-moved focus from drawing a ring after a tap (#776), which the route announcer still owns. This follows the shape of §13 (state changes only, inside the phone gate, instant fallback, state never waits on an animation event).
+
+**The rule.**
+
+1. `translate` (24px, `--help-dir` mirrors it in RTL) and `opacity` only: no layout property moves, so nothing shifts. `overflow-x: clip` on the page's root while it travels.
+2. Enter 240ms (`--dur-fast`), leave 160ms, both `--ease-settle`. Index to topic, and to a later neighbour, is a push; to the index or an earlier neighbour a pop.
+3. Leaving is a state, `data-help-motion="leave-push|leave-pop"`, set on the tap; the router goes 160ms later on a **timer** (never `animationend`, never a frame). A second tap while one is leaving navigates at once and drops the timer, so it is interruptible.
+4. Entering is carried by the navigation (`state.helpMotion`). A page loaded directly, or reached by the browser's own back, has no state and plays nothing: the page's first paint and the browser's gesture are already motion, and a second "first appearing" would be a duplicate (§13, rule 7).
+5. Instant, with no state at all, under `prefers-reduced-motion: reduce`, Pause motion, on a screen of 640px or more, for a modified click (new tab) and for a non-primary button.
+6. The stylesheet has no rule outside the phone query, so a wide screen is byte-identical.
+
+**Held by** `components/help/__tests__/helpMotion.test.tsx` (state and timers, never a frame; the stylesheet's gate) and `scrollOnly.test.ts` (the exemption above).

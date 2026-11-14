@@ -31,7 +31,7 @@ import { answer, startPreview } from "./site-stub.mjs";
 const WIDTHS = (process.env.WIDTHS ?? "360,390").split(",").map(Number);
 const LANGS = (process.env.LANGS ?? "en,he").split(",");
 const SHOTS = process.env.SHOTS ?? "";
-const ROUTES = ["/", "/blog", "/blog/fixture-post", "/projects", "/projects/bothy", "/contact", "/help"];
+const ROUTES = ["/", "/blog", "/blog/fixture-post", "/projects", "/projects/bothy", "/contact", "/help", "/help/rss", "/help/contact-send-failed"];
 
 /* The named controls and the size each owes (block, inline). Class names are
    CSS-module hashes with the source name kept in the middle, so match on that. */
