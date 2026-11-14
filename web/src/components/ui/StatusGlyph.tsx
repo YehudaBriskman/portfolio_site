@@ -42,6 +42,7 @@ export const STATUS = {
   unsubscribed: e(ICON.unsubscribed, "neutral"),
   suppressed: e(ICON.suppressed, "danger"),
   attention: e(ICON.attention, "attention"),
+  used: e(ICON.usedIn, "neutral"),
 } satisfies Record<string, Entry>;
 
 export type StatusKind = keyof typeof STATUS;

@@ -58,6 +58,10 @@ const LATIN_SEEN = new Set<string>([
   "medium",
   /* The file format the audience import and export name, as it is written on a file. */
   "CSV",
+  /* Image and caption formats the media library names, as they are written on a file (mediaPhoneWords.ts). */
+  "AVIF",
+  "WebP",
+  "vtt",
   /* The conformance level, as the standard writes it. */
   "AA",
   /* The brand word, first in the hero's fact line in both languages (#347, data/site.ts). */
