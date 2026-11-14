@@ -24,7 +24,8 @@
  * written down so a later change can pay it off: the file holds today's
  * numbers, defects included (blog search in Hebrew at 360, the small targets,
  * the 11.5px unit). A count above its baseline fails; one below it is reported
- * so the baseline gets lowered (RATCHET=1 makes that fail too). A page that
+ * so the baseline can be lowered (a notice, never a failure: parallel fixes must not
+ * conflict on one JSON file). A page that
  * does not load fails, so a broken fixture cannot pass as an empty report.
  * Never gated: timing, CLS, Lighthouse (variance on shared runners).
  *
@@ -35,7 +36,7 @@
  *                        language/width/theme combination
  *   ONLY=home,help  WIDTHS=360,390  THEMES=light  LANGS=he
  *   --shots dir          a screenshot of every measurement (never in CI)
- *   --write-baseline     record today's numbers (light, every width) as known
+ *   --update-baseline    record today's numbers (light, every width) as known
  *   --json file          the raw measurements
  *   --self-test          prove the measurement on a deliberately broken page
  *
@@ -219,7 +220,7 @@ export function toBaseline(results) {
 }
 
 /* A result above its budget fails; one under it is stale. A page that did not load always fails. */
-export function judge(results, baseline, { ratchet = false, gapSlack = 6 } = {}) {
+export function judge(results, baseline, { gapSlack = 6 } = {}) {
   const fails = [], stale = [];
   for (const r of results) {
     const tag = `${r.page} ${r.w}x${r.h} ${r.theme} ${r.lang}`;
@@ -239,7 +240,7 @@ export function judge(results, baseline, { ratchet = false, gapSlack = 6 } = {})
       else if (want != null && r.gap.gap > want + gapSlack) stale.push(`${tag}: call-to-action gap ${r.gap.gap}px > baseline ${want}px`);
     }
   }
-  return { fails, stale: ratchet ? [] : stale, ratchetFails: ratchet ? stale : [] };
+  return { fails, stale };
 }
 
 /* ------------------------------------------------------------ self-test */
@@ -305,7 +306,7 @@ async function selfTest() {
   expect(judge([rec({ overflow: x(1), coarse: x(3), gap: { gap: 80 } })], base0).fails.length === 1, "verdict: overflow with no budget must fail");
   expect(judge([rec({ coarse: x(3), gap: { gap: 40 } })], base0).fails.length === 1, "verdict: a shrinking call-to-action gap must fail");
   expect(judge([rec({ coarse: x(1), gap: { gap: 80 } })], base0).stale.length === 1, "verdict: a lower count is reported as stale");
-  expect(judge([rec({ coarse: x(1), gap: { gap: 80 } })], base0, { ratchet: true }).ratchetFails.length === 1, "verdict: RATCHET fails a stale baseline");
+  expect(judge([rec({ coarse: x(1), gap: { gap: 80 } })], base0).fails.length === 0, "verdict: a lower count never fails");
   expect(judge([rec({ broken: "blank main" })], base0).fails.length === 1, "verdict: a page that did not load must fail");
   expect(judge([rec({ error: "boom" })], base0).fails.length === 1, "verdict: an errored page must fail");
   if (problems.length) { console.log("SELF-TEST FAIL"); for (const p of problems) console.log(" ", p); process.exit(1); }
@@ -317,7 +318,7 @@ async function main() {
   const { chromium } = require("playwright-core");
   const { answer, startPreview } = await import(pathToFileURL(resolve(WEB, "scripts/a11y/site-stub.mjs")).href);
   const NOW = Date.UTC(2026, 10, 13, 12, 0, 0);
-  const WRITE = flag("--write-baseline");
+  const WRITE = flag("--update-baseline") || flag("--write-baseline");
   const SHOTS = arg("--shots", null);
   const JSON_OUT = arg("--json", null);
   const [shardK, shardN] = (process.env.SHARD ?? "1/1").split("/").map(Number);
@@ -416,15 +417,15 @@ async function main() {
     const b = toBaseline(results);
     const bad = results.filter((r) => r.error || r.broken);
     if (bad.length) { console.log(`baseline NOT written: ${bad.length} page(s) did not load`); process.exit(1); }
-    writeFileSync(BASELINE, JSON.stringify({ about: "Known findings of the public phone matrix (#764): counts per kind, page|lang|width. A count may only go down; lower it here in the PR that fixes it. Regenerate: npm run a11y:public-matrix -- --write-baseline", ...b }, null, 1) + "\n");
+    writeFileSync(BASELINE, JSON.stringify({ about: "Known findings of the public phone matrix (#764): counts per kind, page|lang|width. A count may only go down; lower it here in the PR that fixes it. Regenerate: npm run a11y:public-matrix -- --update-baseline", ...b }, null, 1) + "\n");
     const total = Object.values(b.counts).reduce((s, o) => s + Object.values(o).reduce((a, c) => a + c, 0), 0);
     console.log(`baseline: ${total} known finding(s) over ${Object.keys(b.counts).length} kinds`);
     return;
   }
   const baseline = JSON.parse(readFileSync(BASELINE, "utf8"));
-  const v = judge(results, baseline, { ratchet: process.env.RATCHET === "1" });
-  if (v.stale.length) { console.log(`\nBELOW BASELINE (${v.stale.length}): lower public-matrix-baseline.json (--write-baseline)`); for (const s of v.stale.slice(0, 30)) console.log(" ", s); }
-  const fails = [...v.fails, ...v.ratchetFails.map((s) => `${s} (RATCHET: lower the baseline)`)];
+  const v = judge(results, baseline, {});
+  if (v.stale.length) { console.log(`\nbaseline can be lowered: run npm run a11y:public-matrix -- --update-baseline (${v.stale.length} below it)`); for (const s of v.stale.slice(0, 30)) console.log(" ", s); }
+  const fails = v.fails;
   if (fails.length) { console.log(`\nFAIL: ${fails.length}`); for (const f of fails.slice(0, 80)) console.log(" ", f); process.exit(1); }
   console.log(`\nPASS: ${results.length} page measurements within the baseline.`);
 }

@@ -1,5 +1,5 @@
 {
- "about": "Known findings of the public phone matrix (#764): counts per kind, page|lang|width. A count may only go down; lower it here in the PR that fixes it. Regenerate: npm run a11y:public-matrix -- --write-baseline",
+ "about": "Known findings of the public phone matrix (#764): counts per kind, page|lang|width. A count may only go down; lower it here in the PR that fixes it. Regenerate: npm run a11y:public-matrix -- --update-baseline",
  "counts": {
   "coarse": {
    "blog|en|320": 4,
@@ -65,13 +65,6 @@
   },
   "overflow": {
    "home|en|320": 1
-  },
-  "squeeze": {
-   "blog|en|320": 1,
-   "blog|en|360": 1,
-   "blog|en|390": 1,
-   "blog|he|320": 1,
-   "blog|he|360": 1
   },
   "text": {
    "home|en|320": 1,

@@ -686,8 +686,6 @@ jobs:
       - name: Public phone matrix, shard ${{ matrix.shard }} of ${{ matrix.of }}
         env:
           SHARD: ${{ matrix.shard }}/${{ matrix.of }}
-          # A count below its baseline fails too: the fix PR lowers the baseline.
-          RATCHET: "1"
         run: npm run a11y:public-matrix
 
   backend:
