@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import PageShell from "@/components/PageShell";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
@@ -7,6 +7,12 @@ import { sectionVisible } from "@/settings/schema";
 import { useSiteSettings } from "@/settings/store";
 import { useHelpWords } from "@/i18n/help";
 import { HELP_GROUPS, HELP_TOPICS, helpTopics } from "@/lib/help/topics";
+import { Keyboard, LifeBuoy, Languages, Mail, Palette, Rss, Share2 } from "lucide-react";
+import GroupedSection from "@/components/phone/GroupedSection";
+import ListRow from "@/components/phone/ListRow";
+import type { Tone } from "@/components/phone/AvatarCircle";
+import "@/components/phone/tokens.css";
+import "@/components/phone/pages-info.css";
 
 /*
  * The help page: how to use the site, one anchored section per topic.
@@ -41,14 +47,15 @@ export default function Help() {
     document.getElementById(decodeURIComponent(hash.slice(1)))?.scrollIntoView();
   }, [hash]);
 
-  const toc = [
-    { id: "language", label: w.language },
-    { id: "look", label: w.look },
-    { id: "keyboard", label: w.keyboard },
-    { id: "sharing", label: w.sharing },
-    { id: "rss", label: w.rss },
-    ...(contactShown ? [{ id: "contact-form", label: w.contact }] : []),
-    { id: "problems", label: w.problems },
+  /* The icon and tint are the phone's (a leading circle); above 640px the row is the old link. */
+  const toc: { id: string; label: string; icon: ReactNode; tone: Tone }[] = [
+    { id: "language", label: w.language, icon: <Languages data-ph-only="" aria-hidden="true" />, tone: "blue" },
+    { id: "look", label: w.look, icon: <Palette data-ph-only="" aria-hidden="true" />, tone: "purple" },
+    { id: "keyboard", label: w.keyboard, icon: <Keyboard data-ph-only="" aria-hidden="true" />, tone: "neutral" },
+    { id: "sharing", label: w.sharing, icon: <Share2 data-ph-only="" aria-hidden="true" />, tone: "green" },
+    { id: "rss", label: w.rss, icon: <Rss data-ph-only="" aria-hidden="true" />, tone: "yellow" },
+    ...(contactShown ? [{ id: "contact-form", label: w.contact, icon: <Mail data-ph-only="" aria-hidden="true" />, tone: "blue" as Tone }] : []),
+    { id: "problems", label: w.problems, icon: <LifeBuoy data-ph-only="" aria-hidden="true" />, tone: "red" },
   ];
 
   return (
@@ -57,20 +64,27 @@ export default function Help() {
         <p className="eyebrow">{w.eyebrow}</p>
         <h1 className="display mt-3 text-section">{w.title}</h1>
 
-        <div className="mt-8 max-w-[36em] space-y-5 text-[1.0625rem] leading-relaxed text-ink">
+        <div className="mt-8 max-w-[36em] space-y-5 text-[1.0625rem] leading-relaxed text-ink" data-ph-prose="">
           <p>{w.intro}</p>
 
           <nav aria-label={w.contents}>
             <p className="mono text-xs text-clay">{w.contents}</p>
-            <ul className="mt-3 space-y-1">
-              {toc.map((t) => (
-                <li key={t.id}>
-                  <a className={`${link} -my-1 inline-flex min-h-11 items-center sm:min-h-0 sm:py-1 tap`} href={`#${t.id}`}>
-                    {t.label}
-                  </a>
-                </li>
-              ))}
-            </ul>
+            <GroupedSection>
+              <ul className="mt-3 space-y-1">
+                {toc.map((t) => (
+                  <li key={t.id}>
+                    <ListRow
+                      href={`#${t.id}`}
+                      icon={t.icon}
+                      tone={t.tone}
+                      className={`${link} -my-1 inline-flex min-h-11 items-center sm:min-h-0 sm:py-1 tap`}
+                    >
+                      <span>{t.label}</span>
+                    </ListRow>
+                  </li>
+                ))}
+              </ul>
+            </GroupedSection>
           </nav>
 
           <h2 id="language" className={h2}>{w.language}</h2>
