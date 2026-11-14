@@ -127,12 +127,15 @@ export function RecordRow({
       <span data-rr-title="" dir="auto" className={styles.title}>
         <bdi>{title}</bdi>
       </span>
+      {/* Real spaces between the parts: a name that holds the printed words ("Open Drafts 1 waiting") must still contain the printed text, which assistive tech and axe join without separators otherwise (WCAG 2.5.3). */}
+      {" "}
       <span id={descId} className={styles.desc}>
         {unread && <span className={styles.srOnly}>{w.isNew}</span>}
         {shown.length > 0 && (
           <span className={styles.facts}>
             {shown.map((f, i) => (
               <span key={i} className={cx("rr-fact", styles.fact)}>
+                {i > 0 && " "}
                 {f.icon && <f.icon size={16} strokeWidth={1.75} aria-hidden="true" focusable="false" />}
                 {f.label && <span className={styles.srOnly}>{f.label}: </span>}
                 <bdi dir={f.dir ?? "auto"}>{f.text}</bdi>

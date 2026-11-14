@@ -88,7 +88,7 @@ export default function OverviewPhone({
       <RecordRow
         key="inbox" as="li" icon={ICON.announcement} title={p.inboxTitle} unread
         facts={[{ text: what }]}
-        openLabel={p.openInbox(what)}
+        openLabel={`${p.openItem(p.inboxTitle)} ${what}`}
         onOpen={() => go("/admin/marketing")}
       />,
     );
@@ -100,7 +100,7 @@ export default function OverviewPhone({
       <RecordRow
         key="drafts" as="li" icon={ICON.draft} title={p.draftsTitle}
         facts={[{ text: what }, { icon: ICON.when, text: whenText }]}
-        openLabel={p.openDrafts(`${what}, ${whenText}`)}
+        openLabel={`${p.openItem(p.draftsTitle)} ${what} ${whenText}`}
         onOpen={() => go("/admin/posts?status=draft")}
       />,
     );
@@ -112,7 +112,7 @@ export default function OverviewPhone({
         key="failed" as="li" icon={ICON.announcement} title={p.campaignsTitle}
         facts={[{ text: what }]}
         status={<StatusGlyph kind="failed" />}
-        openLabel={p.openCampaigns(what)}
+        openLabel={`${p.openItem(p.campaignsTitle)} ${what}`}
         onOpen={() => go("/admin/marketing?tab=campaigns")}
       />,
     );
@@ -195,7 +195,7 @@ export default function OverviewPhone({
               <RecordRow
                 key={e.id} as="li" icon={KIND_ICON[e.kind]} title={e.title}
                 facts={[{ text: did }, { icon: ICON.when, text: at }]}
-                openLabel={`${p.openItem(e.title)}: ${did}, ${at}`}
+                openLabel={`${p.openItem(e.title)} ${did} ${at}`}
                 onOpen={() => go(e.to)}
               />
             );

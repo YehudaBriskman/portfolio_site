@@ -140,7 +140,7 @@ export default function TranslationsPhone({ items }: { items: TranslationItem[] 
                 key={key(i)} as="li" icon={ICON.language} title={i.title}
                 facts={[{ text: p.typeOne[i.type] }, { text: fields, dir: "ltr" }]}
                 status={<StatusGlyph kind={glyphKind(s)} label={s === "draft" ? p.draftWord : undefined} />}
-                openLabel={`${p.openItem(i.title)}: ${p.typeOne[i.type]}, ${fields}`}
+                openLabel={`${p.openItem(i.title)} ${p.typeOne[i.type]} ${fields}`}
                 onOpen={() => setOpenKey(key(i))}
               />
             );

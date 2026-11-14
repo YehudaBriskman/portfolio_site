@@ -56,8 +56,8 @@ const page = (at = "/admin/translations") =>
       <Where />
     </MemoryRouter>,
   );
-const starts = (verb: string, name: string) => new RegExp(`^${verb} ${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}:`);
-const titles = () => rows().map((r) => (r.getAttribute("aria-label") ?? "").split(":")[0]);
+const starts = (verb: string, name: string) => new RegExp(`^${verb} ${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}( |$)`);
+const titles = () => rows().map((r) => `Open ${r.querySelector("[data-rr-title]")?.textContent ?? ""}`);
 const rowOf = (name: string) => screen.findByRole("button", { name: starts("Open", name) });
 const dialog = () => screen.findByRole("dialog");
 
@@ -146,7 +146,7 @@ describe("Translations on a phone: Hebrew", () => {
   it("is in Hebrew with the same rows", async () => {
     lang("he");
     page();
-    expect(await screen.findByRole("button", { name: /^פתיחת Home · hero:/ })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: /^פתיחת Home · hero / })).toBeTruthy();
     expect(rows()).toHaveLength(4);
     expect(screen.getByRole("button", { name: "חסרה" })).toBeTruthy();
     expect(screen.queryByText("Missing")).toBeNull();

@@ -267,7 +267,7 @@ export default function SettingsPhone({ draft, view, edit, toggle, move, issues,
                 icon={ICON.restore}
                 title={e.live ? `${w.version(e.version)} · ${w.current}` : label(e.version)}
                 facts={factsOf(e)}
-                openLabel={`${p.openVersion(e.live ? `${w.version(e.version)} · ${w.current}` : label(e.version))}: ${factsOf(e).filter(Boolean).map((f) => f!.text).join(", ")}`}
+                openLabel={`${p.openVersion(e.live ? `${w.version(e.version)} · ${w.current}` : label(e.version))} ${factsOf(e).filter(Boolean).map((f) => f!.text).join(" ")}`}
                 onOpen={() => setOpenVersion(e.version)}
               />
             ))}

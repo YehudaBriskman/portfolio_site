@@ -46,7 +46,7 @@ const page = () =>
       <AdminConnections />
     </MemoryRouter>,
   );
-const starts = (verb: string, name: string) => new RegExp(`^${verb} ${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}:`);
+const starts = (verb: string, name: string) => new RegExp(`^${verb} ${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}( |$)`);
 const rowOf = (name: string) => screen.findByRole("button", { name: starts("Open", name) });
 const dialog = () => screen.findByRole("dialog");
 
@@ -143,10 +143,10 @@ describe("Connected apps on a phone: Hebrew", () => {
   it("is in Hebrew, with the same rows", async () => {
     lang("he");
     page();
-    expect(await screen.findByRole("button", { name: /^פתיחת Claude Code:/ })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: /^פתיחת Claude Code / })).toBeTruthy();
     expect(rows()).toHaveLength(GRANTS.length);
     expect(screen.getByRole("list", { name: "מחוברות" })).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: /^פתיחת Claude Code:/ }));
+    fireEvent.click(screen.getByRole("button", { name: /^פתיחת Claude Code / }));
     expect(within(await dialog()).getByRole("button", { name: "ביטול גישה" })).toBeTruthy();
   });
 });
