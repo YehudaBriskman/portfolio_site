@@ -173,13 +173,13 @@ describe("the inbox", () => {
     page();
     await screen.findByText("Second");
     const rows = () => document.querySelectorAll<HTMLElement>(".mk-row");
-    expect(rows()[0].dataset.selected).toBeDefined();
+    await waitFor(() => expect(rows()[0].dataset.selected).toBeDefined());
     fireEvent.keyDown(document.body, { key: "j" });
-    expect(rows()[1].dataset.selected).toBeDefined();
+    await waitFor(() => expect(rows()[1].dataset.selected).toBeDefined());
     fireEvent.keyDown(document.body, { key: "k" });
-    expect(rows()[0].dataset.selected).toBeDefined();
+    await waitFor(() => expect(rows()[0].dataset.selected).toBeDefined());
     fireEvent.keyDown(document.body, { key: "j", ctrlKey: true });
-    expect(rows()[0].dataset.selected).toBeDefined();
+    await waitFor(() => expect(rows()[0].dataset.selected).toBeDefined());
     /* A field swallows the keys. */
     fireEvent.click(screen.getByRole("button", { name: "New announcement" }));
     const title = await screen.findByLabelText("Title");
