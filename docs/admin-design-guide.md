@@ -188,6 +188,7 @@ Status: **exists** = on `main` today. **planned** = an open issue; do not copy a
 | `Journey`, `LifecycleStepper` (#672) | `@/components/ui/Journey` | from > to with optional waypoints and a `via` pill (sender > audience); a vertical lifecycle (draft > scheduled > sending > sent) with the current step announced and paused/failed/canceled as a side branch | a graphic with no text: every fact is also in the list |
 | `MiniBar` (#672) | `@/components/ui/MiniBar` | counts as a segmented inline bar, `role="img"` with a text name; danger is hatched | the only place a decision number appears: keep the number visible |
 | `Gauge` (#672) | `@/components/ui/Gauge` | a budget against a limit as a ring, warn at 70 / danger at 90 percent; level in colour, badge glyph and words, value in a hidden `<meter>` | colour-only status |
+| `SidebarNav`, `SidebarGroup` (#675) | `@/components/ui/SidebarGroup` | hierarchical drawer and sidebar nav (the tree is `components/admin/adminNav.ts`): a group with an address is a link plus its own 44px `DisclosureButton` chevron, one without is a single toggle; groups nest two deep, the current link has `aria-current`, the route's groups open on their own, open state is remembered per viewer. APG disclosure navigation, not a tree role: Tab works as on any page, Up/Down/Home/End walk visible rows, inline-end/inline-start open and close (swapped in RTL). Below 600px (`usePhone`) the drawer carries Marketing's sections and the hub's tab strip is gone | a second nav, or a flat list of more than ~7 links |
 | `Switch` (#673) | `@/components/ui/Switch` | an on/off setting that applies at once: native `<input role="switch">`, whole 44px row is the target, label on one line, optional ONE-line `hint` as its description, thumb moves with logical properties | a checkbox for on/off; a multi-line explanation (use `InfoPopover`) |
 | `InfoPopover` (#673) | `@/components/ui/InfoPopover` | the long help for a setting: a 44px info button opening the popover, help in the DOM only while open, Esc / outside press close it and focus returns to the button | hover-only help; help a user must read to decide (say it in the label) |
 | `SettingsRow` (#673) | `@/components/ui/SettingsRow` | one line in a settings list: `switch` (label + Switch + info button, first sentence of the help as description), `value` (label + current value + chevron) or `link` (icon tile + name + one live summary line + chevron); only a `warning` shows extra text | a paragraph of help under a control |
@@ -207,7 +208,6 @@ Also on main, outside `ui/`: `usePhone()` (`@/hooks/usePhone`; true under 600px,
 
 | Component | Issue | Import (planned) | Use it for | Rule of thumb |
 |---|---|---|---|---|
-| `SidebarGroup` (+ nav tree) | #675 | `@/components/admin/mobile` | hierarchical drawer nav, depth <= 3, current item highlighted | label navigates, chevron expands |
 
 Migrations that consume them: #670 Inbox, #676 Campaigns, #677 Audience, #678 Marketing Settings, #679 Library, #680 Posts and Areas, #681 Media, #682 Overview and Connections and Translations, #683 Projects and the save bar. The first phone screen is the Inbox.
 

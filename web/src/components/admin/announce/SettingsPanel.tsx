@@ -226,7 +226,7 @@ export default function SettingsPanel() {
   ];
   const q = filter.trim().toLowerCase();
   const shown = advanced.filter((s) => !q || `${s.label} ${s.words}`.toLowerCase().includes(q));
-  const isOpen = open || q !== "" || new URLSearchParams(window.location.search).get("section") === "sender";
+  const isOpen = open || q !== "" || params.get("section") === "sender";
 
   const issuesBox =
     issues.length > 0 ? (

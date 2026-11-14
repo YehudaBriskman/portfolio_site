@@ -13,6 +13,11 @@ export const useMobileWords = defineWords(
   "mobile",
   {
     sheet: { close: "Close", resize: "Resize panel" },
+    nav: {
+      system: "System",
+      expand: (label: string) => `Expand ${label}`,
+      collapse: (label: string) => `Collapse ${label}`,
+    },
     row: { isNew: "New" },
     settings: {
       about: (label: string) => `About ${label}`,
@@ -157,6 +162,11 @@ export const useMobileWords = defineWords(
   },
   {
     sheet: { close: "סגירה", resize: "שינוי גודל החלונית" },
+    nav: {
+      system: "מערכת",
+      expand: (label: string) => `הרחב ${label}`,
+      collapse: (label: string) => `כווץ ${label}`,
+    },
     row: { isNew: "חדש" },
     settings: {
       about: (label: string) => `על ${label}`,

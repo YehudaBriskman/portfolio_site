@@ -101,8 +101,9 @@ export default function AdminAnnounce() {
     <AdminShell title={w.title} section="marketing">
       <div className="a-wrap">
         {/* On a phone the inbox is the screen: its intro paragraph would push the first rows down by three lines. */}
-        <PageHeader title={w.title} description={phone && current.id === "inbox" ? undefined : (hi[current.id as keyof typeof hi] as string)} />
+        <PageHeader title={phone ? current.label : w.title} description={phone && current.id === "inbox" ? undefined : (hi[current.id as keyof typeof hi] as string)} />
 
+        {!phone && (
         <div role="tablist" aria-label={w.tabsLabel} className="a-tabs mb-4" onKeyDown={onTabKey}>
           {tabs.map((t) => (
             <button
@@ -127,8 +128,9 @@ export default function AdminAnnounce() {
             </button>
           ))}
         </div>
+        )}
 
-        <div role="tabpanel" id={`${uid}-panel`} aria-labelledby={`${uid}-tab-${current.id}`}>
+        <div role="tabpanel" id={`${uid}-panel`} {...(phone ? { "aria-label": current.label } : { "aria-labelledby": `${uid}-tab-${current.id}` })}>
           {(current.id === "audience" || current.id === "campaigns") && <LedgerBanner />}
           {current.render()}
         </div>
