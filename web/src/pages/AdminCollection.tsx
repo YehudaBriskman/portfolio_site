@@ -1,5 +1,5 @@
 import Select from "@/components/ui/Select";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import AdminShell from "@/components/admin/AdminShell";
 import { PageHeader } from "@/components/admin/ui";
@@ -12,6 +12,8 @@ import { Disclosure } from "@/components/ui/Disclosure";
 import { useAdminWords } from "@/i18n/admin";
 import { usePhone } from "@/hooks/usePhone";
 import { usePostsPhoneWords } from "@/components/admin/posts/words";
+import { formatWhen } from "@/lib/safeTime";
+import { titleOf } from "@/lib/safeTitle";
 
 type Draft = {
   slug: string;
@@ -95,7 +97,10 @@ export default function AdminCollection() {
       .catch((e) => setSave({ kind: "failed", message: e instanceof Error ? e.message : "Failed to load" }));
   }, [slug, isNew]);
 
+  /* Counts edits, so a save can tell whether anything was typed while it was on the wire. */
+  const edits = useRef(0);
   const patch = (p: Partial<Draft>) => {
+    edits.current += 1;
     setD((prev) => ({ ...prev, ...p }));
     setSave((s) => (s.kind === "saving" ? s : { kind: "dirty" }));
   };
@@ -103,6 +108,7 @@ export default function AdminCollection() {
   async function commit() {
     setSave({ kind: "saving" });
     setFieldErrors({});
+    const at = edits.current;
     try {
       const saved = await admin.saveCollection(d.slug, {
         title: d.title,
@@ -141,7 +147,7 @@ export default function AdminCollection() {
         _rev: d._rev,
       });
       setD((p) => ({ ...p, _rev: saved._rev }));
-      setSave({ kind: "saved", at: new Date() });
+      setSave(edits.current === at ? { kind: "saved", at: new Date() } : { kind: "dirty" });
       if (isNew) nav(`/admin/areas/${saved.slug}`, { replace: true });
     } catch (e) {
       if (e instanceof AdminValidationError) {
@@ -158,7 +164,7 @@ export default function AdminCollection() {
   /** The server's complaint about one field, shown under it. */
   const fieldError = (name: string) =>
     fieldErrors[name] ? <span className="a-error">{fieldErrors[name]}</span> : null;
-  const heading = isNew ? "New area" : d.title || d.slug;
+  const heading = isNew ? "New area" : titleOf(d.title, d.slug);
   const repoLabel = d.repoOwner && d.repoName ? `${d.repoOwner}/${d.repoName}` : "";
 
   const bottomBar = (
@@ -386,7 +392,7 @@ export default function AdminCollection() {
               ) : (
                 <p className="mono mt-2 text-sm text-bone/85">
                   {`${stats.stars ?? "—"} stars · ${stats.language ?? "—"} · ${stats.license ?? "—"} · fetched ${
-                    stats.fetchedAt ? new Date(String(stats.fetchedAt)).toLocaleString("en-GB") : "never"
+                    stats.fetchedAt ? formatWhen(String(stats.fetchedAt), "en", { dateStyle: "short", timeStyle: "medium" }) : "never"
                   }`}
                 </p>
               )}

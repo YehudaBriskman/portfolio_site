@@ -1,4 +1,4 @@
-import type { SiteSettings } from "@/settings/schema";
+import { DEFAULT_SHARING, type SiteSettings } from "@/settings/schema";
 import { ContentConflictError, ContentInvalidError, type Issue } from "./adminContent";
 
 /*
@@ -18,6 +18,19 @@ export type SettingsView = {
   settings: SiteSettings;
   history: SettingsVersion[];
 };
+
+/*
+ * Settings saved before sharing templates existed (or a partial payload) have
+ * no `sharing.templates`; the editors index into it, so fill what is missing
+ * from the defaults rather than let the page throw.
+ */
+export function withSharingDefaults(settings: SiteSettings): SiteSettings {
+  const s = settings as Partial<SiteSettings> | null | undefined;
+  if (!s || typeof s !== "object") return settings;
+  const sharing = (s.sharing ?? structuredClone(DEFAULT_SHARING)) as SiteSettings["sharing"];
+  const t = (sharing.templates ?? {}) as Partial<SiteSettings["sharing"]["templates"]>;
+  return { ...settings, sharing: { ...sharing, templates: { en: t.en ?? {}, he: t.he ?? {} } } };
+}
 
 function issuesOf(body: unknown): Issue[] {
   const list = (body as { issues?: unknown } | null)?.issues;
@@ -44,7 +57,8 @@ async function call(path: string, init?: RequestInit): Promise<SettingsView> {
   if (res.status === 409) throw new ContentConflictError();
   if (res.status === 400) throw new ContentInvalidError("invalid", issuesOf(body));
   if (!res.ok) throw new Error(`status-${res.status}`);
-  return body as SettingsView;
+  const view = body as SettingsView;
+  return view && typeof view === "object" && view.settings ? { ...view, settings: withSharingDefaults(view.settings) } : view;
 }
 
 export const adminSettings = {

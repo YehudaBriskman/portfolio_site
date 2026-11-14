@@ -19,12 +19,15 @@ export default function InboxSheet({
   onChange,
   undo,
   onMarkDone,
+  notice,
 }: {
   event: AnnounceSummary | null;
   onClose: () => void;
   onChange: (next: AnnounceSummary | null) => void;
   undo: { channel: AnnounceChannel; onUndo: () => void } | null;
   onMarkDone: (channel: AnnounceChannel) => void;
+  /** A message from the owner of the list (a Mark done that was refused), shown where the Composer shows its own. */
+  notice?: string;
 }) {
   const w = useMarketingWords();
   const [host, setHost] = useState<HTMLElement | null>(null);
@@ -32,7 +35,7 @@ export default function InboxSheet({
   const title = event ? (tag ? w.releaseTitle(tag) : event.title) : "";
   return (
     <BottomSheet open={event !== null} onClose={onClose} title={title} snap="half" snaps={["half", "full"]} footer={<div ref={setHost} className="mk-sheet-foot" />}>
-      {event && <Composer key={event.id} embedded event={event} footerHost={host} onBack={onClose} onChange={onChange} undo={undo} onMarkDone={onMarkDone} />}
+      {event && <Composer key={event.id} embedded event={event} footerHost={host} onBack={onClose} onChange={onChange} undo={undo} onMarkDone={onMarkDone} notice={notice} />}
     </BottomSheet>
   );
 }

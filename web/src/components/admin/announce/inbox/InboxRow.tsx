@@ -3,6 +3,7 @@ import { RelTime } from "@/components/admin/ui";
 import type { AnnounceChannel, AnnounceKind, AnnounceSummary } from "@/services/adminAnnounce";
 import { ReadinessChips } from "./Chips";
 import type { Readiness } from "./readiness";
+import { kindWord } from "../kind";
 import { useMarketingWords } from "./words";
 
 const ICONS: Record<AnnounceKind, typeof FileText> = {
@@ -40,14 +41,14 @@ export default function InboxRow({
   note?: string;
 }) {
   const w = useMarketingWords();
-  const Icon = ICONS[event.kind];
+  const Icon = ICONS[event.kind] ?? ICONS.custom;
   const unread = !event.readAt;
   return (
     <li className="mk-row" data-selected={selected || undefined} data-unread={unread || undefined} data-id={event.id}>
       <button type="button" className="mk-row-main" onClick={onOpen} aria-label={w.openComposer(event.title)} aria-current={selected ? "true" : undefined}>
-        <span className="mk-kind" title={w.kinds[event.kind]}>
+        <span className="mk-kind" title={kindWord(w.kinds, event.kind)}>
           <Icon aria-hidden="true" />
-          <span className="sr-only">{w.kinds[event.kind]}</span>
+          <span className="sr-only">{kindWord(w.kinds, event.kind)}</span>
         </span>
         <span className="mk-title">
           <bdi>{event.title}</bdi>

@@ -9,7 +9,7 @@ import { usePhone } from "@/hooks/usePhone";
 import MediaPhone from "@/components/admin/MediaPhone";
 import { useMediaPhoneWords } from "@/components/admin/mediaPhoneWords";
 import AdminShell from "@/components/admin/AdminShell";
-import { PageHeader } from "@/components/admin/ui";
+import { PageHeader, UnreadableNote } from "@/components/admin/ui";
 import { KindFilter, MediaGrid, Modal } from "@/components/admin/MediaGrid";
 import MediaUpload from "@/components/admin/MediaUpload";
 import MediaIcon from "@/components/media/MediaIcon";
@@ -36,6 +36,8 @@ import {
   type MediaKind,
   type MediaUsage,
 } from "@/services/media";
+import { formatWhen } from "@/lib/safeTime";
+import { unreadableCount } from "@/services/tolerant";
 
 /*
  * The media library (#253): every picture, icon and short video the site can
@@ -52,6 +54,7 @@ import {
  */
 export default function AdminMedia() {
   const [items, setItems] = useState<MediaItem[] | null>(null);
+  const [skipped, setSkipped] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [params, setParams] = useSearchParams();
   const q = params.get("q") ?? "";
@@ -66,7 +69,7 @@ export default function AdminMedia() {
   useEffect(() => {
     media
       .list()
-      .then(setItems)
+      .then((l) => (setItems(l), setSkipped(unreadableCount(l))))
       .catch((e: unknown) => setError(e instanceof Error ? e.message : "Failed to load"));
   }, []);
 
@@ -128,6 +131,7 @@ export default function AdminMedia() {
       )}
 
       <div className={phone ? "mt-4" : "mt-6"}>
+        <UnreadableNote count={skipped} />
         <MediaUpload
           kinds={kind ? [kind, ...MEDIA_KINDS.filter((k) => k !== kind)] : MEDIA_KINDS}
           onUploaded={(item) => {
@@ -383,9 +387,7 @@ function MediaDetail({
     }
   }
 
-  const added = phone
-    ? new Intl.DateTimeFormat(INTL[lang], { day: "numeric", month: "short", year: "numeric" }).format(new Date(item.createdAt))
-    : new Date(item.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  const added = formatWhen(item.createdAt, phone ? lang : "en", { day: "numeric", month: "short", year: "numeric" });
 
   const facts = (
     <>

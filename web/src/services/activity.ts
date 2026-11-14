@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { parseList } from "./tolerant";
 import { CollectionSchema } from "./blog";
 
 /*
@@ -93,7 +94,7 @@ export const activity = {
   page: async (q: ActivityQuery = {}): Promise<ActivityPage> =>
     ActivityPageSchema.parse(await get(`/api/activity${activityQueryString(q)}`)),
   /** Public areas with note counts, most recently active first. */
-  areas: async (): Promise<Area[]> => z.array(AreaSchema).parse((await get("/api/areas")).items ?? []),
+  areas: async (): Promise<Area[]> => parseList(AreaSchema, (await get("/api/areas")).items ?? []),
 };
 
 /** One area's RSS feed, for a "subscribe" link. */

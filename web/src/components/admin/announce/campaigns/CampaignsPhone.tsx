@@ -19,6 +19,7 @@ import CampaignSheet from "./CampaignSheet";
 import { usePhoneCampaignWords } from "./phoneWords";
 import { useCampaignWords } from "./words";
 import styles from "./CampaignsPhone.module.css";
+import { formatWhen, parseWhen } from "@/lib/safeTime";
 
 /*
  * Campaigns below 600px. A row answers "is anything sending, did it go out,
@@ -81,9 +82,9 @@ export default function CampaignsPhone({
 
   /* A row says "11 Nov"; the year only when it is not this one. The full date and time are in the sheet. */
   const when = (iso: string, time: boolean) => {
-    const d = new Date(iso);
-    const year = d.getFullYear() !== new Date().getFullYear() ? { year: "numeric" as const } : {};
-    return new Intl.DateTimeFormat(INTL[lang], { day: "numeric", month: "short", ...year, ...(time ? { hour: "2-digit", minute: "2-digit" } : {}) }).format(d);
+    const d = parseWhen(iso);
+    const year = d && d.getFullYear() !== new Date().getFullYear() ? { year: "numeric" as const } : {};
+    return formatWhen(iso, lang, { day: "numeric", month: "short", ...year, ...(time ? { hour: "2-digit", minute: "2-digit" } : {}) });
   };
   const num = (n: number) => numberIn(lang, n);
 

@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { fullDate, relative, useLang } from "@/components/dashboard/i18n";
 import { useAdminWords } from "@/i18n/admin";
+import { plural } from "@/i18n/words";
 
 /*
  * The admin's shared parts (#288): the page header, the status pill, a
@@ -60,6 +61,18 @@ export function RelTime({ iso, now }: { iso: string | null | undefined; now?: nu
     <time dateTime={iso} title={fullDate(iso, lang)} className="tabular-nums">
       {relative(iso, now ?? mounted, lang)}
     </time>
+  );
+}
+
+/** "2 items could not be read and are hidden": the records a list dropped instead of failing whole. */
+export function UnreadableNote({ count }: { count: number }) {
+  const w = useAdminWords();
+  const lang = useLang();
+  if (count <= 0) return null;
+  return (
+    <p role="status" className="a-hint !mt-0 mb-3">
+      {plural(lang, count, w.unreadable)}
+    </p>
   );
 }
 
