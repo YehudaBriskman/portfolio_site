@@ -11,7 +11,6 @@ import Ring from "@/components/motion/Ring";
 import { typedDir } from "@/lib/typedDir";
 import Chevron from "@/components/phone/Chevron";
 import { toneOfArea } from "@/components/phone/tone";
-import { usePublicPhone } from "@/components/nav/localBrowse";
 
 /*
  * The dashboard's small parts (#224), shared by every page on the shell:
