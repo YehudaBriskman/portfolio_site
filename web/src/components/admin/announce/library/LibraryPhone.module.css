@@ -1,0 +1,112 @@
+/*
+ * The Library on a phone: a short list of rows, one editor sheet. Logical
+ * properties and tokens only; every box can shrink (min-inline-size: 0) so a
+ * long template name or a Hebrew caption never pushes the page sideways.
+ */
+.root {
+  display: grid;
+  gap: var(--a-s-2, 0.5rem);
+  min-inline-size: 0;
+}
+
+.group {
+  display: grid;
+  gap: var(--a-s-1, 0.25rem);
+  margin-block-end: var(--a-s-3, 0.75rem);
+  min-inline-size: 0;
+}
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--a-s-2, 0.5rem);
+  min-inline-size: 0;
+}
+
+.title {
+  margin: 0;
+  min-inline-size: 0;
+  font-size: var(--a-fs-meta, 0.875rem);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: rgb(var(--ink-soft, var(--ink)));
+}
+
+.list {
+  display: block;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-inline-size: 0;
+  border-radius: var(--a-r-box, 16px);
+  background: rgb(var(--paper-raised, var(--paper)));
+  border: 1px solid rgb(var(--rule-firm) / 0.35);
+}
+
+.list > li + li {
+  border-block-start: 1px solid rgb(var(--rule-firm) / 0.25);
+}
+
+.mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dot {
+  display: inline-block;
+  inline-size: 0.5rem;
+  block-size: 0.5rem;
+  border-radius: var(--a-r-pill, 999px);
+  background: rgb(var(--signal));
+}
+
+.help {
+  margin: 0;
+  min-inline-size: 0;
+  font-size: var(--a-fs-meta, 0.875rem);
+  line-height: 1.5;
+  color: rgb(var(--ink-soft, var(--ink)));
+  overflow-wrap: anywhere;
+}
+
+.more {
+  display: grid;
+  gap: var(--a-s-3, 0.75rem);
+  min-inline-size: 0;
+}
+
+.guard {
+  display: grid;
+  gap: var(--a-s-2, 0.5rem);
+  padding: var(--a-s-3, 0.75rem);
+  margin-block-end: var(--a-s-3, 0.75rem);
+  min-inline-size: 0;
+  border: 1.5px dashed rgb(var(--ink));
+  border-radius: var(--a-r-box, 16px);
+}
+
+.guardActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--a-s-2, 0.5rem);
+}
+
+.sheetBody {
+  min-inline-size: 0;
+}
+
+.foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--a-s-3, 0.75rem);
+  min-inline-size: 0;
+}
+
+.bad {
+  color: rgb(var(--destructive-ink));
+  font-weight: 700;
+}
