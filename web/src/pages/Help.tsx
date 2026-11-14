@@ -65,7 +65,7 @@ export default function Help() {
             <ul className="mt-3 space-y-1">
               {toc.map((t) => (
                 <li key={t.id}>
-                  <a className={`tap ${link} -my-1 inline-flex min-h-11 items-center sm:min-h-0 sm:py-1`} href={`#${t.id}`}>
+                  <a className={`${link} -my-1 inline-flex min-h-11 items-center sm:min-h-0 sm:py-1 tap`} href={`#${t.id}`}>
                     {t.label}
                   </a>
                 </li>

@@ -30,7 +30,7 @@ describe("public touch-target tokens", () => {
   });
 
   it("the footer links and the help contents carry the .tap utility", () => {
-    expect(src("components/SiteFooter.tsx").match(/className="tap /g)?.length).toBe(4);
-    expect(src("pages/Help.tsx")).toContain("`tap ${link}");
+    expect(src("components/SiteFooter.tsx").match(/focus-visible:text-ink tap"/g)?.length).toBe(4);
+    expect(src("pages/Help.tsx")).toContain("sm:py-1 tap`");
   });
 });

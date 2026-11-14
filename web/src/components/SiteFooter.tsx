@@ -164,19 +164,19 @@ export default function SiteFooter() {
              */}
             <Link
               to="/accessibility"
-              className="tap -my-3 inline-flex min-h-11 items-center py-3 text-clay transition-colors hover:text-ink focus-visible:text-ink"
+              className="-my-3 inline-flex min-h-11 items-center py-3 text-clay transition-colors hover:text-ink focus-visible:text-ink tap"
             >
               {w.accessibility}
             </Link>
             <Link
               to="/privacy"
-              className="tap -my-3 inline-flex min-h-11 items-center py-3 text-clay transition-colors hover:text-ink focus-visible:text-ink"
+              className="-my-3 inline-flex min-h-11 items-center py-3 text-clay transition-colors hover:text-ink focus-visible:text-ink tap"
             >
               {w.privacy}
             </Link>
             <Link
               to="/help"
-              className="tap -my-3 inline-flex min-h-11 items-center py-3 text-clay transition-colors hover:text-ink focus-visible:text-ink"
+              className="-my-3 inline-flex min-h-11 items-center py-3 text-clay transition-colors hover:text-ink focus-visible:text-ink tap"
             >
               {w.help}
             </Link>
@@ -193,7 +193,7 @@ export default function SiteFooter() {
              */}
             <a
               href="https://admin.yehudabriskman.com/admin"
-              className="tap -my-3 inline-flex min-h-11 items-center py-3 text-clay transition-colors hover:text-ink focus-visible:text-ink"
+              className="-my-3 inline-flex min-h-11 items-center py-3 text-clay transition-colors hover:text-ink focus-visible:text-ink tap"
               aria-label={w.adminName}
             >
               {w.admin}
