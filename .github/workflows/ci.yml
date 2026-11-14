@@ -555,6 +555,11 @@ jobs:
       - name: Admin control budgets on a phone
         if: matrix.check == 'admin-phone' && matrix.shard == 2
         run: npm run a11y:admin-density-phone
+      # Side-by-side boxes (stat tiles, cards, toolbar buttons) are one height at
+      # 390 and 1280, English and Hebrew.
+      - name: Admin equal siblings
+        if: matrix.check == 'admin-phone' && matrix.shard == 2
+        run: npm run a11y:admin-equal
       # Enter and exit motion on phones (#709): state first, transitions only
       # under no-preference, mirrored in RTL, never stuck, none on desktop.
       - name: Admin enter/exit motion

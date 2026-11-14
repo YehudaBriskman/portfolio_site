@@ -161,6 +161,7 @@ All numbers are CSS px at 320 to 430 wide unless stated. They are **testable**: 
 | Stagger | 30 to 80ms, total under 400ms | longer reads as slow |
 | Long-press | 450ms, cancelled by > 8px movement | never the only path |
 | Rows before virtualising | 50 | WIG |
+| **Equal siblings**: boxes side by side in a grid or flex row (stat tiles, cards, toolbar controls, media tiles) | **same height within 1px**, same width columns, same padding and radius | uneven neighbours read as broken. The grid item (`li`) stretches (`display: flex`) and the box inside fills it (`flex: 1 1 auto`); an optional second line gets a reserved slot (`tileSlot`, min 1.5rem) so its absence changes nothing; a toolbar row is `items-stretch`. Held by `npm run a11y:admin-equal` (390 and 1280, en and he; panels over 360px tall are columns, not tiles) |
 
 Viewport matrix to test: 320x568, 360x740, 375x667, 390x844, 412x915, 430x932, 600x900, 768x1024, 1024x768, 1440x900, landscape 844x390, 200% zoom (640x450). Both directions, both themes.
 
@@ -406,6 +407,8 @@ cd web && npm run build
 npm run a11y:admin-matrix        # ONLY=media,marketing-inbox  WIDTHS=320,390  THEMES=light  LANGS=en  SHARD=1/2
 # Desktop (CI): 1024/1280/1440, en/he, long and Hebrew fixtures. Fails on sideways scroll and on any button or link whose label wraps past two lines, breaks a one-word label, or is narrower than 2ch. In a table, an action sits in a cell with `.a-fit` (never wraps) and a long machine string gets `.a-path`.
 npm run a11y:admin-desktop       # ONLY=translations  WIDTHS=1024  LANGS=he  SHOTS=dir
+# Equal siblings (CI): every row of >=2 side-by-side boxes is one height (1px) on 17 screens at 390 and 1280, en/he.
+npm run a11y:admin-equal         # ONLY=/admin  WIDTHS=390  LANGS=he  PROBE=1 lists each unequal row
 # Inbox on a phone (CI): one tappable row per event, >= 7 rows above the fold of 390x844, no sideways scroll, the sheet opens and gives focus back, Mark done offers Undo, Hebrew mirrors.
 npm run a11y:admin-media-phone   # Media on a phone (CI): 3 columns of square tiles, >= 6 tiles above the fold of 390x844, one button per tile, no sideways scroll, the sheet has the alt text before where it is used, focus returns, desktop unchanged. BEFORE=1 measures and shoots without asserting (to record an old build)
 npm run a11y:admin-reflow   # reflow and device edge cases (CI), ~2 min: 320 and 280 wide, 200% text (the `--text-scale` token), forced-colors, safe-area insets, he. ONLY=B-h5-3 runs one case; SHOTS=<dir> writes screenshots. The admin matrix stays at 320/360/390/768: these cases need their own browser contexts and a frame per font change, so they live here, not in the matrix
