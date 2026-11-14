@@ -254,11 +254,11 @@
 
 .loopWords {
   margin: 0;
-  font-family: var(--font-display);
-  font-weight: var(--weight-display);
+  font-family: var(--font-ui);
+  font-weight: var(--weight-ui);
   font-size: clamp(1.15rem, 0.9rem + 0.8vw, 1.5rem);
   line-height: 1.12;
-  letter-spacing: var(--track-display);
+  letter-spacing: var(--track-ui);
   color: rgb(var(--ink));
   text-wrap: balance;
 }
@@ -448,8 +448,8 @@
 
 .figureValue {
   margin: 0;
-  font-family: var(--font-display);
-  font-weight: var(--weight-display);
+  font-family: var(--font-ui);
+  font-weight: var(--weight-ui);
   font-size: clamp(2.5rem, 6vw, 4rem);
   line-height: 1;
   font-variant-numeric: tabular-nums;
