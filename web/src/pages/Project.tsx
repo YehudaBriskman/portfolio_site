@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { ArrowUpRight, BookMarked, BookOpen, FileText, FolderGit2, NotebookPen, Rss, Tag } from "lucide-react";
+import { ArrowUpRight, BookMarked, BookOpen, Code2, FileText, FolderGit2, GitFork, NotebookPen, Rss, Star, Tag } from "lucide-react";
 import { heldHeight, useRememberHeight } from "@/lib/heldHeight";
 import PageShell from "@/components/PageShell";
 import DashboardShell from "@/components/dashboard/DashboardShell";
@@ -40,6 +40,15 @@ import { stateWord, useWorkWords } from "@/components/work/words";
 import { fullDate, relative, shortDate } from "@/components/dashboard/i18n";
 import { useScrollProgress } from "@/hooks/useScrollProgress";
 import { useProjectWords } from "@/i18n/pages";
+import AvatarCircle from "@/components/phone/AvatarCircle";
+import PillBadge from "@/components/phone/PillBadge";
+import ListRow from "@/components/phone/ListRow";
+import GroupedSection from "@/components/phone/GroupedSection";
+import PinnedAction from "@/components/phone/PinnedAction";
+import { StatGrid, StatTile } from "@/components/phone/StatTile";
+import { toneOfKind } from "@/components/phone/tone";
+import { useHistoryWords } from "@/components/dashboard/historyWords";
+import { count as countFmt } from "@/components/dashboard/i18n";
 import ShareMenu from "@/components/share/ShareMenu";
 import { inEnglish } from "@/i18n/words";
 
@@ -115,6 +124,7 @@ export default function Project() {
   const reduced = usePrefersReducedMotion();
   const [t, lang] = useWorkWords();
   const w = useProjectWords();
+  const [hw] = useHistoryWords();
   const idBase = useId();
   const [now] = useState(() => Date.now());
 
@@ -363,9 +373,11 @@ export default function Project() {
   const repoIsPrimary = Boolean(entry && !entry.primaryLink && c?.repoUrl);
   const head =
     entry && c ? (
-      <header className={styles.head}>
+      <header className={styles.head} data-phone-card="header">
         <div className={styles.nameLine}>
-          <BookMarked className={styles.nameIcon} size={20} aria-hidden="true" />
+          <AvatarCircle size={56} tone={toneOfKind(kindOf(entry.state))}>
+            <BookMarked className={styles.nameIcon} size={20} aria-hidden="true" />
+          </AvatarCircle>
           <Link to="/projects" className={styles.crumb}>
             {t.backToWork}
           </Link>
@@ -375,11 +387,15 @@ export default function Project() {
           <h1 className={styles.title} translate="no">
             {c.title}
           </h1>
-          <span className={`${work.pill} ${styles.pill}`} data-kind={kindOf(entry.state)}>
+          <PillBadge
+            className={`${work.pill} ${styles.pill}`}
+            dataKind={kindOf(entry.state)}
+            tone={toneOfKind(kindOf(entry.state))}
+          >
             {stateWord(entry.state, lang)}
             {entry.year && <span className={styles.num}>{entry.year}</span>}
-          </span>
-          <span className="ms-auto">
+          </PillBadge>
+          <span className={`ms-auto ${styles.share}`}>
             <ShareMenu kind="project" entity={{ slug: c.slug, title: c.title, summary: c.tagline }} />
           </span>
         </div>
@@ -387,6 +403,22 @@ export default function Project() {
         {/* The second voice, under the name: a phrase somebody wrote, so
             not a heading. */}
         {c.tagline && <p className={styles.tagline}>{c.tagline}</p>}
+        {/* Phone only. One tile per datum the repository has; a datum it
+            does not have gets no tile (never a dash). */}
+        <StatGrid label={t.about}>
+          {[
+            c.stats?.language ? (
+              <StatTile key="lang" icon={<Code2 />} value={c.stats.language} label={hw.language} tone="blue" />
+            ) : null,
+            c.stats?.stars != null ? (
+              <StatTile key="stars" icon={<Star />} value={countFmt(c.stats.stars, lang)} label={hw.stars} tone="yellow" />
+            ) : null,
+            c.stats?.forks != null ? (
+              <StatTile key="forks" icon={<GitFork />} value={countFmt(c.stats.forks, lang)} label={hw.forks} tone="purple" />
+            ) : null,
+            release ? <StatTile key="rel" icon={<Tag />} value={release.tag} label={hw.release} tone="green" /> : null,
+          ]}
+        </StatGrid>
         {(entry.primaryLink || c.repoUrl || release || entry.otherLinks.length > 0) && (
           /* Exactly one primary: the live product if there is one,
              otherwise the repository. Two competing primaries is none. */
@@ -396,6 +428,7 @@ export default function Project() {
                 href={entry.primaryLink.url}
                 className={`${dash.button} ${styles.button}`}
                 data-primary=""
+                data-phone-dup=""
                 rel="noopener noreferrer"
               >
                 {entry.primaryLink.label}
@@ -407,6 +440,7 @@ export default function Project() {
                 href={c.repoUrl}
                 className={`${dash.button} ${styles.button}`}
                 data-primary={repoIsPrimary ? "" : undefined}
+                data-phone-dup={repoIsPrimary ? "" : undefined}
                 rel="noopener noreferrer"
               >
                 <FolderGit2 aria-hidden="true" />
@@ -417,6 +451,7 @@ export default function Project() {
               <a
                 href={release.url}
                 className={`${dash.button} ${styles.button}`}
+                data-phone-dup=""
                 rel="noopener noreferrer"
                 title={`${t.release}: ${release.tag}`}
               >
@@ -437,8 +472,25 @@ export default function Project() {
       </header>
     ) : null;
 
+  /* The one primary action, pinned at the bottom of a phone: the live product
+     if there is one, otherwise the repository: today's links and words. */
+  const pin =
+    entry && c
+      ? entry.primaryLink
+        ? { url: entry.primaryLink.url, label: entry.primaryLink.label }
+        : c.repoUrl
+          ? { url: c.repoUrl, label: t.source }
+          : null
+      : null;
+
   return (
     <PageShell>
+      {pin && (
+        <PinnedAction href={pin.url}>
+          {pin.label}
+          <ArrowUpRight size={18} aria-hidden="true" />
+        </PinnedAction>
+      )}
       <DashboardShell railLabel={t.browse} rail={rail} asideLabel={t.about} aside={aside} head={head}>
         {/* One H1 in every state, including this one — the heading order must
             not depend on how far a fetch got. */}
@@ -635,11 +687,11 @@ export default function Project() {
                 ) : releaseRows.length === 0 ? (
                   <p className={styles.empty}>{t.noReleasesHere}</p>
                 ) : (
+                  <GroupedSection>
                   <ol className={styles.list}>
                     {releaseRows.map((r, i) => (
                       <li key={r.id}>
-                        <a className={styles.listRow} href={r.href} rel="noopener noreferrer">
-                          <Tag className={styles.listIcon} aria-hidden="true" />
+                        <ListRow className={styles.listRow} href={r.href} tone="green" icon={<Tag className={styles.listIcon} aria-hidden="true" />}>
                           <span className={styles.listTitle}>
                             <span className={styles.tagName} dir="ltr" translate="no">
                               {r.tag}
@@ -651,10 +703,11 @@ export default function Project() {
                               {`${shortDate(r.at, lang)} · ${relative(r.at, now, lang)}`}
                             </time>
                           )}
-                        </a>
+                        </ListRow>
                       </li>
                     ))}
                   </ol>
+                  </GroupedSection>
                 )}
                 {c.repoUrl && (
                   <a href={`${c.repoUrl}/releases`} className={styles.onward} rel="noopener noreferrer">
@@ -675,17 +728,18 @@ export default function Project() {
                 ) : docs.length === 0 ? (
                   <p className={styles.empty}>{t.noDocs}</p>
                 ) : (
+                  <GroupedSection>
                   <ol className={styles.list}>
                     {docs.map((p) => (
                       <li key={p.slug}>
-                        <Link to={`/blog/${p.slug}`} className={styles.listRow}>
-                          <FileText className={styles.listIcon} aria-hidden="true" />
+                        <ListRow to={`/blog/${p.slug}`} className={styles.listRow} tone="blue" icon={<FileText className={styles.listIcon} aria-hidden="true" />}>
                           <span className={styles.listTitle}>{p.title}</span>
                           {p.subtitle && <span className={styles.listMeta}>{p.subtitle}</span>}
-                        </Link>
+                        </ListRow>
                       </li>
                     ))}
                   </ol>
+                  </GroupedSection>
                 )}
               </div>
             )}

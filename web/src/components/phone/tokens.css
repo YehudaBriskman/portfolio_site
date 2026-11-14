@@ -1,0 +1,41 @@
+/*
+ * Direction A ("grouped") tokens, PHONE ONLY (docs/public-mobile-guide.md,
+ * section 6). They exist only inside the one public phone query, 640px
+ * (PUBLIC_PHONE_BREAKPOINT), so a tablet or desktop page cannot read them and
+ * cannot change by accident.
+ *
+ * Everything is derived from the palette that exists (--canvas, --ink, --rule,
+ * --hue-*); nothing here is a new colour. Contrast is held by
+ * tokens.contrast.test.ts: glyph on its circle >= 3:1, pill text on its wash
+ * >= 4.5:1, in light and dark.
+ *
+ *   radii     --r-sm 14 (inner panels), --r-md 22 (a group), --r-pill 999
+ *   circles   32 stat tile and compact, 40 list row, 56 header card
+ *   layers    ground = --canvas; group = --ph-card (lighter); raised segment
+ *             = --ph-card-hi; recess = --ph-recess (track, rest chips)
+ *   spacing   4 / 8 / 12 / 16 / 24 (gutter 16, group gap 24, row 12x16)
+ */
+@media (max-width: 639px) {
+  :root {
+    --ph-circle-s: 32px;
+    --ph-circle-m: 40px;
+    --ph-circle-l: 56px;
+    --ph-gutter: 16px;
+    --ph-gap: 24px;
+    --ph-card: color-mix(in srgb, rgb(var(--canvas)), #fff 38%);
+    --ph-card-hi: color-mix(in srgb, rgb(var(--canvas)), #fff 70%);
+    --ph-recess: rgb(var(--canvas-3) / 0.6);
+    --ph-line: rgb(var(--rule) / 0.8);
+    /* what a tone's glyph and a pill's word are mixed toward, and how far */
+    --ph-toward: rgb(var(--ink));
+    --ph-glyph-pct: 55%;
+    --ph-text-pct: 68%;
+  }
+  :root[data-theme="dark"] {
+    --ph-card: color-mix(in srgb, rgb(var(--canvas)), rgb(var(--canvas-2)) 62%);
+    --ph-card-hi: rgb(var(--canvas-3));
+    --ph-toward: #fff;
+    --ph-glyph-pct: 38%;
+    --ph-text-pct: 50%;
+  }
+}

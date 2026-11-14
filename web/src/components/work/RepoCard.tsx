@@ -10,6 +10,10 @@ import type { ActivityEvent } from "@/services/activity";
 import { isPinned, updatedAt } from "@/components/work/order";
 import { stateWord, useWorkWords } from "@/components/work/words";
 import { languageColour } from "@/components/work/language";
+import AvatarCircle from "@/components/phone/AvatarCircle";
+import PillBadge from "@/components/phone/PillBadge";
+import Chevron from "@/components/phone/Chevron";
+import { toneOfKind } from "@/components/phone/tone";
 
 /*
  * A project as GitHub's repository card (#227): the name and a status pill
@@ -110,17 +114,19 @@ export default function RepoCard({
   const linked = Boolean(c.repoUrl || s);
 
   return (
-    <article className={styles.card} data-pinned={isPinned(entry) ? "" : undefined}>
+    <article className={styles.card} data-phone-row="" data-pinned={isPinned(entry) ? "" : undefined}>
       <div className={styles.cardHead}>
-        <BookMarked className={styles.cardIcon} size={16} aria-hidden="true" />
+        <AvatarCircle size={40} tone={toneOfKind(kindOf(entry.state))}>
+          <BookMarked className={styles.cardIcon} size={16} aria-hidden="true" />
+        </AvatarCircle>
         <H className={styles.cardName}>
           <Link to={`/projects/${c.slug}`} translate="no">
             {c.title}
           </Link>
         </H>
-        <span className={styles.pill} data-kind={kindOf(entry.state)}>
+        <PillBadge className={styles.pill} dataKind={kindOf(entry.state)} tone={toneOfKind(kindOf(entry.state))}>
           {stateWord(entry.state, lang)}
-        </span>
+        </PillBadge>
       </div>
 
       {c.tagline && <p className={styles.cardLine}>{c.tagline}</p>}
@@ -178,6 +184,7 @@ export default function RepoCard({
           </Link>
         )}
       </div>
+      <Chevron />
     </article>
   );
 }

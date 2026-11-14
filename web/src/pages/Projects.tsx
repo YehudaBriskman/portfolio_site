@@ -283,7 +283,7 @@ export default function Projects() {
                     <span className={styles.sortLabel} aria-hidden="true">
                       {t.sortBy}
                     </span>
-                    <ul>
+                    <ul data-phone-segmented="">
                       {SORTS.map((s) => (
                         <li key={s}>
                           <Link
