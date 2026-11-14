@@ -7,7 +7,7 @@ export const pages = [
     name: "home-specs",
     route: "/",
     check: async (page, fail) => {
-      await page.locator("#stack").scrollIntoViewIfNeeded();
+      await page.evaluate(() => document.querySelector("#stack")?.scrollIntoView());
       const r = await page.evaluate(() => {
         const dl = document.querySelector("dl[data-ph=specs]");
         const cells = dl ? [...dl.children] : [];
