@@ -17,6 +17,7 @@ Where the numbers came from: [principles](design/2026-11-13-mobile-design-princi
 3. **Encode, do not write.** Status is a glyph plus a hidden word; time is relative with the full date on `title`; counts are a bar. *Why:* an icon is read in one fixation, a sentence in six.
 4. **Say it once.** A datum appears once per view. *Why:* duplicates make people compare them (NN/g).
 5. **Two levels, no more.** Row, then one sheet. A sheet never opens a sheet. *Why:* NN/g progressive disclosure: three levels lose people.
+5a. **A section the user is typing in never auto-collapses.** Auto-open on an error or a first value is fine; auto-close only on the user's own toggle or on leaving the screen. Pass `open={cond ? true : undefined}`, never `open={cond}` from data (`Disclosure` ignores `undefined`, so the section stays as the reader has it). *Why:* a closed `<details>` drops focus from a field under the cursor (#746, #749). `web/scripts/a11y/admin-typing.mjs` types into every field and holds this.
 6. **Colour is never the only channel**, and at most one coloured glyph sits on a row.
 7. **Leading side first.** Order by importance from the inline-start edge and the top; it mirrors in RTL (Apple HIG, Layout: "place the most important items near the top and leading side").
 8. **A gesture is a shortcut, never the only path.** Long-press, swipe and drag each have a visible control. (WCAG 2.5.1, 2.5.7.)
