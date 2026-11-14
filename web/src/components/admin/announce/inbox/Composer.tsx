@@ -24,6 +24,7 @@ import { sortIssues } from "./readiness";
 import { rememberReadiness } from "./readiness";
 import KeyHint from "./KeyHint";
 import { useHotkeys } from "./useHotkeys";
+import { kindWord } from "../kind";
 import { useMarketingWords } from "./words";
 
 /*
@@ -574,7 +575,7 @@ export default function Composer({
       <section className="mk-step" aria-labelledby={`${uid}-s1`}>
         {stepHead(1, `${uid}-s1`, w.step1)}
         <p className="mk-facts">
-          <span className="a-tag">{w.kinds[event.kind]}</span>
+          <span className="a-tag">{kindWord(w.kinds, event.kind)}</span>
           <span>
             {w.added} <RelTime iso={event.createdAt} />
           </span>

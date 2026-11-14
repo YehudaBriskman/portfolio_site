@@ -12,6 +12,8 @@ import { Disclosure } from "@/components/ui/Disclosure";
 import { useAdminWords } from "@/i18n/admin";
 import { usePhone } from "@/hooks/usePhone";
 import { usePostsPhoneWords } from "@/components/admin/posts/words";
+import { formatWhen } from "@/lib/safeTime";
+import { titleOf } from "@/lib/safeTitle";
 
 type Draft = {
   slug: string;
@@ -158,7 +160,7 @@ export default function AdminCollection() {
   /** The server's complaint about one field, shown under it. */
   const fieldError = (name: string) =>
     fieldErrors[name] ? <span className="a-error">{fieldErrors[name]}</span> : null;
-  const heading = isNew ? "New area" : d.title || d.slug;
+  const heading = isNew ? "New area" : titleOf(d.title, d.slug);
   const repoLabel = d.repoOwner && d.repoName ? `${d.repoOwner}/${d.repoName}` : "";
 
   const bottomBar = (
@@ -386,7 +388,7 @@ export default function AdminCollection() {
               ) : (
                 <p className="mono mt-2 text-sm text-bone/85">
                   {`${stats.stars ?? "—"} stars · ${stats.language ?? "—"} · ${stats.license ?? "—"} · fetched ${
-                    stats.fetchedAt ? new Date(String(stats.fetchedAt)).toLocaleString("en-GB") : "never"
+                    stats.fetchedAt ? formatWhen(String(stats.fetchedAt), "en", { dateStyle: "short", timeStyle: "medium" }) : "never"
                   }`}
                 </p>
               )}

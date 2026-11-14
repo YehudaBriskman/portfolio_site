@@ -40,6 +40,8 @@ export const useMobileWords = defineWords(
       keep: "Keep",
     },
     undo: { action: "Undo" },
+    /* A status this build has no word for (a newer server): neutral, never blank. */
+    statusUnknown: "Unknown",
     status: {
       draft: "Draft",
       scheduled: "Scheduled",
@@ -190,6 +192,7 @@ export const useMobileWords = defineWords(
       keep: "להשאיר",
     },
     undo: { action: "ביטול" },
+    statusUnknown: "לא ידוע",
     status: {
       draft: "טיוטה",
       scheduled: "מתוזמן",

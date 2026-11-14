@@ -5,12 +5,14 @@ import { ExternalLink, Plus, Search } from "lucide-react";
 import AdminShell from "@/components/admin/AdminShell";
 import TranslationPill from "@/components/admin/TranslationPill";
 import { useTranslationStatus } from "@/services/translations";
-import { Counter, EmptyState, ErrorState, LoadingRows, PageHeader, RelTime, StatePill } from "@/components/admin/ui";
+import { Counter, EmptyState, ErrorState, LoadingRows, PageHeader, RelTime, StatePill, UnreadableNote } from "@/components/admin/ui";
 import { useAdminWords } from "@/i18n/admin";
 import { plural } from "@/i18n/words";
 import { admin, type AdminCollection, type AdminPost } from "@/services/admin";
 import PostsPhone from "@/components/admin/posts/PostsPhone";
 import { usePhone } from "@/hooks/usePhone";
+import { unreadableCount } from "@/services/tolerant";
+import { titleOf } from "@/lib/safeTitle";
 
 /*
  * The posts list (#288): GitHub's issue list. Status tabs with their counts,
@@ -33,6 +35,7 @@ function PostsDesktop() {
   const [posts, setPosts] = useState<AdminPost[] | null>(null);
   const [cols, setCols] = useState<AdminCollection[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [skipped, setSkipped] = useState(0);
   const [params, setParams] = useSearchParams();
 
   // Filter state lives in the URL, so a filtered view is bookmarkable and the
@@ -53,6 +56,7 @@ function PostsDesktop() {
       .then(([p, c]) => {
         setPosts(p);
         setCols(c);
+        setSkipped(unreadableCount(p) + unreadableCount(c));
       })
       .catch((e) => setError(e instanceof Error ? e.message : "Failed to load"));
   }, []);
@@ -137,6 +141,8 @@ function PostsDesktop() {
           {posts === null ? w.loading : plural("en", shown.length, w.notesCount)}
         </p>
 
+        <UnreadableNote count={skipped} />
+
         {error ? (
           <ErrorState message={error} onRetry={retry} />
         ) : posts === null ? (
@@ -188,7 +194,7 @@ function PostsDesktop() {
                       <tr key={p.slug}>
                         <td>
                           <Link to={`/admin/posts/${p.slug}`} className="a-row-title">
-                            {p.title || p.slug}
+                            {titleOf(p.title, p.slug)}
                           </Link>
                           <span className="a-row-meta">
                             <span>{areaTitle(p.collection)}</span>

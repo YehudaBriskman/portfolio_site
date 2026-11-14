@@ -34,6 +34,7 @@ import { StatusGlyph } from "@/components/ui/StatusGlyph";
 import { usePhone } from "@/hooks/usePhone";
 import { usePhoneCampaignWords } from "./phoneWords";
 import { useCampaignWords } from "./words";
+import { docLang, formatWhen } from "@/lib/safeTime";
 
 /*
  * One campaign. A draft is editable; anything else is shown read-only with its
@@ -294,7 +295,7 @@ export default function CampaignEditor({
   };
 
   const zones = useMemo(() => Array.from(new Set([zone, ...ZONES])), [zone]);
-  const fmt = (iso: string) => new Intl.DateTimeFormat(document.documentElement.lang === "he" ? "he-IL" : "en-GB", { dateStyle: "medium", timeStyle: "short" }).format(new Date(iso));
+  const fmt = (iso: string) => formatWhen(iso, docLang(), { dateStyle: "medium", timeStyle: "short" });
 
   if (loadError) return <ErrorState message={w.loadFailed} onRetry={() => (setLoadError(false), setTick((n) => n + 1))} />;
   if (id !== "new" && !campaign) return <p className="a-box a-box-row text-clay" role="status">{w.loading}</p>;

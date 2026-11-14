@@ -17,7 +17,7 @@ import { resetSettings } from "@/settings/store";
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 const phone = () =>
   vi.stubGlobal("matchMedia", (q: string) => ({ matches: q.includes("max-width: 599px"), media: q, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {}, onchange: null, dispatchEvent: () => false }));
-afterEach(() => (cleanup(), vi.unstubAllGlobals(), resetSettings(), (document.documentElement.lang = "en")));
+afterEach(() => (cleanup(), vi.restoreAllMocks(), vi.unstubAllGlobals(), resetSettings(), (document.documentElement.lang = "en")));
 
 describe("an unknown status or event kind", () => {
   it("StatusGlyph draws a neutral glyph with a word instead of throwing", () => {
@@ -66,6 +66,8 @@ describe("a title that is only spaces or zero-width characters", () => {
   });
   it("the Posts list shows the rest, and says one could not be read, when a post has an unknown status", async () => {
     phone();
+    /* The service holds a list for 30 s; step past what the previous test cached. */
+    vi.spyOn(Date, "now").mockReturnValue(Date.now() + 60_000);
     const post = (slug: string, status: string) => ({ slug, title: slug, subtitle: null, excerpt: "", body: "", status, publishedAt: null, updatedAt: "2026-11-01T00:00:00Z", tags: [], readingMinutes: 1, collection: "site" });
     vi.stubGlobal("fetch", vi.fn(async (url: string) => {
       if (url === "/api/admin/posts") return json({ ok: true, items: [post("fine-one", "published"), post("odd-one", "scheduled")] });

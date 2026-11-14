@@ -32,7 +32,7 @@ describe("parseList", () => {
    sake of one. Services read lists through parseList. */
 describe("guard: service list parsers are tolerant", () => {
   const dir = join(__dirname, "..");
-  const files = readdirSync(dir).filter((f) => f.endsWith(".ts"));
+  const files = readdirSync(dir).filter((f) => f.endsWith(".ts") && f !== "tolerant.ts");
   it("no service parses a whole array with z.array(...).parse", () => {
     const offenders = files.filter((f) => /z\.array\([^)]*\)\s*\.parse\(/.test(readFileSync(join(dir, f), "utf8")));
     expect(offenders, `use parseList from ./tolerant in: ${offenders.join(", ")}`).toEqual([]);
