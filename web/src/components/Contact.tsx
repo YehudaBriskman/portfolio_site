@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import type { FormEvent, KeyboardEvent, MouseEvent, ReactNode } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import type { FormEvent, MouseEvent } from "react";
 import ObjectLabel from "@/components/gallery/ObjectLabel";
 import { MAX_FIELDS, type LabelField } from "@/components/gallery/objectLabel";
 import Written from "@/components/motion/Written";
@@ -9,6 +9,10 @@ import { useContent } from "@/content/store";
 import { ContactError, ContactSchema, sendContactMessage } from "@/services/contact";
 import { useContactWords, useHomeWords } from "@/i18n/pages";
 import Arrow from "@/i18n/Arrow";
+import { useLang } from "@/components/dashboard/i18n";
+
+/* Loaded with the dialog, not with the page: sonner is not needed until a send fails. */
+const ContactToaster = lazy(() => import("@/components/ContactFailure"));
 
 /** The three things a message is made of. A closed union, so a field's error,
  *  its id and its name can never be a string the compiler has not seen. */
@@ -27,25 +31,11 @@ type Status =
   | { kind: "idle" }
   | { kind: "sending" }
   | { kind: "sent" }
-  | { kind: "failed"; message: string; short?: string; details?: string };
+  | { kind: "failed"; message: string };
 
 /* The dialog's accessible name comes from the heading inside it, so the two
    have to agree on one id and there is no second place to change it. */
 const TITLE_ID = "contact-dialog-title";
-
-/* The address inside a sentence is a link of its own, left-to-right even in a Hebrew line. */
-function withEmailLink(text: string, email: string): ReactNode {
-  const [before, after = ""] = text.split("{email}");
-  return (
-    <>
-      {before}
-      <a href={`mailto:${email}`} dir="ltr">
-        {email}
-      </a>
-      {after}
-    </>
-  );
-}
 
 /*
  * The field line, built from data rather than typed out.
@@ -143,10 +133,9 @@ export default function Contact() {
   const { contact, links } = useContent().site;
   const plateFields = plateFieldsOf(links, contact);
   const w = useContactWords();
+  const lang = useLang();
   const home = useHomeWords();
   const [status, setStatus] = useState<Status>({ kind: "idle" });
-  /* The long explanation of a failed send, shown on request. */
-  const [detailsOpen, setDetailsOpen] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
 
   /*
@@ -179,7 +168,6 @@ export default function Contact() {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const firstFieldRef = useRef<HTMLInputElement>(null);
-  const detailsBtnRef = useRef<HTMLButtonElement>(null);
   /* Where the press that may become a backdrop click started. See the handler. */
   const pressedBackdrop = useRef(false);
 
@@ -244,6 +232,14 @@ export default function Contact() {
    * its notes and its alert, so that reopening the dialog shows the reader
    * exactly what they were looking at.
    */
+  /* A failed send raises a toast (see ContactFailure); a new send or closing the dialog takes it down. */
+  const failureShown = useRef(false);
+  const dismissFailure = () => {
+    if (!failureShown.current) return;
+    failureShown.current = false;
+    void import("@/components/ContactFailure").then((m) => m.dismissContactFailure());
+  };
+
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
@@ -252,6 +248,7 @@ export default function Contact() {
       setOpen(false);
       triggerRef.current?.focus();
       setStatus((s) => (s.kind === "sent" ? { kind: "idle" } : s));
+      dismissFailure();
     };
 
     dialog.addEventListener("close", onClose);
@@ -277,19 +274,8 @@ export default function Contact() {
     if (pressedBackdrop.current && e.target === dialogRef.current) setOpen(false);
   };
 
-  /* Escape peels off the details before it closes the dialog, so a reader who
-     opened them to read is not thrown out of the form with their words. */
-  const onDetailsKey = (e: KeyboardEvent<HTMLElement>) => {
-    if (e.key !== "Escape" || !detailsOpen) return;
-    e.preventDefault();
-    e.stopPropagation();
-    setDetailsOpen(false);
-    detailsBtnRef.current?.focus();
-  };
-
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setDetailsOpen(false);
     /* Hold the element itself: React nulls `currentTarget` once the handler
        returns, so reaching for it after the await threw — and the mail had
        already been sent, so a successful send reported itself as a failure. */
@@ -345,6 +331,7 @@ export default function Contact() {
     }
 
     setFieldErrors({});
+    dismissFailure();
     setStatus({ kind: "sending" });
 
     try {
@@ -377,12 +364,16 @@ export default function Contact() {
        */
       /* Only the kind is read: anything unexpected is worded as the server's fault. */
       const kind = err instanceof ContactError ? err.kind : "server";
-      setStatus({
-        kind: "failed",
-        message: w.failed[kind].title,
-        short: w.failed[kind].short,
-        details: w.failed[kind].details,
-      });
+      const f = w.failed[kind];
+      setStatus({ kind: "idle" });
+      failureShown.current = true;
+      void import("@/components/ContactFailure").then((m) =>
+        m.showContactFailure(
+          { ...f, detailsLabel: w.failedDetails, closeLabel: w.close },
+          contact.email,
+          () => dialogRef.current?.querySelector<HTMLElement>("button[type=submit]")?.focus(),
+        ),
+      );
     }
   }
 
@@ -781,36 +772,9 @@ export default function Contact() {
                     outside the alert so it is read on request, not announced twice.
                     It is in the dialog and not a toast: a modal dialog makes the
                     page outside it inert, so a toast would be unreachable by keyboard. */}
-                <div className={styles.failure}>
-                  <p role="alert" className={styles.failureText}>
-                    {status.kind === "failed" && (
-                      <>
-                        <strong>{status.message}</strong>
-                        {status.short && <> {status.short}</>}
-                      </>
-                    )}
-                  </p>
-                  {status.kind === "failed" && status.details && (
-                    <>
-                      <button
-                        type="button"
-                        ref={detailsBtnRef}
-                        className={styles.failureMore}
-                        aria-expanded={detailsOpen}
-                        aria-controls="contact-failure-details"
-                        onClick={() => setDetailsOpen((v) => !v)}
-                        onKeyDown={onDetailsKey}
-                      >
-                        {w.failedDetails}
-                      </button>
-                      {detailsOpen && (
-                        <p id="contact-failure-details" className={styles.failureDetails} onKeyDown={onDetailsKey}>
-                          {withEmailLink(status.details, contact.email)}
-                        </p>
-                      )}
-                    </>
-                  )}
-                </div>
+                <p role="alert" className={styles.failure}>
+                  {status.kind === "failed" ? status.message : null}
+                </p>
                 <div className={styles.foot}>
                   <button
                     type="submit"
@@ -863,6 +827,13 @@ export default function Contact() {
               </form>
             </div>
           </div>
+        )}
+        {/* Inside the dialog, so the notice is reachable and in the top layer. Mounted once the dialog has been
+            opened, which is before any send, because a toast raised before its toaster exists is lost. */}
+        {everOpened && (
+          <Suspense fallback={null}>
+            <ContactToaster dir={lang === "he" ? "rtl" : "ltr"} />
+          </Suspense>
         )}
       </dialog>
 

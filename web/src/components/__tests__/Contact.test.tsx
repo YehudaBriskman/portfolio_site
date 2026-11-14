@@ -182,7 +182,17 @@ describe("Contact", () => {
       dispatchEvent: () => false,
     }));
   };
-  afterEach(() => vi.unstubAllGlobals());
+  /* sonner keeps its toasts in a module-level store, so one test's notice would
+     reappear in the next test's toaster. jsdom also has no pointer capture,
+     which sonner's swipe handling calls on pointer down. */
+  beforeAll(() => {
+    Element.prototype.setPointerCapture ??= () => {};
+    Element.prototype.releasePointerCapture ??= () => {};
+  });
+  afterEach(async () => {
+    vi.unstubAllGlobals();
+    (await import("sonner")).toast.dismiss();
+  });
 
   it.each([
     ["rate", /message not sent, too many tries/i],
