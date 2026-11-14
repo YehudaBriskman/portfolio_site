@@ -251,7 +251,7 @@ describe("Media on a phone: the sheet", () => {
     expect(details.textContent).toMatch(/Picture/);
     expect(details.textContent).toMatch(/\/api\/images\/media\/used-1/);
     expect(within(d).getByRole("link", { name: "WindoM" }).getAttribute("href")).toBe("/admin/areas/windom");
-    expect(within(d).queryByRole("definition")).toBeNull();
+    expect(d.querySelector("dl")?.closest("details")).toBe(details);
   });
 
   it("keeps the alt text rule: an empty alt is refused with the existing words", async () => {

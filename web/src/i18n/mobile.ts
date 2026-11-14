@@ -64,6 +64,7 @@ export const useMobileWords = defineWords(
       unsubscribed: "Unsubscribed",
       suppressed: "Blocked from mail",
       attention: "Needs attention",
+      used: "In use",
     },
     channel: {
       group: "Where it is posted",
@@ -213,6 +214,7 @@ export const useMobileWords = defineWords(
       unsubscribed: "ביטל הרשמה",
       suppressed: "חסום לדיוור",
       attention: "דורש תשומת לב",
+      used: "בשימוש",
     },
     channel: {
       group: "איפה פורסם",
