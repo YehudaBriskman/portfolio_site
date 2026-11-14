@@ -1,4 +1,4 @@
-import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import Contact from "@/components/Contact";
@@ -162,23 +162,45 @@ describe("Contact", () => {
     expect(trigger()).toHaveFocus();
   });
 
+  /* The failure is a toast, mounted inside the dialog: a modal dialog makes the
+     rest of the page inert, so a toast outside it could not be reached. */
+  const toaster = () => document.querySelector<HTMLElement>("[data-sonner-toaster]");
+  const toastAlert = async () => within(await waitForToaster()).findByRole("alert");
+  const waitForToaster = async () => {
+    await waitFor(() => expect(toaster()).not.toBeNull());
+    return toaster()!;
+  };
+  const setViewport = (phone: boolean) => {
+    vi.stubGlobal("matchMedia", (query: string) => ({
+      media: query,
+      matches: phone && /max-width/.test(query),
+      onchange: null,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      dispatchEvent: () => false,
+    }));
+  };
+  afterEach(() => vi.unstubAllGlobals());
+
   it.each([
     ["rate", /message not sent, too many tries/i],
     ["large", /message not sent, too long/i],
     ["server", /message not sent, something went wrong/i],
     ["offline", /message not sent, check your connection/i],
-  ] as const)("a %s failure is a title and one short line, with the long text behind Details", async (kind, re) => {
+  ] as const)("a %s failure is a toast in the dialog: title, one short line, Details", async (kind, re) => {
     send.mockRejectedValue(new ContactError(kind));
     await openDialog();
     await fillIn();
     await userEvent.click(screen.getByRole("button", { name: /send message/i }));
-    const alert = await screen.findByRole("alert");
+    const alert = await toastAlert();
     await waitFor(() => expect(alert).toHaveTextContent(re));
+    expect(dialog().contains(toaster())).toBe(true);
     expect(alert.textContent).not.toMatch(/HTTP|\d{3}|Failed to fetch|still in the fields|@/);
-    /* title + short line: short enough to read at a glance */
     expect(alert.textContent!.split(/[,.]/).join(" ").split(/\s+/).length).toBeLessThan(26);
 
-    const more = screen.getByRole("button", { name: /^details$/i });
+    const more = within(toaster()!).getByRole("button", { name: /^details$/i });
     expect(more).toHaveAttribute("aria-expanded", "false");
     expect(screen.queryByText(/still in the fields/i)).toBeNull();
     await userEvent.click(more);
@@ -186,22 +208,59 @@ describe("Contact", () => {
     const details = screen.getByText(/still in the fields/i);
     expect(details.textContent).not.toMatch(/HTTP|\d{3}|Failed to fetch/);
     expect(within(details).getByRole("link", { name: /@/ })).toHaveAttribute("dir", "ltr");
+    /* The form is untouched and the dialog stays. */
     expect(dialog()).toHaveAttribute("open");
+    expect(screen.getByLabelText("Name")).toHaveValue("Dana Levi");
   });
 
-  it("Escape closes the details first, and leaves the dialog and the words alone", async () => {
+  it("the toast stays long enough to read, and keeps the Details open once asked", async () => {
+    const sonner = await import("sonner");
+    const custom = vi.spyOn(sonner.toast, "custom");
+    send.mockRejectedValue(new ContactError("server"));
+    await openDialog();
+    await fillIn();
+    await userEvent.click(screen.getByRole("button", { name: /send message/i }));
+    await toastAlert();
+    expect(custom.mock.calls[0][1]).toMatchObject({ toasterId: "contact" });
+    expect(custom.mock.calls[0][1]!.duration).toBeGreaterThanOrEqual(10000);
+    await userEvent.click(within(toaster()!).getByRole("button", { name: /^details$/i }));
+    expect(custom.mock.calls.at(-1)![1]!.duration).toBe(Infinity);
+    custom.mockRestore();
+  });
+
+  it("is at the top on a phone and at the bottom right on a desktop", async () => {
+    send.mockRejectedValue(new ContactError("offline"));
+    setViewport(true);
+    const first = render(<Contact />);
+    await userEvent.click(trigger());
+    await fillIn();
+    await userEvent.click(screen.getByRole("button", { name: /send message/i }));
+    expect(await waitForToaster()).toHaveAttribute("data-y-position", "top");
+    first.unmount();
+
+    setViewport(false);
+    render(<Contact />);
+    await userEvent.click(trigger());
+    await fillIn();
+    await userEvent.click(screen.getByRole("button", { name: /send message/i }));
+    const t = await waitForToaster();
+    expect(t).toHaveAttribute("data-y-position", "bottom");
+    expect(t).toHaveAttribute("data-x-position", "right");
+  });
+
+  it("Escape in the toast closes the toast first, and leaves the dialog and the words alone", async () => {
     send.mockRejectedValue(new ContactError("offline"));
     await openDialog();
     await fillIn();
     await userEvent.click(screen.getByRole("button", { name: /send message/i }));
-    const more = await screen.findByRole("button", { name: /^details$/i });
+    await toastAlert();
+    const more = within(toaster()!).getByRole("button", { name: /^details$/i });
     await userEvent.click(more);
-    expect(screen.getByText(/still in the fields/i)).toBeInTheDocument();
     await userEvent.keyboard("{Escape}");
-    expect(screen.queryByText(/still in the fields/i)).toBeNull();
-    expect(more).toHaveAttribute("aria-expanded", "false");
+    await waitFor(() => expect(screen.queryByText(/message not sent/i)).toBeNull());
     expect(dialog()).toHaveAttribute("open");
-    expect(more).toHaveFocus();
+    expect(screen.getByLabelText("Message")).toHaveValue("I read the note on sticky timelines and have a question about it.");
+    expect(screen.getByRole("button", { name: /send message/i })).toHaveFocus();
   });
 
   it.each(["rate", "large", "server", "offline"] as const)("in Hebrew a %s failure has no English fragment", async (kind) => {
@@ -214,10 +273,11 @@ describe("Contact", () => {
       await userEvent.type(screen.getByLabelText("אימייל"), "dana@example.com");
       await userEvent.type(screen.getByLabelText("הודעה"), "קראתי את הרשומה ויש לי שאלה לגביה.");
       await userEvent.click(screen.getByRole("button", { name: /שליחת ההודעה/ }));
-      const alert = await screen.findByRole("alert");
+      const alert = await toastAlert();
       await waitFor(() => expect(alert.textContent).toMatch(/ההודעה לא נשלחה/));
       expect(alert.textContent).not.toMatch(/[A-Za-z]/);
-      await userEvent.click(screen.getByRole("button", { name: /^פרטים$/ }));
+      expect(toaster()).toHaveAttribute("dir", "rtl");
+      await userEvent.click(within(toaster()!).getByRole("button", { name: /^פרטים$/ }));
       const details = screen.getByText(/עדיין בשדות/);
       expect(details.textContent!.replace(/\S+@\S+/, "")).not.toMatch(/[A-Za-z]/);
       expect(within(details).getByRole("link", { name: /@/ })).toHaveAttribute("dir", "ltr");
@@ -233,7 +293,7 @@ describe("Contact", () => {
 
     await userEvent.click(screen.getByRole("button", { name: /send message/i }));
 
-    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Message not sent"));
+    await waitFor(() => expect(toaster()).toHaveTextContent("Message not sent"));
 
     /* The one thing a reader cannot recover is the paragraph they just wrote —
        and a dialog that shuts itself on a failure has thrown away the only copy
@@ -369,7 +429,7 @@ describe("Contact", () => {
 
     await userEvent.click(screen.getByRole("button", { name: /send message/i }));
 
-    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Message not sent"));
+    await waitFor(() => expect(toaster()).toHaveTextContent("Message not sent"));
     /* A closing gesture on a message that never left is the page congratulating
        itself for losing it. */
     expect(screen.getByRole("form", { name: "Send a message" })).not.toHaveAttribute("data-sent");
