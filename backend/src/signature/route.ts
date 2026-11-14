@@ -22,6 +22,7 @@ import {
   type SigSlotDoc,
 } from "./schemas.js";
 import { strokesToSvg } from "./strokes.js";
+import { resolveSignature } from "./resolve.js";
 
 /*
  * The owner's signature image, one per language, under /api/admin/signature
@@ -199,6 +200,17 @@ const FOREVER = "public, max-age=31536000, immutable";
 const CSP = "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'";
 
 export const signaturePublicRoutes = Router();
+
+/* The post ending asks which file to draw: only the rendered asset's public facts, and only while "End of posts" is on. */
+signaturePublicRoutes.get(
+  "/:lang/current",
+  asyncHandler(async (req, res) => {
+    const lang = SigLangParam.safeParse(req.params.lang);
+    const a = lang.success ? await resolveSignature("posts", lang.data) : null;
+    if (!a) return res.set("Cache-Control", "no-store"), gone(res);
+    res.set("Cache-Control", "public, max-age=300").json({ src: a.src, alt: a.alt, width: a.width, height: a.height, format: a.format });
+  }),
+);
 
 signaturePublicRoutes.get(
   "/:lang/:file",

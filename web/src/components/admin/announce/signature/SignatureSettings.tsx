@@ -13,7 +13,8 @@ import { useSignatureWords } from "./words";
  * toast for the result. Nothing here is public until a switch is on.
  */
 
-const USES: SigUse[] = ["email", "posts", "cards"];
+/* "cards" stays in the stored shape (tolerant) but has no consumer yet, so no switch is shown for it. */
+const USES: SigUse[] = ["email", "posts"];
 
 export default function SignatureSettings({ defaultAlt }: { defaultAlt: string }) {
   const w = useSignatureWords();
