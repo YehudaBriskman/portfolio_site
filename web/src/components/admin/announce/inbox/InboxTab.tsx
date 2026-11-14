@@ -6,6 +6,7 @@ import { usePhone } from "@/hooks/usePhone";
 import { copyText } from "@/lib/share";
 import { adminAnnounce, type AnnounceChannel, type AnnounceSummary } from "@/services/adminAnnounce";
 import Composer from "./Composer";
+import { ListPresence } from "@/components/ui/ListPresence";
 import InboxPhoneRow from "./InboxPhoneRow";
 import InboxRow from "./InboxRow";
 import InboxSheet from "./InboxSheet";
@@ -195,20 +196,22 @@ export default function InboxTab({ items, error, onRetry, onChange, onCreated }:
           <Megaphone aria-hidden="true" className="mx-auto mb-2 h-5 w-5" />
           {w.emptyText}
         </EmptyState>
+      ) : phone ? (
+        <ListPresence as="ul" items={list} itemKey={(e) => e.id} className="mk-list mk-plist a-settle" aria-label={w.list(items.length)}>
+          {(e) => (
+            <InboxPhoneRow
+              event={e}
+              readiness={readiness[e.id]}
+              onOpen={() => {
+                setSelectedId(e.id);
+                setOpenId(e.id);
+              }}
+            />
+          )}
+        </ListPresence>
       ) : (
-        <ul ref={listRef} className={phone ? "mk-list mk-plist" : "mk-list"} aria-label={w.list(items.length)} aria-describedby={phone ? undefined : "mk-keys"}>
-          {list.map((e) =>
-            phone ? (
-              <InboxPhoneRow
-                key={e.id}
-                event={e}
-                readiness={readiness[e.id]}
-                onOpen={() => {
-                  setSelectedId(e.id);
-                  setOpenId(e.id);
-                }}
-              />
-            ) : (
+        <ul ref={listRef} className="mk-list" aria-label={w.list(items.length)} aria-describedby="mk-keys">
+          {list.map((e) => (
             <InboxRow
               key={e.id}
               event={e}
@@ -224,8 +227,7 @@ export default function InboxTab({ items, error, onRetry, onChange, onCreated }:
                 void quickCopy(e, c);
               }}
             />
-            ),
-          )}
+          ))}
         </ul>
       )}
 

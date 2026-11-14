@@ -56,6 +56,19 @@ describe("MiniBar", () => {
     expect(widths.reduce((a, b) => a + b, 0)).toBeCloseTo(93.571, 2);
   });
 
+  it("keeps an empty part's element, so a bar that fills later grows from where it was and not from nothing", () => {
+    const parts = (n: number) => [{ value: 5, tone: "ok" as const }, { value: n, tone: "danger" as const }];
+    const { container, rerender } = render(<MiniBar parts={parts(0)} total={10} label="x" />);
+    const danger = container.querySelector<HTMLElement>('[data-tone="danger"]');
+    expect(danger).toBeTruthy();
+    expect(danger!.hasAttribute("data-empty")).toBe(true);
+    expect(danger!.hasAttribute("data-segment")).toBe(false);
+    rerender(<MiniBar parts={parts(3)} total={10} label="x" />);
+    expect(container.querySelector('[data-tone="danger"]')).toBe(danger);
+    expect(danger!.hasAttribute("data-empty")).toBe(false);
+    expect(danger!.style.inlineSize).toBe("30%");
+  });
+
   it("gives danger a pattern so colour is not alone", () => {
     const { container } = render(<MiniBar parts={[{ value: 1, tone: "danger" }]} total={2} label="x" />);
     expect(container.querySelector('[data-segment][data-tone="danger"]')).toBeTruthy();

@@ -8,6 +8,7 @@ import { FilterChips, FiltersRestoredNote } from "@/components/ui/FilterChips";
 import { FilterSheet } from "@/components/ui/FilterSheet";
 import type { FilterDef } from "@/components/ui/filters";
 import { ICON } from "@/components/ui/icons";
+import { ListPresence } from "@/components/ui/ListPresence";
 import { RecordRow, type Fact } from "@/components/ui/RecordRow";
 import { SelectionBar, SelectionHeader, type SelectionAction } from "@/components/ui/SelectionBar";
 import { StatusGlyph, type StatusKind } from "@/components/ui/StatusGlyph";
@@ -201,8 +202,7 @@ export default function AudiencePhone() {
     const glyph = ROW_GLYPH[c.status];
     return (
       <RecordRow
-        key={c.hash}
-        as="li"
+        as="div"
         icon={SOURCE_ICON[c.source] ?? ICON.contact}
         title={title}
         facts={[facts[0], facts[1]]}
@@ -252,14 +252,17 @@ export default function AudiencePhone() {
           {visible.length === 0 ? (
             <EmptyState title={w.empty} />
           ) : (
-            <ul
+            <ListPresence
+              as="ul"
+              items={visible}
+              itemKey={(c) => c.hash}
               data-audience-list=""
               aria-label={w.tableLabel}
-              className="a-box m-0 list-none overflow-hidden p-0"
+              className="a-box a-settle m-0 list-none overflow-hidden p-0"
               onClickCapture={(e) => (lastRow.current = (e.target as HTMLElement).closest<HTMLElement>("[data-record-row]"))}
             >
-              {visible.map(rowFor)}
-            </ul>
+              {rowFor}
+            </ListPresence>
           )}
           {next && (
             <div className="mt-3">

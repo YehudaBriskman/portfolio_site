@@ -202,3 +202,10 @@
     scale: 0.98;
   }
 }
+
+/* A phone: the pressed tint is there on the first frame of the touch (no tween on the way in), and eases away on release. */
+@media (prefers-reduced-motion: no-preference) and (max-width: 599px) {
+  .row:active {
+    transition-duration: 0s, var(--a-dur-1);
+  }
+}

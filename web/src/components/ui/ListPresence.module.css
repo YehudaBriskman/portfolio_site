@@ -1,0 +1,85 @@
+/*
+ * Rows that arrive and leave: collapse (height and opacity) and grow, on a
+ * phone with motion allowed. The row is a one-column grid whose track is 1fr
+ * open and 0fr closed, so the height animates without being measured and the
+ * neighbours slide with it. A tile in a grid cannot give back its height, so
+ * it fades and shrinks in place.
+ *
+ * Outside the gate a closed row is `display: none` (the caller has already
+ * dropped it) and nothing is fresh. Inside it the closed row also ends at
+ * `display: none` by `allow-discrete`, so if the transition never runs, or is
+ * cut short, the row is gone all the same; the component's timer removes it
+ * from the DOM either way.
+ */
+.row {
+  display: block;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-inline-size: 0;
+}
+
+.row[data-state="closed"] {
+  display: none;
+  pointer-events: none;
+}
+
+.inner {
+  min-block-size: 0;
+  min-inline-size: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) and (max-width: 599px) {
+  .row[data-variant="rows"] {
+    display: grid;
+    grid-template-rows: 1fr;
+    opacity: 1;
+    transition:
+      grid-template-rows var(--a-dur-2) var(--a-ease-out),
+      opacity var(--a-dur-2) var(--a-ease-out);
+  }
+
+  .row[data-variant="rows"] > .inner {
+    overflow: clip;
+  }
+
+  .row[data-variant="rows"][data-state="closed"] {
+    display: none;
+    grid-template-rows: 0fr;
+    opacity: 0;
+    transition:
+      grid-template-rows var(--a-dur-2) var(--a-ease-in),
+      opacity var(--a-dur-1) var(--a-ease-in),
+      display var(--a-dur-2) allow-discrete;
+  }
+
+  .row[data-variant="tiles"] {
+    opacity: 1;
+    scale: 1;
+    transition:
+      opacity var(--a-dur-2) var(--a-ease-out),
+      scale var(--a-dur-2) var(--a-ease-out);
+  }
+
+  .row[data-variant="tiles"][data-state="closed"] {
+    display: none;
+    opacity: 0;
+    scale: 0.92;
+    transition:
+      opacity var(--a-dur-1) var(--a-ease-in),
+      scale var(--a-dur-1) var(--a-ease-in),
+      display var(--a-dur-1) allow-discrete;
+  }
+
+  @starting-style {
+    .row[data-variant="rows"][data-fresh][data-state="open"] {
+      grid-template-rows: 0fr;
+      opacity: 0;
+    }
+
+    .row[data-variant="tiles"][data-fresh][data-state="open"] {
+      opacity: 0;
+      scale: 0.92;
+    }
+  }
+}
