@@ -1,5 +1,5 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import Contact from "@/components/Contact";
 import { ContactError, ContactSchema, sendContactMessage } from "@/services/contact";
@@ -163,17 +163,45 @@ describe("Contact", () => {
   });
 
   it.each([
-    ["rate", /too many tries.*few minutes/i],
-    ["large", /too large/i],
-    ["server", /could not send.*try again.*email/i],
-    ["offline", /offline|connection/i],
-  ] as const)("a %s failure is a full sentence with no machine text", async (kind, re) => {
+    ["rate", /message not sent, too many tries/i],
+    ["large", /message not sent, too long/i],
+    ["server", /message not sent, something went wrong/i],
+    ["offline", /message not sent, check your connection/i],
+  ] as const)("a %s failure is a title and one short line, with the long text behind Details", async (kind, re) => {
     send.mockRejectedValue(new ContactError(kind));
     await openDialog();
     await fillIn();
     await userEvent.click(screen.getByRole("button", { name: /send message/i }));
-    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent(re));
-    expect(screen.getByRole("alert").textContent).not.toMatch(/HTTP|\d{3}|Failed to fetch/);
+    const alert = await screen.findByRole("alert");
+    await waitFor(() => expect(alert).toHaveTextContent(re));
+    expect(alert.textContent).not.toMatch(/HTTP|\d{3}|Failed to fetch|still in the fields|@/);
+    /* title + short line: short enough to read at a glance */
+    expect(alert.textContent!.split(/[,.]/).join(" ").split(/\s+/).length).toBeLessThan(26);
+
+    const more = screen.getByRole("button", { name: /^details$/i });
+    expect(more).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByText(/still in the fields/i)).toBeNull();
+    await userEvent.click(more);
+    expect(more).toHaveAttribute("aria-expanded", "true");
+    const details = screen.getByText(/still in the fields/i);
+    expect(details.textContent).not.toMatch(/HTTP|\d{3}|Failed to fetch/);
+    expect(within(details).getByRole("link", { name: /@/ })).toHaveAttribute("dir", "ltr");
+    expect(dialog()).toHaveAttribute("open");
+  });
+
+  it("Escape closes the details first, and leaves the dialog and the words alone", async () => {
+    send.mockRejectedValue(new ContactError("offline"));
+    await openDialog();
+    await fillIn();
+    await userEvent.click(screen.getByRole("button", { name: /send message/i }));
+    const more = await screen.findByRole("button", { name: /^details$/i });
+    await userEvent.click(more);
+    expect(screen.getByText(/still in the fields/i)).toBeInTheDocument();
+    await userEvent.keyboard("{Escape}");
+    expect(screen.queryByText(/still in the fields/i)).toBeNull();
+    expect(more).toHaveAttribute("aria-expanded", "false");
+    expect(dialog()).toHaveAttribute("open");
+    expect(more).toHaveFocus();
   });
 
   it.each(["rate", "large", "server", "offline"] as const)("in Hebrew a %s failure has no English fragment", async (kind) => {
@@ -187,8 +215,12 @@ describe("Contact", () => {
       await userEvent.type(screen.getByLabelText("הודעה"), "קראתי את הרשומה ויש לי שאלה לגביה.");
       await userEvent.click(screen.getByRole("button", { name: /שליחת ההודעה/ }));
       const alert = await screen.findByRole("alert");
-      await waitFor(() => expect(alert.textContent).toMatch(/שום דבר לא נשלח/));
-      expect(alert.textContent!.replace(/\S+@\S+/, "")).not.toMatch(/[A-Za-z]/);
+      await waitFor(() => expect(alert.textContent).toMatch(/ההודעה לא נשלחה/));
+      expect(alert.textContent).not.toMatch(/[A-Za-z]/);
+      await userEvent.click(screen.getByRole("button", { name: /^פרטים$/ }));
+      const details = screen.getByText(/עדיין בשדות/);
+      expect(details.textContent!.replace(/\S+@\S+/, "")).not.toMatch(/[A-Za-z]/);
+      expect(within(details).getByRole("link", { name: /@/ })).toHaveAttribute("dir", "ltr");
     } finally {
       document.documentElement.removeAttribute("lang");
     }
@@ -201,7 +233,7 @@ describe("Contact", () => {
 
     await userEvent.click(screen.getByRole("button", { name: /send message/i }));
 
-    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Nothing was sent"));
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Message not sent"));
 
     /* The one thing a reader cannot recover is the paragraph they just wrote —
        and a dialog that shuts itself on a failure has thrown away the only copy
@@ -337,7 +369,7 @@ describe("Contact", () => {
 
     await userEvent.click(screen.getByRole("button", { name: /send message/i }));
 
-    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Nothing was sent"));
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Message not sent"));
     /* A closing gesture on a message that never left is the page congratulating
        itself for losing it. */
     expect(screen.getByRole("form", { name: "Send a message" })).not.toHaveAttribute("data-sent");
