@@ -831,7 +831,7 @@ describe("mail rendering", () => {
     const on = await renderCampaignMail(c, { lang: "he" }, hashEmail(addr(1)), sender);
     expect(on.subject).toBe(`${COMMERCIAL_LABEL_HE}: שלום`);
     expect(on.html).toContain('dir="rtl"');
-    expect(on.html).toMatch(new RegExp(`<body[^>]*>\\s*<table[^>]*>.*?<p [^>]*font-weight:700">${COMMERCIAL_LABEL_HE}</p>`, "s"));
+    expect(on.html).toMatch(new RegExp(`<body[^>]*>\\s*(?:<div style="display:none[^>]*>[^<]*</div>\\s*)?<table[^>]*>.*?<p [^>]*font-weight:700">${COMMERCIAL_LABEL_HE}</p>`, "s"));
     expect(on.html.split(COMMERCIAL_LABEL_HE)).toHaveLength(2);
     expect(on.text.startsWith(`${COMMERCIAL_LABEL_HE}\n\nx`)).toBe(true);
     expect(on.text.split(COMMERCIAL_LABEL_HE)).toHaveLength(2);

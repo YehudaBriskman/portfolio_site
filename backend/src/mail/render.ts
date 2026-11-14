@@ -84,13 +84,13 @@ const inlineText = (parts: string | Inline[]): string =>
         })
         .join("");
 
-function rowOf(inner: string, card: string, o: { top?: number; bottom?: number } = {}): string {
-  return `<tr><td class="card" bgcolor="${card}" style="background-color:${card};overflow-wrap:break-word;word-break:break-word;padding:${o.top ?? 0}px 24px ${o.bottom ?? 16}px 24px">${inner}</td></tr>`;
+function rowOf(inner: string, card: string, root: MailLang, o: { top?: number; bottom?: number } = {}): string {
+  return `<tr><td class="card" dir="${dirOf(root)}" bgcolor="${card}" style="background-color:${card};overflow-wrap:break-word;word-break:break-word;padding:${o.top ?? 0}px 24px ${o.bottom ?? 16}px 24px">${inner}</td></tr>`;
 }
 
 type Pal = (typeof PALETTE)["light"] | (typeof PALETTE)["dark"];
 function renderBlock(b: MailBlock, root: MailLang, origin: string, L: Pal): { html: string; text: string } {
-  const row = (inner: string, o: { top?: number; bottom?: number } = {}) => rowOf(inner, L.card, o);
+  const row = (inner: string, o: { top?: number; bottom?: number } = {}) => rowOf(inner, L.card, root, o);
   switch (b.type) {
     case "heading": {
       const size = b.level === 2 ? 20 : 24;
@@ -117,7 +117,7 @@ function renderBlock(b: MailBlock, root: MailLang, origin: string, L: Pal): { ht
       if (!href) return { html: row(`<p class="ink" dir="auto" style="margin:0;font-size:16px;line-height:1.5;color:${L.ink}">${esc(b.label)}</p>`), text: b.label };
       return {
         html: row(
-          `<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td class="btn" bgcolor="${L.btn}" height="44" style="background-color:${L.btn};border-radius:8px"><a class="btna" href="${esc(href)}" style="display:inline-block;min-height:20px;padding:12px 24px;font-size:16px;line-height:20px;font-weight:700;color:${L.btnInk};text-decoration:none">${esc(b.label)}</a></td></tr></table>`,
+          `<table role="presentation" dir="${dirOf(root)}" cellpadding="0" cellspacing="0" border="0"><tr><td class="btn" bgcolor="${L.btn}" height="44" style="background-color:${L.btn};border-radius:8px"><a class="btna" href="${esc(href)}" style="display:inline-block;min-height:20px;padding:12px 24px;font-size:16px;line-height:20px;font-weight:700;color:${L.btnInk};text-decoration:none">${esc(b.label)}</a></td></tr></table>`,
           { top: 4, bottom: 20 },
         ),
         text: `${b.label}: ${href}`,
@@ -125,7 +125,7 @@ function renderBlock(b: MailBlock, root: MailLang, origin: string, L: Pal): { ht
     }
     case "list":
       return {
-        html: row(`<ul class="ink" style="margin:0;padding:0;padding-inline-start:22px;font-size:16px;line-height:1.5;color:${L.ink}">${b.items.map((i) => `<li dir="auto" style="margin:0 0 4px 0">${esc(i)}</li>`).join("")}</ul>`),
+        html: row(`<ul class="ink" style="margin:0;padding:0;padding-${root === "he" ? "right" : "left"}:22px;padding-inline-start:22px;font-size:16px;line-height:1.5;color:${L.ink}">${b.items.map((i) => `<li dir="auto" style="margin:0 0 4px 0">${esc(i)}</li>`).join("")}</ul>`),
         text: b.items.map((i) => `- ${i}`).join("\n"),
       };
     case "card": {
@@ -198,11 +198,11 @@ export function renderMail(blocks: MailBlock[], opts: RenderOptions): RenderedMa
   /* A forced dark mail writes the dark palette into the inline styles, so it also survives a client that ignores <style>. */
   const dir = dirOf(lang);
   const pre = opts.preheader?.trim();
-  const body = `<body class="page" bgcolor="${P.page}" style="margin:0;padding:0;background-color:${P.page};font-family:${FONT}">
+  const body = `<body class="page" dir="${dir}" bgcolor="${P.page}" style="margin:0;padding:0;background-color:${P.page};font-family:${FONT}">
 ${pre ? `<div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all;font-size:1px;line-height:1px;color:${P.page}">${esc(pre)}${"&#8204;&nbsp;".repeat(30)}</div>` : ""}
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="page" bgcolor="${P.page}" style="background-color:${P.page}"><tr><td align="center" style="padding:16px 8px">
-<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" class="card" bgcolor="${P.card}" style="width:100%;max-width:600px;table-layout:fixed;background-color:${P.card};border-radius:10px;font-family:${FONT}">
-<tr><td class="card" bgcolor="${P.card}" height="24" style="height:24px;line-height:24px;font-size:1px;background-color:${P.card};border-radius:10px 10px 0 0">&nbsp;</td></tr>
+<table role="presentation" dir="${dir}" width="100%" cellpadding="0" cellspacing="0" border="0" class="page" bgcolor="${P.page}" style="background-color:${P.page}"><tr><td align="center" dir="${dir}" style="padding:16px 8px">
+<table role="presentation" dir="${dir}" width="600" cellpadding="0" cellspacing="0" border="0" class="card" bgcolor="${P.card}" style="width:100%;max-width:600px;table-layout:fixed;background-color:${P.card};border-radius:10px;font-family:${FONT}">
+<tr><td class="card" dir="${dir}" bgcolor="${P.card}" height="24" style="height:24px;line-height:24px;font-size:1px;background-color:${P.card};border-radius:10px 10px 0 0">&nbsp;</td></tr>
 ${parts.map((p) => p.html).filter(Boolean).join("\n")}
 </table></td></tr></table></body>`;
   const html = `<!doctype html>
