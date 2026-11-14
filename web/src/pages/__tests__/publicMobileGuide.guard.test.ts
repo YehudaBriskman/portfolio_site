@@ -100,7 +100,7 @@ const ALLOW_HOVER: readonly string[] = [
   "src/components/LatestNotes.module.css  1 unguarded :hover rule",
   "src/components/SiteFooter.tsx  tailwind hover: utility",
   "src/components/city/ContributionCity.module.css  1 unguarded :hover rule",
-  "src/components/dashboard/Dashboard.module.css  16 unguarded :hover rules",
+  "src/components/dashboard/Dashboard.module.css  14 unguarded :hover rules",
   "src/components/dashboard/History.module.css  6 unguarded :hover rules",
   "src/components/gallery/ObjectLabel.module.css  1 unguarded :hover rule",
   "src/components/nav/DisplayMenu.module.css  1 unguarded :hover rule",
