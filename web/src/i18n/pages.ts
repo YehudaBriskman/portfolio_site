@@ -87,9 +87,14 @@ export const useContactWords = defineWords(
     sending: "Sending",
     send: "Send message",
     invalid: "Nothing was sent. There's a note under each field that needs a change.",
-    failed: (reason: string, email: string) =>
-      `Nothing was sent — ${reason}. Your message is still in the fields, and ${email} works too.`,
-    unknownFailure: "something went wrong at my end",
+    /* One full sentence per cause the reader can act on; never a status code
+       or the browser's own text. */
+    failed: {
+      rate: (email: string) => `Nothing was sent: too many tries, so wait a few minutes and try again. Your message is still in the fields, and ${email} works too.`,
+      large: (email: string) => `Nothing was sent: the message is too large. Shorten it and try again. It is still in the fields, and ${email} works too.`,
+      server: (email: string) => `Nothing was sent: I could not send it. Try again, or email me directly at ${email}. Your message is still in the fields.`,
+      offline: (email: string) => `Nothing was sent: you seem to be offline. Check your connection and try again. Your message is still in the fields, and ${email} works too.`,
+    },
     errors: {
       name: "Add your name",
       emailEmpty: "Add your email address, so I can reply",
@@ -114,9 +119,12 @@ export const useContactWords = defineWords(
     sending: "בשליחה",
     send: "שליחת ההודעה",
     invalid: "ההודעה לא נשלחה. ליד כל שדה שדורש תיקון מופיעה הערה.",
-    failed: (reason: string, email: string) =>
-      `שום דבר לא נשלח — ${reason}. ההודעה שלכם עדיין בשדות, ואפשר גם לכתוב אל ${email}.`,
-    unknownFailure: "משהו השתבש אצלי",
+    failed: {
+      rate: (email: string) => `שום דבר לא נשלח. יותר מדי ניסיונות, המתינו כמה דקות ונסו שוב. ההודעה שלכם עדיין בשדות, ואפשר גם לכתוב אל ${email}.`,
+      large: (email: string) => `שום דבר לא נשלח. ההודעה ארוכה מדי, קצרו אותה ונסו שוב. היא עדיין בשדות, ואפשר גם לכתוב אל ${email}.`,
+      server: (email: string) => `שום דבר לא נשלח. לא הצלחתי לשלוח את ההודעה. נסו שוב, או כתבו אליי ישירות אל ${email}. ההודעה שלכם עדיין בשדות.`,
+      offline: (email: string) => `שום דבר לא נשלח. נראה שאין חיבור לאינטרנט. בדקו את החיבור ונסו שוב. ההודעה שלכם עדיין בשדות, ואפשר גם לכתוב אל ${email}.`,
+    },
     errors: {
       name: "יש להזין שם",
       emailEmpty: "יש להזין כתובת אימייל, כדי שאוכל לענות",

@@ -165,7 +165,7 @@ describe("Contact", () => {
   it.each([
     ["rate", /too many tries.*few minutes/i],
     ["large", /too large/i],
-    ["server", /could not send.*try again or email/i],
+    ["server", /could not send.*try again.*email/i],
     ["offline", /offline|connection/i],
   ] as const)("a %s failure is a full sentence with no machine text", async (kind, re) => {
     send.mockRejectedValue(new ContactError(kind));

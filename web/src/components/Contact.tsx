@@ -6,7 +6,7 @@ import Written from "@/components/motion/Written";
 import styles from "@/components/Contact.module.css";
 import type { SocialLink } from "@/data/links";
 import { useContent } from "@/content/store";
-import { ContactSchema, sendContactMessage } from "@/services/contact";
+import { ContactError, ContactSchema, sendContactMessage } from "@/services/contact";
 import { useContactWords, useHomeWords } from "@/i18n/pages";
 import Arrow from "@/i18n/Arrow";
 
@@ -347,10 +347,11 @@ export default function Contact() {
        * shuts itself, when the send fails has thrown away the only copy of the
        * message it was asked to deliver.
        */
-      const reason = err instanceof Error ? err.message : w.unknownFailure;
+      /* Only the kind is read: anything unexpected is worded as the server's fault. */
+      const kind = err instanceof ContactError ? err.kind : "server";
       setStatus({
         kind: "failed",
-        message: w.failed(reason, contact.email),
+        message: w.failed[kind](contact.email),
       });
     }
   }
