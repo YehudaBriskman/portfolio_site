@@ -7,6 +7,16 @@ import { Disclosure, DisclosureButton } from "@/components/ui/Disclosure";
 const css = readFileSync(resolve(__dirname, "Disclosure.module.css"), "utf8");
 
 describe("Disclosure", () => {
+  it("stays as the reader has it when `open` goes from true to undefined", () => {
+    const { container, rerender } = render(<Disclosure summary="S" open>body</Disclosure>);
+    const details = container.querySelector("details")!;
+    expect(details.open).toBe(true);
+    rerender(<Disclosure summary="S" open={undefined}>body</Disclosure>);
+    expect(container.querySelector("details")!.open).toBe(true);
+    rerender(<Disclosure summary="S" open={false}>body</Disclosure>);
+    expect(container.querySelector("details")!.open).toBe(false);
+  });
+
   it("puts an aria-hidden svg chevron first in the summary", () => {
     const { container } = render(<Disclosure summary="Advanced">body</Disclosure>);
     const summary = container.querySelector("summary")!;

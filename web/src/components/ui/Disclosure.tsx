@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, ReactNode } from "react";
+import { useState, type ButtonHTMLAttributes, type ReactNode } from "react";
 import { ChevronRight } from "lucide-react";
 import styles from "@/components/ui/Disclosure.module.css";
 
@@ -14,7 +14,11 @@ export interface DisclosureProps {
   summary: ReactNode;
   /** One-line state shown beside the summary (e.g. "unsaved"). Wraps, never truncates. */
   meta?: ReactNode;
-  /** Controlled open state. Omit for an uncontrolled, default-closed disclosure. */
+  /**
+   * Open state. Omit for an uncontrolled, default-closed disclosure. A change to
+   * true or false is applied; a change to undefined leaves the section as the
+   * reader has it (React would otherwise strip the attribute and close it).
+   */
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   testid?: string;
@@ -23,12 +27,27 @@ export interface DisclosureProps {
 }
 
 export function Disclosure({ summary, meta, open, onOpenChange, testid, className, children }: DisclosureProps) {
+  /*
+   * A caller that forces a section open while a field is wrong passes
+   * `open={bad ? true : undefined}`. Handing `undefined` straight to <details>
+   * removes the attribute, so the section shut the moment the field became
+   * valid, with the reader's cursor inside it. The state is kept here instead.
+   */
+  const [shown, setShown] = useState(open ?? false);
+  const [seen, setSeen] = useState(open);
+  if (open !== seen) {
+    setSeen(open);
+    if (open !== undefined) setShown(open);
+  }
   return (
     <details
       className={cx(styles.disclosure, className)}
-      open={open}
+      open={shown}
       data-testid={testid}
-      onToggle={(e) => onOpenChange?.(e.currentTarget.open)}
+      onToggle={(e) => {
+        setShown(e.currentTarget.open);
+        onOpenChange?.(e.currentTarget.open);
+      }}
     >
       <summary className={styles.summary}>
         <ChevronRight className={styles.chevron} size={20} strokeWidth={2.25} aria-hidden="true" focusable="false" />
