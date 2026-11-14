@@ -3,6 +3,8 @@ import { useContent } from "@/content/store";
 import { useLang } from "@/components/dashboard/i18n";
 import { useFooterWords } from "@/i18n/chrome";
 import { inEnglish } from "@/i18n/words";
+import "@/components/phone/tokens.css";
+import "@/components/phone/pages-forms.css";
 
 /*
  * The site footer.
@@ -71,7 +73,7 @@ export default function SiteFooter() {
     "-my-1 inline-flex min-h-11 min-w-11 items-center text-sm sm:min-w-6 text-ink transition-colors hover:text-sodium sm:min-h-0 sm:py-1";
 
   return (
-    <footer className="footer-ground on-panel" data-chrome="dark">
+    <footer className="footer-ground on-panel" data-chrome="dark" data-ph-foot="">
       {/* No drawn top rule any more: the change of ground is the edge, and a
           hairline drawn along a boundary that is already 15.95:1 says it
           twice. The footer has no motion at all, which is right for chrome. */}

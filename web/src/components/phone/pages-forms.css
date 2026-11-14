@@ -1,0 +1,157 @@
+/*
+ * Direction A ("grouped") on the contact section, the compact forms, the
+ * subscribe pages (confirm, preferences, unsubscribe), the 404 page, the
+ * privacy page's way back and the footer, PHONE ONLY. Everything is inside the
+ * one public phone query (639px); above it the only rule is the phone-only
+ * parts' `display: none`. Pages keep their DOM and classes; these rules hang
+ * on data attributes:
+ *
+ *   data-ph-ask        the home Contact section's ask: one card, a full-width pill
+ *   data-ph-contact    the contact form: its three fields are one grouped card
+ *   data-ph-field      a field of that card (name, email, message)
+ *   data-ph-primary    the one primary button of a form, full width, 48 tall
+ *   data-ph-frame      the subscribe pages' column; data-ph-result its status
+ *   data-ph-fieldset   a group of choices (topics, language) as one card
+ *   data-ph="path"     the 404 page's quoted path; "onward-list" its buttons
+ *   data-ph-foot       the footer: each link column is one inset group
+ *   data-ph-only       a phone-only glyph (a row's leading icon)
+ *
+ * Tokens are the kit's (tokens.css). No blur, no hover, no font, no motion.
+ * Consent and legal wording are untouched: only their box changes.
+ */
+
+[data-ph-only] {
+  display: none;
+}
+
+@media (max-width: 639px) {
+  [data-ph-only] {
+    display: block;
+  }
+
+  /* ───────────────────────────── the home Contact section's ask */
+  div[data-ph-ask] {
+    padding: 20px var(--ph-gutter);
+    border-radius: var(--r-md);
+    background: var(--ph-card);
+  }
+  [data-ph-ask] [data-ph-primary] {
+    inline-size: 100%;
+  }
+
+  /* ───────────────────────────── the contact form: three fields, one card */
+  form[data-ph-contact] {
+    row-gap: 0;
+  }
+  [data-ph-contact] [data-ph-field] {
+    padding: 10px var(--ph-gutter) 4px;
+    background: var(--ph-card);
+  }
+  [data-ph-contact] [data-ph-field="name"] {
+    border-start-start-radius: var(--r-md);
+    border-start-end-radius: var(--r-md);
+  }
+  [data-ph-contact] [data-ph-field="message"] {
+    border-end-start-radius: var(--r-md);
+    border-end-end-radius: var(--r-md);
+  }
+  [data-ph-contact] [data-ph-field] + [data-ph-field] {
+    border-block-start: 1px solid var(--ph-line);
+  }
+  /* the fields lose their own boxes: the card is the box */
+  [data-ph-contact] [data-ph-field] :is(input, textarea) {
+    padding-inline: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+  [data-ph-contact] [data-ph-field] :is(input, textarea)[aria-invalid="true"] {
+    box-shadow: inset 0 -2px 0 rgb(var(--error));
+  }
+  form[data-ph-contact] > :not([data-ph-field]) {
+    margin-block-start: 16px;
+  }
+  [data-ph-contact] [data-ph-primary] {
+    inline-size: 100%;
+    min-block-size: 48px;
+    border-radius: var(--r-pill);
+  }
+
+  /* ───────────────────────────── the subscribe pages */
+  [data-ph-frame] [data-ph-result] {
+    padding: 14px var(--ph-gutter);
+    border-radius: var(--r-md);
+    background: var(--ph-card);
+  }
+  [data-ph-frame] [data-ph-result]:empty {
+    background: none;
+  }
+  [data-ph-frame] fieldset[data-ph-fieldset] {
+    padding: 10px var(--ph-gutter);
+    border-radius: var(--r-md);
+    background: var(--ph-card);
+  }
+  [data-ph-frame] fieldset[data-ph-fieldset] > label {
+    min-block-size: 48px;
+  }
+  [data-ph-frame] fieldset[data-ph-fieldset] > label + label {
+    border-block-start: 1px solid var(--ph-line);
+  }
+  [data-ph-frame] :is([data-ph-primary], [data-ph-back]) {
+    inline-size: 100%;
+    min-block-size: 48px;
+  }
+
+  /* ───────────────────────────── 404 */
+  p[data-ph="path"] {
+    display: block;
+    border: 0;
+    border-radius: var(--r-md);
+    background: var(--ph-card);
+    padding: 14px var(--ph-gutter);
+  }
+  div[data-ph="onward-list"] {
+    flex-direction: column;
+    flex-wrap: nowrap;
+  }
+  div[data-ph="onward-list"] > a {
+    inline-size: 100%;
+  }
+
+  /* ───────────────────────────── privacy: the way back, one grouped row */
+  [data-phone-group] > ul > li > [data-phone-row] > span:not([data-phone-circle]) {
+    grid-row: 1 / span 2;
+  }
+
+  /* ───────────────────────────── the footer: each column one inset group
+     (the footer is a dark panel, so the surface is a tint of its own ink) */
+  footer[data-ph-foot] ul.space-y-1 {
+    margin-block-start: 8px;
+    padding: 0;
+    overflow: hidden;
+    border-radius: var(--r-md);
+    background: rgb(var(--ink) / 0.07);
+  }
+  footer[data-ph-foot] ul.space-y-1 > li:not([hidden]) {
+    position: relative;
+    margin: 0;
+  }
+  footer[data-ph-foot] ul.space-y-1 > li + li::before {
+    content: "";
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline: var(--ph-gutter) 0;
+    height: 1px;
+    background: rgb(var(--ink) / 0.14);
+  }
+  footer[data-ph-foot] ul.space-y-1 a {
+    display: flex;
+    inline-size: 100%;
+    min-block-size: 48px;
+    margin-block: 0;
+    padding-inline: var(--ph-gutter);
+    align-items: center;
+    box-sizing: border-box;
+  }
+}

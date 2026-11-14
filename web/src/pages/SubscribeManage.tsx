@@ -12,6 +12,8 @@ import {
   savePreferences,
   type Preferences,
 } from "@/services/subscribe";
+import "@/components/phone/tokens.css";
+import "@/components/phone/pages-forms.css";
 
 /* The preferences behind a link in every email. The address arrives masked
    from the API and is shown as it came, in its own direction. */
@@ -97,7 +99,7 @@ export default function SubscribeManage() {
           <p>
             {w.manageFor} <bdi dir="ltr">{prefs.email}</bdi>
           </p>
-          <fieldset className="space-y-1 border-0 p-0">
+          <fieldset className="space-y-1 border-0 p-0" data-ph-fieldset="">
             <legend className="text-sm text-clay">{w.topics}</legend>
             <label className="flex min-h-[44px] items-center gap-3">
               <input
@@ -128,7 +130,7 @@ export default function SubscribeManage() {
               {w.topicReleases}
             </label>
           </fieldset>
-          <fieldset className="space-y-1 border-0 p-0">
+          <fieldset className="space-y-1 border-0 p-0" data-ph-fieldset="">
             <legend className="text-sm text-clay">{w.language}</legend>
             {(["en", "he"] as const).map((l) => (
               <label key={l} className="flex min-h-[44px] items-center gap-3">
@@ -146,6 +148,7 @@ export default function SubscribeManage() {
           <button
             type="submit"
             className="btn btn-solid"
+            data-ph-primary=""
             disabled={state === "saving"}
           >
             {state === "saving" ? w.saving : w.save}
