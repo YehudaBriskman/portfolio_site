@@ -453,3 +453,12 @@ a.listRow:hover .listTitle {
   gap: 0.75rem;
   max-width: 32rem;
 }
+
+/* On a phone the back chip above the title says "Work" (#780); the crumb and
+   its slash in the title line would say it twice. */
+@media (max-width: 639px) {
+  .crumb,
+  .slash {
+    display: none;
+  }
+}

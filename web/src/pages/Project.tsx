@@ -439,7 +439,7 @@ export default function Project() {
 
   return (
     <PageShell>
-      <DashboardShell railLabel={t.browse} rail={rail} asideLabel={t.about} aside={aside} head={head}>
+      <DashboardShell railLabel={t.browse} rail={rail} asideLabel={t.about} aside={aside} head={head} back={{ to: "/projects", label: t.backToWork }}>
         {/* One H1 in every state, including this one — the heading order must
             not depend on how far a fetch got. */}
         {state === "loading" && (

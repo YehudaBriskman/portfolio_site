@@ -501,3 +501,13 @@
     animation: none;
   }
 }
+
+@media (max-width: 639px) {
+  /* The title takes the floating menu circle's row (#780); see `.page-first`. */
+  .open {
+    padding-block-start: calc(env(safe-area-inset-top, 0px) + 16px);
+  }
+  .openTitle {
+    padding-inline-end: 58px;
+  }
+}
