@@ -5,7 +5,7 @@
  *
  *   npm run a11y:admin-phones
  *
- *  - /admin/projects: the "Order on the site" list never overflows the viewport
+ *  - /admin/projects: the "Order on the site" list (rows on a phone) never overflows the viewport
  *    (the row's controls stay on screen) at 320, 360, 375 and 390, in both
  *    reading directions;
  *  - the draft banner keeps its sentence at least 60% of the banner's width
@@ -55,7 +55,8 @@ const fail = (msg) => fails.push(msg);
 function measureProjects() {
   const vw = window.innerWidth;
   const out = { scroll: document.documentElement.scrollWidth, vw, offscreen: [], banner: null, preview: null };
-  const list = document.getElementById("projects-list");
+  /* The phone list is a section of rows; the desktop one a fieldset. */
+  const list = document.getElementById("projects-list") ?? document.getElementById("projects-list-title")?.closest("section");
   if (list) {
     for (const el of list.querySelectorAll("li, li button, li a")) {
       const r = el.getBoundingClientRect();
@@ -107,6 +108,9 @@ try {
   for (const lang of LANGS) {
     for (const w of PHONES) {
       const { page, close } = await open(w, 800, lang, "/admin/projects");
+      /* The preview link lives in the Details group, closed on a phone: open every group first. */
+      await page.evaluate(() => document.querySelectorAll("[data-group] > h2 button[aria-expanded='false']").forEach((b) => b.click()));
+      await page.waitForTimeout(200);
       const m = await page.evaluate(measureProjects);
       const tag = `projects ${w} ${lang}`;
       if (m.scroll > m.vw + 1) fail(`${tag}: page scrolls sideways (${m.scroll} > ${m.vw})`);

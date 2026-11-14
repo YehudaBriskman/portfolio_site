@@ -30,6 +30,7 @@ export function GroupSearch({ groups, value, onChange }: { groups: readonly Sear
             type="search"
             role="searchbox"
             aria-label={w.label}
+            placeholder={w.label}
             className="a-input ps-9"
             value={value}
             onChange={(e) => onChange(e.target.value)}

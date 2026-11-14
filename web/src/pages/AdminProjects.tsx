@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useId, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import TranslationPill from "@/components/admin/TranslationPill";
 import { useTranslationStatus, type TranslationStatus } from "@/services/translations";
@@ -6,7 +6,8 @@ import { usePhone } from "@/hooks/usePhone";
 import { RecordRow } from "@/components/ui/RecordRow";
 import { StatusGlyph } from "@/components/ui/StatusGlyph";
 import { ICON } from "@/components/ui/icons";
-import { Pencil } from "lucide-react";
+import { Pencil, Plus } from "lucide-react";
+import { DisclosureButton } from "@/components/ui/Disclosure";
 import { LangSwitch } from "@/components/admin/content/editLang";
 import { ReorderRows, ReorderToggle } from "@/components/admin/content/Reorder";
 import { useContentWords } from "@/components/admin/content/words";
@@ -249,7 +250,7 @@ export default function AdminProjects() {
               />
               {p && f && (
                 <div className="min-w-0">
-                  <h2 id="project-editing" className="a-h2 mt-6 scroll-mt-20" tabIndex={-1}>
+                  <h2 id="project-editing" className="sr-only" tabIndex={-1}>
                     {w.reorder.editing}: <bdi>{p.title || "Untitled"}</bdi>
                   </h2>
                   <LangSwitch />
@@ -391,43 +392,64 @@ type PhoneListProps = {
 function ProjectListPhone({ items, at, reordering, onReordering, onPick, onChange, heStatus, addLabel, canAdd, make }: PhoneListProps) {
   const w = useContentWords();
   const Lead = ICON.project;
+  const id = useId();
+  const [all, setAll] = useState(at >= PEEK);
+  /* Four rows and the rest one tap away: the first screen has to show the
+     list and the first group of the form, not the list alone. The project
+     being edited is always among the rows shown. */
+  const shown = all ? items.length : Math.min(items.length, PEEK);
   return (
     <section aria-labelledby="projects-list-title">
       <div className={styles.listHead}>
         <h2 id="projects-list-title" className={styles.listTitle}>
           {w.reorder.list}
         </h2>
-        {items.length > 1 && <ReorderToggle on={reordering} onToggle={() => onReordering(!reordering)} />}
+        <span className="flex items-center gap-1">
+          {canAdd && !reordering && (
+            <button type="button" className={`a-btn a-btn-ghost ${styles.iconBtn}`} aria-label={addLabel} onClick={() => {
+                setAll(true);
+                onChange([...items, make()]);
+              }}>
+              <Plus aria-hidden="true" focusable="false" />
+            </button>
+          )}
+          {items.length > 1 && <ReorderToggle on={reordering} onToggle={() => onReordering(!reordering)} />}
+        </span>
       </div>
       {reordering ? (
         <ReorderRows items={items} name={(item) => item.title} onChange={onChange} />
       ) : (
-        <ul className={styles.list}>
-          {items.map((item, i) => {
-            const he = heStatus(item);
-            const current = i === at;
-            return (
-              <RecordRow
-                key={i}
-                as="li"
-                icon={Lead}
-                title={item.title}
-                facts={[{ text: item.year, dir: "ltr" }]}
-                status={he ? <StatusGlyph kind={he} /> : undefined}
-                className={current ? styles.current : undefined}
-                trailing={current ? <Pencil size={16} aria-hidden="true" focusable="false" /> : "chevron"}
-                openLabel={w.reorder.edit(item.title)}
-                onOpen={() => onPick(i)}
-              />
-            );
-          })}
-        </ul>
-      )}
-      {canAdd && !reordering && (
-        <button type="button" className="a-btn a-btn-ghost mt-3 min-h-11 rounded-[var(--a-r-ctl)]" onClick={() => onChange([...items, make()])}>
-          {addLabel}
-        </button>
+        <>
+          <ul id={id} className={styles.list}>
+            {items.slice(0, shown).map((item, i) => {
+              const he = heStatus(item);
+              const current = i === at;
+              return (
+                <RecordRow
+                  key={i}
+                  as="li"
+                  icon={Lead}
+                  title={item.title}
+                  facts={[{ text: item.year, dir: "ltr" }]}
+                  status={he ? <StatusGlyph kind={he} /> : undefined}
+                  className={current ? styles.current : undefined}
+                  trailing={current ? <Pencil size={16} aria-hidden="true" focusable="false" /> : "chevron"}
+                  openLabel={w.reorder.edit(item.title)}
+                  onOpen={() => onPick(i)}
+                />
+              );
+            })}
+          </ul>
+          {items.length > PEEK && (
+            <DisclosureButton expanded={all} controls={id} onToggle={() => setAll(!all)}>
+              {all ? w.reorder.showFewer : w.reorder.showAll(items.length)}
+            </DisclosureButton>
+          )}
+        </>
       )}
     </section>
   );
 }
+
+/** Rows of the list shown before "Show all". */
+const PEEK = 4;
