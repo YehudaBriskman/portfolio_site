@@ -34,7 +34,7 @@ The last column says what holds the rule today. "Guard" means a failing test; "m
 | R4 | **Inputs, selects and textareas are at least 16px.** | iOS Safari zooms the page when a smaller field is focused and does not zoom back. | Guard (allow-list) |
 | R5 | **Targets: 44px on `(pointer: coarse)`, 24px floor everywhere, 8px gap.** Pad the link or its row, not the text. A checkbox's label is its hit area. Inline links in a sentence are exempt from the size, not from the gap in a list. | Apple HIG 44pt, WCAG 2.5.8 (24). Today's misses: row titles 22px, consent boxes 21px, chips 26px, hero CTA 35px. | Matrix |
 | R6 | **Hover only inside `@media (hover: hover)`.** Anything a hover reveals must also be reachable by focus and by tap. | Touch browsers emulate hover on first tap and leave it stuck; the first tap then does not follow the link. | Guard (allow-list) |
-| R7 | **Safe areas on every fixed or sticky edge**: `env(safe-area-inset-*)` on the top dock, the bottom bar, sheets, and the sides in landscape. | The page is `viewport-fit=cover`: a notch or home indicator clips what is not padded. | Review, real device |
+| R7 | **Safe areas on every fixed or sticky edge** (the phone menu circle included: top and inline-end): `env(safe-area-inset-*)` on the top dock, the bottom bar, sheets, and the sides in landscape. | The page is `viewport-fit=cover`: a notch or home indicator clips what is not padded. | Review, real device |
 | R8 | **Logical properties only** (`margin-inline-start`, `inset-inline-end`, `text-align: start`, Tailwind `ms-`/`pe-`/`start-`). No `left`/`right` for layout. | Hebrew is a first-class language; a physical property is an RTL bug. | Review; [i18n manual](manual/i18n.md) |
 | R9 | **Directional icons mirror** under `:dir(rtl)`: arrows, chevrons, back/forward, send, progress. Play, check, search, clock, brand marks and anything depicting a real object do not. | A mirrored list is a decision; an unmirrored arrow points the wrong way. | Review |
 | R10 | **Phone numbers, emails, URLs, code and ids are `dir="ltr"`** inside RTL text, with `unicode-bidi: isolate`. | Otherwise the punctuation lands on the wrong side. | Review |
@@ -48,6 +48,7 @@ The last column says what holds the rule today. "Guard" means a failing test; "m
 | R18 | **No third-party scripts, no cookies, no trackers, no analytics beacon.** Field performance is read from CrUX / PageSpeed only. | Stated privacy position of the site. | Review |
 | R19 | **A Help topic for every control** a visitor can meet (both languages, unique ids). | A control with no explanation is a support email. | `helpTopics` tests |
 | R20 | **Every new control works with storage blocked and inside an in-app browser.** Wrap every `localStorage` access in try/catch; if `navigator.share` is missing, fall back to copy link. | Private windows throw; webviews lack APIs. We test in webviews, we do not sniff them. | Review |
+| R21 | **A ring only for keyboard focus.** Moving focus on navigation (to the heading, to a sheet's opener, to an anchor) is right for screen readers, but it must not paint a ring after a tap. `<html data-input="keyboard|pointer">` (`web/src/lib/inputModality.ts`, installed in `main.tsx`) holds the last input; one rule at the end of `index.css` removes the outline on `:focus-visible` while it is `pointer`. Never add `outline: none` to a focus style by hand, never rely on `:focus-visible` alone for script focus, and never `outline: none` under `forced-colors`. Keyboard focus keeps the 2px (3px at More contrast) ring; text fields keep theirs. | Chromium and iOS match `:focus-visible` on script focus when nothing was focused before, so a tap on a project card left a thick ring round the title (#776). | Guard, `a11y:public-focus` |
 
 ### 2.1 How the guard's warning lists work
 
@@ -69,7 +70,7 @@ For each component: the phone rule that applies, the he/en note, and what guards
 
 | Component | Phone rule | he / en | Guard |
 |---|---|---|---|
-| **Top bar / dock** (`components/Nav.tsx`) | 56px, tucks on scroll down, returns on scroll up, focus keeps it open. Safe-area top and sides (R7). Coarse targets 44 (R5). | Mark order mirrors; theme and language controls keep their position. | axe keyboard walk, matrix |
+| **Top bar / dock** (`components/Nav.tsx`) | **Below 640 there is no bar: one floating soft circle** (46px, paper ground, hairline, very soft shadow, no blur) at the inline-end top corner holds the menu icon. No word, no line, no full-width strip; the name is the `aria-label` (the existing Menu string). It never tucks. Safe-area top and inline-end side (R7); the first line of every page starts below 56px + inset, so it never sits on a title. The menu sheet it opens is unchanged. 640 and up keep the bar (56px, tucks on scroll down, returns on scroll up, focus keeps it open); coarse targets 44 (R5). | The circle mirrors to the left in Hebrew; the bar's mark order mirrors; theme and language controls keep their position. | `web/scripts/a11y/public-nav.mjs` (shape, place, overlap with headings and text, open/Escape/focus return, he and en), `public-landing.mjs`, axe keyboard walk |
 | **Hero plate** (`components/Hero.tsx`, `HeroCorners.tsx`) | `svh`. The call to action sits inside the first screen at 640px high with a clear gap to the bottom edge. Counter unit at least 12px. | The Hebrew line mixes a Latin brand word on purpose; the owner confirms wording. | Matrix (first-screen gap) |
 | **Card** (`notes/NoteCard`, `NoteTile`, projects cards) | Whole card is one target, one link; no nested interactive. Cover has an aspect ratio. | Title takes its own `dir` when a post is in the other language, with a visible language label. | Matrix, review |
 | **Row** (blog and project lists) | The title link is padded to 44 on coarse pointers (R5); the row never shows hover-only content (R6). | Dates and counts are isolated LTR runs (R10). | Matrix |
@@ -92,6 +93,7 @@ For each component: the phone rule that applies, the he/en note, and what guards
 | **StatTile / StatGrid** (`components/phone/StatTile.tsx`) | Phone only. A 32 circle, a figure and a label, two per row. Render a tile only for a datum that exists; with none, the grid renders nothing (no empty box, no layout shift). Values are LTR isolates. | Labels reuse the repository facts' words. | `public-projects.mjs`, vitest |
 | **SegmentedTabs** (`components/phone/SegmentedTabs.tsx`) | Three or four 44px segments in a pill track. The one tablist of the public site: APG tabs, automatic activation, roving tabindex; the page keeps the selection in the URL (`?tab=`). The Projects sort is the same look over links (`aria-current`). | Arrow keys follow the reading direction. | `public-projects.mjs`, vitest |
 | **PinnedAction** (`components/phone/PinnedAction.tsx`) | The page's one primary action, fixed at the bottom above `env(safe-area-inset-bottom)`, opaque, no blur. Same link and words as the header's, which is hidden on a phone (`data-phone-dup`). The footer takes the room, so nothing is covered at the end of the page. | Label is today's string. | `public-projects.mjs` |
+| **Route-change focus** (`components/RouteAnnouncer.tsx`, `lib/scrollToAnchor.ts`, `lib/inputModality.ts`) | Focus moves to the page heading for screen readers; no ring after a tap (R21), a 2px+ ring after a key. | Same in he and en. | `a11y:public-focus`, `inputModality` tests |
 
 ## 4. Real-device checklist
 
@@ -118,7 +120,7 @@ Note any failure as an issue with the device, OS and browser version, and a scre
 
 ## 5. PR checklist
 
-- [ ] Rules R1 to R20 read for what the PR touches; no allow-list line added (lines may only be removed).
+- [ ] Rules R1 to R21 read for what the PR touches; no allow-list line added (lines may only be removed).
 - [ ] New public wording, English and Hebrew, listed in the PR under `STRINGS FOR OWNER APPROVAL`.
 - [ ] Desktop pixels unchanged (axe and desktop screenshots).
 - [ ] Hebrew checked in a screenshot, not only in the string file.

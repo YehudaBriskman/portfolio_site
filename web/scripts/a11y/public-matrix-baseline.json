@@ -42,10 +42,6 @@
    "post|he|390": 3,
    "post|he|430": 3,
    "post|he|768": 17,
-   "project|en|320": 1,
-   "project|en|360": 1,
-   "project|en|390": 1,
-   "project|en|430": 1,
    "project|en|768": 14,
    "project|he|768": 15,
    "projects|en|768": 14,
@@ -53,16 +49,6 @@
   },
   "overflow": {
    "home|en|320": 1
-  },
-  "tiny": {
-   "projects|en|320": 5,
-   "projects|en|360": 5,
-   "projects|en|390": 6,
-   "projects|en|430": 6,
-   "projects|he|320": 5,
-   "projects|he|360": 5,
-   "projects|he|390": 6,
-   "projects|he|430": 6
   }
  },
  "gap": {

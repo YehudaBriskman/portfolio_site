@@ -542,9 +542,11 @@
   }
   .cardName a {
     color: rgb(var(--ink));
-    /* the row is the target: the link's own box stays a line, ::after is the row */
-    padding-block: 0;
-    margin-block: 0;
+    /* the row is the target (::after); the link's own box is still 44 tall,
+       with the room taken back by the negative margin so the line is unmoved */
+    display: block;
+    padding-block: 11px;
+    margin-block: -11px;
   }
   .cardName a::after {
     content: "";

@@ -144,11 +144,17 @@ describe("public mobile guide: the guide itself", () => {
   const guide = join(ROOT, "docs/public-mobile-guide.md");
   const md = existsSync(guide) ? read(guide) : "";
 
-  it("exists with rules R1 to R20, the catalogue and the real-device checklist", () => {
+  it("exists with rules R1 to R21, the catalogue and the real-device checklist", () => {
     expect(md, "docs/public-mobile-guide.md is missing").not.toBe("");
-    for (let n = 1; n <= 20; n++) expect(md, `R${n}`).toMatch(new RegExp(`^\\|\\s*R${n}\\s*\\|`, "m"));
+    for (let n = 1; n <= 21; n++) expect(md, `R${n}`).toMatch(new RegExp(`^\\|\\s*R${n}\\s*\\|`, "m"));
     expect(md).toMatch(/^## .*[Cc]atalogue/m);
     expect(md).toMatch(/^## .*[Rr]eal-device/m);
+  });
+
+  it("holds the keyboard-only focus ring (R21): tracker installed, one rule, no forced-colors opt-out", () => {
+    expect(read(join(ROOT, "web/src/main.tsx"))).toContain("installInputModality()");
+    const css = read(join(ROOT, "web/src/index.css"));
+    expect(css).toMatch(/@media not \(forced-colors: active\)\s*\{\s*:root\[data-input='pointer'\] :focus-visible/);
   });
 
   it("documents the one phone breakpoint and the constant that holds it", () => {

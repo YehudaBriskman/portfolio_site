@@ -486,6 +486,7 @@ a.listRow:hover .listTitle {
     justify-self: start;
     /* a 44px target on a 22px line: the margin takes the rest back */
     margin-block: -11px;
+    min-width: var(--tap);
     font-family: var(--font-text);
     font-size: 0.8125rem;
     font-weight: 600;

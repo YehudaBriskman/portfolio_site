@@ -144,9 +144,9 @@ function measure(args) {
     for (const e of dock.querySelectorAll("a,button")) {
       const cs = getComputedStyle(e);
       const b = e.getBoundingClientRect();
-      if (b.width === 0 || cs.visibility === "hidden" || e.offsetParent === null) continue;
+      if (b.width === 0 || cs.visibility === "hidden" || (e.offsetParent === null && cs.position !== "fixed")) continue;
       if (b.bottom <= 0 || b.top >= 60) continue;
-      out.targets.push({ name: "dock: " + label(e), ...reach(e), left: b.left, right: b.right });
+      out.targets.push({ name: "dock: " + label(e), ...reach(e), left: b.left, right: b.right, top: b.top });
     }
   }
   const unit = document.querySelector('[class*="_unit_"]');
@@ -216,9 +216,15 @@ async function safeAreas() {
         const { ctx, page } = await open({ w, h, he, dark: false, insets });
         try {
           const m = await page.evaluate(measure, { TARGET });
-          if (m.dock.pt < insets.top) fail(where, `the dock pads its top by ${m.dock.pt}px, the notch is ${insets.top}px`);
-          if (m.dock.pl < insets.left) fail(where, `the dock pads its left by ${m.dock.pl}px, want ${insets.left}`);
-          if (m.dock.pr < insets.right) fail(where, `the dock pads its right by ${m.dock.pr}px, want ${insets.right}`);
+          /* Under 640 the nav is one floating circle, not a padded bar (#775; public-nav.mjs holds its place); the circle's own box is checked below. */
+          const phone = w < 640;
+          if (phone) {
+            const c = m.targets.find((x) => x.name.startsWith("dock"));
+            if (!c || c.top < insets.top - 0.5) fail(where, "the menu circle reaches into the notch");
+          }
+          if (!phone && m.dock.pt < insets.top) fail(where, `the dock pads its top by ${m.dock.pt}px, the notch is ${insets.top}px`);
+          if (!phone && m.dock.pl < insets.left) fail(where, `the dock pads its left by ${m.dock.pl}px, want ${insets.left}`);
+          if (!phone && m.dock.pr < insets.right) fail(where, `the dock pads its right by ${m.dock.pr}px, want ${insets.right}`);
           for (const t of m.targets.filter((x) => x.name.startsWith("dock"))) {
             if (t.left < insets.left - 0.5 || t.right > m.vw - insets.right + 0.5) fail(where, `${t.name} reaches into the notch (${Math.round(t.left)}..${Math.round(t.right)})`);
           }

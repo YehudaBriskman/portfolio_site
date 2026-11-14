@@ -293,10 +293,11 @@ export default function Nav() {
           a 15px value inside a 44px control is two type sizes stacked in a
           space sized for one, and that cramped stack is what read badly.
 
-          No `aria-label`: the visible text is "Menu", and that text has to *be*
-          the accessible name — WCAG 2.5.3, Label in Name. `aria-expanded`
-          carries the open state, which is the only thing a label would have
-          had left to say.
+          The name is the `aria-label`, the same word the visible text shows from
+          768 down to 640 — WCAG 2.5.3, Label in Name, holds because the two
+          are identical. Below 640 (#775) the word is not drawn at all and the
+          control is one floating circle with the icon; the label is then its
+          only name. `aria-expanded` carries the open state.
         */}
         <button
           ref={toggleRef}
@@ -304,9 +305,10 @@ export default function Nav() {
           onClick={() => setOpen((v) => !v)}
           aria-expanded={open}
           aria-controls={panelId}
+          aria-label={w.menu}
           className={styles.toggle}
         >
-          <span>{w.menu}</span>
+          <span className={styles.word} aria-hidden="true">{w.menu}</span>
           <span className={styles.bars} aria-hidden="true" />
         </button>
 
