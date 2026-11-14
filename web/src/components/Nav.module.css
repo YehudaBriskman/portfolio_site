@@ -131,7 +131,12 @@
 :global(html) {
   /* The bar's height, declared on the document so the clearance below and the
      bar itself are one number rather than two that have to be kept equal. */
-  --bar-h: 56px;
+  /* The bar's own 56px plus the notch or status bar it stands under: with
+     `viewport-fit=cover` an installed (standalone) page runs beneath the
+     status bar and a fixed bar at `top: 0` would sit under it. Every reader of
+     `--bar-h` (the clearance below, the panel, the rail) then moves with it. */
+  --bar-inset: env(safe-area-inset-top, 0px);
+  --bar-h: calc(56px + var(--bar-inset));
   scroll-padding-top: calc(var(--bar-h) + 2rem);
 }
 
@@ -215,8 +220,12 @@
      match the slack. */
   gap: 14px;
   /* A phone must never be able to push the bar's contents past its own
-     screen. */
-  padding-inline: clamp(12px, 2vw, 28px);
+     screen. The notch's inset is in the same padding: the bar's ground runs to
+     the top edge and its content stays clear of the cut-out, in landscape
+     too. Physical sides, as the insets are. */
+  padding-top: var(--bar-inset, 0px);
+  padding-left: max(clamp(12px, 2vw, 28px), env(safe-area-inset-left, 0px));
+  padding-right: max(clamp(12px, 2vw, 28px), env(safe-area-inset-right, 0px));
 
   /*
    * 0.88, not the 0.74 this shipped with.

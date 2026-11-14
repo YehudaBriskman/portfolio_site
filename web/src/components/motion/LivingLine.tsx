@@ -77,7 +77,7 @@ export const LINE_STRANDS = 5;
 /** The colours repeat every this many px down the line. */
 const PERIOD = 1100;
 
-type Read = { stations: Station[]; lanes: { left: number; right: number }; rtl: boolean; half: number; width: number; height: number };
+type Read = { stations: Station[]; lanes: { left: number; right: number }; rtl: boolean; half: number; width: number; height: number; page: { left: number; right: number } };
 
 function read(root: HTMLElement, from?: Props["from"]): Read {
   const r = root.getBoundingClientRect();
@@ -112,7 +112,10 @@ function read(root: HTMLElement, from?: Props["from"]): Read {
   /* The ribbon fills the lane less a margin either side, up to 9px a side. */
   const lane = Math.min(padL, padR);
   const half = Math.max(2, Math.min(9, lane / 2 - 4));
-  return { stations, lanes: { left: padL / 2, right: r.width - padR / 2 }, rtl, half, width: r.width, height: r.height };
+  /* The page's own edges in the container's coordinates: the drawing may
+     start beyond them, but its box may not (see `measure`). */
+  const page = { left: -r.left, right: document.documentElement.clientWidth - r.left };
+  return { stations, lanes: { left: padL / 2, right: r.width - padR / 2 }, rtl, half, width: r.width, height: r.height, page };
 }
 
 export default function LivingLine({ className = "", children, from, ...rest }: Props) {
@@ -135,8 +138,13 @@ export default function LivingLine({ className = "", children, from, ...rest }: 
          and out to the page's edge when the line comes in from it. */
       const top = Math.min(0, Math.floor(c.top - m.half - 12));
       const height = Math.max(1, m.height - top);
-      const left = Math.min(0, Math.floor(c.left - m.half - 12));
-      const width = Math.max(1, Math.max(Math.round(m.width), Math.ceil(c.right + m.half + 12)) - left);
+      /* The box stops at the page's edges. The line enters from outside the
+         page, and a box that followed it there was a drawing wider than the
+         screen that only the document's clip hid (#pm6): the strands past the
+         edge are simply not in the box, and the SVG clips them. */
+      const left = Math.max(Math.min(0, Math.floor(c.left - m.half - 12)), Math.floor(m.page.left));
+      const right = Math.min(Math.max(Math.round(m.width), Math.ceil(c.right + m.half + 12)), Math.ceil(m.page.right));
+      const width = Math.max(1, right - left);
       const key = `${m.width}x${m.height}:${top}:${left}:${width}:${m.half}:${c.d}`;
       if (key === last) return;
       last = key;

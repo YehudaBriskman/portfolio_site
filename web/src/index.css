@@ -1091,6 +1091,10 @@
   :root[data-text-size='large'] { --text-scale: 1.125; }
   :root[data-text-size='larger'] { --text-scale: 1.25; }
   html { font-size: calc(100% * var(--text-scale)); }
+  /* Said here as well as by the reset, so it is read as a decision: iOS Safari
+     otherwise inflates type in landscape, and every size on this site is
+     already the size it means (the reader's own scale is the one above). */
+  html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 
   /*
    * ────────────────────────────────────────────────────────────────────
@@ -1882,14 +1886,18 @@
     width: 100%;
     max-width: theme('maxWidth.wrap');
     margin-inline: auto;
-    padding-inline: theme('spacing.gutter');
+    /* `viewport-fit=cover` lets the page run under a landscape notch, so the
+       gutter is never less than the inset (physical: the notch is). */
+    padding-left: max(theme('spacing.gutter'), env(safe-area-inset-left, 0px));
+    padding-right: max(theme('spacing.gutter'), env(safe-area-inset-right, 0px));
   }
   /* Display type and full-bleed media get a wider measure than reading does. */
   .wrap-wide {
     width: 100%;
     max-width: theme('maxWidth.wrap-wide');
     margin-inline: auto;
-    padding-inline: theme('spacing.gutter');
+    padding-left: max(theme('spacing.gutter'), env(safe-area-inset-left, 0px));
+    padding-right: max(theme('spacing.gutter'), env(safe-area-inset-right, 0px));
   }
 
   /*

@@ -231,7 +231,8 @@
  * reading; `3` with `YRS SHIPPING` underneath would be two.
  */
 .unit {
-  font-size: 0.32em;
+  /* 12px is the floor: 0.32em of the count's size is 11.5px on a 360px phone. */
+  font-size: max(0.32em, 0.75rem);
   font-weight: var(--weight-display);
   letter-spacing: var(--track-sub);
   color: rgb(var(--ink-soft));
