@@ -35,7 +35,7 @@ export default function SubscribeConfirm() {
   return (
     <SubscribeFrame title={w.confirmTitle}>
       {state !== "bad" && state !== "ok" && <p>{w.confirmIntro}</p>}
-      <Result kind={state === "ok" ? "ok" : state === "bad" || state === "retry" ? "error" : "idle"}>
+      <Result focus={state === "ok" || state === "bad"} kind={state === "ok" ? "ok" : state === "bad" || state === "retry" ? "error" : "idle"}>
         {state === "ok" ? w.confirmDone : state === "bad" ? w.confirmBad : state === "retry" ? (why === "rate" ? w.errRate : w.errReach) : state === "working" ? w.working : ""}
       </Result>
       {(state === "idle" || state === "working" || state === "retry") && (

@@ -36,7 +36,7 @@ export default function InboxPhoneRow({ event, readiness, onOpen }: { event: Ann
   const worst = issues.some((i) => i.severity === "error");
   return (
     <RecordRow
-      as="li"
+      as="div"
       icon={kindIcon(KIND_ICON, event.kind)}
       title={event.title}
       unread={!event.readAt}

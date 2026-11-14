@@ -190,3 +190,11 @@
       border-color var(--a-dur-fast, 120ms) var(--a-ease-out, ease);
   }
 }
+
+/* A phone: a chip answers the touch on the first frame (the tint, no tween) and eases away on release; choosing it
+   flips aria-pressed at once and the fill follows by the same soft transition as above. */
+@media (prefers-reduced-motion: no-preference) and (max-width: 599px) {
+  .chip:active {
+    transition-duration: 0s;
+  }
+}

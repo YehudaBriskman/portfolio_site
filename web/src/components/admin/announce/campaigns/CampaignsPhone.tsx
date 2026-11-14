@@ -3,6 +3,7 @@ import { FilterChips, FiltersRestoredNote } from "@/components/ui/FilterChips";
 import { FilterSheet } from "@/components/ui/FilterSheet";
 import { ICON } from "@/components/ui/icons";
 import { MiniBar } from "@/components/ui/MiniBar";
+import { ListPresence } from "@/components/ui/ListPresence";
 import { RecordRow, type Fact } from "@/components/ui/RecordRow";
 import { SelectionBar, SelectionHeader, type SelectionAction } from "@/components/ui/SelectionBar";
 import { StatusGlyph } from "@/components/ui/StatusGlyph";
@@ -164,11 +165,10 @@ export default function CampaignsPhone({
       {rows.length === 0 ? (
         <p className="a-hint" data-testid="no-match">{filtered || selection.on ? p.noMatch : w.empty}</p>
       ) : (
-        <ul className={styles.list} aria-label={w.tableLabel}>
-          {rows.map((c) => (
+        <ListPresence as="ul" items={rows} itemKey={(c) => c.id} className={`${styles.list} a-settle`} aria-label={w.tableLabel}>
+          {(c) => (
             <RecordRow
-              key={c.id}
-              as="li"
+              as="div"
               icon={ICON.announcement}
               title={c.name}
               facts={factsOf(c)}
@@ -179,8 +179,8 @@ export default function CampaignsPhone({
               onOpen={() => (selection.on ? selection.toggle(c.id) : setSheetId(c.id))}
               onLongPress={isDraft(c) ? () => selection.enter(c.id) : undefined}
             />
-          ))}
-        </ul>
+          )}
+        </ListPresence>
       )}
 
       <SelectionBar selection={selection} actions={actions} />

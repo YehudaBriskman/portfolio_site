@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import PageShell from "@/components/PageShell";
@@ -27,10 +28,25 @@ export default function SubscribeFrame({ title, children }: { title: string; chi
   );
 }
 
-/** Reserves two lines so the result does not push the button below it. */
-export function Result({ kind, children }: { kind: "idle" | "ok" | "error"; children?: ReactNode }) {
+/**
+ * Reserves two lines so the result does not push the button below it.
+ *
+ * `focus` moves focus onto the message when it turns true (never on first
+ * render): the button that was pressed is gone or has done its job, and a
+ * keyboard or screen-reader reader would otherwise fall back to the top of the page.
+ */
+export function Result({ kind, focus = false, children }: { kind: "idle" | "ok" | "error"; focus?: boolean; children?: ReactNode }) {
+  const ref = useRef<HTMLParagraphElement>(null);
+  const first = useRef(true);
+  useEffect(() => {
+    if (first.current) {
+      first.current = false;
+      return;
+    }
+    if (focus) ref.current?.focus();
+  }, [focus]);
   return (
-    <p role={kind === "error" ? "alert" : "status"} aria-live={kind === "error" ? "assertive" : "polite"} aria-atomic="true" className="min-h-[3.5rem]" data-kind={kind}>
+    <p ref={ref} tabIndex={-1} role={kind === "error" ? "alert" : "status"} aria-live={kind === "error" ? "assertive" : "polite"} aria-atomic="true" className="min-h-[3.5rem] outline-none" data-kind={kind}>
       {children}
     </p>
   );

@@ -6,9 +6,17 @@ import Written from "@/components/motion/Written";
 import styles from "@/components/Contact.module.css";
 import type { SocialLink } from "@/data/links";
 import { useContent } from "@/content/store";
-import { ContactSchema, sendContactMessage } from "@/services/contact";
+import { ContactError, ContactSchema, sendContactMessage } from "@/services/contact";
 import { useContactWords, useHomeWords } from "@/i18n/pages";
 import Arrow from "@/i18n/Arrow";
+import { toast, type HelpTopic } from "@/lib/toast";
+
+const HELP_BY_KIND: Record<"rate" | "large" | "server" | "offline", HelpTopic> = {
+  rate: "contact-too-many",
+  large: "contact-too-long",
+  server: "contact-send-failed",
+  offline: "contact-offline",
+};
 
 /** The three things a message is made of. A closed union, so a field's error,
  *  its id and its name can never be a string the compiler has not seen. */
@@ -227,6 +235,14 @@ export default function Contact() {
    * its notes and its alert, so that reopening the dialog shows the reader
    * exactly what they were looking at.
    */
+  /* A failed send raises a toast (lib/toast: it mounts inside the open dialog, so it is reachable);
+     a new send or closing the dialog takes it down. */
+  const failureToast = useRef<string | null>(null);
+  const dismissFailure = () => {
+    if (failureToast.current) toast.dismiss(failureToast.current);
+    failureToast.current = null;
+  };
+
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
@@ -235,6 +251,7 @@ export default function Contact() {
       setOpen(false);
       triggerRef.current?.focus();
       setStatus((s) => (s.kind === "sent" ? { kind: "idle" } : s));
+      dismissFailure();
     };
 
     dialog.addEventListener("close", onClose);
@@ -317,6 +334,7 @@ export default function Contact() {
     }
 
     setFieldErrors({});
+    dismissFailure();
     setStatus({ kind: "sending" });
 
     try {
@@ -347,11 +365,13 @@ export default function Contact() {
        * shuts itself, when the send fails has thrown away the only copy of the
        * message it was asked to deliver.
        */
-      const reason = err instanceof Error ? err.message : w.unknownFailure;
-      setStatus({
-        kind: "failed",
-        message: w.failed(reason, contact.email),
-      });
+      /* Only the kind is read: anything unexpected is worded as the server's fault. */
+      const kind = err instanceof ContactError ? err.kind : "server";
+      const f = w.failed[kind];
+      setStatus({ kind: "idle" });
+      /* The address is isolated left-to-right so it stays one piece inside a Hebrew line. */
+      /* No fixed id: the public site mounts the toast host only once an id-less toast has been raised. */
+      failureToast.current = toast.error(f.title, { help: { topic: HELP_BY_KIND[kind] }, description: f.short, details: f.details.replace("{email}", `\u2066${contact.email}\u2069`) });
     }
   }
 
@@ -745,7 +765,11 @@ export default function Contact() {
                   )}
                 </div>
 
-                {/* Above the send, where the eye is when it fails. */}
+                {/* Above the send, where the eye is when it fails. The alert is the
+                    title and one short line; the long text waits behind Details,
+                    outside the alert so it is read on request, not announced twice.
+                    It is in the dialog and not a toast: a modal dialog makes the
+                    page outside it inert, so a toast would be unreachable by keyboard. */}
                 <p role="alert" className={styles.failure}>
                   {status.kind === "failed" ? status.message : null}
                 </p>

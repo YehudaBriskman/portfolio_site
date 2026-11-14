@@ -550,6 +550,192 @@ if (process.env.STRIPS) {
   }
 }
 
+/* ---- motion pass 3 (#731): the motion budget. For each new case: the state is right at once, a leftover is out of the DOM within a hard
+   timeout (animations cancelled or not), nothing animates under reduced motion, nothing animates at >= 600px. */
+const HARD_MS = 700; /* EXIT_KEEP_MS is 420: a leftover is gone well inside this, with or without an animation event */
+const searchFor = (v) => `(() => {
+  const i = document.querySelector('input[type=search]');
+  Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(i, ${JSON.stringify(v)});
+  i.dispatchEvent(new Event("input", { bubbles: true }));
+})()`;
+const rowsOf = () => `(() => {
+  const all = [...document.querySelectorAll("[data-list-row]")];
+  const closed = all.filter((r) => r.getAttribute("data-state") === "closed");
+  return { open: all.length - closed.length, closed: closed.length, ghostsInert: closed.every((r) => r.inert && r.getAttribute("aria-hidden") === "true"), fresh: all.filter((r) => r.hasAttribute("data-fresh")).length };
+})()`;
+
+async function stripPass3(page, name) {
+  const dir = process.env.STRIPS3;
+  if (!dir) return;
+  mkdirSync(dir, { recursive: true });
+  const cdp = await page.context().newCDPSession(page);
+  for (const t of [0, 80, 160, 240]) {
+    await page.evaluate((t) => { for (const a of window.__m.transitions()) { const d = a.effect.getComputedTiming().duration || 1; a.pause(); a.currentTime = Math.min(d, t); } }, t);
+    const { data } = await cdp.send("Page.captureScreenshot", { format: "png" });
+    writeFileSync(`${dir}/${name}-t${String(t).padStart(3, "0")}.png`, Buffer.from(data, "base64"));
+  }
+  await cdp.detach();
+}
+
+async function checkListPresence(lang, reduced) {
+  const t = `${tag(lang, reduced)} list rows`;
+  const { page, ctx } = await open(lang, reduced, "/admin/posts");
+  if (!(await waitFor(page, () => document.querySelectorAll("[data-list-row]").length > 3))) {
+    fail(`${t}: posts never listed through ListPresence`);
+    await ctx.close();
+    return;
+  }
+  await arm(page);
+  const first = await page.evaluate(rowsOf());
+  ok(first.fresh === 0, `${t}: rows of the first draw are marked fresh (a page must not animate when it opens)`);
+  const total = first.open;
+
+  /* remove: the filter drops rows. State first. */
+  await page.evaluate(searchFor("theme"));
+  await page.evaluate(async (rows) => { await window.__m.soon(() => document.querySelectorAll('[data-list-row][data-state="open"]').length < rows, 300); }, total);
+  const now = await page.evaluate(rowsOf());
+  ok(now.open === 1, `${t}: after the filter ${now.open} rows are open, not 1 (the list must be right at once)`);
+  if (reduced) {
+    ok(now.closed === 0, `${t}: reduced motion keeps ${now.closed} leaving rows in the page`);
+    ok((await page.evaluate(() => window.__m.transitions().length)) === 0, `${t}: reduced motion starts transitions on a removal`);
+  } else {
+    ok(now.closed === total - 1 && now.ghostsInert, `${t}: leaving rows are not all closed and inert at once (${JSON.stringify(now)})`);
+    const fl = await page.evaluate(() => window.__m.transitions().map((a) => window.__m.desc(a)));
+    ok(fl.some((x) => x.prop === "grid-template-rows") && fl.some((x) => x.prop === "opacity"), `${t}: a removed row does not collapse and fade (${JSON.stringify(fl.slice(0, 4))})`);
+    const mid = await page.evaluate(() => window.__m.seek(0.5, (el) => el.matches?.('[data-list-row][data-state="closed"]')));
+    const op = mid.find((x) => x.prop === "opacity");
+    ok(op && Number(op.value) > 0 && Number(op.value) < 1, `${t}: halfway through a removal the row is not between visible and gone (${op?.value})`);
+    await stripPass3(page, `remove-${lang}`);
+    /* Hard timeout: with every animation cancelled the leftovers still leave the DOM. */
+    await page.evaluate(() => window.__m.cancelAll());
+    await page.waitForTimeout(HARD_MS);
+    const after = await page.evaluate(rowsOf());
+    ok(after.closed === 0, `${t}: ${after.closed} leaving rows are still in the DOM ${HARD_MS}ms after a removal`);
+  }
+
+  /* insert: clearing the filter brings rows back. */
+  await page.evaluate(() => window.__m.settle());
+  await page.evaluate(searchFor(""));
+  await page.evaluate(async (n) => { await window.__m.soon(() => document.querySelectorAll('[data-list-row][data-state="open"]').length >= n, 300); }, total);
+  const back = await page.evaluate(rowsOf());
+  ok(back.open === total && back.closed === 0, `${t}: after clearing the filter the list is not whole at once (${JSON.stringify(back)})`);
+  if (reduced) ok(back.fresh === 0 && (await page.evaluate(() => window.__m.transitions().length)) === 0, `${t}: reduced motion animates an insertion`);
+  else {
+    ok(back.fresh === total - 1, `${t}: inserted rows are not marked fresh (${JSON.stringify(back)})`);
+    const fl = await page.evaluate(() => window.__m.transitions().map((a) => window.__m.desc(a)));
+    ok(fl.some((x) => x.prop === "grid-template-rows"), `${t}: an inserted row does not grow in (${JSON.stringify(fl.slice(0, 4))})`);
+    const start = await page.evaluate(() => window.__m.seek(0, (el) => el.matches?.("[data-list-row][data-fresh]")));
+    const op = start.find((x) => x.prop === "opacity");
+    ok(op && Number(op.value) < 0.5, `${t}: an inserted row does not start from nothing (${op?.value})`);
+    await stripPass3(page, `insert-${lang}`);
+    await page.evaluate(() => window.__m.settle());
+  }
+  await ctx.close();
+}
+
+async function checkPopover(lang, reduced) {
+  const t = `${tag(lang, reduced)} popover`;
+  const { page, ctx } = await open(lang, reduced, "/admin/media");
+  const sel = 'button[aria-label^="About"], button[aria-label^="על"]';
+  if (!(await waitFor(page, (s) => Boolean(document.querySelector(s)), sel))) {
+    fail(`${t}: no info button on /admin/media`);
+    await ctx.close();
+    return;
+  }
+  await arm(page);
+  await page.evaluate((s) => document.querySelector(s).click(), sel);
+  const st = await page.evaluate(async () => {
+    await window.__m.soon(() => Boolean(document.querySelector('.pop[data-state="open"]')), 300);
+    const p = document.querySelector(".pop");
+    const a = document.getAnimations().filter((x) => x.effect?.target === p).map((x) => x.animationName);
+    return { open: p?.getAttribute("data-state"), anims: a };
+  });
+  ok(st.open === "open", `${t}: the popover is not open right after the tap`);
+  ok(reduced ? st.anims.length === 0 : st.anims.includes("pop-in"), `${t}: the popover ${reduced ? "animates under reduced motion" : "has no soft enter"} (${JSON.stringify(st.anims)})`);
+  if (!reduced) await stripPass3(page, `popover-open-${lang}`);
+  await page.evaluate(() => { for (const a of document.getAnimations()) a.finish(); });
+  await page.keyboard.press("Escape");
+  const ex = await page.evaluate(async () => {
+    await window.__m.soon(() => !document.querySelector('.pop[data-state="open"]'), 150);
+    const p = document.querySelector(".pop");
+    return { gone: !p, state: p?.getAttribute("data-state"), anims: p ? document.getAnimations().filter((x) => x.effect?.target === p).map((x) => x.animationName) : [] };
+  });
+  ok(ex.gone || ex.state === "closed", `${t}: the popover is still open right after Escape (${JSON.stringify(ex)})`);
+  if (!reduced && !ex.gone) ok(ex.anims.includes("pop-out"), `${t}: the popover leaves with no soft exit (${JSON.stringify(ex)})`);
+  if (reduced) ok(ex.gone, `${t}: reduced motion keeps the popover for an exit`);
+  await page.waitForTimeout(HARD_MS);
+  ok(await page.evaluate(() => !document.querySelector(".pop")), `${t}: the popover is still in the DOM ${HARD_MS}ms after Escape`);
+  await ctx.close();
+}
+
+async function checkPressAndSettle(lang, reduced) {
+  const t = `${tag(lang, reduced)} press`;
+  const { page, ctx } = await open(lang, reduced, "/admin/posts");
+  if (!(await waitFor(page, () => document.querySelectorAll("[data-record-row]").length > 2))) {
+    fail(`${t}: posts never listed`);
+    await ctx.close();
+    return;
+  }
+  await arm(page);
+  const cdp = await ctx.newCDPSession(page);
+  const c = await page.evaluate(() => { const r = document.querySelector("[data-record-row]").getBoundingClientRect(); return { x: Math.round(r.left + 60), y: Math.round(r.top + r.height / 2) }; });
+  const before = await page.evaluate(() => getComputedStyle(document.querySelector("[data-record-row]")).backgroundColor);
+  await cdp.send("Input.dispatchMouseEvent", { type: "mousePressed", x: c.x, y: c.y, button: "left", clickCount: 1 });
+  const down = await page.evaluate(async () => {
+    const el = document.querySelector("[data-record-row]");
+    await window.__m.soon(() => el.matches(":active"), 100);
+    const cs = getComputedStyle(el);
+    return { active: el.matches(":active"), bg: cs.backgroundColor, dur: cs.transitionDuration.split(",")[0].trim(), running: window.__m.transitions().filter((a) => a.effect.target === el && a.transitionProperty === "background-color").length };
+  });
+  await cdp.send("Input.dispatchMouseEvent", { type: "mouseReleased", x: c.x, y: c.y, button: "left", clickCount: 1 });
+  ok(down.active, `${t}: a touch on a row does not make it :active`);
+  if (!reduced) ok(down.bg !== before, `${t}: the pressed row has no tint on the first frame (${before} -> ${down.bg})`);
+  if (!reduced) ok(down.dur === "0s" && down.running === 0, `${t}: the press tint is tweened (duration ${down.dur}, ${down.running} running), it must be there at once`);
+  /* The settle: content that replaces a skeleton fades in; nothing under reduced motion. */
+  const settle = await page.evaluate(() => {
+    const el = document.querySelector(".a-settle");
+    if (!el) return null;
+    const cs = getComputedStyle(el);
+    return { prop: cs.transitionProperty, dur: cs.transitionDuration };
+  });
+  ok(settle !== null, `${t}: no .a-settle on the loaded list`);
+  if (settle) ok(reduced ? /^(0s|1e-05s)(, (0s|1e-05s))*$/.test(settle.dur) : settle.prop.includes("opacity") && settle.dur !== "0s", `${t}: the skeleton-to-content settle is ${reduced ? "animated under reduced motion" : "not a transition"} (${JSON.stringify(settle)})`);
+  await ctx.close();
+}
+
+async function checkDesktopLists() {
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 }, reducedMotion: "no-preference", locale: "en-US" });
+  await ctx.route((u) => !["127.0.0.1", "localhost"].includes(u.hostname), (route) => route.abort());
+  await ctx.route("**/api/**", (route) => {
+    const u = new URL(route.request().url());
+    const a = answer(u.pathname, route.request().method(), u.search);
+    return route.fulfill({ status: a.status ?? 200, contentType: "application/json", body: JSON.stringify(a.body ?? {}) });
+  });
+  const page = await ctx.newPage();
+  await page.goto(base + "/admin/posts");
+  await page.waitForTimeout(1500);
+  await arm(page);
+  const res = await page.evaluate(async () => {
+    const i = document.querySelector("input[type=search]");
+    if (i) { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(i, "theme"); i.dispatchEvent(new Event("input", { bubbles: true })); }
+    await new Promise((r) => setTimeout(r, 120));
+    return { ghosts: document.querySelectorAll('[data-list-row][data-state="closed"]').length, t: window.__m.transitions().filter((a) => a.transitionProperty === "grid-template-rows").length, settle: [...document.querySelectorAll(".a-settle")].map((e) => getComputedStyle(e).transitionDuration) };
+  });
+  ok(res.ghosts === 0 && res.t === 0, `desktop 1280: list rows leave with motion (${JSON.stringify(res)})`);
+  ok(res.settle.every((d) => /^(0s|1e-05s)(, (0s|1e-05s))*$/.test(d)), `desktop 1280: the skeleton settle animates on a wide screen (${JSON.stringify(res.settle)})`);
+  await ctx.close();
+}
+
+for (const lang of ["en", "he"]) {
+  await checkListPresence(lang, false);
+  await checkPopover(lang, false);
+  await checkPressAndSettle(lang, false);
+}
+await checkListPresence("en", true);
+await checkPopover("en", true);
+await checkPressAndSettle("en", true);
+await checkDesktopLists();
+
 /* Desktop (>= 600px) keeps the contract as is: none of the phone motion exists. */
 {
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 }, reducedMotion: "no-preference", locale: "en-US" });

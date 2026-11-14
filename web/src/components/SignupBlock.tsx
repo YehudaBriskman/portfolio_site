@@ -4,7 +4,12 @@ import { Link } from "react-router-dom";
 import styles from "@/components/SignupBlock.module.css";
 import { useLang } from "@/components/dashboard/i18n";
 import { useSubscribeWords } from "@/i18n/subscribe";
-import { SubscribeError, looksLikeEmail, subscribe, type Topics } from "@/services/subscribe";
+import {
+  SubscribeError,
+  looksLikeEmail,
+  subscribe,
+  type Topics,
+} from "@/services/subscribe";
 
 /*
  * The signup block: home page end, end of a note, and /follow.
@@ -32,12 +37,16 @@ type Props = {
   className?: string;
 };
 
-export default function SignupBlock({ as: Heading = "h2", className = "" }: Props) {
+export default function SignupBlock({
+  as: Heading = "h2",
+  className = "",
+}: Props) {
   const w = useSubscribeWords();
   const lang = useLang();
   const uid = useId();
   const id = (s: string) => `${uid}-${s}`;
   const emailRef = useRef<HTMLInputElement>(null);
+  const topicErrRef = useRef<HTMLParagraphElement>(null);
 
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
@@ -58,7 +67,9 @@ export default function SignupBlock({ as: Heading = "h2", className = "" }: Prop
     setTopicError(badTopics);
     if (badEmail || badTopics) {
       setStatus({ kind: "idle" });
+      /* The email first; with only the topic wrong, the topic message takes focus. */
       if (badEmail) emailRef.current?.focus();
+      else topicErrRef.current?.focus();
       return;
     }
     setStatus({ kind: "sending" });
@@ -69,21 +80,42 @@ export default function SignupBlock({ as: Heading = "h2", className = "" }: Prop
       setStatus({ kind: "sent" });
     } catch (err) {
       const kind = err instanceof SubscribeError ? err.kind : "server";
-      const text = kind === "rate" ? w.errRate : kind === "network" ? w.errNetwork : w.errServer;
+      const text =
+        kind === "rate"
+          ? w.errRate
+          : kind === "network"
+            ? w.errNetwork
+            : w.errServer;
       setStatus({ kind: "error", text });
     }
   }
 
-  const message = status.kind === "sent" ? w.sent : status.kind === "error" ? status.text : status.kind === "sending" ? w.sending : "";
+  const message =
+    status.kind === "sent"
+      ? w.sent
+      : status.kind === "error"
+        ? status.text
+        : status.kind === "sending"
+          ? w.sending
+          : "";
 
   return (
-    <section className={`${styles.block} ${className}`} aria-labelledby={id("h")} data-signup>
+    <section
+      className={`${styles.block} ${className}`}
+      aria-labelledby={id("h")}
+      data-signup
+    >
       <Heading id={id("h")} className={styles.heading}>
         {w.heading}
       </Heading>
       <p className={styles.lede}>{w.lede}</p>
 
-      <form className={styles.form} onSubmit={onSubmit} noValidate aria-label={w.formLabel}>
+      <form
+        className={styles.form}
+        onSubmit={onSubmit}
+        noValidate
+        aria-label={w.formLabel}
+      >
         <div>
           <label className={styles.label} htmlFor={id("email")}>
             {w.email}
@@ -103,11 +135,12 @@ export default function SignupBlock({ as: Heading = "h2", className = "" }: Prop
             aria-invalid={emailError ? true : undefined}
             aria-describedby={emailError ? id("email-err") : undefined}
           />
-          {emailError && (
-            <p id={id("email-err")} className={styles.fieldError}>
-              {emailError}
-            </p>
-          )}
+          {/* Always rendered, empty until needed: a live region that exists before
+              its message is the one screen readers announce, and its reserved
+              height means the error arriving moves nothing below it. */}
+          <p id={id("email-err")} role="alert" className={styles.fieldError}>
+            {emailError}
+          </p>
         </div>
 
         <div>
@@ -126,14 +159,19 @@ export default function SignupBlock({ as: Heading = "h2", className = "" }: Prop
           />
         </div>
 
-        <fieldset className={styles.fieldset} aria-describedby={topicError ? id("topics-err") : undefined}>
+        <fieldset
+          className={styles.fieldset}
+          aria-describedby={topicError ? id("topics-err") : undefined}
+        >
           <legend className={styles.legend}>{w.topics}</legend>
           <div className={styles.checks}>
             <label className={styles.check}>
               <input
                 type="checkbox"
                 checked={topics.blog}
-                onChange={(e) => setTopics({ ...topics, blog: e.target.checked })}
+                onChange={(e) =>
+                  setTopics({ ...topics, blog: e.target.checked })
+                }
               />
               {w.topicBlog}
             </label>
@@ -141,38 +179,60 @@ export default function SignupBlock({ as: Heading = "h2", className = "" }: Prop
               <input
                 type="checkbox"
                 checked={topics.releases}
-                onChange={(e) => setTopics({ ...topics, releases: e.target.checked })}
+                onChange={(e) =>
+                  setTopics({ ...topics, releases: e.target.checked })
+                }
               />
               {w.topicReleases}
             </label>
           </div>
-          {topicError && (
-            <p id={id("topics-err")} className={styles.fieldError}>
-              {topicError}
-            </p>
-          )}
+          <p
+            ref={topicErrRef}
+            id={id("topics-err")}
+            tabIndex={-1}
+            role="alert"
+            className={styles.fieldError}
+          >
+            {topicError}
+          </p>
         </fieldset>
 
         <div className={styles.trap} aria-hidden="true">
           <label>
             {w.trapLabel}
-            <input type="text" name="website" tabIndex={-1} autoComplete="off" value={website} onChange={(e) => setWebsite(e.target.value)} />
+            <input
+              type="text"
+              name="website"
+              tabIndex={-1}
+              autoComplete="off"
+              value={website}
+              onChange={(e) => setWebsite(e.target.value)}
+            />
           </label>
         </div>
 
         <p className={styles.consent}>
-          {w.consentBefore}{" "}
-          <Link to="/privacy">{w.consentLink}</Link>
+          {w.consentBefore} <Link to="/privacy">{w.consentLink}</Link>
           {"."}
         </p>
 
-        <button type="submit" className={`btn btn-solid ${styles.submit}`} disabled={sending} aria-disabled={sending || undefined}>
+        <button
+          type="submit"
+          className={`btn btn-solid ${styles.submit}`}
+          aria-disabled={sending || undefined}
+        >
           {sending ? w.sending : w.submit}
         </button>
 
         {/* Always rendered, so a screen reader's live region exists before the
             first message and the page below never moves. */}
-        <p role="status" aria-live="polite" aria-atomic="true" className={styles.status} data-kind={status.kind}>
+        <p
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+          className={styles.status}
+          data-kind={status.kind}
+        >
           {message}
         </p>
       </form>

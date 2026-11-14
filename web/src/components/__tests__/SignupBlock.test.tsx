@@ -82,3 +82,37 @@ describe("SignupBlock", () => {
     expect(status.textContent).toBe("");
   });
 });
+
+describe("SignupBlock: focus and announcements", () => {
+  it("the topic error takes focus and is an alert", async () => {
+    setup(ok);
+    await userEvent.type(screen.getByLabelText(/^email/i), "a@example.com");
+    await userEvent.click(screen.getByLabelText(/new notes/i));
+    await userEvent.click(screen.getByRole("button", { name: /subscribe/i }));
+    const err = screen.getByText(/choose at least one/i);
+    expect(err).toHaveAttribute("role", "alert");
+    expect(err).toHaveFocus();
+  });
+
+  it("the email error is an alert too, and the field keeps the focus", async () => {
+    setup(ok);
+    await userEvent.type(screen.getByLabelText(/^email/i), "nope");
+    await userEvent.click(screen.getByRole("button", { name: /subscribe/i }));
+    expect(screen.getByText(/doesn.t look right/i)).toHaveAttribute("role", "alert");
+    expect(screen.getByLabelText(/^email/i)).toHaveFocus();
+  });
+
+  it("the alert slots exist before any error, so a live region is there to announce into", () => {
+    setup(ok);
+    expect(document.querySelectorAll("[data-signup] [role=alert]")).toHaveLength(2);
+  });
+
+  it("the Subscribe button keeps focus while sending and after the answer", async () => {
+    setup(ok);
+    await userEvent.type(screen.getByLabelText(/^email/i), "a@example.com");
+    const btn = screen.getByRole("button", { name: /subscribe/i });
+    await userEvent.click(btn);
+    await waitFor(() => expect(screen.getByRole("status").textContent).toMatch(/check your inbox/i));
+    expect(btn).toHaveFocus();
+  });
+});

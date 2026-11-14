@@ -21,6 +21,18 @@ export const ContactSchema = z.object({
 
 export type ContactPayload = z.infer<typeof ContactSchema>;
 
+/** What the reader can act on; the form words each kind itself, in the reader's language. */
+export type ContactFailure = "rate" | "large" | "server" | "offline";
+
+/* Never carries the server's or the browser's text ("HTTP 429", "Failed to
+   fetch"): those are machine words, in English, and the form must not show them. */
+export class ContactError extends Error {
+  constructor(readonly kind: ContactFailure) {
+    super(kind);
+    this.name = "ContactError";
+  }
+}
+
 /** `website` is the honeypot field's value: empty for a person, the server drops the message otherwise. */
 export async function sendContactMessage(data: ContactPayload, website = "") {
   const parsed = ContactSchema.safeParse(data);
@@ -29,26 +41,28 @@ export async function sendContactMessage(data: ContactPayload, website = "") {
     throw new Error(Object.values(errs).flat().join(" · ") || "Check the form");
   }
 
-  const res = await fetch("/api/email/send", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      subject: `Portfolio contact from ${data.name}`,
-      replyTo: data.email,
-      ...(website ? { website } : {}),
-      template: {
-        name: "basic",
-        params: {
-          title: `New message from ${data.name}`,
-          body: [`Name: ${data.name}`, `Email: ${data.email}`, "", data.message].join("\n"),
+  let res: Response;
+  try {
+    res = await fetch("/api/email/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        subject: `Portfolio contact from ${data.name}`,
+        replyTo: data.email,
+        ...(website ? { website } : {}),
+        template: {
+          name: "basic",
+          params: {
+            title: `New message from ${data.name}`,
+            body: [`Name: ${data.name}`, `Email: ${data.email}`, "", data.message].join("\n"),
+          },
         },
-      },
-    }),
-  });
-
-  if (!res.ok) {
-    const body = await res.json().catch(() => null);
-    throw new Error(body?.error?.formErrors?.[0] ?? `Couldn't send that (HTTP ${res.status})`);
+      }),
+    });
+  } catch {
+    throw new ContactError("offline");
   }
+
+  if (!res.ok) throw new ContactError(res.status === 429 ? "rate" : res.status === 413 ? "large" : "server");
   return true;
 }

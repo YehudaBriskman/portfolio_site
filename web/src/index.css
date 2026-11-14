@@ -3280,6 +3280,12 @@
       /* A tab's content swaps in place: one short rise and fade, the tab itself is already selected. */
       .a-main [role="tabpanel"] { transition: opacity var(--a-dur-2) var(--a-ease-out), translate var(--a-dur-2) var(--a-ease-out); }
       @starting-style { .a-main [role="tabpanel"] { opacity: 0; translate: 0 6px; } }
+      /* Content that replaces a skeleton inside a screen (#731): it settles in by one opacity fade over the place the placeholder held,
+         so a list does not pop in. The state is already the new one; only the paint follows. */
+      .a-settle { transition: opacity var(--a-dur-2) var(--a-ease-out); }
+      @starting-style { .a-settle { opacity: 0; } }
+      /* The press (#731): the tint is there on the first frame of the touch and eases away on release; only the sink (scale) tweens. */
+      .a-btn:active:not(:disabled, [aria-disabled="true"]) { transition: transform var(--a-dur-1) var(--a-ease-out); }
     }
     body.motion-paused .a-app *, body.motion-paused .a-app *::before, body.motion-paused .a-app *::after,
     body.motion-paused .a-app dialog::backdrop { transition: none; animation: none; }

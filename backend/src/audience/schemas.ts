@@ -85,8 +85,11 @@ export const SubscribeBody = z
   .strict();
 
 export const TokenBody = z.object({ token: Token }).strict();
+/* Both topics off is not a preference, it is an unsubscribe by another name that
+   would leave the address "active"; stopping all email has its own route. */
+const SomeTopic = TopicsSchema.refine((t) => t.blog || t.releases, "Choose at least one topic");
 export const ManagePut = z
-  .object({ token: Token, lang: Lang.optional(), topics: TopicsSchema.optional() })
+  .object({ token: Token, lang: Lang.optional(), topics: SomeTopic.optional() })
   .strict();
 export const TokenQuery = z.object({ token: Token });
 

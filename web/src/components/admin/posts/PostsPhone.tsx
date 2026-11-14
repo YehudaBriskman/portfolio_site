@@ -7,6 +7,7 @@ import { FilterChips, FiltersRestoredNote } from "@/components/ui/FilterChips";
 import { FilterSheet } from "@/components/ui/FilterSheet";
 import type { FilterDef } from "@/components/ui/filters";
 import { ICON } from "@/components/ui/icons";
+import { ListPresence } from "@/components/ui/ListPresence";
 import { RecordRow, type Fact } from "@/components/ui/RecordRow";
 import { SelectionBar, SelectionHeader, type SelectionAction } from "@/components/ui/SelectionBar";
 import { StatusGlyph, type StatusKind } from "@/components/ui/StatusGlyph";
@@ -158,8 +159,7 @@ export default function PostsPhone() {
     const title = titleOf(x.title, x.slug);
     return (
       <RecordRow
-        key={x.slug}
-        as="li"
+        as="div"
         icon={ICON.note}
         title={title}
         facts={facts}
@@ -208,9 +208,9 @@ export default function PostsPhone() {
         ) : visible.length === 0 ? (
           <EmptyState title={w.noMatch} action={filtered ? <button type="button" className="a-btn min-h-[44px]" onClick={() => (setQ(""), saved.clear())}>{w.clearFilters}</button> : undefined} />
         ) : (
-          <ul aria-label={w.nav.posts} className="a-box m-0 list-none overflow-hidden p-0">
-            {visible.map(rowFor)}
-          </ul>
+          <ListPresence as="ul" items={visible} itemKey={(x) => x.slug} aria-label={w.nav.posts} className="a-box a-settle m-0 list-none overflow-hidden p-0">
+            {rowFor}
+          </ListPresence>
         )}
 
         <SelectionBar selection={selection} actions={actions} />

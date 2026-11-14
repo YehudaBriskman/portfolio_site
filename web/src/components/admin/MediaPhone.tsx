@@ -5,6 +5,7 @@ import { FilterSheet } from "@/components/ui/FilterSheet";
 import { ICON } from "@/components/ui/icons";
 import { SelectionBar, SelectionHeader, type SelectionAction } from "@/components/ui/SelectionBar";
 import { StatusGlyph } from "@/components/ui/StatusGlyph";
+import { ListPresence } from "@/components/ui/ListPresence";
 import { toast } from "@/lib/toast";
 import { useUndoable } from "@/lib/toast/useUndoable";
 import { useSavedFilters } from "@/components/ui/useSavedFilters";
@@ -139,8 +140,8 @@ export default function MediaPhone({
       {shown.length === 0 ? (
         <p className="a-hint" data-testid="no-match">{q.trim() ? p.noMatchQuery(q.trim()) : p.noMatch}</p>
       ) : (
-        <ul className={styles.grid} data-media-grid="" aria-label={p.gridLabel(shown.length)}>
-          {shown.map((m) => {
+        <ListPresence as="ul" variant="tiles" items={shown} itemKey={(m) => m.id} className={`${styles.grid} a-settle`} data-media-grid="" aria-label={p.gridLabel(shown.length)}>
+          {(m) => {
             const KIcon = KindIcon(m.kind);
             const picked = selection.has(m.id);
             const glyph = !hasAlt(m) ? (
@@ -149,7 +150,7 @@ export default function MediaPhone({
               <StatusGlyph kind="used" size={16} />
             ) : null;
             return (
-              <li key={m.id} className="min-w-0">
+              <>
                 <button
                   type="button"
                   className={styles.tile}
@@ -178,10 +179,10 @@ export default function MediaPhone({
                     </span>
                   )}
                 </button>
-              </li>
+              </>
             );
-          })}
-        </ul>
+          }}
+        </ListPresence>
       )}
 
       <SelectionBar selection={selection} actions={actions} />

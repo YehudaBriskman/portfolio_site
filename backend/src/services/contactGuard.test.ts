@@ -35,7 +35,7 @@ beforeEach(() => {
 afterEach(() => vi.restoreAllMocks());
 
 describe("contact form limits", () => {
-  it("answers a send, a honeypot hit, a client limit and a daily ceiling with the same body", async () => {
+  it("answers a send and a honeypot hit alike, but a real message over a limit with 429", async () => {
     const ok = await post(body("a1@example.invalid"));
     const bot = await post(body("a2@example.invalid", { website: "http://spam.invalid" }));
     expect(ok.status).toBe(200);
@@ -45,8 +45,18 @@ describe("contact form limits", () => {
 
     for (let i = 0; i < CLIENT_LIMIT; i++) await post(body(`c${i}@example.invalid`));
     const limited = await post(body("z@example.invalid"));
-    expect(limited.status).toBe(200);
-    expect(limited.body).toEqual(ok.body);
+    /* A real message that was not sent must not look sent: the form shows the "too many tries" toast. */
+    expect(limited.status).toBe(429);
+    expect(limited.body).toEqual({ ok: false, error: "Too many messages, try again later" });
+  });
+
+  it("answers 429 when the whole form is over its limit, and a honeypot hit is still a quiet 200", async () => {
+    for (let i = 0; i < GLOBAL_LIMIT; i++) await post({ subject: "Hi", text: "Hello there" }, `192.0.2.${i + 1}`);
+    const over = await post({ subject: "Hi", text: "Hello there" }, "198.51.100.77");
+    expect(over.status).toBe(429);
+    const bot = await post(body("bot@example.invalid", { website: "x" }), "198.51.100.78");
+    expect(bot.status).toBe(200);
+    expect(bot.body).toEqual({ ok: true });
   });
 
   it("drops a honeypot hit without sending anything or counting it", async () => {

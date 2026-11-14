@@ -28,6 +28,11 @@
   background: rgb(var(--signal));
 }
 
+/* No width, no gap: the track's 1px gap would otherwise show for a part with nothing in it. */
+.segment[data-empty] {
+  margin-inline-end: -1px;
+}
+
 .segment[data-tone="muted"] {
   background: rgb(var(--ink-soft) / 0.55);
 }

@@ -308,6 +308,17 @@ describe("manage", () => {
   });
 });
 
+describe("manage: topics", () => {
+  it("refuses both topics off, and stores nothing", async () => {
+    seed();
+    const token = await signToken({ t: "manage", h: hash, exp: expiresIn(60) });
+    const before = JSON.stringify(store.get(`contact:${hash}`));
+    const p = await request(app()).put("/api/subscribe/manage").send({ token, topics: { blog: false, releases: false } });
+    expect(p.status).toBe(400);
+    expect(JSON.stringify(store.get(`contact:${hash}`))).toBe(before);
+  });
+});
+
 describe("admin routes need the admin gate", () => {
   const routes: Array<[string, string]> = [
     ["get", "/groups"], ["post", "/groups"], ["patch", `/groups/x`], ["delete", `/groups/x`],
