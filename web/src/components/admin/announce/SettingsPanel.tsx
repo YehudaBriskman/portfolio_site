@@ -18,6 +18,8 @@ import { useSettingsPanelWords } from "./settingsWords";
 import PhoneSettings, { UTM_TOKEN, isGroupId } from "./SettingsPhone";
 import { usePhone } from "../../../hooks/usePhone";
 import { useAnnounceWords } from "./words";
+import SignatureSettings from "./signature/SignatureSettings";
+import { useSignatureWords } from "./signature/words";
 
 /*
  * The owner's announce settings: their own document, saved with the revision
@@ -42,12 +44,14 @@ export default function SettingsPanel() {
   const sw = useSettingsPanelWords();
   const snd = useSenderWords();
   const nw = useNotifyWords();
+  const sigw = useSignatureWords();
   const uid = useId();
   const doc = useSettingsDoc();
   /* Typed as the person types it; parsed on save, so a trailing comma is not eaten mid-word. */
   const [tags, setTags] = useState<string | null>(null);
   const [filter, setFilter] = useState("");
   const [open, setOpen] = useState(false);
+  const [sigOpen, setSigOpen] = useState(false);
   const [note, setNote] = useState("");
   const phone = usePhone();
   const [params, setParams] = useSearchParams();
@@ -98,6 +102,8 @@ export default function SettingsPanel() {
 
   const tagText = tags ?? draft.hashtags.join(" ");
   const working: AnnounceSettings = { ...draft, hashtags: tags === null ? draft.hashtags : parseTags(tags) };
+  /* The alt text starts as the typed name (the first line of the typed signature). */
+  const signatureAlt = (draft.signature.split("\n")[0] ?? "").trim().slice(0, 120);
   const dirty = !same(working, view.settings);
   const everydayDirty = !same(everydayOf(working), everydayOf(view.settings));
   const everydayIsDefault = same(everydayOf(working), { mail: false, notify: false, channels: ANNOUNCE_CHANNELS, hashtags: [], signature: "" });
@@ -323,6 +329,11 @@ export default function SettingsPanel() {
           <textarea id={`${uid}-sig`} className="a-textarea" rows={2} maxLength={300} dir="auto" value={draft.signature} onChange={(e) => change((d) => void (d.signature = e.target.value))} aria-describedby={`${uid}-sig-h`} />
           <p id={`${uid}-sig-h`} className="a-hint">{w.signatureHint}</p>
         </div>
+
+        {/* Mounted only when opened: it has its own requests and its own saves, apart from this form's. */}
+        <Disclosure className="a-box" summary={sigw.heading} open={sigOpen} onOpenChange={setSigOpen} testid="signature-image">
+          <div className="pb-3">{sigOpen && <SignatureSettings defaultAlt={signatureAlt} />}</div>
+        </Disclosure>
 
         <button type="button" className="a-btn a-btn-ghost min-h-[44px]" disabled={everydayIsDefault} onClick={resetEveryday}>
           {sw.resetSection}

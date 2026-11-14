@@ -15,6 +15,8 @@ import { useSenderWords } from "./sender/words";
 import { useBudgetWords } from "./sender/budgetWords";
 import { useSettingsPanelWords } from "./settingsWords";
 import { useAnnounceWords } from "./words";
+import SignatureSettings from "./signature/SignatureSettings";
+import { useSignatureWords } from "./signature/words";
 
 /*
  * Marketing > Settings below 600px (#678): the same document as the desktop
@@ -31,7 +33,7 @@ const ltr = (t: string) => `\u2066${t}\u2069`;
 const isolate = (t: string) => `\u2068${t}\u2069`;
 
 export const UTM_TOKEN = /^[a-z0-9_.-]{1,40}$/;
-const GROUP_IDS = ["mail", "channels", "wording", "sender", "limits", "texts", "notices", "advanced"] as const;
+const GROUP_IDS = ["mail", "channels", "wording", "signature", "sender", "limits", "texts", "notices", "advanced"] as const;
 export const isGroupId = (v: string | null): v is (typeof GROUP_IDS)[number] => GROUP_IDS.includes(v as never);
 
 export interface PhoneSettingsProps {
@@ -84,6 +86,7 @@ export default function PhoneSettings({ working, tagText, onTagText, change, res
   const snd = useSenderWords();
   const bw = useBudgetWords();
   const nw = useNotifyWords();
+  const sg = useSignatureWords();
   const uid = useId();
 
   const toggle = <T,>(list: T[], v: T, on: boolean) => (on ? (list.includes(v) ? list : [...list, v]) : list.filter((x) => x !== v));
@@ -276,6 +279,20 @@ export default function PhoneSettings({ working, tagText, onTagText, change, res
       },
       warning: () => (tagsBad ? sw.warnTags : null),
       render: () => wording,
+    },
+    {
+      id: "signature",
+      icon: ICON.note,
+      title: sg.groupTitle,
+      controls: 8,
+      hasText: true,
+      items: [item("signature-image", sg.heading, `${sg.keywords} ${sg.bankNote}`)],
+      summary: () => sg.sumGeneric,
+      render: () => (
+        <div className="space-y-3 p-4">
+          <SignatureSettings defaultAlt={(working.signature.split("\n")[0] ?? "").trim().slice(0, 120)} />
+        </div>
+      ),
     },
     {
       id: "sender",
