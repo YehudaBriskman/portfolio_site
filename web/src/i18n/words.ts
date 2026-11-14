@@ -102,6 +102,31 @@ export function hasHebrew(text: string | null | undefined): boolean {
 export const LRI = "\u2066";
 export const PDI = "\u2069";
 
+/** First-strong isolate and its pop: the run between them takes the direction of its first letter. */
+export const FSI = "\u2068";
+
+/**
+ * A value (a date, a time, a size) set apart from the sentence round it, so a
+ * full stop or a colon next to it cannot be pulled to the far side. "…saved
+ * 13 Nov, 13:00." in a right-to-left paragraph printed as ".13:00": the stop
+ * belongs to the sentence, the run it follows is its own. In English the text
+ * is returned as it is.
+ */
+export function isolate(lang: Lang, text: string): string {
+  return lang === "he" && text ? `${FSI}${text}${PDI}` : text;
+}
+
+/**
+ * A measurement that reads left to right ("552 kB", "1600 × 900") on a page
+ * in Hebrew: set as its own LTR run, so the number stays before its unit.
+ * Left to the paragraph, "552 kB" in a right-to-left line shows as "kB 552".
+ * It reads the page's language, so a formatter needs no language argument.
+ */
+export function ltrValue(text: string): string {
+  const he = typeof document !== "undefined" && document.documentElement.lang.toLowerCase().startsWith("he");
+  return he && text ? `${LRI}${text}${PDI}` : text;
+}
+
 /**
  * English standing in for missing Hebrew, as text that lays out left to right
  * wherever it lands.

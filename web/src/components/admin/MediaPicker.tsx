@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { KIND_LABEL, MEDIA_KINDS, filterMedia, media, mediaIdOf, type MediaItem, type MediaKind } from "@/services/media";
+import { MEDIA_KINDS, filterMedia, media, mediaIdOf, type MediaItem, type MediaKind } from "@/services/media";
 import { KindFilter, MediaGrid, Modal } from "./MediaGrid";
 import MediaUpload from "./MediaUpload";
+import { useMediaUploadWords } from "./mediaUploadWords";
 import styles from "./Media.module.css";
 
 /*
@@ -23,7 +24,7 @@ import styles from "./Media.module.css";
 export default function MediaPicker({
   value,
   onChange,
-  label = "Choose from library",
+  label,
   kinds = ["image"],
   onPickItem,
   showCurrent = true,
@@ -38,6 +39,7 @@ export default function MediaPicker({
   /* Off where the picker inserts rather than fills a field. */
   showCurrent?: boolean;
 }) {
+  const lib = useMediaUploadWords().lib;
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<MediaItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -45,14 +47,14 @@ export default function MediaPicker({
   const [only, setOnly] = useState<MediaKind | null>(null);
   const current = mediaIdOf(value);
   const allowed = MEDIA_KINDS.filter((k) => kinds.includes(k));
-  const noun = allowed.length === 1 ? KIND_LABEL[allowed[0]].many : "Media";
+  const noun = allowed.length === 1 ? lib.many[allowed[0]] : lib.media;
 
   function load() {
     setError(null);
     media
       .list()
       .then(setItems)
-      .catch((e: unknown) => setError(e instanceof Error ? e.message : "Failed to load"));
+      .catch((e: unknown) => setError(e instanceof Error ? e.message : lib.loadFailed));
   }
 
   function show() {
@@ -74,47 +76,47 @@ export default function MediaPicker({
     <>
       <div className="mt-2 flex flex-wrap items-center gap-3">
         <button type="button" className="a-btn" onClick={show} aria-haspopup="dialog">
-          {label}
+          {label ?? lib.choose}
         </button>
         {showCurrent && current && (
           <span className="mono text-sm text-clay">
-            From the library: <span className="text-bone">{picked?.alt ?? current}</span>
+            {lib.from} <span className="text-bone">{picked?.alt ?? current}</span>
           </span>
         )}
       </div>
 
-      <Modal open={open} onClose={() => setOpen(false)} title={allowed.length === 1 && allowed[0] === "icon" ? "Icons" : "Media library"}>
+      <Modal open={open} onClose={() => setOpen(false)} title={allowed.length === 1 && allowed[0] === "icon" ? lib.iconsTitle : lib.title}>
         <MediaUpload onUploaded={pick} kinds={allowed} />
 
         <div className="mt-5 flex flex-wrap items-end gap-x-6 gap-y-3">
           <label className="block w-full max-w-md">
-            <span className="a-label">Search</span>
+            <span className="a-label">{lib.search}</span>
             <input
               type="search"
               value={q}
               onChange={(e) => setQ(e.target.value)}
               className="a-input"
-              placeholder="Alt text, caption, file name"
+              placeholder={lib.searchHint}
             />
           </label>
           <KindFilter kinds={allowed} value={only} onChange={setOnly} />
         </div>
 
         <p className="sr-only" role="status">
-          {items === null ? `Loading ${lower}` : `${shown.length} ${lower}`}
+          {items === null ? lib.loading(lower) : lib.count(shown.length, lower)}
         </p>
         {error && <p className="a-error mt-4" role="alert">{error}</p>}
-        {!error && items === null && <p className="mono mt-6 text-sm text-clay">Loading…</p>}
+        {!error && items === null && <p className="mono mt-6 text-sm text-clay">{lib.loadingShort}</p>}
         {items !== null && shown.length === 0 && (
           <p className="a-hint mt-6">
             {filterMedia(items, "", allowed).length === 0
-              ? `There are no ${lower} in the library yet. Upload the first above.`
-              : "Nothing matches that search."}
+              ? lib.none(lower)
+              : lib.noMatch}
           </p>
         )}
         {shown.length > 0 && (
           <div className="mt-5">
-            <MediaGrid items={shown} selected={current} onSelect={pick} label={noun === "Media" ? "Pictures" : noun} />
+            <MediaGrid items={shown} selected={current} onSelect={pick} label={noun === lib.media ? lib.many.image : noun} />
           </div>
         )}
       </Modal>

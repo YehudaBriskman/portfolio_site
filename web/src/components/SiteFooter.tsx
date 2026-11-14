@@ -68,7 +68,7 @@ export default function SiteFooter() {
   /* --ink at 15.17:1 on paper. Was --bone/85, which is the same colour
      diluted for no reason now that the ground is light. */
   const linkRow =
-    "-my-1 inline-flex min-h-11 items-center text-sm text-ink transition-colors hover:text-sodium sm:min-h-0 sm:py-1";
+    "-my-1 inline-flex min-h-11 min-w-11 items-center text-sm sm:min-w-6 text-ink transition-colors hover:text-sodium sm:min-h-0 sm:py-1";
 
   return (
     <footer className="footer-ground on-panel" data-chrome="dark">

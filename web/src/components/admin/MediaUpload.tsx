@@ -1,6 +1,5 @@
 import { useEffect, useId, useRef, useState, type DragEvent } from "react";
 import {
-  KIND_LABEL,
   LIMITS,
   blobSrc,
   checkFile,
@@ -9,6 +8,7 @@ import {
   type MediaItem,
   type MediaKind,
 } from "@/services/media";
+import { useMediaUploadWords } from "./mediaUploadWords";
 import styles from "./Media.module.css";
 
 /*
@@ -45,6 +45,7 @@ export default function MediaUpload({
   kinds?: readonly MediaKind[];
 }) {
   const id = useId();
+  const w = useMediaUploadWords();
   const input = useRef<HTMLInputElement>(null);
   const altRef = useRef<HTMLTextAreaElement>(null);
   const [over, setOver] = useState(false);
@@ -69,13 +70,13 @@ export default function MediaUpload({
   }, [pendingUrl]);
 
   const accept = kinds.map((k) => LIMITS[k].accept).join(",") || ALL_ACCEPT;
-  const says = kinds.map((k) => KIND_LABEL[k].many.toLowerCase()).join(", ");
+  const says = kinds.map((k) => w.kindsMany[k]).join(", ");
 
   function take(files: FileList | null) {
     const file = files?.[0];
     if (!file) return;
     const kind = kindOf(file, kinds[0] ?? "image");
-    const problem = kinds.includes(kind) ? checkFile(file, kind) : `${file.name} is not one of: ${says}.`;
+    const problem = kinds.includes(kind) ? checkFile(file, kind) : w.notOneOf(file.name, says);
     if (problem) {
       setError(problem);
       return;
@@ -113,7 +114,7 @@ export default function MediaUpload({
       return;
     }
     if (pending.kind === "video" && !poster) {
-      setError("Choose a poster image: it is what shows before the video plays, and instead of it with motion off.");
+      setError(w.posterRequired);
       return;
     }
     setBusy(true);
@@ -128,7 +129,7 @@ export default function MediaUpload({
       reset();
       onUploaded(item);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Upload failed");
+      setError(e instanceof Error ? e.message : w.uploadFailed);
     } finally {
       setBusy(false);
     }
@@ -146,11 +147,10 @@ export default function MediaUpload({
       kinds.includes("image") &&
       LIMITS.icon.accept.split(",").includes(pending.file.type) &&
       pending.file.size <= LIMITS.icon.bytes;
-    const noun = KIND_LABEL[pending.kind].one.toLowerCase();
     return (
       <form
         className={`a-card p-4 ${styles.pending}`}
-        aria-label={`Describe the new ${noun}`}
+        aria-label={w.describe(pending.kind)}
         noValidate
         onSubmit={(e) => {
           e.preventDefault();
@@ -168,7 +168,7 @@ export default function MediaUpload({
           </p>
           {switchable && (
             <fieldset className={styles.kinds}>
-              <legend className="a-label">Use it as</legend>
+              <legend className="a-label">{w.useAs}</legend>
               {(["image", "icon"] as const).map((k) => (
                 <label key={k}>
                   <input
@@ -177,13 +177,13 @@ export default function MediaUpload({
                     checked={pending.kind === k}
                     onChange={() => setPending({ ...pending, kind: k })}
                   />{" "}
-                  {k === "image" ? "A picture (resized to AVIF and WebP)" : "An icon (kept as drawn)"}
+                  {k === "image" ? w.asPicture : w.asIcon}
                 </label>
               ))}
             </fieldset>
           )}
           <label className="block" htmlFor={`${id}-alt`}>
-            <span className="a-label">Alt text (required)</span>
+            <span className="a-label">{w.alt}</span>
             <textarea
               id={`${id}-alt`}
               ref={altRef}
@@ -200,36 +200,34 @@ export default function MediaUpload({
               aria-describedby={`${id}-alt-hint`}
             />
             <span id={`${id}-alt-hint`} className={altMissing ? "a-error" : "a-hint"}>
-              {altMissing
-                ? `Say what the ${noun} shows before uploading.`
-                : `What the ${noun} shows, for someone who cannot see it.`}
+              {altMissing ? w.altMissing(pending.kind) : w.altHint(pending.kind)}
             </span>
           </label>
           {pending.kind === "video" && (
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="block">
-                <span className="a-label">Poster image (required)</span>
+                <span className="a-label">{w.poster}</span>
                 <input
                   type="file"
                   accept={LIMITS.poster.accept}
                   className="a-input"
                   onChange={(e) => pickSide(e.target.files?.[0] ?? null, "poster")}
                 />
-                <span className="a-hint">A still from the video. JPEG, PNG, WebP or AVIF, up to 5 MB.</span>
+                <span className="a-hint">{w.posterHint}</span>
               </label>
               <label className="block">
-                <span className="a-label">Captions (optional)</span>
+                <span className="a-label">{w.captions}</span>
                 <input
                   type="file"
                   accept={LIMITS.captions.accept}
                   className="a-input"
                   onChange={(e) => pickSide(e.target.files?.[0] ?? null, "captions")}
                 />
-                <span className="a-hint">A WebVTT (.vtt) file.</span>
+                <span className="a-hint">{w.captionsHint}</span>
               </label>
               {captions && (
                 <label className="block">
-                  <span className="a-label">Captions language</span>
+                  <span className="a-label">{w.captionsLang}</span>
                   <input
                     value={captionsLang}
                     onChange={(e) => setCaptionsLang(e.target.value.trim())}
@@ -243,28 +241,24 @@ export default function MediaUpload({
           )}
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block">
-              <span className="a-label">Caption</span>
+              <span className="a-label">{w.caption}</span>
               <input value={caption} onChange={(e) => setCaption(e.target.value)} className="a-input" maxLength={500} />
             </label>
             <label className="block">
-              <span className="a-label">Credit</span>
+              <span className="a-label">{w.credit}</span>
               <input value={credit} onChange={(e) => setCredit(e.target.value)} className="a-input" maxLength={200} />
             </label>
           </div>
           <p className="a-hint">
-            {pending.kind === "video"
-              ? "Location, device and date tags are removed on upload. It plays muted, and never by itself with motion off."
-              : pending.kind === "icon"
-                ? "Kept as drawn. An SVG with scripts, events or outside links is refused; a one-colour one takes the text colour."
-                : "Location and camera data are removed on upload. AVIF and WebP sizes are made from it."}
+            {w.note[pending.kind]}
           </p>
           {error && <p className="a-error" role="alert">{error}</p>}
           <div className="flex flex-wrap gap-3">
             <button type="submit" className="a-btn a-btn-primary" disabled={busy}>
-              {busy ? "Uploading" : "Upload"}
+              {busy ? w.uploading : w.upload}
             </button>
             <button type="button" className="a-btn" onClick={reset} disabled={busy}>
-              Cancel
+              {w.cancel}
             </button>
           </div>
         </div>
@@ -272,7 +266,7 @@ export default function MediaUpload({
     );
   }
 
-  const choose = kinds.length === 1 ? `Choose ${kinds[0] === "icon" ? "an icon" : kinds[0] === "video" ? "a video" : "a picture"}` : "Choose a file";
+  const choose = kinds.length === 1 ? w.choose[kinds[0]] : w.choose.file;
   return (
     <div
       className={styles.drop}
@@ -299,10 +293,10 @@ export default function MediaUpload({
         {choose}
       </button>
       <p className="text-sm leading-normal text-bone/80">
-        or drop one here.
-        {kinds.includes("image") && " Pictures: JPEG, PNG, WebP, AVIF or plain SVG, up to 10 MB."}
-        {kinds.includes("icon") && " Icons: SVG or PNG, up to 64 KB."}
-        {kinds.includes("video") && " Videos: MP4 or WebM, up to 25 MB and a minute, with a poster."}
+        {w.drop}
+        {kinds.includes("image") && ` ${w.limits.image}`}
+        {kinds.includes("icon") && ` ${w.limits.icon}`}
+        {kinds.includes("video") && ` ${w.limits.video}`}
       </p>
       {error && <p className="a-error w-full" role="alert">{error}</p>}
     </div>

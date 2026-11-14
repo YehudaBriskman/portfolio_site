@@ -1,5 +1,7 @@
 import { useEffect, useId, useRef, type ReactNode } from "react";
-import { KIND_LABEL, formatBytes, formatDuration, type MediaItem, type MediaKind } from "@/services/media";
+import { formatBytes, formatDuration, type MediaItem, type MediaKind } from "@/services/media";
+import { ltrValue } from "@/i18n/words";
+import { useMediaUploadWords } from "./mediaUploadWords";
 import styles from "./Media.module.css";
 
 /*
@@ -16,11 +18,12 @@ export function KindFilter({
   onChange: (kind: MediaKind | null) => void;
 }) {
   const name = useId();
+  const lib = useMediaUploadWords().lib;
   if (kinds.length < 2) return null;
-  const options: Array<[MediaKind | null, string]> = [[null, "All"], ...kinds.map((k) => [k, KIND_LABEL[k].many] as [MediaKind, string])];
+  const options: Array<[MediaKind | null, string]> = [[null, lib.all], ...kinds.map((k) => [k, lib.many[k]] as [MediaKind, string])];
   return (
     <fieldset className={styles.filter}>
-      <legend className="a-label">Show</legend>
+      <legend className="a-label">{lib.show}</legend>
       {options.map(([k, text]) => (
         <label key={k ?? "all"} className={styles.filterOption}>
           <input type="radio" name={name} checked={value === k} onChange={() => onChange(k)} />
@@ -31,10 +34,10 @@ export function KindFilter({
   );
 }
 
-function facts(m: MediaItem): string {
-  if (m.kind === "video") return `${KIND_LABEL.video.one} · ${formatDuration(m.durationMs ?? 0)} · ${formatBytes(m.bytes)}`;
-  if (m.kind === "icon") return `${KIND_LABEL.icon.one} · ${m.format.toUpperCase()} · ${formatBytes(m.bytes)}`;
-  return `${m.width}×${m.height} · ${formatBytes(m.bytes)}`;
+function facts(m: MediaItem, one: Record<MediaKind, string>): string {
+  if (m.kind === "video") return `${one.video} · ${formatDuration(m.durationMs ?? 0)} · ${formatBytes(m.bytes)}`;
+  if (m.kind === "icon") return `${one.icon} · ${m.format.toUpperCase()} · ${formatBytes(m.bytes)}`;
+  return `${ltrValue(`${m.width}×${m.height}`)} · ${formatBytes(m.bytes)}`;
 }
 
 /* A grid of library items, each one button. Shared by the library page and the picker. */
@@ -49,6 +52,7 @@ export function MediaGrid({
   onSelect: (item: MediaItem) => void;
   label: string;
 }) {
+  const lib = useMediaUploadWords().lib;
   return (
     <ul className={styles.grid} aria-label={label}>
       {items.map((m) => {
@@ -83,8 +87,8 @@ export function MediaGrid({
               <span className={styles.tileText}>
                 <span className={styles.tileAlt}>{m.alt}</span>
                 <span className={styles.tileMeta}>
-                  {facts(m)}
-                  {m.usedBy ? ` · ${uses === 0 ? "unused" : `used ${uses}×`}` : ""}
+                  {facts(m, lib.one)}
+                  {m.usedBy ? ` · ${uses === 0 ? lib.unused : lib.used(uses)}` : ""}
                 </span>
               </span>
             </button>

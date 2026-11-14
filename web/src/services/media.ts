@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { invalidateTranslations } from "@/services/translations";
+import { ltrValue } from "@/i18n/words";
 
 /*
  * The media library's admin API (#253). Same origin as the rest of the admin
@@ -213,9 +214,9 @@ export function mediaIdOf(url: string): string | null {
 }
 
 export function formatBytes(n: number): string {
-  if (n < 1024) return `${n} B`;
-  if (n < 1024 * 1024) return `${Math.round(n / 1024)} KB`;
-  return `${(n / 1048576).toFixed(1).replace(/\.0$/, "")} MB`;
+  if (n < 1024) return ltrValue(`${n} B`);
+  if (n < 1024 * 1024) return ltrValue(`${Math.round(n / 1024)} KB`);
+  return ltrValue(`${(n / 1048576).toFixed(1).replace(/\.0$/, "")} MB`);
 }
 
 export function formatDuration(ms: number): string {
