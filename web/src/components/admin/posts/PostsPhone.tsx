@@ -158,7 +158,7 @@ export default function PostsPhone() {
         status={glyph ? <StatusGlyph kind={glyph} /> : undefined}
         selectable={selection.on}
         selected={selection.has(x.slug)}
-        openLabel={selection.on ? title : p.openPost(title, `${p.updated}: ${facts[0]?.text}`)}
+        openLabel={selection.on ? title : p.openPost(title, facts[0]?.text)}
         onOpen={() => (selection.on ? selection.toggle(x.slug) : nav(`/admin/posts/${x.slug}`))}
         onLongPress={() => selection.enter(x.slug)}
       />

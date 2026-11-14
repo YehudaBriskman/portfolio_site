@@ -127,6 +127,8 @@ export function RecordRow({
       <span data-rr-title="" dir="auto" className={styles.title}>
         <bdi>{title}</bdi>
       </span>
+      {/* A real space between the title and the facts: a name that says what is shown ("Open Notes, 2 days ago") has to match the visible text, which axe reads with no gap between sibling spans otherwise (WCAG 2.5.3). */}
+      {" "}
       <span id={descId} className={styles.desc}>
         {unread && <span className={styles.srOnly}>{w.isNew}</span>}
         {shown.length > 0 && (
