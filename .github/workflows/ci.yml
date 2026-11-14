@@ -502,6 +502,18 @@ jobs:
       - name: Admin screens on a phone
         if: matrix.check == 'a11y' && matrix.shard == 1
         run: npm run a11y:admin-phone-screens
+      # Posts and Areas on a phone (#680): one tappable row per record, at
+      # least 7 post rows above the fold, no sideways scroll, Select shows
+      # the bulk bar, the publish review is a sheet that leads with what
+      # changes, Hebrew mirrors, and the desktop table is unchanged.
+      - name: Admin Posts and Areas on a phone
+        if: matrix.check == 'a11y' && matrix.shard == 1
+        run: npm run a11y:admin-posts-phone
+      # The content editors on a phone (#683): groups, one language, Reorder,
+      # at most 4 viewport heights, no sideways scroll, desktop unchanged.
+      - name: Admin editors on a phone
+        if: matrix.check == 'a11y' && matrix.shard == 1
+        run: npm run a11y:admin-editors-phone
       # The media library on a phone (#681): square tiles, 3 columns, at
       # least 6 tiles above the fold, no sideways scroll, the sheet puts the
       # alt text first and gives focus back, the desktop is unchanged.

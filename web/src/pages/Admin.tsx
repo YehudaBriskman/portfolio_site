@@ -9,6 +9,8 @@ import { Counter, EmptyState, ErrorState, LoadingRows, PageHeader, RelTime, Stat
 import { useAdminWords } from "@/i18n/admin";
 import { plural } from "@/i18n/words";
 import { admin, type AdminCollection, type AdminPost } from "@/services/admin";
+import PostsPhone from "@/components/admin/posts/PostsPhone";
+import { usePhone } from "@/hooks/usePhone";
 
 /*
  * The posts list (#288): GitHub's issue list. Status tabs with their counts,
@@ -20,7 +22,12 @@ import { admin, type AdminCollection, type AdminPost } from "@/services/admin";
 type StatusFilter = "all" | "draft" | "published" | "archived";
 const STATUSES: StatusFilter[] = ["all", "published", "draft", "archived"];
 
+/* Below 600px the list is rows, not a table: the phone screen is its own component, so a phone never mounts this one. */
 export default function Admin() {
+  return usePhone() ? <PostsPhone /> : <PostsDesktop />;
+}
+
+function PostsDesktop() {
   const w = useAdminWords();
   const heStatus = useTranslationStatus();
   const [posts, setPosts] = useState<AdminPost[] | null>(null);
