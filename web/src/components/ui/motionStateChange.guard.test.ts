@@ -89,6 +89,8 @@ const SURFACES: Array<{ name: string; file: string; exit: string; enter: string;
   { name: "Settings sub-page", file: "components/ui/SettingsList.module.css", exit: ".page", enter: ".page[data-open]", startingStyle: true, discrete: true },
   { name: "Settings list under a sub-page", file: "components/ui/SettingsList.module.css", exit: ".listPane", enter: ".listPane[data-covered]" },
   { name: "Presence (toast, selection bar, inserted rows)", file: "components/ui/Presence.module.css", exit: ".presence", enter: '.presence[data-state="open"]', startingStyle: true },
+  { name: "ListPresence rows (collapse)", file: "components/ui/ListPresence.module.css", exit: '.row[data-variant="rows"][data-state="closed"]', enter: '.row[data-variant="rows"]', startingStyle: true, discrete: true },
+  { name: "ListPresence tiles (fade and shrink)", file: "components/ui/ListPresence.module.css", exit: '.row[data-variant="tiles"][data-state="closed"]', enter: '.row[data-variant="tiles"]', startingStyle: true, discrete: true },
   { name: "Disclosure", file: "components/ui/Disclosure.module.css", exit: ".disclosure::details-content", enter: ".disclosure[open]::details-content" },
 ];
 
@@ -119,6 +121,7 @@ const PHONE_FILES = [
   "components/ui/BottomSheet.module.css",
   "components/ui/SettingsList.module.css",
   "components/ui/Presence.module.css",
+  "components/ui/ListPresence.module.css",
   "components/ui/UndoToast.module.css",
   "components/ui/SelectionBar.module.css",
 ];
@@ -217,5 +220,54 @@ describe("navigation: one entrance per element", () => {
   it("a sheet its parent unmounts on close goes through SheetPresence so it can leave", () => {
     expect(src("components/admin/announce/audience/AudiencePhone.tsx")).toMatch(/<SheetPresence show=\{dialog\?\.kind === "add"\}>/);
     expect(src("components/ui/BottomSheet.tsx")).toContain("SheetClosing");
+  });
+});
+
+describe("motion pass 3: lists, press, visuals (phones only, state first)", () => {
+  const LISTS = [
+    "components/admin/announce/inbox/InboxTab.tsx",
+    "components/admin/posts/PostsPhone.tsx",
+    "components/admin/announce/audience/AudiencePhone.tsx",
+    "components/admin/MediaPhone.tsx",
+    "components/admin/announce/campaigns/CampaignsPhone.tsx",
+  ];
+  it("every phone list draws its rows through ListPresence, so a removed row can collapse and Undo can grow it back", () => {
+    for (const f of LISTS) expect(src(f), f).toMatch(/<ListPresence\b/);
+  });
+  it("ListPresence never waits on an animation or transition event to drop a row", () => {
+    const code = src("components/ui/ListPresence.tsx").replace(/\/\*[\s\S]*?\*\//g, "");
+    expect(code).not.toMatch(/animationend|transitionend|onAnimationEnd|onTransitionEnd|requestAnimationFrame/);
+    expect(code).toMatch(/EXIT_KEEP_MS/);
+  });
+  it("a list's first draw and a load from empty are not entrances", () => {
+    const code = src("components/ui/ListPresence.tsx");
+    expect(code).toMatch(/fresh: false/);
+    expect(code).toMatch(/motion && hadRows/);
+  });
+  it("the press tint is there on the first frame: no tween on the way in, inside the phone gate", () => {
+    for (const [f, sel] of [
+      ["components/ui/RecordRow.module.css", ".row:active"],
+      ["components/ui/SettingsRow.module.css", ".press:active"],
+      ["components/ui/FilterChips.module.css", ".chip:active"],
+    ] as const) {
+      const hit = rules(insidePhone(css(f))).filter((r) => r.selector === sel);
+      expect(hit.length, `${f} ${sel}`).toBeGreaterThan(0);
+      expect(hit.map((r) => r.body).join(" "), f).toMatch(/transition(?:-duration)?\s*:\s*(none|0s)/);
+    }
+  });
+  it("a skeleton's content settles in by opacity, phone gate only", () => {
+    const index = css("index.css");
+    expect(index).toMatch(/\.a-settle\s*\{\s*transition: opacity/);
+    expect(outsideNoPreference(index)).not.toMatch(/\.a-settle\s*\{[^}]*transition/);
+  });
+  it("Journey, MiniBar and Gauge animate a changed value inside no-preference, and never from a starting style (not on first render)", () => {
+    for (const f of ["components/ui/MiniBar.module.css", "components/ui/Gauge.module.css", "components/ui/Journey.module.css"]) {
+      const text = css(f);
+      expect(text, f).not.toMatch(/@starting-style/);
+      expect(text.slice(text.indexOf("prefers-reduced-motion: no-preference")), f).toMatch(/transition\s*:/);
+      expect(outsideNoPreference(text), f).not.toMatch(/(?:^|[;{\s])transition(?:-[a-z-]+)?\s*:\s*(?!none\b)[^;]+/);
+    }
+    expect(css("components/ui/MiniBar.module.css")).toMatch(/inline-size var\(--a-dur/);
+    expect(css("components/ui/Gauge.module.css")).toMatch(/stroke-dasharray var\(--a-dur/);
   });
 });

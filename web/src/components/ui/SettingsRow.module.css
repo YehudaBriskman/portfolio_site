@@ -166,3 +166,14 @@
   clip-path: inset(50%);
   white-space: nowrap;
 }
+
+/* A phone: the pressed tint is there on the first frame of the touch and eases away on release. */
+@media (prefers-reduced-motion: no-preference) and (max-width: 599px) {
+  .press {
+    transition: background-color var(--a-dur-1) var(--a-ease-out);
+  }
+
+  .press:active {
+    transition: none;
+  }
+}

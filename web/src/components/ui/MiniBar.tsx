@@ -61,17 +61,17 @@ export function MiniBar({ parts, value, max, total, label, height = 6, showNumbe
   return (
     <span className={[styles.wrap, className].filter(Boolean).join(" ")}>
       <span className={styles.track} role="img" aria-label={name} style={{ blockSize: height }}>
-        {list.map((p, i) =>
-          widths[i] > 0 ? (
-            <span
-              key={i}
-              className={styles.segment}
-              data-segment=""
-              data-tone={p.tone ?? "ok"}
-              style={{ inlineSize: `${widths[i]}%` }}
-            />
-          ) : null,
-        )}
+        {/* An empty part keeps its element at zero width, so when it fills the bar grows from where it was, not from nothing. */}
+        {list.map((p, i) => (
+          <span
+            key={i}
+            className={styles.segment}
+            data-segment={widths[i] > 0 ? "" : undefined}
+            data-empty={widths[i] > 0 ? undefined : ""}
+            data-tone={p.tone ?? "ok"}
+            style={{ inlineSize: `${widths[i]}%` }}
+          />
+        ))}
       </span>
       {showNumber ? (
         <span className={styles.number} data-number="" dir="ltr">

@@ -86,7 +86,7 @@ async function open(w, h, lang, theme = "light", path = "/admin/media") {
   const page = await ctx.newPage();
   await page.goto(`${base}${lang === "he" ? "/he" : ""}${path}`, { waitUntil: "load" });
   for (let i = 0; i < 40; i++) {
-    if (await page.evaluate(() => document.querySelectorAll("main ul[aria-label] > li > button").length > 3)) break;
+    if (await page.evaluate(() => document.querySelectorAll("main ul[aria-label] > li > div > button").length > 3)) break;
     await page.waitForTimeout(250);
   }
   await page.waitForTimeout(500);
@@ -111,7 +111,7 @@ const waitFor = async (page, fn, arg, tries = 40) => {
 function measure() {
   const vw = window.innerWidth;
   const vh = window.innerHeight;
-  const tiles = [...document.querySelectorAll("main ul[aria-label] > li > button")];
+  const tiles = [...document.querySelectorAll("main ul[aria-label] > li > div > button")];
   const rects = tiles.map((t) => t.getBoundingClientRect());
   const cols = new Set(rects.map((r) => Math.round(r.left))).size;
   return {
@@ -151,8 +151,8 @@ try {
         if (SHOTS) await shot(page, `${w}-${dir}-${theme}-grid`);
 
         if (m.tiles > 0 && (SHOTS || (theme === "light" && w !== 430))) {
-          await page.evaluate(() => document.querySelector("main ul[aria-label] > li > button")?.focus());
-          await page.locator("main ul[aria-label] > li > button").first().dispatchEvent("click");
+          await page.evaluate(() => document.querySelector("main ul[aria-label] > li > div > button")?.focus());
+          await page.locator("main ul[aria-label] > li > div > button").first().dispatchEvent("click");
           const opened = await waitFor(page, () => !!document.querySelector("dialog[open]"));
           if (!opened) { if (!BEFORE) fail(`${tag}: tapping a tile did not open the sheet`); }
           else {
@@ -174,7 +174,7 @@ try {
             if (SHOTS) await shot(page, `${w}-${dir}-${theme}-sheet`);
             await page.keyboard.press("Escape");
             if (!(await waitFor(page, () => !document.querySelector("dialog[open]")))) { if (!BEFORE) fail(`${tag}: Escape did not close the sheet`); }
-            else if (!BEFORE && !(await waitFor(page, () => document.activeElement === document.querySelector("main ul[aria-label] > li > button"), undefined, 12))) fail(`${tag}: focus did not return to the tile`);
+            else if (!BEFORE && !(await waitFor(page, () => document.activeElement === document.querySelector("main ul[aria-label] > li > div > button"), undefined, 12))) fail(`${tag}: focus did not return to the tile`);
           }
         }
         await close();
