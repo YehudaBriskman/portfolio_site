@@ -9,6 +9,7 @@ import { hashEmail } from "../audience/store.js";
 import { emailService } from "../services/email.service.js";
 import { autoDraftFor } from "./autodraft.js";
 import { resolveSender, senderWarnings } from "./config.js";
+import { clearDnsCache, dnsOverride } from "./sendReadiness.js";
 import { COMMERCIAL_LABEL_HE, LABEL_BODY_EN, LABEL_SUBJECT_EN, PREFS_LABEL_EN, PREFS_LABEL_HE, UNSUB_FALLBACK_EN, UNSUB_FALLBACK_HE, renderCampaignMail } from "./render.js";
 import { bodyBlocks, safeHref, safeImage } from "./body.js";
 import { renderMail } from "../mail/render.js";
@@ -1435,5 +1436,55 @@ describe("sender holds when the settings cannot be trusted", () => {
   it("a settings document that was never saved is a fresh install, not a hold", async () => {
     await runSenderTick({ now: () => T0, deliver });
     expect((await admin(request(createApp()).get(`${C}/sending`))).body.settingsHold).toBeNull();
+  });
+});
+
+
+describe("send readiness (GET /readiness)", () => {
+  afterEach(() => { dnsOverride.look = undefined; clearDnsCache(); });
+  const answer = (m: Record<string, string[][]>, seen: string[] = []) => {
+    dnsOverride.look = async (n) => {
+      seen.push(n);
+      if (n in m) return m[n]!;
+      throw Object.assign(new Error("nx"), { code: "ENOTFOUND" });
+    };
+  };
+  const get = () => admin(request(createApp()).get(`${C}/readiness`));
+  const byId = (b: { items: Array<{ id: string; status: string }> }) => Object.fromEntries(b.items.map((i) => [i.id, i.status]));
+
+  it("is admin-only", async () => {
+    answer({});
+    const r = await request(createApp()).get(`${C}/readiness`);
+    expect([401, 403]).toContain(r.status);
+  });
+
+  it("says what is missing, with statuses only", async () => {
+    clearDnsCache();
+    setSender({ fromAddress: "hi@example.org", fromName: "Y", replyTo: "", testRecipients: [] });
+    answer({ "example.org": [["v=spf1 include:x ~all"]] });
+    const r = await get();
+    expect(r.status).toBe(200);
+    expect(r.body.domain).toBe("example.org");
+    expect(byId(r.body)).toMatchObject({ spf: "ok", dkim: "fix", dmarc: "fix", testRecipient: "fix", identity: "ok" });
+    expect(JSON.stringify(r.body)).not.toContain("v=spf1");
+  });
+
+  it("asks DNS only about the saved From domain, never about anything in the request", async () => {
+    clearDnsCache();
+    setSender({ fromAddress: "hi@example.org", replyTo: "me@example.org", testRecipients: ["t@example.org"] });
+    const seen: string[] = [];
+    answer({ "example.org": [["v=spf1 ~all"]], "_dmarc.example.org": [["v=DMARC1; p=none"]], "resend._domainkey.example.org": [["p=abc"]] }, seen);
+    const r = await admin(request(createApp()).get(`${C}/readiness?domain=evil.test&name=attacker.test`));
+    expect(byId(r.body)).toMatchObject({ spf: "ok", dkim: "ok", dmarc: "ok", replyTo: "ok", testRecipient: "ok" });
+    expect(seen.length).toBeGreaterThan(0);
+    expect(seen.every((n) => n === "example.org" || n.endsWith(".example.org"))).toBe(true);
+  });
+
+  it("an unreadable DNS answer is unknown, and a no-reply Reply-To needs fixing", async () => {
+    clearDnsCache();
+    setSender({ fromAddress: "hi@example.org", replyTo: "no-reply@example.org" });
+    dnsOverride.look = async () => { throw Object.assign(new Error("x"), { code: "ESERVFAIL" }); };
+    const r = await get();
+    expect(byId(r.body)).toMatchObject({ spf: "unknown", dkim: "unknown", dmarc: "unknown", replyTo: "fix" });
   });
 });
