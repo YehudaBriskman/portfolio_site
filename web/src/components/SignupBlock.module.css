@@ -11,7 +11,7 @@
 }
 
 .heading {
-  font-family: var(--font-display);
+  font-family: var(--font-ui); font-weight: var(--weight-ui);
   font-size: 1.5rem;
   line-height: 1.2;
   color: rgb(var(--ink));

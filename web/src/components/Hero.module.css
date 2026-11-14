@@ -206,16 +206,13 @@
  * leaves the box itself at the start edge, which reads as a centred name
  * above a left-hung sentence.
  *
- * The family is the other half. "Full-stack, mostly frontend" is one line of
- * seven words at 20px on the first screen, which is the only shape on the
- * site a face like Jim Nightshade can take without becoming a reading
- * problem — and the plate is the one object that can carry a third voice,
- * because it is the object the collection is named after. See `.accent` in
- * index.css for the licence this is spending.
+ * The family is the other half: the UI family at 500 (the script face this
+ * line once used is retired, #795).
  */
 .plate > p {
   margin-inline: auto;
-  font-family: var(--font-accent);
+  font-family: var(--font-ui);
+  font-weight: 500;
   letter-spacing: 0;
 }
 
