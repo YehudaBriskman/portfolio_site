@@ -21,6 +21,7 @@
     "a11y:density": "node scripts/a11y/density-matrix.mjs",
     "a11y:admin-inbox-phone": "node scripts/a11y/admin-inbox-phone.mjs",
     "a11y:admin-posts-phone": "node scripts/a11y/admin-posts-phone.mjs",
+    "a11y:admin-media-phone": "node scripts/a11y/admin-media-phone.mjs",
     "links": "node scripts/links/land.mjs"
   },
   "dependencies": {
