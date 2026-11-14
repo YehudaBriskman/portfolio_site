@@ -7,7 +7,7 @@ import { adminAudience, type Group } from "@/services/adminAudience";
 import { adminCampaigns, type Campaign } from "@/services/adminCampaigns";
 import CampaignEditor from "./CampaignEditor";
 import CampaignsPhone from "./CampaignsPhone";
-import { usePhone } from "./usePhone";
+import { usePhone } from "@/hooks/usePhone";
 import SendingSwitch from "./SendingSwitch";
 import { pillState } from "./status";
 import { useCampaignWords } from "./words";

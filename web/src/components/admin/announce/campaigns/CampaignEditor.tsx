@@ -31,7 +31,7 @@ import { InfoPopover } from "@/components/ui/InfoPopover";
 import { ICON } from "@/components/ui/icons";
 import { Journey } from "@/components/ui/Journey";
 import { StatusGlyph } from "@/components/ui/StatusGlyph";
-import { usePhone } from "./usePhone";
+import { usePhone } from "@/hooks/usePhone";
 import { usePhoneCampaignWords } from "./phoneWords";
 import { useCampaignWords } from "./words";
 
