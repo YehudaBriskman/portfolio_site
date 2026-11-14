@@ -109,6 +109,9 @@ export default function ToastHost() {
 
   useEffect(() => {
     toast.hostMounted(true);
+    /* Sonner keeps its list as module state and replays it to a new Toaster: drop what the service no longer holds. */
+    const ids = new Set(toast.live().map((r) => r.id));
+    for (const t of sonner.getToasts()) if (!ids.has(String(t.id))) sonner.dismiss(t.id);
     return () => toast.hostMounted(false);
   }, []);
 
@@ -168,11 +171,20 @@ export default function ToastHost() {
   const a = toast.announcement();
   const pad = a.n % 2 ? "​" : "";
   const node = (
-    <div ref={host} popover={hasPopover ? "manual" : undefined} className={styles.host} data-toast-host="">
-      <div className={styles.live} role="status" aria-live="polite" aria-atomic="true">
+    <div
+      ref={host}
+      popover={hasPopover ? "manual" : undefined}
+      className={styles.host}
+      data-toast-host=""
+      onPointerEnter={() => toast.hold(true)}
+      onPointerLeave={() => toast.hold(false)}
+      onFocus={() => toast.hold(true)}
+      onBlur={() => toast.hold(false)}
+    >
+      <div className={styles.live} aria-live="polite" aria-atomic="true" role={a.status ? "status" : undefined}>
         {a.status && a.status + pad}
       </div>
-      <div className={styles.live} role="alert" aria-atomic="true">
+      <div className={styles.live} aria-live="assertive" aria-atomic="true" role={a.alert ? "alert" : undefined}>
         {a.alert && a.alert + pad}
       </div>
       <Sonner

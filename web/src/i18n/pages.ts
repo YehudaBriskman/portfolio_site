@@ -93,8 +93,8 @@ export const useContactWords = defineWords(
       /* `details` carries `{email}`, which the form turns into a left-to-right mailto link. */
       rate: {
         title: "Message not sent, too many tries",
-        short: "Please wait a few minutes, then try again.",
-        details: "Too many messages came from this connection in a short time, so the site paused them for a while. Wait a few minutes and press Send again. Your message is still in the fields. You can also write to {email}.",
+        short: "Too many messages were sent just now. Please wait a few minutes, then try again.",
+        details: "The site is getting a lot of messages right now, so it paused new ones for a while. Wait a few minutes and press Send again. Your message is still in the fields. You can also write to {email}.",
       },
       large: {
         title: "Message not sent, too long",
@@ -117,6 +117,8 @@ export const useContactWords = defineWords(
       emailEmpty: "Add your email address, so I can reply",
       email: "That email address doesn't look right. It should look like name@example.com",
       message: "Tell me a little more, at least a sentence",
+      /* {over} characters past the limit, {max} the limit. */
+      messageLong: "{over} characters too long. Please keep the message to {max} characters.",
     },
   },
   {
@@ -139,8 +141,8 @@ export const useContactWords = defineWords(
     failed: {
       rate: {
         title: "ההודעה לא נשלחה, יותר מדי ניסיונות",
-        short: "המתינו כמה דקות ונסו שוב.",
-        details: "מהחיבור הזה נשלחו יותר מדי הודעות בזמן קצר, ולכן האתר עצר אותן לזמן מה. המתינו כמה דקות ולחצו שוב על השליחה. ההודעה עדיין בשדות. אפשר גם לכתוב אל {email}.",
+        short: "נשלחו יותר מדי הודעות ברגע זה. המתינו כמה דקות ונסו שוב.",
+        details: "האתר מקבל כרגע הרבה הודעות, ולכן עצר הודעות חדשות לזמן מה. המתינו כמה דקות ולחצו שוב על השליחה. ההודעה עדיין בשדות. אפשר גם לכתוב אל {email}.",
       },
       large: {
         title: "ההודעה לא נשלחה, היא ארוכה מדי",
@@ -163,6 +165,7 @@ export const useContactWords = defineWords(
       emailEmpty: "יש להזין כתובת אימייל, כדי שאוכל לענות",
       email: "כתובת האימייל לא נראית תקינה. לדוגמה: name@example.com",
       message: "כתבו קצת יותר, לפחות משפט אחד",
+      messageLong: "ההודעה ארוכה מדי ב-{over} תווים. אפשר עד {max} תווים.",
     },
   },
 );

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ContactError, sendContactMessage } from "@/services/contact";
+import { ContactError, ContactSchema, MESSAGE_MAX, NAME_MAX, sendContactMessage } from "@/services/contact";
 
 const fetchMock = vi.fn();
 afterEach(() => {
@@ -46,5 +46,21 @@ describe("sendContactMessage failures", () => {
     fetchMock.mockResolvedValue(new Response(JSON.stringify({ ok: true }), { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);
     await expect(sendContactMessage(good)).resolves.toBe(true);
+  });
+});
+
+describe("message length", () => {
+  it("refuses a message over MESSAGE_MAX before any request", () => {
+    expect(ContactSchema.safeParse({ ...good, message: "x".repeat(MESSAGE_MAX) }).success).toBe(true);
+    expect(ContactSchema.safeParse({ ...good, message: "x".repeat(MESSAGE_MAX + 1) }).success).toBe(false);
+  });
+
+  it("the longest allowed name, email and message still fit the server's 10,000 character body", async () => {
+    fetchMock.mockResolvedValue(new Response("{}", { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const email = `${"a".repeat(64)}@${"b".repeat(185)}.com`;
+    await sendContactMessage({ name: "n".repeat(NAME_MAX), email, message: "x".repeat(MESSAGE_MAX) });
+    const sent = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(sent.template.params.body.length).toBeLessThanOrEqual(10_000);
   });
 });

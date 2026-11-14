@@ -55,6 +55,7 @@ const EN = {
   /* Code */
   copyCode: "Copy the code",
   codeCopied: "Code copied",
+  codeCopyFailed: "Couldn’t copy the code",
   codeIn: (lang: string) => `Code, ${lang}`,
   plain: "text",
   table: "Table, scrolls sideways",
@@ -122,6 +123,7 @@ const HE: ReaderWords = {
   viewerHint: "החצים עוברים בין תמונות, + ו־− מגדילים ומקטינים, גרירה מזיזה, Escape סוגר.",
   copyCode: "העתקת הקוד",
   codeCopied: "הקוד הועתק",
+  codeCopyFailed: "העתקת הקוד נכשלה",
   codeIn: (lang) => `קוד, ${lang}`,
   plain: "טקסט",
   table: "טבלה, נגללת הצידה",

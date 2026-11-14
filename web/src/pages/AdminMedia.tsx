@@ -1,4 +1,5 @@
 import Select from "@/components/ui/Select";
+import { toast } from "@/lib/toast";
 import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { BottomSheet } from "@/components/ui/BottomSheet";
@@ -64,7 +65,6 @@ export default function AdminMedia() {
   const p = useMediaPhoneWords();
   const [sheetId, setSheetId] = useState<string | null>(null);
   const openId = phone ? sheetId : params.get("id");
-  const [notice, setNotice] = useState("");
 
   useEffect(() => {
     media
@@ -136,7 +136,7 @@ export default function AdminMedia() {
           kinds={kind ? [kind, ...MEDIA_KINDS.filter((k) => k !== kind)] : MEDIA_KINDS}
           onUploaded={(item) => {
             setItems((list) => [item, ...(list ?? [])]);
-            setNotice(phone ? p.uploaded(item.name) : `Uploaded ${item.name}.`);
+            toast.success(phone ? p.uploaded(item.name) : `Uploaded ${item.name}.`);
             openItem(item.id);
           }}
         />
@@ -159,7 +159,7 @@ export default function AdminMedia() {
       )}
 
       <p className="sr-only" role="status">
-        {notice || (items === null ? (phone ? p.loading : "Loading the library") : phone ? p.count(shown.length, items.length) : `${shown.length} of ${items.length} items`)}
+        {(items === null ? (phone ? p.loading : "Loading the library") : phone ? p.count(shown.length, items.length) : `${shown.length} of ${items.length} items`)}
       </p>
 
       {error && <div className={phone ? "mt-4" : "mt-8"}><ErrorState message={error} /></div>}
@@ -222,11 +222,11 @@ export default function AdminMedia() {
               phone
               onSaved={(next, words) => {
                 replaceItem(next);
-                setNotice(words);
+                toast.success(words);
               }}
               onDeleted={(gone) => {
                 setItems((list) => (list ?? []).filter((m) => m.id !== gone.id));
-                setNotice(p.deleted(gone.name));
+                toast.success(p.deleted(gone.name));
                 setSheetId(null);
               }}
             />
@@ -240,11 +240,11 @@ export default function AdminMedia() {
               item={open}
               onSaved={(next, words) => {
                 replaceItem(next);
-                setNotice(words);
+                toast.success(words);
               }}
               onDeleted={(gone) => {
                 setItems((list) => (list ?? []).filter((m) => m.id !== gone.id));
-                setNotice(`Deleted ${gone.name}.`);
+                toast.success(`Deleted ${gone.name}.`);
                 setParam("id", null);
               }}
             />
@@ -405,7 +405,7 @@ function MediaDetail({
         type="button"
         className="a-btn mt-3"
         onClick={() => {
-          void navigator.clipboard?.writeText(item.url).then(() => setCopied(true));
+          void navigator.clipboard?.writeText(item.url).then(() => { setCopied(true); toast.success(t.copied); });
         }}
       >
         {copied ? t.copied : t.copyUrl}

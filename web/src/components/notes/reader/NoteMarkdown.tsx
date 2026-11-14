@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { toast } from "@/lib/toast";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Check, Copy, Expand } from "lucide-react";
@@ -164,14 +165,14 @@ function CodeFrame({ lang, children, pre }: { lang: string; children: ReactNode;
           title={w.copyCode}
           onClick={async () => {
             const text = box.current?.querySelector("pre")?.textContent ?? "";
-            setCopied(await copyText(text));
+            const ok = await copyText(text);
+            setCopied(ok);
+            if (ok) toast.success(w.codeCopied);
+            else toast.error(w.codeCopyFailed, { help: { topic: "sharing" } });
           }}
         >
           {copied ? <Check size={15} aria-hidden="true" /> : <Copy size={15} aria-hidden="true" />}
         </button>
-        <span className="sr-only" role="status">
-          {copied ? w.codeCopied : ""}
-        </span>
       </div>
       {pre === false ? children : <CodePre>{children}</CodePre>}
     </div>

@@ -2,7 +2,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import Contact from "@/components/Contact";
-import { ContactError, ContactSchema, sendContactMessage } from "@/services/contact";
+import { ContactError, ContactSchema, MESSAGE_MAX, sendContactMessage } from "@/services/contact";
 import ToastHost from "@/components/ui/ToastHost";
 import { toast, __resetToasts } from "@/lib/toast";
 import { toast as sonnerToast } from "sonner";
@@ -518,4 +518,59 @@ describe("Contact", () => {
     expect(labelledBy).toBeTruthy();
     expect(document.getElementById(labelledBy ?? "")).toHaveTextContent("Write a message");
   });
+
+  describe("a message that is too long", () => {
+    it("is told so under the message field, before sending: focus there, role=alert, nothing sent", async () => {
+      renderWithHost();
+      await userEvent.click(trigger());
+      await userEvent.type(screen.getByLabelText("Name"), "Dana Levi");
+      await userEvent.type(screen.getByLabelText("Email"), "dana@example.com");
+      const box = screen.getByLabelText("Message");
+      fireEvent.change(box, { target: { value: "x".repeat(MESSAGE_MAX + 25) } });
+      await userEvent.click(screen.getByRole("button", { name: /send message/i }));
+
+      expect(send).not.toHaveBeenCalled();
+      const note = await screen.findByText(/25 characters too long/i);
+      expect(note).toHaveAttribute("role", "alert");
+      expect(note.textContent).toMatch(/9,000/);
+      expect(box).toHaveAttribute("aria-invalid", "true");
+      expect(box).toHaveAttribute("aria-describedby", note.id);
+      expect(box).toHaveFocus();
+      /* It is not the generic failure. */
+      expect(screen.queryByText(/something went wrong/i)).toBeNull();
+      expect(toaster()).toBeNull();
+    });
+
+    it("in Hebrew, with no English", async () => {
+      document.documentElement.lang = "he";
+      document.documentElement.dir = "rtl";
+      try {
+        renderWithHost();
+        await userEvent.click(screen.getByRole("button", { name: /כתיבת הודעה/ }));
+        await userEvent.type(screen.getByLabelText("שם"), "דנה לוי");
+        await userEvent.type(screen.getByLabelText("אימייל"), "dana@example.com");
+        fireEvent.change(screen.getByLabelText("הודעה"), { target: { value: "x".repeat(MESSAGE_MAX + 25) } });
+        await userEvent.click(screen.getByRole("button", { name: /שליחת ההודעה/ }));
+        const note = await screen.findByText(/ארוכה מדי ב/);
+        expect(note.textContent).not.toMatch(/[A-Za-z]/);
+      } finally {
+        document.documentElement.removeAttribute("lang");
+        document.documentElement.removeAttribute("dir");
+      }
+    });
+  });
+
+  it("the too-many-tries text does not say which limit was hit", async () => {
+    send.mockRejectedValue(new ContactError("rate"));
+    renderWithHost();
+    await userEvent.click(trigger());
+    await fillIn();
+    await userEvent.click(screen.getByRole("button", { name: /send message/i }));
+    await toastAlert();
+    await userEvent.click(within(toaster()!).getByRole("button", { name: /^details$/i }));
+    const details = await screen.findByText(/still in the fields/i);
+    expect(details.textContent).not.toMatch(/connection/i);
+    expect(toaster()).not.toHaveTextContent(/connection/i);
+  });
+
 });

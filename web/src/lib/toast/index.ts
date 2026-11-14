@@ -87,6 +87,7 @@ let unread = 0;
 let version = 0;
 let seq = 0;
 let hosts = 0;
+let expected = false;
 let announced: { status: string; alert: string; n: number } = { status: "", alert: "", n: 0 };
 const listeners = new Set<() => void>();
 
@@ -145,31 +146,75 @@ const options = new Map<string, ToastOptions>();
 
 /* ------------------------------------------------------------- undo --- */
 
+/** The shortest Undo window, in ms (admin design guide, section 2). */
+export const UNDO_MIN_MS = 8000;
+
+/*
+ * The service, not sonner, owns the Undo clock: an irreversible action must be
+ * committed exactly once, on time, whether or not the renderer's timer ever
+ * runs. The clock pauses while the stack is hovered or focused (WCAG 2.2.1,
+ * reported by the host through `hold`) and while the tab is hidden.
+ */
 interface Job {
   commit: () => void | Promise<void>;
   onUndo?: () => void;
   settled: boolean;
+  left: number;
+  since: number;
+  timer: ReturnType<typeof setTimeout> | null;
 }
 const jobs = new Map<string, Job>();
+let held = false;
+
+function stop(j: Job) {
+  if (j.timer === null) return;
+  clearTimeout(j.timer);
+  j.timer = null;
+  j.left -= Date.now() - j.since;
+}
+
+function go(id: string, j: Job) {
+  const hidden = typeof document !== "undefined" && document.visibilityState === "hidden";
+  if (j.timer !== null || j.settled || held || hidden) return;
+  j.since = Date.now();
+  j.timer = setTimeout(() => {
+    j.timer = null;
+    settle(id, false);
+    remove(id);
+  }, Math.max(0, j.left));
+}
 
 function settle(id: string, undone: boolean) {
   const j = jobs.get(id);
   if (!j || j.settled) return;
   j.settled = true;
+  if (j.timer !== null) clearTimeout(j.timer);
+  j.timer = null;
   jobs.delete(id);
   if (undone) j.onUndo?.();
   else void j.commit();
 }
 
 function flushJobs() {
-  for (const id of [...jobs.keys()]) settle(id, false);
+  for (const id of [...jobs.keys()]) {
+    settle(id, false);
+    remove(id);
+  }
 }
 
-let pagehideBound = false;
-function bindPagehide() {
-  if (pagehideBound || typeof window === "undefined") return;
-  pagehideBound = true;
+function reclock() {
+  for (const [id, j] of jobs) {
+    if (held || document.visibilityState === "hidden") stop(j);
+    else go(id, j);
+  }
+}
+
+let bound = false;
+function bindGlobals() {
+  if (bound || typeof window === "undefined") return;
+  bound = true;
   window.addEventListener("pagehide", flushJobs);
+  document.addEventListener("visibilitychange", reclock);
 }
 
 function currentLang(): "en" | "he" {
@@ -218,18 +263,20 @@ export const toast = {
    * or a newer job replacing it). With no host mounted nothing could show the
    * Undo, so it commits at once rather than being lost.
    */
-  undoable(job: { title: string; commit: () => void | Promise<void>; onUndo?: () => void; duration?: number; undoLabel?: string }): string {
+  undoable(job: { title: string; commit: () => void | Promise<void>; onUndo?: () => void; duration?: number; undoLabel?: string; id?: string }): string {
     flushJobs();
-    if (hosts === 0) {
+    if (hosts === 0 && !expected) {
       void job.commit();
       return "";
     }
-    bindPagehide();
-    const id = `u${(seq += 1)}`;
-    jobs.set(id, { commit: job.commit, onUndo: job.onUndo, settled: false });
+    bindGlobals();
+    const id = job.id ?? `u${(seq += 1)}`;
+    const j: Job = { commit: job.commit, onUndo: job.onUndo, settled: false, left: Math.max(job.duration ?? UNDO_MIN_MS, UNDO_MIN_MS), since: 0, timer: null };
+    jobs.set(id, j);
+    /* No renderer timer: the clock above decides when the toast goes. */
     raise("info", job.title, {
       id,
-      duration: Math.max(job.duration ?? toastDurations.undo, toastDurations.undo),
+      persistent: true,
       action: {
         label: job.undoLabel ?? useToastWords.of(currentLang()).undo,
         onClick: () => {
@@ -238,7 +285,20 @@ export const toast = {
         },
       },
     });
+    go(id, j);
     return id;
+  },
+
+  /** The host reports the stack is hovered or focused: Undo clocks wait. */
+  hold(on: boolean) {
+    if (held === on) return;
+    held = on;
+    reclock();
+  },
+
+  /** The admin says a host is on its way (lazy chunk), so an Undo may wait for it. */
+  expectHost(on: boolean) {
+    expected = on;
   },
 
   /** Closes a toast (and commits a pending Undo job: dismissing is not Undo). */
@@ -298,7 +358,10 @@ export const toast = {
 
 /** For tests: forget everything. */
 export function __resetToasts() {
+  for (const j of jobs.values()) if (j.timer !== null) clearTimeout(j.timer);
   jobs.clear();
+  held = false;
+  expected = false;
   options.clear();
   seq = 0;
   records = [];
