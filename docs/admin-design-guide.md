@@ -211,6 +211,22 @@ Status: **exists** = on `main` today. **planned** = an open issue; do not copy a
 
 Also on main, outside `ui/`: `usePhone()` (`@/hooks/usePhone`; true under 600px, the one breakpoint a phone screen switches its layout on, so a phone never mounts the desktop list), the Posts and Areas phone screens (`components/admin/posts/`: a row opens the editor; bulk is Move to drafts and Archive, both behind an Undo toast, and never Publish, which is decided in the review one note at a time; `ReviewDialog` is a sheet below 600px: what changes, the diff, then closed Disclosures), the Inbox's phone screen as the worked example of a migrated list (`announce/inbox/InboxPhoneRow.tsx` rows, `InboxSheet.tsx` for the Composer in a `BottomSheet`; an **Undo** inside a modal sheet is drawn in the sheet, because a toast outside a top-layer `<dialog>` is inert while it is open), the Media library's phone screen as the worked example of a **grid** (`MediaPhone.tsx`: square tiles, one button each, named by alt text and state; `AdminMedia.tsx` `MediaDetail` draws the item sheet with the alt text first, where it is used second and the facts in a closed `Disclosure`; bulk delete lists unused items only and goes through an Undo toast), the admin shell and `.a-*` classes (`@/components/admin/AdminShell`), `StatusPill` and `TranslationPill` (`@/components/admin/StatusPill`, `.../TranslationPill`; being replaced by `StatusGlyph`), the native-`<dialog>` modals (`@/components/admin/MediaGrid` `Modal`, `announce/audience/Modal`, the popup system in `styles/popup.css`; see `docs/motion-contract.md` section 9).
 
+#### Control kit (#794)
+
+Icon controls come from one kit in `components/ui/`; do not add another `.a-btn`-style icon button. The kit owns no words: every label, menu item and group name is a prop from the caller. Heights are tokens in `index.css`: `--ctl-h-sm/md/lg` (28 / 36 / 44; a coarse pointer lifts every size to 44), `--ctl-gap`, `--ctl-icon-*` (16 / 20 / 24), `--ctl-radius`, `--dock-*`.
+
+| Component | Import | Use it for | Do not use it for |
+|---|---|---|---|
+| `IconButton` | `@/components/ui/IconButton` | any icon control. `label` is required by the type: it is the `aria-label` and the tooltip. `showLabel` `never` (default) / `from-md` / `always`; `tone` neutral / primary / danger (one primary per surface); `size` sm / md / lg; `pressed` makes it a toggle | an icon with no name; a tooltip as the only cue for an unclear icon (draw the word: two similar icons, the bar's one primary action, Edit, Publish) |
+| `ControlBar` | `@/components/ui/ControlBar` | a toolbar of `IconButton`s: `items` with `priority`, `max` drawn, the rest in a "More" `dropdown-menu` (lowest priority first, original order kept, ties keep the earlier); `label` and `moreLabel` are required | more than one prominent action |
+| `CreateMenu` | `@/components/ui/CreateMenu` | the "+" that opens a menu of what can be made (primary tone) | a single create action (use `IconButton`) |
+| `SegmentedControl` | `@/components/ui/SegmentedControl` | a short either/or (sort, view): radio group, arrows mirror in RTL | more than ~4 options (use `Select`) |
+| `Chip`, `ChipRow` | `@/components/ui/Chip` | a toggle chip (`aria-pressed`, drawn mark) or a static fact, optional tabular `count`; `ChipRow` is a named group, `scroll` for one line | filter sets with a sheet (`FilterChips`) |
+| `Dock` | `@/components/ui/Dock` | a floating opaque pill (raised surface, hairline, one shadow) above the safe area | a full-width bar |
+| `StatChip` | `@/components/ui/StatChip` | glyph + number, the word sr-only | a number that needs its label drawn |
+
+Guard: `controlKit.test.tsx` fails on an `<IconButton>` without `label`. Existing screens migrate in later PRs.
+
 ### 3.2 Planned (phone series)
 
 | Component | Issue | Import (planned) | Use it for | Rule of thumb |

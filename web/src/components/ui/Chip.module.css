@@ -1,0 +1,89 @@
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ctl-gap);
+  min-inline-size: 0;
+}
+
+.row[data-scroll] {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.chip {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 0.375rem;
+  box-sizing: border-box;
+  min-block-size: var(--ctl-h-sm);
+  max-inline-size: 100%;
+  padding-inline: 0.75rem;
+  border: 1px solid var(--a-line-ctl, rgb(var(--rule-firm)));
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: rgb(var(--ink));
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* The button chip is the target: drawn at its own height, hit at 44px on a phone. */
+.button {
+  position: relative;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+@media (pointer: coarse) {
+  .button::after {
+    content: '';
+    position: absolute;
+    inset-block: calc((var(--ctl-h-lg) - var(--ctl-h-sm)) / -2);
+    inset-inline: 0;
+  }
+}
+
+.button[aria-pressed='true'],
+.chip[data-selected] {
+  border-color: rgb(var(--ink));
+  background: rgb(var(--ink) / 0.1);
+}
+
+/* A mark, so selection is never colour alone. */
+.button[aria-pressed='true']::before {
+  content: '';
+  inline-size: 0.5rem;
+  block-size: 0.5rem;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.button:focus-visible {
+  outline: 2px solid rgb(var(--signal));
+  outline-offset: 2px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .button[aria-pressed='false']:hover {
+    background: var(--a-hover, rgb(var(--ink) / 0.05));
+  }
+}
+
+.lead {
+  display: inline-flex;
+}
+
+.text {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.count {
+  font-variant-numeric: tabular-nums;
+  color: rgb(var(--ink-soft));
+}

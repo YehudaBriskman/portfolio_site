@@ -108,6 +108,10 @@ For each component: the phone rule that applies, the he/en note, and what guards
 | **Sign-up card** (`components/SignupBlock.tsx`, `data-ph-card`) | The whole block is one card: fields in 16px inputs, the two topics as one recessed pair of 48px rows, the consent sentence unchanged under them, one full-width 48px primary pill. Honeypot stays out of the way (`data-ph-trap`). | Email stays `dir="ltr"`; consent wraps in both languages. | `phone-pages.mjs info` (Follow, with the short keyboard viewport) |
 | **Route-change focus** (`components/RouteAnnouncer.tsx`, `lib/scrollToAnchor.ts`, `lib/inputModality.ts`) | Focus moves to the page heading for screen readers; no ring after a tap (R21), a 2px+ ring after a key. | Same in he and en. | `a11y:public-focus`, `inputModality` tests |
 
+### 3.1 Control kit (#794)
+
+Public phone screens take their icon controls from `components/ui/` (`IconButton`, `ControlBar`, `CreateMenu`, `SegmentedControl`, `Chip`/`ChipRow`, `Dock`, `StatChip`), not from a per-page button class. The kit has no strings: pass the words in, in he and en. Rules it carries: every icon control has a required `label` (name and tooltip), and the word is drawn only to tell two similar icons apart, on a bar's one primary action, or for a non-universal icon (Edit, Publish), never hover-only on touch; targets are 44px under a coarse pointer (`--ctl-h-lg`); logical properties only, so it mirrors in Hebrew; numbers use `tabular-nums`; the focus ring is the 2px signal outline. `Dock` is the floating pill (opaque, hairline, shadow, `env(safe-area-inset-bottom)` plus `--dock-inset`); the page adds bottom padding for it. `StatChip` is glyph + number with the word screen-reader only. Existing screens move over in later PRs.
+
 ## 4. Real-device checklist
 
 The headless browser in CI has no real browser chrome, no notch, no keyboard and no rubber-banding, so a person checks these. Run it at the end of the touch-target PR, the reader PR and the states PR: about 10 minutes on the owner's own phone, plus one in-app browser.
