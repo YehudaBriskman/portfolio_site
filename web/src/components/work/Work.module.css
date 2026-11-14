@@ -20,11 +20,11 @@
 
 .title {
   margin: 0;
-  font-family: var(--font-display);
+  font-family: var(--font-ui);
   font-size: clamp(1.5rem, 4vw, 2rem);
-  font-weight: var(--weight-display);
+  font-weight: var(--weight-ui);
   line-height: 1.15;
-  letter-spacing: var(--track-sub);
+  letter-spacing: var(--track-ui);
   color: rgb(var(--ink));
   text-wrap: balance;
 }
