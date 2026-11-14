@@ -102,11 +102,14 @@ const keyboard = async (page, tag, vh) => {
   const h0 = page.viewportSize().height;
   await page.setViewportSize({ width: page.viewportSize().width, height: vh });
   await page.waitForTimeout(150);
-  const handles = await page.$$("main input:not([type=hidden]):not([type=checkbox]):not([data-ph-trap] input), main textarea");
+  const handles = await page.$$("main input:not([type=hidden]):not([type=checkbox]):not([data-ph-trap] input):not([name=website]), main textarea");
   for (const h of handles) {
     if (!(await h.isVisible())) continue;
+    /* behind an open modal dialog the page is inert: not a field the person can use */
+    if (await h.evaluate((e) => { const d = document.querySelector("dialog[open]"); return !!d && !d.contains(e); })) continue;
     await h.focus();
-    await h.evaluate((e) => e.scrollIntoView({ block: "center" }));
+    await h.evaluate((e) => e.scrollIntoView({ block: "center", behavior: "instant" }));
+    await page.waitForTimeout(250);
     const r = await h.evaluate((e) => {
       const b = e.getBoundingClientRect();
       const top = document.elementFromPoint(b.left + b.width / 2, Math.min(Math.max(b.top + b.height / 2, 0), innerHeight - 1));

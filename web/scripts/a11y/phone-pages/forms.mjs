@@ -46,7 +46,7 @@ export const pages = [
     cards: 1,
     keyboard: true,
     before: async (page) => {
-      await page.locator("#contact").scrollIntoViewIfNeeded();
+      await page.evaluate(() => document.querySelector("#contact").scrollIntoView());
       await page.locator("[data-ph-ask] [data-ph-primary]").click({ force: true });
       await page.waitForTimeout(600);
     },
