@@ -2448,6 +2448,14 @@
       transform: translateX(-50%);
       max-width: none;
     }
+    /* Right to left starts the box at the right edge: the same trick, mirrored.
+       Without it the cover and every figure sat half a screen off to the left
+       and only a sliver showed. */
+    :dir(rtl) img.bleed {
+      margin-left: 0;
+      margin-right: 50%;
+      transform: translateX(50%);
+    }
   }
 
   /*

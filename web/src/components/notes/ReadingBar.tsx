@@ -1,5 +1,7 @@
 import { useEffect, useId, useRef, useState, type RefObject } from "react";
-import { ListTree, Minus, Plus, Type } from "lucide-react";
+import { Link } from "react-router-dom";
+import { ListTree, Minus, Pencil, Plus, Type } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import ShareMenu from "@/components/share/ShareMenu";
 import type { ShareEntity } from "@/lib/share";
 import { useReaderWords } from "@/components/notes/reader/words";
@@ -44,7 +46,16 @@ export default function ReadingBar({
   onContents,
   prefs,
   setPrefs,
+  editTo,
+  editLabel,
+  editWord,
 }: {
+  /** The signed-in admin's way into the editor: a fourth control. Absent for a visitor, who sees today's three. */
+  editTo?: string;
+  /** Its accessible name ("Edit this note"). */
+  editLabel?: string;
+  /** The word drawn under the pencil ("Edit"): the icon alone is not universal. */
+  editWord?: string;
   /** The reading preferences the bar's text-size control changes (the same store the sheet uses). */
   prefs?: ReadingPrefs;
   setPrefs?: (p: Partial<ReadingPrefs>) => void;
@@ -234,7 +245,7 @@ export default function ReadingBar({
             </span>
           </div>
         )}
-        <div className={styles.barPill}>
+        <div className={styles.barPill} data-cols={editTo ? 4 : 3}>
           <div
             ref={fillRef}
             aria-hidden="true"
@@ -267,6 +278,12 @@ export default function ReadingBar({
             </button>
           )}
           <ShareMenu kind="post" entity={entity} variant="text" className={styles.barBtn} />
+          {editTo && (
+            <Link to={editTo} className={styles.barBtn} data-phone="reader-edit" aria-label={editLabel ?? editWord}>
+              <Icon icon={Pencil} size={20} />
+              <span>{editWord}</span>
+            </Link>
+          )}
         </div>
       </div>
     </>
