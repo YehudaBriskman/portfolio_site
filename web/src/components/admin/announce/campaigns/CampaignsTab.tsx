@@ -6,6 +6,8 @@ import { adminAnnounce, type AnnounceSummary, type SenderSettings } from "@/serv
 import { adminAudience, type Group } from "@/services/adminAudience";
 import { adminCampaigns, type Campaign } from "@/services/adminCampaigns";
 import CampaignEditor from "./CampaignEditor";
+import CampaignsPhone from "./CampaignsPhone";
+import { usePhone } from "./usePhone";
 import SendingSwitch from "./SendingSwitch";
 import { pillState } from "./status";
 import { useCampaignWords } from "./words";
@@ -20,6 +22,7 @@ const LIST_POLL_MS = 10000;
  */
 export default function CampaignsTab() {
   const w = useCampaignWords();
+  const phone = usePhone();
   const [items, setItems] = useState<Campaign[] | null>(null);
   const [error, setError] = useState<"load" | "auth" | null>(null);
   const [open, setOpen] = useState<string | null>(null);
@@ -65,7 +68,7 @@ export default function CampaignsTab() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="display-tight text-xl">{w.heading}</h2>
-          <p className="a-hint">{w.intro}</p>
+          {!phone && <p className="a-hint">{w.intro}</p>}
         </div>
         <button type="button" className="a-btn a-btn-primary min-h-[44px]" onClick={() => setOpen("new")}>{w.newCampaign}</button>
       </div>
@@ -86,6 +89,8 @@ export default function CampaignsTab() {
         <LoadingRows label={w.loading} />
       ) : items.length === 0 ? (
         <EmptyState title={w.empty} />
+      ) : phone ? (
+        <CampaignsPhone items={items} sender={sender} groups={groups} onOpen={setOpen} onChanged={changed} />
       ) : (
         <div>
           <p className="a-hint !mt-0 mb-2 tabular-nums" role="status">{w.count(items.length)}</p>

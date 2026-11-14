@@ -122,8 +122,8 @@ describe("Campaigns on a phone: the list", () => {
     const words: Record<string, string> = { draft: "Draft", scheduled: "Scheduled", sending: "Sending", sent: "Sent", failed: "Failed", canceled: "Canceled", paused: "Paused" };
     for (const s of CAMPAIGN_STATUSES) {
       const row = screen.getByRole("button", { name: `Open Is ${s}` });
-      expect(row.getAttribute("aria-describedby")).toBeTruthy();
-      expect(document.getElementById(row.getAttribute("aria-describedby")!)?.textContent).toContain(words[s]);
+      const desc = document.getElementById(row.getAttribute("aria-describedby")!);
+      expect(desc?.querySelector(`[role="img"][aria-label="${words[s]}"]`)).toBeTruthy();
     }
   });
 
