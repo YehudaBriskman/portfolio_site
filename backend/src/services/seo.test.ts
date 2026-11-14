@@ -98,7 +98,7 @@ describe("buildSitemap", () => {
 
   it("lists every static page, and every published collection as an area (#308)", () => {
     const xml = buildSitemap([], [collection({ slug: "windom", title: "WindoM" })]);
-    for (const p of ["/story", "/accessibility", "/privacy", "/blog/log", "/developers/mcp", "/blog/area/windom"]) {
+    for (const p of ["/story", "/accessibility", "/privacy", "/help", "/blog/log", "/developers/mcp", "/blog/area/windom"]) {
       expect(xml).toContain(`<loc>https://yehudabriskman.com${p}</loc>`);
       expect(xml).toContain(`<loc>https://yehudabriskman.com/he${p}</loc>`);
     }

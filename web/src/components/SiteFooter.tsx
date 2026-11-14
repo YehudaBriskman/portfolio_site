@@ -174,6 +174,12 @@ export default function SiteFooter() {
             >
               {w.privacy}
             </Link>
+            <Link
+              to="/help"
+              className="-my-3 inline-flex min-h-11 items-center py-3 text-clay transition-colors hover:text-ink focus-visible:text-ink"
+            >
+              {w.help}
+            </Link>
             {/*
              * Quiet, and now actually legible.
              *
