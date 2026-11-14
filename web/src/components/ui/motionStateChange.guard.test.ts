@@ -122,6 +122,7 @@ const PHONE_FILES = [
   "components/ui/SettingsList.module.css",
   "components/ui/Presence.module.css",
   "components/ui/ListPresence.module.css",
+  "components/ui/SkeletonSwap.module.css",
   "components/ui/SelectionBar.module.css",
 ];
 
