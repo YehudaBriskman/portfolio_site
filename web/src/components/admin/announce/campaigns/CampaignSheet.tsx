@@ -2,7 +2,6 @@ import { useState } from "react";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { LifecycleStepper, type LifecycleBranch, type LifecycleStep } from "@/components/ui/Journey";
 import { MiniBar } from "@/components/ui/MiniBar";
-import { StatusGlyph } from "@/components/ui/StatusGlyph";
 import { useLang, INTL } from "@/components/dashboard/i18n";
 import { numberIn } from "@/i18n/words";
 import { hasTextProblem, identityMissing } from "../sender/defaults";
@@ -214,8 +213,6 @@ export default function CampaignSheet({
       {c && lc && confirm === "resume" && <p className={styles.body} data-testid="sheet-confirm">{w.resumeBody}</p>}
       {c && lc && !confirm && (
         <div className={styles.body} data-testid="campaign-sheet">
-          <StatusGlyph kind={c.status} withWord />
-
           <LifecycleStepper steps={steps} current={lc.current} branch={lc.branch} label={p.stepperLabel} />
 
           {c.status === "paused" && (

@@ -10,10 +10,18 @@
   min-inline-size: 0;
 }
 
+/* Filters and Select share a line; in select mode, when Select grows into three buttons, the chips wrap under it. */
 .toolbar {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
   gap: var(--a-s-2, 0.5rem);
+  min-inline-size: 0;
+}
+
+.chips {
+  flex: 1 1 12rem;
   min-inline-size: 0;
 }
 

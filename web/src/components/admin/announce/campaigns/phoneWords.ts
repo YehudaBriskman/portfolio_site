@@ -13,8 +13,6 @@ export const usePhoneCampaignWords = defineWords(
     stages: { draft: "Drafts", live: "Live", done: "Finished" },
     statusFilter: "Status",
     noMatch: "No campaign matches these filters.",
-    recipients: (n: number) => plural("en", n, { one: "{n} recipient", other: "{n} recipients" }),
-    failedFact: (n: number) => `${n} failed`,
     failedLabel: "Failed",
     progressLabel: "Handled",
 
@@ -54,8 +52,6 @@ export const usePhoneCampaignWords = defineWords(
     stages: { draft: "טיוטות", live: "פעילים", done: "הסתיימו" },
     statusFilter: "מצב",
     noMatch: "אין קמפיין שמתאים לסינון הזה.",
-    recipients: (n: number) => plural("he", n, { one: "נמען {n}", two: "{n} נמענים", other: "{n} נמענים" }),
-    failedFact: (n: number) => `${n} נכשלו`,
     failedLabel: "נכשלו",
     progressLabel: "טופלו",
 

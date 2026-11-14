@@ -79,8 +79,12 @@ export default function CampaignsPhone({
   const selection = useSelection(drafts.map((c) => c.id));
   const rows = selection.on ? drafts : visible;
 
-  const when = (iso: string, time: boolean) =>
-    new Intl.DateTimeFormat(INTL[lang], time ? { dateStyle: "medium", timeStyle: "short" } : { dateStyle: "medium" }).format(new Date(iso));
+  /* A row says "11 Nov"; the year only when it is not this one. The full date and time are in the sheet. */
+  const when = (iso: string, time: boolean) => {
+    const d = new Date(iso);
+    const year = d.getFullYear() !== new Date().getFullYear() ? { year: "numeric" as const } : {};
+    return new Intl.DateTimeFormat(INTL[lang], { day: "numeric", month: "short", ...year, ...(time ? { hour: "2-digit", minute: "2-digit" } : {}) }).format(d);
+  };
   const num = (n: number) => numberIn(lang, n);
 
   const factsOf = (c: Campaign): [Fact?, Fact?] => {
@@ -93,8 +97,8 @@ export default function CampaignsPhone({
     const q = c.counters.queued;
     let second: Fact | undefined;
     if (c.status === "sending" || c.status === "paused") second = { text: `${num(handled(c))}/${num(q)}`, label: p.progressLabel, dir: "ltr" };
-    else if (c.counters.failed > 0 && c.status !== "draft") second = { icon: ICON.failedCount, text: p.failedFact(c.counters.failed), label: p.failedLabel };
-    else if (q > 0 && c.status !== "draft" && c.status !== "scheduled") second = { icon: ICON.to, text: p.recipients(q) };
+    else if (c.counters.failed > 0 && c.status !== "draft") second = { icon: ICON.failedCount, text: num(c.counters.failed), label: p.failedLabel, dir: "ltr" };
+    else if (q > 0 && c.status !== "draft" && c.status !== "scheduled") second = { icon: ICON.to, text: num(q), label: p.toLabel, dir: "ltr" };
     return [first, second];
   };
 
@@ -147,7 +151,9 @@ export default function CampaignsPhone({
   return (
     <div className={styles.wrap} data-testid="campaigns-phone">
       <div className={styles.toolbar}>
-        <FilterChips defs={defs} value={filters} onChange={setFilters} common={["stage"]} onOpenSheet={() => setFiltersOpen(true)} resultCount={visible.length} />
+        <div className={styles.chips}>
+          <FilterChips defs={defs} value={filters} onChange={setFilters} common={["stage"]} onOpenSheet={() => setFiltersOpen(true)} resultCount={visible.length} />
+        </div>
         <SelectionHeader selection={selection} total={drafts.length} />
       </div>
       <FiltersRestoredNote restored={saved.restored} onUndo={saved.undoRestore} onDismiss={saved.dismissRestored} />
