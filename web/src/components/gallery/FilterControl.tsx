@@ -276,7 +276,9 @@ export function FilterTokens({
     const tokens = box.current?.querySelectorAll<HTMLElement>("[data-token]") ?? [];
     const next = tokens[Math.min(i, tokens.length - 1)];
     const scope = box.current?.closest("[data-filter-scope]");
-    (next ?? scope?.querySelector<HTMLElement>("[aria-haspopup]"))?.focus();
+    /* On a phone neither exists: the filters are in the menu (#780), so focus
+       goes to the circle that opens it. */
+    (next ?? scope?.querySelector<HTMLElement>("[aria-haspopup]") ?? document.querySelector<HTMLElement>('button[aria-controls="nav-menu"]'))?.focus({ preventScroll: true });
   });
 
   const tokens = facets.flatMap((f) =>

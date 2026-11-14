@@ -526,3 +526,23 @@ a.listRow:hover .listTitle {
     border-radius: var(--r-sm);
   }
 }
+
+/* #780: on a phone the back chip above the card says "Work", so the crumb in
+   the card would say it twice. It goes, and the name and the pill take its row. */
+@media (max-width: 639px) {
+  .crumb {
+    display: none;
+  }
+  .nameLine > .title {
+    grid-row: 1;
+  }
+  .nameLine > [data-phone-pill] {
+    grid-row: 2;
+  }
+  .nameLine > [data-phone-circle] {
+    grid-row: 1 / span 2;
+  }
+  .nameLine > .share {
+    grid-row: 1 / span 2;
+  }
+}

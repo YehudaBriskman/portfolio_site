@@ -145,8 +145,10 @@ export default function Story() {
     <PageShell>
       <div className={styles.story} data-page="story">
         <header className={`wrap ${styles.open}`}>
-          <p className="eyebrow">{w.eyebrow}</p>
-          <h1 className={`display ${styles.openTitle}`}>{w.title}</h1>
+          <div className="title-pair">
+            <p className="eyebrow">{w.eyebrow}</p>
+            <h1 className={`display ${styles.openTitle}`}>{w.title}</h1>
+          </div>
           <p className={`text-field ${styles.sig}`}>
             <span>
               {story.firstYear}–{story.lastYear}

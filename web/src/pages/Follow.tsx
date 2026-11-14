@@ -9,7 +9,7 @@ export default function Follow() {
   useDocumentTitle(w.followTitle);
   return (
     <PageShell>
-      <section className="wrap section-y">
+      <section className="wrap section-y page-first">
         <h1 className="display mt-3 text-section">{w.followTitle}</h1>
         <p className="mt-6 max-w-[36em] text-[1.0625rem] leading-relaxed text-ink">{w.followIntro}</p>
         <SignupBlock as="h2" className="mt-12" />

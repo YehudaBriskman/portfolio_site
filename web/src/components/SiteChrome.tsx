@@ -4,6 +4,7 @@ import { scrollToAnchor } from "@/lib/scrollToAnchor";
 import Nav from "@/components/Nav";
 import AmbientOrbs from "@/components/ground/AmbientOrbs";
 import { PageCommitContext } from "@/components/nav/pageCommit";
+import LocalBrowseProvider from "@/components/nav/LocalBrowseProvider";
 import { useChromeWords } from "@/i18n/chrome";
 
 /*
@@ -91,8 +92,11 @@ export default function SiteChrome() {
         {w.skip}
       </a>
       <AmbientOrbs />
-      <Nav />
-      <Outlet />
+      {/* The page's own Browse goes into the phone menu (#780). */}
+      <LocalBrowseProvider>
+        <Nav />
+        <Outlet />
+      </LocalBrowseProvider>
     </PageCommitContext.Provider>
   );
 }
