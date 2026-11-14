@@ -165,7 +165,7 @@ describe("the Marketing tab strip", () => {
     viewport(390);
     hub("/admin/marketing?tab=settings");
     expect(screen.queryByRole("tablist")).toBeNull();
-    expect(await screen.findByRole("heading", { level: 2, name: /Announce settings/ })).toBeTruthy();
+    expect((await screen.findByRole("tabpanel")).getAttribute("aria-label")).toBe("Settings");
     expect(within(nav()).getByRole("link", { name: /^Settings/, current: "page" })).toBeTruthy();
   });
 

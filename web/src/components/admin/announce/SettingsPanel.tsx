@@ -1,4 +1,4 @@
-import { useId, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
 import { ErrorState } from "@/components/admin/ui";
 import { Disclosure } from "@/components/ui/Disclosure";
@@ -13,6 +13,8 @@ import SenderSection from "./sender/SenderSection";
 import { useSenderWords } from "./sender/words";
 import { DEFAULT_UTM, same, useSettingsDoc } from "./useSettingsDoc";
 import { useSettingsPanelWords } from "./settingsWords";
+import PhoneSettings, { UTM_TOKEN, isGroupId } from "./SettingsPhone";
+import { usePhone } from "../../../hooks/usePhone";
 import { useAnnounceWords } from "./words";
 
 /*
@@ -24,9 +26,11 @@ import { useAnnounceWords } from "./words";
  * closed, with a filter that searches the settings' labels. A section has its
  * own Reset to defaults and the page its own Discard, so either can be undone
  * before Save. Caption templates and snippets moved to the Library tab.
+ *
+ * Under 600px the same document is shown as a list of groups
+ * (SettingsPhone); this component keeps the state, the validation and the
+ * save bar for both, so the saved document is the same on either.
  */
-
-const UTM_TOKEN = /^[a-z0-9_.-]{1,40}$/;
 
 const everydayOf = (s: AnnounceSettings) => ({ mail: s.email.enabled, notify: s.notify.enabled, channels: s.channels, hashtags: s.hashtags, signature: s.signature });
 const advancedOf = (s: AnnounceSettings) => ({ enabled: s.enabled, events: s.email.events, utm: s.advanced.utm, sender: s.sender, notify: { ...s.notify, enabled: false } });
@@ -37,13 +41,39 @@ export default function SettingsPanel() {
   const snd = useSenderWords();
   const nw = useNotifyWords();
   const uid = useId();
-  const [params] = useSearchParams();
   const doc = useSettingsDoc();
   /* Typed as the person types it; parsed on save, so a trailing comma is not eaten mid-word. */
   const [tags, setTags] = useState<string | null>(null);
   const [filter, setFilter] = useState("");
   const [open, setOpen] = useState(false);
   const [note, setNote] = useState("");
+  const phone = usePhone();
+  const [params, setParams] = useSearchParams();
+  /* Which group is open lives in the address (`?section=`), so the old `section=sender` link still lands on it. */
+  const section = params.get("section");
+  const openId = phone && isGroupId(section) ? section : null;
+  const openGroup = (id: string | null) =>
+    setParams(
+      (p) => {
+        const next = new URLSearchParams(p);
+        if (id) next.set("section", id);
+        else next.delete("section");
+        return next;
+      },
+      { replace: true },
+    );
+  /* A page closes without a sheet to hand focus back, so return it to the row that opened it. */
+  const lastOpen = useRef<string | null>(null);
+  useEffect(() => {
+    if (openId) {
+      lastOpen.current = openId;
+      return;
+    }
+    const id = lastOpen.current;
+    lastOpen.current = null;
+    if (id) document.querySelector<HTMLElement>(`[data-settings-group="${id}"] button`)?.focus();
+  }, [openId]);
+  const [justSaved, setJustSaved] = useState(false);
 
   const { view, draft, status, issues, edit, warnings } = doc;
   if (doc.loadError) return <ErrorState message={w.settingsFailed} onRetry={doc.reload} />;
@@ -69,6 +99,14 @@ export default function SettingsPanel() {
       d.email.enabled = false;
       d.notify.enabled = false;
       d.channels = [...ANNOUNCE_CHANNELS];
+      d.hashtags = [];
+      d.signature = "";
+    });
+    setNote(sw.sectionReset);
+  };
+  const resetWording = () => {
+    setTags(null);
+    change((d) => {
       d.hashtags = [];
       d.signature = "";
     });
@@ -190,6 +228,49 @@ export default function SettingsPanel() {
   const shown = advanced.filter((s) => !q || `${s.label} ${s.words}`.toLowerCase().includes(q));
   const isOpen = open || q !== "" || params.get("section") === "sender";
 
+  const issuesBox =
+    issues.length > 0 ? (
+      <div role="alert">
+        <p className="a-error">{w.invalid}</p>
+        <ul className="list-disc ps-5">
+          {issues.map((i) => (
+            <li key={i.path + i.message} className="a-error mt-0">{i.path ? `${i.path}: ` : ""}{i.message}</li>
+          ))}
+        </ul>
+      </div>
+    ) : null;
+  const saveDisabled = !dirty || status === "saving" || sourceBad || senderBad || tagsBad;
+  const save = () => void doc.save(working).then(() => (setJustSaved(true), void setTimeout(() => setJustSaved(false), 3000)));
+
+  if (phone) {
+    /* The dirty bar: only while there is something to save or say, sticky above the page's own bottom bar. */
+    const showBar = dirty || status === "saving" || bad || justSaved || note !== "";
+    return (
+      <form noValidate onSubmit={(e) => (e.preventDefault(), save())} className="space-y-4" aria-label={w.settingsHeading}>
+        <PhoneSettings
+          working={working}
+          tagText={tagText}
+          onTagText={(v) => (touch(), setTags(v))}
+          change={change}
+          resetWording={resetWording}
+          resetAdvanced={resetAdvanced}
+          warnings={warnings}
+          openId={openId}
+          onOpenChange={openGroup}
+        />
+        {issuesBox}
+        {showBar && (
+          <div className="sticky z-10 -mx-4 flex flex-wrap items-center gap-3 border-t border-[rgb(var(--rule-firm)/0.3)] px-4 pt-3" style={{ insetBlockEnd: "var(--a-bar-h, 0px)", paddingBlockEnd: "calc(var(--a-s-3, .75rem) + env(safe-area-inset-bottom))", background: "rgb(var(--paper))" }} data-testid="settings-bar">
+            <button type="submit" className="a-btn a-btn-primary min-h-[44px]" disabled={saveDisabled}>{w.save}</button>
+            <button type="button" className="a-btn a-btn-ghost min-h-[44px]" disabled={!dirty || status === "saving"} onClick={() => (setTags(null), doc.discard())}>{w.reset}</button>
+            {status === "conflict" && <button type="button" className="a-btn min-h-[44px]" onClick={() => (setTags(null), doc.reload())}>{w.reload}</button>}
+            <span role="status" className={`min-w-0 flex-1 text-sm ${bad ? "font-bold text-[rgb(var(--destructive-ink))]" : "text-clay"}`}>{statusText}</span>
+          </div>
+        )}
+      </form>
+    );
+  }
+
   return (
     <form noValidate onSubmit={(e) => (e.preventDefault(), void doc.save(working))} className="max-w-3xl space-y-8" aria-labelledby={`${uid}-h`}>
       <div>
@@ -254,16 +335,7 @@ export default function SettingsPanel() {
         </div>
       </Disclosure>
 
-      {issues.length > 0 && (
-        <div role="alert">
-          <p className="a-error">{w.invalid}</p>
-          <ul className="list-disc ps-5">
-            {issues.map((i) => (
-              <li key={i.path + i.message} className="a-error mt-0">{i.path ? `${i.path}: ` : ""}{i.message}</li>
-            ))}
-          </ul>
-        </div>
-      )}
+      {issuesBox}
 
       <div className="flex flex-wrap items-center gap-3">
         <button type="submit" className="a-btn a-btn-primary min-h-[44px]" disabled={!dirty || status === "saving" || sourceBad || senderBad || tagsBad}>{w.save}</button>
