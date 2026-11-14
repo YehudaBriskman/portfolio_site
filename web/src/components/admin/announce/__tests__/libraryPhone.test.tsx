@@ -112,7 +112,7 @@ describe("Library on a phone", () => {
   it("lists templates, built-ins and snippets as RecordRows with at most 3 facts and no button inside", async () => {
     render(<LibraryPanel />);
     await row(/Edit Launch/);
-    expect(rows().length).toBe(8 + 8 + 2);
+    expect(rows().length).toBe(8 + 10 + 2); /* templates, 2 languages x 5 channels, snippets */
     for (const r of rows()) {
       expect(r.querySelectorAll(".rr-fact").length).toBeLessThanOrEqual(3);
       expect(r.querySelectorAll("button, input, select, a").length).toBe(0);
@@ -137,9 +137,9 @@ describe("Library on a phone", () => {
     const root = screen.getByTestId("library");
     const first = rows()[0];
     const before = [...root.querySelectorAll<HTMLElement>("button, select, input, textarea, summary")].filter((el) => first.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_PRECEDING);
-    /* the toolbar's chips (5 channels + 2 languages + 4 kinds), New template, and the closed More summary */
-    expect(before.filter((el) => !el.closest('[role="toolbar"]')).length).toBeLessThanOrEqual(2);
-    expect(root.querySelector(".a-hint")).toBeNull();
+    /* the toolbar's chips (5 channels + 2 languages + 4 kinds), then only New template */
+    expect(before.filter((el) => !el.closest('[role="toolbar"]')).length).toBeLessThanOrEqual(1);
+    expect(before.filter((el) => el.closest(".a-hint, details")).length).toBe(0);
     const phoneCss = css("src/components/admin/announce/library/LibraryPhone.module.css");
     expect(phoneCss).not.toMatch(/min-(block-)?height:\s*(?:[7-9]\d|\d{3,})px/);
   });

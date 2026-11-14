@@ -72,3 +72,6 @@ export function settleDefault<T extends { id: string; channel: string; lang: str
   const clash = list.some((i) => i.id !== id && i.default && i.channel === me.channel && i.lang === me.lang);
   return clash ? list.map((i) => (i.id === id ? { ...i, default: undefined } : i)) : list;
 }
+
+/** How many templates the library holds. */
+export const LIBRARY_MAX = 100;
