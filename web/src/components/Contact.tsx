@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { FormEvent, MouseEvent } from "react";
+import type { FormEvent, KeyboardEvent, MouseEvent, ReactNode } from "react";
 import ObjectLabel from "@/components/gallery/ObjectLabel";
 import { MAX_FIELDS, type LabelField } from "@/components/gallery/objectLabel";
 import Written from "@/components/motion/Written";
@@ -27,11 +27,25 @@ type Status =
   | { kind: "idle" }
   | { kind: "sending" }
   | { kind: "sent" }
-  | { kind: "failed"; message: string };
+  | { kind: "failed"; message: string; short?: string; details?: string };
 
 /* The dialog's accessible name comes from the heading inside it, so the two
    have to agree on one id and there is no second place to change it. */
 const TITLE_ID = "contact-dialog-title";
+
+/* The address inside a sentence is a link of its own, left-to-right even in a Hebrew line. */
+function withEmailLink(text: string, email: string): ReactNode {
+  const [before, after = ""] = text.split("{email}");
+  return (
+    <>
+      {before}
+      <a href={`mailto:${email}`} dir="ltr">
+        {email}
+      </a>
+      {after}
+    </>
+  );
+}
 
 /*
  * The field line, built from data rather than typed out.
@@ -131,6 +145,8 @@ export default function Contact() {
   const w = useContactWords();
   const home = useHomeWords();
   const [status, setStatus] = useState<Status>({ kind: "idle" });
+  /* The long explanation of a failed send, shown on request. */
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
 
   /*
@@ -163,6 +179,7 @@ export default function Contact() {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const firstFieldRef = useRef<HTMLInputElement>(null);
+  const detailsBtnRef = useRef<HTMLButtonElement>(null);
   /* Where the press that may become a backdrop click started. See the handler. */
   const pressedBackdrop = useRef(false);
 
@@ -260,8 +277,19 @@ export default function Contact() {
     if (pressedBackdrop.current && e.target === dialogRef.current) setOpen(false);
   };
 
+  /* Escape peels off the details before it closes the dialog, so a reader who
+     opened them to read is not thrown out of the form with their words. */
+  const onDetailsKey = (e: KeyboardEvent<HTMLElement>) => {
+    if (e.key !== "Escape" || !detailsOpen) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setDetailsOpen(false);
+    detailsBtnRef.current?.focus();
+  };
+
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    setDetailsOpen(false);
     /* Hold the element itself: React nulls `currentTarget` once the handler
        returns, so reaching for it after the await threw — and the mail had
        already been sent, so a successful send reported itself as a failure. */
@@ -351,7 +379,9 @@ export default function Contact() {
       const kind = err instanceof ContactError ? err.kind : "server";
       setStatus({
         kind: "failed",
-        message: w.failed[kind](contact.email),
+        message: w.failed[kind].title,
+        short: w.failed[kind].short,
+        details: w.failed[kind].details,
       });
     }
   }
@@ -746,10 +776,41 @@ export default function Contact() {
                   )}
                 </div>
 
-                {/* Above the send, where the eye is when it fails. */}
-                <p role="alert" className={styles.failure}>
-                  {status.kind === "failed" ? status.message : null}
-                </p>
+                {/* Above the send, where the eye is when it fails. The alert is the
+                    title and one short line; the long text waits behind Details,
+                    outside the alert so it is read on request, not announced twice.
+                    It is in the dialog and not a toast: a modal dialog makes the
+                    page outside it inert, so a toast would be unreachable by keyboard. */}
+                <div className={styles.failure}>
+                  <p role="alert" className={styles.failureText}>
+                    {status.kind === "failed" && (
+                      <>
+                        <strong>{status.message}</strong>
+                        {status.short && <> {status.short}</>}
+                      </>
+                    )}
+                  </p>
+                  {status.kind === "failed" && status.details && (
+                    <>
+                      <button
+                        type="button"
+                        ref={detailsBtnRef}
+                        className={styles.failureMore}
+                        aria-expanded={detailsOpen}
+                        aria-controls="contact-failure-details"
+                        onClick={() => setDetailsOpen((v) => !v)}
+                        onKeyDown={onDetailsKey}
+                      >
+                        {w.failedDetails}
+                      </button>
+                      {detailsOpen && (
+                        <p id="contact-failure-details" className={styles.failureDetails} onKeyDown={onDetailsKey}>
+                          {withEmailLink(status.details, contact.email)}
+                        </p>
+                      )}
+                    </>
+                  )}
+                </div>
                 <div className={styles.foot}>
                   <button
                     type="submit"
