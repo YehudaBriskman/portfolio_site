@@ -5,6 +5,8 @@ import { specFiguresOf } from "@/data/specs";
 import { useContent } from "@/content/store";
 import { useHomeWords } from "@/i18n/pages";
 import styles from "@/components/Stack.module.css";
+import "@/components/phone/tokens.css";
+import "@/components/phone/pages-home.css";
 import { motionPaused, prefersReducedMotion } from "@/hooks/motionOff";
 
 /*
@@ -140,6 +142,7 @@ export default function SpecPlate() {
        */}
       <dl
         ref={plate}
+        data-ph="specs"
         className={styles.plate}
         style={{ "--spec-columns": specFigures.length } as CSSProperties}
       >
