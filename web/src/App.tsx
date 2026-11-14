@@ -32,6 +32,7 @@ const BlogLog = lazy(() => import("./pages/BlogLog"));
 const Accessibility = lazy(() => import("./pages/Accessibility"));
 const Privacy = lazy(() => import("./pages/Privacy"));
 const Help = lazy(() => import("./pages/Help"));
+const HelpTopic = lazy(() => import("./pages/HelpTopic"));
 // The signup page and the three an email links to: small, read rarely, noindex.
 const Follow = lazy(() => import("./pages/Follow"));
 const SubscribeConfirm = lazy(() => import("./pages/SubscribeConfirm"));
@@ -199,6 +200,8 @@ const App = () => {
             <Route path="/accessibility" element={<Suspense fallback={<RouteFallback />}><Accessibility /></Suspense>} />
             <Route path="/privacy" element={<Suspense fallback={<RouteFallback />}><Privacy /></Suspense>} />
             <Route path="/help" element={<Suspense fallback={<RouteFallback />}><Help /></Suspense>} />
+            {/* One page per topic (#803). An id that is no page renders the 404 itself. */}
+            <Route path="/help/:topic" element={<Suspense fallback={<RouteFallback />}><HelpTopic /></Suspense>} />
             <Route path="/follow" element={<Suspense fallback={<RouteFallback />}><Follow /></Suspense>} />
             <Route path="/subscribe/confirm" element={<Suspense fallback={<RouteFallback />}><SubscribeConfirm /></Suspense>} />
             <Route path="/unsubscribe" element={<Suspense fallback={<RouteFallback />}><Unsubscribe /></Suspense>} />

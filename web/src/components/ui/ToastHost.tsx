@@ -62,7 +62,7 @@ function LearnMore({ topic }: { topic: NonNullable<ToastRecord["help"]>["topic"]
   return inRouter ? (
     <Link className={styles.more} to={href}>{w.learnMore}</Link>
   ) : (
-    <a className={styles.more} href={pathIn(href.split("#")[0], lang) + "#" + topic}>{w.learnMore}</a>
+    <a className={styles.more} href={pathIn(href, lang)}>{w.learnMore}</a>
   );
 }
 

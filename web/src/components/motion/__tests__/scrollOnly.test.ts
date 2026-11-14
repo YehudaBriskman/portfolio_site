@@ -82,6 +82,10 @@ const ALLOWED: Record<string, { names: string[]; why: string }> = {
     names: ["pop-in", "pop-out"],
     why: "every popup's arrival and exit (Radix panels and tooltips): a reply to a press or a hover, 180ms / 140ms, off under reduced motion and Pause",
   },
+  "components/help/helpMotion.css": {
+    names: ["help-in-push", "help-in-pop", "help-out-push", "help-out-pop"],
+    why: "the help index and its topic pages, phones only (#803): a push or a pop in reply to a tap, 240ms in and 160ms out on --ease-settle, off under reduced motion, Pause and on a wide screen (motion-contract §15)",
+  },
   "components/gallery/Skeleton.module.css": {
     names: ["sk-gate"],
     why: "not motion: a 1ms opacity step whose only job is a 180ms visibility threshold",

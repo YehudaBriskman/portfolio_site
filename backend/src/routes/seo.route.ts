@@ -32,6 +32,7 @@ import type { ContentBundle } from "../schemas/site-content.js";
 import { publishedBundleOrSeed } from "../services/site-content.js";
 import { sectionVisible, type SiteSettings } from "../schemas/site-settings.js";
 import { settingsOrDefault } from "../services/site-settings.js";
+import { helpPageSeo } from "../services/help-pages.js";
 
 const router = Router();
 
@@ -56,7 +57,7 @@ async function publishedCollections(): Promise<Collection[]> {
 router.get(
   "/sitemap.xml",
   asyncHandler(async (_req, res) => {
-    const [posts, collections, store] = await Promise.all([publishedPosts(), publishedCollections(), storeProjects()]);
+    const [posts, collections, store, settings] = await Promise.all([publishedPosts(), publishedCollections(), storeProjects(), settingsOrDefault()]);
     res.type("application/xml").set("Cache-Control", "public, max-age=600");
     const live = new Map(collections.map((c) => [c.slug, c]));
     res.send(
@@ -64,6 +65,7 @@ router.get(
         projects: [...store.values()].map((p) => ({ slug: p.slug, hebrew: projectHasHebrew(p, live.get(p.slug)) })),
         postHebrew: postHasHebrew,
         areaHebrew: areaHasHebrew,
+        contactShown: sectionVisible(settings, "contact"),
       }),
     );
   })
@@ -662,6 +664,44 @@ page("/help", async (_req, res, lang) => {
     jsonLd: graph(
       webPage("WebPage", lang, "/help", { name: w.help, description: w.helpDescription }),
       breadcrumbs(lang, [{ name: w.help, path: "/help" }]),
+    ),
+  });
+});
+
+/*
+ * One page per help topic (#803), web/src/pages/HelpTopic.tsx. The title is
+ * the topic's heading and the description an existing sentence of the page
+ * (web/src/lib/help/seo.ts); the copy is services/help-pages.json. The contact
+ * form's guide is a 404 while the form is hidden, as the app's route is. A
+ * Hebrew page is indexed only when it has Hebrew of its own (#318).
+ */
+page("/help/:topic", async (req, res, lang) => {
+  const w = SEO_WORDS[lang];
+  const id = String(req.params.topic);
+  const settings = await settingsOrDefault();
+  const entry = helpPageSeo(id, sectionVisible(settings, "contact"));
+  if (!entry) return notFound(res, `/help/${encodeURIComponent(id)}`, lang);
+  const path = `/help/${entry.id}`;
+  const name = entry.title[lang];
+  const description = entry.description[lang];
+  await sendShell(res, {
+    ...at(path, lang),
+    route: "HelpTopic",
+    title: title(name, lang),
+    description,
+    image: absoluteUrl("/og.png"),
+    imageAlt: siteNameIn(lang),
+    type: "website",
+    translated: entry.hebrew,
+    bodyHtml:
+      `<main><nav><a href="${href("/help", lang)}">${escapeHtml(w.help)}</a></nav><h1>${escapeHtml(name)}</h1>` +
+      `<p>${escapeHtml(description)}</p></main>`,
+    jsonLd: graph(
+      webPage("WebPage", lang, path, { name, description }),
+      breadcrumbs(lang, [
+        { name: w.help, path: "/help" },
+        { name, path },
+      ]),
     ),
   });
 });
