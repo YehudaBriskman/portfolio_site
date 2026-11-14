@@ -21,6 +21,7 @@ export default function BudgetMeter({ refresh = 0, phone = false }: { refresh?: 
       <p className="text-sm tabular-nums" role="status" data-testid="budget-room">
         {b.waiting === "day" && b.resumeAt ? w.waitDay(whenOf(b.resumeAt)) : b.waiting === "month" && b.resumeAt ? w.waitMonth(whenOf(b.resumeAt)) : w.room(b.capacity)}
       </p>
+      {b.warmup && <p className="a-hint !mt-0 tabular-nums" role="status" data-testid="budget-warmup">{w.warmup(b.warmup.day, b.warmup.daily)}</p>}
       {b.thresholds.length > 0 && <p className="text-sm font-bold" role="status" data-testid="budget-threshold">{b.thresholds.includes(90) ? w.t90 : w.t70}</p>}
     </>
   );

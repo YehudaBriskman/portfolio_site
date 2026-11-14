@@ -103,6 +103,8 @@ export type SenderSettings = {
   testRecipients: string[];
   throttlePerHour: number;
   dailyCap: number;
+  /** The first 14 days only ever lower the two caps above. Absent reads as on. */
+  warmup?: boolean;
   /** Most mails one person gets in any rolling 30 days; 0 = no limit. */
   maxPerContact30d: number;
   quietHours?: SenderQuietHours;

@@ -41,6 +41,17 @@ describe("the budget meter", () => {
     expect((await screen.findByTestId("budget-room")).textContent).toMatch(/^The daily budget is used\. Campaigns carry on about .*2026/);
   });
 
+  it("shows the warm-up day and today's limit only while the ramp applies", async () => {
+    reply = () => json(view({ warmup: { day: 2, daily: 30, hourly: 10 } }));
+    const { unmount } = render(<BudgetMeter />);
+    expect((await screen.findByTestId("budget-warmup")).textContent).toBe("Warm-up day 2: today at most 30 emails. This protects a new sender; the limit rises daily.");
+    unmount();
+    reply = () => json(view({ warmup: null }));
+    render(<BudgetMeter />);
+    await screen.findByTestId("budget-meter");
+    expect(screen.queryByTestId("budget-warmup")).toBeNull();
+  });
+
   it("an unreadable answer is an error line, not a crash", async () => {
     reply = () => json({ ok: true });
     render(<BudgetMeter />);
