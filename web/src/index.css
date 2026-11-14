@@ -917,6 +917,27 @@
     --dur-settle: .8s;
     --dur-slow: 1.2s;
 
+    /* The control kit (components/ui/IconButton and friends). Heights are
+       hit areas: 28 for a dense desktop bar, 36 the default, 44 the phone
+       floor. A phone never draws a control below --ctl-h-lg. */
+    --ctl-h-sm: 28px;
+    --ctl-h-md: 36px;
+    --ctl-h-lg: 44px;
+    --ctl-gap: .25rem;
+    --ctl-icon-sm: 16px;
+    --ctl-icon-md: 20px;
+    --ctl-icon-lg: 24px;
+    --ctl-icon: var(--ctl-icon-md);
+    --ctl-radius: var(--r-md);
+    /* The floating pill: opaque, raised, one hairline, one shadow. */
+    --dock-bg: rgb(var(--paper-2));
+    --dock-border: 1px solid rgb(var(--rule-firm));
+    --dock-shadow: 0 8px 24px -6px rgb(var(--shade) / .22), 0 2px 6px rgb(var(--shade) / .08);
+    --dock-radius: var(--r-pill);
+    --dock-gap: .25rem;
+    --dock-pad: .25rem;
+    --dock-inset: 12px;
+
     /* The reading window (owner, 2026-11-03): where the pen
        (`motion/Written`) starts a block — its top at 68% of the window's
        height from the top — and where it has finished by — its bottom at

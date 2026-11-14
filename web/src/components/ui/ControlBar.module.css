@@ -1,0 +1,17 @@
+.bar {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ctl-gap);
+  min-inline-size: 0;
+}
+
+.bar[data-density='compact'] {
+  gap: 0;
+}
+
+.menuIcon {
+  flex: none;
+  inline-size: var(--ctl-icon-sm);
+  block-size: var(--ctl-icon-sm);
+  margin-inline-end: 0.5rem;
+}

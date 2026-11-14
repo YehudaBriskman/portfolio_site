@@ -1,0 +1,21 @@
+.dock {
+  position: fixed;
+  inset-inline: 0;
+  inset-block-end: calc(env(safe-area-inset-bottom, 0px) + var(--dock-inset));
+  z-index: 30;
+  /* Shrink-wrap and centre, whichever way the page reads. */
+  inline-size: max-content;
+  max-inline-size: calc(100% - 2 * var(--dock-inset));
+  margin-inline: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--dock-gap);
+  padding: var(--dock-pad);
+  box-sizing: border-box;
+  border: var(--dock-border);
+  border-radius: var(--dock-radius);
+  /* Opaque on purpose: no blur, so nothing behind it reads through. */
+  background: var(--dock-bg);
+  color: rgb(var(--ink));
+  box-shadow: var(--dock-shadow);
+}

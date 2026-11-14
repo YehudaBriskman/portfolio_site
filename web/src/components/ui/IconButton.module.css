@@ -1,0 +1,114 @@
+/*
+ * The icon control. Sizes are the --ctl-h-* hit areas (28 / 36 / 44); under a
+ * coarse pointer every size is lifted to 44 so a phone never gets a small
+ * target. Logical properties only, so the label sits on the correct side in
+ * Hebrew. The focus ring is the app's: 2px signal outline, offset 2.
+ */
+.btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ctl-gap);
+  box-sizing: border-box;
+  min-block-size: var(--ctl-h-md);
+  min-inline-size: var(--ctl-h-md);
+  padding-inline: 0;
+  border: 1px solid transparent;
+  border-radius: var(--ctl-radius);
+  background: transparent;
+  color: rgb(var(--ink));
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background-color var(--dur-micro) ease, color var(--dur-micro) ease;
+}
+
+.sm { min-block-size: var(--ctl-h-sm); min-inline-size: var(--ctl-h-sm); --ctl-icon: var(--ctl-icon-sm); }
+.md { min-block-size: var(--ctl-h-md); min-inline-size: var(--ctl-h-md); --ctl-icon: var(--ctl-icon-md); }
+.lg { min-block-size: var(--ctl-h-lg); min-inline-size: var(--ctl-h-lg); --ctl-icon: var(--ctl-icon-lg); }
+
+@media (pointer: coarse) {
+  .btn {
+    min-block-size: var(--ctl-h-lg);
+    min-inline-size: var(--ctl-h-lg);
+  }
+}
+
+.withLabel {
+  padding-inline: 0.75rem;
+}
+
+.icon {
+  flex: none;
+  inline-size: var(--ctl-icon);
+  block-size: var(--ctl-icon);
+}
+
+.label {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 767px) {
+  .fromMd {
+    display: none;
+  }
+  .withLabel[data-label='from-md'] {
+    padding-inline: 0;
+  }
+}
+
+.badge {
+  position: absolute;
+  inset-block-start: 2px;
+  inset-inline-end: 2px;
+  font-size: 0.6875rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.neutral {
+  color: rgb(var(--ink));
+}
+
+.primary {
+  background: rgb(var(--signal));
+  color: rgb(var(--signal-ink));
+}
+
+.danger {
+  color: rgb(var(--destructive-ink));
+}
+
+.btn[aria-pressed='true'] {
+  background: var(--a-press, rgb(var(--ink) / 0.09));
+}
+
+.primary[aria-pressed='true'] {
+  background: rgb(var(--signal));
+  box-shadow: inset 0 0 0 2px rgb(var(--signal-ink) / 0.5);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.btn:focus-visible {
+  outline: 2px solid rgb(var(--signal));
+  outline-offset: 2px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .btn:hover:not(:disabled):not(.primary) {
+    background: var(--a-hover, rgb(var(--ink) / 0.05));
+  }
+  .primary:hover:not(:disabled) {
+    filter: brightness(1.1);
+  }
+}

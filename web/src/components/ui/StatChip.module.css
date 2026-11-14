@@ -1,0 +1,35 @@
+.stat {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: rgb(var(--ink-soft));
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.icon {
+  flex: none;
+  inline-size: var(--ctl-icon-sm);
+  block-size: var(--ctl-icon-sm);
+}
+
+.value {
+  font-variant-numeric: tabular-nums;
+  /* A number is a run of its own: it keeps its order inside a Hebrew line. */
+  unicode-bidi: isolate;
+}
+
+.sr {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
