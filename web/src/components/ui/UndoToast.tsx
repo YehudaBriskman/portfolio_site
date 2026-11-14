@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Undo2 } from "lucide-react";
+import { Presence } from "@/components/ui/Presence";
 import { useMobileWords } from "@/i18n/mobile";
 import styles from "@/components/ui/UndoToast.module.css";
 
@@ -124,35 +125,33 @@ export function UndoToast({ undoable }: { undoable: Undoable }) {
 
   return (
     <div className={styles.region} role="status" aria-live="polite">
-      {current && (
-        <div
-          key={current.key}
-          className={styles.toast}
-          data-testid="undo-toast"
-          onPointerEnter={() => {
-            held.current.pointer = true;
-            stop();
-          }}
-          onPointerLeave={() => {
-            held.current.pointer = false;
-            go();
-          }}
-          onFocus={() => {
-            held.current.focus = true;
-            stop();
-          }}
-          onBlur={() => {
-            held.current.focus = false;
-            go();
-          }}
-        >
-          <span className={styles.message}>{current.message}</span>
-          <button type="button" className={styles.undo} onClick={undo}>
-            <Undo2 size={16} strokeWidth={1.75} aria-hidden="true" focusable="false" />
-            {w.action}
-          </button>
-        </div>
-      )}
+      <Presence
+        show={Boolean(current)}
+        className={styles.toast}
+        data-testid="undo-toast"
+        onPointerEnter={() => {
+          held.current.pointer = true;
+          stop();
+        }}
+        onPointerLeave={() => {
+          held.current.pointer = false;
+          go();
+        }}
+        onFocus={() => {
+          held.current.focus = true;
+          stop();
+        }}
+        onBlur={() => {
+          held.current.focus = false;
+          go();
+        }}
+      >
+        <span className={styles.message}>{current?.message}</span>
+        <button type="button" className={styles.undo} onClick={undo}>
+          <Undo2 size={16} strokeWidth={1.75} aria-hidden="true" focusable="false" />
+          {w.action}
+        </button>
+      </Presence>
     </div>
   );
 }

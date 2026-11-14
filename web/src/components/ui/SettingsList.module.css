@@ -5,10 +5,19 @@
  * under :dir(rtl).
  */
 .root {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: var(--a-s-4, 1rem);
   min-inline-size: 0;
+  /* +1 toward the inline-end edge, -1 in RTL: the page and the list's shove mirror. */
+  --dir: 1;
+  /* A page slides in from beyond the edge: never a sideways scrollbar. */
+  overflow-x: clip;
+}
+
+.root:dir(rtl) {
+  --dir: -1;
 }
 
 .root[data-panes] {
@@ -162,4 +171,123 @@
 
 .sheetBody {
   padding: var(--a-s-3, 0.75rem) var(--a-s-4, 1rem) var(--a-s-4, 1rem);
+}
+
+/*
+ * A page over the list. While a page is open the list stays mounted under it,
+ * covered and inert; closed (and not yet dropped) the page is hidden. Without
+ * motion those are plain `display: none`, which is what the old swap showed.
+ */
+.listPane[data-covered] {
+  display: none;
+}
+
+.page:not([data-open]) {
+  display: none;
+  pointer-events: none;
+}
+
+/*
+ * Phone motion (docs/motion-contract.md section 13). A push: the page comes in
+ * from the inline-end edge on a spring (3% settle) while the list is shoved a
+ * quarter of the way toward the start edge and fades; Back plays it backwards,
+ * shorter and without the settle. `data-open` and `data-covered` flip on the
+ * tap and are the state; if any animation is cancelled or throttled the page is
+ * `display: none` and inert, the list shown and live. Interruptible: a second
+ * tap reverses from wherever the transform is. The items reveal in a short
+ * cascade, six at most, so the group reads top to bottom.
+ */
+@media (prefers-reduced-motion: no-preference) and (max-width: 599px) {
+  .listPane {
+    opacity: 1;
+    translate: 0 0;
+    visibility: visible;
+    transition:
+      opacity var(--a-dur-2) var(--a-ease-out),
+      translate var(--a-dur-3) var(--a-ease-out),
+      visibility var(--a-dur-3) var(--a-ease-out);
+  }
+
+  /* Out of the flow, so the root is as tall as the page; still displayed to be moved. */
+  .listPane[data-covered] {
+    display: flex;
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline: 0;
+    opacity: 0;
+    translate: calc(-25% * var(--dir)) 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition:
+      opacity var(--a-dur-2) var(--a-ease-in),
+      translate var(--a-dur-3) var(--a-ease-out),
+      visibility var(--a-dur-3) var(--a-ease-out);
+  }
+
+  .page {
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline: 0;
+    opacity: 0;
+    translate: calc(100% * var(--dir)) 0;
+    transition:
+      translate var(--a-dur-2) var(--a-ease-in),
+      opacity var(--a-dur-2) var(--a-ease-in),
+      display var(--a-dur-2) allow-discrete;
+  }
+
+  .page[data-open] {
+    position: relative;
+    display: flex;
+    opacity: 1;
+    translate: 0 0;
+    transition:
+      translate var(--a-dur-3) var(--a-ease-spring),
+      opacity var(--a-dur-2) var(--a-ease-out),
+      display var(--a-dur-3) allow-discrete;
+  }
+
+  @starting-style {
+    .page[data-open] {
+      opacity: 0;
+      translate: calc(100% * var(--dir)) 0;
+    }
+  }
+
+  .page[data-open] .card > *,
+  .sheetBody .card > * {
+    transition:
+      opacity var(--a-dur-3) var(--a-ease-out),
+      translate var(--a-dur-3) var(--a-ease-spring);
+  }
+
+  @starting-style {
+    .page[data-open] .card > *,
+    .sheetBody .card > * {
+      opacity: 0;
+      translate: 0 0.5rem;
+    }
+  }
+
+  .page[data-open] .card > :nth-child(2),
+  .sheetBody .card > :nth-child(2) { transition-delay: 30ms; }
+  .page[data-open] .card > :nth-child(3),
+  .sheetBody .card > :nth-child(3) { transition-delay: 60ms; }
+  .page[data-open] .card > :nth-child(4),
+  .sheetBody .card > :nth-child(4) { transition-delay: 90ms; }
+  .page[data-open] .card > :nth-child(5),
+  .sheetBody .card > :nth-child(5) { transition-delay: 120ms; }
+  .page[data-open] .card > :nth-child(n + 6),
+  .sheetBody .card > :nth-child(n + 6) { transition-delay: 150ms; }
+
+  /* Search results: each hit fades in as it appears, soft and short. */
+  .hitItem {
+    transition: opacity var(--a-dur-2) var(--a-ease-out);
+  }
+
+  @starting-style {
+    .hitItem {
+      opacity: 0;
+    }
+  }
 }
