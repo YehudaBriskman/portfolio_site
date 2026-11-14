@@ -1,0 +1,15 @@
+.trigger {
+  position: relative;
+}
+
+/* "Something new": a dot in the signal colour, on the bell's corner (not a count). */
+.dot {
+  position: absolute;
+  inset-block-start: 0.4rem;
+  inset-inline-end: 0.4rem;
+  inline-size: 0.5rem;
+  block-size: 0.5rem;
+  border-radius: 999px;
+  background: rgb(var(--signal));
+  box-shadow: 0 0 0 2px rgb(var(--paper));
+}

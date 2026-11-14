@@ -1,0 +1,138 @@
+/*
+ * The toast host: a zero-size top-layer wrapper (popover="manual") that only
+ * exists to carry Sonner above sheets. Sonner positions itself (fixed), so the
+ * wrapper must not paint, scroll, take pointer events or add the UA popover
+ * box (margin, border, padding, background).
+ */
+.host {
+  position: fixed;
+  inset: 0 auto auto 0;
+  inline-size: 0;
+  block-size: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  overflow: visible;
+  background: transparent;
+  color: inherit;
+  pointer-events: none;
+}
+
+/* The two announcers: heard, not seen. */
+.live {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Sonner reads its colours from these; pointing them at the popup tokens
+   themes the stack (light, dark) with no colour of its own. */
+.toaster {
+  --width: min(24rem, calc(100vw - 1.5rem));
+  --normal-bg: var(--pop-bg);
+  --normal-text: var(--pop-ink);
+  --normal-border: var(--pop-edge);
+  --border-radius: var(--r-md);
+  font-family: inherit;
+}
+
+.toast {
+  align-items: flex-start;
+  gap: 0.625rem;
+  padding: 0.75rem 0.875rem;
+  min-block-size: 3rem;
+  pointer-events: auto;
+}
+
+.toaster .toast[data-styled="true"] {
+  background: var(--pop-bg);
+  color: var(--pop-ink);
+  border: 1px solid var(--pop-edge);
+  box-shadow: var(--pop-shadow-1);
+}
+
+.toaster .toast[data-type="error"][data-styled="true"] {
+  border-color: rgb(var(--ink));
+  border-width: 2px;
+}
+
+.toast .title {
+  font-weight: 600;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+/* Sonner colours its description, buttons and close mark for a fixed light or
+   dark; the popup tokens follow the site's theme instead. */
+.toaster .toast[data-styled="true"] .desc {
+  color: var(--pop-ink);
+  opacity: 0.85;
+}
+
+.toaster .toast[data-styled="true"] [data-button] {
+  background: var(--pop-ink);
+  color: var(--pop-bg);
+  min-block-size: 2rem;
+  padding-inline: 0.75rem;
+}
+
+.toaster .toast[data-styled="true"] [data-cancel] {
+  background: transparent;
+  color: var(--pop-ink);
+  border: 1px solid var(--pop-edge);
+  min-block-size: 2rem;
+}
+
+.toaster .toast[data-styled="true"] [data-close-button] {
+  background: var(--pop-bg);
+  color: var(--pop-ink);
+  border-color: var(--pop-edge);
+}
+
+.desc {
+  min-inline-size: 0;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+}
+
+.line,
+.long {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.long {
+  padding-block-start: 0.25rem;
+  border-block-start: 1px solid var(--pop-rule);
+  white-space: pre-wrap;
+}
+
+.more {
+  min-block-size: 2.75rem;
+  margin-block: -0.5rem;
+  padding-inline: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.more:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}

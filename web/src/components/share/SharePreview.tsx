@@ -61,7 +61,8 @@ export default function SharePreview({ result, name, brand, title, lang, onClose
 
   async function copy() {
     close();
-    shareToast((await copyText(caption)) ? w.captionCopied : w.copyFailed);
+    const ok = await copyText(caption);
+    shareToast(ok ? w.captionCopied : w.copyFailed, ok);
   }
 
   async function saveAndCopy() {
@@ -69,7 +70,8 @@ export default function SharePreview({ result, name, brand, title, lang, onClose
     const copied = copyText(caption);
     const saved = await downloadImage(result.image);
     close();
-    shareToast(saved && (await copied) ? w.imageSaved : saved ? w.copyFailed : w.saveFailed);
+    const both = saved && (await copied);
+    shareToast(both ? w.imageSaved : saved ? w.copyFailed : w.saveFailed, both);
   }
 
   const label: ReactNode = brand ? <bdi translate="no">{name}</bdi> : name;
@@ -160,7 +162,7 @@ export default function SharePreview({ result, name, brand, title, lang, onClose
             {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
             onClick={() => {
               // The dialog takes no text: copy it in the same click that follows the link.
-              if (!result.textPrefilled) void copyText(caption).then((ok) => shareToast(ok ? w.captionCopied : w.copyFailed));
+              if (!result.textPrefilled) void copyText(caption).then((ok) => shareToast(ok ? w.captionCopied : w.copyFailed, ok));
               close();
             }}
           >
