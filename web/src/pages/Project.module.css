@@ -454,11 +454,95 @@ a.listRow:hover .listTitle {
   max-width: 32rem;
 }
 
-/* On a phone the back chip above the title says "Work" (#780); the crumb and
-   its slash in the title line would say it twice. */
+/* ───────────────────────────────────────────── phone: direction A (grouped)
+   The header is one rounded card: a 56px circle, "Work" as a small overline,
+   the name, the state pill, one line about it, then the stat tiles. The
+   Overview's cards and the Releases and Docs lists are inset rounded groups
+   on the calm ground, no outlines. Phone only (639px, the one public
+   breakpoint); the tokens are `components/phone/tokens.css`. The primary
+   button in the header is hidden here: the same link is pinned at the bottom
+   (`PinnedAction`), so there is one of it on a screen. */
 @media (max-width: 639px) {
-  .crumb,
+  .head {
+    gap: 12px;
+    padding: var(--ph-gutter);
+    border-radius: var(--r-md);
+    background: var(--ph-card);
+  }
+  .nameLine {
+    display: grid;
+    grid-template-columns: var(--ph-circle-l) minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: 12px;
+    row-gap: 2px;
+  }
+  .nameLine > [data-phone-circle] {
+    grid-column: 1;
+    grid-row: 1 / span 3;
+  }
+  .crumb {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: start;
+    /* a 44px target on a 22px line: the margin takes the rest back */
+    margin-block: -11px;
+    min-width: var(--tap);
+    font-family: var(--font-text);
+    font-size: 0.8125rem;
+    font-weight: 600;
+  }
   .slash {
     display: none;
+  }
+  .title {
+    grid-column: 2;
+    grid-row: 2;
+    font-size: 1.75rem;
+  }
+  .nameLine > [data-phone-pill] {
+    grid-column: 2;
+    grid-row: 3;
+    justify-self: start;
+    margin: 0;
+  }
+  .share {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+    margin: 0;
+  }
+  .tabbed > .panel {
+    padding-block-start: 16px;
+  }
+  .card,
+  .flushCard {
+    border: 0;
+    border-radius: var(--r-md);
+    background: var(--ph-card);
+  }
+  .flushTitle {
+    border-block-end: 0;
+  }
+  .figure figure {
+    border-radius: var(--r-sm);
+  }
+}
+
+/* #780: on a phone the back chip above the card says "Work", so the crumb in
+   the card would say it twice. It goes, and the name and the pill take its row. */
+@media (max-width: 639px) {
+  .crumb {
+    display: none;
+  }
+  .nameLine > .title {
+    grid-row: 1;
+  }
+  .nameLine > [data-phone-pill] {
+    grid-row: 2;
+  }
+  .nameLine > [data-phone-circle] {
+    grid-row: 1 / span 2;
+  }
+  .nameLine > .share {
+    grid-row: 1 / span 2;
   }
 }

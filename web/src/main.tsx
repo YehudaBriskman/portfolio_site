@@ -5,6 +5,7 @@ import App from './App.tsx'
 import './index.css'
 import './styles/popup.css'
 import { syncTheme } from './lib/theme'
+import { installInputModality } from './lib/inputModality'
 import { syncViewerPrefs } from './lib/viewerPrefs'
 import { loadContent } from './content/store'
 import { bootLang } from './i18n/routing'
@@ -14,6 +15,8 @@ import { loadSettings } from './settings/store'
    it to the store that owns it from here (#247). Same answer, so no repaint,
    unless the boot script was blocked. */
 syncTheme()
+/* Which input last moved focus, so a tap never paints a keyboard ring (#776). */
+installInputModality()
 syncViewerPrefs()
 
 /* The site's content from the store (#163). The page paints from the data
