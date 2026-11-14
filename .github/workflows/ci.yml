@@ -501,6 +501,12 @@ jobs:
       - name: Landing first screen on a phone
         if: matrix.check == 'a11y' && matrix.shard == 5
         run: npm run a11y:public-landing
+      # The public phone nav (#775): under 640px one floating circle and
+      # nothing else (no bar, no line, no word), in the safe area, clear of
+      # headings, opens/Escape/focus return; 768 and 1280 keep the bar.
+      - name: Public phone nav circle
+        if: matrix.check == 'a11y' && matrix.shard == 5
+        run: npm run a11y:public-nav
       # The Blog search box on a phone (#766): the field full width with its
       # icon inside, "#"/"@" on their own 44px row, no keyboard-only sentence
       # for touch, search keyboard hints, a 44px clear button, Hebrew mirrors.
