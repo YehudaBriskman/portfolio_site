@@ -38,7 +38,8 @@ const INERT = new Set(["title", "desc", "metadata", "defs"]);
 const NUM = /^[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?$/i;
 const PATH_D = /^[MmLlHhVvCcSsQqTtAaZz0-9eE.,\s+-]*$/;
 const POINTS = /^[0-9eE.,\s+-]*$/;
-const TRANSFORM = /^(?:\s*(?:matrix|translate|scale|rotate|skewX|skewY)\(\s*[-+0-9.eE,\s]*\)\s*)+$/;
+/* One leading \s*, then each item owns its trailing whitespace: no ambiguity, so no backtracking blow-up. */
+const TRANSFORM = /^\s*(?:(?:matrix|translate|scale|rotate|skewX|skewY)\([-+0-9.eE,\s]*\)\s*)+$/;
 const PAINT = /^(?:none|currentColor|#[0-9a-f]{3,8}|rgba?\(\s*[\d.%\s,/]+\)|[a-z]{3,20})$/i;
 const ENUMS: Record<string, string[]> = {
   "stroke-linecap": ["butt", "round", "square"],
