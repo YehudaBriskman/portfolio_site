@@ -69,16 +69,19 @@ const projectsProbe = () => {
   const out = window.__common();
   out.sorts = [...document.querySelectorAll("[data-phone-segmented] a, [data-phone-segmented] button")].map((e) => Math.round(e.getBoundingClientRect().height));
   out.rowsFound = 0;
-  for (const row of document.querySelectorAll("[data-phone-row]")) {
-    const r = row.getBoundingClientRect();
+  /* cover-led cards (W2): one link, a 16:10 cover, no text pill, <= 3 chips */
+  for (const card of document.querySelectorAll("[data-project-card]")) {
+    const r = card.getBoundingClientRect();
     if (r.width === 0) continue;
     out.rowsFound++;
-    const link = row.querySelector("a");
+    const links = card.querySelectorAll("a");
+    const cover = card.querySelector("[data-cover]")?.getBoundingClientRect();
     const hit = document.elementFromPoint(r.left + r.width / 2, Math.min(r.top + r.height / 2, innerHeight - 1));
     const above = r.top < 0 || r.bottom > innerHeight;
-    if (r.height < 64) out.rows.push(`row ${Math.round(r.height)} tall`);
-    if (!above && !(hit && hit.closest("a") && row.contains(hit))) out.rows.push("row centre is not a link");
-    if (!link) out.rows.push("row has no link");
+    if (links.length !== 1) out.rows.push(`card has ${links.length} links`);
+    if (!cover || Math.abs(cover.width / cover.height - 1.6) > 0.05) out.rows.push("card cover is not 16:10");
+    if (!above && !(hit && hit.closest("a") && card.contains(hit))) out.rows.push("card centre is not a link");
+    if (card.querySelectorAll("[data-stat]").length > 3) out.rows.push("more than 3 stat chips");
   }
   return out;
 };
@@ -92,7 +95,10 @@ const projectProbe = () => {
   out.header = q('[data-phone-card="header"]').length;
   out.tiles = q('[data-phone="stat-tile"]').map((t) => t.textContent.replace(/\s+/g, " ").trim());
   out.tileH = q('[data-phone="stat-tile"]').map((t) => Math.round(t.getBoundingClientRect().height));
-  out.stack = q('button[data-phone="stack-toggle"][aria-expanded]').map((b) => b.getAttribute("aria-expanded"));
+  out.details = q('[data-phone-card="header"] details').map((d) => d.open);
+  out.cover = q('[data-phone="head-cover"]').map((c) => ({ fallback: c.hasAttribute("data-fallback"), h: Math.round(c.getBoundingClientRect().height), img: !!c.querySelector("img") }));
+  out.crumb = q('[data-phone-card="header"] a[href$="/projects"]').length;
+  out.pinRadius = (() => { const d = q("[data-phone-pinned]")[0]; return d ? { bg: getComputedStyle(d).backgroundColor, shadow: getComputedStyle(d).boxShadow !== "none" } : null; })();
   const pin = q('[data-phone="pinned-action"]')[0];
   out.pin = pin ? { text: pin.textContent.trim(), fixed: getComputedStyle(pin.closest("[data-phone-pinned]") ?? pin).position === "fixed", bottom: Math.round(innerHeight - pin.getBoundingClientRect().bottom), h: Math.round(pin.getBoundingClientRect().height) } : null;
   out.rowsDeep = q("[data-phone-row]").map((e) => Math.round(e.getBoundingClientRect().height));
@@ -139,8 +145,6 @@ await Promise.all(combos.map(async ({ width, lang, theme }) => {
       if (r.overflow) fail(T("/projects"), "horizontal overflow");
       if (r.rowsFound < 3) fail(T("/projects"), `only ${r.rowsFound} phone rows`);
       for (const x of r.rows) fail(T("/projects"), x);
-      if (!r.circles.length) fail(T("/projects"), "no icon circles");
-      for (const c of r.circles) if (![32, 40, 56].includes(c.w) || c.w !== c.h || !c.round) fail(T("/projects"), `circle ${c.w}x${c.h} round=${c.round}`);
       if (r.sorts.length !== 3 || r.sorts.some((h) => h < 44)) fail(T("/projects"), `sort segments ${JSON.stringify(r.sorts)} (need 3 at 44+)`);
       if (SHOTS) await page.screenshot({ path: `${SHOTS}/projects.${lang}.${theme}.${width}.png`, fullPage: true, timeout: 120000 });
       await page.close();
@@ -159,7 +163,10 @@ await Promise.all(combos.map(async ({ width, lang, theme }) => {
       if (!r.segmented) fail(tag, "tabs are not the segmented pill");
       if (r.tabs.length < 2 || r.tabs.some((t) => t.h < 44)) fail(tag, `tabs ${JSON.stringify(r.tabs)} (44 tall)`);
       if (r.tabs.filter((t) => t.tab === 0).length !== 1) fail(tag, "tablist needs exactly one tab stop");
-      if (r.stack.length !== 1 || r.stack[0] !== "false") fail(tag, `stack toggle ${JSON.stringify(r.stack)}, want one, collapsed`);
+      if (r.details.length !== 1 || r.details[0] !== false) fail(tag, `Details ${JSON.stringify(r.details)}, want one, closed`);
+      if (r.cover.length !== 1 || r.cover[0].h < 100) fail(tag, `header cover ${JSON.stringify(r.cover)}`);
+      if (r.crumb) fail(tag, "the Work crumb is still in the header card");
+      if (!r.pinRadius || !r.pinRadius.shadow || /rgba\(0, 0, 0, 0\)|transparent/.test(r.pinRadius.bg)) fail(tag, `the pinned pill is not an opaque raised surface ${JSON.stringify(r.pinRadius)}`);
       if (!r.pin) fail(tag, "no pinned action");
       else {
         if (!r.pin.fixed) fail(tag, "pinned action is not fixed");
