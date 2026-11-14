@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { HTMLAttributes, ReactNode } from "react";
 import styles from "@/components/ui/Dock.module.css";
 
 /*
@@ -10,16 +10,16 @@ import styles from "@/components/ui/Dock.module.css";
  * line.
  */
 
-export interface DockProps {
+export interface DockProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "className" | "role"> {
   /** Accessible name of the group of controls. */
   label: string;
   children: ReactNode;
   className?: string;
 }
 
-export function Dock({ label, children, className = "" }: DockProps) {
+export function Dock({ label, children, className = "", ...rest }: DockProps) {
   return (
-    <div role="group" aria-label={label} className={`${styles.dock} ${className}`.trim()}>
+    <div {...rest} role="group" aria-label={label} className={`${styles.dock} ${className}`.trim()}>
       {children}
     </div>
   );

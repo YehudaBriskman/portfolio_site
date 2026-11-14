@@ -173,44 +173,29 @@
     transform: scaleX(-1);
   }
 
-  /* ─────────────────────────── stat tiles: two to a row */
+  /* ─────────────────────────── stat tiles: a glyph and a number, in a row */
   .tiles {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    display: flex;
+    flex-wrap: wrap;
     gap: 8px;
   }
   .tile {
-    display: flex;
+    display: inline-flex;
     min-width: 0;
+    max-inline-size: 100%;
     align-items: center;
-    gap: 8px;
-    padding: 10px;
-    border-radius: var(--r-md);
+    padding-block: 8px;
+    padding-inline: 10px;
+    border-radius: var(--r-pill);
     background: var(--ph-recess);
   }
-  .tileText {
-    display: flex;
+  /* the number is the point: ink, not the chip's soft ink, and a touch larger */
+  .tile > span {
     min-width: 0;
-    flex-direction: column;
-    gap: 2px;
-  }
-  .tileValue {
-    display: block;
-    overflow: hidden;
+    gap: 5px;
     color: rgb(var(--ink));
-    font-size: clamp(14px, 4vw, 16px);
+    font-size: 0.875rem;
     font-weight: 700;
-    font-variant-numeric: tabular-nums;
-    line-height: 1.15;
-    text-align: start;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    unicode-bidi: isolate;
-  }
-  .tileLabel {
-    color: rgb(var(--ink-soft));
-    font-size: 12.5px;
-    line-height: 1.3;
   }
 
   /* ─────────────────────────── segmented tabs: a pill track */
@@ -288,35 +273,29 @@
     font-weight: 700;
   }
 
-  /* ─────────────────────────── the pinned primary action */
+  /* ─────────────────────────── the pinned primary action: a Dock pill
+     (ui/Dock: opaque raised surface, hairline, one shadow, safe-area aware)
+     with a solid accent action inside, so it never blends with the page. */
   .pinned {
-    position: fixed;
-    inset-inline: 0;
-    inset-block-end: 0;
-    z-index: 40;
     display: flex;
-    box-sizing: border-box;
-    padding: 12px var(--ph-gutter) calc(12px + env(safe-area-inset-bottom, 0px));
-    pointer-events: none;
   }
   .pinnedLink {
     display: flex;
-    flex: 1;
     align-items: center;
     justify-content: center;
     gap: 10px;
     box-sizing: border-box;
-    min-height: 52px;
+    min-width: 11rem;
+    min-height: 44px;
+    padding-inline: 24px;
     border-radius: var(--r-pill);
     background: rgb(var(--signal));
     color: rgb(var(--signal-ink));
     font-size: 16px;
     font-weight: 700;
     text-decoration: none;
-    box-shadow: 0 10px 22px -12px rgb(var(--ink) / 0.45);
-    pointer-events: auto;
   }
-  /* the end of the page keeps clear of the pinned button: 52 + 12 + 12 + the safe area */
+  /* the end of the page keeps clear of the pill: 44 + 8 + 12 + the safe area, and air */
   :global(:root[data-has-pinned]) footer {
     padding-block-end: calc(76px + env(safe-area-inset-bottom, 0px) + 1.5rem);
     transition: none;
