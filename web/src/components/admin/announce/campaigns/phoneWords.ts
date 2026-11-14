@@ -23,7 +23,6 @@ export const usePhoneCampaignWords = defineWords(
     whenLabel: "When",
     countersLabel: "Counts",
     skipped: "Skipped",
-    notStarted: "Not started",
     readyHeading: "Before it can go out",
     tested: (when: string) => `Test sent ${when}`,
     notTested: "No test sent yet.",
@@ -45,7 +44,6 @@ export const usePhoneCampaignWords = defineWords(
     selectNote: "Select mode lists drafts only: a campaign that has started cannot be copied or deleted in bulk.",
 
     moreOptions: "More options",
-    reviewAbout: "About this step",
   },
   {
     stage: "שלב",
@@ -62,7 +60,6 @@ export const usePhoneCampaignWords = defineWords(
     whenLabel: "מתי",
     countersLabel: "ספירות",
     skipped: "דולגו",
-    notStarted: "עוד לא התחיל",
     readyHeading: "לפני שאפשר לשלוח",
     tested: (when: string) => `בדיקה נשלחה ${when}`,
     notTested: "עוד לא נשלחה בדיקה.",
@@ -84,6 +81,5 @@ export const usePhoneCampaignWords = defineWords(
     selectNote: "מצב הבחירה מציג טיוטות בלבד: קמפיין שכבר התחיל אי אפשר להעתיק או למחוק בכמות.",
 
     moreOptions: "אפשרויות נוספות",
-    reviewAbout: "על השלב הזה",
   },
 );
