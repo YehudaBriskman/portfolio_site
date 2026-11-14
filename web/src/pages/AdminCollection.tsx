@@ -252,7 +252,7 @@ export default function AdminCollection() {
           </div>
         </Disclosure>
 
-        <Disclosure open={!phone || isNew} summary={w.areaDetails} meta={phone && !isNew ? `${pw.kinds[d.kind]} · ${w.status[d.status]}` : undefined} className="mt-10">
+        <Disclosure open={!phone || isNew ? true : undefined} summary={w.areaDetails} meta={phone && !isNew ? `${pw.kinds[d.kind]} · ${w.status[d.status]}` : undefined} className="mt-10">
           <div className="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-2">
             <label className="block">
               <span className="a-label">Kind</span>
@@ -348,7 +348,7 @@ export default function AdminCollection() {
           </div>
         </Disclosure>
 
-        <Disclosure open={Boolean(repoLabel)} summary={w.areaRepository} className="mt-6">
+        <Disclosure open={repoLabel ? true : undefined} summary={w.areaRepository} className="mt-6">
           <div className="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-3">
             <label className="block">
               <span className="a-label">Owner</span>

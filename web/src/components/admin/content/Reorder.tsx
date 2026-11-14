@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown, ChevronUp, Trash2 } from "lucide-react";
 import { ICON } from "@/components/ui/icons";
+import { useReorderGlide } from "@/hooks/useReorderGlide";
 import { useContentWords } from "./words";
 import styles from "./EditorPhone.module.css";
 
@@ -29,6 +30,7 @@ export function ReorderRows<T>({ items, name, onChange }: Props<T>) {
   const [undo, setUndo] = useState<{ before: T[]; after: string } | null>(null);
   const focus = useRef<{ i: number; dir: "up" | "down" } | null>(null);
   const root = useRef<HTMLUListElement>(null);
+  const glide = useReorderGlide(root);
 
   useEffect(() => {
     const f = focus.current;
@@ -45,6 +47,7 @@ export function ReorderRows<T>({ items, name, onChange }: Props<T>) {
     const [moved] = next.splice(from, 1);
     next.splice(to, 0, moved);
     focus.current = { i: to, dir: to < from ? "up" : "down" };
+    glide(from, to);
     setUndo(null);
     setNote(w.moved(name(moved, from), to + 1, items.length));
     onChange(next);

@@ -643,6 +643,9 @@ async function checkPopover(lang, reduced) {
     return;
   }
   await arm(page);
+  /* The media grid still fades in by .a-settle: a transition, and none under reduced motion. */
+  const settle = await page.evaluate(() => { const e = document.querySelector(".a-settle"); return e ? getComputedStyle(e).transitionDuration : null; });
+  if (settle !== null) ok(reduced ? /^(0s|1e-05s)(, (0s|1e-05s))*$/.test(settle) : settle !== "0s", `${t}: the media grid settle is ${reduced ? "animated under reduced motion" : "not a transition"} (${settle})`);
   await page.evaluate((s) => document.querySelector(s).click(), sel);
   const st = await page.evaluate(async () => {
     await window.__m.soon(() => Boolean(document.querySelector('.pop[data-state="open"]')), 300);
@@ -691,15 +694,6 @@ async function checkPressAndSettle(lang, reduced) {
   ok(down.active, `${t}: a touch on a row does not make it :active`);
   if (!reduced) ok(down.bg !== before, `${t}: the pressed row has no tint on the first frame (${before} -> ${down.bg})`);
   if (!reduced) ok(down.dur === "0s" && down.running === 0, `${t}: the press tint is tweened (duration ${down.dur}, ${down.running} running), it must be there at once`);
-  /* The settle: content that replaces a skeleton fades in; nothing under reduced motion. */
-  const settle = await page.evaluate(() => {
-    const el = document.querySelector(".a-settle");
-    if (!el) return null;
-    const cs = getComputedStyle(el);
-    return { prop: cs.transitionProperty, dur: cs.transitionDuration };
-  });
-  ok(settle !== null, `${t}: no .a-settle on the loaded list`);
-  if (settle) ok(reduced ? /^(0s|1e-05s)(, (0s|1e-05s))*$/.test(settle.dur) : settle.prop.includes("opacity") && settle.dur !== "0s", `${t}: the skeleton-to-content settle is ${reduced ? "animated under reduced motion" : "not a transition"} (${JSON.stringify(settle)})`);
   await ctx.close();
 }
 
@@ -735,6 +729,162 @@ await checkListPresence("en", true);
 await checkPopover("en", true);
 await checkPressAndSettle("en", true);
 await checkDesktopLists();
+
+/* ---- motion pass 4 (#735): true skeleton cross-fade, reorder glide, and the cold-load audit. */
+async function stripAny(page, name, filter) {
+  const dir = process.env.STRIPS4;
+  if (!dir) return;
+  mkdirSync(dir, { recursive: true });
+  const cdp = await page.context().newCDPSession(page);
+  for (const t of [0, 80, 160, 240]) {
+    await page.evaluate(([t, f]) => {
+      for (const a of document.getAnimations()) {
+        if (f && !new Function("a", `return (${f})(a)`)(a)) continue;
+        const d = a.effect.getComputedTiming().duration || 1;
+        a.pause();
+        a.currentTime = Math.min(d, t);
+      }
+    }, [t, filter ? String(filter) : null]);
+    const { data } = await cdp.send("Page.captureScreenshot", { format: "png" });
+    writeFileSync(`${dir}/${name}-t${String(t).padStart(3, "0")}.png`, Buffer.from(data, "base64"));
+  }
+  await cdp.detach();
+}
+
+/* A phone context whose /api/admin/posts answer is held until release() is called. */
+async function openGated(lang, reduced, path, gate) {
+  const ctx = await browser.newContext({
+    viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true,
+    reducedMotion: reduced ? "reduce" : "no-preference", colorScheme: "light", locale: lang === "he" ? "he-IL" : "en-US",
+  });
+  await ctx.route((u) => !["127.0.0.1", "localhost"].includes(u.hostname), (route) => route.abort());
+  let release;
+  const held = new Promise((r) => (release = r));
+  await ctx.route("**/api/**", async (route) => {
+    const u = new URL(route.request().url());
+    if (u.pathname.endsWith(gate)) await held;
+    const a = answer(u.pathname, route.request().method(), u.search);
+    return route.fulfill({ status: a.status ?? 200, contentType: "application/json", body: JSON.stringify(a.body ?? {}) });
+  });
+  const page = await ctx.newPage();
+  page.on("pageerror", (e) => fail(`${lang} ${path}: page error ${e.message}`));
+  await page.goto(`${base}${lang === "he" ? "/he" : ""}${path}`, { waitUntil: "load" });
+  return { page, ctx, release };
+}
+
+async function checkCrossFade(lang, reduced) {
+  const t = `${tag(lang, reduced)} skeleton cross-fade`;
+  const { page, ctx, release } = await openGated(lang, reduced, "/admin/posts", "/admin/posts");
+  if (!(await waitFor(page, () => Boolean(document.querySelector('[data-phase="loading"]'))))) {
+    fail(`${t}: no skeleton while the list loads`);
+    await ctx.close();
+    return;
+  }
+  await arm(page);
+  const skelH = await page.evaluate(() => Math.round(document.querySelector('[data-phase="loading"] .a-skel-row')?.getBoundingClientRect().height ?? 0));
+  ok(skelH > 0, `${t}: the skeleton has no height`);
+  release();
+  await page.evaluate(async () => { await window.__m.soon(() => document.querySelector('[data-list-row]'), 1500); });
+  const st = await page.evaluate(() => {
+    const sw = document.querySelector("[data-phase]");
+    const ghost = sw?.querySelector('[data-state="closed"]');
+    return { rows: document.querySelectorAll("[data-list-row]").length, phase: sw?.getAttribute("data-phase"), ghost: Boolean(ghost), inert: ghost?.inert ?? null, t: window.__m.transitions().map((a) => window.__m.desc(a)) };
+  });
+  ok(st.rows > 3, `${t}: the list is not drawn at once when the data arrives`);
+  if (reduced) {
+    ok(!st.ghost && st.t.length === 0, `${t}: reduced motion keeps the skeleton or animates (${JSON.stringify(st)})`);
+  } else {
+    ok(st.phase === "swap" && st.ghost && st.inert, `${t}: the skeleton does not stay as a closed ghost while the list arrives (${JSON.stringify(st)})`);
+    ok(st.t.filter((x) => x.prop === "opacity").length >= 2, `${t}: the skeleton and the content do not both fade (${JSON.stringify(st.t)})`);
+    const mid = await page.evaluate(() => window.__m.seek(0.5, () => true));
+    const ops = mid.filter((x) => x.prop === "opacity").map((x) => Number(x.value));
+    ok(ops.length >= 2 && ops.every((v) => v > 0 && v < 1), `${t}: halfway, both layers are not between 0 and 1 (${JSON.stringify(ops)})`);
+    await stripAny(page, `crossfade-${lang}`, (a) => a instanceof CSSTransition);
+    await page.evaluate(() => window.__m.cancelAll());
+    await page.waitForTimeout(HARD_MS);
+    const after = await page.evaluate(() => ({ phase: document.querySelector("[data-phase]")?.getAttribute("data-phase"), ghost: Boolean(document.querySelector('[data-phase] [data-state="closed"]')) }));
+    ok(after.phase === "ready" && !after.ghost, `${t}: the skeleton ghost is still in the DOM ${HARD_MS}ms after the data arrived (${JSON.stringify(after)})`);
+  }
+  await ctx.close();
+}
+
+async function checkReorder(lang, reduced) {
+  const t = `${tag(lang, reduced)} reorder`;
+  const { page, ctx } = await open(lang, reduced, "/admin/projects");
+  if (!(await waitFor(page, () => Boolean(document.querySelector("main button[aria-pressed]"))))) {
+    fail(`${t}: no Reorder button on /admin/projects`);
+    await ctx.close();
+    return;
+  }
+  await arm(page);
+  await page.evaluate(() => document.querySelector("main button[aria-pressed]").click());
+  await page.evaluate(async () => { await window.__m.soon(() => document.querySelectorAll("li[data-i]").length > 2, 500); });
+  const before = await page.evaluate(() => [...document.querySelectorAll("li[data-i]")].slice(0, 3).map((l) => l.textContent));
+  await page.evaluate(() => document.querySelector('li[data-i="0"] [data-move="down"]').click());
+  const after = await page.evaluate(async () => {
+    await window.__m.soon(() => true, 20);
+    const rows = [...document.querySelectorAll("li[data-i]")];
+    const anims = document.getAnimations().filter((a) => a.effect?.target?.matches?.("li[data-i]"));
+    for (const a of anims) a.pause(); /* held at the start: the hard timer must still cancel it, and the strip is deterministic */
+    return { names: rows.slice(0, 3).map((l) => l.textContent), n: anims.length, tf: anims.map((a) => a.effect.getKeyframes()[0].transform) };
+  });
+  ok(after.names[0] === before[1] && after.names[1] === before[0], `${t}: the order did not flip at once (${JSON.stringify([before, after.names])})`);
+  if (reduced) ok(after.n === 0, `${t}: reduced motion glides (${after.n} animations)`);
+  else {
+    ok(after.n >= 2 && after.tf.every((x) => /translateY\(/.test(x)), `${t}: the swapped rows do not glide (${JSON.stringify(after)})`);
+    await stripAny(page, `reorder-${lang}`, (a) => a.effect?.target?.matches?.("li[data-i]"));
+    await page.waitForTimeout(HARD_MS);
+    ok((await page.evaluate(() => document.getAnimations().filter((a) => a.effect?.target?.matches?.("li[data-i]")).length)) === 0, `${t}: a glide is still running ${HARD_MS}ms after the move`);
+  }
+  await ctx.close();
+}
+
+/* Cold loads at 390: poll getAnimations for 1.5 s from the first script and list every time-driven entrance. */
+async function checkColdLoads() {
+  for (const path of ["/admin", "/admin/marketing", "/admin/posts", "/admin/settings"]) {
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, reducedMotion: "no-preference", colorScheme: "light", locale: "en-US" });
+    await ctx.route((u) => !["127.0.0.1", "localhost"].includes(u.hostname), (route) => route.abort());
+    await ctx.route("**/api/**", (route) => {
+      const u = new URL(route.request().url());
+      const a = answer(u.pathname, route.request().method(), u.search);
+      return route.fulfill({ status: a.status ?? 200, contentType: "application/json", body: JSON.stringify(a.body ?? {}) });
+    });
+    await ctx.addInitScript(() => {
+      window.__seen = new Map();
+      const sample = () => {
+        for (const a of document.getAnimations()) {
+          const tg = a.effect?.target;
+          const el = tg ? (tg.tagName || "?").toLowerCase() + (tg.className && typeof tg.className === "string" ? "." + tg.className.split(" ")[0] : "") + (a.effect.pseudoElement || "") + (tg.getAttribute?.("role") ? "[" + tg.getAttribute("role") + "]" : "") : "?";
+          const kind = a instanceof CSSTransition ? "transition:" + a.transitionProperty : a instanceof CSSAnimation ? "animation:" + a.animationName : "waapi";
+          const timed = a.timeline instanceof DocumentTimeline;
+          window.__seen.set(kind + "|" + el + "|" + (timed ? "time" : "scroll"), 1);
+        }
+      };
+      setInterval(sample, 16);
+    });
+    const page = await ctx.newPage();
+    await page.goto(base + path, { waitUntil: "load" });
+    await page.waitForTimeout(1800);
+    const seenList = await page.evaluate(() => [...window.__seen.keys()]);
+    /* The contract allows: the route fade of a screen's top-level blocks (opacity), and scroll-driven placeholders. Nothing else time-driven. */
+    const timed = seenList.filter((k) => k.endsWith("|time"));
+    const allowed = (k) => k.startsWith("transition:opacity|") || /^transition:translate\|div\[tabpanel\]\|/.test(k);
+    const offenders = timed.filter((k) => !allowed(k));
+    ok(offenders.length === 0, `cold load ${path} at 390: time-driven entrances at mount other than the route fade, the tab panel rise and the skeleton cross-fade: ${JSON.stringify(offenders)}`);
+    coldReport.push(`${path}: ${timed.length ? timed.join(", ") : "none"}`);
+    await ctx.close();
+  }
+}
+const coldReport = [];
+
+for (const lang of ["en", "he"]) {
+  await checkCrossFade(lang, false);
+  await checkReorder(lang, false);
+}
+await checkCrossFade("en", true);
+await checkReorder("en", true);
+await checkColdLoads();
+if (process.env.COLD) console.log(coldReport.join("\n"));
 
 /* Desktop (>= 600px) keeps the contract as is: none of the phone motion exists. */
 {

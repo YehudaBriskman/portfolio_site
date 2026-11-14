@@ -389,9 +389,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: [classify]
     if: fromJSON(needs.classify.outputs.jobs).browser
-    # Projected: ~100 s of a11y per leg (a sixth of ~600 s) or ~90 s of
-    # links, plus ~45 s of setup. Ten leaves room for a slow runner without
-    # letting a hung page hold a leg for the old 25.
+    # Measured (runs 43579785095..43582865418): the longest legs are
+    # admin-phone 2 (~5 min) and admin-matrix (~3.3 min); a11y and links are
+    # ~2 min. Ten is 2x the longest and still stops a hung page well short
+    # of the old 25. A leg near 5 min wants splitting, not a longer timeout.
     timeout-minutes: 10
     strategy:
       # Every leg reports, so one failing shard does not hide another's.
@@ -413,6 +414,15 @@ jobs:
           # combinations (SHARD=k/n), the same way as the sweep above.
           - { check: admin-matrix, shard: 1, of: 2 }
           - { check: admin-matrix, shard: 2, of: 2 }
+          # The phone-admin layout checks (#655 onward) used to ride on a11y
+          # leg 1, which then ran ~10 min and hit its timeout (run
+          # 43582865418, 2026-11-14). They are legs of their own, running in
+          # parallel with the sweep: leg 1 is the layout, inbox, screens,
+          # posts and editors scripts (~210 s), leg 2 is media, control
+          # budgets, motion, reflow, sheets and typing (~260 s). A new phone
+          # script goes on the shorter leg; keep each under ~5 min.
+          - { check: admin-phone, shard: 1, of: 2 }
+          - { check: admin-phone, shard: 2, of: 2 }
     defaults:
       run:
         working-directory: web
@@ -486,63 +496,70 @@ jobs:
         run: npm run a11y
       # Admin on a phone (#655): the projects list stays on screen, the draft
       # banner keeps its sentence, the small links are 44px. Layout, which axe
-      # cannot see; one leg is enough, it is not sharded.
+      # cannot see; leg 1 of 2.
       - name: Admin phone layout
-        if: matrix.check == 'a11y' && matrix.shard == 1
+        if: matrix.check == 'admin-phone' && matrix.shard == 1
         run: npm run a11y:admin-phones
       # The Marketing Inbox on a phone (#670): one tappable row per event,
       # at least 7 rows above the fold, no sideways scroll, the sheet opens
       # and gives focus back, Hebrew mirrors.
       - name: Admin Inbox on a phone
-        if: matrix.check == 'a11y' && matrix.shard == 1
+        if: matrix.check == 'admin-phone' && matrix.shard == 1
         run: npm run a11y:admin-inbox-phone
       # Overview, Connected apps, Translations and Settings on a phone
       # (#682): rows with one button and at most two facts, five setting
       # groups, the save history as compact rows, no sideways scroll.
       - name: Admin screens on a phone
-        if: matrix.check == 'a11y' && matrix.shard == 1
+        if: matrix.check == 'admin-phone' && matrix.shard == 1
         run: npm run a11y:admin-phone-screens
       # Posts and Areas on a phone (#680): one tappable row per record, at
       # least 7 post rows above the fold, no sideways scroll, Select shows
       # the bulk bar, the publish review is a sheet that leads with what
       # changes, Hebrew mirrors, and the desktop table is unchanged.
       - name: Admin Posts and Areas on a phone
-        if: matrix.check == 'a11y' && matrix.shard == 1
+        if: matrix.check == 'admin-phone' && matrix.shard == 1
         run: npm run a11y:admin-posts-phone
       # The content editors on a phone (#683): groups, one language, Reorder,
       # at most 4 viewport heights, no sideways scroll, desktop unchanged.
       - name: Admin editors on a phone
-        if: matrix.check == 'a11y' && matrix.shard == 1
+        if: matrix.check == 'admin-phone' && matrix.shard == 1
         run: npm run a11y:admin-editors-phone
       # The media library on a phone (#681): square tiles, 3 columns, at
       # least 6 tiles above the fold, no sideways scroll, the sheet puts the
       # alt text first and gives focus back, the desktop is unchanged.
       - name: Admin Media on a phone
-        if: matrix.check == 'a11y' && matrix.shard == 1
+        if: matrix.check == 'admin-phone' && matrix.shard == 2
         run: npm run a11y:admin-media-phone
       # Controls in the first screen of the editor, the review sheet, Audience,
       # Areas, the nav drawer and Library at 390x844, English and Hebrew: under
       # budget, no sideways scroll, focus returns, the desktop is unchanged.
       - name: Admin control budgets on a phone
-        if: matrix.check == 'a11y' && matrix.shard == 1
+        if: matrix.check == 'admin-phone' && matrix.shard == 2
         run: npm run a11y:admin-density-phone
       # Enter and exit motion on phones (#709): state first, transitions only
       # under no-preference, mirrored in RTL, never stuck, none on desktop.
       - name: Admin enter/exit motion
-        if: matrix.check == 'a11y' && matrix.shard == 1
+        if: matrix.check == 'admin-phone' && matrix.shard == 2
         run: npm run a11y:admin-motion
       # Reflow and device edge cases: the bulk bar at 320 and at 200% text, /story
       # headings at 320 and 280, Switch under forced-colors, 200% text at 320 and
       # 390, a landscape notch, Hebrew back arrows, heading levels.
       - name: Admin reflow and device edge cases
-        if: matrix.check == 'a11y' && matrix.shard == 1
+        if: matrix.check == 'admin-phone' && matrix.shard == 2
         run: npm run a11y:admin-reflow
       # Bottom sheets with real touch events (#715): a drag-dismissed sheet
       # reopens in the same place, a native close reaches the component, a
       # flick dismisses, one Back is never dead, focus never falls to body.
       - name: Bottom sheets on a phone
-        if: matrix.check == 'a11y' && matrix.shard == 1
+        if: matrix.check == 'admin-phone' && matrix.shard == 2
         run: npm run a11y:bottom-sheet-phone
+      # Typing never throws the user out of a field: every text, email, url,
+      # number and textarea in Marketing and site Settings is typed into with
+      # awkward characters and Hebrew, at 390 and 1280; focus, value and the
+      # expanders around the field must hold after every character.
+      - name: Admin typing keeps focus and expanders
+        if: matrix.check == 'admin-phone' && matrix.shard == 2
+        run: npm run a11y:admin-typing
       # Admin at 320, 360, 390 and 768 wide, light and dark, English and
       # Hebrew (#660): no sideways scroll, no target under 24px, no primary
       # control under 44px on touch, no text under 14px outside the

@@ -56,7 +56,8 @@ describe("the Signature image settings", () => {
   it("says what to avoid and starts with every use off", async () => {
     await open();
     expect(screen.getByTestId("signature-bank-note").textContent).toBe("Use a stylised signature, not the one on your bank or ID: anything shown publicly can be copied.");
-    for (const name of ["Email footer", "End of posts", "Share cards"]) expect(screen.getByRole("switch", { name })).not.toBeChecked();
+    expect(screen.queryByRole("switch", { name: "Share cards" })).toBeNull();
+    for (const name of ["Email footer", "End of posts"]) expect(screen.getByRole("switch", { name })).not.toBeChecked();
     expect(slotEn().getByText("No signature yet")).toBeTruthy();
   });
 
@@ -66,9 +67,9 @@ describe("the Signature image settings", () => {
     await waitFor(() => expect(svc.saveShow).toHaveBeenCalledWith({ email: false, posts: true, cards: false }));
     await waitFor(() => expect(toast.live().some((t) => t.kind === "success")).toBe(true));
     svc.saveShow.mockRejectedValueOnce(new Error("down"));
-    fireEvent.click(screen.getByRole("switch", { name: "Share cards" }));
+    fireEvent.click(screen.getByRole("switch", { name: "Email footer" }));
     await waitFor(() => expect(toast.live().some((t) => t.kind === "error")).toBe(true));
-    expect(screen.getByRole("switch", { name: "Share cards" })).not.toBeChecked();
+    expect(screen.getByRole("switch", { name: "Email footer" })).not.toBeChecked();
   });
 
   it("draws with a pointer, undoes, redoes, clears, and sends only strokes", async () => {

@@ -22,7 +22,6 @@ import {
   type SigSlotDoc,
 } from "./schemas.js";
 import { strokesToSvg } from "./strokes.js";
-import { getShow, getSlot, tryGet } from "./store.js";
 import { resolveSignature } from "./resolve.js";
 
 /*
@@ -48,6 +47,21 @@ const adminRouter = Router();
 const invalid = (res: Response, issues: Issue[]) =>
   res.status(400).json({ ok: false, error: issues.length === 1 ? "1 field needs attention" : `${issues.length} fields need attention`, issues });
 const gone = (res: Response) => res.status(404).json({ ok: false, error: "Not Found" });
+
+async function tryGet<T>(id: string): Promise<T | null> {
+  try {
+    return await couch.get<T>(id);
+  } catch (e) {
+    if (e instanceof CouchError && e.status === 404) return null;
+    throw e;
+  }
+}
+const getSlot = (lang: SigLang) => tryGet<SigSlotDoc>(slotId(lang));
+const getShow = async (): Promise<SigShow> => {
+  const d = await tryGet<SigShowDoc>(SHOW_ID);
+  const p = d ? ShowBody.safeParse({ show: d.show }) : null;
+  return p?.success ? p.data.show : DEFAULT_SHOW;
+};
 
 const state = async () => ({
   ok: true,

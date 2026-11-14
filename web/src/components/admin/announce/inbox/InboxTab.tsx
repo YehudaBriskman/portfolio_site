@@ -6,6 +6,7 @@ import { usePhone } from "@/hooks/usePhone";
 import { copyText } from "@/lib/share";
 import { adminAnnounce, type AnnounceChannel, type AnnounceSummary } from "@/services/adminAnnounce";
 import Composer from "./Composer";
+import { SkeletonSwap } from "@/components/ui/SkeletonSwap";
 import { ListPresence } from "@/components/ui/ListPresence";
 import InboxPhoneRow from "./InboxPhoneRow";
 import InboxRow from "./InboxRow";
@@ -185,51 +186,53 @@ export default function InboxTab({ items, error, onRetry, onChange, onCreated }:
         </div>
       )}
 
-      {error === "auth" ? (
-        <p className="a-box a-box-row">{w.notAuthorised}</p>
-      ) : error ? (
-        <ErrorState message={w.loadFailed} onRetry={onRetry} />
-      ) : items === null ? (
-        <LoadingRows rows={4} />
-      ) : items.length === 0 ? (
-        <EmptyState title={w.emptyTitle}>
-          <Megaphone aria-hidden="true" className="mx-auto mb-2 h-5 w-5" />
-          {w.emptyText}
-        </EmptyState>
-      ) : phone ? (
-        <ListPresence as="ul" items={list} itemKey={(e) => e.id} className="mk-list mk-plist a-settle" aria-label={w.list(items.length)}>
-          {(e) => (
-            <InboxPhoneRow
-              event={e}
-              readiness={readiness[e.id]}
-              onOpen={() => {
-                setSelectedId(e.id);
-                setOpenId(e.id);
-              }}
-            />
-          )}
-        </ListPresence>
-      ) : (
-        <ul ref={listRef} className="mk-list" aria-label={w.list(items.length)} aria-describedby="mk-keys">
-          {list.map((e) => (
-            <InboxRow
-              key={e.id}
-              event={e}
-              selected={e.id === selected?.id}
-              readiness={readiness[e.id]}
-              note={note?.id === e.id ? note.text : undefined}
-              onOpen={() => {
-                setSelectedId(e.id);
-                setOpenId(e.id);
-              }}
-              onCopy={(c) => {
-                setSelectedId(e.id);
-                void quickCopy(e, c);
-              }}
-            />
-          ))}
-        </ul>
-      )}
+      <SkeletonSwap loading={!error && items === null} skeleton={<LoadingRows rows={4} />}>
+        {error === "auth" ? (
+          <p className="a-box a-box-row">{w.notAuthorised}</p>
+        ) : error ? (
+          <ErrorState message={w.loadFailed} onRetry={onRetry} />
+        ) : items === null ? (
+          null
+        ) : items.length === 0 ? (
+          <EmptyState title={w.emptyTitle}>
+            <Megaphone aria-hidden="true" className="mx-auto mb-2 h-5 w-5" />
+            {w.emptyText}
+          </EmptyState>
+        ) : phone ? (
+          <ListPresence as="ul" items={list} itemKey={(e) => e.id} className="mk-list mk-plist" aria-label={w.list(items.length)}>
+            {(e) => (
+              <InboxPhoneRow
+                event={e}
+                readiness={readiness[e.id]}
+                onOpen={() => {
+                  setSelectedId(e.id);
+                  setOpenId(e.id);
+                }}
+              />
+            )}
+          </ListPresence>
+        ) : (
+          <ul ref={listRef} className="mk-list" aria-label={w.list(items.length)} aria-describedby="mk-keys">
+            {list.map((e) => (
+              <InboxRow
+                key={e.id}
+                event={e}
+                selected={e.id === selected?.id}
+                readiness={readiness[e.id]}
+                note={note?.id === e.id ? note.text : undefined}
+                onOpen={() => {
+                  setSelectedId(e.id);
+                  setOpenId(e.id);
+                }}
+                onCopy={(c) => {
+                  setSelectedId(e.id);
+                  void quickCopy(e, c);
+                }}
+              />
+            ))}
+          </ul>
+        )}
+      </SkeletonSwap>
 
       {phone && (
         <InboxSheet
