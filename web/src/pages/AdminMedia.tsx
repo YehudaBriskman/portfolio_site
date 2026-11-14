@@ -9,7 +9,7 @@ import { usePhone } from "@/hooks/usePhone";
 import MediaPhone from "@/components/admin/MediaPhone";
 import { useMediaPhoneWords } from "@/components/admin/mediaPhoneWords";
 import AdminShell from "@/components/admin/AdminShell";
-import { PageHeader } from "@/components/admin/ui";
+import { ErrorState, PageHeader } from "@/components/admin/ui";
 import { KindFilter, MediaGrid, Modal } from "@/components/admin/MediaGrid";
 import MediaUpload from "@/components/admin/MediaUpload";
 import MediaIcon from "@/components/media/MediaIcon";
@@ -158,7 +158,7 @@ export default function AdminMedia() {
         {notice || (items === null ? (phone ? p.loading : "Loading the library") : phone ? p.count(shown.length, items.length) : `${shown.length} of ${items.length} items`)}
       </p>
 
-      {error && <p className={`a-card p-4 text-sm text-bone/70 ${phone ? "mt-4" : "mt-8"}`}>{error}</p>}
+      {error && <div className={phone ? "mt-4" : "mt-8"}><ErrorState message={error} /></div>}
       {!error && items === null && <p className={`mono text-sm text-clay ${phone ? "mt-4" : "mt-8"}`}>{phone ? p.loading : "Loading…"}</p>}
 
       {items !== null && items.length === 0 && (

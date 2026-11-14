@@ -35,6 +35,7 @@ export const useAudienceWords = defineWords(
     emptyFirst: "No contacts yet. Visitors who sign up appear here, or add people yourself.",
     loadMore: "Load more",
     loadingMore: "Loading more…",
+    loadMoreFailed: "Couldn't load more. Try again.",
 
     colEmail: "Email",
     colName: "Name",
@@ -200,6 +201,7 @@ export const useAudienceWords = defineWords(
     emptyFirst: "עדיין אין אנשי קשר. מי שנרשם באתר יופיע כאן, ואפשר גם להוסיף אנשים ידנית.",
     loadMore: "טען עוד",
     loadingMore: "טוען עוד…",
+    loadMoreFailed: "לא הצלחנו לטעון עוד. נסו שוב.",
 
     colEmail: "אימייל",
     colName: "שם",

@@ -1,6 +1,8 @@
 import { useState, type ReactNode } from "react";
+import { Link } from "react-router-dom";
 import { fullDate, relative, useLang } from "@/components/dashboard/i18n";
 import { useAdminWords } from "@/i18n/admin";
+import { NOT_AUTHORISED, signInHref } from "@/services/authError";
 
 /*
  * The admin's shared parts (#288): the page header, the status pill, a
@@ -90,17 +92,42 @@ export function LoadingRows({ rows = 4, label }: { rows?: number; label?: string
   );
 }
 
-export function ErrorState({ message, onRetry }: { message: string; onRetry?: () => void }) {
+/* `message` may be the services' not-authorised token (a 401 or 403): it is shown as a sentence with a way back in. */
+export function ErrorState({ message, onRetry, signIn }: { message: string; onRetry?: () => void; signIn?: boolean }) {
   const w = useAdminWords();
+  const auth = signIn || message === NOT_AUTHORISED;
   return (
     <div className="a-box a-blank" role="alert">
       <p className="a-blank-title">{w.loadFailed}</p>
-      <p className="a-blank-text">{message}</p>
-      {onRetry && (
-        <button type="button" className="a-btn mt-3" onClick={onRetry}>
-          {w.retry}
-        </button>
-      )}
+      <p className="a-blank-text">{message === NOT_AUTHORISED ? w.sessionEnded : message}</p>
+      <div className="mt-3 flex flex-wrap justify-center gap-2">
+        {auth && (
+          <a className="a-btn" href={signInHref(window.location.pathname + window.location.search)}>
+            {w.signInAgain}
+          </a>
+        )}
+        {onRetry && (
+          <button type="button" className="a-btn" onClick={onRetry}>
+            {w.retry}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* A deep link to something that is gone: say so, and the way back. Never an empty form that looks like "new". */
+export function NotFoundState({ text, to, back }: { text: string; to: string; back: string }) {
+  const w = useAdminWords();
+  return (
+    <div className="a-box a-blank" role="alert">
+      <p className="a-blank-title">{w.notFound}</p>
+      <p className="a-blank-text">{text}</p>
+      <div className="mt-3 flex flex-wrap justify-center gap-2">
+        <Link className="a-btn" to={to}>
+          {back}
+        </Link>
+      </div>
     </div>
   );
 }

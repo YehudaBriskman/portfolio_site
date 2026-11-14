@@ -1,3 +1,4 @@
+import type { ReactElement } from "react";
 import { afterEach, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
@@ -13,7 +14,7 @@ afterEach(() => (cleanup(), vi.unstubAllGlobals()));
 const phone = (on: boolean) =>
   vi.stubGlobal("matchMedia", (q: string) => ({ matches: on && q.includes("max-width: 599px"), media: q, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {}, onchange: null, dispatchEvent: () => false }));
 
-const cases: [string, boolean, string, () => JSX.Element][] = [
+const cases: [string, boolean, string, () => ReactElement][] = [
   ["Posts phone", true, "/admin/posts", () => <Admin />],
   ["Posts desktop", false, "/admin/posts", () => <Admin />],
   ["Areas phone", true, "/admin/areas", () => <AdminAreas />],
