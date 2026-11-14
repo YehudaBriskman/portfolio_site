@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
+import { toast } from "@/lib/toast";
 import { Check, Link2 } from "lucide-react";
 import { copyText } from "@/lib/share";
 import { useLang } from "@/components/dashboard/i18n";
@@ -21,8 +22,8 @@ import styles from "@/components/notes/headingAnchors.module.css";
  */
 
 const WORDS = {
-  en: { copy: "Copy a link to this section", copied: "Link copied" },
-  he: { copy: "העתקת קישור לסעיף הזה", copied: "הקישור הועתק" },
+  en: { copy: "Copy a link to this section", copied: "Link copied", failed: "Couldn’t copy the link" },
+  he: { copy: "העתקת קישור לסעיף הזה", copied: "הקישור הועתק", failed: "העתקת הקישור נכשלה" },
 };
 
 function AnchorButton({ id }: { id: string }) {
@@ -47,14 +48,14 @@ function AnchorButton({ id }: { id: string }) {
           const hash = `#${encodeURIComponent(id)}`;
           // The address bar says where the reader is, without a jump.
           window.history.replaceState(window.history.state, "", hash);
-          setCopied(await copyText(`${window.location.origin}${window.location.pathname}${hash}`));
+          const ok = await copyText(`${window.location.origin}${window.location.pathname}${hash}`);
+          setCopied(ok);
+          if (ok) toast.success(w.copied);
+          else toast.error(w.failed, { help: { topic: "sharing" } });
         }}
       >
         {copied ? <Check size={16} aria-hidden="true" /> : <Link2 size={16} aria-hidden="true" />}
       </button>
-      <span className="sr-only" role="status">
-        {copied ? w.copied : ""}
-      </span>
     </>
   );
 }
