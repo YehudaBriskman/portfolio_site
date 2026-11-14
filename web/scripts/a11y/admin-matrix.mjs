@@ -194,7 +194,7 @@ const SCREENS = [
   ["marketing-library", "/admin/marketing?tab=library"],
   ["marketing-settings", "/admin/marketing?tab=settings"],
   /* On a phone Settings is a list of groups: a sheet (two switches), and the heaviest pages with every section open. */
-  ["marketing-settings-sheet", "/admin/marketing?tab=settings", click('[data-settings-group="mail"] button')],
+  ["marketing-settings-sheet", "/admin/marketing?tab=settings", async (page) => { const row = page.locator('[data-settings-group="mail"] button'); /* from 600px the form is the desktop one and has no group rows */ if (await row.count()) await row.dispatchEvent("click", {}, { timeout: 20000 }); }],
   ["marketing-settings-expanded", "/admin/marketing?tab=settings&section=sender", async (page) => { await page.evaluate(() => document.querySelectorAll("details").forEach((d) => (d.open = true))); }],
   ["marketing-settings-limits", "/admin/marketing?tab=settings&section=limits", async (page) => { await page.evaluate(() => document.querySelectorAll("details").forEach((d) => (d.open = true))); }],
   ["not-found-admin", "/admin/does-not-exist"],
@@ -324,7 +324,7 @@ for (const c of combos) {
       if (rec.broken) console.log("  body:", (await page.evaluate(() => document.body.innerText)).replace(/\s+/g, " ").slice(0, 300));
       if (process.env.DEBUG) console.log("  main:", (await page.evaluate(() => document.querySelector("main")?.innerText ?? "")).replace(/\s+/g, " ").slice(0, 250));
       rec.dir = await page.evaluate(() => `${document.documentElement.lang}/${document.documentElement.dir}`);
-      if (process.env.SHOTS) await page.screenshot({ path: resolve(process.env.SHOTS, `${name}-${c.v.w}-${c.theme}-${c.lang}.png`), fullPage: !!process.env.FULLPAGE });
+      if (process.env.SHOTS) await page.screenshot({ path: resolve(process.env.SHOTS, `${name}-${c.v.w}-${c.theme}-${c.lang}.png`), fullPage: !!process.env.FULLPAGE, timeout: 120000 });
     } catch (e) { rec.error = e.message.split("\n")[0]; }
     rec.ms = Date.now() - t0; results.push(rec);
     console.log(`${rec.ms}ms ${name} ${c.v.id} ${c.theme} ${c.lang}: overflow ${rec.overflow?.length ?? "?"} tiny ${rec.tinyTargets?.length ?? "?"} small ${rec.smallTargets?.length ?? "?"} text ${rec.smallText?.length ?? "?"}${rec.broken ? " BROKEN " + rec.broken : ""}${rec.stepFailed ? " STEPFAIL " + rec.stepFailed : ""}${rec.error ? " ERR " + rec.error : ""}`);
