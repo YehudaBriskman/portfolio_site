@@ -42,7 +42,10 @@
   width: 100%;
   height: 100%;
   z-index: -1;
-  overflow: visible;
+  /* Visible down the page (the box is the drawing's height), clipped across
+     it: the box is the page's width at most, so nothing is wider than the screen. */
+  overflow-x: clip;
+  overflow-y: visible;
   pointer-events: none;
   view-timeline: --living-line block;
   view-timeline-inset: 50%;

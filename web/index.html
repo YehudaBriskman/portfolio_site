@@ -5,7 +5,13 @@
 <html lang="en" dir="ltr">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <!-- `interactive-widget` is left at its default, resizes-visual: the on-screen
+         keyboard covers the page and the page does not re-lay itself out under
+         it (`resizes-content` would, shifting the contact form and the fixed
+         bars); the browser scrolls a field being typed in into view.
+         `viewport-fit=cover` lets the page run under a notch, so the bar and
+         the gutters pad themselves with `env(safe-area-inset-*)`. No zoom lock. -->
+    <meta name="viewport"content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Yehuda Briskman &middot; Full-stack engineer &amp; team lead</title>
 
     <!--

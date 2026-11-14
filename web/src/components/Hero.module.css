@@ -120,7 +120,8 @@
  * copies of this clamp would be two answers to where the type begins.
  */
 .screen {
-  --screen-pad: clamp(6rem, 5rem + 4vh, 8.5rem);
+  /* Plus the notch: the bar is that much taller where there is one (Nav.module.css). */
+  --screen-pad: calc(clamp(6rem, 5rem + 4vh, 8.5rem) + var(--bar-inset, 0px));
 
   padding-block-start: var(--screen-pad);
 }

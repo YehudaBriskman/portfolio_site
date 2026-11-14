@@ -348,14 +348,15 @@
  * reader has to discover, and the whole claim of this corner is that this
  * is the one thing on the screen worth pointing out.
  *
- * `pointer-events: auto` takes back what the frame gave away. 44px of block
- * padding is not spent: the link is one line of 17px type inside a 1.4
- * line-height, and the inline-block target is the text's own box. The
- * surrounding `padding-block` below brings the hit area to 38px, which is
- * inside a corner nothing else is competing for — a 44px box here would
- * overlap the figure's foot on a phone.
+ * `pointer-events: auto` takes back what the frame gave away. The link is
+ * one line of 17px type inside a 1.4 line-height and the padding below
+ * brings its box to 35px. A 44px *box* would push the line under it down and
+ * overlap the figure's foot on a phone, so on a coarse pointer the missing
+ * height is an invisible `::after`: the layout does not move and a thumb
+ * still gets 44px (the mark in the nav does the same).
  */
 .askLink {
+  position: relative;
   align-self: flex-start;
   padding-block: 0.3rem;
   font-family: var(--font-text);
@@ -384,6 +385,27 @@
   text-transform: uppercase;
   letter-spacing: var(--track-field);
   color: rgb(var(--ink-soft));
+}
+
+@media (pointer: coarse) {
+  .askLink::after {
+    content: '';
+    position: absolute;
+    inset-block: -0.4rem;
+    inset-inline: -0.5rem;
+  }
+
+  /*
+   * A thumb's clearance under the last line: 24px at the least (it was 12px
+   * on a landscape phone), and clear of the home indicator where there is one.
+   * Coarse pointers only, so a desktop window keeps its 0.75rem to 2rem.
+   */
+  .corners {
+    inset-block-end: calc(
+      100% + var(--screen-pad) - 100svh +
+        max(clamp(1.5rem, 2.5vh, 2rem), env(safe-area-inset-bottom, 0px) + 0.75rem)
+    );
+  }
 }
 
 /* ── below 700px, where the corners are 40px apart ────────────────────── */
@@ -462,7 +484,7 @@
        so the ramp reaches the bottom of the screen rather than stopping a
        few pixels short of it and leaving a strip of photograph under it. */
     inset-block-end: calc(100% + var(--screen-pad) - 100svh);
-    padding-block: 5rem clamp(0.5rem, 1.6vh, 1rem);
+    padding-block: 5rem max(1.5rem, env(safe-area-inset-bottom, 0px) + 0.75rem);
     background: linear-gradient(
       to top,
       rgb(var(--paper)) 0%,
