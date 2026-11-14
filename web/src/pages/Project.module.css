@@ -528,9 +528,9 @@ a.listRow:hover .listTitle {
   .phoneTitle {
     margin: 0;
     max-inline-size: 100%;
-    font-family: var(--font-display);
+    font-family: var(--font-ui);
     font-size: clamp(1.25rem, 6vw, 1.625rem);
-    font-weight: var(--weight-display);
+    font-weight: var(--weight-ui);
     line-height: 1.15;
     letter-spacing: var(--track-sub);
     color: rgb(var(--ink));
