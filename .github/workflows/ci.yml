@@ -593,8 +593,9 @@ jobs:
   # Lighthouse, which vary on a shared runner.
   #
   # A job of its own, not legs of Browser checks: those are at 2-5 min each
-  # already. Two legs split the page loads (SHARD=k/n); measured at ~2 min
-  # each on a dev box, so ten minutes is generous and still stops a hung page.
+  # already. Two legs split the page loads (SHARD=k/n); measured on CI at
+  # 1 min 13 s and 1 min 17 s a leg (setup included), so five minutes is about
+  # twice that and still stops a hung page.
   # It runs on pull requests that touch web/src, web/public or web/scripts
   # (the classifier's `public-matrix`); main and tags do not run it, the
   # nightly workflow runs the full matrix. The CI gate needs this job, so a
@@ -604,7 +605,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [classify]
     if: fromJSON(needs.classify.outputs.jobs)['public-matrix']
-    timeout-minutes: 10
+    timeout-minutes: 5
     strategy:
       fail-fast: false
       matrix:
