@@ -1,6 +1,10 @@
 import type { CSSProperties } from "react";
 import { useImageLoad } from "@/components/media/useImageLoad";
 import { Link } from "react-router-dom";
+import { FileText } from "lucide-react";
+import AvatarCircle from "@/components/phone/AvatarCircle";
+import Chevron from "@/components/phone/Chevron";
+import { toneOfArea } from "@/components/phone/tone";
 import NoteGlyph from "@/components/notes/NoteGlyph";
 import dark from "@/components/notes/DarkCard.module.css";
 import styles from "@/components/notes/NoteCard.module.css";
@@ -160,6 +164,16 @@ export default function NoteCard({
           <div className={label ? "mt-3" : ""}>{title}</div>
           <div className="mt-3">{meta}</div>
         </div>
+        {/* Phone only (direction A): the related note is a grouped row, so it
+            has its circle and chevron; both are gone from 640px up. */}
+        <span className="sm:hidden" data-phone-related-circle="">
+          <AvatarCircle size={40} tone={toneOfArea(post.collection)}>
+            <FileText />
+          </AvatarCircle>
+        </span>
+        <span className="sm:hidden" data-phone-related-chevron="">
+          <Chevron />
+        </span>
       </article>
     );
   }

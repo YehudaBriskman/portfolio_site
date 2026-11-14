@@ -90,6 +90,8 @@ type Props = {
    * phone reader wants before a long history.
    */
   asideFirst?: boolean;
+  /** Marks the page as one that wears direction A on a phone (`data-phone-page`); the look is in the page's CSS, phone only. */
+  phonePage?: "blog";
   children: ReactNode;
 };
 
@@ -102,6 +104,7 @@ export default function DashboardShell({
   count = 0,
   head,
   asideFirst = false,
+  phonePage,
   children,
 }: Props) {
   const mode = useDashboardMode();
@@ -118,7 +121,7 @@ export default function DashboardShell({
   );
 
   return (
-    <div className={styles.ground} data-mode={mode}>
+    <div className={styles.ground} data-mode={mode} data-phone-page={phonePage}>
       <div className={styles.frame}>
         {mode !== "one" && (
           <aside className={styles.rail} aria-label={railLabel}>

@@ -1,6 +1,7 @@
 import NoteCard from "@/components/notes/NoteCard";
 import type { PostSummary } from "@/services/blog";
 import { useNotesWords } from "@/i18n/pages";
+import reader from "@/components/notes/reader/Reader.module.css";
 
 /*
  * A post used to be a dead end: nothing after the tags but whitespace and the
@@ -17,7 +18,7 @@ export default function PostFooterNav({
   const w = useNotesWords();
   if (!newer && !older) return null;
   return (
-    <nav aria-label={w.more} className="mt-section-sm grid gap-6 sm:grid-cols-2">
+    <nav aria-label={w.more} className={`mt-section-sm grid gap-6 sm:grid-cols-2 ${reader.related}`}>
       {newer && <NoteCard post={newer} compact label={w.newer} />}
       {/*
        * Held to the second column so "Older" stays on the right when it is

@@ -138,6 +138,7 @@ export default function BlogArea() {
   return (
     <PageShell>
       <DashboardShell
+        phonePage="blog"
         railLabel={lang === "he" ? "עיון ברשימות" : "Browse the notes"}
         rail={rail}
         asideLabel={w.aboutArea}

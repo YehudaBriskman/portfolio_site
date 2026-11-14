@@ -737,3 +737,245 @@
     display: none !important;
   }
 }
+
+/* ───────────────────────────────────────────── direction A, phone only
+   The reader on a phone (docs/public-mobile-guide.md, section 6): the text
+   stays on the calm ground, never in a card; quotes and code are soft rounded
+   blocks; the tags are pills; the note's links, the feed and the sign-up are
+   grouped rows; the related notes are a grouped list; and the three reading
+   controls (Contents, Text size, Share) are one floating bar that tucks away
+   on the way down and comes back on the way up. Nothing here applies at 640px
+   and up. The title area and the nav are not touched. */
+
+.bar {
+  display: none;
+}
+
+@media (max-width: 639px) {
+  /* ─────────────── the floating bar */
+  .bar {
+    position: fixed;
+    inset-inline: var(--ph-gutter);
+    inset-block-end: calc(12px + env(safe-area-inset-bottom, 0px));
+    z-index: 40;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    pointer-events: none;
+    transition: transform var(--dur-fast, 160ms) var(--ease-settle, ease-out);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .bar {
+      transition: none;
+    }
+  }
+  .bar[data-tucked] {
+    transform: translateY(calc(100% + 24px + env(safe-area-inset-bottom, 0px)));
+  }
+  .barPill,
+  .sizePanel {
+    pointer-events: auto;
+    border-radius: var(--r-pill);
+    background: var(--ph-card-hi);
+    box-shadow:
+      0 0 0 1px var(--ph-line),
+      0 10px 24px -14px rgb(var(--ink) / 0.4);
+  }
+  .barPill {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    overflow: hidden;
+    padding: 4px;
+  }
+  .barFill {
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline: 0;
+    height: 2px;
+    transform-origin: left;
+    background: rgb(var(--signal));
+  }
+  :dir(rtl) .barFill {
+    transform-origin: right;
+  }
+  .barBtn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    min-width: 0;
+    min-height: 52px;
+    padding: 4px;
+    border: 0;
+    border-radius: var(--r-pill);
+    background: none;
+    color: rgb(var(--ink));
+    font: inherit;
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1.2;
+    text-align: center;
+    cursor: pointer;
+  }
+  .barBtn[aria-expanded="true"] {
+    background: var(--ph-recess);
+  }
+  .barBtn svg {
+    width: 20px;
+    height: 20px;
+  }
+  .barBtn > span {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .sizePanel {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 6px;
+    padding-inline: 16px 6px;
+  }
+  .sizePanel .toolLabel {
+    color: rgb(var(--ink));
+    font-size: 0.9375rem;
+  }
+  .sizePanel .stepper {
+    border-color: var(--ph-line);
+  }
+  /* the end of the page keeps clear of the floating bar: 56 + 12 + 12 + the safe area */
+  :global(:root[data-has-reader-bar]) footer {
+    padding-block-end: calc(80px + env(safe-area-inset-bottom, 0px) + 1.5rem);
+    transition: none;
+  }
+  /* said once: the header's Contents opener is the bar's first button on a phone */
+  .phoneBar button[aria-haspopup="dialog"] {
+    display: none;
+  }
+
+  /* ─────────────── text on the ground, soft blocks */
+  .prose :global(blockquote) {
+    border: 0;
+    border-radius: var(--r-sm);
+    background: var(--ph-recess);
+  }
+  /* inset, not full bleed: a soft rounded block like the quote */
+  .codeFrame:global(.bleed) {
+    width: auto;
+    margin-inline: 0;
+    transform: none;
+  }
+  .codeFrame {
+    overflow: hidden;
+    border-radius: var(--r-sm);
+  }
+  .codeFrame .codeBar {
+    border: 0;
+    padding-block: 2px;
+    background: var(--ph-recess);
+  }
+  .codeFrame pre {
+    border: 0;
+    border-radius: 0;
+  }
+
+  /* ─────────────── tags, links, feed, sign-up, related */
+  .tagList {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .tagList :global(.tag-pill) {
+    border: 0;
+    background: rgb(var(--wash-blue) / 0.9);
+    color: color-mix(in srgb, rgb(var(--hue-blue)), var(--ph-toward) var(--ph-text-pct));
+    font-weight: 600;
+  }
+  .groupRows.groupRows {
+    display: block;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    border-radius: var(--r-md);
+    background: var(--ph-card);
+    list-style: none;
+  }
+  .groupRows > li {
+    position: relative;
+    max-width: none;
+  }
+  .groupRows > li + li::before {
+    content: "";
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline: var(--ph-gutter) 0;
+    height: 1px;
+    background: var(--ph-line);
+  }
+  .groupRows a {
+    display: flex;
+    width: 100%;
+    min-height: 52px;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px var(--ph-gutter);
+    border: 0;
+    border-radius: 0;
+    background: none;
+    text-align: start;
+  }
+  .groupCard.groupCard {
+    display: block;
+    padding: var(--ph-gutter);
+    border: 0;
+    border-radius: var(--r-md);
+    background: var(--ph-card);
+  }
+  .groupCard :global(a.tap) {
+    min-height: 44px;
+  }
+  .related.related {
+    display: block;
+    margin: 0;
+    overflow: hidden;
+    border-radius: var(--r-md);
+    background: var(--ph-card);
+  }
+  .related > article:global(.note-card) {
+    position: relative;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+  }
+  .related > article > div {
+    padding-block: 12px;
+    padding-inline: 68px 44px;
+  }
+  .related [data-phone-related-circle],
+  .related [data-phone-related-chevron] {
+    position: absolute;
+    inset-block-start: 50%;
+    line-height: 0;
+    transform: translateY(-50%);
+  }
+  .related [data-phone-related-circle] {
+    inset-inline-start: var(--ph-gutter);
+  }
+  .related [data-phone-related-chevron] {
+    inset-inline-end: var(--ph-gutter);
+  }
+  .related > article + article::before {
+    content: "";
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline: 68px 0;
+    height: 1px;
+    background: var(--ph-line);
+  }
+}

@@ -1541,3 +1541,157 @@
     z-index: 1;
   }
 }
+
+/* ───────────────────────────────────────────── direction A, phone only
+   The Blog list, the feed and the tag results on a phone (docs/public-mobile-
+   guide.md, section 6): a calm ground, every card a soft inset group (no
+   outline), a note a row with a tinted circle, title over a muted meta line,
+   pills and a chevron. Anchored on `data-phone-page="blog"` so the channel
+   log, Work and the project page keep their own look. Nothing here applies
+   at 640px and up. The greeting and the Browse button are not touched. */
+
+@media (max-width: 639px) {
+  .ground[data-phone-page="blog"] {
+    font-size: 0.9375rem;
+  }
+  .ground[data-phone-page="blog"] .main {
+    gap: var(--ph-gap);
+    padding-inline: var(--ph-gutter);
+  }
+  .ground[data-phone-page="blog"] .section {
+    gap: 8px;
+  }
+  .ground[data-phone-page="blog"] .sectionTitle {
+    font-size: 0.9375rem;
+    color: rgb(var(--ink-soft));
+  }
+
+  /* a card is the group: one surface, no outline */
+  .ground[data-phone-page="blog"] .card {
+    overflow: hidden;
+    border: 0;
+    border-radius: var(--r-md);
+    background: var(--ph-card);
+  }
+
+  /* the search box and its chips */
+  .ground[data-phone-page="blog"] .askBox {
+    border: 0;
+    border-radius: var(--r-md);
+    background: var(--ph-card);
+  }
+  .ground[data-phone-page="blog"] .quickChip {
+    border: 0;
+    border-radius: var(--r-pill);
+    background: var(--ph-recess);
+  }
+
+  /* a note: circle, title over meta, chevron */
+  .ground[data-phone-page="blog"] .rows > .row[data-phone-note] {
+    grid-template-columns: var(--ph-circle-m) minmax(0, 1fr) 18px;
+    align-items: center;
+    column-gap: 12px;
+    min-height: 64px;
+    padding: 12px var(--ph-gutter);
+  }
+  .ground[data-phone-page="blog"] .rows > .row + .row {
+    position: relative;
+    border-block-start: 0;
+  }
+  .ground[data-phone-page="blog"] .rows > .row + .row::before {
+    content: "";
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline: 68px 0;
+    height: 1px;
+    background: var(--ph-line);
+  }
+  .ground[data-phone-page="blog"] .rowIcon[data-phone-circle] {
+    width: var(--ph-circle-m);
+    height: var(--ph-circle-m);
+    border-radius: 50%;
+    background: rgb(var(--ph-t) / 0.17);
+    color: color-mix(in srgb, rgb(var(--ph-t)), var(--ph-toward) var(--ph-glyph-pct));
+  }
+  .ground[data-phone-page="blog"] .rowIcon[data-phone-circle] svg {
+    width: 20px;
+    height: 20px;
+  }
+  .ground[data-phone-page="blog"] .row[data-phone-note] > [data-phone-chevron] {
+    display: block;
+  }
+  .ground[data-phone-page="blog"] .rowTitle {
+    font-size: 1rem;
+  }
+  .ground[data-phone-page="blog"] .rowMeta {
+    font-size: 0.875rem;
+  }
+
+  /* topic chips inside a row, and "Featured": soft pills */
+  .ground[data-phone-page="blog"] .chip {
+    border: 0;
+    background: rgb(var(--wash-blue) / 0.9);
+    color: color-mix(in srgb, rgb(var(--hue-blue)), var(--ph-toward) var(--ph-text-pct));
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+  .ground[data-phone-page="blog"] .chip[aria-current="true"] {
+    background: rgb(var(--ink) / 0.12);
+    color: rgb(var(--ink));
+  }
+  .ground[data-phone-page="blog"] .featured {
+    min-height: 24px;
+    border: 0;
+    background: rgb(var(--wash-yellow) / 0.9);
+    color: color-mix(in srgb, rgb(var(--hue-yellow)), var(--ph-toward) var(--ph-text-pct));
+    font-size: 0.875rem;
+  }
+
+  /* recommended: the three picks are one group, divided like rows */
+  .ground[data-phone-page="blog"] .posts {
+    gap: 0;
+    overflow: hidden;
+    border-radius: var(--r-md);
+    background: var(--ph-card);
+  }
+  .ground[data-phone-page="blog"] .post {
+    position: relative;
+    padding: 12px var(--ph-gutter);
+    border: 0;
+    border-radius: 0;
+  }
+  .ground[data-phone-page="blog"] .post + .post::before {
+    content: "";
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline: var(--ph-gutter) 0;
+    height: 1px;
+    background: var(--ph-line);
+  }
+  .ground[data-phone-page="blog"] .postTitle {
+    font-size: 1rem;
+  }
+  .ground[data-phone-page="blog"] .postExcerpt {
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+  }
+
+  /* feed months: a quiet label inside the group */
+  .ground[data-phone-page="blog"] .monthHead {
+    border: 0;
+    background: none;
+    padding: 12px var(--ph-gutter) 4px;
+    font-size: 0.875rem;
+  }
+  .ground[data-phone-page="blog"] .month + .month {
+    border-block-start: 0;
+  }
+  .ground[data-phone-page="blog"] .feedFoot {
+    border-block-start: 0;
+  }
+
+  /* the timeline stays at the foot, as a group too */
+  .ground[data-phone-page="blog"] .aside {
+    min-width: 0;
+  }
+}
