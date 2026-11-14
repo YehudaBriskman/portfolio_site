@@ -192,8 +192,8 @@ function PostsDesktop() {
                     const changes = p.status === "published" && Boolean(p.draft);
                     return (
                       <tr key={p.slug}>
-                        <td>
-                          <Link to={`/admin/posts/${p.slug}`} className="a-row-title">
+                        <td className="a-main">
+                          <Link to={`/admin/posts/${p.slug}`} className="a-row-title a-clamp-2" title={titleOf(p.title, p.slug)}>
                             {titleOf(p.title, p.slug)}
                           </Link>
                           <span className="a-row-meta">

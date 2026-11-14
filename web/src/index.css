@@ -2972,6 +2972,27 @@
   .a-table .a-num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
   .a-table .a-when { white-space: nowrap; color: rgb(var(--ink-soft)); font-variant-numeric: tabular-nums; }
   .a-table .a-fit { width: 1%; white-space: nowrap; }
+  /* An action never gives up its label to a long neighbour. .a-btn wraps with
+     overflow-wrap:anywhere (min-content one letter), so a width:1% column lost
+     every squeeze and the label stacked one letter per line. */
+  .a-table .a-fit .a-btn, .a-table td > .a-btn { flex: none; white-space: nowrap; overflow-wrap: normal; }
+  /* The identifying cell keeps a readable measure however long its neighbours are. */
+  .a-table .a-main { min-width: var(--a-col-main-min, 14rem); }
+  /* Fixed layout, columns from tokens: a long neighbour can no longer take a column's share. The path column is a share of the table, capped. */
+  .a-table-fixed { table-layout: fixed; }
+  .a-table-fixed .a-col-status { width: var(--a-col-status, 5.5rem); }
+  .a-table-fixed .a-col-path { width: clamp(9rem, 28%, var(--a-col-path-max, 22rem)); }
+  .a-table-fixed .a-col-pill { width: 9rem; }
+  .a-table-fixed .a-col-num { width: 5.5rem; }
+  .a-table-fixed .a-col-when { width: 14rem; }
+  .a-table-fixed .a-col-action { width: var(--a-col-action, 6rem); }
+  .a-table-fixed .a-main { min-width: 0; }
+  .a-table-fixed .a-fit { width: auto; }
+  /* Two lines at most, then an ellipsis; the full text sits on title. */
+  .a-clamp-1 { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .a-clamp-2 { min-block-size: 1.5rem; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; }
+  /* A machine string (route, path) in its own column: one line, cut with an ellipsis, full value on title. */
+  .a-table .a-path { display: block; max-width: var(--a-col-path-max, 20rem); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
   .a-row-title { font-weight: 700; color: rgb(var(--ink)); overflow-wrap: anywhere; }
   a.a-row-title:hover { color: rgb(var(--signal)); text-decoration: underline; text-underline-offset: 3px; }

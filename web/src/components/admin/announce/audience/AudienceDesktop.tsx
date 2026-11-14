@@ -88,7 +88,7 @@ export default function AudienceDesktop() {
         <p className="a-hint">{w.intro}</p>
       </div>
 
-      <div className="grid grid-cols-2 items-end gap-3 md:grid-cols-[minmax(14rem,2fr)_1fr_1fr_auto]" data-testid="audience-filters">
+      <div className="grid grid-cols-2 items-end gap-3 md:grid-cols-[minmax(14rem,2fr)_minmax(8rem,1fr)_minmax(8rem,1fr)] xl:grid-cols-[minmax(14rem,2fr)_1fr_1fr_auto]" data-testid="audience-filters">
         <div className="a-search col-span-2 md:col-span-1">
           <label className="a-label" htmlFor={`${uid}-q`}>{w.searchLabel}</label>
           <input id={`${uid}-q`} type="search" className="a-input min-h-[44px] !ps-3" dir="auto" placeholder={w.searchPlaceholder} value={q} onChange={(e) => setQ(e.target.value)} />
@@ -107,7 +107,7 @@ export default function AudienceDesktop() {
             {CONTACT_STATUSES.map((s) => <option key={s} value={s}>{w.statuses[s]}</option>)}
           </select>
         </div>
-        <div className="col-span-2 flex flex-wrap gap-2 md:col-span-1">
+        <div className="col-span-2 flex flex-wrap gap-2 md:col-span-3 xl:col-span-1">
           <button type="button" className="a-btn a-btn-primary min-h-[44px]" onClick={() => setDialog({ kind: "add" })}>{w.addContact}</button>
           <button type="button" className="a-btn min-h-[44px]" onClick={() => setDialog({ kind: "import" })}>{w.importCsv}</button>
           <a className="a-btn min-h-[44px]" href={EXPORT_URL} download title={w.exportHint}>{w.exportCsv}</a>
@@ -130,22 +130,22 @@ export default function AudienceDesktop() {
                   <th scope="col" className="!px-2 !text-start sm:!px-4">{w.colEmail}</th>
                   <th scope="col" className="!text-start hidden md:table-cell">{w.colName}</th>
                   <th scope="col" className="!px-2 !text-start sm:!px-4">{w.colStatus}</th>
-                  <th scope="col" className="!text-start hidden lg:table-cell">{w.colLang}</th>
-                  <th scope="col" className="!text-start hidden lg:table-cell">{w.colGroups}</th>
+                  <th scope="col" className="!text-start hidden xl:table-cell">{w.colLang}</th>
+                  <th scope="col" className="!text-start hidden xl:table-cell">{w.colGroups}</th>
                   <th scope="col" className="!px-2 !text-end sm:!px-4"><span className="sr-only">{w.colActions}</span></th>
                 </tr>
               </thead>
               <tbody>
                 {items.map((c) => (
                   <tr key={c.hash}>
-                    <td className="min-w-0 max-w-[18rem] !px-2 sm:!px-4">
+                    <td className="min-w-[14rem] max-w-[18rem] !px-2 sm:!px-4">
                       <span className="a-row-title block text-sm"><Email value={c.email} /></span>
                       <span className="a-row-meta !mt-0.5 text-sm"><Why c={c} /></span>
                     </td>
                     <td className="hidden min-w-0 max-w-[14rem] text-start [overflow-wrap:anywhere] md:table-cell">{c.name ? <bdi dir="auto">{c.name}</bdi> : <Empty />}</td>
                     <td className="a-fit !px-2 text-sm sm:!px-4">{w.statuses[c.status]}</td>
-                    <td className="a-fit hidden lg:table-cell text-sm">{c.lang ? w.langs[c.lang] : ""}</td>
-                    <td className="hidden min-w-0 max-w-[14rem] text-sm [overflow-wrap:anywhere] lg:table-cell" dir="auto">{c.groups.length ? c.groups.map(groupName).join(", ") : <Empty />}</td>
+                    <td className="a-fit hidden xl:table-cell text-sm">{c.lang ? w.langs[c.lang] : ""}</td>
+                    <td className="hidden min-w-[7rem] max-w-[14rem] text-sm [overflow-wrap:break-word] xl:table-cell" dir="auto">{c.groups.length ? c.groups.map(groupName).join(", ") : <Empty />}</td>
                     <td className="a-fit !px-2 !text-end sm:!px-4">
                       <button type="button" className="a-btn min-h-[44px] min-w-[44px]" aria-label={w.editFor(c.email)} onClick={() => setDialog({ kind: "edit", contact: c })}>{w.edit}</button>
                     </td>

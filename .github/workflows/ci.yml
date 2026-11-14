@@ -570,6 +570,13 @@ jobs:
         env:
           SHARD: ${{ matrix.shard }}/${{ matrix.of }}
         run: npm run a11y:admin-matrix
+      # Admin at 1024, 1280 and 1440 wide, English and Hebrew (#747): no
+      # sideways scroll, no button or link whose label wraps past two lines or
+      # breaks a word per letter, on awkward long and Hebrew fixtures. About a
+      # minute, so it rides one of the two matrix legs.
+      - name: Admin desktop widths
+        if: matrix.check == 'admin-matrix' && matrix.shard == 2
+        run: npm run a11y:admin-desktop
       # Every link lands on its target (#196): the top of a new page, a hash's
       # element under the bar, the old place on Back and Forward, at a laptop
       # and a phone, against the same build.
