@@ -51,7 +51,6 @@ beforeEach(() => {
   api.list.mockResolvedValue([LIVE]);
   api.collections.mockResolvedValue([{ slug: "site", title: "The site", status: "published" }]);
   api.saveDraft.mockImplementation(async (_s: string, body: PostContent) => ({ ...LIVE, _rev: "4-b", draft: body, draftSavedAt: NOW }));
-  api.unpublish = vi.fn();
   api.save.mockResolvedValue({ ...LIVE, status: "draft" });
 });
 afterEach(() => {
