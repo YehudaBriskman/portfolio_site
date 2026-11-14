@@ -42,8 +42,7 @@ afterEach(() => {
   vi.useRealTimers();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
-  // @ts-expect-error test cleanup of the stubbed method
-  delete HTMLElement.prototype.animate;
+  delete (HTMLElement.prototype as { animate?: unknown }).animate;
 });
 
 describe("ReorderRows: the neighbours slide to their new slots (phone, motion allowed)", () => {
@@ -88,8 +87,7 @@ describe("ReorderRows without motion", () => {
 
   it("a browser without Element.animate: the order flips, nothing throws", () => {
     stubPhone(true);
-    // @ts-expect-error simulate a missing API
-    delete HTMLElement.prototype.animate;
+    delete (HTMLElement.prototype as { animate?: unknown }).animate;
     render(<Harness start={["A", "B", "C"]} />);
     fireEvent.click(screen.getByRole("button", { name: "Move A down" }));
     expect([...document.querySelectorAll("li bdi")].map((b) => b.textContent)).toEqual(["B", "A", "C"]);
