@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Ellipsis } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { BottomSheet } from "@/components/ui/BottomSheet";
+import { Presence } from "@/components/ui/Presence";
 import { ICON } from "@/components/ui/icons";
 import type { Selection, SelectionId } from "@/components/ui/useSelection";
 import { useMobileWords } from "@/i18n/mobile";
@@ -74,7 +75,7 @@ export function SelectionBar<T extends SelectionId>({
   const [more, setMore] = useState(false);
   const [confirming, setConfirming] = useState<SelectionAction<T> | null>(null);
 
-  if (!selection.on || actions.length === 0) return null;
+  if (actions.length === 0) return null;
 
   const { count } = selection;
   const [primary, ...rest] = actions;
@@ -97,7 +98,7 @@ export function SelectionBar<T extends SelectionId>({
   const Icon = primary.icon;
   return (
     <>
-      <div className={styles.bar} role="toolbar" aria-label={w.barLabel}>
+      <Presence show={selection.on} className={styles.bar} role="toolbar" aria-label={w.barLabel}>
         <span className={styles.count} role="status" aria-live="polite">
           {w.count(count)}
         </span>
@@ -116,49 +117,53 @@ export function SelectionBar<T extends SelectionId>({
             {w.more}
           </button>
         )}
-      </div>
+      </Presence>
 
-      <BottomSheet open={more} onClose={() => setMore(false)} title={w.moreTitle} snap="half" snaps={["half"]}>
-        <div className={styles.list}>
-          {sorted.map((a) => (
-            <button key={a.id} type="button" className={cx(styles.item, a.destructive && styles.danger)} onClick={() => choose(a)}>
-              <a.icon size={20} strokeWidth={1.75} aria-hidden="true" focusable="false" />
-              <span className={styles.verb}>{a.label}</span>
-              <span className={styles.sub}>{w.items(count)}</span>
-            </button>
-          ))}
-        </div>
-      </BottomSheet>
+      {selection.on && (
+        <>
+        <BottomSheet open={more} onClose={() => setMore(false)} title={w.moreTitle} snap="half" snaps={["half"]}>
+          <div className={styles.list}>
+            {sorted.map((a) => (
+              <button key={a.id} type="button" className={cx(styles.item, a.destructive && styles.danger)} onClick={() => choose(a)}>
+                <a.icon size={20} strokeWidth={1.75} aria-hidden="true" focusable="false" />
+                <span className={styles.verb}>{a.label}</span>
+                <span className={styles.sub}>{w.items(count)}</span>
+              </button>
+            ))}
+          </div>
+        </BottomSheet>
 
-      <BottomSheet
-        open={confirming !== null}
-        onClose={() => setConfirming(null)}
-        title={confirming ? confirmLabel(confirming) : ""}
-        snap="peek"
-        snaps={["peek"]}
-        footer={
-          confirming && (
-            <>
-              <button type="button" className={styles.btn} onClick={() => setConfirming(null)}>
-                {w.keep}
-              </button>
-              <button
-                type="button"
-                className={cx(styles.btn, styles.primary, styles.danger)}
-                onClick={() => {
-                  const a = confirming;
-                  setConfirming(null);
-                  void execute(a);
-                }}
-              >
-                {confirmLabel(confirming)}
-              </button>
-            </>
-          )
-        }
-      >
-        <p className={styles.confirmBody}>{w.items(count)}</p>
-      </BottomSheet>
+        <BottomSheet
+          open={confirming !== null}
+          onClose={() => setConfirming(null)}
+          title={confirming ? confirmLabel(confirming) : ""}
+          snap="peek"
+          snaps={["peek"]}
+          footer={
+            confirming && (
+              <>
+                <button type="button" className={styles.btn} onClick={() => setConfirming(null)}>
+                  {w.keep}
+                </button>
+                <button
+                  type="button"
+                  className={cx(styles.btn, styles.primary, styles.danger)}
+                  onClick={() => {
+                    const a = confirming;
+                    setConfirming(null);
+                    void execute(a);
+                  }}
+                >
+                  {confirmLabel(confirming)}
+                </button>
+              </>
+            )
+          }
+        >
+          <p className={styles.confirmBody}>{w.items(count)}</p>
+        </BottomSheet>
+        </>
+      )}
     </>
   );
 }

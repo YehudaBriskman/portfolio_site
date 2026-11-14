@@ -2240,3 +2240,23 @@ frame when only the lines move, stops while the tab is hidden or the hero is
 off screen (an `IntersectionObserver`, both directions, a cost saving and not a
 reveal), and never runs in the test modes. No keyframes.
 ||||||| a371804
+
+## 13. Admin state-change motion on phones (2026-11-14, #709)
+
+**Why.** Owner request of 2026-11-14: enter and exit motion was not working with the group/sheet/sub-page split (opening Settings > Email me: no animation on click, none on exit or enter of items). It is a rule for **phones only**.
+
+**The rule.** Below 600px (the `PHONE_QUERY` breakpoint of `usePhone`, written as `@media (prefers-reduced-motion: no-preference) and (max-width: 599px)`, not by JS sniffing):
+
+1. CSS transitions, `@starting-style` and `transition-behavior: allow-discrete` are allowed for **state changes only**: open/close, push/pop, insert/remove. No looping and no decorative animation.
+2. Everything sits inside the gate above; outside it the state change is instant and correct (the fallback).
+3. Durations and easings are the tokens `--a-dur-1/2/3` and `--a-ease-out/in/spring`. Roughly 150 to 300 ms; the spring is for non-destructive arrivals only, exits use ease-in and never bounce.
+4. State never waits on a timer or `animationend`: `open`, `data-open` and `inert` flip on the event. A timer may only drop content kept for an exit.
+5. A transition interrupted, cancelled or throttled leaves the right state (a closed surface is `display: none` / `inert`).
+6. Direction mirrors in RTL (`--dir`).
+7. An element has one entrance. Nav elements get none (a scroll-driven animation is the entrance there); nothing has both.
+
+**Desktop (>= 600px)** keeps this contract exactly as it was.
+
+**Nav audit.** Drawer, sidebar groups, top bar and tabs were checked for first-appearance entrances alongside scroll-driven ones. `Nav.module.css`, `DisplayMenu.module.css` and `SidebarGroup.module.css` hold no keyframes; the only entrance on the admin nav was the drawer, which is now a state transition (`index.css`, `.a-side:not([data-open])`) rather than a mount animation. Guarded by `web/src/components/ui/motionStateChange.guard.test.ts` (no element with both a time-driven entrance and a scroll-driven animation; no new transition outside the phone gate).
+
+**Inventory.** `BottomSheet`, `SettingsList` pages and sheets, `Disclosure`, `Presence` (`UndoToast`, `SelectionBar`), the admin drawer and scrim. Catalogue: admin-design-guide section 6.1. Browser check: `npm run a11y:admin-motion`. Pre-existing reduced-motion leak fixed on the way: `dialog.pop-dialog[open]` and its backdrop out-ranked the reduce rule in `popup.css`.

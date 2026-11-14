@@ -129,7 +129,8 @@ describe("Settings on a phone: groups", () => {
     page();
     fireEvent.click(await group(/Home page order/));
     fireEvent.click(await screen.findByRole("switch", { name: "How I work" }));
-    expect(await screen.findByText(/read as one section/)).toBeInTheDocument();
+    /* The list stays mounted (covered) under the page, so the hint may also show in its summary. */
+    expect((await screen.findAllByText(/read as one section/)).length).toBeGreaterThan(0);
     expect(save()).toBeDisabled();
     expect(calls.some((c) => c.method !== "GET")).toBe(false);
   });

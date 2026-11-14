@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { BottomSheet } from "@/components/ui/BottomSheet";
+import { outsideNoPreference } from "@/test/noPreference";
 
 /*
  * jsdom has no <dialog>.showModal and no layout, so: showModal/close are
@@ -293,7 +294,7 @@ describe("BottomSheet: motion, direction, targets (CSS text)", () => {
   });
 
   it("declares no transition or animation outside the no-preference block", () => {
-    const outside = css.replace(/@media \(prefers-reduced-motion: no-preference\)\s*\{(?:[^{}]*\{[^{}]*\})*[^{}]*\}/g, "");
+    const outside = outsideNoPreference(css);
     expect(outside).not.toMatch(/\btransition\s*:/);
     expect(outside).not.toMatch(/\banimation\s*:/);
     expect(css).toMatch(/prefers-reduced-motion: no-preference/);

@@ -85,10 +85,10 @@ const transitionOf = (text: string, selector: string) =>
 /* Each surface, with the selector of its resting (exit) state and of its open (enter) state. */
 const SURFACES: Array<{ name: string; file: string; exit: string; enter: string; startingStyle?: boolean; discrete?: boolean }> = [
   { name: "BottomSheet", file: "components/ui/BottomSheet.module.css", exit: "dialog.sheet:not([data-dragging])", enter: "dialog.sheet[open]:not([data-dragging])", startingStyle: true, discrete: true },
-  { name: "BottomSheet backdrop", file: "components/ui/BottomSheet.module.css", exit: "dialog.sheet::backdrop", enter: "dialog.sheet[open]::backdrop", startingStyle: true, discrete: true },
+  { name: "BottomSheet backdrop", file: "components/ui/BottomSheet.module.css", exit: "dialog.sheet:global(.pop-dialog)::backdrop", enter: "dialog.sheet:global(.pop-dialog)[open]::backdrop", startingStyle: true, discrete: true },
   { name: "Settings sub-page", file: "components/ui/SettingsList.module.css", exit: ".page", enter: ".page[data-open]", startingStyle: true, discrete: true },
   { name: "Settings list under a sub-page", file: "components/ui/SettingsList.module.css", exit: ".listPane", enter: ".listPane[data-covered]" },
-  { name: "Presence (toast, selection bar, inserted rows)", file: "components/ui/Presence.module.css", exit: ".presence", enter: ".presence[data-state='open']", startingStyle: true },
+  { name: "Presence (toast, selection bar, inserted rows)", file: "components/ui/Presence.module.css", exit: ".presence", enter: '.presence[data-state="open"]', startingStyle: true },
   { name: "Disclosure", file: "components/ui/Disclosure.module.css", exit: ".disclosure::details-content", enter: ".disclosure[open]::details-content" },
 ];
 
@@ -145,10 +145,6 @@ describe("state-change motion: phones only", () => {
       expect(text).not.toMatch(/\binfinite\b/);
     });
   }
-  it("Disclosure's phone block is gated too", () => {
-    expect(outsidePhone(css("components/ui/Disclosure.module.css"))).not.toMatch(/details-content[^{]*\{[^}]*transition[^}]*(?:\d+ms)/s);
-  });
-
   it("every other stylesheet here keeps the older rule: motion only inside no-preference", () => {
     for (const f of ["components/ui/FilterSheet.module.css", "components/ui/FilterChips.module.css", "components/ui/InfoPopover.module.css", "components/ui/RecordRow.module.css", "components/ui/SettingsRow.module.css"]) {
       const out = outsideNoPreference(css(f));

@@ -4,6 +4,7 @@ import { BottomSheet } from "@/components/ui/BottomSheet";
 import { SettingsRow } from "@/components/ui/SettingsRow";
 import { SettingsSearch } from "@/components/ui/SettingsSearch";
 import { groupSurface, matchItems, type SettingsItem } from "@/components/ui/settingsKit";
+import { EXIT_KEEP_MS, usePhoneMotion } from "@/hooks/usePhoneMotion";
 import { useMobileWords } from "@/i18n/mobile";
 import styles from "@/components/ui/SettingsList.module.css";
 
@@ -15,6 +16,13 @@ import styles from "@/components/ui/SettingsList.module.css";
  * open group sit side by side. Which group is open is the caller's state
  * (`openId`, `onOpenChange`), so it can live in the URL and Back can close it.
  * Summaries are plain functions of the document, so they follow the switches.
+ *
+ * A page is a layer over the list, not a replacement for it: the list stays
+ * mounted (inert and covered), the page pushes in from the inline-end edge and
+ * pops back, mirrored in RTL (SettingsList.module.css, phones only). `data-open`
+ * is the state and flips on the tap; the last page's content is kept for the
+ * length of the exit and dropped by a timer that never decides open or closed.
+ * The sheet group stays mounted the same way so the sheet can leave.
  */
 
 export type SettingsGroupDef<T> = {
@@ -66,6 +74,31 @@ export function SettingsList<T>({ groups, value, openId, onOpenChange, className
   const [target, setTarget] = useState<{ group: string; item: string } | null>(null);
 
   const open = groups.find((g) => g.id === openId) ?? null;
+  const motion = usePhoneMotion();
+  const pageGroup = !wide && open && groupSurface(open) === "page" ? open : null;
+  const sheetGroup = !wide && open && groupSurface(open) !== "page" ? open : null;
+  /* The last page, kept to leave with. */
+  const [lastPage, setLastPage] = useState<SettingsGroupDef<T> | null>(null);
+  if (pageGroup && lastPage !== pageGroup) setLastPage(pageGroup);
+  const [leavingPage, setLeavingPage] = useState(false);
+  const [hadPage, setHadPage] = useState(false);
+  if (Boolean(pageGroup) !== hadPage) {
+    setHadPage(Boolean(pageGroup));
+    setLeavingPage(!pageGroup && motion);
+  }
+  useEffect(() => {
+    if (!leavingPage) return;
+    const t = setTimeout(() => setLeavingPage(false), EXIT_KEEP_MS);
+    return () => clearTimeout(t);
+  }, [leavingPage]);
+  const [sheetUsed, setSheetUsed] = useState(false);
+  if (sheetGroup && !sheetUsed) setSheetUsed(true);
+  const backRef = useRef<HTMLButtonElement>(null);
+  const pageId = pageGroup?.id;
+  /* The tapped row goes inert under the page; focus follows to the page. */
+  useEffect(() => {
+    if (pageId) backRef.current?.focus({ preventScroll: true });
+  }, [pageId]);
   const searching = query.trim() !== "";
 
   const hits = searching
@@ -93,7 +126,7 @@ export function SettingsList<T>({ groups, value, openId, onOpenChange, className
   );
 
   const list = (
-    <div className={styles.listPane}>
+    <div className={styles.listPane} data-covered={pageGroup ? "" : undefined} inert={pageGroup ? true : undefined}>
       <SettingsSearch value={query} onChange={setQuery} count={hits.length} />
       {searching ? (
         <ul className={cx(styles.card, styles.hits)} role="list">
@@ -156,30 +189,32 @@ export function SettingsList<T>({ groups, value, openId, onOpenChange, className
     );
   }
 
-  if (open && groupSurface(open) === "page") {
-    return (
-      <div ref={root} className={cx(styles.root, className)}>
-        <section className={styles.page} data-surface="page">
-          <header className={styles.pageHead}>
-            <button type="button" className={styles.back} onClick={() => onOpenChange(null)}>
-              <ChevronLeft className={styles.backIcon} size={20} strokeWidth={2.25} aria-hidden="true" focusable="false" />
-              <span>{w.back}</span>
-            </button>
-            <h2 className={styles.title}>{open.title}</h2>
-          </header>
-          {card(open)}
-        </section>
-      </div>
-    );
-  }
-
+  const shown = pageGroup ?? (leavingPage ? lastPage : null);
   return (
     <div ref={root} className={cx(styles.root, className)}>
       {list}
-      {open && (
-        <BottomSheet open onClose={() => onOpenChange(null)} title={open.title} snap="half" snaps={["half", "full"]}>
+      {shown && (
+        <section
+          className={styles.page}
+          data-surface="page"
+          data-open={pageGroup ? "true" : undefined}
+          inert={pageGroup ? undefined : true}
+          aria-hidden={pageGroup ? undefined : true}
+        >
+          <header className={styles.pageHead}>
+            <button ref={backRef} type="button" className={styles.back} onClick={() => onOpenChange(null)}>
+              <ChevronLeft className={styles.backIcon} size={20} strokeWidth={2.25} aria-hidden="true" focusable="false" />
+              <span>{w.back}</span>
+            </button>
+            <h2 className={styles.title}>{shown.title}</h2>
+          </header>
+          {card(shown)}
+        </section>
+      )}
+      {(sheetGroup || sheetUsed) && (
+        <BottomSheet open={Boolean(sheetGroup)} onClose={() => onOpenChange(null)} title={sheetGroup?.title ?? ""} snap="half" snaps={["half", "full"]}>
           <div data-surface="sheet" className={styles.sheetBody}>
-            {card(open)}
+            {sheetGroup && card(sheetGroup)}
           </div>
         </BottomSheet>
       )}

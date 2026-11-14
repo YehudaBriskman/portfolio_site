@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState, useSyncExternalStore, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
 import { X } from "lucide-react";
+import { EXIT_KEEP_MS, usePhoneMotion } from "@/hooks/usePhoneMotion";
 import { useMobileWords } from "@/i18n/mobile";
 import styles from "@/components/ui/BottomSheet.module.css";
 
@@ -16,6 +17,11 @@ import styles from "@/components/ui/BottomSheet.module.css";
  *  - The handle is a real button, so resizing never needs a drag.
  *  - One sheet at a time: opening a second asks the first to close.
  * Dragging starts on the header only, so scrolling the body never fights it.
+ * Opening and closing are state first: `open` flips the dialog on the event, the
+ * stylesheet slides it (phones, motion allowed), and a closed sheet is
+ * `display: none` and inert whatever its animation did. The last title, body and
+ * footer are kept (`retained`) for the length of the exit so it leaves with its
+ * content, then dropped by a timer that never decides open or closed.
  * Moves are the height itself while dragging up (it grows, so the body keeps
  * its room) and a translate while dragging below the lowest snap (it leaves).
  */
@@ -85,11 +91,22 @@ export function BottomSheet({
 
   const snaps = [...new Set<Snap>([...(snapsProp ?? ["half", "full"]), initial])].sort((a, b) => ORDER.indexOf(a) - ORDER.indexOf(b));
   const [snap, setSnapState] = useState<Snap>(initial);
+  const motion = usePhoneMotion();
   const [wasOpen, setWasOpen] = useState(open);
+  const [retained, setRetained] = useState(false);
+  const [last, setLast] = useState({ title, children, footer });
+  if (open && (last.title !== title || last.children !== children || last.footer !== footer)) setLast({ title, children, footer });
   if (open !== wasOpen) {
     setWasOpen(open);
     if (open) setSnapState(initial);
+    setRetained(!open && motion);
   }
+  useEffect(() => {
+    if (!retained) return;
+    const t = setTimeout(() => setRetained(false), EXIT_KEEP_MS);
+    return () => clearTimeout(t);
+  }, [retained]);
+  const view = open ? { title, children, footer } : last;
 
   const reduced = useMedia("(prefers-reduced-motion: reduce)");
   const short = useMedia("(max-height: 479px)");
@@ -117,6 +134,10 @@ export function BottomSheet({
     if (!d || !open) return;
     const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
 
+    /* A drag that dismissed left its offset inline; a fresh open starts from the snap. */
+    d.style.blockSize = "";
+    d.style.transform = "";
+    delete d.dataset.dragging;
     if (typeof d.showModal === "function") d.showModal();
     else d.setAttribute("open", "");
 
@@ -150,6 +171,8 @@ export function BottomSheet({
     return () => {
       window.removeEventListener("popstate", onPop);
       if (active === me) active = null;
+      /* Transitions back on, so the exit plays from wherever a drag left the sheet. */
+      delete d.dataset.dragging;
       if (typeof d.close === "function") d.close();
       else d.removeAttribute("open");
       if (pushed.current) {
@@ -279,6 +302,7 @@ export function BottomSheet({
       aria-modal="true"
       aria-labelledby={titleId}
       data-snap={shown}
+      inert={!open}
       data-reduced={reduced ? "true" : undefined}
       onKeyDown={onKeyDown}
       onCancel={(e) => {
@@ -289,7 +313,7 @@ export function BottomSheet({
         if (e.target === e.currentTarget) void attemptClose(false);
       }}
     >
-      {open && (
+      {(open || retained) && (
         <div className={styles.panel}>
           <div
             className={styles.head}
@@ -325,7 +349,7 @@ export function BottomSheet({
             </button>
             <div className={styles.titlebar}>
               <h2 id={titleId} ref={titleRef} tabIndex={-1} className={styles.title}>
-                {title}
+                {view.title}
               </h2>
               {dismissible && (
                 <button type="button" className={styles.close} aria-label={w.close} onClick={() => void attemptClose(false)}>
@@ -334,10 +358,10 @@ export function BottomSheet({
               )}
             </div>
           </div>
-          <div className={styles.body}>{children}</div>
-          {footer && (
+          <div className={styles.body}>{view.children}</div>
+          {view.footer && (
             <div className={styles.footer} data-sheet-footer="">
-              {footer}
+              {view.footer}
             </div>
           )}
         </div>

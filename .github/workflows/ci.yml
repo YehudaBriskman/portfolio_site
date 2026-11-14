@@ -526,6 +526,11 @@ jobs:
       - name: Admin control budgets on a phone
         if: matrix.check == 'a11y' && matrix.shard == 1
         run: npm run a11y:admin-density-phone
+      # Enter and exit motion on phones (#709): state first, transitions only
+      # under no-preference, mirrored in RTL, never stuck, none on desktop.
+      - name: Admin enter/exit motion
+        if: matrix.check == 'a11y' && matrix.shard == 1
+        run: npm run a11y:admin-motion
       # Admin at 320, 360, 390 and 768 wide, light and dark, English and
       # Hebrew (#660): no sideways scroll, no target under 24px, no primary
       # control under 44px on touch, no text under 14px outside the
