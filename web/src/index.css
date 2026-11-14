@@ -2990,7 +2990,7 @@
   .a-table-fixed .a-fit { width: auto; }
   /* Two lines at most, then an ellipsis; the full text sits on title. */
   .a-clamp-1 { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .a-clamp-2 { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; }
+  .a-clamp-2 { min-block-size: 1.5rem; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; }
   /* A machine string (route, path) in its own column: one line, cut with an ellipsis, full value on title. */
   .a-table .a-path { display: block; max-width: var(--a-col-path-max, 20rem); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
