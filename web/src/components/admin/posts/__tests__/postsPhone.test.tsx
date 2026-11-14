@@ -97,7 +97,7 @@ afterEach(() => {
 });
 
 const rows = () => [...document.querySelectorAll<HTMLElement>("[data-record-row]")];
-const FIRST = "Open Rebuilding the admin as a tool";
+const FIRST = /^Open Rebuilding the admin as a tool(,|$)/;
 
 describe("Posts on a phone: the list", () => {
   it("draws rows, not a table; each row is one button with a full name and at most three facts", async () => {
@@ -118,14 +118,14 @@ describe("Posts on a phone: the list", () => {
 
   it("opens the editor on tap", async () => {
     mount();
-    fireEvent.click(await screen.findByRole("button", { name: "Open A draft nobody has read" }));
+    fireEvent.click(await screen.findByRole("button", { name: /^Open A draft nobody has read(,|$)/ }));
     expect(screen.getByTestId("where").textContent).toBe("/admin/posts/two");
   });
 
   it("draws a status only for an exception, one glyph per row, always with a name", async () => {
     mount();
     await screen.findByRole("button", { name: FIRST });
-    const glyph = (name: string) => within(screen.getByRole("button", { name: `Open ${name}` })).queryAllByRole("img");
+    const glyph = (name: string) => within(screen.getByRole("button", { name: new RegExp(`^Open ${name}(,|$)`) })).queryAllByRole("img");
     expect(glyph("Rebuilding the admin as a tool").length).toBe(0); // published and translated: nothing
     expect(glyph("A draft nobody has read").map((g) => g.getAttribute("aria-label"))).toEqual(["Draft"]);
     expect(glyph("Published with changes").map((g) => g.getAttribute("aria-label"))).toEqual(["Unpublished changes"]);
@@ -152,7 +152,7 @@ describe("Posts on a phone: filters", () => {
     fireEvent.click(within(chips).getByRole("button", { name: /Published/ }));
     await waitFor(() => expect(screen.getByTestId("where").textContent).toContain("status=published"));
     expect(screen.getByTestId("where").textContent).toContain("area=windom");
-    expect(await screen.findByRole("button", { name: "Open Windom notes" })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: /^Open Windom notes(,|$)/ })).toBeTruthy();
     fireEvent.click(within(screen.getByRole("toolbar")).getByRole("button", { name: /Published/ }));
     await waitFor(() => expect(screen.getByTestId("where").textContent).not.toContain("status="));
     expect(screen.getByTestId("where").textContent).toContain("area=windom");
@@ -160,19 +160,19 @@ describe("Posts on a phone: filters", () => {
 
   it("reads the area from the address and lists only its posts", async () => {
     mount("/admin/posts?area=windom");
-    expect(await screen.findByRole("button", { name: "Open Windom notes" })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: /^Open Windom notes(,|$)/ })).toBeTruthy();
     expect(rows().length).toBe(1);
   });
 
   it("filters to the posts whose Hebrew is missing", async () => {
     mount("/admin/posts?he=missing");
-    expect(await screen.findByRole("button", { name: "Open Hebrew is missing here" })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: /^Open Hebrew is missing here(,|$)/ })).toBeTruthy();
     await waitFor(() => expect(rows().length).toBe(1));
   });
 
   it("searches by title without writing the words to the address", async () => {
     mount();
-    await screen.findByRole("button", { name: "Open Windom notes" });
+    await screen.findByRole("button", { name: /^Open Windom notes(,|$)/ });
     fireEvent.change(screen.getByRole("searchbox"), { target: { value: "windom" } });
     await waitFor(() => expect(rows().length).toBe(1));
     expect(screen.getByTestId("where").textContent).not.toContain("windom");
@@ -226,7 +226,7 @@ describe("Posts on a phone: bulk actions", () => {
     fireEvent.click(undo);
     await new Promise((r) => setTimeout(r, 50));
     expect(deletes()).toEqual([]);
-    expect(screen.getByRole("button", { name: "Open Windom notes" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^Open Windom notes(,|$)/ })).toBeTruthy();
   });
 
   it("moves a published post to drafts with its published content, and leaves a draft alone", async () => {
@@ -250,7 +250,7 @@ describe("Posts on a phone: bulk actions", () => {
 describe("Areas on a phone", () => {
   it("draws one-button rows with at most three facts, hidden drawn as a glyph, not a pill", async () => {
     mount("/admin/areas", <AdminAreas />);
-    await screen.findByRole("button", { name: "Open WindoM" });
+    await screen.findByRole("button", { name: /^Open WindoM(,|$)/ });
     expect(document.querySelector("table")).toBeNull();
     expect(rows().length).toBe(areas.length);
     for (const r of rows()) {
@@ -258,21 +258,21 @@ describe("Areas on a phone", () => {
       expect(r.querySelectorAll(".rr-fact").length).toBeLessThanOrEqual(3);
       expect(r.textContent).not.toContain("/windom"); // no slug on the row
     }
-    expect(within(screen.getByRole("button", { name: "Open Old project" })).getByRole("img", { name: "Hidden" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Open Notes" }).querySelectorAll('[role="img"]').length).toBe(0);
-    fireEvent.click(screen.getByRole("button", { name: "Open WindoM" }));
+    expect(within(screen.getByRole("button", { name: /^Open Old project(,|$)/ })).getByRole("img", { name: "Hidden" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^Open Notes(,|$)/ }).querySelectorAll('[role="img"]').length).toBe(0);
+    fireEvent.click(screen.getByRole("button", { name: /^Open WindoM(,|$)/ }));
     expect(screen.getByTestId("where").textContent).toBe("/admin/areas/windom");
   });
 
   it("reads the visibility filter from the address", async () => {
     mount("/admin/areas?status=hidden", <AdminAreas />);
-    await screen.findByRole("button", { name: "Open Old project" });
+    await screen.findByRole("button", { name: /^Open Old project(,|$)/ });
     expect(rows().length).toBe(1);
   });
 
   it("hides areas only after an Undo window", async () => {
     mount("/admin/areas", <AdminAreas />);
-    await screen.findByRole("button", { name: "Open WindoM" });
+    await screen.findByRole("button", { name: /^Open WindoM(,|$)/ });
     fireEvent.click(screen.getByRole("button", { name: "Select" }));
     fireEvent.click(screen.getByRole("checkbox", { name: "WindoM" }));
     fireEvent.click(within(await screen.findByRole("toolbar", { name: "Bulk actions" })).getByRole("button", { name: "Hide" }));
@@ -321,7 +321,7 @@ describe("Hebrew", () => {
     document.documentElement.lang = "he";
     document.documentElement.setAttribute("dir", "rtl");
     mount();
-    await screen.findByRole("button", { name: "פתיחת Rebuilding the admin as a tool" });
+    await screen.findByRole("button", { name: /^פתיחת Rebuilding the admin as a tool(,|$)/ });
     expect(screen.getByRole("button", { name: "בחירה" })).toBeTruthy();
     for (const r of rows()) expect(r.getAttribute("aria-label")).toMatch(/^פתיחת /);
   });

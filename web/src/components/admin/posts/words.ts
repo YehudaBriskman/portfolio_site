@@ -7,8 +7,8 @@ import { defineWords, plural } from "@/i18n/words";
 export const usePostsPhoneWords = defineWords(
   "adminPostsPhone",
   {
-    openPost: (title: string) => `Open ${title}`,
-    openArea: (title: string) => `Open ${title}`,
+    openPost: (title: string, when = "") => `Open ${title}${when ? `, ${when}` : ""}`,
+    openArea: (title: string, what = "") => `Open ${title}${what ? `, ${what}` : ""}`,
     newPost: "New post",
     newArea: "New area",
     searchPosts: "Search posts",
@@ -43,8 +43,8 @@ export const usePostsPhoneWords = defineWords(
     failedSome: (n: number) => `${plural("en", n, { one: "{n} item", other: "{n} items" })} could not be saved. Try again.`,
   },
   {
-    openPost: (title: string) => `פתיחת ${title}`,
-    openArea: (title: string) => `פתיחת ${title}`,
+    openPost: (title: string, when = "") => `פתיחת ${title}${when ? `, ${when}` : ""}`,
+    openArea: (title: string, what = "") => `פתיחת ${title}${what ? `, ${what}` : ""}`,
     newPost: "רשימה חדשה",
     newArea: "תחום חדש",
     searchPosts: "חיפוש ברשימות",

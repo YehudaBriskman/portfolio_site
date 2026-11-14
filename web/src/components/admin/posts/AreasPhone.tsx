@@ -121,7 +121,7 @@ export default function AreasPhone() {
         status={glyph ? <StatusGlyph kind={glyph} /> : undefined}
         selectable={selection.on}
         selected={selection.has(c.slug)}
-        openLabel={selection.on ? c.title : p.openArea(c.title)}
+        openLabel={selection.on ? c.title : p.openArea(c.title, p.postsIn(countFor(c.slug)))}
         onOpen={() => (selection.on ? selection.toggle(c.slug) : nav(`/admin/areas/${c.slug}`))}
         onLongPress={() => selection.enter(c.slug)}
       />
