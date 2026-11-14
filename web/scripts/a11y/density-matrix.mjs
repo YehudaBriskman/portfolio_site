@@ -64,6 +64,11 @@ const openAll = async (page) => { const n = await page.evaluate(() => { const c 
 const byName = (re) => async (page) => { await page.getByRole("button", { name: re }).first().click({ force: true, timeout: 20000 }); };
 const tabN = (n) => click('[role="tablist"] [role="tab"]', n);
 const mkTab = (t) => async (page) => { await page.getByRole("tab", { name: t }).first().click({ force: true, timeout: 20000 }); };
+/* The editor's language is a select on a phone and three toggles before that: take whichever the build has. */
+const editingLang = (value, toggles) => async (page) => {
+  const sel = page.locator("select[data-editing-language]");
+  if (await sel.count()) await sel.selectOption(value); else await toggles(page);
+};
 const SCREENS = [
   ["overview", "Overview", "/admin"],
   ["nav-drawer", "Shell", "/admin", async (page) => { await page.getByRole("button", { name: "Menu", exact: true }).first().click({ force: true, timeout: 20000 }); }],
@@ -74,8 +79,8 @@ const SCREENS = [
   ["posts-archived", "Posts", "/admin/posts?status=archived"],
   ["post-editor", "Posts", "/admin/posts/admin-redesign"],
   ["post-editor-expanded", "Posts", "/admin/posts/admin-redesign", openAll],
-  ["post-editor-he", "Posts", "/admin/posts/admin-redesign", byName(/^Hebrew$/)],
-  ["post-editor-both", "Posts", "/admin/posts/admin-redesign", click('[class*="toggleGroup"] button', 2)],
+  ["post-editor-he", "Posts", "/admin/posts/admin-redesign", editingLang("he", byName(/^Hebrew$/))],
+  ["post-editor-both", "Posts", "/admin/posts/admin-redesign", editingLang("both", click('[class*="toggleGroup"] button', 2))],
   ["post-editor-nopreview", "Posts", "/admin/posts/notes-editor"],
   ["post-review-dialog", "Posts", "/admin/posts/admin-redesign", async (page) => { await page.locator('button.a-btn-primary[aria-haspopup="dialog"]').first().click({ force: true, timeout: 20000 }); await page.getByRole("dialog").waitFor({ timeout: 20000 }); }],
   ["post-new", "Posts", "/admin/posts/new"],
@@ -138,7 +143,9 @@ function measureDensity() {
     const cs = getComputedStyle(el);
     return !(cs.visibility === "hidden" || cs.display === "none" || +cs.opacity === 0 || cs.clipPath === "inset(50%)");
   };
-  const dialogs = [...document.querySelectorAll('[role="dialog"], [aria-modal="true"]')].filter(vis);
+  /* A sheet that is open counts even while it is still fading in (opacity 0 fails vis). */
+  const openSheets = [...document.querySelectorAll("dialog[open]")];
+  const dialogs = openSheets.length ? openSheets : [...document.querySelectorAll('[role="dialog"], [aria-modal="true"]')].filter(vis);
   const area = (e) => { const r = e.getBoundingClientRect(); return r.width * r.height; };
   const root = dialogs.length ? dialogs.sort((a, b) => area(b) - area(a))[0] : document.body;
   const inDialog = !!dialogs.length;
@@ -184,7 +191,9 @@ function measureDensity() {
   /* controls and links in the fold */
   const CTL = 'button, input:not([type=hidden]), select, textarea, [role="button"], [role="tab"], [role="switch"], [role="checkbox"], summary';
   const inFold = (el) => { const r = el.getBoundingClientRect(); return r.top < vh && r.bottom > 0 && r.left < vw && r.right > 0; };
-  const ctl = [...root.querySelectorAll(CTL)].filter((el) => vis(el) && !el.closest(".sr-only"));
+  /* Not what a person can reach: inside an inert subtree, or in a <details> that is closed (its summary still counts). */
+  const reachable = (el) => !el.closest("[inert]") && !(el.closest("details:not([open])") && !(el.tagName === "SUMMARY" && el.parentElement?.matches("details:not([open])") && !el.parentElement.parentElement?.closest("details:not([open])")));
+  const ctl = [...root.querySelectorAll(CTL)].filter((el) => vis(el) && !el.closest(".sr-only") && reachable(el));
   const controls = ctl.length, foldControls = ctl.filter(inFold).length;
   const links = [...root.querySelectorAll("a[href]")].filter((el) => vis(el) && !el.closest(".sr-only"));
   const foldLinks = links.filter(inFold).length;

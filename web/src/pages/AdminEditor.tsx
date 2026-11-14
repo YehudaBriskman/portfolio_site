@@ -485,6 +485,12 @@ export default function AdminEditor() {
   const previewLang = bodyLang === "he" ? "he" : "en";
   const setBody = (v: string) => edit(bodyLang === "he" ? "heBody" : "body", v);
 
+  const heTitleField = (
+    <HebrewField id={`${ids.title}-he`} label={w.titleHebrew} status={heStatus("title")} hint={w.hebrewOptional}>
+      <input id={`${ids.title}-he`} value={f.heTitle} maxLength={200} lang="he" dir="rtl" onChange={(e) => edit("heTitle", e.target.value)} className="a-input a-input-title" />
+    </HebrewField>
+  );
+
   return (
     <AdminShell title={heading} section="posts" backTo="/admin/posts" barEverywhere bottomBar={bar}>
       {loading ? (
@@ -525,7 +531,7 @@ export default function AdminEditor() {
             {!stored ? w.newNoteHint
               : published ? (post?.draftSavedAt && hasDraft ? w.unpublishedSince(clock(new Date(post.draftSavedAt))) : w.status.published)
               : w.neverPublished}
-            {published && (
+            {published && !phone && (
               <button type="button" className="a-btn a-btn-ghost ms-3" onClick={() => void unpublish()}>{w.unpublish}</button>
             )}
           </p>
@@ -549,10 +555,10 @@ export default function AdminEditor() {
                 aria-invalid={errors.title ? true : undefined}
               />
             </label>
-            <HebrewField id={`${ids.title}-he`} label={w.titleHebrew} status={heStatus("title")} hint={w.hebrewOptional}>
-              <input id={`${ids.title}-he`} value={f.heTitle} maxLength={200} lang="he" dir="rtl" onChange={(e) => edit("heTitle", e.target.value)} className="a-input a-input-title" />
-            </HebrewField>
+            {!phone && heTitleField}
           </div>
+          {/* The title and the body come first on a phone; the Hebrew title waits one tap away. */}
+          {phone && <Disclosure summary={w.hebrewFields} className="mt-4">{heTitleField}</Disclosure>}
           {stored && (
             <StaleNotice
               statuses={{ title: heStatus("title"), subtitle: heStatus("subtitle"), excerpt: heStatus("excerpt"), body: heStatus("body") }}
@@ -592,6 +598,19 @@ export default function AdminEditor() {
               <label className="a-label mb-2 ms-1" htmlFor={ids.body}>{w.body}</label>
               {stored && <TranslationPill status={heStatus("body")} className="mb-2" />}
             </span>
+            {phone ? (
+              <select
+                aria-label={w.editingIn}
+                data-editing-language
+                className="a-input min-h-[44px] w-auto"
+                value={bodyLang}
+                onChange={(e) => setBodyLang(e.target.value as "en" | "he" | "both")}
+              >
+                <option value="en">{w.bodyEnglish}</option>
+                <option value="he">{w.bodyHebrew}</option>
+                <option value="both">{w.bodyBoth}</option>
+              </select>
+            ) : (
             <div className="flex flex-wrap gap-2">
               <div role="group" aria-label={w.editingIn} className={styles.toggleGroup}>
                 {(["en", "he", "both"] as const).map((l) => (
@@ -617,6 +636,7 @@ export default function AdminEditor() {
                 {w.preview}
               </button>
             </div>
+            )}
           </div>
           {bodyLang === "both" ? (
             <div className={styles.split} data-side="true">
@@ -648,7 +668,7 @@ export default function AdminEditor() {
               />
             </div>
           ) : (
-          <div className={styles.split} data-side={preview}>
+          <div className={styles.split} data-side={preview && !phone}>
             <BodyEditor
               id={ids.body}
               value={bodyValue}
@@ -661,7 +681,7 @@ export default function AdminEditor() {
               onSave={() => canSave && void saveDraft()}
               onTogglePreview={() => setPreview((p) => !p)}
             />
-            {preview && (
+            {preview && !phone && (
               <section aria-label={w.previewLabel} className={styles.preview} lang={previewLang} dir={previewLang === "he" ? "rtl" : "ltr"}>
                 {bodyValue.trim() ? (
                   <NoteMarkdown body={bodyValue} pen={false} className={`${PROSE} !mt-0`} />
@@ -779,6 +799,9 @@ export default function AdminEditor() {
 
           <Disclosure summary={w.advanced} className="mt-6">
             <div className="mt-4">
+              {phone && published && (
+                <button type="button" className="a-btn mb-4 min-h-[44px]" onClick={() => void unpublish()}>{w.unpublish}</button>
+              )}
               {stored && (
                 <p className="text-sm text-bone">
                   <span className="a-label">{w.slug}</span>

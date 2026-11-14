@@ -1,11 +1,15 @@
 import { useCallback, useEffect, useId, useState } from "react";
 import { ErrorState } from "@/components/admin/ui";
+import { Share2 } from "lucide-react";
+import { BottomSheet } from "@/components/ui/BottomSheet";
 import { Disclosure } from "@/components/ui/Disclosure";
+import { RecordRow } from "@/components/ui/RecordRow";
+import { usePhone } from "@/hooks/usePhone";
 import { issueText, useSettingsWords } from "@/components/admin/settings/words";
 import { templateFor } from "@/lib/share";
 import { ContentConflictError, ContentInvalidError, type Issue } from "@/services/adminContent";
 import { adminSettings, type SettingsView } from "@/services/adminSettings";
-import { SHARE_CHANNELS, SHARE_TEMPLATE_MAX } from "@/settings/schema";
+import { SHARE_CHANNELS, SHARE_TEMPLATE_MAX, type ShareChannel } from "@/settings/schema";
 import { setSettings } from "@/settings/store";
 import type { AnnounceLang } from "@/services/adminAnnounce";
 import { useAnnounceWords } from "../words";
@@ -35,6 +39,8 @@ export default function VisitorTemplates({ bare }: { bare?: boolean } = {}) {
   const [issues, setIssues] = useState<Issue[]>([]);
   const [loadError, setLoadError] = useState(false);
   const [attempt, setAttempt] = useState(0);
+  const phone = usePhone();
+  const [openChannel, setOpenChannel] = useState<ShareChannel | null>(null);
 
   const take = useCallback((v: SettingsView) => {
     setView(v);
@@ -89,6 +95,32 @@ export default function VisitorTemplates({ bare }: { bare?: boolean } = {}) {
     }
   };
 
+  const field = (c: ShareChannel) => {
+    const value = draft.sharing.templates[lang][c] ?? "";
+    const def = templateFor("visitor", "post", lang, c);
+    return (
+      <div className="space-y-1">
+        <TemplateText
+          label={w.visitorChannels[c]}
+          value={value}
+          onChange={(v) => edit((t) => (v === "" ? void delete t[lang][c] : void (t[lang][c] = v)))}
+          lang={lang}
+          vars={VISITOR_VARS}
+          max={SHARE_TEMPLATE_MAX}
+          rows={3}
+          hideHint
+          placeholder={def}
+        >
+          <p className="a-hint !mt-0">{w.visitorDefault}</p>
+          <pre className="a-hint !mt-0 whitespace-pre-wrap font-[inherit]" dir="auto">{def}</pre>
+        </TemplateText>
+        <button type="button" className="a-btn a-btn-ghost mt-1 min-h-[44px]" aria-label={`${w.resetDefault}: ${w.visitorChannels[c]}`} disabled={value === ""} onClick={() => edit((t) => void delete t[lang][c])}>
+          {w.resetDefault}
+        </button>
+      </div>
+    );
+  };
+
   const bad = status === "conflict" || status === "failed";
   const statusText = status === "saving" ? a.saving : status === "saved" ? w.visitorSaved : status === "conflict" ? w.visitorConflict : status === "failed" ? w.visitorFailed : dirty ? w.unsaved : "";
 
@@ -103,35 +135,47 @@ export default function VisitorTemplates({ bare }: { bare?: boolean } = {}) {
           <button key={l} type="button" className="a-btn min-h-[44px]" aria-pressed={lang === l} onClick={() => setLang(l)}>{a.langs[l]}</button>
         ))}
       </div>
+      {phone ? (
+        /* One row per template, whatever is open: the editor is a sheet, never a box in the page. */
+        <>
+          <ul className="a-box m-0 list-none overflow-hidden p-0">
+            {SHARE_CHANNELS.map((c) => {
+              const value = draft.sharing.templates[lang][c] ?? "";
+              return (
+                <RecordRow
+                  key={`${lang}-${c}`}
+                  as="li"
+                  icon={Share2}
+                  title={w.visitorChannels[c]}
+                  facts={[{ text: value === "" ? w.builtinBadge : w.customised }]}
+                  openLabel={w.open(w.visitorChannels[c])}
+                  onOpen={() => setOpenChannel(c)}
+                />
+              );
+            })}
+          </ul>
+          <BottomSheet
+            open={openChannel !== null}
+            onClose={() => setOpenChannel(null)}
+            title={openChannel ? w.visitorChannels[openChannel] : ""}
+            snap="full"
+            footer={<button type="button" className="a-btn a-btn-primary min-h-[44px]" onClick={() => setOpenChannel(null)}>{w.done}</button>}
+          >
+            {openChannel && field(openChannel)}
+          </BottomSheet>
+        </>
+      ) : (
       <div className="space-y-2">
         {SHARE_CHANNELS.map((c) => {
           const value = draft.sharing.templates[lang][c] ?? "";
-          const def = templateFor("visitor", "post", lang, c);
           return (
             <Disclosure key={`${lang}-${c}`} className="a-box" summary={w.visitorChannels[c]} meta={value === "" ? w.builtinBadge : w.customised} open={value !== "" || undefined}>
-              <div className="space-y-1">
-              <TemplateText
-                label={w.visitorChannels[c]}
-                value={value}
-                onChange={(v) => edit((t) => (v === "" ? void delete t[lang][c] : void (t[lang][c] = v)))}
-                lang={lang}
-                vars={VISITOR_VARS}
-                max={SHARE_TEMPLATE_MAX}
-                rows={3}
-                hideHint
-                placeholder={def}
-              >
-                <p className="a-hint !mt-0">{w.visitorDefault}</p>
-                <pre className="a-hint !mt-0 whitespace-pre-wrap font-[inherit]" dir="auto">{def}</pre>
-              </TemplateText>
-              <button type="button" className="a-btn a-btn-ghost mt-1 min-h-[44px]" aria-label={`${w.resetDefault}: ${w.visitorChannels[c]}`} disabled={value === ""} onClick={() => edit((t) => void delete t[lang][c])}>
-                {w.resetDefault}
-              </button>
-              </div>
+              {field(c)}
             </Disclosure>
           );
         })}
       </div>
+      )}
       {issues.length > 0 && (
         <div role="alert">
           <p className="a-error">{w.visitorInvalid}</p>

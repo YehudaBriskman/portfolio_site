@@ -172,7 +172,10 @@ describe("Audience on a phone: search and filters", () => {
   it("filters by language among the people already loaded", async () => {
     mount();
     await screen.findByRole("button", { name: "Open Ada" });
-    fireEvent.click(screen.getByRole("button", { name: "Hebrew" }));
+    fireEvent.click(screen.getByRole("button", { name: "Filters" }));
+    const sheet = await screen.findByRole("dialog");
+    fireEvent.click(within(sheet).getByRole("radio", { name: "Hebrew" }));
+    fireEvent.click(within(sheet).getByRole("button", { name: /Show/ }));
     await waitFor(() => expect(rows().length).toBe(2));
     expect(screen.getByRole("button", { name: "Open dana@example.com" })).toBeTruthy();
   });
@@ -316,7 +319,7 @@ describe("Audience on a phone: Hebrew", () => {
     expect(row.querySelector("[data-rr-title] bdi")!.textContent).toBe("dana@example.com");
     expect(screen.getByRole("button", { name: "בחירה" })).toBeTruthy();
     expect(screen.getByRole("searchbox", { name: "חיפוש אנשי קשר" })).toBeTruthy();
-    expect(within(screen.getByRole("group", { name: "מצב" })).getByRole("button", { name: "ממתין" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "סינון" })).toBeTruthy();
     fireEvent.click(row);
     const dlg = await screen.findByRole("dialog");
     expect(within(dlg).getByText("dana@example.com").closest("[dir=ltr]")).toBeTruthy();

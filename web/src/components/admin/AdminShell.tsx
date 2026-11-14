@@ -294,7 +294,7 @@ export default function AdminShell({ title, section, counts, bottomBar, backTo, 
           </div>
         </div>
 
-        <main id="admin-content" tabIndex={-1} className="a-main">
+        <main id="admin-content" tabIndex={-1} className="a-main" inert={open || undefined}>
           {children}
         </main>
       </div>
