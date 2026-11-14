@@ -2,7 +2,8 @@ import Select from "@/components/ui/Select";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import AdminShell from "@/components/admin/AdminShell";
-import { PageHeader } from "@/components/admin/ui";
+import { NotFoundState, PageHeader } from "@/components/admin/ui";
+import { isNotFound } from "@/services/authError";
 import StatusPill, { type SaveState } from "@/components/admin/StatusPill";
 import DocPathsEditor from "@/components/admin/DocPathsEditor";
 import LinkEditor, { type LinkRow } from "@/components/LinkEditor";
@@ -57,6 +58,8 @@ export default function AdminCollection() {
   const [stats, setStats] = useState<Record<string, unknown> | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [slugTouched, setSlugTouched] = useState(!isNew);
+  /* A deep link to an area that is gone is not a new area: it says so. */
+  const [missing, setMissing] = useState(false);
 
   useEffect(() => {
     if (isNew) return;
@@ -65,7 +68,7 @@ export default function AdminCollection() {
       .then((cs) => {
         const c = cs.find((x) => x.slug === slug);
         if (!c) {
-          setSave({ kind: "failed", message: "Not found" });
+          setMissing(true);
           return;
         }
         setStats(c.stats ?? null);
@@ -94,7 +97,7 @@ export default function AdminCollection() {
           _rev: c._rev,
         });
       })
-      .catch((e) => setSave({ kind: "failed", message: e instanceof Error ? e.message : "Failed to load" }));
+      .catch((e) => (isNotFound(e) ? setMissing(true) : setSave({ kind: "failed", message: e instanceof Error ? e.message : "Failed to load" })));
   }, [slug, isNew]);
 
   /* Counts edits, so a save can tell whether anything was typed while it was on the wire. */
@@ -175,6 +178,14 @@ export default function AdminCollection() {
       </button>
     </div>
   );
+
+  if (missing) {
+    return (
+      <AdminShell title={w.notFound} section="areas" backTo="/admin/areas">
+        <NotFoundState text={w.notFoundArea} to="/admin/areas" back={w.backToAreas} />
+      </AdminShell>
+    );
+  }
 
   return (
     <AdminShell title={heading} section="areas" backTo="/admin/areas" bottomBar={bottomBar}>

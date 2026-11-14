@@ -38,7 +38,7 @@ export interface SettingsPhoneProps {
   saving: boolean;
   onRestore: (version: number) => Promise<void>;
   openId: string | null;
-  onOpenChange: (id: string | null) => void;
+  onOpenChange: (id: string | null, surface?: "page" | "sheet") => void;
 }
 
 function Choice<T extends string>({ name, legend, hint, options, value, onChange }: {
