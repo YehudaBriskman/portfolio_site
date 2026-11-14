@@ -1,6 +1,7 @@
 import EditorFrame from "@/components/admin/content/EditorFrame";
 import MediaPicker from "@/components/admin/MediaPicker";
 import { useContentEditor } from "@/components/admin/content/editor";
+import { LangSwitch } from "@/components/admin/content/editLang";
 import { LinesField, ListField, PlainField, SelectField, Section, TextField } from "@/components/admin/content/Fields";
 import { BEAT_LAYOUTS, beatIds, StoryContentSchema, type StoryContent, type Text } from "@/content/schema";
 import { useContentBundle } from "@/content/store";
@@ -54,7 +55,8 @@ export default function AdminStory() {
 
         return (
           <>
-            <Section title="The opening" aside={<TranslationPill status={heStatus("story", "start")} />}>
+            <LangSwitch />
+            <Section title="The opening" defaultOpen aside={<TranslationPill status={heStatus("story", "start")} />}>
               <TextField id="story-start-title" path="start.title" label="Title" value={story.start.title} onChange={(t) => editor.edit((d) => void (d.start.title = req(t)))} />
               <LinesField id="story-start-lines" path="start.lines" legend="Lines" lines={story.start.lines} onChange={(next) => editor.edit((d) => void (d.start.lines = next))} />
             </Section>

@@ -1,0 +1,209 @@
+/*
+ * The phone parts of the content editors: the language switch, the field
+ * groups, Reorder mode and the project list. Logical properties only; tokens
+ * for spacing, radius and motion. Nothing here applies on a desktop: the
+ * components render these only under 600px.
+ */
+
+/* ---- language switch: one row, 44px, in view above the groups */
+.switchBar {
+  position: sticky;
+  inset-block-start: 3.5rem; /* under the admin top bar */
+  z-index: 20;
+  margin-block: var(--a-s-3);
+  padding-block: var(--a-s-2);
+  background: rgb(var(--paper));
+}
+
+.switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--a-s-1);
+  padding: var(--a-s-1);
+  border: 1px solid var(--a-line);
+  border-radius: var(--a-r-ctl);
+  background: rgb(var(--paper-2));
+}
+
+.option {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-block-size: 2.75rem;
+  border-radius: var(--a-r-sm);
+  font-size: var(--a-fs-meta, 0.875rem);
+  font-weight: 700;
+  color: rgb(var(--ink-soft));
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.option[data-checked="true"] {
+  background: rgb(var(--ink));
+  color: rgb(var(--paper));
+}
+
+.radio {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.option:focus-within {
+  outline: 2px solid rgb(var(--signal));
+  outline-offset: 2px;
+}
+
+/* ---- field groups */
+.group {
+  margin-block-start: var(--a-s-3);
+  border: 1px solid var(--a-line);
+  border-radius: var(--a-r-box);
+  background: rgb(var(--sheet) / 0.55);
+}
+
+.groupHead {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--a-s-2);
+}
+
+.groupHead > :first-child {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+}
+
+.groupMeta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--a-s-1);
+  margin-inline-end: var(--a-s-3);
+  font-size: var(--a-fs-meta, 0.875rem);
+  color: rgb(var(--destructive-ink));
+}
+
+.groupBody {
+  display: grid;
+  gap: var(--a-s-4);
+  padding: var(--a-s-2) var(--a-s-3) var(--a-s-4);
+}
+
+.groupBody[hidden] {
+  display: none;
+}
+
+/* ---- search over groups */
+.search {
+  margin-block-start: var(--a-s-3);
+}
+
+.searchRow {
+  display: flex;
+  align-items: center;
+  gap: var(--a-s-2);
+}
+
+.searchRow > :first-child {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+}
+
+.count {
+  margin-block: var(--a-s-2) 0;
+  font-size: var(--a-fs-meta, 0.875rem);
+  color: rgb(var(--ink-soft));
+}
+
+/* ---- the project list and Reorder mode */
+.listHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--a-s-2);
+  margin-block-end: var(--a-s-2);
+}
+
+.listTitle {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--a-line);
+  border-radius: var(--a-r-box);
+  background: rgb(var(--sheet) / 0.55);
+  overflow: hidden;
+}
+
+.list > li + li {
+  border-block-start: 1px solid var(--a-line-soft, var(--a-line));
+}
+
+.current {
+  background: var(--a-hover, rgb(var(--ink) / 0.05));
+  box-shadow: inset 3px 0 0 rgb(var(--ink));
+}
+
+.reorderRow {
+  display: flex;
+  align-items: center;
+  gap: var(--a-s-2);
+  min-block-size: 3.5rem;
+  padding-block: var(--a-s-1);
+  padding-inline: var(--a-s-3) var(--a-s-2);
+}
+
+.grip {
+  flex: none;
+  color: rgb(var(--ink-soft));
+}
+
+.reorderName {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+  font-weight: 700;
+}
+
+.reorderBtns {
+  display: flex;
+  flex: none;
+  gap: var(--a-s-2);
+}
+
+.iconBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 2.75rem;
+  block-size: 2.75rem;
+  padding: 0;
+}
+
+.iconBtn svg {
+  inline-size: 1.25rem;
+  block-size: 1.25rem;
+}
+
+/* A directional arrow keeps its meaning in both directions: up is up. */
+.danger {
+  color: rgb(var(--destructive-ink));
+}
+
+/* ---- a nested ListField on a phone: the cards, without their buttons */
+.itemTitle {
+  margin: 0 0 var(--a-s-3);
+  font-size: var(--a-fs-meta, 0.875rem);
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
