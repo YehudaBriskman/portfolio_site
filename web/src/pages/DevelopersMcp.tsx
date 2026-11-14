@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import "@/components/phone/tokens.css";
+import "@/components/phone/pages-info.css";
 import { toast } from "@/lib/toast";
 import { copyText } from "@/lib/share";
 import PageShell from "@/components/PageShell";
@@ -49,9 +51,9 @@ function CopyLine({ label, text }: { label: string; text: string }) {
     return () => window.clearTimeout(t);
   }, [copied]);
   return (
-    <div className="mt-3">
+    <div className="mt-3" data-ph="copy">
       <p className="mono text-xs uppercase tracking-[0.16em] text-clay">{label}</p>
-      <div className="mt-2 flex min-w-0 items-stretch border border-rule-firm bg-paper">
+      <div className="mt-2 flex min-w-0 items-stretch border border-rule-firm bg-paper" data-ph="copy-box">
         <code className="mono min-w-0 flex-1 overflow-x-auto whitespace-nowrap px-4 py-3 text-sm text-ink" translate="no" dir="ltr">
           {text}
         </code>
@@ -77,7 +79,7 @@ function CopyLine({ label, text }: { label: string; text: string }) {
 function ToolTable({ caption, tools }: { caption: string; tools: Tool[] }) {
   const w = useMcpWords();
   return (
-    <table className="mt-4 w-full border-collapse text-start text-[0.9375rem]">
+    <table className="mt-4 w-full border-collapse text-start text-[0.9375rem]" data-ph="tools">
       <caption className="sr-only">{caption}</caption>
       <thead>
         <tr className="border-b border-rule-firm">
@@ -119,7 +121,7 @@ export default function DevelopersMcp() {
           <h1 className="display mt-3 text-section">{w.title}</h1>
         </div>
 
-        <div className="mt-8 max-w-[36em] space-y-5 text-[1.0625rem] leading-relaxed text-ink">
+        <div className="mt-8 max-w-[36em] space-y-5 text-[1.0625rem] leading-relaxed text-ink" data-ph-prose="">
           <p>
             {w.intro}
           </p>

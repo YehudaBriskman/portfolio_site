@@ -4,6 +4,8 @@ import ObjectLabel from "@/components/gallery/ObjectLabel";
 import { MAX_FIELDS, type LabelField } from "@/components/gallery/objectLabel";
 import Written from "@/components/motion/Written";
 import styles from "@/components/Contact.module.css";
+import "@/components/phone/tokens.css";
+import "@/components/phone/pages-forms.css";
 import type { SocialLink } from "@/data/links";
 import { useContent } from "@/content/store";
 import { ContactError, ContactSchema, MESSAGE_MAX, NAME_MAX, sendContactMessage } from "@/services/contact";
@@ -463,7 +465,7 @@ export default function Contact() {
          * would rather not use it — which is more text than the printed form
          * had above its first field.
          */}
-        <div className={styles.ask}>
+        <div className={styles.ask} data-ph-ask="">
           <Written as="p" className={`${styles.note} text-fact`}>
             {w.note}
           </Written>
@@ -510,6 +512,7 @@ export default function Contact() {
             ref={triggerRef}
             type="button"
             className={`btn ${answered ? "btn-quiet" : "btn-solid"} ${styles.open} ${styles.surface}`}
+            data-ph-primary=""
             onClick={() => {
               setEverOpened(true);
               setOpen(true);
@@ -623,6 +626,7 @@ export default function Contact() {
                */}
               <form
                 className={styles.form}
+                data-ph-contact=""
                 onSubmit={onSubmit}
                 noValidate
                 aria-label={w.formLabel}
@@ -658,7 +662,7 @@ export default function Contact() {
                 <div aria-hidden="true" style={{ position: "absolute", insetInlineStart: -10000, inlineSize: 1, blockSize: 1, overflow: "hidden" }}>
                   <input type="text" name="website" tabIndex={-1} autoComplete="off" defaultValue="" />
                 </div>
-                <div className={`${styles.field} ${styles.fieldName}`}>
+                <div className={`${styles.field} ${styles.fieldName}`} data-ph-field="name">
                   <label className={styles.fieldLabel} htmlFor="contact-name">
                     {w.name}
                   </label>
@@ -725,7 +729,7 @@ export default function Contact() {
                  * appear on a submit: `aria-invalid`, the note under the field,
                  * and the rule's weight.
                  */}
-                <div className={`${styles.field} ${styles.fieldEmail}`}>
+                <div className={`${styles.field} ${styles.fieldEmail}`} data-ph-field="email">
                   <label className={styles.fieldLabel} htmlFor="contact-email">
                     {w.email}
                   </label>
@@ -761,7 +765,7 @@ export default function Contact() {
                  * `rows` stays for the browsers without `field-sizing`, which
                  * get exactly the box that is here today.
                  */}
-                <div className={`${styles.field} ${styles.fieldMessage}`}>
+                <div className={`${styles.field} ${styles.fieldMessage}`} data-ph-field="message">
                   <label className={styles.fieldLabel} htmlFor="contact-message">
                     {w.message}
                   </label>
@@ -797,6 +801,7 @@ export default function Contact() {
                     type="submit"
                     disabled={status.kind === "sending"}
                     className="btn btn-solid"
+                    data-ph-primary=""
                   >
                     {status.kind === "sending" ? w.sending : w.send}
                     <span aria-hidden="true"><Arrow /></span>

@@ -4,6 +4,8 @@ import { Link } from "react-router-dom";
 import PageShell from "@/components/PageShell";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { useSubscribeWords } from "@/i18n/subscribe";
+import "@/components/phone/tokens.css";
+import "@/components/phone/pages-forms.css";
 
 /*
  * The shell the three pages an email links to share. The status area is a
@@ -17,9 +19,9 @@ export default function SubscribeFrame({ title, children }: { title: string; chi
     <PageShell>
       <section className="wrap section-y">
         <h1 className="display mt-3 text-section">{title}</h1>
-        <div className="mt-8 max-w-[36em] space-y-5 text-[1.0625rem] leading-relaxed text-ink">{children}</div>
+        <div className="mt-8 max-w-[36em] space-y-5 text-[1.0625rem] leading-relaxed text-ink" data-ph-frame="">{children}</div>
         <div className="mt-12">
-          <Link to="/" className="btn btn-quiet">
+          <Link to="/" className="btn btn-quiet" data-ph-back="">
             {w.home}
           </Link>
         </div>
@@ -46,7 +48,7 @@ export function Result({ kind, focus = false, children }: { kind: "idle" | "ok" 
     if (focus) ref.current?.focus();
   }, [focus]);
   return (
-    <p ref={ref} tabIndex={-1} role={kind === "error" ? "alert" : "status"} aria-live={kind === "error" ? "assertive" : "polite"} aria-atomic="true" className="min-h-[3.5rem] outline-none" data-kind={kind}>
+    <p ref={ref} tabIndex={-1} role={kind === "error" ? "alert" : "status"} aria-live={kind === "error" ? "assertive" : "polite"} aria-atomic="true" className="min-h-[3.5rem] outline-none" data-kind={kind} data-ph-result="">
       {children}
     </p>
   );

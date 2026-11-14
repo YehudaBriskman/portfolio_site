@@ -183,7 +183,7 @@ export default function Story() {
           <h2 id="close-title" className={`display ${styles.closeTitle}`}>
             {w.soFar}
           </h2>
-          <dl className={styles.figures}>
+          <dl className={styles.figures} data-ph="figures">
             {story.figures.map((f) => (
               <div key={f.caption} className={styles.figure}>
                 <dt className={`${styles.figureCaption} text-field`}>{w.figures[f.caption] ?? f.caption}</dt>
@@ -192,7 +192,7 @@ export default function Story() {
             ))}
           </dl>
           <p className={styles.onward}>
-            <Link to="/projects" className={styles.onwardLink}>
+            <Link to="/projects" className={styles.onwardLink} data-ph="onward">
               {w.allWork} <span aria-hidden="true"><Arrow /></span>
             </Link>
           </p>

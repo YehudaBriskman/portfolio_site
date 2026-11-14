@@ -39,7 +39,7 @@ export default function SubscribeConfirm() {
         {state === "ok" ? w.confirmDone : state === "bad" ? w.confirmBad : state === "retry" ? (why === "rate" ? w.errRate : w.errReach) : state === "working" ? w.working : ""}
       </Result>
       {(state === "idle" || state === "working" || state === "retry") && (
-        <button ref={retryRef} type="button" className="btn btn-solid" onClick={go} disabled={state === "working"}>
+        <button ref={retryRef} type="button" className="btn btn-solid" data-ph-primary="" onClick={go} disabled={state === "working"}>
           {state === "retry" ? w.retry : w.confirmButton}
         </button>
       )}
