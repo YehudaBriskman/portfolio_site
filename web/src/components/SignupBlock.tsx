@@ -2,6 +2,8 @@ import { useId, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { Link } from "react-router-dom";
 import styles from "@/components/SignupBlock.module.css";
+import "@/components/phone/tokens.css";
+import "@/components/phone/pages-info.css";
 import { useLang } from "@/components/dashboard/i18n";
 import { useSubscribeWords } from "@/i18n/subscribe";
 import {
@@ -104,6 +106,7 @@ export default function SignupBlock({
       className={`${styles.block} ${className}`}
       aria-labelledby={id("h")}
       data-signup
+      data-ph-card=""
     >
       <Heading id={id("h")} className={styles.heading}>
         {w.heading}
@@ -112,6 +115,7 @@ export default function SignupBlock({
 
       <form
         className={styles.form}
+        data-ph-form=""
         onSubmit={onSubmit}
         noValidate
         aria-label={w.formLabel}
@@ -164,7 +168,7 @@ export default function SignupBlock({
           aria-describedby={topicError ? id("topics-err") : undefined}
         >
           <legend className={styles.legend}>{w.topics}</legend>
-          <div className={styles.checks}>
+          <div className={styles.checks} data-ph-checks="">
             <label className={styles.check}>
               <input
                 type="checkbox"
@@ -197,7 +201,7 @@ export default function SignupBlock({
           </p>
         </fieldset>
 
-        <div className={styles.trap} aria-hidden="true">
+        <div className={styles.trap} aria-hidden="true" data-ph-trap="">
           <label>
             {w.trapLabel}
             <input
@@ -211,7 +215,7 @@ export default function SignupBlock({
           </label>
         </div>
 
-        <p className={styles.consent}>
+        <p className={styles.consent} data-ph-consent="">
           {w.consentBefore} <Link to="/privacy">{w.consentLink}</Link>
           {"."}
         </p>
@@ -219,6 +223,7 @@ export default function SignupBlock({
         <button
           type="submit"
           className={`btn btn-solid ${styles.submit}`}
+          data-ph-primary=""
           aria-disabled={sending || undefined}
         >
           {sending ? w.sending : w.submit}

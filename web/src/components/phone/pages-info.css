@@ -1,0 +1,180 @@
+/*
+ * Direction A ("grouped") on the reading pages, PHONE ONLY: Help, Accessibility,
+ * Developers/MCP, Story's closing figures and the sign-up block (Follow, home).
+ * Everything is inside the one public phone query (639px); above it the only
+ * rule is the phone-only parts' `display: none`. The pages keep their own
+ * classes and DOM; these rules hang on data attributes the pages carry:
+ *
+ *   data-ph-prose   the page's reading column: lists become inset groups,
+ *                   problem entries become cards, text stays on the ground
+ *   data-ph="..."   a single part (copy box, tool table, figures, onward link)
+ *   data-ph-card    the sign-up block as one card, its fields grouped inside
+ *   data-ph-only    a phone-only glyph (a row's leading icon)
+ *
+ * Tokens are the kit's (tokens.css): --ph-card, --ph-recess, --ph-line,
+ * --r-md, --r-sm. No blur, no hover, no font, no motion.
+ */
+
+[data-ph-only] {
+  display: none;
+}
+
+@media (max-width: 639px) {
+  [data-ph-only] {
+    display: block;
+  }
+
+  /* ───────────────────────────── a list of statements: one inset group */
+  [data-ph-prose] > ul {
+    margin-inline: 0;
+    padding: 0;
+    overflow: hidden;
+    border-radius: var(--r-md);
+    background: var(--ph-card);
+    list-style: none;
+  }
+  [data-ph-prose] > ul > li {
+    position: relative;
+    margin: 0;
+    padding: 12px var(--ph-gutter);
+  }
+  [data-ph-prose] > ul > li + li::before {
+    content: "";
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline: var(--ph-gutter) 0;
+    height: 1px;
+    background: var(--ph-line);
+  }
+
+  /* ───────────────────────────── the contents list: grouped link rows */
+  [data-ph-prose] nav [data-phone-group] > ul {
+    margin-block-start: 8px;
+  }
+  [data-ph-prose] nav [data-phone-group] > ul > li {
+    margin: 0;
+  }
+  [data-ph-prose] nav [data-phone-row] {
+    margin-block: 0;
+    min-block-size: 56px;
+  }
+  /* a row with a title and no meta line: centred on its circle, not in the first half */
+  [data-ph-prose] nav [data-phone-row] > span:not([data-phone-circle]) {
+    grid-row: 1 / span 2;
+  }
+
+  /* ───────────────────────────── a problem entry (see / why / do): one card */
+  [data-ph-prose] article {
+    padding: 14px var(--ph-gutter) 16px;
+    border-radius: var(--r-md);
+    background: var(--ph-card);
+  }
+
+  /* ───────────────────────────── Developers/MCP */
+  [data-ph="copy-box"] {
+    overflow: hidden;
+    border: 0;
+    border-radius: var(--r-sm);
+    background: var(--ph-card);
+  }
+  [data-ph="copy-box"] > button {
+    min-block-size: 48px;
+    border-inline-start-color: var(--ph-line);
+  }
+  [data-ph="tools"] {
+    border-collapse: separate;
+    border-spacing: 0;
+    background: var(--ph-card);
+  }
+  [data-ph="tools"] :is(th, td) {
+    padding-inline: var(--ph-gutter);
+    border-block-end: 1px solid var(--ph-line);
+  }
+  [data-ph="tools"] tbody tr:last-child > :is(th, td) {
+    border-block-end: 0;
+  }
+  [data-ph="tools"] :is(th, td) {
+    text-align: start;
+  }
+  [data-ph="tools"] thead th {
+    background: var(--ph-recess);
+  }
+  [data-ph="tools"] thead th:first-child {
+    border-start-start-radius: var(--r-md);
+  }
+  [data-ph="tools"] thead th:last-child {
+    border-start-end-radius: var(--r-md);
+  }
+  [data-ph="tools"] tbody tr:last-child > :first-child {
+    border-end-start-radius: var(--r-md);
+  }
+  [data-ph="tools"] tbody tr:last-child > :last-child {
+    border-end-end-radius: var(--r-md);
+  }
+
+  /* ───────────────────────────── Story: the closing figures, two to a row */
+  dl[data-ph="figures"] {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  dl[data-ph="figures"] > div {
+    min-width: 0;
+    padding: 14px;
+    border-radius: var(--r-md);
+    background: var(--ph-recess);
+  }
+  dl[data-ph="figures"] dd {
+    font-size: clamp(1.75rem, 8vw, 2.25rem);
+  }
+  a[data-ph="onward"] {
+    display: flex;
+    min-block-size: 48px;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 20px;
+    border-radius: var(--r-pill);
+    background: rgb(var(--signal));
+    color: rgb(var(--signal-ink));
+    line-height: 1.35;
+    text-align: center;
+    text-decoration: none;
+  }
+
+  /* ───────────────────────────── the sign-up block: one card, fields inside */
+  [data-signup][data-ph-card] {
+    max-inline-size: none;
+    padding: 20px var(--ph-gutter);
+    border-radius: var(--r-md);
+    background: var(--ph-card);
+  }
+  form[data-ph-form] {
+    gap: 12px;
+  }
+  [data-ph-form] :is(input[type="email"], input[type="text"]) {
+    border-radius: var(--r-sm);
+  }
+  div[data-ph-checks] {
+    display: grid;
+    gap: 0;
+    margin-block-start: 6px;
+    overflow: hidden;
+    border-radius: var(--r-sm);
+    background: var(--ph-recess);
+  }
+  [data-ph-checks] > label {
+    min-block-size: 48px;
+    padding-inline: 12px;
+  }
+  [data-ph-checks] > label + label {
+    border-block-start: 1px solid var(--ph-line);
+  }
+  [data-ph-form] [data-ph-primary] {
+    inline-size: 100%;
+    justify-self: stretch;
+    min-block-size: 48px;
+    justify-content: center;
+    border-radius: var(--r-pill);
+  }
+}
