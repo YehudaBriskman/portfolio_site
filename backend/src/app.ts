@@ -24,6 +24,7 @@ import { auditWrites } from './services/audit.js';
 import { indexNowOnWrite } from './services/indexnow.js';
 import subscribeRoutes from './audience/public.route.js';
 import resendWebhookRoutes from './audience/webhook.route.js';
+import { signaturePublicRoutes } from "./signature/route.js";
 import { announceOnWrite } from './announce/hooks.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 import { couch } from './db/couch.js';
@@ -130,6 +131,8 @@ export function createApp() {
   app.use('/api/admin', adminLimiter, createBearerFailureLimiter(), requireAdmin, auditWrites, indexNowOnWrite, announceOnWrite, adminRoutes);
   app.use('/api/email', emailRoutes);
   app.use("/api/images", createImagesRouter());
+  // The signature image files only (never a setting): switched off, they answer 404.
+  app.use("/api/signature", readLimiter, signaturePublicRoutes);
   // The contribution year: a cached array, one request per home-page load, so the
   // read limiter is enough (nothing here is on a crawler's path).
   app.use("/api/github", readLimiter, createGithubRouter());
