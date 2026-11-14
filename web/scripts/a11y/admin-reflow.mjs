@@ -147,13 +147,14 @@ const cases = [
     await page.waitForTimeout(900);
     const m = await page.evaluate(() => {
       const sw = [...document.querySelectorAll("[role=switch]")];
-      const x = (s) => { const t = s.querySelector('[class*="_track_"]'); const th = s.querySelector('[class*="_thumb_"]') ?? t.firstElementChild; return Math.round(th.getBoundingClientRect().left - t.getBoundingClientRect().left); };
+      const x = (s) => { const t = s.parentElement.querySelector('[class*="_track_"]'); const th = t.firstElementChild; return Math.round(th.getBoundingClientRect().left - t.getBoundingClientRect().left); };
       const on = sw.find((s) => s.getAttribute("aria-checked") === "true");
       const off = sw.find((s) => s.getAttribute("aria-checked") === "false");
       return { on: on ? x(on) : null, off: off ? x(off) : null };
     });
     await ctx.close();
-    return [m.on !== null && m.off !== null && m.on !== m.off, `thumb offsets ${JSON.stringify(m)}`];
+    // an on switch has its thumb at the end edge (track 51px, thumb 25px); an off one, if the fixture has any, at the start
+    return [m.on !== null && m.on >= 20, `on thumb offset ${JSON.stringify(m)}`, m.off === null || m.off <= 6, `off thumb offset ${JSON.stringify(m)}`];
   }],
   ["B-h5-4 landscape notch: top bar and main clear the safe-area insets", async () => {
     const { ctx, page } = await open("/admin/posts", { w: 844, h: 390, touch: true, insets: { top: 0, left: 47, bottom: 21, right: 47 } });
@@ -175,7 +176,7 @@ const cases = [
     const { ctx, page } = await open("/admin/posts/admin-redesign", { w: 390, h: 700, lang: "he" });
     const m = await page.evaluate(() => {
       const a = document.querySelector(".a-top a.a-icon-btn");
-      const last = document.querySelector(".a-crumbs")?.lastElementChild;
+      const last = document.querySelector(".a-crumbs li:last-child bdi");
       return { dir: document.documentElement.dir, t: getComputedStyle(a.querySelector("svg")).transform, bidi: last ? getComputedStyle(last).unicodeBidi : "" };
     });
     await shot(page, "reflow-he-editor-390.png");
@@ -199,7 +200,7 @@ const cases = [
     const out = [];
     for (const w of [390, 320]) {
       const { ctx, page } = await open("/admin/posts/new", { w, h: 800, fontPct: 200 });
-      const bad = await offscreen(page, "main");
+      const bad = [...(await offscreen(page, "main")), ...(await offscreen(page, ".a-bottom"))];
       if (w === 390) await shot(page, "reflow-new-post-390-200.png");
       await ctx.close();
       out.push(bad.length === 0, `past the edge at ${w}: ${JSON.stringify(bad)}`);

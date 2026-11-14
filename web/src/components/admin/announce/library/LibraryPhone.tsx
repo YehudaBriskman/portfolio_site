@@ -268,7 +268,7 @@ export default function LibraryPhone({ doc, events }: { doc: Doc; events: Announ
 
       <section className={styles.group} aria-labelledby={`${uid}-t`}>
         <div className={styles.head}>
-          <h3 id={`${uid}-t`} className={styles.title}>{w.templatesHeading}</h3>
+          <h2 id={`${uid}-t`} className={styles.title}>{w.templatesHeading}</h2>
           <button type="button" className="a-btn a-btn-primary min-h-[44px]" disabled={draft.library.length >= LIBRARY_MAX} onClick={() => addItem()}>{w.newTemplate}</button>
         </div>
         {items.length === 0 ? (
@@ -283,7 +283,7 @@ export default function LibraryPhone({ doc, events }: { doc: Doc; events: Announ
       </section>
 
       <section className={styles.group} aria-labelledby={`${uid}-b`}>
-        <h3 id={`${uid}-b`} className={styles.title}>{w.builtinHeading}</h3>
+        <h2 id={`${uid}-b`} className={styles.title}>{w.builtinHeading}</h2>
         {builtins.length === 0 ? (
           <p className={styles.help}>{w.nothingMatches}</p>
         ) : (
@@ -309,7 +309,7 @@ export default function LibraryPhone({ doc, events }: { doc: Doc; events: Announ
 
       <section className={styles.group} aria-labelledby={`${uid}-s`}>
         <div className={styles.head}>
-          <h3 id={`${uid}-s`} className={styles.title}>{w.snippetsHeading}</h3>
+          <h2 id={`${uid}-s`} className={styles.title}>{w.snippetsHeading}</h2>
           <button type="button" className="a-btn min-h-[44px]" disabled={draft.snippets.length >= SNIPPET_MAX} onClick={addSnippet}>{w.newSnippet}</button>
         </div>
         {snippets.length === 0 ? (

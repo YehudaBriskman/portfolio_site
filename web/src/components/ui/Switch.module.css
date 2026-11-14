@@ -99,6 +99,56 @@
   outline-offset: 3px;
 }
 
+/*
+ * Forced colours (Windows high contrast) drop background and box-shadow, which
+ * is all the drawn track and thumb are. Draw them with system colours instead:
+ * an outlined track and a ButtonText thumb when off; a Highlight track with a
+ * HighlightText thumb when on. State is also shape: the thumb sits at the
+ * start edge when off and the end edge when on.
+ */
+@media (forced-colors: active) {
+  .track,
+  .thumb {
+    forced-color-adjust: none;
+  }
+  .track {
+    box-sizing: border-box;
+    border: 2px solid ButtonText;
+    background: Canvas;
+    box-shadow: none;
+  }
+  .thumb {
+    background: ButtonText;
+    box-shadow: none;
+    inset-block-start: 0.125rem;
+    inset-inline-start: 0.125rem;
+  }
+  .input:checked ~ .track {
+    border-color: Highlight;
+    background: Highlight;
+  }
+  .input:checked ~ .track .thumb {
+    background: HighlightText;
+    inset-inline-start: calc(100% - 1.5625rem - 0.125rem);
+  }
+  .input:focus-visible ~ .track {
+    outline: 2px solid Highlight;
+  }
+  .switch[data-disabled="true"] {
+    opacity: 1;
+  }
+  .switch[data-disabled="true"] .label,
+  .switch[data-disabled="true"] .hint {
+    color: GrayText;
+  }
+  .switch[data-disabled="true"] .track {
+    border-color: GrayText;
+  }
+  .switch[data-disabled="true"] .thumb {
+    background: GrayText;
+  }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .track {
     transition: background-color var(--a-dur-base, 180ms) ease-out;

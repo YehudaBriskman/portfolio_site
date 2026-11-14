@@ -124,7 +124,7 @@ export default function TemplateEditor({
         <h3 id={`${id}-h`} className="a-box-title">{w.editorHeading(title)}</h3>
         <button type="button" className="a-btn a-btn-ghost min-h-[44px]" onClick={onClose}>{w.close}</button>
       </div>
-      <div className="grid gap-6 p-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 p-4 lg:grid-cols-2">
         <div className="min-w-0 space-y-4">
           {value.name !== undefined && (
             <>

@@ -125,7 +125,7 @@ export function TextField({ id, path, label, hint, multiline, value, nullable, o
   return (
     <fieldset className="min-w-0" data-path={path}>
       <legend className="a-label">{label}</legend>
-      <div className="grid gap-3 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         {enInput}
         {heInput}
       </div>

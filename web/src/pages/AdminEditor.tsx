@@ -592,7 +592,7 @@ export default function AdminEditor() {
             <p className={styles.status} data-bad={notice.bad || undefined} role="status">{notice.text}</p>
           )}
 
-          <div className="mt-8 grid gap-4 md:grid-cols-2" data-path="title">
+          <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-2" data-path="title">
             <label className="block min-w-0" htmlFor={ids.title}>
               <span className="a-label">{w.title}</span>
               <input
@@ -653,7 +653,7 @@ export default function AdminEditor() {
               <select
                 aria-label={w.editingIn}
                 data-editing-language
-                className="a-input min-h-[44px] w-auto"
+                className="a-input min-h-[44px] w-auto max-w-full min-w-0"
                 value={bodyLang}
                 onChange={(e) => setBodyLang(e.target.value as "en" | "he" | "both")}
               >
@@ -750,7 +750,7 @@ export default function AdminEditor() {
           </div>
 
           <Disclosure open={!phone || !stored} summary={w.details} meta={phone ? (cols.find((c) => c.slug === f.collection)?.title ?? f.collection) : undefined} className="mt-10">
-            <div className="mt-4 grid gap-5 sm:grid-cols-2">
+            <div className="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-2">
               <label className="block">
                 <span className="a-label">{w.area}</span>
                 <Select value={f.collection} onChange={(e) => edit("collection", e.target.value)}>
@@ -798,7 +798,7 @@ export default function AdminEditor() {
                 <MediaPicker value={f.coverImage} onChange={(url) => edit("coverImage", url)} />
                 <PickedPreview url={f.coverImage} />
               </div>
-              <div className="grid gap-4 sm:col-span-2 md:grid-cols-2" data-path="subtitle">
+              <div className="grid grid-cols-1 gap-4 sm:col-span-2 md:grid-cols-2" data-path="subtitle">
                 <label className="block min-w-0">
                   <span className="a-label">{w.subtitle}</span>
                   <input value={f.subtitle} lang="en" dir="ltr" onChange={(e) => edit("subtitle", e.target.value)} className="a-input" />
@@ -807,7 +807,7 @@ export default function AdminEditor() {
                   <input id={`${ids.title}-he-subtitle`} value={f.heSubtitle} maxLength={300} lang="he" dir="rtl" onChange={(e) => edit("heSubtitle", e.target.value)} className="a-input" />
                 </HebrewField>
               </div>
-              <div className="grid gap-4 sm:col-span-2 md:grid-cols-2" data-path="excerpt">
+              <div className="grid grid-cols-1 gap-4 sm:col-span-2 md:grid-cols-2" data-path="excerpt">
                 <label className="block min-w-0">
                   <span className="a-label">{w.excerpt}</span>
                   <textarea value={f.excerpt} lang="en" dir="ltr" onChange={(e) => edit("excerpt", e.target.value)} maxLength={320} className="a-textarea min-h-[5rem]" />
@@ -821,7 +821,7 @@ export default function AdminEditor() {
           </Disclosure>
 
           <Disclosure summary={w.seo} className="mt-6">
-            <div className="mt-4 grid gap-5 sm:grid-cols-2">
+            <div className="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-2">
               <label className="block">
                 <span className="a-label">{w.seoTitle}</span>
                 <input value={f.seoTitle} maxLength={200} onChange={(e) => edit("seoTitle", e.target.value)} className="a-input" />

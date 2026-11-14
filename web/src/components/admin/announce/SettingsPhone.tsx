@@ -189,7 +189,7 @@ export default function PhoneSettings({ working, tagText, onTagText, change, res
           <p className="a-label !mt-0">{sw.utmMediumHeading}</p>
           <InfoPopover label={sw.utmMediumHeading} text={sw.utmMediumHint} />
         </div>
-        <div className="grid gap-3">
+        <div className="grid grid-cols-1 gap-3">
           {ANNOUNCE_CHANNELS.map((c) => (
             <div key={c} data-setting-id={`utm-medium-${c}`}>
               <label className="a-label !mt-0" htmlFor={`${uid}-m-${c}`}>{sw.utmMedium(w.channels[c])}</label>

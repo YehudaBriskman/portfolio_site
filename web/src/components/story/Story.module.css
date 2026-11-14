@@ -277,6 +277,9 @@
 
 .beatText {
   display: grid;
+  /* minmax(0, 1fr): an auto track grows to the longest unbreakable word, so a long
+     heading overflowed its card at 320 before it could wrap. */
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.75rem;
   align-content: start;
 }
@@ -292,6 +295,8 @@
   font-size: clamp(1.75rem, 3.6vw, 2.75rem);
   line-height: 1.02;
   text-wrap: balance;
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
 }
 
 .titleLink {

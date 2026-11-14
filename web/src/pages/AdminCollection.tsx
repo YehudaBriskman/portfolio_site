@@ -214,7 +214,7 @@ export default function AdminCollection() {
             Optional, field by field. A field left empty shows the English on the Hebrew page, marked
             as English.
           </p>
-          <div className="mt-4 grid gap-5" lang="he" dir="rtl">
+          <div className="mt-4 grid grid-cols-1 gap-5" lang="he" dir="rtl">
             <label className="block">
               <span className="a-label" lang="en" dir="ltr">Title</span>
               <input value={d.heTitle} onChange={(e) => patch({ heTitle: e.target.value })} className="a-input" maxLength={120} />
@@ -236,7 +236,7 @@ export default function AdminCollection() {
         </Disclosure>
 
         <Disclosure open={!phone || isNew} summary={w.areaDetails} meta={phone && !isNew ? `${pw.kinds[d.kind]} · ${w.status[d.status]}` : undefined} className="mt-10">
-          <div className="mt-4 grid gap-5 sm:grid-cols-2">
+          <div className="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-2">
             <label className="block">
               <span className="a-label">Kind</span>
               <Select value={d.kind} onChange={(e) => patch({ kind: e.target.value as Draft["kind"] })}>
@@ -332,7 +332,7 @@ export default function AdminCollection() {
         </Disclosure>
 
         <Disclosure open={Boolean(repoLabel)} summary={w.areaRepository} className="mt-6">
-          <div className="mt-4 grid gap-5 sm:grid-cols-3">
+          <div className="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-3">
             <label className="block">
               <span className="a-label">Owner</span>
               <input value={d.repoOwner} onChange={(e) => patch({ repoOwner: e.target.value })}

@@ -35,7 +35,7 @@ export default function AddContact({ groups, onClose, onDone, sheet = false }: {
 
   const fields = (
     <>
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="sm:col-span-2">
           <label className="a-label" htmlFor={`${uid}-e`}>{w.addEmail}</label>
           <input id={`${uid}-e`} type="email" dir="ltr" autoComplete="off" required aria-invalid={tried && !email.trim()} className="a-input min-h-[44px] text-start" value={email} onChange={(e) => setEmail(e.target.value)} />
