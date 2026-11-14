@@ -6,6 +6,11 @@ import { useContent } from "@/content/store";
 import { useLang } from "@/components/dashboard/i18n";
 import { usePrivacyWords } from "@/i18n/privacy";
 import { dateIn } from "@/i18n/words";
+import "@/components/phone/tokens.css";
+import "@/components/phone/pages-forms.css";
+import { Mail } from "lucide-react";
+import GroupedSection from "@/components/phone/GroupedSection";
+import ListRow from "@/components/phone/ListRow";
 
 /*
  * The privacy page (#586).
@@ -72,11 +77,15 @@ export default function Privacy() {
               <p>{fill(s.body)}</p>
             </section>
           ))}
-          <p>
-            <Link className="underline underline-offset-4" to="/follow">
-              {w.back}
-            </Link>
-          </p>
+          <GroupedSection>
+            <ul>
+              <li>
+                <ListRow to="/follow" icon={<Mail data-ph-only="" aria-hidden="true" />} tone="blue" className="underline underline-offset-4">
+                  <span>{w.back}</span>
+                </ListRow>
+              </li>
+            </ul>
+          </GroupedSection>
         </div>
       </section>
     </PageShell>

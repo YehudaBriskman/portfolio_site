@@ -54,7 +54,7 @@ const settle = async (page) => {
   await page.waitForTimeout(300);
 };
 
-const probe = (spec) => {
+const probe = () => {
   const vis = (e) => {
     const r = e.getBoundingClientRect();
     const cs = getComputedStyle(e);
@@ -68,7 +68,7 @@ const probe = (spec) => {
     out.circles.push({ w: Math.round(r.width), h: Math.round(r.height), round: cs.borderRadius === "50%" || parseFloat(cs.borderRadius) >= r.width / 2 });
   }
   out.groups = [...document.querySelectorAll("[data-phone-group]")].filter((e) => e.getBoundingClientRect().height > 0).length;
-  out.cards = [...document.querySelectorAll("[data-ph-card]")].filter(vis).length;
+  out.cards = [...document.querySelectorAll("[data-ph-card],[data-ph-ask]")].filter(vis).length;
   /* targets: whole rows, buttons, text fields, footer links, checkbox labels */
   const sel = [
     "[data-phone-row]",
@@ -80,6 +80,7 @@ const probe = (spec) => {
     "main label:has(input[type=checkbox])",
     "footer a",
     "[data-ph-target]",
+    "[data-ph=onward]",
   ].join(",");
   for (const e of document.querySelectorAll(sel)) {
     if (!vis(e) || e.closest("[data-ph-trap]") || e.closest("dialog:not([open])")) continue;
@@ -93,7 +94,6 @@ const probe = (spec) => {
     .filter(vis)
     .filter((e) => parseFloat(getComputedStyle(e).fontSize) < 16)
     .map((e) => e.name || e.id);
-  out.spec = spec;
   return out;
 };
 
@@ -143,7 +143,7 @@ await Promise.all(combos.map(async ({ width, lang, theme }) => {
     await page.goto(base.base + (lang === "he" ? "/he" : "") + (spec.route === "/" ? "" : spec.route), { waitUntil: "load" });
     await settle(page);
     if (spec.before) await spec.before(page);
-    const r = await page.evaluate(probe, spec);
+    const r = await page.evaluate(probe);
     if (r.overflow) fail(tag, "horizontal overflow");
     if (r.groups < (spec.groups ?? 0)) fail(tag, `${r.groups} grouped surfaces, want ${spec.groups}`);
     if (r.cards < (spec.cards ?? 0)) fail(tag, `${r.cards} cards, want ${spec.cards}`);

@@ -1,6 +1,8 @@
 import { Link, useLocation } from "react-router-dom";
 import PageShell from "@/components/PageShell";
 import { useNotFoundWords } from "@/i18n/chrome";
+import "@/components/phone/tokens.css";
+import "@/components/phone/pages-forms.css";
 
 /*
  * The one page that still looked like a different project.
@@ -45,11 +47,11 @@ export default function NotFound() {
          * No wash. There is no group here and so no position for the hue
          * cycle to read; see the note in BlogPost.tsx.
          */}
-        <p className="mono mt-6 inline-block max-w-full break-all rounded-[var(--r-md)] border border-ridge bg-sheet/70 px-4 py-2.5 text-xs text-ink-soft">
+        <p data-ph="path" className="mono mt-6 inline-block max-w-full break-all rounded-[var(--r-md)] border border-ridge bg-sheet/70 px-4 py-2.5 text-xs text-ink-soft">
           {pathname}
         </p>
 
-        <div className="mt-12 flex flex-wrap gap-3">
+        <div className="mt-12 flex flex-wrap gap-3" data-ph="onward-list">
           <Link to="/" className="btn btn-solid">
             {w.home}
           </Link>
