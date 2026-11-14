@@ -30,24 +30,23 @@ describe("the help page", () => {
     const { container } = show(lang);
     const nav = screen.getByRole("navigation");
     const targets = [...nav.querySelectorAll("a")].map((a) => a.getAttribute("href")!.slice(1));
-    expect(targets).toEqual(["language", "look", "keyboard", "sharing", "rss", "contact-form"]);
+    expect(targets).toEqual(["language", "look", "keyboard", "sharing", "rss", "contact-form", "problems"]);
     for (const id of targets) {
       const el = container.querySelector(`[id="${id}"]`);
       expect(el, id).not.toBeNull();
       expect(el!.tagName).toBe("H2");
     }
-    const headings = [...container.querySelectorAll("h1, h2, h3")].map((h) => h.tagName);
-    expect(headings).not.toContain("H3");
-    expect(headings[0]).toBe("H1");
+    /* No level is skipped: h1, h2, then h3 groups, then h4 entries. */
+    const levels = [...container.querySelectorAll("h1, h2, h3, h4")].map((h) => Number(h.tagName[1]));
+    expect(levels[0]).toBe(1);
+    levels.forEach((l, i) => i > 0 && expect(l - levels[i - 1], `heading ${i}`).toBeLessThanOrEqual(1));
     expect(new Set([...container.querySelectorAll("[id]")].map((e) => e.id)).size).toBe(container.querySelectorAll("[id]").length);
   });
 
-  it("holds no newsletter or privacy section, and no promise about timing", () => {
+  it("promises no reply time", () => {
     for (const lang of ["en", "he"] as const) {
       const { container, unmount } = show(lang);
-      const text = container.textContent ?? "";
-      expect(text).not.toMatch(/newsletter|unsubscribe|reply within|within a (day|week)|עלון|הסרה מהרשימה|אענה תוך/i);
-      expect(container.querySelector('main a[href="/privacy"]')).toBeNull();
+      expect(container.textContent ?? "").not.toMatch(/reply within|answer within|within a (day|week)|אענה תוך|תוך (יום|שבוע)/i);
       unmount();
     }
   });

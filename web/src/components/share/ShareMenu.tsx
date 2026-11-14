@@ -5,7 +5,6 @@ import { useLang } from "@/components/dashboard/i18n";
 import { useShareWords } from "@/i18n/share";
 import { useSiteSettings } from "@/settings/store";
 import { buildRichEmail, buildShare, copyRich, copyText, shareLink, type ShareChannel, type ShareEntity, type ShareKind, type ShareResult } from "@/lib/share";
-import ShareToaster, { armShareToaster } from "./ShareToaster";
 import { shareToast as toast } from "./toast";
 import SharePreview from "./SharePreview";
 import styles from "./ShareMenu.module.css";
@@ -91,7 +90,6 @@ export default function ShareMenu({ kind, entity, variant = "icon", className, l
 
   function onOpenChange(next: boolean) {
     if (!next) return setOpen(false);
-    armShareToaster();
     // A menu opened from inside a modal dialog has to live in it (see the ui file).
     setContainer(trigger.current?.closest("dialog") ?? null);
     void shareNatively().then((done) => {
@@ -100,7 +98,8 @@ export default function ShareMenu({ kind, entity, variant = "icon", className, l
   }
 
   async function copyWith(text: string, ok: string) {
-    toast((await copyText(text)) ? ok : w.copyFailed);
+    const done = await copyText(text);
+    toast(done ? ok : w.copyFailed, done);
   }
 
   async function copyAsEmail(r: ShareResult) {
@@ -114,7 +113,7 @@ export default function ShareMenu({ kind, entity, variant = "icon", className, l
       dir: lang === "he" ? "rtl" : "ltr",
     });
     const done = await copyRich(content);
-    toast(done === "rich" ? w.richCopied : done === "plain" ? w.richPlain : w.copyFailed);
+    toast(done === "rich" ? w.richCopied : done === "plain" ? w.richPlain : w.copyFailed, done !== false);
   }
 
   // Menu rows are built only once it is open: a list can carry a menu per row.
@@ -204,7 +203,6 @@ export default function ShareMenu({ kind, entity, variant = "icon", className, l
           }}
         />
       )}
-      <ShareToaster />
     </>
   );
 }

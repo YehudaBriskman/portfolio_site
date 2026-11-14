@@ -1,4 +1,7 @@
-/** Sonner loads on first use, with the toaster, not with every page that has a menu. */
-export async function shareToast(message: string): Promise<void> {
-  (await import("@/components/ui/sonner")).toast(message);
+import { toast } from "@/lib/toast";
+
+/** A share/copy confirmation (`ok`) or its failure, through the one toast service. */
+export function shareToast(message: string, ok = true): void {
+  if (ok) toast.success(message);
+  else toast.error(message);
 }

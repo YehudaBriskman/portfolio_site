@@ -6,6 +6,7 @@ import { useContent } from "@/content/store";
 import { sectionVisible } from "@/settings/schema";
 import { useSiteSettings } from "@/settings/store";
 import { useHelpWords } from "@/i18n/help";
+import { HELP_GROUPS, HELP_TOPICS, helpTopics } from "@/lib/help/topics";
 
 /*
  * The help page: how to use the site, one anchored section per topic.
@@ -47,6 +48,7 @@ export default function Help() {
     { id: "sharing", label: w.sharing },
     { id: "rss", label: w.rss },
     ...(contactShown ? [{ id: "contact-form", label: w.contact }] : []),
+    { id: "problems", label: w.problems },
   ];
 
   return (
@@ -142,6 +144,46 @@ export default function Help() {
               </p>
             </>
           ) : null}
+
+          <h2 id="problems" className={h2}>{w.problems}</h2>
+          <p>{w.problemsIntro}</p>
+          {HELP_GROUPS.map((g) => (
+            <section key={g} aria-labelledby={`problems-${g}`} className="space-y-5">
+              <h3 id={`problems-${g}`} className="display scroll-mt-24 pt-4 text-lg">{w.groupTitles[g]}</h3>
+              {helpTopics
+                .filter((t) => HELP_TOPICS[t].group === g)
+                .map((t) => {
+                  const e = w.topics[t];
+                  return (
+                    <article key={t} aria-labelledby={t} className="space-y-2">
+                      <h4 id={t} className="scroll-mt-24 font-semibold">{e.title}</h4>
+                      <p><strong>{w.labelSee}</strong> {e.see}</p>
+                      <p><strong>{w.labelWhy}</strong> {e.why}</p>
+                      <p>
+                        <strong>{w.labelDo}</strong> {e.todo}
+                        {t === "unsubscribe-done" && (
+                          <>
+                            {" "}
+                            <Link className={link} to="/privacy">
+                              {w.privacyLink}
+                            </Link>
+                          </>
+                        )}
+                      </p>
+                      {HELP_TOPICS[t].kind === "problem" && (
+                        <p>
+                          {w.persistsBefore}
+                          <a className={link} href={`mailto:${contact.email}`} dir="ltr">
+                            {contact.email}
+                          </a>
+                          .
+                        </p>
+                      )}
+                    </article>
+                  );
+                })}
+            </section>
+          ))}
 
           <p className="pt-6">
             <Link className={link} to="/">
