@@ -125,7 +125,7 @@ function renderBlock(b: MailBlock, root: MailLang, origin: string, L: Pal): { ht
     }
     case "list":
       return {
-        html: row(`<ul class="ink" style="margin:0;padding:0;padding-${root === "he" ? "right" : "left"}:22px;padding-inline-start:22px;font-size:16px;line-height:1.5;color:${L.ink}">${b.items.map((i) => `<li dir="auto" style="margin:0 0 4px 0">${esc(i)}</li>`).join("")}</ul>`),
+        html: row(`<ul class="ink" style="margin:0;padding:0 22px;font-size:16px;line-height:1.5;color:${L.ink}">${b.items.map((i) => `<li dir="auto" style="margin:0 0 4px 0">${esc(i)}</li>`).join("")}</ul>`),
         text: b.items.map((i) => `- ${i}`).join("\n"),
       };
     case "card": {

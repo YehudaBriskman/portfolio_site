@@ -54,9 +54,9 @@ describe("right-to-left survives clients that drop <html dir>", () => {
     expect(en).not.toContain('dir="rtl"');
     expect(en).toMatch(/<body[^>]* dir="ltr"/);
   });
-  it("a list indents on the reading side with physical padding as well as the logical one", () => {
-    expect(he).toMatch(/<ul[^>]*padding-right:22px/);
-    expect(en).toMatch(/<ul[^>]*padding-left:22px/);
+  it("a list is padded on both sides, so a bullet of a mixed-direction item (an English item in a Hebrew list) stays inside the text column", () => {
+    expect(he).toMatch(/<ul[^>]*padding:0 22px/);
+    expect(en).toMatch(/<ul[^>]*padding:0 22px/);
   });
 });
 
