@@ -14,7 +14,7 @@ import { resolve } from "node:path";
 import { rmSync, writeFileSync } from "node:fs";
 
 const dir = resolve(process.argv[2] ?? "../docs/design/help-split");
-const PAGES = ["help", "help-rss", "help-contact-send-failed", "help-newsletter-check-email"];
+const PAGES = ["help", "help-rss", "help-contact-send-failed"];
 const browser = await chromium.launch({ executablePath: process.env.CHROME || undefined, args: ["--no-sandbox"] });
 for (const width of [390, 1280]) {
   const shown = width === 390 ? 390 : 640;
@@ -23,7 +23,7 @@ for (const width of [390, 1280]) {
       .map((theme) => PAGES.map((p) => `<img src="file://${dir}/shots-${width}/${p}.${lang}.${theme}.view.png" width="${shown}">`).join(""))
       .map((row) => `<div style="display:flex;gap:12px;margin-bottom:12px">${row}</div>`)
       .join("");
-    const page = await browser.newPage({ viewport: { width: (shown + 12) * 4, height: 400 } });
+    const page = await browser.newPage({ viewport: { width: (shown + 12) * 3, height: 400 } });
     const html = `${dir}/_montage.html`;
     writeFileSync(html, `<body style="margin:0;background:#888;padding:6px">${cells}</body>`);
     await page.goto(`file://${html}`);
