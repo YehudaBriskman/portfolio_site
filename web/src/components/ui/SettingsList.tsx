@@ -38,7 +38,8 @@ export interface SettingsListProps<T> {
   groups: SettingsGroupDef<T>[];
   value: T;
   openId: string | null;
-  onOpenChange: (id: string | null) => void;
+  /** `surface` says how the group opens, so an owner that keeps it in the address can push a page and only rewrite for a sheet. */
+  onOpenChange: (id: string | null, surface?: "page" | "sheet") => void;
   className?: string;
 }
 
@@ -66,6 +67,20 @@ export function SettingsList<T>({ groups, value, openId, onOpenChange, className
   const [target, setTarget] = useState<{ group: string; item: string } | null>(null);
 
   const open = groups.find((g) => g.id === openId) ?? null;
+  /* Side by side, an open group is a pane: nothing to step back out of. */
+  const surfaceOf = (g: SettingsGroupDef<T>) => (wide ? "sheet" : groupSurface(g));
+  const pageOpen = !wide && open !== null && groupSurface(open) === "page";
+
+  /* A page has no scrim to tap, so Escape is its way out; a dialog or popover above it gets Escape first. */
+  useEffect(() => {
+    if (!pageOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape" || e.defaultPrevented || document.querySelector("dialog[open], [popover]:popover-open")) return;
+      onOpenChange(null);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [pageOpen, onOpenChange]);
   const searching = query.trim() !== "";
 
   const hits = searching
@@ -106,7 +121,7 @@ export function SettingsList<T>({ groups, value, openId, onOpenChange, className
                 onClick={() => {
                   setTarget({ group: group.id, item: item.id });
                   setQuery("");
-                  onOpenChange(group.id);
+                  onOpenChange(group.id, surfaceOf(group));
                 }}
               >
                 <span className={styles.hitLabel}>{item.label}</span>
@@ -132,7 +147,7 @@ export function SettingsList<T>({ groups, value, openId, onOpenChange, className
               summary={g.summary(value)}
               warning={g.warning?.(value) ?? null}
               current={wide && g.id === openId}
-              onOpen={() => onOpenChange(g.id)}
+              onOpen={() => onOpenChange(g.id, surfaceOf(g))}
             />
           ))}
         </ul>

@@ -1,3 +1,5 @@
+import { emailOk } from "./rules";
+
 /* A small CSV reader for the import preview. It mirrors the server's parser and column rules (backend/src/audience), so the preview shows what the import will do: commas only, and a quote opens a cell only at its start. */
 export type CsvRow = { email: string; name: string; lang: string; valid: boolean };
 
@@ -34,8 +36,6 @@ export function parseRows(text: string): string[][] {
   return rows;
 }
 
-const EMAIL = /^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/;
-
 export function previewCsv(text: string): CsvRow[] {
   const rows = parseRows(text);
   // Same rule as the server: a header row exists only if a first-row cell is exactly "email"; columns are then found by name.
@@ -45,7 +45,7 @@ export function previewCsv(text: string): CsvRow[] {
   const [ie, inm, il] = [col("email", 0), col("name", 1), col("lang", 2)];
   return (header ? rows.slice(1) : rows).map((r) => {
     const email = (r[ie] ?? "").trim();
-    return { email, name: inm >= 0 ? (r[inm] ?? "").trim() : "", lang: il >= 0 ? (r[il] ?? "").trim().toLowerCase() : "", valid: EMAIL.test(email) };
+    return { email, name: inm >= 0 ? (r[inm] ?? "").trim() : "", lang: il >= 0 ? (r[il] ?? "").trim().toLowerCase() : "", valid: emailOk(email) };
   });
 }
 
