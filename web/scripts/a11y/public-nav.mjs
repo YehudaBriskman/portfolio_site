@@ -61,7 +61,7 @@ const PHONES = [
   ["430x932", 430, 932],
   ["390x667", 390, 667],
 ];
-const ROUTES = ["/", "/blog", "/blog/fixture-post", "/projects", "/projects/bothy", "/contact", "/help"];
+const ROUTES = ["/", "/blog", "/blog/fixture-post", "/projects", "/projects/bothy", "/contact", "/help", "/help/rss"];
 const WORDS = ["Menu", "תפריט"];
 
 const { base, stop } = await startPreview();
@@ -291,10 +291,10 @@ async function wide() {
 
 const BROWSE = ["Browse", "עיון"];
 const LISTS = ["/blog", "/projects", "/story", "/follow", "/help", "/accessibility", "/developers/mcp"];
-const DETAILS = ["/projects/bothy", "/blog/area/bothy", "/blog/fixture-post"];
-const PARENT = { "/projects/bothy": "/projects", "/blog/area/bothy": "/blog", "/blog/fixture-post": "/blog" };
+const DETAILS = ["/projects/bothy", "/blog/area/bothy", "/blog/fixture-post", "/help/rss"];
+const PARENT = { "/projects/bothy": "/projects", "/blog/area/bothy": "/blog", "/blog/fixture-post": "/blog", "/help/rss": "/help" };
 const WITH_LOCAL = ["/blog", "/blog/area/bothy", "/projects", "/projects/bothy"];
-const WITHOUT_LOCAL = ["/help", "/story", "/follow", "/blog/fixture-post"];
+const WITHOUT_LOCAL = ["/help", "/help/rss", "/story", "/follow", "/blog/fixture-post"];
 
 /* Waits (by hand, never rAF) for a real h1: the loading one is sr-only. */
 const ready = (page) =>

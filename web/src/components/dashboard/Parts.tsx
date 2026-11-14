@@ -1,3 +1,4 @@
+import { usePublicPhone } from "@/components/nav/localBrowse";
 import { useId, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { Search } from "lucide-react";
@@ -113,6 +114,7 @@ export function Row({
   chips?: ReactNode;
   badge?: ReactNode;
 }) {
+  const phone = usePublicPhone();
   const parts = meta.filter((m) => m !== null && m !== undefined && m !== "");
   return (
     <li className={styles.row} data-phone-note={area ? "" : undefined}>
@@ -126,7 +128,7 @@ export function Row({
       </span>
       <div className={styles.rowBody}>
         <div className={styles.rowTitleLine}>
-          <Link to={to} className={styles.rowTitle}>
+          <Link to={to} className={styles.rowTitle} dir={phone ? "auto" : undefined}>
             {title}
           </Link>
           {badge}

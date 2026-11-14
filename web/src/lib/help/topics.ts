@@ -8,7 +8,7 @@ import type { Lang } from "@/components/dashboard/i18n";
  * `helpHref`, and a test fails when a link names a topic that is not here, or
  * when a topic here has no entry on the page in both languages.
  *
- * The ids are addresses (`/help#contact-send-failed`), so they never change
+ * The ids are addresses (`/help/contact-send-failed`, `/help#contact-send-failed` before the split, which still redirects), so they never change
  * once published; add a topic, do not rename one. The words are in
  * i18n/help.ts, typed by this list so a topic cannot be added without them.
  *
@@ -56,5 +56,5 @@ export const helpTopics = Object.keys(HELP_TOPICS) as HelpTopic[];
 
 export const isHelpTopic = (s: string): s is HelpTopic => Object.hasOwn(HELP_TOPICS, s);
 
-/** The address of a topic in a language: (`contact-sent`, `he`) is `/he/help#contact-sent`. */
-export const helpHref = (topic: HelpTopic, lang: Lang): string => `${pathIn("/help", lang)}#${topic}`;
+/** The address of a topic in a language: (`contact-sent`, `he`) is `/he/help/contact-sent`. */
+export const helpHref = (topic: HelpTopic, lang: Lang): string => `${pathIn("/help", lang)}/${topic}`;

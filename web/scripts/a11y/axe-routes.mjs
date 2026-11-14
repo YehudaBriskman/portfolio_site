@@ -97,6 +97,8 @@ const ROUTES = [
   "/accessibility",
   "/privacy",
   "/help",
+  "/help/rss",
+  "/help/contact-send-failed",
   "/a-page-that-does-not-exist",
   /* The media library (#253): the admin is a page somebody works in daily,
      so it is held to the same floor. The others open one item of each kind. */

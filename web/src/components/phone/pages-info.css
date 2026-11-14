@@ -48,18 +48,18 @@
   }
 
   /* ───────────────────────────── the contents list: grouped link rows */
-  [data-ph-prose] nav [data-phone-group] > ul {
+  [data-ph-prose] [data-phone-group] > ul {
     margin-block-start: 8px;
   }
-  [data-ph-prose] nav [data-phone-group] > ul > li {
+  [data-ph-prose] [data-phone-group] > ul > li {
     margin: 0;
   }
-  [data-ph-prose] nav [data-phone-row] {
+  [data-ph-prose] [data-phone-row] {
     margin-block: 0;
     min-block-size: 56px;
   }
   /* a row with a title and no meta line: centred on its circle, not in the first half */
-  [data-ph-prose] nav [data-phone-row] > span:not([data-phone-circle]) {
+  [data-ph-prose] [data-phone-row] > span:not([data-phone-circle]) {
     grid-row: 1 / span 2;
   }
 
@@ -68,6 +68,21 @@
     padding: 14px var(--ph-gutter) 16px;
     border-radius: var(--r-md);
     background: var(--ph-card);
+  }
+
+  /* ───────────────────────────── a help page's previous / next: two cards, stacked */
+  [data-ph="pager"] {
+    display: grid;
+    gap: 8px;
+  }
+  [data-ph="pager"] a {
+    display: flex;
+    align-items: center;
+    min-block-size: 56px;
+    padding: 12px var(--ph-gutter);
+    border-radius: var(--r-md);
+    background: var(--ph-card);
+    text-decoration: none;
   }
 
   /* ───────────────────────────── Developers/MCP */

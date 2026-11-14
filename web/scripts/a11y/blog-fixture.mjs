@@ -42,6 +42,23 @@ export const SUMMARIES = [
   S("tiling-is-a-promise", "Tiling is a promise about space", "windom", 52, ["design"], 3),
 ];
 
+/*
+ * Opt-in extras (`handler({ extras: true })`) for the image-led card and header
+ * checks: a note with a cover, a long Hebrew title, and a long English title
+ * (which sits in a Hebrew page as an English run). Kept out of SUMMARIES so
+ * the counts the other scripts rely on do not move.
+ */
+const COVER =
+  "data:image/svg+xml;utf8," +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1f3a5f"/><stop offset="1" stop-color="#e8a33d"/></linearGradient></defs><rect width="1600" height="900" fill="url(#g)"/><circle cx="1200" cy="260" r="150" fill="#fff" fill-opacity=".85"/><path d="M0 900V620l260-190 300 210 340-300 380 260 320-160v460z" fill="#0d1b2a" fill-opacity=".8"/></svg>',
+  );
+export const EXTRAS = [
+  S("a-note-with-a-cover", "A note with a cover picture", "site", 1, ["design"], 5, { coverImage: COVER, featured: 3 }),
+  S("long-hebrew-title", "למה מיזוג לענף הראשי הוא לא פרסום, ומה כן, ולמה כל זה חשוב לכל מי שעובד בצוות", "bothy", 3, ["process"], 7, { excerpt: "תקציר קצר בעברית כדי שלרשימה יהיה הצורה שיש לה בייצור, עם עוד כמה מילים שיגרמו לו להתארך." }),
+  S("an-english-title-that-is-long-enough-to-wrap", "An English title long enough to wrap over three lines on the narrowest phone we support", "windom", 4, ["design"], 6),
+];
+
 const PARA = (n) =>
   Array.from({ length: n }, (_, i) => `Paragraph ${i + 1} of the note. A merge to main puts code on the branch; it does not put it in front of anyone. That sounds like a technicality and it is the whole safety story of this site, so it gets said more than once, in more than one way.`).join("\n\n");
 
@@ -82,17 +99,18 @@ const DETAIL = (s) => ({
 });
 
 /** A Playwright route handler for `**\/api/**`. */
-export function handler() {
+export function handler(opts = {}) {
+  const ALL = opts.extras ? [...SUMMARIES, ...EXTRAS] : SUMMARIES;
   return (r) => {
     const u = new URL(r.request().url());
     const p = u.pathname.replace(/^\/api/, "");
     const json = (status, body) => r.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
     if (p === "/blog/posts") {
       const c = u.searchParams.get("collection");
-      return json(200, { items: SUMMARIES.filter((s) => !c || s.collection === c) });
+      return json(200, { items: ALL.filter((s) => !c || s.collection === c) });
     }
     if (p.startsWith("/blog/posts/")) {
-      const s = SUMMARIES.find((x) => p.endsWith(`/${x.slug}`));
+      const s = ALL.find((x) => p.endsWith(`/${x.slug}`));
       return s ? json(200, { post: DETAIL(s) }) : json(404, {});
     }
     if (p === "/areas") return json(200, { items: AREAS });

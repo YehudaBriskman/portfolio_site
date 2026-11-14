@@ -64,7 +64,7 @@ describe("ToastHost", () => {
     fireEvent.click(screen.getByRole("button", { name: "Details" }));
     await flush();
     const a = screen.getByRole("link", { name: "Learn more" });
-    expect(a.getAttribute("href")).toBe("/help#contact-form");
+    expect(a.getAttribute("href")).toBe("/help/contact-form");
     expect(a.getAttribute("target")).toBeNull();
   });
 
@@ -73,7 +73,7 @@ describe("ToastHost", () => {
     render(<ToastHost />);
     act(() => void toast.info("הועתק", { help: { topic: "sharing" } }));
     await flush();
-    expect(screen.getByRole("link", { name: "למידע נוסף" }).getAttribute("href")).toBe("/he/help#sharing");
+    expect(screen.getByRole("link", { name: "למידע נוסף" }).getAttribute("href")).toBe("/he/help/sharing");
   });
 
   it("an action runs its handler; Undo drops the commit", async () => {
