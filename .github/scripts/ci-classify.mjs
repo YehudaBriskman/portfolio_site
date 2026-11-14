@@ -22,6 +22,8 @@
 //   - web/**      -> web (Frontend, Browser checks, Scan image web)
 //   - backend/**  -> backend (Backend, Scan image api)
 //   - mcp/**      -> mcp (MCP server: tests, typecheck, build; no image, #252)
+//   - web/src, web/public, web/scripts additionally select the public phone
+//     matrix (#764), a pull-request job of its own
 //   - docs/**, root *.md, LICENSE* -> docs, which selects nothing beyond Static
 //   - widening paths -> everything: workflows and CI scripts, lockfiles and
 //     package manifests, Dockerfiles and .dockerignore, nginx config, Compose,
@@ -62,6 +64,9 @@ import { pathToFileURL } from "node:url";
 
 const ZERO_SHA = /^0+$/;
 
+// The paths that select the public phone matrix on a pull request (#764).
+export const PUBLIC_MATRIX_INPUTS = /^web\/(src|public|scripts)\//;
+
 // First match wins. `widen` means the path selects every component.
 const RULES = [
   // Prose GitHub renders and nothing in CI reads (see the header).
@@ -88,7 +93,7 @@ const RULES = [
   { re: /^LICENSE(-[A-Z]+)?$/, component: "docs" },
 ];
 
-export const JOBS = ["static", "frontend", "browser", "backend", "mcp", "scan", "images", "release", "promote", "deploy"];
+export const JOBS = ["static", "frontend", "browser", "public-matrix", "backend", "mcp", "scan", "images", "release", "promote", "deploy"];
 
 export function classifyPath(path) {
   for (const r of RULES) {
@@ -164,6 +169,10 @@ export function planDiff(ctx) {
 export function classify({ paths, full, release, mode }) {
   mode ??= release ? "main" : "pr";
   const changed = { web: false, backend: false, mcp: false, static: true, docs: false };
+  // What the public phone matrix reads: the app's source, its static assets
+  // and the scripts that measure it (#764). A web/ change elsewhere (a
+  // Dockerfile, the nginx template) cannot move a measurement.
+  let publicWeb = false;
   const reasons = [];
   if (full) reasons.push(full);
   else if (!paths || paths.length === 0) reasons.push("diff lists no changed paths");
@@ -172,6 +181,7 @@ export function classify({ paths, full, release, mode }) {
       const c = classifyPath(p);
       if (c.widen) reasons.push(`${p}: ${c.why}`);
       else changed[c.component] = true;
+      if (PUBLIC_MATRIX_INPUTS.test(p)) publicWeb = true;
     }
   }
   const all = reasons.length > 0;
@@ -198,6 +208,11 @@ export function classify({ paths, full, release, mode }) {
       // Browser checks (the a11y sweep in legs, and the link landing): the
       // same selection as Frontend, of which it used to be the second half.
       browser: web,
+      // The public phone matrix (#764): its own job, two legs. On a pull
+      // request only, and only when the change can move a measurement (or
+      // widens to everything); main and tags do not run it, the nightly
+      // workflow does (public-matrix-nightly.yml), non-gating.
+      "public-matrix": mode !== "main" && mode !== "rebuild" && mode !== "promote" && (all || publicWeb),
       backend,
       mcp,
       scan: scan.length > 0,

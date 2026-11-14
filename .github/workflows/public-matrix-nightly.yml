@@ -1,0 +1,142 @@
+# The full public phone matrix, nightly and non-gating (#764).
+#
+# The pull-request job (ci.yml, "Public phone matrix") measures light, four
+# widths, Hebrew and English: about two minutes a leg. This is the rest of the
+# plan: FULL=1 adds the 320 px reflow width and the dark theme, so every
+# combination of page x width x language x theme is measured once a day, with
+# the same script and the same baseline (web/scripts/a11y/public-matrix.mjs).
+#
+# It gates nothing. It is not a pull-request or push workflow, so no merge or
+# release waits for it, and a red run is a notice, not a block. A failing run
+# opens ONE issue (label `testing`) and a later failing run comments on that
+# same issue instead of opening another; a passing run closes it. Results of
+# every leg are uploaded as an artifact. Screenshots are never taken here
+# (`--shots` is for a person at a desk).
+#
+# Why a workflow of its own: this has to run when nobody has pushed, and its
+# runtime must not be a PR's problem.
+name: Public phone matrix (nightly)
+
+on:
+  schedule:
+    # 03:30 UTC daily, away from the 07:00 drift check.
+    - cron: "30 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: public-matrix-nightly
+  cancel-in-progress: false
+
+jobs:
+  measure:
+    name: Measure, shard ${{ matrix.shard }} of ${{ matrix.of }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { shard: 1, of: 4 }
+          - { shard: 2, of: 4 }
+          - { shard: 3, of: 4 }
+          - { shard: 4, of: 4 }
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm # zizmor: ignore[cache-poisoning]
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: npm run build
+      # The browser, as ci.yml's Browser checks fetch it: a cache keyed on the
+      # pinned version, and apt only when a library is missing.
+      - name: Which browser build the pin wants
+        id: pw
+        run: echo "version=$(node -p "require('playwright-core/package.json').version")" >> "$GITHUB_OUTPUT"
+      - name: Restore the browser
+        id: pw-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0 # zizmor: ignore[cache-poisoning]
+        with:
+          path: ~/.cache/ms-playwright
+          key: pw-headless-shell-${{ runner.os }}-${{ runner.arch }}-${{ steps.pw.outputs.version }}
+      - name: Install the browser the checks drive
+        timeout-minutes: 5
+        env:
+          HIT: ${{ steps.pw-cache.outputs.cache-hit }}
+        run: |
+          set -Eeuo pipefail
+          if [ "$HIT" != "true" ]; then
+            npx playwright-core install chromium-headless-shell
+          fi
+          shell=$(find ~/.cache/ms-playwright -type f \( -name chrome-headless-shell -o -name headless_shell \) -perm -u+x | head -n 1)
+          [ -n "$shell" ] || { echo "::error::no chrome-headless-shell under ~/.cache/ms-playwright"; exit 1; }
+          missing=$(ldd "$shell" | awk '/not found/ { print $1 }')
+          if [ -n "$missing" ]; then
+            npx playwright-core install-deps chromium-headless-shell
+          fi
+          "$shell" --version 2>/dev/null || true
+      - name: Public phone matrix, full, shard ${{ matrix.shard }} of ${{ matrix.of }}
+        env:
+          FULL: "1"
+          SHARD: ${{ matrix.shard }}/${{ matrix.of }}
+        run: |
+          set -o pipefail
+          mkdir -p ../public-matrix-out
+          npm run a11y:public-matrix -- --json ../public-matrix-out/shard-${{ matrix.shard }}.json 2>&1 | tee ../public-matrix-out/shard-${{ matrix.shard }}.log
+      - name: Keep the results
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: public-matrix-${{ matrix.shard }}
+          path: public-matrix-out/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  # One issue, opened or updated on failure, closed on success. Nothing needs
+  # this job: it is a notice.
+  report:
+    name: Report
+    runs-on: ubuntu-latest
+    needs: [measure]
+    if: always() && needs.measure.result != 'skipped'
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      RESULT: ${{ needs.measure.result }}
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      TITLE: "Public phone matrix: the nightly run found a regression"
+    steps:
+      - name: Open, update or close the one issue
+        run: |
+          set -Eeuo pipefail
+          existing=$(gh issue list --state open --label testing --search "in:title \"$TITLE\"" --json number --jq '.[0].number // empty')
+          if [ "$RESULT" = "success" ]; then
+            if [ -n "$existing" ]; then
+              gh issue close "$existing" --comment "The nightly public phone matrix passes again: $RUN_URL"
+            fi
+            exit 0
+          fi
+          body=$(printf '%s\n\n%s\n\n%s\n' \
+            "The full public phone matrix (320/360/390/430/768, he and en, light and dark) failed or did not finish: $RUN_URL" \
+            "Per-leg results and logs are in the run's artifacts (\`public-matrix-N\`, kept 14 days). A finding is a count above \`web/scripts/a11y/public-matrix-baseline.json\`; run \`npm run build && FULL=1 npm run a11y:public-matrix\` in \`web/\` to see it, \`--shots dir\` to see the page." \
+            "This workflow gates nothing. It comments here on every failing night and closes the issue when a night passes.")
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body "Still failing: $RUN_URL"
+          else
+            gh issue create --title "$TITLE" --label testing --body "$body"
+          fi

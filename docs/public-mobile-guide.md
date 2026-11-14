@@ -60,7 +60,7 @@ Scope is everything under `web/src` and `web/index.html` except tests, `componen
 
 ### 2.2 Rules that are checked in a browser
 
-The matrix (a later PR, `web/scripts/a11y/public-matrix.mjs`) measures overflow, targets under 24 (fail) and under 44 (budget, may only go down), text under 12px, inputs under 16px, fixed and sticky overlap, and the first-screen call-to-action gap, at 360/390/430/768 plus a 320 reflow pass, in both languages. It gates only on structural facts: never on timing, CLS or Lighthouse scores, which vary too much on shared runners.
+The matrix (a later PR, `web/scripts/a11y/public-matrix.mjs`) measures overflow, targets under 24 (fail) and under 44 (budget, may only go down), text under 12px, inputs under 16px, fixed and sticky overlap, and the first-screen call-to-action gap, at 360/390/430/768 plus a 320 reflow pass, in both languages. It gates only on structural facts: never on timing, CLS or Lighthouse scores, which vary too much on shared runners. A count above `public-matrix-baseline.json` fails; a count below it only prints a notice. After a fix, run `npm run a11y:public-matrix -- --update-baseline` (`npm run build` first) and commit the lowered baseline.
 
 ## 3. Component catalogue
 
