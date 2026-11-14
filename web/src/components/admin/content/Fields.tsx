@@ -8,6 +8,7 @@ import { useIssue } from "./editor";
 import { useEditLang } from "./editLang";
 import { ReorderRows, ReorderToggle } from "./Reorder";
 import { useContentWords } from "./words";
+import { useFormText, useFormWords } from "./formWords";
 import styles from "./EditorPhone.module.css";
 
 /*
@@ -61,11 +62,15 @@ export function TextField({ id, path, label, hint, multiline, value, nullable, o
   const cls = multiline ? "a-textarea" : "a-input";
   const phoneLang = useEditLang();
   const w = useContentWords();
+  const f = useFormWords();
+  const tr = useFormText();
+  label = tr(label);
+  hint = hint && tr(hint);
 
   const enInput = (
     <div className="min-w-0">
       <label htmlFor={`${id}-en`} className="sr-only">
-        {label}, English
+        {label}, {f.english}
       </label>
       <Input
         id={`${id}-en`}
@@ -73,7 +78,7 @@ export function TextField({ id, path, label, hint, multiline, value, nullable, o
         dir="ltr"
         className={multiline ? `${cls} min-h-[5.5rem]` : cls}
         value={en}
-        placeholder="English"
+        placeholder={f.english}
         aria-invalid={enError ? true : undefined}
         aria-describedby={enError ? `${id}-en-error` : undefined}
         onChange={(e) => set({ en: e.target.value, he })}
@@ -84,7 +89,7 @@ export function TextField({ id, path, label, hint, multiline, value, nullable, o
   const heInput = (
     <div className="min-w-0">
       <label htmlFor={`${id}-he`} className="sr-only">
-        {label}, Hebrew (optional)
+        {label}, {f.hebrewOptional}
       </label>
       <Input
         id={`${id}-he`}
@@ -145,6 +150,9 @@ type PlainFieldProps = {
 /** One string, the same in both languages: a name, a slug, a URL. */
 export function PlainField({ id, path, label, hint, value, mono, type = "text", inputMode, dir = "auto", onChange }: PlainFieldProps) {
   const error = useIssue(path);
+  const tr = useFormText();
+  label = tr(label);
+  hint = hint && tr(hint);
   return (
     <div className="min-w-0" data-path={path}>
       <label htmlFor={id} className="a-label">
@@ -197,6 +205,7 @@ type SelectFieldProps<V extends string> = {
 
 export function SelectField<V extends string>({ id, path, label, value, options, onChange }: SelectFieldProps<V>) {
   const error = useIssue(path);
+  label = useFormText()(label);
   return (
     <div className="min-w-0" data-path={path}>
       <label htmlFor={id} className="a-label">
@@ -239,8 +248,14 @@ type ListFieldProps<T> = {
  * A list with an order: add, remove, and move up or down. Buttons, not drag,
  * so it works the same from a keyboard and a phone.
  */
-export function ListField<T>({ id, path, legend, hint, items, name, make, max, addLabel = "Add", onChange, children }: ListFieldProps<T>) {
+export function ListField<T>({ id, path, legend, hint, items, name: rawName, make, max, addLabel = "Add", onChange, children }: ListFieldProps<T>) {
   const error = useIssue(path);
+  const tr = useFormText();
+  legend = tr(legend);
+  hint = hint && tr(hint);
+  addLabel = tr(addLabel);
+  /* The default names ("New phrase") are English literals too. */
+  const name = (item: T, i: number) => (() => { const n = rawName(item, i); return /^New /.test(n) ? tr(n) : n; })();
   const phone = usePhone();
   const [reordering, setReordering] = useState(false);
   const move = (from: number, to: number) => {
@@ -409,7 +424,9 @@ type SectionProps = {
  * over a region) so the form is a handful of rows, not forty fields. A group
  * with a message in it opens itself, and one a search names opens too.
  */
-export function Section(props: SectionProps) {
+export function Section(raw: SectionProps) {
+  const tr = useFormText();
+  const props = { ...raw, title: tr(raw.title), keywords: raw.keywords?.map(tr) };
   const phone = usePhone();
   if (!phone) {
     return (

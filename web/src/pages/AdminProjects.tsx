@@ -11,6 +11,9 @@ import { DisclosureButton } from "@/components/ui/Disclosure";
 import { LangSwitch } from "@/components/admin/content/editLang";
 import { ReorderRows, ReorderToggle } from "@/components/admin/content/Reorder";
 import { useContentWords } from "@/components/admin/content/words";
+import { useFormText } from "@/components/admin/content/formWords";
+import { ARROWS } from "@/i18n/words";
+import { useLang } from "@/components/dashboard/i18n";
 import styles from "@/components/admin/content/EditorPhone.module.css";
 import EditorFrame from "@/components/admin/content/EditorFrame";
 import MediaPicker from "@/components/admin/MediaPicker";
@@ -68,6 +71,8 @@ export default function AdminProjects() {
   const wanted = query.get("project");
   const phone = usePhone();
   const w = useContentWords();
+  const tr = useFormText();
+  const lang = useLang();
   const [reordering, setReordering] = useState(false);
 
   return (
@@ -224,7 +229,7 @@ export default function AdminProjects() {
           preview: (
             <p className="a-hint">
               <a className="inline-flex min-h-11 items-center underline" href={`/projects/${p.slug}?preview=1`} target="_blank" rel="noreferrer">
-                Preview this project ↗
+                {tr("Preview this project")} {ARROWS[lang].out}
               </a>
             </p>
           ),
@@ -244,14 +249,14 @@ export default function AdminProjects() {
                 }}
                 onChange={changeList}
                 heStatus={(item) => heStatus("project", item.slug)}
-                addLabel="Add a project"
+                addLabel={tr("Add a project")}
                 canAdd={items.length < 60}
                 make={() => blank(items.length)}
               />
               {p && f && (
                 <div className="min-w-0">
                   <h2 id="project-editing" className="sr-only" tabIndex={-1}>
-                    {w.reorder.editing}: <bdi>{p.title || "Untitled"}</bdi>
+                    {w.reorder.editing}: <bdi>{p.title || tr("Untitled")}</bdi>
                   </h2>
                   <LangSwitch />
                   <Section title={w.group.basics} defaultOpen>

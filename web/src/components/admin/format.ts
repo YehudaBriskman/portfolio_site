@@ -1,3 +1,5 @@
+import { ltrValue } from "@/i18n/words";
+
 /* Formatting the admin's lists share (#288). */
 
 /** Bytes as a reader says them: "412 kB", "3.4 MB". */
@@ -9,10 +11,12 @@ export function bytes(n: number): string {
     v /= 1000;
     i += 1;
   }
-  return new Intl.NumberFormat("en-GB", {
-    style: "unit",
-    unit: units[i],
-    unitDisplay: "short",
-    maximumFractionDigits: v < 10 && i > 0 ? 1 : 0,
-  }).format(v);
+  return ltrValue(
+    new Intl.NumberFormat("en-GB", {
+      style: "unit",
+      unit: units[i],
+      unitDisplay: "short",
+      maximumFractionDigits: v < 10 && i > 0 ? 1 : 0,
+    }).format(v),
+  );
 }
