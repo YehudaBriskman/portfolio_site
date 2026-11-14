@@ -602,6 +602,104 @@ jobs:
         if: matrix.check == 'links'
         run: npm run links
 
+  # The public site on a phone (#764): every public page at 360 / 390 / 430 /
+  # 768 wide, Hebrew and English, light, measured for sideways overflow,
+  # targets under 24 and 44 px, text under 12 px, fields under 16 px, fixed
+  # boxes covering each other and the first-screen call to action's room
+  # (web/scripts/a11y/public-matrix.mjs). Counts may only go down against
+  # public-matrix-baseline.json. Structural facts only: never timing, CLS or
+  # Lighthouse, which vary on a shared runner.
+  #
+  # A job of its own, not legs of Browser checks: those are at 2-5 min each
+  # already. Two legs split the page loads (SHARD=k/n); measured on CI at
+  # 1 min 13 s and 1 min 17 s a leg (setup included), so five minutes is about
+  # twice that and still stops a hung page.
+  # It runs on pull requests that touch web/src, web/public or web/scripts
+  # (the classifier's `public-matrix`); main and tags do not run it, the
+  # nightly workflow runs the full matrix. The CI gate needs this job, so a
+  # shard that is cancelled, or skipped when it was selected, fails the gate.
+  public-matrix:
+    name: Public phone matrix
+    runs-on: ubuntu-latest
+    needs: [classify]
+    if: fromJSON(needs.classify.outputs.jobs)['public-matrix']
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { shard: 1, of: 2 }
+          - { shard: 2, of: 2 }
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ github.event_name != 'pull_request' && needs.classify.outputs.sha || '' }}
+      # Cache: same reasoning as Frontend's.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm # zizmor: ignore[cache-poisoning]
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: npm run build
+      # `playwright-core` downloads no browser on install, so the build the
+      # pin wants is fetched here - from a cache keyed on that exact version
+      # when one exists.
+      #
+      # Why it is cached, and why apt is no longer run every time: the old
+      # `install --with-deps` was 12-37 s on most runs, but on #332 (run
+      # 41855490929, 2026-11-04) the same step took 22 min and the job hit
+      # its 25-minute limit. The download is a fixed ~110 MB; the variance is
+      # the apt half (`apt-get update` plus installs against the mirror). The
+      # runner image already carries Chromium's libraries for its own Chrome,
+      # so apt is now run only when `ldd` says the binary is missing one.
+      #
+      # The cached browser runs only against this job's test build; nothing
+      # from this job is published. A pull request's cache entry is scoped
+      # to its own ref, which main never reads.
+      - name: Which browser build the pin wants
+        id: pw
+        run: echo "version=$(node -p "require('playwright-core/package.json').version")" >> "$GITHUB_OUTPUT"
+      - name: Restore the browser
+        id: pw-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0 # zizmor: ignore[cache-poisoning]
+        with:
+          path: ~/.cache/ms-playwright
+          key: pw-headless-shell-${{ runner.os }}-${{ runner.arch }}-${{ steps.pw.outputs.version }}
+      # Bounded on its own, so a stalled mirror fails this leg in minutes
+      # with the step named, rather than eating the job's budget.
+      - name: Install the browser the checks drive
+        timeout-minutes: 5
+        env:
+          HIT: ${{ steps.pw-cache.outputs.cache-hit }}
+        run: |
+          set -Eeuo pipefail
+          if [ "$HIT" != "true" ]; then
+            npx playwright-core install chromium-headless-shell
+          fi
+          shell=$(find ~/.cache/ms-playwright -type f \( -name chrome-headless-shell -o -name headless_shell \) -perm -u+x | head -n 1)
+          [ -n "$shell" ] || { echo "::error::no chrome-headless-shell under ~/.cache/ms-playwright"; exit 1; }
+          missing=$(ldd "$shell" | awk '/not found/ { print $1 }')
+          if [ -n "$missing" ]; then
+            echo "::notice title=Browser libraries::the runner lacks $(echo "$missing" | tr '\n' ' ')- installing them with apt"
+            npx playwright-core install-deps chromium-headless-shell
+          fi
+          "$shell" --version 2>/dev/null || true
+          echo "browser: $shell (cache hit: ${HIT:-false})"
+      # The harness proves itself first: a deliberately broken page must be
+      # caught on every measure, and the verdict logic must hold.
+      - name: Public matrix self-test
+        if: matrix.shard == 1
+        run: npm run a11y:public-matrix:selftest
+      - name: Public phone matrix, shard ${{ matrix.shard }} of ${{ matrix.of }}
+        env:
+          SHARD: ${{ matrix.shard }}/${{ matrix.of }}
+        run: npm run a11y:public-matrix
+
   backend:
     name: Backend
     runs-on: ubuntu-latest
@@ -1566,7 +1664,7 @@ jobs:
   gate:
     name: CI gate
     runs-on: ubuntu-latest
-    needs: [classify, static, frontend, browser, backend, mcp, scan, images, release, promote, deploy]
+    needs: [classify, static, frontend, browser, public-matrix, backend, mcp, scan, images, release, promote, deploy]
     if: always()
     timeout-minutes: 5
     steps:

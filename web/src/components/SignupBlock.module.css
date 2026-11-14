@@ -86,14 +86,15 @@
   display: inline-flex;
   align-items: center;
   gap: 0.625rem;
-  min-block-size: 44px;
+  min-block-size: var(--tap);
   cursor: pointer;
   color: rgb(var(--ink));
 }
 
 .check input {
-  inline-size: 1.25rem;
-  block-size: 1.25rem;
+  /* 24px, the floor, on every pointer; the label around it is the 44px target. */
+  inline-size: var(--tap-floor);
+  block-size: var(--tap-floor);
   margin: 0;
   accent-color: rgb(var(--ink));
 }

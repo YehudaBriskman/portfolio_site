@@ -142,6 +142,10 @@
 .areaLink {
   color: rgb(var(--ink-soft));
   text-decoration: none;
+  /* The 24px floor on every pointer, the margin taking it back. */
+  display: inline-block;
+  padding-block: calc((var(--tap-floor) - 1lh) / 2);
+  margin-block: calc((var(--tap-floor) - 1lh) / -2);
 }
 
 .areaLink:hover {

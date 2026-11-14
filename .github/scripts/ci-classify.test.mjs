@@ -32,15 +32,15 @@ const cases = [
   ["7.1 docs only", [["M", "docs/story/README.md"], ["A", "docs/story/shot.png"]], ["static"], [], false],
   ["7.1 root README", [["M", "README.md"]], ["static"], [], false],
   ["7.1 docs build script is still docs", [["M", "docs/hero-portrait/build.sh"]], ["static"], [], false],
-  ["web only", [["M", "web/src/App.tsx"], ["A", "web/public/img/x.webp"]], ["static", "frontend", "browser", "scan"], ["web"], false],
+  ["web only", [["M", "web/src/App.tsx"], ["A", "web/public/img/x.webp"]], ["static", "frontend", "browser", "public-matrix", "scan"], ["web"], false],
   ["web config that is not shared", [["M", "web/vite.config.ts"]], ["static", "frontend", "browser", "scan"], ["web"], false],
   ["backend only", [["M", "backend/src/server.ts"]], ["static", "backend", "scan"], ["api"], false],
-  ["web and backend", [["M", "web/src/a.ts"], ["M", "backend/src/b.ts"]], ["static", "frontend", "browser", "backend", "scan"], ["web", "api"], false],
-  ["web and docs", [["M", "web/src/a.ts"], ["M", "docs/a.md"]], ["static", "frontend", "browser", "scan"], ["web"], false],
+  ["web and backend", [["M", "web/src/a.ts"], ["M", "backend/src/b.ts"]], ["static", "frontend", "browser", "public-matrix", "backend", "scan"], ["web", "api"], false],
+  ["web and docs", [["M", "web/src/a.ts"], ["M", "docs/a.md"]], ["static", "frontend", "browser", "public-matrix", "scan"], ["web"], false],
   ["mcp only: its own job, no image", [["M", "mcp/src/server.ts"], ["A", "mcp/README.md"]], ["static", "mcp"], [], false],
   ["mcp and backend", [["M", "mcp/src/api.ts"], ["M", "backend/src/app.ts"]], ["static", "backend", "mcp", "scan"], ["api"], false],
 ];
-const ALL_PR = ["static", "frontend", "browser", "backend", "mcp", "scan"];
+const ALL_PR = ["static", "frontend", "browser", "public-matrix", "backend", "mcp", "scan"];
 const widening = [
   ["Dockerfile (web)", "web/Dockerfile"],
   ["Dockerfile (backend)", "backend/Dockerfile"],
@@ -113,11 +113,11 @@ test("every path in the repository has a deliberate rule (unknown paths are the 
 
 test("7.3 a rename counts both paths: docs -> web selects web", () => {
   const r = pr(["R100", "docs/a.ts", "web/src/a.ts"]);
-  assert.deepEqual(selected(r), ["static", "frontend", "browser", "scan"]);
+  assert.deepEqual(selected(r), ["static", "frontend", "browser", "public-matrix", "scan"]);
 });
 test("7.3 a rename counts both paths: web -> docs still selects web", () => {
   const r = pr(["R087", "web/src/old.md", "docs/old.md"]);
-  assert.deepEqual(selected(r), ["static", "frontend", "browser", "scan"]);
+  assert.deepEqual(selected(r), ["static", "frontend", "browser", "public-matrix", "scan"]);
   assert.equal(r.components.docs, true);
 });
 test("7.3 a rename out of backend into web selects both", () => {
@@ -251,7 +251,7 @@ test("manual run on a tag without rebuild promotes, like a push", () => {
 });
 test("manual run on a tag with rebuild: the full, gated build, then the promotion", () => {
   const r = run({ EVENT_NAME: "workflow_dispatch", REF: "refs/tags/v1.2.0", SHA: "a".repeat(40), REBUILD: "true" }, fakeGit([], { tag: TAG_COMMIT }));
-  assert.deepEqual(selected(r), JOBS);
+  assert.deepEqual(selected(r), JOBS.filter((j) => j !== "public-matrix"), "the phone matrix is a pull-request job (#764)");
   assert.deepEqual(scanned(r), ["web", "api"]);
   assert.equal(r.mode, "rebuild");
   assert.equal(r.sha, TAG_COMMIT);
@@ -303,7 +303,7 @@ test("7.4 a Dependabot lockfile PR needs no token and selects every check", () =
 
 test("7.4 classify, gate and the PR jobs use no secrets", () => {
   const jobs = jobBlocks();
-  for (const j of ["classify", "static", "frontend", "browser", "backend", "mcp", "scan", "gate"]) {
+  for (const j of ["classify", "static", "frontend", "browser", "public-matrix", "backend", "mcp", "scan", "gate"]) {
     assert.ok(jobs[j], `job ${j} not found in ci.yml`);
     assert.doesNotMatch(jobs[j], /secrets\./, `${j} must run without secrets (fork and Dependabot PRs)`);
   }
@@ -350,6 +350,61 @@ test("Browser checks: the a11y legs cover every shard exactly once, and links ha
   assert.match(block, /if: matrix\.check == 'admin-matrix'/);
 });
 
+// --- the public phone matrix (#764) ---------------------------------------------
+
+test("public-matrix: selected by what it reads (web/src, web/public, web/scripts), nothing else in web", () => {
+  const on = ["web/src/pages/Blog.tsx", "web/public/fonts/a.woff2", "web/scripts/a11y/public-matrix.mjs", "web/scripts/a11y/public-matrix-baseline.json"];
+  for (const p of on) assert.equal(pr(["M", p]).jobs["public-matrix"], true, p);
+  const off = ["web/vite.config.ts", "web/index.html", "web/README.md", "backend/src/a.ts", "mcp/src/a.ts", "docs/a.md", "README.md"];
+  for (const p of off) assert.equal(pr(["M", p]).jobs["public-matrix"], false, p);
+});
+test("public-matrix: a widening change (CI, lockfile, Dockerfile) selects it, and so does an empty or unreadable diff", () => {
+  for (const p of [".github/workflows/ci.yml", "web/package-lock.json", "web/Dockerfile"]) assert.equal(pr(["M", p]).jobs["public-matrix"], true, p);
+  assert.equal(pr().jobs["public-matrix"], true, "an empty diff selects everything");
+  assert.equal(run(PR, fakeGit([], { fail: (a) => a[0] === "cat-file" })).jobs["public-matrix"], true, "a diff that cannot be read selects everything");
+});
+test("public-matrix: pull requests only; main, a tag and a rebuild do not run it, a manual branch run does", () => {
+  assert.equal(run(PUSH, fakeGit([["M", "web/src/a.ts"]])).jobs["public-matrix"], false);
+  assert.equal(run({ ...PUSH, REF: "refs/tags/v1.2.0" }, fakeGit([], { tag: TAG_COMMIT })).jobs["public-matrix"], false);
+  assert.equal(run({ EVENT_NAME: "workflow_dispatch", REF: "refs/heads/main", SHA: PUSH.SHA }, fakeGit([])).jobs["public-matrix"], false);
+  assert.equal(run({ EVENT_NAME: "workflow_dispatch", REF: "refs/heads/x", SHA: PUSH.SHA }, fakeGit([])).jobs["public-matrix"], true);
+});
+
+// The job is two legs of one script (SHARD=k/n, web/scripts/a11y/public-matrix.mjs):
+// a leg missing from the matrix would halve the measurement without failing
+// anything. The legs must be exactly 1..of, in a job of their own (the a11y
+// and admin legs are at 2-5 min already), and the gate must need the job: a
+// cancelled or skipped shard then fails the gate (ci-gate.test.mjs).
+test("public-matrix: the legs cover every shard exactly once, in a job of their own", () => {
+  const block = jobBlocks()["public-matrix"] ?? "";
+  assert.ok(block, "job public-matrix not found in ci.yml");
+  assert.match(block, /needs: \[classify\]/);
+  assert.match(block, /if: fromJSON\(needs\.classify\.outputs\.jobs\)\['public-matrix'\]/);
+  assert.match(block, /fail-fast: false/);
+  const legs = [...block.matchAll(/^\s+- \{ shard: (\d+), of: (\d+) \}\s*$/gm)].map((m) => ({ shard: Number(m[1]), of: Number(m[2]) }));
+  assert.ok(legs.length >= 2, "at least two legs");
+  assert.ok(legs.every((l) => l.of === legs.length), "every leg names `of` = the number of legs");
+  assert.deepEqual(legs.map((l) => l.shard).sort((a, b) => a - b), legs.map((_, i) => i + 1));
+  assert.match(block, /SHARD: \$\{\{ matrix\.shard \}\}\/\$\{\{ matrix\.of \}\}/);
+  assert.match(block, /npm run a11y:public-matrix(\s|$)/);
+  assert.doesNotMatch(block, /secrets\./);
+  assert.doesNotMatch(jobBlocks().browser ?? "", /check: public-matrix|npm run a11y:public-matrix/, "the phone matrix stays out of the Browser checks legs");
+  const t = /timeout-minutes:\s*(\d+)/.exec(block);
+  assert.ok(t && Number(t[1]) <= 10, "a timeout of at most 10 minutes");
+});
+test("public-matrix nightly: scheduled, full, non-gating, one issue", () => {
+  const f = join(dirname(fileURLToPath(import.meta.url)), "..", "workflows", "public-matrix-nightly.yml");
+  const yml = readFileSync(f, "utf8");
+  assert.match(yml, /^ {2}schedule:\s*\n(\s+#.*\n)*\s+- cron:/m);
+  assert.match(yml, /workflow_dispatch:/);
+  assert.match(yml, /FULL: "1"/);
+  assert.match(yml, /permissions:\s*\n\s+contents: read/);
+  assert.match(yml, /issues: write/);
+  assert.match(yml, /actions\/upload-artifact@/);
+  assert.doesNotMatch(yml.replace(/^\s*#.*$/gm, ""), /pull_request|\bpush:/, "never triggered by a change: it must not gate one");
+  assert.doesNotMatch(yml, /npm run a11y:public-matrix -- [^\n]*--shots|SHOTS:/, "screenshots are opt-in and not in CI");
+});
+
 test("Publish image needs Browser checks, so no manifest is recorded for a commit whose sweep failed", () => {
   const needs = /^ {4}needs:\s*\[([^\]]*)\]/m.exec(jobBlocks().images ?? "");
   assert.ok(needs, "images job with an inline needs list");
@@ -364,7 +419,7 @@ test("outputs are strings the workflow can compare", () => {
   assert.equal(o.web, "true");
   assert.equal(o.backend, "false");
   assert.deepEqual(JSON.parse(o.scan_matrix), [{ image: "web", context: "web" }]);
-  assert.deepEqual(JSON.parse(o.jobs), { static: true, frontend: true, browser: true, backend: false, mcp: false, scan: true, images: false, release: false, promote: false, deploy: false });
+  assert.deepEqual(JSON.parse(o.jobs), { static: true, frontend: true, browser: true, "public-matrix": true, backend: false, mcp: false, scan: true, images: false, release: false, promote: false, deploy: false });
   assert.equal(o.mode, "pr");
   assert.equal(o.sha, PR.SHA);
   assert.equal(outputs(pr(["M", "docs/a.md"])).scan_matrix, "[]");
