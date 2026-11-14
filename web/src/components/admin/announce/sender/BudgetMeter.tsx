@@ -21,6 +21,7 @@ export default function BudgetMeter({ refresh = 0, phone = false }: { refresh?: 
       <p className="text-sm tabular-nums" role="status" data-testid="budget-room">
         {b.waiting === "day" && b.resumeAt ? w.waitDay(whenOf(b.resumeAt)) : b.waiting === "month" && b.resumeAt ? w.waitMonth(whenOf(b.resumeAt)) : w.room(b.capacity)}
       </p>
+      {b.warmup && <p className="a-hint !mt-0 tabular-nums" role="status" data-testid="budget-warmup">{w.warmup(b.warmup.day, b.warmup.daily)}</p>}
       {b.thresholds.length > 0 && <p className="text-sm font-bold" role="status" data-testid="budget-threshold">{b.thresholds.includes(90) ? w.t90 : w.t70}</p>}
     </>
   );
@@ -31,7 +32,7 @@ export default function BudgetMeter({ refresh = 0, phone = false }: { refresh?: 
         <Gauge value={used} max={Math.max(usable, 1)} size={56} label={`${label}: ${w.of(nf.format(used), nf.format(usable))}`} />
         <div className="min-w-0">
           <p className="a-label !mt-0">{label}</p>
-          <p className="text-sm font-bold tabular-nums" dir="ltr">{w.of(nf.format(used), nf.format(usable))}</p>
+          <p className="text-sm font-bold tabular-nums">{w.of(nf.format(used), nf.format(usable))}</p>
         </div>
       </div>
     );

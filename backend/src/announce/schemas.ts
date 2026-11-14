@@ -59,6 +59,12 @@ export const QuietHoursSchema = z
   .object({ from: Hhmm, to: Hhmm, tz: z.string().max(60).refine(validZone, "Unknown time zone") })
   .strict();
 
+/** Conservative start for a sender with no history; used only where the owner never saved a value. */
+export const DEFAULT_THROTTLE_PER_HOUR = 30;
+export const DEFAULT_DAILY_CAP = 100;
+/** Night in Israel; applied only to a settings document that was never saved (quiet hours stay optional, so a saved "none" is respected). */
+export const DEFAULT_QUIET_HOURS = { from: "21:00", to: "07:00", tz: "Asia/Jerusalem" };
+
 /** The number the signup text may promise; see docs/newsletter.md before changing it. */
 export const DEFAULT_MAX_PER_CONTACT_30D = 4;
 export const MAX_PER_CONTACT_30D_LIMIT = 31;
@@ -98,8 +104,10 @@ export const SenderSchema = z.preprocess(migrateLabel, z
     identityPhone: z.string().trim().max(40).default(""),
     footerIdentity: z.string().trim().max(500).refine((t) => !/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(t), "No control characters").default(""),
     testRecipients: z.array(z.string().trim().toLowerCase().max(254).email()).max(5).default([]),
-    throttlePerHour: z.number().int().min(1).max(3600).default(60),
-    dailyCap: z.number().int().min(1).max(10000).default(200),
+    throttlePerHour: z.number().int().min(1).max(3600).default(DEFAULT_THROTTLE_PER_HOUR),
+    dailyCap: z.number().int().min(1).max(10000).default(DEFAULT_DAILY_CAP),
+    /* Warm-up for a new sender: the first 14 days only ever LOWER the two caps above (campaigns/warmup.ts). A new field, so a saved document without it reads as on. */
+    warmup: z.boolean().default(true),
     /* Most mails one person gets in any rolling 30 days; 0 = no limit. Lenient here (settingsOf() re-parses stored documents and falls back to ALL defaults on failure); the range is checked on PUT by validateSenderLimits. */
     maxPerContact30d: z.number().default(DEFAULT_MAX_PER_CONTACT_30D),
     quietHours: QuietHoursSchema.optional(),
@@ -256,8 +264,10 @@ export const DEFAULT_SENDER: SenderSettings = {
   identityLinkedin: "",
   identityPhone: "",
   testRecipients: [],
-  throttlePerHour: 60,
-  dailyCap: 200,
+  throttlePerHour: DEFAULT_THROTTLE_PER_HOUR,
+  dailyCap: DEFAULT_DAILY_CAP,
+  warmup: true,
+  quietHours: DEFAULT_QUIET_HOURS,
   maxPerContact30d: DEFAULT_MAX_PER_CONTACT_30D,
   autoDraftCampaign: false,
   dailyLimit: 90,

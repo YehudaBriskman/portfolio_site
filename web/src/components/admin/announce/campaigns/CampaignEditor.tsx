@@ -26,6 +26,7 @@ import Modal from "../audience/Modal";
 import BudgetPlan from "./BudgetPlan";
 import EmailPreview from "../previews/EmailPreview";
 import BlocksEditor from "./BlocksEditor";
+import { contentWarnings, suggestedSlot } from "./warnings";
 import { blockProblem, blocksToText, cleanBlocks, createPayload, toInput, zonedToIso, type Form } from "./helpers";
 import Progress from "./Progress";
 import { pillState } from "./status";
@@ -200,6 +201,9 @@ export default function CampaignEditor({
   if (mode === "later" && (!scheduleIso || past)) problems.push(w.readyTime);
   if (!footerOk && sender) problems.push(w.readyFooter(lacks.map((k) => (k === "name" ? w.idName : w.idEmail)).join(w.idAnd)));
   if (sender && hasTextProblem(sender)) problems.push(w.readyUnsubNote);
+  const advice = contentWarnings({ subject: form.subject, bodyText: form.bodyText, blocks: form.useBlocks ? form.blocks : null });
+  const adviceText: Record<string, string> = { subjectLong: w.advSubjectLong, subjectCaps: w.advSubjectCaps, subjectBang: w.advSubjectBang, subjectRe: w.advSubjectRe, linkShort: w.advLinkShort, linkHttp: w.advLinkHttp, linkMismatch: w.advLinkMismatch, imageAlt: w.advImageAlt, imageHeavy: w.advImageHeavy };
+  const slot = now > 0 ? suggestedSlot(now, zone) : "";
   const formOk = Boolean(form.subject.trim() && form.groups.length > 0 && !blockBad);
   const canGo = editable && problems.length === 0 && busy === "";
 
@@ -536,6 +540,13 @@ export default function CampaignEditor({
                   ) : (
                     <p className="a-hint !mt-0 font-bold">{w.readyOk}</p>
                   )}
+                  {advice.length > 0 && (
+                    <div data-testid="advice">
+                      <p className="a-label">{w.advTitle}</p>
+                      <ul className="list-disc ps-5 text-sm">{advice.map((k) => <li key={k} className="mt-0">{adviceText[k]}</li>)}</ul>
+                    </div>
+                  )}
+                  {mode === "later" && slot && <p className="a-hint" data-testid="advice-slot">{w.advSlot(slot.replace("T", " "))}</p>}
                   {recipients !== null && recipients > 0 && <BudgetPlan remaining={recipients} />}
                   {overCap > 0 && recipients !== null && typeof audience === "object" && <p className="a-hint font-bold" data-testid="ready-cap">{w.readyCap(overCap, recipients, audience.cap ?? 0)}</p>}
                 </div>

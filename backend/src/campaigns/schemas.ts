@@ -6,9 +6,9 @@ import type { SmtpErrorKind } from "../providers/classifySmtpError.js";
 export const CAMPAIGN_STATUSES = ["draft", "scheduled", "sending", "sent", "failed", "canceled", "paused"] as const;
 export type CampaignStatus = (typeof CAMPAIGN_STATUSES)[number];
 /** Why the sender stopped a campaign by itself. Only the owner resumes it. */
-export type PauseReason = "auth" | "consecutive" | "failure-rate" | "hard-bounce-rate";
+export type PauseReason = "auth" | "consecutive" | "failure-rate" | "hard-bounce-rate" | "complaint";
 /** Results since the campaign started or was last resumed: what the auto-pause rules are judged on. */
-export type Health = { sent: number; failed: number; hard: number; streak: number };
+export type Health = { sent: number; failed: number; hard: number; streak: number; /** Spam complaints received while it was sending; written by the webhook. */ complaints?: number };
 
 export type Block = { type: "p" | "h2" | "ul" | "cta" | "image"; text?: string; items?: string[]; url?: string; label?: string };
 
