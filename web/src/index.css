@@ -220,6 +220,14 @@
 */
 @layer base {
   :root {
+    /* Touch targets (plan: mobile public site, PR 3). On a coarse pointer every
+       interactive target is --tap (44px) high; --tap-floor (24px, WCAG 2.5.8)
+       holds everywhere; --tap-gap is the space between two targets. 40px is the
+       hard minimum where 44 cannot fit. Modules read these, never a literal. */
+    --tap: 2.75rem;
+    --tap-floor: 1.5rem;
+    --tap-gap: 0.5rem;
+
     --paper:    236 232 220;   /* #ECE8DC  the ground */
     --paper-2:  228 223 209;   /* #E4DFD1  a raised surface on it */
     --paper-3:  216 210 194;   /* #D8D2C2  a recessed one */
@@ -2378,8 +2386,8 @@
    */
   @media (pointer: coarse) {
     .tap {
-      min-height: 44px;
-      min-width: 44px;
+      min-height: var(--tap);
+      min-width: var(--tap);
       display: inline-flex;
       align-items: center;
     }
