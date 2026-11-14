@@ -13,6 +13,8 @@ import { languageColour } from "@/components/work/language";
 import AvatarCircle from "@/components/phone/AvatarCircle";
 import PillBadge from "@/components/phone/PillBadge";
 import Chevron from "@/components/phone/Chevron";
+import ProjectCard from "@/components/phone/ProjectCard";
+import { usePublicPhone } from "@/hooks/usePublicPhone";
 import { toneOfKind } from "@/components/phone/tone";
 
 /*
@@ -104,6 +106,7 @@ export default function RepoCard({
   now: number;
   headingLevel?: 3 | 4;
 }) {
+  const phone = usePublicPhone();
   const [t, lang] = useWorkWords();
   const c = entry.collection;
   const s = c.stats;
@@ -112,6 +115,9 @@ export default function RepoCard({
   const release = s?.latestRelease ?? null;
   const colour = languageColour(s?.language);
   const linked = Boolean(c.repoUrl || s);
+
+  /* Under 640 the card is a different, cover-led shape (components/phone). */
+  if (phone) return <ProjectCard entry={entry} headingLevel={headingLevel} />;
 
   return (
     <article className={styles.card} data-phone-row="" data-pinned={isPinned(entry) ? "" : undefined}>
