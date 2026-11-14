@@ -691,6 +691,10 @@
   color: rgb(var(--ink));
   text-decoration: none;
   overflow-wrap: anywhere;
+  /* The 24px floor on every pointer: padded, with the margin taking it back,
+     so nothing moves. */
+  padding-block: calc((var(--tap-floor) - 1lh) / 2);
+  margin-block: calc((var(--tap-floor) - 1lh) / -2);
 }
 
 .rowTitle:hover,
@@ -738,13 +742,17 @@
 /* A 24px target, which the WCAG 2.2 minimum is; a phone gets a taller
    invisible hit area without the chip itself growing. */
 @media (pointer: coarse) {
+  .chips {
+    row-gap: var(--tap-gap);
+  }
   .chip {
     position: relative;
   }
   .chip::after {
     content: "";
     position: absolute;
-    inset: -10px -2px;
+    inset-block: calc((var(--tap) - 100%) / -2);
+    inset-inline: -2px;
   }
 }
 
@@ -1516,6 +1524,12 @@
   }
   .rows > .row {
     position: relative;
+  }
+  .rowTitle {
+    /* The link itself is 44px high too (its box, not only the stretched
+       ::after), still without moving a pixel. */
+    padding-block: calc((var(--tap) - 1lh) / 2);
+    margin-block: calc((var(--tap) - 1lh) / -2);
   }
   .rowTitle::after {
     content: "";

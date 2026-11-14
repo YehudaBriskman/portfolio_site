@@ -196,6 +196,18 @@
 .cardName a {
   color: rgb(var(--signal));
   text-decoration: none;
+  /* The 24px floor on every pointer (the line is 21px), the margin taking it
+     back so the card does not move. */
+  display: inline-block;
+  padding-block: calc((var(--tap-floor) - 1lh) / 2);
+  margin-block: calc((var(--tap-floor) - 1lh) / -2);
+}
+
+@media (pointer: coarse) {
+  .cardName a {
+    padding-block: calc((var(--tap) - 1lh) / 2);
+    margin-block: calc((var(--tap) - 1lh) / -2);
+  }
 }
 
 .cardName a:hover {
@@ -380,6 +392,16 @@
 .notes {
   margin-inline-start: auto;
   font-weight: 600;
+}
+
+/* A finger: 44 high and wide, the padding taken back by the margin so the
+   card does not grow. */
+@media (pointer: coarse) {
+  .notes {
+    min-block-size: var(--tap);
+    min-inline-size: var(--tap);
+    margin-block: calc((var(--tap) - 1.5rem) / -2);
+  }
 }
 
 /* ─────────────────────────────────────────────────────────────── empty */
