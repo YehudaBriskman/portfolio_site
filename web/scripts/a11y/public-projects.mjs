@@ -69,16 +69,19 @@ const projectsProbe = () => {
   const out = window.__common();
   out.sorts = [...document.querySelectorAll("[data-phone-segmented] a, [data-phone-segmented] button")].map((e) => Math.round(e.getBoundingClientRect().height));
   out.rowsFound = 0;
-  for (const row of document.querySelectorAll("[data-phone-row]")) {
-    const r = row.getBoundingClientRect();
+  /* cover-led cards (W2): one link, a 16:10 cover, no text pill, <= 3 chips */
+  for (const card of document.querySelectorAll("[data-project-card]")) {
+    const r = card.getBoundingClientRect();
     if (r.width === 0) continue;
     out.rowsFound++;
-    const link = row.querySelector("a");
+    const links = card.querySelectorAll("a");
+    const cover = card.querySelector("[data-cover]")?.getBoundingClientRect();
     const hit = document.elementFromPoint(r.left + r.width / 2, Math.min(r.top + r.height / 2, innerHeight - 1));
     const above = r.top < 0 || r.bottom > innerHeight;
-    if (r.height < 64) out.rows.push(`row ${Math.round(r.height)} tall`);
-    if (!above && !(hit && hit.closest("a") && row.contains(hit))) out.rows.push("row centre is not a link");
-    if (!link) out.rows.push("row has no link");
+    if (links.length !== 1) out.rows.push(`card has ${links.length} links`);
+    if (!cover || Math.abs(cover.width / cover.height - 1.6) > 0.05) out.rows.push("card cover is not 16:10");
+    if (!above && !(hit && hit.closest("a") && card.contains(hit))) out.rows.push("card centre is not a link");
+    if (card.querySelectorAll("[data-stat]").length > 3) out.rows.push("more than 3 stat chips");
   }
   return out;
 };
@@ -139,8 +142,6 @@ await Promise.all(combos.map(async ({ width, lang, theme }) => {
       if (r.overflow) fail(T("/projects"), "horizontal overflow");
       if (r.rowsFound < 3) fail(T("/projects"), `only ${r.rowsFound} phone rows`);
       for (const x of r.rows) fail(T("/projects"), x);
-      if (!r.circles.length) fail(T("/projects"), "no icon circles");
-      for (const c of r.circles) if (![32, 40, 56].includes(c.w) || c.w !== c.h || !c.round) fail(T("/projects"), `circle ${c.w}x${c.h} round=${c.round}`);
       if (r.sorts.length !== 3 || r.sorts.some((h) => h < 44)) fail(T("/projects"), `sort segments ${JSON.stringify(r.sorts)} (need 3 at 44+)`);
       if (SHOTS) await page.screenshot({ path: `${SHOTS}/projects.${lang}.${theme}.${width}.png`, fullPage: true, timeout: 120000 });
       await page.close();
