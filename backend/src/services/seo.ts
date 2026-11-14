@@ -222,6 +222,7 @@ const STATIC_ENTRIES: SitemapEntry[] = [
   { loc: "/developers/mcp", changefreq: "monthly", priority: 0.5 },
   { loc: "/accessibility", changefreq: "yearly", priority: 0.3 },
   { loc: "/privacy", changefreq: "yearly", priority: 0.3 },
+  { loc: "/help", changefreq: "yearly", priority: 0.3 },
 ];
 
 /** What the sitemap lists beyond the posts and the published collections. */

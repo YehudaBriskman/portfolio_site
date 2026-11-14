@@ -208,7 +208,7 @@ while (queue.length && pages.size < MAX) {
  * JavaScript navigation links to is invisible to a raw-HTML crawl, and this
  * is how the audit finds it.
  */
-const APP_ROUTES = ["/", "/blog", "/blog/log", "/projects", "/story", "/accessibility", "/privacy", "/developers/mcp"];
+const APP_ROUTES = ["/", "/blog", "/blog/log", "/projects", "/story", "/accessibility", "/privacy", "/help", "/developers/mcp"];
 for (const slug of (args.areas ?? "").split(",").filter(Boolean)) APP_ROUTES.push(`/blog/area/${slug}`);
 const appPaths = APP_ROUTES.flatMap((r) => [r, r === "/" ? "/he" : `/he${r}`]);
 for (const p of [...sitemapPaths, ...appPaths]) {
