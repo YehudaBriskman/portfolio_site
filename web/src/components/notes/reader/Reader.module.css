@@ -789,6 +789,23 @@
     overflow: hidden;
     padding: 4px;
   }
+  /* the signed-in owner's fourth control (Edit) */
+  .barPill[data-cols="4"] {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  a.barBtn {
+    text-decoration: none;
+  }
+  /* four columns are narrower: a longer word (Hebrew "Contents") wraps to a
+     second line rather than being cut with an ellipsis */
+  .barPill[data-cols="4"] .barBtn > span {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    text-wrap: balance;
+    line-height: 1.15;
+  }
   .barFill {
     position: absolute;
     inset-block-start: 0;
@@ -856,6 +873,12 @@
   /* said once: the header's Contents opener is the bar's first button on a phone */
   .phoneBar button[aria-haspopup="dialog"] {
     display: none;
+  }
+
+  /* the first paragraph follows the header (or the cover) at one step, not the
+     section gap: that gap was the empty band under the byline */
+  .prose {
+    margin-block-start: 24px;
   }
 
   /* ─────────────── text on the ground, soft blocks */

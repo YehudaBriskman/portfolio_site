@@ -378,3 +378,88 @@
 :global(:root[data-theme="dark"]) .card.card {
   --note-ground: var(--paper-2);
 }
+
+/* ------------------------------------------------------ phone: image-led -- */
+
+/*
+ * Date and read time are StatChips (glyph + value). From 640px they are the
+ * plain text they always were; the glyph is a phone-only part.
+ */
+.metaChip.metaChip {
+  display: inline;
+  gap: 0;
+  color: inherit;
+  font: inherit;
+  line-height: inherit;
+  white-space: inherit;
+}
+.metaChip svg {
+  display: none;
+}
+/* the chip's own tabular figures and bidi isolate are a phone look */
+.metaChip span {
+  font-variant-numeric: inherit;
+  unicode-bidi: inherit;
+}
+.phoneTile {
+  display: none;
+}
+
+/*
+ * A phone (W3): the card is image-led and as tall as its content. The cover
+ * (or, with none, the note's glyph tile) is a 16:9 plate with its room
+ * reserved, the title starts at the reading edge with balanced lines, and the
+ * description is always there (no hover to ask with). The 23rem slot, which a
+ * grid of equal heights needs, is a desktop idea. Tablet and up: untouched.
+ */
+@media (max-width: 639px) {
+  .slot {
+    height: auto;
+    contain: none;
+  }
+  .face,
+  .face:not([data-cover]) {
+    height: auto;
+    grid-template-rows: auto auto auto auto;
+    grid-template-areas:
+      "media"
+      "head"
+      "title"
+      "desc";
+  }
+  .media.media,
+  .phoneTile {
+    grid-area: media;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    border-block-end: 0;
+  }
+  .phoneTile {
+    display: block;
+  }
+  .phoneTile > svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  .face:not([data-cover]) .title > h2,
+  .title > h2 {
+    -webkit-line-clamp: 3;
+    font-size: 1.375rem;
+    line-height: 1.2;
+    text-align: start;
+    text-wrap: balance;
+  }
+  .desc {
+    margin-top: 0;
+    padding-block-end: var(--pad);
+  }
+  .metaChip.metaChip {
+    display: inline-flex;
+    gap: 4px;
+    align-items: center;
+  }
+  .metaChip svg {
+    display: block;
+  }
+}

@@ -1,7 +1,9 @@
 import type { CSSProperties } from "react";
 import { useImageLoad } from "@/components/media/useImageLoad";
 import { Link } from "react-router-dom";
-import { FileText } from "lucide-react";
+import { CalendarDays, Clock, FileText } from "lucide-react";
+import { iconOf } from "@/components/ui/Icon";
+import { StatChip } from "@/components/ui/StatChip";
 import AvatarCircle from "@/components/phone/AvatarCircle";
 import Chevron from "@/components/phone/Chevron";
 import { toneOfArea } from "@/components/phone/tone";
@@ -10,6 +12,7 @@ import dark from "@/components/notes/DarkCard.module.css";
 import styles from "@/components/notes/NoteCard.module.css";
 import { formatDate, type PostSummary } from "@/services/blog";
 import { useLang } from "@/components/dashboard/i18n";
+import { usePublicPhone } from "@/components/nav/localBrowse";
 import { useNotesWords } from "@/i18n/pages";
 import { inEnglish, plural } from "@/i18n/words";
 
@@ -57,6 +60,9 @@ import { inEnglish, plural } from "@/i18n/words";
  * comes of them drifting apart.
  */
 const SURFACE = `note-card ${styles.card} group relative`;
+
+const DateGlyph = iconOf(CalendarDays, 16);
+const ReadGlyph = iconOf(Clock, 16);
 
 function Cover({ src, alt }: { src: string; alt: string }) {
   const { attach, state, onLoad, onError } = useImageLoad(src);
@@ -111,16 +117,28 @@ export default function NoteCard({
   const summary = post.subtitle?.trim() || post.excerpt.trim();
   const lang = useLang();
   const w = useNotesWords();
+  const phone = usePublicPhone();
 
+  /* On a phone date and read time are glyph + value chips and the gap between
+     them does the separating: the drawn dot is its own flex item, so a wrap
+     could leave it at the start of the second line. From 640px: the dot, no
+     glyphs, as before. */
   const meta = (
-    <div className="mono flex flex-wrap items-center gap-x-2.5 gap-y-1 whitespace-nowrap text-[0.75rem] tracking-[0.08em] text-clay">
+    <div className="mono flex flex-wrap items-center gap-x-2.5 gap-y-1 whitespace-nowrap text-[0.75rem] tracking-[0.08em] text-clay max-sm:gap-x-3">
       {post.publishedAt && (
-        <time dateTime={post.publishedAt}>{formatDate(post.publishedAt)}</time>
+        <time dateTime={post.publishedAt}>
+          <StatChip className={styles.metaChip} icon={DateGlyph} value={formatDate(post.publishedAt)} label="" />
+        </time>
       )}
       {post.publishedAt && (
-        <span aria-hidden="true" className="h-1 w-1 rounded-full bg-clay" />
+        <span aria-hidden="true" className="h-1 w-1 rounded-full bg-clay max-sm:hidden" />
       )}
-      <span>{plural(lang, post.readingMinutes, w.minutes)}</span>
+      <StatChip
+        className={styles.metaChip}
+        icon={ReadGlyph}
+        value={plural(lang, post.readingMinutes, w.minutes)}
+        label=""
+      />
     </div>
   );
 
@@ -134,7 +152,7 @@ export default function NoteCard({
       }`}
     >
       {/* The stretched overlay: one link, whole card. */}
-      <Link to={`/blog/${post.slug}`} className="after:absolute after:inset-0 after:content-['']" {...inEnglish(lang, post.title)}>
+      <Link to={`/blog/${post.slug}`} className="after:absolute after:inset-0 after:content-['']" dir={phone ? "auto" : undefined} {...inEnglish(lang, post.title)}>
         {post.title}
       </Link>
     </h2>
@@ -208,6 +226,13 @@ export default function NoteCard({
         /* Only a card with something to say grows to say it. */
         data-desc={summary ? "" : undefined}
       >
+        {/* A phone has no empty card: without a cover, the note's own glyph
+            tile leads, the same 16:9 as a picture would be. */}
+        {!media && (
+          <div className={`${styles.phoneTile} sm:hidden`} aria-hidden="true" data-phone-tile="">
+            <NoteGlyph seed={post.slug} />
+          </div>
+        )}
         {media && (
           /* Decorative: the title names the note, and an alt here would be
              read before it. */
@@ -231,7 +256,7 @@ export default function NoteCard({
             shown by the stylesheet — on hover and focus, or from the start
             where there is no hover to ask with. `--ink-soft` through the
             `text-clay` alias, a solid token on either ground. */}
-        {summary && <p className={`${styles.desc} text-clay`} {...inEnglish(lang, summary)}>{summary}</p>}
+        {summary && <p className={`${styles.desc} text-clay`} dir={phone ? "auto" : undefined} {...inEnglish(lang, summary)}>{summary}</p>}
       </div>
     </article>
   );
