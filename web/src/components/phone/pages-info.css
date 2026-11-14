@@ -93,6 +93,9 @@
   [data-ph="tools"] tbody tr:last-child > :is(th, td) {
     border-block-end: 0;
   }
+  [data-ph="tools"] :is(th, td) {
+    text-align: start;
+  }
   [data-ph="tools"] thead th {
     background: var(--ph-recess);
   }
@@ -130,9 +133,12 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
+    padding: 12px 20px;
     border-radius: var(--r-pill);
     background: rgb(var(--signal));
     color: rgb(var(--signal-ink));
+    line-height: 1.35;
+    text-align: center;
     text-decoration: none;
   }
 
