@@ -1,16 +1,22 @@
 import { useSyncExternalStore } from "react";
 
-/* Below 600px the admin is a phone: the drawer carries the Marketing sections and the tab strip goes. */
-const QUERY = "(max-width: 599px)";
+/** The admin's phone layout: under 600px, the one breakpoint the phone screens switch on. */
+export const PHONE_QUERY = "(max-width: 599px)";
 
-function subscribe(onChange: () => void) {
-  const mq = window.matchMedia(QUERY);
-  mq.addEventListener("change", onChange);
-  return () => mq.removeEventListener("change", onChange);
-}
-
-const read = () => window.matchMedia(QUERY).matches;
-
-export function usePhone() {
-  return useSyncExternalStore(subscribe, read, () => false);
+/*
+ * True on a phone-width screen. A screen switches on this rather than hiding
+ * half of itself in CSS, so a phone never mounts the desktop list it cannot
+ * show. Without matchMedia (SSR, old test shims) it is false.
+ */
+export function usePhone(): boolean {
+  return useSyncExternalStore(
+    (cb) => {
+      if (typeof window === "undefined" || typeof window.matchMedia !== "function") return () => {};
+      const mq = window.matchMedia(PHONE_QUERY);
+      mq.addEventListener?.("change", cb);
+      return () => mq.removeEventListener?.("change", cb);
+    },
+    () => typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia(PHONE_QUERY).matches,
+    () => false,
+  );
 }

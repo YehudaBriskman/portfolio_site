@@ -19,6 +19,14 @@ export const useMobileWords = defineWords(
       collapse: (label: string) => `Collapse ${label}`,
     },
     row: { isNew: "New" },
+    settings: {
+      about: (label: string) => `About ${label}`,
+      search: "Search settings",
+      clearSearch: "Clear search",
+      noMatch: "No settings match",
+      found: (n: number) => (n === 1 ? "1 setting found" : `${n} settings found`),
+      back: "Back to settings",
+    },
     selection: {
       select: "Select",
       done: "Done",
@@ -55,6 +63,7 @@ export const useMobileWords = defineWords(
       pending: "Waiting to confirm",
       unsubscribed: "Unsubscribed",
       suppressed: "Blocked from mail",
+      attention: "Needs attention",
     },
     channel: {
       group: "Where it is posted",
@@ -159,6 +168,14 @@ export const useMobileWords = defineWords(
       collapse: (label: string) => `כווץ ${label}`,
     },
     row: { isNew: "חדש" },
+    settings: {
+      about: (label: string) => `על ${label}`,
+      search: "חיפוש בהגדרות",
+      clearSearch: "ניקוי החיפוש",
+      noMatch: "אין הגדרות מתאימות",
+      found: (n: number) => (n === 1 ? "נמצאה הגדרה אחת" : `נמצאו ${n} הגדרות`),
+      back: "חזרה להגדרות",
+    },
     selection: {
       select: "בחירה",
       done: "סיום",
@@ -195,6 +212,7 @@ export const useMobileWords = defineWords(
       pending: "ממתין לאישור",
       unsubscribed: "ביטל הרשמה",
       suppressed: "חסום לדיוור",
+      attention: "דורש תשומת לב",
     },
     channel: {
       group: "איפה פורסם",

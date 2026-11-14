@@ -182,13 +182,18 @@ Status: **exists** = on `main` today. **planned** = an open issue; do not copy a
 | `sonner` (`toast`, `Toaster`) | `@/components/ui/sonner` | feedback and **Undo** for reversible actions | an error the user must act on (keep it inline) |
 | `BottomSheet` (#669) | `@/components/ui/BottomSheet` | detail, filters, bulk actions: short and transient. Native `<dialog>`, opens at half and pulls to full (optional peek), Back closes it, Esc and backdrop and drag-down close it, focus returns to the opener, one at a time; the handle is a 44px button (Enter/arrows resize) | a long flow gets a page; never a sheet opening a sheet |
 | `RecordRow` (#669) | `@/components/ui/RecordRow` | every phone list row: icon, title, <= 2 facts (`MAX_FACTS`), 1 status, chevron; the whole row is one button named by `openLabel` | buttons inside it |
-| `StatusGlyph` (#669) | `@/components/ui/StatusGlyph` | a status as shape + tone + hidden word (`withWord` in sheets); published / active / mailable / translated draw nothing unless `showDefault` | colour alone, two on a row |
+| `StatusGlyph` (#669) | `@/components/ui/StatusGlyph` | a status as shape + tone + hidden word (`withWord` in sheets); published / active / mailable / translated draw nothing unless `showDefault`. `kind="attention"` with `label` (its own words, e.g. "Long description") and `tone` is the one-glyph "something is wrong here" a row shows instead of a "Ready" pill | colour alone, two on a row |
 | `ChannelIcon`, `ChannelRow` (#669) | `@/components/ui/ChannelIcon` | LinkedIn / X / Instagram / email in fixed order, filled with a check = posted, outline = not yet; brand paths in `channelGlyphs.ts` (simple-icons, CC0) | any other order |
 | `ICON`, `CONCEPTS` (#669) | `@/components/ui/icons` | the vocabulary in section 4; words (he + en) in `useMobileWords().icons` (`i18n/mobile.ts`); `icons.test.ts` fails on a concept without a word | an icon with no concept row |
 | `Journey`, `LifecycleStepper` (#672) | `@/components/ui/Journey` | from > to with optional waypoints and a `via` pill (sender > audience); a vertical lifecycle (draft > scheduled > sending > sent) with the current step announced and paused/failed/canceled as a side branch | a graphic with no text: every fact is also in the list |
 | `MiniBar` (#672) | `@/components/ui/MiniBar` | counts as a segmented inline bar, `role="img"` with a text name; danger is hatched | the only place a decision number appears: keep the number visible |
 | `Gauge` (#672) | `@/components/ui/Gauge` | a budget against a limit as a ring, warn at 70 / danger at 90 percent; level in colour, badge glyph and words, value in a hidden `<meter>` | colour-only status |
 | `SidebarNav`, `SidebarGroup` (#675) | `@/components/ui/SidebarGroup` | hierarchical drawer and sidebar nav (the tree is `components/admin/adminNav.ts`): a group with an address is a link plus its own 44px `DisclosureButton` chevron, one without is a single toggle; groups nest two deep, the current link has `aria-current`, the route's groups open on their own, open state is remembered per viewer. APG disclosure navigation, not a tree role: Tab works as on any page, Up/Down/Home/End walk visible rows, inline-end/inline-start open and close (swapped in RTL). Below 600px (`usePhone`) the drawer carries Marketing's sections and the hub's tab strip is gone | a second nav, or a flat list of more than ~7 links |
+| `Switch` (#673) | `@/components/ui/Switch` | an on/off setting that applies at once: native `<input role="switch">`, whole 44px row is the target, label on one line, optional ONE-line `hint` as its description, thumb moves with logical properties | a checkbox for on/off; a multi-line explanation (use `InfoPopover`) |
+| `InfoPopover` (#673) | `@/components/ui/InfoPopover` | the long help for a setting: a 44px info button opening the popover, help in the DOM only while open, Esc / outside press close it and focus returns to the button | hover-only help; help a user must read to decide (say it in the label) |
+| `SettingsRow` (#673) | `@/components/ui/SettingsRow` | one line in a settings list: `switch` (label + Switch + info button, first sentence of the help as description), `value` (label + current value + chevron) or `link` (icon tile + name + one live summary line + chevron); only a `warning` shows extra text | a paragraph of help under a control |
+| `SettingsList`, `groupSurface` (#673) | `@/components/ui/SettingsList` | inset grouped list, one row per group with a live summary; a group opens as a half `BottomSheet` (4 controls or fewer, no text field) or a sub-page (more, or any text field); two panes from 840px; `openId` / `onOpenChange` are the caller's, so the URL can hold them | a flat page of every control |
+| `SettingsSearch`, `matchItems` (#673) | `@/components/ui/SettingsSearch` | the one search field above a settings list: label + help matching, a `role=status` count, "Clear search" on an empty result; results read "Group > Label" and open the group on that row | filtering data records (use `FilterChips`) |
 | `FilterChips`, `FiltersRestoredNote` (#674) | `@/components/ui/FilterChips` | the row above a list: 3 to 5 common filters as one-tap toggle chips (`aria-pressed`, a tick when on), a "Filters" button with the active count (a multi counts once, the sort never), Clear all while any filter is on, and a removable chip for an active filter that has no chip. A toolbar: one tab stop, arrows mirror in RTL, the chips scroll sideways behind an edge fade and the button never scrolls away | a row of more than ~5 chips: the rest belong in the sheet |
 | `FilterSheet` (#674) | `@/components/ui/FilterSheet` | every filter in a `BottomSheet`: segmented (radios), multi-select (checkboxes, search above 8 options, select all/none), date range (two native dates, presets, refuses end before start), sort. Choosing edits a draft; "Show N results" applies and N follows the draft live; Reset empties the draft; Close/Esc/Back discard | applying on every tap: the list behind must not jump |
 | `useSavedFilters`, `filters.ts` (#674) | `@/components/ui/useSavedFilters` | a screen's filters kept in the address (the truth; defaults are never written; other params untouched), plus `localStorage` `admin.filters.<screen>` as a per-viewer convenience (try/catch everywhere). An empty address restores the last set and `restored` drives "Filters restored" + Undo | reading storage first: a shared link must win |
@@ -197,13 +202,12 @@ Status: **exists** = on `main` today. **planned** = an open issue; do not copy a
 | `UndoToast`, `useUndoable` (#671) | `@/components/ui/UndoToast` | an Undo window over a deferred action: `schedule({ message, commit, onUndo })` shows the toast and holds `commit` back; Undo cancels it. Never under 8 s, pauses on hover and focus, `role="status"` mounted ahead so it is announced, commits on `pagehide` and unmount, one at a time. This is how an irreversible server action gets an Undo | an error the user must act on; `sonner` for plain feedback |
 | `tooltip` | `@/components/ui/tooltip` | a hint for pointer users | the only label of anything: touch has no hover |
 
-Also on main, outside `ui/`: the admin shell and `.a-*` classes (`@/components/admin/AdminShell`), `StatusPill` and `TranslationPill` (`@/components/admin/StatusPill`, `.../TranslationPill`; being replaced by `StatusGlyph`), the native-`<dialog>` modals (`@/components/admin/MediaGrid` `Modal`, `announce/audience/Modal`, the popup system in `styles/popup.css`; see `docs/motion-contract.md` section 9).
+Also on main, outside `ui/`: `usePhone()` (`@/hooks/usePhone`; true under 600px, the one breakpoint a phone screen switches its layout on, so a phone never mounts the desktop list), the Inbox's phone screen as the worked example of a migrated list (`announce/inbox/InboxPhoneRow.tsx` rows, `InboxSheet.tsx` for the Composer in a `BottomSheet`; an **Undo** inside a modal sheet is drawn in the sheet, because a toast outside a top-layer `<dialog>` is inert while it is open), the admin shell and `.a-*` classes (`@/components/admin/AdminShell`), `StatusPill` and `TranslationPill` (`@/components/admin/StatusPill`, `.../TranslationPill`; being replaced by `StatusGlyph`), the native-`<dialog>` modals (`@/components/admin/MediaGrid` `Modal`, `announce/audience/Modal`, the popup system in `styles/popup.css`; see `docs/motion-contract.md` section 9).
 
 ### 3.2 Planned (phone series)
 
 | Component | Issue | Import (planned) | Use it for | Rule of thumb |
 |---|---|---|---|---|
-| `Switch`, `InfoPopover`, `SettingsRow`, `SettingsList`, `SettingsSearch` | #673 | `@/components/admin/mobile` | grouped settings: one-line label + switch, help behind an info button, one-line live summary per group; more than 4 controls or any text field opens a sub-page, otherwise a half sheet | only warnings stay visible; no checkbox without `role="switch"` |
 
 Migrations that consume them: #670 Inbox, #676 Campaigns, #677 Audience, #678 Marketing Settings, #679 Library, #680 Posts and Areas, #681 Media, #682 Overview and Connections and Translations, #683 Projects and the save bar. The first phone screen is the Inbox.
 
@@ -358,20 +362,19 @@ Never run vitest from the repo root.
 
 ### 7.3 The admin matrix and density scripts
 
-Two Playwright scripts measure a built admin through the repo's own harness (`web/scripts/a11y/site-stub.mjs`: `vite preview` plus API fixtures, no login, no network). They are kept with the audit notes and are not yet committed to `web/scripts/a11y/`; each header says how to promote one (`"a11y:admin": "node scripts/a11y/admin-matrix.mjs --shots none"`). Until then the CI check for phones is `a11y:admin-phones`.
+Three Playwright scripts in `web/scripts/a11y/` measure a built admin through the repo's own harness (`site-stub.mjs`: `vite preview` plus API fixtures, no login, no network; every request that is not localhost is aborted, so they run offline). `admin-matrix` and `admin-inbox-phone` run in CI; `density-matrix` is a measuring tool you run by hand.
 
 ```sh
 cd web && npm run build
-# Matrix: every admin route and state, 12 viewports, light/dark, en/he.
-# Fails (exit 1) on page overflow and any target under 24x24; reports text < 14px, targets < 44, truncation, covered content, focus ring, contrast.
-WEB=<path to web> node admin-matrix.mjs --shots none --baseline admin-matrix-baseline.json
-#   ONLY=media,marketing-inbox  WIDTHS=320,390  THEMES=light  LANGS=en  FOCUS=0  --strict
-# Density: 390x844 and 360x740, scored 0-100 (fold characters, nodes, controls, pills, small text, scroll height, row run, empty text).
-WEB=<path to web> node density-matrix.mjs --top 25 --shots top
-#   ONLY=...  VPS=390x844,360x740  CHROME=<path to chrome>
+# Matrix (CI): every admin route and state at 320/360/390/768, light/dark, en/he. Fails on page overflow, targets under 24x24, primary controls under 44 on touch, text under 14px outside the allowlist; a finding in admin-matrix-baseline.json is known.
+npm run a11y:admin-matrix        # ONLY=media,marketing-inbox  WIDTHS=320,390  THEMES=light  LANGS=en  SHARD=1/2
+# Inbox on a phone (CI): one tappable row per event, >= 7 rows above the fold of 390x844, no sideways scroll, the sheet opens and gives focus back, Mark done offers Undo, Hebrew mirrors.
+npm run a11y:admin-inbox-phone   # SHOTS=<dir> also writes screenshots (taken over the protocol: page.screenshot waits for a frame this headless build rarely makes)
+# Density (by hand): every admin screen at 390x844 and 360x740, scored 0-100 from fold characters, nodes, controls, pills, small text, scroll height, the longest run of rows and empty text; the fixtures are bigger (10 to 20 records) because a list of 2 measures nothing.
+npm run a11y:density -- --top 25 --shots top   # ONLY=marketing-inbox  VPS=390x844,360x740  CHROME=<path to chrome>
 ```
 
-The baseline lists known findings; a **new** one fails. When you fix one, shrink the baseline in the same PR. A list screen you migrate must add its fixture (10 to 20 records: a list of 2 measures nothing) and stay under its density score.
+`a11y:density` writes its results, table and screenshots to a temp folder (a fresh `density-matrix-XXXX` folder under the OS temp dir, printed at the end), never into the repo. Read the score as a comparison between two builds, not as a target: run it before and after a screen's migration and put both numbers in the PR. The matrix baseline lists known findings; a **new** one fails. When you fix one, shrink the baseline in the same PR. A list screen you migrate adds its own fixture (10 to 20 records) and its own check in this style (rows above the fold, one control per row, no overflow, in `/he` too).
 
 ### 7.4 What CI enforces
 
@@ -381,6 +384,7 @@ The baseline lists known findings; a **new** one fails. When you fix one, shrink
 | `npm audit --omit=dev --audit-level=high` | Frontend | no high advisory in runtime deps |
 | Accessibility floor (axe, WCAG 2.2 AA), sharded | `ci.yml` Browser checks | contrast, labels, names, target size |
 | Admin phone layout | Browser checks | `/admin/projects` row never overflows, draft banner keeps its sentence, links are 44 x 24 |
+| Admin Inbox on a phone | Browser checks | `a11y:admin-inbox-phone`: 7 rows above the fold at 390x844, one button per row, 4 named glyphs, no "Ready" and no Copy in the list, sheet opens and returns focus, Undo, Hebrew mirrors |
 | Links land where they point | Browser checks | no dead internal links |
 | Static | `ci.yml` | secrets scan, workflow and Dockerfile lint |
 | CodeQL | `codeql.yml` | security analysis; **wait for it too** |

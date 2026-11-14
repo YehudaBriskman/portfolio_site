@@ -28,6 +28,7 @@ type HubTab = { id: string; label: string; badge?: number; render: () => ReactNo
 
 export default function AdminAnnounce() {
   const w = useMarketingWords();
+  const phone = usePhone();
   const lw = useLibraryWords();
   const aw = useAudienceWords();
   const cw = useCampaignWords();
@@ -37,8 +38,6 @@ export default function AdminAnnounce() {
   const [error, setError] = useState<"load" | "auth" | null>(null);
   const [attempt, setAttempt] = useState(0);
   const uid = useId();
-  /* Below 600px the drawer lists these sections, so the strip would say everything twice. */
-  const phone = usePhone();
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
   const retry = () => {
@@ -101,7 +100,8 @@ export default function AdminAnnounce() {
   return (
     <AdminShell title={w.title} section="marketing">
       <div className="a-wrap">
-        <PageHeader title={phone ? current.label : w.title} description={hi[current.id as keyof typeof hi] as string} />
+        {/* On a phone the inbox is the screen: its intro paragraph would push the first rows down by three lines. */}
+        <PageHeader title={phone ? current.label : w.title} description={phone && current.id === "inbox" ? undefined : (hi[current.id as keyof typeof hi] as string)} />
 
         {!phone && (
         <div role="tablist" aria-label={w.tabsLabel} className="a-tabs mb-4" onKeyDown={onTabKey}>

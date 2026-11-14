@@ -180,7 +180,7 @@ const SCREENS = [
   ["translations", "/admin/translations"],
   ["translations-filtered", "/admin/translations?status=done&visibility=all"],
   ["marketing-inbox", "/admin/marketing"],
-  ["marketing-composer", "/admin/marketing", click(".mk-row-main")],
+  ["marketing-composer", "/admin/marketing", click(".mk-row-main, [data-record-row]")],
   ["marketing-new", "/admin/marketing", click("button.a-btn-primary.mk-btn")],
   ["marketing-campaigns", "/admin/marketing?tab=campaigns"],
   ["marketing-campaign-composer-new", "/admin/marketing?tab=campaigns", click("button.a-btn-primary")],
