@@ -102,14 +102,14 @@ export const useHelpWords = defineWords(
       "contact-too-many": {
         title: "Too many requests",
         see: "“Nothing was sent” with a reason that ends in “HTTP 429”.",
-        why: "The site limits how many requests one connection can make to the contact form in a short time. Attempts that failed count too.",
+        why: "The contact form limits how many messages it takes in a short time, from one connection and from everyone together, so it can be busy even if you have only tried once.",
         todo: "Wait up to fifteen minutes and try again, or write to the address shown under the form.",
       },
       "contact-too-long": {
         title: "The message is too long",
         see: "“Nothing was sent” with a reason that ends in “HTTP 400”.",
-        why: "The server accepts a message of up to about 10,000 characters, name and address included, and refuses a longer one. The same number also appears when the server refuses the content for another reason.",
-        todo: "Shorten the message, split it in two, or write by email.",
+        why: "The form accepts a message of up to 9,000 characters. A longer one is not sent: a note under the message field says how many characters to remove, and the cursor moves there.",
+        todo: "Shorten the message by the number the note gives, split it in two, or write by email.",
       },
       "contact-offline": {
         title: "The site could not be reached",
@@ -298,14 +298,14 @@ export const useHelpWords = defineWords(
       "contact-too-many": {
         title: "יותר מדי בקשות",
         see: "״שום דבר לא נשלח״ עם סיבה שמסתיימת במספר 429.",
-        why: "האתר מגביל כמה בקשות חיבור אחד יכול לשלוח לטופס בזמן קצר. גם ניסיונות שנכשלו נספרים.",
+        why: "טופס יצירת הקשר מגביל כמה הודעות הוא מקבל בזמן קצר, מחיבור אחד וממכלול הגולשים יחד, ולכן הוא יכול להיות עמוס גם אם ניסיתם רק פעם אחת.",
         todo: "חכו עד רבע שעה ונסו שוב, או כתבו לכתובת שמופיעה מתחת לטופס.",
       },
       "contact-too-long": {
         title: "ההודעה ארוכה מדי",
         see: "״שום דבר לא נשלח״ עם סיבה שמסתיימת במספר 400.",
-        why: "השרת מקבל הודעה של עד כ־10,000 תווים, כולל השם והכתובת, ודוחה הודעה ארוכה מזה. המספר הזה מופיע גם כשהשרת דוחה את התוכן מסיבה אחרת.",
-        todo: "קצרו את ההודעה, פצלו אותה לשתיים, או כתבו באימייל.",
+        why: "הטופס מקבל הודעה של עד 9,000 תווים. הודעה ארוכה מזה לא נשלחת: הערה מתחת לשדה ההודעה אומרת כמה תווים להסיר, והסמן עובר לשם.",
+        todo: "קצרו את ההודעה במספר שההערה נותנת, פצלו אותה לשתיים, או כתבו באימייל.",
       },
       "contact-offline": {
         title: "אי אפשר להגיע לאתר",
