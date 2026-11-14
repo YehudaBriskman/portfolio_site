@@ -151,7 +151,7 @@ export const usePhoneAdminWords = defineWords(
       count: (n: number) => plural("he", n, { one: "אחת מחוברת", two: "שתיים מחוברות", other: "{n} מחוברות" }),
       loadFailed: "לא הצלחנו לטעון את האפליקציות המחוברות.",
       emptyTitle: "אין אפליקציות מחוברות",
-      emptyHint: "מוסיפים את שרת ה-MCP המרוחק ללקוח ומתחברים; הלקוח יופיע כאן.",
+      emptyHint: "מוסיפים את שרת ה־MCP המרוחק ללקוח ומתחברים; הלקוח יופיע כאן.",
       lastUsed: (when: string) => `שימוש אחרון ${when}`,
       never: "עוד לא בשימוש",
       openApp: (name: string) => `פתיחת ${name}`,
