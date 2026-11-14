@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import AdminShell from "@/components/admin/AdminShell";
+import ConnectionsPhone from "@/components/admin/connections/ConnectionsPhone";
 import { Empty, EmptyState, ErrorState, LoadingRows, PageHeader, RelTime, StatePill } from "@/components/admin/ui";
+import { usePhoneAdminWords } from "@/i18n/adminPhone";
+import { usePhone } from "@/hooks/usePhone";
 import { admin, type McpGrant } from "@/services/admin";
 
 /*
@@ -19,6 +22,8 @@ export default function AdminConnections() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [status, setStatus] = useState("");
+  const phone = usePhone();
+  const pw = usePhoneAdminWords().connections;
 
   useEffect(() => {
     admin
@@ -39,6 +44,12 @@ export default function AdminConnections() {
     } finally {
       setBusy(null);
     }
+  }
+
+  /* The phone's sheet asks first and shows a failure in itself, so it takes the bare call. */
+  async function revokeQuiet(g: McpGrant) {
+    const next = await admin.revokeMcpGrant(g.id);
+    setGrants((all) => (all ?? []).map((x) => (x.id === next.id ? next : x)));
   }
 
   const active = (grants ?? []).filter((g) => g.status === "active");
@@ -109,11 +120,11 @@ export default function AdminConnections() {
   );
 
   return (
-    <AdminShell title="Connected apps" section="connections" counts={{ connections: grants ? active.length : undefined }}>
+    <AdminShell title={phone ? pw.title : "Connected apps"} section="connections" counts={{ connections: grants ? active.length : undefined }}>
       <div className="a-wrap">
         <PageHeader
-          title="Connected apps"
-          description={
+          title={phone ? pw.title : "Connected apps"}
+          description={phone ? undefined : (
             <>
               MCP clients you signed in to this site&rsquo;s{" "}
               <Link to="/developers/mcp" className="a-link">
@@ -121,17 +132,19 @@ export default function AdminConnections() {
               </Link>{" "}
               with GitHub. Access tokens last an hour; a connection renews itself for up to 30 days of use.
             </>
-          }
+          )}
         />
 
         <p className="sr-only" role="status">
-          {grants === null ? "Loading connected apps" : status || `${active.length} connected`}
+          {phone ? "" : grants === null ? "Loading connected apps" : status || `${active.length} connected`}
         </p>
 
         {error ? (
           <ErrorState message={error} />
         ) : grants === null ? (
-          <LoadingRows rows={2} />
+          <LoadingRows rows={2} label={phone ? pw.loading : undefined} />
+        ) : phone && grants.length > 0 ? (
+          <ConnectionsPhone grants={grants} onRevoke={revokeQuiet} />
         ) : active.length === 0 ? (
           <EmptyState title="Nothing connected">
             Run <code className="font-mono text-sm">claude mcp add --transport http yehuda https://yehudabriskman.com/mcp</code>{" "}
@@ -141,7 +154,7 @@ export default function AdminConnections() {
           table(active, false)
         )}
 
-        {past.length > 0 && (
+        {!phone && past.length > 0 && (
           <section aria-labelledby="ended-apps" className="mt-8">
             <h2 id="ended-apps" className="a-h2 mb-3">
               Ended

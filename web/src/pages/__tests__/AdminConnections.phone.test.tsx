@@ -76,7 +76,10 @@ describe("Connected apps on a phone: the list", () => {
     expect(named("Claude Code").querySelector("[data-kind]")).toBeNull();
     expect(within(named("Old client")).getByRole("img", { name: "Revoked" })).toBeTruthy();
     expect(within(named("Lapsed client")).getByRole("img", { name: "Expired" })).toBeTruthy();
-    expect(within(named("Lapsed client")).getByText(/Never used/)).toBeTruthy();
+    /* An ended grant's one fact is when it ended, not when it was last used. */
+    expect(factsOf(named("Lapsed client"))).toHaveLength(1);
+    expect(factsOf(named("Lapsed client"))[0]).not.toMatch(/Last used/);
+    expect(factsOf(named("Claude Code"))[0]).toMatch(/Last used/);
   });
 
   it("separates what is connected from what ended", async () => {
