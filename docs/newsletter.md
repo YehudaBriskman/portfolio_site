@@ -205,12 +205,13 @@ Stored in `settings:announce` under `sender` and edited in Settings, Advanced,
 | `identityPostal` | empty | optional postal or P.O. box line; never required |
 | `identityPhone`, `identityWebsite`, `identityLinkedin` | empty | optional contact lines printed after the email, only when filled in; checked on PUT only (https address without login or port, LinkedIn on linkedin.com, phone digits and `+ ( ) . -`); the order and filtering live in `contactLines()` (`announce/schemas.ts`), shared by the footer and the Settings preview |
 | `testRecipients` | none | up to 5; test sends go only to these, with `[Test] ` in the subject |
-| `throttlePerHour` | 60 | 1 to 3600 |
-| `dailyCap` | 200 | 1 to 10000 |
+| `throttlePerHour` | 30 | 1 to 3600. Default changed from 60 on 2026-11-14 and applies only where the owner never saved a value |
+| `dailyCap` | 100 | 1 to 10000. Same: was 200 |
+| `warmup` | on | for the first 14 days after the first newsletter send the two caps above are lowered to 20, 30, 50, 75 then 100 a day and 10, 10, 15, 20, 30 an hour (`campaigns/warmup.ts`); never raises a cap, never edits saved settings; the day-1 time is `firstSendAt` on the `sender:state` doc |
 | `maxPerContact30d` | 4 | most mails one person gets in any rolling 30 days; `0` = off; whole number 0 to 31, checked on PUT only (reads stay lenient, like the subscriber texts); see "The monthly limit per person" |
 | `dailyLimit`, `monthlyLimit` | 90, 2700 | the **provider's** mail limits (limits, never credentials); whole numbers, monthly not below daily; PUT only. See "The mail budget" |
 | `safety`, `reserveShare` | 0.9, 0.2 | planning factor 0.5 to 1; share of the day kept for confirmations 0 to 0.5 (shown as percent in the screen); PUT only |
-| `quietHours` | none | `from`, `to`, `tz`; may wrap midnight |
+| `quietHours` | Asia/Jerusalem 21:00 to 07:00 for a settings document never saved; none otherwise (a saved "none" is kept) | `from`, `to`, `tz`; may wrap midnight |
 | `autoDraftCampaign` | off | a post or release event makes a **draft** for `subscribers`; never sends by itself (`campaigns/autodraft.ts`). **Patch releases (x.y.Z, Z above 0) are never drafted**; minor, major, non-semver tags and posts are |
 | `pendingTtlDays` | 7 | 2 to 30 (not 1, so "{days} ימים" never reads "1 ימים") |
 | `labelMode` | `off` | the owner decided on 2026-11-13 that no advertisement label is needed (their own checked call, not legal advice). Selectable in Marketing > Settings: `hebrew` (Hebrew recipients), `all` (English mail gets `פרסומת | Ad` in the subject and `פרסומת | Advertisement` as its first line, DRAFT wording) or `off`. An older `commercialLabel: false` reads as `off` |
@@ -264,8 +265,11 @@ All in `campaigns/sender.ts`.
   recipient at a time.
 - Inside quiet hours the whole tick does nothing: nothing is claimed and nothing
   is sent. `from` is inclusive, `to` exclusive.
-- With the defaults (60 an hour, 200 a day) a 200-person list takes about
-  three and a half hours, and the day's cap is then used up.
+- A batch is a share of the hour (`ceil(throttlePerHour / 120)`, 1 to 25), so mail trickles out instead of leaving in bursts.
+- With the defaults and warm-up on, day 1 sends at most 20 (10 an hour); a 200-person list takes about a week to clear the ramp.
+- A transient failure is retried after 15 minutes, 1 hour and 4 hours (4 tries). A relay that says 421, 4.7.28, rate limit or too many holds every campaign for 10 minutes (in memory; a restart clears it).
+- Auto-pause: 5 failures in a row, 3 hard bounces (or 3 percent from 20 attempts), 10 percent failures from 20 attempts, or a spam complaint (the first one during warm-up or the campaign's first 500 sends, later 2 or 0.3 percent). The owner resumes.
+- SMTP needs STARTTLS (`requireTLS`) except port 465 and a loopback sink; connection and greeting wait 15 s, socket 60 s.
 
 ### The monthly limit per person
 

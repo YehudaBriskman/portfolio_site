@@ -8,6 +8,8 @@ import { emitOwnerEvent } from "../notify/hooks.js";
 import { budgetNow, checkBudgetThresholds } from "./budgetStore.js";
 import { ledgerGuard } from "./guard.js";
 import { campaignsBlocked } from "./killSwitch.js";
+import { pauseReason } from "./pause.js";
+import { effectiveCaps } from "./warmup.js";
 import { emailService, type BulkMessage } from "../services/email.service.js";
 import { resolveSender } from "./config.js";
 import { renderCampaignMail } from "./render.js";
@@ -32,28 +34,22 @@ const BATCH_MAX = 25;
 const TICK_MS = 30_000;
 /* An "attempting" doc this old belongs to a crashed run: its mail is retried. */
 const STALE_ATTEMPT_MS = 5 * 60_000;
-/* A transient failure (relay busy, timeout) is tried again after this long, up to MAX_TRIES attempts in all. */
-const RETRY_MS = 15 * 60_000;
-const MAX_TRIES = 3;
+/* A transient failure (relay busy, timeout) is tried again after a growing wait, up to MAX_TRIES attempts in all: 15 min, 1 h, 4 h. */
+export const RETRY_MS = [15 * 60_000, 60 * 60_000, 4 * 3_600_000];
+export const retryDelay = (tries: number) => RETRY_MS[Math.min(Math.max(tries, 1), RETRY_MS.length) - 1]!;
+const MAX_TRIES = 4;
+/* A relay that says "slow down" (4.7.28, rate limit, too many) holds every campaign this long (Google: stop at least 10 minutes). */
+export const HOLD_MS = 10 * 60_000;
+export const isSlowDown = (msg: string | undefined, code?: number) => code === 421 || /4\.7\.28|rate.?limit|too many|throttl|slow down/i.test(msg ?? "");
+let holdUntil = 0;
+export const resetHold = () => { holdUntil = 0; };
+/** Paced drip: a batch is a share of the hour, not the whole hour in one burst (Google: consistent rate, avoid bursts). */
+export const batchSize = (throttlePerHour: number) => Math.max(1, Math.min(BATCH_MAX, Math.ceil(throttlePerHour / 120)));
 /** The window of the per-person monthly limit. */
 export const CAP_WINDOW_MS = 30 * 24 * 3_600_000;
 /* Consecutive soft failures, across campaigns, before an address is suppressed. */
 const SOFT_LIMIT = 3;
-/* Auto-pause: the owner fixes the cause, then resumes. Rates are only judged once there are enough attempts to mean something. */
-const PAUSE_STREAK = 5;
-const MIN_ATTEMPTS = 20;
-const PAUSE_FAIL_RATE = 0.1;
-const PAUSE_HARD_RATE = 0.05;
-
-/** Why the campaign should stop now, judged on what happened since it started or was last resumed. */
-export function pauseReason(h: Health): PauseReason | null {
-  if (h.streak >= PAUSE_STREAK) return "consecutive";
-  const attempts = h.sent + h.failed;
-  if (attempts < MIN_ATTEMPTS) return null;
-  if (h.hard / attempts >= PAUSE_HARD_RATE) return "hard-bounce-rate";
-  if (h.failed / attempts >= PAUSE_FAIL_RATE) return "failure-rate";
-  return null;
-}
+export { pauseReason };
 
 type Clock = () => number;
 export type Deliver = (msgs: BulkMessage[], opts: { from: string; replyTo?: string }) => ReturnType<typeof emailService.sendBulk>;
@@ -89,14 +85,18 @@ function rolled(prev: RateState | null, s: SenderSettings, ms: number): RateStat
     _id: RATE_ID, ...(prev?._rev ? { _rev: prev._rev } : {}), type: "sender-state",
     hour: p.hour, hourCount: sameHour ? prev!.hourCount : 0,
     day: p.day, dayCount: sameDay ? prev!.dayCount : 0,
+    ...(prev?.firstSendAt ? { firstSendAt: prev.firstSendAt } : {}),
   };
 }
 
 /** Reserves up to `want` sends from the hour and day budget. Reserved BEFORE sending, so a crash never overspends. 0 when none is left or another tick won the race. */
 async function reserve(s: SenderSettings, want: number, ms: number): Promise<number> {
   const st = rolled(await getRate(), s, ms);
-  const n = Math.min(want, s.throttlePerHour - st.hourCount, s.dailyCap - st.dayCount);
+  /* Warm-up only lowers the configured caps; it never raises one and never touches the saved settings. */
+  const caps = effectiveCaps(s, st.firstSendAt, ms);
+  const n = Math.min(want, caps.throttlePerHour - st.hourCount, caps.dailyCap - st.dayCount);
   if (n <= 0) return 0;
+  if (!st.firstSendAt) st.firstSendAt = new Date(ms).toISOString();
   st.hourCount += n;
   st.dayCount += n;
   try {
@@ -253,7 +253,7 @@ async function runCampaign(c: Campaign, settings: SenderSettings, deps: Required
     logger.debug({ campaign: id, waiting: budget.waiting }, "campaign waits for the mail budget");
     return;
   }
-  const granted = await reserve(settings, Math.min(BATCH_MAX, todo.length, budget.capacity), ms);
+  const granted = await reserve(settings, Math.min(batchSize(settings.throttlePerHour), todo.length, budget.capacity), ms);
   if (granted === 0) return;
   const from = resolveSender(settings);
   let used = 0;
@@ -317,7 +317,7 @@ async function runCampaign(c: Campaign, settings: SenderSettings, deps: Required
     const tries = (stale?.tries ?? 0) + 1;
     h.streak++;
     if (kind === "transient" && tries < MAX_TRIES) {
-      await finishSend({ ...base, status: "deferred", at, tries, retryAt: new Date(deps.now() + RETRY_MS).toISOString(), ...note });
+      await finishSend({ ...base, status: "deferred", at, tries, retryAt: new Date(deps.now() + retryDelay(tries)).toISOString(), ...note });
     } else {
       await finishSend({ ...base, status: "failed", at, ...(kind === "transient" ? { tries } : {}), ...note });
       failed++;
@@ -329,6 +329,11 @@ async function runCampaign(c: Campaign, settings: SenderSettings, deps: Required
     }
     pause = kind === "auth" ? "auth" : pauseReason(h);
     if (pause) break;
+    /* The relay asked us to slow down: stop this batch and hold all sending for HOLD_MS. */
+    if (kind === "transient" && isSlowDown(result?.error, code)) {
+      holdUntil = deps.now() + HOLD_MS;
+      break;
+    }
   }
 
   await refund(settings, granted - used, ms);
@@ -337,7 +342,8 @@ async function runCampaign(c: Campaign, settings: SenderSettings, deps: Required
   await mutateCampaign(id, (x) => {
     x.counters.queued = Math.max(x.counters.queued, queued);
     Object.assign(x.counters, tally(all.values()));
-    x.health = { ...h };
+    /* A complaint may have been recorded by the webhook meanwhile; keep it. */
+    x.health = { ...h, ...(x.health?.complaints ? { complaints: x.health.complaints } : {}) };
     if (stop && x.status === "sending") {
       x.status = "paused";
       x.pausedReason = stop;
@@ -370,6 +376,7 @@ export async function runSenderTick(deps: SenderDeps = {}): Promise<void> {
     const settings = loaded.settings.sender;
     const ms = d.now();
     if (inQuietHours(settings.quietHours, ms)) return;
+    if (ms < holdUntil) return;
     const { docs } = await couch.find<Campaign>({ selector: { _id: { $gt: "campaign:", $lt: "campaign:\uffff" }, status: { $in: ["scheduled", "sending"] } }, limit: 200 });
     /* No readable ledger, or contacts it protects that cannot be put right: nothing is claimed or continued. */
     if (docs.length > 0 && !(await ledgerGuard(ms)).ok) return;
