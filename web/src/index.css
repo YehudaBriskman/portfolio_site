@@ -3172,6 +3172,7 @@
   .a-icon-btn svg { width: 18px; height: 18px; }
   /* A directional icon (back, onward arrow) points the way the page reads: add to the <svg>. Not for clocks, checks, play, brand marks. */
   .a-mirror:dir(rtl) { transform: scaleX(-1); }
+  [data-mirror-rtl]:dir(rtl) { transform: scaleX(-1); }
   .a-link { color: rgb(var(--signal)); text-decoration: underline; text-underline-offset: 3px; }
   @media (pointer: coarse) {
     .a-btn, .a-nav-item, .a-tab, .a-brand { min-height: 2.75rem; }

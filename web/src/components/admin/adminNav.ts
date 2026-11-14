@@ -1,4 +1,5 @@
 import {
+  Blocks,
   BookOpen,
   FileText,
   FolderKanban,
@@ -6,17 +7,17 @@ import {
   Inbox,
   Languages,
   LayoutDashboard,
+  LayoutGrid,
   Library,
-  Megaphone,
-  Plug,
+  Mail,
   Send,
   Settings,
-  Shapes,
   SlidersHorizontal,
   Type,
   Users,
   type LucideIcon,
 } from "lucide-react";
+import { iconOf } from "@/components/ui/Icon";
 import { leafPaths, type NavNode } from "@/components/ui/SidebarGroup";
 
 /*
@@ -65,21 +66,41 @@ export type AdminNavId =
 
 type Leaf = { id: AdminNavId; to: string; icon?: LucideIcon };
 
+/* Every nav glyph is drawn through ui/Icon (size 20, stroke 1.75). */
+const I = {
+  overview: iconOf(LayoutDashboard),
+  marketing: iconOf(Mail),
+  inbox: iconOf(Inbox),
+  audience: iconOf(Users),
+  campaigns: iconOf(Send),
+  library: iconOf(Library),
+  tune: iconOf(SlidersHorizontal),
+  content: iconOf(FileText),
+  areas: iconOf(LayoutGrid),
+  projects: iconOf(FolderKanban),
+  story: iconOf(BookOpen),
+  copy: iconOf(Type),
+  media: iconOf(Image),
+  settings: iconOf(Settings),
+  languages: iconOf(Languages),
+  apps: iconOf(Blocks),
+};
+
 export const NAV_SHAPE: Array<Leaf & { children?: Array<Leaf & { children?: Leaf[] }> }> = [
-  { id: "overview", to: "/admin", icon: LayoutDashboard },
+  { id: "overview", to: "/admin", icon: I.overview },
   {
     id: "marketing",
     to: "/admin/marketing",
-    icon: Megaphone,
+    icon: I.marketing,
     children: [
-      { id: "marketing-inbox", to: "/admin/marketing", icon: Inbox },
-      { id: "marketing-audience", to: "/admin/marketing?tab=audience", icon: Users },
-      { id: "marketing-campaigns", to: "/admin/marketing?tab=campaigns", icon: Send },
-      { id: "marketing-library", to: "/admin/marketing?tab=library", icon: Library },
+      { id: "marketing-inbox", to: "/admin/marketing", icon: I.inbox },
+      { id: "marketing-audience", to: "/admin/marketing?tab=audience", icon: I.audience },
+      { id: "marketing-campaigns", to: "/admin/marketing?tab=campaigns", icon: I.campaigns },
+      { id: "marketing-library", to: "/admin/marketing?tab=library", icon: I.library },
       {
         id: "marketing-settings",
         to: "/admin/marketing?tab=settings",
-        icon: SlidersHorizontal,
+        icon: I.tune,
         children: [{ id: "marketing-sender", to: "/admin/marketing?tab=settings&section=sender" }],
       },
     ],
@@ -87,26 +108,26 @@ export const NAV_SHAPE: Array<Leaf & { children?: Array<Leaf & { children?: Leaf
   {
     id: "g-content",
     to: "",
-    icon: FileText,
+    icon: I.content,
     children: [
-      { id: "posts", to: "/admin/posts", icon: FileText },
-      { id: "areas", to: "/admin/areas", icon: Shapes },
-      { id: "projects", to: "/admin/projects", icon: FolderKanban },
-      { id: "story", to: "/admin/story", icon: BookOpen },
-      { id: "site-copy", to: "/admin/site-copy", icon: Type },
+      { id: "posts", to: "/admin/posts", icon: I.content },
+      { id: "areas", to: "/admin/areas", icon: I.areas },
+      { id: "projects", to: "/admin/projects", icon: I.projects },
+      { id: "story", to: "/admin/story", icon: I.story },
+      { id: "site-copy", to: "/admin/site-copy", icon: I.copy },
     ],
   },
-  { id: "g-media", to: "", icon: Image, children: [{ id: "media", to: "/admin/media", icon: Image }] },
+  { id: "g-media", to: "", icon: I.media, children: [{ id: "media", to: "/admin/media", icon: I.media }] },
   {
     id: "g-site",
     to: "",
-    icon: Settings,
+    icon: I.settings,
     children: [
-      { id: "translations", to: "/admin/translations", icon: Languages },
-      { id: "settings", to: "/admin/settings", icon: Settings },
+      { id: "translations", to: "/admin/translations", icon: I.languages },
+      { id: "settings", to: "/admin/settings", icon: I.settings },
     ],
   },
-  { id: "g-system", to: "", icon: Plug, children: [{ id: "connections", to: "/admin/connections", icon: Plug }] },
+  { id: "g-system", to: "", icon: I.apps, children: [{ id: "connections", to: "/admin/connections", icon: I.apps }] },
 ];
 
 export type NavText = {
