@@ -119,6 +119,7 @@ export function answer(path, method, search) {
   if (p === "/content") return { body: { ok: true, ...SEED } };
   if (p === "/settings") return { body: { ok: true, settings: SITE_DEFAULTS } };
   if (p === "/admin/announce") return { body: { ok: true, unread: 3, items: INBOX } };
+  if (p === "/admin/signature") return { body: { ok: true, show: { email: false, posts: false, cards: false }, slots: { en: null, he: null } } };
   if (p === "/admin/announce/settings") return { body: { ok: true, exists: true, _rev: "1-a", updatedAt: ago(3), settings: ANNOUNCE_SETTINGS } };
   if (/^\/admin\/announce\/[^/]+\/preview$/.test(p)) return { body: { ok: true, title: "Rebuilding the admin", description: "A description that is long enough to show the card.", image: "/api/images/media/x/preview.svg", imageWidth: 1200, imageHeight: 630, siteName: "Yehuda", url: "https://example.com/post-a", lang: "en", issues: [{ code: "description-long", field: "description", severity: "warn", limit: 160, length: 190 }] } };
   if (/^\/admin\/announce\/[^/]+$/.test(p)) return { body: { ok: true, siteOrigin: "https://example.com", event: { ...INBOX[0], summary: "A summary of the note.", tags: ["design"], version: null, custom: null }, kit: KIT } };

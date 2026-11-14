@@ -24,8 +24,8 @@ export const useSignatureWords = defineWords(
     loadFailed: "The signature settings could not be loaded.",
     conflict: "This changed elsewhere. Reload and try again.",
     retry: "Try again",
-    drawTitle: (lang: string) => `Draw the ${lang} signature`,
-    uploadTitle: (lang: string) => `Upload the ${lang} signature`,
+    drawTitle: (lang: string) => `Draw: ${lang}`,
+    uploadTitle: (lang: string) => `Upload: ${lang}`,
     /* Draw */
     padLabel: "Signature drawing area",
     padHelp: "Draw with a finger, a pen or the mouse.",
