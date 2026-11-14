@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { FormEvent, MouseEvent } from "react";
 import ObjectLabel from "@/components/gallery/ObjectLabel";
 import { MAX_FIELDS, type LabelField } from "@/components/gallery/objectLabel";
@@ -9,10 +9,7 @@ import { useContent } from "@/content/store";
 import { ContactError, ContactSchema, sendContactMessage } from "@/services/contact";
 import { useContactWords, useHomeWords } from "@/i18n/pages";
 import Arrow from "@/i18n/Arrow";
-import { useLang } from "@/components/dashboard/i18n";
-
-/* Loaded with the dialog, not with the page: sonner is not needed until a send fails. */
-const ContactToaster = lazy(() => import("@/components/ContactFailure"));
+import { toast } from "@/lib/toast";
 
 /** The three things a message is made of. A closed union, so a field's error,
  *  its id and its name can never be a string the compiler has not seen. */
@@ -133,7 +130,6 @@ export default function Contact() {
   const { contact, links } = useContent().site;
   const plateFields = plateFieldsOf(links, contact);
   const w = useContactWords();
-  const lang = useLang();
   const home = useHomeWords();
   const [status, setStatus] = useState<Status>({ kind: "idle" });
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
@@ -232,12 +228,12 @@ export default function Contact() {
    * its notes and its alert, so that reopening the dialog shows the reader
    * exactly what they were looking at.
    */
-  /* A failed send raises a toast (see ContactFailure); a new send or closing the dialog takes it down. */
-  const failureShown = useRef(false);
+  /* A failed send raises a toast (lib/toast: it mounts inside the open dialog, so it is reachable);
+     a new send or closing the dialog takes it down. */
+  const failureToast = useRef<string | null>(null);
   const dismissFailure = () => {
-    if (!failureShown.current) return;
-    failureShown.current = false;
-    void import("@/components/ContactFailure").then((m) => m.dismissContactFailure());
+    if (failureToast.current) toast.dismiss(failureToast.current);
+    failureToast.current = null;
   };
 
   useEffect(() => {
@@ -366,14 +362,9 @@ export default function Contact() {
       const kind = err instanceof ContactError ? err.kind : "server";
       const f = w.failed[kind];
       setStatus({ kind: "idle" });
-      failureShown.current = true;
-      void import("@/components/ContactFailure").then((m) =>
-        m.showContactFailure(
-          { ...f, detailsLabel: w.failedDetails, closeLabel: w.close },
-          contact.email,
-          () => dialogRef.current?.querySelector<HTMLElement>("button[type=submit]")?.focus(),
-        ),
-      );
+      /* The address is isolated left-to-right so it stays one piece inside a Hebrew line. */
+      /* No fixed id: the public site mounts the toast host only once an id-less toast has been raised. */
+      failureToast.current = toast.error(f.title, { description: f.short, details: f.details.replace("{email}", `\u2066${contact.email}\u2069`) });
     }
   }
 
@@ -827,13 +818,6 @@ export default function Contact() {
               </form>
             </div>
           </div>
-        )}
-        {/* Inside the dialog, so the notice is reachable and in the top layer. Mounted once the dialog has been
-            opened, which is before any send, because a toast raised before its toaster exists is lost. */}
-        {everOpened && (
-          <Suspense fallback={null}>
-            <ContactToaster dir={lang === "he" ? "rtl" : "ltr"} />
-          </Suspense>
         )}
       </dialog>
 

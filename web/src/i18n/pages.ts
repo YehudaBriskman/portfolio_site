@@ -112,7 +112,6 @@ export const useContactWords = defineWords(
         details: "Your browser could not reach the server, so nothing left your device. Check your connection and press Send again. Your message is still in the fields. You can also write to {email}.",
       },
     },
-    failedDetails: "Details",
     errors: {
       name: "Add your name",
       emailEmpty: "Add your email address, so I can reply",
@@ -159,7 +158,6 @@ export const useContactWords = defineWords(
         details: "הדפדפן לא הצליח להגיע לשרת, ולכן שום דבר לא יצא מהמכשיר. בדקו את החיבור ולחצו שוב על השליחה. ההודעה עדיין בשדות. אפשר גם לכתוב אל {email}.",
       },
     },
-    failedDetails: "פרטים",
     errors: {
       name: "יש להזין שם",
       emailEmpty: "יש להזין כתובת אימייל, כדי שאוכל לענות",
