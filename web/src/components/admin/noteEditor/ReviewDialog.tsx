@@ -60,6 +60,15 @@ export default function ReviewDialog({
 }) {
   const [note, setNote] = useState("");
   const [scope, setScope] = useState<PublishScope>("both");
+  /* The dialog stays mounted between publishes; the next review starts clean. */
+  const [wasOpen, setWasOpen] = useState(open);
+  if (wasOpen !== open) {
+    setWasOpen(open);
+    if (!open) {
+      setNote("");
+      setScope("both");
+    }
+  }
   const noteId = useId();
   const helpId = useId();
   const phone = usePhone();

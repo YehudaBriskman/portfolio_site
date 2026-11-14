@@ -238,6 +238,11 @@ export default function AdminEditor() {
   const routeSlug = useRef(slug);
   routeSlug.current = slug;
   const flushOnLeave = useRef<(() => void) | null>(null);
+  /* False once the editor has left the screen: a save that ends later must not navigate back to it. */
+  const alive = useRef(true);
+  const formRef = useRef<HTMLFormElement>(null);
+  /* A save was refused for named fields: show them (open their section, say so, move focus on an explicit save). */
+  const [reveal, setReveal] = useState<{ n: number; focus: boolean } | null>(null);
 
   const dirty = version !== savedVersion;
   /* Each field's Hebrew status as stored (#302), for the pills and the stale notices. */
@@ -269,16 +274,28 @@ export default function AdminEditor() {
 
   useEffect(() => {
     if (isNew || loadedSlug.current === slug) return;
+    /* Moving to another post inside the debounce: the edit belongs to the post being left. */
+    flushOnLeave.current?.();
+    let live = true;
     admin
       .get(slug!)
       .then((p) => {
+        if (!live) return;
         adopt(p);
+        /* The form now holds this post as stored; nothing of the last one is pending or failed. */
+        setSavedVersion(versionRef.current);
+        setSave({ kind: "idle" });
+        setErrors({});
         setLoading(false);
       })
       .catch((e: unknown) => {
+        if (!live) return;
         setLoading(false);
         setSave({ kind: "failed", message: e instanceof Error ? e.message : "?" });
       });
+    return () => {
+      live = false;
+    };
   }, [slug, isNew, adopt]);
 
   const edit = useCallback(<K extends keyof Form>(k: K, v: Form[K]) => {
@@ -291,21 +308,29 @@ export default function AdminEditor() {
     setSave((s) => (s.kind === "saving" || s.kind === "conflict" ? s : { kind: "dirty" }));
   }, [slugTouched, stored]);
 
+  /* An edit by function of the field's text now (an upload that ends after typing went on). */
+  const rewrite = useCallback((k: "body" | "heBody", fn: (cur: string) => string) => {
+    setF((prev) => ({ ...prev, [k]: fn(prev[k]) }));
+    setVersion((n) => n + 1);
+    setSave((s) => (s.kind === "saving" || s.kind === "conflict" ? s : { kind: "dirty" }));
+  }, []);
+
   /* ------------------------------------------------------------ saving */
 
   const versionRef = useRef(version);
   versionRef.current = version;
 
-  const saveDraft = useCallback(async () => {
+  const saveDraft = useCallback(async (explicit = true) => {
     if (!f.slug || !f.title.trim()) return;
     const at = versionRef.current;
     const startedOn = loadedSlug.current;
+    const startedRoute = routeSlug.current;
+    /* The editor left or moved to another post while the request was in flight: its answer is not for what is on screen. */
+    const moved = () => !alive.current || routeSlug.current !== startedRoute || (startedOn !== null && loadedSlug.current !== startedOn);
     setSave({ kind: "saving" });
     try {
       const saved = await admin.saveDraft(f.slug, { ...content, _rev: post?._rev });
-      // The editor moved to another post while this was in flight: applying it
-      // would overwrite that post's form and navigate back to this one.
-      if (startedOn !== null && (loadedSlug.current !== startedOn || routeSlug.current !== startedOn)) return;
+      if (moved()) return;
       setPost(saved);
       setErrors({});
       setSavedVersion(at);
@@ -316,7 +341,11 @@ export default function AdminEditor() {
         nav(`/admin/posts/${saved.slug}`, { replace: true });
       }
     } catch (e) {
-      if (e instanceof AdminValidationError) setErrors(e.fieldErrors);
+      if (moved()) return;
+      if (e instanceof AdminValidationError) {
+        setErrors(e.fieldErrors);
+        setReveal((r) => ({ n: (r?.n ?? 0) + 1, focus: explicit }));
+      }
       const message = e instanceof Error ? e.message : "?";
       setSave(/changed elsewhere/i.test(message) ? { kind: "conflict" } : { kind: "failed", message: e instanceof AdminValidationError ? describe(e.fieldErrors) : message });
     }
@@ -330,15 +359,32 @@ export default function AdminEditor() {
   /* Autosave: a moment after typing stops, only once the note exists. */
   useEffect(() => {
     if (!dirty || !stored || save.kind === "saving" || save.kind === "conflict" || save.kind === "failed") return;
-    const t = window.setTimeout(() => void saveDraft(), 1500);
+    const t = window.setTimeout(() => void saveDraft(false), 1500);
     return () => window.clearTimeout(t);
   }, [dirty, stored, save.kind, version, saveDraft]);
 
   /* Back/Forward and in-app route changes unmount the editor inside the debounce
      window, which would drop the edit; send it on the way out. */
   flushOnLeave.current =
-    dirty && stored && (save.kind === "idle" || save.kind === "dirty" || save.kind === "saved") ? () => void saveDraft() : null;
-  useEffect(() => () => flushOnLeave.current?.(), []);
+    dirty && (stored || Boolean(f.slug && f.title.trim())) && (save.kind === "idle" || save.kind === "dirty" || save.kind === "saved") ? () => void saveDraft(false) : null;
+  useEffect(() => {
+    alive.current = true;
+    return () => {
+      flushOnLeave.current?.();
+      alive.current = false;
+    };
+  }, []);
+
+  /* Show what the server refused: open the section that holds it, then (for a save
+     the owner asked for, not an autosave they did not notice) put focus on it. */
+  useEffect(() => {
+    if (!reveal) return;
+    const bad = [...(formRef.current?.querySelectorAll<HTMLElement>('[aria-invalid="true"]') ?? [])];
+    for (const el of bad) {
+      for (let d = el.closest("details"); d; d = d.parentElement?.closest("details") ?? null) d.open = true;
+    }
+    if (reveal.focus) bad[0]?.focus();
+  }, [reveal]);
 
   /* Leaving with an edit that has not reached the server asks first: the tab
      closing, and a link inside the app (BrowserRouter has no blocker). */
@@ -498,6 +544,7 @@ export default function AdminEditor() {
         <p className="mono mt-4 text-sm text-clay">{w.loading}</p>
       ) : (
         <form
+          ref={formRef}
           onSubmit={(e) => {
             e.preventDefault();
             if (canSave) void saveDraft();
@@ -538,6 +585,10 @@ export default function AdminEditor() {
           </p>
           {/* The bar shows this too, but only a few words of it on a phone. */}
           {save.kind === "failed" && <p className={styles.status} data-bad="true">{w.saveFailed(save.message)}</p>}
+          {/* A refused field may sit in a section that was closed: say so, since focus alone is silent for an autosave. */}
+          {reveal && save.kind === "failed" && Object.keys(errors).length > 0 && (
+            <p role="alert" className="sr-only">{w.saveFailed(save.message)}</p>
+          )}
           {notice && (
             <p className={styles.status} data-bad={notice.bad || undefined} role="status">{notice.text}</p>
           )}
@@ -645,6 +696,7 @@ export default function AdminEditor() {
                 id={ids.body}
                 value={f.body}
                 onChange={(v) => edit("body", v)}
+                onRewrite={(fn) => rewrite("body", fn)}
                 lang="en"
                 label={`${w.body}, ${w.bodyEnglish}`}
                 targets={targets}
@@ -658,6 +710,7 @@ export default function AdminEditor() {
                 id={`${ids.body}-he`}
                 value={f.heBody}
                 onChange={(v) => edit("heBody", v)}
+                onRewrite={(fn) => rewrite("heBody", fn)}
                 lang="he"
                 label={`${w.body}, ${w.bodyHebrew}`}
                 targets={targets}
@@ -674,6 +727,7 @@ export default function AdminEditor() {
               id={ids.body}
               value={bodyValue}
               onChange={setBody}
+              onRewrite={(fn) => rewrite(bodyLang === "he" ? "heBody" : "body", fn)}
               lang={previewLang}
               targets={targets}
               words={w}
