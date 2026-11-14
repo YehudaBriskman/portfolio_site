@@ -32,7 +32,7 @@ export default function BudgetMeter({ refresh = 0, phone = false }: { refresh?: 
         <Gauge value={used} max={Math.max(usable, 1)} size={56} label={`${label}: ${w.of(nf.format(used), nf.format(usable))}`} />
         <div className="min-w-0">
           <p className="a-label !mt-0">{label}</p>
-          <p className="text-sm font-bold tabular-nums" dir="ltr">{w.of(nf.format(used), nf.format(usable))}</p>
+          <p className="text-sm font-bold tabular-nums">{w.of(nf.format(used), nf.format(usable))}</p>
         </div>
       </div>
     );
