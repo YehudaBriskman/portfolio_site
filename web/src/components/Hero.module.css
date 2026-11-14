@@ -471,6 +471,11 @@
  */
 
 .composition .plate h1 {
+  /* The hero name keeps Audiowide at every width (#795); ObjectLabel's plate
+     name moves to the UI family on a phone, and this rule outranks it. */
+  font-family: var(--font-display);
+  font-weight: var(--weight-display);
+  text-transform: uppercase;
   font-size: min(8vw, 14vh, 5.75rem);
 }
 

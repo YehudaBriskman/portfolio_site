@@ -3,8 +3,8 @@
 Admin and phone titles, project / work / dashboard headings and the gallery,
 notes, story, stack, signup and share modules are set in **Rubik** at weight 600
 (`--font-ui`, `--weight-ui`, `--track-ui`), Latin and Hebrew in one family.
-Audiowide stays only on `.display` (the wordmark and hero name) and the plate
-name. Jim Nightshade (the connecting script) is retired. Atkinson body text is
+On a phone (<640px) `.display` headings and the plate name move to Rubik too.
+Audiowide stays on the hero name at every width, and on `.display` and other plates from 640px up. Jim Nightshade (the connecting script) is retired. Atkinson body text is
 unchanged.
 
 ## Files

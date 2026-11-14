@@ -1341,6 +1341,19 @@
      ramp note in the token block. */
   .display-md { letter-spacing: var(--track-head); }
   .display-sm { letter-spacing: var(--track-sub); }
+  /* A phone sets display headings in the UI family (#795); the hero name and
+     the wordmark are not `.display` and keep Audiowide at every width. */
+  @media (max-width: 639px) {
+    .display,
+    .display-md,
+    .display-sm {
+      font-family: var(--font-ui);
+      font-weight: var(--weight-ui);
+      letter-spacing: var(--track-ui);
+      line-height: 1.15;
+      text-transform: none;
+    }
+  }
   /*
    * The heading step below the section register, and it is not display type.
    *

@@ -88,9 +88,9 @@ describe("@font-face", () => {
   });
 
   it("the Latin file is the only preload", () => {
-    const html = read("index.html").replace(/<!--[\s\S]*?-->/g, "");
-    expect(html).toMatch(/rel="preload" href="\/fonts\/rubik-ui-400-600-latin\.woff2"/);
-    expect(html).not.toMatch(/rubik-ui-400-600-hebrew/);
+    const links = [...read("index.html").matchAll(/<link\b[^>]*rel="preload"[^>]*>/g)].map((m) => m[0]);
+    expect(links.some((l) => /rubik-ui-400-600-latin\.woff2/.test(l))).toBe(true);
+    expect(links.some((l) => /rubik-ui-400-600-hebrew/.test(l))).toBe(false);
   });
 
   it("the Latin file stays small", () => {
@@ -132,5 +132,12 @@ describe("Audiowide is confined", () => {
       for (const m of strip(read(f)).matchAll(/([^{};]+)\{([^{}]*font-family:\s*var\(--font-display\)[^{}]*)\}/g)) users.push(`${f} ${m[1].trim()}`);
     }
     expect(users.sort()).toEqual(["src/components/gallery/ObjectLabel.module.css .plate .name", "src/index.css .display"]);
+  });
+
+  it("on a phone `.display` and the plate name use the UI family; the hero h1 keeps Audiowide", () => {
+    const phone = /@media \(max-width: 639px\)\s*\{[^{}]*\{[^}]*font-family:\s*var\(--font-ui\)/;
+    expect(strip(read("src/index.css"))).toMatch(phone);
+    expect(strip(read("src/components/gallery/ObjectLabel.module.css"))).toMatch(phone);
+    expect(block(read("src/components/Hero.module.css"), ".composition .plate h1")).toMatch(/font-family:\s*var\(--font-display\)/);
   });
 });
