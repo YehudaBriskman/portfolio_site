@@ -207,7 +207,13 @@ export default function AdminTranslations() {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="a-table">
+                <table className="a-table a-table-fixed">
+                  <colgroup>
+                    <col className="a-col-status" />
+                    <col />
+                    <col className="a-col-path hidden md:table-column" />
+                    <col className="a-col-action" />
+                  </colgroup>
                   <caption className="sr-only">
                     {w.nav.translations}: {TAB_LABEL[tab]}
                   </caption>
@@ -228,12 +234,12 @@ export default function AdminTranslations() {
                             <TranslationPill status={units.reduce((worst, u) => (RANK[u.status] < RANK[worst] ? u.status : worst), units[0].status)} />
                           </td>
                           <td className="a-main">
-                            <Link to={href} className="a-row-title">
+                            <Link to={href} className="a-row-title a-clamp-2" title={item.title}>
                               {item.title}
                             </Link>
                             <span className="a-row-meta">
                               <span>{TYPE_LABEL[item.type]}</span>
-                              <span className="min-w-0 [overflow-wrap:anywhere]">{fieldsOf(units)}</span>
+                              <span className="a-clamp-1 min-w-0" title={fieldsOf(units)}>{fieldsOf(units)}</span>
                               {item.visibility === "private" && <span>Private</span>}
                               <code dir="ltr" className="min-w-0 md:hidden [overflow-wrap:anywhere]">
                                 {heRoute(item.route)}

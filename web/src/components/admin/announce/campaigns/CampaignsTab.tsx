@@ -109,7 +109,15 @@ export default function CampaignsTab() {
           <div>
             <p className="a-hint !mt-0 mb-2 tabular-nums" role="status">{w.count(items.length)}</p>
             <div className="a-box overflow-x-auto">
-              <table className="a-table" aria-label={w.tableLabel}>
+              <table className="a-table a-table-fixed" aria-label={w.tableLabel}>
+                <colgroup>
+                  <col />
+                  <col className="a-col-pill" />
+                  <col className="a-col-num hidden sm:table-column" />
+                  <col className="a-col-num hidden md:table-column" />
+                  <col className="a-col-num hidden md:table-column" />
+                  <col className="a-col-when hidden xl:table-column" />
+                </colgroup>
                 <thead>
                   <tr>
                     <th scope="col" className="!text-start">{w.colName}</th>
@@ -117,7 +125,7 @@ export default function CampaignsTab() {
                     <th scope="col" className="hidden sm:table-cell" style={{ textAlign: "right" }}>{w.colSent}</th>
                     <th scope="col" className="hidden md:table-cell" style={{ textAlign: "right" }}>{w.colFailed}</th>
                     <th scope="col" className="hidden md:table-cell" style={{ textAlign: "right" }}>{w.colSkipped}</th>
-                    <th scope="col" className="!text-start hidden lg:table-cell">{w.colWhen}</th>
+                    <th scope="col" className="!text-start hidden xl:table-cell">{w.colWhen}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -127,7 +135,7 @@ export default function CampaignsTab() {
                         <button type="button" className="block min-h-[44px] w-full text-start" aria-label={w.open(c.name)} onClick={() => setOpen(c.id)}>
                           <span className="a-row-title block text-sm" dir="auto">{c.name}</span>
                           <span className="a-row-meta !mt-0.5 block truncate text-sm" dir="auto" title={c.subject}>{c.subject}</span>
-                          <span className="a-row-meta !mt-0.5 block text-sm lg:hidden">{c.status === "scheduled" && c.sendAt ? w.scheduledFor(when(c.sendAt)) : c.finishedAt ? w.finishedAt(when(c.finishedAt)) : w.updatedAt(when(c.updatedAt))}</span>
+                          <span className="a-row-meta !mt-0.5 block text-sm xl:hidden">{c.status === "scheduled" && c.sendAt ? w.scheduledFor(when(c.sendAt)) : c.finishedAt ? w.finishedAt(when(c.finishedAt)) : w.updatedAt(when(c.updatedAt))}</span>
                         </button>
                       </td>
                       <td className="a-fit text-sm">
@@ -136,7 +144,7 @@ export default function CampaignsTab() {
                       <td className="hidden tabular-nums sm:table-cell" style={{ textAlign: "right" }} dir="ltr">{c.status === "draft" ? <Empty /> : nf.format(c.counters.sent)}</td>
                       <td className="hidden tabular-nums md:table-cell" style={{ textAlign: "right" }} dir="ltr">{c.status === "draft" ? <Empty /> : nf.format(c.counters.failed)}</td>
                       <td className="hidden tabular-nums md:table-cell" style={{ textAlign: "right" }} dir="ltr">{c.status === "draft" ? <Empty /> : nf.format(c.counters.suppressed)}</td>
-                      <td className="hidden text-sm lg:table-cell">
+                      <td className="hidden text-sm xl:table-cell">
                         {c.status === "scheduled" && c.sendAt ? w.scheduledFor(when(c.sendAt)) : c.finishedAt ? w.finishedAt(when(c.finishedAt)) : w.updatedAt(when(c.updatedAt))}
                       </td>
                     </tr>

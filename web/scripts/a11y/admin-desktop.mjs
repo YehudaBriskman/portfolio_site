@@ -5,7 +5,7 @@
  * the Edit button of a table row stacking its label one letter per line when a
  * long value in the same row left the action column no room.
  *
- * It exits 1 when, on any screen at 1024 / 1280 / 1440 wide:
+ * It exits 1 when, on any screen at 1024 / 1280 / 1920 wide (WIDTHS=1440 for the one between):
  *   - the page scrolls sideways;
  *   - a button or link has a label wrapped past two lines, or a one-word label
  *     (3+ letters) on more than one line (a word broken per letter);
@@ -31,7 +31,7 @@ const { chromium } = require("playwright-core");
 const { startPreview } = await import(pathToFileURL(resolve(WEB, "scripts/a11y/site-stub.mjs")).href);
 
 const env = (n) => (process.env[n] ?? "").split(",").filter(Boolean);
-const WIDTHS = (env("WIDTHS").length ? env("WIDTHS") : ["1024", "1280", "1440"]).map(Number);
+const WIDTHS = (env("WIDTHS").length ? env("WIDTHS") : ["1024", "1280", "1920"]).map(Number);
 const LANGS = env("LANGS").length ? env("LANGS") : ["en", "he"];
 const THEMES = env("THEMES").length ? env("THEMES") : ["light"];
 const ONLY = env("ONLY");
@@ -80,7 +80,7 @@ const SCREENS = [
 
 /* ------------------------------------------------------ in-page measurement */
 function measure() {
-  const out = { overflow: null, squeezed: [] };
+  const out = { overflow: null, squeezed: [], tall: [], clipped: [] };
   const vw = window.innerWidth;
   const de = document.documentElement;
   if (de.scrollWidth > vw + 1 || document.body.scrollWidth > vw + 1) out.overflow = { scrollWidth: Math.max(de.scrollWidth, document.body.scrollWidth), vw };
@@ -88,6 +88,22 @@ function measure() {
     const cls = typeof el.className === "string" ? el.className.trim().split(/\s+/).filter((c) => c && !/^(min-|w-|h-|px|py|mt|mb)/.test(c)).slice(0, 2).join(".") : "";
     return `${el.tagName.toLowerCase()}${cls ? "." + cls : ""}`;
   };
+  /* A table cell taller than 6 lines of its own text is a column starved of width. */
+  for (const td of document.querySelectorAll("td, th")) {
+    const r = td.getBoundingClientRect();
+    if (!r.width || !r.height) continue;
+    const cs = getComputedStyle(td);
+    const lh = cs.lineHeight === "normal" ? parseFloat(cs.fontSize) * 1.2 : parseFloat(cs.lineHeight);
+    /* The content's own height: a cell stretches to its row, so its box is not the measure. */
+    const cr = document.createRange();
+    cr.selectNodeContents(td);
+    const rows = cr.getBoundingClientRect().height / lh;
+    if (rows > 6) out.tall.push({ el: sel(td), text: (td.textContent ?? "").trim().slice(0, 24), rows: Math.round(rows) });
+  }
+  /* A table that scrolls inside its card hides its last column; one that is clipped hides it for good. */
+  for (const sc of document.querySelectorAll(".overflow-x-auto, .overflow-hidden, [class*=a-box]")) {
+    if (sc.querySelector("table") && sc.scrollWidth > sc.clientWidth + 1) out.clipped.push({ el: sel(sc), sw: sc.scrollWidth, cw: sc.clientWidth });
+  }
   const T = "a[href], button, summary, [role=button], [role=tab], [role=link]";
   for (const el of document.querySelectorAll(T)) {
     const r = el.getBoundingClientRect();
@@ -98,6 +114,7 @@ function measure() {
     const text = [...el.childNodes].filter((n) => !(n.nodeType === 1 && n.matches(".sr-only"))).map((n) => n.textContent).join("").replace(/\s+/g, " ").trim();
     if (text.length < 3) continue;
     const fs = parseFloat(cs.fontSize);
+    const lh = cs.lineHeight === "normal" ? fs * 1.2 : parseFloat(cs.lineHeight);
     const px = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight) + parseFloat(cs.borderLeftWidth) + parseFloat(cs.borderRightWidth);
     /* Lines are counted from the text itself (a min-height is not a wrapped label). */
     /* A card (a tile, a stat) holds blocks of prose and may wrap: only a label is held to the rule. */
@@ -110,7 +127,8 @@ function measure() {
       range.selectNodeContents(t);
       lines = Math.max(lines, new Set([...range.getClientRects()].filter((q) => q.width > 0 && q.height > 0).map((q) => Math.round(q.top / 4))).size);
     }
-    const oneWord = !/\s/.test(text);
+    if (cs.overflow === "hidden" || cs.overflowY === "hidden") lines = Math.min(lines, Math.max(1, Math.round(r.height / lh)));
+    const oneWord = !/\s/.test(text) && text.length <= 24; /* a longer token is an identifier: breaking it is the point of overflow-wrap */
     const why = r.width - px < 2 * fs * 0.5 ? "narrower than 2ch" : lines > 2 ? `${lines} lines` : oneWord && lines > 1 ? "a word broken across lines" : "";
     if (why) out.squeezed.push({ el: sel(el), text: text.slice(0, 24), w: Math.round(r.width), h: Math.round(r.height), why });
   }
@@ -145,6 +163,8 @@ for (const w of WIDTHS) for (const lang of LANGS) for (const theme of THEMES) {
       if (process.env.SHOTS) await page.screenshot({ path: resolve(process.env.SHOTS, `${name}-${w}-${theme}-${lang}.png`), timeout: 120000 });
       n++;
       if (rec.overflow) fails.push(`${tag}: page scrolls sideways (${rec.overflow.scrollWidth} > ${rec.overflow.vw})`);
+      for (const t of rec.tall.slice(0, 2)) fails.push(`${tag}: ${t.el} cell "${t.text}" is ${t.rows} lines tall`);
+      for (const c of rec.clipped.slice(0, 2)) fails.push(`${tag}: ${c.el} clips or scrolls its table (${c.sw} > ${c.cw})`);
       for (const s of rec.squeezed.slice(0, 3)) fails.push(`${tag}: ${s.el} "${s.text}" is ${s.w}x${s.h}, ${s.why}`);
     } catch (e) { fails.push(`${tag}: ERROR ${e.message.split("\n")[0]}`); }
   }

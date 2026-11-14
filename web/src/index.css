@@ -2978,6 +2978,19 @@
   .a-table .a-fit .a-btn, .a-table td > .a-btn { flex: none; white-space: nowrap; overflow-wrap: normal; }
   /* The identifying cell keeps a readable measure however long its neighbours are. */
   .a-table .a-main { min-width: var(--a-col-main-min, 14rem); }
+  /* Fixed layout, columns from tokens: a long neighbour can no longer take a column's share. The path column is a share of the table, capped. */
+  .a-table-fixed { table-layout: fixed; }
+  .a-table-fixed .a-col-status { width: var(--a-col-status, 5.5rem); }
+  .a-table-fixed .a-col-path { width: clamp(9rem, 28%, var(--a-col-path-max, 22rem)); }
+  .a-table-fixed .a-col-pill { width: 9rem; }
+  .a-table-fixed .a-col-num { width: 5.5rem; }
+  .a-table-fixed .a-col-when { width: 14rem; }
+  .a-table-fixed .a-col-action { width: var(--a-col-action, 6rem); }
+  .a-table-fixed .a-main { min-width: 0; }
+  .a-table-fixed .a-fit { width: auto; }
+  /* Two lines at most, then an ellipsis; the full text sits on title. */
+  .a-clamp-1 { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .a-clamp-2 { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; }
   /* A machine string (route, path) in its own column: one line, cut with an ellipsis, full value on title. */
   .a-table .a-path { display: block; max-width: var(--a-col-path-max, 20rem); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 

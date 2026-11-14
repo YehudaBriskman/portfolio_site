@@ -38,8 +38,15 @@ describe("admin table actions", () => {
     expect(r).toMatch(/max-width:/);
   });
 
+  it("fixed layout takes its column widths from tokens", () => {
+    expect(rule(".a-table-fixed {")).toMatch(/table-layout:\s*fixed/);
+    expect(rule(".a-table-fixed .a-col-path")).toMatch(/clamp\(/);
+    expect(rule(".a-clamp-2")).toMatch(/line-clamp:\s*2/);
+  });
+
   it("the Translations table uses them", () => {
     const page = readFileSync(resolve(__dirname, "../pages/AdminTranslations.tsx"), "utf8");
+    expect(page).toContain("a-table a-table-fixed");
     expect(page).toContain('className="a-main"');
     expect(page).toMatch(/className="a-path[^"]*"/);
   });
