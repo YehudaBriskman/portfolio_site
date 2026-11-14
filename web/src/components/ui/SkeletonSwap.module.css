@@ -1,0 +1,45 @@
+/*
+ * The wrapper adds no box of its own: it and the slot are `display: contents`,
+ * so a skeleton or a list lays out in its parent exactly as it did before. Only
+ * during the cross-fade (a phone, motion allowed) the wrapper is a one-cell
+ * grid with the old skeleton laid over the arriving content; the ghost is
+ * gone the moment the timer drops it, whatever the transitions did.
+ */
+.swap,
+.slot {
+  display: contents;
+}
+
+.content:empty {
+  display: none;
+}
+
+@media (prefers-reduced-motion: no-preference) and (max-width: 599px) {
+  .swap[data-phase="swap"] {
+    display: grid;
+    min-inline-size: 0;
+  }
+
+  .swap[data-phase="swap"] > .slot {
+    display: block;
+    grid-area: 1 / 1;
+    align-self: start;
+    min-inline-size: 0;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--a-dur-2) var(--a-ease-in);
+  }
+
+  .swap[data-phase="swap"] > .content {
+    grid-area: 1 / 1;
+    min-inline-size: 0;
+    opacity: 1;
+    transition: opacity var(--a-dur-2) var(--a-ease-out);
+  }
+
+  @starting-style {
+    .swap[data-phase="swap"] > .content {
+      opacity: 0;
+    }
+  }
+}

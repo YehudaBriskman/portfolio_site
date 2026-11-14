@@ -8,6 +8,7 @@ import { FilterChips, FiltersRestoredNote } from "@/components/ui/FilterChips";
 import { FilterSheet } from "@/components/ui/FilterSheet";
 import type { FilterDef } from "@/components/ui/filters";
 import { ICON } from "@/components/ui/icons";
+import { SkeletonSwap } from "@/components/ui/SkeletonSwap";
 import { ListPresence } from "@/components/ui/ListPresence";
 import { RecordRow, type Fact } from "@/components/ui/RecordRow";
 import { SelectionBar, SelectionHeader, type SelectionAction } from "@/components/ui/SelectionBar";
@@ -240,36 +241,38 @@ export default function AudiencePhone() {
 
       <p className="sr-only" role="status">{items ? w.count(visible.length) : ""}</p>
 
-      {error ? (
-        <ErrorState message={error === "auth" ? w.notAuthorised : w.loadFailed} signIn={error === "auth"} onRetry={reload} />
-      ) : !items ? (
-        <LoadingRows label={w.loading} />
-      ) : visible.length === 0 && !next ? (
-        <EmptyState title={filtered ? w.empty : w.emptyFirst} />
-      ) : (
-        <div>
-          {visible.length === 0 ? (
-            <EmptyState title={w.empty} />
-          ) : (
-            <ListPresence
-              as="ul"
-              items={visible}
-              itemKey={(c) => c.hash}
-              data-audience-list=""
-              aria-label={w.tableLabel}
-              className="a-box a-settle m-0 list-none overflow-hidden p-0"
-              onClickCapture={(e) => (lastRow.current = (e.target as HTMLElement).closest<HTMLElement>("[data-record-row]"))}
-            >
-              {rowFor}
-            </ListPresence>
-          )}
-          {next && (
-            <div className="mt-3">
-              <button type="button" className="a-btn min-h-[44px]" disabled={more} onClick={() => void loadMore()}>{more ? w.loadingMore : moreFailed ? w.loadMoreFailed : w.loadMore}</button>
-            </div>
-          )}
-        </div>
-      )}
+      <SkeletonSwap loading={!error && !items} skeleton={<LoadingRows label={w.loading} />}>
+        {error ? (
+          <ErrorState message={error === "auth" ? w.notAuthorised : w.loadFailed} signIn={error === "auth"} onRetry={reload} />
+        ) : !items ? (
+          null
+        ) : visible.length === 0 && !next ? (
+          <EmptyState title={filtered ? w.empty : w.emptyFirst} />
+        ) : (
+          <div>
+            {visible.length === 0 ? (
+              <EmptyState title={w.empty} />
+            ) : (
+              <ListPresence
+                as="ul"
+                items={visible}
+                itemKey={(c) => c.hash}
+                data-audience-list=""
+                aria-label={w.tableLabel}
+                className="a-box m-0 list-none overflow-hidden p-0"
+                onClickCapture={(e) => (lastRow.current = (e.target as HTMLElement).closest<HTMLElement>("[data-record-row]"))}
+              >
+                {rowFor}
+              </ListPresence>
+            )}
+            {next && (
+              <div className="mt-3">
+                <button type="button" className="a-btn min-h-[44px]" disabled={more} onClick={() => void loadMore()}>{more ? w.loadingMore : moreFailed ? w.loadMoreFailed : w.loadMore}</button>
+              </div>
+            )}
+          </div>
+        )}
+      </SkeletonSwap>
 
       <SelectionBar selection={selection} actions={actions} />
 

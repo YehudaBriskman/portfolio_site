@@ -289,7 +289,9 @@ describe("every animation on the site is scrubbed by scroll (#162)", () => {
   });
 
   it("starts no Web Animations API clock", () => {
-    const users = TS_FILES.filter((f) => /\.animate\(\s*[[{]/.test(readFileSync(f, "utf8"))).map(rel);
+    /* The one exception (#735): the phone reorder glide, a 220 ms FLIP that is not scroll-related,
+       is gated by usePhoneMotion and cancelled by a hard timer. See motion-contract.md. */
+    const users = TS_FILES.filter((f) => /\.animate\(\s*[[{]/.test(readFileSync(f, "utf8"))).map(rel).filter((f) => f !== "hooks/useReorderGlide.ts");
     expect(users).toEqual([]);
   });
 
