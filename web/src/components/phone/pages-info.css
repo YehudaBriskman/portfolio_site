@@ -58,6 +58,10 @@
     margin-block: 0;
     min-block-size: 56px;
   }
+  /* a row with a title and no meta line: centred on its circle, not in the first half */
+  [data-ph-prose] nav [data-phone-row] > span:not([data-phone-circle]) {
+    grid-row: 1 / span 2;
+  }
 
   /* ───────────────────────────── a problem entry (see / why / do): one card */
   [data-ph-prose] article {
