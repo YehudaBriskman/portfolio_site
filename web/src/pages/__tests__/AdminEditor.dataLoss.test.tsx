@@ -177,4 +177,19 @@ describe("post editor ", () => {
     const inv = document.querySelector("input[aria-invalid=true]")!;
     expect(inv.closest("details")!.open).toBe(true);
   }, 10_000);
+
+  it("a refused field in a closed section gets focus on an explicit save and is announced", async () => {
+    mocks.get.mockImplementation(async (s: string) => post(s));
+    mocks.saveDraft.mockImplementation(async () => {
+      throw new AdminValidationError({ seo: "Canonical must be an https address" });
+    });
+    mount("/admin/posts/aaa");
+    await screen.findByDisplayValue("Title aaa");
+    fireEvent.submit(document.querySelector("form")!);
+    await waitFor(() => expect(document.querySelector("input[aria-invalid=true]")).not.toBeNull());
+    const inv = document.querySelector("input[aria-invalid=true]")!;
+    expect(inv.closest("details")!.open).toBe(true);
+    await waitFor(() => expect(document.activeElement).toBe(inv));
+    expect(screen.getByRole("alert").textContent).toMatch(/https/);
+  });
 });

@@ -13,7 +13,7 @@ import styles from "./EditorPhone.module.css";
  * buttons, so it works from a keyboard, a switch and a thumb with no drag
  * (WCAG 2.5.7). After a move, focus follows the row so the next press moves
  * it again, and the move is announced ("A moved to position 2 of 6").
- * Remove can be undone until something else changes.
+ * Remove can be undone until something else changes (the list then differs from the one the removal left).
  */
 
 type Props<T> = {
@@ -25,7 +25,8 @@ type Props<T> = {
 export function ReorderRows<T>({ items, name, onChange }: Props<T>) {
   const w = useContentWords().reorder;
   const [note, setNote] = useState("");
-  const [undo, setUndo] = useState<T[] | null>(null);
+  /* `after` is the list the removal left; Undo is only honest while the list still is that. */
+  const [undo, setUndo] = useState<{ before: T[]; after: string } | null>(null);
   const focus = useRef<{ i: number; dir: "up" | "down" } | null>(null);
   const root = useRef<HTMLUListElement>(null);
 
@@ -50,9 +51,10 @@ export function ReorderRows<T>({ items, name, onChange }: Props<T>) {
   };
 
   const remove = (i: number) => {
-    setUndo([...items]);
+    const next = items.filter((_, j) => j !== i);
+    setUndo({ before: [...items], after: JSON.stringify(next) });
     setNote(w.removed(name(items[i], i)));
-    onChange(items.filter((_, j) => j !== i));
+    onChange(next);
   };
 
   return (
@@ -83,14 +85,14 @@ export function ReorderRows<T>({ items, name, onChange }: Props<T>) {
       </ul>
       <p role="status" className={styles.count}>
         {note}
-        {undo && (
+        {undo && undo.after === JSON.stringify(items) && (
           <>
             {" "}
             <button
               type="button"
               className="a-btn a-btn-ghost min-h-11"
               onClick={() => {
-                onChange(undo);
+                onChange(undo.before);
                 setUndo(null);
                 setNote("");
               }}

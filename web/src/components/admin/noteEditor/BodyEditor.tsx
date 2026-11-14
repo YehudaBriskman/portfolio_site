@@ -27,6 +27,8 @@ type Props = {
   id: string;
   value: string;
   onChange: (value: string) => void;
+  /** Rewrite the body this editor was showing when called, by function of its text then. An upload ends later, maybe after the editor was pointed at the other language, and must land in the body it started in. */
+  onRewrite?: (fn: (current: string) => string) => void;
   lang: "en" | "he";
   targets: readonly WikiTarget[];
   words: EditorWords;
@@ -87,7 +89,7 @@ function caretAt(ta: HTMLTextAreaElement, index: number) {
   return { top: Math.max(0, Math.min(top + line, ta.clientHeight)), left };
 }
 
-export default function BodyEditor({ id, value, onChange, lang, targets, words, describedBy, label, onStatus, onSave, onTogglePreview }: Props) {
+export default function BodyEditor({ id, value, onChange, onRewrite, lang, targets, words, describedBy, label, onStatus, onSave, onTogglePreview }: Props) {
   const ta = useRef<HTMLTextAreaElement>(null);
   const latest = useRef(value);
   const pendingSel = useRef<[number, number] | null>(null);
@@ -223,6 +225,7 @@ export default function BodyEditor({ id, value, onChange, lang, targets, words, 
   async function upload(files: File[]) {
     const el = ta.current;
     if (!el) return;
+    const rewrite = onRewrite ?? ((fn: (current: string) => string) => onChange(fn(latest.current)));
     for (const file of files) {
       const why = checkFile(file, "image");
       if (why) {
@@ -238,10 +241,10 @@ export default function BodyEditor({ id, value, onChange, lang, targets, words, 
       const alt = altFromFile(file.name);
       try {
         const item = await media.upload(file, { alt, caption: "", credit: "" }, "image");
-        onChange(latest.current.replace(token, imageMarkdown(item.alt || alt, item.url)));
+        rewrite((cur) => cur.replace(token, imageMarkdown(item.alt || alt, item.url)));
         onStatus(words.uploaded(file.name));
       } catch (err) {
-        onChange(latest.current.replace(`${token}\n`, "").replace(token, ""));
+        rewrite((cur) => cur.replace(`${token}\n`, "").replace(token, ""));
         onStatus(words.uploadFailed(file.name, err instanceof Error ? err.message : "?"), true);
       }
     }
