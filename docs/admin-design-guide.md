@@ -385,6 +385,7 @@ npm run a11y:density -- --top 25 --shots top   # ONLY=marketing-inbox  VPS=390x8
 | `npm audit --omit=dev --audit-level=high` | Frontend | no high advisory in runtime deps |
 | Accessibility floor (axe, WCAG 2.2 AA), sharded | `ci.yml` Browser checks | contrast, labels, names, target size |
 | Admin phone layout | Browser checks | `/admin/projects` row never overflows, draft banner keeps its sentence, links are 44 x 24 |
+| Overview, Connections, Translations, Settings on a phone | Browser checks | `a11y:admin-phone-screens`: one button and at most two facts per row, no sideways scroll, five setting groups, history as compact rows (never cards), sheet returns focus, desktop unchanged |
 | Admin Inbox on a phone | Browser checks | `a11y:admin-inbox-phone`: 7 rows above the fold at 390x844, one button per row, 4 named glyphs, no "Ready" and no Copy in the list, sheet opens and returns focus, Undo, Hebrew mirrors |
 | Links land where they point | Browser checks | no dead internal links |
 | Static | `ci.yml` | secrets scan, workflow and Dockerfile lint |

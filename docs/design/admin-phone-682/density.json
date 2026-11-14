@@ -1,0 +1,58 @@
+[
+  {
+    "screen": "overview",
+    "state": "after",
+    "heightVh": 1,
+    "rows": 11,
+    "cards": 0
+  },
+  {
+    "screen": "connections",
+    "state": "after",
+    "heightVh": 1,
+    "rows": 4,
+    "cards": 0
+  },
+  {
+    "screen": "translations",
+    "state": "after",
+    "heightVh": 1,
+    "rows": 4,
+    "cards": 0
+  },
+  {
+    "screen": "settings",
+    "state": "after",
+    "heightVh": 1.43,
+    "rows": 8,
+    "cards": 0
+  },
+  {
+    "screen": "overview",
+    "state": "before",
+    "heightVh": 2.85,
+    "rows": 0,
+    "cards": 0
+  },
+  {
+    "screen": "connections",
+    "state": "before",
+    "heightVh": 1.02,
+    "rows": 0,
+    "cards": 0
+  },
+  {
+    "screen": "translations",
+    "state": "before",
+    "heightVh": 1,
+    "rows": 0,
+    "cards": 0
+  },
+  {
+    "screen": "settings",
+    "state": "before",
+    "heightVh": 4.7,
+    "rows": 0,
+    "cards": 21
+  }
+]
