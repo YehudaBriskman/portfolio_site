@@ -6,7 +6,8 @@ import Written from "@/components/motion/Written";
 import styles from "@/components/Contact.module.css";
 import type { SocialLink } from "@/data/links";
 import { useContent } from "@/content/store";
-import { ContactError, ContactSchema, sendContactMessage } from "@/services/contact";
+import { ContactError, ContactSchema, MESSAGE_MAX, NAME_MAX, sendContactMessage } from "@/services/contact";
+import { useLang } from "@/components/dashboard/i18n";
 import { useContactWords, useHomeWords } from "@/i18n/pages";
 import Arrow from "@/i18n/Arrow";
 import { toast, type HelpTopic } from "@/lib/toast";
@@ -137,6 +138,7 @@ export default function Contact() {
   const { contact, links } = useContent().site;
   const plateFields = plateFieldsOf(links, contact);
   const w = useContactWords();
+  const lang = useLang();
   const home = useHomeWords();
   const [status, setStatus] = useState<Status>({ kind: "idle" });
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
@@ -171,6 +173,12 @@ export default function Contact() {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const firstFieldRef = useRef<HTMLInputElement>(null);
+  const messageRef = useRef<HTMLTextAreaElement>(null);
+  const [messageLong, setMessageLong] = useState(false);
+  /* After the note is in the page, so the field is announced with it. */
+  useEffect(() => {
+    if (messageLong) messageRef.current?.focus();
+  }, [messageLong, fieldErrors]);
   /* Where the press that may become a backdrop click started. See the handler. */
   const pressedBackdrop = useRef(false);
 
@@ -307,12 +315,19 @@ export default function Contact() {
     const parsed = ContactSchema.safeParse(draft);
     if (!parsed.success) {
       const flat = parsed.error.flatten().fieldErrors;
+      /* Too long says by how much; it is the one note that moves focus (to the field to shorten), because
+         the visitor cannot act on it anywhere else. */
+      const tooLong = draft.message.length > MESSAGE_MAX;
+      const nf = new Intl.NumberFormat(lang);
+      const longNote = w.errors.messageLong
+        .replace("{over}", nf.format(draft.message.length - MESSAGE_MAX))
+        .replace("{max}", nf.format(MESSAGE_MAX));
       /* The schema's own messages are English; the reader's language has
          the same three, one per field. */
       setFieldErrors({
         name: flat.name?.[0] && w.errors.name,
         email: flat.email?.[0] && (draft.email.trim() === "" ? w.errors.emailEmpty : w.errors.email),
-        message: flat.message?.[0] && w.errors.message,
+        message: flat.message?.[0] && (tooLong ? longNote : w.errors.message),
       });
       setStatus({
         kind: "failed",
@@ -330,10 +345,12 @@ export default function Contact() {
        * does not move focus to the close button, which is otherwise exactly
        * where a reader who is finished wants to be.
        */
+      setMessageLong(tooLong);
       return;
     }
 
     setFieldErrors({});
+    setMessageLong(false);
     dismissFailure();
     setStatus({ kind: "sending" });
 
@@ -652,6 +669,7 @@ export default function Contact() {
                     type="text"
                     required
                     minLength={2}
+                    maxLength={NAME_MAX}
                     autoComplete="name"
                     className={styles.control}
                     aria-invalid={fieldErrors.name ? true : undefined}
@@ -748,6 +766,7 @@ export default function Contact() {
                     {w.message}
                   </label>
                   <textarea
+                    ref={messageRef}
                     id="contact-message"
                     name="message"
                     rows={5}
@@ -759,7 +778,7 @@ export default function Contact() {
                   />
                   <span aria-hidden="true" className={`${styles.ink} ${styles.inkMessage}`} />
                   {fieldErrors.message && (
-                    <p id={errorId("message")} className={styles.fieldError}>
+                    <p id={errorId("message")} className={styles.fieldError} role={messageLong ? "alert" : undefined}>
                       {fieldErrors.message}
                     </p>
                   )}
