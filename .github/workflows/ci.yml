@@ -543,6 +543,13 @@ jobs:
       - name: Bottom sheets on a phone
         if: matrix.check == 'a11y' && matrix.shard == 1
         run: npm run a11y:bottom-sheet-phone
+      # Typing never throws the user out of a field: every text, email, url,
+      # number and textarea in Marketing and site Settings is typed into with
+      # awkward characters and Hebrew, at 390 and 1280; focus, value and the
+      # expanders around the field must hold after every character.
+      - name: Admin typing keeps focus and expanders
+        if: matrix.check == 'a11y' && matrix.shard == 1
+        run: npm run a11y:admin-typing
       # Admin at 320, 360, 390 and 768 wide, light and dark, English and
       # Hebrew (#660): no sideways scroll, no target under 24px, no primary
       # control under 44px on touch, no text under 14px outside the
