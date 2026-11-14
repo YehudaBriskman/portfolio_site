@@ -172,7 +172,7 @@ describe("Settings on a phone: history", () => {
     stub();
     page();
     await open();
-    const row = screen.getByRole("button", { name: "Open Version 3" });
+    const row = screen.getByRole("button", { name: /^Open Version 3:/ });
     row.focus();
     fireEvent.click(row);
     const d = await screen.findByRole("dialog");
@@ -189,7 +189,7 @@ describe("Settings on a phone: history", () => {
     const calls = stub();
     page();
     await open();
-    fireEvent.click(screen.getByRole("button", { name: "Open Built-in defaults" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Open Built-in defaults:/ }));
     const d = await screen.findByRole("dialog");
     fireEvent.click(within(d).getByRole("button", { name: "Put back Built-in defaults" }));
     await waitFor(() => expect(calls.some((c) => c.url.endsWith("/revert"))).toBe(true));

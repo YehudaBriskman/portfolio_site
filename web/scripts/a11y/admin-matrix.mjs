@@ -186,7 +186,12 @@ const SCREENS = [
   ["media-video", "/admin/media?id=fixture-video"],
   ["settings", "/admin/settings"],
   /* The bar at its fullest: unsaved changes (a status sentence beside Undo and Save). */
-  ["settings-dirty", "/admin/settings", async (page) => { await page.evaluate(() => document.querySelector("#settings-sharing-enabled").click()); }],
+  ["settings-dirty", "/admin/settings", async (page) => {
+    /* On a phone the switch is inside the Sharing group: open it first (#682). */
+    await page.evaluate(() => document.querySelector('[data-settings-group="sharing"] button')?.click());
+    await page.waitForTimeout(600);
+    await page.evaluate(() => (document.querySelector("#settings-sharing-enabled") ?? document.querySelector('[data-setting-id="settings-sharing-enabled"] input')).click());
+  }],
   ["connections", "/admin/connections"],
   ["translations", "/admin/translations"],
   ["translations-filtered", "/admin/translations?status=done&visibility=all"],

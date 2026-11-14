@@ -95,11 +95,12 @@ export default function OverviewPhone({
   }
   if (waiting.length > 0) {
     const what = p.waiting(waiting.length);
+    const whenText = relative(waiting[0].draftSavedAt ?? waiting[0].updatedAt, now, lang);
     needs.push(
       <RecordRow
         key="drafts" as="li" icon={ICON.draft} title={p.draftsTitle}
-        facts={[{ text: what }, { icon: ICON.when, text: relative(waiting[0].draftSavedAt ?? waiting[0].updatedAt, now, lang) }]}
-        openLabel={p.openDrafts(what)}
+        facts={[{ text: what }, { icon: ICON.when, text: whenText }]}
+        openLabel={p.openDrafts(`${what}, ${whenText}`)}
         onOpen={() => go("/admin/posts?status=draft")}
       />,
     );
@@ -187,14 +188,18 @@ export default function OverviewPhone({
 
       <Disclosure summary={p.recent} meta={p.recentMeta(Math.min(feed.length, 8))} testid="overview-feed">
         <ul className={styles.list}>
-          {feed.slice(0, 8).map((e) => (
-            <RecordRow
-              key={e.id} as="li" icon={KIND_ICON[e.kind]} title={e.title}
-              facts={[{ text: w.did[e.did] }, { icon: ICON.when, text: relative(e.at, now, lang) }]}
-              openLabel={p.openItem(e.title)}
-              onOpen={() => go(e.to)}
-            />
-          ))}
+          {feed.slice(0, 8).map((e) => {
+            const did = w.did[e.did];
+            const at = relative(e.at, now, lang);
+            return (
+              <RecordRow
+                key={e.id} as="li" icon={KIND_ICON[e.kind]} title={e.title}
+                facts={[{ text: did }, { icon: ICON.when, text: at }]}
+                openLabel={`${p.openItem(e.title)}: ${did}, ${at}`}
+                onOpen={() => go(e.to)}
+              />
+            );
+          })}
         </ul>
       </Disclosure>
     </div>

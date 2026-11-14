@@ -56,7 +56,9 @@ const page = (at = "/admin/translations") =>
       <Where />
     </MemoryRouter>,
   );
-const rowOf = (name: string) => screen.findByRole("button", { name: `Open ${name}` });
+const starts = (verb: string, name: string) => new RegExp(`^${verb} ${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}:`);
+const titles = () => rows().map((r) => (r.getAttribute("aria-label") ?? "").split(":")[0]);
+const rowOf = (name: string) => screen.findByRole("button", { name: starts("Open", name) });
 const dialog = () => screen.findByRole("dialog");
 
 describe("Translations on a phone: the list", () => {
@@ -67,7 +69,7 @@ describe("Translations on a phone: the list", () => {
     expect(screen.queryByRole("combobox")).toBeNull();
     expect(screen.queryByRole("link", { name: /^Edit/ })).toBeNull();
     /* Finished and private items are out of the way until asked for. */
-    expect(rows().map((r) => r.getAttribute("aria-label"))).toEqual([
+    expect(titles()).toEqual([
       "Open Home · hero", "Open WindoM", "Open Story · start", "Open A fixture note",
     ]);
   });
@@ -91,7 +93,7 @@ describe("Translations on a phone: the list", () => {
     const chips = screen.getAllByRole("button", { pressed: false }).map((b) => b.textContent);
     for (const name of ["Missing", "Out of date", "In a draft", "Not verified", "Done"]) expect(chips).toContain(name);
     fireEvent.click(screen.getByRole("button", { name: "Out of date" }));
-    await waitFor(() => expect(rows().map((r) => r.getAttribute("aria-label"))).toEqual(["Open WindoM"]));
+    await waitFor(() => expect(titles()).toEqual(["Open WindoM"]));
     expect(screen.getByTestId("where").textContent).toBe("/admin/translations?status=stale");
   });
 
@@ -102,7 +104,7 @@ describe("Translations on a phone: the list", () => {
     const d = await dialog();
     fireEvent.click(within(d).getByRole("checkbox", { name: "Include private items" }));
     fireEvent.click(within(d).getByRole("button", { name: /^Show/ }));
-    await waitFor(() => expect(rows().map((r) => r.getAttribute("aria-label"))).toContain("Open A draft note with a deliberately long title that has to wrap on a phone"));
+    await waitFor(() => expect(titles()).toContain("Open A draft note with a deliberately long title that has to wrap on a phone"));
   });
 
   it("says so when a filter leaves nothing", async () => {
@@ -144,7 +146,7 @@ describe("Translations on a phone: Hebrew", () => {
   it("is in Hebrew with the same rows", async () => {
     lang("he");
     page();
-    expect(await screen.findByRole("button", { name: "פתיחת Home · hero" })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: /^פתיחת Home · hero:/ })).toBeTruthy();
     expect(rows()).toHaveLength(4);
     expect(screen.getByRole("button", { name: "חסרה" })).toBeTruthy();
     expect(screen.queryByText("Missing")).toBeNull();

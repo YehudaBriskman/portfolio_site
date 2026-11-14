@@ -79,11 +79,11 @@ describe("/admin on a phone", () => {
     page();
     const needs = await screen.findByRole("region", { name: "Needs you" });
     const list = within(needs).getAllByRole("button");
-    expect(list.map((b) => b.getAttribute("aria-label"))).toEqual([
-      "Open the inbox: 3 unread",
-      "Open drafts: 3 waiting",
-      "Open campaigns: 1 with failed sends",
-    ]);
+    const names = list.map((b) => b.getAttribute("aria-label") ?? "");
+    expect(names[0]).toBe("Open the inbox: 3 unread");
+    /* The name holds every word the row prints, so a voice user can say what they see. */
+    expect(names[1]).toMatch(/^Open drafts: 3 waiting, /);
+    expect(names[2]).toBe("Open campaigns: 1 with failed sends");
     /* Needs-you comes before any figure that is only information. */
     const glance = screen.getByRole("region", { name: "At a glance" });
     expect(needs.compareDocumentPosition(glance) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
@@ -96,7 +96,7 @@ describe("/admin on a phone", () => {
   it("opens each row's own screen", async () => {
     api();
     page();
-    fireEvent.click(await screen.findByRole("button", { name: "Open drafts: 3 waiting" }));
+    fireEvent.click(await screen.findByRole("button", { name: /^Open drafts: 3 waiting/ }));
     expect((await screen.findByTestId("where")).textContent).toBe("/admin/posts?status=draft");
   });
 

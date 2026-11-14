@@ -46,7 +46,8 @@ const page = () =>
       <AdminConnections />
     </MemoryRouter>,
   );
-const rowOf = (name: string) => screen.findByRole("button", { name: `Open ${name}` });
+const starts = (verb: string, name: string) => new RegExp(`^${verb} ${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}:`);
+const rowOf = (name: string) => screen.findByRole("button", { name: starts("Open", name) });
 const dialog = () => screen.findByRole("dialog");
 
 describe("Connected apps on a phone: the list", () => {
@@ -56,7 +57,7 @@ describe("Connected apps on a phone: the list", () => {
     expect(screen.queryByRole("table")).toBeNull();
     expect(screen.queryByRole("button", { name: /^Revoke/ })).toBeNull();
     expect(rows()).toHaveLength(GRANTS.length);
-    for (const g of GRANTS) expect(screen.getByRole("button", { name: `Open ${g.client}` })).toBeTruthy();
+    for (const g of GRANTS) expect(screen.getByRole("button", { name: starts("Open", g.client) })).toBeTruthy();
   });
 
   it("each row is one button with at most three facts (two beside the title, one glyph)", async () => {
@@ -72,7 +73,7 @@ describe("Connected apps on a phone: the list", () => {
   it("draws nothing for an active grant and one named glyph for a revoked and an expired one", async () => {
     page();
     await rowOf("Claude Code");
-    const named = (n: string) => screen.getByRole("button", { name: `Open ${n}` });
+    const named = (n: string) => screen.getByRole("button", { name: starts("Open", n) });
     expect(named("Claude Code").querySelector("[data-kind]")).toBeNull();
     expect(within(named("Old client")).getByRole("img", { name: "Revoked" })).toBeTruthy();
     expect(within(named("Lapsed client")).getByRole("img", { name: "Expired" })).toBeTruthy();
@@ -142,10 +143,10 @@ describe("Connected apps on a phone: Hebrew", () => {
   it("is in Hebrew, with the same rows", async () => {
     lang("he");
     page();
-    expect(await screen.findByRole("button", { name: "פתיחת Claude Code" })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: /^פתיחת Claude Code:/ })).toBeTruthy();
     expect(rows()).toHaveLength(GRANTS.length);
     expect(screen.getByRole("list", { name: "מחוברות" })).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "פתיחת Claude Code" }));
+    fireEvent.click(screen.getByRole("button", { name: /^פתיחת Claude Code:/ }));
     expect(within(await dialog()).getByRole("button", { name: "ביטול גישה" })).toBeTruthy();
   });
 });

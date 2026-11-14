@@ -64,7 +64,7 @@ export default function ConnectionsPhone({
       title={x.client}
       facts={[fact(x)]}
       status={<StatusGlyph kind={x.status} />}
-      openLabel={p.openApp(x.client)}
+      openLabel={`${p.openApp(x.client)}: ${fact(x).text}`}
       onOpen={() => open(x.id)}
     />
   );

@@ -134,12 +134,13 @@ export default function TranslationsPhone({ items }: { items: TranslationItem[] 
         <ul className={styles.list} aria-label={p.count(visible.length)}>
           {visible.map((i) => {
             const s = statusOf(i);
+            const fields = fieldGroups(needWork(i)).map(label).join(", ") || "—";
             return (
               <RecordRow
                 key={key(i)} as="li" icon={ICON.language} title={i.title}
-                facts={[{ text: p.typeOne[i.type] }, { text: fieldGroups(needWork(i)).map(label).join(", ") || "—", dir: "ltr" }]}
+                facts={[{ text: p.typeOne[i.type] }, { text: fields, dir: "ltr" }]}
                 status={<StatusGlyph kind={glyphKind(s)} label={s === "draft" ? p.draftWord : undefined} />}
-                openLabel={p.openItem(i.title)}
+                openLabel={`${p.openItem(i.title)}: ${p.typeOne[i.type]}, ${fields}`}
                 onOpen={() => setOpenKey(key(i))}
               />
             );
