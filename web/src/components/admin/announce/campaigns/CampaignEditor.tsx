@@ -1,3 +1,5 @@
+import { useLeaveGuard } from "@/hooks/useLeaveGuard";
+import { useContentWords } from "@/components/admin/content/words";
 import { useCallback, useEffect, useId, useMemo, useState } from "react";
 import { hasTextProblem, identityMissing } from "../sender/defaults";
 import { Link } from "react-router-dom";
@@ -129,6 +131,8 @@ export default function CampaignEditor({
   /* Once a campaign has been saved its status decides, whatever id the editor was opened with. */
   const editable = campaign ? campaign.status === "draft" : id === "new";
   const dirty = campaign ? !same(toInput(form), toInput(toForm(campaign))) : id === "new";
+  /* A new campaign nobody has typed into is not worth a prompt, so it is compared with the blank form, not with the server. */
+  useLeaveGuard(editable && (campaign ? dirty : !same(toInput(form), toInput(BLANK))), useContentWords().leaveConfirm);
   const lacks = sender ? identityMissing(sender) : [];
   const footerOk = lacks.length === 0;
   const blockBad = form.useBlocks && (form.blocks.length === 0 || form.blocks.some((b) => blockProblem(b)));

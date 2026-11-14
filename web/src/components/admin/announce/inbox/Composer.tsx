@@ -55,6 +55,7 @@ export default function Composer({
   embedded = false,
   footerHost = null,
   undo = null,
+  notice,
   onMarkDone,
 }: {
   event: AnnounceSummary;
@@ -66,6 +67,8 @@ export default function Composer({
   footerHost?: HTMLElement | null;
   /** A "Mark done" still inside its Undo window: the channel it covers and how to take it back. */
   undo?: { channel: AnnounceChannel; onUndo: () => void } | null;
+  /** Said when the Composer has nothing to say itself (the list owner's failed Mark done). */
+  notice?: string;
   /** The sheet's owner saves it after the Undo window; without it the Composer saves at once. */
   onMarkDone?: (channel: AnnounceChannel) => void;
 }) {
@@ -460,7 +463,7 @@ export default function Composer({
   const actions = item ? (
     <>
       <p role="status" className="mk-emb-note">
-        {markUndo ? w.markedUndo(w.channels[tab]) : note}
+        {markUndo ? w.markedUndo(w.channels[tab]) : note || notice}
       </p>
       <button type="button" className="a-btn a-btn-primary mk-btn mk-emb-main" disabled={tab === "x" && over} onClick={primary}>
         <OpenIcon aria-hidden="true" />
