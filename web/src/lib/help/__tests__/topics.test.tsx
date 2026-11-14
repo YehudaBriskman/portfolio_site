@@ -1,4 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { render } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import Help from "@/pages/Help";
@@ -75,6 +77,15 @@ describe("the entries quote the messages the site shows", () => {
     return [
       ["contact-sent", c.sent],
       ["contact-fields-invalid", c.invalid.split(/(?<=\.)\s/)[0]],
+      ["contact-send-failed", c.failed.server.title],
+      ["contact-send-failed", c.failed.server.short],
+      ["contact-too-many", c.failed.rate.title],
+      ["contact-too-many", c.failed.rate.short],
+      ["contact-too-long", c.failed.large.title],
+      ["contact-too-long", c.failed.large.short],
+      ["contact-offline", c.failed.offline.title],
+      ["contact-offline", c.failed.offline.short],
+      ["manage-choose-topic", s.errTopics],
       ["newsletter-check-email", s.sent],
       ["newsletter-fields-invalid", s.errTopics],
       ["newsletter-fields-invalid", s.errEmail],
@@ -97,5 +108,18 @@ describe("the entries quote the messages the site shows", () => {
   it.each(["en", "he"] as const)("%s", (lang) => {
     const topics = useHelpWords.of(lang).topics;
     for (const [topic, text] of quotes(lang)) expect(topics[topic].see, `${topic}: ${text}`).toContain(text);
+  });
+});
+
+describe("the contact form's failure notices", () => {
+  it("each kind links to a topic that exists on the page", async () => {
+    const { HELP_TOPICS: toastTopics } = await import("@/lib/toast/helpTopics");
+    const src = readFileSync(resolve(__dirname, "../../../components/Contact.tsx"), "utf8");
+    const mapped = [...src.matchAll(/^\s+(rate|large|server|offline): "([a-z-]+)",$/gm)].map((m) => m[2]);
+    expect(mapped.length).toBe(4);
+    for (const t of mapped) {
+      expect(isHelpTopic(t), t).toBe(true);
+      expect(Object.keys(toastTopics), t).toContain(t);
+    }
   });
 });
