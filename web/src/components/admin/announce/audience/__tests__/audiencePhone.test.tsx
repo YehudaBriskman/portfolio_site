@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, useLocation } from "react-router-dom";
+import ToastHost from "@/components/ui/ToastHost";
+import { __resetToasts } from "@/lib/toast";
 import AudienceTab from "../AudienceTab";
 
 /*
@@ -52,6 +54,7 @@ const mount = () =>
     <MemoryRouter initialEntries={["/admin/marketing?tab=audience"]}>
       <AudienceTab />
       <Where />
+      <ToastHost />
     </MemoryRouter>,
   );
 
@@ -78,6 +81,7 @@ beforeEach(() => {
   );
 });
 afterEach(() => {
+  __resetToasts();
   cleanup();
   vi.unstubAllGlobals();
   document.documentElement.lang = "en";
@@ -225,7 +229,7 @@ describe("Audience on a phone: bulk actions", () => {
     fireEvent.click(within(more).getByRole("button", { name: /^Delete/ }));
     expect(writes("DELETE").length).toBe(0);
     fireEvent.click(await screen.findByRole("button", { name: "Delete 1 contact" }));
-    const toast = await screen.findByTestId("undo-toast");
+    const toast = (await screen.findByRole("button", { name: "Undo" })).closest("[data-sonner-toast]") as HTMLElement;
     expect(screen.queryByRole("button", { name: "Open Ada" })).toBeNull();
     expect(writes("DELETE").length).toBe(0);
     fireEvent.click(within(toast).getByRole("button", { name: "Undo" }));

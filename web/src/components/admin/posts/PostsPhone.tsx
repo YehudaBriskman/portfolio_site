@@ -10,7 +10,9 @@ import { ICON } from "@/components/ui/icons";
 import { RecordRow, type Fact } from "@/components/ui/RecordRow";
 import { SelectionBar, SelectionHeader, type SelectionAction } from "@/components/ui/SelectionBar";
 import { StatusGlyph, type StatusKind } from "@/components/ui/StatusGlyph";
-import { UndoToast, useUndoable } from "@/components/ui/UndoToast";
+import { toast } from "@/lib/toast";
+import { useToastWords } from "@/i18n/toast";
+import { useUndoable } from "@/lib/toast/useUndoable";
 import { useSavedFilters } from "@/components/ui/useSavedFilters";
 import { useSelection } from "@/components/ui/useSelection";
 import { relative, useLang } from "@/components/dashboard/i18n";
@@ -46,7 +48,6 @@ export default function PostsPhone() {
   const [q, setQ] = useState("");
   const [sheet, setSheet] = useState(false);
   const [pending, setPending] = useState<Readonly<Record<string, Pending>>>({});
-  const [note, setNote] = useState("");
   const [now] = useState(() => Date.now());
   const undoable = useUndoable();
 
@@ -109,7 +110,11 @@ export default function PostsPhone() {
 
   /* ---------------------------------------------------------------- bulk */
   const chosen = (slugs: string[]) => (posts ?? []).filter((x) => slugs.includes(x.slug));
-  const settle = async (jobs: Array<Promise<unknown>>) => (await Promise.allSettled(jobs)).filter((r) => r.status === "rejected").length;
+  const run = async (list: AdminPost[], job: (post: AdminPost) => Promise<unknown>): Promise<void> => {
+    const results = await Promise.allSettled(list.map(job));
+    const left = list.filter((_, i) => results[i].status === "rejected");
+    if (left.length) toast.error(p.failedSome(left.length), { action: { label: useToastWords.of(document.documentElement.lang === "he" ? "he" : "en").retry, onClick: () => void run(left, job).then(load) } });
+  };
   const defer = (slugs: string[], to: Pending, message: string, job: (post: AdminPost) => Promise<unknown>) => {
     const list = chosen(slugs).filter((x) => statusOf(x) !== to && !(to === "draft" && statusOf(x) !== "published"));
     if (list.length === 0) return;
@@ -120,8 +125,7 @@ export default function PostsPhone() {
       message,
       onUndo: drop,
       commit: async () => {
-        const failed = await settle(list.map(job));
-        setNote(failed ? p.failedSome(failed) : "");
+        await run(list, job);
         drop();
         load();
       },
@@ -192,7 +196,6 @@ export default function PostsPhone() {
         <FiltersRestoredNote restored={saved.restored} onUndo={saved.undoRestore} onDismiss={saved.dismissRestored} />
 
         <p className="sr-only" role="status">{posts ? p.count(visible.length) : ""}</p>
-        {note && <p role="status" className="a-hint !mt-0">{note}</p>}
 
         <UnreadableNote count={skipped} />
 
@@ -214,7 +217,6 @@ export default function PostsPhone() {
       </div>
 
       <FilterSheet open={sheet} onClose={() => setSheet(false)} defs={defs} value={filters} onApply={(next) => (setFilters(next), setSheet(false))} />
-      <UndoToast undoable={undoable} />
     </AdminShell>
   );
 }

@@ -5,7 +5,8 @@ import { FilterSheet } from "@/components/ui/FilterSheet";
 import { ICON } from "@/components/ui/icons";
 import { SelectionBar, SelectionHeader, type SelectionAction } from "@/components/ui/SelectionBar";
 import { StatusGlyph } from "@/components/ui/StatusGlyph";
-import { UndoToast, useUndoable } from "@/components/ui/UndoToast";
+import { toast } from "@/lib/toast";
+import { useUndoable } from "@/lib/toast/useUndoable";
 import { useSavedFilters } from "@/components/ui/useSavedFilters";
 import { useSelection } from "@/components/ui/useSelection";
 import { tidy, type FilterDef, type Filters } from "@/components/ui/filters";
@@ -47,7 +48,6 @@ export default function MediaPhone({
 }) {
   const p = useMediaPhoneWords();
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [note, setNote] = useState("");
   const [hidden, setHidden] = useState<ReadonlySet<string>>(() => new Set());
   const undoable = useUndoable();
 
@@ -90,7 +90,8 @@ export default function MediaPhone({
         const gone = chosen.filter((_, i) => results[i].status === "fulfilled");
         onDeleted(gone);
         show();
-        setNote(gone.length === chosen.length ? p.deletedMany(gone.length) : p.deleteFailed(chosen.length - gone.length));
+        if (gone.length === chosen.length) toast.success(p.deletedMany(gone.length));
+        else toast.error(p.deleteFailed(chosen.length - gone.length));
       },
     });
   };
@@ -134,7 +135,6 @@ export default function MediaPhone({
       </div>
       <FiltersRestoredNote restored={saved.restored} onUndo={saved.undoRestore} onDismiss={saved.dismissRestored} />
       {selection.on && <p className="a-hint !mt-0">{p.selectNote}</p>}
-      <p role="status" className={`a-hint ${styles.note}`}>{note}</p>
 
       {shown.length === 0 ? (
         <p className="a-hint" data-testid="no-match">{q.trim() ? p.noMatchQuery(q.trim()) : p.noMatch}</p>
@@ -195,7 +195,6 @@ export default function MediaPhone({
         resultCount={(draft) => matches(tidy(defs, draft)).length}
       />
 
-      <UndoToast undoable={undoable} />
     </div>
   );
 }

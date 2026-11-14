@@ -11,7 +11,8 @@ import { ICON } from "@/components/ui/icons";
 import { RecordRow, type Fact } from "@/components/ui/RecordRow";
 import { SelectionBar, SelectionHeader, type SelectionAction } from "@/components/ui/SelectionBar";
 import { StatusGlyph, type StatusKind } from "@/components/ui/StatusGlyph";
-import { UndoToast, useUndoable } from "@/components/ui/UndoToast";
+import { toast } from "@/lib/toast";
+import { useUndoable } from "@/lib/toast/useUndoable";
 import { useSavedFilters } from "@/components/ui/useSavedFilters";
 import { useSelection } from "@/components/ui/useSelection";
 import { isNotAuthorised } from "@/services/authError";
@@ -64,7 +65,6 @@ export default function AudiencePhone() {
   const [sheet, setSheet] = useState(false);
   const [pick, setPick] = useState<string[] | null>(null);
   const [hidden, setHidden] = useState<ReadonlySet<string>>(() => new Set());
-  const [note, setNote] = useState("");
   const [tick, setTick] = useState(0);
   const plus = useRef<HTMLButtonElement>(null);
   const lastRow = useRef<HTMLElement | null>(null);
@@ -141,7 +141,7 @@ export default function AudiencePhone() {
   /* ---------------------------------------------------------------- bulk */
   const chosen = (ids: string[]) => (items ?? []).filter((c) => ids.includes(c.hash));
   const settle = async (jobs: Array<Promise<unknown>>) => (await Promise.allSettled(jobs)).filter((r) => r.status === "rejected").length;
-  const report = (done: number, failed: number, text: (n: number) => string) => setNote(failed ? w.bulkFailedSome(failed) : text(done));
+  const report = (done: number, failed: number, text: (n: number) => string) => (failed ? toast.error(w.bulkFailedSome(failed)) : toast.success(text(done)));
 
   const setStatus = async (ids: string[], to: ContactStatus) => {
     const list = chosen(ids);
@@ -176,7 +176,7 @@ export default function AudiencePhone() {
       onUndo: show,
       commit: async () => {
         const failed = await settle(ids.map((hash) => adminAudience.eraseContact(hash)));
-        if (failed) setNote(w.bulkFailedSome(failed));
+        if (failed) toast.error(w.bulkFailedSome(failed));
         show();
         loadGroups();
         reload();
@@ -239,7 +239,6 @@ export default function AudiencePhone() {
       <FiltersRestoredNote restored={saved.restored} onUndo={saved.undoRestore} onDismiss={saved.dismissRestored} />
 
       <p className="sr-only" role="status">{items ? w.count(visible.length) : ""}</p>
-      {note && <p role="status" className="a-hint !mt-0">{note}</p>}
 
       {error ? (
         <ErrorState message={error === "auth" ? w.notAuthorised : w.loadFailed} signIn={error === "auth"} onRetry={reload} />
@@ -321,7 +320,6 @@ export default function AudiencePhone() {
       <SheetPresence show={dialog?.kind === "import"}><ImportDialog sheet groups={groups} onClose={() => (closeAdd(), reload(), loadGroups())} onDone={loadGroups} /></SheetPresence>
       <SheetPresence show={dialog?.kind === "edit"}>{dialog?.kind === "edit" && <ContactSheet contact={dialog.contact} groups={groups} onClose={closeEdit} onDone={refreshed} />}</SheetPresence>
 
-      <UndoToast undoable={undoable} />
     </div>
   );
 }
