@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { adminCampaigns, type Campaign } from "@/services/adminCampaigns";
 import { useCampaignWords } from "./words";
 import BudgetPlan from "./BudgetPlan";
+import { docLang, formatWhen } from "@/lib/safeTime";
 
 const POLL_MS = 5000;
 const nf = new Intl.NumberFormat("en-GB");
@@ -22,7 +23,7 @@ export default function Progress({ campaign, onUpdate }: { campaign: Campaign; o
 
   const c = campaign.counters;
   const done = c.sent + c.failed + c.suppressed + (c.capped ?? 0);
-  const when = (iso: string | null) => (iso ? new Intl.DateTimeFormat(document.documentElement.lang === "he" ? "he-IL" : "en-GB", { dateStyle: "medium", timeStyle: "short" }).format(new Date(iso)) : "");
+  const when = (iso: string | null) => formatWhen(iso, docLang(), { dateStyle: "medium", timeStyle: "short" });
   const cells: Array<[string, number]> = [[w.queued, c.queued], [w.sent, c.sent], [w.failed, c.failed], [w.suppressed, c.suppressed], ...(c.capped ? ([[w.capped, c.capped]] as Array<[string, number]>) : [])];
   return (
     <section className="a-box space-y-3 p-4" aria-label={w.progressHeading} data-testid="progress">

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { parseList } from "./tolerant";
 import { invalidateTranslations } from "@/services/translations";
 import { ltrValue } from "@/i18n/words";
 
@@ -168,7 +169,7 @@ export const TRACK_LANGS = [
 export const media = {
   list: async (q = "") => {
     const r = await call<{ items: unknown[] }>(q ? `?q=${encodeURIComponent(q)}` : "");
-    return z.array(MediaSchema).parse(r.items);
+    return parseList(MediaSchema, r.items);
   },
   upload: async (file: File, meta: MediaMeta, kind: MediaKind = "image", video?: VideoParts) => {
     const { qs, init } = uploadInit(file, kind, video);
@@ -213,14 +214,18 @@ export function mediaIdOf(url: string): string | null {
   return /\/api\/images\/(?:media|m)\/([a-z0-9]+(?:-[a-z0-9]+)*)(?:[/?#]|$)/.exec(url)?.[1] ?? null;
 }
 
-export function formatBytes(n: number): string {
+/* A size or a length the server got wrong prints as 0, never as NaN or a minus. */
+const nonNegative = (n: number): number => (Number.isFinite(n) && n > 0 ? n : 0);
+
+export function formatBytes(raw: number): string {
+  const n = nonNegative(raw);
   if (n < 1024) return ltrValue(`${n} B`);
   if (n < 1024 * 1024) return ltrValue(`${Math.round(n / 1024)} KB`);
   return ltrValue(`${(n / 1048576).toFixed(1).replace(/\.0$/, "")} MB`);
 }
 
 export function formatDuration(ms: number): string {
-  const s = Math.round(ms / 1000);
+  const s = Math.round(nonNegative(ms) / 1000);
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 }
 

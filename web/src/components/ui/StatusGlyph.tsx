@@ -45,6 +45,9 @@ export const STATUS = {
   used: e(ICON.usedIn, "neutral"),
 } satisfies Record<string, Entry>;
 
+/* A kind outside the table (a server newer than this build) draws this, so one odd row never blanks the screen. */
+const UNKNOWN: Entry = e(ICON.hebrewUnverified, "neutral");
+
 export type StatusKind = keyof typeof STATUS;
 export const STATUS_KINDS = Object.keys(STATUS) as StatusKind[];
 
@@ -66,9 +69,10 @@ export interface StatusGlyphProps {
 }
 
 export function StatusGlyph({ kind, size = 20, withWord = false, showDefault = false, label, tone, className }: StatusGlyphProps) {
-  const kindWord = useMobileWords().status[kind];
-  const word = label ?? kindWord;
-  const entry: Entry = STATUS[kind];
+  const words = useMobileWords();
+  const known = Object.hasOwn(STATUS, kind);
+  const word = label ?? (known ? words.status[kind] : words.statusUnknown);
+  const entry: Entry = known ? STATUS[kind] : UNKNOWN;
   if (entry.quiet && !showDefault) return null;
   const Icon = entry.icon as LucideIcon;
   const glyph = (

@@ -49,18 +49,25 @@ export default function InboxTab({ items, error, onRetry, onChange, onCreated }:
     changeRef.current = onChange;
   });
 
+  /* One send for every way the window can end, so the parent list always learns what the server said. */
+  const send = useCallback(
+    (p: Pending, onFail?: () => void) => {
+      adminAnnounce.done(p.id, p.channel).then(
+        (r) => r.event && changeRef.current(p.id, r.event),
+        () => onFail?.(),
+      );
+    },
+    [],
+  );
   const commit = useCallback(
     (p: Pending) => {
       if (undoTimer.current) clearTimeout(undoTimer.current);
       undoTimer.current = null;
       pendingRef.current = null;
       setPending(null);
-      adminAnnounce.done(p.id, p.channel).then(
-        (r) => r.event && changeRef.current(p.id, r.event),
-        () => setNote({ id: p.id, text: w.actionFailed }),
-      );
+      send(p, () => setNote({ id: p.id, text: w.actionFailed }));
     },
-    [w],
+    [w, send],
   );
   const markDone = (id: string, channel: AnnounceChannel) => {
     if (pendingRef.current) commit(pendingRef.current);
@@ -75,14 +82,21 @@ export default function InboxTab({ items, error, onRetry, onChange, onCreated }:
     pendingRef.current = null;
     setPending(null);
   };
-  /* Leaving the tab inside the window keeps what was asked for. */
-  useEffect(
-    () => () => {
-      if (pendingRef.current) void adminAnnounce.done(pendingRef.current.id, pendingRef.current.channel).catch(() => undefined);
+  /* Leaving the tab, or closing the page, inside the window keeps what was asked for. */
+  useEffect(() => {
+    const flush = () => {
+      const p = pendingRef.current;
+      if (!p) return;
+      pendingRef.current = null;
+      send(p);
+    };
+    window.addEventListener("pagehide", flush);
+    return () => {
+      window.removeEventListener("pagehide", flush);
       if (undoTimer.current) clearTimeout(undoTimer.current);
-    },
-    [],
-  );
+      flush();
+    };
+  }, [send]);
 
   const list = useMemo(
     () => (items ?? []).map((e) => (pending && pending.id === e.id ? { ...e, done: { ...e.done, [pending.channel]: pending.at } } : e)),
@@ -223,8 +237,14 @@ export default function InboxTab({ items, error, onRetry, onChange, onCreated }:
             if (open) onChange(open.id, next);
           }}
           undo={pending && open && pending.id === open.id ? { channel: pending.channel, onUndo: undoDone } : null}
+          notice={note && open && note.id === open.id ? note.text : undefined}
           onMarkDone={(channel) => open && markDone(open.id, channel)}
         />
+      )}
+      {phone && note && !open && (
+        <div className="mk-undobar" role="status">
+          <span>{note.text}</span>
+        </div>
       )}
       {phone && pending && !open && (
         <div className="mk-undobar" role="status">
