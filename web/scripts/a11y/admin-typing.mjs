@@ -74,7 +74,7 @@ const FIELDS = `
   for (const el of root.querySelectorAll("input, textarea")) {
     const t = (el.getAttribute("type") || "text").toLowerCase();
     if (el.tagName === "INPUT" && SKIP.test(t)) continue;
-    if (el.disabled || el.readOnly || el.closest("[inert]") || el.closest(".sr-only")) continue;
+    if (el.matches(":disabled") || el.readOnly || el.closest("[inert]") || el.closest(".sr-only")) continue;
     const label = (el.labels && el.labels[0] && el.labels[0].textContent) || el.getAttribute("aria-label") || el.closest("[data-setting-id]")?.getAttribute("data-setting-id") || el.name || el.id;
     const key = String(label || "field").replace(/\\s+/g, " ").trim().slice(0, 40) + " [" + t + "]";
     const n = (seen.get(key) || 0) + 1;
@@ -107,7 +107,13 @@ async function sweepField(page, tag, f, rootSel) {
     for (let d = el.closest("details"); d; d = d.parentElement?.closest("details") ?? null) window.__sweep.details.push(d);
   }, sel);
   if (!(await page.evaluate(() => document.activeElement === window.__sweep.el))) {
-    fail(`${tag} "${f.key}": the field could not take focus (an earlier edit collapsed or removed its expander)`);
+    const why = await page.evaluate(() => {
+      const e = window.__sweep.el;
+      const r = e.getBoundingClientRect();
+      const closed = e.closest("details:not([open])");
+      return `connected=${e.isConnected} size=${Math.round(r.width)}x${Math.round(r.height)} inClosedDetails=${!!closed} inert=${!!e.closest("[inert]")} hiddenAncestor=${(function () { for (let n = e; n; n = n.parentElement) { const c = getComputedStyle(n); if (c.display === "none" || c.visibility === "hidden") return n.tagName + "." + String(n.className).slice(0, 30); } return "none"; })()} active=${document.activeElement?.tagName}`;
+    });
+    fail(`${tag} "${f.key}": the field could not take focus (${why})`);
     return "failed";
   }
   await page.keyboard.press("Backspace");
@@ -132,7 +138,7 @@ async function sweepField(page, tag, f, rootSel) {
         active: a ? `${a.tagName.toLowerCase()}${a.id ? "#" + a.id : ""}` : "none",
       };
     });
-    const why = !s.connected ? "the field was removed from the page (remounted)" : !s.focused ? `focus left the field (now ${s.active})` : s.closed ? `${s.closed} expander(s) around it closed` : s.surfaceGone ? "the group sheet closed" : trimmed !== null && s.value !== trimmed && !(f.type === "email" && s.value === expected) ? `value is ${JSON.stringify(s.value)}, expected ${JSON.stringify(trimmed)}` : "";
+    const why = !s.connected ? "the field was removed from the page (remounted)" : !s.focused ? `focus left the field (now ${s.active})` : s.closed ? `${s.closed} expander(s) around it closed` : s.surfaceGone ? "the group sheet closed" : trimmed !== null && s.value !== trimmed && s.value !== expected ? `value is ${JSON.stringify(s.value)}, expected ${JSON.stringify(trimmed)}` : "";
     if (why) {
       fail(`${tag} "${f.key}": after typing ${JSON.stringify(ch)} (${JSON.stringify(typed)}): ${why}`);
       return "failed";
