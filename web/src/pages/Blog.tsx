@@ -317,6 +317,7 @@ export default function Blog() {
     <Row
       key={p.slug}
       icon={<FileText />}
+      area={p.collection}
       title={p.title}
       to={`/blog/${p.slug}`}
       meta={metaOf(p, t, lang, areaTitle)}
@@ -545,6 +546,7 @@ export default function Blog() {
   return (
     <PageShell>
       <DashboardShell
+        phonePage="blog"
         railLabel={lang === "he" ? "עיון ברשימות" : "Browse the notes"}
         rail={rail}
         asideLabel={t.timeline}

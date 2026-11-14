@@ -167,7 +167,14 @@ export default function BlogPost() {
   return (
     <PageShell>
       {post && state === "ok" && (
-        <ReadingBar entity={{ slug: post.slug, title: post.title, summary: post.excerpt, tags: post.tags }} target={reading} contentsLabel={w.contents} onContents={openSheet} />
+        <ReadingBar
+          entity={{ slug: post.slug, title: post.title, summary: post.excerpt, tags: post.tags }}
+          target={reading}
+          contentsLabel={w.contents}
+          onContents={openSheet}
+          prefs={prefs}
+          setPrefs={setPrefs}
+        />
       )}
 
       {/*
@@ -373,7 +380,7 @@ export default function BlogPost() {
             </div>
 
             {post.tags.length > 0 && (
-              <ul className="mt-section-sm flex flex-wrap gap-2">
+              <ul className={`mt-section-sm flex flex-wrap gap-2 ${reader.tagList}`}>
                 {post.tags.map((t) => (
                   <li key={t}>
                     <TagPill tag={t} />
@@ -383,7 +390,7 @@ export default function BlogPost() {
             )}
 
             {post.links.length > 0 && (
-              <ul className="mt-6 flex flex-wrap gap-3">
+              <ul className={`mt-6 flex flex-wrap gap-3 ${reader.groupRows}`}>
                 {post.links.map((l) => (
                   /* `min-w-0 max-w-full`, and a label that may wrap: a long link
                      label ("PR #329, ...") was a single unbreakable pill wider
@@ -403,7 +410,7 @@ export default function BlogPost() {
               </ul>
             )}
 
-            <div className="mt-12 flex flex-wrap items-center justify-between gap-6 border-t border-edge pt-6">
+            <div className={`mt-12 flex flex-wrap items-center justify-between gap-6 border-t border-edge pt-6 ${reader.groupCard}`}>
               <Byline />
               <FeedLink />
             </div>
@@ -416,7 +423,7 @@ export default function BlogPost() {
 
             <PostFooterNav newer={neighbours.newer} older={neighbours.older} />
 
-            <SignupBlock className="mt-section-sm" />
+            <SignupBlock className={`mt-section-sm ${reader.groupCard}`} />
           </>
           );
         })()}
