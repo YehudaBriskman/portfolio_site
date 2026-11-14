@@ -97,7 +97,7 @@ type Props = {
    * A detail page's parent, for the phone's back chip (#780): on a phone the
    * chip is the first thing in the title row, ahead of `head`.
    */
-  back?: { to: string; label: string };
+  back?: { to: string; label: string; gap?: string };
   children: ReactNode;
 };
 
@@ -140,7 +140,7 @@ export default function DashboardShell({
         )}
 
         <div className={styles.main}>
-          {phone && back && <BackChip to={back.to} label={back.label} gap="calc(8px - 2rem)" />}
+          {phone && back && <BackChip to={back.to} label={back.label} gap={back.gap ?? "calc(8px - 2rem)"} />}
           {phone && bar && (
             /* The active filters stay on the page, as removable tokens; the
                controls that change them are in the menu. Empty: no row. */
