@@ -520,6 +520,12 @@ jobs:
       - name: Admin Media on a phone
         if: matrix.check == 'a11y' && matrix.shard == 1
         run: npm run a11y:admin-media-phone
+      # Controls in the first screen of the editor, the review sheet, Audience,
+      # Areas, the nav drawer and Library at 390x844, English and Hebrew: under
+      # budget, no sideways scroll, focus returns, the desktop is unchanged.
+      - name: Admin control budgets on a phone
+        if: matrix.check == 'a11y' && matrix.shard == 1
+        run: npm run a11y:admin-density-phone
       # Admin at 320, 360, 390 and 768 wide, light and dark, English and
       # Hebrew (#660): no sideways scroll, no target under 24px, no primary
       # control under 44px on touch, no text under 14px outside the

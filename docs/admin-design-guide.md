@@ -371,6 +371,7 @@ cd web && npm run build
 npm run a11y:admin-matrix        # ONLY=media,marketing-inbox  WIDTHS=320,390  THEMES=light  LANGS=en  SHARD=1/2
 # Inbox on a phone (CI): one tappable row per event, >= 7 rows above the fold of 390x844, no sideways scroll, the sheet opens and gives focus back, Mark done offers Undo, Hebrew mirrors.
 npm run a11y:admin-media-phone   # Media on a phone (CI): 3 columns of square tiles, >= 6 tiles above the fold of 390x844, one button per tile, no sideways scroll, the sheet has the alt text before where it is used, focus returns, desktop unchanged. BEFORE=1 measures and shoots without asserting (to record an old build)
+npm run a11y:admin-density-phone   # control budgets in the fold at 390x844 (CI): editor <= 9, review sheet <= 12, Audience <= 7, Overview <= 10, drawer <= 10, Areas <= 7 (rows are counted apart), Library-expanded one row per template; no sideways scroll, focus returns, he RTL. SHOTS=<dir> writes screenshots
 npm run a11y:admin-inbox-phone   # SHOTS=<dir> also writes screenshots (taken over the protocol: page.screenshot waits for a frame this headless build rarely makes)
 # Posts and Areas on a phone (CI): one tappable row per record, >= 7 post rows above the fold of 390x844, no sideways scroll, Select shows the bulk bar, the publish review is a sheet (summary, diff, then closed Disclosures), Hebrew mirrors, desktop table unchanged.
 npm run a11y:admin-posts-phone   # SHOTS=<dir>; CHROME=<path> when Playwright's browser is not the one installed
@@ -394,6 +395,7 @@ LANGS=he npm run a11y:density -- --shots top   # THEMES=dark  likewise
 | Admin Inbox on a phone | Browser checks | `a11y:admin-inbox-phone`: 7 rows above the fold at 390x844, one button per row, 4 named glyphs, no "Ready" and no Copy in the list, sheet opens and returns focus, Undo, Hebrew mirrors |
 | Admin Posts and Areas on a phone | Browser checks | `a11y:admin-posts-phone`: 7 post rows above the fold at 390x844, one button per row, at most one glyph, Select shows the bulk bar, the review leads with what changes, Hebrew mirrors, desktop table intact |
 | Admin Media on a phone | Browser checks | `a11y:admin-media-phone`: 3 columns of square tiles at 360 to 430, >= 6 tiles above the fold at 390x844, one button per tile, sheet order (alt, used, details closed), focus back on the tile, desktop radios and explainer unchanged |
+| Admin control budgets on a phone | Browser checks | `a11y:admin-density-phone`: chrome controls in the first screen at 390x844 under budget per screen (rows counted apart), no sideways scroll, sheets return focus, he is RTL, desktop unchanged |
 | Links land where they point | Browser checks | no dead internal links |
 | Static | `ci.yml` | secrets scan, workflow and Dockerfile lint |
 | CodeQL | `codeql.yml` | security analysis; **wait for it too** |

@@ -270,6 +270,14 @@ describe("Areas on a phone", () => {
     expect(rows().length).toBe(1);
   });
 
+  it("keeps the fold to search, Select and one Filters entry: no status or kind chips", async () => {
+    mount("/admin/areas", <AdminAreas />);
+    await screen.findByRole("button", { name: /^Open Notes(,|$)/ });
+    for (const n of ["Shown", "Hidden", "Site notes", "Project"]) expect(screen.queryByRole("button", { name: n })).toBeNull();
+    expect(screen.getByRole("button", { name: "Filters" })).toBeTruthy();
+    expect(screen.getByRole("searchbox")).toBeTruthy();
+  });
+
   it("hides areas only after an Undo window", async () => {
     mount("/admin/areas", <AdminAreas />);
     await screen.findByRole("button", { name: /^Open WindoM(,|$)/ });

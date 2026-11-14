@@ -147,7 +147,7 @@ export default function AreasPhone() {
           </div>
         )}
 
-        <FilterChips defs={defs} value={filters} onChange={setFilters} common={["status", "kind"]} onOpenSheet={() => setSheet(true)} resultCount={visible.length} />
+        <FilterChips defs={defs} value={filters} onChange={setFilters} onOpenSheet={() => setSheet(true)} resultCount={visible.length} />
         <FiltersRestoredNote restored={saved.restored} onUndo={saved.undoRestore} onDismiss={saved.dismissRestored} />
 
         <p className="sr-only" role="status">{cols ? p.countAreas(visible.length) : ""}</p>

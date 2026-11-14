@@ -224,7 +224,7 @@ export default function AudiencePhone() {
         </div>
       )}
 
-      <FilterChips defs={defs} value={filters} onChange={setFilters} common={["status", "lang"]} onOpenSheet={() => setSheet(true)} resultCount={visible.length} />
+      <FilterChips defs={defs} value={filters} onChange={setFilters} onOpenSheet={() => setSheet(true)} resultCount={visible.length} />
       <FiltersRestoredNote restored={saved.restored} onUndo={saved.undoRestore} onDismiss={saved.dismissRestored} />
 
       <p className="sr-only" role="status">{items ? w.count(visible.length) : ""}</p>

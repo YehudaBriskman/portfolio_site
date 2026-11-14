@@ -133,10 +133,22 @@ describe("Audience on a phone: the list", () => {
 });
 
 describe("Audience on a phone: search and filters", () => {
-  it("filters by chip and keeps no address in the URL, in storage or anywhere but memory", async () => {
+  it("keeps the fold to search, Select, Add and one Filters entry: no status chips", async () => {
+    mount();
+    await screen.findByRole("button", { name: "Open Ada" });
+    expect(screen.queryByRole("button", { name: "Pending" })).toBeNull();
+    expect(screen.queryByRole("toolbar")?.querySelectorAll("button[aria-pressed]").length ?? 0).toBe(0);
+    expect(screen.getByRole("button", { name: "Filters" })).toBeTruthy();
+    expect(screen.getByRole("searchbox", { name: "Search contacts" })).toBeTruthy();
+  });
+
+  it("filters by status from the Filters sheet and keeps no address in the URL, in storage or anywhere but memory", async () => {
     mount();
     fireEvent.change(await screen.findByRole("searchbox", { name: "Search contacts" }), { target: { value: "ada@example.com" } });
-    fireEvent.click(screen.getByRole("button", { name: "Pending" }));
+    fireEvent.click(screen.getByRole("button", { name: "Filters" }));
+    const sheet = await screen.findByRole("dialog");
+    fireEvent.click(within(sheet).getByRole("radio", { name: /Pending/ }));
+    fireEvent.click(within(sheet).getByRole("button", { name: /Show/ }));
     await waitFor(() => expect(screen.getByTestId("where").textContent).toContain("status=pending"));
     const where = screen.getByTestId("where").textContent!;
     expect(where).toContain("tab=audience");
@@ -160,7 +172,10 @@ describe("Audience on a phone: search and filters", () => {
   it("filters by language among the people already loaded", async () => {
     mount();
     await screen.findByRole("button", { name: "Open Ada" });
-    fireEvent.click(screen.getByRole("button", { name: "Hebrew" }));
+    fireEvent.click(screen.getByRole("button", { name: "Filters" }));
+    const sheet = await screen.findByRole("dialog");
+    fireEvent.click(within(sheet).getByRole("radio", { name: "Hebrew" }));
+    fireEvent.click(within(sheet).getByRole("button", { name: /Show/ }));
     await waitFor(() => expect(rows().length).toBe(2));
     expect(screen.getByRole("button", { name: "Open dana@example.com" })).toBeTruthy();
   });
@@ -304,7 +319,7 @@ describe("Audience on a phone: Hebrew", () => {
     expect(row.querySelector("[data-rr-title] bdi")!.textContent).toBe("dana@example.com");
     expect(screen.getByRole("button", { name: "בחירה" })).toBeTruthy();
     expect(screen.getByRole("searchbox", { name: "חיפוש אנשי קשר" })).toBeTruthy();
-    expect(within(screen.getByRole("group", { name: "מצב" })).getByRole("button", { name: "ממתין" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "סינון" })).toBeTruthy();
     fireEvent.click(row);
     const dlg = await screen.findByRole("dialog");
     expect(within(dlg).getByText("dana@example.com").closest("[dir=ltr]")).toBeTruthy();

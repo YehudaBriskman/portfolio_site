@@ -3,6 +3,8 @@ import {
   Bold, Code, Heading2, Heading3, Italic, Link, Link2, List, ListChecks, ListOrdered, Quote, SquareCode, Strikethrough,
   type LucideIcon,
 } from "lucide-react";
+import { BottomSheet } from "@/components/ui/BottomSheet";
+import { usePhone } from "@/hooks/usePhone";
 import MediaPicker from "@/components/admin/MediaPicker";
 import { checkFile, media, type MediaItem } from "@/services/media";
 import { altFromFile, applyEdit, edit, imageMarkdown, openWikilink, SHORTCUTS, type Edit, type Op } from "./markdownOps";
@@ -92,6 +94,8 @@ export default function BodyEditor({ id, value, onChange, lang, targets, words, 
   const uploads = useRef(0);
   const [focusTool, setFocusTool] = useState(0);
   const [drop, setDrop] = useState(false);
+  const phone = usePhone();
+  const [formatOpen, setFormatOpen] = useState(false);
   const [ac, setAc] = useState<{ from: number; query: string; top: number; left: number } | null>(null);
   const [active, setActive] = useState(0);
   const dismissed = useRef<number | null>(null);
@@ -284,6 +288,29 @@ export default function BodyEditor({ id, value, onChange, lang, targets, words, 
     <div>
       {/* One strip, as GitHub's: the formatting tools, then the library (#288). */}
       <div className={styles.bar}>
+        {phone ? (
+          /* One button instead of thirteen: the tools are the same, in a sheet. */
+          <>
+            <button type="button" className="a-btn a-btn-ghost min-h-[44px]" data-format-sheet aria-haspopup="dialog" onMouseDown={(e) => e.preventDefault()} onClick={() => setFormatOpen(true)}>
+              {words.format}
+            </button>
+            <BottomSheet open={formatOpen} onClose={() => setFormatOpen(false)} title={words.formatTitle} snap="half">
+              <div className="grid grid-cols-4 gap-2">
+                {TOOLS.flatMap((t) => (t === "sep" ? [] : [t])).map((t) => (
+                  <button
+                    key={t.op}
+                    type="button"
+                    className="a-btn a-btn-ghost min-h-[44px] justify-center"
+                    aria-label={words.tools[t.op]}
+                    onClick={() => run(t.op)}
+                  >
+                    <t.Icon size={20} aria-hidden="true" />
+                  </button>
+                ))}
+              </div>
+            </BottomSheet>
+          </>
+        ) : (
         <div
           role="toolbar"
           aria-label={words.toolbar}
@@ -314,6 +341,7 @@ export default function BodyEditor({ id, value, onChange, lang, targets, words, 
             );
           })}
         </div>
+        )}
         <div className={styles.barEnd}>
           <MediaPicker
             value=""
