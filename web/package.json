@@ -18,6 +18,8 @@
     "a11y": "node scripts/a11y/axe-routes.mjs",
     "a11y:admin-phones": "node scripts/a11y/admin-phones.mjs",
     "a11y:admin-matrix": "node scripts/a11y/admin-matrix.mjs",
+    "a11y:public-matrix": "node scripts/a11y/public-matrix.mjs",
+    "a11y:public-matrix:selftest": "node scripts/a11y/public-matrix.mjs --self-test",
     "a11y:admin-desktop": "node scripts/a11y/admin-desktop.mjs",
     "a11y:density": "node scripts/a11y/density-matrix.mjs",
     "a11y:admin-inbox-phone": "node scripts/a11y/admin-inbox-phone.mjs",
