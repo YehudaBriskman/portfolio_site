@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { NOT_AUTHORISED, NotFoundError } from "./authError";
 import { parseList } from "./tolerant";
 import { invalidateTranslations } from "./translations";
 
@@ -153,7 +154,8 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
     ...init,
     headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
   });
-  if (res.status === 401 || res.status === 403) throw new Error("not-authorised");
+  if (res.status === 401 || res.status === 403) throw new Error(NOT_AUTHORISED);
+  if (res.status === 404) throw new NotFoundError();
   if (res.status === 409) throw new Error("This post changed elsewhere. Reload and reapply your edit.");
   if (!res.ok) {
     const body: unknown = await readJson(res).catch(() => null);

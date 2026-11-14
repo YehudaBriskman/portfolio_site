@@ -6,6 +6,7 @@ import { Empty, EmptyState, ErrorState, LoadingRows, PageHeader, RelTime, StateP
 import { usePhoneAdminWords } from "@/i18n/adminPhone";
 import { usePhone } from "@/hooks/usePhone";
 import { admin, type McpGrant } from "@/services/admin";
+import { isNotAuthorised, NOT_AUTHORISED, signInHref } from "@/services/authError";
 import { formatWhen } from "@/lib/safeTime";
 import { unreadableCount } from "@/services/tolerant";
 
@@ -22,6 +23,8 @@ export default function AdminConnections() {
   const [grants, setGrants] = useState<McpGrant[] | null>(null);
   const [skipped, setSkipped] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  /* A failed revoke is that row's problem: the list and the other grants stay. */
+  const [rowError, setRowError] = useState<{ id: string; message: string } | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [status, setStatus] = useState("");
   const phone = usePhone();
@@ -37,12 +40,13 @@ export default function AdminConnections() {
   async function revoke(g: McpGrant) {
     if (!window.confirm(`Revoke ${g.client}? It stops working on its next request.`)) return;
     setBusy(g.id);
+    setRowError(null);
     try {
       const next = await admin.revokeMcpGrant(g.id);
       setGrants((all) => (all ?? []).map((x) => (x.id === next.id ? next : x)));
       setStatus(`${g.client} revoked`);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Revoke failed");
+      setRowError({ id: g.id, message: isNotAuthorised(e) ? NOT_AUTHORISED : e instanceof Error ? e.message : "Revoke failed" });
     } finally {
       setBusy(null);
     }
@@ -112,6 +116,20 @@ export default function AdminConnections() {
                   >
                     {busy === g.id ? "Revoking…" : "Revoke"}
                   </button>
+                )}
+                {!ended && rowError?.id === g.id && (
+                  <p role="alert" className="a-error mt-1">
+                    {rowError.message === NOT_AUTHORISED ? (
+                      <>
+                        Your session has ended.{" "}
+                        <a className="a-link" href={signInHref(window.location.pathname + window.location.search)}>
+                          Sign in again
+                        </a>
+                      </>
+                    ) : (
+                      `Couldn't revoke ${g.client}: ${rowError.message}`
+                    )}
+                  </p>
                 )}
               </td>
             </tr>
