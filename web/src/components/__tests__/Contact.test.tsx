@@ -2,7 +2,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import Contact from "@/components/Contact";
-import { ContactSchema, sendContactMessage } from "@/services/contact";
+import { ContactError, ContactSchema, sendContactMessage } from "@/services/contact";
 
 /*
  * Only the send is replaced. `ContactSchema` is kept real on purpose: the form
@@ -160,6 +160,38 @@ describe("Contact", () => {
     fireEvent(dialog(), new Event("close"));
 
     expect(trigger()).toHaveFocus();
+  });
+
+  it.each([
+    ["rate", /too many tries.*few minutes/i],
+    ["large", /too large/i],
+    ["server", /could not send.*try again or email/i],
+    ["offline", /offline|connection/i],
+  ] as const)("a %s failure is a full sentence with no machine text", async (kind, re) => {
+    send.mockRejectedValue(new ContactError(kind));
+    await openDialog();
+    await fillIn();
+    await userEvent.click(screen.getByRole("button", { name: /send message/i }));
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent(re));
+    expect(screen.getByRole("alert").textContent).not.toMatch(/HTTP|\d{3}|Failed to fetch/);
+  });
+
+  it.each(["rate", "large", "server", "offline"] as const)("in Hebrew a %s failure has no English fragment", async (kind) => {
+    document.documentElement.lang = "he";
+    try {
+      send.mockRejectedValue(new ContactError(kind));
+      render(<Contact />);
+      await userEvent.click(screen.getByRole("button", { name: /כתיבת הודעה/ }));
+      await userEvent.type(screen.getByLabelText("שם"), "דנה לוי");
+      await userEvent.type(screen.getByLabelText("אימייל"), "dana@example.com");
+      await userEvent.type(screen.getByLabelText("הודעה"), "קראתי את הרשומה ויש לי שאלה לגביה.");
+      await userEvent.click(screen.getByRole("button", { name: /שליחת ההודעה/ }));
+      const alert = await screen.findByRole("alert");
+      await waitFor(() => expect(alert.textContent).toMatch(/שום דבר לא נשלח/));
+      expect(alert.textContent!.replace(/\S+@\S+/, "")).not.toMatch(/[A-Za-z]/);
+    } finally {
+      document.documentElement.removeAttribute("lang");
+    }
   });
 
   it("keeps every word, and the dialog, when the send fails", async () => {
