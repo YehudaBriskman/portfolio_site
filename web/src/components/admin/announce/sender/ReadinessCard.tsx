@@ -40,7 +40,7 @@ export default function ReadinessCard() {
             {label[i.id]}
             {i.status === "fix" && <span className="a-error mt-0 block">{fixText[i.id]}</span>}
             {i.status === "fix" && i.id === "dmarc" && (
-              <code dir="ltr" className="mt-1 block break-all rounded bg-[rgb(var(--ink)/0.06)] p-2 text-start text-xs" data-testid="dmarc-record">{w.dmarcName(d)}<br />{w.dmarcValue(d)}</code>
+              <code dir="ltr" className="mt-1 block break-all rounded bg-[rgb(var(--ink)/0.06)] p-2 text-start text-sm" data-testid="dmarc-record">{w.dmarcName(d)}<br />{w.dmarcValue(d)}</code>
             )}
             {i.status === "unknown" && (i.id === "spf" || i.id === "dkim" || i.id === "dmarc") && <span className="a-hint mt-0 block">{w.unknownDns}</span>}
           </li>

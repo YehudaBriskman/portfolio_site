@@ -33,7 +33,6 @@ const LATIN_SEEN = new Set<string>([
   "SPF",
   "DKIM",
   "DMARC",
-  "dmarc",
   "TXT",
   "DNS",
   "Domains",
