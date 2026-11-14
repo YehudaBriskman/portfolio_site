@@ -34,6 +34,7 @@ import {
 import adminContentRoutes from "./admin-content.route.js";
 import adminSettingsRoutes from "./admin-settings.route.js";
 import announceRoutes from "../announce/route.js";
+import { signatureAdminRoutes } from "../signature/route.js";
 import audienceAdminRoutes from "../audience/admin.route.js";
 import campaignRoutes from "../campaigns/route.js";
 import adminTranslationsRoutes from "./admin-translations.route.js";
@@ -132,6 +133,9 @@ router.use("/settings", adminSettingsRoutes);
 
 /* The announce inbox and its own owner-only settings doc. */
 router.use("/announce", announceRoutes);
+
+/* The signature image, one per language (draw or upload). */
+router.use("/signature", signatureAdminRoutes);
 
 /* Subscribers, groups and suppression (hash-only audit). */
 router.use("/audience", audienceAdminRoutes);
