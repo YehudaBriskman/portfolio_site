@@ -29,6 +29,8 @@ export type MailBlock =
   | { type: "card"; label?: string; meta?: string; lines: string[]; lang?: MailLang }
   /* Only from the site's own origin; alt text and a width are required. Without a height the image scales by its width. */
   | { type: "image"; src: string; alt: string; width: number; height?: number; textLabel?: string }
+  /* The owner's handwritten signature: a dark-ink PNG, and a light-ink one a dark-mode client swaps in. Own origin only, alt and size required. */
+  | { type: "signature"; src: string; srcDark?: string; alt: string; width: number; height: number }
   | { type: "divider" }
   /* Who sent it and how to reach them (lines), then the note with the unsubscribe link. */
   | { type: "footer"; lines: string[]; note?: Inline[]; extra?: Inline[][] };
@@ -146,6 +148,19 @@ function renderBlock(b: MailBlock, root: MailLang, origin: string, L: Pal): { ht
         text: `${b.textLabel ?? b.alt}: ${src}`,
       };
     }
+    case "signature": {
+      const abs = (u: string) => safeImage(new URL(u, origin).href, origin);
+      const src = abs(b.src);
+      if (!src) return { html: "", text: "" };
+      const dark = b.srcDark ? abs(b.srcDark) : null;
+      const w = dim(b.width, 480);
+      const h = dim(b.height, 240);
+      /* Dark ink on a light card by default; a client that honours prefers-color-scheme swaps to the light-ink file. */
+      const img = (cls: string, s: string, hidden: boolean) =>
+        `<img class="${cls}" src="${esc(s)}" alt="${esc(b.alt)}" width="${w}" height="${h}" style="${hidden ? "display:none;" : "display:block;"}width:${w}px;max-width:100%;height:auto;border:0">`;
+      const forcedDark = L === PALETTE.dark && !!dark;
+      return { html: row(img("sig-l", src, forcedDark) + (dark ? img("sig-d", dark, !forcedDark) : "")), text: b.alt };
+    }
     case "divider":
       return { html: row(`<div class="rule" style="border-top:1px solid ${L.rule};font-size:1px;line-height:1px;height:1px">&nbsp;</div>`), text: "--" };
     case "footer": {
@@ -166,9 +181,9 @@ function renderBlock(b: MailBlock, root: MailLang, origin: string, L: Pal): { ht
   }
 }
 
-function css(theme: MailTheme): string {
+function css(theme: MailTheme, sig = false): string {
   const D = PALETTE.dark;
-  const dark = `.page{background-color:${D.page} !important}.card{background-color:${D.card} !important}.ink{color:${D.ink} !important}.soft{color:${D.soft} !important}.lnk{color:${D.link} !important}.box{background-color:${D.box} !important;border-color:${D.rule} !important;color:${D.ink} !important}.rule{border-color:${D.rule} !important}.btn{background-color:${D.btn} !important}.btna{color:${D.btnInk} !important}`;
+  const dark = `.page{background-color:${D.page} !important}.card{background-color:${D.card} !important}.ink{color:${D.ink} !important}.soft{color:${D.soft} !important}.lnk{color:${D.link} !important}.box{background-color:${D.box} !important;border-color:${D.rule} !important;color:${D.ink} !important}.rule{border-color:${D.rule} !important}.btn{background-color:${D.btn} !important}.btna{color:${D.btnInk} !important}${sig ? ".sig-l{display:none !important}.sig-d{display:block !important}" : ""}`;
   const scheme = theme === "light" ? "light" : theme === "dark" ? "dark" : "light dark";
   return `:root{color-scheme:${scheme};supported-color-schemes:${scheme}}body{margin:0;padding:0;-webkit-text-size-adjust:100%}table{border-collapse:collapse}img{-ms-interpolation-mode:bicubic}` + (theme === "auto" ? `@media (prefers-color-scheme: dark){${dark}}` : "");
 }
@@ -194,7 +209,7 @@ ${parts.map((p) => p.html).filter(Boolean).join("\n")}
 <html lang="${lang}" dir="${dir}" xmlns="http://www.w3.org/1999/xhtml"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <meta name="color-scheme" content="${theme === "auto" ? "light dark" : theme}"><meta name="supported-color-schemes" content="${theme === "auto" ? "light dark" : theme}">
 <title>${esc(oneLine(opts.title ?? ""))}</title>
-<style>${css(theme)}</style></head>
+<style>${css(theme, blocks.some((b) => b.type === "signature"))}</style></head>
 ${body}</html>`;
   const text = parts.map((p) => p.text).filter(Boolean).join("\n\n");
   const bytes = Buffer.byteLength(html, "utf8");

@@ -22,6 +22,8 @@ import {
   type SigSlotDoc,
 } from "./schemas.js";
 import { strokesToSvg } from "./strokes.js";
+import { getShow, getSlot, tryGet } from "./store.js";
+import { resolveSignature } from "./resolve.js";
 
 /*
  * The owner's signature image, one per language, under /api/admin/signature
@@ -46,21 +48,6 @@ const adminRouter = Router();
 const invalid = (res: Response, issues: Issue[]) =>
   res.status(400).json({ ok: false, error: issues.length === 1 ? "1 field needs attention" : `${issues.length} fields need attention`, issues });
 const gone = (res: Response) => res.status(404).json({ ok: false, error: "Not Found" });
-
-async function tryGet<T>(id: string): Promise<T | null> {
-  try {
-    return await couch.get<T>(id);
-  } catch (e) {
-    if (e instanceof CouchError && e.status === 404) return null;
-    throw e;
-  }
-}
-const getSlot = (lang: SigLang) => tryGet<SigSlotDoc>(slotId(lang));
-const getShow = async (): Promise<SigShow> => {
-  const d = await tryGet<SigShowDoc>(SHOW_ID);
-  const p = d ? ShowBody.safeParse({ show: d.show }) : null;
-  return p?.success ? p.data.show : DEFAULT_SHOW;
-};
 
 const state = async () => ({
   ok: true,
@@ -199,6 +186,17 @@ const FOREVER = "public, max-age=31536000, immutable";
 const CSP = "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'";
 
 export const signaturePublicRoutes = Router();
+
+/* The post ending asks which file to draw: only the rendered asset's public facts, and only while "End of posts" is on. */
+signaturePublicRoutes.get(
+  "/:lang/current",
+  asyncHandler(async (req, res) => {
+    const lang = SigLangParam.safeParse(req.params.lang);
+    const a = lang.success ? await resolveSignature("posts", lang.data) : null;
+    if (!a) return res.set("Cache-Control", "no-store"), gone(res);
+    res.set("Cache-Control", "public, max-age=300").json({ src: a.src, alt: a.alt, width: a.width, height: a.height, format: a.format });
+  }),
+);
 
 signaturePublicRoutes.get(
   "/:lang/:file",

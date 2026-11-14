@@ -14,6 +14,7 @@ import MetaPill from "@/components/notes/MetaPill";
 import card from "@/components/notes/NoteCard.module.css";
 import pill from "@/components/notes/Pill.module.css";
 import PostFooterNav from "@/components/notes/PostFooterNav";
+import PostSignature from "@/components/notes/PostSignature";
 import ReadingBar from "@/components/notes/ReadingBar";
 import TagPill from "@/components/notes/TagPill";
 import { blog, type Post, type PostSummary } from "@/services/blog";
@@ -392,6 +393,8 @@ export default function BlogPost() {
             <div className="mt-section-sm opacity-70">
               <Ridge variant={2} />
             </div>
+
+            <PostSignature key={lang} lang={lang} className="mt-section-sm text-bone" />
 
             <PostFooterNav newer={neighbours.newer} older={neighbours.older} />
 
