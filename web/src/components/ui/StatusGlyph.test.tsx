@@ -13,7 +13,7 @@ describe("StatusGlyph", () => {
       [
         "draft", "scheduled", "sending", "sent", "paused", "failed", "canceled", "published", "changes", "hidden",
         "archived", "active", "revoked", "expired", "missing", "stale", "unverified", "translated", "mailable",
-        "pending", "unsubscribed", "suppressed", "attention",
+        "pending", "unsubscribed", "suppressed", "attention", "used",
       ].sort(),
     );
   });
