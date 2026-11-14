@@ -42,6 +42,7 @@ export const HELP_TOPICS = {
   "unsubscribe-link-problem": { group: "newsletter", kind: "problem" },
   "manage-saved": { group: "newsletter", kind: "ok" },
   "manage-link-problem": { group: "newsletter", kind: "problem" },
+  "manage-choose-topic": { group: "newsletter", kind: "problem" },
   "manage-save-failed": { group: "newsletter", kind: "problem" },
   /* Sharing and copying. */
   "share-link-copied": { group: "share", kind: "ok" },
