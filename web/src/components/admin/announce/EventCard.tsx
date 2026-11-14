@@ -11,6 +11,7 @@ import {
 } from "@/services/adminAnnounce";
 import { cardSrc, count, eventUrl, kitChannel, limitOf, links, TABS, type Format, type Tab } from "./helpers";
 import LinkPreview from "./LinkPreview";
+import { kindWord } from "./kind";
 import { useAnnounceWords } from "./words";
 
 /*
@@ -357,7 +358,7 @@ export default function EventCard({ event, onChange, defaultOpen = false }: Prop
       <div className="a-box-row items-start gap-3">
         <span className="min-w-0 flex-1">
           <span className="flex flex-wrap items-center gap-2">
-            <span className="a-tag">{w.kinds[event.kind]}</span>
+            <span className="a-tag">{kindWord(w.kinds, event.kind)}</span>
             {unread && <span className="a-tag font-bold text-[rgb(var(--signal))]">{w.newBadge}</span>}
           </span>
           <span id={`${uid}-title`} className="a-row-title mt-1 block break-words" dir="auto">

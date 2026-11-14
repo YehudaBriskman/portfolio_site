@@ -13,11 +13,13 @@ import { StatusGlyph, type StatusKind } from "@/components/ui/StatusGlyph";
 import { UndoToast, useUndoable } from "@/components/ui/UndoToast";
 import { useSavedFilters } from "@/components/ui/useSavedFilters";
 import { useSelection } from "@/components/ui/useSelection";
+import { isNotAuthorised } from "@/services/authError";
 import { adminAudience, CONTACT_STATUSES, EXPORT_URL, type Contact, type ContactLang, type ContactPatch, type ContactStatus, type Group } from "@/services/adminAudience";
 import AddContact from "./AddContact";
 import ContactSheet from "./ContactSheet";
 import { toCsv } from "./csv";
 import DataExport from "./DataExport";
+import { fillPage } from "./fillPage";
 import GroupsPanel from "./GroupsPanel";
 import ImportDialog from "./ImportDialog";
 import { SOURCE_ICON } from "./sourceIcon";
@@ -51,6 +53,9 @@ export default function AudiencePhone() {
   const [next, setNext] = useState<string | null>(null);
   const [error, setError] = useState<"load" | "auth" | null>(null);
   const [more, setMore] = useState(false);
+  const [moreFailed, setMoreFailed] = useState(false);
+  /* Which list is on screen: a "Load more" answered after the search or a filter changed is for a list that is gone. */
+  const listId = useRef(0);
   const [q, setQ] = useState("");
   const [term, setTerm] = useState("");
   const [dialog, setDialog] = useState<Dialog>(null);
@@ -90,28 +95,33 @@ export default function AudiencePhone() {
   useEffect(() => {
     if (!groupsReady) return;
     let live = true;
-    adminAudience.contacts({ group, status, q: term }).then(
-      (p) => live && (setItems(p.items), setNext(p.nextCursor), setError(null)),
-      (e: unknown) => live && setError(e instanceof Error && e.message === "not-authorised" ? "auth" : "load"),
+    listId.current += 1;
+    fillPage({ group, status, q: term }, lang).then(
+      (p) => live && (setItems(p.items), setNext(p.nextCursor), setError(null), setMore(false), setMoreFailed(false)),
+      (e: unknown) => live && setError(isNotAuthorised(e) ? "auth" : "load"),
     );
     return () => {
       live = false;
     };
-  }, [groupsReady, group, status, term, tick]);
+  }, [groupsReady, group, status, lang, term, tick]);
 
   /* A reload keeps the rows on screen until the new ones arrive, so the row that opened a sheet is still there to take focus back. */
   const reload = () => (setError(null), setTick((n) => n + 1));
   const loadMore = async () => {
     if (!next) return;
+    const asked = listId.current;
     setMore(true);
+    setMoreFailed(false);
     try {
-      const p = await adminAudience.contacts({ group, status, q: term, cursor: next });
+      const p = await fillPage({ group, status, q: term, cursor: next }, lang);
+      if (asked !== listId.current) return;
       setItems((cur) => [...(cur ?? []), ...p.items]);
       setNext(p.nextCursor);
     } catch {
-      setError("load");
+      /* The rows already read stay; only the button says it failed. */
+      if (asked === listId.current) setMoreFailed(true);
     }
-    setMore(false);
+    if (asked === listId.current) setMore(false);
   };
 
   const visible = useMemo(() => (items ?? []).filter((c) => !hidden.has(c.hash) && (!lang || c.lang === lang)), [items, hidden, lang]);
@@ -231,24 +241,28 @@ export default function AudiencePhone() {
       {note && <p role="status" className="a-hint !mt-0">{note}</p>}
 
       {error ? (
-        <ErrorState message={error === "auth" ? w.notAuthorised : w.loadFailed} onRetry={reload} />
+        <ErrorState message={error === "auth" ? w.notAuthorised : w.loadFailed} signIn={error === "auth"} onRetry={reload} />
       ) : !items ? (
         <LoadingRows label={w.loading} />
-      ) : visible.length === 0 ? (
+      ) : visible.length === 0 && !next ? (
         <EmptyState title={filtered ? w.empty : w.emptyFirst} />
       ) : (
         <div>
-          <ul
-            data-audience-list=""
-            aria-label={w.tableLabel}
-            className="a-box m-0 list-none overflow-hidden p-0"
-            onClickCapture={(e) => (lastRow.current = (e.target as HTMLElement).closest<HTMLElement>("[data-record-row]"))}
-          >
-            {visible.map(rowFor)}
-          </ul>
+          {visible.length === 0 ? (
+            <EmptyState title={w.empty} />
+          ) : (
+            <ul
+              data-audience-list=""
+              aria-label={w.tableLabel}
+              className="a-box m-0 list-none overflow-hidden p-0"
+              onClickCapture={(e) => (lastRow.current = (e.target as HTMLElement).closest<HTMLElement>("[data-record-row]"))}
+            >
+              {visible.map(rowFor)}
+            </ul>
+          )}
           {next && (
             <div className="mt-3">
-              <button type="button" className="a-btn min-h-[44px]" disabled={more} onClick={() => void loadMore()}>{more ? w.loadingMore : w.loadMore}</button>
+              <button type="button" className="a-btn min-h-[44px]" disabled={more} onClick={() => void loadMore()}>{more ? w.loadingMore : moreFailed ? w.loadMoreFailed : w.loadMore}</button>
             </div>
           )}
         </div>

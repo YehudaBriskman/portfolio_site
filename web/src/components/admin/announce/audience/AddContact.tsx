@@ -3,6 +3,7 @@ import { adminAudience, type ContactLang, type Group } from "@/services/adminAud
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import Modal from "./Modal";
 import { FOOTER } from "./modalFooter";
+import { consentNoteOk, emailOk } from "./rules";
 import { useAudienceWords } from "./words";
 
 /* `sheet` is the phone layout: the same form and the same rules in a bottom sheet, the actions in its footer. */
@@ -21,7 +22,7 @@ export default function AddContact({ groups, onClose, onDone, sheet = false }: {
 
   const submit = async () => {
     setTried(true);
-    if (!email.trim() || !note.trim()) return;
+    if (!emailOk(email) || !consentNoteOk(note)) return;
     setBusy(true);
     setError(false);
     try {
@@ -38,7 +39,8 @@ export default function AddContact({ groups, onClose, onDone, sheet = false }: {
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="sm:col-span-2">
           <label className="a-label" htmlFor={`${uid}-e`}>{w.addEmail}</label>
-          <input id={`${uid}-e`} type="email" dir="ltr" autoComplete="off" required aria-invalid={tried && !email.trim()} className="a-input min-h-[44px] text-start" value={email} onChange={(e) => setEmail(e.target.value)} />
+          <input id={`${uid}-e`} type="email" dir="ltr" autoComplete="off" required aria-invalid={tried && !emailOk(email)} aria-describedby={tried && !emailOk(email) ? `${uid}-eh` : undefined} className="a-input min-h-[44px] text-start" value={email} onChange={(e) => setEmail(e.target.value)} />
+          {tried && !emailOk(email) && <p id={`${uid}-eh`} className="a-error">{w.rowInvalid}</p>}
         </div>
         <div>
           <label className="a-label" htmlFor={`${uid}-n`}>{w.name}</label>
@@ -64,8 +66,8 @@ export default function AddContact({ groups, onClose, onDone, sheet = false }: {
       )}
       <div>
         <label className="a-label" htmlFor={`${uid}-c`}>{w.consentNote} <span className="text-clay">({w.required})</span></label>
-        <textarea id={`${uid}-c`} className="a-textarea" rows={3} dir="auto" required maxLength={500} aria-invalid={tried && !note.trim()} aria-describedby={`${uid}-ch`} value={note} onChange={(e) => setNote(e.target.value)} />
-        <p id={`${uid}-ch`} className={tried && !note.trim() ? "a-error" : "a-hint"}>{tried && !note.trim() ? w.consentNoteRequired : w.consentNoteHint}</p>
+        <textarea id={`${uid}-c`} className="a-textarea" rows={3} dir="auto" required maxLength={500} aria-invalid={tried && !consentNoteOk(note)} aria-describedby={`${uid}-ch`} value={note} onChange={(e) => setNote(e.target.value)} />
+        <p id={`${uid}-ch`} className={tried && !consentNoteOk(note) ? "a-error" : "a-hint"}>{tried && !consentNoteOk(note) ? w.consentNoteRequired : w.consentNoteHint}</p>
       </div>
       {error && <p className="a-error" role="alert">{w.saveFailed}</p>}
     </>

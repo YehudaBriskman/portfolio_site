@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { useLeaveGuard } from "@/hooks/useLeaveGuard";
+import { useContentWords } from "@/components/admin/content/words";
 import AdminShell from "@/components/admin/AdminShell";
 import EditorBar, { type BarTone } from "@/components/admin/EditorBar";
 import { PageHeader } from "@/components/admin/ui";
@@ -50,7 +52,16 @@ export default function AdminSettings() {
   const [params, setParams] = useSearchParams();
   const group = params.get("group");
   const openId = phone && isGroupId(group) ? group : null;
-  const openGroup = (id: string | null) =>
+  const navigate = useNavigate();
+  const location = useLocation();
+  /*
+   * A page (a group with a text field) is a screen, so opening it is a PUSH and Back closes it;
+   * a replace would send Back out of /admin/settings and drop the unsaved edits. A sheet pushes
+   * its own entry, so it only rewrites the address. Closing a page we pushed goes back, so no
+   * dead entry is left to step through.
+   */
+  const openGroup = (id: string | null, surface?: "page" | "sheet") => {
+    if (!id && (location.state as { settingsPage?: boolean } | null)?.settingsPage) return navigate(-1);
     setParams(
       (cur) => {
         const next = new URLSearchParams(cur);
@@ -58,8 +69,10 @@ export default function AdminSettings() {
         else next.delete("group");
         return next;
       },
-      { replace: true },
+      id && surface === "page" ? { state: { settingsPage: true } } : { replace: true },
     );
+  };
+  const leaveText = useContentWords().leaveConfirm;
   /* A page has no sheet to hand focus back, so return it to the row that opened it. */
   const lastOpen = useRef<string | null>(null);
   useEffect(() => {
@@ -120,6 +133,7 @@ export default function AdminSettings() {
   const issueAt = (path: string) => issues.find((i) => i.path === path);
   const general = issues.filter((i) => !/^home\.sections\.\d+/.test(i.path));
   const dirty = Boolean(view && draft && JSON.stringify(view.settings) !== JSON.stringify(draft));
+  useLeaveGuard(dirty || status === "saving", leaveText);
 
   const edit = (fn: (d: SiteSettings) => void) => {
     setDraft((d) => {

@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useId, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { EmptyState, ErrorState, LoadingRows, Empty } from "@/components/admin/ui";
 import { adminAudience, CONTACT_STATUSES, EXPORT_URL, type Contact, type ContactStatus, type Group } from "@/services/adminAudience";
+import { isNotAuthorised } from "@/services/authError";
 import { Disclosure } from "@/components/ui/Disclosure";
 import AddContact from "./AddContact";
 import ContactEditor, { Why } from "./ContactEditor";
@@ -27,6 +28,9 @@ export default function AudienceDesktop() {
   const [next, setNext] = useState<string | null>(null);
   const [error, setError] = useState<"load" | "auth" | null>(null);
   const [more, setMore] = useState(false);
+  const [moreFailed, setMoreFailed] = useState(false);
+  /* Which list is on screen: a "Load more" answered after the search or a filter changed is for a list that is gone. */
+  const listId = useRef(0);
   const [q, setQ] = useState("");
   const [term, setTerm] = useState("");
   const [group, setGroup] = useState("");
@@ -44,9 +48,10 @@ export default function AudienceDesktop() {
 
   useEffect(() => {
     let live = true;
+    listId.current += 1;
     adminAudience.contacts({ group, status, q: term }).then(
-      (p) => live && (setItems(p.items), setNext(p.nextCursor), setError(null)),
-      (e: unknown) => live && setError(e instanceof Error && e.message === "not-authorised" ? "auth" : "load"),
+      (p) => live && (setItems(p.items), setNext(p.nextCursor), setError(null), setMore(false), setMoreFailed(false)),
+      (e: unknown) => live && setError(isNotAuthorised(e) ? "auth" : "load"),
     );
     return () => {
       live = false;
@@ -57,15 +62,19 @@ export default function AudienceDesktop() {
   const refreshed = () => (setDialog(null), loadGroups(), reload());
   const loadMore = async () => {
     if (!next) return;
+    const asked = listId.current;
     setMore(true);
+    setMoreFailed(false);
     try {
       const p = await adminAudience.contacts({ group, status, q: term, cursor: next });
+      if (asked !== listId.current) return;
       setItems((cur) => [...(cur ?? []), ...p.items]);
       setNext(p.nextCursor);
     } catch {
-      setError("load");
+      /* The rows already read stay; only the button says it failed. */
+      if (asked === listId.current) setMoreFailed(true);
     }
-    setMore(false);
+    if (asked === listId.current) setMore(false);
   };
 
   const filtered = Boolean(group || status || term);
@@ -106,7 +115,7 @@ export default function AudienceDesktop() {
       </div>
 
       {error ? (
-        <ErrorState message={error === "auth" ? w.notAuthorised : w.loadFailed} onRetry={reload} />
+        <ErrorState message={error === "auth" ? w.notAuthorised : w.loadFailed} signIn={error === "auth"} onRetry={reload} />
       ) : !items ? (
         <LoadingRows label={w.loading} />
       ) : items.length === 0 ? (
@@ -133,10 +142,10 @@ export default function AudienceDesktop() {
                       <span className="a-row-title block text-sm"><Email value={c.email} /></span>
                       <span className="a-row-meta !mt-0.5 text-sm"><Why c={c} /></span>
                     </td>
-                    <td className="hidden text-start md:table-cell">{c.name ? <bdi dir="auto">{c.name}</bdi> : <Empty />}</td>
+                    <td className="hidden min-w-0 max-w-[14rem] text-start [overflow-wrap:anywhere] md:table-cell">{c.name ? <bdi dir="auto">{c.name}</bdi> : <Empty />}</td>
                     <td className="a-fit !px-2 text-sm sm:!px-4">{w.statuses[c.status]}</td>
                     <td className="a-fit hidden lg:table-cell text-sm">{c.lang ? w.langs[c.lang] : ""}</td>
-                    <td className="hidden text-sm lg:table-cell" dir="auto">{c.groups.length ? c.groups.map(groupName).join(", ") : <Empty />}</td>
+                    <td className="hidden min-w-0 max-w-[14rem] text-sm [overflow-wrap:anywhere] lg:table-cell" dir="auto">{c.groups.length ? c.groups.map(groupName).join(", ") : <Empty />}</td>
                     <td className="a-fit !px-2 !text-end sm:!px-4">
                       <button type="button" className="a-btn min-h-[44px] min-w-[44px]" aria-label={w.editFor(c.email)} onClick={() => setDialog({ kind: "edit", contact: c })}>{w.edit}</button>
                     </td>
@@ -147,7 +156,7 @@ export default function AudienceDesktop() {
           </div>
           {next && (
             <div className="mt-3">
-              <button type="button" className="a-btn min-h-[44px]" disabled={more} onClick={() => void loadMore()}>{more ? w.loadingMore : w.loadMore}</button>
+              <button type="button" className="a-btn min-h-[44px]" disabled={more} onClick={() => void loadMore()}>{more ? w.loadingMore : moreFailed ? w.loadMoreFailed : w.loadMore}</button>
             </div>
           )}
         </div>

@@ -2,10 +2,13 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import AdminShell from "@/components/admin/AdminShell";
 import ConnectionsPhone from "@/components/admin/connections/ConnectionsPhone";
-import { Empty, EmptyState, ErrorState, LoadingRows, PageHeader, RelTime, StatePill } from "@/components/admin/ui";
+import { Empty, EmptyState, ErrorState, LoadingRows, PageHeader, RelTime, StatePill, UnreadableNote } from "@/components/admin/ui";
 import { usePhoneAdminWords } from "@/i18n/adminPhone";
 import { usePhone } from "@/hooks/usePhone";
 import { admin, type McpGrant } from "@/services/admin";
+import { isNotAuthorised, NOT_AUTHORISED, signInHref } from "@/services/authError";
+import { formatWhen } from "@/lib/safeTime";
+import { unreadableCount } from "@/services/tolerant";
 
 /*
  * Connected apps (#263): every MCP client the owner allowed through the
@@ -14,12 +17,14 @@ import { admin, type McpGrant } from "@/services/admin";
  * tokens are refused from then on.
  */
 
-const when = new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeStyle: "short" });
-const fmt = (iso: string | null) => (iso ? when.format(new Date(iso)) : "never");
+const fmt = (iso: string | null) => (iso ? formatWhen(iso, "en", { dateStyle: "medium", timeStyle: "short" }) : "never");
 
 export default function AdminConnections() {
   const [grants, setGrants] = useState<McpGrant[] | null>(null);
+  const [skipped, setSkipped] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  /* A failed revoke is that row's problem: the list and the other grants stay. */
+  const [rowError, setRowError] = useState<{ id: string; message: string } | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [status, setStatus] = useState("");
   const phone = usePhone();
@@ -28,19 +33,20 @@ export default function AdminConnections() {
   useEffect(() => {
     admin
       .mcpGrants()
-      .then(setGrants)
+      .then((g) => (setGrants(g), setSkipped(unreadableCount(g))))
       .catch((e) => setError(e instanceof Error ? e.message : "Failed to load"));
   }, []);
 
   async function revoke(g: McpGrant) {
     if (!window.confirm(`Revoke ${g.client}? It stops working on its next request.`)) return;
     setBusy(g.id);
+    setRowError(null);
     try {
       const next = await admin.revokeMcpGrant(g.id);
       setGrants((all) => (all ?? []).map((x) => (x.id === next.id ? next : x)));
       setStatus(`${g.client} revoked`);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Revoke failed");
+      setRowError({ id: g.id, message: isNotAuthorised(e) ? NOT_AUTHORISED : e instanceof Error ? e.message : "Revoke failed" });
     } finally {
       setBusy(null);
     }
@@ -111,6 +117,20 @@ export default function AdminConnections() {
                     {busy === g.id ? "Revoking…" : "Revoke"}
                   </button>
                 )}
+                {!ended && rowError?.id === g.id && (
+                  <p role="alert" className="a-error mt-1">
+                    {rowError.message === NOT_AUTHORISED ? (
+                      <>
+                        Your session has ended.{" "}
+                        <a className="a-link" href={signInHref(window.location.pathname + window.location.search)}>
+                          Sign in again
+                        </a>
+                      </>
+                    ) : (
+                      `Couldn't revoke ${g.client}: ${rowError.message}`
+                    )}
+                  </p>
+                )}
               </td>
             </tr>
           ))}
@@ -138,6 +158,8 @@ export default function AdminConnections() {
         <p className="sr-only" role="status">
           {phone ? "" : grants === null ? "Loading connected apps" : status || `${active.length} connected`}
         </p>
+
+        <UnreadableNote count={skipped} />
 
         {error ? (
           <ErrorState message={error} />

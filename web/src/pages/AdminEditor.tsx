@@ -4,7 +4,9 @@ import { useNavigate, useParams } from "react-router-dom";
 import { X } from "lucide-react";
 import AdminShell from "@/components/admin/AdminShell";
 import EditorBar, { type BarAction, type BarTone } from "@/components/admin/EditorBar";
-import { PageHeader, StatePill } from "@/components/admin/ui";
+import { NotFoundState, PageHeader, StatePill } from "@/components/admin/ui";
+import { useAdminWords } from "@/i18n/admin";
+import { isNotFound } from "@/services/authError";
 import MediaPicker, { PickedPreview } from "@/components/admin/MediaPicker";
 import LinkEditor, { linkLabelsHe, toLinkRows, type LinkRow } from "@/components/LinkEditor";
 import BodyEditor, { type WikiTarget } from "@/components/admin/noteEditor/BodyEditor";
@@ -21,6 +23,7 @@ import { useContent } from "@/content/store";
 import { Disclosure } from "@/components/ui/Disclosure";
 import { usePhone } from "@/hooks/usePhone";
 import { admin, slugify, AdminValidationError, type AdminCollection, type AdminPost, type PostContent } from "@/services/admin";
+import { titleOf } from "@/lib/safeTitle";
 
 /*
  * The note editor (#250), the way Bothy edits files: write on one side, read
@@ -220,7 +223,10 @@ export default function AdminEditor() {
 
   const [post, setPost] = useState<AdminPost | null>(null);
   const [f, setF] = useState<Form>(EMPTY);
+  const aw = useAdminWords();
   const [loading, setLoading] = useState(!isNew);
+  /* A deep link to a post that is gone is not a new note: it says so. */
+  const [missing, setMissing] = useState(false);
   const [save, setSave] = useState<Save>({ kind: "idle" });
   const [version, setVersion] = useState(0);
   const [savedVersion, setSavedVersion] = useState(0);
@@ -273,6 +279,7 @@ export default function AdminEditor() {
 
   useEffect(() => {
     if (isNew || loadedSlug.current === slug) return;
+    setMissing(false);
     /* Moving to another post inside the debounce: the edit belongs to the post being left. */
     flushOnLeave.current?.();
     let live = true;
@@ -290,6 +297,7 @@ export default function AdminEditor() {
       .catch((e: unknown) => {
         if (!live) return;
         setLoading(false);
+        if (isNotFound(e)) return setMissing(true);
         setSave({ kind: "failed", message: e instanceof Error ? e.message : "?" });
       });
     return () => {
@@ -497,7 +505,7 @@ export default function AdminEditor() {
     : "";
   const bad = save.kind === "failed" || save.kind === "conflict";
 
-  const heading = isNew && !stored ? w.newNote : f.title || f.slug;
+  const heading = isNew && !stored ? w.newNote : titleOf(f.title, f.slug);
   const hasDraft = Boolean(published && (post?.draft || dirty));
 
   /* One row: the status, a menu for Save draft and Discard, and Review. */
@@ -538,9 +546,11 @@ export default function AdminEditor() {
   );
 
   return (
-    <AdminShell title={heading} section="posts" backTo="/admin/posts" barEverywhere bottomBar={bar}>
+    <AdminShell title={heading} section="posts" backTo="/admin/posts" barEverywhere bottomBar={missing ? undefined : bar}>
       {loading ? (
         <p className="mono mt-4 text-sm text-clay">{w.loading}</p>
+      ) : missing ? (
+        <NotFoundState text={aw.notFoundPost} to="/admin/posts" back={aw.backToPosts} />
       ) : (
         <form
           ref={formRef}

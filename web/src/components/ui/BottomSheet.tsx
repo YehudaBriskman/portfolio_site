@@ -30,6 +30,10 @@ const heightPx = (s: Snap, vh: number) => (s === "peek" ? Math.max(168, vh * 0.3
 const DISMISS_FRACTION = 0.25;
 /** A flick faster than this (px per ms) goes to the next snap, wherever it ended. */
 const FLICK = 0.5;
+/** A finger that rested this long before lifting is not flicking. */
+const FLICK_STALE_MS = 100;
+/** ...and travelled at least this far below the lowest snap, so a twitch is not a dismissal. */
+const FLICK_MIN_PX = 48;
 const DRAG_SLOP = 4;
 
 export interface BottomSheetProps {
@@ -49,7 +53,7 @@ export interface BottomSheetProps {
   children?: ReactNode;
 }
 
-type Active = { id: string; requestClose: () => void; release: () => void };
+type Active = { id: string; requestClose: () => void; release: () => void; opener: HTMLElement | null };
 let active: Active | null = null;
 
 function useMedia(query: string): boolean {
@@ -69,6 +73,21 @@ const cx = (...parts: Array<string | false | undefined>) => parts.filter(Boolean
 
 const FOCUSABLE = "button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex='-1'])";
 
+/** Where focus goes when the control that opened a sheet is gone: a neighbour of it (a list's next row), then the page's main area. Never <body>. */
+function fallbackFocus(near: Array<Element | null>) {
+  const target = (el: Element | null): HTMLElement | null => {
+    if (!el?.isConnected || el.closest("dialog, [inert]")) return null;
+    if (el.matches(FOCUSABLE)) return el as HTMLElement;
+    return el.querySelector<HTMLElement>(FOCUSABLE);
+  };
+  for (const el of near) {
+    const t = target(el);
+    if (t) return void t.focus();
+  }
+  const main = document.querySelector("main, [role=main]") ?? document.body;
+  [...main.querySelectorAll<HTMLElement>(FOCUSABLE)].find((e) => !e.closest("dialog, [role=toolbar], [inert]"))?.focus();
+}
+
 export function BottomSheet({
   open, onClose, title, snap: initial = "half", snaps: snapsProp, onSnap, dismissible = true, footer, children,
 }: BottomSheetProps) {
@@ -78,9 +97,11 @@ export function BottomSheet({
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
   const pushed = useRef(false);
-  const latest = useRef({ onClose, dismissible });
+  /* Set when the effect closes the dialog itself, so the `close` event that follows is not mistaken for a native close. */
+  const ownClose = useRef(false);
+  const latest = useRef({ onClose, dismissible, open });
   useEffect(() => {
-    latest.current = { onClose, dismissible };
+    latest.current = { onClose, dismissible, open };
   });
 
   const snaps = [...new Set<Snap>([...(snapsProp ?? ["half", "full"]), initial])].sort((a, b) => ORDER.indexOf(a) - ORDER.indexOf(b));
@@ -115,12 +136,22 @@ export function BottomSheet({
   useEffect(() => {
     const d = dialogRef.current;
     if (!d || !open) return;
-    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    let opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
 
-    if (typeof d.showModal === "function") d.showModal();
-    else d.setAttribute("open", "");
+    /* Every open starts from the resting place, whatever a drag left on the persistent dialog. */
+    resetPlace();
+    drag.current = null;
+    ownClose.current = false;
+    if (!d.open) {
+      if (typeof d.showModal === "function") d.showModal();
+      else d.setAttribute("open", "");
+    }
 
     const prev = active;
+    /* Opened from a control inside the sheet it replaces (More, then Delete): return to what opened that one. */
+    if (prev?.opener && opener?.closest("dialog")) opener = prev.opener;
+    const near: Array<Element | null> = [];
+    for (let el: Element | null = opener, n = 0; el && n < 3; el = el.parentElement, n++) near.push(el.nextElementSibling, el.previousElementSibling);
     if (prev) {
       prev.release();
       prev.requestClose();
@@ -135,6 +166,7 @@ export function BottomSheet({
       release: () => {
         pushed.current = false;
       },
+      opener,
     };
     active = me;
 
@@ -150,13 +182,17 @@ export function BottomSheet({
     return () => {
       window.removeEventListener("popstate", onPop);
       if (active === me) active = null;
+      resetPlace();
+      drag.current = null;
+      if (d.open) ownClose.current = true;
       if (typeof d.close === "function") d.close();
       else d.removeAttribute("open");
       if (pushed.current) {
         pushed.current = false;
         if ((window.history.state as { sheet?: string } | null)?.sheet === id) window.history.back();
       }
-      if (opener?.isConnected) opener.focus();
+      if (opener?.isConnected && !opener.closest("[inert]")) opener.focus();
+      else fallbackFocus(near);
     };
     // attemptClose reads the latest props through a ref; only opening and closing restart this.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -250,16 +286,18 @@ export function BottomSheet({
     const vh = window.innerHeight;
     const eff = s.h - (e.clientY - s.y);
     const low = lowest();
-    if (dismissible && (low - eff) / low > DISMISS_FRACTION) {
-      void attemptClose(false).then((closed) => {
-        if (!closed) resetPlace();
-      });
+    /* A pause before lifting cancels the speed: only a flick that is still moving at release counts. */
+    const flick = performance.now() - s.last.t > FLICK_STALE_MS ? 0 : s.v;
+    const flickedOff = flick > FLICK && snaps.indexOf(shown) <= 0 && low - eff >= FLICK_MIN_PX;
+    if (dismissible && (flickedOff || (low - eff) / low > DISMISS_FRACTION)) {
+      // Vetoed or not, the sheet is back at its resting place; a close also resets it when the effect tears down.
+      void attemptClose(false).then(resetPlace);
       return;
     }
     let target: Snap;
-    if (Math.abs(s.v) > FLICK) {
+    if (Math.abs(flick) > FLICK) {
       const i = snaps.indexOf(shown);
-      target = snaps[Math.min(snaps.length - 1, Math.max(0, i + (s.v < 0 ? 1 : -1)))];
+      target = snaps[Math.min(snaps.length - 1, Math.max(0, i + (flick < 0 ? 1 : -1)))];
     } else {
       target = snaps.reduce((best, c) => (Math.abs(heightPx(c, vh) - eff) < Math.abs(heightPx(best, vh) - eff) ? c : best), snaps[0]);
     }
@@ -284,6 +322,19 @@ export function BottomSheet({
       onCancel={(e) => {
         e.preventDefault();
         void attemptClose(false);
+      }}
+      onClose={(e) => {
+        /* The browser closed it without being asked (Back's second press, a dialog form): tell the owner, or `open` stays true. */
+        const d = e.currentTarget;
+        if (ownClose.current) {
+          ownClose.current = false;
+          return;
+        }
+        if (d.open || !latest.current.open) return;
+        void attemptClose(false).then((closed) => {
+          // Vetoed: the sheet is still wanted, so it comes back.
+          if (!closed && latest.current.open && !d.open && d.isConnected && typeof d.showModal === "function") d.showModal();
+        });
       }}
       onClick={(e) => {
         if (e.target === e.currentTarget) void attemptClose(false);

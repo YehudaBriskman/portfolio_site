@@ -1,3 +1,5 @@
+import { useLeaveGuard } from "@/hooks/useLeaveGuard";
+import { useContentWords } from "@/components/admin/content/words";
 import { useCallback, useEffect, useId, useMemo, useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { hasTextProblem, identityMissing } from "../sender/defaults";
@@ -35,6 +37,7 @@ import { StatusGlyph } from "@/components/ui/StatusGlyph";
 import { usePhone } from "@/hooks/usePhone";
 import { usePhoneCampaignWords } from "./phoneWords";
 import { useCampaignWords } from "./words";
+import { docLang, formatWhen } from "@/lib/safeTime";
 
 /*
  * One campaign. A draft is editable; anything else is shown read-only with its
@@ -129,6 +132,8 @@ export default function CampaignEditor({
   /* Once a campaign has been saved its status decides, whatever id the editor was opened with. */
   const editable = campaign ? campaign.status === "draft" : id === "new";
   const dirty = campaign ? !same(toInput(form), toInput(toForm(campaign))) : id === "new";
+  /* A new campaign nobody has typed into is not worth a prompt, so it is compared with the blank form, not with the server. */
+  useLeaveGuard(editable && (campaign ? dirty : !same(toInput(form), toInput(BLANK))), useContentWords().leaveConfirm);
   const lacks = sender ? identityMissing(sender) : [];
   const footerOk = lacks.length === 0;
   const blockBad = form.useBlocks && (form.blocks.length === 0 || form.blocks.some((b) => blockProblem(b)));
@@ -295,7 +300,7 @@ export default function CampaignEditor({
   };
 
   const zones = useMemo(() => Array.from(new Set([zone, ...ZONES])), [zone]);
-  const fmt = (iso: string) => new Intl.DateTimeFormat(document.documentElement.lang === "he" ? "he-IL" : "en-GB", { dateStyle: "medium", timeStyle: "short" }).format(new Date(iso));
+  const fmt = (iso: string) => formatWhen(iso, docLang(), { dateStyle: "medium", timeStyle: "short" });
 
   if (loadError) return <ErrorState message={w.loadFailed} onRetry={() => (setLoadError(false), setTick((n) => n + 1))} />;
   if (id !== "new" && !campaign) return <p className="a-box a-box-row text-clay" role="status">{w.loading}</p>;

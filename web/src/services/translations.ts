@@ -48,7 +48,10 @@ export function translationReport(): Promise<TranslationReport> {
   if (cache && Date.now() - cache.at < TTL_MS) return cache.value;
   const value = fetch("/api/admin/translations?visibility=all", { headers: { Accept: "application/json" } }).then(async (res) => {
     if (!res.ok) throw new Error(`Request failed (${res.status})`);
-    const body = (await res.json()) as Partial<TranslationReport> & { ok?: boolean };
+    /* An unreachable API is answered with the SPA shell: say so like the other admin services. */
+    const body = (await res.json().catch(() => {
+      throw new Error("api-down");
+    })) as Partial<TranslationReport> & { ok?: boolean };
     if (!body || !Array.isArray(body.items) || !body.counts) throw new Error("The translations report did not come back");
     return { counts: body.counts, coverage: body.coverage ?? 0, items: body.items };
   });
@@ -95,7 +98,7 @@ export function useTranslationReport(): { report: TranslationReport | null; erro
     let live = true;
     translationReport().then(
       (r) => live && setReport(r),
-      (e: unknown) => live && setError(e instanceof Error ? e.message : "Failed to load"),
+      (e: unknown) => live && setError(e instanceof Error ? (e.message === "api-down" ? "The admin API did not respond. It may be restarting." : e.message) : "Failed to load"),
     );
     return () => {
       live = false;

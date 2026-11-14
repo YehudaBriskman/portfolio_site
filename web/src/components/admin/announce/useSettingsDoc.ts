@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ContentConflictError, ContentInvalidError, type Issue } from "@/services/adminContent";
 import { adminAnnounce, type AnnounceSettings, type AnnounceSettingsView, type SenderWarning } from "@/services/adminAnnounce";
 import { DEFAULT_NOTIFY } from "./notify/defaults";
@@ -67,7 +67,10 @@ export function useSettingsDoc() {
     };
   }, [attempt, take]);
 
+  /* Counts edits, so a save can tell whether anything was typed while it was on the wire. */
+  const edits = useRef(0);
   const edit = (fn: (d: AnnounceSettings) => void) => {
+    edits.current += 1;
     setDraft((d) => {
       const next = structuredClone(d!);
       fn(next);
@@ -80,11 +83,14 @@ export function useSettingsDoc() {
     if (!view) return;
     setStatus("saving");
     setIssues([]);
+    const at = edits.current;
     try {
       const saved = await adminAnnounce.saveSettings(working, view._rev);
-      take(saved);
+      if (edits.current === at) take(saved);
+      /* Typed since the request left: adopt the server's revision, keep the newer text, and stay unsaved. */
+      else setView({ ...saved, settings: normalise(saved.settings) });
       setWarnings(saved.warnings ?? []);
-      setStatus("saved");
+      setStatus(edits.current === at ? "saved" : "idle");
     } catch (e) {
       if (e instanceof ContentConflictError) setStatus("conflict");
       else {

@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { NOT_AUTHORISED, NotFoundError } from "./authError";
+import { parseList } from "./tolerant";
 import { invalidateTranslations } from "./translations";
 
 const LinkSchema = z.object({ label: z.string(), url: z.string() });
@@ -152,7 +154,8 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
     ...init,
     headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
   });
-  if (res.status === 401 || res.status === 403) throw new Error("not-authorised");
+  if (res.status === 401 || res.status === 403) throw new Error(NOT_AUTHORISED);
+  if (res.status === 404) throw new NotFoundError();
   if (res.status === 409) throw new Error("This post changed elsewhere. Reload and reapply your edit.");
   if (!res.ok) {
     const body: unknown = await readJson(res).catch(() => null);
@@ -233,7 +236,7 @@ export const admin = {
     const hit = fresh(postsCache);
     if (hit) return hit;
     const r = await call<{ items: unknown[] }>("/posts");
-    const items = z.array(AdminPostSchema).parse(r.items);
+    const items = parseList(AdminPostSchema, r.items);
     postsCache = { at: Date.now(), value: items };
     return items;
   },
@@ -285,7 +288,7 @@ export const admin = {
     const hit = fresh(collectionsCache);
     if (hit) return hit;
     const r = await call<{ items: unknown[] }>("/collections");
-    const items = z.array(AdminCollectionSchema).parse(r.items);
+    const items = parseList(AdminCollectionSchema, r.items);
     collectionsCache = { at: Date.now(), value: items };
     return items;
   },
@@ -304,7 +307,7 @@ export const admin = {
   },
   mcpGrants: async () => {
     const r = await call<{ items: unknown[] }>("/mcp/grants");
-    return z.array(McpGrantSchema).parse(r.items);
+    return parseList(McpGrantSchema, r.items);
   },
   revokeMcpGrant: async (id: string) => {
     const r = await call<{ item: unknown }>(`/mcp/grants/${encodeURIComponent(id)}`, { method: "DELETE" });

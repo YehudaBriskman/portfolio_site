@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { adminCampaigns, type BudgetView } from "@/services/adminCampaigns";
+import { docLang, formatWhen } from "@/lib/safeTime";
 
-export const whenOf = (iso: string) => new Intl.DateTimeFormat(document.documentElement.lang === "he" ? "he-IL" : "en-GB", { dateStyle: "medium" }).format(new Date(iso));
+export const whenOf = (iso: string) => formatWhen(iso, docLang(), { dateStyle: "medium" });
 
 /** The budget as the server counts it. `null` while loading, `"failed"` when it could not be read. */
 export function useBudget(remaining?: number, refresh = 0): BudgetView | "failed" | null {

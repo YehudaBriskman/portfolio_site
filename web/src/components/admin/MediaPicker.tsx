@@ -2,6 +2,7 @@ import { useState } from "react";
 import { MEDIA_KINDS, filterMedia, media, mediaIdOf, type MediaItem, type MediaKind } from "@/services/media";
 import { KindFilter, MediaGrid, Modal } from "./MediaGrid";
 import MediaUpload from "./MediaUpload";
+import { ErrorState } from "./ui";
 import { useMediaUploadWords } from "./mediaUploadWords";
 import styles from "./Media.module.css";
 
@@ -105,7 +106,7 @@ export default function MediaPicker({
         <p className="sr-only" role="status">
           {items === null ? lib.loading(lower) : lib.count(shown.length, lower)}
         </p>
-        {error && <p className="a-error mt-4" role="alert">{error}</p>}
+        {error && <ErrorState message={error} onRetry={load} />}
         {!error && items === null && <p className="mono mt-6 text-sm text-clay">{lib.loadingShort}</p>}
         {items !== null && shown.length === 0 && (
           <p className="a-hint mt-6">

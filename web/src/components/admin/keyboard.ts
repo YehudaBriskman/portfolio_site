@@ -17,11 +17,13 @@ import { useEffect, useState } from "react";
 export const KEYBOARD_MIN_PX = 120;
 
 export function keyboardOpen(
-  vv: { height: number; offsetTop: number } | null | undefined,
+  vv: { height: number; offsetTop: number; scale?: number } | null | undefined,
   innerHeight: number,
   typing: boolean,
 ): boolean {
   if (!vv || !typing) return false;
+  // Pinch-zoom shrinks the visual viewport just as a keyboard does; only an unzoomed one can be read.
+  if ((vv.scale ?? 1) > 1.01) return false;
   return innerHeight - vv.height - vv.offsetTop > KEYBOARD_MIN_PX;
 }
 

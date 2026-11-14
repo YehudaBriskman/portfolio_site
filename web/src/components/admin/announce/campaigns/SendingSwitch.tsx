@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { adminCampaigns, type SendingState } from "@/services/adminCampaigns";
 import Modal from "../audience/Modal";
 import { useCampaignWords } from "./words";
+import { docLang, formatWhen } from "@/lib/safeTime";
 
 /*
  * The kill switch. Pausing is one click, no confirm: stopping is always safe and
@@ -36,7 +37,7 @@ export default function SendingSwitch({ onChange, compact = false }: { onChange?
       setBusy(false);
     }
   };
-  const when = (iso: string) => new Intl.DateTimeFormat(document.documentElement.lang === "he" ? "he-IL" : "en-GB", { dateStyle: "medium", timeStyle: "short" }).format(new Date(iso));
+  const when = (iso: string) => formatWhen(iso, docLang(), { dateStyle: "medium", timeStyle: "short" });
 
   if (failed)
     return (

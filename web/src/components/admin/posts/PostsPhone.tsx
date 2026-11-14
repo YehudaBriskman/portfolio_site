@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AdminShell from "@/components/admin/AdminShell";
 import { contentOf } from "@/components/admin/noteEditor/content";
-import { EmptyState, ErrorState, LoadingRows } from "@/components/admin/ui";
+import { EmptyState, ErrorState, LoadingRows, UnreadableNote } from "@/components/admin/ui";
 import { FilterChips, FiltersRestoredNote } from "@/components/ui/FilterChips";
 import { FilterSheet } from "@/components/ui/FilterSheet";
 import type { FilterDef } from "@/components/ui/filters";
@@ -18,6 +18,8 @@ import { useAdminWords } from "@/i18n/admin";
 import { admin, type AdminCollection, type AdminPost } from "@/services/admin";
 import { useTranslationStatus } from "@/services/translations";
 import { usePostsPhoneWords } from "./words";
+import { unreadableCount } from "@/services/tolerant";
+import { titleOf } from "@/lib/safeTitle";
 
 type Pending = "draft" | "archived";
 
@@ -39,6 +41,7 @@ export default function PostsPhone() {
   const heStatus = useTranslationStatus();
   const [posts, setPosts] = useState<AdminPost[] | null>(null);
   const [cols, setCols] = useState<AdminCollection[] | null>(null);
+  const [skipped, setSkipped] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [q, setQ] = useState("");
   const [sheet, setSheet] = useState(false);
@@ -52,6 +55,7 @@ export default function PostsPhone() {
       .then(([list, areas]) => {
         setPosts(list);
         setCols(areas);
+        setSkipped(unreadableCount(list) + unreadableCount(areas));
         setError(null);
       })
       .catch((e) => setError(e instanceof Error ? e.message : "Failed to load"));
@@ -147,7 +151,7 @@ export default function PostsPhone() {
     const glyph: StatusKind | null =
       state === "archived" ? "archived" : state === "draft" ? "draft" : x.draft ? "changes" : hebrew === "missing" || hebrew === "stale" ? hebrew : null;
     const facts: [Fact?] = [{ icon: ICON.when, text: relative(x.updatedAt, now, lang), label: p.updated }];
-    const title = x.title || x.slug;
+    const title = titleOf(x.title, x.slug);
     return (
       <RecordRow
         key={x.slug}
@@ -189,6 +193,8 @@ export default function PostsPhone() {
 
         <p className="sr-only" role="status">{posts ? p.count(visible.length) : ""}</p>
         {note && <p role="status" className="a-hint !mt-0">{note}</p>}
+
+        <UnreadableNote count={skipped} />
 
         {error ? (
           <ErrorState message={error} onRetry={() => (setError(null), load())} />

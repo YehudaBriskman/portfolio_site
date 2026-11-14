@@ -13,6 +13,7 @@ import { adminContent, type ContentView } from "@/services/adminContent";
 import { adminSettings, type SettingsView } from "@/services/adminSettings";
 import { media, type MediaItem } from "@/services/media";
 import type { ContentKey } from "@/content/schema";
+import { titleOf } from "@/lib/safeTitle";
 
 /*
  * The admin's landing page (#288): what is on the site, in numbers, and
@@ -71,7 +72,7 @@ function events(d: Data, w: AdminWords): Event[] {
         at: p.draftSavedAt && changes ? p.draftSavedAt : p.updatedAt,
         kind: "post",
         did: changes ? "draftSaved" : p.status === "archived" ? "archived" : p.status === "draft" ? "edited" : "published",
-        title: p.title || p.slug,
+        title: titleOf(p.title, p.slug),
         to: `/admin/posts/${p.slug}`,
         state: changes ? "changes" : p.status,
       });
@@ -343,7 +344,7 @@ export default function AdminOverview() {
                   <li key={p.slug} className="a-box-row">
                     <span className="min-w-0 flex-1">
                       <Link to={`/admin/posts/${p.slug}`} className="a-row-title">
-                        {p.title || p.slug}
+                        {titleOf(p.title, p.slug)}
                       </Link>
                       <span className="a-row-meta a-plain">
                         <StatePill state={p.status === "published" ? "changes" : "draft"} />
