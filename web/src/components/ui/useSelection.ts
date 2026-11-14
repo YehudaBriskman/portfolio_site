@@ -98,7 +98,18 @@ export function useSelection<T extends SelectionId>(ids: readonly T[]): Selectio
       window.removeEventListener("popstate", onPop);
       if (pushed.current) {
         pushed.current = false;
-        if ((window.history.state as { selection?: string } | null)?.selection === key) window.history.back();
+        const state = () => window.history.state as { selection?: string; sheet?: string } | null;
+        if (state()?.selection === key) window.history.back();
+        else if (state()?.sheet) {
+          /* A sheet was open on top and is popping its own entry in this same commit; ours is the next one down, so pop it once that lands. */
+          const later = () => {
+            window.removeEventListener("popstate", later);
+            window.clearTimeout(timer);
+            if (state()?.selection === key) window.history.back();
+          };
+          const timer = window.setTimeout(() => window.removeEventListener("popstate", later), 1000);
+          window.addEventListener("popstate", later);
+        }
       }
     };
   }, [on, key, exit]);
