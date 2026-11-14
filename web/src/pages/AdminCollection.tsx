@@ -1,5 +1,5 @@
 import Select from "@/components/ui/Select";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import AdminShell from "@/components/admin/AdminShell";
 import { PageHeader } from "@/components/admin/ui";
@@ -95,7 +95,10 @@ export default function AdminCollection() {
       .catch((e) => setSave({ kind: "failed", message: e instanceof Error ? e.message : "Failed to load" }));
   }, [slug, isNew]);
 
+  /* Counts edits, so a save can tell whether anything was typed while it was on the wire. */
+  const edits = useRef(0);
   const patch = (p: Partial<Draft>) => {
+    edits.current += 1;
     setD((prev) => ({ ...prev, ...p }));
     setSave((s) => (s.kind === "saving" ? s : { kind: "dirty" }));
   };
@@ -103,6 +106,7 @@ export default function AdminCollection() {
   async function commit() {
     setSave({ kind: "saving" });
     setFieldErrors({});
+    const at = edits.current;
     try {
       const saved = await admin.saveCollection(d.slug, {
         title: d.title,
@@ -141,7 +145,7 @@ export default function AdminCollection() {
         _rev: d._rev,
       });
       setD((p) => ({ ...p, _rev: saved._rev }));
-      setSave({ kind: "saved", at: new Date() });
+      setSave(edits.current === at ? { kind: "saved", at: new Date() } : { kind: "dirty" });
       if (isNew) nav(`/admin/areas/${saved.slug}`, { replace: true });
     } catch (e) {
       if (e instanceof AdminValidationError) {
