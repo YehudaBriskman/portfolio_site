@@ -8,6 +8,7 @@ import ListRow from "@/components/phone/ListRow";
 import PillBadge from "@/components/phone/PillBadge";
 import PinnedAction from "@/components/phone/PinnedAction";
 import SegmentedTabs from "@/components/phone/SegmentedTabs";
+import { Star, Tag } from "lucide-react";
 import { StatGrid, StatTile } from "@/components/phone/StatTile";
 import { toneOfArea, toneOfKind } from "@/components/phone/tone";
 
@@ -62,10 +63,10 @@ describe("toneOfKind", () => {
 });
 
 describe("StatTile and StatGrid", () => {
-  it("shows the value as an LTR isolate with its label", () => {
-    render(<StatTile icon={<svg />} value="v1.9.0" label="Latest release" />);
+  it("shows a glyph and the value, and keeps the label for a screen reader (not drawn)", () => {
+    render(<StatTile icon={Tag} value="v1.9.0" label="Latest release" />);
     const v = screen.getByText("v1.9.0");
-    expect(v.getAttribute("dir")).toBe("ltr");
+    expect(v.closest('[data-phone="stat-tile"]')?.querySelector("svg")).toBeTruthy();
     expect(screen.getByText("Latest release")).toBeTruthy();
   });
 
@@ -77,7 +78,7 @@ describe("StatTile and StatGrid", () => {
   it("renders only the tiles it is given", () => {
     render(
       <StatGrid label="About">
-        {[<StatTile key="a" icon={<svg />} value="12" label="Stars" />, null]}
+        {[<StatTile key="a" icon={Star} value="12" label="Stars" />, null]}
       </StatGrid>,
     );
     expect(screen.getAllByText(/./).length).toBeGreaterThan(0);
@@ -120,7 +121,11 @@ describe("ListRow and GroupedSection", () => {
 
 describe("PinnedAction", () => {
   it("is a real link, sets the page flag while mounted, and clears it", () => {
-    const { unmount } = render(<PinnedAction href="https://example.com/src">Source</PinnedAction>);
+    const { unmount } = render(
+      <PinnedAction href="https://example.com/src" label="Bothy">
+        Source
+      </PinnedAction>,
+    );
     expect(screen.getByRole("link", { name: "Source" }).getAttribute("href")).toBe("https://example.com/src");
     expect(document.documentElement.hasAttribute("data-has-pinned")).toBe(true);
     unmount();

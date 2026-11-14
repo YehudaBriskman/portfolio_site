@@ -92,7 +92,10 @@ const projectProbe = () => {
   out.header = q('[data-phone-card="header"]').length;
   out.tiles = q('[data-phone="stat-tile"]').map((t) => t.textContent.replace(/\s+/g, " ").trim());
   out.tileH = q('[data-phone="stat-tile"]').map((t) => Math.round(t.getBoundingClientRect().height));
-  out.stack = q('button[data-phone="stack-toggle"][aria-expanded]').map((b) => b.getAttribute("aria-expanded"));
+  out.details = q('[data-phone-card="header"] details').map((d) => d.open);
+  out.cover = q('[data-phone="head-cover"]').map((c) => ({ fallback: c.hasAttribute("data-fallback"), h: Math.round(c.getBoundingClientRect().height), img: !!c.querySelector("img") }));
+  out.crumb = q('[data-phone-card="header"] a[href$="/projects"]').length;
+  out.pinRadius = (() => { const d = q("[data-phone-pinned]")[0]; return d ? { bg: getComputedStyle(d).backgroundColor, shadow: getComputedStyle(d).boxShadow !== "none" } : null; })();
   const pin = q('[data-phone="pinned-action"]')[0];
   out.pin = pin ? { text: pin.textContent.trim(), fixed: getComputedStyle(pin.closest("[data-phone-pinned]") ?? pin).position === "fixed", bottom: Math.round(innerHeight - pin.getBoundingClientRect().bottom), h: Math.round(pin.getBoundingClientRect().height) } : null;
   out.rowsDeep = q("[data-phone-row]").map((e) => Math.round(e.getBoundingClientRect().height));
@@ -159,7 +162,10 @@ await Promise.all(combos.map(async ({ width, lang, theme }) => {
       if (!r.segmented) fail(tag, "tabs are not the segmented pill");
       if (r.tabs.length < 2 || r.tabs.some((t) => t.h < 44)) fail(tag, `tabs ${JSON.stringify(r.tabs)} (44 tall)`);
       if (r.tabs.filter((t) => t.tab === 0).length !== 1) fail(tag, "tablist needs exactly one tab stop");
-      if (r.stack.length !== 1 || r.stack[0] !== "false") fail(tag, `stack toggle ${JSON.stringify(r.stack)}, want one, collapsed`);
+      if (r.details.length !== 1 || r.details[0] !== false) fail(tag, `Details ${JSON.stringify(r.details)}, want one, closed`);
+      if (r.cover.length !== 1 || r.cover[0].h < 100) fail(tag, `header cover ${JSON.stringify(r.cover)}`);
+      if (r.crumb) fail(tag, "the Work crumb is still in the header card");
+      if (!r.pinRadius || !r.pinRadius.shadow || /rgba\(0, 0, 0, 0\)|transparent/.test(r.pinRadius.bg)) fail(tag, `the pinned pill is not an opaque raised surface ${JSON.stringify(r.pinRadius)}`);
       if (!r.pin) fail(tag, "no pinned action");
       else {
         if (!r.pin.fixed) fail(tag, "pinned action is not fixed");

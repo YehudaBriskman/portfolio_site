@@ -21,8 +21,11 @@ import styles from "@/components/phone/phone.module.css";
  * (direction A: depth is progressive). The whole list stays in the page, so
  * nothing is removed for a reader, a crawler or a screen reader; above 640px
  * the toggle is not shown and the list is as it was.
+ *
+ * `flat` is for a stack that already sits behind a disclosure (the phone's
+ * "Details"): shown whole, with no second toggle inside the first.
  */
-export default function ProjectStack({ tech, className = "" }: { tech: string[]; className?: string }) {
+export default function ProjectStack({ tech, className = "", flat = false }: { tech: string[]; className?: string; flat?: boolean }) {
   const w = useProjectWords();
   const [words] = useWords();
   const [open, setOpen] = useState(false);
@@ -30,7 +33,7 @@ export default function ProjectStack({ tech, className = "" }: { tech: string[];
   if (tech.length === 0) return null;
 
   return (
-    <div className={className} data-phone-stack="" data-collapsed={open ? undefined : ""}>
+    <div className={className} data-phone-stack={flat ? undefined : ""} data-collapsed={flat || open ? undefined : ""}>
       <h2 className="mono text-xs uppercase tracking-[0.18em] text-clay">{w.builtWith}</h2>
       <p id={listId} className="mono mt-3 flex flex-wrap items-baseline gap-x-2.5 gap-y-1.5 text-sm leading-relaxed text-bone/85">
         {tech.map((t, i) => (
@@ -44,7 +47,7 @@ export default function ProjectStack({ tech, className = "" }: { tech: string[];
           </Fragment>
         ))}
       </p>
-      {tech.length > 4 && (
+      {!flat && tech.length > 4 && (
         <button
           type="button"
           className={styles.stackToggle}
