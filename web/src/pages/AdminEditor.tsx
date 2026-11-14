@@ -756,7 +756,7 @@ export default function AdminEditor() {
           <p id={ids.bodyHelp} className={styles.boxFoot}>{w.bodyHelp} {w.shortcuts}</p>
           </div>
 
-          <Disclosure open={!phone || !stored} summary={w.details} meta={phone ? (cols.find((c) => c.slug === f.collection)?.title ?? f.collection) : undefined} className="mt-10">
+          <Disclosure open={!phone || !stored ? true : undefined} summary={w.details} meta={phone ? (cols.find((c) => c.slug === f.collection)?.title ?? f.collection) : undefined} className="mt-10">
             <div className="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-2">
               <label className="block">
                 <span className="a-label">{w.area}</span>

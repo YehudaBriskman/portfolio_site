@@ -402,7 +402,7 @@ export default function CampaignEditor({
                   {!phone && <p id={`${uid}-bhint`} className="a-hint">{w.bodyHint}</p>}
                 </div>
               )}
-              <Disclosure className="a-box" summary={w.blocksHeading} open={form.useBlocks}>
+              <Disclosure className="a-box" summary={w.blocksHeading} open={form.useBlocks || undefined}>
                 <div className="space-y-3">
                   <label className="flex min-h-[44px] items-center gap-3 text-sm">
                     <input type="checkbox" className="h-5 w-5" checked={form.useBlocks} onChange={(e) => set("useBlocks", e.target.checked)} />
