@@ -6,6 +6,9 @@ import { ErrorState, LoadingRows, PageHeader } from "@/components/admin/ui";
 import { ExternalLink } from "lucide-react";
 import { IssuesContext, type ContentEditor } from "./editor";
 import { useFocusField } from "./focusField";
+import { EditLangProvider } from "./editLang";
+import { useContentWords } from "./words";
+import { useLeaveGuard } from "@/hooks/useLeaveGuard";
 
 /*
  * The frame every content editor shares (#163): the title, where the
@@ -42,6 +45,12 @@ export default function EditorFrame<T>({ title, section, intro, preview, editor,
   useFocusField(value, focus);
   const busy = state.kind === "saving";
   const general = issues.filter((i) => i.path === "");
+  const words = useContentWords();
+  /* An edit that has not reached the server: dirty, refused, or still going. */
+  useLeaveGuard(
+    state.kind === "dirty" || state.kind === "saving" || state.kind === "invalid" || state.kind === "failed" || state.kind === "conflict",
+    words.leaveConfirm,
+  );
 
   const { tone, text } = barStatus(state);
   const bar = (
@@ -115,9 +124,11 @@ export default function EditorFrame<T>({ title, section, intro, preview, editor,
 
       {value !== null && (
         <IssuesContext.Provider value={issueMap}>
-          <form noValidate onSubmit={(e) => e.preventDefault()}>
-            {children(value)}
-          </form>
+          <EditLangProvider>
+            <form noValidate onSubmit={(e) => e.preventDefault()}>
+              {children(value)}
+            </form>
+          </EditLangProvider>
         </IssuesContext.Provider>
       )}
       </div>

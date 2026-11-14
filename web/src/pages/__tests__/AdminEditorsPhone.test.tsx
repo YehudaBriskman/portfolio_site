@@ -54,6 +54,9 @@ function phone(on: boolean) {
 
 const page = (el: React.ReactElement) => render(<MemoryRouter>{el}</MemoryRouter>);
 const projects = () => seedBundle().projects.items;
+/* The group toggles carry aria-controls; a nav link of the same name does not. */
+const toggle = (name: string | RegExp) =>
+  screen.getAllByRole("button", { name }).find((b) => b.hasAttribute("aria-controls")) as HTMLElement;
 
 async function publish() {
   fireEvent.click(screen.getAllByRole("button", { name: /^(Publish|פרסום)$/ })[0]);
@@ -123,7 +126,7 @@ describe("projects on a phone: field groups", () => {
     const basics = await screen.findByRole("button", { name: "Basics" });
     expect(basics).toHaveAttribute("aria-expanded", "true");
     for (const name of ["Links", "Media", "Details"]) {
-      expect(screen.getByRole("button", { name })).toHaveAttribute("aria-expanded", "false");
+      expect(toggle(name)).toHaveAttribute("aria-expanded", "false");
     }
     const links = screen.getByRole("button", { name: "Links" });
     expect(document.getElementById(links.getAttribute("aria-controls")!)).toHaveAttribute("hidden");
@@ -257,7 +260,7 @@ describe("story and site copy on a phone", () => {
     expect(hero).toHaveAttribute("aria-expanded", "true");
     expect(screen.getByRole("button", { name: "Footer" })).toHaveAttribute("aria-expanded", "false");
     await user.type(screen.getByRole("searchbox", { name: "Search site copy" }), "colophon");
-    expect(await screen.findByRole("status")).toHaveTextContent("1");
+    expect(await screen.findByText("1 group found")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Footer" })).toHaveAttribute("aria-expanded", "true");
     expect(screen.queryByRole("button", { name: "Hero" })).toBeNull();
     await user.click(screen.getByRole("button", { name: "Clear search" }));
@@ -269,8 +272,8 @@ describe("story and site copy on a phone", () => {
     page(<AdminStory />);
     const opening = await screen.findByRole("button", { name: "The opening" });
     expect(opening).toHaveAttribute("aria-expanded", "true");
-    expect(screen.queryByLabelText("Title, Hebrew (optional)")).toBeNull();
-    expect(screen.getByLabelText("Title, English")).toBeInTheDocument();
+    expect(screen.queryAllByLabelText("Title, Hebrew (optional)")).toHaveLength(0);
+    expect(screen.getAllByLabelText("Title, English").length).toBeGreaterThan(0);
   });
 });
 

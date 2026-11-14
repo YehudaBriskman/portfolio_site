@@ -1,5 +1,7 @@
 import { useEffect, useLayoutEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
+import { SHOW_LANG_EVENT } from "./editLang";
+import { OPEN_GROUP_EVENT } from "./Fields";
 
 /*
  * Arriving at one field (#302). The Translations page links each row to the
@@ -57,6 +59,19 @@ export function useFocusField<T>(value: T | null, resolve?: (value: T, field: st
     const look = () => {
       const el = find(path);
       if (el) {
+        /* On a phone the field may sit in a closed group, or show only the
+           other language: ask for both, and look again next tick. */
+        const group = el.closest("[data-group]");
+        if (group && group.getAttribute("data-open") === "false") {
+          group.dispatchEvent(new CustomEvent(OPEN_GROUP_EVENT));
+          if (++tries < 16) timer = setTimeout(look, 50);
+          return;
+        }
+        if (!el.querySelector('[lang="he"]:is(input, textarea)') && el.querySelector('[lang="en"]:is(input, textarea)')) {
+          document.dispatchEvent(new CustomEvent(SHOW_LANG_EVENT, { detail: "he" }));
+          if (++tries < 16) timer = setTimeout(look, 50);
+          return;
+        }
         el.scrollIntoView({ block: "center" });
         target(el).focus({ preventScroll: true });
         return;

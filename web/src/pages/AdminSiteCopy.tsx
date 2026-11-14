@@ -1,6 +1,9 @@
 import EditorFrame from "@/components/admin/content/EditorFrame";
 import { useContentEditor } from "@/components/admin/content/editor";
-import { LinesField, ListField, NumberField, PlainField, SelectField, Section, TextField } from "@/components/admin/content/Fields";
+import { useState } from "react";
+import { GroupSearchContext, LinesField, ListField, NumberField, PlainField, SelectField, Section, TextField } from "@/components/admin/content/Fields";
+import { LangSwitch } from "@/components/admin/content/editLang";
+import { GroupSearch, type SearchGroup } from "@/components/admin/content/GroupSearch";
 import { SiteCopySchema, type SiteCopy, type Text } from "@/content/schema";
 import TranslationPill from "@/components/admin/TranslationPill";
 import { useTranslationStatus } from "@/services/translations";
@@ -17,10 +20,20 @@ import { useTranslationStatus } from "@/services/translations";
 const req = (t: Text | null): Text => t ?? { en: "" };
 const ICONS = ["Github", "Linkedin"] as const;
 
+/* What a phone's search over the groups matches: the title and the field labels. */
+const GROUPS = {
+  hero: { title: "Hero", keywords: ["Name", "Shipping since", "Title", "Fact", "Where", "Phrases beside the light"] },
+  about: { title: "How I work", keywords: ["Heading", "Sections", "Principles", "Label", "Claim", "Lines"] },
+  contact: { title: "Contact", keywords: ["Email", "Location", "Availability", "Reply within"] },
+  profiles: { title: "Profiles", keywords: ["In the nav and the footer", "Name", "Mark", "URL", "Accessible name"] },
+  footer: { title: "Footer", keywords: ["Work links", "Colophon", "Colophon note", "Place", "Label", "Note", "URL"] },
+} satisfies Record<string, SearchGroup>;
+
 export default function AdminSiteCopy() {
   const editor = useContentEditor<SiteCopy>("site-copy", SiteCopySchema);
   const e = editor.edit;
   const heStatus = useTranslationStatus();
+  const [search, setSearch] = useState("");
 
   return (
     <EditorFrame
@@ -31,8 +44,10 @@ export default function AdminSiteCopy() {
       editor={editor}
     >
       {(c) => (
-        <>
-          <Section title="Hero" aside={<TranslationPill status={heStatus("site-copy", "hero")} />}>
+        <GroupSearchContext.Provider value={search}>
+          <GroupSearch groups={Object.values(GROUPS)} value={search} onChange={setSearch} />
+          <LangSwitch />
+          <Section {...GROUPS.hero} defaultOpen aside={<TranslationPill status={heStatus("site-copy", "hero")} />}>
             <div className="grid gap-4 sm:grid-cols-2">
               <PlainField id="site-hero-name" path="hero.name" label="Name" value={c.hero.name} onChange={(v) => e((d) => void (d.hero.name = v))} />
               <NumberField id="site-hero-since" path="hero.shippingSince" label="Shipping since" value={c.hero.shippingSince} onChange={(n) => e((d) => void (d.hero.shippingSince = n))} />
@@ -55,7 +70,7 @@ export default function AdminSiteCopy() {
             </ListField>
           </Section>
 
-          <Section title="How I work" aside={<TranslationPill status={heStatus("site-copy", "about")} />}>
+          <Section {...GROUPS.about} aside={<TranslationPill status={heStatus("site-copy", "about")} />}>
             <TextField id="site-about-heading" path="about.heading" label="Heading" value={c.about.heading} onChange={(t) => e((d) => void (d.about.heading = req(t)))} />
             <ListField
               id="site-about-intro"
@@ -96,14 +111,14 @@ export default function AdminSiteCopy() {
             </ListField>
           </Section>
 
-          <Section title="Contact" aside={<TranslationPill status={heStatus("site-copy", "contact")} />}>
+          <Section {...GROUPS.contact} aside={<TranslationPill status={heStatus("site-copy", "contact")} />}>
             <PlainField id="site-contact-email" path="contact.email" label="Email" type="email" mono dir="ltr" value={c.contact.email} onChange={(v) => e((d) => void (d.contact.email = v))} />
             <TextField id="site-contact-location" path="contact.location" label="Location" value={c.contact.location} onChange={(t) => e((d) => void (d.contact.location = req(t)))} />
             <TextField id="site-contact-availability" path="contact.availability" label="Availability" value={c.contact.availability} onChange={(t) => e((d) => void (d.contact.availability = req(t)))} />
             <TextField id="site-contact-reply" path="contact.replyWithin" label="Reply within" value={c.contact.replyWithin} onChange={(t) => e((d) => void (d.contact.replyWithin = req(t)))} />
           </Section>
 
-          <Section title="Profiles">
+          <Section {...GROUPS.profiles}>
             <ListField
               id="site-profiles"
               path="profiles"
@@ -126,7 +141,7 @@ export default function AdminSiteCopy() {
             </ListField>
           </Section>
 
-          <Section title="Footer" aside={<TranslationPill status={heStatus("site-copy", "footer")} />}>
+          <Section {...GROUPS.footer} aside={<TranslationPill status={heStatus("site-copy", "footer")} />}>
             <ListField
               id="site-footer-work"
               path="footer.work"
@@ -150,7 +165,7 @@ export default function AdminSiteCopy() {
             <TextField id="site-footer-colophon-note" path="footer.colophonNote" label="Colophon note" value={c.footer.colophonNote} onChange={(t) => e((d) => void (d.footer.colophonNote = req(t)))} />
             <TextField id="site-footer-place" path="footer.place" label="Place" value={c.footer.place} onChange={(t) => e((d) => void (d.footer.place = req(t)))} />
           </Section>
-        </>
+        </GroupSearchContext.Provider>
       )}
     </EditorFrame>
   );

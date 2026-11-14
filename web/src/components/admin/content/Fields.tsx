@@ -1,7 +1,14 @@
+import { createContext, useContext, useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { TriangleAlert } from "lucide-react";
 import Select from "@/components/ui/Select";
-import type { ReactNode } from "react";
+import { DisclosureButton } from "@/components/ui/Disclosure";
+import { usePhone } from "@/hooks/usePhone";
 import type { Text } from "@/content/schema";
 import { useIssue } from "./editor";
+import { useEditLang } from "./editLang";
+import { ReorderRows, ReorderToggle } from "./Reorder";
+import { useContentWords } from "./words";
+import styles from "./EditorPhone.module.css";
 
 /*
  * The fields the content editors are built from (#163). Each one is shaped
@@ -52,45 +59,70 @@ export function TextField({ id, path, label, hint, multiline, value, nullable, o
 
   const Input = multiline ? "textarea" : "input";
   const cls = multiline ? "a-textarea" : "a-input";
+  const phoneLang = useEditLang();
+  const w = useContentWords();
+
+  const enInput = (
+    <div className="min-w-0">
+      <label htmlFor={`${id}-en`} className="sr-only">
+        {label}, English
+      </label>
+      <Input
+        id={`${id}-en`}
+        lang="en"
+        dir="ltr"
+        className={multiline ? `${cls} min-h-[5.5rem]` : cls}
+        value={en}
+        placeholder="English"
+        aria-invalid={enError ? true : undefined}
+        aria-describedby={enError ? `${id}-en-error` : undefined}
+        onChange={(e) => set({ en: e.target.value, he })}
+      />
+      <ErrorLine id={`${id}-en-error`} message={enError} />
+    </div>
+  );
+  const heInput = (
+    <div className="min-w-0">
+      <label htmlFor={`${id}-he`} className="sr-only">
+        {label}, Hebrew (optional)
+      </label>
+      <Input
+        id={`${id}-he`}
+        lang="he"
+        dir="rtl"
+        className={multiline ? `${cls} min-h-[5.5rem]` : cls}
+        value={he}
+        placeholder="עברית (לא חובה)"
+        aria-invalid={heError ? true : undefined}
+        aria-describedby={heError ? `${id}-he-error` : undefined}
+        onChange={(e) => set({ en, he: e.target.value })}
+      />
+      <ErrorLine id={`${id}-he-error`} message={heError} />
+    </div>
+  );
+
+  /* On a phone only the language being edited is mounted; a message about the
+     other one stays visible (named by its language) so a failed publish never
+     points at a field the owner cannot see. */
+  if (phoneLang) {
+    const other = phoneLang.lang === "en" ? heError : enError;
+    const otherName = phoneLang.lang === "en" ? w.lang.he : w.lang.en;
+    return (
+      <fieldset className="min-w-0" data-path={path}>
+        <legend className="a-label">{label}</legend>
+        {phoneLang.lang === "en" ? enInput : heInput}
+        {other && <ErrorLine id={`${id}-other-error`} message={w.lang.hiddenError(otherName, other)} />}
+        {hint && <p className="a-hint">{hint}</p>}
+      </fieldset>
+    );
+  }
 
   return (
     <fieldset className="min-w-0" data-path={path}>
       <legend className="a-label">{label}</legend>
       <div className="grid gap-3 md:grid-cols-2">
-        <div className="min-w-0">
-          <label htmlFor={`${id}-en`} className="sr-only">
-            {label}, English
-          </label>
-          <Input
-            id={`${id}-en`}
-            lang="en"
-            dir="ltr"
-            className={multiline ? `${cls} min-h-[5.5rem]` : cls}
-            value={en}
-            placeholder="English"
-            aria-invalid={enError ? true : undefined}
-            aria-describedby={enError ? `${id}-en-error` : undefined}
-            onChange={(e) => set({ en: e.target.value, he })}
-          />
-          <ErrorLine id={`${id}-en-error`} message={enError} />
-        </div>
-        <div className="min-w-0">
-          <label htmlFor={`${id}-he`} className="sr-only">
-            {label}, Hebrew (optional)
-          </label>
-          <Input
-            id={`${id}-he`}
-            lang="he"
-            dir="rtl"
-            className={multiline ? `${cls} min-h-[5.5rem]` : cls}
-            value={he}
-            placeholder="עברית (לא חובה)"
-            aria-invalid={heError ? true : undefined}
-            aria-describedby={heError ? `${id}-he-error` : undefined}
-            onChange={(e) => set({ en, he: e.target.value })}
-          />
-          <ErrorLine id={`${id}-he-error`} message={heError} />
-        </div>
+        {enInput}
+        {heInput}
       </div>
       {hint && <p className="a-hint">{hint}</p>}
     </fieldset>
@@ -209,12 +241,50 @@ type ListFieldProps<T> = {
  */
 export function ListField<T>({ id, path, legend, hint, items, name, make, max, addLabel = "Add", onChange, children }: ListFieldProps<T>) {
   const error = useIssue(path);
+  const phone = usePhone();
+  const [reordering, setReordering] = useState(false);
   const move = (from: number, to: number) => {
     const next = [...items];
     const [moved] = next.splice(from, 1);
     next.splice(to, 0, moved);
     onChange(next);
   };
+  /* A phone: the records as plain cards, with the buttons that change the
+     order or remove one behind one Reorder button (see Reorder.tsx). */
+  if (phone) {
+    return (
+      <fieldset id={id} className="min-w-0" data-path={path}>
+        <legend className="a-label">{legend}</legend>
+        {hint && <p className="a-hint -mt-1 mb-3">{hint}</p>}
+        {items.length > 0 && (
+          <div className="mb-2 flex justify-end">
+            <ReorderToggle on={reordering} onToggle={() => setReordering((v) => !v)} />
+          </div>
+        )}
+        {reordering ? (
+          <ReorderRows items={items} name={(item, i) => `${i + 1}. ${name(item, i)}`} onChange={onChange} />
+        ) : (
+          <ol className="space-y-3">
+            {items.map((item, i) => (
+              <li key={i} className="a-box rounded-[var(--a-r-box)] p-3">
+                <p className={styles.itemTitle}>
+                  {i + 1}. <bdi>{name(item, i)}</bdi>
+                </p>
+                <div className="space-y-4">{children(item, i)}</div>
+              </li>
+            ))}
+          </ol>
+        )}
+        {error && <p className="a-error">{error}</p>}
+        {!reordering && (max === undefined || items.length < max) && (
+          <button type="button" className="a-btn a-btn-ghost mt-3 min-h-11 rounded-[var(--a-r-ctl)]" onClick={() => onChange([...items, make()])}>
+            {addLabel}
+          </button>
+        )}
+      </fieldset>
+    );
+  }
+
   return (
     <fieldset id={id} className="min-w-0" data-path={path}>
       <legend className="a-label">{legend}</legend>
@@ -311,15 +381,97 @@ export function LinesField({
   );
 }
 
-/** A titled group of fields inside an editor. */
-export function Section({ title, aside, children }: { title: string; aside?: ReactNode; children: ReactNode }) {
+/** Searching the groups of a page (site copy): the query, and who matches it. */
+export const GroupSearchContext = createContext<string>("");
+
+const matches = (query: string, title: string, keywords: readonly string[] = []) => {
+  const q = query.trim().toLowerCase();
+  return q === "" || title.toLowerCase().includes(q) || keywords.some((k) => k.toLowerCase().includes(q));
+};
+export const groupMatches = matches;
+
+/** An event a link to a field in a closed group sends the group. */
+export const OPEN_GROUP_EVENT = "a-open-group";
+
+type SectionProps = {
+  title: string;
+  aside?: ReactNode;
+  children: ReactNode;
+  /** A phone shows the group closed unless it is the first one to need you. */
+  defaultOpen?: boolean;
+  /** Words a search over the groups also matches (the labels of its fields). */
+  keywords?: readonly string[];
+};
+
+/**
+ * A titled group of fields inside an editor. On a desktop a heading and its
+ * fields; on a phone a closed-by-default group (a toggle with `aria-expanded`
+ * over a region) so the form is a handful of rows, not forty fields. A group
+ * with a message in it opens itself, and one a search names opens too.
+ */
+export function Section(props: SectionProps) {
+  const phone = usePhone();
+  if (!phone) {
+    return (
+      <section className="a-section">
+        <h2 className="a-section-title flex flex-wrap items-center justify-between gap-2">
+          <span>{props.title}</span>
+          {props.aside}
+        </h2>
+        {props.children}
+      </section>
+    );
+  }
+  return <PhoneGroup {...props} />;
+}
+
+function PhoneGroup({ title, aside, children, defaultOpen = false, keywords }: SectionProps) {
+  const w = useContentWords().group;
+  const id = useId();
+  const query = useContext(GroupSearchContext);
+  const [open, setOpen] = useState(defaultOpen);
+  const [problems, setProblems] = useState(0);
+  const body = useRef<HTMLDivElement>(null);
+  const seen = useRef(0);
+  const searching = query.trim() !== "";
+  const listed = matches(query, title, keywords);
+
+  /* A message arrived inside the group (the check, or the server): open it. */
+  useEffect(() => {
+    const n = body.current?.querySelectorAll(".a-error").length ?? 0;
+    setProblems(n);
+    if (n > seen.current) setOpen(true);
+    seen.current = n;
+  });
+
+  useEffect(() => {
+    const el = body.current?.closest("[data-group]");
+    if (!el) return;
+    const on = () => setOpen(true);
+    el.addEventListener(OPEN_GROUP_EVENT, on);
+    return () => el.removeEventListener(OPEN_GROUP_EVENT, on);
+  }, []);
+
+  if (!listed) return null;
+  const shown = open || (searching && listed);
+
   return (
-    <section className="a-section">
-      <h2 className="a-section-title flex flex-wrap items-center justify-between gap-2">
-        <span>{title}</span>
+    <section className={styles.group} data-group="" data-open={shown}>
+      <h2 className={styles.groupHead}>
+        <DisclosureButton expanded={shown} controls={id} onToggle={() => setOpen(!shown)}>
+          {title}
+        </DisclosureButton>
+        {problems > 0 && (
+          <span className={styles.groupMeta} title={w.attention(problems)}>
+            <TriangleAlert size={16} aria-hidden="true" focusable="false" />
+            <span className="sr-only">{w.attention(problems)}</span>
+          </span>
+        )}
         {aside}
       </h2>
-      {children}
+      <div id={id} ref={body} role="region" aria-label={title} className={styles.groupBody} hidden={!shown}>
+        {children}
+      </div>
     </section>
   );
 }
