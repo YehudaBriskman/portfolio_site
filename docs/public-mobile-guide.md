@@ -47,6 +47,7 @@ The last column says what holds the rule today. "Guard" means a failing test; "m
 | R18 | **No third-party scripts, no cookies, no trackers, no analytics beacon.** Field performance is read from CrUX / PageSpeed only. | Stated privacy position of the site. | Review |
 | R19 | **A Help topic for every control** a visitor can meet (both languages, unique ids). | A control with no explanation is a support email. | `helpTopics` tests |
 | R20 | **Every new control works with storage blocked and inside an in-app browser.** Wrap every `localStorage` access in try/catch; if `navigator.share` is missing, fall back to copy link. | Private windows throw; webviews lack APIs. We test in webviews, we do not sniff them. | Review |
+| R21 | **A ring only for keyboard focus.** Moving focus on navigation (to the heading, to a sheet's opener, to an anchor) is right for screen readers, but it must not paint a ring after a tap. `<html data-input="keyboard|pointer">` (`web/src/lib/inputModality.ts`, installed in `main.tsx`) holds the last input; one rule at the end of `index.css` removes the outline on `:focus-visible` while it is `pointer`. Never add `outline: none` to a focus style by hand, never rely on `:focus-visible` alone for script focus, and never `outline: none` under `forced-colors`. Keyboard focus keeps the 2px (3px at More contrast) ring; text fields keep theirs. | Chromium and iOS match `:focus-visible` on script focus when nothing was focused before, so a tap on a project card left a thick ring round the title (#776). | Guard, `a11y:public-focus` |
 
 ### 2.1 How the guard's warning lists work
 
@@ -83,6 +84,7 @@ For each component: the phone rule that applies, the he/en note, and what guards
 | **Sign-up block** (`components/SignupBlock.tsx`) | Email field 44 tall, consent checkbox with a 44 label hit area. | Consent text wraps in both languages. | Matrix |
 | **Share menu** (`components/share/ShareMenu.tsx`) | `navigator.share` first; fallback to the in-page menu and copy link. Each outcome has a Help topic (R19). | Per-channel URLs keep `/he`. | Existing share and `helpTopics` tests |
 | **Footer** (`components/SiteFooter.tsx`) | Links 44 tall and at least 44 wide. Admin link hidden on phones (D5, later PR). | Hebrew words are shorter: check their width. | Matrix |
+| **Route-change focus** (`components/RouteAnnouncer.tsx`, `lib/scrollToAnchor.ts`, `lib/inputModality.ts`) | Focus moves to the page heading for screen readers; no ring after a tap (R21), a 2px+ ring after a key. | Same in he and en. | `a11y:public-focus`, `inputModality` tests |
 
 ## 4. Real-device checklist
 
@@ -109,7 +111,7 @@ Note any failure as an issue with the device, OS and browser version, and a scre
 
 ## 5. PR checklist
 
-- [ ] Rules R1 to R20 read for what the PR touches; no allow-list line added (lines may only be removed).
+- [ ] Rules R1 to R21 read for what the PR touches; no allow-list line added (lines may only be removed).
 - [ ] New public wording, English and Hebrew, listed in the PR under `STRINGS FOR OWNER APPROVAL`.
 - [ ] Desktop pixels unchanged (axe and desktop screenshots).
 - [ ] Hebrew checked in a screenshot, not only in the string file.
