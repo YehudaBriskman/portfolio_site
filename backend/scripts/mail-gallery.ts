@@ -59,6 +59,7 @@ async function main() {
     files.push({ name, html });
   };
 
+  const texts: Record<string, string> = {};
   for (const lang of ["en", "he"] as const) {
     const he = lang === "he";
     for (const stress of [false, true]) {
@@ -84,6 +85,7 @@ async function main() {
         ident(name),
       );
       add(`campaign-${tag}`, campaign.html);
+      texts[`campaign-${tag}`] = campaign.text;
 
       const ev = {
         _id: "g1", type: "announce" as const, kind: "post" as const, ref: "sample", title: t(he ? "מערכת עיצוב למייל" : "A design system for mail"),
@@ -126,6 +128,8 @@ async function main() {
 
   fs.mkdirSync(out, { recursive: true });
   for (const f of files) fs.writeFileSync(path.join(out, `${f.name}.html`), f.html);
+  /* The plain-text twin of the campaign mail, as a recipient's text-only client shows it. */
+  for (const [k, v] of Object.entries(texts)) fs.writeFileSync(path.join(out, `${k}.txt`), v);
   console.log(`${files.length} files in ${out}`);
   if (!shots) return;
 

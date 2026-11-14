@@ -847,6 +847,8 @@ and every delivered mail's unsubscribe link and one-click header answer "invalid
 
 The campaign renderer (`campaigns/render.ts`) and the owner announce email (`announce/emailHtml.ts`) are built on it; their wording and the label, unsubscribe and identity behaviour are unchanged. The footer prints `contactLines()` (name, postal, email, phone, website, LinkedIn). Transactional mails (confirm, welcome, contact auto-reply) are not on it yet.
 
+Right-to-left holds in clients that drop `<html dir>` (Gmail, Outlook): `dir` is also on the body, every wrapper table and every cell, and a list indents with physical padding on the reading side as well as the logical one. A campaign with no preheader gets the first real paragraph of its body (one line, 100 characters at most, `mail/preheader.ts`) as the hidden preview line, never the advertisement label; it adds no visible text. `mail/quality.test.ts` holds AA contrast (4.5:1) for every text and button pair in both palettes.
+
 Look at every template: `cd backend && CHROMIUM_PATH=<chrome-headless-shell> npx tsx scripts/mail-gallery.ts <outDir> --shots` writes HTML and 390/600 px, light/dark screenshots (EN and HE, normal and markup/long-name stress copies).
 
 ### The handwritten signature in campaign mail
