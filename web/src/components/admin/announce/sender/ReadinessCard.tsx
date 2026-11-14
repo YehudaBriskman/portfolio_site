@@ -22,7 +22,7 @@ export default function ReadinessCard() {
   if (state === "failed") return <p className="a-error !mt-0" role="alert">{w.failed}</p>;
   const d = state.domain ?? "";
   const fixText: Record<string, string> = {
-    spf: w.fixSpf(d), dkim: w.fixDkim, dmarc: w.fixDmarc(d), domainMatch: w.fixDomainMatch, replyTo: w.fixReplyTo,
+    spf: w.fixSpf(d), dkim: w.fixDkim, dmarc: w.fixDmarc, domainMatch: w.fixDomainMatch, replyTo: w.fixReplyTo,
     identity: w.fixIdentity, testRecipient: w.fixTestRecipient, webhook: w.fixWebhook,
   };
   const label: Record<string, string> = { spf: w.spf, dkim: w.dkim, dmarc: w.dmarc, domainMatch: w.domainMatch, replyTo: w.replyTo, identity: w.identity, testRecipient: w.testRecipient, webhook: w.webhook };
@@ -39,6 +39,9 @@ export default function ReadinessCard() {
             {" - "}
             {label[i.id]}
             {i.status === "fix" && <span className="a-error mt-0 block">{fixText[i.id]}</span>}
+            {i.status === "fix" && i.id === "dmarc" && (
+              <code dir="ltr" className="mt-1 block break-all rounded bg-[rgb(var(--ink)/0.06)] p-2 text-start text-xs" data-testid="dmarc-record">{w.dmarcName(d)}<br />{w.dmarcValue(d)}</code>
+            )}
             {i.status === "unknown" && (i.id === "spf" || i.id === "dkim" || i.id === "dmarc") && <span className="a-hint mt-0 block">{w.unknownDns}</span>}
           </li>
         ))}
