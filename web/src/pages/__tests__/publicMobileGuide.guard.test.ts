@@ -144,9 +144,9 @@ describe("public mobile guide: the guide itself", () => {
   const guide = join(ROOT, "docs/public-mobile-guide.md");
   const md = existsSync(guide) ? read(guide) : "";
 
-  it("exists with rules R1 to R21, the catalogue and the real-device checklist", () => {
+  it("exists with rules R1 to R23, the catalogue and the real-device checklist", () => {
     expect(md, "docs/public-mobile-guide.md is missing").not.toBe("");
-    for (let n = 1; n <= 21; n++) expect(md, `R${n}`).toMatch(new RegExp(`^\\|\\s*R${n}\\s*\\|`, "m"));
+    for (let n = 1; n <= 23; n++) expect(md, `R${n}`).toMatch(new RegExp(`^\\|\\s*R${n}\\s*\\|`, "m"));
     expect(md).toMatch(/^## .*[Cc]atalogue/m);
     expect(md).toMatch(/^## .*[Rr]eal-device/m);
   });

@@ -1,6 +1,9 @@
 import { useId, useRef, useSyncExternalStore, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import styles from "@/components/dashboard/Dashboard.module.css";
 import { useWords } from "@/components/dashboard/i18n";
+import BackChip from "@/components/BackChip";
+import { useLocalBrowse, usePublicPhone } from "@/components/nav/localBrowse";
 
 /*
  * The dashboard shell (#224), shared by Blogs, an area (#225), the channel
@@ -90,6 +93,11 @@ type Props = {
    * phone reader wants before a long history.
    */
   asideFirst?: boolean;
+  /**
+   * A detail page's parent, for the phone's back chip (#780): on a phone the
+   * chip is the first thing in the title row, ahead of `head`.
+   */
+  back?: { to: string; label: string; gap?: string };
   children: ReactNode;
 };
 
@@ -102,10 +110,15 @@ export default function DashboardShell({
   count = 0,
   head,
   asideFirst = false,
+  back,
   children,
 }: Props) {
   const mode = useDashboardMode();
   const [t] = useWords();
+  /* Below 640 there is no Browse button and no drawer: the rail's content is
+     the first section of the floating circle's menu (#780). */
+  const phone = usePublicPhone();
+  const slot = useLocalBrowse(phone ? t.browse : null);
   const sheet = useRef<HTMLDialogElement>(null);
   const opener = useRef<HTMLButtonElement>(null);
   const titleId = useId();
@@ -118,7 +131,7 @@ export default function DashboardShell({
   );
 
   return (
-    <div className={styles.ground} data-mode={mode}>
+    <div className={styles.ground} data-mode={mode} data-phone={phone ? "" : undefined} data-back={phone && back ? "" : undefined}>
       <div className={styles.frame}>
         {mode !== "one" && (
           <aside className={styles.rail} aria-label={railLabel}>
@@ -127,7 +140,15 @@ export default function DashboardShell({
         )}
 
         <div className={styles.main}>
-          {mode === "one" && (
+          {phone && back && <BackChip to={back.to} label={back.label} gap={back.gap ?? "calc(8px - 2rem)"} />}
+          {phone && bar && (
+            /* The active filters stay on the page, as removable tokens; the
+               controls that change them are in the menu. Empty: no row. */
+            <div className={styles.sheetBar} data-filter-scope="">
+              {bar}
+            </div>
+          )}
+          {mode === "one" && !phone && (
             <div className={styles.sheetBar} data-filter-scope="">
               <button
                 ref={opener}
@@ -165,7 +186,9 @@ export default function DashboardShell({
         {mode === "three" && asideNode}
       </div>
 
-      {mode === "one" && (
+      {phone && slot && createPortal(<div className={styles.localBody}>{rail}</div>, slot)}
+
+      {mode === "one" && !phone && (
         <dialog
           ref={sheet}
           className={`${styles.sheet} pop-dialog pop-dialog--side`}

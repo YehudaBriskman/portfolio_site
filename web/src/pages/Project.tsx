@@ -491,7 +491,7 @@ export default function Project() {
           <ArrowUpRight size={18} aria-hidden="true" />
         </PinnedAction>
       )}
-      <DashboardShell railLabel={t.browse} rail={rail} asideLabel={t.about} aside={aside} head={head}>
+      <DashboardShell railLabel={t.browse} rail={rail} asideLabel={t.about} aside={aside} head={head} back={{ to: "/projects", label: t.backToWork, gap: "calc(2px - 2rem)" }}>
         {/* One H1 in every state, including this one — the heading order must
             not depend on how far a fetch got. */}
         {state === "loading" && (

@@ -175,7 +175,7 @@ const cases = [
   ["B-h5-5 Hebrew editor: back chevron mirrors, the crumb isolates an English title", async () => {
     const { ctx, page } = await open("/admin/posts/admin-redesign", { w: 390, h: 700, lang: "he" });
     const m = await page.evaluate(() => {
-      const a = document.querySelector(".a-top a.a-icon-btn");
+      const a = document.querySelector(".a-top a.a-top-word");
       const last = document.querySelector(".a-crumbs li:last-child bdi");
       return { dir: document.documentElement.dir, t: getComputedStyle(a.querySelector("svg")).transform, bidi: last ? getComputedStyle(last).unicodeBidi : "" };
     });

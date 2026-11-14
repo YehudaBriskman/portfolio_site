@@ -1213,10 +1213,38 @@
     backdrop-filter: none;
   }
 
-  /* Never tucked: a floating circle that leaves is a menu that cannot be found. */
+  /* The bar itself never moves: a `translate` on it would become the
+     containing block of the fixed circle inside it. The circle tucks on its
+     own, below (#780). */
   .dock[data-tucked]:not(:has(:focus-visible)) .bar {
     translate: none;
     opacity: 1;
+  }
+
+  /*
+   * The circle tucks on scroll-down past 56px and returns on scroll-up or
+   * focus (`useTuckedBar` sets `data-tucked`; it never sets it while the sheet
+   * is open, and `:has(:focus-visible)` holds it out while the keyboard is on
+   * it). It lifts off the top edge and fades; with motion off it only fades.
+   * Tucked, it takes no press, so a tap lands on the page under it.
+   */
+  .toggle {
+    transition:
+      background-color var(--dur-micro) ease,
+      translate var(--dur-fast) var(--ease-settle),
+      opacity var(--dur-fast) ease;
+  }
+
+  .dock[data-tucked]:not(:has(:focus-visible)) .toggle {
+    translate: 0 calc(-100% - var(--bar-inset) - 12px);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* The page's own Browse, in the sheet's first section: the page's content
+     is laid out by the page (`Dashboard.module.css .localBody`). */
+  .sheetLocal {
+    padding-inline: 6px;
   }
 
   .toggle {
@@ -1243,5 +1271,18 @@
 @media (max-width: 639px) {
   :global(html[dir='rtl']) .toggle {
     inset-inline-end: max(12px, env(safe-area-inset-left, 0px));
+  }
+}
+
+/* With motion off the circle only fades: no travel. */
+@media (max-width: 639px) and (prefers-reduced-motion: reduce) {
+  .dock[data-tucked]:not(:has(:focus-visible)) .toggle {
+    translate: none;
+  }
+}
+
+@media (max-width: 639px) {
+  :global(body.motion-paused) .dock[data-tucked]:not(:has(:focus-visible)) .toggle {
+    translate: none;
   }
 }
