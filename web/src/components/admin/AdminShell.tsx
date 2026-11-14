@@ -3,7 +3,9 @@ import { Link, useLocation } from "react-router-dom";
 import { ChevronLeft, ExternalLink, LogOut, Menu, X } from "lucide-react";
 import { admin } from "@/services/admin";
 import { markAdminSeen } from "@/components/notes/reader/adminSession";
-import DisplayMenu from "@/components/nav/DisplayMenu";
+import DisplayMenu, { DisplayPanel } from "@/components/nav/DisplayMenu";
+import { DisclosureButton } from "@/components/ui/Disclosure";
+import { useChromeWords } from "@/i18n/chrome";
 import NotificationsMenu from "@/components/admin/NotificationsMenu";
 import { toast } from "@/lib/toast";
 import { useAdminWords } from "@/i18n/admin";
@@ -115,6 +117,7 @@ export default function AdminShell({ title, section, counts, bottomBar, backTo, 
   const { pathname, search } = useLocation();
   const w = useAdminWords();
   const nw = useMobileWords().nav;
+  const chrome = useChromeWords();
   const mk = useMarketingWords();
   const aw = useAudienceWords();
   const cw = useCampaignWords();
@@ -126,6 +129,7 @@ export default function AdminShell({ title, section, counts, bottomBar, backTo, 
   const announceUnread = useAnnounceUnread();
   const [who, setWho] = useState("");
   const [open, setOpen] = useState(false);
+  const [displayOpen, setDisplayOpen] = useState(false);
   /* Widening past the drawer breakpoint (rotate, resize, snap) hides the toggle
      that could close it, so a drawer left open would leave <main> inert with no
      control to undo it. Close it at that moment, while rendering like the route
@@ -134,6 +138,7 @@ export default function AdminShell({ title, section, counts, bottomBar, backTo, 
   if (docked && open) setOpen(false);
   const drawerOpen = open && !docked;
   const drawerId = useId();
+  const displayId = useId();
   const toggle = useRef<HTMLButtonElement>(null);
   const drawer = useRef<HTMLDivElement>(null);
 
@@ -240,25 +245,29 @@ export default function AdminShell({ title, section, counts, bottomBar, backTo, 
       </a>
 
       <header className="a-top">
-        {backTo ? (
-          <Link to={backTo} className="a-btn a-btn-ghost a-icon-btn lg:hidden" aria-label={w.back}>
+        {backTo && (
+          <Link to={backTo} className="a-btn a-btn-ghost lg:hidden a-top-word" aria-label={w.back}>
             <ChevronLeft aria-hidden="true" className="a-mirror" />
+            <span aria-hidden="true">{w.back}</span>
           </Link>
-        ) : (
-          <button
-            ref={toggle}
-            type="button"
-            className="a-btn a-btn-ghost a-icon-btn lg:hidden"
-            aria-expanded={open}
-            aria-controls={drawerId}
-            aria-label={open ? w.closeMenu : w.menu}
-            onClick={() => setOpen((v) => !v)}
-          >
-            {open ? <X aria-hidden="true" /> : <Menu aria-hidden="true" />}
-          </button>
         )}
+        {/* On a phone the bar is this button and the page title: the site link, display
+            settings and the account are rows in the menu it opens (declutter). The
+            button says "Menu" in words, not a bare glyph. */}
+        <button
+          ref={toggle}
+          type="button"
+          className="a-btn a-btn-ghost a-top-word lg:hidden"
+          aria-expanded={open}
+          aria-controls={drawerId}
+          aria-label={open ? w.closeMenu : w.menu}
+          onClick={() => setOpen((v) => !v)}
+        >
+          {open ? <X aria-hidden="true" /> : <Menu aria-hidden="true" />}
+          <span aria-hidden="true">{open ? w.closeMenu : w.menu}</span>
+        </button>
 
-        <Link to="/admin" className="a-brand">
+        <Link to="/admin" className="a-brand max-lg:hidden">
           <img src="/favicon.svg" alt="" width={28} height={28} className="a-brand-mark" />
           <span className="a-brand-name">Yehuda Briskman</span>
         </Link>
@@ -283,7 +292,7 @@ export default function AdminShell({ title, section, counts, bottomBar, backTo, 
             href={PUBLIC_SITE}
             target="_blank"
             rel="noreferrer noopener"
-            className="a-btn a-btn-ghost a-top-link"
+            className="a-btn a-btn-ghost a-top-link max-lg:hidden"
             aria-label={w.viewSiteNewTab}
           >
             <ExternalLink aria-hidden="true" />
@@ -291,9 +300,9 @@ export default function AdminShell({ title, section, counts, bottomBar, backTo, 
           </a>
           {/* On a phone the bell lives in the drawer: the top bar is on a control budget. */}
           <NotificationsMenu className="max-lg:hidden" />
-          <DisplayMenu />
+          <span className="contents max-lg:hidden"><DisplayMenu /></span>
           {who && (
-            <span className="a-owner" title={w.signedInAs(who)}>
+            <span className="a-owner max-lg:hidden" title={w.signedInAs(who)}>
               <span className="a-avatar" aria-hidden="true">
                 {who.slice(0, 1).toUpperCase()}
               </span>
@@ -320,7 +329,19 @@ export default function AdminShell({ title, section, counts, bottomBar, backTo, 
 
           <div className="a-side-foot">
             <div className="lg:hidden">
-              <NotificationsMenu />
+              <NotificationsMenu withLabel />
+              <a href={PUBLIC_SITE} target="_blank" rel="noreferrer noopener" className="a-nav-item" aria-label={w.viewSiteNewTab}>
+                <span className="a-nav-icon" aria-hidden="true">
+                  <ExternalLink />
+                </span>
+                {w.viewSite}
+              </a>
+              <DisclosureButton expanded={displayOpen} controls={displayId} onToggle={() => setDisplayOpen((v) => !v)}>
+                {chrome.displaySettings}
+              </DisclosureButton>
+              <div id={displayId} hidden={!displayOpen}>
+                {displayOpen && <DisplayPanel inline />}
+              </div>
             </div>
             <p className="a-side-who">{who ? w.signedInAs(who) : w.signedIn}</p>
             <a href="/oauth2/sign_out" className="a-nav-item" onClick={() => toast.clearHistory()}>

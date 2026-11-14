@@ -8,6 +8,7 @@ import { NAV_ROUTES } from "./nav/navRoutes";
 import { useDarkChrome } from "./nav/useDarkChrome";
 import { useTuckedBar } from "./nav/useTuckedBar";
 import { useLocale } from "./nav/locale";
+import LocalSection from "./nav/LocalSection";
 import { useElsewhere } from "./nav/social";
 import { usePauseSwitch } from "./nav/usePauseSwitch";
 import { useChromeWords } from "@/i18n/chrome";
@@ -353,6 +354,10 @@ export default function Nav() {
         this is and whether it is open.
       */}
       <div ref={sheetRef} id={panelId} hidden={!open} className={styles.sheet}>
+        {/* The page's own Browse, phones only (#780): the page portals its
+            content into the slot. A link that leaves the page closes the
+            sheet; a filter control inside it (`data-filter-scope`) does not. */}
+        <LocalSection onLeave={close} />
         <nav aria-label={w.pages}>
           <p className={styles.sheetHead}>{w.pages}</p>
           <ul className={styles.sheetList}>

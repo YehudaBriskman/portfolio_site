@@ -127,7 +127,7 @@ export default function OverviewPhone({
           <span>{label}</span>
         </span>
         <span className={styles.figure}>{value}</span>
-        {bar}
+        <span className={styles.tileSlot}>{bar}</span>
       </Link>
     </li>
   );
