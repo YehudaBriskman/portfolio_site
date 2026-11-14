@@ -450,7 +450,10 @@ export function SearchField({
         value={value}
         placeholder={placeholder}
         autoComplete="off"
+        autoCapitalize="off"
+        autoCorrect="off"
         spellCheck={false}
+        inputMode="search"
         enterKeyHint="search"
         dir={typedDir(value)}
         className={styles.searchInput}

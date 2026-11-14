@@ -499,8 +499,14 @@ jobs:
       # in the dock and the hero, safe-area padding under an emulated notch,
       # in portrait and landscape, English and Hebrew, light and dark.
       - name: Landing first screen on a phone
-        if: matrix.check == 'a11y' && matrix.shard == 6
+        if: matrix.check == 'a11y' && matrix.shard == 5
         run: npm run a11y:public-landing
+      # The Blog search box on a phone (#766): the field full width with its
+      # icon inside, "#"/"@" on their own 44px row, no keyboard-only sentence
+      # for touch, search keyboard hints, a 44px clear button, Hebrew mirrors.
+      - name: Blog search box on a phone
+        if: matrix.check == 'a11y' && matrix.shard == 6
+        run: npm run a11y:public-blog-filter
       # Admin on a phone (#655): the projects list stays on screen, the draft
       # banner keeps its sentence, the small links are 44px. Layout, which axe
       # cannot see; leg 1 of 2.

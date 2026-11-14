@@ -822,6 +822,10 @@
   border-color: rgb(var(--ink-soft));
 }
 
+.askField {
+  position: relative;
+}
+
 .askInput {
   display: block;
   width: 100%;
@@ -874,13 +878,16 @@
   transition: background-color var(--dur-micro) ease;
 }
 
-.askTool:hover {
-  background: var(--dash-hover);
+@media (hover: hover) {
+  .askTool:hover {
+    background: var(--dash-hover);
+  }
 }
 
 .askHint {
   min-width: 0;
-  flex: 1;
+  /* Never squeezed beside the buttons: below 12rem it takes a row of its own. */
+  flex: 1 1 12rem;
   font-size: .875rem;
   color: rgb(var(--ink-soft));
 }
@@ -897,8 +904,71 @@
   cursor: pointer;
 }
 
-.askSubmit:hover {
-  background: var(--dash-hover);
+@media (hover: hover) {
+  .askSubmit:hover {
+    background: var(--dash-hover);
+  }
+}
+
+/* The clear button, once there is text: inside the field, at the inline end. */
+.askClear {
+  position: absolute;
+  inset-block-start: 0.375rem;
+  inset-inline-end: 0.375rem;
+  display: inline-grid;
+  width: 2.25rem;
+  height: 2.25rem;
+  place-items: center;
+  border: 0;
+  border-radius: var(--dash-r-inner);
+  background: transparent;
+  color: rgb(var(--ink-soft));
+  cursor: pointer;
+}
+
+.askField:has(.askClear) .askInput {
+  padding-inline-end: 2.75rem;
+}
+
+@media (hover: hover) {
+  .askClear:hover {
+    background: var(--dash-hover);
+    color: rgb(var(--ink));
+  }
+}
+
+/* On a phone (#766): one full-width line with the search icon inside it at the
+   inline start and the clear button at the end, 44px each. "#" and "@" sit on
+   the row below. The search button stays where it is in the DOM (last in the
+   tab order, as on a desktop) and is laid over the field's start edge. */
+@media (pointer: coarse), (max-width: 40rem) {
+  .askBox {
+    position: relative;
+  }
+  .askInput {
+    height: 3rem;
+    min-height: 0;
+    padding: 0.75rem 2.75rem;
+    line-height: 1.5rem;
+    overflow: hidden;
+  }
+  .askClear {
+    inset-block-start: 0;
+    inset-inline-end: 0;
+    width: 2.75rem;
+    height: 3rem;
+  }
+  .askBox > .askTools > .askSubmit {
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline-start: 0;
+    width: 2.75rem;
+    height: 3rem;
+    color: rgb(var(--ink-soft));
+  }
+  .askHint {
+    flex-basis: 100%;
+  }
 }
 
 .offers {

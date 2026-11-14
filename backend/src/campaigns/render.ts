@@ -4,6 +4,7 @@ import { fillParts, hasLink, manageUrl, unsubscribeUrls } from "../audience/mail
 import type { Lang } from "../audience/schemas.js";
 import { oneLine } from "../mail/escape.js";
 import { renderMail, type Inline, type MailBlock } from "../mail/render.js";
+import { autoPreheader } from "../mail/preheader.js";
 import { bodyBlocks } from "./body.js";
 import { resolveSignature } from "../signature/resolve.js";
 import type { Campaign } from "./schemas.js";
@@ -67,13 +68,14 @@ export async function renderCampaignMail(
   /* The handwritten signature, in this recipient's language, else the other one. A store hiccup must never stop a send. */
   const sig = await resolveSignature("email", lang).catch(() => null);
 
+  const body = bodyBlocks(c);
   const blocks: MailBlock[] = [
     ...(label ? [{ type: "paragraph" as const, tone: "strong" as const, text: label.line }] : []),
-    ...bodyBlocks(c),
+    ...body,
     ...(sig ? [{ type: "signature" as const, src: sig.src, ...(sig.srcLight ? { srcDark: sig.srcLight } : {}), alt: sig.alt, width: sig.width, height: sig.height }] : []),
     { type: "footer", lines: identityLines, note: fillParts(note, vars), extra: [...(missingLink ? [fillParts(fallback, vars)] : []), [{ href: prefsHref, text: he ? PREFS_LABEL_HE : PREFS_LABEL_EN }]] },
   ];
-  const { html, text } = renderMail(blocks, { lang, title: c.subject, ...(c.preheader?.trim() ? { preheader: c.preheader } : {}) });
+  const { html, text } = renderMail(blocks, { lang, title: c.subject, ...(c.preheader?.trim() ? { preheader: c.preheader } : autoPreheader(body) ? { preheader: autoPreheader(body) } : {}) });
 
   return {
     subject,

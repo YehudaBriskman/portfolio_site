@@ -99,7 +99,7 @@ export async function finishSend(r: SendResult): Promise<void> {
 
 /* The sender's own bookkeeping: how many went out this hour and this day, across all campaigns. */
 export const RATE_ID = "sender:state";
-export type RateState = { _id: typeof RATE_ID; _rev?: string; type: "sender-state"; hour: string; hourCount: number; day: string; dayCount: number };
+export type RateState = { _id: typeof RATE_ID; _rev?: string; type: "sender-state"; hour: string; hourCount: number; day: string; dayCount: number; /** When warm-up day 1 began: the first newsletter reservation. Absent until then. */ firstSendAt?: string };
 export const getRate = () => tryGet<RateState>(RATE_ID);
 export async function putRate(s: RateState): Promise<void> {
   await couch.put(RATE_ID, s);

@@ -12,7 +12,7 @@ export const CAMPAIGN_STATUSES = ["draft", "scheduled", "sending", "sent", "fail
 export type CampaignStatus = (typeof CAMPAIGN_STATUSES)[number];
 export type CampaignLang = "en" | "he" | "all";
 /** Why the sender stopped the campaign by itself. */
-export type PauseReason = "auth" | "consecutive" | "failure-rate" | "hard-bounce-rate";
+export type PauseReason = "auth" | "consecutive" | "failure-rate" | "hard-bounce-rate" | "complaint";
 export type CampaignTopic = "blog" | "releases";
 
 export type Block =
@@ -70,6 +70,7 @@ export type CapChoice = { skipCapped?: boolean; overrideCap?: boolean; /** The a
 export type CapInfo = { code: "cap"; capped: number; total: number; max: number };
 
 /** The mail budget (GET /budget): counts only. `plan` is present when `remaining` was asked; null means the settings leave no room at all. */
+export type ReadinessView = { domain: string | null; replyTo: boolean; items: Array<{ id: "spf" | "dkim" | "dmarc" | "domainMatch" | "replyTo" | "identity" | "testRecipient" | "webhook"; status: "ok" | "fix" | "unknown" | "info" }> };
 export type BudgetView = {
   today: { used: number; usable: number; reserve: number; room: number };
   month: { used: number; usable: number; room: number };
@@ -77,6 +78,8 @@ export type BudgetView = {
   waiting: "day" | "month" | null;
   resumeAt: string | null;
   thresholds: Array<70 | 90>;
+  /** The new-sender ramp today, or null when it is off or over. */
+  warmup?: { day: number; daily: number; hourly: number } | null;
   plan?: { days: number; finishAt: string } | null;
 };
 
@@ -147,6 +150,7 @@ export const adminCampaigns = {
   /** One click: `true` holds every campaign, `false` lets them carry on. */
   setPaused: async (paused: boolean): Promise<SendingState> => parseSending(await call<Partial<SendingState> | null>("/sending", json({ paused }))),
   /** The mail budget now and, given how many are still to send, how many days that takes. */
+  readiness: async (): Promise<ReadinessView> => await call<ReadinessView>("/readiness"),
   budget: async (remaining?: number): Promise<BudgetView> => {
     const r = await call<Partial<BudgetView> | null>(`/budget${remaining === undefined ? "" : `?remaining=${Math.max(0, Math.floor(remaining))}`}`);
     if (!r || typeof r.today?.used !== "number" || typeof r.month?.used !== "number" || typeof r.capacity !== "number") throw new Error("bad-budget");

@@ -8,7 +8,7 @@ import { hashEmail } from "../audience/store.js";
 import { ledgerPut, memoryLedgerStore, resetLedgerCache, useLedgerStore } from "../audience/ledger.js";
 import { emailService } from "../services/email.service.js";
 import { resetGuard } from "./guard.js";
-import { runSenderTick, type Deliver } from "./sender.js";
+import { resetHold, runSenderTick, type Deliver } from "./sender.js";
 import { canSendTransactional, checkBudgetThresholds, counterId, countTransactional, onBudgetThreshold, resetBudgetThresholds } from "./budgetStore.js";
 
 /* The same in-memory couch as campaigns.test.ts; the stubs only let app.ts load on a box without the optional deps. */
@@ -30,6 +30,7 @@ const deliver: Deliver = async (msgs) => {
 };
 
 beforeEach(() => {
+  resetHold();
   store = new Map();
   sent = [];
   provider.send.mockReset();
@@ -85,7 +86,7 @@ const setSender = (over: Partial<AnnounceSettings["sender"]> = {}) =>
   store.set(SETTINGS_DOC_ID, {
     _id: SETTINGS_DOC_ID, _rev: "1-s", type: "settings-announce", updatedAt: "x",
     /* A wide pace so the budget, not the throttle, is what limits these tests. */
-    settings: { ...DEFAULT_ANNOUNCE_SETTINGS, sender: { ...DEFAULT_ANNOUNCE_SETTINGS.sender, footerIdentity: "Yehuda, Tel Aviv", identityEmail: "me@example.org", throttlePerHour: 3600, dailyCap: 10000, ...over } },
+    settings: { ...DEFAULT_ANNOUNCE_SETTINGS, sender: { ...DEFAULT_ANNOUNCE_SETTINGS.sender, warmup: false, quietHours: undefined, footerIdentity: "Yehuda, Tel Aviv", identityEmail: "me@example.org", throttlePerHour: 3600, dailyCap: 10000, ...over } },
   });
 const seedContacts = (n: number) => {
   for (let i = 1; i <= n; i++) {
@@ -322,7 +323,7 @@ describe("threshold hook", () => {
 describe("settings and the budget route", () => {
   const admin = (req: request.Test) => req.set("X-Admin-Proxy-Secret", env.ADMIN_PROXY_SECRET).set("X-Auth-Request-User", env.ADMIN_GITHUB_LOGIN);
   const put = (sender: object) =>
-    admin(request(createApp()).put("/api/admin/announce/settings").send({ settings: { ...DEFAULT_ANNOUNCE_SETTINGS, sender: { ...DEFAULT_ANNOUNCE_SETTINGS.sender, ...sender } } }));
+    admin(request(createApp()).put("/api/admin/announce/settings").send({ settings: { ...DEFAULT_ANNOUNCE_SETTINGS, sender: { ...DEFAULT_ANNOUNCE_SETTINGS.sender, warmup: false, quietHours: undefined, ...sender } } }));
 
   it("defaults are 90 a day, 2700 a month, safety 0.9, a fifth reserved", () => {
     expect(DEFAULT_ANNOUNCE_SETTINGS.sender).toMatchObject({ dailyLimit: 90, monthlyLimit: 2700, safety: 0.9, reserveShare: 0.2 });
@@ -339,7 +340,7 @@ describe("settings and the budget route", () => {
     }
     expect(validateSenderBudget(DEFAULT_ANNOUNCE_SETTINGS.sender)).toEqual([]);
     expect((await put({ dailyLimit: 100, monthlyLimit: 3000, safety: 1, reserveShare: 0 })).status).toBe(200);
-    store.set(SETTINGS_DOC_ID, { ...(store.get(SETTINGS_DOC_ID) as object), settings: { ...DEFAULT_ANNOUNCE_SETTINGS, sender: { ...DEFAULT_ANNOUNCE_SETTINGS.sender, dailyLimit: 0 } } });
+    store.set(SETTINGS_DOC_ID, { ...(store.get(SETTINGS_DOC_ID) as object), settings: { ...DEFAULT_ANNOUNCE_SETTINGS, sender: { ...DEFAULT_ANNOUNCE_SETTINGS.sender, warmup: false, quietHours: undefined, dailyLimit: 0 } } });
     expect((await admin(request(createApp()).get("/api/admin/announce/settings"))).body.settings.sender.dailyLimit).toBe(0);
   });
 
