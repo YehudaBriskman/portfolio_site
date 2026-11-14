@@ -48,7 +48,7 @@ export default function AdminSiteCopy() {
           <GroupSearch groups={Object.values(GROUPS)} value={search} onChange={setSearch} />
           <LangSwitch />
           <Section {...GROUPS.hero} defaultOpen aside={<TranslationPill status={heStatus("site-copy", "hero")} />}>
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <PlainField id="site-hero-name" path="hero.name" label="Name" value={c.hero.name} onChange={(v) => e((d) => void (d.hero.name = v))} />
               <NumberField id="site-hero-since" path="hero.shippingSince" label="Shipping since" value={c.hero.shippingSince} onChange={(n) => e((d) => void (d.hero.shippingSince = n))} />
             </div>
@@ -131,7 +131,7 @@ export default function AdminSiteCopy() {
               onChange={(next) => e((d) => void (d.profiles = next))}
             >
               {(p, i) => (
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <PlainField id={`site-profiles-${i}-name`} path={`profiles.${i}.name`} label="Name" mono dir="ltr" value={p.name} onChange={(v) => e((d) => void (d.profiles[i].name = v))} />
                   <SelectField id={`site-profiles-${i}-icon`} path={`profiles.${i}.icon`} label="Mark" value={p.icon} options={ICONS} onChange={(v) => e((d) => void (d.profiles[i].icon = v))} />
                   <PlainField id={`site-profiles-${i}-url`} path={`profiles.${i}.url`} label="URL" type="url" mono dir="ltr" value={p.url} onChange={(v) => e((d) => void (d.profiles[i].url = v))} />

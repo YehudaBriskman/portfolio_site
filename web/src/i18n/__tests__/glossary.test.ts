@@ -68,6 +68,9 @@ const LATIN_SEEN = new Set<string>([
   "mcp:read",
   "mcp:write",
   "confirm: true",
+  /* Key names, as they are printed on the key (help.ts). */
+  "Tab",
+  "Shift+Tab",
   /* Service names and the two link-tag parameters, as the statement's sharing section names them. */
   "Instagram",
   "WhatsApp",

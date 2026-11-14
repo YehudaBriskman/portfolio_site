@@ -57,6 +57,12 @@ const EN = {
     "I run this site alone. This page says what the mailing list and the contact form keep, why, for how long, and which services handle it for me: Resend, which sends the email through Amazon SES in Ireland, Cloudflare Email Routing and Google.",
     "There is no open tracking, no click tracking and no cookies. You can ask to see, correct or delete what I hold by writing to the contact address.",
   ],
+  help: "Help",
+  helpDescription:
+    "How to use this site: the language, theme, text size and contrast, keyboard use, sharing a page, the RSS feed, and what the contact form does when you press Send.",
+  helpBody: [
+    "Short answers about using this site: choosing English or Hebrew, changing the theme, text size and contrast, using the keyboard, sharing a page, adding the notes feed to a feed reader, and what happens when you press Send on the contact form.",
+  ],
   home: "Home",
   developers: "Developers",
   mcp: "MCP server",
@@ -135,6 +141,12 @@ const HE: Words = {
   privacyBody: [
     "את האתר הזה אני מפעיל לבד. בעמוד הזה כתוב מה רשימת התפוצה וטופס יצירת הקשר שומרים, בשביל מה, לכמה זמן, ואילו שירותים מטפלים בו בשבילי: שירות שליחת אימייל אמריקאי שפועל דרך שירות הדואר של אמזון באירלנד, שירות ניתוב אימייל וגוגל.",
     "אין מעקב אחר פתיחות, אין מעקב אחר לחיצות ואין עוגיות. אפשר לבקש לראות, לתקן או למחוק את מה שיש לי, בכתיבה לכתובת הקשר.",
+  ],
+  help: "עזרה",
+  helpDescription:
+    "איך משתמשים באתר: שפה, ערכת צבעים, גודל טקסט וניגודיות, שימוש במקלדת, שיתוף עמוד, פיד RSS, ומה טופס יצירת הקשר עושה כשלוחצים על שליחה.",
+  helpBody: [
+    "תשובות קצרות על השימוש באתר: בחירה בין עברית לאנגלית, שינוי ערכת הצבעים, גודל הטקסט והניגודיות, שימוש במקלדת, שיתוף עמוד, הוספת פיד הרשימות לקורא פידים, ומה קורה כשלוחצים על שליחה בטופס יצירת הקשר.",
   ],
   home: "בית",
   developers: "למפתחים",

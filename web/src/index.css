@@ -2668,6 +2668,16 @@
   :root:has(.a-app) { scroll-padding-top: 4.25rem; }
   /* Text that carries meaning (hints, meta, headers, pills) never drops below 14px; 12px is for ornament only. */
   :root { --a-fs-meta: .875rem; }
+  /* State-change motion on a phone (docs/motion-contract.md section 13): three
+     durations (a tap answer, a surface, a page) and three curves. The spring is
+     critically damped with a 3% settle: for things that arrive, never for
+     things that are destroyed (those use --a-ease-in, no bounce). */
+  :root {
+    --a-dur-1: 120ms; --a-dur-2: 200ms; --a-dur-3: 300ms;
+    --a-ease-out: cubic-bezier(.2, 0, 0, 1);
+    --a-ease-in: cubic-bezier(.4, 0, 1, 1);
+    --a-ease-spring: linear(0, .22 6%, .6 14%, .88 24%, 1.02 36%, 1.025 46%, 1.01 60%, 1);
+  }
 
   /* The admin's tokens. Surfaces, lines and shadows differ by theme; the
      ladder, the spacing and the clock do not. */
@@ -2723,7 +2733,7 @@
   /* Clipped, not pushed off-screen: -9999px to the left is 9999px of scroll in a right-to-left document. */
   .a-skip:not(:focus) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   .a-skip:focus {
-    position: fixed; left: 1rem; top: .75rem; z-index: 70;
+    position: fixed; inset-inline-start: max(1rem, env(safe-area-inset-left, 0px)); top: .75rem; z-index: 70;
     padding: .5rem 1rem; border-radius: var(--a-r-ctl);
     background: rgb(var(--signal)); color: rgb(var(--signal-ink));
   }
@@ -2732,11 +2742,18 @@
   .a-top {
     position: sticky; top: 0; z-index: 40;
     display: flex; align-items: center; gap: .375rem;
-    height: 3.5rem; padding-inline: .5rem .75rem;
+    /* A row of 3.5rem that grows: large text wraps the end group to a second row
+       rather than squeezing the page title to a letter or pushing a button off screen. */
+    flex-wrap: wrap; min-height: 3.5rem;
+    /* Landscape with a cutout: the bar is edge to edge, its controls clear the inset. */
+    padding-inline-start: max(.5rem, env(safe-area-inset-left, 0px));
+    padding-inline-end: max(.75rem, env(safe-area-inset-right, 0px));
     background: rgb(var(--paper-2));
     border-bottom: 1px solid var(--a-line);
   }
-  @media (min-width: 1024px) { .a-top { padding-inline: 1rem; gap: .75rem; } }
+  @media (min-width: 1024px) {
+    .a-top { gap: .75rem; padding-inline-start: max(1rem, env(safe-area-inset-left, 0px)); padding-inline-end: max(1rem, env(safe-area-inset-right, 0px)); }
+  }
   .a-brand {
     display: inline-flex; flex: none; align-items: center; gap: .625rem;
     min-height: 2.25rem; padding-inline: .25rem; border-radius: var(--a-r-ctl);
@@ -2750,7 +2767,7 @@
   }
   @media (min-width: 768px) { .a-brand-name { position: static; width: auto; height: auto; overflow: visible; clip-path: none; } }
 
-  .a-crumbs { min-width: 0; flex: 1; }
+  .a-crumbs { min-width: 0; flex: 1 1 4rem; }
   .a-crumbs ol { display: flex; align-items: center; min-width: 0; }
   .a-crumbs li { display: flex; align-items: center; min-width: 0; }
   .a-crumbs li + li::before {
@@ -2758,8 +2775,11 @@
   }
   .a-crumbs a, .a-crumbs span {
     display: flex; align-items: center; min-height: 2.75rem; min-width: 24px; padding: .25rem .5rem; border-radius: var(--a-r-ctl);
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    overflow: hidden;
   }
+  /* The label is an isolate (<bdi>) so an English title in a Hebrew bar starts at its own start
+     and is cut at its end; text-overflow needs a block, not the flex item around it. */
+  .a-crumbs bdi { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .a-crumbs a { color: rgb(var(--ink-soft)); }
   .a-crumbs a:hover { background: var(--a-hover); color: rgb(var(--ink)); }
   .a-crumbs [aria-current] { font-weight: 700; color: rgb(var(--ink)); }
@@ -2823,9 +2843,12 @@
   .a-side-foot { margin-top: auto; padding-top: .75rem; border-top: 1px solid var(--a-line-soft); }
   .a-side-who { padding: .25rem .625rem; font-size: var(--a-fs-meta); color: rgb(var(--ink-soft)); overflow-wrap: anywhere; }
 
-  .a-main { flex: 1; min-width: 0; padding: 1.25rem 1rem calc(var(--a-bar-h, 0px) + 2rem); }
+  .a-main {
+    flex: 1; min-width: 0; padding: 1.25rem 1rem calc(var(--a-bar-h, 0px) + 2rem);
+    padding-inline: max(1rem, env(safe-area-inset-left, 0px)) max(1rem, env(safe-area-inset-right, 0px));
+  }
   .a-main:focus { outline: none; }
-  @media (min-width: 1024px) { .a-main { padding: 1.75rem 2rem 4rem; } }
+  @media (min-width: 1024px) { .a-main { padding-block: 1.75rem 4rem; padding-inline: max(2rem, env(safe-area-inset-left, 0px)) max(2rem, env(safe-area-inset-right, 0px)); } }
   .a-wrap { max-width: 76rem; }
   .a-wrap-narrow { max-width: 60rem; }
 
@@ -2849,8 +2872,9 @@
   .a-bar-row { display: flex; align-items: center; gap: .5rem; min-height: 60px; padding: 8px .75rem; }
   /* A landscape phone has about 390px: the bar gives back what it can. */
   @media (max-height: 480px) { .a-bar-row { min-height: 52px; padding-block: 4px; } }
-  .a-bar-row > .a-btn { flex: none; }
-  .a-bar-more { width: 44px; padding: 0; }
+  /* The primary may wrap its label at large text rather than run past the edge. */
+  .a-bar-row > .a-btn { flex: 0 1 auto; min-width: 0; }
+  .a-bar-more { flex: none; width: 44px; padding: 0; }
   .a-bar-more svg { width: 20px; height: 20px; }
   .a-bar-status {
     display: flex; align-items: center; gap: .5rem; flex: 1 1 0; min-width: 0;
@@ -3066,12 +3090,14 @@
   /* ---- buttons */
   .a-btn {
     display: inline-flex; align-items: center; justify-content: center; gap: .375rem;
-    min-height: 2rem; padding: 0 .75rem;
+    min-height: 2rem; padding: .25rem .75rem; max-inline-size: 100%;
     border-radius: var(--a-r-ctl); border: 1px solid rgb(var(--rule-firm) / .7);
     background: rgb(var(--paper-2)); color: rgb(var(--ink));
     box-shadow: var(--a-shadow-1);
     font-family: var(--font-text); font-size: .875rem; font-weight: 700;
-    letter-spacing: 0; text-transform: none; line-height: 1.2; white-space: nowrap;
+    letter-spacing: 0; text-transform: none; line-height: 1.2;
+    /* wraps (never wider than its row) so large text cannot push a label off screen */
+    white-space: normal; overflow-wrap: anywhere; text-align: center;
   }
   .a-btn svg { width: 16px; height: 16px; flex: none; }
   .a-btn:hover { background: rgb(var(--paper-3)); border-color: var(--a-line-ctl); }
@@ -3088,6 +3114,8 @@
   .a-btn-ghost:hover { background: var(--a-hover); border-color: transparent; color: rgb(var(--ink)); }
   .a-icon-btn { width: 2rem; height: 2rem; min-height: 2rem; padding: 0; }
   .a-icon-btn svg { width: 18px; height: 18px; }
+  /* A directional icon (back, onward arrow) points the way the page reads: add to the <svg>. Not for clocks, checks, play, brand marks. */
+  .a-mirror:dir(rtl) { transform: scaleX(-1); }
   .a-link { color: rgb(var(--signal)); text-decoration: underline; text-underline-offset: 3px; }
   @media (pointer: coarse) {
     .a-btn, .a-nav-item, .a-tab, .a-brand { min-height: 2.75rem; }
@@ -3222,6 +3250,37 @@
       }
     }
     @keyframes a-shimmer { from { translate: -100% 0; } to { translate: 100% 0; } }
+    /* Phones: the drawer and its scrim leave as well as arrive (docs/motion-contract.md
+       section 13). The closed drawer is `display: none` as before, and carries the
+       fixed placement so it is not laid out in the frame while it is still on its way
+       out; if its transition never runs it is simply not shown. Enter springs in from
+       the inline-start edge, exit eases back out, shorter and without a settle. */
+    @media (prefers-reduced-motion: no-preference) and (max-width: 599px) {
+      .a-side:not([data-open]) {
+        position: fixed; z-index: 45; top: 3.5rem; bottom: 0; inset-inline-start: 0;
+        width: min(18rem, 85vw);
+        opacity: 0; translate: -100% 0; pointer-events: none;
+        transition: opacity var(--a-dur-2) var(--a-ease-in), translate var(--a-dur-2) var(--a-ease-in), display var(--a-dur-2) allow-discrete;
+      }
+      :root[dir='rtl'] .a-side:not([data-open]) { translate: 100% 0; }
+      .a-side[data-open] {
+        transition: opacity var(--a-dur-2) var(--a-ease-out), translate var(--a-dur-3) var(--a-ease-spring), display var(--a-dur-3) allow-discrete;
+      }
+      @starting-style {
+        .a-side[data-open] { opacity: 1; translate: -100% 0; }
+        :root[dir='rtl'] .a-side[data-open] { translate: 100% 0; }
+      }
+      .a-scrim { position: fixed; z-index: 44; inset: 3.5rem 0 0; background: rgb(var(--shade) / .3); pointer-events: none; opacity: 0; transition: opacity var(--a-dur-2) var(--a-ease-in), display var(--a-dur-2) allow-discrete; }
+      .a-scrim:not([hidden]) { opacity: 1; pointer-events: auto; transition: opacity var(--a-dur-2) var(--a-ease-out), display var(--a-dur-2) allow-discrete; }
+      @starting-style { .a-scrim:not([hidden]) { opacity: 0; } }
+      /* Route change and first content (#709): one soft fade of a screen's top-level blocks, opacity only, the state is already there.
+         The skeleton and the content it becomes are both top-level blocks, so the swap is a cross-fade, not a pop. */
+      .a-main > * { transition: opacity var(--a-dur-2) var(--a-ease-out); }
+      @starting-style { .a-main > * { opacity: 0; } }
+      /* A tab's content swaps in place: one short rise and fade, the tab itself is already selected. */
+      .a-main [role="tabpanel"] { transition: opacity var(--a-dur-2) var(--a-ease-out), translate var(--a-dur-2) var(--a-ease-out); }
+      @starting-style { .a-main [role="tabpanel"] { opacity: 0; translate: 0 6px; } }
+    }
     body.motion-paused .a-app *, body.motion-paused .a-app *::before, body.motion-paused .a-app *::after,
     body.motion-paused .a-app dialog::backdrop { transition: none; animation: none; }
   }

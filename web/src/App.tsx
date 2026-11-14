@@ -14,6 +14,7 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import { useLang } from "./components/dashboard/i18n";
 import { basenameFor } from "./i18n/routing";
+import { PHONE_QUERY } from "@/hooks/usePhone";
 // Lazy: react-markdown and remark-gfm are ~53 KB gzipped and are only needed on
 // /notes. The home page must not pay for the blog renderer.
 const Blog = lazy(() => import("./pages/Blog"));
@@ -30,6 +31,7 @@ const BlogLog = lazy(() => import("./pages/BlogLog"));
 // home page's bill either.
 const Accessibility = lazy(() => import("./pages/Accessibility"));
 const Privacy = lazy(() => import("./pages/Privacy"));
+const Help = lazy(() => import("./pages/Help"));
 // The signup page and the three an email links to: small, read rarely, noindex.
 const Follow = lazy(() => import("./pages/Follow"));
 const SubscribeConfirm = lazy(() => import("./pages/SubscribeConfirm"));
@@ -54,6 +56,12 @@ const AdminAnnounce = lazy(() => import("./pages/AdminAnnounce"));
 const AdminMedia = lazy(() => import("./pages/AdminMedia"));
 
 const queryClient = new QueryClient();
+
+/** A cold load of an /admin screen on a phone: the entry shutter would be a second entrance over the app. */
+function adminOnPhone(): boolean {
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") return false;
+  return /^(\/[a-z]{2})?\/admin(\/|$)/.test(window.location.pathname) && window.matchMedia(PHONE_QUERY).matches;
+}
 
 function LegacyCollectionRedirect() {
   const { project } = useParams();
@@ -150,7 +158,8 @@ const App = () => {
           hero portrait still the reported element. It is not free under
           throttling — see the ledger row in `docs/motion-contract.md`.
         */}
-        <EntryShutter />
+        {/* #709: the admin on a phone is an app, not a first visit to the site: no tiles over it (desktop keeps the shutter). */}
+        {!adminOnPhone() && <EntryShutter />}
         <ToastMount />
         <RoutesErrorBoundary>
         <Routes>
@@ -189,6 +198,7 @@ const App = () => {
             <Route path="/blog/:slug" element={<Suspense fallback={<RouteFallback />}><BlogPost /></Suspense>} />
             <Route path="/accessibility" element={<Suspense fallback={<RouteFallback />}><Accessibility /></Suspense>} />
             <Route path="/privacy" element={<Suspense fallback={<RouteFallback />}><Privacy /></Suspense>} />
+            <Route path="/help" element={<Suspense fallback={<RouteFallback />}><Help /></Suspense>} />
             <Route path="/follow" element={<Suspense fallback={<RouteFallback />}><Follow /></Suspense>} />
             <Route path="/subscribe/confirm" element={<Suspense fallback={<RouteFallback />}><SubscribeConfirm /></Suspense>} />
             <Route path="/unsubscribe" element={<Suspense fallback={<RouteFallback />}><Unsubscribe /></Suspense>} />

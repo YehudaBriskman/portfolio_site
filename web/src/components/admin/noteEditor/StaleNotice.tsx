@@ -68,7 +68,7 @@ export default function StaleNotice({
   const label: Record<Field, string> = { title: words.title, subtitle: words.subtitle, excerpt: words.excerpt, body: words.body };
 
   return (
-    <div className={`${styles.notice} mt-4 grid gap-3`} data-tone="stale">
+    <div className={`${styles.notice} mt-4 grid grid-cols-1 gap-3`} data-tone="stale">
       {stale.map((f) => (
         <div key={f} className="flex flex-wrap items-center gap-x-3 gap-y-2">
           <p id={`${id}-${f}`} className="min-w-0 flex-1">

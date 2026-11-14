@@ -232,7 +232,7 @@ export default function LinkPreview({
 
       {state.kind === "ready" && (
         <>
-          <div className="mt-3 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {PLATFORMS.map((p) => (
               <div key={p} className="min-w-0 space-y-1.5">
                 <p className="a-hint !mt-0 font-semibold">{w.platforms[p]}</p>

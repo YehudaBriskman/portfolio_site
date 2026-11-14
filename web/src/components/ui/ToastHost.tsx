@@ -1,7 +1,10 @@
 import { useEffect, useLayoutEffect, useRef, useSyncExternalStore, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { Toaster as Sonner, toast as sonner } from "sonner";
-import { toast, useToastVersion, type ToastRecord } from "@/lib/toast";
+import { Link } from "react-router-dom";
+import { useInRouterContext } from "react-router-dom";
+import { helpHref, toast, useToastVersion, type ToastRecord } from "@/lib/toast";
+import { pathIn } from "@/i18n/routing";
 import { useToastWords } from "@/i18n/toast";
 import { usePhone } from "@/hooks/usePhone";
 import { useLang } from "@/components/dashboard/i18n";
@@ -49,10 +52,24 @@ function useTopDialog(): HTMLElement | null {
   return useSyncExternalStore(subscribeDialogs, topDialog, () => null);
 }
 
+/* Same tab, and inside the router when there is one so a click does not reload the page. */
+function LearnMore({ topic }: { topic: NonNullable<ToastRecord["help"]>["topic"] }) {
+  const w = useToastWords();
+  const lang = useLang();
+  const inRouter = useInRouterContext();
+  const href = helpHref(topic);
+  if (/^https?:/.test(href)) return <a className={styles.more} href={href}>{w.learnMore}</a>;
+  return inRouter ? (
+    <Link className={styles.more} to={href}>{w.learnMore}</Link>
+  ) : (
+    <a className={styles.more} href={pathIn(href.split("#")[0], lang) + "#" + topic}>{w.learnMore}</a>
+  );
+}
+
 function Body({ rec }: { rec: ToastRecord }) {
   const w = useToastWords();
   const hint = rec.description;
-  if (!rec.details && !hint) return null;
+  if (!rec.details && !hint && !rec.help) return null;
   const id = `toast-details-${rec.id}`;
   return (
     <div className={styles.body}>
@@ -75,6 +92,7 @@ function Body({ rec }: { rec: ToastRecord }) {
           )}
         </>
       )}
+      {rec.help && (!rec.details || rec.open) && <LearnMore topic={rec.help.topic} />}
     </div>
   );
 }
@@ -132,7 +150,7 @@ export default function ToastHost() {
       const body: ReactNode = <Body rec={r} />;
       sonner[r.kind](r.title, {
         id: r.id,
-        description: r.description || r.details ? body : undefined,
+        description: r.description || r.details || r.help ? body : undefined,
         duration: r.duration,
         dismissible: r.dismissible,
         closeButton: r.dismissible,

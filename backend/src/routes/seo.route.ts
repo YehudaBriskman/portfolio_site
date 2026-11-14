@@ -644,6 +644,28 @@ page("/privacy", async (_req, res, lang) => {
   });
 });
 
+/* The help page, web/src/pages/Help.tsx; the echo is a summary, not the page's text. */
+page("/help", async (_req, res, lang) => {
+  const w = SEO_WORDS[lang];
+  await sendShell(res, {
+    ...at("/help", lang),
+    route: "Help",
+    title: title(w.help, lang),
+    description: w.helpDescription,
+    image: absoluteUrl("/og.png"),
+    imageAlt: siteNameIn(lang),
+    type: "website",
+    bodyHtml:
+      `<main><h1>${escapeHtml(w.help)}</h1>` +
+      w.helpBody.map((p) => `<p>${escapeHtml(p)}</p>`).join("") +
+      `<p><a href="${href("/", lang)}">${escapeHtml(w.home)}</a></p></main>`,
+    jsonLd: graph(
+      webPage("WebPage", lang, "/help", { name: w.help, description: w.helpDescription }),
+      breadcrumbs(lang, [{ name: w.help, path: "/help" }]),
+    ),
+  });
+});
+
 /*
  * The signup page and the three an email links to. All four are noindex and
  * none is in the sitemap: /follow is a form, and the others are one-person

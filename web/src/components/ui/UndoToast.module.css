@@ -1,9 +1,8 @@
 /*
  * The Undo toast. A fixed strip along the bottom, clear of the home indicator
  * and of the editor bar (`--a-bar-h`, measured by AdminShell). The strip lets
- * pointer events through; only the toast itself takes them. It does not
- * move at all (no entry in the motion inventory to keep), so there is nothing
- * for reduced motion to turn off.
+ * pointer events through; only the toast itself takes them. It rises in and
+ * falls away through Presence, on a phone with motion allowed (Presence.module.css).
  */
 .region {
   position: fixed;

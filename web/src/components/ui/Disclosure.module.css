@@ -128,3 +128,36 @@
     }
   }
 }
+
+/*
+ * On a phone the height uses the motion tokens and the content fades with it
+ * (docs/motion-contract.md section 13). `open` is the state; the browser keeps
+ * the closed content hidden (`content-visibility`) once the collapse is done,
+ * and if it never runs the closed state is simply hidden.
+ */
+@media (prefers-reduced-motion: no-preference) and (max-width: 599px) {
+  @supports selector(::details-content) {
+    .disclosure::details-content {
+      block-size: 0;
+      overflow: clip;
+      opacity: 0;
+      transition:
+        block-size var(--a-dur-2) var(--a-ease-in),
+        opacity var(--a-dur-1) var(--a-ease-in),
+        content-visibility var(--a-dur-2) allow-discrete;
+    }
+
+    .disclosure[open]::details-content {
+      block-size: auto;
+      opacity: 1;
+      transition:
+        block-size var(--a-dur-3) var(--a-ease-out),
+        opacity var(--a-dur-2) var(--a-ease-out) var(--a-dur-1),
+        content-visibility var(--a-dur-3) allow-discrete;
+    }
+  }
+
+  .chevron {
+    transition: transform var(--a-dur-2) var(--a-ease-out);
+  }
+}

@@ -113,7 +113,7 @@ describe("the Hebrew name (#308)", () => {
   it("ends every Hebrew title, and leads the Hebrew home title", async () => {
     const home = await request(createApp()).get("/api/seo/render/he");
     expect(titleOf(home.text)).toMatch(/^יהודה בריסקמן \(Yehuda Briskman\) · /);
-    for (const page of ["/projects", "/blog", "/story", "/accessibility", "/privacy"]) {
+    for (const page of ["/projects", "/blog", "/story", "/accessibility", "/privacy", "/help"]) {
       const res = await request(createApp()).get(`/api/seo/render/he${page}`);
       expect(titleOf(res.text)).toMatch(/ · יהודה בריסקמן$/);
     }

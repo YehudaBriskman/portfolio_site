@@ -75,7 +75,7 @@ export default function AdminStory() {
               >
                 {(r, i) => (
                   <>
-                    <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                       <TranslationPill status={heStatus("story", `role:${r.id}`)} className="justify-self-start sm:col-span-2" />
                       <PlainField id={`story-roles-${i}-id`} path={`roles.${i}.id`} label="Id" mono dir="ltr" value={r.id} onChange={(v) => editor.edit((d) => void (d.roles[i].id = v))} />
                     </div>
@@ -100,7 +100,7 @@ export default function AdminStory() {
                 onChange={(next) => editor.edit((d) => void (d.layouts = record(next)))}
               >
                 {(r, i) => (
-                  <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <SelectField id={`story-layouts-${i}-beat`} path={`layouts.${r.beat}`} label="Beat" value={r.beat} options={options(r.beat)} onChange={(v) => editor.edit((d) => void (d.layouts = record(layoutRows.map((x, j) => (j === i ? { ...x, beat: v } : x)))))} />
                     <SelectField id={`story-layouts-${i}-value`} path={`layouts.${r.beat}.value`} label="Layout" value={r.value} options={BEAT_LAYOUTS} onChange={(v) => editor.edit((d) => void (d.layouts[r.beat] = v))} />
                   </div>
@@ -119,7 +119,7 @@ export default function AdminStory() {
               >
                 {(r, i) => (
                   <>
-                    <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                       <SelectField id={`story-images-${i}-beat`} path={`images.${r.beat}`} label="Beat" value={r.beat} options={options(r.beat)} onChange={(v) => editor.edit((d) => void (d.images = record(imageRows.map((x, j) => (j === i ? { ...x, beat: v } : x)))))} />
                       <div className="min-w-0">
                         <PlainField id={`story-images-${i}-src`} path={`images.${r.beat}.src`} label="Image" mono dir="ltr" hint="A picture from the library, /img/… or https://…" value={r.value.src} onChange={(v) => editor.edit((d) => void (d.images[r.beat].src = v))} />
@@ -145,7 +145,7 @@ export default function AdminStory() {
               >
                 {(l, i) => (
                   <>
-                    <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                       <PlainField id={`story-interludes-${i}-id`} path={`interludes.${i}.id`} label="Id" mono dir="ltr" value={l.id} onChange={(v) => editor.edit((d) => void (d.interludes[i].id = v))} />
                       <SelectField id={`story-interludes-${i}-after`} path={`interludes.${i}.after`} label="After beat" value={l.after} options={options(l.after)} onChange={(v) => editor.edit((d) => void (d.interludes[i].after = v))} />
                     </div>

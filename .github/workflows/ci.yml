@@ -526,6 +526,17 @@ jobs:
       - name: Admin control budgets on a phone
         if: matrix.check == 'a11y' && matrix.shard == 1
         run: npm run a11y:admin-density-phone
+      # Enter and exit motion on phones (#709): state first, transitions only
+      # under no-preference, mirrored in RTL, never stuck, none on desktop.
+      - name: Admin enter/exit motion
+        if: matrix.check == 'a11y' && matrix.shard == 1
+        run: npm run a11y:admin-motion
+      # Reflow and device edge cases: the bulk bar at 320 and at 200% text, /story
+      # headings at 320 and 280, Switch under forced-colors, 200% text at 320 and
+      # 390, a landscape notch, Hebrew back arrows, heading levels.
+      - name: Admin reflow and device edge cases
+        if: matrix.check == 'a11y' && matrix.shard == 1
+        run: npm run a11y:admin-reflow
       # Bottom sheets with real touch events (#715): a drag-dismissed sheet
       # reopens in the same place, a native close reaches the component, a
       # flick dismisses, one Back is never dead, focus never falls to body.

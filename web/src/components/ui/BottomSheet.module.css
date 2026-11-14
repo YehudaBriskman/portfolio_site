@@ -195,8 +195,84 @@ dialog.sheet::backdrop {
   }
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .sheet:not([data-dragging]) {
-    transition: block-size var(--a-dur-sheet, 280ms) var(--a-ease-out, ease), transform var(--a-dur-sheet, 280ms) var(--a-ease-out, ease);
+/* A sheet that has closed takes no touches while it is still on its way out. */
+dialog.sheet:not([open]) {
+  pointer-events: none;
+}
+
+/*
+ * Phone motion (docs/motion-contract.md section 13). The state is `[open]` and
+ * flips on the tap; these only say how the sheet gets to it, so a cancelled or
+ * throttled animation can never leave it half-open: closed is `display: none`.
+ *
+ * Open springs up from the bottom edge (a 3% settle), closed eases down and
+ * away, shorter and without bounce. While a finger is on the header
+ * (`[data-dragging]`) nothing is transitioned: the sheet is the finger, and on
+ * release the height settles on its snap with the same spring. Everything
+ * starts from the live value, so a tap mid-flight reverses it instead of
+ * jumping. The backdrop fades on its own clock. Desktop and reduced motion keep
+ * the popup system's dialog (styles/popup.css) or an instant show and hide.
+ */
+@media (prefers-reduced-motion: no-preference) and (max-width: 599px) {
+  dialog.sheet:global(.pop-dialog):not([open]) {
+    opacity: 1;
+    translate: 0 100%;
+    scale: 1;
+  }
+
+  dialog.sheet:not([data-dragging]) {
+    transition:
+      translate var(--a-dur-2) var(--a-ease-in),
+      block-size var(--a-dur-3) var(--a-ease-spring),
+      transform var(--a-dur-3) var(--a-ease-spring),
+      display var(--a-dur-2) allow-discrete,
+      overlay var(--a-dur-2) allow-discrete;
+  }
+
+  dialog.sheet[open]:not([data-dragging]) {
+    translate: 0 0;
+    transition:
+      translate var(--a-dur-3) var(--a-ease-spring),
+      block-size var(--a-dur-3) var(--a-ease-spring),
+      transform var(--a-dur-3) var(--a-ease-spring),
+      display var(--a-dur-3) allow-discrete,
+      overlay var(--a-dur-3) allow-discrete;
+  }
+
+  dialog.sheet:global(.pop-dialog)::backdrop {
+    opacity: 0;
+    transition:
+      opacity var(--a-dur-2) var(--a-ease-in),
+      display var(--a-dur-2) allow-discrete,
+      overlay var(--a-dur-2) allow-discrete;
+  }
+
+  dialog.sheet:global(.pop-dialog)[open]::backdrop {
+    opacity: 1;
+    transition:
+      opacity var(--a-dur-3) var(--a-ease-out),
+      display var(--a-dur-3) allow-discrete,
+      overlay var(--a-dur-3) allow-discrete;
+  }
+
+  /* A starting style is cascaded with the normal rules: it must be as specific as, and after, the open rules it starts from. */
+  @starting-style {
+    dialog.sheet[open]:not([data-dragging]) {
+      translate: 0 100%;
+    }
+    dialog.sheet:global(.pop-dialog)[open]::backdrop {
+      opacity: 0;
+    }
+  }
+
+  /* The content arrives a beat after the sheet, so the sheet is read first. */
+  dialog.sheet[open] .body > * {
+    transition: opacity var(--a-dur-3) var(--a-ease-out);
+  }
+
+  @starting-style {
+    dialog.sheet[open] .body > * {
+      opacity: 0;
+    }
   }
 }
