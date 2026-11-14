@@ -112,3 +112,26 @@ describe("the admin drawer", () => {
     expect(screen.getByTestId("nav").textContent).toBe("REPLACE /admin/posts");
   });
 });
+
+describe("the phone top bar is a menu button and a title (admin declutter)", () => {
+  it("moves the site link, display settings and the account into the drawer, with their own words", async () => {
+    viewport(390);
+    shell();
+    const header = document.querySelector("header.a-top")!;
+    /* In the bar those four are desktop-only: on a phone they live in the menu. */
+    expect(header.querySelector(".a-brand")!.className).toContain("max-lg:hidden");
+    expect(header.querySelector(".a-top-link")!.className).toContain("max-lg:hidden");
+    expect(header.querySelector("[data-language-trigger]")!.closest(".max-lg\\:hidden")).not.toBeNull();
+    await screen.findByText("Signed in as owner", { selector: "header *" }).catch(() => null);
+    expect(header.querySelector(".a-owner")!.className).toContain("max-lg:hidden");
+    /* The menu names them with visible words. */
+    const drawer = side() as HTMLElement;
+    const site = within(drawer).getByRole("link", { name: /View site/ });
+    expect(site.textContent).toContain("View site");
+    expect(site.getAttribute("target")).toBe("_blank");
+    expect(within(drawer).getByText("Display settings")).toBeTruthy();
+    expect(within(drawer).getByRole("link", { name: "Sign out" })).toBeTruthy();
+    /* The menu button says what it is. */
+    expect(screen.getByRole("button", { name: "Menu" }).textContent).toContain("Menu");
+  });
+});

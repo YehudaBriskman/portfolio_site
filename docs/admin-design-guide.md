@@ -233,6 +233,7 @@ Migrations that consume them: #670 Inbox, #676 Campaigns, #677 Audience, #678 Ma
 | act on many rows | `SelectionBar` |
 | show progress or a budget | `MiniBar`, `Gauge` |
 | show from > to | `Journey` |
+| the phone top bar (below 1024) | a **Menu** button (glyph and the word) and the page title, nothing else: View site, Notifications, Display settings (a `DisclosureButton` opening `DisplayPanel`) and Sign out are labelled rows at the foot of the drawer. No icon-only control in the bar |
 | confirm a destructive act | name the object and count in the buttons: "Delete 3 posts" / "Keep" |
 
 ---
