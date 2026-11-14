@@ -13,6 +13,7 @@ import { useAudienceWords } from "@/components/admin/announce/audience/words";
 import LibraryPanel from "@/components/admin/announce/library/LibraryPanel";
 import { useLibraryWords } from "@/components/admin/announce/library/words";
 import SettingsPanel from "@/components/admin/announce/SettingsPanel";
+import { usePhone } from "@/hooks/usePhone";
 import { adminAnnounce, setUnread, type AnnounceSummary } from "@/services/adminAnnounce";
 
 /*
@@ -27,6 +28,7 @@ type HubTab = { id: string; label: string; badge?: number; render: () => ReactNo
 
 export default function AdminAnnounce() {
   const w = useMarketingWords();
+  const phone = usePhone();
   const lw = useLibraryWords();
   const aw = useAudienceWords();
   const cw = useCampaignWords();
@@ -98,7 +100,8 @@ export default function AdminAnnounce() {
   return (
     <AdminShell title={w.title} section="marketing">
       <div className="a-wrap">
-        <PageHeader title={w.title} description={hi[current.id as keyof typeof hi] as string} />
+        {/* On a phone the inbox is the screen: its intro paragraph would push the first rows down by three lines. */}
+        <PageHeader title={w.title} description={phone && current.id === "inbox" ? undefined : (hi[current.id as keyof typeof hi] as string)} />
 
         <div role="tablist" aria-label={w.tabsLabel} className="a-tabs mb-4" onKeyDown={onTabKey}>
           {tabs.map((t) => (

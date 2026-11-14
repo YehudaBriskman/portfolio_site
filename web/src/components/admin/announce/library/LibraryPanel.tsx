@@ -1,19 +1,21 @@
 import { useId, useState } from "react";
 import { ErrorState } from "@/components/admin/ui";
-import { DisclosureButton } from "@/components/ui/Disclosure";
+import { Disclosure, DisclosureButton } from "@/components/ui/Disclosure";
 import { ANNOUNCE_CHANNELS, type AnnounceChannel, type AnnounceLang, type AnnounceLibraryItem } from "@/services/adminAnnounce";
 import { same, useSettingsDoc } from "../useSettingsDoc";
 import { useAnnounceWords } from "../words";
 import { builtinTemplate } from "./defaults";
+import LibraryPhone from "./LibraryPhone";
 import SnippetsEditor from "./SnippetsEditor";
 import { planStarter } from "./starter";
 import TemplateEditor, { type EditorValue } from "./TemplateEditor";
+import { usePhone } from "./usePhone";
 import { useRecentEvents } from "./useSample";
-import { newId, settleDefault, withDefault } from "./variables";
+import { LIBRARY_MAX, newId, settleDefault, withDefault } from "./variables";
 import VisitorTemplates from "./VisitorTemplates";
 import { useLibraryWords } from "./words";
 
-export const LIBRARY_MAX = 100;
+export { LIBRARY_MAX } from "./variables";
 
 type Target = { kind: "item"; id: string } | { kind: "builtin"; lang: AnnounceLang; channel: AnnounceChannel };
 
@@ -33,6 +35,7 @@ export default function LibraryPanel() {
   const uid = useId();
   const doc = useSettingsDoc();
   const events = useRecentEvents();
+  const phone = usePhone();
   const [target, setTarget] = useState<Target | null>(null);
   const [lang, setLang] = useState<AnnounceLang | "all">("all");
   const [channel, setChannel] = useState<AnnounceChannel | "all">("all");
@@ -105,6 +108,41 @@ export default function LibraryPanel() {
       builtin={target.kind === "builtin" ? { defaultText: builtinTemplate(target.lang, target.channel), onReset: () => edit((d) => void delete d.templates[target.lang][target.channel]) } : undefined}
     />
   );
+
+  const issuesBlock = (
+    <>
+      {issues.length > 0 && (
+        <div role="alert">
+          <p className="a-error">{a.invalid}</p>
+          <ul className="list-disc ps-5">
+            {issues.map((i) => <li key={i.path + i.message} className="a-error mt-0">{i.path ? `${i.path}: ` : ""}{i.message}</li>)}
+          </ul>
+        </div>
+      )}
+    </>
+  );
+  const saveBar = (
+    <div className="sticky bottom-0 z-10 flex flex-wrap items-center gap-3 border-t border-[rgb(var(--rule-firm)/.4)] bg-[rgb(var(--paper))] py-3" role="group" aria-label={w.saveBar}>
+      <button type="button" className="a-btn a-btn-primary min-h-[44px]" disabled={!dirty || status === "saving"} onClick={() => void doc.save(draft)}>{w.save}</button>
+      <button type="button" className="a-btn a-btn-ghost min-h-[44px]" disabled={!dirty || status === "saving"} onClick={doc.discard}>{a.reset}</button>
+      {status === "conflict" && <button type="button" className="a-btn min-h-[44px]" onClick={doc.reload}>{a.reload}</button>}
+      <span role="status" className={`text-sm ${bad ? "font-bold text-[rgb(var(--destructive-ink))]" : "text-clay"}`}>{statusText}</span>
+    </div>
+  );
+
+  if (phone) {
+    return (
+      <div className="min-w-0 space-y-6" data-testid="library">
+        <LibraryPhone doc={doc} events={events} />
+        {issuesBlock}
+        {/* A bar of two dead buttons would sit on the fold for nothing: it appears with the first edit. */}
+        {(dirty || status !== "idle") && saveBar}
+        <Disclosure summary={w.visitorHeading} meta={w.visitorMeta}>
+          <VisitorTemplates bare />
+        </Disclosure>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-5xl space-y-10" data-testid="library">
@@ -206,21 +244,9 @@ export default function LibraryPanel() {
 
       <SnippetsEditor snippets={draft.snippets} onChange={(next) => edit((d) => void (d.snippets = next))} />
 
-      {issues.length > 0 && (
-        <div role="alert">
-          <p className="a-error">{a.invalid}</p>
-          <ul className="list-disc ps-5">
-            {issues.map((i) => <li key={i.path + i.message} className="a-error mt-0">{i.path ? `${i.path}: ` : ""}{i.message}</li>)}
-          </ul>
-        </div>
-      )}
+      {issuesBlock}
 
-      <div className="sticky bottom-0 z-10 flex flex-wrap items-center gap-3 border-t border-[rgb(var(--rule-firm)/.4)] bg-[rgb(var(--paper))] py-3" role="group" aria-label={w.saveBar}>
-        <button type="button" className="a-btn a-btn-primary min-h-[44px]" disabled={!dirty || status === "saving"} onClick={() => void doc.save(draft)}>{w.save}</button>
-        <button type="button" className="a-btn a-btn-ghost min-h-[44px]" disabled={!dirty || status === "saving"} onClick={doc.discard}>{a.reset}</button>
-        {status === "conflict" && <button type="button" className="a-btn min-h-[44px]" onClick={doc.reload}>{a.reload}</button>}
-        <span role="status" className={`text-sm ${bad ? "font-bold text-[rgb(var(--destructive-ink))]" : "text-clay"}`}>{statusText}</span>
-      </div>
+      {saveBar}
 
       <VisitorTemplates />
     </div>

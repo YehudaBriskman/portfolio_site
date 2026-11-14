@@ -13,9 +13,16 @@ describe("StatusGlyph", () => {
       [
         "draft", "scheduled", "sending", "sent", "paused", "failed", "canceled", "published", "changes", "hidden",
         "archived", "active", "revoked", "expired", "missing", "stale", "unverified", "translated", "mailable",
-        "pending", "unsubscribed", "suppressed",
+        "pending", "unsubscribed", "suppressed", "attention",
       ].sort(),
     );
+  });
+
+  it("takes its own words and a stronger tone, for one glyph that must say what is wrong", () => {
+    const { container } = render(<StatusGlyph kind="attention" tone="danger" label="No title" />);
+    const root = container.firstElementChild!;
+    expect(root.getAttribute("aria-label")).toBe("No title");
+    expect(root.getAttribute("data-tone")).toBe("danger");
   });
 
   it.each(STATUS_KINDS.filter((k) => !STATUS[k].quiet))("%s: aria-hidden svg and an accessible name, en and he", (kind) => {
