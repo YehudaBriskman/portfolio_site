@@ -144,7 +144,7 @@ export default function BlogArea() {
         asideLabel={w.aboutArea}
         aside={aside}
         asideFirst
-        back={{ to: "/blog", label: lang === "he" ? "בלוג" : "Blogs" }}
+        back={{ to: "/blog", label: lang === "he" ? "בלוג" : "Blogs", gap: "calc(8px - var(--ph-gap, 2rem))" }}
         head={head}
       >
 
