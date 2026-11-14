@@ -11,6 +11,7 @@ import { usePhone } from "@/hooks/usePhone";
 import SendingSwitch from "./SendingSwitch";
 import { pillState } from "./status";
 import { useCampaignWords } from "./words";
+import { docLang, formatWhen } from "@/lib/safeTime";
 
 const nf = new Intl.NumberFormat("en-GB");
 const LIST_POLL_MS = 10000;
@@ -57,7 +58,7 @@ export default function CampaignsTab() {
   }, [busy, open]);
 
   const changed = useCallback(() => setTick((n) => n + 1), []);
-  const when = (iso: string) => new Intl.DateTimeFormat(document.documentElement.lang === "he" ? "he-IL" : "en-GB", { dateStyle: "medium", timeStyle: "short" }).format(new Date(iso));
+  const when = (iso: string) => formatWhen(iso, docLang(), { dateStyle: "medium", timeStyle: "short" });
 
   if (open)
     return <CampaignEditor key={open} id={open} sender={sender} groups={groups} events={events} onClose={() => (setOpen(null), changed())} onChanged={changed} />;

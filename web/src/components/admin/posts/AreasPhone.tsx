@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AdminShell from "@/components/admin/AdminShell";
-import { EmptyState, ErrorState, LoadingRows } from "@/components/admin/ui";
+import { EmptyState, ErrorState, LoadingRows, UnreadableNote } from "@/components/admin/ui";
 import { FilterChips, FiltersRestoredNote } from "@/components/ui/FilterChips";
 import { FilterSheet } from "@/components/ui/FilterSheet";
 import type { FilterDef } from "@/components/ui/filters";
@@ -16,6 +16,7 @@ import { useAdminWords } from "@/i18n/admin";
 import { admin, type AdminCollection, type AdminPost } from "@/services/admin";
 import { useTranslationStatus } from "@/services/translations";
 import { usePostsPhoneWords } from "./words";
+import { unreadableCount } from "@/services/tolerant";
 
 /*
  * Areas below 600px. The job: find an area and see whether the site shows it. A row is the name, how many posts
@@ -30,6 +31,7 @@ export default function AreasPhone() {
   const heStatus = useTranslationStatus();
   const [cols, setCols] = useState<AdminCollection[] | null>(null);
   const [posts, setPosts] = useState<AdminPost[] | null>(null);
+  const [skipped, setSkipped] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [q, setQ] = useState("");
   const [sheet, setSheet] = useState(false);
@@ -42,6 +44,7 @@ export default function AreasPhone() {
       .then(([c, list]) => {
         setCols(c);
         setPosts(list);
+        setSkipped(unreadableCount(c) + unreadableCount(list));
         setError(null);
       })
       .catch((e) => setError(e instanceof Error ? e.message : "Failed to load"));
@@ -152,6 +155,8 @@ export default function AreasPhone() {
 
         <p className="sr-only" role="status">{cols ? p.countAreas(visible.length) : ""}</p>
         {note && <p role="status" className="a-hint !mt-0">{note}</p>}
+
+        <UnreadableNote count={skipped} />
 
         {error ? (
           <ErrorState message={error} onRetry={() => (setError(null), load())} />

@@ -12,6 +12,7 @@ import { createPayload } from "./helpers";
 import { usePhoneCampaignWords } from "./phoneWords";
 import { useCampaignWords } from "./words";
 import styles from "./CampaignSheet.module.css";
+import { formatWhen } from "@/lib/safeTime";
 
 /*
  * One campaign, one sheet. The row said which one and whether it needs the
@@ -72,7 +73,7 @@ export default function CampaignSheet({
     setBusy(false);
   }
 
-  const fmt = (iso: string) => new Intl.DateTimeFormat(INTL[lang], { dateStyle: "medium", timeStyle: "short" }).format(new Date(iso));
+  const fmt = (iso: string) => formatWhen(iso, lang, { dateStyle: "medium", timeStyle: "short" });
   const close = () => {
     setConfirm(null);
     onClose();

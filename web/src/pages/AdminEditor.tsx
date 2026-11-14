@@ -21,6 +21,7 @@ import { useContent } from "@/content/store";
 import { Disclosure } from "@/components/ui/Disclosure";
 import { usePhone } from "@/hooks/usePhone";
 import { admin, slugify, AdminValidationError, type AdminCollection, type AdminPost, type PostContent } from "@/services/admin";
+import { titleOf } from "@/lib/safeTitle";
 
 /*
  * The note editor (#250), the way Bothy edits files: write on one side, read
@@ -497,7 +498,7 @@ export default function AdminEditor() {
     : "";
   const bad = save.kind === "failed" || save.kind === "conflict";
 
-  const heading = isNew && !stored ? w.newNote : f.title || f.slug;
+  const heading = isNew && !stored ? w.newNote : titleOf(f.title, f.slug);
   const hasDraft = Boolean(published && (post?.draft || dirty));
 
   /* One row: the status, a menu for Save draft and Discard, and Review. */

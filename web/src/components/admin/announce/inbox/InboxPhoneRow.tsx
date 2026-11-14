@@ -6,6 +6,7 @@ import { RecordRow } from "@/components/ui/RecordRow";
 import { StatusGlyph } from "@/components/ui/StatusGlyph";
 import type { AnnounceKind, AnnounceSummary } from "@/services/adminAnnounce";
 import { sortIssues, type Readiness } from "./readiness";
+import { kindIcon, kindWord } from "../kind";
 import { useMarketingWords } from "./words";
 
 const KIND_ICON = {
@@ -36,10 +37,10 @@ export default function InboxPhoneRow({ event, readiness, onOpen }: { event: Ann
   return (
     <RecordRow
       as="li"
-      icon={KIND_ICON[event.kind]}
+      icon={kindIcon(KIND_ICON, event.kind)}
       title={event.title}
       unread={!event.readAt}
-      facts={[{ text: when, label: w.kinds[event.kind] }]}
+      facts={[{ text: when, label: kindWord(w.kinds, event.kind) }]}
       status={
         <span className="mk-pstatus">
           {issues.length > 0 && <StatusGlyph kind="attention" tone={worst ? "danger" : "attention"} label={issues.map((i) => w.chips[i.code]).join(", ")} />}
