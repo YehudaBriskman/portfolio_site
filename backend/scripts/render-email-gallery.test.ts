@@ -23,7 +23,7 @@ it.skipIf(!dir)("renders the gallery", async () => {
     _id: "r", type: "announce", kind: "release", ref: "v1.8.0", title: "portfolio v1.8.0", summary: "Phone redesign", url: "https://github.com/YehudaBriskman/portfolio_site/releases/tag/v1.8.0", tags: [],
     version: "v1.8.0", publishedAt: "2026-11-20T10:00:00Z", notes: ["Phone admin redesign", "Faster newsletter send", "Email data rows and release notes"], langs: ["en", "he"], createdAt: "2026-11-20T10:00:00Z", done: {},
   };
-  const sender = { ...DEFAULT_ANNOUNCE_SETTINGS.sender, footerIdentity: "Yehuda Briskman", identityEmail: "hello@example.org", identityWebsite: "https://example.org" };
+  const sender = { ...DEFAULT_ANNOUNCE_SETTINGS.sender, footerIdentity: "Yehuda Briskman", identityEmail: "hello@example.org" };
   const more: AnnounceEvent[] = [
     { ...release, _id: "r0", ref: "v1.7.0", title: "WindoM v1.7.0", version: "v1.7.0", publishedAt: "2026-11-05T10:00:00Z", notes: ["Faster tiling", "New shortcuts"] },
     { ...release, _id: "r1", ref: "v1.8.0", title: "WindoM v1.8.0", publishedAt: "2026-11-20T10:00:00Z" },

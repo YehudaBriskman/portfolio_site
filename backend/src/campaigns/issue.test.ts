@@ -206,7 +206,7 @@ describe("the mail an issue makes", () => {
   it("every link is a button and no raw address is printed in the HTML; the text twin keeps full URLs", async () => {
     for (const lang of ["en", "he"] as const) {
       const m = await mail(lang);
-      const visible = m.html.replace(/<style[\s\S]*?<\/style>/g, "").replace(/<[^>]+>/g, " ");
+      const visible = m.html.split(/<style\b/).map((part, i) => (i === 0 ? part : part.slice(part.indexOf("</style>") + 8))).join(" ").replace(/<[^>]+>/g, " ").replace(/[<>]/g, " ");
       expect(visible).not.toMatch(/https?:\/\//);
       expect(visible).not.toMatch(/\btoken=/);
       const anchors = [...m.html.matchAll(/<a\b[^>]*>/g)].map((a) => a[0]);
