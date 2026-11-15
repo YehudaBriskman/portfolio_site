@@ -95,7 +95,7 @@ describe("the page", () => {
     expect(imgs[0]).toMatch(/alt="Card" width="552" height="290"/);
     expect(html).not.toMatch(/width="1"|height="1"/);
     /* Every link is the exact URL given: no redirect through anything of ours. */
-    expect([...html.matchAll(/href="([^"]+)"/g)].map((m) => m[1]).sort()).toEqual([`${ORIGIN}/blog/a`, `${ORIGIN}/u?t=1`].sort());
+    expect([...html.matchAll(/href="([^"]+)"/g)].map((m) => m[1]).sort()).toEqual([`${ORIGIN}/blog/a`, `${ORIGIN}/u?t=1`, "mailto:dana@example.org"].sort());
   });
 
   it("carries lang and dir, light and dark scheme declarations and a dark block", () => {

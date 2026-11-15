@@ -40,6 +40,12 @@ export function blocksToText(blocks: Block[]): string {
           return `${b.label}: ${b.url}`;
         case "image":
           return b.text ?? "";
+        case "facts":
+          return b.rows.map((r) => `${r.label}: ${r.value}`).join("\n");
+        case "dot":
+          return "·";
+        case "rule":
+          return "--";
       }
     })
     .filter((t) => t.trim())
@@ -58,6 +64,11 @@ export function blockProblem(b: Block): "empty" | "link" | "image" | null {
       return !b.label.trim() ? "empty" : safeHref(b.url) ? null : "link";
     case "image":
       return safeImage(b.url) ? null : "image";
+    case "dot":
+    case "rule":
+      return null;
+    case "facts":
+      return b.rows.some((r) => r.label.trim() && r.value.trim()) ? null : "empty";
   }
 }
 
@@ -96,7 +107,7 @@ export function zonedToIso(local: string, tz: string): string | null {
   return new Date(Math.min(...hits)).toISOString();
 }
 
-export type Form = { name: string; subject: string; preheader: string; bodyText: string; useBlocks: boolean; blocks: Block[]; groups: string[]; lang: CampaignLang; topic: "" | CampaignTopic };
+export type Form = { name: string; subject: string; preheader: string; bodyText: string; useBlocks: boolean; blocks: Block[]; groups: string[]; lang: CampaignLang; topic: "" | CampaignTopic; labelAd: boolean };
 
 export const cleanBlocks = (bs: Block[]): Block[] => bs.map((b) => (b.type === "ul" ? { ...b, items: b.items.map((i) => i.trim()).filter(Boolean) } : b));
 
@@ -105,7 +116,7 @@ export const toInput = (f: Form): CampaignInput => {
   const blocks = f.useBlocks ? cleanBlocks(f.blocks) : null;
   return {
     name: f.name.trim() || f.subject.trim().slice(0, 120), subject: f.subject.trim(), preheader: f.preheader.trim(), bodyText: blocks ? blocksToText(blocks) : f.bodyText,
-    blocks, groups: f.groups, lang: f.lang, topic: f.topic || null,
+    blocks, groups: f.groups, lang: f.lang, topic: f.topic || null, labelAd: f.labelAd,
   };
 };
 

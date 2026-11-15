@@ -860,3 +860,40 @@ A `signature` block (own-origin PNG, alt and width/height required) sits between
 Settings > Sender & delivery shows a "Ready to send?" card (`GET /api/admin/campaigns/readiness`, admin only). It checks SPF, a DKIM key and DMARC in DNS for the domain of the saved From address and nothing else: the names asked are fixed suffixes of that domain, never taken from a request. Each lookup has a 3 s timeout, answers are cached 5 minutes, and a timeout or resolver error is shown as "Not sure", never as a failure. It also reports the domain match, Reply-To, sender identity, a test recipient and the webhook secret. Statuses only, no record text. A passing DNS check shows the records exist, not that the provider signs with them; the test send proves that.
 
 The ready list in a campaign adds soft advice (never a block): long, shouted or `!!` subjects, `Re:` subjects, link shorteners, `http://` links, a button label that shows another address than it goes to, images without a description and mostly-image mails; plus a suggested send time (next Tuesday 09:30 in the chosen zone) when scheduling.
+
+## The issue engine (newsletter issues)
+
+One button, **Compile issue** (Marketing > Campaigns), builds a DRAFT campaign of kind `issue` from what happened since the last issue went out (`campaigns/issue.ts`, `POST /api/admin/campaigns/compile`, admin only, audit-logged). It never schedules or sends: the draft opens in the editor, and the existing preview, mandatory test send, confirmed audience count and send/schedule flow apply unchanged. Every part is an ordinary block, so anything can be reordered, edited or deleted.
+
+**The window.** From the `compiledUntil` of the newest *sent or sending* issue; with none, `issue.windowDays` (30) back. A draft that was never sent does not move the window. Events the owner dismissed in the Announce inbox are skipped. Nothing in the window: HTTP 204 and no draft.
+
+**What it does with the events** (rules in `sender.issue`, all editable, defaults unapproved):
+
+| Rule | Default |
+|---|---|
+| Releases are grouped by project under "New on {name}", newest first, "What changed" bullets from the GitHub release notes, a "Read more" button | on |
+| Patch releases (x.y.Z, Z above 0) are one "Also shipped: ..." line, not cards | `patchLine` on |
+| Posts are grouped by topic (the first tag, any case) under the topic name; no tag: "Latest notes" | on |
+| New projects (if events exist): one section "New project: {name}" with an "Open project" button | on |
+| Between two items of one group: a dot. Between sections: a horizontal rule | fixed |
+| Per item: title, date, read time, a longer summary (the first two paragraphs of the post, clipped to `excerptChars`, else its excerpt), a button | 300 chars |
+| Only the lead (newest) item has the cover image (the site's own generated card); the other buttons are outlined | fixed |
+| At most `maxPerSection` items per group | 5 |
+| Intro and outro text, English and Hebrew | editable |
+| Subject "{n} notes and {m} releases since {date}", preview line = the lead title | editable per draft |
+
+A post with a Hebrew translation gets an English copy tagged `en` and a Hebrew copy tagged `he`; a blocks' `lang` limits it to recipients of that language, an untagged block goes to everyone. Releases and untranslated posts are untagged.
+
+**Automatic compile.** `issue.autoCompile` = `off` (default) / `weekly` / `monthly`. It is checked whenever an announce event is recorded: when the newest issue is older than the period and no unsent issue draft is waiting, a draft is compiled. Still only a draft. The old per-event auto-draft (`autoDraftCampaign`, default off) is kept for those who want one draft per event.
+
+## The advertisement label is per campaign
+
+Each campaign has `labelAd` (checkbox "Label as advertisement", default **off** for new campaigns and issues). On: the subject prefix and the first line `פרסומת` (English recipients: `פרסומת | Ad:` / `פרסומת | Advertisement`) are added, using the sender's `labelMode` policy, or every recipient when that is `off`. Off: neither. A campaign saved before the toggle existed has no value, and the sender's `labelMode` decides as it always did. The hint beside the toggle says to label an issue that promotes something you sell or a commercial offer: that is the owner's call, not legal advice. The headers `List-Unsubscribe` and `List-Unsubscribe-Post`, the one-click unsubscribe, the footer identity, suppression and the consent record do not depend on it.
+
+## Links are buttons
+
+In the HTML every link is a button: the main ones are solid, "Read more", Unsubscribe, Preferences, Website and the contact e-mail are compact outlined buttons (15px bold, 2px border, in both colour schemes). No raw URL is printed in the HTML; the text part keeps every full URL. The approved footer sentence is unchanged; only the link under it is a button ("Unsubscribe" is never hidden or small).
+
+## Gmail and the Promotions tab
+
+Gmail decides the tab; there is no setting that forces Primary, and tricks make it worse. What this project controls, and does: no `פרסומת | Ad` prefix unless the owner turns it on, a text-heavy body with few images (one cover only), simple one-column structure, one clear button per item, a personal From name and a real Reply-To (set them in Sender & delivery), List-Unsubscribe headers, authenticated sending (SPF, DKIM, DMARC), no tracking pixels or tracked links, steady low-volume sending. A subscriber who moves the mail to Primary or replies to it teaches Gmail more than anything in the markup.

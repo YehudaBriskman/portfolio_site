@@ -1,0 +1,118 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`the mail an issue makes > text twin snapshot (English) 1`] = `
+"Here is what I wrote and shipped lately.
+
+Post c: https://yehudabriskman.com/api/seo/og/blog/c.png?format=og
+
+Email
+
+Post c
+
+November 25, 2026 · 5 min
+
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx…
+
+Read more: https://yehudabriskman.com/blog/c
+
+·
+
+Post b
+
+November 8, 2026 · 5 min
+
+About Post b
+
+Read more: https://yehudabriskman.com/blog/b
+
+·
+
+Post a
+
+November 3, 2026 · 5 min
+
+About Post a
+
+Read more: https://yehudabriskman.com/blog/a
+
+--
+
+New on WindoM
+
+v1.3.0
+
+November 20, 2026
+
+About WindoM v1.3.0
+
+What changed
+
+- Multi-monitor
+
+Read more: https://github.com/o/r/releases/tag/v1.3.0
+
+·
+
+v1.2.0
+
+November 5, 2026
+
+About WindoM v1.2.0
+
+What changed
+
+- Faster tiling
+- New shortcuts
+
+Read more: https://github.com/o/r/releases/tag/v1.2.0
+
+--
+
+Latest notes
+
+Post e
+
+November 18, 2026 · 5 min
+
+About Post e
+
+Read more: https://yehudabriskman.com/blog/e
+
+--
+
+Design
+
+Post d
+
+November 15, 2026 · 5 min
+
+About Post d
+
+Read more: https://yehudabriskman.com/blog/d
+
+--
+
+New on Bothy
+
+v0.5.0
+
+November 12, 2026
+
+About Bothy v0.5.0
+
+Read more: https://github.com/o/r/releases/tag/v0.5.0
+
+--
+
+Also shipped: WindoM v1.3.1
+
+Thanks for reading. Reply to this mail if you want to talk about any of it.
+
+--
+Yehuda
+me@example.org
+https://example.org
+You get this because you subscribed on yehudabriskman.com. Unsubscribe in one click: https://yehudabriskman.com/unsubscribe?token=T
+
+Preferences (https://yehudabriskman.com/subscribe/manage?token=T)"
+`;

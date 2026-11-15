@@ -15,12 +15,18 @@ export type CampaignLang = "en" | "he" | "all";
 export type PauseReason = "auth" | "consecutive" | "failure-rate" | "hard-bounce-rate" | "complaint";
 export type CampaignTopic = "blog" | "releases";
 
+/* `lang` limits a block to recipients of that language; no lang = everyone. */
+type L = { lang?: "en" | "he" };
 export type Block =
-  | { type: "p"; text: string }
-  | { type: "h2"; text: string }
-  | { type: "ul"; items: string[] }
-  | { type: "cta"; url: string; label: string }
-  | { type: "image"; url: string; text?: string };
+  | ({ type: "p"; text: string; tone?: "strong" | "muted" } & L)
+  | ({ type: "h2"; text: string } & L)
+  | ({ type: "ul"; items: string[] } & L)
+  | ({ type: "cta"; url: string; label: string; outline?: boolean } & L)
+  | ({ type: "image"; url: string; text?: string } & L)
+  | ({ type: "facts"; rows: Array<{ label: string; value: string }> } & L)
+  /* The separators the issue engine puts between items (a dot) and sections (a rule). */
+  | ({ type: "dot" } & L)
+  | ({ type: "rule" } & L);
 export type BlockType = Block["type"];
 
 export type Counters = { queued: number; sent: number; failed: number; suppressed: number; /** Skipped by the per-person monthly limit; absent until one is. */ capped?: number };
@@ -40,6 +46,10 @@ export type Campaign = {
   sendAt: string | null;
   counters: Counters;
   eventId: string | null;
+  /** "issue" = compiled by the issue engine. */
+  kind: "issue" | null;
+  /** Label the mail as an advertisement; null on a campaign saved before the toggle existed (the sender policy decides). */
+  labelAd: boolean | null;
   pausedReason: PauseReason | null;
   /** When the current text was last test-sent to the owner; null when it was never, or was edited since. */
   testedAt: string | null;
@@ -60,6 +70,7 @@ export type CampaignInput = {
   groups: string[];
   lang: CampaignLang;
   topic?: CampaignTopic | null;
+  labelAd?: boolean;
   eventId?: string;
 };
 
@@ -137,6 +148,8 @@ export type SendingState = { paused: boolean; pausedAt: string | null; envDisabl
 export const adminCampaigns = {
   list: async () => (await call<{ campaigns: Campaign[] }>("")).campaigns,
   get: async (id: string) => (await call<{ campaign: Campaign }>(`/${enc(id)}`)).campaign,
+  /** Compile an issue from what happened since the last one. null = nothing new (204). Makes a draft; sends nothing. */
+  compile: async () => (await call<{ campaign: Campaign } | null>("/compile", json({})))?.campaign ?? null,
   create: async (b: CampaignInput) => (await call<{ campaign: Campaign }>("", json(b))).campaign,
   update: async (id: string, b: Partial<CampaignInput>, rev: string | null) =>
     (await call<{ campaign: Campaign }>(`/${enc(id)}`, { method: "PATCH", body: JSON.stringify({ ...b, ...(rev ? { _rev: rev } : {}) }) })).campaign,
@@ -157,7 +170,7 @@ export const adminCampaigns = {
     return { ...(r as BudgetView), thresholds: Array.isArray(r.thresholds) ? r.thresholds : [] };
   },
   /** The mail as the server would send it, from draft text that need not be saved. */
-  preview: (b: { subject: string; preheader: string; bodyText: string; blocks: Block[] | null; lang: "en" | "he" }) =>
+  preview: (b: { subject: string; preheader: string; bodyText: string; blocks: Block[] | null; lang: "en" | "he"; labelAd?: boolean }) =>
     call<{ subject: string; html: string; text: string }>("/preview", json(b)),
   test: (id: string) => call<{ sent: number; failed: number }>(`/${enc(id)}/test`, { method: "POST" }),
   /** `null` takes a scheduled campaign back to a draft. */

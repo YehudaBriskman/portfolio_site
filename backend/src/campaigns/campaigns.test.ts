@@ -282,7 +282,7 @@ describe("the unsubscribe link can never be missing", () => {
   const sender = (over: Partial<AnnounceSettings["sender"]>) => ({ ...DEFAULT_ANNOUNCE_SETTINGS.sender, warmup: false, quietHours: undefined, throttlePerHour: 3600, dailyCap: 10000, footerIdentity: "Yehuda, Tel Aviv", identityEmail: "me@example.org", ...over });
   const render = (note: string, lang: "en" | "he" = "en") =>
     renderCampaignMail({ subject: "S", bodyText: "Body", preheader: undefined, blocks: undefined } as never, { lang }, hashEmail(addr(1)), sender(lang === "he" ? { unsubscribeNoteHe: note } : { unsubscribeNoteEn: note }));
-  const unsubAnchors = (html: string) => html.match(/<a href="[^"]*\/unsubscribe\?token=[^"]+"/g) ?? [];
+  const unsubAnchors = (html: string) => html.match(/<a [^>]*href="[^"]*\/unsubscribe\?token=[^"]+"/g) ?? [];
   const hasLinkEverywhere = (m: Awaited<ReturnType<typeof render>>) => {
     expect(unsubAnchors(m.html)).toHaveLength(1);
     expect(m.text).toMatch(/https?:\/\/\S+\/unsubscribe\?token=\S+/);
@@ -293,7 +293,7 @@ describe("the unsubscribe link can never be missing", () => {
   it("a note without {link} gets the fallback line in html and text (EN)", async () => {
     const m = await render("Thanks for reading");
     hasLinkEverywhere(m);
-    expect(m.html).toContain(UNSUB_FALLBACK_EN.split("{link}")[0]);
+    expect(m.html).toContain(UNSUB_FALLBACK_EN.split("{link}")[0].trim());
     expect(m.text).toContain(UNSUB_FALLBACK_EN.split("{link}")[0]);
     expect(m.html).toContain('lang="en" dir="ltr"');
   });
@@ -302,7 +302,7 @@ describe("the unsubscribe link can never be missing", () => {
     for (const lang of ["en", "he"] as const) {
       const m = await render("Bye {link}", lang);
       const label = lang === "he" ? PREFS_LABEL_HE : PREFS_LABEL_EN;
-      const href = m.html.match(/<a href="([^"]*\/subscribe\/manage\?token=[^"]+)"[^>]*>([^<]*)</);
+      const href = m.html.match(/<a [^>]*href="([^"]*\/subscribe\/manage\?token=[^"]+)"[^>]*>([^<]*)</);
       expect(href?.[2]).toBe(label);
       expect(m.text).toMatch(new RegExp(`${label} \\(https?://\\S+/subscribe/manage\\?token=\\S+\\)`));
       const token = decodeURIComponent(new URL(href![1].replace(/&amp;/g, "&")).searchParams.get("token")!);
@@ -315,7 +315,7 @@ describe("the unsubscribe link can never be missing", () => {
     const m = await render("תודה", "he");
     hasLinkEverywhere(m);
     expect(m.html).toContain('lang="he" dir="rtl"');
-    expect(m.html).toContain(UNSUB_FALLBACK_HE.split("{link}")[0]);
+    expect(m.html).toContain(UNSUB_FALLBACK_HE.split("{link}")[0].trim());
     expect(m.text).toContain(UNSUB_FALLBACK_HE.split("{link}")[0]);
   });
 
@@ -911,7 +911,9 @@ describe("mail rendering", () => {
 
   it("the footer prints name, postal line (only if set) and contact email, escaped", async () => {
     const full = await renderCampaignMail({ subject: "S", bodyText: "x" }, { lang: "en" }, hashEmail(addr(1)), { ...sender, footerIdentity: "Y <b>", identityPostal: "PO Box 1", identityEmail: "me@example.org" });
-    expect(full.html).toContain("<bdi>Y &lt;b&gt;</bdi><br><bdi>PO Box 1</bdi><br><bdi>me@example.org</bdi>");
+    expect(full.html).toContain("<bdi>Y &lt;b&gt;</bdi><br><bdi>PO Box 1</bdi>");
+    /* The address is a mailto button, not a bare line. */
+    expect(full.html).toContain('href="mailto:me@example.org"');
     expect(full.text).toContain("Y <b>\nPO Box 1\nme@example.org\n");
     const mailOnly = await renderCampaignMail({ subject: "S", bodyText: "x" }, { lang: "en" }, hashEmail(addr(1)), { ...sender, footerIdentity: "Y", identityEmail: "me@example.org" });
     expect(mailOnly.text).toContain("Y\nme@example.org\n");

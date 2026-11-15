@@ -5,7 +5,7 @@ import { useCampaignWords } from "./words";
 
 const TYPES: BlockType[] = ["p", "h2", "ul", "cta", "image"];
 const fresh = (t: BlockType): Block =>
-  t === "ul" ? { type: "ul", items: [""] } : t === "cta" ? { type: "cta", url: "", label: "" } : t === "image" ? { type: "image", url: "", text: "" } : { type: t, text: "" };
+  t === "ul" ? { type: "ul", items: [""] } : t === "cta" ? { type: "cta", url: "", label: "" } : t === "image" ? { type: "image", url: "", text: "" } : t === "facts" ? { type: "facts", rows: [{ label: "", value: "" }] } : { type: t, text: "" };
 
 /* The optional structured body. Every field is plain text; the server renders and escapes the markup. */
 export default function BlocksEditor({ blocks, onChange }: { blocks: Block[]; onChange: (b: Block[]) => void }) {
@@ -49,6 +49,27 @@ export default function BlocksEditor({ blocks, onChange }: { blocks: Block[]; on
                 <div>
                   <label className="a-label" htmlFor={id}>{w.blockItems}</label>
                   <textarea id={id} className="a-textarea" rows={4} dir="auto" value={b.items.join("\n")} onChange={(e) => set(i, { ...b, items: e.target.value.split("\n") })} />
+                </div>
+              )}
+              {b.type === "facts" && (
+                <div>
+                  <label className="a-label" htmlFor={id}>{w.blockItems}</label>
+                  <textarea
+                    id={id}
+                    className="a-textarea"
+                    rows={4}
+                    dir="auto"
+                    value={b.rows.map((r) => `${r.label}: ${r.value}`).join("\n")}
+                    onChange={(e) =>
+                      set(i, {
+                        ...b,
+                        rows: e.target.value.split("\n").map((l) => {
+                          const at = l.indexOf(": ");
+                          return at < 0 ? { label: l, value: "" } : { label: l.slice(0, at), value: l.slice(at + 2) };
+                        }),
+                      })
+                    }
+                  />
                 </div>
               )}
               {b.type === "cta" && (

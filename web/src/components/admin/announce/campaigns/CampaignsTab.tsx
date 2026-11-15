@@ -32,6 +32,7 @@ export default function CampaignsTab() {
   const [groups, setGroups] = useState<Group[]>([]);
   const [events, setEvents] = useState<AnnounceSummary[]>([]);
   const [tick, setTick] = useState(0);
+  const [compile, setCompile] = useState<"idle" | "busy" | "nothing" | "failed">("idle");
 
   useEffect(() => {
     let live = true;
@@ -59,6 +60,25 @@ export default function CampaignsTab() {
   }, [busy, open]);
 
   const changed = useCallback(() => setTick((n) => n + 1), []);
+  /* Compile an issue: a DRAFT from what happened since the last one, opened for review. Nothing is sent or scheduled. */
+  const compileIssue = async () => {
+    setCompile("busy");
+    try {
+      const c = await adminCampaigns.compile();
+      if (!c) return setCompile("nothing");
+      setCompile("idle");
+      changed();
+      setOpen(c.id);
+    } catch {
+      setCompile("failed");
+    }
+  };
+  const compileBtn = (
+    <button type="button" className="a-btn min-h-[44px] min-w-[9rem] flex-1 sm:flex-none" disabled={compile === "busy"} onClick={() => void compileIssue()}>
+      {compile === "busy" ? w.compiling : w.compileIssue}
+    </button>
+  );
+  const compileNote = compile === "nothing" ? <p className="a-hint !mt-0" role="status">{w.compileNothing}</p> : compile === "failed" ? <p className="a-error !mt-0" role="status">{w.compileFailed}</p> : null;
   const when = (iso: string) => formatWhen(iso, docLang(), { dateStyle: "medium", timeStyle: "short" });
 
   if (open)
@@ -69,10 +89,12 @@ export default function CampaignsTab() {
     <div className={`max-w-5xl ${phone ? "space-y-3" : "space-y-6"}`} data-testid="campaigns">
       {phone ? (
         /* The tab already says Campaigns, so the heading is for screen readers; the two things always at hand share one line. */
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-stretch gap-2">
           <h2 className="sr-only">{w.heading}</h2>
-          <button type="button" className="a-btn a-btn-primary min-h-[44px] flex-1" onClick={() => setOpen("new")}>{w.newCampaign}</button>
+          <button type="button" className="a-btn a-btn-primary min-h-[44px] min-w-[9rem] flex-1" onClick={() => setOpen("new")}>{w.newCampaign}</button>
+          {compileBtn}
           <SendingSwitch compact />
+          {compileNote}
         </div>
       ) : (
         <>
@@ -81,8 +103,12 @@ export default function CampaignsTab() {
               <h2 className="display-tight text-xl">{w.heading}</h2>
               <p className="a-hint">{w.intro}</p>
             </div>
-            <button type="button" className="a-btn a-btn-primary min-h-[44px]" onClick={() => setOpen("new")}>{w.newCampaign}</button>
+            <div className="flex flex-wrap items-center gap-2">
+              {compileBtn}
+              <button type="button" className="a-btn a-btn-primary min-h-[44px]" onClick={() => setOpen("new")}>{w.newCampaign}</button>
+            </div>
           </div>
+          {compileNote}
 
           <SendingSwitch />
         </>

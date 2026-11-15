@@ -10,7 +10,7 @@ export type PauseReason = "auth" | "consecutive" | "failure-rate" | "hard-bounce
 /** Results since the campaign started or was last resumed: what the auto-pause rules are judged on. */
 export type Health = { sent: number; failed: number; hard: number; streak: number; /** Spam complaints received while it was sending; written by the webhook. */ complaints?: number };
 
-export type Block = { type: "p" | "h2" | "ul" | "cta" | "image"; text?: string; items?: string[]; url?: string; label?: string };
+export type Block = { type: "p" | "h2" | "ul" | "cta" | "image" | "facts" | "dot" | "rule"; tone?: "strong" | "muted"; outline?: boolean; text?: string; items?: string[]; url?: string; label?: string; rows?: Array<{ label: string; value: string }>; lang?: "en" | "he" };
 
 export type Campaign = {
   _id: string;
@@ -22,6 +22,12 @@ export type Campaign = {
   /** Plain text; blank lines are paragraphs. The mail HTML is rendered from this (or `blocks`) on the server. */
   bodyText: string;
   blocks?: Block[];
+  /** "issue" = compiled by the issue engine (campaigns/issue.ts). */
+  kind?: "issue";
+  /** The instant an issue's window ended; the next issue starts here once this one was sent. */
+  compiledUntil?: string;
+  /** Mark the mail as an advertisement ("פרסומת" label and subject prefix). New campaigns default to false; absent on older ones = the sender setting decides, as before. */
+  labelAd?: boolean;
   groups: string[];
   lang?: "en" | "he" | "all";
   topic?: "blog" | "releases";
@@ -66,17 +72,21 @@ const Subject = z.string().trim().min(1).max(200).refine(NoLineBreak, "One line"
 const Preheader = z.string().trim().max(200).refine(NoLineBreak, "One line");
 /* The cleaned copy is what is stored, so what the owner previews is what is sent. */
 const Url = z.string().max(2000);
+const BlockLang = z.enum(["en", "he"]).optional();
 const Blocks = z
   .array(
     z.discriminatedUnion("type", [
-      z.object({ type: z.literal("p"), text: z.string().min(1).max(5000) }).strict(),
-      z.object({ type: z.literal("h2"), text: z.string().min(1).max(300) }).strict(),
-      z.object({ type: z.literal("ul"), items: z.array(z.string().min(1).max(1000)).min(1).max(50) }).strict(),
-      z.object({ type: z.literal("cta"), url: Url.refine((u) => safeHref(u) !== null, "A http(s) or mailto link"), label: z.string().min(1).max(100) }).strict(),
-      z.object({ type: z.literal("image"), url: Url.refine((u) => safeImage(u) !== null, "An https image on this site"), text: z.string().max(300).optional() }).strict(),
+      z.object({ type: z.literal("p"), text: z.string().min(1).max(5000), tone: z.enum(["strong", "muted"]).optional(), lang: BlockLang }).strict(),
+      z.object({ type: z.literal("h2"), text: z.string().min(1).max(300), lang: BlockLang }).strict(),
+      z.object({ type: z.literal("ul"), items: z.array(z.string().min(1).max(1000)).min(1).max(50), lang: BlockLang }).strict(),
+      z.object({ type: z.literal("cta"), url: Url.refine((u) => safeHref(u) !== null, "A http(s) or mailto link"), label: z.string().min(1).max(100), outline: z.boolean().optional(), lang: BlockLang }).strict(),
+      z.object({ type: z.literal("facts"), rows: z.array(z.object({ label: z.string().min(1).max(60), value: z.string().min(1).max(300) }).strict()).min(1).max(8), lang: BlockLang }).strict(),
+      z.object({ type: z.literal("dot"), lang: BlockLang }).strict(),
+      z.object({ type: z.literal("rule"), lang: BlockLang }).strict(),
+      z.object({ type: z.literal("image"), url: Url.refine((u) => safeImage(u) !== null, "An https image on this site"), text: z.string().max(300).optional(), lang: BlockLang }).strict(),
     ]),
   )
-  .max(100);
+  .max(200);
 const BodyText = z.string().max(100_000);
 const Groups = z.array(Slug).min(1).max(20);
 
@@ -99,6 +109,7 @@ export const CampaignCreate = z
     topic: Fields.topic.nullable().optional(),
     eventId: z.string().max(200).optional(),
     blocks: Blocks.nullable().optional(),
+    labelAd: z.boolean().default(false),
   })
   .strict()
   .transform(({ blocks, topic, ...rest }) => ({ ...rest, ...(blocks ? { blocks } : {}), ...(topic ? { topic } : {}) }));
@@ -115,6 +126,7 @@ function _partial() {
     groups: Fields.groups.optional(),
     lang: Fields.lang.optional(),
     topic: Fields.topic.nullable().optional(),
+    labelAd: z.boolean().optional(),
   };
 }
 /* confirmCount: the audience size the owner saw and confirmed; queueing is refused without it or when the audience has changed. overrideCap: send to everyone although some already got the monthly maximum (recorded on the campaign). skipCapped: go ahead and let the sender skip them. */
@@ -130,12 +142,16 @@ export const PreviewBody = z
     bodyText: BodyText,
     blocks: Blocks.nullable().optional(),
     lang: z.enum(["en", "he"]).default("en"),
+    labelAd: z.boolean().optional(),
   })
   .strict();
 /* The audience selection of a draft that may not be saved yet. */
 export const AudienceBody = z
   .object({ groups: Groups, lang: Fields.lang.default("all"), topic: Fields.topic.nullable().optional() })
   .strict();
+
+/* Compile an issue; `since` overrides the start of the window. */
+export const CompileBody = z.object({ since: z.string().datetime({ offset: true }).optional() }).strict();
 
 /* The kill switch's one field. */
 export const SendingBody = z.object({ paused: z.boolean() }).strict();

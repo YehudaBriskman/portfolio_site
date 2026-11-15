@@ -19,6 +19,17 @@ export const COMMERCIAL_LABEL_HE = "פרסומת";
 export const LABEL_SUBJECT_EN = "פרסומת | Ad";
 export const LABEL_BODY_EN = "פרסומת | Advertisement";
 
+/**
+ * Whether this campaign carries the advertisement label. The campaign's own
+ * toggle decides: on = label (using the sender's policy, or every recipient
+ * when the policy is "off"), off = none. A campaign saved before the toggle
+ * existed has none, and the sender's policy decides as it always did.
+ */
+export function campaignLabel(c: { labelAd?: boolean }, mode: LabelMode, lang: Lang) {
+  if (c.labelAd === false) return null;
+  return labelFor(c.labelAd === true && mode === "off" ? "all" : mode, lang);
+}
+
 /** The label for one recipient, or null when the policy does not call for it. */
 export function labelFor(mode: LabelMode, lang: Lang): { subject: string; line: string } | null {
   if (mode === "off" || (mode === "hebrew" && lang !== "he")) return null;
@@ -45,7 +56,7 @@ export type RenderedMail = { subject: string; text: string; html: string; header
  * unsubscribe link is personal (a signed `unsub` token with a long expiry).
  */
 export async function renderCampaignMail(
-  c: Pick<Campaign, "subject" | "preheader" | "bodyText" | "blocks">,
+  c: Pick<Campaign, "subject" | "preheader" | "bodyText" | "blocks"> & { labelAd?: boolean },
   contact: { lang: Lang },
   hash: string,
   sender: SenderSettings,
@@ -53,13 +64,15 @@ export async function renderCampaignMail(
 ): Promise<RenderedMail> {
   const lang = contact.lang;
   const he = lang === "he";
-  const label = labelFor(sender.labelMode, lang);
+  const label = campaignLabel(c, sender.labelMode, lang);
+  const words = sender.issue.words[lang];
   const urls = await unsubscribeUrls(hash);
   const prefsHref = await manageUrl(hash);
   const site = new URL(env.SITE_URL).host;
   const vars = { name: "", site, days: "", link: urls.page };
   const note = he ? sender.unsubscribeNoteHe : sender.unsubscribeNoteEn;
   const missingLink = !hasLink(note);
+  /* Links are buttons in the page: the approved sentence stays, the address is not shown. */
   const fallback = he ? UNSUB_FALLBACK_HE : UNSUB_FALLBACK_EN;
   const identityLines = contactLines(sender);
 
@@ -68,12 +81,12 @@ export async function renderCampaignMail(
   /* The handwritten signature, in this recipient's language, else the other one. A store hiccup must never stop a send. */
   const sig = await resolveSignature("email", lang).catch(() => null);
 
-  const body = bodyBlocks(c);
+  const body = bodyBlocks(c, lang);
   const blocks: MailBlock[] = [
     ...(label ? [{ type: "paragraph" as const, tone: "strong" as const, text: label.line }] : []),
     ...body,
     ...(sig ? [{ type: "signature" as const, src: sig.src, ...(sig.srcLight ? { srcDark: sig.srcLight } : {}), alt: sig.alt, width: sig.width, height: sig.height }] : []),
-    { type: "footer", lines: identityLines, note: fillParts(note, vars), extra: [...(missingLink ? [fillParts(fallback, vars)] : []), [{ href: prefsHref, text: he ? PREFS_LABEL_HE : PREFS_LABEL_EN }]] },
+    { type: "footer", lines: identityLines, note: fillParts(note, vars, words.unsubscribeBtn), websiteLabel: words.websiteBtn, extra: [...(missingLink ? [fillParts(fallback, vars, words.unsubscribeBtn)] : []), [{ href: prefsHref, text: he ? PREFS_LABEL_HE : PREFS_LABEL_EN, label: words.preferencesBtn }]] },
   ];
   const { html, text } = renderMail(blocks, { lang, title: c.subject, ...(c.preheader?.trim() ? { preheader: c.preheader } : autoPreheader(body) ? { preheader: autoPreheader(body) } : {}) });
 

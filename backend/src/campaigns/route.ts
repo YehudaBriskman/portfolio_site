@@ -13,8 +13,9 @@ import { resolveSender } from "./config.js";
 import { ledgerWritable } from "../audience/ledger.js";
 import { isTested, contentFingerprint } from "./readiness.js";
 import { campaignsBlocked, sendingState, setPaused } from "./killSwitch.js";
+import { compileIssue } from "./issue.js";
 import { renderCampaignMail } from "./render.js";
-import { AudienceBody, SendingBody, CampaignCreate, CampaignId, CampaignPatch, PreviewBody, ScheduleBody, SendNowBody, type Campaign } from "./schemas.js";
+import { AudienceBody, CompileBody, SendingBody, CampaignCreate, CampaignId, CampaignPatch, PreviewBody, ScheduleBody, SendNowBody, type Campaign } from "./schemas.js";
 import { CAP_WINDOW_MS } from "./sender.js";
 import { dnsOverride, sendReadiness } from "./sendReadiness.js";
 import { campaignId, createCampaign, deleteCampaign, getCampaign, getRate, isStatus, listCampaigns, mutateCampaign, sentCounts } from "./store.js";
@@ -41,7 +42,7 @@ const mask = (email: string) => {
 const view = (c: Campaign) => ({
   id: c._id.slice("campaign:".length), _rev: c._rev ?? null, name: c.name, subject: c.subject, preheader: c.preheader ?? "",
   bodyText: c.bodyText, blocks: c.blocks ?? null, groups: c.groups, lang: c.lang ?? "all", topic: c.topic ?? null,
-  status: c.status, sendAt: c.sendAt ?? null, counters: c.counters, capOverride: c.capOverride ?? null, eventId: c.eventId ?? null,
+  status: c.status, sendAt: c.sendAt ?? null, counters: c.counters, capOverride: c.capOverride ?? null, eventId: c.eventId ?? null, kind: c.kind ?? null, labelAd: c.labelAd ?? null, compiledUntil: c.compiledUntil ?? null,
   pausedReason: c.pausedReason ?? null, testedAt: isTested(c) ? c.tested!.at : null, startedAt: c.startedAt ?? null, finishedAt: c.finishedAt ?? null, createdAt: c.createdAt, updatedAt: c.updatedAt,
 });
 
@@ -128,6 +129,25 @@ router.get(
       warmup: warm,
       ...(plan !== undefined ? { plan } : {}),
     });
+  }),
+);
+
+/*
+ * Compile an issue: a DRAFT built from what happened since the last sent issue
+ * (campaigns/issue.ts). 204 when there is nothing new. Never schedules or sends.
+ */
+router.post(
+  "/compile",
+  asyncHandler(async (req, res) => {
+    const b = CompileBody.safeParse(req.body ?? {});
+    if (!b.success) return res.status(400).json({ ok: false, error: "Check the fields and try again.", issues: toIssues(b.error) });
+    const c = await compileIssue(new Date(), b.data.since ? { since: b.data.since } : {});
+    if (!c) {
+      res.locals.noAudit = true;
+      return res.status(204).end();
+    }
+    res.locals.audit = { target: c._id, before: null, after: c };
+    res.status(201).json({ ok: true, campaign: view((await getCampaign(c._id.slice(9)))!) });
   }),
 );
 
@@ -276,8 +296,8 @@ router.post(
     const b = PreviewBody.safeParse(req.body);
     if (!b.success) return res.status(400).json({ ok: false, error: "Check the fields and try again.", issues: toIssues(b.error) });
     res.locals.noAudit = true;
-    const { subject, preheader, bodyText, blocks, lang } = b.data;
-    const m = await renderCampaignMail({ subject, preheader, bodyText, ...(blocks ? { blocks } : {}) }, { lang }, hashEmail("preview@example.invalid"), (await loadSettings()).sender);
+    const { subject, preheader, bodyText, blocks, lang, labelAd } = b.data;
+    const m = await renderCampaignMail({ subject, preheader, bodyText, ...(blocks ? { blocks } : {}), ...(labelAd !== undefined ? { labelAd } : {}) }, { lang }, hashEmail("preview@example.invalid"), (await loadSettings()).sender);
     res.set("Cache-Control", "no-store").json({ ok: true, subject: m.subject, html: m.html, text: m.text });
   }),
 );
