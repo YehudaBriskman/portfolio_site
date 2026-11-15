@@ -184,12 +184,15 @@ export default function VisitorTemplates({ bare }: { bare?: boolean } = {}) {
           </ul>
         </div>
       )}
-      <div className="flex flex-wrap items-center gap-3">
-        <button type="button" className="a-btn a-btn-primary min-h-[44px]" disabled={!dirty || status === "saving"} onClick={() => void save()}>{w.visitorSave}</button>
-        <button type="button" className="a-btn a-btn-ghost min-h-[44px]" disabled={!dirty || status === "saving"} onClick={() => (setDraft(structuredClone(view.settings)), setStatus("idle"))}>{a.reset}</button>
-        {status === "conflict" && <button type="button" className="a-btn min-h-[44px]" onClick={reload}>{a.reload}</button>}
-        <span role="status" className={`text-sm ${bad ? "font-bold text-[rgb(var(--destructive-ink))]" : "text-clay"}`}>{statusText}</span>
-      </div>
+      {/* Two dead buttons would sit under the list for nothing, and their "Discard changes" would say the library bar's words twice: the bar appears with the first edit. */}
+      {(dirty || status !== "idle") && (
+        <div className="flex flex-wrap items-center gap-3">
+          <button type="button" className="a-btn a-btn-primary min-h-[44px]" disabled={!dirty || status === "saving"} onClick={() => void save()}>{w.visitorSave}</button>
+          <button type="button" className="a-btn a-btn-ghost min-h-[44px]" disabled={!dirty || status === "saving"} onClick={() => (setDraft(structuredClone(view.settings)), setStatus("idle"))}>{a.reset}</button>
+          {status === "conflict" && <button type="button" className="a-btn min-h-[44px]" onClick={reload}>{a.reload}</button>}
+          <span role="status" className={`text-sm ${bad ? "font-bold text-[rgb(var(--destructive-ink))]" : "text-clay"}`}>{statusText}</span>
+        </div>
+      )}
     </section>
   );
 }
