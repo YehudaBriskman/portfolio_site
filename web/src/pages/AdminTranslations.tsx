@@ -1,18 +1,32 @@
-import Select from "@/components/ui/Select";
 import { useMemo } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import AdminShell from "@/components/admin/AdminShell";
-import TranslationPill from "@/components/admin/TranslationPill";
+import HeGlyph from "@/components/admin/posts/HeGlyph";
+import { usePostsPhoneWords } from "@/components/admin/posts/words";
 import TranslationsPhone from "@/components/admin/translations/TranslationsPhone";
-import { Counter, ErrorState, LoadingRows, PageHeader } from "@/components/admin/ui";
+import { useTranslationsWords } from "@/components/admin/translations/words";
+import { ErrorState, PageHeader } from "@/components/admin/ui";
+import { DataTable, type Column, type DataTableWords } from "@/components/ui/DataTable";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { FilterBar, useFilterBar } from "@/components/ui/FilterBar";
+import type { FilterDef } from "@/components/ui/filters";
+import { FiltersRestoredNote } from "@/components/ui/FilterChips";
+import { ICON } from "@/components/ui/icons";
+import { RowActions } from "@/components/ui/RowActions";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { TabPanel, Tabs } from "@/components/ui/Tabs";
 import { usePhone } from "@/hooks/usePhone";
 import { useAdminWords } from "@/i18n/admin";
+import { usePhoneAdminWords } from "@/i18n/adminPhone";
+import { useFiltersWords } from "@/i18n/filters";
 import {
   TABS,
   TRANSLATION_TYPES,
   editHref,
   tabOf,
   useTranslationReport,
+  type TranslationItem,
+  type TranslationStatus,
   type TranslationTab,
   type TranslationType,
   type TranslationUnit,
@@ -33,35 +47,9 @@ import {
  * the pill come from the admin's table like the rest of the chrome.
  */
 
-const TAB_LABEL: Record<TranslationTab, string> = { missing: "Missing", stale: "Stale", draft: "Draft", done: "Done" };
-const TAB_EMPTY: Record<TranslationTab, string> = {
-  missing: "Every field a reader sees has Hebrew.",
-  stale: "No Hebrew is behind its English.",
-  draft: "No Hebrew is waiting in a draft.",
-  done: "Nothing is translated yet.",
-};
-const TYPE_LABEL: Record<TranslationType, string> = {
-  post: "Note",
-  area: "Area",
-  project: "Project",
-  story: "Story",
-  "site-copy": "Site copy",
-  media: "Media",
-};
-const TYPE_PLURAL: Record<TranslationType, string> = {
-  post: "Notes",
-  area: "Areas",
-  project: "Projects",
-  story: "Story",
-  "site-copy": "Site copy",
-  media: "Media",
-};
 type Visibility = "public" | "all" | "private";
-const VISIBILITY_LABEL: Record<Visibility, string> = { public: "Public only", all: "Public and private", private: "Private only" };
 
 const isTab = (v: string | null): v is TranslationTab => TABS.includes(v as TranslationTab);
-const isType = (v: string | null): v is TranslationType => TRANSLATION_TYPES.includes(v as TranslationType);
-const isVisibility = (v: string | null): v is Visibility => v === "public" || v === "all" || v === "private";
 
 /** `decisions.2.body` → `decisions`; a list's units are counted under its name. */
 function fieldsOf(units: TranslationUnit[]): string {
@@ -73,38 +61,76 @@ function fieldsOf(units: TranslationUnit[]): string {
   return [...counts].map(([name, n]) => (n > 1 ? `${name} ×${n}` : name)).join(", ");
 }
 
+
+/** The row's glyph: the worst of the units it lists. */
+const RANK: Record<TranslationStatus, number> = { missing: 0, stale: 1, draft: 2, unverified: 3, translated: 4 };
+const worstOf = (units: TranslationUnit[]) => units.reduce((worst, u) => (RANK[u.status] < RANK[worst] ? u.status : worst), units[0].status);
+
+const heRoute = (route: string) => (route === "/" ? "/he" : `/he${route}`);
+
+interface Row {
+  item: TranslationItem;
+  units: TranslationUnit[];
+}
+
 export default function AdminTranslations() {
   const w = useAdminWords();
   const phone = usePhone();
   const { report, error, reload } = useTranslationReport();
+  const t = useTranslationsWords();
+  const p = usePhoneAdminWords().translations;
+  const posts = usePostsPhoneWords();
+  const f = useFiltersWords();
+  const nav = useNavigate();
   const [params, setParams] = useSearchParams();
   const tab: TranslationTab = isTab(params.get("status")) ? (params.get("status") as TranslationTab) : "missing";
-  const type: TranslationType | "all" = isType(params.get("type")) ? (params.get("type") as TranslationType) : "all";
-  const visibility: Visibility = isVisibility(params.get("visibility")) ? (params.get("visibility") as Visibility) : "public";
 
-  const setParam = (key: string, value: string, fallback: string) =>
+  const setTab = (next: string) =>
     setParams(
       (prev) => {
-        const next = new URLSearchParams(prev);
-        if (value === fallback) next.delete(key);
-        else next.set(key, value);
-        return next;
+        const q = new URLSearchParams(prev);
+        if (next === "missing") q.delete("status");
+        else q.set("status", next);
+        return q;
       },
       { replace: true },
     );
 
-  /* The type and visibility scope the counts; the tab then picks the units. */
+  const defs = useMemo<FilterDef[]>(
+    () => [
+      { id: "type", kind: "segmented", label: p.type, options: TRANSLATION_TYPES.map((x) => ({ value: x, label: p.types[x] })) },
+      {
+        id: "visibility",
+        kind: "segmented",
+        label: p.visibility,
+        options: [
+          { value: "all", label: t.visibilityAll },
+          { value: "private", label: t.visibilityPrivate },
+        ],
+      },
+    ],
+    [p, t],
+  );
+  const bar = useFilterBar("translations-desktop", defs);
+  const typeId = typeof bar.filters.type === "string" && TRANSLATION_TYPES.includes(bar.filters.type as TranslationType) ? (bar.filters.type as TranslationType) : null;
+  const visibility: Visibility = bar.filters.visibility === "all" || bar.filters.visibility === "private" ? bar.filters.visibility : "public";
+  const term = bar.query.trim().toLowerCase();
+
+  /* The type, visibility and search scope the counts; the tab then picks the units. */
   const scoped = useMemo(
     () =>
       (report?.items ?? []).filter(
-        (i) => (type === "all" || i.type === type) && (visibility === "all" || i.visibility === visibility),
+        (i) =>
+          (!typeId || i.type === typeId) &&
+          (visibility === "all" || i.visibility === visibility) &&
+          (!term || [i.title, i.id, i.route].some((x) => x.toLowerCase().includes(term))),
       ),
-    [report, type, visibility],
+    [report, typeId, visibility, term],
   );
   /* A tab's count is the rows it shows: items with at least one field in it. */
   const counts = useMemo(() => {
     const c: Record<TranslationTab, number> = { missing: 0, stale: 0, draft: 0, done: 0 };
-    for (const i of scoped) for (const t of new Set(i.units.map((u) => tabOf(u.status)))) c[t] += 1;
+    for (const i of scoped) for (const x of new Set(i.units.map((u) => tabOf(u.status)))) c[x] += 1;
     return c;
   }, [scoped]);
   /* Coverage is by field: the share of fields in scope with Hebrew live. */
@@ -118,7 +144,7 @@ export default function AdminTranslations() {
       }
     return total ? Math.round((live / total) * 100) : 100;
   }, [scoped]);
-  const rows = useMemo(
+  const rows = useMemo<Row[]>(
     () =>
       scoped.flatMap((item) => {
         const units = item.units.filter((u) => tabOf(u.status) === tab);
@@ -127,151 +153,113 @@ export default function AdminTranslations() {
     [scoped, tab],
   );
 
+  const words: DataTableWords = {
+    selectAll: f.selectAll,
+    selectRow: (label) => label,
+    actions: w.colActions,
+    loading: w.loading,
+    bulkLabel: w.colActions,
+    count: (n) => String(n),
+    cancel: posts.keep,
+    more: w.moreActions,
+  };
+
+  const columns: Column<Row>[] = [
+    {
+      id: "item",
+      header: t.colItem,
+      primary: true,
+      cell: ({ item, units }) => (
+        <>
+          <Link to={editHref(item, units[0])} className="a-row-title">
+            {item.title}
+          </Link>
+          <span className="block text-sm font-normal text-[rgb(var(--ink-soft))]">
+            {p.typeOne[item.type]}
+            {item.visibility === "private" ? ` · ${p.private}` : ""}
+          </span>
+        </>
+      ),
+    },
+    { id: "fields", header: t.colFields, hideBelow: "md", width: "13rem", cell: ({ units }) => <span dir="ltr">{fieldsOf(units)}</span> },
+    { id: "path", header: t.colSeenOn, hideBelow: "lg", width: "14rem", cell: ({ item }) => <code dir="ltr" className="a-path">{heRoute(item.route)}</code> },
+    { id: "he", header: t.colHebrew, hideBelow: "sm", width: "6rem", cell: ({ units }) => <HeGlyph status={worstOf(units)} /> },
+  ];
+
+  const filtered = Boolean(typeId || visibility !== "public" || term);
+  const idBase = "translations";
+
   return (
     <AdminShell title={w.nav.translations} section="translations">
       <div className="a-wrap">
         <PageHeader
           title={w.nav.translations}
-          meta={
-            !phone && report && (
-              <span className="tabular-nums">
-                Hebrew coverage <strong>{coverage}%</strong>
-              </span>
-            )
-          }
-          description={
-            phone ? undefined : (
-              <>
-                Every field a reader sees in Hebrew, in the order they meet it. Stale Hebrew stays on the site until you
-                update it or mark it still correct.
-              </>
-            )
-          }
+          meta={!phone && report && <span className="tabular-nums">{p.coverage(coverage)}</span>}
+          description={phone ? undefined : t.intro}
         />
 
         {!phone && (
-        <div className="a-toolbar">
-          <label className="w-full sm:w-auto">
-            <span className="sr-only">Filter by type</span>
-            <Select className="sm:w-44" value={type} onChange={(e) => setParam("type", e.target.value, "all")}>
-              <option value="all">All types</option>
-              {TRANSLATION_TYPES.map((t) => (
-                <option key={t} value={t}>
-                  {TYPE_PLURAL[t]}
-                </option>
-              ))}
-            </Select>
-          </label>
-          <label className="w-full sm:w-auto">
-            <span className="sr-only">Filter by visibility</span>
-            <Select className="sm:w-52" value={visibility} onChange={(e) => setParam("visibility", e.target.value, "public")}>
-              {(["public", "all", "private"] as const).map((v) => (
-                <option key={v} value={v}>
-                  {VISIBILITY_LABEL[v]}
-                </option>
-              ))}
-            </Select>
-          </label>
-        </div>
+          <FilterBar
+            defs={defs}
+            value={bar.filters}
+            onChange={bar.setFilters}
+            common={["type", "visibility"]}
+            query={bar.query}
+            onQueryChange={bar.setQuery}
+            resultCount={rows.length}
+            words={{ search: t.search, clearSearch: t.clearSearch, results: f.results, clearAll: f.clearAll }}
+          />
         )}
+        {!phone && <FiltersRestoredNote restored={bar.saved.restored} onUndo={bar.saved.undoRestore} onDismiss={bar.saved.dismissRestored} />}
 
         <p className="sr-only" role="status">
-          {report === null ? w.loading : phone ? "" : `${rows.length} ${rows.length === 1 ? "item" : "items"}, ${TAB_LABEL[tab].toLowerCase()}`}
+          {report === null ? w.loading : phone ? "" : t.count(rows.length, t.tabs[tab])}
         </p>
 
         {error ? (
           <ErrorState message={error} onRetry={reload} />
         ) : report === null ? (
-          <LoadingRows rows={6} />
+          <Skeleton columns={[{ id: "a", width: "3fr" }, { id: "b", width: "1fr" }, { id: "c", width: "1fr" }]} rows={6} label={w.loading} />
         ) : phone ? (
           <TranslationsPhone items={report.items} />
         ) : (
-          <div className="a-box">
-            <div className="a-box-head !p-0 !min-h-0">
-              <div className="a-tabs w-full border-0 px-2" role="group" aria-label="Filter by Hebrew status">
-                {TABS.map((t) => (
-                  <button key={t} type="button" className="a-tab" aria-pressed={tab === t} onClick={() => setParam("status", t, "missing")}>
-                    {TAB_LABEL[t]}
-                    <Counter n={counts[t]} />
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {rows.length === 0 ? (
-              <div className="a-blank">
-                <p className="a-blank-title">{TAB_EMPTY[tab]}</p>
-                {(type !== "all" || visibility !== "public") && (
-                  <p className="a-blank-text">Only {type === "all" ? "" : `${TYPE_PLURAL[type].toLowerCase()}, `}{VISIBILITY_LABEL[visibility].toLowerCase()} are shown.</p>
+          <>
+            <Tabs className="mt-4" idBase={idBase} panels label={t.tablist} value={tab} onValueChange={setTab} items={TABS.map((x) => ({ id: x, label: t.tabs[x], count: counts[x] }))} />
+            <TabPanel idBase={idBase} id={tab} value={tab}>
+              <DataTable<Row>
+                label={`${w.nav.translations}: ${t.tabs[tab]}`}
+                rows={rows}
+                columns={columns}
+                rowKey={({ item }) => `${item.type}:${item.id}`}
+                rowLabel={({ item }) => item.title}
+                words={words}
+                density="comfortable"
+                onOpen={({ item, units }) => nav(editHref(item, units[0]))}
+                empty={
+                  <EmptyState
+                    variant="no-results"
+                    title={filtered ? w.noMatch : t.empty[tab]}
+                    description={filtered ? t.empty[tab] : undefined}
+                    clear={filtered ? { label: w.clearFilters, onClick: bar.clearAll } : undefined}
+                  />
+                }
+                rowActions={({ item, units }) => (
+                  <RowActions
+                    label={item.title}
+                    moreLabel={w.moreActions}
+                    primary={{ id: "open", icon: ICON.draft, label: t.open, onSelect: () => nav(editHref(item, units[0])) }}
+                    actions={
+                      item.visibility === "public"
+                        ? [{ id: "live", icon: ICON.published, label: posts.viewLive, onSelect: () => window.open(heRoute(item.route), "_blank", "noopener") }]
+                        : []
+                    }
+                  />
                 )}
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="a-table a-table-fixed">
-                  <colgroup>
-                    <col className="a-col-status" />
-                    <col />
-                    <col className="a-col-path hidden md:table-column" />
-                    <col className="a-col-action" />
-                  </colgroup>
-                  <caption className="sr-only">
-                    {w.nav.translations}: {TAB_LABEL[tab]}
-                  </caption>
-                  <thead className="sr-only">
-                    <tr>
-                      <th scope="col">Hebrew</th>
-                      <th scope="col">Item</th>
-                      <th scope="col">Seen on</th>
-                      <th scope="col">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map(({ item, units }) => {
-                      const href = editHref(item, units[0]);
-                      return (
-                        <tr key={`${item.type}:${item.id}`}>
-                          <td className="a-fit !pr-0 align-top">
-                            <TranslationPill status={units.reduce((worst, u) => (RANK[u.status] < RANK[worst] ? u.status : worst), units[0].status)} />
-                          </td>
-                          <td className="a-main">
-                            <Link to={href} className="a-row-title a-clamp-2" title={item.title}>
-                              {item.title}
-                            </Link>
-                            <span className="a-row-meta">
-                              <span>{TYPE_LABEL[item.type]}</span>
-                              <span className="a-clamp-1 min-w-0" title={fieldsOf(units)}>{fieldsOf(units)}</span>
-                              {item.visibility === "private" && <span>Private</span>}
-                              <code dir="ltr" className="min-w-0 md:hidden [overflow-wrap:anywhere]">
-                                {heRoute(item.route)}
-                              </code>
-                            </span>
-                          </td>
-                          <td className="a-fit hidden md:table-cell">
-                            <code dir="ltr" className="a-path text-sm text-[rgb(var(--ink-soft))]" title={heRoute(item.route)}>
-                              {heRoute(item.route)}
-                            </code>
-                          </td>
-                          <td className="a-fit !pl-0">
-                            {/* The visible word starts the accessible name (WCAG 2.5.3). */}
-                            <Link to={href} className="a-btn a-btn-ghost">
-                              Edit<span className="sr-only"> {item.title}</span>
-                            </Link>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
+              />
+            </TabPanel>
+          </>
         )}
       </div>
     </AdminShell>
   );
 }
-
-/** The row's pill: the worst of the units it lists. */
-const RANK = { missing: 0, stale: 1, draft: 2, unverified: 3, translated: 4 } as const;
-
-const heRoute = (route: string) => (route === "/" ? "/he" : `/he${route}`);

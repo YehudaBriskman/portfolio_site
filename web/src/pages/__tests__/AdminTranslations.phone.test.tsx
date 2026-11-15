@@ -65,7 +65,7 @@ describe("Translations on a phone: the list", () => {
   it("shows what still needs Hebrew as rows, not a table, with no Edit buttons and no selects", async () => {
     page();
     await rowOf("Home · hero");
-    expect(screen.queryByRole("table")).toBeNull();
+    expect(screen.queryByRole("grid")).toBeNull();
     expect(screen.queryByRole("combobox")).toBeNull();
     expect(screen.queryByRole("link", { name: /^Edit/ })).toBeNull();
     /* Finished and private items are out of the way until asked for. */
@@ -154,12 +154,13 @@ describe("Translations on a phone: Hebrew", () => {
 });
 
 describe("Translations on a desktop", () => {
-  it("is unchanged: the table, the selects and the Edit links", async () => {
+  it("is the desktop list: a grid, the state tabs and the filter chips", async () => {
     undoPhone();
     undoPhone = phone(false);
     page();
-    expect(await screen.findByRole("table")).toBeTruthy();
-    expect(screen.getAllByRole("combobox")).toHaveLength(2);
+    expect(await screen.findByRole("grid")).toBeTruthy();
+    expect(screen.getAllByRole("tab")).toHaveLength(4);
+    expect(screen.queryAllByRole("combobox")).toHaveLength(0);
     expect(rows()).toHaveLength(0);
   });
 });
