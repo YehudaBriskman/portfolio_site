@@ -1,13 +1,11 @@
-import { useId } from "react";
 import { ANNOUNCE_SNIPPET_KINDS, type AnnounceSnippet, type AnnounceSnippetKind } from "@/services/adminAnnounce";
-import { newId } from "./variables";
 import { useLibraryWords } from "./words";
 
 export const SNIPPET_MAX = 50;
 const TEXT_MAX = 1000;
 
 /*
- * One snippet's fields. The desktop card and the phone sheet both draw these,
+ * One snippet's fields. The desktop side panel and the phone sheet both draw these,
  * so the two layouts edit the same thing and send the same payload.
  */
 export function SnippetFields({ snippet: s, onPatch, uid }: { snippet: AnnounceSnippet; onPatch: (p: Partial<AnnounceSnippet>) => void; uid: string }) {
@@ -30,43 +28,5 @@ export function SnippetFields({ snippet: s, onPatch, uid }: { snippet: AnnounceS
         <p className="a-hint tabular-nums">{w.textMax(s.text.length, TEXT_MAX)}</p>
       </div>
     </>
-  );
-}
-
-/* Reusable pieces of text. The templates insert them; nothing here is sent anywhere. */
-export default function SnippetsEditor({ snippets, onChange }: { snippets: AnnounceSnippet[]; onChange: (next: AnnounceSnippet[]) => void }) {
-  const w = useLibraryWords();
-  const uid = useId();
-  const patch = (id: string, p: Partial<AnnounceSnippet>) => onChange(snippets.map((s) => (s.id === id ? { ...s, ...p } : s)));
-  const full = snippets.length >= SNIPPET_MAX;
-
-  return (
-    <section aria-labelledby={`${uid}-h`} className="space-y-3">
-      <div>
-        <h3 id={`${uid}-h`} className="display-tight text-lg">{w.snippetsHeading}</h3>
-        <p className="a-hint !mt-0">{w.snippetsHint}</p>
-      </div>
-      {snippets.length === 0 && <p className="a-hint">{w.noSnippets}</p>}
-      <ul className="space-y-3">
-        {snippets.map((s) => (
-          <li key={s.id} className="a-box">
-            <div className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-[1fr_12rem]">
-              <SnippetFields snippet={s} onPatch={(p) => patch(s.id, p)} uid={uid} />
-              <div className="sm:col-span-2">
-                <button type="button" className="a-btn a-btn-ghost min-h-[44px]" aria-label={w.remove(s.name || w.untitled)} onClick={() => onChange(snippets.filter((x) => x.id !== s.id))}>
-                  {w.remove(s.name || w.untitled)}
-                </button>
-              </div>
-            </div>
-          </li>
-        ))}
-      </ul>
-      <div className="flex flex-wrap items-center gap-3">
-        <button type="button" className="a-btn min-h-[44px]" disabled={full} onClick={() => onChange([...snippets, { id: newId("s"), name: w.newSnippet, kind: "hashtags", text: "" }])}>
-          {w.newSnippet}
-        </button>
-        {full && <span className="a-hint !mt-0">{w.snippetLimit(SNIPPET_MAX)}</span>}
-      </div>
-    </section>
   );
 }

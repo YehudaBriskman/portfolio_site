@@ -4,6 +4,7 @@ import { useLeaveGuard } from "@/hooks/useLeaveGuard";
 import { useContentWords } from "@/components/admin/content/words";
 import { ErrorState } from "@/components/admin/ui";
 import { Disclosure } from "@/components/ui/Disclosure";
+import { InfoPopover } from "@/components/ui/InfoPopover";
 import { ANNOUNCE_CHANNELS, type AnnounceKind, type AnnounceSettings } from "@/services/adminAnnounce";
 import { parseTags } from "./helpers";
 import { senderProblems } from "./sender/defaults";
@@ -37,7 +38,6 @@ import { useSignatureWords } from "./signature/words";
  */
 
 const everydayOf = (s: AnnounceSettings) => ({ mail: s.email.enabled, notify: s.notify.enabled, channels: s.channels, hashtags: s.hashtags, signature: s.signature });
-const advancedOf = (s: AnnounceSettings) => ({ enabled: s.enabled, events: s.email.events, utm: s.advanced.utm, sender: s.sender, notify: { ...s.notify, enabled: false } });
 
 export default function SettingsPanel() {
   const w = useAnnounceWords();
@@ -107,7 +107,6 @@ export default function SettingsPanel() {
   const dirty = !same(working, view.settings);
   const everydayDirty = !same(everydayOf(working), everydayOf(view.settings));
   const everydayIsDefault = same(everydayOf(working), { mail: false, notify: false, channels: ANNOUNCE_CHANNELS, hashtags: [], signature: "" });
-  const advancedDirty = !same(advancedOf(working), advancedOf(view.settings));
 
   const touch = () => note && setNote("");
   const change = (fn: (d: AnnounceSettings) => void) => (touch(), edit(fn));
@@ -145,13 +144,14 @@ export default function SettingsPanel() {
     setNote(sw.sectionReset);
   };
 
+  /* The help is behind an info button (as on a phone), so a column of checkboxes is not a wall of hints. */
   const check = (id: string, label: string, checked: boolean, onChange: (v: boolean) => void, hint?: string) => (
-    <div>
-      <label className="flex min-h-[44px] items-center gap-3 text-sm">
-        <input type="checkbox" className="h-5 w-5" checked={checked} aria-describedby={hint ? `${id}-hint` : undefined} onChange={(e) => onChange(e.target.checked)} />
+    <div className="flex items-center gap-3">
+      <label className="flex min-h-[44px] min-w-0 items-center gap-3 text-sm">
+        <input id={id} type="checkbox" className="h-5 w-5 shrink-0" checked={checked} onChange={(e) => onChange(e.target.checked)} />
         <span>{label}</span>
       </label>
-      {hint && <p id={`${id}-hint`} className="a-hint !mt-0 ps-8">{hint}</p>}
+      {hint && <InfoPopover label={label} text={hint} />}
     </div>
   );
 
@@ -295,23 +295,22 @@ export default function SettingsPanel() {
   }
 
   return (
-    <form noValidate onSubmit={(e) => (e.preventDefault(), void doc.save(working))} className="max-w-3xl space-y-8" aria-labelledby={`${uid}-h`}>
-      <div>
-        <h2 id={`${uid}-h`} className="display-tight text-xl">{w.settingsHeading}</h2>
-        <p className="a-hint">{w.settingsIntro}</p>
-      </div>
-
-      <section aria-labelledby={`${uid}-ev`} className="space-y-4">
+    /* The hub's heading and its one line already say what this page is: no second title and intro here (A2). */
+    <form noValidate onSubmit={(e) => (e.preventDefault(), void doc.save(working))} className="max-w-3xl space-y-6" aria-label={w.settingsHeading}>
+      <section aria-labelledby={`${uid}-ev`} className="space-y-3">
         <div>
-          <h3 id={`${uid}-ev`} className="display-tight text-lg">{sw.everydayHeading}</h3>
-          <p className="a-hint !mt-0">{sw.everydayHint} {sw.templatesMoved}</p>
+          <div className="flex items-center gap-2">
+            <h2 id={`${uid}-ev`} className="display-tight text-lg">{sw.everydayHeading}</h2>
+            <InfoPopover label={sw.everydayHeading} text={sw.templatesMoved} />
+          </div>
+          <p className="a-hint !mt-0">{sw.everydayHint}</p>
         </div>
 
         {check(`${uid}-mail`, w.emailEnabled, draft.email.enabled, (v) => change((d) => void (d.email.enabled = v)), w.emailHint)}
 
         {check(`${uid}-notify`, nw.master, draft.notify.enabled, (v) => change((d) => void (d.notify.enabled = v)), nw.masterHint)}
 
-        <fieldset>
+        <fieldset className="flex flex-wrap gap-x-6 gap-y-2">
           <legend className="a-label">{w.channelsHeading}</legend>
           {ANNOUNCE_CHANNELS.map((c) => (
             <div key={c}>{check(`${uid}-ch-${c}`, w.channels[c], draft.channels.includes(c), (v) => change((d) => void (d.channels = ANNOUNCE_CHANNELS.filter((x) => (x === c ? v : d.channels.includes(x))))))}</div>
@@ -343,7 +342,6 @@ export default function SettingsPanel() {
       <Disclosure
         className="a-box"
         summary={sw.advancedHeading}
-        meta={advancedDirty ? w.unsaved : undefined}
         open={isOpen}
         onOpenChange={(next) => {
           /* A filter forces it open; only a person's own toggle is remembered. */
@@ -365,7 +363,7 @@ export default function SettingsPanel() {
 
       {issuesBox}
 
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="sticky bottom-0 z-10 flex flex-wrap items-center gap-3 border-t border-[rgb(var(--rule-firm)/0.3)] bg-[rgb(var(--paper))] py-3">
         <button type="submit" className="a-btn a-btn-primary min-h-[44px]" disabled={!dirty || status === "saving" || sourceBad || senderBad || tagsBad}>{w.save}</button>
         <button type="button" className="a-btn a-btn-ghost min-h-[44px]" disabled={!dirty || status === "saving"} onClick={() => (setTags(null), doc.discard())}>{w.reset}</button>
         {status === "conflict" && <button type="button" className="a-btn min-h-[44px]" onClick={() => (setTags(null), doc.reload())}>{w.reload}</button>}
