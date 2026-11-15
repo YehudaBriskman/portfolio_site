@@ -153,10 +153,11 @@ export default function CampaignsPhone({
   return (
     <div className={styles.wrap} data-testid="campaigns-phone">
       <div className={styles.toolbar}>
+        {/* Select leads: a chip scrolled out of the row would otherwise sit under it at the inline-end. */}
+        <SelectionHeader selection={selection} total={drafts.length} />
         <div className={styles.chips}>
           <FilterChips defs={defs} value={filters} onChange={setFilters} common={["stage"]} onOpenSheet={() => setFiltersOpen(true)} resultCount={visible.length} />
         </div>
-        <SelectionHeader selection={selection} total={drafts.length} />
       </div>
       <FiltersRestoredNote restored={saved.restored} onUndo={saved.undoRestore} onDismiss={saved.dismissRestored} />
       {selection.on && <p className="a-hint !mt-0">{p.selectNote}</p>}
