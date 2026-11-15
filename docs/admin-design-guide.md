@@ -1,10 +1,236 @@
 # Admin design guide
 
-**The single source of truth for how the admin looks and behaves on a phone.** Read it before you change anything under `/admin`. It is a living reference, not a task list: work is tracked as issues (#669 to #683 for the phone series), and if something here stops being true, change it in the same PR.
+**The single source of truth for how the admin looks and behaves.** Section 0 is the rulebook for every width (A1 to A34); sections 1 to 9 hold the phone numbers and the catalogue. Read it before you change anything under `/admin`. It is a living reference, not a task list: work is tracked as issues (#669 to #683 for the phone series), and if something here stops being true, change it in the same PR.
 
 `MUST` fails review. `SHOULD` needs a reason in the PR to skip. Every rule carries its *why*, because a rule without one gets argued away.
 
 Where the numbers came from: [principles](design/2026-11-13-mobile-design-principles.md), [data density](design/2026-11-14-mobile-data-density.md), [reference patterns](design/2026-11-14-reference-patterns.md), [importance research](design/2026-11-14-importance-scoring.md). Appendices are history; if they disagree with this guide, the guide wins. Guard tests keep the catalogue below honest (`web/src/components/ui/adminDesignGuide.guard.test.ts`).
+
+---
+
+## 0. The rulebook (A1 to A34)
+
+Added 2026-11-15 (phase 1 of the admin design pass, #830). **This is the layer that applies to every admin screen at every width, phone and desktop.** Sections 1 to 9 below keep the phone numbers, the importance method, the catalogue and the checklist; where a rule here and a number there overlap, the number there is the measured one and the rule here says *why it generalises*. Motion and live behaviour have their own sheet: [admin-motion-and-behavior.md](admin-motion-and-behavior.md) (rules M1 to M12, which this section refers to).
+
+Each rule: **Rule** (MUST / SHOULD / NEVER), **Why**, **Check** (something a script or a person can measure), **Kit** (the component that implements it, or `MISSING`), **Source**. Sources marked *(lead)* were not retrievable as text on 2026-11-15 and are recorded from the system's published guidance as remembered; verify before quoting. The owner's recurring complaints are the reason the list is ordered the way it is: too much at once, one place per thing, elements touching, inconsistent weights, labels clipped.
+
+Reading order for a reviewer: **Hierarchy** (A1 to A10), **Lists and tables** (A11 to A18), **Disclosure and detail** (A19 to A22), **Forms and feedback** (A23 to A28), **Navigation and dashboards** (A29 to A32), **Access and language** (A33, A34).
+
+### Hierarchy and layout
+
+**A1. One primary, one secondary, then More.** MUST draw at most one primary action per surface (page, sheet, toolbar, row group) and at most one secondary; everything else goes in a "More" menu. Destructive actions are never the primary and are never red-filled until they are the confirm step.
+*Why:* a second equal button makes the person decide before they act (the Campaigns page opens with "New campaign", "Compile issue" and "Pause all sending" at one weight; Audience has "Add contact", "Import CSV", "Export CSV" in one row). Primer allows one save button per form; Carbon caps a toolbar at 5 and sends the rest to an overflow.
+*Check:* per screen, count `.a-btn--primary` / `IconButton tone="primary"` in the DOM that are visible without opening a menu: 1. Count visible text buttons in the header and toolbar: at most 3 including More.
+*Kit:* `ControlBar` (`priority`, `max`), `CreateMenu`, `IconButton tone`. A `PageHeader` that takes `primary`, `secondary`, `more` props is MISSING (see the kit gaps in the gap audit).
+*Source:* https://primer.style/product/ui-patterns/saving/ ; https://carbondesignsystem.com/components/data-table/usage/ ; https://www.nngroup.com/articles/progressive-disclosure/
+
+**A2. A page has one title, in one place, and says its job in one line.** MUST render the page title once (the `h1`); the top bar shows the section or a back path, never the same words. A description is at most one sentence (one line on a phone); anything longer is behind an info control. A hub with tabs (Marketing) has one `h1` for the hub and the active tab's name is the tab, not a second `h1` and a second paragraph.
+*Why:* the Marketing hub today draws "Marketing", a tab strip, then "Audience" and a second paragraph that restates the first; the editor draws the post title in the breadcrumb and the `h1`. Duplicate headings make people compare.
+*Check:* per route, the text of `h1` does not equal the last breadcrumb or top-bar title, and there is exactly one `h1`; description length under 120 characters.
+*Kit:* `PageHeader` in `components/admin/ui.tsx` exists (title, description, actions) but is not in the `ui/` kit and has no `primary`/`more` slots. Promote it (workstream W2).
+*Source:* https://www.nngroup.com/articles/visual-hierarchy-ux-definition/ *(lead; the guide's principle 4 cites NN/g duplicates)* ; Apple HIG Layout *(lead)*
+
+**A3. Hierarchy is fill and a bar, not bold and a ring.** MUST mark "current" (nav row, active tab, selected record) with a soft fill plus a 2 to 4px bar on the inline-start edge. NEVER use bold plus a ring plus a coloured border together. Text uses two weights in a body (400 and 500; 600 for headings and the one value that matters); every sidebar row, tab and chip shares one weight; a state change never changes the weight (it moves the layout).
+*Why:* size, weight and colour rank things; use at most three contrast treatments and two large elements (NN/g). Mixed weights read as a mistake.
+*Check:* `admin-sidebar.mjs` already holds this for the sidebar (one weight, 2-4px bar, no ring). Extend it to tabs and chips: `font-weight` of siblings in one group is identical in every state.
+*Kit:* `SidebarGroup`, `SegmentedControl`, `Chip`. The marketing tab strip and the editor language tabs are hand-rolled and use bold plus underline plus ring: MISSING a shared `Tabs`.
+*Source:* https://www.nngroup.com/articles/visual-hierarchy-ux-definition/ *(lead)* ; Refactoring UI, "hierarchy" chapter *(lead; book, not fetched)*
+
+**A4. Leading edge first; importance falls from the top and the inline-start.** MUST put the identity first and the action last in a row; the order mirrors in RTL with logical properties only (no `left`/`right`).
+*Why:* people scan top to bottom from the leading edge; front-load the informative word (NN/g F-pattern; Apple Layout).
+*Check:* in `dir=rtl` the first child of a row is at the right edge; `rg 'margin-left|padding-right|text-align: *left'` in admin CSS finds nothing new.
+*Kit:* `RecordRow`, `SettingsRow`.
+*Source:* https://www.nngroup.com/articles/f-shaped-pattern-reading-web-content-discovered/ *(lead)*
+
+**A5. Say it once; identity once.** MUST show a datum once per view: the record's name is not in the breadcrumb and the heading; a status is not a pill and a banner and a sentence; "Recent activity" and "Pick up where you left off" are not the same three posts. Where a fact is on the page twice, the lower-scoring copy is deleted (§1.2 override 4).
+*Why:* the editor shows "Unpublished changes" three times (pill, banner, footer readout); Overview lists the same posts in two cards.
+*Check:* per screen, no two visible nodes share the same text string longer than 12 characters except inside a list that is the screen's job. The importance scoring in §1.2 is the method.
+*Kit:* `StatusGlyph` (word only in a sheet).
+*Source:* https://www.nngroup.com/articles/progressive-disclosure/ ; §1 principle 4
+
+**A6. Show exceptions, not the norm.** MUST NOT draw a pill, tick or colour for the normal state (Published, Ready, Active, Done). Only a problem, a warning or "needs you" draws, as one glyph. A table where every row says "Published" has a column that carries no information: remove it or make it a filter.
+*Why:* a calm value in green teaches the eye to ignore colour. Today Areas, Posts and Connected apps draw a pill on nearly every row.
+*Check:* on a list fixture where 80 percent of records are normal, fewer than 30 percent of rows contain a status node.
+*Kit:* `StatusGlyph` (default hidden). `StatePill` in `admin/ui.tsx` is the older desktop pill and should be reduced to the exception states.
+*Source:* https://www.nngroup.com/articles/dashboards-preattentive/ ; §1 principle 2
+
+**A7. Equal siblings, one spacing scale, nothing touches.** MUST keep adjacent boxes in a row the same height (within 1px) and padding; keep at least `--a-s-2` (8px) between any two controls and at least 12px between a control and a container edge; a chip row that scrolls clips on the container edge with a fade or a peek, never underneath another control.
+*Why:* Campaigns and Media phone shots draw the last chip ("Finish", "Vi") cut mid-word underneath the Select button; uneven neighbours read as broken. WCAG 2.5.8: a 24px target must not touch another.
+*Check:* `admin-equal-siblings.mjs` (heights) exists; add: bounding boxes of any two interactive elements in one toolbar have `gap >= 8` and never intersect.
+*Kit:* `ControlBar`, `ChipRow scroll`, `FilterChips`. The Select button belongs outside the scrolling row (W3).
+*Source:* https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html
+
+**A8. Truncate with an ellipsis or wrap the row; never clip mid-word.** MUST wrap record titles and identifiers (two lines, `line-clamp`); a one-line label ends with an ellipsis at a word or character boundary and has the full text on `title`/`aria-label`; an unbreakable string gets `overflow-wrap: anywhere` (`.a-path`). NEVER cut by a parent's `overflow: hidden` with no ellipsis.
+*Why:* a title that starts the same as its neighbour looks identical when cut (Polaris); a cut word looks like a bug.
+*Check:* `admin-desktop.mjs` already fails a button whose label wraps past 2 lines or breaks a one-word label; add: for every text node with `scrollWidth > clientWidth`, computed `text-overflow` is `ellipsis` or the node wraps.
+*Kit:* `.a-fit`, `.a-path`, `RecordRow` (clamp 2).
+*Source:* https://www.nngroup.com/articles/data-tables/ ; Polaris index table *(lead; shopify.dev redirected, text not retrievable)*
+
+**A9. Glyph for status, word for action.** MUST encode status as one glyph plus a hidden word; MUST pair every icon that is not universal (home, search, close, plus, chevron, trash, bell) with a visible word, at least on desktop and in menus. Icons come from the one vocabulary (§4, lucide through `Icon`); no emoji, no mixed styles, no icon-only control without `label`.
+*Why:* an icon is read in one fixation, a sentence in six, but an ambiguous icon costs a tap. Primer: pair disclosure icons with text.
+*Check:* `controlKit.test.tsx` (label required), `icons.test.ts` (concept has a word), `Icon.guard.test.ts` (no raw size).
+*Kit:* `Icon`, `IconButton` (`showLabel`), `StatusGlyph`, `ICON`/`CONCEPTS`.
+*Source:* https://primer.style/product/ui-patterns/progressive-disclosure/
+
+**A10. One typeface, one scale, tabular figures.** MUST use Rubik (Hebrew and Latin from the one family) at the token sizes; numbers that line up use `font-variant-numeric: tabular-nums`; labels are quieter than values (smaller or lighter, not both bold).
+*Why:* a second face or a one-off size is the commonest source of "inconsistent sizes".
+*Check:* computed `font-family` of every text node starts with Rubik; the set of distinct `font-size` values per screen is at most 6 and each is a token (`--a-fs-*`).
+*Kit:* tokens in `index.css`; `Fields`, `StatChip`.
+*Source:* web-interface-guidelines skill (tabular-nums) ; data-display skill
+
+### Lists and tables
+
+**A11. A table is a table only where the screen is wide and the records are comparable.** MUST: first column is a human-readable identifier (never an auto id); columns ordered by importance; related columns adjacent; a header row that sticks when the table is taller than the viewport, with a quiet shadow when stuck; numeric columns right-aligned (physical right), tabular, with a unit in the header, not in every cell; text columns start-aligned. At most 6 visible columns at 1280; the rest behind a "Columns" control that shows a count of hidden ones.
+*Why:* NN/g data tables; Primer: keep headers very short.
+*Check:* a desktop table fixture of 40 rows: `position: sticky` on `thead th`; first `td` text is not matched by `/^[0-9a-f-]{20,}$/`; right-aligned numeric `td` have `tabular-nums`.
+*Kit:* `DataTable` is MISSING; tables are hand-rolled with `.a-table` in `index.css` and `ui.tsx` pieces (Posts, Areas, Translations, Audience, Campaigns, Connections each differ).
+*Source:* https://www.nngroup.com/articles/data-tables/ ; https://primer.style/product/components/data-table/guidelines/ ; https://carbondesignsystem.com/components/data-table/usage/
+
+**A12. At most two inline actions per row; the rest in More; the row itself opens.** MUST make the whole row (or its title) open the record; at most two row actions are visible (usually Edit is the row click, so zero or one); more goes in an overflow menu. Fewer than three actions: inline icon buttons with labels; three or more: overflow. In batch-select mode the row actions are disabled. NEVER repeat the same red "Revoke" / "Delete" button on every row.
+*Why:* Carbon (overflow when 3 or more; disabled in batch mode); NN/g (one or two inline). Today Connected apps draws N red Revoke buttons, Inbox draws "Copy LinkedIn" and "Copy X" on every row, Audience an "Edit" per row.
+*Check:* in a 10-row fixture, visible buttons per row at 1280 <= 2; no row has a button that is also `tone=danger` and visible at rest.
+*Kit:* `ControlBar` (row-sized), `dropdown-menu`. A `RowActions` wrapper is MISSING.
+*Source:* https://www.nngroup.com/articles/data-tables/ ; https://carbondesignsystem.com/components/data-table/usage/
+
+**A13. Two densities, chosen by pointer, not by screen size.** MUST offer a compact row (32 to 40px control height, desktop pointer) and a comfortable row (44 and up, touch); the page never mixes them. Row min-height on a phone stays 56 (§2). A density toggle is a *later* feature; the default is comfortable on touch, compact on fine pointer.
+*Why:* Carbon: XS 24 / SM 32 / MD 40 (default) / LG 48 / XL 64 two-line; header row matches. WCAG 2.5.8 keeps 24 as the floor.
+*Check:* `(pointer: coarse)` lifts every `--ctl-h-*` to 44 (exists); at fine pointer the median row height of a list is between 40 and 56.
+*Kit:* `--ctl-h-sm/md/lg`.
+*Source:* https://carbondesignsystem.com/components/data-table/usage/ ; WCAG 2.5.8
+
+**A14. Below 600px a table is a list of rows, never a scrolling grid.** MUST render `RecordRow` per record (title + at most 2 facts + one glyph + chevron); a phone never mounts the desktop table (`usePhone()`). If a table must scroll sideways (a diff, a fixture), freeze the first column and the header and show the cut-off column as the cue.
+*Why:* NN/g mobile tables: a large-screen table first, then adapt; horizontal scroll with a frozen column is the acceptable fallback; filter before viewing.
+*Check:* §7 phone checks; Translations on a phone today still draws three lines per row (title, type, key path), over the 2-fact budget.
+*Kit:* `RecordRow`, `usePhone`.
+*Source:* https://www.nngroup.com/articles/mobile-tables/
+
+**A15. Search, filter, sort: search first, at most five visible filters, active state always visible, state in the address.** MUST: search is the first control and clears with one tap; a filter that is on shows as a removable chip with a count of results; "Clear all" appears while any filter is on; sort shows its direction on the active column only; filter and sort state live in the URL (`useSavedFilters`), the last set may be restored with an Undo. Instant apply on desktop for one-tap chips; "Show N results" in a sheet on a phone. Order filters from general to specific.
+*Why:* NN/g: filters discoverable, a clear indication when active, sort and filter are different actions; Carbon: sorted column only gets the arrow.
+*Check:* §7 filter tests exist; add: every list screen with more than 20 records exposes search plus a filter control; a filter set survives reload.
+*Kit:* `FilterChips`, `FilterSheet`, `useSavedFilters`, `SegmentedControl`. A desktop `FilterBar` (search + chips + active chips + count, one component for Posts, Audience, Media, Translations) is MISSING.
+*Source:* https://www.nngroup.com/articles/data-tables/ ; https://www.nngroup.com/articles/filter-categories-values/ ; https://carbondesignsystem.com/components/data-table/usage/
+
+**A16. Bulk actions: a Select mode, a bar that carries the count, an Undo.** MUST: select is a visible control ("Select"), not only long-press or hover; a bar appears with the count in a live region, the first action as primary, the rest in More, Cancel at the end; "Select all" selects the loaded rows and says so; a destructive bulk action names the count ("Delete 3 posts") and is followed by an Undo toast, not a prior confirm; irreversible bulk actions (publish, send) are never bulk.
+*Why:* Carbon batch bar; NN/g bulk guidance (the dedicated article returned 404 on 2026-11-15; NN/g data-tables covers select-all and batch buttons).
+*Check:* `admin-posts-phone.mjs` holds the phone path; add the same for desktop tables.
+*Kit:* `SelectionHeader`, `SelectionBar`, `useSelection`, `useUndoable`.
+*Source:* https://carbondesignsystem.com/components/data-table/usage/ ; https://www.nngroup.com/articles/data-tables/ ; https://www.nngroup.com/articles/confirmation-dialog/
+
+**A17. Page by cursor and keep rows under 50; virtualise above.** SHOULD paginate at 20 to 50 rows or "Load more" by cursor with the count loaded ("40 of 212"); MUST virtualise a list that can pass 50 DOM rows; the scroll position and the opened row survive Back.
+*Why:* Primer suggests 20 per page as the start; the web-interface-guidelines skill sets 50 before virtualising.
+*Check:* a 500-record fixture renders fewer than 80 row nodes.
+*Kit:* none (Audience uses a cursor, Posts renders all). MISSING in `DataTable`.
+*Source:* https://primer.style/product/components/data-table/guidelines/
+
+**A18. Every list has four states and they differ.** MUST design: *loading* (skeleton with the real columns and row height, so nothing shifts; none at all under about 1 second; a progress bar above 10 seconds), *empty-first-use* (one sentence that teaches and one action), *empty-no-results* (neutral, names the active filters, one "Clear filters"), *error* (what failed, Retry, the data kept). NEVER a bare "No items", an "x" or "-" in an empty cell, or two primary buttons in an empty state.
+*Why:* Atlassian empty-state types; Primer: never "x" or "-" for empty cells; NN/g skeleton thresholds.
+*Check:* each list screen fixture renders all four; empty state has at most one primary.
+*Kit:* `EmptyState`, `Empty`, `LoadingRows`, `ErrorState` exist in `admin/ui.tsx` (not in the `ui/` kit; no variants), `SkeletonSwap` (phone cross-fade). A `Skeleton` primitive that takes the column template is MISSING.
+*Source:* https://atlassian.design/components/empty-state/usage ; https://www.nngroup.com/articles/skeleton-screens/ ; https://primer.style/product/components/data-table/guidelines/
+
+### Disclosure and detail
+
+**A19. Two levels, no more.** MUST: a screen shows the 20 percent that is needed nearly every visit; one tap reaches the rest (Disclosure, sheet, side panel); a third level means redesign. Never several routes to the same hidden option. Never auto-collapse a section the person is typing in (§1.1 5a).
+*Why:* NN/g: beyond 2 levels people get lost; hiding frequent options forces them to the second level too often.
+*Check:* no sheet opens a sheet; `admin-typing.mjs`; the importance scoring (§1.2).
+*Kit:* `Disclosure`, `BottomSheet`, `InfoPopover`.
+*Source:* https://www.nngroup.com/articles/progressive-disclosure/
+
+**A20. A disclosure trigger says what is inside and which way it goes.** MUST: chevron plus a word ("Show all 6 projects", "Advanced"), chevron down when closed and up (or rotated) when open, in RTL it mirrors only where it is directional; one-line meta shows the count or state of the closed content ("7 saved versions"). Use an ellipsis for truncated inline text, a kebab only for a menu. NEVER a text-only toggle or a bare caret.
+*Why:* Primer progressive-disclosure pattern; strong information scent (NN/g).
+*Check:* `disclosureButtons.test.tsx`, `disclosure.guard.test.ts`.
+*Kit:* `Disclosure`, `DisclosureButton`.
+*Source:* https://primer.style/product/ui-patterns/progressive-disclosure/ ; https://www.nngroup.com/articles/progressive-disclosure/
+
+**A21. Choose the detail surface by weight of the task.** MUST: *a peek* (read-only, under 6 fields) is a popover or an expanding row; *a look-and-edit while the list matters* is a non-modal side panel on desktop (the list stays visible) and a half `BottomSheet` on a phone; *a long edit* is a page; *a modal dialog* is only for critical, irreversible loss, a blocking missing input, or a short wizard. Errors fixable inline never open a modal.
+*Why:* NN/g data tables: avoid modal popups for deep editing because they hide adjacent records, prefer a nonmodal side panel; NN/g modals: overuse trains people to ignore them and a modal turns into a full-screen blocker on mobile.
+*Check:* on desktop, opening a record from Audience, Campaigns or Translations keeps the list visible; `dialog[open]` count on a normal flow is 0 or 1.
+*Kit:* `BottomSheet` (phone), `popover`, `InfoPopover`. A **`SidePanel`** (desktop, non-modal, resizable, Esc closes, focus returns, URL-addressable) is MISSING and is the biggest structural gap (W5).
+*Source:* https://www.nngroup.com/articles/data-tables/ ; https://www.nngroup.com/articles/modal-nonmodal-dialog/
+
+**A22. Tabs are peers of one object; segmented is a view mode; the sidebar is the only place for sections.** MUST: tabs switch between parts of one record or hub; a segmented control switches the *view of the same data* (sort, language, preview) and has at most 4 options; a section that is in the sidebar is not also a tab strip on the page (Marketing's Inbox, Audience, Campaigns, Library and Settings are in both: choose one). Tabs are not for steps and never hold a primary action that changes with the tab unless the header does.
+*Why:* two navigations for the same thing is the "one place per thing" complaint; tab and sidebar duplicates double the targets and split the memory of where you are.
+*Check:* a route's sidebar leaf labels and its tab labels have an empty intersection.
+*Kit:* `SegmentedControl`, `SidebarGroup`; `Tabs` MISSING.
+*Source:* https://www.nngroup.com/articles/progressive-disclosure/ ; Apple HIG sidebars *(lead: one primary navigation pattern per width class)*
+
+### Forms and feedback
+
+**A23. Forms: one column, labels above, groups with headings, one Save.** MUST: a label above every field (never placeholder-only); required marked in words; related fields grouped under a heading; one column below 900px; a hint is one line or in an `InfoPopover`; the Save control is one and always enabled, with a verb ("Save", "Publish", "Save settings"), primary on the end, Cancel secondary; the footer bar is fixed above the safe area and never covers a focused field.
+*Why:* Primer saving: one save button, always enabled, a verb label; WIG forms.
+*Check:* `shoot-admin.mjs CHECK_BAR=1` holds the fixed bar; label-for coverage 100 percent.
+*Kit:* `EditorBar`, `Fields`, `SettingsRow`, `Switch`. A shared `SaveBar` with the save readout is partly `EditorBar` (editors only).
+*Source:* https://primer.style/product/ui-patterns/saving/
+
+**A24. Saving model: explicit for forms, immediate for switches, never both in one form.** MUST: text inputs, checkbox groups and selects save on an explicit Save; switches and segmented toggles apply at once and say so with a status near the control; the saved state is a readout ("Saved 12:00", "Unsaved changes", "Could not save, retry") in one fixed place; on failure the user's data stays; leaving with unsaved text warns once.
+*Why:* Primer: do not mix explicit and autosave in one form; keep the data on failure; autosaved fields make clear whether the change saved.
+*Check:* the readout exists on every screen with a Save; a failed save leaves field values unchanged (test).
+*Kit:* `saveReadout.ts`, `Switch`, `useUndoable`.
+*Source:* https://primer.style/product/ui-patterns/saving/
+
+**A25. Validate on blur and on submit, beside the field, in words that say how to fix it.** MUST: an error appears next to its field after the person leaves it (not while typing), moves focus to the first invalid field on submit, is announced (`role=alert` once), and names the fix ("Use https://, no spaces"); the form summary is never the only place.
+*Why:* WIG; NN/g modal: errors fixable inline belong beside the field.
+*Check:* submit an invalid fixture: focus is on the first invalid field; `aria-invalid` and `aria-describedby` present.
+*Kit:* `Fields`, `focusField.ts`.
+*Source:* https://www.nngroup.com/articles/modal-nonmodal-dialog/ ; web-interface-guidelines skill
+
+**A26. Undo beats confirm; when confirming, name the thing and the outcome.** MUST: a reversible action (move to drafts, archive, remove from a list, mark done) runs at once and shows an Undo toast of at least 8 seconds; a confirm exists only for what Undo cannot reverse (send, publish, permanent delete, revoke access) and its buttons are the outcome ("Delete 3 posts" / "Keep"), with the object and count in the text; the default focus is the safe button; the heaviest friction (typing a word) is reserved for rare, dangerous actions.
+*Why:* NN/g confirmation dialogs: prefer Undo, confirm only serious consequences, outcome labels, no default "Yes".
+*Check:* no `window.confirm`; every dialog's primary button text is not in {OK, Yes, Confirm}.
+*Kit:* `toast.undoable`, `useUndoable`, `BottomSheet`; a `ConfirmDialog` that enforces the wording is MISSING.
+*Source:* https://www.nngroup.com/articles/confirmation-dialog/
+
+**A27. Feedback goes to the channel that fits its life.** MUST: *a toast* for the transient result of an action the person just did (saved, copied, sent, failed with Retry), once, polite; *inline* for what must be fixed or stays true (field error, a campaign that is paused, a draft waiting); *a banner* for a page-level state that outlasts the visit; *a dialog* only for a decision. A toast with an action stays at least 12 seconds, pauses on hover, focus and a hidden tab. NEVER toast a validation error or a thing that is still true after it vanishes.
+*Why:* §3.3; Primer prefers inline messages over toasts for saves; WCAG 2.2.1.
+*Check:* the toast host is mounted once; toast text never contains the word "must".
+*Kit:* `@/lib/toast`, `ToastHost`; `Banner` (inline, page-level, with action and dismiss memory) is MISSING.
+*Source:* https://primer.style/product/ui-patterns/saving/ ; §3.3
+
+**A28. Optimistic where it can be undone; honest progress where it cannot; a long job is a row, not a spinner.** MUST: a reversible change appears at once and rolls back with a message on failure; a job over about 10 seconds (send, import, compile, media upload) has a progress bar or step state, can be left and found again (a "Sending 83 of 120" row), says what is done when it ends, and has Cancel where cancelling is safe. Under about 1 second, show nothing; 1 to 10 seconds, a skeleton or a local spinner.
+*Why:* NN/g skeleton thresholds; the Campaigns list already shows the in-flight row.
+*Check:* an upload fixture shows a determinate bar; a failed optimistic write rolls the row back.
+*Kit:* `MiniBar`, `Journey`/`LifecycleStepper`, `toast.promise`. A `JobRow` is MISSING.
+*Source:* https://www.nngroup.com/articles/skeleton-screens/
+
+### Navigation and dashboards
+
+**A29. Navigation: the sidebar has two levels, a rail collapses it, a title says where you are, back is always one tap.** MUST: groups without an address are headings (Marketing, Content, Site), the sidebar has at most two levels and one geometry; the collapsed rail keeps a name on focus (tooltip) and a flyout per group; the current place is fill plus bar (A3); breadcrumbs only on records (Admin / Posts / the title) and never repeat the `h1`; on a phone, a Menu button that has a word, and a back control on every record. Keep selection in sync with the content and restore it when the view returns.
+*Why:* Apple sidebars *(lead)*: shallow depth, group by section, one selected state; M3: rail at medium widths, drawer at expanded *(lead; page not retrievable)*.
+*Check:* `admin-sidebar.mjs` (geometry, bar, tooltip, flyout, Ctrl+B, persistence).
+*Kit:* `SidebarGroup`, `adminNav.ts`, `FloatingBack`, `AdminShell`.
+*Source:* https://developer.apple.com/design/human-interface-guidelines/sidebars *(lead)* ; https://m3.material.io/foundations/designing/structure *(lead)*
+
+**A30. A dashboard answers one question and fits one screen.** MUST: Overview opens on "what needs me" (the exceptions, A6), then a row of at most 4 to 6 equal KPI tiles, then recent change; each tile is a number, its word, and one bar or delta; the number is the largest thing; tiles link to the filtered list; quantities are drawn as bars or lines, not pies, donuts or radial gauges; colour never carries magnitude on its own.
+*Why:* NN/g: a dashboard has a single task, fits one screen, uses position and length; avoid radial gauges for quantities. (`Gauge` stays only for a budget with a limit where the ring and the words agree; prefer `MiniBar` for everything else.)
+*Check:* Overview at 1280x800 shows its "needs you" list and all tiles above the fold; tile heights equal; no `canvas`/svg arc.
+*Kit:* `StatChip`, `MiniBar`, `Gauge`; a shared `KpiTile` and `NeedsYouList` are MISSING (Overview builds both by hand).
+*Source:* https://www.nngroup.com/articles/dashboards-preattentive/
+
+**A31. Notifications are few, grouped and dismissible.** MUST: the bell carries a count and opens a list grouped by day; a notification is one line with a link to the thing; read state persists; the same event does not also toast; severity maps to one glyph and one tone; there is a quiet period for noise. Alerts that need an action live in "needs you" on Overview, not only in the bell.
+*Why:* one place per thing; WCAG 2.2.2 for anything that updates by itself.
+*Check:* `NotificationsMenu.test.tsx`; an event appears in at most one of bell, toast, banner.
+*Kit:* `NotificationsMenu`, `toast`.
+*Source:* https://www.w3.org/WAI/WCAG22/Understanding/pause-stop-hide.html
+
+**A32. Everything is reachable by keyboard; shortcuts are discoverable on demand, not printed on the page.** MUST: a visible focus ring with contrast of at least 3:1 and an area of at least a 2px perimeter on every control and never hidden under a sticky bar; `?` or the Help control opens the shortcut list; single-key shortcuts only inside lists and can be turned off; a command palette (Ctrl or Cmd + K) reaches every route and the create actions. NEVER print a line of shortcuts above a list by default (Inbox does).
+*Why:* WCAG 2.4.13 (AAA) sets the size and contrast; 2.4.11 forbids a focused control hidden by sticky content; a permanent hint line is noise for people who use the pointer.
+*Check:* tab through every screen: each stop has a visible ring; `scroll-padding` clears the fixed bar; palette opens on Ctrl+K.
+*Kit:* `keyboard.ts`; a `CommandPalette` is MISSING (no `cmdk`).
+*Source:* https://www.w3.org/WAI/WCAG22/Understanding/focus-appearance.html
+
+### Access and language
+
+**A33. Targets, gestures, contrast.** MUST: pointer targets at least 24x24 CSS px (WCAG AA floor), 44 on touch, 8 apart; any drag has a tap or button path (2.5.7); text that carries meaning at least 14px; colour is never the only channel; a modal or sheet traps and returns focus.
+*Why:* WCAG 2.5.8, 2.5.7; §2.
+*Check:* `admin-matrix.mjs` (target sizes, text size, overflow), `axe-routes.mjs`.
+*Kit:* all; `IconButton` sets sizes by token.
+*Source:* https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html ; https://www.w3.org/WAI/WCAG22/Understanding/dragging-movements.html
+
+**A34. Hebrew is not an afterthought: every word translated, every layout mirrored, every identifier isolated.** MUST: no English word in a Hebrew admin screen except identifiers and brand names (today "Edit" in Projects and "Media" in the breadcrumb remain English); logical CSS only; an id, a path, an email or a number inside RTL text is wrapped in `bdi`/`dir=ltr` (§5); numbers and dates use `Intl`; screens are shot in both directions, light and dark, before merge.
+*Why:* §5; the hebrew-i18n skill.
+*Check:* a script lists text nodes in `/he/admin/*` that match `/[A-Za-z]{4,}/` and are not in the identifier allow-list.
+*Kit:* `i18n/mobile.ts`, `admin/words`, `bdi` helper.
+*Source:* hebrew-i18n and data-display skills
 
 ---
 
