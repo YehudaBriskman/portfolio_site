@@ -96,6 +96,19 @@ const probeHeader = () => {
     kidsOverlap: kids.some((a, i) => kids.some((b, j) => j > i && overlap(a, b))),
     shareInside: share.left >= hb.left - 1 && share.right <= hb.right + 1,
     colInside: col.left >= hb.left - 1 && col.right <= hb.right + 1,
+    /* the title column holds ~10 characters, or the header has stacked (tile and
+       share on a row above, the title full width under them) */
+    colW: Math.round(col.width),
+    fontPx: parseFloat(getComputedStyle(h1El).fontSize),
+    stacked: col.top >= kids[0].bottom - 1,
+    cardInner: Math.round(hb.width - 32),
+    hOverflow: h1El.scrollWidth > h1El.clientWidth + 1,
+    dockOverTitle: (() => {
+      const d = document.querySelector("[data-phone-pinned]");
+      if (!d) return false;
+      const dr = d.getBoundingClientRect();
+      return getComputedStyle(d).position === "fixed" && overlap(dr, h1) && h1.top >= 0 && h1.top < innerHeight;
+    })(),
   };
 };
 
@@ -146,13 +159,18 @@ await Promise.all(
       await page.goto(base.base + pre + "/projects/windom", { waitUntil: "load" });
       await settle(page);
       for (const [key, text] of Object.entries(TITLES)) {
-        for (const zoom of [1, 2]) {
+        for (const zoom of [1, 1.5, 2, 3]) {
           const tag = `header ${lang} ${theme} ${width} ${key} x${zoom}`;
           await page.evaluate(([t, z]) => {
+            scrollTo(0, 0);
             document.querySelector('[data-phone-card="header"] h1').textContent = t;
-            document.documentElement.style.fontSize = `${16 * z}px`;
+            let st = document.getElementById("zoom-probe");
+            if (!st) { st = document.createElement("style"); st.id = "zoom-probe"; document.head.append(st); }
+            /* No frame clock here: a transition (even the 0.01ms reduced-motion one) never
+               finishes, so computed sizes stay at their start value. Switch them off. */
+            st.textContent = `*,*::before,*::after{transition:none !important;animation:none !important}html{font-size:${17 * z}px !important}`;
           }, [text, zoom]);
-          await page.waitForTimeout(150);
+          await page.waitForTimeout(250);
           const r = await page.evaluate(probeHeader);
           if (r.none) { fail(tag, "no header"); continue; }
           if (r.overflow) fail(tag, "horizontal overflow");
@@ -160,12 +178,19 @@ await Promise.all(
           if (r.below < 0 || r.pillOverTitle) fail(tag, `status chip overlaps the title (${r.below}px under it)`);
           if (r.kidsOverlap) fail(tag, "tile, name and share overlap");
           if (!r.shareInside || !r.colInside) fail(tag, "share or name falls outside the card");
+          if (!r.stacked && r.colW < r.fontPx * 5.5) fail(tag, `title column ${r.colW}px holds fewer than ~10 characters at ${r.fontPx}px and the header did not stack`);
+          if (r.stacked && r.colW < r.cardInner - 2) fail(tag, `stacked title is ${r.colW}px, not the full ${r.cardInner}px`);
+          if (r.hOverflow) fail(tag, "the title overflows its box sideways");
+          if (r.dockOverTitle) fail(tag, "the fixed Dock covers the title");
           if (SHOTS && (zoom === 1 || key === "long")) {
             await page.locator('[data-phone-card="header"]').screenshot({ path: `${SHOTS}/head.${lang}.${theme}.${width}.${key}.x${zoom}.png`, timeout: 120000 });
           }
         }
       }
-      await page.evaluate(() => { document.documentElement.style.fontSize = ""; });
+      /* back to normal size, but keep transitions off: with no frame clock a transition
+         started by removing the override would stay half way for ever */
+      await page.evaluate(() => { const st = document.getElementById("zoom-probe"); if (st) st.textContent = "*,*::before,*::after{transition:none !important;animation:none !important}"; });
+      await page.waitForTimeout(150);
 
       for (const [key, name] of Object.entries(LONG_NAMES)) {
         const tag = `back ${lang} ${theme} ${width} ${key}`;
