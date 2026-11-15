@@ -33,6 +33,7 @@ import { greeting, monthLabel, shortDate, useWords, type Lang, type Words } from
 import FilterControl, { FilterTokens, SearchField, type FacetSpec } from "@/components/gallery/FilterControl";
 import { activeCount, hrefCleared, readSelection } from "@/components/gallery/facets";
 import { NOTE_FACETS, SEARCH_FROM, filterNotes, noteOptions, type NoteFacet } from "@/components/notes/shelf";
+import { inEnglish } from "@/i18n/words";
 import { blog, topPosts, type Collection, type PostSummary } from "@/services/blog";
 import { activity, type ActivityEvent, type Area } from "@/services/activity";
 
@@ -142,7 +143,7 @@ export function TopPostCard({ p, t, lang, areaTitle }: { p: PostSummary; t: Word
       <h3 className={styles.postTitle} dir={phone ? "auto" : undefined}>
         <Link to={`/blog/${p.slug}`}>{p.title}</Link>
       </h3>
-      <p className={styles.postExcerpt} dir={phone ? "auto" : undefined}>
+      <p className={styles.postExcerpt} dir="auto" {...inEnglish(lang, p.excerpt)}>
         {p.excerpt}
       </p>
       <div className={styles.postMeta} data-post-meta>

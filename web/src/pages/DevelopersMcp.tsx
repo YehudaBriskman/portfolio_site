@@ -54,7 +54,9 @@ function CopyLine({ label, text }: { label: string; text: string }) {
     <div className="mt-3" data-ph="copy">
       <p className="mono text-xs uppercase tracking-[0.16em] text-clay">{label}</p>
       <div className="mt-2 flex min-w-0 items-stretch border border-rule-firm bg-paper" data-ph="copy-box">
-        <code className="mono min-w-0 flex-1 overflow-x-auto whitespace-nowrap px-4 py-3 text-sm text-ink" translate="no" dir="ltr">
+        {/* Scrollable, so reachable by keyboard (a scroll area with nothing
+            focusable in it fails WCAG 2.1.1); the phone fades its edges. */}
+        <code tabIndex={0} className="mono min-w-0 flex-1 overflow-x-auto whitespace-nowrap px-4 py-3 text-sm text-ink" translate="no" dir="ltr">
           {text}
         </code>
         <button

@@ -17,7 +17,7 @@ export default function SubscribeFrame({ title, children }: { title: string; chi
   useDocumentTitle(title);
   return (
     <PageShell>
-      <section className="wrap section-y">
+      <section className="wrap section-y page-first">
         <h1 className="display mt-3 text-section">{title}</h1>
         <div className="mt-8 max-w-[36em] space-y-5 text-[1.0625rem] leading-relaxed text-ink" data-ph-frame="">{children}</div>
         <div className="mt-12">

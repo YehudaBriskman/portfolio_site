@@ -1,3 +1,4 @@
+import { inEnglish } from "@/i18n/words";
 import { Link } from "react-router-dom";
 import { BookMarked, GitFork, Star, Tag } from "lucide-react";
 import styles from "@/components/work/Work.module.css";
@@ -135,7 +136,7 @@ export default function RepoCard({
         </PillBadge>
       </div>
 
-      {c.tagline && <p className={styles.cardLine}>{c.tagline}</p>}
+      {c.tagline && <p className={styles.cardLine} {...inEnglish(lang, c.tagline)}>{c.tagline}</p>}
 
       {linked && <ActivityStrip events={events} now={now} busy={eventsBusy} />}
 

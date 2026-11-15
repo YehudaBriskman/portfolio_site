@@ -75,7 +75,7 @@ export function GuideBody({ id }: { id: HelpGuide }) {
           <ul className={list}>{w.contactItems.map((item) => <li key={item}>{item}</li>)}</ul>
           <p>
             {w.contactAddress}{" "}
-            <a className={link} href={`mailto:${contact.email}`} dir="ltr">{contact.email}</a>.
+            {"\u2066"}<a className={link} href={`mailto:${contact.email}`} dir="ltr">{contact.email}</a>{".\u2069"}
           </p>
         </>
       );
@@ -102,7 +102,7 @@ export function OutcomeBody({ id }: { id: HelpTopic }) {
       {HELP_TOPICS[id].kind === "problem" && (
         <p>
           {w.persistsBefore}
-          <a className={link} href={`mailto:${contact.email}`} dir="ltr">{contact.email}</a>.
+          {"\u2066"}<a className={link} href={`mailto:${contact.email}`} dir="ltr">{contact.email}</a>{".\u2069"}
         </p>
       )}
     </>

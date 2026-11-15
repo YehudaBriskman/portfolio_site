@@ -518,7 +518,7 @@ export default function Project() {
         <HeadStrand />
         {/* The second voice, under the name: a phrase somebody wrote, so
             not a heading. */}
-        {c.tagline && <p className={styles.tagline}>{c.tagline}</p>}
+        {c.tagline && <p className={styles.tagline} {...inEnglish(lang, c.tagline)}>{c.tagline}</p>}
         {(entry.primaryLink || c.repoUrl || release || entry.otherLinks.length > 0) && (
           /* Exactly one primary: the live product if there is one,
              otherwise the repository. Two competing primaries is none. */

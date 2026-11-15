@@ -86,11 +86,22 @@
   }
 
   /* ───────────────────────────── Developers/MCP */
-  [data-ph="copy-box"] {
+  div[data-ph="copy-box"] {
     overflow: hidden;
     border: 0;
     border-radius: var(--r-sm);
     background: var(--ph-card);
+  }
+  /* The command is longer than the box: scroll shadows (the cover is the
+     card's own colour, `local`; the shade is `scroll`) show on the side that
+     has more and go when the scroll reaches that end. The code is always
+     left to right, so these two sides are physical on purpose. */
+  [data-ph="copy-box"] > code {
+    background:
+      linear-gradient(var(--ph-card), var(--ph-card)) left / 28px 100% no-repeat local,
+      linear-gradient(var(--ph-card), var(--ph-card)) right / 28px 100% no-repeat local,
+      linear-gradient(to right, rgb(var(--ink) / 0.16), transparent) left / 24px 100% no-repeat scroll,
+      linear-gradient(to left, rgb(var(--ink) / 0.16), transparent) right / 24px 100% no-repeat scroll;
   }
   [data-ph="copy-box"] > button {
     min-block-size: 48px;

@@ -77,6 +77,9 @@ const UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
   ["minute", 60_000],
 ];
 
+/** CLDR's Hebrew dual forms carry the count in brackets, "לפני חודשיים (2)": the word already says it. */
+const plain = (s: string) => s.replace(/\s*\(\d+\)/, "");
+
 /** "3 days ago" / "לפני 3 ימים". Empty for a missing or unreadable date. */
 export function relative(iso: string | null | undefined, now: number, lang: Lang): string {
   if (!iso) return "";
@@ -85,9 +88,9 @@ export function relative(iso: string | null | undefined, now: number, lang: Lang
   const diff = then - now;
   const rtf = new Intl.RelativeTimeFormat(INTL[lang], { numeric: "auto" });
   for (const [unit, ms] of UNITS) {
-    if (Math.abs(diff) >= ms) return rtf.format(Math.round(diff / ms), unit);
+    if (Math.abs(diff) >= ms) return plain(rtf.format(Math.round(diff / ms), unit));
   }
-  return rtf.format(0, "minute");
+  return plain(rtf.format(0, "minute"));
 }
 
 /** "2 Nov 2026" / "2 בנוב׳ 2026". */

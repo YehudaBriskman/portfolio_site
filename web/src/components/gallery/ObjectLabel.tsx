@@ -142,6 +142,10 @@ export default function ObjectLabel({
   return (
     <div className={`${styles.label} ${styles[scale]} ${className}`}>
       <Name
+        /* An English title on a Hebrew page keeps its full stop at its end.
+           The split name is the hero's own and keeps the page's direction
+           (#110). */
+        {...(splitName ? {} : inEnglish(lang, name))}
         className={`${styles.name} ${nameSize} ${splitName ? styles.split : ""}`}
         /* The one string, stated once, for the one consumer that reads a
            heading as a label rather than as a box of text. Absent when the

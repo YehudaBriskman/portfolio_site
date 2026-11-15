@@ -1,3 +1,7 @@
+import { useProjectWords } from "@/i18n/pages";
+import { useLang } from "@/components/dashboard/i18n";
+import { inEnglish } from "@/i18n/words";
+
 /*
  * What stands in for a screenshot when there is not one.
  *
@@ -34,6 +38,8 @@ export default function Plate({
   /** Listed in two mono columns. The plate's whole content when present. */
   tech?: string[];
 }) {
+  const w = useProjectWords();
+  const lang = useLang();
   const initial = title?.trim().slice(0, 1).toUpperCase() ?? "";
 
   return (
@@ -61,7 +67,7 @@ export default function Plate({
           to announce that there is no photograph. The type and the ruled field
           carry it. */}
       <span className="mono self-end text-xs uppercase tracking-[0.2em] text-[rgb(var(--ink-soft))]">
-        {tech.length > 0 ? "stack" : ""}
+        {tech.length > 0 ? w.stack : ""}
       </span>
 
       {tech.length > 0 ? (
@@ -95,7 +101,7 @@ export default function Plate({
         />
       )}
 
-      {tagline && <p className="mt-6 text-[0.8125rem] leading-snug text-ink/70">{tagline}</p>}
+      {tagline && <p {...inEnglish(lang, tagline)} className="mt-6 text-[0.8125rem] leading-snug text-ink/70">{tagline}</p>}
     </div>
   );
 }
