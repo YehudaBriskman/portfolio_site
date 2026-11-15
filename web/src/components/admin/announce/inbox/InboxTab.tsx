@@ -1,6 +1,7 @@
 import "./inbox.css";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { Keyboard, Megaphone, Plus } from "lucide-react";
+import { StatusGlyph } from "@/components/ui/StatusGlyph";
 import { Icon } from "@/components/ui/Icon";
 import { EmptyState, ErrorState, LoadingRows } from "@/components/admin/ui";
 import { usePhone } from "@/hooks/usePhone";
@@ -42,7 +43,8 @@ export default function InboxTab({ items, error, onRetry, onChange, onCreated }:
   const newId = useId();
   const [note, setNote] = useState<{ id: string; text: string } | null>(null);
   const readiness = useReadiness(items, openId);
-  const listRef = useRef<HTMLUListElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  const groupId = useId();
 
   /* "Mark done" waits UNDO_MS before it is saved, so Undo needs no endpoint: the row shows it done meanwhile. */
   const [pending, setPending] = useState<Pending | null>(null);
@@ -106,6 +108,11 @@ export default function InboxTab({ items, error, onRetry, onChange, onCreated }:
     () => (items ?? []).map((e) => (pending && pending.id === e.id ? { ...e, done: { ...e.done, [pending.channel]: pending.at } } : e)),
     [items, pending],
   );
+  /* A page issue is said once: the events that have one sit under a single warning header, in the order they had. */
+  const flagged = list.filter((e) => readiness[e.id]?.state === "ready" && (readiness[e.id] as { issues: unknown[] }).issues.length > 0);
+  const flaggedIds = new Set(flagged.map((e) => e.id));
+  const clear = list.filter((e) => !flaggedIds.has(e.id));
+  const worst = flagged.some((e) => (readiness[e.id] as { issues: Array<{ severity: string }> }).issues.some((i) => i.severity === "error"));
   const selected = list.find((e) => e.id === selectedId) ?? list[0] ?? null;
   const open = list.find((e) => e.id === openId) ?? null;
 
@@ -117,6 +124,33 @@ export default function InboxTab({ items, error, onRetry, onChange, onCreated }:
     /* Focus follows the selection, so a screen reader reads the row it landed on. */
     listRef.current?.querySelector<HTMLElement>(`[data-id="${CSS.escape(to.id)}"] .mk-row-main`)?.focus();
   };
+
+  const openEvent = (e: AnnounceSummary) => {
+    setSelectedId(e.id);
+    setOpenId(e.id);
+  };
+  const renderRows = (rows: AnnounceSummary[], aria: { "aria-label"?: string; "aria-labelledby"?: string }) =>
+    phone ? (
+      <ListPresence as="ul" items={rows} itemKey={(e) => e.id} className="mk-list mk-plist" {...aria}>
+        {(e) => <InboxPhoneRow event={e} onOpen={() => openEvent(e)} />}
+      </ListPresence>
+    ) : (
+      <ul className="mk-list" {...aria}>
+        {rows.map((e) => (
+          <InboxRow
+            key={e.id}
+            event={e}
+            selected={e.id === selected?.id}
+            note={note?.id === e.id ? note.text : undefined}
+            onOpen={() => openEvent(e)}
+            onCopy={(c) => {
+              setSelectedId(e.id);
+              void quickCopy(e, c);
+            }}
+          />
+        ))}
+      </ul>
+    );
 
   const quickCopy = useCallback(
     async (ev: AnnounceSummary, channel: "linkedin" | "x") => {
@@ -208,39 +242,19 @@ export default function InboxTab({ items, error, onRetry, onChange, onCreated }:
             <Megaphone aria-hidden="true" className="mx-auto mb-2 h-5 w-5" />
             {w.emptyText}
           </EmptyState>
-        ) : phone ? (
-          <ListPresence as="ul" items={list} itemKey={(e) => e.id} className="mk-list mk-plist" aria-label={w.list(items.length)}>
-            {(e) => (
-              <InboxPhoneRow
-                event={e}
-                readiness={readiness[e.id]}
-                onOpen={() => {
-                  setSelectedId(e.id);
-                  setOpenId(e.id);
-                }}
-              />
-            )}
-          </ListPresence>
         ) : (
-          <ul ref={listRef} className="mk-list" aria-label={w.list(items.length)} >
-            {list.map((e) => (
-              <InboxRow
-                key={e.id}
-                event={e}
-                selected={e.id === selected?.id}
-                readiness={readiness[e.id]}
-                note={note?.id === e.id ? note.text : undefined}
-                onOpen={() => {
-                  setSelectedId(e.id);
-                  setOpenId(e.id);
-                }}
-                onCopy={(c) => {
-                  setSelectedId(e.id);
-                  void quickCopy(e, c);
-                }}
-              />
-            ))}
-          </ul>
+          <div ref={listRef}>
+            {flagged.length > 0 && (
+              <section aria-labelledby={groupId} className="mk-group">
+                <h3 id={groupId} className="mk-group-head" data-attention-group="">
+                  <StatusGlyph kind="attention" tone={worst ? "danger" : "attention"} size={16} withWord label={w.statusFix} />
+                  <span className="tabular-nums">{flagged.length}</span>
+                </h3>
+                {renderRows(flagged, { "aria-labelledby": groupId })}
+              </section>
+            )}
+            {clear.length > 0 && renderRows(clear, { "aria-label": w.list(flagged.length > 0 ? clear.length : items.length) })}
+          </div>
         )}
       </SkeletonSwap>
 

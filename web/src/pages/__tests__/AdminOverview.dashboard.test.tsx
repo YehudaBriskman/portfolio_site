@@ -99,7 +99,7 @@ describe("the Overview dashboard", () => {
     page();
     await screen.findByRole("region", { name: "Needs you" });
     const tiles = [
-      ["Posts", "/admin/posts?status=published"], ["Areas", "/admin/areas"], ["Media", "/admin/media"], ["Connected apps", "/admin/connections"],
+      ["Posts", "/admin/posts?status=published"], ["Areas", "/admin/areas"], ["Media", "/admin/media"], ["Apps", "/admin/connections"],
       ["Inbox", "/admin/marketing"], ["Drafts", "/admin/posts?status=draft"], ["Failed", "/admin/marketing?tab=campaigns"],
     ];
     for (const [name, href] of tiles) {
@@ -221,5 +221,17 @@ describe("the Overview dashboard", () => {
     expect(await within(needs).findAllByRole("button", { name: /^פתיחת/ })).toHaveLength(3);
     expect(screen.getByRole("region", { name: "קיצורים" })).toBeTruthy();
     expect(screen.queryByText("Needs you")).toBeNull();
+    /* #864: the tile labels are short enough for a narrow tile; "Connected apps" was cut to "אפליקציות מחו...". */
+    const labels = screen.getAllByRole("link").map((l) => l.getAttribute("data-kpi-name")).filter(Boolean) as string[];
+    expect(labels.some((n) => n.startsWith("אפליקציות ") && !n.includes("מחוברות"))).toBe(true);
+  });
+
+  it("keeps every tile label short enough not to be cut at 1280", async () => {
+    api();
+    page();
+    await screen.findByRole("region", { name: "Needs you" });
+    const tiles = screen.getAllByRole("link").filter((l) => l.hasAttribute("data-kpi-name"));
+    expect(tiles.length).toBe(7);
+    for (const t of tiles) expect((t.querySelector("span > span:last-child")?.textContent ?? "").length, t.getAttribute("data-kpi-name")!).toBeLessThanOrEqual(12);
   });
 });

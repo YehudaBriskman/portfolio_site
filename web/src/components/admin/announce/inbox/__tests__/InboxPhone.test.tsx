@@ -146,14 +146,14 @@ describe("Inbox row on a phone", () => {
     expect(rows(container)[0].querySelector("[data-rr-unread]")).not.toBeNull();
   });
 
-  it("never prints the word Ready, and shows one alert glyph only for an event with an issue", async () => {
+  it("never prints the word Ready, and draws one alert glyph, on the header over the event with an issue (#864)", async () => {
     const { container } = renderInbox();
     await waitFor(() => expect(container.querySelectorAll("[data-kind='attention']").length).toBe(1));
     expect(screen.queryByText(/^Ready$/)).toBeNull();
     const flagged = container.querySelector("[data-kind='attention']") as HTMLElement;
-    expect(flagged.closest("[data-record-row]")?.getAttribute("aria-label")).toMatch(/Post number 3/);
-    expect(flagged.getAttribute("aria-label") ?? flagged.textContent).toMatch(/Long description/);
-    expect(container.querySelectorAll("[data-kind='attention']").length).toBe(1);
+    const section = flagged.closest("section") as HTMLElement;
+    expect(flagged.closest("[data-record-row]")).toBeNull();
+    expect(Array.from(section.querySelectorAll("[data-record-row]")).map((r) => r.getAttribute("aria-label"))).toEqual([expect.stringMatching(/Post number 3/)]);
   });
 
   it("hides the keyboard hint, and the Copy buttons are gone from rows", () => {
@@ -166,7 +166,9 @@ describe("Inbox row on a phone", () => {
 describe("Inbox sheet on a phone", () => {
   it("opens on tap with the title, and Escape closes it and returns focus to the row", async () => {
     const { container } = renderInbox();
-    const row = rows(container)[2];
+    /* Wait for the page checks: the flagged event moves under its header, and its row is a new node. */
+    await waitFor(() => expect(container.querySelectorAll("[data-kind='attention']").length).toBe(1));
+    const row = rows(container)[0];
     row.focus();
     fireEvent.click(row);
     const dialog = await screen.findByRole("dialog", { name: /Post number 3/ });

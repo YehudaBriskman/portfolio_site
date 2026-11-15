@@ -29,9 +29,6 @@ import { adminAnnounce, setUnread, type AnnounceSummary } from "@/services/admin
 /** One tab of the hub. Other parts of the hub add an entry here. */
 type HubTab = { id: string; label: string; render: () => ReactNode };
 
-/* These parts still draw their own visible heading (the part's name); until they stop, the page h1 stays "Marketing" over them so no heading is said twice. */
-const OWN_HEADING = new Set(["audience", "campaigns", "library"]);
-
 export default function AdminAnnounce() {
   const w = useMarketingWords();
   const phone = usePhone();
@@ -89,7 +86,7 @@ export default function AdminAnnounce() {
     <AdminShell title={w.title} section="marketing">
       <div className="a-wrap">
         {/* On a phone the inbox is the screen: its intro paragraph would push the first rows down by three lines. */}
-        <PageHeader title={OWN_HEADING.has(current.id) ? w.title : current.label} description={phone && current.id === "inbox" ? undefined : (hi[current.id as keyof typeof hi] as string)} />
+        <PageHeader title={current.label} description={phone && current.id === "inbox" ? undefined : (hi[current.id as keyof typeof hi] as string)} />
 
         <section aria-label={current.label}>
           {(current.id === "audience" || current.id === "campaigns") && <LedgerBanner />}

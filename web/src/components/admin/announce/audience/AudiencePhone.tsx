@@ -222,7 +222,6 @@ export default function AudiencePhone() {
 
   return (
     <div className="min-w-0 space-y-3" data-testid="audience">
-      <h2 className="sr-only">{w.heading}</h2>
 
       {selection.on ? (
         <SelectionHeader selection={selection} total={visible.length} />

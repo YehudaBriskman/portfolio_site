@@ -34,7 +34,7 @@ describe("an unknown status or event kind", () => {
   });
   it("desktop InboxRow with an unknown event kind renders with a label", () => {
     const ev = { id: "e", kind: "webinar", ref: "e", title: "t", url: "https://x.y", langs: ["en"], createdAt: "2026-11-01T00:00:00Z", readAt: null, done: {}, dismissed: null };
-    render(<InboxRow event={ev as never} selected={false} readiness={undefined} onOpen={() => {}} onCopy={() => {}} />);
+    render(<InboxRow event={ev as never} selected={false} onOpen={() => {}} onCopy={() => {}} />);
     expect(document.querySelector(".mk-kind .sr-only")?.textContent).toMatch(/\S/);
   });
 });

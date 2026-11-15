@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import AdminAnnounce from "@/pages/AdminAnnounce";
 import { setUnread } from "@/services/adminAnnounce";
+import { DEFAULT_SENDER } from "@/components/admin/announce/sender/defaults";
 import { clearReadinessCache } from "@/components/admin/announce/inbox/readiness";
 import { allWordTables, hasHebrew } from "@/i18n/words";
 import "@/components/admin/announce/words";
@@ -60,6 +61,7 @@ const settings = {
   signature: "",
   channels: ["linkedin", "instagram", "email", "gmail", "x"],
   templates: { en: {}, he: {} },
+  sender: DEFAULT_SENDER,
 };
 
 type Call = { url: string; method: string; body: Record<string, unknown> | null };
@@ -97,6 +99,9 @@ function stub(opts: { items?: unknown[]; putStatus?: number; fail?: boolean; iss
       if (url.endsWith("/dismiss")) return json({ ok: true, event: summary({ dismissed: "x" }) });
       if (url.includes("/preview"))
         return json({ ok: true, title: "Hello", description: "A summary", image: "https://example.com/og.png", imageWidth: 1200, imageHeight: 630, siteName: "Site", url: "https://example.com/blog/hello", lang: url.endsWith("he") ? "he" : "en", issues: opts.issues ?? [] });
+      if (url === "/api/settings" || url === "/api/admin/settings") return json({ ok: false }, 503);
+      if (url === "/api/admin/campaigns") return json({ ok: true, campaigns: [] });
+      if (url === "/api/admin/campaigns/sending") return json({ ok: true, paused: false, envDisabled: false });
       if (url.startsWith("/api/admin/announce/")) return json(detailOf(summary(), drafts));
       return json({});
     }),
@@ -134,14 +139,14 @@ describe("the inbox", () => {
     expect(screen.getByRole("button", { name: "Try again" })).toBeTruthy();
   });
 
-  it("is one line per event: the title as text, one status glyph, one drawn action and More", async () => {
+  it("is one line per event: the title as text, no status glyph of its own, one drawn action and More", async () => {
     stub({ issues: [{ code: "image-missing", field: "image", severity: "error" }, { code: "no-hebrew-translation", field: "translation", severity: "warn" }] });
     page();
     const row = (await screen.findByRole("button", { name: /^Write the caption for/ })).closest("li")!;
     expect(within(row).getByText("Hello <b>world</b>").querySelector("b")).toBeNull();
-    /* One alert glyph names every issue; no chips, no channel dots. */
-    await waitFor(() => expect(row.querySelectorAll("[data-kind='attention']").length).toBe(1));
-    expect(row.querySelector("[data-kind='attention']")?.getAttribute("aria-label")).toMatch(/No image.*No Hebrew/);
+    /* The warning is the group header's, once (#864); the row has none, no chips, no channel dots. */
+    await waitFor(() => expect(document.querySelectorAll("[data-attention-group] [data-kind='attention']").length).toBe(1));
+    expect(row.querySelector("[data-kind='attention']")).toBeNull();
     expect(row.querySelector(".mk-chip, .mk-dot")).toBeNull();
     expect(within(row).getByRole("button", { name: "Copy LinkedIn" })).toBeTruthy();
     /* Copy X is in More, not drawn. */
@@ -398,6 +403,19 @@ describe("the hub shell", () => {
     await screen.findByText("Nothing to announce");
     expect(screen.getAllByRole("heading", { level: 1 }).map((h) => h.textContent)).toEqual(["Inbox"]);
     expect(screen.queryByRole("tablist", { name: "Marketing sections" })).toBeNull();
+  });
+
+  it.each([
+    ["audience", "Audience", "The people who asked for your mail, and the groups you send to."],
+    ["campaigns", "Campaigns", /Sends email to your subscribers/],
+    ["library", "Library", /Caption templates/],
+  ])("names the %s part once: its own h1, the hub description, no second heading, no Marketing h1 (#864)", async (tab, name, description) => {
+    stub({ items: [] });
+    page(`/admin/marketing?tab=${tab}`);
+    await waitFor(() => expect(screen.getAllByRole("heading", { level: 1 }).map((h) => h.textContent)).toEqual([name]));
+    expect(screen.getByText(description)).toBeTruthy();
+    expect(screen.getAllByRole("heading").filter((h) => h.textContent === name)).toHaveLength(1);
+    expect(screen.queryByRole("heading", { name: "Marketing" })).toBeNull();
   });
 
   it("opens the Settings part from the address", async () => {
