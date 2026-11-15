@@ -217,6 +217,55 @@ for (const w of WIDTHS) for (const lang of LANGS) for (const theme of THEMES) {
   } catch (e) { fails.push(at(`ERROR ${e.message.split("\n")[0]}`)); }
   await ctx.close();
 }
+/* ---- the sidebar outlives a navigation (#852), groups move for a viewer who allows it, the Settings sections are listed.
+   A short window so the open tree is taller than the sidebar and has something to keep. */
+for (const lang of LANGS) {
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 520 }, reducedMotion: "no-preference", locale: lang === "he" ? "he-IL" : "en-US" });
+  await ctx.route((u) => !["127.0.0.1", "localhost"].includes(u.hostname), (route) => route.abort());
+  await ctx.route("**/api/**", (route) => {
+    const u = new URL(route.request().url());
+    if (u.pathname.startsWith("/api/images/")) return route.fulfill({ status: 200, contentType: "image/svg+xml", body: tint });
+    const a = answer(u.pathname, route.request().method(), u.search);
+    return route.fulfill({ status: a.status ?? 200, contentType: "application/json", body: JSON.stringify(a.body ?? {}) });
+  });
+  const page = await ctx.newPage();
+  await page.clock.setFixedTime(new Date(NOW));
+  const at = (m) => `${m} @1280x520 ${lang}`;
+  const prefix = lang === "he" ? "/he" : "";
+  try {
+    await page.goto(`${base}${prefix}/admin/marketing?tab=settings`, { waitUntil: "load" });
+    await ready(page);
+    n++;
+    /* Settings lists its real sections, each a deep link. */
+    const secs = await page.evaluate(() => [...document.querySelectorAll('.a-side-nav a[href*="tab=settings&section="]')].map((a) => a.getAttribute("href")));
+    for (const s of ["mail", "channels", "wording", "signature", "sender", "limits", "texts", "notices", "advanced"]) {
+      if (!secs.some((h) => h.endsWith(`section=${s}`))) fails.push(at(`no Settings sub-item for section=${s}`));
+    }
+    /* The groups carry a transition now, and none under reduced motion. */
+    const trans = await page.evaluate(() => { const c = document.querySelector('.a-side-nav [class*="collapse"]'); const cs = c && getComputedStyle(c); return cs && { prop: cs.transitionProperty, dur: cs.transitionDuration }; });
+    if (!trans || !/grid-template-rows/.test(trans.prop) || /^0s(, 0s)*$/.test(trans.dur)) fails.push(at(`group collapse has no transition (${JSON.stringify(trans)})`));
+    /* Scroll the sidebar, follow a link, and find the same node, scrolled the same. */
+    await page.evaluate(() => { for (const b of document.querySelectorAll(".a-side-nav button[data-nav-group][aria-expanded=false]")) b.click(); });
+    await page.waitForTimeout(400);
+    const before = await page.evaluate(() => { const s = document.querySelector(".a-side"); window.__side = s; s.scrollTop = 120; return { top: s.scrollTop, max: s.scrollHeight - s.clientHeight }; });
+    if (before.max < 60 || before.top < 60) fails.push(at(`sidebar is not scrollable in this window (max ${before.max}, top ${before.top})`));
+    await page.locator('.a-side-nav a[data-nav-id="marketing-audience"]').click({ force: true });
+    for (let k = 0; k < 40 && !(await page.evaluate(() => location.search.includes("tab=audience"))); k++) await page.waitForTimeout(250);
+    await page.waitForTimeout(500);
+    const after = await page.evaluate(() => { const s = document.querySelector(".a-side"); return { same: s === window.__side, top: s.scrollTop }; });
+    if (!after.same) fails.push(at("the sidebar node was replaced by a navigation"));
+    if (after.top !== before.top) fails.push(at(`sidebar scrollTop went ${before.top} to ${after.top} on navigation`));
+    /* Marketing > Settings deep link: current row follows. */
+    await page.locator('.a-side-nav a[data-nav-id="marketing-settings-limits"]').click({ force: true });
+    for (let k = 0; k < 40 && !(await page.evaluate(() => location.search.includes("section=limits"))); k++) await page.waitForTimeout(250);
+    await page.waitForTimeout(800);
+    const cur = await page.evaluate(() => ({ cur: document.querySelector('.a-side-nav [aria-current="page"]')?.getAttribute("data-nav-id"), open: document.querySelector('[data-testid="sec-limits"]')?.open }));
+    if (cur.cur !== "marketing-settings-limits") fails.push(at(`current row is ${cur.cur}, not Sending limits`));
+    if (cur.open !== true) fails.push(at("Sending limits section was not opened by its sidebar link"));
+    if (SHOTS) await page.screenshot({ path: resolve(SHOTS, `settings-sections-${lang}.png`), timeout: 120000 });
+  } catch (e) { fails.push(at(`ERROR ${e.message.split("\n")[0]}`)); }
+  await ctx.close();
+}
 await browser.close();
 stop();
 if (fails.length) { console.log(`FAIL: ${fails.length} finding(s)`); for (const f of fails.slice(0, 60)) console.log(" ", f); process.exit(1); }

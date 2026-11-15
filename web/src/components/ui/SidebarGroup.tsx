@@ -87,6 +87,14 @@ export function ancestorsOf(nodes: NavNode[], id: string | undefined): string[] 
   return find(nodes) ? path : [];
 }
 
+function holdsChildren(nodes: NavNode[], id: string): boolean {
+  for (const n of nodes) {
+    if (n.id === id) return !!n.children?.length;
+    if (n.children && holdsChildren(n.children, id)) return true;
+  }
+  return false;
+}
+
 /** Every leaf pathname in a tree, for the test that each one is a route. */
 export function leafPaths(nodes: NavNode[]): string[] {
   return nodes.flatMap((n) => [...(n.to && !n.children ? [parse(n.to).pathname] : []), ...(n.children ? leafPaths(n.children) : [])]);
@@ -211,21 +219,24 @@ export function SidebarGroup({ node, currentId, ancestors, isOpen, onToggle, onN
           </DisclosureButton>
         )}
       </div>
-      <ul id={listId} className={styles.children} hidden={!open} data-parent={node.id}>
-        {kids.map((k) => (
-          <SidebarGroup
-            key={k.id}
-            node={k}
-            currentId={currentId}
-            ancestors={ancestors}
-            isOpen={isOpen}
-            onToggle={onToggle}
-            onNavigate={onNavigate}
-            idBase={idBase}
-            depth={depth + 1}
-          />
-        ))}
-      </ul>
+      {/* The wrapper's row track is what moves (0fr to 1fr); the list inside is `hidden` once shut. */}
+      <div className={styles.collapse} data-open={open ? "" : undefined}>
+        <ul id={listId} className={styles.children} hidden={!open} data-parent={node.id}>
+          {kids.map((k) => (
+            <SidebarGroup
+              key={k.id}
+              node={k}
+              currentId={currentId}
+              ancestors={ancestors}
+              isOpen={isOpen}
+              onToggle={onToggle}
+              onNavigate={onNavigate}
+              idBase={idBase}
+              depth={depth + 1}
+            />
+          ))}
+        </ul>
+      </div>
     </li>
   );
 }
@@ -354,7 +365,9 @@ export function SidebarNav({ nodes, label, storageKey, fallbackId, onNavigate, c
   const idBase = useId();
   const root = useRef<HTMLElement>(null);
   const currentId = currentNodeId(nodes, pathname, search) ?? fallbackId;
-  const ancestors = ancestorsOf(nodes, currentId);
+  /* The groups on the way to the current row open, and so does a current group that has rows of its own (Marketing > Settings). */
+  const trail = ancestorsOf(nodes, currentId);
+  const ancestors = currentId && holdsChildren(nodes, currentId) ? [...trail, currentId] : trail;
 
   const [open, setOpen] = useState<OpenMap>(() => {
     const stored = readOpen(storageKey);
@@ -376,6 +389,10 @@ export function SidebarNav({ nodes, label, storageKey, fallbackId, onNavigate, c
     [],
   );
   useEffect(() => writeOpen(storageKey, open), [storageKey, open]);
+
+  /* The first paint is the state as it is: only a change after mount moves (no group fades in on arrival). */
+  /* An attribute set by hand, not state: React never renders it, so it is not undone and costs no render. */
+  useEffect(() => root.current?.setAttribute("data-armed", ""), []);
 
   const isOpen = (id: string) => !!open[id];
   const onToggle = (id: string) => set(id, !open[id]);
@@ -407,7 +424,7 @@ export function SidebarNav({ nodes, label, storageKey, fallbackId, onNavigate, c
       case "ArrowLeft": {
         if (collapsed) return;
         const forward = (e.key === "ArrowRight") !== rtl;
-        const isGroup = !!target.getAttribute("data-nav-group") || (group && target.closest("li")?.querySelector(":scope > ul[data-parent]"));
+        const isGroup = !!target.getAttribute("data-nav-group") || (group && target.closest("li")?.querySelector(":scope > div > ul[data-parent]"));
         if (forward && isGroup && group) {
           e.preventDefault();
           if (!open[group]) set(group, true);
@@ -423,7 +440,7 @@ export function SidebarNav({ nodes, label, storageKey, fallbackId, onNavigate, c
           const p = parentOf(target);
           if (p) {
             e.preventDefault();
-            const owner = p.parentElement?.querySelector<HTMLElement>(":scope > div [data-nav-item]");
+            const owner = p.parentElement?.parentElement?.querySelector<HTMLElement>(":scope > div:first-child [data-nav-item]");
             owner?.focus();
           }
         }

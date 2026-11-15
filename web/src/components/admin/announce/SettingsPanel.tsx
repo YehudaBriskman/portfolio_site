@@ -17,6 +17,7 @@ import { useSenderWords } from "./sender/words";
 import { DEFAULT_UTM, same, useSettingsDoc } from "./useSettingsDoc";
 import { useSettingsPanelWords } from "./settingsWords";
 import PhoneSettings, { UTM_TOKEN, isGroupId } from "./SettingsPhone";
+import { inAdvanced, useSettingsSectionAnchor } from "./useSettingsSectionAnchor";
 import { usePhone } from "../../../hooks/usePhone";
 import { useAnnounceWords } from "./words";
 import SignatureSettings from "./signature/SignatureSettings";
@@ -93,6 +94,8 @@ export default function SettingsPanel() {
   const [justSaved, setJustSaved] = useState(false);
 
   const { view, draft, status, issues, edit, warnings } = doc;
+  /* The sidebar's Settings sub-items (#852): a desktop opens and scrolls to the section the address names. */
+  useSettingsSectionAnchor(phone ? null : section, !!draft && !!view);
   useLeaveGuard(
     status === "saving" || (!!draft && !!view && !same({ ...draft, hashtags: tags === null ? draft.hashtags : parseTags(tags) }, view.settings)),
     leaveText,
@@ -249,7 +252,7 @@ export default function SettingsPanel() {
   ];
   const q = filter.trim().toLowerCase();
   const shown = advanced.filter((s) => !q || `${s.label} ${s.words}`.toLowerCase().includes(q));
-  const isOpen = open || q !== "" || params.get("section") === "sender";
+  const isOpen = open || q !== "" || inAdvanced(section);
 
   const issuesBox =
     issues.length > 0 ? (
@@ -306,18 +309,20 @@ export default function SettingsPanel() {
           <p className="a-hint !mt-0">{sw.everydayHint}</p>
         </div>
 
-        {check(`${uid}-mail`, w.emailEnabled, draft.email.enabled, (v) => change((d) => void (d.email.enabled = v)), w.emailHint)}
+        <div data-section="mail" className="space-y-3">
+          {check(`${uid}-mail`, w.emailEnabled, draft.email.enabled, (v) => change((d) => void (d.email.enabled = v)), w.emailHint)}
 
-        {check(`${uid}-notify`, nw.master, draft.notify.enabled, (v) => change((d) => void (d.notify.enabled = v)), nw.masterHint)}
+          {check(`${uid}-notify`, nw.master, draft.notify.enabled, (v) => change((d) => void (d.notify.enabled = v)), nw.masterHint)}
+        </div>
 
-        <fieldset className="flex flex-wrap gap-x-6 gap-y-2">
+        <fieldset data-section="channels" className="flex flex-wrap gap-x-6 gap-y-2">
           <legend className="a-label">{w.channelsHeading}</legend>
           {ANNOUNCE_CHANNELS.map((c) => (
             <div key={c}>{check(`${uid}-ch-${c}`, w.channels[c], draft.channels.includes(c), (v) => change((d) => void (d.channels = ANNOUNCE_CHANNELS.filter((x) => (x === c ? v : d.channels.includes(x))))))}</div>
           ))}
         </fieldset>
 
-        <div>
+        <div data-section="wording">
           <label className="a-label" htmlFor={`${uid}-tags`}>{w.hashtags}</label>
           <input id={`${uid}-tags`} className="a-input" dir="auto" value={tagText} onChange={(e) => (touch(), setTags(e.target.value))} aria-invalid={tagsBad} aria-describedby={`${uid}-tags-h`} autoComplete="off" />
           <p id={`${uid}-tags-h`} className={tagsBad ? "a-error" : "a-hint"}>{tagsBad ? w.hashtagsBad(badTags.join(" ") || tagText) : w.hashtagsHint}</p>
