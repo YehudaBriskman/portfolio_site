@@ -171,10 +171,11 @@ export const media = {
     const r = await call<{ items: unknown[] }>(q ? `?q=${encodeURIComponent(q)}` : "");
     return parseList(MediaSchema, r.items);
   },
-  upload: async (file: File, meta: MediaMeta, kind: MediaKind = "image", video?: VideoParts) => {
+  /** `signal` cancels the request in flight (the upload's Cancel). */
+  upload: async (file: File, meta: MediaMeta, kind: MediaKind = "image", video?: VideoParts, signal?: AbortSignal) => {
     const { qs, init } = uploadInit(file, kind, video);
     const params = new URLSearchParams({ ...meta, filename: file.name, ...qs });
-    const r = await call<{ item: unknown }>(`?${params}`, { method: "POST", ...init });
+    const r = await call<{ item: unknown }>(`?${params}`, { method: "POST", ...init, signal });
     return MediaSchema.parse(r.item);
   },
   update: async (item: MediaItem, meta: MediaMeta | MediaDetails) => {
