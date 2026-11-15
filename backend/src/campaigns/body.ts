@@ -23,6 +23,8 @@ function toMail(b: Block): MailBlock {
       return { type: "list", items: b.items ?? [] };
     case "cta":
       return { type: "button", label: b.label || b.text || b.url || "", href: b.url ?? "" };
+    case "facts":
+      return { type: "facts", rows: b.rows ?? [], ...(b.lang ? { lang: b.lang } : {}) };
     case "image":
       return { type: "image", src: b.url ?? "", alt: b.text ?? "", width: 552 };
   }

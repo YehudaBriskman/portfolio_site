@@ -20,7 +20,8 @@ export type Block =
   | { type: "h2"; text: string }
   | { type: "ul"; items: string[] }
   | { type: "cta"; url: string; label: string }
-  | { type: "image"; url: string; text?: string };
+  | { type: "image"; url: string; text?: string }
+  | { type: "facts"; rows: Array<{ label: string; value: string }>; lang?: "en" | "he" };
 export type BlockType = Block["type"];
 
 export type Counters = { queued: number; sent: number; failed: number; suppressed: number; /** Skipped by the per-person monthly limit; absent until one is. */ capped?: number };

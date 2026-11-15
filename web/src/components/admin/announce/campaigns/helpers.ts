@@ -40,6 +40,8 @@ export function blocksToText(blocks: Block[]): string {
           return `${b.label}: ${b.url}`;
         case "image":
           return b.text ?? "";
+        case "facts":
+          return b.rows.map((r) => `${r.label}: ${r.value}`).join("\n");
       }
     })
     .filter((t) => t.trim())
@@ -58,6 +60,8 @@ export function blockProblem(b: Block): "empty" | "link" | "image" | null {
       return !b.label.trim() ? "empty" : safeHref(b.url) ? null : "link";
     case "image":
       return safeImage(b.url) ? null : "image";
+    case "facts":
+      return b.rows.some((r) => r.label.trim() && r.value.trim()) ? null : "empty";
   }
 }
 

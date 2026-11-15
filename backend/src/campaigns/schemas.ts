@@ -10,7 +10,7 @@ export type PauseReason = "auth" | "consecutive" | "failure-rate" | "hard-bounce
 /** Results since the campaign started or was last resumed: what the auto-pause rules are judged on. */
 export type Health = { sent: number; failed: number; hard: number; streak: number; /** Spam complaints received while it was sending; written by the webhook. */ complaints?: number };
 
-export type Block = { type: "p" | "h2" | "ul" | "cta" | "image"; text?: string; items?: string[]; url?: string; label?: string };
+export type Block = { type: "p" | "h2" | "ul" | "cta" | "image" | "facts"; text?: string; items?: string[]; url?: string; label?: string; rows?: Array<{ label: string; value: string }>; lang?: "en" | "he" };
 
 export type Campaign = {
   _id: string;
@@ -73,6 +73,7 @@ const Blocks = z
       z.object({ type: z.literal("h2"), text: z.string().min(1).max(300) }).strict(),
       z.object({ type: z.literal("ul"), items: z.array(z.string().min(1).max(1000)).min(1).max(50) }).strict(),
       z.object({ type: z.literal("cta"), url: Url.refine((u) => safeHref(u) !== null, "A http(s) or mailto link"), label: z.string().min(1).max(100) }).strict(),
+      z.object({ type: z.literal("facts"), rows: z.array(z.object({ label: z.string().min(1).max(60), value: z.string().min(1).max(300) }).strict()).min(1).max(8), lang: z.enum(["en", "he"]).optional() }).strict(),
       z.object({ type: z.literal("image"), url: Url.refine((u) => safeImage(u) !== null, "An https image on this site"), text: z.string().max(300).optional() }).strict(),
     ]),
   )

@@ -25,6 +25,8 @@ export type MailBlock =
   | { type: "paragraph"; text: string | Inline[]; tone?: "normal" | "strong" | "muted" | "kicker"; lang?: MailLang; htmlOnly?: boolean }
   | { type: "button"; label: string; href: string }
   | { type: "list"; items: string[] }
+  /* Data rows (date, read time, topics, version): a label and its value per row. Values come from real data, never invented. */
+  | { type: "facts"; rows: Array<{ label: string; value: string }>; lang?: MailLang }
   /* A labelled box of lines the reader copies from (captions); each line is its own direction unit. */
   | { type: "card"; label?: string; meta?: string; lines: string[]; lang?: MailLang }
   /* Only from the site's own origin; alt text and a width are required. Without a height the image scales by its width. */
@@ -128,6 +130,20 @@ function renderBlock(b: MailBlock, root: MailLang, origin: string, L: Pal): { ht
         html: row(`<ul class="ink" style="margin:0;padding:0 22px;font-size:16px;line-height:1.5;color:${L.ink}">${b.items.map((i) => `<li dir="auto" style="margin:0 0 4px 0">${esc(i)}</li>`).join("")}</ul>`),
         text: b.items.map((i) => `- ${i}`).join("\n"),
       };
+    case "facts": {
+      const rows = b.rows.filter((r) => r.label.trim() && r.value.trim());
+      if (!rows.length) return { html: "", text: "" };
+      const cells = rows
+        .map(
+          (r, i) =>
+            `<tr><td class="soft" valign="top" width="34%" dir="auto" style="padding:8px 12px;${i ? `border-top:1px solid ${L.rule};` : ""}font-size:13px;line-height:1.5;font-weight:700;color:${L.soft}">${esc(r.label)}</td><td class="ink" valign="top" dir="auto" style="padding:8px 12px;${i ? `border-top:1px solid ${L.rule};` : ""}font-size:15px;line-height:1.5;color:${L.ink}">${esc(r.value)}</td></tr>`,
+        )
+        .join("");
+      return {
+        html: row(`<table role="presentation" class="box" width="100%" cellpadding="0" cellspacing="0" border="0"${langAttrs(b.lang, root) || ` dir="${dirOf(root)}"`} bgcolor="${L.box}" style="width:100%;background-color:${L.box};border:1px solid ${L.rule};border-radius:8px">${cells}</table>`),
+        text: rows.map((r) => `${r.label}: ${r.value}`).join("\n"),
+      };
+    }
     case "card": {
       const lines = b.lines.map((l) => `<div dir="auto" style="min-height:1.55em;">${l ? esc(l) : "&nbsp;"}</div>`).join("");
       return {

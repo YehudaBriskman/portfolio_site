@@ -19,6 +19,7 @@ type PostDoc = {
   title?: string;
   excerpt?: string;
   tags?: string[];
+  readingMinutes?: number;
   publishedAt?: string | null;
   he?: { title?: string; excerpt?: string; body?: string } | null;
 };
@@ -51,6 +52,8 @@ export function postEvent(after: PostDoc, now = new Date()): AnnounceEvent | nul
     summary: after.excerpt ?? "",
     ...(hasHe && after.he?.excerpt ? { summaryHe: after.he.excerpt } : {}),
     tags: after.tags ?? [],
+    publishedAt: stamp,
+    ...(after.readingMinutes && after.readingMinutes > 0 ? { readMinutes: after.readingMinutes } : {}),
     path: `/blog/${after.slug}`,
     url: `${SITE_URL}/blog/${after.slug}`,
     langs: hasHe ? ["en", "he"] : ["en"],
@@ -194,6 +197,8 @@ export async function announceNewReleases(doc: SiteReleases, now = new Date()): 
         tags: [],
         url: r.url,
         version: r.tag,
+        publishedAt: r.publishedAt,
+        ...(r.notes?.length ? { notes: r.notes } : {}),
         langs: ["en", "he"],
         createdAt: now.toISOString(),
         done: {},

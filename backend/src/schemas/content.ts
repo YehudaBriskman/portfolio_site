@@ -402,6 +402,8 @@ export const SiteReleaseSchema = z.object({
   name: z.string().nullable().default(null),
   url: z.string(),
   publishedAt: z.string(),
+  /** Bullets of the GitHub release notes ("what changed"), cleaned and capped; empty when the release has none. */
+  notes: z.array(z.string()).optional(),
 });
 
 export const SiteReleasesSchema = z.object({

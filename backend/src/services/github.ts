@@ -74,13 +74,34 @@ export async function fetchRepoStats(repo: NonNullable<Collection["repo"]>) {
   };
 }
 
-type ReleaseListItem = ReleaseResponse & { name: string | null; draft: boolean; prerelease: boolean };
+type ReleaseListItem = ReleaseResponse & { name: string | null; draft: boolean; prerelease: boolean; body?: string | null };
+
+/**
+ * The bullets of a release's notes as plain text: markdown marks, links and the
+ * "by @user in #123" credit are dropped, at most 8 lines of 200 characters.
+ */
+export function releaseNotes(body: string | null | undefined): string[] {
+  return (body ?? "")
+    .split(/\r?\n/)
+    .map((l) => /^\s*[-*]\s+(.+)$/.exec(l)?.[1] ?? "")
+    .map((l) =>
+      l
+        .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+        .replace(/\s+by @\S+(\s+in\s+\S+)?\s*$/i, "")
+        .replace(/[*_`]+/g, "")
+        .replace(/\s+/g, " ")
+        .trim(),
+    )
+    .filter((l) => l.length > 1)
+    .slice(0, 8)
+    .map((l) => (l.length > 200 ? `${l.slice(0, 199).trimEnd()}…` : l));
+}
 
 /** Only `v*` tags count as site releases; drafts and prereleases never do. */
 export function pickSiteReleases(list: ReleaseListItem[]): SiteRelease[] {
   return list
     .filter((r) => !r.draft && !r.prerelease && r.published_at && /^v/.test(r.tag_name))
-    .map((r) => ({ tag: r.tag_name, name: r.name || null, url: r.html_url, publishedAt: r.published_at! }))
+    .map((r) => ({ tag: r.tag_name, name: r.name || null, url: r.html_url, publishedAt: r.published_at!, notes: releaseNotes(r.body) }))
     .sort((a, b) => b.publishedAt.localeCompare(a.publishedAt))
     .slice(0, 50);
 }

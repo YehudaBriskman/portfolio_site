@@ -86,6 +86,25 @@ const migrateLabel = (v: unknown) => {
   return rest;
 };
 
+/*
+ * The words an auto-draft (and the owner's announce mail) puts around real
+ * data: button labels, data-row labels, the "what changed" title. They live in
+ * the settings so the owner edits them; the defaults are DRAFT wording and
+ * `approved` stays false until the owner signs them off (the PR lists them
+ * under STRINGS FOR OWNER APPROVAL). None of this is legal text.
+ */
+const Label = z.string().trim().min(1).max(60);
+const DraftWords = z
+  .object({ ctaPost: Label, ctaRelease: Label, factDate: Label, factRead: Label, factTopics: Label, factVersion: Label, changesTitle: Label, readValue: Label.includes("{n}") })
+  .strict();
+export type DraftWords = z.infer<typeof DraftWords>;
+export const DEFAULT_DRAFT_LABELS = {
+  approved: false,
+  en: { ctaPost: "Read the post", ctaRelease: "See the release", factDate: "Date", factRead: "Read time", factTopics: "Topics", factVersion: "Version", changesTitle: "What changed", readValue: "{n} min" },
+  he: { ctaPost: "לקריאת הפוסט", ctaRelease: "לצפייה בגרסה", factDate: "תאריך", factRead: "זמן קריאה", factTopics: "נושאים", factVersion: "גרסה", changesTitle: "מה השתנה", readValue: "{n} דקות" },
+} satisfies { approved: boolean; en: DraftWords; he: DraftWords };
+const DraftLabels = z.object({ approved: z.boolean().default(false), en: DraftWords, he: DraftWords }).strict();
+
 export const SenderSchema = z.preprocess(migrateLabel, z
   .object({
     /* Display name and address of the From header; "" falls back to MAIL_FROM. No quotes, brackets or control characters: it is spliced into a header. */
@@ -118,6 +137,8 @@ export const SenderSchema = z.preprocess(migrateLabel, z
     reserveShare: z.number().default(0.2),
     /* A post or release event makes a DRAFT campaign for the subscribers group. Never sends by itself. */
     autoDraftCampaign: z.boolean().default(false),
+    /* Wording of the auto-draft's buttons and data rows; see DEFAULT_DRAFT_LABELS. */
+    draftLabels: DraftLabels.default(DEFAULT_DRAFT_LABELS),
     confirmSubjectEn: SenderText,
     confirmSubjectHe: SenderText,
     confirmBodyEn: SenderText,
@@ -270,6 +291,7 @@ export const DEFAULT_SENDER: SenderSettings = {
   quietHours: DEFAULT_QUIET_HOURS,
   maxPerContact30d: DEFAULT_MAX_PER_CONTACT_30D,
   autoDraftCampaign: false,
+  draftLabels: DEFAULT_DRAFT_LABELS,
   dailyLimit: 90,
   monthlyLimit: 2700,
   safety: 0.9,
@@ -375,6 +397,11 @@ export type AnnounceEvent = {
   /** The site path of a post, so each language's URL can be built from SITE_URL. */
   path?: string;
   version?: string;
+  /** Real data carried from the post or release, shown as data rows in a drafted mail; absent when unknown. */
+  publishedAt?: string;
+  readMinutes?: number;
+  /** The release's own notes (bullets from its GitHub release), never written here. */
+  notes?: string[];
   langs: Array<"en" | "he">;
   /** The owner's own text per language and channel; it wins over the template. */
   drafts?: Drafts;

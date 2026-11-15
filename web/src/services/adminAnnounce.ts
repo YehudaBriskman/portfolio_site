@@ -114,6 +114,8 @@ export type SenderSettings = {
   safety: number;
   reserveShare: number;
   autoDraftCampaign: boolean;
+  /** Wording of the auto-draft buttons and data rows; kept as the server sent it (edited through the settings API until the form has fields for it). */
+  draftLabels?: unknown;
   confirmSubjectEn: string;
   confirmSubjectHe: string;
   confirmBodyEn: string;
