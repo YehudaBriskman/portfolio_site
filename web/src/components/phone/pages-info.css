@@ -86,7 +86,7 @@
   }
 
   /* ───────────────────────────── Developers/MCP */
-  [data-ph="copy-box"] {
+  div[data-ph="copy-box"] {
     overflow: hidden;
     border: 0;
     border-radius: var(--r-sm);

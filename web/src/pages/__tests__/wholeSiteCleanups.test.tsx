@@ -74,9 +74,9 @@ describe("a Hebrew page with an English or Latin string at its end (1)", () => {
       </MemoryRouter>,
     );
     const mail = container.querySelector('a[href^="mailto:"]') as HTMLElement;
-    const run = mail.closest('[dir="ltr"]') as HTMLElement;
-    expect(run).not.toBeNull();
-    expect(run.textContent).toBe(`${mail.textContent}.`);
+    /* A full stop after a left-to-right run lands on the right only when the address and the stop share one left-to-right isolate (LRI ... PDI). */
+    expect(mail.previousSibling?.textContent?.endsWith("\u2066")).toBe(true);
+    expect(mail.nextSibling?.textContent).toBe(".\u2069");
   });
   it("sets an English name and line as left-to-right runs", () => {
     he();
