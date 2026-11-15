@@ -89,6 +89,35 @@ describe("the sidebar persists across navigation", () => {
     expect(within(nav()).getByRole("button", { name: /Site/ }).getAttribute("aria-expanded")).toBe("true");
   });
 
+  it("measures a bottom bar a page publishes after the frame mounted (focus stays clear of it, 2.4.11)", () => {
+    const observed: Element[] = [];
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        observe(el: Element) {
+          observed.push(el);
+        }
+        disconnect() {}
+        unobserve() {}
+      },
+    );
+    const Editor = () => (
+      <AdminShell title="Posts" section="posts" bottomBar={<button type="button">Save</button>}>
+        <p>editor</p>
+      </AdminShell>
+    );
+    render(
+      <MemoryRouter initialEntries={["/admin/posts"]}>
+        <Routes>
+          <Route element={<AdminLayout />}>
+            <Route path="/admin/posts" element={<Editor />} />
+          </Route>
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(observed.some((el) => el.classList.contains("a-bottom"))).toBe(true);
+  });
+
   it("App.tsx mounts every /admin route under the one layout route", () => {
     const src = readFileSync(resolve(process.cwd(), "src/App.tsx"), "utf8");
     expect(src).toMatch(/<Route element=\{<Suspense fallback=\{<RouteFallback \/>\}><AdminLayout \/><\/Suspense>\}>/);

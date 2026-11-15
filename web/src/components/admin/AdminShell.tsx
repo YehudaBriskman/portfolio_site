@@ -290,6 +290,8 @@ export function ShellFrame({ title, section, counts, bottomBar, backTo, barEvery
    * clears it the same way (index.css).
    */
   const bar = useRef<HTMLDivElement>(null);
+  /* The bar arrives with a page now (the frame outlives pages), so the observer follows whether there is one. */
+  const hasBar = Boolean(bottomBar);
   const keyboard = useKeyboardOpen();
   useEffect(() => {
     const el = bar.current;
@@ -308,7 +310,7 @@ export function ShellFrame({ title, section, counts, bottomBar, backTo, barEvery
       root.style.scrollPaddingBottom = "";
       root.style.removeProperty("--a-bar-h");
     };
-  }, []);
+  }, [hasBar]);
 
   const tree = buildNav({
     label: (id: AdminNavId) => {
