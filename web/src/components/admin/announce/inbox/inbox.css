@@ -16,6 +16,9 @@
   .mk-form { display: grid; gap: .875rem; padding: 1rem; max-width: 40rem; }
   .mk-form .a-error ul { margin: .25rem 0 0; padding-inline-start: 1.25rem; list-style: disc; }
 
+  /* The one place the warning is drawn: a header over the events that have something to fix. */
+  .mk-group-head { display: flex; align-items: center; gap: .5rem; margin: 0 0 .5rem; font-size: var(--a-fs-meta, .875rem); font-weight: 500; color: rgb(var(--ink-soft)); }
+  .mk-group { margin-block-end: 1.25rem; }
   .mk-list { margin: 0; padding: 0; list-style: none; border: 1px solid var(--a-line, rgb(var(--rule-firm) / .5)); border-radius: var(--a-r-box, 16px); overflow: hidden; background: rgb(var(--paper-2)); }
   .mk-row {
     display: grid; align-items: center; gap: .25rem .75rem;

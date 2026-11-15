@@ -111,20 +111,15 @@ export default function CampaignsTab() {
   return (
     <div className={`max-w-5xl ${phone ? "space-y-4" : "space-y-6"}`} data-testid="campaigns">
       {phone ? (
-        /* The tab already says Campaigns, so the heading is for screen readers. */
         <>
-          <h2 className="sr-only">{w.heading}</h2>
           {actionBar}
           {compileNote}
           <SendingSwitch compact />
         </>
       ) : (
         <>
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h2 className="sr-only">{w.heading}</h2>
-              <p className="a-hint !mt-0">{w.intro}</p>
-            </div>
+          {/* The hub's description already says what this part is for (A5). */}
+          <div className="flex flex-wrap items-start justify-end gap-3">
             {actionBar}
           </div>
           {compileNote}

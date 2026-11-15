@@ -70,6 +70,20 @@ describe("RowActions in a table (principle 13)", () => {
     expect(names()).toEqual(["Edit", "Duplicate"]);
   });
 
+  it("reserves the More slot when no menu is drawn, so the icons line up with rows that have one (#864)", () => {
+    const { container, unmount } = inTable(<RowActions label="Actions for Alpha" moreLabel="More" primary={act("edit", "Edit")} actions={[]} />);
+    expect(names()).toEqual(["Edit"]);
+    const spacer = container.querySelector("[data-row-actions-spacer]");
+    expect(spacer).not.toBeNull();
+    expect(spacer?.getAttribute("aria-hidden")).toBe("true");
+    unmount();
+    const withMenu = inTable(<RowActions label="Actions for Alpha" moreLabel="More" primary={act("edit", "Edit")} actions={[act("del", "Delete", "danger")]} />);
+    expect(withMenu.container.querySelector("[data-row-actions-spacer]")).toBeNull();
+    withMenu.unmount();
+    const alone = render(<RowActions label="Actions for Alpha" moreLabel="More" primary={act("edit", "Edit")} actions={[]} />);
+    expect(alone.container.querySelector("[data-row-actions-spacer]")).toBeNull();
+  });
+
   it("with a destructive one, it goes to More even when two actions are all there is", () => {
     inTable(<RowActions label="Actions for Alpha" moreLabel="More" primary={act("edit", "Edit")} actions={[act("del", "Delete", "danger")]} />);
     expect(names()).toEqual(["Edit", "More"]);

@@ -25,3 +25,12 @@
     transition: opacity var(--a-dur-fast, 120ms) var(--a-ease-out, ease);
   }
 }
+
+/* The empty place of the More button on a row that has no menu: same width as an icon button of the row's size. */
+.spacer { flex: none; }
+.sm { inline-size: var(--ctl-h-sm); }
+.md { inline-size: var(--ctl-h-md); }
+.lg { inline-size: var(--ctl-h-lg); }
+@media (pointer: coarse) {
+  .spacer { inline-size: var(--ctl-h-lg); }
+}
