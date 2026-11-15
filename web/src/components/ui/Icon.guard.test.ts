@@ -65,7 +65,6 @@ const LEGACY = new Set<string>([
   "src/components/work/RepoCard.tsx",
   "src/pages/AdminAreas.tsx",
   "src/pages/AdminEditor.tsx",
-  "src/pages/AdminOverview.tsx",
   "src/pages/AdminProjects.tsx",
   "src/pages/Admin.tsx",
   "src/pages/BlogArea.tsx",

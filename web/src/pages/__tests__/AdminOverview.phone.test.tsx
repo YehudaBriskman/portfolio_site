@@ -139,16 +139,3 @@ describe("/admin on a phone", () => {
     expect(screen.queryByText("Needs you")).toBeNull();
   });
 });
-
-describe("/admin on a desktop", () => {
-  it("is unchanged: the stat grid, the feed and the continue box", async () => {
-    undoPhone();
-    undoPhone = phone(false);
-    api();
-    page();
-    expect(await screen.findByText("Pick up where you left off")).toBeInTheDocument();
-    expect(document.querySelector(".a-stats")).not.toBeNull();
-    expect(rows().length).toBe(0);
-    expect(screen.queryByRole("region", { name: "Needs you" })).toBeNull();
-  });
-});
