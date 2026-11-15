@@ -15,30 +15,8 @@ import { plural } from "@/i18n/words";
  * the site's own tokens, so it follows the theme and the accent preset.
  */
 
-export function PageHeader({
-  title,
-  description,
-  actions,
-  meta,
-}: {
-  title: ReactNode;
-  description?: ReactNode;
-  /** Right-hand buttons; they wrap under the title on a phone. */
-  actions?: ReactNode;
-  /** A line under the title: a status pill, a path. */
-  meta?: ReactNode;
-}) {
-  return (
-    <div className="a-page-head">
-      <div className="min-w-0 flex-[1_1_18rem]">
-        <h1 className="a-h1">{title}</h1>
-        {meta && <div className="a-page-meta">{meta}</div>}
-        {description && <p className="a-page-desc">{description}</p>}
-      </div>
-      {actions && <div className="a-page-actions">{actions}</div>}
-    </div>
-  );
-}
+/* The page header lives in the kit now (A1, A2): this re-export keeps the existing screens' import until Round 2 moves them. */
+export { PageHeader } from "@/components/ui/PageHeader";
 
 export type PillState = "published" | "draft" | "archived" | "hidden" | "changes" | "active" | "revoked" | "expired";
 

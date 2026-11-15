@@ -1,0 +1,83 @@
+/*
+ * The confirm dialog: a small centred panel. The native dialog already enters
+ * with the admin's `dialog[open]` rise (index.css) and honours reduced motion
+ * through the tokens, so this file adds no motion. On a phone the buttons
+ * stack full width, the confirm last (nearest the thumb); from 480px they sit
+ * at the inline-end in reading order, keep then outcome. Button labels wrap,
+ * they are never cut mid-word (`.a-btn` wraps and breaks only an unbreakable run).
+ */
+dialog.dialog {
+  inline-size: min(28rem, calc(100vw - 2rem));
+  max-block-size: calc(100dvh - 2rem);
+  margin: auto;
+  padding: 0;
+  border: 1px solid var(--a-line);
+  border-radius: var(--a-r-box, 16px);
+  background: rgb(var(--paper));
+  color: rgb(var(--ink));
+  box-shadow: var(--a-shadow-3, 0 12px 40px rgb(0 0 0 / 0.25));
+  overflow: auto;
+}
+
+dialog.dialog::backdrop {
+  background: rgb(0 0 0 / 0.45);
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--a-s-3, 0.75rem);
+  padding: var(--a-s-5, 1.25rem);
+  padding-block-end: max(var(--a-s-5, 1.25rem), env(safe-area-inset-bottom));
+}
+
+.title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.text {
+  color: rgb(var(--ink-soft));
+  overflow-wrap: anywhere;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--a-s-2, 0.5rem);
+  margin-block-start: var(--a-s-2, 0.5rem);
+}
+
+.button {
+  min-block-size: 2.75rem;
+}
+
+/* The confirm step is the only place a red fill is allowed (A1). */
+.danger {
+  background: rgb(var(--destructive));
+  border-color: rgb(var(--destructive));
+  color: rgb(var(--destructive-foreground));
+}
+
+@media (hover: hover) {
+  .danger:hover {
+    background: rgb(var(--destructive));
+    border-color: rgb(var(--destructive));
+    box-shadow: 0 0 0 3px rgb(var(--destructive) / 0.25);
+  }
+}
+
+@media (min-width: 480px) {
+  .actions {
+    flex-direction: row;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+
+  .button {
+    min-inline-size: 7rem;
+  }
+}

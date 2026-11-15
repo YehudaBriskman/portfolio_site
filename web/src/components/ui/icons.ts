@@ -123,6 +123,9 @@ export const NAV_GLYPH = {
   more: ChevronDown,
 } satisfies Record<string, LucideIcon>;
 
+/* The tone glyph of a page `Banner`: three shapes, so the tone is never colour alone. */
+export const TONE_GLYPH = { info: Info, warning: TriangleAlert, danger: CircleX } satisfies Record<string, LucideIcon>;
+
 export type Concept = keyof typeof ICON;
 export const CONCEPTS = Object.keys(ICON) as Concept[];
 
