@@ -1,0 +1,24 @@
+<!doctype html>
+<!-- Screenshot gallery for the admin page kit (#834). Not part of the build:
+     only `scripts/shoot-admin-kit.mjs` serves it, through the Vite dev server.
+     ?lang=he|en  ?theme=light|dark -->
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Admin page kit</title>
+    <script>
+      (function () {
+        var q = new URLSearchParams(location.search);
+        var he = q.get("lang") === "he";
+        document.documentElement.lang = he ? "he" : "en";
+        document.documentElement.dir = he ? "rtl" : "ltr";
+        document.documentElement.dataset.theme = q.get("theme") === "dark" ? "dark" : "light";
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="./main.tsx"></script>
+  </body>
+</html>

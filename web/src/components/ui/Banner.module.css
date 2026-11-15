@@ -1,0 +1,127 @@
+/*
+ * The banner: a soft panel, a 4px bar on the inline-start edge in the tone's
+ * colour, a glyph, the words. Wraps on a phone (the action drops under the
+ * text, never off the edge); on 640px and up the action sits at the inline-end.
+ * Logical properties only. The text wraps, it is never clipped.
+ */
+.banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--a-s-2, 0.5rem) var(--a-s-3, 0.75rem);
+  box-sizing: border-box;
+  margin-block-end: var(--a-s-4, 1rem);
+  padding: var(--a-s-3, 0.75rem);
+  padding-inline-start: calc(var(--a-s-3, 0.75rem) - 4px);
+  border: 1px solid var(--a-line);
+  border-inline-start: 4px solid var(--banner-bar, rgb(var(--signal)));
+  border-radius: var(--a-r-ctl, 12px);
+  background: rgb(var(--paper-2));
+  color: rgb(var(--ink));
+}
+
+.banner[data-tone='warning'] {
+  --banner-bar: rgb(var(--ink));
+}
+
+.banner[data-tone='danger'] {
+  --banner-bar: rgb(var(--destructive));
+}
+
+.glyph {
+  flex: none;
+  margin-block-start: 2px;
+}
+
+.banner[data-tone='info'] .glyph {
+  color: rgb(var(--signal));
+}
+
+.banner[data-tone='danger'] .glyph {
+  color: rgb(var(--destructive-ink));
+}
+
+.body {
+  flex: 1 1 8rem;
+  min-inline-size: 0;
+}
+
+.title {
+  margin: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.text {
+  color: rgb(var(--ink-soft));
+  overflow-wrap: anywhere;
+}
+
+.title + .text {
+  margin-block-start: var(--a-s-1, 0.25rem);
+}
+
+.action,
+.close {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-block-size: 2.75rem;
+  border: 0;
+  border-radius: var(--a-r-ctl, 12px);
+  background: transparent;
+  color: rgb(var(--ink));
+  font: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.action {
+  max-inline-size: 100%;
+  padding-inline: var(--a-s-3, 0.75rem);
+  border: 1px solid var(--a-line-ctl);
+  font-weight: 500;
+  overflow-wrap: anywhere;
+  text-align: center;
+}
+
+.close {
+  min-inline-size: 2.75rem;
+  margin-block: calc(var(--a-s-2, 0.5rem) * -1);
+  margin-inline-end: calc(var(--a-s-2, 0.5rem) * -1);
+  color: rgb(var(--ink-soft));
+}
+
+@media (hover: hover) {
+  .action:hover,
+  .close:hover {
+    background: var(--a-hover);
+  }
+}
+
+.action:focus-visible,
+.close:focus-visible {
+  outline: 2px solid rgb(var(--signal));
+  outline-offset: 2px;
+}
+
+@media (min-width: 640px) {
+  .banner {
+    flex-wrap: nowrap;
+    align-items: center;
+  }
+
+  .glyph {
+    margin-block-start: 0;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .action,
+  .close {
+    transition: background-color var(--a-dur-fast) var(--a-ease-out);
+  }
+}

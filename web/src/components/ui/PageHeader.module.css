@@ -1,0 +1,113 @@
+/*
+ * The page header. Phone first: the title takes the full line and the actions
+ * sit under it, leading edge first; from 640px they share the line and sit at
+ * the inline-end. Logical properties only, so Hebrew mirrors on its own.
+ * Nothing breaks mid-word: the title wraps (overflow-wrap: anywhere is the
+ * `.a-h1` rule for an unbreakable key), a one-line label ends in an ellipsis.
+ */
+.head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--a-s-2, 0.5rem);
+  margin-block-end: var(--a-s-5, 1.25rem);
+  padding-block-end: var(--a-s-4, 1rem);
+  border-block-end: 1px solid var(--a-line);
+}
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--a-s-1, 0.25rem);
+  align-self: flex-start;
+  max-inline-size: 100%;
+  min-block-size: 2.75rem;
+  margin-block: -0.5rem -0.25rem;
+  padding-inline: var(--a-s-2, 0.5rem);
+  margin-inline-start: calc(var(--a-s-2, 0.5rem) * -1);
+  border: 0;
+  border-radius: var(--a-r-ctl, 12px);
+  background: transparent;
+  color: rgb(var(--ink-soft));
+  font: inherit;
+  font-size: var(--a-fs-meta, 0.875rem);
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .back:hover {
+    background: var(--a-hover);
+    color: rgb(var(--ink));
+  }
+}
+
+.backLabel {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.row {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--a-s-3, 0.75rem);
+}
+
+.text {
+  min-inline-size: 0;
+  flex: 1 1 auto;
+}
+
+.title {
+  margin: 0;
+}
+
+.status {
+  margin-block-start: var(--a-s-2, 0.5rem);
+  font-size: var(--a-fs-meta, 0.875rem);
+  color: rgb(var(--ink-soft));
+}
+
+.descRow {
+  display: flex;
+  align-items: center;
+  gap: var(--a-s-1, 0.25rem);
+  margin-block-start: var(--a-s-1, 0.25rem);
+  min-inline-size: 0;
+}
+
+/* One line on a phone, ending in an ellipsis; the full sentence is on `title`. */
+.desc {
+  margin: 0;
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: rgb(var(--ink-soft));
+}
+
+.actions {
+  flex-wrap: wrap;
+  align-self: flex-start;
+  max-inline-size: 100%;
+}
+
+@media (min-width: 640px) {
+  .row {
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--a-s-4, 1rem);
+  }
+
+  .desc {
+    max-inline-size: 68ch;
+    white-space: normal;
+  }
+
+  .actions {
+    flex: none;
+    align-self: flex-start;
+  }
+}

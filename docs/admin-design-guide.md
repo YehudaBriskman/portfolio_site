@@ -21,19 +21,19 @@ Reading order for a reviewer: **Hierarchy** (A1 to A10), **Lists and tables** (A
 **A1. One primary, one secondary, then More.** MUST draw at most one primary action per surface (page, sheet, toolbar, row group) and at most one secondary; everything else goes in a "More" menu. Destructive actions are never the primary and are never red-filled until they are the confirm step.
 *Why:* a second equal button makes the person decide before they act (the Campaigns page opens with "New campaign", "Compile issue" and "Pause all sending" at one weight; Audience has "Add contact", "Import CSV", "Export CSV" in one row). Primer allows one save button per form; Carbon caps a toolbar at 5 and sends the rest to an overflow.
 *Check:* per screen, count `.a-btn--primary` / `IconButton tone="primary"` in the DOM that are visible without opening a menu: 1. Count visible text buttons in the header and toolbar: at most 3 including More.
-*Kit:* `ControlBar` (`priority`, `max`), `CreateMenu`, `IconButton tone`. A `PageHeader` that takes `primary`, `secondary`, `more` props is MISSING (see the kit gaps in the gap audit).
+*Kit:* `ControlBar` (`priority`, `max`), `CreateMenu`, `IconButton tone`. `PageHeader` (`primary`, `secondary`, `more`) in `components/ui/PageHeader` (#834).
 *Source:* https://primer.style/product/ui-patterns/saving/ ; https://carbondesignsystem.com/components/data-table/usage/ ; https://www.nngroup.com/articles/progressive-disclosure/
 
 **A2. A page has one title, in one place, and says its job in one line.** MUST render the page title once (the `h1`); the top bar shows the section or a back path, never the same words. A description is at most one sentence (one line on a phone); anything longer is behind an info control. A hub with tabs (Marketing) has one `h1` for the hub and the active tab's name is the tab, not a second `h1` and a second paragraph.
 *Why:* the Marketing hub today draws "Marketing", a tab strip, then "Audience" and a second paragraph that restates the first; the editor draws the post title in the breadcrumb and the `h1`. Duplicate headings make people compare.
 *Check:* per route, the text of `h1` does not equal the last breadcrumb or top-bar title, and there is exactly one `h1`; description length under 120 characters.
-*Kit:* `PageHeader` in `components/admin/ui.tsx` exists (title, description, actions) but is not in the `ui/` kit and has no `primary`/`more` slots. Promote it (workstream W2).
+*Kit:* `PageHeader` in `components/ui/PageHeader` (#834); `components/admin/ui.tsx` re-exports it until the screens move.
 *Source:* https://www.nngroup.com/articles/visual-hierarchy-ux-definition/ *(lead; the guide's principle 4 cites NN/g duplicates)* ; Apple HIG Layout *(lead)*
 
 **A3. Hierarchy is fill and a bar, not bold and a ring.** MUST mark "current" (nav row, active tab, selected record) with a soft fill plus a 2 to 4px bar on the inline-start edge. NEVER use bold plus a ring plus a coloured border together. Text uses two weights in a body (400 and 500; 600 for headings and the one value that matters); every sidebar row, tab and chip shares one weight; a state change never changes the weight (it moves the layout).
 *Why:* size, weight and colour rank things; use at most three contrast treatments and two large elements (NN/g). Mixed weights read as a mistake.
 *Check:* `admin-sidebar.mjs` already holds this for the sidebar (one weight, 2-4px bar, no ring). Extend it to tabs and chips: `font-weight` of siblings in one group is identical in every state.
-*Kit:* `SidebarGroup`, `SegmentedControl`, `Chip`. The marketing tab strip and the editor language tabs are hand-rolled and use bold plus underline plus ring: MISSING a shared `Tabs`.
+*Kit:* `SidebarGroup`, `SegmentedControl`, `Chip`. `Tabs` in `components/ui/Tabs` (#834) is the one strip; the marketing tab strip and the editor language tabs are hand-rolled (bold plus underline plus ring) until Round 2 moves them.
 *Source:* https://www.nngroup.com/articles/visual-hierarchy-ux-definition/ *(lead)* ; Refactoring UI, "hierarchy" chapter *(lead; book, not fetched)*
 
 **A4. Leading edge first; importance falls from the top and the inline-start.** MUST put the identity first and the action last in a row; the order mirrors in RTL with logical properties only (no `left`/`right`).
@@ -151,7 +151,7 @@ Reading order for a reviewer: **Hierarchy** (A1 to A10), **Lists and tables** (A
 **A22. Tabs are peers of one object; segmented is a view mode; the sidebar is the only place for sections.** MUST: tabs switch between parts of one record or hub; a segmented control switches the *view of the same data* (sort, language, preview) and has at most 4 options; a section that is in the sidebar is not also a tab strip on the page (Marketing's Inbox, Audience, Campaigns, Library and Settings are in both: choose one). Tabs are not for steps and never hold a primary action that changes with the tab unless the header does.
 *Why:* two navigations for the same thing is the "one place per thing" complaint; tab and sidebar duplicates double the targets and split the memory of where you are.
 *Check:* a route's sidebar leaf labels and its tab labels have an empty intersection.
-*Kit:* `SegmentedControl`, `SidebarGroup`; `Tabs` MISSING.
+*Kit:* `SegmentedControl`, `SidebarGroup`, `Tabs` (#834).
 *Source:* https://www.nngroup.com/articles/progressive-disclosure/ ; Apple HIG sidebars *(lead: one primary navigation pattern per width class)*
 
 ### Forms and feedback
@@ -177,13 +177,13 @@ Reading order for a reviewer: **Hierarchy** (A1 to A10), **Lists and tables** (A
 **A26. Undo beats confirm; when confirming, name the thing and the outcome.** MUST: a reversible action (move to drafts, archive, remove from a list, mark done) runs at once and shows an Undo toast of at least 8 seconds; a confirm exists only for what Undo cannot reverse (send, publish, permanent delete, revoke access) and its buttons are the outcome ("Delete 3 posts" / "Keep"), with the object and count in the text; the default focus is the safe button; the heaviest friction (typing a word) is reserved for rare, dangerous actions.
 *Why:* NN/g confirmation dialogs: prefer Undo, confirm only serious consequences, outcome labels, no default "Yes".
 *Check:* no `window.confirm`; every dialog's primary button text is not in {OK, Yes, Confirm}.
-*Kit:* `toast.undoable`, `useUndoable`, `BottomSheet`; a `ConfirmDialog` that enforces the wording is MISSING.
+*Kit:* `toast.undoable`, `useUndoable`, `BottomSheet`; `ConfirmDialog` (#834) enforces the wording.
 *Source:* https://www.nngroup.com/articles/confirmation-dialog/
 
 **A27. Feedback goes to the channel that fits its life.** MUST: *a toast* for the transient result of an action the person just did (saved, copied, sent, failed with Retry), once, polite; *inline* for what must be fixed or stays true (field error, a campaign that is paused, a draft waiting); *a banner* for a page-level state that outlasts the visit; *a dialog* only for a decision. A toast with an action stays at least 12 seconds, pauses on hover, focus and a hidden tab. NEVER toast a validation error or a thing that is still true after it vanishes.
 *Why:* §3.3; Primer prefers inline messages over toasts for saves; WCAG 2.2.1.
 *Check:* the toast host is mounted once; toast text never contains the word "must".
-*Kit:* `@/lib/toast`, `ToastHost`; `Banner` (inline, page-level, with action and dismiss memory) is MISSING.
+*Kit:* `@/lib/toast`, `ToastHost`; `Banner` (#834: inline, page-level, one action, remembered dismiss).
 *Source:* https://primer.style/product/ui-patterns/saving/ ; §3.3
 
 **A28. Optimistic where it can be undone; honest progress where it cannot; a long job is a row, not a spinner.** MUST: a reversible change appears at once and rolls back with a message on failure; a job over about 10 seconds (send, import, compile, media upload) has a progress bar or step state, can be left and found again (a "Sending 83 of 120" row), says what is done when it ends, and has Cancel where cancelling is safe. Under about 1 second, show nothing; 1 to 10 seconds, a skeleton or a local spinner.
@@ -454,6 +454,17 @@ Icon controls come from one kit in `components/ui/`; do not add another `.a-btn`
 | `StatChip` | `@/components/ui/StatChip` | glyph + number, the word sr-only | a number that needs its label drawn |
 
 Guard: `controlKit.test.tsx` fails on an `<IconButton>` without `label`. Existing screens migrate in later PRs.
+
+#### Page kit (#834)
+
+The page-level pieces of the admin, in `components/ui/`. Like the control kit they own no words: every label is a prop.
+
+| Component | Import | Use it for | Do not use it for |
+|---|---|---|---|
+| `PageHeader` (#834) | `@/components/ui/PageHeader` | the one `h1` of a page with `back`, a one-line `description` (long help in `info`, behind an info button), one `status` line, and the actions as `primary` (drawn, filled), `secondary` (drawn) and `more` (behind "..."): at most 3 buttons visible (A1, A2). Actions go through `ControlBar` (one tab stop, arrows mirror in RTL). Phone: title, then actions under it; from 640px they share the line. The legacy `actions` / `meta` props remain for screens not yet moved | a second heading, a status pill row, destructive actions as primary; `components/admin/ui.tsx` only re-exports it |
+| `Tabs`, `TabPanel` (#834) | `@/components/ui/Tabs` | peers of one record or hub (A22): `role=tablist`, one tab stop, arrows (mirrored in RTL), Home / End, activation on focus; current = soft fill plus a 2px bar, one weight (A3); a count and a glyph; a strip wider than its row scrolls under an edge fade and a label ends in an ellipsis. `panels` + `TabPanel` link the panel with `aria-controls`; leave `panels` off for route tabs | a section that is already a sidebar leaf; steps; a view mode of the same data (use `SegmentedControl`) |
+| `Banner` (#834) | `@/components/ui/Banner` | a page-level state that outlasts the visit (A27): `info` / `warning` (polite status) and `danger` (alert), a tone glyph (never colour alone), a bar on the inline-start edge, at most one `action`, `onDismiss` and a `dismissKey` remembered in `localStorage` (try/catch) | the transient result of an action (a toast); a field error (inline); a decision (a dialog) |
+| `ConfirmDialog`, `isOutcomeWording` (#834) | `@/components/ui/ConfirmDialog` | what Undo cannot reverse (A26): a native modal `alertdialog` titled by what will happen, text with the object and count, an outcome button ("Delete 3 posts") and a safe one ("Keep"); default focus on the safe button; Escape, backdrop and Cancel keep; focus returns to the opener; `busy` freezes it. `tone="danger"` is the only red fill. A development console error fires for OK / Yes / Confirm and "Are you sure" | anything reversible (run it, show an Undo toast); `window.confirm` |
 
 ### 3.2 Planned (phone series)
 
