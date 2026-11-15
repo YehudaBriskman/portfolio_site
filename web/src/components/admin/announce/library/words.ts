@@ -108,6 +108,9 @@ export const useLibraryWords = defineWords(
     filterKind: "Snippet type",
     nothingMatches: "Nothing matches these filters.",
     visitorMeta: "Public site, saved on its own",
+    actionsLabel: "Library actions",
+    actionsFor: (name: string) => `Actions for ${name}`,
+    more: "More",
   },
   {
     tab: "ספרייה",
@@ -214,5 +217,8 @@ export const useLibraryWords = defineWords(
     filterKind: "סוג קטע",
     nothingMatches: "שום דבר לא מתאים למסננים האלה.",
     visitorMeta: "האתר הציבורי, נשמר בנפרד",
+    actionsLabel: "פעולות הספרייה",
+    actionsFor: (name: string) => `פעולות עבור ${name}`,
+    more: "עוד",
   },
 );

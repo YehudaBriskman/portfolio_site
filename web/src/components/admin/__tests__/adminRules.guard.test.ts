@@ -124,7 +124,7 @@ describe("admin rules: the baseline only shrinks", () => {
   });
 
   /* The ceiling per rule is today's count. Fix an offender: delete its line AND lower the number. Never raise one. */
-  const CEILING: Record<string, number> = { sticky: 1, h1: 5, "dup-head": 0, "dup-text": 1, overflow: 0, gap: 30, overlap: 0, target: 0, "icon-label": 0, destructive: 0, hebrew: 49, motion: 0 };
+  const CEILING: Record<string, number> = { sticky: 1, h1: 5, "dup-head": 0, "dup-text": 0, overflow: 0, gap: 27, overlap: 0, target: 0, "icon-label": 0, destructive: 0, hebrew: 49, motion: 0 };
   const lines: string[] = JSON.parse(readFileSync(resolve(__dirname, "../../../../scripts/a11y/admin-rules-baseline.json"), "utf8"));
 
   it("is sorted, unique and every line names a known rule and a route", () => {

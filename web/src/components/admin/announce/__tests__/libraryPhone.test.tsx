@@ -325,13 +325,14 @@ describe("Library on a phone", () => {
 });
 
 describe("Library at 600px and over", () => {
-  it("is the desktop layout: no sheet, no RecordRows, the inline editor opens in the page", async () => {
+  it("is the desktop layout: tables, no RecordRows, the editor opens in the side panel (no modal sheet)", async () => {
     phone(false);
     render(<LibraryPanel />);
     await screen.findByRole("button", { name: "Edit Launch" });
     expect(rows()).toHaveLength(0);
     fireEvent.click(screen.getByRole("button", { name: "Edit Launch" }));
-    expect(await screen.findByRole("region", { name: /^Editing/ })).toBeTruthy();
-    expect(document.querySelector("dialog")).toBeNull();
+    expect(await screen.findByRole("heading", { name: "Editing Launch" })).toBeTruthy();
+    expect(document.querySelector("[data-side-panel]")).not.toBeNull();
+    expect(document.querySelector("dialog[open]")).toBeNull();
   });
 });

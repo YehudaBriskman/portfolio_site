@@ -102,11 +102,7 @@ describe("toggle buttons are DisclosureButtons", () => {
     exercise(screen.getByRole("button", { name: editorWords.showChanges }));
   });
 
-  it("row 23: template library Open", async () => {
-    render(<LibraryPanel />);
-    const btn = await screen.findByRole("button", { name: /edit launch/i });
-    exercise(btn);
-  });
+  /* row 23 (template library Open) is no longer a toggle: since S4 it is an Edit action that opens a side panel. */
 
   it("row 24: Instagram folded text", () => {
     render(<InstagramPreview text={long} />);
