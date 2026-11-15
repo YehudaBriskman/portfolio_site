@@ -2895,7 +2895,7 @@
     .a-crumbs li + li::before { display: none; }
   }
 
-  .a-top-end { display: flex; flex: none; align-items: center; gap: .25rem; margin-inline-start: auto; }
+  .a-top-end { display: flex; flex: none; align-items: center; gap: .625rem; margin-inline-start: auto; }
   /* The phone bar's buttons carry their word beside the glyph. */
   .a-top-word { gap: .375rem; padding-inline: .5rem .75rem; }
   /* The one place the owner is named: an initial in a circle, the button of the account menu. */
