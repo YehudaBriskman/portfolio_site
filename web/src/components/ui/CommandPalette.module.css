@@ -1,0 +1,196 @@
+/*
+ * The command palette: a modal <dialog> near the top of the screen. It owns no
+ * motion: it enters on the admin's one dialog transition (index.css, a
+ * `@starting-style` fade and settle) and leaves at once, so it cannot play two
+ * animations (M4). Logical edges only; a label ends in an ellipsis and never
+ * breaks mid-word (A8); a row is 44px on a finger (A9).
+ */
+dialog.dialog {
+  inset-block-start: 12dvh;
+  inset-block-end: auto;
+  margin-block: 0;
+  margin-inline: auto;
+  box-sizing: border-box;
+  inline-size: min(36rem, calc(100vw - 1rem));
+  max-inline-size: none;
+  max-block-size: min(32rem, 76dvh);
+  padding: 0;
+  border: 1px solid var(--a-line, rgb(var(--rule-firm) / 0.5));
+  border-radius: var(--a-r-box, 16px);
+  background: rgb(var(--paper));
+  color: rgb(var(--ink));
+  box-shadow: var(--a-shadow-3, 0 12px 32px -8px rgb(var(--shade) / 0.22));
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+
+dialog.dialog::backdrop {
+  background: rgb(0 0 0 / 0.4);
+}
+
+.box {
+  display: flex;
+  flex-direction: column;
+  max-block-size: inherit;
+  min-block-size: 0;
+}
+
+.search {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-inline: 1rem 0.25rem;
+  border-block-end: 1px solid var(--a-line-soft, rgb(var(--rule-firm) / 0.3));
+}
+
+.searchGlyph {
+  flex: none;
+  color: rgb(var(--ink-soft));
+}
+
+.input {
+  flex: 1;
+  min-inline-size: 0;
+  min-block-size: 3.25rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 1rem;
+  text-overflow: ellipsis;
+}
+.input::placeholder {
+  color: rgb(var(--ink-soft));
+  opacity: 1;
+}
+.input:focus {
+  outline: none;
+}
+/* The ring is the field's row, not the bare input. */
+.search:focus-within {
+  box-shadow: inset 0 -2px 0 rgb(var(--signal));
+}
+
+.close {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-inline-size: 2.75rem;
+  min-block-size: 2.75rem;
+  padding: 0;
+  border: 0;
+  border-radius: var(--a-r-ctl, 12px);
+  background: transparent;
+  color: rgb(var(--ink));
+  cursor: pointer;
+}
+.close:focus-visible {
+  outline: 2px solid rgb(var(--signal));
+  outline-offset: -2px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .close:hover {
+    background: var(--a-hover, rgb(var(--ink) / 0.05));
+  }
+}
+
+.sr {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.empty {
+  margin: 0;
+  padding: 1.5rem 1rem;
+  color: rgb(var(--ink-soft));
+  font-size: 0.9375rem;
+  text-align: center;
+}
+
+.list {
+  flex: 1;
+  min-block-size: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0.5rem;
+}
+
+.group + .group {
+  margin-block-start: 0.25rem;
+}
+
+.heading {
+  padding: 0.5rem 0.75rem 0.25rem;
+  color: rgb(var(--ink-soft));
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-block-size: 2.75rem;
+  padding-inline: 0.75rem;
+  border-radius: var(--a-r-ctl, 12px);
+  cursor: pointer;
+  user-select: none;
+}
+.option[data-active] {
+  background: var(--a-press, rgb(var(--ink) / 0.09));
+}
+/* The active row is also marked by shape, not only the tint: a bar on its leading edge. */
+.option[data-active] {
+  box-shadow: inset 3px 0 0 rgb(var(--signal));
+}
+:global([dir='rtl']) .option[data-active] {
+  box-shadow: inset -3px 0 0 rgb(var(--signal));
+}
+
+.glyph {
+  flex: none;
+  display: inline-flex;
+  inline-size: 1.25rem;
+  block-size: 1.25rem;
+  color: rgb(var(--ink-soft));
+}
+.glyph > svg {
+  inline-size: 100%;
+  block-size: 100%;
+}
+
+.label {
+  flex: 0 1 auto;
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.9375rem;
+}
+
+.hint {
+  flex: 1 1 0;
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: rgb(var(--ink-soft));
+  font-size: 0.875rem;
+  text-align: end;
+}
+
+@media (forced-colors: active) {
+  .option[data-active] {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
+}

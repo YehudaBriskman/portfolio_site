@@ -108,6 +108,55 @@
   cursor: default;
 }
 
+/* Press (M8): a tint on the first frame, no tween; a finger also sinks to the
+   shared scale. It eases back on release through the base transition. */
+.btn:active:not(:disabled):not([aria-busy='true']) {
+  background: var(--a-press, rgb(var(--ink) / 0.09));
+  transition: none;
+}
+.primary:active:not(:disabled):not([aria-busy='true']) {
+  background: rgb(var(--signal));
+  filter: brightness(0.92);
+}
+@media (pointer: coarse) {
+  .btn:active:not(:disabled):not([aria-busy='true']) {
+    transform: scale(var(--a-press-scale, 0.98));
+  }
+}
+
+/* Busy (M10): the glyph's own slot turns, so the box and the label do not move.
+   The button stays focusable and named; presses are swallowed in the component. */
+.btn[aria-busy='true'] {
+  cursor: progress;
+}
+.spinner {
+  flex: none;
+  box-sizing: border-box;
+  inline-size: var(--ctl-icon);
+  block-size: var(--ctl-icon);
+  border: 2px solid currentColor;
+  border-inline-end-color: transparent;
+  border-radius: 50%;
+  opacity: 0.8;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .btn {
+    transition: background-color var(--a-dur-fast, var(--dur-micro)) ease, color var(--a-dur-fast, var(--dur-micro)) ease,
+      transform var(--a-dur-fast, var(--dur-micro)) var(--a-ease-out, ease);
+  }
+  .spinner {
+    animation: ib-spin calc(var(--a-dur-sheet) * 3) linear infinite;
+  }
+}
+:global(body.motion-paused) .spinner {
+  animation: none;
+}
+@keyframes ib-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .btn:focus-visible {
   outline: 2px solid rgb(var(--signal));
   outline-offset: 2px;

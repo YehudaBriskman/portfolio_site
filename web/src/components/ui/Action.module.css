@@ -62,7 +62,7 @@
 }
 
 .action:active {
-  transform: scale(0.97);
+  transform: scale(var(--a-press-scale, 0.98)); /* one press for every control (M8) */
 }
 
 .action:disabled,

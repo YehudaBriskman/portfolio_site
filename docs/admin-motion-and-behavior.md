@@ -26,7 +26,7 @@ Why these: NN/g puts simple feedback near 100ms, a modal entering at 200 to 300m
 *Source:* https://www.nngroup.com/articles/animation-duration/ ; https://atlassian.design/foundations/motion ; https://m3.material.io/styles/motion/easing-and-duration/tokens-specs *(lead: page is script-rendered, values from the published token set)*
 
 **M2. Enter decelerates, exit accelerates, and the exit is about 30 percent shorter.** MUST enter with `--a-ease-out` and leave with `--a-ease-in`; the leave is shorter than the arrive (180 in, about 120 out); a leaving element never delays the next step.
-*Why:* entrances slightly longer, exits shorter (NN/g); make exits faster than entrances and start motion at once (Atlassian). Exit tokens are not defined yet: add `--a-dur-exit` values as part of the first motion workstream (M-W1).
+*Why:* entrances slightly longer, exits shorter (NN/g); make exits faster than entrances and start motion at once (Atlassian). The exit tokens are `--a-dur-exit-fast` 90ms, `--a-dur-exit-base` 125ms, `--a-dur-exit-sheet` 195ms and `--a-ease-exit` (= `--a-ease-in`); `SidePanel` uses them, the other surfaces move to them in round 2 (#832).
 *Check:* for every `[data-state=closed]` rule, `transition-duration` is less than its open counterpart.
 *Kit:* `Presence`, `ListPresence`, `SheetPresence`, `BottomSheet`.
 *Source:* https://www.nngroup.com/articles/animation-duration/ ; https://atlassian.design/foundations/motion
@@ -64,7 +64,7 @@ Why these: NN/g puts simple feedback near 100ms, a modal entering at 200 to 300m
 **M8. Press, hover and focus feedback: instant, small, the same everywhere.** MUST: press is `scale(.97 to .98)` at 100 to 160ms on touch-first controls, a background step on desktop; hover is a background step only (no movement); focus ring appears at once with no delay and is not animated away. All controls in a group share one feedback; a button that gains a spinner keeps its width (no reflow).
 *Why:* feels instant under about 100ms (NN/g); "inconsistent weights and sizes" extends to feedback.
 *Check:* computed `transform` on `:active` is the same for every `IconButton`, `Chip`, `.a-btn`.
-*Kit:* `IconButton.module.css`, `Chip.module.css`, `Action.module.css` (three copies today; unify through a shared token `--press-scale`).
+*Kit:* `IconButton.module.css`, `Chip.module.css`, `Action.module.css` (three copies today; one shared token, `--a-press-scale` (.98), now read by `IconButton` (a finger only; a desktop pointer gets the tint), `Action` and `.a-btn`; `Chip.module.css` joins when W2 next touches it).
 *Source:* https://www.nngroup.com/articles/animation-duration/
 
 **M9. Shared-element and scroll-linked motion only where it saves a thought.** SHOULD use a shared-element transition (a list row to its detail, a thumbnail to its viewer) on a phone where it keeps the person oriented; MUST NOT drive layout from scroll (no sticky shrinking header with per-frame JS). A scroll-linked hide and reveal is allowed for a *floating* control only (the back circle, the Dock): it hides on scroll toward the end of the page after 8px of travel, returns on scroll back or at the top, and never hides while it holds focus. It uses `transform`, runs on one passive listener or CSS scroll-timeline, and never fights `position: sticky` bars.
@@ -78,7 +78,7 @@ Why these: NN/g puts simple feedback near 100ms, a modal entering at 200 to 300m
 **M10. The interface answers within 100ms and says what it is doing.** MUST: every control reacts to press in the same frame; an action that takes over about 1 second shows a local indicator on the control (not the page); over about 10 seconds a progress bar with what is done; the page never blocks for a background job (A28). Optimistic UI only for reversible change, with rollback and a message.
 *Why:* NN/g skeleton and loading thresholds.
 *Check:* `page.route` delays 1500ms: the pressed button shows its busy state in under 200ms; a 12s job shows a progress element.
-*Kit:* `IconButton` (`busy` state is MISSING; today pages draw their own text), `toast.promise`, `MiniBar`.
+*Kit:* `IconButton` (`busy`: spinner in the glyph's slot, `aria-busy`, presses ignored, no size change; pages stop drawing their own "Saving" text as they are touched), `toast.promise`, `MiniBar`.
 *Source:* https://www.nngroup.com/articles/skeleton-screens/
 
 **M11. A list keeps your place.** MUST: after Back the scroll position, the filter, the sort and the opened row are as they were; a row that changes does not jump the list; new rows from a poll arrive behind a "3 new" control, never pushing what you are reading; focus after a delete moves to the next row.
