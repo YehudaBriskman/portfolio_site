@@ -212,7 +212,7 @@ export default function AdminTranslations() {
       header: t.colItem,
       primary: true,
       cell: ({ item, units }) => (
-        <Link to={editHref(item, units[0])} className="a-row-title">
+        <Link to={editHref(item, units[0])} className="a-row-title inline-block min-h-6 leading-6">
           {item.title}
         </Link>
       ),
