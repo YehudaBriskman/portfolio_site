@@ -228,7 +228,7 @@ export default function AudiencePhone() {
         <SelectionHeader selection={selection} total={visible.length} />
       ) : (
         <div className="flex items-stretch gap-2">
-          <input type="search" className="a-input min-h-[44px] min-w-0 flex-1 !ps-3 text-base text-ellipsis" dir="auto" aria-label={w.searchLabel} placeholder={w.searchPlaceholder} value={q} onChange={(e) => setQ(e.target.value)} />
+          <input type="search" className="a-input min-h-[44px] min-w-0 flex-1 !ps-3 text-base text-ellipsis" dir="auto" aria-label={w.searchLabel} placeholder={w.searchPlaceholder} title={w.searchPlaceholder} value={q} onChange={(e) => setQ(e.target.value)} />
           {/* Filters shares the search row (it has no chips of its own to fill a line); a filter set in the sheet shows as a chip that scrolls within its half. */}
           <div className="flex min-w-0 max-w-[50%] shrink-0 [&>[role=toolbar]>div:empty]:hidden [&>[role=toolbar]]:min-w-0">
             <FilterChips defs={defs} value={filters} onChange={setFilters} onOpenSheet={() => setSheet(true)} resultCount={visible.length} />

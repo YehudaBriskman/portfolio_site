@@ -5,7 +5,6 @@
  "gap|*|desktop|a._link \"Posts22\" ~ button._button._toggle \"Content\"",
  "gap|*|desktop|a._link \"Translations1212 public \" ~ button._button._toggle \"Site\"",
  "gap|*|phone|a.a-btn.a-btn-ghost \"Back\" ~ button.a-btn.a-btn-ghost \"Menu\"",
- "gap|/admin/marketing?tab=audience|phone|button._chip._filters \"Filters\" ~ button._row \"Open Ada Lovelace\"",
  "gap|/admin/marketing?tab=library|phone|button._row \"Edit Launch, LinkedIn\" ~ button.a-btn.a-btn-primary \"New template\"",
  "gap|/admin/marketing?tab=library|phone|button._row \"Edit Tags, Hashtags\" ~ button.a-btn \"New snippet\"",
  "gap|/admin/marketing?tab=settings|desktop|input ~ input",
@@ -115,7 +114,6 @@
  "hebrew|/admin/translations|reader",
  "overlap|/admin/media|phone|button._btn \"Select\" ~ button._chip \"Unused\"",
  "overlap|/admin/media|phone|button._btn \"Select\" ~ button._chip \"Videos\"",
- "sticky|/admin/marketing?tab=audience|desktop|table.a-table",
  "sticky|/admin/posts|desktop|table.a-table",
  "sticky|/admin/translations|desktop|table.a-table.a-table-fixed"
 ]
