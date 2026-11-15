@@ -1,9 +1,9 @@
 import {
-  Archive, ArrowRight, ArrowUpDown, AtSign, Ban, Bell, CalendarClock, Check, CheckCheck, ChevronDown, ChevronRight,
-  CircleCheck, CircleDashed, CircleDot, CircleHelp, CircleMinus, CircleX, Clock, Copy, Ellipsis, ExternalLink, Eye,
+  Archive, ArrowLeft, ArrowRight, ArrowUpDown, AtSign, Ban, Bell, BookOpen, CalendarClock, Check, CheckCheck, ChevronDown, ChevronRight,
+  CircleCheck, CircleDashed, CircleDot, CircleHelp, CircleMinus, CircleX, Clock, Copy, CornerUpLeft, Ellipsis, ExternalLink, Eye,
   EyeOff, FilterX, Film, FileText, FolderKanban, Gauge, GripVertical, History, Home, Hourglass, Image, Info, KeyRound,
   Languages, Link2, ListChecks, Loader, Mail, MailCheck, MailX, Megaphone, Pause, PenLine, Plug, Plus, Radio, RefreshCw,
-  Rocket, Search, Send, Shapes, ShieldBan, SlidersHorizontal, SquareCheckBig, Trash2, TriangleAlert, Undo2, Unlink,
+  Rocket, Search, Send, Shapes, Share2, ShieldBan, SlidersHorizontal, SquareCheckBig, Trash2, TriangleAlert, Undo2, Unlink,
   User, UserRound, Users, Wrench, X, type LucideIcon,
 } from "lucide-react";
 import { LinkedinGlyph, XGlyph, InstagramGlyph, type ChannelGlyph } from "@/components/ui/channelGlyphs";
@@ -109,6 +109,19 @@ export const ICON = {
   restore: History,
   close: X,
 } satisfies Record<string, IconSource>;
+
+/* Glyphs of the floating back control (ui/FloatingBack). Not concepts: each is
+   drawn next to a word the site already has (Home, Work, Blog, Share, the
+   parent's name), so none needs a word of its own in `i18n/mobile.ts`. */
+export const NAV_GLYPH = {
+  back: ArrowLeft,
+  parent: CornerUpLeft,
+  work: FolderKanban,
+  blog: BookOpen,
+  share: Share2,
+  home: Home,
+  more: ChevronDown,
+} satisfies Record<string, LucideIcon>;
 
 export type Concept = keyof typeof ICON;
 export const CONCEPTS = Object.keys(ICON) as Concept[];

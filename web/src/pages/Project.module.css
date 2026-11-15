@@ -517,18 +517,46 @@ a.listRow:hover .listTitle {
     mask-image: none;
   }
 
+  /* The header row is a grid, not a flex line, so it cannot collapse: three
+     named areas (tile | name | share), the middle one `minmax(0, 1fr)` so a
+     long or RTL title wraps inside it instead of pushing the share button out.
+     Inside the name cell the order is fixed: the title (it may take two or
+     more lines), then the status chip under its START edge, never beside it
+     and never overlapping. The chip's `margin-inline-start: auto` (the wide
+     header's) is cancelled here: in a column it threw the chip to the far
+     side of the cell. */
   .phoneTop {
-    display: flex;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas: "tile name share";
     align-items: center;
-    gap: 12px;
+    column-gap: 12px;
+    min-width: 0;
+  }
+  .phoneTile {
+    grid-area: tile;
+    display: flex;
   }
   .phoneName {
+    grid-area: name;
     display: flex;
     min-width: 0;
-    flex: 1;
     flex-direction: column;
     align-items: flex-start;
     gap: 6px;
+  }
+  .phoneName > [data-phone-pill] {
+    margin-inline-start: 0;
+    max-inline-size: 100%;
+  }
+  .phoneShare {
+    grid-area: share;
+    display: flex;
+    min-width: 0;
+    /* level with the title's first line (a 44px target on a 30px line), so it
+       never floats mid-column when the title wraps */
+    align-self: start;
+    margin-block-start: -7px;
   }
   .phoneTitle {
     margin: 0;

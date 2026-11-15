@@ -1,7 +1,7 @@
 .dock {
   position: fixed;
   inset-inline: 0;
-  inset-block-end: calc(env(safe-area-inset-bottom, 0px) + var(--dock-inset));
+  inset-block-end: var(--dock-bottom);
   z-index: 30;
   /* Shrink-wrap and centre, whichever way the page reads. */
   inline-size: max-content;

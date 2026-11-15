@@ -186,8 +186,13 @@ describe("Dock", () => {
     const d = screen.getByRole("group", { name: "Actions" });
     expect(d.className).toMatch(/dock/);
     const c = css("Dock.module.css");
-    expect(c).toContain("env(safe-area-inset-bottom");
+    /* one token, max(constant, safe area): never their sum (iOS Safari's collapsed
+       toolbar reports ~34px, a sum leaves a 46px gap under the pill) */
+    expect(c).toContain("var(--dock-bottom)");
+    expect(c).not.toMatch(/inset-block-end:[^;]*safe-area-inset-bottom/);
     expect(c).toContain("var(--dock-inset)");
+    const tokens = readFileSync(resolve(__dirname, "../../index.css"), "utf8");
+    expect(tokens).toMatch(/--dock-bottom:\s*max\(var\(--dock-inset\),\s*env\(safe-area-inset-bottom/);
     expect(c).toContain("var(--dock-shadow)");
   });
 });

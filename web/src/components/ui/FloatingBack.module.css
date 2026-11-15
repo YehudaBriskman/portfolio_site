@@ -1,0 +1,122 @@
+/*
+ * The floating back control. Phone only: it is mounted under
+ * usePublicPhone(), so none of this reaches 640px and up.
+ *
+ * Same box as the menu circle: `--float-h` tall, `--float-top` from the top
+ * (safe area included), `--float-z`, one hairline, one shadow. It sits at the
+ * inline-start edge and stops short of the circle at the inline-end
+ * (12 + 46 + 12 of edge and gap), so the two can never overlap.
+ * Inside, the link is the 44px target and the chevron is its own 44px target.
+ */
+.spacer {
+  min-height: var(--float-h);
+  margin-block-end: var(--back-row-gap, 12px);
+}
+
+.float {
+  position: fixed;
+  inset-block-start: var(--float-top);
+  inset-inline-start: max(12px, env(safe-area-inset-left, 0px));
+  z-index: var(--float-z);
+  display: flex;
+  align-items: stretch;
+  box-sizing: border-box;
+  height: var(--float-h);
+  max-inline-size: calc(100% - 2 * max(12px, env(safe-area-inset-left, 0px)) - var(--float-h) - 12px);
+  border: 1px solid rgb(var(--rule-firm));
+  border-radius: 999px;
+  background: rgb(var(--paper));
+  box-shadow: var(--float-shadow);
+  color: rgb(var(--ink));
+  font-family: var(--font-text);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+:global(html[dir="rtl"]) .float {
+  inset-inline-start: max(12px, env(safe-area-inset-right, 0px));
+}
+
+.link {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 1 auto;
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+  border-radius: 999px;
+}
+
+.arrow {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 40px;
+  height: 100%;
+}
+
+/* An arrow that points back points the other way in Hebrew. */
+:global(html[dir="rtl"]) .glyph {
+  transform: scaleX(-1);
+}
+
+/* Equal padding both sides, whichever way the label reads; it shrinks (min 0)
+   before it pushes the chevron out, and ends in an ellipsis. */
+.name {
+  display: block;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: min(60vw, 24ch);
+  padding-inline: 2px 10px;
+  overflow: hidden;
+  text-align: start;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.more {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 44px;
+  padding: 0;
+  border: 0;
+  border-inline-start: 1px solid rgb(var(--rule-firm) / 0.6);
+  border-start-end-radius: 999px;
+  border-end-end-radius: 999px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.link:focus-visible,
+.more:focus-visible {
+  outline: 2px solid rgb(var(--ink));
+  outline-offset: -4px;
+  border-radius: 999px;
+}
+
+.more[data-state="open"] {
+  background: rgb(var(--ink) / 0.08);
+}
+
+.menu {
+  z-index: calc(var(--float-z) + 2);
+  min-inline-size: 11rem;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  min-height: 44px;
+  font-size: 0.9375rem;
+}
+
+.item svg {
+  flex: none;
+  width: 18px;
+  height: 18px;
+}
