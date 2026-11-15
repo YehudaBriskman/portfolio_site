@@ -599,6 +599,11 @@ a.legendItem[aria-current="true"] {
   :global([data-phone-page="blog"]) .actions {
     grid-column: 2;
   }
+  /* date and read time are plain text here and the drawn dot is off on the
+     phone (Dashboard.module.css), so the gap is the separator */
+  :global([data-phone-page="blog"]) .meta {
+    column-gap: 0.75rem;
+  }
   :global([data-phone-page="blog"]) .excerpt {
     display: -webkit-box;
     white-space: normal;

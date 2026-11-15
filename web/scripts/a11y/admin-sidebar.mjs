@@ -171,10 +171,17 @@ for (const w of WIDTHS) for (const lang of LANGS) for (const theme of THEMES) {
     /* ---- collapse by the button */
     await page.getByRole("button", { name: /^(Collapse sidebar|Expand sidebar|כווץ סרגל צד|הרחב סרגל צד)/ }).last().click({ force: true });
     await page.waitForFunction(() => document.querySelector(".a-app")?.getAttribute("data-side") === "rail", null, { polling: 500, timeout: 20000 });
+    /* data-side flips at once but the width eases to 4rem; under load a fixed wait measured it mid-way (240px). Wait for the width, not the clock. */
+    await page.waitForFunction(() => { const w = document.querySelector('.a-side')?.getBoundingClientRect().width ?? 0; return w >= 63 && w <= 66; }, null, { polling: 500, timeout: 30000 }).catch(() => {});
     await page.waitForTimeout(300);
     const rail = await page.evaluate(sidebar);
     n++;
-    const sideW = await page.evaluate(() => Math.round(document.querySelector(".a-side").getBoundingClientRect().width));
+    let sideW = 0;
+    for (let k = 0; k < 20; k++) {
+      sideW = await page.evaluate(() => Math.round(document.querySelector(".a-side").getBoundingClientRect().width));
+      if (sideW >= 63 && sideW <= 66) break;
+      await page.waitForTimeout(500);
+    }
     if (sideW < 63 || sideW > 66) fails.push(at(`rail is ${sideW}px wide, not 4rem (64)`));
     if (rail.overflow) fails.push(at(`rail: page scrolls sideways (${rail.overflow})`));
     for (const r of rail.rows) {

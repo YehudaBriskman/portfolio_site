@@ -1348,11 +1348,6 @@
    * 125 was being used to buy.
    */
   .display {
-    font-family: var(--font-display);
-    font-weight: var(--weight-display);
-    letter-spacing: var(--track-display);
-    line-height: 0.86;
-    text-transform: uppercase;
     text-wrap: balance;
   }
   /* The ramp's steps, applied where a display line is set below the register
@@ -1362,18 +1357,17 @@
      ramp note in the token block. */
   .display-md { letter-spacing: var(--track-head); }
   .display-sm { letter-spacing: var(--track-sub); }
-  /* A phone sets display headings in the UI family (#795); the hero name and
-     the wordmark are not `.display` and keep Audiowide at every width. */
-  @media (max-width: 639px) {
-    .display,
-    .display-md,
-    .display-sm {
-      font-family: var(--font-ui);
-      font-weight: var(--weight-ui);
-      letter-spacing: var(--track-ui);
-      line-height: 1.15;
-      text-transform: none;
-    }
+  /* Display headings are the UI family at every width (#795, widened in the
+     1.7.2 diagnosis pass); Audiowide is the hero name alone
+     (Hero.module.css `.composition .plate h1`), which is not `.display`. */
+  .display,
+  .display-md,
+  .display-sm {
+    font-family: var(--font-ui);
+    font-weight: var(--weight-ui);
+    letter-spacing: var(--track-ui);
+    line-height: 1.15;
+    text-transform: none;
   }
   /*
    * The heading step below the section register, and it is not display type.

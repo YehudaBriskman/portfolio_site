@@ -100,6 +100,8 @@ export default function PhoneBrowse({
   const fw = useFiltersWords();
   const [openKey, setOpenKey] = useState<string | null>(null);
   const [scope, setScope] = useState<HTMLElement | null>(null);
+  /* The sheet (not the viewport) is the room a popover has: it flips and shrinks to fit inside it, so the top of the list is never cut. */
+  const sheetBody = scope?.closest<HTMLElement>("dialog") ?? null;
   const offered = facets.filter((f) => f.options.length > 0);
   const on = activeCount(selection);
   const query = withQuery
@@ -190,7 +192,9 @@ export default function PhoneBrowse({
                       container={scope}
                       align="start"
                       sideOffset={6}
+                      collisionBoundary={sheetBody ? [sheetBody] : undefined}
                       collisionPadding={8}
+                      avoidCollisions
                       className={styles.popover}
                       onEscapeKeyDown={(e) => {
                         /* One Escape, one layer: the menu's own handler skips a

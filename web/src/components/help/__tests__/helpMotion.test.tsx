@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { Link, MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { useHelpMotion, LEAVE_MS } from "../useHelpMotion";
+import { useHelpMotion, LEAVE_MS, ENTER_MS } from "../useHelpMotion";
 
 /*
  * The phone's push and pop between the help index and a topic. Asserted on
@@ -61,6 +61,14 @@ const mount = (at: string) =>
     </MemoryRouter>,
   );
 
+/* jsdom has no AnimationEvent, so React listens for the prefixed name there; send both (as EntryShutter.test does). */
+function animationEnd(el: Element) {
+  act(() => {
+    el.dispatchEvent(new Event("animationend", { bubbles: true }));
+    el.dispatchEvent(new Event("webkitAnimationEnd", { bubbles: true }));
+  });
+}
+
 const where = () => screen.getByTestId("where").textContent;
 const motion = () => screen.getByTestId("page").getAttribute("data-help-motion");
 
@@ -112,6 +120,29 @@ describe("help push and pop on a phone", () => {
       reduced = false;
       document.body.classList.remove("motion-paused");
     }
+  });
+
+  it("clears the enter state when the animation ends, or after a timer if no event comes", () => {
+    mount("/help");
+    fireEvent.click(screen.getByText("look"));
+    act(() => void vi.advanceTimersByTime(LEAVE_MS));
+    expect(motion()).toBe("enter-push");
+    animationEnd(screen.getByTestId("page"));
+    expect(motion()).toBeNull();
+    /* and with no animationend at all (cut short, hidden tab), the fallback does it */
+    fireEvent.click(screen.getByText("keyboard"));
+    act(() => void vi.advanceTimersByTime(LEAVE_MS));
+    expect(motion()).toBe("enter-push");
+    act(() => void vi.advanceTimersByTime(ENTER_MS));
+    expect(motion()).toBeNull();
+  });
+
+  it("an animationend from a child does not clear it", () => {
+    mount("/help");
+    fireEvent.click(screen.getByText("look"));
+    act(() => void vi.advanceTimersByTime(LEAVE_MS));
+    animationEnd(screen.getByText("up"));
+    expect(motion()).toBe("enter-push");
   });
 
   it("leaves a modified click to the browser", () => {

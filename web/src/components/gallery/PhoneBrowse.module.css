@@ -58,7 +58,8 @@
 .popover {
   z-index: 3;
   inline-size: min(18rem, calc(100vw - 4rem));
-  max-block-size: min(18rem, 50dvh);
+  /* max-block-size replaces .pop-panel's max-height, so the room Radix measured inside the sheet is restated here */
+  max-block-size: min(18rem, 50dvh, var(--radix-popper-available-height, 18rem));
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 4px;

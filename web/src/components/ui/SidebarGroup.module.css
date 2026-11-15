@@ -237,9 +237,6 @@
   list-style: none;
 }
 
-.flyoutList [data-depth="1"] {
-  margin-inline-start: 1.75rem;
-}
 
 @media (prefers-reduced-motion: no-preference) {
   .link,

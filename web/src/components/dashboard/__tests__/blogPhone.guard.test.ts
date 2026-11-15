@@ -28,3 +28,13 @@ describe.each(["Dashboard.module.css", "History.module.css"])("%s: the blog's ph
     expect(block).not.toMatch(/\b(margin|padding|border)-(left|right)\b|\b(left|right)\s*:/);
   });
 });
+
+describe("area timeline rows: date and read time never touch", () => {
+  it("the phone drops the drawn dot, so History's meta line carries a column gap", () => {
+    const dash = read("Dashboard.module.css");
+    const css = read("History.module.css");
+    expect(dash).toMatch(/\[data-phone-page="blog"\]\s*\.metaPart \+ \.metaPart::before\s*\{\s*content:\s*none/);
+    const phone = css.slice(css.indexOf("@media (max-width: 639px)"));
+    expect(phone).toMatch(/\[data-phone-page="blog"\]\)\s*\.meta\s*\{[^}]*column-gap:\s*(0\.75rem|12px)/);
+  });
+});
