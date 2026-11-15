@@ -1,13 +1,17 @@
-import { useId, useState, type FormEvent } from "react";
+import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { adminAudience, type ContactLang, type Group } from "@/services/adminAudience";
 import { BottomSheet } from "@/components/ui/BottomSheet";
-import Modal from "./Modal";
-import { FOOTER } from "./modalFooter";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { SidePanel, useUnsavedGuard } from "@/components/ui/SidePanel";
+import type { GuardHook } from "./ContactEditor";
 import { consentNoteOk, emailOk } from "./rules";
 import { useAudienceWords } from "./words";
 
-/* `sheet` is the phone layout: the same form and the same rules in a bottom sheet, the actions in its footer. */
-export default function AddContact({ groups, onClose, onDone, sheet = false }: { groups: Group[]; onClose: () => void; onDone: () => void; sheet?: boolean }) {
+/*
+ * `sheet` is the phone layout: the same form and the same rules in a bottom sheet, the actions in its footer.
+ * Wide, it is a side panel (A21) that asks before it drops what was typed.
+ */
+export default function AddContact({ groups, onClose, onDone, sheet = false, open = true, onGuard }: { groups: Group[]; onClose: () => void; onDone: () => void; sheet?: boolean; open?: boolean; onGuard?: GuardHook }) {
   const w = useAudienceWords();
   const uid = useId();
   const formId = `${uid}-form`;
@@ -19,6 +23,17 @@ export default function AddContact({ groups, onClose, onDone, sheet = false }: {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(false);
   const [tried, setTried] = useState(false);
+  const [asking, setAsking] = useState(false);
+  const answer = useRef<((go: boolean) => void) | null>(null);
+  const dirty = email !== "" || name !== "" || note !== "" || lang !== "en" || sel.length > 0;
+  const ask = () => new Promise<boolean>((resolve) => ((answer.current = resolve), setAsking(true)));
+  const settle = (go: boolean) => (setAsking(false), answer.current?.(go), (answer.current = null));
+  const guard = useUnsavedGuard(dirty && !busy, ask);
+  useEffect(() => {
+    if (!onGuard || sheet) return;
+    onGuard(guard);
+    return () => onGuard(null, guard);
+  }, [onGuard, guard, sheet]);
 
   const submit = async () => {
     setTried(true);
@@ -75,7 +90,7 @@ export default function AddContact({ groups, onClose, onDone, sheet = false }: {
   const footer = (
     <>
       <button type="submit" form={formId} className="a-btn a-btn-primary min-h-[44px]" disabled={busy}>{busy ? w.saving : w.add}</button>
-      <button type="button" className="a-btn a-btn-ghost min-h-[44px]" onClick={onClose}>{w.cancel}</button>
+      <button type="button" className="a-btn a-btn-ghost min-h-[44px]" onClick={sheet ? onClose : () => void guard().then((ok) => ok && onClose())}>{w.cancel}</button>
     </>
   );
   const onSubmit = (e: FormEvent) => (e.preventDefault(), void submit());
@@ -90,13 +105,21 @@ export default function AddContact({ groups, onClose, onDone, sheet = false }: {
     );
   }
   return (
-    <Modal title={w.addHeading} titleId={`${uid}-h`} onClose={onClose}>
-      <form id={formId} className="space-y-4" noValidate onSubmit={onSubmit}>
-        {fields}
-        <div data-modal-footer className={`${FOOTER} flex flex-wrap gap-2`}>
-          {footer}
-        </div>
-      </form>
-    </Modal>
+    <>
+      <SidePanel
+        open={open}
+        onOpenChange={(o) => !o && onClose()}
+        beforeClose={guard}
+        title={w.addHeading}
+        footer={<div className="flex flex-wrap gap-2">{footer}</div>}
+      >
+        <form id={formId} className="space-y-4" noValidate onSubmit={onSubmit}>
+          {fields}
+        </form>
+      </SidePanel>
+      <ConfirmDialog open={asking} title={w.guardTitle} confirm={w.guardDiscard} cancel={w.guardKeep} tone="neutral" onConfirm={() => settle(true)} onCancel={() => settle(false)}>
+        {w.guardBody}
+      </ConfirmDialog>
+    </>
   );
 }

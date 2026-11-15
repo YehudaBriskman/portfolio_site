@@ -120,7 +120,7 @@ describe("Audience on a phone: the list", () => {
   it("keeps the desktop table at 600 and up", async () => {
     phone(false);
     mount();
-    expect(await screen.findByRole("table", { name: "Contacts" })).toBeTruthy();
+    expect(await screen.findByRole("grid", { name: "Contacts" })).toBeTruthy();
     expect(rows().length).toBe(0);
   });
 
@@ -144,6 +144,14 @@ describe("Audience on a phone: search and filters", () => {
     expect(screen.queryByRole("toolbar")?.querySelectorAll("button[aria-pressed]").length ?? 0).toBe(0);
     expect(screen.getByRole("button", { name: "Filters" })).toBeTruthy();
     expect(screen.getByRole("searchbox", { name: "Search contacts" })).toBeTruthy();
+  });
+
+  it("puts Filters on the search row, not alone on a line of its own, and draws no globe on a normal signup", async () => {
+    mount();
+    await screen.findByRole("button", { name: "Open Ada" });
+    const search = screen.getByRole("searchbox", { name: "Search contacts" });
+    expect(search.parentElement!.contains(screen.getByRole("button", { name: "Filters" }))).toBe(true);
+    expect(document.querySelector("[data-record-row] .lucide-globe")).toBeNull();
   });
 
   it("filters by status from the Filters sheet and keeps no address in the URL, in storage or anywhere but memory", async () => {

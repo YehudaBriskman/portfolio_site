@@ -58,13 +58,13 @@ describe("audience (M12)", () => {
     expect(addr.className).toMatch(/overflow-wrap:anywhere/);
   });
 
-  it.each(["en", "he"])("lays the filters out as the same grid in %s", async (lang) => {
+  it.each(["en", "he"])("puts search first and the status and group filters as chips in %s", async (lang) => {
     document.documentElement.lang = lang;
-    render(<AudienceTab />);
-    const filters = await screen.findByTestId("audience-filters");
-    expect(filters.className).toMatch(/\bgrid\b/);
-    expect(filters.className).toMatch(/grid-cols-2/);
-    expect(within(filters).getAllByRole("combobox")).toHaveLength(2);
+    render(<MemoryRouter><AudienceTab /></MemoryRouter>);
+    const search = await screen.findByRole("searchbox");
+    const bar = search.parentElement!.parentElement!;
+    expect(bar.firstElementChild!.contains(search)).toBe(true);
+    expect(within(bar).getAllByRole("group")).toHaveLength(2);
   });
 });
 
@@ -73,21 +73,25 @@ describe("dialogs (M14)", () => {
   const contact = { hash: "h", email: "a@b.co", name: "A", lang: "en", groups: [], status: "active", source: "site", consentAt: "2026-01-02T00:00:00Z", consentNote: "x", topics: {} } as never;
   const cases: Array<[string, () => React.ReactElement, RegExp]> = [
     ["add contact", () => <AddContact {...props} />, /^Add/i],
-    ["edit contact", () => <ContactEditor {...props} contact={contact} />, /^Save/i],
-    ["import", () => <ImportDialog {...props} />, /import/i],
+    ["edit contact", () => <ContactEditor {...props} open contact={contact} />, /^Save/i],
   ];
 
-  it.each(cases)("%s: capped height, scrolling body, sticky footer holding the primary button", (n, make, name) => {
+  /* Adding and editing are side panels (A21): the footer is the panel's own and holds the primary button. */
+  it.each(cases)("%s: a side panel with a footer holding the primary button", (_n, make, name) => {
     render(make());
+    const panel = screen.getByRole("dialog");
+    expect(panel.hasAttribute("data-side-panel")).toBe(true);
+    const foot = panel.querySelector("footer");
+    expect(foot, "footer").not.toBeNull();
+    expect(within(foot as HTMLElement).getAllByRole("button").some((b) => name.test(b.textContent ?? ""))).toBe(true);
+  });
+
+  it("import: capped height and a scrolling body", () => {
+    render(<ImportDialog {...props} />);
     const dialog = screen.getByRole("dialog", { hidden: true });
     expect(dialog.className).toContain("max-h-[calc(100dvh-2rem)]");
     const body = dialog.querySelector("[data-modal-body]");
     expect(body?.className).toMatch(/overflow-y-auto/);
     expect(body?.className).toMatch(/overscroll-contain/);
-    if (n === "import") return; // its footer only exists once a file is chosen
-    const foot = dialog.querySelector("[data-modal-footer]");
-    expect(foot, "footer").not.toBeNull();
-    expect(foot!.className).toMatch(/sticky/);
-    expect(within(foot as HTMLElement).getAllByRole("button", { hidden: true }).some((b) => name.test(b.textContent ?? ""))).toBe(true);
   });
 });
