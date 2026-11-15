@@ -54,9 +54,10 @@
   }
 }
 
-/* The page's own area gives up the panel's width while it is open. */
-:global(.a-app) :global(.a-main) {
-  padding-inline-end: var(--a-panel-w, 0px);
+/* The page's own area gives up the panel's width while it is open. Only then: the rule outranks `.a-main`, so a bare
+   `var(--a-panel-w, 0px)` would strip the page's own end padding whenever this stylesheet is loaded and no panel is. */
+:global(:root[style*='--a-panel-w']) :global(.a-app) :global(.a-main) {
+  padding-inline-end: var(--a-panel-w);
 }
 
 /* The edge: a 12px strip on the leading side, the drag and arrow-key handle. */

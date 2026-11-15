@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { MemoryRouter, useLocation } from "react-router-dom";
 import AudienceTab from "../AudienceTab";
 import { previewCsv } from "../csv";
 import { whyOf } from "../why";
@@ -15,10 +16,24 @@ const groups = [
   { slug: "friends", name: "Friends", kind: "manual", createdAt: "2026-01-01T00:00:00Z", total: 3, active: 3 },
 ];
 
+function Where() {
+  const l = useLocation();
+  return <output data-testid="where">{l.pathname + l.search}</output>;
+}
+/* The desktop tab, in a router: filters live in the address (never the search text, never an address). */
+const mount = () => render(<MemoryRouter initialEntries={["/admin/marketing?tab=audience"]}><AudienceTab /><Where /></MemoryRouter>);
+const rowOf = (text: string) => screen.getByText(text).closest("tr")!;
+
 type Call = { url: string; method: string; body?: Record<string, unknown> };
 let calls: Call[];
 let pages: Record<string, unknown>;
 beforeEach(() => {
+  /* jsdom has no <dialog>.showModal: the stand-ins only flip `open`. */
+  Object.assign(HTMLDialogElement.prototype, {
+    showModal(this: HTMLDialogElement) { this.setAttribute("open", ""); },
+    close(this: HTMLDialogElement) { this.removeAttribute("open"); },
+  });
+  window.localStorage.clear(); /* a remembered filter set would put itself back */
   calls = [];
   pages = {};
   vi.stubGlobal(
@@ -56,15 +71,15 @@ describe("pure helpers", () => {
 
 describe("AudienceTab", () => {
   it("reads the group size from total and shows the suppression date from since", async () => {
-    render(<AudienceTab />);
-    expect(await screen.findByRole("option", { name: "Subscribers (12)" })).toBeTruthy();
+    mount();
+    expect(await screen.findByRole("button", { name: "Subscribers (12)" })).toBeTruthy();
     fireEvent.click(screen.getByText("Suppression list"));
     expect(await screen.findByText("gone@example.com")).toBeTruthy();
     expect(await screen.findByText(/Since 5 Mar 2026/)).toBeTruthy();
   });
 
   it("suppresses pasted addresses in one call, reports the counts and leaves the unreadable ones to fix", async () => {
-    render(<AudienceTab />);
+    mount();
     fireEvent.click(screen.getByText("Suppression list"));
     const box = await screen.findByLabelText("Addresses");
     expect(box.getAttribute("dir")).toBe("ltr");
@@ -82,7 +97,7 @@ describe("AudienceTab", () => {
 
   it("gives a name cell its own direction and lets an address break only before the @", async () => {
     pages["/api/admin/audience/contacts?limit=25"] = { ok: true, contacts: [contact({ name: "דנה", email: "person.long@example.com" })], nextCursor: null };
-    const { container } = render(<AudienceTab />);
+    const { container } = mount();
     const name = await screen.findByText("דנה");
     // The name orders itself; its cell stays on the table's direction so a column aligns evenly.
     expect(name.getAttribute("dir")).toBe("auto");
@@ -93,23 +108,91 @@ describe("AudienceTab", () => {
     expect(addr.childNodes[0].textContent).toBe("person.long");
   });
 
-  it("lists contacts with the why line, loads more by cursor and filters", async () => {
-    render(<AudienceTab />);
+  it("lists contacts, loads more by cursor and filters from the chips", async () => {
+    mount();
     expect(await screen.findByText("ada@example.com")).toBeTruthy();
-    expect(screen.getByText("Can be mailed.")).toBeTruthy();
-    expect(screen.getByText(/Waiting for them to confirm/)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Load more" }));
     await waitFor(() => expect(calls.some((c) => c.url.includes("cursor=contact%3Ah2"))).toBe(true));
-    fireEvent.change(screen.getByLabelText("Status"), { target: { value: "pending" } });
+    fireEvent.click(screen.getByRole("button", { name: "Pending" }));
     await waitFor(() => expect(calls.some((c) => c.url.includes("status=pending"))).toBe(true));
+    expect(screen.getByTestId("where").textContent).toContain("status=pending");
+  });
+
+  it("draws a status only where the person cannot be mailed, and the why in the panel, not on every row", async () => {
+    mount();
+    await screen.findByText("ada@example.com");
+    const table = screen.getByRole("grid", { name: "Contacts" });
+    expect(within(table).queryByText("Active")).toBeNull();
+    expect(within(table).queryByText("Can be mailed.")).toBeNull();
+    expect(within(rowOf("dana@example.com")).getByRole("img", { name: "Waiting to confirm" })).toBeTruthy(); /* the glyph, with its word */
+    expect(within(rowOf("ada@example.com")).queryByRole("img")).toBeNull();
+    fireEvent.click(rowOf("dana@example.com"));
+    const panel = await screen.findByRole("dialog");
+    expect(within(panel).getByText(/Waiting for them to confirm/)).toBeTruthy();
+  });
+
+  it("keeps search text and addresses out of the address bar", async () => {
+    mount();
+    fireEvent.change(await screen.findByRole("searchbox", { name: "Search contacts" }), { target: { value: "ada@example.com" } });
+    await waitFor(() => expect(calls.some((c) => c.url.includes("q=ada%40example.com"))).toBe(true));
+    fireEvent.click(rowOf("ada@example.com"));
+    await screen.findByRole("dialog");
+    expect(screen.getByTestId("where").textContent).toBe("/admin/marketing?tab=audience");
+  });
+
+  it("has one primary in the header; Import is the secondary and Export hides in More", async () => {
+    mount();
+    await screen.findByText("ada@example.com");
+    const bar = screen.getByRole("toolbar", { name: "Audience actions" });
+    expect(within(bar).getByRole("button", { name: "Add contact" })).toBeTruthy();
+    expect(within(bar).getByRole("button", { name: "Import CSV" })).toBeTruthy();
+    expect(within(bar).queryByRole("button", { name: "Export CSV" })).toBeNull();
+    expect(within(bar).getByRole("button", { name: "More" })).toBeTruthy();
+    expect(document.querySelectorAll(".a-btn-primary").length).toBe(0);
+  });
+
+  it("opens a contact in a side panel, not a modal: the list stays, focus returns to the row", async () => {
+    mount();
+    await screen.findByText("ada@example.com");
+    const row = rowOf("ada@example.com");
+    row.focus();
+    fireEvent.click(row);
+    const panel = await screen.findByRole("dialog");
+    expect(panel.getAttribute("aria-modal")).toBe("false");
+    expect(document.querySelector("dialog[open]")).toBeNull();
+    expect(screen.getByText("dana@example.com")).toBeTruthy();
+    fireEvent.click(within(panel).getByRole("button", { name: "Close" }));
+    await waitFor(() => expect(document.activeElement).toBe(row));
+  });
+
+  it("asks before dropping unsaved edits, and not otherwise", async () => {
+    mount();
+    await screen.findByText("ada@example.com");
+    fireEvent.click(rowOf("ada@example.com"));
+    let panel = await screen.findByRole("dialog");
+    fireEvent.click(within(panel).getByRole("button", { name: "Close" })); /* nothing changed: closes at once */
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+
+    fireEvent.click(rowOf("ada@example.com"));
+    panel = await screen.findByRole("dialog");
+    fireEvent.change(within(panel).getByLabelText("Name"), { target: { value: "Ada L" } });
+    fireEvent.click(within(panel).getByRole("button", { name: "Close" }));
+    await screen.findByText("Discard your changes?");
+    fireEvent.click(screen.getByRole("button", { name: "Keep editing" }));
+    expect((within(screen.getByRole("dialog")).getByLabelText("Name") as HTMLInputElement).value).toBe("Ada L");
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Close" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Discard changes" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(calls.some((c) => c.method === "PATCH")).toBe(false);
   });
 
   it("shows the consent entry: wording id and hash, confirm time, and earlier consents", async () => {
     const e1 = { textId: "site-form-v1", textHash: "abcdef0123456789ff", lang: "en", at: "2026-01-02T00:00:00Z", confirmedAt: "2026-01-02T00:05:00Z", source: "site" };
     const e2 = { textId: null, textHash: null, lang: "he", at: "2026-03-02T00:00:00Z", source: "import", note: "workshop list" };
     pages["/api/admin/audience/contacts?limit=25"] = { ok: true, contacts: [contact({ consent: e2, consentHistory: [e1, e2] })], nextCursor: null };
-    render(<AudienceTab />);
-    fireEvent.click(await screen.findByRole("button", { name: "Edit ada@example.com" }));
+    mount();
+    await screen.findByText("ada@example.com");
+    fireEvent.click(rowOf("ada@example.com"));
     const dlg = await screen.findByRole("dialog");
     expect(within(dlg).getByText(/site-form-v1 · en · abcdef012345/)).toBeTruthy();
     expect(within(dlg).getByText("Earlier consents")).toBeTruthy();
@@ -118,15 +201,17 @@ describe("AudienceTab", () => {
   });
 
   it("edits a contact and erases only after a confirm", async () => {
-    render(<AudienceTab />);
-    fireEvent.click(await screen.findByRole("button", { name: "Edit ada@example.com" }));
+    mount();
+    await screen.findByText("ada@example.com");
+    fireEvent.click(rowOf("ada@example.com"));
     const dlg = await screen.findByRole("dialog");
     fireEvent.change(within(dlg).getByLabelText("Name"), { target: { value: "Ada L" } });
     fireEvent.click(within(dlg).getByLabelText("Friends"));
     fireEvent.click(within(dlg).getByRole("button", { name: "Save" }));
     await waitFor(() => expect(calls.find((c) => c.method === "PATCH")?.body).toMatchObject({ name: "Ada L", groups: ["subscribers", "friends"], status: "active" }));
 
-    fireEvent.click(await screen.findByRole("button", { name: "Edit ada@example.com" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    fireEvent.click(rowOf("ada@example.com"));
     const d2 = await screen.findByRole("dialog");
     fireEvent.click(within(d2).getByRole("button", { name: "Erase contact" }));
     expect(calls.some((c) => c.method === "DELETE")).toBe(false);
@@ -135,7 +220,7 @@ describe("AudienceTab", () => {
   });
 
   it("requires a consent note to add a contact", async () => {
-    render(<AudienceTab />);
+    mount();
     fireEvent.click(await screen.findByRole("button", { name: "Add contact" }));
     const dlg = await screen.findByRole("dialog");
     fireEvent.change(within(dlg).getByLabelText("Email address"), { target: { value: "x@y.co" } });
@@ -147,7 +232,7 @@ describe("AudienceTab", () => {
   });
 
   it("imports only with the consent checkbox and a note, and shows the summary", async () => {
-    render(<AudienceTab />);
+    mount();
     fireEvent.click(await screen.findByRole("button", { name: "Import CSV" }));
     const dlg = await screen.findByRole("dialog");
     fireEvent.change(within(dlg).getByLabelText("CSV"), { target: { value: "a@b.co\nbad" } });
@@ -163,7 +248,7 @@ describe("AudienceTab", () => {
   });
 
   it("locks system groups", async () => {
-    render(<AudienceTab />);
+    mount();
     await screen.findByText("ada@example.com");
     fireEvent.click(screen.getByText("Groups", { selector: "summary span" }));
     expect(await screen.findByText("System group, locked")).toBeTruthy();
