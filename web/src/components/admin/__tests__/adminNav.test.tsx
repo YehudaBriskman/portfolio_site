@@ -93,11 +93,13 @@ describe("the nav tree", () => {
     expect(within(nav()).getByRole("link", { name: /^Inbox/ }).getAttribute("aria-current")).toBe("page");
   });
 
-  it("groups the rest as Content, Media, Site and System, shut until the route is in one", () => {
+  it("groups Content and Site as headings, shut until the route is in one; Media and System are plain items", () => {
     shell("/admin/marketing");
-    for (const g of ["Content", "Media", "Site", "System"]) {
+    for (const g of ["Content", "Site"]) {
       expect(within(nav()).getByRole("button", { name: new RegExp(g) }).getAttribute("aria-expanded")).toBe("false");
     }
+    expect(within(nav()).getByRole("link", { name: /^Media/ })).toBeTruthy();
+    expect(within(nav()).getByRole("link", { name: /^Connected apps/ })).toBeTruthy();
     expect(within(nav()).queryByRole("link", { name: "Posts" })).toBeNull();
   });
 
@@ -112,11 +114,13 @@ describe("the nav tree", () => {
     expect(within(nav()).getByRole("link", { name: "Overview" }).getAttribute("aria-current")).toBe("page");
   });
 
-  it("rolls the unread count up to the Marketing row and the Inbox row", async () => {
+  it("shows the unread count once: on the Marketing heading while it is shut, on Inbox while it is open", async () => {
     stubFetch(4);
-    shell("/admin/marketing");
-    await waitFor(() => expect(within(nav()).getByRole("link", { name: /^Marketing/ }).textContent).toContain("4 unread"));
+    shell("/admin");
+    await waitFor(() => expect(within(nav()).getByRole("button", { name: /^Marketing/ }).textContent).toContain("4 unread"));
+    fireEvent.click(within(nav()).getByRole("button", { name: /^Marketing/ }));
     expect(within(nav()).getByRole("link", { name: /^Inbox/ }).textContent).toContain("4 unread");
+    expect(within(nav()).getByRole("button", { name: /^Marketing/ }).textContent).not.toMatch(/\d/);
   });
 
   it("reads in Hebrew with no English group left", () => {

@@ -37,8 +37,10 @@ import { leafPaths, type NavNode } from "@/components/ui/SidebarGroup";
  *
  * Groups with the same score keep the order the old flat nav had. A group is
  * shut until the route is inside it, so the drawer shows six rows, not
- * twenty. Marketing's children are the hub's tabs, reached by the same
- * `?tab=` and `?section=` addresses the page already reads.
+ * twenty. Marketing is a group like the rest (a heading, no address of its
+ * own): its overview is its first child, and its children are the hub's tabs,
+ * reached by the same `?tab=` and `?section=` addresses the page already
+ * reads. A group with a single child (Media, System) is drawn as that child.
  */
 
 export type AdminNavId =
@@ -90,7 +92,7 @@ export const NAV_SHAPE: Array<Leaf & { children?: Array<Leaf & { children?: Leaf
   { id: "overview", to: "/admin", icon: I.overview },
   {
     id: "marketing",
-    to: "/admin/marketing",
+    to: "",
     icon: I.marketing,
     children: [
       { id: "marketing-inbox", to: "/admin/marketing", icon: I.inbox },
@@ -138,6 +140,8 @@ export type NavText = {
 
 export function buildNav(t: NavText): NavNode[] {
   const make = (s: Leaf & { children?: Leaf[] }): NavNode => {
+    /* A group of one is that one: Media and System are plain items, not a heading over a single row. */
+    if (!s.to && s.children?.length === 1 && !(s.children[0] as Leaf & { children?: Leaf[] }).children) return make(s.children[0]);
     const b = t.badge(s.id);
     return {
       id: s.id,

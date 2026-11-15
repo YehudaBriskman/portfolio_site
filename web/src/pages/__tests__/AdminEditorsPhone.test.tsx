@@ -235,9 +235,13 @@ describe("leaving with an edit that is not saved", () => {
     fireEvent.change(await screen.findByLabelText("Title"), { target: { value: "Edited" } });
     await publish();
     await screen.findAllByText(/Saved/);
-    const after = new Event("beforeunload", { cancelable: true });
-    window.dispatchEvent(after);
-    expect(after.defaultPrevented).toBe(false);
+    /* "Saved" can show a tick before the unsaved guard lets go, and under a loaded CI runner
+       that tick is long enough to race: wait for the guard itself, not for the word. */
+    await waitFor(() => {
+      const after = new Event("beforeunload", { cancelable: true });
+      window.dispatchEvent(after);
+      expect(after.defaultPrevented).toBe(false);
+    });
   });
 });
 

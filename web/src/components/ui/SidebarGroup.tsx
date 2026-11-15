@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import type { LucideIcon } from "lucide-react";
-import Ring from "@/components/motion/Ring";
 import { DisclosureButton } from "@/components/ui/Disclosure";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useMobileWords } from "@/i18n/mobile";
 import styles from "@/components/ui/SidebarGroup.module.css";
 
@@ -16,6 +17,12 @@ import styles from "@/components/ui/SidebarGroup.module.css";
  * with none is one toggle. The arrow keys are an enhancement over that: Up and
  * Down walk the visible rows, Home and End jump, and the inline-end and
  * inline-start arrows open and close (swapped in RTL).
+ *
+ * One row geometry: a group is a small muted heading with its own chevron, an
+ * item is an icon and a label, and every row starts at the same inline edge
+ * (only a group inside a group steps in). The current item is a soft fill and
+ * an accent bar, never a weight. With `collapsed` the same tree is an icon
+ * rail: an item is a glyph with a tooltip, a group a button opening a flyout.
  *
  * Depth is two groups deep (Marketing > Settings > Sender & delivery): the
  * reference patterns cap a sidebar at two levels of grouping.
@@ -125,19 +132,12 @@ type GroupProps = {
   depth?: number;
 };
 
-/** The row's mark: the living line's ring on the current item, as the old flat nav had. */
-function Mark({ node, current }: { node: NavNode; current: boolean }) {
+/** The row's mark: a plain glyph, no ring and no circle, the same box whether or not the row is current. */
+function Mark({ node }: { node: NavNode }) {
   const Icon = node.icon;
-  if (!Icon) return <span className={styles.mark} aria-hidden="true" />;
   return (
     <span className={styles.mark} aria-hidden="true">
-      {current ? (
-        <Ring size={26} draw={false}>
-          <Icon />
-        </Ring>
-      ) : (
-        <Icon />
-      )}
+      {Icon ? <Icon /> : null}
     </span>
   );
 }
@@ -152,7 +152,7 @@ function Row({ node, current, onNavigate }: { node: NavNode; current: boolean; o
       data-nav-id={node.id}
       onClick={onNavigate}
     >
-      <Mark node={node} current={current} />
+      <Mark node={node} />
       <span className={styles.text}>{node.label}</span>
       <Badge n={node.badge} label={node.badgeLabel} />
     </Link>
@@ -182,6 +182,7 @@ export function SidebarGroup({ node, currentId, ancestors, isOpen, onToggle, onN
       <div className={styles.head} data-ancestor={ancestor ? "" : undefined}>
         {node.to ? (
           <>
+            <Row node={node} current={current} onNavigate={onNavigate} />
             <DisclosureButton
               expanded={open}
               controls={listId}
@@ -192,7 +193,6 @@ export function SidebarGroup({ node, currentId, ancestors, isOpen, onToggle, onN
             >
               {null}
             </DisclosureButton>
-            <Row node={node} current={current} onNavigate={onNavigate} />
           </>
         ) : (
           <DisclosureButton
@@ -204,9 +204,9 @@ export function SidebarGroup({ node, currentId, ancestors, isOpen, onToggle, onN
             data-nav-group={node.id}
           >
             <span className={styles.toggleLabel}>
-              <Mark node={node} current={false} />
               <span className={styles.text}>{node.label}</span>
-              <Badge n={node.badge} label={node.badgeLabel} />
+              {/* A count is said once: on the heading while the group is shut, on the row inside once it is open. */}
+              {!open && <Badge n={node.badge} label={node.badgeLabel} />}
             </span>
           </DisclosureButton>
         )}
@@ -230,6 +230,111 @@ export function SidebarGroup({ node, currentId, ancestors, isOpen, onToggle, onN
   );
 }
 
+const isRtl = () => typeof document !== "undefined" && document.documentElement.dir === "rtl";
+
+/** A glyph, its name for a screen reader, and a dot for a count: what a rail row shows. */
+function RailFace({ node }: { node: NavNode }) {
+  return (
+    <>
+      <Mark node={node} />
+      <span className="sr-only">{node.label}</span>
+      {node.badge ? (
+        <>
+          <span className={styles.dot} aria-hidden="true" />
+          {node.badgeLabel && <span className="sr-only">{node.badgeLabel}</span>}
+        </>
+      ) : null}
+    </>
+  );
+}
+
+function Tip({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{children}</TooltipTrigger>
+      <TooltipContent side={isRtl() ? "left" : "right"} sideOffset={10}>
+        {label}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
+function RailGroup({ node, currentId, ancestors, onNavigate }: { node: NavNode; currentId?: string; ancestors: readonly string[]; onNavigate?: () => void }) {
+  const [open, setOpen] = useState(false);
+  const holdsCurrent = ancestors.includes(node.id);
+  const flat: Array<{ node: NavNode; depth: number }> = [];
+  const walk = (list: NavNode[], depth: number) => {
+    for (const n of list) {
+      if (n.to) flat.push({ node: n, depth });
+      if (n.children) walk(n.children, depth + 1);
+    }
+  };
+  walk(node.children ?? [], 0);
+  return (
+    <li className={styles.railItem}>
+      <Popover open={open} onOpenChange={setOpen}>
+        <Tip label={node.label}>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              className={styles.railBtn}
+              data-nav-item=""
+              data-nav-group={node.id}
+              data-active={holdsCurrent ? "" : undefined}
+              aria-haspopup="dialog"
+            >
+              <RailFace node={node} />
+            </button>
+          </PopoverTrigger>
+        </Tip>
+        <PopoverContent side={isRtl() ? "left" : "right"} align="start" sideOffset={10} className={styles.flyout}>
+          <p className={styles.flyoutHead}>{node.label}</p>
+          <ul className={styles.flyoutList}>
+            {flat.map(({ node: n, depth }) => (
+              <li key={n.id} data-depth={depth}>
+                <Link
+                  to={n.to!}
+                  className={styles.link}
+                  aria-current={n.id === currentId ? "page" : undefined}
+                  data-nav-id={n.id}
+                  onClick={() => {
+                    setOpen(false);
+                    onNavigate?.();
+                  }}
+                >
+                  <Mark node={n} />
+                  <span className={styles.text}>{n.label}</span>
+                  <Badge n={n.badge} label={n.badgeLabel} />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </PopoverContent>
+      </Popover>
+    </li>
+  );
+}
+
+function RailNode({ node, currentId, ancestors, onNavigate }: { node: NavNode; currentId?: string; ancestors: readonly string[]; onNavigate?: () => void }) {
+  if (node.children?.length) return <RailGroup node={node} currentId={currentId} ancestors={ancestors} onNavigate={onNavigate} />;
+  return (
+    <li className={styles.railItem}>
+      <Tip label={node.label}>
+        <Link
+          to={node.to!}
+          className={styles.railBtn}
+          aria-current={node.id === currentId ? "page" : undefined}
+          data-nav-item=""
+          data-nav-id={node.id}
+          onClick={onNavigate}
+        >
+          <RailFace node={node} />
+        </Link>
+      </Tip>
+    </li>
+  );
+}
+
 export type SidebarNavProps = {
   nodes: NavNode[];
   /** The accessible name of the landmark. */
@@ -240,9 +345,11 @@ export type SidebarNavProps = {
   fallbackId?: string;
   onNavigate?: () => void;
   className?: string;
+  /** Draw the icon rail: a glyph per row, groups as flyouts. */
+  collapsed?: boolean;
 };
 
-export function SidebarNav({ nodes, label, storageKey, fallbackId, onNavigate, className }: SidebarNavProps) {
+export function SidebarNav({ nodes, label, storageKey, fallbackId, onNavigate, className, collapsed }: SidebarNavProps) {
   const { pathname, search } = useLocation();
   const idBase = useId();
   const root = useRef<HTMLElement>(null);
@@ -298,6 +405,7 @@ export function SidebarNav({ nodes, label, storageKey, fallbackId, onNavigate, c
         return go(list.length - 1);
       case "ArrowRight":
       case "ArrowLeft": {
+        if (collapsed) return;
         const forward = (e.key === "ArrowRight") !== rtl;
         const isGroup = !!target.getAttribute("data-nav-group") || (group && target.closest("li")?.querySelector(":scope > ul[data-parent]"));
         if (forward && isGroup && group) {
@@ -325,7 +433,16 @@ export function SidebarNav({ nodes, label, storageKey, fallbackId, onNavigate, c
   };
 
   return (
-    <nav ref={root} aria-label={label} className={[styles.nav, className].filter(Boolean).join(" ")} onKeyDown={onKeyDown}>
+    <nav ref={root} aria-label={label} className={[styles.nav, className].filter(Boolean).join(" ")} onKeyDown={onKeyDown} data-collapsed={collapsed ? "" : undefined}>
+      {collapsed ? (
+        <TooltipProvider delayDuration={300}>
+          <ul className={styles.root}>
+            {nodes.map((n) => (
+              <RailNode key={n.id} node={n} currentId={currentId} ancestors={ancestors} onNavigate={onNavigate} />
+            ))}
+          </ul>
+        </TooltipProvider>
+      ) : (
       <ul className={styles.root}>
         {nodes.map((n) => (
           <SidebarGroup
@@ -340,6 +457,7 @@ export function SidebarNav({ nodes, label, storageKey, fallbackId, onNavigate, c
           />
         ))}
       </ul>
+      )}
     </nav>
   );
 }

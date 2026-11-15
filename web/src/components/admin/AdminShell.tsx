@@ -1,10 +1,13 @@
 import { useEffect, useId, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { ChevronLeft, ExternalLink, LogOut, Menu, X } from "lucide-react";
+import { ChevronLeft, ExternalLink, LogOut, Menu, PanelLeftClose, PanelLeftOpen, X } from "lucide-react";
 import { admin } from "@/services/admin";
 import { markAdminSeen } from "@/components/notes/reader/adminSession";
 import DisplayMenu, { DisplayPanel } from "@/components/nav/DisplayMenu";
 import { DisclosureButton } from "@/components/ui/Disclosure";
+import { Icon } from "@/components/ui/Icon";
+import { IconButton } from "@/components/ui/IconButton";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useChromeWords } from "@/i18n/chrome";
 import NotificationsMenu from "@/components/admin/NotificationsMenu";
 import { toast } from "@/lib/toast";
@@ -96,6 +99,33 @@ export type AdminShellProps = {
   children: ReactNode;
 };
 
+/* The sidebar's collapse to an icon rail (#809): one key, "1" when collapsed. */
+const COLLAPSE_KEY = "admin-nav-collapsed";
+
+function readCollapsed(): boolean {
+  try {
+    return localStorage.getItem(COLLAPSE_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function writeCollapsed(next: boolean) {
+  try {
+    localStorage.setItem(COLLAPSE_KEY, next ? "1" : "0");
+  } catch {
+    /* blocked storage: the rail still works, it just forgets */
+  }
+}
+
+type GlyphProps = { className?: string; "aria-hidden"?: boolean | "true" };
+const CollapseGlyph = (p: GlyphProps) => <Icon icon={PanelLeftClose} mirrorInRtl {...p} />;
+const ExpandGlyph = (p: GlyphProps) => <Icon icon={PanelLeftOpen} mirrorInRtl {...p} />;
+
+/** A field that has its own Ctrl+B (bold) keeps it. */
+const typingIn = (t: EventTarget | null) =>
+  t instanceof HTMLElement && (t.isContentEditable || /^(input|textarea|select)$/i.test(t.tagName) || !!t.closest("[contenteditable='true']"));
+
 /* The width at which the drawer becomes the permanent sidebar (index.css `.a-side`). */
 const DRAWER_QUERY = "(min-width: 1024px)";
 
@@ -130,6 +160,8 @@ export default function AdminShell({ title, section, counts, bottomBar, backTo, 
   const [who, setWho] = useState("");
   const [open, setOpen] = useState(false);
   const [displayOpen, setDisplayOpen] = useState(false);
+  const [collapsedPref, setCollapsedPref] = useState(readCollapsed);
+  const [accountOpen, setAccountOpen] = useState(false);
   /* Widening past the drawer breakpoint (rotate, resize, snap) hides the toggle
      that could close it, so a drawer left open would leave <main> inert with no
      control to undo it. Close it at that moment, while rendering like the route
@@ -137,6 +169,12 @@ export default function AdminShell({ title, section, counts, bottomBar, backTo, 
   const docked = useSidebarDocked();
   if (docked && open) setOpen(false);
   const drawerOpen = open && !docked;
+  /* The rail is a desktop state: the drawer is always the full tree, whatever was saved. */
+  const rail = docked && collapsedPref;
+  const setCollapsed = (next: boolean) => {
+    setCollapsedPref(next);
+    writeCollapsed(next);
+  };
   const drawerId = useId();
   const displayId = useId();
   const toggle = useRef<HTMLButtonElement>(null);
@@ -162,6 +200,21 @@ export default function AdminShell({ title, section, counts, bottomBar, backTo, 
     setSeenPath(here);
     setOpen(false);
   }
+
+  /* Ctrl/Cmd+B folds the sidebar, as in the editors people already use. */
+  useEffect(() => {
+    if (!docked) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key.toLowerCase() !== "b" || !(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey || typingIn(e.target)) return;
+      e.preventDefault();
+      setCollapsedPref((v) => {
+        writeCollapsed(!v);
+        return !v;
+      });
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [docked]);
 
   /* Open: focus moves in, Escape closes and hands focus back. */
   useEffect(() => {
@@ -239,7 +292,7 @@ export default function AdminShell({ title, section, counts, bottomBar, backTo, 
   const last = crumbs.length - 1;
 
   return (
-    <div className="a-app">
+    <div className="a-app" data-side={rail ? "rail" : "full"}>
       <a href="#admin-content" className="a-skip">
         {w.skip}
       </a>
@@ -267,9 +320,9 @@ export default function AdminShell({ title, section, counts, bottomBar, backTo, 
           <span aria-hidden="true">{open ? w.closeMenu : w.menu}</span>
         </button>
 
-        <Link to="/admin" className="a-brand max-lg:hidden">
+        {/* The favicon alone: who is signed in is said once, by the account menu. */}
+        <Link to="/admin" className="a-brand max-lg:hidden" aria-label="Yehuda Briskman">
           <img src="/favicon.svg" alt="" width={28} height={28} className="a-brand-mark" />
-          <span className="a-brand-name">Yehuda Briskman</span>
         </Link>
 
         <nav aria-label={w.breadcrumb} className="a-crumbs">
@@ -288,29 +341,34 @@ export default function AdminShell({ title, section, counts, bottomBar, backTo, 
 
         <div className="a-top-end">
           {actions && <div className="flex items-center gap-1 lg:hidden">{actions}</div>}
-          <a
-            href={PUBLIC_SITE}
-            target="_blank"
-            rel="noreferrer noopener"
-            className="a-btn a-btn-ghost a-top-link max-lg:hidden"
-            aria-label={w.viewSiteNewTab}
-          >
-            <ExternalLink aria-hidden="true" />
-            <span className="hidden md:inline">{w.viewSite}</span>
-          </a>
           {/* On a phone the bell lives in the drawer: the top bar is on a control budget. */}
           <NotificationsMenu className="max-lg:hidden" />
           <span className="contents max-lg:hidden"><DisplayMenu /></span>
           {who && (
-            <span className="a-owner max-lg:hidden" title={w.signedInAs(who)}>
-              <span className="a-avatar" aria-hidden="true">
-                {who.slice(0, 1).toUpperCase()}
-              </span>
-              <span className="sr-only">{w.signedInAs(who)}</span>
-              <span className="hidden xl:inline" aria-hidden="true">
-                {who}
-              </span>
-            </span>
+            <Popover open={accountOpen} onOpenChange={setAccountOpen}>
+              <PopoverTrigger asChild>
+                <button type="button" className="a-avatar max-lg:hidden" aria-label={w.signedInAs(who)} title={w.signedInAs(who)}>
+                  {who.slice(0, 1).toUpperCase()}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="a-account w-64 max-w-[calc(100vw-1.5rem)] p-2">
+                <p className="a-account-who" dir="ltr">
+                  {who}
+                </p>
+                <a href={PUBLIC_SITE} target="_blank" rel="noreferrer noopener" className="a-nav-item" aria-label={w.viewSiteNewTab}>
+                  <span className="a-nav-icon" aria-hidden="true">
+                    <ExternalLink />
+                  </span>
+                  {w.viewSite}
+                </a>
+                <a href="/oauth2/sign_out" className="a-nav-item" onClick={() => toast.clearHistory()}>
+                  <span className="a-nav-icon" aria-hidden="true">
+                    <LogOut />
+                  </span>
+                  {w.signOut}
+                </a>
+              </PopoverContent>
+            </Popover>
           )}
         </div>
       </header>
@@ -324,9 +382,23 @@ export default function AdminShell({ title, section, counts, bottomBar, backTo, 
             storageKey="admin-nav-open"
             fallbackId={section}
             className="a-side-nav"
+            collapsed={rail}
             onNavigate={() => setOpen(false)}
           />
 
+          {docked && (
+            <div className="a-side-collapse">
+              <IconButton
+                icon={rail ? ExpandGlyph : CollapseGlyph}
+                label={rail ? w.expandSidebar : w.collapseSidebar}
+                aria-expanded={!rail}
+                aria-controls={drawerId}
+                onClick={() => setCollapsed(!rail)}
+              />
+            </div>
+          )}
+
+          {!docked && (
           <div className="a-side-foot">
             <div className="lg:hidden">
               <NotificationsMenu withLabel />
@@ -351,6 +423,7 @@ export default function AdminShell({ title, section, counts, bottomBar, backTo, 
               {w.signOut}
             </a>
           </div>
+          )}
         </div>
 
         <main id="admin-content" tabIndex={-1} className="a-main" inert={drawerOpen || undefined}>
