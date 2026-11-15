@@ -221,14 +221,18 @@ export default function AudiencePhone() {
   const manual = groups.filter((g) => g.kind === "manual");
 
   return (
-    <div className="min-w-0 space-y-2" data-testid="audience">
+    <div className="min-w-0 space-y-3" data-testid="audience">
       <h2 className="sr-only">{w.heading}</h2>
 
       {selection.on ? (
         <SelectionHeader selection={selection} total={visible.length} />
       ) : (
         <div className="flex items-stretch gap-2">
-          <input type="search" className="a-input min-h-[44px] min-w-0 flex-1 !ps-3 text-base" dir="auto" aria-label={w.searchLabel} placeholder={w.searchPlaceholder} value={q} onChange={(e) => setQ(e.target.value)} />
+          <input type="search" className="a-input min-h-[44px] min-w-0 flex-1 !ps-3 text-base text-ellipsis" dir="auto" aria-label={w.searchLabel} placeholder={w.searchPlaceholder} title={w.searchPlaceholder} value={q} onChange={(e) => setQ(e.target.value)} />
+          {/* Filters shares the search row (it has no chips of its own to fill a line); a filter set in the sheet shows as a chip that scrolls within its half. */}
+          <div className="flex min-w-0 max-w-[50%] shrink-0 [&>[role=toolbar]>div:empty]:hidden [&>[role=toolbar]]:min-w-0">
+            <FilterChips defs={defs} value={filters} onChange={setFilters} onOpenSheet={() => setSheet(true)} resultCount={visible.length} />
+          </div>
           {visible.length > 0 && <SelectionHeader selection={selection} total={visible.length} />}
           <button ref={plus} type="button" className="a-btn a-btn-primary min-h-[44px] min-w-[44px] shrink-0" aria-label={w.phoneAdd} onClick={() => setMenu(true)}>
             <ICON.add size={20} strokeWidth={2} aria-hidden="true" focusable="false" />
@@ -236,7 +240,6 @@ export default function AudiencePhone() {
         </div>
       )}
 
-      <FilterChips defs={defs} value={filters} onChange={setFilters} onOpenSheet={() => setSheet(true)} resultCount={visible.length} />
       <FiltersRestoredNote restored={saved.restored} onUndo={saved.undoRestore} onDismiss={saved.dismissRestored} />
 
       <p className="sr-only" role="status">{items ? w.count(visible.length) : ""}</p>
@@ -249,7 +252,7 @@ export default function AudiencePhone() {
         ) : visible.length === 0 && !next ? (
           <EmptyState title={filtered ? w.empty : w.emptyFirst} />
         ) : (
-          <div>
+          <div className="pt-3">
             {visible.length === 0 ? (
               <EmptyState title={w.empty} />
             ) : (

@@ -163,7 +163,7 @@ const addPeople = (item, wide) => async (page) => {
   if (await plus.count()) {
     await plus.dispatchEvent("click", {}, { timeout: 20000 });
     await page.getByRole("button", { name: item }).dispatchEvent("click", {}, { timeout: 8000 });
-  } else await page.locator(wide).first().dispatchEvent("click", {}, { timeout: 20000 });
+  } else await page.getByRole("toolbar").getByRole("button", { name: item }).first().dispatchEvent("click", {}, { timeout: 20000 }); /* wide: the Audience actions bar (Add contact, Import CSV) */
 };
 const click = (sel, n = 0) => async (page) => { await page.locator(sel).nth(n).dispatchEvent("click", {}, { timeout: 20000 }); };
 const SCREENS = [

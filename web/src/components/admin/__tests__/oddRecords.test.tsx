@@ -97,7 +97,7 @@ describe("Settings with a partial payload", () => {
 });
 
 describe("Audience on a wide screen with a long unbroken name", () => {
-  it("lets the name and group cells break anywhere so the table cannot widen the page", async () => {
+  it("clips the name and group cells to the column (the table cannot widen the page) and keeps the full text on title", async () => {
     const long = "Supercalifragilisticexpialidocious".repeat(3);
     vi.stubGlobal("fetch", vi.fn(async (url: string) => {
       if (url.startsWith("/api/admin/audience/groups")) return json({ ok: true, groups: [] });
@@ -106,8 +106,10 @@ describe("Audience on a wide screen with a long unbroken name", () => {
       return json({ ok: true });
     }));
     render(<MemoryRouter><AudienceDesktop /></MemoryRouter>);
-    const cell = (await screen.findByText(long, { selector: "bdi" })).closest("td")!;
-    expect(cell.className).toContain("overflow-wrap:anywhere");
-    expect(cell.className).toContain("min-w-0");
+    const name = await screen.findByText(long, { selector: "bdi" });
+    expect(name.getAttribute("title")).toBe(long);
+    expect(screen.getByText(long, { selector: "span[title]" }).getAttribute("title")).toBe(long);
+    /* the table's own cell rule (DataTable.module.css .clip) ends it in an ellipsis; the long address would wrap instead */
+    expect(name.closest("td")!.querySelector("span")).not.toBeNull();
   });
 });

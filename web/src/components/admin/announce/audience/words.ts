@@ -53,6 +53,14 @@ export const useAudienceWords = defineWords(
     tableLabel: "Contacts",
     edit: "Edit",
     editFor: (email: string) => `Edit ${email}`,
+    actionsLabel: "Audience actions",
+    more: "More",
+    clearSearch: "Clear search",
+    /* Leaving the contact panel with edits that are not saved (same wording as the Library's guard). */
+    guardTitle: "Discard your changes?",
+    guardBody: "This contact has edits that are not saved.",
+    guardKeep: "Keep editing",
+    guardDiscard: "Discard changes",
 
     statuses: { pending: "Pending", active: "Active", unsubscribed: "Unsubscribed", suppressed: "Suppressed" },
     langs: { en: "English", he: "Hebrew" },
@@ -229,6 +237,13 @@ export const useAudienceWords = defineWords(
     tableLabel: "אנשי קשר",
     edit: "עריכה",
     editFor: (email: string) => `עריכת ${email}`,
+    actionsLabel: "פעולות בקהל",
+    more: "עוד",
+    clearSearch: "ניקוי החיפוש",
+    guardTitle: "לבטל את השינויים?",
+    guardBody: "באיש הקשר הזה יש עריכות שלא נשמרו.",
+    guardKeep: "להמשיך לערוך",
+    guardDiscard: "ביטול השינויים",
 
     statuses: { pending: "ממתין", active: "פעיל", unsubscribed: "הסיר את עצמו", suppressed: "חסום" },
     langs: { en: "אנגלית", he: "עברית" },
