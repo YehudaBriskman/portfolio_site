@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, ChevronUp, Trash2 } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { ICON } from "@/components/ui/icons";
 import { useReorderGlide } from "@/hooks/useReorderGlide";
 import { useContentWords } from "./words";
@@ -73,13 +73,13 @@ export function ReorderRows<T>({ items, name, onChange }: Props<T>) {
               </span>
               <span className={styles.reorderBtns}>
                 <button type="button" data-move="up" className={`a-btn a-btn-ghost ${styles.iconBtn}`} aria-label={w.up(label)} disabled={i === 0} onClick={() => move(i, i - 1)}>
-                  <ChevronUp aria-hidden="true" focusable="false" />
+                  <Icon icon={ICON.expand} className="rotate-180" aria-hidden="true" />
                 </button>
                 <button type="button" data-move="down" className={`a-btn a-btn-ghost ${styles.iconBtn}`} aria-label={w.down(label)} disabled={i === items.length - 1} onClick={() => move(i, i + 1)}>
-                  <ChevronDown aria-hidden="true" focusable="false" />
+                  <Icon icon={ICON.expand} aria-hidden="true" />
                 </button>
                 <button type="button" className={`a-btn a-btn-ghost ${styles.iconBtn} ${styles.danger}`} aria-label={w.remove(label)} onClick={() => remove(i)}>
-                  <Trash2 aria-hidden="true" focusable="false" />
+                  <Icon icon={ICON.delete} aria-hidden="true" />
                 </button>
               </span>
             </li>

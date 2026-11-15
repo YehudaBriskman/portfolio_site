@@ -1,9 +1,10 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import AdminSettings from "@/pages/AdminSettings";
 import { DEFAULT_SETTINGS, type SiteSettings } from "@/settings/schema";
 import { resetSettings } from "@/settings/store";
+import { wide } from "@/components/admin/phone/__tests__/helpers";
 
 /*
  * /admin/settings (#254): reorder and hide with buttons, the ledger rule
@@ -42,12 +43,20 @@ function stub(initial = viewOf(structuredClone(DEFAULT_SETTINGS), 1, [{ version:
   return calls;
 }
 
+let undoWide: () => void;
+beforeEach(() => {
+  undoWide = wide(true);
+});
 afterEach(() => {
+  undoWide();
   vi.unstubAllGlobals();
   resetSettings();
 });
 
-const page = () => render(<MemoryRouter><AdminSettings /></MemoryRouter>);
+/* From 840px the list and the open group sit side by side; Home page order is open first. */
+const page = (group?: string) => render(<MemoryRouter initialEntries={[group ? `/admin/settings?group=${group}` : "/admin/settings"]}><AdminSettings /></MemoryRouter>);
+const openGroup = async (name: RegExp) => fireEvent.click(await screen.findByRole("button", { name }));
+const save = () => screen.getByRole("button", { name: "Save" });
 
 describe("/admin/settings", () => {
   it("moves a section, hides one, and saves with the revision it read", async () => {
@@ -57,9 +66,10 @@ describe("/admin/settings", () => {
     fireEvent.click(up);
     /* Focus stays with the row it moved. */
     await waitFor(() => expect(document.activeElement?.id).toBe("settings-stack-up"));
-    fireEvent.click(screen.getByRole("checkbox", { name: "Show Contact" }));
-    fireEvent.click(screen.getByLabelText("Pine"));
-    fireEvent.click(screen.getAllByRole("button", { name: "Save" })[0]);
+    fireEvent.click(screen.getByRole("switch", { name: "Contact" }));
+    await openGroup(/Look and feel/);
+    fireEvent.click(await screen.findByLabelText("Pine"));
+    fireEvent.click(save());
     await waitFor(() => expect(calls.some((c) => c.method === "PUT")).toBe(true));
     const put = calls.find((c) => c.method === "PUT")!;
     expect(put.body!._rev).toBe("1-abc");
@@ -72,15 +82,16 @@ describe("/admin/settings", () => {
     const calls = stub();
     page();
     /* Hiding How I work puts Work and The year side by side. */
-    fireEvent.click(await screen.findByRole("checkbox", { name: "Show How I work" }));
+    fireEvent.click(await screen.findByRole("switch", { name: "How I work" }));
     expect(await screen.findByText(/read as one section/)).toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: "Save" })[0]).toBeDisabled();
+    expect(save()).toBeDisabled();
     expect(calls.some((c) => c.method !== "GET")).toBe(false);
   });
 
   it("puts an earlier version back", async () => {
     const calls = stub();
     page();
+    fireEvent.click(await screen.findByRole("button", { name: /Built-in defaults/ }));
     fireEvent.click(await screen.findByRole("button", { name: "Put back Built-in defaults" }));
     await waitFor(() => expect(calls.some((c) => c.url.endsWith("/revert"))).toBe(true));
     expect(calls.find((c) => c.url.endsWith("/revert"))!.body).toEqual({ version: 0, _rev: "1-abc" });
@@ -90,13 +101,17 @@ describe("/admin/settings", () => {
   it("edits sharing with a keyboard-reachable control set and saves it with the revision", async () => {
     const calls = stub();
     page();
+    await openGroup(/Sharing menu/);
     const sw = await screen.findByRole("switch", { name: "Show the share menu to visitors" });
     expect(sw).toBeChecked();
-    fireEvent.click(screen.getByRole("checkbox", { name: "Notes" }));
-    fireEvent.click(screen.getByRole("checkbox", { name: "WhatsApp" }));
-    fireEvent.change(screen.getByLabelText("Source name"), { target: { value: "site" } });
+    fireEvent.click(screen.getByRole("switch", { name: "Notes" }));
+    fireEvent.click(screen.getByRole("switch", { name: "WhatsApp" }));
+    await openGroup(/Link tags/);
+    fireEvent.change(await screen.findByLabelText("Source name"), { target: { value: "site" } });
+    await openGroup(/Share texts/);
+    fireEvent.click(await screen.findByText("English templates"));
     fireEvent.change(screen.getByLabelText("LinkedIn", { selector: "#settings-template-en-linkedin" }), { target: { value: "Seen: {title} {url}" } });
-    fireEvent.click(screen.getAllByRole("button", { name: "Save" })[0]);
+    fireEvent.click(save());
     await waitFor(() => expect(calls.some((c) => c.method === "PUT")).toBe(true));
     const put = calls.find((c) => c.method === "PUT")!;
     expect(put.body!._rev).toBe("1-abc");
@@ -110,10 +125,11 @@ describe("/admin/settings", () => {
   it("refuses a template with markup before anything is sent", async () => {
     const calls = stub();
     page();
-    await screen.findByRole("switch", { name: "Show the share menu to visitors" });
-    fireEvent.change(screen.getByLabelText("Gmail", { selector: "#settings-template-en-gmail" }), { target: { value: "<b>hi</b>" } });
+    await openGroup(/Share texts/);
+    fireEvent.click(await screen.findByText("English templates"));
+    fireEvent.change(await screen.findByLabelText("Gmail", { selector: "#settings-template-en-gmail" }), { target: { value: "<b>hi</b>" } });
     expect(await screen.findByText(/plain text: remove anything/)).toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: "Save" })[0]).toBeDisabled();
+    expect(save()).toBeDisabled();
     expect(calls.some((c) => c.method !== "GET")).toBe(false);
   });
 });

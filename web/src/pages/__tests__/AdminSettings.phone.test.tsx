@@ -4,7 +4,7 @@ import { MemoryRouter, useLocation } from "react-router-dom";
 import AdminSettings from "@/pages/AdminSettings";
 import { DEFAULT_SETTINGS, type SiteSettings } from "@/settings/schema";
 import { resetSettings } from "@/settings/store";
-import { controlsIn, factsOf, json, lang, phone, rows } from "@/components/admin/phone/__tests__/helpers";
+import { controlsIn, factsOf, json, lang, phone, rows, wide } from "@/components/admin/phone/__tests__/helpers";
 
 /*
  * /admin/settings below 600px (#682): the page's controls as a list of groups,
@@ -209,14 +209,18 @@ describe("Settings in Hebrew on a phone", () => {
   });
 });
 
-describe("Settings on a desktop", () => {
-  it("is unchanged: the full form and one card per saved version", async () => {
+describe("Settings on a wide screen", () => {
+  it("is the same list, with the open group beside it and one Save", async () => {
     undoPhone();
     undoPhone = phone(false);
+    const undoWide = wide(true);
     stub();
     page();
-    expect(await screen.findAllByRole("radio")).not.toHaveLength(0);
-    expect(rows()).toHaveLength(0);
-    expect(screen.getAllByRole("button", { name: /^Put back/ })).toHaveLength(7);
+    expect(await screen.findByRole("switch", { name: "Specs" })).toBeTruthy();
+    for (const n of [/Home page order/, /Look and feel/, /Sharing menu/, /Link tags/, /Share texts/]) expect(await group(n)).toBeTruthy();
+    expect(screen.getAllByRole("button", { name: "Save" })).toHaveLength(1);
+    expect(screen.queryByRole("button", { name: "Undo changes" })).toBeNull();
+    expect(rows().length).toBeGreaterThan(0);
+    undoWide();
   });
 });

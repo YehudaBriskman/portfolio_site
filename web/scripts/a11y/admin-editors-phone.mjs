@@ -193,15 +193,18 @@ try {
     await s.close();
   }
 
-  /* Desktop is unchanged. */
+  /* Desktop (S10): no language switch, both inputs together, groups closed but the first (a table + side panel for projects). */
   for (const [name, path] of PAGES) {
     const d = await open(1440, 900, "en", "light", path);
+    if (name === "projects") {
+      await d.page.getByRole("button", { name: "Edit", exact: true }).first().click({ force: true });
+      await d.page.waitForTimeout(800);
+    }
     const m = await d.page.evaluate(measure);
     if (m.switchRadios !== 0) fail(`${name} 1440: a language switch on a desktop`);
-    if (m.groups.length !== 0) fail(`${name} 1440: phone groups on a desktop`);
+    if (m.groups.length < 2) fail(`${name} 1440: ${m.groups.length} groups, expected closed groups to open`);
     if (m.rows !== 0) fail(`${name} 1440: phone rows on a desktop`);
     if (m.pairs === 0 || m.enInputs === 0) fail(`${name} 1440: the two language inputs are not both there`);
-    if (name === "projects" && m.sections !== 4) fail(`projects 1440: ${m.sections} sections, expected 4`);
     if (SHOTS) await shot(d.page, `${name}-1440-ltr-light`);
     await d.close();
   }
