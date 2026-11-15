@@ -183,7 +183,7 @@ await Promise.all(
         if (b.overlapCircle) fail(tag, "overlaps the menu circle");
         if (!b.inside) fail(tag, "label or chevron spills out of the chip");
         if (!b.ellipsis) fail(tag, "the label has no ellipsis");
-        if (b.linkH < 44 || b.moreW < 40) fail(tag, `targets ${b.linkH} x ${b.moreW}`);
+        if (b.linkH < 44 || b.moreW < 44) fail(tag, `targets ${b.linkH} x ${b.moreW}`);
         if (b.off) fail(tag, "chip is off screen");
         if (SHOTS && (width === 360 || key === "short")) {
           await page.screenshot({ path: `${SHOTS}/back.${lang}.${theme}.${width}.${key}.png`, timeout: 120000 });

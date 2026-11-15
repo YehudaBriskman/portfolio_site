@@ -333,7 +333,7 @@ function titleRow() {
       t: cb.top,
       b: cb.bottom,
       h: cb.height,
-      ph: chip.querySelector("[data-back-pill]")?.getBoundingClientRect().height ?? 0,
+      ph: chip.closest("[data-floating-back]")?.getBoundingClientRect().height ?? 0,
       glyphHidden: !!glyph?.closest("[aria-hidden='true']"),
       flip: glyph ? getComputedStyle(glyph).transform : "",
     },
@@ -375,7 +375,7 @@ async function titles() {
           if (!okPath) fail(where, `the chip goes to ${c.path}, want the parent ${parent}`);
           if (c.label !== c.text) fail(where, `aria-label "${c.label}" is not the visible name "${c.text}"`);
           if (!c.glyphHidden) fail(where, "the chip's arrow is not aria-hidden");
-          if (Math.abs(c.ph - 40) > 1) fail(where, `the chip is drawn ${c.ph}px tall, want 40`);
+          if (Math.abs(c.ph - 46) > 1) fail(where, `the floating chip is drawn ${c.ph}px tall, want 46 (the circle's height)`);
           if (c.h < 44 - 0.5) fail(where, `the chip link is ${c.h}px tall, want a 44px target (R5)`);
           const startGap = m.rtl ? m.vw - c.r : c.l;
           if (startGap > 24 || startGap < 0) fail(where, `the chip is ${Math.round(startGap)}px from the inline-start edge, want 0-24`);
