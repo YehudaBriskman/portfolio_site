@@ -1,11 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminShell from "@/components/admin/AdminShell";
-import OverviewPhone from "@/components/admin/overview/OverviewPhone";
-import { usePhone } from "@/hooks/usePhone";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { ICON } from "@/components/ui/icons";
-import OverviewDesktop from "@/components/admin/overview/OverviewDesktop";
+import OverviewDashboard from "@/components/admin/overview/OverviewDashboard";
 import { type PillState } from "@/components/admin/ui";
 import { useAdminWords, type AdminWords } from "@/i18n/admin";
 import { admin, type AdminCollection, type AdminPost, type McpGrant } from "@/services/admin";
@@ -107,7 +105,6 @@ function events(d: Data, w: AdminWords): Event[] {
 
 export default function AdminOverview() {
   const w = useAdminWords();
-  const phone = usePhone();
   const go = useNavigate();
   const [d, setD] = useState<Data | null>(null);
 
@@ -152,15 +149,10 @@ export default function AdminOverview() {
       <div className="a-wrap">
         <PageHeader
           title={w.overview}
-          description={phone ? undefined : w.overviewIntro}
           primary={{ id: "new", label: w.newNote, icon: ICON.add, onSelect: () => go("/admin/posts/new") }}
         />
 
-        {phone ? (
-          <OverviewPhone posts={posts} areas={areas} media={lib} grants={grants} feed={feed} loading={d === null} />
-        ) : (
-          <OverviewDesktop posts={posts} areas={areas} media={lib} grants={grants} feed={feed} loading={d === null} />
-        )}
+        <OverviewDashboard posts={posts} areas={areas} media={lib} grants={grants} feed={feed} loading={d === null} />
       </div>
     </AdminShell>
   );

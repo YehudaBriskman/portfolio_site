@@ -59,6 +59,10 @@ const ALLOWED: Record<string, { names: string[]; why: string }> = {
     names: ["shutter-tile"],
     why: "the one-time entry shutter: a page load, not a scroll",
   },
+  "components/ui/Panel.module.css": {
+    names: ["panel-expand"],
+    why: "a dashboard panel lifted to full size by the owner's key or button (#858): a reply to a press, 200ms, inside no-preference",
+  },
   "components/Contact.module.css": {
     names: ["ink-across", "ink-inward", "ink-absorb", "ink-seal"],
     why: "the form's ink: a reply to opening the dialog and to pressing Send",

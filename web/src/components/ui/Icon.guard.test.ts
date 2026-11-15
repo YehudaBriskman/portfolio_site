@@ -29,7 +29,6 @@ const LEGACY = new Set<string>([
   "src/components/admin/MediaPhone.tsx",
   "src/components/admin/noteEditor/BodyEditor.tsx",
   "src/components/admin/NotificationsMenu.tsx",
-  "src/components/admin/overview/OverviewPhone.tsx",
   "src/components/city/ContributionCity.tsx",
   "src/components/help/helpRows.tsx",
   "src/components/dashboard/AskBox.tsx",

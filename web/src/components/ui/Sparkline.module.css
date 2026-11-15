@@ -1,0 +1,18 @@
+/* A sparkline: a stroke and a soft area. Colour is never the magnitude; the shape is. */
+.spark {
+  display: block;
+  inline-size: 100%;
+  min-inline-size: 0;
+  overflow: visible;
+}
+.line {
+  fill: none;
+  stroke: rgb(var(--signal));
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.area {
+  fill: rgb(var(--signal) / 0.12);
+  stroke: none;
+}

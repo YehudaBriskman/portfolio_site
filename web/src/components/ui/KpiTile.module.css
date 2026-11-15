@@ -1,0 +1,58 @@
+/* A KPI tile: label, big number, a drawing beside it, a delta under. Logical properties only. */
+.tile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--a-s-1, 0.25rem);
+  min-inline-size: 0;
+  padding: var(--a-s-3, 0.75rem) var(--a-s-4, 1rem);
+  border: 1px solid rgb(var(--rule-firm) / 0.6);
+  border-radius: var(--a-r-box, 16px);
+  background: rgb(var(--paper-2, var(--paper)));
+  color: rgb(var(--ink));
+  text-decoration: none;
+}
+@media (hover: hover) { .tile:hover { background: rgb(var(--ink) / 0.05); } }
+.tile:focus-visible { outline: 2px solid rgb(var(--signal)); outline-offset: 2px; }
+.tile[data-tone="danger"] { border-color: rgb(var(--danger, var(--signal))); }
+
+.label {
+  display: flex;
+  align-items: center;
+  gap: var(--a-s-2, 0.5rem);
+  min-inline-size: 0;
+  color: rgb(var(--ink-soft));
+  font-size: var(--a-fs-meta, 0.875rem);
+}
+.ellipsis { min-inline-size: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--a-s-3, 0.75rem);
+  min-inline-size: 0;
+}
+.figure {
+  flex: none;
+  font-size: 1.75rem;
+  font-weight: 600;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+.draw {
+  flex: 1 1 0;
+  min-inline-size: 0;
+  max-inline-size: 7.5rem;
+  min-block-size: 1.75rem;
+  display: flex;
+  align-items: flex-end;
+}
+
+.delta {
+  min-block-size: 1.25rem;
+  color: rgb(var(--ink-soft));
+  font-size: var(--a-fs-meta, 0.875rem);
+  font-variant-numeric: tabular-nums;
+}
+.delta[data-tone="up"] { color: rgb(var(--ink)); font-weight: 600; }
+.delta[data-tone="down"] { color: rgb(var(--ink)); font-weight: 600; }

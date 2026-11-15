@@ -146,6 +146,10 @@ export const useMobileWords = defineWords(
 
       open: "Open",
       expand: "Expand",
+      maximize: "Full size",
+      minimize: "Shrink",
+      pin: "Pin",
+      unpin: "Unpin",
       copy: "Copy",
       external: "Open in new tab",
       markPosted: "Mark posted",
@@ -297,6 +301,10 @@ export const useMobileWords = defineWords(
 
       open: "פתיחה",
       expand: "הרחבה",
+      maximize: "מסך מלא",
+      minimize: "הקטנה",
+      pin: "הצמדה",
+      unpin: "ביטול הצמדה",
       copy: "העתקה",
       external: "פתיחה בלשונית חדשה",
       markPosted: "סימון כפורסם",

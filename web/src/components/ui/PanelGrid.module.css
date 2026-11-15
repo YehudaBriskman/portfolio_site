@@ -1,0 +1,28 @@
+/*
+ * The panel grid: twelve equal columns, spans set on the slot by Panel
+ * ([data-span]). Tablet (600-1023) raises any span under 6 to 6; a phone is one
+ * column. Logical properties only.
+ */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: var(--a-s-3, 0.75rem);
+  min-inline-size: 0;
+}
+
+.grid > :global([data-span="3"]) { grid-column: span 3; }
+.grid > :global([data-span="4"]) { grid-column: span 4; }
+.grid > :global([data-span="6"]) { grid-column: span 6; }
+.grid > :global([data-span="8"]) { grid-column: span 8; }
+.grid > :global([data-span="12"]) { grid-column: span 12; }
+
+@media (min-width: 600px) and (max-width: 1023px) {
+  .grid > :global([data-span="3"]),
+  .grid > :global([data-span="4"]) { grid-column: span 6; }
+  .grid > :global([data-span="8"]) { grid-column: span 12; }
+}
+
+@media (max-width: 599px) {
+  .grid { grid-template-columns: minmax(0, 1fr); }
+  .grid > :global([data-span]) { grid-column: 1 / -1; }
+}

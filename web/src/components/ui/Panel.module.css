@@ -1,0 +1,126 @@
+/*
+ * One dashboard panel. The slot is the grid item and keeps its size while the
+ * panel inside is lifted to full size, so nothing around it moves. Logical
+ * properties only. The one animation (panel-expand) is declared in the
+ * no-preference block at the bottom; under reduced motion the panel just
+ * appears. Leaving is instant (a thing that goes away does not perform).
+ */
+.slot {
+  display: flex;
+  min-inline-size: 0;
+  min-block-size: 0;
+}
+
+.panel {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-inline-size: 0;
+  border: 1px solid rgb(var(--rule-firm) / 0.6);
+  border-radius: var(--a-r-box, 16px);
+  background: rgb(var(--paper-2, var(--paper)));
+  color: rgb(var(--ink));
+  overflow: hidden;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: var(--a-s-2, 0.5rem);
+  min-block-size: 2.75rem;
+  padding-block: var(--a-s-1, 0.25rem);
+  padding-inline: var(--a-s-3, 0.75rem) var(--a-s-1, 0.25rem);
+  border-block-end: 1px solid rgb(var(--rule) / 0.8);
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  gap: var(--a-s-2, 0.5rem);
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.titleText {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meta {
+  flex: none;
+  padding-inline: var(--a-s-2, 0.5rem);
+  border-radius: var(--a-r-pill, 999px);
+  background: rgb(var(--ink) / 0.07);
+  color: rgb(var(--ink-soft));
+  font-size: var(--a-fs-meta, 0.875rem);
+  font-variant-numeric: tabular-nums;
+}
+
+.tools {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--a-s-2, 0.5rem);
+}
+
+.body {
+  flex: 1 1 auto;
+  min-block-size: 0;
+  min-inline-size: 0;
+  padding: var(--a-s-3, 0.75rem);
+  overflow: auto;
+}
+
+.note {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--a-s-2, 0.5rem);
+  color: rgb(var(--ink-soft));
+  font-size: var(--a-fs-meta, 0.875rem);
+}
+
+.skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--a-s-2, 0.5rem);
+}
+.skeleton > i {
+  display: block;
+  block-size: 0.75rem;
+  border-radius: var(--a-r-pill, 999px);
+  background: rgb(var(--ink) / 0.08);
+}
+.skeleton > i:nth-child(2) { inline-size: 80%; }
+.skeleton > i:nth-child(3) { inline-size: 55%; }
+
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 59;
+  background: rgb(var(--ink) / 0.4);
+}
+
+.panel[data-expanded="true"] {
+  position: fixed;
+  inset-block: 4rem 1rem;
+  inset-inline: max(1rem, 5vw);
+  z-index: 60;
+  box-shadow: 0 24px 64px -16px rgb(var(--ink) / 0.45);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .panel[data-expanded="true"] {
+    animation: panel-expand var(--a-dur-2, 200ms) var(--a-ease-out, cubic-bezier(0.2, 0, 0, 1)) both;
+  }
+  @keyframes panel-expand {
+    from { opacity: 0; transform: scale(0.97); }
+    to { opacity: 1; transform: none; }
+  }
+}

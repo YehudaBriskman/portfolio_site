@@ -1,0 +1,32 @@
+/* A collapsible row of panels. Snaps open and shut (no motion). Logical properties only. */
+.row { display: flex; flex-direction: column; gap: var(--a-s-2, 0.5rem); min-inline-size: 0; }
+.heading { margin: 0; font-size: inherit; }
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--a-s-2, 0.5rem);
+  min-block-size: 2.75rem;
+  padding-inline: var(--a-s-2, 0.5rem);
+  border: 0;
+  border-radius: var(--a-r-ctl, 12px);
+  background: transparent;
+  color: rgb(var(--ink-soft));
+  font: inherit;
+  font-size: var(--a-fs-meta, 0.875rem);
+  font-weight: 600;
+  text-align: start;
+  cursor: pointer;
+}
+@media (hover: hover) { .toggle:hover { background: rgb(var(--ink) / 0.05); color: rgb(var(--ink)); } }
+.toggle:focus-visible { outline: 2px solid rgb(var(--signal)); outline-offset: 2px; }
+.chevron { flex: none; }
+.row[data-open="true"] .chevron { transform: rotate(90deg); }
+:global([dir="rtl"]) .row[data-open="true"] .chevron { transform: rotate(90deg); }
+.title { min-inline-size: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.count {
+  padding-inline: var(--a-s-2, 0.5rem);
+  border-radius: var(--a-r-pill, 999px);
+  background: rgb(var(--ink) / 0.07);
+  font-variant-numeric: tabular-nums;
+}
+.body[hidden] { display: none; }

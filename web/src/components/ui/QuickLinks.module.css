@@ -1,0 +1,33 @@
+/* Quick-link tiles: an icon and a short word, 2.75rem tall, wrapped in a grid. Logical properties only. */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr));
+  gap: var(--a-s-2, 0.5rem);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.tile {
+  display: flex;
+  align-items: center;
+  gap: var(--a-s-2, 0.5rem);
+  inline-size: 100%;
+  min-block-size: 2.75rem;
+  min-inline-size: 0;
+  padding-inline: var(--a-s-3, 0.75rem);
+  border: 1px solid rgb(var(--rule-firm) / 0.6);
+  border-radius: var(--a-r-ctl, 12px);
+  background: transparent;
+  color: rgb(var(--ink));
+  font: inherit;
+  font-size: var(--a-fs-meta, 0.875rem);
+  text-align: start;
+  text-decoration: none;
+  cursor: pointer;
+}
+@media (hover: hover) { .tile:hover { background: rgb(var(--ink) / 0.05); } }
+.tile:focus-visible { outline: 2px solid rgb(var(--signal)); outline-offset: 2px; }
+.tile[aria-pressed="true"] { border-color: rgb(var(--signal)); background: rgb(var(--signal) / 0.1); }
+.label { flex: 1 1 auto; min-inline-size: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pin { flex: none; color: rgb(var(--ink-soft)); }
+.none { margin: 0; color: rgb(var(--ink-soft)); font-size: var(--a-fs-meta, 0.875rem); }
