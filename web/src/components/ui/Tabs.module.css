@@ -1,0 +1,135 @@
+/*
+ * Tabs. The current tab is a soft fill and a 2px bar, never bold, never a ring
+ * (A3): every tab is weight 500 in every state, so a change never moves the
+ * layout. Hit area 44px on a coarse pointer. The strip scrolls sideways when it
+ * must, with a fade on the edge that has more, and never cuts a word: a label
+ * ends in an ellipsis at max-inline-size. Motion only inside no-preference.
+ */
+.tabs {
+  display: flex;
+  gap: var(--a-s-1, 0.25rem);
+  min-inline-size: 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  border-block-end: 1px solid var(--a-line);
+}
+
+.tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.tabs[data-edge-end] {
+  mask-image: linear-gradient(to right, #000 calc(100% - 1.5rem), transparent);
+}
+
+.tabs[data-edge-start] {
+  mask-image: linear-gradient(to right, transparent, #000 1.5rem);
+}
+
+.tabs[data-edge-start][data-edge-end] {
+  mask-image: linear-gradient(to right, transparent, #000 1.5rem, #000 calc(100% - 1.5rem), transparent);
+}
+
+:global([dir='rtl']) .tabs[data-edge-end] {
+  mask-image: linear-gradient(to left, #000 calc(100% - 1.5rem), transparent);
+}
+
+:global([dir='rtl']) .tabs[data-edge-start] {
+  mask-image: linear-gradient(to left, transparent, #000 1.5rem);
+}
+
+:global([dir='rtl']) .tabs[data-edge-start][data-edge-end] {
+  mask-image: linear-gradient(to left, transparent, #000 1.5rem, #000 calc(100% - 1.5rem), transparent);
+}
+
+.tab {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--a-s-2, 0.5rem);
+  box-sizing: border-box;
+  max-inline-size: 16rem;
+  min-block-size: 2.5rem;
+  margin-block-end: -1px;
+  padding-inline: var(--a-s-3, 0.75rem);
+  border: 0;
+  border-start-start-radius: var(--a-r-ctl, 12px);
+  border-start-end-radius: var(--a-r-ctl, 12px);
+  background: transparent;
+  color: rgb(var(--ink-soft));
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.2;
+  white-space: nowrap;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+@media (pointer: coarse) {
+  .tab {
+    min-block-size: 2.75rem;
+  }
+}
+
+.tab::after {
+  content: '';
+  position: absolute;
+  inset-inline: var(--a-s-2, 0.5rem);
+  inset-block-end: 0;
+  block-size: 2px;
+  border-radius: 2px 2px 0 0;
+  background: rgb(var(--signal));
+  scale: 0 1;
+}
+
+@media (hover: hover) {
+  .tab:hover {
+    background: var(--a-hover);
+    color: rgb(var(--ink));
+  }
+}
+
+.tab[aria-selected='true'] {
+  background: var(--a-press);
+  color: rgb(var(--ink));
+}
+
+.tab[aria-selected='true']::after {
+  scale: 1 1;
+}
+
+.tab:focus-visible {
+  outline: 2px solid rgb(var(--signal));
+  outline-offset: -2px;
+}
+
+.glyph {
+  flex: none;
+  inline-size: var(--ctl-icon-sm, 16px);
+  block-size: var(--ctl-icon-sm, 16px);
+}
+
+.text {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.count {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+  color: rgb(var(--ink-soft));
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .tab {
+    transition: background-color var(--a-dur-fast) var(--a-ease-out), color var(--a-dur-fast) var(--a-ease-out);
+  }
+
+  .tab::after {
+    transition: scale var(--a-dur-base) var(--a-ease-out);
+  }
+}
