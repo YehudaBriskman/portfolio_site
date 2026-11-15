@@ -11,6 +11,10 @@
 .summary,
 .button {
   display: flex;
+  /* A label too wide for what the chevron leaves wraps the ROW (it drops under
+     the chevron at full width) instead of the word breaking letter by letter at
+     large text sizes. */
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem;
   inline-size: 100%;
@@ -85,8 +89,14 @@
 
 .label {
   min-inline-size: 0;
+  max-inline-size: 100%;
   flex: 1 1 auto;
-  overflow-wrap: anywhere;
+  /* Words never break: a word wider than the row is cut with an ellipsis (the
+     full text is still the accessible name). */
+  overflow: hidden;
+  overflow-wrap: normal;
+  word-break: normal;
+  text-overflow: ellipsis;
 }
 
 .meta {

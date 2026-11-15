@@ -913,7 +913,18 @@
     flex-wrap: wrap;
     gap: 8px;
   }
+  .tagList > li {
+    min-width: 0;
+    max-inline-size: 100%;
+  }
+  /* a tag wider than the screen (large text) is cut with an ellipsis, never
+     drawn past the edge or broken mid-word */
   .tagList :global(.tag-pill) {
+    display: block;
+    max-inline-size: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     border: 0;
     background: rgb(var(--wash-blue) / 0.9);
     color: color-mix(in srgb, rgb(var(--hue-blue)), var(--ph-toward) var(--ph-text-pct));

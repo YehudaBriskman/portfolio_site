@@ -285,7 +285,8 @@
     justify-content: center;
     gap: 10px;
     box-sizing: border-box;
-    min-width: 11rem;
+    min-width: min(11rem, calc(100vw - 6rem));
+    max-inline-size: 100%;
     min-height: 44px;
     padding-inline: 24px;
     border-radius: var(--r-pill);

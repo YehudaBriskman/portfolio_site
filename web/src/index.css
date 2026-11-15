@@ -2257,6 +2257,9 @@
     letter-spacing: 0;
     line-height: 1;
     white-space: nowrap;
+    /* never wider than its row: at large text a long word may break, as a last resort */
+    max-inline-size: 100%;
+    overflow-wrap: anywhere;
     transition: background-color var(--dur-micro) ease, color var(--dur-micro) ease,
                 border-color var(--dur-micro) ease, transform var(--dur-fast) var(--ease-settle);
   }

@@ -8,6 +8,9 @@
   font-weight: 500;
   line-height: 1;
   white-space: nowrap;
+  /* never wider than its row: the value shortens with an ellipsis instead */
+  min-inline-size: 0;
+  max-inline-size: 100%;
 }
 
 .icon {
@@ -17,6 +20,9 @@
 }
 
 .value {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-variant-numeric: tabular-nums;
   /* A number is a run of its own: it keeps its order inside a Hebrew line. */
   unicode-bidi: isolate;
