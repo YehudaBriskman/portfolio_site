@@ -26,11 +26,18 @@
 .form {
   margin-block-start: 1.25rem;
   display: grid;
+  /* one track that may shrink: an input's own width must not stretch the form
+     past the screen at large text */
+  grid-template-columns: minmax(0, 1fr);
   gap: 1rem;
 }
 
 .label {
   display: block;
+  /* a word wider than the column (large text) is cut with an ellipsis, not split */
+  overflow: hidden;
+  overflow-wrap: normal;
+  text-overflow: ellipsis;
   font-size: 0.875rem;
   color: rgb(var(--ink-soft));
 }
@@ -87,6 +94,9 @@
   align-items: center;
   gap: 0.625rem;
   min-block-size: var(--tap);
+  /* wraps its own words inside the row instead of running past the screen */
+  min-inline-size: 0;
+  max-inline-size: 100%;
   cursor: pointer;
   color: rgb(var(--ink));
 }
@@ -96,6 +106,7 @@
   inline-size: var(--tap-floor);
   block-size: var(--tap-floor);
   margin: 0;
+  flex: none;
   accent-color: rgb(var(--ink));
 }
 

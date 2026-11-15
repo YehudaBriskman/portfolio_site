@@ -150,7 +150,7 @@
 
 .rowTitle {
   min-width: 0;
-  flex: 1 1 16rem;
+  flex: 1 1 min(16rem, 100%);
   font-weight: 600;
 }
 

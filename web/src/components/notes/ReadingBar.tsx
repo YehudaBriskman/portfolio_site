@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState, type RefObject } from "react";
+import { useFooterReached } from "@/hooks/useFooterReached";
 import { Link } from "react-router-dom";
 import { ListTree, Minus, Pencil, Plus, Type } from "lucide-react";
 import { Icon } from "@/components/ui/Icon";
@@ -71,6 +72,8 @@ export default function ReadingBar({
   /* Down tucks the bar away, up brings it back; the top of the note and any
      focus inside it show it (phones; the bar is not drawn from 640px up). */
   const [tucked, setTucked] = useState(false);
+  /* The footer reaching the bar sends it away too, and takes it out of the tab order. */
+  const footerReached = useFooterReached();
   const [sizeOpen, setSizeOpen] = useState(false);
   const sizeId = useId();
   /*
@@ -201,7 +204,9 @@ export default function ReadingBar({
       <div
         className={styles.bar}
         data-phone="reader-bar"
-        data-tucked={tucked && !focused && !sizeOpen ? "" : undefined}
+        data-tucked={(tucked && !focused && !sizeOpen) || footerReached ? "" : undefined}
+        inert={footerReached || undefined}
+        aria-hidden={footerReached || undefined}
         onFocus={(e) => {
           /* A keyboard focus holds the bar open (WCAG 2.4.11); a tap does not
              (`data-input` is the site's modality tracker, R21). */

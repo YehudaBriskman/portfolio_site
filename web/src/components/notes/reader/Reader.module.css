@@ -763,7 +763,9 @@
     align-items: stretch;
     gap: 8px;
     pointer-events: none;
-    transition: transform var(--dur-fast, 160ms) var(--ease-settle, ease-out);
+    transition:
+      transform var(--dur-fast, 160ms) var(--ease-settle, ease-out),
+      opacity var(--dur-fast, 160ms) ease;
   }
   @media (prefers-reduced-motion: reduce) {
     .bar {
@@ -772,6 +774,7 @@
   }
   .bar[data-tucked] {
     transform: translateY(calc(100% + 24px + env(safe-area-inset-bottom, 0px)));
+    opacity: 0;
   }
   .barPill,
   .sizePanel {
@@ -913,7 +916,18 @@
     flex-wrap: wrap;
     gap: 8px;
   }
+  .tagList > li {
+    min-width: 0;
+    max-inline-size: 100%;
+  }
+  /* a tag wider than the screen (large text) is cut with an ellipsis, never
+     drawn past the edge or broken mid-word */
   .tagList :global(.tag-pill) {
+    display: block;
+    max-inline-size: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     border: 0;
     background: rgb(var(--wash-blue) / 0.9);
     color: color-mix(in srgb, rgb(var(--hue-blue)), var(--ph-toward) var(--ph-text-pct));

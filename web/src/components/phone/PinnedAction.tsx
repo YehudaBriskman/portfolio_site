@@ -2,6 +2,7 @@ import { useEffect, type ReactNode } from "react";
 /* Dock first: its stylesheet then comes before the kit's, so the kit's
    `.pinned` (display: none above 640px) outranks the Dock's `display: flex`. */
 import { Dock } from "@/components/ui/Dock";
+import { useFooterReached } from "@/hooks/useFooterReached";
 import "@/components/phone/tokens.css";
 import styles from "@/components/phone/phone.module.css";
 
@@ -26,8 +27,10 @@ export default function PinnedAction({ href, label, children }: { href: string; 
     root.setAttribute("data-has-pinned", "");
     return () => root.removeAttribute("data-has-pinned");
   }, []);
+  /* Gone (slides down, fades, and cannot be tabbed to) once the footer reaches it. */
+  const away = useFooterReached();
   return (
-    <Dock label={label} className={styles.pinned} data-phone-pinned="">
+    <Dock label={label} className={styles.pinned} data-phone-pinned="" data-away={away ? "" : undefined} inert={away || undefined} aria-hidden={away || undefined}>
       <a href={href} className={styles.pinnedLink} data-phone="pinned-action" rel="noopener noreferrer">
         {children}
       </a>

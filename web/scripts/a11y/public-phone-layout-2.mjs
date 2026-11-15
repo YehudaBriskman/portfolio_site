@@ -96,6 +96,19 @@ const probeHeader = () => {
     kidsOverlap: kids.some((a, i) => kids.some((b, j) => j > i && overlap(a, b))),
     shareInside: share.left >= hb.left - 1 && share.right <= hb.right + 1,
     colInside: col.left >= hb.left - 1 && col.right <= hb.right + 1,
+    /* the title column holds ~10 characters, or the header has stacked (tile and
+       share on a row above, the title full width under them) */
+    colW: Math.round(col.width),
+    fontPx: parseFloat(getComputedStyle(h1El).fontSize),
+    stacked: col.top >= kids[0].bottom - 1,
+    cardInner: Math.round(hb.width - 32),
+    hOverflow: h1El.scrollWidth > h1El.clientWidth + 1,
+    dockOverTitle: (() => {
+      const d = document.querySelector("[data-phone-pinned]");
+      if (!d) return false;
+      const dr = d.getBoundingClientRect();
+      return getComputedStyle(d).position === "fixed" && overlap(dr, h1) && h1.top >= 0 && h1.top < innerHeight;
+    })(),
   };
 };
 
@@ -126,6 +139,28 @@ const probeBack = () => {
   };
 };
 
+/* The two gaps around the back chip's label: chevron | label and label | divider.
+   Measured on the text itself (a Range), so a padding that is not symmetric, or one
+   that flips with the label's own direction, shows. Runs in the page. */
+const probeGaps = () => {
+  const f = document.querySelector("[data-floating-back]");
+  const pill = f?.querySelector("[data-back-pill]");
+  const g = f?.querySelector("svg");
+  const m = f?.querySelector("[data-back-menu]");
+  if (!f || !pill || !g || !m) return { none: true };
+  const r = document.createRange();
+  r.selectNodeContents(pill);
+  const t = r.getBoundingClientRect();
+  const gb = g.getBoundingClientRect();
+  const mb = m.getBoundingClientRect();
+  const ltr = gb.left < mb.left;
+  return {
+    ltr,
+    toGlyph: Math.round((ltr ? t.left - gb.right : gb.left - t.right) * 10) / 10,
+    toDivider: Math.round((ltr ? mb.left - t.right : t.left - mb.right) * 10) / 10,
+  };
+};
+
 const combos = [];
 for (const width of WIDTHS) for (const lang of LANGS) for (const theme of THEMES) combos.push({ width, lang, theme });
 
@@ -134,6 +169,31 @@ await Promise.all(
     const mk = async (h) => {
       const ctx = await browser.newContext({ viewport: { width, height: h }, hasTouch: true, isMobile: true, reducedMotion: "reduce", colorScheme: theme, locale: lang === "he" ? "he-IL" : "en-US" });
       await ctx.addInitScript((t) => { try { localStorage.setItem("theme", t); } catch { /* blocked */ } }, theme);
+      /* This Chromium never delivers IntersectionObserver callbacks (they ride on a
+         frame, and there is none), so the page gets a synchronous stand-in that
+         answers on scroll and resize from getBoundingClientRect, honouring the
+         bottom rootMargin. It tests the page's wiring, not the browser's observer. */
+      await ctx.addInitScript(() => {
+        class SyncIO {
+          constructor(cb, o = {}) {
+            this.cb = cb;
+            this.bottom = parseFloat(String(o.rootMargin ?? "0px").split(/\s+/)[2] ?? "0") || 0;
+            this.els = new Set();
+            this.last = new Map();
+            this.run = () => this.els.forEach((el) => {
+              const r = el.getBoundingClientRect();
+              const hit = r.top < innerHeight + this.bottom && r.bottom > 0;
+              if (this.last.get(el) !== hit) { this.last.set(el, hit); this.cb([{ target: el, isIntersecting: hit }], this); }
+            });
+            addEventListener("scroll", this.run, { passive: true });
+            addEventListener("resize", this.run);
+          }
+          observe(el) { this.els.add(el); this.run(); }
+          unobserve(el) { this.els.delete(el); }
+          disconnect() { this.els.clear(); removeEventListener("scroll", this.run); removeEventListener("resize", this.run); }
+        }
+        window.IntersectionObserver = SyncIO;
+      });
       return ctx;
     };
     const pre = lang === "he" ? "/he" : "";
@@ -146,13 +206,18 @@ await Promise.all(
       await page.goto(base.base + pre + "/projects/windom", { waitUntil: "load" });
       await settle(page);
       for (const [key, text] of Object.entries(TITLES)) {
-        for (const zoom of [1, 2]) {
+        for (const zoom of [1, 1.5, 2, 3]) {
           const tag = `header ${lang} ${theme} ${width} ${key} x${zoom}`;
           await page.evaluate(([t, z]) => {
+            scrollTo(0, 0);
             document.querySelector('[data-phone-card="header"] h1').textContent = t;
-            document.documentElement.style.fontSize = `${16 * z}px`;
+            let st = document.getElementById("zoom-probe");
+            if (!st) { st = document.createElement("style"); st.id = "zoom-probe"; document.head.append(st); }
+            /* No frame clock here: a transition (even the 0.01ms reduced-motion one) never
+               finishes, so computed sizes stay at their start value. Switch them off. */
+            st.textContent = `*,*::before,*::after{transition:none !important;animation:none !important}html{font-size:${17 * z}px !important}`;
           }, [text, zoom]);
-          await page.waitForTimeout(150);
+          await page.waitForTimeout(250);
           const r = await page.evaluate(probeHeader);
           if (r.none) { fail(tag, "no header"); continue; }
           if (r.overflow) fail(tag, "horizontal overflow");
@@ -160,12 +225,19 @@ await Promise.all(
           if (r.below < 0 || r.pillOverTitle) fail(tag, `status chip overlaps the title (${r.below}px under it)`);
           if (r.kidsOverlap) fail(tag, "tile, name and share overlap");
           if (!r.shareInside || !r.colInside) fail(tag, "share or name falls outside the card");
+          if (!r.stacked && r.colW < r.fontPx * 5.5) fail(tag, `title column ${r.colW}px holds fewer than ~10 characters at ${r.fontPx}px and the header did not stack`);
+          if (r.stacked && r.colW < r.cardInner - 2) fail(tag, `stacked title is ${r.colW}px, not the full ${r.cardInner}px`);
+          if (r.hOverflow) fail(tag, "the title overflows its box sideways");
+          if (r.dockOverTitle) fail(tag, "the fixed Dock covers the title");
           if (SHOTS && (zoom === 1 || key === "long")) {
             await page.locator('[data-phone-card="header"]').screenshot({ path: `${SHOTS}/head.${lang}.${theme}.${width}.${key}.x${zoom}.png`, timeout: 120000 });
           }
         }
       }
-      await page.evaluate(() => { document.documentElement.style.fontSize = ""; });
+      /* back to normal size, but keep transitions off: with no frame clock a transition
+         started by removing the override would stay half way for ever */
+      await page.evaluate(() => { const st = document.getElementById("zoom-probe"); if (st) st.textContent = "*,*::before,*::after{transition:none !important;animation:none !important}"; });
+      await page.waitForTimeout(150);
 
       for (const [key, name] of Object.entries(LONG_NAMES)) {
         const tag = `back ${lang} ${theme} ${width} ${key}`;
@@ -188,6 +260,69 @@ await Promise.all(
         if (SHOTS && (width === 360 || key === "short")) {
           await page.screenshot({ path: `${SHOTS}/back.${lang}.${theme}.${width}.${key}.png`, timeout: 120000 });
         }
+      }
+
+      /* The label sits centred between the chevron and the divider, in either
+         direction, for a short name in either language (and an English one in Hebrew). */
+      for (const [key, name] of Object.entries({ en: "WindoM", he: "פרויקטים" })) {
+        const tag = `back gaps ${lang} ${theme} ${width} ${key}`;
+        await page.evaluate(() => scrollTo(0, 0));
+        await page.evaluate((n) => { document.querySelector("[data-back-pill]").textContent = n; }, name);
+        const gp = await page.evaluate(probeGaps);
+        if (gp.none) fail(tag, "no back chip");
+        else if (Math.abs(gp.toGlyph - gp.toDivider) > 1) fail(tag, `label to chevron ${gp.toGlyph}px, label to divider ${gp.toDivider}px`);
+        else if (gp.toGlyph < 8) fail(tag, `label is ${gp.toGlyph}px from the chevron, want >= 8`);
+        if (SHOTS && width === 360 && theme === "light") {
+          await page.locator("[data-floating-back]").screenshot({ path: `${SHOTS}/chip.${lang}.${key}.${width}.png`, timeout: 120000 });
+        }
+      }
+
+      /* The back chip tucks and returns with the circle menu: one state (Nav's
+         data-bar-tucked), so the same moment. Scroll events are sent by hand
+         (no frame clock here to deliver them). */
+      {
+        const tag = `back tuck ${lang} ${theme} ${width}`;
+        const read = () => page.evaluate(() => ({
+          root: document.documentElement.hasAttribute("data-bar-tucked"),
+          chip: getComputedStyle(document.querySelector("[data-floating-back]")).opacity,
+          circle: getComputedStyle(document.querySelector('button[aria-controls="nav-menu"]')).opacity,
+        }));
+        await page.evaluate(() => { scrollTo(0, 0); dispatchEvent(new Event("scroll")); });
+        await page.evaluate(() => { scrollTo(0, 400); dispatchEvent(new Event("scroll")); });
+        await page.evaluate(() => { scrollTo(0, 900); dispatchEvent(new Event("scroll")); });
+        await page.waitForTimeout(300);
+        const down = await read();
+        if (!down.root || down.chip !== "0" || down.circle !== "0") fail(tag, `scrolling down: tucked=${down.root}, chip opacity ${down.chip}, circle opacity ${down.circle}`);
+        await page.evaluate(() => { scrollTo(0, 700); dispatchEvent(new Event("scroll")); });
+        await page.waitForTimeout(300);
+        const up = await read();
+        if (up.root || up.chip !== "1" || up.circle !== "1") fail(tag, `scrolling up: tucked=${up.root}, chip opacity ${up.chip}, circle opacity ${up.circle}`);
+      }
+
+      /* The pinned Dock leaves when the footer reaches it and returns on the way
+         back up. Polled by hand (no rAF); see the observer stand-in in `mk`. */
+      {
+        const tag = `dock footer ${lang} ${theme} ${width}`;
+        const state = () => page.evaluate(() => {
+          const d = document.querySelector("[data-phone-pinned]");
+          return d ? { away: d.hasAttribute("data-away"), inert: d.inert, hidden: d.getAttribute("aria-hidden"), opacity: getComputedStyle(d).opacity } : null;
+        });
+        const until = async (want, ms) => {
+          for (let t = 0; t < ms; t += 500) {
+            const s = await state();
+            if (s && s.away === want) return s;
+            await page.waitForTimeout(500);
+          }
+          return state();
+        };
+        const before = await state();
+        if (!before || before.away) fail(tag, "the dock is not shown before the footer");
+        await page.evaluate(() => { scrollTo(0, document.documentElement.scrollHeight); dispatchEvent(new Event("scroll")); });
+        const end = await until(true, 10000);
+        if (!end?.away || !end.inert || end.hidden !== "true" || end.opacity !== "0") fail(tag, `at the footer: ${JSON.stringify(end)}`);
+        await page.evaluate(() => { scrollTo(0, 0); dispatchEvent(new Event("scroll")); });
+        const back = await until(false, 10000);
+        if (back?.away || back?.inert || back?.opacity !== "1") fail(tag, `back at the top: ${JSON.stringify(back)}`);
       }
 
       {

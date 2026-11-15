@@ -467,6 +467,7 @@ a.listRow:hover .listTitle {
    breakpoint); the tokens are `components/phone/tokens.css`. */
 @media (max-width: 639px) {
   .phoneHead {
+    container: phonehead / inline-size;
     position: relative;
     isolation: isolate;
     display: flex;
@@ -570,6 +571,46 @@ a.listRow:hover .listTitle {
     text-align: start;
     text-wrap: balance;
     overflow-wrap: break-word;
+  }
+  /* The header never collapses (text zoom, a long name). The tile (56) and the
+     share button (44) and two 12px gaps take 124px; if what is left cannot hold
+     about ten characters of the title (5.5em, and the title is at most
+     1.625rem, so 9rem), it stacks: tile and share on one row, the title full
+     width under them and the status chip under that. Measured against the
+     header's own width in rem, so it follows the text size, not the viewport.
+     Only then may an unbroken long word break anywhere: the last resort. */
+  @container phonehead (width < calc(124px + 9rem)) {
+    .phoneTop {
+      grid-template-columns: auto 1fr;
+      grid-template-areas:
+        "tile share"
+        "name name";
+      row-gap: 12px;
+    }
+    .phoneShare {
+      justify-self: end;
+      align-self: center;
+      margin-block-start: 0;
+    }
+    .phoneTitle {
+      overflow-wrap: anywhere;
+      hyphens: auto;
+    }
+  }
+  /* The Dock floats over the bottom of the screen. When the text is so large
+     that the page is under 18rem wide (about 150% on a 360px phone) the title
+     can run down behind it, so it stops floating and sits in the flow, after
+     the page. The slot has no height of its own, so at normal size it is
+     invisible and the Dock stays fixed. */
+  .pinSlot {
+    container: pinslot / inline-size;
+    inline-size: 100%;
+  }
+  @container pinslot (width < 18rem) {
+    .pinSlot > [data-phone-pinned] {
+      position: static;
+      margin-block: 1rem calc(1rem + env(safe-area-inset-bottom, 0px));
+    }
   }
   .phoneTagline {
     margin: 0;

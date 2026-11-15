@@ -308,9 +308,11 @@ describe("every animation on the site is scrubbed by scroll (#162)", () => {
      * is almost always a fire-once reveal on its way in; it belongs on a view
      * timeline instead. `ParticleWord` watches whether the hero is on screen so
      * its energy lines stop drawing when it is not: again both directions, a
-     * cost saving, not a reveal.
+     * cost saving, not a reveal. `useFooterReached` sends the bottom Dock away
+     * while the footer is near and brings it back: state, both directions,
+     * nothing is revealed once.
      */
     const users = TS_FILES.filter((f) => /new IntersectionObserver\(/.test(readFileSync(f, "utf8"))).map(rel).sort();
-    expect(users).toEqual(["components/hero/ParticleWord.tsx", "components/motion/Written.tsx", "components/nav/useDarkChrome.ts"]);
+    expect(users).toEqual(["components/hero/ParticleWord.tsx", "components/motion/Written.tsx", "components/nav/useDarkChrome.ts", "hooks/useFooterReached.ts"]);
   });
 });

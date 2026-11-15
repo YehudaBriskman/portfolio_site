@@ -589,12 +589,6 @@ export default function Project() {
 
   return (
     <PageShell>
-      {phone && pin && c && (
-        <PinnedAction href={pin.url} label={c.title}>
-          {pin.label}
-          <ArrowUpRight size={18} aria-hidden="true" />
-        </PinnedAction>
-      )}
       <DashboardShell railLabel={t.browse} rail={rail} asideLabel={t.about} aside={aside} head={phone ? phoneHead : wideHead} back={{ to: "/projects", label: t.backToWork, gap: "calc(2px - 2rem)" }}>
         {/* One H1 in every state, including this one — the heading order must
             not depend on how far a fetch got. */}
@@ -876,6 +870,14 @@ export default function Project() {
           </div>
         )}
       </DashboardShell>
+      {phone && pin && c && (
+        <div className={styles.pinSlot}>
+          <PinnedAction href={pin.url} label={c.title}>
+            {pin.label}
+            <ArrowUpRight size={18} aria-hidden="true" />
+          </PinnedAction>
+        </div>
+      )}
     </PageShell>
   );
 }
