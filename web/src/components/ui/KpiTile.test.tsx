@@ -19,7 +19,7 @@ describe("KpiTile", () => {
     expect(link.textContent).toContain("Posts");
     expect(link.textContent).toContain("12");
     expect(link.textContent).toContain("+3");
-    expect(link.getAttribute("aria-label")).toBe("Posts: 12, 3 more than last month");
+    expect(link.getAttribute("data-kpi-name")).toBe("Posts 12 +3, 3 more than last month");
   });
 
   it("draws a sparkline only from real values", () => {

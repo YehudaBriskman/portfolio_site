@@ -35,9 +35,9 @@ export interface KpiTileProps {
 }
 
 export function KpiTile({ to, icon, label, value, delta, series, tone = "neutral", children }: KpiTileProps) {
-  const name = `${label}: ${value}${delta ? `, ${delta.label}` : ""}`;
+  const name = `${label} ${value}${delta ? ` ${delta.text}, ${delta.label}` : ""}`;
   return (
-    <Link to={to} className={styles.tile} aria-label={name} data-tone={tone}>
+    <Link to={to} className={styles.tile} data-kpi-name={name} data-tone={tone}>
       <span className={styles.label}>
         <Icon icon={icon} size={16} aria-hidden="true" />
         <span className={styles.ellipsis}>{label}</span>

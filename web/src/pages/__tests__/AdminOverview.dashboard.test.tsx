@@ -103,7 +103,7 @@ describe("the Overview dashboard", () => {
       ["Inbox", "/admin/marketing"], ["Drafts", "/admin/posts?status=draft"], ["Failed", "/admin/marketing?tab=campaigns"],
     ];
     for (const [name, href] of tiles) {
-      const a = screen.getAllByRole("link").find((l) => l.getAttribute("aria-label")?.startsWith(`${name}:`));
+      const a = screen.getAllByRole("link").find((l) => l.getAttribute("data-kpi-name")?.startsWith(`${name} `));
       expect(a, name).toBeTruthy();
       expect(a!.getAttribute("href")).toBe(href);
     }
@@ -138,11 +138,11 @@ describe("the Overview dashboard", () => {
     api();
     page();
     await screen.findByRole("region", { name: "Needs you" });
-    const media = screen.getAllByRole("link").find((l) => l.getAttribute("aria-label")?.startsWith("Media:"))!;
+    const media = screen.getAllByRole("link").find((l) => l.getAttribute("data-kpi-name")?.startsWith("Media "))!;
     expect(media.querySelector("svg[role=img]")).toBeTruthy();
-    const posts = screen.getAllByRole("link").find((l) => l.getAttribute("aria-label")?.startsWith("Posts:"))!;
+    const posts = screen.getAllByRole("link").find((l) => l.getAttribute("data-kpi-name")?.startsWith("Posts "))!;
     expect(posts.querySelector("svg[role=img]")).toBeTruthy();
-    const inbox = screen.getAllByRole("link").find((l) => l.getAttribute("aria-label")?.startsWith("Inbox:"))!;
+    const inbox = screen.getAllByRole("link").find((l) => l.getAttribute("data-kpi-name")?.startsWith("Inbox "))!;
     expect(inbox.querySelector("svg[role=img]")).toBeNull();
   });
 
@@ -150,8 +150,8 @@ describe("the Overview dashboard", () => {
     api({ fail: ["/api/admin/media"] });
     page();
     await screen.findByRole("region", { name: "Needs you" });
-    const media = screen.getAllByRole("link").find((l) => l.getAttribute("aria-label")?.startsWith("Media:"))!;
-    expect(media.getAttribute("aria-label")).toBe("Media: —");
+    const media = screen.getAllByRole("link").find((l) => l.getAttribute("data-kpi-name")?.startsWith("Media "))!;
+    expect(media.getAttribute("data-kpi-name")).toBe("Media —");
   });
 
   it("has a Recent activity panel with changes, a Campaigns panel and a Quick links panel", async () => {
