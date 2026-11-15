@@ -25,7 +25,8 @@ import SuppressionPanel from "./SuppressionPanel";
 import { useAudienceWords } from "./words";
 
 /* What is open beside the list. `n` makes a reopened panel a fresh form, so edits abandoned earlier never come back. */
-type Panel = { kind: "add"; n: number } | { kind: "edit"; contact: Contact; n: number };
+type Wanted = { kind: "add" } | { kind: "edit"; contact: Contact };
+type Panel = Wanted & { n: number };
 
 /* Only what keeps a person from being mailed draws a glyph: mailable is the normal case and says nothing (A6). */
 const SHOWN: ReadonlySet<ContactStatus> = new Set(["pending", "unsubscribed", "suppressed"]);
@@ -102,7 +103,7 @@ export default function AudienceDesktop() {
   const reload = () => (setError(null), setTick((n) => n + 1));
   const closePanel = () => setPanelOpen(false);
   const refreshed = () => (closePanel(), loadGroups(), reload());
-  const openPanel = async (next: Omit<Panel, "n">) => {
+  const openPanel = async (next: Wanted) => {
     /* Another row while edits are unsaved asks the same question closing does. */
     if (panelOpen && leave.current && !(await leave.current())) return;
     setPanel({ ...next, n: ++panels.current } as Panel);
