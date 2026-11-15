@@ -111,7 +111,7 @@ export default function SettingsPhone({ draft, view, edit, toggle, move, issues,
                 <div className="min-w-0 flex-1">
                   {sw(`settings-${s.id}-visible`, name, s.visible, (v) => edit((x) => void (x.home.sections[i].visible = v)), false, issue ? issueText(w, issue.message) : null)}
                 </div>
-                <span className="flex gap-1 pe-2">
+                <span className="flex gap-2 pe-2">
                   <button type="button" id={`settings-${s.id}-up`} className="a-btn a-btn-ghost a-icon-btn" aria-label={w.moveUp(name)} disabled={i === 0} onClick={() => move(i, -1)}>
                     <Icon icon={ICON.expand} className="rotate-180" aria-hidden="true" />
                   </button>
