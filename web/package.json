@@ -28,6 +28,7 @@
     "a11y:admin-editors-phone": "node scripts/a11y/admin-editors-phone.mjs",
     "a11y:admin-media-phone": "node scripts/a11y/admin-media-phone.mjs",
     "a11y:admin-sidebar": "node scripts/a11y/admin-sidebar.mjs",
+    "a11y:admin-palette": "node scripts/a11y/admin-palette.mjs",
     "a11y:admin-rules": "node scripts/a11y/admin-rules.mjs",
     "a11y:admin-equal": "node scripts/a11y/admin-equal-siblings.mjs",
     "a11y:admin-reflow": "node scripts/a11y/admin-reflow.mjs",

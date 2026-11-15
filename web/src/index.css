@@ -2781,6 +2781,15 @@
     --a-ease-in: cubic-bezier(.4, 0, 1, 1);
     --a-ease-spring: linear(0, .22 6%, .6 14%, .88 24%, 1.02 36%, 1.025 46%, 1.01 60%, 1);
   }
+  /* The admin's exit and press tokens (docs/admin-motion-and-behavior.md M2, M8).
+     A thing that leaves is about 30% shorter than it arrived (120 / 180 / 280
+     in, 90 / 125 / 195 out) and accelerates; every control presses to the one
+     scale. The `-fast`, `-base` and `-sheet` suffixes pair with `--a-dur-*`. */
+  :root {
+    --a-dur-exit-fast: 90ms; --a-dur-exit-base: 125ms; --a-dur-exit-sheet: 195ms;
+    --a-ease-exit: var(--a-ease-in);
+    --a-press-scale: .98;
+  }
 
   /* The admin's tokens. Surfaces, lines and shadows differ by theme; the
      ladder, the spacing and the clock do not. */
@@ -2886,7 +2895,7 @@
     .a-crumbs li + li::before { display: none; }
   }
 
-  .a-top-end { display: flex; flex: none; align-items: center; gap: .25rem; margin-inline-start: auto; }
+  .a-top-end { display: flex; flex: none; align-items: center; gap: .625rem; margin-inline-start: auto; }
   /* The phone bar's buttons carry their word beside the glyph. */
   .a-top-word { gap: .375rem; padding-inline: .5rem .75rem; }
   /* The one place the owner is named: an initial in a circle, the button of the account menu. */
@@ -3351,7 +3360,7 @@
     .a-stat { transition: border-color var(--a-dur-base) var(--a-ease-inout), background-color var(--a-dur-base) var(--a-ease-inout), box-shadow var(--a-dur-base) var(--a-ease-inout); }
     .a-select-chev { transition: color var(--a-dur-fast) var(--a-ease-inout); }
     /* The press: a pressed control sinks 2%, and comes back on release. */
-    .a-btn:active:not(:disabled, [aria-disabled="true"]), .a-nav-item:active, .a-tab:active, a.a-stat:active { transform: scale(.98); }
+    .a-btn:active:not(:disabled, [aria-disabled="true"]), .a-nav-item:active, .a-tab:active, a.a-stat:active { transform: scale(var(--a-press-scale)); }
     /* The tab's bar grows from the middle of the tab. */
     .a-tab::after { transition: scale var(--a-dur-base) var(--a-ease-out), background-color var(--a-dur-fast) var(--a-ease-inout); }
     /* A dialog, the drawer and their scrims settle in by a transition from

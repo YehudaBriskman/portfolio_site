@@ -59,7 +59,7 @@ export const REDUCED_MOTION_BASELINE: Record<string, number> = {
 export const ANIMATION_EVENT_BASELINE: string[] = ["components/help/useHelpMotion.ts", "components/motion/EntryShutter.tsx"];
 
 /* Allow-list: every @keyframes the admin may use. Add a name only with its row in docs/motion-contract.md section 8. */
-export const KEYFRAMES_ALLOWED: string[] = ["a-shimmer", "pop-in", "pop-out"];
+export const KEYFRAMES_ALLOWED: string[] = ["a-shimmer", "ib-spin", "pop-in", "pop-out"];
 
 export function waitsForAnimationEvent(code: string): boolean {
   return /\bonAnimationEnd\b|\bonTransitionEnd\b|addEventListener\(\s*["'`](?:animation|transition)end["'`]/.test(code);
