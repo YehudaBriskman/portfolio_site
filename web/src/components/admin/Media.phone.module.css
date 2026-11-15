@@ -27,13 +27,14 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--a-s-2, 0.5rem);
+  gap: var(--a-s-3, 0.75rem);
   min-inline-size: 0;
 }
 .chips {
-  flex: 1 1 12rem;
+  flex: 1 1 10rem;
   min-inline-size: 0;
+  /* The chips scroll inside their own box, never under the Select button before them. */
+  overflow: hidden;
 }
 
 .grid {

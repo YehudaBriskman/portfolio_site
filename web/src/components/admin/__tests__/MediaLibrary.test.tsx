@@ -143,7 +143,7 @@ describe("the library page", () => {
     ITEMS[1].usedBy = [{ id: "content:projects", type: "content", title: "Projects", slug: "projects", field: "draft.items.3.image" }];
     try {
       page("/admin/media?id=icaros-def456");
-      const usedBy = await screen.findByRole("region", { name: "Used by" });
+      const usedBy = await screen.findByRole("region", { name: "Where it is used" });
       expect(within(usedBy).getByRole("link", { name: "Projects" })).toHaveAttribute("href", "/admin/projects");
       expect(screen.getByText(/draft\.items\.3\.image/)).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Delete" })).toBeDisabled();
@@ -160,34 +160,34 @@ describe("the library page", () => {
 
   it("an upload waits for alt text", async () => {
     page("/admin/media");
-    await screen.findAllByRole("list", { name: /pictures/ });
+    await screen.findByRole("list", { name: /items?$/ });
     const file = new File([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], "new.png", { type: "image/png" });
     const input = document.querySelector<HTMLInputElement>('input[type="file"]')!;
     vi.stubGlobal("URL", Object.assign(URL, { createObjectURL: () => "blob:http://localhost:3000/1b6f0c2e-5d1a-4c3e-9f1e-2a7b8c9d0e1f", revokeObjectURL: () => {} }));
     await userEvent.upload(input, file);
-    await userEvent.click(await screen.findByRole("button", { name: "Upload" }));
+    await userEvent.click(within(await screen.findByRole("form", { name: /Describe/ })).getByRole("button", { name: "Upload" }));
     expect(screen.getByText("Say what the picture shows before uploading.")).toBeInTheDocument();
     expect(requests.some((r) => r.method === "POST")).toBe(false);
   });
 
   it("a video upload waits for its poster", async () => {
     page("/admin/media");
-    await screen.findAllByRole("list", { name: /pictures/ });
+    await screen.findByRole("list", { name: /items?$/ });
     vi.stubGlobal("URL", Object.assign(URL, { createObjectURL: () => "blob:http://localhost:3000/9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d", revokeObjectURL: () => {} }));
     const input = document.querySelector<HTMLInputElement>('input[type="file"]')!;
     await userEvent.upload(input, new File([new Uint8Array(16)], "clip.mp4", { type: "video/mp4" }));
     expect(await screen.findByText("Poster image (required)")).toBeInTheDocument();
     await userEvent.type(screen.getByRole("textbox", { name: /Alt text/ }), "A clip");
-    await userEvent.click(screen.getByRole("button", { name: "Upload" }));
+    await userEvent.click(within(screen.getByRole("form", { name: /Describe/ })).getByRole("button", { name: "Upload" }));
     expect(screen.getByRole("alert")).toHaveTextContent(/Choose a poster image/);
     expect(requests.some((r) => r.method === "POST")).toBe(false);
   });
 
   it("the kind filter is in the URL", async () => {
     page("/admin/media?kind=icon");
-    const grid = await screen.findByRole("list", { name: "1 icons" });
+    const grid = await screen.findByRole("list", { name: "1 item" });
     expect(within(grid).getByRole("button", { name: /A leaf/ })).toHaveTextContent("Icon · SVG");
-    expect(screen.getByRole("radio", { name: "Icons" })).toBeChecked();
+    expect(screen.getByRole("button", { name: "Icons", pressed: true })).toBeInTheDocument();
   });
 
   it("a video opens as a video: muted, inline, with its poster", async () => {
