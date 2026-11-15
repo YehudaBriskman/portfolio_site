@@ -169,6 +169,7 @@ describe("a phone edits one language at a time", () => {
     phone(false);
     stubApi("projects", seedBundle().projects);
     page(<AdminProjects />);
+    fireEvent.click((await screen.findAllByRole("button", { name: "Edit" }))[0]);
     expect(await screen.findByLabelText("One-line fact, English")).toBeInTheDocument();
     expect(screen.getByLabelText("One-line fact, Hebrew (optional)")).toBeInTheDocument();
     expect(screen.queryByRole("radiogroup", { name: "Language" })).toBeNull();
@@ -181,6 +182,7 @@ describe("the payload does not depend on the screen size", () => {
     phone(on);
     const calls = stubApi("projects", seedBundle().projects);
     const view = page(<AdminProjects />);
+    if (!on) fireEvent.click((await screen.findAllByRole("button", { name: "Edit" }))[0]);
     fireEvent.change(await screen.findByLabelText("Title"), { target: { value: "Edited title" } });
     if (on) await userEvent.setup().click(await screen.findByRole("radio", { name: "Hebrew" }));
     fireEvent.change(await screen.findByLabelText("One-line fact, Hebrew (optional)"), { target: { value: "עובדה" } });

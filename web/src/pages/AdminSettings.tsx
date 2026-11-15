@@ -1,29 +1,16 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useLeaveGuard } from "@/hooks/useLeaveGuard";
 import { useContentWords } from "@/components/admin/content/words";
 import AdminShell from "@/components/admin/AdminShell";
 import EditorBar, { type BarTone } from "@/components/admin/EditorBar";
 import { PageHeader } from "@/components/admin/ui";
-import { Disclosure } from "@/components/ui/Disclosure";
 import SettingsPhone, { isGroupId } from "@/components/admin/settings/SettingsPhone";
-import { changesBetween } from "@/components/admin/settings/diff";
 import { usePhone } from "@/hooks/usePhone";
 import { issueText, useSettingsWords } from "@/components/admin/settings/words";
-import { INTL, useLang } from "@/components/dashboard/i18n";
 import { ContentConflictError, ContentInvalidError, type Issue } from "@/services/adminContent";
 import { adminSettings, type SettingsView } from "@/services/adminSettings";
-import { ACCENT_PRESETS, css } from "@/settings/accents";
-import {
-  ACCENTS,
-  MOTION_DEFAULTS,
-  SHARE_CHANNELS,
-  SHARE_SURFACES,
-  SHARE_TEMPLATE_MAX,
-  SiteSettingsSchema,
-  THEME_DEFAULTS,
-  type SiteSettings,
-} from "@/settings/schema";
+import { SiteSettingsSchema, type SiteSettings } from "@/settings/schema";
 import { setSettings } from "@/settings/store";
 
 /*
@@ -42,16 +29,30 @@ import { setSettings } from "@/settings/store";
 
 type Status = "idle" | "saving" | "saved" | "conflict" | "failed" | "unauthorised";
 
-const differences = (a: SiteSettings, b: SiteSettings): number => changesBetween(a, b).length;
+/* The width SettingsList puts a list and its open group side by side at. */
+const WIDE = "(min-width: 840px)";
+function useWide(): boolean {
+  return useSyncExternalStore(
+    (cb) => {
+      if (typeof window.matchMedia !== "function") return () => {};
+      const mq = window.matchMedia(WIDE);
+      mq.addEventListener?.("change", cb);
+      return () => mq.removeEventListener?.("change", cb);
+    },
+    () => typeof window.matchMedia === "function" && window.matchMedia(WIDE).matches,
+    () => false,
+  );
+}
 
 export default function AdminSettings() {
   const w = useSettingsWords();
-  const lang = useLang();
   const phone = usePhone();
   /* On a phone the open group lives in the address, so a link can land on it. */
   const [params, setParams] = useSearchParams();
   const group = params.get("group");
-  const openId = phone && isGroupId(group) ? group : null;
+  /* Side by side (840px and up) a group is always open, so the pane is never an empty page. */
+  const wide = useWide();
+  const openId = isGroupId(group) ? group : wide ? "home" : null;
   const navigate = useNavigate();
   const location = useLocation();
   /*
@@ -183,13 +184,6 @@ export default function AdminSettings() {
     void run(() => adminSettings.save(draft, view._rev));
   };
 
-  const when = (iso: string) => {
-    const d = new Date(iso);
-    return Number.isNaN(d.getTime())
-      ? ""
-      : d.toLocaleString(INTL[lang], { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
-  };
-
   const statusText =
     status === "saving"
       ? w.saving
@@ -207,35 +201,11 @@ export default function AdminSettings() {
   const tone: BarTone =
     status === "conflict" || status === "failed" ? "bad" : status === "saving" ? "busy" : status === "saved" ? "ok" : "idle";
 
-  const actions = (
-    <span className="flex gap-2">
-      <button type="button" className="a-btn a-btn-ghost" disabled={!dirty || status === "saving"} onClick={() => view && take(view)}>
-        {w.reset}
-      </button>
-      <button
-        type="button"
-        className="a-btn a-btn-primary"
-        disabled={saveDisabled}
-        onClick={save}
-      >
-        {w.save}
-      </button>
-    </span>
-  );
-
-  const statusLine = (
-    <span
-      role="status"
-      className={`mono min-h-[1.25rem] text-sm uppercase tracking-[0.18em] ${status === "conflict" || status === "failed" ? "text-[rgb(var(--destructive-ink))]" : "text-clay"}`}
-    >
-      {statusText}
-    </span>
-  );
-
   return (
     <AdminShell
       title={w.title}
       section="settings"
+      barEverywhere
       bottomBar={
         <EditorBar
           tone={tone}
@@ -249,16 +219,7 @@ export default function AdminSettings() {
         />
       }
     >
-      <PageHeader
-        title={w.title}
-        description={phone ? undefined : w.intro}
-        actions={
-          <div className="hidden items-center gap-3 lg:flex">
-            {statusLine}
-            {actions}
-          </div>
-        }
-      />
+      <PageHeader title={w.title} description={phone ? undefined : w.intro} />
 
       {status === "unauthorised" && <p className="a-card mt-8 p-4 text-sm">{w.notAuthorised}</p>}
       {loadError && <p className="a-card mt-8 p-4 text-sm">{w.loadFailed}</p>}
@@ -281,7 +242,7 @@ export default function AdminSettings() {
         </ul>
       )}
 
-      {draft && view && phone && (
+      {draft && view && (
         <SettingsPhone
           draft={draft}
           view={view}
@@ -296,277 +257,6 @@ export default function AdminSettings() {
         />
       )}
 
-      {draft && view && !phone && (
-        <form noValidate onSubmit={(e) => (e.preventDefault(), save())} className="max-w-3xl">
-          <section className="mt-10 space-y-4" aria-labelledby="settings-home">
-            <h2 id="settings-home" className="display-tight text-xl">
-              {w.homeHeading}
-            </h2>
-            <p className="a-hint">{w.homeHint}</p>
-            <ol className="space-y-2">
-              <li className="a-card flex items-center gap-3 p-3 text-sm text-clay">
-                <span className="mono w-6 text-end tabular-nums">0</span>
-                <span>{w.hero}</span>
-              </li>
-              {draft.home.sections.map((s, i) => {
-                const name = w.sections[s.id];
-                const issue = issueAt(`home.sections.${i}`) ?? issueAt(`home.sections.${i}.id`);
-                const errId = `settings-${s.id}-error`;
-                return (
-                  <li key={s.id} className="a-card p-3" aria-describedby={issue ? errId : undefined}>
-                    <div className="flex flex-wrap items-center gap-3">
-                      <span className="mono w-6 text-end text-sm tabular-nums text-clay">{i + 1}</span>
-                      <span className={`min-w-0 flex-1 text-sm ${s.visible ? "" : "text-clay line-through"}`}>{name}</span>
-                      <label className="flex min-h-[44px] items-center gap-2 text-sm">
-                        <input
-                          type="checkbox"
-                          id={`settings-${s.id}-visible`}
-                          checked={s.visible}
-                          aria-label={w.show(name)}
-                          onChange={(e) => edit((d) => void (d.home.sections[i].visible = e.target.checked))}
-                        />
-                        <span aria-hidden="true">{s.visible ? w.shown : w.hidden}</span>
-                      </label>
-                      <span className="flex gap-1">
-                        <button
-                          type="button"
-                          id={`settings-${s.id}-up`}
-                          className="a-btn a-btn-ghost a-icon-btn"
-                          aria-label={w.moveUp(name)}
-                          disabled={i === 0}
-                          onClick={() => move(i, -1)}
-                        >
-                          <span aria-hidden="true">↑</span>
-                        </button>
-                        <button
-                          type="button"
-                          id={`settings-${s.id}-down`}
-                          className="a-btn a-btn-ghost a-icon-btn"
-                          aria-label={w.moveDown(name)}
-                          disabled={i === draft.home.sections.length - 1}
-                          onClick={() => move(i, 1)}
-                        >
-                          <span aria-hidden="true">↓</span>
-                        </button>
-                      </span>
-                    </div>
-                    {issue && (
-                      <p id={errId} className="a-error">
-                        {issueText(w, issue.message)}
-                      </p>
-                    )}
-                  </li>
-                );
-              })}
-            </ol>
-          </section>
-
-          <section className="mt-10 space-y-6" aria-labelledby="settings-visuals">
-            <h2 id="settings-visuals" className="display-tight text-xl">
-              {w.visualsHeading}
-            </h2>
-
-            <fieldset>
-              <legend className="a-label">{w.themeLegend}</legend>
-              <p className="a-hint">{w.themeHint}</p>
-              <div className="mt-2 flex flex-wrap gap-4">
-                {THEME_DEFAULTS.map((t) => (
-                  <label key={t} className="flex min-h-[44px] items-center gap-2 text-sm">
-                    <input type="radio" name="settings-theme" value={t} checked={draft.visuals.theme === t} onChange={() => edit((d) => void (d.visuals.theme = t))} />
-                    {w.themes[t]}
-                  </label>
-                ))}
-              </div>
-            </fieldset>
-
-            <fieldset>
-              <legend className="a-label">{w.motionLegend}</legend>
-              <p className="a-hint">{w.motionHint}</p>
-              <div className="mt-2 flex flex-wrap gap-4">
-                {MOTION_DEFAULTS.map((m) => (
-                  <label key={m} className="flex min-h-[44px] items-center gap-2 text-sm">
-                    <input type="radio" name="settings-motion" value={m} checked={draft.visuals.motion === m} onChange={() => edit((d) => void (d.visuals.motion = m))} />
-                    {w.motions[m]}
-                  </label>
-                ))}
-              </div>
-            </fieldset>
-
-            <fieldset>
-              <legend className="a-label">{w.accentLegend}</legend>
-              <p className="a-hint">{w.accentHint}</p>
-              <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                {ACCENTS.map((a) => {
-                  const p = ACCENT_PRESETS[a];
-                  return (
-                    <label key={a} className="a-card flex min-h-[44px] items-center gap-3 p-3 text-sm">
-                      <input type="radio" name="settings-accent" value={a} checked={draft.visuals.accent === a} onChange={() => edit((d) => void (d.visuals.accent = a))} />
-                      <span aria-hidden="true" className="flex overflow-hidden rounded-full border border-[rgb(var(--rule-firm))]">
-                        <span className="block h-6 w-6" style={{ background: css(p.light.signal) }} />
-                        <span className="block h-6 w-6" style={{ background: css(p.dark.signal) }} />
-                      </span>
-                      {w.accents[a]}
-                    </label>
-                  );
-                })}
-              </div>
-            </fieldset>
-          </section>
-
-          <section className="mt-10 space-y-6" aria-labelledby="settings-sharing">
-            <h2 id="settings-sharing" className="display-tight text-xl">
-              {w.sharingHeading}
-            </h2>
-            <p className="a-hint">{w.sharingHint}</p>
-
-            <div>
-              <label className="flex min-h-[44px] items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  role="switch"
-                  id="settings-sharing-enabled"
-                  checked={draft.sharing.enabled}
-                  aria-describedby="settings-sharing-enabled-hint"
-                  onChange={(e) => edit((d) => void (d.sharing.enabled = e.target.checked))}
-                />
-                {w.sharingEnabled}
-              </label>
-              <p id="settings-sharing-enabled-hint" className="a-hint">{w.sharingEnabledHint}</p>
-            </div>
-
-            <fieldset disabled={!draft.sharing.enabled} className="space-y-6">
-              <fieldset>
-                <legend className="a-label">{w.surfacesLegend}</legend>
-                <div className="mt-2 flex flex-wrap gap-x-4">
-                  {SHARE_SURFACES.map((x) => (
-                    <label key={x} className="flex min-h-[44px] items-center gap-2 text-sm">
-                      <input
-                        type="checkbox"
-                        checked={draft.sharing.surfaces.includes(x)}
-                        onChange={(e) => edit((d) => void (d.sharing.surfaces = toggle(SHARE_SURFACES, d.sharing.surfaces, x, e.target.checked)))}
-                      />
-                      {w.surfaces[x]}
-                    </label>
-                  ))}
-                </div>
-              </fieldset>
-
-              <fieldset>
-                <legend className="a-label">{w.channelsLegend}</legend>
-                <div className="mt-2 flex flex-wrap gap-x-4">
-                  {SHARE_CHANNELS.map((c) => (
-                    <label key={c} className="flex min-h-[44px] items-center gap-2 text-sm">
-                      <input
-                        type="checkbox"
-                        checked={draft.sharing.channels.includes(c)}
-                        onChange={(e) => edit((d) => void (d.sharing.channels = toggle(SHARE_CHANNELS, d.sharing.channels, c, e.target.checked)))}
-                      />
-                      {w.channels[c]}
-                    </label>
-                  ))}
-                </div>
-              </fieldset>
-
-              <div>
-                <label className="flex min-h-[44px] items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    role="switch"
-                    checked={draft.sharing.utm.enabled}
-                    aria-describedby="settings-utm-hint"
-                    onChange={(e) => edit((d) => void (d.sharing.utm.enabled = e.target.checked))}
-                  />
-                  {w.utmEnabled}
-                </label>
-                <p id="settings-utm-hint" className="a-hint">{w.utmHint}</p>
-                <label className="a-label mt-2 block" htmlFor="settings-utm-source">{w.utmSource}</label>
-                <input
-                  id="settings-utm-source"
-                  className="a-input a-input-mono mt-1 max-w-xs"
-                  dir="ltr"
-                  maxLength={40}
-                  value={draft.sharing.utm.source}
-                  disabled={!draft.sharing.utm.enabled}
-                  onChange={(e) => edit((d) => void (d.sharing.utm.source = e.target.value))}
-                />
-              </div>
-
-              <fieldset>
-                <legend className="a-label">{w.templatesLegend}</legend>
-                <p className="a-hint">{w.templatesHint}</p>
-                <div className="mt-2 space-y-3">
-                  {(["en", "he"] as const).map((l) => (
-                    <Disclosure key={l} summary={w.templatesFor[l]} className="a-card p-3">
-                      <div className="mt-2 space-y-4">
-                        {SHARE_CHANNELS.map((c) => {
-                          const id = `settings-template-${l}-${c}`;
-                          const value = draft.sharing.templates[l][c] ?? "";
-                          return (
-                            <div key={c}>
-                              <label className="a-label" htmlFor={id}>{w.channels[c]}</label>
-                              <textarea
-                                id={id}
-                                className="a-textarea mt-1"
-                                rows={3}
-                                dir={l === "he" ? "rtl" : "ltr"}
-                                lang={l}
-                                value={value}
-                                onChange={(e) =>
-                                  edit((d) => {
-                                    if (e.target.value === "") delete d.sharing.templates[l][c];
-                                    else d.sharing.templates[l][c] = e.target.value;
-                                  })
-                                }
-                              />
-                              <p className="a-hint tabular-nums">{w.templateCount(value.length, SHARE_TEMPLATE_MAX)}</p>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </Disclosure>
-                  ))}
-                </div>
-              </fieldset>
-            </fieldset>
-          </section>
-
-          <section className="mt-10 space-y-3" aria-labelledby="settings-history">
-            <h2 id="settings-history" className="display-tight text-xl">
-              {w.historyHeading}
-            </h2>
-            {!view.exists ? (
-              <p className="a-hint">{w.historyEmpty}</p>
-            ) : (
-              <ol className="space-y-2">
-                <li className="a-card flex flex-wrap items-center gap-3 p-3 text-sm">
-                  <span className="min-w-0 flex-1">
-                    {w.version(view.version)} · {w.current}
-                  </span>
-                  {view.updatedAt && <time dateTime={view.updatedAt} className="tabular-nums text-clay">{when(view.updatedAt)}</time>}
-                </li>
-                {view.history.map((h) => (
-                  <li key={h.version} className="a-card flex flex-wrap items-center gap-3 p-3 text-sm">
-                    <span className="min-w-0 flex-1">
-                      {h.version === 0 ? w.builtIn : w.version(h.version)}
-                      <span className="text-clay"> · {w.differences(differences(h.settings, view.settings))}</span>
-                    </span>
-                    {h.version !== 0 && <time dateTime={h.at} className="tabular-nums text-clay">{when(h.at)}</time>}
-                    <button
-                      type="button"
-                      className="a-btn a-btn-ghost"
-                      aria-label={w.restoreLabel(h.version === 0 ? w.builtIn : w.version(h.version))}
-                      disabled={status === "saving"}
-                      onClick={() => void run(() => adminSettings.revert(h.version, view._rev))}
-                    >
-                      {w.restore}
-                    </button>
-                  </li>
-                ))}
-              </ol>
-            )}
-          </section>
-        </form>
-      )}
     </AdminShell>
   );
 }

@@ -22,6 +22,18 @@ export function phone(on: boolean): () => void {
   };
 }
 
+/** From 840px: a list and its open group side by side. Returns the undo. */
+export function wide(on: boolean): () => void {
+  const real = window.matchMedia;
+  window.matchMedia = ((q: string) => ({
+    ...real(q),
+    matches: on && /min-width:\s*840px/.test(q),
+  })) as typeof window.matchMedia;
+  return () => {
+    window.matchMedia = real;
+  };
+}
+
 /** The page's own language, as routing.ts sets it. */
 export function lang(l: "en" | "he") {
   document.documentElement.lang = l;

@@ -89,6 +89,7 @@ const EN = {
     "settings.sharing.templateTags": "A template is plain text: remove anything that looks like a tag.",
     "settings.sharing.source": "The source name is letters, digits, hyphen or underscore, up to 40.",
   } as Record<string, string>,
+  needsFix: "Needs a fix",
   genericIssue: "This value is not allowed.",
 };
 
@@ -175,6 +176,7 @@ const HE = {
     "settings.sharing.templateTags": "תבנית היא טקסט רגיל: יש להסיר כל מה שנראה כמו תגית.",
     "settings.sharing.source": "שם המקור הוא אותיות, ספרות, מקף או קו תחתון, עד 40 תווים.",
   },
+  needsFix: "דורש תיקון",
   genericIssue: "הערך אינו תקין.",
 };
 
