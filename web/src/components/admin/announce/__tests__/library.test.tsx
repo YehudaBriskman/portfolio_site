@@ -65,6 +65,9 @@ afterEach(() => {
 const panel = () => within(document.querySelector<HTMLElement>("[data-side-panel]")!);
 const rowMore = async (row: RegExp, item: string) => {
   const r = screen.getAllByRole("row", { name: row })[0];
+  /* The first two actions are drawn as icons; the rest wait in More. */
+  const drawn = within(r).queryByRole("button", { name: item });
+  if (drawn) return void (await userEvent.click(drawn));
   await userEvent.click(within(r).getByRole("button", { name: "More" }));
   await userEvent.click(await screen.findByRole("menuitem", { name: item }));
 };

@@ -1,0 +1,14 @@
+/* Three small icon buttons in one rounded track; the pressed one is raised. */
+.group {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border-radius: var(--a-r-sm, 8px);
+  background: rgb(var(--ink) / 0.06);
+}
+
+.group button[aria-pressed="true"] {
+  background: rgb(var(--paper));
+  box-shadow: 0 0 0 1px rgb(var(--ink) / 0.12);
+}

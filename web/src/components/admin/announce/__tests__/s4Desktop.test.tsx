@@ -71,12 +71,12 @@ describe("Library on a desktop (S4)", () => {
     expect(document.querySelector("section.a-box")).toBeNull();
   });
 
-  it("draws at most one action per row; Duplicate and Delete wait in More, and the default switch is not in the row", async () => {
+  it("draws two action icons per row; Delete waits in More, and the default switch is not in the row", async () => {
     render(<LibraryPanel />);
     const grid = await screen.findByRole("grid", { name: "Templates" });
     const rowOf = within(grid).getByRole("row", { name: /Launch/ });
-    expect(within(rowOf).queryAllByRole("button").filter((b) => b.getAttribute("aria-haspopup") !== "menu")).toHaveLength(1);
-    expect(within(rowOf).queryByRole("button", { name: "Duplicate Launch" })).toBeNull();
+    expect(within(rowOf).queryAllByRole("button").filter((b) => b.getAttribute("aria-haspopup") !== "menu")).toHaveLength(2);
+    expect(within(rowOf).queryByRole("button", { name: "Duplicate Launch" })).toBeTruthy();
     expect(within(rowOf).queryByRole("button", { name: "Delete Launch" })).toBeNull();
     expect(within(rowOf).queryByRole("checkbox")).toBeNull();
     expect(within(rowOf).getByText("Default")).toBeTruthy();

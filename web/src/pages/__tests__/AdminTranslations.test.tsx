@@ -112,12 +112,12 @@ describe("the Translations page", () => {
 });
 
 describe("the Translations page, row actions and states", () => {
-  it("gives each row Open as its one primary and the rest in More; the tabs are spaced apart", async () => {
+  it("gives each row Open as its first icon; fewer than three actions stay inline, with no More (D2)", async () => {
     page();
     const table = await screen.findByRole("grid");
     const row = table.querySelectorAll<HTMLElement>("tr[data-row]")[1];
     expect(within(row).getByRole("button", { name: /^Open/ })).toBeInTheDocument();
-    expect(within(row).getByRole("button", { name: "More actions" })).toBeInTheDocument();
+    expect(within(row).queryByRole("button", { name: "More actions" })).toBeNull();
   });
 
   it("searches items and says why a list is empty", async () => {
