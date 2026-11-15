@@ -55,6 +55,15 @@
   text-overflow: ellipsis;
 }
 
+/* a label in the other direction from the page ends in its ellipsis, not flush
+   against the border (phone only: wider pages are unchanged) */
+@media (max-width: 639px) {
+  .label {
+    text-align: start;
+    unicode-bidi: plaintext;
+  }
+}
+
 @media (max-width: 767px) {
   .fromMd {
     display: none;

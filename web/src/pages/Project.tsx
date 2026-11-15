@@ -431,9 +431,11 @@ export default function Project() {
           )}
         </div>
         <div className={styles.phoneTop}>
-          <AvatarCircle size={56} tone={tone}>
-            <BookMarked aria-hidden="true" />
-          </AvatarCircle>
+          <div className={styles.phoneTile}>
+            <AvatarCircle size={56} tone={tone}>
+              <BookMarked aria-hidden="true" />
+            </AvatarCircle>
+          </div>
           <div className={styles.phoneName}>
             <h1 className={styles.phoneTitle} dir="auto" translate="no">
               {c.title}
@@ -443,7 +445,9 @@ export default function Project() {
               {entry.year && <span className={styles.num}>{entry.year}</span>}
             </PillBadge>
           </div>
-          <ShareMenu kind="project" entity={{ slug: c.slug, title: c.title, summary: c.tagline }} />
+          <div className={styles.phoneShare}>
+            <ShareMenu kind="project" entity={{ slug: c.slug, title: c.title, summary: c.tagline }} />
+          </div>
         </div>
         {c.tagline && (
           <p className={styles.phoneTagline} dir="auto">

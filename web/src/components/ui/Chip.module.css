@@ -81,6 +81,16 @@
   min-inline-size: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+  /* A label whose text runs the other way from the page (an English name on a
+     Hebrew page) takes its own direction, so it is clipped at its end with an
+     ellipsis rather than overflowing the near edge flush against the border. */
+}
+
+@media (max-width: 639px) {
+  .text {
+    text-align: start;
+    unicode-bidi: plaintext;
+  }
 }
 
 .count {

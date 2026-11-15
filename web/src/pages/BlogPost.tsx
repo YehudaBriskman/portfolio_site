@@ -415,7 +415,7 @@ export default function BlogPost() {
               </ul>
             )}
 
-            <div className={`mt-12 flex flex-wrap items-center justify-between gap-6 border-t border-edge pt-6 ${reader.groupCard}`}>
+            <div className={`mt-12 flex flex-wrap items-center justify-between gap-6 border-t border-edge pt-6 ${reader.groupCard} ${reader.authorCard}`}>
               <Byline />
               <FeedLink />
             </div>

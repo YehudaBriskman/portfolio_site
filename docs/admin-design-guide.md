@@ -224,6 +224,7 @@ Icon controls come from one kit in `components/ui/`; do not add another `.a-btn`
 | `SegmentedControl` | `@/components/ui/SegmentedControl` | a short either/or (sort, view): radio group, arrows mirror in RTL | more than ~4 options (use `Select`) |
 | `Chip`, `ChipRow` | `@/components/ui/Chip` | a toggle chip (`aria-pressed`, drawn mark) or a static fact, optional tabular `count`; `ChipRow` is a named group, `scroll` for one line | filter sets with a sheet (`FilterChips`) |
 | `Dock` | `@/components/ui/Dock` | a floating opaque pill (raised surface, hairline, one shadow) above the safe area | a full-width bar |
+| `FloatingBack` | `@/components/ui/FloatingBack` | the public phone's one way up from a detail page: fixed, same box as the menu circle (`--float-h`, `--float-top`, `--float-z`), tap = parent, chevron = menu (parent, Home, Work, Blog, Share). Reached as `components/BackChip` | an in-flow back row, a second copy of the circle's size or offset |
 | `StatChip` | `@/components/ui/StatChip` | glyph + number, the word sr-only | a number that needs its label drawn |
 
 Guard: `controlKit.test.tsx` fails on an `<IconButton>` without `label`. Existing screens migrate in later PRs.

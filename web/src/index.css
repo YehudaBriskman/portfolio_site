@@ -974,6 +974,26 @@
     --dock-gap: .25rem;
     --dock-pad: .25rem;
     --dock-inset: 12px;
+    /* Where a bottom dock sits: the larger of the small constant and the safe
+       area, never their sum. On iOS Safari env(safe-area-inset-bottom) is 0
+       while the toolbar is up (the toolbar covers the home indicator) and
+       about 34px once it has collapsed, so a SUM jumps from 12 to 46px and
+       leaves a visible gap; the max is 12 then 34, which is the indicator's
+       own zone and nothing more. */
+    --dock-bottom: max(var(--dock-inset), env(safe-area-inset-bottom, 0px));
+
+    /* The floating controls at the top of a phone (the menu circle, the back
+       chip): one height, one offset, one layer, so they cannot drift. */
+    --float-h: 46px;
+    --float-top: calc(env(safe-area-inset-top, 0px) + 6px);
+    --float-z: 49;
+    --float-shadow: 0 2px 10px rgb(var(--shade) / 0.1);
+
+    /* One vertical rhythm for blocks that sit next to each other: a block never
+       sets its own margin against a sibling, the parent's stack does. */
+    --stack-sm: 0.75rem;
+    --stack-md: 1.5rem;
+    --stack-lg: 2.5rem;
 
     /* The reading window (owner, 2026-11-03): where the pen
        (`motion/Written`) starts a block — its top at 68% of the window's

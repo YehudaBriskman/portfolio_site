@@ -1322,10 +1322,10 @@
 
   .toggle {
     position: fixed;
-    inset-block-start: calc(var(--bar-inset) + 6px);
+    inset-block-start: var(--float-top);
     inset-inline-end: max(12px, env(safe-area-inset-right, 0px));
-    width: 46px;
-    height: 46px;
+    width: var(--float-h);
+    height: var(--float-h);
     min-height: 0;
     padding: 0;
     justify-content: center;
@@ -1333,7 +1333,7 @@
     pointer-events: auto;
     background: rgb(var(--paper));
     border: 1px solid rgb(var(--rule-firm));
-    box-shadow: 0 2px 10px rgb(var(--shade) / 0.1);
+    box-shadow: var(--float-shadow);
   }
 
   .word {

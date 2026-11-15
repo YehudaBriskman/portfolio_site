@@ -756,7 +756,7 @@
   .bar {
     position: fixed;
     inset-inline: var(--ph-gutter);
-    inset-block-end: calc(12px + env(safe-area-inset-bottom, 0px));
+    inset-block-end: var(--dock-bottom);
     z-index: 40;
     display: flex;
     flex-direction: column;
@@ -919,9 +919,12 @@
     color: color-mix(in srgb, rgb(var(--hue-blue)), var(--ph-toward) var(--ph-text-pct));
     font-weight: 600;
   }
+  /* The footer's blocks are spaced by ONE token, --stack-md. The old
+     `margin: 0` here beat the page's `mt-6` (two classes against one) and put
+     the link card flush against the tag row above it. */
   .groupRows.groupRows {
     display: block;
-    margin: 0;
+    margin: var(--stack-md) 0 0;
     padding: 0;
     overflow: hidden;
     border-radius: var(--r-md);
@@ -961,6 +964,17 @@
   }
   .groupCard :global(a.tap) {
     min-height: 44px;
+  }
+  /* The author card is a row that wraps: the byline, then the feed link, with
+     a gap between them (`.groupCard` is `display: block`, which silently threw
+     away the page's flex `gap`, so RSS touched the byline). */
+  .authorCard.authorCard {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--stack-sm) var(--stack-md);
+    margin-block-start: var(--stack-lg);
   }
   .related.related {
     display: block;
