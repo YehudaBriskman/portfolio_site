@@ -25,6 +25,26 @@
   display: none;
 }
 
+/* The collapse: a grid whose one row goes 0fr to 1fr, the list clipped inside it (the one layout collapse M3 allows). */
+.collapse {
+  display: grid;
+  grid-template-rows: 0fr;
+}
+
+.collapse[data-open] {
+  grid-template-rows: 1fr;
+}
+
+.collapse > .children {
+  min-block-size: 0;
+  overflow: hidden;
+}
+
+/* The rows of a group inside a group start 8px (--a-s-2, A7) below its own heading. */
+.children .collapse > .children {
+  padding-block-start: 0.5rem;
+}
+
 /* A group inside a group steps in; the first level shares the parent's edge. */
 .children .children {
   margin-inline-start: 1.75rem;
@@ -242,6 +262,41 @@
   .link,
   .head .toggle,
   .railBtn {
-    transition: background-color 120ms cubic-bezier(0.4, 0, 0.2, 1);
+    transition: background-color var(--a-dur-1) var(--a-ease-out);
+  }
+
+  /*
+   * A group opens by growing its row track and fading its rows in (180, decelerating) and shuts faster
+   * (120, accelerating), one animation per element: the wrapper moves the height, the list the opacity.
+   * `display` is held through the exit so the rows are still there while they leave, and the chevron's
+   * own turn is Disclosure's. The starting style is armed by the nav after mount, so a group that is
+   * open on arrival is simply open.
+   */
+  .collapse {
+    transition: grid-template-rows var(--a-dur-1) var(--a-ease-in);
+  }
+
+  .collapse[data-open] {
+    transition: grid-template-rows var(--a-dur-2) var(--a-ease-out);
+  }
+
+  .collapse > .children {
+    opacity: 1;
+    transition:
+      opacity var(--a-dur-2) var(--a-ease-out),
+      display var(--a-dur-2) allow-discrete;
+  }
+
+  .collapse > .children[hidden] {
+    opacity: 0;
+    transition:
+      opacity var(--a-dur-1) var(--a-ease-in),
+      display var(--a-dur-1) allow-discrete;
+  }
+
+  .nav[data-armed] .collapse > .children {
+    @starting-style {
+      opacity: 0;
+    }
   }
 }

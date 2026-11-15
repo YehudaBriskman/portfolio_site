@@ -17,6 +17,7 @@ import { basenameFor } from "./i18n/routing";
 import { PHONE_QUERY } from "@/hooks/usePhone";
 // Lazy: react-markdown and remark-gfm are ~53 KB gzipped and are only needed on
 // /notes. The home page must not pay for the blog renderer.
+const AdminLayout = lazy(() => import("./components/admin/AdminLayout"));
 const Blog = lazy(() => import("./pages/Blog"));
 const Projects = lazy(() => import("./pages/Projects"));
 const Project = lazy(() => import("./pages/Project"));
@@ -215,22 +216,25 @@ const App = () => {
           <Route path="/notes/:slug" element={<LegacyNoteRedirect />} />
           {/* URLs say what the tool says. /admin/collections/:slug is kept as a
               redirect because bookmarks to it exist. */}
-          <Route path="/admin" element={<Suspense fallback={<RouteFallback />}><AdminOverview /></Suspense>} />
-          <Route path="/admin/posts" element={<Suspense fallback={<RouteFallback />}><Admin /></Suspense>} />
-          <Route path="/admin/posts/:slug" element={<Suspense fallback={<RouteFallback />}><AdminEditor /></Suspense>} />
-          <Route path="/admin/areas" element={<Suspense fallback={<RouteFallback />}><AdminAreas /></Suspense>} />
-          <Route path="/admin/areas/:slug" element={<Suspense fallback={<RouteFallback />}><AdminCollection /></Suspense>} />
-          <Route path="/admin/connections" element={<Suspense fallback={<RouteFallback />}><AdminConnections /></Suspense>} />
-          <Route path="/admin/media" element={<Suspense fallback={<RouteFallback />}><AdminMedia /></Suspense>} />
+          {/* One shell for every admin screen (#852): the sidebar mounts once and a page only swaps what is inside <main>. */}
+          <Route element={<Suspense fallback={<RouteFallback />}><AdminLayout /></Suspense>}>
+            <Route path="/admin" element={<Suspense fallback={<RouteFallback />}><AdminOverview /></Suspense>} />
+            <Route path="/admin/posts" element={<Suspense fallback={<RouteFallback />}><Admin /></Suspense>} />
+            <Route path="/admin/posts/:slug" element={<Suspense fallback={<RouteFallback />}><AdminEditor /></Suspense>} />
+            <Route path="/admin/areas" element={<Suspense fallback={<RouteFallback />}><AdminAreas /></Suspense>} />
+            <Route path="/admin/areas/:slug" element={<Suspense fallback={<RouteFallback />}><AdminCollection /></Suspense>} />
+            <Route path="/admin/connections" element={<Suspense fallback={<RouteFallback />}><AdminConnections /></Suspense>} />
+            <Route path="/admin/media" element={<Suspense fallback={<RouteFallback />}><AdminMedia /></Suspense>} />
+            <Route path="/admin/projects" element={<Suspense fallback={<RouteFallback />}><AdminProjects /></Suspense>} />
+            <Route path="/admin/story" element={<Suspense fallback={<RouteFallback />}><AdminStory /></Suspense>} />
+            <Route path="/admin/site-copy" element={<Suspense fallback={<RouteFallback />}><AdminSiteCopy /></Suspense>} />
+            <Route path="/admin/settings" element={<Suspense fallback={<RouteFallback />}><AdminSettings /></Suspense>} />
+            <Route path="/admin/translations" element={<Suspense fallback={<RouteFallback />}><AdminTranslations /></Suspense>} />
+            <Route path="/admin/marketing" element={<Suspense fallback={<RouteFallback />}><AdminAnnounce /></Suspense>} />
+            {/* The owner email and old bookmarks use the first name of this page. */}
+            <Route path="/admin/announce" element={<Navigate to="/admin/marketing" replace />} />
+          </Route>
           <Route path="/admin/collections/:slug" element={<LegacyAreaRedirect />} />
-          <Route path="/admin/projects" element={<Suspense fallback={<RouteFallback />}><AdminProjects /></Suspense>} />
-          <Route path="/admin/story" element={<Suspense fallback={<RouteFallback />}><AdminStory /></Suspense>} />
-          <Route path="/admin/site-copy" element={<Suspense fallback={<RouteFallback />}><AdminSiteCopy /></Suspense>} />
-          <Route path="/admin/settings" element={<Suspense fallback={<RouteFallback />}><AdminSettings /></Suspense>} />
-          <Route path="/admin/translations" element={<Suspense fallback={<RouteFallback />}><AdminTranslations /></Suspense>} />
-          <Route path="/admin/marketing" element={<Suspense fallback={<RouteFallback />}><AdminAnnounce /></Suspense>} />
-          {/* The owner email and old bookmarks use the first name of this page. */}
-          <Route path="/admin/announce" element={<Navigate to="/admin/marketing" replace />} />
         </Routes>
         </RoutesErrorBoundary>
       </BrowserRouter>
