@@ -122,8 +122,8 @@ export default function CampaignsTab() {
         <>
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <h2 className="display-tight text-xl">{w.heading}</h2>
-              <p className="a-hint">{w.intro}</p>
+              <h2 className="sr-only">{w.heading}</h2>
+              <p className="a-hint !mt-0">{w.intro}</p>
             </div>
             {actionBar}
           </div>
