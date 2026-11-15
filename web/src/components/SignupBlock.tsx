@@ -37,11 +37,14 @@ type Props = {
   /** The heading level, so the block sits correctly in each page's outline. */
   as?: "h1" | "h2";
   className?: string;
+  /** Keep the heading in the outline but off the screen, where the page's own h1 already says it. */
+  headingHidden?: boolean;
 };
 
 export default function SignupBlock({
   as: Heading = "h2",
   className = "",
+  headingHidden = false,
 }: Props) {
   const w = useSubscribeWords();
   const lang = useLang();
@@ -108,7 +111,7 @@ export default function SignupBlock({
       data-signup
       data-ph-card=""
     >
-      <Heading id={id("h")} className={styles.heading}>
+      <Heading id={id("h")} className={headingHidden ? `${styles.heading} sr-only` : styles.heading}>
         {w.heading}
       </Heading>
       <p className={styles.lede}>{w.lede}</p>

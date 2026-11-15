@@ -36,7 +36,6 @@ export const useSubscribeWords = defineWords(
     formLabel: "Subscribe by email",
     trapLabel: "Website",
     followTitle: "Follow",
-    followIntro: "The site has no feed of followers and no accounts. This is my newsletter by email: new notes and releases, sent when they exist.",
     followRss: "Prefer a feed reader? The notes also have an RSS feed.",
     followRssLink: "Open the feed",
     /* The pages an email links to. */
@@ -88,7 +87,6 @@ export const useSubscribeWords = defineWords(
     formLabel: "הרשמה באימייל",
     trapLabel: "אתר אינטרנט",
     followTitle: "מעקב",
-    followIntro: "באתר אין עוקבים ואין חשבונות. זה העלון שלי באימייל: רשימות וגרסאות חדשות, כשיש.",
     followRss: "מעדיפים קורא פידים? יש גם פיד לרשימות.",
     followRssLink: "פתיחת הפיד",
     working: "רגע אחד",
