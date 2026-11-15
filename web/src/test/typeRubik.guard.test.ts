@@ -120,7 +120,7 @@ describe("selectors moved off Audiowide", () => {
 });
 
 describe("Audiowide is confined", () => {
-  it("--font-display is consumed only by `.display` and the hero plate name", () => {
+  it("--font-display is consumed only by the hero's plate name", () => {
     const users: string[] = [];
     const files = [
       "src/index.css", "src/styles/popup.css", "src/pages/Project.module.css", "src/components/work/Work.module.css",
@@ -131,13 +131,23 @@ describe("Audiowide is confined", () => {
     for (const f of files) {
       for (const m of strip(read(f)).matchAll(/([^{};]+)\{([^{}]*font-family:\s*var\(--font-display\)[^{}]*)\}/g)) users.push(`${f} ${m[1].trim()}`);
     }
-    expect(users.sort()).toEqual(["src/components/gallery/ObjectLabel.module.css .plate .name", "src/index.css .display"]);
+    // Only the hero sets a `.plate`, so this is the hero name; `.display` is no longer a user.
+    expect(users.sort()).toEqual(["src/components/gallery/ObjectLabel.module.css .plate .name"]);
   });
 
-  it("on a phone `.display` and the plate name use the UI family; the hero h1 keeps Audiowide", () => {
-    const phone = /@media \(max-width: 639px\)\s*\{[^{}]*\{[^}]*font-family:\s*var\(--font-ui\)/;
-    expect(strip(read("src/index.css"))).toMatch(phone);
-    expect(strip(read("src/components/gallery/ObjectLabel.module.css"))).toMatch(phone);
+  it("`.display`, `.display-md` and `.display-sm` are the UI family at every width, not only on a phone", () => {
+    const css = strip(index);
+    const m = /(?:^|[}\s])\.display,\s*\.display-md,\s*\.display-sm\s*\{([^}]*)\}/m.exec(css);
+    expect(m).not.toBeNull();
+    expect(m![1]).toMatch(/font-family:\s*var\(--font-ui\)/);
+    expect(m![1]).toMatch(/text-transform:\s*none/);
+    expect(m![1]).toMatch(/line-height:\s*1\.15/);
+    // not inside a max-width query: the text before the rule has no unclosed @media
+    const before = css.slice(0, m!.index);
+    expect((before.match(/@media[^{]*\{/g) ?? []).length).toBe((before.match(/@media[^{]*\{[\s\S]*?\}\s*\}/g) ?? []).length);
+  });
+
+  it("the hero h1 keeps Audiowide", () => {
     expect(block(read("src/components/Hero.module.css"), ".composition .plate h1")).toMatch(/font-family:\s*var\(--font-display\)/);
   });
 });

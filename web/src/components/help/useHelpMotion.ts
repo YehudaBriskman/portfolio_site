@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type MouseEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type AnimationEvent, type MouseEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { usePublicPhone } from "@/components/nav/localBrowse";
 import { stripLang } from "@/i18n/routing";
@@ -25,6 +25,9 @@ import { stripLang } from "@/i18n/routing";
  *   and a second "first appearing" would be a duplicate.
  * - Direction: toward the index or an earlier page is a pop, anything else a
  *   push. The CSS mirrors it for Hebrew.
+ * - Settling: the enter state is cleared when the root's own `animationend`
+ *   arrives, or `ENTER_MS` after mount, whichever is first (a timer, never a
+ *   frame), so a later class change or re-render cannot replay it.
  * - Interruptible: a second tap while one is leaving goes at once, and the
  *   pending timer is dropped.
  * - Instant when it should be: a wide screen, `prefers-reduced-motion`,
@@ -32,6 +35,8 @@ import { stripLang } from "@/i18n/routing";
  */
 
 export const LEAVE_MS = 160;
+/** A time-based fallback for clearing the enter state: --dur-fast (240ms) plus a margin. */
+export const ENTER_MS = 400;
 
 type Dir = "push" | "pop";
 type State = `${"enter" | "leave"}-${Dir}` | null;
@@ -55,7 +60,10 @@ export function useHelpMotion(current: string | null, order: readonly string[]) 
   const phone = usePublicPhone();
   const navigate = useNavigate();
   const loc = useLocation();
-  const entered = (loc.state as { helpMotion?: Dir } | null)?.helpMotion;
+  const enteredRaw = (loc.state as { helpMotion?: Dir } | null)?.helpMotion;
+  /* The enter state is cleared once the animation is over (animationend, or ENTER_MS as a fallback), keyed to this navigation. */
+  const [settled, setSettled] = useState<string | null>(null);
+  const entered = settled === loc.key ? undefined : enteredRaw;
   /* Keyed to the address it was set on, so a page that stays mounted across the navigation (topic to topic) is not left leaving. */
   const [leave, setLeave] = useState<{ dir: Dir; at: string } | null>(null);
   const leaving = leave && leave.at === loc.pathname ? leave.dir : null;
@@ -66,6 +74,20 @@ export function useHelpMotion(current: string | null, order: readonly string[]) 
       if (timer.current !== null) window.clearTimeout(timer.current);
     },
     [],
+  );
+
+  useEffect(() => {
+    if (!enteredRaw || !phone) return;
+    const key = loc.key;
+    const t = window.setTimeout(() => setSettled(key), ENTER_MS);
+    return () => window.clearTimeout(t);
+  }, [enteredRaw, phone, loc.key]);
+
+  const onAnimationEnd = useCallback(
+    (e: AnimationEvent<HTMLElement>) => {
+      if (e.target === e.currentTarget) setSettled(loc.key);
+    },
+    [loc.key],
   );
 
   const onClickCapture = useCallback(
@@ -97,5 +119,5 @@ export function useHelpMotion(current: string | null, order: readonly string[]) 
   );
 
   const state: State = leaving ? `leave-${leaving}` : phone && entered ? `enter-${entered}` : null;
-  return { "data-help-motion": state ?? undefined, onClickCapture };
+  return { "data-help-motion": state ?? undefined, onClickCapture, onAnimationEnd };
 }

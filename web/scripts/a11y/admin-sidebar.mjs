@@ -171,10 +171,18 @@ for (const w of WIDTHS) for (const lang of LANGS) for (const theme of THEMES) {
     /* ---- collapse by the button */
     await page.getByRole("button", { name: /^(Collapse sidebar|Expand sidebar|כווץ סרגל צד|הרחב סרגל צד)/ }).last().click({ force: true });
     await page.waitForFunction(() => document.querySelector(".a-app")?.getAttribute("data-side") === "rail", null, { polling: 500, timeout: 20000 });
+    /* The width and padding ease with a 0.01ms transition under reduced motion, and a transition only ends on a frame; this box's headless Chromium draws about one frame per 40 s, so the first page measured the sidebar at its start value (240px). Finish the animations by hand instead of waiting for a frame. */
+    await page.evaluate(() => document.getAnimations().forEach((a) => a.finish()));
     await page.waitForTimeout(300);
     const rail = await page.evaluate(sidebar);
     n++;
-    const sideW = await page.evaluate(() => Math.round(document.querySelector(".a-side").getBoundingClientRect().width));
+    let sideW = 0;
+    for (let k = 0; k < 20; k++) {
+      await page.evaluate(() => document.getAnimations().forEach((a) => a.finish()));
+      sideW = await page.evaluate(() => Math.round(document.querySelector(".a-side").getBoundingClientRect().width));
+      if (sideW >= 63 && sideW <= 66) break;
+      await page.waitForTimeout(500);
+    }
     if (sideW < 63 || sideW > 66) fails.push(at(`rail is ${sideW}px wide, not 4rem (64)`));
     if (rail.overflow) fails.push(at(`rail: page scrolls sideways (${rail.overflow})`));
     for (const r of rail.rows) {

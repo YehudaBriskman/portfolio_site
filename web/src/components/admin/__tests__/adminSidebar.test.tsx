@@ -86,6 +86,20 @@ describe("one weight scale", () => {
   });
 });
 
+describe("the Marketing flyout", () => {
+  it("every row, Sender & delivery included, has a glyph and no extra indent", () => {
+    localStorage.setItem("admin-nav-collapsed", "1");
+    shell("/admin");
+    fireEvent.click(document.querySelector('[data-nav-group="marketing"]')!);
+    const sender = document.querySelector('[data-nav-id="marketing-sender"]')!;
+    expect(sender).toBeTruthy();
+    const links = [...sender.closest("ul")!.querySelectorAll("a")];
+    expect(links.length).toBeGreaterThan(1);
+    for (const a of links) expect(a.querySelector("svg"), a.getAttribute("data-nav-id")!).toBeTruthy();
+    expect(css("src/components/ui/SidebarGroup.module.css")).not.toMatch(/\.flyoutList \[data-depth="1"\]/);
+  });
+});
+
 describe("collapse to an icon rail", () => {
   it("toggles by button, names every item, and remembers the choice", () => {
     shell("/admin/posts", "posts");

@@ -44,6 +44,7 @@
     "a11y:public-blog-cards": "node scripts/a11y/public-blog-cards.mjs",
     "a11y:public-blog": "node scripts/a11y/public-blog.mjs",
     "a11y:public-nav": "node scripts/a11y/public-nav.mjs",
+    "a11y:public-browse-popover": "node scripts/a11y/public-browse-popover.mjs",
     "a11y:public-blog-filter": "node scripts/a11y/public-blog-filter.mjs",
     "a11y:public-focus": "node scripts/a11y/public-focus.mjs",
     "a11y:bottom-sheet-phone": "node scripts/a11y/bottom-sheet-phone.mjs",
