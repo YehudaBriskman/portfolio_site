@@ -130,10 +130,19 @@ export default function InboxTab({ items, error, onRetry, onChange, onCreated }:
     setOpenId(e.id);
   };
   const renderRows = (rows: AnnounceSummary[], aria: { "aria-label"?: string; "aria-labelledby"?: string }) =>
-    phone ? (
+    phone && flagged.length === 0 ? (
       <ListPresence as="ul" items={rows} itemKey={(e) => e.id} className="mk-list mk-plist" {...aria}>
         {(e) => <InboxPhoneRow event={e} onOpen={() => openEvent(e)} />}
       </ListPresence>
+    ) : phone ? (
+      /* Once rows are grouped under the warning, a row moving between the groups must not animate as an insert or a removal. */
+      <ul className="mk-list mk-plist" {...aria}>
+        {rows.map((e) => (
+          <li key={e.id}>
+            <InboxPhoneRow event={e} onOpen={() => openEvent(e)} />
+          </li>
+        ))}
+      </ul>
     ) : (
       <ul className="mk-list" {...aria}>
         {rows.map((e) => (
