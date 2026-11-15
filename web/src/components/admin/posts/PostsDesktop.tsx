@@ -182,6 +182,7 @@ export default function PostsDesktop() {
           title={w.nav.posts}
           description={w.notesIntro}
           primary={{ id: "new", label: w.newNote, icon: ICON.add, onSelect: () => nav("/admin/posts/new") }}
+          newMenu
         />
 
         <div className={styles.page}>
@@ -229,7 +230,6 @@ export default function PostsDesktop() {
               rowKey={(x) => x.slug}
               rowLabel={(x) => titleOf(x.title, x.slug)}
               words={words}
-              density="comfortable"
               loading={posts === null && !error}
               onOpen={(x) => nav(`/admin/posts/${x.slug}`)}
               groupBy={status === "all" ? (x) => x.status : undefined}

@@ -1,0 +1,72 @@
+/* The customise-actions popover: a hint, a list of checkbox rows, a reset. Targets are 28px tall and
+   clear 24px wide on every row (WCAG 2.5.8); the whole row is the label. */
+.panel {
+  inline-size: 16rem;
+  max-inline-size: calc(100vw - 2rem);
+  padding: 0.5rem;
+}
+
+.hint {
+  margin: 0;
+  padding: 0.25rem 0.5rem 0.5rem;
+  font-size: 0.8125rem;
+  color: rgb(var(--ink-soft));
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  min-block-size: 2rem;
+  padding-inline: 0.5rem;
+  border-radius: var(--a-r-sm, 8px);
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .item:hover {
+    background: rgb(var(--ink) / 0.06);
+  }
+}
+
+.item input {
+  inline-size: 1rem;
+  block-size: 1rem;
+  accent-color: rgb(var(--signal));
+}
+
+.item input:disabled ~ * {
+  opacity: 0.5;
+}
+
+.glyph {
+  flex: none;
+  inline-size: 1rem;
+  block-size: 1rem;
+}
+
+.name {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.875rem;
+}
+
+.reset {
+  margin-block-start: 0.25rem;
+  min-block-size: 1.75rem;
+  padding-inline: 0.5rem;
+  border: 0;
+  background: transparent;
+  color: rgb(var(--signal));
+  font: inherit;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
