@@ -1,0 +1,39 @@
+/* The desktop Posts and Areas lists: the language pair and the page rhythm. */
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--a-s-4, 1rem);
+  min-inline-size: 0;
+}
+
+.pair {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--a-s-3, 0.75rem);
+  white-space: nowrap;
+}
+
+.lang {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--a-s-1, 0.25rem);
+  font-size: 0.875rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: rgb(var(--ink-soft));
+}
+
+.title {
+  color: inherit;
+  text-decoration: none;
+}
+.title:hover {
+  text-decoration: underline;
+}
+
+.slug {
+  display: block;
+  margin-block-start: 0.125rem;
+  font-size: 0.875rem;
+  color: rgb(var(--ink-soft));
+}
