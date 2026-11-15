@@ -1,0 +1,140 @@
+/*
+ * The side panel (A21): a non-modal sheet at the inline-end edge, below the top
+ * bar, beside a list that stays usable. The page makes room for it through
+ * `--a-panel-w` (set on <html> while it is open), so it covers nothing; a width
+ * change is a jump, never an animated layout (M3). It moves by `translate` and
+ * `opacity` only: in on the entrance tokens, out on the shorter exit tokens,
+ * and under reduced motion it is simply shown or hidden. Logical edges only,
+ * so it sits at the left in Hebrew.
+ */
+.panel {
+  --sp-shift: 1.5rem;
+  position: fixed;
+  inset-block: var(--sp-top, 3.5rem) 0;
+  inset-inline-end: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  inline-size: var(--sp-w, 420px);
+  max-inline-size: 100vw;
+  background: rgb(var(--paper));
+  color: rgb(var(--ink));
+  border-inline-start: 1px solid var(--a-line, rgb(var(--rule-firm) / 0.5));
+  box-shadow: var(--a-shadow-3, 0 12px 32px -8px rgb(var(--shade) / 0.22));
+  translate: 0 0;
+  opacity: 1;
+}
+
+:global([dir='rtl']) .panel {
+  --sp-shift: -1.5rem;
+}
+
+/* Closed: out of sight and out of reach at once; the exit below is only the way there. */
+.panel[data-state='closed'] {
+  visibility: hidden;
+  pointer-events: none;
+  translate: var(--sp-shift) 0;
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .panel {
+    transition: translate var(--a-dur-sheet) var(--a-ease-out), opacity var(--a-dur-sheet) var(--a-ease-out);
+  }
+  .panel[data-state='closed'] {
+    transition: translate var(--a-dur-exit-sheet) var(--a-ease-exit), opacity var(--a-dur-exit-sheet) var(--a-ease-exit),
+      visibility 0s linear var(--a-dur-exit-sheet);
+  }
+  @starting-style {
+    .panel[data-state='open'] {
+      translate: var(--sp-shift) 0;
+      opacity: 0;
+    }
+  }
+}
+
+/* The page's own area gives up the panel's width while it is open. */
+:global(.a-app) :global(.a-main) {
+  padding-inline-end: var(--a-panel-w, 0px);
+}
+
+/* The edge: a 12px strip on the leading side, the drag and arrow-key handle. */
+.edge {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: -6px;
+  inline-size: 12px;
+  cursor: col-resize;
+  touch-action: none;
+}
+.edge::after {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 5px;
+  inline-size: 2px;
+  background: transparent;
+}
+.edge:focus-visible::after {
+  background: rgb(var(--signal));
+}
+@media (hover: hover) and (pointer: fine) {
+  .edge:hover::after {
+    background: rgb(var(--signal));
+  }
+}
+.edge:focus-visible {
+  outline: 2px solid rgb(var(--signal));
+  outline-offset: -2px;
+}
+
+.head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-block: 0.5rem;
+  padding-inline: 1rem 0.5rem;
+  border-block-end: 1px solid var(--a-line-soft, rgb(var(--rule-firm) / 0.3));
+}
+
+.title {
+  flex: 1;
+  min-inline-size: 0;
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.3;
+  overflow-wrap: break-word;
+  word-break: normal;
+  hyphens: manual;
+}
+.title:focus {
+  outline: none;
+}
+
+.body {
+  flex: 1;
+  min-block-size: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 1rem;
+}
+
+.foot {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-block-start: 1px solid var(--a-line-soft, rgb(var(--rule-firm) / 0.3));
+  background: rgb(var(--paper));
+}
+
+@media (forced-colors: active) {
+  .panel {
+    border-inline-start-color: CanvasText;
+  }
+}
