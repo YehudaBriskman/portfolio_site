@@ -1,18 +1,21 @@
 import { useEffect, useId, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
-import { Link, useLocation } from "react-router-dom";
-import { ChevronLeft, ExternalLink, LogOut, Menu, PanelLeftClose, PanelLeftOpen, X } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { ChevronLeft, ExternalLink, FilePlus, FolderPlus, ImagePlus, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Search, X } from "lucide-react";
 import { admin } from "@/services/admin";
 import { markAdminSeen } from "@/components/notes/reader/adminSession";
 import DisplayMenu, { DisplayPanel } from "@/components/nav/DisplayMenu";
 import { DisclosureButton } from "@/components/ui/Disclosure";
-import { Icon } from "@/components/ui/Icon";
+import { Icon, iconOf } from "@/components/ui/Icon";
 import { IconButton } from "@/components/ui/IconButton";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useChromeWords } from "@/i18n/chrome";
 import NotificationsMenu from "@/components/admin/NotificationsMenu";
 import { toast } from "@/lib/toast";
 import { useAdminWords } from "@/i18n/admin";
-import { useKeyboardOpen } from "./keyboard";
+import { modLabel, useKeyboardOpen, useShortcut } from "./keyboard";
+import { CommandPalette } from "@/components/ui/CommandPalette";
+import { flattenNav, type PaletteItem } from "@/components/ui/paletteItems";
+import { useCommandWords } from "./commandWords";
 import { toDo, useTranslationReport } from "@/services/translations";
 import { useAnnounceUnread } from "@/services/adminAnnounce";
 import { SidebarNav } from "@/components/ui/SidebarGroup";
@@ -122,9 +125,8 @@ type GlyphProps = { className?: string; "aria-hidden"?: boolean | "true" };
 const CollapseGlyph = (p: GlyphProps) => <Icon icon={PanelLeftClose} mirrorInRtl {...p} />;
 const ExpandGlyph = (p: GlyphProps) => <Icon icon={PanelLeftOpen} mirrorInRtl {...p} />;
 
-/** A field that has its own Ctrl+B (bold) keeps it. */
-const typingIn = (t: EventTarget | null) =>
-  t instanceof HTMLElement && (t.isContentEditable || /^(input|textarea|select)$/i.test(t.tagName) || !!t.closest("[contenteditable='true']"));
+const SearchGlyph = (p: GlyphProps) => <Icon icon={Search} {...p} />;
+const CREATE_ICON = { post: iconOf(FilePlus), area: iconOf(FolderPlus), upload: iconOf(ImagePlus) };
 
 /* The width at which the drawer becomes the permanent sidebar (index.css `.a-side`). */
 const DRAWER_QUERY = "(min-width: 1024px)";
@@ -146,7 +148,10 @@ function useSidebarDocked(): boolean {
 export default function AdminShell({ title, section, counts, bottomBar, backTo, barEverywhere, actions, children }: AdminShellProps) {
   const { pathname, search } = useLocation();
   const w = useAdminWords();
-  const nw = useMobileWords().nav;
+  const mobile = useMobileWords();
+  const nw = mobile.nav;
+  const cmd = useCommandWords();
+  const navigate = useNavigate();
   const chrome = useChromeWords();
   const mk = useMarketingWords();
   const aw = useAudienceWords();
@@ -162,6 +167,7 @@ export default function AdminShell({ title, section, counts, bottomBar, backTo, 
   const [displayOpen, setDisplayOpen] = useState(false);
   const [collapsedPref, setCollapsedPref] = useState(readCollapsed);
   const [accountOpen, setAccountOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
   /* Widening past the drawer breakpoint (rotate, resize, snap) hides the toggle
      that could close it, so a drawer left open would leave <main> inert with no
      control to undo it. Close it at that moment, while rendering like the route
@@ -201,20 +207,23 @@ export default function AdminShell({ title, section, counts, bottomBar, backTo, 
     setOpen(false);
   }
 
-  /* Ctrl/Cmd+B folds the sidebar, as in the editors people already use. */
-  useEffect(() => {
-    if (!docked) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key.toLowerCase() !== "b" || !(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey || typingIn(e.target)) return;
-      e.preventDefault();
+  /* The shortcut registry (keyboard.ts) holds both keys, so they cannot collide:
+     Ctrl/Cmd+B folds the sidebar (not inside a field, where it is bold), and
+     Ctrl/Cmd+K opens the palette (live in a plain field, not in a rich-text
+     one, where it is a link). */
+  useShortcut({
+    id: "admin-sidebar",
+    key: "b",
+    mod: true,
+    fields: "none",
+    enabled: () => docked,
+    run: () =>
       setCollapsedPref((v) => {
         writeCollapsed(!v);
         return !v;
-      });
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [docked]);
+      }),
+  });
+  useShortcut({ id: "admin-palette", key: "k", mod: true, fields: "plain", run: () => setPaletteOpen((v) => !v) });
 
   /* Open: focus moves in, Escape closes and hands focus back. */
   useEffect(() => {
@@ -284,6 +293,14 @@ export default function AdminShell({ title, section, counts, bottomBar, backTo, 
     },
   });
 
+  /* The palette: the create actions, then every page the nav holds. */
+  const paletteItems: PaletteItem[] = [
+    { id: "new-post", label: w.newNote, group: "create", icon: CREATE_ICON.post, run: () => navigate("/admin/posts/new") },
+    { id: "new-area", label: w.newArea, group: "create", icon: CREATE_ICON.area, run: () => navigate("/admin/areas/new") },
+    { id: "upload-media", label: w.upload, group: "create", icon: CREATE_ICON.upload, run: () => navigate("/admin/media") },
+    ...flattenNav(tree, (to) => navigate(to)),
+  ];
+
   const sectionLabel = w.nav[section];
   const crumbs: Array<{ label: string; to?: string }> = [{ label: w.admin, to: "/admin" }];
   if (section !== "overview") crumbs.push({ label: sectionLabel, to: PATHS[section] });
@@ -342,6 +359,15 @@ export default function AdminShell({ title, section, counts, bottomBar, backTo, 
         <div className="a-top-end">
           {actions && <div className="flex items-center gap-1 lg:hidden">{actions}</div>}
           {/* On a phone the bell lives in the drawer: the top bar is on a control budget. */}
+          <span className="contents max-lg:hidden">
+            <IconButton
+              icon={SearchGlyph}
+              label={w.search}
+              aria-haspopup="dialog"
+              aria-keyshortcuts="Control+K Meta+K"
+              onClick={() => setPaletteOpen(true)}
+            />
+          </span>
           <NotificationsMenu className="max-lg:hidden" />
           <span className="contents max-lg:hidden"><DisplayMenu /></span>
           {who && (
@@ -401,6 +427,20 @@ export default function AdminShell({ title, section, counts, bottomBar, backTo, 
           {!docked && (
           <div className="a-side-foot">
             <div className="lg:hidden">
+              <button
+                type="button"
+                className="a-nav-item"
+                aria-haspopup="dialog"
+                onClick={() => {
+                  setOpen(false);
+                  setPaletteOpen(true);
+                }}
+              >
+                <span className="a-nav-icon" aria-hidden="true">
+                  <Search />
+                </span>
+                {w.search}
+              </button>
               <NotificationsMenu withLabel />
               <a href={PUBLIC_SITE} target="_blank" rel="noreferrer noopener" className="a-nav-item" aria-label={w.viewSiteNewTab}>
                 <span className="a-nav-icon" aria-hidden="true">
@@ -430,6 +470,13 @@ export default function AdminShell({ title, section, counts, bottomBar, backTo, 
           {children}
         </main>
       </div>
+
+      <CommandPalette
+        open={paletteOpen}
+        onOpenChange={setPaletteOpen}
+        items={paletteItems}
+        words={{ title: w.search, placeholder: cmd.placeholder, recent: cmd.recent, create: cmd.create, go: cmd.go, empty: cmd.empty, results: cmd.results, close: mobile.sheet.close }}
+      />
 
       {/* The one screen-bottom region: an editor's Save. */}
       {bottomBar && (
