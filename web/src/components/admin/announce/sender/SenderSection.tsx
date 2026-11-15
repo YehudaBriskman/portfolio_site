@@ -314,7 +314,7 @@ export default function SenderSection({ sender, onChange, warnings, phone = fals
           />
           {note(`${uid}-tests-h`, err("testRecipients"), w.testHint)}
         </div>,
-        { open: true, testid: "sec-tests" },
+        { testid: "sec-tests" },
       )}
 
       {showLimits && sec(
@@ -370,7 +370,7 @@ export default function SenderSection({ sender, onChange, warnings, phone = fals
             {pct("reserveShare", bw.reserve, bw.reserveHint, 0, 50)}
           </div>
         </>,
-        { open: true, bad: Boolean(problems.dailyLimit || problems.monthlyLimit || problems.safety || problems.reserveShare), testid: "sec-budget" },
+        { bad: Boolean(problems.dailyLimit || problems.monthlyLimit || problems.safety || problems.reserveShare), testid: "sec-budget" },
       )}
 
       {showTexts && sec(

@@ -1,8 +1,14 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Hash, Link2, Mail, Megaphone, PenLine, Star, type LucideIcon } from "lucide-react";
 import { BottomSheet } from "@/components/ui/BottomSheet";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { DataTable, type Column, type DataTableWords } from "@/components/ui/DataTable";
 import { Disclosure } from "@/components/ui/Disclosure";
 import { FilterChips } from "@/components/ui/FilterChips";
+import { ICON } from "@/components/ui/icons";
+import { InfoPopover } from "@/components/ui/InfoPopover";
+import { RowActions } from "@/components/ui/RowActions";
+import { SidePanel } from "@/components/ui/SidePanel";
 import { InstagramGlyph, LinkedinGlyph, XGlyph } from "@/components/ui/channelGlyphs";
 import { RecordRow, type Fact } from "@/components/ui/RecordRow";
 import type { FilterDef, Filters } from "@/components/ui/filters";
@@ -53,13 +59,19 @@ function ChannelMark({ channel, label }: { channel: AnnounceChannel; label: stri
 type Doc = ReturnType<typeof useSettingsDoc>;
 
 /*
- * The phone's Library: filter chips, then templates, built-ins and snippets as
- * one-button rows. A row opens ONE editor in a full sheet; the sheet is a
- * transaction on the document draft, so closing it with edits asks first and
- * Discard puts the draft back as it was when the sheet opened. Nothing is
- * saved until Save, and the payload is the same document the desktop sends.
+ * The Library's lists and its one editor.
+ *
+ * On a phone: filter chips, then templates, built-ins and snippets as one-button
+ * rows; a row opens ONE editor in a full sheet.
+ * On a desktop (`wide`): the same three lists as tables (one drawn action per
+ * row, the rest in More), one primary and one secondary action in a header bar,
+ * and the editor in the non-modal side panel, so the list stays on the page.
+ *
+ * Either way the editor is a transaction on the document draft: closing it with
+ * edits asks first and Discard puts the draft back as it was when it opened.
+ * Nothing is saved until Save, and the payload is the same document on both.
  */
-export default function LibraryPhone({ doc, events }: { doc: Doc; events: AnnounceSummary[] }) {
+export default function LibraryPhone({ doc, events, wide = false, footerBar }: { doc: Doc; events: AnnounceSummary[]; wide?: boolean; footerBar?: ReactNode }) {
   const w = useLibraryWords();
   const a = useAnnounceWords();
   const uid = useId();
@@ -73,6 +85,7 @@ export default function LibraryPhone({ doc, events }: { doc: Doc; events: Announ
   const [channel, setChannel] = useState<AnnounceChannel | "all">("all");
   const [kind, setKind] = useState<AnnounceSnippetKind | "all">("all");
   const [starterMsg, setStarterMsg] = useState("");
+  const [removing, setRemoving] = useState<{ kind: "item" | "snippet"; id: string } | null>(null);
   const keepRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -262,6 +275,181 @@ export default function LibraryPhone({ doc, events }: { doc: Doc; events: Announ
     );
   };
 
+  const panelOpen = target !== null && body !== null;
+  const saveFooter = (
+    <div className={styles.foot}>
+      <button type="button" className="a-btn a-btn-primary min-h-[44px]" disabled={!dirtyDoc || status === "saving"} onClick={() => (setClosing(true), void doc.save(draft))}>{w.save}</button>
+      {/* The page's own bar is hidden while this is open, so a stale revision is answered here. */}
+      {status === "conflict" && <button type="button" className="a-btn min-h-[44px]" onClick={doc.reload}>{a.reload}</button>}
+      <span role="status" className={bad ? styles.bad : "text-sm text-clay"}>{statusText}</span>
+    </div>
+  );
+  const panelBody = (
+    <div className={styles.sheetBody}>
+      {ask && (
+        <div className={styles.guard} role="alertdialog" aria-labelledby={`${uid}-gt`} aria-describedby={`${uid}-gb`}>
+          <p id={`${uid}-gt`} className="font-bold">{w.guardTitle}</p>
+          <p id={`${uid}-gb`} className={styles.help}>{w.guardBody}</p>
+          <div className={styles.guardActions}>
+            <button ref={keepRef} type="button" className="a-btn a-btn-primary min-h-[44px]" onClick={() => setAsk(false)}>{w.guardKeep}</button>
+            <button type="button" className="a-btn min-h-[44px]" onClick={discard}>{w.guardDiscard}</button>
+          </div>
+        </div>
+      )}
+      {body}
+      {issues.length > 0 && (
+        <div role="alert">
+          <p className="a-error">{a.invalid}</p>
+          <ul className="list-disc ps-5">
+            {issues.map((i) => <li key={i.path + i.message} className="a-error mt-0">{i.path ? `${i.path}: ` : ""}{i.message}</li>)}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+
+  /* ----- a desktop: tables, one header bar, the editor in the side panel ----- */
+  if (wide) {
+    const full = draft.library.length >= LIBRARY_MAX;
+    const nameOf = (i: AnnounceLibraryItem) => i.name || w.untitled;
+    const tableWords: DataTableWords = { selectAll: w.cancel, selectRow: (l) => l, actions: w.actionsLabel, loading: w.loading, bulkLabel: w.actionsLabel, count: (n) => String(n), cancel: w.cancel, more: w.more };
+    const empty = (text: string) => <p className={styles.help}>{text}</p>;
+    const removeAsk = removing && (removing.kind === "item" ? draft.library.find((i) => i.id === removing.id)?.name : draft.snippets.find((s) => s.id === removing.id)?.name);
+    const removeName = removing ? removeAsk || w.untitled : "";
+    const doRemove = () => {
+      if (!removing) return;
+      const { kind, id } = removing;
+      edit((d) => void (kind === "item" ? (d.library = d.library.filter((x) => x.id !== id)) : (d.snippets = d.snippets.filter((x) => x.id !== id))));
+      if ((target?.kind === "item" || target?.kind === "snippet") && target.id === id) setTarget(null);
+      setRemoving(null);
+    };
+    const edited = (own: boolean) => (own ? <span className="ms-2 text-sm font-normal text-clay">{w.customised}</span> : null);
+    const templateCols: Column<AnnounceLibraryItem>[] = [
+      { id: "name", header: w.name, primary: true, cell: (i) => <>{nameOf(i)}{i.default && <span className="ms-2 text-sm font-normal text-clay">{w.defaultBadge}</span>}</> },
+      { id: "channel", header: w.channel, width: "9rem", hideBelow: "sm", cell: (i) => a.channels[i.channel] },
+      { id: "lang", header: w.language, width: "8rem", hideBelow: "sm", cell: (i) => a.langs[i.lang] },
+    ];
+    type Built = { l: AnnounceLang; c: AnnounceChannel };
+    const builtinCols: Column<Built>[] = [
+      { id: "name", header: w.channel, primary: true, cell: ({ l, c }) => <>{a.channels[c]}{edited(draft.templates[l][c] !== undefined)}</> },
+      { id: "lang", header: w.language, width: "8rem", cell: ({ l }) => a.langs[l] },
+    ];
+    const snippetCols: Column<AnnounceSnippet>[] = [
+      { id: "name", header: w.snippetName, primary: true, cell: (s) => s.name || w.untitled },
+      { id: "kind", header: w.snippetKind, width: "10rem", hideBelow: "sm", cell: (s) => w.snippetKinds[s.kind] },
+      { id: "text", header: w.snippetText, width: "16rem", hideBelow: "md", cell: (s) => s.text.replace(/\s+/g, " ") },
+    ];
+    return (
+      <div className="min-w-0 space-y-6">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <p className="a-hint !mt-0 min-w-0 flex-1 basis-64">{w.intro}</p>
+          <div className="flex flex-wrap items-center gap-3" role="group" aria-label={w.actionsLabel}>
+            <button type="button" className="a-btn min-h-[44px]" disabled={starter.added === 0} onClick={addStarter}>{w.starterAdd}</button>
+            <InfoPopover label={w.starterAdd} text={w.starterHint} />
+            <button type="button" className="a-btn a-btn-primary min-h-[44px]" disabled={full} onClick={() => addItem()}>{w.newTemplate}</button>
+          </div>
+        </div>
+        <span role="status" className="block text-sm font-bold empty:hidden">{starterMsg || (starter.added === 0 ? w.starterNone : "")}</span>
+        <FilterChips defs={defs} value={filters} onChange={onFilters} common={["channel", "lang", "kind"]} />
+
+        <section aria-labelledby={`${uid}-t`} className="space-y-3">
+          <div className="flex items-center gap-2">
+            <h3 id={`${uid}-t`} className="display-tight text-lg">{w.templatesHeading}</h3>
+            <InfoPopover label={w.templatesHeading} text={w.templatesHint} />
+          </div>
+          <DataTable
+            label={w.templatesHeading}
+            rows={items}
+            columns={templateCols}
+            rowKey={(i) => i.id}
+            rowLabel={nameOf}
+            words={tableWords}
+            onOpen={(i) => open({ kind: "item", id: i.id })}
+            empty={empty(draft.library.length === 0 ? w.noTemplates : w.nothingMatches)}
+            rowActions={(i) => (
+              <RowActions
+                label={w.actionsFor(nameOf(i))}
+                moreLabel={w.more}
+                primary={{ id: "edit", icon: ICON.draft, label: w.open(nameOf(i)), showLabel: "never", onSelect: () => open({ kind: "item", id: i.id }) }}
+                actions={[
+                  { id: "dup", icon: ICON.copy, label: w.duplicate(nameOf(i)), disabled: full, onSelect: () => addItem({ ...i, id: newId("t"), name: `${i.name} (${w.copySuffix})`.slice(0, 60) }) },
+                  { id: "del", icon: ICON.delete, label: w.remove(nameOf(i)), tone: "danger", onSelect: () => setRemoving({ kind: "item", id: i.id }) },
+                ]}
+              />
+            )}
+          />
+          {full && <p className="a-hint">{w.limitReached(LIBRARY_MAX)}</p>}
+        </section>
+
+        <section aria-labelledby={`${uid}-b`} className="space-y-3">
+          <div className="flex items-center gap-2">
+            <h3 id={`${uid}-b`} className="display-tight text-lg">{w.builtinHeading}</h3>
+            <InfoPopover label={w.builtinHeading} text={w.builtinHint} />
+          </div>
+          <DataTable
+            label={w.builtinHeading}
+            rows={builtins}
+            columns={builtinCols}
+            rowKey={({ l, c }) => `${l}-${c}`}
+            rowLabel={({ l, c }) => `${a.channels[c]}, ${a.langs[l]}`}
+            words={tableWords}
+            onOpen={({ l, c }) => open({ kind: "builtin", lang: l, channel: c })}
+            empty={empty(w.nothingMatches)}
+            rowActions={({ l, c }) => (
+              <RowActions
+                label={w.actionsFor(`${a.channels[c]}, ${a.langs[l]}`)}
+                moreLabel={w.more}
+                primary={{ id: "edit", icon: ICON.draft, label: w.open(`${a.channels[c]}, ${a.langs[l]}`), showLabel: "never", onSelect: () => open({ kind: "builtin", lang: l, channel: c }) }}
+                actions={[]}
+              />
+            )}
+          />
+        </section>
+
+        <section aria-labelledby={`${uid}-s`} className="space-y-3">
+          <div className="flex items-center gap-2">
+            <h3 id={`${uid}-s`} className="display-tight text-lg">{w.snippetsHeading}</h3>
+            <InfoPopover label={w.snippetsHeading} text={w.snippetsHint} />
+            <button type="button" className="a-btn ms-auto min-h-[44px]" disabled={draft.snippets.length >= SNIPPET_MAX} onClick={addSnippet}>{w.newSnippet}</button>
+          </div>
+          <DataTable
+            label={w.snippetsHeading}
+            rows={snippets}
+            columns={snippetCols}
+            rowKey={(s) => s.id}
+            rowLabel={(s) => s.name || w.untitled}
+            words={tableWords}
+            onOpen={(s) => open({ kind: "snippet", id: s.id })}
+            empty={empty(draft.snippets.length === 0 ? w.noSnippets : w.nothingMatches)}
+            rowActions={(s) => (
+              <RowActions
+                label={w.actionsFor(s.name || w.untitled)}
+                moreLabel={w.more}
+                primary={{ id: "edit", icon: ICON.draft, label: w.open(s.name || w.untitled), showLabel: "never", onSelect: () => open({ kind: "snippet", id: s.id }) }}
+                actions={[{ id: "del", icon: ICON.delete, label: w.remove(s.name || w.untitled), tone: "danger", onSelect: () => setRemoving({ kind: "snippet", id: s.id }) }]}
+              />
+            )}
+          />
+          {draft.snippets.length >= SNIPPET_MAX && <p className="a-hint">{w.snippetLimit(SNIPPET_MAX)}</p>}
+        </section>
+
+        {!panelOpen && footerBar}
+
+        <SidePanel open={panelOpen} onOpenChange={(o) => !o && setTarget(null)} title={sheetTitle} footer={saveFooter} beforeClose={requestClose}>
+          {panelBody}
+        </SidePanel>
+        <ConfirmDialog
+          open={removing !== null}
+          title={w.remove(removeName)}
+          confirm={w.confirmRemove(removeName)}
+          cancel={w.cancel}
+          onConfirm={doRemove}
+          onCancel={() => setRemoving(null)}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className={styles.root}>
       <FilterChips defs={defs} value={filters} onChange={onFilters} common={["channel", "lang", "kind"]} />
@@ -350,39 +538,8 @@ export default function LibraryPhone({ doc, events }: { doc: Doc; events: Announ
         </div>
       </Disclosure>
 
-      <BottomSheet
-        open={target !== null && body !== null}
-        onClose={requestClose}
-        title={sheetTitle}
-        snap="full"
-        footer={
-          <div className={styles.foot}>
-            <button type="button" className="a-btn a-btn-primary min-h-[44px]" disabled={!dirtyDoc || status === "saving"} onClick={() => (setClosing(true), void doc.save(draft))}>{w.save}</button>
-            <span role="status" className={bad ? styles.bad : "text-sm text-clay"}>{statusText}</span>
-          </div>
-        }
-      >
-        <div className={styles.sheetBody}>
-          {ask && (
-            <div className={styles.guard} role="alertdialog" aria-labelledby={`${uid}-gt`} aria-describedby={`${uid}-gb`}>
-              <p id={`${uid}-gt`} className="font-bold">{w.guardTitle}</p>
-              <p id={`${uid}-gb`} className={styles.help}>{w.guardBody}</p>
-              <div className={styles.guardActions}>
-                <button ref={keepRef} type="button" className="a-btn a-btn-primary min-h-[44px]" onClick={() => setAsk(false)}>{w.guardKeep}</button>
-                <button type="button" className="a-btn min-h-[44px]" onClick={discard}>{w.guardDiscard}</button>
-              </div>
-            </div>
-          )}
-          {body}
-          {issues.length > 0 && (
-            <div role="alert">
-              <p className="a-error">{a.invalid}</p>
-              <ul className="list-disc ps-5">
-                {issues.map((i) => <li key={i.path + i.message} className="a-error mt-0">{i.path ? `${i.path}: ` : ""}{i.message}</li>)}
-              </ul>
-            </div>
-          )}
-        </div>
+      <BottomSheet open={panelOpen} onClose={requestClose} title={sheetTitle} snap="full" footer={saveFooter}>
+        {panelBody}
       </BottomSheet>
     </div>
   );
