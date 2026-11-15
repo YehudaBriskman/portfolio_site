@@ -29,11 +29,13 @@ export interface FilterChipsProps {
   onOpenSheet?: () => void;
   /** Rows now showing. Spoken (not drawn) while a filter is on. */
   resultCount?: number;
+  /** A parent (FilterBar) draws its own Clear all, which also clears its search. */
+  hideClear?: boolean;
 }
 
 const cx = (...parts: Array<string | false | undefined>) => parts.filter(Boolean).join(" ");
 
-export function FilterChips({ defs, value, onChange, common = [], onOpenSheet, resultCount }: FilterChipsProps) {
+export function FilterChips({ defs, value, onChange, common = [], onOpenSheet, resultCount, hideClear = false }: FilterChipsProps) {
   const w = useFiltersWords();
   const lang = useLang();
   const count = filterCount(defs, value);
@@ -79,7 +81,7 @@ export function FilterChips({ defs, value, onChange, common = [], onOpenSheet, r
     ...(onOpenSheet ? ["filters"] : []),
     ...chipDefs.flatMap((d) => d.options.map((o) => `${d.id}:${o.value}`)),
     ...hidden.map((d) => `x:${d.id}`),
-    ...(count > 0 ? ["clear"] : []),
+    ...(count > 0 && !hideClear ? ["clear"] : []),
   ];
   const stop = keys.includes(current) ? current : keys[0];
   const tab = (key: string) => (key === stop ? 0 : -1);
@@ -140,7 +142,7 @@ export function FilterChips({ defs, value, onChange, common = [], onOpenSheet, r
           );
         })}
       </div>
-      {count > 0 && (
+      {count > 0 && !hideClear && (
         <button type="button" className={cx(styles.chip, styles.clear)} data-key="clear" aria-label={w.clearAll} tabIndex={tab("clear")} onClick={clearAll}>
           <FilterX size={18} strokeWidth={2} aria-hidden="true" focusable="false" />
           <span className={styles.wide}>{w.clearAll}</span>

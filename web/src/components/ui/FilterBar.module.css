@@ -1,0 +1,130 @@
+/*
+ * The desktop filter row: search | chips | state. A flex line that WRAPS to a
+ * second line (search on its own line, then chips) before anything clips; the
+ * chip row is the only part that scrolls, and it clips on its own box (see
+ * FilterChips.module.css), never under the search field. Logical properties.
+ */
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--a-s-2, 0.5rem) var(--a-s-3, 0.75rem);
+  min-inline-size: 0;
+}
+
+.search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1 1 16rem;
+  min-inline-size: 0;
+  max-inline-size: 28rem;
+}
+
+.glyph {
+  position: absolute;
+  inset-inline-start: 0.75rem;
+  color: rgb(var(--ink-soft));
+  pointer-events: none;
+}
+
+.input {
+  inline-size: 100%;
+  box-sizing: border-box;
+  min-block-size: var(--ctl-h-lg, 44px);
+  padding-inline: 2.25rem;
+  border: 1px solid var(--a-line-ctl, rgb(var(--rule-firm)));
+  border-radius: var(--ctl-radius, 12px);
+  background: rgb(var(--paper));
+  color: rgb(var(--ink));
+  font: inherit;
+  font-size: 1rem;
+  appearance: none;
+}
+
+.input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.input:focus-visible {
+  outline: 2px solid rgb(var(--signal));
+  outline-offset: 2px;
+}
+
+@media (pointer: fine) {
+  .input {
+    min-block-size: var(--ctl-h-md, 36px);
+    font-size: 0.875rem;
+  }
+}
+
+.clearSearch {
+  position: absolute;
+  inset-inline-end: 0.25rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-inline-size: var(--ctl-h-md, 36px);
+  min-block-size: var(--ctl-h-md, 36px);
+  border: 0;
+  border-radius: var(--ctl-radius, 12px);
+  background: transparent;
+  color: rgb(var(--ink-soft));
+  cursor: pointer;
+}
+
+.clearSearch:focus-visible {
+  outline: 2px solid rgb(var(--signal));
+  outline-offset: -2px;
+}
+
+@media (pointer: coarse) {
+  .clearSearch {
+    min-inline-size: var(--ctl-h-lg, 44px);
+    min-block-size: var(--ctl-h-lg, 44px);
+  }
+}
+
+.chips {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+}
+
+.state {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--a-s-3, 0.75rem);
+  margin-inline-start: auto;
+}
+
+.count {
+  font-size: var(--a-fs-meta, 0.875rem);
+  font-variant-numeric: tabular-nums;
+  color: rgb(var(--ink-soft));
+  white-space: nowrap;
+}
+
+.clearAll {
+  min-block-size: var(--ctl-h-md, 36px);
+  padding-inline: var(--a-s-2, 0.5rem);
+  border: 0;
+  border-radius: var(--ctl-radius, 12px);
+  background: transparent;
+  color: rgb(var(--signal));
+  font: inherit;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+@media (pointer: coarse) {
+  .clearAll {
+    min-block-size: var(--ctl-h-lg, 44px);
+  }
+}
+
+.clearAll:focus-visible {
+  outline: 2px solid rgb(var(--signal));
+  outline-offset: 2px;
+}
