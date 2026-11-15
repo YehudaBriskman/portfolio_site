@@ -129,10 +129,10 @@ export default function MediaPhone({
         />
       </div>
       <div className={styles.toolbar}>
+        <SelectionHeader selection={selection} total={unusedVisible.length} />
         <div className={styles.chips}>
           <FilterChips defs={defs} value={filters} onChange={setFilters} common={["kind", "only"]} onOpenSheet={() => setFiltersOpen(true)} resultCount={visible.length} />
         </div>
-        <SelectionHeader selection={selection} total={unusedVisible.length} />
       </div>
       <FiltersRestoredNote restored={saved.restored} onUndo={saved.undoRestore} onDismiss={saved.dismissRestored} />
       {selection.on && <p className="a-hint !mt-0">{p.selectNote}</p>}

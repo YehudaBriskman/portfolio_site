@@ -140,7 +140,7 @@
   flex-wrap: wrap;
   align-items: center;
   gap: .75rem 1rem;
-  padding: 1.25rem;
+  padding: .625rem 1rem;
   border-radius: var(--a-r-box, 16px);
   border: 1.5px dashed rgb(var(--edge));
   background: rgb(var(--surface) / .3);
@@ -197,14 +197,6 @@
   background-image: linear-gradient(rgb(var(--ink) / 0.04), rgb(var(--ink) / 0.04));
 }
 
-.detail {
-  display: grid;
-  gap: 1.25rem;
-  grid-template-columns: minmax(0, 1fr);
-}
-@media (min-width: 52rem) {
-  .detail { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); }
-}
 .detailImg {
   width: 100%;
   height: auto;
@@ -254,15 +246,57 @@
   border: 1px solid rgb(var(--edge));
 }
 
-.data {
-  display: grid;
-  grid-template-columns: max-content minmax(0, 1fr);
-  gap: .375rem 1rem;
-  margin: 0;
-  font-size: .875rem;
+/* The desktop page (S7). */
+.page { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; min-inline-size: 0; }
+.toolbar { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: .75rem 1rem; min-inline-size: 0; }
+.filters { flex: 1 1 24rem; min-inline-size: 0; }
+.tools { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1rem; }
+.views { display: inline-flex; gap: .5rem; }
+.view {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-block-size: 2.25rem; padding: 0 .875rem;
+  border: 1px solid rgb(var(--edge)); border-radius: 999px; background: transparent;
+  color: rgb(var(--bone)); font: inherit; font-size: .875rem; cursor: pointer;
 }
-.data dt { color: rgb(var(--clay)); font-family: var(--font-data); font-size: .875rem; letter-spacing: .08em; text-transform: uppercase; align-self: center; }
-.data dd { margin: 0; min-width: 0; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.view[aria-pressed="true"] { border-color: rgb(var(--sodium)); background: rgb(var(--sodium) / .12); font-weight: 600; }
+.view:focus-visible { outline: 2px solid rgb(var(--sodium)); outline-offset: 2px; }
+
+/* A list row: the thumbnail, the words, and the one quiet marker. */
+.rowItem { display: flex; align-items: center; gap: .75rem; min-inline-size: 0; }
+.rowThumb {
+  flex: none; inline-size: 2.5rem; block-size: 2.5rem; object-fit: cover; border-radius: var(--a-r-sm, 10px);
+  border: 1px solid rgb(var(--edge)); background-color: rgb(var(--surface));
+}
+.rowThumb[data-kind="icon"] { object-fit: contain; padding: .25rem; }
+
+/* A tile's corner: the missing-alt marker at the start, the tick of a chosen one at the end. */
+.mark, .check {
+  position: absolute; inset-block-start: .5rem; display: inline-flex; padding: .25rem; border-radius: 999px;
+  background: rgb(var(--bitumen) / .82); color: rgb(var(--bone)); pointer-events: none;
+}
+.mark { inset-inline-start: .5rem; }
+.check { inset-inline-end: .5rem; background: rgb(var(--sodium)); color: rgb(var(--bitumen)); }
+.tile[aria-checked="true"] { border: 2px solid rgb(var(--sodium)); }
+
+/* Select mode on the grid: the count and the one action, stuck to the bottom of the page. */
+.bulk {
+  position: sticky; inset-block-end: 1rem; z-index: 2; display: flex; align-items: center; gap: 1rem;
+  justify-self: start; padding: .5rem .75rem; border-radius: var(--a-r-box, 16px);
+  border: 1px solid rgb(var(--edge)); background: rgb(var(--bitumen)); box-shadow: 0 6px 24px rgb(0 0 0 / .18);
+}
+.bulkCount { font-variant-numeric: tabular-nums; }
+
+/* The upload under way: its name, its size, a bar, Cancel. */
+.job { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: .5rem 1rem; padding: .75rem 1rem; }
+.jobText { grid-column: 1; display: flex; flex-wrap: wrap; align-items: baseline; gap: .25rem .75rem; margin: 0; min-inline-size: 0; }
+.jobName { overflow-wrap: anywhere; }
+.job > button { grid-column: 2; grid-row: 1 / span 2; }
+.jobBar {
+  grid-column: 1; block-size: .375rem; border-radius: 999px; overflow: hidden; position: relative;
+  background: rgb(var(--edge));
+}
+/* The server reports no byte count, so the bar is a steady "working" fill, not a guess at a percentage. */
+.jobBar::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: rgb(var(--sodium) / .55); }
 
 @media (prefers-reduced-motion: no-preference) {
   .tile, .drop { transition: border-color var(--a-dur-fast, .12s) ease, background-color var(--a-dur-fast, .12s) ease; }

@@ -1,7 +1,11 @@
 import { useEffect, useId, useRef, type ReactNode } from "react";
+import { Icon } from "@/components/ui/Icon";
+import { ICON } from "@/components/ui/icons";
+import { StatusGlyph } from "@/components/ui/StatusGlyph";
 import { formatBytes, formatDuration, type MediaItem, type MediaKind } from "@/services/media";
 import { ltrValue } from "@/i18n/words";
 import { useMediaUploadWords } from "./mediaUploadWords";
+import { useMediaPhoneWords } from "./mediaPhoneWords";
 import styles from "./Media.module.css";
 
 /*
@@ -40,29 +44,41 @@ function facts(m: MediaItem, one: Record<MediaKind, string>): string {
   return `${ltrValue(`${m.width}×${m.height}`)} · ${formatBytes(m.bytes)}`;
 }
 
-/* A grid of library items, each one button. Shared by the library page and the picker. */
+/*
+ * A grid of library items, each one button. Shared by the library page and the
+ * picker. A picture with no alt text carries one quiet marker, drawn once on its
+ * tile; its name falls back to the file name. With `check` the tiles are
+ * checkboxes (select mode on the library page): `check.has` says which are on.
+ */
 export function MediaGrid({
   items,
   selected,
   onSelect,
   label,
+  check,
 }: {
   items: MediaItem[];
   selected?: string | null;
   onSelect: (item: MediaItem) => void;
   label: string;
+  check?: { has: (id: string) => boolean };
 }) {
   const lib = useMediaUploadWords().lib;
+  const noAlt = useMediaPhoneWords().noAlt;
   return (
     <ul className={styles.grid} aria-label={label}>
       {items.map((m) => {
         const uses = m.usedBy?.length ?? 0;
+        const hasAlt = m.alt.trim() !== "";
+        const picked = check?.has(m.id) ?? false;
         return (
           <li key={m.id} className="min-w-0">
             <button
               type="button"
               className={styles.tile}
-              aria-pressed={selected === undefined ? undefined : selected === m.id}
+              role={check ? "checkbox" : undefined}
+              aria-checked={check ? picked : undefined}
+              aria-pressed={check || selected === undefined ? undefined : selected === m.id}
               onClick={() => onSelect(m)}
             >
               {m.preview ? (
@@ -79,13 +95,23 @@ export function MediaGrid({
               ) : (
                 <span className={styles.thumb} aria-hidden="true" />
               )}
+              {!hasAlt && (
+                <span className={styles.mark}>
+                  <StatusGlyph kind="attention" label={noAlt} size={16} />
+                </span>
+              )}
+              {check && picked && (
+                <span className={styles.check} aria-hidden="true">
+                  <Icon icon={ICON.selectAll} size={16} />
+                </span>
+              )}
               {m.kind === "video" && (
                 <span className={styles.badge} aria-hidden="true">
                   ▶ {formatDuration(m.durationMs ?? 0)}
                 </span>
               )}
               <span className={styles.tileText}>
-                <span className={styles.tileAlt}>{m.alt}</span>
+                <span className={styles.tileAlt}>{hasAlt ? m.alt : m.name}</span>
                 <span className={styles.tileMeta}>
                   {facts(m, lib.one)}
                   {m.usedBy ? ` · ${uses === 0 ? lib.unused : lib.used(uses)}` : ""}

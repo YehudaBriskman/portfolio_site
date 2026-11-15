@@ -46,8 +46,8 @@ describe("admin table actions", () => {
 
   it("the Translations table uses them", () => {
     const page = readFileSync(resolve(__dirname, "../pages/AdminTranslations.tsx"), "utf8");
-    expect(page).toContain("a-table a-table-fixed");
-    expect(page).toContain('className="a-main"');
+    expect(page).toContain("<DataTable");
+    expect(page).toContain("<RowActions");
     expect(page).toMatch(/className="a-path[^"]*"/);
   });
 });
