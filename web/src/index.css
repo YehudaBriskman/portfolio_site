@@ -3076,6 +3076,13 @@
   .a-table tbody tr:last-child td:last-child { border-end-end-radius: calc(var(--a-r-box) - 1px); }
   /* Counts line up on their units digit: a physical right, and tabular. */
   .a-table .a-num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  /* A numeric column's header lines up with its cells (it used to start-align over right-aligned figures). */
+  .a-table th.a-num { text-align: right; }
+  /* Opt in to a header that sticks (DataTable does it itself, with a shadow once stuck); the table's ancestors must not clip overflow. */
+  .a-table-sticky th { position: sticky; inset-block-start: var(--a-sticky-top, 0px); z-index: 2; }
+  /* A group header row: the shared fact said once instead of on every row (A6). */
+  .a-table .a-group th { padding: .5rem 1rem; background: rgb(var(--paper-2)); border-bottom: 1px solid var(--a-line-soft); font-weight: 600; color: rgb(var(--ink)); }
+  .a-table th[aria-sort] { color: rgb(var(--ink)); }
   .a-table .a-when { white-space: nowrap; color: rgb(var(--ink-soft)); font-variant-numeric: tabular-nums; }
   .a-table .a-fit { width: 1%; white-space: nowrap; }
   /* An action never gives up its label to a long neighbour. .a-btn wraps with

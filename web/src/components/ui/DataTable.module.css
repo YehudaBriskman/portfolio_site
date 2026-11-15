@@ -1,0 +1,365 @@
+/*
+ * DataTable. It reuses the `.a-table` look in index.css (header fill, row rules,
+ * hover, corners) and adds what a real table needs: a sticky header, density,
+ * numeric alignment, a selected row, columns that drop with the container's
+ * width, and the bulk bar. Logical properties only; the one physical thing is
+ * the numeric column's `text-align: right` on purpose: the units digit is the
+ * rightmost digit in both directions, so a column of numbers lines up on the
+ * same side in Hebrew and English (the data-display skill).
+ */
+.wrap {
+  position: relative;
+  container-type: inline-size;
+  min-inline-size: 0;
+}
+
+.phone {
+  min-inline-size: 0;
+}
+
+/* A 1px marker above the table: once it has scrolled away the header is stuck. */
+.sentinel {
+  block-size: 1px;
+  margin-block-end: -1px;
+  pointer-events: none;
+}
+
+.table {
+  inline-size: 100%;
+}
+
+.table th {
+  position: sticky;
+  inset-block-start: var(--a-sticky-top, 0px);
+  z-index: 2;
+}
+
+/* A quiet shadow under the header only while it is stuck. */
+.wrap[data-stuck] .table thead th {
+  box-shadow: 0 6px 8px -6px rgb(var(--ink) / 0.18);
+}
+
+/* A group header is a row inside the body: it does not stick with the column heads. */
+.table tbody th {
+  position: static;
+}
+
+.table th[data-align="num"],
+.table td[data-align="num"] {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.table th[data-align="end"],
+.table td[data-align="end"] {
+  text-align: end;
+}
+
+/* The row opens; it is focusable, not a link, so it says where focus is. */
+.row {
+  position: relative;
+  cursor: default;
+}
+
+.row:focus-visible {
+  outline: 2px solid rgb(var(--signal));
+  outline-offset: -2px;
+}
+
+.row[data-selected="true"] td {
+  background: rgb(var(--signal) / 0.08);
+}
+
+/* Selected = soft fill plus a bar on the inline-start edge (A3). */
+.row[data-selected="true"] td:first-child::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  inline-size: 3px;
+  background: rgb(var(--signal));
+}
+
+.row > td:first-child {
+  position: relative;
+}
+
+/* Density: the pointer decides unless the page says so (A13). */
+.table td {
+  padding-block: 0.75rem;
+  min-block-size: var(--ctl-h-lg, 44px);
+}
+
+@media (pointer: fine) {
+  .wrap:not([data-density]) .table td {
+    padding-block: 0.25rem;
+    min-block-size: var(--ctl-h-md, 36px);
+  }
+}
+
+.wrap[data-density="compact"] .table td {
+  padding-block: 0.25rem;
+  min-block-size: var(--ctl-h-md, 36px);
+}
+
+.wrap[data-density="comfortable"] .table td {
+  padding-block: 0.75rem;
+  min-block-size: var(--ctl-h-lg, 44px);
+}
+
+/* Text: the identifier wraps to two lines, everything else ends in an ellipsis; nothing is cut mid-word. */
+.title {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  font-weight: 500;
+  color: rgb(var(--ink));
+}
+
+.clip {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Sortable header: the whole head is the button; the arrow shows on the sorted column only. */
+.sortBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-block-size: var(--ctl-h-md, 36px);
+  margin-block: -0.375rem;
+  padding: 0 0.25rem;
+  margin-inline: -0.25rem;
+  border: 0;
+  border-radius: var(--a-r-sm, 8px);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.sortBtn:focus-visible {
+  outline: 2px solid rgb(var(--signal));
+  outline-offset: 0;
+}
+
+.arrow {
+  display: inline-block;
+  inline-size: 0;
+  block-size: 0;
+  border-inline: 4px solid transparent;
+  opacity: 0;
+}
+
+.arrow[data-dir="asc"] {
+  border-block-end: 5px solid currentColor;
+  opacity: 1;
+}
+
+.arrow[data-dir="desc"] {
+  border-block-start: 5px solid currentColor;
+  opacity: 1;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .sortBtn:hover {
+    background: var(--a-hover, rgb(var(--ink) / 0.05));
+  }
+}
+
+/* A group header says the shared fact once. */
+.group th {
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid var(--a-line-soft, rgb(var(--ink) / 0.08));
+  background: rgb(var(--paper-2));
+  color: rgb(var(--ink));
+  font-size: var(--a-fs-meta, 0.875rem);
+  font-weight: 600;
+  text-align: start;
+}
+
+.groupPhone {
+  padding: var(--a-s-3, 0.75rem) var(--a-s-4, 1rem) var(--a-s-1, 0.25rem);
+  font-size: var(--a-fs-meta, 0.875rem);
+  font-weight: 600;
+  color: rgb(var(--ink-soft));
+  list-style: none;
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Checkbox and action columns are as wide as their content, never wider. */
+.check {
+  inline-size: 2.75rem;
+  text-align: center;
+}
+
+.checkOff {
+  inline-size: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.box {
+  inline-size: 1.125rem;
+  block-size: 1.125rem;
+  margin: 0;
+  accent-color: rgb(var(--signal));
+  cursor: pointer;
+}
+
+.actions {
+  inline-size: 1%;
+  white-space: nowrap;
+  text-align: end;
+}
+
+.fill {
+  padding: 0;
+}
+
+.sr {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Columns that drop with the table's own width (a container, not the viewport). */
+@container (max-width: 36rem) {
+  [data-hide="sm"] {
+    display: none;
+  }
+}
+
+@container (max-width: 48rem) {
+  [data-hide="md"] {
+    display: none;
+  }
+}
+
+@container (max-width: 64rem) {
+  [data-hide="lg"] {
+    display: none;
+  }
+}
+
+/* Error: what failed and one way out, above the rows it kept. */
+.error {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--a-s-2, 0.5rem) var(--a-s-3, 0.75rem);
+  margin-block-end: var(--a-s-2, 0.5rem);
+  padding: var(--a-s-2, 0.5rem) var(--a-s-3, 0.75rem);
+  border: 1px solid rgb(var(--destructive-ink));
+  border-radius: var(--a-r-ctl, 12px);
+  color: rgb(var(--destructive-ink));
+}
+
+.errorText {
+  flex: 1 1 12rem;
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+
+.errorBtn,
+.bulkBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--a-s-2, 0.5rem);
+  min-block-size: var(--ctl-h-md, 36px);
+  padding-inline: var(--a-s-3, 0.75rem);
+  border: 1px solid var(--a-line-ctl, rgb(var(--ink) / 0.3));
+  border-radius: var(--ctl-radius, 12px);
+  background: transparent;
+  color: rgb(var(--ink));
+  font: inherit;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.errorBtn:focus-visible,
+.bulkBtn:focus-visible {
+  outline: 2px solid rgb(var(--signal));
+  outline-offset: 2px;
+}
+
+.bulkBtn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+@media (pointer: coarse) {
+  .errorBtn,
+  .bulkBtn {
+    min-block-size: var(--ctl-h-lg, 44px);
+  }
+}
+
+/* The bulk bar replaces nothing: it sits above the table, count first, Cancel last. */
+.bulk {
+  position: sticky;
+  inset-block-start: var(--a-sticky-top, 0px);
+  z-index: 3;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--a-s-2, 0.5rem);
+  margin-block-end: var(--a-s-2, 0.5rem);
+  padding: var(--a-s-2, 0.5rem) var(--a-s-3, 0.75rem);
+  border: 1px solid var(--a-line, rgb(var(--ink) / 0.15));
+  border-radius: var(--a-r-ctl, 12px);
+  background: rgb(var(--paper));
+}
+
+.bulkCount {
+  margin-inline-end: auto;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.bulkPrimary {
+  border-color: rgb(var(--signal));
+  background: rgb(var(--signal));
+  color: rgb(var(--paper));
+}
+
+.menuIcon {
+  flex: none;
+  margin-inline-end: 0.5rem;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .row:hover td {
+    background: var(--a-hover, rgb(var(--ink) / 0.05));
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .row td {
+    transition: background-color var(--a-dur-fast, 120ms) var(--a-ease-out, ease);
+  }
+  .wrap .table thead th {
+    transition: box-shadow var(--a-dur-fast, 120ms) var(--a-ease-out, ease);
+  }
+}

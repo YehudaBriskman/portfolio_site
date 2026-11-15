@@ -1,0 +1,28 @@
+/*
+ * Row actions. The primary is always drawn; More is drawn always on touch and,
+ * on a fine pointer, with the row's hover, its keyboard focus, or while its menu
+ * is open. It is hidden by opacity (not display), so it keeps its place in the
+ * row (nothing shifts on hover) and stays reachable by keyboard.
+ */
+.root {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex: none;
+  min-inline-size: 0;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  [role="row"]:not(:hover):not(:focus-within):not([data-selected="true"]) .root [aria-haspopup="menu"]:not([aria-expanded="true"]) {
+    opacity: 0;
+  }
+  .root [aria-haspopup="menu"]:focus-visible {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .root [aria-haspopup="menu"] {
+    transition: opacity var(--a-dur-fast, 120ms) var(--a-ease-out, ease);
+  }
+}
