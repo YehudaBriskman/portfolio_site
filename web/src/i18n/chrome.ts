@@ -117,7 +117,7 @@ export const useNotFoundWords = defineWords(
     body: "Whatever was at this address has moved, or never existed.",
     home: "Home",
     projects: "Projects",
-    notes: "Notes",
+    blogs: "Blogs",
   },
   {
     eyebrow: "שגיאה 404",
@@ -125,7 +125,7 @@ export const useNotFoundWords = defineWords(
     body: "מה שהיה בכתובת הזאת עבר למקום אחר, או שמעולם לא היה.",
     home: "בית",
     projects: "פרויקטים",
-    notes: "רשימות",
+    blogs: "בלוג",
   },
 );
 

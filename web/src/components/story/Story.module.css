@@ -510,4 +510,17 @@
   .openTitle {
     padding-inline-end: 58px;
   }
+  /* The dot sits in the middle of the seed's box and the first curve runs
+     from it, so the box's height plus the opening's bottom padding is the
+     empty gap under Share: about 150px at 844 high. Nearer, and the sweep
+     keeps its room in the 4rem the list adds above the first beat. */
+  .open {
+    padding-block-end: 1.5rem;
+  }
+  .seed {
+    height: 6rem;
+  }
+  .timeline {
+    padding-block-start: 4rem;
+  }
 }

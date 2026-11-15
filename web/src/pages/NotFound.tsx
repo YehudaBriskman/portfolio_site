@@ -24,9 +24,11 @@ export default function NotFound() {
 
   return (
     <PageShell>
-      <section className="wrap section-y">
-        <p className="eyebrow">{w.eyebrow}</p>
-        <h1 className="display mt-3 text-section">{w.title}</h1>
+      <section className="wrap section-y page-first">
+        <div className="title-pair">
+          <p className="eyebrow">{w.eyebrow}</p>
+          <h1 className="display mt-3 text-section">{w.title}</h1>
+        </div>
 
         <p className="editorial mt-6 max-w-xl text-sub text-clay">
           {w.body}
@@ -47,7 +49,7 @@ export default function NotFound() {
          * No wash. There is no group here and so no position for the hue
          * cycle to read; see the note in BlogPost.tsx.
          */}
-        <p data-ph="path" className="mono mt-6 inline-block max-w-full break-all rounded-[var(--r-md)] border border-ridge bg-sheet/70 px-4 py-2.5 text-xs text-ink-soft">
+        <p data-ph="path" dir="ltr" className="mono mt-6 inline-block max-w-full break-all rounded-[var(--r-md)] border border-ridge bg-sheet/70 px-4 py-2.5 text-xs text-ink-soft">
           {pathname}
         </p>
 
@@ -59,7 +61,7 @@ export default function NotFound() {
             {w.projects}
           </Link>
           <Link to="/blog" className="btn btn-quiet">
-            {w.notes}
+            {w.blogs}
           </Link>
         </div>
       </section>

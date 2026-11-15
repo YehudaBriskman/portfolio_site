@@ -1583,6 +1583,11 @@
     gap: var(--ph-gap);
     padding-inline: var(--ph-gutter);
   }
+  /* The active-filter bar sits above the heading in the markup; the title
+     shares the circle's row (R23), so the bar is drawn under it. */
+  .ground[data-phone-page="blog"] .main > .sheetBar ~ .hello {
+    order: -1;
+  }
   .ground[data-phone-page="blog"] .section {
     gap: 8px;
   }
