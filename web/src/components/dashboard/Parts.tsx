@@ -234,6 +234,10 @@ export function AreaGlyph({ seed, size = 16 }: { seed: string; size?: number }) 
 /** Whose dashboard this is. The role is the one the owner asked for. */
 export function OwnerCard() {
   const [t] = useWords();
+  /* On a phone the rail's only home is the menu's Browse, and the person
+     is named once on the page (#808). */
+  const phone = usePublicPhone();
+  if (phone) return null;
   return (
     <div className={styles.owner}>
       <span className={styles.avatar}>

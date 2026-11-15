@@ -6,6 +6,8 @@ import { StatChip } from "@/components/ui/StatChip";
 import { usePublicPhone } from "@/components/nav/localBrowse";
 import NoteGlyph from "@/components/notes/NoteGlyph";
 import PageShell from "@/components/PageShell";
+import PhoneBrowse from "@/components/gallery/PhoneBrowse";
+import { useMobileWords } from "@/i18n/mobile";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import AskBox from "@/components/dashboard/AskBox";
 import Timeline from "@/components/dashboard/Timeline";
@@ -327,6 +329,53 @@ export default function Blog() {
     </>
   );
 
+  /* On a phone the menu's Browse is this, not the rail (#808): the view, a
+     search where the feed has one, a chip per filter, the areas behind More. */
+  const mobile = useMobileWords();
+  const phoneRail = ({ open, onClose }: { open: boolean; onClose: () => void }) => (
+    <PhoneBrowse
+      open={open}
+      onClose={onClose}
+      title={t.browse}
+      facets={offered}
+      selection={selection}
+      path="/blog"
+      withQuery
+      shown={matching.length}
+      search={
+        view === "feed" && all.length >= SEARCH_FROM ? (
+          <SearchField label={t.askLabel} path="/blog" placeholder={t.searchPlaceholder} />
+        ) : undefined
+      }
+      sort={{
+        label: t.views,
+        options: [
+          { value: "home", label: t.home },
+          { value: "feed", label: t.feed },
+        ],
+        value: view,
+        onChange: (v) => navigate(v === "feed" ? feedHref : homeHref, { preventScrollReset: true }),
+      }}
+      moreLabel={mobile.selection.more}
+      more={
+        areas.length > 0 ? (
+          <div className={styles.localBody}>
+            <TopList
+              title={t.topAreas}
+              items={areas.map((a) => ({
+                key: a.slug,
+                label: a.title,
+                to: `/blog/area/${a.slug}`,
+                count: a.noteCount,
+                icon: <AreaGlyph seed={a.slug} />,
+              }))}
+            />
+          </div>
+        ) : undefined
+      }
+    />
+  );
+
   const aside = <Timeline events={events} error={eventsError} onRetry={retryEvents} logHref="/blog/log" />;
 
   /* ── the states every view shares ──────────────────────────────────── */
@@ -581,6 +630,7 @@ export default function Blog() {
         phonePage="blog"
         railLabel={lang === "he" ? "עיון ברשימות" : "Browse the notes"}
         rail={rail}
+        phoneRail={phoneRail}
         asideLabel={t.timeline}
         aside={aside}
         count={on}

@@ -9,6 +9,7 @@ import { useDarkChrome } from "./nav/useDarkChrome";
 import { useTuckedBar } from "./nav/useTuckedBar";
 import { useLocale } from "./nav/locale";
 import LocalSection from "./nav/LocalSection";
+import { usePublicPhone } from "./nav/localBrowse";
 import { useElsewhere } from "./nav/social";
 import { usePauseSwitch } from "./nav/usePauseSwitch";
 import { useChromeWords } from "@/i18n/chrome";
@@ -50,6 +51,7 @@ export default function Nav() {
   const [open, setOpen] = useState(false);
   const sheetRef = useRef<HTMLDivElement>(null);
   const panelId = "nav-menu";
+  const phone = usePublicPhone();
   const toggleRef = useRef<HTMLButtonElement>(null);
 
   /* Whether a panel that inverts the ground is under the bar right now. */
@@ -71,7 +73,12 @@ export default function Nav() {
   const [locale, onSelectLocale] = useLocale();
   const w = useChromeWords();
   const [motionPaused, onToggleMotion] = usePauseSwitch();
-  const controls: NavControls = { locale, onSelectLocale, motionPaused, onToggleMotion };
+  const controls: NavControls = {
+    locale,
+    onSelectLocale,
+    motionPaused,
+    onToggleMotion,
+  };
 
   /* A sheet that survives a route change as an invisible open panel is a
      trap. Until #63 this was belt-and-braces: the bar was rendered by the page
@@ -131,6 +138,9 @@ export default function Nav() {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
+      /* A layer inside the panel (the Browse popover) has already used this
+         key and said so (#808). */
+      if (e.defaultPrevented) return;
       /*
        * One Escape, one layer.
        *
@@ -154,7 +164,8 @@ export default function Nav() {
     window.addEventListener("keydown", onKey);
     return () => {
       root.style.overflow = previousOverflow;
-      if (previousGutter) root.style.setProperty("scrollbar-gutter", previousGutter);
+      if (previousGutter)
+        root.style.setProperty("scrollbar-gutter", previousGutter);
       else root.style.removeProperty("scrollbar-gutter");
       window.removeEventListener("keydown", onKey);
     };
@@ -181,12 +192,14 @@ export default function Nav() {
       if (!sheet) return;
       const focusable = [
         ...sheet.querySelectorAll<HTMLElement>(
-          'a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])'
+          'a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])',
         ),
       ].filter((el) => el.offsetParent !== null);
       /* The toggle lives outside the sheet but belongs to it: it is how the
          reader got here and how they leave. */
-      const stops = toggleRef.current ? [toggleRef.current, ...focusable] : focusable;
+      const stops = toggleRef.current
+        ? [toggleRef.current, ...focusable]
+        : focusable;
       if (stops.length === 0) return;
       const first = stops[0];
       const last = stops[stops.length - 1];
@@ -224,7 +237,9 @@ export default function Nav() {
    * "All notes" are still where the reader is.
    */
   const routeCurrent = (to: string) =>
-    (to === "/" ? pathname === "/" : pathname.startsWith(to)) ? ("page" as const) : undefined;
+    (to === "/" ? pathname === "/" : pathname.startsWith(to))
+      ? ("page" as const)
+      : undefined;
 
   /* Home on the home page is the shortest trip in the chrome and the one that
      most wants easing: it is a hop back to the title plate rather than a route
@@ -232,7 +247,8 @@ export default function Nav() {
      you are already on, which does nothing. */
   const onRoute = (to: string, e: MouseEvent<HTMLAnchorElement>) => {
     close();
-    if (to === "/" && pathname === "/" && scrollToAnchor("hero")) e.preventDefault();
+    if (to === "/" && pathname === "/" && scrollToAnchor("hero"))
+      e.preventDefault();
   };
 
   return (
@@ -309,7 +325,9 @@ export default function Nav() {
           aria-label={w.menu}
           className={styles.toggle}
         >
-          <span className={styles.word} aria-hidden="true">{w.menu}</span>
+          <span className={styles.word} aria-hidden="true">
+            {w.menu}
+          </span>
           <span className={styles.bars} aria-hidden="true" />
         </button>
 
@@ -334,7 +352,12 @@ export default function Nav() {
         has Escape and the toggle, and a second focus stop that does the same
         thing as both would only lengthen the ring the trap below walks.
       */}
-      <div className={styles.scrim} hidden={!open} onClick={dismiss} aria-hidden="true" />
+      <div
+        className={styles.scrim}
+        hidden={!open}
+        onClick={dismiss}
+        aria-hidden="true"
+      />
 
       {/*
         One panel, three groups, rooms first.
@@ -354,63 +377,89 @@ export default function Nav() {
         this is and whether it is open.
       */}
       <div ref={sheetRef} id={panelId} hidden={!open} className={styles.sheet}>
-        {/* The page's own Browse, phones only (#780): the page portals its
-            content into the slot. A link that leaves the page closes the
-            sheet; a filter control inside it (`data-filter-scope`) does not. */}
+        {/* The page's own Browse, phones only (#808): one row that closes this
+            menu and opens the page's own sheet. */}
         <LocalSection onLeave={close} />
-        <nav aria-label={w.pages}>
-          <p className={styles.sheetHead}>{w.pages}</p>
-          <ul className={styles.sheetList}>
-            {NAV_ROUTES.map((r) => (
-              <li key={r.to}>
-                <Link
-                  to={r.to}
-                  onClick={(e) => onRoute(r.to, e)}
-                  aria-current={routeCurrent(r.to)}
-                  className={styles.sheetLink}
-                >
-                  {r.label[locale]}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
-
-        <div className={styles.sheetSplit} aria-hidden="true" />
-
-        <nav aria-label={w.elsewhere}>
-          <p className={styles.sheetHead}>{w.elsewhere}</p>
-          <ul className={styles.sheetList}>
-            {elsewhere.map(({ key, href, label, Icon, external }) => (
-              <li key={key}>
-                <a
-                  href={href}
-                  onClick={close}
-                  className={styles.sheetLink}
-                  {...(external ? { target: "_blank", rel: "noreferrer noopener" } : {})}
-                >
-                  {/* Mark and word together here, where there is room for
+        {/* On a phone the groups read pages, then the display and accessibility
+            switches, then the links elsewhere (#808); the DOM order is the visual
+            order, so the tab order follows it. */}
+        {(() => {
+          const pagesNav = (
+            <nav aria-label={w.pages}>
+              <p className={styles.sheetHead}>{w.pages}</p>
+              <ul className={styles.sheetList}>
+                {NAV_ROUTES.map((r) => (
+                  <li key={r.to}>
+                    <Link
+                      to={r.to}
+                      onClick={(e) => onRoute(r.to, e)}
+                      aria-current={routeCurrent(r.to)}
+                      className={styles.sheetLink}
+                    >
+                      {r.label[locale]}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          );
+          const elsewhereNav = (
+            <nav aria-label={w.elsewhere}>
+              <p className={styles.sheetHead}>{w.elsewhere}</p>
+              <ul className={`${styles.sheetList} ${styles.sheetElsewhere}`}>
+                {elsewhere.map(({ key, href, label, Icon, external }) => (
+                  <li key={key}>
+                    <a
+                      href={href}
+                      onClick={close}
+                      className={styles.sheetLink}
+                      {...(external
+                        ? { target: "_blank", rel: "noreferrer noopener" }
+                        : {})}
+                    >
+                      {/* Mark and word together here, where there is room for
                       both — and the address, which the bar leaves out; see the
                       note on `EMAIL` in social.ts. */}
-                  <Icon className={styles.sheetGlyph} />
-                  {label}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </nav>
-
-        <div className={styles.sheetSplit} aria-hidden="true" />
-
-        <div role="group" aria-label={w.siteControls}>
-          <p className={styles.sheetHead}>{w.controls}</p>
-          {/* The same panel the bar's popover holds, laid out in place: a
+                      <Icon className={styles.sheetGlyph} />
+                      {label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          );
+          const controlsGroup = (
+            <div role="group" aria-label={w.siteControls}>
+              <p className={styles.sheetHead}>{w.controls}</p>
+              {/* The same panel the bar's popover holds, laid out in place: a
               popover on top of a sheet would be a popup on a popup. It is
               stateless (theme, size and contrast live in their own stores;
               language and motion come from the one `controls` object), so the
               two copies cannot disagree. */}
-          <DisplayPanel controls={controls} inline />
-        </div>
+              <DisplayPanel controls={controls} inline />
+            </div>
+          );
+          const split = (
+            <div className={styles.sheetSplit} aria-hidden="true" />
+          );
+          return phone ? (
+            <>
+              {pagesNav}
+              {split}
+              {controlsGroup}
+              {split}
+              {elsewhereNav}
+            </>
+          ) : (
+            <>
+              {pagesNav}
+              {split}
+              {elsewhereNav}
+              {split}
+              {controlsGroup}
+            </>
+          );
+        })()}
       </div>
     </header>
   );
