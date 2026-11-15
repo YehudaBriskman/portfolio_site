@@ -225,7 +225,8 @@ try {
   for (const screen of SCREENS) {
     const wide = await open(1440, 900, "en", "light", screen);
     const wm = await wide.page.evaluate(measure);
-    if (wm.rows !== 0 || wm.groups !== 0) fail(`${screen.id} 1440: phone rows or groups on a desktop screen`);
+    /* Overview shares its rows with the desktop on purpose (S5, #840): one list of what needs the owner. */
+    if (screen.id !== "overview" && (wm.rows !== 0 || wm.groups !== 0)) fail(`${screen.id} 1440: phone rows or groups on a desktop screen`);
     if (SHOTS) await shot(wide.page, `${screen.id}-1440-ltr-light`);
     await wide.close();
   }
