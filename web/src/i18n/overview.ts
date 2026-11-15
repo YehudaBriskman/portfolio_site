@@ -1,0 +1,70 @@
+import { defineWords } from "./words";
+
+/*
+ * What the dashboard Overview says that the kit and `adminPhone.overview` do
+ * not. Icon and number first, so these are short. Hebrew chosen as the
+ * shortest of three that still names the thing; the PR lists every string.
+ */
+export const useOverviewWords = defineWords(
+  "overview",
+  {
+    rowActivity: "Activity",
+    rowCoverage: "Coverage",
+    allClear: "All clear",
+    tileInbox: "Inbox",
+    tileDrafts: "Drafts",
+    tileFailed: "Failed",
+    last30: (n: number) => `Last 30 days: +${n}`,
+    seriesNotes: "Published posts, last 12 weeks",
+    seriesMedia: "Files, last 12 weeks",
+    noCampaigns: "No campaigns",
+    noActivity: "No changes yet",
+    sentOf: (sent: number, total: number) => `${sent} of ${total} sent`,
+    hebrew: "Hebrew",
+    mediaUsed: "In use",
+    mediaUnused: "Unused",
+    mediaEmpty: "No files",
+    ql: {
+      new: "New post",
+      inbox: "Inbox",
+      campaigns: "Campaigns",
+      audience: "Audience",
+      media: "Media",
+      translations: "Translations",
+      areas: "Areas",
+      apps: "Apps",
+      settings: "Settings",
+      site: "Site",
+    },
+  },
+  {
+    rowActivity: "פעילות",
+    rowCoverage: "כיסוי",
+    allClear: "הכול בסדר",
+    tileInbox: "דואר",
+    tileDrafts: "טיוטות",
+    tileFailed: "נכשלו",
+    last30: (n: number) => `30 הימים האחרונים: +${n}`,
+    seriesNotes: "רשימות שפורסמו, 12 שבועות",
+    seriesMedia: "קבצים, 12 שבועות",
+    noCampaigns: "אין קמפיינים",
+    noActivity: "אין שינויים",
+    sentOf: (sent: number, total: number) => `${sent} מתוך ${total} נשלחו`,
+    hebrew: "עברית",
+    mediaUsed: "בשימוש",
+    mediaUnused: "לא בשימוש",
+    mediaEmpty: "אין קבצים",
+    ql: {
+      new: "רשימה חדשה",
+      inbox: "דואר",
+      campaigns: "קמפיינים",
+      audience: "קהל",
+      media: "מדיה",
+      translations: "תרגומים",
+      areas: "תחומים",
+      apps: "אפליקציות",
+      settings: "הגדרות",
+      site: "האתר",
+    },
+  },
+);

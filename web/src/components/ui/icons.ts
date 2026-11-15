@@ -2,7 +2,7 @@ import {
   Archive, ArrowLeft, ArrowRight, ArrowUpDown, AtSign, Ban, Bell, BookmarkPlus, BookOpen, CalendarClock, Check, CheckCheck, ChevronDown, ChevronRight,
   CircleCheck, CircleDashed, CircleDot, CircleHelp, CircleMinus, CircleX, Clock, Columns3, Copy, CornerUpLeft, Ellipsis, ExternalLink, Eye,
   EyeOff, FilterX, Film, FileText, FolderKanban, Gauge, GripVertical, History, Home, Hourglass, Image, Info, KeyRound,
-  Languages, Link2, ListChecks, Loader, Mail, MailCheck, MailX, Megaphone, Pause, PenLine, Plug, Plus, Radio, RefreshCw,
+  Languages, Link2, ListChecks, Loader, Mail, Maximize2, Minimize2, Pin, PinOff, MailCheck, MailX, Megaphone, Pause, PenLine, Plug, Plus, Radio, RefreshCw,
   Rocket, Search, Send, Shapes, Share2, ShieldBan, SlidersHorizontal, SquareCheckBig, Trash2, TriangleAlert, Undo2, Unlink,
   User, UserRound, Users, Wrench, X, type LucideIcon,
 } from "lucide-react";
@@ -93,6 +93,10 @@ export const ICON = {
   /* actions */
   open: ChevronRight,
   expand: ChevronDown,
+  maximize: Maximize2,
+  minimize: Minimize2,
+  pin: Pin,
+  unpin: PinOff,
   copy: Copy,
   external: ExternalLink,
   markPosted: CircleCheck,
