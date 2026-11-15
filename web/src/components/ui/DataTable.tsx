@@ -1,7 +1,6 @@
 import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from "react";
-import type { LucideIcon } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Icon } from "@/components/ui/Icon";
+import { Icon, type IconProps } from "@/components/ui/Icon";
 import { ICON } from "@/components/ui/icons";
 import { RecordRow, type RecordRowProps } from "@/components/ui/RecordRow";
 import { SelectionBar, type SelectionAction } from "@/components/ui/SelectionBar";
@@ -41,6 +40,7 @@ import styles from "@/components/ui/DataTable.module.css";
  * virtualisation above 50 DOM rows are the caller's job (A17).
  */
 
+type LucideIcon = IconProps["icon"];
 export type Align = "start" | "end" | "num";
 export type HideBelow = "sm" | "md" | "lg";
 export interface SortState {
@@ -275,13 +275,17 @@ function Grid<T, K extends SelectionId>({
   const [stuck, setStuck] = useState(false);
   const [current, setCurrent] = useState<string | null>(null);
 
-  /* The header is stuck once the sentinel above the table has scrolled out. */
+  /* The header is stuck once the marker above the table has scrolled past the top. A passive scroll read, not an observer. */
   useEffect(() => {
-    const el = sentinelRef.current;
-    if (!el || typeof IntersectionObserver === "undefined") return;
-    const io = new IntersectionObserver(([entry]) => setStuck(entry ? !entry.isIntersecting : false));
-    io.observe(el);
-    return () => io.disconnect();
+    const check = () => {
+      const el = sentinelRef.current;
+      if (!el) return;
+      const top = parseFloat(getComputedStyle(el).getPropertyValue("--a-sticky-top")) || 0;
+      setStuck(el.getBoundingClientRect().top < top);
+    };
+    check();
+    window.addEventListener("scroll", check, { passive: true, capture: true });
+    return () => window.removeEventListener("scroll", check, { capture: true });
   }, []);
 
   const keys = sorted.map((r) => String(rowKey(r)));

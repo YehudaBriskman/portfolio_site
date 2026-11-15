@@ -54,7 +54,6 @@
 @media (pointer: fine) {
   .input {
     min-block-size: var(--ctl-h-md, 36px);
-    font-size: 0.875rem;
   }
 }
 

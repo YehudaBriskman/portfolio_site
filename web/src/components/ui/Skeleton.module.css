@@ -1,6 +1,6 @@
 /*
- * Placeholder bars. Static by default; the shimmer is added only for a reader
- * who allows motion. Logical properties only.
+ * Placeholder bars. Static: the site has no clock-driven animation (motion
+ * contract), so a placeholder does not shimmer. Logical properties only.
  */
 .root {
   display: block;
@@ -75,25 +75,4 @@
   block-size: 2.5rem;
   border-radius: 50%;
   background: rgb(var(--ink) / 0.06);
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .bar::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(90deg, transparent, rgb(var(--ink) / 0.07), transparent);
-    transform: translateX(-100%);
-    animation: skeleton-sweep 1.4s var(--a-ease-inout, ease-in-out) infinite;
-  }
-
-  [dir="rtl"] .bar::after {
-    animation-direction: reverse;
-  }
-
-  @keyframes skeleton-sweep {
-    to {
-      transform: translateX(100%);
-    }
-  }
 }

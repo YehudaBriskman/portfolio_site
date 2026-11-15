@@ -5,8 +5,7 @@ import styles from "@/components/ui/Skeleton.module.css";
  * A placeholder that has the shape of the data (A18): the same column template
  * and row height as the table that replaces it, so nothing shifts when the rows
  * land. `variant="cards"` is the phone list. The bars are hidden from assistive
- * tech; one polite status says the one word. Static under reduced motion (the
- * shimmer lives only in the no-preference block of the stylesheet). A caller
+ * tech; one polite status says the one word. Static: no shimmer. A caller
  * draws it only after about a second (SkeletonSwap, or its own delay): a
  * placeholder for a fast load is a flicker.
  */

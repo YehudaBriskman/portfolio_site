@@ -33,8 +33,7 @@ describe("Skeleton", () => {
     expect(container.querySelectorAll("[data-skeleton-row]")).toHaveLength(3);
   });
 
-  it("is static under reduced motion: the shimmer lives only in no-preference", () => {
-    expect(css).toMatch(/@keyframes/);
-    expect(outsideNoPreference(css)).not.toMatch(/animation|@keyframes/);
+  it("is static: no animation at all (the motion contract allows none that is clock-driven)", () => {
+    expect(css).not.toMatch(/animation|@keyframes/);
   });
 });
