@@ -105,6 +105,54 @@ export const DEFAULT_DRAFT_LABELS = {
 } satisfies { approved: boolean; en: DraftWords; he: DraftWords };
 const DraftLabels = z.object({ approved: z.boolean().default(false), en: DraftWords, he: DraftWords }).strict();
 
+
+/*
+ * The newsletter issue engine's rules and wording (campaigns/issue.ts). All
+ * editable; the defaults are DRAFT wording (`approved` false) and never legal
+ * text. {name} {date} {n} are filled when an issue is compiled.
+ */
+const Long = z.string().trim().max(2000);
+const Word = z.string().trim().min(1).max(120);
+const IssueWords = z
+  .object({
+    readMore: Word, openProject: Word, newOn: Word.includes("{name}"), newProject: Word.includes("{name}"), alsoShipped: Word, otherPosts: Word, whatChanged: Word,
+    noteOne: Word.includes("{n}"), noteMany: Word.includes("{n}"), releaseOne: Word.includes("{n}"), releaseMany: Word.includes("{n}"), and: Word, since: Word.includes("{date}"),
+    websiteBtn: Word, unsubscribeBtn: Word, preferencesBtn: Word,
+  })
+  .strict();
+export type IssueWords = z.infer<typeof IssueWords>;
+export const DEFAULT_ISSUE = {
+  approved: false,
+  /* The window starts at the last sent issue; with none, this many days back. */
+  windowDays: 30,
+  maxPerSection: 5,
+  excerptChars: 300,
+  /* Patch releases (x.y.Z, Z above 0) are one "Also shipped" line, not cards. */
+  patchLine: true,
+  /* Off by default: nothing is compiled unless the owner presses the button. weekly / monthly compile a DRAFT when new events exist. */
+  autoCompile: "off" as "off" | "weekly" | "monthly",
+  intro: { en: "Here is what I wrote and shipped lately.", he: "הנה מה שכתבתי ופרסמתי לאחרונה." },
+  outro: { en: "Thanks for reading. Reply to this mail if you want to talk about any of it.", he: "תודה שקראתם. אפשר להשיב למייל הזה לכל נושא." },
+  words: {
+    en: { readMore: "Read more", openProject: "Open project", newOn: "New on {name}", newProject: "New project: {name}", alsoShipped: "Also shipped", otherPosts: "Latest notes", whatChanged: "What changed", noteOne: "{n} note", noteMany: "{n} notes", releaseOne: "{n} release", releaseMany: "{n} releases", and: "and", since: "since {date}", websiteBtn: "Website", unsubscribeBtn: "Unsubscribe", preferencesBtn: "Preferences" },
+    he: { readMore: "קראו עוד", openProject: "לפתיחת הפרויקט", newOn: "חדש ב{name}", newProject: "פרויקט חדש: {name}", alsoShipped: "עוד יצא", otherPosts: "רשימות אחרונות", whatChanged: "מה השתנה", noteOne: "רשימה {n}", noteMany: "{n} רשימות", releaseOne: "גרסה {n}", releaseMany: "{n} גרסאות", and: "ו", since: "מאז {date}", websiteBtn: "לאתר", unsubscribeBtn: "הסרה מהרשימה", preferencesBtn: "העדפות" },
+  },
+} satisfies Record<string, unknown>;
+const IssueSchema = z
+  .object({
+    approved: z.boolean().default(false),
+    windowDays: z.number().int().min(1).max(365).default(30),
+    maxPerSection: z.number().int().min(1).max(20).default(5),
+    excerptChars: z.number().int().min(80).max(1200).default(300),
+    patchLine: z.boolean().default(true),
+    autoCompile: z.enum(["off", "weekly", "monthly"]).default("off"),
+    intro: z.object({ en: Long, he: Long }).strict(),
+    outro: z.object({ en: Long, he: Long }).strict(),
+    words: z.object({ en: IssueWords, he: IssueWords }).strict(),
+  })
+  .strict();
+export type IssueSettings = z.infer<typeof IssueSchema>;
+
 export const SenderSchema = z.preprocess(migrateLabel, z
   .object({
     /* Display name and address of the From header; "" falls back to MAIL_FROM. No quotes, brackets or control characters: it is spliced into a header. */
@@ -139,6 +187,8 @@ export const SenderSchema = z.preprocess(migrateLabel, z
     autoDraftCampaign: z.boolean().default(false),
     /* Wording of the auto-draft's buttons and data rows; see DEFAULT_DRAFT_LABELS. */
     draftLabels: DraftLabels.default(DEFAULT_DRAFT_LABELS),
+    /* The newsletter issue engine: rules, intro/outro, wording. */
+    issue: IssueSchema.default(DEFAULT_ISSUE),
     confirmSubjectEn: SenderText,
     confirmSubjectHe: SenderText,
     confirmBodyEn: SenderText,
@@ -292,6 +342,7 @@ export const DEFAULT_SENDER: SenderSettings = {
   maxPerContact30d: DEFAULT_MAX_PER_CONTACT_30D,
   autoDraftCampaign: false,
   draftLabels: DEFAULT_DRAFT_LABELS,
+  issue: DEFAULT_ISSUE,
   dailyLimit: 90,
   monthlyLimit: 2700,
   safety: 0.9,
@@ -400,6 +451,8 @@ export type AnnounceEvent = {
   /** Real data carried from the post or release, shown as data rows in a drafted mail; absent when unknown. */
   publishedAt?: string;
   readMinutes?: number;
+  /** The first lines of a post's body as plain text, for a longer summary in an issue. */
+  lead?: string;
   /** The release's own notes (bullets from its GitHub release), never written here. */
   notes?: string[];
   langs: Array<"en" | "he">;

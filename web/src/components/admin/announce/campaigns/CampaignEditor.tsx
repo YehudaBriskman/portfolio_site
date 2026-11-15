@@ -47,10 +47,10 @@ import { docLang, formatWhen } from "@/lib/safeTime";
  * identity or without recipients, and its sentence is shown as it came).
  */
 
-const BLANK: Form = { name: "", subject: "", preheader: "", bodyText: "", useBlocks: false, blocks: [], groups: ["subscribers"], lang: "all", topic: "" };
+const BLANK: Form = { name: "", subject: "", preheader: "", bodyText: "", useBlocks: false, blocks: [], groups: ["subscribers"], lang: "all", topic: "", labelAd: false };
 const toForm = (c: Campaign): Form => ({
   name: c.name, subject: c.subject, preheader: c.preheader, bodyText: c.bodyText, useBlocks: Boolean(c.blocks?.length), blocks: c.blocks ?? [],
-  groups: c.groups, lang: c.lang, topic: c.topic ?? "",
+  groups: c.groups, lang: c.lang, topic: c.topic ?? "", labelAd: c.labelAd === true,
 });
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 const audienceKey = (f: Form) => JSON.stringify([[...f.groups].sort(), f.lang, f.topic]);
@@ -166,9 +166,9 @@ export default function CampaignEditor({
       subject: form.subject, preheader: form.preheader.trim(),
       bodyText: form.useBlocks ? blocksToText(cleanBlocks(form.blocks)) : form.bodyText,
       blocks: form.useBlocks ? cleanBlocks(form.blocks).filter((b) => !blockProblem(b)) : null,
-      lang: pvLang,
+      lang: pvLang, labelAd: form.labelAd,
     }),
-    [form.subject, form.preheader, form.bodyText, form.useBlocks, form.blocks, pvLang],
+    [form.subject, form.preheader, form.bodyText, form.useBlocks, form.blocks, form.labelAd, pvLang],
   );
   const pkey = JSON.stringify(pvBody);
   useEffect(() => {
@@ -399,6 +399,13 @@ export default function CampaignEditor({
                   <p id={`${uid}-phint`} className="a-hint">{w.preheaderHint}</p>
                 </div>
               )}
+              <div>
+                <label className="flex min-h-[44px] items-center gap-3 text-sm">
+                  <input type="checkbox" className="h-5 w-5" checked={form.labelAd} aria-describedby={`${uid}-ad`} onChange={(e) => set("labelAd", e.target.checked)} />
+                  <span>{w.labelAd}</span>
+                </label>
+                <p id={`${uid}-ad`} className="a-hint !mt-0">{w.labelAdHint}</p>
+              </div>
               {!form.useBlocks && (
                 <div>
                   <span className="flex items-center justify-between gap-2"><label className="a-label" htmlFor={`${uid}-b`}>{w.bodyText}</label>{phone && <InfoPopover label={w.bodyText} text={w.bodyHint} />}</span>

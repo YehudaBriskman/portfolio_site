@@ -468,8 +468,8 @@ describe("the confirmation mail", () => {
     expect(m.html).not.toContain("<img");
     expect(m.html).toContain("&lt;img src=x onerror=alert(1)&gt; {link} &quot;q&quot;");
     expect(m.html).toContain('href="https://x.test/c?token=a&amp;b=1"');
-    /* The button and the plain-link fallback under it: the same one address twice, nothing else. */
-    expect(m.html.match(/<a /g)).toHaveLength(2);
+    /* One button; the raw address is not printed under it (the text twin carries it). */
+    expect(m.html.match(/<a /g)).toHaveLength(1);
     expect(m.subject).not.toMatch(/[\r\n]/);
   });
   it("is Hebrew and right-to-left for a Hebrew contact, with the link even if the owner's edit dropped it", () => {

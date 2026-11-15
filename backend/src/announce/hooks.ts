@@ -1,4 +1,5 @@
 import { autoDraftFor } from "../campaigns/autodraft.js";
+import { maybeAutoCompile } from "../campaigns/issue.js";
 import type { RequestHandler } from "express";
 import { logger } from "../logger.js";
 import { SITE_URL } from "../services/seo.js";
@@ -20,6 +21,7 @@ type PostDoc = {
   excerpt?: string;
   tags?: string[];
   readingMinutes?: number;
+  body?: string;
   publishedAt?: string | null;
   he?: { title?: string; excerpt?: string; body?: string } | null;
 };
@@ -31,11 +33,24 @@ async function record(ev: AnnounceEvent): Promise<boolean> {
   if (!(await createEvent(ev))) return false;
   if (settings.email.enabled && settings.email.events.includes(ev.kind)) await notifyOwner(ev, settings);
   try {
+    await maybeAutoCompile(settings);
     await autoDraftFor(ev, settings);
   } catch (err) {
     logger.warn({ err: err instanceof Error ? err.message : String(err), id: ev._id }, "announce: could not draft a campaign");
   }
   return true;
+}
+
+/** The first two paragraphs of a markdown body as plain text, at most 600 characters: the raw material of an issue's longer summary. */
+export function leadOf(body: string | undefined): string {
+  const paras = (body ?? "")
+    .split(/\r?\n\s*\r?\n/)
+    .map((p) => p.trim())
+    .filter((p) => p && !/^(#|>|```|[-*]\s|\d+\.\s|!\[|<|\|)/.test(p))
+    .slice(0, 2)
+    .map((p) => p.replace(/!?\[([^\]]*)\]\([^)]*\)/g, "$1").replace(/[*_`~]+/g, "").replace(/\s+/g, " ").trim());
+  const t = paras.join("\n\n");
+  return t.length > 600 ? `${t.slice(0, 599).trimEnd()}…` : t;
 }
 
 export function postEvent(after: PostDoc, now = new Date()): AnnounceEvent | null {
@@ -54,6 +69,7 @@ export function postEvent(after: PostDoc, now = new Date()): AnnounceEvent | nul
     tags: after.tags ?? [],
     publishedAt: stamp,
     ...(after.readingMinutes && after.readingMinutes > 0 ? { readMinutes: after.readingMinutes } : {}),
+    ...(leadOf(after.body) ? { lead: leadOf(after.body) } : {}),
     path: `/blog/${after.slug}`,
     url: `${SITE_URL}/blog/${after.slug}`,
     langs: hasHe ? ["en", "he"] : ["en"],

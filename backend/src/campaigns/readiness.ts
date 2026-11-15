@@ -6,7 +6,8 @@ import type { Campaign } from "./schemas.js";
  * fingerprint covers everything a recipient reads, so an edit after the test
  * makes the campaign untested again. Groups and topic are not part of the mail.
  */
-export const contentFingerprint = (c: Pick<Campaign, "subject" | "preheader" | "bodyText" | "blocks" | "lang">): string =>
-  createHash("sha256").update(JSON.stringify([c.subject, c.preheader ?? "", c.bodyText, c.blocks ?? null, c.lang ?? "all"])).digest("hex").slice(0, 32);
+export const contentFingerprint = (c: Pick<Campaign, "subject" | "preheader" | "bodyText" | "blocks" | "lang" | "labelAd">): string =>
+  /* labelAd joins the fingerprint only when set, so a campaign tested before the toggle existed stays tested. */
+  createHash("sha256").update(JSON.stringify([c.subject, c.preheader ?? "", c.bodyText, c.blocks ?? null, c.lang ?? "all", ...(c.labelAd === undefined ? [] : [c.labelAd])])).digest("hex").slice(0, 32);
 
 export const isTested = (c: Campaign): boolean => c.tested?.fp === contentFingerprint(c);

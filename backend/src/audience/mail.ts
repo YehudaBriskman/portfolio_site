@@ -40,7 +40,7 @@ type Vars = Record<"name" | "site" | "days" | "link", string>;
  * placeholders. {link} becomes a link part; escaping is the renderer's job
  * (../mail/escape.ts), never done here.
  */
-export function fillParts(tpl: string, vars: Vars): Inline[] {
+export function fillParts(tpl: string, vars: Vars, linkLabel?: string): Inline[] {
   const out: Inline[] = [];
   const push = (s: string) => {
     if (typeof out[out.length - 1] === "string") out[out.length - 1] += s;
@@ -50,7 +50,7 @@ export function fillParts(tpl: string, vars: Vars): Inline[] {
   for (const m of tpl.matchAll(PLACEHOLDER)) {
     push(tpl.slice(last, m.index));
     const v = vars[m[1] as keyof Vars];
-    if (m[1] === "link") out.push({ href: v, text: v });
+    if (m[1] === "link") out.push({ href: v, text: v, ...(linkLabel ? { label: linkLabel } : {}) });
     else push(v);
     last = (m.index ?? 0) + m[0].length;
   }
@@ -81,7 +81,7 @@ export function renderConfirmMail(contact: Pick<Contact, "name" | "lang">, link:
   let preheader = "";
   for (const para of tpl.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean)) {
     if (ONLY_LINK.test(para)) {
-      blocks.push({ type: "button", label: subject, href: link }, { type: "paragraph", tone: "muted", htmlOnly: true, text: [{ href: link, text: link }] });
+      blocks.push({ type: "button", label: subject, href: link });
       continue;
     }
     const parts = tidy(fillParts(para, vars));

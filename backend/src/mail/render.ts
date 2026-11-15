@@ -16,15 +16,18 @@ import { safeHref, safeImage, siteOrigin } from "./urls.js";
 export type MailLang = "en" | "he";
 export type MailTheme = "auto" | "light" | "dark";
 /** Plain text, or a link whose visible text is `text`. */
-export type Inline = string | { href: string; text: string };
+/* `label` = in the HTML page this link is a button with that label, never a visible address; the text twin keeps the full URL. */
+export type Inline = string | { href: string; text: string; label?: string };
 
 export type MailBlock =
   | { type: "heading"; text: string; level?: 1 | 2; lang?: MailLang }
   /* kicker = the small label above a title; strong = a bold line (the advertisement label); muted = secondary text. */
   /* htmlOnly = shown in the page, left out of the plain-text twin (a link the text already carries). */
   | { type: "paragraph"; text: string | Inline[]; tone?: "normal" | "strong" | "muted" | "kicker"; lang?: MailLang; htmlOnly?: boolean }
-  | { type: "button"; label: string; href: string }
-  | { type: "list"; items: string[] }
+  | { type: "button"; label: string; href: string; outline?: boolean }
+  | { type: "list"; items: string[]; lang?: MailLang }
+  /* A centred dot between two items of one group. */
+  | { type: "dot" }
   /* Data rows (date, read time, topics, version): a label and its value per row. Values come from real data, never invented. */
   | { type: "facts"; rows: Array<{ label: string; value: string }>; lang?: MailLang }
   /* A labelled box of lines the reader copies from (captions); each line is its own direction unit. */
@@ -35,7 +38,8 @@ export type MailBlock =
   | { type: "signature"; src: string; srcDark?: string; alt: string; width: number; height: number }
   | { type: "divider" }
   /* Who sent it and how to reach them (lines), then the note with the unsubscribe link. */
-  | { type: "footer"; lines: string[]; note?: Inline[]; extra?: Inline[][] };
+  /* In the page, a line that is a web address or an e-mail address becomes a button (web addresses labelled `websiteLabel`); the text twin keeps the line as written. */
+  | { type: "footer"; lines: string[]; note?: Inline[]; extra?: Inline[][]; websiteLabel?: string };
 
 export type RenderOptions = {
   lang: MailLang;
@@ -64,12 +68,13 @@ const dirOf = (l: MailLang) => (l === "he" ? "rtl" : "ltr");
 const langAttrs = (l: MailLang | undefined, root: MailLang) => (l && l !== root ? ` dir="${dirOf(l)}" lang="${l}"` : "");
 const dim = (n: number, max: number) => Math.max(1, Math.min(max, Math.round(Number.isFinite(n) ? n : max)));
 
-const inlineHtml = (parts: string | Inline[], link: string): string =>
+const inlineHtml = (parts: string | Inline[], link: string, dropLabelled = false): string =>
   typeof parts === "string"
     ? escMulti(parts)
     : parts
         .map((p) => {
           if (typeof p === "string") return escMulti(p);
+          if (dropLabelled && p.label) return "";
           const href = safeHref(p.href);
           return href ? `<a href="${esc(href)}" class="lnk" style="color:${link};text-decoration:underline">${esc(p.text)}</a>` : esc(p.text);
         })
@@ -89,6 +94,12 @@ const inlineText = (parts: string | Inline[]): string =>
 function rowOf(inner: string, card: string, root: MailLang, o: { top?: number; bottom?: number } = {}): string {
   return `<tr><td class="card" dir="${dirOf(root)}" bgcolor="${card}" style="background-color:${card};overflow-wrap:break-word;word-break:break-word;padding:${o.top ?? 0}px 24px ${o.bottom ?? 16}px 24px">${inner}</td></tr>`;
 }
+
+/* A compact outlined button: for the many "Read more" links of an issue and for the footer's links. A table cell with a border, so it survives Outlook; bold 15px text, never smaller. */
+function outlineButton(label: string, href: string, L: Pal): string {
+  return `<div style="margin:0 0 8px 0"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td class="ob" style="border:2px solid ${L.ink};border-radius:8px"><a class="oba" href="${esc(href)}" style="display:inline-block;padding:10px 18px;font-size:15px;line-height:20px;font-weight:700;color:${L.ink};text-decoration:none">${esc(label)}</a></td></tr></table></div>`;
+}
+const EMAIL_LINE = /^[^\s@<>"]+@[^\s@<>"]+\.[^\s@<>"]+$/;
 
 type Pal = (typeof PALETTE)["light"] | (typeof PALETTE)["dark"];
 function renderBlock(b: MailBlock, root: MailLang, origin: string, L: Pal): { html: string; text: string } {
@@ -117,6 +128,7 @@ function renderBlock(b: MailBlock, root: MailLang, origin: string, L: Pal): { ht
     case "button": {
       const href = safeHref(b.href);
       if (!href) return { html: row(`<p class="ink" dir="auto" style="margin:0;font-size:16px;line-height:1.5;color:${L.ink}">${esc(b.label)}</p>`), text: b.label };
+      if (b.outline) return { html: row(outlineButton(b.label, href, L), { top: 0, bottom: 12 }), text: `${b.label}: ${href}` };
       return {
         html: row(
           `<table role="presentation" dir="${dirOf(root)}" cellpadding="0" cellspacing="0" border="0"><tr><td class="btn" bgcolor="${L.btn}" height="44" style="background-color:${L.btn};border-radius:8px"><a class="btna" href="${esc(href)}" style="display:inline-block;min-height:20px;padding:12px 24px;font-size:16px;line-height:20px;font-weight:700;color:${L.btnInk};text-decoration:none">${esc(b.label)}</a></td></tr></table>`,
@@ -127,7 +139,7 @@ function renderBlock(b: MailBlock, root: MailLang, origin: string, L: Pal): { ht
     }
     case "list":
       return {
-        html: row(`<ul class="ink" style="margin:0;padding:0 22px;font-size:16px;line-height:1.5;color:${L.ink}">${b.items.map((i) => `<li dir="auto" style="margin:0 0 4px 0">${esc(i)}</li>`).join("")}</ul>`),
+        html: row(`<ul class="ink"${langAttrs(b.lang, root)} style="margin:0;padding:0 22px;font-size:16px;line-height:1.5;color:${L.ink}">${b.items.map((i) => `<li dir="auto" style="margin:0 0 4px 0">${esc(i)}</li>`).join("")}</ul>`),
         text: b.items.map((i) => `- ${i}`).join("\n"),
       };
     case "facts": {
@@ -177,17 +189,40 @@ function renderBlock(b: MailBlock, root: MailLang, origin: string, L: Pal): { ht
       const forcedDark = L === PALETTE.dark && !!dark;
       return { html: row(img("sig-l", src, forcedDark) + (dark ? img("sig-d", dark, !forcedDark) : "")), text: b.alt };
     }
+    case "dot":
+      return { html: row(`<p class="soft" aria-hidden="true" style="margin:0;text-align:center;font-size:14px;line-height:1;color:${L.soft}">&#8226;</p>`, { top: 4, bottom: 16 }), text: "·" };
     case "divider":
       return { html: row(`<div class="rule" style="border-top:1px solid ${L.rule};font-size:1px;line-height:1px;height:1px">&nbsp;</div>`), text: "--" };
     case "footer": {
       const lines = b.lines.map((l) => l.trim()).filter(Boolean);
-      const note = b.note?.length ? `<p class="soft" dir="auto" style="margin:0;font-size:13px;line-height:1.5;color:${L.soft}">${inlineHtml(b.note, L.link)}</p>` : "";
-      const extra = (b.extra ?? []).map((n) => `<p class="soft" dir="auto" style="margin:8px 0 0 0;font-size:13px;line-height:1.5;color:${L.soft}">${inlineHtml(n, L.link)}</p>`).join("");
+      /* Web and e-mail lines are buttons in the page; the address is the label of a mail one, a web one is labelled, never shown. */
+      const plain: string[] = [];
+      const buttons: string[] = [];
+      for (const l of lines) {
+        const href = /^https?:\/\//i.test(l) ? safeHref(l) : null;
+        if (href) buttons.push(outlineButton(b.websiteLabel ?? new URL(href).hostname.replace(/^www\./, ""), href, L));
+        else if (EMAIL_LINE.test(l)) buttons.push(outlineButton(l, `mailto:${l}`, L));
+        else plain.push(l);
+      }
+      const linkBtns = [...(b.note ?? []), ...(b.extra ?? []).flat()].flatMap((p) => {
+        if (typeof p === "string" || !p.label) return [];
+        const href = safeHref(p.href);
+        return href ? [outlineButton(p.label, href, L)] : [];
+      });
+      const noteHtml = b.note?.length ? inlineHtml(b.note, L.link, true).trim() : "";
+      const note = noteHtml ? `<p class="soft" dir="auto" style="margin:0 0 12px 0;font-size:13px;line-height:1.5;color:${L.soft}">${noteHtml}</p>` : "";
+      const extra = (b.extra ?? [])
+        .map((n) => inlineHtml(n, L.link, true).trim())
+        .filter(Boolean)
+        .map((h) => `<p class="soft" dir="auto" style="margin:8px 0 0 0;font-size:13px;line-height:1.5;color:${L.soft}">${h}</p>`)
+        .join("");
       const html = row(
         `<div class="rule" style="border-top:1px solid ${L.rule};padding-top:14px">` +
-          (lines.length ? `<p class="soft" style="margin:0 0 8px 0;font-size:13px;line-height:1.5;color:${L.soft}">${lines.map((l) => `<bdi>${escMulti(l)}</bdi>`).join("<br>")}</p>` : "") +
+          (plain.length ? `<p class="soft" style="margin:0 0 12px 0;font-size:13px;line-height:1.5;color:${L.soft}">${plain.map((l) => `<bdi>${escMulti(l)}</bdi>`).join("<br>")}</p>` : "") +
           note +
+          linkBtns.join("") +
           extra +
+          (buttons.length ? `<div style="margin-top:4px">${buttons.join("")}</div>` : "") +
           `</div>`,
         { top: 12, bottom: 24 },
       );
@@ -199,7 +234,7 @@ function renderBlock(b: MailBlock, root: MailLang, origin: string, L: Pal): { ht
 
 function css(theme: MailTheme, sig = false): string {
   const D = PALETTE.dark;
-  const dark = `.page{background-color:${D.page} !important}.card{background-color:${D.card} !important}.ink{color:${D.ink} !important}.soft{color:${D.soft} !important}.lnk{color:${D.link} !important}.box{background-color:${D.box} !important;border-color:${D.rule} !important;color:${D.ink} !important}.rule{border-color:${D.rule} !important}.btn{background-color:${D.btn} !important}.btna{color:${D.btnInk} !important}${sig ? ".sig-l{display:none !important}.sig-d{display:block !important}" : ""}`;
+  const dark = `.page{background-color:${D.page} !important}.card{background-color:${D.card} !important}.ink{color:${D.ink} !important}.soft{color:${D.soft} !important}.lnk{color:${D.link} !important}.box{background-color:${D.box} !important;border-color:${D.rule} !important;color:${D.ink} !important}.rule{border-color:${D.rule} !important}.btn{background-color:${D.btn} !important}.btna{color:${D.btnInk} !important}.ob{border-color:${D.ink} !important}.oba{color:${D.ink} !important}${sig ? ".sig-l{display:none !important}.sig-d{display:block !important}" : ""}`;
   const scheme = theme === "light" ? "light" : theme === "dark" ? "dark" : "light dark";
   return `:root{color-scheme:${scheme};supported-color-schemes:${scheme}}body{margin:0;padding:0;-webkit-text-size-adjust:100%}table{border-collapse:collapse}img{-ms-interpolation-mode:bicubic}` + (theme === "auto" ? `@media (prefers-color-scheme: dark){${dark}}` : "");
 }
