@@ -83,7 +83,7 @@ Reading order for a reviewer: **Hierarchy** (A1 to A10), **Lists and tables** (A
 **A11. A table is a table only where the screen is wide and the records are comparable.** MUST: first column is a human-readable identifier (never an auto id); columns ordered by importance; related columns adjacent; a header row that sticks when the table is taller than the viewport, with a quiet shadow when stuck; numeric columns right-aligned (physical right), tabular, with a unit in the header, not in every cell; text columns start-aligned. At most 6 visible columns at 1280; the rest behind a "Columns" control that shows a count of hidden ones.
 *Why:* NN/g data tables; Primer: keep headers very short.
 *Check:* a desktop table fixture of 40 rows: `position: sticky` on `thead th`; first `td` text is not matched by `/^[0-9a-f-]{20,}$/`; right-aligned numeric `td` have `tabular-nums`.
-*Kit:* `DataTable` is MISSING; tables are hand-rolled with `.a-table` in `index.css` and `ui.tsx` pieces (Posts, Areas, Translations, Audience, Campaigns, Connections each differ).
+*Kit:* `DataTable` and `RowActions` now exist (#835); existing screens still hand-roll with `.a-table` in `index.css` and `ui.tsx` pieces (Posts, Areas, Translations, Audience, Campaigns, Connections each differ).
 *Source:* https://www.nngroup.com/articles/data-tables/ ; https://primer.style/product/components/data-table/guidelines/ ; https://carbondesignsystem.com/components/data-table/usage/
 
 **A12. At most two inline actions per row; the rest in More; the row itself opens.** MUST make the whole row (or its title) open the record; at most two row actions are visible (usually Edit is the row click, so zero or one); more goes in an overflow menu. Fewer than three actions: inline icon buttons with labels; three or more: overflow. In batch-select mode the row actions are disabled. NEVER repeat the same red "Revoke" / "Delete" button on every row.
@@ -119,13 +119,13 @@ Reading order for a reviewer: **Hierarchy** (A1 to A10), **Lists and tables** (A
 **A17. Page by cursor and keep rows under 50; virtualise above.** SHOULD paginate at 20 to 50 rows or "Load more" by cursor with the count loaded ("40 of 212"); MUST virtualise a list that can pass 50 DOM rows; the scroll position and the opened row survive Back.
 *Why:* Primer suggests 20 per page as the start; the web-interface-guidelines skill sets 50 before virtualising.
 *Check:* a 500-record fixture renders fewer than 80 row nodes.
-*Kit:* none (Audience uses a cursor, Posts renders all). MISSING in `DataTable`.
+*Kit:* none (Audience uses a cursor, Posts renders all). `DataTable` leaves paging to the caller.
 *Source:* https://primer.style/product/components/data-table/guidelines/
 
 **A18. Every list has four states and they differ.** MUST design: *loading* (skeleton with the real columns and row height, so nothing shifts; none at all under about 1 second; a progress bar above 10 seconds), *empty-first-use* (one sentence that teaches and one action), *empty-no-results* (neutral, names the active filters, one "Clear filters"), *error* (what failed, Retry, the data kept). NEVER a bare "No items", an "x" or "-" in an empty cell, or two primary buttons in an empty state.
 *Why:* Atlassian empty-state types; Primer: never "x" or "-" for empty cells; NN/g skeleton thresholds.
 *Check:* each list screen fixture renders all four; empty state has at most one primary.
-*Kit:* `EmptyState`, `Empty`, `LoadingRows`, `ErrorState` exist in `admin/ui.tsx` (not in the `ui/` kit; no variants), `SkeletonSwap` (phone cross-fade). A `Skeleton` primitive that takes the column template is MISSING.
+*Kit:* `EmptyState`, `Empty`, `LoadingRows`, `ErrorState` exist in `admin/ui.tsx` (not in the `ui/` kit; no variants), `SkeletonSwap` (phone cross-fade). `Skeleton` (#835) takes the column template and `EmptyState` has the three variants.
 *Source:* https://atlassian.design/components/empty-state/usage ; https://www.nngroup.com/articles/skeleton-screens/ ; https://primer.style/product/components/data-table/guidelines/
 
 ### Disclosure and detail
@@ -433,6 +433,11 @@ Status: **exists** = on `main` today. **planned** = an open issue; do not copy a
 | `Presence` (#709) | `@/components/ui/Presence` | a surface that appears and leaves by `show`: keeps the last children while it leaves (`data-state="closed"`, `inert`, `aria-hidden`), rises and falls on phones only; `SelectionBar` uses it | a dialog (use `BottomSheet`), anything that must unmount at once |
 | `ListPresence` (#731) | `@/components/ui/ListPresence` | a list drawn from `items` whose rows arrive and leave softly on phones: a removed row stays as a closed, `inert` ghost in its place and collapses (height and opacity) while the neighbours slide, an inserted row grows in, Undo grows it back; a timer drops the ghost, no `animationend`; `variant="tiles"` for a grid. Inbox, posts, audience, media and campaigns use it | a list that never gains or loses rows, or one where a row must vanish at once |
 | `SkeletonSwap` (#735) | `@/components/ui/SkeletonSwap` | a loading skeleton that cross-fades into the content that replaces it on phones: both layers share one grid cell, the skeleton fades out as the content fades in, a timer (`EXIT_KEEP_MS`) drops the closed `inert` ghost; no layout jump while both are drawn. Posts, audience, campaigns and inbox lists use it | content drawn without a skeleton first |
+| `DataTable` (#835) | `@/components/ui/DataTable` | the one desktop table and its phone twin (A11 to A18): sticky header with a shadow once stuck, sortable columns (`aria-sort`), numeric columns right and tabular, `primary` title wraps to two lines, `hideBelow` drops columns by the table's own width, `density` (pointer decides by default), select mode with a bulk bar (count in a live region), `groupBy` to say a status once as a header, loading / empty / error states, one tab stop with arrow-key grid navigation (inline-end arrow steps into the row's controls, mirrored in RTL). Under 600px it renders `RecordRow` from `phoneRow` and the phone `SelectionBar`; words are props | a phone grid; a status pill on every row (group or filter instead); more than 50 DOM rows without paging (A17) |
+| `RowActions` (#835) | `@/components/ui/RowActions` | one primary action plus one "More" menu per row, built on `ControlBar`; More is always drawn on touch and appears on hover, focus or open menu on a fine pointer; destructive actions sort last; `disabled` makes it inert in select mode | three or more visible row buttons; a red button on every row |
+| `FilterBar`, `useFilterBar` (#835) | `@/components/ui/FilterBar` | the desktop row above a table: search first (clears with X and Escape), `FilterChips`, the result count and one Clear all that also clears the search; `useFilterBar` is `useSavedFilters` plus a `q` param, so the saved view lives in the address | the phone (use `FilterChips` + `FilterSheet`) |
+| `Skeleton` (#835) | `@/components/ui/Skeleton` | a placeholder with the real column template and row height (`columns`, `rows`, `height`) or `variant="cards"` for the phone list; one status word; static, no shimmer | a spinner; a skeleton for a load under about a second |
+| `EmptyState` (#835) | `@/components/ui/EmptyState` | the three empty lists: `first-use` (teach + one action), `no-results` (names the filters, one Clear), `error` (what failed + Retry); never two buttons | a bare "No items" |
 | `SheetPresence` (#709) | `@/components/ui/SheetPresence` | wraps a `BottomSheet` its parent draws as `{x && <Sheet open>}`: `<SheetPresence show={x}>` keeps it mounted for the exit on a phone (the sheet is told it is closed) | a sheet already drawn with `open={x}` (it leaves by itself) |
 | `tooltip` | `@/components/ui/tooltip` | a hint for pointer users | the only label of anything: touch has no hover |
 
@@ -668,6 +673,8 @@ npm run a11y:admin-desktop       # ONLY=translations  WIDTHS=1024  LANGS=he  SHO
 npm run a11y:admin-sidebar       # WIDTHS=1280  LANGS=he  THEMES=dark  SHOTS=dir
 # Equal siblings (CI): every row of >=2 side-by-side boxes is one height (1px) on 17 screens at 390 and 1280, en/he.
 npm run a11y:admin-equal         # ONLY=/admin  WIDTHS=390  LANGS=he  PROBE=1 lists each unequal row
+# Rule guards (CI, ~45 s): the measurable A and M rules on 17 screens at 390 and 1280, en and he, against a shrink-only baseline (section 7.5).
+npm run a11y:admin-rules         # ONLY=/admin/posts  PASSES=1280en  PROBE=1 prints every finding  -- --update-baseline removes fixed lines
 # Inbox on a phone (CI): one tappable row per event, >= 7 rows above the fold of 390x844, no sideways scroll, the sheet opens and gives focus back, Mark done offers Undo, Hebrew mirrors.
 npm run a11y:admin-media-phone   # Media on a phone (CI): 3 columns of square tiles, >= 6 tiles above the fold of 390x844, one button per tile, no sideways scroll, the sheet has the alt text before where it is used, focus returns, desktop unchanged. BEFORE=1 measures and shoots without asserting (to record an old build)
 npm run a11y:admin-reflow   # reflow and device edge cases (CI), ~2 min: 320 and 280 wide, 200% text (the `--text-scale` token), forced-colors, safe-area insets, he. ONLY=B-h5-3 runs one case; SHOTS=<dir> writes screenshots. The admin matrix stays at 320/360/390/768: these cases need their own browser contexts and a frame per font change, so they live here, not in the matrix
@@ -697,11 +704,39 @@ LANGS=he npm run a11y:density -- --shots top   # THEMES=dark  likewise
 | Admin Media on a phone | Browser checks | `a11y:admin-media-phone`: 3 columns of square tiles at 360 to 430, >= 6 tiles above the fold at 390x844, one button per tile, sheet order (alt, used, details closed), focus back on the tile, desktop radios and explainer unchanged |
 | Admin control budgets on a phone | Browser checks | `a11y:admin-density-phone`: chrome controls in the first screen at 390x844 under budget per screen (rows counted apart), no sideways scroll, sheets return focus, he is RTL, desktop unchanged |
 | Admin reflow and device edge cases | Browser checks | `a11y:admin-reflow`: the bulk bar keeps its count and stays under 30% of 320x568 (and 40% at 200% text), `/story` headings fit 320 and 280, a Switch has a border under forced-colors, nothing is pushed off screen at 200% text on 320 and 390 (New post, Posts), a landscape notch is cleared by the top bar and main, Hebrew mirrors the back chevron and Back, no heading level is skipped in Library and Sender |
+| Admin design rules | Browser checks | `a11y:admin-rules` and `adminRules.guard.test.ts`, `adminMotionRules.guard.test.ts`: the measurable rules of section 0 and the motion sheet, each against a baseline that may only shrink (section 7.5) |
 | Links land where they point | Browser checks | no dead internal links |
 | Static | `ci.yml` | secrets scan, workflow and Dockerfile lint |
 | CodeQL | `codeql.yml` | security analysis; **wait for it too** |
 
 A merge needs every check green, CodeQL included.
+
+### 7.5 The rule guards and their baselines (#833)
+
+The rules in section 0 that can be measured are guards. Each one holds a **baseline of today's offenders that may only shrink**: a new offender fails the check, and the fix for a fixed one is to delete its line (and lower the ceiling in the guard test), never to add a line. This is the model of the public site's guard (`docs/public-mobile-guide.md` section 2.1). Each guard has a unit test that fails on a synthetic offender and passes on a clean fixture, so it cannot go silent.
+
+Two parts. **`web/scripts/a11y/admin-rules.mjs`** (npm `a11y:admin-rules`, CI Browser checks, admin-matrix leg 1) measures a built admin on 17 screens at 1280 and 390 in English and at 1280 in Hebrew, under `prefers-reduced-motion: reduce`, with the fixtures of `admin-fixtures.mjs`. Every finding is one line `rule|route|detail` in `web/scripts/a11y/admin-rules-baseline.json`; a line that no longer reproduces is a notice. Hashed CSS-module class names are stripped from the detail, so a rebuild does not churn the file. **The `*.guard.test.ts` files** hold the pure evaluators' tests (`adminRules.guard.test.ts`: the facts to findings function, the allow-list, the per-rule ceiling of the baseline) and the rules read off source text (`adminMotionRules.guard.test.ts`).
+
+| Guard | Rule | Fails when | Baseline today |
+|---|---|---|---|
+| `sticky` | A11 | a table of 10 or more rows (or taller than the page) has no `position: sticky` header | 4 tables: Audience, Campaigns, Posts, Translations |
+| `h1` | A2 | a page does not have exactly one `h1` | 5 pages with none: Areas, Posts, Projects, Site copy, Story |
+| `dup-head` | A2 | two visible headings have the same text | 0 |
+| `dup-text` | A5 | two visible text nodes over 12 characters are equal (lists, tables and menus are exempt) | 1: "Discard changes" in Library |
+| `overflow` | A8 | text is clipped by `overflow: hidden` with no ellipsis and no line clamp (the box itself or a clipping ancestor up to four levels) | 0 |
+| `gap` | A7 | two interactive boxes are under 8px (`--a-s-2`) apart; items of one menu, list, tab strip or table are joined on purpose. The shell (sidebar, top bar) counts once for every route (`*`) | 48 |
+| `overlap` | A7 | two interactive boxes intersect | 3: the Select button over the last chip in Media and Campaigns on a phone |
+| `target` | A33 | `.a-btn`, `.a-btn-primary` or `.a-icon-btn` is under 44px on either side at 390 | 0 |
+| `icon-label` | A9 | an icon-only button or link has no `aria-label`, `title`, `alt` or `sr-only` text | 0 |
+| `destructive` | A1, A12 | a danger button (class or tone, or a red text or fill) sits at rest on two or more rows of one list | 1: Revoke on Connected apps |
+| `hebrew` | A34 | an English word of 4+ letters in a `/he/admin` screen that is not in `HEBREW_ALLOW` (brand and code names), not an identifier (path, address, id, anything with a digit), not inside `dir="ltr"`, `code`, `kbd`, `.a-path`, and not a word of the user content the fixtures return | 69 words (Areas, Connections, Media and more) |
+| `motion` | M6 | something transitions or animates under `reduce` (computed `transition-duration` or `animation-duration` above 1ms) | 0 |
+| reduced-motion CSS | M6 | a transition or animation is declared outside `@media (prefers-reduced-motion: no-preference)` in an admin stylesheet (`adminMotionRules.guard.test.ts`, counted per file) | 6 files: `Action`, `Dock`, `FloatingBack`, `IconButton`, `SegmentedControl`, `popup.css` |
+| `animationend` allow-list | M7 | code outside the list waits for `animationend` or `transitionend` | 2 files, both public site: `useHelpMotion.ts`, `EntryShutter.tsx`; the admin has none |
+| keyframes allow-list | M5, M9 | an `@keyframes` name in admin CSS is not on `KEYFRAMES_ALLOWED` | `a-shimmer`, `pop-in`, `pop-out` (an allow-list: add a name only with its row in `docs/motion-contract.md` section 8) |
+
+How to fix a finding: the guard's line names the route and the control (`Select ~ Finished`, `button.a-btn-danger`). After the fix run `npm run build && npm run a11y:admin-rules -- --update-baseline` (it refuses when a finding is new), then lower that rule's number in `adminRules.guard.test.ts`. A Hebrew finding is fixed in `web/src/i18n`, not by adding the word to the allow-list; the allow-list is for brand and code names only. Not measured here, and still by hand or by other scripts: A13, A17, A25, A26, A28, A31 and M1 to M4, M8 to M12 (they need interaction).
+
 
 ---
 

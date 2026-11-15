@@ -1,0 +1,78 @@
+/*
+ * Placeholder bars. Static: the site has no clock-driven animation (motion
+ * contract), so a placeholder does not shimmer. Logical properties only.
+ */
+.root {
+  display: block;
+  min-inline-size: 0;
+}
+
+.sr {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.row {
+  display: grid;
+  align-items: center;
+  column-gap: var(--a-s-3, 0.75rem);
+  box-sizing: border-box;
+  min-block-size: 3rem;
+  padding-inline: var(--a-s-4, 1rem);
+}
+
+.row + .row {
+  border-block-start: 1px solid var(--a-line-soft, rgb(var(--ink) / 0.08));
+}
+
+.root[data-variant="cards"] .row {
+  grid-template-columns: 2.5rem minmax(0, 1fr);
+  min-block-size: 3.5rem;
+}
+
+.cell {
+  display: flex;
+  min-inline-size: 0;
+}
+
+.cell[data-align="num"] {
+  justify-content: flex-end;
+}
+
+.cell[data-align="end"] {
+  justify-content: flex-end;
+}
+
+.lines {
+  display: grid;
+  gap: 0.5rem;
+  min-inline-size: 0;
+}
+
+.bar {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  block-size: 0.75rem;
+  border-radius: var(--a-r-tiny, 4px);
+  background: rgb(var(--ink) / 0.08);
+}
+
+.faint {
+  block-size: 0.5rem;
+  background: rgb(var(--ink) / 0.05);
+}
+
+.disc {
+  display: block;
+  inline-size: 2.5rem;
+  block-size: 2.5rem;
+  border-radius: 50%;
+  background: rgb(var(--ink) / 0.06);
+}

@@ -630,6 +630,16 @@ jobs:
       - name: Admin sidebar
         if: matrix.check == 'admin-matrix' && matrix.shard == 2
         run: npm run a11y:admin-sidebar
+      # The measurable admin rules (#833): sticky table header, one h1, no
+      # repeated text, no clipped text, 8px between controls and no overlap,
+      # 44px primary targets on a phone, names on icon-only controls, no red
+      # button on every row, English words in /he, nothing moves under reduced
+      # motion. Known findings live in web/scripts/a11y/admin-rules-baseline.json,
+      # which may only shrink. About 45 s (three passes side by side), so it
+      # rides the lighter matrix leg.
+      - name: Admin design rules
+        if: matrix.check == 'admin-matrix' && matrix.shard == 1
+        run: npm run a11y:admin-rules
       # Every link lands on its target (#196): the top of a new page, a hash's
       # element under the bar, the old place on Back and Forward, at a laptop
       # and a phone, against the same build.

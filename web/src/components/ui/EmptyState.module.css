@@ -1,0 +1,89 @@
+/* An empty list, centred on its own axis; logical properties only. */
+.root {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--a-s-2, 0.5rem);
+  padding: var(--a-s-8, 2rem) var(--a-s-4, 1rem);
+  text-align: center;
+  min-inline-size: 0;
+}
+
+.glyph {
+  display: inline-flex;
+  color: rgb(var(--ink-soft));
+}
+
+.root[data-variant="error"] .glyph {
+  color: rgb(var(--destructive-ink));
+}
+
+.title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: rgb(var(--ink));
+  overflow-wrap: anywhere;
+}
+
+.text {
+  margin: 0;
+  max-inline-size: 32rem;
+  font-size: var(--a-fs-meta, 0.875rem);
+  color: rgb(var(--ink-soft));
+  overflow-wrap: anywhere;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--a-s-2, 0.5rem);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.filter {
+  padding: 0.25rem 0.625rem;
+  border: 1px solid var(--a-line-ctl, rgb(var(--rule-firm)));
+  border-radius: var(--a-r-pill, 999px);
+  font-size: var(--a-fs-meta, 0.875rem);
+  color: rgb(var(--ink));
+}
+
+.button {
+  min-block-size: var(--ctl-h-lg, 44px);
+  margin-block-start: var(--a-s-2, 0.5rem);
+  padding-inline: var(--a-s-4, 1rem);
+  border: 1px solid var(--a-line-ctl, rgb(var(--ink) / 0.3));
+  border-radius: var(--ctl-radius, 12px);
+  background: transparent;
+  color: rgb(var(--ink));
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.root[data-variant="first-use"] .button,
+.root[data-variant="error"] .button {
+  border-color: rgb(var(--signal));
+  background: rgb(var(--signal));
+  color: rgb(var(--paper));
+}
+
+.button:focus-visible {
+  outline: 2px solid rgb(var(--signal));
+  outline-offset: 2px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .button:hover {
+    background-color: var(--a-hover, rgb(var(--ink) / 0.05));
+  }
+  .root[data-variant="first-use"] .button:hover,
+  .root[data-variant="error"] .button:hover {
+    background-color: rgb(var(--signal) / 0.9);
+  }
+}

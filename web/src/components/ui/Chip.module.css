@@ -7,8 +7,19 @@
 
 .row[data-scroll] {
   flex-wrap: nowrap;
+  max-inline-size: 100%;
   overflow-x: auto;
+  overscroll-behavior-x: contain;
   scrollbar-width: none;
+  /* Clips on its own box with a fade as wide as the padding, so a chip that runs off is a peek, never cut under a neighbouring control (A7, A8). */
+  padding-inline: 0.5rem;
+  scroll-padding-inline: 0.5rem;
+  mask-image: linear-gradient(to right, transparent, #000 0.5rem, #000 calc(100% - 0.5rem), transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 0.5rem, #000 calc(100% - 0.5rem), transparent);
+}
+
+.row[data-scroll]::-webkit-scrollbar {
+  display: none;
 }
 
 .chip {
