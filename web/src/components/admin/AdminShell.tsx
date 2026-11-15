@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useId, useLayoutEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ChevronLeft, ExternalLink, FilePlus, FolderPlus, ImagePlus, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Search, X } from "lucide-react";
 import { admin } from "@/services/admin";
@@ -25,6 +25,8 @@ import { useAudienceWords } from "@/components/admin/announce/audience/words";
 import { useCampaignWords } from "@/components/admin/announce/campaigns/words";
 import { useLibraryWords } from "@/components/admin/announce/library/words";
 import { useSenderWords } from "@/components/admin/announce/sender/words";
+import { useSettingsPanelWords } from "@/components/admin/announce/settingsWords";
+import { useSignatureWords } from "@/components/admin/announce/signature/words";
 import { buildNav, type AdminNavId } from "./adminNav";
 
 /*
@@ -145,7 +147,45 @@ function useSidebarDocked(): boolean {
   );
 }
 
-export default function AdminShell({ title, section, counts, bottomBar, backTo, barEverywhere, actions, children }: AdminShellProps) {
+/*
+ * One shell for the whole admin (#852). The shell used to be rendered inside each page, so a route change
+ * unmounted the sidebar and its scroll container came back at the top. Now `AdminLayout` (a layout route)
+ * mounts the frame once; a page still writes `<AdminShell title section ...>content</AdminShell>`, which
+ * publishes those props to the frame and renders only its content, into the frame's <main>. Outside a
+ * layout (a test, a story) it renders the whole frame itself, as before.
+ */
+export type ShellProps = Omit<AdminShellProps, "children">;
+
+export type ShellSlot = { publish: (next: ShellProps | ((cur: ShellProps | null) => ShellProps | null)) => void };
+export const ShellSlotContext = createContext<ShellSlot | null>(null);
+
+const sameCounts = (a: ShellProps["counts"], b: ShellProps["counts"]) => {
+  const ka = Object.keys(a ?? {});
+  const kb = Object.keys(b ?? {});
+  return ka.length === kb.length && ka.every((k) => (a as Record<string, number | undefined>)[k] === (b as Record<string, number | undefined>)?.[k]);
+};
+
+export default function AdminShell({ children, ...props }: AdminShellProps) {
+  const slot = useContext(ShellSlotContext);
+  const publish = slot?.publish;
+  const { title, section, counts, bottomBar, backTo, barEverywhere, actions } = props;
+  useLayoutEffect(() => {
+    publish?.((cur) =>
+      cur && cur.title === title && cur.section === section && cur.bottomBar === bottomBar && cur.backTo === backTo && cur.barEverywhere === barEverywhere && cur.actions === actions && sameCounts(cur.counts, counts)
+        ? cur
+        : { title, section, counts, bottomBar, backTo, barEverywhere, actions },
+    );
+  });
+  /* The next page publishes its own; until it does (a chunk still loading) keep the title and drop what belongs to a screen's own controls. */
+  useLayoutEffect(
+    () => () => publish?.((cur) => (cur ? { ...cur, bottomBar: undefined, backTo: undefined, barEverywhere: undefined, actions: undefined } : cur)),
+    [publish],
+  );
+  if (slot) return <>{children}</>;
+  return <ShellFrame {...props}>{children}</ShellFrame>;
+}
+
+export function ShellFrame({ title, section, counts, bottomBar, backTo, barEverywhere, actions, children }: AdminShellProps) {
   const { pathname, search } = useLocation();
   const w = useAdminWords();
   const mobile = useMobileWords();
@@ -158,6 +198,8 @@ export default function AdminShell({ title, section, counts, bottomBar, backTo, 
   const cw = useCampaignWords();
   const lw = useLibraryWords();
   const sw = useSenderWords();
+  const stw = useSettingsPanelWords();
+  const sigw = useSignatureWords();
   /* Public units a Hebrew reader gets in English or out of date (#302). */
   const { report: heReport } = useTranslationReport();
   const translationsDue = heReport ? toDo(heReport) : undefined;
@@ -248,6 +290,8 @@ export default function AdminShell({ title, section, counts, bottomBar, backTo, 
    * clears it the same way (index.css).
    */
   const bar = useRef<HTMLDivElement>(null);
+  /* The bar arrives with a page now (the frame outlives pages), so the observer follows whether there is one. */
+  const hasBar = Boolean(bottomBar);
   const keyboard = useKeyboardOpen();
   useEffect(() => {
     const el = bar.current;
@@ -266,7 +310,7 @@ export default function AdminShell({ title, section, counts, bottomBar, backTo, 
       root.style.scrollPaddingBottom = "";
       root.style.removeProperty("--a-bar-h");
     };
-  }, []);
+  }, [hasBar]);
 
   const tree = buildNav({
     label: (id: AdminNavId) => {
@@ -277,6 +321,15 @@ export default function AdminShell({ title, section, counts, bottomBar, backTo, 
         case "marketing-library": return lw.tab;
         case "marketing-settings": return mk.tabSettings;
         case "marketing-sender": return sw.heading;
+        /* The Settings screen's own section titles (SettingsPhone's groups), so the sidebar adds no wording. */
+        case "marketing-settings-mail": return stw.gMail;
+        case "marketing-settings-channels": return stw.gChannels;
+        case "marketing-settings-wording": return stw.gWording;
+        case "marketing-settings-signature": return sigw.groupTitle;
+        case "marketing-settings-limits": return stw.gLimits;
+        case "marketing-settings-texts": return stw.gTexts;
+        case "marketing-settings-notices": return stw.gNotices;
+        case "marketing-settings-advanced": return stw.advancedHeading;
         case "g-content": return w.groups.content;
         case "g-media": return w.nav.media;
         case "g-site": return w.groups.site;

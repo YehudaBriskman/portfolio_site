@@ -1,6 +1,8 @@
 import {
+  Bell,
   Blocks,
   BookOpen,
+  Gauge,
   FileText,
   FolderKanban,
   Image,
@@ -10,11 +12,14 @@ import {
   LayoutGrid,
   Library,
   Mail,
+  MailCheck,
+  Radio,
   Send,
   Settings,
   SlidersHorizontal,
   Type,
   Users,
+  Wrench,
   type LucideIcon,
 } from "lucide-react";
 import { iconOf } from "@/components/ui/Icon";
@@ -52,6 +57,14 @@ export type AdminNavId =
   | "marketing-library"
   | "marketing-settings"
   | "marketing-sender"
+  | "marketing-settings-mail"
+  | "marketing-settings-channels"
+  | "marketing-settings-wording"
+  | "marketing-settings-signature"
+  | "marketing-settings-limits"
+  | "marketing-settings-texts"
+  | "marketing-settings-notices"
+  | "marketing-settings-advanced"
   | "g-content"
   | "posts"
   | "areas"
@@ -89,6 +102,35 @@ const I = {
   apps: iconOf(Blocks),
 };
 
+/*
+ * The sections of Marketing > Settings, in the order the screen lists them (the phone's groups, SettingsPhone).
+ * Each is `?tab=settings&section=<id>`: the phone opens that group, the desktop panel opens and scrolls to it.
+ * Their titles are the ones the screen already prints, so the sidebar adds no wording.
+ */
+export const SETTINGS_SECTIONS = ["mail", "channels", "wording", "signature", "sender", "limits", "texts", "notices", "advanced"] as const;
+export type SettingsSection = (typeof SETTINGS_SECTIONS)[number];
+
+/** `sender` keeps the id it had when it was the only child. */
+export const settingsNavId = (s: SettingsSection): AdminNavId => (s === "sender" ? "marketing-sender" : (`marketing-settings-${s}` as AdminNavId));
+
+const SETTINGS_ICON: Record<SettingsSection, LucideIcon> = {
+  mail: Mail,
+  channels: Radio,
+  wording: SlidersHorizontal,
+  signature: FileText,
+  sender: Send,
+  limits: Gauge,
+  texts: MailCheck,
+  notices: Bell,
+  advanced: Wrench,
+};
+
+const SETTINGS_CHILDREN: Leaf[] = SETTINGS_SECTIONS.map((s) => ({
+  id: settingsNavId(s),
+  to: `/admin/marketing?tab=settings&section=${s}`,
+  icon: iconOf(SETTINGS_ICON[s]),
+}));
+
 export const NAV_SHAPE: Array<Leaf & { children?: Array<Leaf & { children?: Leaf[] }> }> = [
   { id: "overview", to: "/admin", icon: I.overview },
   {
@@ -104,7 +146,7 @@ export const NAV_SHAPE: Array<Leaf & { children?: Array<Leaf & { children?: Leaf
         id: "marketing-settings",
         to: "/admin/marketing?tab=settings",
         icon: I.tune,
-        children: [{ id: "marketing-sender", to: "/admin/marketing?tab=settings&section=sender", icon: I.sender }],
+        children: SETTINGS_CHILDREN,
       },
     ],
   },
