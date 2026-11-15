@@ -655,6 +655,8 @@ npm run a11y:admin-desktop       # ONLY=translations  WIDTHS=1024  LANGS=he  SHO
 npm run a11y:admin-sidebar       # WIDTHS=1280  LANGS=he  THEMES=dark  SHOTS=dir
 # Equal siblings (CI): every row of >=2 side-by-side boxes is one height (1px) on 17 screens at 390 and 1280, en/he.
 npm run a11y:admin-equal         # ONLY=/admin  WIDTHS=390  LANGS=he  PROBE=1 lists each unequal row
+# Rule guards (CI, ~45 s): the measurable A and M rules on 17 screens at 390 and 1280, en and he, against a shrink-only baseline (section 7.5).
+npm run a11y:admin-rules         # ONLY=/admin/posts  PASSES=1280en  PROBE=1 prints every finding  -- --update-baseline removes fixed lines
 # Inbox on a phone (CI): one tappable row per event, >= 7 rows above the fold of 390x844, no sideways scroll, the sheet opens and gives focus back, Mark done offers Undo, Hebrew mirrors.
 npm run a11y:admin-media-phone   # Media on a phone (CI): 3 columns of square tiles, >= 6 tiles above the fold of 390x844, one button per tile, no sideways scroll, the sheet has the alt text before where it is used, focus returns, desktop unchanged. BEFORE=1 measures and shoots without asserting (to record an old build)
 npm run a11y:admin-reflow   # reflow and device edge cases (CI), ~2 min: 320 and 280 wide, 200% text (the `--text-scale` token), forced-colors, safe-area insets, he. ONLY=B-h5-3 runs one case; SHOTS=<dir> writes screenshots. The admin matrix stays at 320/360/390/768: these cases need their own browser contexts and a frame per font change, so they live here, not in the matrix
@@ -684,11 +686,39 @@ LANGS=he npm run a11y:density -- --shots top   # THEMES=dark  likewise
 | Admin Media on a phone | Browser checks | `a11y:admin-media-phone`: 3 columns of square tiles at 360 to 430, >= 6 tiles above the fold at 390x844, one button per tile, sheet order (alt, used, details closed), focus back on the tile, desktop radios and explainer unchanged |
 | Admin control budgets on a phone | Browser checks | `a11y:admin-density-phone`: chrome controls in the first screen at 390x844 under budget per screen (rows counted apart), no sideways scroll, sheets return focus, he is RTL, desktop unchanged |
 | Admin reflow and device edge cases | Browser checks | `a11y:admin-reflow`: the bulk bar keeps its count and stays under 30% of 320x568 (and 40% at 200% text), `/story` headings fit 320 and 280, a Switch has a border under forced-colors, nothing is pushed off screen at 200% text on 320 and 390 (New post, Posts), a landscape notch is cleared by the top bar and main, Hebrew mirrors the back chevron and Back, no heading level is skipped in Library and Sender |
+| Admin design rules | Browser checks | `a11y:admin-rules` and `adminRules.guard.test.ts`, `adminMotionRules.guard.test.ts`: the measurable rules of section 0 and the motion sheet, each against a baseline that may only shrink (section 7.5) |
 | Links land where they point | Browser checks | no dead internal links |
 | Static | `ci.yml` | secrets scan, workflow and Dockerfile lint |
 | CodeQL | `codeql.yml` | security analysis; **wait for it too** |
 
 A merge needs every check green, CodeQL included.
+
+### 7.5 The rule guards and their baselines (#833)
+
+The rules in section 0 that can be measured are guards. Each one holds a **baseline of today's offenders that may only shrink**: a new offender fails the check, and the fix for a fixed one is to delete its line (and lower the ceiling in the guard test), never to add a line. This is the model of the public site's guard (`docs/public-mobile-guide.md` section 2.1). Each guard has a unit test that fails on a synthetic offender and passes on a clean fixture, so it cannot go silent.
+
+Two parts. **`web/scripts/a11y/admin-rules.mjs`** (npm `a11y:admin-rules`, CI Browser checks, admin-matrix leg 1) measures a built admin on 17 screens at 1280 and 390 in English and at 1280 in Hebrew, under `prefers-reduced-motion: reduce`, with the fixtures of `admin-fixtures.mjs`. Every finding is one line `rule|route|detail` in `web/scripts/a11y/admin-rules-baseline.json`; a line that no longer reproduces is a notice. Hashed CSS-module class names are stripped from the detail, so a rebuild does not churn the file. **The `*.guard.test.ts` files** hold the pure evaluators' tests (`adminRules.guard.test.ts`: the facts to findings function, the allow-list, the per-rule ceiling of the baseline) and the rules read off source text (`adminMotionRules.guard.test.ts`).
+
+| Guard | Rule | Fails when | Baseline today |
+|---|---|---|---|
+| `sticky` | A11 | a table of 10 or more rows (or taller than the page) has no `position: sticky` header | 4 tables: Audience, Campaigns, Posts, Translations |
+| `h1` | A2 | a page does not have exactly one `h1` | 5 pages with none: Areas, Posts, Projects, Site copy, Story |
+| `dup-head` | A2 | two visible headings have the same text | 0 |
+| `dup-text` | A5 | two visible text nodes over 12 characters are equal (lists, tables and menus are exempt) | 1: "Discard changes" in Library |
+| `overflow` | A8 | text is clipped by `overflow: hidden` with no ellipsis and no line clamp (the box itself or a clipping ancestor up to four levels) | 0 |
+| `gap` | A7 | two interactive boxes are under 8px (`--a-s-2`) apart; items of one menu, list, tab strip or table are joined on purpose. The shell (sidebar, top bar) counts once for every route (`*`) | 48 |
+| `overlap` | A7 | two interactive boxes intersect | 3: the Select button over the last chip in Media and Campaigns on a phone |
+| `target` | A33 | `.a-btn`, `.a-btn-primary` or `.a-icon-btn` is under 44px on either side at 390 | 0 |
+| `icon-label` | A9 | an icon-only button or link has no `aria-label`, `title`, `alt` or `sr-only` text | 0 |
+| `destructive` | A1, A12 | a danger button (class or tone, or a red text or fill) sits at rest on two or more rows of one list | 1: Revoke on Connected apps |
+| `hebrew` | A34 | an English word of 4+ letters in a `/he/admin` screen that is not in `HEBREW_ALLOW` (brand and code names), not an identifier (path, address, id, anything with a digit), not inside `dir="ltr"`, `code`, `kbd`, `.a-path`, and not a word of the user content the fixtures return | 69 words (Areas, Connections, Media and more) |
+| `motion` | M6 | something transitions or animates under `reduce` (computed `transition-duration` or `animation-duration` above 1ms) | 0 |
+| reduced-motion CSS | M6 | a transition or animation is declared outside `@media (prefers-reduced-motion: no-preference)` in an admin stylesheet (`adminMotionRules.guard.test.ts`, counted per file) | 6 files: `Action`, `Dock`, `FloatingBack`, `IconButton`, `SegmentedControl`, `popup.css` |
+| `animationend` allow-list | M7 | code outside the list waits for `animationend` or `transitionend` | 2 files, both public site: `useHelpMotion.ts`, `EntryShutter.tsx`; the admin has none |
+| keyframes allow-list | M5, M9 | an `@keyframes` name in admin CSS is not on `KEYFRAMES_ALLOWED` | `a-shimmer`, `pop-in`, `pop-out` (an allow-list: add a name only with its row in `docs/motion-contract.md` section 8) |
+
+How to fix a finding: the guard's line names the route and the control (`Select ~ Finished`, `button.a-btn-danger`). After the fix run `npm run build && npm run a11y:admin-rules -- --update-baseline` (it refuses when a finding is new), then lower that rule's number in `adminRules.guard.test.ts`. A Hebrew finding is fixed in `web/src/i18n`, not by adding the word to the allow-list; the allow-list is for brand and code names only. Not measured here, and still by hand or by other scripts: A13, A17, A25, A26, A28, A31 and M1 to M4, M8 to M12 (they need interaction).
+
 
 ---
 
