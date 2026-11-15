@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState, type DragEvent } from "react";
+import { InfoPopover } from "@/components/ui/InfoPopover";
 import {
   LIMITS,
   blobSrc,
@@ -39,10 +40,17 @@ function kindOf(file: File, prefer: MediaKind): MediaKind {
 export default function MediaUpload({
   onUploaded,
   kinds = ["image", "icon", "video"],
+  onPicker,
 }: {
   onUploaded: (item: MediaItem) => void;
   /** What this upload may make; the first is preferred for an SVG or PNG. */
   kinds?: readonly MediaKind[];
+  /**
+   * The page has its own primary Upload button (S7): it is handed the function
+   * that opens the file chooser (and null when this unmounts), and the box
+   * below it is only a drop line. Pass a stable function.
+   */
+  onPicker?: (open: (() => void) | null) => void;
 }) {
   const id = useId();
   const w = useMediaUploadWords();
@@ -59,6 +67,13 @@ export default function MediaUpload({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [altMissing, setAltMissing] = useState(false);
+  const abort = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    if (!onPicker) return;
+    onPicker(() => input.current?.click());
+    return () => onPicker(null);
+  }, [onPicker]);
 
   // The preview's object URL lives exactly as long as the pending file
   // (keyed on the URL: switching picture/icon makes a new object, not a new file).
@@ -70,6 +85,13 @@ export default function MediaUpload({
   }, [pendingUrl]);
 
   const accept = kinds.map((k) => LIMITS[k].accept).join(",") || ALL_ACCEPT;
+  const limits = [
+    kinds.includes("image") && w.limits.image,
+    kinds.includes("icon") && w.limits.icon,
+    kinds.includes("video") && w.limits.video,
+  ]
+    .filter(Boolean)
+    .join(" ");
   const says = kinds.map((k) => w.kindsMany[k]).join(", ");
 
   function take(files: FileList | null) {
@@ -119,18 +141,23 @@ export default function MediaUpload({
     }
     setBusy(true);
     setError(null);
+    const ctl = new AbortController();
+    abort.current = ctl;
     try {
       const item = await media.upload(
         pending.file,
         { alt: alt.trim(), caption: caption.trim(), credit: credit.trim() },
         pending.kind,
         pending.kind === "video" && poster ? { poster, captions, captionsLang, captionsLabel: undefined } : undefined,
+        ctl.signal,
       );
       reset();
       onUploaded(item);
     } catch (e) {
-      setError(e instanceof Error ? e.message : w.uploadFailed);
+      /* Cancel is the person's own choice: back to the form with everything they typed, no error. */
+      if (!ctl.signal.aborted) setError(e instanceof Error ? e.message : w.uploadFailed);
     } finally {
+      abort.current = null;
       setBusy(false);
     }
   }
@@ -139,6 +166,27 @@ export default function MediaUpload({
     e.preventDefault();
     setOver(on);
   };
+
+  /* Out of the tab order: the button is the control, so focus is visible on it. Always mounted, so the page's Upload works while a file waits. */
+  const picker = (
+    <input ref={input} type="file" accept={accept} className="sr-only" tabIndex={-1} aria-hidden="true" onChange={(e) => take(e.target.files)} />
+  );
+
+  if (pending && busy) {
+    return (
+      <div className={`a-card ${styles.job}`} role="group" aria-label={w.sending(pending.file.name)}>
+        {picker}
+        <p className={styles.jobText}>
+          <span className={styles.jobName} dir="auto">{pending.file.name}</span>
+          <span className="mono text-sm text-clay">{formatBytes(pending.file.size)}</span>
+        </p>
+        <div className={styles.jobBar} role="progressbar" aria-label={w.sending(pending.file.name)} aria-busy="true" />
+        <button type="button" className="a-btn" onClick={() => abort.current?.abort()}>
+          {w.cancelUpload}
+        </button>
+      </div>
+    );
+  }
 
   if (pending) {
     const switchable =
@@ -157,6 +205,7 @@ export default function MediaUpload({
           void upload();
         }}
       >
+        {picker}
         {pending.kind === "video" ? (
           <video src={blobSrc(pending.url)} className={styles.pendingThumb} muted playsInline preload="metadata" aria-hidden="true" />
         ) : (
@@ -279,25 +328,14 @@ export default function MediaUpload({
         take(e.dataTransfer.files);
       }}
     >
-      {/* Out of the tab order: the button is the control, so focus is visible on it. */}
-      <input
-        ref={input}
-        type="file"
-        accept={accept}
-        className="sr-only"
-        tabIndex={-1}
-        aria-hidden="true"
-        onChange={(e) => take(e.target.files)}
-      />
-      <button type="button" className="a-btn a-btn-primary" onClick={() => input.current?.click()}>
-        {choose}
-      </button>
-      <p className="text-sm leading-normal text-bone/80">
-        {w.drop}
-        {kinds.includes("image") && ` ${w.limits.image}`}
-        {kinds.includes("icon") && ` ${w.limits.icon}`}
-        {kinds.includes("video") && ` ${w.limits.video}`}
-      </p>
+      {picker}
+      {!onPicker && (
+        <button type="button" className="a-btn a-btn-primary" onClick={() => input.current?.click()}>
+          {choose}
+        </button>
+      )}
+      <p className="text-sm leading-normal text-bone/80">{onPicker ? w.dropHere : w.drop}</p>
+      <InfoPopover label={w.limitsLabel} text={limits} />
       {error && <p className="a-error w-full" role="alert">{error}</p>}
     </div>
   );

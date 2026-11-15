@@ -19,6 +19,10 @@ export const useMediaUploadWords = defineWords(
   {
     choose: { image: "Choose a picture", icon: "Choose an icon", video: "Choose a video", file: "Choose a file" },
     drop: "or drop one here.",
+    dropHere: "Drop a file here to upload it.",
+    limitsLabel: "the upload limits",
+    sending: (name: string) => `Uploading ${name}`,
+    cancelUpload: "Cancel upload",
     limits: {
       image: "Pictures: JPEG, PNG, WebP, AVIF or plain SVG, up to 10 MB.",
       icon: "Icons: SVG or PNG, up to 64 KB.",
@@ -76,6 +80,10 @@ export const useMediaUploadWords = defineWords(
   {
     choose: { image: "בחירת תמונה", icon: "בחירת סמל", video: "בחירת סרטון", file: "בחירת קובץ" },
     drop: "או גררו קובץ לכאן.",
+    dropHere: "גררו קובץ לכאן כדי להעלות אותו.",
+    limitsLabel: "מגבלות ההעלאה",
+    sending: (name: string) => `מעלה את ${name}`,
+    cancelUpload: "ביטול ההעלאה",
     limits: {
       image: "תמונות: JPEG, PNG, WebP, AVIF או SVG פשוט, עד 10 MB.",
       icon: "סמלים: SVG או PNG, עד 64 KB.",

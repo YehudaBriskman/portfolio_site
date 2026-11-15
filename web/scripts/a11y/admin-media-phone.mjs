@@ -189,13 +189,15 @@ try {
 
   const wide = await open(1440, 900, "en");
   const wm = await wide.page.evaluate(() => ({
-    radios: document.querySelectorAll('main input[type="radio"]').length,
+    chips: ["Pictures", "Icons", "Videos"].filter((n) => [...document.querySelectorAll("main button[aria-pressed]")].some((b) => b.textContent.trim() === n)).length,
+    upload: [...document.querySelectorAll("main button")].filter((b) => b.textContent.trim() === "Upload").length,
     explainer: /Anything in use cannot be deleted/.test(document.querySelector("main")?.innerText ?? ""),
     phone: !!document.querySelector("[data-media-grid]"),
   }));
   if (!BEFORE) {
-    if (wm.radios < 3) fail("media 1440: the kind radios are gone");
-    if (!wm.explainer) fail("media 1440: the explainer is gone");
+    if (wm.chips < 3) fail("media 1440: the kind chips are gone");
+    if (wm.upload !== 1) fail(`media 1440: expected one Upload action, found ${wm.upload}`);
+    if (wm.explainer) fail("media 1440: the long explainer is back on the page (it belongs behind the info button)");
     if (wm.phone) fail("media 1440: the phone grid is drawn on a desktop screen");
   }
   if (SHOTS) await shot(wide.page, "1440-ltr-light-grid");
