@@ -8,7 +8,7 @@ import { seedBundle } from "@/content/convert";
 
 /* Save draft lives in the bar's menu now: open it, then choose the item. */
 async function saveDraft() {
-  fireEvent.keyDown(screen.getAllByRole("button", { name: "More actions" })[0], { key: "Enter" });
+  fireEvent.keyDown(screen.getAllByRole("button", { name: "More actions" }).at(-1)!, { key: "Enter" });
   fireEvent.click(await screen.findByRole("menuitem", { name: "Save draft" }));
 }
 
@@ -84,6 +84,7 @@ describe("content editors", () => {
       json({ ok: false, error: "1 field needs attention", issues: [{ path: "items.0.fact.en", message: "Too close to another" }] }, 400),
     );
     page(<AdminProjects />);
+    fireEvent.click((await screen.findAllByRole("button", { name: "Edit" }))[0]);
     await screen.findByLabelText("One-line fact, English");
     await saveDraft();
     expect(await screen.findByText("Too close to another")).toBeInTheDocument();
@@ -93,7 +94,11 @@ describe("content editors", () => {
     const calls = stubApi("projects", seedBundle().projects);
     page(<AdminProjects />);
     const first = seedBundle().projects.items[0];
-    fireEvent.click(await screen.findByRole("button", { name: `Move ${first.title} down` }));
+    /* The Order cell is a number: typing 2 moves the first project to second place. */
+    fireEvent.click((await screen.findAllByRole("button", { name: /^Edit Order: 1$/ }))[0]);
+    const place = await screen.findByRole("spinbutton", { name: "Edit Order" });
+    fireEvent.change(place, { target: { value: "2" } });
+    fireEvent.keyDown(place, { key: "Enter" });
     await saveDraft();
     await waitFor(() => expect(calls.some((c) => c.method === "PUT")).toBe(true));
     const items = (calls.find((c) => c.method === "PUT")!.body as { data: { items: Array<{ slug: string; order: number }> } }).data.items;
@@ -135,6 +140,8 @@ describe("content editors", () => {
       vi.fn((u: string, init?: RequestInit) => (u.startsWith("/api/admin/media") ? Promise.resolve(json(LIBRARY)) : content(u, init))),
     );
     page(<AdminProjects />);
+    fireEvent.click((await screen.findAllByRole("button", { name: "Edit" }))[0]);
+    fireEvent.click(await screen.findByRole("button", { name: "Media" }));
     fireEvent.click(await screen.findByRole("button", { name: "Choose from library" }));
     fireEvent.click(await screen.findByRole("button", { name: /WindoM's new-tab page/ }));
     expect(screen.getByLabelText("Image")).toHaveValue(url);

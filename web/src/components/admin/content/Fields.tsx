@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useId, useRef, useState, type ReactNode } from "react";
-import { TriangleAlert } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
+import { ICON } from "@/components/ui/icons";
 import Select from "@/components/ui/Select";
 import { DisclosureButton } from "@/components/ui/Disclosure";
 import { usePhone } from "@/hooks/usePhone";
@@ -20,6 +21,12 @@ import styles from "./EditorPhone.module.css";
  * Ids are the field's path in the form (`project-fact-en`), which is what a
  * label points at and what a test or a screenshot script reaches for.
  */
+
+/**
+ * True inside a side panel: the room is the panel's, not the viewport's, so a bilingual
+ * field stacks its two inputs and a Section is a closed group, as on a phone.
+ */
+export const NarrowContext = createContext(false);
 
 function ErrorLine({ id, message }: { id: string; message: string | undefined }) {
   if (!message) return null;
@@ -61,6 +68,7 @@ export function TextField({ id, path, label, hint, multiline, value, nullable, o
   const Input = multiline ? "textarea" : "input";
   const cls = multiline ? "a-textarea" : "a-input";
   const phoneLang = useEditLang();
+  const narrow = useContext(NarrowContext);
   const w = useContentWords();
   const f = useFormWords();
   const tr = useFormText();
@@ -125,7 +133,7 @@ export function TextField({ id, path, label, hint, multiline, value, nullable, o
   return (
     <fieldset className="min-w-0" data-path={path}>
       <legend className="a-label">{label}</legend>
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+      <div className={narrow ? "grid grid-cols-1 gap-3" : "grid grid-cols-1 gap-3 md:grid-cols-2"}>
         {enInput}
         {heInput}
       </div>
@@ -257,6 +265,7 @@ export function ListField<T>({ id, path, legend, hint, items, name: rawName, mak
   /* The default names ("New phrase") are English literals too. */
   const name = (item: T, i: number) => (() => { const n = rawName(item, i); return /^New /.test(n) ? tr(n) : n; })();
   const phone = usePhone();
+  const rw = useContentWords().reorder;
   const [reordering, setReordering] = useState(false);
   const move = (from: number, to: number) => {
     const next = [...items];
@@ -300,6 +309,7 @@ export function ListField<T>({ id, path, legend, hint, items, name: rawName, mak
     );
   }
 
+  const btn = "a-btn a-btn-ghost a-icon-btn rounded-[var(--a-r-ctl)]";
   return (
     <fieldset id={id} className="min-w-0" data-path={path}>
       <legend className="a-label">{legend}</legend>
@@ -309,36 +319,19 @@ export function ListField<T>({ id, path, legend, hint, items, name: rawName, mak
           // Index keys: a row is its position, and the inputs inside it are
           // controlled, so a move re-renders the values in their new places.
           <li key={i} className="a-box rounded-[var(--a-r-box)] p-3 sm:p-4">
-            <div className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1">
+            <div className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-2">
               <span className="a-box-title min-w-0 flex-1 basis-32 truncate" title={`${i + 1}. ${name(item, i)}`}>
                 {i + 1}. {name(item, i)}
               </span>
-              <span className="ms-auto flex gap-1">
-                <button
-                  type="button"
-                  className="a-btn a-btn-ghost a-icon-btn h-11 min-h-11 w-11 rounded-[var(--a-r-ctl)] md:h-8 md:min-h-8 md:w-8"
-                  aria-label={`Move ${name(item, i)} up`}
-                  disabled={i === 0}
-                  onClick={() => move(i, i - 1)}
-                >
-                  <span aria-hidden="true">↑</span>
+              <span className="ms-auto flex gap-2">
+                <button type="button" className={btn} aria-label={rw.up(name(item, i))} title={rw.up(name(item, i))} disabled={i === 0} onClick={() => move(i, i - 1)}>
+                  <Icon icon={ICON.expand} className="rotate-180" aria-hidden="true" />
                 </button>
-                <button
-                  type="button"
-                  className="a-btn a-btn-ghost a-icon-btn h-11 min-h-11 w-11 rounded-[var(--a-r-ctl)] md:h-8 md:min-h-8 md:w-8"
-                  aria-label={`Move ${name(item, i)} down`}
-                  disabled={i === items.length - 1}
-                  onClick={() => move(i, i + 1)}
-                >
-                  <span aria-hidden="true">↓</span>
+                <button type="button" className={btn} aria-label={rw.down(name(item, i))} title={rw.down(name(item, i))} disabled={i === items.length - 1} onClick={() => move(i, i + 1)}>
+                  <Icon icon={ICON.expand} aria-hidden="true" />
                 </button>
-                <button
-                  type="button"
-                  className="a-btn a-btn-ghost a-icon-btn h-11 min-h-11 w-11 rounded-[var(--a-r-ctl)] md:h-8 md:min-h-8 md:w-8"
-                  aria-label={`Remove ${name(item, i)}`}
-                  onClick={() => onChange(items.filter((_, j) => j !== i))}
-                >
-                  <span aria-hidden="true">×</span>
+                <button type="button" className={btn} aria-label={rw.remove(name(item, i))} title={rw.remove(name(item, i))} onClick={() => onChange(items.filter((_, j) => j !== i))}>
+                  <Icon icon={ICON.close} aria-hidden="true" />
                 </button>
               </span>
             </div>
@@ -427,18 +420,7 @@ type SectionProps = {
 export function Section(raw: SectionProps) {
   const tr = useFormText();
   const props = { ...raw, title: tr(raw.title), keywords: raw.keywords?.map(tr) };
-  const phone = usePhone();
-  if (!phone) {
-    return (
-      <section className="a-section">
-        <h2 className="a-section-title flex flex-wrap items-center justify-between gap-2">
-          <span>{props.title}</span>
-          {props.aside}
-        </h2>
-        {props.children}
-      </section>
-    );
-  }
+  /* Every group is a closed one except the first, on a desktop too: a long page of open groups is a wall of fields. */
   return <PhoneGroup {...props} />;
 }
 
@@ -480,7 +462,7 @@ function PhoneGroup({ title, aside, children, defaultOpen = false, keywords }: S
         </DisclosureButton>
         {problems > 0 && (
           <span className={styles.groupMeta} title={w.attention(problems)}>
-            <TriangleAlert size={16} aria-hidden="true" focusable="false" />
+            <Icon icon={ICON.attention} size={16} aria-hidden="true" />
             <span className="sr-only">{w.attention(problems)}</span>
           </span>
         )}

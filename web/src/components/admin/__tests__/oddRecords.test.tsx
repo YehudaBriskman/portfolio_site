@@ -90,7 +90,7 @@ describe("Settings with a partial payload", () => {
       if (url === "/api/admin/me") return json({ ok: true, login: "owner", email: null });
       return json({ ok: true, exists: true, _rev: "1-a", version: 1, updatedAt: "2026-11-01T10:00:00.000Z", settings, history: [] });
     }));
-    render(<MemoryRouter><AdminSettings /></MemoryRouter>);
+    render(<MemoryRouter initialEntries={["/admin/settings?group=texts"]}><AdminSettings /></MemoryRouter>);
     await waitFor(() => expect(document.getElementById("settings-template-en-linkedin") ?? screen.queryByText(/Message templates/)).not.toBeNull());
     expect(screen.queryByText(/Something went wrong/)).toBeNull();
   });

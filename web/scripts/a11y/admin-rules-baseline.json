@@ -4,9 +4,6 @@
  "gap|*|desktop|a._link \"Posts22\" ~ button._button._toggle \"Content\"",
  "gap|*|desktop|a._link \"Translations1212 public \" ~ button._button._toggle \"Site\"",
  "gap|*|phone|a.a-btn.a-btn-ghost \"Back\" ~ button.a-btn.a-btn-ghost \"Menu\"",
- "gap|/admin/projects|phone|button._button \"Show all 6 projects\" ~ button._row \"Edit oci-free\"",
- "gap|/admin/projects|phone|button.a-btn.a-btn-ghost \"Add a project\" ~ button.a-btn.a-btn-ghost \"Reorder\"",
- "gap|/admin/settings|desktop|input ~ input",
  "h1|/admin/areas|0",
  "h1|/admin/posts|0",
  "h1|/admin/projects|0",
@@ -54,8 +51,5 @@
  "hebrew|/admin/connections|remote",
  "hebrew|/admin/connections|renews",
  "hebrew|/admin/connections|signed",
- "hebrew|/admin/connections|tokens",
- "hebrew|/admin/projects|blue",
- "hebrew|/admin/projects|progress",
- "hebrew|/admin/projects|tint"
+ "hebrew|/admin/connections|tokens"
 ]
