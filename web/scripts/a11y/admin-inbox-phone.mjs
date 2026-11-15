@@ -10,7 +10,7 @@
  * At 360, 390 and 430 wide, in English (LTR) and Hebrew (RTL), light and dark:
  *  - one row is one button: no other button, link or field inside its item;
  *  - a row prints at most three text facts (title, time and, at most, one more)
- *    and four named channel glyphs, and no "Ready" and no "Copy" in the list;
+ *    and no channel glyph row (at most one status glyph), and no "Ready" and no "Copy" in the list;
  *  - at least 7 rows sit above the fold of a 390x844 screen (the whole page is
  *    measured, header, tabs and the New announcement button included);
  *  - nothing scrolls sideways, even with a 60-character title at 320;
@@ -122,7 +122,7 @@ function measureList() {
     })),
     listText: (document.querySelector("main")?.textContent ?? ""),
     copyButtons: [...document.querySelectorAll("main button")].filter((b) => /^(Copy|העתק)/.test((b.textContent ?? "").trim())).length,
-    legacyCopy: document.querySelectorAll(".mk-quick").length,
+    legacyCopy: document.querySelectorAll("[data-row-actions]").length,
     hint: !!document.querySelector(".mk-keys") && getComputedStyle(document.querySelector(".mk-keys")).display !== "none",
   };
 }
@@ -188,8 +188,7 @@ try {
         m.perRow.forEach((r, i) => {
           if (r.buttons !== 1) fail(`${tag} row ${i}: ${r.buttons} controls in the item, expected exactly 1`);
           if (r.facts.length > 3) fail(`${tag} row ${i}: ${r.facts.length} text facts (${r.facts.join(" | ")}), at most 3`);
-          if (r.glyphs.length !== 4) fail(`${tag} row ${i}: ${r.glyphs.length} channel glyphs, expected 4`);
-          if (r.glyphs.some((g) => !/posted|פורסם/.test(g))) fail(`${tag} row ${i}: a channel glyph has no posted/not-posted name`);
+          if (r.glyphs.length !== 0) fail(`${tag} row ${i}: ${r.glyphs.length} channel glyphs, expected none (status is one glyph, channels live in the sheet)`);
           if (r.overflow > 1) fail(`${tag} row ${i}: row overflows by ${r.overflow}px`);
           if (r.h < 56) fail(`${tag} row ${i}: ${r.h}px high, needs at least 56`);
         });

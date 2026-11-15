@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { relative, useLang } from "@/components/dashboard/i18n";
-import { ChannelRow } from "@/components/ui/ChannelIcon";
 import { ICON } from "@/components/ui/icons";
 import { RecordRow } from "@/components/ui/RecordRow";
 import { StatusGlyph } from "@/components/ui/StatusGlyph";
@@ -33,6 +32,7 @@ export default function InboxPhoneRow({ event, readiness, onOpen }: { event: Ann
   const [mounted] = useState(() => Date.now());
   const when = relative(event.createdAt, mounted, lang);
   const issues = readiness?.state === "ready" ? sortIssues(readiness.issues) : [];
+  const sent = (["linkedin", "instagram", "email", "x"] as const).every((c) => Boolean(c === "email" ? event.done.email ?? event.done.gmail : event.done[c]));
   const worst = issues.some((i) => i.severity === "error");
   return (
     <RecordRow
@@ -44,7 +44,7 @@ export default function InboxPhoneRow({ event, readiness, onOpen }: { event: Ann
       status={
         <span className="mk-pstatus">
           {issues.length > 0 && <StatusGlyph kind="attention" tone={worst ? "danger" : "attention"} label={issues.map((i) => w.chips[i.code]).join(", ")} />}
-          <ChannelRow done={event.done} className="mk-chans" />
+          {issues.length === 0 && sent && <StatusGlyph kind="sent" label={w.channelsState} />}
         </span>
       }
       openLabel={w.openRow(event.title)}
