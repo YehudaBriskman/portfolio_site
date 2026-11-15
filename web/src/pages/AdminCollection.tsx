@@ -189,7 +189,7 @@ export default function AdminCollection() {
 
   return (
     <AdminShell title={heading} section="areas" backTo="/admin/areas" bottomBar={bottomBar}>
-      <form onSubmit={(e) => { e.preventDefault(); if (canSave) void commit(); }}>
+      <form className="max-w-[40rem]" onSubmit={(e) => { e.preventDefault(); if (canSave) void commit(); }}>
         <PageHeader
           title={heading}
           description={<>An area is a shelf of posts: the site&rsquo;s own notes, or one project&rsquo;s.</>}

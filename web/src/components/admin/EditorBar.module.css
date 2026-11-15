@@ -1,0 +1,25 @@
+/*
+ * The editor bar's readout: the document's state (a word), then the save state
+ * (a glyph, and its word). The glyph differs by shape, never by colour alone.
+ * Under 480px the save word is drawn only for a moment after it changes, or
+ * while it is a problem; it is always in the page for a screen reader.
+ */
+.doc {
+  flex: none;
+  padding-inline: .625rem;
+  min-height: 1.5rem;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  border: 1px solid rgb(var(--rule-firm) / .5);
+  font-size: .875rem;
+  color: rgb(var(--ink));
+  white-space: nowrap;
+}
+.glyph { flex: none; width: 16px; height: 16px; }
+.word { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 479.98px) {
+  .word:not([data-show]) {
+    position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%);
+  }
+}

@@ -173,7 +173,7 @@ describe("the editor page", { timeout: 20000 }, () => {
     const body = await open();
     fireEvent.change(body, { target: { value: "Line one\nLine 2" } });
     fireEvent.change(screen.getByRole("textbox", { name: "Title" }), { target: { value: "Live note, revised" } });
-    const review = screen.getAllByRole("button", { name: "Review and publish" })[0];
+    const review = screen.getAllByRole("button", { name: /^(Publish|Update)$/ })[0];
     await waitFor(() => expect(review).toBeEnabled(), { timeout: 5000 });
     fireEvent.click(review);
 
@@ -271,7 +271,7 @@ describe("the note in both languages", { timeout: 20000 }, () => {
     expect(screen.getByRole("textbox", { name: "Title in Hebrew" })).toHaveValue("רשימה חיה");
     expect(screen.getByRole("textbox", { name: "Title in Hebrew" })).toHaveAttribute("dir", "rtl");
     expect(await screen.findByText("Hebrew written for an older English")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Side by side" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Side by side" }));
     expect(screen.getByRole("textbox", { name: "Body, English" })).toHaveValue("Line one\nLine two");
     expect(screen.getByRole("textbox", { name: "Body, Hebrew" })).toHaveValue("שורה אחת");
   });
@@ -289,7 +289,7 @@ describe("the note in both languages", { timeout: 20000 }, () => {
   it("publishes the Hebrew alone when asked", async () => {
     await open();
     fireEvent.change(screen.getByRole("textbox", { name: "Title in Hebrew" }), { target: { value: "רשימה, מתוקנת" } });
-    const review = screen.getAllByRole("button", { name: "Review and publish" })[0];
+    const review = screen.getAllByRole("button", { name: /^(Publish|Update)$/ })[0];
     await waitFor(() => expect(review).toBeEnabled(), { timeout: 5000 });
     fireEvent.click(review);
     const dialog = await screen.findByRole("dialog", { name: "Review before publishing" }, { timeout: 5000 });

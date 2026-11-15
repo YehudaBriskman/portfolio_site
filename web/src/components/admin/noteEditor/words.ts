@@ -152,6 +152,10 @@ const en = {
     links: "Links",
   } as Record<string, string>,
   shortcuts: "Shortcuts: Ctrl+B bold, Ctrl+I italic, Ctrl+K link, Ctrl+E code, Ctrl+S save, Ctrl+Shift+P preview.",
+  /* S9: the bar says where the note stands once. */
+  edited: "Edited",
+  update: "Update",
+  shortcutsTitle: "Keyboard shortcuts",
 };
 
 export type EditorWords = typeof en;
@@ -300,6 +304,9 @@ const he: EditorWords = {
     links: "קישורים",
   },
   shortcuts: "קיצורים: Ctrl+B מודגש, Ctrl+I נטוי, Ctrl+K קישור, Ctrl+E קוד, Ctrl+S שמירה, Ctrl+Shift+P תצוגה מקדימה.",
+  edited: "נערך",
+  update: "עדכון",
+  shortcutsTitle: "קיצורי מקלדת",
 };
 
 const WORDS: Record<Lang, EditorWords> = { en, he };
