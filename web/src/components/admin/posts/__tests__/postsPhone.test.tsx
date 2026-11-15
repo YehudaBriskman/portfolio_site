@@ -142,7 +142,7 @@ describe("Posts on a phone: the list", () => {
   it("keeps the desktop table at 600 and up", async () => {
     phone(false);
     mount();
-    expect(await screen.findByRole("table")).toBeTruthy();
+    expect(await screen.findByRole("grid")).toBeTruthy();
     expect(rows().length).toBe(0);
   });
 });

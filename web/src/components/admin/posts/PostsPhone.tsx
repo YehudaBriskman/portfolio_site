@@ -178,15 +178,15 @@ export default function PostsPhone() {
 
   return (
     <AdminShell title={w.nav.posts} section="posts" counts={{ posts: posts?.length, areas: cols?.length }}>
-      <div className="a-wrap min-w-0 space-y-2" data-testid="posts-phone">
+      <div className="a-wrap flex min-w-0 flex-col gap-3" data-testid="posts-phone">
         <h1 className="sr-only">{w.nav.posts}</h1>
 
         {selection.on ? (
           <SelectionHeader selection={selection} total={visible.length} />
         ) : (
           <div className="flex flex-wrap items-center gap-2">
-            <input type="search" className="a-input min-h-[44px] min-w-0 flex-[1_1_7rem] !ps-3 text-base" dir="auto" aria-label={p.searchPosts} placeholder={p.searchPostsHint} value={q} onChange={(e) => setQ(e.target.value)} />
             {visible.length > 0 && <SelectionHeader selection={selection} total={visible.length} />}
+            <input type="search" className="a-input min-h-[44px] min-w-0 flex-[1_1_7rem] !ps-3 text-base" dir="auto" aria-label={p.searchPosts} placeholder={p.searchPostsHint} value={q} onChange={(e) => setQ(e.target.value)} />
             <Link to="/admin/posts/new" className="a-btn a-btn-primary inline-flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center" aria-label={p.newPost} title={p.newPost}>
               <ICON.add size={20} strokeWidth={2} aria-hidden="true" focusable="false" />
             </Link>
