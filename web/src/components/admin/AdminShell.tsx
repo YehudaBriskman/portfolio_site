@@ -390,7 +390,7 @@ export default function AdminShell({ title, section, counts, bottomBar, backTo, 
             <div className="a-side-collapse">
               <IconButton
                 icon={rail ? ExpandGlyph : CollapseGlyph}
-                label={rail ? nw.expand(w.sections) : nw.collapse(w.sections)}
+                label={rail ? w.expandSidebar : w.collapseSidebar}
                 aria-expanded={!rail}
                 aria-controls={drawerId}
                 onClick={() => setCollapsed(!rail)}

@@ -46,7 +46,7 @@ const shell = (at = "/admin/marketing", section: "marketing" | "posts" | "overvi
   );
 const nav = () => screen.getByRole("navigation", { name: "Admin sections" });
 const app = () => document.querySelector(".a-app")!;
-const toggle = () => screen.getByRole("button", { name: /^(Collapse|Expand) Admin sections$/ });
+const toggle = () => screen.getByRole("button", { name: /^(Collapse|Expand) sidebar$/ });
 
 const css = (p: string) => readFileSync(resolve(process.cwd(), p), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
 
@@ -130,7 +130,7 @@ describe("collapse to an icon rail", () => {
     localStorage.setItem("admin-nav-collapsed", "1");
     shell("/admin");
     expect(app().getAttribute("data-side")).toBe("full");
-    expect(screen.queryByRole("button", { name: /Admin sections$/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /sidebar$/ })).toBeNull();
   });
 
   it("a group is a flyout button: aria-expanded, links inside, Escape closes", async () => {

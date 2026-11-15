@@ -169,7 +169,7 @@ for (const w of WIDTHS) for (const lang of LANGS) for (const theme of THEMES) {
     await shot(page, "expanded-content-active", tag);
 
     /* ---- collapse by the button */
-    await page.getByRole("button", { name: /^(Collapse|Expand|כווץ|הרחב) / }).last().click({ force: true });
+    await page.getByRole("button", { name: /^(Collapse sidebar|Expand sidebar|כווץ סרגל צד|הרחב סרגל צד)/ }).last().click({ force: true });
     await page.waitForFunction(() => document.querySelector(".a-app")?.getAttribute("data-side") === "rail", null, { polling: 500, timeout: 20000 });
     await page.waitForTimeout(300);
     const rail = await page.evaluate(sidebar);
