@@ -36,7 +36,7 @@ export interface DensitySwitchProps {
 
 export function DensitySwitch({ label, value, onChange, words, className }: DensitySwitchProps) {
   return (
-    <div role="group" aria-label={label} className={[styles.group, className].filter(Boolean).join(" ")}>
+    <div role="group" data-joined="" aria-label={label} className={[styles.group, className].filter(Boolean).join(" ")}>
       {TIERS.map((t) => (
         <IconButton key={t} icon={GLYPH[t]} label={words[t]} size="sm" pressed={value === t} onClick={() => onChange(t)} />
       ))}

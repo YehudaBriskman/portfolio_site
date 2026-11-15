@@ -475,7 +475,7 @@ function Grid<T, K extends SelectionId>({
       {bar}
       {errorBlock}
       {toolbar && !showSkeleton && !showEmpty && (
-        <div className={styles.toolbar}>
+        <div className={styles.toolbar} data-joined="">
           <ColumnsMenu
             label={tw.columns}
             showAll={tw.showAll}

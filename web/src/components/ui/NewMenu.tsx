@@ -132,7 +132,7 @@ export function NewMenu({ primary, items, className }: NewMenuProps) {
   );
 
   return (
-    <div className={[styles.split, className].filter(Boolean).join(" ")} data-new-menu="">
+    <div className={[styles.split, className].filter(Boolean).join(" ")} data-new-menu="" data-joined="">
       <IconButton icon={Own} label={primary.label} tone="primary" showLabel="always" className={styles.main} onClick={primary.onSelect} />
       {phone ? (
         <>
