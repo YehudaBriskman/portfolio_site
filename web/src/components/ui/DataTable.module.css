@@ -85,27 +85,121 @@
   position: relative;
 }
 
-/* Density: the pointer decides unless the page says so (A13). */
-.table td {
-  padding-block: 0.75rem;
-  min-block-size: var(--ctl-h-lg, 44px);
+/* Three row tiers (principle 6): 28 compact, 36 cozy, 44 comfy; the header row matches.
+   No saved choice: a fine pointer gets 36, touch 44. Text stays at 12px or more; the
+   row grows (never clips) when a title wraps. */
+.wrap {
+  --row-h: 44px;
 }
 
 @media (pointer: fine) {
-  .wrap:not([data-density]) .table td {
-    padding-block: 0.25rem;
-    min-block-size: var(--ctl-h-md, 36px);
+  .wrap:not([data-tier]) {
+    --row-h: 36px;
   }
 }
 
-.wrap[data-density="compact"] .table td {
-  padding-block: 0.25rem;
-  min-block-size: var(--ctl-h-md, 36px);
+.wrap[data-tier="compact"] {
+  --row-h: 28px;
 }
 
-.wrap[data-density="comfortable"] .table td {
-  padding-block: 0.75rem;
-  min-block-size: var(--ctl-h-lg, 44px);
+.wrap[data-tier="cozy"] {
+  --row-h: 36px;
+}
+
+.wrap[data-tier="comfy"] {
+  --row-h: 44px;
+}
+
+.table td,
+.table th {
+  box-sizing: border-box;
+  block-size: var(--row-h);
+  padding-block: 0;
+  padding-inline: 0.75rem;
+}
+
+.wrap[data-tier="compact"] .table td {
+  font-size: max(0.75rem, 0.8125rem);
+}
+
+/* The title wraps to two lines at 36 and 44; at 28 it stays on one. */
+.wrap[data-tier="compact"] .title {
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+}
+
+.table td,
+.table tbody th {
+  min-block-size: var(--row-h);
+}
+
+/* The toolbar above the grid: columns, actions, density. Quiet, end-aligned, one line. */
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.375rem;
+  min-block-size: 2rem;
+  padding-block-end: 0.375rem;
+}
+
+/* A group header: a button (chevron, label with its count), then one aggregate. */
+.groupInner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-inline-size: 0;
+}
+
+.groupBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-block-size: 1.5rem;
+  margin-inline: -0.25rem;
+  padding-inline: 0.25rem;
+  border: 0;
+  border-radius: var(--a-r-sm, 8px);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.groupBtn:focus-visible {
+  outline: 2px solid rgb(var(--signal));
+  outline-offset: 0;
+}
+
+.chev {
+  flex: none;
+}
+
+/* Open points down; folded points to the inline end (it mirrors in RTL). */
+.groupBtn[aria-expanded="false"] .chev {
+  transform: rotate(-90deg);
+}
+
+[dir="rtl"] .groupBtn[aria-expanded="false"] .chev {
+  transform: rotate(90deg);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .chev {
+    transition: transform var(--a-dur-fast, 120ms) var(--a-ease-out, ease);
+  }
+}
+
+.groupText {
+  min-inline-size: 0;
+}
+
+.aggregate {
+  margin-inline-start: auto;
+  color: rgb(var(--ink-soft));
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 /* Text: the identifier wraps to two lines, everything else ends in an ellipsis; nothing is cut mid-word. */
@@ -177,7 +271,8 @@
 
 /* A group header says the shared fact once. */
 .group th {
-  padding: 0.5rem 1rem;
+  padding-block: 0;
+  padding-inline: 0.75rem;
   border-bottom: 1px solid var(--a-line-soft, rgb(var(--ink) / 0.08));
   background: rgb(var(--paper-2));
   color: rgb(var(--ink));

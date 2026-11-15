@@ -205,12 +205,15 @@ describe("DataTable", () => {
     expect(bodyTitles()).toEqual(["Alpha note", "Charlie note", "Bravo note"]);
   });
 
-  it("density follows the prop; by default the pointer decides in CSS", () => {
-    const { container, rerender } = render(<DataTable {...base} />);
-    expect(container.querySelector("[data-density]")).toBeNull();
-    rerender(<DataTable {...base} density="compact" />);
-    expect(container.querySelector('[data-density="compact"]')).toBeTruthy();
+  it("the pointer decides the tier in CSS (36 fine, 44 touch); a saved or given tier sets data-tier", () => {
+    const { container, rerender } = render(<DataTable {...base} tableId="t-dens" />);
+    expect(container.querySelector("[data-tier]")).toBeNull();
+    rerender(<DataTable {...base} tableId="t-dens" density="compact" />);
+    expect(container.querySelector('[data-tier="cozy"]')).toBeTruthy();
+    rerender(<DataTable {...base} tableId="t-dens" density="comfortable" />);
+    expect(container.querySelector('[data-tier="comfy"]')).toBeTruthy();
     expect(css).toMatch(/@media \(pointer: fine\)/);
+    for (const [tier, px] of [["compact", 28], ["cozy", 36], ["comfy", 44]] as const) expect(css).toMatch(new RegExp(`data-tier="${tier}"\\][^}]*--row-h:\\s*${px}px`));
   });
 
   it("the header sticks, with a quiet shadow when stuck", () => {

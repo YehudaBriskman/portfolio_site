@@ -27,6 +27,17 @@ export interface FilterBarWords {
   /** "12 results", drawn only while something is on. */
   results: (n: number) => string;
   clearAll: string;
+  /** Names the saved-view chips ("Views"). Needed when `views` is given. */
+  views?: string;
+  /** Names the save-view button ("Save view"). Needed with `onSaveView`. */
+  saveView?: string;
+}
+
+/** One saved view, drawn as a chip with its count (principle 10). */
+export interface SavedView {
+  id: string;
+  label: string;
+  count?: number;
 }
 
 export interface FilterBarProps {
@@ -39,10 +50,16 @@ export interface FilterBarProps {
   onQueryChange: (q: string) => void;
   resultCount?: number;
   words: FilterBarWords;
+  /** The hook for saved views: chips before the search, one pressed. The caller owns what a view holds. */
+  views?: SavedView[];
+  activeView?: string;
+  onViewChange?: (id: string) => void;
+  /** Shows a bookmark button that saves what is on now as a view. */
+  onSaveView?: () => void;
   className?: string;
 }
 
-export function FilterBar({ defs, value, onChange, common, onOpenSheet, query, onQueryChange, resultCount, words, className }: FilterBarProps) {
+export function FilterBar({ defs, value, onChange, common, onOpenSheet, query, onQueryChange, resultCount, words, views, activeView, onViewChange, onSaveView, className }: FilterBarProps) {
   const active = filterCount(defs, value) > 0 || query.trim() !== "";
 
   const clearAll = () => {
@@ -54,6 +71,21 @@ export function FilterBar({ defs, value, onChange, common, onOpenSheet, query, o
 
   return (
     <div className={[styles.bar, className].filter(Boolean).join(" ")}>
+      {views && views.length > 0 && (
+        <div role="group" aria-label={words.views} className={styles.views}>
+          {views.map((v) => (
+            <button key={v.id} type="button" className={styles.view} aria-pressed={activeView === v.id} onClick={() => onViewChange?.(v.id)}>
+              {v.label}
+              {v.count !== undefined && <span className={styles.viewCount}>{v.count}</span>}
+            </button>
+          ))}
+          {onSaveView && active && (
+            <button type="button" className={styles.saveView} aria-label={words.saveView} title={words.saveView} onClick={onSaveView}>
+              <Icon icon={ICON.saveView} size={16} />
+            </button>
+          )}
+        </div>
+      )}
       <div className={styles.search} data-filled={query !== "" || undefined}>
         <Icon icon={ICON.searchSettings} size={16} className={styles.glyph} />
         <input

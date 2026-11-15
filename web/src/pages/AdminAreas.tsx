@@ -153,6 +153,7 @@ function AreasDesktop() {
           title={w.nav.areas}
           description={p.areaIntro}
           primary={{ id: "new", label: w.newArea, icon: ICON.add, onSelect: () => nav("/admin/areas/new") }}
+          newMenu
         />
 
         <div className={posts.page}>
@@ -187,7 +188,6 @@ function AreasDesktop() {
               rowKey={(c) => c.slug}
               rowLabel={(c) => c.title}
               words={words}
-              density="comfortable"
               loading={cols === null && !error}
               onOpen={(c) => nav(`/admin/areas/${c.slug}`)}
               empty={<EmptyState variant="no-results" title={w.noMatch} clear={filtered ? { label: w.clearFilters, onClick: bar.clearAll } : undefined} />}

@@ -1,6 +1,6 @@
 import {
-  Archive, ArrowLeft, ArrowRight, ArrowUpDown, AtSign, Ban, Bell, BookOpen, CalendarClock, Check, CheckCheck, ChevronDown, ChevronRight,
-  CircleCheck, CircleDashed, CircleDot, CircleHelp, CircleMinus, CircleX, Clock, Copy, CornerUpLeft, Ellipsis, ExternalLink, Eye,
+  Archive, ArrowLeft, ArrowRight, ArrowUpDown, AtSign, Ban, Bell, BookmarkPlus, BookOpen, CalendarClock, Check, CheckCheck, ChevronDown, ChevronRight,
+  CircleCheck, CircleDashed, CircleDot, CircleHelp, CircleMinus, CircleX, Clock, Columns3, Copy, CornerUpLeft, Ellipsis, ExternalLink, Eye,
   EyeOff, FilterX, Film, FileText, FolderKanban, Gauge, GripVertical, History, Home, Hourglass, Image, Info, KeyRound,
   Languages, Link2, ListChecks, Loader, Mail, MailCheck, MailX, Megaphone, Pause, PenLine, Plug, Plus, Radio, RefreshCw,
   Rocket, Search, Send, Shapes, Share2, ShieldBan, SlidersHorizontal, SquareCheckBig, Trash2, TriangleAlert, Undo2, Unlink,
@@ -107,6 +107,8 @@ export const ICON = {
   undo: Undo2,
   reorder: GripVertical,
   restore: History,
+  columns: Columns3,
+  saveView: BookmarkPlus,
   close: X,
 } satisfies Record<string, IconSource>;
 

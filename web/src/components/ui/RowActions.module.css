@@ -1,8 +1,10 @@
 /*
- * Row actions. The primary is always drawn; More is drawn always on touch and,
- * on a fine pointer, with the row's hover, its keyboard focus, or while its menu
- * is open. It is hidden by opacity (not display), so it keeps its place in the
- * row (nothing shifts on hover) and stays reachable by keyboard.
+ * Row actions. Icons only. The drawn icons and the 3-dots More are always in
+ * the layout and always reachable by keyboard and touch. On a fine pointer an
+ * idle row dims its pinned icons (never hides them, so nothing shifts and
+ * nothing disappears); hover, keyboard focus, a selected row or an open menu
+ * bring them to full strength. More is never dimmed: it is the way to
+ * everything else.
  */
 .root {
   display: inline-flex;
@@ -13,16 +15,13 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
-  [role="row"]:not(:hover):not(:focus-within):not([data-selected="true"]) .root [aria-haspopup="menu"]:not([aria-expanded="true"]) {
-    opacity: 0;
-  }
-  .root [aria-haspopup="menu"]:focus-visible {
-    opacity: 1;
+  [role="row"]:not(:hover):not(:focus-within):not([data-selected="true"]) .root button:not([aria-haspopup="menu"]) {
+    opacity: 0.55;
   }
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .root [aria-haspopup="menu"] {
+  .root button {
     transition: opacity var(--a-dur-fast, 120ms) var(--a-ease-out, ease);
   }
 }

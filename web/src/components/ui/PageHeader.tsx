@@ -5,6 +5,7 @@ import type { ControlIcon } from "@/components/ui/IconButton";
 import { Icon } from "@/components/ui/Icon";
 import { InfoPopover } from "@/components/ui/InfoPopover";
 import { NAV_GLYPH } from "@/components/ui/icons";
+import { NewMenu } from "@/components/ui/NewMenu";
 import styles from "@/components/ui/PageHeader.module.css";
 
 /*
@@ -40,6 +41,8 @@ export interface PageHeaderProps {
   /** The way out of this page; a route or a handler. */
   back?: { label: string; href?: string; onSelect?: () => void };
   primary?: PageAction & { icon: ControlIcon };
+  /** Draw `primary` as the split New button (its own create, the common creates, recents) instead of a plain button. */
+  newMenu?: boolean;
   secondary?: PageAction & { icon: ControlIcon };
   more?: PageAction[];
   /** Name of the "..." button. Required when `more` is given. */
@@ -62,6 +65,7 @@ export function PageHeader({
   info,
   back,
   primary,
+  newMenu = false,
   secondary,
   more = [],
   moreLabel = "",
@@ -70,8 +74,9 @@ export function PageHeader({
   actions,
   meta,
 }: PageHeaderProps) {
+  const split = newMenu && primary !== undefined && !primary.disabled;
   const items: ControlItem[] = [
-    ...(primary
+    ...(primary && !split
       ? [{ id: primary.id, icon: primary.icon, label: primary.label, tone: "primary" as const, showLabel: "always" as const, priority: 3, disabled: primary.disabled, onSelect: primary.onSelect }]
       : []),
     ...(secondary
@@ -79,7 +84,7 @@ export function PageHeader({
       : []),
     ...more.map((m) => ({ id: m.id, icon: m.icon ?? Nothing, label: m.label, priority: 0, disabled: m.disabled, onSelect: m.onSelect })),
   ];
-  const drawn = (primary ? 1 : 0) + (secondary ? 1 : 0);
+  const drawn = (primary && !split ? 1 : 0) + (secondary ? 1 : 0);
   const infoName = typeof title === "string" ? title : "";
 
   return (
@@ -109,8 +114,13 @@ export function PageHeader({
             </div>
           )}
         </div>
-        {items.length > 0 && (
-          <ControlBar className={styles.actions} label={actionsLabel} moreLabel={moreLabel} items={items} max={drawn} />
+        {split && primary ? (
+          <div className={`${styles.actions} ${styles.withNew}`}>
+            {items.length > 0 && <ControlBar label={actionsLabel} moreLabel={moreLabel} items={items} max={drawn} />}
+            <NewMenu primary={primary} />
+          </div>
+        ) : (
+          items.length > 0 && <ControlBar className={styles.actions} label={actionsLabel} moreLabel={moreLabel} items={items} max={drawn} />
         )}
         {actions && <div className={`a-page-actions ${styles.actions}`}>{actions}</div>}
       </div>

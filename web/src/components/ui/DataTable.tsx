@@ -1,7 +1,12 @@
-import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from "react";
+import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from "react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Icon, type IconProps } from "@/components/ui/Icon";
 import { ICON } from "@/components/ui/icons";
+import { ColumnsMenu } from "@/components/ui/ColumnsMenu";
+import { CustomiseActions } from "@/components/ui/CustomiseActions";
+import { DensitySwitch } from "@/components/ui/DensitySwitch";
+import { TableActionsContext, TIER_PX, useTablePrefs, type ActionInfo, type Tier, type TablePrefsApi } from "@/components/ui/useTablePrefs";
+import { useTableWords } from "@/i18n/tables";
 import { RecordRow, type RecordRowProps } from "@/components/ui/RecordRow";
 import { SelectionBar, type SelectionAction } from "@/components/ui/SelectionBar";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -33,6 +38,14 @@ import styles from "@/components/ui/DataTable.module.css";
  *    More, Cancel last. Row actions are inert meanwhile (A12).
  *  - `groupBy` + `groupLabel` say a shared fact once as a group header instead of
  *    on every row (A6; rows whose `groupBy` is null sit first, under no header): a "Draft" header beats a Draft pill on each draft.
+ *    A header collapses (a button, `aria-expanded`), carries the count in its label and
+ *    one `groupAggregate` slot at its end ("3,620 views").
+ *  - Three row tiers, 28 / 36 / 44 px, the header row matching: a fine pointer gets 36, touch
+ *    44, and a three-icon switch in the toolbar lets the person choose, saved per table
+ *    (`useTablePrefs`; the id is the route plus `label` unless `tableId` names it). Text never
+ *    drops under 12px; every control keeps a 24px hit area (WCAG 2.5.8).
+ *  - The toolbar above the grid: Columns (hide any column but the identifier), Customise
+ *    actions (pin up to four row actions as icons) and the density switch. `toolbar={false}` omits it.
  *  - Four states: rows, loading (a Skeleton with these columns), empty (the
  *    caller's EmptyState), error (what failed, Retry, the rows kept).
  *
@@ -63,6 +76,8 @@ export interface Column<T> {
   width?: string;
   /** The identifier: wraps to two lines instead of one clipped line. Exactly one per table. */
   primary?: boolean;
+  /** Offered in "Columns" so the person can hide it. Default true except for the `primary` column. */
+  hideable?: boolean;
 }
 
 export interface DataTableWords {
@@ -103,7 +118,14 @@ export interface DataTableProps<T, K extends SelectionId = string> {
   rowActions?: (row: T) => ReactNode;
   sort?: SortState | null;
   onSortChange?: (next: SortState | null) => void;
+  /** The tier when the person has not chosen: "compact" is 36px, "comfortable" 44px. Leave it out and the pointer decides. */
   density?: "compact" | "comfortable";
+  /** Names this table's saved choices. Default: the route plus `label`. */
+  tableId?: string;
+  /** The toolbar of density, columns and actions. Default true. */
+  toolbar?: boolean;
+  /** One aggregate at the end of a group header: "3,620 views". */
+  groupAggregate?: (key: string, rows: T[]) => ReactNode;
   selection?: Selection<K>;
   bulkActions?: BulkAction<K>[];
   groupBy?: (row: T) => string | null;
@@ -131,9 +153,10 @@ function nextSort(cur: SortState | null | undefined, id: string): SortState | nu
 export function DataTable<T, K extends SelectionId = string>(props: DataTableProps<T, K>) {
   const {
     label, rows, columns, rowKey, words, onOpen, sort, onSortChange, density, selection, bulkActions,
-    groupBy, groupLabel, loading = false, empty, error, phoneRow, skeletonRows = 6, className,
+    groupBy, groupLabel, loading = false, empty, error, phoneRow, skeletonRows = 6, className, tableId,
   } = props;
   const phone = usePhone();
+  const prefs = useTablePrefs(label, tableId);
   const selecting = Boolean(selection?.on);
 
   /* Sorting: the caller's when it listens (server sort), else here. */
@@ -246,7 +269,7 @@ export function DataTable<T, K extends SelectionId = string>(props: DataTablePro
       errorBlock={errorBlock}
       showSkeleton={showSkeleton}
       showEmpty={showEmpty}
-      density={density}
+      prefs={prefs}
       skeletonRows={skeletonRows}
     />
   );
@@ -263,12 +286,41 @@ interface GridProps<T, K extends SelectionId> extends DataTableProps<T, K> {
   errorBlock: ReactNode;
   showSkeleton: boolean;
   showEmpty: boolean;
+  prefs: TablePrefsApi;
 }
 
+const LEGACY_TIER: Record<"compact" | "comfortable", Tier> = { compact: "cozy", comfortable: "comfy" };
+const coarse = () => typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(pointer: coarse)").matches;
+
 function Grid<T, K extends SelectionId>({
-  label, columns, rowKey, rowLabel, words, rowActions, density, selection, bulkActions, groupLabel, loading, empty, className,
-  sorted, groups, active, changeSort, selecting, open, toggle, errorBlock, showSkeleton, showEmpty, skeletonRows,
+  label, columns: allColumns, rowKey, rowLabel, words, rowActions, density, selection, bulkActions, groupLabel, groupAggregate, loading, empty, className,
+  sorted, groups, active, changeSort, selecting, open, toggle, errorBlock, showSkeleton, showEmpty, skeletonRows, prefs, toolbar = true,
 }: GridProps<T, K>) {
+  const tw = useTableWords();
+  const hideable = allColumns.filter((c) => c.hideable ?? !c.primary);
+  const columns = allColumns.filter((c) => !(hideable.includes(c) && prefs.hidden.includes(c.id)));
+  const tier: Tier | null = prefs.density ?? (density ? LEGACY_TIER[density] : null);
+  const rowPx = TIER_PX[tier ?? (coarse() ? "comfy" : "cozy")];
+
+  /* Row actions say what they offer; "Customise actions" lists it. */
+  const [catalog, setCatalog] = useState<ActionInfo[]>([]);
+  const register = useCallback((list: ActionInfo[]) => {
+    setCatalog((prev) => {
+      const have = new Set(prev.map((a) => a.id));
+      const add = list.filter((a) => !have.has(a.id));
+      return add.length ? [...prev, ...add] : prev;
+    });
+  }, []);
+  const actionsCtx = useMemo(() => ({ pinned: prefs.pinned, register, disabled: selecting }), [prefs.pinned, register, selecting]);
+
+  /* A group folds away; a folded group keeps its header, its count and its aggregate. */
+  const [folded, setFolded] = useState<Set<string>>(() => new Set());
+  const fold = (key: string) =>
+    setFolded((cur) => {
+      const next = new Set(cur);
+      if (!next.delete(key)) next.add(key);
+      return next;
+    });
   const bodyRef = useRef<HTMLTableSectionElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const allRef = useRef<HTMLInputElement>(null);
@@ -288,7 +340,8 @@ function Grid<T, K extends SelectionId>({
     return () => window.removeEventListener("scroll", check, { capture: true });
   }, []);
 
-  const keys = sorted.map((r) => String(rowKey(r)));
+  const shownRows = groups ? groups.flatMap(([k, list]) => (k !== "" && folded.has(k) ? [] : list)) : sorted;
+  const keys = shownRows.map((r) => String(rowKey(r)));
   const stop = current !== null && keys.includes(current) ? current : keys[0];
 
   /* One tab stop per table: the controls inside rows are reached with the arrows. */
@@ -315,6 +368,8 @@ function Grid<T, K extends SelectionId>({
     const target = e.target as HTMLElement;
     const row = target.closest<HTMLElement>("tr[data-row]");
     if (!row || e.altKey || e.ctrlKey || e.metaKey) return;
+    /* A field inside a row (EditableCell) owns its keys. */
+    if (target.closest("input,select,textarea")) return;
     const onRow = target === row;
     const all = rowEls();
     const at = all.indexOf(row);
@@ -415,9 +470,30 @@ function Grid<T, K extends SelectionId>({
   const bar = selection?.on && bulkActions && bulkActions.length > 0 ? <BulkBar selection={selection} actions={bulkActions} words={words} /> : null;
 
   return (
-    <div className={cx(styles.wrap, className)} data-density={density} data-stuck={stuck || undefined}>
+    <TableActionsContext.Provider value={actionsCtx}>
+    <div className={cx(styles.wrap, className)} data-tier={tier ?? undefined} data-stuck={stuck || undefined}>
       {bar}
       {errorBlock}
+      {toolbar && !showSkeleton && !showEmpty && (
+        <div className={styles.toolbar}>
+          <ColumnsMenu
+            label={tw.columns}
+            showAll={tw.showAll}
+            columns={hideable.map((c) => ({ id: c.id, header: c.header }))}
+            hidden={prefs.hidden.filter((h) => hideable.some((c) => c.id === h))}
+            onChange={prefs.setHidden}
+          />
+          {rowActions && (
+            <CustomiseActions label={tw.actions} hint={tw.actionsHint} reset={tw.reset} actions={catalog} pinned={prefs.pinned} onChange={prefs.setPinned} />
+          )}
+          <DensitySwitch
+            label={tw.density.label}
+            value={tier ?? (coarse() ? "comfy" : "cozy")}
+            onChange={prefs.setDensity}
+            words={{ compact: tw.density.compact, cozy: tw.density.cozy, comfy: tw.density.comfy }}
+          />
+        </div>
+      )}
       <div ref={sentinelRef} className={styles.sentinel} aria-hidden="true" />
       <table role="grid" aria-label={label} aria-busy={loading || undefined} className={cx("a-table", styles.table)}>
         <thead>
@@ -470,7 +546,7 @@ function Grid<T, K extends SelectionId>({
                     ...(rowActions ? [{ id: "_act", width: "5rem" }] : []),
                   ]}
                   rows={skeletonRows}
-                  height={density === "compact" ? "2.25rem" : "3rem"}
+                  height={`${rowPx + 4}px`}
                   label={words.loading}
                 />
               </td>
@@ -485,13 +561,19 @@ function Grid<T, K extends SelectionId>({
             groups.map(([key, list]) => (
               <Fragment key={key}>
                 {key !== "" && (
-                  <tr role="row" className={styles.group}>
+                  <tr role="row" className={styles.group} data-folded={folded.has(key) || undefined}>
                     <th role="rowheader" scope="rowgroup" colSpan={span}>
-                      {groupLabel?.(key, list) ?? key}
+                      <div className={styles.groupInner}>
+                        <button type="button" className={styles.groupBtn} aria-expanded={!folded.has(key)} onClick={() => fold(key)}>
+                          <Icon icon={ICON.expand} size={16} className={styles.chev} />
+                          <span className={styles.groupText}>{groupLabel?.(key, list) ?? key}</span>
+                        </button>
+                        {groupAggregate && <span className={styles.aggregate}>{groupAggregate(key, list)}</span>}
+                      </div>
                     </th>
                   </tr>
                 )}
-                {list.map(Row)}
+                {(key === "" || !folded.has(key)) && list.map(Row)}
               </Fragment>
             ))
           ) : (
@@ -500,6 +582,7 @@ function Grid<T, K extends SelectionId>({
         </tbody>
       </table>
     </div>
+    </TableActionsContext.Provider>
   );
 }
 

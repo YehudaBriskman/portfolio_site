@@ -1,0 +1,83 @@
+/*
+ * The split New button: one pill, two buttons (the page's own create, then the
+ * caret), a hairline between. Logical radii, so the caret sits on the correct
+ * side in Hebrew. Menu rows are the shared menu's; the phone sheet's rows are 44px.
+ */
+.split {
+  display: inline-flex;
+  align-items: stretch;
+  flex: none;
+}
+
+.main {
+  border-start-end-radius: 0;
+  border-end-end-radius: 0;
+}
+
+.caret {
+  border-start-start-radius: 0;
+  border-end-start-radius: 0;
+  border-inline-start: 1px solid rgb(var(--signal-ink) / 0.35);
+}
+
+.menu {
+  min-inline-size: 14rem;
+}
+
+.head,
+.sheetHead {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgb(var(--ink-soft));
+}
+
+.foot {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: rgb(var(--ink-soft));
+}
+
+.glyph {
+  flex: none;
+  inline-size: 1rem;
+  block-size: 1rem;
+  margin-inline-end: 0.5rem;
+}
+
+.sheet {
+  display: flex;
+  flex-direction: column;
+  padding-block-end: 0.5rem;
+}
+
+.sheetRow {
+  display: flex;
+  align-items: center;
+  min-block-size: 44px;
+  padding-inline: 1rem;
+  border: 0;
+  background: transparent;
+  color: rgb(var(--ink));
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.sheetRow:focus-visible {
+  outline: 2px solid rgb(var(--signal));
+  outline-offset: -2px;
+}
+
+.sheetHead {
+  padding: 0.75rem 1rem 0.25rem;
+}
+
+.kbd {
+  padding: 0 0.25rem;
+  border: 1px solid rgb(var(--ink) / 0.2);
+  border-radius: 4px;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+}
