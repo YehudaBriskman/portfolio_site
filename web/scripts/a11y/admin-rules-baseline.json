@@ -1,5 +1,4 @@
 [
- "destructive|/admin/connections|desktop|button.a-btn.a-btn-danger",
  "dup-text|/admin/marketing?tab=library|Discard changes",
  "gap|*|desktop|a._link \"Inbox33 unread\" ~ button._button._toggle \"Marketing\"",
  "gap|*|desktop|a._link \"Posts\" ~ button._button._toggle \"Content\"",

@@ -3,7 +3,11 @@ import { Link } from "react-router-dom";
 import AdminShell from "@/components/admin/AdminShell";
 import ConnectionsPhone from "@/components/admin/connections/ConnectionsPhone";
 import { Empty, EmptyState, ErrorState, LoadingRows, PageHeader, RelTime, StatePill, UnreadableNote } from "@/components/admin/ui";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { RowActions } from "@/components/ui/RowActions";
+import { ICON } from "@/components/ui/icons";
 import { usePhoneAdminWords } from "@/i18n/adminPhone";
+import { useAdminWords } from "@/i18n/admin";
 import { usePhone } from "@/hooks/usePhone";
 import { admin, type McpGrant } from "@/services/admin";
 import { isNotAuthorised, NOT_AUTHORISED, signInHref } from "@/services/authError";
@@ -29,6 +33,9 @@ export default function AdminConnections() {
   const [status, setStatus] = useState("");
   const phone = usePhone();
   const pw = usePhoneAdminWords().connections;
+  const aw = useAdminWords();
+  /* The app waiting for the owner's answer; nothing is revoked until the dialog's confirm. */
+  const [asking, setAsking] = useState<McpGrant | null>(null);
 
   useEffect(() => {
     admin
@@ -38,17 +45,17 @@ export default function AdminConnections() {
   }, []);
 
   async function revoke(g: McpGrant) {
-    if (!window.confirm(`Revoke ${g.client}? It stops working on its next request.`)) return;
     setBusy(g.id);
     setRowError(null);
     try {
       const next = await admin.revokeMcpGrant(g.id);
       setGrants((all) => (all ?? []).map((x) => (x.id === next.id ? next : x)));
-      setStatus(`${g.client} revoked`);
+      setStatus(pw.revoked(g.client));
     } catch (e) {
       setRowError({ id: g.id, message: isNotAuthorised(e) ? NOT_AUTHORISED : e instanceof Error ? e.message : "Revoke failed" });
     } finally {
       setBusy(null);
+      setAsking(null);
     }
   }
 
@@ -103,19 +110,15 @@ export default function AdminConnections() {
                   <RelTime iso={g.createdAt} />
                 </span>
               </td>
-              <td className="a-fit text-right">
+              <td className="a-fit text-end">
                 {ended ? (
                   <StatePill state={g.status} />
                 ) : (
-                  <button
-                    type="button"
-                    className="a-btn a-btn-danger"
-                    disabled={busy === g.id}
-                    onClick={() => void revoke(g)}
-                    aria-label={`Revoke ${g.client}`}
-                  >
-                    {busy === g.id ? "Revoking…" : "Revoke"}
-                  </button>
+                  <RowActions
+                    label={g.client}
+                    moreLabel={aw.moreActions}
+                    actions={[{ id: "revoke", icon: ICON.revoked, label: busy === g.id ? pw.revoking : pw.revoke, tone: "danger", disabled: busy === g.id, onSelect: () => setAsking(g) }]}
+                  />
                 )}
                 {!ended && rowError?.id === g.id && (
                   <p role="alert" className="a-error mt-1">
@@ -127,7 +130,7 @@ export default function AdminConnections() {
                         </a>
                       </>
                     ) : (
-                      `Couldn't revoke ${g.client}: ${rowError.message}`
+                      `${pw.revokeFailed} (${g.client})`
                     )}
                   </p>
                 )}
@@ -185,6 +188,17 @@ export default function AdminConnections() {
           </section>
         )}
       </div>
+      <ConfirmDialog
+        open={asking !== null}
+        title={asking ? pw.revokeTitle(asking.client) : ""}
+        confirm={asking ? pw.revokeDo(asking.client) : ""}
+        cancel={pw.keep}
+        busy={busy !== null}
+        onConfirm={() => asking && void revoke(asking)}
+        onCancel={() => setAsking(null)}
+      >
+        {pw.revokeBody}
+      </ConfirmDialog>
     </AdminShell>
   );
 }
