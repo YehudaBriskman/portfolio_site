@@ -169,7 +169,9 @@ const click = (sel, n = 0) => async (page) => { await page.locator(sel).nth(n).d
 const SCREENS = [
   ["overview", "/admin"],
   ["nav-drawer", "/admin", async (page) => { const b = page.locator("button[aria-controls]").first(); if (await b.isVisible()) await b.dispatchEvent("click", {}, { timeout: 5000 }); }],
-  ["display-menu", "/admin", async (page) => { await page.locator(".a-top-end button").first().dispatchEvent("click", {}, { timeout: 5000 }); }],
+  /* The drawer with Marketing open (#809): a heading and flat rows, 44px each, the same tree the desktop sidebar draws. */
+  ["nav-drawer-marketing", "/admin/marketing?tab=audience", async (page) => { const b = page.locator("button[aria-controls]").first(); if (await b.isVisible()) await b.dispatchEvent("click", {}, { timeout: 5000 }); }],
+  ["display-menu", "/admin",async (page) => { await page.locator(".a-top-end button").first().dispatchEvent("click", {}, { timeout: 5000 }); }],
   ["posts", "/admin/posts"],
   ["posts-filtered", "/admin/posts?status=draft"],
   ["post-editor", "/admin/posts/admin-redesign"],

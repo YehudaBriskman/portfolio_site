@@ -35,6 +35,8 @@ const WIDTHS = (env("WIDTHS").length ? env("WIDTHS") : ["1024", "1280", "1920"])
 const LANGS = env("LANGS").length ? env("LANGS") : ["en", "he"];
 const THEMES = env("THEMES").length ? env("THEMES") : ["light"];
 const ONLY = env("ONLY");
+/* The sidebar's icon rail (#809) is a second layout of the same screens: these are measured in it too. */
+const RAIL_SCREENS = new Set(["overview", "posts", "translations", "marketing-inbox", "settings"]);
 
 /* ---------------------------------------------------------------- fixtures */
 const LONG_EN = "A title that goes on and on about the way a very long heading behaves inside a narrow table cell on a desktop screen";
@@ -140,9 +142,10 @@ const { base, stop } = await startPreview();
 const browser = await chromium.launch({ executablePath: process.env.CHROME || undefined, args: ["--no-sandbox", "--font-render-hinting=none", "--disable-gpu"] });
 const fails = [];
 let n = 0;
-for (const w of WIDTHS) for (const lang of LANGS) for (const theme of THEMES) {
+for (const w of WIDTHS) for (const lang of LANGS) for (const theme of THEMES) for (const rail of [false, true]) {
   const ctx = await browser.newContext({ viewport: { width: w, height: 900 }, reducedMotion: "reduce", colorScheme: theme, locale: lang === "he" ? "he-IL" : "en-US" });
   await ctx.addInitScript((t) => { try { localStorage.setItem("yb-theme", t); } catch { /* colorScheme carries it */ } }, theme);
+  if (rail) await ctx.addInitScript(() => { try { localStorage.setItem("admin-nav-collapsed", "1"); } catch { /* the full sidebar is measured instead */ } });
   await ctx.route((u) => !["127.0.0.1", "localhost"].includes(u.hostname), (route) => route.abort());
   await ctx.route("**/api/**", (route) => {
     const u = new URL(route.request().url());
@@ -154,13 +157,14 @@ for (const w of WIDTHS) for (const lang of LANGS) for (const theme of THEMES) {
   await page.clock.setFixedTime(new Date(NOW));
   for (const [name, path] of SCREENS) {
     if (ONLY.length && !ONLY.includes(name)) continue;
-    const tag = `${name} ${w} ${theme} ${lang}`;
+    if (rail && !RAIL_SCREENS.has(name)) continue;
+    const tag = `${name} ${w} ${theme} ${lang}${rail ? " rail" : ""}`;
     try {
       await page.goto(`${base}${lang === "he" ? "/he" : ""}${path}`, { waitUntil: "load" });
       for (let i = 0; i < 40; i++) { const ok = await page.evaluate(() => { const m = document.querySelector("main"); return !!m && !/Loading|טוען/.test(m.textContent ?? ""); }); if (ok) break; await page.waitForTimeout(250); }
       await page.evaluate(() => document.fonts.ready);
       const rec = await page.evaluate(measure);
-      if (process.env.SHOTS) await page.screenshot({ path: resolve(process.env.SHOTS, `${name}-${w}-${theme}-${lang}.png`), timeout: 120000 });
+      if (process.env.SHOTS) await page.screenshot({ path: resolve(process.env.SHOTS, `${name}-${w}-${theme}-${lang}${rail ? "-rail" : ""}.png`), timeout: 120000 });
       n++;
       if (rec.overflow) fails.push(`${tag}: page scrolls sideways (${rec.overflow.scrollWidth} > ${rec.overflow.vw})`);
       for (const t of rec.tall.slice(0, 2)) fails.push(`${tag}: ${t.el} cell "${t.text}" is ${t.rows} lines tall`);
