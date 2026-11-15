@@ -150,12 +150,12 @@ export default function PostsDesktop() {
       header: w.colTitle,
       primary: true,
       cell: (x) => (
-        <Link to={`/admin/posts/${x.slug}`} className={styles.title}>
+        <Link to={`/admin/posts/${x.slug}`} className={`${styles.title} a-clamp-2`} title={titleOf(x.title, x.slug)}>
           {titleOf(x.title, x.slug)}
         </Link>
       ),
     },
-    { id: "area", header: w.colArea, hideBelow: "md", width: "10rem", cell: (x) => areaTitle(x.collection) },
+    { id: "area", header: w.colArea, hideBelow: "lg", width: "10rem", cell: (x) => areaTitle(x.collection) },
     {
       id: "lang",
       header: w.colStatus,
