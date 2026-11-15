@@ -6,7 +6,11 @@ import { usePostsPhoneWords } from "@/components/admin/posts/words";
 import TranslationsPhone from "@/components/admin/translations/TranslationsPhone";
 import { useTranslationsWords } from "@/components/admin/translations/words";
 import { ErrorState, PageHeader } from "@/components/admin/ui";
-import { DataTable, type Column, type DataTableWords } from "@/components/ui/DataTable";
+import {
+  DataTable,
+  type Column,
+  type DataTableWords,
+} from "@/components/ui/DataTable";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { FilterBar, useFilterBar } from "@/components/ui/FilterBar";
 import type { FilterDef } from "@/components/ui/filters";
@@ -49,7 +53,8 @@ import {
 
 type Visibility = "public" | "all" | "private";
 
-const isTab = (v: string | null): v is TranslationTab => TABS.includes(v as TranslationTab);
+const isTab = (v: string | null): v is TranslationTab =>
+  TABS.includes(v as TranslationTab);
 
 /** `decisions.2.body` → `decisions`; a list's units are counted under its name. */
 function fieldsOf(units: TranslationUnit[]): string {
@@ -58,13 +63,24 @@ function fieldsOf(units: TranslationUnit[]): string {
     const head = u.path.split(".").filter((p) => !/^\d+$/.test(p))[0] ?? u.path;
     counts.set(head, (counts.get(head) ?? 0) + 1);
   }
-  return [...counts].map(([name, n]) => (n > 1 ? `${name} ×${n}` : name)).join(", ");
+  return [...counts]
+    .map(([name, n]) => (n > 1 ? `${name} ×${n}` : name))
+    .join(", ");
 }
 
-
 /** The row's glyph: the worst of the units it lists. */
-const RANK: Record<TranslationStatus, number> = { missing: 0, stale: 1, draft: 2, unverified: 3, translated: 4 };
-const worstOf = (units: TranslationUnit[]) => units.reduce((worst, u) => (RANK[u.status] < RANK[worst] ? u.status : worst), units[0].status);
+const RANK: Record<TranslationStatus, number> = {
+  missing: 0,
+  stale: 1,
+  draft: 2,
+  unverified: 3,
+  translated: 4,
+};
+const worstOf = (units: TranslationUnit[]) =>
+  units.reduce(
+    (worst, u) => (RANK[u.status] < RANK[worst] ? u.status : worst),
+    units[0].status,
+  );
 
 const heRoute = (route: string) => (route === "/" ? "/he" : `/he${route}`);
 
@@ -83,7 +99,9 @@ export default function AdminTranslations() {
   const f = useFiltersWords();
   const nav = useNavigate();
   const [params, setParams] = useSearchParams();
-  const tab: TranslationTab = isTab(params.get("status")) ? (params.get("status") as TranslationTab) : "missing";
+  const tab: TranslationTab = isTab(params.get("status"))
+    ? (params.get("status") as TranslationTab)
+    : "missing";
 
   const setTab = (next: string) =>
     setParams(
@@ -98,7 +116,15 @@ export default function AdminTranslations() {
 
   const defs = useMemo<FilterDef[]>(
     () => [
-      { id: "type", kind: "segmented", label: p.type, options: TRANSLATION_TYPES.map((x) => ({ value: x, label: p.types[x] })) },
+      {
+        id: "type",
+        kind: "segmented",
+        label: p.type,
+        options: TRANSLATION_TYPES.map((x) => ({
+          value: x,
+          label: p.types[x],
+        })),
+      },
       {
         id: "visibility",
         kind: "segmented",
@@ -112,8 +138,15 @@ export default function AdminTranslations() {
     [p, t],
   );
   const bar = useFilterBar("translations-desktop", defs);
-  const typeId = typeof bar.filters.type === "string" && TRANSLATION_TYPES.includes(bar.filters.type as TranslationType) ? (bar.filters.type as TranslationType) : null;
-  const visibility: Visibility = bar.filters.visibility === "all" || bar.filters.visibility === "private" ? bar.filters.visibility : "public";
+  const typeId =
+    typeof bar.filters.type === "string" &&
+    TRANSLATION_TYPES.includes(bar.filters.type as TranslationType)
+      ? (bar.filters.type as TranslationType)
+      : null;
+  const visibility: Visibility =
+    bar.filters.visibility === "all" || bar.filters.visibility === "private"
+      ? bar.filters.visibility
+      : "public";
   const term = bar.query.trim().toLowerCase();
 
   /* The type, visibility and search scope the counts; the tab then picks the units. */
@@ -123,14 +156,23 @@ export default function AdminTranslations() {
         (i) =>
           (!typeId || i.type === typeId) &&
           (visibility === "all" || i.visibility === visibility) &&
-          (!term || [i.title, i.id, i.route].some((x) => x.toLowerCase().includes(term))),
+          (!term ||
+            [i.title, i.id, i.route].some((x) =>
+              x.toLowerCase().includes(term),
+            )),
       ),
     [report, typeId, visibility, term],
   );
   /* A tab's count is the rows it shows: items with at least one field in it. */
   const counts = useMemo(() => {
-    const c: Record<TranslationTab, number> = { missing: 0, stale: 0, draft: 0, done: 0 };
-    for (const i of scoped) for (const x of new Set(i.units.map((u) => tabOf(u.status)))) c[x] += 1;
+    const c: Record<TranslationTab, number> = {
+      missing: 0,
+      stale: 0,
+      draft: 0,
+      done: 0,
+    };
+    for (const i of scoped)
+      for (const x of new Set(i.units.map((u) => tabOf(u.status)))) c[x] += 1;
     return c;
   }, [scoped]);
   /* Coverage is by field: the share of fields in scope with Hebrew live. */
@@ -170,20 +212,58 @@ export default function AdminTranslations() {
       header: t.colItem,
       primary: true,
       cell: ({ item, units }) => (
-        <>
-          <Link to={editHref(item, units[0])} className="a-row-title">
-            {item.title}
-          </Link>
-          <span className="block text-sm font-normal text-[rgb(var(--ink-soft))]">
-            {p.typeOne[item.type]}
-            {item.visibility === "private" ? ` · ${p.private}` : ""}
-          </span>
-        </>
+        <Link to={editHref(item, units[0])} className="a-row-title">
+          {item.title}
+        </Link>
       ),
     },
-    { id: "fields", header: t.colFields, hideBelow: "md", width: "13rem", cell: ({ units }) => <span dir="ltr">{fieldsOf(units)}</span> },
-    { id: "path", header: t.colSeenOn, hideBelow: "lg", width: "14rem", cell: ({ item }) => <code dir="ltr" className="a-path">{heRoute(item.route)}</code> },
-    { id: "he", header: t.colHebrew, hideBelow: "sm", width: "6rem", cell: ({ units }) => <HeGlyph status={worstOf(units)} /> },
+    {
+      id: "type",
+      header: p.type,
+      hideBelow: "sm",
+      width: "7rem",
+      cell: ({ item }) =>
+        `${p.typeOne[item.type]}${item.visibility === "private" ? ` · ${p.private}` : ""}`,
+    },
+    {
+      id: "fields",
+      header: t.colFields,
+      hideBelow: "md",
+      width: "10rem",
+      cell: ({ units }) => (
+        <span
+          dir="ltr"
+          className="a-clamp-1"
+          style={{ maxInlineSize: "10rem" }}
+          title={fieldsOf(units)}
+        >
+          {fieldsOf(units)}
+        </span>
+      ),
+    },
+    {
+      id: "path",
+      header: t.colSeenOn,
+      hideBelow: "lg",
+      width: "11rem",
+      cell: ({ item }) => (
+        <code
+          dir="ltr"
+          className="a-path"
+          style={{ maxInlineSize: "11rem" }}
+          title={heRoute(item.route)}
+        >
+          {heRoute(item.route)}
+        </code>
+      ),
+    },
+    {
+      id: "he",
+      header: t.colHebrew,
+      hideBelow: "sm",
+      width: "6rem",
+      cell: ({ units }) => <HeGlyph status={worstOf(units)} />,
+    },
   ];
 
   const filtered = Boolean(typeId || visibility !== "public" || term);
@@ -194,7 +274,12 @@ export default function AdminTranslations() {
       <div className="a-wrap">
         <PageHeader
           title={w.nav.translations}
-          meta={!phone && report && <span className="tabular-nums">{p.coverage(coverage)}</span>}
+          meta={
+            !phone &&
+            report && (
+              <span className="tabular-nums">{p.coverage(coverage)}</span>
+            )
+          }
           description={phone ? undefined : t.intro}
         />
 
@@ -207,24 +292,59 @@ export default function AdminTranslations() {
             query={bar.query}
             onQueryChange={bar.setQuery}
             resultCount={rows.length}
-            words={{ search: t.search, clearSearch: t.clearSearch, results: f.results, clearAll: f.clearAll }}
+            words={{
+              search: t.search,
+              clearSearch: t.clearSearch,
+              results: f.results,
+              clearAll: f.clearAll,
+            }}
           />
         )}
-        {!phone && <FiltersRestoredNote restored={bar.saved.restored} onUndo={bar.saved.undoRestore} onDismiss={bar.saved.dismissRestored} />}
+        {!phone && (
+          <FiltersRestoredNote
+            restored={bar.saved.restored}
+            onUndo={bar.saved.undoRestore}
+            onDismiss={bar.saved.dismissRestored}
+          />
+        )}
 
         <p className="sr-only" role="status">
-          {report === null ? w.loading : phone ? "" : t.count(rows.length, t.tabs[tab])}
+          {report === null
+            ? w.loading
+            : phone
+              ? ""
+              : t.count(rows.length, t.tabs[tab])}
         </p>
 
         {error ? (
           <ErrorState message={error} onRetry={reload} />
         ) : report === null ? (
-          <Skeleton columns={[{ id: "a", width: "3fr" }, { id: "b", width: "1fr" }, { id: "c", width: "1fr" }]} rows={6} label={w.loading} />
+          <Skeleton
+            columns={[
+              { id: "a", width: "3fr" },
+              { id: "b", width: "1fr" },
+              { id: "c", width: "1fr" },
+            ]}
+            rows={6}
+            label={w.loading}
+          />
         ) : phone ? (
           <TranslationsPhone items={report.items} />
         ) : (
           <>
-            <Tabs className="mt-4" idBase={idBase} panels label={t.tablist} value={tab} onValueChange={setTab} items={TABS.map((x) => ({ id: x, label: t.tabs[x], count: counts[x] }))} />
+            <Tabs
+              className="mt-4"
+              idBase={idBase}
+              panels
+              label={t.tablist}
+              value={tab}
+              onValueChange={setTab}
+              items={TABS.map((x) => ({
+                id: x,
+                label: t.tabs[x],
+                count: counts[x],
+              }))}
+            />
             <TabPanel idBase={idBase} id={tab} value={tab}>
               <DataTable<Row>
                 label={`${w.nav.translations}: ${t.tabs[tab]}`}
@@ -240,17 +360,38 @@ export default function AdminTranslations() {
                     variant="no-results"
                     title={filtered ? w.noMatch : t.empty[tab]}
                     description={filtered ? t.empty[tab] : undefined}
-                    clear={filtered ? { label: w.clearFilters, onClick: bar.clearAll } : undefined}
+                    clear={
+                      filtered
+                        ? { label: w.clearFilters, onClick: bar.clearAll }
+                        : undefined
+                    }
                   />
                 }
                 rowActions={({ item, units }) => (
                   <RowActions
                     label={item.title}
                     moreLabel={w.moreActions}
-                    primary={{ id: "open", icon: ICON.draft, label: t.open, onSelect: () => nav(editHref(item, units[0])) }}
+                    primary={{
+                      id: "open",
+                      icon: ICON.draft,
+                      label: t.open,
+                      onSelect: () => nav(editHref(item, units[0])),
+                    }}
                     actions={
                       item.visibility === "public"
-                        ? [{ id: "live", icon: ICON.published, label: posts.viewLive, onSelect: () => window.open(heRoute(item.route), "_blank", "noopener") }]
+                        ? [
+                            {
+                              id: "live",
+                              icon: ICON.published,
+                              label: posts.viewLive,
+                              onSelect: () =>
+                                window.open(
+                                  heRoute(item.route),
+                                  "_blank",
+                                  "noopener",
+                                ),
+                            },
+                          ]
                         : []
                     }
                   />

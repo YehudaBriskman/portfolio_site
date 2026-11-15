@@ -27,9 +27,6 @@
  "gap|/admin/projects|phone|button._button \"Show all 6 projects\" ~ button._row \"Edit oci-free\"",
  "gap|/admin/projects|phone|button.a-btn.a-btn-ghost \"Add a project\" ~ button.a-btn.a-btn-ghost \"Reorder\"",
  "gap|/admin/settings|desktop|input ~ input",
- "gap|/admin/translations|desktop|button.a-tab \"Done16\" ~ button.a-tab \"Draft4\"",
- "gap|/admin/translations|desktop|button.a-tab \"Draft4\" ~ button.a-tab \"Stale2\"",
- "gap|/admin/translations|desktop|button.a-tab \"Missing11\" ~ button.a-tab \"Stale2\"",
  "h1|/admin/areas|0",
  "h1|/admin/posts|0",
  "h1|/admin/projects|0",
@@ -97,10 +94,6 @@
  "hebrew|/admin/projects|blue",
  "hebrew|/admin/projects|progress",
  "hebrew|/admin/projects|tint",
- "hebrew|/admin/translations|coverage",
- "hebrew|/admin/translations|order",
- "hebrew|/admin/translations|reader",
  "overlap|/admin/media|phone|button._btn \"Select\" ~ button._chip \"Unused\"",
- "overlap|/admin/media|phone|button._btn \"Select\" ~ button._chip \"Videos\"",
- "sticky|/admin/translations|desktop|table.a-table.a-table-fixed"
+ "overlap|/admin/media|phone|button._btn \"Select\" ~ button._chip \"Videos\""
 ]
