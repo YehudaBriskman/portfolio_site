@@ -182,18 +182,19 @@ describe("Media on a phone: the grid", () => {
     page();
     await grid();
     expect(screen.queryByText(/cleaned of\s+camera/)).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: /About/ }));
+    fireEvent.click(screen.getByRole("button", { name: /About the media library/ }));
     expect(await screen.findByText(/Anything in use cannot be deleted/)).toBeTruthy();
   });
 
-  it("leaves the desktop alone above 600px: radios, the explainer and the tile text", async () => {
+  it("above 600px it is the desktop page: one Upload, the filter bar, the explainer behind an info button", async () => {
     undoPhone();
     undoPhone = phone(false);
     page();
-    await screen.findAllByRole("list", { name: /pictures/ });
-    expect(screen.getByRole("radio", { name: "Icons" })).toBeTruthy();
-    expect(screen.getByText(/Anything in use cannot be deleted/)).toBeTruthy();
-    expect(screen.queryByRole("button", { name: /^Select$/ })).toBeNull();
+    await screen.findByRole("list", { name: /items?$/ });
+    expect(screen.getByRole("button", { name: "Icons" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Upload" })).toBeTruthy();
+    expect(screen.queryByRole("radio")).toBeNull();
+    expect(screen.queryByText(/Anything in use cannot be deleted/)).toBeNull();
   });
 });
 
@@ -294,8 +295,12 @@ describe("Media on a phone: the sheet", () => {
     const d = await dialog();
     expect(within(d).getByText("Nothing uses this picture yet.")).toBeTruthy();
     fireEvent.click(within(d).getByRole("button", { name: "Delete" }));
+    /* A confirm that names the item and the outcome, not the browser's window.confirm. */
+    const ask = await screen.findByRole("alertdialog", { name: "Delete free-1.jpg?" });
+    expect(calls.some((c) => c.method === "DELETE")).toBe(false);
+    fireEvent.click(within(ask).getByRole("button", { name: "Delete free-1.jpg" }));
     await waitFor(() => expect(calls.some((c) => c.method === "DELETE" && c.url.includes("free-1"))).toBe(true));
-    expect(confirm).toHaveBeenCalled();
+    expect(confirm).not.toHaveBeenCalled();
     confirm.mockRestore();
   });
 });
