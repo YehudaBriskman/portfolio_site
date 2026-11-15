@@ -1,4 +1,6 @@
-/* The page actions sit 8px apart (A7); the kit's control gap is 4px. */
+/* The page actions sit 8px apart (A7; the kit's control gap is 4px) and wrap rather than push a 320px screen sideways. */
 .actions.actions {
   gap: var(--a-s-2, 0.5rem);
+  flex-wrap: wrap;
+  max-inline-size: 100%;
 }
