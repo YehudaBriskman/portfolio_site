@@ -280,6 +280,17 @@ describe("second polish pass", () => {
     expect(about.querySelector(`a[href="${REPO}"][data-phone-row]`)).toBeTruthy();
   });
 
+  it("About: an unset value keeps its dash and is named 'Not available'", async () => {
+    media(true);
+    collections = [col("bothy", "Bothy")]; // licence is null
+    renderAt("/projects/bothy");
+    await header();
+    const about = await aboutOf();
+    const dash = within(about).getByText("—");
+    expect(dash).toHaveAttribute("role", "img");
+    expect(dash).toHaveAttribute("aria-label", "Not available");
+  });
+
   it("About says the repository once: not when Details already holds it", async () => {
     media(true);
     collections = [col("bothy", "Bothy", { links: [{ label: "Chrome Web Store", url: STORE }] })];

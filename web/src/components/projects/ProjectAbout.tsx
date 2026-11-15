@@ -36,7 +36,15 @@ export function FactRow({ label, children }: { label: string; children: ReactNod
   );
 }
 
-const Empty = () => <span className={styles.empty}>{EMPTY}</span>;
+/* The dash is drawn as is; its accessible name says what it means. */
+function Empty() {
+  const [hw] = useHistoryWords();
+  return (
+    <span className={styles.empty} role="img" aria-label={hw.notAvailable}>
+      {EMPTY}
+    </span>
+  );
+}
 
 /** A count: a number, so left-to-right with tabular figures. */
 export function CountValue({ n, lang }: { n: number; lang: Lang }) {
