@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import type { ReactElement } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import AdminEditor from "@/pages/AdminEditor";
 import AdminCollection from "@/pages/AdminCollection";
@@ -60,10 +60,11 @@ function expectChevrons(container: HTMLElement, count: number) {
 }
 
 describe("admin page expanders", () => {
-  it("AdminEditor: Details, SEO and Advanced each have a chevron", async () => {
+  it("AdminEditor: SEO and Advanced, in the details panel, each have a chevron", async () => {
     const { container } = mountAt("/admin/posts/aaa", "/admin/posts/:slug", <AdminEditor />);
     await screen.findByDisplayValue("Title aaa");
-    expectChevrons(container, 3);
+    fireEvent.click(screen.getByRole("button", { name: "Details" }));
+    expectChevrons(container, 2);
   });
 
   it("AdminCollection: Hebrew, Details and Repository each have a chevron", () => {

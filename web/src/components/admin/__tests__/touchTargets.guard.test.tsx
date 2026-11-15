@@ -94,6 +94,8 @@ describe("the whole tag box focuses the tag input", () => {
         <Routes><Route path="/admin/posts/:slug" element={<AdminEditor />} /></Routes>
       </MemoryRouter>,
     );
+    /* The tags live in the details panel (S9). */
+    fireEvent.click(await screen.findByRole("button", { name: /^(Details|פרטים)$/ }));
     const list = await waitFor(() => {
       const l = screen.getAllByRole("list").find((x) => x.getAttribute("aria-label")?.toLowerCase().includes("tag"));
       if (!l) throw new Error("no tag list yet");

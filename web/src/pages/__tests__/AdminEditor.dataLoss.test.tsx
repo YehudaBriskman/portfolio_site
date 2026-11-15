@@ -77,13 +77,13 @@ describe("post editor ", () => {
     // The placeholder is in the English body now.
     await waitFor(() => expect((document.querySelector("textarea") as HTMLTextAreaElement).value).toContain("]()"));
     // Switch the body to Hebrew while the picture is still uploading.
-    fireEvent.click(screen.getByRole("button", { name: /hebrew|עברית/i, pressed: false }));
+    fireEvent.click(screen.getByRole("radio", { name: /hebrew|עברית/i, checked: false }));
     await screen.findByDisplayValue("גוף עברי");
     finish({ alt: "pic", url: "/media/pic.png" });
     await new Promise((r) => setTimeout(r, 50));
     // Back to English: the English body must still be the English text (plus the picture), not the Hebrew text.
-    fireEvent.click(screen.getByRole("button", { name: /^english|אנגלית/i }));
-    await screen.findByRole("button", { name: /^english/i, pressed: true });
+    fireEvent.click(screen.getByRole("radio", { name: /^english|אנגלית/i }));
+    await screen.findByRole("radio", { name: /^english/i, checked: true });
     await waitFor(() => expect((document.querySelector("textarea") as HTMLTextAreaElement).value).toContain("english body"));
     const en = document.querySelector("textarea") as HTMLTextAreaElement;
     expect(en.value).not.toContain("גוף עברי");
@@ -144,7 +144,7 @@ describe("post editor ", () => {
     mount("/admin/posts/aaa");
     fireEvent.change(await screen.findByDisplayValue("Title aaa"), { target: { value: "First edit" } });
     await waitFor(() => expect(mocks.saveDraft).toHaveBeenCalled(), { timeout: 3000 });
-    const review = () => screen.getByRole("button", { name: /^review and publish$/i });
+    const review = () => screen.getByRole("button", { name: /^(publish|update)$/i });
     await waitFor(() => expect(review()).toBeEnabled());
     fireEvent.click(review());
     const dlg = await screen.findByRole("dialog");

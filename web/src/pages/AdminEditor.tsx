@@ -2,10 +2,13 @@ import Select from "@/components/ui/Select";
 import { toast } from "@/lib/toast";
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { X } from "lucide-react";
+import { PanelRight, X } from "lucide-react";
 import AdminShell from "@/components/admin/AdminShell";
 import EditorBar, { type BarAction, type BarTone } from "@/components/admin/EditorBar";
-import { NotFoundState, PageHeader, StatePill } from "@/components/admin/ui";
+import { NotFoundState, PageHeader } from "@/components/admin/ui";
+import { Modal } from "@/components/admin/MediaGrid";
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
+import { SidePanel } from "@/components/ui/SidePanel";
 import { useAdminWords } from "@/i18n/admin";
 import { isNotFound } from "@/services/authError";
 import MediaPicker, { PickedPreview } from "@/components/admin/MediaPicker";
@@ -248,6 +251,10 @@ export default function AdminEditor() {
   const formRef = useRef<HTMLFormElement>(null);
   /* A save was refused for named fields: show them (open their section, say so, move focus on an explicit save). */
   const [reveal, setReveal] = useState<{ n: number; focus: boolean } | null>(null);
+  /* The details panel (area, tags, cover, SEO, links) and the shortcuts list. */
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [keysOpen, setKeysOpen] = useState(false);
+  const revealed = useRef(0);
 
   const dirty = version !== savedVersion;
   /* Each field's Hebrew status as stored (#302), for the pills and the stale notices. */
@@ -257,6 +264,7 @@ export default function AdminEditor() {
   /* A Translations row's link (#302): `#field=body` opens the Hebrew body. */
   useFocusField(post, (_p, field) => {
     if (field === "body") setBodyLang("he");
+    if (field === "subtitle" || field === "excerpt") setDetailsOpen(true);
     return field;
   });
   const phone = usePhone();
@@ -352,6 +360,8 @@ export default function AdminEditor() {
       if (e instanceof AdminValidationError) {
         setErrors(e.fieldErrors);
         setReveal((r) => ({ n: (r?.n ?? 0) + 1, focus: explicit }));
+        /* A refused field may live in the details panel: open it. */
+        if (Object.keys(e.fieldErrors).some((k) => k !== "title" && k !== "slug" && k !== "body")) setDetailsOpen(true);
       }
       const message = e instanceof Error ? e.message : "?";
       setSave(/changed elsewhere/i.test(message) ? { kind: "conflict" } : { kind: "failed", message: e instanceof AdminValidationError ? describe(e.fieldErrors) : message });
@@ -385,13 +395,16 @@ export default function AdminEditor() {
   /* Show what the server refused: open the section that holds it, then (for a save
      the owner asked for, not an autosave they did not notice) put focus on it. */
   useEffect(() => {
-    if (!reveal) return;
-    const bad = [...(formRef.current?.querySelectorAll<HTMLElement>('[aria-invalid="true"]') ?? [])];
+    if (!reveal || revealed.current === reveal.n) return;
+    /* The panel's fields are outside the form's element: look in the page. */
+    const bad = [...document.querySelectorAll<HTMLElement>('[aria-invalid="true"]')];
+    if (!bad.length) return;
+    revealed.current = reveal.n;
     for (const el of bad) {
       for (let d = el.closest("details"); d; d = d.parentElement?.closest("details") ?? null) d.open = true;
     }
     if (reveal.focus) bad[0]?.focus();
-  }, [reveal]);
+  }, [reveal, detailsOpen]);
 
   /* Leaving with an edit that has not reached the server asks first: the tab
      closing, and a link inside the app (BrowserRouter has no blocker). */
@@ -508,16 +521,22 @@ export default function AdminEditor() {
   const heading = isNew && !stored ? w.newNote : titleOf(f.title, f.slug);
   const hasDraft = Boolean(published && (post?.draft || dirty));
 
-  /* One row: the status, a menu for Save draft and Discard, and Review. */
+  /* One row: where the note stands (once), the save state, a menu for the rest, and one primary action. */
   const tone: BarTone = bad ? "bad" : save.kind === "saving" ? "busy" : save.kind === "saved" ? "ok" : "idle";
+  const docLabel = !post ? undefined : published && hasDraft ? w.edited : w.status[post.status];
   const more: BarAction[] = [
     { key: "save", label: w.saveNow, onSelect: () => void saveDraft(), disabled: !canSave, shortcut: "Control+S" },
     ...(published && post?.draft && !dirty ? [{ key: "discard", label: w.discard, onSelect: () => void discard() }] : []),
+    ...(published ? [{ key: "unpublish", label: w.unpublish, onSelect: () => void unpublish() }] : []),
+    /* On a phone the header's Details button would cost a control above the fold: it lives here. */
+    ...(phone ? [{ key: "details", label: w.details, onSelect: () => setDetailsOpen((o) => !o) }] : []),
+    { key: "keys", label: w.shortcutsTitle, onSelect: () => setKeysOpen(true) },
   ];
   const bar = (
     <EditorBar
       tone={tone}
-      status={[post ? w.status[post.status] : "", statusText].filter(Boolean).join(" · ")}
+      label={docLabel}
+      status={statusText}
       more={more}
       primary={
         <button
@@ -529,7 +548,7 @@ export default function AdminEditor() {
             setPublishFlow({ kind: "reviewing", error: null });
           }}
         >
-          {w.review}
+          {published ? w.update : w.publish}
         </button>
       }
     />
@@ -546,7 +565,7 @@ export default function AdminEditor() {
   );
 
   return (
-    <AdminShell title={heading} section="posts" backTo="/admin/posts" barEverywhere bottomBar={missing ? undefined : bar}>
+    <AdminShell title={aw.nav.posts} section="posts" backTo="/admin/posts" barEverywhere bottomBar={missing ? undefined : bar}>
       {loading ? (
         <p className="mono mt-4 text-sm text-clay">{w.loading}</p>
       ) : missing ? (
@@ -561,16 +580,23 @@ export default function AdminEditor() {
         >
           <PageHeader
             title={heading}
-            meta={
-              <>
-                {post && <StatePill state={post.status} />}
-                {hasDraft && <StatePill state="changes" />}
-                {f.slug && (
-                  <code dir="ltr" className="text-sm">
-                    /blog/{f.slug}
-                  </code>
-                )}
-              </>
+            status={
+              f.slug ? (
+                <code dir="ltr" className="text-sm">
+                  /blog/{f.slug}
+                </code>
+              ) : undefined
+            }
+            actions={
+              phone ? undefined : <button
+                type="button"
+                className="a-btn a-btn-ghost min-h-11 md:min-h-8"
+                aria-expanded={detailsOpen}
+                onClick={() => setDetailsOpen((o) => !o)}
+              >
+                <PanelRight aria-hidden="true" />
+                {w.details}
+              </button>
             }
           />
 
@@ -584,16 +610,7 @@ export default function AdminEditor() {
             </div>
           )}
 
-          <p className={styles.notice}>
-            {!stored ? w.newNoteHint
-              : published ? (post?.draftSavedAt && hasDraft ? w.unpublishedSince(clock(new Date(post.draftSavedAt))) : w.status.published)
-              : w.neverPublished}
-            {published && !phone && (
-              <button type="button" className="a-btn a-btn-ghost ms-3" onClick={() => void unpublish()}>{w.unpublish}</button>
-            )}
-          </p>
-          {/* The bar shows this too, but only a few words of it on a phone. */}
-          {save.kind === "failed" && <p className={styles.status} data-bad="true">{w.saveFailed(save.message)}</p>}
+          {!stored && <p className={styles.notice}>{w.newNoteHint}</p>}
           {/* A refused field may sit in a section that was closed: say so, since focus alone is silent for an autosave. */}
           {reveal && save.kind === "failed" && Object.keys(errors).length > 0 && (
             <p role="alert" className="sr-only">{w.saveFailed(save.message)}</p>
@@ -669,20 +686,17 @@ export default function AdminEditor() {
                 <option value="both">{w.bodyBoth}</option>
               </select>
             ) : (
-            <div className="flex flex-wrap gap-2">
-              <div role="group" aria-label={w.editingIn} className={styles.toggleGroup}>
-                {(["en", "he", "both"] as const).map((l) => (
-                  <button
-                    key={l}
-                    type="button"
-                    className={`a-btn a-btn-ghost ${styles.toggle}`}
-                    aria-pressed={bodyLang === l}
-                    onClick={() => setBodyLang(l)}
-                  >
-                    {l === "en" ? w.bodyEnglish : l === "he" ? w.bodyHebrew : w.bodyBoth}
-                  </button>
-                ))}
-              </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <SegmentedControl<"en" | "he" | "both">
+                label={w.editingIn}
+                value={bodyLang}
+                onChange={(v) => setBodyLang(v)}
+                options={[
+                  { value: "en", label: w.bodyEnglish },
+                  { value: "he", label: w.bodyHebrew },
+                  { value: "both", label: w.bodyBoth },
+                ]}
+              />
               <button
                 type="button"
                 className={`a-btn a-btn-ghost ${styles.toggle}`}
@@ -753,131 +767,145 @@ export default function AdminEditor() {
             )}
           </div>
           )}
-          <p id={ids.bodyHelp} className={styles.boxFoot}>{w.bodyHelp} {w.shortcuts}</p>
+          <p id={ids.bodyHelp} className={styles.boxFoot}>{w.bodyHelp}</p>
           </div>
-
-          <Disclosure open={!phone || !stored ? true : undefined} summary={w.details} meta={phone ? (cols.find((c) => c.slug === f.collection)?.title ?? f.collection) : undefined} className="mt-10">
-            <div className="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-2">
-              <label className="block">
-                <span className="a-label">{w.area}</span>
-                <Select value={f.collection} onChange={(e) => edit("collection", e.target.value)}>
-                  {(cols.length ? cols : [{ slug: "site", title: "Notes" } as AdminCollection]).map((c) => (
-                    <option key={c.slug} value={c.slug}>{c.title}</option>
-                  ))}
-                </Select>
-              </label>
-              <TagsField id={ids.tags} tags={f.tags} known={knownTags} onChange={(t) => edit("tags", t)} words={w} />
-              <label className="block">
-                <span className="a-label">{w.publishDate}</span>
-                <input
-                  type="date"
-                  value={dayOf(f.publishedAt)}
-                  onChange={(e) => edit("publishedAt", withDay(f.publishedAt, e.target.value))}
-                  className="a-input a-input-mono"
-                />
-                <span className="a-hint">{w.publishDateHelp}</span>
-              </label>
-              <label className="block">
-                <span className="a-label">{w.featured}</span>
-                <input
-                  value={f.featured}
-                  onChange={(e) => edit("featured", e.target.value.replace(/\D/g, "").slice(0, 2))}
-                  className="a-input a-input-mono"
-                  inputMode="numeric"
-                  placeholder={w.notFeatured}
-                  aria-invalid={errors.featured ? true : undefined}
-                />
-                <span className="a-hint">{errors.featured ?? w.featuredHelp}</span>
-              </label>
-              <div className="sm:col-span-2">
-                <label className="block">
-                  <span className="a-label">{w.cover}</span>
-                  <input
-                    value={f.coverImage}
-                    dir="ltr"
-                    onChange={(e) => edit("coverImage", e.target.value)}
-                    className="a-input a-input-mono"
-                    placeholder="https://…"
-                    aria-invalid={errors.coverImage ? true : undefined}
-                  />
-                  <span className="a-hint">{errors.coverImage ?? w.coverHelp}</span>
-                </label>
-                <MediaPicker value={f.coverImage} onChange={(url) => edit("coverImage", url)} />
-                <PickedPreview url={f.coverImage} />
-              </div>
-              <div className="grid grid-cols-1 gap-4 sm:col-span-2 md:grid-cols-2" data-path="subtitle">
-                <label className="block min-w-0">
-                  <span className="a-label">{w.subtitle}</span>
-                  <input value={f.subtitle} lang="en" dir="ltr" onChange={(e) => edit("subtitle", e.target.value)} className="a-input" />
-                </label>
-                <HebrewField id={`${ids.title}-he-subtitle`} label={w.subtitleHebrew} status={stored ? heStatus("subtitle") : null}>
-                  <input id={`${ids.title}-he-subtitle`} value={f.heSubtitle} maxLength={300} lang="he" dir="rtl" onChange={(e) => edit("heSubtitle", e.target.value)} className="a-input" />
-                </HebrewField>
-              </div>
-              <div className="grid grid-cols-1 gap-4 sm:col-span-2 md:grid-cols-2" data-path="excerpt">
-                <label className="block min-w-0">
-                  <span className="a-label">{w.excerpt}</span>
-                  <textarea value={f.excerpt} lang="en" dir="ltr" onChange={(e) => edit("excerpt", e.target.value)} maxLength={320} className="a-textarea min-h-[5rem]" />
-                  <span className="a-hint">{w.excerptHelp(f.excerpt.length)}</span>
-                </label>
-                <HebrewField id={`${ids.title}-he-excerpt`} label={w.excerptHebrew} status={stored ? heStatus("excerpt") : null}>
-                  <textarea id={`${ids.title}-he-excerpt`} value={f.heExcerpt} maxLength={320} lang="he" dir="rtl" onChange={(e) => edit("heExcerpt", e.target.value)} className="a-textarea min-h-[5rem]" />
-                </HebrewField>
-              </div>
-            </div>
-          </Disclosure>
-
-          <Disclosure summary={w.seo} className="mt-6">
-            <div className="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-2">
-              <label className="block">
-                <span className="a-label">{w.seoTitle}</span>
-                <input value={f.seoTitle} maxLength={200} onChange={(e) => edit("seoTitle", e.target.value)} className="a-input" />
-                <span className="a-hint">{w.seoTitleHelp}</span>
-              </label>
-              <label className="block">
-                <span className="a-label">{w.canonical}</span>
-                <input
-                  value={f.canonical}
-                  dir="ltr"
-                  onChange={(e) => edit("canonical", e.target.value)}
-                  className="a-input a-input-mono"
-                  placeholder="https://…"
-                  aria-invalid={errors.seo ? true : undefined}
-                />
-                <span className="a-hint">{w.canonicalHelp}</span>
-              </label>
-              <label className="block sm:col-span-2">
-                <span className="a-label">{w.seoDescription}</span>
-                <textarea value={f.seoDescription} maxLength={320} onChange={(e) => edit("seoDescription", e.target.value)} className="a-textarea min-h-[4rem]" />
-                <span className="a-hint">{w.seoDescriptionHelp}</span>
-              </label>
-              <label className="flex min-h-[1.5rem] items-center gap-3 sm:col-span-2 [@media(pointer:coarse)]:min-h-[2.75rem]">
-                <input type="checkbox" checked={f.noindex} onChange={(e) => edit("noindex", e.target.checked)} />
-                <span className="text-sm text-bone">{w.noindex}</span>
-              </label>
-            </div>
-          </Disclosure>
-
-          <Disclosure summary={w.advanced} className="mt-6">
-            <div className="mt-4">
-              {phone && published && (
-                <button type="button" className="a-btn mb-4 min-h-[44px]" onClick={() => void unpublish()}>{w.unpublish}</button>
-              )}
-              {stored && (
-                <p className="text-sm text-bone">
-                  <span className="a-label">{w.slug}</span>
-                  <code dir="ltr" className="a-input-mono">{f.slug}</code>
-                  <span className="a-hint">{w.slugLocked}</span>
-                </p>
-              )}
-              <div className="mt-6">
-                <LinkEditor links={f.links} onChange={(links) => edit("links", links)} hebrew />
-              </div>
-            </div>
-          </Disclosure>
 
         </form>
       )}
+
+      <SidePanel open={detailsOpen} onOpenChange={setDetailsOpen} title={w.details}>
+        <div className="grid gap-6 pb-4">
+          <div className="grid grid-cols-1 gap-5">
+          <label className="block">
+            <span className="a-label">{w.area}</span>
+            <Select value={f.collection} onChange={(e) => edit("collection", e.target.value)}>
+              {(cols.length ? cols : [{ slug: "site", title: "Notes" } as AdminCollection]).map((c) => (
+                <option key={c.slug} value={c.slug}>{c.title}</option>
+              ))}
+            </Select>
+          </label>
+          <TagsField id={ids.tags} tags={f.tags} known={knownTags} onChange={(t) => edit("tags", t)} words={w} />
+          <label className="block">
+            <span className="a-label">{w.publishDate}</span>
+            <input
+              type="date"
+              value={dayOf(f.publishedAt)}
+              onChange={(e) => edit("publishedAt", withDay(f.publishedAt, e.target.value))}
+              className="a-input a-input-mono"
+            />
+            <span className="a-hint">{w.publishDateHelp}</span>
+          </label>
+          <label className="block">
+            <span className="a-label">{w.featured}</span>
+            <input
+              value={f.featured}
+              onChange={(e) => edit("featured", e.target.value.replace(/\D/g, "").slice(0, 2))}
+              className="a-input a-input-mono"
+              inputMode="numeric"
+              placeholder={w.notFeatured}
+              aria-invalid={errors.featured ? true : undefined}
+            />
+            <span className="a-hint">{errors.featured ?? w.featuredHelp}</span>
+          </label>
+          <div className="">
+            <label className="block">
+              <span className="a-label">{w.cover}</span>
+              <input
+                value={f.coverImage}
+                dir="ltr"
+                onChange={(e) => edit("coverImage", e.target.value)}
+                className="a-input a-input-mono"
+                placeholder="https://…"
+                aria-invalid={errors.coverImage ? true : undefined}
+              />
+              <span className="a-hint">{errors.coverImage ?? w.coverHelp}</span>
+            </label>
+            <MediaPicker value={f.coverImage} onChange={(url) => edit("coverImage", url)} />
+            <PickedPreview url={f.coverImage} />
+          </div>
+          <div className="grid grid-cols-1 gap-4" data-path="subtitle">
+            <label className="block min-w-0">
+              <span className="a-label">{w.subtitle}</span>
+              <input value={f.subtitle} lang="en" dir="ltr" onChange={(e) => edit("subtitle", e.target.value)} className="a-input" />
+            </label>
+            <HebrewField id={`${ids.title}-he-subtitle`} label={w.subtitleHebrew} status={stored ? heStatus("subtitle") : null}>
+              <input id={`${ids.title}-he-subtitle`} value={f.heSubtitle} maxLength={300} lang="he" dir="rtl" onChange={(e) => edit("heSubtitle", e.target.value)} className="a-input" />
+            </HebrewField>
+          </div>
+          <div className="grid grid-cols-1 gap-4" data-path="excerpt">
+            <label className="block min-w-0">
+              <span className="a-label">{w.excerpt}</span>
+              <textarea value={f.excerpt} lang="en" dir="ltr" onChange={(e) => edit("excerpt", e.target.value)} maxLength={320} className="a-textarea min-h-[5rem]" />
+              <span className="a-hint">{w.excerptHelp(f.excerpt.length)}</span>
+            </label>
+            <HebrewField id={`${ids.title}-he-excerpt`} label={w.excerptHebrew} status={stored ? heStatus("excerpt") : null}>
+              <textarea id={`${ids.title}-he-excerpt`} value={f.heExcerpt} maxLength={320} lang="he" dir="rtl" onChange={(e) => edit("heExcerpt", e.target.value)} className="a-textarea min-h-[5rem]" />
+            </HebrewField>
+          </div>
+          </div>
+
+          <Disclosure summary={w.seo} className="mt-6">
+          <div className="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-2">
+          <label className="block">
+            <span className="a-label">{w.seoTitle}</span>
+            <input value={f.seoTitle} maxLength={200} onChange={(e) => edit("seoTitle", e.target.value)} className="a-input" />
+            <span className="a-hint">{w.seoTitleHelp}</span>
+          </label>
+          <label className="block">
+            <span className="a-label">{w.canonical}</span>
+            <input
+              value={f.canonical}
+              dir="ltr"
+              onChange={(e) => edit("canonical", e.target.value)}
+              className="a-input a-input-mono"
+              placeholder="https://…"
+              aria-invalid={errors.seo ? true : undefined}
+            />
+            <span className="a-hint">{w.canonicalHelp}</span>
+          </label>
+          <label className="block sm:col-span-2">
+            <span className="a-label">{w.seoDescription}</span>
+            <textarea value={f.seoDescription} maxLength={320} onChange={(e) => edit("seoDescription", e.target.value)} className="a-textarea min-h-[4rem]" />
+            <span className="a-hint">{w.seoDescriptionHelp}</span>
+          </label>
+          <label className="flex min-h-[1.5rem] items-center gap-3 sm:col-span-2 [@media(pointer:coarse)]:min-h-[2.75rem]">
+            <input type="checkbox" checked={f.noindex} onChange={(e) => edit("noindex", e.target.checked)} />
+            <span className="text-sm text-bone">{w.noindex}</span>
+          </label>
+          </div>
+          </Disclosure>
+
+          <Disclosure summary={w.advanced} className="mt-6">
+          <div className="mt-4">
+          {stored && (
+            <p className="text-sm text-bone">
+              <span className="a-label">{w.slug}</span>
+              <code dir="ltr" className="a-input-mono">{f.slug}</code>
+              <span className="a-hint">{w.slugLocked}</span>
+            </p>
+          )}
+          <div className="mt-6">
+            <LinkEditor links={f.links} onChange={(links) => edit("links", links)} hebrew />
+          </div>
+          </div>
+          </Disclosure>
+
+        </div>
+      </SidePanel>
+
+      <Modal open={keysOpen} onClose={() => setKeysOpen(false)} title={w.shortcutsTitle}>
+        <dl className="grid grid-cols-[1fr_auto] gap-x-8 gap-y-2 text-sm">
+          {[
+            [w.tools.bold, "Ctrl+B"], [w.tools.italic, "Ctrl+I"], [w.tools.link, "Ctrl+K"], [w.tools.code, "Ctrl+E"],
+            [w.saveNow, "Ctrl+S"], [w.preview, "Ctrl+Shift+P"],
+          ].map(([name, keys]) => (
+            <div key={keys} className="contents">
+              <dt>{name}</dt>
+              <dd><kbd dir="ltr" className="a-input-mono">{keys}</kbd></dd>
+            </div>
+          ))}
+        </dl>
+      </Modal>
 
       <ReviewDialog
         open={publishFlow.kind !== "idle"}
