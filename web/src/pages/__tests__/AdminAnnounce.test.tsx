@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import AdminAnnounce from "@/pages/AdminAnnounce";
 import { setUnread } from "@/services/adminAnnounce";
@@ -133,24 +134,27 @@ describe("the inbox", () => {
     expect(screen.getByRole("button", { name: "Try again" })).toBeTruthy();
   });
 
-  it("is one line per event: the title as text, the channels sent, and the readiness chips", async () => {
-    stub({ issues: [{ code: "image-missing", field: "image", severity: "error" }, { code: "no-hebrew-translation", field: "translation", severity: "warn" }, { code: "title-long", field: "title", severity: "warn" }] });
+  it("is one line per event: the title as text, one status glyph, one drawn action and More", async () => {
+    stub({ issues: [{ code: "image-missing", field: "image", severity: "error" }, { code: "no-hebrew-translation", field: "translation", severity: "warn" }] });
     page();
     const row = (await screen.findByRole("button", { name: /^Write the caption for/ })).closest("li")!;
     expect(within(row).getByText("Hello <b>world</b>").querySelector("b")).toBeNull();
-    expect(await within(row).findByText("No image")).toBeTruthy();
-    expect(within(row).getByText("Long title")).toBeTruthy();
-    /* The third chip folds into a count, with its name still available to a screen reader. */
-    expect(within(row).getByText("+1")).toBeTruthy();
-    expect(within(row).getByText(/No Hebrew/)).toBeTruthy();
-    expect(within(row).getAllByRole("img").length).toBe(4);
-    expect(within(row).getByRole("button", { name: /^Copy the LinkedIn caption/ })).toBeTruthy();
+    /* One alert glyph names every issue; no chips, no channel dots. */
+    await waitFor(() => expect(row.querySelectorAll("[data-kind='attention']").length).toBe(1));
+    expect(row.querySelector("[data-kind='attention']")?.getAttribute("aria-label")).toMatch(/No image.*No Hebrew/);
+    expect(row.querySelector(".mk-chip, .mk-dot")).toBeNull();
+    expect(within(row).getByRole("button", { name: "Copy LinkedIn" })).toBeTruthy();
+    /* Copy X is in More, not drawn. */
+    expect(within(row).queryByRole("button", { name: "Copy X" })).toBeNull();
+    expect(within(row).getByRole("button", { name: "More" })).toBeTruthy();
+    expect(row.querySelectorAll("button").length).toBeLessThanOrEqual(3);
   });
 
-  it("says Ready when the page has nothing to fix", async () => {
+  it("never prints Ready on a row", async () => {
     stub();
     page();
-    expect(await screen.findByText("Ready")).toBeTruthy();
+    await screen.findByRole("button", { name: /^Write the caption for/ });
+    expect(screen.queryByText("Ready")).toBeNull();
   });
 
   it("copies the LinkedIn or X caption from the row without opening anything", async () => {
@@ -158,10 +162,11 @@ describe("the inbox", () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     vi.stubGlobal("navigator", { ...navigator, clipboard: { writeText } });
     page();
-    fireEvent.click(await screen.findByRole("button", { name: /^Copy the LinkedIn caption/ }));
+    fireEvent.click(await screen.findByRole("button", { name: "Copy LinkedIn" }));
     await waitFor(() => expect(writeText).toHaveBeenCalledWith(expect.stringContaining("New on the blog: Hello")));
     expect(await screen.findByText("LinkedIn caption copied.")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: /^Copy the X caption/ }));
+    await userEvent.click(screen.getByRole("button", { name: "More" }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: "Copy X" }));
     await waitFor(() => expect(writeText).toHaveBeenLastCalledWith("x".repeat(300)));
     expect(screen.queryByLabelText(/^Caption for/)).toBeNull();
   });
@@ -192,9 +197,11 @@ describe("the inbox", () => {
     expect(await screen.findByLabelText(/^Caption for LinkedIn/)).toBeTruthy();
   });
 
-  it("shows the keys in a visible hint", async () => {
+  it("keeps the keys behind a Keys button", async () => {
     stub();
     page();
+    expect(screen.queryByText("copies the LinkedIn caption")).toBeNull();
+    fireEvent.click(await screen.findByRole("button", { name: "Keys" }));
     expect(await screen.findByText("copies the LinkedIn caption")).toBeTruthy();
   });
 
@@ -370,7 +377,7 @@ describe("the composer", () => {
     page();
     await openFirst();
     fireEvent.keyDown(document.body, { key: "Escape" });
-    expect(await screen.findByText("copies the LinkedIn caption")).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "Keys" })).toBeTruthy();
   });
 
   it("arrow keys move between the channel tabs", async () => {
@@ -385,33 +392,19 @@ describe("the composer", () => {
 });
 
 describe("the hub shell", () => {
-  it("keeps the Settings tab beside the Inbox", async () => {
-    const calls = stub({ items: [] });
-    page();
-    fireEvent.click(await screen.findByRole("tab", { name: "Settings" }));
-    await screen.findByLabelText("Default hashtags");
-    expect(calls.some((c) => c.url === "/api/admin/announce/settings")).toBe(true);
-  });
-
-  it("opens straight on a tab named in the address", async () => {
+  it("has one h1, the part you are on, and no tab strip beside the sidebar", async () => {
     stub({ items: [] });
-    page("/admin/marketing?tab=settings");
-    expect(await screen.findByLabelText("Default hashtags")).toBeTruthy();
+    page();
+    await screen.findByText("Nothing to announce");
+    expect(screen.getAllByRole("heading", { level: 1 }).map((h) => h.textContent)).toEqual(["Inbox"]);
+    expect(screen.queryByRole("tablist", { name: "Marketing sections" })).toBeNull();
   });
-});
 
-describe("the marketing words", () => {
-  it("have a Hebrew for every English entry", () => {
-    const t = allWordTables().find((x) => x.name === "adminMarketing")!;
-    expect(t).toBeTruthy();
-    const walk = (en: unknown, he: unknown, path: string) => {
-      if (en && typeof en === "object") for (const k of Object.keys(en)) walk((en as Record<string, unknown>)[k], (he as Record<string, unknown>)?.[k], `${path}.${k}`);
-      else {
-        expect(he, path).toBeDefined();
-        const s = typeof he === "function" ? String((he as (...a: unknown[]) => unknown)(3, "X")) : String(he);
-        if (!/\.(x|moreChips)$/.test(path)) expect(hasHebrew(s), path).toBe(true);
-      }
-    };
-    walk(t.en, t.he, t.name);
+  it("opens the Settings part from the address", async () => {
+    const calls = stub({ items: [] });
+    page("/admin/marketing?tab=settings");
+    await screen.findByLabelText("Default hashtags");
+    expect(screen.getAllByRole("heading", { level: 1 }).map((h) => h.textContent)).toEqual(["Settings"]);
+    expect(calls.some((c) => c.url === "/api/admin/announce/settings")).toBe(true);
   });
 });

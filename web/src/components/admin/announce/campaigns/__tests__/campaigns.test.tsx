@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import CampaignsTab from "../CampaignsTab";
 import SettingsPanel from "../../SettingsPanel";
@@ -28,6 +28,11 @@ let senderDoc: ReturnType<typeof sender>;
 let atLimit = 0;
 let sending = { paused: false, pausedAt: null as string | null, envDisabled: false };
 beforeEach(() => {
+  /* jsdom has no modal <dialog>. */
+  Object.assign(HTMLDialogElement.prototype, {
+    showModal: function (this: HTMLDialogElement) { this.setAttribute("open", ""); },
+    close: function (this: HTMLDialogElement) { this.removeAttribute("open"); },
+  });
   calls = [];
   stored = [camp(), camp({ id: "c2", name: "Sent one", status: "sent", counters: { queued: 10, sent: 9, failed: 1, suppressed: 0 }, finishedAt: "2026-11-02T10:00:00Z" })];
   senderDoc = sender();
@@ -94,7 +99,7 @@ describe("Campaigns tab", () => {
   it("a paused campaign says why, in plain words, and resumes only after a confirm", async () => {
     stored[0] = camp({ status: "paused", pausedReason: "auth", counters: { queued: 12, sent: 3, failed: 1, suppressed: 0 } });
     open();
-    fireEvent.click(await screen.findByRole("button", { name: "Open Spring news" }));
+    fireEvent.click(await screen.findByText("Spring news"));
     const banner = await screen.findByTestId("paused-banner");
     expect(banner.textContent).toMatch(/refused the login/);
     expect(screen.getAllByText("Paused").length).toBeGreaterThan(0);
@@ -104,9 +109,16 @@ describe("Campaigns tab", () => {
     await waitFor(() => expect(calls.some((c) => c.url === "/api/admin/campaigns/c1/resume" && c.method === "POST")).toBe(true));
   });
 
-  it("one click pauses all sending, no confirm; resuming asks first", async () => {
+  it("pausing is one click then a confirm that names the outcome; keeping changes nothing; resuming asks first", async () => {
     open();
     fireEvent.click(await screen.findByRole("button", { name: "Pause all sending" }));
+    const dlg = await screen.findByRole("alertdialog", { hidden: true });
+    expect(dlg.textContent).toMatch(/All sending is paused/);
+    expect(calls.filter((c) => c.url.endsWith("/sending") && c.method === "POST")).toHaveLength(0);
+    fireEvent.click(within(dlg).getByRole("button", { name: "Keep sending", hidden: true }));
+    expect(calls.filter((c) => c.url.endsWith("/sending") && c.method === "POST")).toHaveLength(0);
+    fireEvent.click(screen.getByRole("button", { name: "Pause all sending" }));
+    fireEvent.click(within(await screen.findByRole("alertdialog", { hidden: true })).getByRole("button", { name: "Pause all sending", hidden: true }));
     expect(await screen.findByTestId("sending-paused")).toBeTruthy();
     expect(calls.filter((c) => c.url.endsWith("/sending") && c.method === "POST").map((c) => c.body)).toEqual([{ paused: true }]);
     fireEvent.click(screen.getByRole("button", { name: "Resume sending…" }));
@@ -114,6 +126,22 @@ describe("Campaigns tab", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Resume" }));
     await waitFor(() => expect(screen.queryByTestId("sending-paused")).toBeNull());
     expect(calls.filter((c) => c.url.endsWith("/sending") && c.method === "POST").map((c) => c.body)).toEqual([{ paused: true }, { paused: false }]);
+  });
+
+  it("the header has one primary and one secondary; Pause is quiet, never a red fill", async () => {
+    open();
+    const pause = await screen.findByRole("button", { name: "Pause all sending" });
+    expect(pause.className).not.toMatch(/danger|primary/);
+    const header = screen.getByRole("toolbar", { name: "Campaign actions" });
+    expect(within(header).getAllByRole("button").map((b) => b.textContent)).toEqual(["Compile issue", "New campaign"]);
+  });
+
+  it("says a status once as a group heading, not as a pill on every row", async () => {
+    open();
+    await screen.findByText("Spring news");
+    expect(document.querySelectorAll(".a-pill").length).toBe(0);
+    expect(screen.getByRole("columnheader", { name: "Sent" })).toBeTruthy();
+    expect(screen.queryByRole("columnheader", { name: "Status" })).toBeNull();
   });
 
   it("shows a pause that is already on, and says the server setting cannot be lifted here", async () => {
@@ -139,7 +167,7 @@ describe("Campaigns tab", () => {
     senderDoc = sender({ identityEmail: "" });
     open();
     expect(await screen.findByTestId("footer-blocker")).toBeTruthy();
-    fireEvent.click(await screen.findByRole("button", { name: "Open Spring news" }));
+    fireEvent.click(await screen.findByText("Spring news"));
     expect(await screen.findByText(/Add your contact email in Sender & delivery/)).toBeTruthy();
   });
 
@@ -159,13 +187,13 @@ describe("Campaigns tab", () => {
   it("lists the unsubscribe-note problem among what stands between you and Send", async () => {
     senderDoc = sender({ unsubscribeNoteEn: "Thanks for reading" });
     open();
-    fireEvent.click(await screen.findByRole("button", { name: "Open Spring news" }));
+    fireEvent.click(await screen.findByText("Spring news"));
     expect(await screen.findByText(/Fix the unsubscribe note and confirmation texts in Sender & delivery/)).toBeTruthy();
   });
 
   it("confirms with the server's recipient count and the cannot-unsend warning before sending", async () => {
     open();
-    fireEvent.click(await screen.findByRole("button", { name: "Open Spring news" }));
+    fireEvent.click(await screen.findByText("Spring news"));
     await screen.findAllByText("12 will receive it", {}, { timeout: 3000 });
     expect(screen.getByRole("heading", { name: /Write/ })).toBeTruthy();
     expect(screen.getByRole("heading", { name: /Review and send/ })).toBeTruthy();
@@ -185,7 +213,7 @@ describe("Campaigns tab", () => {
   it("shows the monthly limit in the checklist, then asks skip or override when the server blocks the send", async () => {
     atLimit = 2;
     open();
-    fireEvent.click(await screen.findByRole("button", { name: "Open Spring news" }));
+    fireEvent.click(await screen.findByText("Spring news"));
     expect((await screen.findByTestId("ready-cap", {}, { timeout: 3000 })).textContent).toMatch(/2 of 12 recipients already got 4 emails in the last 30 days/);
     fireEvent.click(screen.getByRole("button", { name: "Send now…" }));
     fireEvent.click(await screen.findByRole("button", { name: "Send to 12 now" }));
@@ -201,7 +229,7 @@ describe("Campaigns tab", () => {
   it("skipping the capped sends with skipCapped and no override", async () => {
     atLimit = 2;
     open();
-    fireEvent.click(await screen.findByRole("button", { name: "Open Spring news" }));
+    fireEvent.click(await screen.findByText("Spring news"));
     await screen.findByTestId("ready-cap", {}, { timeout: 3000 });
     fireEvent.click(screen.getByRole("button", { name: "Send now…" }));
     fireEvent.click(await screen.findByRole("button", { name: "Send to 12 now" }));
@@ -211,7 +239,7 @@ describe("Campaigns tab", () => {
 
   it("recounts for the unsaved selection as a group is ticked", async () => {
     open();
-    fireEvent.click(await screen.findByRole("button", { name: "Open Spring news" }));
+    fireEvent.click(await screen.findByText("Spring news"));
     await screen.findAllByText("12 will receive it", {}, { timeout: 3000 });
     fireEvent.click(screen.getByLabelText(/Friends/));
     await waitFor(() => expect(calls.filter((c) => c.url.endsWith("/campaigns/audience")).some((c) => (c.body?.groups as string[]).includes("friends"))).toBe(true), { timeout: 3000 });

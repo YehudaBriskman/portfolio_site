@@ -185,7 +185,7 @@ const cases = [
   }],
   ["B-h5-6 Hebrew campaign editor: no literal arrow in Back, icon mirrors", async () => {
     const { ctx, page } = await open("/admin/marketing?tab=campaigns", { w: 1024, h: 900, lang: "he" });
-    await tap(page, "button.a-btn-primary");
+    await tap(page, "button.a-btn-primary, main [role=toolbar] button:last-of-type");
     await page.waitForTimeout(800);
     const m = await page.evaluate(() => {
       const bs = [...document.querySelectorAll('[data-testid="campaign-editor"] button')];

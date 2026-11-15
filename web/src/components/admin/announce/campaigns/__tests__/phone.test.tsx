@@ -334,7 +334,7 @@ describe("Campaigns at 600px and wider", () => {
     undoPhone();
     undoPhone = phone(false);
     open();
-    expect(await screen.findByRole("table", { name: "Campaigns" })).toBeTruthy();
+    expect(await screen.findByRole("grid", { name: "Campaigns" })).toBeTruthy();
     expect(document.querySelector("[data-record-row]")).toBeNull();
   });
 });

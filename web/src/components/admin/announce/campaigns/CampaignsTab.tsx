@@ -2,20 +2,26 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Empty, EmptyState, ErrorState, LoadingRows } from "@/components/admin/ui";
 import { SkeletonSwap } from "@/components/ui/SkeletonSwap";
+import { ControlBar, type ControlItem } from "@/components/ui/ControlBar";
+import { DataTable, type Column } from "@/components/ui/DataTable";
+import { ICON } from "@/components/ui/icons";
 import { identityMissing } from "../sender/defaults";
 import { adminAnnounce, type AnnounceSummary, type SenderSettings } from "@/services/adminAnnounce";
 import { adminAudience, type Group } from "@/services/adminAudience";
 import { adminCampaigns, type Campaign } from "@/services/adminCampaigns";
+import styles from "./CampaignsTab.module.css";
 import CampaignEditor from "./CampaignEditor";
 import CampaignsPhone from "./CampaignsPhone";
 import { usePhone } from "@/hooks/usePhone";
 import SendingSwitch from "./SendingSwitch";
-import { pillState } from "./status";
 import { useCampaignWords } from "./words";
 import { docLang, formatWhen } from "@/lib/safeTime";
 
 const nf = new Intl.NumberFormat("en-GB");
 const LIST_POLL_MS = 10000;
+/* What needs a look comes first; a status is said once, as the group heading. */
+const ORDER = ["sending", "paused", "scheduled", "draft", "failed", "sent", "canceled"];
+const rank = (c: Campaign) => ORDER.indexOf(c.status);
 
 /*
  * The Campaigns tab. Daily: the list (what is sending, what is scheduled) and
@@ -73,40 +79,53 @@ export default function CampaignsTab() {
       setCompile("failed");
     }
   };
-  const compileBtn = (
-    <button type="button" className="a-btn min-h-[44px] min-w-[9rem] flex-1 sm:flex-none" disabled={compile === "busy"} onClick={() => void compileIssue()}>
-      {compile === "busy" ? w.compiling : w.compileIssue}
-    </button>
-  );
+  const actions: ControlItem[] = [
+    { id: "compile", icon: ICON.note, label: compile === "busy" ? w.compiling : w.compileIssue, showLabel: "always", priority: 2, disabled: compile === "busy", onSelect: () => void compileIssue() },
+    { id: "new", icon: ICON.add, label: w.newCampaign, tone: "primary", showLabel: "always", priority: 3, onSelect: () => setOpen("new") },
+  ];
+  const actionBar = <ControlBar className={styles.actions} label={w.actionsLabel} moreLabel={w.more} items={actions} max={2} />;
   const compileNote = compile === "nothing" ? <p className="a-hint !mt-0" role="status">{w.compileNothing}</p> : compile === "failed" ? <p className="a-error !mt-0" role="status">{w.compileFailed}</p> : null;
   const when = (iso: string) => formatWhen(iso, docLang(), { dateStyle: "medium", timeStyle: "short" });
 
   if (open)
     return <CampaignEditor key={open} id={open} sender={sender} groups={groups} events={events} onClose={() => (setOpen(null), changed())} onChanged={changed} />;
 
+  const dash = (c: Campaign, n: number) => (c.status === "draft" ? <Empty /> : nf.format(n));
+  const whenOf = (c: Campaign) => (c.status === "scheduled" && c.sendAt ? w.scheduledFor(when(c.sendAt)) : c.finishedAt ? w.finishedAt(when(c.finishedAt)) : w.updatedAt(when(c.updatedAt)));
+  const columns: Column<Campaign>[] = [
+    {
+      id: "name", header: w.colName, primary: true,
+      cell: (c) => (
+        <span dir="auto" title={c.subject}>{c.name}</span>
+      ),
+    },
+    { id: "sent", header: w.colSent, align: "num", width: "6rem", hideBelow: "sm", cell: (c) => dash(c, c.counters.sent) },
+    { id: "failed", header: w.colFailed, align: "num", width: "6rem", hideBelow: "md", cell: (c) => dash(c, c.counters.failed) },
+    { id: "skipped", header: w.colSkipped, align: "num", width: "6rem", hideBelow: "md", cell: (c) => dash(c, c.counters.suppressed) },
+    { id: "when", header: w.colWhen, width: "13rem", hideBelow: "lg", cell: whenOf },
+  ];
+  /* No selection and no row actions here, so only the labels the table draws matter. */
+  const tableWords = { selectAll: w.cancel, selectRow: (l: string) => l, actions: w.actionsLabel, loading: w.loading, bulkLabel: w.actionsLabel, count: (n: number) => String(n), cancel: w.cancel, more: w.more };
+
   const noFooter = sender !== null && identityMissing(sender).length > 0;
   return (
-    <div className={`max-w-5xl ${phone ? "space-y-3" : "space-y-6"}`} data-testid="campaigns">
+    <div className={`max-w-5xl ${phone ? "space-y-4" : "space-y-6"}`} data-testid="campaigns">
       {phone ? (
-        /* The tab already says Campaigns, so the heading is for screen readers; the two things always at hand share one line. */
-        <div className="flex flex-wrap items-stretch gap-2">
+        /* The tab already says Campaigns, so the heading is for screen readers. */
+        <>
           <h2 className="sr-only">{w.heading}</h2>
-          <button type="button" className="a-btn a-btn-primary min-h-[44px] min-w-[9rem] flex-1" onClick={() => setOpen("new")}>{w.newCampaign}</button>
-          {compileBtn}
-          <SendingSwitch compact />
+          {actionBar}
           {compileNote}
-        </div>
+          <SendingSwitch compact />
+        </>
       ) : (
         <>
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <h2 className="display-tight text-xl">{w.heading}</h2>
-              <p className="a-hint">{w.intro}</p>
+              <h2 className="sr-only">{w.heading}</h2>
+              <p className="a-hint !mt-0">{w.intro}</p>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              {compileBtn}
-              <button type="button" className="a-btn a-btn-primary min-h-[44px]" onClick={() => setOpen("new")}>{w.newCampaign}</button>
-            </div>
+            {actionBar}
           </div>
           {compileNote}
 
@@ -134,50 +153,17 @@ export default function CampaignsTab() {
         ) : (
           <div>
             <p className="a-hint !mt-0 mb-2 tabular-nums" role="status">{w.count(items.length)}</p>
-            <div className="a-box overflow-x-auto">
-              <table className="a-table a-table-fixed" aria-label={w.tableLabel}>
-                <colgroup>
-                  <col />
-                  <col className="a-col-pill" />
-                  <col className="a-col-num hidden sm:table-column" />
-                  <col className="a-col-num hidden md:table-column" />
-                  <col className="a-col-num hidden md:table-column" />
-                  <col className="a-col-when hidden xl:table-column" />
-                </colgroup>
-                <thead>
-                  <tr>
-                    <th scope="col" className="!text-start">{w.colName}</th>
-                    <th scope="col" className="!text-start">{w.colStatus}</th>
-                    <th scope="col" className="hidden sm:table-cell" style={{ textAlign: "right" }}>{w.colSent}</th>
-                    <th scope="col" className="hidden md:table-cell" style={{ textAlign: "right" }}>{w.colFailed}</th>
-                    <th scope="col" className="hidden md:table-cell" style={{ textAlign: "right" }}>{w.colSkipped}</th>
-                    <th scope="col" className="!text-start hidden xl:table-cell">{w.colWhen}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {items.map((c) => (
-                    <tr key={c.id}>
-                      <td className="min-w-0 max-w-[20rem]">
-                        <button type="button" className="block min-h-[44px] w-full text-start" aria-label={w.open(c.name)} onClick={() => setOpen(c.id)}>
-                          <span className="a-row-title block text-sm" dir="auto">{c.name}</span>
-                          <span className="a-row-meta !mt-0.5 block truncate text-sm" dir="auto" title={c.subject}>{c.subject}</span>
-                          <span className="a-row-meta !mt-0.5 block text-sm xl:hidden">{c.status === "scheduled" && c.sendAt ? w.scheduledFor(when(c.sendAt)) : c.finishedAt ? w.finishedAt(when(c.finishedAt)) : w.updatedAt(when(c.updatedAt))}</span>
-                        </button>
-                      </td>
-                      <td className="a-fit text-sm">
-                        <span className="a-pill" data-state={pillState(c.status)}><span className="a-pill-mark" aria-hidden="true" />{w.statuses[c.status]}</span>
-                      </td>
-                      <td className="hidden tabular-nums sm:table-cell" style={{ textAlign: "right" }} dir="ltr">{c.status === "draft" ? <Empty /> : nf.format(c.counters.sent)}</td>
-                      <td className="hidden tabular-nums md:table-cell" style={{ textAlign: "right" }} dir="ltr">{c.status === "draft" ? <Empty /> : nf.format(c.counters.failed)}</td>
-                      <td className="hidden tabular-nums md:table-cell" style={{ textAlign: "right" }} dir="ltr">{c.status === "draft" ? <Empty /> : nf.format(c.counters.suppressed)}</td>
-                      <td className="hidden text-sm xl:table-cell">
-                        {c.status === "scheduled" && c.sendAt ? w.scheduledFor(when(c.sendAt)) : c.finishedAt ? w.finishedAt(when(c.finishedAt)) : w.updatedAt(when(c.updatedAt))}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <DataTable
+              label={w.tableLabel}
+              rows={[...items].sort((x, y) => rank(x) - rank(y))}
+              columns={columns}
+              rowKey={(c) => c.id}
+              rowLabel={(c) => c.name}
+              words={tableWords}
+              onOpen={(c) => setOpen(c.id)}
+              groupBy={(c) => c.status}
+              groupLabel={(k, rows) => `${w.statuses[k as Campaign["status"]]} · ${rows.length}`}
+            />
           </div>
         )}
       </SkeletonSwap>
